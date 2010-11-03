@@ -151,9 +151,11 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     # Unrolling fixed-count loops is a useful optimization for Simmatrix.
     SET(GCC_OPT_ENABLE "-funroll-loops")
-    # Gcc 4.4.3 on Ubuntu 10 is buggy; must disable these
-    SET(GCC_OPT_DISABLE 
-        "-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
+    IF(NOT APPLE)
+        # Gcc 4.4.3 on Ubuntu 10 is buggy; must disable these
+        SET(GCC_OPT_DISABLE 
+	"-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
+    ENDIF(NOT APPLE)
 
     # C++
     SET(CMAKE_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
