@@ -1,8 +1,9 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/VisualizationProtocol.h"
 #include "simbody/internal/VisualizationEventListener.h"
+#include "lodepng.h"
 #ifdef _WIN32
-    // This file will not compile unless windows.h is 
+    // This file will not compile unless windows.h is
     // restricted by these defines due to name conflicts.
     #define WIN32_LEAN_AND_MEAN
     #define NOMINMAX
@@ -24,6 +25,14 @@
     PFNGLUSEPROGRAMPROC glUseProgram;
     PFNGLUNIFORM3FPROC glUniform3f;
     PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+    PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
+    PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
+    PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+    PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
+    PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+    PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+    PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
+    PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
 #else
     #include <unistd.h>
     #ifdef __APPLE__
@@ -43,6 +52,7 @@
 #include <cstdio>
 #include <utility>
 #include <string>
+#include <sys/stat.h>
 
 using namespace SimTK;
 using namespace std;
@@ -260,6 +270,8 @@ static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
 static int fpsBaseTime = 0, fpsCounter = 0;
 static Scene* scene;
+static string overlayMessage;
+static int hideMessageTime = 0;
 
 class PendingMesh : public PendingCommand {
 public:
@@ -518,7 +530,7 @@ static void drawGroundAndSky() {
     }
 
     // Draw the rectangle to represent the sky.
-    
+
     Real viewDistance = 0.5*(nearClip+farClip);
     Real xwidth = viewDistance*tan(0.5*fieldOfView*viewWidth/viewHeight);
     Real ywidth = viewDistance*tan(0.5*fieldOfView);
@@ -661,7 +673,7 @@ static void renderScene() {
         gluLookAt(cameraPos[0], cameraPos[1], cameraPos[2], centerPos[0], centerPos[1], centerPos[2], upDir[0], upDir[1], upDir[2]);
 
         // Render the objects in the scene.
-        
+
         for (int i = 0; i < (int) scene->lines.size(); i++)
             scene->lines[i].draw();
         glLineWidth(2);
@@ -695,11 +707,15 @@ static void renderScene() {
         }
     }
     pthread_mutex_unlock(&sceneLock);
-    glDisable(GL_BLEND);
-    glDepthMask(GL_TRUE);
+}
+
+static void redrawDisplay() {
+    renderScene();
 
     // Draw menus.
 
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
@@ -715,7 +731,7 @@ static void renderScene() {
         menux += menus[i].draw(menux, viewHeight-10);
 
     // Draw the frame rate counter.
-    
+
     if (showFPS) {
         stringstream fpsstream;
         fpsstream << "Frames/Second: ";
@@ -725,6 +741,16 @@ static void renderScene() {
         glRasterPos2f(10, 25);
         for (int i = 0; i < (int) fps.size(); i++)
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, fps[i]);
+    }
+
+    // Draw a message overlay.
+
+    if (hideMessageTime > 0) {
+        glColor3f(1.0f, 0.5f, 0.0f);
+        int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) overlayMessage.c_str());
+        glRasterPos2f(std::max(0, (viewWidth-width)/2), viewHeight/2);
+        for (int i = 0; i < (int) overlayMessage.size(); i++)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, overlayMessage[i]);
     }
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -815,9 +841,74 @@ static void keyPressed(unsigned char key, int x, int y) {
 }
 
 static void animateDisplay(int value) {
+    if (hideMessageTime > 0 && hideMessageTime < glutGet(GLUT_ELAPSED_TIME)) {
+        hideMessageTime = 0;
+        needRedisplay = true;
+    }
     if (needRedisplay)
-        renderScene();
+        redrawDisplay();
     glutTimerFunc(33, animateDisplay, 0);
+}
+
+static void setOverlayMessage(const string& message) {
+    overlayMessage = message;
+    hideMessageTime = glutGet(GLUT_ELAPSED_TIME)+5000;
+}
+
+static void saveImage() {
+    // Create offscreen buffers for rendering the image.
+
+    GLuint frameBuffer, colorBuffer, depthBuffer;
+    glGenFramebuffers(1, &frameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+    glGenRenderbuffers(1, &colorBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, colorBuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB8, viewWidth, viewHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorBuffer);
+    glGenRenderbuffers(1, &depthBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, viewWidth, viewHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
+
+    // Render the image and load it into memory.
+
+    renderScene();
+    vector<unsigned char> data(viewWidth*viewHeight*3);
+    glReadPixels(0, 0, viewWidth, viewHeight, GL_RGB, GL_UNSIGNED_BYTE, &data[0]);
+    glDeleteRenderbuffers(1, &colorBuffer);
+    glDeleteRenderbuffers(1, &depthBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDeleteFramebuffers(1, &frameBuffer);
+
+    // Flip the image vertically, since OpenGL and PNG use different row orders.
+
+    const int rowLength = 3*viewWidth;
+    for (int row = 0; row < viewHeight/2; ++row) {
+        const int base1 = row*rowLength;
+        const int base2 = (viewHeight-1-row)*rowLength;
+        for (int i = 0; i < rowLength; i++) {
+            unsigned char temp = data[base1+i];
+            data[base1+i] = data[base2+i];
+            data[base2+i] = temp;
+        }
+    }
+
+    // Save it to disk.
+
+    struct stat statInfo;
+    int counter = 0;
+    string filename;
+    do {
+        counter++;
+        stringstream namestream;
+        namestream << "Saved Image ";
+        namestream << counter;
+        namestream << ".png";
+        filename = namestream.str();
+    } while (stat(filename.c_str(), &statInfo) == 0);
+    LodePNG::encode(filename, data, viewWidth, viewHeight, 2, 8);
+    setOverlayMessage("Saved as: "+filename);
+    redrawDisplay();
 }
 
 static void addVec(vector<float>& data, float x, float y, float z) {
@@ -1316,6 +1407,7 @@ static const int MENU_BACKGROUND_WHITE = 7;
 static const int MENU_BACKGROUND_SKY = 8;
 static const int MENU_SHOW_SHADOWS = 9;
 static const int MENU_SHOW_FPS = 10;
+static const int MENU_SAVE_IMAGE = 11;
 
 void viewMenuSelected(int option) {
     Rotation groundRotation;
@@ -1371,6 +1463,9 @@ void viewMenuSelected(int option) {
         case MENU_SHOW_FPS:
             showFPS = !showFPS;
             break;
+        case MENU_SAVE_IMAGE:
+            saveImage();
+            break;
     }
     needRedisplay = true;
 }
@@ -1392,7 +1487,7 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(100,100);
     glutInitWindowSize(500, 500);
     glutCreateWindow(title.c_str());
-    glutDisplayFunc(renderScene);
+    glutDisplayFunc(redrawDisplay);
     glutReshapeFunc(changeSize);
     glutMouseFunc(mousePressed);
     glutMotionFunc(mouseDragged);
@@ -1414,6 +1509,14 @@ int main(int argc, char** argv) {
     glUseProgram    = (PFNGLUSEPROGRAMPROC) wglGetProcAddress("glUseProgram");
     glUniform3f     = (PFNGLUNIFORM3FPROC) wglGetProcAddress("glUniform3f");
     glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) wglGetProcAddress("glGetUniformLocation");
+    glGenFramebuffers    = (PFNGLGENFRAMEBUFFERSPROC) wglGetProcAddress("glGenFramebuffers");
+    glGenRenderbuffers   = (PFNGLGENRENDERBUFFERSPROC) wglGetProcAddress("glGenRenderbuffers");
+    glBindFramebuffer    = (PFNGLBINDFRAMEBUFFERPROC) wglGetProcAddress("glBindFramebuffer");
+    glBindRenderbuffer   = (PFNGLBINDRENDERBUFFERPROC) wglGetProcAddress("glBindRenderbuffer");
+    glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC) wglGetProcAddress("glRenderbufferStorage");
+    glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFERPROC) wglGetProcAddress("glFramebufferRenderbuffer");
+    glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC) wglGetProcAddress("glDeleteRenderbuffers");
+    glDeleteFramebuffers  = (PFNGLDELETEFRAMEBUFFERSPROC) wglGetProcAddress("glDeleteFramebuffers");
 #endif
 
     // Set up lighting.
@@ -1452,6 +1555,7 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Background/Ground and Sky", MENU_BACKGROUND_SKY));
     items.push_back(make_pair("Show//Hide/Shadows", MENU_SHOW_SHADOWS));
     items.push_back(make_pair("Show//Hide/Frame Rate", MENU_SHOW_FPS));
+    items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
     menus.push_back(Menu("View", items, viewMenuSelected));
 
     // Spawn the listener thread.
