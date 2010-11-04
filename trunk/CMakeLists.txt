@@ -149,9 +149,7 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     # Get the gcc version number in major.minor.build format
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                    OUTPUT_VARIABLE GCC_VERSION_VAR)
-    SET(GCC_VERSION ${GCC_VERSION_VAR} CACHE STRING "reported gcc version" 
-	FORCE)	    
+                    OUTPUT_VARIABLE GCC_VERSION)
 
     # Unrolling fixed-count loops is a useful optimization for Simmatrix.
     SET(GCC_OPT_ENABLE "-funroll-loops")
