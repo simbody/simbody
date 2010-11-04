@@ -24,8 +24,8 @@
 cmake_minimum_required(VERSION 2.8)
 
 if(COMMAND cmake_policy)
-        cmake_policy(SET CMP0003 NEW)
-        cmake_policy(SET CMP0005 NEW)
+    cmake_policy(SET CMP0003 NEW)
+    cmake_policy(SET CMP0005 NEW)
 endif(COMMAND cmake_policy)
 
 PROJECT (SimTKcommon)
@@ -33,13 +33,13 @@ PROJECT (SimTKcommon)
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.
 SET(BUILD_USING_NAMESPACE "" CACHE STRING
-	"All library names will be prefixed with 'xxx_' if this is set to xxx.")
+    "All library names will be prefixed with 'xxx_' if this is set to xxx.")
 
 SET(BUILD_UNVERSIONED_LIBRARIES TRUE CACHE BOOL
- "Build library names, and assume dependency names, with no version numbers?")
+    "Build library names, and assume dependency names, with no version numbers?")
 
 SET(BUILD_VERSIONED_LIBRARIES FALSE CACHE BOOL
- "Build library names, and assume dependency names, with version numbers?")
+    "Build library names, and assume dependency names, with version numbers?")
 
 SET(NS)
 IF(BUILD_USING_NAMESPACE)
@@ -50,24 +50,24 @@ ENDIF(BUILD_USING_NAMESPACE)
 # ENABLE_TESTING() command, but we'll take it over here for
 # our own purposes too.
 SET( BUILD_TESTING ON CACHE BOOL
-	"Control building of SimTKcommon test programs." )
+    "Control building of SimTKcommon test programs." )
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
 # is easier to debug the static tests than the DLL-liked ones.
-SET( BUILD_TESTING_STATIC ON CACHE BOOL
-	"If building test programs, include statically-linked ones?" )
+SET(BUILD_TESTING_STATIC ON CACHE BOOL
+    "If building test programs, include statically-linked ones?" )
 
-SET( BUILD_TESTING_SHARED ON CACHE BOOL
- 	"If building test programs, include dynamically-linked ones?" )
+SET(BUILD_TESTING_SHARED ON CACHE BOOL
+    "If building test programs, include dynamically-linked ones?" )
 
 
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
 SET(SimTKCOMMON_SOURCE_SUBDIRS
-	. Scalar SmallMatrix Mechanics BigMatrix
-	Geometry Simulation Random Polynomial)
+    . Scalar SmallMatrix Mechanics BigMatrix
+    Geometry Simulation Random Polynomial)
 
 
 # 
@@ -145,17 +145,28 @@ MARK_AS_ADVANCED( BUILD_INST_SET )
 ## When building in any of the Release modes, tell gcc to use full optimization and
 ## to generate SSE2 floating point instructions. Here we are specifying *all* of the
 ## Release flags, overriding CMake's defaults.
+## Watch out for optimizer bugs in particular gcc versions!
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
-    STRING(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
+    string(tolower ${BUILD_INST_SET} GCC_INST_SET)
 
+    # Get the gcc version number in major.minor.build format
+    execute_process(command ${CMAKE_C_COMPILER} -dumpversion
+                    output_variable GCC_VERSION)
+	
     # Unrolling fixed-count loops is a useful optimization for Simmatrix.
     SET(GCC_OPT_ENABLE "-funroll-loops")
-    IF(NOT APPLE)
-        # Gcc 4.4.3 on Ubuntu 10 is buggy; must disable these
+
+    # If you know of optimization bugs that affect SimTK in particular
+    # gcc versions, this is the place to turn off those optimizations.
+    SET(GCC_OPT_DISABLE)
+    # We know Gcc 4.4.3 on Ubuntu 10 is buggy and that Snow Leopard's
+    # 4.2.1 is not. To be safe for now we'll assume anything over 4.3
+    # should have these disabled.
+    if (GCC_VERSION version_greater 4.3 OR GCC_VERSION version_equal 4.3)
         SET(GCC_OPT_DISABLE 
 	"-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
-    ENDIF(NOT APPLE)
+    endif()
 
     # C++
     SET(CMAKE_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
