@@ -1,3 +1,35 @@
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Authors: Peter Eastman                                                     *
+ * Contributors: Michael Sherman                                              *     
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
+
+
 #include "SimTKsimbody.h"
 #include "simbody/internal/VisualizationProtocol.h"
 #include "simbody/internal/VisualizationEventListener.h"
@@ -5,6 +37,8 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cctype>
+#include <cerrno>
+#include <cstring>
 #include <string>
 
 using namespace SimTK;
@@ -16,14 +50,7 @@ using namespace std;
     #include <process.h>
     #define READ _read
 #else
-    #include <spawn.h>
     #include <unistd.h>
-    #ifdef __APPLE__
-        #include <crt_externs.h>
-        static char** environ = (*_NSGetEnviron());
-    #else
-        extern char** environ;
-    #endif
     #define READ read
 #endif
 
@@ -42,10 +69,9 @@ static int createPipe(int pipeHandles[2]) {
 
 // Spawn the visualizer GUI executable, using the right method for
 // this platform. We take two executables to try in order,
-// and return as soon as one of them fails. If neither works, we return
-// status -1, otherwise we return the status code from the successful
-// spawn.
-static int spawnViz(const char* localPath, const char* installPath,
+// and return after the first one succeeds. If neither works, we throw
+// an error that is hopefully helful.
+static void spawnViz(const char* localPath, const char* installPath,
                     const char* appName, int toSimPipe, int fromSimPipe,
                     const char* title)
 {
@@ -53,25 +79,35 @@ static int spawnViz(const char* localPath, const char* installPath,
     char vizPipeToSim[32], vizPipeFromSim[32];
     sprintf(vizPipeToSim, "%d", toSimPipe);
     sprintf(vizPipeFromSim, "%d", fromSimPipe);
+
 #ifdef _WIN32
-    status = _spawnl(P_NOWAIT, localPath, appName, vizPipeToSim, vizPipeFromSim, title, NULL);
-    if (status == -1)
-        status = _spawnl(P_NOWAIT, installPath, appName, vizPipeToSim, vizPipeFromSim, title, NULL);
-    SimTK_ERRCHK2_ALWAYS(status != -1, "VisualizationProtocol::ctor()",
-        "Unable to spawn the Visualization GUI; tried '%s' and '%s'.", localPath, installPath);
+    intptr_t handle;
+    handle = _spawnl(P_NOWAIT, localPath, appName, 
+                     vizPipeToSim, vizPipeFromSim, title, (const char*)0);
+    if (handle == -1)
+        handle = _spawnl(P_NOWAIT, installPath, appName, 
+                         vizPipeToSim, vizPipeFromSim, title, (const char*)0);
+    status = (handle==-1) ? -1 : 0;
 #else
-    pid_t pid;
-    const char* const argv[] = {appName, vizPipeToSim, vizPipeFromSim, title, NULL};
-    posix_spawn_file_actions_t fileActions;
-    status = posix_spawn(&pid, localPath, NULL, NULL,
-                         (char* const*)argv, environ);
-    if (status != 0)
-        status = posix_spawn(&pid, installPath, NULL, NULL,
-                             (char* const*)argv, environ);
-    SimTK_ERRCHK2_ALWAYS(status == 0, "VisualizationProtocol::ctor()",
-        "Unable to spawn the Visualization GUI; tried '%s' and '%s'.", localPath, installPath);
+    const pid_t pid = fork();
+    if (pid == 0) {
+        // child process
+        status = execl(localPath, appName, vizPipeToSim, vizPipeFromSim, title,
+                       (const char*)0); 
+        // if we get here the execl() failed
+        status = execl(installPath, appName, vizPipeToSim, vizPipeFromSim, title,
+                       (const char*)0); 
+       // fall through
+    } else {
+        // parent process
+        status = (pid==-1) ? -1 : 0;
+    }
 #endif
-    return status;
+
+    SimTK_ERRCHK4_ALWAYS(status == 0, "VisualizationProtocol::ctor()",
+        "Unable to spawn the Visualization GUI; tried '%s' and '%s'. Got"
+        " errno=%d (%s).", 
+        localPath, installPath, errno, strerror(errno));
 }
 
 static void readData(char* buffer, int bytes) {
@@ -158,7 +194,7 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer, const Strin
 
     // Spawn the visualizer gui, trying local first then installed version.
     spawnViz(localPath.c_str(), installPath.c_str(),
-                      GuiAppName, sim2vizPipe[0], viz2simPipe[1], qtitle.c_str());
+             GuiAppName, sim2vizPipe[0], viz2simPipe[1], qtitle.c_str());
 
     // Spawn the thread to listen for events.
 
