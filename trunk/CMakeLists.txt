@@ -108,9 +108,6 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-MARK_AS_ADVANCED( SimTK_SDK  )
-MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
-
 INCLUDE_DIRECTORIES(${SimTK_SDK}/include)
 
 IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
@@ -152,8 +149,10 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     # Get the gcc version number in major.minor.build format
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                    OUTPUT_VARIABLE GCC_VERSION)
-	
+                    OUTPUT_VARIABLE GCC_VERSION_VAR)
+    SET(GCC_VERSION ${GCC_VERSION_VAR} CACHE STRING "reported gcc version" 
+	FORCE)	    
+
     # Unrolling fixed-count loops is a useful optimization for Simmatrix.
     SET(GCC_OPT_ENABLE "-funroll-loops")
 
