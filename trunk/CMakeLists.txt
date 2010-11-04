@@ -148,11 +148,11 @@ MARK_AS_ADVANCED( BUILD_INST_SET )
 ## Watch out for optimizer bugs in particular gcc versions!
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
-    string(tolower ${BUILD_INST_SET} GCC_INST_SET)
+    string(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
 
     # Get the gcc version number in major.minor.build format
-    execute_process(command ${CMAKE_C_COMPILER} -dumpversion
-                    output_variable GCC_VERSION)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
+                    OUTPUT_VARIABLE GCC_VERSION)
 	
     # Unrolling fixed-count loops is a useful optimization for Simmatrix.
     SET(GCC_OPT_ENABLE "-funroll-loops")
@@ -163,7 +163,7 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     # We know Gcc 4.4.3 on Ubuntu 10 is buggy and that Snow Leopard's
     # 4.2.1 is not. To be safe for now we'll assume anything over 4.3
     # should have these disabled.
-    if (GCC_VERSION version_greater 4.3 OR GCC_VERSION version_equal 4.3)
+    if (GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
         SET(GCC_OPT_DISABLE 
 	"-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
     endif()
