@@ -57,6 +57,15 @@
 using namespace SimTK;
 using namespace std;
 
+// gcc 4.4.3 complains bitterly if you don't check the return
+// status from the write() system call. This avoids those 
+// warnings and maybe, someday, will catch an error.
+#define WRITE(pipeno, buf, len) \
+   {int status=write((pipeno), (buf), (len)); \
+    SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizationGUI",  \
+    "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
+    (len),(pipeno),errno,strerror(errno));}
+
 static Transform cameraTransform(Rotation(), Vec3(0, 0, 10));
 static int clickModifiers;
 static int clickButton;
@@ -363,8 +372,8 @@ public:
 
 void menuSelected(int option) {
     char command = MENU_SELECTED;
-    write(outPipe, &command, 1);
-    write(outPipe, &option, sizeof(int));
+    WRITE(outPipe, &command, 1);
+    WRITE(outPipe, &option, sizeof(int));
 }
 
 class Menu {
@@ -768,7 +777,7 @@ static void mousePressed(int button, int state, int x, int y) {
             Vec3 sceneCenter;
             computeSceneBounds(radius, sceneCenter);
             Real distToCenter = (sceneCenter-cameraTransform.T()).norm();
-            Real defaultDistance;
+            Real defaultDistance = 10; // TODO: Peter?
             if (distToCenter > defaultDistance)
                 rotateCenter = sceneCenter;
             else {
@@ -826,7 +835,7 @@ static void mouseMoved(int x, int y) {
 
 static void keyPressed(unsigned char key, int x, int y) {
     char command = KEY_PRESSED;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     unsigned char buffer[2];
     buffer[0] = key;
     buffer[1] = 0;
@@ -837,7 +846,7 @@ static void keyPressed(unsigned char key, int x, int y) {
         buffer[1] += VisualizationEventListener::CONTROL_DOWN;
     if ((modifiers & GLUT_ACTIVE_ALT) != 0)
         buffer[1] += VisualizationEventListener::ALT_DOWN;
-    write(outPipe, buffer, 2);
+    WRITE(outPipe, buffer, 2);
 }
 
 static void animateDisplay(int value) {

@@ -54,6 +54,15 @@ using namespace std;
     #define READ read
 #endif
 
+// gcc 4.4.3 complains bitterly if you don't check the return
+// status from the write() system call. This avoids those 
+// warnings and maybe, someday, will catch an error.
+#define WRITE(pipeno, buf, len) \
+   {int status=write((pipeno), (buf), (len)); \
+    SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizationProtocol",  \
+    "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
+    (len),(pipeno),errno,strerror(errno));}
+
 static int inPipe;
 
 // Create a pipe, using the right call for this platform.
@@ -206,12 +215,12 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer, const Strin
 void VisualizationProtocol::beginScene() {
     pthread_mutex_lock(&sceneLock);
     char command = START_OF_SCENE;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
 }
 
 void VisualizationProtocol::finishScene() {
     char command = END_OF_SCENE;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     pthread_mutex_unlock(&sceneLock);
 }
 
@@ -289,13 +298,13 @@ void VisualizationProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const T
         index = meshes.size()+4;
         meshes[impl] = index;
         char command = DEFINE_MESH;
-        write(outPipe, &command, 1);
+        WRITE(outPipe, &command, 1);
         unsigned short numVertices = vertices.size()/3;
         unsigned short numFaces = faces.size()/3;
-        write(outPipe, &numVertices, sizeof(short));
-        write(outPipe, &numFaces, sizeof(short));
-        write(outPipe, &vertices[0], vertices.size()*sizeof(float));
-        write(outPipe, &faces[0], faces.size()*sizeof(short));
+        WRITE(outPipe, &numVertices, sizeof(short));
+        WRITE(outPipe, &numFaces, sizeof(short));
+        WRITE(outPipe, &vertices[0], vertices.size()*sizeof(float));
+        WRITE(outPipe, &faces[0], faces.size()*sizeof(short));
     }
     else
         index = iter->second;
@@ -304,7 +313,7 @@ void VisualizationProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const T
 
 void VisualizationProtocol::drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) {
     char command = (representation == DecorativeGeometry::DrawPoints ? ADD_POINT_MESH : (representation == DecorativeGeometry::DrawWireframe ? ADD_WIREFRAME_MESH : ADD_SOLID_MESH));
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float buffer[13];
     Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
     buffer[0] = (float) rot[0];
@@ -320,13 +329,13 @@ void VisualizationProtocol::drawMesh(const Transform& transform, const Vec3& sca
     buffer[10] = (float) color[1];
     buffer[11] = (float) color[2];
     buffer[12] = (float) color[3];
-    write(outPipe, buffer, 13*sizeof(float));
-    write(outPipe, &meshIndex, sizeof(short));
+    WRITE(outPipe, buffer, 13*sizeof(float));
+    WRITE(outPipe, &meshIndex, sizeof(short));
 }
 
 void VisualizationProtocol::drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) {
     char command = ADD_LINE;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float buffer[10];
     buffer[0] = (float) color[0];
     buffer[1] = (float) color[1];
@@ -338,13 +347,13 @@ void VisualizationProtocol::drawLine(const Vec3& end1, const Vec3& end2, const V
     buffer[7] = (float) end2[0];
     buffer[8] = (float) end2[1];
     buffer[9] = (float) end2[2];
-    write(outPipe, buffer, 10*sizeof(float));
+    WRITE(outPipe, buffer, 10*sizeof(float));
 }
 
 void VisualizationProtocol::drawText(const Vec3& position, Real scale, const Vec4& color, const string& string) {
     SimTK_ASSERT_ALWAYS(string.size() <= 256, "DecorativeText cannot be longer than 256 characters");
     char command = ADD_TEXT;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float buffer[7];
     buffer[0] = (float) position[0];
     buffer[1] = (float) position[1];
@@ -353,15 +362,15 @@ void VisualizationProtocol::drawText(const Vec3& position, Real scale, const Vec
     buffer[4] = (float) color[0];
     buffer[5] = (float) color[1];
     buffer[6] = (float) color[2];
-    write(outPipe, buffer, 7*sizeof(float));
+    WRITE(outPipe, buffer, 7*sizeof(float));
     short length = string.size();
-    write(outPipe, &length, sizeof(short));
-    write(outPipe, &string[0], length);
+    WRITE(outPipe, &length, sizeof(short));
+    WRITE(outPipe, &string[0], length);
 }
 
 void VisualizationProtocol::drawFrame(const Transform& transform, Real axisLength, const Vec4& color) {
     char command = ADD_FRAME;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float buffer[10];
     Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
     buffer[0] = (float) rot[0];
@@ -374,13 +383,13 @@ void VisualizationProtocol::drawFrame(const Transform& transform, Real axisLengt
     buffer[7] = (float) color[0];
     buffer[8] = (float) color[1];
     buffer[9] = (float) color[2];
-    write(outPipe, buffer, 10*sizeof(float));
+    WRITE(outPipe, buffer, 10*sizeof(float));
 }
 
 void VisualizationProtocol::setCameraTransform(const Transform& transform) {
     pthread_mutex_lock(&sceneLock);
     char command = SET_CAMERA;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float buffer[6];
     Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
     buffer[0] = (float) rot[0];
@@ -389,21 +398,21 @@ void VisualizationProtocol::setCameraTransform(const Transform& transform) {
     buffer[3] = (float) transform.T()[0];
     buffer[4] = (float) transform.T()[1];
     buffer[5] = (float) transform.T()[2];
-    write(outPipe, buffer, 6*sizeof(float));
+    WRITE(outPipe, buffer, 6*sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
 
 void VisualizationProtocol::zoomCamera() {
     pthread_mutex_lock(&sceneLock);
     char command = ZOOM_CAMERA;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     pthread_mutex_unlock(&sceneLock);
 }
 
 void VisualizationProtocol::lookAt(const Vec3& point, const Vec3& upDirection) {
     pthread_mutex_lock(&sceneLock);
     char command = LOOK_AT;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float buffer[6];
     buffer[0] = (float) point[0];
     buffer[1] = (float) point[1];
@@ -411,55 +420,55 @@ void VisualizationProtocol::lookAt(const Vec3& point, const Vec3& upDirection) {
     buffer[3] = (float) upDirection[0];
     buffer[4] = (float) upDirection[1];
     buffer[5] = (float) upDirection[2];
-    write(outPipe, buffer, 6*sizeof(float));
+    WRITE(outPipe, buffer, 6*sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
 
 void VisualizationProtocol::setFieldOfView(Real fov) {
     pthread_mutex_lock(&sceneLock);
     char command = SET_FIELD_OF_VIEW;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float buffer[1];
     buffer[0] = (float)fov;
-    write(outPipe, buffer, sizeof(float));
+    WRITE(outPipe, buffer, sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
 
 void VisualizationProtocol::setClippingPlanes(Real near, Real far) {
     pthread_mutex_lock(&sceneLock);
     char command = SET_CLIP_PLANES;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float buffer[2];
     buffer[0] = (float)near;
     buffer[1] = (float)far;
-    write(outPipe, buffer, 2*sizeof(float));
+    WRITE(outPipe, buffer, 2*sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
 
 void VisualizationProtocol::setGroundPosition(const CoordinateAxis& axis, Real height) {
     pthread_mutex_lock(&sceneLock);
     char command = SET_GROUND_POSITION;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     float heightBuffer = (float) height;
-    write(outPipe, &heightBuffer, sizeof(float));
+    WRITE(outPipe, &heightBuffer, sizeof(float));
     short axisBuffer = axis;
-    write(outPipe, &axisBuffer, sizeof(short));
+    WRITE(outPipe, &axisBuffer, sizeof(short));
     pthread_mutex_unlock(&sceneLock);
 }
 
 void VisualizationProtocol::addMenu(const string& title, const Array_<pair<string, int> >& items) {
     pthread_mutex_lock(&sceneLock);
     char command = DEFINE_MENU;
-    write(outPipe, &command, 1);
+    WRITE(outPipe, &command, 1);
     short titleLength = title.size();
-    write(outPipe, &titleLength, sizeof(short));
-    write(outPipe, &title[0], titleLength);
+    WRITE(outPipe, &titleLength, sizeof(short));
+    WRITE(outPipe, &title[0], titleLength);
     short numItems = items.size();
-    write(outPipe, &numItems, sizeof(short));
+    WRITE(outPipe, &numItems, sizeof(short));
     for (int i = 0; i < numItems; i++) {
         int buffer[] = {items[i].second, items[i].first.size()};
-        write(outPipe, buffer, 2*sizeof(int));
-        write(outPipe, &items[i].first[0], items[i].first.size());
+        WRITE(outPipe, buffer, 2*sizeof(int));
+        WRITE(outPipe, &items[i].first[0], items[i].first.size());
     }
     pthread_mutex_unlock(&sceneLock);
 }
