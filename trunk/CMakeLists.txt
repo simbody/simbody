@@ -106,8 +106,7 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-MARK_AS_ADVANCED( SimTK_SDK  )
-MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
+mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/include)
 
@@ -154,28 +153,52 @@ MARK_AS_ADVANCED( BUILD_INST_SET )
 ## When building in any of the Release modes, tell gcc to use full optimization and
 ## to generate SSE2 floating point instructions. Here we are specifying *all* of the
 ## Release flags, overriding CMake's defaults.
+## Watch out for optimizer bugs in particular gcc versions!
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
-    STRING(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
+    string(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
+
+    # Get the gcc version number in major.minor.build format
+    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
+                    OUTPUT_VARIABLE GCC_VERSION)
+
+    # Unrolling fixed-count loops is a useful optimization for Simmatrix.
+    SET(GCC_OPT_ENABLE "-funroll-loops")
+
+    # If you know of optimization bugs that affect SimTK in particular
+    # gcc versions, this is the place to turn off those optimizations.
+    SET(GCC_OPT_DISABLE)
+    # We know Gcc 4.4.3 on Ubuntu 10 is buggy and that Snow Leopard's
+    # 4.2.1 is not. To be safe for now we'll assume anything over 4.3
+    # should have these disabled.
+    if (GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
+        SET(GCC_OPT_DISABLE 
+	"-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
+    endif()
+
     # C++
     SET(CMAKE_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
-        CACHE STRING "g++ Debug build compile flags" FORCE)
-    SET(CMAKE_CXX_FLAGS_RELEASE        "-DNDEBUG -O3 -m${GCC_INST_SET}" 
-        CACHE STRING "g++ Release build compile flags" FORCE)
-    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -O3 -g -m${GCC_INST_SET}" 
-        CACHE STRING "g++ RelWithDebInfo build compile flags" FORCE)
+      CACHE STRING "g++ Debug build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELEASE        
+      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
+      CACHE STRING "g++ Release build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
+      "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
+      CACHE STRING "g++ RelWithDebInfo build compile flags" FORCE)
     SET(CMAKE_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os -m${GCC_INST_SET}" 
-        CACHE STRING "g++ MinSizeRel build compile flags" FORCE)
+      CACHE STRING "g++ MinSizeRel build compile flags" FORCE)
 
     # C
     SET(CMAKE_C_FLAGS_DEBUG            "-g -m${GCC_INST_SET}" 
-        CACHE STRING "gcc Debug build compile flags" FORCE)
-    SET(CMAKE_C_FLAGS_RELEASE          "-DNDEBUG -O3 -m${GCC_INST_SET}" 
-        CACHE STRING "gcc Release build compile flags" FORCE)
-    SET(CMAKE_C_FLAGS_RELWITHDEBINFO   "-DNDEBUG -O3 -g -m${GCC_INST_SET}" 
-        CACHE STRING "gcc RelWithDebInfo build compile flags" FORCE)
+      CACHE STRING "gcc Debug build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELEASE          
+      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
+      CACHE STRING "gcc Release build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO   
+      "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
+      CACHE STRING "gcc RelWithDebInfo build compile flags" FORCE)
     SET(CMAKE_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os -m${GCC_INST_SET}" 
-        CACHE STRING "gcc MinSizeRel build compile flags" FORCE)
+      CACHE STRING "gcc MinSizeRel build compile flags" FORCE)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
