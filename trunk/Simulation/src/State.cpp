@@ -1836,19 +1836,19 @@ public:
     
         out += "<Vector name=q size=" + String(q.size()) + ">";
         if (q.size()) out += "\n";
-        for (long i=0; i<q.size(); ++i)
+        for (int i=0; i<q.size(); ++i)
             out += String(q[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=u size=" + String(u.size()) + ">";
         if (u.size()) out += "\n";
-        for (long i=0; i<u.size(); ++i)
+        for (int i=0; i<u.size(); ++i)
             out += String(u[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=z size=" + String(z.size()) + ">";
         if (z.size()) out += "\n";
-        for (long i=0; i<z.size(); ++i)
+        for (int i=0; i<z.size(); ++i)
             out += String(z[i]) + "\n";
         out += "</Vector>\n";
     
@@ -1909,49 +1909,49 @@ public:
     
         out += "<Vector name=qdot size=" + String(qdot.size()) + ">";
         if (qdot.size()) out += "\n";
-        for (long i=0; i<qdot.size(); ++i)
+        for (int i=0; i<qdot.size(); ++i)
             out += String(qdot[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=udot size=" + String(udot.size()) + ">";
         if (udot.size()) out += "\n";
-        for (long i=0; i<udot.size(); ++i)
+        for (int i=0; i<udot.size(); ++i)
             out += String(udot[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=zdot size=" + String(zdot.size()) + ">";
         if (zdot.size()) out += "\n";
-        for (long i=0; i<zdot.size(); ++i)
+        for (int i=0; i<zdot.size(); ++i)
             out += String(zdot[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=qdotdot size=" + String(qdotdot.size()) + ">";
         if (qdotdot.size()) out += "\n";
-        for (long i=0; i<qdotdot.size(); ++i)
+        for (int i=0; i<qdotdot.size(); ++i)
             out += String(qdotdot[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=qerr size=" + String(qerr.size()) + ">";
         if (qerr.size()) out += "\n";
-        for (long i=0; i<qerr.size(); ++i)
+        for (int i=0; i<qerr.size(); ++i)
             out += String(qerr[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=uerr size=" + String(uerr.size()) + ">";
         if (uerr.size()) out += "\n";
-        for (long i=0; i<uerr.size(); ++i)
+        for (int i=0; i<uerr.size(); ++i)
             out += String(uerr[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=udoterr size=" + String(udoterr.size()) + ">";
         if (udoterr.size()) out += "\n";
-        for (long i=0; i<udoterr.size(); ++i)
+        for (int i=0; i<udoterr.size(); ++i)
             out += String(udoterr[i]) + "\n";
         out += "</Vector>\n";
     
         out += "<Vector name=multipliers size=" + String(multipliers.size()) + ">";
         if (multipliers.size()) out += "\n";
-        for (long i=0; i<multipliers.size(); ++i)
+        for (int i=0; i<multipliers.size(); ++i)
             out += String(multipliers[i]) + "\n";
         out += "</Vector>\n";
     

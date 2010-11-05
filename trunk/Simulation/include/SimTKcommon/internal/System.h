@@ -108,8 +108,8 @@ public:
 
 
     class ProjectOptions {
-        unsigned long optionSet;
-        explicit ProjectOptions(unsigned int o) : optionSet(o) { }
+        unsigned int optionSet;
+        explicit ProjectOptions(unsigned o) : optionSet(o) { }
     public:
 
         enum Option {
@@ -134,21 +134,21 @@ public:
         ProjectOptions() : optionSet(0) { }
 
         // This is an implicit conversion
-        ProjectOptions(Option opt) : optionSet((unsigned long)opt) { }
+        ProjectOptions(Option opt) : optionSet((unsigned)opt) { }
 
         // Implicit conversion to bool when needed
         operator bool() const {return optionSet != 0;}
-        bool hasAnyPositionOptions() const {return (optionSet&(unsigned long)PositionOnly) != 0;}
-        bool hasAnyVelocityOptions() const {return (optionSet&(unsigned long)VelocityOnly) != 0;}
+        bool hasAnyPositionOptions() const {return (optionSet&(unsigned)PositionOnly) != 0;}
+        bool hasAnyVelocityOptions() const {return (optionSet&(unsigned)VelocityOnly) != 0;}
         bool isEmpty() const {return optionSet==0;}
 
-        bool isOptionSet(Option opt) const {return (optionSet&(unsigned long)opt) != 0;}
+        bool isOptionSet(Option opt) const {return (optionSet&(unsigned)opt) != 0;}
         void clear() {optionSet=0;}
-        void clearOption(Option opt) {optionSet &= ~(unsigned long)opt;}
-        void setOption  (Option opt) {optionSet |= (unsigned long)opt;}
+        void clearOption(Option opt) {optionSet &= ~(unsigned)opt;}
+        void setOption  (Option opt) {optionSet |= (unsigned)opt;}
 
         // Set operators: not, or, and, set difference
-        ProjectOptions operator~() const {return ProjectOptions( (~optionSet) & (unsigned long)All );}
+        ProjectOptions operator~() const {return ProjectOptions( (~optionSet) & (unsigned)All );}
         ProjectOptions& operator|=(ProjectOptions opts) {optionSet |= opts.optionSet; return *this;}
         ProjectOptions& operator&=(ProjectOptions opts) {optionSet &= opts.optionSet; return *this;}
         ProjectOptions& operator-=(ProjectOptions opts) {optionSet &= ~opts.optionSet; return *this;}

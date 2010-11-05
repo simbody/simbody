@@ -209,8 +209,8 @@ public:
     }
 
 private:
-    size_t          nOccupiedSlots; // not counting empty slots
-    Array_<T*>      stuff;
+    size_t              nOccupiedSlots; // not counting empty slots
+    Array_<T*,size_t>   stuff;
 
     // Note that this can leave empty slots at the end of the list which
     // is not a legitimate condition for the StableArray.

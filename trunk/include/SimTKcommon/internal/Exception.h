@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -167,12 +167,12 @@ public:
 class IndexOutOfRange : public Base {
 public:
     IndexOutOfRange(const char* fn, int ln, const char* indexName,
-                    long lb, long index, long ub, const char* where)
+                    long long lb, long long index, long long ub, const char* where)
       : Base(fn,ln)
     {
         char buf[1024];
 
-        sprintf(buf, "Index out of range in %s: expected %ld <= %s < %ld but %s=%ld.",
+        sprintf(buf, "Index out of range in %s: expected %lld <= %s < %lld but %s=%lld.",
             where,lb,indexName,ub,indexName,index);
         setMessage(std::string(buf));
     }
@@ -182,12 +182,12 @@ public:
 class SizeOutOfRange : public Base {
 public:
     SizeOutOfRange(const char* fn, int ln, const char* szName,
-                   long sz, long maxsz, const char* where)
+                   unsigned long long sz, unsigned long long maxsz, const char* where)
       : Base(fn,ln)
     {
         char buf[1024];
 
-        sprintf(buf, "Size out of range in %s: expected 0 <= %s <= %ld but %s=%ld.",
+        sprintf(buf, "Size out of range in %s: expected 0 <= %s <= %llu but %s=%llu.",
             where,szName,maxsz,szName,sz);
         setMessage(std::string(buf));
     }
@@ -197,12 +197,12 @@ public:
 class SizeWasNegative : public Base {
 public:
     SizeWasNegative(const char* fn, int ln, const char* szName,
-                   long sz, const char* where)
+                   unsigned long long sz, const char* where)
       : Base(fn,ln)
     {
         char buf[1024];
 
-        sprintf(buf, "Size argument was negative in %s: expected 0 <= %s but %s=%ld.",
+        sprintf(buf, "Size argument was negative in %s: expected 0 <= %s but %s=%llu.",
             where,szName,szName,sz);
         setMessage(std::string(buf));
     }

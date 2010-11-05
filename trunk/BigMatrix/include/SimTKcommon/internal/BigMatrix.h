@@ -996,7 +996,7 @@ public:
     int getPackedSizeofElement() const {return NScalarsPerElement*sizeof(Scalar);}
 
     bool hasContiguousData() const {return helper.hasContiguousData();}
-    long getContiguousScalarDataLength() const {
+    ptrdiff_t getContiguousScalarDataLength() const {
         return helper.getContiguousDataLength();
     }
     const Scalar* getContiguousScalarData() const {
@@ -1005,13 +1005,13 @@ public:
     Scalar* updContiguousScalarData() {
         return helper.updContiguousData();
     }
-    void replaceContiguousScalarData(Scalar* newData, long length, bool takeOwnership) {
+    void replaceContiguousScalarData(Scalar* newData, ptrdiff_t length, bool takeOwnership) {
         helper.replaceContiguousData(newData,length,takeOwnership);
     }
-    void replaceContiguousScalarData(const Scalar* newData, long length) {
+    void replaceContiguousScalarData(const Scalar* newData, ptrdiff_t length) {
         helper.replaceContiguousData(newData,length);
     }
-    void swapOwnedContiguousScalarData(Scalar* newData, int length, Scalar*& oldData) {
+    void swapOwnedContiguousScalarData(Scalar* newData, ptrdiff_t length, Scalar*& oldData) {
         helper.swapOwnedContiguousData(newData,length,oldData);
     }
 
