@@ -304,7 +304,7 @@ public:
 static int viewWidth, viewHeight;
 static GLdouble fieldOfView = SimTK_PI/4;
 static GLdouble nearClip = 1;
-static GLdouble farClip = 100;
+static GLdouble farClip = 1000;
 static GLdouble groundHeight = 0;
 static int groundAxis = 1;
 static bool showGround = true, showShadows = true, showFPS = false;
@@ -507,7 +507,7 @@ private:
 
 int Menu::currentMenu = -1;
 
-static void drawGroundAndSky() {
+static void drawGroundAndSky(Real farClipDistance) {
     static GLuint skyProgram = 0;
     if (skyProgram == 0) {
         const GLchar* vertexShaderSource =
@@ -573,7 +573,7 @@ static void drawGroundAndSky() {
 
     // Draw the rectangle to represent the sky.
 
-    Real viewDistance = 0.5*(nearClip+farClip);
+    Real viewDistance = 0.9999*farClipDistance;
     Real xwidth = viewDistance*tan(0.5*fieldOfView*viewWidth/viewHeight);
     Real ywidth = viewDistance*tan(0.5*fieldOfView);
     Vec3 center = cameraTransform.T()-cameraTransform.R()*Vec3(0, 0, viewDistance);
@@ -608,12 +608,11 @@ static void drawGroundAndSky() {
 
     // Draw the ground plane.
 
-    Real clipWidth = farClip-nearClip;
     center[1] = 0;
-    corner1 = center+Vec3(-clipWidth, 0, -clipWidth);
-    corner2 = center+Vec3(clipWidth, 0, -clipWidth);
-    corner3 = center+Vec3(clipWidth, 0, clipWidth);
-    corner4 = center+Vec3(-clipWidth, 0, clipWidth);
+    corner1 = center+Vec3(-farClipDistance, 0, -farClipDistance);
+    corner2 = center+Vec3(farClipDistance, 0, -farClipDistance);
+    corner3 = center+Vec3(farClipDistance, 0, farClipDistance);
+    corner4 = center+Vec3(-farClipDistance, 0, farClipDistance);
     glUseProgram(groundProgram);
     Mat<4, 4, GLfloat> transform(1.0f);
     Vec3 sdir, tdir;
@@ -707,7 +706,20 @@ static void renderScene() {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glViewport(0, 0, viewWidth, viewHeight);
-        gluPerspective(fieldOfView*SimTK_RADIAN_TO_DEGREE, (GLdouble) viewWidth/viewHeight, nearClip, farClip);
+        Real sceneRadius;
+        Vec3 sceneCenter;
+        computeSceneBounds(sceneRadius, sceneCenter);
+        Real centerDepth = ~(cameraTransform.T()-sceneCenter)*(cameraTransform.R().col(2));
+        Real nearClipDistance, farClipDistance;
+        if (showGround) {
+            nearClipDistance = nearClip;
+            farClipDistance = min(farClip, max(100.0, centerDepth+sceneRadius));
+        }
+        else {
+            nearClipDistance = max(nearClip, centerDepth-sceneRadius);
+            farClipDistance = min(farClip, centerDepth+sceneRadius);
+        }
+        gluPerspective(fieldOfView*SimTK_RADIAN_TO_DEGREE, (GLdouble) viewWidth/viewHeight, nearClipDistance, farClipDistance);
         glMatrixMode(GL_MODELVIEW);
         Vec3 cameraPos = cameraTransform.T();
         Vec3 centerPos = cameraTransform.T()+cameraTransform.R()*Vec3(0, 0, -1);
@@ -729,7 +741,7 @@ static void renderScene() {
         for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
             scene->solidMeshes[i].draw();
         if (showGround)
-            drawGroundAndSky();
+            drawGroundAndSky(farClipDistance);
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         vector<pair<float, int> > order(scene->transparentMeshes.size());
