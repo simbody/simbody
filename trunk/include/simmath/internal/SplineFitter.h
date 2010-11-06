@@ -32,6 +32,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "SimTKcommon.h"
+#include "simmath/internal/common.h"
 #include "simmath/internal/Spline.h"
 #include "simmath/internal/GCVSPLUtil.h"
 

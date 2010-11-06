@@ -35,9 +35,10 @@
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 
-int gcvspl_(const SimTK::Real *, const SimTK::Real *, int *, const SimTK::Real *, const SimTK::Real *, int *, int *,
-            int *, int *, SimTK::Real *, SimTK::Real *, int *, SimTK::Real *, int *);
-SimTK::Real splder_(int *, int *, int *, SimTK::Real *, const SimTK::Real *, const SimTK::Real *, int *, SimTK::Real *, int);
+// These are global functions.
+int SimTK_gcvspl_(const SimTK::Real *, const SimTK::Real *, int *, const SimTK::Real *, const SimTK::Real *, int *, int *,
+                  int *, int *, SimTK::Real *, SimTK::Real *, int *, SimTK::Real *, int *);
+SimTK::Real SimTK_splder_(int *, int *, int *, SimTK::Real *, const SimTK::Real *, const SimTK::Real *, int *, SimTK::Real *, int);
 
 namespace SimTK {
 
@@ -83,7 +84,7 @@ void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector
     
     // Invoke GCV.
     
-    gcvspl_(&x[0], &yvec[0], &ny, &wx[0], &wy[0], &m, &n, &k, &md, &val, &cvec[0], &n, &wk[0], &ier);
+    SimTK_gcvspl_(&x[0], &yvec[0], &ny, &wx[0], &wy[0], &m, &n, &k, &md, &val, &cvec[0], &n, &wk[0], &ier);
     if (ier != 0) {
         SimTK_APIARGCHECK_ALWAYS(n >= 2*m, "GCVSPLUtil", "gcvspl", "Too few data points");
         SimTK_APIARGCHECK_ALWAYS(ier != 2, "GCVSPLUtil", "gcvspl", "The values in x must be strictly increasing");
@@ -116,7 +117,7 @@ Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, c
     // Evaluate the spline one component at a time.
     
     for (int i = 0; i < K; ++i)
-        result[i] = splder_(&derivOrder, &m, &n, &t, &x[0], &coeff[0][i], &interval, &q[0], offset);
+        result[i] = SimTK_splder_(&derivOrder, &m, &n, &t, &x[0], &coeff[0][i], &interval, &q[0], offset);
     return result;
 }
 

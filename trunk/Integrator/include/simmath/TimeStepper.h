@@ -33,9 +33,8 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
-
 #include "simmath/internal/common.h"
-#include "Integrator.h"
+#include "simmath/Integrator.h"
 
 namespace SimTK {
 class Integrator;

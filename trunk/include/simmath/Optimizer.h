@@ -34,8 +34,8 @@
 
 
 #include "SimTKcommon.h"
-#include "SimTKmath.h"
-#include <limits.h>
+#include "simmath/internal/common.h"
+#include "simmath/Differentiator.h"
 
 namespace SimTK {
 

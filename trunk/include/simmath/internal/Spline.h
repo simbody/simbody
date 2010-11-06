@@ -33,6 +33,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
+#include "simmath/internal/common.h"
 #include "simmath/internal/GCVSPLUtil.h"
 
 #include <limits>

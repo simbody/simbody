@@ -6,10 +6,10 @@
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 
-int SimTK_SIMMATH_EXPORT gcvspl_(const SimTK_Real *, const SimTK_Real *, int *, const SimTK_Real *, const SimTK_Real *, int *, int *,
+int SimTK_SIMMATH_EXPORT SimTK_gcvspl_(const SimTK_Real *, const SimTK_Real *, int *, const SimTK_Real *, const SimTK_Real *, int *, int *,
             int *, int *, SimTK_Real *, SimTK_Real *, int *, SimTK_Real *, int *);
 
-SimTK_Real SimTK_SIMMATH_EXPORT splder_(int *, int *, int *, SimTK_Real *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, int);
+SimTK_Real SimTK_SIMMATH_EXPORT SimTK_splder_(int *, int *, int *, SimTK_Real *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, int);
 
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 #define min(a,b) ((a) <= (b) ? (a) : (b))
@@ -20,7 +20,7 @@ SimTK_Real SimTK_SIMMATH_EXPORT splder_(int *, int *, int *, SimTK_Real *, const
 
 static SimTK_Real c_b6 = 1e-15;
 
- int gcvspl_(const SimTK_Real *x, const SimTK_Real *y, int *ny, 
+int SimTK_gcvspl_(const SimTK_Real *x, const SimTK_Real *y, int *ny, 
 	const SimTK_Real *wx, const SimTK_Real *wy, int *m, int *n, int *k, 
 	int *md, SimTK_Real *val, SimTK_Real *c, int *nc, SimTK_Real *
 	wk, int *ier)
@@ -875,7 +875,7 @@ SimTK_Real trinv_(SimTK_Real *b, SimTK_Real *e, int *m, int *n)
 /* SPLDER.FOR, 1985-06-11 */
 
 
-SimTK_Real splder_(int *ider, int *m, int *n, SimTK_Real *t, 
+SimTK_Real SimTK_splder_(int *ider, int *m, int *n, SimTK_Real *t, 
 	const SimTK_Real *x, const SimTK_Real *c, int *l, SimTK_Real *q, int coffset)
 {
     /* System generated locals */
