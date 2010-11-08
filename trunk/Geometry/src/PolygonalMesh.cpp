@@ -45,8 +45,8 @@ PolygonalMeshImpl::PolygonalMeshImpl() {
 PolygonalMesh::PolygonalMesh() : impl(new PolygonalMeshImpl()) {
 }
 
-PolygonalMesh::PolygonalMesh(const PolygonalMesh& copy) : impl(copy.impl) {
-}
+PolygonalMesh::PolygonalMesh(const PolygonalMesh& copy) 
+:   impl(new PolygonalMeshImpl(*copy.impl)) {}
 
 PolygonalMesh& PolygonalMesh::operator=(const PolygonalMesh& copy) {
     delete impl;
