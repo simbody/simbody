@@ -29,16 +29,22 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#define SimTK_SIMTKCOMMON_DEFINING_POLYGONALMESH
 #define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
 #define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_2D_EXECUTOR
+#include "../Geometry/src/PolygonalMeshImpl.h"
 #include "ParallelExecutorImpl.h"
 #include "Parallel2DExecutorImpl.h"
 #include "SimTKcommon/internal/PrivateImplementation_Defs.h"
 
 namespace SimTK {
 
+template class PIMPLHandle<PolygonalMesh, PolygonalMeshImpl, true>;
+template class PIMPLImplementation<PolygonalMesh, PolygonalMeshImpl>;
+
 template class PIMPLHandle<ParallelExecutor, ParallelExecutorImpl>;
 template class PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl>;
+
 template class PIMPLHandle<Parallel2DExecutor, Parallel2DExecutorImpl>;
 template class PIMPLImplementation<Parallel2DExecutor, Parallel2DExecutorImpl>;
 

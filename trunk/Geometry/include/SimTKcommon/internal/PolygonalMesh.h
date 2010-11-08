@@ -33,10 +33,19 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/PrivateImplementation.h"
 
 namespace SimTK {
 
+class PolygonalMesh;
 class PolygonalMeshImpl;
+
+// We only want the template instantiation to occur once. This symbol is defined
+// in the SimTKcommon compilation unit that defines the PolygonalMesh class but 
+// should not be defined any other time.
+#ifndef SimTK_SIMTKCOMMON_DEFINING_POLYGONALMESH
+    extern template class PIMPLHandle<PolygonalMesh, PolygonalMeshImpl, true>;
+#endif
 
 /** This class provides a description of a mesh made of polygonal faces. Its 
 primary purpose is for loading geometry from files, which can then be used for
@@ -51,16 +60,20 @@ a mesh from a Wavefront OBJ file, then create a DecorativeMesh from it.
     DecorativeMesh decoration(mesh);
 @endcode 
 You can also read a polygon mesh from a VTK PolyData (.vtp) file.
+
+We expect this to be a large object so give it shared (reference) semantics; that is,
+the copy constructor and copy assignment default to shallow copies (both handles
+will refer to the same data). If you want to make a deep (non-shared) copy of a
+PolygonalMesh, use the copyAssign() method provided by the PIMPLHandle base class.
 **/
-class SimTK_SimTKCOMMON_EXPORT PolygonalMesh {
+class SimTK_SimTKCOMMON_EXPORT PolygonalMesh 
+:   public PIMPLHandle<PolygonalMesh, PolygonalMeshImpl, true> {
 public:
     /**
      * Create a PolygonalMesh, which initially contains no vertices or faces.
      */
     PolygonalMesh();
-    PolygonalMesh(const PolygonalMesh& copy);
-    PolygonalMesh& operator=(const PolygonalMesh& copy);
-    ~PolygonalMesh();
+
     /**
      * Get the number of faces in the mesh.
      */
@@ -127,10 +140,6 @@ public:
      * @param pathname    the name of a .vtp file
      */
     void loadVtpFile(const String& pathname);
-    const PolygonalMeshImpl& getImpl() const;
-    PolygonalMeshImpl& updImpl();
-private:
-    PolygonalMeshImpl* impl;
 };
 
 } // namespace SimTK

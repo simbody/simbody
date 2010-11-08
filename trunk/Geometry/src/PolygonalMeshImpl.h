@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -40,11 +40,12 @@ namespace SimTK {
 /**
  * This is the internal implementation of PolygonalMesh.
  */
-class SimTK_SimTKCOMMON_EXPORT PolygonalMeshImpl {
+class SimTK_SimTKCOMMON_EXPORT PolygonalMeshImpl 
+:   public PIMPLImplementation<PolygonalMesh, PolygonalMeshImpl> {
 public:
     PolygonalMeshImpl();
-    ~PolygonalMeshImpl() {
-    }
+    ~PolygonalMeshImpl() {}
+    PolygonalMeshImpl* clone() const;
     Array_<Vec3> vertices;
     Array_<int> faceVertexIndex;
     Array_<int> faceVertexStart;

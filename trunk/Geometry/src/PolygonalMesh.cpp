@@ -42,21 +42,14 @@ PolygonalMeshImpl::PolygonalMeshImpl() {
     faceVertexStart.push_back(0);
 }
 
-PolygonalMesh::PolygonalMesh() : impl(new PolygonalMeshImpl()) {
+PolygonalMeshImpl* PolygonalMeshImpl::clone() const {
+    return new PolygonalMeshImpl(*this);
 }
 
-PolygonalMesh::PolygonalMesh(const PolygonalMesh& copy) 
-:   impl(new PolygonalMeshImpl(*copy.impl)) {}
-
-PolygonalMesh& PolygonalMesh::operator=(const PolygonalMesh& copy) {
-    delete impl;
-    impl = new PolygonalMeshImpl(*copy.impl);
-    return *this;
+PolygonalMesh::PolygonalMesh() : HandleBase(new PolygonalMeshImpl()) {
 }
 
-PolygonalMesh::~PolygonalMesh() {
-    delete impl;
-}
+// default copy constructor, copy assignment, destructor
 
 int PolygonalMesh::getNumFaces() const {
     return getImpl().faceVertexStart.size()-1;
@@ -111,14 +104,6 @@ void PolygonalMesh::transformMesh(const Transform& transform) {
     Array_<Vec3>& vertices = updImpl().vertices;
     for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i] = transform*vertices[i];
-}
-
-const PolygonalMeshImpl& PolygonalMesh::getImpl() const {
-    return *impl;
-}
-
-PolygonalMeshImpl& PolygonalMesh::updImpl() {
-    return *impl;
 }
 
 void PolygonalMesh::loadObjFile(std::istream& file) {

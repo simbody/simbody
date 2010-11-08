@@ -60,6 +60,23 @@ void testCreateMesh() {
     ASSERT(mesh.getVertexPosition(0) == Vec3(0));
     ASSERT(mesh.getVertexPosition(1) == Vec3(0, 1, 0));
     ASSERT(mesh.getVertexPosition(2) == Vec3(0, 0, 1));
+
+    // Make sure copy and assignment are shallow.
+    PolygonalMesh mesh2(mesh); // shallow copy construction
+    ASSERT(&mesh2.getImpl() == &mesh.getImpl());
+    ASSERT(mesh.getImplHandleCount()==2);
+
+    PolygonalMesh mesh3;
+    mesh3 = mesh; // shallow assignment
+    ASSERT(&mesh3.getImpl() == &mesh.getImpl());
+    ASSERT(mesh.getImplHandleCount()==3);
+
+    PolygonalMesh mesh4;
+    mesh4.copyAssign(mesh); // deep copy
+    ASSERT(mesh4.getNumVertices() == mesh.getNumVertices());
+    ASSERT(&mesh4.getImpl() != &mesh.getImpl());
+    ASSERT(mesh4.getImplHandleCount()==1);
+    ASSERT(mesh.getImplHandleCount()==3);
 }
 
 void testLoadObjFile() {

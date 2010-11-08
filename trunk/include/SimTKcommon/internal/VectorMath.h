@@ -407,7 +407,7 @@ Mat<N, N, ELEM> sort(const SymMat<N, ELEM> v) {
 
 template <class ELEM, class RandomAccessIterator>
 ELEM median(RandomAccessIterator start, RandomAccessIterator end) {
-    int size = end-start;
+    const int size = (int)(end-start);
     RandomAccessIterator mid = start+(size-1)/2;
     std::nth_element(start, mid, end);
     if (size%2 == 0 && mid+1 < end) {

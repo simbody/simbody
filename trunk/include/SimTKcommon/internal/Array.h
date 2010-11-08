@@ -2637,7 +2637,7 @@ T* growWithGap(T* gapPos, size_type gapSz, const char* methodName) {
     T* newData   = allocN(allocated());
 
     // How many elements will be before the gap?
-    const size_type nBefore = gapPos-begin();
+    const size_type nBefore = (size_type)(gapPos-begin());
 
     // Locate the gap in the new space allocation.
     T* newGap    = newData + nBefore;
