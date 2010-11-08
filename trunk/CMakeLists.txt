@@ -11,13 +11,18 @@
 #   [ns_]SimTKcommon[_vn][_d].dll
 #   [ns_]SimTKcommon[_vn][_d].lib
 #   [ns_]SimTKcommon[_vn]_static[_d].lib
-# Unix:
+# Linux/Cygwin:
 #   lib[ns_]SimTKcommon[_vn][_d].so
 #   lib[ns_]SimTKcommon[_vn]_static[_d].a
+# Mac:
+#   lib[ns_]SimTKcommon[_vn][_d].dylib
+#   lib[ns_]SimTKcommon[_vn]_static[_d].a
 #
-# All libraries are installed in 
-#   %ProgramFiles%\SimTK\lib[64]   (Windows)
-#   /usr/local/SimTK/lib[64]        (UNIX)
+# Targets are installed in 
+#   %ProgramFiles%\SimTK\lib,bin       (Win32)
+#   %ProgramFiles(x86)%\SimTK\lib,bin  (32 bit target on Win64)
+#   %ProgramW6432%\SimTK\lib,bin       (64 bit target on Win64)
+#   /usr/local/SimTK/lib[64]           (Linux, Mac, Cygwin)
 #
 #----------------------------------------------------
 
@@ -82,7 +87,8 @@ SET(SimTKCOMMON_SOURCE_SUBDIRS
 # %ProgramFiles%\SimTK *regardless* of SimTK_INSTALL_PREFIX.
 #
 
-IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+SET(LIB64) # suffix will be set only for 64 bit gcc builds
+IF(${CMAKE_C_COMPILER} MATCHES "gcc") # Linux, Mac, Cygwin
 
     IF(NOT SimTK_INSTALL_PREFIX)
         SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK" 
@@ -94,29 +100,48 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
             CACHE PATH "SimTK dependency path" )
     ENDIF(NOT SimTK_SDK)
 
-ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
+    IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+        SET( LIB64 64 )
+    ENDIF()
+
+ELSE() # Windows
+    # On Win64, there are two environment variables, ProgramFiles(x86) for
+    # 32 bit binaries, and ProgramW6432 for 64 bit binaries. The variable
+    # ProgramFiles returns one or the other depending on whether the requesting
+    # executable is 32 or 64 bits. That's CMake in this case, but we want
+    # the right directory for the target. CMAKE_INSTALL_DIR after 2.8.3 gets
+    # this right but still isn't what we want.
+    IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+	# 64 bit target on Win64
+	set(PROGFILEDIR "$ENV{ProgramW6432}")
+    ELSE() # Target is 32 bit
+	set(PROGFILEDIR "$ENV{ProgramFiles(x86)}") # present if 64bit Windows
+	if (NOT PROGFILEDIR)
+	    set(PROGFILEDIR "$ENV{ProgramFiles}") # on 32bit Windows
+	endif()
+    ENDIF()
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "$ENV{ProgramFiles}/SimTK" 
+        SET(SimTK_INSTALL_PREFIX "${PROGFILEDIR}/SimTK" 
             CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "$ENV{ProgramFiles}/SimTK" 
+        SET(SimTK_SDK "${PROGFILEDIR}/SimTK" 
             CACHE PATH "SimTK dependency path")
     ENDIF(NOT SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
+# CMake installs go into CMAKE_INSTALL_PREFIX, which is always
+# set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
+# instead which is passed in by the build system or set above.
+SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING 
+    "Install path prefix." FORCE)
+# User should set SimTK_INSTALL_PREFIX, so suppress cmake's
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/include)
-
-IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-  SET( LIB64 64 )
-ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-  SET( LIB64  )
-ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 
 # Allow build of binaries on Leopard that work on Tiger
 # Plus, -m32 is required for building on Snow Leopard, until we have a 64-bit Mac Lapack
@@ -460,12 +485,6 @@ ENDIF (BUILD_TESTING)
 #
 # Installation
 #
-# CMake installs go into CMAKE_INSTALL_PREFIX, which is always
-# set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
-# instead which is passed in by the build system or set above.
-
-SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
-
 
 ## Watch out -- this next line will cause CMake to find installed versions of
 ## SimTKcommon library before the local one. Be sure to delete installed one first.

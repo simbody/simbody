@@ -161,8 +161,8 @@ int main()
     char out[100];
     const char* keylist[] = { "version", "library", "type", "debug", "authors", "copyright", "svn_revision", 0 };
 
-    SimTK_version_SimTKlapack(&major,&minor,&build);
-    std::printf("SimTKlapack library version: %d.%d.%d\n", major, minor, build);
+    //SimTK_version_SimTKlapack(&major,&minor,&build);
+    //std::printf("SimTKlapack library version: %d.%d.%d\n", major, minor, build);
 
 
     SimTK_version_SimTKcommon(&major,&minor,&build);
