@@ -310,19 +310,25 @@ static int groundAxis = 1;
 static bool showGround = true, showShadows = true, showFPS = false;
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
-static int fpsBaseTime = 0, fpsCounter = 0;
+static int fpsBaseTime = 0, fpsCounter = 0, nextMeshIndex;
 static Scene* scene;
 static string overlayMessage;
 static int hideMessageTime = 0;
 
 class PendingMesh : public PendingCommand {
 public:
+    PendingMesh() {
+        index = nextMeshIndex++;
+    }
     void execute() {
-        meshes.push_back(new Mesh(vertices, normals, faces));
+        if (meshes.size() <= index)
+            meshes.resize(index+1);
+        meshes[index] = new Mesh(vertices, normals, faces);
     }
     vector<float> vertices;
     vector<float> normals;
     vector<GLushort> faces;
+    int index;
 };
 
 static void computeSceneBounds(Real& radius, Vec3& center) {
@@ -1595,6 +1601,7 @@ int main(int argc, char** argv) {
     makeSphere();
     makeCylinder();
     makeCircle();
+    nextMeshIndex = meshes.size();
     scene = NULL;
     pendingCommands.push_back(new PendingCameraZoom());
 

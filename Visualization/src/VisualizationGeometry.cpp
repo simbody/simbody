@@ -83,7 +83,7 @@ void VisualizationGeometry::implementTextGeometry(const SimTK::DecorativeText& g
 
 void VisualizationGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    protocol.drawPolygonalMesh(geom.getMesh(), transform*geom.getTransform().T(), getScale(geom), getColor(geom), getRepresentation(geom));
+    protocol.drawPolygonalMesh(geom.getMesh(), transform*geom.getTransform(), getScale(geom), getColor(geom), getRepresentation(geom));
 }
 
 Vec4 VisualizationGeometry::getColor(const DecorativeGeometry& geom) {
