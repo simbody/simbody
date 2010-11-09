@@ -321,7 +321,7 @@ public:
         index = nextMeshIndex++;
     }
     void execute() {
-        if (meshes.size() <= index)
+        if ((int)meshes.size() <= index)
             meshes.resize(index+1);
         meshes[index] = new Mesh(vertices, normals, faces);
     }
