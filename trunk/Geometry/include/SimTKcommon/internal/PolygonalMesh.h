@@ -72,7 +72,7 @@ public:
     /**
      * Create a PolygonalMesh, which initially contains no vertices or faces.
      */
-    PolygonalMesh();
+    PolygonalMesh() {}
 
     /**
      * Get the number of faces in the mesh.
@@ -140,6 +140,10 @@ public:
      * @param pathname    the name of a .vtp file
      */
     void loadVtpFile(const String& pathname);
+
+private:
+    explicit PolygonalMesh(PolygonalMeshImpl* impl) : HandleBase(impl) {}
+    void initializeHandleIfEmpty();
 };
 
 } // namespace SimTK

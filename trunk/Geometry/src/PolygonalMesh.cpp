@@ -46,17 +46,21 @@ PolygonalMeshImpl* PolygonalMeshImpl::clone() const {
     return new PolygonalMeshImpl(*this);
 }
 
-PolygonalMesh::PolygonalMesh() : HandleBase(new PolygonalMeshImpl()) {
+// If the handle is empty, reconstruct it to be an owner handle whose
+// implementation is present but contains no vertices.
+void PolygonalMesh::initializeHandleIfEmpty() {
+    if (isEmptyHandle())
+        new(this) PolygonalMesh(new PolygonalMeshImpl());
 }
 
 // default copy constructor, copy assignment, destructor
 
 int PolygonalMesh::getNumFaces() const {
-    return getImpl().faceVertexStart.size()-1;
+    return isEmptyHandle() ? 0 : getImpl().faceVertexStart.size()-1;
 }
 
 int PolygonalMesh::getNumVertices() const {
-    return getImpl().vertices.size();
+    return isEmptyHandle() ? 0 : getImpl().vertices.size();
 }
 
 const Vec3& PolygonalMesh::getVertexPosition(int vertex) const {
@@ -77,11 +81,13 @@ int PolygonalMesh::getFaceVertex(int face, int vertex) const {
 }
 
 int PolygonalMesh::addVertex(const Vec3& position) {
+    initializeHandleIfEmpty();
     updImpl().vertices.push_back(position);
     return getImpl().vertices.size()-1;
 }
 
 int PolygonalMesh::addFace(const Array_<int>& vertices) {
+    initializeHandleIfEmpty();
     for (int i = 0; i < (int) vertices.size(); i++)
         updImpl().faceVertexIndex.push_back(vertices[i]);
 
@@ -95,12 +101,14 @@ int PolygonalMesh::addFace(const Array_<int>& vertices) {
 }
 
 void PolygonalMesh::scaleMesh(Real scale) {
+    if (isEmptyHandle()) return;
     Array_<Vec3>& vertices = updImpl().vertices;
     for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i] *= scale;
 }
 
 void PolygonalMesh::transformMesh(const Transform& transform) {
+    if (isEmptyHandle()) return;
     Array_<Vec3>& vertices = updImpl().vertices;
     for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i] = transform*vertices[i];
