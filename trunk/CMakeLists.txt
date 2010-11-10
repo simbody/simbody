@@ -455,7 +455,7 @@ SET(SOURCE_INCLUDE_FILES) # for dependency tracking only, I believe (sherm)
 FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     FILE(GLOB src_files  ${subdir}/src/*.cpp ${subdir}/src/*.c
 		             ${subdir}/src/*/*.cpp ${subdir}/src/*/*.c)
-    FILE(GLOB incl_files ${subdir}/src/*.h)
+    FILE(GLOB incl_files ${subdir}/src/*.h ${subdir}/src/*.hpp)
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
@@ -463,12 +463,6 @@ FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     ## SimTK/include if Simmath was previously installed there.
     INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
-
-## Special cases for Ipopt since it doesn't have a src subdirectory.
-FILE(GLOB src_files  Ipopt/*.cpp)
-FILE(GLOB incl_files Ipopt/*.h)
-SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
-SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
 ## Watch out -- this next line will cause CMake to find installed versions of
 ## simmath libraries before the local one. Be sure to delete installed ones first.
