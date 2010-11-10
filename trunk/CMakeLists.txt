@@ -238,7 +238,7 @@ IF(${CMAKE_C_COMPILER} MATCHES "cl")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
 
-SET(SIMMATH_SOURCE_SUBDIRS  . Ipopt LinearAlgebra Integrator)
+SET(SIMMATH_SOURCE_SUBDIRS  . LinearAlgebra Integrators Optimizers)
 
 SET(SIMMATH_LIBRARY_NAME ${NS}SimTKmath CACHE STRING
 "Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
