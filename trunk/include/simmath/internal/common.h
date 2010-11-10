@@ -33,8 +33,8 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the header file that user code should include to pick up the 
- * SimTK Simmath numerical differentiation tools.
+ * This is the header file that every Simmath compilation unit should include
+ * first.
  */
 
 #include "SimTKcommon.h"

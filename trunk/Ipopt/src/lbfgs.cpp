@@ -21,19 +21,14 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 
-#include "simmath/Optimizer.h"
-#include "Simmath_f2c.h" 
+
 #include "LBFGSOptimizer.h"
+#include "../src/Simmath_f2c.h" 
 
 #include <iostream> 
-#include <malloc.h>
-#include <math.h>
-
-/* #include <cstdio> */
-
+#include <cmath>
 
 #define NUMBER_OF_CORRECTIONS 5   
 

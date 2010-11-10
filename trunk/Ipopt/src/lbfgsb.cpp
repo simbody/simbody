@@ -42,26 +42,15 @@
  *
  */
 
-#include <string.h>
-#include "SimTKcommon/internal/common.h"
-#include "LBFGSBOptimizer.h"
-
-#ifdef __BORLANDC__
-/* A hack to overcome a typo in borlands math.h
- * file with respect to the abs function
- * line 206 of C:\Borland\Bcc55\include\math.h 
- * uses _RTLENTRYF instead of _RTLENTRY */
-# define __ABS_DEFINED
-# include <math.h>
-# undef __ABS_DEFINED
-#else
-# include <math.h>
-#endif
-#include "Simmath_f2c.h"
-//#include "netlib.h"
-
+#include "simmath/internal/common.h"
 #include "SimTKlapack.h"
+
+#include "LBFGSBOptimizer.h"
+#include "../src/Simmath_f2c.h"
+
+#include <cmath>
 #include <ctime>
+#include <cstring>
 
 #define  imin(X, Y)  ((X) < (Y) ? (X) : (Y))
 
