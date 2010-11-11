@@ -137,15 +137,15 @@ public:
     class CantAskForEventInfoWhenNoEventTriggered;
 
     /// Get the name of this integration method
-    const char* getMethodName();
+    const char* getMethodName() const;
     /// Get the minimum order this Integrator may use
-    int         getMethodMinOrder();
+    int         getMethodMinOrder() const;
     /// Get the maximum order this Integrator may use
-    int         getMethodMaxOrder();
+    int         getMethodMaxOrder() const;
     /// Get whether this Integrator provides error control.  An error controlled Integrator will dynamically adjust its
     /// step size to maintain the level of accuracy specified with setAccuracy().  An Integrator which does not provide
     /// error control cannot do this, and will usually ignore the value specified with setAccuracy().
-    bool        methodHasErrorControl();
+    bool        methodHasErrorControl() const;
 
     /// Supply the integrator with a starting state.  This must be called before the first call to stepBy() or stepTo().
     /// The specified state is copied into the Integrator's internally maintained current state; subsequent changes to

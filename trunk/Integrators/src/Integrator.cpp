@@ -282,19 +282,19 @@ void Integrator::setProjectInterpolatedStates(bool shouldProject) {
     updRep().userProjectInterpolatedStates = shouldProject ? 1 : 0;
 }
 
-bool Integrator::methodHasErrorControl() {
+bool Integrator::methodHasErrorControl() const {
     return getRep().methodHasErrorControl();
 }
 
-const char* Integrator::getMethodName() {
+const char* Integrator::getMethodName() const {
     return getRep().getMethodName();
 }
 
-int Integrator::getMethodMinOrder() {
+int Integrator::getMethodMinOrder() const {
     return getRep().getMethodMinOrder();
 }
 
-int Integrator::getMethodMaxOrder() {
+int Integrator::getMethodMaxOrder() const {
     return getRep().getMethodMaxOrder();
 }
 
