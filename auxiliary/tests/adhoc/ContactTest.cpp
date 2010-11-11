@@ -36,6 +36,9 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h" // requires VTK
 
+#include "simbody/internal/VisualizationReporter.h"
+//#define VTKVisualizer Visualizer
+
 #include <string>
 #include <iostream>
 #include <exception>
@@ -113,11 +116,11 @@ int main() {
         std::printf("      about(%s)='%s'\n", *p, out);
     }
 
-    SimTK_version_SimTKcpodes(&major,&minor,&build);
-    std::printf("==> SimTKcpodes library version: %d.%d.%d\n", major, minor, build);
-    std::printf("    SimTK_about_SimTKcpodes():\n");
+    SimTK_version_simmath(&major,&minor,&build);
+    std::printf("==> SimTKmath library version: %d.%d.%d\n", major, minor, build);
+    std::printf("    SimTK_about_simmath():\n");
     for (const char** p = keylist; *p; ++p) {
-        SimTK_about_SimTKcpodes(*p, 100, out);
+        SimTK_about_simmath(*p, 100, out);
         std::printf("      about(%s)='%s'\n", *p, out);
     }
 
@@ -252,6 +255,9 @@ try
 
     State s = mbs.realizeTopology();
     VTKVisualizer vtk(mbs);
+    //vtk.setCameraClippingPlanes(.5,200);
+   // vtk.zoomCameraToShowAllGeometry();
+
 
     //bouncers.setUseEulerAngles(s, true);
     mbs.realizeModel(s);
@@ -382,11 +388,11 @@ static void printFinalStats(const CPodes& cpodes)
   printf("\nFinal Statistics:\n");
   printf("h0u = %g\n",h0u);
   printf("nst = %-6d nfe  = %-6d nsetups = %-6d\n",
-	 nst, nfe, nsetups);
+     nst, nfe, nsetups);
   printf("nfeLS = %-6d nje = %d\n",
-	 nfeLS, nje);
+     nfeLS, nje);
   printf("nni = %-6d ncfn = %-6d netf = %-6d \n",
-	 nni, ncfn, netf);
+     nni, ncfn, netf);
   printf("nproj = %-6d nce = %-6d nsetupsP = %-6d nprf = %-6d\n",
          nproj, nce, nsetupsP, nprf);
   printf("nge = %d\n", nge);
