@@ -33,12 +33,12 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
-#include "SimTKcpodes.h"
-
 #include "simmath/internal/common.h"
 #include "simmath/Integrator.h"
+#include "simmath/internal/SimTKcpodes.h"
 
 #include "IntegratorRep.h"
+
 
 namespace SimTK {
 

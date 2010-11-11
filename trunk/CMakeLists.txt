@@ -55,6 +55,26 @@ SET(DART_TESTING_TIMEOUT 7200)
 # our own purposes too.
 SET( BUILD_TESTING ON CACHE BOOL
 	"Control building of Simmath test programs." )
+IF (BUILD_TESTING)
+    #
+    # Allow automated build and dashboard.
+    #
+    INCLUDE (Dart)
+
+    #IF (UNIX AND NOT CYGWIN AND NOT APPLE)
+    #  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
+    #    ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
+    #    LINK_LIBRARIES(gcov)
+    #  ENDIF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
+    #ENDIF (UNIX AND NOT CYGWIN AND NOT APPLE)
+
+    #
+    # Testing
+    #
+    ENABLE_TESTING()
+
+ENDIF (BUILD_TESTING)
+
 
 SET( BUILD_EXAMPLES ON CACHE BOOL
 	"Control building of Simmath example programs.")
@@ -107,8 +127,6 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
-
-INCLUDE_DIRECTORIES(${SimTK_SDK}/include)
 
 IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
   SET( LIB64 64 )
@@ -238,7 +256,8 @@ IF(${CMAKE_C_COMPILER} MATCHES "cl")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
 
-SET(SIMMATH_SOURCE_SUBDIRS  . LinearAlgebra Integrators Optimizers)
+# code is in "./src" and in each of these subdirectories/src
+SET(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers)
 
 SET(SIMMATH_LIBRARY_NAME ${NS}SimTKmath CACHE STRING
 "Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
@@ -376,6 +395,8 @@ ENDIF(NOT LIBRARY_OUTPUT_PATH)
 SET(${PROJECT_NAME}_EXECUTABLE_DIR ${EXECUTABLE_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 
+SET(TEST_PATH ${EXECUTABLE_OUTPUT_PATH})
+
 
 SET(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon)
 SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
@@ -384,15 +405,6 @@ SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
 SET(SimTKCOMMON_LIBRARY_NAME_VN ${NS}SimTKcommon${VN})
 SET(SimTKCOMMON_SHARED_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN})
 SET(SimTKCOMMON_STATIC_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN}_static)
-
-SET(SimTKCPODES_LIBRARY_NAME ${NS}SimTKcpodes)
-SET(SimTKCPODES_SHARED_LIBRARY ${SimTKCPODES_LIBRARY_NAME})
-SET(SimTKCPODES_STATIC_LIBRARY ${SimTKCPODES_LIBRARY_NAME}_static)
-
-SET(SimTKCPODES_LIBRARY_NAME_VN ${NS}SimTKcpodes${VN})
-SET(SimTKCPODES_SHARED_LIBRARY_VN ${SimTKCPODES_LIBRARY_NAME_VN})
-SET(SimTKCPODES_STATIC_LIBRARY_VN ${SimTKCPODES_LIBRARY_NAME_VN}_static)
-
 
 # Determine which math libraries to use for this platform.
 SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
@@ -424,12 +436,16 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 # These are all the places to search for header files which are
 # to be part of the API.
 SET(API_INCLUDE_DIRS) # start empty
-FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
+FOREACH(subdir . ${SIMMATH_SOURCE_SUBDIRS})
     # append
     SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
                          ${subdir}/include 
                          ${subdir}/include/simmath 
                          ${subdir}/include/simmath/internal)
+
+    ## Make sure we find these locally before looking in
+    ## SimTK/include if Simmath was previously installed there.
+    INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
 # We'll need both *relative* path names, starting with
@@ -448,50 +464,49 @@ FOREACH(dir ${API_INCLUDE_DIRS})
     ENDFOREACH(pathname)
 ENDFOREACH(dir)
 
-# collect up source files
-SET(SOURCE_FILES) # empty
-SET(SOURCE_INCLUDE_FILES) # for dependency tracking only, I believe (sherm)
-
-FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
-    FILE(GLOB src_files  ${subdir}/src/*.cpp ${subdir}/src/*.c
-		             ${subdir}/src/*/*.cpp ${subdir}/src/*/*.c)
-    FILE(GLOB incl_files ${subdir}/src/*.h ${subdir}/src/*.hpp)
-    SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
-    SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
-
-    ## Make sure we find these locally before looking in
-    ## SimTK/include if Simmath was previously installed there.
-    INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
-ENDFOREACH(subdir)
-
 ## Watch out -- this next line will cause CMake to find installed versions of
 ## simmath libraries before the local one. Be sure to delete installed ones first.
 LINK_DIRECTORIES(${SimTK_SDK}/lib${LIB64})
 
+# collect up source files
+SET(SOURCE_FILES) # empty
+SET(SOURCE_INCLUDE_FILES) # for dependency tracking only, I believe (sherm)
+SET(SOURCE_INCLUDE_DIRS) # in case some low-level source needs a -I include dir
+SET(SOURCE_GROUPS)
+SET(SOURCE_GROUP_FILES)
 
-IF( APPLE )
-  INCLUDE_DIRECTORIES( "/usr/include/malloc")
-ENDIF( APPLE )
+# first process all the source subdirectories
+FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
+    add_subdirectory(${subdir})
+ENDFOREACH(subdir)
 
-IF (BUILD_TESTING)
-    #
-    # Allow automated build and dashboard.
-    #
-    INCLUDE (Dart)
+if (SOURCE_GROUPS)
+    list(LENGTH SOURCE_GROUPS NGROUPS)
+    math(EXPR lastgrpnum ${NGROUPS}-1)
+    foreach( grpnum RANGE 0 ${lastgrpnum} )
+        list(GET SOURCE_GROUPS ${grpnum} grp)
+        list(GET SOURCE_GROUP_FILES ${grpnum} grpfile)
+        source_group("${grp}" FILES "${grpfile}")
+    endforeach()
+endif()
 
-    #IF (UNIX AND NOT CYGWIN AND NOT APPLE)
-    #  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-    #    ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
-    #    LINK_LIBRARIES(gcov)
-    #  ENDIF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-    #ENDIF (UNIX AND NOT CYGWIN AND NOT APPLE)
+# then process ./src
+FILE(GLOB src_files  ./src/*.cpp)
+FILE(GLOB incl_files ./src/*.h)
+SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
+SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
-    #
-    # Testing
-    #
-    ENABLE_TESTING()
+# Add low-level source include directories if any.
+INCLUDE_DIRECTORIES(${SOURCE_INCLUDE_DIRS})
 
-ENDIF (BUILD_TESTING)
+# Make sure the installed headers are checked last.
+INCLUDE_DIRECTORIES(AFTER ${SimTK_SDK}/include)
+
+
+# we don't really need this, do we? (Sherm)
+#IF( APPLE )
+#  INCLUDE_DIRECTORIES( "/usr/include/malloc")
+#ENDIF( APPLE )
 
 INCLUDE(ApiDoxygen.cmake)
 
@@ -514,13 +529,15 @@ FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/intern
 INSTALL_FILES(/include/                 FILES ${CORE_HEADERS})
 INSTALL_FILES(/include/simmath/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/include/simmath/internal FILES ${INTERNAL_HEADERS})
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/doc/SimmathUserGuide.pdf DESTINATION doc/simmath)
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/doc/SimmathUserGuide.pdf 
+	DESTINATION doc/simmath)
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.
 
 ADD_SUBDIRECTORY( staticTarget )
 ADD_SUBDIRECTORY( sharedTarget )
+
 IF( BUILD_EXAMPLES )
   ADD_SUBDIRECTORY( examples )
 ENDIF( BUILD_EXAMPLES )
