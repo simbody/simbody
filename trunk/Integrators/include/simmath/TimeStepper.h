@@ -84,7 +84,7 @@ public:
      * stepTo() will only return when the specified time has been reached or when the simulation is
      * terminated.
      */
-    bool getReportAllSignificantStates();
+    bool getReportAllSignificantStates() const;
     /**
      * Set whether the TimeStepper should report every significant state returned by the Integrator.
      * If this is true, stepTo() will return whenever the Integrator reports a significant state,

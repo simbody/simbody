@@ -89,7 +89,7 @@ Integrator::SuccessfulStepStatus TimeStepper::stepTo(Real reportTime) {
     return( rep->stepTo(reportTime) );
 }
 
-bool TimeStepper::getReportAllSignificantStates() {
+bool TimeStepper::getReportAllSignificantStates() const {
     return rep->getReportAllSignificantStates();
 }
 

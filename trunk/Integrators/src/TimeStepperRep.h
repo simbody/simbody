@@ -74,7 +74,7 @@ public:
         assert(integ);
         return *integ;
     }
-    bool getReportAllSignificantStates() {
+    bool getReportAllSignificantStates() const {
         return reportAllSignificantStates;
     }
     void setReportAllSignificantStates(bool b) {
