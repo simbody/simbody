@@ -24,7 +24,7 @@
  */
 
 #include "SimTKcommon.h"
-#include "Simmath/internal/common.h"
+#include "simmath/internal/common.h"
 #include "LBFGSBOptimizer.h"
 #include <cstring>
 
