@@ -1,23 +1,23 @@
 # Generate the Visualization GUI application.
 
-#IF (WIN32)
-#  SET(GLUT_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/glut32.lib)
-#  INSTALL(FILES glut32.dll glut32.lib DESTINATION ${SimTK_INSTALL_PREFIX}/lib)
-#ELSE (WIN32)
-#  INCLUDE (FindGLUT)
-#ENDIF (WIN32)
-#use local freeglut instead
-SET(GLUT_LIBRARIES)
 INCLUDE (FindOpenGL)
+SET(GLUT_LIBRARIES)
 SET(WINMM)
+SET(freeglutsrc)
+SET(freeglutincl)
 IF(WIN32)
+    #use local freeglut
+    INCLUDE_DIRECTORIES(freeglut)
+    FILE(GLOB freeglutsrc freeglut/*.c)
+    FILE(GLOB freeglutincl freeglut/*.h freeglut/GL/*.h)
+    ADD_DEFINITIONS(-DFREEGLUT_STATIC -DFREEGLUT_LIB_PRAGMAS=0)
     SET(WINMM winmm)
+ELSE()
+  INCLUDE (FindGLUT) # must be freeglut
 ENDIF(WIN32)
+
 SET(GUI_NAME "VisualizationGUI")
-INCLUDE_DIRECTORIES(${SimTK_SDK}/include freeglut)
-FILE(GLOB freeglutsrc freeglut/*.c)
-FILE(GLOB freeglutincl freeglut/*.h freeglut/GL/*.h)
-ADD_DEFINITIONS(-DFREEGLUT_STATIC -DFREEGLUT_LIB_PRAGMAS=0)
+INCLUDE_DIRECTORIES(${SimTK_SDK}/include)
 ADD_EXECUTABLE(${GUI_NAME} 
 	VisualizationGUI.cpp lodepng.cpp lodepng.h
 	${freeglutsrc} ${freeglutincl})

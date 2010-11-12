@@ -40,19 +40,30 @@
     #define WIN32_LEAN_AND_MEAN
     #define NOMINMAX
     #include <windows.h>
+#endif
+
+// Linux, Mac, Windows all have these.
+#include <GL/gl.h>
+#include <GL/glu.h>
+
+#ifdef _WIN32
+    #include "glext.h"                // SimTK local
+    #include "freeglut/GL/freeglut.h" // SimTK local
     #include <io.h>
     #define READ _read
 #else
+    #include <GL/glext.h>
+    #ifdef __APPLE__
+        #include <GLUT/freeglut.h>
+    #else
+        #include <GL/freeglut.h>
+    #endif
     #include <unistd.h>
     #define READ read
 #endif
 
-#include <GL/gl.h>
-
 // TODO: can we use this glutGetProcAddress() technique even
 // if the OS provides the gl extensions directly?
-#include "glext.h" // local
-#include "freeglut/GL/freeglut.h"
 PFNGLGENBUFFERSPROC glGenBuffers;
 PFNGLBINDBUFFERPROC glBindBuffer;
 PFNGLBUFFERDATAPROC glBufferData;
@@ -73,16 +84,6 @@ PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
 PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
 PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
 PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
-#ifdef THE_OLD_WAY
-    #ifdef __APPLE__
-        #include <GLUT/glut.h>
-    #else
-        #define GL_GLEXT_PROTOTYPES
-        #include <GL/gl.h>
-        #include <GL/glext.h>
-        #include <GL/glut.h>
-    #endif
-#endif
 
 #include <string>
 #include <algorithm>

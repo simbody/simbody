@@ -108,7 +108,9 @@
 #    include <X11/Xlib.h>
 #    include <X11/Xatom.h>
 #    include <X11/keysym.h>
-#    include <X11/extensions/XInput.h>
+#    ifdef HAVE_X11_EXTENSIONS_XINPUT_H /*Sherm added; not found on Ubuntu 10*/
+#       include <X11/extensions/XInput.h>
+#    endif
 #    ifdef HAVE_X11_EXTENSIONS_XF86VMODE_H
 #        include <X11/extensions/xf86vmode.h>
 #    endif
