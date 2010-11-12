@@ -27,8 +27,8 @@
 #include "SimTKcommon.h"
 
 #include "simmath/internal/common.h"
-#include "Ipopt/IpStdCInterface.h"
-#include "Ipopt/IpReturnCodes.h"
+#include "IpOpt/IpStdCInterface.h"
+#include "IpOpt/IpReturnCodes.h"
 
 #include "OptimizerRep.h"
 
