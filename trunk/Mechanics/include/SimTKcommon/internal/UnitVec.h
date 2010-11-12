@@ -54,8 +54,9 @@ template <class P, int S> class UnitVec;
 template <class P, int S> class UnitRow;
 
 // UnitVec3 is more intelligible name for UnitVec<Real,1>.
-typedef UnitVec<Real,1> UnitVec3;
-
+typedef UnitVec<Real,1>     UnitVec3;
+typedef UnitVec<float,1>    fUnitVec3;
+typedef UnitVec<double,1>   dUnitVec3;
 
 //-----------------------------------------------------------------------------
 /**

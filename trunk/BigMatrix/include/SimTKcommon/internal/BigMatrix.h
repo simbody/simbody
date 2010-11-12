@@ -3031,25 +3031,49 @@ std::istream& operator>>(std::istream& in, VectorView_<T>& out)
 
 /*@}                     End of Matrix serialization. **/
 
-// Friendly abbreviations for default precision vectors and matrices.
+// Friendly abbreviations for vectors and matrices with scalar elements.
 
 typedef Vector_<Real>           Vector;
+typedef Vector_<float>          fVector;
+typedef Vector_<double>         dVector;
 typedef Vector_<Complex>        ComplexVector;
+typedef Vector_<fComplex>       fComplexVector;
+typedef Vector_<dComplex>       dComplexVector;
 
 typedef VectorView_<Real>       VectorView;
+typedef VectorView_<float>      fVectorView;
+typedef VectorView_<double>     dVectorView;
 typedef VectorView_<Complex>    ComplexVectorView;
+typedef VectorView_<fComplex>   fComplexVectorView;
+typedef VectorView_<dComplex>   dComplexVectorView;
 
 typedef RowVector_<Real>        RowVector;
+typedef RowVector_<float>       fRowVector;
+typedef RowVector_<double>      dRowVector;
 typedef RowVector_<Complex>     ComplexRowVector;
+typedef RowVector_<fComplex>    fComplexRowVector;
+typedef RowVector_<dComplex>    dComplexRowVector;
 
 typedef RowVectorView_<Real>    RowVectorView;
+typedef RowVectorView_<float>   fRowVectorView;
+typedef RowVectorView_<double>  dRowVectorView;
 typedef RowVectorView_<Complex> ComplexRowVectorView;
+typedef RowVectorView_<fComplex> fComplexRowVectorView;
+typedef RowVectorView_<dComplex> dComplexRowVectorView;
 
 typedef Matrix_<Real>           Matrix;
+typedef Matrix_<float>          fMatrix;
+typedef Matrix_<double>         dMatrix;
 typedef Matrix_<Complex>        ComplexMatrix;
+typedef Matrix_<fComplex>       fComplexMatrix;
+typedef Matrix_<dComplex>       dComplexMatrix;
 
 typedef MatrixView_<Real>       MatrixView;
+typedef MatrixView_<float>      fMatrixView;
+typedef MatrixView_<double>     dMatrixView;
 typedef MatrixView_<Complex>    ComplexMatrixView;
+typedef MatrixView_<fComplex>   fComplexMatrixView;
+typedef MatrixView_<dComplex>   dComplexMatrixView;
 
 
 /**

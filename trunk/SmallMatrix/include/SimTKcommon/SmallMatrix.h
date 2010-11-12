@@ -126,6 +126,16 @@ typedef Vec<7> Vec7;
 typedef Vec<8> Vec8;
 typedef Vec<9> Vec9;
 
+typedef Vec<1,float> fVec1; // just a scalar
+typedef Vec<2,float> fVec2;
+typedef Vec<3,float> fVec3;
+typedef Vec<4,float> fVec4;
+typedef Vec<5,float> fVec5;
+typedef Vec<6,float> fVec6;
+typedef Vec<7,float> fVec7;
+typedef Vec<8,float> fVec8;
+typedef Vec<9,float> fVec9;
+
 typedef Row<1> Row1; // just a scalar
 typedef Row<2> Row2;
 typedef Row<3> Row3;
@@ -136,6 +146,16 @@ typedef Row<7> Row7;
 typedef Row<8> Row8;
 typedef Row<9> Row9;
 
+typedef Row<1,float> fRow1; // just a scalar
+typedef Row<2,float> fRow2;
+typedef Row<3,float> fRow3;
+typedef Row<4,float> fRow4;
+typedef Row<5,float> fRow5;
+typedef Row<6,float> fRow6;
+typedef Row<7,float> fRow7;
+typedef Row<8,float> fRow8;
+typedef Row<9,float> fRow9;
+
 typedef SymMat<1> SymMat11; // just a scalar
 typedef SymMat<2> SymMat22;
 typedef SymMat<3> SymMat33;
@@ -145,6 +165,16 @@ typedef SymMat<6> SymMat66;
 typedef SymMat<7> SymMat77;
 typedef SymMat<8> SymMat88;
 typedef SymMat<9> SymMat99;
+
+typedef SymMat<1,float> fSymMat11; // just a scalar
+typedef SymMat<2,float> fSymMat22;
+typedef SymMat<3,float> fSymMat33;
+typedef SymMat<4,float> fSymMat44;
+typedef SymMat<5,float> fSymMat55;
+typedef SymMat<6,float> fSymMat66;
+typedef SymMat<7,float> fSymMat77;
+typedef SymMat<8,float> fSymMat88;
+typedef SymMat<9,float> fSymMat99;
 
 typedef Mat<1,1> Mat11; // This is just a scalar
 typedef Mat<1,2> Mat12; // The rest here are just single Rows
@@ -235,6 +265,19 @@ typedef Mat<9,6> Mat96;
 typedef Mat<9,7> Mat97;
 typedef Mat<9,8> Mat98;
 typedef Mat<9,9> Mat99;
+
+// Just doing some of the popular ones for now.
+typedef Mat<1,1,float> fMat11;
+typedef Mat<2,2,float> fMat22;
+typedef Mat<3,3,float> fMat33;
+typedef Mat<3,4,float> fMat34;
+typedef Mat<4,3,float> fMat43;
+typedef Mat<4,4,float> fMat44;
+typedef Mat<5,5,float> fMat55;
+typedef Mat<6,6,float> fMat66;
+typedef Mat<7,7,float> fMat77;
+typedef Mat<8,8,float> fMat88;
+typedef Mat<9,9,float> fMat99;
 
 
 } //namespace SimTK

@@ -520,6 +520,10 @@ typedef SimTK_Real              Real;
 /** This is the default complex type for SimTK, with precision for the real 
 and imaginary parts set to the compiled-in Real type. @see Real **/
 typedef std::complex<Real>      Complex;
+/** An abbreviation for std::complex<float> for consistency with others. **/
+typedef std::complex<float>     fComplex;
+/** An abbreviation for std::complex<double> for consistency with others. **/
+typedef std::complex<float>     dComplex;
 
 /** A convenient struct for anything requiring an offset and length to specify
 a segment of some larger sequence. **/
