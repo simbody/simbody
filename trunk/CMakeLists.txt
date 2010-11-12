@@ -228,30 +228,30 @@ IF(${CMAKE_C_COMPILER} MATCHES "cl")
 
     ## C++
     SET(CMAKE_CXX_FLAGS_DEBUG        
-	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /arch:${CL_INST_SET}" 
+	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ Debug build compile flags" FORCE)
     SET(CMAKE_CXX_FLAGS_RELEASE        
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /arch:${CL_INST_SET}" 
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ Release build compile flags" FORCE)
     SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /arch:${CL_INST_SET}" 
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ RelWithDebInfo build compile flags" FORCE)
     SET(CMAKE_CXX_FLAGS_MINSIZEREL 
-	"/D NDEBUG /MD  /O1 /Ob1 /Oi /arch:${CL_INST_SET}" 
+	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ MinSizeRel build compile flags" FORCE)
 
     ## C
     SET(CMAKE_C_FLAGS_DEBUG        
-	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /arch:${CL_INST_SET}" 
+	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ Debug build compile flags" FORCE)
     SET(CMAKE_C_FLAGS_RELEASE        
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /arch:${CL_INST_SET}" 
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ Release build compile flags" FORCE)
     SET(CMAKE_C_FLAGS_RELWITHDEBINFO 
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /arch:${CL_INST_SET}" 
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ RelWithDebInfo build compile flags" FORCE)
     SET(CMAKE_C_FLAGS_MINSIZEREL 
-	"/D NDEBUG /MD  /O1 /Ob1 /Oi /arch:${CL_INST_SET}" 
+	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ MinSizeRel build compile flags" FORCE)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
