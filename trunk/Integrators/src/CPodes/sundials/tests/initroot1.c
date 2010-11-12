@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include <cpodes/cpodes.h>
 #include <cpodes/cpodes_dense.h>
 #include <nvector/nvector_serial.h>
