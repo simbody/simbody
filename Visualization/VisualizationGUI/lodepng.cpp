@@ -28,6 +28,11 @@ The manual and changelog can be found in the header file "lodepng.h"
 You are free to name this file lodepng.cpp or lodepng.c depending on your usage.
 */
 
+#ifdef _MSC_VER
+    // Silence annoying warnings about how getenv(), sscanf(), etc. are unsafe.
+    #pragma warning(disable:4996)
+#endif
+
 #include "lodepng.h"
 
 #define VERSION_STRING "20101030"

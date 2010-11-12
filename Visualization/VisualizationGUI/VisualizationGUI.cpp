@@ -33,6 +33,7 @@
 #include "simbody/internal/VisualizationProtocol.h"
 #include "simbody/internal/VisualizationEventListener.h"
 #include "lodepng.h"
+
 #ifdef _WIN32
     // This file will not compile unless windows.h is
     // restricted by these defines due to name conflicts.
@@ -40,32 +41,39 @@
     #define NOMINMAX
     #include <windows.h>
     #include <io.h>
-    #include <GL/gl.h>
-    #include "glext.h"
-    #include "glut.h"
     #define READ _read
-    PFNGLGENBUFFERSPROC glGenBuffers;
-    PFNGLBINDBUFFERPROC glBindBuffer;
-    PFNGLBUFFERDATAPROC glBufferData;
-    PFNGLCREATEPROGRAMPROC glCreateProgram;
-    PFNGLCREATESHADERPROC glCreateShader;
-    PFNGLSHADERSOURCEPROC glShaderSource;
-    PFNGLCOMPILESHADERPROC glCompileShader;
-    PFNGLATTACHSHADERPROC glAttachShader;
-    PFNGLLINKPROGRAMPROC glLinkProgram;
-    PFNGLUSEPROGRAMPROC glUseProgram;
-    PFNGLUNIFORM3FPROC glUniform3f;
-    PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-    PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
-    PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
-    PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
-    PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
-    PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
-    PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
-    PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
-    PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
 #else
     #include <unistd.h>
+    #define READ read
+#endif
+
+#include <GL/gl.h>
+
+// TODO: can we use this glutGetProcAddress() technique even
+// if the OS provides the gl extensions directly?
+#include "glext.h" // local
+#include "freeglut/GL/freeglut.h"
+PFNGLGENBUFFERSPROC glGenBuffers;
+PFNGLBINDBUFFERPROC glBindBuffer;
+PFNGLBUFFERDATAPROC glBufferData;
+PFNGLCREATEPROGRAMPROC glCreateProgram;
+PFNGLCREATESHADERPROC glCreateShader;
+PFNGLSHADERSOURCEPROC glShaderSource;
+PFNGLCOMPILESHADERPROC glCompileShader;
+PFNGLATTACHSHADERPROC glAttachShader;
+PFNGLLINKPROGRAMPROC glLinkProgram;
+PFNGLUSEPROGRAMPROC glUseProgram;
+PFNGLUNIFORM3FPROC glUniform3f;
+PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
+PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
+PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
+PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
+PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
+#ifdef THE_OLD_WAY
     #ifdef __APPLE__
         #include <GLUT/glut.h>
     #else
@@ -74,8 +82,8 @@
         #include <GL/glext.h>
         #include <GL/glut.h>
     #endif
-    #define READ read
 #endif
+
 #include <string>
 #include <algorithm>
 #include <set>
@@ -90,6 +98,7 @@
 using namespace SimTK;
 using namespace std;
 
+
 // gcc 4.4.3 complains bitterly if you don't check the return
 // status from the write() system call. This avoids those 
 // warnings and maybe, someday, will catch an error.
@@ -99,25 +108,25 @@ using namespace std;
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}
 
-static Transform cameraTransform(Rotation(), Vec3(0, 0, 10));
+static fTransform cameraTransform(fRotation(), fVec3(0, 0, 10));
 static int clickModifiers;
 static int clickButton;
 static int clickX;
 static int clickY;
-static Vec3 rotateCenter;
+static fVec3 rotateCenter;
 static int inPipe, outPipe;
 static bool needRedisplay;
 
-static void computeBoundingSphereForVertices(const vector<float>& vertices, Real& radius, Vec3& center) {
-    Vec3 lower(vertices[0], vertices[1], vertices[2]);
-    Vec3 upper = lower;
+static void computeBoundingSphereForVertices(const vector<float>& vertices, float& radius, fVec3& center) {
+    fVec3 lower(vertices[0], vertices[1], vertices[2]);
+    fVec3 upper = lower;
     for (int i = 3; i < (int) vertices.size(); i += 3) {
         for (int j = 0; j < 3; j++) {
-            lower[j] = min(lower[j], (Real) vertices[i+j]);
-            upper[j] = max(upper[j], (Real) vertices[i+j]);
+            lower[j] = min(lower[j], vertices[i+j]);
+            upper[j] = max(upper[j], vertices[i+j]);
         }
     }
-    center = 0.5*(lower+upper);
+    center = (lower+upper)/2;
     float rad2 = 0;
     for (int i = 0; i < (int) vertices.size(); i += 3) {
         float x = center[0]-vertices[i];
@@ -176,7 +185,7 @@ public:
         else if (representation == DecorativeGeometry::DrawWireframe)
             glDrawElements(GL_LINES, edges.size(), GL_UNSIGNED_SHORT, &edges[0]);
     }
-    void getBoundingSphere(Real& radius, Vec3& center) {
+    void getBoundingSphere(float& radius, fVec3& center) {
         radius = this->radius;
         center = this->center;
     }
@@ -184,15 +193,15 @@ private:
     int numVertices;
     GLuint vertBuffer, normBuffer;
     vector<GLushort> edges, faces;
-    Vec3 center;
-    Real radius;
+    fVec3 center;
+    float radius;
 };
 
 static vector<Mesh*> meshes;
 
 class RenderedMesh {
 public:
-    RenderedMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, unsigned short meshIndex) :
+    RenderedMesh(const fTransform& transform, const fVec3& scale, const fVec4& color, short representation, unsigned short meshIndex) :
             transform(transform), scale(scale), representation(representation), meshIndex(meshIndex) {
         this->color[0] = color[0];
         this->color[1] = color[1];
@@ -202,7 +211,7 @@ public:
     void draw() {
         glPushMatrix();
         glTranslated(transform.T()[0], transform.T()[1], transform.T()[2]);
-        Vec4 rot = transform.R().convertRotationToAngleAxis();
+        fVec4 rot = transform.R().convertRotationToAngleAxis();
         glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
         glScaled(scale[0], scale[1], scale[2]);
         if (representation == DecorativeGeometry::DrawSurface)
@@ -212,17 +221,17 @@ public:
         meshes[meshIndex]->draw(representation);
         glPopMatrix();
     }
-    const Transform& getTransform() const {
+    const fTransform& getTransform() const {
         return transform;
     }
-    void computeBoundingSphere(Real& radius, Vec3& center) {
+    void computeBoundingSphere(float& radius, fVec3& center) {
         meshes[meshIndex]->getBoundingSphere(radius, center);
         center += transform.T();
         radius *= max(abs(scale[0]), max(abs(scale[1]), abs(scale[2])));
     }
 private:
-    Transform transform;
-    Vec3 scale;
+    fTransform transform;
+    fVec3 scale;
     GLfloat color[4];
     short representation;
     unsigned short meshIndex;
@@ -230,7 +239,7 @@ private:
 
 class RenderedLine {
 public:
-    RenderedLine(const Vec3& color, float thickness) : color(color), thickness(thickness) {
+    RenderedLine(const fVec3& color, float thickness) : color(color), thickness(thickness) {
     }
     void draw() {
         glColor3d(color[0], color[1], color[2]);
@@ -242,24 +251,24 @@ public:
     vector<GLfloat>& getLines() {
         return lines;
     }
-    const Vec3& getColor() const {
+    const fVec3& getColor() const {
         return color;
     }
     float getThickness() const {
         return thickness;
     }
-    void computeBoundingSphere(Real& radius, Vec3& center) {
+    void computeBoundingSphere(float& radius, fVec3& center) {
         computeBoundingSphereForVertices(lines, radius, center);
     }
 private:
-    Vec3 color;
+    fVec3 color;
     float thickness;
     vector<GLfloat> lines;
 };
 
 class RenderedText {
 public:
-    RenderedText(const Vec3& position, float scale, const Vec3& color, const string& text) :
+    RenderedText(const fVec3& position, float scale, const fVec3& color, const string& text) :
             position(position), scale(scale/119), text(text) {
         this->color[0] = color[0];
         this->color[1] = color[1];
@@ -268,7 +277,7 @@ public:
     void draw() {
         glPushMatrix();
         glTranslated(position[0], position[1], position[2]);
-        Vec4 rot = cameraTransform.R().convertRotationToAngleAxis();
+        fVec4 rot = cameraTransform.R().convertRotationToAngleAxis();
         glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
         glScaled(scale, scale, scale);
         glColor3fv(color);
@@ -276,12 +285,12 @@ public:
             glutStrokeCharacter(GLUT_STROKE_ROMAN, text[i]);
         glPopMatrix();
     }
-    void computeBoundingSphere(Real& radius, Vec3& center) {
+    void computeBoundingSphere(float& radius, fVec3& center) {
         center = position;
         radius = glutStrokeLength(GLUT_STROKE_ROMAN, (unsigned char*) text.c_str())*scale;
     }
 private:
-    Vec3 position;
+    fVec3 position;
     float scale;
     GLfloat color[3];
     string text;
@@ -302,10 +311,10 @@ public:
 };
 
 static int viewWidth, viewHeight;
-static GLdouble fieldOfView = SimTK_PI/4;
-static GLdouble nearClip = 1;
-static GLdouble farClip = 1000;
-static GLdouble groundHeight = 0;
+static GLfloat fieldOfView = GLfloat(SimTK_PI/4);
+static GLfloat nearClip = 1;
+static GLfloat farClip = 1000;
+static GLfloat groundHeight = 0;
 static int groundAxis = 1;
 static bool showGround = true, showShadows = true, showFPS = false;
 static vector<PendingCommand*> pendingCommands;
@@ -331,42 +340,42 @@ public:
     int index;
 };
 
-static void computeSceneBounds(Real& radius, Vec3& center) {
+static void computeSceneBounds(float& radius, fVec3& center) {
     // Record the bounding sphere of every object in the scene.
 
-    vector<Vec3> centers;
-    vector<Real> radii;
+    vector<fVec3> centers;
+    vector<float> radii;
     for (int i = 0; i < (int) scene->drawnMeshes.size(); i++) {
-        Vec3 center;
-        Real radius;
+        fVec3 center;
+        float radius;
         scene->drawnMeshes[i].computeBoundingSphere(radius, center);
         centers.push_back(center);
         radii.push_back(radius);
     }
     for (int i = 0; i < (int) scene->solidMeshes.size(); i++) {
-        Vec3 center;
-        Real radius;
+        fVec3 center;
+        float radius;
         scene->solidMeshes[i].computeBoundingSphere(radius, center);
         centers.push_back(center);
         radii.push_back(radius);
     }
     for (int i = 0; i < (int) scene->transparentMeshes.size(); i++) {
-        Vec3 center;
-        Real radius;
+        fVec3 center;
+        float radius;
         scene->transparentMeshes[i].computeBoundingSphere(radius, center);
         centers.push_back(center);
         radii.push_back(radius);
     }
     for (int i = 0; i < (int) scene->lines.size(); i++) {
-        Vec3 center;
-        Real radius;
+        fVec3 center;
+        float radius;
         scene->lines[i].computeBoundingSphere(radius, center);
         centers.push_back(center);
         radii.push_back(radius);
     }
     for (int i = 0; i < (int) scene->strings.size(); i++) {
-        Vec3 center;
-        Real radius;
+        fVec3 center;
+        float radius;
         scene->strings[i].computeBoundingSphere(radius, center);
         centers.push_back(center);
         radii.push_back(radius);
@@ -376,18 +385,18 @@ static void computeSceneBounds(Real& radius, Vec3& center) {
 
     if (centers.size() == 0) {
         radius = 0;
-        center = Vec3(0);
+        center = fVec3(0);
     }
     else {
-        Vec3 lower = centers[0]-radii[0];
-        Vec3 upper = centers[0]+radii[0];
+        fVec3 lower = centers[0]-radii[0];
+        fVec3 upper = centers[0]+radii[0];
         for (int i = 1; i < (int) centers.size(); i++) {
             for (int j = 0; j < 3; j++) {
                 lower[j] = min(lower[j], centers[i][j]-radii[i]);
                 upper[j] = max(upper[j], centers[i][j]+radii[i]);
             }
         }
-        center = 0.5*(lower+upper);
+        center = (lower+upper)/2;
         radius = 0;
         for (int i = 0; i < (int) centers.size(); i++)
             radius = max(radius, (centers[i]-center).norm()+radii[i]);
@@ -395,11 +404,11 @@ static void computeSceneBounds(Real& radius, Vec3& center) {
 }
 
 static void zoomCameraToShowWholeScene() {
-    Real radius;
-    Vec3 center;
+    float radius;
+    fVec3 center;
     computeSceneBounds(radius, center);
-    Real viewDistance = radius/tan(0.5*min(fieldOfView, fieldOfView*viewWidth/viewHeight));
-    cameraTransform.updT() = center+cameraTransform.R()*Vec3(0, 0, viewDistance);
+    float viewDistance = radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
+    cameraTransform.updT() = center+cameraTransform.R()*fVec3(0, 0, viewDistance);
 }
 
 class PendingCameraZoom : public PendingCommand {
@@ -476,7 +485,7 @@ public:
         glVertex2i(maxx-1, miny);
         glEnd();
         glColor3f(0.2f, 0.2f, 0.2f);
-        glRasterPos2f(x+2, y);
+        glRasterPos2f(GLfloat(x+2), GLfloat(y));
         for (int i = 0; i < (int) title.size(); i++)
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, title[i]);
         glBegin(GL_TRIANGLES);
@@ -513,7 +522,7 @@ private:
 
 int Menu::currentMenu = -1;
 
-static void drawGroundAndSky(Real farClipDistance) {
+static void drawGroundAndSky(float farClipDistance) {
     static GLuint skyProgram = 0;
     if (skyProgram == 0) {
         const GLchar* vertexShaderSource =
@@ -579,26 +588,26 @@ static void drawGroundAndSky(Real farClipDistance) {
 
     // Draw the rectangle to represent the sky.
 
-    Real viewDistance = 0.9999*farClipDistance;
-    Real xwidth = viewDistance*tan(0.5*fieldOfView*viewWidth/viewHeight);
-    Real ywidth = viewDistance*tan(0.5*fieldOfView);
-    Vec3 center = cameraTransform.T()-cameraTransform.R()*Vec3(0, 0, viewDistance);
-    Vec3 corner1 = center+cameraTransform.R()*Vec3(-xwidth, -ywidth, 0);
-    Vec3 corner2 = center+cameraTransform.R()*Vec3(xwidth, -ywidth, 0);
-    Vec3 corner3 = center+cameraTransform.R()*Vec3(xwidth, ywidth, 0);
-    Vec3 corner4 = center+cameraTransform.R()*Vec3(-xwidth, ywidth, 0);
-    Vec3 cameraPosition, upDirection;
+    float viewDistance = 0.9999f*farClipDistance;
+    float xwidth = viewDistance*tan(fieldOfView*viewWidth/viewHeight/2);
+    float ywidth = viewDistance*tan(fieldOfView/2);
+    fVec3 center = cameraTransform.T()-cameraTransform.R()*fVec3(0, 0, viewDistance);
+    fVec3 corner1 = center+cameraTransform.R()*fVec3(-xwidth, -ywidth, 0);
+    fVec3 corner2 = center+cameraTransform.R()*fVec3(xwidth, -ywidth, 0);
+    fVec3 corner3 = center+cameraTransform.R()*fVec3(xwidth, ywidth, 0);
+    fVec3 corner4 = center+cameraTransform.R()*fVec3(-xwidth, ywidth, 0);
+    fVec3 cameraPosition, upDirection;
     if (groundAxis == 0) {
-        cameraPosition = Vec3(groundHeight, cameraTransform.T()[1], cameraTransform.T()[2]);
-        upDirection = Vec3(1, 0, 0);
+        cameraPosition = fVec3(groundHeight, cameraTransform.T()[1], cameraTransform.T()[2]);
+        upDirection = fVec3(1, 0, 0);
     }
     else if (groundAxis == 1) {
-        cameraPosition = Vec3(cameraTransform.T()[0], groundHeight, cameraTransform.T()[2]);
-        upDirection = Vec3(0, 1, 0);
+        cameraPosition = fVec3(cameraTransform.T()[0], groundHeight, cameraTransform.T()[2]);
+        upDirection = fVec3(0, 1, 0);
     }
     else {
-        cameraPosition = Vec3(cameraTransform.T()[0], cameraTransform.T()[1], groundHeight);
-        upDirection = Vec3(0, 0, 1);
+        cameraPosition = fVec3(cameraTransform.T()[0], cameraTransform.T()[1], groundHeight);
+        upDirection = fVec3(0, 0, 1);
     }
     glUseProgram(skyProgram);
     glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), (GLfloat) cameraPosition[0], (GLfloat) cameraPosition[1], (GLfloat) cameraPosition[2]);
@@ -615,28 +624,28 @@ static void drawGroundAndSky(Real farClipDistance) {
     // Draw the ground plane.
 
     center[1] = 0;
-    corner1 = center+Vec3(-farClipDistance, 0, -farClipDistance);
-    corner2 = center+Vec3(farClipDistance, 0, -farClipDistance);
-    corner3 = center+Vec3(farClipDistance, 0, farClipDistance);
-    corner4 = center+Vec3(-farClipDistance, 0, farClipDistance);
+    corner1 = center+fVec3(-farClipDistance, 0, -farClipDistance);
+    corner2 = center+fVec3(farClipDistance, 0, -farClipDistance);
+    corner3 = center+fVec3(farClipDistance, 0, farClipDistance);
+    corner4 = center+fVec3(-farClipDistance, 0, farClipDistance);
     glUseProgram(groundProgram);
     Mat<4, 4, GLfloat> transform(1.0f);
-    Vec3 sdir, tdir;
+    fVec3 sdir, tdir;
     if (groundAxis == 0) {
         transform[0][0] = transform[1][1] = 0.0f;
         transform[0][1] = transform[1][0] = 1.0f;
-        sdir = Vec3(0, 1, 0);
-        tdir = Vec3(0, 0, 1);
+        sdir = fVec3(0, 1, 0);
+        tdir = fVec3(0, 0, 1);
     }
     else if (groundAxis == 1) {
-        sdir = Vec3(1, 0, 0);
-        tdir = Vec3(0, 0, 1);
+        sdir = fVec3(1, 0, 0);
+        tdir = fVec3(0, 0, 1);
     }
     else {
         transform[1][1] = transform[2][2] = 0.0f;
         transform[1][2] = transform[2][1] = 1.0f;
-        sdir = Vec3(1, 0, 0);
-        tdir = Vec3(0, 1, 0);
+        sdir = fVec3(1, 0, 0);
+        tdir = fVec3(0, 1, 0);
     }
     sdir = ~cameraTransform.R()*sdir;
     tdir = ~cameraTransform.R()*tdir;
@@ -650,9 +659,9 @@ static void drawGroundAndSky(Real farClipDistance) {
         // Draw shadows on the ground.
 
         Mat<4, 4, GLfloat> transform2(1.0f);
-        transform2[0][1] = 0.2;
-        transform2[1][1] = 0.0;
-        transform2[2][1] = 0.2;
+        transform2[0][1] = 0.2f;
+        transform2[1][1] = 0.0f;
+        transform2[2][1] = 0.2f;
         transform2 = transform*transform2;
         glPushMatrix();
         glMultMatrixf(&transform2[0][0]);
@@ -712,14 +721,14 @@ static void renderScene() {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glViewport(0, 0, viewWidth, viewHeight);
-        Real sceneRadius;
-        Vec3 sceneCenter;
+        float sceneRadius;
+        fVec3 sceneCenter;
         computeSceneBounds(sceneRadius, sceneCenter);
-        Real centerDepth = ~(cameraTransform.T()-sceneCenter)*(cameraTransform.R().col(2));
-        Real nearClipDistance, farClipDistance;
+        float centerDepth = ~(cameraTransform.T()-sceneCenter)*(cameraTransform.R().col(2));
+        float nearClipDistance, farClipDistance;
         if (showGround) {
             nearClipDistance = nearClip;
-            farClipDistance = min(farClip, max(100.0, centerDepth+sceneRadius));
+            farClipDistance = min(farClip, max(100.f, centerDepth+sceneRadius));
         }
         else {
             nearClipDistance = max(nearClip, centerDepth-sceneRadius);
@@ -727,9 +736,9 @@ static void renderScene() {
         }
         gluPerspective(fieldOfView*SimTK_RADIAN_TO_DEGREE, (GLdouble) viewWidth/viewHeight, nearClipDistance, farClipDistance);
         glMatrixMode(GL_MODELVIEW);
-        Vec3 cameraPos = cameraTransform.T();
-        Vec3 centerPos = cameraTransform.T()+cameraTransform.R()*Vec3(0, 0, -1);
-        Vec3 upDir = cameraTransform.R()*Vec3(0, 1, 0);
+        fVec3 cameraPos = cameraTransform.T();
+        fVec3 centerPos = cameraTransform.T()+cameraTransform.R()*fVec3(0, 0, -1);
+        fVec3 upDir = cameraTransform.R()*fVec3(0, 1, 0);
         gluLookAt(cameraPos[0], cameraPos[1], cameraPos[2], centerPos[0], centerPos[1], centerPos[2], upDir[0], upDir[1], upDir[2]);
 
         // Render the objects in the scene.
@@ -781,7 +790,7 @@ static void redrawDisplay() {
     glLoadIdentity();
     gluOrtho2D(0, viewWidth, 0, viewHeight);
     glScalef(1, -1, 1);
-    glTranslatef(0, -viewHeight, 0);
+    glTranslatef(0, GLfloat(-viewHeight), 0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glDisable(GL_LIGHTING);
@@ -808,7 +817,7 @@ static void redrawDisplay() {
     if (hideMessageTime > 0) {
         glColor3f(1.0f, 0.5f, 0.0f);
         int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) overlayMessage.c_str());
-        glRasterPos2f(std::max(0, (viewWidth-width)/2), viewHeight/2);
+        glRasterPos2f(GLfloat(max(0, (viewWidth-width)/2)), GLfloat(viewHeight/2));
         for (int i = 0; i < (int) overlayMessage.size(); i++)
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, overlayMessage[i]);
     }
@@ -824,52 +833,63 @@ static void mousePressed(int button, int state, int x, int y) {
         clickX = x;
         clickY = y;
         if (clickButton == GLUT_LEFT_BUTTON) {
-            Real radius;
-            Vec3 sceneCenter;
+            float radius;
+            fVec3 sceneCenter;
             computeSceneBounds(radius, sceneCenter);
-            Real distToCenter = (sceneCenter-cameraTransform.T()).norm();
-            Real defaultDistance = radius;
+            float distToCenter = (sceneCenter-cameraTransform.T()).norm();
+            float defaultDistance = radius;
             if (distToCenter > defaultDistance)
                 rotateCenter = sceneCenter;
             else {
-                Vec3 cameraDir = cameraTransform.R()*Vec3(0, 0, -1);
-                Vec3 lookAt = cameraTransform.T()+defaultDistance*cameraDir;
-                Real fract = (defaultDistance-distToCenter)/defaultDistance;
-                rotateCenter = fract*lookAt+(1.0-fract)*sceneCenter;
+                fVec3 cameraDir = cameraTransform.R()*fVec3(0, 0, -1);
+                fVec3 lookAt = cameraTransform.T()+defaultDistance*cameraDir;
+                float fract = (defaultDistance-distToCenter)/defaultDistance;
+                rotateCenter = fract*lookAt+(1-fract)*sceneCenter;
             }
         }
+        // This will never happen as long as there is a mouseWheel function
+        // registered.
         if (clickButton == 3 || clickButton == 4) {
             // Scroll wheel.
 
-            cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, clickButton == 3 ? -0.5 : 0.5);
             pthread_mutex_lock(&sceneLock);
+            cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, clickButton == 3 ? -1.f : 1.f);
             needRedisplay = true;
             pthread_mutex_unlock(&sceneLock);
         }
     }
 }
 
+// direction will be -1 or 1
+static void mouseWheel(int wheelNum, int direction, int x, int y) {
+    const float ZoomScale = 1.f; // how much to translate per click
+    pthread_mutex_lock(&sceneLock);
+    cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, ZoomScale*direction);
+    needRedisplay = true;
+    pthread_mutex_unlock(&sceneLock);
+}
+
 static void mouseDragged(int x, int y) {
     pthread_mutex_lock(&sceneLock);
     if (clickButton == GLUT_RIGHT_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
-       cameraTransform.updT() += cameraTransform.R()*Vec3(0.01*(clickX-x), 0.01*(y-clickY), 0);
+       cameraTransform.updT() += cameraTransform.R()*fVec3(0.01f*(clickX-x), 0.01f*(y-clickY), 0);
     else if (clickButton == GLUT_MIDDLE_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
-       cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, 0.05*(clickY-y));
+       cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, 0.05f*(clickY-y));
     else if (clickButton == GLUT_LEFT_BUTTON) {
-        Vec3 cameraPos = cameraTransform.T();
-        Vec3 cameraDir = cameraTransform.R()*Vec3(0, 0, -1);
-        Vec3 upDir = cameraTransform.R()*Vec3(0, 1, 0);
-        Rotation r;
+        fVec3 cameraPos = cameraTransform.T();
+        fVec3 cameraDir = cameraTransform.R()*fVec3(0, 0, -1);
+        fVec3 upDir = cameraTransform.R()*fVec3(0, 1, 0);
+        fRotation r;
         if (clickModifiers & GLUT_ACTIVE_CTRL)
-            r.setRotationFromAngleAboutAxis(0.01*(clickY-y)-0.01*(clickX-x), ZAxis);
+            r.setRotationFromAngleAboutAxis(0.01f*(clickY-y)-0.01f*(clickX-x), ZAxis);
         else
-            r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence, 0.01*(clickY-y), XAxis, 0.01*(clickX-x), YAxis);
+            r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence, 0.01f*(clickY-y), XAxis, 0.01f*(clickX-x), YAxis);
         r = cameraTransform.R()*r*~cameraTransform.R();
         cameraPos = r*(cameraPos-rotateCenter)+rotateCenter;
         cameraDir = r*cameraDir;
         upDir = r*upDir;
         cameraTransform.updT() = cameraPos;
-        cameraTransform.updR().setRotationFromTwoAxes(UnitVec3(-cameraDir), ZAxis, upDir, YAxis);
+        cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(-cameraDir), ZAxis, upDir, YAxis);
     }
     else
         return;
@@ -1228,8 +1248,8 @@ void* listenForInput(void* args) {
             case SET_CAMERA: {
                 readData(buffer, 6*sizeof(float));
                 pthread_mutex_lock(&sceneLock);
-                cameraTransform.updR().setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-                cameraTransform.updT() = Vec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                cameraTransform.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+                cameraTransform.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
                 pthread_mutex_unlock(&sceneLock);
                 break;
             }
@@ -1241,10 +1261,10 @@ void* listenForInput(void* args) {
             }
             case LOOK_AT: {
                 readData(buffer, 6*sizeof(float));
-                Vec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-                Vec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                fVec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                fVec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
                 pthread_mutex_lock(&sceneLock);
-                cameraTransform.updR().setRotationFromTwoAxes(UnitVec3(cameraTransform.T()-point), ZAxis, updir, YAxis);
+                cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(cameraTransform.T()-point), ZAxis, updir, YAxis);
                 pthread_mutex_unlock(&sceneLock);
                 break;
             }
@@ -1313,11 +1333,11 @@ void* listenForInput(void* args) {
                         case ADD_WIREFRAME_MESH:
                         case ADD_SOLID_MESH: {
                             readData(buffer, 13*sizeof(float)+sizeof(short));
-                            Transform position;
-                            position.updR().setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-                            position.updT() = Vec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-                            Vec3 scale = Vec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
-                            Vec4 color = Vec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
+                            fTransform position;
+                            position.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+                            position.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                            fVec3 scale = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
+                            fVec4 color = fVec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
                             short representation = (command == ADD_POINT_MESH ? DecorativeGeometry::DrawPoints : (command == ADD_WIREFRAME_MESH ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
                             RenderedMesh mesh(position, scale, color, representation, shortBuffer[13*sizeof(float)/sizeof(short)]);
                             if (command != ADD_SOLID_MESH)
@@ -1330,7 +1350,7 @@ void* listenForInput(void* args) {
                         }
                         case ADD_LINE: {
                             readData(buffer, 10*sizeof(float));
-                            Vec3 color = Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                            fVec3 color = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
                             float thickness = floatBuffer[3];
                             int index;
                             int numLines = newScene->lines.size();
@@ -1349,9 +1369,9 @@ void* listenForInput(void* args) {
                         }
                         case ADD_TEXT: {
                             readData(buffer, 7*sizeof(float)+sizeof(short));
-                            Vec3 position = Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                            fVec3 position = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
                             float scale = floatBuffer[3];
-                            Vec3 color = Vec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
+                            fVec3 color = fVec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
                             short length = shortBuffer[7*sizeof(float)/sizeof(short)];
                             readData(buffer, length);
                             newScene->strings.push_back(RenderedText(position, scale, color, string(buffer, length)));
@@ -1359,13 +1379,13 @@ void* listenForInput(void* args) {
                         }
                         case ADD_FRAME: {
                             readData(buffer, 10*sizeof(float));
-                            Rotation rotation;
-                            rotation.setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-                            Vec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                            fRotation rotation;
+                            rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+                            fVec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
                             float axisLength = floatBuffer[6];
                             float textScale = 0.2f*axisLength;
                             float lineThickness = 1;
-                            Vec3 color = Vec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
+                            fVec3 color = fVec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
                             int index;
                             int numLines = newScene->lines.size();
                             for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || newScene->lines[index].getThickness() != lineThickness); index++)
@@ -1373,7 +1393,7 @@ void* listenForInput(void* args) {
                             if (index == numLines)
                                 newScene->lines.push_back(RenderedLine(color, lineThickness));
                             vector<GLfloat>& line = newScene->lines[index].getLines();
-                            Vec3 end = position+rotation*Vec3(axisLength, 0, 0);
+                            fVec3 end = position+rotation*fVec3(axisLength, 0, 0);
                             line.push_back(position[0]);
                             line.push_back(position[1]);
                             line.push_back(position[2]);
@@ -1381,7 +1401,7 @@ void* listenForInput(void* args) {
                             line.push_back(end[1]);
                             line.push_back(end[2]);
                             newScene->strings.push_back(RenderedText(end, textScale, color, "X"));
-                            end = position+rotation*Vec3(0, axisLength, 0);
+                            end = position+rotation*fVec3(0, axisLength, 0);
                             line.push_back(position[0]);
                             line.push_back(position[1]);
                             line.push_back(position[2]);
@@ -1389,7 +1409,7 @@ void* listenForInput(void* args) {
                             line.push_back(end[1]);
                             line.push_back(end[2]);
                             newScene->strings.push_back(RenderedText(end, textScale, color, "Y"));
-                            end = position+rotation*Vec3(0, 0, axisLength);
+                            end = position+rotation*fVec3(0, 0, axisLength);
                             line.push_back(position[0]);
                             line.push_back(position[1]);
                             line.push_back(position[2]);
@@ -1412,16 +1432,16 @@ void* listenForInput(void* args) {
 
                             // Compute normal vectors for the mesh.
 
-                            vector<Vec3> normals(numVertices, Vec3(0));
+                            vector<fVec3> normals(numVertices, fVec3(0));
                             for (int i = 0; i < numFaces; i++) {
                                 int v1 = mesh->faces[3*i];
                                 int v2 = mesh->faces[3*i+1];
                                 int v3 = mesh->faces[3*i+2];
-                                Vec3 vert1(mesh->vertices[3*v1], mesh->vertices[3*v1+1], mesh->vertices[3*v1+2]);
-                                Vec3 vert2(mesh->vertices[3*v2], mesh->vertices[3*v2+1], mesh->vertices[3*v2+2]);
-                                Vec3 vert3(mesh->vertices[3*v3], mesh->vertices[3*v3+1], mesh->vertices[3*v3+2]);
-                                Vec3 norm = (vert2-vert1)%(vert3-vert1);
-                                Real length = norm.norm();
+                                fVec3 vert1(mesh->vertices[3*v1], mesh->vertices[3*v1+1], mesh->vertices[3*v1+2]);
+                                fVec3 vert2(mesh->vertices[3*v2], mesh->vertices[3*v2+1], mesh->vertices[3*v2+2]);
+                                fVec3 vert3(mesh->vertices[3*v3], mesh->vertices[3*v3+1], mesh->vertices[3*v3+2]);
+                                fVec3 norm = (vert2-vert1)%(vert3-vert1);
+                                float length = norm.norm();
                                 if (length > 0) {
                                     norm /= length;
                                     normals[v1] += norm;
@@ -1470,11 +1490,11 @@ static const int MENU_SHOW_FPS = 10;
 static const int MENU_SAVE_IMAGE = 11;
 
 void viewMenuSelected(int option) {
-    Rotation groundRotation;
+    fRotation groundRotation;
     if (groundAxis == 0)
-        groundRotation.setRotationFromTwoAxes(UnitVec3(0, 1, 0), ZAxis, Vec3(1, 0, 0), YAxis);
+        groundRotation.setRotationFromTwoAxes(fUnitVec3(0, 1, 0), ZAxis, fVec3(1, 0, 0), YAxis);
     else if (groundAxis == 2)
-        groundRotation.setRotationFromTwoAxes(UnitVec3(1, 0, 0), ZAxis, Vec3(0, 0, 1), YAxis);
+        groundRotation.setRotationFromTwoAxes(fUnitVec3(1, 0, 0), ZAxis, fVec3(0, 0, 1), YAxis);
     switch (option) {
         case MENU_VIEW_FRONT:
             cameraTransform.updR().setRotationToIdentityMatrix();
@@ -1482,27 +1502,27 @@ void viewMenuSelected(int option) {
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_BACK:
-            cameraTransform.updR().setRotationFromAngleAboutY(SimTK_PI);
+            cameraTransform.updR().setRotationFromAngleAboutY((float)SimTK_PI);
             cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_LEFT:
-            cameraTransform.updR().setRotationFromAngleAboutY(-0.5*SimTK_PI);
+            cameraTransform.updR().setRotationFromAngleAboutY(-(float)(SimTK_PI/2));
             cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_RIGHT:
-            cameraTransform.updR().setRotationFromAngleAboutY(0.5*SimTK_PI);
+            cameraTransform.updR().setRotationFromAngleAboutY((float)(SimTK_PI/2));
             cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_TOP:
-            cameraTransform.updR().setRotationFromAngleAboutX(-0.5*SimTK_PI);
+            cameraTransform.updR().setRotationFromAngleAboutX(-(float)(SimTK_PI/2));
             cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_BOTTOM:
-            cameraTransform.updR().setRotationFromAngleAboutX(0.5*SimTK_PI);
+            cameraTransform.updR().setRotationFromAngleAboutX((float)(SimTK_PI/2));
             cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
@@ -1530,6 +1550,9 @@ void viewMenuSelected(int option) {
     needRedisplay = true;
 }
 
+static const int DefaultWindowWidth  = 600;
+static const int DefaultWindowHeight = 500;
+
 int main(int argc, char** argv) {
     SimTK_ASSERT_ALWAYS(argc >= 3, "VisualizationGUI: must be at least two command line arguments (pipes)");
 
@@ -1543,47 +1566,56 @@ int main(int argc, char** argv) {
     // Initialize GLUT.
 
     glutInit(&argc, argv);
+
+    // Put the upper left corner of the glut window near the upper right 
+    // corner of the screen.
+    int screenW = glutGet(GLUT_SCREEN_WIDTH);
+    int screenH = glutGet(GLUT_SCREEN_HEIGHT);
+    int windowPosX = (screenW - DefaultWindowWidth) - 50;   // leave 50 pixel margin
+    int windowPosY = 50;
+
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowPosition(100,100);
-    glutInitWindowSize(500, 500);
+    glutInitWindowPosition(windowPosX,windowPosY);
+    glutInitWindowSize(DefaultWindowWidth, DefaultWindowHeight);
     glutCreateWindow(title.c_str());
     glutDisplayFunc(redrawDisplay);
     glutReshapeFunc(changeSize);
     glutMouseFunc(mousePressed);
+    glutMouseWheelFunc(mouseWheel);
     glutMotionFunc(mouseDragged);
     glutPassiveMotionFunc(mouseMoved);
     glutKeyboardFunc(keyPressed);
     glutTimerFunc(33, animateDisplay, 0);
 
-    // On Windows, initialize function pointers for GL "extensions".
-#ifdef _WIN32
-    glGenBuffers    = (PFNGLGENBUFFERSPROC) wglGetProcAddress("glGenBuffers");
-    glBindBuffer    = (PFNGLBINDBUFFERPROC) wglGetProcAddress("glBindBuffer");
-    glBufferData    = (PFNGLBUFFERDATAPROC) wglGetProcAddress("glBufferData");
-    glCreateProgram = (PFNGLCREATEPROGRAMPROC) wglGetProcAddress("glCreateProgram");
-    glCreateShader  = (PFNGLCREATESHADERPROC) wglGetProcAddress("glCreateShader");
-    glShaderSource  = (PFNGLSHADERSOURCEPROC) wglGetProcAddress("glShaderSource");
-    glCompileShader = (PFNGLCOMPILESHADERPROC) wglGetProcAddress("glCompileShader");
-    glAttachShader  = (PFNGLATTACHSHADERPROC) wglGetProcAddress("glAttachShader");
-    glLinkProgram   = (PFNGLLINKPROGRAMPROC) wglGetProcAddress("glLinkProgram");
-    glUseProgram    = (PFNGLUSEPROGRAMPROC) wglGetProcAddress("glUseProgram");
-    glUniform3f     = (PFNGLUNIFORM3FPROC) wglGetProcAddress("glUniform3f");
-    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) wglGetProcAddress("glGetUniformLocation");
-    glGenFramebuffers    = (PFNGLGENFRAMEBUFFERSPROC) wglGetProcAddress("glGenFramebuffers");
-    glGenRenderbuffers   = (PFNGLGENRENDERBUFFERSPROC) wglGetProcAddress("glGenRenderbuffers");
-    glBindFramebuffer    = (PFNGLBINDFRAMEBUFFERPROC) wglGetProcAddress("glBindFramebuffer");
-    glBindRenderbuffer   = (PFNGLBINDRENDERBUFFERPROC) wglGetProcAddress("glBindRenderbuffer");
-    glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC) wglGetProcAddress("glRenderbufferStorage");
-    glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFERPROC) wglGetProcAddress("glFramebufferRenderbuffer");
-    glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC) wglGetProcAddress("glDeleteRenderbuffers");
-    glDeleteFramebuffers  = (PFNGLDELETEFRAMEBUFFERSPROC) wglGetProcAddress("glDeleteFramebuffers");
-#endif
+    // Initialize function pointers for GL extensions.
+    glGenBuffers    = (PFNGLGENBUFFERSPROC) glutGetProcAddress("glGenBuffers");
+    glBindBuffer    = (PFNGLBINDBUFFERPROC) glutGetProcAddress("glBindBuffer");
+    glBufferData    = (PFNGLBUFFERDATAPROC) glutGetProcAddress("glBufferData");
+    glCreateProgram = (PFNGLCREATEPROGRAMPROC) glutGetProcAddress("glCreateProgram");
+    glCreateShader  = (PFNGLCREATESHADERPROC) glutGetProcAddress("glCreateShader");
+    glShaderSource  = (PFNGLSHADERSOURCEPROC) glutGetProcAddress("glShaderSource");
+    glCompileShader = (PFNGLCOMPILESHADERPROC) glutGetProcAddress("glCompileShader");
+    glAttachShader  = (PFNGLATTACHSHADERPROC) glutGetProcAddress("glAttachShader");
+    glLinkProgram   = (PFNGLLINKPROGRAMPROC) glutGetProcAddress("glLinkProgram");
+    glUseProgram    = (PFNGLUSEPROGRAMPROC) glutGetProcAddress("glUseProgram");
+    glUniform3f     = (PFNGLUNIFORM3FPROC) glutGetProcAddress("glUniform3f");
+    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) glutGetProcAddress("glGetUniformLocation");
+    glGenFramebuffers    = (PFNGLGENFRAMEBUFFERSPROC) glutGetProcAddress("glGenFramebuffers");
+    glGenRenderbuffers   = (PFNGLGENRENDERBUFFERSPROC) glutGetProcAddress("glGenRenderbuffers");
+    glBindFramebuffer    = (PFNGLBINDFRAMEBUFFERPROC) glutGetProcAddress("glBindFramebuffer");
+    glBindRenderbuffer   = (PFNGLBINDRENDERBUFFERPROC) glutGetProcAddress("glBindRenderbuffer");
+    glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC) glutGetProcAddress("glRenderbufferStorage");
+    glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFERPROC) glutGetProcAddress("glFramebufferRenderbuffer");
+    glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC) glutGetProcAddress("glDeleteRenderbuffers");
+    glDeleteFramebuffers  = (PFNGLDELETEFRAMEBUFFERSPROC) glutGetProcAddress("glDeleteFramebuffers");
+
+    //TODO: check that all functions were present.
 
     // Set up lighting.
 
-    GLfloat light_diffuse[] = {0.8, 0.8, 0.8, 1};
-    GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
-    GLfloat light_ambient[] = {0.2, 0.2, 0.2, 1};
+    GLfloat light_diffuse[]  = {0.8f, 0.8f, 0.8f, 1.0f};
+    GLfloat light_position[] = {1.0f, 1.0f, 1.0f, 0.0f};
+    GLfloat light_ambient[]  = {0.2f, 0.2f, 0.2f, 1.0f};
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, light_ambient);
