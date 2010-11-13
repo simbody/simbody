@@ -34,57 +34,6 @@
 #include "simbody/internal/VisualizationEventListener.h"
 #include "lodepng.h"
 
-#ifdef _WIN32
-    // This file will not compile unless windows.h is
-    // restricted by these defines due to name conflicts.
-    #define WIN32_LEAN_AND_MEAN
-    #define NOMINMAX
-    #include <windows.h>
-#endif
-
-// Linux, Mac, Windows all have these.
-#include <GL/gl.h>
-#include <GL/glu.h>
-
-#ifdef _WIN32
-    #include "glext.h"                // SimTK local
-    #include "freeglut/GL/freeglut.h" // SimTK local
-    #include <io.h>
-    #define READ _read
-#else
-    #include <GL/glext.h>
-    #ifdef __APPLE__
-        #include <GLUT/freeglut.h>
-    #else
-        #include <GL/freeglut.h>
-    #endif
-    #include <unistd.h>
-    #define READ read
-#endif
-
-// TODO: can we use this glutGetProcAddress() technique even
-// if the OS provides the gl extensions directly?
-PFNGLGENBUFFERSPROC glGenBuffers;
-PFNGLBINDBUFFERPROC glBindBuffer;
-PFNGLBUFFERDATAPROC glBufferData;
-PFNGLCREATEPROGRAMPROC glCreateProgram;
-PFNGLCREATESHADERPROC glCreateShader;
-PFNGLSHADERSOURCEPROC glShaderSource;
-PFNGLCOMPILESHADERPROC glCompileShader;
-PFNGLATTACHSHADERPROC glAttachShader;
-PFNGLLINKPROGRAMPROC glLinkProgram;
-PFNGLUSEPROGRAMPROC glUseProgram;
-PFNGLUNIFORM3FPROC glUniform3f;
-PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
-PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
-PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
-PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
-PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
-PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
-PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
-PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
-
 #include <string>
 #include <algorithm>
 #include <set>
@@ -96,9 +45,66 @@ PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
 #include <pthread.h>
 #include <sys/stat.h>
 
-using namespace SimTK;
-using namespace std;
+// Get gl and glut using the appropriate platform-dependent incantations.
+#if defined(__APPLE__)
+    // OSX has no available freeglut?
+    #include <GLUT/glut.h>
+#elif defined(_WIN32)
+    // Windows gl.h requires windows.h first. 
+    #define WIN32_LEAN_AND_MEAN
+    #define NOMINMAX
+    #include <windows.h>
 
+    // Windows: the OS provides only a primitive version of OpenGL;
+    // the calls from OpenGL 2.0 must be obtained dynamically.
+    // We supply our own glext.h header & freeglut implementation.
+    #include <GL/gl.h>
+    #include <GL/glu.h>
+    #include "glext.h"                // SimTK local
+    #include "freeglut/GL/freeglut.h" // SimTK local
+
+    // These will hold the dynamically-determined function addresses.
+    PFNGLGENBUFFERSPROC glGenBuffers;
+    PFNGLBINDBUFFERPROC glBindBuffer;
+    PFNGLBUFFERDATAPROC glBufferData;
+    PFNGLCREATEPROGRAMPROC glCreateProgram;
+    PFNGLCREATESHADERPROC glCreateShader;
+    PFNGLSHADERSOURCEPROC glShaderSource;
+    PFNGLCOMPILESHADERPROC glCompileShader;
+    PFNGLATTACHSHADERPROC glAttachShader;
+    PFNGLLINKPROGRAMPROC glLinkProgram;
+    PFNGLUSEPROGRAMPROC glUseProgram;
+    PFNGLUNIFORM3FPROC glUniform3f;
+    PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+    PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
+    PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
+    PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+    PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
+    PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+    PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+    PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
+    PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
+
+    // see initGlextFuncPointerIfNeeded() at end of this file
+#else
+    // Linux: assume we have a good OpenGL 2.0 and working freeglut
+    #define GL_GLEXT_PROTOTYPES
+    #include <GL/gl.h>
+    #include <GL/glu.h>
+    #include <GL/glext.h>
+    #include <GL/freeglut.h>
+#endif
+
+static void initGlextFuncPointersIfNeeded();
+
+// Next, get the functions necessary for reading from and writing to pipes.
+#ifdef _WIN32
+    #include <io.h>
+    #define READ _read
+#else
+    #include <unistd.h>
+    #define READ read
+#endif
 
 // gcc 4.4.3 complains bitterly if you don't check the return
 // status from the write() system call. This avoids those 
@@ -108,6 +114,10 @@ using namespace std;
     SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizationGUI",  \
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}
+
+using namespace SimTK;
+using namespace std;
+
 
 static fTransform cameraTransform(fRotation(), fVec3(0, 0, 10));
 static int clickModifiers;
@@ -1588,29 +1598,7 @@ int main(int argc, char** argv) {
     glutKeyboardFunc(keyPressed);
     glutTimerFunc(33, animateDisplay, 0);
 
-    // Initialize function pointers for GL extensions.
-    glGenBuffers    = (PFNGLGENBUFFERSPROC) glutGetProcAddress("glGenBuffers");
-    glBindBuffer    = (PFNGLBINDBUFFERPROC) glutGetProcAddress("glBindBuffer");
-    glBufferData    = (PFNGLBUFFERDATAPROC) glutGetProcAddress("glBufferData");
-    glCreateProgram = (PFNGLCREATEPROGRAMPROC) glutGetProcAddress("glCreateProgram");
-    glCreateShader  = (PFNGLCREATESHADERPROC) glutGetProcAddress("glCreateShader");
-    glShaderSource  = (PFNGLSHADERSOURCEPROC) glutGetProcAddress("glShaderSource");
-    glCompileShader = (PFNGLCOMPILESHADERPROC) glutGetProcAddress("glCompileShader");
-    glAttachShader  = (PFNGLATTACHSHADERPROC) glutGetProcAddress("glAttachShader");
-    glLinkProgram   = (PFNGLLINKPROGRAMPROC) glutGetProcAddress("glLinkProgram");
-    glUseProgram    = (PFNGLUSEPROGRAMPROC) glutGetProcAddress("glUseProgram");
-    glUniform3f     = (PFNGLUNIFORM3FPROC) glutGetProcAddress("glUniform3f");
-    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) glutGetProcAddress("glGetUniformLocation");
-    glGenFramebuffers    = (PFNGLGENFRAMEBUFFERSPROC) glutGetProcAddress("glGenFramebuffers");
-    glGenRenderbuffers   = (PFNGLGENRENDERBUFFERSPROC) glutGetProcAddress("glGenRenderbuffers");
-    glBindFramebuffer    = (PFNGLBINDFRAMEBUFFERPROC) glutGetProcAddress("glBindFramebuffer");
-    glBindRenderbuffer   = (PFNGLBINDRENDERBUFFERPROC) glutGetProcAddress("glBindRenderbuffer");
-    glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC) glutGetProcAddress("glRenderbufferStorage");
-    glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFERPROC) glutGetProcAddress("glFramebufferRenderbuffer");
-    glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC) glutGetProcAddress("glDeleteRenderbuffers");
-    glDeleteFramebuffers  = (PFNGLDELETEFRAMEBUFFERSPROC) glutGetProcAddress("glDeleteFramebuffers");
-
-    //TODO: check that all functions were present.
+    initGlextFuncPointersIfNeeded();
 
     // Set up lighting.
 
@@ -1664,3 +1652,33 @@ int main(int argc, char** argv) {
     glutMainLoop();
     return 0;
 }
+
+
+// Initialize function pointers for Windows GL extensions.
+static void initGlextFuncPointersIfNeeded() {
+#ifdef _WIN32
+    glGenBuffers    = (PFNGLGENBUFFERSPROC) glutGetProcAddress("glGenBuffers");
+    glBindBuffer    = (PFNGLBINDBUFFERPROC) glutGetProcAddress("glBindBuffer");
+    glBufferData    = (PFNGLBUFFERDATAPROC) glutGetProcAddress("glBufferData");
+    glCreateProgram = (PFNGLCREATEPROGRAMPROC) glutGetProcAddress("glCreateProgram");
+    glCreateShader  = (PFNGLCREATESHADERPROC) glutGetProcAddress("glCreateShader");
+    glShaderSource  = (PFNGLSHADERSOURCEPROC) glutGetProcAddress("glShaderSource");
+    glCompileShader = (PFNGLCOMPILESHADERPROC) glutGetProcAddress("glCompileShader");
+    glAttachShader  = (PFNGLATTACHSHADERPROC) glutGetProcAddress("glAttachShader");
+    glLinkProgram   = (PFNGLLINKPROGRAMPROC) glutGetProcAddress("glLinkProgram");
+    glUseProgram    = (PFNGLUSEPROGRAMPROC) glutGetProcAddress("glUseProgram");
+    glUniform3f     = (PFNGLUNIFORM3FPROC) glutGetProcAddress("glUniform3f");
+    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) glutGetProcAddress("glGetUniformLocation");
+    glGenFramebuffers    = (PFNGLGENFRAMEBUFFERSPROC) glutGetProcAddress("glGenFramebuffers");
+    glGenRenderbuffers   = (PFNGLGENRENDERBUFFERSPROC) glutGetProcAddress("glGenRenderbuffers");
+    glBindFramebuffer    = (PFNGLBINDFRAMEBUFFERPROC) glutGetProcAddress("glBindFramebuffer");
+    glBindRenderbuffer   = (PFNGLBINDRENDERBUFFERPROC) glutGetProcAddress("glBindRenderbuffer");
+    glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC) glutGetProcAddress("glRenderbufferStorage");
+    glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFERPROC) glutGetProcAddress("glFramebufferRenderbuffer");
+    glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC) glutGetProcAddress("glDeleteRenderbuffers");
+    glDeleteFramebuffers  = (PFNGLDELETEFRAMEBUFFERSPROC) glutGetProcAddress("glDeleteFramebuffers");
+
+    //TODO: check that all functions were present.
+#endif
+}
+
