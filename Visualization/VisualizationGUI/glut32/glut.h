@@ -8,6 +8,9 @@
    program is -not- in the public domain. */
 
 #if defined(_WIN32)
+#if defined(_MSC_VER)
+    #pragma warning(disable:4996)/*"unsafe" strcpy(), etc.*/
+#endif
 
 /* GLUT 3.7 now tries to avoid including <windows.h>
    to avoid name space pollution, but Win32's <GL/gl.h> 
@@ -15,6 +18,7 @@
 # if 0
    /* This would put tons of macros and crap in our clean name space. */
 #  define  WIN32_LEAN_AND_MEAN
+#  define  NOMINMAX
 #  include <windows.h>
 # else
    /* XXX This is from Win32's <windef.h> */
@@ -143,7 +147,7 @@ extern "C" {
 
 #if defined(_WIN32)
 # ifndef GLUT_BUILDING_LIB
-extern _CRTIMP void __cdecl exit(int);
+extern _CRTIMP __declspec(noreturn) void __cdecl exit(int);
 # endif
 #else
 /* non-Win32 case. */
@@ -245,6 +249,10 @@ extern void exit(int);
 #define GLUT_LEFT_BUTTON		0
 #define GLUT_MIDDLE_BUTTON		1
 #define GLUT_RIGHT_BUTTON		2
+#define GLUT_WHEEL_UP			3
+#define GLUT_WHEEL_DOWN			4
+#define GLUT_XBUTTON1			5
+#define GLUT_XBUTTON2			6
 
 /* Mouse button  state. */
 #define GLUT_DOWN			0

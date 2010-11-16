@@ -47,21 +47,12 @@
 
 // Get gl and glut using the appropriate platform-dependent incantations.
 #if defined(__APPLE__)
-    // OSX has no available freeglut?
+    // OSX comes with a good glut implementation.
     #include <GLUT/glut.h>
 #elif defined(_WIN32)
-    // Windows gl.h requires windows.h first. 
-    #define WIN32_LEAN_AND_MEAN
-    #define NOMINMAX
-    #include <windows.h>
-
-    // Windows: the OS provides only a primitive version of OpenGL;
-    // the calls from OpenGL 2.0 must be obtained dynamically.
-    // We supply our own glext.h header & freeglut implementation.
-    #include <GL/gl.h>
-    #include <GL/glu.h>
-    #include "glext.h"                // SimTK local
-    #include "freeglut/GL/freeglut.h" // SimTK local
+    #include "glut32/glut.h"    // we have our own private headers
+    #include "glut32/glext.h" 
+    #define glutGetProcAddress wglGetProcAddress
 
     // These will hold the dynamically-determined function addresses.
     PFNGLGENBUFFERSPROC glGenBuffers;
@@ -74,8 +65,8 @@
     PFNGLATTACHSHADERPROC glAttachShader;
     PFNGLLINKPROGRAMPROC glLinkProgram;
     PFNGLUSEPROGRAMPROC glUseProgram;
-    PFNGLUNIFORM3FPROC glUniform3f;
-    PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+    PFNGLUNIFORM3FPROC glUniform3f; 
+    PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation; 
     PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
     PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
     PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
@@ -87,12 +78,12 @@
 
     // see initGlextFuncPointerIfNeeded() at end of this file
 #else
-    // Linux: assume we have a good OpenGL 2.0 and working freeglut
+    // Linux: assume we have a good OpenGL 2.0 and working glut or free glut.
     #define GL_GLEXT_PROTOTYPES
     #include <GL/gl.h>
     #include <GL/glu.h>
     #include <GL/glext.h>
-    #include <GL/freeglut.h>
+    #include <GL/glut.h>
 #endif
 
 static void initGlextFuncPointersIfNeeded();
@@ -837,55 +828,76 @@ static void redrawDisplay() {
     glutSwapBuffers();
 }
 
-static void mousePressed(int button, int state, int x, int y) {
-    if (state == GLUT_DOWN) {
-        clickModifiers = glutGetModifiers();
-        clickButton = button;
-        clickX = x;
-        clickY = y;
-        if (clickButton == GLUT_LEFT_BUTTON) {
-            float radius;
-            fVec3 sceneCenter;
-            computeSceneBounds(radius, sceneCenter);
-            float distToCenter = (sceneCenter-cameraTransform.T()).norm();
-            float defaultDistance = radius;
-            if (distToCenter > defaultDistance)
-                rotateCenter = sceneCenter;
-            else {
-                fVec3 cameraDir = cameraTransform.R()*fVec3(0, 0, -1);
-                fVec3 lookAt = cameraTransform.T()+defaultDistance*cameraDir;
-                float fract = (defaultDistance-distToCenter)/defaultDistance;
-                rotateCenter = fract*lookAt+(1-fract)*sceneCenter;
-            }
-        }
-        // This will never happen as long as there is a mouseWheel function
-        // registered.
-        if (clickButton == 3 || clickButton == 4) {
-            // Scroll wheel.
+// Handle the initial press of a mouse button. Standard glut does not
+// deal with the mouse wheel, but freeglut and some tweaked gluts treat
+// it as a "button press" with button codes 3 (up) and 4 (down). This
+// function handles those properly if they are present.
+static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
+    const int GlutWheelUp = 3, GlutWheelDown = 4;
+    const float ZoomMovePerWheelClick = 1.f;
 
-            pthread_mutex_lock(&sceneLock);
-            cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, clickButton == 3 ? -1.f : 1.f);
-            needRedisplay = true;
-            pthread_mutex_unlock(&sceneLock);
+    // "state" (pressed/released) is irrelevant for mouse wheel. However, if 
+    // we're being called by freeglut we'll get called twice, while (patched) 
+    // glut calls just once, with state=GLUT_UP. 
+    if ((button == GlutWheelUp || button == GlutWheelDown)
+        && (state==GLUT_UP)) // TODO: does this work OK on Mac GLUT?
+    {
+        // Scroll wheel.
+        const int direction = button==GlutWheelUp ? -1 : 1;
+
+        pthread_mutex_lock(&sceneLock);
+        cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, direction*ZoomMovePerWheelClick);
+        needRedisplay = true;
+        pthread_mutex_unlock(&sceneLock);
+        return;
+    }
+
+    // not mouse wheel; currently ignore "button up" message
+    if (state == GLUT_UP)
+        return;
+
+    // Handle state == GLUT_DOWN:
+
+    // Remember which button was pressed; we'll deal with it in mouseDragged().
+    clickModifiers = glutGetModifiers();
+    clickButton = button;
+    clickX = x;
+    clickY = y;
+
+    // Left button is rotation; when it is first pressed we calcuate the center
+    // of rotation; we'll do the actual rotating in mouseDragged().
+    if (clickButton == GLUT_LEFT_BUTTON) {
+        float radius;
+        fVec3 sceneCenter;
+        computeSceneBounds(radius, sceneCenter);
+        float distToCenter = (sceneCenter-cameraTransform.T()).norm();
+        float defaultDistance = radius;
+        if (distToCenter > defaultDistance)
+            rotateCenter = sceneCenter;
+        else {
+            fVec3 cameraDir = cameraTransform.R()*fVec3(0, 0, -1);
+            fVec3 lookAt = cameraTransform.T()+defaultDistance*cameraDir;
+            float fract = (defaultDistance-distToCenter)/defaultDistance;
+            rotateCenter = fract*lookAt+(1-fract)*sceneCenter;
         }
     }
 }
 
-// direction will be -1 or 1
-static void mouseWheel(int wheelNum, int direction, int x, int y) {
-    const float ZoomScale = 1.f; // how much to translate per click
-    pthread_mutex_lock(&sceneLock);
-    cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, ZoomScale*direction);
-    needRedisplay = true;
-    pthread_mutex_unlock(&sceneLock);
-}
-
+// This function is called when the mouse is moved while a button is being held down. When
+// the button was first clicked, we recorded which one it was in clickButton, and where the
+// mouse was then in (clickX,clickY). We update (clickX,clickY) each call here to reflect
+// where it was last seen.
 static void mouseDragged(int x, int y) {
     pthread_mutex_lock(&sceneLock);
+
+    // translate: right button or shift-left button
     if (clickButton == GLUT_RIGHT_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
        cameraTransform.updT() += cameraTransform.R()*fVec3(0.01f*(clickX-x), 0.01f*(y-clickY), 0);
+    // zoom: middle button or alt-left button (or mouse wheel; see above)
     else if (clickButton == GLUT_MIDDLE_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
        cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, 0.05f*(clickY-y));
+    // rotate: left button alone: rotate scene left/right or up/down
+    //         ctrl-left button:  roll scene about camera direction
     else if (clickButton == GLUT_LEFT_BUTTON) {
         fVec3 cameraPos = cameraTransform.T();
         fVec3 cameraDir = cameraTransform.R()*fVec3(0, 0, -1);
@@ -904,6 +916,7 @@ static void mouseDragged(int x, int y) {
     }
     else
         return;
+
     clickX = x;
     clickY = y;
     needRedisplay = true;
@@ -915,19 +928,38 @@ static void mouseMoved(int x, int y) {
         menus[i].mouseMoved(x, y);
 }
 
-static void keyPressed(unsigned char key, int x, int y) {
+// Glut distinguishes ordinary ASCII key presses from special
+// ones like arrows and function keys. We will map either case
+// into the same "key pressed" command to send to the simulator.
+static void ordinaryKeyPressed(unsigned char key, int x, int y) {
     char command = KEY_PRESSED;
     WRITE(outPipe, &command, 1);
     unsigned char buffer[2];
     buffer[0] = key;
     buffer[1] = 0;
-    int modifiers = glutGetModifiers();
+    unsigned char modifiers = glutGetModifiers();
     if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
-        buffer[1] += VisualizationEventListener::SHIFT_DOWN;
+        buffer[1] += VisualizationEventListener::ShiftIsDown;
     if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
-        buffer[1] += VisualizationEventListener::CONTROL_DOWN;
+        buffer[1] += VisualizationEventListener::ControlIsDown;
     if ((modifiers & GLUT_ACTIVE_ALT) != 0)
-        buffer[1] += VisualizationEventListener::ALT_DOWN;
+        buffer[1] += VisualizationEventListener::AltIsDown;
+    WRITE(outPipe, buffer, 2);
+}
+
+static void specialKeyPressed(int key, int x, int y) {
+    char command = KEY_PRESSED;
+    WRITE(outPipe, &command, 1);
+    unsigned char buffer[2];
+    buffer[0] = (unsigned char)key; // this is the special key code
+    buffer[1] = VisualizationEventListener::IsSpecialKey;
+    unsigned char modifiers = glutGetModifiers();
+    if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
+        buffer[1] &= VisualizationEventListener::ShiftIsDown;
+    if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
+        buffer[1] &= VisualizationEventListener::ControlIsDown;
+    if ((modifiers & GLUT_ACTIVE_ALT) != 0)
+        buffer[1] &= VisualizationEventListener::AltIsDown;
     WRITE(outPipe, buffer, 2);
 }
 
@@ -1578,6 +1610,7 @@ int main(int argc, char** argv) {
 
     glutInit(&argc, argv);
 
+
     // Put the upper left corner of the glut window near the upper right 
     // corner of the screen.
     int screenW = glutGet(GLUT_SCREEN_WIDTH);
@@ -1589,15 +1622,25 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(windowPosX,windowPosY);
     glutInitWindowSize(DefaultWindowWidth, DefaultWindowHeight);
     glutCreateWindow(title.c_str());
+
+    printf( "OpenGL version information:\n"
+            "---------------------------\n"
+            "Vendor:   %s\n" 
+            "Renderer: %s\n"
+            "Version:  %s\n"
+            "GLSL:     %s\n", 
+        glGetString (GL_VENDOR), glGetString (GL_RENDERER),
+        glGetString (GL_VERSION), glGetString (GL_SHADING_LANGUAGE_VERSION));
+
     glutDisplayFunc(redrawDisplay);
     glutReshapeFunc(changeSize);
-    glutMouseFunc(mousePressed);
-    glutMouseWheelFunc(mouseWheel);
+    glutMouseFunc(mouseButtonPressedOrReleased);
     glutMotionFunc(mouseDragged);
     glutPassiveMotionFunc(mouseMoved);
-    glutKeyboardFunc(keyPressed);
-    glutTimerFunc(33, animateDisplay, 0);
-
+    glutKeyboardFunc(ordinaryKeyPressed);
+    glutSpecialFunc(specialKeyPressed);
+    // On some systems (Windows at least), some of the gl functions may 
+    // need to be loaded dynamically.
     initGlextFuncPointersIfNeeded();
 
     // Set up lighting.
@@ -1641,6 +1684,7 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
     menus.push_back(Menu("View", items, viewMenuSelected));
 
+
     // Spawn the listener thread.
 
     pthread_mutex_init(&sceneLock, NULL);
@@ -1648,14 +1692,15 @@ int main(int argc, char** argv) {
     pthread_create(&thread, NULL, listenForInput, NULL);
 
     // Enter the main loop.
-
+    
+    glutTimerFunc(33, animateDisplay, 0); 
     glutMainLoop();
     return 0;
 }
 
 
 // Initialize function pointers for Windows GL extensions.
-static void initGlextFuncPointersIfNeeded() {
+static void initGlextFuncPointersIfNeeded() { 
 #ifdef _WIN32
     glGenBuffers    = (PFNGLGENBUFFERSPROC) glutGetProcAddress("glGenBuffers");
     glBindBuffer    = (PFNGLBINDBUFFERPROC) glutGetProcAddress("glBindBuffer");

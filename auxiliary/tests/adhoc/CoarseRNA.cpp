@@ -36,11 +36,16 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h" // requires VTK
 
+#include "simbody/internal/VisualizationReporter.h"
+#define VTKVisualizer Visualizer
+
 #include <cmath>
 #include <cstdio>
 #include <exception>
 #include <vector>
 #include <ctime>
+
+
 
 using namespace std;
 using namespace SimTK;
@@ -256,7 +261,7 @@ try // If anything goes wrong, an exception will be thrown.
         int mp,mv,ma;
         c.getNumConstraintEquationsInUse(s, mp,mv,ma);
 
-	    cout << "CONSTRAINT " << cid 
+        cout << "CONSTRAINT " << cid 
              << " constrained bodies=" << c.getNumConstrainedBodies() 
              << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex()
              << " constrained mobilizers/nq/nu=" << c.getNumConstrainedMobilizers() 
@@ -279,10 +284,10 @@ try // If anything goes wrong, an exception will be thrown.
         }
         cout << c.getSubtree();
 
-	    cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
-	    cout << "   d(perrdot)/du=" << ~c.calcPositionConstraintMatrixPt(s);
+        cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+        cout << "   d(perrdot)/du=" << ~c.calcPositionConstraintMatrixPt(s);
 
-	    cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
+        cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
     }
 
 

@@ -119,7 +119,7 @@ static void spawnViz(const char* localPath, const char* installPath,
         localPath, installPath, errno, strerror(errno));
 }
 
-static void readData(char* buffer, int bytes) {
+static void readData(unsigned char* buffer, int bytes) {
     int totalRead = 0;
     while (totalRead < bytes)
         totalRead += READ(inPipe, buffer+totalRead, bytes-totalRead);
@@ -127,7 +127,7 @@ static void readData(char* buffer, int bytes) {
 
 static void* listenForVisualizationEvents(void* arg) {
     Visualizer& visualizer = *reinterpret_cast<Visualizer*>(arg);
-    char buffer[256];
+    unsigned char buffer[256];
     while (true) {
         // Receive an event.
 
@@ -136,16 +136,21 @@ static void* listenForVisualizationEvents(void* arg) {
             case KEY_PRESSED: {
                 readData(buffer, 2);
                 const Array_<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
+                unsigned keyCode = buffer[0];
+                if (buffer[1] & VisualizationEventListener::IsSpecialKey)
+                    keyCode += VisualizationEventListener::SpecialKeyOffset;
                 for (int i = 0; i < (int) listeners.size(); i++)
-                    listeners[i]->keyPressed(buffer[0], buffer[1]);
+                    if (listeners[i]->keyPressed(keyCode, (unsigned)(buffer[1])))
+                        break; // key press has been handled
                 break;
             }
             case MENU_SELECTED: {
                 int item;
-                readData((char*) &item, sizeof(int));
+                readData((unsigned char*) &item, sizeof(int));
                 const Array_<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
                 for (int i = 0; i < (int) listeners.size(); i++)
-                    listeners[i]->menuSelected(item);
+                    if (listeners[i]->menuSelected(item))
+                        break; // menu event has been handled
                 break;
             }
             default:

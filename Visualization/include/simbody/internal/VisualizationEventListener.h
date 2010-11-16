@@ -36,15 +36,89 @@
 
 namespace SimTK {
 
+/** This abstract class defines methods to be called when the Visualizer
+reports user activity back to the simulation process. Derive a concrete
+event listener whose methods take appropriate actions when event of interest
+occur. You only need to implement the methods you care about. **/
 class SimTK_SIMBODY_EXPORT VisualizationEventListener {
 public:
-    static const char SHIFT_DOWN = 1;
-    static const char CONTROL_DOWN = 2;
-    static const char ALT_DOWN = 4;
+    /** These represent modifications to the character that is passed into
+    the keyPressed() method, including whether any of Shift/Control/Alt were
+    down and whether a special non-ASCII code is being supplied, such as
+    is required for an arrow key. These values are or'ed together to form
+    the second argument of the keyPressed() method. **/
+    enum Modifier {
+        ShiftIsDown   = 0x01, ///< Shift (left or right)
+        ControlIsDown = 0x02, ///< Ctrl (left or right)
+        AltIsDown     = 0x04, ///< Alt (left or right)
+        IsSpecialKey  = 0xC0  ///< Special non-ASCII keycode being used
+    };
+
+    static const unsigned SpecialKeyOffset = 0x100; // Added to each code
+
+    /** These are the special keys that the Visualizer may report via the 
+    method specialKeyPressed(). All other keys are considered "ordinary" 
+    and are reported by ASCII code via the ordinaryKeyPressed() method. **/
+    enum KeyCode {
+        KeyControlC     = 3,            // some notable ASCII codes
+        KeyBeep         = 7,
+        KeyBackspace    = 8,            
+        KeyTab          = 9,
+        KeyLF           = 10,
+        KeyReturn       = 13,
+        KeyEnter        = KeyReturn,
+        KeyEsc          = 27,
+        KeyDelete       = 127,
+
+        KeyF1  = SpecialKeyOffset + 1,  // function keys
+        KeyF2  = SpecialKeyOffset + 2,
+        KeyF3  = SpecialKeyOffset + 3,
+        KeyF4  = SpecialKeyOffset + 4,
+        KeyF5  = SpecialKeyOffset + 5,
+        KeyF6  = SpecialKeyOffset + 6,
+        KeyF7  = SpecialKeyOffset + 7,
+        KeyF8  = SpecialKeyOffset + 8,
+        KeyF9  = SpecialKeyOffset + 9,
+        KeyF10 = SpecialKeyOffset + 10,
+        KeyF11 = SpecialKeyOffset + 11,
+        KeyF12 = SpecialKeyOffset + 12,
+
+        KeyLeftArrow    = SpecialKeyOffset + 100,  // directional keys
+        KeyUpArrow      = SpecialKeyOffset + 101,
+        KeyRightArrow   = SpecialKeyOffset + 102,
+        KeyDownArrow    = SpecialKeyOffset + 103,
+        KeyPageUp       = SpecialKeyOffset + 104,
+        KeyPageDown     = SpecialKeyOffset + 105,
+        KeyHome         = SpecialKeyOffset + 106,
+        KeyEnd          = SpecialKeyOffset + 107,
+        KeyInsert       = SpecialKeyOffset + 108
+    };
     
-    virtual ~VisualizationEventListener();
-    virtual void keyPressed(char key, char modifiers);
-    virtual void menuSelected(int item);
+    /** Destructor is virtual; be sure to override it if you need to 
+    clean up. **/
+    virtual ~VisualizationEventListener() {}
+
+    /** This method is called when a user hits a keyboard key
+    in the Visualizer window, unless that key is being intercepted
+    by the Visualizer for its own purposes. Ordinary ASCII characters
+    0-127 are represented by their own values; special keys like arrows
+    and function keys are mapped to unique values > 255. You can check
+    whether \a modifers & IsSpecialKey is true if you care; otherwise
+    just mix the ordinary and special codes in a case statement. You can
+    tell if any or all of Shift/Control/Alt were depressed when the key
+    was hit by checking the \a modifiers. Note that for an ordinary 
+    capital letter you'll get the ASCII code for the capital as well
+    as an indication that the Shift key was down. If caps lock was down
+    you'll get the capital letter but no Shift modifier. 
+    @return Return true if you have handled this key press and don't
+    want any subsequent listeners called. **/
+    virtual bool keyPressed(unsigned key, unsigned modifiers) {return false;}
+
+    /** The user has clicked one of the menu items you defined; here is
+    the integer value you specified when you defined it.    
+    @return Return true if you have handled this menu click and don't
+    want any subsequent listeners called. **/
+    virtual bool menuSelected(int item) {return false;}
 };
 
 } // namespace SimTK

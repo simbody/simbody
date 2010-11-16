@@ -33,11 +33,3 @@
 
 using namespace SimTK;
 
-VisualizationEventListener::~VisualizationEventListener() {
-}
-
-void VisualizationEventListener::keyPressed(char key, char modifiers) {
-}
-
-void VisualizationEventListener::menuSelected(int iterm) {
-}
