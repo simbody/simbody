@@ -324,6 +324,20 @@ void setTo(ContactId id, const Vec3& contactPt,
     m_potentialEnergy   = potentialEnergy;
     m_powerLoss         = powerLoss; }
 
+/** Change the ContactId contained in this ContactForce object. **/
+void setContactId(ContactId id) {m_contactId=id;}
+/** Change the contact point contained in this ContactForce object. **/
+void setContactPoint(const Vec3& contactPt) {m_contactPt=contactPt;}
+/** Change the value stored in this ContactForce object for the spatial 
+force being applied on surface 2. **/
+void setForceOnSurface2(const SpatialVec& forceOnSurface2) 
+{   m_forceOnSurface2=forceOnSurface2; }
+/** Change the value stored for potential energy in this ContactForce object. **/
+void setPotentialEnergy(Real potentialEnergy) 
+{   m_potentialEnergy=potentialEnergy; }
+/** Change the value stored for potential energy in this ContactForce object. **/
+void setPowerDissipation(Real powerLoss) {m_powerLoss=powerLoss;}
+
 /** Restore the ContactForce object to its default-constructed state with
 an invalid contact id and garbage for the other fields. **/
 void clear() {m_contactId.invalidate();}
@@ -339,6 +353,7 @@ void changeFrameInPlace(const Transform& X_BA) {
     m_forceOnSurface2   = X_BA.R()*m_forceOnSurface2;      // reexpress in B
 }
 
+private:
 ContactId       m_contactId;            // Which Contact produced this force?
 Vec3            m_contactPt;            // In some frame A
 SpatialVec      m_forceOnSurface2;      // at contact pt, in A; neg. for Surf1
@@ -348,10 +363,11 @@ Real            m_powerLoss;            // > 0 means dissipation
 
 // For debugging.
 inline std::ostream& operator<<(std::ostream& o, const ContactForce& f) {
-    o << "ContactForce for ContactId " << f.m_contactId << " (ground frame):\n";
-    o << "  contact point=" << f.m_contactPt << "\n";
-    o << "  force on surf2 =" << f.m_forceOnSurface2 << "\n";
-    o << "  pot. energy=" << f.m_potentialEnergy << "  powerLoss=" << f.m_powerLoss;
+    o << "ContactForce for ContactId " << f.getContactId() << " (ground frame):\n";
+    o << "  contact point=" << f.getContactPoint() << "\n";
+    o << "  force on surf2 =" << f.getForceOnSurface2() << "\n";
+    o << "  pot. energy=" << f.getPotentialEnergy() 
+      << "  powerLoss=" << f.getPowerDissipation();
     return o << "\n";
 }
 

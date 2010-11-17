@@ -36,6 +36,9 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h" // requires VTK
 
+#include "simbody/internal/VisualizationReporter.h"
+#define VTKVisualizer Visualizer
+
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -83,7 +86,7 @@ public:
         *vaerr = getOneUDot(s, theMobilizer, whichMobility, true);
     }
 
-	// apply generalized force lambda to the mobility
+    // apply generalized force lambda to the mobility
     void applyVelocityConstraintForces
        (const State& s, int mv, const Real* multipliers,
         Vector_<SpatialVec>& bodyForcesInA,
@@ -230,9 +233,9 @@ int main(int argc, char** argv) {
              
         if (mp) {
             cout << "perr=" << c.getPositionErrorsAsVector(s) << endl;
-	        cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+            cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
             cout << "  ~d(Pt lambda)/dlambda=" << ~c.calcPositionConstraintMatrixPt(s);
-	        cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
+            cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
 
             Matrix P = c.calcPositionConstraintMatrixP(s);
             Matrix PQ(mp,matter.getNQ(s));
@@ -248,7 +251,7 @@ int main(int argc, char** argv) {
 
         if (mv) {
             cout << "verr=" << c.getVelocityErrorsAsVector(s) << endl;
-	        //cout << "   d(verrdot)/dudot=" << c.calcVelocityConstraintMatrixV(s);
+            //cout << "   d(verrdot)/dudot=" << c.calcVelocityConstraintMatrixV(s);
             cout << "  ~d(Vt lambda)/dlambda=" << ~c.calcVelocityConstraintMatrixVt(s);
         }
 
@@ -356,14 +359,14 @@ int main(int argc, char** argv) {
             matter.getUErr(s).normRMS(),
             s.getSystemStage() >= Stage::Acceleration ? matter.getUDotErr(s).normRMS() : Real(-1));
 #ifdef HASC
-		cout << "CONSTRAINT perr=" << c.getPositionError(s)
-			 << " verr=" << c.getVelocityError(s)
-			 << " aerr=" << c.getAccelerationError(s)
-			 << endl;
+        cout << "CONSTRAINT perr=" << c.getPositionError(s)
+             << " verr=" << c.getVelocityError(s)
+             << " aerr=" << c.getAccelerationError(s)
+             << endl;
 #endif
-		//cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
-		//cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
-		//cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+        //cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+        //cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
+        //cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
         cout << "Q=" << matter.getQ(s) << endl;
         cout << "U=" << matter.getU(s) << endl;
         cout << "Multipliers=" << matter.getMultipliers(s) << endl;
@@ -387,8 +390,8 @@ int main(int argc, char** argv) {
         display.report(s);
         saveEm.push_back(s);
 
-		if (status == Integrator::ReachedReportTime)
-			++nextReport;
+        if (status == Integrator::ReachedReportTime)
+            ++nextReport;
     }
 
     printf("Using Integrator %s:\n", myStudy.getMethodName());

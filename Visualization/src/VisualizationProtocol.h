@@ -32,7 +32,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
 #include <pthread.h>
 #include <utility>
 
@@ -88,7 +88,7 @@ public:
     void setFieldOfView(Real fov);
     void setClippingPlanes(Real near, Real far);
     void setGroundPosition(const CoordinateAxis& axis, Real height);
-    void addMenu(const std::string& title, const Array_<std::pair<std::string, int> >& items);
+    void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
 private:
     void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex);
     int outPipe;

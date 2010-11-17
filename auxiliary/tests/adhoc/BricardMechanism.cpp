@@ -1,6 +1,9 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h"
 
+
+#define USE_VTK
+
 #include <fstream>
 #include <iostream>
 #include <ctime>
@@ -116,13 +119,21 @@ int main()
     //Force::MobilityLinearSpring frc(forces, EVEN_PART_3_body, 
        // MobilizerUIndex(0), 100, 0);
 
-    VTKEventReporter * pEventReporter = new VTKEventReporter(system, .01*4*0.25);
+#ifdef USE_VTK
+  { VTKEventReporter* pEventReporter = new VTKEventReporter(system, .01*4*0.25);
     pEventReporter->updVisualizer().setCameraLocation(Vec3(0.5,0.5,0.5));
     pEventReporter->updVisualizer().setCameraUpDirection(Vec3(0,1,0));
     pEventReporter->updVisualizer().setCameraFocalPoint(Vec3(0,0,0));
     pEventReporter->updVisualizer().zoomCameraToIncludeAllGeometry();
+    system.updDefaultSubsystem().addEventReporter(pEventReporter); }
+#else
+  { VisualizationReporter* pEventReporter = new VisualizationReporter(system, .01*4*0.25);
+    pEventReporter->updVisualizer().setCameraTransform(Vec3(0.5,0.5,0.5));
+    pEventReporter->updVisualizer().pointCameraAt(Vec3(0), Vec3(0,1,0));
+    pEventReporter->updVisualizer().zoomCameraToShowAllGeometry();
+    system.updDefaultSubsystem().addEventReporter(pEventReporter); }
+#endif
 
-    system.updDefaultSubsystem().addEventReporter(pEventReporter);
     system.updDefaultSubsystem().addEventReporter(new EnergyReport(system, .01*4*0.25));
     system.realizeTopology();
     State state = system.getDefaultState();

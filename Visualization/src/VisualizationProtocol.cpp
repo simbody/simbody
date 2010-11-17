@@ -462,19 +462,19 @@ void VisualizationProtocol::setGroundPosition(const CoordinateAxis& axis, Real h
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::addMenu(const string& title, const Array_<pair<string, int> >& items) {
+void VisualizationProtocol::addMenu(const String& title, const Array_<pair<String, int> >& items) {
     pthread_mutex_lock(&sceneLock);
     char command = DEFINE_MENU;
     WRITE(outPipe, &command, 1);
     short titleLength = title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
-    WRITE(outPipe, &title[0], titleLength);
+    WRITE(outPipe, title.c_str(), titleLength);
     short numItems = items.size();
     WRITE(outPipe, &numItems, sizeof(short));
     for (int i = 0; i < numItems; i++) {
         int buffer[] = {items[i].second, items[i].first.size()};
         WRITE(outPipe, buffer, 2*sizeof(int));
-        WRITE(outPipe, &items[i].first[0], items[i].first.size());
+        WRITE(outPipe, items[i].first.c_str(), items[i].first.size());
     }
     pthread_mutex_unlock(&sceneLock);
 }

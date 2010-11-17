@@ -70,9 +70,9 @@ public:
         const int ncont = m_compliant.getNumContactForces(state);
         for (int i=0; i < ncont; ++i) {
             const ContactForce& force = m_compliant.getContactForce(state,i);
-            const ContactId     id    = force.m_contactId;
-            const Vec3& frc = force.m_forceOnSurface2[1];
-            const Vec3& mom = force.m_forceOnSurface2[0];
+            const ContactId     id    = force.getContactId();
+            const Vec3& frc = force.getForceOnSurface2()[1];
+            const Vec3& mom = force.getForceOnSurface2()[0];
             Real  frcMag = frc.norm(), momMag=mom.norm();
             int frcThickness = 1, momThickness = 1;
             Real frcScale = ForceScale, momScale = ForceScale;
@@ -80,10 +80,10 @@ public:
                 frcThickness++, frcScale /= 10, frcMag /= 10;
             while (momMag > 10)
                 momThickness++, momScale /= 10, momMag /= 10;
-            DecorativeLine frcLine(force.m_contactPt,
-                force.m_contactPt + frcScale*frc);
-            DecorativeLine momLine(force.m_contactPt,
-                force.m_contactPt + momScale*mom);
+            DecorativeLine frcLine(force.getContactPoint(),
+                force.getContactPoint() + frcScale*frc);
+            DecorativeLine momLine(force.getContactPoint(),
+                force.getContactPoint() + momScale*mom);
             frcLine.setColor(frcColors[id%3]);
             momLine.setColor(momColors[id%3]);
             frcLine.setLineThickness(2*frcThickness);
@@ -378,7 +378,7 @@ int main() {
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
-            myRep.generateForceArrows(saveEm[i]);
+            //myRep.generateForceArrows(saveEm[i]);
             viz.report(saveEm[i]);
             //vtk.report(saveEm[i]); // half speed
         }

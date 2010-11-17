@@ -36,8 +36,10 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h" // requires VTK
 
-#include "simbody/internal/VisualizationReporter.h"
-#define VTKVisualizer Visualizer
+#define USE_VTK
+#ifdef USE_VTK
+#define Visualizer VTKVisualizer
+#endif
 
 #include <cmath>
 #include <cstdio>
@@ -92,7 +94,7 @@ public:
 
     }
 
-    void decorateBody(MobilizedBodyIndex bodyNum, VTKVisualizer& display) const {
+    void decorateBody(MobilizedBodyIndex bodyNum, Visualizer& display) const {
         assert(bodyInfo[bodyNum].bnum == bodyNum);
         if (bodyInfo[bodyNum].isDuplex)
             addDuplexDecorations(bodyNum, DuplexRadius, HalfHeight, CylinderSlop, 
@@ -102,7 +104,7 @@ public:
                                     ConnectorEndSlop, display);
     }
 
-    void decorateGlobal(VTKVisualizer& display) const {
+    void decorateGlobal(Visualizer& display) const {
         // nothing
     }
 
@@ -193,7 +195,7 @@ private:
     }
 
     void addDuplexDecorations(MobilizedBodyIndex bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
-                              Real atomRadius, VTKVisualizer& display) const
+                              Real atomRadius, Visualizer& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
             DecorativeCylinder(r+atomRadius+slop, halfHeight).setColor(Cyan).setOpacity(0.4));
@@ -213,7 +215,7 @@ private:
     }
 
     void addConnectorDecorations(MobilizedBodyIndex bodyNum, Real r, Real halfHeight, Real endSlop,  
-                                 VTKVisualizer& display) const
+                                 Visualizer& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
             DecorativeCylinder(r, halfHeight-endSlop).setColor(Blue));
@@ -329,7 +331,7 @@ try // If anything goes wrong, an exception will be thrown.
     myStudy.setConstraintTolerance(1e-2); 
     myStudy.setProjectEveryStep(false);
 
-    VTKVisualizer display(mbs);
+    Visualizer display(mbs);
     for (MobilizedBodyIndex i(1); i<myRNA.getNumBodies(); ++i)
         myRNA.decorateBody(i, display);
     myRNA.decorateGlobal(display);

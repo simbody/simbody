@@ -275,14 +275,14 @@ int realizeSubsystemDynamicsImpl(const State& s) const {
     const Array_<ContactForce>& forces = getForceCache(s);
     for (unsigned i=0; i < forces.size(); ++i) {
         const ContactForce& force = forces[i];
-        const Contact& contact = contacts.getContactById(force.m_contactId);
+        const Contact& contact = contacts.getContactById(force.getContactId());
         const MobilizedBody& mobod1 = m_tracker.getMobilizedBody
                                                 (contact.getSurface1());
         const MobilizedBody& mobod2 = m_tracker.getMobilizedBody
                                                 (contact.getSurface2());
-        const Vec3 r1 = force.m_contactPt - mobod1.getBodyOriginLocation(s);
-        const Vec3 r2 = force.m_contactPt - mobod2.getBodyOriginLocation(s);
-        const SpatialVec& F2cpt = force.m_forceOnSurface2; // at contact pt
+        const Vec3 r1 = force.getContactPoint() - mobod1.getBodyOriginLocation(s);
+        const Vec3 r2 = force.getContactPoint() - mobod2.getBodyOriginLocation(s);
+        const SpatialVec& F2cpt = force.getForceOnSurface2(); // at contact pt
         // Shift applied force to body origins.
         const SpatialVec F2( F2cpt[0] + r2 %  F2cpt[1],  F2cpt[1]);
         const SpatialVec F1(-F2cpt[0] + r1 % -F2cpt[1], -F2cpt[1]);
@@ -307,7 +307,7 @@ int realizeSubsystemAccelerationImpl(const State& state) const {
     Real powerLoss = 0;
     const Array_<ContactForce>& forces = getForceCache(state);
     for (unsigned i=0; i < forces.size(); ++i)
-        powerLoss += forces[i].m_powerLoss;
+        powerLoss += forces[i].getPowerDissipation();
     updDissipatedEnergyDeriv(state) = powerLoss;
     return 0;
 }
@@ -399,7 +399,7 @@ ensurePotentialEnergyCacheValid(const State& state) const {
         ensureForceCacheValid(state);
         const Array_<ContactForce>& forces = getForceCache(state);
         for (unsigned i=0; i < forces.size(); ++i)
-            pe += forces[i].m_potentialEnergy;
+            pe += forces[i].getPotentialEnergy();
         markPotentialEnergyCacheValid(state);
         return;
     }
@@ -415,7 +415,7 @@ ensurePotentialEnergyCacheValid(const State& state) const {
             getForceGenerator(contact.getTypeId());
         ContactForce force;
         generator.calcContactForce(state,contact,SpatialVec(Vec3(0)), force);
-        pe += force.m_potentialEnergy;
+        pe += force.getPotentialEnergy();
     }
 
     markPotentialEnergyCacheValid(state);
@@ -756,8 +756,8 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     const Real fNormal  = fH + fHC;      // < 0 means "sticking"; see below
 
     // Start filling out the contact force.
-    contactForce_S1.m_contactId = contact.getContactId();
-    contactForce_S1.m_contactPt = contactPt_S1;
+    contactForce_S1.setContactId(contact.getContactId());
+    contactForce_S1.setContactPoint(contactPt_S1);
 
     // Total force can be negative under unusual circumstances ("yanking");
     // that means no force is generated and no stored PE will be recovered.
@@ -765,9 +765,9 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     // occasionally be real.
     if (fNormal <= 0) {
         //std::cout << "YANKING!!!\n";
-        contactForce_S1.m_forceOnSurface2 = SpatialVec(Vec3(0));
-        contactForce_S1.m_potentialEnergy = 0;
-        contactForce_S1.m_powerLoss = 0;
+        contactForce_S1.setForceOnSurface2(SpatialVec(Vec3(0)));
+        contactForce_S1.setPotentialEnergy(0);
+        contactForce_S1.setPowerDissipation(0);
         return; // there is contact, but no force
     }
 
@@ -810,8 +810,8 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     const Vec3 forceTotal = forceH + forceLoss;
     
     // Report the force (as applied at contactPt).
-    contactForce_S1.m_forceOnSurface2 = SpatialVec(Vec3(0),forceTotal);
-    contactForce_S1.m_potentialEnergy = potentialEnergy;
+    contactForce_S1.setForceOnSurface2(SpatialVec(Vec3(0),forceTotal));
+    contactForce_S1.setPotentialEnergy(potentialEnergy);
     // Don't include dot(forceH,velNormal) power due to conservative force
     // here. This way we don't double-count the energy on the way in as
     // integrated power and potential energy. Although the books would balance
@@ -820,7 +820,7 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     // including the conservative power term we will actually lose energy
     // because the deformed material isn't allowed to push back on us so the
     // energy is lost to surface vibrations or some other unmodeled effect.
-    contactForce_S1.m_powerLoss = powerHC + powerFriction;
+    contactForce_S1.setPowerDissipation(powerHC + powerFriction);
 }
 
 void ContactForceGenerator::HertzCircular::calcContactPatch

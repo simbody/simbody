@@ -91,6 +91,7 @@
 #include "simbody/internal/HuntCrossleyContact.h"
 #include "simbody/internal/HuntCrossleyForce.h"
 #include "simbody/internal/DecorationSubsystem.h"
+#include "simbody/internal/DecorationGenerator.h"
 #include "simbody/internal/TextDataEventReporter.h"
 #include "simbody/internal/ObservedPointFitter.h"
 #include "simbody/internal/Assembler.h"

@@ -36,13 +36,16 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h" // requires VTK
 
-#include "simbody/internal/VisualizationReporter.h"
-//#define VTKVisualizer Visualizer
+#define USE_VTK
+#ifdef USE_VTK
+#define Visualizer VTKVisualizer
+#endif
 
 #include <string>
 #include <iostream>
 #include <exception>
 #include <cmath>
+#include <ctime>
 using std::cout;
 using std::endl;
 
@@ -147,9 +150,10 @@ try
     //Force::Gravity gravityForces(forces, bouncers, gravity);
     Force::Gravity gravityForces(forces, bouncers, -UnitVec3(YAxis), g);
 
-    Force::Thermostat thermostat(forces, bouncers, 6000/*boltzmann??*/,
-        500, 1);
-    thermostat.setDefaultNumChains(3);
+    //Force::Thermostat thermostat(forces, bouncers, 6000/*boltzmann??*/,
+    //    500, 1);
+    //thermostat.setDefaultNumChains(3);
+    //thermostat.setDisabledByDefault(true);
 
     // No, thank you.
     bouncers.setShowDefaultGeometry(false);
@@ -254,7 +258,7 @@ try
     }
 
     State s = mbs.realizeTopology();
-    VTKVisualizer vtk(mbs);
+    Visualizer vtk(mbs);
     //vtk.setCameraClippingPlanes(.5,200);
    // vtk.zoomCameraToShowAllGeometry();
 
@@ -305,12 +309,17 @@ try
     cout << "Y WEIGHTS=" << ee.getStateWeightsInUse() << endl;
     cout << "1/CTOLS=" << ee.getConstraintWeightsInUse() << endl;
 
+    const clock_t start = clock();
+
+
+
     int step = 0;
     while (ee.getTime() <= tmax) {
         const State& ss = ee.getState();
         if (!(step % 10)) {
             mbs.realize(ss);
-            cout << ss.getTime() << ": T=" << thermostat.getCurrentTemperature(ss)
+            cout << ss.getTime() 
+                //<< ": T=" << thermostat.getCurrentTemperature(ss)
              << " E=" << mbs.calcEnergy(ss)
              << " (pe=" << mbs.calcPotentialEnergy(ss)
              << ", ke=" << mbs.calcKineticEnergy(ss)
@@ -324,11 +333,13 @@ try
         vtk.report(ss);
         saveEm.push_back(ss);
 
-        if (std::abs(ss.getTime()-30) < .001)
-            thermostat.setBathTemperature(ee.updAdvancedState(), 10);
-        if (std::abs(ss.getTime()-80) < .001)
-            thermostat.setBathTemperature(ee.updAdvancedState(), 200);
+        //if (std::abs(ss.getTime()-30) < .001)
+        //    thermostat.setBathTemperature(ee.updAdvancedState(), 10);
+        //if (std::abs(ss.getTime()-80) < .001)
+        //    thermostat.setBathTemperature(ee.updAdvancedState(), 200);
     }
+    std::cout << "Simulated " << ee.getTime() << " seconds in " <<
+        (double)(clock()-start)/CLOCKS_PER_SEC << "s\n";
 
     //printFinalStats(ee.getCPodes());
     printf("Using Integrator %s:\n", ee.getMethodName());

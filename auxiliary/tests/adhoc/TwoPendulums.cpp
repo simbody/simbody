@@ -38,6 +38,11 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h" // requires VTK
 
+#define USE_VTK
+#ifdef USE_VTK
+#define Visualizer VTKVisualizer
+#endif
+
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -188,15 +193,15 @@ int main(int argc, char** argv) {
     gravity.enable(s);
     twentyPlus10t.setValue(s, 20);
 
-	mbs.realize(s, Stage::Instance); // instantiate constraints
+    mbs.realize(s, Stage::Instance); // instantiate constraints
 
     cout << "meas1=" << meas1.getValue(s) << endl;
 
 
     if (cid.isValid()) {
-		int mp, mv, ma;
-		twoPends.getConstraint(cid).getNumConstraintEquationsInUse(s, mp, mv, ma);
-		cout << "CONSTRAINT ID " << cid << " mp,v,a=" << mp << ", " << mv << ", " << ma << endl;
+        int mp, mv, ma;
+        twoPends.getConstraint(cid).getNumConstraintEquationsInUse(s, mp, mv, ma);
+        cout << "CONSTRAINT ID " << cid << " mp,v,a=" << mp << ", " << mv << ", " << ma << endl;
         cout << "CONSTRAINT -- " << twoPends.getConstraint(cid).getSubtree();
     }
 
@@ -217,8 +222,11 @@ int main(int argc, char** argv) {
     sub.initializeSubtreeResults(s, results);
     cout << "INIT RESULTS=" << results;
 
-
+#ifdef USE_VTK
     VTKVisualizer display(mbs);
+#else
+    Visualizer display(mbs, "my a   \"title\"'s a good one!!");
+#endif
 
     // gravity.disable(s);
     mbs.realize(s, Stage::Position);
@@ -236,13 +244,13 @@ int main(int argc, char** argv) {
     cout << "                mobility:" << mobilityForces << endl;
     cout << "  PE=" << gravity.calcPotentialEnergyContribution(s) << endl;
 
-	if (cid.isValid()) {
-		const Constraint& c = twoPends.getConstraint(cid);
-		cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
-			 << endl;
-		cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
-		cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
-	}
+    if (cid.isValid()) {
+        const Constraint& c = twoPends.getConstraint(cid);
+        cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
+             << endl;
+        cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+        cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
+    }
 
     cout << "Default configuration shown. Ready? "; cin >> c;
 
@@ -339,16 +347,16 @@ int main(int argc, char** argv) {
 
         cout << "20+10t=" << twentyPlus10t.getValue(s) << endl;
 
-		if (cid.isValid()) {
-			const Constraint& c = twoPends.getConstraint(cid);
-			cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
-				 << " verr=" << c.getVelocityErrorsAsVector(s)
-				 << " aerr=" << c.getAccelerationErrorsAsVector(s)
-				 << endl;
-			//cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
-			//cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
-			//cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
-		}
+        if (cid.isValid()) {
+            const Constraint& c = twoPends.getConstraint(cid);
+            cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
+                 << " verr=" << c.getVelocityErrorsAsVector(s)
+                 << " aerr=" << c.getAccelerationErrorsAsVector(s)
+                 << endl;
+            //cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+            //cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
+            //cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+        }
 
         Vector qdot;
         twoPends.calcQDot(s, s.getU(), qdot);
@@ -377,12 +385,12 @@ int main(int argc, char** argv) {
 
         //status = myStudy.stepTo(s.getTime() + dt);
 
-		//THIS CAN FAIL SOMETIMES
+        //THIS CAN FAIL SOMETIMES
         //if (s.getTime() >= nextReport*dt) 
         //    ++nextReport;
 
-		if (status == Integrator::ReachedReportTime)
-			++nextReport;
+        if (status == Integrator::ReachedReportTime)
+            ++nextReport;
 
         if (s.getTime() >= schedule[nextScheduledEvent])
             ++nextScheduledEvent;

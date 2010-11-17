@@ -37,6 +37,8 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h"   // requires VTK
 
+#define USE_VTK
+
 #include <cstdio>
 #include <exception>
 #include <algorithm>
@@ -53,28 +55,24 @@ static const Real ReportInterval = 0.01;
 static const Real ForceScale = 10;
 static const Real MomentScale = 20;
 
-class MyReporter : public PeriodicEventReporter {
+class ForceArrowGenerator : public DecorationGenerator {
 public:
-    MyReporter(const MultibodySystem& system, 
-               const CompliantContactSubsystem& complCont,
-               VTKVisualizer& viz,
-               Real reportInterval)
-    :   PeriodicEventReporter(reportInterval), m_system(system),
-        m_compliant(complCont), m_viz(viz) {}
+    ForceArrowGenerator(const MultibodySystem& system,
+                        const CompliantContactSubsystem& complCont) 
+    :   m_system(system), m_compliant(complCont) {}
 
-    ~MyReporter() {}
-
-    void generateForceArrows(const State& state) const {
-        const Vec3 frcColors[] = {Red,Orange,Yellow};
+    virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
+        const Vec3 frcColors[] = {Red,Orange,Cyan};
         const Vec3 momColors[] = {Blue,Green,Purple};
         m_system.realize(state, Stage::Velocity);
 
         const int ncont = m_compliant.getNumContactForces(state);
         for (int i=0; i < ncont; ++i) {
             const ContactForce& force = m_compliant.getContactForce(state,i);
-            const ContactId     id    = force.m_contactId;
-            const Vec3& frc = force.m_forceOnSurface2[1];
-            const Vec3& mom = force.m_forceOnSurface2[0];
+            const ContactId     id    = force.getContactId();
+            printf("viz contact %d: id=%d\n", i, (int)id);
+            const Vec3& frc = force.getForceOnSurface2()[1];
+            const Vec3& mom = force.getForceOnSurface2()[0];
             Real  frcMag = frc.norm(), momMag=mom.norm();
             int frcThickness = 1, momThickness = 1;
             Real frcScale = ForceScale, momScale = ForceScale;
@@ -82,16 +80,71 @@ public:
                 frcThickness++, frcScale /= 10, frcMag /= 10;
             while (momMag > 10)
                 momThickness++, momScale /= 10, momMag /= 10;
-            DecorativeLine frcLine(force.m_contactPt,
-                force.m_contactPt + frcScale*frc);
-            DecorativeLine momLine(force.m_contactPt,
-                force.m_contactPt + momScale*mom);
+            DecorativeLine frcLine(force.getContactPoint(),
+                force.getContactPoint() + frcScale*frc);
+            DecorativeLine momLine(force.getContactPoint(),
+                force.getContactPoint() + momScale*mom);
             frcLine.setColor(frcColors[id%3]);
             momLine.setColor(momColors[id%3]);
             frcLine.setLineThickness(2*frcThickness);
             momLine.setLineThickness(2*momThickness);
+            geometry.push_back(frcLine);
+            geometry.push_back(momLine);
+        }
+    }
+private:
+    const MultibodySystem&              m_system;
+    const CompliantContactSubsystem&    m_compliant;
+};
+
+class MyReporter : public PeriodicEventReporter {
+public:
+    MyReporter(const MultibodySystem& system, 
+               const CompliantContactSubsystem& complCont,
+#ifdef USE_VTK
+               VTKVisualizer& viz,
+#endif
+               Real reportInterval)
+    :   PeriodicEventReporter(reportInterval), m_system(system),
+        m_compliant(complCont) 
+#ifdef USE_VTK
+        ,m_viz(viz) 
+#endif
+    {}
+
+    ~MyReporter() {}
+
+    void generateForceArrows(const State& state) const {
+        const Vec3 frcColors[] = {Red,Orange,Cyan};
+        const Vec3 momColors[] = {Blue,Green,Purple};
+        m_system.realize(state, Stage::Velocity);
+
+        const int ncont = m_compliant.getNumContactForces(state);
+        for (int i=0; i < ncont; ++i) {
+            const ContactForce& force = m_compliant.getContactForce(state,i);
+            const ContactId     id    = force.getContactId();
+            printf("vtk contact %d: id=%d\n", i, (int)id);
+            const Vec3& frc = force.getForceOnSurface2()[1];
+            const Vec3& mom = force.getForceOnSurface2()[0];
+            Real  frcMag = frc.norm(), momMag=mom.norm();
+            int frcThickness = 1, momThickness = 1;
+            Real frcScale = ForceScale, momScale = ForceScale;
+            while (frcMag > 10)
+                frcThickness++, frcScale /= 10, frcMag /= 10;
+            while (momMag > 10)
+                momThickness++, momScale /= 10, momMag /= 10;
+            DecorativeLine frcLine(force.getContactPoint(),
+                force.getContactPoint() + frcScale*frc);
+            DecorativeLine momLine(force.getContactPoint(),
+                force.getContactPoint() + momScale*mom);
+            frcLine.setColor(frcColors[id%3]);
+            momLine.setColor(momColors[id%3]);
+            frcLine.setLineThickness(2*frcThickness);
+            momLine.setLineThickness(2*momThickness);
+#ifdef USE_VTK
             m_viz.addEphemeralDecoration(frcLine);
             m_viz.addEphemeralDecoration(momLine);
+#endif
         }
     }
 
@@ -108,13 +161,17 @@ public:
             const ContactForce& force = m_compliant.getContactForce(state,i);
             //cout << force;
         }
+#ifdef USE_VTK
         generateForceArrows(state);
+#endif
         saveEm.push_back(state);
     }
 private:
     const MultibodySystem&           m_system;
     const CompliantContactSubsystem& m_compliant;
+#ifdef USE_VTK
     VTKVisualizer&                   m_viz;
+#endif
 };
 
 int main() {
@@ -217,11 +274,16 @@ int main() {
     //ef.setTransitionVelocity(vt);
     //// end of old way.
 
-
+#ifdef USE_VTK
     VTKEventReporter& reporter = *new VTKEventReporter(system, ReportInterval);
     VTKVisualizer& viz = reporter.updVisualizer();
-    
     MyReporter& myRep = *new MyReporter(system,contactForces,viz,ReportInterval);
+#else
+    VisualizationReporter& reporter = *new VisualizationReporter(system, ReportInterval);
+    Visualizer& viz = reporter.updVisualizer();
+    viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
+    MyReporter& myRep = *new MyReporter(system,contactForces,ReportInterval);
+#endif
     system.updDefaultSubsystem().addEventReporter(&myRep);
     system.updDefaultSubsystem().addEventReporter(&reporter);
 
@@ -253,7 +315,7 @@ int main() {
     RungeKutta3Integrator integ(system);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    ts.stepTo(20.0);
+    ts.stepTo(2.0);
 
     const double timeInSec = (double)(clock()-start)/CLOCKS_PER_SEC;
     const int evals = integ.getNumRealizations();
@@ -271,7 +333,9 @@ int main() {
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
-            //myRep.generateForceArrows(saveEm[i]);
+#ifdef USE_VTK
+            myRep.generateForceArrows(saveEm[i]);
+#endif
             viz.report(saveEm[i]);
             //vtk.report(saveEm[i]); // half speed
         }

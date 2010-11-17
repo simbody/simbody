@@ -57,9 +57,13 @@ class SimTK_SIMBODY_EXPORT DecorationGenerator {
 public:
     /**
      * This will be called every time a new State is about to be visualized.  It should generate
-     * whatever decorations are appropriate for the State and add them to the array.
+     * whatever decorations are appropriate for the State and append them to the array.
      */
     virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) = 0;
+
+    /** Destructor is virtual; be sure to override it if you have something
+    to clean up at the end. **/
+    virtual ~DecorationGenerator() {}
 };
 
 } // namespace SimTK

@@ -32,13 +32,13 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "VisualizationProtocol.h"
-#include <utility>
+#include "simbody/internal/common.h"
+
+#include <utility> // for std::pair
 
 namespace SimTK {
 
 class MultibodySystem;
-class State;
 class VisualizationEventListener;
 class DecorationGenerator;
 
@@ -52,7 +52,7 @@ public:
     void report(const State& state) const;
     void addEventListener(VisualizationEventListener* listener);
     const Array_<VisualizationEventListener*>& getEventListeners() const;
-    void addMenu(const std::string& title, const Array_<std::pair<std::string, int> >& items);
+    void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
     /**
      * Add an always-present, body-fixed piece of geometry like the one passed in, but attached to the
      * indicated body. The supplied transform is applied on top of whatever transform is already contained
@@ -105,6 +105,9 @@ public:
      */
     void setGroundPosition(const CoordinateAxis& axis, Real height);
     class VisualizerRep;
+
+    // OBSOLETE NAME: will be removed in a later release.
+    void zoomCameraToIncludeAllGeometry() {zoomCameraToShowAllGeometry();}
 private:
     class RubberBandLine;
     VisualizerRep* rep;
