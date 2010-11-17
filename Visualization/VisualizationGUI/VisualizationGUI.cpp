@@ -700,6 +700,15 @@ static void changeSize(int width, int height) {
 }
 
 static void renderScene() {
+    static bool firstTime = true;
+    static GLfloat prevNearClip; // initialize to near & farClip
+    static GLfloat prevFarClip;  
+    if (firstTime) {
+        prevNearClip = nearClip;
+        prevFarClip = farClip;
+        firstTime = false;
+    }
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glLoadIdentity();
@@ -726,16 +735,25 @@ static void renderScene() {
         float sceneRadius;
         fVec3 sceneCenter;
         computeSceneBounds(sceneRadius, sceneCenter);
+        float sceneScale = std::max(0.1f, sceneRadius);
+
         float centerDepth = ~(cameraTransform.T()-sceneCenter)*(cameraTransform.R().col(2));
         float nearClipDistance, farClipDistance;
         if (showGround) {
             nearClipDistance = nearClip;
-            farClipDistance = min(farClip, max(100.f, centerDepth+sceneRadius));
+            const float wantFarClipDistance = min(farClip, 
+                                                  max(2*sceneScale, 2*(centerDepth+sceneRadius)));
+            if (std::abs(wantFarClipDistance-prevFarClip) <= 0.5*prevFarClip)
+                farClipDistance = prevFarClip; // hysteresis to avoid jiggling ground
+            else farClipDistance = wantFarClipDistance;
         }
         else {
             nearClipDistance = max(nearClip, centerDepth-sceneRadius);
             farClipDistance = min(farClip, centerDepth+sceneRadius);
         }
+        prevNearClip = nearClipDistance;
+        prevFarClip  = farClipDistance;
+
         gluPerspective(fieldOfView*SimTK_RADIAN_TO_DEGREE, (GLdouble) viewWidth/viewHeight, nearClipDistance, farClipDistance);
         glMatrixMode(GL_MODELVIEW);
         fVec3 cameraPos = cameraTransform.T();
