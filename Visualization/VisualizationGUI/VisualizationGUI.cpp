@@ -67,14 +67,15 @@
     PFNGLUSEPROGRAMPROC glUseProgram;
     PFNGLUNIFORM3FPROC glUniform3f; 
     PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation; 
-    PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
-    PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
-    PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
-    PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
-    PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
-    PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
-    PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
-    PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
+    // Use old EXT names for these so we only require OpenGL 2.0.
+    PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
+    PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffersEXT;
+    PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT;
+    PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbufferEXT;
+    PFNGLRENDERBUFFERSTORAGEEXTPROC glRenderbufferStorageEXT;
+    PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT;
+    PFNGLDELETERENDERBUFFERSEXTPROC glDeleteRenderbuffersEXT;
+    PFNGLDELETEFRAMEBUFFERSEXTPROC glDeleteFramebuffersEXT;
 
     // see initGlextFuncPointerIfNeeded() at end of this file
 #else
@@ -982,26 +983,26 @@ static void saveImage() {
     // Create offscreen buffers for rendering the image.
 
     GLuint frameBuffer, colorBuffer, depthBuffer;
-    glGenFramebuffers(1, &frameBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-    glGenRenderbuffers(1, &colorBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, colorBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB8, viewWidth, viewHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorBuffer);
-    glGenRenderbuffers(1, &depthBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, viewWidth, viewHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
+    glGenFramebuffersEXT(1, &frameBuffer);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, frameBuffer);
+    glGenRenderbuffersEXT(1, &colorBuffer);
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, colorBuffer);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGB8, viewWidth, viewHeight);
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_RENDERBUFFER_EXT, colorBuffer);
+    glGenRenderbuffersEXT(1, &depthBuffer);
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depthBuffer);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, viewWidth, viewHeight);
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, depthBuffer);
 
     // Render the image and load it into memory.
 
     renderScene();
     vector<unsigned char> data(viewWidth*viewHeight*3);
     glReadPixels(0, 0, viewWidth, viewHeight, GL_RGB, GL_UNSIGNED_BYTE, &data[0]);
-    glDeleteRenderbuffers(1, &colorBuffer);
-    glDeleteRenderbuffers(1, &depthBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDeleteFramebuffers(1, &frameBuffer);
+    glDeleteRenderbuffersEXT(1, &colorBuffer);
+    glDeleteRenderbuffersEXT(1, &depthBuffer);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    glDeleteFramebuffersEXT(1, &frameBuffer);
 
     // Flip the image vertically, since OpenGL and PNG use different row orders.
 
@@ -1714,14 +1715,15 @@ static void initGlextFuncPointersIfNeeded() {
     glUseProgram    = (PFNGLUSEPROGRAMPROC) glutGetProcAddress("glUseProgram");
     glUniform3f     = (PFNGLUNIFORM3FPROC) glutGetProcAddress("glUniform3f");
     glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) glutGetProcAddress("glGetUniformLocation");
-    glGenFramebuffers    = (PFNGLGENFRAMEBUFFERSPROC) glutGetProcAddress("glGenFramebuffers");
-    glGenRenderbuffers   = (PFNGLGENRENDERBUFFERSPROC) glutGetProcAddress("glGenRenderbuffers");
-    glBindFramebuffer    = (PFNGLBINDFRAMEBUFFERPROC) glutGetProcAddress("glBindFramebuffer");
-    glBindRenderbuffer   = (PFNGLBINDRENDERBUFFERPROC) glutGetProcAddress("glBindRenderbuffer");
-    glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC) glutGetProcAddress("glRenderbufferStorage");
-    glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFERPROC) glutGetProcAddress("glFramebufferRenderbuffer");
-    glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC) glutGetProcAddress("glDeleteRenderbuffers");
-    glDeleteFramebuffers  = (PFNGLDELETEFRAMEBUFFERSPROC) glutGetProcAddress("glDeleteFramebuffers");
+    // Using the "EXT" names here means we only require OpenGL 2.0.
+    glGenFramebuffersEXT    = (PFNGLGENFRAMEBUFFERSEXTPROC) glutGetProcAddress("glGenFramebuffersEXT");
+    glGenRenderbuffersEXT   = (PFNGLGENRENDERBUFFERSEXTPROC) glutGetProcAddress("glGenRenderbuffersEXT");
+    glBindFramebufferEXT    = (PFNGLBINDFRAMEBUFFEREXTPROC) glutGetProcAddress("glBindFramebufferEXT");
+    glBindRenderbufferEXT   = (PFNGLBINDRENDERBUFFEREXTPROC) glutGetProcAddress("glBindRenderbufferEXT");
+    glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC) glutGetProcAddress("glRenderbufferStorageEXT");
+    glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC) glutGetProcAddress("glFramebufferRenderbufferEXT");
+    glDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC) glutGetProcAddress("glDeleteRenderbuffersEXT");
+    glDeleteFramebuffersEXT  = (PFNGLDELETEFRAMEBUFFERSEXTPROC) glutGetProcAddress("glDeleteFramebuffersEXT");
 
     //TODO: check that all functions were present.
 #endif
