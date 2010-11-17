@@ -29,9 +29,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "simbody/internal/VisualizationReporter.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/VisualizationReporter.h"
 
 using namespace SimTK;
 

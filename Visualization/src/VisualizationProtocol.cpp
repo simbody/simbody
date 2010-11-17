@@ -30,10 +30,11 @@
  * -------------------------------------------------------------------------- */
 
 
-#include "SimTKsimbody.h"
-#include "simbody/internal/VisualizationProtocol.h"
-#include "simbody/internal/VisualizationEventListener.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/Visualizer.h"
+#include "simbody/internal/VisualizationEventListener.h"
+#include "VisualizationProtocol.h"
+
 #include <cstdlib>
 #include <cstdio>
 #include <cctype>

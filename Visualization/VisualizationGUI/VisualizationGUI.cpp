@@ -30,8 +30,8 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
-#include "simbody/internal/VisualizationProtocol.h"
 #include "simbody/internal/VisualizationEventListener.h"
+#include "../src/VisualizationProtocol.h"
 #include "lodepng.h"
 
 #include <string>

@@ -29,6 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "simbody/internal/common.h"
 #include "simbody/internal/VisualizationEventListener.h"
 
 using namespace SimTK;

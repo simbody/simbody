@@ -29,9 +29,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "simbody/internal/VisualizationGeometry.h"
-#include "simbody/internal/VisualizationProtocol.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "VisualizationGeometry.h"
+#include "VisualizationProtocol.h"
 
 using namespace SimTK;
 

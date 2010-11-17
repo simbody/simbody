@@ -98,5 +98,8 @@
 #include "simbody/internal/LocalEnergyMinimizer.h"
 #include "simbody/internal/ContactTrackerSubsystem.h"
 #include "simbody/internal/CompliantContactSubsystem.h"
+#include "simbody/internal/Visualizer.h"
+#include "simbody/internal/VisualizationEventListener.h"
+#include "simbody/internal/VisualizationReporter.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_
