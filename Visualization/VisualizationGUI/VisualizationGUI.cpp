@@ -52,7 +52,6 @@
 #elif defined(_WIN32)
     #include "glut32/glut.h"    // we have our own private headers
     #include "glut32/glext.h" 
-    #define glutGetProcAddress wglGetProcAddress
 
     // These will hold the dynamically-determined function addresses.
     PFNGLGENBUFFERSPROC glGenBuffers;
@@ -112,11 +111,6 @@ using namespace std;
 
 
 static fTransform cameraTransform(fRotation(), fVec3(0, 0, 10));
-static int clickModifiers;
-static int clickButton;
-static int clickX;
-static int clickY;
-static fVec3 rotateCenter;
 static int inPipe, outPipe;
 static bool needRedisplay;
 
@@ -834,13 +828,26 @@ static void redrawDisplay() {
     glutSwapBuffers();
 }
 
+// These are set when a mouse button is clicked and then referenced
+// while the mouse is dragged with that button down.
+static int clickModifiers;
+static int clickButton;
+static int clickX;
+static int clickY;
+static fVec3 rotateCenter;
+static float sceneScale; // for scaling translations
+
 // Handle the initial press of a mouse button. Standard glut does not
 // deal with the mouse wheel, but freeglut and some tweaked gluts treat
 // it as a "button press" with button codes 3 (up) and 4 (down). This
 // function handles those properly if they are present.
 static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
     const int GlutWheelUp = 3, GlutWheelDown = 4;
-    const float ZoomMovePerWheelClick = 1.f;
+
+    float radius;
+    fVec3 sceneCenter;
+    computeSceneBounds(radius, sceneCenter);
+    sceneScale = std::max(radius, 0.1f);
 
     // "state" (pressed/released) is irrelevant for mouse wheel. However, if 
     // we're being called by freeglut we'll get called twice, while (patched) 
@@ -849,10 +856,12 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
         && (state==GLUT_UP)) // TODO: does this work OK on Mac GLUT?
     {
         // Scroll wheel.
-        const int direction = button==GlutWheelUp ? -1 : 1;
+        const float ZoomFractionPerWheelClick = 0.15f;   // 15% scene radius
 
+        const int   direction = button==GlutWheelUp ? -1 : 1;
+        const float zoomBy    = direction * (ZoomFractionPerWheelClick * sceneScale);
         pthread_mutex_lock(&sceneLock);
-        cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, direction*ZoomMovePerWheelClick);
+        cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, zoomBy);
         needRedisplay = true;
         pthread_mutex_unlock(&sceneLock);
         return;
@@ -873,11 +882,8 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
     // Left button is rotation; when it is first pressed we calcuate the center
     // of rotation; we'll do the actual rotating in mouseDragged().
     if (clickButton == GLUT_LEFT_BUTTON) {
-        float radius;
-        fVec3 sceneCenter;
-        computeSceneBounds(radius, sceneCenter);
         float distToCenter = (sceneCenter-cameraTransform.T()).norm();
-        float defaultDistance = radius;
+        float defaultDistance = sceneScale;
         if (distToCenter > defaultDistance)
             rotateCenter = sceneCenter;
         else {
@@ -896,12 +902,18 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 static void mouseDragged(int x, int y) {
     pthread_mutex_lock(&sceneLock);
 
+    const float AnglePerPixel = 0.25*((float)SimTK_PI/180); // 1/4 degree per pixel
+
+    const float TranslateFracPerPixel = 0.01f; // map 1 pixel move to 1% of scale
+    const float translatePerPixel = TranslateFracPerPixel * sceneScale;
+    const int dx = clickX-x, dy = clickY-y;
+
     // translate: right button or shift-left button
     if (clickButton == GLUT_RIGHT_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
-       cameraTransform.updT() += cameraTransform.R()*fVec3(0.01f*(clickX-x), 0.01f*(y-clickY), 0);
+       cameraTransform.updT() += translatePerPixel*cameraTransform.R()*fVec3(dx, -dy, 0);
     // zoom: middle button or alt-left button (or mouse wheel; see above)
     else if (clickButton == GLUT_MIDDLE_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
-       cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, 0.05f*(clickY-y));
+       cameraTransform.updT() += translatePerPixel* cameraTransform.R()*fVec3(0, 0, dy);
     // rotate: left button alone: rotate scene left/right or up/down
     //         ctrl-left button:  roll scene about camera direction
     else if (clickButton == GLUT_LEFT_BUTTON) {
@@ -910,9 +922,10 @@ static void mouseDragged(int x, int y) {
         fVec3 upDir = cameraTransform.R()*fVec3(0, 1, 0);
         fRotation r;
         if (clickModifiers & GLUT_ACTIVE_CTRL)
-            r.setRotationFromAngleAboutAxis(0.01f*(clickY-y)-0.01f*(clickX-x), ZAxis);
+            r.setRotationFromAngleAboutAxis(AnglePerPixel*(dy-dx), ZAxis);
         else
-            r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence, 0.01f*(clickY-y), XAxis, 0.01f*(clickX-x), YAxis);
+            r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence, 
+                AnglePerPixel*dy, XAxis, AnglePerPixel*dx, YAxis);
         r = cameraTransform.R()*r*~cameraTransform.R();
         cameraPos = r*(cameraPos-rotateCenter)+rotateCenter;
         cameraDir = r*cameraDir;

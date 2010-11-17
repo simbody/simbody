@@ -12,13 +12,18 @@
     #pragma warning(disable:4996)/*"unsafe" strcpy(), etc.*/
 #endif
 
+// In case windows.h gets included by someone anyway.
+#ifndef WIN32_LEAN_AND_MEAN
+#  define  WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#  define  NOMINMAX
+#endif
 /* GLUT 3.7 now tries to avoid including <windows.h>
    to avoid name space pollution, but Win32's <GL/gl.h> 
    needs APIENTRY and WINGDIAPI defined properly. */
 # if 0
    /* This would put tons of macros and crap in our clean name space. */
-#  define  WIN32_LEAN_AND_MEAN
-#  define  NOMINMAX
 #  include <windows.h>
 # else
    /* XXX This is from Win32's <windef.h> */
