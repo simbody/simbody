@@ -668,10 +668,15 @@ static void drawGroundAndSky(float farClipDistance) {
         transform2 = transform*transform2;
         glPushMatrix();
         glMultMatrixf(&transform2[0][0]);
-        glUniform3f(glGetUniformLocation(groundProgram, "color2"), 0.5f, 0.4f, 0.35f);
         glDepthRange(0.0, 0.9999);
+        // Solid and transparent shadows are the same color (sorry). Trying to
+        // mix light and dark shadows is much harder and any simple attempts
+        // (e.g. put light shadows on top of dark ones) look terrible.
+        glUniform3f(glGetUniformLocation(groundProgram, "color2"), 0.5f, 0.4f, 0.35f);
         for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
             scene->solidMeshes[i].draw();
+        for (int i = 0; i < (int) scene->transparentMeshes.size(); i++)
+            scene->transparentMeshes[i].draw();
         glPopMatrix();
         glDepthRange(0.0, 1.0);
     }

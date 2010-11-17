@@ -63,11 +63,15 @@ int main() {
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, -1*Vec3(0, -9.8, 0));
-    Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody.addDecoration(Transform(), DecorativeSphere(0.49).setOpacity(1));
+    Body::Rigid pendulumBody[2]; // solid, translucent
+    pendulumBody[0].setDefaultRigidBodyMassProperties(MassProperties(1.0, Vec3(0), Inertia(1)));
+    pendulumBody[0].addDecoration(Transform(), DecorativeSphere(0.49).setOpacity(1));
+    pendulumBody[1].setDefaultRigidBodyMassProperties(MassProperties(1.0, Vec3(0), Inertia(1)));
+    pendulumBody[1].addDecoration(Transform(), DecorativeSphere(0.49).setOpacity(.5));
     MobilizedBodyIndex lastBody = matter.getGround().getMobilizedBodyIndex();
     for (int i = 0; i < 50; ++i) {
-        MobilizedBody::Ball pendulum(matter.updMobilizedBody(lastBody), Transform(Vec3(0)), pendulumBody, Transform(Vec3(0, 1, 0)));
+        MobilizedBody::Ball pendulum(matter.updMobilizedBody(lastBody), Transform(Vec3(0)), 
+            pendulumBody[i%2], Transform(Vec3(0, 1, 0))); // alternate solid, translucent
         lastBody = pendulum.getMobilizedBodyIndex();
     }
 //    system.updDefaultSubsystem().addEventReporter(new VTKEventReporter(system, 0.02));
