@@ -189,7 +189,7 @@ int clock_gettime (clockid_t clock_id, struct timespec *tp) {
       retval = getperformancecounter(tp);
       break;
     case CLOCK_PROCESS_CPUTIME_ID:
-      retval = EINVAL;
+      retval = getprocesscputime(tp);
       break;
     case CLOCK_THREAD_CPUTIME_ID:
       retval = getthreadcputime(tp);

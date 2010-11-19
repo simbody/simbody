@@ -469,6 +469,22 @@
 #define SimTK_DEGREE_TO_RADIAN 1.745329251994329576923690768488612713442871888541725456097191440e-2L
 
 /** 
+ * Convert nanoseconds to seconds.
+ * @par uncertainty
+ *          exact
+ * @see SimTK_S_TO_NS
+ */
+#define SimTK_NS_TO_S 1e-9L
+
+/** 
+ * Convert seconds to nanoseconds.
+ * @par uncertainty
+ *          exact
+ * @see SimTK_NS_TO_S
+ */
+#define SimTK_S_TO_NS 1e9L
+
+/** 
  * Convert Kcal to Kjoule (also Kcal/mol to Kjoule/mol).
  * @par uncertainty
  *         exact

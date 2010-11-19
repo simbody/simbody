@@ -232,11 +232,18 @@ extern "C" {
 
     /* These constants are the clock ids we support. All the varieties
      * of CLOCK_MONOTONIC are high resolution with no NTP adjustments.
+     * I measured the resolutions on a single Windows 7 machine; hopefully
+     * they are typical (resolution here means how often they are updated):
+     *   - MONOTONIC (counter):    0.001ms      1us
+     *   - REALTIME (time of day):    1ms    1000us
+     *   - CPUTIME (either):         20ms   20000us
+     * These are slightly conservative resolutions so you should be able
+     * to achieve them in practice.
      */
-    #define CLOCK_REALTIME              1   /* meaning time of day clock, probably low res */ 
-    #define CLOCK_MONOTONIC             2   /* counter from some arbitrary time */
-    #define CLOCK_MONOTONIC_HR          3   /* "high resolution" */
-    #define CLOCK_MONOTONIC_RAW         4   /* "not subject to NTP adjustments" */
+    #define CLOCK_REALTIME              1   /* time of day clock, from 1/1/1970 */ 
+    #define CLOCK_MONOTONIC             2   /* counter from last boot time */
+    #define CLOCK_MONOTONIC_HR          3   /* "high resolution" (same) */
+    #define CLOCK_MONOTONIC_RAW         4   /* "not subject to NTP adjustments" (same) */
     #define CLOCK_THREAD_CPUTIME_ID     5   /* lifetime cpu time (kernel+user) of the current thread */ 
     #define CLOCK_PROCESS_CPUTIME_ID    6   /* cumulative cpu time of all threads of this process */
  
