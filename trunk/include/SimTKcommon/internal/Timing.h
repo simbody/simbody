@@ -225,16 +225,16 @@ times of 1ms or less, substantially less on some systems. **/
 
 /** Return current time on the high-resolution interval timer in
 nanoseconds, as a 64-bit integer count. Generally it is more convenient
-to use highResIntervalTimer() which reports the interval time in
+to use realTime() which reports the interval time in
 seconds instead, but the nanosecond count is best for maximum
 accuracy.
 
 @return Elapsed nanoseconds since some arbitrary time, as a 64 bit 
 integer count.
 
-@see highResIntervalTimer(), nsToSec()
+@see realTime(), nsToSec()
 **/
-inline long long highResIntervalTimerInNs() {
+inline long long realTimeInNs() {
     timespec ts;
     #ifdef CLOCK_MONOTONIC_RAW
         clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
@@ -247,15 +247,15 @@ inline long long highResIntervalTimerInNs() {
 /** Return current time on the high-resolution interval timer in
 seconds. For maximum precision, you can improve repeatability and 
 accuracy somewhat by obtaining the interval times as integer counts 
-using highResIntervalTimerInNs(). 
+using realTimeInNs(). 
 
 @return Elapsed seconds since some arbitrary time, as a double 
 precision floating point number.
 
-@see highResIntervalTimerInNs()
+@see realTimeInNs()
 **/ 
-inline double highResIntervalTimer() {
-    return nsToSec(highResIntervalTimerInNs());
+inline double realTime() {
+    return nsToSec(realTimeInNs());
 }
 /**@}**/
 
