@@ -209,8 +209,61 @@ extern "C" {
      * "debug" (debug or release).
      */
     SimTK_SimTKCOMMON_EXPORT void SimTK_about_SimTKcommon(const char* key, int maxlen, char* value);
+
+
 #if defined(__cplusplus)
 }
+#endif
+
+#ifdef _MSC_VER
+    /* On Windows, these Posix time functions are missing. Note that the timespec
+     * struct is also defined in the pthread.h header on Windows, so the guard
+     * symbols must match here to avoid a duplicate.
+     */
+    #ifndef HAVE_STRUCT_TIMESPEC
+    #define HAVE_STRUCT_TIMESPEC 1
+    struct timespec {
+            long tv_sec;
+            long tv_nsec;
+    };
+    #endif /* HAVE_STRUCT_TIMESPEC */
+
+    typedef long clockid_t;
+
+    /* These constants are the clock ids we support. All the varieties
+     * of CLOCK_MONOTONIC are high resolution with no NTP adjustments.
+     */
+    #define CLOCK_REALTIME              1   /* meaning time of day clock, probably low res */ 
+    #define CLOCK_MONOTONIC             2   /* counter from some arbitrary time */
+    #define CLOCK_MONOTONIC_HR          3   /* "high resolution" */
+    #define CLOCK_MONOTONIC_RAW         4   /* "not subject to NTP adjustments" */
+    #define CLOCK_THREAD_CPUTIME_ID     5   /* lifetime cpu time (kernel+user) of the current thread */ 
+    #define CLOCK_PROCESS_CPUTIME_ID    6   /* cumulative cpu time of all threads of this process */
+ 
+    #if defined(__cplusplus)
+    extern "C" {
+    #endif
+
+    /* Returns zero if it succeeds (or if tp==NULL); otherwise EINVAL. 
+     * On a Linux system, this requires including <time.h> (or <ctime>)
+     * and linking with -lrt to get the realtime library.
+     */
+    SimTK_SimTKCOMMON_EXPORT int clock_gettime(clockid_t clock_id, struct timespec *tp); 
+
+    /* Posix nanosleep() sleeps the indicated number of nanoseconds and returns 0, or 
+     * if it is interrupted early it returns how much time was left in rem and returns
+     * EINTR. Ours is not interruptable so will always succeed and return rem==0. It is
+     * OK if rem is NULL, but req==NULL or req<0 returns EINVAL. A time of req==0 is
+     * allowed and our interpretation is that the thread relinquishes its time slice
+     * to another ready-to-run thread if there is one, otherwise returns immediately.
+     * This implementation rounds the desired sleep time to the nearest millisecond.
+     * On a Linux system, this requires including <time.h> (or <ctime>).
+     */
+    SimTK_SimTKCOMMON_EXPORT int nanosleep(const struct timespec* req, struct timespec* rem);
+
+    #if defined(__cplusplus)
+    }
+    #endif
 #endif
 
 /************************************/
@@ -252,6 +305,25 @@ inline bool signbit(long double l) {return (*reinterpret_cast<unsigned long long
 
 
 namespace SimTK {
+// Some methods for manipulating timespecs of the kind used by pthreads, clock_gettime, 
+// and nanosleep. To add and subtract timespecs, convert to and from nanoseconds
+// using these global methods.
+
+/** Convert a time stored in a timespec struct to the equivalent number
+of nanoseconds (as a signed quantity). **/    
+inline long long timespecToNs(const timespec& ts)
+{   return (long long)ts.tv_sec*1000000000LL + (long long)ts.tv_nsec; }
+
+/** Given a signed number of nanoseconds, convert that
+into seconds and leftover nanoseconds in a timespec struct. **/
+inline void nsToTimespec(const long long& ns, timespec& ts) {
+    ts.tv_sec  = (long)(ns / 1000000000LL); // signed
+    if (ns >= 0) ts.tv_nsec =  (long)(  ns  % 1000000000LL);
+    else         ts.tv_nsec = -(long)((-ns) % 1000000000LL);
+}
+
+
+
 // This utility answers the question "if I put this integral value in an int and then
 // get it back, will its value be the same?".
 inline bool canStoreInInt(bool)            {return true;}
