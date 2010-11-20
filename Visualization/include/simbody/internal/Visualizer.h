@@ -42,6 +42,10 @@ class MultibodySystem;
 class VisualizationEventListener;
 class DecorationGenerator;
 
+/** Provide simple visualization of and interaction with a Simbody simulation, 
+in either a pass-through mode where timing is controlled by the simulation, or
+in a real time mode where simulation results are synchronized with the real
+time clock. **/
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
     /** Construct new Visualizer using default window title (executable name). **/
@@ -49,7 +53,76 @@ public:
     /** Construct new Visualizer with a given window title. **/
     Visualizer(MultibodySystem& system, const String& title);
     ~Visualizer();
-    void report(const State& state) const;
+    
+    /** These are the operating modes for the Visualizer, with PassThrough
+    the default mode. **/
+    enum Mode {
+        /** Send every frame through to the renderer. By default every frame
+        is sent immediately, but if you specify a desired frame rate the
+        frames will be slowed down to that rate (but the simulation time
+        is not synchronized to real time). The simulation will be slowed 
+        down if it generates frames faster than the desired frame rate or if
+        if the renderer can't keep up. **/
+        PassThrough = 1,
+        /** Send frames at a maximum rate given by the frame rate setting
+        (default 30 frames/sec). After a frame is sent, all subsequent frames
+        received are ignored until the frame interval has passed; then the
+        next received frame is displayed. This allows the simulator to 
+        proceed at the fastest rate possible. **/
+        Sampling    = 2,
+        /** Synchronize frame times with the simulated time, slowing down
+        the simulation if it is running ahead of real time. Smoothness is
+        maintained by buffering up frames before sending them. **/
+        RealTime    = 3
+    };
+
+    /** Set the operating mode for the Visualizer. See \ref Visualizer::Mode
+    for information. **/
+    void setMode(Mode mode);
+    /** Get the current mode being used by the Visualizer. See 
+    \ref Visualizer::Mode for information.**/
+    Mode getMode() const;
+
+    /** Set the frame rate in frames/sec that you want the Visualizer to
+    attempt to achieve. The default is 30 frames per second. **/
+    void setDesiredFrameRate(Real framesPerSec);
+    /** Get the current value of the frame rate the Visualizer has been asked
+    to attempt; this is not necessarily the rate actually achieved. **/
+    Real getDesiredFrameRate() const;
+
+    /** When running an interactive realtime simulation, you can smooth out
+    changes in simulation run rate by slightly delaying the time at which a
+    user sees the frames. This introduces an intentional response time lag
+    from the time a user reacts to the time we see the reaction in the
+    simulator. Under most circumstances a lag of 150ms is undetectable. The
+    default lag time is the time represented by the largest number of
+    frames that will fit in 134ms or less; eight at 60/s, four at 30/s, 
+    one down to 7.5/s and none below that. Lower the local lag time to
+    improve responsiveness at the possible expense of smoothness. **/
+    void setLocalLagTime(Real lagTimeInSec);
+    /** Get the current value of the local lag time the Visualizer has been 
+    asked to use for smoothing the frame rate; this is not necessarily the 
+    rate actually achieved. **/
+    Real getLocalLagTime() const;
+
+    /** Add a frame to the output queue. The calling thread may be blocked if
+        - the queue is full, or
+        - the simulation time is too far ahead of real time.
+    Alternatively, frames may be dropped if they are coming faster than the 
+    frame rate. **/
+    void report(const State& state);
+
+    /** This is the non-blocking version of report(). It returns true if the
+    frame was successfully drawn or queued; false if report() would have
+    blocked instead. **/
+    bool tryReport(const State& state);
+
+    /** This method draws a frame unconditionally without queuing or checking
+    the frame rate. Typically you should use the report() method instead, and
+    let the the internal queuing system decide when to call drawFrameNow(). **/
+    void drawFrameNow(const State& state);
+
+
     void addEventListener(VisualizationEventListener* listener);
     const Array_<VisualizationEventListener*>& getEventListeners() const;
     void addMenu(const String& title, const Array_<std::pair<String, int> >& items);

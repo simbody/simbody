@@ -54,7 +54,7 @@ public:
     }
     MultibodySystem& system;
     VisualizationReporter* handle;
-    Visualizer visualizer;
+    mutable Visualizer visualizer;
 };
 
 VisualizationReporter::VisualizationReporter(MultibodySystem& system, Real reportInterval) : PeriodicEventReporter(reportInterval) {

@@ -313,7 +313,7 @@ static GLfloat nearClip = 1;
 static GLfloat farClip = 1000;
 static GLfloat groundHeight = 0;
 static int groundAxis = 1;
-static bool showGround = true, showShadows = true, showFPS = false;
+static bool showGround = true, showShadows = true, showFPS = true;
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
 static int fpsBaseTime = 0, fpsCounter = 0, nextMeshIndex;
@@ -823,7 +823,7 @@ static void redrawDisplay() {
 
     if (showFPS) {
         stringstream fpsstream;
-        fpsstream << "Frames/Second: ";
+        fpsstream << "FPS: ";
         fpsstream << fps;
         string fps = fpsstream.str();
         glColor3f(1.0f, 0.5f, 0.0f);
