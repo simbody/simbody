@@ -88,6 +88,8 @@ int main() {
 
     vr->updVisualizer().addEventListener(new MyListener(items));
 
+    //vr->updVisualizer().setMode(Visualizer::RealTime);
+
 
 
     // Initialize the system and state.

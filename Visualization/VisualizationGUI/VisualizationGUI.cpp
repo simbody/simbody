@@ -112,7 +112,6 @@ using namespace std;
 
 static fTransform cameraTransform(fRotation(), fVec3(0, 0, 10));
 static int inPipe, outPipe;
-static bool needRedisplay;
 
 static void computeBoundingSphereForVertices(const vector<float>& vertices, float& radius, fVec3& center) {
     fVec3 lower(vertices[0], vertices[1], vertices[2]);
@@ -236,8 +235,9 @@ private:
 
 class RenderedLine {
 public:
-    RenderedLine(const fVec3& color, float thickness) : color(color), thickness(thickness) {
-    }
+    RenderedLine(const fVec3& color, float thickness) 
+    :   color(color), thickness(thickness) {}
+
     void draw() {
         glColor3d(color[0], color[1], color[2]);
         glLineWidth(thickness);
@@ -319,7 +319,7 @@ static float fps = 0.0f;
 static int fpsBaseTime = 0, fpsCounter = 0, nextMeshIndex;
 static Scene* scene;
 static string overlayMessage;
-static int hideMessageTime = 0;
+static bool displayOverlayMessage = false;
 
 class PendingMesh : public PendingCommand {
 public:
@@ -717,9 +717,8 @@ static void renderScene() {
     glDisableClientState(GL_NORMAL_ARRAY);
     pthread_mutex_lock(&sceneLock);
     if (scene != NULL) {
-        needRedisplay = false;
-
-        // Execute any pending commands that need to be executed on the rendering thread.
+        // Execute any pending commands that need to be executed on the 
+        // rendering thread.
 
         for (int i = 0; i < (int) pendingCommands.size(); i++) {
             pendingCommands[i]->execute();
@@ -834,7 +833,7 @@ static void redrawDisplay() {
 
     // Draw a message overlay.
 
-    if (hideMessageTime > 0) {
+    if (displayOverlayMessage) {
         glColor3f(1.0f, 0.5f, 0.0f);
         int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) overlayMessage.c_str());
         glRasterPos2f(GLfloat(max(0, (viewWidth-width)/2)), GLfloat(viewHeight/2));
@@ -844,6 +843,7 @@ static void redrawDisplay() {
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glutSwapBuffers();
+    fpsCounter++;
 }
 
 // These are set when a mouse button is clicked and then referenced
@@ -880,7 +880,7 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
         const float zoomBy    = direction * (ZoomFractionPerWheelClick * sceneScale);
         pthread_mutex_lock(&sceneLock);
         cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, zoomBy);
-        needRedisplay = true;
+        glutPostRedisplay();
         pthread_mutex_unlock(&sceneLock);
         return;
     }
@@ -913,25 +913,31 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
     }
 }
 
-// This function is called when the mouse is moved while a button is being held down. When
-// the button was first clicked, we recorded which one it was in clickButton, and where the
-// mouse was then in (clickX,clickY). We update (clickX,clickY) each call here to reflect
-// where it was last seen.
+// This function is called when the mouse is moved while a button is being held
+// down. When the button was first clicked, we recorded which one it was in 
+// clickButton, and where the mouse was then in (clickX,clickY). We update 
+// (clickX,clickY) each call here to reflect where it was last seen.
 static void mouseDragged(int x, int y) {
     pthread_mutex_lock(&sceneLock);
 
-    const float AnglePerPixel = 0.25*((float)SimTK_PI/180); // 1/4 degree per pixel
+    // 1/4 degree per pixel
+    const float AnglePerPixel = 0.25*((float)SimTK_PI/180); 
 
-    const float TranslateFracPerPixel = 0.01f; // map 1 pixel move to 1% of scale
+    // map 1 pixel move to 1% of scale
+    const float TranslateFracPerPixel = 0.01f; 
     const float translatePerPixel = TranslateFracPerPixel * sceneScale;
     const int dx = clickX-x, dy = clickY-y;
 
     // translate: right button or shift-left button
-    if (clickButton == GLUT_RIGHT_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
+    if (  clickButton == GLUT_RIGHT_BUTTON 
+      || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
        cameraTransform.updT() += translatePerPixel*cameraTransform.R()*fVec3(dx, -dy, 0);
+
     // zoom: middle button or alt-left button (or mouse wheel; see above)
-    else if (clickButton == GLUT_MIDDLE_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
+    else if (  clickButton == GLUT_MIDDLE_BUTTON 
+           || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
        cameraTransform.updT() += translatePerPixel* cameraTransform.R()*fVec3(0, 0, dy);
+
     // rotate: left button alone: rotate scene left/right or up/down
     //         ctrl-left button:  roll scene about camera direction
     else if (clickButton == GLUT_LEFT_BUTTON) {
@@ -956,10 +962,14 @@ static void mouseDragged(int x, int y) {
 
     clickX = x;
     clickY = y;
-    needRedisplay = true;
+    glutPostRedisplay();
     pthread_mutex_unlock(&sceneLock);
 }
 
+// Currently the only "passive" mouse motion we care about is if the
+// mouse is in an active menu, in which case its position marks the
+// menu item that would be selected upon clicking.
+// TODO: pass this to the simulator otherwise.
 static void mouseMoved(int x, int y) {
     for (int i = 0; i < (int) menus.size(); i++)
         menus[i].mouseMoved(x, y);
@@ -1000,19 +1010,15 @@ static void specialKeyPressed(int key, int x, int y) {
     WRITE(outPipe, buffer, 2);
 }
 
-static void animateDisplay(int value) {
-    if (hideMessageTime > 0 && hideMessageTime < glutGet(GLUT_ELAPSED_TIME)) {
-        hideMessageTime = 0;
-        needRedisplay = true;
-    }
-    if (needRedisplay)
-        redrawDisplay();
-    glutTimerFunc(33, animateDisplay, 0);
+static void oneShotTimer(int value) {
+    displayOverlayMessage = false;
+    glutPostRedisplay();
 }
 
 static void setOverlayMessage(const string& message) {
     overlayMessage = message;
-    hideMessageTime = glutGet(GLUT_ELAPSED_TIME)+5000;
+    displayOverlayMessage = true;
+    glutTimerFunc(5000, oneShotTimer, 0);
 }
 
 static void saveImage() {
@@ -1316,13 +1322,19 @@ void readData(char* buffer, int bytes) {
         totalRead += READ(inPipe, buffer+totalRead, bytes-totalRead);
 }
 
+// This is the main program for the listener thread. It reads continuously
+// from the input pipe, which contains data from the simulator's calls
+// to a Visualizer object. Any changes to the scene must wait until the
+// rendering thread has finished with the current frame. The listener
+// thread must not make any gl or glut calls; any operations that require
+// those are queued for later handing in the rendering thread.
 void* listenForInput(void* args) {
     char buffer[256];
     float* floatBuffer = (float*) buffer;
     int* intBuffer = (int*) buffer;
     unsigned short* shortBuffer = (unsigned short*) buffer;
     while (true) {
-        // Read a new scene.
+        // Read commands from the simulator.
         readData(buffer, 1);
         switch (buffer[0]) {
             case SET_CAMERA: {
@@ -1404,8 +1416,8 @@ void* listenForInput(void* args) {
                             if (scene != NULL)
                                 delete scene;
                             scene = newScene;
-                            needRedisplay = true;
-                            fpsCounter++;
+                            glutPostRedisplay();
+                            //fpsCounter++;
                             pthread_mutex_unlock(&sceneLock);
                             finished = true;
                             break;
@@ -1627,7 +1639,7 @@ void viewMenuSelected(int option) {
             saveImage();
             break;
     }
-    needRedisplay = true;
+    glutPostRedisplay();
 }
 
 static const int DefaultWindowWidth  = 600;
@@ -1652,7 +1664,7 @@ int main(int argc, char** argv) {
     // corner of the screen.
     int screenW = glutGet(GLUT_SCREEN_WIDTH);
     int screenH = glutGet(GLUT_SCREEN_HEIGHT);
-    int windowPosX = (screenW - DefaultWindowWidth) - 50;   // leave 50 pixel margin
+    int windowPosX = (screenW - DefaultWindowWidth) - 50;   // 50 pixel margin
     int windowPosY = 50;
 
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
@@ -1669,6 +1681,7 @@ int main(int argc, char** argv) {
         glGetString (GL_VENDOR), glGetString (GL_RENDERER),
         glGetString (GL_VERSION), glGetString (GL_SHADING_LANGUAGE_VERSION));
 
+    // Set up callback funtions.
     glutDisplayFunc(redrawDisplay);
     glutReshapeFunc(changeSize);
     glutMouseFunc(mouseButtonPressedOrReleased);
@@ -1676,6 +1689,7 @@ int main(int argc, char** argv) {
     glutPassiveMotionFunc(mouseMoved);
     glutKeyboardFunc(ordinaryKeyPressed);
     glutSpecialFunc(specialKeyPressed);
+
     // On some systems (Windows at least), some of the gl functions may 
     // need to be loaded dynamically.
     initGlextFuncPointersIfNeeded();
@@ -1728,9 +1742,10 @@ int main(int argc, char** argv) {
     pthread_t thread;
     pthread_create(&thread, NULL, listenForInput, NULL);
 
-    // Enter the main loop.
-    
-    glutTimerFunc(33, animateDisplay, 0); 
+    // Enter the main loop. Note that there is no idle function. We expect
+    // the main thread to go to sleep when there is nothing to do and that
+    // the various events will call glutPostRedisplay() if anything happens
+    // that requires a screen update.
     glutMainLoop();
     return 0;
 }
