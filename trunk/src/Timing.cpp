@@ -295,17 +295,5 @@ static const long long UsPerSec = 1000000LL;
         if (rem) {rem->tv_sec=0; rem->tv_nsec=0;}
         return 0;
     }
-#elif defined(__APPLE__)
-    int nanosleep(const struct timespec* req, struct timespec* rem) {
-        if (!req) return EINVAL;
-        const long long reqns = SimTK::timespecToNs(*req);
-        if (reqns < 0LL) return EINVAL;
-        // Round to the nearest us.
-        static const long long halfUsInNs = NsPerUs/2;
-        const useconds_t requs = (useconds_t)((reqns + halfUsInNs)/NsPerUs);
-        usleep(requs);
-        if (rem) {rem->tv_sec=0; rem->tv_nsec=0;}
-        return 0;
-    }
 #endif
 

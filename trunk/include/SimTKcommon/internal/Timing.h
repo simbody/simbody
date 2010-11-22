@@ -73,10 +73,33 @@ for use in common timing situations. **/
             long tv_nsec;
     };
     #endif /* HAVE_STRUCT_TIMESPEC */
+
+    /* Posix nanosleep() sleeps the indicated number of nanoseconds and returns 0, or 
+     * if it is interrupted early it returns how much time was left in rem and returns
+     * EINTR. Ours is not interruptable so will always succeed and return rem==0. It is
+     * OK if rem is NULL, but req==NULL or req<0 returns EINVAL. A time of req==0 is
+     * allowed and our interpretation is that the thread relinquishes its time slice
+     * to another ready-to-run thread if there is one, otherwise returns immediately.
+     * This implementation rounds the desired sleep time to the nearest millisecond.
+     * On a Linux system, this requires including <time.h> (or <ctime>).
+     */
+    SimTK_SimTKCOMMON_EXPORT int nanosleep(const struct timespec* req, struct timespec* rem);
+
+    /* Posix declares this handy function obsolete. It sleeps for the given number
+     * of microseconds.
+     */
+    typedef unsigned int useconds_t;
+    inline int usleep(useconds_t us) {
+        struct timespec req;
+        req.tv_sec  = (long) (us / 1000000U);
+        req.tv_nsec = (long)((us % 1000000U)*1000U);
+        int status = nanosleep(&req,0);
+        return status ? -1 : 0;
+    }
 #endif
 
 #if defined(_MSC_VER) || defined(__APPLE__)
-    /* On Windows and OSX, these Posix time functions are missing.
+    /* On Windows and OSX, the Posix clock_gettime function is missing.
      */
     typedef long clockid_t;
 
@@ -102,18 +125,8 @@ for use in common timing situations. **/
      * and linking with -lrt to get the realtime library.
      */
     SimTK_SimTKCOMMON_EXPORT int clock_gettime(clockid_t clock_id, struct timespec *tp); 
-
-    /* Posix nanosleep() sleeps the indicated number of nanoseconds and returns 0, or 
-     * if it is interrupted early it returns how much time was left in rem and returns
-     * EINTR. Ours is not interruptable so will always succeed and return rem==0. It is
-     * OK if rem is NULL, but req==NULL or req<0 returns EINVAL. A time of req==0 is
-     * allowed and our interpretation is that the thread relinquishes its time slice
-     * to another ready-to-run thread if there is one, otherwise returns immediately.
-     * This implementation rounds the desired sleep time to the nearest millisecond.
-     * On a Linux system, this requires including <time.h> (or <ctime>).
-     */
-    SimTK_SimTKCOMMON_EXPORT int nanosleep(const struct timespec* req, struct timespec* rem);
 #endif
+
 
 
 namespace SimTK {
