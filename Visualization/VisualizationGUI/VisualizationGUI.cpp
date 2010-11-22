@@ -1121,6 +1121,9 @@ static void setOverlayMessage(const string& message) {
 }
 
 static void saveImage() {
+    int width = ((viewWidth+3)/4)*4;
+    int height = viewHeight;
+
     // Create offscreen buffers for rendering the image.
 
     GLuint frameBuffer, colorBuffer, depthBuffer;
@@ -1128,18 +1131,18 @@ static void saveImage() {
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, frameBuffer);
     glGenRenderbuffersEXT(1, &colorBuffer);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, colorBuffer);
-    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGB8, viewWidth, viewHeight);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGB8, width, height);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_RENDERBUFFER_EXT, colorBuffer);
     glGenRenderbuffersEXT(1, &depthBuffer);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depthBuffer);
-    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, viewWidth, viewHeight);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, width, height);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, depthBuffer);
 
     // Render the image and load it into memory.
 
     renderScene();
-    vector<unsigned char> data(viewWidth*viewHeight*3);
-    glReadPixels(0, 0, viewWidth, viewHeight, GL_RGB, GL_UNSIGNED_BYTE, &data[0]);
+    vector<unsigned char> data(width*height*3);
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, &data[0]);
     glDeleteRenderbuffersEXT(1, &colorBuffer);
     glDeleteRenderbuffersEXT(1, &depthBuffer);
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -1147,10 +1150,10 @@ static void saveImage() {
 
     // Flip the image vertically, since OpenGL and PNG use different row orders.
 
-    const int rowLength = 3*viewWidth;
-    for (int row = 0; row < viewHeight/2; ++row) {
+    const int rowLength = 3*width;
+    for (int row = 0; row < height/2; ++row) {
         const int base1 = row*rowLength;
-        const int base2 = (viewHeight-1-row)*rowLength;
+        const int base2 = (height-1-row)*rowLength;
         for (int i = 0; i < rowLength; i++) {
             unsigned char temp = data[base1+i];
             data[base1+i] = data[base2+i];
@@ -1171,7 +1174,7 @@ static void saveImage() {
         namestream << ".png";
         filename = namestream.str();
     } while (stat(filename.c_str(), &statInfo) == 0);
-    LodePNG::encode(filename, data, viewWidth, viewHeight, 2, 8);
+    LodePNG::encode(filename, data, width, height, 2, 8);
     setOverlayMessage("Saved as: "+filename);
     redrawDisplay();
 }
