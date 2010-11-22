@@ -30,14 +30,12 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * Defines any routines that have to be supplied on Windows and/or for the
- * Microsoft Visual Studio C/C++ compiler cl.
+ * Defines any routines that have to be supplied to implement the features
+ * promised in Timing.h. Currently this just consists of faking up the
+ * Posix timing routines when using the Microsoft Visual Studio C/C++ 
+ * compiler cl on Windows.
  */
 
-// Keeps MS VC++ 8 quiet about sprintf, strcpy, etc.
-#ifdef _MSC_VER
-#pragma warning(disable:4996)
-#endif
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/Timing.h"
@@ -50,6 +48,10 @@
 #include <ctime>
 
 #include "errno.h"
+
+#ifdef _MSC_VER
+// Keeps MS VC++ quiet about sprintf, strcpy, etc.
+#pragma warning(disable:4996)
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -222,3 +224,6 @@ int nanosleep(const struct timespec* req, struct timespec* rem) {
     if (rem) {rem->tv_sec=0; rem->tv_nsec=0;}
     return 0;
 }
+
+#endif
+
