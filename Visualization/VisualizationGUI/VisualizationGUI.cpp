@@ -357,7 +357,7 @@ static GLfloat nearClip = 1;
 static GLfloat farClip = 1000;
 static GLfloat groundHeight = 0;
 static int groundAxis = 1;
-static bool showGround = true, showShadows = true, showFPS = true;
+static bool showGround = false, showShadows = true, showFPS = true;
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
 static int fpsBaseTime = 0, fpsCounter = 0, nextMeshIndex;
@@ -1694,7 +1694,6 @@ void* listenForInput(void* args) {
             }
             // Swap in the new scene.
             scene = newScene;
-            glutPostRedisplay();                //------- POST REDISPLAY -----
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
@@ -1702,6 +1701,9 @@ void* listenForInput(void* args) {
         default:
             SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
         }
+
+        // Do this after every received command.
+        glutPostRedisplay();                    //------- POST REDISPLAY -----
     }
     return 0;
 }
@@ -1784,6 +1786,15 @@ void viewMenuSelected(int option) {
 
 static const int DefaultWindowWidth  = 600;
 static const int DefaultWindowHeight = 500;
+
+// This seems to be necessary on Mac and Linux where the built-in glut
+// idle hangs if there is no activity in the gl window.
+static void keepAliveIdleFunc() {
+    struct timespec ts;
+    // Wait 1/60s and then check for something to do.
+    nsToTimespec(secToNs(1./60), ts);
+    nanosleep(&ts, 0);
+}
 
 int main(int argc, char** argv) {
     SimTK_ASSERT_ALWAYS(argc >= 3, "VisualizationGUI: must be at least two command line arguments (pipes)");
@@ -1885,6 +1896,9 @@ int main(int argc, char** argv) {
     // Spawn the listener thread. After this it runs independently.
     pthread_t thread;
     pthread_create(&thread, NULL, listenForInput, NULL);
+
+    // May need this
+    //glutIdleFunc(keepAliveIdleFunc);
 
     // Enter the main loop. Note that there is no idle function. We expect
     // the main thread to go to sleep when there is nothing to do and that
