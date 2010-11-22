@@ -56,7 +56,7 @@
     #define WIN32_LEAN_AND_MEAN
     #define NOMINMAX
     #include <Windows.h>
-#elif defined(__APPLE___)
+#elif defined(__APPLE__)
     #include <unistd.h>
     #include <mach/mach_time.h>
 #endif
@@ -241,7 +241,7 @@ static const long long UsPerSec = 1000000LL;
         //TODO
         tp->tv_sec = 0; tp->tv_nsec = 0;
         return EINVAL;
-    
+    }
 #endif
 
 // Now define the Posix clock_gettime() function in terms of the above helpers.
