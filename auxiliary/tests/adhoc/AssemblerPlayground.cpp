@@ -2,7 +2,7 @@
 #include "SimTKsimbody_aux.h"
 
 
-#define USE_VTK
+//#define USE_VTK
 #ifdef USE_VTK
 #define VisualizationReporter VTKEventReporter
 #define Visualizer VTKVisualizer

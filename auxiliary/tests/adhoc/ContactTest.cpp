@@ -36,7 +36,7 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h" // requires VTK
 
-#define USE_VTK
+//#define USE_VTK
 #ifdef USE_VTK
 #define Visualizer VTKVisualizer
 #endif
@@ -262,6 +262,10 @@ try
     //vtk.setCameraClippingPlanes(.5,200);
    // vtk.zoomCameraToShowAllGeometry();
 
+    //vtk.setMode(Visualizer::Sampling);
+    //vtk.setMode(Visualizer::RealTime);
+    //vtk.setDesiredFrameRate(24);
+
 
     //bouncers.setUseEulerAngles(s, true);
     mbs.realizeModel(s);
@@ -275,8 +279,9 @@ try
     //ee.setOrderLimit(3); //CPodes only
     //ee.setProjectEveryStep(true);
 
+    //ee.setAccuracy(1e-5);
     ee.setAccuracy(2e-2);
-    ee.setConstraintTolerance(1e-3);
+    //ee.setConstraintTolerance(1e-3);
 
     vtk.report(s);
 
@@ -285,20 +290,22 @@ try
     //bouncers.setUseEulerAngles(s,true);
 
     std::vector<State> saveEm;
+    saveEm.reserve(10000);
 
-    const Real h = .1;
+    const Real FrameRate = 10;
+    const Real h = 1/FrameRate; // output every frame
     const Real tstart = 0.;
-    const Real tmax = 100;
+    const Real tmax = 30;
 
 
     s.updTime() = tstart;
     mbs.realize(s, Stage::Acceleration);
-    for (int i=0; i<100; ++i)
+    for (int i=0; i<25; ++i)
         saveEm.push_back(s);    // delay
     vtk.report(s);
 
     ee.initialize(s);
-    for (int i=0; i<100; ++i)
+    for (int i=0; i<25; ++i)
         saveEm.push_back(ee.getState());    // delay
     vtk.report(ee.getState());
 
@@ -309,14 +316,14 @@ try
     cout << "Y WEIGHTS=" << ee.getStateWeightsInUse() << endl;
     cout << "1/CTOLS=" << ee.getConstraintWeightsInUse() << endl;
 
-    const clock_t start = clock();
-
-
+    const double startCPU  = cpuTime();
+    const double startThreadCPU  = threadCpuTime();
+    const double startTime = realTime();
 
     int step = 0;
     while (ee.getTime() <= tmax) {
         const State& ss = ee.getState();
-        if (!(step % 10)) {
+        if (!(step % 30)) {
             mbs.realize(ss);
             cout << ss.getTime() 
                 //<< ": T=" << thermostat.getCurrentTemperature(ss)
@@ -338,8 +345,12 @@ try
         //if (std::abs(ss.getTime()-80) < .001)
         //    thermostat.setBathTemperature(ee.updAdvancedState(), 200);
     }
+
     std::cout << "Simulated " << ee.getTime() << " seconds in " <<
-        (double)(clock()-start)/CLOCKS_PER_SEC << "s\n";
+        realTime()-startTime << " elapsed s\n";
+    std::cout << "Process CPU=" << cpuTime()-startCPU << std::endl;
+    std::cout << "Thread CPU=" << threadCpuTime()-startThreadCPU << std::endl;
+
 
     //printFinalStats(ee.getCPodes());
     printf("Using Integrator %s:\n", ee.getMethodName());
@@ -349,8 +360,8 @@ try
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
-            vtk.report(saveEm[i]);
-            //vtk.report(saveEm[i]); // half speed
+            for (int j=0; j < 4; ++j) // 1/4 speed
+                vtk.report(saveEm[i]);
         }
         getchar();
     }

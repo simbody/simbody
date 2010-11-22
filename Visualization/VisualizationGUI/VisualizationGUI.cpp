@@ -53,6 +53,11 @@
     #include "glut32/glut.h"    // we have our own private headers
     #include "glut32/glext.h" 
 
+    // A Windows-only extension for disabling vsync, allowing unreasonably
+    // high frame rates.
+    PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT;
+
+
     // These will hold the dynamically-determined function addresses.
     PFNGLGENBUFFERSPROC glGenBuffers;
     PFNGLBINDBUFFERPROC glBindBuffer;
@@ -220,7 +225,7 @@ public:
     const fTransform& getTransform() const {
         return transform;
     }
-    void computeBoundingSphere(float& radius, fVec3& center) {
+    void computeBoundingSphere(float& radius, fVec3& center) const {
         meshes[meshIndex]->getBoundingSphere(radius, center);
         center += transform.T();
         radius *= max(abs(scale[0]), max(abs(scale[1]), abs(scale[2])));
@@ -254,7 +259,7 @@ public:
     float getThickness() const {
         return thickness;
     }
-    void computeBoundingSphere(float& radius, fVec3& center) {
+    void computeBoundingSphere(float& radius, fVec3& center) const {
         computeBoundingSphereForVertices(lines, radius, center);
     }
 private:
@@ -282,7 +287,7 @@ public:
             glutStrokeCharacter(GLUT_STROKE_ROMAN, text[i]);
         glPopMatrix();
     }
-    void computeBoundingSphere(float& radius, fVec3& center) {
+    void computeBoundingSphere(float& radius, fVec3& center) const {
         center = position;
         radius = glutStrokeLength(GLUT_STROKE_ROMAN, (unsigned char*) text.c_str())*scale;
     }
@@ -293,15 +298,53 @@ private:
     string text;
 };
 
+
+/*==============================================================================
+                                SCENE DATA                                      
+================================================================================
+We keep two scenes at a time -- a "front" scene that is currently being
+rendered, and a "back" scene is being filled in by the listener thread in 
+parallel, while the front scene is being rendered. Once the back scene is
+complete, the listener thread must block until the renderer has drawn the
+front scene (at least once). After the front scene is rendered, the listener 
+thread replaces it with the back scene. When there is no back scene, the front 
+scene will be rendered repeatedly whenever an event occurs that may require 
+that, such as a user moving the camera. 
+
+There is a mutex lock for the front scene. It is held by the renderer when
+drawing, by any operations (such as camera motion) that would require redrawing
+the front scene, and by the listener thread when it wants to swap in the back
+scene. There is a condition variable that the listener can wait on when it is
+done with the back scene but front scene rendering has not yet finished; that 
+is signaled by the renderer when it finishes drawing the front scene. */
+
+// This object holds a scene. There are at most two of these around.
 class Scene {
 public:
+    Scene() : sceneHasBeenDrawn(false) {}
+
     vector<RenderedMesh> drawnMeshes;
     vector<RenderedMesh> solidMeshes;
     vector<RenderedMesh> transparentMeshes;
     vector<RenderedLine> lines;
     vector<RenderedText> strings;
+
+    bool sceneHasBeenDrawn;
 };
 
+static Scene* scene=0;      // This is the front scene.
+
+// This lock must be held whenever the front scene is being
+// modified or drawn, or when it is being swapped with the back scene.
+static pthread_mutex_t sceneLock;
+
+// Wait on this if you want to be notified when the scene has been drawn.
+static pthread_cond_t  sceneHasBeenDrawn;
+
+
+// Some commands received by the listener must be executed on the rendering
+// thread. They are saved in concrete objects derived from this abstract
+// class.
 class PendingCommand {
 public:
     virtual void execute() = 0;
@@ -317,7 +360,8 @@ static bool showGround = true, showShadows = true, showFPS = true;
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
 static int fpsBaseTime = 0, fpsCounter = 0, nextMeshIndex;
-static Scene* scene;
+static int frameCounter = 0;
+
 static string overlayMessage;
 static bool displayOverlayMessage = false;
 
@@ -337,7 +381,7 @@ public:
     int index;
 };
 
-static void computeSceneBounds(float& radius, fVec3& center) {
+static void computeSceneBounds(const Scene* scene, float& radius, fVec3& center) {
     // Record the bounding sphere of every object in the scene.
 
     vector<fVec3> centers;
@@ -403,7 +447,7 @@ static void computeSceneBounds(float& radius, fVec3& center) {
 static void zoomCameraToShowWholeScene() {
     float radius;
     fVec3 center;
-    computeSceneBounds(radius, center);
+    computeSceneBounds(scene, radius, center);
     float viewDistance = radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
     cameraTransform.updT() = center+cameraTransform.R()*fVec3(0, 0, viewDistance);
 }
@@ -415,6 +459,9 @@ public:
     }
 };
 
+// This is the handler for simulator-defined menus. All it does is send back
+// to the simulator the integer index that was associated with the particular
+// menu entry on which the user clicked.
 void menuSelected(int option) {
     char command = MENU_SELECTED;
     WRITE(outPipe, &command, 1);
@@ -423,8 +470,9 @@ void menuSelected(int option) {
 
 class Menu {
 public:
-    Menu(string title, vector<pair<string, int> > items, void(*handler)(int)) : title(title), items(items), handler(handler), hasCreated(false) {
-    }
+    Menu(string title, vector<pair<string, int> > items, void(*handler)(int)) 
+    :   title(title), items(items), handler(handler), hasCreated(false) {}
+
     int draw(int x, int y) {
         if (!hasCreated) {
             id = glutCreateMenu(handler);
@@ -492,6 +540,11 @@ public:
         glEnd();
         return width+25;
     }
+
+    // When the mouse moves onto this menu's pulldown tab, attach the menu
+    // to the mouse's left button. When it is next seen moving outside the
+    // pulldown tab, unattach the menu if it is still attached. Only one menu
+    // can be displayed at a time.
     void mouseMoved(int x, int y) {
         if (!hasCreated)
             return;
@@ -690,7 +743,7 @@ static void drawGroundAndSky(float farClipDistance) {
 }
 
 static vector<Menu> menus;
-static pthread_mutex_t sceneLock;
+
 
 static void changeSize(int width, int height) {
     if (height == 0)
@@ -715,11 +768,14 @@ static void renderScene() {
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_LIGHTING);
     glDisableClientState(GL_NORMAL_ARRAY);
-    pthread_mutex_lock(&sceneLock);
+
+    pthread_mutex_lock(&sceneLock);             //-------- LOCK SCENE --------
+
     if (scene != NULL) {
         // Execute any pending commands that need to be executed on the 
-        // rendering thread.
-
+        // rendering thread. This happens only the first time a particular
+        // scene is drawn because we delete the pending commands after 
+        // executing them.
         for (int i = 0; i < (int) pendingCommands.size(); i++) {
             pendingCommands[i]->execute();
             delete pendingCommands[i];
@@ -733,7 +789,7 @@ static void renderScene() {
         glViewport(0, 0, viewWidth, viewHeight);
         float sceneRadius;
         fVec3 sceneCenter;
-        computeSceneBounds(sceneRadius, sceneCenter);
+        computeSceneBounds(scene, sceneRadius, sceneCenter);
         float sceneScale = std::max(0.1f, sceneRadius);
 
         float centerDepth = ~(cameraTransform.T()-sceneCenter)*(cameraTransform.R().col(2));
@@ -793,10 +849,25 @@ static void renderScene() {
             fpsBaseTime = time;
             fpsCounter = 0;
         }
+
+        scene->sceneHasBeenDrawn = true;
     }
-    pthread_mutex_unlock(&sceneLock);
+
+    // Signal in case the listener is waiting.
+    pthread_cond_signal(&sceneHasBeenDrawn);    //----- SIGNAL CONDITION -----
+    pthread_mutex_unlock(&sceneLock);           //----- UNLOCK SCENE ---------
 }
 
+
+// Redraw everything currently being displayed. That means:
+//  - the "front" scene
+//  - menus
+//  - overlay text like the frame rate display
+//  - overlay messages (these are up for a while then time out)
+//
+// We also update the frame number and FPS counter. Note that numerous
+// frames may be produced from the same scene, so you can expect the frame
+// numbers to be higher than the number of scenes sent by the simulator.
 static void redrawDisplay() {
     renderScene();
 
@@ -821,14 +892,15 @@ static void redrawDisplay() {
     // Draw the frame rate counter.
 
     if (showFPS) {
-        stringstream fpsstream;
-        fpsstream << "FPS: ";
-        fpsstream << fps;
-        string fps = fpsstream.str();
+        char fpstxt[64]; sprintf(fpstxt, "FPS: %.1f", fps); // 1 decimal place
+        char cnttxt[64]; sprintf(cnttxt, "#%d", frameCounter);
         glColor3f(1.0f, 0.5f, 0.0f);
         glRasterPos2f(10, 25);
-        for (int i = 0; i < (int) fps.size(); i++)
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, fps[i]);
+        for (const char* p = fpstxt; *p; ++p)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *p);
+        glRasterPos2f(10, 25+18);
+        for (const char* p = cnttxt; *p; ++p)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *p);
     }
 
     // Draw a message overlay.
@@ -840,10 +912,12 @@ static void redrawDisplay() {
         for (int i = 0; i < (int) overlayMessage.size(); i++)
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, overlayMessage[i]);
     }
+
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glutSwapBuffers();
-    fpsCounter++;
+    ++fpsCounter;
+    ++frameCounter;
 }
 
 // These are set when a mouse button is clicked and then referenced
@@ -864,7 +938,7 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 
     float radius;
     fVec3 sceneCenter;
-    computeSceneBounds(radius, sceneCenter);
+    computeSceneBounds(scene, radius, sceneCenter);
     sceneScale = std::max(radius, 0.1f);
 
     // "state" (pressed/released) is irrelevant for mouse wheel. However, if 
@@ -878,10 +952,11 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 
         const int   direction = button==GlutWheelUp ? -1 : 1;
         const float zoomBy    = direction * (ZoomFractionPerWheelClick * sceneScale);
-        pthread_mutex_lock(&sceneLock);
+
+        pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
         cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, zoomBy);
-        glutPostRedisplay();
-        pthread_mutex_unlock(&sceneLock);
+        glutPostRedisplay();                    //------ POST REDISPLAY ------
+        pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
         return;
     }
 
@@ -918,7 +993,7 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 // clickButton, and where the mouse was then in (clickX,clickY). We update 
 // (clickX,clickY) each call here to reflect where it was last seen.
 static void mouseDragged(int x, int y) {
-    pthread_mutex_lock(&sceneLock);
+    pthread_mutex_lock(&sceneLock);             //------- LOCK SCENE --------
 
     // 1/4 degree per pixel
     const float AnglePerPixel = 0.25*((float)SimTK_PI/180); 
@@ -960,10 +1035,10 @@ static void mouseDragged(int x, int y) {
     else
         return;
 
-    clickX = x;
-    clickY = y;
-    glutPostRedisplay();
-    pthread_mutex_unlock(&sceneLock);
+    clickX = x; clickY = y;
+
+    glutPostRedisplay();                    //-------- POST REDISPLAY --------
+    pthread_mutex_unlock(&sceneLock);       //-------- UNLOCK SCENE ----------
 }
 
 // Currently the only "passive" mouse motion we care about is if the
@@ -1010,15 +1085,15 @@ static void specialKeyPressed(int key, int x, int y) {
     WRITE(outPipe, buffer, 2);
 }
 
-static void oneShotTimer(int value) {
+static void disableOverlayTimer(int value) {
     displayOverlayMessage = false;
-    glutPostRedisplay();
+    glutPostRedisplay();                    //-------- POST REDISPLAY --------
 }
 
 static void setOverlayMessage(const string& message) {
     overlayMessage = message;
     displayOverlayMessage = true;
-    glutTimerFunc(5000, oneShotTimer, 0);
+    glutTimerFunc(5000, disableOverlayTimer, 0);
 }
 
 static void saveImage() {
@@ -1316,10 +1391,186 @@ static void makeCircle() {
     meshes.push_back(new Mesh(vertices, normals, faces));
 }
 
-void readData(char* buffer, int bytes) {
+// Read a particular number of bytes from the inPipe to the given data.
+// This will hang until the expected number of bytes has been received.
+static void readData(char* buffer, int bytes) {
     int totalRead = 0;
     while (totalRead < bytes)
         totalRead += READ(inPipe, buffer+totalRead, bytes-totalRead);
+}
+
+// We have just processed a START_OF_SCENE command. Read in all the scene
+// elements until we see an END_OF_SCENE command. We allocate a new Scene
+// object to hold the scene and return a pointer to it. Don't forget to
+// delete that object when you are done with it.
+static Scene* readNewScene() {
+    char buffer[256];
+    float*          floatBuffer = (float*)          buffer;
+    int*            intBuffer   = (int*)            buffer;
+    unsigned short* shortBuffer = (unsigned short*) buffer;
+
+    Scene* newScene = new Scene;
+
+    bool finished = false;
+    while (!finished) {
+        readData(buffer, 1);
+        char command = buffer[0];
+
+        switch (command) {
+
+        case END_OF_SCENE:
+            finished = true;
+            break;
+
+        // Add a scene element that uses an already-cached mesh.
+        case ADD_POINT_MESH:
+        case ADD_WIREFRAME_MESH:
+        case ADD_SOLID_MESH: {
+            readData(buffer, 13*sizeof(float)+sizeof(short));
+            fTransform position;
+            position.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+            position.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            fVec3 scale = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
+            fVec4 color = fVec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
+            short representation = (command == ADD_POINT_MESH ? DecorativeGeometry::DrawPoints : (command == ADD_WIREFRAME_MESH ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
+            RenderedMesh mesh(position, scale, color, representation, shortBuffer[13*sizeof(float)/sizeof(short)]);
+            if (command != ADD_SOLID_MESH)
+                newScene->drawnMeshes.push_back(mesh);
+            else if (color[3] == 1)
+                newScene->solidMeshes.push_back(mesh);
+            else
+                newScene->transparentMeshes.push_back(mesh);
+            break;
+        }
+
+        case ADD_LINE: {
+            readData(buffer, 10*sizeof(float));
+            fVec3 color = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+            float thickness = floatBuffer[3];
+            int index;
+            int numLines = newScene->lines.size();
+            for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || thickness != newScene->lines[index].getThickness()); index++)
+                ;
+            if (index == numLines)
+                newScene->lines.push_back(RenderedLine(color, thickness));
+            vector<GLfloat>& line = newScene->lines[index].getLines();
+            line.push_back(floatBuffer[4]);
+            line.push_back(floatBuffer[5]);
+            line.push_back(floatBuffer[6]);
+            line.push_back(floatBuffer[7]);
+            line.push_back(floatBuffer[8]);
+            line.push_back(floatBuffer[9]);
+            break;
+        }
+
+        case ADD_TEXT: {
+            readData(buffer, 7*sizeof(float)+sizeof(short));
+            fVec3 position = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+            float scale = floatBuffer[3];
+            fVec3 color = fVec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
+            short length = shortBuffer[7*sizeof(float)/sizeof(short)];
+            readData(buffer, length);
+            newScene->strings.push_back(RenderedText(position, scale, color, string(buffer, length)));
+            break;
+        }
+
+        case ADD_FRAME: {
+            readData(buffer, 10*sizeof(float));
+            fRotation rotation;
+            rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+            fVec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            float axisLength = floatBuffer[6];
+            float textScale = 0.2f*axisLength;
+            float lineThickness = 1;
+            fVec3 color = fVec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
+            int index;
+            int numLines = newScene->lines.size();
+            for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || newScene->lines[index].getThickness() != lineThickness); index++)
+                ;
+            if (index == numLines)
+                newScene->lines.push_back(RenderedLine(color, lineThickness));
+            vector<GLfloat>& line = newScene->lines[index].getLines();
+            fVec3 end = position+rotation*fVec3(axisLength, 0, 0);
+            line.push_back(position[0]);
+            line.push_back(position[1]);
+            line.push_back(position[2]);
+            line.push_back(end[0]);
+            line.push_back(end[1]);
+            line.push_back(end[2]);
+            newScene->strings.push_back(RenderedText(end, textScale, color, "X"));
+            end = position+rotation*fVec3(0, axisLength, 0);
+            line.push_back(position[0]);
+            line.push_back(position[1]);
+            line.push_back(position[2]);
+            line.push_back(end[0]);
+            line.push_back(end[1]);
+            line.push_back(end[2]);
+            newScene->strings.push_back(RenderedText(end, textScale, color, "Y"));
+            end = position+rotation*fVec3(0, 0, axisLength);
+            line.push_back(position[0]);
+            line.push_back(position[1]);
+            line.push_back(position[2]);
+            line.push_back(end[0]);
+            line.push_back(end[1]);
+            line.push_back(end[2]);
+            newScene->strings.push_back(RenderedText(end, textScale, color, "Z"));
+            break;
+        }
+
+        // Define a new mesh that will be assigned the next available mesh
+        // index. It will be cached here and then can be referenced in this
+        // scene and others by using it mesh index.
+        case DEFINE_MESH: {
+            readData(buffer, 2*sizeof(short));
+            PendingMesh* mesh = new PendingMesh(); // assigns next mesh index
+            int numVertices = shortBuffer[0];
+            int numFaces = shortBuffer[1];
+            mesh->vertices.resize(3*numVertices, 0);
+            mesh->normals.resize(3*numVertices);
+            mesh->faces.resize(3*numFaces);
+            readData((char*) &mesh->vertices[0], mesh->vertices.size()*sizeof(float));
+            readData((char*) &mesh->faces[0], mesh->faces.size()*sizeof(short));
+
+            // Compute normal vectors for the mesh.
+
+            vector<fVec3> normals(numVertices, fVec3(0));
+            for (int i = 0; i < numFaces; i++) {
+                int v1 = mesh->faces[3*i];
+                int v2 = mesh->faces[3*i+1];
+                int v3 = mesh->faces[3*i+2];
+                fVec3 vert1(mesh->vertices[3*v1], mesh->vertices[3*v1+1], mesh->vertices[3*v1+2]);
+                fVec3 vert2(mesh->vertices[3*v2], mesh->vertices[3*v2+1], mesh->vertices[3*v2+2]);
+                fVec3 vert3(mesh->vertices[3*v3], mesh->vertices[3*v3+1], mesh->vertices[3*v3+2]);
+                fVec3 norm = (vert2-vert1)%(vert3-vert1);
+                float length = norm.norm();
+                if (length > 0) {
+                    norm /= length;
+                    normals[v1] += norm;
+                    normals[v2] += norm;
+                    normals[v3] += norm;
+                }
+            }
+            for (int i = 0; i < numVertices; i++) {
+                normals[i] = normals[i].normalize();
+                mesh->normals[3*i] = normals[i][0];
+                mesh->normals[3*i+1] = normals[i][1];
+                mesh->normals[3*i+2] = normals[i][2];
+            }
+
+            // A real mesh will be generated from this the next
+            // time the scene is redrawn.
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE --------
+            pendingCommands.insert(pendingCommands.begin(), mesh);
+            pthread_mutex_unlock(&sceneLock);   //------ UNLOCK SCENE --------
+            break;
+        }
+
+        default:
+            SimTK_ASSERT_ALWAYS(false, "Unexpected scene data sent to visualizer");
+        }
+    }
+
+    return newScene;
 }
 
 // This is the main program for the listener thread. It reads continuously
@@ -1337,232 +1588,97 @@ void* listenForInput(void* args) {
         // Read commands from the simulator.
         readData(buffer, 1);
         switch (buffer[0]) {
-            case SET_CAMERA: {
-                readData(buffer, 6*sizeof(float));
-                pthread_mutex_lock(&sceneLock);
-                cameraTransform.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-                cameraTransform.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-                pthread_mutex_unlock(&sceneLock);
-                break;
+        case SET_CAMERA: {
+            readData(buffer, 6*sizeof(float));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            cameraTransform.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+            cameraTransform.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case ZOOM_CAMERA: {
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            pendingCommands.push_back(new PendingCameraZoom());
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case LOOK_AT: {
+            readData(buffer, 6*sizeof(float));
+            fVec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+            fVec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(cameraTransform.T()-point), ZAxis, updir, YAxis);
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SET_FIELD_OF_VIEW: {
+            readData(buffer, sizeof(float));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            fieldOfView = floatBuffer[0];
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SET_CLIP_PLANES: {
+            readData(buffer, 2*sizeof(float));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            nearClip = floatBuffer[0];
+            farClip = floatBuffer[1];
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SET_GROUND_POSITION: {
+            readData(buffer, sizeof(float)+sizeof(short));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            groundHeight = floatBuffer[0];
+            groundAxis = shortBuffer[sizeof(float)/sizeof(short)];
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case DEFINE_MENU: {
+            readData(buffer, sizeof(short));
+            int titleLength = shortBuffer[0];
+            vector<char> titleBuffer(titleLength);
+            readData(&titleBuffer[0], titleLength);
+            string title(&titleBuffer[0], titleLength);
+            readData(buffer, sizeof(short));
+            int numItems = shortBuffer[0];
+            vector<pair<string, int> > items(numItems);
+            for (int index = 0; index < numItems; index++) {
+                readData(buffer, 2*sizeof(int));
+                items[index].second = intBuffer[0];
+                vector<char> textBuffer(intBuffer[1]);
+                readData(&textBuffer[0], intBuffer[1]);
+                items[index].first = string(&textBuffer[0], intBuffer[1]);
             }
-            case ZOOM_CAMERA: {
-                pthread_mutex_lock(&sceneLock);
-                pendingCommands.push_back(new PendingCameraZoom());
-                pthread_mutex_unlock(&sceneLock);
-                break;
-            }
-            case LOOK_AT: {
-                readData(buffer, 6*sizeof(float));
-                fVec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-                fVec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-                pthread_mutex_lock(&sceneLock);
-                cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(cameraTransform.T()-point), ZAxis, updir, YAxis);
-                pthread_mutex_unlock(&sceneLock);
-                break;
-            }
-            case SET_FIELD_OF_VIEW: {
-                readData(buffer, sizeof(float));
-                pthread_mutex_lock(&sceneLock);
-                fieldOfView = floatBuffer[0];
-                pthread_mutex_unlock(&sceneLock);
-                break;
-            }
-            case SET_CLIP_PLANES: {
-                readData(buffer, 2*sizeof(float));
-                pthread_mutex_lock(&sceneLock);
-                nearClip = floatBuffer[0];
-                farClip = floatBuffer[1];
-                pthread_mutex_unlock(&sceneLock);
-                break;
-            }
-            case SET_GROUND_POSITION: {
-                readData(buffer, sizeof(float)+sizeof(short));
-                pthread_mutex_lock(&sceneLock);
-                groundHeight = floatBuffer[0];
-                groundAxis = shortBuffer[sizeof(float)/sizeof(short)];
-                pthread_mutex_unlock(&sceneLock);
-                break;
-            }
-            case DEFINE_MENU: {
-                readData(buffer, sizeof(short));
-                int titleLength = shortBuffer[0];
-                vector<char> titleBuffer(titleLength);
-                readData(&titleBuffer[0], titleLength);
-                string title(&titleBuffer[0], titleLength);
-                readData(buffer, sizeof(short));
-                int numItems = shortBuffer[0];
-                vector<pair<string, int> > items(numItems);
-                for (int index = 0; index < numItems; index++) {
-                    readData(buffer, 2*sizeof(int));
-                    items[index].second = intBuffer[0];
-                    vector<char> textBuffer(intBuffer[1]);
-                    readData(&textBuffer[0], intBuffer[1]);
-                    items[index].first = string(&textBuffer[0], intBuffer[1]);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            menus.push_back(Menu(title, items, menuSelected));
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case START_OF_SCENE: {
+            Scene* newScene = readNewScene();
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            if (scene != NULL) {
+                while (!scene->sceneHasBeenDrawn) {
+                    // -------- WAIT FOR CONDITION --------
+                    // Give up the lock and wait for notice.
+                    pthread_cond_wait(&sceneHasBeenDrawn,
+                                        &sceneLock);
+                    // Now we hold the lock again, but this might
+                    // be a spurious wakeup so check again.
                 }
-                pthread_mutex_lock(&sceneLock);
-                menus.push_back(Menu(title, items, menuSelected));
-                pthread_mutex_unlock(&sceneLock);
-                break;
+                // Previous scene has been drawn.
+                delete scene; scene = 0;
             }
-            case START_OF_SCENE: {
-                Scene* newScene = new Scene();
-                bool finished = false;
-                while (!finished) {
-                    readData(buffer, 1);
-                    char command = buffer[0];
-                    switch (command) {
-                        case END_OF_SCENE:
-                            pthread_mutex_lock(&sceneLock);
-                            if (scene != NULL)
-                                delete scene;
-                            scene = newScene;
-                            glutPostRedisplay();
-                            //fpsCounter++;
-                            pthread_mutex_unlock(&sceneLock);
-                            finished = true;
-                            break;
-                        case ADD_POINT_MESH:
-                        case ADD_WIREFRAME_MESH:
-                        case ADD_SOLID_MESH: {
-                            readData(buffer, 13*sizeof(float)+sizeof(short));
-                            fTransform position;
-                            position.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-                            position.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-                            fVec3 scale = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
-                            fVec4 color = fVec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
-                            short representation = (command == ADD_POINT_MESH ? DecorativeGeometry::DrawPoints : (command == ADD_WIREFRAME_MESH ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
-                            RenderedMesh mesh(position, scale, color, representation, shortBuffer[13*sizeof(float)/sizeof(short)]);
-                            if (command != ADD_SOLID_MESH)
-                                newScene->drawnMeshes.push_back(mesh);
-                            else if (color[3] == 1)
-                                newScene->solidMeshes.push_back(mesh);
-                            else
-                                newScene->transparentMeshes.push_back(mesh);
-                            break;
-                        }
-                        case ADD_LINE: {
-                            readData(buffer, 10*sizeof(float));
-                            fVec3 color = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-                            float thickness = floatBuffer[3];
-                            int index;
-                            int numLines = newScene->lines.size();
-                            for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || thickness != newScene->lines[index].getThickness()); index++)
-                                ;
-                            if (index == numLines)
-                                newScene->lines.push_back(RenderedLine(color, thickness));
-                            vector<GLfloat>& line = newScene->lines[index].getLines();
-                            line.push_back(floatBuffer[4]);
-                            line.push_back(floatBuffer[5]);
-                            line.push_back(floatBuffer[6]);
-                            line.push_back(floatBuffer[7]);
-                            line.push_back(floatBuffer[8]);
-                            line.push_back(floatBuffer[9]);
-                            break;
-                        }
-                        case ADD_TEXT: {
-                            readData(buffer, 7*sizeof(float)+sizeof(short));
-                            fVec3 position = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-                            float scale = floatBuffer[3];
-                            fVec3 color = fVec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
-                            short length = shortBuffer[7*sizeof(float)/sizeof(short)];
-                            readData(buffer, length);
-                            newScene->strings.push_back(RenderedText(position, scale, color, string(buffer, length)));
-                            break;
-                        }
-                        case ADD_FRAME: {
-                            readData(buffer, 10*sizeof(float));
-                            fRotation rotation;
-                            rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-                            fVec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-                            float axisLength = floatBuffer[6];
-                            float textScale = 0.2f*axisLength;
-                            float lineThickness = 1;
-                            fVec3 color = fVec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
-                            int index;
-                            int numLines = newScene->lines.size();
-                            for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || newScene->lines[index].getThickness() != lineThickness); index++)
-                                ;
-                            if (index == numLines)
-                                newScene->lines.push_back(RenderedLine(color, lineThickness));
-                            vector<GLfloat>& line = newScene->lines[index].getLines();
-                            fVec3 end = position+rotation*fVec3(axisLength, 0, 0);
-                            line.push_back(position[0]);
-                            line.push_back(position[1]);
-                            line.push_back(position[2]);
-                            line.push_back(end[0]);
-                            line.push_back(end[1]);
-                            line.push_back(end[2]);
-                            newScene->strings.push_back(RenderedText(end, textScale, color, "X"));
-                            end = position+rotation*fVec3(0, axisLength, 0);
-                            line.push_back(position[0]);
-                            line.push_back(position[1]);
-                            line.push_back(position[2]);
-                            line.push_back(end[0]);
-                            line.push_back(end[1]);
-                            line.push_back(end[2]);
-                            newScene->strings.push_back(RenderedText(end, textScale, color, "Y"));
-                            end = position+rotation*fVec3(0, 0, axisLength);
-                            line.push_back(position[0]);
-                            line.push_back(position[1]);
-                            line.push_back(position[2]);
-                            line.push_back(end[0]);
-                            line.push_back(end[1]);
-                            line.push_back(end[2]);
-                            newScene->strings.push_back(RenderedText(end, textScale, color, "Z"));
-                            break;
-                        }
-                        case DEFINE_MESH: {
-                            readData(buffer, 2*sizeof(short));
-                            PendingMesh* mesh = new PendingMesh();
-                            int numVertices = shortBuffer[0];
-                            int numFaces = shortBuffer[1];
-                            mesh->vertices.resize(3*numVertices, 0);
-                            mesh->normals.resize(3*numVertices);
-                            mesh->faces.resize(3*numFaces);
-                            readData((char*) &mesh->vertices[0], mesh->vertices.size()*sizeof(float));
-                            readData((char*) &mesh->faces[0], mesh->faces.size()*sizeof(short));
+            // Swap in the new scene.
+            scene = newScene;
+            glutPostRedisplay();                //------- POST REDISPLAY -----
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
 
-                            // Compute normal vectors for the mesh.
-
-                            vector<fVec3> normals(numVertices, fVec3(0));
-                            for (int i = 0; i < numFaces; i++) {
-                                int v1 = mesh->faces[3*i];
-                                int v2 = mesh->faces[3*i+1];
-                                int v3 = mesh->faces[3*i+2];
-                                fVec3 vert1(mesh->vertices[3*v1], mesh->vertices[3*v1+1], mesh->vertices[3*v1+2]);
-                                fVec3 vert2(mesh->vertices[3*v2], mesh->vertices[3*v2+1], mesh->vertices[3*v2+2]);
-                                fVec3 vert3(mesh->vertices[3*v3], mesh->vertices[3*v3+1], mesh->vertices[3*v3+2]);
-                                fVec3 norm = (vert2-vert1)%(vert3-vert1);
-                                float length = norm.norm();
-                                if (length > 0) {
-                                    norm /= length;
-                                    normals[v1] += norm;
-                                    normals[v2] += norm;
-                                    normals[v3] += norm;
-                                }
-                            }
-                            for (int i = 0; i < numVertices; i++) {
-                                normals[i] = normals[i].normalize();
-                                mesh->normals[3*i] = normals[i][0];
-                                mesh->normals[3*i+1] = normals[i][1];
-                                mesh->normals[3*i+2] = normals[i][2];
-                            }
-
-                            // A real mesh will be generated from this the next time the screen is redrawn.
-
-                            pthread_mutex_lock(&sceneLock);
-                            pendingCommands.insert(pendingCommands.begin(), mesh);
-                            pthread_mutex_unlock(&sceneLock);
-                            break;
-                        }
-                        default:
-                            SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
-                    }
-                }
-                break;
-            }
-            default:
-                SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
+        default:
+            SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
         }
     }
     return 0;
@@ -1581,6 +1697,7 @@ static const int MENU_SHOW_SHADOWS = 9;
 static const int MENU_SHOW_FPS = 10;
 static const int MENU_SAVE_IMAGE = 11;
 
+// This is the handler for our built-in "View" pull down menu.
 void viewMenuSelected(int option) {
     fRotation groundRotation;
     if (groundAxis == 0)
@@ -1639,7 +1756,8 @@ void viewMenuSelected(int option) {
             saveImage();
             break;
     }
-    glutPostRedisplay();
+
+    glutPostRedisplay();                    //-------- POST REDISPLAY --------
 }
 
 static const int DefaultWindowWidth  = 600;
@@ -1655,10 +1773,10 @@ int main(int argc, char** argv) {
     if (argc >= 4 && argv[3])
         title += ": " + string(argv[3]);
 
+
     // Initialize GLUT.
 
     glutInit(&argc, argv);
-
 
     // Put the upper left corner of the glut window near the upper right 
     // corner of the screen.
@@ -1693,6 +1811,9 @@ int main(int argc, char** argv) {
     // On some systems (Windows at least), some of the gl functions may 
     // need to be loaded dynamically.
     initGlextFuncPointersIfNeeded();
+
+    //if( wglSwapIntervalEXT )
+    //  wglSwapIntervalEXT(0); // 1==vsync; 0 is off
 
     // Set up lighting.
 
@@ -1735,10 +1856,11 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
     menus.push_back(Menu("View", items, viewMenuSelected));
 
-
-    // Spawn the listener thread.
-
+    // Initialize pthread lock and condition variable.
     pthread_mutex_init(&sceneLock, NULL);
+    pthread_cond_init(&sceneHasBeenDrawn, NULL);
+
+    // Spawn the listener thread. After this it runs independently.
     pthread_t thread;
     pthread_create(&thread, NULL, listenForInput, NULL);
 
@@ -1754,6 +1876,8 @@ int main(int argc, char** argv) {
 // Initialize function pointers for Windows GL extensions.
 static void initGlextFuncPointersIfNeeded() { 
 #ifdef _WIN32
+    wglSwapIntervalEXT = (PFNWGLSWAPINTERVALFARPROC)wglGetProcAddress( "wglSwapIntervalEXT" );
+
     glGenBuffers    = (PFNGLGENBUFFERSPROC) glutGetProcAddress("glGenBuffers");
     glBindBuffer    = (PFNGLBINDBUFFERPROC) glutGetProcAddress("glBindBuffer");
     glBufferData    = (PFNGLBUFFERDATAPROC) glutGetProcAddress("glBufferData");

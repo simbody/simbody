@@ -93,7 +93,7 @@ public:
         // queue and initiate the buffered rendering thread.
         // TODO: calculate pool size
         if (newMode == RealTime) {
-            initializePool(5);
+            initializePool(10);
             pthread_create(&drawThread, NULL, drawFramesWhenReady, this);
         }
 
@@ -249,7 +249,6 @@ void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
 static void* drawFramesWhenReady(void* visualizerRepAsVoidp) {
     Visualizer::VisualizerRep& vizRep = 
         *reinterpret_cast<Visualizer::VisualizerRep*>(visualizerRepAsVoidp);
-
     while (true) {
         // Wait for the next frame time.
         long long now;
@@ -268,13 +267,15 @@ static void* drawFramesWhenReady(void* visualizerRepAsVoidp) {
             timespec delayTime;
             nsToTimespec(vizRep.timeBetweenFramesInNs/2, delayTime);
             nanosleep(&delayTime,0);
+            now = realTimeInNs();
         }
 
         // Got a frame to render.
         const State& state = vizRep.pool[frame];
+        // TODO: replace real time here with simulated time
+        vizRep.nextFrameDueInNs = now + vizRep.timeBetweenFramesInNs;
         vizRep.drawFrameNow(state);
         vizRep.returnRemovedFrameToPool();
-        vizRep.nextFrameDueInNs += vizRep.timeBetweenFramesInNs;
     }
     return 0;
 }
@@ -312,22 +313,30 @@ void Visualizer::drawFrameNow(const State& state) {
 
 bool Visualizer::tryReport(const State& state) {
     if (!getRep().queuingIsEnabled()) {
-        long long now;
-        if (getRep().timeBetweenFramesInNs > 0LL) {
-            while ((now=realTimeInNs()) < getRep().nextFrameDueInNs) {
-                if (getRep().mode == Sampling)
-                    return true; // i.e., no delay
-                // PassThrough
-                const long long waitInNs = getRep().nextFrameDueInNs - now;
-                timespec delayTime;
-                nsToTimespec(waitInNs, delayTime);
-                nanosleep(&delayTime,0);
-            }
+        if (getRep().timeBetweenFramesInNs == 0LL) {
+            drawFrameNow(state);
+            return true;
         }
 
-        // Frame time reached in Sampling or PassThrough modes
+        long long now;
+        while ((now=realTimeInNs()) < getRep().nextFrameDueInNs) {
+            if (getRep().mode == Sampling)
+                return true; // Sampling: frame too early; ignore.
+
+            // PassThrough: wait until frame time, then send.
+            const long long waitInNs = getRep().nextFrameDueInNs - now;
+            timespec delayTime;
+            nsToTimespec(waitInNs, delayTime);
+            nanosleep(&delayTime,0);
+        }
+
+        // Frame time reached in PassThrough mode. This frame might 
+        // be on time or late; we'll schedule the next time for one
+        // frame time later to keep the maximum rate down to the 
+        // specified rate (otherwise a late frame could be followed
+        // by lots of fast frames).
+        updRep().nextFrameDueInNs = now + getRep().timeBetweenFramesInNs;
         drawFrameNow(state);
-        updRep().nextFrameDueInNs += getRep().timeBetweenFramesInNs;
         return true;
     }
    // RealTime mode.

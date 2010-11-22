@@ -2,7 +2,7 @@
 #include "SimTKsimbody_aux.h"
 
 
-#define USE_VTK
+//#define USE_VTK
 
 #include <fstream>
 #include <iostream>

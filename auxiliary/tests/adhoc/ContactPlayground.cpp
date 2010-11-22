@@ -34,7 +34,11 @@
  */
 
 #include "SimTKsimbody.h"
+
+//#define USE_VTK
+#ifdef USE_VTK
 #include "SimTKsimbody_aux.h"   // requires VTK
+#endif
 
 #include <cstdio>
 #include <exception>
@@ -51,14 +55,86 @@ static const Real ReportInterval = 0.01;
 static const Real ForceScale = .25;
 static const Real MomentScale = .5;
 
+
+class ForceArrowGenerator : public DecorationGenerator {
+public:
+    ForceArrowGenerator(const MultibodySystem& system,
+                        const CompliantContactSubsystem& complCont) 
+    :   m_system(system), m_compliant(complCont) {}
+
+    virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
+        const Vec3 frcColors[] = {Red,Orange,Cyan};
+        const Vec3 momColors[] = {Blue,Green,Purple};
+        m_system.realize(state, Stage::Velocity);
+
+        const int ncont = m_compliant.getNumContactForces(state);
+        for (int i=0; i < ncont; ++i) {
+            const ContactForce& force = m_compliant.getContactForce(state,i);
+            const ContactId     id    = force.getContactId();
+            const Vec3& frc = force.getForceOnSurface2()[1];
+            const Vec3& mom = force.getForceOnSurface2()[0];
+            Real  frcMag = frc.norm(), momMag=mom.norm();
+            int frcThickness = 1, momThickness = 1;
+            Real frcScale = ForceScale, momScale = ForceScale;
+            while (frcMag > 10)
+                frcThickness++, frcScale /= 10, frcMag /= 10;
+            while (momMag > 10)
+                momThickness++, momScale /= 10, momMag /= 10;
+            DecorativeLine frcLine(force.getContactPoint(),
+                force.getContactPoint() + frcScale*frc);
+            DecorativeLine momLine(force.getContactPoint(),
+                force.getContactPoint() + momScale*mom);
+            frcLine.setColor(frcColors[id%3]);
+            momLine.setColor(momColors[id%3]);
+            frcLine.setLineThickness(2*frcThickness);
+            momLine.setLineThickness(2*momThickness);
+            geometry.push_back(frcLine);
+            geometry.push_back(momLine);
+
+            ContactPatch patch;
+            const bool found = m_compliant.calcContactPatchDetailsById(state,id,patch);
+            //cout << "patch for id" << id << " found=" << found << endl;
+            //cout << "resultant=" << patch.getContactForce() << endl;
+            //cout << "num details=" << patch.getNumDetails() << endl;
+            for (int i=0; i < patch.getNumDetails(); ++i) {
+                const ContactDetail& detail = patch.getContactDetail(i);
+                const Real peakPressure = detail.getPeakPressure();
+                // Make a black line from the element's contact point in the normal
+                // direction, with length proportional to log(peak pressure)
+                // on that element. 
+                DecorativeLine normal(detail.getContactPoint(),
+                    detail.getContactPoint()+ std::log10(peakPressure)
+                                                * detail.getContactNormal());
+                normal.setColor(Black);
+                geometry.push_back(normal);
+                // Make a red line that extends from the contact
+                // point in the direction of the slip velocity, of length 3*slipvel.
+                DecorativeLine slip(detail.getContactPoint(),
+                    detail.getContactPoint()+3*detail.getSlipVelocity());
+                slip.setColor(Red);
+                geometry.push_back(slip);
+            }
+        }
+    }
+private:
+    const MultibodySystem&              m_system;
+    const CompliantContactSubsystem&    m_compliant;
+};
+
 class MyReporter : public PeriodicEventReporter {
 public:
     MyReporter(const MultibodySystem& system, 
                const CompliantContactSubsystem& complCont,
+#ifdef USE_VTK
                VTKVisualizer& viz,
+#endif
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
-        m_compliant(complCont), m_viz(viz) {}
+        m_compliant(complCont)
+#ifdef USE_VTK
+        ,m_viz(viz) 
+#endif
+    {}
 
     ~MyReporter() {}
 
@@ -88,8 +164,10 @@ public:
             momLine.setColor(momColors[id%3]);
             frcLine.setLineThickness(2*frcThickness);
             momLine.setLineThickness(2*momThickness);
+#ifdef USE_VTK
             m_viz.addEphemeralDecoration(frcLine);
             m_viz.addEphemeralDecoration(momLine);
+#endif
 
             ContactPatch patch;
             const bool found = m_compliant.calcContactPatchDetailsById(state,id,patch);
@@ -106,13 +184,15 @@ public:
                     detail.getContactPoint()+ std::log10(peakPressure)
                                                 * detail.getContactNormal());
                 normal.setColor(Black);
-                m_viz.addEphemeralDecoration(normal);
                 // Make a red line that extends from the contact
                 // point in the direction of the slip velocity, of length 3*slipvel.
                 DecorativeLine slip(detail.getContactPoint(),
                     detail.getContactPoint()+3*detail.getSlipVelocity());
                 slip.setColor(Red);
+#ifdef USE_VTK
+                m_viz.addEphemeralDecoration(normal);
                 m_viz.addEphemeralDecoration(slip);
+#endif
             }
         }
     }
@@ -130,13 +210,17 @@ public:
             const ContactForce& force = m_compliant.getContactForce(state,i);
             //cout << force;
         }
+#ifdef USE_VTK
         generateForceArrows(state);
+#endif
         saveEm.push_back(state);
     }
 private:
     const MultibodySystem&           m_system;
     const CompliantContactSubsystem& m_compliant;
+#ifdef USE_VTK
     VTKVisualizer&                   m_viz;
+#endif
 };
 
 static void makeCube(Real h, PolygonalMesh& cube);
@@ -314,10 +398,18 @@ int main() {
     //// end of old way.
 
 
+#ifdef USE_VTK
     VTKEventReporter& reporter = *new VTKEventReporter(system, ReportInterval);
     VTKVisualizer& viz = reporter.updVisualizer();
-    
     MyReporter& myRep = *new MyReporter(system,contactForces,viz,ReportInterval);
+#else
+    VisualizationReporter& reporter = *new VisualizationReporter(system, ReportInterval);
+    Visualizer& viz = reporter.updVisualizer();
+    viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
+   // viz.setMode(Visualizer::RealTime);
+    viz.setDesiredFrameRate(28);
+    MyReporter& myRep = *new MyReporter(system,contactForces,10*ReportInterval);
+#endif
     system.updDefaultSubsystem().addEventReporter(&myRep);
     system.updDefaultSubsystem().addEventReporter(&reporter);
 
@@ -357,7 +449,8 @@ int main() {
     //RungeKutta3Integrator integ(system);
     //VerletIntegrator integ(system);
     //integ.setMaximumStepSize(1e-0001);
-    integ.setAccuracy(1e-4);
+    integ.setAccuracy(1e-4); // minimum for CPodes
+    //integ.setAccuracy(.01);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(20.0);
@@ -378,7 +471,9 @@ int main() {
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
-            //myRep.generateForceArrows(saveEm[i]);
+#ifdef USE_VTK
+            myRep.generateForceArrows(saveEm[i]);
+#endif
             viz.report(saveEm[i]);
             //vtk.report(saveEm[i]); // half speed
         }

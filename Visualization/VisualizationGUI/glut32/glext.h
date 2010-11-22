@@ -43,6 +43,7 @@ extern "C" {
 #endif
 #include <windows.h> // needed for wglGetProcAddress
 #define glutGetProcAddress wglGetProcAddress
+typedef BOOL (APIENTRY *PFNWGLSWAPINTERVALFARPROC)( int );
 #endif
 
 #ifndef APIENTRY

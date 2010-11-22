@@ -88,7 +88,8 @@ int main() {
 
     vr->updVisualizer().addEventListener(new MyListener(items));
 
-    //vr->updVisualizer().setMode(Visualizer::RealTime);
+    vr->updVisualizer().setMode(Visualizer::RealTime);
+    vr->updVisualizer().setDesiredFrameRate(60);
 
 
 
