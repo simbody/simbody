@@ -61,8 +61,8 @@ for use in common timing situations. **/
 // and the timespec struct.
 #include <ctime>
 
-#ifdef _MSC_VER
-    /* On Windows, these Posix time functions are missing. Note that the 
+#if defined(_MSC_VER)
+    /* On Windows, the timespec struct is not defined. However, note that the 
      * timespec struct is also defined in the pthread.h header on Windows, so
      * the guard symbols must match here to avoid a duplicate.
      */
@@ -73,7 +73,11 @@ for use in common timing situations. **/
             long tv_nsec;
     };
     #endif /* HAVE_STRUCT_TIMESPEC */
+#endif
 
+#if defined(_MSC_VER) || defined(__APPLE__)
+    /* On Windows and OSX, these Posix time functions are missing.
+     */
     typedef long clockid_t;
 
     /* These constants are the clock ids we support. All the varieties
