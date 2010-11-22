@@ -297,7 +297,7 @@ int main(int argc, char** argv) {
     //myStudy.setAllowInterpolation(false);
     //myStudy.setMaximumStepSize(.1);
 
-    const Real dt = .02; // output intervals
+    const Real dt = 1./60; // output intervals
     const Real finalTime = 20;
 
     myStudy.setFinalTime(finalTime);
@@ -331,31 +331,36 @@ int main(int argc, char** argv) {
         const State& s = myStudy.getState();
         mbs.realize(s);
         const Real leftPendulumAngle = leftPendulum.getBodyRotation(s).convertRotationToAngleAxis()[0] * Rad2Deg;
-        printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
-            leftPendulumAngle,
-            mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
-            myStudy.getPreviousStepSizeTaken(),
-            Integrator::successfulStepStatusString(status).c_str(),
-            myStudy.isStateInterpolated()?" (INTERP)":"");
-        printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
-            twoPends.getQErr(s).normRMS(),
-            twoPends.getUErr(s).normRMS(),
-            twoPends.getUDotErr(s).normRMS());
+        
+        if (status == Integrator::ReachedScheduledEvent
+            || std::abs(std::floor(s.getTime()+0.5)-s.getTime())<1e-4)
+        {
+            printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
+                leftPendulumAngle,
+                mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
+                myStudy.getPreviousStepSizeTaken(),
+                Integrator::successfulStepStatusString(status).c_str(),
+                myStudy.isStateInterpolated()?" (INTERP)":"");
+            printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
+                twoPends.getQErr(s).normRMS(),
+                twoPends.getUErr(s).normRMS(),
+                twoPends.getUDotErr(s).normRMS());
 
-        cout << "t=" << s.getTime() << "sint=" << sint.getValue(s) << "a*sin(wt+p)=" 
-            << amp*std::sin(freq*s.getTime() + phase) << endl;
+            cout << "t=" << s.getTime() << "sint=" << sint.getValue(s) << "a*sin(wt+p)=" 
+                << amp*std::sin(freq*s.getTime() + phase) << endl;
 
-        cout << "20+10t=" << twentyPlus10t.getValue(s) << endl;
+            cout << "20+10t=" << twentyPlus10t.getValue(s) << endl;
 
-        if (cid.isValid()) {
-            const Constraint& c = twoPends.getConstraint(cid);
-            cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
-                 << " verr=" << c.getVelocityErrorsAsVector(s)
-                 << " aerr=" << c.getAccelerationErrorsAsVector(s)
-                 << endl;
-            //cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
-            //cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
-            //cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+            if (cid.isValid()) {
+                const Constraint& c = twoPends.getConstraint(cid);
+                cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
+                     << " verr=" << c.getVelocityErrorsAsVector(s)
+                     << " aerr=" << c.getAccelerationErrorsAsVector(s)
+                     << endl;
+                //cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+                //cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
+                //cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+            }
         }
 
         Vector qdot;

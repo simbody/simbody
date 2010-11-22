@@ -59,6 +59,8 @@ int main() {
   try {
     // Create the system.
 
+    const Real FrameRate = 30;
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
@@ -75,7 +77,7 @@ int main() {
         lastBody = pendulum.getMobilizedBodyIndex();
     }
 //    system.updDefaultSubsystem().addEventReporter(new VTKEventReporter(system, 0.02));
-    VisualizationReporter* vr = new VisualizationReporter(system, 0.02);
+    VisualizationReporter* vr = new VisualizationReporter(system, 1/FrameRate);
     system.updDefaultSubsystem().addEventReporter(vr);
 
         Array_< std::pair<std::string,int> > items;
@@ -89,7 +91,7 @@ int main() {
     vr->updVisualizer().addEventListener(new MyListener(items));
 
     vr->updVisualizer().setMode(Visualizer::RealTime);
-    vr->updVisualizer().setDesiredFrameRate(60);
+    vr->updVisualizer().setDesiredFrameRate(FrameRate);
 
 
 

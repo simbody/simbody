@@ -93,6 +93,8 @@
 
 static void initGlextFuncPointersIfNeeded();
 static void redrawDisplay();
+static void setKeepAlive(bool enable);
+static void setVsync(bool enable);
 
 // Next, get the functions necessary for reading from and writing to pipes.
 #ifdef _WIN32
@@ -1714,12 +1716,20 @@ static const int MENU_VIEW_LEFT = 2;
 static const int MENU_VIEW_RIGHT = 3;
 static const int MENU_VIEW_TOP = 4;
 static const int MENU_VIEW_BOTTOM = 5;
+
 static const int MENU_BACKGROUND_BLACK = 6;
 static const int MENU_BACKGROUND_WHITE = 7;
 static const int MENU_BACKGROUND_SKY = 8;
+
 static const int MENU_SHOW_SHADOWS = 9;
 static const int MENU_SHOW_FPS = 10;
+
 static const int MENU_SAVE_IMAGE = 11;
+
+static const int MENU_VSYNC_ENABLE = 12;
+static const int MENU_VSYNC_DISABLE = 13;
+static const int MENU_KEEPALIVE_ENABLE = 14;
+static const int MENU_KEEPALIVE_DISABLE = 15;
 
 // This is the handler for our built-in "View" pull down menu.
 void viewMenuSelected(int option) {
@@ -1728,57 +1738,62 @@ void viewMenuSelected(int option) {
         groundRotation.setRotationFromTwoAxes(fUnitVec3(0, 1, 0), ZAxis, fVec3(1, 0, 0), YAxis);
     else if (groundAxis == 2)
         groundRotation.setRotationFromTwoAxes(fUnitVec3(1, 0, 0), ZAxis, fVec3(0, 0, 1), YAxis);
+    
     switch (option) {
-        case MENU_VIEW_FRONT:
-            cameraTransform.updR().setRotationToIdentityMatrix();
-            cameraTransform.updR() = groundRotation*cameraTransform.R();
-            zoomCameraToShowWholeScene();
-            break;
-        case MENU_VIEW_BACK:
-            cameraTransform.updR().setRotationFromAngleAboutY((float)SimTK_PI);
-            cameraTransform.updR() = groundRotation*cameraTransform.R();
-            zoomCameraToShowWholeScene();
-            break;
-        case MENU_VIEW_LEFT:
-            cameraTransform.updR().setRotationFromAngleAboutY(-(float)(SimTK_PI/2));
-            cameraTransform.updR() = groundRotation*cameraTransform.R();
-            zoomCameraToShowWholeScene();
-            break;
-        case MENU_VIEW_RIGHT:
-            cameraTransform.updR().setRotationFromAngleAboutY((float)(SimTK_PI/2));
-            cameraTransform.updR() = groundRotation*cameraTransform.R();
-            zoomCameraToShowWholeScene();
-            break;
-        case MENU_VIEW_TOP:
-            cameraTransform.updR().setRotationFromAngleAboutX(-(float)(SimTK_PI/2));
-            cameraTransform.updR() = groundRotation*cameraTransform.R();
-            zoomCameraToShowWholeScene();
-            break;
-        case MENU_VIEW_BOTTOM:
-            cameraTransform.updR().setRotationFromAngleAboutX((float)(SimTK_PI/2));
-            cameraTransform.updR() = groundRotation*cameraTransform.R();
-            zoomCameraToShowWholeScene();
-            break;
-        case MENU_BACKGROUND_BLACK:
-            showGround = false;
-            glClearColor(0, 0, 0, 1);
-            break;
-        case MENU_BACKGROUND_WHITE:
-            showGround = false;
-            glClearColor(1, 1, 1, 1);
-            break;
-        case MENU_BACKGROUND_SKY:
-            showGround = true;
-            break;
-        case MENU_SHOW_SHADOWS:
-            showShadows = !showShadows;
-            break;
-        case MENU_SHOW_FPS:
-            showFPS = !showFPS;
-            break;
-        case MENU_SAVE_IMAGE:
-            saveImage();
-            break;
+    case MENU_VIEW_FRONT:
+        cameraTransform.updR().setRotationToIdentityMatrix();
+        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        zoomCameraToShowWholeScene();
+        break;
+    case MENU_VIEW_BACK:
+        cameraTransform.updR().setRotationFromAngleAboutY((float)SimTK_PI);
+        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        zoomCameraToShowWholeScene();
+        break;
+    case MENU_VIEW_LEFT:
+        cameraTransform.updR().setRotationFromAngleAboutY(-(float)(SimTK_PI/2));
+        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        zoomCameraToShowWholeScene();
+        break;
+    case MENU_VIEW_RIGHT:
+        cameraTransform.updR().setRotationFromAngleAboutY((float)(SimTK_PI/2));
+        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        zoomCameraToShowWholeScene();
+        break;
+    case MENU_VIEW_TOP:
+        cameraTransform.updR().setRotationFromAngleAboutX(-(float)(SimTK_PI/2));
+        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        zoomCameraToShowWholeScene();
+        break;
+    case MENU_VIEW_BOTTOM:
+        cameraTransform.updR().setRotationFromAngleAboutX((float)(SimTK_PI/2));
+        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        zoomCameraToShowWholeScene();
+        break;
+    case MENU_BACKGROUND_BLACK:
+        showGround = false;
+        glClearColor(0, 0, 0, 1);
+        break;
+    case MENU_BACKGROUND_WHITE:
+        showGround = false;
+        glClearColor(1, 1, 1, 1);
+        break;
+    case MENU_BACKGROUND_SKY:
+        showGround = true;
+        break;
+    case MENU_SHOW_SHADOWS:
+        showShadows = !showShadows;
+        break;
+    case MENU_SHOW_FPS:
+        showFPS = !showFPS;
+        break;
+    case MENU_SAVE_IMAGE:
+        saveImage();
+        break;
+    case MENU_VSYNC_ENABLE: setVsync(true); break;
+    case MENU_VSYNC_DISABLE: setVsync(false); break;
+    case MENU_KEEPALIVE_ENABLE: setKeepAlive(true); break;
+    case MENU_KEEPALIVE_DISABLE: setKeepAlive(false); break;
     }
 
     glutPostRedisplay();                    //-------- POST REDISPLAY --------
@@ -1788,12 +1803,25 @@ static const int DefaultWindowWidth  = 600;
 static const int DefaultWindowHeight = 500;
 
 // This seems to be necessary on Mac and Linux where the built-in glut
-// idle hangs if there is no activity in the gl window.
+// idle hangs if there is no activity in the gl window. Not needed on Windows.
 static void keepAliveIdleFunc() {
     struct timespec ts;
-    // Wait 1/60s and then check for something to do.
-    nsToTimespec(secToNs(1./60), ts);
+    // Wait 10ms and then check for something to do.
+    nsToTimespec(secToNs(1./100), ts);
     nanosleep(&ts, 0);
+}
+
+static void setKeepAlive(bool enable) {
+    if (enable) glutIdleFunc(keepAliveIdleFunc);
+    else glutIdleFunc(0);
+}
+
+static void setVsync(bool enable) {
+#ifdef _WIN32
+    // I don't know how to disable vsync on Mac or Linux.
+    if( wglSwapIntervalEXT )
+      wglSwapIntervalEXT(enable?1:0); // 1==vsync; 0 is off
+#endif
 }
 
 int main(int argc, char** argv) {
@@ -1845,8 +1873,7 @@ int main(int argc, char** argv) {
     // need to be loaded dynamically.
     initGlextFuncPointersIfNeeded();
 
-    //if( wglSwapIntervalEXT )
-    //  wglSwapIntervalEXT(0); // 1==vsync; 0 is off
+    setVsync(true);
 
     // Set up lighting.
 
@@ -1887,6 +1914,10 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Show//Hide/Shadows", MENU_SHOW_SHADOWS));
     items.push_back(make_pair("Show//Hide/Frame Rate", MENU_SHOW_FPS));
     items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
+    items.push_back(make_pair("Vsync/Enable (default)", MENU_VSYNC_ENABLE));
+    items.push_back(make_pair("Vsync/Disable", MENU_VSYNC_DISABLE));
+    items.push_back(make_pair("Keep Alive/Enable", MENU_KEEPALIVE_ENABLE));
+    items.push_back(make_pair("Keep Alive/Disable", MENU_KEEPALIVE_DISABLE));
     menus.push_back(Menu("View", items, viewMenuSelected));
 
     // Initialize pthread lock and condition variable.
@@ -1897,8 +1928,10 @@ int main(int argc, char** argv) {
     pthread_t thread;
     pthread_create(&thread, NULL, listenForInput, NULL);
 
-    // May need this
-    //glutIdleFunc(keepAliveIdleFunc);
+    // Avoid hangs on Mac & Linux.
+#ifndef _WIN32
+    setKeepAlive(true);
+#endif
 
     // Enter the main loop. Note that there is no idle function. We expect
     // the main thread to go to sleep when there is nothing to do and that
