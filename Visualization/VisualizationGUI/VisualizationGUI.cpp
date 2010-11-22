@@ -92,6 +92,7 @@
 #endif
 
 static void initGlextFuncPointersIfNeeded();
+static void redrawDisplay();
 
 // Next, get the functions necessary for reading from and writing to pipes.
 #ifdef _WIN32
@@ -926,6 +927,7 @@ static int clickModifiers;
 static int clickButton;
 static int clickX;
 static int clickY;
+static bool rotateCenterValid = false;
 static fVec3 rotateCenter;
 static float sceneScale; // for scaling translations
 
@@ -960,9 +962,14 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
         return;
     }
 
-    // not mouse wheel; currently ignore "button up" message
-    if (state == GLUT_UP)
+    // Not mouse wheel; currently ignore "button up" message except to
+    // forget the rotation center. This is needed to get around a glut
+    // bug described in mouseDragged().
+    if (state == GLUT_UP) {
+        if (clickButton == GLUT_LEFT_BUTTON)
+            rotateCenterValid = false;
         return;
+    }
 
     // Handle state == GLUT_DOWN:
 
@@ -985,6 +992,7 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
             float fract = (defaultDistance-distToCenter)/defaultDistance;
             rotateCenter = fract*lookAt+(1-fract)*sceneCenter;
         }
+        rotateCenterValid = true;
     }
 }
 
@@ -992,8 +1000,11 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 // down. When the button was first clicked, we recorded which one it was in 
 // clickButton, and where the mouse was then in (clickX,clickY). We update 
 // (clickX,clickY) each call here to reflect where it was last seen.
+//
+// (sherm 20101121: on Windows glut I get a spurious "mouse dragged" call
+// when I have a menu displayed and then click outside the menu but inside
+// the graphics window.)
 static void mouseDragged(int x, int y) {
-    pthread_mutex_lock(&sceneLock);             //------- LOCK SCENE --------
 
     // 1/4 degree per pixel
     const float AnglePerPixel = 0.25*((float)SimTK_PI/180); 
@@ -1005,17 +1016,25 @@ static void mouseDragged(int x, int y) {
 
     // translate: right button or shift-left button
     if (  clickButton == GLUT_RIGHT_BUTTON 
-      || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
-       cameraTransform.updT() += translatePerPixel*cameraTransform.R()*fVec3(dx, -dy, 0);
+      || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT)) 
+    {
+        pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
+        cameraTransform.updT() += translatePerPixel*cameraTransform.R()*fVec3(dx, -dy, 0);
+        pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
+    }
 
     // zoom: middle button or alt-left button (or mouse wheel; see above)
     else if (  clickButton == GLUT_MIDDLE_BUTTON 
            || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
-       cameraTransform.updT() += translatePerPixel* cameraTransform.R()*fVec3(0, 0, dy);
+    {
+        pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
+        cameraTransform.updT() += translatePerPixel* cameraTransform.R()*fVec3(0, 0, dy);
+        pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
+    }
 
     // rotate: left button alone: rotate scene left/right or up/down
     //         ctrl-left button:  roll scene about camera direction
-    else if (clickButton == GLUT_LEFT_BUTTON) {
+    else if (clickButton == GLUT_LEFT_BUTTON && rotateCenterValid) {
         fVec3 cameraPos = cameraTransform.T();
         fVec3 cameraDir = cameraTransform.R()*fVec3(0, 0, -1);
         fVec3 upDir = cameraTransform.R()*fVec3(0, 1, 0);
@@ -1029,16 +1048,19 @@ static void mouseDragged(int x, int y) {
         cameraPos = r*(cameraPos-rotateCenter)+rotateCenter;
         cameraDir = r*cameraDir;
         upDir = r*upDir;
+
+        pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
         cameraTransform.updT() = cameraPos;
         cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(-cameraDir), ZAxis, upDir, YAxis);
+        pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
     }
     else
         return;
 
-    clickX = x; clickY = y;
+    // Something changed.
 
+    clickX = x; clickY = y;
     glutPostRedisplay();                    //-------- POST REDISPLAY --------
-    pthread_mutex_unlock(&sceneLock);       //-------- UNLOCK SCENE ----------
 }
 
 // Currently the only "passive" mouse motion we care about is if the
