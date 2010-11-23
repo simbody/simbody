@@ -58,7 +58,7 @@
     #include <Windows.h>
 #elif defined(__APPLE__)
     #include <unistd.h>
-    #include <mach/mach_time.h>
+    #include <mach/mach.h>
 #endif
 
 // There are a billion (1e9) nanoseconds in a second.
@@ -130,9 +130,11 @@ static const long long UsPerSec = 1000000LL;
 #elif defined(__APPLE__)
     static int getnstimeofday(struct timespec *tp) {
         if (!tp) return 0;
-        //TODO
-        tp->tv_sec = 0; tp->tv_nsec = 0;
-        return EINVAL;
+        struct timeval tod;
+        gettimeofday(&tod, 0); // don't care about timezone
+        tp->tv_sec = tod.tv_sec;
+        tp->tv_nsec = 1000*tod.tv_usec;
+        return 0;
     }
 #endif
 
@@ -208,9 +210,29 @@ static const long long UsPerSec = 1000000LL;
 #elif defined(__APPLE__)
     static int getprocesscputime(struct timespec* tp) {
         if (!tp) return 0;
-        //TODO
-        tp->tv_sec = 0; tp->tv_nsec = 0;
-        return EINVAL;
+
+        task_basic_info        deadThreadTimes; // for terminated threads
+        task_thread_times_info liveThreadTimes; // for live threads
+        mach_msg_type_number_t deadsz, livesz;
+        task_t currentProcess;
+        kern_return_t status;
+        currentProcess = mach_task_self();
+        deadsz = sizeof(deadThreadTimes)/sizeof(int);
+        livesz = sizeof(liveThreadTimes)/sizeof(int);
+        status = task_info(currentProcess, TASK_BASIC_INFO,
+            (task_info_t)&deadThreadTimes,&deadsz);
+        status = task_info(currentProcess, TASK_THREAD_TIMES_INFO,
+            (task_info_t)&liveThreadTimes,&livesz);
+
+        tp->tv_sec = (time_t)(  deadThreadTimes.user_time.seconds
+                              + deadThreadTimes.system_time.seconds
+                              + liveThreadTimes.user_time.seconds
+                              + liveThreadTimes.system_time.seconds);
+        tp->tv_nsec = (long)(1000*(deadThreadTimes.user_time.microseconds
+                                   + deadThreadTimes.system_time.microseconds
+                                   + liveThreadTimes.user_time.microseconds
+                                   + liveThreadTimes.system_time.microseconds));
+        return 0;
     }
 #endif
 
@@ -238,12 +260,27 @@ static const long long UsPerSec = 1000000LL;
     static int getthreadcputime(struct timespec* tp) {
         if (!tp) return 0;
 
-        //TODO
-        tp->tv_sec = 0; tp->tv_nsec = 0;
-        return EINVAL;
+        thread_basic_info info;
+        mach_msg_type_number_t infosz;
+        mach_port_t currentThread;
+        kern_return_t status;
+        currentThread = mach_thread_self(); // get "send rights"
+        infosz = sizeof(info)/sizeof(int);
+        status = thread_info(currentThread, THREAD_BASIC_INFO,
+            (thread_info_t)&info,&infosz);
+        // relinquish "send rights"
+        mach_port_deallocate(mach_task_self(), currentThread);
+
+        tp->tv_sec  = (time_t)(info.user_time.seconds + info.system_time.seconds);
+        tp->tv_nsec = (long)(1000*(  info.user_time.microseconds
+                                   + info.system_time.microseconds));
+
+        return 0;
     }
 #endif
 
+// int clock_gettime()
+// -------------------
 // Now define the Posix clock_gettime() function in terms of the above helpers.
 #if defined(_MSC_VER) || defined(__APPLE__)
     int clock_gettime (clockid_t clock_id, struct timespec *tp) {
