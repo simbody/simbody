@@ -58,7 +58,9 @@
     #include <Windows.h>
 #elif defined(__APPLE__)
     #include <unistd.h>
+    #include <sys/time.h>
     #include <mach/mach.h>
+    #include <mach/mach_time.h>
 #endif
 
 // There are a billion (1e9) nanoseconds in a second.
