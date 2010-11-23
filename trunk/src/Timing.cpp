@@ -234,6 +234,10 @@ static const long long UsPerSec = 1000000LL;
                                    + deadThreadTimes.system_time.microseconds
                                    + liveThreadTimes.user_time.microseconds
                                    + liveThreadTimes.system_time.microseconds));
+        while (tp->tv_nsec >= NsPerSec) {
+            ++tp->tv_sec;
+            tp->tv_nsec -= NsPerSec;
+        }
         return 0;
     }
 #endif
@@ -276,6 +280,10 @@ static const long long UsPerSec = 1000000LL;
         tp->tv_sec  = (time_t)(info.user_time.seconds + info.system_time.seconds);
         tp->tv_nsec = (long)(1000*(  info.user_time.microseconds
                                    + info.system_time.microseconds));
+        while (tp->tv_nsec >= NsPerSec) {
+            ++tp->tv_sec;
+            tp->tv_nsec -= NsPerSec;
+        }
 
         return 0;
     }
