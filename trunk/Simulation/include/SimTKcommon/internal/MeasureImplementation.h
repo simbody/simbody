@@ -737,17 +737,17 @@ public:
             subsystemStage.getName().c_str(),
             getDependsOnStage().getName().c_str(),
             getDependsOnStage().prev().getName().c_str());
-        markCacheValueRealized(state, 0); }
+        this->markCacheValueRealized(state, 0); }
 
     bool isValid(const State& state) const
-    {   return isCacheValueRealized(state, 0); }
+    {   return this->isCacheValueRealized(state, 0); }
     
     void markAsNotValid(const State& state) const
-    {   markCacheValueNotRealized(state, 0); 
+    {   this->markCacheValueNotRealized(state, 0); 
         state.invalidateAllCacheAtOrAbove(invalidatedStage); }
 
     T& updValue(const State& state) const 
-    {   markAsNotValid(state); return updCacheEntry(state, 0); }
+    {   markAsNotValid(state); return this->updCacheEntry(state, 0); }
 
 
     // Implementations of virtual methods.
