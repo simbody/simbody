@@ -224,6 +224,11 @@ public:
         adoptSubsystem(updGuts().updSystemSubsystem());
     }
 
+    const SystemSubsystem& getSystemSubsystem() const 
+    {   return getGuts().getSystemSubsystem(); }
+    SystemSubsystem& updSystemSubsystem()
+    {   return updGuts().updSystemSubsystem(); }
+
     void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub, EventId start, int nEvents) const {
         const SystemSubsystem& syssub = getGuts().getSystemSubsystem();
         syssub.registerEventsToSubsystem(s,sub,start,nEvents);
@@ -452,6 +457,17 @@ void testOne() {
     TestSystem sys;
     TestSubsystem subsys(sys);
 
+    // Add a Result measure to the system subsystem. This depends on 
+    // Position stage and invalidates Dynamics and later stages.
+    Measure_<Vector>::Result vectorResult(sys.updSystemSubsystem(), 
+        Stage::Position, Stage::Dynamics);
+
+    Measure::Result result(sys.updSystemSubsystem(), 
+        Stage::Time, Stage::Position);
+    Measure::Result autoResult(sys.updSystemSubsystem(), 
+        Stage::Time, Stage::Position);
+    autoResult.setIsPresumedValidAtDependsOnStage(true);
+
     Measure::Zero zero(subsys);
     Measure::Constant three(subsys, 3);
     Measure_<Vec3>::Constant v3const(subsys, Vec3(1,2,3));
@@ -494,6 +510,15 @@ void testOne() {
 
 
     State state = sys.realizeTopology();
+
+    // Allocate vectorResult and initialize it. (Can't mark it valid yet.)
+    vectorResult.updValue(state).resize(3);
+    vectorResult.updValue(state) = Vector(Vec3(1,2,3));
+    
+    result.updValue(state) = 1.234;
+    autoResult.updValue(state) = 4.321;
+
+
     state.setTime(1.234);
     sys.realize(state, Stage::Time);
     cout << "Initially, tMeasure=" << tMeasure.getValue(state)
@@ -536,13 +561,28 @@ void testOne() {
 
     sys.realize(state, Stage::Position);
 
+    cout << "Realized Position:\n";
+    vectorResult.markAsValid(state);
+    cout << "vectorResult=" << vectorResult.getValue(state) << endl;
+    result.markAsValid(state);
+    cout << "result=" << result.getValue(state) << endl;
+    // Shouldn't need to mark this one.
+    cout << "autoResult=" << autoResult.getValue(state) << endl;
+
     // Fill in statics above.
     timescale = sys.calcTimescale(state);
     sys.calcYUnitWeights(state, weights);
     sys.calcYErrUnitTolerances(state, ooTols);
 
     sys.realize(state, Stage::Acceleration);
-    state.autoUpdateDiscreteVariables(); // ??y
+    cout << "Now stage=" << state.getSystemStage() << endl;
+    vectorResult.setValue(state, Vector(5,9));
+    cout << "After vectorResult.setValue(), vectorResult="
+         << vectorResult.getValue(state) << endl;
+    cout << "... but stage=" << state.getSystemStage() << endl;
+
+    sys.realize(state, Stage::Acceleration);
+    state.autoUpdateDiscreteVariables(); // ??
     for (int i=0; i <= nSteps; ++i) {
 
         if (i % outputInterval == 0) {

@@ -305,11 +305,20 @@ public:
 
     /// If any subsystem or the system stage is currently at or
     /// higher than the passed-in one, back up to the stage just prior;
-    /// otherwise do nothing. Although invalidating Stage::Instance or
-    /// higher erase only cache entries, we requires writable access 
-    /// to this State object because invalidating Model or Topology stage
-    /// can destroy state variables in addition to cache entries.
+    /// otherwise do nothing. This is for use if you have write
+    /// access to the state and can invalidate even Topology and Model
+    /// stages which may destroy state variables. "All" here refers to
+    /// all Subysystems.
     void invalidateAll(Stage);
+
+    /// If any subsystem or the system stage is currently at or
+    /// higher than the passed-in one, back up to the stage just prior;
+    /// otherwise do nothing. This const method can only be used to
+    /// invalidate Stage::Instance or higher. To invalidate Model or 
+    /// Topology stage you must have write access to the state because
+    /// invalidating those stages can destroy state variables in addition 
+    /// to cache entries. "All" here refers to all Subsystems.
+    void invalidateAllCacheAtOrAbove(Stage) const;
 
     /// Advance a particular Subsystem's current stage by one to
     /// the indicated stage. The stage is passed in just to give us a
@@ -643,6 +652,13 @@ public:
     /// a state variable on which it depends.
     /// @see allocateCacheEntry(), isCacheValueRealized(), getCacheEntry()
     void markCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
+
+    /// Normally cache entries are invalidated automatically, however this
+    /// method allows manual invalidation of the value of a particular cache 
+    /// entry. After a cache entry has been marked invalid here, 
+    /// isCacheValueRealized() will return false.
+    /// @see isCacheValueRealized(), markCacheValueRealized()
+    void markCacheValueNotRealized(SubsystemIndex, CacheEntryIndex) const;
     /// @}
 
     /// @name Global Resource Dimensions

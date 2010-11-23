@@ -200,6 +200,9 @@ bool Subsystem::isCacheValueRealized(const State& s, CacheEntryIndex cx) const {
 void Subsystem::markCacheValueRealized(const State& s, CacheEntryIndex cx) const {
     getSubsystemGuts().markCacheValueRealized(s, cx);
 }
+void Subsystem::markCacheValueNotRealized(const State& s, CacheEntryIndex cx) const {
+    getSubsystemGuts().markCacheValueNotRealized(s, cx);
+}
 
 SystemQIndex Subsystem::getQStart      (const State& s) const {return getSubsystemGuts().getQStart(s);}
 int Subsystem::getNQ          (const State& s) const {return getSubsystemGuts().getNQ(s);}
@@ -351,6 +354,9 @@ bool Subsystem::Guts::isCacheValueRealized(const State& s, CacheEntryIndex cx) c
 }
 void Subsystem::Guts::markCacheValueRealized(const State& s, CacheEntryIndex cx) const {
     s.markCacheValueRealized(getRep().getMySubsystemIndex(), cx);
+}
+void Subsystem::Guts::markCacheValueNotRealized(const State& s, CacheEntryIndex cx) const {
+    s.markCacheValueNotRealized(getRep().getMySubsystemIndex(), cx);
 }
 
 const Vector& Subsystem::Guts::getQ(const State& s) const {return s.getQ(getRep().getMySubsystemIndex());}

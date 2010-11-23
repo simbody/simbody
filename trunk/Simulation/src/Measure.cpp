@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2009 Stanford University and the Authors.           *
+ * Portions copyright (c) 2009-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -44,10 +44,12 @@
 
 namespace SimTK {
 
+// These are here just to make sure they compile.
 template class Measure_<Real>::Constant;
 template class Measure_<Real>::Zero;
 template class Measure_<Real>::Differentiate;
-
+template class Measure_<Real>::Result;
+template class Measure_<Real>::Variable;
 
 } // namespace SimTK
 

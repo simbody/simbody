@@ -1076,6 +1076,21 @@ public:
         for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i)
             subsystems[i].invalidateStageJustThisSubsystem(g);
     }
+
+    // Make sure the stage is no higher than g-1 for *any* subsystem and
+    // hence for the system stage also. Same as invalidateAll() except this
+    // requires only const access and can't be used for g below Instance.
+    void invalidateAllCacheAtOrAbove(Stage g) const {
+        SimTK_STAGECHECK_GE_ALWAYS(g, Stage::Instance, 
+            "StateImpl::invalidateAllCacheAtOrAbove()");
+
+        // We promise not to hurt this State; get non-const access just so
+        // we can call these methods.
+        StateImpl* mthis = const_cast<StateImpl*>(this);
+        mthis->invalidateJustSystemStage(g);
+        for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i)
+            mthis->subsystems[i].invalidateStageJustThisSubsystem(g);
+    }
     
     // Move the stage for a particular subsystem from g-1 to g. No other subsystems
     // are affected, nor the global system stage.
@@ -1804,6 +1819,16 @@ public:
 
         ce.markAsComputed(getSubsystemStageVersions(subx));
     }
+
+    void markCacheValueNotRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
+        const PerSubsystemInfo& ss = subsystems[subx];
+        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),
+            "StateImpl::markCacheValueNotRealized()");
+        CacheEntryInfo& ce = ss.cacheInfo[cx];
+
+        ce.invalidate();
+    }
+
     const Stage& getLowestStageModified() const {
         return lowestModifiedSystemStage;
     }
@@ -2104,6 +2129,9 @@ const Stage& State::getSystemStage() const {
 }
 void State::invalidateAll(Stage stage) {
     updImpl().invalidateAll(stage);
+}
+void State::invalidateAllCacheAtOrAbove(Stage stage) const {
+    getImpl().invalidateAllCacheAtOrAbove(stage);
 }
 void State::advanceSubsystemToStage(SubsystemIndex subsys, Stage stage) const {
     getImpl().advanceSubsystemToStage(subsys, stage);
@@ -2486,6 +2514,9 @@ bool State::isCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const 
 }
 void State::markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
     getImpl().markCacheValueRealized(subx, cx); 
+}
+void State::markCacheValueNotRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
+    getImpl().markCacheValueNotRealized(subx, cx); 
 }
 const Stage& State::getLowestStageModified() const {
     return getImpl().getLowestStageModified(); 

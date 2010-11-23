@@ -58,7 +58,7 @@ protected:
     // This constructor is for use by concrete Measure::Implementations. Note 
     // that this serves as a default constructor since the argument has a 
     // default.
-    explicit Implementation(const std::string& name="<NONAME>")
+    explicit Implementation(const String& name="<NONAME>")
     :   measureName(name), copyNumber(0), mySubsystem(0), refCount(0) {}
 
     // Base class copy constructor copies the name, removes the Subsystem
@@ -89,8 +89,8 @@ protected:
     // Get the current value of the reference counter.
     int getRefCount() const {return refCount;}
 
-    const std::string& getName()        const {return measureName;}
-    int                getCopyNumber()  const {return copyNumber;}
+    const String& getName()        const {return measureName;}
+    int           getCopyNumber()  const {return copyNumber;}
 
     // This is a deep copy of the concrete Implementation object, except the
     // Subsystem will have been removed. The reference count on the new object
@@ -164,7 +164,7 @@ protected:
           getDependsOnStageVirtual(int order) const = 0;
 
 private:
-    std::string     measureName;
+    String          measureName;
     int             copyNumber; // bumped each time we do a deep copy
 
     // These are set when this Measure is adopted by a Subsystem.
@@ -315,22 +315,48 @@ public:
         return getUncachedValueVirtual(s,derivOrder); 
     }
 
+    void setIsPresumedValidAtDependsOnStage(bool presume) 
+    {   presumeValidAtDependsOnStage = presume;
+        this->invalidateTopologyCache(); }
+
+    bool getIsPresumedValidAtDependsOnStage() const 
+    {   return presumeValidAtDependsOnStage; }
+
 protected:
     // numValues is one greater than the number of derivatives; i.e., there
     // is room for the value ("0th" derivative) also. The default is to
     // allocate just room for the value.
-    explicit Implementation(int numValues=1) : derivIx(numValues) {}
+    explicit Implementation(int numValues=1) 
+    :   presumeValidAtDependsOnStage(false), 
+        derivIx(numValues) {}
+
+    // Copy constructor copies the *number* of cache entries from the
+    // source, but not the cache indices themselves as those must be
+    // allocated uniquely for the copy.
+    Implementation(const Implementation& source) 
+    :   presumeValidAtDependsOnStage(source.presumeValidAtDependsOnStage),
+        derivIx(source.derivIx.size()) {}
+
 
     // Satisfy the realizeTopology() pure virtual here now that we know
-    // the data type T.
+    // the data type T. Allocate lazy- or auto-validated- cache entries
+    // depending on the setting of presumeValidAtDependsOnStage.
     void realizeTopology(State& s) const {
         Implementation* mutableThis = const_cast<Implementation*>(this);
         // Allocate cache entries.
         for (int i=0; i < getNumCacheEntries(); ++i) {
             const Stage dependsOn = getDependsOnStage(i);
-            mutableThis->derivIx[i] =
-               this->getSubsystem().allocateLazyCacheEntry
-                    (s, dependsOn, new Value<T>());
+            if (presumeValidAtDependsOnStage) {
+                // Allocate auto-validated cache entries.
+                mutableThis->derivIx[i] =
+                   this->getSubsystem().allocateCacheEntry
+                        (s, dependsOn, new Value<T>());
+            } else {
+                // Allocate lazy cache entries.
+                mutableThis->derivIx[i] =
+                   this->getSubsystem().allocateLazyCacheEntry
+                        (s, dependsOn, new Value<T>());
+            }
         }
 
         // Call the concrete class virtual if any.
@@ -377,6 +403,15 @@ protected:
         this->getSubsystem().markCacheValueRealized(s, derivIx[derivOrder]);
     }
 
+    void markCacheValueNotRealized(const State& s, int derivOrder) const {
+        SimTK_ERRCHK2(0 <= derivOrder && derivOrder < getNumCacheEntries(),
+            "Measure_<T>::Implementation::markCacheValueNotRealized()",
+            "Derivative order %d is out of range; only %d cache entries"
+            " were allocated.", derivOrder, getNumCacheEntries());
+
+        this->getSubsystem().markCacheValueNotRealized(s, derivIx[derivOrder]);
+    }
+
     // VIRTUALS //
     // Ordinals must retain the same meaning from release to release
     // to preserve binary compatibility.
@@ -415,6 +450,7 @@ protected:
     }
 
 private:
+    bool presumeValidAtDependsOnStage;
     Array_<CacheEntryIndex> derivIx;
 };
 
@@ -554,11 +590,13 @@ public:
     // We don't want the base class to allocate *any* cache entries;
     // we'll use the variable as its own value and zeroes for all
     // the derivatives.
-    Implementation() : Measure_<T>::Implementation(0) {}
-
-    Implementation(Stage invalidates, const T& defaultValue) 
+    Implementation() 
     :   Measure_<T>::Implementation(0),
-        invalidatedStage(invalidates), defaultValue(defaultValue) {}
+        invalidatedStage(Stage::Empty), defaultValue() {}
+
+    Implementation(Stage invalidated, const T& defaultValue) 
+    :   Measure_<T>::Implementation(0),
+        invalidatedStage(invalidated), defaultValue(defaultValue) {}
 
     // Copy constructor should not copy the variable.
     Implementation(const Implementation& source)
@@ -621,6 +659,123 @@ private:
     // TOPOLOGY CACHE
     mutable DiscreteVariableIndex discreteVarIndex;
 };
+
+
+    ////////////////////////////
+    // RESULT::IMPLEMENTATION //
+    ////////////////////////////
+
+template <class T>
+class Measure_<T>::Result::Implementation 
+:   public Measure_<T>::Implementation 
+{
+public:
+    // We want the base class to allocate a single cache entry of type T.
+    Implementation() 
+    :   Measure_<T>::Implementation(1), 
+        dependsOnStage(Stage::Topology), invalidatedStage(Stage::Infinity) {}
+
+    Implementation(Stage dependsOn, Stage invalidated) 
+    :   Measure_<T>::Implementation(1), 
+        dependsOnStage(dependsOn==Stage::Empty ? Stage::Topology : dependsOn), 
+        invalidatedStage(invalidated)
+    {   SimTK_ERRCHK2_ALWAYS(invalidated > dependsOn,"Measure::Result::ctor()",
+            "Got invalidated stage %s and dependsOn stage %s which is illegal "
+            "because the invalidated stage must be later than dependsOn.",
+            invalidated.getName().c_str(), dependsOn.getName().c_str());
+    }
+
+    // Copy constructor will not copy the cache entry index.
+    Implementation(const Implementation& source)
+    :   Measure_<T>::Implementation(source),
+        dependsOnStage(source.dependsOnStage), 
+        invalidatedStage(source.invalidatedStage) {} 
+
+    void setDependsOnStage(Stage dependsOn) {
+        if (dependsOn == Stage::Empty) dependsOn = Stage::Topology;
+        SimTK_ERRCHK2_ALWAYS(dependsOn < getInvalidatedStage(),
+            "Measure::Result::setDependsOnStage()",
+            "The provided dependsOn stage %s is illegal because it is not "
+            "less than the current invalidated stage %s. Change the "
+            "invalidated stage first with setInvalidatedStage().",
+            dependsOn.getName().c_str(), 
+            getInvalidatedStage().getName().c_str());
+
+        dependsOnStage = dependsOn;
+        this->invalidateTopologyCache();
+    }
+
+    void setInvalidatedStage(Stage invalidated) {
+        SimTK_ERRCHK2_ALWAYS(invalidated > getDependsOnStage(),
+            "Measure::Result::setInvalidatedStage()",
+            "The provided invalidated stage %s is illegal because it is not "
+            "greater than the current dependsOn stage %s. Change the "
+            "dependsOn stage first with setDependsOnStage().",
+            invalidated.getName().c_str(),
+            getDependsOnStage().getName().c_str());
+
+        invalidatedStage = invalidated;
+        this->invalidateTopologyCache();
+    }
+
+
+    Stage getDependsOnStage()   const {return dependsOnStage;}
+    Stage getInvalidatedStage() const {return invalidatedStage;}
+
+
+    void markAsValid(const State& state) const
+    {   const Stage subsystemStage = this->getSubsystem().getStage(state);
+        SimTK_ERRCHK3_ALWAYS(subsystemStage >= getDependsOnStage().prev(),
+            "Measure::Result::markAsValid()",
+            "This Result Measure cannot be marked valid in a State where this "
+            "measure's Subsystem has been realized only to stage %s, because "
+            "its value was declared to depend on stage %s. To mark it valid, "
+            "we require that the State have been realized at least to the "
+            "previous stage (%s in this case); that is, you must at least be "
+            "*working on* the dependsOn stage in order to claim this result is "
+            "available.",
+            subsystemStage.getName().c_str(),
+            getDependsOnStage().getName().c_str(),
+            getDependsOnStage().prev().getName().c_str());
+        markCacheValueRealized(state, 0); }
+
+    bool isValid(const State& state) const
+    {   return isCacheValueRealized(state, 0); }
+    
+    void markAsNotValid(const State& state) const
+    {   markCacheValueNotRealized(state, 0); 
+        state.invalidateAllCacheAtOrAbove(invalidatedStage); }
+
+    T& updValue(const State& state) const 
+    {   markAsNotValid(state); return updCacheEntry(state, 0); }
+
+
+    // Implementations of virtual methods.
+    virtual Implementation* cloneVirtual() const 
+    {   return new Implementation(*this); }
+
+    virtual int getNumTimeDerivativesVirtual() const {return 0;} 
+
+    // Discrete variable is available after Model stage; but all its 
+    // derivatives are zero so are always available.
+    virtual Stage getDependsOnStageVirtual(int derivOrder) const 
+    {   return derivOrder>0 ? Stage::Empty : dependsOnStage;}
+
+    virtual void 
+    calcCachedValueVirtual(const State&, int derivOrder, T& value) const
+    {   SimTK_ERRCHK_ALWAYS(!"calcCachedValueVirtual() implemented",
+        "Measure_<T>::Result::getValue()",
+        "Measure_<T>::Result::getValue() was called when the value was not "
+        "yet valid. For most Measure types, this would have initiated "
+        "computation of the value, but Result measures must have their values "
+        "calculated and set externally, and then marked valid."); }
+
+private:
+    // TOPOLOGY STATE
+    Stage   dependsOnStage;
+    Stage   invalidatedStage;
+};
+
 
     //////////////////////////////
     // SINUSOID::IMPLEMENTATION //

@@ -289,7 +289,8 @@ public:
     class One;          // T is any numerical type
     class Constant;     // T is any assignable type
     class Time;         // T is any type for which T(t) makes sense.
-    class Variable;     // T is any assignable type
+    class Variable;     // T is any assignable type (state)
+    class Result;       // T is any assignable type (cache)
     class SampleAndHold;//    "
 
     // This requires any numerical type.
@@ -431,6 +432,133 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Variable, Measure_<T>);
 };
 
+    ////////////
+    // RESULT //
+    ////////////
+
+/**
+ * This Measure holds the result of some externally-determined computation,
+ * and helps to coordinate the validity of that computation with respect
+ * to the state variables. The value must be set manually and explicitly
+ * marked valid when it is complete. The value will be automatically 
+ * invalidated after a state change at or below a specified Stage, and changing
+ * the value here will automatically invalidate a specified Stage and above.
+ *
+ * In constrast to Measure::Variable, Measure::Result is not a state variable;
+ * it is a cache variable meaning that it works with a const State. It is
+ * expected that the result can be recalculated from the state variables when
+ * needed, or contains ephemeral information that can be discarded.
+ *
+ * No provision for derivatives is made; there is only the one result.
+ */
+template <class T>
+class Measure_<T>::Result : public Measure_<T> {
+public:
+    SimTK_MEASURE_HANDLE_PREAMBLE(Result, Measure_<T>);
+
+    // TODO: should not require invalidated Stage here. Instead, 
+    // should have a unique "generation" counter for this cache entry
+    // and allow subsequent users of the value to check it.
+
+    /// Create a new Result measure and add it to the indicated
+    /// subsystem. The Result measure's value depends on earlier
+    /// values calculated at \a dependsOn stage, so whenever that
+    /// stage or earlier is invalidated, so is the value here.
+    /// In addition, any change made to the value here will invalidate
+    /// stage \a invalidated and all subsequent stages. The
+    /// \a invalidated stage must be later than the \a dependsOn stage,
+    /// and you cannot update the value here in a state that hasn't
+    /// already been realized to the dependsOn stage.
+    /// Set \a dependsOn = Stage::Empty if your value computation doesn't
+    /// depend on anything else (that will be interpreted as Stage::Topology,
+    /// however, since space for the value gets allocated then).
+    /// Set \a invalidated = Stage::Infinity if you don't want anything
+    /// invalidated when this value is changed.
+    Result(Subsystem& sub, Stage dependsOn, Stage invalidated)
+    :   Measure_<T>(sub, new Implementation(dependsOn, invalidated), 
+                    SetHandle()) {}
+
+    /// Get the \a dependsOn stage for this measure's value.
+    Stage getDependsOnStage() const {return getImpl().getDependsOnStage();}
+    /// Get the \a invalidated stage for this measure's value.
+    Stage getInvalidatedStage() const {return getImpl().getInvalidatedStage();}
+    /// Change the \a dependsOn stage for this measure's value, which must
+    /// be strictly less than the current setting for the \a invalidated
+    /// stage. If you set the dependsOn stage to Stage::Empty it will be
+    /// interpreted as Stage::Topology since the value must always depend
+    /// on at least topology. Setting the dependsOn stage is itself a 
+    /// topological change requiring reallocation of the value if it has 
+    /// already been allocated; you must call realizeTopology() again.
+    Result& setDependsOnStage(Stage dependsOn) 
+    {   updImpl().setDependsOnStage(dependsOn); return *this; }
+    /// Change the \a invalidated stage for this measure's value, which must
+    /// be strictly greater than the current setting for the \a dependsOn
+    /// stage. This is a topological change requiring reallocation of the 
+    /// value if it has already been allocated; you must call 
+    /// realizeTopology() again.
+    Result& setInvalidatedStage(Stage invalidated) 
+    {   updImpl().setInvalidatedStage(invalidated); return *this; }
+
+    /// Normally a Result measure's value is not considered valid unless
+    /// we are notified explicitly that it is, via a call to markAsValid()
+    /// or setValue(); this method allows the value to be assumed valid
+    /// after the \a dependsOn stage has been realized. The reason this
+    /// exists is that in some cases it is difficult to find a place from 
+    /// which to call markAsValid(). That means you must set the value during
+    /// realization of the dependsOn stage, but there is no way for this to
+    /// be checked automatically. Thus use of this feature can lead
+    /// to very difficult-to-find bugs; you should try hard to find a place
+    /// to call markAsValid() before resorting to this method. This is a 
+    /// topological change requiring reallocation of the value if it has
+    /// already been allocated; you must call realizeTopology() again.
+    Result& setIsPresumedValidAtDependsOnStage(bool presume)
+    {   updImpl().setIsPresumedValidAtDependsOnStage(presume); return *this; }
+
+    /// Return the value of the "presumed valid at dependsOn stage" flag.
+    /// @see setIsPresumedValidAtDependsOnStage() for a discussion.
+    bool getIsPresumedValidAtDependsOnStage() const
+    {   return getImpl().getIsPresumedValidAtDependsOnStage(); }
+
+
+    /// Obtain write access to the Measure's value in order to modify it.
+    /// Calling this method marks the result invalid; you must explicitly
+    /// validate it when you're done. Also, if this Measure was created with
+    /// an \a invalidates stage, then that stage and all later stages in
+    /// the given state are marked invalid also.
+    T& updValue(const State& state) const
+    {   return getImpl().updValue(state); }
+
+    /// Mark the current value as valid. This is done automatically if you
+    /// call setValue() but must be done manually if you use updValue() to
+    /// access the value. Note that you cannot mark this valid if 
+    /// \a state hasn't been realized already to at least the stage prior
+    /// to this measure's \a dependsOn stage; that is, you must at least
+    /// be working on the dependsOn stage at the time this is called.
+    void markAsValid(const State& state) const {getImpl().markAsValid(state);}
+
+    /// Check whether the value contained in this Measure is currently
+    /// valid. If true, you can call getValue() to obtain it. If false,
+    /// calling getValue() will throw an exception.
+    bool isValid(const State& state) const {return getImpl().isValid(state);}
+
+    /// Manually mark the contained value as invalid. This will also 
+    /// invalidate any stages in \a state that depend on this value. This 
+    /// is called automatically whenever the updValue() method is invoked,
+    /// and the value starts out invalid. The value becomes valid either
+    /// by calling markAsValid() explicitly or calling setValue().
+    /// @warning If you have set this Result measure to be presumed valid
+    /// at dependsOn stage, this method will have no effect.
+    void markAsNotValid(const State& state) const 
+    {   getImpl().markAsNotValid(state); }
+
+    /// Set a new value and mark it as valid. For more flexibility, use the
+    /// updValue() method and markAsValid() manually when you are done with
+    /// the new value.
+    void setValue(const State& state, const T& value) const
+    {   updValue(state) = value; markAsValid(state); }
+
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(Result, Measure_<T>);
+};
 
     //////////////
     // SINUSOID //

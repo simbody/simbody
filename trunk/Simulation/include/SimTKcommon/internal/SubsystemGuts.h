@@ -176,6 +176,7 @@ public:
 
     bool isCacheValueRealized(const State&, CacheEntryIndex) const;
     void markCacheValueRealized(const State&, CacheEntryIndex) const;
+    void markCacheValueNotRealized(const State&, CacheEntryIndex) const;
 
     // Dimensions. These are valid at System Stage::Model while access to the various
     // arrays may have stricter requirements. Hence it is better to use these
