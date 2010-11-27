@@ -302,6 +302,7 @@ inline unsigned char  square(unsigned char  u) {return u*u;}
 inline unsigned short square(unsigned short u) {return u*u;}
 inline unsigned int   square(unsigned int   u) {return u*u;}
 inline unsigned long  square(unsigned long  u) {return u*u;}
+inline unsigned long long square(unsigned long long u) {return u*u;}
 
 inline char        square(char c) {return c*c;}
 
@@ -309,6 +310,7 @@ inline signed char square(signed char i) {return i*i;}
 inline short       square(short       i) {return i*i;}
 inline int         square(int         i) {return i*i;}
 inline long        square(long        i) {return i*i;}
+inline long long   square(long long   i) {return i*i;}
 
 inline float       square(const float&       x) {return x*x;}
 inline double      square(const double&      x) {return x*x;}
@@ -373,6 +375,7 @@ inline unsigned char  cube(unsigned char  u) {return u*u*u;}
 inline unsigned short cube(unsigned short u) {return u*u*u;}
 inline unsigned int   cube(unsigned int   u) {return u*u*u;}
 inline unsigned long  cube(unsigned long  u) {return u*u*u;}
+inline unsigned long long cube(unsigned long long u) {return u*u*u;}
 
 inline char        cube(char c) {return c*c*c;}
 
@@ -380,6 +383,7 @@ inline signed char cube(signed char i) {return i*i*i;}
 inline short       cube(short       i) {return i*i*i;}
 inline int         cube(int         i) {return i*i*i;}
 inline long        cube(long        i) {return i*i*i;}
+inline long long   cube(long long   i) {return i*i*i;}
 
 inline float       cube(const float&       x) {return x*x*x;}
 inline double      cube(const double&      x) {return x*x*x;}
