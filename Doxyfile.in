@@ -81,6 +81,7 @@ RECURSIVE              = YES
 EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */tests/* \
+                         */examples/* \
                          */src/* \
                          */VisualizationGUI/* \
                          */.svn/*

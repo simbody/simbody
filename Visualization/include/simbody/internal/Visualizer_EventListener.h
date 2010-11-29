@@ -61,8 +61,7 @@ public:
     static const unsigned SpecialKeyOffset = 0x100; // Added to each code
 
     /** These are the special keys that the Visualizer may report via the 
-    method specialKeyPressed(). All other keys are considered "ordinary" 
-    and are reported by ASCII code via the ordinaryKeyPressed() method. **/
+    keyPressed() method. All other keys are considered "ordinary". **/
     enum KeyCode {
         KeyControlC     = 3,            // some notable ASCII codes
         KeyBeep         = 7,
