@@ -54,10 +54,12 @@ static void* drawingThreadMain(void* visualizerAsVoidp);
 static const long long UsToNs = 1000LL;          // ns = us * UsToNs
 static const long long MsToNs = 1000LL * UsToNs; // ns = ms * MsToNs
 
-static const Real      DefaultFrameRateFPS                  = 30;
+static const Real      DefaultFrameRateFPS             = 30;
+static const Real      DefaultDesiredBufferLengthInSec = Real(0.15); // 150ms
+
+// These are not currently overrideable.
 static const long long DefaultAllowableFrameJitterInNs      = 5 * MsToNs; //5ms
 static const Real      DefaultSlopAsFractionOfFrameInterval = Real(0.05); //5%
-static const Real      DefaultDesiredBufferLengthInSec = Real(0.15); // 150ms
 
 //==============================================================================
 //                              VISUALIZER REP
@@ -151,15 +153,15 @@ public:
     VisualizerRep(Visualizer* owner, MultibodySystem& system, 
                   const String& title) 
     :   handle(owner), system(system), protocol(*owner, title),
-        mode(PassThrough), frameRateFPS(DefaultFrameRateFPS), 
-        simTimeUnitsPerSec(1), 
-        desiredBufferLengthInSec(DefaultDesiredBufferLengthInSec), 
-        timeBetweenFramesInNs(secToNs(1/DefaultFrameRateFPS)),
-        allowableFrameJitterInNs(DefaultAllowableFrameJitterInNs),
-        allowableFrameTimeSlopInNs(
+        m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
+        m_simTimeUnitsPerSec(1), 
+        m_desiredBufferLengthInSec(DefaultDesiredBufferLengthInSec), 
+        m_timeBetweenFramesInNs(secToNs(1/DefaultFrameRateFPS)),
+        m_allowableFrameJitterInNs(DefaultAllowableFrameJitterInNs),
+        m_allowableFrameTimeSlopInNs(
             secToNs(DefaultSlopAsFractionOfFrameInterval/DefaultFrameRateFPS)),
-        adjustedRealTimeBase(realTimeInNs()),
-        nextFrameDueAdjRT(-1), oldest(0),nframe(0)
+        m_adjustedRealTimeBase(realTimeInNs()),
+        m_nextFrameDueAdjRT(-1), oldest(0),nframe(0)
     {   
         pthread_mutex_init(&queueLock, NULL); 
         pthread_cond_init(&queueNotFull, NULL); 
@@ -170,77 +172,123 @@ public:
     }
     
     ~VisualizerRep() {
+        if (m_mode==RealTime && pool.size()) {
+            pthread_cancel(drawThread);
+        }
         for (int i = 0; i < (int) listeners.size(); i++)
             delete listeners[i];
         for (int i = 0; i < (int) generators.size(); i++)
             delete generators[i];
-        if (mode==RealTime)
-            pthread_cancel(drawThread);
         pthread_cond_destroy(&queueNotEmpty);
         pthread_cond_destroy(&queueNotFull);
         pthread_mutex_destroy(&queueLock);
     }
 
-    void setMode(Mode newMode) {
-        clearStats();
-        setDesiredFrameRate(frameRateFPS);
+    // Whenever a "set" method is called that may change one of the 
+    // interrelated time quantities, set all of them. We expect
+    // the mode to have been set already.
+    void resetTimeRelatedQuantities(Real framesPerSec,
+        Real timeScale, Real desiredBufLengthSec) 
+    {
+        if (framesPerSec <= 0) framesPerSec = DefaultFrameRateFPS;
+        if (timeScale <= 0)    timeScale = 1;
+        if (desiredBufLengthSec < 0) 
+            desiredBufLengthSec = DefaultDesiredBufferLengthInSec;
 
+        // Frame rate.
+        m_frameRateFPS               = framesPerSec;
+        m_timeBetweenFramesInNs      = secToNs(1/m_frameRateFPS);
+        m_allowableFrameTimeSlopInNs = 
+            secToNs(DefaultSlopAsFractionOfFrameInterval/m_frameRateFPS);
+        m_allowableFrameJitterInNs   = DefaultAllowableFrameJitterInNs;
+
+        // Time scale.
+        m_simTimeUnitsPerSec = timeScale;
+
+        // Realtime buffer.
+        m_desiredBufferLengthInSec = desiredBufLengthSec;
+
+        int numFrames = 
+            (int)(m_desiredBufferLengthInSec/nsToSec(m_timeBetweenFramesInNs) 
+                  + 0.5);
+        if (numFrames==0 && m_desiredBufferLengthInSec > 0)
+            numFrames = 1;
+
+        // If we're in RealTime mode and we have changed the number of
+        // frames in the buffer, reallocate the pool and kill or start
+        // the draw thread if necessary.
+        if (m_mode == RealTime && numFrames != pool.size()) {
+            if (pool.size()) {
+                // draw thread is already running
+                if (numFrames == 0) {
+                    pthread_cancel(drawThread);
+                    sleepInSec(getActualBufferLengthInSec());
+                }
+                initializePool(numFrames);
+            } else {
+                // draw thread wasn't running but now should be
+                initializePool(numFrames);
+                pthread_create(&drawThread, NULL, drawingThreadMain, this);
+            }
+        }
+
+        clearStats();
+
+        // Note that the next frame we see is the first one and we'll need
+        // to initialize adjusted real time then.
+        m_nextFrameDueAdjRT = -1LL; // i.e., now
+    }
+
+    void setMode(Mode newMode) {
         // If we're not changing modes we just clear the stats and invalidate
         // the next expected frame time so that we'll take the first one that
         // shows up.
-        if (newMode==mode) {
-            nextFrameDueAdjRT = -1LL; // i.e., now
+        if (newMode==m_mode) {
+            resetTimeRelatedQuantities(m_frameRateFPS,
+                                       m_simTimeUnitsPerSec,
+                                       m_desiredBufferLengthInSec);
             return;
         }
 
         // Mode is changing. If it was buffered RealTime before we have
         // to clean up first.
-        if (mode == RealTime && pool.size()) {
+        if (m_mode == RealTime && pool.size()) {
             pthread_cancel(drawThread);
-            initializePool(0);  // existing frames are lost
+            sleepInSec(getActualBufferLengthInSec());
+            initializePool(0);  // clear the buffer
         }
 
-        mode = newMode; // change mode
-
-        // If the new mode is RealTime we have to allocate the queue and 
-        // initiate the buffered rendering thread. We'll round the queue length
-        // to the nearest integer number of frames, but provide at least one
-        // frame if the requested buffer length was non-zero. No drawing 
-        // thread is created if no buffer is created.
-        if (newMode == RealTime) {
-            int numFrames = 
-                (int)(desiredBufferLengthInSec/nsToSec(timeBetweenFramesInNs) + 0.5);
-            if (numFrames==0 && desiredBufferLengthInSec > 0)
-                numFrames = 1;
-
-            initializePool(numFrames);
-            if (numFrames)
-                pthread_create(&drawThread, NULL, drawingThreadMain, this);
-        }
-
-        // Note that the next frame is due now.
-        nextFrameDueAdjRT = -1LL; // i.e., now
+        m_mode = newMode; // change mode
+        resetTimeRelatedQuantities(m_frameRateFPS,
+                                   m_simTimeUnitsPerSec,
+                                   m_desiredBufferLengthInSec);
     }
 
     void setDesiredFrameRate(Real framesPerSec) {
-        frameRateFPS = framesPerSec <= 0 
-            ? DefaultFrameRateFPS : framesPerSec;
-        timeBetweenFramesInNs = secToNs(1/frameRateFPS);
-        allowableFrameTimeSlopInNs = 
-            secToNs(DefaultSlopAsFractionOfFrameInterval/frameRateFPS);
+        resetTimeRelatedQuantities(framesPerSec,
+                                   m_simTimeUnitsPerSec,
+                                   m_desiredBufferLengthInSec);                               
     }
 
     // TODO: must recalculate buffer length
-    void setDesiredBufferLengthInSec(Real bufferLengthInSec) 
-    {    desiredBufferLengthInSec = bufferLengthInSec < 0
-            ? DefaultDesiredBufferLengthInSec : bufferLengthInSec; }
+    void setDesiredBufferLengthInSec(Real bufferLengthInSec) {
+        resetTimeRelatedQuantities(m_frameRateFPS,
+                                   m_simTimeUnitsPerSec,
+                                   bufferLengthInSec);                               
+    }
+
+    void setRealTimeScale(Real simTimePerRealSec)  {
+        resetTimeRelatedQuantities(m_frameRateFPS,
+                                   simTimePerRealSec,
+                                   m_desiredBufferLengthInSec);                               
+    }
 
     Real getDesiredBufferLengthInSec() const 
-    {   return desiredBufferLengthInSec; }
+    {   return m_desiredBufferLengthInSec; }
 
     int getActualBufferLengthInFrames() const {return pool.size();}
     Real getActualBufferLengthInSec() const 
-    {   return nsToSec(getActualBufferLengthInFrames()*timeBetweenFramesInNs); }
+    {   return nsToSec(getActualBufferLengthInFrames()*m_timeBetweenFramesInNs); }
 
     // Generate this frame and send it immediately to the renderer without
     // thinking too hard about it.
@@ -301,7 +349,7 @@ public:
         frame.desiredDrawTimeAdjRT = desiredDrawTimeAdjRT;
 
         // Set the expected next frame time.
-        nextFrameDueAdjRT = desiredDrawTimeAdjRT + timeBetweenFramesInNs;
+        m_nextFrameDueAdjRT = desiredDrawTimeAdjRT + m_timeBetweenFramesInNs;
 
         if (++nframe == 1) 
             POST_QueueNotEmpty(); // wake up rendering thread on first frame
@@ -348,20 +396,20 @@ public:
     // elapsed since t=0 if this simulation were running at exactly the desired
     // real time rate.
     long long convertSimTimeToNs(const double& t)
-    {   return secToNs(t / simTimeUnitsPerSec); }
+    {   return secToNs(t / m_simTimeUnitsPerSec); }
 
     // same as ns; that's what AdjRT tries to be
     long long convertSimTimeToAdjRT(const double& t)
     {   return convertSimTimeToNs(t); } 
 
     double convertAdjRTtoSimTime(const long long& a)
-    {   return nsToSec(a) * simTimeUnitsPerSec; }
+    {   return nsToSec(a) * m_simTimeUnitsPerSec; }
 
     long long convertRTtoAdjRT(const long long& r)
-    {   return r - adjustedRealTimeBase; }
+    {   return r - m_adjustedRealTimeBase; }
 
     long long convertAdjRTtoRT(const long long& a)
-    {   return a + adjustedRealTimeBase; }
+    {   return a + m_adjustedRealTimeBase; }
 
 
     // Adjust the real time base by a given signed offset in nanoseconds. We're
@@ -370,12 +418,12 @@ public:
     // new base adjustment r0 such that a = r - r0. So:
     //      a = r - r0* - e => r0=r0*+e.
     void readjustAdjustedRealTimeBy(const long long& e) {
-        adjustedRealTimeBase += e; 
+        m_adjustedRealTimeBase += e; 
         ++numAdjustmentsToRealTimeBase;
     }
 
     long long getAdjustedRealTime() 
-    {   return realTimeInNs() - adjustedRealTimeBase; }
+    {   return realTimeInNs() - m_adjustedRealTimeBase; }
 
     Visualizer*                             handle;
     MultibodySystem&                        system;
@@ -387,31 +435,31 @@ public:
     Array_<DecorationGenerator*>            generators;
 
     // User control of Visualizer behavior.
-    Mode    mode;
-    Real    frameRateFPS;       // in frames/sec if > 0, else use default
-    Real    simTimeUnitsPerSec; // ratio of sim time units to real seconds
-    Real    desiredBufferLengthInSec; // RT only: how much delay (<0 => default)
+    Visualizer::Mode    m_mode;
+    Real    m_frameRateFPS;       // in frames/sec if > 0, else use default
+    Real    m_simTimeUnitsPerSec; // ratio of sim time units to real seconds
+    Real    m_desiredBufferLengthInSec; // RT only: how much delay (<0 => default)
 
     // How many nanoseconds between frames?
-    long long timeBetweenFramesInNs;
+    long long m_timeBetweenFramesInNs;
     // How much accuracy should we require from sleep()?
-    long long allowableFrameJitterInNs;
+    long long m_allowableFrameJitterInNs;
     // How much slop is allowed in matching the time of a simulation frame
     // to the real time at which its frame is drawn?
-    long long allowableFrameTimeSlopInNs;
+    long long m_allowableFrameTimeSlopInNs;
 
     // The offset r0 to subtract from the interval timer reading to produce 
     // the adjusted real time a that we expect to match the current simulation
     // time t in ns. That is a = realTimeInNs()-r0. This base is adjusted by
     // the drawing thread when we see what time we actually were able to
     // deliver a frame.
-    long long adjustedRealTimeBase; // r0
+    long long m_adjustedRealTimeBase; // r0
     
     // This is when we would like the simulation to send us another frame.
     // It is optimistically set to one frame interval later than the desired
     // draw time of the most recent frame to be put in the queue. This is 
     // also used in non-RealTime mode where AdjRT==RT.
-    long long nextFrameDueAdjRT;
+    long long m_nextFrameDueAdjRT;
 
     // The frame buffer:
     Array_<Frame,int> pool; // fixed size, old to new order but circular
@@ -469,11 +517,11 @@ public:
     void dumpStats(std::ostream& o) const {
         o << "Visualizer stats:\n";
         o << "  Mode: "; 
-        switch(mode) {
+        switch(m_mode) {
         case PassThrough: o << "PassThrough\n"; break;
         case Sampling: o << "Sampling\n"; break;
         case RealTime: 
-            o << "RealTime, TimeScale=" << simTimeUnitsPerSec 
+            o << "RealTime, TimeScale=" << m_simTimeUnitsPerSec 
               << " sim time units/real second\n"; 
             o << "  Desired/actual buffer length(s): " 
               << getDesiredBufferLengthInSec() << "/" 
@@ -481,7 +529,7 @@ public:
               << getActualBufferLengthInFrames() << " frames)\n";
             break;
         };
-        o << "  Desired frame rate: " << frameRateFPS << endl;
+        o << "  Desired frame rate: " << m_frameRateFPS << endl;
         o << "  reported frames: " << numFramesReportedBySimulation << endl;
         o << "  |       ignored: " << numReportedFramesThatWereIgnored << endl;
         o << "  |   had to wait: " << numReportedFramesThatHadToWait << endl;
@@ -561,9 +609,9 @@ void Visualizer::VisualizerRep::drawRealtimeFrameWhenReady
    (const State& state, const long long& desiredDrawTimeAdjRT)
 {
     const long long earliestDrawTimeAdjRT = 
-        desiredDrawTimeAdjRT - allowableFrameJitterInNs;
+        desiredDrawTimeAdjRT - m_allowableFrameJitterInNs;
     const long long latestDrawTimeAdjRT = 
-        desiredDrawTimeAdjRT + allowableFrameJitterInNs;
+        desiredDrawTimeAdjRT + m_allowableFrameJitterInNs;
 
     // Wait for the next frame time, allowing for a little jitter 
     // since we can't expect sleep to wake us up at the exact time.
@@ -586,7 +634,7 @@ void Visualizer::VisualizerRep::drawRealtimeFrameWhenReady
     // If we sent this frame more than one frame time late we're going to 
     // admit we're not making real time and adjust the
     // AdjRT base to  match.
-    if (timingError > timeBetweenFramesInNs)
+    if (timingError > m_timeBetweenFramesInNs)
         readjustAdjustedRealTimeBy(now - desiredDrawTimeAdjRT);
    
     // It is time to render the frame.
@@ -600,10 +648,10 @@ void Visualizer::VisualizerRep::reportRealtime(const State& state) {
     // If this is the first frame, or first since last setMode(), then
     // we synchronize Adjusted Real Time to match. Readjustments will occur
     // if the simulation doesn't keep up with real time.
-    if (nextFrameDueAdjRT < 0LL) {
-        adjustedRealTimeBase = realTimeInNs() - t;
+    if (m_nextFrameDueAdjRT < 0LL) {
+        m_adjustedRealTimeBase = realTimeInNs() - t;
         // now getAdjustedRealTime()==tInNs
-        nextFrameDueAdjRT = t; // now
+        m_nextFrameDueAdjRT = t; // now
     }
 
     // "timeSlop" is the amount we'll allow a frame's simulation time to 
@@ -618,8 +666,8 @@ void Visualizer::VisualizerRep::reportRealtime(const State& state) {
     // whose time is too late (t_s>t_f+slop) causes us to delay drawing
     // that frame until real time catches up with what's in it. Typically 
     // timeSlop is set to a small fraction of the frame time, like 5%.
-    const long long timeSlop = allowableFrameTimeSlopInNs;
-    const long long next     = nextFrameDueAdjRT;
+    const long long timeSlop = m_allowableFrameTimeSlopInNs;
+    const long long next     = m_nextFrameDueAdjRT;
     const long long earliest = next - timeSlop;
     const long long latest   = next + timeSlop;
 
@@ -650,7 +698,7 @@ void Visualizer::VisualizerRep::reportRealtime(const State& state) {
     drawRealtimeFrameWhenReady(state, desiredDrawTimeAdjRT);
 
     // Now set expectations for the next frame.
-    nextFrameDueAdjRT = t + timeBetweenFramesInNs;
+    m_nextFrameDueAdjRT = t + m_timeBetweenFramesInNs;
 }
 
 
@@ -678,16 +726,16 @@ Visualizer::~Visualizer() {
 }
 
 void Visualizer::setMode(Visualizer::Mode mode) {updRep().setMode(mode);}
-Visualizer::Mode Visualizer::getMode() const {return getRep().mode;}
+Visualizer::Mode Visualizer::getMode() const {return getRep().m_mode;}
 
 void Visualizer::setDesiredFrameRate(Real framesPerSec) 
 {   updRep().setDesiredFrameRate(std::max(framesPerSec, Real(0))); }
-Real Visualizer::getDesiredFrameRate() const {return getRep().frameRateFPS;}
+Real Visualizer::getDesiredFrameRate() const {return getRep().m_frameRateFPS;}
 
 void Visualizer::setRealTimeScale(Real simTimePerRealSec) 
-{   if (simTimePerRealSec <= 0) simTimePerRealSec = 1;
-    updRep().simTimeUnitsPerSec = simTimePerRealSec; }
-Real Visualizer::getRealTimeScale() const {return getRep().simTimeUnitsPerSec;}
+{   updRep().setRealTimeScale(simTimePerRealSec); }
+Real Visualizer::getRealTimeScale() const 
+{   return getRep().m_simTimeUnitsPerSec; }
 
 void Visualizer::setDesiredBufferLengthInSec(Real bufferLengthInSec)
 {   updRep().setDesiredBufferLengthInSec(bufferLengthInSec); }
@@ -708,7 +756,7 @@ void Visualizer::report(const State& state) {
     Visualizer::VisualizerRep& rep = updRep();
 
     ++rep.numFramesReportedBySimulation;
-    if (rep.mode == RealTime) {
+    if (rep.m_mode == RealTime) {
         rep.reportRealtime(state);
         return;
     }
@@ -720,33 +768,33 @@ void Visualizer::report(const State& state) {
 
     // If this is the first frame, or first since last setMode(), then
     // we set our expected next frame arrival time to now.
-    if (rep.nextFrameDueAdjRT < 0LL)
-        rep.nextFrameDueAdjRT = realTimeInNs(); // now
+    if (rep.m_nextFrameDueAdjRT < 0LL)
+        rep.m_nextFrameDueAdjRT = realTimeInNs(); // now
 
     // If someone asked for an infinite frame rate just send this along now.
-    if (rep.timeBetweenFramesInNs == 0LL) {
+    if (rep.m_timeBetweenFramesInNs == 0LL) {
         drawFrameNow(state);
         return;
     }
 
-    const long long earliestDrawTime = rep.nextFrameDueAdjRT
-                                       - rep.allowableFrameJitterInNs;
+    const long long earliestDrawTime = rep.m_nextFrameDueAdjRT
+                                       - rep.m_allowableFrameJitterInNs;
     long long now = realTimeInNs();
     if (now < earliestDrawTime) {
         // Too early to draw this frame. In Sampling mode that means we
         // just ignore it.
-        if (rep.mode == Sampling) {
+        if (rep.m_mode == Sampling) {
             ++rep.numReportedFramesThatWereIgnored;
             return;
         }
 
         // We're in PassThrough mode.
         ++rep.numReportedFramesThatHadToWait;
-        do {sleepInNs(rep.nextFrameDueAdjRT - now);}
+        do {sleepInNs(rep.m_nextFrameDueAdjRT - now);}
         while ((now=realTimeInNs()) < earliestDrawTime);
 
         // We're not going to wake up exactly when we wanted to; keep stats.
-        const double jitterInMs = (now - rep.nextFrameDueAdjRT)*1e-6;
+        const double jitterInMs = (now - rep.m_nextFrameDueAdjRT)*1e-6;
         rep.sumOfAllJitter        += jitterInMs;
         rep.sumSquaredOfAllJitter += square(jitterInMs);
     }
@@ -758,7 +806,7 @@ void Visualizer::report(const State& state) {
     // time for one ideal frame interval later to keep the maximum rate down 
     // to the specified rate. Otherwise a late frame could be followed by lots
     // of fast frames playing catch-up.
-    rep.nextFrameDueAdjRT = now + rep.timeBetweenFramesInNs;
+    rep.m_nextFrameDueAdjRT = now + rep.m_timeBetweenFramesInNs;
 }
 
 void Visualizer::addEventListener(VisualizationEventListener* listener) {
