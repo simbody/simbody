@@ -31,7 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/Visualizer.h"
-#include "simbody/internal/VisualizationEventListener.h"
+#include "simbody/internal/Visualizer_EventListener.h"
 #include "../src/VisualizationProtocol.h"
 #include "lodepng.h"
 

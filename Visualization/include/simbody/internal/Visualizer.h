@@ -44,7 +44,6 @@ for display and interaction through the VisualizationGUI. **/
 namespace SimTK {
 
 class MultibodySystem;
-class VisualizationEventListener;
 class DecorationGenerator;
 
 /** Provide simple visualization of and interaction with a Simbody simulation, 
@@ -85,8 +84,8 @@ of the buffer is selectable; see setDesiredBufferLengthInSec().
 **/
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
-class FrameController;
-class EventListener;
+class FrameController; // defined below
+class EventListener;   // defined in Visualizer_EventListener.h
 
 
 /** Construct new Visualizer using default window title (the name of the 
@@ -330,7 +329,7 @@ Visualizer just prior to rendering each frame. You can use this to call any
 of the const (runtime) methods of the Visualizer, typically to control the 
 camera, and you can also add some geometry to the scene, print messages to 
 the console, and so on. **/
-class Visualizer::FrameController {
+class SimTK_SIMBODY_EXPORT Visualizer::FrameController {
 public:
     /** The Visualizer is just about to generate and render a frame 
     corresponding to the given State. 

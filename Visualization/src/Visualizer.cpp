@@ -32,7 +32,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/Visualizer.h"
-#include "simbody/internal/VisualizationEventListener.h"
+#include "simbody/internal/Visualizer_EventListener.h"
 #include "simbody/internal/DecorationGenerator.h"
 #include "VisualizationGeometry.h"
 #include "VisualizationProtocol.h"

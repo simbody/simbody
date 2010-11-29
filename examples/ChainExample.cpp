@@ -1,7 +1,7 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h"
 #include "simbody/internal/VisualizationReporter.h"
-#include "simbody/internal/VisualizationEventListener.h"
+#include "simbody/internal/Visualizer_EventListener.h"
 //#include <sys/time.h>
 
 using namespace SimTK;
