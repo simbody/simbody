@@ -239,7 +239,7 @@ public:
         m_nextFrameDueAdjRT = -1LL; // i.e., now
     }
 
-    void setMode(Mode newMode) {
+    void setMode(Visualizer::Mode newMode) {
         // If we're not changing modes we just clear the stats and invalidate
         // the next expected frame time so that we'll take the first one that
         // shows up.

@@ -259,7 +259,7 @@ try
 
     State s = mbs.realizeTopology();
 
-    const Real FrameRate = 30;
+    const Real FrameRate = 24;
     Visualizer vtk(mbs);
     //vtk.setCameraClippingPlanes(.5,200);
    // vtk.zoomCameraToShowAllGeometry();

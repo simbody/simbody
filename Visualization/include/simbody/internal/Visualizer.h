@@ -151,9 +151,11 @@ in simulation run rate by buffering frames before sending them on for
 rendering. The length of the buffer introduces an intentional response time 
 lag from when a user reacts to when he can see a response from the simulator. 
 Under most circumstances a lag of 150-200ms is undetectable. The default 
-buffer length is the time represented by the nearest number of whole frames 
-that will fit in 134ms; 8 frames at 60fps, 4 at 30fps, 3 at 24fps, 2 at 15fps, 
-1 down to 7.5fps and none below that. Shorten the buffer to improve 
+buffer length is the time represented by the number of whole frames 
+that comes closest to 150ms; 9 frames at 60fps, 5 at 30fps, 4 at 24fps, etc. 
+To avoid frequent block/unblocking of the simulation thread, the buffer is
+not kept completely full; you can use dumpStats() if you want to see how the
+buffer was used during a simulation. Shorten the buffer to improve 
 responsiveness at the possible expense of smoothness. Note that the total lag 
 time includes not only the buffer length here, but also lag induced by the 
 time stepper taking steps that are larger than the frame times. For maximum 
