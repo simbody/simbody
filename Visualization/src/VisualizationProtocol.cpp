@@ -136,10 +136,10 @@ static void* listenForVisualizationEvents(void* arg) {
         switch (buffer[0]) {
             case KEY_PRESSED: {
                 readData(buffer, 2);
-                const Array_<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
+                const Array_<Visualizer::EventListener*>& listeners = visualizer.getEventListeners();
                 unsigned keyCode = buffer[0];
-                if (buffer[1] & VisualizationEventListener::IsSpecialKey)
-                    keyCode += VisualizationEventListener::SpecialKeyOffset;
+                if (buffer[1] & Visualizer::EventListener::IsSpecialKey)
+                    keyCode += Visualizer::EventListener::SpecialKeyOffset;
                 for (int i = 0; i < (int) listeners.size(); i++)
                     if (listeners[i]->keyPressed(keyCode, (unsigned)(buffer[1])))
                         break; // key press has been handled
@@ -148,7 +148,7 @@ static void* listenForVisualizationEvents(void* arg) {
             case MENU_SELECTED: {
                 int item;
                 readData((unsigned char*) &item, sizeof(int));
-                const Array_<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
+                const Array_<Visualizer::EventListener*>& listeners = visualizer.getEventListeners();
                 for (int i = 0; i < (int) listeners.size(); i++)
                     if (listeners[i]->menuSelected(item))
                         break; // menu event has been handled
@@ -392,7 +392,25 @@ void VisualizationProtocol::drawFrame(const Transform& transform, Real axisLengt
     WRITE(outPipe, buffer, 10*sizeof(float));
 }
 
-void VisualizationProtocol::setCameraTransform(const Transform& transform) {
+
+void VisualizationProtocol::addMenu(const String& title, const Array_<pair<String, int> >& items) {
+    pthread_mutex_lock(&sceneLock);
+    char command = DEFINE_MENU;
+    WRITE(outPipe, &command, 1);
+    short titleLength = title.size();
+    WRITE(outPipe, &titleLength, sizeof(short));
+    WRITE(outPipe, title.c_str(), titleLength);
+    short numItems = items.size();
+    WRITE(outPipe, &numItems, sizeof(short));
+    for (int i = 0; i < numItems; i++) {
+        int buffer[] = {items[i].second, items[i].first.size()};
+        WRITE(outPipe, buffer, 2*sizeof(int));
+        WRITE(outPipe, items[i].first.c_str(), items[i].first.size());
+    }
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizationProtocol::setCameraTransform(const Transform& transform) const {
     pthread_mutex_lock(&sceneLock);
     char command = SET_CAMERA;
     WRITE(outPipe, &command, 1);
@@ -408,14 +426,14 @@ void VisualizationProtocol::setCameraTransform(const Transform& transform) {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::zoomCamera() {
+void VisualizationProtocol::zoomCamera() const {
     pthread_mutex_lock(&sceneLock);
     char command = ZOOM_CAMERA;
     WRITE(outPipe, &command, 1);
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::lookAt(const Vec3& point, const Vec3& upDirection) {
+void VisualizationProtocol::lookAt(const Vec3& point, const Vec3& upDirection) const {
     pthread_mutex_lock(&sceneLock);
     char command = LOOK_AT;
     WRITE(outPipe, &command, 1);
@@ -430,7 +448,7 @@ void VisualizationProtocol::lookAt(const Vec3& point, const Vec3& upDirection) {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setFieldOfView(Real fov) {
+void VisualizationProtocol::setFieldOfView(Real fov) const {
     pthread_mutex_lock(&sceneLock);
     char command = SET_FIELD_OF_VIEW;
     WRITE(outPipe, &command, 1);
@@ -440,7 +458,7 @@ void VisualizationProtocol::setFieldOfView(Real fov) {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setClippingPlanes(Real near, Real far) {
+void VisualizationProtocol::setClippingPlanes(Real near, Real far) const {
     pthread_mutex_lock(&sceneLock);
     char command = SET_CLIP_PLANES;
     WRITE(outPipe, &command, 1);
@@ -462,21 +480,5 @@ void VisualizationProtocol::setGroundPosition(const CoordinateAxis& axis, Real h
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::addMenu(const String& title, const Array_<pair<String, int> >& items) {
-    pthread_mutex_lock(&sceneLock);
-    char command = DEFINE_MENU;
-    WRITE(outPipe, &command, 1);
-    short titleLength = title.size();
-    WRITE(outPipe, &titleLength, sizeof(short));
-    WRITE(outPipe, title.c_str(), titleLength);
-    short numItems = items.size();
-    WRITE(outPipe, &numItems, sizeof(short));
-    for (int i = 0; i < numItems; i++) {
-        int buffer[] = {items[i].second, items[i].first.size()};
-        WRITE(outPipe, buffer, 2*sizeof(int));
-        WRITE(outPipe, items[i].first.c_str(), items[i].first.size());
-    }
-    pthread_mutex_unlock(&sceneLock);
-}
 
 }

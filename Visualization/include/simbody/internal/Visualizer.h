@@ -85,6 +85,10 @@ of the buffer is selectable; see setDesiredBufferLengthInSec().
 **/
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
+class FrameController;
+class EventListener;
+
+
 /** Construct new Visualizer using default window title (the name of the 
 current executable). **/
 Visualizer(MultibodySystem& system);
@@ -213,14 +217,32 @@ void drawFrameNow(const State& state);
 
 /** Add a new event listener to this Visualizer, methods of which will be
 called when the GUI detects user-driven events like key presses, menu picks, 
-or mouse moves. See \ref VisualizationEventListener for more information. 
-The Visualizer takes over ownership of the supplied listener object and deletes
-them upon destruction of the Visualizer. **/
-void addEventListener(VisualizationEventListener* listener);
+or mouse moves. See \ref Visualizer::EventListener for more information. 
+The Visualizer takes over ownership of the supplied \a listener object and 
+deletes it upon destruction of the Visualizer. **/
+void addEventListener(EventListener* listener);
 
-/** Get a list of all the event listeners attached to this Visualizer. 
-@todo Why is this exposed? **/
-const Array_<VisualizationEventListener*>& getEventListeners() const;
+/** Add a new frame controller to this Visualizer, methods of which will be
+called just prior to rendering a frame for the purpose of simulation-controlled
+camera positioning and other frame-specific effects. 
+See \ref Visualizer::FrameController for more information. The Visualizer takes 
+over ownership of the supplied \a controller object and deletes it destruction 
+of the Visualizer. **/ 
+void addFrameController(FrameController* controller);
+
+/** @name SceneBuilding Scene-building methods
+These methods are used to add permanent elements to the scene being displayed
+by the Visualizer. Once added, these elements will contribute to every frame.
+Calling one of these methods requires writable (non-const) access to the 
+Visualizer object. Note that adding DecorationGenerators does allow different
+geometry to be produced for each frame; however, once added a 
+DecorationGenerator will be called for \e every frame generated. **/
+/**@{**/
+
+/** Set the position and orientation of the ground plane.
+@param axis     the axis to which the ground plane is perpendicular
+@param height   the position of the ground plane along the specified axis **/
+void setGroundPosition(const CoordinateAxis& axis, Real height);
 
 /** Add a new pull-down menu to the VisualizationGUI's display. The button
 label is given in \a title, and a list of (string,int) pairs defines the menu 
@@ -245,41 +267,54 @@ void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
                         const DecorativeLine& line);
 
 /** Add a DecorationGenerator that will be invoked to add dynamically generated
-geometry to the scene. The Visualizer assumes ownership of the object passed to
-this method, and will delete it when the Visualizer is deleted. **/
+geometry to each frame of the the scene. The Visualizer assumes ownership of the 
+object passed to this method, and will delete it when the Visualizer is 
+deleted. **/
 void addDecorationGenerator(DecorationGenerator* generator);
+/**@}**/
+
+/** @name FrameControl Methods for controlling how a frame is displayed
+These methods can be called prior to rendering a frame to control how the 
+camera is positioned for that frame. These can be invoked from within a
+FrameControl object for runtime camera control. **/
+/**@{**/
 
 /** Set the transform defining the position and orientation of the camera. **/
-void setCameraTransform(const Transform& transform);
+void setCameraTransform(const Transform& transform) const;
 
 /** Move the camera forward or backward so that all geometry in the scene is 
 visible. **/
-void zoomCameraToShowAllGeometry();
+void zoomCameraToShowAllGeometry() const;
 
 /** Rotate the camera so that it looks at a specified point.
 @param point        the point to look at
 @param upDirection  a direction which should point upward as seen by the camera
 **/
-void pointCameraAt(const Vec3& point, const Vec3& upDirection);
+void pointCameraAt(const Vec3& point, const Vec3& upDirection) const;
 
 /** Set the camera's vertical field of view, measured in radians. **/
-void setCameraFieldOfView(Real fov);
+void setCameraFieldOfView(Real fov) const;
 
 /** Set the distance from the camera to the near and far clipping planes. **/
-void setCameraClippingPlanes(Real nearPlane, Real farPlane);
-
-/** Set the position and orientation of the ground plane.
-@param axis     the axis to which the ground plane is perpendicular
-@param height   the position of the ground plane along the specified axis **/
-void setGroundPosition(const CoordinateAxis& axis, Real height);
+void setCameraClippingPlanes(Real nearPlane, Real farPlane) const;
 
 /// OBSOLETE NAME: don't use this; it will be removed in a later release.
-void zoomCameraToIncludeAllGeometry() {zoomCameraToShowAllGeometry();}
+void zoomCameraToIncludeAllGeometry() const {zoomCameraToShowAllGeometry();}
+/**@}**/
 
-/// Debugging: dump statistics to the given ostream (e.g. std::cout).
+/** @name VizDebugging Methods for debugging and statistics **/
+/**@{**/
+/** Dump statistics to the given ostream (e.g. std::cout). **/
 void dumpStats(std::ostream& o) const;
-/// Debugging: reset all statistics to zero.
+/** Reset all statistics to zero. **/
 void clearStats();
+/**@}**/
+
+/** @name VizInternal Internal use only **/
+/**@{**/
+const Array_<EventListener*>& getEventListeners() const;
+const Array_<FrameController*>& getFrameControllers() const;
+/**@}**/
 
 class VisualizerRep;
 //--------------------------------------------------------------------------
@@ -288,6 +323,33 @@ VisualizerRep* rep;
 
 const VisualizerRep& getRep() const {assert(rep); return *rep;}
 VisualizerRep&       updRep() const {assert(rep); return *rep;}
+};
+
+/** This abstract class represents an object that will be invoked by the
+Visualizer just prior to rendering each frame. You can use this to call any
+of the const (runtime) methods of the Visualizer, typically to control the 
+camera, and you can also add some geometry to the scene, print messages to 
+the console, and so on. **/
+class Visualizer::FrameController {
+public:
+    /** The Visualizer is just about to generate and render a frame 
+    corresponding to the given State. 
+    @param[in]          viz     
+        The Visualizer that is doing the rendering.
+    @param[in]          state   
+        The State that is being used to generate the frame about to be
+        rendered by \a viz.
+    @param[in,out]      geometry 
+        DecorativeGeometry being accumulated for rendering in this frame;
+        be sure to \e append if you have anything to add.
+    **/
+    virtual void generateControls(const Visualizer&           viz, 
+                                  const State&                state,
+                                  Array_<DecorativeGeometry>& geometry) = 0;
+
+    /** Destructor is virtual; be sure to override it if you have something
+    to clean up at the end. **/
+    virtual ~FrameController() {}
 };
 
 } // namespace SimTK

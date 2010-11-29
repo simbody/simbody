@@ -6,7 +6,29 @@
 
 using namespace SimTK;
 
-class MyListener : public VisualizationEventListener {
+class MyFrameController : public Visualizer::FrameController {
+public:
+    MyFrameController(const SimbodyMatterSubsystem& matter,
+                      MobilizedBodyIndex whichBody,
+                      const Vec3& upDir) 
+    :   m_matter(matter), m_whichBody(whichBody), m_upDir(upDir) {}
+
+    virtual void generateControls(const Visualizer&           viz, 
+                                  const State&                state,
+                                  Array_<DecorativeGeometry>& geometry)
+    {
+        const MobilizedBody& mobod = m_matter.getMobilizedBody(m_whichBody);
+        const Transform& X_GB = mobod.getBodyTransform(state);
+        viz.pointCameraAt(X_GB.p(), m_upDir);
+    }
+
+private:
+    const SimbodyMatterSubsystem&   m_matter;
+    const MobilizedBodyIndex        m_whichBody;
+    const Vec3                      m_upDir;
+};
+
+class MyListener : public Visualizer::EventListener {
 public:
     MyListener(const Array_< std::pair<std::string, int> >& menu)
     :   m_menu(menu) {}
@@ -93,6 +115,8 @@ int main() {
     viz.addMenu("Test Menu",items);
 
     viz.addEventListener(new MyListener(items));
+
+    viz.addFrameController(new MyFrameController(matter, MobilizedBodyIndex(5), Vec3(0,1,0)));
 
     viz.setRealTimeScale(TimeScale);
     //viz.setDesiredBufferLengthInSec(.15);

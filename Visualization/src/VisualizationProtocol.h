@@ -82,18 +82,20 @@ public:
     void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness);
     void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
     void drawFrame(const Transform& transform, Real axisLength, const Vec4& color);
-    void setCameraTransform(const Transform& transform);
-    void zoomCamera();
-    void lookAt(const Vec3& point, const Vec3& upDirection);
-    void setFieldOfView(Real fov);
-    void setClippingPlanes(Real near, Real far);
-    void setGroundPosition(const CoordinateAxis& axis, Real height);
     void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
+    void setGroundPosition(const CoordinateAxis& axis, Real height);
+
+    void setCameraTransform(const Transform& transform) const;
+    void zoomCamera() const;
+    void lookAt(const Vec3& point, const Vec3& upDirection) const;
+    void setFieldOfView(Real fov) const;
+    void setClippingPlanes(Real near, Real far) const;
 private:
-    void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex);
+    void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, 
+                  short representation, short meshIndex);
     int outPipe;
     mutable std::map<const void*, int> meshes;
-    pthread_mutex_t sceneLock;
+    mutable pthread_mutex_t sceneLock;
 };
 
 }

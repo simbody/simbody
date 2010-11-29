@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_VISUALIZATION_EVENT_LISTENER_H_
-#define SimTK_SIMBODY_VISUALIZATION_EVENT_LISTENER_H_
+#ifndef SimTK_SIMBODY_VISUALIZER_EVENT_LISTENER_H_
+#define SimTK_SIMBODY_VISUALIZER_EVENT_LISTENER_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTKcommon                               *
@@ -32,7 +32,11 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+/** @file
+This defines the EventListener class that is internal to the Visualizer. **/
+
 #include "simbody/internal/common.h"
+#include "simbody/internal/Visualizer.h"
 
 namespace SimTK {
 
@@ -40,7 +44,7 @@ namespace SimTK {
 reports user activity back to the simulation process. Derive a concrete
 event listener whose methods take appropriate actions when event of interest
 occur. You only need to implement the methods you care about. **/
-class SimTK_SIMBODY_EXPORT VisualizationEventListener {
+class SimTK_SIMBODY_EXPORT Visualizer::EventListener {
 public:
     /** These represent modifications to the character that is passed into
     the keyPressed() method, including whether any of Shift/Control/Alt were
@@ -96,7 +100,7 @@ public:
     
     /** Destructor is virtual; be sure to override it if you need to 
     clean up. **/
-    virtual ~VisualizationEventListener() {}
+    virtual ~EventListener() {}
 
     /** This method is called when a user hits a keyboard key
     in the Visualizer window, unless that key is being intercepted
@@ -123,4 +127,4 @@ public:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_VISUALIZATION_EVENT_LISTENER_H_
+#endif // SimTK_SIMBODY_VISUALIZER_EVENT_LISTENER_H_

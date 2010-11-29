@@ -175,9 +175,11 @@ public:
         if (m_mode==RealTime && pool.size()) {
             pthread_cancel(drawThread);
         }
-        for (int i = 0; i < (int) listeners.size(); i++)
+        for (unsigned i = 0; i < controllers.size(); i++)
+            delete controllers[i];
+        for (unsigned i = 0; i < listeners.size(); i++)
             delete listeners[i];
-        for (int i = 0; i < (int) generators.size(); i++)
+        for (unsigned i = 0; i < generators.size(); i++)
             delete generators[i];
         pthread_cond_destroy(&queueNotEmpty);
         pthread_cond_destroy(&queueNotFull);
@@ -431,8 +433,9 @@ public:
 
     Array_<DecorativeGeometry>              addedGeometry;
     Array_<RubberBandLine>                  lines;
-    Array_<VisualizationEventListener*>     listeners;
     Array_<DecorationGenerator*>            generators;
+    Array_<Visualizer::EventListener*>      listeners;
+    Array_<Visualizer::FrameController*>    controllers;
 
     // User control of Visualizer behavior.
     Visualizer::Mode    m_mode;
@@ -572,8 +575,12 @@ void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
     Array_<DecorativeGeometry> geometry;
     for (Stage stage = Stage::Topology; stage <= state.getSystemStage(); ++stage)
         system.calcDecorativeGeometryAndAppend(state, stage, geometry);
-    for (int i = 0; i < (int) generators.size(); i++)
+    for (unsigned i = 0; i < generators.size(); i++)
         generators[i]->generateDecorations(state, geometry);
+
+    // Execute frame controls (e.g. camera positioning).
+    for (unsigned i = 0; i < controllers.size(); ++i)
+        controllers[i]->generateControls(*handle, state, geometry);
 
     // Calculate the spatial pose of all the geometry and send it to the
     // renderer.
@@ -814,15 +821,20 @@ void Visualizer::report(const State& state) {
     }
 }
 
-void Visualizer::addEventListener(VisualizationEventListener* listener) {
+void Visualizer::addEventListener(Visualizer::EventListener* listener) {
     updRep().listeners.push_back(listener);
 }
 
-const Array_<VisualizationEventListener*>& Visualizer::getEventListeners() const {
-    return getRep().listeners;
+void Visualizer::addFrameController(Visualizer::FrameController* controller) {
+    updRep().controllers.push_back(controller);
 }
+
 void Visualizer::addDecorationGenerator(DecorationGenerator* generator) {
     updRep().generators.push_back(generator);
+}
+
+void Visualizer::setGroundPosition(const CoordinateAxis& axis, Real height) {
+    updRep().protocol.setGroundPosition(axis, height);
 }
 
 void Visualizer::addMenu(const String& title, const Array_<pair<String, int> >& items) {
@@ -841,32 +853,33 @@ void Visualizer::addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
     updRep().lines.push_back(RubberBandLine(b1, station1, b2, station2, line));
 }
 
-void Visualizer::setCameraTransform(const Transform& transform) {
-    updRep().protocol.setCameraTransform(transform);
+void Visualizer::setCameraTransform(const Transform& transform) const {
+    getRep().protocol.setCameraTransform(transform);
 }
 
-void Visualizer::zoomCameraToShowAllGeometry() {
-    updRep().protocol.zoomCamera();
+void Visualizer::zoomCameraToShowAllGeometry() const {
+    getRep().protocol.zoomCamera();
 }
 
-void Visualizer::pointCameraAt(const Vec3& point, const Vec3& upDirection) {
-    updRep().protocol.lookAt(point, upDirection);
+void Visualizer::pointCameraAt(const Vec3& point, const Vec3& upDirection) const {
+    getRep().protocol.lookAt(point, upDirection);
 }
 
-void Visualizer::setCameraFieldOfView(Real fov) {
-    updRep().protocol.setFieldOfView(fov);
+void Visualizer::setCameraFieldOfView(Real fov) const {
+    getRep().protocol.setFieldOfView(fov);
 }
 
-void Visualizer::setCameraClippingPlanes(Real nearPlane, Real farPlane) {
-    updRep().protocol.setClippingPlanes(nearPlane, farPlane);
-}
-
-void Visualizer::setGroundPosition(const CoordinateAxis& axis, Real height) {
-    updRep().protocol.setGroundPosition(axis, height);
+void Visualizer::setCameraClippingPlanes(Real nearPlane, Real farPlane) const {
+    getRep().protocol.setClippingPlanes(nearPlane, farPlane);
 }
 
 void Visualizer::dumpStats(std::ostream& o) const {getRep().dumpStats(o);}
 void Visualizer::clearStats() {updRep().clearStats();}
+
+const Array_<Visualizer::EventListener*>& Visualizer::getEventListeners() const
+{   return getRep().listeners; }
+const Array_<Visualizer::FrameController*>& Visualizer::getFrameControllers() const
+{   return getRep().controllers; }
 
 
 //==============================================================================
