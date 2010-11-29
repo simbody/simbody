@@ -45,6 +45,7 @@
 #include <algorithm>
 #include <iostream>
 #include <ctime>
+#include <fstream>
 using std::cout; using std::endl;
 
 using namespace SimTK;
@@ -245,6 +246,17 @@ int main() {
     GeneralContactSubsystem OLDcontact(system);
     const ContactSetIndex OLDcontactSet = OLDcontact.createContactSet();
 
+    //PolygonalMesh pm1, pm2, pm3;
+    //std::ifstream in1("C:/Temp/Sphere1.obj"), in2("C:/Temp/Sphere2.obj"), in3("C:/Temp/Sphere3.obj");
+    //pm1.loadObjFile(in1); DecorativeMesh sphere1(pm1);
+    //sphere1.setColor(Orange).setRepresentation(DecorativeGeometry::DrawWireframe);
+    //matter.updGround().addBodyDecoration(Transform(), sphere1);
+    //pm2.loadObjFile(in2); DecorativeMesh sphere2(pm2);
+    //sphere2.setColor(Orange).setRepresentation(DecorativeGeometry::DrawWireframe);
+    //matter.updGround().addBodyDecoration(Vec3(3,0,0), sphere2);
+    //pm3.loadObjFile(in3); DecorativeMesh sphere3(pm3);
+    //sphere3.setColor(Orange).setRepresentation(DecorativeGeometry::DrawWireframe);
+    //matter.updGround().addBodyDecoration(Vec3(6,0,0), sphere3);
 
     PolygonalMesh pyramidMesh;
     //makeCube(1, pyramidMesh);

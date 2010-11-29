@@ -59,7 +59,8 @@ int main() {
   try {
     // Create the system.
 
-    const Real FrameRate = 30;
+    const Real FrameRate = 50;
+    const Real TimeScale = 3;
 
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -77,8 +78,11 @@ int main() {
         lastBody = pendulum.getMobilizedBodyIndex();
     }
 //    system.updDefaultSubsystem().addEventReporter(new VTKEventReporter(system, 0.02));
-    VisualizationReporter* vr = new VisualizationReporter(system, 1/FrameRate);
+    VisualizationReporter* vr = new VisualizationReporter(system, TimeScale/FrameRate);
     system.updDefaultSubsystem().addEventReporter(vr);
+    Visualizer& viz = vr->updVisualizer();
+    //printf("Main thread waiting 2s\n"); 
+    //sleepInSec(2);
 
         Array_< std::pair<std::string,int> > items;
     items.push_back(std::make_pair("One", 1));
@@ -86,14 +90,16 @@ int main() {
     items.push_back(std::make_pair("Top/SubA/second", 3));
     items.push_back(std::make_pair("Top/SubB/only", 4));
     items.push_back(std::make_pair("Two", 5));
-    vr->updVisualizer().addMenu("Test Menu",items);
+    viz.addMenu("Test Menu",items);
 
-    vr->updVisualizer().addEventListener(new MyListener(items));
+    viz.addEventListener(new MyListener(items));
 
-    vr->updVisualizer().setMode(Visualizer::RealTime);
-    vr->updVisualizer().setDesiredFrameRate(FrameRate);
-
-
+    viz.setRealTimeScale(TimeScale);
+    //viz.setDesiredBufferLengthInSec(.15);
+    viz.setDesiredFrameRate(FrameRate);
+    //viz.setMode(Visualizer::Sampling);
+    //viz.setMode(Visualizer::RealTime);
+     
 
     // Initialize the system and state.
 
@@ -105,18 +111,21 @@ int main() {
 
     // Simulate it.
 
+    //RungeKutta3Integrator integ(system);
     RungeKuttaMersonIntegrator integ(system);
-    integ.setAccuracy(1e-4);
+    //RungeKuttaFeldbergIntegrator integ(system);
+    //CPodesIntegrator integ(system);
+    integ.setAccuracy(1e-3);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    //timeval start;
-    //gettimeofday(&start, NULL);
-    ts.stepTo(100.0);
-    //timeval end;
-    //gettimeofday(&end, NULL);
-    //std::cout << "time: "<<(end.tv_sec-start.tv_sec)<< std::endl;
-//    std::cout << "steps: "<<integ.getNStepsTaken()<< std::endl;
 
+    double cpuStart = cpuTime();
+    double realStart = realTime();
+    ts.stepTo(10.0);
+    std::cout << "cpu time:  "<<cpuTime()-cpuStart<< std::endl;
+    std::cout << "real time: "<<realTime()-realStart<< std::endl;
+    std::cout << "steps:     "<<integ.getNumStepsTaken()<< std::endl;
+    vr->getVisualizer().dumpStats(std::cout);
 
     std::cout << "Type something to quit: ";
     char ch; std::cin >> ch;

@@ -258,13 +258,15 @@ try
     }
 
     State s = mbs.realizeTopology();
+
+    const Real FrameRate = 30;
     Visualizer vtk(mbs);
     //vtk.setCameraClippingPlanes(.5,200);
    // vtk.zoomCameraToShowAllGeometry();
 
     //vtk.setMode(Visualizer::Sampling);
-    //vtk.setMode(Visualizer::RealTime);
-    //vtk.setDesiredFrameRate(24);
+    //vtk.setDesiredFrameRate(FrameRate);
+    //vtk.setMode(Visualizer::PassThrough);
 
 
     //bouncers.setUseEulerAngles(s, true);
@@ -292,7 +294,6 @@ try
     std::vector<State> saveEm;
     saveEm.reserve(10000);
 
-    const Real FrameRate = 10;
     const Real h = 1/FrameRate; // output every frame
     const Real tstart = 0.;
     const Real tmax = 30;
@@ -357,6 +358,8 @@ try
     printf("# STEPS/ATTEMPTS = %d/%d\n", ee.getNumStepsTaken(), ee.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", ee.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", ee.getNumRealizations(), ee.getNumProjections());
+
+    vtk.dumpStats(std::cout);
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {

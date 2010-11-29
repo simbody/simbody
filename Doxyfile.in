@@ -21,7 +21,6 @@ SHORT_NAMES            = NO
 JAVADOC_AUTOBRIEF      = YES
 QT_AUTOBRIEF           = NO
 MULTILINE_CPP_IS_BRIEF = NO
-DETAILS_AT_TOP         = YES
 INHERIT_DOCS           = YES
 SEPARATE_MEMBER_PAGES  = NO
 TAB_SIZE               = 4
@@ -83,6 +82,7 @@ EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */tests/* \
                          */src/* \
+                         */VisualizationGUI/* \
                          */.svn/*
 EXCLUDE_SYMBOLS        = 
 EXAMPLE_PATH           = 
@@ -195,7 +195,7 @@ SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
 # Configuration::additions related to external references   
 #---------------------------------------------------------------------------
-TAGFILES               = "@SimTK_SDK@/doc/api/SimTKsimmath/SimTKsimmathDoxygenTagFile"="../SimTKsimmath" "@SimTK_SDK@/doc/api/SimTKcommon/SimTKcommonDoxygenTagFile"="../SimTKcommon"
+TAGFILES               = "@SimTK_SDK@/doc/api/SimTKmath/SimTKmathDoxygenTagFile"="../SimTKmath" "@SimTK_SDK@/doc/api/SimTKcommon/SimTKcommonDoxygenTagFile"="../SimTKcommon"
 GENERATE_TAGFILE       = "html/@PROJECT_NAME@DoxygenTagfile"
 ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
