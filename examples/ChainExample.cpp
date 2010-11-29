@@ -59,8 +59,8 @@ int main() {
   try {
     // Create the system.
 
-    const Real FrameRate = 50;
-    const Real TimeScale = 3;
+    const Real FrameRate = 24;
+    const Real TimeScale = 1;
 
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);

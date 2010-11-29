@@ -806,7 +806,12 @@ void Visualizer::report(const State& state) {
     // time for one ideal frame interval later to keep the maximum rate down 
     // to the specified rate. Otherwise a late frame could be followed by lots
     // of fast frames playing catch-up.
-    rep.m_nextFrameDueAdjRT = now + rep.m_timeBetweenFramesInNs;
+    if (now-rep.m_nextFrameDueAdjRT <= rep.m_timeBetweenFramesInNs)
+        rep.m_nextFrameDueAdjRT += rep.m_timeBetweenFramesInNs;
+    else { // a late frame; delay the next one
+        rep.m_nextFrameDueAdjRT = now + rep.m_timeBetweenFramesInNs;
+        ++rep.numAdjustmentsToRealTimeBase;
+    }
 }
 
 void Visualizer::addEventListener(VisualizationEventListener* listener) {

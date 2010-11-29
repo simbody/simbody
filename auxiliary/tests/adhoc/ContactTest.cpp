@@ -267,7 +267,7 @@ try
     //vtk.setMode(Visualizer::Sampling);
     vtk.setDesiredFrameRate(FrameRate);
     //vtk.setMode(Visualizer::PassThrough);
-    vtk.setMode(Visualizer::RealTime);
+    //vtk.setMode(Visualizer::RealTime);
     vtk.setDesiredBufferLengthInSec(.15);
     vtk.setDesiredFrameRate(FrameRate);
 
