@@ -161,7 +161,8 @@ public:
         m_allowableFrameTimeSlopInNs(
             secToNs(DefaultSlopAsFractionOfFrameInterval/DefaultFrameRateFPS)),
         m_adjustedRealTimeBase(realTimeInNs()),
-        m_nextFrameDueAdjRT(-1), oldest(0),nframe(0)
+        m_nextFrameDueAdjRT(-1), oldest(0),nframe(0),
+        m_drawThreadIsRunning(false), m_drawThreadShouldSuicide(false)
     {   
         pthread_mutex_init(&queueLock, NULL); 
         pthread_cond_init(&queueNotFull, NULL); 
@@ -173,7 +174,7 @@ public:
     
     ~VisualizerRep() {
         if (m_mode==RealTime && pool.size()) {
-            pthread_cancel(drawThread);
+            pthread_cancel(m_drawThread);
         }
         for (unsigned i = 0; i < controllers.size(); i++)
             delete controllers[i];
@@ -185,6 +186,41 @@ public:
         pthread_cond_destroy(&queueNotFull);
         pthread_mutex_destroy(&queueLock);
     }
+
+    void startDrawThread() {
+        SimTK_ASSERT_ALWAYS(!m_drawThreadIsRunning,
+            "Tried to start the draw thread when it was already running.");
+        m_drawThreadShouldSuicide = false;
+        // Make sure the thread is joinable, although that is probably
+        // the default.
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+        pthread_create(&m_drawThread, &attr, drawingThreadMain, this);
+        pthread_attr_destroy(&attr);
+        m_drawThreadIsRunning = true;
+    }
+
+    void killDrawThread() {
+        SimTK_ASSERT_ALWAYS(m_drawThreadIsRunning,
+            "Tried to kill the draw thread when it wasn't running.");
+        m_drawThreadShouldSuicide = true;
+        // The draw thread might be waiting on an empty queue, in which
+        // case we have to wake it up (see getOldestFrameInQueue()).
+        // We'll do it twice 100ms apart to avoid a timing issue where
+        // we signal just before the thread waits.
+        pthread_cond_signal(&queueNotEmpty); // wake it if necessary
+        sleepInSec(0.1); 
+        pthread_cond_signal(&queueNotEmpty);
+        pthread_join(m_drawThread, 0); // wait for death
+        m_drawThreadIsRunning = m_drawThreadShouldSuicide = false;
+    }
+
+    void startDrawThreadIfNecessary() 
+    {   if (!m_drawThreadIsRunning) startDrawThread(); }
+
+    void killDrawThreadIfNecessary() 
+    {   if (m_drawThreadIsRunning) killDrawThread(); }
 
     // Whenever a "set" method is called that may change one of the 
     // interrelated time quantities, set all of them. We expect
@@ -221,16 +257,14 @@ public:
         // the draw thread if necessary.
         if (m_mode == RealTime && numFrames != pool.size()) {
             if (pool.size()) {
-                // draw thread is already running
-                if (numFrames == 0) {
-                    pthread_cancel(drawThread);
-                    sleepInSec(getActualBufferLengthInSec());
-                }
+                // draw thread isn't needed if we get rid of the buffer
+                if (numFrames == 0)
+                    killDrawThreadIfNecessary();
                 initializePool(numFrames);
             } else {
-                // draw thread wasn't running but now should be
+                // draw thread is needed if we don't have one
                 initializePool(numFrames);
-                pthread_create(&drawThread, NULL, drawingThreadMain, this);
+                startDrawThreadIfNecessary();
             }
         }
 
@@ -255,8 +289,7 @@ public:
         // Mode is changing. If it was buffered RealTime before we have
         // to clean up first.
         if (m_mode == RealTime && pool.size()) {
-            pthread_cancel(drawThread);
-            sleepInSec(getActualBufferLengthInSec());
+            killDrawThreadIfNecessary();
             initializePool(0);  // clear the buffer
         }
 
@@ -364,19 +397,24 @@ public:
     // image. There is no danger of the simulation thread modifying this
     // frame; once it has been put in it stays there until the drawing thread
     // takes it out. When done it should return the frame to the pool.
-    const Frame& getOldestFrameInQueue() {
+    // Returns true if it gets a frame (which will always happen in normal
+    // operation since it waits until one is available), false if the draw
+    // thread should quit.
+    bool getOldestFrameInQueue(const Frame** fp) {
         LOCK_Queue();
-        if (nframe == 0) {
+        if (nframe == 0 && !m_drawThreadShouldSuicide) {
             ++numTimesDrawThreadBlockedOnEmptyQueue;
             do {WAIT_QueueNotEmpty();} // atomic: unlock, long wait, relock
-            while (nframe==0); // must recheck condition
+            while (nframe==0 && !m_drawThreadShouldSuicide); // must recheck
         } else {
             sumOfQueueLengths        += double(nframe);
             sumSquaredOfQueueLengths += double(square(nframe));
         }
-        // There is at least one frame available now. We are holding the lock.
+        // There is at least one frame available now, unless we're supposed
+        // to quit. We are holding the lock.
         UNLOCK_Queue();
-        return pool[oldest]; // simulation thread doesn't change oldest
+        if (m_drawThreadShouldSuicide) {*fp=0; return false;}
+        else {*fp=&pool[oldest]; return true;} // sim thread won't change oldest
     }
 
     // Drawing thread uses this to note that it is done with the oldest
@@ -470,7 +508,10 @@ public:
     pthread_mutex_t     queueLock;
     pthread_cond_t      queueNotFull;   // must use with queueLock
     pthread_cond_t      queueNotEmpty;  // must use with queueLock
-    pthread_t           drawThread;     // the rendering thread
+
+    pthread_t           m_drawThread;     // the rendering thread
+    bool                m_drawThreadIsRunning;
+    bool                m_drawThreadShouldSuicide;
 
 
     // Statistics
@@ -904,19 +945,21 @@ static void* drawingThreadMain(void* visualizerRepAsVoidp) {
     Visualizer::VisualizerRep& vizRep = 
         *reinterpret_cast<Visualizer::VisualizerRep*>(visualizerRepAsVoidp);
 
-    while (true) {
+    do {
         // Grab the oldest frame in the queue.
         // This will wait if necessary until a frame is available.
-        const Frame& frame = vizRep.getOldestFrameInQueue();
+        const Frame* framep;
+        if (vizRep.getOldestFrameInQueue(&framep)) {
+            // Draw this frame as soon as its draw time arrives, and readjust
+            // adjusted real time if necessary.
+            vizRep.drawRealtimeFrameWhenReady
+               (framep->state, framep->desiredDrawTimeAdjRT); 
 
-        // Draw this frame as soon as its draw time arrives, and readjust
-        // adjusted real time if necessary.
-        vizRep.drawRealtimeFrameWhenReady
-           (frame.state, frame.desiredDrawTimeAdjRT); 
+            // Return the now-rendered frame to circulation in the pool. This may
+            // wake up the simulation thread if it was waiting for space.
+            vizRep.noteThatOldestFrameIsNowAvailable();
+        }
+    } while (!vizRep.m_drawThreadShouldSuicide);
 
-        // Return the now-rendered frame to circulation in the pool. This may
-        // wake up the simulation thread if it was waiting for space.
-        vizRep.noteThatOldestFrameIsNowAvailable();
-    }
     return 0;
 }

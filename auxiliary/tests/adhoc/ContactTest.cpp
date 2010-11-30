@@ -262,14 +262,12 @@ try
     const Real FrameRate = 60;
     const Real TimeScale = 3; // i.e., 3X realtime
     Visualizer viz(mbs);
-    sleepInSec(1);
     //viz.setCameraClippingPlanes(.5,200);
    // viz.zoomCameraToShowAllGeometry();
 
     //viz.setMode(Visualizer::Sampling);
     //viz.setMode(Visualizer::PassThrough);
     viz.setMode(Visualizer::RealTime);
-   // viz.setDesiredBufferLengthInSec(0);
     viz.setDesiredFrameRate(FrameRate);
     viz.setRealTimeScale(TimeScale);
 
@@ -301,7 +299,7 @@ try
 
     const Real h = TimeScale/FrameRate; // output every frame
     const Real tstart = 0.;
-    const Real tmax = TimeScale*30;
+    const Real tmax = TimeScale*10;
 
 
     s.updTime() = tstart;
@@ -367,7 +365,6 @@ try
     viz.dumpStats(std::cout);
 
     while(true) {
-        //viz.setRealTimeScale(TimeScale); // TODO: reset
         for (int i=0; i < (int)saveEm.size(); ++i) {
             viz.report(saveEm[i]);
         }
