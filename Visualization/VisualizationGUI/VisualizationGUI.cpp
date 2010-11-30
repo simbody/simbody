@@ -719,7 +719,6 @@ static void drawGroundAndSky(float farClipDistance) {
         transform2 = transform*transform2;
         glPushMatrix();
         glMultMatrixf(&transform2[0][0]);
-        glDepthRange(0.0, 0.9999);
         // Solid and transparent shadows are the same color (sorry). Trying to
         // mix light and dark shadows is much harder and any simple attempts
         // (e.g. put light shadows on top of dark ones) look terrible.
@@ -729,18 +728,19 @@ static void drawGroundAndSky(float farClipDistance) {
         for (int i = 0; i < (int) scene->transparentMeshes.size(); i++)
             scene->transparentMeshes[i].draw();
         glPopMatrix();
-        glDepthRange(0.0, 1.0);
     }
     glUniform3f(glGetUniformLocation(groundProgram, "color2"), 1.0f, 0.8f, 0.7f);
     glDisable(GL_CULL_FACE);
     glPushMatrix();
     glMultMatrixf(&transform[0][0]);
+    glDepthRange(0.01, 1.0);
     glBegin(GL_QUADS);
     glVertex3d(corner1[0], corner1[1], corner1[2]);
     glVertex3d(corner2[0], corner2[1], corner2[2]);
     glVertex3d(corner3[0], corner3[1], corner3[2]);
     glVertex3d(corner4[0], corner4[1], corner4[2]);
     glEnd();
+    glDepthRange(0.0, 1.0);
     glEnable(GL_CULL_FACE);
     glPopMatrix();
     glUseProgram(0);
@@ -1896,7 +1896,7 @@ int main(int argc, char** argv) {
     glEnableClientState(GL_NORMAL_ARRAY);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE);
-    glEnable(GL_RESCALE_NORMAL);
+    glEnable(GL_NORMALIZE);
     makeBox();
     makeSphere();
     makeCylinder();
