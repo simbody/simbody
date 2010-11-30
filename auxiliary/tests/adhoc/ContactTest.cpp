@@ -259,17 +259,19 @@ try
 
     State s = mbs.realizeTopology();
 
-    const Real FrameRate = 24;
-    Visualizer vtk(mbs);
-    //vtk.setCameraClippingPlanes(.5,200);
-   // vtk.zoomCameraToShowAllGeometry();
+    const Real FrameRate = 60;
+    const Real TimeScale = 3; // i.e., 3X realtime
+    Visualizer viz(mbs);
+    sleepInSec(1);
+    //viz.setCameraClippingPlanes(.5,200);
+   // viz.zoomCameraToShowAllGeometry();
 
-    //vtk.setMode(Visualizer::Sampling);
-    vtk.setDesiredFrameRate(FrameRate);
-    //vtk.setMode(Visualizer::PassThrough);
-    //vtk.setMode(Visualizer::RealTime);
-    vtk.setDesiredBufferLengthInSec(.15);
-    vtk.setDesiredFrameRate(FrameRate);
+    //viz.setMode(Visualizer::Sampling);
+    //viz.setMode(Visualizer::PassThrough);
+    viz.setMode(Visualizer::RealTime);
+   // viz.setDesiredBufferLengthInSec(0);
+    viz.setDesiredFrameRate(FrameRate);
+    viz.setRealTimeScale(TimeScale);
 
 
     //bouncers.setUseEulerAngles(s, true);
@@ -288,7 +290,7 @@ try
     ee.setAccuracy(2e-2);
     //ee.setConstraintTolerance(1e-3);
 
-    vtk.report(s);
+    viz.report(s);
 
     // set Modeling stuff (s)
     //   none
@@ -297,21 +299,21 @@ try
     std::vector<State> saveEm;
     saveEm.reserve(10000);
 
-    const Real h = 1/FrameRate; // output every frame
+    const Real h = TimeScale/FrameRate; // output every frame
     const Real tstart = 0.;
-    const Real tmax = 30;
+    const Real tmax = TimeScale*30;
 
 
     s.updTime() = tstart;
     mbs.realize(s, Stage::Acceleration);
     for (int i=0; i<25; ++i)
         saveEm.push_back(s);    // delay
-    vtk.report(s);
+    viz.report(s);
 
     ee.initialize(s);
     for (int i=0; i<25; ++i)
         saveEm.push_back(ee.getState());    // delay
-    vtk.report(ee.getState());
+    viz.report(ee.getState());
 
     cout << "Using Integrator " << std::string(ee.getMethodName()) << ":\n";
     cout << "ACCURACY IN USE=" << ee.getAccuracyInUse() << endl;
@@ -341,7 +343,7 @@ try
         ++step;
 
         ee.stepTo(ss.getTime() + h);
-        vtk.report(ss);
+        viz.report(ss);
         saveEm.push_back(ss);
 
         //if (std::abs(ss.getTime()-30) < .001)
@@ -362,12 +364,12 @@ try
     printf("# ERR TEST FAILS = %d\n", ee.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", ee.getNumRealizations(), ee.getNumProjections());
 
-    vtk.dumpStats(std::cout);
+    viz.dumpStats(std::cout);
 
     while(true) {
+        //viz.setRealTimeScale(TimeScale); // TODO: reset
         for (int i=0; i < (int)saveEm.size(); ++i) {
-            for (int j=0; j < 4; ++j) // 1/4 speed
-                vtk.report(saveEm[i]);
+            viz.report(saveEm[i]);
         }
         getchar();
     }

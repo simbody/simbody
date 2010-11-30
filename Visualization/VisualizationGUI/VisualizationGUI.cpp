@@ -360,7 +360,7 @@ static GLfloat nearClip = 1;
 static GLfloat farClip = 1000;
 static GLfloat groundHeight = 0;
 static int groundAxis = 1;
-static bool showGround = false, showShadows = true, showFPS = true;
+static bool showGround = true, showShadows = true, showFPS = true;
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
 static int fpsBaseTime = 0, fpsCounter = 0, nextMeshIndex;
@@ -727,6 +727,8 @@ static void drawGroundAndSky(float farClipDistance) {
             scene->solidMeshes[i].draw();
         for (int i = 0; i < (int) scene->transparentMeshes.size(); i++)
             scene->transparentMeshes[i].draw();
+        for (int i = 0; i < (int) scene->lines.size(); i++)
+            scene->lines[i].draw();
         glPopMatrix();
     }
     glUniform3f(glGetUniformLocation(groundProgram, "color2"), 1.0f, 0.8f, 0.7f);

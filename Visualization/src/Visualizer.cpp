@@ -655,7 +655,7 @@ void Visualizer::VisualizerRep::reportRealtime(const State& state) {
     // If this is the first frame, or first since last setMode(), then
     // we synchronize Adjusted Real Time to match. Readjustments will occur
     // if the simulation doesn't keep up with real time.
-    if (m_nextFrameDueAdjRT < 0LL) {
+    if (m_nextFrameDueAdjRT < 0 || t == 0) {
         m_adjustedRealTimeBase = realTimeInNs() - t;
         // now getAdjustedRealTime()==tInNs
         m_nextFrameDueAdjRT = t; // now

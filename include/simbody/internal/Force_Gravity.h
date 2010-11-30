@@ -168,6 +168,12 @@ gravity will act.
 @return A writable reference to "this" Gravity element which will now have
     the new default \a direction. **/
 Gravity& setDefaultDownDirection(const UnitVec3& down);
+/** Convenience overload that takes the down direction as a Vec3 and 
+normalizes it (throwing away the magnitude) to create the required unit 
+vector for the down direction. It is an error if the supplied Vec3 has zero 
+length. **/
+Gravity& setDefaultDownDirection(const Vec3& down)
+{   return setDefaultDownDirection(UnitVec3(down)); }
 
 /** Set the default magnitude of gravity (a nonegative scalar). This will be 
 combined with the default \a direction unit vector d to calculate the gravity 
@@ -252,6 +258,13 @@ with setMagnitude().
 @see setMagnitude() **/
 const Gravity& setDownDirection(State&           state,
                                 const UnitVec3&  down) const;
+/** Convenience overload that takes the down direction as a Vec3 and 
+normalizes it (throwing away the magnitude) to create the required unit 
+vector. It is an error if the supplied Vec3 has zero length. **/
+const Gravity& setDownDirection(State&          state,
+                                const Vec3&     down) const
+{   return setDownDirection(state, UnitVec3(down)); }
+
 /** Set the gravity magnitude g (a nonnegative scalar) in this \a state,
 overriding the default gravity magnitude that is stored in this Gravity force
 element.
