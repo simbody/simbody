@@ -85,7 +85,7 @@ of the buffer is selectable; see setDesiredBufferLengthInSec().
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
 class FrameController; // defined below
-class EventListener;   // defined in Visualizer_EventListener.h
+class InputListener;   // defined in Visualizer_InputListener.h
 
 
 /** Construct new Visualizer using default window title (the name of the 
@@ -95,13 +95,13 @@ Visualizer(MultibodySystem& system);
 Visualizer(MultibodySystem& system, const String& title);
 /** Event listener and decoration generator objects are destroyed here. **/
 ~Visualizer();
-    
+
 /** These are the operating modes for the Visualizer, with PassThrough the 
 default mode. See the documentation for the Visualizer class for more
 information about the modes. **/
 enum Mode {
     /** Send through to the renderer every frame that is received from the
-    simulator. **/
+    simulator (default mode). **/
     PassThrough = 1,
     /** Sample the results from the simulation at fixed real time intervals
     given by the frame rate. **/
@@ -109,6 +109,11 @@ enum Mode {
     /** Synchronize real frame display times with the simulated time. **/
     RealTime    = 3
 };
+
+/** @name                  Visualizer options
+These methods are used for setting a variety of options for the Visualizer's
+behavior, normally prior to sending it the first frame. **/
+/**@{**/
 
 /** Set the operating mode for the Visualizer. See \ref Visualizer::Mode for 
 choices, and the discussion for the Visualizer class for meanings. **/
@@ -185,6 +190,24 @@ Real getActualBufferLengthInSec() const;
 /** Get the actual length of the real time frame buffer in number of frames. **/
 int getActualBufferLengthInFrames() const;
 
+/** Add a new event listener to this Visualizer, methods of which will be
+called when the GUI detects user-driven events like key presses, menu picks, 
+or mouse moves. See \ref Visualizer::InputListener for more information. 
+The Visualizer takes over ownership of the supplied \a listener object and 
+deletes it upon destruction of the Visualizer. **/
+void addInputListener(InputListener* listener);
+
+/** Add a new frame controller to this Visualizer, methods of which will be
+called just prior to rendering a frame for the purpose of simulation-controlled
+camera positioning and other frame-specific effects. 
+See \ref Visualizer::FrameController for more information. The Visualizer takes 
+over ownership of the supplied \a controller object and deletes it destruction 
+of the Visualizer. **/ 
+void addFrameController(FrameController* controller);
+/**@}**/
+
+
+
 /** Report that a new simulation frame is available for rendering. Depending
 on the current Visualizer::Mode, handling of the frame will vary:
 
@@ -214,22 +237,8 @@ the frame rate. Typically you should use the report() method instead, and
 let the the internal queuing system decide when to call drawFrameNow(). **/
 void drawFrameNow(const State& state);
 
-/** Add a new event listener to this Visualizer, methods of which will be
-called when the GUI detects user-driven events like key presses, menu picks, 
-or mouse moves. See \ref Visualizer::EventListener for more information. 
-The Visualizer takes over ownership of the supplied \a listener object and 
-deletes it upon destruction of the Visualizer. **/
-void addEventListener(EventListener* listener);
 
-/** Add a new frame controller to this Visualizer, methods of which will be
-called just prior to rendering a frame for the purpose of simulation-controlled
-camera positioning and other frame-specific effects. 
-See \ref Visualizer::FrameController for more information. The Visualizer takes 
-over ownership of the supplied \a controller object and deletes it destruction 
-of the Visualizer. **/ 
-void addFrameController(FrameController* controller);
-
-/** @name SceneBuilding Scene-building methods
+/** @name                  Scene-building methods
 These methods are used to add permanent elements to the scene being displayed
 by the Visualizer. Once added, these elements will contribute to every frame.
 Calling one of these methods requires writable (non-const) access to the 
@@ -272,7 +281,7 @@ deleted. **/
 void addDecorationGenerator(DecorationGenerator* generator);
 /**@}**/
 
-/** @name FrameControl Methods for controlling how a frame is displayed
+/** @name                Frame control methods
 These methods can be called prior to rendering a frame to control how the 
 camera is positioned for that frame. These can be invoked from within a
 FrameControl object for runtime camera control. **/
@@ -301,7 +310,7 @@ void setCameraClippingPlanes(Real nearPlane, Real farPlane) const;
 void zoomCameraToIncludeAllGeometry() const {zoomCameraToShowAllGeometry();}
 /**@}**/
 
-/** @name VizDebugging Methods for debugging and statistics **/
+/** @name            Methods for debugging and statistics **/
 /**@{**/
 /** Dump statistics to the given ostream (e.g. std::cout). **/
 void dumpStats(std::ostream& o) const;
@@ -309,9 +318,9 @@ void dumpStats(std::ostream& o) const;
 void clearStats();
 /**@}**/
 
-/** @name VizInternal Internal use only **/
+/** @name                       Internal use only **/
 /**@{**/
-const Array_<EventListener*>& getEventListeners() const;
+const Array_<InputListener*>&   getInputListeners() const;
 const Array_<FrameController*>& getFrameControllers() const;
 /**@}**/
 

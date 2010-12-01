@@ -32,7 +32,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/Visualizer.h"
-#include "simbody/internal/Visualizer_EventListener.h"
+#include "simbody/internal/Visualizer_InputListener.h"
 #include "simbody/internal/DecorationGenerator.h"
 #include "VisualizationGeometry.h"
 #include "VisualizationProtocol.h"
@@ -472,7 +472,7 @@ public:
     Array_<DecorativeGeometry>              addedGeometry;
     Array_<RubberBandLine>                  lines;
     Array_<DecorationGenerator*>            generators;
-    Array_<Visualizer::EventListener*>      listeners;
+    Array_<Visualizer::InputListener*>      listeners;
     Array_<Visualizer::FrameController*>    controllers;
 
     // User control of Visualizer behavior.
@@ -862,7 +862,7 @@ void Visualizer::report(const State& state) {
     }
 }
 
-void Visualizer::addEventListener(Visualizer::EventListener* listener) {
+void Visualizer::addInputListener(Visualizer::InputListener* listener) {
     updRep().listeners.push_back(listener);
 }
 
@@ -917,7 +917,7 @@ void Visualizer::setCameraClippingPlanes(Real nearPlane, Real farPlane) const {
 void Visualizer::dumpStats(std::ostream& o) const {getRep().dumpStats(o);}
 void Visualizer::clearStats() {updRep().clearStats();}
 
-const Array_<Visualizer::EventListener*>& Visualizer::getEventListeners() const
+const Array_<Visualizer::InputListener*>& Visualizer::getInputListeners() const
 {   return getRep().listeners; }
 const Array_<Visualizer::FrameController*>& Visualizer::getFrameControllers() const
 {   return getRep().controllers; }

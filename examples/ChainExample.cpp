@@ -33,7 +33,7 @@ private:
     const Force::Gravity&           m_gravity;
 };
 
-class MyListener : public Visualizer::EventListener {
+class MyListener : public Visualizer::InputListener {
 public:
     MyListener(const Array_< std::pair<std::string, int> >& menu)
     :   m_menu(menu) {pthread_mutex_init(&charQueueLock,0);}
@@ -117,34 +117,34 @@ public:
         std::pair<unsigned,unsigned> charHit = m_listener.takeNextCharIfAny();
         if (charHit.first == 0) return;
 
-        if (charHit.first == Visualizer::EventListener::KeyEsc) {
+        if (charHit.first == Visualizer::InputListener::KeyEsc) {
             printf("User hit ESC!!\n");
             shouldTerminate = true;
         } else {
             const UnitVec3& down = m_gravity.getDownDirection(state);
-            bool control = (charHit.second & Visualizer::EventListener::ControlIsDown) != 0;
+            bool control = (charHit.second & Visualizer::InputListener::ControlIsDown) != 0;
             switch(charHit.first) {
-            case Visualizer::EventListener::KeyLeftArrow:
+            case Visualizer::InputListener::KeyLeftArrow:
                     m_gravity.setDownDirection(state, down + .1*Vec3(-1,0,0));
                     lowestModified = Stage::Instance;
                     break;
-            case Visualizer::EventListener::KeyRightArrow:
+            case Visualizer::InputListener::KeyRightArrow:
                     m_gravity.setDownDirection(state, down + .1*Vec3(1,0,0));
                     lowestModified = Stage::Instance;
                     break;
-            case Visualizer::EventListener::KeyUpArrow:
+            case Visualizer::InputListener::KeyUpArrow:
                     m_gravity.setDownDirection(state, down + .1*Vec3(0,1,0));
                     lowestModified = Stage::Instance;
                     break;
-            case Visualizer::EventListener::KeyDownArrow:
+            case Visualizer::InputListener::KeyDownArrow:
                     m_gravity.setDownDirection(state,  down + .1*Vec3(0,-1,0));
                     lowestModified = Stage::Instance;
                     break;
-            case Visualizer::EventListener::KeyPageUp:
+            case Visualizer::InputListener::KeyPageUp:
                     m_gravity.setDownDirection(state, down + .1*Vec3(0,0,-1));
                     lowestModified = Stage::Instance;
                     break;
-            case Visualizer::EventListener::KeyPageDown:
+            case Visualizer::InputListener::KeyPageDown:
                     m_gravity.setDownDirection(state, down + .1*Vec3(0,0,1));
                     lowestModified = Stage::Instance;
                     break;
@@ -204,7 +204,7 @@ int main() {
     viz.addMenu("Test Menu",items);
 
     MyListener& listener = *new MyListener(items);
-    viz.addEventListener(&listener);
+    viz.addInputListener(&listener);
 
     viz.addFrameController(new MyFrameController(matter, MobilizedBodyIndex(25), gravity));
 

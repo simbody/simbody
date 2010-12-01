@@ -31,7 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/Visualizer.h"
-#include "simbody/internal/Visualizer_EventListener.h"
+#include "simbody/internal/Visualizer_InputListener.h"
 #include "../src/VisualizationProtocol.h"
 #include "lodepng.h"
 
@@ -1088,11 +1088,11 @@ static void ordinaryKeyPressed(unsigned char key, int x, int y) {
     buffer[1] = 0;
     unsigned char modifiers = glutGetModifiers();
     if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
-        buffer[1] += Visualizer::EventListener::ShiftIsDown;
+        buffer[1] += Visualizer::InputListener::ShiftIsDown;
     if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
-        buffer[1] += Visualizer::EventListener::ControlIsDown;
+        buffer[1] += Visualizer::InputListener::ControlIsDown;
     if ((modifiers & GLUT_ACTIVE_ALT) != 0)
-        buffer[1] += Visualizer::EventListener::AltIsDown;
+        buffer[1] += Visualizer::InputListener::AltIsDown;
     WRITE(outPipe, buffer, 2);
 }
 
@@ -1101,14 +1101,14 @@ static void specialKeyPressed(int key, int x, int y) {
     WRITE(outPipe, &command, 1);
     unsigned char buffer[2];
     buffer[0] = (unsigned char)key; // this is the special key code
-    buffer[1] = Visualizer::EventListener::IsSpecialKey;
+    buffer[1] = Visualizer::InputListener::IsSpecialKey;
     unsigned char modifiers = glutGetModifiers();
     if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
-        buffer[1] &= Visualizer::EventListener::ShiftIsDown;
+        buffer[1] &= Visualizer::InputListener::ShiftIsDown;
     if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
-        buffer[1] &= Visualizer::EventListener::ControlIsDown;
+        buffer[1] &= Visualizer::InputListener::ControlIsDown;
     if ((modifiers & GLUT_ACTIVE_ALT) != 0)
-        buffer[1] &= Visualizer::EventListener::AltIsDown;
+        buffer[1] &= Visualizer::InputListener::AltIsDown;
     WRITE(outPipe, buffer, 2);
 }
 

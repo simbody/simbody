@@ -32,7 +32,7 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/Visualizer.h"
-#include "simbody/internal/Visualizer_EventListener.h"
+#include "simbody/internal/Visualizer_InputListener.h"
 #include "VisualizationProtocol.h"
 
 #include <cstdlib>
@@ -136,10 +136,10 @@ static void* listenForVisualizationEvents(void* arg) {
         switch (buffer[0]) {
             case KEY_PRESSED: {
                 readData(buffer, 2);
-                const Array_<Visualizer::EventListener*>& listeners = visualizer.getEventListeners();
+                const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
                 unsigned keyCode = buffer[0];
-                if (buffer[1] & Visualizer::EventListener::IsSpecialKey)
-                    keyCode += Visualizer::EventListener::SpecialKeyOffset;
+                if (buffer[1] & Visualizer::InputListener::IsSpecialKey)
+                    keyCode += Visualizer::InputListener::SpecialKeyOffset;
                 for (int i = 0; i < (int) listeners.size(); i++)
                     if (listeners[i]->keyPressed(keyCode, (unsigned)(buffer[1])))
                         break; // key press has been handled
@@ -148,7 +148,7 @@ static void* listenForVisualizationEvents(void* arg) {
             case MENU_SELECTED: {
                 int item;
                 readData((unsigned char*) &item, sizeof(int));
-                const Array_<Visualizer::EventListener*>& listeners = visualizer.getEventListeners();
+                const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
                 for (int i = 0; i < (int) listeners.size(); i++)
                     if (listeners[i]->menuSelected(item))
                         break; // menu event has been handled
