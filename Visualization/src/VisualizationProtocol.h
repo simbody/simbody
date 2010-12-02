@@ -53,17 +53,19 @@ static const char ADD_TEXT = 6;
 static const char ADD_FRAME = 7;
 static const char DEFINE_MESH = 8;
 static const char DEFINE_MENU = 9;
-static const char SET_CAMERA = 10;
-static const char ZOOM_CAMERA = 11;
-static const char LOOK_AT = 12;
-static const char SET_FIELD_OF_VIEW = 13;
-static const char SET_CLIP_PLANES = 14;
-static const char SET_GROUND_POSITION = 15;
+static const char DEFINE_SLIDER = 10;
+static const char SET_CAMERA = 11;
+static const char ZOOM_CAMERA = 12;
+static const char LOOK_AT = 13;
+static const char SET_FIELD_OF_VIEW = 14;
+static const char SET_CLIP_PLANES = 15;
+static const char SET_GROUND_POSITION = 16;
 
 // Events sent from the GUI back to the application.
 
 static const char KEY_PRESSED = 0;
 static const char MENU_SELECTED = 1;
+static const char SLIDER_MOVED = 2;
 
 namespace SimTK {
 
@@ -83,6 +85,7 @@ public:
     void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
     void drawFrame(const Transform& transform, Real axisLength, const Vec4& color);
     void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
+    void addSlider(const String& title, int id, Real value);
     void setGroundPosition(const CoordinateAxis& axis, Real height);
 
     void setCameraTransform(const Transform& transform) const;

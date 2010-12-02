@@ -576,6 +576,102 @@ private:
 
 int Menu::currentMenu = -1;
 
+class Slider {
+public:
+    Slider(string title, int id, float position) : title(title), id(id), position(position) {
+        labelWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) title.c_str());
+        if (labelWidth > maxLabelWidth)
+            maxLabelWidth = labelWidth;
+    }
+
+    int draw(int y) {
+        minx = maxLabelWidth+16;
+        maxx = minx+sliderWidth+handleWidth;
+        miny = y-18;
+        maxy = y+3;
+        int frameMinx = 10;
+        int frameMaxx = maxx+2;
+        glColor3f(0.9f, 0.9f, 0.9f);
+        glBegin(GL_POLYGON);
+        glVertex2i(frameMinx+2, miny);
+        glVertex2i(frameMinx, miny+1);
+        glVertex2i(frameMinx, maxy-1);
+        glVertex2i(frameMinx+2, maxy);
+        glVertex2i(frameMaxx-1, maxy);
+        glVertex2i(frameMaxx, maxy-1);
+        glVertex2i(frameMaxx, miny+1);
+        glVertex2i(frameMaxx-1, miny);
+        glEnd();
+        glColor3f(0.5f, 0.5f, 0.5f);
+        glBegin(GL_QUADS);
+        glVertex2i(minx, miny+12);
+        glVertex2i(maxx, miny+12);
+        glVertex2i(maxx, miny+9);
+        glVertex2i(minx, miny+9);
+        glEnd();
+        glColor3f(0.2f, 0.2f, 0.2f);
+        handlex = minx+(int) (sliderWidth*position);
+        glBegin(GL_QUADS);
+        glVertex2i(handlex+handleWidth, miny+2);
+        glVertex2i(handlex, miny+2);
+        glVertex2i(handlex, miny+19);
+        glVertex2i(handlex+handleWidth, miny+19);
+        glEnd();
+        glRasterPos2f(GLfloat(12+maxLabelWidth-labelWidth), GLfloat(y));
+        for (int i = 0; i < (int) title.size(); i++)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, title[i]);
+        return y-25;
+    }
+
+    bool mousePressed(int x, int y) {
+        dragging = false;
+        if (x >= minx && y >= miny && x <= maxx && y <= maxy) {
+            if (x < handlex) {
+                position = std::max(position-0.1f, 0.0f);
+                positionChanged();
+            }
+            else if (x > handlex+handleWidth) {
+                position = std::min(position+0.1f, 1.0f);
+                positionChanged();
+            }
+            else {
+                clickOffset = x-handlex;
+                dragging = true;
+            }
+            return true;
+        }
+        else
+            return false;
+    }
+
+    void mouseDragged(int x) {
+        if (dragging) {
+            position = (x-clickOffset-minx)/(float) sliderWidth;
+            position = std::min(std::max(position, 0.0f), 1.0f);
+            positionChanged();
+        }
+    }
+private:
+    void positionChanged() {
+        char command = SLIDER_MOVED;
+        WRITE(outPipe, &command, 1);
+        WRITE(outPipe, &id, sizeof(int));
+        WRITE(outPipe, &position, sizeof(float));
+        glutPostRedisplay();
+    }
+    string title;
+    int labelWidth;
+    int id, minx, miny, maxx, maxy, handlex;
+    int clickOffset;
+    bool dragging;
+    float position;
+    static int maxLabelWidth;
+    static const int handleWidth = 5;
+    static const int sliderWidth = 100;
+};
+
+int Slider::maxLabelWidth = 0;
+
 static void drawGroundAndSky(float farClipDistance) {
     static GLuint skyProgram = 0;
     if (skyProgram == 0) {
@@ -749,7 +845,7 @@ static void drawGroundAndSky(float farClipDistance) {
 }
 
 static vector<Menu> menus;
-
+static vector<Slider> sliders;
 
 static void changeSize(int width, int height) {
     if (height == 0)
@@ -895,6 +991,12 @@ static void redrawDisplay() {
     for (int i = 0; i < (int) menus.size(); i++)
         menux += menus[i].draw(menux, viewHeight-10);
 
+    // Draw sliders.
+
+    int slidery = viewHeight-35;
+    for (int i = 0; i < (int) sliders.size(); i++)
+        slidery = sliders[i].draw(slidery);
+
     // Draw the frame rate counter.
 
     if (showFPS) {
@@ -932,6 +1034,7 @@ static int clickModifiers;
 static int clickButton;
 static int clickX;
 static int clickY;
+static int clickedSlider;
 static bool rotateCenterValid = false;
 static fVec3 rotateCenter;
 static float sceneScale; // for scaling translations
@@ -984,6 +1087,15 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
     clickX = x;
     clickY = y;
 
+    // See if this click was on a slider.
+    clickedSlider = -1;
+    for (int i = 0; i < (int) sliders.size(); i++) {
+        if (sliders[i].mousePressed(x, y)) {
+            clickedSlider = i;
+            return;
+        }
+    }
+
     // Left button is rotation; when it is first pressed we calcuate the center
     // of rotation; we'll do the actual rotating in mouseDragged().
     if (clickButton == GLUT_LEFT_BUTTON) {
@@ -1010,6 +1122,10 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 // when I have a menu displayed and then click outside the menu but inside
 // the graphics window.)
 static void mouseDragged(int x, int y) {
+    if (clickedSlider > -1) {
+        sliders[clickedSlider].mouseDragged(x);
+        return;
+    }
 
     // 1/4 degree per pixel
     const float AnglePerPixel = 0.25*((float)SimTK_PI/180); 
@@ -1682,6 +1798,18 @@ void* listenForInput(void* args) {
             }
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
             menus.push_back(Menu(title, items, menuSelected));
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case DEFINE_SLIDER: {
+            readData(buffer, sizeof(short));
+            int titleLength = shortBuffer[0];
+            vector<char> titleBuffer(titleLength);
+            readData(&titleBuffer[0], titleLength);
+            string title(&titleBuffer[0], titleLength);
+            readData(buffer, sizeof(int)+sizeof(float));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            sliders.push_back(Slider(title, intBuffer[0], floatBuffer[1]));
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }

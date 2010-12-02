@@ -154,6 +154,17 @@ static void* listenForVisualizationEvents(void* arg) {
                         break; // menu event has been handled
                 break;
             }
+            case SLIDER_MOVED: {
+                int slider;
+                readData((unsigned char*) &slider, sizeof(int));
+                float value;
+                readData((unsigned char*) &value, sizeof(float));
+                const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
+                for (int i = 0; i < (int) listeners.size(); i++)
+                    if (listeners[i]->sliderMoved(slider, value))
+                        break; // slider event has been handled
+                break;
+            }
             default:
                 SimTK_ASSERT_ALWAYS(false, "Unexpected data received from visualizer");
         }
@@ -392,7 +403,6 @@ void VisualizationProtocol::drawFrame(const Transform& transform, Real axisLengt
     WRITE(outPipe, buffer, 10*sizeof(float));
 }
 
-
 void VisualizationProtocol::addMenu(const String& title, const Array_<pair<String, int> >& items) {
     pthread_mutex_lock(&sceneLock);
     char command = DEFINE_MENU;
@@ -407,6 +417,20 @@ void VisualizationProtocol::addMenu(const String& title, const Array_<pair<Strin
         WRITE(outPipe, buffer, 2*sizeof(int));
         WRITE(outPipe, items[i].first.c_str(), items[i].first.size());
     }
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizationProtocol::addSlider(const String& title, int id, Real value) {
+    SimTK_ASSERT_ALWAYS(value >= 0.0 && value <= 1.0, "Slider value must be between 0 and 1");
+    pthread_mutex_lock(&sceneLock);
+    char command = DEFINE_SLIDER;
+    WRITE(outPipe, &command, 1);
+    short titleLength = title.size();
+    WRITE(outPipe, &titleLength, sizeof(short));
+    WRITE(outPipe, title.c_str(), titleLength);
+    write(outPipe, &id, sizeof(int));
+    float floatValue = (float) value;
+    write(outPipe, &floatValue, sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
 

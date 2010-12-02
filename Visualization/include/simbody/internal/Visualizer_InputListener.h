@@ -122,6 +122,13 @@ public:
     @return Return true if you have handled this menu click and don't
     want any subsequent listeners called. **/
     virtual bool menuSelected(int item) {return false;}
+
+    /** The user has moved one of the sliders you defined; here is
+    the integer value you specified when you defined it, and the new
+    value of the slider.
+    @return Return true if you have handled this move and don't
+    want any subsequent listeners called. **/
+    virtual bool sliderMoved(int slider, Real value) {return false;}
 };
 
 } // namespace SimTK

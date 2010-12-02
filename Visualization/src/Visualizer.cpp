@@ -882,6 +882,10 @@ void Visualizer::addMenu(const String& title, const Array_<pair<String, int> >& 
     updRep().protocol.addMenu(title, items);
 }
 
+void Visualizer::addSlider(const String& title, int id, Real value) {
+    updRep().protocol.addSlider(title, id, value);
+}
+
 void Visualizer::addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, const DecorativeGeometry& geom) {
     Array_<DecorativeGeometry>& addedGeometry = updRep().addedGeometry;
     addedGeometry.push_back(geom);
