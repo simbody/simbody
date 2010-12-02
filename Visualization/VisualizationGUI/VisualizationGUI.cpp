@@ -646,9 +646,11 @@ public:
 
     void mouseDragged(int x) {
         if (dragging) {
+            float oldPosition = position;
             position = (x-clickOffset-minx)/(float) sliderWidth;
             position = std::min(std::max(position, 0.0f), 1.0f);
-            positionChanged();
+            if (position != oldPosition)
+                positionChanged();
         }
     }
 private:
