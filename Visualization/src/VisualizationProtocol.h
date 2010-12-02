@@ -85,7 +85,7 @@ public:
     void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
     void drawFrame(const Transform& transform, Real axisLength, const Vec4& color);
     void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
-    void addSlider(const String& title, int id, Real value);
+    void addSlider(const String& title, int id, Real min, Real max, Real value);
     void setGroundPosition(const CoordinateAxis& axis, Real height);
 
     void setCameraTransform(const Transform& transform) const;

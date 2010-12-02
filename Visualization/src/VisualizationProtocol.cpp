@@ -420,8 +420,8 @@ void VisualizationProtocol::addMenu(const String& title, const Array_<pair<Strin
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::addSlider(const String& title, int id, Real value) {
-    SimTK_ASSERT_ALWAYS(value >= 0.0 && value <= 1.0, "Slider value must be between 0 and 1");
+void VisualizationProtocol::addSlider(const String& title, int id, Real min, Real max, Real value) {
+    SimTK_ASSERT_ALWAYS(value >= min && value <= max, "Slider value must be between the specified minimum and maximum");
     pthread_mutex_lock(&sceneLock);
     char command = DEFINE_SLIDER;
     WRITE(outPipe, &command, 1);
@@ -429,8 +429,11 @@ void VisualizationProtocol::addSlider(const String& title, int id, Real value) {
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
     write(outPipe, &id, sizeof(int));
-    float floatValue = (float) value;
-    write(outPipe, &floatValue, sizeof(float));
+    float buffer[3];
+    buffer[0] = (float) min;
+    buffer[1] = (float) max;
+    buffer[2] = (float) value;
+    write(outPipe, buffer, 3*sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
 

@@ -277,8 +277,10 @@ void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
 /** Add a new slider to the VisualizationGUI's display.
 @param title    the title to display next to the slider
 @param id       an integer value that uniquely identifies this slider
-@param value    the initial value of the slider, which must be between 0 and 1 **/
-void addSlider(const String& title, int id, Real value);
+@param min      the minimum value the slider can have
+@param max      the maximum value the slider can have
+@param value    the initial value of the slider, which must be between min and max **/
+void addSlider(const String& title, int id, Real min, Real max, Real value);
 
 /** Add an always-present, body-fixed piece of geometry like the one passed in,
 but attached to the indicated body. The supplied transform is applied on top of

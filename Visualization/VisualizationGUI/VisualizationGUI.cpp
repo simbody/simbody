@@ -578,7 +578,8 @@ int Menu::currentMenu = -1;
 
 class Slider {
 public:
-    Slider(string title, int id, float position) : title(title), id(id), position(position) {
+    Slider(string title, int id, float minValue, float maxValue, float value) :
+                title(title), id(id), minValue(minValue), maxValue(maxValue), position((value-minValue)/(maxValue-minValue)) {
         labelWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) title.c_str());
         if (labelWidth > maxLabelWidth)
             maxLabelWidth = labelWidth;
@@ -591,6 +592,9 @@ public:
         maxy = y+3;
         int frameMinx = 10;
         int frameMaxx = maxx+2;
+
+        // Draw the background.
+
         glColor3f(0.9f, 0.9f, 0.9f);
         glBegin(GL_POLYGON);
         glVertex2i(frameMinx+2, miny);
@@ -602,6 +606,9 @@ public:
         glVertex2i(frameMaxx, miny+1);
         glVertex2i(frameMaxx-1, miny);
         glEnd();
+
+        // Draw the slider.
+
         glColor3f(0.5f, 0.5f, 0.5f);
         glBegin(GL_QUADS);
         glVertex2i(minx, miny+12);
@@ -617,9 +624,39 @@ public:
         glVertex2i(handlex, miny+19);
         glVertex2i(handlex+handleWidth, miny+19);
         glEnd();
+
+        // Draw the label.
+
         glRasterPos2f(GLfloat(12+maxLabelWidth-labelWidth), GLfloat(y));
         for (int i = 0; i < (int) title.size(); i++)
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, title[i]);
+
+        // Draw the value.
+
+        stringstream valueStream;
+        valueStream << (minValue+position*(maxValue-minValue));
+        string value = valueStream.str();
+        int valueWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_10, (unsigned char*) value.c_str());
+        int valueMinx = maxx+4;
+        int valueMaxx = valueMinx+valueWidth+4;
+        int valueMiny = y-14;
+        int valueMaxy = y-1;
+        glColor3f(0.9f, 0.9f, 0.9f);
+        glBegin(GL_POLYGON);
+        glVertex2i(valueMinx+2, valueMiny);
+        glVertex2i(valueMinx, valueMiny+1);
+        glVertex2i(valueMinx, valueMaxy-1);
+        glVertex2i(valueMinx+2, valueMaxy);
+        glVertex2i(valueMaxx-1, valueMaxy);
+        glVertex2i(valueMaxx, valueMaxy-1);
+        glVertex2i(valueMaxx, valueMiny+1);
+        glVertex2i(valueMaxx-1, valueMiny);
+        glEnd();
+        glColor3f(0.2f, 0.2f, 0.2f);
+        glRasterPos2f(GLfloat(valueMinx+2), GLfloat(y-4));
+        for (int i = 0; i < (int) value.size(); i++)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_10, value[i]);
+
         return y-25;
     }
 
@@ -658,7 +695,8 @@ private:
         char command = SLIDER_MOVED;
         WRITE(outPipe, &command, 1);
         WRITE(outPipe, &id, sizeof(int));
-        WRITE(outPipe, &position, sizeof(float));
+        float value = minValue+position*(maxValue-minValue);
+        WRITE(outPipe, &value, sizeof(float));
         glutPostRedisplay();
     }
     string title;
@@ -666,7 +704,7 @@ private:
     int id, minx, miny, maxx, maxy, handlex;
     int clickOffset;
     bool dragging;
-    float position;
+    float minValue, maxValue, position;
     static int maxLabelWidth;
     static const int handleWidth = 5;
     static const int sliderWidth = 100;
@@ -1809,9 +1847,9 @@ void* listenForInput(void* args) {
             vector<char> titleBuffer(titleLength);
             readData(&titleBuffer[0], titleLength);
             string title(&titleBuffer[0], titleLength);
-            readData(buffer, sizeof(int)+sizeof(float));
+            readData(buffer, sizeof(int)+3*sizeof(float));
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            sliders.push_back(Slider(title, intBuffer[0], floatBuffer[1]));
+            sliders.push_back(Slider(title, intBuffer[0], floatBuffer[1], floatBuffer[2], floatBuffer[3]));
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }

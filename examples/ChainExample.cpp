@@ -208,8 +208,8 @@ int main() {
     items.push_back(std::make_pair("Two", 5));
     viz.addMenu("Test Menu",items);
 
-    viz.addSlider("X", 29, 0.3);
-    viz.addSlider("Fractions", 14, 0);
+    viz.addSlider("X", 29, 0, 1, 0.3);
+    viz.addSlider("Fractions", 14, -5, 5, 0);
 
     MyListener& listener = *new MyListener(items);
     viz.addInputListener(&listener);
