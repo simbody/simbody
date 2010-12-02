@@ -98,6 +98,11 @@ public:
         return true; // menu click absorbed
     }
 
+    virtual bool sliderMoved(int whichSlider, Real value) {
+        printf("Slider %d now at %g\n", whichSlider, value);
+        return true;
+    }
+
 private:
     Array_< std::pair<std::string, int> > m_menu;
     pthread_mutex_t charQueueLock;
@@ -195,13 +200,16 @@ int main() {
     printf(    "use arrow keys and page up/down to control green gravity vector\n");
     printf(    "***************************************************************\n\n");
 
-        Array_< std::pair<std::string,int> > items;
+    Array_< std::pair<std::string,int> > items;
     items.push_back(std::make_pair("One", 1));
     items.push_back(std::make_pair("Top/SubA/first", 2));
     items.push_back(std::make_pair("Top/SubA/second", 3));
     items.push_back(std::make_pair("Top/SubB/only", 4));
     items.push_back(std::make_pair("Two", 5));
     viz.addMenu("Test Menu",items);
+
+    viz.addSlider("X", 29, 0.3);
+    viz.addSlider("Fractions", 14, 0);
 
     MyListener& listener = *new MyListener(items);
     viz.addInputListener(&listener);
