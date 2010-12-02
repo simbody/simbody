@@ -2,9 +2,9 @@
 #define SimTK_SIMBODY_VISUALIZER_INPUT_LISTENER_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                                Simbody(tm)                                 *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
@@ -154,8 +154,6 @@ user input at a time until they have all been consumed.\ This eliminates any
 need for tricky asynchronous handling of user input, and all thread 
 synchronization issues are handled invisibly. 
 
-<h1>NOT IMPLEMENTED YET</h1>
-
 When the InputSilo receives user input through one of the InputListener methods
 it implements, it return \c true indicating that it has processed the input and
 that no further InputListeners should be called. So if you have other 
@@ -180,17 +178,17 @@ viz.addInputListener(userInput);
 // you choose determines how responsive the simulation will be to user input,
 // but it also limits the maximum step size that the integrator can take.
 system.updDefaultSubsystem().addEventHandler
-    (new MyUserInputHandler(userInput, 0.1)); // check every 100ms 
+    (new MyUserInputHandler(*userInput, 0.1)); // check every 100ms 
 
 // Then in MyUserInputHandler::handleEvent(...):
-while (userInput->isAnyUserInput()) {
-    while (userInput->getCharInput(key,modifier)) {
+while (userInput.isAnyUserInput()) {
+    while (userInput.takeCharInput(key,modifier)) {
         // Process the key that was hit
     }
-    while (userInput->getMenuPick(item)) {
+    while (userInput.takeMenuPick(item)) {
         // Process the picked menu item
     }
-    while (userInput->getSliderMove(which, value)) {
+    while (userInput.takeSliderMove(which, value)) {
         // Process the new value for slider "which"
     }
 }
@@ -201,7 +199,7 @@ while (userInput->isAnyUserInput()) {
 The InputSilo implementations of the InputListener methods are called from the 
 Visualizer's listener thread, which is a different thread than the one that
 is simultaneously running the simulation. The internal silos are double-ended
-queues (dequeues) that allow inputs to be pushed onto one end and pulled off
+queues (deques) that allow inputs to be pushed onto one end and pulled off
 the other, so that they can be consumed in FIFO order. There is a single mutex
 lock associated with \e all the silos together, and the lock must be held while
 anything is pushed onto or pulled off of any one of the silos.
@@ -223,25 +221,27 @@ class SimTK_SIMBODY_EXPORT Visualizer::InputSilo
 :   public Visualizer::InputListener {
 public:
 /** Default construction is all that is needed; there are no options. **/
-InputSilo() : impl(0) {}
+InputSilo();
+/** Throws away any unprocessed input. **/
+~InputSilo();
 
 /** This is a very fast test that does not require locking; you don't have to 
 use this but it is a good idea to do so. **/
 bool isAnyUserInput() const;
 
 /** This will return user key hits until they have all been consumed, in the 
-same order they were received. The \a key and \a modifier values are those that
+same order they were received. The \a key and \a modifiers values are those that
 were provided to our implementation of the InputListener::keyPressed() method. 
 @param[out]         key         
     The key code for the key that was hit. See InputListener::KeyCode for
     interpretation.
-@param[out]         modifier    
+@param[out]         modifiers    
     Status of Shift,Ctrl,Alt and "special" key code. See InputListener::Modifier
     for interpretation. 
-@return \c true if a key and modifier has been returned; \c false if the 
-    character silo is now empty in which case both \a key and \a modifier will
+@return \c true if a key and modifiers have been returned; \c false if the 
+    character silo is now empty in which case both \a key and \a modifiers will
     be set to zero. **/
-bool getCharInput(unsigned& key, unsigned& modifier);
+bool takeKeyHit(unsigned& key, unsigned& modifiers);
 
 /** This will return user menu picks until they have all been consumed, in the
 same order they were received. The \a item value returned is the value that was
@@ -252,13 +252,13 @@ provided to our implementation of the InputListener::menuSelected() method.
     Visualizer::addMenu() method.
 @return \c true if a menu item number has been returned; \c false if the menu 
     pick silo is now empty in which case \a item will be set to zero. **/
-bool getMenuPick(int& item);
+bool takeMenuPick(int& item);
 
 /** This will return user changes to slider positions until they have all been
-consumed, in the same order they were received. The \a which and \a value 
+consumed, in the same order they were received. The \a slider and \a value 
 returns are those that were provided to our implementation of the 
 InputListener::sliderMoved() method. 
-@param[out]         which         
+@param[out]         slider         
     The id number of the slider that was moved. This is the value that was
     assigned to this slider in the Visualizer::addSlider() call.
 @param[out]         value    
@@ -267,22 +267,25 @@ InputListener::sliderMoved() method.
 @return \c true if a slider move has been returned; \c false if the slider move
     silo is now empty in which case \a which will be set to zero and \a value 
     will be NaN. **/
-bool getSliderMove(int& which, Real& value);
+bool takeSliderMove(int& slider, Real& value);
+
+/** Throw away any pending unprocessed input of all types. **/
+void clear();
 
 //------------------------------------------------------------------------------
                                  private:
 // Each of these will return true to the Visualizer's listener thread, meaning 
 // that the input will be absorbed and subsequent listeners (if any) will not 
 // be called.
-virtual bool keyPressed(unsigned key, unsigned modifiers) {return false;}
-virtual bool menuSelected(int item)             {return false;}
-virtual bool sliderMoved(int slider, Real value) {return false;}
+virtual bool keyPressed(unsigned key, unsigned modifiers);
+virtual bool menuSelected(int item);
+virtual bool sliderMoved(int slider, Real value);
 
 class Impl;
-const Impl& getImpl() const {assert(impl); return *impl;}
-Impl&       updImpl()       {assert(impl); return *impl;}
+const Impl& getImpl() const {assert(m_impl); return *m_impl;}
+Impl&       updImpl()       {assert(m_impl); return *m_impl;}
 
-Impl*       impl;   // the lone data member in this class
+Impl*       m_impl;   // the lone data member in this class
 };
 
 } // namespace SimTK
