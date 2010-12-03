@@ -35,6 +35,7 @@
 #include "../src/VisualizationProtocol.h"
 #include "lodepng.h"
 
+#include <cstdlib>
 #include <string>
 #include <algorithm>
 #include <set>
@@ -791,14 +792,13 @@ static void drawGroundAndSky(float farClipDistance) {
         const GLchar* fragmentShaderSource =
         "varying vec3 position;\n"
         "uniform vec3 color1, color2;\n"
+        "uniform sampler2D noiseTexture;\n"
         "void main() {\n"
         "vec2 square = floor(0.2*position.xz);\n"
         "vec2 delta = 0.2*position.xz-square.xy;\n"
         "float line = min(min(min(delta.x, delta.y), 1.0-delta.x), 1.0-delta.y);\n"
         "float blur = max(fwidth(position.x), fwidth(position.z));\n"
-        "float pattern = 0.35;\n"
-        "if (blur < 1.0)\n"
-        "pattern += 0.5*noise1(6.0*position);\n"
+        "float pattern = 0.35+texture2D(noiseTexture, 0.4*position.xz).x;\n"
         "gl_FragColor = vec4(mix(color1, color2, sqrt(line)*pattern), 1.0);\n"
         "}";
         groundProgram = glCreateProgram();
@@ -811,6 +811,19 @@ static void drawGroundAndSky(float farClipDistance) {
         glAttachShader(groundProgram, vertexShader);
         glAttachShader(groundProgram, fragmentShader);
         glLinkProgram(groundProgram);
+
+        // Create a texture to server as the noise function.
+
+        GLuint noiseTexture;
+        glGenTextures(1, &noiseTexture);
+        glBindTexture(GL_TEXTURE_2D, noiseTexture);
+        glTexParameterf(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+        float image[1024];
+        srand(0);
+        for (int i = 0; i < 1024; i++)
+            image[i] = (rand()%255)/255.0f-0.5f;
+        glTexImage2D(GL_TEXTURE_2D, 0, 1, 32, 32, 0, GL_RED, GL_FLOAT, image);
+        glUniform1i(glGetUniformLocation(groundProgram, "noiseTexture"), 0);
     }
 
     // Draw the rectangle to represent the sky.
