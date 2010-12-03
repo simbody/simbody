@@ -32,7 +32,7 @@
 /*                          Simbody ChainExample
 This example demonstrates how to use the Simbody Visualizer to display and
 interact with a real time simulation. It shows the use of sliders to control
-gravity, uses a FrameController to track a body with the camera and show some
+"wind", uses a FrameController to track a body with the camera and show some
 feedback to the user, and adds a menu to the display. A description of all user 
 input received is written to the console, and some inputs are used to control 
 the simulation. */
@@ -41,8 +41,13 @@ the simulation. */
 
 using namespace SimTK;
 
+static const int NBodies = 50;
+const Real FrameRate = 30;
+const Real TimeScale = 1; // i.e., 2 -> 2X real time
+
+// We call this "wind" but it is implemented with Force::Gravity.
 static const int GravityX=1, GravityY=2, GravityZ=3, GravityMag=4; // sliders
-static const Real GravityDefault=9.81, GravityMax=20;
+static const Real GravityDefault=10, GravityMax=20;
 
 // A FrameController is called by the Visualizer just prior to rendering a
 // frame. Here we'll point the camera and add some geometry showing the direction
@@ -195,10 +200,6 @@ private:
 int main() {
   try {
     // Create the system.
-    const int  NBodies = 50;
-    const Real FrameRate = 30;
-    const Real TimeScale = 1;
-
 
     printf("\n\n************\n");
     printf(     "ESC to quit\n");
@@ -209,7 +210,7 @@ int main() {
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::Gravity gravity(forces, matter, UnitVec3(YAxis), GravityDefault);
-    Force::GlobalDamper(forces, matter, 3);
+    Force::GlobalDamper(forces, matter, 7);
     Body::Rigid pendulumBody[2]; // solid, translucent
     pendulumBody[0].setDefaultRigidBodyMassProperties(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody[0].addDecoration(Transform(), DecorativeSphere(0.49).setOpacity(1));
@@ -240,10 +241,11 @@ int main() {
     viz.addMenu("Test Menu",items);
 
     // Add sliders to control gravity. They will display from bottom up.
-    viz.addSlider("Gravity Z", 3, -1, 1, 0); 
-    viz.addSlider("Gravity Y", 2, -1, 1, 1);
-    viz.addSlider("Gravity X", 1, -1, 1, 0);
-    viz.addSlider("Gravity Mag", 4, 0, GravityMax, GravityDefault);
+    // Joy Ku thought calling this "wind direction" makes more sense.
+    viz.addSlider("Wind Z", 3, -1, 1, 0); 
+    viz.addSlider("Wind Y", 2, -1, 1, 1);
+    viz.addSlider("Wind X", 1, -1, 1, 0);
+    viz.addSlider("Wind Mag", 4, 0, GravityMax, GravityDefault);
 
     MyListener*            listener = new MyListener(items);
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
@@ -282,12 +284,13 @@ int main() {
     RungeKuttaMersonIntegrator integ(system);
     //RungeKuttaFeldbergIntegrator integ(system);
     //CPodesIntegrator integ(system);
-    integ.setAccuracy(1e-3);
+    integ.setAccuracy(1e-2);
     TimeStepper ts(system, integ);
     ts.initialize(state);
 
     double cpuStart = cpuTime();
     double realStart = realTime();
+    //ts.stepTo(10);
     ts.stepTo(Infinity); // user must hit ESC to stop sim
     std::cout << "cpu time:  "<<cpuTime()-cpuStart<< std::endl;
     std::cout << "real time: "<<realTime()-realStart<< std::endl;

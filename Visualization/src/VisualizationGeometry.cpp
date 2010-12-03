@@ -74,7 +74,7 @@ void VisualizationGeometry::implementEllipsoidGeometry(const SimTK::DecorativeEl
 
 void VisualizationGeometry::implementFrameGeometry(const SimTK::DecorativeFrame& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    protocol.drawFrame(transform*geom.getTransform(), getScale(geom)*geom.getAxisLength(), getColor(geom));
+    protocol.drawCoords(transform*geom.getTransform(), getScale(geom)*geom.getAxisLength(), getColor(geom));
 }
 
 void VisualizationGeometry::implementTextGeometry(const SimTK::DecorativeText& geom) {

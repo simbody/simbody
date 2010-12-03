@@ -84,7 +84,7 @@
 
     // see initGlextFuncPointerIfNeeded() at end of this file
 #else
-    // Linux: assume we have a good OpenGL 2.0 and working glut or free glut.
+    // Linux: assume we have a good OpenGL 2.0 and working glut or freeglut.
     #define GL_GLEXT_PROTOTYPES
     #include <GL/gl.h>
     #include <GL/glu.h>
@@ -345,6 +345,42 @@ static pthread_mutex_t sceneLock;
 // Wait on this if you want to be notified when the scene has been drawn.
 static pthread_cond_t  sceneHasBeenDrawn;
 
+// This is how long it's been since we've done a redisplay for any reason.
+double lastRedisplayDone = 0; // real time
+
+// When this is true it means something has happened that requires redisplay,
+// but we hope to see it when the next scene is rendered rather than initiate
+// rendering now. The idle function checks this and initiates rendering if
+// no one else does.
+bool passiveRedisplayRequested = true;
+// This is reset to zero every time we do an active display.
+int numPassiveRedisplaysSinceLastActive = 0;
+// This is reset to zero whenever we post a passive or active display.
+int numMopUpDisplaysSinceLastRedisplay = 0;
+
+static void forceActiveRedisplay() {
+    passiveRedisplayRequested = false; // cancel if pending
+    numPassiveRedisplaysSinceLastActive = 0;
+    numMopUpDisplaysSinceLastRedisplay = 0;
+    glutPostRedisplay();
+}
+
+static void requestPassiveRedisplay() {
+    passiveRedisplayRequested = true;
+}
+
+static void forcePassiveRedisplay() {
+    passiveRedisplayRequested = false; // cancel if pending
+    ++numPassiveRedisplaysSinceLastActive;
+    numMopUpDisplaysSinceLastRedisplay = 0;
+    glutPostRedisplay();
+}
+
+static void forceMopUpRedisplay() {
+    passiveRedisplayRequested = false; // cancel if pending
+    ++numMopUpDisplaysSinceLastRedisplay;
+    glutPostRedisplay();
+}
 
 // Some commands received by the listener must be executed on the rendering
 // thread. They are saved in concrete objects derived from this abstract
@@ -363,8 +399,9 @@ static int groundAxis = 1;
 static bool showGround = true, showShadows = true, showFPS = true;
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
-static int fpsBaseTime = 0, fpsCounter = 0, nextMeshIndex;
+static int fpsCounter = 0, nextMeshIndex;
 static int frameCounter = 0;
+static double fpsBaseTime = 0;
 
 static string overlayMessage;
 static bool displayOverlayMessage = false;
@@ -632,11 +669,11 @@ public:
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, title[i]);
 
         // Draw the value.
-
         stringstream valueStream;
         valueStream << (minValue+position*(maxValue-minValue));
         string value = valueStream.str();
-        int valueWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_10, (unsigned char*) value.c_str());
+        int valueWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_10, 
+                            (unsigned char*) value.c_str());
         int valueMinx = maxx+4;
         int valueMaxx = valueMinx+valueWidth+4;
         int valueMiny = y-14;
@@ -697,7 +734,7 @@ private:
         WRITE(outPipe, &id, sizeof(int));
         float value = minValue+position*(maxValue-minValue);
         WRITE(outPipe, &value, sizeof(float));
-        glutPostRedisplay();
+        requestPassiveRedisplay();              //----- PASSIVE REDISPLAY ----
     }
     string title;
     int labelWidth;
@@ -985,10 +1022,11 @@ static void renderScene() {
 
         // Update the frame rate counter.
 
-        int time = glutGet(GLUT_ELAPSED_TIME);
-        if (time-fpsBaseTime > 1000) {
-            fps = 1000.0f*fpsCounter/(time-fpsBaseTime);
-            fpsBaseTime = time;
+        const double now = realTime(); // in seconds at high resolution
+        const double elapsed = now - fpsBaseTime;
+        if (elapsed >= 1) {
+            fps = fpsCounter/elapsed;
+            fpsBaseTime = now;
             fpsCounter = 0;
         }
 
@@ -1066,6 +1104,8 @@ static void redrawDisplay() {
     glutSwapBuffers();
     ++fpsCounter;
     ++frameCounter;
+    
+    lastRedisplayDone = realTime();
 }
 
 // These are set when a mouse button is clicked and then referenced
@@ -1095,7 +1135,7 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
     // we're being called by freeglut we'll get called twice, while (patched) 
     // glut calls just once, with state=GLUT_UP. 
     if ((button == GlutWheelUp || button == GlutWheelDown)
-        && (state==GLUT_UP)) // TODO: does this work OK on Mac GLUT?
+        && (state==GLUT_UP))
     {
         // Scroll wheel.
         const float ZoomFractionPerWheelClick = 0.15f;   // 15% scene radius
@@ -1105,7 +1145,7 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
         cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, zoomBy);
-        glutPostRedisplay();                    //------ POST REDISPLAY ------
+        requestPassiveRedisplay();              //------ PASSIVE REDISPLAY ---
         pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
         return;
     }
@@ -1221,7 +1261,7 @@ static void mouseDragged(int x, int y) {
     // Something changed.
 
     clickX = x; clickY = y;
-    glutPostRedisplay();                    //-------- POST REDISPLAY --------
+    requestPassiveRedisplay();                   //------ PASSIVE REDISPLAY ---
 }
 
 // Currently the only "passive" mouse motion we care about is if the
@@ -1270,7 +1310,7 @@ static void specialKeyPressed(int key, int x, int y) {
 
 static void disableOverlayTimer(int value) {
     displayOverlayMessage = false;
-    glutPostRedisplay();                    //-------- POST REDISPLAY --------
+    requestPassiveRedisplay();                   //------ PASSIVE REDISPLAY ---
 }
 
 static void setOverlayMessage(const string& message) {
@@ -1660,7 +1700,7 @@ static Scene* readNewScene() {
             break;
         }
 
-        case ADD_FRAME: {
+        case ADD_COORDS: {
             readData(buffer, 10*sizeof(float));
             fRotation rotation;
             rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
@@ -1771,6 +1811,7 @@ void* listenForInput(void* args) {
     int* intBuffer = (int*) buffer;
     unsigned short* shortBuffer = (unsigned short*) buffer;
     while (true) {
+        bool issuedActiveRedisplay = false;
         // Read commands from the simulator.
         readData(buffer, 1);
         switch (buffer[0]) {
@@ -1871,6 +1912,8 @@ void* listenForInput(void* args) {
             // Swap in the new scene.
             scene = newScene;
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            forceActiveRedisplay();             //------- ACTIVE REDISPLAY ---
+            issuedActiveRedisplay = true;
             break;
         }
 
@@ -1879,7 +1922,8 @@ void* listenForInput(void* args) {
         }
 
         // Do this after every received command.
-        glutPostRedisplay();                    //------- POST REDISPLAY -----
+        if (!issuedActiveRedisplay)
+            requestPassiveRedisplay();         //------- PASSIVE REDISPLAY --
     }
     return 0;
 }
@@ -1899,11 +1943,6 @@ static const int MENU_SHOW_SHADOWS = 9;
 static const int MENU_SHOW_FPS = 10;
 
 static const int MENU_SAVE_IMAGE = 11;
-
-static const int MENU_VSYNC_ENABLE = 12;
-static const int MENU_VSYNC_DISABLE = 13;
-static const int MENU_KEEPALIVE_ENABLE = 14;
-static const int MENU_KEEPALIVE_DISABLE = 15;
 
 // This is the handler for our built-in "View" pull down menu.
 void viewMenuSelected(int option) {
@@ -1964,25 +2003,43 @@ void viewMenuSelected(int option) {
     case MENU_SAVE_IMAGE:
         saveImage();
         break;
-    case MENU_VSYNC_ENABLE: setVsync(true); break;
-    case MENU_VSYNC_DISABLE: setVsync(false); break;
-    case MENU_KEEPALIVE_ENABLE: setKeepAlive(true); break;
-    case MENU_KEEPALIVE_DISABLE: setKeepAlive(false); break;
     }
 
-    glutPostRedisplay();                    //-------- POST REDISPLAY --------
+    requestPassiveRedisplay();                  //----- PASSIVE REDISPLAY ----
 }
 
 static const int DefaultWindowWidth  = 600;
 static const int DefaultWindowHeight = 500;
 
 // This seems to be necessary on Mac and Linux where the built-in glut
-// idle hangs if there is no activity in the gl window. Not needed on Windows.
+// idle hangs if there is no activity in the gl window. In any case we
+// use it to issue a redisplay when one is needed but no scene is forthcoming,
+// and for final cleanup of the FPS display after scenes stop arriving.
 static void keepAliveIdleFunc() {
-    struct timespec ts;
-    // Wait 10ms and then check for something to do.
-    nsToTimespec(secToNs(1./100), ts);
-    nanosleep(&ts, 0);
+    static const double SleepTime   = 1./100; // 10ms
+    static const double PassiveTime = 1./30 - .005; // ~30 fps, 5ms slop
+    static const double MopUpTime   = 1.; // to clean up FPS display
+
+    sleepInSec(SleepTime); // take a short break
+
+    // If it has been at least one passive frame time, redisplay if there
+    // has been a passive redisplay request.
+    const double idle = realTime() - lastRedisplayDone;
+    if (passiveRedisplayRequested && idle > PassiveTime) { // 30 fps
+        forcePassiveRedisplay();                //------ FORCE REDISPLAY -----
+        return;
+    }
+
+    // If it has been so long since the last frame that we need to mop up
+    // (currently that just means update the FPS display), then do that.
+    // We want to calculate the last real FPS value, and then show a zero on
+    // the subsequent update, and then stop updating.
+    if (numMopUpDisplaysSinceLastRedisplay < 2 && idle >= MopUpTime) {
+        if (numMopUpDisplaysSinceLastRedisplay)
+            fpsCounter = 0; // clear the 1 frame we generated after 1st update
+        forceMopUpRedisplay();                  //------ FORCE REDISPLAY -----
+    }
+
 }
 
 static void setKeepAlive(bool enable) {
@@ -2088,10 +2145,6 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Show//Hide/Shadows", MENU_SHOW_SHADOWS));
     items.push_back(make_pair("Show//Hide/Frame Rate", MENU_SHOW_FPS));
     items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
-    items.push_back(make_pair("Vsync/Enable (default)", MENU_VSYNC_ENABLE));
-    items.push_back(make_pair("Vsync/Disable", MENU_VSYNC_DISABLE));
-    items.push_back(make_pair("Keep Alive/Enable", MENU_KEEPALIVE_ENABLE));
-    items.push_back(make_pair("Keep Alive/Disable", MENU_KEEPALIVE_DISABLE));
     menus.push_back(Menu("View", items, viewMenuSelected));
 
     // Initialize pthread lock and condition variable.
@@ -2102,15 +2155,13 @@ int main(int argc, char** argv) {
     pthread_t thread;
     pthread_create(&thread, NULL, listenForInput, NULL);
 
-    // Avoid hangs on Mac & Linux.
-#ifndef _WIN32
+    // Avoid hangs on Mac & Linux; posts orphan redisplays on all platforms.
     setKeepAlive(true);
-#endif
 
-    // Enter the main loop. Note that there is no idle function. We expect
-    // the main thread to go to sleep when there is nothing to do and that
-    // the various events will call glutPostRedisplay() if anything happens
-    // that requires a screen update.
+    // Enter the main loop. If there is nothing else to do we'll check if
+    // someone was hoping for a redisplay and issue one.
+    requestPassiveRedisplay();                   //------ PASSIVE REDISPLAY ---
+    fpsBaseTime = realTime();
     glutMainLoop();
     return 0;
 }

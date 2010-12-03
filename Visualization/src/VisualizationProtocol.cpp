@@ -385,8 +385,8 @@ void VisualizationProtocol::drawText(const Vec3& position, Real scale, const Vec
     WRITE(outPipe, &string[0], length);
 }
 
-void VisualizationProtocol::drawFrame(const Transform& transform, Real axisLength, const Vec4& color) {
-    char command = ADD_FRAME;
+void VisualizationProtocol::drawCoords(const Transform& transform, Real axisLength, const Vec4& color) {
+    char command = ADD_COORDS;
     WRITE(outPipe, &command, 1);
     float buffer[10];
     Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();

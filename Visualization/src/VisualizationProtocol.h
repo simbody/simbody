@@ -50,7 +50,7 @@ static const char ADD_POINT_MESH = 3;
 static const char ADD_WIREFRAME_MESH = 4;
 static const char ADD_LINE = 5;
 static const char ADD_TEXT = 6;
-static const char ADD_FRAME = 7;
+static const char ADD_COORDS = 7;
 static const char DEFINE_MESH = 8;
 static const char DEFINE_MENU = 9;
 static const char DEFINE_SLIDER = 10;
@@ -83,7 +83,7 @@ public:
     void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation);
     void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness);
     void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
-    void drawFrame(const Transform& transform, Real axisLength, const Vec4& color);
+    void drawCoords(const Transform& transform, Real axisLength, const Vec4& color);
     void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
     void addSlider(const String& title, int id, Real min, Real max, Real value);
     void setGroundPosition(const CoordinateAxis& axis, Real height);
