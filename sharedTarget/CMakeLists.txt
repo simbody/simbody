@@ -19,7 +19,7 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
     SET_TARGET_PROPERTIES(${SHARED_TARGET} PROPERTIES
     	PROJECT_LABEL "Library - ${SHARED_TARGET}")
     
-    # install library; on Windows both .lib and .dll go in the lib directory.
+    # install library; on Windows the .dll goes in the bin directory.
     
     INSTALL(TARGETS ${SHARED_TARGET}
                      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
@@ -49,7 +49,7 @@ IF(BUILD_VERSIONED_LIBRARIES)
     SET_TARGET_PROPERTIES(${SHARED_TARGET_VN} PROPERTIES
     	PROJECT_LABEL "Library - ${SHARED_TARGET_VN}")
     
-    # install library; on Windows both .lib and .dll go in the lib directory.
+    # install library; on Windows the .dll goes in the bin directory.
     
     INSTALL(TARGETS ${SHARED_TARGET_VN}
                      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 

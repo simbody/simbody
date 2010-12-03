@@ -20,7 +20,7 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
     SET_TARGET_PROPERTIES(${STATIC_TARGET} PROPERTIES
     	PROJECT_LABEL "Library - ${STATIC_TARGET}")
     
-    # install library; on Windows both .lib and .dll go in the lib directory.
+    # install library
     
     INSTALL(TARGETS ${STATIC_TARGET}  
                      PERMISSIONS OWNER_READ OWNER_WRITE 
@@ -50,7 +50,7 @@ IF(BUILD_VERSIONED_LIBRARIES)
     SET_TARGET_PROPERTIES(${STATIC_TARGET_VN} PROPERTIES
     	PROJECT_LABEL "Library - ${STATIC_TARGET_VN}")
     
-    # install library; on Windows both .lib and .dll go in the lib directory.
+    # install library
     
     INSTALL(TARGETS ${STATIC_TARGET_VN}  
                      PERMISSIONS OWNER_READ OWNER_WRITE 

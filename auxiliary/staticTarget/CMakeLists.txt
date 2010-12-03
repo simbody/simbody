@@ -21,14 +21,14 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
     	PROJECT_LABEL "Library - ${AUX_STATIC_TARGET}")
     
     
-    # install library; on Windows both .lib and .dll go in the lib directory.
+    # install library
     INSTALL(TARGETS ${AUX_STATIC_TARGET}  
                      PERMISSIONS OWNER_READ OWNER_WRITE 
 					 GROUP_READ GROUP_WRITE 
 					 WORLD_READ 
                      ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64} 
                      LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64} 
-                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64})
+                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
 
 ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
@@ -52,14 +52,14 @@ IF(BUILD_VERSIONED_LIBRARIES)
     	PROJECT_LABEL "Library - ${AUX_STATIC_TARGET_VN}")
     
     
-    # install library; on Windows both .lib and .dll go in the lib directory.
+    # install library
     INSTALL(TARGETS ${AUX_STATIC_TARGET_VN}  
                      PERMISSIONS OWNER_READ OWNER_WRITE 
 					 GROUP_READ GROUP_WRITE 
 					 WORLD_READ 
                      ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64} 
                      LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64} 
-                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64})
+                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
 
 ENDIF(BUILD_VERSIONED_LIBRARIES)
 

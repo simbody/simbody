@@ -19,14 +19,14 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
     SET_TARGET_PROPERTIES(${AUX_SHARED_TARGET}  PROPERTIES
     	PROJECT_LABEL "Library - ${AUX_SHARED_TARGET}")
     
-    # install library; on Windows both .lib and .dll go in the lib directory.
+    # install library; on Windows .dll goes in the bin directory.
     INSTALL(TARGETS ${AUX_SHARED_TARGET}
                      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
 					 GROUP_READ GROUP_WRITE GROUP_EXECUTE 
 					 WORLD_READ WORLD_EXECUTE
                      ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
                      LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
-                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64})
+                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
 
 ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
@@ -49,13 +49,13 @@ IF(BUILD_VERSIONED_LIBRARIES)
     SET_TARGET_PROPERTIES(${AUX_SHARED_TARGET_VN}  PROPERTIES
     	PROJECT_LABEL "Library - ${AUX_SHARED_TARGET_VN}")
     
-    # install library; on Windows both .lib and .dll go in the lib directory.
+    # install library; on Windows .dll goes in the bin directory.
     INSTALL(TARGETS ${AUX_SHARED_TARGET_VN}
                      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
 					 GROUP_READ GROUP_WRITE GROUP_EXECUTE 
 					 WORLD_READ WORLD_EXECUTE
                      ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
                      LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
-                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64})
+                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
 
 ENDIF(BUILD_VERSIONED_LIBRARIES)
