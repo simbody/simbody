@@ -451,12 +451,12 @@ addSlider(const String& title, int id, Real minVal, Real maxVal, Real value) {
     short titleLength = title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
-    write(outPipe, &id, sizeof(int));
+    WRITE(outPipe, &id, sizeof(int));
     float buffer[3];
     buffer[0] = (float) minVal;
     buffer[1] = (float) maxVal;
     buffer[2] = (float) value;
-    write(outPipe, buffer, 3*sizeof(float));
+    WRITE(outPipe, buffer, 3*sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
 
