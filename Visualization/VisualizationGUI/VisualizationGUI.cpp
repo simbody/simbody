@@ -1029,12 +1029,13 @@ static void renderScene() {
         firstTime = false;
     }
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glLoadIdentity();
-    glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_LIGHTING);
     glDisableClientState(GL_NORMAL_ARRAY);
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     pthread_mutex_lock(&sceneLock);             //-------- LOCK SCENE --------
 
