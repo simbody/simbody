@@ -31,6 +31,7 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/Visualizer.h"
 #include "simbody/internal/Visualizer_InputListener.h"
 #include "simbody/internal/DecorationGenerator.h"
@@ -152,7 +153,7 @@ public:
     // Create a Visualizer and put it in PassThrough mode.
     VisualizerRep(Visualizer* owner, MultibodySystem& system, 
                   const String& title) 
-    :   handle(owner), system(system), protocol(*owner, title),
+    :   m_handle(owner), m_system(system), m_protocol(*owner, title),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
         m_simTimeUnitsPerSec(1), 
         m_desiredBufferLengthInSec(DefaultDesiredBufferLengthInSec), 
@@ -161,32 +162,39 @@ public:
         m_allowableFrameTimeSlopInNs(
             secToNs(DefaultSlopAsFractionOfFrameInterval/DefaultFrameRateFPS)),
         m_adjustedRealTimeBase(realTimeInNs()),
-        m_nextFrameDueAdjRT(-1), oldest(0),nframe(0),
+        m_prevFrameSimTime(-1), m_nextFrameDueAdjRT(-1), 
+        m_oldest(0),m_nframe(0),
         m_drawThreadIsRunning(false), m_drawThreadShouldSuicide(false)
     {   
-        pthread_mutex_init(&queueLock, NULL); 
-        pthread_cond_init(&queueNotFull, NULL); 
-        pthread_cond_init(&queueNotEmpty, NULL); 
+        pthread_mutex_init(&m_queueLock, NULL); 
+        pthread_cond_init(&m_queueNotFull, NULL); 
+        pthread_cond_init(&m_queueNotEmpty, NULL); 
+        pthread_cond_init(&m_queueIsEmpty, NULL); 
 
         setMode(PassThrough);
         clearStats();
+
+        // TODO: protocol startup handshake
+        m_protocol.setMaxFrameRate(m_frameRateFPS);
     }
     
     ~VisualizerRep() {
-        if (m_mode==RealTime && pool.size()) {
+        if (m_mode==RealTime && m_pool.size()) {
             pthread_cancel(m_drawThread);
         }
-        for (unsigned i = 0; i < controllers.size(); i++)
-            delete controllers[i];
-        for (unsigned i = 0; i < listeners.size(); i++)
-            delete listeners[i];
-        for (unsigned i = 0; i < generators.size(); i++)
-            delete generators[i];
-        pthread_cond_destroy(&queueNotEmpty);
-        pthread_cond_destroy(&queueNotFull);
-        pthread_mutex_destroy(&queueLock);
+        for (unsigned i = 0; i < m_controllers.size(); i++)
+            delete m_controllers[i];
+        for (unsigned i = 0; i < m_listeners.size(); i++)
+            delete m_listeners[i];
+        for (unsigned i = 0; i < m_generators.size(); i++)
+            delete m_generators[i];
+        pthread_cond_destroy(&m_queueIsEmpty);
+        pthread_cond_destroy(&m_queueNotEmpty);
+        pthread_cond_destroy(&m_queueNotFull);
+        pthread_mutex_destroy(&m_queueLock);
     }
 
+    // Call from simulation thread.
     void startDrawThread() {
         SimTK_ASSERT_ALWAYS(!m_drawThreadIsRunning,
             "Tried to start the draw thread when it was already running.");
@@ -201,6 +209,7 @@ public:
         m_drawThreadIsRunning = true;
     }
 
+    // Call from simulation thread.
     void killDrawThread() {
         SimTK_ASSERT_ALWAYS(m_drawThreadIsRunning,
             "Tried to kill the draw thread when it wasn't running.");
@@ -209,9 +218,9 @@ public:
         // case we have to wake it up (see getOldestFrameInQueue()).
         // We'll do it twice 100ms apart to avoid a timing issue where
         // we signal just before the thread waits.
-        pthread_cond_signal(&queueNotEmpty); // wake it if necessary
+        POST_QueueNotEmpty(); // wake it if necessary
         sleepInSec(0.1); 
-        pthread_cond_signal(&queueNotEmpty);
+        POST_QueueNotEmpty();
         pthread_join(m_drawThread, 0); // wait for death
         m_drawThreadIsRunning = m_drawThreadShouldSuicide = false;
     }
@@ -255,8 +264,8 @@ public:
         // If we're in RealTime mode and we have changed the number of
         // frames in the buffer, reallocate the pool and kill or start
         // the draw thread if necessary.
-        if (m_mode == RealTime && numFrames != pool.size()) {
-            if (pool.size()) {
+        if (m_mode == RealTime && numFrames != m_pool.size()) {
+            if (m_pool.size()) {
                 // draw thread isn't needed if we get rid of the buffer
                 if (numFrames == 0)
                     killDrawThreadIfNecessary();
@@ -288,7 +297,7 @@ public:
 
         // Mode is changing. If it was buffered RealTime before we have
         // to clean up first.
-        if (m_mode == RealTime && pool.size()) {
+        if (m_mode == RealTime && m_pool.size()) {
             killDrawThreadIfNecessary();
             initializePool(0);  // clear the buffer
         }
@@ -302,10 +311,12 @@ public:
     void setDesiredFrameRate(Real framesPerSec) {
         resetTimeRelatedQuantities(framesPerSec,
                                    m_simTimeUnitsPerSec,
-                                   m_desiredBufferLengthInSec);                               
+                                   m_desiredBufferLengthInSec);
+        // Make sure the GUI doesn't try to outrace us when it generates
+        // its own frames.
+        m_protocol.setMaxFrameRate(framesPerSec);
     }
 
-    // TODO: must recalculate buffer length
     void setDesiredBufferLengthInSec(Real bufferLengthInSec) {
         resetTimeRelatedQuantities(m_frameRateFPS,
                                    m_simTimeUnitsPerSec,
@@ -321,7 +332,7 @@ public:
     Real getDesiredBufferLengthInSec() const 
     {   return m_desiredBufferLengthInSec; }
 
-    int getActualBufferLengthInFrames() const {return pool.size();}
+    int getActualBufferLengthInFrames() const {return m_pool.size();}
     Real getActualBufferLengthInSec() const 
     {   return nsToSec(getActualBufferLengthInFrames()*m_timeBetweenFramesInNs); }
 
@@ -342,25 +353,27 @@ public:
 
     // Set the maximum number of frames in the buffer.
     void initializePool(int sz) {
-        pthread_mutex_lock(&queueLock);
-        pool.resize(sz);oldest=nframe=0;
-        pthread_mutex_unlock(&queueLock);
+        pthread_mutex_lock(&m_queueLock);
+        m_pool.resize(sz);m_oldest=m_nframe=0;
+        pthread_mutex_unlock(&m_queueLock);
     }
 
-    int getNFramesInQueue() const {return nframe;}
+    int getNFramesInQueue() const {return m_nframe;}
 
     // Queing is enabled if the pool was allocated.
-    bool queuingIsEnabled() const {return pool.size() != 0;}
-    bool queueIsFull() const {return nframe==pool.size();}
-    bool queueIsEmpty() const {return nframe==0;}
+    bool queuingIsEnabled() const {return m_pool.size() != 0;}
+    bool queueIsFull() const {return m_nframe==m_pool.size();}
+    bool queueIsEmpty() const {return m_nframe==0;}
 
     // I'm capitalizing these methods because they are VERY important!
-    void LOCK_Queue()   {pthread_mutex_lock(&queueLock);}
-    void UNLOCK_Queue() {pthread_mutex_unlock(&queueLock);}
-    void WAIT_QueueNotFull() {pthread_cond_wait(&queueNotFull,&queueLock);}
-    void POST_QueueNotFull() {pthread_cond_signal(&queueNotFull);}
-    void WAIT_QueueNotEmpty() {pthread_cond_wait(&queueNotEmpty,&queueLock);}
-    void POST_QueueNotEmpty() {pthread_cond_signal(&queueNotEmpty);}
+    void LOCK_Queue()   {pthread_mutex_lock(&m_queueLock);}
+    void UNLOCK_Queue() {pthread_mutex_unlock(&m_queueLock);}
+    void WAIT_QueueNotFull() {pthread_cond_wait(&m_queueNotFull,&m_queueLock);}
+    void POST_QueueNotFull() {pthread_cond_signal(&m_queueNotFull);}
+    void WAIT_QueueNotEmpty() {pthread_cond_wait(&m_queueNotEmpty,&m_queueLock);}
+    void POST_QueueNotEmpty() {pthread_cond_signal(&m_queueNotEmpty);}
+    void WAIT_QueueIsEmpty() {pthread_cond_wait(&m_queueIsEmpty,&m_queueLock);}
+    void POST_QueueIsEmpty() {pthread_cond_signal(&m_queueIsEmpty);}
 
     // Called from simulation thread. Blocks until there is room in
     // the queue, then inserts this state unconditionally, with the indicated
@@ -379,16 +392,30 @@ public:
         }
 
         // There is room in the queue now. We're holding the lock.
-        Frame& frame = pool[(oldest+nframe)%pool.size()];
+        Frame& frame = m_pool[(m_oldest+m_nframe)%m_pool.size()];
         frame.state  = state;
         frame.desiredDrawTimeAdjRT = desiredDrawTimeAdjRT;
 
-        // Set the expected next frame time.
+        // Record the frame time.
+        m_prevFrameSimTime = state.getTime();
+
+        // Set the expected next frame time (in AdjRT).
         m_nextFrameDueAdjRT = desiredDrawTimeAdjRT + m_timeBetweenFramesInNs;
 
-        if (++nframe == 1) 
+        if (++m_nframe == 1) 
             POST_QueueNotEmpty(); // wake up rendering thread on first frame
 
+        UNLOCK_Queue();
+    }
+
+    // Call from simulation thread to allow the drawing thread to flush
+    // any frames currently in the queue.
+    void waitUntilQueueIsEmpty() {
+        if (   !queuingIsEnabled() || m_nframe==0 
+            || !m_drawThreadIsRunning || m_drawThreadShouldSuicide)
+            return;
+        LOCK_Queue();
+        while (m_nframe) {WAIT_QueueIsEmpty();}
         UNLOCK_Queue();
     }
 
@@ -402,19 +429,19 @@ public:
     // thread should quit.
     bool getOldestFrameInQueue(const Frame** fp) {
         LOCK_Queue();
-        if (nframe == 0 && !m_drawThreadShouldSuicide) {
+        if (m_nframe == 0 && !m_drawThreadShouldSuicide) {
             ++numTimesDrawThreadBlockedOnEmptyQueue;
             do {WAIT_QueueNotEmpty();} // atomic: unlock, long wait, relock
-            while (nframe==0 && !m_drawThreadShouldSuicide); // must recheck
+            while (m_nframe==0 && !m_drawThreadShouldSuicide); // must recheck
         } else {
-            sumOfQueueLengths        += double(nframe);
-            sumSquaredOfQueueLengths += double(square(nframe));
+            sumOfQueueLengths        += double(m_nframe);
+            sumSquaredOfQueueLengths += double(square(m_nframe));
         }
         // There is at least one frame available now, unless we're supposed
         // to quit. We are holding the lock.
         UNLOCK_Queue();
         if (m_drawThreadShouldSuicide) {*fp=0; return false;}
-        else {*fp=&pool[oldest]; return true;} // sim thread won't change oldest
+        else {*fp=&m_pool[m_oldest]; return true;} // sim thread won't change oldest
     }
 
     // Drawing thread uses this to note that it is done with the oldest
@@ -423,10 +450,12 @@ public:
     // now.
     void noteThatOldestFrameIsNowAvailable() {
         LOCK_Queue();
-        oldest = (oldest+1)%pool.size(); // move to next-oldest
-        --nframe; // there is now one fewer frame in use
+        m_oldest = (m_oldest+1)%m_pool.size(); // move to next-oldest
+        --m_nframe; // there is now one fewer frame in use
+        if (m_nframe == 0)
+            POST_QueueIsEmpty(); // in case we're flushing
         // Start the simulation again when the pool is about half empty.
-        if (nframe <= pool.size()/2+1)
+        if (m_nframe <= m_pool.size()/2+1)
             POST_QueueNotFull();
         UNLOCK_Queue();
     }
@@ -465,15 +494,15 @@ public:
     long long getAdjustedRealTime() 
     {   return realTimeInNs() - m_adjustedRealTimeBase; }
 
-    Visualizer*                             handle;
-    MultibodySystem&                        system;
-    VisualizationProtocol                   protocol;
+    Visualizer*                             m_handle;
+    MultibodySystem&                        m_system;
+    VisualizationProtocol                   m_protocol;
 
-    Array_<DecorativeGeometry>              addedGeometry;
-    Array_<RubberBandLine>                  lines;
-    Array_<DecorationGenerator*>            generators;
-    Array_<Visualizer::InputListener*>      listeners;
-    Array_<Visualizer::FrameController*>    controllers;
+    Array_<DecorativeGeometry>              m_addedGeometry;
+    Array_<RubberBandLine>                  m_lines;
+    Array_<DecorationGenerator*>            m_generators;
+    Array_<Visualizer::InputListener*>      m_listeners;
+    Array_<Visualizer::FrameController*>    m_controllers;
 
     // User control of Visualizer behavior.
     Visualizer::Mode    m_mode;
@@ -502,12 +531,19 @@ public:
     // also used in non-RealTime mode where AdjRT==RT.
     long long m_nextFrameDueAdjRT;
 
+    // In RealTime mode we remember the simulated time in the previous
+    // supplied frame so that we can tell if we see an earlier frame,
+    // meaning (most likely) that we are starting a new simulation or
+    // seeing a playback of an old one.
+    double m_prevFrameSimTime;
+
     // The frame buffer:
-    Array_<Frame,int> pool; // fixed size, old to new order but circular
-    int oldest, nframe;     // oldest is index into pool, nframe is #valid entries
-    pthread_mutex_t     queueLock;
-    pthread_cond_t      queueNotFull;   // must use with queueLock
-    pthread_cond_t      queueNotEmpty;  // must use with queueLock
+    Array_<Frame,int> m_pool; // fixed size, old to new order but circular
+    int m_oldest, m_nframe;   // oldest is index into pool, nframe is #valid entries
+    pthread_mutex_t     m_queueLock;
+    pthread_cond_t      m_queueNotFull;   // these must use with m_queueLock
+    pthread_cond_t      m_queueNotEmpty;
+    pthread_cond_t      m_queueIsEmpty;
 
     pthread_t           m_drawThread;     // the rendering thread
     bool                m_drawThreadIsRunning;
@@ -610,31 +646,31 @@ public:
 // the VisualizationProtocol object. In buffered mode this is called from the
 // rendering thread; otherwise, this is just the main simulation thread.
 void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
-    system.realize(state, Stage::Position);
+    m_system.realize(state, Stage::Position);
 
     // Collect up the geometry that constitutes this scene.
     Array_<DecorativeGeometry> geometry;
     for (Stage stage = Stage::Topology; stage <= state.getSystemStage(); ++stage)
-        system.calcDecorativeGeometryAndAppend(state, stage, geometry);
-    for (unsigned i = 0; i < generators.size(); i++)
-        generators[i]->generateDecorations(state, geometry);
+        m_system.calcDecorativeGeometryAndAppend(state, stage, geometry);
+    for (unsigned i = 0; i < m_generators.size(); i++)
+        m_generators[i]->generateDecorations(state, geometry);
 
     // Execute frame controls (e.g. camera positioning).
-    for (unsigned i = 0; i < controllers.size(); ++i)
-        controllers[i]->generateControls(*handle, state, geometry);
+    for (unsigned i = 0; i < m_controllers.size(); ++i)
+        m_controllers[i]->generateControls(*m_handle, state, geometry);
 
     // Calculate the spatial pose of all the geometry and send it to the
     // renderer.
-    protocol.beginScene();
+    m_protocol.beginScene();
     VisualizationGeometry geometryCreator
-        (protocol, system.getMatterSubsystem(), state);
+        (m_protocol, m_system.getMatterSubsystem(), state);
     for (unsigned i = 0; i < geometry.size(); ++i)
         geometry[i].implementGeometry(geometryCreator);
-    for (unsigned i = 0; i < addedGeometry.size(); ++i)
-        addedGeometry[i].implementGeometry(geometryCreator);
-    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-    for (unsigned i = 0; i < lines.size(); ++i) {
-        const RubberBandLine& line = lines[i];
+    for (unsigned i = 0; i < m_addedGeometry.size(); ++i)
+        m_addedGeometry[i].implementGeometry(geometryCreator);
+    const SimbodyMatterSubsystem& matter = m_system.getMatterSubsystem();
+    for (unsigned i = 0; i < m_lines.size(); ++i) {
+        const RubberBandLine& line = m_lines[i];
         const MobilizedBody& B1 = matter.getMobilizedBody(line.b1);
         const MobilizedBody& B2 = matter.getMobilizedBody(line.b2);
         const Transform&  X_GB1 = B1.getBodyTransform(state);
@@ -643,10 +679,10 @@ void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
         const Vec3 end2 = X_GB2*line.station2;
         const Real thickness = line.line.getLineThickness() == -1 
                                ? 1 : line.line.getLineThickness();
-        protocol.drawLine(end1, end2, 
+        m_protocol.drawLine(end1, end2, 
             VisualizationGeometry::getColor(line.line), thickness);
     }
-    protocol.finishScene();
+    m_protocol.finishScene();
 
     ++numFramesSentToRenderer;
 }
@@ -691,15 +727,25 @@ void Visualizer::VisualizerRep::drawRealtimeFrameWhenReady
 
 // Attempt to report a frame while we're in realtime mode. 
 void Visualizer::VisualizerRep::reportRealtime(const State& state) {
-    const long long t = convertSimTimeToAdjRT(state.getTime()); // scale, convert to ns
+    // If we see a simulation time that is earlier than the last one, 
+    // we are probably starting a new simulation or playback. Flush the
+    // old one. Note that we're using actual simulation time; we don't
+    // want to get tricked by adjustments to the real time base.
+    if (state.getTime() < m_prevFrameSimTime) {
+        waitUntilQueueIsEmpty();
+        m_nextFrameDueAdjRT = -1; // restart time base
+    }
+
+    // scale, convert to ns (doesn't depend on real time base)
+    const long long t = convertSimTimeToAdjRT(state.getTime()); 
 
     // If this is the first frame, or first since last setMode(), then
     // we synchronize Adjusted Real Time to match. Readjustments will occur
     // if the simulation doesn't keep up with real time.
     if (m_nextFrameDueAdjRT < 0 || t == 0) {
         m_adjustedRealTimeBase = realTimeInNs() - t;
-        // now getAdjustedRealTime()==tInNs
-        m_nextFrameDueAdjRT = t; // now
+        // now getAdjustedRealTime()==t
+        m_nextFrameDueAdjRT = t; // i.e., now
     }
 
     // "timeSlop" is the amount we'll allow a frame's simulation time to 
@@ -769,7 +815,7 @@ Visualizer::Visualizer(MultibodySystem& system, const String& title) : rep(0) {
 }
 
 Visualizer::~Visualizer() {
-    if (rep->handle == this)
+    if (rep->m_handle == this)
         delete rep;
 }
 
@@ -797,6 +843,9 @@ Real Visualizer::getActualBufferLengthInSec() const
 
 void Visualizer::drawFrameNow(const State& state) 
 {   updRep().drawFrameNow(state); }
+
+void Visualizer::flushFrames()
+{   updRep().waitUntilQueueIsEmpty(); }
 
 // The simulation thread normally delivers frames here. Handling is dispatched
 // according the current visualization mode.
@@ -863,31 +912,43 @@ void Visualizer::report(const State& state) {
 }
 
 void Visualizer::addInputListener(Visualizer::InputListener* listener) {
-    updRep().listeners.push_back(listener);
+    updRep().m_listeners.push_back(listener);
 }
 
 void Visualizer::addFrameController(Visualizer::FrameController* controller) {
-    updRep().controllers.push_back(controller);
+    updRep().m_controllers.push_back(controller);
 }
 
 void Visualizer::addDecorationGenerator(DecorationGenerator* generator) {
-    updRep().generators.push_back(generator);
+    updRep().m_generators.push_back(generator);
 }
 
 void Visualizer::setGroundPosition(const CoordinateAxis& axis, Real height) {
-    updRep().protocol.setGroundPosition(axis, height);
+    updRep().m_protocol.setGroundPosition(axis, height);
+}
+
+void Visualizer::setBackgroundType(BackgroundType type) const {
+    getRep().m_protocol.setBackgroundType(type);
+}
+
+void Visualizer::setBackgroundColor(const Vec3& color) const {
+    getRep().m_protocol.setBackgroundColor(color);
+}
+
+void Visualizer::setShowShadows(bool showShadows) const {
+    getRep().m_protocol.setShowShadows(showShadows);
 }
 
 void Visualizer::addMenu(const String& title, const Array_<pair<String, int> >& items) {
-    updRep().protocol.addMenu(title, items);
+    updRep().m_protocol.addMenu(title, items);
 }
 
 void Visualizer::addSlider(const String& title, int id, Real min, Real max, Real value) {
-    updRep().protocol.addSlider(title, id, min, max, value);
+    updRep().m_protocol.addSlider(title, id, min, max, value);
 }
 
 void Visualizer::addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, const DecorativeGeometry& geom) {
-    Array_<DecorativeGeometry>& addedGeometry = updRep().addedGeometry;
+    Array_<DecorativeGeometry>& addedGeometry = updRep().m_addedGeometry;
     addedGeometry.push_back(geom);
     DecorativeGeometry& geomCopy = addedGeometry.back();
     geomCopy.setBodyId((int)mobodIx);
@@ -895,36 +956,49 @@ void Visualizer::addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD
 }
 
 void Visualizer::addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, MobilizedBodyIndex b2, const Vec3& station2, const DecorativeLine& line) {
-    updRep().lines.push_back(RubberBandLine(b1, station1, b2, station2, line));
+    updRep().m_lines.push_back(RubberBandLine(b1, station1, b2, station2, line));
 }
 
 void Visualizer::setCameraTransform(const Transform& transform) const {
-    getRep().protocol.setCameraTransform(transform);
+    getRep().m_protocol.setCameraTransform(transform);
 }
 
 void Visualizer::zoomCameraToShowAllGeometry() const {
-    getRep().protocol.zoomCamera();
+    getRep().m_protocol.zoomCamera();
 }
 
 void Visualizer::pointCameraAt(const Vec3& point, const Vec3& upDirection) const {
-    getRep().protocol.lookAt(point, upDirection);
+    getRep().m_protocol.lookAt(point, upDirection);
 }
 
 void Visualizer::setCameraFieldOfView(Real fov) const {
-    getRep().protocol.setFieldOfView(fov);
+    getRep().m_protocol.setFieldOfView(fov);
 }
 
 void Visualizer::setCameraClippingPlanes(Real nearPlane, Real farPlane) const {
-    getRep().protocol.setClippingPlanes(nearPlane, farPlane);
+    getRep().m_protocol.setClippingPlanes(nearPlane, farPlane);
+}
+
+
+void Visualizer::setSliderValue(int slider, Real newValue) const {
+    getRep().m_protocol.setSliderValue(slider, newValue);
+}
+
+void Visualizer::setSliderRange(int slider, Real newMin, Real newMax) const {
+    getRep().m_protocol.setSliderRange(slider, newMin, newMax);
+}
+
+void Visualizer::setWindowTitle(const String& title) const {
+    getRep().m_protocol.setWindowTitle(title);
 }
 
 void Visualizer::dumpStats(std::ostream& o) const {getRep().dumpStats(o);}
 void Visualizer::clearStats() {updRep().clearStats();}
 
 const Array_<Visualizer::InputListener*>& Visualizer::getInputListeners() const
-{   return getRep().listeners; }
+{   return getRep().m_listeners; }
 const Array_<Visualizer::FrameController*>& Visualizer::getFrameControllers() const
-{   return getRep().controllers; }
+{   return getRep().m_controllers; }
 
 
 //==============================================================================
@@ -964,6 +1038,11 @@ static void* drawingThreadMain(void* visualizerRepAsVoidp) {
             vizRep.noteThatOldestFrameIsNowAvailable();
         }
     } while (!vizRep.m_drawThreadShouldSuicide);
+
+    // Attempt to wake up the simulation thread if it is waiting for
+    // the draw thread since there won't be any more notices!
+    vizRep.POST_QueueNotFull(); // wake up if waiting for queue space
+    vizRep.POST_QueueIsEmpty(); // wake up if flushing
 
     return 0;
 }

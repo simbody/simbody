@@ -39,9 +39,12 @@ the simulation. */
 
 #include "SimTKsimbody.h"
 
+#include <cstdio>
+#include <iostream>
+
 using namespace SimTK;
 
-static const int NBodies = 50;
+static const int NBodies = 100;
 const Real FrameRate = 30;
 const Real TimeScale = 1; // i.e., 2 -> 2X real time
 
@@ -147,10 +150,11 @@ private:
 // basis to poll the InputSilo for user input. If there has been some, process it.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, 
+    UserInputHandler(Visualizer& viz,
+                     Visualizer::InputSilo& silo, 
                      const Force::Gravity& gravity, 
                      Real interval) 
-    :   PeriodicEventHandler(interval), m_silo(silo), m_gravity(gravity) {}
+    :   PeriodicEventHandler(interval), m_viz(viz), m_silo(silo), m_gravity(gravity) {}
 
     virtual void handleEvent(State& state, Real accuracy, const Vector& yWeights, 
                              const Vector& ooConstraintTols, Stage& lowestModified, 
@@ -176,23 +180,28 @@ public:
             }
 
             while (m_silo.takeSliderMove(whichSlider, sliderValue)) {
-                switch(whichSlider) {
-                case GravityMag:
+                if (whichSlider == GravityMag) {
                     m_gravity.setMagnitude(state, sliderValue);
-                    break;
-                case GravityX: case GravityY: case GravityZ: {
-                    Vec3 gdir = m_gravity.getDownDirection(state);
-                    gdir[whichSlider-GravityX] = sliderValue;
-                    if (gdir.norm() < SignificantReal) gdir=Vec3(0,1,0);
-                    m_gravity.setDownDirection(state, gdir);
-                    break;
+                    continue;
                 }
-                };
+                Vec3 gdir = m_gravity.getDownDirection(state);
+                Real remaining = std::sqrt(std::max(0., 1-square(sliderValue)));
+                CoordinateAxis axis = CoordinateAxis::getCoordinateAxis(whichSlider-GravityX);
+                CoordinateAxis prev = axis.getPreviousAxis();
+                CoordinateAxis next = axis.getNextAxis();
+                Vec2 other(gdir[prev], gdir[next]);
+                if (other.norm() >= SignificantReal) other *= (remaining/other.norm());
+                gdir[axis]=sliderValue; gdir[prev]=other[0]; gdir[next]=other[1];
+                if (gdir.norm() < SignificantReal) gdir[next] = 1;
+                m_viz.setSliderValue(GravityX+prev, gdir[prev]);
+                m_viz.setSliderValue(GravityX+next, gdir[next]);
+                m_gravity.setDownDirection(state, gdir);
             }
         }  
     }
 
 private:
+    Visualizer&            m_viz;
     Visualizer::InputSilo& m_silo;
     const Force::Gravity&  m_gravity;
 };
@@ -231,6 +240,8 @@ int main() {
     system.updDefaultSubsystem().addEventReporter(vr);
     Visualizer& viz = vr->updVisualizer();
 
+    viz.setWindowTitle("This is the so-called 'ChainExample'.");
+
     // Add a menu, just for fun.
     Array_< std::pair<std::string,int> > items;
     items.push_back(std::make_pair("One", 1));
@@ -240,12 +251,6 @@ int main() {
     items.push_back(std::make_pair("Two", 5));
     viz.addMenu("Test Menu",items);
 
-    // Add sliders to control gravity. They will display from bottom up.
-    // Joy Ku thought calling this "wind direction" makes more sense.
-    viz.addSlider("Wind Z", 3, -1, 1, 0); 
-    viz.addSlider("Wind Y", 2, -1, 1, 1);
-    viz.addSlider("Wind X", 1, -1, 1, 0);
-    viz.addSlider("Wind Mag", 4, 0, GravityMax, GravityDefault);
 
     MyListener*            listener = new MyListener(items);
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
@@ -266,7 +271,7 @@ int main() {
     viz.setCameraTransform(Vec3(0,NBodies/4,2*NBodies)); 
 
     system.updDefaultSubsystem().addEventHandler
-       (new UserInputHandler(*silo, gravity, 0.1)); // check input every 100ms
+       (new UserInputHandler(viz,*silo, gravity, 0.1)); // check input every 100ms
      
     // Initialize the system and state.
 
@@ -276,9 +281,31 @@ int main() {
     for (int i = 0; i < state.getNQ(); ++i)
         state.updQ()[i] = random.getValue(); 
 
-    Assembler(system).assemble(state);
+    // Use the Assembler to satisfy the loop-closing constraint.
+    Assembler assembler(system);
+    std::cout << "ASSEMBLING ... start configuration shown\n";
+    viz.report(state);
+    std::cout << "  Type something to continue:\n"; getchar();
+    double asmRTstart=realTime(), asmCPUstart=cpuTime();
+    assembler.addReporter(*vr);
+    assembler.setSystemConstraintsWeight(1);
+    Visualizer::Mode oldMode = viz.getMode();
+    viz.setMode(Visualizer::PassThrough);
+    assembler.assemble(state);
+    viz.setMode(oldMode);
+    printf("...ASSEMBLED in %gs, cpu=%gs. Final configuration shown\n",
+        realTime()-asmRTstart, cpuTime()-asmCPUstart);
+    viz.report(state);
+    std::cout << "  Type something to continue:\n"; getchar();
 
     // Simulate it.
+
+    // Add sliders to control gravity. They will display from bottom up.
+    // Joy Ku thought calling this "wind direction" makes more sense.
+    viz.addSlider("Wind Z", 3, -1, 1, 0); 
+    viz.addSlider("Wind Y", 2, -1, 1, 1);
+    viz.addSlider("Wind X", 1, -1, 1, 0);
+    viz.addSlider("Wind Mag", 4, 0, GravityMax, GravityDefault);
 
     //RungeKutta3Integrator integ(system);
     RungeKuttaMersonIntegrator integ(system);
@@ -297,8 +324,7 @@ int main() {
     std::cout << "steps:     "<<integ.getNumStepsTaken()<< std::endl;
     vr->getVisualizer().dumpStats(std::cout);
 
-    std::cout << "Type something to quit: ";
-    char ch; std::cin >> ch;
+    std::cout << "Type something to quit: "; getchar();
 
   } catch (const std::exception& exc) {
       std::cout << "EXCEPTION: " << exc.what() << std::endl;

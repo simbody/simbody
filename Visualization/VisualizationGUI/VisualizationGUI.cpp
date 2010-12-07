@@ -75,6 +75,7 @@
     PFNGLLINKPROGRAMPROC glLinkProgram;
     PFNGLUSEPROGRAMPROC glUseProgram;
     PFNGLUNIFORM3FPROC glUniform3f; 
+    PFNGLUNIFORM1IPROC glUniform1i; 
     PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation; 
     // Use old EXT names for these so we only require OpenGL 2.0.
     PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
@@ -362,6 +363,13 @@ static int numPassiveRedisplaysSinceLastActive = 0;
 // This is reset to zero whenever we post a passive or active display.
 static int numMopUpDisplaysSinceLastRedisplay = 0;
 
+// This is the rate that the Visualizer class (on the simulation side) is
+// trying to achieve. Normally the GUI simply renders frames whenever they
+// are delivered; it does not attempt to time them locally. However, when
+// no frames are received, the GUI may issue its own redisplays and should
+// not do so any faster than this.
+static float maxFrameRate = 30; // in frames/sec
+
 // These are used when saving a movie.
 static bool savingMovie = false, saveNextFrameToMovie = false;
 static string movieDir;
@@ -407,6 +415,7 @@ static GLfloat farClip = 1000;
 static GLfloat groundHeight = 0;
 static int groundAxis = 1;
 static bool showGround = true, showShadows = true, showFPS = true;
+static fVec3 backgroundColor = fVec3(1,1,1); // white is the default
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
 static int fpsCounter = 0, nextMeshIndex;
@@ -415,6 +424,10 @@ static double fpsBaseTime = 0;
 
 static string overlayMessage;
 static bool displayOverlayMessage = false;
+
+static void setClearColorToBackgroundColor() {
+    glClearColor(backgroundColor[0],backgroundColor[1],backgroundColor[2],1);
+}
 
 class PendingMesh : public PendingCommand {
 public:
@@ -510,11 +523,30 @@ public:
     }
 };
 
+class PendingWindowTitleChange : public PendingCommand {
+public:
+    PendingWindowTitleChange(const string& title) : title(title) {}
+    void execute() {glutSetWindowTitle(title.c_str());}
+private:
+    string title;
+};
+
+
+class PendingBackgroundColorChange : public PendingCommand {
+public:
+    PendingBackgroundColorChange(const fVec3& color) : color(color) {}
+    void execute() {
+        backgroundColor=color; setClearColorToBackgroundColor();
+    }
+private:
+    fVec3 color;
+};
+
 // This is the handler for simulator-defined menus. All it does is send back
 // to the simulator the integer index that was associated with the particular
 // menu entry on which the user clicked.
 void menuSelected(int option) {
-    char command = MENU_SELECTED;
+    char command = MenuSelected;
     WRITE(outPipe, &command, 1);
     WRITE(outPipe, &option, sizeof(int));
 }
@@ -679,9 +711,9 @@ public:
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, title[i]);
 
         // Draw the value.
-        stringstream valueStream;
-        valueStream << (minValue+position*(maxValue-minValue));
-        string value = valueStream.str();
+        char buffer[32];
+        sprintf(buffer, "%g", (double)calcValue());
+        string value(buffer);
         int valueWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_10, 
                             (unsigned char*) value.c_str());
         int valueMinx = maxx+4;
@@ -731,18 +763,43 @@ public:
     void mouseDragged(int x) {
         if (dragging) {
             float oldPosition = position;
-            position = (x-clickOffset-minx)/(float) sliderWidth;
-            position = std::min(std::max(position, 0.0f), 1.0f);
+            position = clamp(0.f, (x-clickOffset-minx)/(float)sliderWidth, 1.f);
             if (position != oldPosition)
                 positionChanged();
         }
     }
+
+    // The position is just 0..1; map that into the actual value.
+    float calcValue() const {return minValue+position*(maxValue-minValue);}
+
+    // Use this for programmatic changes to slider value. This does not get
+    // reported back to the simulation process.
+    void changeValue(float newValue) {
+        clampInPlace(minValue, newValue, maxValue); // fix newValue
+        const float range = maxValue-minValue;
+        if (range > 0) position = clamp(0.f, (newValue-minValue)/range, 1.f);
+        else position = 0.5f;
+        requestPassiveRedisplay();              //----- PASSIVE REDISPLAY ----
+    }
+
+    // This is for a programmatic change to the range after a slider has been
+    // defined. Value is unchanged if it still fits, otherwise it moves to
+    // the limit. This is not reported back to the simulation process.
+    void changeRange(float newMin, float newMax) {
+        SimTK_ASSERT_ALWAYS(newMax >= newMin, "Slider::changeRange(): bad range");
+        const float curValue = calcValue();
+        minValue = newMin; maxValue = newMax; // change bounds
+        changeValue(curValue); // recalculate relative position
+    }
+
+    int getId() const {return id;}
+    const string& getTitle() const {return title;}
+
 private:
     void positionChanged() {
-        char command = SLIDER_MOVED;
-        WRITE(outPipe, &command, 1);
+        WRITE(outPipe, &SliderMoved, 1);
         WRITE(outPipe, &id, sizeof(int));
-        float value = minValue+position*(maxValue-minValue);
+        float value = calcValue();
         WRITE(outPipe, &value, sizeof(float));
         requestPassiveRedisplay();              //----- PASSIVE REDISPLAY ----
     }
@@ -751,7 +808,8 @@ private:
     int id, minx, miny, maxx, maxy, handlex;
     int clickOffset;
     bool dragging;
-    float minValue, maxValue, position;
+    float minValue, maxValue;   // actual min,max values
+    float position;             // always in range [0,1]
     static int maxLabelWidth;
     static const int handleWidth = 5;
     static const int sliderWidth = 100;
@@ -943,8 +1001,16 @@ static void drawGroundAndSky(float farClipDistance) {
     glUseProgram(0);
 }
 
-static vector<Menu> menus;
-static vector<Slider> sliders;
+static vector<Menu>     menus;
+static vector<Slider>   sliders;
+
+// Look up a particular slider; returns null pointer if not there.
+static Slider* findSliderById(int id) {
+    for (unsigned i=0; i < sliders.size(); ++i)
+        if (sliders[i].getId() == id)
+            return &sliders[i];
+    return 0;
+}
 
 static void changeSize(int width, int height) {
     if (height == 0)
@@ -1313,7 +1379,7 @@ static void mouseMoved(int x, int y) {
 // ones like arrows and function keys. We will map either case
 // into the same "key pressed" command to send to the simulator.
 static void ordinaryKeyPressed(unsigned char key, int x, int y) {
-    char command = KEY_PRESSED;
+    char command = KeyPressed;
     WRITE(outPipe, &command, 1);
     unsigned char buffer[2];
     buffer[0] = key;
@@ -1329,7 +1395,7 @@ static void ordinaryKeyPressed(unsigned char key, int x, int y) {
 }
 
 static void specialKeyPressed(int key, int x, int y) {
-    char command = KEY_PRESSED;
+    char command = KeyPressed;
     WRITE(outPipe, &command, 1);
     unsigned char buffer[2];
     buffer[0] = (unsigned char)key; // this is the special key code
@@ -1531,7 +1597,7 @@ static void makeBox()  {
     addVec(normals, 0, 0, 1);
     addVec(faces, 20, 21, 22);
     addVec(faces, 22, 23, 20);
-    meshes.push_back(new Mesh(vertices, normals, faces));
+    meshes[MeshBox] = new Mesh(vertices, normals, faces);
 }
 
 static void makeSphere() {
@@ -1578,7 +1644,7 @@ static void makeSphere() {
     for (int i = first; i < last-1; i++)
         addVec(faces, i, i+1, last);
     addVec(faces, last-1, first, last);
-    meshes.push_back(new Mesh(vertices, normals, faces));
+    meshes[MeshEllipsoid] = new Mesh(vertices, normals, faces);
 }
 
 static void makeCylinder() {
@@ -1641,7 +1707,7 @@ static void makeCylinder() {
     }
     addVec(faces, sideStart+2*numSides-2, sideStart, sideStart+2*numSides-1);
     addVec(faces, sideStart+2*numSides-1, sideStart, sideStart+1);
-    meshes.push_back(new Mesh(vertices, normals, faces));
+    meshes[MeshCylinder] = new Mesh(vertices, normals, faces);
 }
 
 static void makeCircle() {
@@ -1681,7 +1747,7 @@ static void makeCircle() {
     for (int i = 1; i < numSides; i++)
         addVec(faces, backStart, backStart+i, backStart+i+1);
     addVec(faces, backStart, backStart+numSides, backStart+1);
-    meshes.push_back(new Mesh(vertices, normals, faces));
+    meshes[MeshCircle] = new Mesh(vertices, normals, faces);
 }
 
 // Read a particular number of bytes from the inPipe to the given data.
@@ -1692,8 +1758,8 @@ static void readData(char* buffer, int bytes) {
         totalRead += READ(inPipe, buffer+totalRead, bytes-totalRead);
 }
 
-// We have just processed a START_OF_SCENE command. Read in all the scene
-// elements until we see an END_OF_SCENE command. We allocate a new Scene
+// We have just processed a StartOfScene command. Read in all the scene
+// elements until we see an EndOfScene command. We allocate a new Scene
 // object to hold the scene and return a pointer to it. Don't forget to
 // delete that object when you are done with it.
 static Scene* readNewScene() {
@@ -1711,23 +1777,23 @@ static Scene* readNewScene() {
 
         switch (command) {
 
-        case END_OF_SCENE:
+        case EndOfScene:
             finished = true;
             break;
 
         // Add a scene element that uses an already-cached mesh.
-        case ADD_POINT_MESH:
-        case ADD_WIREFRAME_MESH:
-        case ADD_SOLID_MESH: {
+        case AddPointMesh:
+        case AddWireframeMesh:
+        case AddSolidMesh: {
             readData(buffer, 13*sizeof(float)+sizeof(short));
             fTransform position;
             position.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
             position.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             fVec3 scale = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
             fVec4 color = fVec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
-            short representation = (command == ADD_POINT_MESH ? DecorativeGeometry::DrawPoints : (command == ADD_WIREFRAME_MESH ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
+            short representation = (command == AddPointMesh ? DecorativeGeometry::DrawPoints : (command == AddWireframeMesh ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
             RenderedMesh mesh(position, scale, color, representation, shortBuffer[13*sizeof(float)/sizeof(short)]);
-            if (command != ADD_SOLID_MESH)
+            if (command != AddSolidMesh)
                 newScene->drawnMeshes.push_back(mesh);
             else if (color[3] == 1)
                 newScene->solidMeshes.push_back(mesh);
@@ -1736,7 +1802,7 @@ static Scene* readNewScene() {
             break;
         }
 
-        case ADD_LINE: {
+        case AddLine: {
             readData(buffer, 10*sizeof(float));
             fVec3 color = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             float thickness = floatBuffer[3];
@@ -1756,7 +1822,7 @@ static Scene* readNewScene() {
             break;
         }
 
-        case ADD_TEXT: {
+        case AddText: {
             readData(buffer, 7*sizeof(float)+sizeof(short));
             fVec3 position = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             float scale = floatBuffer[3];
@@ -1767,7 +1833,7 @@ static Scene* readNewScene() {
             break;
         }
 
-        case ADD_COORDS: {
+        case AddCoords: {
             readData(buffer, 10*sizeof(float));
             fRotation rotation;
             rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
@@ -1813,7 +1879,7 @@ static Scene* readNewScene() {
         // Define a new mesh that will be assigned the next available mesh
         // index. It will be cached here and then can be referenced in this
         // scene and others by using it mesh index.
-        case DEFINE_MESH: {
+        case DefineMesh: {
             readData(buffer, 2*sizeof(short));
             PendingMesh* mesh = new PendingMesh(); // assigns next mesh index
             int numVertices = shortBuffer[0];
@@ -1882,53 +1948,7 @@ void* listenForInput(void* args) {
         // Read commands from the simulator.
         readData(buffer, 1);
         switch (buffer[0]) {
-        case SET_CAMERA: {
-            readData(buffer, 6*sizeof(float));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            cameraTransform.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-            cameraTransform.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
-        }
-        case ZOOM_CAMERA: {
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            pendingCommands.push_back(new PendingCameraZoom());
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
-        }
-        case LOOK_AT: {
-            readData(buffer, 6*sizeof(float));
-            fVec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-            fVec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(cameraTransform.T()-point), ZAxis, updir, YAxis);
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
-        }
-        case SET_FIELD_OF_VIEW: {
-            readData(buffer, sizeof(float));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            fieldOfView = floatBuffer[0];
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
-        }
-        case SET_CLIP_PLANES: {
-            readData(buffer, 2*sizeof(float));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            nearClip = floatBuffer[0];
-            farClip = floatBuffer[1];
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
-        }
-        case SET_GROUND_POSITION: {
-            readData(buffer, sizeof(float)+sizeof(short));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            groundHeight = floatBuffer[0];
-            groundAxis = shortBuffer[sizeof(float)/sizeof(short)];
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
-        }
-        case DEFINE_MENU: {
+        case DefineMenu: {
             readData(buffer, sizeof(short));
             int titleLength = shortBuffer[0];
             vector<char> titleBuffer(titleLength);
@@ -1949,7 +1969,7 @@ void* listenForInput(void* args) {
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
-        case DEFINE_SLIDER: {
+        case DefineSlider: {
             readData(buffer, sizeof(short));
             int titleLength = shortBuffer[0];
             vector<char> titleBuffer(titleLength);
@@ -1961,7 +1981,119 @@ void* listenForInput(void* args) {
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
-        case START_OF_SCENE: {
+        case SetSliderValue: {
+            readData(buffer, sizeof(int));
+            const int sliderId = intBuffer[0];
+            readData(buffer, sizeof(float));
+            const float newValue = floatBuffer[0];
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            Slider* sp = findSliderById(sliderId);
+            if (sp) sp->changeValue(newValue);
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetSliderRange: {
+            readData(buffer, sizeof(int));
+            const int sliderId = intBuffer[0];
+            readData(buffer, 2*sizeof(float));
+            const float newMin = floatBuffer[0];
+            const float newMax = floatBuffer[1];
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            Slider* sp = findSliderById(sliderId);
+            if (sp) sp->changeRange(newMin, newMax);
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetCamera: {
+            readData(buffer, 6*sizeof(float));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            cameraTransform.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+            cameraTransform.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case ZoomCamera: {
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            pendingCommands.push_back(new PendingCameraZoom());
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case LookAt: {
+            readData(buffer, 6*sizeof(float));
+            fVec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+            fVec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(cameraTransform.T()-point), ZAxis, updir, YAxis);
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetFieldOfView: {
+            readData(buffer, sizeof(float));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            fieldOfView = floatBuffer[0];
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetClipPlanes: {
+            readData(buffer, 2*sizeof(float));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            nearClip = floatBuffer[0];
+            farClip = floatBuffer[1];
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetGroundPosition: {
+            readData(buffer, sizeof(float)+sizeof(short));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            groundHeight = floatBuffer[0];
+            groundAxis = shortBuffer[sizeof(float)/sizeof(short)];
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetWindowTitle: {
+            readData(buffer, sizeof(short));
+            int titleLength = shortBuffer[0];
+            vector<char> titleBuffer(titleLength);
+            readData(&titleBuffer[0], titleLength);
+            string title(&titleBuffer[0], titleLength);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            pendingCommands.push_back(new PendingWindowTitleChange(title));
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetMaxFrameRate: {
+            readData(buffer, sizeof(float));
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            maxFrameRate = floatBuffer[0];
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetBackgroundColor: {
+            readData(buffer, 3*sizeof(float));
+            fVec3 color(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            pendingCommands.push_back(new PendingBackgroundColorChange(color));
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetShowShadows: {
+            readData(buffer, sizeof(short));
+            const bool shouldShow = (shortBuffer[0] != 0);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            showShadows = shouldShow;
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetBackgroundType: {
+            readData(buffer, sizeof(short));
+            const Visualizer::BackgroundType type =
+                Visualizer::BackgroundType(shortBuffer[0]);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            showGround = (type == Visualizer::GroundAndSky);
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case StartOfScene: {
             Scene* newScene = readNewScene();
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
             if (scene != NULL) {
@@ -2054,11 +2186,13 @@ void viewMenuSelected(int option) {
         break;
     case MENU_BACKGROUND_BLACK:
         showGround = false;
-        glClearColor(0, 0, 0, 1);
+        backgroundColor = fVec3(0,0,0);
+        setClearColorToBackgroundColor();
         break;
     case MENU_BACKGROUND_WHITE:
         showGround = false;
-        glClearColor(1, 1, 1, 1);
+        backgroundColor = fVec3(1,1,1);
+        setClearColorToBackgroundColor();
         break;
     case MENU_BACKGROUND_SKY:
         showGround = true;
@@ -2092,15 +2226,16 @@ static const int DefaultWindowHeight = 500;
 // and for final cleanup of the FPS display after scenes stop arriving.
 static void keepAliveIdleFunc() {
     static const double SleepTime   = 1./100; // 10ms
-    static const double PassiveTime = 1./30 - .005; // ~30 fps, 5ms slop
     static const double MopUpTime   = 1.; // to clean up FPS display
+
+    const double passiveRedisplayInterval = 1/(double)maxFrameRate;
 
     sleepInSec(SleepTime); // take a short break
 
     // If it has been at least one passive frame time, redisplay if there
     // has been a passive redisplay request.
     const double idle = realTime() - lastRedisplayDone;
-    if (passiveRedisplayRequested && idle > PassiveTime) { // 30 fps
+    if (passiveRedisplayRequested && idle > passiveRedisplayInterval) {
         forcePassiveRedisplay();                //------ FORCE REDISPLAY -----
         return;
     }
@@ -2131,19 +2266,29 @@ static void setVsync(bool enable) {
 }
 
 int main(int argc, char** argv) {
-    SimTK_ASSERT_ALWAYS(argc >= 3, "VisualizationGUI: must be at least two command line arguments (pipes)");
+  try
+  { SimTK_ERRCHK_ALWAYS(argc >= 3, "VisualizationGUI main()",
+        "VisualizationGUI: must be at least two command line arguments (pipes)");
 
     stringstream(argv[1]) >> inPipe;
     stringstream(argv[2]) >> outPipe;
 
-    string title("SimTK Visualizer");
+    string title("Simbody Visualizer");
     if (argc >= 4 && argv[3])
         title += ": " + string(argv[3]);
 
 
-    // Initialize GLUT.
-
+    // Initialize GLUT, then perform initial handshake with the parent
+    // from the main thread here. (TODO: no handshake yet)
     glutInit(&argc, argv);
+
+    //char handshakeCmd; 
+    //readData(&handshakeCmd, 1);
+    //SimTK_ERRCHK2_ALWAYS(handshakeCmd == StartupHandshake,
+    //    "VisualizationGUI main()",
+    //    "GUI expected the first message from the simulation to be the"
+    //    " startup handshake command %d, but received %d. Can't continue.",
+    //    StartupHandshake, handshakeCmd);
 
     // Put the upper left corner of the glut window near the upper right 
     // corner of the screen.
@@ -2157,12 +2302,13 @@ int main(int argc, char** argv) {
     glutInitWindowSize(DefaultWindowWidth, DefaultWindowHeight);
     glutCreateWindow(title.c_str());
 
-    printf( "OpenGL version information:\n"
-            "---------------------------\n"
-            "Vendor:   %s\n" 
-            "Renderer: %s\n"
-            "Version:  %s\n"
-            "GLSL:     %s\n", 
+    printf("\n\nSimbody Visualizer GUI\n"
+               "OpenGL version information:\n"
+               "---------------------------\n"
+               "Vendor:   %s\n" 
+               "Renderer: %s\n"
+               "Version:  %s\n"
+               "GLSL:     %s\n", 
         glGetString (GL_VENDOR), glGetString (GL_RENDERER),
         glGetString (GL_VERSION), glGetString (GL_SHADING_LANGUAGE_VERSION));
 
@@ -2199,11 +2345,17 @@ int main(int argc, char** argv) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE);
     glEnable(GL_NORMALIZE);
+
+    // Make room for the predefined meshes and define them.
+    meshes.resize(NumPredefinedMeshes);
     makeBox();
     makeSphere();
     makeCylinder();
     makeCircle();
-    nextMeshIndex = meshes.size();
+    // Note the first mesh index available for unique meshes
+    // that are sent to the GUI for caching.
+    nextMeshIndex = NumPredefinedMeshes;
+
     scene = NULL;
     pendingCommands.push_back(new PendingCameraZoom());
 
@@ -2239,6 +2391,12 @@ int main(int argc, char** argv) {
     requestPassiveRedisplay();                   //------ PASSIVE REDISPLAY ---
     fpsBaseTime = realTime();
     glutMainLoop();
+  } catch(const std::exception& e) {
+      std::cout << "VisualizationGUI failed with exception:\n"
+                << e.what() << std::endl;
+      return 1;
+    }
+
     return 0;
 }
 
@@ -2259,6 +2417,7 @@ static void initGlextFuncPointersIfNeeded() {
     glLinkProgram   = (PFNGLLINKPROGRAMPROC) glutGetProcAddress("glLinkProgram");
     glUseProgram    = (PFNGLUSEPROGRAMPROC) glutGetProcAddress("glUseProgram");
     glUniform3f     = (PFNGLUNIFORM3FPROC) glutGetProcAddress("glUniform3f");
+    glUniform1i     = (PFNGLUNIFORM1IPROC) glutGetProcAddress("glUniform1i");
     glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) glutGetProcAddress("glGetUniformLocation");
     // Using the "EXT" names here means we only require OpenGL 2.0.
     glGenFramebuffersEXT    = (PFNGLGENFRAMEBUFFERSEXTPROC) glutGetProcAddress("glGenFramebuffersEXT");

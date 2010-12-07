@@ -36,10 +36,13 @@
  * This is the implementation of DecorativeGeometry used by VisualzationRporter.
  */
 
-#include "SimTKcommon.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/common.h"
 
 namespace SimTK {
+    class SimbodyMatterSubsystem;
+}
+
+using namespace SimTK;
 
 class VisualizationProtocol;
 
@@ -66,6 +69,5 @@ private:
     const State& state;
 };
 
-}
 
 #endif // SimTK_SIMBODY_VISUALIZATION_GEOMETRY_H_

@@ -154,6 +154,10 @@ user input at a time until they have all been consumed.\ This eliminates any
 need for tricky asynchronous handling of user input, and all thread 
 synchronization issues are handled invisibly. 
 
+You can also request to wait quietly until some input arrives, which is useful
+when you can't proceed without some instruction from the user that you expect
+to get through the VisualizerGUI.
+
 When the InputSilo receives user input through one of the InputListener methods
 it implements, it return \c true indicating that it has processed the input and
 that no further InputListeners should be called. So if you have other 
@@ -171,28 +175,41 @@ MultibodySystem system;
 // InputSilo to gather user input.
 Visualizer viz(system);
 viz.setMode(Visualizer::RealTime);
-InputSilo* userInput = new InputSilo;
-viz.addInputListener(userInput);
+InputSilo* silo = new InputSilo;
+viz.addInputListener(silo);
 
 // You create a PeriodicEventHandler to poll the input. Note that the interval
 // you choose determines how responsive the simulation will be to user input,
 // but it also limits the maximum step size that the integrator can take.
 system.updDefaultSubsystem().addEventHandler
-    (new MyUserInputHandler(*userInput, 0.1)); // check every 100ms 
+    (new MyUserInputHandler(*silo, 0.1)); // check every 100ms 
 
 // Then in MyUserInputHandler::handleEvent(...):
-while (userInput.isAnyUserInput()) {
-    while (userInput.takeCharInput(key,modifier)) {
+while (silo.isAnyUserInput()) {
+    while (silo.takeKeyHit(key,modifier)) {
         // Process the key that was hit
     }
-    while (userInput.takeMenuPick(item)) {
+    while (silo.takeMenuPick(item)) {
         // Process the picked menu item
     }
-    while (userInput.takeSliderMove(which, value)) {
+    while (silo.takeSliderMove(which, value)) {
         // Process the new value for slider "which"
     }
 }
 @endcode
+
+If you want to wait until some input arrives, create the InputSilo and add
+it to the Visualizer as above, then in your main program (that is, not
+in the Handler) use code like this:
+@code
+std::cout << "Hit ENTER in VisualizerGUI to continue ...\n";
+unsigned key, modifiers;
+do {silo->waitForKeyHit(key,modifiers);}
+while (key != Visualizer::InputListener::KeyEnter);
+@endcode
+
+Similar methods are available for all the different input types, and you
+can also wait on the arrival of \e any input.
 
 <h3>Implementation</h3>
 
@@ -229,6 +246,11 @@ InputSilo();
 use this but it is a good idea to do so. **/
 bool isAnyUserInput() const;
 
+/** This will wait quietly until the user has provided some input to the
+VisualizerGUI.\ Any kind of input will terminate the wait; you'll have
+to look to see what it was. **/
+void waitForAnyUserInput() const;
+
 /** This will return user key hits until they have all been consumed, in the 
 same order they were received. The \a key and \a modifiers values are those that
 were provided to our implementation of the InputListener::keyPressed() method. 
@@ -243,6 +265,13 @@ were provided to our implementation of the InputListener::keyPressed() method.
     be set to zero. **/
 bool takeKeyHit(unsigned& key, unsigned& modifiers);
 
+/** Same as takeKeyHit() except that if there is no key hit input available
+it waits until there is, then returns the first one (which is removed from
+the silo just as takeKeyHit() would do. The behavior is like calling
+waitForAnyUserInput() repeatedly until takeKeyHit() returns \c true.
+@see takeKeyHit(), waitForAnyUserInput() **/
+void waitForKeyHit(unsigned& key, unsigned& modifiers);
+
 /** This will return user menu picks until they have all been consumed, in the
 same order they were received. The \a item value returned is the value that was
 provided to our implementation of the InputListener::menuSelected() method. 
@@ -253,6 +282,13 @@ provided to our implementation of the InputListener::menuSelected() method.
 @return \c true if a menu item number has been returned; \c false if the menu 
     pick silo is now empty in which case \a item will be set to zero. **/
 bool takeMenuPick(int& item);
+
+/** Same as takeMenuPick() except that if there is no menu pick input available
+it waits until there is, then returns the first one (which is removed from
+the silo just as takeMenuPick() would do. The behavior is like calling
+waitForAnyUserInput() repeatedly until takeMenuPick() returns \c true.
+@see takeMenuPick(), waitForAnyUserInput() **/
+void waitForMenuPick(int& item);
 
 /** This will return user changes to slider positions until they have all been
 consumed, in the same order they were received. The \a slider and \a value 
@@ -268,6 +304,13 @@ InputListener::sliderMoved() method.
     silo is now empty in which case \a which will be set to zero and \a value 
     will be NaN. **/
 bool takeSliderMove(int& slider, Real& value);
+
+/** Same as takeSliderMove() except that if there is no slider move input 
+available it waits until there is, then returns the first one (which is removed
+from the silo just as takeSliderMove() would do. The behavior is like calling
+waitForAnyUserInput() repeatedly until takeSliderMove() returns \c true.
+@see takeSliderMove(), waitForAnyUserInput() **/
+void waitForSliderMove(int& slider, Real& value);
 
 /** Throw away any pending unprocessed input of all types. **/
 void clear();

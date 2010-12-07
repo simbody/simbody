@@ -2,16 +2,16 @@
 #define SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
  * Portions copyright (c) 2010 Stanford University and the Authors.           *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                                             *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -33,43 +33,75 @@
  * -------------------------------------------------------------------------- */
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/Visualizer.h"
 #include <pthread.h>
 #include <utility>
 
+using namespace SimTK;
+
 /** @file
- * This file defines commands that are used for communication between the main application
- * and the visualization GUI.
+ * This file defines commands that are used for communication between the 
+ * simulation application and the visualization GUI.
  */
+
+// Increment this every time you make *any* change to the protocol;
+// we insist on an exact match.
+static const unsigned ProtocolVersion   = 22;
+
+// The VisualizerGUI has several predefined cached meshes for common
+// shapes so that we don't have to send them. These are the mesh 
+// indices for them; they must start with zero.
+static const unsigned short MeshBox              = 0;
+static const unsigned short MeshEllipsoid        = 1;    // works for sphere
+static const unsigned short MeshCylinder         = 2;
+static const unsigned short MeshCircle           = 3;
+
+// This serves as the first index number for unique meshes that are 
+// defined during this run.
+static const unsigned short NumPredefinedMeshes  = 4;
 
 // Commands sent to the GUI.
 
-static const char START_OF_SCENE = 0;
-static const char END_OF_SCENE = 1;
-static const char ADD_SOLID_MESH = 2;
-static const char ADD_POINT_MESH = 3;
-static const char ADD_WIREFRAME_MESH = 4;
-static const char ADD_LINE = 5;
-static const char ADD_TEXT = 6;
-static const char ADD_COORDS = 7;
-static const char DEFINE_MESH = 8;
-static const char DEFINE_MENU = 9;
-static const char DEFINE_SLIDER = 10;
-static const char SET_CAMERA = 11;
-static const char ZOOM_CAMERA = 12;
-static const char LOOK_AT = 13;
-static const char SET_FIELD_OF_VIEW = 14;
-static const char SET_CLIP_PLANES = 15;
-static const char SET_GROUND_POSITION = 16;
+// This should always be command #1 so we can reliably check whether
+// we're talking to a compatible protocol.
+static const char StartupHandshake      = 1;
+
+static const char StartOfScene          = 2;
+static const char EndOfScene            = 3;
+static const char AddSolidMesh          = 4;
+static const char AddPointMesh          = 5;
+static const char AddWireframeMesh      = 6;
+static const char AddLine               = 7;
+static const char AddText               = 8;
+static const char AddCoords             = 9;
+static const char DefineMesh            = 10;
+static const char DefineMenu            = 11;
+static const char DefineSlider          = 12;
+static const char SetSliderValue        = 13;
+static const char SetSliderRange        = 14;
+static const char SetCamera             = 15;
+static const char ZoomCamera            = 16;
+static const char LookAt                = 17;
+static const char SetFieldOfView        = 18;
+static const char SetClipPlanes         = 19;
+static const char SetGroundPosition     = 20;
+static const char SetWindowTitle        = 21;
+static const char SetMaxFrameRate       = 22;
+static const char SetBackgroundColor    = 23;
+static const char SetShowShadows        = 24;
+static const char SetBackgroundType     = 25;
+
+
 
 // Events sent from the GUI back to the application.
 
-static const char KEY_PRESSED = 0;
-static const char MENU_SELECTED = 1;
-static const char SLIDER_MOVED = 2;
+// This should always be command #1 so we can reliably check whether
+// we're talking to a compatible protocol.
+static const char ReturnHandshake       = 1;
 
-namespace SimTK {
-
-class Visualizer;
+static const char KeyPressed            = 2;
+static const char MenuSelected          = 3;
+static const char SliderMoved           = 4;
 
 class VisualizationProtocol {
 public:
@@ -84,10 +116,18 @@ public:
     void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness);
     void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
     void drawCoords(const Transform& transform, Real axisLength, const Vec4& color);
+    
     void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
     void addSlider(const String& title, int id, Real min, Real max, Real value);
+    void setSliderValue(int id, Real newValue) const;
+    void setSliderRange(int id, Real newMin, Real newMax) const;
+    
     void setGroundPosition(const CoordinateAxis& axis, Real height);
-
+    void setWindowTitle(const String& title) const;
+    void setMaxFrameRate(Real rateInFPS) const;
+    void setBackgroundColor(const Vec3& color) const;
+    void setShowShadows(bool showShadows) const;
+    void setBackgroundType(Visualizer::BackgroundType type) const;
     void setCameraTransform(const Transform& transform) const;
     void zoomCamera() const;
     void lookAt(const Vec3& point, const Vec3& upDirection) const;
@@ -95,12 +135,14 @@ public:
     void setClippingPlanes(Real near, Real far) const;
 private:
     void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, 
-                  short representation, short meshIndex);
+                  short representation, unsigned short meshIndex);
     int outPipe;
-    mutable std::map<const void*, int> meshes;
+
+    // For user-defined meshes, map their unique memory addresses to the 
+    // assigned VisualizerGUI cache index.
+    mutable std::map<const void*, unsigned short> meshes;
     mutable pthread_mutex_t sceneLock;
 };
 
-}
 
 #endif // SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_

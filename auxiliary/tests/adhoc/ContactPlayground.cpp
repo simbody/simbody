@@ -35,11 +35,6 @@
 
 #include "SimTKsimbody.h"
 
-//#define USE_VTK
-#ifdef USE_VTK
-#include "SimTKsimbody_aux.h"   // requires VTK
-#endif
-
 #include <cstdio>
 #include <exception>
 #include <algorithm>
@@ -52,7 +47,9 @@ using namespace SimTK;
 
 Array_<State> saveEm;
 
-static const Real ReportInterval = 0.01;
+static const Real TimeScale = 1;
+static const Real FrameRate = 30;
+static const Real ReportInterval = TimeScale/FrameRate;
 static const Real ForceScale = .25;
 static const Real MomentScale = .5;
 
@@ -126,77 +123,12 @@ class MyReporter : public PeriodicEventReporter {
 public:
     MyReporter(const MultibodySystem& system, 
                const CompliantContactSubsystem& complCont,
-#ifdef USE_VTK
-               VTKVisualizer& viz,
-#endif
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
         m_compliant(complCont)
-#ifdef USE_VTK
-        ,m_viz(viz) 
-#endif
     {}
 
     ~MyReporter() {}
-
-    void generateForceArrows(const State& state) const {
-        const Vec3 frcColors[] = {Red,Orange,Yellow};
-        const Vec3 momColors[] = {Blue,Green,Purple};
-        m_system.realize(state, Stage::Velocity);
-
-        const int ncont = m_compliant.getNumContactForces(state);
-        for (int i=0; i < ncont; ++i) {
-            const ContactForce& force = m_compliant.getContactForce(state,i);
-            const ContactId     id    = force.getContactId();
-            const Vec3& frc = force.getForceOnSurface2()[1];
-            const Vec3& mom = force.getForceOnSurface2()[0];
-            Real  frcMag = frc.norm(), momMag=mom.norm();
-            int frcThickness = 1, momThickness = 1;
-            Real frcScale = ForceScale, momScale = ForceScale;
-            while (frcMag > 10)
-                frcThickness++, frcScale /= 10, frcMag /= 10;
-            while (momMag > 10)
-                momThickness++, momScale /= 10, momMag /= 10;
-            DecorativeLine frcLine(force.getContactPoint(),
-                force.getContactPoint() + frcScale*frc);
-            DecorativeLine momLine(force.getContactPoint(),
-                force.getContactPoint() + momScale*mom);
-            frcLine.setColor(frcColors[id%3]);
-            momLine.setColor(momColors[id%3]);
-            frcLine.setLineThickness(2*frcThickness);
-            momLine.setLineThickness(2*momThickness);
-#ifdef USE_VTK
-            m_viz.addEphemeralDecoration(frcLine);
-            m_viz.addEphemeralDecoration(momLine);
-#endif
-
-            ContactPatch patch;
-            const bool found = m_compliant.calcContactPatchDetailsById(state,id,patch);
-            //cout << "patch for id" << id << " found=" << found << endl;
-            //cout << "resultant=" << patch.getContactForce() << endl;
-            //cout << "num details=" << patch.getNumDetails() << endl;
-            for (int i=0; i < patch.getNumDetails(); ++i) {
-                const ContactDetail& detail = patch.getContactDetail(i);
-                const Real peakPressure = detail.getPeakPressure();
-                // Make a black line from the element's contact point in the normal
-                // direction, with length proportional to log(peak pressure)
-                // on that element. 
-                DecorativeLine normal(detail.getContactPoint(),
-                    detail.getContactPoint()+ std::log10(peakPressure)
-                                                * detail.getContactNormal());
-                normal.setColor(Black);
-                // Make a red line that extends from the contact
-                // point in the direction of the slip velocity, of length 3*slipvel.
-                DecorativeLine slip(detail.getContactPoint(),
-                    detail.getContactPoint()+3*detail.getSlipVelocity());
-                slip.setColor(Red);
-#ifdef USE_VTK
-                m_viz.addEphemeralDecoration(normal);
-                m_viz.addEphemeralDecoration(slip);
-#endif
-            }
-        }
-    }
 
     void handleEvent(const State& state) const {
         m_system.realize(state, Stage::Dynamics);
@@ -211,24 +143,44 @@ public:
             const ContactForce& force = m_compliant.getContactForce(state,i);
             //cout << force;
         }
-#ifdef USE_VTK
-        generateForceArrows(state);
-#endif
         saveEm.push_back(state);
     }
 private:
     const MultibodySystem&           m_system;
     const CompliantContactSubsystem& m_compliant;
-#ifdef USE_VTK
-    VTKVisualizer&                   m_viz;
-#endif
 };
+
+// These are the item numbers for the entries on the Run menu.
+static const int GoItem = 1, ReplayItem=2, QuitItem=3;
+
+// This is a periodic event handler that interrupts the simulation on a regular
+// basis to poll the InputSilo for user input. If there has been some, process it.
+// This one does nothing but look for the Run->Quit selection.
+class UserInputHandler : public PeriodicEventHandler {
+public:
+    UserInputHandler(Visualizer::InputSilo& silo, Real interval) 
+    :   PeriodicEventHandler(interval), m_silo(silo) {}
+
+    virtual void handleEvent(State& state, Real accuracy, const Vector& yWeights, 
+                             const Vector& ooConstraintTols, Stage& lowestModified, 
+                             bool& shouldTerminate) const 
+    {
+        int item;
+        if (m_silo.takeMenuPick(item) && item==QuitItem)
+            shouldTerminate = true;
+    }
+
+private:
+    Visualizer::InputSilo& m_silo;
+};
+
 
 static void makeCube(Real h, PolygonalMesh& cube);
 static void makeTetrahedron(Real r, PolygonalMesh& tet);
 static void makePyramid(Real baseSideLength, PolygonalMesh& pyramid);
 static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
 static void makeSphere(Real radius, int level, PolygonalMesh& sphere);
+
 
 int main() {
   try
@@ -245,18 +197,6 @@ int main() {
 
     GeneralContactSubsystem OLDcontact(system);
     const ContactSetIndex OLDcontactSet = OLDcontact.createContactSet();
-
-    //PolygonalMesh pm1, pm2, pm3;
-    //std::ifstream in1("C:/Temp/Sphere1.obj"), in2("C:/Temp/Sphere2.obj"), in3("C:/Temp/Sphere3.obj");
-    //pm1.loadObjFile(in1); DecorativeMesh sphere1(pm1);
-    //sphere1.setColor(Orange).setRepresentation(DecorativeGeometry::DrawWireframe);
-    //matter.updGround().addBodyDecoration(Transform(), sphere1);
-    //pm2.loadObjFile(in2); DecorativeMesh sphere2(pm2);
-    //sphere2.setColor(Orange).setRepresentation(DecorativeGeometry::DrawWireframe);
-    //matter.updGround().addBodyDecoration(Vec3(3,0,0), sphere2);
-    //pm3.loadObjFile(in3); DecorativeMesh sphere3(pm3);
-    //sphere3.setColor(Orange).setRepresentation(DecorativeGeometry::DrawWireframe);
-    //matter.updGround().addBodyDecoration(Vec3(6,0,0), sphere3);
 
     PolygonalMesh pyramidMesh;
     //makeCube(1, pyramidMesh);
@@ -288,7 +228,7 @@ int main() {
 
     // Right hand wall
     matter.Ground().updBody().addDecoration(Vec3(.25+.01,0,0),
-        DecorativeBrick(Vec3(.01,4,8)).setColor(Gray).setOpacity(.1));
+        DecorativeBrick(Vec3(.01,4,8)).setColor(Gray).setOpacity(.2));
     matter.Ground().updBody().addContactSurface(Vec3(.25,0,0),
         ContactSurface(ContactGeometry::HalfSpace(),
                        ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
@@ -296,9 +236,9 @@ int main() {
 
     // Halfspace floor
     const Rotation R_xdown(-Pi/2,ZAxis);
-    matter.Ground().updBody().addDecoration(
-        Transform(R_xdown, Vec3(0,-3-.01,0)),
-        DecorativeBrick(Vec3(.01,4,8)).setColor(Gray).setOpacity(.1));
+    //matter.Ground().updBody().addDecoration(
+    //    Transform(R_xdown, Vec3(0,-3-.01,0)),
+    //    DecorativeBrick(Vec3(.01,4,8)).setColor(Gray).setOpacity(.1));
     matter.Ground().updBody().addContactSurface(
         Transform(R_xdown, Vec3(0,-3,0)),
         ContactSurface(ContactGeometry::HalfSpace(),
@@ -321,7 +261,7 @@ int main() {
     const Real rad = .4;
     Body::Rigid pendulumBody1(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody1.addDecoration(Transform(), 
-        DecorativeSphere(rad).setOpacity(.2));
+        DecorativeSphere(rad).setOpacity(.4));
     pendulumBody1.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
                        ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
@@ -329,7 +269,7 @@ int main() {
 
     Body::Rigid pendulumBody2(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody2.addDecoration(Transform(), 
-        DecorativeSphere(rad).setColor(Orange).setOpacity(.2));
+        DecorativeSphere(rad).setColor(Orange).setOpacity(.4));
     pendulumBody2.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
                        ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
@@ -409,21 +349,28 @@ int main() {
     //ef.setTransitionVelocity(vt);
     //// end of old way.
 
-
-#ifdef USE_VTK
-    VTKEventReporter& reporter = *new VTKEventReporter(system, ReportInterval);
-    VTKVisualizer& viz = reporter.updVisualizer();
-    MyReporter& myRep = *new MyReporter(system,contactForces,viz,ReportInterval);
-#else
-    VisualizationReporter& reporter = *new VisualizationReporter(system, ReportInterval);
-    Visualizer& viz = reporter.updVisualizer();
+    VisualizationReporter* reporter = new VisualizationReporter(system, ReportInterval);
+    Visualizer& viz = reporter->updVisualizer();
     viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
-   // viz.setMode(Visualizer::RealTime);
-    viz.setDesiredFrameRate(28);
-    MyReporter& myRep = *new MyReporter(system,contactForces,10*ReportInterval);
-#endif
-    system.updDefaultSubsystem().addEventReporter(&myRep);
-    system.updDefaultSubsystem().addEventReporter(&reporter);
+    viz.setMode(Visualizer::RealTime);
+    viz.setDesiredBufferLengthInSec(1);
+    viz.setDesiredFrameRate(FrameRate);
+    viz.setGroundPosition(YAxis, -3);
+    viz.setShowShadows(true);
+        // scale, convert to ns
+    Visualizer::InputSilo* silo = new Visualizer::InputSilo();
+    viz.addInputListener(silo);
+    Array_<std::pair<String,int> > runMenuItems;
+    runMenuItems.push_back(std::make_pair("Go", GoItem));
+    runMenuItems.push_back(std::make_pair("Replay", ReplayItem));
+    runMenuItems.push_back(std::make_pair("Quit", QuitItem));
+    viz.addMenu("Run", runMenuItems);
+    MyReporter* myRep = new MyReporter(system,contactForces,ReportInterval);
+
+    system.updDefaultSubsystem().addEventReporter(myRep);
+    system.updDefaultSubsystem().addEventReporter(reporter);
+    // Check for a Run->Quit menu pick every 1/4 second.
+    system.updDefaultSubsystem().addEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
     
@@ -441,8 +388,13 @@ int main() {
          << " q=" << pendulum.getQAsVector(state) << pendulum2.getQAsVector(state) 
          << " u=" << pendulum.getUAsVector(state) << pendulum2.getUAsVector(state) 
          << endl;
-    cout << "Hit ENTER to simulate:\n";
-    char c=getchar();
+
+    cout << "\nChoose 'Go' from Run menu to simulate:\n";
+    int item;
+    do { silo->waitForMenuPick(item);
+         if (item != GoItem) cout << "Dude ... follow instructions!\n";
+    } while (item != GoItem);
+
 
 
     pendulum.setOneU(state, 0, 5.0);
@@ -451,8 +403,6 @@ int main() {
     ball.setOneU(state, 0, .05); // to break symmetry
     
     // Simulate it.
-    const clock_t start = clock();
-
 
     //ExplicitEulerIntegrator integ(system);
     CPodesIntegrator integ(system,CPodes::BDF,CPodes::Newton);
@@ -461,18 +411,24 @@ int main() {
     //RungeKutta3Integrator integ(system);
     //VerletIntegrator integ(system);
     //integ.setMaximumStepSize(1e-0001);
-    integ.setAccuracy(1e-4); // minimum for CPodes
+    integ.setAccuracy(1e-3); // minimum for CPodes
     //integ.setAccuracy(.01);
     TimeStepper ts(system, integ);
+
+
     ts.initialize(state);
+    double cpuStart = cpuTime();
+    double realStart = realTime();
+
     ts.stepTo(20.0);
 
-    const double timeInSec = (double)(clock()-start)/CLOCKS_PER_SEC;
+    const double timeInSec = realTime() - realStart;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
+        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step=" 
         << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
         << (1000*ts.getTime())/evals << "ms/eval\n";
+    cout << "  CPU time was " << cpuTime() - cpuStart << "s\n";
 
     printf("Using Integrator %s at accuracy %g:\n", 
         integ.getMethodName(), integ.getAccuracyInUse());
@@ -480,17 +436,23 @@ int main() {
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
 
+    viz.dumpStats(std::cout);
 
     while(true) {
-        for (int i=0; i < (int)saveEm.size(); ++i) {
-#ifdef USE_VTK
-            myRep.generateForceArrows(saveEm[i]);
-#endif
-            viz.report(saveEm[i]);
-            //vtk.report(saveEm[i]); // half speed
+        silo->clear();
+        cout << "Choose Run/Replay to see that again ...\n";
+        int item;
+        silo->waitForMenuPick(item);
+
+        if (item == QuitItem)
+            break;
+        if (item != ReplayItem) {
+            cout << "Huh? Try again.\n";
+            continue;
         }
-        cout << "Hit ENTER to animate again\n";
-        getchar();
+
+        for (int i=0; i < (int)saveEm.size(); ++i)
+            viz.report(saveEm[i]);
     }
 
   } catch (const std::exception& e) {

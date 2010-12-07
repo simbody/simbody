@@ -37,7 +37,7 @@
  * Simbody capabilities.
  */
 
-/** @page Simbody          Simbody Reference Guide
+/** @mainpage Simbody          Simbody Reference Guide
  *
  * This is the Doxygen-generated reference material for Simbody objects. Until
  * we finish this main page you'll have to look up the objects by their class
