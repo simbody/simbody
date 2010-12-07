@@ -46,6 +46,9 @@
 #include <cstring>
 #include <pthread.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+    #include <direct.h>
+#endif
 
 // Get gl and glut using the appropriate platform-dependent incantations.
 #if defined(__APPLE__)
@@ -347,17 +350,23 @@ static pthread_mutex_t sceneLock;
 static pthread_cond_t  sceneHasBeenDrawn;
 
 // This is how long it's been since we've done a redisplay for any reason.
-double lastRedisplayDone = 0; // real time
+static double lastRedisplayDone = 0; // real time
 
 // When this is true it means something has happened that requires redisplay,
 // but we hope to see it when the next scene is rendered rather than initiate
 // rendering now. The idle function checks this and initiates rendering if
 // no one else does.
-bool passiveRedisplayRequested = true;
+static bool passiveRedisplayRequested = true;
 // This is reset to zero every time we do an active display.
-int numPassiveRedisplaysSinceLastActive = 0;
+static int numPassiveRedisplaysSinceLastActive = 0;
 // This is reset to zero whenever we post a passive or active display.
-int numMopUpDisplaysSinceLastRedisplay = 0;
+static int numMopUpDisplaysSinceLastRedisplay = 0;
+
+// These are used when saving a movie.
+static bool savingMovie = false, saveNextFrameToMovie = false;
+static string movieDir;
+static int movieFrame;
+static void writeImage(const string& filename);
 
 static void forceActiveRedisplay() {
     passiveRedisplayRequested = false; // cancel if pending
@@ -1062,6 +1071,20 @@ static void renderScene() {
 // frames may be produced from the same scene, so you can expect the frame
 // numbers to be higher than the number of scenes sent by the simulator.
 static void redrawDisplay() {
+    // If a movie is being generated, save frames.
+
+    if (saveNextFrameToMovie) {
+        saveNextFrameToMovie = false;
+        stringstream filename;
+        filename << movieDir;
+        filename << "/Frame";
+        filename << setw(4) << setfill('0') << movieFrame++;
+        filename << ".png";
+        writeImage(filename.str());
+    }
+
+    // Render the scene.
+    
     renderScene();
 
     // Draw menus.
@@ -1332,7 +1355,7 @@ static void setOverlayMessage(const string& message) {
     glutTimerFunc(5000, disableOverlayTimer, 0);
 }
 
-static void saveImage() {
+static void writeImage(const string& filename) {
     int width = ((viewWidth+3)/4)*4;
     int height = viewHeight;
 
@@ -1375,6 +1398,10 @@ static void saveImage() {
 
     // Save it to disk.
 
+    LodePNG::encode(filename, data, width, height, 2, 8);
+}
+
+static void saveImage() {
     struct stat statInfo;
     int counter = 0;
     string filename;
@@ -1386,9 +1413,36 @@ static void saveImage() {
         namestream << ".png";
         filename = namestream.str();
     } while (stat(filename.c_str(), &statInfo) == 0);
-    LodePNG::encode(filename, data, width, height, 2, 8);
+    writeImage(filename);
     setOverlayMessage("Saved as: "+filename);
-    redrawDisplay();
+    requestPassiveRedisplay();
+}
+
+static void saveMovie() {
+    struct stat statInfo;
+    int counter = 0;
+    string dirname;
+    do {
+        counter++;
+        stringstream namestream;
+        namestream << "Saved Movie ";
+        namestream << counter;
+        dirname = namestream.str();
+    } while (stat(dirname.c_str(), &statInfo) == 0);
+#ifdef _WIN32
+    int result = mkdir(dirname.c_str());
+#else
+    int result = mkdir(dirname.c_str(), 0777);
+#endif
+    if (result == -1)
+        setOverlayMessage("Failed to create directory: "+dirname);
+    else {
+        movieDir = dirname;
+        movieFrame = 1;
+        savingMovie = true;
+        setOverlayMessage("Saving frames to: "+dirname);
+    }
+    requestPassiveRedisplay();
 }
 
 static void addVec(vector<float>& data, float x, float y, float z) {
@@ -1924,6 +1978,7 @@ void* listenForInput(void* args) {
             }
             // Swap in the new scene.
             scene = newScene;
+            saveNextFrameToMovie = savingMovie;
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             forceActiveRedisplay();             //------- ACTIVE REDISPLAY ---
             issuedActiveRedisplay = true;
@@ -1956,6 +2011,7 @@ static const int MENU_SHOW_SHADOWS = 9;
 static const int MENU_SHOW_FPS = 10;
 
 static const int MENU_SAVE_IMAGE = 11;
+static const int MENU_SAVE_MOVIE = 12;
 
 // This is the handler for our built-in "View" pull down menu.
 void viewMenuSelected(int option) {
@@ -2015,6 +2071,12 @@ void viewMenuSelected(int option) {
         break;
     case MENU_SAVE_IMAGE:
         saveImage();
+        break;
+    case MENU_SAVE_MOVIE:
+        if (savingMovie)
+            savingMovie = false;
+        else
+            saveMovie();
         break;
     }
 
@@ -2158,6 +2220,7 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Show//Hide/Shadows", MENU_SHOW_SHADOWS));
     items.push_back(make_pair("Show//Hide/Frame Rate", MENU_SHOW_FPS));
     items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
+    items.push_back(make_pair("Save Movie", MENU_SAVE_MOVIE));
     menus.push_back(Menu("View", items, viewMenuSelected));
 
     // Initialize pthread lock and condition variable.
