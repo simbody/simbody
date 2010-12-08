@@ -36,17 +36,22 @@
 #include "SimTKsimbody.h"
 #include "SimTKcommon/Testing.h"
 
-//#define USE_VTK
-
-#ifdef USE_VTK
-#include "SimTKsimbody_aux.h"
-#endif
-
-
 #include <cstdio>
 #include <exception>
 #include <iostream>
 using std::cout; using std::endl;
+
+//#define VISUALIZE
+#ifdef VISUALIZE
+    #define WAIT_FOR_INPUT(str) \
+        do {printf(str); getchar();} while(false)
+    #define REPORT(state) \
+        do {viz.report(state);viz.zoomCameraToShowAllGeometry();} while (false)
+#else
+    #define WAIT_FOR_INPUT(str)
+    #define REPORT(state)
+#endif
+
 
 using namespace SimTK;
 
@@ -179,10 +184,11 @@ void testKinematicsAndEnergyConservation() {
     Force::LinearBushing bushing
         (forces, body1, body2, Vec6(0), Vec6(0));
 
-#ifdef USE_VTK
-    VTKEventReporter* reporter = new VTKEventReporter(system, 0.01);
+#ifdef VISUALIZE
+    VisualizationReporter* reporter = new VisualizationReporter(system, 0.01);
     system.updDefaultSubsystem().addEventReporter(reporter);
-    const VTKVisualizer& viz = reporter->getVisualizer();
+    Visualizer& viz = reporter->updVisualizer();
+    viz.setBackgroundType(Visualizer::SolidColor);
 #endif
 
     // Initialize the system and state.
@@ -195,12 +201,8 @@ void testKinematicsAndEnergyConservation() {
            .setStiffness(state, k)
            .setDamping(state, c);
 
-#ifdef USE_VTK
-    viz.report(state);
-#endif
-
-    printf("Default state -- hit ENTER\n");
-    //char ch=getchar();
+    REPORT(state);
+    WAIT_FOR_INPUT("\nDefault state -- hit ENTER\n");
 
     state.updQ() = Test::randVector(state.getNQ());
     state.updU() = Test::randVector(state.getNU());
@@ -225,11 +227,8 @@ void testKinematicsAndEnergyConservation() {
 
     SimTK_TEST( bushing.getDissipatedEnergy(istate) == 0 );
 
-#ifdef USE_VTK
-    viz.report(integ.getState());
-#endif
+    REPORT(integ.getState());
 
-    printf("After initialize -- hit ENTER\n");
     cout << "t=" << integ.getTime() 
          << "\nE=" << initialEnergy
          << "\nmobilizer q=" << mq
@@ -237,7 +236,8 @@ void testKinematicsAndEnergyConservation() {
          << "\nmobilizer qd=" << mqd
          << "\nbushing   qd=" << bushing.getQDot(istate)
          << endl;
-    //ch=getchar();
+    WAIT_FOR_INPUT("After initialize -- hit ENTER\n");
+
     // Simulate it.
     ts.stepTo(5.0);
     istate = integ.getState();
@@ -282,7 +282,6 @@ void testKinematicsAndEnergyConservation() {
 
     SimTK_TEST_EQ(V_FM, bushing.getV_FM(istate));
 
-    printf("After simulation -- hit ENTER\n");
     cout << "t=" << integ.getTime() 
          << "\nE=" << system.calcEnergy(istate)
          << "\nE-XW=" << finalEnergy << " final-init=" << finalEnergy-initialEnergy
@@ -291,7 +290,8 @@ void testKinematicsAndEnergyConservation() {
          << "\nmobilizer qd=" << mqd
          << "\nbushing   qd=" << bushing.getQDot(istate)
          << endl;
-    //ch=getchar();
+
+    WAIT_FOR_INPUT("After simulation -- hit ENTER\n");
 }
 
 
@@ -442,7 +442,7 @@ void testForces() {
 
 
 #ifdef USE_VTK
-    viz.report(integ.getState());
+    viz.report(state);
 #endif
     system.realize(state,Stage::Acceleration);
 

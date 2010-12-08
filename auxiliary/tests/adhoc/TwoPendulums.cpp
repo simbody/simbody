@@ -36,12 +36,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h" // requires VTK
-
-//#define USE_VTK
-#ifdef USE_VTK
-#define Visualizer VTKVisualizer
-#endif
 
 #include <cmath>
 #include <cstdio>
@@ -222,11 +216,8 @@ int main(int argc, char** argv) {
     sub.initializeSubtreeResults(s, results);
     cout << "INIT RESULTS=" << results;
 
-#ifdef USE_VTK
-    VTKVisualizer display(mbs);
-#else
-    Visualizer display(mbs, "my a   \"title\"'s a good one!!");
-#endif
+    Visualizer display(mbs);
+    display.setBackgroundType(Visualizer::SolidColor);
 
     // gravity.disable(s);
     mbs.realize(s, Stage::Position);

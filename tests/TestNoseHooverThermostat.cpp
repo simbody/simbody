@@ -31,12 +31,8 @@
 
 #include "SimTKsimbody.h"
 
-// define SHOW_VTK for visualisation (for debugging)
-// #define SHOW_VTK 1
-
-#ifdef SHOW_VTK
-#include "SimTKsimbody_aux.h"
-#endif
+// define VISUALIZE for visualisation (for debugging)
+//#define VISUALIZE 1
 
 #include <fstream>
 
@@ -126,9 +122,11 @@ public:
     }
 
     void simulate() {
-        // View in VTK - for testing only
-#ifdef SHOW_VTK
-        system.updDefaultSubsystem().addEventReporter(new VTKEventReporter(system, 0.2));
+        // View in Visualizer - for testing only
+#ifdef VISUALIZE
+        VisualizationReporter* vizrep = new VisualizationReporter(system, 0.2);
+        vizrep->updVisualizer().setBackgroundType(Visualizer::SolidColor);
+        system.updDefaultSubsystem().addEventReporter(vizrep);
 #endif
 
         reporter = new OscillatorReporter(*this, 0.1);

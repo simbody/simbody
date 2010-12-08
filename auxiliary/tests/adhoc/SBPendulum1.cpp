@@ -62,7 +62,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h" // requires VTK
 
 #include <string>
 #include <iostream>
@@ -198,44 +197,46 @@ try {
     State s = mbs.realizeTopology();
     cout << "mbs State as built: " << s;
 
-    VTKVisualizer vtk(mbs);
-    vtk.addDecoration(GroundIndex, Transform(), DecorativeBrick(Vec3(20,.1,20)).setColor(1.5*Gray).setOpacity(.3));
-    vtk.addDecoration(GroundIndex, Transform(Vec3(-10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
-    vtk.addDecoration(GroundIndex, Transform(Vec3(10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
+    Visualizer viz(mbs);
+    viz.setBackgroundType(Visualizer::SolidColor);
+
+    viz.addDecoration(GroundIndex, Transform(), DecorativeBrick(Vec3(20,.1,20)).setColor(1.5*Gray).setOpacity(.3));
+    viz.addDecoration(GroundIndex, Transform(Vec3(-10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
+    viz.addDecoration(GroundIndex, Transform(Vec3(10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
 
     DecorativeSphere bouncer(ballRadius);
-    vtk.addDecoration(aBall, Transform(), bouncer.setColor(Orange));
-    vtk.addDecoration(aBall2, Transform(), bouncer.setColor(Blue));
+    viz.addDecoration(aBall, Transform(), bouncer.setColor(Orange));
+    viz.addDecoration(aBall2, Transform(), bouncer.setColor(Blue));
 
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-    vtk.addRubberBandLine(GroundIndex, attachPt, aPendulum, Vec3(L/2,0,0), rbProto);
+    viz.addRubberBandLine(GroundIndex, attachPt, aPendulum, Vec3(L/2,0,0), rbProto);
 
     DecorativeSphere sphere(0.25);
     sphere.setRepresentation(DecorativeGeometry::DrawPoints);
     sphere.setResolution(2);
-    vtk.addDecoration(GroundIndex, Transform(Vec3(1,2,3)), sphere);
+    viz.addDecoration(GroundIndex, Transform(Vec3(1,2,3)), sphere);
     sphere.setScale(0.5); sphere.setResolution(1);
-    vtk.addDecoration(aPendulum, Transform(Vec3(0.1,0.2,0.3)), sphere);
+    viz.addDecoration(aPendulum, Transform(Vec3(0.1,0.2,0.3)), sphere);
     Quaternion qqq; qqq.setQuaternionFromAngleAxis(Pi/4, UnitVec3(1,0,0));
-    vtk.addDecoration(aPendulum, Transform(Rotation(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
+    viz.addDecoration(aPendulum, Transform(Rotation(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
     DecorativeCylinder cyl(0.1); cyl.setOpacity(0.3);
-    vtk.addDecoration(aPendulum, Transform(Vec3(-1,0,0)), 
+    viz.addDecoration(aPendulum, Transform(Vec3(-1,0,0)), 
         DecorativeCylinder(0.1).setOpacity(0.3));
 
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 0, 0)), DecorativeSphere().setColor(Black));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 0.5, 0)), DecorativeSphere().setColor(Gray));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 1, 0)), DecorativeSphere().setColor(White));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 1.5, 0)), DecorativeSphere().setColor(Red));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 2, 0)), DecorativeSphere().setColor(Green));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 2.5, 0)), DecorativeSphere().setColor(Blue));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 3, 0)), DecorativeSphere().setColor(Yellow));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 3.5, 0)), DecorativeSphere().setColor(Orange));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 4, 0)), DecorativeSphere().setColor(Magenta));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 4.5, 0)), DecorativeSphere().setColor(Cyan));
-    vtk.addDecoration(aPendulum, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 0, 0)), DecorativeSphere().setColor(Black));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 0.5, 0)), DecorativeSphere().setColor(Gray));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 1, 0)), DecorativeSphere().setColor(White));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 1.5, 0)), DecorativeSphere().setColor(Red));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 2, 0)), DecorativeSphere().setColor(Green));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 2.5, 0)), DecorativeSphere().setColor(Blue));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 3, 0)), DecorativeSphere().setColor(Yellow));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 3.5, 0)), DecorativeSphere().setColor(Orange));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 4, 0)), DecorativeSphere().setColor(Magenta));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 4.5, 0)), DecorativeSphere().setColor(Cyan));
+    viz.addDecoration(aPendulum, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
 
 
-    vtk.report(s);
+    viz.report(s);
 
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
@@ -335,55 +336,52 @@ try {
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
     Quaternion q; q.setQuaternionFromAngleAxis(aa);
     aPendulum.setQToFitTransform(s,Transform(Rotation(q), Vec3(.1,.2,.3)));
-    vtk.report(s);
+    viz.report(s);
 
     //pend.updQ(s)[2] = -.1;
     //pend.setJointQ(s, 1, 2, -0.999*std::acos(-1.)/2);
 
-    const Real h = .01;
+    const Real h = 1./30;
     const Real tstart = 0.;
-    const Real tmax = 100;
+    const Real tmax = 20;
 
     RungeKuttaMersonIntegrator ee(mbs);
-    ee.setProjectEveryStep(false);
-    ee.setAccuracy(1e-4);
-    ee.setConstraintTolerance(1e-4);
     ee.setFinalTime(tmax);
 
     s.updTime() = tstart;
     ee.initialize(s);   // assemble if needed
     s = ee.getState();
-    vtk.report(s);
+    viz.report(s);
 
     Integrator::SuccessfulStepStatus status;
     int step = 0;
     while ((status=ee.stepTo(step*h)) != Integrator::EndOfSimulation) {
         const State& s = ee.getState();
 
-        // This is so we can calculate potential energy (although logically
-        // one should be able to do that at Stage::Position).
-        mbs.realize(s, Stage::Dynamics);
-
-        cout << " E=" << mbs.calcEnergy(s)
-             << " (pe=" << mbs.calcPotentialEnergy(s)
-             << ", ke=" << mbs.calcKineticEnergy(s)
-             << ") hNext=" << ee.getPredictedNextStepSize() << endl;
-
-        const Vector qdot = pend.getQDot(s);
-
-        Transform  x = aPendulum.getBodyTransform(s);
-        SpatialVec v = aPendulum.getBodyVelocity(s);
-
-        //Vec3 err = x.p()-Vec3(2.5,0.,0.);
-        //Real d = err.norm();
-        //Real k = m*gravity.norm(); // stiffness, should balance at 1
-        // Real c = 10.; // damping
-        //Vec3 fk = -k*err;
-        //Real fc = -c*pend.getU(s)[2];
-        //pend.applyPointForce(s,aPendulum,Vec3(0,0,0),fk);
-        //pend.applyJointForce(s,aPendulum,2,fc);
-
         if (!(step % 10)) {
+            // This is so we can calculate potential energy (although logically
+            // one should be able to do that at Stage::Position).
+            mbs.realize(s, Stage::Dynamics);
+
+            cout << " E=" << mbs.calcEnergy(s)
+                 << " (pe=" << mbs.calcPotentialEnergy(s)
+                 << ", ke=" << mbs.calcKineticEnergy(s)
+                 << ") hNext=" << ee.getPredictedNextStepSize() << endl;
+
+            const Vector qdot = pend.getQDot(s);
+
+            Transform  x = aPendulum.getBodyTransform(s);
+            SpatialVec v = aPendulum.getBodyVelocity(s);
+
+            //Vec3 err = x.p()-Vec3(2.5,0.,0.);
+            //Real d = err.norm();
+            //Real k = m*gravity.norm(); // stiffness, should balance at 1
+            // Real c = 10.; // damping
+            //Vec3 fk = -k*err;
+            //Real fc = -c*pend.getU(s)[2];
+            //pend.applyPointForce(s,aPendulum,Vec3(0,0,0),fk);
+            //pend.applyJointForce(s,aPendulum,2,fc);
+
             cout << s.getTime() << " " 
                  << s.getQ() << " " << s.getU() 
                  << " hNext=" << ee.getPredictedNextStepSize() << endl;
@@ -393,17 +391,17 @@ try {
             //cout << "spring force=" << fk << endl;
             //cout << "damping joint forces=" << fc << endl;
             
-            vtk.report(s);
         }
+
+        viz.report(s);
 
         if (status == Integrator::ReachedReportTime)
             ++step;
 
 
-        mbs.realize(s, Stage::Acceleration);
-        const Vector udot = s.getUDot();
-
         if (!(step % 100)) {
+            mbs.realize(s, Stage::Acceleration);
+            const Vector udot = s.getUDot();
             cout << "udot = " << udot << endl;
         }
     }

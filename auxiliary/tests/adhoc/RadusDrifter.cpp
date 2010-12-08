@@ -34,7 +34,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"
 
 #include <cmath>
 #include <cstdio>
@@ -143,7 +142,7 @@ int main(int argc, char** argv) {
     crank.setAngle(s, 5); //q 
     crank.setRate(s, 3);  //u
 
-    VTKVisualizer display(mbs);
+    Visualizer display(mbs);
 
     mbs.realize(s, Stage::Position);
     display.report(s);
@@ -177,15 +176,17 @@ int main(int argc, char** argv) {
     //myStudy.setAllowInterpolation(false);
     //myStudy.setMaximumStepSize(.1);
 
-    const Real dt = .02; // output intervals
+    const Real dt = 1./30; // output intervals
     const Real finalTime = 10;
 
     myStudy.setFinalTime(finalTime);
 
-    char c; cin >> c;
+    cout << "Hit ENTER in console to continue ...\n";
+    getchar();
     display.report(s);
 
-    cin >> c;
+    cout << "Hit ENTER in console to continue ...\n";
+    getchar();
 
     // Peforms assembly if constraints are violated.
     myStudy.initialize(s);

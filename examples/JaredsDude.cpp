@@ -2,9 +2,7 @@
 // An attempt at duplicating Jared Duke's simulation for studying performance.
 // -----------------------------------------------------------------------------
 #include "SimTKsimbody.h"
-#include "pthread.h"
 
-#include <deque>
 #include <utility>
 #include <map>
 
@@ -28,8 +26,8 @@ public:
         UnitVec3 cameraZ(0,0,1);
         //viz.setCameraTransform(Transform(Rotation(cameraZ, ZAxis, Vec3(0,1,0), YAxis), cameraPos));
 
-        //geometry.push_back(DecorativeLine(Vec3(0), 10*downDir)
-        //    .setColor(Green).setLineThickness(4).setBodyId(0));
+        geometry.push_back(DecorativeLine(Vec3(1,4,0), Vec3(1,4,0)+downDir)
+            .setColor(Green).setLineThickness(3).setBodyId(0));
     }
 
 private:
@@ -38,130 +36,64 @@ private:
     const Force::Gravity&           m_gravity;
 };
 
-class MyListener : public Visualizer::InputListener {
-public:
-    MyListener(const Array_< std::pair<std::string, int> >& menu)
-    :   m_menu(menu) {pthread_mutex_init(&charQueueLock,0);}
-
-    ~MyListener() {pthread_mutex_destroy(&charQueueLock);}
-
-    // Called from the main thread.
-    std::pair<unsigned,unsigned> takeNextCharIfAny() {
-        std::pair<unsigned,unsigned> theChar(0,0);
-        if (charQueue.size()) {
-            pthread_mutex_lock(&charQueueLock);
-            if (charQueue.size()) {
-                theChar = charQueue.front();
-                charQueue.pop_front();
-            }
-            pthread_mutex_unlock(&charQueueLock);
-        }
-        return theChar;
-    }
-
-    virtual bool keyPressed(unsigned key, unsigned modifier) {
-        String mod;
-        if (modifier&ControlIsDown) mod += "CTRL ";
-        if (modifier&ShiftIsDown) mod += "SHIFT ";
-        if (modifier&AltIsDown)  mod += "ALT ";
-
-        const char* nm = "NoNickname";
-        switch(key) {
-        case KeyEsc: nm="ESC"; break;
-        case KeyDelete: nm="DEL"; break;
-        case KeyRightArrow: nm="Right"; break;
-        case KeyLeftArrow: nm="Left"; break;
-        case KeyUpArrow: nm="Up"; break;
-        case KeyDownArrow: nm="Down"; break;
-        case KeyEnter: nm="ENTER"; break;
-        case KeyF1: nm="F1"; break;
-        case KeyF12: nm="F12"; break;
-        case 'a': nm="lower a"; break;
-        case 'Z': nm="upper Z"; break;
-        case '}': nm="right brace"; break;
-        }
-        if (modifier&IsSpecialKey)
-            std::cout << "Special key hit: " << mod << " key=" << key << " glut=" << (key & ~SpecialKeyOffset);
-        else
-            std::cout << "Ordinary key hit: " << mod << char(key) << " (" << (int)key << ")";
-        std::cout << " " << nm << std::endl;
-
-        pthread_mutex_lock(&charQueueLock);
-        charQueue.push_back(std::make_pair(key,modifier));
-        pthread_mutex_unlock(&charQueueLock);
-
-
-        return true; // key absorbed
-    }
-
-    virtual bool menuSelected(int menu, int item) {
-        std::cout << "Menu " << menu << "item " << item << ": ";
-        for (unsigned i=0; i < m_menu.size(); ++i)
-            if (m_menu[i].second==item)
-                std::cout << m_menu[i].first;
-        std::cout << std::endl;
-        return true; // menu click absorbed
-    }
-
-private:
-    Array_< std::pair<std::string, int> > m_menu;
-    pthread_mutex_t charQueueLock;
-    std::deque<std::pair<unsigned,unsigned> > charQueue;
-};
-
 // Check for user input. If there has been some, process it.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(MyListener& listener, const Force::Gravity& gravity, Real interval) 
-    :   PeriodicEventHandler(interval), m_listener(listener), m_gravity(gravity) {}
+    UserInputHandler(Visualizer::InputSilo& silo, const Force::Gravity& gravity, Real interval) 
+    :   PeriodicEventHandler(interval), m_silo(silo), m_gravity(gravity) {}
 
     virtual void handleEvent(State& state, Real accuracy, const Vector& yWeights, 
                              const Vector& ooConstraintTols, Stage& lowestModified, 
                              bool& shouldTerminate) const 
     {
-        std::pair<unsigned,unsigned> charHit = m_listener.takeNextCharIfAny();
-        if (charHit.first == 0) return;
+        unsigned key, modifiers;
+        if (!m_silo.takeKeyHit(key, modifiers))
+            return;
 
-        if (charHit.first == Visualizer::InputListener::KeyEsc) {
+        if (key == Visualizer::InputListener::KeyEsc) {
             printf("User hit ESC!!\n");
             shouldTerminate = true;
-        } else {
-            const UnitVec3& down = m_gravity.getDownDirection(state);
-            bool control = (charHit.second & Visualizer::InputListener::ControlIsDown) != 0;
-            switch(charHit.first) {
-            case Visualizer::InputListener::KeyLeftArrow:
-                    m_gravity.setDownDirection(state, down + .1*Vec3(-1,0,0));
-                    lowestModified = Stage::Instance;
-                    break;
-            case Visualizer::InputListener::KeyRightArrow:
-                    m_gravity.setDownDirection(state, down + .1*Vec3(1,0,0));
-                    lowestModified = Stage::Instance;
-                    break;
-            case Visualizer::InputListener::KeyUpArrow:
-                    m_gravity.setDownDirection(state, down + .1*Vec3(0,1,0));
-                    lowestModified = Stage::Instance;
-                    break;
-            case Visualizer::InputListener::KeyDownArrow:
-                    m_gravity.setDownDirection(state,  down + .1*Vec3(0,-1,0));
-                    lowestModified = Stage::Instance;
-                    break;
-            case Visualizer::InputListener::KeyPageUp:
-                    m_gravity.setDownDirection(state, down + .1*Vec3(0,0,-1));
-                    lowestModified = Stage::Instance;
-                    break;
-            case Visualizer::InputListener::KeyPageDown:
-                    m_gravity.setDownDirection(state, down + .1*Vec3(0,0,1));
-                    lowestModified = Stage::Instance;
-                    break;
-            }
-            if (lowestModified = Stage::Instance)
-                std::cout << "New gravity down=" << m_gravity.getDownDirection(state) << std::endl;
+            return;
         }
+
+        const Real KeyFactor = 0.05; 
+
+        const UnitVec3& down = m_gravity.getDownDirection(state);
+        bool control = (modifiers & Visualizer::InputListener::ControlIsDown) != 0;
+        switch(key) {
+        case Visualizer::InputListener::KeyLeftArrow:
+                m_gravity.setDownDirection(state, down + KeyFactor*Vec3(-1,0,0));
+                lowestModified = Stage::Instance;
+                break;
+        case Visualizer::InputListener::KeyRightArrow:
+                m_gravity.setDownDirection(state, down + KeyFactor*Vec3(1,0,0));
+                lowestModified = Stage::Instance;
+                break;
+        case Visualizer::InputListener::KeyUpArrow:
+                m_gravity.setDownDirection(state, down + KeyFactor*Vec3(0,1,0));
+                lowestModified = Stage::Instance;
+                break;
+        case Visualizer::InputListener::KeyDownArrow:
+                m_gravity.setDownDirection(state,  down + KeyFactor*Vec3(0,-1,0));
+                lowestModified = Stage::Instance;
+                break;
+        case Visualizer::InputListener::KeyPageUp:
+                m_gravity.setDownDirection(state, down + KeyFactor*Vec3(0,0,-1));
+                lowestModified = Stage::Instance;
+                break;
+        case Visualizer::InputListener::KeyPageDown:
+                m_gravity.setDownDirection(state, down + KeyFactor*Vec3(0,0,1));
+                lowestModified = Stage::Instance;
+                break;
+        }
+        if (lowestModified = Stage::Instance)
+            std::cout << "New gravity down=" << m_gravity.getDownDirection(state) << std::endl;
+
     }
 
 private:
-    MyListener& m_listener;
-    const Force::Gravity& m_gravity;
+    Visualizer::InputSilo& m_silo;
+    const Force::Gravity&  m_gravity;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -286,6 +218,7 @@ int main() {
     printf(    "use arrow keys and page up/down to control green gravity vector\n");
     printf(    "***************************************************************\n\n");
 
+    // This menu does nothing.
     Array_< std::pair<std::string,int> > items;
     items.push_back(std::make_pair("One", 1));
     items.push_back(std::make_pair("Top/SubA/first", 2));
@@ -294,9 +227,11 @@ int main() {
     items.push_back(std::make_pair("Two", 5));
     viz.addMenu("Test Menu", 1, items);
 
-    MyListener& listener = *new MyListener(items);
-    viz.addInputListener(&listener);
+    // Use this for communication of user input from the GUI to the simulation.
+    Visualizer::InputSilo* silo = new Visualizer::InputSilo();
+    viz.addInputListener(silo);
 
+    // This is for per-frame camera control and single-frame geometry.
     viz.addFrameController(new MyFrameController(dude.m_matter, 
         MobilizedBodyIndex(1), dude.m_gravity));
 
@@ -307,7 +242,7 @@ int main() {
     viz.setMode(Visualizer::RealTime);
 
     system.updDefaultSubsystem().addEventHandler(
-        new UserInputHandler(listener, dude.m_gravity, 0.1)); // 100ms
+        new UserInputHandler(*silo, dude.m_gravity, 0.1)); // 100ms
      
     // Initialize the system and state.
 

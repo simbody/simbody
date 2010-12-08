@@ -81,7 +81,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"   // requires VTK
 
 #include <cstdio>
 #include <exception>
@@ -345,7 +344,7 @@ private:
 class MyReporter : public PeriodicEventReporter {
 public:
     MyReporter(const MultibodySystem& system, 
-               VTKVisualizer& viz,
+               Visualizer& viz,
                const PlanarMuscle& planarMuscle,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system), m_viz(viz), 
@@ -357,11 +356,6 @@ public:
     // to generate a frame from saved states for replay.
     void report(const State& state) const {
         m_system.realize(state, Stage::Position);
-        Vec3 iptA, iptB, tptA, tptB;
-        m_planarMuscle.findInsertionPoints(state, iptA, iptB);
-        m_planarMuscle.getTangentPoints(state, tptA, tptB);
-        m_viz.addEphemeralDecoration(DecorativeLine(iptA, tptA).setColor(Red));
-        m_viz.addEphemeralDecoration(DecorativeLine(iptB, tptB).setColor(Red));
         m_viz.report(state);
         cout << "t=" << state.getTime() 
              << " path length=" << m_planarMuscle.getPathLength(state) << endl;
@@ -374,8 +368,36 @@ public:
     }
 private:
     const MultibodySystem&           m_system;
-    VTKVisualizer&                   m_viz;
+    Visualizer&                      m_viz;
     const PlanarMuscle&              m_planarMuscle;
+};
+
+
+
+//==============================================================================
+// DRAW PATH LINES
+//==============================================================================
+// We have to add the path lines to each frame here since the tangent end points 
+// move.
+class DrawPathLines : public DecorationGenerator {
+public:
+    DrawPathLines(const MultibodySystem& system,
+                  const PlanarMuscle&    muscle) 
+    :   m_system(system), m_planarMuscle(muscle) {}
+
+    virtual void generateDecorations(const State& state, 
+                                     Array_<DecorativeGeometry>& geometry) 
+    {
+        m_system.realize(state, Stage::Position);
+        Vec3 iptA, iptB, tptA, tptB;
+        m_planarMuscle.findInsertionPoints(state, iptA, iptB);
+        m_planarMuscle.getTangentPoints(state, tptA, tptB);
+        geometry.push_back(DecorativeLine(iptA, tptA).setColor(Red));
+        geometry.push_back(DecorativeLine(iptB, tptB).setColor(Red));
+    }
+private:
+    const MultibodySystem&      m_system;
+    const PlanarMuscle&         m_planarMuscle;
 };
 
 
@@ -519,12 +541,16 @@ int main() {
 
     system.realizeTopology();
 
-    VTKVisualizer viz(system);
+    Visualizer viz(system);
+    viz.setBackgroundType(Visualizer::SolidColor);
 
     // This draws the straight-line muscle (regardless of whether we're
     // using it).
     viz.addRubberBandLine(forearm, forearmAttach, hand, handAttach,
         DecorativeLine().setColor(Red).setLineThickness(2));
+
+    // Add generator for muscle path lines.
+    viz.addDecorationGenerator(new DrawPathLines(system,planarMuscle));
     
     MyReporter& myRep = *new MyReporter(system,viz,planarMuscle,ReportInterval);
     system.updDefaultSubsystem().addEventReporter(&myRep);

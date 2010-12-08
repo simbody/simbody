@@ -34,7 +34,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"   // requires VTK
 
 #include <cstdio>
 #include <exception>
@@ -66,10 +65,10 @@ int main() {
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         100, 0*(Pi/180));
 
-    VTKEventReporter* reporter = new VTKEventReporter(system, 0.01);
+    VisualizationReporter* reporter = new VisualizationReporter(system, 0.01);
     system.updDefaultSubsystem().addEventReporter(reporter);
 
-    const VTKVisualizer& viz = reporter->getVisualizer();
+    Visualizer& viz = reporter->updVisualizer();
    
     // Initialize the system and state.
     

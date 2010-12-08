@@ -514,7 +514,8 @@ static void zoomCameraToShowWholeScene() {
     fVec3 center;
     computeSceneBounds(scene, radius, center);
     float viewDistance = radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
-    cameraTransform.updT() = center+cameraTransform.R()*fVec3(0, 0, viewDistance);
+    // Back up 1 unit more to make sure we don't clip at this position.
+    cameraTransform.updT() = center+cameraTransform.R()*fVec3(0, 0, viewDistance+1);
 }
 
 class PendingCameraZoom : public PendingCommand {

@@ -29,12 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/**@file
- * The simple 2d pendulum example from the user's manual.
- */
-
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h" // requires VTK
 
 #include <cmath>
 #include <cstdio>
@@ -117,16 +112,16 @@ try { // If anything goes wrong, an exception will be thrown.
     RungeKuttaMersonIntegrator myStudy(mbs);
     myStudy.setAccuracy(1e-6);
 
-    // Visualize with VTK. This will pick up decorative geometry from
+    // This will pick up decorative geometry from
     // each subsystem that generates any, including of course the 
-    // VisualizationSubsystem, but not limited to it.
-    VTKVisualizer display(mbs);
+    // DecorationSubsystem, but not limited to it.
+    Visualizer display(mbs);
 
 
     const Real expectedPeriod = 2*Pi*std::sqrt(d/g);
     printf("Expected period: %g seconds\n", expectedPeriod);
 
-    const Real dt = 0.01; // output intervals
+    const Real dt = 1./30; // output intervals
     const Real finalTime = 1*expectedPeriod;
 
     for (Real startAngle = 10; startAngle <= 90; startAngle += 10) {
@@ -145,34 +140,37 @@ try { // If anything goes wrong, an exception will be thrown.
         cout << "MassProperties in G=" << swinger.expressMassPropertiesInGroundFrame(myStudy.getState());
         cout << "Spatial Inertia    =" << swinger.calcBodySpatialInertiaMatrixInGround(myStudy.getState());
 
+        int stepNum = 0;
         for (;;) {
             // Should check for errors and other interesting status returns.
             myStudy.stepTo(myStudy.getTime() + dt);
             const State& s = myStudy.getState(); // s is now the integrator's internal state
 
-            // This is so we can calculate potential energy (although logically
-            // one should be able to do that at Stage::Position).
-            mbs.realize(s, Stage::Dynamics);
+            if ((stepNum++%10)==0) {
+                // This is so we can calculate potential energy (although logically
+                // one should be able to do that at Stage::Position).
+                mbs.realize(s, Stage::Dynamics);
 
-            cout << s.getTime() << ": E=" << mbs.calcEnergy(s) 
-                 << " connector q=" << connector.getQ(s) 
-                 << ": swinger q=" << swinger.getQ(s) << endl;
+                cout << s.getTime() << ": E=" << mbs.calcEnergy(s) 
+                     << " connector q=" << connector.getQ(s) 
+                     << ": swinger q=" << swinger.getQ(s) << endl;
 
-            // This is so we can look at the UDots.
-            mbs.realize(s, Stage::Acceleration);
+                // This is so we can look at the UDots.
+                mbs.realize(s, Stage::Acceleration);
 
-            cout << "q =" << pend.getQ(s) << endl;
-            cout << "u =" << pend.getU(s) << endl;
-            cout << "ud=" << pend.getUDot(s) << endl;
+                cout << "q =" << pend.getQ(s) << endl;
+                cout << "u =" << pend.getU(s) << endl;
+                cout << "ud=" << pend.getUDot(s) << endl;
 
-            cout << "Connector V=" << connector.getMobilizerVelocity(s) << endl;
-            cout << "Swinger V=" << swinger.getMobilizerVelocity(s) << endl;
+                cout << "Connector V=" << connector.getMobilizerVelocity(s) << endl;
+                cout << "Swinger V=" << swinger.getMobilizerVelocity(s) << endl;
 
-            const Rotation& R_MbM = swinger.getMobilizerTransform(s).R();
-            Vec4 aaMb = R_MbM.convertRotationToAngleAxis();
-            cout << "angle=" << aaMb[0] << endl;
-            cout << "axisMb=" << aaMb.drop1(0) << endl;
-            cout << "axisMb=" << ~R_MbM*aaMb.drop1(0) << endl;
+                const Rotation& R_MbM = swinger.getMobilizerTransform(s).R();
+                Vec4 aaMb = R_MbM.convertRotationToAngleAxis();
+                cout << "angle=" << aaMb[0] << endl;
+                cout << "axisMb=" << aaMb.drop1(0) << endl;
+                cout << "axisMb=" << ~R_MbM*aaMb.drop1(0) << endl;
+            }
 
             display.report(s);
             if (s.getTime() >= finalTime)

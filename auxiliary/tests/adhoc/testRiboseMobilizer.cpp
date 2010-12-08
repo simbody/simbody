@@ -1,4 +1,4 @@
-#include "SimTKsimbody_aux.h"
+#include "SimTKsimbody.h"
 #include <iostream>
 
 using namespace std;
@@ -473,7 +473,7 @@ void testRiboseMobilizer()
     Constraint::ConstantSpeed(c3Body, 0.5);
 
     // Two constraint way works; one constraint way does not
-    bool useTwoConstraints = false;
+    bool useTwoConstraints = true;
 
     if (useTwoConstraints) {
         // Constraints to make three generalized coordinates identical
@@ -498,7 +498,11 @@ void testRiboseMobilizer()
         Constraint::CoordinateCoupler(matter, new ThreeDifferencesFunction, c123Bodies, coords3);
     }
 
-    system.updDefaultSubsystem().addEventReporter( new VTKEventReporter(system, 0.10) );
+
+    VisualizationReporter* reporter = new VisualizationReporter(system, 0.10);
+    Visualizer& viz = reporter->updVisualizer();
+    viz.setBackgroundType(Visualizer::SolidColor);
+    system.updDefaultSubsystem().addEventReporter( reporter );
 
     system.realizeTopology();
     State& state = system.updDefaultState();

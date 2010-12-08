@@ -1,5 +1,5 @@
-#include "SimTKsimbody.h"        //SimTK principal Library
-#include "SimTKsimbody_aux.h"    //for VTK stuff
+#include "SimTKsimbody.h"
+
 using namespace SimTK;
 
 int main()
@@ -33,7 +33,7 @@ int main()
             system.realizeTopology(); 
             State state = system.getDefaultState();
 
-            VTKVisualizer viz(system);
+            Visualizer viz(system);
             viz.report(state);
             char ch=getchar();
 

@@ -34,7 +34,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"   // requires VTK
 #include "SimTKcommon/Testing.h"
 
 
@@ -140,16 +139,14 @@ void testConservationOfEnergy() {
         DecorativeFrame().setColor(Green));
  
 
-
-
-    VTKEventReporter* reporter = new VTKEventReporter(system, 0.05);
+    VisualizationReporter* reporter = new VisualizationReporter(system, 1./30);
+    Visualizer& viz = reporter->updVisualizer();
+    viz.setBackgroundType(Visualizer::SolidColor);
     system.updDefaultSubsystem().addEventReporter(reporter);
 
     ThermoReporter* thermoReport = new ThermoReporter
-        (system, thermo, bushing1, bushing2, .05);
+        (system, thermo, bushing1, bushing2, 1./10);
     system.updDefaultSubsystem().addEventReporter(thermoReport);
-
-    const VTKVisualizer& viz = reporter->getVisualizer();
    
     // Initialize the system and state.
     
@@ -166,7 +163,7 @@ void testConservationOfEnergy() {
          << "\nt_relax=" << thermo.getRelaxationTime(state)
          << " kB="       << thermo.getBoltzmannsConstant()
          << endl;
-    //char ch=getchar();
+    getchar();
 
     state.setTime(0);
     system.realize(state, Stage::Acceleration);
@@ -184,17 +181,20 @@ void testConservationOfEnergy() {
     const State& istate = integ.getState();
 
     viz.report(integ.getState());
+    viz.zoomCameraToShowAllGeometry();
     printf("After initialize -- hit ENTER\n");
     cout << "t=" << integ.getTime() 
          << "\nE=" << system.calcEnergy(istate)
          << "\nEbath=" << thermo.calcBathEnergy(istate)
          << endl;
     thermoReport->handleEvent(istate);
-    //ch=getchar();
+    getchar();
+
     // Simulate it.
-    ts.stepTo(10.0);
+    ts.stepTo(20.0);
 
     viz.report(integ.getState());
+    viz.zoomCameraToShowAllGeometry();
     printf("After simulation:\n");
     cout << "t=" << integ.getTime() 
          << "\nE=" << system.calcEnergy(istate)

@@ -1,5 +1,4 @@
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"
 
 #include <cstdio>
 #include <exception>
@@ -21,7 +20,7 @@ int main() {
                                 pendulumBody,    Transform(Vec3(0, 1, 0)));
     //Motion::Steady(pendulum, 1);
 
-    system.updDefaultSubsystem().addEventReporter(new VTKEventReporter(system, 0.01));
+    system.updDefaultSubsystem().addEventReporter(new VisualizationReporter(system, 1./30));
    
     // Initialize the system and state.
     
