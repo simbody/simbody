@@ -101,6 +101,6 @@
 #include "simbody/internal/CompliantContactSubsystem.h"
 #include "simbody/internal/Visualizer.h"
 #include "simbody/internal/Visualizer_InputListener.h"
-#include "simbody/internal/VisualizationReporter.h"
+#include "simbody/internal/Visualizer_Reporter.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_

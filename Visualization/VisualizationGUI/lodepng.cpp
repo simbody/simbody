@@ -1245,10 +1245,10 @@ static unsigned getHash(const unsigned char* data, size_t size, size_t pos)
 
 static unsigned countInitialZeros(const unsigned char* data, size_t size, size_t pos)
 {
-  int maxCount = MAX_SUPPORTED_DEFLATE_LENGTH;
-  if(maxCount > size-pos)
-    maxCount = size-pos;
-  for(int i = 0; i < maxCount; i++)
+  unsigned maxCount = MAX_SUPPORTED_DEFLATE_LENGTH;
+  if(maxCount > (unsigned)(size-pos))
+    maxCount = (unsigned)(size-pos);
+  for(unsigned i = 0; i < maxCount; i++)
     if(data[pos+i] != 0)
       return i;
   return maxCount;

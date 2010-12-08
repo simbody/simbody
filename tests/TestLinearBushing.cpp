@@ -185,10 +185,9 @@ void testKinematicsAndEnergyConservation() {
         (forces, body1, body2, Vec6(0), Vec6(0));
 
 #ifdef VISUALIZE
-    VisualizationReporter* reporter = new VisualizationReporter(system, 0.01);
-    system.updDefaultSubsystem().addEventReporter(reporter);
-    Visualizer& viz = reporter->updVisualizer();
+    Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
+    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
     // Initialize the system and state.

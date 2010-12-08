@@ -350,8 +350,7 @@ int main() {
     //ef.setTransitionVelocity(vt);
     //// end of old way.
 
-    VisualizationReporter* reporter = new VisualizationReporter(system, ReportInterval);
-    Visualizer& viz = reporter->updVisualizer();
+    Visualizer viz(system);
     viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
     viz.setMode(Visualizer::RealTime);
     viz.setDesiredBufferLengthInSec(1);
@@ -372,6 +371,7 @@ int main() {
     viz.addMenu("Help", HelpMenuId, helpMenuItems);
 
     MyReporter* myRep = new MyReporter(system,contactForces,ReportInterval);
+    Visualizer::Reporter* reporter = new Visualizer::Reporter(viz, ReportInterval);
 
     system.updDefaultSubsystem().addEventReporter(myRep);
     system.updDefaultSubsystem().addEventReporter(reporter);

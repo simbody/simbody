@@ -115,8 +115,8 @@ int main()
     //Force::MobilityLinearSpring frc(forces, EVEN_PART_3_body, 
        // MobilizerUIndex(0), 100, 0);
 
-    VisualizationReporter* pEventReporter = new VisualizationReporter(system, .01*4*0.25);
-    Visualizer& viz = pEventReporter->updVisualizer();
+    Visualizer viz(system);
+    Visualizer::Reporter* pEventReporter = new Visualizer::Reporter(viz, .01*4*0.25);
     viz.setCameraTransform(Vec3(0.5,0.5,0.5));
     viz.pointCameraAt(Vec3(0), Vec3(0,1,0));
     viz.setBackgroundType(Visualizer::SolidColor);

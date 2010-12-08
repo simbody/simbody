@@ -1,17 +1,17 @@
-#ifndef SimTK_SIMBODY_VISUALIZATION_REPORTER_H_
-#define SimTK_SIMBODY_VISUALIZATION_REPORTER_H_
+#ifndef SimTK_SIMBODY_VISUALIZER_REPORTER_H_
+#define SimTK_SIMBODY_VISUALIZER_REPORTER_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
  * Portions copyright (c) 2010 Stanford University and the Authors.           *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -41,29 +41,51 @@ namespace SimTK {
 
 class MultibodySystem;
 
-/**
- * This is an EventReporter that makes it easy to generate on-screen movies of any simulation.
- * Simply create a VisualizationReporter, then invoke addEventReporter() on the MultibodySystem's
- * default subsystem.
- */
-class SimTK_SIMBODY_EXPORT VisualizationReporter : public PeriodicEventReporter {
+/** This is an EventReporter that makes it easy to generate on-screen movies of 
+any simulation. Use it like this:
+@code 
+    MultibodySystem system;
+    // ... build your system
+
+    // Create a Visualizer object for communication with the VisualizerGUI.
+    Visualizer viz(system);
+    // ... set visualization options by calling methods on viz
+
+    // Create a Reporter that will make periodic calls to the Visualizer's
+    // report() method to render frames. Note that ownership of the Reporter
+    // is taken by the System; don't delete it yourself.
+    system.updDefaultSubsystem().addEventReporter
+                                    (new Visualizer::Reporter(viz, interval));
+@endcode 
+
+@note The reporter holds a reference to a pre-existing Visualizer, so you
+must make sure not to delete the Visualizer before you are done with the
+Reporter that is using it.
+**/
+class SimTK_SIMBODY_EXPORT Visualizer::Reporter : public PeriodicEventReporter {
 public:
-    VisualizationReporter(MultibodySystem& system, Real reportInterval=Infinity);
-    VisualizationReporter(MultibodySystem& system, const String& title, Real reportInterval=Infinity);
-    ~VisualizationReporter();
-    /**
-     * Get the Visualizer which generates the images.  It may be used to configure the display.
-     */
+    /** Create a Reporter for the given Visualizer \a viz, and call its 
+    report() method every \a reportInterval time units of \e simulation time 
+    (not necessarily measured in seconds). Note that if you want to run your
+    simulation in real time and you aren't using seconds as time units, you
+    should set the time scale via the Visualizer's setRealTimeScale() method
+    and set the report interval here to TimeScale/FrameRate. **/
+    Reporter(const Visualizer& viz, Real reportInterval=Infinity);
+    ~Reporter();
+
+    /** Get the Visualizer which this Reporter is using to generate images. **/ 
     const Visualizer& getVisualizer() const;
-    Visualizer& updVisualizer();
-    void handleEvent(const State& state) const;
-    class VisualizationReporterRep;
+
+    /** This satisfies the pure virtual method in EventReporter. **/
+    virtual void handleEvent(const State& state) const;
+
 protected:
-    VisualizationReporterRep* rep;
-    const VisualizationReporterRep& getRep() const {assert(rep); return *rep;}
-    VisualizationReporterRep&       updRep() const {assert(rep); return *rep;}
+    class Impl;
+    Impl* impl;
+    const Impl& getImpl() const {assert(impl); return *impl;}
+    Impl&       updImpl()       {assert(impl); return *impl;}
 };
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_VISUALIZATION_REPORTER_H_
+#endif // SimTK_SIMBODY_VISUALIZER_REPORTER_H_

@@ -101,13 +101,14 @@ public:
 class FrameController; // defined below
 class InputListener;   // defined in Visualizer_InputListener.h
 class InputSilo;       //                 "
+class Reporter;        // defined in Visualizer_Reporter.h
 
 
 /** Construct new Visualizer using default window title (the name of the 
 current executable). **/
-Visualizer(MultibodySystem& system);
+Visualizer(const MultibodySystem& system);
 /** Construct new Visualizer with a given window title. **/
-Visualizer(MultibodySystem& system, const String& title);
+Visualizer(const MultibodySystem& system, const String& title);
 /** InputListener, FrameController, and DecorationGenerator objects are 
 destroyed here. **/
 ~Visualizer();
@@ -306,7 +307,7 @@ frequently; only the ones whose simulated times are at or near a frame time
 will be rendered. Frames that come too late will be queued for rendering as 
 soon as possible, and also reset the expected times for subsequent frames so 
 that real time operation is restored. **/
-void report(const State& state);
+void report(const State& state) const;
 
 /** In RealTime mode there will typically be frames still in the buffer at
 the end of a simulation.\ This allows you to wait while the buffer empties. 
@@ -314,13 +315,13 @@ When this returns, all frames that had been supplied via report() will have
 been sent to the renderer and the buffer will be empty. Returns immediately
 if not in RealTime mode, if there is no buffer, or if the buffer is already
 empty. **/
-void flushFrames();
+void flushFrames() const;
 
 /** This method draws a frame unconditionally without queuing or checking
 the frame rate. Typically you should use the report() method instead, and
 let the the internal queuing and timing system decide when to call 
 drawFrameNow(). **/
-void drawFrameNow(const State& state);
+void drawFrameNow(const State& state) const;
 /**@}**/
 
 
@@ -470,6 +471,7 @@ void clearStats();
 /**@{**/
 const Array_<InputListener*>&   getInputListeners() const;
 const Array_<FrameController*>& getFrameControllers() const;
+const MultibodySystem&          getSystem() const;
 /**@}**/
 
 class VisualizerRep;

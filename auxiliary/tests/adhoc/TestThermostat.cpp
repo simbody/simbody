@@ -139,8 +139,8 @@ void testConservationOfEnergy() {
         DecorativeFrame().setColor(Green));
  
 
-    VisualizationReporter* reporter = new VisualizationReporter(system, 1./30);
-    Visualizer& viz = reporter->updVisualizer();
+    Visualizer viz(system);
+    Visualizer::Reporter* reporter = new Visualizer::Reporter(viz, 1./30);
     viz.setBackgroundType(Visualizer::SolidColor);
     system.updDefaultSubsystem().addEventReporter(reporter);
 

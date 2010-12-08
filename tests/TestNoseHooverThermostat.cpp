@@ -32,7 +32,7 @@
 #include "SimTKsimbody.h"
 
 // define VISUALIZE for visualisation (for debugging)
-//#define VISUALIZE 1
+// #define VISUALIZE 1
 
 #include <fstream>
 
@@ -122,10 +122,11 @@ public:
     }
 
     void simulate() {
-        // View in Visualizer - for testing only
+        // View in Visualizer - for test development only
 #ifdef VISUALIZE
-        VisualizationReporter* vizrep = new VisualizationReporter(system, 0.2);
-        vizrep->updVisualizer().setBackgroundType(Visualizer::SolidColor);
+        Visualizer viz(system);
+        viz.setBackgroundType(Visualizer::SolidColor);
+        Visualizer::Reporter* vizrep = new Visualizer::Reporter(viz, 0.2);
         system.updDefaultSubsystem().addEventReporter(vizrep);
 #endif
 

@@ -65,10 +65,8 @@ int main() {
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         100, 0*(Pi/180));
 
-    VisualizationReporter* reporter = new VisualizationReporter(system, 0.01);
-    system.updDefaultSubsystem().addEventReporter(reporter);
+    Visualizer viz(system);
 
-    Visualizer& viz = reporter->updVisualizer();
    
     // Initialize the system and state.
     
@@ -119,6 +117,8 @@ int main() {
 
     
     // Simulate it.
+
+    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 0.01));
 
     RungeKuttaMersonIntegrator integ(system);
     //integ.setMinimumStepSize(1e-1);

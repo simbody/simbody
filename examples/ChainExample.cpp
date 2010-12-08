@@ -239,10 +239,7 @@ int main() {
     // Attach the last body back to ground.
     Constraint::Ball(matter.Ground(), Vec3(NBodies/2,0,0), lastBody, Vec3(0));
 
-    VisualizationReporter* vr = 
-        new VisualizationReporter(system, TimeScale/FrameRate);
-    system.updDefaultSubsystem().addEventReporter(vr);
-    Visualizer& viz = vr->updVisualizer();
+    Visualizer viz(system);
 
     viz.setWindowTitle("This is the so-called 'ChainExample'.");
 
@@ -280,7 +277,11 @@ int main() {
 
     system.updDefaultSubsystem().addEventHandler
        (new UserInputHandler(viz,*silo, gravity, 0.1)); // check input every 100ms
-     
+
+    // Report visualization frames.
+    Visualizer::Reporter* vr = new Visualizer::Reporter(viz, TimeScale/FrameRate);
+    system.updDefaultSubsystem().addEventReporter(vr);
+    
     // Initialize the system and state.
 
     system.realizeTopology();

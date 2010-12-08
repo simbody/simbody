@@ -209,10 +209,8 @@ int main() {
 
     MultibodySystem& system = dude.m_system;
 
-    VisualizationReporter* vr = 
-        new VisualizationReporter(system, TimeScale/FrameRate);
-    system.updDefaultSubsystem().addEventReporter(vr);
-    Visualizer& viz = vr->updVisualizer();
+    Visualizer viz(system);
+
    
     printf("\n\n***************************************************************\n");
     printf(    "use arrow keys and page up/down to control green gravity vector\n");
@@ -254,6 +252,9 @@ int main() {
 
     // Simulate it.
 
+    system.updDefaultSubsystem().addEventReporter
+        (new Visualizer::Reporter(viz, TimeScale/FrameRate));
+
     //RungeKutta3Integrator integ(system);
     RungeKuttaMersonIntegrator integ(system);
     //RungeKuttaFeldbergIntegrator integ(system);
@@ -269,7 +270,7 @@ int main() {
     std::cout << "cpu time:  "<<cpuTime()-cpuStart<< std::endl;
     std::cout << "real time: "<<realTime()-realStart<< std::endl;
     std::cout << "steps:     "<<integ.getNumStepsTaken()<< std::endl;
-    vr->getVisualizer().dumpStats(std::cout);
+    viz.dumpStats(std::cout);
 
     std::cout << "Type something to quit: ";
     char ch; std::cin >> ch;

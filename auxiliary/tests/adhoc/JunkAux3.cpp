@@ -316,10 +316,8 @@ int main(int argc, char** argv) {
     Constraint::ConstantAcceleration dlock(calf,0);
     dlock.setDisabledByDefault(true);
 
-
-    VisualizationReporter& reporter = *new VisualizationReporter(mbs, ReportInterval);
-    Visualizer& viz = reporter.updVisualizer();
-    mbs.updDefaultSubsystem().addEventReporter(&reporter);
+    Visualizer viz(mbs);
+    mbs.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
     CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);

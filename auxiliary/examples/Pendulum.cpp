@@ -20,7 +20,8 @@ int main() {
                                 pendulumBody,    Transform(Vec3(0, 1, 0)));
     //Motion::Steady(pendulum, 1);
 
-    system.updDefaultSubsystem().addEventReporter(new VisualizationReporter(system, 1./30));
+    Visualizer viz(system);
+    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 1./30));
    
     // Initialize the system and state.
     

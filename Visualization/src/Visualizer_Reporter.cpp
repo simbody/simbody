@@ -1,14 +1,14 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                            SimTK Simbody(tm)                               *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
  * Portions copyright (c) 2010 Stanford University and the Authors.           *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -32,55 +32,43 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/VisualizationReporter.h"
+#include "simbody/internal/Visualizer_Reporter.h"
 
 using namespace SimTK;
 
-class VisualizationReporter::VisualizationReporterRep {
+class Visualizer::Reporter::Impl {
 public:
-    VisualizationReporterRep(MultibodySystem& system) 
-    :   system(system), visualizer(system) {}
-    VisualizationReporterRep(MultibodySystem& system, const String& title) 
-    :   system(system), visualizer(system, title) {}
+    explicit Impl(const Visualizer& viz) 
+    :   handle(0), visualizer(viz) {}
+
     const Visualizer& getVisualizer() const {
         return visualizer;
     }
-    Visualizer& updVisualizer() {
-        return visualizer;
-    }
+
     void handleEvent(const State& state) const {
-        system.realize(state, Stage::Acceleration);
+        visualizer.getSystem().realize(state, Stage::Acceleration);
         visualizer.report(state);
     }
-    MultibodySystem& system;
-    VisualizationReporter* handle;
-    mutable Visualizer visualizer;
+
+    Visualizer::Reporter*   handle;
+    const Visualizer&       visualizer;
 };
 
-VisualizationReporter::VisualizationReporter(MultibodySystem& system, Real reportInterval) : PeriodicEventReporter(reportInterval) {
-    rep = new VisualizationReporterRep(system);
-    updRep().handle = this;
-}
-
-VisualizationReporter::VisualizationReporter(MultibodySystem& system, const String& title, Real reportInterval)
+Visualizer::Reporter::Reporter(const Visualizer& viz, Real reportInterval) 
 :   PeriodicEventReporter(reportInterval) {
-    rep = new VisualizationReporterRep(system, title);
-    updRep().handle = this;
+    impl = new Impl(viz);
+    updImpl().handle = this;
 }
 
-VisualizationReporter::~VisualizationReporter() {
-    if (rep->handle == this)
-        delete rep;
+Visualizer::Reporter::~Reporter() {
+    if (impl->handle == this)
+        delete impl;
 }
 
-Visualizer& VisualizationReporter::updVisualizer() {
-    return updRep().updVisualizer();
+const Visualizer& Visualizer::Reporter::getVisualizer() const {
+    return getImpl().getVisualizer();
 }
 
-const Visualizer& VisualizationReporter::getVisualizer() const {
-    return getRep().getVisualizer();
-}
-
-void VisualizationReporter::handleEvent(const State& state) const {
-    updRep().handleEvent(state);
+void Visualizer::Reporter::handleEvent(const State& state) const {
+    getImpl().handleEvent(state);
 }

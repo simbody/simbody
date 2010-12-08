@@ -151,7 +151,7 @@ public:
 class Visualizer::VisualizerRep {
 public:
     // Create a Visualizer and put it in PassThrough mode.
-    VisualizerRep(Visualizer* owner, MultibodySystem& system, 
+    VisualizerRep(Visualizer* owner, const MultibodySystem& system, 
                   const String& title) 
     :   m_handle(owner), m_system(system), m_protocol(*owner, title),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
@@ -495,7 +495,7 @@ public:
     {   return realTimeInNs() - m_adjustedRealTimeBase; }
 
     Visualizer*                             m_handle;
-    MultibodySystem&                        m_system;
+    const MultibodySystem&                  m_system;
     VisualizationProtocol                   m_protocol;
 
     Array_<DecorativeGeometry>              m_addedGeometry;
@@ -801,7 +801,7 @@ void Visualizer::VisualizerRep::reportRealtime(const State& state) {
 //                                VISUALIZER
 //==============================================================================
 
-Visualizer::Visualizer(MultibodySystem& system) : rep(0) {
+Visualizer::Visualizer(const MultibodySystem& system) : rep(0) {
     // Create a default title from the name of this executable.
     bool isAbsolutePath;
     std::string directory, fileName, extension;
@@ -810,7 +810,7 @@ Visualizer::Visualizer(MultibodySystem& system) : rep(0) {
     rep = new VisualizerRep(this, system, fileName);
 }
 
-Visualizer::Visualizer(MultibodySystem& system, const String& title) : rep(0) {
+Visualizer::Visualizer(const MultibodySystem& system, const String& title) : rep(0) {
     rep = new VisualizerRep(this, system, title);
 }
 
@@ -841,16 +841,16 @@ Real Visualizer::getActualBufferLengthInSec() const
 {   return getRep().getActualBufferLengthInSec(); }
 
 
-void Visualizer::drawFrameNow(const State& state) 
-{   updRep().drawFrameNow(state); }
+void Visualizer::drawFrameNow(const State& state) const
+{   const_cast<Visualizer*>(this)->updRep().drawFrameNow(state); }
 
-void Visualizer::flushFrames()
-{   updRep().waitUntilQueueIsEmpty(); }
+void Visualizer::flushFrames() const
+{   const_cast<Visualizer*>(this)->updRep().waitUntilQueueIsEmpty(); }
 
 // The simulation thread normally delivers frames here. Handling is dispatched
 // according the current visualization mode.
-void Visualizer::report(const State& state) {
-    Visualizer::VisualizerRep& rep = updRep();
+void Visualizer::report(const State& state) const {
+    Visualizer::VisualizerRep& rep = const_cast<Visualizer*>(this)->updRep();
 
     ++rep.numFramesReportedBySimulation;
     if (rep.m_mode == RealTime) {
@@ -1010,6 +1010,7 @@ const Array_<Visualizer::InputListener*>& Visualizer::getInputListeners() const
 {   return getRep().m_listeners; }
 const Array_<Visualizer::FrameController*>& Visualizer::getFrameControllers() const
 {   return getRep().m_controllers; }
+const MultibodySystem& Visualizer::getSystem() const {return getRep().m_system;}
 
 
 //==============================================================================

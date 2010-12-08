@@ -226,8 +226,8 @@ int main() {
     //ef.setTransitionVelocity(vt);
     //// end of old way.
 
-    VisualizationReporter& reporter = *new VisualizationReporter(system, ReportInterval);
-    Visualizer& viz = reporter.updVisualizer();
+    Visualizer viz(system);
+    Visualizer::Reporter& reporter = *new Visualizer::Reporter(viz, ReportInterval);
     viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
     MyReporter& myRep = *new MyReporter(system,contactForces,ReportInterval);
 

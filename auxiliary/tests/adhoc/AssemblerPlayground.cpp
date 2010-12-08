@@ -74,8 +74,8 @@ int main() {
     //Constraint::Ball ball(matter.Ground(), Vec3(3*NBodies,-NBodies,0), 
     //                      finalBody, Vec3(0,-hdims[1],0));
 
-    VisualizationReporter& vizReporter = *new VisualizationReporter(system, 0.1);
-    Visualizer& viz = vizReporter.updVisualizer();
+    Visualizer viz(system);
+    Visualizer::Reporter& vizReporter = *new Visualizer::Reporter(viz, 0.1);
     system.updDefaultSubsystem().addEventReporter(&vizReporter);
 
 
