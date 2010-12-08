@@ -117,7 +117,7 @@ public:
     void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
     void drawCoords(const Transform& transform, Real axisLength, const Vec4& color);
     
-    void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
+    void addMenu(const String& title, int id, const Array_<std::pair<String, int> >& items);
     void addSlider(const String& title, int id, Real min, Real max, Real value);
     void setSliderValue(int id, Real newValue) const;
     void setSliderRange(int id, Real newMin, Real newMax) const;

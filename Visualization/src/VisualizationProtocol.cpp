@@ -146,11 +146,12 @@ static void* listenForVisualizationEvents(void* arg) {
                 break;
             }
             case MenuSelected: {
-                int item;
+                int menu, item;
+                readData((unsigned char*) &menu, sizeof(int));
                 readData((unsigned char*) &item, sizeof(int));
                 const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
                 for (int i = 0; i < (int) listeners.size(); i++)
-                    if (listeners[i]->menuSelected(item))
+                    if (listeners[i]->menuSelected(menu, item))
                         break; // menu event has been handled
                 break;
             }
@@ -424,12 +425,13 @@ drawCoords(const Transform& X_GF, Real axisLength, const Vec4& color) {
 }
 
 void VisualizationProtocol::
-addMenu(const String& title, const Array_<pair<String, int> >& items) {
+addMenu(const String& title, int id, const Array_<pair<String, int> >& items) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &DefineMenu, 1);
     short titleLength = title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
+    WRITE(outPipe, &id, sizeof(int));
     short numItems = items.size();
     WRITE(outPipe, &numItems, sizeof(short));
     for (int i = 0; i < numItems; i++) {
@@ -442,10 +444,6 @@ addMenu(const String& title, const Array_<pair<String, int> >& items) {
 
 void VisualizationProtocol::
 addSlider(const String& title, int id, Real minVal, Real maxVal, Real value) {
-    SimTK_ERRCHK3_ALWAYS(minVal <= value && value <= maxVal, 
-        "VisualizationProtocol::addSlider()",
-        "Initial slider value %g was outside the specified range [%g,%g].",
-        value, minVal, maxVal);
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &DefineSlider, 1);
     short titleLength = title.size();

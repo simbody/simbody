@@ -35,7 +35,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h" // requires VTK
 
 #include <string>
 #include <iostream>
@@ -43,12 +42,11 @@
 #include <ctime>
 
 using std::cout;
-using std::cin;
 using std::endl;
 
 using namespace SimTK;
 
-const Real ReportInterval=0.01;
+const Real ReportInterval=0.033;
 const Real RunTime=20;
 
 class StateSaver : public PeriodicEventReporter {
@@ -58,7 +56,8 @@ public:
                const Integrator&                integ,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), 
-        m_system(system), m_lock(lock), m_integ(integ) {}
+        m_system(system), m_lock(lock), m_integ(integ) 
+    {   m_states.reserve(2000); }
 
     ~StateSaver() {}
 
@@ -318,8 +317,8 @@ int main(int argc, char** argv) {
     dlock.setDisabledByDefault(true);
 
 
-    VTKEventReporter& reporter = *new VTKEventReporter(mbs, ReportInterval);
-    VTKVisualizer& viz = reporter.updVisualizer();
+    VisualizationReporter& reporter = *new VisualizationReporter(mbs, ReportInterval);
+    Visualizer& viz = reporter.updVisualizer();
     mbs.updDefaultSubsystem().addEventReporter(&reporter);
 
     //ExplicitEulerIntegrator integ(mbs);
@@ -366,8 +365,7 @@ int main(int argc, char** argv) {
     viz.report(s);
 
     cout << "Initialized configuration shown. Ready? ";
-    char c;
-    cin >> c;
+    getchar();
 
     
     // Simulate it.
@@ -399,7 +397,6 @@ int main(int argc, char** argv) {
     while(true) {
         for (int i=0; i < stateSaver.getNumSavedStates(); ++i) {
             viz.report(stateSaver.getState(i));
-            //vtk.report(saveEm[i]); // half speed
         }
         getchar();
     }

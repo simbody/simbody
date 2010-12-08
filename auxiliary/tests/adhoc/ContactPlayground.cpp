@@ -151,6 +151,7 @@ private:
 };
 
 // These are the item numbers for the entries on the Run menu.
+static const int RunMenuId = 3, HelpMenuId = 7;
 static const int GoItem = 1, ReplayItem=2, QuitItem=3;
 
 // This is a periodic event handler that interrupts the simulation on a regular
@@ -165,8 +166,8 @@ public:
                              const Vector& ooConstraintTols, Stage& lowestModified, 
                              bool& shouldTerminate) const 
     {
-        int item;
-        if (m_silo.takeMenuPick(item) && item==QuitItem)
+        int menuId, item;
+        if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)
             shouldTerminate = true;
     }
 
@@ -364,7 +365,12 @@ int main() {
     runMenuItems.push_back(std::make_pair("Go", GoItem));
     runMenuItems.push_back(std::make_pair("Replay", ReplayItem));
     runMenuItems.push_back(std::make_pair("Quit", QuitItem));
-    viz.addMenu("Run", runMenuItems);
+    viz.addMenu("Run", RunMenuId, runMenuItems);
+
+    Array_<std::pair<String,int> > helpMenuItems;
+    helpMenuItems.push_back(std::make_pair("TBD - Sorry!", 1));
+    viz.addMenu("Help", HelpMenuId, helpMenuItems);
+
     MyReporter* myRep = new MyReporter(system,contactForces,ReportInterval);
 
     system.updDefaultSubsystem().addEventReporter(myRep);
@@ -390,10 +396,11 @@ int main() {
          << endl;
 
     cout << "\nChoose 'Go' from Run menu to simulate:\n";
-    int item;
-    do { silo->waitForMenuPick(item);
-         if (item != GoItem) cout << "Dude ... follow instructions!\n";
-    } while (item != GoItem);
+    int menuId, item;
+    do { silo->waitForMenuPick(menuId, item);
+         if (menuId != RunMenuId || item != GoItem) 
+             cout << "\aDude ... follow instructions!\n";
+    } while (menuId != RunMenuId || item != GoItem);
 
 
 
@@ -441,13 +448,17 @@ int main() {
     while(true) {
         silo->clear();
         cout << "Choose Run/Replay to see that again ...\n";
-        int item;
-        silo->waitForMenuPick(item);
+        int menuId, item;
+        silo->waitForMenuPick(menuId, item);
+        if (menuId != RunMenuId) {
+            cout << "\aUse the Run menu!\n";
+            continue;
+        }
 
         if (item == QuitItem)
             break;
         if (item != ReplayItem) {
-            cout << "Huh? Try again.\n";
+            cout << "\aHuh? Try again.\n";
             continue;
         }
 

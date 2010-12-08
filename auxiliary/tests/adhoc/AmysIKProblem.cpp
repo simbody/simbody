@@ -42,17 +42,9 @@ spatially close. */
 
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"
-
-//#define USE_VTK
-#ifdef USE_VTK
-#define VisualizationReporter VTKEventReporter
-#define Visualizer VTKVisualizer
-#endif
 
 #include <cstdio>
 #include <exception>
-#include <ctime>
 
 using std::cout; using std::cin; using std::endl;
 
@@ -375,7 +367,6 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     system.realizeTopology();
     State state = system.getDefaultState();
 
-    char c;
     // Show initial configuration
     viz.report(state);
     State tempState = state; 
@@ -386,7 +377,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     cout << tempState.getNU() << " dofs, " 
          << tempState.getNQErr() << " constraints.\n";
     
-    cin >> c;
+    getchar();
 
 
     Assembler ik(system);
@@ -435,11 +426,11 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
         ik.getNumGoalEvals(), ik.getNumGoalGradientEvals(),
         ik.getNumErrorEvals(), ik.getNumErrorJacobianEvals());
 
-    cin >> c;
+    getchar();
 
-    const int NSteps = getNumFrames()/10;
+    const int NSteps = getNumFrames();
     const int NToSkip = 4; // show every nth frame
-    const clock_t start = clock();
+    const double startReal = realTime(), startCPU = cpuTime();
     for (int f=1; f < NSteps; ++f) {
         markers.moveAllObservations(getFrame(f));
         // update internal state to match new observed locations
@@ -451,7 +442,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     }
 
     cout << "ASSEMBLED " << NSteps-1 << " steps in " <<
-        (double)(clock()-start)/CLOCKS_PER_SEC << "s\n";
+        cpuTime()-startCPU << " CPU s, " << realTime()-startReal << " REAL s\n";
 
     printf("FINAL CONFIGURATION (acc=%g tol=%g err=%g, cost=%g, qerr=%g)\n",
         ik.getAccuracyInUse(), ik.getErrorToleranceInUse(), 
@@ -469,7 +460,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     cout << "DONE ASSEMBLING -- SIMULATE ...\n";
     viz.report(state);
 
-    cin >> c;
+    getchar();
    
     // Simulate it.
 

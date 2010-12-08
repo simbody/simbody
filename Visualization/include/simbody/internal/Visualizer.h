@@ -138,6 +138,14 @@ enum BackgroundType {
     SolidColor   = 2
 };
 
+/** The VisualizerGUI may predefine some menus; if you need to refer to one
+of those use its menu Id as defined here. Note that the id numbers here
+are negative numbers, which are not allowed for user-defined menu ids. **/
+enum PredefinedMenuIds {
+    /** The id of the predefined View pull-down. **/
+    ViewMenuId    = -1
+};
+
 /** @name               VisualizerGUI display options
 These methods provide programmatic control over some of the VisualizerGUI's
 display options. Typically these can be overridden by the user directly in
@@ -326,19 +334,35 @@ geometry to be produced for each frame; however, once added a
 DecorationGenerator will be called for \e every frame generated. **/
 /**@{**/
 
-/** Add a new pull-down menu to the VisualizationGUI's display. The button
-label is given in \a title, and a list of (string,int) pairs defines the menu 
-and submenu items. The strings have a pathname-like syntax, like "submenu/item1",
-"submenu/item2", "submenu/lowermenu/item1", etc. that is used to define the
-pulldown menu layout. **/
-void addMenu(const String& title, const Array_<std::pair<String, int> >& items);
+/** Add a new pull-down menu to the VisualizationGUI's display. A label
+for the pull-down button is provided along with an integer identifying the
+particular menu. A list of (string,int) pairs defines the menu and submenu 
+item labels and associated item numbers. The item numbers must be unique 
+across the entire menu and all its submenus. The strings have a pathname-like 
+syntax, like "submenu/item1", "submenu/item2", "submenu/lowermenu/item1", etc.
+that is used to define the pulldown menu layout. 
+@param title    the title to display on the menu's pulldown button
+@param id       an integer value >= 0 that uniquely identifies this menu
+@param items    item names, possibly with submenus as specified above, with
+                associated item numbers 
+When a user picks an item on a menu displayed in the VisualizerGUI, that 
+selection is delievered to the simulation application via an InputListener
+associated with this Visualizer. The selection will be identified by
+(\a id, itemNumber) pair. **/
+void addMenu(const String& title, int id, 
+             const Array_<std::pair<String, int> >& items);
 
 /** Add a new slider to the VisualizationGUI's display.
 @param title    the title to display next to the slider
 @param id       an integer value that uniquely identifies this slider
 @param min      the minimum value the slider can have
 @param max      the maximum value the slider can have
-@param value    the initial value of the slider, which must be between min and max **/
+@param value    the initial value of the slider, which must be between 
+                min and max 
+When a user moves a slider displayed in the VisualizerGUI, the new value 
+is delievered to the simulation application via an InputListener associated 
+with this Visualizer. The slider will be identified by the \a id supplied
+here. **/
 void addSlider(const String& title, int id, Real min, Real max, Real value);
 
 /** Add an always-present, body-fixed piece of geometry like the one passed in,

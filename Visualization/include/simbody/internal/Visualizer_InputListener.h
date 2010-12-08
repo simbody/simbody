@@ -126,10 +126,11 @@ virtual bool keyPressed(unsigned key, unsigned modifiers) {return false;}
 
 /** The user has clicked one of the menu items you defined; here is
 the integer value you specified when you defined it.
+@param[in]  menu        The id number of the menu in use.
 @param[in]  item        The menu item number that the user selected.
 @return Return \c true if you have handled this menu click and don't
 want any subsequent listeners called. **/
-virtual bool menuSelected(int item) {return false;}
+virtual bool menuSelected(int menu, int item) {return false;}
 
 /** The user has moved one of the sliders you defined; here is the integer 
 value you specified when you defined it, and the new value of the slider.
@@ -189,7 +190,7 @@ while (silo.isAnyUserInput()) {
     while (silo.takeKeyHit(key,modifier)) {
         // Process the key that was hit
     }
-    while (silo.takeMenuPick(item)) {
+    while (silo.takeMenuPick(which, item)) {
         // Process the picked menu item
     }
     while (silo.takeSliderMove(which, value)) {
@@ -207,7 +208,7 @@ unsigned key, modifiers;
 do {silo->waitForKeyHit(key,modifiers);}
 while (key != Visualizer::InputListener::KeyEnter);
 @endcode
-
+which
 Similar methods are available for all the different input types, and you
 can also wait on the arrival of \e any input.
 
@@ -275,20 +276,23 @@ void waitForKeyHit(unsigned& key, unsigned& modifiers);
 /** This will return user menu picks until they have all been consumed, in the
 same order they were received. The \a item value returned is the value that was
 provided to our implementation of the InputListener::menuSelected() method. 
+@param[out]         menu         
+    The id number of the menu that was selected. This is the value that was
+    assigned to this menu in the Visualizer::addMenu() call.
 @param[out]         item         
     The menu item number for the entry that the user selected. This is the 
     number that was assigned at the time the menu was added via the 
     Visualizer::addMenu() method.
 @return \c true if a menu item number has been returned; \c false if the menu 
     pick silo is now empty in which case \a item will be set to zero. **/
-bool takeMenuPick(int& item);
+bool takeMenuPick(int& menu, int& item);
 
 /** Same as takeMenuPick() except that if there is no menu pick input available
 it waits until there is, then returns the first one (which is removed from
 the silo just as takeMenuPick() would do. The behavior is like calling
 waitForAnyUserInput() repeatedly until takeMenuPick() returns \c true.
 @see takeMenuPick(), waitForAnyUserInput() **/
-void waitForMenuPick(int& item);
+void waitForMenuPick(int& menu, int& item);
 
 /** This will return user changes to slider positions until they have all been
 consumed, in the same order they were received. The \a slider and \a value 
@@ -321,7 +325,7 @@ void clear();
 // that the input will be absorbed and subsequent listeners (if any) will not 
 // be called.
 virtual bool keyPressed(unsigned key, unsigned modifiers);
-virtual bool menuSelected(int item);
+virtual bool menuSelected(int menu, int item);
 virtual bool sliderMoved(int slider, Real value);
 
 class Impl;

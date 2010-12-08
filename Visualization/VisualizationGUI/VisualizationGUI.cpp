@@ -1,7 +1,7 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
@@ -41,6 +41,7 @@
 #include <set>
 #include <vector>
 #include <utility>
+#include <limits>
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
@@ -542,63 +543,72 @@ private:
     fVec3 color;
 };
 
-// This is the handler for simulator-defined menus. All it does is send back
-// to the simulator the integer index that was associated with the particular
-// menu entry on which the user clicked.
-void menuSelected(int option) {
-    char command = MenuSelected;
-    WRITE(outPipe, &command, 1);
-    WRITE(outPipe, &option, sizeof(int));
-}
 
+
+/*==============================================================================
+                                   MENU                                      
+==============================================================================*/
+
+// The glut callback for menu item picking.
+static void menuSelected(int option);
+static const int InvalidMenuId = std::numeric_limits<int>::min();
 class Menu {
 public:
-    Menu(string title, vector<pair<string, int> > items, void(*handler)(int)) 
-    :   title(title), items(items), handler(handler), hasCreated(false) {}
+    Menu(string title, int id, const vector<pair<string, int> >& items, 
+         void(*handler)(int)) 
+    :   title(title), menuId(id), items(items), handler(handler),
+        hasCreated(false) {}
+
+    // This is called once, the first time we try to draw this menu.
+    void createMenu() {
+        glutId = glutCreateMenu(handler);
+        vector<string> components;
+        vector<int> submenuIds;
+        for (int i = 0; i < (int) items.size(); i++) {
+            size_t start = 0;
+            string spec = items[i].first;
+            for (int componentIndex = 0; ; componentIndex++) {
+                size_t end = spec.find('/', start);
+                while (end < spec.size()-1 && spec[end+1] == '/') {
+                    // A double slash.
+                    spec.erase(end, 1);
+                    end = spec.find('/', end+1);
+                    continue;
+                }
+                string substring = spec.substr(start, end-start);
+                if (componentIndex < (int)components.size() && substring != components[componentIndex]) {
+                    components.resize(componentIndex);
+                    submenuIds.resize(componentIndex);
+                }
+                if (componentIndex == components.size())
+                    components.push_back(substring);
+                if (end == string::npos)
+                    break;
+                start = end+1;
+            }
+            int firstNewSubmenu = (int) submenuIds.size();
+            for (int j = firstNewSubmenu; j < (int) components.size()-1; j++)
+                submenuIds.push_back(glutCreateMenu(handler));
+            glutSetMenu(firstNewSubmenu == 0 ? glutId 
+                                             : submenuIds[firstNewSubmenu-1]);
+            for (int j = firstNewSubmenu; j < (int) components.size()-1; j++) {
+                glutAddSubMenu(components[j].c_str(), submenuIds[j]);
+                glutSetMenu(submenuIds[j]);
+            }
+            glutAddMenuEntry(components[components.size()-1].c_str(), 
+                             items[i].second);
+        }
+    }
 
     int draw(int x, int y) {
         if (!hasCreated) {
-            id = glutCreateMenu(handler);
-            vector<string> components;
-            vector<int> submenuIds;
-            for (int i = 0; i < (int) items.size(); i++) {
-                size_t start = 0;
-                string spec = items[i].first;
-                for (int componentIndex = 0; ; componentIndex++) {
-                    size_t end = spec.find('/', start);
-                    while (end < spec.size()-1 && spec[end+1] == '/') {
-                        // A double slash.
-
-                        spec.erase(end, 1);
-                        end = spec.find('/', end+1);
-                        continue;
-                    }
-                    string substring = spec.substr(start, end-start);
-                    if (componentIndex < (int)components.size() && substring != components[componentIndex]) {
-                        components.resize(componentIndex);
-                        submenuIds.resize(componentIndex);
-                    }
-                    if (componentIndex == components.size())
-                        components.push_back(substring);
-                    if (end == string::npos)
-                        break;
-                    start = end+1;
-                }
-                int firstNewSubmenu = (int) submenuIds.size();
-                for (int j = firstNewSubmenu; j < (int) components.size()-1; j++)
-                    submenuIds.push_back(glutCreateMenu(handler));
-                glutSetMenu(firstNewSubmenu == 0 ? id : submenuIds[firstNewSubmenu-1]);
-                for (int j = firstNewSubmenu; j < (int) components.size()-1; j++) {
-                    glutAddSubMenu(components[j].c_str(), submenuIds[j]);
-                    glutSetMenu(submenuIds[j]);
-                }
-                glutAddMenuEntry(components[components.size()-1].c_str(), items[i].second);
-            }
+            createMenu();
             hasCreated = true;
         }
         minx = x;
         miny = y-18;
-        int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) title.c_str());
+        int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, 
+                                     (unsigned char*) title.c_str());
         maxx = x+width+14;
         maxy = y+3;
         glColor3f(0.9f, 0.9f, 0.9f);
@@ -632,34 +642,75 @@ public:
         if (!hasCreated)
             return;
         if (x >= minx && y >= miny && x <= maxx && y <= maxy) {
-            if (currentMenu != id) {
-                glutSetMenu(id);
+            if (currentMenuGlutId != glutId) {
+                glutSetMenu(glutId);
                 glutAttachMenu(GLUT_LEFT_BUTTON);
-                currentMenu = id;
+                currentMenuGlutId = glutId;
+                currentMenuId = menuId;
             }
         }
-        else if (currentMenu == id) {
-            glutSetMenu(id);
+        else if (currentMenuGlutId == glutId) {
+            glutSetMenu(glutId);
             glutDetachMenu(GLUT_LEFT_BUTTON);
-            currentMenu = -1;
+            currentMenuGlutId = currentMenuId = InvalidMenuId;
         }
     }
+
+    int getId() const {return menuId;}
+    const string& getTitle() const {return title;}
+
+    static const int& getCurrentMenuId() {return currentMenuId;}
+    static bool isMenuAttached() {return currentMenuId != InvalidMenuId;}
+
 private:
-    string title;
-    vector<pair<string, int> > items;
-    void(*handler)(int);
-    int id, minx, miny, maxx, maxy;
-    bool hasCreated;
-    static int currentMenu;
+    string                      title;
+    int                         menuId; // assigned by creator
+    vector<pair<string, int> >  items;
+    void                      (*handler)(int);
+    int                         glutId; // assigned by glut
+    int                         minx, miny, maxx, maxy;
+    bool                        hasCreated;
+
+    static int currentMenuGlutId;
+    static int currentMenuId;
 };
 
-int Menu::currentMenu = -1;
+int Menu::currentMenuId     = InvalidMenuId; // user assigned id
+int Menu::currentMenuGlutId = InvalidMenuId;
 
+// This is the handler for simulator-defined menus. All it does is send back
+// to the simulator the integer index that was associated with the particular
+// menu entry on which the user clicked.
+void menuSelected(int option) {
+    WRITE(outPipe, &MenuSelected, 1);
+    WRITE(outPipe, &Menu::getCurrentMenuId(), sizeof(int));
+    WRITE(outPipe, &option, sizeof(int));
+}
+
+static vector<Menu>     menus;
+
+// Look up a particular menu; returns null pointer if not there.
+// Note that this is the user-assigned id, not the one from glut.
+static Menu* findMenuById(int id) {
+    for (unsigned i=0; i < menus.size(); ++i)
+        if (menus[i].getId() == id)
+            return &menus[i];
+    return 0;
+}
+
+
+
+/*==============================================================================
+                                 SLIDER                                     
+==============================================================================*/
 class Slider {
 public:
-    Slider(string title, int id, float minValue, float maxValue, float value) :
-                title(title), id(id), minValue(minValue), maxValue(maxValue), position((value-minValue)/(maxValue-minValue)) {
-        labelWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) title.c_str());
+    Slider(string title, int id, float minValue, float maxValue, float value) 
+    :   title(title), id(id), minValue(minValue), maxValue(maxValue), 
+        position((value-minValue)/(maxValue-minValue)) 
+    {
+        labelWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, 
+                                      (unsigned char*) title.c_str());
         if (labelWidth > maxLabelWidth)
             maxLabelWidth = labelWidth;
     }
@@ -817,6 +868,22 @@ private:
 
 int Slider::maxLabelWidth = 0;
 
+
+static vector<Slider>   sliders;
+
+// Look up a particular slider; returns null pointer if not there.
+static Slider* findSliderById(int id) {
+    for (unsigned i=0; i < sliders.size(); ++i)
+        if (sliders[i].getId() == id)
+            return &sliders[i];
+    return 0;
+}
+
+
+
+/*==============================================================================
+                             GROUND AND SKY                                     
+==============================================================================*/
 static void drawGroundAndSky(float farClipDistance) {
     static GLuint skyProgram = 0;
     if (skyProgram == 0) {
@@ -1001,24 +1068,11 @@ static void drawGroundAndSky(float farClipDistance) {
     glUseProgram(0);
 }
 
-static vector<Menu>     menus;
-static vector<Slider>   sliders;
 
-// Look up a particular slider; returns null pointer if not there.
-static Slider* findSliderById(int id) {
-    for (unsigned i=0; i < sliders.size(); ++i)
-        if (sliders[i].getId() == id)
-            return &sliders[i];
-    return 0;
-}
 
-static void changeSize(int width, int height) {
-    if (height == 0)
-        height = 1;
-    viewWidth = width;
-    viewHeight = height;
-}
-
+/*==============================================================================
+                               RENDER SCENE                                
+==============================================================================*/
 static void renderScene() {
     static bool firstTime = true;
     static GLfloat prevNearClip; // initialize to near & farClip
@@ -1217,7 +1271,7 @@ static int clickModifiers;
 static int clickButton;
 static int clickX;
 static int clickY;
-static int clickedSlider;
+static int clickedSlider = -1;
 static bool rotateCenterValid = false;
 static fVec3 rotateCenter;
 static float sceneScale; // for scaling translations
@@ -1955,6 +2009,8 @@ void* listenForInput(void* args) {
             vector<char> titleBuffer(titleLength);
             readData(&titleBuffer[0], titleLength);
             string title(&titleBuffer[0], titleLength);
+            readData(buffer, sizeof(int));
+            const int menuId = intBuffer[0];
             readData(buffer, sizeof(short));
             int numItems = shortBuffer[0];
             vector<pair<string, int> > items(numItems);
@@ -1966,7 +2022,7 @@ void* listenForInput(void* args) {
                 items[index].first = string(&textBuffer[0], intBuffer[1]);
             }
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            menus.push_back(Menu(title, items, menuSelected));
+            menus.push_back(Menu(title, menuId, items, menuSelected));
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
@@ -2221,6 +2277,16 @@ void viewMenuSelected(int option) {
 static const int DefaultWindowWidth  = 600;
 static const int DefaultWindowHeight = 500;
 
+
+// The glut callback for chaning window size.
+static void changeSize(int width, int height) {
+    if (height == 0)
+        height = 1;
+    viewWidth = width;
+    viewHeight = height;
+}
+
+
 // This seems to be necessary on Mac and Linux where the built-in glut
 // idle hangs if there is no activity in the gl window. In any case we
 // use it to issue a redisplay when one is needed but no scene is forthcoming,
@@ -2374,7 +2440,7 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Show//Hide/Frame Rate", MENU_SHOW_FPS));
     items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
     items.push_back(make_pair("Save Movie", MENU_SAVE_MOVIE));
-    menus.push_back(Menu("View", items, viewMenuSelected));
+    menus.push_back(Menu("View", Visualizer::ViewMenuId, items, viewMenuSelected));
 
     // Initialize pthread lock and condition variable.
     pthread_mutex_init(&sceneLock, NULL);

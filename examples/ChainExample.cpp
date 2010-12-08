@@ -91,8 +91,11 @@ private:
 // chain to the next listener (which will be an InputSilo in this case).
 class MyListener : public Visualizer::InputListener {
 public:
-    MyListener(const Array_< std::pair<std::string, int> >& menu)
-    :   m_menu(menu) {}
+    // Pass in the menu strings just so we can translate the index back
+    // to a string to print out for testing.
+    MyListener(const Array_< std::pair<std::string, int> >& menu1,
+               const Array_< std::pair<std::string, int> >& menu2)
+    :   m_menu1(menu1), m_menu2(menu2) {}
 
     ~MyListener() {}
 
@@ -128,11 +131,12 @@ public:
         return false; // key passed on
     }
 
-    virtual bool menuSelected(int item) {
-        std::cout << "Listener sees pick of menu item " << item << ": ";
-        for (unsigned i=0; i < m_menu.size(); ++i)
-            if (m_menu[i].second==item)
-                std::cout << m_menu[i].first;
+    virtual bool menuSelected(int menuId, int item) {
+        std::cout << "Listener sees pick of menu " << menuId << " item " << item << ": ";
+        Array_< std::pair<std::string, int> >& menu = menuId==1 ? m_menu1 : m_menu2;
+        for (unsigned i=0; i < menu.size(); ++i)
+            if (menu[i].second==item)
+                std::cout << menu[i].first;
         std::cout << std::endl;
         return false; // menu click passed on
     }
@@ -143,7 +147,7 @@ public:
     }
 
 private:
-    Array_< std::pair<std::string, int> > m_menu;
+    Array_< std::pair<std::string, int> > m_menu1, m_menu2;
 };
 
 // This is a periodic event handler that interrupts the simulation on a regular
@@ -162,7 +166,7 @@ public:
     {
         while (m_silo.isAnyUserInput()) {
             unsigned key, modifiers;
-            int menuItem;
+            int whichMenu, menuItem;
             int whichSlider; Real sliderValue;
 
             while (m_silo.takeKeyHit(key,modifiers)) {
@@ -175,8 +179,8 @@ public:
                 printf("Handler sees key=%u, modifiers=%u\n",key,modifiers);
             }
 
-            while (m_silo.takeMenuPick(menuItem)) {
-                printf("Handler sees menu pick %d\n", menuItem);
+            while (m_silo.takeMenuPick(whichMenu, menuItem)) {
+                printf("Handler sees menu %d, pick %d\n", whichMenu, menuItem);
             }
 
             while (m_silo.takeSliderMove(whichSlider, sliderValue)) {
@@ -243,16 +247,20 @@ int main() {
     viz.setWindowTitle("This is the so-called 'ChainExample'.");
 
     // Add a menu, just for fun.
-    Array_< std::pair<std::string,int> > items;
-    items.push_back(std::make_pair("One", 1));
-    items.push_back(std::make_pair("Top/SubA/first", 2));
-    items.push_back(std::make_pair("Top/SubA/second", 3));
-    items.push_back(std::make_pair("Top/SubB/only", 4));
-    items.push_back(std::make_pair("Two", 5));
-    viz.addMenu("Test Menu",items);
+    Array_< std::pair<std::string,int> > menu1, menu2;
+    menu1.push_back(std::make_pair("One", 1));
+    menu1.push_back(std::make_pair("Top/SubA/first", 2));
+    menu1.push_back(std::make_pair("Top/SubA/second", 3));
+    menu1.push_back(std::make_pair("Top/SubB/only", 4));
+    menu1.push_back(std::make_pair("Two", 5));
+    viz.addMenu("Test Menu", 1, menu1);
 
+    // And another one, to check the id handling.
+    menu2.push_back(std::make_pair("One", 1));
+    menu2.push_back(std::make_pair("Two", 2));
+    viz.addMenu("More", 2, menu2);
 
-    MyListener*            listener = new MyListener(items);
+    MyListener*            listener = new MyListener(menu1,menu2);
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
     viz.addInputListener(listener); // order matters here
     viz.addInputListener(silo);

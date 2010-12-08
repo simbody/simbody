@@ -34,10 +34,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h" // requires VTK
-
-#include "simbody/internal/VisualizationReporter.h"
-#define VTKVisualizer Visualizer
 
 #include <cmath>
 #include <cstdio>
@@ -194,7 +190,9 @@ int main(int argc, char** argv) {
     //mobilizedBody0.setQ(s, .1);
     //mobilizedBody.setQ(s, .2);
 
-    VTKVisualizer display(mbs);
+    Visualizer display(mbs);
+    display.setBackgroundColor(White);
+    display.setBackgroundType(Visualizer::SolidColor);
 
     mbs.realize(s, Stage::Velocity);
     display.report(s);
@@ -258,8 +256,7 @@ int main(int argc, char** argv) {
     }
     const Constraint& c = matter.getConstraint(myc.getConstraintIndex());
 
-    char ans;
-    cout << "Default configuration shown. Ready? "; cin >> ans;
+    cout << "Default configuration shown. Ready? "; getchar();
 
     mobilizedBody.setQToFitTransform (s, Transform(Rotation(.05,Vec3(1,1,1)),Vec3(.1,.2,.3)));
     mobilizedBody0.setQToFitTransform (s, Transform(Rotation(.05,Vec3(1,-1,1)),Vec3(.2,.2,.3)));
@@ -280,7 +277,7 @@ int main(int argc, char** argv) {
     cout << "uErr=" << s.getUErr() << endl;
     cout << "p_MbM=" << mobilizedBody.getMobilizerTransform(s).p() << endl;
     cout << "v_MbM=" << mobilizedBody.getMobilizerVelocity(s)[1] << endl;
-    cout << "Unassembled configuration shown. Ready to assemble? "; cin >> ans;
+    cout << "Unassembled configuration shown. Ready to assemble? "; getchar();
 
     // These are the SimTK Simmath integrators:
     RungeKuttaMersonIntegrator myStudy(mbs);
@@ -305,6 +302,7 @@ int main(int argc, char** argv) {
     myStudy.setFinalTime(finalTime);
 
     std::vector<State> saveEm;
+    saveEm.reserve(2000);
 
     for (int i=0; i<50; ++i)
         saveEm.push_back(s);    // delay
@@ -333,7 +331,7 @@ int main(int argc, char** argv) {
         cout << "p_MbM=" << mobilizedBody.getMobilizerTransform(s).p() << endl;
         cout << "PE=" << mbs.calcPotentialEnergy(s) << " KE=" << mbs.calcKineticEnergy(s) << " E=" << mbs.calcEnergy(s) << endl;
         cout << "angle=" << std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1)) << endl;
-        cout << "Assembled configuration shown. Ready to simulate? "; cin >> ans;
+        cout << "Assembled configuration shown. Ready to simulate? "; getchar();
     }
 
     Integrator::SuccessfulStepStatus status;
@@ -341,35 +339,38 @@ int main(int argc, char** argv) {
 
     mbs.resetAllCountersToZero();
 
-
+    int stepNum = 0;
     while ((status=myStudy.stepTo(nextReport*dt))
            != Integrator::EndOfSimulation) 
     {
         const State& s = myStudy.getState();
         mbs.realize(s, Stage::Acceleration);
-        const Real angle = std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1));
-        printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
-            angle,
-            mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
-            myStudy.getPreviousStepSizeTaken(),
-            Integrator::successfulStepStatusString(status).c_str(),
-            myStudy.isStateInterpolated()?" (INTERP)":"");
-        printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
-            matter.getQErr(s).normRMS(),
-            matter.getUErr(s).normRMS(),
-            s.getSystemStage() >= Stage::Acceleration ? matter.getUDotErr(s).normRMS() : Real(-1));
+
+        if ((stepNum++%10)==0) {
+            const Real angle = std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1));
+            printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
+                angle,
+                mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
+                myStudy.getPreviousStepSizeTaken(),
+                Integrator::successfulStepStatusString(status).c_str(),
+                myStudy.isStateInterpolated()?" (INTERP)":"");
+            printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
+                matter.getQErr(s).normRMS(),
+                matter.getUErr(s).normRMS(),
+                s.getSystemStage() >= Stage::Acceleration ? matter.getUDotErr(s).normRMS() : Real(-1));
 #ifdef HASC
-        cout << "CONSTRAINT perr=" << c.getPositionError(s)
-             << " verr=" << c.getVelocityError(s)
-             << " aerr=" << c.getAccelerationError(s)
-             << endl;
+            cout << "CONSTRAINT perr=" << c.getPositionError(s)
+                 << " verr=" << c.getVelocityError(s)
+                 << " aerr=" << c.getAccelerationError(s)
+                 << endl;
 #endif
-        //cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
-        //cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
-        //cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
-        cout << "Q=" << matter.getQ(s) << endl;
-        cout << "U=" << matter.getU(s) << endl;
-        cout << "Multipliers=" << matter.getMultipliers(s) << endl;
+            //cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+            //cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
+            //cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+            cout << "Q=" << matter.getQ(s) << endl;
+            cout << "U=" << matter.getU(s) << endl;
+            cout << "Multipliers=" << matter.getMultipliers(s) << endl;
+        }
 
         Vector qdot;
         matter.calcQDot(s, s.getU(), qdot);

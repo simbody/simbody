@@ -1,18 +1,10 @@
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"
-
-
-//#define USE_VTK
-#ifdef USE_VTK
-#define VisualizationReporter VTKEventReporter
-#define Visualizer VTKVisualizer
-#endif
 
 #include <cstdio>
 #include <exception>
 #include <ctime>
 
-using std::cout; using std::cin; using std::endl;
+using std::cout; using std::endl;
 
 using namespace SimTK;
 
@@ -109,7 +101,6 @@ int main() {
     viz.addDecoration(GroundIndex, finalTarget, 
         DecorativeSphere(1).setColor(Green));
 
-    char c;
     // Show initial configuration
     viz.report(state);
     State tempState = state; 
@@ -127,7 +118,7 @@ int main() {
     cout << tempState.getNU() << " dofs, " 
          << tempState.getNQErr() << " constraints.\n";
     
-    cin >> c;
+    getchar();
 
 
 
@@ -187,7 +178,7 @@ int main() {
     ik.assemble(state);
 
     viz.report(state);
-    cout << "ASSEMBLED CONFIGURATION\n"; cin >> c;
+    cout << "ASSEMBLED CONFIGURATION\n"; getchar();
 
     for (Markers::MarkerIx mx(0); mx < markers.getNumMarkers(); ++mx)
         printf("mx=%d ox=%d err=%g\n", 
@@ -222,7 +213,7 @@ int main() {
     cout << "DONE ASSEMBLING -- SIMULATE ...\n";
     viz.report(state);
 
-    cin >> c;
+    getchar();
    
     // Simulate it.
 

@@ -35,9 +35,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"   // requires VTK
-
-#define USE_VTK
 
 #include <cstdio>
 #include <exception>
@@ -101,52 +98,12 @@ class MyReporter : public PeriodicEventReporter {
 public:
     MyReporter(const MultibodySystem& system, 
                const CompliantContactSubsystem& complCont,
-#ifdef USE_VTK
-               VTKVisualizer& viz,
-#endif
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
         m_compliant(complCont) 
-#ifdef USE_VTK
-        ,m_viz(viz) 
-#endif
     {}
 
     ~MyReporter() {}
-
-    void generateForceArrows(const State& state) const {
-        const Vec3 frcColors[] = {Red,Orange,Cyan};
-        const Vec3 momColors[] = {Blue,Green,Purple};
-        m_system.realize(state, Stage::Velocity);
-
-        const int ncont = m_compliant.getNumContactForces(state);
-        for (int i=0; i < ncont; ++i) {
-            const ContactForce& force = m_compliant.getContactForce(state,i);
-            const ContactId     id    = force.getContactId();
-            printf("vtk contact %d: id=%d\n", i, (int)id);
-            const Vec3& frc = force.getForceOnSurface2()[1];
-            const Vec3& mom = force.getForceOnSurface2()[0];
-            Real  frcMag = frc.norm(), momMag=mom.norm();
-            int frcThickness = 1, momThickness = 1;
-            Real frcScale = ForceScale, momScale = ForceScale;
-            while (frcMag > 10)
-                frcThickness++, frcScale /= 10, frcMag /= 10;
-            while (momMag > 10)
-                momThickness++, momScale /= 10, momMag /= 10;
-            DecorativeLine frcLine(force.getContactPoint(),
-                force.getContactPoint() + frcScale*frc);
-            DecorativeLine momLine(force.getContactPoint(),
-                force.getContactPoint() + momScale*mom);
-            frcLine.setColor(frcColors[id%3]);
-            momLine.setColor(momColors[id%3]);
-            frcLine.setLineThickness(2*frcThickness);
-            momLine.setLineThickness(2*momThickness);
-#ifdef USE_VTK
-            m_viz.addEphemeralDecoration(frcLine);
-            m_viz.addEphemeralDecoration(momLine);
-#endif
-        }
-    }
 
     void handleEvent(const State& state) const {
         m_system.realize(state, Stage::Dynamics);
@@ -161,17 +118,12 @@ public:
             const ContactForce& force = m_compliant.getContactForce(state,i);
             //cout << force;
         }
-#ifdef USE_VTK
-        generateForceArrows(state);
-#endif
+
         saveEm.push_back(state);
     }
 private:
     const MultibodySystem&           m_system;
     const CompliantContactSubsystem& m_compliant;
-#ifdef USE_VTK
-    VTKVisualizer&                   m_viz;
-#endif
 };
 
 int main() {
@@ -274,16 +226,11 @@ int main() {
     //ef.setTransitionVelocity(vt);
     //// end of old way.
 
-#ifdef USE_VTK
-    VTKEventReporter& reporter = *new VTKEventReporter(system, ReportInterval);
-    VTKVisualizer& viz = reporter.updVisualizer();
-    MyReporter& myRep = *new MyReporter(system,contactForces,viz,ReportInterval);
-#else
     VisualizationReporter& reporter = *new VisualizationReporter(system, ReportInterval);
     Visualizer& viz = reporter.updVisualizer();
     viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
     MyReporter& myRep = *new MyReporter(system,contactForces,ReportInterval);
-#endif
+
     system.updDefaultSubsystem().addEventReporter(&myRep);
     system.updDefaultSubsystem().addEventReporter(&reporter);
 
@@ -333,11 +280,7 @@ int main() {
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
-#ifdef USE_VTK
-            myRep.generateForceArrows(saveEm[i]);
-#endif
             viz.report(saveEm[i]);
-            //vtk.report(saveEm[i]); // half speed
         }
         getchar();
     }

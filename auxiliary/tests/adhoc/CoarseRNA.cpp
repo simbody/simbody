@@ -34,20 +34,12 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h" // requires VTK
-
-//#define USE_VTK
-#ifdef USE_VTK
-#define Visualizer VTKVisualizer
-#endif
 
 #include <cmath>
 #include <cstdio>
 #include <exception>
 #include <vector>
 #include <ctime>
-
-
 
 using namespace std;
 using namespace SimTK;
@@ -225,6 +217,7 @@ private:
 
 int main(int argc, char** argv) {
     std::vector<State> saveEm;
+    saveEm.reserve(1000);
 
 try // If anything goes wrong, an exception will be thrown.
   { int nseg = NSegments;
@@ -328,10 +321,14 @@ try // If anything goes wrong, an exception will be thrown.
     //ExplicitEulerIntegrator myStudy(mbs);
 
     myStudy.setAccuracy(1e-2);
-    myStudy.setConstraintTolerance(1e-2); 
+    myStudy.setConstraintTolerance(1e-3); 
     myStudy.setProjectEveryStep(false);
 
     Visualizer display(mbs);
+    display.setBackgroundColor(White);
+    display.setBackgroundType(Visualizer::SolidColor);
+    display.setMode(Visualizer::RealTime);
+
     for (MobilizedBodyIndex i(1); i<myRNA.getNumBodies(); ++i)
         myRNA.decorateBody(i, display);
     myRNA.decorateGlobal(display);
@@ -340,7 +337,7 @@ try // If anything goes wrong, an exception will be thrown.
     display.addRubberBandLine(GroundIndex, attachPt,MobilizedBodyIndex(myRNA.getNumBodies()-1),Vec3(0), rbProto);
     //display.addRubberBandLine(GroundIndex, -attachPt,myRNA.getNumBodies()-1,Vec3(0), rbProto);
 
-    const Real dt = 0.05; // output intervals
+    const Real dt = 1./30; // output intervals
 
     printf("time  nextStepSize\n");
 
@@ -363,21 +360,23 @@ try // If anything goes wrong, an exception will be thrown.
     display.report(myStudy.getState());
 
 
-    const clock_t start = clock();
+    const double startReal = realTime(), startCPU = cpuTime();
+    int stepNum = 0;
     for (;;) {
         const State& ss = myStudy.getState();
 
         mbs.realize(ss);
 
+        if ((stepNum++%100)==0) {
+            printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", ss.getTime(), 
+                myRNA.getQErr(ss).normRMS(), myRNA.getUErr(ss).normRMS(),
+                myStudy.getPredictedNextStepSize());
+            printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
+                mbs.calcEnergy(ss), mbs.calcPotentialEnergy(ss), mbs.calcKineticEnergy(ss));
 
-        printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", ss.getTime(), 
-            myRNA.getQErr(ss).normRMS(), myRNA.getUErr(ss).normRMS(),
-            myStudy.getPredictedNextStepSize());
-        printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
-            mbs.calcEnergy(ss), mbs.calcPotentialEnergy(ss), mbs.calcKineticEnergy(ss));
-
-        cout << "QERR=" << ss.getQErr() << endl;
-        cout << "UERR=" << ss.getUErr() << endl;
+            cout << "QERR=" << ss.getQErr() << endl;
+            cout << "UERR=" << ss.getUErr() << endl;
+        }
 
         //if (s.getTime() - std::floor(s.getTime()) < 0.2)
         //    display.addEphemeralDecoration( DecorativeSphere(10).setColor(Green) );
@@ -392,13 +391,15 @@ try // If anything goes wrong, an exception will be thrown.
         myStudy.stepTo(ss.getTime() + dt, Infinity);
     }
 
-    printf("CPU time=%gs\n", (double)(clock()-start)/CLOCKS_PER_SEC);
+    printf("CPU time=%gs, REAL time=%gs\n", cpuTime()-startCPU, realTime()-startReal);
     printf("Using Integrator %s:\n", myStudy.getMethodName());
     printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNumStepsTaken(), myStudy.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
     printf("# CONVERGENCE FAILS = %d\n", myStudy.getNumConvergenceTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
     printf("# PROJECTION FAILS = %d\n", myStudy.getNumProjectionFailures());
+
+    display.dumpStats(std::cout);
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {

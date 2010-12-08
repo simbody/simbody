@@ -85,8 +85,8 @@ public:
     void POST_sliderMove() const {pthread_cond_signal(&m_sliderMoveAvailable);}
 
     std::deque<std::pair<unsigned,unsigned> >   m_keyHitSilo;
-    std::deque<int>                             m_menuPickSilo;
-    std::deque<std::pair<unsigned,Real> >       m_sliderMoveSilo;
+    std::deque<std::pair<int,int> >             m_menuPickSilo;
+    std::deque<std::pair<int,Real> >            m_sliderMoveSilo;
     unsigned                                    m_inputCount;
 
     mutable pthread_mutex_t m_siloLock;
@@ -143,12 +143,13 @@ void Visualizer::InputSilo::waitForKeyHit(unsigned& key, unsigned& modifiers) {
 }
 
 
-bool Visualizer::InputSilo::takeMenuPick(int& item) {
+bool Visualizer::InputSilo::takeMenuPick(int& menuId, int& item) {
     Impl& impl = updImpl(); bool gotOne;
     impl.LOCK_silo();
     if (impl.m_menuPickSilo.empty()) item=0, gotOne=false;
     else {
-        item = impl.m_menuPickSilo.front(); 
+        menuId = impl.m_menuPickSilo.front().first; 
+        item   = impl.m_menuPickSilo.front().second;
         impl.m_menuPickSilo.pop_front();
         --impl.m_inputCount;
         gotOne = true;
@@ -157,12 +158,13 @@ bool Visualizer::InputSilo::takeMenuPick(int& item) {
     return gotOne;
 }
 
-void Visualizer::InputSilo::waitForMenuPick(int& item) {
+void Visualizer::InputSilo::waitForMenuPick(int& menuId, int& item) {
     Impl& impl = updImpl();
     impl.LOCK_silo();
     while (!impl.m_menuPickSilo.size()) 
         impl.WAIT_menuPick();
-    item = impl.m_menuPickSilo.front(); 
+    menuId = impl.m_menuPickSilo.front().first; 
+    item   = impl.m_menuPickSilo.front().second;
     impl.m_menuPickSilo.pop_front();
     --impl.m_inputCount;
     impl.UNLOCK_silo();
@@ -216,10 +218,10 @@ bool Visualizer::InputSilo::keyPressed(unsigned key, unsigned modifiers) {
     impl.UNLOCK_silo();
     return true;
 }
-bool Visualizer::InputSilo::menuSelected(int item) {
+bool Visualizer::InputSilo::menuSelected(int menu, int item) {
     Impl& impl = updImpl();
     impl.LOCK_silo();
-    impl.m_menuPickSilo.push_back(item);
+    impl.m_menuPickSilo.push_back(std::make_pair(menu,item));
     if (++impl.m_inputCount == 1)
         impl.POST_anyInput(); // in case someone was waiting for any input
     if (impl.m_menuPickSilo.size() == 1)

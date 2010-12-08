@@ -35,7 +35,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h" // requires VTK
 
 #include <string>
 #include <iostream>
@@ -120,7 +119,9 @@ int main(int argc, char** argv) {
     mbs.realizeModel(s); // define appropriate states for this System
     mbs.realize(s, Stage::Instance); // instantiate constraints if any
 
-    VTKVisualizer display(mbs);
+    Visualizer display(mbs);
+    display.setBackgroundColor(White);
+    display.setBackgroundType(Visualizer::SolidColor);
 
     mbs.realize(s, Stage::Velocity);
     display.report(s);

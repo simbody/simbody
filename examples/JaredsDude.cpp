@@ -94,8 +94,8 @@ public:
         return true; // key absorbed
     }
 
-    virtual bool menuSelected(int item) {
-        std::cout << "Menu item " << item << ": ";
+    virtual bool menuSelected(int menu, int item) {
+        std::cout << "Menu " << menu << "item " << item << ": ";
         for (unsigned i=0; i < m_menu.size(); ++i)
             if (m_menu[i].second==item)
                 std::cout << m_menu[i].first;
@@ -292,7 +292,7 @@ int main() {
     items.push_back(std::make_pair("Top/SubA/second", 3));
     items.push_back(std::make_pair("Top/SubB/only", 4));
     items.push_back(std::make_pair("Two", 5));
-    viz.addMenu("Test Menu",items);
+    viz.addMenu("Test Menu", 1, items);
 
     MyListener& listener = *new MyListener(items);
     viz.addInputListener(&listener);

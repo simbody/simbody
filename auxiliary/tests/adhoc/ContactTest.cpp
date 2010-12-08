@@ -34,12 +34,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h" // requires VTK
-
-//#define USE_VTK
-#ifdef USE_VTK
-#define Visualizer VTKVisualizer
-#endif
 
 #include <string>
 #include <iostream>

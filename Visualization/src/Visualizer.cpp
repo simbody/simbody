@@ -939,12 +939,23 @@ void Visualizer::setShowShadows(bool showShadows) const {
     getRep().m_protocol.setShowShadows(showShadows);
 }
 
-void Visualizer::addMenu(const String& title, const Array_<pair<String, int> >& items) {
-    updRep().m_protocol.addMenu(title, items);
+void Visualizer::addMenu(const String& title, int menuId, const Array_<pair<String, int> >& items) {
+    SimTK_ERRCHK2_ALWAYS(menuId >= 0, "Visualizer::addMenu()",
+        "Assigned menu ids must be nonnegative, but an attempt was made to create"
+        " a menu %s with id %d.", title.c_str(), menuId);
+
+    updRep().m_protocol.addMenu(title, menuId, items);
 }
 
-void Visualizer::addSlider(const String& title, int id, Real min, Real max, Real value) {
-    updRep().m_protocol.addSlider(title, id, min, max, value);
+void Visualizer::addSlider(const String& title, int sliderId, Real minVal, Real maxVal, Real value) {
+    SimTK_ERRCHK2_ALWAYS(sliderId >= 0, "Visualizer::addSlider()",
+        "Assigned slider ids must be nonnegative, but an attempt was made to create"
+        " a slider %s with id %d.", title.c_str(), sliderId);
+    SimTK_ERRCHK4_ALWAYS(minVal <= value && value <= maxVal, "Visualizer::addSlider()", 
+        "Initial slider value %g for slider %s was outside the specified range [%g,%g].",
+        value, title.c_str(), minVal, maxVal);
+
+    updRep().m_protocol.addSlider(title, sliderId, minVal, maxVal, value);
 }
 
 void Visualizer::addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, const DecorativeGeometry& geom) {
