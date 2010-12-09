@@ -1480,11 +1480,23 @@ static void setOverlayMessage(const string& message) {
 
 class SaveImageTask : public ParallelWorkQueue::Task {
 public:
-    vector<unsigned char> data;
+    Array_<unsigned char> data;
     SaveImageTask(const string& filename, int width, int height) : filename(filename), width(width), height(height), data(width*height*3) {
     }
     void execute() {
-        LodePNG::encode(filename, data, width, height, 2, 8);
+        // Flip the image vertically, since OpenGL and PNG use different row orders.
+
+        const int rowLength = 3*width;
+        for (int row = 0; row < height/2; ++row) {
+            const int base1 = row*rowLength;
+            const int base2 = (height-1-row)*rowLength;
+            for (int i = 0; i < rowLength; i++) {
+                unsigned char temp = data[base1+i];
+                data[base1+i] = data[base2+i];
+                data[base2+i] = temp;
+            }
+        }
+        LodePNG::encode(filename, data.empty() ? 0 : &data[0], width, height, 2, 8);
     }
 private:
     string filename;
@@ -1492,7 +1504,7 @@ private:
 };
 
 static void writeImage(const string& filename) {
-    int width = ((viewWidth+3)/4)*4;
+    int width = ((viewWidth+3)/4)*4; // must be a multiple of 4 pixels
     int height = viewHeight;
 
     // Create offscreen buffers for rendering the image.
@@ -1513,25 +1525,12 @@ static void writeImage(const string& filename) {
 
     renderScene();
     SaveImageTask* task = new SaveImageTask(filename, width, height);
-    vector<unsigned char>& data = task->data;
+    Array_<unsigned char>& data = task->data;
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, &data[0]);
     glDeleteRenderbuffersEXT(1, &colorBuffer);
     glDeleteRenderbuffersEXT(1, &depthBuffer);
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     glDeleteFramebuffersEXT(1, &frameBuffer);
-
-    // Flip the image vertically, since OpenGL and PNG use different row orders.
-
-    const int rowLength = 3*width;
-    for (int row = 0; row < height/2; ++row) {
-        const int base1 = row*rowLength;
-        const int base2 = (height-1-row)*rowLength;
-        for (int i = 0; i < rowLength; i++) {
-            unsigned char temp = data[base1+i];
-            data[base1+i] = data[base2+i];
-            data[base2+i] = temp;
-        }
-    }
 
     // Add it to the queue to be saved to disk.
 
@@ -2290,8 +2289,8 @@ void viewMenuSelected(int option) {
     requestPassiveRedisplay();                  //----- PASSIVE REDISPLAY ----
 }
 
-static const int DefaultWindowWidth  = 600;
-static const int DefaultWindowHeight = 500;
+static const int DefaultWindowWidth  = 640;
+static const int DefaultWindowHeight = 480;
 
 
 // The glut callback for chaning window size.

@@ -60,7 +60,7 @@ SET( BUILD_EXAMPLES ON CACHE BOOL
 	"Control building of Simbody example programs.")
 
 # Set whether to build the visualization code.
-SET(BUILD_VISUALIZATION OFF CACHE BOOL "Control building of visualization component")
+SET(BUILD_VISUALIZATION ON CACHE BOOL "Control building of visualization component")
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
