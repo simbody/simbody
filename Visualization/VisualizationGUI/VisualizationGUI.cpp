@@ -375,6 +375,7 @@ static float maxFrameRate = 30; // in frames/sec
 static bool savingMovie = false, saveNextFrameToMovie = false;
 static string movieDir;
 static int movieFrame;
+static ParallelWorkQueue imageSaverQueue(5);
 static void writeImage(const string& filename);
 
 static void forceActiveRedisplay() {
@@ -1477,6 +1478,19 @@ static void setOverlayMessage(const string& message) {
     glutTimerFunc(5000, disableOverlayTimer, 0);
 }
 
+class SaveImageTask : public ParallelWorkQueue::Task {
+public:
+    vector<unsigned char> data;
+    SaveImageTask(const string& filename, int width, int height) : filename(filename), width(width), height(height), data(width*height*3) {
+    }
+    void execute() {
+        LodePNG::encode(filename, data, width, height, 2, 8);
+    }
+private:
+    string filename;
+    int width, height;
+};
+
 static void writeImage(const string& filename) {
     int width = ((viewWidth+3)/4)*4;
     int height = viewHeight;
@@ -1498,7 +1512,8 @@ static void writeImage(const string& filename) {
     // Render the image and load it into memory.
 
     renderScene();
-    vector<unsigned char> data(width*height*3);
+    SaveImageTask* task = new SaveImageTask(filename, width, height);
+    vector<unsigned char>& data = task->data;
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, &data[0]);
     glDeleteRenderbuffersEXT(1, &colorBuffer);
     glDeleteRenderbuffersEXT(1, &depthBuffer);
@@ -1518,9 +1533,9 @@ static void writeImage(const string& filename) {
         }
     }
 
-    // Save it to disk.
+    // Add it to the queue to be saved to disk.
 
-    LodePNG::encode(filename, data, width, height, 2, 8);
+    imageSaverQueue.addTask(task);
 }
 
 static void saveImage() {
