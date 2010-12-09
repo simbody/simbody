@@ -225,9 +225,6 @@ int main() {
     items.push_back(std::make_pair("Two", 5));
     viz.addMenu("Test Menu", 1, items);
 
-    // Use this for communication of user input from the GUI to the simulation.
-    Visualizer::InputSilo* silo = new Visualizer::InputSilo();
-    viz.addInputListener(silo);
 
     // This is for per-frame camera control and single-frame geometry.
     viz.addFrameController(new MyFrameController(dude.m_matter, 
@@ -238,6 +235,11 @@ int main() {
     viz.setDesiredFrameRate(FrameRate);
     //viz.setMode(Visualizer::Sampling);
     viz.setMode(Visualizer::RealTime);
+
+    // Use this for communication of user input from the GUI to the simulation.
+    // Both the Visualizer and the simulation must know about it.
+    Visualizer::InputSilo* silo = new Visualizer::InputSilo();
+    viz.addInputListener(silo);
 
     system.updDefaultSubsystem().addEventHandler(
         new UserInputHandler(*silo, dude.m_gravity, 0.1)); // 100ms

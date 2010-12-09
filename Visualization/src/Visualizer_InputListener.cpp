@@ -116,6 +116,7 @@ void Visualizer::InputSilo::waitForAnyUserInput() const {
 }
 
 bool Visualizer::InputSilo::takeKeyHit(unsigned& key, unsigned& modifiers) {
+    if (!isAnyUserInput()) return false;
     Impl& impl = updImpl(); bool gotOne;
     impl.LOCK_silo();
     if (impl.m_keyHitSilo.empty()) key=0, modifiers=0, gotOne=false;
@@ -144,6 +145,7 @@ void Visualizer::InputSilo::waitForKeyHit(unsigned& key, unsigned& modifiers) {
 
 
 bool Visualizer::InputSilo::takeMenuPick(int& menuId, int& item) {
+    if (!isAnyUserInput()) return false;
     Impl& impl = updImpl(); bool gotOne;
     impl.LOCK_silo();
     if (impl.m_menuPickSilo.empty()) item=0, gotOne=false;
@@ -171,6 +173,7 @@ void Visualizer::InputSilo::waitForMenuPick(int& menuId, int& item) {
 }
 
 bool Visualizer::InputSilo::takeSliderMove(int& slider, Real& value) {
+    if (!isAnyUserInput()) return false;
     Impl& impl = updImpl(); bool gotOne;
     impl.LOCK_silo();
     if (impl.m_sliderMoveSilo.empty()) slider=0, value=NaN, gotOne=false;
