@@ -32,7 +32,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/**@file This file ensures that we have access to the Posix time functions
+/**@file
+This file ensures that we have access to the Posix time functions
 clock_getttime() and nanosleep(), and also provides some convenient methods
 for use in common timing situations. **/
 

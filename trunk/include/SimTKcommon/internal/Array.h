@@ -3601,7 +3601,8 @@ operator<=(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 
 namespace std {
 /** This is a specialization of the STL std::swap() algorithm which uses the
-constant time built-in swap() member of the Array_ class. @relates Array_ **/
+constant time built-in swap() member of the Array_ class. 
+@relates SimTK::Array_ **/
 template <class T, class X> inline void
 swap(SimTK::Array_<T,X>& a1, SimTK::Array_<T,X>& a2) {
     a1.swap(a2);

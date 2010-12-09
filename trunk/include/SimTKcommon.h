@@ -37,6 +37,14 @@
  * Core classes, including Simmatrix.
  */
 
+/**@page SimTKcommon    Fundamental SimTK objects and utilities
+SimTKcommon is the collection of low-level objects and utility functions that
+provide the fundamental capabilities needed by Simbody and useful in
+applications that use Simbody. 
+
+@todo Add links to various categories of tools here.
+**/
+
 #include "SimTKcommon/basics.h"
 
 #if defined(__cplusplus)

@@ -48,7 +48,7 @@ namespace SimTK {
  * This class is basically a glorified enumerated type, type-safe and range
  * checked but permitting convenient (if limited) arithmetic.
  * Constants look like Stage::Position, and loops can be written like
- * 		for(Stage s=Stage::LowestValid; s <= Stage::HighestValid; ++s) ...
+ * 		for(Stage s = Stage::LowestValid; s <= Stage::HighestValid; ++s) ...
  * Stage constants (of type Stage::Num) are implicitly converted to type
  * Stage when necessary. If you want to use a Stage in a switch statement
  * you have to use the Stage::Num indices rather than a Stage constant

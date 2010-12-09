@@ -72,8 +72,7 @@
  *                        but with elements of type E instead of ElementType.
  *                        Special case: if this CNT is a scalar then 
  *                        Substitute<E>::Type just returns E.
- *     Result<RHS>::Mul ::Dvd
- *                ::Add ::Sub
+ *     Result<RHS>::Mul (Dvd,Add,Sub)
  *                      The type of the result of T op RHS, where RHS is *any* CNT
  *
  *          ENUMS (all sizes are in units of T's elements)

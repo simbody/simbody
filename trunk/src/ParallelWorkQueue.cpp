@@ -38,7 +38,7 @@ using std::queue;
 
 namespace SimTK {
 
-void* threadBody(void* args) {
+static void* threadBody(void* args) {
     ParallelWorkQueueImpl& owner = *reinterpret_cast<ParallelWorkQueueImpl*>(args);
     queue<ParallelWorkQueue::Task*>& taskQueue = owner.updTaskQueue();
     pthread_mutex_t& queueLock = owner.getQueueLock();
@@ -60,6 +60,7 @@ void* threadBody(void* args) {
             delete task;
         }
     }
+    return 0;
 }
 
 ParallelWorkQueueImpl::ParallelWorkQueueImpl(int queueSize, int numThreads) : queueSize(queueSize), finished(false) {
@@ -95,7 +96,7 @@ ParallelWorkQueueImpl* ParallelWorkQueueImpl::clone() const {
 void ParallelWorkQueueImpl::addTask(ParallelWorkQueue::Task* task) {
     SimTK_ASSERT_ALWAYS(!finished, "Tried to add a Task after calling finish()");
     pthread_mutex_lock(&queueLock);
-    while (taskQueue.size() >= queueSize)
+    while ((int)taskQueue.size() >= queueSize)
         pthread_cond_wait(&queueFullCondition, &queueLock);
     taskQueue.push(task);
     pthread_cond_signal(&waitForTaskCondition);

@@ -47,7 +47,7 @@ class ParallelWorkQueueImpl;
 #endif
 
 /**
- * This class is used for performing multithreaded computations.  It maintains a queue of tasks to be
+ * This class is used for performing multithreaded computations.\ It maintains a queue of tasks to be
  * executed, and a pool of threads for executing them.  To use it, define one or more subclasses of
  * ParallelWorkQueue::Task that performs computations.  Then create a ParallelWorkQueue and add Tasks
  * to it:

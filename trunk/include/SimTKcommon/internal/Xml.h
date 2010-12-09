@@ -582,7 +582,7 @@ TiXmlAttribute* tiAttr; // this is the lone data member
 /** Output a textual representation of the given Attribute to an std::ostream.
 This will be in the form the Attribute would appear in an XML file; that is,
 name="value" or name='value' with entity substituion for odd characters, 
-without surrounding blanks. @relates Attribute **/
+without surrounding blanks. @relates Xml::Attribute **/
 // Do this inline so we don't have to pass the ostream through the API.
 inline std::ostream& operator<<(std::ostream& o, const Xml::Attribute& attr) {
     String output;
