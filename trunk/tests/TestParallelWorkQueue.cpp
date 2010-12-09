@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2010 Stanford University and the Authors.           *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -29,28 +29,48 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#define SimTK_SIMTKCOMMON_DEFINING_POLYGONALMESH
-#define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
-#define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
-#define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_WORK_QUEUE
-#include "../Geometry/src/PolygonalMeshImpl.h"
-#include "ParallelExecutorImpl.h"
-#include "Parallel2DExecutorImpl.h"
-#include "ParallelWorkQueueImpl.h"
-#include "SimTKcommon/internal/PrivateImplementation_Defs.h"
+#include "SimTKcommon.h"
 
-namespace SimTK {
+#include <iostream>
 
-template class PIMPLHandle<PolygonalMesh, PolygonalMeshImpl, true>;
-template class PIMPLImplementation<PolygonalMesh, PolygonalMeshImpl>;
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
-template class PIMPLHandle<ParallelExecutor, ParallelExecutorImpl>;
-template class PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl>;
+using std::cout;
+using std::endl;
+using namespace SimTK;
+using namespace std;
 
-template class PIMPLHandle<Parallel2DExecutor, Parallel2DExecutorImpl>;
-template class PIMPLImplementation<Parallel2DExecutor, Parallel2DExecutorImpl>;
+class SetFlagTask : public ParallelWorkQueue::Task {
+public:
+    SetFlagTask(Array_<int>& flags, int index) : flags(flags), index(index) {
+    }
+    void execute() {
+        ASSERT(!flags[index]);
+        flags[index] = true;
+    }
+private:
+    Array_<int>& flags;
+    int index;
+};
 
-template class PIMPLHandle<ParallelWorkQueue, ParallelWorkQueueImpl>;
-template class PIMPLImplementation<ParallelWorkQueue, ParallelWorkQueueImpl>;
+void testParallelExecution() {
+    const int numFlags = 500;
+    Array_<int> flags(numFlags, false);
+    ParallelWorkQueue queue(10);
+    for (int i = 0; i < numFlags-10; i++)
+        queue.addTask(new SetFlagTask(flags, i));
+    queue.flush();
+    for (int i = 0; i < numFlags; i++)
+        ASSERT(flags[i] == (i < numFlags-10));
+}
 
-} // namespace SimTK
+int main() {
+    try {
+        testParallelExecution();
+    } catch(const std::exception& e) {
+        cout << "exception: " << e.what() << endl;
+        return 1;
+    }
+    cout << "Done" << endl;
+    return 0;
+}

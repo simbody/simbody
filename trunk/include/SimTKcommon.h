@@ -57,6 +57,7 @@
 #include "SimTKcommon/internal/EventReporter.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include "SimTKcommon/internal/Parallel2DExecutor.h"
+#include "SimTKcommon/internal/ParallelWorkQueue.h"
 #include "SimTKcommon/internal/ThreadLocal.h"
 #include "SimTKcommon/internal/AtomicInteger.h"
 #include "SimTKcommon/internal/Plugin.h"

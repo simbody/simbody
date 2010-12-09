@@ -66,7 +66,7 @@ class ParallelExecutorImpl;
  * to be equal to the number of available processor cores.  You can optionally specify a different number
  * of threads to create.  For example, using more threads than processors can sometimes lead to better
  * processor utilitization.  Alternatively, if the Task will only be executed four times, you might
- * specify max(4, ParallelExecutor::getNumProcessors()) to avoid creating extra threads that will never
+ * specify min(4, ParallelExecutor::getNumProcessors()) to avoid creating extra threads that will never
  * have any work to do.
  */
 

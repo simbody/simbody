@@ -1,12 +1,15 @@
+#ifndef SimTK_SimTKCOMMON_PARALLEL_WORK_QUEUE_IMPL_H_
+#define SimTK_SimTKCOMMON_PARALLEL_WORK_QUEUE_IMPL_H_
+
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK Core biosimulation toolkit originating from      *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2010 Stanford University and the Authors.           *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -29,28 +32,41 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#define SimTK_SIMTKCOMMON_DEFINING_POLYGONALMESH
-#define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
-#define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
-#define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_WORK_QUEUE
-#include "../Geometry/src/PolygonalMeshImpl.h"
-#include "ParallelExecutorImpl.h"
-#include "Parallel2DExecutorImpl.h"
-#include "ParallelWorkQueueImpl.h"
-#include "SimTKcommon/internal/PrivateImplementation_Defs.h"
+#include "SimTKcommon/internal/ParallelWorkQueue.h"
+#include "SimTKcommon/internal/Array.h"
+#include <pthread.h>
+#include <queue>
 
 namespace SimTK {
 
-template class PIMPLHandle<PolygonalMesh, PolygonalMeshImpl, true>;
-template class PIMPLImplementation<PolygonalMesh, PolygonalMeshImpl>;
+class ParallelExecutor;
 
-template class PIMPLHandle<ParallelExecutor, ParallelExecutorImpl>;
-template class PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl>;
+/**
+ * This is the internal implementation class for ParallelWorkQueue.
+ */
 
-template class PIMPLHandle<Parallel2DExecutor, Parallel2DExecutorImpl>;
-template class PIMPLImplementation<Parallel2DExecutor, Parallel2DExecutorImpl>;
-
-template class PIMPLHandle<ParallelWorkQueue, ParallelWorkQueueImpl>;
-template class PIMPLImplementation<ParallelWorkQueue, ParallelWorkQueueImpl>;
+class ParallelWorkQueueImpl : public PIMPLImplementation<ParallelWorkQueue, ParallelWorkQueueImpl> {
+public:
+    class ExecutorTask;
+    ParallelWorkQueueImpl(int queueSize, int numThreads);
+    ~ParallelWorkQueueImpl();
+    ParallelWorkQueueImpl* clone() const;
+    void addTask(ParallelWorkQueue::Task* task);
+    void flush();
+    std::queue<ParallelWorkQueue::Task*>& updTaskQueue();
+    bool isFinished() const;
+    pthread_mutex_t& getQueueLock();
+    pthread_cond_t& getWaitCondition();
+    pthread_cond_t& getQueueFullCondition();
+private:
+    const int queueSize;
+    bool finished;
+    std::queue<ParallelWorkQueue::Task*> taskQueue;
+    pthread_mutex_t queueLock;
+    pthread_cond_t waitForTaskCondition, queueFullCondition;
+    Array_<pthread_t> threads;
+};
 
 } // namespace SimTK
+
+#endif // SimTK_SimTKCOMMON_PARALLEL_WORK_QUEUE_IMPL_H_
