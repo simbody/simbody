@@ -53,8 +53,39 @@ FOREACH(EX_PROG ${EXAMPLES})
 
 ENDFOREACH(EX_PROG ${ADHOC_TESTS})
 
-INSTALL(FILES README.txt DESTINATION examples/simbody)
+# Copy extra files associated with these examples
+# to the binary directory that will be the working
+# directory when the tests are run; and include them in
+# the examples installation. ".obj" files contain geometry.
+FILE(GLOB EXTRA_FILES "*.obj")
+FOREACH(XTRA ${EXTRA_FILES})
+    GET_FILENAME_COMPONENT(XTRA_ROOT ${XTRA} NAME)
+    CONFIGURE_FILE(${XTRA} 
+	           ${CMAKE_CURRENT_BINARY_DIR}/${XTRA_ROOT} COPYONLY)
+    INSTALL(FILES ${XTRA} DESTINATION examples/simbody)
+ENDFOREACH()
 
+# install source for examples
+FILE(GLOB SRC_FILES "*.cpp" "*.h")
+INSTALL(FILES ${SRC_FILES} DESTINATION examples/simbody)
 
+# install .txt files except CMakeLists.txt
+FILE(GLOB TXT_FILES "*.txt")
+FOREACH(TXTF ${TXT_FILES})
+    IF(NOT "${TXTF}" MATCHES "CMakeLists.txt")
+	INSTALL(FILES ${TXTF} DESTINATION examples/simbody)
+    ENDIF()
+ENDFOREACH()
 
+# install the installed version of CMakeLists.txt
+INSTALL(FILES InstalledCMakeLists.txt DESTINATION examples/simbody
+	RENAME CMakeLists.txt)
 
+# install Makefile
+INSTALL(FILES "${PROJECT_SOURCE_DIR}/examples/Makefile"
+    DESTINATION examples/simbody)
+
+# install visual studio build directories
+#INSTALL(DIRECTORY "${PROJECT_SOURCE_DIR}/examples/VisualStudio2008_9"
+#    DESTINATION examples/molmodel
+#    PATTERN ".svn"  EXCLUDE)

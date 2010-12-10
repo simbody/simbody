@@ -1,7 +1,7 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                            Simbody(tm) Example                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
@@ -29,9 +29,35 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/**@file
- * Adhoc main program for playing with contact.
- */
+/* This example is for experimenting with the new Simbody contact implementation,
+which was in beta test in the Simbody 2.1 release, with first official release 
+in Simbody 2.2. The previous contact implementation is still present and 
+functional but will be removed soon.
+
+The example shows how the new system tracks contact events and how you can 
+extract contact forces. It also shows off a number of features of the new
+Simbody Visualizer, new in release 2.2. also. Here we display the forces and 
+torques as colored lines which remain the same color as long as a particular 
+contact event continues. We also track the energy dissipated by the contacts 
+and use it to display an energy quantity that should be conserved throughout
+the simulation (that is, the current energy plus the dissipated energy
+should be a constant).
+ 
+The simulation uses very expensive, detailed contact surfaces using dense
+meshes and the elastic foundation model. Consequently it runs with highly
+variable step sizes, and fails to keep up with real time for some short
+periods. We use the Visualizer's RealTime mode to buffer up some frames and
+smooth out these rough spots so the simulation appears to run at an almost
+steady real time rate, displayed at 30fps (depending on how fast your 
+computer is). Then at the end you can watch the action replay.
+
+You can use this example to see how the different integrators behave when 
+confronted with a very stiff problem; depending on material properties CPodes 
+can be *much* faster than the explicit integrators, and it also exhibits very 
+high stability after the motion damps out. However, by changing material 
+properties and accuracy setting you can get reasonably good performance out
+of the explicit integrators here, which will scale better to large systems.
+*/
 
 #include "SimTKsimbody.h"
 
@@ -39,7 +65,6 @@
 #include <exception>
 #include <algorithm>
 #include <iostream>
-#include <ctime>
 #include <fstream>
 using std::cout; using std::endl;
 
@@ -318,6 +343,7 @@ int main() {
     ballBody.addDecoration(Transform(), 
         showPyramid.setColor(Gray)
                    .setRepresentation(DecorativeGeometry::DrawWireframe));
+    //Use this to display surface normals if you want to see them.
     //for (unsigned i=0; i < normals.size(); ++i)
     //    ballBody.addDecoration(Transform(),
     //        normals[i].setColor(Gray));
@@ -357,7 +383,7 @@ int main() {
     viz.setDesiredFrameRate(FrameRate);
     viz.setGroundPosition(YAxis, -3);
     viz.setShowShadows(true);
-        // scale, convert to ns
+
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
     viz.addInputListener(silo);
     Array_<std::pair<String,int> > runMenuItems;
@@ -411,6 +437,13 @@ int main() {
     
     // Simulate it.
 
+    // The system as parameterized is very stiff (mostly due to friction)
+    // and thus runs best with CPodes which is extremely stable for
+    // stiff problems. To get reasonable performance out of the explicit
+    // integrators (like the RKs) you'll have to run at a very loose
+    // accuracy like 0.1, or reduce the friction coefficients and
+    // maybe the stiffnesses.
+
     //ExplicitEulerIntegrator integ(system);
     CPodesIntegrator integ(system,CPodes::BDF,CPodes::Newton);
     //RungeKuttaFeldbergIntegrator integ(system);
@@ -445,11 +478,19 @@ int main() {
 
     viz.dumpStats(std::cout);
 
+    // Add as slider to control playback speed.
+    viz.addSlider("Speed", 1, 0, 4, 1);
+    viz.setMode(Visualizer::PassThrough);
+
+    silo->clear(); // forget earlier input
+    double speed = 1; // will change if slider moves
     while(true) {
-        silo->clear();
         cout << "Choose Run/Replay to see that again ...\n";
+
         int menuId, item;
         silo->waitForMenuPick(menuId, item);
+
+
         if (menuId != RunMenuId) {
             cout << "\aUse the Run menu!\n";
             continue;
@@ -462,8 +503,13 @@ int main() {
             continue;
         }
 
-        for (int i=0; i < (int)saveEm.size(); ++i)
-            viz.report(saveEm[i]);
+        for (double i=0; i < (int)saveEm.size(); i += speed ) {
+            int slider; Real newValue;
+            if (silo->takeSliderMove(slider,newValue)) {
+                speed = newValue;
+            }
+            viz.report(saveEm[(int)i]);
+        }
     }
 
   } catch (const std::exception& e) {

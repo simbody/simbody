@@ -1,7 +1,7 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: Simbody                                   *
+ *                            Simbody(tm) Example                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
@@ -30,7 +30,7 @@
  * -------------------------------------------------------------------------- */
 
 /* This is a test of repeated Assembly analysis, also known as 
-InverseKinematics (IK). The problem is from an OpenSim model built by Amy 
+InverseKinematics (IK). The problem is from a 56 dof OpenSim model built by Amy 
 Silder in Scott Delp's lab. The model was read from various OpenSim data
 files and machine-translated into a standalone C++ Simbody model during the 
 development of the Assembler study. There are "markers" (distinguished points)
@@ -38,7 +38,11 @@ on many of the bodies, and many frames of laboratory data giving sequentially-
 observed positions of these markers. The idea is to solve for the set of q's
 in each frame that pose the bodies so that their attached marker positions
 are a best fit for the observed data. Sequential frames are expected to be
-spatially close. */
+spatially close. 
+
+There is some commented-out code below for playing with various ways
+of handling constraints.
+*/
 
 
 #include "SimTKsimbody.h"
@@ -351,14 +355,19 @@ Body::Rigid body_toes_l(MassProperties(0.0975,Vec3(0.0307,-0.0026,-0.0105),Inert
 MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_toes_l,Vec3(0));
 // END BODY toes_l
 
+// Here are some constraints you can try. If you have these enabled,
+// you should experiment with treating these as constraints or as
+// weighted errors merged with the IK objective. See call below for
+// ik.setSystemConstraintsWeight(wt) where wt==Infinity is the default
+// and handles these as constraints; wt==finite value treats constraint
+// satisfaction as part of the objective.
+
 //Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
 //Constraint::Rod(mobod_tibia_l, mobod_hand_r, .25);
 
     matter.setShowDefaultGeometry(false);
-
-
     Visualizer viz(system);
-    Visualizer::Reporter& vizReporter = *new Visualizer::Reporter(viz, 0.1);
+	Visualizer::Reporter& vizReporter = *new Visualizer::Reporter(viz, 0.1);
     system.updDefaultSubsystem().addEventReporter(&vizReporter);
 
 
@@ -377,6 +386,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     cout << tempState.getNU() << " dofs, " 
          << tempState.getNQErr() << " constraints.\n";
     
+    cout << "Type any character to continue:\n";
     getchar();
 
 
@@ -387,8 +397,13 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     //                     Pi/2), 1);
 
 
-    ik.setSystemConstraintsWeight(2);
-    ik.setSystemConstraintsWeight(Infinity);
+    // See comment above near the Constraints. If you use this
+    // weight the constraints will be violated somewhat but the
+    // IK will run much faster.
+    //ik.setSystemConstraintsWeight(2);
+
+    // This is the default treatment of constraints.
+    //ik.setSystemConstraintsWeight(Infinity);
 
     //ik.addReporter(vizReporter);
 
@@ -426,6 +441,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
         ik.getNumGoalEvals(), ik.getNumGoalGradientEvals(),
         ik.getNumErrorEvals(), ik.getNumErrorJacobianEvals());
 
+    cout << "Type any character to continue:\n";
     getchar();
 
     const int NSteps = getNumFrames();
@@ -457,18 +473,12 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
         ik.getNumErrorEvals()*oons, ik.getNumErrorJacobianEvals()*oons);
 
 
-    cout << "DONE ASSEMBLING -- SIMULATE ...\n";
+    cout << "DONE ASSEMBLING\n";
     viz.report(state);
 
+    cout << "Type any character to continue:\n";
     getchar();
    
-    // Simulate it.
-
-    RungeKuttaMersonIntegrator integ(system);
-    TimeStepper ts(system, integ);
-    ts.initialize(state);
-    ts.stepTo(100.0);
-
   } catch (const std::exception& e) {
     std::printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);
@@ -481,6 +491,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     return 0;
 }
 
+/* Below here is the marker observation data at 200Hz. */
 
 static const int NObservations = 44;
 static const int NFrames       = 2105;
