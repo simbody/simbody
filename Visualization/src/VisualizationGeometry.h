@@ -64,6 +64,7 @@ public:
 private:
     int getRepresentation(const DecorativeGeometry& geom) const;
     Real getScale(const DecorativeGeometry& geom) const;
+    Transform calcX_GD(const DecorativeGeometry& geom) const;
     VisualizationProtocol& protocol;
     const SimbodyMatterSubsystem& matter;
     const State& state;

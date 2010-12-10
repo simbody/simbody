@@ -64,8 +64,9 @@ int main() {
     // line to make it clear.
     Constraint::PointOnLine(matter.updGround(), UnitVec3(0, 1, 0), Vec3(0, 0, 0.1), 
                             rod, Vec3(0, 2, 0));
-    matter.updGround().addBodyDecoration(Vec3(0), // transform ignored for line
-        DecorativeLine(Vec3(0,0,.1), Vec3(0,0,.1)+3*UnitVec3(0,1,0))
+
+    matter.updGround().addBodyDecoration(Vec3(0,0,.1),
+        DecorativeLine(Vec3(0), 3*UnitVec3(0,1,0))
         .setColor(Red));
    
     // Visualize the system, reporting an output frame every 1/30 of a simulated
