@@ -47,9 +47,6 @@ IF(BUILD_USING_NAMESPACE)
 ENDIF(BUILD_USING_NAMESPACE)
 
 
-SET( BUILD_AUX OFF CACHE BOOL
-	"Control building of Simbody aux library and tests" )
-
 # Caution: this variable is automatically created by the CMake
 # ENABLE_TESTING() command, but we'll take it over here for
 # our own purposes too.
@@ -60,7 +57,8 @@ SET( BUILD_EXAMPLES ON CACHE BOOL
 	"Control building of Simbody example programs.")
 
 # Set whether to build the visualization code.
-SET(BUILD_VISUALIZATION ON CACHE BOOL "Control building of visualization component")
+SET(BUILD_VISUALIZER ON CACHE BOOL 
+	"Control building of VisualizerGUI component")
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
@@ -75,9 +73,9 @@ SET( BUILD_TESTING_SHARED ON CACHE BOOL
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
 SET(SIMBODY_SOURCE_SUBDIRS .)
-IF (BUILD_VISUALIZATION)
+IF (BUILD_VISUALIZER)
     SET(SIMBODY_SOURCE_SUBDIRS ${SIMBODY_SOURCE_SUBDIRS} Visualization)
-ENDIF (BUILD_VISUALIZATION)
+ENDIF (BUILD_VISUALIZER)
 
 # 
 # Make sure "sandbox" input & output directories are set. During
@@ -516,14 +514,10 @@ INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimbodyTheoryManual.pdf DESTINATION doc
 ADD_SUBDIRECTORY( staticTarget )
 ADD_SUBDIRECTORY( sharedTarget )
 
-IF (BUILD_VISUALIZATION)
+IF (BUILD_VISUALIZER)
   SET(GUI_NAME "VisualizationGUI")
   ADD_SUBDIRECTORY(Visualization/VisualizationGUI)
-ENDIF (BUILD_VISUALIZATION)
-
-IF( BUILD_AUX )
-  ADD_SUBDIRECTORY( auxiliary )
-ENDIF( BUILD_AUX )
+ENDIF (BUILD_VISUALIZER)
 
 IF( BUILD_EXAMPLES )
   ADD_SUBDIRECTORY( examples )

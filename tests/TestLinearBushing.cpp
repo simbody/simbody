@@ -412,10 +412,10 @@ void testForces() {
     Force::MobilityLinearSpring kpz(forces, brick2, 2, k2[5], 0);
     Force::MobilityLinearDamper cpz(forces, brick2, 2, c2[5]);
 
-#ifdef USE_VTK
-    VTKEventReporter* reporter = new VTKEventReporter(system, 0.01);
-    system.updDefaultSubsystem().addEventReporter(reporter);
-    const VTKVisualizer& viz = reporter->getVisualizer();
+#ifdef VISUALIZE
+    Visualizer viz(system);
+    viz.setBackgroundType(Visualizer::SolidColor);
+    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
    
@@ -424,9 +424,7 @@ void testForces() {
     system.realizeTopology();
     State state = system.getDefaultState();
 
-#ifdef USE_VTK
-    viz.report(state);
-#endif 
+    REPORT(state);
 
     Rotation RR = Test::randRotation();
     brick1.setQToFitTransform(state, RR); 
@@ -440,9 +438,8 @@ void testForces() {
     dummy1.setOneQ(state, 0, qRRinv[2]);
 
 
-#ifdef USE_VTK
-    viz.report(state);
-#endif
+    REPORT(state);
+
     system.realize(state,Stage::Acceleration);
 
     //cout << "\nf=" << bushing.getF(state) << endl;
