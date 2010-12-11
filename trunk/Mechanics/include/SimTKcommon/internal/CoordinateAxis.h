@@ -39,14 +39,30 @@ Defines the CoordinateAxis and CoordinateDirection classes. **/
 
 namespace SimTK {
 
-/** This class provides convenient manipulation of the three coordinate axes
-via the definition of three constants XAxis, YAxis, and ZAxis each with a 
-unique subtype and implicit conversion to the integers 0, 1, and 2 whenever
-necessary.\ Methods are provided to allow code to be written once that can
-be used to manipulate any of the axes.
-@see CoordinateDirection for dealing with negative axis directions. **/
+/** This class, along with its sister class CoordinateDirection, provides 
+convenient manipulation of the three coordinate axes via the definition of 
+three constants XAxis, YAxis, and ZAxis each with a unique subtype and implicit 
+conversion to the integers 0, 1, and 2 whenever necessary.\ Methods are 
+provided to allow code to be written once that can be used to work with the
+axes in any order.
+
+There are also three CoordinateDirection constants NegXAxis, NegYAxis, and
+NegZAxis, also with unique types permitting efficient compile time 
+manipulation. These do not correspond to integers, however. Instead, they are
+objects containing one of the CoordinateAxis objects combined with an integer
+that is 1 or -1 to indicate the direction along that axis. The unary negation
+operator is overloaded so that -XAxis is NegXAxis and -NegZAxis is ZAxis.
+There are implicit conversions to UnitVec3 for any CoordinateAxis or 
+CoordinateDirection object, yielding the equivalent (normalized) unit vector
+corresponding to any of the six directions, without doing any computation
+(and in particular, without normalizing).
+@see CoordinateDirection **/
 class CoordinateAxis {
 public:
+    /** Explicit construction of a CoordinateAxis from a calculated integer
+    that must be 0, 1, or 2 representing XAxis, YAxis, or ZAxis. **/
+    explicit CoordinateAxis( int i ) : m_myAxisId(i) {assertIndexIsInRange(i);}
+
     /** Implicit conversion of a CoordinateAxis to int 0, 1, or 2. **/
     operator int() const {return m_myAxisId;}
 
@@ -174,7 +190,6 @@ protected:
     CoordinateAxis( const ZTypeAxis& ) : m_myAxisId(2) {}
     /** @endcond **/
 private:            
-    explicit CoordinateAxis( int i ) : m_myAxisId(i) {assertIndexIsInRange(i);}
 
     int m_myAxisId;
 };
@@ -224,8 +239,11 @@ covering all of them:
   - XAxis, YAxis, ZAxis are the CoordinateAxis types; they will implicitly 
     convert to positive axis directions.
   - NegXAxis, NegYAxis, NegZAxis are the negative directions.
+  - The unary negation operator is overloaded so that -XAxis produces
+    NegXAxis and -NegYAxis produces YAxis.
 You can also produce CoordinateDirections at compile time or run time from
-calculated axes and directions. @see CoordinateAxis **/
+calculated axes and directions. 
+@see CoordinateAxis **/
 class CoordinateDirection {
 public:
     /** Use for compile-time construction of a negative CoordinateDirection
@@ -234,21 +252,24 @@ public:
 
     /** Implicit conversion of a CoordinateAxis to a positive 
     CoordinateDirection along that axis. **/
-    CoordinateDirection(CoordinateAxis axis)
+    CoordinateDirection(const CoordinateAxis& axis)
     :   m_axis(axis), m_direction(1) {}
 
     /** Explicit creation of a negative CoordinateDirection from a 
     CoordinateAxis. **/
-    CoordinateDirection(CoordinateAxis axis, Negative)
+    CoordinateDirection(const CoordinateAxis& axis, Negative)
     :   m_axis(axis), m_direction(-1) {}
 
     /** Explicit creation of a CoordinateDirection from a CoordinateAxis
     and a direction calculated at run time.
     @param[in] axis         XAxis, YAxis, or ZAxis
-    @param[in] direction    any negative int for negative direction
-    **/
-    CoordinateDirection(CoordinateAxis axis, int direction)
-    :   m_axis(axis), m_direction(direction<0?-1:1) {}
+    @param[in] direction    Must be -1 or 1.
+    @note Zero is not allowed for \a direction, meaning that
+    you must not try to produce one of these from the "sign" result of one of
+    the cross product methods, because there the sign can be -1, 0, or 1. **/
+    CoordinateDirection(const CoordinateAxis& axis, int direction)
+    :   m_axis(axis), m_direction(direction) 
+    {   assert(direction==1 || direction==-1); }
 
     /** This is the coordinate axis XAxis, YAxis, or ZAxis contained in this
     CoordinateDirection.\ Use getDirection() to determine whether this is the
@@ -264,7 +285,7 @@ public:
     {   return m_axis.isSameAxis(dir2.getAxis()); }
 
     /** Return true if this direction and \a dir2 are along the same axis,
-    even if the direction along that axis is not the same. You can also
+    and in the same direction along that axis.\ You can also
     use operator==() for this comparison. **/
     bool isSameAxisAndDirection(const CoordinateDirection& dir2) const
     {   return m_axis==dir2.getAxis() && m_direction==dir2.getDirection(); }
@@ -317,13 +338,13 @@ private:
 // Helper classes that allow compile time recognition of negative axis
 // directions.
 class CoordinateDirection::NegXDirection : public CoordinateDirection {
-  public: NegXDirection() : CoordinateDirection(XAxis,-1) {}
+  public: NegXDirection() : CoordinateDirection(XAxis,Negative()) {}
 };
 class CoordinateDirection::NegYDirection : public CoordinateDirection {
-  public: NegYDirection() : CoordinateDirection(YAxis,-1) {}
+  public: NegYDirection() : CoordinateDirection(YAxis,Negative()) {}
 };
 class CoordinateDirection::NegZDirection : public CoordinateDirection {
-  public: NegZDirection() : CoordinateDirection(ZAxis,-1) {}
+  public: NegZDirection() : CoordinateDirection(ZAxis,Negative()) {}
 };
 
 // Predefine constants for the negative X,Y,Z directions.
