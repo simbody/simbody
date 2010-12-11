@@ -43,9 +43,11 @@
 namespace SimTK {
 
 
+/// @class SimTK::SubsystemIndex
 /// Provide a unique integer type for identifying Subsystems.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubsystemIndex);
 
+/// @class SimTK::SystemYIndex
 /// This unique integer type is for indexing the global, System-level "y-like"
 /// arrays, that is, the arrays in which all of the various Subsystems' continuous
 /// state variables q, u, and z have been collected into contiguous memory.
@@ -53,6 +55,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubsystemIndex);
 /// Note that there is no Subsystem-local equivalent of the y array.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemYIndex);
 
+/// @class SimTK::SystemQIndex
 /// This unique integer type is for indexing global "q-like" arrays, that is, arrays
 /// that inherently have the same dimension as the total number of second
 /// order state variables (generalized coordinates) in the full System-level
@@ -60,78 +63,94 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemYIndex);
 /// time derivatives qDot and qDotDot.
 /// @see QIndex for Subsystem-local q indexing
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemQIndex);
+/// @class SimTK::QIndex
 /// Unique integer type for Subsystem-local q indexing
 /// @see SystemQIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(QIndex);
 
+/// @class SimTK::SystemUIndex
 /// This unique integer type is for indexing global "u-like" arrays, that is, arrays
 /// that inherently have the same dimension as the total number of mobilities
 /// (generalized speeds) in the full System-level view of the State. This type
 /// should be used for the global u and its global time derivative uDot.
 /// @see UIndex for Subsystem-local u indexing
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemUIndex);
+/// @class SimTK::UIndex
 /// Unique integer type for Subsystem-local u indexing
 /// @see SystemUIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(UIndex);
 
+/// @class SimTK::SystemZIndex
 /// This unique integer type is for indexing global "z-like" arrays, that is, arrays
 /// that inherently have the same dimension as the total number of auxiliary
 /// state variables in the full System-level view of the State. This type
 /// should be used for the global z and its global time derivative zDot.
 /// @see ZIndex for Subsystem-local z indexing
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemZIndex);
+/// @class SimTK::ZIndex
 /// Unique integer type for Subsystem-local z indexing
 /// @see SystemZIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ZIndex);
 
+/// @class SimTK::DiscreteVariableIndex
 /// This unique integer type is for selecting discrete variables. These indices
 /// are always Subsystem-local, that is, the first discrete variable belonging
 /// to each Subsystem has index 0.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(DiscreteVariableIndex);
 
+/// @class SimTK::CacheEntryIndex
 /// This unique integer type is for selecting non-shared cache entries. These indices
 /// are always Subsystem-local, that is, the first explicitly-allocated cache
 /// entry belonging to each Subsystem has index 0.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CacheEntryIndex);
 
+/// @class SimTK::SystemYErrIndex
 /// This unique integer type is for indexing the global, System-level "yErr-like"
 /// arrays, that is, the arrays in which all of the various Subsystems' qErr and
 /// uErr constraint equation slots have been collected together.
 /// Note that there is no Subsystem-local equivalent of the yErr array.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemYErrIndex);
 
+/// @class SimTK::SystemQErrIndex
 /// This unique integer type is for indexing global "qErr-like" arrays, that is, arrays
 /// that inherently have the same dimension as the total number of position-level
 /// constraint equations in the full System-level view of the State.
 /// @see QErrIndex for Subsystem-local qErr indexing
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemQErrIndex);
+/// @class SimTK::QErrIndex
 /// Unique integer type for Subsystem-local qErr indexing
 /// @see SystemQErrIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(QErrIndex);
 
+/// @class SimTK::SystemUErrIndex
 /// This unique integer type is for indexing global "uErr-like" arrays, that is, arrays
 /// that inherently have the same dimension as the total number of velocity-level
 /// constraint equations in the full System-level view of the State.
 /// @see UErrIndex for Subsystem-local uErr indexing
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemUErrIndex);
+/// @class SimTK::UErrIndex
 /// Unique integer type for Subsystem-local uErr indexing
 /// @see SystemUErrIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(UErrIndex);
 
+/// @class SimTK::SystemUDotErrIndex
 /// This unique integer type is for indexing global "uDotErr-like" arrays, that is, arrays
 /// that inherently have the same dimension as the total number of acceleration-level
 /// constraint equations in the full System-level view of the State.
 /// @see UDotErrIndex for Subsystem-local uDotErr indexing
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemUDotErrIndex);
+/// @class SimTK::UDotErrIndex
 /// Unique integer type for Subsystem-local uDotErr indexing
 /// @see SystemUDotErrIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(UDotErrIndex);
 
+/// @class SimTK::SystemMultiplierIndex
 /// This unique integer type is for indexing global "multiplier-like" arrays, that is, arrays
 /// that inherently have the same dimension as the total number of Lagrange multipliers
 /// in the full System-level view of the State.
 /// @see MultiplierIndex for Subsystem-local multiplier indexing
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemMultiplierIndex);
+/// @class SimTK::MultiplierIndex
 /// Unique integer type for Subsystem-local multiplier indexing
 /// @see SystemMultiplierIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MultiplierIndex);

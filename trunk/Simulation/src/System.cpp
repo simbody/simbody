@@ -96,6 +96,16 @@ void System::adoptSystemGuts(System::Guts* g) {
 const String& System::getName()    const {return getSystemGuts().getName();}
 const String& System::getVersion() const {return getSystemGuts().getVersion();}
 
+System& System::setUpDirection(const CoordinateDirection& up) 
+{   updSystemGuts().updRep().setUpDirection(up); return *this; }
+CoordinateDirection System::getUpDirection() const
+{   return getSystemGuts().getRep().getUpDirection(); }
+System& System::setUseUniformBackground(bool useUniformBackground)
+{   updSystemGuts().updRep().setUseUniformBackground(useUniformBackground);
+    return *this; }
+bool System::getUseUniformBackground() const
+{   return getSystemGuts().getRep().getUseUniformBackground(); }
+
 void System::resetAllCountersToZero() {updSystemGuts().updRep().resetAllCounters();}
 int System::getNumRealizationsOfThisStage(Stage g) const {return getSystemGuts().getRep().nRealizationsOfStage[g];}
 int System::getNumRealizeCalls() const {return getSystemGuts().getRep().nRealizeCalls;}

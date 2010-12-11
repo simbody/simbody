@@ -42,7 +42,7 @@ class Subsystem;
 class DecorativeGeometry;
 class DefaultSystemSubsystem;
 
-/**
+/** @class SimTK::EventId
  * This is a class to represent unique IDs for events in a type-safe way.
  */
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId);
@@ -105,6 +105,34 @@ public:
 
     const String& getName()    const;
     const String& getVersion() const;
+
+    /// This is a hint to visualization software as to which way this System's
+    /// designer considers to be "up".\ This is the best direction to use as
+    /// the default up direction for the camera. The default up direction is 
+    /// +YAxis, which is the same as the OpenGL convention for the camera up 
+    /// direction. You can set this to any of the coordinate axes in the 
+    /// positive or negative direction. For example, use setUpDirection(ZAxis)
+    /// for the "virtual world" convention where ground is the x-y plane, or 
+    /// use setUpDirection(-ZAxis) for the aviation convention where +z points
+    /// towards the ground. A visualizer that is showing a ground plane should
+    /// make the ground plane normal be this up direction.
+    /// @see setUseUniformBackground()
+    System& setUpDirection(const CoordinateDirection& up);
+    /// Get the current setting of the "up" direction hint.
+    CoordinateDirection getUpDirection() const;
+
+    /// This is a hint to visualization software that this System is best
+    /// viewed against a uniform background (e.g.\ all white) rather than
+    /// against a ground plane.\ A molecular system will typically set this
+    /// flag so that the visualizer will not attempt to place the molecule on
+    /// the ground. The default is to consider this system best viewed with
+    /// a ground plane displayed, perpendicular to the "up" direction and
+    /// located at a height of zero.
+    /// @see setUpDirection()
+    System& setUseUniformBackground(bool useUniformBackground);
+    /// Get the current setting of the "use uniform background" visualization
+    /// hint.
+    bool getUseUniformBackground() const;
 
 
     class ProjectOptions {

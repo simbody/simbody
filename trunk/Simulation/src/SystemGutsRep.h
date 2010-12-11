@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -52,27 +52,32 @@ namespace SimTK {
 
 class System::Guts::GutsRep {
 public:
-    GutsRep() {new (this) GutsRep("<NONAME>", "0.0.0");}
 
     GutsRep(const String& name, const String& version) 
       : systemName(name), systemVersion(version), 
-        myHandle(0),
-        systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
+        myHandle(0), systemTopologyRealized(false),
+        defaultUpDirection(YAxis), useUniformBackground(false),
+        hasTimeAdvancedEventsFlag(false)
     {
         resetAllCounters();
     }
+
+    // Default constructor invokes the one above.
+    GutsRep() : defaultUpDirection(YAxis) 
+    {   new (this) GutsRep("<NONAME>", "2.2.0"); }
 
     GutsRep(const GutsRep& src)
     :   systemName(src.systemName),
         systemVersion(src.systemVersion),
         myHandle(0),
         subsystems(src.subsystems),
+        defaultUpDirection(src.defaultUpDirection), 
+        useUniformBackground(src.useUniformBackground),
         hasTimeAdvancedEventsFlag(src.hasTimeAdvancedEventsFlag),
         systemTopologyRealized(false)
     {
         resetAllCounters();
     }
-
 
     ~GutsRep() {
         clearMyHandle();
@@ -82,6 +87,13 @@ public:
 
     const String& getName()    const {return systemName;}
     const String& getVersion() const {return systemVersion;}
+
+    void setUpDirection(const CoordinateDirection& up) 
+    {   defaultUpDirection = up; }
+    CoordinateDirection getUpDirection() const {return defaultUpDirection;}
+    void setUseUniformBackground(bool useUniform)
+    {   useUniformBackground = useUniform; }
+    bool getUseUniformBackground() const {return useUniformBackground;}
 
     const State& getDefaultState() const {return defaultState;}
     State&       updDefaultState()       {return defaultState;}
@@ -139,9 +151,11 @@ private:
 
         // TOPOLOGY STAGE STATE //
 
-    bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
+    CoordinateDirection defaultUpDirection;     // visualization hint
+    bool                useUniformBackground;   // visualization hint
 
-        // TOPOLOGY STAGE CACHE //
+    bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
+       // TOPOLOGY STAGE CACHE //
 
     // This should only be true when *all* subsystems have successfully
     // completed realizeTopology(). Anything which invalidates topology for
