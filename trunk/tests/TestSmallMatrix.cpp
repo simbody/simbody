@@ -333,6 +333,63 @@ void testNumericallyEqual() {
 
 }
 
+static bool isXAxis(const UnitVec3& test) {return test==UnitVec3(1,0,0);}
+static bool isNegZAxis(const UnitVec3& test) {return test==UnitVec3(0,0,-1);}
+
+void testUnitVec() {
+    SimTK_TEST_EQ(Vec3(UnitVec3(1,1,0)), Vec3(Sqrt2/2,Sqrt2/2,0));
+    SimTK_TEST(UnitVec3(XAxis) == UnitVec3(1,0,0));
+    SimTK_TEST(UnitVec3(YAxis) == UnitVec3(0,1,0));
+    SimTK_TEST(UnitVec3(ZAxis) == UnitVec3(0,0,1));
+    SimTK_TEST(UnitVec3(NegXAxis) == UnitVec3(-1,0,0));
+    SimTK_TEST(UnitVec3(NegYAxis) == UnitVec3(0,-1,0));
+    SimTK_TEST(UnitVec3(NegZAxis) == UnitVec3(0,0,-1));
+
+    SimTK_TEST(isXAxis(XAxis)); // implicit conversion
+    SimTK_TEST(!isXAxis(YAxis)); // implicit conversion
+    SimTK_TEST(isNegZAxis(NegZAxis)); // implicit conversion
+    SimTK_TEST(!isNegZAxis(NegYAxis)); // implicit conversion
+    SimTK_TEST(!isNegZAxis(ZAxis)); // implicit conversion
+
+    SimTK_TEST(XAxis.dotProduct(XAxis) == 1);
+    SimTK_TEST(XAxis.dotProduct(YAxis) == 0);
+    SimTK_TEST(XAxis.dotProduct(ZAxis) == 0);
+    SimTK_TEST(ZAxis.dotProduct(YAxis) == 0);
+
+    SimTK_TEST(XAxis.crossProductSign(XAxis) == 0);
+
+    SimTK_TEST(XAxis.crossProductAxis(YAxis) == ZAxis);
+    SimTK_TEST(XAxis.crossProductSign(YAxis) == 1);
+
+    SimTK_TEST(XAxis.crossProductAxis(ZAxis) == YAxis);
+    SimTK_TEST(XAxis.crossProductSign(ZAxis) == -1);
+
+    SimTK_TEST(ZAxis.crossProductAxis(XAxis) == YAxis);
+    SimTK_TEST(ZAxis.crossProductSign(XAxis) == 1);
+
+    int sign;
+    CoordinateAxis axis = ZAxis.crossProduct(YAxis, sign);
+    SimTK_TEST(CoordinateDirection(axis,sign) == NegXAxis);
+
+    SimTK_TEST(CoordinateDirection(YAxis,CoordinateDirection::Negative()) 
+               == NegYAxis);
+
+    SimTK_TEST(-XAxis == NegXAxis);
+    SimTK_TEST(-YAxis == NegYAxis);
+    SimTK_TEST(-ZAxis == NegZAxis);
+    SimTK_TEST(-ZAxis != NegYAxis);
+    SimTK_TEST(ZAxis == -NegZAxis);
+    SimTK_TEST(-(-NegXAxis) == -XAxis);
+    SimTK_TEST(-(-NegYAxis) == -(-(-YAxis)));
+
+    SimTK_TEST(NegXAxis.crossProductAxis(NegYAxis) == ZAxis);
+    SimTK_TEST(NegYAxis.crossProductAxis(ZAxis) == XAxis);
+    SimTK_TEST(NegYAxis.crossProductSign(ZAxis) == -1);
+    SimTK_TEST(NegYAxis.crossProductSign(NegZAxis) == 1);
+
+
+}
+
 int main() {
     SimTK_START_TEST("TestSmallMatrix");
         SimTK_SUBTEST(testSymMat);
@@ -344,5 +401,6 @@ int main() {
         SimTK_SUBTEST(testDotProducts);
         SimTK_SUBTEST(testCrossProducts);
         SimTK_SUBTEST(testNumericallyEqual);
+        SimTK_SUBTEST(testUnitVec);
     SimTK_END_TEST();
 }

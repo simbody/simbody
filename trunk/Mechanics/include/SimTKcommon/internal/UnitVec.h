@@ -1,9 +1,3 @@
-//-----------------------------------------------------------------------------
-// File:     UnitVec.h
-// Classes:  UnitVec and UnitRow
-// Parents:  Vec and Row
-// Purpose:  Unit vector class (pure direction - magnitude is always 1.0)
-//-----------------------------------------------------------------------------
 #ifndef SimTK_UNITVEC_H 
 #define SimTK_UNITVEC_H 
 
@@ -15,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -38,13 +32,14 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-//-----------------------------------------------------------------------------
-#include "SimTKcommon/SmallMatrix.h"
-//-----------------------------------------------------------------------------
-#include <iosfwd>  // Forward declaration of iostream
-//-----------------------------------------------------------------------------
+/** @file
+Declares and defines the UnitVec and UnitRow classes. **/
 
-//-----------------------------------------------------------------------------
+#include "SimTKcommon/SmallMatrix.h"
+#include "SimTKcommon/internal/CoordinateAxis.h"
+
+#include <iosfwd>  // Forward declaration of iostream
+
 namespace SimTK {
 
 //-----------------------------------------------------------------------------
@@ -99,7 +94,19 @@ public:
     UnitVec(const RealP& x, const RealP& y, const RealP& z) : BaseVec(x,y,z)  
     {   static_cast<BaseVec&>(*this) /= BaseVec::norm(); }
 
-    /// Construct a unit axis vector 100 010 001 given 0,1, or 2.
+    /// Implicit conversion from a coordinate axis XAxis, YAxis, or ZAxis to
+    /// a UnitVec3.\ Does not require any computation.
+    UnitVec(const CoordinateAxis& axis) : BaseVec(0) 
+    {   BaseVec::operator[](axis) = 1; }
+
+    /// Implicit conversion from a coordinate axis direction to a 
+    /// UnitVec3.\ The axis direction is given by one of XAxis, YAxis, ZAxis 
+    /// or NegXAxis, NegYAxis, NegZAxis.\ Does not require any computation.
+    UnitVec(const CoordinateDirection& dir) : BaseVec(0) 
+    {   BaseVec::operator[](dir.getAxis()) = RealP(dir.getDirection()); }
+
+    /// Construct a unit axis vector 100 010 001 given 0,1, or 2; this is not
+    /// an implicit conversion.
     explicit UnitVec(int axis) : BaseVec(0) 
     {   assert(0 <= axis && axis <= 2);
         BaseVec::operator[](axis) = 1; }
@@ -182,6 +189,18 @@ UnitVec<P,S>::perp() const {
     return UnitVec<P,1>( *this % UnitVec<P,1>(minAxis) );
 }
 
+/// Compare two UnitVec3 objects for exact, bitwise equality (not very useful).
+/// @relates UnitVec
+template <class P, int S1, int S2> inline bool
+operator==(const UnitVec<P,S1>& u1, const UnitVec<P,S2>& u2)
+{   return u1.asVec3() == u2.asVec3(); }
+
+/// Compare two UnitVec3 objects and return true unless they are exactly
+/// bitwise equal (not very useful).
+/// @relates UnitVec
+template <class P, int S1, int S2> inline bool
+operator!=(const UnitVec<P,S1>& u1, const UnitVec<P,S2>& u2)
+{   return !(u1==u2); }
 
 //-----------------------------------------------------------------------------
 /**
@@ -297,6 +316,18 @@ inline UnitRow<P,1> UnitRow<P,S>::perp() const {
 }
 
 
+/// Compare two UnitRow3 objects for exact, bitwise equality (not very useful).
+/// @relates UnitRow
+template <class P, int S1, int S2> inline bool
+operator==(const UnitRow<P,S1>& u1, const UnitRow<P,S2>& u2)
+{   return u1.asRow3() == u2.asRow3(); }
+
+/// Compare two UnitRow3 objects and return true unless they are exactly
+/// bitwise equal (not very useful).
+/// @relates UnitRow
+template <class P, int S1, int S2> inline bool
+operator!=(const UnitRow<P,S1>& u1, const UnitRow<P,S2>& u2)
+{   return !(u1==u2); }
 
 //------------------------------------------------------------------------------
 }  // End of namespace SimTK

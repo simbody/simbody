@@ -41,9 +41,9 @@
 //------------------------------------------------------------------------------
 
 #include "SimTKcommon/SmallMatrix.h"
+#include "SimTKcommon/internal/CoordinateAxis.h"
 #include "SimTKcommon/internal/UnitVec.h"
 #include "SimTKcommon/internal/Quaternion.h"
-#include "SimTKcommon/internal/CoordinateAxis.h"
 
 //------------------------------------------------------------------------------
 #include <iosfwd>  // Forward declaration of iostream

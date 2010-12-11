@@ -1,10 +1,3 @@
-//-----------------------------------------------------------------------------
-// File:     UnitVec.cpp
-// Classes:  UnitVec and UnitRow
-// Parents:  Vec and Row
-// Purpose:  Unit vector class (pure direction - magnitude is always 1.0)
-//-----------------------------------------------------------------------------
-
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simmatrix(tm)                       *
  * -------------------------------------------------------------------------- *
@@ -13,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -37,12 +30,12 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * Implementations of non-inline methods of classes dealing with UnitVec and UnitRow.
+ * Implementations of non-inline methods of classes dealing with UnitVec and 
+ * UnitRow.
  */
 
 #include "SimTKcommon/internal/UnitVec.h"
 
-//-------------------------------------------------------------------
 namespace SimTK {
 
 // Currently this is EMPTY as all methods are inline
@@ -54,7 +47,6 @@ template class UnitVec<double,1>;
 template class UnitRow<float,1>;
 template class UnitRow<double,1>;
 
-//------------------------------------------------------------------------------
 }  // End of namespace SimTK
 
 

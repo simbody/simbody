@@ -56,6 +56,7 @@
 #include "SimTKcommon/internal/StableArray.h"
 #include "SimTKcommon/internal/Value.h"
 #include "SimTKcommon/internal/Stage.h"
+#include "SimTKcommon/internal/CoordinateAxis.h"
 #endif
 
 
