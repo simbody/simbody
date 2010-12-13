@@ -37,6 +37,7 @@
 //TODO: this header is in the wrong directory; should be in src.
 #include "simbody/internal/ContactGeometryImpl.h"
 
+#include <cmath>
 #include <pthread.h>
 #include <map>
 #include <set>
@@ -244,6 +245,111 @@ bool ContactGeometry::SphereImpl::intersectsRay
 void ContactGeometry::SphereImpl::getBoundingSphere(Vec3& center, Real& radius) const {
     center = Vec3(0);
     radius = this->radius;
+}
+
+
+
+//==============================================================================
+//                               ELLIPSOID & IMPL
+//==============================================================================
+
+ContactGeometry::Ellipsoid::Ellipsoid(const Vec3& radii)
+:   ContactGeometry(new EllipsoidImpl(radii)) {}
+
+/*static*/ ContactGeometryTypeId ContactGeometry::Ellipsoid::classTypeId()
+{   return ContactGeometry::EllipsoidImpl::classTypeId(); }
+
+const Vec3& ContactGeometry::Ellipsoid::getRadii() const {
+    return getImpl().getRadii();
+}
+
+void ContactGeometry::Ellipsoid::setRadii(const Vec3& radii) {
+    updImpl().setRadii(radii);
+}
+
+const ContactGeometry::EllipsoidImpl& ContactGeometry::Ellipsoid::getImpl() const {
+    assert(impl);
+    return static_cast<const EllipsoidImpl&>(*impl);
+}
+
+ContactGeometry::EllipsoidImpl& ContactGeometry::Ellipsoid::updImpl() {
+    assert(impl);
+    return static_cast<EllipsoidImpl&>(*impl);
+}
+
+Vec3 ContactGeometry::EllipsoidImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    Real a2 = radii[0]*radii[0];
+    Real b2 = radii[1]*radii[1];
+    Real c2 = radii[2]*radii[2];
+    Real a4 = a2*a2;
+    Real b4 = b2*b2;
+    Real c4 = c2*c2;
+    Real px2 = position[0]*position[0];
+    Real py2 = position[1]*position[1];
+    Real pz2 = position[2]*position[2];
+    Real a2b2 = a2*b2;
+    Real b2c2 = b2*c2;
+    Real a2c2 = a2*c2;
+    Real a2b2c2 = a2b2*c2;
+    Vector coeff(7);
+    coeff[0] = 1;
+    coeff[1] = 2*(a2+b2+c2);
+    coeff[2] = -(a2*px2+b2*py2+c2*pz2) + a4+b4+c4 + 4*(a2b2+b2c2+a2c2);
+    coeff[3] = -2*((a2b2+a2c2)*px2+(a2b2+b2c2)*py2+(b2c2+a2c2)*pz2) + 2*(a4*(b2+c2)+b4*(a2+c2)+c4*(a2+b2)) + 8*a2b2c2;
+    coeff[4] = -a2*(b4+4*b2c2+c4)*px2-b2*(a4+4*a2c2+c4)*py2-c2*(a4+4*a2b2+b4)*pz2 + 4*(a2+b2+c2)*a2b2c2 + a4*b4+a4*c4+b4*c4;
+    coeff[5] = 2*a2b2c2*(-(b2+c2)*px2-(a2+c2)*py2-(a2+b2)*pz2 + a2b2+b2c2+a2c2);
+    coeff[6] = a2b2c2*(-b2c2*px2-a2c2*py2-a2b2*pz2+a2b2c2);
+    Vector_<complex<Real> > roots(6);
+    PolynomialRootFinder::findRoots(coeff, roots);
+    Real root = NTraits<Real>::getMostNegative();
+    for (int i = 0; i < 6; i++)
+        if (fabs(roots[i].imag()) < 1e-10 && (roots[i].real()) > (root))
+            root = roots[i].real();
+    Vec3 result(position[0]*a2/(root+a2), position[1]*b2/(root+b2), position[2]*c2/(root+c2));
+    Vec3 ri2(1/a2, 1/b2, 1/c2);
+    inside = (position[0]*position[0]*ri2[0] + position[1]*position[1]*ri2[1] + position[2]*position[2]*ri2[2] < 1.0);
+    normal = UnitVec3(result[0]*ri2[0], result[1]*ri2[1], result[2]*ri2[2]);
+    return result;
+}
+
+bool ContactGeometry::EllipsoidImpl::intersectsRay
+   (const Vec3& origin, const UnitVec3& direction,
+    Real& distance, UnitVec3& normal) const
+{
+    Real rx2 = radii[0]*radii[0];
+    Real sy = rx2/(radii[1]*radii[1]);
+    Real sz = rx2/(radii[2]*radii[2]);
+    Vec3 scaledDir(direction[0], sy*direction[1], sz*direction[2]);
+    Real b = -~scaledDir*origin;
+    Real c = origin[0]*origin[0] + sy*origin[1]*origin[1] + sz*origin[2]*origin[2] - rx2;
+    if (c > 0) {
+        // Ray origin is outside ellipsoid.
+
+        if (b <= 0)
+          return false;  // Ray points away from the ellipsoid.
+        Real a = ~scaledDir*direction;;
+        Real d = b*b - a*c;
+        if (d < 0)
+          return false;
+        distance = (b - std::sqrt(d))/a;
+    }
+    else {
+        // Ray origin is inside ellipsoid.
+
+        Real a = ~scaledDir*direction;;
+        Real d = b*b - a*c;
+        if (d < 0)
+          return false;
+        distance = (b + std::sqrt(d))/a;
+    }
+    Vec3 pos = origin+distance*direction;
+    normal = UnitVec3(pos[0], pos[1]*sy, pos[2]*sz);
+    return true;
+}
+
+void ContactGeometry::EllipsoidImpl::getBoundingSphere(Vec3& center, Real& radius) const {
+    center = Vec3(0);
+    radius = max(radii);
 }
 
 

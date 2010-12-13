@@ -151,6 +151,42 @@ private:
 
 
 //==============================================================================
+//                                ELLIPSOID IMPL
+//==============================================================================
+class ContactGeometry::EllipsoidImpl : public ContactGeometryImpl {
+public:
+    EllipsoidImpl(const Vec3& radii) : ContactGeometryImpl(Type()), radii(radii) {
+    }
+    ContactGeometryImpl* clone() const {
+        return new EllipsoidImpl(radii);
+    }
+    const Vec3& getRadii() const {
+        return radii;
+    }
+    void setRadii(const Vec3& r) {
+        radii = r;
+    }
+
+    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = createNewContactGeometryTypeId();
+        return id;
+    }
+
+    static const std::string& Type() {
+        static std::string type = "ellipsoid";
+        return type;
+    }
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    void getBoundingSphere(Vec3& center, Real& radius) const;
+private:
+    Vec3 radii;
+};
+
+
+
+//==============================================================================
 //                            OBB TREE NODE IMPL
 //==============================================================================
 class OBBTreeNodeImpl {

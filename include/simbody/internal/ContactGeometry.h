@@ -55,9 +55,11 @@ class SimTK_SIMBODY_EXPORT ContactGeometry {
 public:
     class HalfSpace;
     class Sphere;
+    class Ellipsoid;
     class TriangleMesh;
     class HalfSpaceImpl;
     class SphereImpl;
+    class EllipsoidImpl;
     class TriangleMeshImpl;
     ContactGeometry() : impl(0) {
     }
@@ -175,6 +177,33 @@ public:
 
     const SphereImpl& getImpl() const;
     SphereImpl& updImpl();
+};
+
+/**
+ * This ContactGeometry subclass represents an ellipsoid centered at the origin, with it principal axes
+ * pointing along the x, y, and z axes.
+ */
+class SimTK_SIMBODY_EXPORT ContactGeometry::Ellipsoid : public ContactGeometry {
+public:
+    explicit Ellipsoid(const Vec3& radii);
+    const Vec3& getRadii() const;
+    void setRadii(const Vec3& radii);
+
+    /** Return true if the supplied ContactGeometry object is an Ellipsoid. **/
+    static bool isInstance(const ContactGeometry& geo)
+    {   return geo.getTypeId()==classTypeId(); }
+    /** Cast the supplied ContactGeometry object to a const Ellipsoid. **/
+    static const Ellipsoid& getAs(const ContactGeometry& geo)
+    {   assert(isInstance(geo)); return static_cast<const Ellipsoid&>(geo); }
+    /** Cast the supplied ContactGeometry object to a writable Ellipsoid. **/
+    static Ellipsoid& updAs(ContactGeometry& geo)
+    {   assert(isInstance(geo)); return static_cast<Ellipsoid&>(geo); }
+
+    /** Obtain the unique id for Ellipsoid contact geometry. **/
+    static ContactGeometryTypeId classTypeId();
+
+    const EllipsoidImpl& getImpl() const;
+    EllipsoidImpl& updImpl();
 };
 
 /**

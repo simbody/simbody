@@ -127,10 +127,53 @@ void testSphere() {
     }
 }
 
+void testEllipsoid() {
+    // Create a ellipsoid.
+
+    Vec3 radii(1.5, 2.2, 3.1);
+    ContactGeometry::Ellipsoid ellipsoid(radii);
+    assert(ellipsoid.getRadii() == radii);
+
+    // Check intersections with various rays.
+
+    Real distance;
+    UnitVec3 normal;
+    ASSERT(!ellipsoid.intersectsRay(Vec3(4, 0, 0), UnitVec3(1, 0, 0), distance, normal));
+    ASSERT(ellipsoid.intersectsRay(Vec3(1, 0, 0), UnitVec3(1, 0, 0), distance, normal));
+    assertEqual(0.5, distance);
+    assertEqual(Vec3(1, 0, 0), normal);
+    ASSERT(ellipsoid.intersectsRay(Vec3(4, 0, 0), UnitVec3(-1, 0, 0), distance, normal));
+    assertEqual(2.5, distance);
+    assertEqual(Vec3(1, 0, 0), normal);
+    ASSERT(ellipsoid.intersectsRay(Vec3(0, -5, 0), UnitVec3(0, 1, 0), distance, normal));
+    assertEqual(2.8, distance);
+    assertEqual(Vec3(0, -1, 0), normal);
+    ASSERT(ellipsoid.intersectsRay(Vec3(0, 0, 0), UnitVec3(1, 1, 1), distance, normal));
+    assertEqual(sqrt(3/(1/(radii[0]*radii[0])+1/(radii[1]*radii[1])+1/(radii[2]*radii[2]))), distance);
+    assertEqual(UnitVec3(1/(radii[0]*radii[0]), 1/(radii[1]*radii[1]), 1/(radii[2]*radii[2])), normal);
+
+    // Test finding the nearest point.
+
+    Random::Gaussian random(0, 2);
+    for (int i = 0; i < 100; i++) {
+        Vec3 pos(random.getValue(), random.getValue(), random.getValue());
+        bool inside;
+        UnitVec3 normal;
+        Vec3 nearest = ellipsoid.findNearestPoint(pos, inside, normal);
+        assertEqual(nearest[0]*nearest[0]/(radii[0]*radii[0])+nearest[1]*nearest[1]/(radii[1]*radii[1])+nearest[2]*nearest[2]/(radii[2]*radii[2]), 1.0);
+        Real projectedRadius = pos[0]*pos[0]/(radii[0]*radii[0])+pos[1]*pos[1]/(radii[1]*radii[1])+pos[2]*pos[2]/(radii[2]*radii[2]);
+        ASSERT(inside == (projectedRadius < 1.0));
+        Vec3 projectedPoint = pos/sqrt(projectedRadius);
+        ASSERT((nearest-pos).normSqr() < (projectedPoint-pos).normSqr());
+        assertEqual(normal, UnitVec3(nearest[0]/(radii[0]*radii[0]), nearest[1]/(radii[1]*radii[1]), nearest[2]/(radii[2]*radii[2])));
+    }
+}
+
 int main() {
     try {
         testHalfSpace();
         testSphere();
+        testEllipsoid();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
