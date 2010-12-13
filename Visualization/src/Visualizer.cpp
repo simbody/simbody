@@ -62,60 +62,14 @@ static const Real      DefaultDesiredBufferLengthInSec = Real(0.15); // 150ms
 static const long long DefaultAllowableFrameJitterInNs      = 5 * MsToNs; //5ms
 static const Real      DefaultSlopAsFractionOfFrameInterval = Real(0.05); //5%
 
+
+
 //==============================================================================
 //                              VISUALIZER REP
 //==============================================================================
 /* This is the private implementation object contained in a Visualizer handle.
-RealTime mode is worth some discussion. There is a simulation thread that
-produces frames at a variable rate, and a draw thread that consumes frames at a
-variable rate (by sending them to the renderer). We want to engineer things so 
-that frames are sent to the renderer at a steady rate that is synchronized with
-simulation time (possibly after scaling). When a thread is running too fast, 
-that is easily handled by blocking the speeding thread for a while. The "too 
-slow" case takes careful handling.
-
-In normal operation, we expect the simulation to take varying amounts of
-real time to generate fixed amounts of simulation time, because we prefer
-to use variable time-step integrators that control errors by taking smaller
-steps in more difficult circumstances, and large steps through the easy
-parts of the simulation. For real time operation, the simulation must of
-course *average* real time performance; we use a frame buffer to smooth
-out variable delivery times. That is, frames go into the buffer at an
-irregular rate but are pulled off at a regular rate. A longer buffer can
-mask wider deviations in frame time, at the expense of interactive response.
-In most circumstances people cannot perceive delays below about 200ms, so
-for good response the total delay should be kept around that level.
-
-Despite the buffering, there will be occasions when the simulation can't
-keep up with real time. A common cause of that is that a user has paused
-either the simulation or the renderer, such as by hitting a breakpoint while
-debugging. In that case we deem the proper behavior to be that when we 
-resume we should immediately resume real time behavior at a new start time, 
-*not* attempt to catch up to the previous real time by running at high speed. 
-As much as possible, we would like the simulation to behave just as it would 
-have without the interruption, but with a long pause where interrupted. We
-deal with this situation by introducing a notion of "adjusted real time"
-(AdjRT). That is a clock that tracks the real time interval counter, but uses
-a variable base offset that is used to match it to the expected simulation 
-time. When the simulation is long delayed, we modify the AdjRT base when we
-resume so that AdjRT once again matches the simulation time t. Adjustments
-to the AdjRT base occur at the time we deliver frames to the renderer; at that
-moment we compare the AdjRT reading to the frame's simulation time t and 
-correct AdjRT for future frames.
-
-You can also run in RealTime mode without buffering. In that case frames are
-sent directly from the simulation thread to the renderer, but the above logic
-still applies. Simulation frames that arrive earlier than the corresponding
-AdjRT are delayed; frames that arrive later are drawn immediately but cause
-AdjRT to be readjusted to resynchronize. Overall performance can be better
-in unbuffered RealTime mode because the States provided by the simulation do
-not have to be copied before being drawn. However, intermittent slower-than-
-realtime frame times cannot be smoothed over; they will cause rendering delays.
-
-PassThrough and Sampling modes are much simpler because no synchronization
-is done to the simulation times. There is only a single thread and draw
-time scheduling works in real time without adjustment.
-*/
+See the "implementation notes" section of the Visualizer class documentation
+for some information about how this works. */
 
 // If we are buffering frames, this is the object that represents a frame
 // in the queue. It consists of a copy of a reported State, and a desired
@@ -154,6 +108,7 @@ public:
     VisualizerRep(Visualizer* owner, const MultibodySystem& system, 
                   const String& title) 
     :   m_handle(owner), m_system(system), m_protocol(*owner, title),
+        m_upDirection(YAxis), m_groundHeight(0),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
         m_simTimeUnitsPerSec(1), 
         m_desiredBufferLengthInSec(DefaultDesiredBufferLengthInSec), 
@@ -504,6 +459,9 @@ public:
     Array_<Visualizer::InputListener*>      m_listeners;
     Array_<Visualizer::FrameController*>    m_controllers;
 
+    CoordinateDirection                     m_upDirection;
+    Real                                    m_groundHeight;
+
     // User control of Visualizer behavior.
     Visualizer::Mode    m_mode;
     Real    m_frameRateFPS;       // in frames/sec if > 0, else use default
@@ -819,27 +777,7 @@ Visualizer::~Visualizer() {
         delete rep;
 }
 
-void Visualizer::setMode(Visualizer::Mode mode) {updRep().setMode(mode);}
-Visualizer::Mode Visualizer::getMode() const {return getRep().m_mode;}
-
-void Visualizer::setDesiredFrameRate(Real framesPerSec) 
-{   updRep().setDesiredFrameRate(std::max(framesPerSec, Real(0))); }
-Real Visualizer::getDesiredFrameRate() const {return getRep().m_frameRateFPS;}
-
-void Visualizer::setRealTimeScale(Real simTimePerRealSec) 
-{   updRep().setRealTimeScale(simTimePerRealSec); }
-Real Visualizer::getRealTimeScale() const 
-{   return getRep().m_simTimeUnitsPerSec; }
-
-void Visualizer::setDesiredBufferLengthInSec(Real bufferLengthInSec)
-{   updRep().setDesiredBufferLengthInSec(bufferLengthInSec); }
-Real Visualizer::getDesiredBufferLengthInSec() const
-{   return getRep().getDesiredBufferLengthInSec(); }
-int Visualizer::getActualBufferLengthInFrames() const 
-{   return getRep().getActualBufferLengthInFrames(); }
-Real Visualizer::getActualBufferLengthInSec() const 
-{   return getRep().getActualBufferLengthInSec(); }
-
+       // Frame drawing methods
 
 void Visualizer::drawFrameNow(const State& state) const
 {   const_cast<Visualizer*>(this)->updRep().drawFrameNow(state); }
@@ -911,43 +849,86 @@ void Visualizer::report(const State& state) const {
     }
 }
 
-void Visualizer::addInputListener(Visualizer::InputListener* listener) {
-    updRep().m_listeners.push_back(listener);
-}
+        // VisualizerGUI display options
 
-void Visualizer::addFrameController(Visualizer::FrameController* controller) {
-    updRep().m_controllers.push_back(controller);
-}
+Visualizer& Visualizer::setBackgroundType(BackgroundType type) 
+{   updRep().m_protocol.setBackgroundType(type); return *this; }
 
-void Visualizer::addDecorationGenerator(DecorationGenerator* generator) {
-    updRep().m_generators.push_back(generator);
-}
+const Visualizer& Visualizer::setBackgroundColor(const Vec3& color) const 
+{   getRep().m_protocol.setBackgroundColor(color); return *this; }
 
-void Visualizer::setGroundPosition(const CoordinateAxis& axis, Real height) {
-    updRep().m_protocol.setGroundPosition(axis, height);
-}
+const Visualizer& Visualizer::setShowShadows(bool showShadows) const 
+{   getRep().m_protocol.setShowShadows(showShadows); return *this; }
 
-void Visualizer::setBackgroundType(BackgroundType type) const {
-    getRep().m_protocol.setBackgroundType(type);
-}
+const Visualizer& Visualizer::setWindowTitle(const String& title) const 
+{   getRep().m_protocol.setWindowTitle(title); return *this; }
 
-void Visualizer::setBackgroundColor(const Vec3& color) const {
-    getRep().m_protocol.setBackgroundColor(color);
-}
+        // Visualizer options
 
-void Visualizer::setShowShadows(bool showShadows) const {
-    getRep().m_protocol.setShowShadows(showShadows);
-}
+Visualizer& Visualizer::setSystemUpDirection(const CoordinateDirection& upDir)
+{   updRep().m_upDirection = upDir; 
+    updRep().m_protocol.setSystemUpDirection(upDir); return *this; }
+CoordinateDirection Visualizer::getSystemUpDirection() const
+{   return getRep().m_upDirection; }
 
-void Visualizer::addMenu(const String& title, int menuId, const Array_<pair<String, int> >& items) {
+
+Visualizer& Visualizer::setGroundHeight(Real height) {
+    updRep().m_groundHeight = height;
+    updRep().m_protocol.setGroundHeight(height); return *this;
+}
+Real Visualizer::getGroundHeight() const
+{   return getRep().m_groundHeight; }
+
+void Visualizer::setMode(Visualizer::Mode mode) {updRep().setMode(mode);}
+Visualizer::Mode Visualizer::getMode() const {return getRep().m_mode;}
+
+Visualizer& Visualizer::setDesiredFrameRate(Real fps) 
+{   updRep().setDesiredFrameRate(std::max(fps, Real(0))); return *this; }
+Real Visualizer::getDesiredFrameRate() const 
+{   return getRep().m_frameRateFPS; }
+
+Visualizer& Visualizer::setRealTimeScale(Real simTimePerRealSec) 
+{   updRep().setRealTimeScale(simTimePerRealSec); return *this; }
+Real Visualizer::getRealTimeScale() const 
+{   return getRep().m_simTimeUnitsPerSec; }
+
+Visualizer& Visualizer::setDesiredBufferLengthInSec(Real bufferLengthInSec)
+{   updRep().setDesiredBufferLengthInSec(bufferLengthInSec); return *this; }
+Real Visualizer::getDesiredBufferLengthInSec() const
+{   return getRep().getDesiredBufferLengthInSec(); }
+int Visualizer::getActualBufferLengthInFrames() const 
+{   return getRep().getActualBufferLengthInFrames(); }
+Real Visualizer::getActualBufferLengthInSec() const 
+{   return getRep().getActualBufferLengthInSec(); }
+
+
+Visualizer& Visualizer::addInputListener(Visualizer::InputListener* listener) 
+{   updRep().m_listeners.push_back(listener); return *this; }
+
+Visualizer& Visualizer::addFrameController(Visualizer::FrameController* fc) 
+{   updRep().m_controllers.push_back(fc); return *this; }
+
+
+
+
+        // Scene-building methods
+
+Visualizer& Visualizer::
+addMenu(const String& title, int menuId, 
+        const Array_<pair<String, int> >& items) 
+{
     SimTK_ERRCHK2_ALWAYS(menuId >= 0, "Visualizer::addMenu()",
         "Assigned menu ids must be nonnegative, but an attempt was made to create"
         " a menu %s with id %d.", title.c_str(), menuId);
 
     updRep().m_protocol.addMenu(title, menuId, items);
+    return *this;
 }
 
-void Visualizer::addSlider(const String& title, int sliderId, Real minVal, Real maxVal, Real value) {
+Visualizer& Visualizer::
+addSlider(const String& title, int sliderId, 
+          Real minVal, Real maxVal, Real value) 
+{
     SimTK_ERRCHK2_ALWAYS(sliderId >= 0, "Visualizer::addSlider()",
         "Assigned slider ids must be nonnegative, but an attempt was made to create"
         " a slider %s with id %d.", title.c_str(), sliderId);
@@ -956,56 +937,66 @@ void Visualizer::addSlider(const String& title, int sliderId, Real minVal, Real 
         value, title.c_str(), minVal, maxVal);
 
     updRep().m_protocol.addSlider(title, sliderId, minVal, maxVal, value);
+    return *this;
 }
 
-void Visualizer::addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, const DecorativeGeometry& geom) {
+Visualizer& Visualizer::
+addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, 
+              const DecorativeGeometry& geom) 
+{
     Array_<DecorativeGeometry>& addedGeometry = updRep().m_addedGeometry;
     addedGeometry.push_back(geom);
     DecorativeGeometry& geomCopy = addedGeometry.back();
     geomCopy.setBodyId((int)mobodIx);
     geomCopy.setTransform(X_BD * geomCopy.getTransform());
+    return *this;
 }
 
-void Visualizer::addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, MobilizedBodyIndex b2, const Vec3& station2, const DecorativeLine& line) {
-    updRep().m_lines.push_back(RubberBandLine(b1, station1, b2, station2, line));
-}
+Visualizer& Visualizer::
+addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
+                  MobilizedBodyIndex b2, const Vec3& station2, 
+                  const DecorativeLine& line) 
+{   updRep().m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line)); 
+    return *this; }
 
-void Visualizer::setCameraTransform(const Transform& transform) const {
-    getRep().m_protocol.setCameraTransform(transform);
-}
-
-void Visualizer::zoomCameraToShowAllGeometry() const {
-    getRep().m_protocol.zoomCamera();
-}
-
-void Visualizer::pointCameraAt(const Vec3& point, const Vec3& upDirection) const {
-    getRep().m_protocol.lookAt(point, upDirection);
-}
-
-void Visualizer::setCameraFieldOfView(Real fov) const {
-    getRep().m_protocol.setFieldOfView(fov);
-}
-
-void Visualizer::setCameraClippingPlanes(Real nearPlane, Real farPlane) const {
-    getRep().m_protocol.setClippingPlanes(nearPlane, farPlane);
-}
+Visualizer& Visualizer::
+addDecorationGenerator(DecorationGenerator* generator) 
+{   updRep().m_generators.push_back(generator); return *this; }
 
 
-void Visualizer::setSliderValue(int slider, Real newValue) const {
-    getRep().m_protocol.setSliderValue(slider, newValue);
-}
+        // Frame control methods
+const Visualizer& Visualizer::
+setCameraTransform(const Transform& transform) const 
+{   getRep().m_protocol.setCameraTransform(transform); return *this; }
 
-void Visualizer::setSliderRange(int slider, Real newMin, Real newMax) const {
-    getRep().m_protocol.setSliderRange(slider, newMin, newMax);
-}
+const Visualizer& Visualizer::zoomCameraToShowAllGeometry() const 
+{   getRep().m_protocol.zoomCamera(); return *this; }
 
-void Visualizer::setWindowTitle(const String& title) const {
-    getRep().m_protocol.setWindowTitle(title);
-}
+const Visualizer& Visualizer::
+pointCameraAt(const Vec3& point, const Vec3& upDirection) const 
+{   getRep().m_protocol.lookAt(point, upDirection); return *this; }
 
+const Visualizer& Visualizer::setCameraFieldOfView(Real fov) const 
+{   getRep().m_protocol.setFieldOfView(fov); return *this; }
+
+const Visualizer& Visualizer::
+setCameraClippingPlanes(Real nearPlane, Real farPlane) const 
+{   getRep().m_protocol.setClippingPlanes(nearPlane, farPlane);
+    return *this; }
+
+
+const Visualizer& Visualizer::setSliderValue(int slider, Real newValue) const 
+{   getRep().m_protocol.setSliderValue(slider, newValue); return *this; }
+
+const Visualizer& Visualizer::
+setSliderRange(int slider, Real newMin, Real newMax) const 
+{   getRep().m_protocol.setSliderRange(slider, newMin, newMax); return *this; }
+
+        // Debugging and statistics
 void Visualizer::dumpStats(std::ostream& o) const {getRep().dumpStats(o);}
 void Visualizer::clearStats() {updRep().clearStats();}
 
+        // Internal use only
 const Array_<Visualizer::InputListener*>& Visualizer::getInputListeners() const
 {   return getRep().m_listeners; }
 const Array_<Visualizer::FrameController*>& Visualizer::getFrameControllers() const

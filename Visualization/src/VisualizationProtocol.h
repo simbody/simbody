@@ -46,7 +46,7 @@ using namespace SimTK;
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 22;
+static const unsigned ProtocolVersion   = 23;
 
 // The VisualizerGUI has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -84,12 +84,13 @@ static const char ZoomCamera            = 16;
 static const char LookAt                = 17;
 static const char SetFieldOfView        = 18;
 static const char SetClipPlanes         = 19;
-static const char SetGroundPosition     = 20;
-static const char SetWindowTitle        = 21;
-static const char SetMaxFrameRate       = 22;
-static const char SetBackgroundColor    = 23;
-static const char SetShowShadows        = 24;
-static const char SetBackgroundType     = 25;
+static const char SetSystemUpDirection  = 20;
+static const char SetGroundHeight       = 21;
+static const char SetWindowTitle        = 22;
+static const char SetMaxFrameRate       = 23;
+static const char SetBackgroundColor    = 24;
+static const char SetShowShadows        = 25;
+static const char SetBackgroundType     = 26;
 
 
 
@@ -122,7 +123,8 @@ public:
     void setSliderValue(int id, Real newValue) const;
     void setSliderRange(int id, Real newMin, Real newMax) const;
     
-    void setGroundPosition(const CoordinateAxis& axis, Real height);
+    void setSystemUpDirection(const CoordinateDirection& upDir);
+    void setGroundHeight(Real height);
     void setWindowTitle(const String& title) const;
     void setMaxFrameRate(Real rateInFPS) const;
     void setBackgroundColor(const Vec3& color) const;

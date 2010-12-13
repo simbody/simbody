@@ -124,8 +124,12 @@ static void setVsync(bool enable);
 using namespace SimTK;
 using namespace std;
 
-
-static fTransform cameraTransform(fRotation(), fVec3(0, 0, 10));
+// This is the transform giving the pose of the camera's local frame in the 
+// model's ground frame. The camera local frame has Y as the up direction,
+// -Z as the "look at" direction, and X to the right. We can't know a good
+// default transform for the camera until we know what the SimTK::System
+// we're viewing considers to be its "up" and "look at" directions. 
+static fTransform X_GC;
 static int inPipe, outPipe;
 
 static void computeBoundingSphereForVertices(const vector<float>& vertices, float& radius, fVec3& center) {
@@ -221,7 +225,7 @@ public:
     }
     void draw() {
         glPushMatrix();
-        glTranslated(transform.T()[0], transform.T()[1], transform.T()[2]);
+        glTranslated(transform.p()[0], transform.p()[1], transform.p()[2]);
         fVec4 rot = transform.R().convertRotationToAngleAxis();
         glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
         glScaled(scale[0], scale[1], scale[2]);
@@ -237,7 +241,7 @@ public:
     }
     void computeBoundingSphere(float& radius, fVec3& center) const {
         meshes[meshIndex]->getBoundingSphere(radius, center);
-        center += transform.T();
+        center += transform.p();
         radius *= max(abs(scale[0]), max(abs(scale[1]), abs(scale[2])));
     }
 private:
@@ -289,7 +293,7 @@ public:
     void draw() {
         glPushMatrix();
         glTranslated(position[0], position[1], position[2]);
-        fVec4 rot = cameraTransform.R().convertRotationToAngleAxis();
+        fVec4 rot = X_GC.R().convertRotationToAngleAxis();
         glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
         glScaled(scale, scale, scale);
         glColor3fv(color);
@@ -415,7 +419,7 @@ static GLfloat fieldOfView = GLfloat(SimTK_PI/4);
 static GLfloat nearClip = 1;
 static GLfloat farClip = 1000;
 static GLfloat groundHeight = 0;
-static int groundAxis = 1;
+static CoordinateDirection groundNormal = YAxis; // the +Y direction
 static bool showGround = true, showShadows = true, showFPS = true;
 static fVec3 backgroundColor = fVec3(1,1,1); // white is the default
 static vector<PendingCommand*> pendingCommands;
@@ -516,7 +520,7 @@ static void zoomCameraToShowWholeScene() {
     computeSceneBounds(scene, radius, center);
     float viewDistance = radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
     // Back up 1 unit more to make sure we don't clip at this position.
-    cameraTransform.updT() = center+cameraTransform.R()*fVec3(0, 0, viewDistance+1);
+    X_GC.updP() = center+X_GC.R()*fVec3(0, 0, viewDistance+1);
 }
 
 class PendingCameraZoom : public PendingCommand {
@@ -967,27 +971,24 @@ static void drawGroundAndSky(float farClipDistance) {
     float viewDistance = 0.9999f*farClipDistance;
     float xwidth = viewDistance*tan(fieldOfView*viewWidth/viewHeight/2);
     float ywidth = viewDistance*tan(fieldOfView/2);
-    fVec3 center = cameraTransform.T()-cameraTransform.R()*fVec3(0, 0, viewDistance);
-    fVec3 corner1 = center+cameraTransform.R()*fVec3(-xwidth, -ywidth, 0);
-    fVec3 corner2 = center+cameraTransform.R()*fVec3(xwidth, -ywidth, 0);
-    fVec3 corner3 = center+cameraTransform.R()*fVec3(xwidth, ywidth, 0);
-    fVec3 corner4 = center+cameraTransform.R()*fVec3(-xwidth, ywidth, 0);
-    fVec3 cameraPosition, upDirection;
-    if (groundAxis == 0) {
-        cameraPosition = fVec3(groundHeight, cameraTransform.T()[1], cameraTransform.T()[2]);
-        upDirection = fVec3(1, 0, 0);
-    }
-    else if (groundAxis == 1) {
-        cameraPosition = fVec3(cameraTransform.T()[0], groundHeight, cameraTransform.T()[2]);
-        upDirection = fVec3(0, 1, 0);
-    }
-    else {
-        cameraPosition = fVec3(cameraTransform.T()[0], cameraTransform.T()[1], groundHeight);
-        upDirection = fVec3(0, 0, 1);
-    }
+    fVec3 center = X_GC.p()-X_GC.R()*fVec3(0, 0, viewDistance);
+    fVec3 corner1 = center+X_GC.R()*fVec3(-xwidth, -ywidth, 0);
+    fVec3 corner2 = center+X_GC.R()*fVec3(xwidth, -ywidth, 0);
+    fVec3 corner3 = center+X_GC.R()*fVec3(xwidth, ywidth, 0);
+    fVec3 corner4 = center+X_GC.R()*fVec3(-xwidth, ywidth, 0);
+    fVec3 cameraPosition(X_GC.p()), upDirection(0);
+    const float          sign = (float)groundNormal.getDirection(); // 1 or -1
+    const CoordinateAxis axis = groundNormal.getAxis();
+    // Set the camera height to be level with the ground.
+    cameraPosition[axis] = sign*groundHeight;
+    // Set the camera up direction to be the ground normal.
+    upDirection[axis] = sign;
+
     glUseProgram(skyProgram);
-    glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), (GLfloat) cameraPosition[0], (GLfloat) cameraPosition[1], (GLfloat) cameraPosition[2]);
-    glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), (GLfloat) upDirection[0], (GLfloat) upDirection[1], (GLfloat) upDirection[2]);
+    glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), 
+        (GLfloat) cameraPosition[0], (GLfloat) cameraPosition[1], (GLfloat) cameraPosition[2]);
+    glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 
+        (GLfloat) upDirection[0], (GLfloat) upDirection[1], (GLfloat) upDirection[2]);
     glDepthMask(GL_FALSE);
     glBegin(GL_QUADS);
     glVertex3d(corner1[0], corner1[1], corner1[2]);
@@ -1005,42 +1006,44 @@ static void drawGroundAndSky(float farClipDistance) {
     corner3 = center+fVec3(farClipDistance, 0, farClipDistance);
     corner4 = center+fVec3(-farClipDistance, 0, farClipDistance);
     glUseProgram(groundProgram);
-    Mat<4, 4, GLfloat> transform(1.0f);
-    fVec3 sdir, tdir;
-    if (groundAxis == 0) {
-        transform[0][0] = transform[1][1] = 0.0f;
-        transform[0][1] = transform[1][0] = 1.0f;
-        sdir = fVec3(0, 1, 0);
-        tdir = fVec3(0, 0, 1);
-    }
-    else if (groundAxis == 1) {
-        sdir = fVec3(1, 0, 0);
-        tdir = fVec3(0, 0, 1);
-    }
-    else {
-        transform[1][1] = transform[2][2] = 0.0f;
-        transform[1][2] = transform[2][1] = 1.0f;
-        sdir = fVec3(1, 0, 0);
-        tdir = fVec3(0, 1, 0);
-    }
-    sdir = ~cameraTransform.R()*sdir;
-    tdir = ~cameraTransform.R()*tdir;
-    cameraPosition = ~cameraTransform.R()*cameraPosition;
-    glUniform3f(glGetUniformLocation(groundProgram, "sdirection"), (GLfloat) sdir[0], (GLfloat) sdir[1], (GLfloat) sdir[2]);
-    glUniform3f(glGetUniformLocation(groundProgram, "tdirection"), (GLfloat) tdir[0], (GLfloat) tdir[1], (GLfloat) tdir[2]);
-    glUniform3f(glGetUniformLocation(groundProgram, "cameraPosition"), (GLfloat) cameraPosition[0], (GLfloat) cameraPosition[1], (GLfloat) cameraPosition[2]);
-    glUniform3f(glGetUniformLocation(groundProgram, "color1"), 0.3f, 0.2f, 0.0f);
-    transform[groundAxis][3] = groundHeight;
-    if (showShadows) {
-        // Draw shadows on the ground.
 
-        Mat<4, 4, GLfloat> transform2(1.0f);
-        transform2[0][1] = 0.2f;
-        transform2[1][1] = 0.0f;
-        transform2[2][1] = 0.2f;
-        transform2 = transform*transform2;
+    // We need to calculate the GL transform T_GP that gives the ground 
+    // plane's coordinate frame P in the ground frame G. Py is the ground plane
+    // normal, Px and Pz are arbitrary "s" and "t" tangent directions.
+    // Since ground is symmetric in the planar direction we don't need
+    // to make a right-handed rotation; if it comes out left handed we'll
+    // get a reflection but we don't care.
+    Mat<4, 4, GLfloat> T_GP(1);
+    fVec3::updAs(&T_GP(YAxis)[0]) = fVec3(fUnitVec3(groundNormal)); // signed
+    fVec3::updAs(&T_GP(XAxis)[0]) = fVec3(fUnitVec3(axis.getPreviousAxis()));
+    fVec3::updAs(&T_GP(ZAxis)[0]) = fVec3(fUnitVec3(axis.getNextAxis()));
+    T_GP[axis][3] = sign*groundHeight;
+
+    // The ground shader program works in the camera frame C.
+    // Reexpress tangent directions in C
+    fVec3 sdir_C = ~X_GC.R()*T_GP(XAxis).drop1(3); 
+    fVec3 tdir_C = ~X_GC.R()*T_GP(ZAxis).drop1(3);
+    // Reexpress vector p_GC (ground origin to camera origin) in C.
+    fVec3 p_GC_C = ~X_GC.R()*cameraPosition;
+    glUniform3f(glGetUniformLocation(groundProgram, "sdirection"), 
+        (GLfloat) sdir_C[0], (GLfloat) sdir_C[1], (GLfloat) sdir_C[2]);
+    glUniform3f(glGetUniformLocation(groundProgram, "tdirection"), 
+        (GLfloat) tdir_C[0], (GLfloat) tdir_C[1], (GLfloat) tdir_C[2]);
+    glUniform3f(glGetUniformLocation(groundProgram, "cameraPosition"), 
+        (GLfloat) p_GC_C[0], (GLfloat) p_GC_C[1], (GLfloat) p_GC_C[2]);
+    glUniform3f(glGetUniformLocation(groundProgram, "color1"), 0.3f, 0.2f, 0.0f);
+
+    if (showShadows) {
+        // Draw shadows on the ground. These are drawn in the shadow frame S,
+        // which we'll distort slightly from the ground plane P.
+        Mat<4, 4, GLfloat> T_PS(1);
+        T_PS[0][1] = 0.2f;
+        T_PS[1][1] = 0.0f;
+        T_PS[2][1] = 0.2f;
+        // Now get shadow frame's transform in Ground.
+        Mat<4, 4, GLfloat> T_GS = T_GP*T_PS;
         glPushMatrix();
-        glMultMatrixf(&transform2[0][0]);
+        glMultMatrixf(&T_GS[0][0]);
         // Solid and transparent shadows are the same color (sorry). Trying to
         // mix light and dark shadows is much harder and any simple attempts
         // (e.g. put light shadows on top of dark ones) look terrible.
@@ -1056,7 +1059,7 @@ static void drawGroundAndSky(float farClipDistance) {
     glUniform3f(glGetUniformLocation(groundProgram, "color2"), 1.0f, 0.8f, 0.7f);
     glDisable(GL_CULL_FACE);
     glPushMatrix();
-    glMultMatrixf(&transform[0][0]);
+    glMultMatrixf(&T_GP[0][0]);
     glDepthRange(0.01, 1.0);
     glBegin(GL_QUADS);
     glVertex3d(corner1[0], corner1[1], corner1[2]);
@@ -1116,7 +1119,7 @@ static void renderScene() {
         computeSceneBounds(scene, sceneRadius, sceneCenter);
         float sceneScale = std::max(0.1f, sceneRadius);
 
-        float centerDepth = ~(cameraTransform.T()-sceneCenter)*(cameraTransform.R().col(2));
+        float centerDepth = ~(X_GC.p()-sceneCenter)*(X_GC.R().col(2));
         float nearClipDistance, farClipDistance;
         if (showGround) {
             nearClipDistance = nearClip;
@@ -1135,9 +1138,9 @@ static void renderScene() {
 
         gluPerspective(fieldOfView*SimTK_RADIAN_TO_DEGREE, (GLdouble) viewWidth/viewHeight, nearClipDistance, farClipDistance);
         glMatrixMode(GL_MODELVIEW);
-        fVec3 cameraPos = cameraTransform.T();
-        fVec3 centerPos = cameraTransform.T()+cameraTransform.R()*fVec3(0, 0, -1);
-        fVec3 upDir = cameraTransform.R()*fVec3(0, 1, 0);
+        fVec3 cameraPos = X_GC.p();
+        fVec3 centerPos = X_GC.p()+X_GC.R()*fVec3(0, 0, -1);
+        fVec3 upDir = X_GC.R()*fVec3(0, 1, 0);
         gluLookAt(cameraPos[0], cameraPos[1], cameraPos[2], centerPos[0], centerPos[1], centerPos[2], upDir[0], upDir[1], upDir[2]);
 
         // Render the objects in the scene.
@@ -1160,7 +1163,7 @@ static void renderScene() {
         glDepthMask(GL_FALSE);
         vector<pair<float, int> > order(scene->transparentMeshes.size());
         for (int i = 0; i < (int) order.size(); i++)
-            order[i] = make_pair((float)(~cameraTransform.R()*scene->transparentMeshes[i].getTransform().T())[2], i);
+            order[i] = make_pair((float)(~X_GC.R()*scene->transparentMeshes[i].getTransform().p())[2], i);
         sort(order.begin(), order.end());
         for (int i = 0; i < (int) order.size(); i++)
             scene->transparentMeshes[order[i].second].draw();
@@ -1303,7 +1306,7 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
         const float zoomBy    = direction * (ZoomFractionPerWheelClick * sceneScale);
 
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
-        cameraTransform.updT() += cameraTransform.R()*fVec3(0, 0, zoomBy);
+        X_GC.updP() += X_GC.R()*fVec3(0, 0, zoomBy);
         requestPassiveRedisplay();              //------ PASSIVE REDISPLAY ---
         pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
         return;
@@ -1338,13 +1341,13 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
     // Left button is rotation; when it is first pressed we calcuate the center
     // of rotation; we'll do the actual rotating in mouseDragged().
     if (clickButton == GLUT_LEFT_BUTTON) {
-        float distToCenter = (sceneCenter-cameraTransform.T()).norm();
+        float distToCenter = (sceneCenter-X_GC.p()).norm();
         float defaultDistance = sceneScale;
         if (distToCenter > defaultDistance)
             rotateCenter = sceneCenter;
         else {
-            fVec3 cameraDir = cameraTransform.R()*fVec3(0, 0, -1);
-            fVec3 lookAt = cameraTransform.T()+defaultDistance*cameraDir;
+            fVec3 cameraDir = X_GC.R()*fVec3(0, 0, -1);
+            fVec3 lookAt = X_GC.p()+defaultDistance*cameraDir;
             float fract = (defaultDistance-distToCenter)/defaultDistance;
             rotateCenter = fract*lookAt+(1-fract)*sceneCenter;
         }
@@ -1379,7 +1382,7 @@ static void mouseDragged(int x, int y) {
       || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT)) 
     {
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
-        cameraTransform.updT() += translatePerPixel*cameraTransform.R()*fVec3(dx, -dy, 0);
+        X_GC.updP() += translatePerPixel*X_GC.R()*fVec3(dx, -dy, 0);
         pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
     }
 
@@ -1388,30 +1391,30 @@ static void mouseDragged(int x, int y) {
            || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
     {
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
-        cameraTransform.updT() += translatePerPixel* cameraTransform.R()*fVec3(0, 0, dy);
+        X_GC.updP() += translatePerPixel* X_GC.R()*fVec3(0, 0, dy);
         pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
     }
 
     // rotate: left button alone: rotate scene left/right or up/down
     //         ctrl-left button:  roll scene about camera direction
     else if (clickButton == GLUT_LEFT_BUTTON && rotateCenterValid) {
-        fVec3 cameraPos = cameraTransform.T();
-        fVec3 cameraDir = cameraTransform.R()*fVec3(0, 0, -1);
-        fVec3 upDir = cameraTransform.R()*fVec3(0, 1, 0);
+        fVec3 cameraPos = X_GC.p();
+        fVec3 cameraDir = X_GC.R()*fVec3(0, 0, -1);
+        fVec3 upDir = X_GC.R()*fVec3(0, 1, 0);
         fRotation r;
         if (clickModifiers & GLUT_ACTIVE_CTRL)
             r.setRotationFromAngleAboutAxis(AnglePerPixel*(dy-dx), ZAxis);
         else
             r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence, 
                 AnglePerPixel*dy, XAxis, AnglePerPixel*dx, YAxis);
-        r = cameraTransform.R()*r*~cameraTransform.R();
+        r = X_GC.R()*r*~X_GC.R();
         cameraPos = r*(cameraPos-rotateCenter)+rotateCenter;
         cameraDir = r*cameraDir;
         upDir = r*upDir;
 
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
-        cameraTransform.updT() = cameraPos;
-        cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(-cameraDir), ZAxis, upDir, YAxis);
+        X_GC.updP() = cameraPos;
+        X_GC.updR().setRotationFromTwoAxes(fUnitVec3(-cameraDir), ZAxis, upDir, YAxis);
         pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
     }
     else
@@ -1858,7 +1861,7 @@ static Scene* readNewScene() {
             readData(buffer, 13*sizeof(float)+sizeof(short));
             fTransform position;
             position.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-            position.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            position.updP() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             fVec3 scale = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
             fVec4 color = fVec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
             short representation = (command == AddPointMesh ? DecorativeGeometry::DrawPoints : (command == AddWireframeMesh ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
@@ -2079,8 +2082,8 @@ void* listenForInput(void* args) {
         case SetCamera: {
             readData(buffer, 6*sizeof(float));
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            cameraTransform.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-            cameraTransform.updT() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            X_GC.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+            X_GC.updP() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
@@ -2095,7 +2098,7 @@ void* listenForInput(void* args) {
             fVec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             fVec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            cameraTransform.updR().setRotationFromTwoAxes(fUnitVec3(cameraTransform.T()-point), ZAxis, updir, YAxis);
+            X_GC.updR().setRotationFromTwoAxes(fUnitVec3(X_GC.p()-point), ZAxis, updir, YAxis);
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
@@ -2114,11 +2117,18 @@ void* listenForInput(void* args) {
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
-        case SetGroundPosition: {
-            readData(buffer, sizeof(float)+sizeof(short));
+        case SetSystemUpDirection: {
+            readData(buffer, 2);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            groundNormal = CoordinateDirection( CoordinateAxis((int)buffer[0]),
+                                                (int)(signed char)buffer[1] );
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetGroundHeight: {
+            readData(buffer, sizeof(float));
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
             groundHeight = floatBuffer[0];
-            groundAxis = shortBuffer[sizeof(float)/sizeof(short)];
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
@@ -2220,40 +2230,44 @@ static const int MENU_SAVE_MOVIE = 12;
 // This is the handler for our built-in "View" pull down menu.
 void viewMenuSelected(int option) {
     fRotation groundRotation;
-    if (groundAxis == 0)
+    if (groundNormal.getAxis() == XAxis)
         groundRotation.setRotationFromTwoAxes(fUnitVec3(0, 1, 0), ZAxis, fVec3(1, 0, 0), YAxis);
-    else if (groundAxis == 2)
+    else if (groundNormal.getAxis() == ZAxis)
         groundRotation.setRotationFromTwoAxes(fUnitVec3(1, 0, 0), ZAxis, fVec3(0, 0, 1), YAxis);
+
+    // Flip the camera 180 degress around one of the other axes if in a negative direction.
+    if (groundNormal.getDirection() == -1)
+        groundRotation = fRotation((float)Pi, groundNormal.getAxis().getNextAxis()) * groundRotation;
     
     switch (option) {
     case MENU_VIEW_FRONT:
-        cameraTransform.updR().setRotationToIdentityMatrix();
-        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        X_GC.updR().setRotationToIdentityMatrix();
+        X_GC.updR() = groundRotation*X_GC.R();
         zoomCameraToShowWholeScene();
         break;
     case MENU_VIEW_BACK:
-        cameraTransform.updR().setRotationFromAngleAboutY((float)SimTK_PI);
-        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        X_GC.updR().setRotationFromAngleAboutY((float)SimTK_PI);
+        X_GC.updR() = groundRotation*X_GC.R();
         zoomCameraToShowWholeScene();
         break;
     case MENU_VIEW_LEFT:
-        cameraTransform.updR().setRotationFromAngleAboutY(-(float)(SimTK_PI/2));
-        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        X_GC.updR().setRotationFromAngleAboutY(-(float)(SimTK_PI/2));
+        X_GC.updR() = groundRotation*X_GC.R();
         zoomCameraToShowWholeScene();
         break;
     case MENU_VIEW_RIGHT:
-        cameraTransform.updR().setRotationFromAngleAboutY((float)(SimTK_PI/2));
-        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        X_GC.updR().setRotationFromAngleAboutY((float)(SimTK_PI/2));
+        X_GC.updR() = groundRotation*X_GC.R();
         zoomCameraToShowWholeScene();
         break;
     case MENU_VIEW_TOP:
-        cameraTransform.updR().setRotationFromAngleAboutX(-(float)(SimTK_PI/2));
-        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        X_GC.updR().setRotationFromAngleAboutX(-(float)(SimTK_PI/2));
+        X_GC.updR() = groundRotation*X_GC.R();
         zoomCameraToShowWholeScene();
         break;
     case MENU_VIEW_BOTTOM:
-        cameraTransform.updR().setRotationFromAngleAboutX((float)(SimTK_PI/2));
-        cameraTransform.updR() = groundRotation*cameraTransform.R();
+        X_GC.updR().setRotationFromAngleAboutX((float)(SimTK_PI/2));
+        X_GC.updR() = groundRotation*X_GC.R();
         zoomCameraToShowWholeScene();
         break;
     case MENU_BACKGROUND_BLACK:

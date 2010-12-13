@@ -190,7 +190,7 @@ public:
                 }
                 Vec3 gdir = m_gravity.getDownDirection(state);
                 Real remaining = std::sqrt(std::max(0., 1-square(sliderValue)));
-                CoordinateAxis axis = CoordinateAxis::getCoordinateAxis(whichSlider-GravityX);
+                CoordinateAxis axis = CoordinateAxis(whichSlider-GravityX);
                 CoordinateAxis prev = axis.getPreviousAxis();
                 CoordinateAxis next = axis.getNextAxis();
                 Vec2 other(gdir[prev], gdir[next]);
@@ -222,7 +222,7 @@ int main() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
-    Force::Gravity gravity(forces, matter, UnitVec3(YAxis), GravityDefault);
+    Force::Gravity gravity(forces, matter, YAxis, GravityDefault); // up! (weird)
     Force::GlobalDamper(forces, matter, 7);
     Body::Rigid pendulumBody[2]; // solid, translucent
     pendulumBody[0].setDefaultRigidBodyMassProperties(MassProperties(1.0, Vec3(0), Inertia(1)));

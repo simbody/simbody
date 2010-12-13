@@ -34,7 +34,7 @@
 
 /** @file 
 Declares the Visualizer class used for collecting Simbody simulation results 
-for display and interaction through the VisualizationGUI. **/
+for display and interaction through the VisualizerGUI. **/
 
 
 #include "simbody/internal/common.h"
@@ -88,14 +88,70 @@ selectable; see setDesiredBufferLengthInSec().
 
 <h3>User interaction</h3>
 
-The Simbody VisualizationGUI provides some user interaction of its own, for
+The Simbody VisualizerGUI provides some user interaction of its own, for
 example allowing the user to control the viewpoint and display options. User
 inputs that it does not interpret locally are passed on to the simulation,
 and can be intercepted by registering InputListeners with the Visualizer. The
 Visualizer provides a class Visualizer::InputSilo which is an InputListener
 that simply captures and queues all user input, with the intent that a running
 simulation will occasionally stop to poll the InputSilo to process any input
-that has been collected. **/
+that has been collected. 
+
+<h3>Implementation notes</h3>
+
+RealTime mode is worth some discussion. There is a simulation thread that
+produces frames at a variable rate, and a draw thread that consumes frames at a
+variable rate (by sending them to the renderer). We want to engineer things so 
+that frames are sent to the renderer at a steady rate that is synchronized with
+simulation time (possibly after scaling). When a thread is running too fast, 
+that is easily handled by blocking the speeding thread for a while. The "too 
+slow" case takes careful handling.
+
+In normal operation, we expect the simulation to take varying amounts of
+real time to generate fixed amounts of simulation time, because we prefer
+to use variable time-step integrators that control errors by taking smaller
+steps in more difficult circumstances, and large steps through the easy
+parts of the simulation. For real time operation, the simulation must of
+course *average* real time performance; we use a frame buffer to smooth
+out variable delivery times. That is, frames go into the buffer at an
+irregular rate but are pulled off at a regular rate. A longer buffer can
+mask wider deviations in frame time, at the expense of interactive response.
+In most circumstances people cannot perceive delays below about 200ms, so
+for good response the total delay should be kept around that level.
+
+Despite the buffering, there will be occasions when the simulation can't
+keep up with real time. A common cause of that is that a user has paused
+either the simulation or the renderer, such as by hitting a breakpoint while
+debugging. In that case we deem the proper behavior to be that when we 
+resume we should immediately resume real time behavior at a new start time, 
+\e not attempt to catch up to the previous real time by running at high speed. 
+As much as possible, we would like the simulation to behave just as it would 
+have without the interruption, but with a long pause where interrupted. We
+deal with this situation by introducing a notion of "adjusted real time"
+(AdjRT). That is a clock that tracks the real time interval counter, but uses
+a variable base offset that is used to match it to the expected simulation 
+time. When the simulation is long delayed, we modify the AdjRT base when we
+resume so that AdjRT once again matches the simulation time t. Adjustments
+to the AdjRT base occur at the time we deliver frames to the renderer; at that
+moment we compare the AdjRT reading to the frame's simulation time t and 
+correct AdjRT for future frames.
+
+You can also run in RealTime mode without buffering. In that case frames are
+sent directly from the simulation thread to the renderer, but the above logic
+still applies. Simulation frames that arrive earlier than the corresponding
+AdjRT are delayed; frames that arrive later are drawn immediately but cause
+AdjRT to be readjusted to resynchronize. Overall performance can be better
+in unbuffered RealTime mode because the States provided by the simulation do
+not have to be copied before being drawn. However, intermittent slower-than-
+realtime frame times cannot be smoothed over; they will cause rendering delays.
+
+PassThrough and Sampling modes are much simpler because no synchronization
+is done to the simulation times. There is only a single thread and draw
+time scheduling works in real time without adjustment. 
+
+With the above explanation, you may be able to figure out most of what comes
+out of the dumpStats() method which can be used to help diagnose performance
+problems. **/
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
 class FrameController; // defined below
@@ -105,7 +161,13 @@ class Reporter;        // defined in Visualizer_Reporter.h
 
 
 /** Construct new Visualizer using default window title (the name of the 
-current executable). **/
+current executable). The camera's "up" direction will initially be set to
+match the "up" direction hint that is stored with the supplied \a system;
+the default is that "up" is in the direction of the positive Y axis. The
+background will normally include a ground plane and sky, but if the \a system
+has been set to request a uniform background we'll use a plain white 
+background instead. You can override the chosen defaults using Visualizer
+methods setSystemUpDirection() and setBackgroundType(). **/
 Visualizer(const MultibodySystem& system);
 /** Construct new Visualizer with a given window title. **/
 Visualizer(const MultibodySystem& system, const String& title);
@@ -127,7 +189,7 @@ enum Mode {
     RealTime    = 3
 };
 
-/** These are the types of backgrounds the VisualizationGUI currently supports.
+/** These are the types of backgrounds the VisualizerGUI currently supports.
 You can choose what type to use programmatically, and users can override that
 choice in the GUI. Each of these types may use additional data (such as the
 background color) when the type is selected. **/
@@ -155,33 +217,95 @@ the Ground and Sky background, which is the GUI default, is not appropriate
 for some systems (molecules for example). **/
 /**@{**/
 
-/** Change the background mode currently in effect in the GUI.
-@param background   the new background type to use **/
-void setBackgroundType(BackgroundType background) const;
 
-/** Set the position and orientation of the ground plane.\ This will be used
-when the Ground and Sky background mode is in effect.
-@param axis     the axis to which the ground plane is perpendicular; + -> up
-@param height   the position of the ground plane along the specified axis **/
-void setGroundPosition(const CoordinateAxis& axis, Real height);
+/** Change the background mode currently in effect in the GUI.\ By default
+we take the desired background type from the System, which will usually be
+at its default value which is to show a ground plane and sky. You can override
+that default choice with this method.
+@param  background   The background type to use.
+@return A reference to this Visualizer so that you can chain "set" calls. 
+@note Molmodel's CompoundSystem requests a solid background by default, since
+ground and sky is not the best way to display a molecule! **/
+Visualizer& setBackgroundType(BackgroundType background);
+
 
 /** Set the background color.\ This will be used when the solid background
-mode is in effect but has no effect otherwise.
-@param color        the background color in r,g,b format with 0..1 range **/
-void setBackgroundColor(const Vec3& color) const;
+mode is in effect but has no effect otherwise. This is a const method so you
+can call it from within a FrameController, for example if you want to flash
+the background color.
+@param  color   The background color in r,g,b format with [0,1] range.
+@return A const reference to this Visualizer so that you can chain "set" 
+calls, provided subsequent ones are also const. **/
+const Visualizer& setBackgroundColor(const Vec3& color) const;
 
-/** Control whether shadows are generated when the Ground&Sky background
-mode is in effect.
-@param showShadows      set true to have shadows generated; false for none **/
-void setShowShadows(bool showShadows) const;
+/** Control whether shadows are generated when the GroundAndSky background
+type is in effect.\ This has no effect if the ground plane is not being 
+displayed. The default if for shadows to be displayed. This is a const method
+so you can call it from within a FrameController.
+@param  showShadows     Set true to have shadows generated; false for none.
+@see setBackgroundType()
+@return A const reference to this Visualizer so that you can chain "set" 
+calls, provided subsequent ones are also const. **/
+const Visualizer& setShowShadows(bool showShadows) const;
+
+
+/** Change the title on the main VisualizerGUI window.\ The default title
+is the name of the simulation application's executable file.
+@param[in]      title   
+    The new window title. The amount of room for the title varies; keep 
+    it short.
+@return A const reference to this Visualizer so that you can chain "set" 
+calls, provided subsequent ones are also const. **/
+const Visualizer& setWindowTitle(const String& title) const;
 /**@}**/
 
 /** @name                  Visualizer options
 These methods are used for setting a variety of options for the Visualizer's
 behavior, normally prior to sending it the first frame. **/
 /**@{**/
+
+/** Set the coordinate direction that should be considered the System's "up"
+direction.\ When the ground and sky background is in use, this is the 
+direction that serves as the ground plane normal, and is used as the initial
+orientation for the camera's up direction (which is subsequently under user
+or program control and can point anywhere). If you don't set this explicitly
+here, the Visualizer takes the default up direction from the System, which
+provides a method allowing the System's creator to specify it, with the +Y
+axis being the default. 
+@param[in]      upDirection 
+    This must be one of the CoordinateAxis constants XAxis, YAxis, or ZAxis,
+    or one of the opposite directions -XAxis, -YAxis, or -ZAxis.
+@return A writable reference to this Visualizer so that you can chain "set" 
+calls in the manner of chained assignments. **/
+Visualizer& setSystemUpDirection(const CoordinateDirection& upDirection);
+/** Get the value the Visualizer is using as the System "up" direction (
+not to be confused with the camera "up" direction). **/
+CoordinateDirection getSystemUpDirection() const;
+
+/** Set the height at which the ground plane should be displayed when the
+GroundAndSky background type is in effect.\ This is interpreted along the
+system "up" direction that was specified in the Visualizer's System or was
+overridden with the setSystemUpDirection() method. The default value is zero,
+meaning that the ground plane passes through the ground origin.
+@param          height   
+    The position of the ground plane along the system "up" direction that 
+    serves as the ground plane normal. Note that \a height is \e along the 
+    up direction, meaning that if up is one of the negative coordinate axis
+    directions a positive \a height will move the ground plane to a more 
+    negative position.
+@return A reference to this Visualizer so that you can chain "set" calls.
+@see setSystemUpDirection(), setBackgroundType() **/
+Visualizer& setGroundHeight(Real height);
+/** Get the value the Visualizer considers to be the height of the ground
+plane for this System.\ The value must be interpreted along the System's "up"
+direction. @see setSystemUpDirection() **/
+Real getGroundHeight() const;
+
+
 /** Set the operating mode for the Visualizer. See \ref Visualizer::Mode for 
-choices, and the discussion for the Visualizer class for meanings. **/
+choices, and the discussion for the Visualizer class for meanings.
+@param[in]  mode    The new Mode to use.
+@return A reference to this Visualizer so that you can chain "set" calls. **/
 void setMode(Mode mode);
 /** Get the current mode being used by the Visualizer. See \ref Visualizer::Mode
 for the choices, and the discussion for the Visualizer class for meanings. **/
@@ -189,10 +313,13 @@ Mode getMode() const;
 
 /** Set the frame rate in frames/sec (of real time) that you want the 
 Visualizer to attempt to achieve. This affects all modes. The default is 30 
-frames per second for RealTime and Sampling modes; Infinity (that is, as fast 
-as possible) for PassThrough mode. Set the frame rate to zero to return 
-to the default behavior. **/
-void setDesiredFrameRate(Real framesPerSec);
+frames per second. Set the frame rate to zero to return to the default 
+behavior. 
+@param[in]      framesPerSec
+    The desired frame rate; specify as zero to get the default.
+@return A reference to this Visualizer so that you can chain "set" calls.
+**/
+Visualizer& setDesiredFrameRate(Real framesPerSec);
 /** Get the current value of the frame rate the Visualizer has been asked to 
 attempt; this is not necessarily the rate actually achieved. A return value of 
 zero means the Visualizer is using its default frame rate, which may be
@@ -213,8 +340,10 @@ remembered.
 @param[in]      simTimePerRealSecond
 The number of units of simulation time that should be displayed in one second
 of real time. Zero or negative value will be interpeted as the default ratio 
-of 1:1. **/
-void setRealTimeScale(Real simTimePerRealSecond);
+of 1:1. 
+@return A reference to this Visualizer so that you can chain "set" calls.
+**/
+Visualizer& setRealTimeScale(Real simTimePerRealSecond);
 /** Return the current time scale, which will be 1 by default.
 @see setRealTimeScale() for more information. **/
 Real getRealTimeScale() const;
@@ -240,8 +369,9 @@ This is the target time length for the buffer. The actual length is the nearest
 integer number of frames whose frame times add up closest to the request. If
 you ask for a non-zero value, you will always get at least one frame in the
 buffer. If you ask for zero, you'll get no buffering at all. To restore the
-buffer length to its default value, pass in a negative number. **/
-void setDesiredBufferLengthInSec(Real bufferLengthInSec);
+buffer length to its default value, pass in a negative number. 
+@return A reference to this Visualizer so that you can chain "set" calls. **/
+Visualizer& setDesiredBufferLengthInSec(Real bufferLengthInSec);
 /** Get the current value of the desired buffer time length the Visualizer 
 has been asked to use for smoothing the frame rate, or the default value
 if none has been requested. The actual value will differ from this number
@@ -260,16 +390,20 @@ called when the GUI detects user-driven events like key presses, menu picks,
 and slider or mouse moves. See \ref Visualizer::InputListener for more 
 information. The Visualizer takes over ownership of the supplied \a listener 
 object and deletes it upon destruction of the Visualizer; don't delete it 
-yourself. **/
-void addInputListener(InputListener* listener);
+yourself.
+@return A reference to this Visualizer so that you can chain "add" and
+"set" calls. **/
+Visualizer& addInputListener(InputListener* listener);
 
 /** Add a new frame controller to this Visualizer, methods of which will be
 called just prior to rendering a frame for the purpose of simulation-controlled
 camera positioning and other frame-specific effects. 
 See \ref Visualizer::FrameController for more information. The Visualizer takes 
 over ownership of the supplied \a controller object and deletes it upon 
-destruction of the Visualizer; don't delete it yourself. **/ 
-void addFrameController(FrameController* controller);
+destruction of the Visualizer; don't delete it yourself. 
+@return A reference to this Visualizer so that you can chain "add" and
+"set" calls. **/
+Visualizer& addFrameController(FrameController* controller);
 
 /**@}**/
 
@@ -335,7 +469,7 @@ geometry to be produced for each frame; however, once added a
 DecorationGenerator will be called for \e every frame generated. **/
 /**@{**/
 
-/** Add a new pull-down menu to the VisualizationGUI's display. A label
+/** Add a new pull-down menu to the VisualizerGUI's display. A label
 for the pull-down button is provided along with an integer identifying the
 particular menu. A list of (string,int) pairs defines the menu and submenu 
 item labels and associated item numbers. The item numbers must be unique 
@@ -349,11 +483,13 @@ that is used to define the pulldown menu layout.
 When a user picks an item on a menu displayed in the VisualizerGUI, that 
 selection is delievered to the simulation application via an InputListener
 associated with this Visualizer. The selection will be identified by
-(\a id, itemNumber) pair. **/
-void addMenu(const String& title, int id, 
-             const Array_<std::pair<String, int> >& items);
+(\a id, itemNumber) pair. 
+@return A reference to this Visualizer so that you can chain "add" and
+"set" calls. **/
+Visualizer& addMenu(const String& title, int id, 
+                   const Array_<std::pair<String, int> >& items);
 
-/** Add a new slider to the VisualizationGUI's display.
+/** Add a new slider to the VisualizerGUI's display.
 @param title    the title to display next to the slider
 @param id       an integer value that uniquely identifies this slider
 @param min      the minimum value the slider can have
@@ -363,29 +499,37 @@ void addMenu(const String& title, int id,
 When a user moves a slider displayed in the VisualizerGUI, the new value 
 is delievered to the simulation application via an InputListener associated 
 with this Visualizer. The slider will be identified by the \a id supplied
-here. **/
-void addSlider(const String& title, int id, Real min, Real max, Real value);
+here. 
+@return A reference to this Visualizer so that you can chain "add" and
+"set" calls. **/
+Visualizer& addSlider(const String& title, int id, Real min, Real max, Real value);
 
 /** Add an always-present, body-fixed piece of geometry like the one passed in,
 but attached to the indicated body. The supplied transform is applied on top of
 whatever transform is already contained in the supplied geometry, and any body 
-index stored with the geometry is ignored. **/
-void addDecoration(MobilizedBodyIndex, const Transform& X_BD, 
+index stored with the geometry is ignored. 
+@return A reference to this Visualizer so that you can chain "add" and
+"set" calls. **/
+Visualizer& addDecoration(MobilizedBodyIndex, const Transform& X_BD, 
                    const DecorativeGeometry&);
 
 /** Add an always-present rubber band line, modeled after the DecorativeLine 
 supplied here. The end points of the supplied line are ignored, however: at 
 run time the spatial locations of the two supplied stations are calculated and 
-used as end points. **/
-void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
+used as end points. 
+@return A reference to this Visualizer so that you can chain "add" and
+"set" calls. **/
+Visualizer& addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
                         MobilizedBodyIndex b2, const Vec3& station2,
                         const DecorativeLine& line);
 
 /** Add a DecorationGenerator that will be invoked to add dynamically generated
 geometry to each frame of the the scene. The Visualizer assumes ownership of the 
 object passed to this method, and will delete it when the Visualizer is 
-deleted. **/
-void addDecorationGenerator(DecorationGenerator* generator);
+deleted. 
+@return A reference to this Visualizer so that you can chain "add" and
+"set" calls. **/
+Visualizer& addDecorationGenerator(DecorationGenerator* generator);
 /**@}**/
 
 /** @name                Frame control methods
@@ -421,29 +565,29 @@ Visualizer viz;
 // frame's z axis to align with Ground's -y.
 viz.setCameraTransform(Rotation(Pi/2, XAxis));
 @endcode **/
-void setCameraTransform(const Transform& X_GC) const;
+const Visualizer& setCameraTransform(const Transform& X_GC) const;
 
 /** Move the camera forward or backward so that all geometry in the scene is 
 visible. **/
-void zoomCameraToShowAllGeometry() const;
+const Visualizer& zoomCameraToShowAllGeometry() const;
 
 /** Rotate the camera so that it looks at a specified point.
 @param point        the point to look at
 @param upDirection  a direction which should point upward as seen by the camera
 **/
-void pointCameraAt(const Vec3& point, const Vec3& upDirection) const;
+const Visualizer& pointCameraAt(const Vec3& point, const Vec3& upDirection) const;
 
 /** Set the camera's vertical field of view, measured in radians. **/
-void setCameraFieldOfView(Real fov) const;
+const Visualizer& setCameraFieldOfView(Real fov) const;
 
 /** Set the distance from the camera to the near and far clipping planes. **/
-void setCameraClippingPlanes(Real nearPlane, Real farPlane) const;
+const Visualizer& setCameraClippingPlanes(Real nearPlane, Real farPlane) const;
 
 /** Change the value currently shown on one of the sliders. 
 @param slider       the id given to the slider when created
 @param value        a new value for the slider; if out of range it will 
                     be at one of the extremes **/
-void setSliderValue(int slider, Real value) const;
+const Visualizer& setSliderValue(int slider, Real value) const;
 
 /** Change the allowed range for one of the sliders. 
 @param slider   the id given to the slider when created
@@ -451,11 +595,8 @@ void setSliderValue(int slider, Real value) const;
 @param newMax   the new upper limit on the slider range, >= newMin
 The slider's current value remains unchanged if it still fits in the
 new range, otherwise it is moved to the nearest limit. **/
-void setSliderRange(int slider, Real newMin, Real newMax) const;
+const Visualizer& setSliderRange(int slider, Real newMin, Real newMax) const;
 
-/** Change the title on the main VisualizerGUI window.\ The default title
-is the name of the simulation application's executable file. **/
-void setWindowTitle(const String& title) const;
 
 /**@}**/
 

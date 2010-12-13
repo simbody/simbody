@@ -577,13 +577,23 @@ void VisualizationProtocol::setClippingPlanes(Real near, Real far) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setGroundPosition(const CoordinateAxis& axis, Real height) {
+void VisualizationProtocol::
+setSystemUpDirection(const CoordinateDirection& upDir) {
     pthread_mutex_lock(&sceneLock);
-    WRITE(outPipe, &SetGroundPosition, 1);
-    float heightBuffer = (float) height;
-    WRITE(outPipe, &heightBuffer, sizeof(float));
-    short axisBuffer = axis;
-    WRITE(outPipe, &axisBuffer, sizeof(short));
+    WRITE(outPipe, &SetSystemUpDirection, 1);
+    const unsigned char axis = (unsigned char)upDir.getAxis();
+    const signed char   sign = (signed char)upDir.getDirection();
+    WRITE(outPipe, &axis, 1);
+    WRITE(outPipe, &sign, 1);
     pthread_mutex_unlock(&sceneLock);
 }
+
+void VisualizationProtocol::setGroundHeight(Real height) {
+    pthread_mutex_lock(&sceneLock);
+    WRITE(outPipe, &SetGroundHeight, 1);
+    float heightBuffer = (float) height;
+    WRITE(outPipe, &heightBuffer, sizeof(float));
+    pthread_mutex_unlock(&sceneLock);
+}
+
 

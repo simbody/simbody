@@ -210,7 +210,6 @@ int main() {
     MultibodySystem& system = dude.m_system;
 
     Visualizer viz(system);
-
    
     printf("\n\n***************************************************************\n");
     printf(    "use arrow keys and page up/down to control green gravity vector\n");
@@ -308,7 +307,7 @@ Vec3 Dude::springRData[] = {Vec3(12000,10,.122),
 Dude::Dude(Real scale)
 :   m_matter(m_system), m_forces(m_system), m_tracker(m_system), 
     m_contactForces(m_system, m_tracker), m_viz(m_system),
-    m_gravity(m_forces, m_matter, -UnitVec3(YAxis), 9.81),
+    m_gravity(m_forces, m_matter, -YAxis, 9.81),
     m_mass(NBodyType,massData), m_length(NBodyType,lengthData),
     m_springW(NMuscle,springWData), m_springR(NMuscle,springRData),
     m_segment(NSegment,segmentData)
