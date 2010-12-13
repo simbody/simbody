@@ -131,6 +131,10 @@ public:
 
         // TODO: protocol startup handshake
         m_protocol.setMaxFrameRate(m_frameRateFPS);
+        m_protocol.setBackgroundColor(White);
+        m_protocol.setBackgroundType(system.getUseUniformBackground() 
+                                        ? SolidColor : GroundAndSky);
+        m_protocol.setSystemUpDirection(system.getUpDirection());
     }
     
     ~VisualizerRep() {

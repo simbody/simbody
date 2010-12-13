@@ -381,7 +381,7 @@ int main() {
     viz.setMode(Visualizer::RealTime);
     viz.setDesiredBufferLengthInSec(1);
     viz.setDesiredFrameRate(FrameRate);
-    viz.setGroundPosition(YAxis, -3);
+    viz.setGroundHeight(-3);
     viz.setShowShadows(true);
 
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
