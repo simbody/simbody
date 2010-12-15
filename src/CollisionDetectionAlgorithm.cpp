@@ -57,6 +57,7 @@ CollisionDetectionAlgorithm::AlgorithmMap CollisionDetectionAlgorithm::algorithm
 static int registerStandardAlgorithms() {
     CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::HalfSpaceImpl::Type(), ContactGeometry::SphereImpl::Type(), new CollisionDetectionAlgorithm::HalfSpaceSphere());
     CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::SphereImpl::Type(), ContactGeometry::SphereImpl::Type(), new CollisionDetectionAlgorithm::SphereSphere());
+    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::HalfSpaceImpl::Type(), ContactGeometry::EllipsoidImpl::Type(), new CollisionDetectionAlgorithm::HalfSpaceEllipsoid());
     CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::HalfSpaceImpl::Type(), ContactGeometry::TriangleMeshImpl::Type(), new CollisionDetectionAlgorithm::HalfSpaceTriangleMesh());
     CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::SphereImpl::Type(), ContactGeometry::TriangleMeshImpl::Type(), new CollisionDetectionAlgorithm::SphereTriangleMesh());
     CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::TriangleMeshImpl::Type(), ContactGeometry::TriangleMeshImpl::Type(), new CollisionDetectionAlgorithm::TriangleMeshTriangleMesh());
@@ -98,10 +99,9 @@ void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects
     if (depth > 0) {
         // They are overlapping.
 
-        Real contactRadius = std::sqrt(depth*r);
         Vec3 normal = transform1.R()*Vec3(-1, 0, 0);
         Vec3 contactLocation = transform1*Vec3(0.5*depth, location[1], location[2]);
-        contacts.push_back(PointContact(index1, index2, contactLocation, normal, contactRadius, depth));
+        contacts.push_back(PointContact(index1, index2, contactLocation, normal, r, depth));
     }
 }
 
@@ -129,11 +129,47 @@ void CollisionDetectionAlgorithm::SphereSphere::processObjects
     if (depth > 0) {
         // They are overlapping.
         
-        Real curvature = r1*r2/(r1+r2);
-        Real contactRadius = std::sqrt(depth*curvature);
+        Real radius = r1*r2/(r1+r2);
         Vec3 normal = delta/dist;
         Vec3 location = transform1.p()+(r1-0.5*depth)*normal;
-        contacts.push_back(PointContact(index1, index2, location, normal, contactRadius, depth));
+        contacts.push_back(PointContact(index1, index2, location, normal, radius, depth));
+    }
+}
+
+
+
+//==============================================================================
+//                            HALF SPACE - ELLIPSOID
+//==============================================================================
+void CollisionDetectionAlgorithm::HalfSpaceEllipsoid::processObjects
+   (ContactSurfaceIndex index1, const ContactGeometry& object1,
+    const Transform& transform1,
+    ContactSurfaceIndex index2, const ContactGeometry& object2,
+    const Transform& transform2,
+    Array_<Contact>& contacts) const
+{
+    const ContactGeometry::EllipsoidImpl& ellipsoid = dynamic_cast<const ContactGeometry::EllipsoidImpl&>(object2.getImpl());
+    const Vec3& radii = ellipsoid.getRadii();
+    // Transform giving half space frame in the ellipsoid's frame.
+    const Transform trans = (~transform1)*transform2;
+    Vec3 normal = ~trans.R()*Vec3(-1, 0, 0);
+    Vec3 location(normal[0]*radii[0]*radii[0], normal[1]*radii[1]*radii[1], normal[2]*radii[2]*radii[2]);
+    location /= -std::sqrt(location[0]*location[0]/(radii[0]*radii[0])+location[1]*location[1]/(radii[1]*radii[1])+location[2]*location[2]/(radii[2]*radii[2]));
+    Real depth = (trans*location)[0];
+    if (depth > 0) {
+        // They are overlapping.  We need to calculate the principal radii of curvature.
+
+        Vec3 v1 = ~trans.R()*Vec3(0, 1, 0);
+        Vec3 v2 = ~trans.R()*Vec3(0, 0, 1);
+        Vec3 grad2(2/(radii[0]*radii[0]), 2/(radii[1]*radii[1]), 2/(radii[2]*radii[2]));
+        Real dxx = v1[0]*v1[0]*grad2[0] + v1[1]*v1[1]*grad2[1] + v1[2]*v1[2]*grad2[2];
+        Real dyy = v2[0]*v2[0]*grad2[0] + v2[1]*v2[1]*grad2[1] + v2[2]*v2[2]*grad2[2];
+        Real dxy = v1[0]*v2[0]*grad2[0] + v1[1]*v2[1]*grad2[1] + v1[2]*v2[2]*grad2[2];
+        Vec<2, complex<Real> > eigenvalues;
+        PolynomialRootFinder::findRoots(Vec3(1, -dxx-dyy, dxx*dyy-dxy*dxy), eigenvalues);
+        Vec3 contactNormal = transform2.R()*normal;
+        Vec3 contactPoint = transform2*(location+(0.5*depth)*normal);
+        contacts.push_back(PointContact(index1, index2, contactPoint, contactNormal, std::sqrt(2/eigenvalues[0].real()), std::sqrt(2/eigenvalues[1].real()), depth));
     }
 }
 

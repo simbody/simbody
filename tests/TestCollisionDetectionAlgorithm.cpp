@@ -51,6 +51,20 @@ void assertEqual(Vec<N> val1, Vec<N> val2) {
         ASSERT(abs(val1[i]-val2[i]) < TOL);
 }
 
+void verifyPointContact(const Array_<Contact>& contacts, int surface1, int surface2, const Vec3& normal, const Vec3& location, Real depth, Real r1, Real r2) {
+    ASSERT(contacts.size() == 1);
+    ASSERT(PointContact::isInstance(contacts[0]));
+    const PointContact& c = static_cast<const PointContact&>(contacts[0]);
+    assertEqual((int) c.getSurface1(), surface1);
+    assertEqual((int) c.getSurface2(), surface2);
+    assertEqual(c.getNormal(), normal);
+    assertEqual(c.getDepth(), depth);
+    assertEqual(min(c.getRadiusOfCurvature1(), c.getRadiusOfCurvature2()), min(r1, r2));
+    assertEqual(max(c.getRadiusOfCurvature1(), c.getRadiusOfCurvature2()), max(r1, r2));
+    assertEqual(c.getEffectiveRadiusOfCurvature(), sqrt(r1*r2));
+    assertEqual(c.getLocation(), location);
+}
+
 void testHalfSpaceSphere() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -80,16 +94,8 @@ void testHalfSpaceSphere() {
             ASSERT(contact.size() == 0);
         }
         else {
-            ASSERT(contact.size() == 1);
-            ASSERT(PointContact::isInstance(contact[0]));
-            const PointContact& c = static_cast<const PointContact&>(contact[0]);
-            assertEqual((int)c.getSurface1(), 1);
-            assertEqual((int)c.getSurface2(), 0);
-            assertEqual(c.getNormal(), Vec3(0, 1, 0));
             Real depth = radius-centerInGround[1]+1;
-            assertEqual(c.getDepth(), depth);
-            assertEqual(c.getRadius(), std::sqrt(radius*depth));
-            assertEqual(c.getLocation(), Vec3(centerInGround[0], 1-0.5*depth, centerInGround[2]));
+            verifyPointContact(contact, 1, 0, Vec3(0, 1, 0), Vec3(centerInGround[0], 1-0.5*depth, centerInGround[2]), depth, radius, radius);
         }
     }
 }
@@ -134,6 +140,9 @@ void testSphereSphere() {
             Vec3 delta = centerInGround[body2]-centerInGround[body1];
             assertEqual(delta.normalize(), c.getNormal());
             assertEqual(delta.norm(), radius[body1]+radius[body2]-c.getDepth());
+            double r = radius[body1]*radius[body2]/(radius[body1]+radius[body2]);
+            assertEqual(r, c.getRadiusOfCurvature1());
+            assertEqual(r, c.getRadiusOfCurvature2());
         }
 
         // Make sure no contacts were missed.
@@ -145,6 +154,45 @@ void testSphereSphere() {
                     expectedContacts++;
         ASSERT(contact.size() == expectedContacts);
     }
+}
+
+void testHalfSpaceEllipsoid() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralContactSubsystem contacts(system);
+    Vec3 radii(0.8, 1.5, 2.1);
+    Vec3 center(0.1, -0.3, 0.3); // Major axes span the ranges [-0.7, 0.9], [-1.8, 1.2], [-1.8, 2.4]
+    Random::Uniform random(0.0, 1.0);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    ContactSetIndex setIndex = contacts.createContactSet();
+    MobilizedBody::Free ellipsoid(matter.updGround(), Transform(), body, Transform());
+    contacts.addBody(setIndex, ellipsoid, ContactGeometry::Ellipsoid(radii), center);
+    contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0, 1, 0))); // y < 1
+    State state = system.realizeTopology();
+    Vec3 centerInGround;
+
+    // Test a variety of positions.
+
+    ellipsoid.setQToFitTransform(state, Transform(Rotation(), Vec3(0, 2.9, 0))); // [-0.7, 0.9], [1.1, 4.1], [-1.8, 2.4]
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    ellipsoid.setQToFitTransform(state, Transform(Rotation(), Vec3(0, 2.6, 0))); // [-0.7, 0.9], [0.8, 3.8], [-1.8, 2.4]
+    system.realize(state, Stage::Dynamics);
+    verifyPointContact(contacts.getContacts(state, setIndex), 1, 0, Vec3(0, 1, 0), Vec3(0.1, 0.9, 0.3), 0.2, 0.8, 2.1);
+    ellipsoid.setQToFitTransform(state, Transform(Rotation(SimTK_PI/2, ZAxis), Vec3(0, 1.6, 0))); // [-1.2, 1.8], [0.9, 2.5], [-1.8, 2.4]
+    system.realize(state, Stage::Dynamics);
+    verifyPointContact(contacts.getContacts(state, setIndex), 1, 0, Vec3(0, 1, 0), Vec3(0.3, 0.95, 0.3), 0.1, 1.5, 2.1);
+    ellipsoid.setQToFitTransform(state, Transform(Rotation(SimTK_PI/4, XAxis), Vec3(0, 3.1, 0)));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 1);
+    const PointContact& c = static_cast<const PointContact&>(contacts.getContacts(state, setIndex)[0]);
+    assertEqual(c.getNormal(), Vec3(0, 1, 0));
+    ASSERT(c.getDepth() < 0.3);
+    assertEqual(min(c.getRadiusOfCurvature1(), c.getRadiusOfCurvature2()), 0.8);
+    ASSERT(max(c.getRadiusOfCurvature1(), c.getRadiusOfCurvature2()) > 1.5 && max(c.getRadiusOfCurvature1(), c.getRadiusOfCurvature2()) < 2.1);
+    assertEqual(c.getLocation()[0], 0.1);
+    assertEqual(c.getLocation()[1], 1-c.getDepth()/2);
+    ASSERT(c.getLocation()[2] > 0);
 }
 
 /**
@@ -406,6 +454,7 @@ int main() {
     try {
         testHalfSpaceSphere();
         testSphereSphere();
+        testHalfSpaceEllipsoid();
         testHalfSpaceTriangleMesh();
         testSphereTriangleMesh();
         testTriangleMeshTriangleMesh();

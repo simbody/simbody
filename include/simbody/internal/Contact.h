@@ -380,11 +380,8 @@ private:
 
 
 //==============================================================================
-//                           POINT CONTACT (OBSOLETE)
+//                               POINT CONTACT
 //==============================================================================
-// OBSOLETE: this incorrectly includes the patch radius as part of the 
-// geometric information, but the returned value assumes a Hertz elastic
-// contact model. Use CircularPointContact instead.
 /**
  * This subclass of Contact represents a symmetric contact centered at a single
  * point, such as between two spheres or a sphere and a half space. It 
@@ -394,7 +391,7 @@ private:
 class SimTK_SIMBODY_EXPORT PointContact : public Contact {
 public:
     /**
-     * Create a PointContact object.
+     * Create a PointContact object representing a general (elliptical) contact.
      *
      * @param surf1    the index of the first surface involved in the contact, 
      *                 specified by its index within its contact set
@@ -405,10 +402,28 @@ public:
      * @param normal   the surface normal at the contact location. This is 
      *                 specified in the ground frame, and points outward 
      *                 from surface1 towards surface2
-     * @param radius   the radius of the contact patch
+     * @param radius1  the first principal relative radius of curvature of the contact surface
+     * @param radius2  the second principal relative radius of curvature of the contact surface
      * @param depth    the penetration depth
      */
     PointContact(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
+                 Vec3& location, Vec3& normal, Real radius1, Real radius2, Real depth);
+    /**
+     * Create a PointContact object representing a circularly symmetric contact.
+     *
+     * @param surf1    the index of the first surface involved in the contact,
+     *                 specified by its index within its contact set
+     * @param surf2    the index of the second surface involved in the contact,
+     *                 specified by its index within its contact set
+     * @param location the location where the two surfaces touch, specified in
+     *                 the ground frame
+     * @param normal   the surface normal at the contact location. This is
+     *                 specified in the ground frame, and points outward
+     *                 from surface1 towards surface2
+     * @param radius   the relative radius of curvature of the contact surface
+     * @param depth    the penetration depth
+     */
+    PointContact(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
                  Vec3& location, Vec3& normal, Real radius, Real depth);
     /**
      * The location where the two surfaces touch, specified in the ground frame.
@@ -422,9 +437,18 @@ public:
      */
     Vec3 getNormal() const;
     /**
-     * Get the radius of the contact patch.
+     * Get the first principal relative radius of curvature of the contact surface.
      */
-    Real getRadius() const;
+    Real getRadiusOfCurvature1() const;
+    /**
+     * Get the second principal relative radius of curvature of the contact surface.
+     */
+    Real getRadiusOfCurvature2() const;
+    /**
+     * Get the effective relative radius of curvature of the contact surface.  This is equal to
+     * sqrt(R1*R2), where R1 and R2 are the principal relative radii of curvature.
+     */
+    Real getEffectiveRadiusOfCurvature() const;
     /**
      * Get the penetration depth. This is defined as the minimum distance you 
      * would need to translate one surface along the normal vector to make the

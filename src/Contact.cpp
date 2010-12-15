@@ -212,16 +212,23 @@ TriangleMeshContactImpl::TriangleMeshContactImpl
 //==============================================================================
 PointContact::PointContact
    (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
-    Vec3& location, Vec3& normal, Real radius, Real depth) 
-:   Contact(new PointContactImpl(surf1, surf2, location, normal, 
-                                 radius, depth)) {}
+    Vec3& location, Vec3& normal, Real radius1, Real radius2, Real depth)
+:   Contact(new PointContactImpl(surf1, surf2, location, normal, radius1, radius2, depth)) {}
+PointContact::PointContact
+   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
+    Vec3& location, Vec3& normal, Real radius, Real depth)
+:   Contact(new PointContactImpl(surf1, surf2, location, normal, radius, depth)) {}
 
 Vec3 PointContact::getLocation() const
 {   return getImpl().location; }
 Vec3 PointContact::getNormal() const 
 {   return getImpl().normal; }
-Real PointContact::getRadius() const 
-{   return getImpl().radius; }
+Real PointContact::getRadiusOfCurvature1() const
+{   return getImpl().radius1; }
+Real PointContact::getRadiusOfCurvature2() const
+{   return getImpl().radius2; }
+Real PointContact::getEffectiveRadiusOfCurvature() const
+{   return getImpl().effectiveRadius; }
 Real PointContact::getDepth() const 
 {   return getImpl().depth; }
 
@@ -234,8 +241,14 @@ Real PointContact::getDepth() const
 
 PointContactImpl::PointContactImpl
    (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
-    Vec3& location, Vec3& normal, Real radius, Real depth) 
+    Vec3& location, Vec3& normal, Real radius1, Real radius2, Real depth)
 :   ContactImpl(surf1, surf2), location(location), normal(normal), 
-    radius(radius), depth(depth) {}
+    radius1(radius1), radius2(radius2), effectiveRadius(std::sqrt(radius1*radius2)), depth(depth) {}
+
+PointContactImpl::PointContactImpl
+   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
+    Vec3& location, Vec3& normal, Real radius, Real depth)
+:   ContactImpl(surf1, surf2), location(location), normal(normal),
+    radius1(radius), radius2(radius), effectiveRadius(radius), depth(depth) {}
 
 

@@ -52,6 +52,7 @@ class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm {
 public:
     class HalfSpaceSphere;
     class SphereSphere;
+    class HalfSpaceEllipsoid;
     class HalfSpaceTriangleMesh;
     class SphereTriangleMesh;
     class TriangleMeshTriangleMesh;
@@ -111,6 +112,20 @@ public:
         const Transform& transform1,
         ContactSurfaceIndex index2, const ContactGeometry& object2, 
         const Transform& transform2, 
+        Array_<Contact>& contacts) const;
+};
+
+/**
+ * This algorithm detects contacts between a ContactGeometry::HalfSpace and a ContactGeometry::Ellipsoid.
+ */
+class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceEllipsoid : public CollisionDetectionAlgorithm {
+public:
+    virtual ~HalfSpaceEllipsoid() {}
+    void processObjects
+       (ContactSurfaceIndex index1, const ContactGeometry& object1,
+        const Transform& transform1,
+        ContactSurfaceIndex index2, const ContactGeometry& object2,
+        const Transform& transform2,
         Array_<Contact>& contacts) const;
 };
 

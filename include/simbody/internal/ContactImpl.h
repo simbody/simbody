@@ -205,12 +205,14 @@ friend class TriangleMeshContact;
 
 
 //==============================================================================
-//                        POINT CONTACT IMPL (OBSOLETE)
+//                             POINT CONTACT IMPL
 //==============================================================================
 /** This is the internal implementation class for PointContact. **/
 class PointContactImpl : public ContactImpl {
 public:
     PointContactImpl(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
+                     Vec3& location, Vec3& normal, Real radius1, Real radius2, Real depth);
+    PointContactImpl(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
                      Vec3& location, Vec3& normal, Real radius, Real depth);
 
     ContactTypeId getTypeId() const {return classTypeId();}
@@ -223,7 +225,7 @@ private:
 friend class PointContact;
 
     Vec3 location, normal;
-    Real radius, depth;
+    Real radius1, radius2, effectiveRadius, depth;
 };
 
 
