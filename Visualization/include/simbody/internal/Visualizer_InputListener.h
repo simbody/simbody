@@ -147,11 +147,11 @@ virtual bool sliderMoved(int slider, Real value) {return false;}
 //                              INPUT SILO
 //==============================================================================
 /** This pre-built InputListener is extremely useful for processing user
-input that is intended to affect a running simulation.\ The idea is that this 
+input that is intended to affect a running simulation. The idea is that this 
 object saves up all the user input in a set of "silos", which are 
-first-in-first-out (FIFO) queues.\ The simulation periodically checks ("polls") 
+first-in-first-out (FIFO) queues. The simulation periodically checks ("polls") 
 to see if there is anything in the silos that needs processing, pulling off one
-user input at a time until they have all been consumed.\ This eliminates any 
+user input at a time until they have all been consumed. This eliminates any 
 need for tricky asynchronous handling of user input, and all thread 
 synchronization issues are handled invisibly. 
 
@@ -208,7 +208,6 @@ unsigned key, modifiers;
 do {silo->waitForKeyHit(key,modifiers);}
 while (key != Visualizer::InputListener::KeyEnter);
 @endcode
-which
 Similar methods are available for all the different input types, and you
 can also wait on the arrival of \e any input.
 
@@ -234,7 +233,11 @@ will have a value that was recently correct and can thus be used for a very
 fast check on whether there is likely to be any input worth holding a lock for;
 the isAnyUserInput() method returns \c true when the count is non-zero. It may
 occasionally return zero in cases where there is input, but only if that input
-just arrived so you can safely pick it up on the next poll. **/
+just arrived so you can safely pick it up on the next poll. 
+
+When possible we optimize for the case where many inputs arrive from the
+same device by just keeping the most recent value. That applies to slider
+and mouse moves. **/
 class SimTK_SIMBODY_EXPORT Visualizer::InputSilo
 :   public Visualizer::InputListener {
 public:

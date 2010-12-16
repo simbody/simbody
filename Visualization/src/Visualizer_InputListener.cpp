@@ -232,14 +232,22 @@ bool Visualizer::InputSilo::menuSelected(int menu, int item) {
     impl.UNLOCK_silo();
     return true;
 }
+
+// We optimize here for the common case that the same slider is moving
+// for a while -- in that case we just keep the most recent position.
 bool Visualizer::InputSilo::sliderMoved(int slider, Real value) {
     Impl& impl = updImpl();
     impl.LOCK_silo();
-    impl.m_sliderMoveSilo.push_back(std::make_pair(slider,value));
-    if (++impl.m_inputCount == 1)
-        impl.POST_anyInput();   // in case someone was waiting for any input
-    if (impl.m_sliderMoveSilo.size() == 1)
-        impl.POST_sliderMove(); // a slider move is now available
+    std::deque<std::pair<int,Real> >& silo = impl.m_sliderMoveSilo;
+    if (!silo.empty() && silo.front().first == slider)
+        silo.front().second = value; // just replace the value; count unchanged
+    else {
+        silo.push_back(std::make_pair(slider,value));
+        if (++impl.m_inputCount == 1)
+            impl.POST_anyInput(); // in case someone was waiting for any input
+        if (silo.size() == 1)
+            impl.POST_sliderMove(); // a slider move is now available
+    }
     impl.UNLOCK_silo();
     return true;
 }

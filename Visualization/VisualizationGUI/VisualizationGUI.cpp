@@ -1260,8 +1260,8 @@ static void redrawDisplay() {
 
     if (showFPS || showFrameNum || showSimTime) {
         glColor3f(1.0f, 0.5f, 0.0f);
-        void* font = (void*)GLUT_BITMAP_9_BY_15;
-        GLfloat nextLine = 25, lineHeight = 15;
+        void* font = (void*)GLUT_BITMAP_HELVETICA_18;
+        GLfloat nextLine = 25, lineHeight = 18;
         if (showFPS) {
         char fpstxt[64]; sprintf(fpstxt, "FPS:   %.1f", fps); // 1 decimal place
             glRasterPos2f(10, nextLine);

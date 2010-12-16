@@ -239,6 +239,7 @@ int main() {
     // Attach the last body back to ground.
     Constraint::Ball(matter.Ground(), Vec3(NBodies/2,0,0), lastBody, Vec3(0));
 
+    //matter.setShowDefaultGeometry(false);
     Visualizer viz(system);
 
     viz.setWindowTitle("This is the so-called 'ChainExample'.");
