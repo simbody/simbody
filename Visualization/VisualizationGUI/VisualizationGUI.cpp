@@ -2314,6 +2314,7 @@ static void dumpAboutMessageToConsole() {
     printf(  "GL vendor:    %s\n", glGetString(GL_VENDOR));
     printf("\nAuthors: Peter Eastman, Michael Sherman\n");
     printf(  "Support: Simbios, Stanford Bioengineering, NIH U54 GM072970\n");
+    printf(  "https://simtk.org/home/simbody\n");
     printf("================================================================\n\n");
 }
 
