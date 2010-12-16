@@ -160,17 +160,15 @@ class InputSilo;       //                 "
 class Reporter;        // defined in Visualizer_Reporter.h
 
 
-/** Construct new Visualizer using default window title (the name of the 
-current executable). The camera's "up" direction will initially be set to
-match the "up" direction hint that is stored with the supplied \a system;
-the default is that "up" is in the direction of the positive Y axis. The
-background will normally include a ground plane and sky, but if the \a system
-has been set to request a uniform background we'll use a plain white 
-background instead. You can override the chosen defaults using Visualizer
-methods setSystemUpDirection() and setBackgroundType(). **/
+/** Construct a new Visualizer for the indicated System. The camera's "up" 
+direction will initially be set to match the "up" direction hint that is 
+stored with the supplied \a system; the default is that "up" is in the 
+direction of the positive Y axis. The background will normally include a 
+ground plane and sky, but if the \a system has been set to request a uniform 
+background we'll use a plain white background instead. You can override the 
+chosen defaults using Visualizer methods setSystemUpDirection() and 
+setBackgroundType(). **/
 Visualizer(const MultibodySystem& system);
-/** Construct new Visualizer with a given window title. **/
-Visualizer(const MultibodySystem& system, const String& title);
 /** InputListener, FrameController, and DecorationGenerator objects are 
 destroyed here. **/
 ~Visualizer();
@@ -248,14 +246,17 @@ so you can call it from within a FrameController.
 calls, provided subsequent ones are also const. **/
 const Visualizer& setShowShadows(bool showShadows) const;
 
-
 /** Change the title on the main VisualizerGUI window.\ The default title
-is the name of the simulation application's executable file.
+is Simbody \e version : \e exename, where \e version is the current Simbody
+version number in major.minor.patch format and \e exename is the name of the 
+executing simulation application's executable file (without suffix if any).
 @param[in]      title   
     The new window title. The amount of room for the title varies; keep 
     it short.
 @return A const reference to this Visualizer so that you can chain "set" 
-calls, provided subsequent ones are also const. **/
+calls, provided subsequent ones are also const. 
+@see SimTK_version_simbody(), Pathname::getThisExecutablePath(),
+Pathname::desconstructPathname() **/
 const Visualizer& setWindowTitle(const String& title) const;
 /**@}**/
 

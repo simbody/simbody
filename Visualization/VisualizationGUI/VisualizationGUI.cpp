@@ -335,7 +335,9 @@ is signaled by the renderer when it finishes drawing the front scene. */
 // This object holds a scene. There are at most two of these around.
 class Scene {
 public:
-    Scene() : sceneHasBeenDrawn(false) {}
+    Scene() : simTime(0), sceneHasBeenDrawn(false) {}
+
+    float simTime; // simulated time associated with this frame
 
     vector<RenderedMesh> drawnMeshes;
     vector<RenderedMesh> solidMeshes;
@@ -374,6 +376,17 @@ static int numMopUpDisplaysSinceLastRedisplay = 0;
 // no frames are received, the GUI may issue its own redisplays and should
 // not do so any faster than this.
 static float maxFrameRate = 30; // in frames/sec
+
+// This is set during the initial handshake with the simulator process.
+// It is the file name (not full path) of the simulator executable,
+// suitable for use in the title or an "about" message.
+static string simulatorExecutableName;
+
+// This is the Simbody version number from the simulator, as major/minor/patch,
+// as received in the initial handshake.
+static int simbodyVersion[3];
+// Constructed from version numbers -- if patch is 0 will just be major.minor.
+static string simbodyVersionStr;
 
 // These are used when saving a movie.
 static bool savingMovie = false, saveNextFrameToMovie = false;
@@ -420,15 +433,17 @@ static GLfloat nearClip = 1;
 static GLfloat farClip = 1000;
 static GLfloat groundHeight = 0;
 static CoordinateDirection groundNormal = YAxis; // the +Y direction
-static bool showGround = true, showShadows = true, showFPS = true;
+static bool showGround=true, showShadows=true;
+static bool showFPS=false, showSimTime=false, showFrameNum=false;
 static fVec3 backgroundColor = fVec3(1,1,1); // white is the default
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
+static float lastSceneSimTime = 0.0f;
 static int fpsCounter = 0, nextMeshIndex;
 static int frameCounter = 0;
 static double fpsBaseTime = 0;
 
-static string overlayMessage;
+static vector<string> overlayMessageLines;
 static bool displayOverlayMessage = false;
 
 static void setClearColorToBackgroundColor() {
@@ -1099,6 +1114,10 @@ static void renderScene() {
     pthread_mutex_lock(&sceneLock);             //-------- LOCK SCENE --------
 
     if (scene != NULL) {
+        // Remember the simulated time associated with the most recent rendered
+        // scene.
+        lastSceneSimTime = scene->simTime;
+
         // Execute any pending commands that need to be executed on the 
         // rendering thread. This happens only the first time a particular
         // scene is drawn because we delete the pending commands after 
@@ -1237,28 +1256,70 @@ static void redrawDisplay() {
     for (int i = 0; i < (int) sliders.size(); i++)
         slidery = sliders[i].draw(slidery);
 
-    // Draw the frame rate counter.
+    // Draw the "heads-up" display.
 
-    if (showFPS) {
-        char fpstxt[64]; sprintf(fpstxt, "FPS: %.1f", fps); // 1 decimal place
-        char cnttxt[64]; sprintf(cnttxt, "#%d", frameCounter);
+    if (showFPS || showFrameNum || showSimTime) {
         glColor3f(1.0f, 0.5f, 0.0f);
-        glRasterPos2f(10, 25);
-        for (const char* p = fpstxt; *p; ++p)
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *p);
-        glRasterPos2f(10, 25+18);
-        for (const char* p = cnttxt; *p; ++p)
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *p);
+        void* font = (void*)GLUT_BITMAP_9_BY_15;
+        GLfloat nextLine = 25, lineHeight = 15;
+        if (showFPS) {
+        char fpstxt[64]; sprintf(fpstxt, "FPS:   %.1f", fps); // 1 decimal place
+            glRasterPos2f(10, nextLine);
+            for (const char* p = fpstxt; *p; ++p)
+                glutBitmapCharacter(font, *p);
+            nextLine += lineHeight;
+        }
+        if (showSimTime) {
+            char timetxt[64]; sprintf(timetxt, "Time:  %.1f", lastSceneSimTime);
+            glRasterPos2f(10, nextLine);
+            for (const char* p = timetxt; *p; ++p)
+                glutBitmapCharacter(font, *p);
+            nextLine += lineHeight;
+        }
+        if (showFrameNum) {
+            char cnttxt[64]; sprintf(cnttxt, "Frame: %d", frameCounter);
+            glRasterPos2f(10, nextLine);
+            for (const char* p = cnttxt; *p; ++p)
+                glutBitmapCharacter(font, *p);
+            nextLine += lineHeight;
+        }
     }
 
-    // Draw a message overlay.
+    // Draw a message overlay (center box, with text left justified in box).
 
     if (displayOverlayMessage) {
-        glColor3f(1.0f, 0.5f, 0.0f);
-        int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) overlayMessage.c_str());
-        glRasterPos2f(GLfloat(max(0, (viewWidth-width)/2)), GLfloat(viewHeight/2));
-        for (int i = 0; i < (int) overlayMessage.size(); i++)
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, overlayMessage[i]);
+        void* font = (void*)GLUT_BITMAP_HELVETICA_18;
+        const int lineSpacing = 25;
+        int width = 0;
+        for (unsigned i=0; i < overlayMessageLines.size(); ++i)
+            width = max(width, glutBitmapLength(font, 
+                                    (unsigned char*)overlayMessageLines[i].c_str()));
+        int height = lineSpacing * (int)overlayMessageLines.size();
+
+        GLfloat xpos = GLfloat(max(0, (viewWidth-width)/2));
+        GLfloat ypos = GLfloat(max(0, (viewHeight-height)/2));
+
+        GLfloat xborder = 4;
+        Vec<2,GLfloat> tl(xpos-xborder, ypos-19);
+        Vec<2,GLfloat> br(xpos+(float)width+xborder, ypos-19+(float)height);
+
+        // Draw an orange background.
+        glColor3f(1.0f, 0.5f, 0.f);
+        glBegin(GL_QUADS);
+        glVertex2f(tl[0],tl[1]); 
+        glVertex2f(tl[0],br[1]);
+        glVertex2f(br[0],br[1]); 
+        glVertex2f(br[0],tl[1]);
+        glEnd();
+
+        // Draw dark gray text.
+        glColor3f(0.2f, 0.2f, 0.2f);
+        for (unsigned line=0; line < overlayMessageLines.size(); ++line) {
+            glRasterPos2f(xpos, ypos);
+            for (unsigned i = 0; i < overlayMessageLines[line].size(); i++)
+                glutBitmapCharacter(font, overlayMessageLines[line][i]);
+            ypos += (float)lineSpacing;
+        }
     }
 
     glMatrixMode(GL_PROJECTION);
@@ -1476,8 +1537,21 @@ static void disableOverlayTimer(int value) {
 }
 
 static void setOverlayMessage(const string& message) {
-    overlayMessage = message;
+    if (displayOverlayMessage) return; // there is already one up
+    overlayMessageLines.clear();
+    string::size_type start = 0;
+    while (start < message.size()) {
+        string::size_type newline = message.find_first_of('\n', start);
+        if (newline == string::npos) newline = message.size();
+        overlayMessageLines.push_back(message.substr(start, newline-start));
+        start = newline+1;
+    }
+
+    if (overlayMessageLines.empty())
+        return;
+
     displayOverlayMessage = true;
+    requestPassiveRedisplay();                   //------ PASSIVE REDISPLAY ---
     glutTimerFunc(5000, disableOverlayTimer, 0);
 }
 
@@ -1547,14 +1621,13 @@ static void saveImage() {
     do {
         counter++;
         stringstream namestream;
-        namestream << "Saved Image ";
+        namestream << simulatorExecutableName.c_str() << "_";
         namestream << counter;
         namestream << ".png";
         filename = namestream.str();
     } while (stat(filename.c_str(), &statInfo) == 0);
     writeImage(filename);
-    setOverlayMessage("Saved as: "+filename);
-    requestPassiveRedisplay();
+    setOverlayMessage("Image saved as:\n"+filename);
 }
 
 static void saveMovie() {
@@ -1564,7 +1637,7 @@ static void saveMovie() {
     do {
         counter++;
         stringstream namestream;
-        namestream << "Saved Movie ";
+        namestream << simulatorExecutableName.c_str() << "_";
         namestream << counter;
         dirname = namestream.str();
     } while (stat(dirname.c_str(), &statInfo) == 0);
@@ -1574,14 +1647,13 @@ static void saveMovie() {
     int result = mkdir(dirname.c_str(), 0777);
 #endif
     if (result == -1)
-        setOverlayMessage("Failed to create directory: "+dirname);
+        setOverlayMessage("Failed to create directory:\n"+dirname);
     else {
         movieDir = dirname;
         movieFrame = 1;
         savingMovie = true;
-        setOverlayMessage("Saving frames to: "+dirname);
+        setOverlayMessage("Capturing frames in:\n"+dirname);
     }
-    requestPassiveRedisplay();
 }
 
 static void addVec(vector<float>& data, float x, float y, float z) {
@@ -1823,12 +1895,15 @@ static void makeCircle() {
     meshes[MeshCircle] = new Mesh(vertices, normals, faces);
 }
 
-// Read a particular number of bytes from the inPipe to the given data.
+// Read a particular number of bytes from srcPipe to the given buffer.
 // This will hang until the expected number of bytes has been received.
-static void readData(char* buffer, int bytes) {
+static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
     while (totalRead < bytes)
-        totalRead += READ(inPipe, buffer+totalRead, bytes-totalRead);
+        totalRead += READ(srcPipe, buffer+totalRead, bytes-totalRead);
+}
+static void readData(unsigned char* buffer, int bytes) {
+    readDataFromPipe(inPipe, buffer, bytes);
 }
 
 // We have just processed a StartOfScene command. Read in all the scene
@@ -1836,12 +1911,16 @@ static void readData(char* buffer, int bytes) {
 // object to hold the scene and return a pointer to it. Don't forget to
 // delete that object when you are done with it.
 static Scene* readNewScene() {
-    char buffer[256];
+    unsigned char buffer[256];
     float*          floatBuffer = (float*)          buffer;
     int*            intBuffer   = (int*)            buffer;
     unsigned short* shortBuffer = (unsigned short*) buffer;
 
     Scene* newScene = new Scene;
+
+    // Simulated time for this frame comes first.
+    readData(buffer, sizeof(float));
+    newScene->simTime = floatBuffer[0];
 
     bool finished = false;
     while (!finished) {
@@ -1902,7 +1981,7 @@ static Scene* readNewScene() {
             fVec3 color = fVec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
             short length = shortBuffer[7*sizeof(float)/sizeof(short)];
             readData(buffer, length);
-            newScene->strings.push_back(RenderedText(position, scale, color, string(buffer, length)));
+            newScene->strings.push_back(RenderedText(position, scale, color, string((char*)buffer, length)));
             break;
         }
 
@@ -1960,8 +2039,8 @@ static Scene* readNewScene() {
             mesh->vertices.resize(3*numVertices, 0);
             mesh->normals.resize(3*numVertices);
             mesh->faces.resize(3*numFaces);
-            readData((char*) &mesh->vertices[0], mesh->vertices.size()*sizeof(float));
-            readData((char*) &mesh->faces[0], mesh->faces.size()*sizeof(short));
+            readData((unsigned char*)&mesh->vertices[0], mesh->vertices.size()*sizeof(float));
+            readData((unsigned char*)&mesh->faces[0], mesh->faces.size()*sizeof(short));
 
             // Compute normal vectors for the mesh.
 
@@ -2012,11 +2091,13 @@ static Scene* readNewScene() {
 // thread must not make any gl or glut calls; any operations that require
 // those are queued for later handing in the rendering thread.
 void* listenForInput(void* args) {
-    char buffer[256];
+    unsigned char buffer[256];
     float* floatBuffer = (float*) buffer;
     int* intBuffer = (int*) buffer;
     unsigned short* shortBuffer = (unsigned short*) buffer;
-    while (true) {
+
+    try
+  { while (true) {
         bool issuedActiveRedisplay = false;
         // Read commands from the simulator.
         readData(buffer, 1);
@@ -2025,7 +2106,7 @@ void* listenForInput(void* args) {
             readData(buffer, sizeof(short));
             int titleLength = shortBuffer[0];
             vector<char> titleBuffer(titleLength);
-            readData(&titleBuffer[0], titleLength);
+            readData((unsigned char*)&titleBuffer[0], titleLength);
             string title(&titleBuffer[0], titleLength);
             readData(buffer, sizeof(int));
             const int menuId = intBuffer[0];
@@ -2036,7 +2117,7 @@ void* listenForInput(void* args) {
                 readData(buffer, 2*sizeof(int));
                 items[index].second = intBuffer[0];
                 vector<char> textBuffer(intBuffer[1]);
-                readData(&textBuffer[0], intBuffer[1]);
+                readData((unsigned char*)&textBuffer[0], intBuffer[1]);
                 items[index].first = string(&textBuffer[0], intBuffer[1]);
             }
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
@@ -2048,7 +2129,7 @@ void* listenForInput(void* args) {
             readData(buffer, sizeof(short));
             int titleLength = shortBuffer[0];
             vector<char> titleBuffer(titleLength);
-            readData(&titleBuffer[0], titleLength);
+            readData((unsigned char*)&titleBuffer[0], titleLength);
             string title(&titleBuffer[0], titleLength);
             readData(buffer, sizeof(int)+3*sizeof(float));
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
@@ -2136,7 +2217,7 @@ void* listenForInput(void* args) {
             readData(buffer, sizeof(short));
             int titleLength = shortBuffer[0];
             vector<char> titleBuffer(titleLength);
-            readData(&titleBuffer[0], titleLength);
+            readData((unsigned char*)&titleBuffer[0], titleLength);
             string title(&titleBuffer[0], titleLength);
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
             pendingCommands.push_back(new PendingWindowTitleChange(title));
@@ -2200,14 +2281,40 @@ void* listenForInput(void* args) {
         }
 
         default:
-            SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
+            SimTK_ERRCHK1_ALWAYS(false, "listenForInput()",
+                "Unexpected command %u received from VisualizerGUI. Can't continue.",
+                (unsigned)buffer[0]);
         }
 
         // Do this after every received command.
         if (!issuedActiveRedisplay)
             requestPassiveRedisplay();         //------- PASSIVE REDISPLAY --
     }
-    return 0;
+  } catch (const std::exception& e) {
+        std::cout << "VisualizerGUI listenerThread: unrecoverable error:\n";
+        std::cout << e.what() << std::endl;
+        return (void*)1;
+    }
+    return (void*)0;
+}
+
+static void dumpAboutMessageToConsole() {
+    printf("\n\n=================== ABOUT SIMBODY VISUALIZER ===================\n");
+    printf("Simbody(tm) %s VisualizerGUI (protocol rev. %u)\n", 
+        simbodyVersionStr.c_str(), ProtocolVersion);
+    printf("\nName of invoking executable: %s\n", simulatorExecutableName);
+    printf(  "Current working directory:\n  %s\n",
+        Pathname::getCurrentWorkingDirectory().c_str());
+    printf(  "VisualizerGUI executable:\n  %s\n",
+        Pathname::getThisExecutablePath().c_str());
+    printf(  "Current window size: %d X %d\n", viewWidth, viewHeight);
+    printf("\nGL version:   %s\n", glGetString(GL_VERSION));
+    printf(  "GLSL version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    printf(  "GL renderer:  %s\n", glGetString(GL_RENDERER));
+    printf(  "GL vendor:    %s\n", glGetString(GL_VENDOR));
+    printf("\nAuthors: Peter Eastman, Michael Sherman\n");
+    printf(  "Support: Simbios, Stanford Bioengineering, NIH U54 GM072970\n");
+    printf("================================================================\n\n");
 }
 
 static const int MENU_VIEW_FRONT = 0;
@@ -2223,9 +2330,13 @@ static const int MENU_BACKGROUND_SKY = 8;
 
 static const int MENU_SHOW_SHADOWS = 9;
 static const int MENU_SHOW_FPS = 10;
+static const int MENU_SHOW_SIM_TIME = 11;
+static const int MENU_SHOW_FRAME_NUM = 12;
 
-static const int MENU_SAVE_IMAGE = 11;
-static const int MENU_SAVE_MOVIE = 12;
+static const int MENU_SAVE_IMAGE = 13;
+static const int MENU_SAVE_MOVIE = 14;
+
+static const int MENU_ABOUT = 15;
 
 // This is the handler for our built-in "View" pull down menu.
 void viewMenuSelected(int option) {
@@ -2289,14 +2400,25 @@ void viewMenuSelected(int option) {
     case MENU_SHOW_FPS:
         showFPS = !showFPS;
         break;
+    case MENU_SHOW_SIM_TIME:
+        showSimTime = !showSimTime;
+        break;
+    case MENU_SHOW_FRAME_NUM:
+        showFrameNum = !showFrameNum;
+        break;
     case MENU_SAVE_IMAGE:
         saveImage();
         break;
     case MENU_SAVE_MOVIE:
-        if (savingMovie)
+        if (savingMovie) {
             savingMovie = false;
-        else
+            setOverlayMessage("Frame capture off.");
+        } else
             saveMovie();
+        break;
+    case MENU_ABOUT:
+        dumpAboutMessageToConsole();
+        setOverlayMessage("About: see console window");
         break;
     }
 
@@ -2361,6 +2483,43 @@ static void setVsync(bool enable) {
 #endif
 }
 
+// This is executed from the main thread at startup.
+static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
+    unsigned char handshakeCommand;
+    readDataFromPipe(fromSimPipe, &handshakeCommand, 1);
+    SimTK_ERRCHK2_ALWAYS(handshakeCommand == StartupHandshake,
+        "VisualizerGUI::shakeHandsWithSimulator()",
+        "Expected initial handshake command %u but received %u. Can't continue.",
+        (unsigned)StartupHandshake, (unsigned)handshakeCommand);
+
+    unsigned SimVersion;
+    readDataFromPipe(fromSimPipe, (unsigned char*)&SimVersion, sizeof(unsigned int));
+    SimTK_ERRCHK2_ALWAYS(SimVersion == ProtocolVersion,
+        "VisualizerGUI::shakeHandsWithSimulator()",
+        "The Simbody Visualizer class protocol version %u is not compatible with "
+        " VisualizerGUI protocol %u; this may be an installation problem."
+        " Can't continue.",
+        SimVersion, ProtocolVersion);
+
+    // Get Simbody version number as major,minor,patch
+    readDataFromPipe(fromSimPipe, (unsigned char*)simbodyVersion, 3*sizeof(int));
+    simbodyVersionStr = String(simbodyVersion[0]) + "." + String(simbodyVersion[1]);
+    if (simbodyVersion[2]) simbodyVersionStr += "." + String(simbodyVersion[2]);
+
+    unsigned exeNameLength;
+    char exeNameBuf[256]; // just a file name, not a path name
+    readDataFromPipe(fromSimPipe, (unsigned char*)&exeNameLength, sizeof(unsigned));
+    SimTK_ASSERT_ALWAYS(exeNameLength <= 255, 
+        "VisualizerGUI: executable name length violates protocol.");
+    readDataFromPipe(fromSimPipe, (unsigned char*)exeNameBuf, exeNameLength);
+    exeNameBuf[exeNameLength] = (char)0;
+
+    simulatorExecutableName = std::string(exeNameBuf, exeNameLength);
+
+    WRITE(outPipe, &ReturnHandshake, 1);
+    WRITE(outPipe, &ProtocolVersion, sizeof(unsigned));
+}
+
 int main(int argc, char** argv) {
   try
   { SimTK_ERRCHK_ALWAYS(argc >= 3, "VisualizationGUI main()",
@@ -2369,22 +2528,14 @@ int main(int argc, char** argv) {
     stringstream(argv[1]) >> inPipe;
     stringstream(argv[2]) >> outPipe;
 
-    string title("Simbody Visualizer");
-    if (argc >= 4 && argv[3])
-        title += ": " + string(argv[3]);
-
-
     // Initialize GLUT, then perform initial handshake with the parent
-    // from the main thread here. (TODO: no handshake yet)
+    // from the main thread here.
     glutInit(&argc, argv);
 
-    //char handshakeCmd; 
-    //readData(&handshakeCmd, 1);
-    //SimTK_ERRCHK2_ALWAYS(handshakeCmd == StartupHandshake,
-    //    "VisualizationGUI main()",
-    //    "GUI expected the first message from the simulation to be the"
-    //    " startup handshake command %d, but received %d. Can't continue.",
-    //    StartupHandshake, handshakeCmd);
+    shakeHandsWithSimulator(inPipe, outPipe);
+
+    // Construct the default initial title.
+    string title = "Simbody " + simbodyVersionStr + ": " + simulatorExecutableName;
 
     // Put the upper left corner of the glut window near the upper right 
     // corner of the screen.
@@ -2398,15 +2549,6 @@ int main(int argc, char** argv) {
     glutInitWindowSize(DefaultWindowWidth, DefaultWindowHeight);
     glutCreateWindow(title.c_str());
 
-    printf("\n\nSimbody Visualizer GUI\n"
-               "OpenGL version information:\n"
-               "---------------------------\n"
-               "Vendor:   %s\n" 
-               "Renderer: %s\n"
-               "Version:  %s\n"
-               "GLSL:     %s\n", 
-        glGetString (GL_VENDOR), glGetString (GL_RENDERER),
-        glGetString (GL_VERSION), glGetString (GL_SHADING_LANGUAGE_VERSION));
 
     // Set up callback funtions.
     glutDisplayFunc(redrawDisplay);
@@ -2467,8 +2609,11 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Background/Ground and Sky", MENU_BACKGROUND_SKY));
     items.push_back(make_pair("Show//Hide/Shadows", MENU_SHOW_SHADOWS));
     items.push_back(make_pair("Show//Hide/Frame Rate", MENU_SHOW_FPS));
+    items.push_back(make_pair("Show//Hide/Sim Time", MENU_SHOW_SIM_TIME));
+    items.push_back(make_pair("Show//Hide/Frame #", MENU_SHOW_FRAME_NUM));
     items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
     items.push_back(make_pair("Save Movie", MENU_SAVE_MOVIE));
+    items.push_back(make_pair("About (to console)", MENU_ABOUT));
     menus.push_back(Menu("View", Visualizer::ViewMenuId, items, viewMenuSelected));
 
     // Initialize pthread lock and condition variable.

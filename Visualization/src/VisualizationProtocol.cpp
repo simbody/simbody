@@ -82,8 +82,7 @@ static int createPipe(int pipeHandles[2]) {
 // and return after the first one succeeds. If neither works, we throw
 // an error that is hopefully helful.
 static void spawnViz(const char* localPath, const char* installPath,
-                    const char* appName, int toSimPipe, int fromSimPipe,
-                    const char* title)
+                    const char* appName, int toSimPipe, int fromSimPipe)
 {
     int status;
     char vizPipeToSim[32], vizPipeFromSim[32];
@@ -93,19 +92,19 @@ static void spawnViz(const char* localPath, const char* installPath,
 #ifdef _WIN32
     intptr_t handle;
     handle = _spawnl(P_NOWAIT, localPath, appName, 
-                     vizPipeToSim, vizPipeFromSim, title, (const char*)0);
+                     vizPipeToSim, vizPipeFromSim, (const char*)0);
     if (handle == -1)
         handle = _spawnl(P_NOWAIT, installPath, appName, 
-                         vizPipeToSim, vizPipeFromSim, title, (const char*)0);
+                         vizPipeToSim, vizPipeFromSim, (const char*)0);
     status = (handle==-1) ? -1 : 0;
 #else
     const pid_t pid = fork();
     if (pid == 0) {
         // child process
-        status = execl(localPath, appName, vizPipeToSim, vizPipeFromSim, title,
+        status = execl(localPath, appName, vizPipeToSim, vizPipeFromSim,
                        (const char*)0); 
         // if we get here the execl() failed
-        status = execl(installPath, appName, vizPipeToSim, vizPipeFromSim, title,
+        status = execl(installPath, appName, vizPipeToSim, vizPipeFromSim,
                        (const char*)0); 
        // fall through
     } else {
@@ -120,78 +119,74 @@ static void spawnViz(const char* localPath, const char* installPath,
         localPath, installPath, errno, strerror(errno));
 }
 
-static void readData(unsigned char* buffer, int bytes) {
+static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
     while (totalRead < bytes)
-        totalRead += READ(inPipe, buffer+totalRead, bytes-totalRead);
+        totalRead += READ(srcPipe, buffer+totalRead, bytes-totalRead);
+}
+
+static void readData(unsigned char* buffer, int bytes) 
+{
+    readDataFromPipe(inPipe, buffer, bytes);
 }
 
 static void* listenForVisualizationEvents(void* arg) {
     Visualizer& visualizer = *reinterpret_cast<Visualizer*>(arg);
     unsigned char buffer[256];
-    while (true) {
-        // Receive an event.
+
+    try
+  { while (true) {
+        // Receive a user input event.
 
         readData(buffer, 1);
         switch (buffer[0]) {
-            case KeyPressed: {
-                readData(buffer, 2);
-                const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
-                unsigned keyCode = buffer[0];
-                if (buffer[1] & Visualizer::InputListener::IsSpecialKey)
-                    keyCode += Visualizer::InputListener::SpecialKeyOffset;
-                for (int i = 0; i < (int) listeners.size(); i++)
-                    if (listeners[i]->keyPressed(keyCode, (unsigned)(buffer[1])))
-                        break; // key press has been handled
-                break;
-            }
-            case MenuSelected: {
-                int menu, item;
-                readData((unsigned char*) &menu, sizeof(int));
-                readData((unsigned char*) &item, sizeof(int));
-                const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
-                for (int i = 0; i < (int) listeners.size(); i++)
-                    if (listeners[i]->menuSelected(menu, item))
-                        break; // menu event has been handled
-                break;
-            }
-            case SliderMoved: {
-                int slider;
-                readData((unsigned char*) &slider, sizeof(int));
-                float value;
-                readData((unsigned char*) &value, sizeof(float));
-                const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
-                for (int i = 0; i < (int) listeners.size(); i++)
-                    if (listeners[i]->sliderMoved(slider, value))
-                        break; // slider event has been handled
-                break;
-            }
-            default:
-                SimTK_ASSERT_ALWAYS(false, "Unexpected data received from visualizer");
+        case KeyPressed: {
+            readData(buffer, 2);
+            const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
+            unsigned keyCode = buffer[0];
+            if (buffer[1] & Visualizer::InputListener::IsSpecialKey)
+                keyCode += Visualizer::InputListener::SpecialKeyOffset;
+            for (int i = 0; i < (int) listeners.size(); i++)
+                if (listeners[i]->keyPressed(keyCode, (unsigned)(buffer[1])))
+                    break; // key press has been handled
+            break;
+        }
+        case MenuSelected: {
+            int menu, item;
+            readData((unsigned char*) &menu, sizeof(int));
+            readData((unsigned char*) &item, sizeof(int));
+            const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
+            for (int i = 0; i < (int) listeners.size(); i++)
+                if (listeners[i]->menuSelected(menu, item))
+                    break; // menu event has been handled
+            break;
+        }
+        case SliderMoved: {
+            int slider;
+            readData((unsigned char*) &slider, sizeof(int));
+            float value;
+            readData((unsigned char*) &value, sizeof(float));
+            const Array_<Visualizer::InputListener*>& listeners = visualizer.getInputListeners();
+            for (int i = 0; i < (int) listeners.size(); i++)
+                if (listeners[i]->sliderMoved(slider, value))
+                    break; // slider event has been handled
+            break;
+        }
+        default:
+            SimTK_ERRCHK1_ALWAYS(false, "listenForVisualizationEvents()",
+                "Unexpected command %u received from VisualizerGUI. Can't continue.",
+                (unsigned)buffer[0]);
         }
     }
-    return 0;
-}
-
-// Add quotes to string if necessary, so it can be passed safely as a command
-// line argument.
-static String quoteString(const String& str) {
-    String outstr;
-    // Escape double quotes, quote whitespace
-    bool quoting = false;
-    for (int i=0; i < str.size(); ++i) {
-        if (std::isspace(str[i])) {
-            if (!quoting) {outstr += "\""; quoting=true;}
-        } else {
-            if (quoting) {outstr += "\""; quoting=false;}
-            if (str[i]=='"') outstr += "\\";
-        }
-        outstr += str[i];
+  } catch (const std::exception& e) {
+        std::cout << "Visualizer listenerThread: unrecoverable error:\n";
+        std::cout << e.what() << std::endl;
+        return (void*)1;
     }
-    return outstr;
+    return (void*)0;
 }
 
-VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer, const String& title) {
+VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer) {
     // Launch the GUI application. We'll first look for one in the same directory
     // as the running executable; then if that doesn't work we'll look in the
     // bin subdirectory of the SimTK installation.
@@ -214,12 +209,14 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer, const Strin
     SimTK_ASSERT_ALWAYS(status != -1, "VisualizationProtocol: Failed to open pipe");
     inPipe = viz2simPipe[0];
 
-    // Surround the title argument in quotes so it doesn't look like multiple arguments.
-    const String qtitle = quoteString(title);
-
     // Spawn the visualizer gui, trying local first then installed version.
     spawnViz(localPath.c_str(), installPath.c_str(),
-             GuiAppName, sim2vizPipe[0], viz2simPipe[1], qtitle.c_str());
+             GuiAppName, sim2vizPipe[0], viz2simPipe[1]);
+
+    // Before we do anything else, attempt to exchange handshake messages with
+    // the VisualizerGUI. This will throw an exception if anything goes wrong.
+    // Note that this is done on the main thread.
+    shakeHandsWithGUI(outPipe, inPipe);
 
     // Spawn the thread to listen for events.
 
@@ -228,10 +225,64 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer, const Strin
     pthread_create(&thread, NULL, listenForVisualizationEvents, &visualizer);
 }
 
-void VisualizationProtocol::beginScene() {
+// This is executed on the main thread at GUI startup and thus does not
+// require locking.
+void VisualizationProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
+
+        // First send handshake message to GUI.
+
+    // The first two items must never change: the handshake command value, and
+    // an unsigned int containing the version number. Anything else might vary so both
+    // sides must stop reading if the version numbers are not compatible.
+    WRITE(outPipe, &StartupHandshake, 1);
+    WRITE(outPipe, &ProtocolVersion, sizeof(unsigned int));
+
+    // Send the current Simbody version number.
+    int major, minor, patch;
+    SimTK_version_simbody(&major, &minor, &patch);
+    WRITE(outPipe, &major, sizeof(int));
+    WRITE(outPipe, &minor, sizeof(int));
+    WRITE(outPipe, &patch, sizeof(int));
+
+    // Send the name of the current executable for use as a default window
+    // title and in "about" info.
+    bool isAbsolutePath;
+    std::string directory, fileName, extension;
+    Pathname::deconstructPathname(Pathname::getThisExecutablePath(),
+        isAbsolutePath, directory, fileName, extension);
+    // We're just sending the file name, not a full path. Keep it short.
+    unsigned nameLength = std::max((unsigned)fileName.size(), (unsigned)255);
+    WRITE(outPipe, &nameLength, sizeof(unsigned));
+    WRITE(outPipe, fileName.c_str(), nameLength);
+
+        // Now wait for handshake response from GUI.
+
+    unsigned char handshakeCommand;
+    readDataFromPipe(fromGUIPipe, &handshakeCommand, 1);
+    SimTK_ERRCHK2_ALWAYS(handshakeCommand == ReturnHandshake,
+        "VisualizationProtocol::shakeHandsWithGUI()",
+        "Expected initial handshake command %u but received %u. Can't continue.",
+        (unsigned)ReturnHandshake, (unsigned)handshakeCommand);
+
+    unsigned int GUIversion;
+    readDataFromPipe(fromGUIPipe, (unsigned char*)&GUIversion, sizeof(unsigned int));
+    SimTK_ERRCHK2_ALWAYS(GUIversion == ProtocolVersion,
+        "VisualizationProtocol::shakeHandsWithGUI()",
+        "VisualizerGUI protocol version %u is not compatible with the Simbody"
+        " Visualizer class protocol %u; this may be an installation problem."
+        " Can't continue.",
+        GUIversion, ProtocolVersion);
+
+    // Handshake was successful.
+}
+
+
+void VisualizationProtocol::beginScene(Real time) {
     pthread_mutex_lock(&sceneLock);
     char command = StartOfScene;
     WRITE(outPipe, &command, 1);
+    float fTime = (float)time;
+    WRITE(outPipe, &fTime, sizeof(float));
 }
 
 void VisualizationProtocol::finishScene() {

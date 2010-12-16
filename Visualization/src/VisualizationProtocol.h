@@ -46,7 +46,7 @@ using namespace SimTK;
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 23;
+static const unsigned ProtocolVersion   = 26;
 
 // The VisualizerGUI has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -64,33 +64,33 @@ static const unsigned short NumPredefinedMeshes  = 4;
 
 // This should always be command #1 so we can reliably check whether
 // we're talking to a compatible protocol.
-static const char StartupHandshake      = 1;
+static const unsigned char StartupHandshake      = 1;
 
-static const char StartOfScene          = 2;
-static const char EndOfScene            = 3;
-static const char AddSolidMesh          = 4;
-static const char AddPointMesh          = 5;
-static const char AddWireframeMesh      = 6;
-static const char AddLine               = 7;
-static const char AddText               = 8;
-static const char AddCoords             = 9;
-static const char DefineMesh            = 10;
-static const char DefineMenu            = 11;
-static const char DefineSlider          = 12;
-static const char SetSliderValue        = 13;
-static const char SetSliderRange        = 14;
-static const char SetCamera             = 15;
-static const char ZoomCamera            = 16;
-static const char LookAt                = 17;
-static const char SetFieldOfView        = 18;
-static const char SetClipPlanes         = 19;
-static const char SetSystemUpDirection  = 20;
-static const char SetGroundHeight       = 21;
-static const char SetWindowTitle        = 22;
-static const char SetMaxFrameRate       = 23;
-static const char SetBackgroundColor    = 24;
-static const char SetShowShadows        = 25;
-static const char SetBackgroundType     = 26;
+static const unsigned char StartOfScene          = 2;
+static const unsigned char EndOfScene            = 3;
+static const unsigned char AddSolidMesh          = 4;
+static const unsigned char AddPointMesh          = 5;
+static const unsigned char AddWireframeMesh      = 6;
+static const unsigned char AddLine               = 7;
+static const unsigned char AddText               = 8;
+static const unsigned char AddCoords             = 9;
+static const unsigned char DefineMesh            = 10;
+static const unsigned char DefineMenu            = 11;
+static const unsigned char DefineSlider          = 12;
+static const unsigned char SetSliderValue        = 13;
+static const unsigned char SetSliderRange        = 14;
+static const unsigned char SetCamera             = 15;
+static const unsigned char ZoomCamera            = 16;
+static const unsigned char LookAt                = 17;
+static const unsigned char SetFieldOfView        = 18;
+static const unsigned char SetClipPlanes         = 19;
+static const unsigned char SetSystemUpDirection  = 20;
+static const unsigned char SetGroundHeight       = 21;
+static const unsigned char SetWindowTitle        = 22;
+static const unsigned char SetMaxFrameRate       = 23;
+static const unsigned char SetBackgroundColor    = 24;
+static const unsigned char SetShowShadows        = 25;
+static const unsigned char SetBackgroundType     = 26;
 
 
 
@@ -98,16 +98,17 @@ static const char SetBackgroundType     = 26;
 
 // This should always be command #1 so we can reliably check whether
 // we're talking to a compatible protocol.
-static const char ReturnHandshake       = 1;
+static const unsigned char ReturnHandshake       = 1;
 
-static const char KeyPressed            = 2;
-static const char MenuSelected          = 3;
-static const char SliderMoved           = 4;
+static const unsigned char KeyPressed            = 2;
+static const unsigned char MenuSelected          = 3;
+static const unsigned char SliderMoved           = 4;
 
 class VisualizationProtocol {
 public:
-    VisualizationProtocol(Visualizer& visualizer, const String& title);
-    void beginScene();
+    VisualizationProtocol(Visualizer& visualizer);
+    void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
+    void beginScene(Real simTime);
     void finishScene();
     void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
     void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);

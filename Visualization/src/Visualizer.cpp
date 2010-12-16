@@ -105,9 +105,8 @@ public:
 class Visualizer::VisualizerRep {
 public:
     // Create a Visualizer and put it in PassThrough mode.
-    VisualizerRep(Visualizer* owner, const MultibodySystem& system, 
-                  const String& title) 
-    :   m_handle(owner), m_system(system), m_protocol(*owner, title),
+    VisualizerRep(Visualizer* owner, const MultibodySystem& system) 
+    :   m_handle(owner), m_system(system), m_protocol(*owner),
         m_upDirection(YAxis), m_groundHeight(0),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
         m_simTimeUnitsPerSec(1), 
@@ -623,7 +622,7 @@ void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
 
     // Calculate the spatial pose of all the geometry and send it to the
     // renderer.
-    m_protocol.beginScene();
+    m_protocol.beginScene(state.getTime());
     VisualizationGeometry geometryCreator
         (m_protocol, m_system.getMatterSubsystem(), state);
     for (unsigned i = 0; i < geometry.size(); ++i)
@@ -764,16 +763,7 @@ void Visualizer::VisualizerRep::reportRealtime(const State& state) {
 //==============================================================================
 
 Visualizer::Visualizer(const MultibodySystem& system) : rep(0) {
-    // Create a default title from the name of this executable.
-    bool isAbsolutePath;
-    std::string directory, fileName, extension;
-    Pathname::deconstructPathname(Pathname::getThisExecutablePath(),
-        isAbsolutePath, directory, fileName, extension);
-    rep = new VisualizerRep(this, system, fileName);
-}
-
-Visualizer::Visualizer(const MultibodySystem& system, const String& title) : rep(0) {
-    rep = new VisualizerRep(this, system, title);
+    rep = new VisualizerRep(this, system);
 }
 
 Visualizer::~Visualizer() {
