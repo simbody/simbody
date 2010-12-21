@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_
-#define SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_
+#ifndef SimTK_SIMBODY_VISUALIZER_PROTOCOL_H_
+#define SimTK_SIMBODY_VISUALIZER_PROTOCOL_H_
 
 /* -------------------------------------------------------------------------- *
  *                             SimTK Simbody(tm)                              *
@@ -148,4 +148,4 @@ private:
 };
 
 
-#endif // SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_
+#endif // SimTK_SIMBODY_VISUALIZER_PROTOCOL_H_

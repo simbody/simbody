@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_VISUALIZATION_GEOMETRY_H_
-#define SimTK_SIMBODY_VISUALIZATION_GEOMETRY_H_
+#ifndef SimTK_SIMBODY_VISUALIZER_GEOMETRY_H_
+#define SimTK_SIMBODY_VISUALIZER_GEOMETRY_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -71,4 +71,4 @@ private:
 };
 
 
-#endif // SimTK_SIMBODY_VISUALIZATION_GEOMETRY_H_
+#endif // SimTK_SIMBODY_VISUALIZER_GEOMETRY_H_

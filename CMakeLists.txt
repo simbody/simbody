@@ -56,7 +56,7 @@ SET( BUILD_TESTING ON CACHE BOOL
 SET( BUILD_EXAMPLES ON CACHE BOOL
 	"Control building of Simbody example programs.")
 
-# Set whether to build the visualization code.
+# Set whether to build the Visualizer code.
 SET(BUILD_VISUALIZER ON CACHE BOOL 
 	"Control building of VisualizerGUI component")
 
