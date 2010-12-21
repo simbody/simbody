@@ -24,7 +24,7 @@ ELSE()
 ENDIF()
 
 ADD_EXECUTABLE(${GUI_NAME} 
-	VisualizationGUI.cpp lodepng.cpp lodepng.h
+	VisualizerGUI.cpp lodepng.cpp lodepng.h
 	${GLUT32_HEADERS}) # only on Windows
 
 TARGET_LINK_LIBRARIES(${GUI_NAME} 

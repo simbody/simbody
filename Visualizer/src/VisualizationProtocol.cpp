@@ -33,7 +33,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/Visualizer.h"
 #include "simbody/internal/Visualizer_InputListener.h"
-#include "VisualizationProtocol.h"
+#include "VisualizerProtocol.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -60,7 +60,7 @@ using namespace std;
 // warnings and maybe, someday, will catch an error.
 #define WRITE(pipeno, buf, len) \
    {int status=write((pipeno), (buf), (len)); \
-    SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizationProtocol",  \
+    SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizerProtocol",  \
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}
 
@@ -113,8 +113,8 @@ static void spawnViz(const char* localPath, const char* installPath,
     }
 #endif
 
-    SimTK_ERRCHK4_ALWAYS(status == 0, "VisualizationProtocol::ctor()",
-        "Unable to spawn the Visualization GUI; tried '%s' and '%s'. Got"
+    SimTK_ERRCHK4_ALWAYS(status == 0, "VisualizerProtocol::ctor()",
+        "Unable to spawn the Visualizer GUI; tried '%s' and '%s'. Got"
         " errno=%d (%s).", 
         localPath, installPath, errno, strerror(errno));
 }
@@ -130,7 +130,7 @@ static void readData(unsigned char* buffer, int bytes)
     readDataFromPipe(inPipe, buffer, bytes);
 }
 
-static void* listenForVisualizationEvents(void* arg) {
+static void* listenForVisualizerEvents(void* arg) {
     Visualizer& visualizer = *reinterpret_cast<Visualizer*>(arg);
     unsigned char buffer[256];
 
@@ -173,7 +173,7 @@ static void* listenForVisualizationEvents(void* arg) {
             break;
         }
         default:
-            SimTK_ERRCHK1_ALWAYS(false, "listenForVisualizationEvents()",
+            SimTK_ERRCHK1_ALWAYS(false, "listenForVisualizerEvents()",
                 "Unexpected command %u received from VisualizerGUI. Can't continue.",
                 (unsigned)buffer[0]);
         }
@@ -186,12 +186,12 @@ static void* listenForVisualizationEvents(void* arg) {
     return (void*)0;
 }
 
-VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer) {
+VisualizerProtocol::VisualizerProtocol(Visualizer& visualizer) {
     // Launch the GUI application. We'll first look for one in the same directory
     // as the running executable; then if that doesn't work we'll look in the
     // bin subdirectory of the SimTK installation.
 
-    const char* GuiAppName = "VisualizationGUI";
+    const char* GuiAppName = "VisualizerGUI";
     const String localPath = Pathname::getThisExecutableDirectory() + GuiAppName;
     const String installPath =
         Pathname::addDirectoryOffset(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK"),
@@ -201,12 +201,12 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer) {
 
     // Create pipe pair for communication from simulator to visualizer.
     status = createPipe(sim2vizPipe);
-    SimTK_ASSERT_ALWAYS(status != -1, "VisualizationProtocol: Failed to open pipe");
+    SimTK_ASSERT_ALWAYS(status != -1, "VisualizerProtocol: Failed to open pipe");
     outPipe = sim2vizPipe[1];
 
     // Create pipe pair for communication from visualizer to simulator.
     status = createPipe(viz2simPipe);
-    SimTK_ASSERT_ALWAYS(status != -1, "VisualizationProtocol: Failed to open pipe");
+    SimTK_ASSERT_ALWAYS(status != -1, "VisualizerProtocol: Failed to open pipe");
     inPipe = viz2simPipe[0];
 
     // Spawn the visualizer gui, trying local first then installed version.
@@ -222,12 +222,12 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer) {
 
     pthread_mutex_init(&sceneLock, NULL);
     pthread_t thread;
-    pthread_create(&thread, NULL, listenForVisualizationEvents, &visualizer);
+    pthread_create(&thread, NULL, listenForVisualizerEvents, &visualizer);
 }
 
 // This is executed on the main thread at GUI startup and thus does not
 // require locking.
-void VisualizationProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
+void VisualizerProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
 
         // First send handshake message to GUI.
 
@@ -260,14 +260,14 @@ void VisualizationProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
     unsigned char handshakeCommand;
     readDataFromPipe(fromGUIPipe, &handshakeCommand, 1);
     SimTK_ERRCHK2_ALWAYS(handshakeCommand == ReturnHandshake,
-        "VisualizationProtocol::shakeHandsWithGUI()",
+        "VisualizerProtocol::shakeHandsWithGUI()",
         "Expected initial handshake command %u but received %u. Can't continue.",
         (unsigned)ReturnHandshake, (unsigned)handshakeCommand);
 
     unsigned int GUIversion;
     readDataFromPipe(fromGUIPipe, (unsigned char*)&GUIversion, sizeof(unsigned int));
     SimTK_ERRCHK2_ALWAYS(GUIversion == ProtocolVersion,
-        "VisualizationProtocol::shakeHandsWithGUI()",
+        "VisualizerProtocol::shakeHandsWithGUI()",
         "VisualizerGUI protocol version %u is not compatible with the Simbody"
         " Visualizer class protocol %u; this may be an installation problem."
         " Can't continue.",
@@ -277,7 +277,7 @@ void VisualizationProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
 }
 
 
-void VisualizationProtocol::beginScene(Real time) {
+void VisualizerProtocol::beginScene(Real time) {
     pthread_mutex_lock(&sceneLock);
     char command = StartOfScene;
     WRITE(outPipe, &command, 1);
@@ -285,29 +285,29 @@ void VisualizationProtocol::beginScene(Real time) {
     WRITE(outPipe, &fTime, sizeof(float));
 }
 
-void VisualizationProtocol::finishScene() {
+void VisualizerProtocol::finishScene() {
     char command = EndOfScene;
     WRITE(outPipe, &command, 1);
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::drawBox(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
+void VisualizerProtocol::drawBox(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
     drawMesh(X_GB, scale, color, (short) representation, MeshBox);
 }
 
-void VisualizationProtocol::drawEllipsoid(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
+void VisualizerProtocol::drawEllipsoid(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
     drawMesh(X_GB, scale, color, (short) representation, MeshEllipsoid);
 }
 
-void VisualizationProtocol::drawCylinder(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
+void VisualizerProtocol::drawCylinder(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
     drawMesh(X_GB, scale, color, (short) representation, MeshCylinder);
 }
 
-void VisualizationProtocol::drawCircle(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
+void VisualizerProtocol::drawCircle(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
     drawMesh(X_GB, scale, color, (short) representation, MeshCircle);
 }
 
-void VisualizationProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& X_GM, Real scale, const Vec4& color, int representation) {
+void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& X_GM, Real scale, const Vec4& color, int representation) {
     const void* impl = &mesh.getImpl();
     map<const void*, unsigned short>::const_iterator iter = meshes.find(impl);
 
@@ -366,17 +366,17 @@ void VisualizationProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const T
         }
     }
     SimTK_ERRCHK1_ALWAYS(vertices.size() <= 65535*3, 
-        "VisualizationProtocol::drawPolygonalMesh()",
+        "VisualizerProtocol::drawPolygonalMesh()",
         "Can't display a DecorativeMesh with more than 65535 vertices;"
         " received one with %llu.", (unsigned long long)vertices.size());
     SimTK_ERRCHK1_ALWAYS(faces.size() <= 65535*3, 
-        "VisualizationProtocol::drawPolygonalMesh()",
+        "VisualizerProtocol::drawPolygonalMesh()",
         "Can't display a DecorativeMesh with more than 65535 vertices;"
         " received one with %llu.", (unsigned long long)faces.size());
 
     const int index = NumPredefinedMeshes + meshes.size();
     SimTK_ERRCHK_ALWAYS(index <= 65535,
-        "VisualizationProtocol::drawPolygonalMesh()",
+        "VisualizerProtocol::drawPolygonalMesh()",
         "Too many unique DecorativeMesh objects; max is 65535.");
     
     meshes[impl] = (unsigned short)index;    // insert new mesh
@@ -391,7 +391,7 @@ void VisualizationProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const T
     drawMesh(X_GM, Vec3(scale), color, (short) representation, index);
 }
 
-void VisualizationProtocol::
+void VisualizerProtocol::
 drawMesh(const Transform& X_GM, const Vec3& scale, const Vec4& color, 
          short representation, unsigned short meshIndex) 
 {
@@ -419,7 +419,7 @@ drawMesh(const Transform& X_GM, const Vec3& scale, const Vec4& color,
     WRITE(outPipe, &meshIndex, sizeof(unsigned short));
 }
 
-void VisualizationProtocol::
+void VisualizerProtocol::
 drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness)
 {
     WRITE(outPipe, &AddLine, 1);
@@ -437,9 +437,9 @@ drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness)
     WRITE(outPipe, buffer, 10*sizeof(float));
 }
 
-void VisualizationProtocol::drawText(const Vec3& position, Real scale, const Vec4& color, const string& string) {
+void VisualizerProtocol::drawText(const Vec3& position, Real scale, const Vec4& color, const string& string) {
     SimTK_ERRCHK1_ALWAYS(string.size() <= 256,
-        "VisualizationProtocol::drawText()",
+        "VisualizerProtocol::drawText()",
         "Can't display DecorativeText longer than 256 characters;"
         " received text of length %u.", (unsigned)string.size());
     WRITE(outPipe, &AddText, 1);
@@ -457,7 +457,7 @@ void VisualizationProtocol::drawText(const Vec3& position, Real scale, const Vec
     WRITE(outPipe, &string[0], length);
 }
 
-void VisualizationProtocol::
+void VisualizerProtocol::
 drawCoords(const Transform& X_GF, Real axisLength, const Vec4& color) {
     WRITE(outPipe, &AddCoords, 1);
     float buffer[10];
@@ -475,7 +475,7 @@ drawCoords(const Transform& X_GF, Real axisLength, const Vec4& color) {
     WRITE(outPipe, buffer, 10*sizeof(float));
 }
 
-void VisualizationProtocol::
+void VisualizerProtocol::
 addMenu(const String& title, int id, const Array_<pair<String, int> >& items) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &DefineMenu, 1);
@@ -493,7 +493,7 @@ addMenu(const String& title, int id, const Array_<pair<String, int> >& items) {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::
+void VisualizerProtocol::
 addSlider(const String& title, int id, Real minVal, Real maxVal, Real value) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &DefineSlider, 1);
@@ -510,7 +510,7 @@ addSlider(const String& title, int id, Real minVal, Real maxVal, Real value) {
 }
 
 
-void VisualizationProtocol::setSliderValue(int id, Real newValue) const {
+void VisualizerProtocol::setSliderValue(int id, Real newValue) const {
     const float value = (float)newValue;
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetSliderValue, 1);
@@ -519,7 +519,7 @@ void VisualizationProtocol::setSliderValue(int id, Real newValue) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setSliderRange(int id, Real newMin, Real newMax) const {
+void VisualizerProtocol::setSliderRange(int id, Real newMin, Real newMax) const {
     float buffer[2];
     buffer[0] = (float)newMin; buffer[1] = (float)newMax;
     pthread_mutex_lock(&sceneLock);
@@ -529,7 +529,7 @@ void VisualizationProtocol::setSliderRange(int id, Real newMin, Real newMax) con
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setWindowTitle(const String& title) const {
+void VisualizerProtocol::setWindowTitle(const String& title) const {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetWindowTitle, 1);
     short titleLength = title.size();
@@ -538,7 +538,7 @@ void VisualizationProtocol::setWindowTitle(const String& title) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setMaxFrameRate(Real rate) const {
+void VisualizerProtocol::setMaxFrameRate(Real rate) const {
     const float frameRate = (float)rate;
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetMaxFrameRate, 1);
@@ -547,7 +547,7 @@ void VisualizationProtocol::setMaxFrameRate(Real rate) const {
 }
 
 
-void VisualizationProtocol::setBackgroundColor(const Vec3& color) const {
+void VisualizerProtocol::setBackgroundColor(const Vec3& color) const {
     float buffer[3];
     buffer[0] = (float)color[0]; 
     buffer[1] = (float)color[1]; 
@@ -558,7 +558,7 @@ void VisualizationProtocol::setBackgroundColor(const Vec3& color) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setShowShadows(bool shouldShow) const {
+void VisualizerProtocol::setShowShadows(bool shouldShow) const {
     const short show = (short)shouldShow; // 0 or 1
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetShowShadows, 1);
@@ -566,7 +566,7 @@ void VisualizationProtocol::setShowShadows(bool shouldShow) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setBackgroundType(Visualizer::BackgroundType type) const {
+void VisualizerProtocol::setBackgroundType(Visualizer::BackgroundType type) const {
     const short backgroundType = (short)type;
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetBackgroundType, 1);
@@ -574,7 +574,7 @@ void VisualizationProtocol::setBackgroundType(Visualizer::BackgroundType type) c
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setCameraTransform(const Transform& X_GC) const {
+void VisualizerProtocol::setCameraTransform(const Transform& X_GC) const {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetCamera, 1);
     float buffer[6];
@@ -589,13 +589,13 @@ void VisualizationProtocol::setCameraTransform(const Transform& X_GC) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::zoomCamera() const {
+void VisualizerProtocol::zoomCamera() const {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &ZoomCamera, 1);
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::lookAt(const Vec3& point, const Vec3& upDirection) const {
+void VisualizerProtocol::lookAt(const Vec3& point, const Vec3& upDirection) const {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &LookAt, 1);
     float buffer[6];
@@ -609,7 +609,7 @@ void VisualizationProtocol::lookAt(const Vec3& point, const Vec3& upDirection) c
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setFieldOfView(Real fov) const {
+void VisualizerProtocol::setFieldOfView(Real fov) const {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetFieldOfView, 1);
     float buffer[1];
@@ -618,7 +618,7 @@ void VisualizationProtocol::setFieldOfView(Real fov) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setClippingPlanes(Real near, Real far) const {
+void VisualizerProtocol::setClippingPlanes(Real near, Real far) const {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetClipPlanes, 1);
     float buffer[2];
@@ -628,7 +628,7 @@ void VisualizationProtocol::setClippingPlanes(Real near, Real far) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::
+void VisualizerProtocol::
 setSystemUpDirection(const CoordinateDirection& upDir) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetSystemUpDirection, 1);
@@ -639,7 +639,7 @@ setSystemUpDirection(const CoordinateDirection& upDir) {
     pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::setGroundHeight(Real height) {
+void VisualizerProtocol::setGroundHeight(Real height) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetGroundHeight, 1);
     float heightBuffer = (float) height;

@@ -32,7 +32,7 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/Visualizer.h"
 #include "simbody/internal/Visualizer_InputListener.h"
-#include "../src/VisualizationProtocol.h"
+#include "../src/VisualizerProtocol.h"
 #include "lodepng.h"
 
 #include <cstdlib>
@@ -117,7 +117,7 @@ static void setVsync(bool enable);
 // warnings and maybe, someday, will catch an error.
 #define WRITE(pipeno, buf, len) \
    {int status=write((pipeno), (buf), (len)); \
-    SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizationGUI",  \
+    SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizerGUI",  \
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}
 
@@ -2523,8 +2523,8 @@ static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
 
 int main(int argc, char** argv) {
   try
-  { SimTK_ERRCHK_ALWAYS(argc >= 3, "VisualizationGUI main()",
-        "VisualizationGUI: must be at least two command line arguments (pipes)");
+  { SimTK_ERRCHK_ALWAYS(argc >= 3, "VisualizerGUI main()",
+        "VisualizerGUI: must be at least two command line arguments (pipes)");
 
     stringstream(argv[1]) >> inPipe;
     stringstream(argv[2]) >> outPipe;
@@ -2634,7 +2634,7 @@ int main(int argc, char** argv) {
     fpsBaseTime = realTime();
     glutMainLoop();
   } catch(const std::exception& e) {
-      std::cout << "VisualizationGUI failed with exception:\n"
+      std::cout << "VisualizerGUI failed with exception:\n"
                 << e.what() << std::endl;
       return 1;
     }

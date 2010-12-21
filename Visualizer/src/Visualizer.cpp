@@ -35,8 +35,8 @@
 #include "simbody/internal/Visualizer.h"
 #include "simbody/internal/Visualizer_InputListener.h"
 #include "simbody/internal/DecorationGenerator.h"
-#include "VisualizationGeometry.h"
-#include "VisualizationProtocol.h"
+#include "VisualizerGeometry.h"
+#include "VisualizerProtocol.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -454,7 +454,7 @@ public:
 
     Visualizer*                             m_handle;
     const MultibodySystem&                  m_system;
-    VisualizationProtocol                   m_protocol;
+    VisualizerProtocol                   m_protocol;
 
     Array_<DecorativeGeometry>              m_addedGeometry;
     Array_<RubberBandLine>                  m_lines;
@@ -604,7 +604,7 @@ public:
 };
 
 // Generate geometry for the given state and send it to the visualizer using
-// the VisualizationProtocol object. In buffered mode this is called from the
+// the VisualizerProtocol object. In buffered mode this is called from the
 // rendering thread; otherwise, this is just the main simulation thread.
 void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
     m_system.realize(state, Stage::Position);
@@ -623,7 +623,7 @@ void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
     // Calculate the spatial pose of all the geometry and send it to the
     // renderer.
     m_protocol.beginScene(state.getTime());
-    VisualizationGeometry geometryCreator
+    VisualizerGeometry geometryCreator
         (m_protocol, m_system.getMatterSubsystem(), state);
     for (unsigned i = 0; i < geometry.size(); ++i)
         geometry[i].implementGeometry(geometryCreator);
@@ -641,7 +641,7 @@ void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
         const Real thickness = line.line.getLineThickness() == -1 
                                ? 1 : line.line.getLineThickness();
         m_protocol.drawLine(end1, end2, 
-            VisualizationGeometry::getColor(line.line), thickness);
+            VisualizerGeometry::getColor(line.line), thickness);
     }
     m_protocol.finishScene();
 

@@ -104,9 +104,9 @@ static const unsigned char KeyPressed            = 2;
 static const unsigned char MenuSelected          = 3;
 static const unsigned char SliderMoved           = 4;
 
-class VisualizationProtocol {
+class VisualizerProtocol {
 public:
-    VisualizationProtocol(Visualizer& visualizer);
+    VisualizerProtocol(Visualizer& visualizer);
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void beginScene(Real simTime);
     void finishScene();

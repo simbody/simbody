@@ -44,12 +44,12 @@ namespace SimTK {
 
 using namespace SimTK;
 
-class VisualizationProtocol;
+class VisualizerProtocol;
 
-class VisualizationGeometry : public DecorativeGeometryImplementation {
+class VisualizerGeometry : public DecorativeGeometryImplementation {
 public:
-    VisualizationGeometry(VisualizationProtocol& protocol, const SimbodyMatterSubsystem& matter, const State& state);
-    ~VisualizationGeometry() {
+    VisualizerGeometry(VisualizerProtocol& protocol, const SimbodyMatterSubsystem& matter, const State& state);
+    ~VisualizerGeometry() {
     }
     void implementLineGeometry(const DecorativeLine& geom);
     void implementBrickGeometry(const DecorativeBrick& geom);
@@ -65,7 +65,7 @@ private:
     int getRepresentation(const DecorativeGeometry& geom) const;
     Real getScale(const DecorativeGeometry& geom) const;
     Transform calcX_GD(const DecorativeGeometry& geom) const;
-    VisualizationProtocol& protocol;
+    VisualizerProtocol& protocol;
     const SimbodyMatterSubsystem& matter;
     const State& state;
 };
