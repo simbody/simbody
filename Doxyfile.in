@@ -83,7 +83,7 @@ EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */tests/* \
                          */examples/* \
                          */src/* \
-                         */VisualizationGUI/* \
+                         */VisualizerGUI/* \
                          */.svn/*
 EXCLUDE_SYMBOLS        = 
 EXAMPLE_PATH           = 
