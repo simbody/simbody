@@ -74,7 +74,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = "@CMAKE_SOURCE_DIR@"
+INPUT                  = "@PROJECT_SOURCE_DIR@"
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = 
 RECURSIVE              = YES
@@ -83,6 +83,8 @@ EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */tests/* \
                          */examples/* \
                          */src/* \
+                         */SimTKcommon/* \
+                         */SimTKmath/* \
                          */VisualizerGUI/* \
                          */.svn/*
 EXCLUDE_SYMBOLS        = 

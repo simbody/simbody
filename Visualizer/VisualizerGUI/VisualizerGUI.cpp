@@ -2302,7 +2302,7 @@ static void dumpAboutMessageToConsole() {
     printf("\n\n=================== ABOUT SIMBODY VISUALIZER ===================\n");
     printf("Simbody(tm) %s VisualizerGUI (protocol rev. %u)\n", 
         simbodyVersionStr.c_str(), ProtocolVersion);
-    printf("\nName of invoking executable: %s\n", simulatorExecutableName);
+    printf("\nName of invoking executable: %s\n", simulatorExecutableName.c_str());
     printf(  "Current working directory:\n  %s\n",
         Pathname::getCurrentWorkingDirectory().c_str());
     printf(  "VisualizerGUI executable:\n  %s\n",

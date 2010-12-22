@@ -529,7 +529,7 @@ FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/intern
 INSTALL_FILES(/include/                 FILES ${CORE_HEADERS})
 INSTALL_FILES(/include/simmath/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/include/simmath/internal FILES ${INTERNAL_HEADERS})
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/doc/SimmathUserGuide.pdf 
+INSTALL(FILES ${PROJECT_SOURCE_DIR}/doc/SimmathUserGuide.pdf 
 	DESTINATION doc/simmath)
 
 # These are at the end because we want them processed after

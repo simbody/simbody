@@ -28,6 +28,9 @@ if(COMMAND cmake_policy)
         cmake_policy(SET CMP0005 NEW)
 endif(COMMAND cmake_policy)
 
+ADD_SUBDIRECTORY( SimTKcommon )
+ADD_SUBDIRECTORY( SimTKmath )
+
 PROJECT (Simbody)
 
 # Use this to generate a private set of libraries whose names

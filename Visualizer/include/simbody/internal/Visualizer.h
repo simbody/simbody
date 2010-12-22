@@ -388,7 +388,7 @@ int getActualBufferLengthInFrames() const;
 
 /** Add a new input listener to this Visualizer, methods of which will be
 called when the GUI detects user-driven events like key presses, menu picks, 
-and slider or mouse moves. See \ref Visualizer::InputListener for more 
+and slider or mouse moves. See Visualizer::InputListener for more 
 information. The Visualizer takes over ownership of the supplied \a listener 
 object and deletes it upon destruction of the Visualizer; don't delete it 
 yourself.
@@ -399,7 +399,7 @@ Visualizer& addInputListener(InputListener* listener);
 /** Add a new frame controller to this Visualizer, methods of which will be
 called just prior to rendering a frame for the purpose of simulation-controlled
 camera positioning and other frame-specific effects. 
-See \ref Visualizer::FrameController for more information. The Visualizer takes 
+See Visualizer::FrameController for more information. The Visualizer takes 
 over ownership of the supplied \a controller object and deletes it upon 
 destruction of the Visualizer; don't delete it yourself. 
 @return A reference to this Visualizer so that you can chain "add" and
