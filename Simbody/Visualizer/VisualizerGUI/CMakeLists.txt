@@ -14,11 +14,6 @@ IF(WIN32)
     FILE(TO_NATIVE_PATH  "${glut32libdir}/glut32.dll" gl32src)
     FILE(TO_NATIVE_PATH  "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/glut32.dll"
          gl32dest)
-    # This gets executed whenever the named target gets built.
-    add_custom_command(
-        TARGET ${GUI_NAME}
-        COMMAND copy ${gl32src} ${gl32dest}
-	COMMENT "Copying glut32.dll" VERBATIM)
 ELSE()
     INCLUDE(FindGLUT) # sets GLUT_LIBRARIES
 ENDIF()
@@ -36,8 +31,14 @@ INSTALL(TARGETS ${GUI_NAME}
                              WORLD_READ WORLD_EXECUTE
          DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
 
-# on Windows we also have to install the glut32.dll
+# on Windows we also have to copy and later install the glut32.dll
 IF(WIN32)
+    # This gets executed whenever the named target gets built.
+    add_custom_command(
+        TARGET ${GUI_NAME}
+        COMMAND copy ${gl32src} ${gl32dest}
+	COMMENT "Copying glut32.dll" VERBATIM)
+
     INSTALL(FILES ${glut32libdir}/glut32.dll
 	    DESTINATION ${SimTK_INSTALL_PREFIX}/bin) #same as GUI
 ENDIF()
