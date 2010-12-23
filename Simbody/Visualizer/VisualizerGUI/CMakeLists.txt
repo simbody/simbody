@@ -12,7 +12,7 @@ IF(WIN32)
     # Update the local copy of the dll; destination is Release or Debug.
     # Must fix slashes so that Windows "copy" command can work.
     FILE(TO_NATIVE_PATH  "${glut32libdir}/glut32.dll" gl32src)
-    FILE(TO_NATIVE_PATH  "${BUILD_BINARY_DIR}/glut32.dll"
+    FILE(TO_NATIVE_PATH  "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/glut32.dll"
          gl32dest)
     # This gets executed whenever the named target gets built.
     add_custom_command(
@@ -29,19 +29,6 @@ ADD_EXECUTABLE(${GUI_NAME}
 
 TARGET_LINK_LIBRARIES(${GUI_NAME} 
 	${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
-
-IF(WIN32)
-    # Update the local copy of the dll; destination is Release or Debug.
-    # Must fix slashes so that Windows "copy" command can work.
-    FILE(TO_NATIVE_PATH  "${glut32libdir}/glut32.dll" gl32src)
-    FILE(TO_NATIVE_PATH  "${BUILD_BINARY_DIR}/glut32.dll"
-         gl32dest)
-    # This gets executed whenever the named target gets built.
-    add_custom_command(
-        TARGET ${GUI_NAME}
-        COMMAND copy ${gl32src} ${gl32dest}
-	COMMENT "Copying glut32.dll" VERBATIM)
-ENDIF()
 
 INSTALL(TARGETS ${GUI_NAME}
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
