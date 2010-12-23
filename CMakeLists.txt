@@ -3,7 +3,7 @@
 #
 # This is the master CMake file that coordinates 
 # the build of Simbody. There are four steps:
-#    (1) Make sure prerequisites are present
+#    (1) Choose appropriate platform
 #    (2) Build SimTKcommon
 #    (3) Build SimTKmath
 #    (4) Build SimTKsimbody
@@ -18,6 +18,40 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 PROJECT(Simbody)
+
+SET(SIMBODY_MAJOR_VERSION 2)
+SET(SIMBODY_MINOR_VERSION 2)
+SET(SIMBODY_PATCH_VERSION 0)
+
+SET(SIMBODY_COPYRIGHT_YEARS "2005-11")
+
+# underbar separated list of dotted authors, no spaces or commas
+SET(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
+
+# Report the version number to the CMake UI. Don't include the 
+# build version if it is zero.
+SET(PATCH_VERSION_STRING)
+IF(SIMBODY_PATCH_VERSION)
+    SET(PATCH_VERSION_STRING ".${SIMBODY_PATCH_VERSION}")
+ENDIF()
+
+SET(SIMBODY_VERSION 
+    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}${PATCH_VERSION_STRING}" 
+    CACHE STRING 
+    "This is the version that will be built (can't be changed here)." 
+    FORCE)
+
+# This is the suffix if we're building and depending on versioned libraries.
+SET(VN "_${SIMBODY_VERSION}")
+
+SET(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
+    CACHE PATH 
+    "The Simbody build (not the install) puts all the libraries and executables together here (with /Release, etc. appended on some platforms).")
+
+# Make everything go in the same binary directory. (These are CMake-defined
+# variables.)
+SET(EXECUTABLE_OUTPUT_PATH ${BUILD_BINARY_DIR})
+SET(LIBRARY_OUTPUT_PATH ${BUILD_BINARY_DIR})
 
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.
@@ -34,6 +68,45 @@ SET(NS)
 IF(BUILD_USING_NAMESPACE)
     SET(NS "${BUILD_USING_NAMESPACE}_")
 ENDIF(BUILD_USING_NAMESPACE)
+
+
+#
+# These are the names of all the libraries we may generate. These are
+# target names so can be used to specify dependencies of one library
+# on another. (In Debug mode the actual targets will have "_d" appended.)
+#
+
+SET(SimTKSIMBODY_LIBRARY_NAME ${NS}SimTKsimbody CACHE STRING
+"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
+FORCE)
+SET(SimTKMATH_LIBRARY_NAME ${NS}SimTKmath CACHE STRING
+"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
+FORCE)
+SET(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon CACHE STRING
+"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
+FORCE)
+
+
+SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
+SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
+
+SET(SimTKCOMMON_LIBRARY_NAME_VN ${NS}SimTKcommon${VN})
+SET(SimTKCOMMON_SHARED_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN})
+SET(SimTKCOMMON_STATIC_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN}_static)
+
+SET(SimTKMATH_SHARED_LIBRARY ${SimTKMATH_LIBRARY_NAME})
+SET(SimTKMATH_STATIC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_static)
+
+SET(SimTKMATH_LIBRARY_NAME_VN ${NS}SimTKmath${VN})
+SET(SimTKMATH_SHARED_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN})
+SET(SimTKMATH_STATIC_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN}_static)
+
+SET(SimTKSIMBODY_SHARED_LIBRARY ${SimTKSIMBODY_LIBRARY_NAME})
+SET(SimTKSIMBODY_STATIC_LIBRARY ${SimTKSIMBODY_LIBRARY_NAME}_static)
+
+SET(SimTKSIMBODY_LIBRARY_NAME_VN ${NS}SimTKsimbody${VN})
+SET(SimTKSIMBODY_SHARED_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN})
+SET(SimTKSIMBODY_STATIC_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN}_static)
 
 
 # Caution: this variable is automatically created by the CMake
@@ -53,10 +126,38 @@ SET(BUILD_VISUALIZER ON CACHE BOOL
 # but you may miss the occasional odd bug. Also currently on Windows it
 # is easier to debug the static tests than the DLL-liked ones.
 SET( BUILD_TESTING_STATIC ON CACHE BOOL
-	"If building test or example programs, include statically-linked ones?" )
+    "If building test or example programs, include statically-linked ones?" )
 
 SET( BUILD_TESTING_SHARED ON CACHE BOOL
- 	"If building test or example programs, include dynamically-linked ones?" )
+    "If building test or example programs, include dynamically-linked ones?" )
+
+#
+# Create a platform name useful for finding things in the Platform
+# directory.
+IF(WIN32)
+    SET(PLATFORM_NAME Windows)
+    SET(NATIVE_COPY_CMD copy)
+ELSEIF(APPLE)
+    SET(PLATFORM_NAME Mac)
+    SET(NATIVE_COPY_CMD cp)
+ELSE()
+    SET(PLATFORM_NAME Linux)
+    SET(NATIVE_COPY_CMD cp)
+ENDIF()
+
+# In addition to the platform name we need to know the Application Binary
+# Interface (ABI) we're building for. Currently that is either x86, meaning
+# 32 bit Intel instruction set, or x64 for 64 bit Intel instruction set.
+
+IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+    SET(PLATFORM_ABI x64)
+ELSE()
+    SET(PLATFORM_ABI x86)
+ENDIF()
+
+SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
+    "This is the platform and ABI we're building for. Not changeable here; use a different CMake generator instead."
+    FORCE)
 
 # 
 # Make sure "sandbox" input & output directories are set. During
@@ -64,45 +165,51 @@ SET( BUILD_TESTING_SHARED ON CACHE BOOL
 # set them to sensible local values.
 # If SimTK_INSTALL_PREFIX is set then
 # it is a sandbox installation area, otherwise we want to install
-# in /usr/local/SimTK or %ProgramFiles%\SimTK. Similarly, SimTK_SDK
-# tells us where to find other SimTK Core modules on which this one
-# depends. If it is not set, we'll look in /usr/local/SimTK or
-# %ProgramFiles%\SimTK *regardless* of SimTK_INSTALL_PREFIX.
+# in /usr/local/SimTK or %ProgramFiles%\SimTK. 
 #
-
-IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+SET(LIB64) # suffix will be set only for 64 bit gcc builds
+IF(${CMAKE_C_COMPILER} MATCHES "gcc") # Linux, Mac, Cygwin
 
     IF(NOT SimTK_INSTALL_PREFIX)
         SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK" 
             CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "/usr/local/SimTK" 
-            CACHE PATH "SimTK dependency path" )
-    ENDIF(NOT SimTK_SDK)
+    IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+        SET( LIB64 64 )
+    ENDIF()
 
-ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
+ELSE() # Windows
+    # On Win64, there are two environment variables, ProgramFiles(x86) for
+    # 32 bit binaries, and ProgramW6432 for 64 bit binaries. The variable
+    # ProgramFiles returns one or the other depending on whether the requesting
+    # executable is 32 or 64 bits. That's CMake in this case, but we want
+    # the right directory for the target. CMAKE_INSTALL_DIR after 2.8.3 gets
+    # this right but still isn't what we want.
+    IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+	# 64 bit target on Win64
+	set(PROGFILEDIR "$ENV{ProgramW6432}")
+    ELSE() # Target is 32 bit
+	set(PROGFILEDIR "$ENV{ProgramFiles(x86)}") # present if 64bit Windows
+	if (NOT PROGFILEDIR)
+	    set(PROGFILEDIR "$ENV{ProgramFiles}") # on 32bit Windows
+	endif()
+    ENDIF()
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "$ENV{ProgramFiles}/SimTK" 
+        SET(SimTK_INSTALL_PREFIX "${PROGFILEDIR}/SimTK" 
             CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "$ENV{ProgramFiles}/SimTK" 
-            CACHE PATH "SimTK dependency path")
-    ENDIF(NOT SimTK_SDK)
-
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
+# CMake installs go into CMAKE_INSTALL_PREFIX, which is always
+# set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
+# instead which is passed in by the build system or set above.
+SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING 
+    "Install path prefix." FORCE)
+# User should set SimTK_INSTALL_PREFIX, so suppress cmake's
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
-
-IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-  SET( LIB64 64 )
-ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-  SET( LIB64  )
-ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 
 # Allow build of binaries on Leopard that work on Tiger
 # Plus, -m32 is required for building on Snow Leopard, until we have a 64-bit Mac Lapack
@@ -217,29 +324,6 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
 
-SET(SIMBODY_MAJOR_VERSION 2)
-SET(SIMBODY_MINOR_VERSION 2)
-SET(SIMBODY_BUILD_VERSION 0)
-
-# Report the version number to the CMake UI. Don't include the 
-# build version if it is zero.
-SET(BUILD_VERSION_STRING)
-IF(SIMBODY_BUILD_VERSION)
-    SET(BUILD_VERSION_STRING ".${SIMBODY_BUILD_VERSION}")
-ENDIF(SIMBODY_BUILD_VERSION)
-
-SET(SIMBODY_VERSION 
-    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}${BUILD_VERSION_STRING}" CACHE STRING 
-	 "This is the version that will be built (can't be changed here)." FORCE)
-
-# This is the suffix if we're building and depending on versioned libraries.
-SET(VN "_${SIMBODY_VERSION}")
-
-SET(SIMBODY_COPYRIGHT_YEARS "2005-10")
-
-# underbar separated list of dotted authors, no spaces or commas
-SET(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
-
 # Get the subversion revision number if we can
 # It's possible that WIN32 installs use svnversion through cygwin
 # so we'll try for both svnversion.exe and svnversion. Note that
@@ -268,11 +352,6 @@ ENDIF (SVNVERSION_EXE)
 # Remove colon from build version, for easier placement in directory names
 STRING(REPLACE ":" "_" SIMBODY_SVN_REVISION ${SIMBODY_SVN_REVISION})
 
-ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME}
-                -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
-                -DSimTK_SIMBODY_MINOR_VERSION=${SIMBODY_MINOR_VERSION}
-		-DSimTK_SIMBODY_BUILD_VERSION=${SIMBODY_BUILD_VERSION})
-
 # CMake quotes automatically when building Visual Studio projects but we need
 # to add them ourselves for Linux or Cygwin. Two cases to avoid duplicate quotes
 # in Visual Studio which end up in the binary.
@@ -296,23 +375,27 @@ ELSE(NEED_QUOTES)
                    -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
 ENDIF(NEED_QUOTES)
 
-# -DSimTK_SIMBODY_TYPE has to be defined in the target subdirectories.
-# -Dsimbody_EXPORTS defined automatically when Windows DLL build is being done.
+# Ensure that debug libraries have "_d" appended to their names.
+# CMake gets this right on Windows automatically with this definition.
+# But on Unix or Cygwin we have to add the suffix manually
+IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+    SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
+ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 
-
-## If no one says otherwise, change the executable path to drop into the same binary
-## location as the DLLs so that the test cases will use the just-build DLLs.
-IF(NOT EXECUTABLE_OUTPUT_PATH)
-  SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR} 
-      CACHE INTERNAL "Single output directory for building all executables.")
-ENDIF(NOT EXECUTABLE_OUTPUT_PATH)
-IF(NOT LIBRARY_OUTPUT_PATH)
-  SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR} 
-      CACHE INTERNAL "Single output directory for building all libraries.")
-ENDIF(NOT LIBRARY_OUTPUT_PATH)
-SET(${PROJECT_NAME}_EXECUTABLE_DIR ${EXECUTABLE_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
-SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
-
+#
+### If no one says otherwise, change the executable path to drop into the same binary
+### location as the DLLs so that the test cases will use the just-build DLLs.
+#IF(NOT EXECUTABLE_OUTPUT_PATH)
+#  SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR} 
+#      CACHE INTERNAL "Single output directory for building all executables.")
+#ENDIF(NOT EXECUTABLE_OUTPUT_PATH)
+#IF(NOT LIBRARY_OUTPUT_PATH)
+#  SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR} 
+#      CACHE INTERNAL "Single output directory for building all libraries.")
+#ENDIF(NOT LIBRARY_OUTPUT_PATH)
+#SET(${PROJECT_NAME}_EXECUTABLE_DIR ${EXECUTABLE_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
+#SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
+##
 
 # Determine which math libraries to use for this platform.
 SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
@@ -331,8 +414,13 @@ IF(BUILD_USING_OTHER_LAPACK)
 ENDIF(BUILD_USING_OTHER_LAPACK)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
-    SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread dl)
-    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED_VN} pthread dl)
+    IF(APPLE)
+	    SET(REALTIME_LIB)
+    ELSE()
+	    SET(REALTIME_LIB rt)
+    ENDIF()
+    SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl)
+    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED_VN} pthread ${REALTIME_LIB} dl)
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## Assume Microsoft Visual Studio
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthreadVC2)
@@ -344,6 +432,10 @@ IF (BUILD_TESTING)
     # Allow automated build and dashboard.
     #
     INCLUDE (Dart)
+
+    ## When in Debug mode and running valgrind, some of the test
+    ## cases take longer than the default 1500 seconds.
+    SET(DART_TESTING_TIMEOUT 7200)
 
     #IF (UNIX AND NOT CYGWIN AND NOT APPLE)
     #  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
@@ -359,18 +451,18 @@ IF (BUILD_TESTING)
 
 ENDIF (BUILD_TESTING)
 
-#
-# Installation
-#
-# CMake installs go into CMAKE_INSTALL_PREFIX, which is always
-# set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
-# instead which is passed in by the build system or set above.
+# Each build should look in our local binary directory to find the
+# earlier-built libraries that it depends on.
+LINK_DIRECTORIES(${BUILD_BINARY_DIR})
 
-
-SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
-
-ADD_SUBDIRECTORY( Prerequisites )
+# Each of these returns a list of API include directories for
+# use by the later builds.
+ADD_SUBDIRECTORY( Platform )
+# PLATFORM_INCLUDE_DIRECTORIES now set
 ADD_SUBDIRECTORY( SimTKcommon )
+# SimTKCOMMON_INCLUDE_DIRECTORIES now set
 ADD_SUBDIRECTORY( SimTKmath )
+# SimTKMATH_INCLUDE_DIRECTORIES now set
 ADD_SUBDIRECTORY( Simbody )
+# SimTKSIMBODY_INCLUDE_DIRECTORIES now set (but not used)
 

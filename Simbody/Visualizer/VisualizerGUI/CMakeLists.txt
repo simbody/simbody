@@ -12,7 +12,7 @@ IF(WIN32)
     # Update the local copy of the dll; destination is Release or Debug.
     # Must fix slashes so that Windows "copy" command can work.
     FILE(TO_NATIVE_PATH  "${glut32libdir}/glut32.dll" gl32src)
-    FILE(TO_NATIVE_PATH  "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/glut32.dll"
+    FILE(TO_NATIVE_PATH  "${BUILD_BINARY_DIR}/glut32.dll"
          gl32dest)
     # This gets executed whenever the named target gets built.
     add_custom_command(
@@ -34,7 +34,7 @@ IF(WIN32)
     # Update the local copy of the dll; destination is Release or Debug.
     # Must fix slashes so that Windows "copy" command can work.
     FILE(TO_NATIVE_PATH  "${glut32libdir}/glut32.dll" gl32src)
-    FILE(TO_NATIVE_PATH  "${PROJECT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/glut32.dll"
+    FILE(TO_NATIVE_PATH  "${BUILD_BINARY_DIR}/glut32.dll"
          gl32dest)
     # This gets executed whenever the named target gets built.
     add_custom_command(

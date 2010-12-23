@@ -23,6 +23,11 @@
 
 PROJECT (SimTKsimbody)
 
+# SimTKsimbody depends on PlatformFiles, SimTKcommon, and SimTKmath only.
+INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
+	            ${SimTKCOMMON_INCLUDE_DIRECTORIES}
+	            ${SimTKMATH_INCLUDE_DIRECTORIES})
+
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
 SET(SIMBODY_SOURCE_SUBDIRS .)
@@ -30,16 +35,16 @@ IF (BUILD_VISUALIZER)
     SET(SIMBODY_SOURCE_SUBDIRS ${SIMBODY_SOURCE_SUBDIRS} Visualizer)
 ENDIF (BUILD_VISUALIZER)
 
-SET(SIMBODY_LIBRARY_NAME ${NS}SimTKsimbody CACHE STRING
-"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
-FORCE)
+ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SimTKSIMBODY_LIBRARY_NAME}
+                -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
+                -DSimTK_SIMBODY_MINOR_VERSION=${SIMBODY_MINOR_VERSION}
+		-DSimTK_SIMBODY_PATCH_VERSION=${SIMBODY_PATCH_VERSION})
 
-ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME})
 
-SET(SHARED_TARGET ${SIMBODY_LIBRARY_NAME})
-SET(STATIC_TARGET ${SIMBODY_LIBRARY_NAME}_static)
-SET(SHARED_TARGET_VN ${SIMBODY_LIBRARY_NAME}${VN})
-SET(STATIC_TARGET_VN ${SIMBODY_LIBRARY_NAME}${VN}_static)
+SET(SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
+SET(STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}_static)
+SET(SHARED_TARGET_VN ${SimTKSIMBODY_LIBRARY_NAME}${VN})
+SET(STATIC_TARGET_VN ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
 
 # On Unix or Cygwin we have to add the suffix manually
 IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
@@ -59,32 +64,31 @@ ELSE(BUILD_UNVERSIONED_LIBRARIES)
 	SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
 ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
-SET(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon)
-SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
-SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
-
-SET(SimTKCOMMON_LIBRARY_NAME_VN ${NS}SimTKcommon${VN})
-SET(SimTKCOMMON_SHARED_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN})
-SET(SimTKCOMMON_STATIC_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN}_static)
-
-SET(SimTKMATH_LIBRARY_NAME ${NS}SimTKmath)
-SET(SimTKMATH_SHARED_LIBRARY ${SimTKMATH_LIBRARY_NAME})
-SET(SimTKMATH_STATIC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_static)
-
-SET(SimTKMATH_LIBRARY_NAME_VN ${NS}SimTKmath${VN})
-SET(SimTKMATH_SHARED_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN})
-SET(SimTKMATH_STATIC_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN}_static)
-
 # These are all the places to search for header files which are
 # to be part of the API.
 SET(API_INCLUDE_DIRS) # start empty
+SET(SimTKSIMBODY_INCLUDE_DIRS) # start empty
 FOREACH(subdir ${SIMBODY_SOURCE_SUBDIRS})
     # append
     SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-                         ${subdir}/include 
-                         ${subdir}/include/simbody 
-                         ${subdir}/include/simbody/internal)
+	 ${PROJECT_SOURCE_DIR}/${subdir}/include 
+	 ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody 
+	 ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody/internal)
+
+    # Referencing headers must always be done relative to this level.
+    SET(SimTKSIMBODY_INCLUDE_DIRS ${SimTKSIMBODY_INCLUDE_DIRS}
+	 ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
+
+# Include the Simbody API include directories now so that Simbody code 
+# can use them.
+INCLUDE_DIRECTORIES(${SimTKSIMBODY_INCLUDE_DIRS})
+
+# And pass API include directories up to the parent so subsequent libraries
+# can find the headers too.
+SET(SimTKSIMBODY_INCLUDE_DIRECTORIES ${SimTKMATH_INCLUDE_DIRS}
+    PARENT_SCOPE)
+
 
 # We'll need both *relative* path names, starting with their API_INCLUDE_DIRS,
 # and absolute pathnames.
@@ -111,16 +115,10 @@ FOREACH(subdir ${SIMBODY_SOURCE_SUBDIRS})
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
-    ## Make sure we find these locally before looking in SimTK/include if
-    ## Simbody was previously installed there.
-    INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
+    #INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
-INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/src)
-
-INCLUDE_DIRECTORIES(BEFORE ${CMAKE_SOURCE_DIR}/SimTKmath/include)
-INCLUDE_DIRECTORIES(BEFORE ${CMAKE_SOURCE_DIR}/SimTKcommon/include)
-INCLUDE_DIRECTORIES(BEFORE ${CMAKE_SOURCE_DIR}/Prerequisites/include)
+#INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src)
 
 INCLUDE(ApiDoxygen.cmake)
 
@@ -137,7 +135,8 @@ INSTALL_FILES(/include/simbody/internal FILES ${INTERNAL_HEADERS})
 # Notice that the (deprecated) INSTALL_FILES(dir ...) command works differently than the
 # newer (recommended) INSTALL(dir FILES ...) command
 # when the target directory starts with a slash
-INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimbodyTheoryManual.pdf DESTINATION doc/simbody )
+INSTALL(FILES ${PROJECT_SOURCE_DIR}/doc/SimbodyTheoryManual.pdf 
+	DESTINATION doc/simbody )
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.

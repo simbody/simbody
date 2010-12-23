@@ -53,7 +53,7 @@
 #define GET_VERSION_STRING  \
     MAKE_VERSION_STRING(SimTK_SimTKCOMMON_MAJOR_VERSION,  \
                         SimTK_SimTKCOMMON_MINOR_VERSION,  \
-                        SimTK_SimTKCOMMON_BUILD_VERSION)
+                        SimTK_SimTKCOMMON_PATCH_VERSION)
 
 #define GET_COPYRIGHT_STRING \
     MAKE_COPYRIGHT_STRING(SimTK_SimTKCOMMON_COPYRIGHT_YEARS, \
@@ -84,7 +84,7 @@
 
 extern "C" {
 
-void SimTK_version_SimTKcommon(int* major, int* minor, int* build) {
+void SimTK_version_SimTKcommon(int* major, int* minor, int* patch) {
     static const char* l = "SimTK library="   GET_LIBRARY_STRING;
     static const char* t = "SimTK type="      GET_TYPE_STRING;
     static const char* d = "SimTK debug="     GET_DEBUG_STRING;
@@ -94,7 +94,7 @@ void SimTK_version_SimTKcommon(int* major, int* minor, int* build) {
 
     if (major) *major = SimTK_SimTKCOMMON_MAJOR_VERSION;
     if (minor) *minor = SimTK_SimTKCOMMON_MINOR_VERSION;
-    if (build) *build = SimTK_SimTKCOMMON_BUILD_VERSION;
+    if (patch) *patch = SimTK_SimTKCOMMON_PATCH_VERSION;
 
     // Force statics to be present in the binary (Release mode otherwise 
     // optimizes them away).
