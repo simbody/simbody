@@ -1234,7 +1234,7 @@ SEARCH_INCLUDES        = YES
 # contain include files that are not input files but should be processed by 
 # the preprocessor.
 
-INCLUDE_PATH           = "@SimTK_SDK@/include"
+INCLUDE_PATH           = 
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard 
 # patterns (like *.h and *.hpp) to filter out the header-files in the 
@@ -1289,7 +1289,7 @@ SKIP_FUNCTION_MACROS   = YES
 # If a tag file is not located in the directory in which doxygen 
 # is run, you must also specify the path to the tagfile here.
 
-TAGFILES               = "@SimTK_SDK@/doc/api/SimTKcommon/SimTKcommonDoxygenTagFile =../SimTKcommon" 
+TAGFILES               = "../SimTKcommon/html/SimTKcommonDoxygenTagFile =../../SimTKcommon/html" 
 
 # When a file name is specified after GENERATE_TAGFILE, doxygen will create 
 # a tag file that is based on the input files it reads.

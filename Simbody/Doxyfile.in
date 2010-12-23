@@ -190,7 +190,7 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 SEARCH_INCLUDES        = YES
-INCLUDE_PATH           = "@SimTK_SDK@/include"
+INCLUDE_PATH           = 
 INCLUDE_FILE_PATTERNS  = 
 PREDEFINED             = SimTK_SIMBODY_EXPORT=
 EXPAND_AS_DEFINED      = SimTK_PIMPL_DOWNCAST
@@ -198,7 +198,7 @@ SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
 # Configuration::additions related to external references   
 #---------------------------------------------------------------------------
-TAGFILES               = "@SimTK_SDK@/doc/api/SimTKmath/SimTKmathDoxygenTagFile"="../SimTKmath" "@SimTK_SDK@/doc/api/SimTKcommon/SimTKcommonDoxygenTagFile"="../SimTKcommon"
+TAGFILES               = "../SimTKmath/html/SimTKmathDoxygenTagFile"="../../SimTKmath/html" "../SimTKcommon/html/SimTKcommonDoxygenTagFile"="../../SimTKcommon/html"
 GENERATE_TAGFILE       = "html/@PROJECT_NAME@DoxygenTagfile"
 ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
