@@ -85,7 +85,3 @@ INSTALL(FILES InstalledCMakeLists.txt DESTINATION examples/simbody
 INSTALL(FILES "${PROJECT_SOURCE_DIR}/examples/Makefile"
     DESTINATION examples/simbody)
 
-# install visual studio build directories
-#INSTALL(DIRECTORY "${PROJECT_SOURCE_DIR}/examples/VisualStudio2008_9"
-#    DESTINATION examples/molmodel
-#    PATTERN ".svn"  EXCLUDE)
