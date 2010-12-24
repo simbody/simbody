@@ -17,7 +17,7 @@
 # whether to build dynamically linked, statically linked, or both
 # versions of the executable.
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT(SimTKExamples)
 
@@ -27,53 +27,35 @@ SET(BUILD_TESTING_STATIC TRUE CACHE BOOL
 		"Build examples using static SimTK libraries.")
 
 SET(SimTK_SHARED_LIBS 
-		optimized SimTKmolmodel 
 		optimized SimTKsimbody 
 		optimized SimTKmath
-		optimized SimTKcommon
-		optimized SimTKsimbody_aux)
+		optimized SimTKcommon)
 SET(SimTK_SHARED_LIBS_D
-		debug SimTKmolmodel_d 
 		debug SimTKsimbody_d 
 		debug SimTKmath_d
-		debug SimTKcommon_d
-		debug SimTKsimbody_aux_d)
+		debug SimTKcommon_d)
 
-# Note: since 
 SET(SimTK_STATIC_LIBS 
-		optimized SimTKmolmodel_static 
 		optimized SimTKsimbody_static 
 		optimized SimTKmath_static
-		optimized SimTKcommon_static
-		optimized SimTKsimbody_aux_static)
+		optimized SimTKcommon_static)
 SET(SimTK_STATIC_LIBS_D
-		debug SimTKmolmodel_static_d
 		debug SimTKsimbody_static_d 
 		debug SimTKmath_static_d
-		debug SimTKcommon_static_d
-		debug SimTKsimbody_aux_static_d)
-
-# These are dynamic libraries but we have to list them
-# explicitly for the static build.
-SET(VTK_STATIC_LIBS
-     vtkHybrid
-     vtkFiltering
-     vtkGenericFiltering
-     vtkVolumeRendering
-     vtkRendering
-     vtkIO
-     vtkGraphics
-     vtkCommon)
+		debug SimTKcommon_static_d)
 
 
 # Lapack is only available as a shared, optimized library.
 SET(SimTK_GENERAL_LIBS SimTKlapack)
 IF(WIN32)
-	SET(SimTK_GENERAL_LIBS ${SimTK_GENERAL_LIBS} pthreadVC2 ws2_32)
-ENDIF(WIN32)
+	SET(SimTK_GENERAL_LIBS ${SimTK_GENERAL_LIBS} pthreadVC2)
+ELSEIF(APPLE)
+ELSE() #Linux
+	SET(SimTK_GENERAL_LIBS ${SimTK_GENERAL_LIBS} dl rt)
+ENDIF()
 
 SET(SimTK $ENV{SimTK_INSTALL_DIR} CACHE PATH
-		"Directory where SimTK is installed, e.g. /usr/local/bin/SimTK.")
+		"Directory where SimTK is installed, e.g. /usr/local/SimTK.")
 
 IF(NOT SimTK)
 	MESSAGE(FATAL_ERROR 
@@ -112,7 +94,6 @@ FOREACH(EX_PROG ${EXAMPLES})
         TARGET_LINK_LIBRARIES(${EX_STATIC}
 				${SimTK_STATIC_LIBS_D}
 				${SimTK_STATIC_LIBS}
-				${VTK_STATIC_LIBS}
 				${SimTK_GENERAL_LIBS})
     ENDIF (BUILD_TESTING_STATIC)
 
@@ -127,3 +108,4 @@ FOREACH(EX_OBJ ${EXAMPLE_OBJS})
     CONFIGURE_FILE(${EX_OBJ} 
 			${CMAKE_CURRENT_BINARY_DIR}/${OBJ_ROOT} COPYONLY)
 ENDFOREACH(EX_OBJ ${EXAMPLE_OBJS})
+
