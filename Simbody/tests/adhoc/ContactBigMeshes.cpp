@@ -231,8 +231,8 @@ int main() {
     viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
     MyReporter& myRep = *new MyReporter(system,contactForces,ReportInterval);
 
-    system.updDefaultSubsystem().addEventReporter(&myRep);
-    system.updDefaultSubsystem().addEventReporter(&reporter);
+    system.addEventReporter(&myRep);
+    system.addEventReporter(&reporter);
 
     // Initialize the system and state.
     

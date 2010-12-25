@@ -12,15 +12,16 @@ int main() {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
     Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody.addDecoration(Transform(), DecorativeSphere(0.1));
-    MobilizedBodyIndex lastBody = matter.getGround().getMobilizedBodyIndex();
+
+    MobilizedBody lastBody = matter.Ground();
     for (int i = 0; i < 10; ++i) {
-        MobilizedBody::Ball pendulum(matter.updMobilizedBody(lastBody), Transform(Vec3(0)), pendulumBody, Transform(Vec3(0, 1, 0)));
-        lastBody = pendulum.getMobilizedBodyIndex();
+        MobilizedBody::Ball pendulum(lastBody,     Transform(Vec3(0)), 
+                                     pendulumBody, Transform(Vec3(0, 1, 0)));
+        lastBody = pendulum;
     }
 
     Visualizer viz(system);
-    system.updDefaultSubsystem().addEventReporter
-        (new Visualizer::Reporter(viz, 0.02));
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.02));
     
     // Initialize the system and state.
     

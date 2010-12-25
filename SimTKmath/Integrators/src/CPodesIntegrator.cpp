@@ -200,7 +200,7 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     }
     cpodes->rootInit(state.getNEventTriggers());
     if (state.getNEventTriggers() > 0) {
-        Array_<System::EventTriggerInfo> triggerInfo;
+        Array_<EventTriggerInfo> triggerInfo;
         getSystem().calcEventTriggerInfo(state, triggerInfo);
         Array_<int> rootDir(triggerInfo.size());
         for (int i = 0; i < (int)triggerInfo.size(); ++i) {

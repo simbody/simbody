@@ -55,7 +55,7 @@ namespace SimTK {
  * change to the physical system it represents. 
  * 
  * Once you have created an EventReporter, you can add it to a System by calling
- * getDefaultSubsystem().addEventReporter() on the System.
+ * addEventReporter() on the System.
  */
 
 class SimTK_SimTKCOMMON_EXPORT EventReporter {
@@ -126,7 +126,7 @@ public:
      * Get an EventTriggerInfo object which can be used to customize when the event occurs.
      */
     
-    System::EventTriggerInfo& getTriggerInfo();
+    EventTriggerInfo& getTriggerInfo();
     
     /**
      * Get the stage at which the trigger function will be evaluated.

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -35,17 +35,18 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
+#include "SimTKcommon/internal/Subsystem.h"
+
+#include <cassert>
 
 namespace SimTK {
 
-class Subsystem;
 class DecorativeGeometry;
 class DefaultSystemSubsystem;
-
-/** @class SimTK::EventId
- * This is a class to represent unique IDs for events in a type-safe way.
- */
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId);
+class ScheduledEventHandler;
+class ScheduledEventReporter;
+class TriggeredEventHandler;
+class TriggeredEventReporter;
 
 /**
  * The handle class which serves as the abstract parent of all System handles.
@@ -105,6 +106,23 @@ public:
 
     const String& getName()    const;
     const String& getVersion() const;
+
+    /// Add a ScheduledEventHandler to this System, which takes over ownership
+    /// of the event handler object. The handler is actually
+    /// added to the DefaultSystemSubsystem that is contained in this System.
+    inline void addEventHandler(ScheduledEventHandler* handler);
+    /// Add a TriggeredEventHandler to this System, which takes over ownership
+    /// of the event handler object. The handler is actually
+    /// added to the DefaultSystemSubsystem that is contained in this System.
+    inline void addEventHandler(TriggeredEventHandler* handler);
+    /// Add a ScheduledEventReporter to this System, which takes over ownership
+    /// of the event reporter object. The handler is actually
+    /// added to the DefaultSystemSubsystem that is contained in this System.
+    inline void addEventReporter(ScheduledEventReporter* handler) const;
+    /// Add a TriggeredEventReporter to this System, which takes over ownership
+    /// of the event reporter object. The handler is actually
+    /// added to the DefaultSystemSubsystem that is contained in this System.
+    inline void addEventReporter(TriggeredEventReporter* handler) const;
 
     /// This is a hint to visualization software as to which way this System's
     /// designer considers to be "up".\ This is the best direction to use as
@@ -424,8 +442,6 @@ public:
         // THE DISCRETE (SLOW) SYSTEM //
         ////////////////////////////////
 
-    class EventTriggerInfo;
-
     /// This determines whether this System wants to be notified whenever time
     /// advances irreversibly. If set true, time advancement is treated as an
     /// event. Otherwise, time advancement proceeds silently.
@@ -528,6 +544,15 @@ public:
     /// Get writable access to the default subsystem which is present in every system.
     DefaultSystemSubsystem& updDefaultSubsystem();
 
+    /// Implicitly convert this System into a const Subsystem reference;
+    /// this actually returns a reference to the DefaultSystemSubsystem 
+    /// contained in this System.
+    inline operator const Subsystem&() const; // implemented below
+    /// Implicitly convert this System into a writable Subsystem reference;
+    /// this actually returns a reference to the DefaultSystemSubsystem 
+    /// contained in this System.
+    inline operator Subsystem&();
+
     // Internal use only
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
@@ -558,10 +583,49 @@ private:
     // OBSOLETE
     // Part of our ongoing crusade to turn getN's into getNums for API consistency.
     int getNSubsystems() const {return getNumSubsystems();}
-
-private:
-    class EventTriggerInfoRep;
 };
+
+
+/** This is a concrete Subsystem that is part of every System.\ It provides a 
+variety of services for the System, such as maintaining lists of event handlers
+and reporters, and acting as a source of globally unique event IDs. 
+
+To obtain the default subsystem for a System, call getDefaultSubsystem() or 
+updDefaultSubsystem() on it. Also, a System can be implicitly converted
+to a Subsystem, in which case it actually returns a reference to
+this Subsystem. **/
+class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
+public:
+    explicit DefaultSystemSubsystem(System& sys);
+    void addEventHandler(ScheduledEventHandler* handler);
+    void addEventHandler(TriggeredEventHandler* handler);
+    void addEventReporter(ScheduledEventReporter* handler) const;
+    void addEventReporter(TriggeredEventReporter* handler) const;
+    EventId createEventId(SubsystemIndex subsys, const State& state) const;
+    void findSubsystemEventIds
+       (SubsystemIndex subsys, const State& state, 
+        const Array_<EventId>& allEvents, 
+        Array_<EventId>& eventsForSubsystem) const;
+
+    /** @cond **/  // don't let doxygen see this private class
+    class Guts;
+    /** @endcond **/
+private:
+    const Guts& getGuts() const;
+    Guts& updGuts();
+};
+
+inline void System::addEventHandler(ScheduledEventHandler* handler)
+{   updDefaultSubsystem().addEventHandler(handler); }
+inline void System::addEventHandler(TriggeredEventHandler* handler)
+{   updDefaultSubsystem().addEventHandler(handler); }
+inline void System::addEventReporter(ScheduledEventReporter* handler) const
+{   getDefaultSubsystem().addEventReporter(handler); }
+inline void System::addEventReporter(TriggeredEventReporter* handler) const
+{   getDefaultSubsystem().addEventReporter(handler); }
+
+inline System::operator const Subsystem&() const {return getDefaultSubsystem();}
+inline System::operator Subsystem&() {return updDefaultSubsystem();}
 
 inline static System::ProjectOptions operator|(System::ProjectOptions::Option  o1,    System::ProjectOptions::Option o2)    {return System::ProjectOptions(o1) |= o2;}
 inline static System::ProjectOptions operator|(System::ProjectOptions          opts,  System::ProjectOptions::Option o)     {return opts |= o;}
@@ -572,68 +636,6 @@ inline static System::ProjectOptions operator&(System::ProjectOptions::Option  o
 inline static System::ProjectOptions operator~(System::ProjectOptions::Option  o)                                           {return ~System::ProjectOptions(o);}
 inline static System::ProjectOptions operator-(System::ProjectOptions          opts,  System::ProjectOptions::Option o)     {return opts -= o;}
 inline static System::ProjectOptions operator-(System::ProjectOptions          opts1, System::ProjectOptions         opts2) {return opts1 -= opts2;}
-
-
-
-/// This class is used to communicate between the System and an 
-/// Integrator regarding the properties of a particular event trigger
-/// function. Currently these are:
-///   - Whether to watch for rising sign transitions, falling, or both. [BOTH]
-///   - Whether to watch for transitions to and from zero. [NO]
-///   - The localization window in units of the System's timescale. [10%]
-///     (That is then the "unit" window which is reduced by the
-///      accuracy setting.)
-/// The default values are shown in brackets above.
-///
-class SimTK_SimTKCOMMON_EXPORT System::EventTriggerInfo {
-public:
-    EventTriggerInfo();
-    explicit EventTriggerInfo(EventId eventId);
-    ~EventTriggerInfo();
-    EventTriggerInfo(const EventTriggerInfo&);
-    EventTriggerInfo& operator=(const EventTriggerInfo&);
-
-    EventId getEventId() const; // returns -1 if not set
-    bool shouldTriggerOnRisingSignTransition()  const; // default=true
-    bool shouldTriggerOnFallingSignTransition() const; // default=true
-    Real getRequiredLocalizationTimeWindow()    const; // default=0.1
-
-    // These return the modified 'this', like assignment operators.
-    EventTriggerInfo& setEventId(EventId);
-    EventTriggerInfo& setTriggerOnRisingSignTransition(bool);
-    EventTriggerInfo& setTriggerOnFallingSignTransition(bool);
-    EventTriggerInfo& setRequiredLocalizationTimeWindow(Real);
-
-    Event::Trigger calcTransitionMask() const {
-        unsigned mask = 0;
-        if (shouldTriggerOnRisingSignTransition()) {
-            mask |= Event::NegativeToPositive;
-        }
-        if (shouldTriggerOnFallingSignTransition()) {
-            mask |= Event::PositiveToNegative;
-        }
-        return Event::Trigger(mask);
-    }
-
-    Event::Trigger calcTransitionToReport
-       (Event::Trigger transitionSeen) const
-    {
-        // report -1 to 1 or 1 to -1 as appropriate
-        if (transitionSeen & Event::Rising)
-            return Event::NegativeToPositive;
-        if (transitionSeen & Event::Falling)
-            return Event::PositiveToNegative;
-        assert(!"impossible event transition situation");
-        return Event::NoEventTrigger;
-    }
-
-private:
-    // opaque implementation for binary compatibility
-    System::EventTriggerInfoRep* rep;
-
-    const System::EventTriggerInfoRep& getRep() const {assert(rep); return *rep;}
-    System::EventTriggerInfoRep&       updRep()       {assert(rep); return *rep;}
-};
 
 } // namespace SimTK
 

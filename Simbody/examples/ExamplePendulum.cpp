@@ -57,8 +57,7 @@ int main() {
     // Visualize with default options; ask for a report every 1/30 of a second
     // to match the Visualizer's default 30 frames per second rate.
     Visualizer viz(system);
-    system.updDefaultSubsystem().addEventReporter
-                                (new Visualizer::Reporter(viz, 1./30));
+    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
     
     // Initialize the system and state.
     

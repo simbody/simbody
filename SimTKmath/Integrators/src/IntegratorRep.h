@@ -488,7 +488,7 @@ protected:
     // constant across a time step, and usually across many time steps.
     bool getDynamicSystemHasTimeAdvancedEvents()      const {return systemHasTimeAdvancedEvents;}
     Real getDynamicSystemTimescale()                  const {return timeScaleInUse;}
-    const Array_<System::EventTriggerInfo>&
+    const Array_<EventTriggerInfo>&
         getDynamicSystemEventTriggerInfo()            const {return eventTriggerInfo;}
     const Vector& getDynamicSystemOneOverTolerances() const {return constraintWeightsInUse;}
     const Vector& getDynamicSystemWeights()           const {return stateWeightsInUse;}
@@ -559,7 +559,7 @@ protected:
     Vector&       updPreviousYDot()                {return ydotPrev;}
     Vector&       updPreviousEventTriggers()       {return triggersPrev;}
 
-    Array_<System::EventTriggerInfo>& updEventTriggerInfo() {return eventTriggerInfo;}
+    Array_<EventTriggerInfo>& updEventTriggerInfo() {return eventTriggerInfo;}
     Vector& updConstraintWeightsInUse() {return constraintWeightsInUse;}
 
     // State must already have been evaluated through Stage::Acceleration
@@ -771,7 +771,7 @@ private:
     // They also provide a localization window width.
     // This is Stage::Instance information.
 
-    Array_<System::EventTriggerInfo> eventTriggerInfo;
+    Array_<EventTriggerInfo> eventTriggerInfo;
 
     // A unitless fraction.
     Real accuracyInUse;

@@ -396,13 +396,11 @@ int main() {
     helpMenuItems.push_back(std::make_pair("TBD - Sorry!", 1));
     viz.addMenu("Help", HelpMenuId, helpMenuItems);
 
-    MyReporter* myRep = new MyReporter(system,contactForces,ReportInterval);
-    Visualizer::Reporter* reporter = new Visualizer::Reporter(viz, ReportInterval);
+    system.addEventReporter(new MyReporter(system,contactForces,ReportInterval));
+    system.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
-    system.updDefaultSubsystem().addEventReporter(myRep);
-    system.updDefaultSubsystem().addEventReporter(reporter);
     // Check for a Run->Quit menu pick every 1/4 second.
-    system.updDefaultSubsystem().addEventHandler(new UserInputHandler(*silo, .25));
+    system.addEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
     

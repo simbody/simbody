@@ -187,7 +187,7 @@ void testKinematicsAndEnergyConservation() {
 #ifdef VISUALIZE
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
     // Initialize the system and state.
@@ -415,7 +415,7 @@ void testForces() {
 #ifdef VISUALIZE
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
    

@@ -276,12 +276,12 @@ int main() {
 
     viz.setCameraTransform(Vec3(0,NBodies/4,2*NBodies)); 
 
-    system.updDefaultSubsystem().addEventHandler
+    system.addEventHandler
        (new UserInputHandler(viz,*silo, gravity, 0.1)); // check input every 100ms
 
     // Report visualization frames.
     Visualizer::Reporter* vr = new Visualizer::Reporter(viz, TimeScale/FrameRate);
-    system.updDefaultSubsystem().addEventReporter(vr);
+    system.addEventReporter(vr);
     
     // Initialize the system and state.
 

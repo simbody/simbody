@@ -118,7 +118,7 @@ int main() {
     
     // Simulate it.
 
-    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
 
     RungeKuttaMersonIntegrator integ(system);
     //integ.setMinimumStepSize(1e-1);

@@ -367,8 +367,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
 
     matter.setShowDefaultGeometry(false);
     Visualizer viz(system);
-	Visualizer::Reporter& vizReporter = *new Visualizer::Reporter(viz, 0.1);
-    system.updDefaultSubsystem().addEventReporter(&vizReporter);
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.1));
 
 
     // Initialize the system and state.
@@ -404,8 +403,6 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
 
     // This is the default treatment of constraints.
     //ik.setSystemConstraintsWeight(Infinity);
-
-    //ik.addReporter(vizReporter);
 
     ik.lockMobilizer(mobod_patella_l);
     ik.lockMobilizer(mobod_patella_r);

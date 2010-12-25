@@ -55,7 +55,7 @@ namespace SimTK {
  * EventReporter instead.
  * 
  * Once you have created an EventHandler, you can add it to a System by calling
- * updDefaultSubsystem().addEventHandler() on the System.
+ * addEventHandler() on the System.
  */
 
 class SimTK_SimTKCOMMON_EXPORT EventHandler {
@@ -141,7 +141,7 @@ public:
      * Get an EventTriggerInfo object which can be used to customize when the event occurs.
      */
     
-    System::EventTriggerInfo& getTriggerInfo();
+    EventTriggerInfo& getTriggerInfo();
     
     /**
      * Get the stage at which the trigger function will be evaluated.

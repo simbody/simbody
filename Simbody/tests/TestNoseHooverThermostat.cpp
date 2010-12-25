@@ -127,11 +127,11 @@ public:
         Visualizer viz(system);
         viz.setBackgroundType(Visualizer::SolidColor);
         Visualizer::Reporter* vizrep = new Visualizer::Reporter(viz, 0.2);
-        system.updDefaultSubsystem().addEventReporter(vizrep);
+        system.addEventReporter(vizrep);
 #endif
 
         reporter = new OscillatorReporter(*this, 0.1);
-        system.getDefaultSubsystem().addEventReporter(reporter);
+        system.addEventReporter(reporter);
 
         State state = system.realizeTopology();
         Random::Uniform rand(-1,1);

@@ -190,29 +190,6 @@ private:
 };
 
 
-////////////////////////////
-// EVENT TRIGGER INFO REP //
-////////////////////////////
-
-class System::EventTriggerInfoRep {
-public:
-    explicit EventTriggerInfoRep(System::EventTriggerInfo* h)
-      : myHandle(h), eventId(EventId(InvalidIndex)), triggerOnRising(true), triggerOnFalling(true), localizationWindow(0.1)
-    {
-        assert(h);
-    }
-
-private:
-    System::EventTriggerInfo* myHandle;
-    friend class System::EventTriggerInfo;
-
-    EventId  eventId;
-    bool triggerOnRising;
-    bool triggerOnFalling;
-    Real localizationWindow;
-};
-
-
 } // namespace SimTK
 
 #endif // SimTK_SimTKCOMMON_SYSTEM_GUTSREP_H_

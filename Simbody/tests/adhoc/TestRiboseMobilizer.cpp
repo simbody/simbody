@@ -502,7 +502,7 @@ void testRiboseMobilizer()
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
 
-    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 0.10));
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.10));
 
     system.realizeTopology();
     State& state = system.updDefaultState();

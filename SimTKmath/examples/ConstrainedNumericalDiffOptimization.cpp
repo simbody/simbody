@@ -27,9 +27,9 @@
 
 using namespace SimTK;
 
-static int  NUMBER_OF_PARAMETERS = 4; 
-static int  NUMBER_OF_EQUALITY_CONSTRAINTS = 1; 
-static int  NUMBER_OF_INEQUALITY_CONSTRAINTS = 1; 
+static int  NumberOfParameters = 4; 
+static int  NumberOfEqualityConstraints = 1; 
+static int  NumberOfInequalityConstraints = 1; 
 
 /*
  * Problem hs071 looks like this
@@ -82,11 +82,11 @@ public:
 
 int main() {
     /* create the system to be optimized */
-    ProblemSystem sys(NUMBER_OF_PARAMETERS, NUMBER_OF_EQUALITY_CONSTRAINTS, NUMBER_OF_INEQUALITY_CONSTRAINTS);
+    ProblemSystem sys(NumberOfParameters, NumberOfEqualityConstraints, NumberOfInequalityConstraints);
 
-    Vector results(NUMBER_OF_PARAMETERS);
-    Vector lower_bounds(NUMBER_OF_PARAMETERS);
-    Vector upper_bounds(NUMBER_OF_PARAMETERS);
+    Vector results(NumberOfParameters);
+    Vector lower_bounds(NumberOfParameters);
+    Vector upper_bounds(NumberOfParameters);
 
     /* set initial conditions */
     results[0] = 1.0;
@@ -95,7 +95,7 @@ int main() {
     results[3] = 1.0;
 
     /* set bounds */
-    for(int i=0;i<NUMBER_OF_PARAMETERS;i++) {   
+    for(int i=0;i<NumberOfParameters;i++) {   
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 5.0;
     }

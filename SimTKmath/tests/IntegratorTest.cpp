@@ -120,13 +120,13 @@ public:
         // Implementation of discrete System virtuals //
         ////////////////////////////////////////////////
 
-    /*virtual*/int calcEventTriggerInfoImpl(const State& s, Array_<System::EventTriggerInfo>& eti) const {
+    /*virtual*/int calcEventTriggerInfoImpl(const State& s, Array_<EventTriggerInfo>& eti) const {
         eti.clear();
-        eti.push_back(System::EventTriggerInfo(eventId0)
+        eti.push_back(EventTriggerInfo(eventId0)
                       .setRequiredLocalizationTimeWindow(1)
                       .setTriggerOnRisingSignTransition(false));
-        eti.push_back(System::EventTriggerInfo(eventId1));
-        eti.push_back(System::EventTriggerInfo(eventId2) 
+        eti.push_back(EventTriggerInfo(eventId1));
+        eti.push_back(EventTriggerInfo(eventId2) 
                       .setTriggerOnFallingSignTransition(false));
         return 0;
     }

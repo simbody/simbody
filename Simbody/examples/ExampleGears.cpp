@@ -75,7 +75,7 @@ int main() {
     // this way. We don't want the default ground and sky background here.
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor); // default is white
-    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
     
     // Initialize the system and state.
     

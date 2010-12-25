@@ -147,13 +147,12 @@ int main()
        // MobilizerUIndex(0), 100, 0);
 
     Visualizer viz(system);
-    Visualizer::Reporter* pEventReporter =  new Visualizer::Reporter(viz, 1./30);
     viz.setCameraTransform(Vec3(0.5,0.5,0.5));
     viz.pointCameraAt(Vec3(0), Vec3(0,1,0));
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.updDefaultSubsystem().addEventReporter(pEventReporter);
+    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
 
-    system.updDefaultSubsystem().addEventReporter(new EnergyReport(system, .1));
+    system.addEventReporter(new EnergyReport(system, .1));
 	system.realizeTopology();
 	State state = system.getDefaultState();
 

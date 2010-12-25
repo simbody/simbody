@@ -212,6 +212,73 @@ public:
 private:
 };
 
+/** @class SimTK::EventId
+This is a class to represent unique IDs for events in a type-safe way. **/
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId);
+
+/// This class is used to communicate between the System and an 
+/// Integrator regarding the properties of a particular event trigger
+/// function. Currently these are:
+///   - Whether to watch for rising sign transitions, falling, or both. [BOTH]
+///   - Whether to watch for transitions to and from zero. [NO]
+///   - The localization window in units of the System's timescale. [10%]
+///     (That is then the "unit" window which is reduced by the
+///      accuracy setting.)
+/// The default values are shown in brackets above.
+///
+class SimTK_SimTKCOMMON_EXPORT EventTriggerInfo {
+public:
+    EventTriggerInfo();
+    explicit EventTriggerInfo(EventId eventId);
+    ~EventTriggerInfo();
+    EventTriggerInfo(const EventTriggerInfo&);
+    EventTriggerInfo& operator=(const EventTriggerInfo&);
+
+    EventId getEventId() const; // returns -1 if not set
+    bool shouldTriggerOnRisingSignTransition()  const; // default=true
+    bool shouldTriggerOnFallingSignTransition() const; // default=true
+    Real getRequiredLocalizationTimeWindow()    const; // default=0.1
+
+    // These return the modified 'this', like assignment operators.
+    EventTriggerInfo& setEventId(EventId);
+    EventTriggerInfo& setTriggerOnRisingSignTransition(bool);
+    EventTriggerInfo& setTriggerOnFallingSignTransition(bool);
+    EventTriggerInfo& setRequiredLocalizationTimeWindow(Real);
+
+    Event::Trigger calcTransitionMask() const {
+        unsigned mask = 0;
+        if (shouldTriggerOnRisingSignTransition()) {
+            mask |= Event::NegativeToPositive;
+        }
+        if (shouldTriggerOnFallingSignTransition()) {
+            mask |= Event::PositiveToNegative;
+        }
+        return Event::Trigger(mask);
+    }
+
+    Event::Trigger calcTransitionToReport
+       (Event::Trigger transitionSeen) const
+    {
+        // report -1 to 1 or 1 to -1 as appropriate
+        if (transitionSeen & Event::Rising)
+            return Event::NegativeToPositive;
+        if (transitionSeen & Event::Falling)
+            return Event::PositiveToNegative;
+        assert(!"impossible event transition situation");
+        return Event::NoEventTrigger;
+    }
+
+private:
+    class EventTriggerInfoRep;
+
+    // opaque implementation for binary compatibility
+    EventTriggerInfoRep* rep;
+
+    const EventTriggerInfoRep& getRep() const {assert(rep); return *rep;}
+    EventTriggerInfoRep&       updRep()       {assert(rep); return *rep;}
+};
+
+
 
 } // namespace SimTK
 

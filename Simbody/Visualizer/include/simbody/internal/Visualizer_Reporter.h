@@ -54,8 +54,7 @@ any simulation. Use it like this:
     // Create a Reporter that will make periodic calls to the Visualizer's
     // report() method to render frames. Note that ownership of the Reporter
     // is taken by the System; don't delete it yourself.
-    system.updDefaultSubsystem().addEventReporter
-                                    (new Visualizer::Reporter(viz, interval));
+    system.addEventReporter(new Visualizer::Reporter(viz, interval));
 @endcode 
 
 @note The reporter holds a reference to a pre-existing Visualizer, so you

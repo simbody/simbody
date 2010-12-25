@@ -36,19 +36,13 @@
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
 #include "SimTKcommon/internal/Measure.h"
-#include "SimTKcommon/internal/System.h"
 
 #include <cassert>
 
 namespace SimTK {
 
 class System;
-class DecorativeGeometry;
-class DefaultSystemSubsystemGuts;
-class ScheduledEventHandler;
-class ScheduledEventReporter;
-class TriggeredEventHandler;
-class TriggeredEventReporter;
+
 
 /**
  * The abstract parent of all Subsystems.
@@ -264,31 +258,6 @@ public:
     explicit Subsystem(Subsystem::Guts* g) : guts(g) { }
     bool hasGuts() const {return guts!=0;}
 };
-
-
-
-/** This is a concrete Subsystem that is part of every System. It provides a 
-variety of services for the System, such as maintaining lists of event handlers
-and reporters, and acting as a source of globally unique event IDs. To obtain 
-the default subsystem for a System, call getDefaultSubsystem() or 
-updDefaultSubsystem() on it. **/
-class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
-public:
-    explicit DefaultSystemSubsystem(System& sys);
-    void addEventHandler(ScheduledEventHandler* handler);
-    void addEventHandler(TriggeredEventHandler* handler);
-    void addEventReporter(ScheduledEventReporter* handler) const;
-    void addEventReporter(TriggeredEventReporter* handler) const;
-    EventId createEventId(SubsystemIndex subsys, const State& state) const;
-    void findSubsystemEventIds
-       (SubsystemIndex subsys, const State& state, 
-        const Array_<EventId>& allEvents, 
-        Array_<EventId>& eventsForSubsystem) const;
-private:
-    const DefaultSystemSubsystemGuts& getGuts() const;
-    DefaultSystemSubsystemGuts& updGuts();
-};
-
 
 } // namespace SimTK
 

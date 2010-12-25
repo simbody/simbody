@@ -43,7 +43,7 @@ class TriggeredEventReporter::TriggeredEventReporterImpl {
 public:
     TriggeredEventReporterImpl(Stage requiredStage) : requiredStage(requiredStage) {
     }
-    System::EventTriggerInfo triggerInfo;
+    EventTriggerInfo triggerInfo;
     Stage requiredStage;
 };
 
@@ -64,7 +64,7 @@ TriggeredEventReporter::~TriggeredEventReporter() {
     delete impl;
 }
 
-System::EventTriggerInfo& TriggeredEventReporter::getTriggerInfo() {
+EventTriggerInfo& TriggeredEventReporter::getTriggerInfo() {
     return impl->triggerInfo;
 }
 

@@ -182,7 +182,7 @@ viz.addInputListener(silo);
 // You create a PeriodicEventHandler to poll the input. Note that the interval
 // you choose determines how responsive the simulation will be to user input,
 // but it also limits the maximum step size that the integrator can take.
-system.updDefaultSubsystem().addEventHandler
+system.addEventHandler
     (new MyUserInputHandler(*silo, 0.1)); // check every 100ms 
 
 // Then in MyUserInputHandler::handleEvent(...):

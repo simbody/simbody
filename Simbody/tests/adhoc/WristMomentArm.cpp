@@ -553,7 +553,7 @@ int main() {
     viz.addDecorationGenerator(new DrawPathLines(system,planarMuscle));
     
     MyReporter& myRep = *new MyReporter(system,viz,planarMuscle,ReportInterval);
-    system.updDefaultSubsystem().addEventReporter(&myRep);
+    system.addEventReporter(&myRep);
 
     // Initialize the system and state.
     

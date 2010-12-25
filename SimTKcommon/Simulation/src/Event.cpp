@@ -91,5 +91,104 @@ std::string Event::eventTriggerString(Trigger e) {
 }
 
 
+
+////////////////////////////
+// EVENT TRIGGER INFO REP //
+////////////////////////////
+
+class EventTriggerInfo::EventTriggerInfoRep {
+public:
+    explicit EventTriggerInfoRep(EventTriggerInfo* h)
+      : myHandle(h), eventId(EventId(InvalidIndex)), triggerOnRising(true), triggerOnFalling(true), localizationWindow(0.1)
+    {
+        assert(h);
+    }
+
+private:
+    EventTriggerInfo* myHandle;
+    friend class EventTriggerInfo;
+
+    EventId  eventId;
+    bool triggerOnRising;
+    bool triggerOnFalling;
+    Real localizationWindow;
+};
+
+
+
+    ////////////////////////
+    // EVENT TRIGGER INFO //
+    ////////////////////////
+
+EventTriggerInfo::EventTriggerInfo() : rep(0) {
+    rep = new EventTriggerInfoRep(this);
+}
+EventTriggerInfo::~EventTriggerInfo() {
+    if (getRep().myHandle == this)
+        delete rep;
+    rep = 0;
+}
+
+EventTriggerInfo::EventTriggerInfo(EventId eventId) : rep(0) {
+    rep = new EventTriggerInfoRep(this);
+    rep->eventId = eventId;
+}
+
+EventTriggerInfo::EventTriggerInfo(const EventTriggerInfo& src) : rep(0) {
+    rep = new EventTriggerInfoRep(src.getRep());
+    rep->myHandle = this;
+}
+
+EventTriggerInfo& 
+EventTriggerInfo::operator=(const EventTriggerInfo& src) {
+    if (&src != this) {
+        if (getRep().myHandle == this)
+            delete rep;
+        rep = new EventTriggerInfoRep(src.getRep());
+        rep->myHandle = this;
+    }
+    return *this;
+}
+
+EventId EventTriggerInfo::getEventId() const {
+    return getRep().eventId;
+}
+bool EventTriggerInfo::shouldTriggerOnRisingSignTransition() const {
+    return getRep().triggerOnRising;
+}
+bool EventTriggerInfo::shouldTriggerOnFallingSignTransition() const {
+    return getRep().triggerOnFalling;
+}
+Real EventTriggerInfo::getRequiredLocalizationTimeWindow()    const {
+    return getRep().localizationWindow;
+}
+
+EventTriggerInfo& 
+EventTriggerInfo::setEventId(EventId id) {
+    updRep().eventId = id; 
+    return *this;
+}
+EventTriggerInfo& 
+EventTriggerInfo::setTriggerOnRisingSignTransition(bool shouldTrigger) {
+    updRep().triggerOnRising = shouldTrigger; 
+    return *this;
+}
+EventTriggerInfo& 
+EventTriggerInfo::setTriggerOnFallingSignTransition(bool shouldTrigger) {
+    updRep().triggerOnFalling = shouldTrigger; 
+    return *this;
+}
+EventTriggerInfo& 
+EventTriggerInfo::setRequiredLocalizationTimeWindow(Real w) {
+    assert(w > 0);
+    updRep().localizationWindow = w; 
+    return *this;
+}
+    ////////////////////////////
+    // EVENT TRIGGER INFO REP //
+    ////////////////////////////
+
+// All inline currently.
+
 } // namespace SimTK
 

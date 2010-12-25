@@ -21,7 +21,7 @@ int main() {
     //Motion::Steady(pendulum, 1);
 
     Visualizer viz(system);
-    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
    
     // Initialize the system and state.
     

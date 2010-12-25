@@ -113,8 +113,7 @@ int main() {
     //                      finalBody, Vec3(0,-hdims[1],0));
 
     Visualizer viz(system);
-    Visualizer::Reporter& vizReporter = *new Visualizer::Reporter(viz, 0.1);
-    system.updDefaultSubsystem().addEventReporter(&vizReporter);
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.1));
 
 
     // Initialize the system and state.
@@ -157,7 +156,6 @@ int main() {
     Assembler ik(system);
     Markers& markers = *new Markers();
     ik.adoptAssemblyGoal(&markers);
-    //ik.addReporter(vtkReporter);
 
     QValue& qvalue = *new QValue(endOfSecondChain, MobilizerQIndex(2),
         Pi/2);

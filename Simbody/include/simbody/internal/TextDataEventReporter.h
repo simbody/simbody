@@ -55,8 +55,8 @@ public:
  * UserFunction, then prints out the current time along with the value or 
  * values returned by the function.
  * 
- * After creating a TextDataEventReporter, invoke addEventReporter() on the 
- * System's default subsystem.
+ * After creating a TextDataEventReporter, add it to the System by calling the
+ * addEventReporter() method.
  */
 class SimTK_SIMBODY_EXPORT TextDataEventReporter : public PeriodicEventReporter {
 public:

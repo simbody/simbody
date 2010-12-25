@@ -371,7 +371,7 @@ void testDisablingConstraints() {
         }
         Constraint& constraint;
     };
-    system.updDefaultSubsystem().addEventHandler(new DisableHandler(constraint));
+    system.addEventHandler(new DisableHandler(constraint));
     RungeKuttaMersonIntegrator integ(system);
     integ.setConstraintTolerance(ConstraintTol);
     TimeStepper ts(system, integ);

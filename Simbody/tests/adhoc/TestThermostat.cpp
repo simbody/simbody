@@ -142,11 +142,11 @@ void testConservationOfEnergy() {
     Visualizer viz(system);
     Visualizer::Reporter* reporter = new Visualizer::Reporter(viz, 1./30);
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.updDefaultSubsystem().addEventReporter(reporter);
+    system.addEventReporter(reporter);
 
     ThermoReporter* thermoReport = new ThermoReporter
         (system, thermo, bushing1, bushing2, 1./10);
-    system.updDefaultSubsystem().addEventReporter(thermoReport);
+    system.addEventReporter(thermoReport);
    
     // Initialize the system and state.
     

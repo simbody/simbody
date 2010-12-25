@@ -240,7 +240,7 @@ int main() {
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
     viz.addInputListener(silo);
 
-    system.updDefaultSubsystem().addEventHandler(
+    system.addEventHandler(
         new UserInputHandler(*silo, dude.m_gravity, 0.1)); // 100ms
      
     // Initialize the system and state.
@@ -253,8 +253,7 @@ int main() {
 
     // Simulate it.
 
-    system.updDefaultSubsystem().addEventReporter
-        (new Visualizer::Reporter(viz, TimeScale/FrameRate));
+    system.addEventReporter(new Visualizer::Reporter(viz, TimeScale/FrameRate));
 
     //RungeKutta3Integrator integ(system);
     RungeKuttaMersonIntegrator integ(system);

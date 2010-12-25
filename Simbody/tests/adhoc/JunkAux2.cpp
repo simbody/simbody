@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
         const Constraint& c;
     };
 
-    mbs.updDefaultSubsystem().addEventHandler(new MyHandler(xyz));
+    mbs.addEventHandler(new MyHandler(xyz));
 */
 
 

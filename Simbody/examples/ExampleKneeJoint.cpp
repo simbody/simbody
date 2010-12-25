@@ -266,9 +266,9 @@ try { // If anything goes wrong, an exception will be thrown.
     //--------------------------------------------------------------------------
 	// Vizualizer Animation
     Visualizer viz(system);
-    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
     // Energy -- reporter defined above.
-    system.updDefaultSubsystem().addEventReporter(new MyEnergyReporter(system, 0.01));
+    system.addEventReporter(new MyEnergyReporter(system, 0.01));
 	
     //--------------------------------------------------------------------------
 	// Complete the construction of the "const" part of the System and

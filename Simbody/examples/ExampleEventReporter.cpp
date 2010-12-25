@@ -67,9 +67,9 @@ int main() {
     MobilizedBody::Pin pendulum(matter.updGround(), Transform(Vec3(0)), pendulumBody, Transform(Vec3(0, 1, 0)));
    
     Visualizer viz(system);
-    system.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
     
-    system.updDefaultSubsystem().addEventReporter(new PositionReporter(system, pendulum, 0.1));
+    system.addEventReporter(new PositionReporter(system, pendulum, 0.1));
     
     // Initialize the system and state.
     

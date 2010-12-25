@@ -317,7 +317,7 @@ int main(int argc, char** argv) {
     dlock.setDisabledByDefault(true);
 
     Visualizer viz(mbs);
-    mbs.updDefaultSubsystem().addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
     CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
@@ -328,14 +328,14 @@ int main(int argc, char** argv) {
     integ.setAccuracy(1e-3);
 
     StateSaver& stateSaver = *new StateSaver(mbs,lock,integ,ReportInterval);
-    mbs.updDefaultSubsystem().addEventReporter(&stateSaver);
+    mbs.addEventReporter(&stateSaver);
 
     const Real low=-110000, high=110000;
     LockOn& lockOn = *new LockOn(mbs,calf,0,lock,low,high,dlock);
-    mbs.updDefaultSubsystem().addEventHandler(&lockOn);
+    mbs.addEventHandler(&lockOn);
 
     LockOff& lockOff = *new LockOff(mbs,lock,low,high);
-    mbs.updDefaultSubsystem().addEventHandler(&lockOff);
+    mbs.addEventHandler(&lockOff);
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System

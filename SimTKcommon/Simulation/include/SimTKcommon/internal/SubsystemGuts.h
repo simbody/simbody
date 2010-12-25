@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -35,7 +35,6 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
-#include "SimTKcommon/internal/System.h"
 
 #include <cassert>
 
@@ -43,6 +42,7 @@ namespace SimTK {
 
 class System;
 class DecorativeGeometry;
+
 
 /**
  * The abstract parent of all Subsystem "Guts" implementation classes.
@@ -301,14 +301,16 @@ public:
        (const State&, Stage, Array_<DecorativeGeometry>&) const;
     
     void createScheduledEvent(const State& state, EventId& eventId) const;
-    void createTriggeredEvent(const State& state, EventId& eventId, EventTriggerByStageIndex& triggerFunctionIndex, Stage stage) const;
+    void createTriggeredEvent(const State& state, EventId& eventId, 
+                              EventTriggerByStageIndex& triggerFunctionIndex,
+                              Stage stage) const;
 
     // These methods are called by the corresponding methods of System.
     // Each subsystem is responsible for defining its own events, and
     // System then combines the information from them, and dispatches events
     // to the appropriate subsystems for handling when they occur.
     virtual void calcEventTriggerInfo
-       (const State&, Array_<System::EventTriggerInfo>&) const;
+       (const State&, Array_<EventTriggerInfo>&) const;
     virtual void calcTimeOfNextScheduledEvent
        (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
         bool includeCurrentTime) const;
