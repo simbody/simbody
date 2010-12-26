@@ -65,7 +65,7 @@ static const Real      DefaultSlopAsFractionOfFrameInterval = Real(0.05); //5%
 
 
 //==============================================================================
-//                              VISUALIZER REP
+//                              VISUALIZER IMPL
 //==============================================================================
 /* This is the private implementation object contained in a Visualizer handle.
 See the "implementation notes" section of the Visualizer class documentation
@@ -102,11 +102,11 @@ public:
 };
 
 // Implementation of the Visualizer.
-class Visualizer::VisualizerRep {
+class Visualizer::Impl {
 public:
     // Create a Visualizer and put it in PassThrough mode.
-    VisualizerRep(Visualizer* owner, const MultibodySystem& system) 
-    :   m_handle(owner), m_system(system), m_protocol(*owner),
+    Impl(Visualizer* owner, const MultibodySystem& system) 
+    :   m_system(system), m_protocol(*owner),
         m_upDirection(YAxis), m_groundHeight(0),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
         m_simTimeUnitsPerSec(1), 
@@ -118,7 +118,8 @@ public:
         m_adjustedRealTimeBase(realTimeInNs()),
         m_prevFrameSimTime(-1), m_nextFrameDueAdjRT(-1), 
         m_oldest(0),m_nframe(0),
-        m_drawThreadIsRunning(false), m_drawThreadShouldSuicide(false)
+        m_drawThreadIsRunning(false), m_drawThreadShouldSuicide(false),
+        m_refCount(0)
     {   
         pthread_mutex_init(&m_queueLock, NULL); 
         pthread_cond_init(&m_queueNotFull, NULL); 
@@ -136,7 +137,7 @@ public:
         m_protocol.setSystemUpDirection(system.getUpDirection());
     }
     
-    ~VisualizerRep() {
+    ~Impl() {
         if (m_mode==RealTime && m_pool.size()) {
             pthread_cancel(m_drawThread);
         }
@@ -452,9 +453,17 @@ public:
     long long getAdjustedRealTime() 
     {   return realTimeInNs() - m_adjustedRealTimeBase; }
 
-    Visualizer*                             m_handle;
+    // Increment the reference count and return its new value.
+    int incrRefCount() const {return ++m_refCount;}
+
+    // Decrement the reference count and return its new value.
+    int decrRefCount() const {return --m_refCount;}
+
+    // Get the current value of the reference counter.
+    int getRefCount() const {return m_refCount;}
+
     const MultibodySystem&                  m_system;
-    VisualizerProtocol                   m_protocol;
+    VisualizerProtocol                      m_protocol;
 
     Array_<DecorativeGeometry>              m_addedGeometry;
     Array_<RubberBandLine>                  m_lines;
@@ -510,6 +519,8 @@ public:
     bool                m_drawThreadIsRunning;
     bool                m_drawThreadShouldSuicide;
 
+    mutable int         m_refCount; // how many Visualizer handles reference
+                                    //   this Impl object?
 
     // Statistics
     int numFramesReportedBySimulation;
@@ -606,7 +617,7 @@ public:
 // Generate geometry for the given state and send it to the visualizer using
 // the VisualizerProtocol object. In buffered mode this is called from the
 // rendering thread; otherwise, this is just the main simulation thread.
-void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
+void Visualizer::Impl::drawFrameNow(const State& state) {
     m_system.realize(state, Stage::Position);
 
     // Collect up the geometry that constitutes this scene.
@@ -618,7 +629,7 @@ void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
 
     // Execute frame controls (e.g. camera positioning).
     for (unsigned i = 0; i < m_controllers.size(); ++i)
-        m_controllers[i]->generateControls(*m_handle, state, geometry);
+        m_controllers[i]->generateControls(Visualizer(this), state, geometry);
 
     // Calculate the spatial pose of all the geometry and send it to the
     // renderer.
@@ -650,7 +661,7 @@ void Visualizer::VisualizerRep::drawFrameNow(const State& state) {
 
 // This is called from the drawing thread if we're buffering, otherwise
 // directly from the simulation thread.
-void Visualizer::VisualizerRep::drawRealtimeFrameWhenReady
+void Visualizer::Impl::drawRealtimeFrameWhenReady
    (const State& state, const long long& desiredDrawTimeAdjRT)
 {
     const long long earliestDrawTimeAdjRT = 
@@ -687,7 +698,7 @@ void Visualizer::VisualizerRep::drawRealtimeFrameWhenReady
 }
 
 // Attempt to report a frame while we're in realtime mode. 
-void Visualizer::VisualizerRep::reportRealtime(const State& state) {
+void Visualizer::Impl::reportRealtime(const State& state) {
     // If we see a simulation time that is earlier than the last one, 
     // we are probably starting a new simulation or playback. Flush the
     // old one. Note that we're using actual simulation time; we don't
@@ -761,28 +772,51 @@ void Visualizer::VisualizerRep::reportRealtime(const State& state) {
 //==============================================================================
 //                                VISUALIZER
 //==============================================================================
+Visualizer::Visualizer(Visualizer::Impl* srcImpl) : impl(srcImpl) {
+    if (impl) impl->incrRefCount();
+}
 
-Visualizer::Visualizer(const MultibodySystem& system) : rep(0) {
-    rep = new VisualizerRep(this, system);
+Visualizer::Visualizer(const MultibodySystem& system) : impl(0) {
+    impl = new Impl(this, system);
+    impl->incrRefCount();
+}
+
+Visualizer::Visualizer(const Visualizer& source) : impl(0) {
+    if (source.impl) {
+        impl = source.impl;
+        impl->incrRefCount();
+    }
+}
+
+Visualizer& Visualizer::operator=(const Visualizer& source) {
+    if (impl != source.impl) {
+        if (impl&& impl->decrRefCount()==0) delete impl;
+        impl = source.impl;
+        impl->incrRefCount();
+    }
+    return *this;
 }
 
 Visualizer::~Visualizer() {
-    if (rep->m_handle == this)
-        delete rep;
+    if (impl && impl->decrRefCount()==0)
+        delete impl;
 }
+
+int Visualizer::getRefCount() const
+{   return impl ? impl->getRefCount() : 0; }
 
        // Frame drawing methods
 
 void Visualizer::drawFrameNow(const State& state) const
-{   const_cast<Visualizer*>(this)->updRep().drawFrameNow(state); }
+{   const_cast<Visualizer*>(this)->updImpl().drawFrameNow(state); }
 
 void Visualizer::flushFrames() const
-{   const_cast<Visualizer*>(this)->updRep().waitUntilQueueIsEmpty(); }
+{   const_cast<Visualizer*>(this)->updImpl().waitUntilQueueIsEmpty(); }
 
 // The simulation thread normally delivers frames here. Handling is dispatched
 // according the current visualization mode.
 void Visualizer::report(const State& state) const {
-    Visualizer::VisualizerRep& rep = const_cast<Visualizer*>(this)->updRep();
+    Visualizer::Impl& rep = const_cast<Visualizer*>(this)->updImpl();
 
     ++rep.numFramesReportedBySimulation;
     if (rep.m_mode == RealTime) {
@@ -846,61 +880,61 @@ void Visualizer::report(const State& state) const {
         // VisualizerGUI display options
 
 Visualizer& Visualizer::setBackgroundType(BackgroundType type) 
-{   updRep().m_protocol.setBackgroundType(type); return *this; }
+{   updImpl().m_protocol.setBackgroundType(type); return *this; }
 
 const Visualizer& Visualizer::setBackgroundColor(const Vec3& color) const 
-{   getRep().m_protocol.setBackgroundColor(color); return *this; }
+{   getImpl().m_protocol.setBackgroundColor(color); return *this; }
 
 const Visualizer& Visualizer::setShowShadows(bool showShadows) const 
-{   getRep().m_protocol.setShowShadows(showShadows); return *this; }
+{   getImpl().m_protocol.setShowShadows(showShadows); return *this; }
 
 const Visualizer& Visualizer::setWindowTitle(const String& title) const 
-{   getRep().m_protocol.setWindowTitle(title); return *this; }
+{   getImpl().m_protocol.setWindowTitle(title); return *this; }
 
         // Visualizer options
 
 Visualizer& Visualizer::setSystemUpDirection(const CoordinateDirection& upDir)
-{   updRep().m_upDirection = upDir; 
-    updRep().m_protocol.setSystemUpDirection(upDir); return *this; }
+{   updImpl().m_upDirection = upDir; 
+    updImpl().m_protocol.setSystemUpDirection(upDir); return *this; }
 CoordinateDirection Visualizer::getSystemUpDirection() const
-{   return getRep().m_upDirection; }
+{   return getImpl().m_upDirection; }
 
 
 Visualizer& Visualizer::setGroundHeight(Real height) {
-    updRep().m_groundHeight = height;
-    updRep().m_protocol.setGroundHeight(height); return *this;
+    updImpl().m_groundHeight = height;
+    updImpl().m_protocol.setGroundHeight(height); return *this;
 }
 Real Visualizer::getGroundHeight() const
-{   return getRep().m_groundHeight; }
+{   return getImpl().m_groundHeight; }
 
-void Visualizer::setMode(Visualizer::Mode mode) {updRep().setMode(mode);}
-Visualizer::Mode Visualizer::getMode() const {return getRep().m_mode;}
+void Visualizer::setMode(Visualizer::Mode mode) {updImpl().setMode(mode);}
+Visualizer::Mode Visualizer::getMode() const {return getImpl().m_mode;}
 
 Visualizer& Visualizer::setDesiredFrameRate(Real fps) 
-{   updRep().setDesiredFrameRate(std::max(fps, Real(0))); return *this; }
+{   updImpl().setDesiredFrameRate(std::max(fps, Real(0))); return *this; }
 Real Visualizer::getDesiredFrameRate() const 
-{   return getRep().m_frameRateFPS; }
+{   return getImpl().m_frameRateFPS; }
 
 Visualizer& Visualizer::setRealTimeScale(Real simTimePerRealSec) 
-{   updRep().setRealTimeScale(simTimePerRealSec); return *this; }
+{   updImpl().setRealTimeScale(simTimePerRealSec); return *this; }
 Real Visualizer::getRealTimeScale() const 
-{   return getRep().m_simTimeUnitsPerSec; }
+{   return getImpl().m_simTimeUnitsPerSec; }
 
 Visualizer& Visualizer::setDesiredBufferLengthInSec(Real bufferLengthInSec)
-{   updRep().setDesiredBufferLengthInSec(bufferLengthInSec); return *this; }
+{   updImpl().setDesiredBufferLengthInSec(bufferLengthInSec); return *this; }
 Real Visualizer::getDesiredBufferLengthInSec() const
-{   return getRep().getDesiredBufferLengthInSec(); }
+{   return getImpl().getDesiredBufferLengthInSec(); }
 int Visualizer::getActualBufferLengthInFrames() const 
-{   return getRep().getActualBufferLengthInFrames(); }
+{   return getImpl().getActualBufferLengthInFrames(); }
 Real Visualizer::getActualBufferLengthInSec() const 
-{   return getRep().getActualBufferLengthInSec(); }
+{   return getImpl().getActualBufferLengthInSec(); }
 
 
 Visualizer& Visualizer::addInputListener(Visualizer::InputListener* listener) 
-{   updRep().m_listeners.push_back(listener); return *this; }
+{   updImpl().m_listeners.push_back(listener); return *this; }
 
 Visualizer& Visualizer::addFrameController(Visualizer::FrameController* fc) 
-{   updRep().m_controllers.push_back(fc); return *this; }
+{   updImpl().m_controllers.push_back(fc); return *this; }
 
 
 
@@ -915,7 +949,7 @@ addMenu(const String& title, int menuId,
         "Assigned menu ids must be nonnegative, but an attempt was made to create"
         " a menu %s with id %d.", title.c_str(), menuId);
 
-    updRep().m_protocol.addMenu(title, menuId, items);
+    updImpl().m_protocol.addMenu(title, menuId, items);
     return *this;
 }
 
@@ -930,7 +964,7 @@ addSlider(const String& title, int sliderId,
         "Initial slider value %g for slider %s was outside the specified range [%g,%g].",
         value, title.c_str(), minVal, maxVal);
 
-    updRep().m_protocol.addSlider(title, sliderId, minVal, maxVal, value);
+    updImpl().m_protocol.addSlider(title, sliderId, minVal, maxVal, value);
     return *this;
 }
 
@@ -938,7 +972,7 @@ Visualizer& Visualizer::
 addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, 
               const DecorativeGeometry& geom) 
 {
-    Array_<DecorativeGeometry>& addedGeometry = updRep().m_addedGeometry;
+    Array_<DecorativeGeometry>& addedGeometry = updImpl().m_addedGeometry;
     addedGeometry.push_back(geom);
     DecorativeGeometry& geomCopy = addedGeometry.back();
     geomCopy.setBodyId((int)mobodIx);
@@ -950,52 +984,52 @@ Visualizer& Visualizer::
 addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
                   MobilizedBodyIndex b2, const Vec3& station2, 
                   const DecorativeLine& line) 
-{   updRep().m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line)); 
+{   updImpl().m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line)); 
     return *this; }
 
 Visualizer& Visualizer::
 addDecorationGenerator(DecorationGenerator* generator) 
-{   updRep().m_generators.push_back(generator); return *this; }
+{   updImpl().m_generators.push_back(generator); return *this; }
 
 
         // Frame control methods
 const Visualizer& Visualizer::
 setCameraTransform(const Transform& transform) const 
-{   getRep().m_protocol.setCameraTransform(transform); return *this; }
+{   getImpl().m_protocol.setCameraTransform(transform); return *this; }
 
 const Visualizer& Visualizer::zoomCameraToShowAllGeometry() const 
-{   getRep().m_protocol.zoomCamera(); return *this; }
+{   getImpl().m_protocol.zoomCamera(); return *this; }
 
 const Visualizer& Visualizer::
 pointCameraAt(const Vec3& point, const Vec3& upDirection) const 
-{   getRep().m_protocol.lookAt(point, upDirection); return *this; }
+{   getImpl().m_protocol.lookAt(point, upDirection); return *this; }
 
 const Visualizer& Visualizer::setCameraFieldOfView(Real fov) const 
-{   getRep().m_protocol.setFieldOfView(fov); return *this; }
+{   getImpl().m_protocol.setFieldOfView(fov); return *this; }
 
 const Visualizer& Visualizer::
 setCameraClippingPlanes(Real nearPlane, Real farPlane) const 
-{   getRep().m_protocol.setClippingPlanes(nearPlane, farPlane);
+{   getImpl().m_protocol.setClippingPlanes(nearPlane, farPlane);
     return *this; }
 
 
 const Visualizer& Visualizer::setSliderValue(int slider, Real newValue) const 
-{   getRep().m_protocol.setSliderValue(slider, newValue); return *this; }
+{   getImpl().m_protocol.setSliderValue(slider, newValue); return *this; }
 
 const Visualizer& Visualizer::
 setSliderRange(int slider, Real newMin, Real newMax) const 
-{   getRep().m_protocol.setSliderRange(slider, newMin, newMax); return *this; }
+{   getImpl().m_protocol.setSliderRange(slider, newMin, newMax); return *this; }
 
         // Debugging and statistics
-void Visualizer::dumpStats(std::ostream& o) const {getRep().dumpStats(o);}
-void Visualizer::clearStats() {updRep().clearStats();}
+void Visualizer::dumpStats(std::ostream& o) const {getImpl().dumpStats(o);}
+void Visualizer::clearStats() {updImpl().clearStats();}
 
         // Internal use only
 const Array_<Visualizer::InputListener*>& Visualizer::getInputListeners() const
-{   return getRep().m_listeners; }
+{   return getImpl().m_listeners; }
 const Array_<Visualizer::FrameController*>& Visualizer::getFrameControllers() const
-{   return getRep().m_controllers; }
-const MultibodySystem& Visualizer::getSystem() const {return getRep().m_system;}
+{   return getImpl().m_controllers; }
+const MultibodySystem& Visualizer::getSystem() const {return getImpl().m_system;}
 
 
 //==============================================================================
@@ -1017,29 +1051,29 @@ frame is substantially behind, we'll render it now and then adjust the AdjRT
 base to acknowledge that we have irretrievably slipped from real time and need 
 to adjust our expectations for the future. */
 static void* drawingThreadMain(void* visualizerRepAsVoidp) {
-    Visualizer::VisualizerRep& vizRep = 
-        *reinterpret_cast<Visualizer::VisualizerRep*>(visualizerRepAsVoidp);
+    Visualizer::Impl& vizImpl = 
+        *reinterpret_cast<Visualizer::Impl*>(visualizerRepAsVoidp);
 
     do {
         // Grab the oldest frame in the queue.
         // This will wait if necessary until a frame is available.
         const Frame* framep;
-        if (vizRep.getOldestFrameInQueue(&framep)) {
+        if (vizImpl.getOldestFrameInQueue(&framep)) {
             // Draw this frame as soon as its draw time arrives, and readjust
             // adjusted real time if necessary.
-            vizRep.drawRealtimeFrameWhenReady
+            vizImpl.drawRealtimeFrameWhenReady
                (framep->state, framep->desiredDrawTimeAdjRT); 
 
             // Return the now-rendered frame to circulation in the pool. This may
             // wake up the simulation thread if it was waiting for space.
-            vizRep.noteThatOldestFrameIsNowAvailable();
+            vizImpl.noteThatOldestFrameIsNowAvailable();
         }
-    } while (!vizRep.m_drawThreadShouldSuicide);
+    } while (!vizImpl.m_drawThreadShouldSuicide);
 
     // Attempt to wake up the simulation thread if it is waiting for
     // the draw thread since there won't be any more notices!
-    vizRep.POST_QueueNotFull(); // wake up if waiting for queue space
-    vizRep.POST_QueueIsEmpty(); // wake up if flushing
+    vizImpl.POST_QueueNotFull(); // wake up if waiting for queue space
+    vizImpl.POST_QueueIsEmpty(); // wake up if flushing
 
     return 0;
 }

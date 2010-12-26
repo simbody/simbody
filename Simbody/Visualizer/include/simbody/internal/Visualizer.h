@@ -169,8 +169,16 @@ background we'll use a plain white background instead. You can override the
 chosen defaults using Visualizer methods setSystemUpDirection() and 
 setBackgroundType(). **/
 Visualizer(const MultibodySystem& system);
+/** Copy constructor has reference counted, shallow copy semantics;
+that is, the Visualizer copy is just another reference to the same
+Visualizer object. **/
+Visualizer(const Visualizer& src);
+/** Copy assignment has reference counted, shallow copy semantics;
+that is, the Visualizer copy is just another reference to the same
+Visualizer object. **/
+Visualizer& operator=(const Visualizer& src);
 /** InputListener, FrameController, and DecorationGenerator objects are 
-destroyed here. **/
+destroyed here when the last reference is deleted. **/
 ~Visualizer();
 
 /** These are the operating modes for the Visualizer, with PassThrough the 
@@ -614,15 +622,18 @@ void clearStats();
 const Array_<InputListener*>&   getInputListeners() const;
 const Array_<FrameController*>& getFrameControllers() const;
 const MultibodySystem&          getSystem() const;
+int getRefCount() const;
 /**@}**/
 
-class VisualizerRep;
+class Impl;
 //--------------------------------------------------------------------------
                                 private:
-VisualizerRep* rep;
+explicit Visualizer(Impl* impl);
+Impl* impl;
 
-const VisualizerRep& getRep() const {assert(rep); return *rep;}
-VisualizerRep&       updRep()       {assert(rep); return *rep;}
+const Impl& getImpl() const {assert(impl); return *impl;}
+Impl&       updImpl()       {assert(impl); return *impl;}
+friend class Impl;
 };
 
 /** This abstract class represents an object that will be invoked by the

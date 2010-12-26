@@ -56,10 +56,6 @@ any simulation. Use it like this:
     // is taken by the System; don't delete it yourself.
     system.addEventReporter(new Visualizer::Reporter(viz, interval));
 @endcode 
-
-@note The reporter holds a reference to a pre-existing Visualizer, so you
-must make sure not to delete the Visualizer before you are done with the
-Reporter that is using it.
 **/
 class SimTK_SIMBODY_EXPORT Visualizer::Reporter : public PeriodicEventReporter {
 public:
@@ -69,7 +65,15 @@ public:
     simulation in real time and you aren't using seconds as time units, you
     should set the time scale via the Visualizer's setRealTimeScale() method
     and set the report interval here to TimeScale/FrameRate. **/
-    Reporter(const Visualizer& viz, Real reportInterval=Infinity);
+    explicit Reporter(const Visualizer& viz, Real reportInterval=Infinity);
+
+    /** This constructor will create a Visualizer with all the default
+    settings for the supplied \a system. This is an abbreviation for
+    @code Reporter(Visualizer(system), reportInterval); @endcode. **/
+    explicit Reporter(const MultibodySystem& sys, Real reportInterval=Infinity);
+ 
+    /** Destructor will also destroy the contained Visualizer object if there
+    are no other references to it. **/
     ~Reporter();
 
     /** Get the Visualizer which this Reporter is using to generate images. **/ 
@@ -84,6 +88,10 @@ protected:
     const Impl& getImpl() const {assert(impl); return *impl;}
     Impl&       updImpl()       {assert(impl); return *impl;}
 };
+
+/** OBSOLETE: this is for backwards compatibility with the old VTK
+visualizer. **/
+typedef Visualizer::Reporter VTKEventReporter;
 
 } // namespace SimTK
 
