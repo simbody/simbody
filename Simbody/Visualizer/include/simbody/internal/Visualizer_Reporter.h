@@ -68,7 +68,7 @@ public:
     explicit Reporter(const Visualizer& viz, Real reportInterval=Infinity);
 
     /** This constructor will create a Visualizer with all the default
-    settings for the supplied \a system. This is an abbreviation for
+    settings for the supplied system \a sys. This is an abbreviation for
     @code Reporter(Visualizer(system), reportInterval); @endcode. **/
     explicit Reporter(const MultibodySystem& sys, Real reportInterval=Infinity);
  
