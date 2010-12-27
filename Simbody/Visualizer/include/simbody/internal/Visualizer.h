@@ -663,6 +663,10 @@ public:
     virtual ~FrameController() {}
 };
 
+/** OBSOLETE: This provides limited backwards compatibility with the old
+VTK Visualizer that is no longer supported.\ Switch to Visualizer instead. **/
+typedef Visualizer VTKVisualizer;
+
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_VISUALIZER_H_

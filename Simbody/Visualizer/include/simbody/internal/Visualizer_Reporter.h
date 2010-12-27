@@ -89,8 +89,8 @@ protected:
     Impl&       updImpl()       {assert(impl); return *impl;}
 };
 
-/** OBSOLETE: this is for backwards compatibility with the old VTK
-visualizer. **/
+/** OBSOLETE: This provides limited backwards compatibility with the old VTK
+Visualizer that is no longer supported.\ Switch to Visualizer::Reporter instead. **/
 typedef Visualizer::Reporter VTKEventReporter;
 
 } // namespace SimTK
