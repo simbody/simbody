@@ -21,6 +21,7 @@ SET(LIB_ABI_DIR "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}")
 FILE(GLOB LIB_FILES 
 	"${LIB_ABI_DIR}/*.a"
 	"${LIB_ABI_DIR}/*.so"
+	"${LIB_ABI_DIR}/*.dylib"
 	"${LIB_ABI_DIR}/*.lib"
 	"${LIB_ABI_DIR}/*.dll")
 
