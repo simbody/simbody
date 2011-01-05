@@ -462,6 +462,13 @@ void testOne() {
     Measure_<Vector>::Result vectorResult(sys.updSystemSubsystem(), 
         Stage::Position, Stage::Dynamics);
 
+    MeasureIndex vectorResultIx = vectorResult.getSubsystemMeasureIndex();
+    cout << "vectorResult index=" 
+         << vectorResultIx << endl;
+
+    Measure_<Vector>::Result myVecRes =  Measure_<Vector>::Result::getAs(
+        sys.updSystemSubsystem().getMeasure(vectorResultIx));
+
     Measure::Result result(sys.updSystemSubsystem(), 
         Stage::Time, Stage::Position);
     Measure::Result autoResult(sys.updSystemSubsystem(), 
@@ -564,6 +571,7 @@ void testOne() {
     cout << "Realized Position:\n";
     vectorResult.markAsValid(state);
     cout << "vectorResult=" << vectorResult.getValue(state) << endl;
+    cout << "myVecRes=" << myVecRes.getValue(state) << endl;
     result.markAsValid(state);
     cout << "result=" << result.getValue(state) << endl;
     // Shouldn't need to mark this one.
