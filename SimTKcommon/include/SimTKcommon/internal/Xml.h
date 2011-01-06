@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2010 Stanford University and the Authors.           *
+ * Portions copyright (c) 2010-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -50,7 +50,7 @@ class TiXmlAttribute;
 documents, as files or strings. This is based with gratitude on the excellent 
 open source XML parser TinyXML (http://www.grinninglizard.com/tinyxml/). Note 
 that this is a <em>non-validating</em> parser, meaning it deals only with the 
-XML file itself and not with a Document Type Definition (DTD), Xml Schema, or 
+XML file itself and not with a Document Type Definition (DTD), XML Schema, or 
 any other description of the XML file's expected contents. Instead, the 
 structure of your code that uses this class encodes the expected structure 
 and contents of the XML document.
@@ -58,32 +58,34 @@ and contents of the XML document.
 Our in-memory model of an XML document is simplified even further than 
 TinyXML's. There a lot to know about XML; you could start here: 
 http://en.wikipedia.org/wiki/XML. However, everything you need to know in
-order to read and write Xml documents with the SimTK::Xml class is described 
+order to read and write XML documents with the SimTK::Xml class is described 
 below.
+
+Much of the detailed documention is in the class Xml::Element; be sure to look
+there as well as at this overview.
 
 <h2>Our in-memory model of an XML document</h2>
 
 We consider an XML document to be a tree of "Nodes". There are only four
-types of nodes, which you can remember with the acronym "CUTE": Comments,
-Unknowns, %Text, and Elements. Only Elements can contain Text and other nodes,
-including recursively child Element nodes. Elements can also have "Attributes" 
-which are name:value pairs (not nodes).
+types of nodes: Comments, Unknowns, %Text, and Elements. Only Elements can 
+contain Text and other nodes, including recursively child Element nodes. 
+Elements can also have "Attributes" which are name:value pairs (not nodes).
 
-The XML document as a whole is represented by an object of class Xml. The Xml
-object directly contains a short list of nodes, consisting only of Comments,
-Unknowns, and a single Element called the "root element". The tag word 
-associated with the root element is called the "root tag" and conventionally 
-identifies the kind of document this is. For example, XML files produced by 
-VTK begin with a root tag "<VTKFile>".
+The XML document as a whole is represented by an object of class Xml::Document.
+The Xml::Document object directly contains a short list of nodes, consisting 
+only of Comments, Unknowns, and a single %Element called the "root element". The
+tag word associated with the root element is called the "root tag" and 
+conventionally identifies the kind of document this is. For example, XML files
+produced by VTK begin with a root tag "<VTKFile>".
 
-We go to some pain to make sure every XML document fits the above model so that
-you don't have to think about anything else. For example, if the file as read
-in has multiple root-level elements, or has document-level text, we will 
+We go to some pain to make sure every Xml::Document fits the above model so 
+that you don't have to think about anything else. For example, if the file as 
+read in has multiple root-level elements, or has document-level text, we will 
 enclose all the element and text nodes within document start tag "<_Root>"
 and end tag "</_Root>" thus making it fit the description above. We call
 this "canonicalizing" the document.
 
-<h3>Value Elements</h3>
+<h3>%Value Elements</h3>
 
 Element nodes can be classified into "value elements" and "compound
 elements". A value element is a "leaf" element (no child elements) that 
@@ -98,8 +100,8 @@ elements like these:
 @endcode
 All of these have a unique value so it makes sense to talk about "the" value
 of these elements (the empty "preferences" element has a null value). These 
-are very common in Xml documents, and the Xml class makes them very easy to 
-work with. For example, if Element elt is the "<vector>" element
+are very common in XML documents, and the Xml::Element class makes them very 
+easy to work with. For example, if Element elt is the "<vector>" element
 from the example, you could retrieve its value as a Vec3 like this:
 @code
     Vec3 v = elt.getValueAs<Vec3>(); 
@@ -110,14 +112,14 @@ or if its value didn't have the right format to convert to a Vec3.
 Note that it is okay for a value element to have attributes; those are ignored
 in determining the element's value. Any element that is not a value element is 
 a "compound element", meaning it has either child elements and/or more than 
-one Text node.
+one %Text node.
 
 <h2>Reading an XML document</h2>
 
-To read an XML document, you create an Xml object and tell it to read in the
-document from a file or from a string. The document will be parsed and 
-canonicalized into the in-memory model described above. Then to rummage around
-in the document, you ask the Xml object for its root element,
+To read an XML document, you create an Xml::Document object and tell it to 
+read in the document from a file or from a string. The document will be parsed
+and canonicalized into the in-memory model described above. Then to rummage 
+around in the document, you ask the Xml::Document object for its root element,
 and check the root tag to see that it is the type of document you are 
 expecting. You can check the root element's attributes, and then process its 
 contents (child nodes). Iterators are provided for running through all the
@@ -130,7 +132,7 @@ Here is a complete example of reading in an Xml file "example.xml", printing
 the root tag and then the types of all the document-level nodes, in STL
 iterator style:
 @code
-    Xml doc("example.xml");
+    Xml::Document doc("example.xml");
     cout << "Root tag: " << ex.getRootTag() << endl;
     for (Xml::node_iterator p=doc.node_begin(); p != doc.node_end(); ++p)
         cout << "Node type: " << p->getNodeTypeAsString() << endl;
@@ -139,18 +141,24 @@ Exactly one of the above nodes will have type "ElementNode"; that is the
 root element. To print out the types of nodes contained in the root element,
 you could write:
 @code
-    Element root = ex.getRootElement();
+    Xml::Element root = ex.getRootElement();
     for (Xml::node_iterator p=root.node_begin(); p != root.node_end(); ++p)
         cout << "Node type: " << p->getNodeTypeAsString() << endl;
 @endcode
+    
+(Some confessions: despite appearances, "Xml" is not a namespace, it is a 
+class with the other Xml classes being internal classes of Xml. An object of 
+type Xml is an XML document; the name Xml::Document is a typedef synonymous 
+with Xml.)
 
 <h2>Writing an XML document</h2>
 
 You can insert, remove, and modify nodes and attributes in a document, or 
 create a document from scratch. Then you can write the results in a 
-"pretty-printed" or compact format to a file or a string. Whenever we write 
-an XML document, we write it in canoncial format, regardless of how it looked 
-when we found it.
+"pretty-printed" or compact format to a file or a string; for pretty-printing
+you can override the default indentation string (four spaces). Whenever we 
+write an XML document, we write it in canoncial format, regardless of how it 
+looked when we found it.
 
 At the document level, you can only insert Comment and Unknown nodes. Text and
 Element nodes can be inserted only at the root element level and below.
@@ -188,7 +196,7 @@ through Doxygen.)
     and "&quot;" for double quote.
   - There are also "numeric character reference" escapes of the form "&#nnnnn;"
     (decimal) or "&#xnnnn;" (hex), with only as many digits as needed.
-  - Text set off by "<![CDATA[" and "]]>" is interpreted as a raw byte stream.
+  - %Text set off by "<![CDATA[" and "]]>" is interpreted as a raw byte stream.
   - Tags that begin "<x" where x is not a letter or underscore and isn't one
     of the above recognized patterns will be passed through uninterpreted.
   - Anything else is Unicode text. 
@@ -256,7 +264,9 @@ interpret even a plain text file as a well-formed XML document:
                                  </_Root>
 @endcode
 The above XML document has a single document-level element and that element
-contains one Text node whose value is the original text. **/
+contains one Text node whose value is the original text. 
+
+@see Xml::Element, Xml::Node **/
 
 //------------------------------------------------------------------------------
 //                                   XML
@@ -273,7 +283,8 @@ class Text;         //                  "
 class Element;      //                  "
 
 /** This typedef allows Xml::Document to be used as the type of the document
-which is more conventional than using just Xml. **/
+which is more conventional than using just Xml, and provides future 
+compatibility should we decide to upgrade Xml::Document to a class. **/
 typedef Xml Document;
 
 // This provides iteration over all the attributes found in a given element.
@@ -309,12 +320,14 @@ enum NodeType {
 static String getNodeTypeAsString(NodeType type);
 
 /**@name                         Construction
-You can start with an empty Xml document or initialize it from a file. **/
+You can start with an empty Xml::Document or initialize it from a file. **/
 /*@{*/
 
 /** Create an empty XML Document with default declaration and default root
-element with tag "_Root". That is, if you printed out this document now 
-you would see:                                          
+element with tag "_Root".\ (You should invoke this as Xml::Document() instead
+of just Xml().) 
+
+If you were to print out this document now you would see:                                          
 @code
     <?xml version="1.0" encoding="UTF-8"?>
     <_Root />                                      
@@ -322,11 +335,14 @@ you would see:
 Xml();
 
 /** Create a new XML document and initialize it from the contents of the given
-file name. An exception will be thrown if the file doesn't exist or can't be 
+file name.\ (You should invoke this as Xml::Document() instead
+of just Xml().)  
+
+An exception will be thrown if the file doesn't exist or can't be 
 parsed. @see readFromFile(), readFromString() **/
 explicit Xml(const String& pathname);
 
-/** Clean up all heap space associated with this document. **/
+/** The destructor cleans up all heap space associated with this document. **/
 ~Xml();
 
 /** Restore this document to its default-constructed state. **/
@@ -337,16 +353,16 @@ void clear();
 These methods deal with conversion to and from the in-memory representation
 of the XML document from and to files and strings. **/
 /*@{*/
-/** Read the contents of this Xml document from the file whose pathname
+/** Read the contents of this Xml::Document from the file whose pathname
 is supplied. This first clears the current document so the new one 
 completely replaces the old one. @see readFromString() **/
 void readFromFile(const String& pathname);
-/** Write the contents of this in-memory Xml document to the file whose
+/** Write the contents of this in-memory Xml::Document to the file whose
 pathname is supplied. The file will be created if it doesn't exist, 
-overwritten if it does exist. **/
+overwritten if it does exist. The file will be "pretty-printed" using the
+current indent string. @see setIndentString(), writeToString() **/
 void writeToFile(const String& pathname) const;
-
-/** Read the contents of this Xml document from the supplied string. This
+/** Read the contents of this Xml::Document from the supplied string. This
 first clears the current document so the new one completely replaces the 
 old one. @see readFromFile() **/
 void readFromString(const String& xmlDocument);
@@ -354,11 +370,11 @@ void readFromString(const String& xmlDocument);
 rather than a C++ string object. This would otherwise be implicitly 
 converted to string first which would require copying. **/
 void readFromString(const char* xmlDocument);
-/** Write the contents of this in-memory Xml document to the supplied
+/** Write the contents of this in-memory Xml::Document to the supplied
 string. The string cleared first so will be completely overwritten.
 Normally the output is "pretty-printed" as it is for a file, but if you
 set \a compact to true the tabs and newlines will be suppressed to make
-a more compact representation. **/
+a more compact representation. @see setIndentString(), writeToFile() **/
 void writeToString(String& xmlDocument, bool compact = false) const;
 /** Set the string to be used for indentation when we produce a
 "pretty-printed" serialized form of this document.\ The default is
@@ -373,16 +389,16 @@ const String& getIndentString() const;
 
 /**@name                Top-level node manipulation
 These methods provide access to the top-level nodes, that is, those that are
-directly owned by the Xml document. Comment and Unknown nodes are allowed 
+directly owned by the Xml::Document. Comment and Unknown nodes are allowed 
 anywhere at the top level, but Text nodes are not allowed and there is just
 one distinguished Element node, the root element. If you want to add Text
 or Element nodes, add them to the root element rather than at the document
 level. **/
 /*@{*/
 
-/** Return an Element handle referencing the top-level element in this Xml 
-document, known as the "root element". The tag word of this element is usually
-the type of document. This is the \e only top-level element; all others
+/** Return an Element handle referencing the top-level element in this 
+Xml::Document, known as the "root element". The tag word of this element is 
+usually the type of document. This is the \e only top-level element; all others
 are its children and descendents. Once you have the root Element handle, you 
 can also use any of the Element methods to manipulate it. If you need a 
 node_iterator that refers to the root element (perhaps to use one of the
@@ -402,7 +418,7 @@ void setRootTag(const String& tag);
 
 /** Insert a top-level Comment or Unknown node just \e after the location 
 indicated by the node_iterator, or at the end of the list if the iterator is 
-node_end(). The iterator must refer to a top-level node. The Xml document 
+node_end(). The iterator must refer to a top-level node. The Xml::Document 
 takes over ownership of the Node which must be a Comment or Unknown node and
 must have been an orphan. The supplied Node handle will retain a reference 
 to the node within the document and can still be used to make changes, but
@@ -415,7 +431,7 @@ void insertTopLevelNodeBefore(const node_iterator& beforeThis,
                               Node                 insertThis);
 /** Delete the indicated top-level node, which must not be the root element,
 and must not be node_end(). That is, it must be a top-level Comment or
-Unknown node which will be removed from the Xml document and deleted. The
+Unknown node which will be removed from the Xml::Document and deleted. The
 iterator is invalid after this call; be sure not to use it again. Also, there 
 must not be any handles referencing the now-deleted node. **/
 void eraseTopLevelNode(const node_iterator& deleteThis);
@@ -498,12 +514,14 @@ Xml& unconst() const {return *const_cast<Xml*>(this);}
 Impl*       impl; // This is the lone data member.
 };
 
-/** Output a "pretty printed" textual representation of the given XML
-document to an std::ostream. @relates Xml **/
+/** Output a "pretty printed" textual representation of the given Xml::Document
+to an std::ostream, using the document's current indent string for
+formatting. @see Xml::setIndentString() 
+@relates Xml **/
 // Do this inline so we don't have to pass the ostream through the API.
-inline std::ostream& operator<<(std::ostream& o, const Xml& xmlDocument) {
+inline std::ostream& operator<<(std::ostream& o, const Xml::Document& doc) {
     String output;
-    xmlDocument.writeToString(output);
+    doc.writeToString(output);
     return o << output;
 }
 
@@ -589,7 +607,7 @@ const TiXmlAttribute& getTiAttr() const {assert(tiAttr);return *tiAttr;}
 TiXmlAttribute&       updTiAttr()       {assert(tiAttr);return *tiAttr;}
 
 // Careful; this does not clear the handle before replacing the pointer
-// so must not be used if this could be the owner handle of an attribute
+// so should not be used if this could be the owner handle of an attribute
 // that hasn't ever been added to a document. It is intended for use by
 // iterators, whose contained Attributes can never be owners.
 void                  setTiAttrPtr(TiXmlAttribute* attr) {tiAttr=attr;}
@@ -806,7 +824,9 @@ const String& getNodeText() const;
 /** Serialize this node (and everything it contains) to the given String.
 The output will be "pretty printed" and terminated with a newline unless you
 specify \a compact = true in which case indents and newlines will be
-suppressed. **/
+suppressed. Pretty printing uses the containing Xml::Document's indent string,
+if this Node is in a document, otherwise the default of four spaces for each
+indent level is used. **/
 void writeToString(String& out, bool compact=false) const;
 /*@}*/
 
@@ -850,7 +870,10 @@ TiXmlNode*      tiNode; // the lone data member
 };
 
 /** Output a "pretty printed" textual representation of the given XML
-node (and all its contents) to an std::ostream. @relates Xml::Node **/
+node (and all its contents) to an std::ostream. Pretty printing uses the 
+indent string from the Node's containing Xml::Document, if this Node is in a 
+document, otherwise the default of four spaces for each indent level is used.
+@relates Xml::Node **/
 // Do this inline so we don't have to pass the ostream through the API.
 inline std::ostream& operator<<(std::ostream& o, const Xml::Node& xmlNode) {
     String output;
