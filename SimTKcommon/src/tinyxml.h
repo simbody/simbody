@@ -1477,6 +1477,13 @@ public:
 
 	virtual ~TiXmlDocument() {}
 
+    void SetIndentString(const String& indent)
+    {   indentString = indent; }
+    const String& GetIndentString() const
+    {   return indentString; }
+    const char* GetIndentChars() const
+    {   return indentString.c_str(); }
+
 	/** Load a file using the current document value.
 		Returns true if successful. Will delete any existing
 		document data before loading.
@@ -1623,6 +1630,9 @@ private:
 	int tabsize;
 	TiXmlCursor errorLocation;
 	bool useMicrosoftBOM;		// the UTF-8 BOM were found when read. Note this, and try to write.
+
+    // Added by sherm 20110106.
+    String indentString;
 };
 
 

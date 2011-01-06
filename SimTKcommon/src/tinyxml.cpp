@@ -29,6 +29,8 @@ distribution.
 
 #include "tinyxml.h"
 
+static const char* DefaultIndentChars = "    ";
+
 
 // Microsoft compiler security
 static FILE* TiXmlFOpen( const char* filename, const char* mode )
@@ -897,9 +899,11 @@ void TiXmlElement::Print( FILE* cfile, int depth ) const
 {
 	int i;
 	assert( cfile );
-	for ( i=0; i<depth; i++ ) {
-		fprintf( cfile, "    " );
-	}
+    const char* indent = GetDocument() 
+        ? GetDocument()->GetIndentChars()
+        : DefaultIndentChars;
+	for ( i=0; i<depth; i++ )
+		fprintf( cfile, "%s", indent );
 
 	fprintf( cfile, "<%s", value.c_str() );
 
@@ -939,7 +943,7 @@ void TiXmlElement::Print( FILE* cfile, int depth ) const
 		}
 		fprintf( cfile, "\n" );
 		for( i=0; i<depth; ++i ) {
-			fprintf( cfile, "    " );
+			fprintf( cfile, "%s", indent );
 		}
 		fprintf( cfile, "</%s>", value.c_str() );
 	}
@@ -1013,6 +1017,7 @@ TiXmlDocument::TiXmlDocument() : TiXmlNode( TiXmlNode::DOCUMENT )
 {
 	tabsize = 4;
 	useMicrosoftBOM = false;
+    indentString = DefaultIndentChars;
 	ClearError();
 }
 
@@ -1021,6 +1026,7 @@ TiXmlDocument::TiXmlDocument( const char * documentName ) : TiXmlNode( TiXmlNode
 	tabsize = 4;
 	useMicrosoftBOM = false;
 	value = documentName;
+    indentString = DefaultIndentChars;
 	ClearError();
 }
 
@@ -1030,6 +1036,7 @@ TiXmlDocument::TiXmlDocument( const String& documentName ) : TiXmlNode( TiXmlNod
 	tabsize = 4;
 	useMicrosoftBOM = false;
     value = documentName;
+    indentString = DefaultIndentChars;
 	ClearError();
 }
 
@@ -1252,6 +1259,7 @@ void TiXmlDocument::CopyTo( TiXmlDocument* target ) const
 	target->tabsize = tabsize;
 	target->errorLocation = errorLocation;
 	target->useMicrosoftBOM = useMicrosoftBOM;
+    target->indentString = indentString;
 
 	TiXmlNode* node = 0;
 	for ( node = firstChild; node; node = node->NextSibling() )
@@ -1436,10 +1444,12 @@ void TiXmlComment::operator=( const TiXmlComment& base )
 void TiXmlComment::Print( FILE* cfile, int depth ) const
 {
 	assert( cfile );
+    const char* indent = GetDocument() 
+        ? GetDocument()->GetIndentChars()
+        : DefaultIndentChars;
 	for ( int i=0; i<depth; i++ )
-	{
-		fprintf( cfile,  "    " );
-	}
+		fprintf( cfile, "%s", indent );
+
 	fprintf( cfile, "<!--%s-->", value.c_str() );
 }
 
@@ -1478,9 +1488,12 @@ void TiXmlText::Print( FILE* cfile, int depth ) const
 	{
 		int i;
 		fprintf( cfile, "\n" );
-		for ( i=0; i<depth; i++ ) {
-			fprintf( cfile, "    " );
-		}
+        const char* indent = GetDocument() 
+            ? GetDocument()->GetIndentChars()
+            : DefaultIndentChars;
+	    for ( i=0; i<depth; i++ )
+		    fprintf( cfile, "%s", indent );
+
 		fprintf( cfile, "<![CDATA[%s]]>\n", value.c_str() );	// unformatted output
 	}
 	else
@@ -1615,8 +1628,12 @@ TiXmlNode* TiXmlDeclaration::Clone() const
 
 void TiXmlUnknown::Print( FILE* cfile, int depth ) const
 {
+    const char* indent = GetDocument() 
+        ? GetDocument()->GetIndentChars()
+        : DefaultIndentChars;
 	for ( int i=0; i<depth; i++ )
-		fprintf( cfile, "    " );
+		fprintf( cfile, "%s", indent );
+
 	fprintf( cfile, "<%s>", value.c_str() );
 }
 

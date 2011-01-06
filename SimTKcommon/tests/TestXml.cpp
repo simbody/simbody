@@ -105,7 +105,7 @@ static void showElement(Xml::Element elt, const String& indent="") {
 }
 
 void testXmlFromString() {
-    Xml fromString;
+    Xml::Document fromString;
     fromString.readFromString(xmlJustAComment);
     cout << "Just a comment: '" << fromString << "'\n";
 
@@ -189,7 +189,7 @@ void testXmlFromString() {
 }
 
 void testXmlFromScratch() {
-    Xml scratch;
+    Xml::Document scratch;
     scratch.setRootTag("MyDoc");
     cout << scratch;
 
@@ -197,16 +197,18 @@ void testXmlFromScratch() {
     Xml::Unknown u("!GODONLY knows what this is!!");
     Xml::Text t("This is some\ntext on two lines with trailing blanks   ");
     Xml::Element e("elementTag");
-    Xml::Attribute a("name1", "value1");
+
+    // We're never going to use this one so its heap space will
+    // leak if we don't explicitly call clearOrphan().
+    Xml::Element neverMind("neverMind");
 
     cout << "initially e='" << e.getValue() << "'" << endl;
     e.updValue() += "AVALUE:";
     cout << "then e='" << e.getValue() << "'" << endl;
 
-    //e.adoptAttribute(a);
+    e.setAttributeValue("attr1", String(Vec2(9,-9)));
 
-    //e.addAttribute("name","value");
-    //e.setAttribute("name","value2");
+    cout << "attr1 is " << e.getRequiredAttributeValueAs<Vec2>("attr1") << endl;
 
     cout << "isOrphan? " << String(c.isOrphan()) << ":" << c;
     cout << "isOrphan? " << String(u.isOrphan()) << ":" << u;
@@ -245,9 +247,16 @@ void testXmlFromScratch() {
     root.insertNodeAfter(root.node_begin(), e);
     cout << scratch;
 
+    scratch.setIndentString("..");
+    cout << scratch;
+
+    //scratch.writeToFile("scratch.xml");
+
     e.eraseNode(e.element_begin("anotherElt"));
     cout << scratch;
 
+
+    neverMind.clearOrphan();
 }
 
 #define SHOWIT(something) \

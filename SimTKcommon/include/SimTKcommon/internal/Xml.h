@@ -272,6 +272,10 @@ class Unknown;      //                  "
 class Text;         //                  "
 class Element;      //                  "
 
+/** This typedef allows Xml::Document to be used as the type of the document
+which is more conventional than using just Xml. **/
+typedef Xml Document;
+
 // This provides iteration over all the attributes found in a given element.
 class attribute_iterator;
 
@@ -322,6 +326,9 @@ file name. An exception will be thrown if the file doesn't exist or can't be
 parsed. @see readFromFile(), readFromString() **/
 explicit Xml(const String& pathname);
 
+/** Clean up all heap space associated with this document. **/
+~Xml();
+
 /** Restore this document to its default-constructed state. **/
 void clear();
 /*@}*/
@@ -353,9 +360,14 @@ Normally the output is "pretty-printed" as it is for a file, but if you
 set \a compact to true the tabs and newlines will be suppressed to make
 a more compact representation. **/
 void writeToString(String& xmlDocument, bool compact = false) const;
-/** This is the absolute path name of the file (if any) from which this
-Xml document was read in or to which it was most recently written. **/
-String getPathname() const;
+/** Set the string to be used for indentation when we produce a
+"pretty-printed" serialized form of this document.\ The default is
+to use four spaces for each level of indentation. 
+@see writeToFile(), writeToString(), getIndentString() **/
+void setIndentString(const String& indent);
+/** Return the current value of the indent string.\ The default is
+four spaces. @see setIndentString() **/
+const String& getIndentString() const;
 /*@}*/
 
 
@@ -522,11 +534,17 @@ provide write access to the underlying attribute even if the source handle
 was const. @see clear() **/
 Attribute& operator=(const Attribute& src) 
 {   if (&src!=this) {clear(); tiAttr=src.tiAttr;} return *this; }
-/** Destructor will delete the referenced attribute if this handle is its
-owner, otherwise it will be left alone. **/
+/** The Attribute handle destructor does not recover heap space so if you create
+orphan attributes and then don't put them in a document there will be a memory 
+leak unless you explicitly destruct them first with clearOrphan(). **/
 ~Attribute() {clear();}
 /** Is this handle currently holding an attribute? **/
 bool isValid() const {return tiAttr!=0;}
+/** Return true if this Attribute is an orphan, meaning that it is not 
+empty, but is not owned by any element or top-level document. This is 
+typically an Attribute object that has just been constructed, or one that
+has been cloned from another Attribute. **/
+bool isOrphan() const;
 /** If this is a valid attribute handle, get the name of the attribute. **/
 const String& getName() const;
 /** If this is a valid attribute handle, get the value of the attribute
@@ -540,10 +558,14 @@ String which should not be quoted.
 @return A reference to this attribute that now has the new value. **/
 Attribute& setValue(const String& value);
 
-/** Clear this attribute handle; if the handle is the attribute's owner
-(that is, it isn't part of any element) then the attribute will be deleted,
-otherwise it is left unchanged. **/
+/** This method restores the Attribute handle to its default-constructed
+state but does not recover any heap space; use clearOrphan() if you know
+this attribute was never put into a document. **/
 void clear();
+/** This method explictly frees the heap space for an orphan attribute that
+was created but never inserted into a document. It is an error to call this
+if the attribute is in a document. **/
+void clearOrphan();
 
 /** Serialize this attribute to the given String. The output will be as it
 would appear in an XML file, i.e. name="value" or name='value' with special
@@ -711,14 +733,18 @@ provide write access to the underlying node even if the source handle
 was const. @see clear() **/
 Node& operator=(const Node& src) 
 {   if (&src!=this) {clear(); tiNode=src.tiNode;} return *this; }
-/** The Node handle destructor usually does nothing but if it is referencing
-an orphan node then it will delete the orphan here; make sure you never have
-two handles referencing an orphan because they are not reference-counted. **/
+/** The Node handle destructor does not recover heap space so if you create
+orphan nodes and then don't put them in a document there will be a memory 
+leak unless you explicitly destruct them first with clearOrphan(). **/
 ~Node() {clear();}
-/** This method clears the Node handle, deleting the contents if the Node
-was an orphan and restoring the Node handle to its default-constructed
-state. **/
+/** This method restores the Node handle to its default-constructed
+state but does not recover any heap space; use clearOrphan() if you know
+this node was never put into a document. **/
 void clear();
+/** This method explictly frees the heap space for an orphan node that
+was created but never inserted into a document. It is an error to call this
+if the node is in a document. **/
+void clearOrphan();
 /*@}*/
 
 /**@name                  Node classification

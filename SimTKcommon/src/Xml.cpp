@@ -47,6 +47,12 @@ public:
     Impl(const String& pathname) {
         readFromFile(pathname.c_str());
     }
+    ~Impl() {}
+
+    void setIndentString(const String& indent)
+    {   m_tixml.SetIndentString(indent); }
+    const String& getIndentString() const
+    {   return m_tixml.GetIndentString(); }
     
     void clear() {
         m_tixml.Clear();
@@ -80,6 +86,7 @@ public:
     void writeToString(String& xmlDocument, bool compact) const {
         TiXmlPrinter printer(xmlDocument);
 	    if (compact) printer.SetStreamPrinting();
+        else printer.SetIndent(m_tixml.GetIndentChars());
 	    m_tixml.Accept( &printer );
     }
 
@@ -262,6 +269,11 @@ Xml::Xml(const String& pathname) : impl(0) {
     impl->canonicalizeDocument();
 }
 
+Xml::~Xml() {
+    delete impl;
+    impl = 0;
+}
+
 
 void Xml::readFromFile(const String& pathname) 
 {   updImpl().readFromFile(pathname.c_str());
@@ -275,6 +287,10 @@ void Xml::readFromString(const String& xmlDocument)
 {   readFromString(xmlDocument.c_str()); }
 void Xml::writeToString(String& xmlDocument, bool compact) const 
 {   getImpl().writeToString(xmlDocument, compact); }
+void Xml::setIndentString(const String& indent)
+{   updImpl().setIndentString(indent); }
+const String& Xml::getIndentString() const
+{   return getImpl().getIndentString(); }
 
 Xml::Element Xml::getRootElement() 
 {   assert(getImpl().m_rootElement.isValid());
@@ -397,11 +413,23 @@ Xml::Attribute::Attribute(const String& name, const String& value)
 :   tiAttr(new TiXmlAttribute(name,value)) {}
 
 void Xml::Attribute::clear() {
-    if (!tiAttr) return;
-    if (!tiAttr->GetDocument())
-        delete tiAttr; // not part of any document
     tiAttr = 0;
 }
+
+void Xml::Attribute::clearOrphan() {
+    if (!tiAttr) return;
+    SimTK_ERRCHK_ALWAYS(isOrphan(), "Xml::Attribute::clearOrphan()",
+        "This Attribute is not an orphan (or it was already destructed"
+        " and now contains garbage).");
+    delete tiAttr; // not part of any document
+    tiAttr = 0;
+}
+
+// Note that the criteria for orphanhood is that the referenced 
+// TiXmlAttr is not in a document. 
+bool Xml::Attribute::isOrphan() const
+{   if (!isValid()) return false; // empty handle not considered an orphan
+    return tiAttr->GetDocument() == 0; }
 
 const String& Xml::Attribute::getName() const {
     SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Attribute::getName()",
@@ -470,8 +498,19 @@ operator--(int) {
 //                                 XML NODE
 //------------------------------------------------------------------------------                  
 void Xml::Node::clear() {   
-    if (isOrphan())
-        delete tiNode;
+    // TODO: Note that we do not clean up heap space here if this node is
+    // still an orphan. To do that requires that we reference count the tiNode
+    // so that we don't risk looking at deleted garbage in trying to determine
+    // orphanhood.
+    tiNode = 0; 
+}
+
+void Xml::Node::clearOrphan() {   
+    if (tiNode==0) return;
+    SimTK_ERRCHK_ALWAYS(isOrphan(), "Xml::Node::clearOrphan()",
+        "This Node is not an orphan (or it was already destructed and now"
+        " contains garbage).");
+    delete tiNode;
     tiNode = 0; 
 }
 
