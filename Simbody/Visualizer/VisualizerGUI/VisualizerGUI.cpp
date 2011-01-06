@@ -445,6 +445,9 @@ static double fpsBaseTime = 0;
 
 static vector<string> overlayMessageLines;
 static bool displayOverlayMessage = false;
+static const double OverlayDisplayTimeInSec = 5; // Leave up for 5 s.
+static double overlayStartTime = NaN; // set when overlay is requested
+static double overlayEndTime   = NaN; // set when overlay is requested
 
 static void setClearColorToBackgroundColor() {
     glClearColor(backgroundColor[0],backgroundColor[1],backgroundColor[2],1);
@@ -1531,8 +1534,19 @@ static void specialKeyPressed(int key, int x, int y) {
     WRITE(outPipe, buffer, 2);
 }
 
+// This function is called when the timer goes off after an overlay message
+// has been displayed long enough. On some platforms the timer may go off
+// early -- if so we'll reissue it here for the remaining time.
 static void disableOverlayTimer(int value) {
+    const double now = realTime();
+    if (now + 0.1 < overlayEndTime) { // 100ms slop
+        // went off too early
+        glutTimerFunc((unsigned)((overlayEndTime-now)*1000), // ms
+            disableOverlayTimer, 0);
+        return;
+    }
     displayOverlayMessage = false;
+    overlayStartTime = overlayEndTime = NaN;
     requestPassiveRedisplay();                   //------ PASSIVE REDISPLAY ---
 }
 
@@ -1552,7 +1566,11 @@ static void setOverlayMessage(const string& message) {
 
     displayOverlayMessage = true;
     requestPassiveRedisplay();                   //------ PASSIVE REDISPLAY ---
-    glutTimerFunc(5000, disableOverlayTimer, 0);
+
+    overlayStartTime = realTime();
+    overlayEndTime = overlayStartTime + OverlayDisplayTimeInSec;
+    glutTimerFunc((unsigned)(OverlayDisplayTimeInSec*1000), // ms
+        disableOverlayTimer, 0);
 }
 
 class SaveImageTask : public ParallelWorkQueue::Task {
