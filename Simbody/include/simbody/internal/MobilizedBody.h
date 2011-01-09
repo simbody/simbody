@@ -70,9 +70,16 @@ class MobilizedBodyImpl;
     extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true>;
 #endif
 
+/** This is the approved abbreviation for MobilizedBody.\ Feel free to
+use it if you get tired of typing or seeing the full name. 
+@relates SimTK::MobilizedBody **/
+typedef MobilizedBody Mobod;
+
+
 /**
- * This is the base class for all MobilizedBody classes, just a handle for the 
- * underlying hidden implementation. Each built-in MobilizedBody type is a local 
+ * This is the base class for all MobilizedBody classes, which include a
+ * body and a particular kind of mobilizer (joint) connecting that body
+ * to its parent. Each built-in MobilizedBody type is a local 
  * subclass within MobilizedBody, so the built-ins have names like 
  * MobilizedBody::Pin. All concrete MobilizedBodies, including the built-ins, 
  * are derived from MobilizedBody.

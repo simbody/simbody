@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -33,54 +33,63 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * Mandatory first inclusion for any %SimTK source or header file.
- * 
- * Every source and most header files using %SimTK must include this 
- * header as its \e first inclusion. Declarations and definitions that 
- * must be available and compiler-and machine-specific issues are dealt
- * with here.
- *
- * This file must be includable from either C++ or ANSI C. It uses
- * the ANSI-C++ macro "__cplusplus" for any code that will compile
- * only under C++.
- */
+Mandatory first inclusion for any %SimTK source or header file.
+
+Every source and most header files using %SimTK must include this 
+header as its \e first inclusion. Declarations and definitions that 
+must be available and compiler-and machine-specific issues are dealt
+with here.
+
+This file must be includable from either C++ or ANSI C. It uses
+the ANSI-C++ macro "__cplusplus" for any code that will compile
+only under C++. **/
 
 // Provide doxygen documentation for the SimTK namespace.
 
 /**@namespace SimTK
- *
- * This is the top-level %SimTK namespace into which all %SimTK names are 
- * placed to avoid collision with other symbols. If you get tired of prefacing 
- * every symbol with "SimTK::", include the statement "using namespace SimTK;" 
- * at the beginning of your %SimTK-using compilation units. Any names which 
- * cannot be put in the namespace (macro names, for example) begin with the 
- * prefix "SimTK_" instead. 
- */
+This is the top-level %SimTK namespace into which all %SimTK names are 
+placed to avoid collision with other symbols. If you get tired of prefacing 
+every symbol with "SimTK::", include the statement "using namespace SimTK;" 
+at the beginning of your %SimTK-using compilation units. Any names which 
+cannot be put in the namespace (macro names, for example) begin with the 
+prefix "SimTK_" instead. **/
 
 // Define shared doxygen "modules" and sub-modules here. We'll put things 
 // in them at various places when appropriate.
 
 /**@defgroup GlobalFunctions Global Functions in the SimTK namespace
- *
- * These are functions at the top level of the SimTK namespace, meaning
- * that a function named funcName() is invoked as SimTK::funcName(), or
- * just funcName() if there is a "using namespace SimTK;" statement in effect.
- */
+These are functions at the top level of the SimTK namespace, meaning
+that a function named funcName() is invoked as SimTK::funcName(), or
+just funcName() if there is a "using namespace SimTK;" statement in effect. **/
 
 /**@defgroup ScalarFunctions Scalar Functions
- * @ingroup GlobalFunctions
- *
- * These functions are overloaded to act on %SimTK scalar types and C++
- * built-in types, including integral types when appropriate.
- */
+   @ingroup GlobalFunctions
+These functions are overloaded to act on %SimTK scalar types and C++
+built-in types, including integral types when appropriate. **/
 
 /**@defgroup BitFunctions Bit-twiddling Functions
- * @ingroup GlobalFunctions
- *
- * These functions perform highly optimized bit-twiddling operations on
- * the built-in integral types, and sometimes on the representations of
- * floating point types as well.
- */
+   @ingroup GlobalFunctions
+These functions perform highly optimized bit-twiddling operations on
+the built-in integral types, and sometimes on the representations of
+floating point types as well. **/
+
+    
+/**@defgroup UniqueIndexTypes    Type-Safe Integer Indices
+
+It is common to store objects or information about them in randomly-indexable 
+arrays, and then to support maximum-performance selection by allowing the
+index to be used. We want these arrays indexable by simple ints for speed, but
+this quickly leads to APIs in which there are multiple int arguments in a
+function call, each intended to select a different kind of object. A common
+error when there is a series of identical argument types is to put them in
+the wrong order. To avoid that, we define unique index types here for 
+accessing each category to help stay out of trouble.
+
+A unique index type is just a type-safe non-negative int, augmented with a 
+"NaN" value called InvalidBLAH where BLAH is the type name. For most uses it 
+will behave like an int, and it has an implicit conversion *to* int. Importantly
+though, it has no implicit conversion *from* int so you can't pass a plain int 
+or any other Index type to an argument expecting a certain Index type. **/
 
 /*****************************/
 /* ANSI-C COMPATIBLE SECTION */
@@ -344,6 +353,8 @@ inline bool isNonnegative(unsigned long long n){return true;}
 // this numerical value is created for each index type.
 static const int InvalidIndex = -1111111111;
 }
+
+
 
 /**
  * Use this macro to define a unique "Index" type which is just a type-safe

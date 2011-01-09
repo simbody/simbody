@@ -220,7 +220,7 @@ IF( APPLE )
 ENDIF( APPLE )
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
-    SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Debug or Release build" FORCE)
+    SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" FORCE)
 ENDIF (UNIX AND NOT CMAKE_BUILD_TYPE)
 
 ## Choose the maximum level of x86 instruction set that the compiler is 
@@ -450,6 +450,8 @@ IF (BUILD_TESTING)
     ENABLE_TESTING()
 
 ENDIF (BUILD_TESTING)
+
+INCLUDE(ApiDoxygen.cmake)
 
 # Each build should look in our local binary directory to find the
 # earlier-built libraries that it depends on.
