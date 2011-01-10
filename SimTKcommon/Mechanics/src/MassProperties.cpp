@@ -63,6 +63,13 @@ template class Inertia_<double>;
 template class UnitInertia_<float>;
 template class UnitInertia_<double>;
 
+    /////////////////////////
+    //   MASS PROPERTIES   //
+    /////////////////////////
+
+// Instantiate so we catch bugs now.
+template class MassProperties_<float>;
+template class MassProperties_<double>;
 
     /////////////////////////
     //   SPATIAL INERTIA   //
@@ -148,14 +155,6 @@ ArticulatedInertia_<P>::shiftInPlace(const Vec3P& s) {
 template class ArticulatedInertia_<float>;
 template class ArticulatedInertia_<double>;
 
-
-std::ostream& operator<<(std::ostream& o, const MassProperties& mp) {
-    return o << "{ mass=" << mp.getMass() 
-             << "\n  com=" << mp.getMassCenter()
-             << "\n  Ixx,yy,zz=" << mp.getInertia().getMoments()
-             << "\n  Ixy,xz,yz=" << mp.getInertia().getProducts()
-             << "\n}\n";
-}
 
 
 } // namespace SimTK

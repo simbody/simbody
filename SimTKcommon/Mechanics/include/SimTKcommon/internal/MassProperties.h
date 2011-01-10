@@ -90,6 +90,7 @@ template <class P> class UnitInertia_;
 template <class P> class Inertia_;
 template <class P> class SpatialInertia_;
 template <class P> class ArticulatedInertia_;
+template <class P> class MassProperties_;
 
 // The "no trailing underscore" typedefs use whatever the 
 // compile-time precision is set to.
@@ -108,6 +109,13 @@ typedef Inertia_<float>            fInertia;
 /** An inertia tensor at double precision. **/
 typedef Inertia_<double>           dInertia;
 
+/** Rigid body mass properties at default precision. **/
+typedef MassProperties_<Real>       MassProperties;
+/** Rigid body mass properties at float precision. **/
+typedef MassProperties_<float>     fMassProperties;
+/** Rigid body mass properties at double precision. **/
+typedef MassProperties_<double>    dMassProperties;
+
 /** A spatial (rigid body) inertia matrix at default precision. **/
 typedef SpatialInertia_<Real>       SpatialInertia;
 /** A spatial (rigid body) inertia matrix at float precision. **/
@@ -122,6 +130,8 @@ typedef ArticulatedInertia_<float>  fArticulatedInertia;
 /** An articulated body inertia matrix at double precision. **/
 typedef ArticulatedInertia_<double> dArticulatedInertia;
 
+/** For backwards compatibility only; use UnitInertia instead. **/
+typedef UnitInertia  Gyration;
 
 // -----------------------------------------------------------------------------
 //                             INERTIA MATRIX
@@ -179,6 +189,13 @@ when running in Debug mode. Some conditions it must satisfy are:
  - all diagonal elements must be nonnegative
  - diagonal elements must satisfy the triangle inequality (sum of any two
    is greater than or equal the other one)
+
+<h3>Abbreviations</h3>
+Typedefs exist for the most common invocations of Inertia_\<P\>:
+ - \ref SimTK::Inertia "Inertia" for default Real precision (this is 
+   almost always used)
+ - \ref SimTK::fInertia "fInertia" for single (float) precision
+ - \ref SimTK::dInertia "dInertia" for double precision
 **/
 template <class P>
 class SimTK_SimTKCOMMON_EXPORT Inertia_ {
@@ -619,7 +636,14 @@ the UnitInertia matrix for some differently-scaled object.
 
 Unit inertia matrices are sometimes called "gyration" matrices; we will often
 represent them with the symbol "G" to avoid confusion with general inertia
-matrices for which the symbol "I" is used. **/
+matrices for which the symbol "I" is used. 
+
+<h3>Abbreviations</h3>
+Typedefs exist for the most common invocations of UnitInertia_\<P\>:
+ - \ref SimTK::UnitInertia "UnitInertia" for default Real precision (this is 
+   almost always used)
+ - \ref SimTK::fUnitInertia "fUnitInertia" for single (float) precision
+ - \ref SimTK::dUnitInertia "dUnitInertia" for double precision **/
 template <class P>
 class SimTK_SimTKCOMMON_EXPORT UnitInertia_ : public Inertia_<P> {
     typedef P               RealP;
@@ -936,7 +960,14 @@ interpretation:
 Here m is mass, p is the vector from the body origin to the center of mass, 
 G is the 3x3 symmetric unit inertia (gyration) matrix, and I is a 3x3 identity 
 matrix. "px" indicates the skew symmetric cross product matrix formed from the 
-vector p, so -px=~px. **/
+vector p, so -px=~px. 
+
+<h3>Abbreviations</h3>
+Typedefs exist for the most common invocations of SpatialInertia_\<P\>:
+ - \ref SimTK::SpatialInertia "SpatialInertia" for default Real precision (this is 
+   almost always used)
+ - \ref SimTK::fSpatialInertia "fSpatialInertia" for single (float) precision
+ - \ref SimTK::dSpatialInertia "dSpatialInertia" for double precision **/
 template <class P> 
 class SimTK_SimTKCOMMON_EXPORT SpatialInertia_ {
     typedef P               RealP;
@@ -1155,7 +1186,16 @@ following 3x3 subblocks:
               [~F  M ]
 </pre>
 Here M is a (symmetric) mass distribution, F is a full matrix giving the
-first mass moment distribution, and J is a (symmetric) inertia matrix. **/
+first mass moment distribution, and J is a (symmetric) inertia matrix. 
+
+<h3>Abbreviations</h3>
+Typedefs exist for the most common invocations of ArticulatedInertia_\<P\>:
+ - \ref SimTK::ArticulatedInertia "ArticulatedInertia" for default Real 
+   precision (this is almost always used)
+ - \ref SimTK::fArticulatedInertia "fArticulatedInertia" for single (float) 
+   precision
+ - \ref SimTK::dArticulatedInertia "dArticulatedInertia" for double 
+   precision **/
 template <class P> 
 class ArticulatedInertia_ {
     typedef P               RealP;
@@ -1164,9 +1204,9 @@ class ArticulatedInertia_ {
     typedef Mat<3,3,P>      Mat33P;
     typedef SymMat<3,P>     SymMat33P;
     typedef Mat<2,2,Mat33P> SpatialMatP;
-    typedef Rotation_<P>    RotationP;  // TODO: need template argument
-    typedef Transform_<P>   TransformP; //   "
-    typedef Inertia_<P>     InertiaP;   //   "
+    typedef Rotation_<P>    RotationP;
+    typedef Transform_<P>   TransformP;
+    typedef Inertia_<P>     InertiaP;
 public:
 ArticulatedInertia_() {}
 ArticulatedInertia_(const SymMat33P& mass, const Mat33P& massMoment, const SymMat33P& inertia)
@@ -1222,53 +1262,84 @@ Mat33P    F;
 /** This class contains the mass, center of mass, and inertia of a rigid body B.
 The center of mass is a vector from B's origin, expressed in the B frame.
 The inertia is taken about the B origin, and expressed in B. The frame B is
-implicit; only the measurements are stored here. **/
-class SimTK_SimTKCOMMON_EXPORT MassProperties {
+implicit; only the measurements are stored here. 
+
+<h3>Abbreviations</h3>
+Typedefs exist for the most common invocations of MassProperties_\<P\>:
+ - \ref SimTK::MassProperties "MassProperties" for default Real precision (this is 
+   almost always used)
+ - \ref SimTK::fMassProperties "fMassProperties" for single (float) precision
+ - \ref SimTK::dMassProperties "dMassProperties" for double precision **/
+template <class P>
+class SimTK_SimTKCOMMON_EXPORT MassProperties_ {
+    typedef P               RealP;
+    typedef Vec<3,P>        Vec3P;
+    typedef UnitInertia_<P> UnitInertiaP;
+    typedef Mat<3,3,P>      Mat33P;
+    typedef Mat<6,6,P>      Mat66P;
+    typedef SymMat<3,P>     SymMat33P;
+    typedef Mat<2,2,Mat33P> SpatialMatP;
+    typedef Rotation_<P>    RotationP;
+    typedef Transform_<P>   TransformP;
+    typedef Inertia_<P>     InertiaP;
 public:
 /** Create a mass properties object in which the mass, mass center, and 
 inertia are meaningless; you must assign values before using this. **/
-MassProperties() { setMassProperties(0.,Vec3(0.),Inertia()); }
+MassProperties_() { setMassProperties(0,Vec3P(0),InertiaP()); }
 /** Create a mass properties object from individually supplied mass,
 mass center, and inertia matrix. **/
-MassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
+MassProperties_(const RealP& m, const Vec3P& com, const InertiaP& inertia)
     { setMassProperties(m,com,inertia); }
+/** Create a mass properties object from individually supplied mass,
+mass center, and unit inertia (gyration) matrix. The actual inertia is the
+unit inertia multiplied by the mass. **/
+MassProperties_(const RealP& m, const Vec3P& com, const UnitInertiaP& gyration)
+    { setMassProperties(m,com,gyration); }
 
 /** Set mass, center of mass, and inertia. Behaves like an assignment in that
 a reference to the modified MassProperties object is returned. **/
-MassProperties& setMassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
-    { mass=m; comInB=com; inertia_OB_B=inertia; return *this; }
+MassProperties_& setMassProperties
+   (const RealP& m, const Vec3P& com, const InertiaP& inertia)
+{   mass=m; comInB=com; inertia_OB_B=inertia; return *this; }
+
+/** Set mass, center of mass, and unit inertia, so that the actual inertia
+is the unit inertia multiplied by the mass. Behaves like an assignment in that
+a reference to the modified MassProperties object is returned. **/
+MassProperties_& setMassProperties
+   (const RealP& m, const Vec3P& com, const UnitInertiaP& gyration)
+{   mass=m; comInB=com; inertia_OB_B=m*gyration; return *this; }
 
 /** Return the mass currently stored in this MassProperties object. **/
-const Real&    getMass()       const { return mass; }
+const RealP&    getMass()       const { return mass; }
 /** Return the mass center currently stored in this MassProperties object;
 this is expressed in an implicit frame we call "B", and measured from B's
 origin, but you have to know what that frame is in order to interpret the 
 returned vector. **/
-const Vec3&    getMassCenter() const { return comInB; }
+const Vec3P&    getMassCenter() const { return comInB; }
 /** Return the inertia currently stored in this MassProperties object;
 this is expressed in an implicit frame we call "B", and measured about B's
 origin, but you have to know what that frame is in order to interpret the 
 returned value correctly. **/
-const Inertia& getInertia()    const { return inertia_OB_B; }
+const InertiaP& getInertia()    const { return inertia_OB_B; }
 
 /** Return the inertia of this MassProperties object, but measured about the
 mass center rather than about the (implicit) B frame origin. The result is
 still expressed in B. **/
-Inertia calcCentralInertia() const {
-    return inertia_OB_B - Inertia(comInB, mass);
+InertiaP calcCentralInertia() const {
+    return inertia_OB_B - InertiaP(comInB, mass);
 }
 /** Return the inertia of this MassProperties object, but with the "measured
 about" point shifted from the (implicit) B frame origin to a new point that
 is supplied in \a newOriginB which must be a vector measured from the B frame
 origin and expressed in B. The result is still expressed in B. **/
-Inertia calcShiftedInertia(const Vec3& newOriginB) const {
-    return calcCentralInertia() + Inertia(newOriginB-comInB, mass);
+InertiaP calcShiftedInertia(const Vec3P& newOriginB) const {
+    return calcCentralInertia() + InertiaP(newOriginB-comInB, mass);
 }
 /** Return the inertia of this MassProperties object, but transformed to
 from the implicit B frame to a new frame C whose pose relative to B is
 supplied. Note that this affects both the "measured about" point and the
 "expressed in" frame. **/
-Inertia calcTransformedInertia(const Transform& X_BC) const {
+InertiaP calcTransformedInertia(const TransformP& X_BC) const {
     return calcShiftedInertia(X_BC.p()).reexpress(X_BC.R());
 }
 /** Return a new MassProperties object that is the same as this one but with 
@@ -1276,8 +1347,8 @@ the origin point shifted from the (implicit) B frame origin to a new point that
 is supplied in \a newOriginB which must be a vector measured from the B frame
 origin and expressed in B. This affects both the mass center vector and the
 inertia. The result is still expressed in B. **/
-MassProperties calcShiftedMassProps(const Vec3& newOriginB) const {
-    return MassProperties(mass, comInB-newOriginB,
+MassProperties_ calcShiftedMassProps(const Vec3P& newOriginB) const {
+    return MassProperties_(mass, comInB-newOriginB,
                             calcShiftedInertia(newOriginB));
 }
 
@@ -1290,8 +1361,8 @@ object is expressed, and the point about which the mass properties are
 measured, are implicit; we don't actually have any way to verify that 
 it is in B. Make sure you are certain about the current frame before using this 
 method. **/
-MassProperties calcTransformedMassProps(const Transform& X_BC) const {
-    return MassProperties(mass, ~X_BC*comInB, calcTransformedInertia(X_BC));
+MassProperties_ calcTransformedMassProps(const TransformP& X_BC) const {
+    return MassProperties_(mass, ~X_BC*comInB, calcTransformedInertia(X_BC));
 }
 
 /** Re-express these mass properties from the current frame "B" to a new
@@ -1302,33 +1373,33 @@ a shift as well. Note that the frame in which a MassProperties object is
 expressed is implicit; we don't actually have any way to verify that it is in 
 B. Make sure you are certain about the current frame before using this 
 method. **/
-MassProperties reexpress(const Rotation& R_BC) const {
-    return MassProperties(mass, ~R_BC*comInB, inertia_OB_B.reexpress(R_BC));
+MassProperties_ reexpress(const RotationP& R_BC) const {
+    return MassProperties_(mass, ~R_BC*comInB, inertia_OB_B.reexpress(R_BC));
 }
 
 /** Return true only if the mass stored here is \e exactly zero.\ If the mass
 resulted from a computation, you should use isNearlyMassless() instead.
 @see isNearlyMassless(), isExactlyCentral() **/
-bool isExactlyMassless()   const { return mass==0.; }
+bool isExactlyMassless()   const { return mass==0; }
 /** Return true if the mass stored here is zero to within a small tolerance.
 By default we use SignificantReal (about 1e-14 in double precision) as the
 tolerance but you can override that. If you are just checking to see whether
 the mass was explicitly set to zero (rather than calculated) you can use
 isExactlyMassless() instead. @see isExactlyMassless(), isNearlyCentral() **/
-bool isNearlyMassless(const Real& tol=SignificantReal) const { 
+bool isNearlyMassless(const RealP& tol=SignificantReal) const { 
     return mass <= tol; 
 }
 
 /** Return true only if the mass center stored here is \e exactly zero.\ If 
 the mass center resulted from a computation, you should use isNearlyCentral()
 instead. @see isNearlyCentral(), isExactlyMassless() **/
-bool isExactlyCentral() const { return comInB==Vec3(0); }
+bool isExactlyCentral() const { return comInB==Vec3P(0); }
 /** Return true if the mass center stored here is zero to within a small tolerance.
 By default we use SignificantReal (about 1e-14 in double precision) as the
 tolerance but you can override that. If you are just checking to see whether
 the mass center was explicitly set to zero (rather than calculated) you can use
 isExactlyCentral() instead. @see isExactlyCentral(), isNearlyMassless() **/
-bool isNearlyCentral(const Real& tol=SignificantReal) const {
+bool isNearlyCentral(const RealP& tol=SignificantReal) const {
     return comInB.normSqr() <= tol*tol;
 }
 
@@ -1353,8 +1424,8 @@ bool isFinite() const {
 /** Convert this MassProperties object to a spatial inertia matrix and return
 it as a SpatialMat, which is a 2x2 matrix of 3x3 submatrices. 
 @see toMat66() **/
-SpatialMat toSpatialMat() const {
-    SpatialMat M;
+SpatialMatP toSpatialMat() const {
+    SpatialMatP M;
     M(0,0) = inertia_OB_B.toMat33();
     M(0,1) = mass*crossMat(comInB);
     M(1,0) = ~M(0,1);
@@ -1367,8 +1438,8 @@ form of an ordinary 6x6 matrix, \e not a SpatialMat. Logically these are
 the same but the ordering of the elements in memory is different between
 a Mat66 and SpatialMat. 
 @see toSpatialMat() **/
-Mat66 toMat66() const {
-    Mat66 M;
+Mat66P toMat66() const {
+    Mat66P M;
     M.updSubMat<3,3>(0,0) = inertia_OB_B.toMat33();
     M.updSubMat<3,3>(0,3) = mass*crossMat(comInB);
     M.updSubMat<3,3>(3,0) = ~M.getSubMat<3,3>(0,3);
@@ -1377,15 +1448,21 @@ Mat66 toMat66() const {
 }
 
 private:
-Real     mass;
-Vec3     comInB;         // meas. from B origin, expr. in B
-Inertia  inertia_OB_B;   // about B origin, expr. in B
+RealP     mass;
+Vec3P     comInB;         // meas. from B origin, expr. in B
+InertiaP  inertia_OB_B;   // about B origin, expr. in B
 };
 
 /** Output a human-readable representation of a MassProperties object to
 the given output stream. **/
-SimTK_SimTKCOMMON_EXPORT std::ostream& 
-operator<<(std::ostream& o, const MassProperties&);
+template <class P> static inline std::ostream& 
+operator<<(std::ostream& o, const MassProperties_<P>& mp) {
+    return o << "{ mass=" << mp.getMass() 
+             << "\n  com=" << mp.getMassCenter()
+             << "\n  Ixx,yy,zz=" << mp.getInertia().getMoments()
+             << "\n  Ixy,xz,yz=" << mp.getInertia().getProducts()
+             << "\n}\n";
+}
 
 } // namespace SimTK
 
