@@ -356,7 +356,7 @@ void testFreeMobilizer() {
     Force::UniformGravity(fwdForces, fwdMatter, Vec3(0, -1, 0));
 
     const Vec3 com(1,2,3);
-    const Inertia centralGyration(1, 1.5, 2, .1, .2, .3);
+    const UnitInertia centralGyration(1, 1.5, 2, .1, .2, .3);
     Body::Rigid body(MassProperties(mass, com, mass*centralGyration.shiftFromMassCenter(com, 1)));
 
     MobilizedBody::Free fwdA (fwdMatter.Ground(),  X_GF, body, X_BM);

@@ -356,7 +356,7 @@ public:
     }
 
     template <class P>
-    static bool numericallyEqual(const Gyration_<P>& G1, const Gyration_<P>& G2, int n, double tol=defTol<P>()) {
+    static bool numericallyEqual(const UnitInertia_<P>& G1, const UnitInertia_<P>& G2, int n, double tol=defTol<P>()) {
         return numericallyEqual(G1.asSymMat33(),G2.asSymMat33(), n, tol);
     }
 

@@ -450,19 +450,19 @@ int main() {
         .setTransform(Rotation(Pi/2, XAxis)).setColor(Purple).setResolution(10);
 
     Body::Rigid forearmBody(MassProperties(forearmMass, Vec3(0), 
-                                         forearmMass*Gyration::brick(forearmHDim)));
+                                         forearmMass*UnitInertia::brick(forearmHDim)));
     forearmBody.addDecoration(Vec3(0), forearmViz);
 
     Body::Rigid handBody(MassProperties(handMass, Vec3(0), 
-                                         handMass*Gyration::brick(handHDim)));
+                                         handMass*UnitInertia::brick(handHDim)));
     handBody.addDecoration(Vec3(0), handViz);
 
     Body::Rigid auxBody(MassProperties(auxMass, Vec3(0), 
-                                         auxMass*Gyration::brick(auxHDim)));
+                                         auxMass*UnitInertia::brick(auxHDim)));
     auxBody.addDecoration(Vec3(0), auxViz);
 
     Body::Rigid wrapBody(MassProperties(wrapMass, Vec3(0),
-        wrapMass*Gyration::cylinderAlongZ(wrapRadius, wrapHThick)));
+        wrapMass*UnitInertia::cylinderAlongZ(wrapRadius, wrapHThick)));
     wrapBody.addDecoration(Vec3(0), wrapViz);
 
     MobilizedBody::Weld forearm(matter.Ground(), Vec3(forearmHDim[0], forearmHDim[1], 0), 

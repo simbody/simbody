@@ -288,17 +288,17 @@ int main(int argc, char** argv) {
     const Real thighMass = density*thighVol, calfMass = density*calfVol;
     Body::Rigid thighBody = 
         Body::Rigid(MassProperties(10*thighMass, Vec3(0), 
-                        10*thighMass*Gyration::brick(thighHDim)))
+                        10*thighMass*UnitInertia::brick(thighHDim)))
                     .addDecoration(Transform(), DecorativeBrick(thighHDim)
                                                 .setColor(Red).setOpacity(.3));
     Body::Rigid calfBody = 
         Body::Rigid(MassProperties(calfMass, Vec3(0), 
-                        calfMass*Gyration::brick(calfHDim)))
+                        calfMass*UnitInertia::brick(calfHDim)))
                     .addDecoration(Transform(), DecorativeBrick(calfHDim)
                                                 .setColor(Blue).setOpacity(.3));
     Body::Rigid footBody = 
         Body::Rigid(MassProperties(10*calfMass, Vec3(0), 
-                        10*calfMass*Gyration::brick(calfHDim)))
+                        10*calfMass*UnitInertia::brick(calfHDim)))
                     .addDecoration(Transform(), DecorativeBrick(calfHDim)
                                                 .setColor(Black).setOpacity(.3));
     MobilizedBody::Pin thigh(matter.Ground(), Vec3(0),

@@ -181,7 +181,7 @@ private:
         const Real volume = Pi*r*r*halfHeight;
         const Real mass = volume*density;
         const Vec3 com = Vec3(0);
-        const Inertia iner = mass*Gyration::cylinderAlongY(r, halfHeight);
+        const Inertia iner = mass*UnitInertia::cylinderAlongY(r, halfHeight);
 
         return MassProperties(mass,com,iner);
     }

@@ -61,7 +61,7 @@ int main() {
     const Real mass = 0.1;
     const Vec3 hdims(2,4,1);
     Body::Rigid pendulumBody = Body::Rigid
-       (MassProperties(mass, Vec3(0), mass*Gyration::ellipsoid(hdims)))
+       (MassProperties(mass, Vec3(0), mass*UnitInertia::ellipsoid(hdims)))
         .addDecoration(Transform(),DecorativeEllipsoid(hdims)
                                     .setOpacity(.2));
 

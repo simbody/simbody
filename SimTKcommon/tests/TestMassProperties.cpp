@@ -132,8 +132,8 @@ void testCrossProduct() {
 
 void testInertia() {
     const Real mass = std::abs(Test::randReal());
-    const Gyration_<Real> G( Vec3(1,2,2.5),       // moments
-                             Vec3(0.1,0.2,0.3) ); // products
+    const UnitInertia_<Real> G( Vec3(1,2,2.5),       // moments
+                                Vec3(0.1,0.2,0.3) ); // products
     const Real Gtrace = 1+2+2.5;
 
     SimTK_TEST(G.trace() == Gtrace); // should be exact because .5 is power of 2
@@ -189,8 +189,8 @@ void testInertia() {
     const Vec3     pLoc = Test::randVec3();
     const SymMat33 psG = crossMatSq(pLoc); // unit inertia
     const SymMat33 psI = mass*psG; // inertia
-    const Gyration_<Real> pG(psG);
-    const Inertia_<Real>  pI(psI);
+    const UnitInertia_<Real> pG(psG);
+    const Inertia_<Real>     pI(psI);
 
     // Assuming I and G are central, shifting them to pLoc should be
     // the same as adding the point inertias above.
@@ -198,8 +198,8 @@ void testInertia() {
     SimTK_TEST_EQ( I.shiftFromMassCenter(pLoc, mass), I + pI );
 
     // Now try in place shifts and shifting back.
-    Gyration_<Real> Gshft(G); Gshft.shiftFromCentroidInPlace(pLoc);
-    Inertia_<Real>  Ishft(I); Ishft.shiftFromMassCenterInPlace(pLoc, mass);
+    UnitInertia_<Real> Gshft(G); Gshft.shiftFromCentroidInPlace(pLoc);
+    Inertia_<Real>     Ishft(I); Ishft.shiftFromMassCenterInPlace(pLoc, mass);
     SimTK_TEST_EQ(Gshft, G+pG);
     SimTK_TEST_EQ(Ishft, I+pI);
 

@@ -332,7 +332,7 @@ int main() {
 
     const Real ballMass = 200;
     Body::Rigid ballBody(MassProperties(ballMass, Vec3(0), 
-                            ballMass*Gyration::sphere(1)));
+                            ballMass*UnitInertia::sphere(1)));
     //ballBody.addDecoration(Transform(), DecorativeSphere(.3).setColor(Cyan));
     //ballBody.addContactSurface(Transform(),
     //    ContactSurface(ContactGeometry::Sphere(.3),

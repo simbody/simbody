@@ -111,7 +111,7 @@ void testPin() {
     Force::UniformGravity(rev2Forces, rev2Matter, Vec3(0, -1, 0));
 
     const Vec3 com(1,2,3);
-    const Inertia centralGyration(1, 1.5, 2, .1, .2, .3);
+    const UnitInertia centralGyration(1, 1.5, 2, .1, .2, .3);
     Body::Rigid body(MassProperties(mass, com, mass*centralGyration.shiftFromMassCenter(com, 1)));
 
     MobilizedBody::Free fwdA (fwdMatter.Ground(),  Vec3(0), body, X_AM);
@@ -257,7 +257,7 @@ void testPlanar() {
     Force::UniformGravity(rev2Forces, rev2Matter, Vec3(0, -1, 0));
 
     const Vec3 com(1,2,3);
-    const Inertia centralGyration(1, 1.5, 2, .1, .2, .3);
+    const UnitInertia centralGyration(1, 1.5, 2, .1, .2, .3);
     Body::Rigid body(MassProperties(mass, com, mass*centralGyration.shiftFromMassCenter(com, 1)));
 
     MobilizedBody::Free fwdA (fwdMatter.Ground(),  Vec3(0), body, X_AM);
@@ -394,7 +394,7 @@ void testEllipsoid() {
     Force::UniformGravity(rev2Forces, rev2Matter, Vec3(0, -1, 0));
 
     const Vec3 com(1,2,3);
-    const Inertia centralGyration(1, 1.5, 2, .1, .2, .3);
+    const UnitInertia centralGyration(1, 1.5, 2, .1, .2, .3);
     Body::Rigid body(MassProperties(mass, com, mass*centralGyration.shiftFromMassCenter(com, 1)));
 
     //Transform X_AM, X_BM; // identity for now
@@ -536,7 +536,7 @@ void testFree() {
     Force::UniformGravity(rev2Forces, rev2Matter, Vec3(0, -1, 0));
 
     const Vec3 com(1,2,3);
-    const Inertia centralGyration(1, 1.5, 2, .1, .2, .3);
+    const UnitInertia centralGyration(1, 1.5, 2, .1, .2, .3);
     Body::Rigid body(MassProperties(mass, com, mass*centralGyration.shiftFromMassCenter(com, 1)));
 
     MobilizedBody::Free fwdA (fwdMatter.Ground(),  Vec3(0), body, X_AM);

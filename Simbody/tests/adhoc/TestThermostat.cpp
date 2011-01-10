@@ -90,7 +90,7 @@ void testConservationOfEnergy() {
     Body::Rigid brickBody(MassProperties(Mass, Vec3(.1,.2,.3), 
                                 Mass*Inertia(1,1.1,1.2,0.01,0.02,0.03)));
     //Body::Rigid brickBody(MassProperties(Mass, Vec3(0), 
-    //                        Mass*Gyration::ellipsoid(HalfShape)));
+    //                        Mass*UnitInertia::ellipsoid(HalfShape)));
     brickBody.addDecoration(Transform(), DecorativeEllipsoid(HalfShape)
                                             .setOpacity(0.25)
                                             .setColor(Blue));

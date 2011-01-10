@@ -69,18 +69,18 @@ int main(int argc, char** argv) {
     Force::UniformGravity   gravity(forces, crankRocker, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
-    Body::Rigid crankBody  = Body::Rigid(MassProperties(.1, Vec3(0), 0.1*Gyration::brick(1,3,.5)))
+    Body::Rigid crankBody  = Body::Rigid(MassProperties(.1, Vec3(0), 0.1*UnitInertia::brick(1,3,.5)))
                                 .addDecoration(Transform(), 
                                                DecorativeEllipsoid(0.1*Vec3(1,3,.4))
                                                     .setResolution(10)
                                                     .setOpacity(.2));
-    Body::Rigid sliderBody = Body::Rigid(MassProperties(.2, Vec3(0), 0.2*Gyration::brick(1,5,.5)))
+    Body::Rigid sliderBody = Body::Rigid(MassProperties(.2, Vec3(0), 0.2*UnitInertia::brick(1,5,.5)))
                                 .addDecoration(Transform(), 
                                                DecorativeEllipsoid(0.2*Vec3(1,5,.4))
                                                     .setColor(Blue)
                                                     .setResolution(10)
                                                     .setOpacity(.2));
-    Body::Rigid longBar = Body::Rigid(MassProperties(0.01, Vec3(0), 0.01*Gyration::cylinderAlongX(.1, 5)))
+    Body::Rigid longBar = Body::Rigid(MassProperties(0.01, Vec3(0), 0.01*UnitInertia::cylinderAlongX(.1, 5)))
         .addDecoration(Rotation(Pi/2,ZAxis), DecorativeCylinder(.01, 1));
 
     MobilizedBody::Pin
