@@ -974,9 +974,9 @@ class SimTK_SimTKCOMMON_EXPORT SpatialInertia_ {
     typedef Vec<3,P>        Vec3P;
     typedef UnitInertia_<P> UnitInertiaP;
     typedef Mat<3,3,P>      Mat33P;
-    typedef Rotation_<P>    RotationP;  // TODO: need template argument
-    typedef Transform_<P>   TransformP; //   "
-    typedef Inertia_<P>     InertiaP;   //   "
+    typedef Rotation_<P>    RotationP;
+    typedef Transform_<P>   TransformP;
+    typedef Inertia_<P>     InertiaP;
 public:
 /// The default constructor fills everything with NaN, even in Release mode.
 SpatialInertia_() 
@@ -1440,10 +1440,10 @@ a Mat66 and SpatialMat.
 @see toSpatialMat() **/
 Mat66P toMat66() const {
     Mat66P M;
-    M.updSubMat<3,3>(0,0) = inertia_OB_B.toMat33();
-    M.updSubMat<3,3>(0,3) = mass*crossMat(comInB);
-    M.updSubMat<3,3>(3,0) = ~M.getSubMat<3,3>(0,3);
-    M.updSubMat<3,3>(3,3) = mass; // a diagonal matrix
+    M.setSubMat<3,3>(0,0, inertia_OB_B.toMat33());
+    M.setSubMat<3,3>(0,3, mass*crossMat(comInB));
+    M.setSubMat<3,3>(3,0, ~M.getSubMat<3,3>(0,3));
+    M.setSubMat<3,3>(3,3, Mat33P(mass)); // a diagonal matrix
     return M;
 }
 

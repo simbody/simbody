@@ -810,7 +810,12 @@ public:
         assert(0 <= j && j + NN <= N);
         return SubMat<MM,NN>::Type::updAs(&(*this)(i,j));
     }
-
+    template <int MM, int NN>
+    void setSubMat(int i, int j, const typename SubMat<MM,NN>::Type& value) {
+        assert(0 <= i && i + MM <= M);
+        assert(0 <= j && j + NN <= N);
+        SubMat<MM,NN>::Type::updAs(&(*this)(i,j)) = value;
+    }
 
     /// Return a matrix one row smaller than this one by dropping row
     /// i. The result is packed but has same element type as this one.
