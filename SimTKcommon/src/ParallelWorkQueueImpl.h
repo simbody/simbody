@@ -58,8 +58,10 @@ public:
     pthread_mutex_t& getQueueLock();
     pthread_cond_t& getWaitCondition();
     pthread_cond_t& getQueueFullCondition();
+    void markTaskCompleted();
 private:
     const int queueSize;
+    int pendingTasks;
     bool finished;
     std::queue<ParallelWorkQueue::Task*> taskQueue;
     pthread_mutex_t queueLock;

@@ -44,8 +44,13 @@ static void* threadBody(void* args) {
     pthread_mutex_t& queueLock = owner.getQueueLock();
     pthread_cond_t& waitForTaskCondition = owner.getWaitCondition();
     pthread_cond_t& queueFullCondition = owner.getQueueFullCondition();
+    bool decrementTaskCount = false;
     while (!owner.isFinished() || !taskQueue.empty()) {
         pthread_mutex_lock(&queueLock);
+        if (decrementTaskCount) {
+            owner.markTaskCompleted();
+            decrementTaskCount = false;
+        }
         while (taskQueue.empty() && !owner.isFinished())
             pthread_cond_wait(&waitForTaskCondition, &queueLock);
         ParallelWorkQueue::Task* task = NULL;
@@ -58,12 +63,18 @@ static void* threadBody(void* args) {
         if (task != NULL) {
             task->execute();
             delete task;
+            decrementTaskCount = true;
         }
+    }
+    if (decrementTaskCount) {
+        pthread_mutex_lock(&queueLock);
+        owner.markTaskCompleted();
+        pthread_mutex_unlock(&queueLock);
     }
     return 0;
 }
 
-ParallelWorkQueueImpl::ParallelWorkQueueImpl(int queueSize, int numThreads) : queueSize(queueSize), finished(false) {
+ParallelWorkQueueImpl::ParallelWorkQueueImpl(int queueSize, int numThreads) : queueSize(queueSize), pendingTasks(0), finished(false) {
     pthread_mutex_init(&queueLock, NULL);
     pthread_cond_init(&waitForTaskCondition, NULL);
     pthread_cond_init(&queueFullCondition, NULL);
@@ -94,19 +105,19 @@ ParallelWorkQueueImpl* ParallelWorkQueueImpl::clone() const {
 }
 
 void ParallelWorkQueueImpl::addTask(ParallelWorkQueue::Task* task) {
-    SimTK_ASSERT_ALWAYS(!finished, "Tried to add a Task after calling finish()");
     pthread_mutex_lock(&queueLock);
     while ((int)taskQueue.size() >= queueSize)
         pthread_cond_wait(&queueFullCondition, &queueLock);
     taskQueue.push(task);
+    ++pendingTasks;
     pthread_cond_signal(&waitForTaskCondition);
     pthread_mutex_unlock(&queueLock);
 }
 
 void ParallelWorkQueueImpl::flush() {
     pthread_mutex_lock(&queueLock);
-    while (taskQueue.size() > 0)
-        pthread_cond_wait(&queueFullCondition, &queueLock);
+    while (pendingTasks > 0)
+       pthread_cond_wait(&queueFullCondition, &queueLock);
     pthread_mutex_unlock(&queueLock);
 }
 
@@ -128,6 +139,11 @@ pthread_cond_t& ParallelWorkQueueImpl::getWaitCondition() {
 
 pthread_cond_t& ParallelWorkQueueImpl::getQueueFullCondition() {
     return queueFullCondition;
+}
+
+void ParallelWorkQueueImpl::markTaskCompleted() {
+    --pendingTasks;
+    pthread_cond_signal(&queueFullCondition);
 }
 
 ParallelWorkQueue::ParallelWorkQueue(int queueSize, int numThreads) : HandleBase(new ParallelWorkQueueImpl(queueSize, numThreads)) {
