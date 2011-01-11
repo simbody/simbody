@@ -1442,7 +1442,7 @@ Mat66P toMat66() const {
     Mat66P M;
     M.template updSubMat<3,3>(0,0) = inertia_OB_B.toMat33();
     M.template updSubMat<3,3>(0,3) = mass*crossMat(comInB);
-    M.template updSubMat<3,3>(3,0) = ~M.getSubMat<3,3>(0,3);
+    M.template updSubMat<3,3>(3,0) = ~M.template getSubMat<3,3>(0,3);
     M.template updSubMat<3,3>(3,3) = mass; // a diagonal matrix
     return M;
 }
