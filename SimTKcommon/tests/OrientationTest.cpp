@@ -30,10 +30,10 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * Tests for the classes defined in Orientation.h.
+ * Adhoc tests for rotation-related classes.
  */
 
-#include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon.h"
 
 #include <string>
 #include <typeinfo>
