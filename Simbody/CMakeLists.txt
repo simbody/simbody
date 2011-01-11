@@ -30,10 +30,10 @@ INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SIMBODY_SOURCE_SUBDIRS .)
-IF (BUILD_VISUALIZER)
-    SET(SIMBODY_SOURCE_SUBDIRS ${SIMBODY_SOURCE_SUBDIRS} Visualizer)
-ENDIF (BUILD_VISUALIZER)
+# The BUILD_VISUALIZER variable determines whether we actually build the
+# VisualizerGUI, but we still have to build the library-side support for
+# the Visualizer so that Simbody tests won't fail to build.
+SET(SIMBODY_SOURCE_SUBDIRS . Visualizer)
 
 ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SimTKSIMBODY_LIBRARY_NAME}
                 -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
