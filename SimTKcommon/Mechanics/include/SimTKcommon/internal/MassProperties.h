@@ -1440,10 +1440,10 @@ a Mat66 and SpatialMat.
 @see toSpatialMat() **/
 Mat66P toMat66() const {
     Mat66P M;
-    M.setSubMat<3,3>(0,0, inertia_OB_B.toMat33());
-    M.setSubMat<3,3>(0,3, mass*crossMat(comInB));
-    M.setSubMat<3,3>(3,0, ~M.getSubMat<3,3>(0,3));
-    M.setSubMat<3,3>(3,3, Mat33P(mass)); // a diagonal matrix
+    M.template updSubMat<3,3>(0,0) = inertia_OB_B.toMat33();
+    M.template updSubMat<3,3>(0,3) = mass*crossMat(comInB);
+    M.template updSubMat<3,3>(3,0) = ~M.getSubMat<3,3>(0,3);
+    M.template updSubMat<3,3>(3,3) = mass; // a diagonal matrix
     return M;
 }
 
