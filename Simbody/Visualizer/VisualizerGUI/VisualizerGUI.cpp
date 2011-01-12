@@ -1007,6 +1007,7 @@ static void drawGroundAndSky(float farClipDistance) {
         (GLfloat) cameraPosition[0], (GLfloat) cameraPosition[1], (GLfloat) cameraPosition[2]);
     glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 
         (GLfloat) upDirection[0], (GLfloat) upDirection[1], (GLfloat) upDirection[2]);
+	glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
     glBegin(GL_QUADS);
     glVertex3d(corner1[0], corner1[1], corner1[2]);
@@ -1014,6 +1015,7 @@ static void drawGroundAndSky(float farClipDistance) {
     glVertex3d(corner3[0], corner3[1], corner3[2]);
     glVertex3d(corner4[0], corner4[1], corner4[2]);
     glEnd();
+	glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
 
     // Draw the ground plane.
@@ -1108,7 +1110,6 @@ static void renderScene() {
 
     glEnable(GL_DEPTH_TEST);
     glLoadIdentity();
-    glDisable(GL_LIGHTING);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
@@ -1167,6 +1168,11 @@ static void renderScene() {
 
         // Render the objects in the scene.
 
+        if (showGround) {
+			glEnable(GL_LIGHTING);
+            drawGroundAndSky(farClipDistance);
+		}
+		glDisable(GL_LIGHTING);
         for (int i = 0; i < (int) scene->lines.size(); i++)
             scene->lines[i].draw();
         glLineWidth(2);
@@ -1179,8 +1185,6 @@ static void renderScene() {
         glEnable(GL_LIGHTING);
         for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
             scene->solidMeshes[i].draw();
-        if (showGround)
-            drawGroundAndSky(farClipDistance);
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         vector<pair<float, int> > order(scene->transparentMeshes.size());
