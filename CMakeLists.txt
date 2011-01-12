@@ -382,21 +382,6 @@ IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
     SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
 ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 
-#
-### If no one says otherwise, change the executable path to drop into the same binary
-### location as the DLLs so that the test cases will use the just-build DLLs.
-#IF(NOT EXECUTABLE_OUTPUT_PATH)
-#  SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR} 
-#      CACHE INTERNAL "Single output directory for building all executables.")
-#ENDIF(NOT EXECUTABLE_OUTPUT_PATH)
-#IF(NOT LIBRARY_OUTPUT_PATH)
-#  SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR} 
-#      CACHE INTERNAL "Single output directory for building all libraries.")
-#ENDIF(NOT LIBRARY_OUTPUT_PATH)
-#SET(${PROJECT_NAME}_EXECUTABLE_DIR ${EXECUTABLE_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
-#SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
-##
-
 # Determine which math libraries to use for this platform.
 SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
  "If you have your own Lapack, put its library basename here (namespace and version don't apply). Default is to use SimTKlapack, with namespace and version if any.")
