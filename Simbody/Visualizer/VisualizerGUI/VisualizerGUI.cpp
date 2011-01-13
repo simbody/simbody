@@ -57,7 +57,7 @@
     #include <GLUT/glut.h>
 #elif defined(_WIN32)
     #include "glut32/glut.h"    // we have our own private headers
-    #include "glut32/glext.h" 
+    #include "glut32/glext.h"
 
     // A Windows-only extension for disabling vsync, allowing unreasonably
     // high frame rates.
@@ -68,16 +68,6 @@
     PFNGLGENBUFFERSPROC glGenBuffers;
     PFNGLBINDBUFFERPROC glBindBuffer;
     PFNGLBUFFERDATAPROC glBufferData;
-    PFNGLCREATEPROGRAMPROC glCreateProgram;
-    PFNGLCREATESHADERPROC glCreateShader;
-    PFNGLSHADERSOURCEPROC glShaderSource;
-    PFNGLCOMPILESHADERPROC glCompileShader;
-    PFNGLATTACHSHADERPROC glAttachShader;
-    PFNGLLINKPROGRAMPROC glLinkProgram;
-    PFNGLUSEPROGRAMPROC glUseProgram;
-    PFNGLUNIFORM3FPROC glUniform3f; 
-    PFNGLUNIFORM1IPROC glUniform1i; 
-    PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation; 
     // Use old EXT names for these so we only require OpenGL 2.0.
     PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
     PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffersEXT;
@@ -113,7 +103,7 @@ static void setVsync(bool enable);
 #endif
 
 // gcc 4.4.3 complains bitterly if you don't check the return
-// status from the write() system call. This avoids those 
+// status from the write() system call. This avoids those
 // warnings and maybe, someday, will catch an error.
 #define WRITE(pipeno, buf, len) \
    {int status=write((pipeno), (buf), (len)); \
@@ -124,11 +114,11 @@ static void setVsync(bool enable);
 using namespace SimTK;
 using namespace std;
 
-// This is the transform giving the pose of the camera's local frame in the 
+// This is the transform giving the pose of the camera's local frame in the
 // model's ground frame. The camera local frame has Y as the up direction,
 // -Z as the "look at" direction, and X to the right. We can't know a good
 // default transform for the camera until we know what the SimTK::System
-// we're viewing considers to be its "up" and "look at" directions. 
+// we're viewing considers to be its "up" and "look at" directions.
 static fTransform X_GC;
 static int inPipe, outPipe;
 
@@ -223,16 +213,18 @@ public:
         this->color[2] = color[2];
         this->color[3] = color[3];
     }
-    void draw() {
+    void draw(bool setColor = true) {
         glPushMatrix();
         glTranslated(transform.p()[0], transform.p()[1], transform.p()[2]);
         fVec4 rot = transform.R().convertRotationToAngleAxis();
         glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
         glScaled(scale[0], scale[1], scale[2]);
-        if (representation == DecorativeGeometry::DrawSurface)
-            glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, color);
-        else
-            glColor3fv(color);
+        if (setColor) {
+            if (representation == DecorativeGeometry::DrawSurface)
+                glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, color);
+            else
+                glColor3fv(color);
+        }
         meshes[meshIndex]->draw(representation);
         glPopMatrix();
     }
@@ -254,11 +246,12 @@ private:
 
 class RenderedLine {
 public:
-    RenderedLine(const fVec3& color, float thickness) 
+    RenderedLine(const fVec3& color, float thickness)
     :   color(color), thickness(thickness) {}
 
-    void draw() {
-        glColor3d(color[0], color[1], color[2]);
+    void draw(bool setColor = true) {
+        if (setColor)
+            glColor3d(color[0], color[1], color[2]);
         glLineWidth(thickness);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glVertexPointer(3, GL_FLOAT, 0, &lines[0]);
@@ -314,22 +307,22 @@ private:
 
 
 /*==============================================================================
-                                SCENE DATA                                      
+                                SCENE DATA
 ================================================================================
 We keep two scenes at a time -- a "front" scene that is currently being
-rendered, and a "back" scene is being filled in by the listener thread in 
+rendered, and a "back" scene is being filled in by the listener thread in
 parallel, while the front scene is being rendered. Once the back scene is
 complete, the listener thread must block until the renderer has drawn the
-front scene (at least once). After the front scene is rendered, the listener 
-thread replaces it with the back scene. When there is no back scene, the front 
-scene will be rendered repeatedly whenever an event occurs that may require 
-that, such as a user moving the camera. 
+front scene (at least once). After the front scene is rendered, the listener
+thread replaces it with the back scene. When there is no back scene, the front
+scene will be rendered repeatedly whenever an event occurs that may require
+that, such as a user moving the camera.
 
 There is a mutex lock for the front scene. It is held by the renderer when
 drawing, by any operations (such as camera motion) that would require redrawing
 the front scene, and by the listener thread when it wants to swap in the back
 scene. There is a condition variable that the listener can wait on when it is
-done with the back scene but front scene rendering has not yet finished; that 
+done with the back scene but front scene rendering has not yet finished; that
 is signaled by the renderer when it finishes drawing the front scene. */
 
 // This object holds a scene. There are at most two of these around.
@@ -570,7 +563,7 @@ private:
 
 
 /*==============================================================================
-                                   MENU                                      
+                                   MENU
 ==============================================================================*/
 
 // The glut callback for menu item picking.
@@ -578,8 +571,8 @@ static void menuSelected(int option);
 static const int InvalidMenuId = std::numeric_limits<int>::min();
 class Menu {
 public:
-    Menu(string title, int id, const vector<pair<string, int> >& items, 
-         void(*handler)(int)) 
+    Menu(string title, int id, const vector<pair<string, int> >& items,
+         void(*handler)(int))
     :   title(title), menuId(id), items(items), handler(handler),
         hasCreated(false) {}
 
@@ -613,13 +606,13 @@ public:
             int firstNewSubmenu = (int) submenuIds.size();
             for (int j = firstNewSubmenu; j < (int) components.size()-1; j++)
                 submenuIds.push_back(glutCreateMenu(handler));
-            glutSetMenu(firstNewSubmenu == 0 ? glutId 
+            glutSetMenu(firstNewSubmenu == 0 ? glutId
                                              : submenuIds[firstNewSubmenu-1]);
             for (int j = firstNewSubmenu; j < (int) components.size()-1; j++) {
                 glutAddSubMenu(components[j].c_str(), submenuIds[j]);
                 glutSetMenu(submenuIds[j]);
             }
-            glutAddMenuEntry(components[components.size()-1].c_str(), 
+            glutAddMenuEntry(components[components.size()-1].c_str(),
                              items[i].second);
         }
     }
@@ -631,7 +624,7 @@ public:
         }
         minx = x;
         miny = y-18;
-        int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, 
+        int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18,
                                      (unsigned char*) title.c_str());
         maxx = x+width+14;
         maxy = y+3;
@@ -725,15 +718,15 @@ static Menu* findMenuById(int id) {
 
 
 /*==============================================================================
-                                 SLIDER                                     
+                                 SLIDER
 ==============================================================================*/
 class Slider {
 public:
-    Slider(string title, int id, float minValue, float maxValue, float value) 
-    :   title(title), id(id), minValue(minValue), maxValue(maxValue), 
-        position((value-minValue)/(maxValue-minValue)) 
+    Slider(string title, int id, float minValue, float maxValue, float value)
+    :   title(title), id(id), minValue(minValue), maxValue(maxValue),
+        position((value-minValue)/(maxValue-minValue))
     {
-        labelWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, 
+        labelWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_18,
                                       (unsigned char*) title.c_str());
         if (labelWidth > maxLabelWidth)
             maxLabelWidth = labelWidth;
@@ -789,7 +782,7 @@ public:
         char buffer[32];
         sprintf(buffer, "%g", (double)calcValue());
         string value(buffer);
-        int valueWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_10, 
+        int valueWidth = glutBitmapLength(GLUT_BITMAP_HELVETICA_10,
                             (unsigned char*) value.c_str());
         int valueMinx = maxx+4;
         int valueMaxx = valueMinx+valueWidth+4;
@@ -906,153 +899,115 @@ static Slider* findSliderById(int id) {
 
 
 /*==============================================================================
-                             GROUND AND SKY                                     
+                             GROUND AND SKY
 ==============================================================================*/
 static void drawGroundAndSky(float farClipDistance) {
-    static GLuint skyProgram = 0;
-    if (skyProgram == 0) {
-        const GLchar* vertexShaderSource =
-        "varying vec3 position;\n"
-        "uniform vec3 cameraPosition;\n"
-        "void main() {\n"
-        "gl_Position = ftransform();\n"
-        "position = gl_Vertex.xyz-cameraPosition;\n"
-        "}";
-        const GLchar* fragmentShaderSource =
-        "varying vec3 position;\n"
-        "uniform vec3 upDirection;\n"
-        "void main() {\n"
-        "float gradient = 1.0-dot(normalize(position), upDirection);\n"
-        "gradient *= gradient*gradient;\n"
-        "gl_FragColor = clamp(vec4(gradient, 0.97*gradient, 1.0, 1.0), 0.0, 1.0);\n"
-        "}";
-        skyProgram = glCreateProgram();
-        GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-        glCompileShader(vertexShader);
-        glCompileShader(fragmentShader);
-        glAttachShader(skyProgram, vertexShader);
-        glAttachShader(skyProgram, fragmentShader);
-        glLinkProgram(skyProgram);
-    }
-    static GLuint groundProgram = 0;
-    if (groundProgram == 0) {
-        const GLchar* vertexShaderSource =
-        "varying vec3 position;\n"
-        "uniform vec3 sdirection, tdirection, cameraPosition;\n"
-        "void main() {\n"
-        "gl_Position = ftransform();\n"
-        "vec3 pos = (gl_ModelViewMatrix*gl_Vertex).xyz+cameraPosition;\n"
-        "position = vec3(dot(sdirection, pos), 0.0, dot(tdirection, pos));\n"
-        "}";
-        const GLchar* fragmentShaderSource =
-        "varying vec3 position;\n"
-        "uniform vec3 color1, color2;\n"
-        "uniform sampler2D noiseTexture;\n"
-        "void main() {\n"
-        "vec2 square = floor(0.2*position.xz);\n"
-        "vec2 delta = 0.2*position.xz-square.xy;\n"
-        "float line = min(min(min(delta.x, delta.y), 1.0-delta.x), 1.0-delta.y);\n"
-        "float blur = max(fwidth(position.x), fwidth(position.z));\n"
-        "float pattern = 0.35+texture2D(noiseTexture, 0.4*position.xz).x;\n"
-        "gl_FragColor = vec4(mix(color1, color2, sqrt(line)*pattern), 1.0);\n"
-        "}";
-        groundProgram = glCreateProgram();
-        GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-        glCompileShader(vertexShader);
-        glCompileShader(fragmentShader);
-        glAttachShader(groundProgram, vertexShader);
-        glAttachShader(groundProgram, fragmentShader);
-        glLinkProgram(groundProgram);
+    static bool initialized = false;
+    static GLuint skyTexture;
+    static GLuint groundTexture;
+    if (!initialized) {
+        initialized = true;
 
-        // Create a texture to server as the noise function.
+        // Create a texture to use as the sky.
 
-        GLuint noiseTexture;
-        glGenTextures(1, &noiseTexture);
-        glBindTexture(GL_TEXTURE_2D, noiseTexture);
-        glTexParameterf(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-        float image[1024];
+        glGenTextures(1, &skyTexture);
+        glBindTexture(GL_TEXTURE_1D, skyTexture);
+        glTexParameterf(GL_TEXTURE_1D, GL_GENERATE_MIPMAP, GL_TRUE);
+        int width = 256;
+        float skyImage[3*width];
+        for (int i = 0; i < width; i++) {
+            float fract = pow(i/(float) width, 1.8f);
+            skyImage[3*i] = fract;
+            skyImage[3*i+1] = fract;
+            skyImage[3*i+2] = 1;
+        }
+        glTexImage1D(GL_TEXTURE_1D, 0, 3, width, 0, GL_RGB, GL_FLOAT, skyImage);
+
+        // Create a texture to use as the ground.
+
         srand(0);
-        for (int i = 0; i < 1024; i++)
-            image[i] = (rand()%255)/255.0f-0.5f;
-        glTexImage2D(GL_TEXTURE_2D, 0, 1, 32, 32, 0, GL_RED, GL_FLOAT, image);
-        glUniform1i(glGetUniformLocation(groundProgram, "noiseTexture"), 0);
+        glGenTextures(1, &groundTexture);
+        glBindTexture(GL_TEXTURE_2D, groundTexture);
+        glTexParameterf(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+        float groundImage[width*width];
+        for (int i = 0; i < width; i++) {
+            float x = i/(float) width;
+            for (int j = 0; j < width; j++) {
+                float y = j/(float) width;
+                float line = min(min(min(x, y), 1.0f-x), 1.0f-y);
+                float noise = (rand()%255)/255.0f-0.5f;
+                groundImage[i*width+j] = sqrt(line)*(0.35f+noise);
+            }
+        }
+        glTexImage2D(GL_TEXTURE_2D, 0, 1, width, width, 0, GL_RED, GL_FLOAT, groundImage);
     }
 
-    // Draw the rectangle to represent the sky.
+    // Draw the box to represent the sky.
 
-    float viewDistance = 0.9999f*farClipDistance;
-    float xwidth = viewDistance*tan(fieldOfView*viewWidth/viewHeight/2);
-    float ywidth = viewDistance*tan(fieldOfView/2);
-    fVec3 center = X_GC.p()-X_GC.R()*fVec3(0, 0, viewDistance);
-    fVec3 corner1 = center+X_GC.R()*fVec3(-xwidth, -ywidth, 0);
-    fVec3 corner2 = center+X_GC.R()*fVec3(xwidth, -ywidth, 0);
-    fVec3 corner3 = center+X_GC.R()*fVec3(xwidth, ywidth, 0);
-    fVec3 corner4 = center+X_GC.R()*fVec3(-xwidth, ywidth, 0);
-    fVec3 cameraPosition(X_GC.p()), upDirection(0);
-    const float          sign = (float)groundNormal.getDirection(); // 1 or -1
-    const CoordinateAxis axis = groundNormal.getAxis();
-    // Set the camera height to be level with the ground.
-    cameraPosition[axis] = sign*groundHeight;
-    // Set the camera up direction to be the ground normal.
-    upDirection[axis] = sign;
-
-    glUseProgram(skyProgram);
-    glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), 
-        (GLfloat) cameraPosition[0], (GLfloat) cameraPosition[1], (GLfloat) cameraPosition[2]);
-    glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 
-        (GLfloat) upDirection[0], (GLfloat) upDirection[1], (GLfloat) upDirection[2]);
-	glDisable(GL_DEPTH_TEST);
+    float viewDistance = farClipDistance*0.5f;
+    fVec3 center = X_GC.p();
+    float top = center[1]+viewDistance;
+    center[1] = 0;
+    fVec3 corner1 = center+X_GC.R()*fVec3(-viewDistance, 0, -viewDistance);
+    fVec3 corner2 = center+X_GC.R()*fVec3(viewDistance, 0, -viewDistance);
+    fVec3 corner3 = center+X_GC.R()*fVec3(viewDistance, 0, viewDistance);
+    fVec3 corner4 = center+X_GC.R()*fVec3(-viewDistance, 0, viewDistance);
+    glActiveTexture(GL_TEXTURE0);
+    glEnable(GL_TEXTURE_1D);
+    glBindTexture(GL_TEXTURE_1D, skyTexture);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
-    glBegin(GL_QUADS);
-    glVertex3d(corner1[0], corner1[1], corner1[2]);
-    glVertex3d(corner2[0], corner2[1], corner2[2]);
-    glVertex3d(corner3[0], corner3[1], corner3[2]);
-    glVertex3d(corner4[0], corner4[1], corner4[2]);
+    glBegin(GL_QUAD_STRIP);
+    glTexCoord1f(0);
+    glVertex3d(corner1[0], top, corner1[2]);
+    glTexCoord1f(1);
+    glVertex3d(corner1[0], 0, corner1[2]);
+    glTexCoord1f(0);
+    glVertex3d(corner2[0], top, corner2[2]);
+    glTexCoord1f(1);
+    glVertex3d(corner2[0], 0, corner2[2]);
+    glTexCoord1f(0);
+    glVertex3d(corner3[0], top, corner3[2]);
+    glTexCoord1f(1);
+    glVertex3d(corner3[0], 0, corner3[2]);
+    glTexCoord1f(0);
+    glVertex3d(corner4[0], top, corner4[2]);
+    glTexCoord1f(1);
+    glVertex3d(corner4[0], 0, corner4[2]);
+    glTexCoord1f(0);
+    glVertex3d(corner1[0], top, corner1[2]);
+    glTexCoord1f(1);
+    glVertex3d(corner1[0], 0, corner1[2]);
     glEnd();
-	glEnable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_1D);
+    glColor3f(0, 0, 1);
+    glBegin(GL_QUADS);
+    glVertex3d(corner1[0], 0.99f*top, corner1[2]);
+    glVertex3d(corner2[0], 0.99f*top, corner2[2]);
+    glVertex3d(corner3[0], 0.99f*top, corner3[2]);
+    glVertex3d(corner4[0], 0.99f*top, corner4[2]);
+    glEnd();
+    glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
 
     // Draw the ground plane.
 
+    center = X_GC.p()-X_GC.R()*fVec3(0, 0, 0.9999f*farClipDistance);
     center[1] = 0;
     corner1 = center+fVec3(-farClipDistance, 0, -farClipDistance);
     corner2 = center+fVec3(farClipDistance, 0, -farClipDistance);
     corner3 = center+fVec3(farClipDistance, 0, farClipDistance);
     corner4 = center+fVec3(-farClipDistance, 0, farClipDistance);
-    glUseProgram(groundProgram);
-
-    // We need to calculate the GL transform T_GP that gives the ground 
-    // plane's coordinate frame P in the ground frame G. Py is the ground plane
-    // normal, Px and Pz are arbitrary "s" and "t" tangent directions.
-    // Since ground is symmetric in the planar direction we don't need
-    // to make a right-handed rotation; if it comes out left handed we'll
-    // get a reflection but we don't care.
+    // We need to calculate the GL transform T_GP that gives the ground
+    // plane's coordinate frame P in the ground frame G.
     Mat<4, 4, GLfloat> T_GP(1);
+    const float sign = (float)groundNormal.getDirection(); // 1 or -1
+    const CoordinateAxis axis = groundNormal.getAxis();
     fVec3::updAs(&T_GP(YAxis)[0]) = fVec3(fUnitVec3(groundNormal)); // signed
     fVec3::updAs(&T_GP(XAxis)[0]) = fVec3(fUnitVec3(axis.getPreviousAxis()));
     fVec3::updAs(&T_GP(ZAxis)[0]) = fVec3(fUnitVec3(axis.getNextAxis()));
     T_GP[axis][3] = sign*groundHeight;
-
-    // The ground shader program works in the camera frame C.
-    // Reexpress tangent directions in C
-    fVec3 sdir_C = ~X_GC.R()*T_GP(XAxis).drop1(3); 
-    fVec3 tdir_C = ~X_GC.R()*T_GP(ZAxis).drop1(3);
-    // Reexpress vector p_GC (ground origin to camera origin) in C.
-    fVec3 p_GC_C = ~X_GC.R()*cameraPosition;
-    glUniform3f(glGetUniformLocation(groundProgram, "sdirection"), 
-        (GLfloat) sdir_C[0], (GLfloat) sdir_C[1], (GLfloat) sdir_C[2]);
-    glUniform3f(glGetUniformLocation(groundProgram, "tdirection"), 
-        (GLfloat) tdir_C[0], (GLfloat) tdir_C[1], (GLfloat) tdir_C[2]);
-    glUniform3f(glGetUniformLocation(groundProgram, "cameraPosition"), 
-        (GLfloat) p_GC_C[0], (GLfloat) p_GC_C[1], (GLfloat) p_GC_C[2]);
-    glUniform3f(glGetUniformLocation(groundProgram, "color1"), 0.3f, 0.2f, 0.0f);
-
     if (showShadows) {
         // Draw shadows on the ground. These are drawn in the shadow frame S,
         // which we'll distort slightly from the ground plane P.
@@ -1067,41 +1022,54 @@ static void drawGroundAndSky(float farClipDistance) {
         // Solid and transparent shadows are the same color (sorry). Trying to
         // mix light and dark shadows is much harder and any simple attempts
         // (e.g. put light shadows on top of dark ones) look terrible.
-        glUniform3f(glGetUniformLocation(groundProgram, "color2"), 0.5f, 0.4f, 0.35f);
+        glColor3f(0.3f, 0.2f, 0.0f);
         for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
-            scene->solidMeshes[i].draw();
+            scene->solidMeshes[i].draw(false);
         for (int i = 0; i < (int) scene->transparentMeshes.size(); i++)
-            scene->transparentMeshes[i].draw();
+            scene->transparentMeshes[i].draw(false);
         for (int i = 0; i < (int) scene->lines.size(); i++)
-            scene->lines[i].draw();
+            scene->lines[i].draw(false);
         glPopMatrix();
     }
-    glUniform3f(glGetUniformLocation(groundProgram, "color2"), 1.0f, 0.8f, 0.7f);
+    glActiveTexture(GL_TEXTURE0);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, groundTexture);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glDisable(GL_CULL_FACE);
     glPushMatrix();
     glMultMatrixf(&T_GP[0][0]);
     glDepthRange(0.01, 1.0);
+    float color2[] = {1.0f, 0.8f, 0.7f};
+    glBindTexture(GL_TEXTURE_2D, groundTexture);
+    glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, color2);
     glBegin(GL_QUADS);
-    glVertex3d(corner1[0], corner1[1], corner1[2]);
-    glVertex3d(corner2[0], corner2[1], corner2[2]);
-    glVertex3d(corner3[0], corner3[1], corner3[2]);
-    glVertex3d(corner4[0], corner4[1], corner4[2]);
+    glColor3f(0.3f, 0.2f, 0.0f);
+    glTexCoord2d(0.1f*corner1[0], 0.1f*corner1[2]);
+    glVertex3f(corner1[0], corner1[1], corner1[2]);
+    glTexCoord2d(0.1f*corner2[0], 0.1f*corner2[2]);
+    glVertex3f(corner2[0], corner2[1], corner2[2]);
+    glTexCoord2d(0.1f*corner3[0], 0.1f*corner3[2]);
+    glVertex3f(corner3[0], corner3[1], corner3[2]);
+    glTexCoord2d(0.1f*corner4[0], 0.1f*corner4[2]);
+    glVertex3f(corner4[0], corner4[1], corner4[2]);
     glEnd();
     glDepthRange(0.0, 1.0);
     glEnable(GL_CULL_FACE);
     glPopMatrix();
-    glUseProgram(0);
+    glDisable(GL_TEXTURE_2D);
 }
 
 
 
 /*==============================================================================
-                               RENDER SCENE                                
+                               RENDER SCENE
 ==============================================================================*/
 static void renderScene() {
     static bool firstTime = true;
     static GLfloat prevNearClip; // initialize to near & farClip
-    static GLfloat prevFarClip;  
+    static GLfloat prevFarClip;
     if (firstTime) {
         prevNearClip = nearClip;
         prevFarClip = farClip;
@@ -1110,6 +1078,7 @@ static void renderScene() {
 
     glEnable(GL_DEPTH_TEST);
     glLoadIdentity();
+    glDisable(GL_LIGHTING);
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
@@ -1122,9 +1091,9 @@ static void renderScene() {
         // scene.
         lastSceneSimTime = scene->simTime;
 
-        // Execute any pending commands that need to be executed on the 
+        // Execute any pending commands that need to be executed on the
         // rendering thread. This happens only the first time a particular
-        // scene is drawn because we delete the pending commands after 
+        // scene is drawn because we delete the pending commands after
         // executing them.
         for (int i = 0; i < (int) pendingCommands.size(); i++) {
             pendingCommands[i]->execute();
@@ -1146,7 +1115,7 @@ static void renderScene() {
         float nearClipDistance, farClipDistance;
         if (showGround) {
             nearClipDistance = nearClip;
-            const float wantFarClipDistance = min(farClip, 
+            const float wantFarClipDistance = min(farClip,
                                                   max(2*sceneScale, 2*(centerDepth+sceneRadius)));
             if (std::abs(wantFarClipDistance-prevFarClip) <= 0.5*prevFarClip)
                 farClipDistance = prevFarClip; // hysteresis to avoid jiggling ground
@@ -1168,11 +1137,8 @@ static void renderScene() {
 
         // Render the objects in the scene.
 
-        if (showGround) {
-			glEnable(GL_LIGHTING);
+        if (showGround)
             drawGroundAndSky(farClipDistance);
-		}
-		glDisable(GL_LIGHTING);
         for (int i = 0; i < (int) scene->lines.size(); i++)
             scene->lines[i].draw();
         glLineWidth(2);
@@ -1236,7 +1202,7 @@ static void redrawDisplay() {
     }
 
     // Render the scene.
-    
+
     renderScene();
 
     // Draw menus.
@@ -1299,7 +1265,7 @@ static void redrawDisplay() {
         const int lineSpacing = 25;
         int width = 0;
         for (unsigned i=0; i < overlayMessageLines.size(); ++i)
-            width = max(width, glutBitmapLength(font, 
+            width = max(width, glutBitmapLength(font,
                                     (unsigned char*)overlayMessageLines[i].c_str()));
         int height = lineSpacing * (int)overlayMessageLines.size();
 
@@ -1313,9 +1279,9 @@ static void redrawDisplay() {
         // Draw an orange background.
         glColor3f(1.0f, 0.5f, 0.f);
         glBegin(GL_QUADS);
-        glVertex2f(tl[0],tl[1]); 
+        glVertex2f(tl[0],tl[1]);
         glVertex2f(tl[0],br[1]);
-        glVertex2f(br[0],br[1]); 
+        glVertex2f(br[0],br[1]);
         glVertex2f(br[0],tl[1]);
         glEnd();
 
@@ -1334,7 +1300,7 @@ static void redrawDisplay() {
     glutSwapBuffers();
     ++fpsCounter;
     ++frameCounter;
-    
+
     lastRedisplayDone = realTime();
 }
 
@@ -1361,9 +1327,9 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
     computeSceneBounds(scene, radius, sceneCenter);
     sceneScale = std::max(radius, 0.1f);
 
-    // "state" (pressed/released) is irrelevant for mouse wheel. However, if 
-    // we're being called by freeglut we'll get called twice, while (patched) 
-    // glut calls just once, with state=GLUT_UP. 
+    // "state" (pressed/released) is irrelevant for mouse wheel. However, if
+    // we're being called by freeglut we'll get called twice, while (patched)
+    // glut calls just once, with state=GLUT_UP.
     if ((button == GlutWheelUp || button == GlutWheelDown)
         && (state==GLUT_UP))
     {
@@ -1424,8 +1390,8 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 }
 
 // This function is called when the mouse is moved while a button is being held
-// down. When the button was first clicked, we recorded which one it was in 
-// clickButton, and where the mouse was then in (clickX,clickY). We update 
+// down. When the button was first clicked, we recorded which one it was in
+// clickButton, and where the mouse was then in (clickX,clickY). We update
 // (clickX,clickY) each call here to reflect where it was last seen.
 //
 // (sherm 20101121: on Windows glut I get a spurious "mouse dragged" call
@@ -1438,16 +1404,16 @@ static void mouseDragged(int x, int y) {
     }
 
     // 1/4 degree per pixel
-    const float AnglePerPixel = 0.25*((float)SimTK_PI/180); 
+    const float AnglePerPixel = 0.25*((float)SimTK_PI/180);
 
     // map 1 pixel move to 1% of scale
-    const float TranslateFracPerPixel = 0.01f; 
+    const float TranslateFracPerPixel = 0.01f;
     const float translatePerPixel = TranslateFracPerPixel * sceneScale;
     const int dx = clickX-x, dy = clickY-y;
 
     // translate: right button or shift-left button
-    if (  clickButton == GLUT_RIGHT_BUTTON 
-      || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT)) 
+    if (  clickButton == GLUT_RIGHT_BUTTON
+      || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
     {
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
         X_GC.updP() += translatePerPixel*X_GC.R()*fVec3(dx, -dy, 0);
@@ -1455,7 +1421,7 @@ static void mouseDragged(int x, int y) {
     }
 
     // zoom: middle button or alt-left button (or mouse wheel; see above)
-    else if (  clickButton == GLUT_MIDDLE_BUTTON 
+    else if (  clickButton == GLUT_MIDDLE_BUTTON
            || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
     {
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
@@ -1473,7 +1439,7 @@ static void mouseDragged(int x, int y) {
         if (clickModifiers & GLUT_ACTIVE_CTRL)
             r.setRotationFromAngleAboutAxis(AnglePerPixel*(dy-dx), ZAxis);
         else
-            r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence, 
+            r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence,
                 AnglePerPixel*dy, XAxis, AnglePerPixel*dx, YAxis);
         r = X_GC.R()*r*~X_GC.R();
         cameraPos = r*(cameraPos-rotateCenter)+rotateCenter;
@@ -2322,7 +2288,7 @@ void* listenForInput(void* args) {
 
 static void dumpAboutMessageToConsole() {
     printf("\n\n=================== ABOUT SIMBODY VISUALIZER ===================\n");
-    printf("Simbody(tm) %s VisualizerGUI (protocol rev. %u)\n", 
+    printf("Simbody(tm) %s VisualizerGUI (protocol rev. %u)\n",
         simbodyVersionStr.c_str(), ProtocolVersion);
     printf("\nName of invoking executable: %s\n", simulatorExecutableName.c_str());
     printf(  "Current working directory:\n  %s\n",
@@ -2372,7 +2338,7 @@ void viewMenuSelected(int option) {
     // Flip the camera 180 degress around one of the other axes if in a negative direction.
     if (groundNormal.getDirection() == -1)
         groundRotation = fRotation((float)Pi, groundNormal.getAxis().getNextAxis()) * groundRotation;
-    
+
     switch (option) {
     case MENU_VIEW_FRONT:
         X_GC.updR().setRotationToIdentityMatrix();
@@ -2416,6 +2382,8 @@ void viewMenuSelected(int option) {
         break;
     case MENU_BACKGROUND_SKY:
         showGround = true;
+        backgroundColor = fVec3(1,1,1);
+        setClearColorToBackgroundColor();
         break;
     case MENU_SHOW_SHADOWS:
         showShadows = !showShadows;
@@ -2532,7 +2500,7 @@ static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
     unsigned exeNameLength;
     char exeNameBuf[256]; // just a file name, not a path name
     readDataFromPipe(fromSimPipe, (unsigned char*)&exeNameLength, sizeof(unsigned));
-    SimTK_ASSERT_ALWAYS(exeNameLength <= 255, 
+    SimTK_ASSERT_ALWAYS(exeNameLength <= 255,
         "VisualizerGUI: executable name length violates protocol.");
     readDataFromPipe(fromSimPipe, (unsigned char*)exeNameBuf, exeNameLength);
     exeNameBuf[exeNameLength] = (char)0;
@@ -2560,7 +2528,7 @@ int main(int argc, char** argv) {
     // Construct the default initial title.
     string title = "Simbody " + simbodyVersionStr + ": " + simulatorExecutableName;
 
-    // Put the upper left corner of the glut window near the upper right 
+    // Put the upper left corner of the glut window near the upper right
     // corner of the screen.
     int screenW = glutGet(GLUT_SCREEN_WIDTH);
     int screenH = glutGet(GLUT_SCREEN_HEIGHT);
@@ -2582,7 +2550,7 @@ int main(int argc, char** argv) {
     glutKeyboardFunc(ordinaryKeyPressed);
     glutSpecialFunc(specialKeyPressed);
 
-    // On some systems (Windows at least), some of the gl functions may 
+    // On some systems (Windows at least), some of the gl functions may
     // need to be loaded dynamically.
     initGlextFuncPointersIfNeeded();
 
@@ -2666,23 +2634,13 @@ int main(int argc, char** argv) {
 
 
 // Initialize function pointers for Windows GL extensions.
-static void initGlextFuncPointersIfNeeded() { 
+static void initGlextFuncPointersIfNeeded() {
 #ifdef _WIN32
     wglSwapIntervalEXT = (PFNWGLSWAPINTERVALFARPROC)wglGetProcAddress( "wglSwapIntervalEXT" );
 
     glGenBuffers    = (PFNGLGENBUFFERSPROC) glutGetProcAddress("glGenBuffers");
     glBindBuffer    = (PFNGLBINDBUFFERPROC) glutGetProcAddress("glBindBuffer");
     glBufferData    = (PFNGLBUFFERDATAPROC) glutGetProcAddress("glBufferData");
-    glCreateProgram = (PFNGLCREATEPROGRAMPROC) glutGetProcAddress("glCreateProgram");
-    glCreateShader  = (PFNGLCREATESHADERPROC) glutGetProcAddress("glCreateShader");
-    glShaderSource  = (PFNGLSHADERSOURCEPROC) glutGetProcAddress("glShaderSource");
-    glCompileShader = (PFNGLCOMPILESHADERPROC) glutGetProcAddress("glCompileShader");
-    glAttachShader  = (PFNGLATTACHSHADERPROC) glutGetProcAddress("glAttachShader");
-    glLinkProgram   = (PFNGLLINKPROGRAMPROC) glutGetProcAddress("glLinkProgram");
-    glUseProgram    = (PFNGLUSEPROGRAMPROC) glutGetProcAddress("glUseProgram");
-    glUniform3f     = (PFNGLUNIFORM3FPROC) glutGetProcAddress("glUniform3f");
-    glUniform1i     = (PFNGLUNIFORM1IPROC) glutGetProcAddress("glUniform1i");
-    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) glutGetProcAddress("glGetUniformLocation");
     // Using the "EXT" names here means we only require OpenGL 2.0.
     glGenFramebuffersEXT    = (PFNGLGENFRAMEBUFFERSEXTPROC) glutGetProcAddress("glGenFramebuffersEXT");
     glGenRenderbuffersEXT   = (PFNGLGENRENDERBUFFERSEXTPROC) glutGetProcAddress("glGenRenderbuffersEXT");
