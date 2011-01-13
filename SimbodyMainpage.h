@@ -45,13 +45,21 @@ vehicles to human skeletons and macromolecules.
 Simbody is part of the %SimTK biosimulation toolkit originating from Simbios, 
 the NIH National Center for Physics-Based Simulation of Biological Structures 
 at Stanford, funded under the NIH Roadmap for Medical Research, grant 
-U54 GM072970. Simbody is hosted on the simtk.org biosimulation community site,
+U54 GM072970. Related tools include 
+  - Molmodel (https://simtk.org/home/molmodel), a C++ API for constructing 
+    coarse-grained, Simbody-based internal coordinate models of macromolecules
+    like proteins and RNA, and
+  - OpenMM (https://simtk.org/home/openmm), a GPU-accelerated high-performance
+    numerical library for efficient calculation of molecular force fields.
+    OpenMM may be used standalone or through Molmodel.
+
+Simbody is hosted on the simtk.org biosimulation community site,
 at https://simtk.org/home/simbody and is a community resource available for
 unrestricted academic, commercial, government, and personal use.
 
-Simbody was conceived and initially implemented by Michael Sherman, with 
-substantial contributions from Peter Eastman, both of the Simbios Center at 
-Stanford. Many others have contributed to the software, support, and 
+Simbody was conceived and initially implemented by Michael Sherman (Sherm), 
+with substantial contributions from Peter Eastman, both of the Simbios Center 
+at Stanford. Many others have contributed to the software, support, and 
 documentation and we invite well-engineered community contributions.
 
 
@@ -73,11 +81,11 @@ Related Pages to see other general topics.
 We encourage the broadest possible use of Simbody for any purpose by using
 the extremely permissive MIT License. We would appreciate some acknowledgement 
 if our work has been helpful in yours, but our license does not require that.
-For more information see our \ref license_page "license page".
+For more information see our \ref simbody_license_page "license page".
 **/
 
 
-/** @page license_page  Simbody<sup><small>TM</small></sup> Copyright and License
+/** @page simbody_license_page  Simbody<sup><small>TM</small></sup> Copyright and License
 <h2>Copyright and license</h2>
 This license, based on the maximally-permissive MIT License, defines the 
 terms under which we offer Simbody.
