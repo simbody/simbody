@@ -8,7 +8,7 @@ Mainpage, the first page that a user sees when entering the Doxygen-
 generated API documentation. This is not actually included as part of the
 Simbody source and it is not installed with Simbody. **/
 
-/** @mainpage  Simbody<sup><small>TM</small></sup> API Reference Documentation
+/** @mainpage  Simbody&tm; API Reference Documentation
 
 <h2>What is this page?</h2>
 You are looking at the main page for the reference documentation of the Simbody
@@ -85,7 +85,7 @@ For more information see our \ref simbody_license_page "license page".
 **/
 
 
-/** @page simbody_license_page  Simbody<sup><small>TM</small></sup> Copyright and License
+/** @page simbody_license_page  Simbody&tm; Copyright and License
 <h2>Copyright and license</h2>
 This license, based on the maximally-permissive MIT License, defines the 
 terms under which we offer Simbody.
@@ -123,7 +123,7 @@ terms under which we offer Simbody.
  * -------------------------------------------------------------------------- * 
 @endverbatim
 
-<h2>What's with that "TM" in Simbody<sup><small>TM</small></sup>?</h2>
+<h2>What's with that "TM" in Simbody&tm;?</h2>
 That symbol is to let you know that we claim a trademark on the name "Simbody"
 so you may not use that name except to refer to our software as we distribute
 it. The license permits you to make any kind of derivative work, or to use

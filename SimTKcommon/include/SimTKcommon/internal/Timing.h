@@ -138,7 +138,7 @@ namespace SimTK {
     @ingroup TimingFunctions
 
 These inline functions provide a fast and convenient way for doing arithmetic
-with the ugle Posix timespec struct. Use them to convert the timespec to
+with the ugly Posix timespec struct. Use them to convert the timespec to
 a long long integer number of nanoseconds, do arithmetic in that form, and
 then convert back. Negative times are handled correctly (they come up as
 the result of subtraction and comparisons). 
