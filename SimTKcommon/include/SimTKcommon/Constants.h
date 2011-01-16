@@ -77,7 +77,7 @@ using them. **/
 /** @defgroup MacroConstants      Preprocessor Macro Constants
     @ingroup  PredefinedConstants
 
-These are preprocessor (#define) macros providing constants values at very
+These are preprocessor (\#define) macros providing constants values at very
 high precision.\ See the discussion under the main \ref PredefinedConstants
 module heading.
 
@@ -121,7 +121,7 @@ convenient conversions. **/
     /* MATHEMATICAL CONSTANTS */
     /**************************/
 
-/** @defgroup MathConstants          Macros for Mathematical Constants
+/** @defgroup MathConstants          Mathematical Constants
     @ingroup  MacroConstants
 
 These are some common unitless numerical constants evaluated to 64 digits and
@@ -208,7 +208,7 @@ specific types. **/
     /* PHYSICAL CONSTANTS */
     /**********************/
 
-/** @defgroup PhysConstants      Macros for Physical Constants
+/** @defgroup PhysConstants      Physical Constants
     @ingroup  MacroConstants
 
 These constants are from the CODATA 2002 set from the NIST Physics Laboratory 
@@ -473,7 +473,7 @@ u=uncertainty(y).
     /* UNIT CONVERSION FACTORS */
     /***************************/
 
-/** @defgroup UnitConversionFactors      Macros for Unit Conversion Factors
+/** @defgroup UnitConversionFactors      Unit Conversion Factors
     @ingroup  MacroConstants
 
 In each case here, given a value in the units mentioned first in the name, you
