@@ -63,11 +63,11 @@
     // high frame rates.
     PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT;
 
-
     // These will hold the dynamically-determined function addresses.
     PFNGLGENBUFFERSPROC glGenBuffers;
     PFNGLBINDBUFFERPROC glBindBuffer;
     PFNGLBUFFERDATAPROC glBufferData;
+    PFNGLACTIVETEXTUREPROC glActiveTexture;
     // Use old EXT names for these so we only require OpenGL 2.0.
     PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
     PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffersEXT;
@@ -913,7 +913,7 @@ static void drawGroundAndSky(float farClipDistance) {
         glGenTextures(1, &skyTexture);
         glBindTexture(GL_TEXTURE_1D, skyTexture);
         glTexParameterf(GL_TEXTURE_1D, GL_GENERATE_MIPMAP, GL_TRUE);
-        int width = 256;
+        const int width = 256;
         float skyImage[3*width];
         for (int i = 0; i < width; i++) {
             float fract = pow(i/(float) width, 1.8f);
@@ -2641,6 +2641,7 @@ static void initGlextFuncPointersIfNeeded() {
     glGenBuffers    = (PFNGLGENBUFFERSPROC) glutGetProcAddress("glGenBuffers");
     glBindBuffer    = (PFNGLBINDBUFFERPROC) glutGetProcAddress("glBindBuffer");
     glBufferData    = (PFNGLBUFFERDATAPROC) glutGetProcAddress("glBufferData");
+    glActiveTexture = (PFNGLACTIVETEXTUREPROC) glutGetProcAddress("glActiveTexture");
     // Using the "EXT" names here means we only require OpenGL 2.0.
     glGenFramebuffersEXT    = (PFNGLGENFRAMEBUFFERSEXTPROC) glutGetProcAddress("glGenFramebuffersEXT");
     glGenRenderbuffersEXT   = (PFNGLGENRENDERBUFFERSEXTPROC) glutGetProcAddress("glGenRenderbuffersEXT");

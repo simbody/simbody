@@ -63,72 +63,128 @@ namespace SimTK {
 
 typedef conjugate<Real> Conjugate;  // like Complex
 
-    // Note that these constants have memory addresses, so you can
-    // return references to them.
-    // These are static variables rather than static members to avoid
-    // problems with static initialization order.
+/** @defgroup TypedNumConstants  Numerical Constants with Types
+    @ingroup  PredefinedConstants
 
-    // Properties of the floaing point representation.
+This is a set of predefined constants in the form of Real (%SimTK default 
+precision) symbols that are important for writing precision-independent
+numerical algorithms. These constants have memory addresses (that is, they
+are not macros), so you can return references to them. These are static 
+variables rather than static members to avoid problems with static 
+initialization order.
 
-static const Real& NaN               = NTraits<Real>::getNaN();      // "not a number"
+Constants defined here include common mathematical values like pi, e, and
+sqrt(2) and also numerical constants related to the floating point
+implementation of the Real type, such as NaN, Infinity, and the machine
+precision Epsilon. For convenience we also provide several common numerical
+values for which it is useful to have a precision-independent representation
+(mostly to avoid warnings or casts to avoid them), and also where it is 
+useful to have a referenceable memory location that contains those values.
+These include small integers and common small fractions like 1/2 and 1/3.
+
+Note that the %SimTK convention for typed constants is to name them
+like ordinary variables except with an initial capital letter (like a
+class name). Typed constants are processed by the compiler rather than
+the preprocessor and do not require any special treatment when used; 
+they behave just like variables of the same type and value would 
+behave. **/
+/**@{**/
+
+/** This is the IEEE "not a number" constant for this implementation of
+the default-precision Real type; be very careful using this because it has
+many strange properties such as not comparing equal to itself. You must use
+the SimTK::isNaN() function instead to determine whether something contains
+a NaN value. **/
+static const Real& NaN               = NTraits<Real>::getNaN(); 
+/** This is the IEEE positive infinity constant for this implementation of
+the default-precision Real type; -Infinity will produce the negative infinity
+constant. Infinity tests larger than any other Real value. **/
 static const Real& Infinity          = NTraits<Real>::getInfinity();
 
-// Epsilon is the size of roundoff noise; it is the smallest positive number
-// such that 1+Eps != 1.
-static const Real& Eps               = NTraits<Real>::getEps();         // double ~1e-16, float ~1e-7
-static const Real& SqrtEps           = NTraits<Real>::getSqrtEps();     // eps^(1/2): double ~1e- 8, float ~3e-4
-static const Real& TinyReal          = NTraits<Real>::getTiny();        // eps^(5/4): double ~1e-20, float ~1e-9
-static const Real& SignificantReal   = NTraits<Real>::getSignificant(); // eps^(7/8): double ~1e-14, float ~1e-6
+/** Epsilon is the size of roundoff noise; it is the smallest positive number
+of default-precision type Real such that 1+Eps != 1. If Real is double (the
+normal case) then Eps ~= 1e-16; if Real is float then Eps ~= 1e-7. **/
+static const Real& Eps               = NTraits<Real>::getEps();
+/** This is the square root of Eps, ~1e-8 if Real is double, ~3e-4 if Real
+is float. Many numerical algorithms are limited to accuracy of sqrt(Eps)
+so this constant is useful in checking for termination of them. **/
+static const Real& SqrtEps           = NTraits<Real>::getSqrtEps();
+/** TinyReal is a floating point value smaller than the floating point
+precision; it is defined as Eps^(5/4) which is ~1e-20 for Real==double and
+~1e-9 for float. This is commonly used as a number to add to a computation in 
+a denominator (such as a vector length) that might come out zero, just for
+the purpose of avoiding a divide by zero. **/
+static const Real& TinyReal          = NTraits<Real>::getTiny(); 
+/** SignificantReal is the smallest value that we consider to be clearly 
+distinct from roundoff error when it is the result of a computation;
+it is defined as Eps^(7/8) which is ~1e-14 when Real==double, ~1e-6 when
+Real==float. **/
+static const Real& SignificantReal   = NTraits<Real>::getSignificant(); 
 
-static const Real& LeastPositiveReal = NTraits<Real>::getLeastPositive(); // double ~1e-308, float ~1e-38
-static const Real& MostPositiveReal  = NTraits<Real>::getMostPositive();  // double ~1e+308, float ~1e+38
+/** This is the smallest positive real number that can be expressed in the
+type Real; it is ~1e-308 when Real==double, ~1e-38 when Real==float. **/
+static const Real& LeastPositiveReal = NTraits<Real>::getLeastPositive(); 
+/** This is the largest finite positive real number that can be expressed in 
+the Real type; ~1e+308 when Real==double, ~1e+38 when Real==float.\ Note
+that there is also a value Infinity that will test larger than this one. **/
+static const Real& MostPositiveReal  = NTraits<Real>::getMostPositive();  
+/** This is the largest negative real number (that is, closest to zero) that
+can be expressed in values of type Real. **/
 static const Real& LeastNegativeReal = NTraits<Real>::getLeastNegative();
+/** This is the smallest finite negative real number that
+can be expressed in values of type Real.\ Note that -Infinity is a value
+that will still test smaller than this one. **/
 static const Real& MostNegativeReal  = NTraits<Real>::getMostNegative();
 
-// This is the number of decimal digits that can be reliably stored and
-// retrieved in the default Real precision (typically log10(1/eps)-1).
-static const int NumDigitsReal = NTraits<Real>::getNumDigits(); // double ~15, float ~6
+/** This is the number of decimal digits that can be reliably stored and
+retrieved in the default Real precision (typically log10(1/eps)-1), that is,
+about 15 digits when Real==double and 6 digits when Real==float. **/
+static const int NumDigitsReal = NTraits<Real>::getNumDigits(); 
 
-// This is the smallest number of decimal digits you should store in a file
-// if you want to be able to get exactly the same bit pattern back when you
-// read it in. Typically, this is about log10(1/tiny).
+/** This is the smallest number of decimal digits you should store in a text
+file if you want to be able to get exactly the same bit pattern back when you 
+read it back in and convert the text to a Real value. Typically, this is about
+log10(1/tiny), which is about 20 digits when Real==double and 9 digits when
+Real==float. **/
 static const int LosslessNumDigitsReal = NTraits<Real>::getLosslessNumDigits(); // double ~20, float ~9
 
     // Carefully calculated constants, with convenient memory addresses.
 
-static const Real& Zero         = NTraits<Real>::getZero();
-static const Real& One          = NTraits<Real>::getOne();
-static const Real& MinusOne     = NTraits<Real>::getMinusOne();
-static const Real& Two          = NTraits<Real>::getTwo();
-static const Real& Three        = NTraits<Real>::getThree();
+static const Real& Zero         = NTraits<Real>::getZero();  ///< Real(0)
+static const Real& One          = NTraits<Real>::getOne();   ///< Real(1)
+static const Real& MinusOne     = NTraits<Real>::getMinusOne(); ///< Real(-1)
+static const Real& Two          = NTraits<Real>::getTwo();   ///< Real(2)
+static const Real& Three        = NTraits<Real>::getThree(); ///< Real(3)
 
-static const Real& OneHalf      = NTraits<Real>::getOneHalf();
-static const Real& OneThird     = NTraits<Real>::getOneThird();
-static const Real& OneFourth    = NTraits<Real>::getOneFourth();
-static const Real& OneFifth     = NTraits<Real>::getOneFifth();
-static const Real& OneSixth     = NTraits<Real>::getOneSixth();
-static const Real& OneSeventh   = NTraits<Real>::getOneSeventh();
-static const Real& OneEighth    = NTraits<Real>::getOneEighth();
-static const Real& OneNinth     = NTraits<Real>::getOneNinth();
-static const Real& Pi           = NTraits<Real>::getPi();
-static const Real& OneOverPi    = NTraits<Real>::getOneOverPi();
-static const Real& E            = NTraits<Real>::getE();
-static const Real& Log2E        = NTraits<Real>::getLog2E();
-static const Real& Log10E       = NTraits<Real>::getLog10E();
-static const Real& Sqrt2        = NTraits<Real>::getSqrt2();
-static const Real& OneOverSqrt2 = NTraits<Real>::getOneOverSqrt2();  // also sqrt(2)/2
-static const Real& Sqrt3        = NTraits<Real>::getSqrt3();
-static const Real& OneOverSqrt3 = NTraits<Real>::getOneOverSqrt3();
-static const Real& CubeRoot2    = NTraits<Real>::getCubeRoot2();
-static const Real& CubeRoot3    = NTraits<Real>::getCubeRoot3();
-static const Real& Ln2          = NTraits<Real>::getLn2();
-static const Real& Ln10         = NTraits<Real>::getLn10();
+static const Real& OneHalf      = NTraits<Real>::getOneHalf();   ///< Real(1)/2
+static const Real& OneThird     = NTraits<Real>::getOneThird();  ///< Real(1)/3
+static const Real& OneFourth    = NTraits<Real>::getOneFourth(); ///< Real(1)/4
+static const Real& OneFifth     = NTraits<Real>::getOneFifth();  ///< Real(1)/5
+static const Real& OneSixth     = NTraits<Real>::getOneSixth();  ///< Real(1)/6
+static const Real& OneSeventh   = NTraits<Real>::getOneSeventh();///< Real(1)/7
+static const Real& OneEighth    = NTraits<Real>::getOneEighth(); ///< Real(1)/8
+static const Real& OneNinth     = NTraits<Real>::getOneNinth();  ///< Real(1)/9
+static const Real& Pi           = NTraits<Real>::getPi();        ///< Real(pi)
+static const Real& OneOverPi    = NTraits<Real>::getOneOverPi(); ///< 1/Real(pi)
+static const Real& E            = NTraits<Real>::getE();     ///< \e e = Real(exp(1))
+static const Real& Log2E        = NTraits<Real>::getLog2E(); ///< Real(log2(\e e)) (log base 2)
+static const Real& Log10E       = NTraits<Real>::getLog10E();///< Real(log10(\e e)) (log base 10)
+static const Real& Sqrt2        = NTraits<Real>::getSqrt2(); ///< Real(sqrt(2))
+static const Real& OneOverSqrt2 = NTraits<Real>::getOneOverSqrt2(); ///< 1/sqrt(2)==sqrt(2)/2 as Real
+static const Real& Sqrt3        = NTraits<Real>::getSqrt3();        ///< Real(sqrt(3))
+static const Real& OneOverSqrt3 = NTraits<Real>::getOneOverSqrt3(); ///< Real(1/sqrt(3))
+static const Real& CubeRoot2    = NTraits<Real>::getCubeRoot2();    ///< Real(2^(1/3)) (cube root of 2)
+static const Real& CubeRoot3    = NTraits<Real>::getCubeRoot3();    ///< Real(3^(1/3)) (cube root of 3)
+static const Real& Ln2          = NTraits<Real>::getLn2();  ///< Real(ln(2)) (natural log of 2)
+static const Real& Ln10         = NTraits<Real>::getLn10(); ///< Real(ln(10)) (natural log of 10)
 
-// We only need one complex constant. For the rest just use
-// Complex(the Real constant), or if you need an address use
-// NTraits<Complex>::getPi(), etc.
+/** We only need one complex constant, \e i = sqrt(-1).\ For the rest 
+just multiply the real constant by \e i, or convert with 
+Complex(the Real constant), or if you need an address you can use 
+NTraits<Complex>::getPi(), etc. 
+@see NTraits **/
 static const Complex& I = NTraits<Complex>::getI();
-
+/**@}**/
 
     ///////////////////////////
     // SOME SCALAR UTILITIES //

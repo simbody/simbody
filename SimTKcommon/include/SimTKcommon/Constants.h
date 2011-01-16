@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -33,81 +33,112 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- *
- * This header is the common gathering place for numerical, *machine-independent*
- * constants in SimTK. These include unitless mathematical constants like Pi,
- * as well as physical constants and unit conversion factors. This is NOT the
- * place for computational, machine-dependent constants like NaN,
- * Infinity, number of digits in a float, etc. Those belong in templatized
- * classes in the manner of the C++ std::numeric_limits<T> class.
- *
- * These constants are provided at extremely high precision as compile-time 
- * macros in long double precision. By using very high precision
- * we ensure sufficient accuracy for any IEEE long double precision 
- * implementation (they can be 64, 80, or 128 bits). These constants can
- * be used as raw material for providing nicer templatized constants in
- * appropriate precisions and unit systems.
- *
- * Units: our most common unit systems are the "SI" (MKS) system, and the "MD"
- * system used for molecular dynamics. SI units are meters, kg, seconds, 
- * coulombs (ampere-s), kelvins and moles. MD units are nanometers, atomic mass units
- * (Daltons, g/mol), picoseconds, proton charge e, kelvins, and moles. Many
- * molecular dynamicists and chemists prefer kcals for energy and angstroms for
- * length. This does not constitute a consistent set of units, however, so
- * we provide for it by conversion from the MD units, which are consistent.
- * (By consistent, we mean that force units = mass-length/time^2, so f=ma!)
- *
- * This file is self-contained and can be included in ANSI C programs
- * as well as C++.
- *
- * <pre>
- * Unit systems
- *
- *            SI (MKS)           MD                     KCAL-ANGSTROM
- * ---------  --------------  ------------------------  ------------------
- * length     meter           nanometer                 angstrom (A)
- * mass       kg              amu, dalton               amu, dalton
- * time       second          picosecond                picosecond
- * charge     coulomb         e, proton charge          e, proton charge
- * temp.      kelvin          kelvin                    kelvin
- * substance  mole            mole                      mole
- *
- * velocity   m/s             km/s (nm/ps)              100m/s (A/ps)
- *
- * energy     J (kg-m^2/s^2)  kJ/mol                    kcal/mol 
- *                              (Da-nm^2/ps^2)            (418.4 Da-A^2/ps^2)
- * force      N (kg-m/s^2)    kJ/(mol-nm) = TN/mol      kcal/(mol-A)
- *                              (Da-nm/ps^2) (T=10^12)    (418.4 Da-A/ps^2)
- *
- * </pre>
- *
- * We always keep angles in radians internally, which are unitless. However,
- * most humans prefer degrees where 1 degree = Pi/180 radians so we provide
- * convenient conversions.
- */
+High precision mathematical and physical constants. This file is self-contained
+and can be included in ANSI C programs as well as C++.**/
+
+/** @defgroup PredefinedConstants      Predefined Constants
+
+There are two kinds of numerical constants predefined by %SimTK: (1) a set
+of typed, const, in-memory values in the SimTK namespace, at the default Real 
+precision or with other specific types, and (2) a set of preprocessor
+(\#define) macros containing extremely high-precision precalculated numerical 
+values in long double precision.
+
+You should use the typed constants whenever possible in your code since they
+are very compact and well-behaved in C++. They have memory addresses so can
+be returned as references. Because they are filled in at startup, they can
+include machine- and precision-specific values like NaN, Infinity, machine
+roundoff error, number of digits in a float, etc. that are very useful for 
+writing robust, precision-independent numerical algorithms.
+
+The macro values must be cast to the appropriate type before use, and are 
+mostly useful as raw material for making \e typed constants. These macros
+contain <em>machine-independent</em> constants, including unitless mathematical 
+constants like pi, as well as physical constants and unit conversion factors.
+These constants are provided at extremely high precision as compile-time 
+macros in long double precision. By using very high precision we ensure 
+sufficient accuracy for any IEEE long double precision implementation (they 
+can be 64, 80, or 128 bits). These constants can be used as raw material for
+providing nicer templatized constants in appropriate precisions and unit 
+systems.
+
+<h2>Naming conventions</h2>
+Note that the %SimTK convention for typed constants is to name them
+like ordinary variables except with an initial capital letter (like a
+class name). This is distinct from the widely-used convention for 
+constants that are defined via the presprocessor as macros (that is, 
+using \#define). Those are written entirely in 
+\c UPPER_CASE_WITH_UNDERSCORES, after an initial \c SimTK_. Typed constants
+are processed instead by the compiler itself and do not require any
+special treatment when used; they behave just like variables of the
+same type and value would behave so there is no need to shout when 
+using them. **/
+
+/** @defgroup MacroConstants      Preprocessor Macro Constants
+    @ingroup  PredefinedConstants
+
+These are preprocessor (#define) macros providing constants values at very
+high precision.\ See the discussion under the main \ref PredefinedConstants
+module heading.
+
+<h2>Units</h2>
+Our most common unit systems are the "SI" (MKS) system, and the "MD" system 
+used for molecular dynamics. SI units are meters, kg, seconds, coulombs 
+(ampere-s), kelvins and moles. MD units are nanometers, atomic mass units
+(Daltons, g/mol), picoseconds, proton charge e, kelvins, and moles. Many
+molecular dynamicists and chemists prefer kcals for energy and angstroms for
+length. This does not constitute a consistent set of units, however, so
+we provide for it by conversion from the MD units, which are consistent.
+(By consistent, we mean that force units = mass-length/time^2, so f=ma!)
+
+<pre>
+Unit systems
+
+           SI (MKS)           MD                     KCAL-ANGSTROM
+---------  --------------  ------------------------  ------------------
+length     meter           nanometer                 angstrom (A)
+mass       kg              amu, dalton               amu, dalton
+time       second          picosecond                picosecond
+charge     coulomb         e, proton charge          e, proton charge
+temp.      kelvin          kelvin                    kelvin
+substance  mole            mole                      mole
+
+velocity   m/s             km/s (nm/ps)              100m/s (A/ps)
+
+energy     J (kg-m^2/s^2)  kJ/mol                    kcal/mol 
+                             (Da-nm^2/ps^2)            (418.4 Da-A^2/ps^2)
+force      N (kg-m/s^2)    kJ/(mol-nm) = TN/mol      kcal/(mol-A)
+                             (Da-nm/ps^2) (T=10^12)    (418.4 Da-A/ps^2)
+
+</pre>
+
+We always keep angles in radians internally, which are unitless. However,
+most humans prefer degrees where 1 degree = Pi/180 radians so we provide
+convenient conversions. **/
+
 
     /**************************/
     /* MATHEMATICAL CONSTANTS */
     /**************************/
 
-/** @name Mathematical Constants
- *
- * These are some common unitless numerical constants evaluated to 64 digits and
- * written here in maximal (long double) precision. (These values were generated using
- * the symbolic calculator Maple which is part of Matlab's Symbolic 
- * Toolbox.) These can be cast to lower precisions when needed, and can be used
- * in compile-time constant expressions like 2*SimTK_PI or 1/SimTK_SQRT2 for which the
- * compiler will properly calculate a long double result with no runtime cost.
- * 
- * These constants are also available as type-safe, 
- * already-rounded, precision-templatized values with static memory addresses
- * as part of our scalar system (see NTraits<T>). You should use the
- * templatized versions when possible. The templatized versions also contain
- * more elaborate constants such as NaN, Infinity, and "epsilon" (machine precision)
- * which can only be generated for specific types.
- */
+/** @defgroup MathConstants          Macros for Mathematical Constants
+    @ingroup  MacroConstants
 
-/*@{    Mathematical Constants */
+These are some common unitless numerical constants evaluated to 64 digits and
+written here in maximal (long double) precision. (These values were generated 
+using the symbolic calculator Maple which is part of Matlab's Symbolic 
+Toolbox.) These can be cast to lower precisions when needed, and can be used
+in compile-time constant expressions like 2*SimTK_PI or 1/SimTK_SQRT2 for which
+the compiler will properly calculate a long double result with no runtime cost.
+
+These constants are also available as type-safe, already-rounded, 
+precision-templatized values with static memory addresses as part of our scalar
+system (see NTraits<T>). You should use the templatized versions when possible.
+The templatized versions also contain more elaborate constants such as NaN, 
+Infinity, and "epsilon" (machine precision) which can only be generated for 
+specific types. **/
+
+/**@{**/
 
 /** The ratio pi of a circle's circumference to its diameter in Euclidean geometry.
  * @par uncertainty
@@ -171,38 +202,39 @@
  */
 #define SimTK_CBRT3  1.442249570307408382321638310780109588391869253499350577546416195L
 
-/*@}    end of Mathematical Constants */
+/**@}**/    /*end of Mathematical Constants*/
 
     /**********************/
     /* PHYSICAL CONSTANTS */
     /**********************/
 
-/** @name Physical Constants
- *
- * @par Provenance
- * These constants are from the CODATA 2002 set from the NIST Physics Laboratory web site
- * http://physics.nist.gov/constants. (NIST SP 961 Dec,2005)
- * Ref: P.J. Mohr and B.N. Taylor, Rev. Mod. Phys. 77(1) (2005).
- * 
- * @par Uncertainty
- * Uncertainties are given in the CODATA set as the one-std-deviation uncertainty in the
- * last 2 digits of the given value. That means that there is about a 68% chance that
- * the last two digits are as shown +/- the uncertainty.
- *
- * How to combine uncertainties (extracted from
- * http://physics.nist.gov/cuu/Uncertainty/combination.html):
- * Assume measured quantities are x1, y1 with u1=uncertainty(x1), u2=uncertainty(x2).
- * We want to combine them into a new quantity y and calculate u=uncertainty(y).
- * <pre>
- * Addition rule: y    = a1*x1 + a2*x2 for factors a1,a2.
- *  then          u^2  = a1*u1^2 + a2*u2^2
- * Multiplication rule y = a*x1^e1*x2^e2 for factor a and exponents e1,e2.
- * Let ur1=u1/|x1|, ur2=u2/|x2| be the relative uncertainties, ur is u/|y|.
- *  then          ur^2 = e1^2*ur1^2 + e2^2*ur2^2, u = ur*|y|
- * </pre>
- */
+/** @defgroup PhysConstants      Macros for Physical Constants
+    @ingroup  MacroConstants
 
-/*@{    Physical Constants */
+These constants are from the CODATA 2002 set from the NIST Physics Laboratory 
+web site http://physics.nist.gov/constants (NIST SP 961 Dec 2005).
+Ref: P.J. Mohr and B.N. Taylor, Rev. Mod. Phys. 77(1) (2005).
+
+@par Uncertainty
+Uncertainties are given in the CODATA set as the one-std-deviation uncertainty 
+in the last 2 digits of the given value. That means that there is about a 68% 
+chance that the last two digits are as shown +/- the uncertainty.
+
+How to combine uncertainties (extracted from
+http://physics.nist.gov/cuu/Uncertainty/combination.html):
+Assume measured quantities are x1, y1 with u1=uncertainty(x1), 
+u2=uncertainty(x2). We want to combine them into a new quantity y and calculate
+u=uncertainty(y).
+<pre>
+    Addition rule: y    = a1*x1 + a2*x2 for factors a1,a2.
+     then          u^2  = a1*u1^2 + a2*u2^2
+    Multiplication rule y = a*x1^e1*x2^e2 for factor a and exponents e1,e2.
+    Let ur1=u1/|x1|, ur2=u2/|x2| be the relative uncertainties, ur is u/|y|.
+     then          ur^2 = e1^2*ur1^2 + e2^2*ur2^2, u = ur*|y|
+</pre>
+**/
+
+/**@{**/
 
 /** 
  * Avogadro's number (NA) is defined as the number of atoms in 12g of pure Carbon-12 in
@@ -435,22 +467,22 @@
  */
 #define SimTK_BOLTZMANN_CONSTANT_KCAL_ANGSTROM SimTK_MOLAR_GAS_CONSTANT_KCAL_ANGSTROM
 
-/*@}    end of Physical Constants */
+/**@}**/   /*end of Physical Constants*/
 
     /***************************/
     /* UNIT CONVERSION FACTORS */
     /***************************/
 
-/** @name Unit Conversion Factors
- *
- * In each case here, given a value in the units mentioned first in the name,
- * you should multiply by the given constant to produce the equivalent
- * quantity measured in the units that appear second in the name. You can 
- * perform the reverse conversion by dividing by the constant, or by using
- * another conversion constant with the names reversed if one is supplied here.
- */
+/** @defgroup UnitConversionFactors      Macros for Unit Conversion Factors
+    @ingroup  MacroConstants
 
-/*@{    Unit Conversion Factors*/
+In each case here, given a value in the units mentioned first in the name, you
+should multiply by the given constant to produce the equivalent quantity 
+measured in the units that appear second in the name. You can perform the 
+reverse conversion by dividing by the constant, or by using another conversion
+constant with the names reversed if one is supplied here.**/
+
+/**@{**/
 
 /** 
  * Convert radians to degrees.
@@ -526,6 +558,6 @@
  */
 #define SimTK_EV_TO_JOULE        SimTK_CHARGE_OF_PROTON_IN_SI
 
-/*@}    end of Unit Conversion Factors */
+/**@}**/    /*end of Unit Conversion Factors*/
     
 #endif /* SimTK_SimTKCOMMON_CONSTANTS_H_ */
