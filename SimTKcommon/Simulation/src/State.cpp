@@ -291,8 +291,7 @@ public:
     const AbstractValue& getValue() const {assert(value); return *value;}
     Real                 getTimeLastUpdated() const {assert(value); return timeLastUpdated;}
     AbstractValue&       updValue(Real updTime)
-    {   assert(value); assert(updTime >= 0); 
-        timeLastUpdated=updTime; return *value; }
+    {   assert(value); timeLastUpdated=updTime; return *value; }
 
     const Stage&    getInvalidatedStage() const {return invalidatedStage;}
     CacheEntryIndex getAutoUpdateEntry()  const {return autoUpdateEntry;}
@@ -312,8 +311,7 @@ private:
     {    return (allocationStage==Stage::Topology 
                  || allocationStage==Stage::Model)
              && (invalidatedStage > allocationStage)
-             && (value != 0)
-             && (timeLastUpdated >= 0 || isNaN(timeLastUpdated)); }
+             && (value != 0); }
 };
 
 //------------------------------------------------------------------------------
