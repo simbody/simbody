@@ -235,8 +235,12 @@ void testXmlFromScratch() {
         Xml::Comment("This should be at the top of the file, except declaration."));
     cout << scratch;
 
+    Xml scratch2;
+    scratch2 = scratch; // deep copy
+
     scratch.eraseTopLevelNode(scratch.node_begin());
-    cout << "First node gone?\n" << scratch;
+    cout << "First node gone (scratch)?\n" << scratch;
+    cout << "First node still there (scratch2)?\n" << scratch2;
 
     Xml::Element e2("anotherElt", Vec3(.1,.2,.3));
     cout << e2;
@@ -250,11 +254,23 @@ void testXmlFromScratch() {
     scratch.setIndentString("..");
     cout << scratch;
 
+    Xml::Element ecopy = e.clone();
+    ecopy.setElementTag("elementTagCopy");
+    cout << "COPY of e: " << ecopy;
+
     //scratch.writeToFile("scratch.xml");
 
     e.eraseNode(e.element_begin("anotherElt"));
-    cout << scratch;
+    cout << "in-place removal of anotherElt from e: " << scratch;
+    cout << "COPY of e: " << ecopy;
 
+    root.insertNodeAfter(root.element_begin("elementTag"), ecopy);
+    cout << "After copy insert, scratch=" << scratch;
+
+    Xml::Node extract = root.removeNode(root.element_begin("elementTagCopy"));
+    cout << "Extracted copy: " << extract << endl;
+    cout << "Now scratch=" << scratch << endl;
+    cout << "Duplicate scratch=" << Xml::Document(scratch) << endl;
 
     neverMind.clearOrphan();
 }

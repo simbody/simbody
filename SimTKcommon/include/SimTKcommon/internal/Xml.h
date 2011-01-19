@@ -45,7 +45,10 @@ namespace SimTK {
 class TiXmlNode; 
 class TiXmlElement; 
 class TiXmlAttribute;
-
+class TiXmlText;
+class TiXmlComment;
+class TiXmlUnknown;
+    
 /** This class provides a minimalist capability for reading and writing XML 
 documents, as files or strings. This is based with gratitude on the excellent 
 open source XML parser TinyXML (http://www.grinninglizard.com/tinyxml/). Note 
@@ -342,6 +345,15 @@ An exception will be thrown if the file doesn't exist or can't be
 parsed. @see readFromFile(), readFromString() **/
 explicit Xml(const String& pathname);
 
+/** Copy constructor makes a deep copy of the entire source document; nothing
+is shared between the source and the copy. **/
+Xml(const Xml::Document& source);
+
+/** Copy assignment frees all heap space associated with the current
+Xml::Document and then makes a deep copy of the source document; nothing is
+shared between the source and the copy. **/
+Xml::Document& operator=(const Xml::Document& souce);
+
 /** The destructor cleans up all heap space associated with this document. **/
 ~Xml();
 
@@ -435,6 +447,13 @@ Unknown node which will be removed from the Xml::Document and deleted. The
 iterator is invalid after this call; be sure not to use it again. Also, there 
 must not be any handles referencing the now-deleted node. **/
 void eraseTopLevelNode(const node_iterator& deleteThis);
+/** Remove the indicated top-level node from the document, returning it as an
+orphan rather than erasing it. The node must not be the root element,
+and must not be node_end(). That is, it must be a top-level Comment or
+Unknown node which will be removed from the Xml::Document and returned as
+an orphan Node. The iterator is invalid after this call; be sure not to use it 
+again. **/
+Node removeTopLevelNode(const node_iterator& removeThis);
 /*@}*/
 
 
@@ -751,6 +770,10 @@ provide write access to the underlying node even if the source handle
 was const. @see clear() **/
 Node& operator=(const Node& src) 
 {   if (&src!=this) {clear(); tiNode=src.tiNode;} return *this; }
+/** The clone() method makes a deep copy of this Node and its children and
+returns a new orphan Node with the same contents; ordinary assignment and
+copy construction is shallow. **/
+Node clone() const;
 /** The Node handle destructor does not recover heap space so if you create
 orphan nodes and then don't put them in a document there will be a memory 
 leak unless you explicitly destruct them first with clearOrphan(). **/
@@ -1058,6 +1081,11 @@ template <class T>
 Element(const String& tagWord, const T& value)
 {   new(this) Element(tagWord, String(value)); }
 
+/** The clone() method makes a deep copy of this Element and its children and
+returns a new orphan Element with the same contents; ordinary assignment and
+copy construction are shallow. **/
+Element clone() const;
+
 /** Get the element tag word. This may represent the name or type of the 
 element depending on context. **/
 const String& getElementTag() const;
@@ -1082,6 +1110,12 @@ and deleted. The iterator is invalid after this call; be sure not to use it
 again. Also, there must not be any handles referencing the now-deleted 
 node. **/
 void eraseNode(const node_iterator& deleteThis);
+/** Remove the indicated node from this element without erasing it, returning
+it as an orphan Node. The node must be a child of this element, and must not be 
+node_end(). The node will be removed from this element and returned as an 
+orphan. The iterator is invalid after this call; be sure not to use it 
+again. **/
+Node removeNode(const node_iterator& removeThis);
 /*@}*/
 
 
@@ -1210,9 +1244,11 @@ bool hasAttribute(const String& name) const;
 this is a new attribute name otherwise modifying an existing one. **/
 void setAttributeValue(const String& name, const String& value);
 
-/** Remove an attribute of this element if it exists, otherwise do nothing.
-If you need to know if the attribute exists, use hasAttribute(). **/
-void removeAttribute(const String& name);
+/** Erase an attribute of this element if it exists, otherwise do nothing.
+If you need to know if the attribute exists, use hasAttribute(). There is
+no removeAttribute() that orphans an existing Attribute, but you can easily 
+recreate one with the same name and value. **/
+void eraseAttribute(const String& name);
 
 /** Get the value of an attribute as a string and throw an error if that 
 attribute is not present. **/
@@ -1427,6 +1463,11 @@ Text() : Node() {}
 any XML document. **/
 explicit Text(const String& text);
 
+/** The clone() method makes a deep copy of this Text node and returns a new 
+orphan Text node with the same contents; ordinary assignment and copy 
+construction are shallow. **/
+Text clone() const;
+
 /** Obtain a const reference to the String holding the value of this Text
 **/
 const String& getText() const;
@@ -1451,6 +1492,9 @@ static Text& getAs(Node& node);
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node
+
+explicit Text(TiXmlText* tiText) 
+:   Node(reinterpret_cast<TiXmlNode*>(tiText)) {}
 };
 
 
@@ -1471,6 +1515,10 @@ text; those will be added automatically if the document is serialized to a
 file or string. **/
 explicit Comment(const String& text);
 
+/** The clone() method makes a deep copy of this Comment node and returns a new 
+orphan Comment node with the same contents; ordinary assignment and copy 
+construction are shallow. **/
+Comment clone() const;
 
 /**@name              Conversion to Comment from Node
 If you have a handle to a Node, such as would be returned by a node_iterator,
@@ -1489,6 +1537,9 @@ static Comment& getAs(Node& node);
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node
+
+explicit Comment(TiXmlComment* tiComment) 
+:   Node(reinterpret_cast<TiXmlNode*>(tiComment)) {}
 };
 
 
@@ -1517,6 +1568,11 @@ Unknown(Element& element, const String& contents)
 {   new(this) Unknown(contents); 
     element.insertNodeBefore(element.node_end(), *this); }
 
+/** The clone() method makes a deep copy of this Unknown node and returns a new 
+orphan Unknown node with the same contents; ordinary assignment and copy 
+construction are shallow. **/
+Unknown clone() const;
+
 /** Obtain the contents of this Unknown node. This is everything that would
 be between the "<" and ">" in the XML document. **/
 const String& getContents() const;
@@ -1541,6 +1597,9 @@ static Unknown& getAs(Node& node);
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node
+
+explicit Unknown(TiXmlUnknown* tiUnknown) 
+:   Node(reinterpret_cast<TiXmlNode*>(tiUnknown)) {}
 };
 
 } // namespace SimTK

@@ -49,15 +49,25 @@ public:
     }
     ~Impl() {}
 
-    void setIndentString(const String& indent)
-    {   m_tixml.SetIndentString(indent); }
-    const String& getIndentString() const
-    {   return m_tixml.GetIndentString(); }
-    
+    // Note that the copy must be canonicalized before use -- that's so we
+    // get our root element pointing correctly into the copy rather than
+    // at the source's root element.
+    Impl* clone() const {
+        Impl* newImpl = new Impl();
+        newImpl->m_tixml = m_tixml;
+        // root element isn't set yet
+        return newImpl;
+    }
+
     void clear() {
         m_tixml.Clear();
         m_rootElement.clear();
     }
+
+    void setIndentString(const String& indent)
+    {   m_tixml.SetIndentString(indent); }
+    const String& getIndentString() const
+    {   return m_tixml.GetIndentString(); }
 
     void readFromFile(const String& pathname) {
         clear();
@@ -216,6 +226,10 @@ public:
     // This references the root element withing the TinyXml document. It
     // is filled in when the document is initially canonicalized.
     Xml::Element    m_rootElement;
+
+private:
+    Impl(const Impl&); // disable; use clone()
+    Impl& operator=(const Impl&); // "
 };
 
 
@@ -267,6 +281,24 @@ Xml::Xml() : impl(0) {
 Xml::Xml(const String& pathname) : impl(0) {
     impl = new Impl(pathname);
     impl->canonicalizeDocument();
+}
+
+Xml::Xml(const Xml& source) : impl(0) {
+    if (source.impl) {
+        impl = source.impl->clone();
+        impl->canonicalizeDocument();
+    }
+}
+
+Xml& Xml::operator=(const Xml& source) {
+    if (&source != this) {
+        delete impl; impl = 0;
+        if (source.impl) {
+            impl = source.impl->clone();
+            impl->canonicalizeDocument();
+        }
+    }
+    return *this;
 }
 
 Xml::~Xml() {
@@ -373,6 +405,23 @@ void Xml::eraseTopLevelNode(const Xml::node_iterator& deleteThis) {
     updImpl().m_tixml.RemoveChild(deleteThis->updTiNodePtr());
 }
 
+Xml::Node Xml::removeTopLevelNode(const Xml::node_iterator& removeThis) {
+    const char* method = "Xml::removeTopLevelNode()";
+
+    // Check that the supplied iterator points to something.
+    SimTK_ERRCHK_ALWAYS(removeThis != node_end(), method,
+        "The node_iterator is at node_end() so doesn't refer to a Node.");
+    // There is an iterator, make sure it's a top-level one.
+    SimTK_ERRCHK_ALWAYS(removeThis->isTopLevelNode(), method,
+        "The node_iterator did not refer to a top-level Node.");
+    SimTK_ERRCHK1_ALWAYS(Comment::isA(*removeThis) || Unknown::isA(*removeThis),
+        method, "The Node had NodeType %s, but only Comment and Unknown nodes"
+        " can be removed at the topmost document level.",
+        removeThis->getNodeTypeAsString().c_str());
+
+    TiXmlNode* p = updImpl().m_tixml.DisconnectChild(removeThis->updTiNodePtr());
+    return Node(p);
+}
 
 
 String Xml::getXmlVersion() const 
@@ -497,6 +546,12 @@ operator--(int) {
 //------------------------------------------------------------------------------
 //                                 XML NODE
 //------------------------------------------------------------------------------                  
+Xml::Node Xml::Node::clone() const {
+    TiXmlNode* newNode = 0;
+    if (tiNode) newNode = tiNode->Clone();
+    return Node(newNode);
+}
+
 void Xml::Node::clear() {   
     // TODO: Note that we do not clean up heap space here if this node is
     // still an orphan. To do that requires that we reference count the tiNode
@@ -554,6 +609,10 @@ bool Xml::Node::isOrphan() const
 
 void Xml::Node::
 writeToString(String& out, bool compact) const {
+    if (!isValid()) {
+        out = "<!-- EMPTY NODE -->";
+        return;
+    }
     TiXmlPrinter printer(out);
     if (compact) printer.SetStreamPrinting();
     getTiNode().Accept( &printer );
@@ -632,6 +691,12 @@ Xml::Element::Element(const String& tag, const String& value)
     if (value.empty()) return;
     // We need to add a Text node.
     updTiElement().LinkEndChild(new TiXmlText(value));
+}
+
+Xml::Element Xml::Element::clone() const {
+    TiXmlElement* newElt = 0;
+    if (getTiElementPtr()) newElt = getTiElementPtr()->Clone()->ToElement();
+    return Element(newElt);
 }
 
 const String& Xml::Element::getElementTag() const 
@@ -727,9 +792,9 @@ void Xml::Element::setAttributeValue(const String& name, const String& value) {
 }
 
 
-void Xml::Element::removeAttribute(const String& name) {
-    SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Element::removeAttribute()",
-        "Can't remove an attribute from an empty Element handle.");
+void Xml::Element::eraseAttribute(const String& name) {
+    SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Element::eraseAttribute()",
+        "Can't erase an attribute from an empty Element handle.");
     updTiElement().RemoveAttribute(name);
 }
 
@@ -770,7 +835,7 @@ void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node node) 
         "child node of this Element <%s>.", tag);
 
     TiXmlNode* p = beforeThis->updTiNodePtr();
-    p->LinkBeforeChild(p, node.updTiNodePtr());
+    updTiNode().LinkBeforeChild(p, node.updTiNodePtr());
 }
 
 void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node node) {
@@ -794,7 +859,7 @@ void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node node) {
         "child node of this Element <%s>.", tag);
 
     TiXmlNode* p = afterThis->updTiNodePtr();
-    p->LinkAfterChild(p, node.updTiNodePtr());
+    updTiNode().LinkAfterChild(p, node.updTiNodePtr());
 }
 
 void Xml::Element::eraseNode(const Xml::node_iterator& deleteThis) {
@@ -811,6 +876,20 @@ void Xml::Element::eraseNode(const Xml::node_iterator& deleteThis) {
     updTiElement().RemoveChild(deleteThis->updTiNodePtr());
 }
 
+Xml::Node Xml::Element::removeNode(const Xml::node_iterator& removeThis) {
+    const char* method = "Xml::Element::removeNode()";
+
+    // Check that the supplied iterator points to something.
+    SimTK_ERRCHK_ALWAYS(removeThis != node_end(), method,
+        "The node_iterator is at node_end() so doesn't refer to a Node.");
+    // There is an iterator, make sure it points to a child of this element.
+    SimTK_ERRCHK_ALWAYS(removeThis->hasParentElement()
+                        && removeThis->getParentElement()==*this, method,
+        "The node_iterator did not refer to a child of this Element.");
+
+    TiXmlNode* p = updTiElement().DisconnectChild(removeThis->updTiNodePtr());
+    return Xml::Node(p);
+}
 
     // Element node_begin()
 Xml::node_iterator Xml::Element::node_begin(NodeType allowed) {
@@ -900,6 +979,13 @@ operator--(int) {
 //------------------------------------------------------------------------------
 Xml::Text::Text(const String& text) : Node(new TiXmlText(text)) {}
 
+
+Xml::Text Xml::Text::clone() const {
+    TiXmlText* newText = 0;
+    if (getTiNodePtr()) newText = getTiNodePtr()->Clone()->ToText();
+    return Xml::Text(newText);
+}
+
 const String& Xml::Text::getText() const
 {   return getTiNode().ValueStr(); }
 String& Xml::Text::updText()
@@ -928,6 +1014,12 @@ String& Xml::Text::updText()
 //------------------------------------------------------------------------------
 Xml::Comment::Comment(const String& text) : Node(new TiXmlComment(text)) {}
 
+Xml::Comment Xml::Comment::clone() const {
+    TiXmlComment* newComment = 0;
+    if (getTiNodePtr()) newComment = getTiNodePtr()->Clone()->ToComment();
+    return Xml::Comment(newComment);
+}
+
 /*static*/ bool Xml::Comment::isA(const Xml::Node& node) 
 {   if (!node.isValid()) return false;
     return node.getTiNode().ToComment() != 0; }
@@ -951,6 +1043,12 @@ Xml::Comment::Comment(const String& text) : Node(new TiXmlComment(text)) {}
 //------------------------------------------------------------------------------
 Xml::Unknown::Unknown(const String& contents) : Node(new TiXmlUnknown()) 
 {   updTiNode().SetValue(contents); }
+
+Xml::Unknown Xml::Unknown::clone() const {
+    TiXmlUnknown* newUnknown = 0;
+    if (getTiNodePtr()) newUnknown = getTiNodePtr()->Clone()->ToUnknown();
+    return Xml::Unknown(newUnknown);
+}
 
 /*static*/ bool Xml::Unknown::isA(const Xml::Node& node) 
 {   if (!node.isValid()) return false;
