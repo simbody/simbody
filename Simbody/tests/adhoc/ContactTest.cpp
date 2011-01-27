@@ -97,14 +97,6 @@ int main() {
     char out[100];
     const char* keylist[] = { "version", "library", "type", "debug", "authors", "copyright", "svn_revision", 0 };
 
-    SimTK_version_SimTKlapack(&major,&minor,&build);
-    std::printf("==> SimTKlapack library version: %d.%d.%d\n", major, minor, build);
-    std::printf("    SimTK_about_SimTKlapack():\n");
-    for (const char** p = keylist; *p; ++p) {
-        SimTK_about_SimTKlapack(*p, 100, out);
-        std::printf("      about(%s)='%s'\n", *p, out);
-    }
-
     SimTK_version_SimTKcommon(&major,&minor,&build);
     std::printf("==> SimTKcommon library version: %d.%d.%d\n", major, minor, build);
     std::printf("    SimTK_about_SimTKcommon():\n");
