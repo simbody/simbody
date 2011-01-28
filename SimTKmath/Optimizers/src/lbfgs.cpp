@@ -313,7 +313,12 @@ void SimTK::LBFGSOptimizer::lbfgs_
            break;
         }
     }
-    if( converged ) return;   // check if starting at minimum 
+    if( converged ) {
+        delete [] diag;
+        delete [] gradient;
+        delete [] w;
+        return;   // check if starting at minimum
+    }
 
     // This is the unscaled 2-norm of the gradient.
     gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
