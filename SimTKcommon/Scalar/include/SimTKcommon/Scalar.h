@@ -54,6 +54,7 @@
 #include <cmath>
 #include <climits>
 #include <cassert>
+#include <utility>
 
 namespace SimTK {
 
@@ -1152,6 +1153,229 @@ inline double stepUp(int x) {return stepUp((double)x);}
 Treats int argument as a double (avoids ambiguity). **/
 inline double stepDown(int x) {return stepDown((double)x);}
 
+
+/*@}*/
+
+/** @defgroup EllipticIntegralsGroup   Elliptic integrals
+    @ingroup ScalarFunctions
+
+Elliptic integrals arise occasionally in contexts relevant to us, particularly
+in geometric calculations involving ellipses or ellipsoids. Here we provide
+functions for calculating the complete elliptic integrals of the first and
+second kinds, which arise in Hertz contact theory for point contacts where
+the contact area is elliptical. We use the following definitions for these
+two integrals:
+<pre>
+    K(m) = integ[0,Pi/2] {1 / sqrt(1 - m sin^2(t)) dt}     1st kind
+    E(m) = integ[0,Pi/2] {    sqrt(1 - m sin^2(t)) dt}     2nd kind
+    0 <= m <= 1
+</pre>
+Elliptic integrals are defined only for arguments in range [0,1] inclusive.
+
+We provide a function that calculates K(m) and E(m) to machine precision
+(float or double) with a fast-converging iterative method adapted from 
+ref. 1, which was in turn adapted from ref. 2. A much faster approximate 
+version is also available, using a method reported in ref. 3, but also derived
+from ref. 2. The approximate version provides a smooth function that gives at 
+least 5 digits of accuracy (in either float or double precision) across the 
+full range at about 1/4 the cost of the machine precision version. For many
+applications, including engineering- or scientific-quality contact, 5 
+digits is more than adequate.
+
+@warning In the literature there are two different definitions for
+elliptic integrals. The other definition (call them K'(k) and E'(k)) uses 
+the argument k=sqrt(m) so that K'(k)=K(m^2), E'(k)=E(m^2). Our definition
+is used by Matlab's ellipke() function and much engineering literature while
+the K',E' definitions seem to be preferred by mathematicians.
+
+For an ellipse with semimajor axis \a a and semiminor axis \a b (so a >= b),
+the eccentricity e=sqrt(1-(b/a)^2). Our argument to the elliptic integrals in
+that case is m = e^2 = 1-(b/a)^2. In constrast, K.L. Johnson uses the
+mathematicians' definition in Chapter 4, pg. 95 of his book (ref. 4)
+where he writes K(e) and E(e), where e is eccentricity as defined above,
+that is e=sqrt(m), so we would call his K'(e)=K(e^2) and E'=E(e^2).
+
+@author Michael Sherman
+
+<h3>References</h3>
+(1) Dyson, Evans, Snidle. "A simple accurate method for calculation of stresses
+and deformations in elliptical Hertzian contacts", J. Mech. Eng. Sci. Proc.
+IMechE part C 206:139-141, 1992.
+
+(2) Abramovitz, Stegun, eds. Handbook of Mathematical Functions with
+Formulas, Graphs, and Mathematical Tables, Dover, NY, 1972.
+
+(3) Antoine, Visa, Sauvey, Abba. "Approximate analytical model for 
+Hertzian Elliptical Contact Problems", ASME J. Tribology 128:660, 2006.
+
+(4) Johnson, K.L. %Contact Mechanics. Cambridge University Press 1987 
+(corrected edition). **/
+/*@{*/
+
+/** @cond **/ // Doxygen should skip this helper template function
+template <class T> // float or double 
+static inline std::pair<T,T> approxCompleteEllipticIntegralsKE_T(T m) {
+    static const T a[] =
+    {   (T)1.3862944, (T)0.1119723, (T)0.0725296,
+        (T)0.5,       (T)0.1213478, (T)0.0288729 };
+    static const T b[] =
+    {   (T)1, (T)0.4630151, (T)0.1077812,
+        (T)0, (T)0.2452727, (T)0.0412496 };
+
+    const T SignificantReal = NTraits<T>::getSignificant();
+    const T PiOver2         = NTraits<T>::getPi()/2;
+    const T Infinity        = NTraits<T>::getInfinity();
+
+    SimTK_ERRCHK1_ALWAYS(-SignificantReal < m && m < 1+SignificantReal,
+        "approxCompleteEllipticIntegralsKE()", 
+        "Argument m (%g) is outside the legal range [0,1].", (double)m);
+    if (m >= 1) return std::make_pair(Infinity, (T)1);
+    if (m <= 0) return std::make_pair(PiOver2, PiOver2);
+
+    const T m1   = 1-m;
+    const T m2   = m1*m1;         //   2 flops
+    const T lnm2 = std::log(m1);  // ~50 flops
+
+    // The rest is 18 flops.
+    const T K = (a[0] + a[1]*m1 + a[2]*m2) - lnm2*(a[3] + a[4]*m1 + a[5]*m2);
+    const T E = (b[0] + b[1]*m1 + b[2]*m2) - lnm2*(       b[4]*m1 + b[5]*m2);
+
+    return std::make_pair(K,E);
+}
+/** @endcond **/
+
+/** Given 0<=m<=1, return complete elliptic integrals of the first and 
+second kinds, K(m) and E(m), approximated to about 5 digits (whether
+float or double precision).\ See 
+@ref EllipticIntegralsGroup "Elliptic integrals" for a discussion.
+
+Note that a full-precision computation of these integrals is also 
+available; see completeEllipticIntegralsKE().
+
+@param[in] m  The argument to the elliptic integrals. Must be in range [0,1]
+              although we allow for a very small amount of numerical error
+              (see @ref SimTK::SignificantReal "SignificantReal") that might
+              put m outside that range.
+@return A std::pair p from which K(m)=p.first and E(m)=p.second.
+
+Here are the approximating formulas: <pre>
+     K(m) = (a0 + a1 m^2 + a2 m^4) - 2 ln(m)*(a3 + a4 m^2 + a5 m^4)
+     E(m) = (b0 + b1 m^2 + b2 m^4) - 2 ln(m)*(     b4 m^2 + b5 m^4)
+</pre>
+where the values for the constants ai,bi can be found in ref. 1 or by
+looking at the code for this method (in the header file). (The method
+originated in ref. 2.) The formulas are accurate to 40 ppm over a very wide 
+range, according to the authors. I checked our implementation against
+Matlab's ellipke() function and the results are very good, providing at 
+least 5 correct digits across the full [0,1] range of m.
+
+The cost is about 70 flops.
+
+@see completeEllipticIntegralsKE()
+@see @ref EllipticIntegralsGroup "Elliptic integrals"
+
+<h3>References</h3>
+(1) Antoine, Visa, Sauvey, Abba. "Approximate analytical model for 
+Hertzian Elliptical Contact Problems", ASME J. Tribology 128:660, 2006.
+
+(2) Abramovitz, Stegun, eds. Handbook of Mathematical Functions with
+Formulas, Graphs, and Mathematical Tables, Dover, NY, 1972.
+**/
+inline std::pair<double,double> 
+approxCompleteEllipticIntegralsKE(double m)
+{   return approxCompleteEllipticIntegralsKE_T<double>(m); }
+/** This is the single precision (float) version of the approximate calculation
+of elliptic integrals, still yielding about 5 digits of accuracy even 
+though all calculation are done in float precision.
+@see approxCompleteEllipticIntegralsKE(double) 
+@see @ref EllipticIntegralsGroup "Elliptic integrals" **/
+inline std::pair<float,float> 
+approxCompleteEllipticIntegralsKE(float m)
+{   return approxCompleteEllipticIntegralsKE_T<float>(m); }
+/** This integer overload is present to prevent ambiguity; it converts its
+argument to double precision and then calls 
+approxCompleteEllipticIntegralsKE(double). Note that the only legal values
+here are 0 and 1. 
+@see approxCompleteEllipticIntegralsKE(double) 
+@see @ref EllipticIntegralsGroup "Elliptic integrals" **/
+inline std::pair<double,double> 
+approxCompleteEllipticIntegralsKE(int m)
+{   return approxCompleteEllipticIntegralsKE_T<double>((double)m); }
+
+
+/** @cond **/ // Doxygen should skip this template helper function
+template <class T> // float or double
+static inline std::pair<T,T> completeEllipticIntegralsKE_T(T m) {
+    const T SignificantReal = NTraits<T>::getSignificant();
+    const T TenEps          = 10*NTraits<T>::getEps();
+    const T Infinity        = NTraits<T>::getInfinity();
+    const T PiOver2         = NTraits<T>::getPi() / 2;
+
+    // Allow a little slop in the argument since it may have resulted
+    // from a numerical operation that gave 0 or 1 plus or minus
+    // roundoff noise.
+    SimTK_ERRCHK1_ALWAYS(-SignificantReal < m && m < 1+SignificantReal,
+        "completeEllipticIntegralsKE()", 
+        "Argument m (%g) is outside the legal range [0,1].", (double)m);
+    if (m >= 1) return std::make_pair(Infinity, (T)1);
+    if (m <= 0) return std::make_pair(PiOver2, PiOver2);
+
+    const T k = std::sqrt(1-m); // ~25 flops
+    T v1=1, w1=k, c1=1, d1=k*k; // initialize iteration
+    do { // ~50 flops per iteration
+        T v2 = (v1+w1)/2;
+        T w2 = std::sqrt(v1*w1);
+        T c2 = (c1+d1)/2;
+        T d2 = (w1*c1+v1*d1)/(v1+w1);
+        v1=v2; w1=w2; c1=c2; d1=d2;
+    } while(std::abs(v1-w1) >= TenEps);
+
+    const T K = PiOver2/v1; // ~20 flops
+    const T E = K*c1;
+
+    return std::make_pair(K,E);
+}
+/** @endcond **/
+
+/** Given 0<=m<=1, return complete elliptic integrals K(m), E(m), calculated
+to (roughly) machine precision (float or double).\ See 
+@ref EllipticIntegralsGroup "Elliptic integrals" for a discussion.
+
+Note that we also provide a faster approximate method for calculating these
+functions (see approxCompleteEllipticIntegralsKE()). The approximate method
+is good enough for many scientific and engineering applications.
+
+@param[in] m  The argument to the elliptic integrals. Must be in range [0,1]
+              although we allow for a very small amount of numerical error
+              (see @ref SimTK::SignificantReal "SignificantReal") that 
+              might put m outside that range.
+@return A std::pair p from which K(m)=p.first and E(m)=p.second.
+
+Cost here is about 50 + 50*n flops, where n is the number of iterations
+required. The number of iterations n you can expect to get a 
+double-precision result is 4 for a:b < 2, 5 for a:b < 20, 6 for a:b < 1000,
+7 after that; for single-precision it will take one fewer iterations.
+In flops that's 250, 300, 350, 400 -- 300 will be typical for double,
+250 for float. 
+@see approxCompleteEllipticIntegralsKE() 
+@see @ref EllipticIntegralsGroup "Elliptic integrals" **/
+inline std::pair<double,double> completeEllipticIntegralsKE(double m)
+{   return completeEllipticIntegralsKE_T<double>(m); }
+/** This is the single precision (float) version of the machine-precision
+calculation of elliptic integrals, providing accuracy to float precision
+(about 7 digits).
+@see completeEllipticIntegralsKE(double) 
+@see @ref EllipticIntegralsGroup "Elliptic integrals" **/
+inline std::pair<float,float> completeEllipticIntegralsKE(float m)
+{   return completeEllipticIntegralsKE_T<float>(m); }
+/** This integer overload is present to prevent ambiguity; it converts its
+argument to double precision and then calls 
+completeEllipticIntegralsKE(double). Note that the only legal values
+here are 0 and 1. 
+@see completeEllipticIntegralsKE(double) 
+@see @ref EllipticIntegralsGroup "Elliptic integrals" **/
+inline std::pair<double,double> completeEllipticIntegralsKE(int m)
+{   return completeEllipticIntegralsKE_T<double>((double)m); }
 
 /*@}*/
 
