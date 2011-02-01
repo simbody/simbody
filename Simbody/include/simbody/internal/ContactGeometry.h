@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -132,8 +132,8 @@ protected:
 };
 
 /**
- * This ContactGeometry subclass represents an object that occupies the entire half-space x>0.
- * This is useful for representing walls and floors.
+ * This ContactGeometry subclass represents an object that occupies the entire 
+ * half-space x>0. This is useful for representing walls and floors.
  */
 class SimTK_SIMBODY_EXPORT ContactGeometry::HalfSpace : public ContactGeometry {
 public:
@@ -179,15 +179,92 @@ public:
     SphereImpl& updImpl();
 };
 
-/**
- * This ContactGeometry subclass represents an ellipsoid centered at the origin, with it principal axes
- * pointing along the x, y, and z axes.
- */
+/** This ContactGeometry subclass represents an ellipsoid centered at the 
+origin, with its principal axes pointing along the x, y, and z axes and
+half dimensions a,b, and c (all > 0) along those axes, respectively. The
+implicit equation f(x,y,z)=0 of the ellipsoid surface is <pre>
+    f(x,y,z) = Ax^2+By^2+Cz^2 - 1
+    where A=1/a^2, B=1/b^2, C=1/c^2     
+</pre>
+A,B, and C are the squares of the principal curvatures ka=1/a, kb=1/b, and
+kc=1/c.
+
+The interior of the ellipsoid consists of all points such that f(x,y,z)<0 and
+points exterior satisfy f(x,y,z)>0. The region around any point (x,y,z) on an 
+ellipsoid surface is locally an elliptic paraboloid with equation <pre>
+    -2 z' = kmax x'^2 + kmin y'^2   
+</pre>
+where z' is measured along the the outward unit normal n at (x,y,z), x' is
+measured along the the unit direction u of maximum curvature, and y' is
+measured along the unit direction v of minimum curvature. kmax,kmin are the 
+curvatures with kmax >= kmin > 0. The signs of the mutually perpendicular
+vectors u and v are chosen so that (u,v,n) forms a right-handed coordinate 
+system for the paraboloid. **/
 class SimTK_SIMBODY_EXPORT ContactGeometry::Ellipsoid : public ContactGeometry {
 public:
+    /** Construct an Ellipsoid given its three principal half-axis dimensions
+    a,b,c (all positive) along the local x,y,z directions respectively. 
+    The curvatures (reciprocals of radii) are precalculated here at a cost
+    of about 50 flops. **/
     explicit Ellipsoid(const Vec3& radii);
+    /** Obtain the three half-axis dimensions a,b,c used to define this 
+    ellipsoid. **/
     const Vec3& getRadii() const;
+    /** Set the three half-axis dimensions a,b,c (all positive) used to define
+    this ellipsoid, overriding the current radii and recalculating the
+    principal curvatures at a cost of about 50 flops. **/
     void setRadii(const Vec3& radii);
+
+    /** For efficiency we precalculate the principal curvatures 
+    whenever the ellipsoid radii are set; this avoids having to repeatedly
+    perform these three expensive divisions at runtime. The curvatures are 
+    ka=1/a, kb=1/b, and kc=1/c so that the ellipsoid's implicit equation can 
+    be written Ax^2+By^2+Cz^2=1, with A=ka^2, etc. **/
+    const Vec3& getCurvatures() const;
+
+    /** Given a point \a P=(x,y,z) on the ellipsoid surface, return the unique
+    unit outward normal to the ellipsoid at that point. If \a P is not
+    on the surface, the result is the same as for the point obtained by 
+    scaling the vector \a P - O until it just touches the surface. That is, we
+    compute P'=findPointInThisDirection(P) and then return the normal at P'.
+    Cost is about 50 flops regardless of whether P was initially on the
+    surface. @see findPointInSameDirection() **/
+    UnitVec3 findUnitNormalAtPoint(const Vec3& P) const;
+
+    /** Given a unit direction \a n, find the unique point P on the ellipsoid 
+    surface at which the outward-facing normal is \a n. Cost is about 
+    50 flops. **/
+    Vec3 findPointWithThisUnitNormal(const UnitVec3& n) const;
+
+    /** Given a direction d defined by the vector Q-O for an arbitrary point
+    in space Q=(x,y,z)!=O, find the unique point P on the ellipsoid surface 
+    that is in direction d from the ellipsoid origin O. That is, P=s*d for some
+    scalar s > 0 such that f(P)=0. Cost is about 50 flops. 
+    @param[in]  Q   a point in space measured from the ellipsoid origin but 
+                    not the origin
+    @return     P, the intersection of the ray in the direction Q-O with the 
+                ellipsoid surface **/
+    Vec3 findPointInSameDirection(const Vec3& Q) const;
+
+    /** Given a point Q on the surface of the ellipsoid, find the approximating
+    paraboloid at Q in a frame P where OP=Q, Pz is the outward-facing unit
+    normal to the ellipsoid at Q, Px is the direction of maximum curvature
+    and Py is the direction of minimum curvature. k=(kmax,kmin) are the returned
+    curvatures with kmax >= kmin > 0. The equation of the resulting paraboloid 
+    in the P frame is -2z = kmax*x^2 + kmin*y^2. Cost is about 270 flops. 
+    @warning It is up to you to make sure that Q is actually on the ellipsoid
+    surface. If it is not you will quietly get a meaningless result.
+    @see findParaboloidAtPointWithNormal() **/
+    void findParaboloidAtPoint(const Vec3& Q, Transform& X_EP, Vec2& k) const;
+
+    /** If you already have both a point and the unit normal at that point,
+    this will save about 50 flops by trusting that you have provided the 
+    correct normal; be careful -- no one is going to check that you got this
+    right. The results are meaningless if the point and normal are not 
+    consistent. Cost is about 220 flops.
+    @see findParaboloidAtPoint() for details **/
+    void findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& n,
+        Transform& X_EP, Vec2& k) const;
 
     /** Return true if the supplied ContactGeometry object is an Ellipsoid. **/
     static bool isInstance(const ContactGeometry& geo)

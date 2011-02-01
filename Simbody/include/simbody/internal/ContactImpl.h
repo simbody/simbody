@@ -178,6 +178,34 @@ friend class CircularPointContact;
 
 
 //==============================================================================
+//                        ELLIPTICAL POINT CONTACT IMPL
+//==============================================================================
+/** This is the internal implementation class for EllipticalPointContact. **/
+class EllipticalPointContactImpl : public ContactImpl {
+public:
+    EllipticalPointContactImpl
+       (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
+        const Transform& X_S1S2, const Transform& X_S1C, 
+        const Vec2& k, Real depth)
+    :   ContactImpl(surf1, surf2, X_S1S2), 
+        X_S1C(X_S1C), k(k), depth(depth) {}
+
+    ContactTypeId getTypeId() const {return classTypeId();}
+    static ContactTypeId classTypeId() {
+        static const ContactTypeId tid = createNewContactTypeId();
+        return tid;
+    }
+
+private:
+friend class EllipticalPointContact;
+    Transform   X_S1C;
+    Vec2        k; // kmax, kmin
+    Real        depth;
+};
+
+
+
+//==============================================================================
 //                            TRIANGLE MESH IMPL
 //==============================================================================
 /** This is the internal implementation class for TriangleMeshContact. **/

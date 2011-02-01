@@ -175,6 +175,32 @@ bool CircularPointContact::isInstance(const Contact& contact) {
 
 
 
+//==============================================================================
+//                          ELLIPTICAL POINT CONTACT
+//==============================================================================
+EllipticalPointContact::EllipticalPointContact
+   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
+    const Transform& X_S1S2, const Transform& X_S1C,
+    const Vec2& k, Real depth)
+:   Contact(new EllipticalPointContactImpl(surf1,surf2,X_S1S2,X_S1C,
+                                           k,depth)) {}
+
+const Vec2& EllipticalPointContact::getCurvatures() const
+{   return getImpl().k; }
+const Transform& EllipticalPointContact::getContactFrame() const
+{   return getImpl().X_S1C; }
+Real EllipticalPointContact::getDepth() const
+{   return getImpl().depth; }
+
+bool EllipticalPointContact::isInstance(const Contact& contact) {
+    return (dynamic_cast<const EllipticalPointContactImpl*>
+        (&contact.getImpl()) != 0);
+}
+
+/*static*/ ContactTypeId EllipticalPointContact::classTypeId() 
+{   return EllipticalPointContactImpl::classTypeId(); }
+
+
 
 //==============================================================================
 //                      TRIANGLE MESH CONTACT & IMPL

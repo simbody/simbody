@@ -113,8 +113,8 @@ ContactSurfaceIndex) pair would be unique but not the index alone.
 
 Within a ContactTrackerSubsystem, all the ContactSurfaces are presumed to be
 capable of interacting with one another unless they share membership in a 
-"contact clique". All surfaces attached to the same body are place together
-in clique, so they will never interact. It is also common to create a clique
+"contact clique". All surfaces attached to the same body are placed together
+in a clique, so they will never interact. It is also common to create a clique
 associated with each joint and place nearby contact surfaces on adjacent 
 bodies into that clique to avoid having to build excessively precise geometry 
 around joints.
@@ -403,6 +403,7 @@ tracker that handles those types. **/
 class SimTK_SIMBODY_EXPORT ContactTracker {
 public:
 class HalfSpaceSphere;
+class HalfSpaceEllipsoid;
 class SphereSphere;
 class HalfSpaceTriangleMesh;
 class SphereTriangleMesh;
@@ -488,6 +489,51 @@ HalfSpaceSphere()
                    ContactGeometry::Sphere::classTypeId()) {}
 
 virtual ~HalfSpaceSphere() {}
+
+virtual bool trackContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, 
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, 
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Contact&               currentStatus) const;
+
+virtual bool predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const;
+
+virtual bool initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const;
+};
+
+
+
+//==============================================================================
+//                     HALFSPACE-ELLIPSOID CONTACT TRACKER
+//==============================================================================
+/** This ContactTracker handles contacts between a ContactGeometry::HalfSpace
+and a ContactGeometry::Ellipsoid, in that order. **/
+class SimTK_SIMBODY_EXPORT ContactTracker::HalfSpaceEllipsoid 
+:   public ContactTracker {
+public:
+HalfSpaceEllipsoid() 
+:   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
+                   ContactGeometry::Ellipsoid::classTypeId()) {}
+
+virtual ~HalfSpaceEllipsoid() {}
 
 virtual bool trackContact
    (const Contact&         priorStatus,

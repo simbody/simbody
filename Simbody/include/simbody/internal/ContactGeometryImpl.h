@@ -155,17 +155,28 @@ private:
 //==============================================================================
 class ContactGeometry::EllipsoidImpl : public ContactGeometryImpl {
 public:
-    EllipsoidImpl(const Vec3& radii) : ContactGeometryImpl(Type()), radii(radii) {
-    }
-    ContactGeometryImpl* clone() const {
-        return new EllipsoidImpl(radii);
-    }
-    const Vec3& getRadii() const {
-        return radii;
-    }
-    void setRadii(const Vec3& r) {
-        radii = r;
-    }
+    EllipsoidImpl(const Vec3& radii)
+    :   ContactGeometryImpl(Type()), radii(radii), 
+        curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])) {}
+
+    ContactGeometryImpl* clone() const {return new EllipsoidImpl(radii);}
+    const Vec3& getRadii() const {return radii;}
+    void setRadii(const Vec3& r) 
+    {   radii = r; curvatures = Vec3(1/r[0],1/r[1],1/r[2]); }
+
+    const Vec3& getCurvatures() const {return curvatures;}
+
+    // See below.
+    inline Vec3 findPointWithThisUnitNormal(const UnitVec3& n) const;
+    inline Vec3 findPointInSameDirection(const Vec3& Q) const;
+    inline UnitVec3 findUnitNormalAtPoint(const Vec3& Q) const;
+
+    // Cost is findParaboloidAtPointWithNormal + about 50 flops.
+    void findParaboloidAtPoint(const Vec3& Q, Transform& X_EP, Vec2& k) const
+    {   findParaboloidAtPointWithNormal(Q,findUnitNormalAtPoint(Q),X_EP,k); }
+
+    void findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& n,
+        Transform& X_EP, Vec2& k) const;
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
     static ContactGeometryTypeId classTypeId() {
@@ -182,8 +193,61 @@ public:
     void getBoundingSphere(Vec3& center, Real& radius) const;
 private:
     Vec3 radii;
+    // The curvatures are calculated whenever the radii are set.
+    Vec3 curvatures; // (1/radii[0], 1/radii[1], 1/radii[2])
 };
 
+// Given an ellipsoid and a unit normal direction, find the unique point on the
+// ellipsoid whose outward normal matches. The unnormalized normal was
+//    n = [x/a^2, y/b^2, z/c^2]
+// If we had that, we'd have x=n[0]*a^2,y=n[1]*b^2,z=n[2]*c^2,
+// but instead we're given the normalized normal that has been divided
+// by the length of n:
+//    nn = n/|n| = s * [x/a^2, y/b^2, z/c^2]
+// where s = 1/|n|. We can solve for s using the fact that x,y,z must
+// lie on the ellipsoid so |x/a,y/b,z/c|=1. Construct the vector
+// v = [nn[0]*a, nn[1]*b, nn[2]*c] = s*[x/a, y/b, z/c]
+// Now we have |v|=s. So n = nn/|v|. 
+// Cost is about 50 flops.
+inline Vec3 ContactGeometry::EllipsoidImpl::
+findPointWithThisUnitNormal(const UnitVec3& nn) const {
+    const Real& a=radii[0]; const Real& b=radii[1]; const Real& c=radii[2];
+    const Vec3 v  = Vec3(nn[0]*a, nn[1]*b, nn[2]*c);
+    const Vec3 p  = Vec3( v[0]*a,  v[1]*b,  v[2]*c) / v.norm();
+    return p;
+}
+
+// Given a point Q=(x,y,z) measured from ellipse center O, find the intersection 
+// of the ray d=Q-O with the ellipse surface. This just requires scaling the 
+// direction vector d by a factor s so that f(s*d)=0, that is, 
+//       s*|x/a y/b z/c|=1  => s = 1/|x/a y/b z/c|
+// Cost is about 50 flops.
+inline Vec3 ContactGeometry::EllipsoidImpl::
+findPointInSameDirection(const Vec3& Q) const {
+    Real s = 1/Vec3(Q[0]*curvatures[0], 
+                    Q[1]*curvatures[1], 
+                    Q[2]*curvatures[2]).norm();
+    return s*Q;
+}
+
+// The implicit equation of the ellipsoid surface is f(x,y,z)=0 where
+// f(x,y,z) = (ka x)^2 + (kb y)^2 (kc z)^2 - 1. Points p inside the ellipsoid
+// have f(p)<0, outside f(p)>0. f defines a field in space; its positive
+// gradient [df/dx df/dy df/dz] points outward. So, given an ellipsoid with 
+// principal curvatures ka,kb,kc and a point Q allegedly on the ellipsoid, the
+// outward normal (unnormalized) n at that point is
+//    n(p) = grad(f(p)) = 2*[ka^2 x, kb^2 y, kc^2 z]
+// so the unit norm we're interested in is nn=n/|n| (the "2" drops out).
+// If Q is not on the ellipsoid this is equivalent to scaling the ray Q-O
+// until it hits the ellipsoid surface at Q'=s*Q, and then reporting the outward
+// normal at Q' instead.
+// Cost is about 50 flops.
+inline UnitVec3 ContactGeometry::EllipsoidImpl::
+findUnitNormalAtPoint(const Vec3& Q) const {
+    const Vec3 kk(square(curvatures[0]), square(curvatures[1]), 
+                  square(curvatures[2]));
+    return UnitVec3(kk[0]*Q[0], kk[1]*Q[1], kk[2]*Q[2]);
+}
 
 
 //==============================================================================

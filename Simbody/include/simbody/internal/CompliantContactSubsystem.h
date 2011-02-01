@@ -664,7 +664,9 @@ private:
 
 /** This ContactForceGenerator handles contact between non-conforming
 objects that meet at a point and generate a circular contact patch; those
-generate a PointContact tracking object. **/
+generate a CircularPointContact tracking object. Although this is just a special
+case of elliptical contact we treat it separately so we can take advantage
+of the significant simplificatiosn afforded by circular contact. **/
 class SimTK_SIMBODY_EXPORT ContactForceGenerator::HertzCircular 
 :   public ContactForceGenerator {
 public:
@@ -685,6 +687,36 @@ virtual void calcContactPatch
     ContactPatch&           patch) const;
 };
 
+
+
+//==============================================================================
+//                         HERTZ ELLIPTICAL GENERATOR
+//==============================================================================
+
+/** This ContactForceGenerator handles contact between non-conforming
+objects that meet at a point and generate an elliptical contact patch; those
+generate an EllipticalPointContact tracking object. For objects that are 
+known to produce circular contact, use the specialized HertzCircular 
+generator instead. **/
+class SimTK_SIMBODY_EXPORT ContactForceGenerator::HertzElliptical 
+:   public ContactForceGenerator {
+public:
+HertzElliptical() 
+:   ContactForceGenerator(EllipticalPointContact::classTypeId()) {}
+
+virtual ~HertzElliptical() {}
+virtual void calcContactForce
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactForce&           contactForce) const;
+
+virtual void calcContactPatch
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactPatch&           patch) const;
+};
 
 
 

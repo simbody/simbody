@@ -509,6 +509,7 @@ CompliantContactSubsystem::CompliantContactSubsystem
 
     // Register default contact force generators.
     adoptForceGenerator(new ContactForceGenerator::HertzCircular());
+    adoptForceGenerator(new ContactForceGenerator::HertzElliptical());
     adoptForceGenerator(new ContactForceGenerator::ElasticFoundation());
     adoptDefaultForceGenerator(new ContactForceGenerator::DoNothing());
 }
@@ -668,32 +669,29 @@ inline static Real hollars(Real us, Real ud, Real uv, Real v) {
     return mu;
 }
 
-
-
-//==============================================================================
-//                         HERTZ CIRCULAR GENERATOR
-//==============================================================================
-void ContactForceGenerator::HertzCircular::calcContactForce
-   (const State&            state,
-    const Contact&          overlap,    // contains X_S1S2
+// This function is shared between the Hertz circular and Hertz elliptical
+// contacts. We only need to pass in the effective relative radius R and the 
+// elliptical correction factor e(=1 for circular); everything else is the
+// same.
+// This is around 250 flops.
+static void calcHertzContactForce
+   (const CompliantContactSubsystem& subsys,
+    const ContactTrackerSubsystem&   tracker, 
+    const State&            state,
+    const Contact&          contact,    // contains X_S1S2
+    const UnitVec3&         normal_S1,  // away from surf1, exp. in S1
+    const Vec3&             origin_S1,  // half way btw undeformed surfaces
+    Real                    depth,
     const SpatialVec&       V_S1S2,     // relative surface velocity, S2 in S1
-    ContactForce&           contactForce_S1) const
+    Real                    R,          // effective relative radius
+    Real                    e,          // elliptical correction factor
+    ContactForce&           contactForce_S1)
 {
-    SimTK_ASSERT(CircularPointContact::isInstance(overlap),
-        "ContactForceGenerator::HertzCircular::calcContactForce(): expected"
-        " CircularPointContact.");
-
-    const CircularPointContact& contact = CircularPointContact::getAs(overlap);
-    const Real depth = contact.getDepth();
-
     if (depth <= 0) {
         contactForce_S1.clear(); // no contact; invalidate return result
         return;
     }
 
-    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
-    const ContactTrackerSubsystem&   tracker = subsys.getContactTrackerSubsystem();
-    
     const ContactSurfaceIndex surf1x = contact.getSurface1();
     const ContactSurfaceIndex surf2x = contact.getSurface2();
     const Transform&          X_S1S2 = contact.getTransform();
@@ -720,20 +718,15 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     
     const Real s1 = k2/(k1+k2); // 0..1
     const Real s2 = 1-s1;       // 1..0
-    const Real x  = contact.getDepth();
-    // normal points away from surf1, expressed in surf1's frame 
-    const UnitVec3& normal_S1 = contact.getNormal();
-    // origin is half way between the two surfaces as though they had
-    // equal stiffness
-    const Vec3& origin_S1 = contact.getOrigin();
+    const Real x  = depth;
+
     // Actual contact point moves closer to stiffer surface.
     const Vec3 contactPt_S1 = origin_S1 + (x*(0.5-s1))*normal_S1;
     
     // Calculate the Hertz force fH, which is conservative.
     const Real k = k1*s1; // (==k2*s2) == E^(2/3)
     const Real c = c1*s1 + c2*s2;
-    const Real R = contact.getEffectiveRadius();
-    const Real fH = (4./3.)*k*x*std::sqrt(R*k*x); // always >= 0
+    const Real fH = e*(4./3.)*k*x*std::sqrt(R*k*x); // always >= 0
     
     // Calculate the relative velocity of the two bodies at the contact point.
     // We're considering S1 fixed, so we just need the velocity in S1 of
@@ -823,7 +816,259 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     contactForce_S1.setPowerDissipation(powerHC + powerFriction);
 }
 
+
+//==============================================================================
+//                         HERTZ CIRCULAR GENERATOR
+//==============================================================================
+void ContactForceGenerator::HertzCircular::calcContactForce
+   (const State&            state,
+    const Contact&          overlap,    // contains X_S1S2
+    const SpatialVec&       V_S1S2,     // relative surface velocity, S2 in S1
+    ContactForce&           contactForce_S1) const
+{
+    SimTK_ASSERT(CircularPointContact::isInstance(overlap),
+        "ContactForceGenerator::HertzCircular::calcContactForce(): expected"
+        " CircularPointContact.");
+
+    const CircularPointContact& contact = CircularPointContact::getAs(overlap);
+    const Real depth = contact.getDepth();
+
+    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
+    const ContactTrackerSubsystem&   tracker = subsys.getContactTrackerSubsystem();
+
+    // normal points away from surf1, expressed in surf1's frame 
+    const UnitVec3& normal_S1 = contact.getNormal();
+    // origin is half way between the two surfaces as though they had
+    // equal stiffness
+    const Vec3& origin_S1 = contact.getOrigin();
+
+    const Real R = contact.getEffectiveRadius();
+
+    calcHertzContactForce(subsys, tracker, state, overlap,
+                          normal_S1, origin_S1, depth,
+                          V_S1S2, R, 1, contactForce_S1);
+}
+
 void ContactForceGenerator::HertzCircular::calcContactPatch
+   (const State&      state,
+    const Contact&    overlap,
+    const SpatialVec& V_S1S2,
+    ContactPatch&     patch_S1) const
+{  
+    patch_S1.m_elements.clear(); // TODO no details yet
+    calcContactForce(state,overlap,V_S1S2,patch_S1.m_resultant);
+}
+
+
+
+//==============================================================================
+//                         HERTZ ELLIPTICAL GENERATOR
+//==============================================================================
+
+
+// Given the relative principal curvatures characterizing the undeformed
+// contact geometry, calculate the ratio k=a/b >= 1 of the semi axes of the 
+// deformed contact ellipse (the actual size depends on the penetration but
+// the ratio depends only on the relative curvatures).
+// 
+// Hertz theory relates them in this implicit equation for k:
+//   B   kmax   k^2 E(m)-K(m)
+//   - = ---- = -------------, m = 1 - (1/k)^2, B >= A.
+//   A   kmin     K(m)-E(m)
+//
+// (B=kmax/2 and A=kmin/2 are semi-curvatures but their ratio
+// is the same as the ratio of curvatures.)
+//
+// This equation can be solved numerically for k (see the numerical 
+// version of this routine below). Here we instead use an approximation
+// k = (B/A)^p where exponent p=p(B/A) as follows:
+//              1 + u0 q + u1 q^2 + u2 q^3 + u3 q^4
+//      p = 2/3 -----------------------------------, q = log10^2(B/A)
+//              1 + v0 q + v1 q^2 + v2 q^3 + v3 q^4
+// This gives 5 digits or better of accuracy across the full range
+// of possible ratios kmax:kmin at a cost of about 160 flops.
+//
+// Antoine, Visa, Sauvey, Abba. "Approximate analytical model for 
+// Hertzian Elliptical Contact Problems", ASME J. Tribology 128:660, 2006.
+
+static Real approxContactEllipseRatio(Real kmax, Real kmin) {
+    static const Real u[] =
+    {   (Real).40227436, (Real)3.7491752e-2, (Real)7.4855761e-4,
+        (Real)2.1667028e-6 };
+    static const Real v[] =
+    {   (Real).42678878, (Real)4.2605401e-2, (Real)9.0786922e-4,
+        (Real)2.7868927e-6 };
+
+    Real BoA = kmax/kmin; // ~20 flops
+    Real q = square(std::log10(BoA)), q2=q*q, q3=q2*q, q4=q3*q; // ~50 flops?
+    Real n = 1 + u[0]*q + u[1]*q2 + u[2]*q3 + u[3]*q4; // 8 flops
+    Real d = 1 + v[0]*q + v[1]*q2 + v[2]*q3 + v[3]*q4; // 8 flops
+    Real p = (2*n)/(3*d); // ~20 flops
+    Real k = std::pow(BoA, p); // ellipse ratio k=a/b, >50 flops?
+    return k;
+}
+
+// Given the relative principal curvatures characterizing the undeformed
+// contact geometry, calculate the ratio k=a/b >= 1 of the semiaxes of the 
+// deformed contact ellipse (the actual size depends on the penetration but
+// the ratio depends only on the relative curvatures).
+// 
+// Hertz theory relates them in this implicit equation for k:
+//   B   kmax   k^2 E(m)-K(m)
+//   - = ---- = -------------, m = 1 - (1/k)^2, B >= A.
+//   A   kmin     K(m)-E(m)
+//
+// (B=kmax/2 and A=kmin/2 are semi-curvatures but their ratio
+// is the same as the ratio of curvatures.)
+//
+// Here we numerically solve for k using a Newton iteration, and 
+// obtain K(m) and E(m) as a side effect useful later.
+// The cost is roughly ~100 + (300+70)*n, typically about 1600 flops 
+// at n=4.
+// 
+// This method is adapted from 
+// Dyson, Evans, Snidle. "A simple accurate method for calculation of 
+// stresses and deformations in elliptical Hertzian contacts", 
+// J. Mech. Eng. Sci. Proc. IMechE part C 206:139-141, 1992.
+static Real numContactEllipseRatio
+   (Real kmax, Real kmin, std::pair<Real,Real>& KE) 
+{
+    // See Dyson.
+    Real lambda = kmin/kmax; // A/B
+    Real kp = std::pow(lambda, Real(2./3.)); // note inverted k'=b/a
+    Real k2 = kp*kp;
+    Real lambda1;
+    for(;;) {
+        if (k2 > 1) k2 = 1;
+        Real m = 1-k2;
+        KE = completeEllipticIntegralsKE(m); // K,E
+        if (k2==1) return 1;
+        lambda1 = (KE.first - KE.second) / (KE.second/k2 - KE.first);
+        if (std::abs(lambda-lambda1) < 10*lambda*SignificantReal) 
+            break;
+        Real den = lambda1*lambda1+2*m*lambda1-k2;
+        k2 += (2*m*k2*(lambda-lambda1))/den; // might make k2 slightly >1
+    };
+    kp = std::sqrt(k2);
+    return 1/kp; // return k
+}
+
+// Given the undeformed relative geometry semi-curvatures A and B (A<=B),
+// the deformed contact ellipse ratio k=a/b >= 1 and associated complete 
+// elliptic integrals K(m) and E(m) where m = 1 - (1/k)^2, and the 
+// penetration depth d, return the ellipse semimajor and semiminor 
+// axes a, b resp. (a>=b), the contact force P, and the peak contact 
+// pressure p0.
+//                d Em
+//    b = sqrt( -------- ),    a = b*k
+//              (A+B) Km
+//
+//                  4 (Pi E*)^2 Em k^2     2 b^3 E* k Pi (A+B)
+//    P = sqrt( d^3 ------------------ ) = -------------------
+//                     9 (A+B) Km^3              3 Em
+//
+//    p0 = 3/2 avg. pressure = 3/2 P/(Pi*a*b)
+//
+// Cost is about 100 flops.
+static void calcContactInfo
+   (Real A, Real B, Real k, const std::pair<Real,Real>& KE, Real d,
+    Real Estar, Vec2& ab, Real& P, Real& p0)
+{
+    Real Km = KE.first, Em = KE.second;
+    Real b = std::sqrt((d*Em)/((A+B)*Km)); // ~ 50 flops
+    Real a = b*k;
+    ab = Vec2(a,b);
+    // The rest is about 50 more flops
+    P = 2*cube(b)*Estar*k*Pi*(A+B)/(3*Em); 
+    p0 = (3*P)/(2*Pi*a*b); 
+}
+
+// Given just the undeformed relative geometry curvatures kmin (=2*A)
+// and kmax (=2*B) (kmax>=kmin>0), calculate the unitless eccentricity 
+// correction factor e due to the fact that kmax != kmin. The correction 
+// factor is 1 for a circular contact (kmax==kmin).
+//
+// The force due to a displacement d is given by
+//
+//     P = e*[4/3 E* sqrt(R)] d^(3/2), R=1/((kmax+kmin)/2)=1/(A+B)
+//
+//         Pi E(m)^(1/2) k
+//     e = ---------------, k=a/b, m = 1 - (b/a)^2
+//           2 K(m)^(3/2)
+//
+// Derivation: 
+// For a circular contact
+//     P = 4/3 E* sqrt(R) d^(3/2)
+// For an elliptical contact
+//          2 Pi E* E(m)^(1/2) k 
+//    P =  ----------------------- d^(3/2)
+//         3 (A+B)^(1/2) K(m)^(3/2)    
+//
+//                       Pi E(m)^(1/2) k
+//      = 2/3 E* sqrt(R) --------------- d^(3/2)
+//                          K(m)^(3/2)
+// For b/a=1 (circular) we have k=1, m=0, K(0)=E(0)=Pi/2. Substituting in 
+// the equation for e gives e = Pi (Pi/2)^(1/2) / (2 (Pi/2)^(3/2)) = 1 as
+// expected.
+//
+// We calculate k and then K(m),E(m) using a fast approximate method that
+// gives us P as a smooth function that is accurate to about 7 digits.
+// More accurate methods are available but seem unnecessary and this is
+// expensive enough: about 320 flops unless kmax==kmin in which case it's free.
+static Real calcHertzForceEccentricityCorrection(Real kmax, Real kmin) {
+    SimTK_ASSERT(kmax >= kmin && kmin > 0,
+        "calcHertzForceEccentricityCorrection: kmax,kmin illegal.");
+    if (kmax==kmin) return 1;
+
+    Real k = approxContactEllipseRatio(kmax,kmin); // ~160 flops
+    Real m = 1 - square(1/k); // ~20 flops
+    std::pair<Real,Real> KE = approxCompleteEllipticIntegralsKE(m); // ~90 flops
+
+    Real Km = KE.first, Em = KE.second;
+    // Slightly twisted computation here to save one square root.
+    Real e = Pi * k * std::sqrt(Em*Km) / (2 * Km*Km); // ~50 flops
+
+    return e;
+}
+
+// This is about 340 flops plus the usual 250 for the Hertz contact force
+// calculation.
+void ContactForceGenerator::HertzElliptical::calcContactForce
+   (const State&            state,
+    const Contact&          overlap,    // contains X_S1S2
+    const SpatialVec&       V_S1S2,     // relative surface velocity, S2 in S1
+    ContactForce&           contactForce_S1) const
+{
+    SimTK_ASSERT(EllipticalPointContact::isInstance(overlap),
+        "ContactForceGenerator::HertzElliptical::calcContactForce(): expected"
+        " EllipticalPointContact.");
+
+    const EllipticalPointContact& contact = 
+        EllipticalPointContact::getAs(overlap);
+    const Real depth = contact.getDepth();
+
+    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
+    const ContactTrackerSubsystem&   tracker = subsys.getContactTrackerSubsystem();
+
+    const Transform& X_S1C = contact.getContactFrame();
+    const Vec2&      k     = contact.getCurvatures(); // kmax,kmin
+    const Real       e     = calcHertzForceEccentricityCorrection(k[0],k[1]);
+
+    // normal points away from surf1, expressed in surf1's frame 
+    const UnitVec3& normal_S1 = X_S1C.z();
+    // origin is half way between the two surfaces as though they had
+    // equal stiffness
+    const Vec3& origin_S1 = X_S1C.p();
+
+    const Real R = 2/(k[0]+k[1]); // 1/avg curvature (~20 flops)
+
+    calcHertzContactForce(subsys, tracker, state, overlap,
+                          normal_S1, origin_S1, depth,
+                          V_S1S2, R, 1, contactForce_S1);
+}
+
+
+void ContactForceGenerator::HertzElliptical::calcContactPatch
    (const State&      state,
     const Contact&    overlap,
     const SpatialVec& V_S1S2,

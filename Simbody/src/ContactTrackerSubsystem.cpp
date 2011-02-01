@@ -139,6 +139,7 @@ public:
 ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     adoptContactTracker(new ContactTracker::HalfSpaceSphere());
     adoptContactTracker(new ContactTracker::SphereSphere());
+    adoptContactTracker(new ContactTracker::HalfSpaceEllipsoid());
     adoptContactTracker(new ContactTracker::HalfSpaceTriangleMesh());
     adoptContactTracker(new ContactTracker::SphereTriangleMesh());
     adoptContactTracker(new ContactTracker::TriangleMeshTriangleMesh());
@@ -742,6 +743,102 @@ bool ContactTracker::HalfSpaceSphere::initializeContact
     "ContactTracker::HalfSpaceSphere::initializeContact() not implemented yet."); 
     return false; }
 
+
+
+//==============================================================================
+//                     HALFSPACE-ELLIPSOID CONTACT TRACKER
+//==============================================================================
+// Cost is ~135 flops if no contact, ~425 with contact.
+// The contact point on the ellipsoid must be the unique point that has its
+// outward-facing normal in the opposite direction of the half space normal.
+// We can find that point very fast and see how far it is from the half
+// space surface. If it is close enough, we'll evaluate the curvatures at
+// that point in preparation for generating forces with Hertz theory.
+bool ContactTracker::HalfSpaceEllipsoid::trackContact
+   (const Contact&         priorStatus,
+    const Transform&       X_GH, 
+    const ContactGeometry& geoHalfSpace,
+    const Transform&       X_GE, 
+    const ContactGeometry& geoEllipsoid,
+    Real                   cutoff,
+    Contact&               currentStatus) const
+{
+    SimTK_ASSERT
+       (   geoHalfSpace.getTypeId()==ContactGeometry::HalfSpace::classTypeId()
+        && geoEllipsoid.getTypeId()==ContactGeometry::Ellipsoid::classTypeId(),
+       "ContactTracker::HalfSpaceEllipsoid::trackContact()");
+
+    // No need for an expensive dynamic cast here; we know what we have.
+    const ContactGeometry::EllipsoidImpl& ellipsoid = 
+        reinterpret_cast<const ContactGeometry::EllipsoidImpl&>
+            (geoEllipsoid.getImpl());
+
+    // Our half space occupies the +x half so the normal is -x.
+    const Transform X_HE = ~X_GH*X_GE; // 63 flops
+    // Halfspace normal is -x, so the ellipsoid normal we're looking for is
+    // in the half space's +x direction.
+    const UnitVec3& n_E = (~X_HE.R()).x(); // halfspace normal in E
+    const Vec3 Q_E = ellipsoid.findPointWithThisUnitNormal(n_E); // 50 flops
+    const Vec3 Q_H = X_HE*Q_E; // Q measured from half space origin (18 flops)
+    const Real depth = Q_H[0]; // x > 0 is penetrated
+
+    if (depth <= -cutoff) {  // 2 flops
+        currentStatus.clear(); // not touching
+        return true; // successful return
+    }
+
+    // The surfaces are contacting (or close enough to be interesting).
+    // The ellipsoid's principal curvatures k at the contact point are also
+    // the curvatures of the contact paraboloid since the half space doesn't
+    // add anything interesting.
+    Transform X_EQ; Vec2 k;
+    ellipsoid.findParaboloidAtPointWithNormal(Q_E, n_E, X_EQ, k); // 220 flops
+
+    // We have the contact paraboloid expressed in frame Q but Qz=n_E has the
+    // wrong sign since we have to express it using the half space normal.
+    // We have to end up with a right handed frame, so one of x or y has
+    // to be negated too. (6 flops)
+    Rotation& R_EQ = X_EQ.updR();
+    R_EQ.setRotationColFromUnitVecTrustMe(ZAxis, -R_EQ.z()); // changing X_EQ
+    R_EQ.setRotationColFromUnitVecTrustMe(XAxis, -R_EQ.x());
+
+    // Now the frame is pointing in the right direction. Measure and express in 
+    // half plane frame, then shift origin to half way between contact point 
+    // Q on the undeformed ellipsoid and the corresponding contact point P 
+    // on the undeformed half plane surface. It's easier to do this shift
+    // in H since it is in the -Hx direction.
+    Transform X_HC = X_HE*X_EQ; X_HC.updP()[0] -= depth/2; // 65 flops
+
+    currentStatus = EllipticalPointContact(priorStatus.getSurface1(),
+                                           priorStatus.getSurface2(),
+                                           X_HE, X_HC, k, depth);
+    return true; // success
+}
+
+bool ContactTracker::HalfSpaceEllipsoid::predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactTracker::HalfSpaceEllipsoid::predictContact() not implemented yet."); 
+    return false; }
+
+bool ContactTracker::HalfSpaceEllipsoid::initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactTracker::HalfSpaceEllipsoid::initializeContact() not implemented yet."); 
+    return false; }
 
 
 

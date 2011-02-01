@@ -256,27 +256,204 @@ void ContactGeometry::SphereImpl::getBoundingSphere(Vec3& center, Real& radius) 
 ContactGeometry::Ellipsoid::Ellipsoid(const Vec3& radii)
 :   ContactGeometry(new EllipsoidImpl(radii)) {}
 
+void ContactGeometry::Ellipsoid::setRadii(const Vec3& radii) 
+{   updImpl().setRadii(radii); }
+
 /*static*/ ContactGeometryTypeId ContactGeometry::Ellipsoid::classTypeId()
 {   return ContactGeometry::EllipsoidImpl::classTypeId(); }
 
-const Vec3& ContactGeometry::Ellipsoid::getRadii() const {
-    return getImpl().getRadii();
-}
+const Vec3& ContactGeometry::Ellipsoid::getRadii() const 
+{   return getImpl().getRadii(); }
 
-void ContactGeometry::Ellipsoid::setRadii(const Vec3& radii) {
-    updImpl().setRadii(radii);
-}
+const Vec3& ContactGeometry::Ellipsoid::getCurvatures() const 
+{   return getImpl().getCurvatures(); }
 
-const ContactGeometry::EllipsoidImpl& ContactGeometry::Ellipsoid::getImpl() const {
+UnitVec3 ContactGeometry::Ellipsoid::
+findUnitNormalAtPoint(const Vec3& Q) const
+{   return getImpl().findUnitNormalAtPoint(Q); }
+
+Vec3 ContactGeometry::Ellipsoid::
+findPointWithThisUnitNormal(const UnitVec3& nn) const
+{   return getImpl().findPointWithThisUnitNormal(nn); }
+
+Vec3 ContactGeometry::Ellipsoid::
+findPointInSameDirection(const Vec3& Q) const
+{   return getImpl().findPointInSameDirection(Q); }
+
+void ContactGeometry::Ellipsoid::
+findParaboloidAtPoint(const Vec3& Q, Transform& X_EP, Vec2& k) const
+{   return getImpl().findParaboloidAtPoint(Q,X_EP,k); }
+
+void ContactGeometry::Ellipsoid::
+findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
+                                Transform& X_EP, Vec2& k) const
+{   return getImpl().findParaboloidAtPointWithNormal(Q,nn,X_EP,k); }
+
+
+const ContactGeometry::EllipsoidImpl& ContactGeometry::Ellipsoid::
+getImpl() const {
     assert(impl);
     return static_cast<const EllipsoidImpl&>(*impl);
 }
 
-ContactGeometry::EllipsoidImpl& ContactGeometry::Ellipsoid::updImpl() {
+ContactGeometry::EllipsoidImpl& ContactGeometry::Ellipsoid::
+updImpl() {
     assert(impl);
     return static_cast<EllipsoidImpl&>(*impl);
 }
 
+// Given a point Q on an ellipsoid, with outward unit normal nn at Q: find the 
+// principal curvatures at the point and their directions. The result is a 
+// coordinate frame with origin Q, z axis the ellipsoid normal nn at Q, x axis 
+// is the direction dmax of maximum curvature kmax, y axis the direction dmin 
+// of minimum curvature kmin, such that [dmax dmin n] forms a right-handed set.
+// This is equivalent to fitting an elliptic paraboloid 
+// z = -kmax/2 x^2 -kmin/2 y^2 to the ellipsoid at point Q. Note that for
+// an ellipsoid we have kmax>=kmin>0.
+//
+// We'll find the ellipse on the central plane perpendicular to the normal by 
+// intersecting the plane equation with the ellipsoid equation but working in 
+// the plane frame P=[u v n], where u and v are arbitrary axes in the plane.
+// Our goal is to obtain an equation for the ellipse in P and then rotate the 
+// P frame about its normal until we get the ellipse in standard form 
+// Ru^2+Sv^2=1 in which case d/R and d/S are the ellipsoid curvatures (d is the
+// distance from the point on the ellipsoid to the plane).
+// ref: McArthur, Neil. "Principal radii of curvature at a point on an 
+// ellipsoid", Mathematical Notes 24 pp. xvi-xvii, 1929.
+//
+// In its own frame E=[x y z] the ellipsoid surface is the set of points such 
+// that
+//    ~e * diag(A,B,C) * e = 1
+// where e is a vector expressed in E. The plane is the set of points 
+// satisfying ~e * n = 0. We can write rotation matrix R_EP=[u v n] where 
+// u,v,n are expressed in E. Now we can put the ellipsoid in P:
+//   ~(R_EP*p) * diag(A,B,C) * (R_EP*p) = 1
+// We can intersect that with the plane just by dropping the n coordinate of 
+// p so p=[u v 0] (u,v scalars here), and the intersection equation is
+//    A(u*ux + v*vx)^2 + B(u*uy+v*vy)^2 + C(u*uz + v*vz)^2 = 1
+// which is
+//    R u^2 + S v^2 + T u*v = 1
+// with
+//    R =   A ux^2  + B uy^2  + C uz^2
+//    S =   A vx^2  + B vy^2  + C vz^2
+//    T = 2(A ux*vx + B uy*vy + C uz*vz)
+//
+// We want to find a rotation about n that eliminates the cross term Tuv, 
+// leaving us with
+//    R' u'^2 + S' v'^2 = 1
+// for new constants R' and S' and new basis u' and v'.
+//
+// Method
+// ------
+// We'll calculate an angle theta where theta=0 would be along u and 
+// theta=pi/2 would be along v. Then theta+pi/2 is a perpendicular direction 
+// that has the other curvature extreme. Per "Dr Rob" at Mathforum.org 2000:
+//   t2t = tan(2*theta) = T/(R-S)
+//   theta = atan(t2t)/2, c = cos(theta), s = sin(theta)
+//   R' = Rc^2 + Tsc + Ss^2   (theta direction)
+//   S' = Rs^2 - Tsc + Sc^2   (theta+pi/2 direction)
+// Directions are u' = c*u + s*v, v' = c*v - s*u; these are automatically unit
+// vectors.
+//
+// Optimization
+// ------------
+// The above requires an atan() to get 2*theta then sin & cos(theta) at
+// a cost of about 120 flops. We can use half angle formulas to work
+// exclusively with 2*theta, but then we'll have to normalize u' and v' 
+// at the end:
+//   t2t = tan(2*theta) = T/(R-S)
+//   c2t = cos(2*theta) = 1/sqrt(1 + t2t^2)
+//   s2t = sin(2*theta) = t2t*cos2t;
+//   2*R' = R+S + Rc2t - Sc2t + Ts2t
+//   2*S' = R+S - Rc2t + Sc2t - Ts2t
+// By multiplying the u',v' formulas above by 2*c we change the lengths
+// but get expressions that are easily converted to double angles:
+//   u' = normalize((1+c2t)*u + s2t*v)
+//   v' = normalize((1+c2t)*v - s2t*u)
+// (but actually v' is n X u' which is cheap). This saves about 30 
+// flops over the straightforward method above.
+//
+// Cost: given a point and normalized normal
+//    curvatures ~160 flops
+//    directions ~ 60 flops more
+//               ----
+//               ~220 flops
+//
+// So: Given an ellipsoid in its own frame E, with equation Ax^2+By^2+Cz^2=1, a 
+// point Q=(x,y,z) on its surface, and the unit outward normal vector nn at Q,
+// return (kmax,kmin) the principal curvatures at Q, and a Transform with 
+// x=dmax, y=dmin, z=nn, O=Q that gives the principal curvature directions. 
+// (Note: A=1/a^2, B=1/b^2, C=1/c^2 where a,b,c are the ellipsoid radii.)
+void ContactGeometry::EllipsoidImpl::
+findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
+                                Transform& X_EP, Vec2& k) const
+{
+    const Real A = square(curvatures[0]), B = square(curvatures[1]), 
+               C = square(curvatures[2]);
+
+    // Sanity checks in debug.
+    SimTK_ERRCHK(std::abs(A*Q[0]*Q[0]+B*Q[1]*Q[1]+C*Q[2]*Q[2]-1) < SqrtEps,
+        "ContactGeometry::Ellipsoid::findParaboloidAtPointWithNormal()",
+        "The given point was not on the surface of the ellipsoid.");
+    SimTK_ERRCHK((nn-findUnitNormalAtPoint(Q)).normSqr() < SqrtEps,
+        "ContactGeometry::Ellipsoid::findParaboloidAtPointWithNormal()",
+        "The given normal was not consistent with the given point.");
+
+    UnitVec3 tu = nn.perp();    // ~40 flops
+    UnitVec3 tv(nn % tu, true); // y = z X x for plane, already normalized (9 flops)
+    
+    // 27 flops to get R,S,T
+    Real R=   A*square(tu[0]) + B*square(tu[1]) + C*square(tu[2]);
+    Real S=   A*square(tv[0]) + B*square(tv[1]) + C*square(tv[2]);
+    Real T=2*(A*tu[0]*tv[0]   + B*tu[1]*tv[1]   + C*tu[2]*tv[2]);
+
+    // T will be zero for spheres (A=B=C) and for various "clean" points
+    // on the ellipsoid where tu[i]*tv[i]==0, i=0,1,2. In that case we
+    // already have the ellipse we're looking for with R,S.
+    // R==S means curvature is the same in every direction (that's called
+    // an "umbilic" point). In that case tu and tv are good directions.
+    // I *believe* R==S -> T==0 but I don't have a proof.
+    Real kmax2, kmin2; // squared curvatures of ellipse
+    UnitVec3 dmax;
+    if (std::abs(R-S) < SignificantReal*std::max(R,S)) {
+        kmax2 = kmin2 = (R+S)/2;
+        dmax = tu;
+    } else if (std::abs(T) < SignificantReal) {
+        if (R < S) kmax2=S, dmax=tv, kmin2=R;
+        else       kmax2=R, dmax=tu, kmin2=S;
+    } else { // T,R-S both nonzero
+        Real tan2t = T/(R-S);       // ~20 flops
+        Real cos2t = 1/std::sqrt(1 + square(tan2t)); // ~40 flops
+        Real sin2t = tan2t*cos2t;   //   1 flop
+        // 11 flops here
+        Real term = R*cos2t-S*cos2t+T*sin2t;
+        Real Rp = (R+S + term)/2;
+        Real Sp = (R+S - term)/2;
+
+        // Sort into kmax, kmin; at most one normalization done below
+        if (Rp < Sp) {
+            kmax2=Sp, kmin2=Rp;
+            dmax = UnitVec3((1+cos2t)*tv - sin2t*tu); // Sdir, must normalize, ~50 flops
+        } else {
+            kmax2=Rp,kmin2=Sp;
+            dmax = UnitVec3((1+cos2t)*tu + sin2t*tv); // Rdir, must normalize, ~50 flops
+        }
+    }
+
+    Real d = ~Q * nn; // distance along normal from center to point on ellipsoid (5 flops)
+    Real kmax = d * kmax2, kmin = d * kmin2; // surface curvatures (2 flops)
+
+    X_EP.updP() = Q; // the origin point
+    Rotation& R_EP = X_EP.updR();
+    // 9 flops
+    UnitVec3 dmin = UnitVec3(nn % dmax, true); // y=z%x ensures right handedness (already unit vector too)
+    R_EP.setRotationFromUnitVecsTrustMe(dmax, dmin, nn);
+
+    k = Vec2(kmax, kmin);
+}
+
+
+// TODO: documentation or references, Peter?
 Vec3 ContactGeometry::EllipsoidImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     Real a2 = radii[0]*radii[0];
     Real b2 = radii[1]*radii[1];
@@ -312,6 +489,7 @@ Vec3 ContactGeometry::EllipsoidImpl::findNearestPoint(const Vec3& position, bool
     return result;
 }
 
+// TODO: documentation or references, Peter?
 bool ContactGeometry::EllipsoidImpl::intersectsRay
    (const Vec3& origin, const UnitVec3& direction,
     Real& distance, UnitVec3& normal) const

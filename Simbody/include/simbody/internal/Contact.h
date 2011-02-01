@@ -2,14 +2,14 @@
 #define SimTK_SIMBODY_CONTACT_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                              SimTK Simbody(tm)                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -39,12 +39,14 @@
 namespace SimTK {
 
 
-/** This defines a unique index for all the contact surfaces being handled
+/** @class SimTK::ContactSurfaceIndex
+This defines a unique index for all the contact surfaces being handled
 either by a ContactTrackerSubsystem or within a single ContactSet of a
 GeneralContactSubsystem. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactSurfaceIndex);
 
-/** This is a unique integer Id assigned to each contact pair when we first
+/** @class SimTK::ContactId
+This is a unique integer Id assigned to each contact pair when we first
 begin to track it. The Id persists for as long as we are tracking this pair
 of surfaces; it is the basis for our notions of "the same contact" and
 "continuing contact". After we stop tracking a contact pair, its Id will not 
@@ -54,7 +56,8 @@ small number of contacts at any given moment. The Id is unique only within an
 instance of ContactTrackerSubsystem. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactId);
 
-/** This is a small integer that serves as the unique typeid for each type
+/** @class SimTK::ContactTypeId
+This is a small integer that serves as the unique typeid for each type
 of concrete Contact class. This is used to select an appropriate contact
 response method for a given type of Contact. This Id is unique across all
 threads of a given program execution but you can't expect to get the same Id
@@ -66,6 +69,7 @@ class ContactImpl;
 class UntrackedContactImpl;
 class BrokenContactImpl;
 class CircularPointContactImpl;
+class EllipticalPointContactImpl;
 class TriangleMeshContactImpl;
 class PointContactImpl;
 
@@ -315,6 +319,97 @@ private:
         return reinterpret_cast<const CircularPointContactImpl&>
                     (Contact::getImpl()); }
 };
+
+
+
+//==============================================================================
+//                           ELLIPTICAL POINT CONTACT
+//==============================================================================
+/** This subclass of Contact represents a contact between two non-conforming
+surfaces 1 and 2 that initially meet at a point and where each surface has two
+principal curvatures (maximum and minimum) in perpendicular directions. The 
+prototypical example is ellipsoid-ellipsoid contact, but this includes a wide
+range of contacts between smooth surfaces, where the surfaces have two 
+continuous spatial derivatives at the contact point. The contact plane on
+each surface is parameterized by its principal curvature directions x,y with the
+surface's contact point at the origin, and the common normal as the z axis. The
+surface is thus approximated by a paraboloid z=Ax^2+By^2 for which A=kx/2, 
+B=ky/2 where kx,ky are the curvatures in the x,y directions. Here A>=0, A>=B, 
+but B can be negative indicating a hyperbolic paraboloid (saddle). Each surface
+is parameterized separately: the z axes are along the same line, but the x,y 
+axes are relatively rotated about z by an angle theta, with 
+cos(theta)=dot(x1,x2)=dot(y1,y2).
+
+The surface of relative separation of the two surfaces will also be a 
+paraboloid, sharing the z axis with the contact surfaces but having its own
+relative principal curvatures and directions. The undeformed contact is 
+ultimately characterized by this relative paraboloid and a penetration depth
+d (d>0 when surfaces overlap, <0 when separated), in a contact frame where 
+x,y are the relative principal curvature directions, z is the common normal 
+oriented to point away from surface1, and the origin OP is centered such that 
+the surface2 contact point is at O-(d/2)z and surface1 contact point is at
+O+(d/2)z. 
+
+<h3>References</h3>
+    - Johnson, K.L. "Contact Mechanics", Cambridge University Press, 1985
+      (corrected ed. 1987), sec. 4.1, pp. 84-88. 
+    - Goldsmith, W. "Impact", Dover, 2001, sec. 4.2, pp. 83-85.
+**/
+class SimTK_SIMBODY_EXPORT EllipticalPointContact : public Contact {
+public:
+    /** Create a EllipticalPointContact object.
+    @param surf1        the index of the first surface involved in the contact 
+    @param surf2        the index of the second surface involved in the contact 
+    @param X_S1S2       the surface-to-surface relative transform
+    @param X_S1C        contact paraboloid coordinate frame C in S1 frame; x is
+                        kmax direction, y is kmin direction, z points away from
+                        surf1; origin OC is at midpoint between contact 
+                        points on the two surfaces
+    @param k            maximum and minimum curvatures kmax,kmin of the 
+                        relative contact paraboloid
+    @param depth        penetration depth d(>0) or separation (<0); surf1
+                        contact pt at OC+(d/2)z, surf2 contact pt at OC-(d/2)z
+    **/
+    EllipticalPointContact
+       (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
+        const Transform& X_S1S2, 
+        const Transform& X_S1C, const Vec2& k, Real depth); 
+
+    /** Get the relative curvatures at the contact point, ordered kmax,kmin
+    with kmax >= kmin. Note that it is possible that kmin < 0. **/
+    const Vec2& getCurvatures() const;
+    /** Get the frame C in which the contact paraboloid is expressed, as the
+    transform X_S1C. The Cx axis is the direction of maximum relative
+    curvature kmax, Cy is the direction of minimum curvature kmin, and Cz
+    is the contact normal direct away from S1's surface. The origin OC is
+    a point centered between the contact points on the two surfaces; those
+    points are at +/- depth/2 along Cz away from OC. **/
+    const Transform& getContactFrame() const;
+    /** Get the penetration depth (>0) or separation distance (<0), also known 
+    as the "approach". This is defined as the minimum distance you would need to
+    translate surface2 along the normal vector to make the surfaces just touch
+    at their contact points without overlap. **/
+    Real getDepth() const;
+
+    /** Determine whether a Contact object is an EllipticalPointContact. **/
+    static bool isInstance(const Contact& contact);
+    static const EllipticalPointContact& getAs(const Contact& contact)
+    {   assert(isInstance(contact)); 
+        return static_cast<const EllipticalPointContact&>(contact); }
+    static EllipticalPointContact& updAs(Contact& contact)
+    {   assert(isInstance(contact)); 
+        return static_cast<EllipticalPointContact&>(contact); }
+
+    /** Get the unique small-integer id for the CircularPointContact class. **/
+    static ContactTypeId classTypeId();
+
+private:
+    const EllipticalPointContactImpl& getImpl() const 
+    {   assert(isInstance(*this)); 
+        return reinterpret_cast<const EllipticalPointContactImpl&>
+                    (Contact::getImpl()); }
+};
+
 
 
 
