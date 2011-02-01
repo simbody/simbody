@@ -1180,7 +1180,8 @@ two provided in ref. 2. The approximate version provides a smooth function
 that gives at least 7 digits of accuracy (in either float or double 
 precision) across the full range at about 1/4 the cost of the machine 
 precision version. For many applications, including engineering- or 
-scientific-quality contact, 7 digits is more than adequate.
+scientific-quality contact, 7 digits is more than adequate and in float 
+precision that's all you can expect anyway.
 
 @warning In the literature there are two different definitions for
 elliptic integrals. The other definition (call them K'(k) and E'(k)) uses 
@@ -1253,7 +1254,7 @@ static inline std::pair<T,T> approxCompleteEllipticIntegralsKE_T(T m) {
 
 /** Given 0<=m<=1, return complete elliptic integrals of the first and 
 second kinds, K(m) and E(m), approximated but with a maximum error of
-2e-8, i.e. at least 7 digits are correct (whether float or double 
+2e-8 so at least 7 digits are correct (same in float or double 
 precision).\ See @ref EllipticIntegralsGroup "Elliptic integrals" 
 for a discussion.
 
@@ -1292,7 +1293,7 @@ approxCompleteEllipticIntegralsKE(double m)
 {   return approxCompleteEllipticIntegralsKE_T<double>(m); }
 /** This is the single precision (float) version of the approximate calculation
 of elliptic integrals, still yielding about 7 digits of accuracy even 
-though all calculation are done in float precision.
+though all calculations are done in float precision.
 @see approxCompleteEllipticIntegralsKE(double) 
 @see @ref EllipticIntegralsGroup "Elliptic integrals" **/
 inline std::pair<float,float> 
@@ -1371,7 +1372,9 @@ inline std::pair<double,double> completeEllipticIntegralsKE(double m)
 {   return completeEllipticIntegralsKE_T<double>(m); }
 /** This is the single precision (float) version of the machine-precision
 calculation of elliptic integrals, providing accuracy to float precision
-(about 7 digits).
+(about 7 digits) which is no better than you'll get with the much faster
+approximate version, so use that instead!
+@see approxCompleteEllipticIntegralsKE()
 @see completeEllipticIntegralsKE(double) 
 @see @ref EllipticIntegralsGroup "Elliptic integrals" **/
 inline std::pair<float,float> completeEllipticIntegralsKE(float m)
