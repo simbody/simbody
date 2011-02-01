@@ -1175,12 +1175,12 @@ Elliptic integrals are defined only for arguments in range [0,1] inclusive.
 We provide a function that calculates K(m) and E(m) to machine precision
 (float or double) with a fast-converging iterative method adapted from 
 ref. 1, which was in turn adapted from ref. 2. A much faster approximate 
-version is also available, using a method reported in ref. 3, but also derived
-from ref. 2. The approximate version provides a smooth function that gives at 
-least 5 digits of accuracy (in either float or double precision) across the 
-full range at about 1/4 the cost of the machine precision version. For many
-applications, including engineering- or scientific-quality contact, 5 
-digits is more than adequate.
+version is also available, using the higher-precision approximation of the
+two provided in ref. 2. The approximate version provides a smooth function 
+that gives at least 7 digits of accuracy (in either float or double 
+precision) across the full range at about 1/4 the cost of the machine 
+precision version. For many applications, including engineering- or 
+scientific-quality contact, 7 digits is more than adequate.
 
 @warning In the literature there are two different definitions for
 elliptic integrals. The other definition (call them K'(k) and E'(k)) uses 
@@ -1216,11 +1216,17 @@ Hertzian Elliptical Contact Problems", ASME J. Tribology 128:660, 2006.
 template <class T> // float or double 
 static inline std::pair<T,T> approxCompleteEllipticIntegralsKE_T(T m) {
     static const T a[] =
-    {   (T)1.3862944, (T)0.1119723, (T)0.0725296,
-        (T)0.5,       (T)0.1213478, (T)0.0288729 };
-    static const T b[] =
-    {   (T)1, (T)0.4630151, (T)0.1077812,
-        (T)0, (T)0.2452727, (T)0.0412496 };
+    {   (T)1.38629436112, (T)0.09666344259, (T)0.03590092383,
+        (T)0.03742563713, (T)0.01451196212 };
+    static const T b[] = 
+    {   (T)0.5,           (T)0.12498593597, (T)0.06880248576,
+        (T)0.03328355346, (T)0.00441787012 };
+    static const T c[] =
+    {   (T)1,             (T)0.44325141463, (T)0.06260601220,
+        (T)0.04757383546, (T)0.01736506451 };
+    static const T d[] =
+    {   (T)0,             (T)0.24998368310, (T)0.09200180037,
+        (T)0.04069697526, (T)0.00526449639 };
 
     const T SignificantReal = NTraits<T>::getSignificant();
     const T PiOver2         = NTraits<T>::getPi()/2;
@@ -1232,25 +1238,29 @@ static inline std::pair<T,T> approxCompleteEllipticIntegralsKE_T(T m) {
     if (m >= 1) return std::make_pair(Infinity, (T)1);
     if (m <= 0) return std::make_pair(PiOver2, PiOver2);
 
-    const T m1   = 1-m;
-    const T m2   = m1*m1;         //   2 flops
+    const T m1=1-m, m2=m1*m1, m3=m1*m2, m4=m2*m2; // 4 flops
     const T lnm2 = std::log(m1);  // ~50 flops
 
-    // The rest is 18 flops.
-    const T K = (a[0] + a[1]*m1 + a[2]*m2) - lnm2*(a[3] + a[4]*m1 + a[5]*m2);
-    const T E = (b[0] + b[1]*m1 + b[2]*m2) - lnm2*(       b[4]*m1 + b[5]*m2);
+    // The rest is 35 flops.
+    const T K = (a[0] + a[1]*m1 + a[2]*m2 + a[3]*m3 + a[4]*m4) 
+         - lnm2*(b[0] + b[1]*m1 + b[2]*m2 + b[3]*m3 + b[4]*m4);
+    const T E = (c[0] + c[1]*m1 + c[2]*m2 + c[3]*m3 + c[4]*m4) 
+         - lnm2*(       d[1]*m1 + d[2]*m2 + d[3]*m3 + d[4]*m4);
 
     return std::make_pair(K,E);
 }
 /** @endcond **/
 
 /** Given 0<=m<=1, return complete elliptic integrals of the first and 
-second kinds, K(m) and E(m), approximated to about 5 digits (whether
-float or double precision).\ See 
-@ref EllipticIntegralsGroup "Elliptic integrals" for a discussion.
+second kinds, K(m) and E(m), approximated but with a maximum error of
+2e-8, i.e. at least 7 digits are correct (whether float or double 
+precision).\ See @ref EllipticIntegralsGroup "Elliptic integrals" 
+for a discussion.
 
 Note that a full-precision computation of these integrals is also 
-available; see completeEllipticIntegralsKE().
+available; see completeEllipticIntegralsKE(). However, if you are using
+float precision there is no point in using the exact computation since
+this approximation is just as good and much faster.
 
 @param[in] m  The argument to the elliptic integrals. Must be in range [0,1]
               although we allow for a very small amount of numerical error
@@ -1258,18 +1268,14 @@ available; see completeEllipticIntegralsKE().
               put m outside that range.
 @return A std::pair p from which K(m)=p.first and E(m)=p.second.
 
-Here are the approximating formulas: <pre>
-     K(m) = (a0 + a1 m^2 + a2 m^4) - 2 ln(m)*(a3 + a4 m^2 + a5 m^4)
-     E(m) = (b0 + b1 m^2 + b2 m^4) - 2 ln(m)*(     b4 m^2 + b5 m^4)
-</pre>
-where the values for the constants ai,bi can be found in ref. 1 or by
-looking at the code for this method (in the header file). (The method
-originated in ref. 2.) The formulas are accurate to 40 ppm over a very wide 
-range, according to the authors. I checked our implementation against
+You can find the approximating formula we're using in ref. 2, sections
+17.3.34 and 17.3.36, pp. 591-2, or you can look at the code for this function 
+(in the header file). The formulas are accurate to 2e-8 over the full [0-1] 
+argument range, according to the authors. I checked our implementation against
 Matlab's ellipke() function and the results are very good, providing at 
-least 5 correct digits across the full [0,1] range of m.
+least 7 correct digits for a range of sample values.
 
-The cost is about 70 flops.
+The cost is about 90 flops.
 
 @see completeEllipticIntegralsKE()
 @see @ref EllipticIntegralsGroup "Elliptic integrals"
@@ -1285,7 +1291,7 @@ inline std::pair<double,double>
 approxCompleteEllipticIntegralsKE(double m)
 {   return approxCompleteEllipticIntegralsKE_T<double>(m); }
 /** This is the single precision (float) version of the approximate calculation
-of elliptic integrals, still yielding about 5 digits of accuracy even 
+of elliptic integrals, still yielding about 7 digits of accuracy even 
 though all calculation are done in float precision.
 @see approxCompleteEllipticIntegralsKE(double) 
 @see @ref EllipticIntegralsGroup "Elliptic integrals" **/
@@ -1337,13 +1343,15 @@ static inline std::pair<T,T> completeEllipticIntegralsKE_T(T m) {
 }
 /** @endcond **/
 
-/** Given 0<=m<=1, return complete elliptic integrals K(m), E(m), calculated
-to (roughly) machine precision (float or double).\ See 
-@ref EllipticIntegralsGroup "Elliptic integrals" for a discussion.
+/** Given 0<=m<=1, return complete elliptic integrals of the first and
+second kinds, K(m) and E(m), calculated to (roughly) machine precision 
+(float or double).\ See @ref EllipticIntegralsGroup "Elliptic integrals" 
+for a discussion.
 
 Note that we also provide a faster approximate method for calculating these
 functions (see approxCompleteEllipticIntegralsKE()). The approximate method
-is good enough for many scientific and engineering applications.
+is good enough for many scientific and engineering applications and is always
+preferred if you are using float precision.
 
 @param[in] m  The argument to the elliptic integrals. Must be in range [0,1]
               although we allow for a very small amount of numerical error
