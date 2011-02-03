@@ -566,7 +566,16 @@ findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
 }
 
 
-// TODO: documentation or references, Peter?
+// Peter E. says he implemented this from David Eberly's web site
+// http://www.geometrictools.com/Documentation/DistancePointToEllipsoid.pdf
+// Eberly says he got it from John Hart's article in Graphics Gems 4, page
+// 113 "Distance to an Ellipsoid". Both Eberly and Hart recommend using a
+// Newton iteration to solve this problem because the largest root is directly
+// downhill given appropriate starting points, which they provide. However,
+// the implementation here uses a direct solution of the 6th-order polynomial
+// then searches for the largest real root. That is likely to be *much* slower
+// than the recommended approach, although that should be measured.
+// TODO: use faster method?
 Vec3 ContactGeometry::EllipsoidImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     Real a2 = radii[0]*radii[0];
     Real b2 = radii[1]*radii[1];
@@ -602,7 +611,12 @@ Vec3 ContactGeometry::EllipsoidImpl::findNearestPoint(const Vec3& position, bool
     return result;
 }
 
-// TODO: documentation or references, Peter?
+// Peter says he took this algorithm from Art of Illusion but can't remember
+// where it came from. It is similar to an algorithm presented in this thread:
+// http://www.ogre3d.org/forums/viewtopic.php?f=2&t=26442&start=0
+// and is most likely a special case of the general ray-quadric intersection
+// method presented by Cychosz and Waggenspack in Graphics Gems III, pg. 275,
+// "Intersecting a ray with a quadric surface."
 bool ContactGeometry::EllipsoidImpl::intersectsRay
    (const Vec3& origin, const UnitVec3& direction,
     Real& distance, UnitVec3& normal) const
