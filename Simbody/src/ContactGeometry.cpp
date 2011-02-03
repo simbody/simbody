@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -113,6 +113,119 @@ Vec3 ContactGeometry::findNearestPoint(const Vec3& position, bool& inside, UnitV
 void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
     getImpl().getBoundingSphere(center, radius);
 }
+
+// See the documentation in the header file for a complete description of
+// what's being calculated here. This comment adds implementation information
+// that isn't relevant to the API user. 
+// 
+// Given two paraboloids P1 and P2 sharing a common normal z and origin,
+// compute the paraboloid that represents their difference, and express that 
+// paraboloid in a frame that has been rotated around z so that x and y 
+// coincide with the principal curvature directions. P1 and P2 may be
+// elliptic (kmax>=kmin>=0) or hyperbolic (kmax>=0>kmin). If the surfaces are 
+// non-conforming, their difference will be elliptic with kmax>=kmin>0. 
+//
+// We assume the paraboloids represent surfaces and that each has its z axis 
+// oriented away from the surface, pointing outside the "bowl" of the elliptic 
+// paraboloid or away from the convex direction of a hyperbolic paraboloid. 
+// That's the opposite sense from a standard paraboloid parameterization.
+// The z axes are antiparallel. We will return the resulting difference 
+// paraboloid in a frame whose z axis is coincident with P1's z axis, and thus 
+// antiparallel to P2's z axis.
+//
+//     P1: z = -(kmax1/2 x1^2 + kmin1/2 y1^2)
+//     P2: z =   kmax2/2 x2^2 + kmin2/2 y2^2
+//      P: z = -( kmax/2  x^2 +  kmin/2  y^2)
+// Thus the right-handed coordinate frames are:
+//     P1: (x1,y1, z)
+//     P2: (x2,y2,-z)
+//      P: ( x, y, z)
+// The above distinctions don't matter a whole lot for the implementation here,
+// but still, I thought you might like to know anyway.
+//
+// Cost is about 70 flops to get the curvatures kmax,kmin. Then if you want
+// the curvature directions too it costs another 150 flops. 
+
+// This local static helper method calculates the curvatures and returns 
+// intermediates necessary for calculating the directions, but doesn't actually
+// calculate them. So we use only about 70 flops here.
+static void combineParaboloidsHelper
+   (const Rotation& R_SP1, const Vec2& k1,
+    const UnitVec3& x2, const Vec2& k2,
+    Real& cos2w, Real& sin2w, Real& kdiff1, Real& kdiff2, Vec2& k)
+{
+    const UnitVec3& x1 = R_SP1.x(); // P1 kmax direction
+    const UnitVec3& y1 = R_SP1.y(); // P1 kmin direction
+    const UnitVec3& z  = R_SP1.z(); // P1, P, -P2 normal
+
+    const Real ksum1  = k1[0]+k1[1], ksum2  = k2[0]+k2[1]; // 4 flops
+    kdiff1 = k1[0]-k1[1], kdiff2 = k2[0]-k2[1];
+
+    // w is angle between x1, x2 max curvature directions defined
+    // using right hand rule rotation of x1 about z until it is
+    // coincident with x2. But ... we want -90 <= w <= 90, meaning
+    // cos(w) >= 0. If necessary we flip x2 180 degrees around z, 
+    // since -x2 is an equally good max curvature direction.
+    const Real dotx1x2 = dot(x1,x2);         // 5 flops
+    const UnitVec3 x2p = dotx1x2 < 0 ? -x2 : x2;
+    const Real cosw = std::abs(dotx1x2);
+    const Real sinw = dot(cross(x1,x2p), z); // signed, 14 flops
+
+    // We'll need cos(2w), sin(2w); luckily these are easy to get (5 flops).
+    cos2w = 2*square(cosw) - 1; // double angle formulas
+    sin2w = 2*sinw*cosw;
+
+    // Compute min/max curvatures of the difference surface.
+    // See KL Johnson 1987 Ch. 4 and Appendix 2, and J-F Antoine, et al. 
+    // 2006 pg 661. ~35 flops
+    const Real ksum = ksum1 + ksum2;
+    const Real kdiff = std::sqrt(square(kdiff1) + square(kdiff2)
+                                 + 2*kdiff1*kdiff2*cos2w);
+    k = Vec2(ksum + kdiff, ksum - kdiff)/2; // kmax, kmin (4 flops)  
+}
+
+// This is the full version that calculates the curvatures for 70 flops
+// then spends another 150 to get the curvature directions.
+/*static*/ void ContactGeometry::combineParaboloids
+   (const Rotation& R_SP1, const Vec2& k1,
+    const UnitVec3& x2, const Vec2& k2,
+    Rotation& R_SP, Vec2& k)
+{
+    Real cos2w, sin2w, kdiff1, kdiff2;
+    combineParaboloidsHelper(R_SP1, k1, x2, k2,
+                             cos2w, sin2w, kdiff1, kdiff2, k);
+
+    // Now find the rotated coordinate system by solving for the
+    // angle -90 <= alpha <= 90 by which we need to rotate the x1 axis
+    // about z to align it with the x axis. See KL Johnson Appendix 2
+    // again, noting that beta = theta-alpha, then solving for tan(2 alpha).
+    // This is about 130 flops.
+    const Real yy = kdiff2*sin2w, xx = kdiff2*cos2w + kdiff1;
+    Real a = std::atan2(yy,xx) / 2; // yy==xx==0 -> a=0
+    Real cosa = std::cos(a), sina = std::sin(a);
+
+    // Perform the actual rotations of x1,y1 to get x,y (18 flops)
+    const UnitVec3& x1 = R_SP1.x(); // P1 kmax direction
+    const UnitVec3& y1 = R_SP1.y(); // P1 kmin direction
+    const UnitVec3& z  = R_SP1.z(); // P1, P, -P2 normal
+    R_SP.setRotationFromUnitVecsTrustMe(UnitVec3(cosa*x1 + sina*y1, true),
+                                        UnitVec3(cosa*y1 - sina*x1, true),
+                                        z);
+}
+
+// This is the abridged version that costs only 70 flops but gives you just
+// the curvatures without the curvature directions.
+/*static*/ void ContactGeometry::combineParaboloids
+   (const Rotation& R_SP1, const Vec2& k1,
+    const UnitVec3& x2, const Vec2& k2,
+    Vec2& k)
+{
+    Real cos2w, sin2w, kdiff1, kdiff2; // unneeded
+    combineParaboloidsHelper(R_SP1, k1, x2, k2,
+                             cos2w, sin2w, kdiff1, kdiff2, k);     
+}
+
+
 
 //==============================================================================
 //                           CONTACT GEOMETRY IMPL
