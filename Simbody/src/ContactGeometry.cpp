@@ -575,6 +575,14 @@ findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
 // the implementation here uses a direct solution of the 6th-order polynomial
 // then searches for the largest real root. That is likely to be *much* slower
 // than the recommended approach, although that should be measured.
+//
+// I asked Peter and he said he did not try and reject the Newton approach;
+// he just took the direct approach. I believe the Newton method would be
+// *much* faster, but Eberly hints that there are special cases that can
+// cause convergence troubles and must be dealt with carefully. If the
+// existing routine turns out to be a bottleneck, it would be worth revisiting
+// this implementation. -- Sherm 20110203.
+//
 // TODO: use faster method?
 Vec3 ContactGeometry::EllipsoidImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     Real a2 = radii[0]*radii[0];
