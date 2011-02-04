@@ -64,10 +64,14 @@
     PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT;
 
     // These will hold the dynamically-determined function addresses.
+
+    // These functions are needed for basic Visualizer functionality.
     PFNGLGENBUFFERSPROC glGenBuffers;
     PFNGLBINDBUFFERPROC glBindBuffer;
     PFNGLBUFFERDATAPROC glBufferData;
     PFNGLACTIVETEXTUREPROC glActiveTexture;
+
+    // These are needed only for saving images and movies.
     // Use old EXT names for these so we only require OpenGL 2.0.
     PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT;
     PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffersEXT;
@@ -88,7 +92,9 @@
     #include <GL/glut.h>
 #endif
 
-static void initGlextFuncPointersIfNeeded();
+// Returns true if we were able to find sufficent OpenGL functionality to 
+// operate. We'll still limp along if we can't get enough to save images.
+static bool initGlextFuncPointersIfNeeded(bool& canSaveImages);
 static void redrawDisplay();
 static void setKeepAlive(bool enable);
 static void setVsync(bool enable);
@@ -383,6 +389,7 @@ static string simbodyVersionStr;
 
 // These are used when saving a movie.
 static bool savingMovie = false, saveNextFrameToMovie = false;
+static bool canSaveImages = false; // is this OpenGL version up to the job?
 static string movieDir;
 static int movieFrame;
 static ParallelWorkQueue imageSaverQueue(5);
@@ -2398,14 +2405,26 @@ void viewMenuSelected(int option) {
         showFrameNum = !showFrameNum;
         break;
     case MENU_SAVE_IMAGE:
-        saveImage();
+        if (canSaveImages) {
+            saveImage();
+        } else 
+            setOverlayMessage(
+            "Sorry -- image capture not available due to your\n"
+            "backlevel OpenGL. At least OpenGL 2.0 is required.\n"
+            "See the About message for level information.");
         break;
     case MENU_SAVE_MOVIE:
-        if (savingMovie) {
-            savingMovie = false;
-            setOverlayMessage("Frame capture off.");
-        } else
-            saveMovie();
+        if (canSaveImages) {
+            if (savingMovie) {
+                savingMovie = false;
+                setOverlayMessage("Frame capture off.");
+            } else
+                saveMovie();
+        } else 
+            setOverlayMessage(
+            "Sorry -- movie capture not available due to your\n"
+            "backlevel OpenGL. At least OpenGL 2.0 is required.\n"
+            "See the About message for level information.");
         break;
     case MENU_ABOUT:
         dumpAboutMessageToConsole();
@@ -2552,7 +2571,18 @@ int main(int argc, char** argv) {
 
     // On some systems (Windows at least), some of the gl functions may
     // need to be loaded dynamically.
-    initGlextFuncPointersIfNeeded();
+    bool canFunction = initGlextFuncPointersIfNeeded(canSaveImages);
+    if (!canFunction) {
+        printf("\n\n**** FATAL ERROR ****\n");
+        dumpAboutMessageToConsole();
+        printf("\n**** FATAL ERROR ****\n");
+        printf("Sorry, Simbody Visualizer can't function with this ancient version\n");
+        printf("of OpenGL. See the message above for version information.\n");
+        printf("Are you using an emulation through a remote desktop or\n");
+        printf("virtual machine?\n");
+        printf("**** FATAL ERROR **** Simbody Visualizer terminating.\n");
+        return 1;
+    }
 
     setVsync(true);
 
@@ -2634,14 +2664,23 @@ int main(int argc, char** argv) {
 
 
 // Initialize function pointers for Windows GL extensions.
-static void initGlextFuncPointersIfNeeded() {
+static bool initGlextFuncPointersIfNeeded(bool& glCanSaveImages) {
+    glCanSaveImages = true;
 #ifdef _WIN32
     wglSwapIntervalEXT = (PFNWGLSWAPINTERVALFARPROC)wglGetProcAddress( "wglSwapIntervalEXT" );
 
+    // These are necessary for basic functioning.
     glGenBuffers    = (PFNGLGENBUFFERSPROC) glutGetProcAddress("glGenBuffers");
     glBindBuffer    = (PFNGLBINDBUFFERPROC) glutGetProcAddress("glBindBuffer");
     glBufferData    = (PFNGLBUFFERDATAPROC) glutGetProcAddress("glBufferData");
     glActiveTexture = (PFNGLACTIVETEXTUREPROC) glutGetProcAddress("glActiveTexture");
+
+    if (!(glGenBuffers && glBindBuffer && glBufferData && glActiveTexture))
+        return false; // fatal error
+
+    // These are needed only when saving images or movies so the Visualizer can 
+    // function without them.
+
     // Using the "EXT" names here means we only require OpenGL 2.0.
     glGenFramebuffersEXT    = (PFNGLGENFRAMEBUFFERSEXTPROC) glutGetProcAddress("glGenFramebuffersEXT");
     glGenRenderbuffersEXT   = (PFNGLGENRENDERBUFFERSEXTPROC) glutGetProcAddress("glGenRenderbuffersEXT");
@@ -2652,7 +2691,12 @@ static void initGlextFuncPointersIfNeeded() {
     glDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC) glutGetProcAddress("glDeleteRenderbuffersEXT");
     glDeleteFramebuffersEXT  = (PFNGLDELETEFRAMEBUFFERSEXTPROC) glutGetProcAddress("glDeleteFramebuffersEXT");
 
-    //TODO: check that all functions were present.
+    if (! (glGenFramebuffersEXT  && glGenRenderbuffersEXT    && glBindFramebufferEXT
+        && glBindRenderbufferEXT && glRenderbufferStorageEXT && glFramebufferRenderbufferEXT
+        && glDeleteRenderbuffersEXT && glDeleteFramebuffersEXT))
+        glCanSaveImages = false;
 #endif
+
+    return true;
 }
 
