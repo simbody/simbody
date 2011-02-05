@@ -466,12 +466,20 @@ void testMiscellaneous()
     cout << "Ht.diag()[" << Ht.diag().nrow() << "," << Ht.diag().ncol() << "]" << endl;
 }
 
+void testMatInverse() {
+    Matrix m = Test::randMatrix(20,20);
+    Matrix mi = m.invert();
+    Matrix id(20,20); id=1; // identity
+    SimTK_TEST_EQ_SIZE(m*mi, id, 20);
+}
+
 
 int main() {
     SimTK_START_TEST("MatVecTest");
 
         SimTK_SUBTEST(testNegator);
         SimTK_SUBTEST(testMiscellaneous);
+        SimTK_SUBTEST(testMatInverse);
 
     SimTK_END_TEST();
 }
