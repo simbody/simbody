@@ -384,18 +384,20 @@ ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 
 # Determine which math libraries to use for this platform.
 SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
- "If you have your own Lapack, put its library basename here (namespace and version don't apply). Default is to use SimTKlapack, with namespace and version if any.")
+ "If you have your own Lapack and Blas, put library basenames here, separated by semicolons. See LAPACK_BEING_USED to see what's actually being used.")
 
-SET(LAPACK_BEING_USED ${NS}SimTKlapack CACHE STRING
-"Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
-SET(LAPACK_BEING_USED_VN ${NS}SimTKlapack${VN})
+if(WIN32)
+    SET(LAPACK_PLATFORM_DEFAULT SimTKlapack)
+else()
+    SET(LAPACK_PLATFORM_DEFAULT lapack;blas)
+endif()
 
-## Note that the version number does not apply when the user has
-## specified an alternate Lapack library.
+SET(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE STRING
+    "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
+
 IF(BUILD_USING_OTHER_LAPACK)
     SET(LAPACK_BEING_USED ${BUILD_USING_OTHER_LAPACK} CACHE STRING
 "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
-    SET(LAPACK_BEING_USED_VN ${BUILD_USING_OTHER_LAPACK})
 ENDIF(BUILD_USING_OTHER_LAPACK)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
@@ -405,11 +407,11 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 	    SET(REALTIME_LIB rt)
     ENDIF()
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl)
-    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED_VN} pthread ${REALTIME_LIB} dl)
+    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl)
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## Assume Microsoft Visual Studio
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthreadVC2)
-    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED_VN} pthreadVC2)
+    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthreadVC2)
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 IF (BUILD_TESTING)
