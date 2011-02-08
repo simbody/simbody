@@ -163,9 +163,11 @@ public:
 
     /// Each concrete DecorativeGeometry object is expected to have a default resolution
     /// that gets the point across but is cheap to draw and hence probably somewhat "chunky".
-    /// The resolution parameter here scales that default up or down. A value less than
+    /// The resolution parameter here scales that default up or down. The number of faces
+    /// in the displayed representation is roughly proportional to this value. 1.0 means to
+    /// use the default resolution. Values less than 1.0 are lower resolution, and values
+    /// greater than 1.0 are higher resolution. A value less than
     /// or equal to zero here is interpreted as an instruction to "use the default".
-    /// This value affects the generated polygonal data.
     DecorativeGeometry& setResolution(Real);
 
     /// Each concrete DecorativeGeometry object is expected to have a default size

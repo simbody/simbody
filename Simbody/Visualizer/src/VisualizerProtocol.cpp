@@ -292,19 +292,19 @@ void VisualizerProtocol::finishScene() {
 }
 
 void VisualizerProtocol::drawBox(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
-    drawMesh(X_GB, scale, color, (short) representation, MeshBox);
+    drawMesh(X_GB, scale, color, (short) representation, MeshBox, 0);
 }
 
-void VisualizerProtocol::drawEllipsoid(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
-    drawMesh(X_GB, scale, color, (short) representation, MeshEllipsoid);
+void VisualizerProtocol::drawEllipsoid(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution) {
+    drawMesh(X_GB, scale, color, (short) representation, MeshEllipsoid, resolution);
 }
 
-void VisualizerProtocol::drawCylinder(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
-    drawMesh(X_GB, scale, color, (short) representation, MeshCylinder);
+void VisualizerProtocol::drawCylinder(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution) {
+    drawMesh(X_GB, scale, color, (short) representation, MeshCylinder, resolution);
 }
 
-void VisualizerProtocol::drawCircle(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation) {
-    drawMesh(X_GB, scale, color, (short) representation, MeshCircle);
+void VisualizerProtocol::drawCircle(const Transform& X_GB, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution) {
+    drawMesh(X_GB, scale, color, (short) representation, MeshCircle, resolution);
 }
 
 void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& X_GM, Real scale, const Vec4& color, int representation) {
@@ -313,7 +313,7 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
 
     if (iter != meshes.end()) {
         // This mesh was already cached; just reference it by index number.
-        drawMesh(X_GM, Vec3(scale), color, (short)representation, iter->second);
+        drawMesh(X_GM, Vec3(scale), color, (short)representation, iter->second, 0);
         return;
     }
 
@@ -388,12 +388,12 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
     WRITE(outPipe, &vertices[0], vertices.size()*sizeof(float));
     WRITE(outPipe, &faces[0], faces.size()*sizeof(short));
 
-    drawMesh(X_GM, Vec3(scale), color, (short) representation, index);
+    drawMesh(X_GM, Vec3(scale), color, (short) representation, index, 0);
 }
 
 void VisualizerProtocol::
 drawMesh(const Transform& X_GM, const Vec3& scale, const Vec4& color, 
-         short representation, unsigned short meshIndex) 
+         short representation, unsigned short meshIndex, unsigned short resolution)
 {
     char command = (representation == DecorativeGeometry::DrawPoints 
                     ? AddPointMesh 
@@ -416,7 +416,10 @@ drawMesh(const Transform& X_GM, const Vec3& scale, const Vec4& color,
     buffer[11] = (float) color[2];
     buffer[12] = (float) color[3];
     WRITE(outPipe, buffer, 13*sizeof(float));
-    WRITE(outPipe, &meshIndex, sizeof(unsigned short));
+    unsigned short buffer2[2];
+    buffer2[0] = meshIndex;
+    buffer2[1] = resolution;
+    WRITE(outPipe, buffer2, 2*sizeof(unsigned short));
 }
 
 void VisualizerProtocol::

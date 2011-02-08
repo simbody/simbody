@@ -46,7 +46,7 @@ using namespace SimTK;
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 26;
+static const unsigned ProtocolVersion   = 27;
 
 // The VisualizerGUI has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -111,9 +111,9 @@ public:
     void beginScene(Real simTime);
     void finishScene();
     void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
-    void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
-    void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
+    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution);
+    void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution);
+    void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution);
     void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation);
     void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness);
     void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
@@ -138,7 +138,7 @@ public:
     void setClippingPlanes(Real near, Real far) const;
 private:
     void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, 
-                  short representation, unsigned short meshIndex);
+                  short representation, unsigned short meshIndex, unsigned short resolution);
     int outPipe;
 
     // For user-defined meshes, map their unique memory addresses to the 
