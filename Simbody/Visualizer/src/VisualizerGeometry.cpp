@@ -63,22 +63,22 @@ void VisualizerGeometry::implementBrickGeometry(const SimTK::DecorativeBrick& ge
 
 void VisualizerGeometry::implementCylinderGeometry(const SimTK::DecorativeCylinder& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawCylinder(X_GD, getScale(geom)*Vec3(geom.getRadius(), geom.getHalfHeight(), geom.getRadius()), getColor(geom), getRepresentation(geom));
+    protocol.drawCylinder(X_GD, getScale(geom)*Vec3(geom.getRadius(), geom.getHalfHeight(), geom.getRadius()), getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementCircleGeometry(const SimTK::DecorativeCircle& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawCircle(X_GD, getScale(geom)*Vec3(geom.getRadius(), geom.getRadius(), 1), getColor(geom), getRepresentation(geom));
+    protocol.drawCircle(X_GD, getScale(geom)*Vec3(geom.getRadius(), geom.getRadius(), 1), getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementSphereGeometry(const SimTK::DecorativeSphere& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawEllipsoid(X_GD, getScale(geom)*Vec3(geom.getRadius()), getColor(geom), getRepresentation(geom));
+    protocol.drawEllipsoid(X_GD, getScale(geom)*Vec3(geom.getRadius()), getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementEllipsoidGeometry(const SimTK::DecorativeEllipsoid& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawEllipsoid(X_GD, getScale(geom)*geom.getRadii(), getColor(geom), getRepresentation(geom));
+    protocol.drawEllipsoid(X_GD, getScale(geom)*geom.getRadii(), getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementFrameGeometry(const SimTK::DecorativeFrame& geom) {
@@ -107,6 +107,12 @@ int VisualizerGeometry::getRepresentation(const DecorativeGeometry& geom) const 
     if (geom.getRepresentation() == DecorativeGeometry::DrawDefault)
         return DecorativeGeometry::DrawSurface;
     return geom.getRepresentation();
+}
+
+unsigned short VisualizerGeometry::getResolution(const DecorativeGeometry& geom) const {
+    if (geom.getResolution() <= 0)
+        return 2;
+    return std::max((unsigned short) 1, (unsigned short) (geom.getResolution()*2));
 }
 
 Real VisualizerGeometry::getScale(const DecorativeGeometry& geom) const {

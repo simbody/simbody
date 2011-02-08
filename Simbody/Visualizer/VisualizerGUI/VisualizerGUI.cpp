@@ -208,12 +208,12 @@ private:
     float radius;
 };
 
-static vector<Mesh*> meshes;
+static vector<vector<Mesh*> > meshes;
 
 class RenderedMesh {
 public:
-    RenderedMesh(const fTransform& transform, const fVec3& scale, const fVec4& color, short representation, unsigned short meshIndex) :
-            transform(transform), scale(scale), representation(representation), meshIndex(meshIndex) {
+    RenderedMesh(const fTransform& transform, const fVec3& scale, const fVec4& color, short representation, unsigned short meshIndex, unsigned short resolution) :
+            transform(transform), scale(scale), representation(representation), meshIndex(meshIndex), resolution(resolution) {
         this->color[0] = color[0];
         this->color[1] = color[1];
         this->color[2] = color[2];
@@ -231,14 +231,14 @@ public:
             else
                 glColor3fv(color);
         }
-        meshes[meshIndex]->draw(representation);
+        meshes[meshIndex][resolution]->draw(representation);
         glPopMatrix();
     }
     const fTransform& getTransform() const {
         return transform;
     }
     void computeBoundingSphere(float& radius, fVec3& center) const {
-        meshes[meshIndex]->getBoundingSphere(radius, center);
+        meshes[meshIndex][resolution]->getBoundingSphere(radius, center);
         center += transform.p();
         radius *= max(abs(scale[0]), max(abs(scale[1]), abs(scale[2])));
     }
@@ -247,7 +247,7 @@ private:
     fVec3 scale;
     GLfloat color[4];
     short representation;
-    unsigned short meshIndex;
+    unsigned short meshIndex, resolution;
 };
 
 class RenderedLine {
@@ -459,14 +459,281 @@ public:
         index = nextMeshIndex++;
     }
     void execute() {
-        if ((int)meshes.size() <= index)
+        if ((int) meshes.size() <= index)
             meshes.resize(index+1);
-        meshes[index] = new Mesh(vertices, normals, faces);
+        meshes[index].push_back(new Mesh(vertices, normals, faces));
     }
     vector<float> vertices;
     vector<float> normals;
     vector<GLushort> faces;
     int index;
+};
+
+
+static void addVec(vector<float>& data, float x, float y, float z) {
+    data.push_back(x);
+    data.push_back(y);
+    data.push_back(z);
+}
+
+static void addVec(vector<unsigned short>& data, int x, int y, int z) {
+    data.push_back((unsigned short) x);
+    data.push_back((unsigned short) y);
+    data.push_back((unsigned short) z);
+}
+
+static Mesh* makeBox()  {
+    const float halfx = 1;
+    const float halfy = 1;
+    const float halfz = 1;
+    vector<GLfloat> vertices;
+    vector<GLfloat> normals;
+    vector<GLushort> faces;
+
+    // lower x face
+    addVec(vertices, -halfx, -halfy, -halfz);
+    addVec(vertices, -halfx, -halfy, halfz);
+    addVec(vertices, -halfx, halfy, halfz);
+    addVec(vertices, -halfx, halfy, -halfz);
+    addVec(normals, -1, 0, 0);
+    addVec(normals, -1, 0, 0);
+    addVec(normals, -1, 0, 0);
+    addVec(normals, -1, 0, 0);
+    addVec(faces, 0, 1, 2);
+    addVec(faces, 2, 3, 0);
+    // upper x face
+    addVec(vertices, halfx, halfy, halfz);
+    addVec(vertices, halfx, -halfy, halfz);
+    addVec(vertices, halfx, -halfy, -halfz);
+    addVec(vertices, halfx, halfy, -halfz);
+    addVec(normals, 1, 0, 0);
+    addVec(normals, 1, 0, 0);
+    addVec(normals, 1, 0, 0);
+    addVec(normals, 1, 0, 0);
+    addVec(faces, 4, 5, 6);
+    addVec(faces, 6, 7, 4);
+    // lower y face
+    addVec(vertices, -halfx, -halfy, -halfz);
+    addVec(vertices, halfx, -halfy, -halfz);
+    addVec(vertices, halfx, -halfy, halfz);
+    addVec(vertices, -halfx, -halfy, halfz);
+    addVec(normals, 0, -1, 0);
+    addVec(normals, 0, -1, 0);
+    addVec(normals, 0, -1, 0);
+    addVec(normals, 0, -1, 0);
+    addVec(faces, 8, 9, 10);
+    addVec(faces, 10, 11, 8);
+    // upper y face
+    addVec(vertices, halfx, halfy, halfz);
+    addVec(vertices, halfx, halfy, -halfz);
+    addVec(vertices, -halfx, halfy, -halfz);
+    addVec(vertices, -halfx, halfy, halfz);
+    addVec(normals, 0, 1, 0);
+    addVec(normals, 0, 1, 0);
+    addVec(normals, 0, 1, 0);
+    addVec(normals, 0, 1, 0);
+    addVec(faces, 12, 13, 14);
+    addVec(faces, 14, 15, 12);
+    // lower z face
+    addVec(vertices, -halfx, -halfy, -halfz);
+    addVec(vertices, -halfx, halfy, -halfz);
+    addVec(vertices, halfx, halfy, -halfz);
+    addVec(vertices, halfx, -halfy, -halfz);
+    addVec(normals, 0, 0, -1);
+    addVec(normals, 0, 0, -1);
+    addVec(normals, 0, 0, -1);
+    addVec(normals, 0, 0, -1);
+    addVec(faces, 16, 17, 18);
+    addVec(faces, 18, 19, 16);
+    // upper z face
+    addVec(vertices, halfx, halfy, halfz);
+    addVec(vertices, -halfx, halfy, halfz);
+    addVec(vertices, -halfx, -halfy, halfz);
+    addVec(vertices, halfx, -halfy, halfz);
+    addVec(normals, 0, 0, 1);
+    addVec(normals, 0, 0, 1);
+    addVec(normals, 0, 0, 1);
+    addVec(normals, 0, 0, 1);
+    addVec(faces, 20, 21, 22);
+    addVec(faces, 22, 23, 20);
+    return new Mesh(vertices, normals, faces);
+}
+
+static Mesh* makeSphere(unsigned short resolution) {
+    const int numLatitude = 4*resolution;
+    const int numLongitude = 6*resolution;
+    const float radius = 1.0f;
+    vector<GLfloat> vertices;
+    vector<GLfloat> normals;
+    vector<GLushort> faces;
+    addVec(vertices, 0, radius, 0);
+    addVec(normals, 0, 1, 0);
+    for (int i = 0; i < numLatitude; i++) {
+        float phi = (float) (((i+1)*SimTK_PI)/(numLatitude+1));
+        float sphi = sin(phi);
+        float cphi = cos(phi);
+        float y = radius*cphi;
+        float r = radius*sphi;
+        for (int j = 0; j < numLongitude; j++) {
+            float theta = (float) ((j*2*SimTK_PI)/numLongitude);
+            float stheta = sin(theta);
+            float ctheta = cos(theta);
+            addVec(vertices, r*ctheta, y, r*stheta);
+            addVec(normals, sphi*ctheta, cphi, sphi*stheta);
+        }
+    }
+    addVec(vertices, 0, -radius, 0);
+    addVec(normals, 0, -1, 0);
+    for (int i = 1; i < numLongitude; i++)
+        addVec(faces, 0, i+1, i);
+    addVec(faces, 0, 1, numLongitude);
+    for (int i = 1; i < numLatitude; i++) {
+        int base = (i-1)*numLongitude+1;
+        for (int j = 0; j < numLongitude; j++) {
+            int v1 = base+j;
+            int v2 = (j == numLongitude-1 ? base : v1+1);
+            int v3 = v1+numLongitude;
+            int v4 = v2+numLongitude;
+            addVec(faces, v1, v4, v3);
+            addVec(faces, v1, v2, v4);
+        }
+    }
+    int first = (numLatitude-1)*numLongitude+1;
+    int last = numLatitude*numLongitude+1;
+    for (int i = first; i < last-1; i++)
+        addVec(faces, i, i+1, last);
+    addVec(faces, last-1, first, last);
+    return new Mesh(vertices, normals, faces);
+}
+
+static Mesh* makeCylinder(unsigned short resolution) {
+    const int numSides = 6*resolution;
+    const float halfHeight = 1;
+    const float radius = 1;
+    vector<GLfloat> vertices;
+    vector<GLfloat> normals;
+    vector<GLushort> faces;
+
+    // Create the top face.
+
+    addVec(vertices, 0, halfHeight, 0);
+    addVec(normals, 0, 1.0, 0);
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        addVec(vertices, radius*ctheta, halfHeight, radius*stheta);
+        addVec(normals, 0, 1.0, 0);
+    }
+    for (int i = 1; i < numSides; i++)
+        addVec(faces, i, 0, i+1);
+    addVec(faces, numSides, 0, 1);
+
+    // Create the bottom face.
+
+    int bottomStart = numSides+1;
+    addVec(vertices, 0, -halfHeight, 0);
+    addVec(normals, 0, -1.0, 0);
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        addVec(vertices, radius*ctheta, -halfHeight, radius*stheta);
+        addVec(normals, 0, -1.0, 0);
+    }
+    for (int i = 1; i < numSides; i++)
+        addVec(faces, bottomStart+i, bottomStart+i+1, bottomStart);
+    addVec(faces, bottomStart+numSides, bottomStart+1, bottomStart);
+
+    // Create the sides.
+
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        float x = radius*ctheta;
+        float z = radius*stheta;
+        addVec(vertices, x, halfHeight, z);
+        addVec(normals, ctheta, 0, stheta);
+        addVec(vertices, x, -halfHeight, z);
+        addVec(normals, ctheta, 0, stheta);
+    }
+    int sideStart = 2*numSides+2;
+    for (int i = 0; i < numSides-1; i++) {
+        int base = sideStart+2*i;
+        addVec(faces, base, base+2, base+1);
+        addVec(faces, base+1, base+2, base+3);
+    }
+    addVec(faces, sideStart+2*numSides-2, sideStart, sideStart+2*numSides-1);
+    addVec(faces, sideStart+2*numSides-1, sideStart, sideStart+1);
+    return new Mesh(vertices, normals, faces);
+}
+
+static Mesh* makeCircle(unsigned short resolution) {
+    const int numSides = 6*resolution;
+    const float radius = 1;
+    vector<GLfloat> vertices;
+    vector<GLfloat> normals;
+    vector<GLushort> faces;
+
+    // Create the front face.
+
+    addVec(vertices, 0, 0, 0);
+    addVec(normals, 0, 0, -1.0);
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        addVec(vertices, radius*ctheta, radius*stheta, 0);
+        addVec(normals, 0, 0, -1.0);
+    }
+    for (int i = 1; i < numSides; i++)
+        addVec(faces, i, 0, i+1);
+    addVec(faces, numSides, 0, 1);
+
+    // Create the back face.
+
+    addVec(vertices, 0, 0, 0);
+    addVec(normals, 0, 0, 1.0);
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        addVec(vertices, radius*ctheta, radius*stheta, 0);
+        addVec(normals, 0, 0, 1.0);
+    }
+    int backStart = numSides+1;
+    for (int i = 1; i < numSides; i++)
+        addVec(faces, backStart, backStart+i, backStart+i+1);
+    addVec(faces, backStart, backStart+numSides, backStart+1);
+    return new Mesh(vertices, normals, faces);
+}
+
+class PendingStandardMesh : public PendingCommand {
+public:
+    PendingStandardMesh(unsigned short meshIndex, unsigned short resolution) : meshIndex(meshIndex), resolution(resolution) {
+    }
+    void execute() {
+        if ((int) meshes[meshIndex].size() <= resolution)
+            meshes[meshIndex].resize(resolution+1, NULL);
+        if (meshes[meshIndex][resolution] == NULL) {
+            switch (meshIndex) {
+                case MeshBox:
+                    meshes[meshIndex][resolution] = makeBox();
+                    break;
+                case MeshEllipsoid:
+                    meshes[meshIndex][resolution] = makeSphere(resolution);
+                    break;
+                case MeshCylinder:
+                    meshes[meshIndex][resolution] = makeCylinder(resolution);
+                    break;
+                case MeshCircle:
+                    meshes[meshIndex][resolution] = makeCircle(resolution);
+                    break;
+            }
+        }
+    }
+    unsigned short meshIndex, resolution;
 };
 
 static void computeSceneBounds(const Scene* scene, float& radius, fVec3& center) {
@@ -1651,245 +1918,6 @@ static void saveMovie() {
     }
 }
 
-static void addVec(vector<float>& data, float x, float y, float z) {
-    data.push_back(x);
-    data.push_back(y);
-    data.push_back(z);
-}
-
-static void addVec(vector<unsigned short>& data, int x, int y, int z) {
-    data.push_back((unsigned short) x);
-    data.push_back((unsigned short) y);
-    data.push_back((unsigned short) z);
-}
-
-static void makeBox()  {
-    const float halfx = 1;
-    const float halfy = 1;
-    const float halfz = 1;
-    vector<GLfloat> vertices;
-    vector<GLfloat> normals;
-    vector<GLushort> faces;
-
-    // lower x face
-    addVec(vertices, -halfx, -halfy, -halfz);
-    addVec(vertices, -halfx, -halfy, halfz);
-    addVec(vertices, -halfx, halfy, halfz);
-    addVec(vertices, -halfx, halfy, -halfz);
-    addVec(normals, -1, 0, 0);
-    addVec(normals, -1, 0, 0);
-    addVec(normals, -1, 0, 0);
-    addVec(normals, -1, 0, 0);
-    addVec(faces, 0, 1, 2);
-    addVec(faces, 2, 3, 0);
-    // upper x face
-    addVec(vertices, halfx, halfy, halfz);
-    addVec(vertices, halfx, -halfy, halfz);
-    addVec(vertices, halfx, -halfy, -halfz);
-    addVec(vertices, halfx, halfy, -halfz);
-    addVec(normals, 1, 0, 0);
-    addVec(normals, 1, 0, 0);
-    addVec(normals, 1, 0, 0);
-    addVec(normals, 1, 0, 0);
-    addVec(faces, 4, 5, 6);
-    addVec(faces, 6, 7, 4);
-    // lower y face
-    addVec(vertices, -halfx, -halfy, -halfz);
-    addVec(vertices, halfx, -halfy, -halfz);
-    addVec(vertices, halfx, -halfy, halfz);
-    addVec(vertices, -halfx, -halfy, halfz);
-    addVec(normals, 0, -1, 0);
-    addVec(normals, 0, -1, 0);
-    addVec(normals, 0, -1, 0);
-    addVec(normals, 0, -1, 0);
-    addVec(faces, 8, 9, 10);
-    addVec(faces, 10, 11, 8);
-    // upper y face
-    addVec(vertices, halfx, halfy, halfz);
-    addVec(vertices, halfx, halfy, -halfz);
-    addVec(vertices, -halfx, halfy, -halfz);
-    addVec(vertices, -halfx, halfy, halfz);
-    addVec(normals, 0, 1, 0);
-    addVec(normals, 0, 1, 0);
-    addVec(normals, 0, 1, 0);
-    addVec(normals, 0, 1, 0);
-    addVec(faces, 12, 13, 14);
-    addVec(faces, 14, 15, 12);
-    // lower z face
-    addVec(vertices, -halfx, -halfy, -halfz);
-    addVec(vertices, -halfx, halfy, -halfz);
-    addVec(vertices, halfx, halfy, -halfz);
-    addVec(vertices, halfx, -halfy, -halfz);
-    addVec(normals, 0, 0, -1);
-    addVec(normals, 0, 0, -1);
-    addVec(normals, 0, 0, -1);
-    addVec(normals, 0, 0, -1);
-    addVec(faces, 16, 17, 18);
-    addVec(faces, 18, 19, 16);
-    // upper z face
-    addVec(vertices, halfx, halfy, halfz);
-    addVec(vertices, -halfx, halfy, halfz);
-    addVec(vertices, -halfx, -halfy, halfz);
-    addVec(vertices, halfx, -halfy, halfz);
-    addVec(normals, 0, 0, 1);
-    addVec(normals, 0, 0, 1);
-    addVec(normals, 0, 0, 1);
-    addVec(normals, 0, 0, 1);
-    addVec(faces, 20, 21, 22);
-    addVec(faces, 22, 23, 20);
-    meshes[MeshBox] = new Mesh(vertices, normals, faces);
-}
-
-static void makeSphere() {
-    const int numLatitude = 8;
-    const int numLongitude = 12;
-    const float radius = 1.0f;
-    vector<GLfloat> vertices;
-    vector<GLfloat> normals;
-    vector<GLushort> faces;
-    addVec(vertices, 0, radius, 0);
-    addVec(normals, 0, 1, 0);
-    for (int i = 0; i < numLatitude; i++) {
-        float phi = (float) (((i+1)*SimTK_PI)/(numLatitude+1));
-        float sphi = sin(phi);
-        float cphi = cos(phi);
-        float y = radius*cphi;
-        float r = radius*sphi;
-        for (int j = 0; j < numLongitude; j++) {
-            float theta = (float) ((j*2*SimTK_PI)/numLongitude);
-            float stheta = sin(theta);
-            float ctheta = cos(theta);
-            addVec(vertices, r*ctheta, y, r*stheta);
-            addVec(normals, sphi*ctheta, cphi, sphi*stheta);
-        }
-    }
-    addVec(vertices, 0, -radius, 0);
-    addVec(normals, 0, -1, 0);
-    for (int i = 1; i < numLongitude; i++)
-        addVec(faces, 0, i+1, i);
-    addVec(faces, 0, 1, numLongitude);
-    for (int i = 1; i < numLatitude; i++) {
-        int base = (i-1)*numLongitude+1;
-        for (int j = 0; j < numLongitude; j++) {
-            int v1 = base+j;
-            int v2 = (j == numLongitude-1 ? base : v1+1);
-            int v3 = v1+numLongitude;
-            int v4 = v2+numLongitude;
-            addVec(faces, v1, v4, v3);
-            addVec(faces, v1, v2, v4);
-        }
-    }
-    int first = (numLatitude-1)*numLongitude+1;
-    int last = numLatitude*numLongitude+1;
-    for (int i = first; i < last-1; i++)
-        addVec(faces, i, i+1, last);
-    addVec(faces, last-1, first, last);
-    meshes[MeshEllipsoid] = new Mesh(vertices, normals, faces);
-}
-
-static void makeCylinder() {
-    const int numSides = 12;
-    const float halfHeight = 1;
-    const float radius = 1;
-    vector<GLfloat> vertices;
-    vector<GLfloat> normals;
-    vector<GLushort> faces;
-
-    // Create the top face.
-
-    addVec(vertices, 0, halfHeight, 0);
-    addVec(normals, 0, 1.0, 0);
-    for (int i = 0; i < numSides; i++) {
-        float theta = (float) ((i*2*SimTK_PI)/numSides);
-        float stheta = sin(theta);
-        float ctheta = cos(theta);
-        addVec(vertices, radius*ctheta, halfHeight, radius*stheta);
-        addVec(normals, 0, 1.0, 0);
-    }
-    for (int i = 1; i < numSides; i++)
-        addVec(faces, i, 0, i+1);
-    addVec(faces, numSides, 0, 1);
-
-    // Create the bottom face.
-
-    int bottomStart = numSides+1;
-    addVec(vertices, 0, -halfHeight, 0);
-    addVec(normals, 0, -1.0, 0);
-    for (int i = 0; i < numSides; i++) {
-        float theta = (float) ((i*2*SimTK_PI)/numSides);
-        float stheta = sin(theta);
-        float ctheta = cos(theta);
-        addVec(vertices, radius*ctheta, -halfHeight, radius*stheta);
-        addVec(normals, 0, -1.0, 0);
-    }
-    for (int i = 1; i < numSides; i++)
-        addVec(faces, bottomStart+i, bottomStart+i+1, bottomStart);
-    addVec(faces, bottomStart+numSides, bottomStart+1, bottomStart);
-
-    // Create the sides.
-
-    for (int i = 0; i < numSides; i++) {
-        float theta = (float) ((i*2*SimTK_PI)/numSides);
-        float stheta = sin(theta);
-        float ctheta = cos(theta);
-        float x = radius*ctheta;
-        float z = radius*stheta;
-        addVec(vertices, x, halfHeight, z);
-        addVec(normals, ctheta, 0, stheta);
-        addVec(vertices, x, -halfHeight, z);
-        addVec(normals, ctheta, 0, stheta);
-    }
-    int sideStart = 2*numSides+2;
-    for (int i = 0; i < numSides-1; i++) {
-        int base = sideStart+2*i;
-        addVec(faces, base, base+2, base+1);
-        addVec(faces, base+1, base+2, base+3);
-    }
-    addVec(faces, sideStart+2*numSides-2, sideStart, sideStart+2*numSides-1);
-    addVec(faces, sideStart+2*numSides-1, sideStart, sideStart+1);
-    meshes[MeshCylinder] = new Mesh(vertices, normals, faces);
-}
-
-static void makeCircle() {
-    const int numSides = 12;
-    const float radius = 1;
-    vector<GLfloat> vertices;
-    vector<GLfloat> normals;
-    vector<GLushort> faces;
-
-    // Create the front face.
-
-    addVec(vertices, 0, 0, 0);
-    addVec(normals, 0, 0, -1.0);
-    for (int i = 0; i < numSides; i++) {
-        float theta = (float) ((i*2*SimTK_PI)/numSides);
-        float stheta = sin(theta);
-        float ctheta = cos(theta);
-        addVec(vertices, radius*ctheta, radius*stheta, 0);
-        addVec(normals, 0, 0, -1.0);
-    }
-    for (int i = 1; i < numSides; i++)
-        addVec(faces, i, 0, i+1);
-    addVec(faces, numSides, 0, 1);
-
-    // Create the back face.
-
-    addVec(vertices, 0, 0, 0);
-    addVec(normals, 0, 0, 1.0);
-    for (int i = 0; i < numSides; i++) {
-        float theta = (float) ((i*2*SimTK_PI)/numSides);
-        float stheta = sin(theta);
-        float ctheta = cos(theta);
-        addVec(vertices, radius*ctheta, radius*stheta, 0);
-        addVec(normals, 0, 0, 1.0);
-    }
-    int backStart = numSides+1;
-    for (int i = 1; i < numSides; i++)
-        addVec(faces, backStart, backStart+i, backStart+i+1);
-    addVec(faces, backStart, backStart+numSides, backStart+1);
-    meshes[MeshCircle] = new Mesh(vertices, normals, faces);
-}
-
 // Read a particular number of bytes from srcPipe to the given buffer.
 // This will hang until the expected number of bytes has been received.
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
@@ -1932,20 +1960,29 @@ static Scene* readNewScene() {
         case AddPointMesh:
         case AddWireframeMesh:
         case AddSolidMesh: {
-            readData(buffer, 13*sizeof(float)+sizeof(short));
+            readData(buffer, 13*sizeof(float)+2*sizeof(short));
             fTransform position;
             position.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
             position.updP() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             fVec3 scale = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
             fVec4 color = fVec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
             short representation = (command == AddPointMesh ? DecorativeGeometry::DrawPoints : (command == AddWireframeMesh ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
-            RenderedMesh mesh(position, scale, color, representation, shortBuffer[13*sizeof(float)/sizeof(short)]);
+            unsigned short meshIndex = shortBuffer[13*sizeof(float)/sizeof(short)];
+            unsigned short resolution = shortBuffer[13*sizeof(float)/sizeof(short)+1];
+            RenderedMesh mesh(position, scale, color, representation, meshIndex, resolution);
             if (command != AddSolidMesh)
                 newScene->drawnMeshes.push_back(mesh);
             else if (color[3] == 1)
                 newScene->solidMeshes.push_back(mesh);
             else
                 newScene->transparentMeshes.push_back(mesh);
+            if (meshIndex < NumPredefinedMeshes && (meshes[meshIndex].size() <= resolution || meshes[meshIndex][resolution] == NULL)) {
+                // A real mesh will be generated from this the next
+                // time the scene is redrawn.
+                pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE --------
+                pendingCommands.insert(pendingCommands.begin(), new PendingStandardMesh(meshIndex, resolution));
+                pthread_mutex_unlock(&sceneLock);   //------ UNLOCK SCENE --------
+            }
             break;
         }
 
@@ -2605,12 +2642,8 @@ int main(int argc, char** argv) {
     glEnable(GL_CULL_FACE);
     glEnable(GL_NORMALIZE);
 
-    // Make room for the predefined meshes and define them.
+    // Make room for the predefined meshes.
     meshes.resize(NumPredefinedMeshes);
-    makeBox();
-    makeSphere();
-    makeCylinder();
-    makeCircle();
     // Note the first mesh index available for unique meshes
     // that are sent to the GUI for caching.
     nextMeshIndex = NumPredefinedMeshes;
