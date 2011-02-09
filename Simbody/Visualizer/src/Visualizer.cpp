@@ -129,7 +129,6 @@ public:
         setMode(PassThrough);
         clearStats();
 
-        // TODO: protocol startup handshake
         m_protocol.setMaxFrameRate(m_frameRateFPS);
         m_protocol.setBackgroundColor(White);
         m_protocol.setBackgroundType(system.getUseUniformBackground() 

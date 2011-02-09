@@ -2235,6 +2235,8 @@ void* listenForInput(void* args) {
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
             groundNormal = CoordinateDirection( CoordinateAxis((int)buffer[0]),
                                                 (int)(signed char)buffer[1] );
+            X_GC.updR().setRotationFromTwoAxes
+               (groundNormal, YAxis, X_GC.z(), ZAxis); // attempt to keep z
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
