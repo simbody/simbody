@@ -241,6 +241,8 @@ covering all of them:
   - NegXAxis, NegYAxis, NegZAxis are the negative directions.
   - The unary negation operator is overloaded so that -XAxis produces
     NegXAxis and -NegYAxis produces YAxis.
+  - The unary plus operator is overloaded for the CoordinateAxis objects
+    so that +XAxis and so on are the positive CoordinateDirection objects.
 You can also produce CoordinateDirections at compile time or run time from
 calculated axes and directions. 
 @see CoordinateAxis **/
@@ -380,6 +382,12 @@ operator-(const CoordinateAxis::ZCoordinateAxis&){return NegZAxis;}
 inline CoordinateDirection
 operator-(const CoordinateAxis& axis)
 {   return CoordinateDirection(axis,CoordinateDirection::Negative()); }
+
+/// Create the positive direction along the given axis. No computation
+/// is necessary.  @relates CoordinateAxis
+inline CoordinateDirection
+operator+(const CoordinateAxis& axis)
+{   return CoordinateDirection(axis); }
 
 /// Create the XAxis direction by negating NegXAxis. No computation
 /// is necessary. @relates CoordinateDirection
