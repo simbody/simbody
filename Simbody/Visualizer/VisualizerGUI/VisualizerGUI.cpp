@@ -1175,6 +1175,11 @@ static Slider* findSliderById(int id) {
 /*==============================================================================
                              GROUND AND SKY
 ==============================================================================*/
+static void drawSkyVertex(fVec3 position, float texture) {
+    glTexCoord1f(texture);
+    glVertex3fv(&position[0]);
+}
+
 static void drawGroundAndSky(float farClipDistance) {
     static bool initialized = false;
     static GLuint skyTexture;
@@ -1220,47 +1225,43 @@ static void drawGroundAndSky(float farClipDistance) {
 
     float viewDistance = farClipDistance*0.5f;
     fVec3 center = X_GC.p();
-    float top = center[1]+viewDistance;
-    center[1] = 0;
-    fVec3 corner1 = center+X_GC.R()*fVec3(-viewDistance, 0, -viewDistance);
-    fVec3 corner2 = center+X_GC.R()*fVec3(viewDistance, 0, -viewDistance);
-    fVec3 corner3 = center+X_GC.R()*fVec3(viewDistance, 0, viewDistance);
-    fVec3 corner4 = center+X_GC.R()*fVec3(-viewDistance, 0, viewDistance);
+    const float sign = (float)groundNormal.getDirection(); // 1 or -1
+    const CoordinateAxis axis = groundNormal.getAxis();
+    float top = center[axis]+sign*viewDistance;
+    center[axis] = 0;
+    fVec3 offset1 = viewDistance*(X_GC.R()(2)%fUnitVec3(axis));
+    fVec3 offset2 = (offset1%fUnitVec3(axis));
+    fVec3 corner1 = center+(-offset1-offset2);
+    fVec3 corner2 = center+(offset1-offset2);
+    fVec3 corner3 = center+(offset1+offset2);
+    fVec3 corner4 = center+(-offset1+offset2);
     glActiveTexture(GL_TEXTURE0);
     glEnable(GL_TEXTURE_1D);
     glBindTexture(GL_TEXTURE_1D, skyTexture);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
     glBegin(GL_QUAD_STRIP);
-    glTexCoord1f(0);
-    glVertex3d(corner1[0], top, corner1[2]);
-    glTexCoord1f(1);
-    glVertex3d(corner1[0], groundHeight, corner1[2]);
-    glTexCoord1f(0);
-    glVertex3d(corner2[0], top, corner2[2]);
-    glTexCoord1f(1);
-    glVertex3d(corner2[0], groundHeight, corner2[2]);
-    glTexCoord1f(0);
-    glVertex3d(corner3[0], top, corner3[2]);
-    glTexCoord1f(1);
-    glVertex3d(corner3[0], groundHeight, corner3[2]);
-    glTexCoord1f(0);
-    glVertex3d(corner4[0], top, corner4[2]);
-    glTexCoord1f(1);
-    glVertex3d(corner4[0], groundHeight, corner4[2]);
-    glTexCoord1f(0);
-    glVertex3d(corner1[0], top, corner1[2]);
-    glTexCoord1f(1);
-    glVertex3d(corner1[0], groundHeight, corner1[2]);
+    fVec3 offset3 = sign*fUnitVec3(axis);
+    drawSkyVertex(corner1+top*offset3, 0);
+    drawSkyVertex(corner1+groundHeight*offset3, 1);
+    drawSkyVertex(corner2+top*offset3, 0);
+    drawSkyVertex(corner2+groundHeight*offset3, 1);
+    drawSkyVertex(corner3+top*offset3, 0);
+    drawSkyVertex(corner3+groundHeight*offset3, 1);
+    drawSkyVertex(corner4+top*offset3, 0);
+    drawSkyVertex(corner4+groundHeight*offset3, 1);
+    drawSkyVertex(corner1+top*offset3, 0);
+    drawSkyVertex(corner1+groundHeight*offset3, 1);
     glEnd();
     glDisable(GL_TEXTURE_1D);
     glColor3f(0, 0, 1);
     glBegin(GL_QUADS);
-    glVertex3d(corner1[0], 0.99f*top, corner1[2]);
-    glVertex3d(corner2[0], 0.99f*top, corner2[2]);
-    glVertex3d(corner3[0], 0.99f*top, corner3[2]);
-    glVertex3d(corner4[0], 0.99f*top, corner4[2]);
+    drawSkyVertex(corner1+0.99f*top*offset3, 0);
+    drawSkyVertex(corner2+0.99f*top*offset3, 0);
+    drawSkyVertex(corner3+0.99f*top*offset3, 0);
+    drawSkyVertex(corner4+0.99f*top*offset3, 0);
     glEnd();
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
@@ -1276,8 +1277,6 @@ static void drawGroundAndSky(float farClipDistance) {
     // We need to calculate the GL transform T_GP that gives the ground
     // plane's coordinate frame P in the ground frame G.
     Mat<4, 4, GLfloat> T_GP(1);
-    const float sign = (float)groundNormal.getDirection(); // 1 or -1
-    const CoordinateAxis axis = groundNormal.getAxis();
     fVec3::updAs(&T_GP(YAxis)[0]) = fVec3(fUnitVec3(groundNormal)); // signed
     fVec3::updAs(&T_GP(XAxis)[0]) = fVec3(fUnitVec3(axis.getPreviousAxis()));
     fVec3::updAs(&T_GP(ZAxis)[0]) = fVec3(fUnitVec3(axis.getNextAxis()));
@@ -1286,13 +1285,12 @@ static void drawGroundAndSky(float farClipDistance) {
         // Draw shadows on the ground. These are drawn in the shadow frame S,
         // which we'll distort slightly from the ground plane P.
         Mat<4, 4, GLfloat> T_PS(1);
-        T_PS[0][1] = 0.2f;
-        T_PS[1][1] = 0.0f;
-        T_PS[2][1] = 0.2f;
-        // Now get shadow frame's transform in Ground.
-        Mat<4, 4, GLfloat> T_GS = T_GP*T_PS;
+        T_PS[axis.getPreviousAxis()][axis] = 0.2f;
+        T_PS[axis][axis] = 0.0f;
+        T_PS[axis.getNextAxis()][axis] = 0.2f;
+        T_PS[axis][3] = sign*groundHeight;
         glPushMatrix();
-        glMultMatrixf(&T_GS[0][0]);
+        glMultMatrixf(&T_PS[0][0]);
         // Solid and transparent shadows are the same color (sorry). Trying to
         // mix light and dark shadows is much harder and any simple attempts
         // (e.g. put light shadows on top of dark ones) look terrible.
@@ -2235,6 +2233,8 @@ void* listenForInput(void* args) {
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
             groundNormal = CoordinateDirection( CoordinateAxis((int)buffer[0]),
                                                 (int)(signed char)buffer[1] );
+            X_GC.updR().setRotationFromTwoAxes
+               (groundNormal, YAxis, X_GC.z(), ZAxis); // attempt to keep z
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
