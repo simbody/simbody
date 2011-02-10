@@ -430,27 +430,24 @@ public:
 /**
  * This class can be used to define new forces.  To use it, create a class that extends Force::Custom::Implementation.
  * You can then create an instance of it and pass it to the Force::Custom constructor:
- * 
- * <pre>
- * Force::Custom myForce(forces, new MyForceImplementation());
- * </pre>
- * 
- * Alternatively, you can create a subclass of Force::Custom which creates the Implementation itself:
- * 
- * <pre>
- * class MyForce : public Force::Custom {
- * public:
- *   MyForce(GeneralForceSubsystem& forces) : Force::Custom(forces, new MyForceImplementation()) {
- *   }
- * }
- * </pre>
- * 
- * This allows a user to simply write
- * 
- * <pre>
- * MyForce(forces);
- * </pre>
- * 
+ * @code
+ *     Force::Custom myForce(forces, new MyForceImplementation());
+ * @endcode
+ * Optionally, you can also create a "handle" class as a subclass of Force::Custom which 
+ * creates and manages the Implementation object internally:
+ * @code
+ *     class MyForce : public Force::Custom {
+ *     public:
+ *         MyForce(GeneralForceSubsystem& forces) 
+ *         :   Force::Custom(forces, new MyForceImplementation()) {}
+ *     }
+ * @endcode
+ * This allows your custom force to look from a user's perspective just as the built-in 
+ * forces look. The user will see only the minimal API necessary for using the force and can 
+ * then write:
+ * @code
+ *     MyForce(forces); // (you might need more arguments here for your force)
+ * @endcode
  * and not worry about implementation classes or creating objects on the heap.  If you do this, your Force::Custom
  * subclass must not have any data members or virtual methods.  If it does, it will not work correctly.  Instead,
  * store all data in the Implementation subclass.
