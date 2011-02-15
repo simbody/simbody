@@ -454,7 +454,10 @@ public:
  * is well worth the (minimal) extra effort to provide a handle class also to 
  * make your new force behave identically to the built-in forces that come 
  * with Simbody. In either case the %Implementation object is the same so you 
- * can add a handle later if you want.
+ * can add a handle later if you want. To reiterate: the handle class is 
+ * completely optional; you \e must write an %Implementation class
+ * but a handle class is an aesthetic addition whose main purpose is to
+ * make a cleaner API for users of your force element.
  *
  * In the case where you write only the %Implementation class, a user will 
  * create an instance of that class and pass it to the generic Force::Custom 
@@ -575,6 +578,9 @@ public:
  * That is less convenient for you (and uglier) but avoids the possibility of
  * unwanted side effects in user code so should be considered if you expect
  * wide distribution of your new force element.
+ *
+ * Thanks to Nur Adila Faruk Senan (a.k.a. Adila Papaya) for help in clarifying
+ * this documentation.
  */
 class SimTK_SIMBODY_EXPORT Force::Custom : public Force {
 public:
