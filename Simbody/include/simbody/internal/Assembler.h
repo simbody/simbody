@@ -1307,7 +1307,7 @@ Any observations that contain a NaN will be ignored; that marker/observation
 pair will not be used in the next calculation of the assembly goal cost 
 function. **/
 void moveAllObservations(const Array_<Vec3>& observations) 
-{   SimTK_ERRCHK2_ALWAYS(observations.size() == observation2marker.size(),
+{   SimTK_ERRCHK2_ALWAYS((int)observations.size() == (int)observation2marker.size(),
         "Markers::moveAllObservations()",
         "Number of observations provided (%d) differs from the number of"
         " observations (%d) last defined with defineObservationOrder().",
