@@ -169,7 +169,6 @@ void testHalfSpaceEllipsoid() {
     contacts.addBody(setIndex, ellipsoid, ContactGeometry::Ellipsoid(radii), center);
     contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0, 1, 0))); // y < 1
     State state = system.realizeTopology();
-    Vec3 centerInGround;
 
     // Test a variety of positions.
 
@@ -193,6 +192,97 @@ void testHalfSpaceEllipsoid() {
     assertEqual(c.getLocation()[0], 0.1);
     assertEqual(c.getLocation()[1], 1-c.getDepth()/2);
     ASSERT(c.getLocation()[2] > 0);
+}
+
+bool verifyEllipsoidContact(const Contact& contact, const Vec3& radii1, const Vec3& radii2, const Vec3& center1, const Vec3& center2, const Transform& t1, const Transform& t2) {
+    ASSERT(PointContact::isInstance(contact));
+    const PointContact& c = static_cast<const PointContact&>(contact);
+
+    // The "contact point" should be midway between the two surfaces along the normal direction.  Verify that.
+
+    Vec3 loc1 = ~t1*(c.getLocation()+0.5*c.getDepth()*c.getNormal())-center1;
+    assertEqual(loc1[0]*loc1[0]/(radii1[0]*radii1[0])+loc1[1]*loc1[1]/(radii1[1]*radii1[1])+loc1[2]*loc1[2]/(radii1[2]*radii1[2]), 1.0);
+    Vec3 loc2 = ~t2*(c.getLocation()-0.5*c.getDepth()*c.getNormal())-center2;
+    assertEqual(loc2[0]*loc2[0]/(radii2[0]*radii2[0])+loc2[1]*loc2[1]/(radii2[1]*radii2[1])+loc2[2]*loc2[2]/(radii2[2]*radii2[2]), 1.0);
+
+    // Check that the normals are correct.  This test may occassionally fail (when points of very high
+    // curvate cause the Newton iteration not to converge), so instead of an assertion, which just return
+    // whether the normals were correct.
+
+    UnitVec3 norm1(loc1[0]/(radii1[0]*radii1[0]), loc1[1]/(radii1[1]*radii1[1]), loc1[2]/(radii1[2]*radii1[2]));
+    if (~norm1*(~t1.R()*c.getNormal()) < 0.999)
+        return false;
+    UnitVec3 norm2(loc2[0]/(radii2[0]*radii2[0]), loc2[1]/(radii2[1]*radii2[1]), loc2[2]/(radii2[2]*radii2[2]));
+    if (-~norm2*(~t2.R()*c.getNormal()) < 0.999)
+        return false;
+    return true;
+}
+
+void testEllipsoidEllipsoid() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralContactSubsystem contacts(system);
+    Vec3 radii1(0.8, 1.5, 2.1);
+    Vec3 radii2(1.0, 1.2, 1.4);
+    Vec3 center1(0, -0.2, 0.5); // Major axes span the ranges [-0.8, 0.8], [-1.7, 1.3], [-1.6, 2.6]
+    Vec3 center2(0.1, 0, 0.3); // Major axes span the ranges [-0.9, 1.1], [-1.2, 1.2], [-1.1, 1.7]
+    Random::Uniform random(0.0, 1.0);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    Body::Rigid body2(MassProperties(1.0, Vec3(0), Inertia(1)));
+    ContactSetIndex setIndex = contacts.createContactSet();
+    MobilizedBody::Free ellipsoid1(matter.updGround(), Transform(), body, Transform());
+    MobilizedBody::Free ellipsoid2(matter.updGround(), Transform(), body2, Transform());
+    contacts.addBody(setIndex, ellipsoid1, ContactGeometry::Ellipsoid(radii1), center1);
+    contacts.addBody(setIndex, ellipsoid2, ContactGeometry::Ellipsoid(radii2), center2);
+    State state = system.realizeTopology();
+
+    // Test a variety of positions.
+
+    ellipsoid1.setQToFitTransform(state, Transform(Rotation(), Vec3(0))); // [-0.8, 0.8], [-1.7, 1.3], [-1.6, 2.6]
+    ellipsoid2.setQToFitTransform(state, Transform(Rotation(), Vec3(2, 0, 0))); // [1.1, 3.1], [-1.2, 1.2], [-1.1, 1.7]
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    ellipsoid1.setQToFitTransform(state, Transform(Rotation(), Vec3(0))); // [-0.8, 0.8], [-1.7, 1.3], [-1.6, 2.6]
+    ellipsoid2.setQToFitTransform(state, Transform(Rotation(), Vec3(1.5, 0, 0))); // [0.6, 2.6], [-1.2, 1.2], [-1.1, 1.7]
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 1);
+    ASSERT(verifyEllipsoidContact(contacts.getContacts(state, setIndex)[0], radii1, radii2, center1, center2, ellipsoid1.getBodyTransform(state), ellipsoid2.getBodyTransform(state)));
+
+    // Create a cloud of ellipsoids and find all contacts between them.
+
+    MultibodySystem system2;
+    SimbodyMatterSubsystem matter2(system2);
+    GeneralContactSubsystem contacts2(system2);
+    ContactSetIndex setIndex2 = contacts2.createContactSet();
+    const int numEllipsoids = 100;
+    for (int i = 0; i < numEllipsoids; i++) {
+        MobilizedBody::Free ellipsoid(matter2.updGround(), Transform(), body, Transform());
+        contacts2.addBody(setIndex2, ellipsoid, ContactGeometry::Ellipsoid(Vec3(0.1+random.getValue(), 0.1+random.getValue(), 0.1+random.getValue())), Vec3(0));
+    }
+    State state2 = system2.realizeTopology();
+    for (MobilizedBodyIndex i(1); i <= numEllipsoids; i++) {
+        Rotation rot;
+        rot.setRotationToBodyFixedXYZ(Vec3(random.getValue()*SimTK_PI, random.getValue()*SimTK_PI, random.getValue()*SimTK_PI));
+        Vec3 pos = 5*Vec3(random.getValue(), random.getValue(), random.getValue());
+        matter2.getMobilizedBody(i).setQToFitTransform(state2, Transform(rot, pos));
+    }
+    system2.realize(state2, Stage::Dynamics);
+
+    // Verify each contact that was found.
+
+    const Array_<Contact>& contact = contacts2.getContacts(state2, setIndex2);
+    int errorCount = 0;
+    for (int i = 0; i < (int) contact.size(); i++) {
+        ASSERT(PointContact::isInstance(contact[i]));
+        const PointContact& c = static_cast<const PointContact&>(contact[i]);
+        const ContactGeometry::Ellipsoid& ellipsoid1 = reinterpret_cast<const ContactGeometry::Ellipsoid&>(contacts2.getBodyGeometry(setIndex2, c.getSurface1()));
+        const ContactGeometry::Ellipsoid& ellipsoid2 = reinterpret_cast<const ContactGeometry::Ellipsoid&>(contacts2.getBodyGeometry(setIndex2, c.getSurface2()));
+        const MobilizedBody& body1 = contacts2.getBody(setIndex2, c.getSurface1());
+        const MobilizedBody& body2 = contacts2.getBody(setIndex2, c.getSurface2());
+        if (!verifyEllipsoidContact(c, ellipsoid1.getRadii(), ellipsoid2.getRadii(), Vec3(0), Vec3(0), body1.getBodyTransform(state2), body2.getBodyTransform(state2)))
+            errorCount++;
+    }
+    ASSERT(errorCount < contact.size()/10);
 }
 
 /**
@@ -455,6 +545,7 @@ int main() {
         testHalfSpaceSphere();
         testSphereSphere();
         testHalfSpaceEllipsoid();
+        testEllipsoidEllipsoid();
         testHalfSpaceTriangleMesh();
         testSphereTriangleMesh();
         testTriangleMeshTriangleMesh();

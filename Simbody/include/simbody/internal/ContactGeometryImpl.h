@@ -83,6 +83,37 @@ protected:
 };
 
 
+//==============================================================================
+//                                 CONVEX IMPL
+//==============================================================================
+class SimTK_SIMBODY_EXPORT ContactGeometry::ConvexImpl : public ContactGeometryImpl {
+public:
+    ConvexImpl(const std::string& type) : ContactGeometryImpl(type) {
+    }
+    /**
+     * Evaluate the support mapping function for this shape.  Given a direction, this should
+     * return the point on the surface that has the maximum dot product with the direction.
+     */
+    virtual Vec3 getSupportMapping(UnitVec3 direction) const = 0;
+    /**
+     * Compute the curvature of the surface.
+     *
+     * @param point        a point at which to compute the curvature
+     * @param curvature    on exit, this should contain the maximum (curvature[0]) and minimum
+     *                     (curvature[1]) curvature of the surface at the point
+     * @param orientation  on exit, this should specify the orientation of the surface as follows:
+     *                     the x axis along the direction of maximum curvature, the y axis along
+     *                     the direction of minimum curvature, and the z axis along the surface normal
+     */
+    virtual void computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const = 0;
+    /**
+     * This should return a Function that provides an implicit representation of the surface.  The function
+     * should be positive inside the object, 0 on the surface, and negative outside the object.  It must
+     * support first and second derivatives.
+     */
+    virtual const Function& getImplicitFunction() const = 0;
+};
+
 
 //==============================================================================
 //                             HALF SPACE IMPL
@@ -116,9 +147,21 @@ public:
 //==============================================================================
 //                                SPHERE IMPL
 //==============================================================================
-class ContactGeometry::SphereImpl : public ContactGeometryImpl {
+class SphereImplicitFunction : public Function {
 public:
-    SphereImpl(Real radius) : ContactGeometryImpl(Type()), radius(radius) {
+    SphereImplicitFunction(const ContactGeometry::SphereImpl& owner) : owner(owner) {
+    }
+    Real calcValue(const Vector& x) const;
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const;
+    int getArgumentSize() const;
+    int getMaxDerivativeOrder() const;
+private:
+    const ContactGeometry::SphereImpl& owner;
+};
+
+class ContactGeometry::SphereImpl : public ConvexImpl {
+public:
+    SphereImpl(Real radius) : ConvexImpl(Type()), radius(radius), function(*this) {
     }
     ContactGeometryImpl* clone() const {
         return new SphereImpl(radius);
@@ -144,8 +187,16 @@ public:
     Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
+    Vec3 getSupportMapping(UnitVec3 direction) const {
+        return radius*direction;
+    }
+    void computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const;
+    const Function& getImplicitFunction() const {
+        return function;
+    }
 private:
     Real radius;
+    SphereImplicitFunction function;
 };
 
 
@@ -153,11 +204,23 @@ private:
 //==============================================================================
 //                                ELLIPSOID IMPL
 //==============================================================================
-class ContactGeometry::EllipsoidImpl : public ContactGeometryImpl {
+class EllipsoidImplicitFunction : public Function {
+public:
+    EllipsoidImplicitFunction(const ContactGeometry::EllipsoidImpl& owner) : owner(owner) {
+    }
+    Real calcValue(const Vector& x) const;
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const;
+    int getArgumentSize() const;
+    int getMaxDerivativeOrder() const;
+private:
+    const ContactGeometry::EllipsoidImpl& owner;
+};
+
+class ContactGeometry::EllipsoidImpl : public ConvexImpl {
 public:
     EllipsoidImpl(const Vec3& radii)
-    :   ContactGeometryImpl(Type()), radii(radii), 
-        curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])) {}
+    :   ConvexImpl(Type()), radii(radii),
+        curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])), function(*this) {}
 
     ContactGeometryImpl* clone() const {return new EllipsoidImpl(radii);}
     const Vec3& getRadii() const {return radii;}
@@ -191,10 +254,19 @@ public:
     Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
+    Vec3 getSupportMapping(UnitVec3 direction) const {
+        Vec3 temp(radii[0]*direction[0], radii[1]*direction[1], radii[2]*direction[2]);
+        return Vec3(radii[0]*temp[0], radii[1]*temp[1], radii[2]*temp[2])/temp.norm();
+    }
+    void computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const;
+    const Function& getImplicitFunction() const {
+        return function;
+    }
 private:
     Vec3 radii;
     // The curvatures are calculated whenever the radii are set.
     Vec3 curvatures; // (1/radii[0], 1/radii[1], 1/radii[2])
+    EllipsoidImplicitFunction function;
 };
 
 // Given an ellipsoid and a unit normal direction, find the unique point on the

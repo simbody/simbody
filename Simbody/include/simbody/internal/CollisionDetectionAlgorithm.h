@@ -56,6 +56,7 @@ public:
     class HalfSpaceTriangleMesh;
     class SphereTriangleMesh;
     class TriangleMeshTriangleMesh;
+    class ConvexConvex;
     virtual ~CollisionDetectionAlgorithm() {}
     /**
      * Identify contacts between a pair of bodies.
@@ -201,6 +202,29 @@ private:
     static const int UNKNOWN = 0;
     static const int BOUNDARY = 1;
     static const int INSIDE = 2;
+};
+
+/**
+ * This algorithm detects contacts between two ContactGeometry::Convex objects.
+ */
+class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::ConvexConvex : public CollisionDetectionAlgorithm {
+public:
+    virtual ~ConvexConvex() {}
+    void processObjects
+       (ContactSurfaceIndex index1, const ContactGeometry& object1,
+        const Transform& transform1,
+        ContactSurfaceIndex index2, const ContactGeometry& object2,
+        const Transform& transform2,
+        Array_<Contact>& contacts) const;
+private:
+    static Vec3 computeSupport(const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2,
+            const Transform& transform, UnitVec3 direction);
+    static Vec3 addContact(ContactSurfaceIndex index1, ContactSurfaceIndex index2,
+            const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2,
+            const Transform& transform1, const Transform& transform2, const Transform& transform12,
+            Vec3 point1, Vec3 point2, Array_<Contact>& contacts);
+    static Vec6 computeErrorVector(const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2, Vec3 pos1, Vec3 pos2, const Transform& transform12);
+    static Mat66 computeJacobian(const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2, Vec3 pos1, Vec3 pos2, const Transform& transform12);
 };
 
 } // namespace SimTK

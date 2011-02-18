@@ -72,6 +72,7 @@ class HalfSpaceImpl;
 class SphereImpl;
 class EllipsoidImpl;
 class TriangleMeshImpl;
+class ConvexImpl;
 
 /** Base class default constructor creates an empty handle. **/
 ContactGeometry() : impl(0) {}
@@ -116,6 +117,59 @@ bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
 @param[out] radius  On exit, this contains the radius of the bounding 
                     sphere. **/
 void getBoundingSphere(Vec3& center, Real& radius) const;
+
+/** Calculate surface curvature at a point using differential geometry
+as suggested by Harris 2006, "Curvature of ellipsoids and other surfaces"
+Ophthal. Physiol. Opt. 26:497-501, although the equations here
+come directly from Harris' reference Struik 1961, Lectures on Classical
+Differential Geometry, 2nd ed. republished by Dover 1988. Equation and
+page numbers below are from Struik.
+
+This method works for any smooth surface for which there is a local
+(u,v) surface parameterization; it is not restricted to ellipsoids or
+convex shapes, and (u,v) must be distinct but do not have to be
+perpendicular. Both must be perpendicular to the surface normal.
+
+First fundamental form:  I  = E du^2 + 2F dudv + G dv^2
+     E = dxdu^2, F = ~dxdu * dxdv, G=dxdv^2
+Second fundamental form: II = e du^2 + 2f dudv + g dv^2
+     e = - ~d2xdu2 * nn, f = - ~d2xdudv * nn, g = - ~d2xdv2 * nn
+
+Given a direction t=dv/du, curvature k is
+
+      II   e + 2f t + g t^2
+  k = -- = ----------------   (eq. 6-3)
+      I    E + 2F t + G t^2
+
+We want minimum and maximum values for k to get principal
+curvatures. We can find those as the solutions to dk/dt=0.
+     dk/dt = (E + 2Ft + Gt^2)(f+gt) - (e + 2ft + gt^2)(F+Gt)
+When dk/dt=0, k =(f+gt)/(F+Gt) = (e+ft)/(E+Ft) (eq. 6-4). That
+provides a quadratic equation for the two values of t:
+      A t^2 + B t + C = 0
+where A=Fg-Gf, B=Eg-Ge, C=Ef-Fe  (eq. 6-5a).
+
+In case the u and v tangent directions are the min and max
+curvature directions (on a sphere, for example), they must be
+perpendicular so F=f=0 (eq. 6-6). Then the curvatures are
+ku = e/E and kv = g/G (eq. 6-8).
+
+We're going to return principal curvatures kmax and kmin such that
+kmax >= kmin, along with the perpendicular tangent unit directions
+dmax,dmin that are the corresonding principal curvature directions,
+oriented so that (dmax,dmin,nn) form a right-handed coordinate frame.
+
+Cost: given a point P, normalized normal nn, unnormalized u,v
+tangents and second derivatives
+    curvatures: ~145
+    directions:  ~60
+                ----
+                ~205
+*/
+Vec2 evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
+                             const Vec3& dPdu, const Vec3& dPdv,
+                             const Vec3& d2Pdu2, const Vec3& d2Pdv2, const Vec3& d2Pdudv,
+                             Transform& X_EP);
 
 /** This utility method is useful for characterizing the relative geometry of
 two locally-smooth surfaces in contact, in a way that is useful for later

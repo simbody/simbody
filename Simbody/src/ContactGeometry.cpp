@@ -114,6 +114,57 @@ void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
     getImpl().getBoundingSphere(center, radius);
 }
 
+Vec2 ContactGeometry::evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
+                             const Vec3& dPdu, const Vec3& dPdv,
+                             const Vec3& d2Pdu2, const Vec3& d2Pdv2, const Vec3& d2Pdudv,
+                             Transform& X_EP)
+{
+    // All this is 42 flops
+    Real E =  ~dPdu*dPdu,  F =  ~dPdu*dPdv,   G =  ~dPdv*dPdv;
+    Real e =-(~d2Pdu2*nn), f =-(~d2Pdudv*nn), g =-(~d2Pdv2*nn);
+    Real A = F*g-G*f, B = E*g-G*e, C = E*f-F*e;
+
+    Real kmax, kmin;
+    UnitVec3 dmax;
+    if (std::abs(F) < SignificantReal) {
+        Real ku = e/E, kv = g/G; // two divides ~40 flops
+        if (ku < kv) {
+            kmax=kv, kmin=ku;
+            dmax=UnitVec3(dPdv); // normalizing, ~40 flops
+        } else {
+            kmax=ku, kmin=kv;
+            dmax=UnitVec3(dPdu); // normalizing, ~40 flops
+        }
+    } else {
+        // ~50 flops
+        // t = (-b +/- sqrt(b^2-4ac)) / 2a
+        // Discriminant must be nonnegative for real surfaces
+        // but could be slightly negative due to numerical noise.
+        Real sqrtd = std::sqrt(std::max(B*B - 4*A*C, Real(0)));
+        Vec2 t = Vec2(-B + sqrtd, -B - sqrtd) / (2*A);
+
+        // Two divides + misc: ~50 flops
+        Real kr = (e + f*t[0])/(E+F*t[0]); // Struik, eq. 6-4, pg 80
+        Real ks = (e + f*t[1])/(E+F*t[1]); // (works only because these are extremes)
+                                           // otherwise use eq. 6-3.
+
+        if (kr < ks) {
+            kmax=ks, kmin=kr;
+            dmax = UnitVec3(t[1]*dPdv + dPdu); // Sdir, normalizing, ~50 flops
+        } else {
+            kmax=kr, kmin=ks;
+            dmax = UnitVec3(t[0]*dPdv + dPdu); // Rdir, normalizing, ~50 flops
+        }
+    }
+
+    // y=z%x ensures right handed; already unit vec (9 flops)
+    UnitVec3 dmin = UnitVec3(nn % dmax, true);
+    X_EP.updR().setRotationFromUnitVecsTrustMe(dmax, dmin, nn);
+    X_EP.updP() = P; // the origin point
+
+    return Vec2(kmax, kmin);
+}
+
 // See the documentation in the header file for a complete description of
 // what's being calculated here. This comment adds implementation information
 // that isn't relevant to the API user. 
@@ -358,6 +409,31 @@ bool ContactGeometry::SphereImpl::intersectsRay
 void ContactGeometry::SphereImpl::getBoundingSphere(Vec3& center, Real& radius) const {
     center = Vec3(0);
     radius = this->radius;
+}
+
+void ContactGeometry::SphereImpl::computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
+    orientation = Rotation(UnitVec3(point), ZAxis, fabs(point[0]) > 0.5 ? Vec3(0, 1, 0) : Vec3(1, 0, 0), XAxis);
+    curvature = 1.0/radius;
+}
+
+Real SphereImplicitFunction::calcValue(const Vector& x) const {
+    return 1.0-(x[0]*x[0]+x[1]*x[1]+x[2]*x[2])/(owner.getRadius()*owner.getRadius());
+}
+
+Real SphereImplicitFunction::calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    if (derivComponents.size() == 1)
+        return 2.0*x[derivComponents[0]]/(owner.getRadius()*owner.getRadius());
+    if (derivComponents[0] == derivComponents[1])
+        return 2.0/(owner.getRadius()*owner.getRadius());
+    return 0.0;
+}
+
+int SphereImplicitFunction::getArgumentSize() const {
+    return 3;
+}
+
+int SphereImplicitFunction::getMaxDerivativeOrder() const {
+    return std::numeric_limits<int>::max();
 }
 
 
@@ -663,6 +739,38 @@ bool ContactGeometry::EllipsoidImpl::intersectsRay
 void ContactGeometry::EllipsoidImpl::getBoundingSphere(Vec3& center, Real& radius) const {
     center = Vec3(0);
     radius = max(radii);
+}
+
+void ContactGeometry::EllipsoidImpl::computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
+    Transform transform;
+    findParaboloidAtPoint(point, transform, curvature);
+    orientation = transform.R();
+}
+
+Real EllipsoidImplicitFunction::calcValue(const Vector& x) const {
+    const Vec3& radii = owner.getRadii();
+    return 1.0-x[0]*x[0]/(radii[0]*radii[0])-x[1]*x[1]/(radii[1]*radii[1])-x[2]*x[2]/(radii[2]*radii[2]);
+}
+
+Real EllipsoidImplicitFunction::calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    const Vec3& radii = owner.getRadii();
+    if (derivComponents.size() == 1) {
+        int c = derivComponents[0];
+        return 2.0*x[c]/(radii[c]*radii[c]);
+    }
+    if (derivComponents[0] == derivComponents[1]) {
+        int c = derivComponents[0];
+        return 2.0/(radii[c]*radii[c]);
+    }
+    return 0.0;
+}
+
+int EllipsoidImplicitFunction::getArgumentSize() const {
+    return 3;
+}
+
+int EllipsoidImplicitFunction::getMaxDerivativeOrder() const {
+    return std::numeric_limits<int>::max();
 }
 
 
