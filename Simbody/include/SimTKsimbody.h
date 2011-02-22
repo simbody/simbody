@@ -40,7 +40,7 @@ user programs should included only the top-level Simbody.h header (which
 will include this one). **/
 
 // This should be kept self-contained for backwards compatibility since
-// in releases prior to Simbody 2.3 users were told to include "SimTKsimbody.h"
+// in releases prior to Simbody 2.2 users were told to include "SimTKsimbody.h"
 // rather than the now-preferred "Simbody.h".
 
 #include "SimTKcommon.h"
