@@ -219,7 +219,7 @@ public:
 private:
     static Vec3 computeSupport(const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2,
             const Transform& transform, UnitVec3 direction);
-    static Vec3 addContact(ContactSurfaceIndex index1, ContactSurfaceIndex index2,
+    static void addContact(ContactSurfaceIndex index1, ContactSurfaceIndex index2,
             const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2,
             const Transform& transform1, const Transform& transform2, const Transform& transform12,
             Vec3 point1, Vec3 point2, Array_<Contact>& contacts);

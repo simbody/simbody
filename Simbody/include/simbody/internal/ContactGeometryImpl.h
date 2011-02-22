@@ -149,20 +149,22 @@ public:
 //==============================================================================
 class SphereImplicitFunction : public Function {
 public:
-    SphereImplicitFunction(const ContactGeometry::SphereImpl& owner) : owner(owner) {
-    }
+    SphereImplicitFunction() : ownerp(0) {}
+    SphereImplicitFunction(const ContactGeometry::SphereImpl& owner) 
+    :   ownerp(&owner) {}
+    void setOwner(const ContactGeometry::SphereImpl& owner) {ownerp=&owner;}
     Real calcValue(const Vector& x) const;
     Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const;
     int getArgumentSize() const;
     int getMaxDerivativeOrder() const;
 private:
-    const ContactGeometry::SphereImpl& owner;
+    const ContactGeometry::SphereImpl* ownerp; // just a reference; don't delete
 };
 
 class ContactGeometry::SphereImpl : public ConvexImpl {
 public:
-    SphereImpl(Real radius) : ConvexImpl(Type()), radius(radius), function(*this) {
-    }
+    explicit SphereImpl(Real radius) : ConvexImpl(Type()), radius(radius) 
+    {   function.setOwner(*this); }
     ContactGeometryImpl* clone() const {
         return new SphereImpl(radius);
     }
@@ -206,21 +208,24 @@ private:
 //==============================================================================
 class EllipsoidImplicitFunction : public Function {
 public:
-    EllipsoidImplicitFunction(const ContactGeometry::EllipsoidImpl& owner) : owner(owner) {
-    }
+    EllipsoidImplicitFunction() : ownerp(0) {}
+    EllipsoidImplicitFunction(const ContactGeometry::EllipsoidImpl& owner) 
+    :   ownerp(&owner) {}
+    void setOwner(const ContactGeometry::EllipsoidImpl& owner) {ownerp=&owner;}
     Real calcValue(const Vector& x) const;
     Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const;
     int getArgumentSize() const;
     int getMaxDerivativeOrder() const;
 private:
-    const ContactGeometry::EllipsoidImpl& owner;
+    const ContactGeometry::EllipsoidImpl* ownerp; // just a reference; don't delete
 };
 
 class ContactGeometry::EllipsoidImpl : public ConvexImpl {
 public:
-    EllipsoidImpl(const Vec3& radii)
+    explicit EllipsoidImpl(const Vec3& radii)
     :   ConvexImpl(Type()), radii(radii),
-        curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])), function(*this) {}
+        curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])) 
+    {   function.setOwner(*this); }
 
     ContactGeometryImpl* clone() const {return new EllipsoidImpl(radii);}
     const Vec3& getRadii() const {return radii;}

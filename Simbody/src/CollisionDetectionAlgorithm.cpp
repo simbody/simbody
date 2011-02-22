@@ -616,7 +616,7 @@ void CollisionDetectionAlgorithm::ConvexConvex::processObjects
     }
 }
 
-Vec3 CollisionDetectionAlgorithm::ConvexConvex::addContact(ContactSurfaceIndex index1, ContactSurfaceIndex index2,
+void CollisionDetectionAlgorithm::ConvexConvex::addContact(ContactSurfaceIndex index1, ContactSurfaceIndex index2,
         const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2,
         const Transform& transform1, const Transform& transform2, const Transform& transform12,
         Vec3 point1, Vec3 point2, Array_<Contact>& contacts) {

@@ -282,7 +282,7 @@ void testEllipsoidEllipsoid() {
         if (!verifyEllipsoidContact(c, ellipsoid1.getRadii(), ellipsoid2.getRadii(), Vec3(0), Vec3(0), body1.getBodyTransform(state2), body2.getBodyTransform(state2)))
             errorCount++;
     }
-    ASSERT(errorCount < contact.size()/10);
+    ASSERT(errorCount < (int)contact.size()/10);
 }
 
 /**

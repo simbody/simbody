@@ -59,7 +59,7 @@ properties and accuracy setting you can get reasonably good performance out
 of the explicit integrators here, which will scale better to large systems.
 */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 #include <cstdio>
 #include <exception>

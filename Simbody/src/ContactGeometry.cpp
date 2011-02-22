@@ -413,19 +413,19 @@ void ContactGeometry::SphereImpl::getBoundingSphere(Vec3& center, Real& radius) 
 
 void ContactGeometry::SphereImpl::computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
     orientation = Rotation(UnitVec3(point), ZAxis, fabs(point[0]) > 0.5 ? Vec3(0, 1, 0) : Vec3(1, 0, 0), XAxis);
-    curvature = 1.0/radius;
+    curvature = 1/radius;
 }
 
 Real SphereImplicitFunction::calcValue(const Vector& x) const {
-    return 1.0-(x[0]*x[0]+x[1]*x[1]+x[2]*x[2])/(owner.getRadius()*owner.getRadius());
+    return 1-(x[0]*x[0]+x[1]*x[1]+x[2]*x[2])/square(ownerp->getRadius());
 }
 
 Real SphereImplicitFunction::calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
     if (derivComponents.size() == 1)
-        return 2.0*x[derivComponents[0]]/(owner.getRadius()*owner.getRadius());
+        return 2*x[derivComponents[0]]/square(ownerp->getRadius());
     if (derivComponents[0] == derivComponents[1])
-        return 2.0/(owner.getRadius()*owner.getRadius());
-    return 0.0;
+        return 2/square(ownerp->getRadius());
+    return 0;
 }
 
 int SphereImplicitFunction::getArgumentSize() const {
@@ -748,21 +748,21 @@ void ContactGeometry::EllipsoidImpl::computeCurvature(const Vec3& point, Vec2& c
 }
 
 Real EllipsoidImplicitFunction::calcValue(const Vector& x) const {
-    const Vec3& radii = owner.getRadii();
-    return 1.0-x[0]*x[0]/(radii[0]*radii[0])-x[1]*x[1]/(radii[1]*radii[1])-x[2]*x[2]/(radii[2]*radii[2]);
+    const Vec3& radii = ownerp->getRadii();
+    return 1-x[0]*x[0]/(radii[0]*radii[0])-x[1]*x[1]/(radii[1]*radii[1])-x[2]*x[2]/(radii[2]*radii[2]);
 }
 
 Real EllipsoidImplicitFunction::calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
-    const Vec3& radii = owner.getRadii();
+    const Vec3& radii = ownerp->getRadii();
     if (derivComponents.size() == 1) {
         int c = derivComponents[0];
-        return 2.0*x[c]/(radii[c]*radii[c]);
+        return 2*x[c]/(radii[c]*radii[c]);
     }
     if (derivComponents[0] == derivComponents[1]) {
         int c = derivComponents[0];
-        return 2.0/(radii[c]*radii[c]);
+        return 2/(radii[c]*radii[c]);
     }
-    return 0.0;
+    return 0;
 }
 
 int EllipsoidImplicitFunction::getArgumentSize() const {
