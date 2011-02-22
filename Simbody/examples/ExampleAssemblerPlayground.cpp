@@ -37,7 +37,7 @@ the same size but considerably more complexity, see the AmysIKProblem example.
 */
 
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 #include <cstdio>
 #include <exception>

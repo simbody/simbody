@@ -33,7 +33,7 @@
 introduced in Simbody 2.2.
 */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 #include <cstdio>
 #include <exception>

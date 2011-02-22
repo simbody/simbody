@@ -33,7 +33,7 @@
 interesting information during time stepping. The information is displayed
 in the console (terminal) window, not the graphics window. */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 using namespace SimTK;
 

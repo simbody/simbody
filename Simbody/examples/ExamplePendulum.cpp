@@ -31,7 +31,7 @@
 
 /* A one-body pendulum. Doesn't get much easier than this! */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 using namespace SimTK;
 

@@ -37,7 +37,7 @@ feedback to the user, and adds a menu to the display. A description of all user
 input received is written to the console, and some inputs are used to control 
 the simulation. */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 #include <cstdio>
 #include <iostream>

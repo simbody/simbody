@@ -32,7 +32,7 @@
 /* This example demonstrates the use of an event handler to implement 
 discontinuous changes to the State during time stepping. */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 using namespace SimTK;
 

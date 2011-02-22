@@ -33,7 +33,7 @@
 This example shows how to build a linked chain of bodies programmatically,
 simulate it, and produce a simple animation while it is simulating. */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 using namespace SimTK;
 

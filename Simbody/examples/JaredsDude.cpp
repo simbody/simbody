@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // An attempt at duplicating Jared Duke's simulation for studying performance.
 // -----------------------------------------------------------------------------
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 #include <utility>
 #include <map>

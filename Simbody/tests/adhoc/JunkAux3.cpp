@@ -34,7 +34,7 @@
  * This is about testing Simbody, *not* studying ???!
  */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 #include <string>
 #include <iostream>

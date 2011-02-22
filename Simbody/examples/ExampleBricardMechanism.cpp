@@ -29,7 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 #include <fstream>
 #include <iostream>

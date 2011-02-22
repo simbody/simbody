@@ -42,7 +42,7 @@
  *   DOI 10.1007/s11071-010-9717-3
  */
 
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 using namespace SimTK;
 using namespace std;

@@ -1,4 +1,4 @@
-#include "SimTKsimbody.h"
+#include "Simbody.h"
 
 #include <cstdio>
 #include <exception>
