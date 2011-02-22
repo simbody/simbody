@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SimTKSIMBODY_H_
-#define SimTK_SIMBODY_SimTKSIMBODY_H_
+#ifndef SimTK_SIMBODY_SIMBODY_H_
+#define SimTK_SIMBODY_SIMBODY_H_
 
 /* -------------------------------------------------------------------------- *
  *                             SimTK: Simbody(tm)                             *
@@ -34,49 +34,12 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-This header file includes all the Simbody header files that need to be 
-visible to a compiler processing a Simbody-using compilation unit.\ However,
-user programs should included only the top-level Simbody.h header (which 
-will include this one). **/
-
-// This should be kept self-contained for backwards compatibility since
-// in releases prior to Simbody 2.2 users were told to include "SimTKsimbody.h"
-// rather than the now-preferred "Simbody.h".
+This is the header file that user code should include to pick up all Simbody 
+capabilities.\ Note that all symbols defined here will be in the SimTK 
+namespace, or (where a namespace can't be used) prefixed by "SimTK_". **/
 
 #include "SimTKcommon.h"
 #include "SimTKmath.h"
-#include "simbody/internal/common.h"
-#include "simbody/internal/MultibodySystem.h"
-#include "simbody/internal/Body.h"
-#include "simbody/internal/Motion.h"
-#include "simbody/internal/MobilizedBody.h"
-#include "simbody/internal/Constraint.h"
-#include "simbody/internal/Contact.h"
-#include "simbody/internal/ContactGeometry.h"
-#include "simbody/internal/CollisionDetectionAlgorithm.h"
-#include "simbody/internal/ElasticFoundationForce.h"
-#include "simbody/internal/Force.h"
-#include "simbody/internal/Force_Gravity.h"
-#include "simbody/internal/Force_LinearBushing.h"
-#include "simbody/internal/Force_Thermostat.h"
-#include "simbody/internal/ForceSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubtree.h"
-#include "simbody/internal/GeneralContactSubsystem.h"
-#include "simbody/internal/GeneralForceSubsystem.h"
-#include "simbody/internal/HuntCrossleyContact.h"
-#include "simbody/internal/HuntCrossleyForce.h"
-#include "simbody/internal/DecorationSubsystem.h"
-#include "simbody/internal/DecorationGenerator.h"
-#include "simbody/internal/TextDataEventReporter.h"
-#include "simbody/internal/ObservedPointFitter.h"
-#include "simbody/internal/Assembler.h"
-#include "simbody/internal/OrientedBoundingBox.h"
-#include "simbody/internal/LocalEnergyMinimizer.h"
-#include "simbody/internal/ContactTrackerSubsystem.h"
-#include "simbody/internal/CompliantContactSubsystem.h"
-#include "simbody/internal/Visualizer.h"
-#include "simbody/internal/Visualizer_InputListener.h"
-#include "simbody/internal/Visualizer_Reporter.h"
+#include "SimTKsimbody.h"
 
-#endif // SimTK_SIMBODY_SimTKSIMBODY_H_
+#endif // SimTK_SIMBODY_SIMBODY_H_
