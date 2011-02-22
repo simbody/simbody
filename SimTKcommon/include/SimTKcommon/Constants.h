@@ -184,23 +184,49 @@ specific types. **/
  */
 #define SimTK_SQRT2  1.414213562373095048801688724209698078569671875376948073176679738L
 
+/** One over the square root of 2; also half the square root of 2 since
+ * 1/sqrt(2) == 2^(-1/2) == sqrt(2)/2.
+ * @par uncertainty
+ *      approximation of an exact value
+ */
+#define SimTK_OOSQRT2 .7071067811865475244008443621048490392848359376884740365883398690L
+
+/** The cube root of 2, 2^(1/3).
+ * @par uncertainty
+ *      approximation of an exact value
+ */
+#define SimTK_CBRT2  1.259921049894873164767210607278228350570251464701507980081975112L
+
+/** One over the cube root of 2, 2^(-1/3).
+ * @par uncertainty
+ *      approximation of an exact value
+ */
+#define SimTK_OOCBRT2 .7937005259840997373758528196361541301957466639499265049041428810L
+
+/** The sixth root of 2, 2^(1/6).
+ * @par uncertainty
+ *      approximation of an exact value
+ */
+#define SimTK_SIXRT2 1.122462048309372981433533049679179516232411110613986753440409546L
+
+/** One over the sixth root of 2, 2^(-1/6).
+ * @par uncertainty
+ *      approximation of an exact value
+ */
+#define SimTK_OOSIXRT2 .8908987181403393047402262055905125079872126158781604033837569922L
+
 /** The square root of 3.
  * @par uncertainty
  *      approximation of an exact value
  */
 #define SimTK_SQRT3  1.732050807568877293527446341505872366942805253810380628055806979L
 
-/** The cube root of 2.
- * @par uncertainty
- *      approximation of an exact value
- */
-#define SimTK_CBRT2  1.259921049894873164767210607278228350570251464701507980081975112L
-
 /** The cube root of 3.
  * @par uncertainty
  *      approximation of an exact value
  */
 #define SimTK_CBRT3  1.442249570307408382321638310780109588391869253499350577546416195L
+
 
 /**@}**/    /*end of Mathematical Constants*/
 
