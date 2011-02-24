@@ -134,7 +134,7 @@ public:
         (int esz, int cppEsz, const MatrixCharacter& actual, 
          int spacing, S* data, bool canWrite=true);
 
-    /// This is the factory for non-const access to externally-allocated storage.
+    /// This is the factory for const access to externally-allocated storage.
     static This* createExternalMatrixHelperRep
         (int esz, int cppEsz, const MatrixCharacter& actual, int spacing, const S* data)
     {   return createExternalMatrixHelperRep(esz, cppEsz, actual,

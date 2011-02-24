@@ -583,6 +583,7 @@ void testOne() {
     sys.calcYErrUnitTolerances(state, ooTols);
 
     sys.realize(state, Stage::Acceleration);
+
     cout << "Now stage=" << state.getSystemStage() << endl;
     vectorResult.setValue(state, Vector(5,9));
     cout << "After vectorResult.setValue(), vectorResult="

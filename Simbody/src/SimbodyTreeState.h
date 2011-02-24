@@ -449,9 +449,9 @@ public:
     //   reference configuration X_PB when q==0 (usually that means M==F), 
     //       for each rigid body
 
-    Real                   totalMass; // sum of all rigid body and particles masses
+    Real              totalMass; // sum of all rigid body and particles masses
     Array_<Inertia>   centralInertias;           // nb
-    Vector_<Vec3>          principalMoments;          // nb
+    Vector_<Vec3>     principalMoments;          // nb
     Array_<Rotation>  principalAxes;             // nb
     Array_<Transform> referenceConfiguration;    // nb
 
