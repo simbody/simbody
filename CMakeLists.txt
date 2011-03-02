@@ -414,15 +414,15 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
     SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthreadVC2)
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-IF (BUILD_TESTING)
-    #
-    # Allow automated build and dashboard.
-    #
-    INCLUDE (Dart)
+#
+# Allow automated build and dashboard.
+#
+INCLUDE (Dart)
+## When in Debug mode and running valgrind, some of the test
+## cases take longer than the default 1500 seconds.
+SET(DART_TESTING_TIMEOUT 7200)
 
-    ## When in Debug mode and running valgrind, some of the test
-    ## cases take longer than the default 1500 seconds.
-    SET(DART_TESTING_TIMEOUT 7200)
+IF (BUILD_TESTING)
 
     #IF (UNIX AND NOT CYGWIN AND NOT APPLE)
     #  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
