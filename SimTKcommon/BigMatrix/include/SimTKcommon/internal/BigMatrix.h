@@ -766,9 +766,15 @@ public:
     MatrixView_<EHerm> operator~() const {return transpose();}
     MatrixView_<EHerm> operator~()       {return updTranspose();}
 
-    // Select matrix diagonal (of largest leading square if rectangular).
+    /// Select main diagonal (of largest leading square if rectangular) and
+    /// return it as a read-only view of the diagonal elements of this Matrix.
     inline VectorView_<ELT> diag() const;
+    /// Select main diagonal (of largest leading square if rectangular) and
+    /// return it as a writable view of the diagonal elements of this Matrix.
     inline VectorView_<ELT> updDiag();
+    /// This non-const version of diag() is an alternate name for updDiag()
+    /// available for historical reasons.
+    VectorView_<ELT> diag() {return updDiag();}
 
     // Create a view of the real or imaginary elements. TODO
     //inline MatrixView_<EReal> real() const;

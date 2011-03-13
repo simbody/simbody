@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -40,8 +40,22 @@
 
 namespace SimTK {
 
-/// CS is total spacing between columns in memory (default M)
-/// RS is total spacing between rows in memory (default 1) 
+/** This class represents a small matrix whose size is known at compile time, 
+containing elements of any Composite Numerical Type (CNT) and engineered to
+have no runtime overhead whatsoever. Memory layout defaults to packed,
+column ordered storage but can be specified to have any regular row and 
+column spacing. A Mat object is itself a Composite Numerical Type and can thus
+be the element type for other matrix and vector types.
+
+@tparam M   The number of rows in this matrix (no default).
+@tparam N   The number of columns in this matrix (no default).
+@tparam ELT The element type; default is Real.
+@tparam CS  Column spacing in memory as a multiple of element size (default M).
+@tparam RS  %Row spacing in memory as a multiple of element size (default 1).
+
+@see Matrix_ for handling of large or variable-size matrices.
+@see SymMat, Vec, Row
+**/
 template <int M, int N, class ELT, int CS, int RS> class Mat {
     typedef ELT                                 E;
     typedef typename CNT<E>::TNeg               ENeg;
@@ -68,7 +82,7 @@ template <int M, int N, class ELT, int CS, int RS> class Mat {
     typedef typename CNT<E>::ScalarNormSq       EScalarNormSq;
 
 public:
-
+    /** Every Composite Numerical Type (CNT) must define these values. **/
     enum {
         NRows               = M,
         NCols               = N,
@@ -139,29 +153,38 @@ public:
 
     typedef THerm                           TransposeType; // TODO
 
+    /** Return the total number of elements M*N contained in this Mat. **/
     int size() const { return M*N; }
+    /** Return the number of rows in this Mat, echoing the value supplied
+    for the template paramter \a M. **/
     int nrow() const { return M; }
+    /** Return the number of columns in this Mat, echoing the value supplied
+    for the template paramter \a N. **/
     int ncol() const { return N; }
 
-    // Scalar norm square is sum( squares of all scalars )
+    /** Scalar norm square is the sum of squares of all the scalars that 
+    comprise the value of this Mat. For Mat objects with composite element
+    types, this is defined recursively as the sum of the scalar norm squares 
+    of all the elements, where the scalar norm square of a scalar is just that
+    scalar squared. **/
     ScalarNormSq scalarNormSqr() const { 
         ScalarNormSq sum(0);
         for(int j=0;j<N;++j) sum += CNT<TCol>::scalarNormSqr((*this)(j));
         return sum;
     }
 
-    // sqrt() is elementwise square root; that is, the return value has the same
-    // dimension as this Mat but with each element replaced by whatever it thinks
-    // its square root is.
+    /** Elementwise square root; that is, the return value has the same
+    dimensions as this Mat but with each element replaced by whatever it thinks
+    its square root is. **/
     TSqrt sqrt() const { 
         TSqrt msqrt;
         for(int j=0;j<N;++j) msqrt(j) = (*this)(j).sqrt();
         return msqrt;
     }
 
-    // abs() is elementwise absolute value; that is, the return value has the same
-    // dimension as this Mat but with each element replaced by whatever it thinks
-    // its absolute value is.
+    /** Elementwise absolute value; that is, the return value has the same
+    dimensions as this Mat but with each element replaced by whatever it thinks
+    its absolute value is. **/
     TAbs abs() const { 
         TAbs mabs;
         for(int j=0;j<N;++j) mabs(j) = (*this)(j).abs();
@@ -219,8 +242,8 @@ public:
         typedef Mat<M,N,P> Type;
     };
 
-    // Default construction initializes to NaN when debugging but
-    // is left uninitialized otherwise.
+    /** Default construction initializes to NaN when debugging but is left 
+    uninitialized otherwise to ensure that there is no overhead. **/
 	Mat(){ 
     #ifndef NDEBUG
         setToNaN();
@@ -230,20 +253,28 @@ public:
     // It's important not to use the default copy constructor or copy
     // assignment because the compiler doesn't understand that we may
     // have noncontiguous storage and will try to copy the whole array.
+
+    /** Copy constructor copies only the elements that are present and does
+    not touch any unused memory space between them if they are not packed. **/
     Mat(const Mat& src) {
         for (int j=0; j<N; ++j)
             (*this)(j) = src(j);
     }
-    Mat& operator=(const Mat& src) {    // no harm if src and 'this' are the same
+    /** Copy assignment copies only the elements that are present and does
+    not touch any unused memory space between them if they are not packed. 
+    Works correctly even if source and destination are the same object. **/
+    Mat& operator=(const Mat& src) {    
         for (int j=0; j<N; ++j)
-           (*this)(j) = src(j);
+           (*this)(j) = src(j); // no harm if src and 'this' are the same
         return *this;
     }
 
-    // Convert a SymMat to a Mat. Caution: with complex elements the
-    // upper triangle values are conjugates of the lower triangle ones.
+    /** Explicit construction of a Mat from a SymMat (symmetric/Hermitian 
+    matrix). Note that a SymMat is a Hermitian matrix when the elements are 
+    complex, so in that case the resulting Mat's upper triangle values are 
+    complex conjugates of the lower triangle ones. **/
     explicit Mat(const SymMat<M, ELT>& src) {
-        diag() = src.diag();
+        updDiag() = src.diag();
         for (int j = 0; j < M; ++j)
             for (int i = j+1; i < M; ++i) {
                 (*this)(i, j) = src.getEltLower(i, j);
@@ -251,37 +282,57 @@ public:
             }
     }
 
-    // We want an implicit conversion from a Mat of the same length
-    // and element type but with different spacings.
-    template <int CSS, int RSS> Mat(const Mat<M,N,E,CSS,RSS>& src) {
+    /** This provides an \e implicit conversion from a Mat of the same 
+    dimensions and element type but with different element spacing. 
+    @tparam CSS Column spacing of the source Mat.
+    @tparam RSS %Row spacing of the source Mat. **/
+    template <int CSS, int RSS> 
+    Mat(const Mat<M,N,E,CSS,RSS>& src) {
         for (int j=0; j<N; ++j)
             (*this)(j) = src(j);
     }
 
-    // We want an implicit conversion from a Mat of the same length
-    // and *negated* element type, possibly with different spacings.
-    template <int CSS, int RSS> Mat(const Mat<M,N,ENeg,CSS,RSS>& src) {
+    /** This provides an \e implicit conversion from a Mat of the same 
+    dimensions and \e negated element type, possibly with different element 
+    spacing.
+    @tparam CSS Column spacing of the source Mat.
+    @tparam RSS %Row spacing of the source Mat. **/
+    template <int CSS, int RSS> 
+    Mat(const Mat<M,N,ENeg,CSS,RSS>& src) {
         for (int j=0; j<N; ++j)
             (*this)(j) = src(j);
     }
 
-    // Construct a Mat from a Mat of the same dimensions, with any
-    // spacings. Works as long as the element types are assignment compatible.
-    template <class EE, int CSS, int RSS> explicit Mat(const Mat<M,N,EE,CSS,RSS>& mm)
+    /** Explicit construction of a Mat from a source Mat of the same 
+    dimensions and an assignment-compatible element type, with any element 
+    spacing allowed.
+    @tparam EE  The element type of the source Mat; must be assignment 
+                compatible with element type E of this Mat.
+    @tparam CSS Column spacing of the source Mat.
+    @tparam RSS %Row spacing of the source Mat. **/
+    template <class EE, int CSS, int RSS> 
+    explicit Mat(const Mat<M,N,EE,CSS,RSS>& mm)
       { for (int j=0;j<N;++j) (*this)(j) = mm(j);}
 
-    // Construction using an element repeats that element on the diagonal
-    // but sets the rest of the matrix to zero.
+    /** Explicit construction from a single element \a e of this Mat's element
+    type E sets all the main diagonal elements to \a e but sets the rest of 
+    the elements to zero. **/
     explicit Mat(const E& e)
       { for (int j=0;j<N;++j) (*this)(j) = E(0); diag()=e; }
 
-    // Construction using a negated element is just like construction from
-    // the element.
+    /** Explicit construction from a single element \a e whose type is
+    negator<E> (abbreviated ENeg here) where E is this Mat's element
+    type sets all the main diagonal elements to \a e but sets the rest of 
+    the elements to zero. **/
     explicit Mat(const ENeg& e)
       { for (int j=0;j<N;++j) (*this)(j) = E(0); diag()=e; }
 
-    // Given an int, turn it into a suitable floating point number
-    // and then feed that to the above single-element constructor.
+    /** Explicit construction from an int value means we convert the int into
+    an object of this Mat's element type E, and then apply the single-element
+    constructor above which sets the Mat to zero except for its main diagonal
+    elements which will all be set to the given value. To convert an int to
+    an element, we first turn it into the appropriate-precision floating point 
+    number, and then call E's constructor that takes a single scalar. **/
     explicit Mat(int i) 
       { new (this) Mat(E(Precision(i))); }
 
@@ -683,7 +734,16 @@ public:
         return d[i*RS+j*CS]; 
     }
 
+    /// Select main diagonal (of largest leading square if rectangular) and
+    /// return it as a read-only view (as a Vec) of the diagonal elements 
+    /// of this Mat.
     const TDiag& diag() const { return *reinterpret_cast<const TDiag*>(d); }
+    /// Select main diagonal (of largest leading square if rectangular) and
+    /// return it as a writable view (as a Vec) of the diagonal elements 
+    /// of this Mat.
+    TDiag&       updDiag()    { return *reinterpret_cast<TDiag*>(d); }
+    /// This non-const version of diag() is an alternate name for updDiag()
+    /// available for historical reasons.
     TDiag&       diag()       { return *reinterpret_cast<TDiag*>(d); }
 
     EStandard trace() const {return diag().sum();}
