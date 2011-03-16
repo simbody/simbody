@@ -1064,7 +1064,7 @@ void ContactForceGenerator::HertzElliptical::calcContactForce
 
     calcHertzContactForce(subsys, tracker, state, overlap,
                           normal_S1, origin_S1, depth,
-                          V_S1S2, R, 1, contactForce_S1);
+                          V_S1S2, R, e, contactForce_S1);
 }
 
 
