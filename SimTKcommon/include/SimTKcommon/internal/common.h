@@ -283,10 +283,10 @@ inline bool canStoreInInt(unsigned long long u) {return (unsigned long long)(int
 // that can be stored in an int?".
 inline bool canStoreInNonnegativeInt(bool)             {return true;}
 inline bool canStoreInNonnegativeInt(char c)           {return c >= 0;}
-inline bool canStoreInNonnegativeInt(unsigned char c)  {return true;}
+inline bool canStoreInNonnegativeInt(unsigned char)    {return true;}
 inline bool canStoreInNonnegativeInt(signed char c)    {return c >= 0;}
 inline bool canStoreInNonnegativeInt(short s)          {return s >= 0;}
-inline bool canStoreInNonnegativeInt(unsigned short s) {return true;}
+inline bool canStoreInNonnegativeInt(unsigned short)   {return true;}
 inline bool canStoreInNonnegativeInt(int  i)           {return i >= 0;}
 inline bool canStoreInNonnegativeInt(long l)           {return canStoreInInt(l) && l >= 0;}
 inline bool canStoreInNonnegativeInt(long long l)      {return canStoreInInt(l) && l >= 0;}
@@ -334,19 +334,19 @@ inline bool isIndexInRange(unsigned long long ix, unsigned long long sz){return 
 // is always true for unsigned types and you'll get a warning from some compilers if
 // you check.
 
-inline bool isNonnegative(bool           n){return true;}
+inline bool isNonnegative(bool)              {return true;}
 // char can be signed or unsigned depending on the compiler; assume signed.
-inline bool isNonnegative(char           n){return n>=0;}
-inline bool isNonnegative(signed char    n){return n>=0;}
-inline bool isNonnegative(short          n){return n>=0;}
-inline bool isNonnegative(int            n){return n>=0;}
-inline bool isNonnegative(long           n){return n>=0;}
-inline bool isNonnegative(long long      n){return n>=0;}
-inline bool isNonnegative(unsigned char  n){return true;}
-inline bool isNonnegative(unsigned short n){return true;}
-inline bool isNonnegative(unsigned int   n){return true;}
-inline bool isNonnegative(unsigned long  n){return true;}
-inline bool isNonnegative(unsigned long long n){return true;}
+inline bool isNonnegative(char        n)     {return n>=0;}
+inline bool isNonnegative(signed char n)     {return n>=0;}
+inline bool isNonnegative(short       n)     {return n>=0;}
+inline bool isNonnegative(int         n)     {return n>=0;}
+inline bool isNonnegative(long        n)     {return n>=0;}
+inline bool isNonnegative(long long   n)     {return n>=0;}
+inline bool isNonnegative(unsigned char)     {return true;}
+inline bool isNonnegative(unsigned short)    {return true;}
+inline bool isNonnegative(unsigned int)      {return true;}
+inline bool isNonnegative(unsigned long)     {return true;}
+inline bool isNonnegative(unsigned long long){return true;}
 
 // A NaN-like value for unique index types created using the macro
 // SimTK_DEFINE_UNIQUE_INDEX_TYPE(). A unique, typed constant with
@@ -608,7 +608,9 @@ specialize the IsIntegralType struct template for those types. **/
 
 SimTK_SPECIALIZE_INTEGRAL_TYPE(bool); 
 SimTK_SPECIALIZE_INTEGRAL_TYPE(char);
-SimTK_SPECIALIZE_INTEGRAL_TYPE(wchar_t);
+// This causes problems when used with Qt which for some crazy
+// reason likes to make its own wchar_t rather than using the built in.
+// SimTK_SPECIALIZE_INTEGRAL_TYPE(wchar_t);
 SimTK_SPECIALIZE_INTEGRAL_TYPE(signed char);
 SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned char);
 SimTK_SPECIALIZE_INTEGRAL_TYPE(short);
@@ -697,8 +699,10 @@ template <> struct NiceTypeName< T > {          \
 
 // Some types for which we'd like to see nice type names.
 SimTK_NICETYPENAME_LITERAL(bool);            
-SimTK_NICETYPENAME_LITERAL(char);            
-SimTK_NICETYPENAME_LITERAL(wchar_t);            
+SimTK_NICETYPENAME_LITERAL(char); 
+// This causes problems when used with Qt which for some crazy
+// reason likes to make its own wchar_t rather than using the built in.
+// SimTK_NICETYPENAME_LITERAL(wchar_t);            
 SimTK_NICETYPENAME_LITERAL(signed char); 
 SimTK_NICETYPENAME_LITERAL(unsigned char);
 SimTK_NICETYPENAME_LITERAL(short);           
