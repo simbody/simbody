@@ -274,11 +274,11 @@ inline bool exactlyOneBitIsSet(long long v)          {return v && atMostOneBitIs
  */
 /*@{*/
 
-inline bool signBit(unsigned char i)      {return false;}
-inline bool signBit(unsigned short i)     {return false;}
-inline bool signBit(unsigned int i)       {return false;}
-inline bool signBit(unsigned long i)      {return false;}
-inline bool signBit(unsigned long long i) {return false;}
+inline bool signBit(unsigned char)      {return false;}
+inline bool signBit(unsigned short)     {return false;}
+inline bool signBit(unsigned int)       {return false;}
+inline bool signBit(unsigned long)      {return false;}
+inline bool signBit(unsigned long long) {return false;}
 
 // Note that plain 'char' type is not overloaded -- see above.
 
