@@ -211,13 +211,15 @@ SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING
 # User should set SimTK_INSTALL_PREFIX, so suppress cmake's
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
-# Allow build of binaries on Leopard that work on Tiger
-# Plus, -m32 is required for building on Snow Leopard, until we have a 64-bit Mac Lapack
-IF( APPLE )
-   SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4 -m32" )
-   SET( CMAKE_C_FLAGS "-mmacosx-version-min=10.4 -m32" )
-   SET( LIB64  )
-ENDIF( APPLE )
+# On Mac, build universal binaries that work on OS X 10.4 or later.
+IF(APPLE)
+    IF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        SET(CMAKE_OSX_ARCHITECTURES "i386;x86_64" CACHE STRING "The processor architectures to build for" FORCE)
+        SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.4" CACHE STRING "The minimum version of OS X to support" FORCE)
+        SET(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.4u.sdk" CACHE STRING "The SDK to build against" FORCE)
+    ENDIF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+    SET(LIB64 )
+ENDIF(APPLE)
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" FORCE)
