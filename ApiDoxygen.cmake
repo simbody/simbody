@@ -14,5 +14,7 @@ ELSE(DOXYGEN_EXECUTABLE-NOTFOUND)
     INSTALL(DIRECTORY "${PROJECT_BINARY_DIR}/html/"
             DESTINATION "doc/api/${PROJECT_NAME}/html"
             )
+    # This is just a shortcut to the Doxygen index.html.
+    INSTALL(FILES "SimbodyAPI.html" DESTINATION "doc")
 ENDIF(DOXYGEN_EXECUTABLE-NOTFOUND)
 
