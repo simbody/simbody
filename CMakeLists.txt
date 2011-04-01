@@ -211,12 +211,12 @@ SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING
 # User should set SimTK_INSTALL_PREFIX, so suppress cmake's
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
-# On Mac, build universal binaries that work on OS X 10.4 or later.
+# On Mac, build universal binaries that work on OS X 10.5 (Leopard) or later.
 IF(APPLE)
     IF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
         SET(CMAKE_OSX_ARCHITECTURES "i386;x86_64" CACHE STRING "The processor architectures to build for" FORCE)
-        SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.4" CACHE STRING "The minimum version of OS X to support" FORCE)
-        SET(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.4u.sdk" CACHE STRING "The SDK to build against" FORCE)
+        SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.5" CACHE STRING "The minimum version of OS X to support" FORCE)
+        SET(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.5.sdk" CACHE STRING "The SDK to build against" FORCE)
     ENDIF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     SET(LIB64 )
 ENDIF(APPLE)
