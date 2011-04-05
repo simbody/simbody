@@ -263,27 +263,27 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     # C++
     SET(CMAKE_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
-      CACHE STRING "g++ Debug build compile flags" FORCE)
+      CACHE STRING "g++ Debug build compile flags")
     SET(CMAKE_CXX_FLAGS_RELEASE        
       "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
-      CACHE STRING "g++ Release build compile flags" FORCE)
+      CACHE STRING "g++ Release build compile flags")
     SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
       "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
-      CACHE STRING "g++ RelWithDebInfo build compile flags" FORCE)
+      CACHE STRING "g++ RelWithDebInfo build compile flags")
     SET(CMAKE_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os -m${GCC_INST_SET}" 
-      CACHE STRING "g++ MinSizeRel build compile flags" FORCE)
+      CACHE STRING "g++ MinSizeRel build compile flags")
 
     # C
     SET(CMAKE_C_FLAGS_DEBUG            "-g -m${GCC_INST_SET}" 
-      CACHE STRING "gcc Debug build compile flags" FORCE)
+      CACHE STRING "gcc Debug build compile flags")
     SET(CMAKE_C_FLAGS_RELEASE          
       "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
-      CACHE STRING "gcc Release build compile flags" FORCE)
+      CACHE STRING "gcc Release build compile flags")
     SET(CMAKE_C_FLAGS_RELWITHDEBINFO   
       "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
-      CACHE STRING "gcc RelWithDebInfo build compile flags" FORCE)
+      CACHE STRING "gcc RelWithDebInfo build compile flags")
     SET(CMAKE_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os -m${GCC_INST_SET}" 
-      CACHE STRING "gcc MinSizeRel build compile flags" FORCE)
+      CACHE STRING "gcc MinSizeRel build compile flags")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
@@ -296,30 +296,30 @@ IF(${CMAKE_C_COMPILER} MATCHES "cl")
     ## C++
     SET(CMAKE_CXX_FLAGS_DEBUG        
 	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ Debug build compile flags" FORCE)
+        CACHE STRING "VC++ Debug build compile flags")
     SET(CMAKE_CXX_FLAGS_RELEASE        
 	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ Release build compile flags" FORCE)
+        CACHE STRING "VC++ Release build compile flags")
     SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
 	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ RelWithDebInfo build compile flags" FORCE)
+        CACHE STRING "VC++ RelWithDebInfo build compile flags")
     SET(CMAKE_CXX_FLAGS_MINSIZEREL 
 	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ MinSizeRel build compile flags" FORCE)
+        CACHE STRING "VC++ MinSizeRel build compile flags")
 
     ## C
     SET(CMAKE_C_FLAGS_DEBUG        
 	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ Debug build compile flags" FORCE)
+        CACHE STRING "VC++ Debug build compile flags")
     SET(CMAKE_C_FLAGS_RELEASE        
 	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ Release build compile flags" FORCE)
+        CACHE STRING "VC++ Release build compile flags")
     SET(CMAKE_C_FLAGS_RELWITHDEBINFO 
 	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ RelWithDebInfo build compile flags" FORCE)
+        CACHE STRING "VC++ RelWithDebInfo build compile flags")
     SET(CMAKE_C_FLAGS_MINSIZEREL 
 	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ MinSizeRel build compile flags" FORCE)
+        CACHE STRING "VC++ MinSizeRel build compile flags")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
 
