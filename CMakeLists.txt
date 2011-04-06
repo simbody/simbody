@@ -460,3 +460,4 @@ ADD_SUBDIRECTORY( Simbody )
 # Install build-from-source instructions.
 INSTALL(FILES "HowToBuildSimbodyFromSource_Windows.pdf" DESTINATION "doc")
 INSTALL(FILES "HowToBuildSimbodyFromSource_MacLinux.pdf" DESTINATION "doc")
+INSTALL(FILES "Simbody2.2ReleaseNotes.pdf" DESTINATION "doc")
