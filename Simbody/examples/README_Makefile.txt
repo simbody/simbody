@@ -9,24 +9,37 @@ even Visual Studio.  See CMakeNotes.txt.
 ----------------------------------------------------------------------------
 
 
-You must already have the SimTK Core binaries installed from SimTK.org; go 
-to https://simtk.org/home/simtkcore, Downloads tab.
-
-If you want to use OpenMM acceleration, you must have installed that separately;
-go to https://simtk.org/home/openmm for information and downloads.
+You must already have the Simbody binaries installed from SimTK.org; go 
+to https://simtk.org/home/simbody, Downloads tab.
 
 You may need to slightly edit the Makefile to make it run on your system.
 
-Open the Makefile and make the appropriate changes (debug libraries or not), and set the Default install directory to the correct location.
+Open the Makefile and make the appropriate changes (debug libraries or not),
+and set the Default install directory to the correct location.
 
-To compile all example programs type "make all"
+Type "make" to build just one simple example, ExamplePendulum, and try
+running it if it succeeds: ./ExamplePendulum.
 
-To compile just ExampleAdenylateMobilitiesVTK (for example) type make ExampleAdenylateMobilitiesVTK.
+If that works, then try to build all the examples with "make all".
 
-Before you run the executables, remember to add the SimTK Core library directory to your library path. The simplest way to do this is to type the following commands:
+To compile just ExampleChain (for example) type "make ExampleChain".
 
-For Linux (for the bash shell, assuming installation was done in the default location: /usr/local/SimTK): 
-$ export LD_LIBRARY_PATH=/usr/local/SimTK/lib 
+Before you run the executables, remember to add the Simbody library 
+directory to your library path. The simplest way to do this is to 
+type the following commands:
 
-For Mac (for the bash shell, assuming installation was done in the default location: /usr/local/SimTK):
-$ export DYLD_LIBRARY_PATH=/usr/local/SimTK/lib
+First, if you didn't install Simbody in the default location, 
+/usr/local/SimTK, tell the Makefile where to look:
+
+    $ export SimTK_INSTALL_DIR=/mysimbody/installdir  
+
+Then you have to tell the linker where to find the shared libraries:
+
+    For Linux (for the bash shell):
+    $ export LD_LIBRARY_PATH=$SimTK_INSTALL_DIR/lib 
+
+    For Mac (for the bash shell):
+    $ export DYLD_LIBRARY_PATH=$SimTK_INSTALL_DIR/lib 
+
+(If you didn't set SimTK_INSTALL_DIR, then you would type 
+"/usr/local/SimTK/lib" instead above.)
