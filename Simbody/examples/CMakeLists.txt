@@ -33,6 +33,8 @@ FOREACH(EX_PROG ${EXAMPLES})
 		PROPERTIES
 	      PROJECT_LABEL "Example - ${EX_ROOT}")
         TARGET_LINK_LIBRARIES(${EX_ROOT} ${TEST_SHARED_TARGET})
+
+	INSTALL(TARGETS ${EX_ROOT} DESTINATION examples/bin)
     ENDIF (BUILD_TESTING_SHARED)
 
     IF (BUILD_TESTING_STATIC)
@@ -47,11 +49,10 @@ FOREACH(EX_PROG ${EXAMPLES})
 		COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
 		PROJECT_LABEL "Example - ${EX_STATIC}")
         TARGET_LINK_LIBRARIES(${EX_STATIC} ${TEST_STATIC_TARGET})
+	# Don't install static examples
     ENDIF (BUILD_TESTING_STATIC)
 
-    INSTALL(FILES ${EX_SRC} DESTINATION examples/simbody)
-
-ENDFOREACH(EX_PROG ${ADHOC_TESTS})
+ENDFOREACH()
 
 # Copy extra files associated with these examples
 # to the binary directory that will be the working
@@ -62,26 +63,27 @@ FOREACH(XTRA ${EXTRA_FILES})
     GET_FILENAME_COMPONENT(XTRA_ROOT ${XTRA} NAME)
     CONFIGURE_FILE(${XTRA} 
 	           ${CMAKE_CURRENT_BINARY_DIR}/${XTRA_ROOT} COPYONLY)
-    INSTALL(FILES ${XTRA} DESTINATION examples/simbody)
+    INSTALL(FILES ${XTRA} DESTINATION examples/src)
+    INSTALL(FILES ${XTRA} DESTINATION examples/bin)
 ENDFOREACH()
 
 # install source for examples
 FILE(GLOB SRC_FILES "*.cpp" "*.h")
-INSTALL(FILES ${SRC_FILES} DESTINATION examples/simbody)
+INSTALL(FILES ${SRC_FILES} DESTINATION examples/src)
 
 # install .txt files except CMakeLists.txt
 FILE(GLOB TXT_FILES "*.txt")
 FOREACH(TXTF ${TXT_FILES})
     IF(NOT "${TXTF}" MATCHES "CMakeLists.txt")
-	INSTALL(FILES ${TXTF} DESTINATION examples/simbody)
+	INSTALL(FILES ${TXTF} DESTINATION examples/src)
     ENDIF()
 ENDFOREACH()
 
 # install the installed version of CMakeLists.txt
-INSTALL(FILES InstalledCMakeLists.txt DESTINATION examples/simbody
+INSTALL(FILES InstalledCMakeLists.txt DESTINATION examples/src
 	RENAME CMakeLists.txt)
 
 # install Makefile
 INSTALL(FILES "${PROJECT_SOURCE_DIR}/examples/Makefile"
-    DESTINATION examples/simbody)
+    DESTINATION examples/src)
 

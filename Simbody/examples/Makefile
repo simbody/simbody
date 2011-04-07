@@ -1,5 +1,8 @@
-# Uncomment DEBUG to use SimTK debug libraries instead of release libraries
-#DEBUG=_d
+# Makefile for building Simbody examples on Linux or Mac.
+# See README_Makefile.txt for more information.
+
+# Uncomment DEBUG to use Simbody debug libraries instead of release libraries
+# DEBUG=_d
 
 # Default install directory
 # SimTK_INSTALL_DIR=/usr/local/SimTK
@@ -13,7 +16,11 @@ endif
 LIB_DIR=$(SimTK_HOME)/lib
 INCLUDE_DIR=$(SimTK_HOME)/include
 
-LIBS= -lSimTKsimbody$(DEBUG) -lSimTKmath$(DEBUG) -lSimTKcommon$(DEBUG) -lSimTKlapack -lpthread -lm -lrt
+# You would need this whole list to link with static libraries; for 
+# dynamic libraries (shared objects) only the first library need be
+# listed explicitly.
+# LIBS= -lSimTKsimbody$(DEBUG) -lSimTKmath$(DEBUG) -lSimTKcommon$(DEBUG) -llapack -lblas -lpthread -lm -lrt
+LIBS= -lSimTKsimbody$(DEBUG)
 
 ifeq "${DEBUG}" ""
 CFLAGS = -O2
@@ -22,6 +29,7 @@ CFLAGS = -g
 endif
 
 ALL_PROGS = \
+ChainExample \
 ExampleAmysIKProblem \
 ExampleAssemblerPlayground \
 ExampleBricardMechanism \
@@ -31,7 +39,10 @@ ExampleEventHandler  \
 ExampleEventReporter  \
 ExampleGears  \
 ExampleKneeJoint \
-ExamplePendulum 
+ExamplePendulum \
+JaredsDude \
+Pendulum \
+Rattleback
 
 default: ExamplePendulum
 	@echo Using $(SimTK_HOME) as the SimTK installation directory.

@@ -1,6 +1,6 @@
 Instructions for creating a Visual Studio project by hand to run a 
-SimTK Core example program.
-SimTK 2.1, August 2010
+Simbody example program.
+Simbody 2.2, April 2011
 
 ----------------------------------------------------------------------------
 NOTE: By far the easiest way to create a Visual Studio project is to use
@@ -16,21 +16,20 @@ the instructions.
 
 
 Below we will use $(SimTK_INSTALL_DIR) to mean the SimTK installation 
-directory, which is typically C:\Program Files\SimTK but can be anything. The 
-installation process should have set this to the actual installation 
-directory, but if not you must create a SimTK_INSTALL_DIR environment variable
-set to the appropriate "SimTK" installation directory.
+directory, which is typically %ProgramFiles%\SimTK but can be anything.
+(On English systems this will be C:\Program Files\SimTK or 
+C:\Program Files (x86)\SimTK for 64 bit platforms.). You
+should create a SimTK_INSTALL_DIR environment variable and
+set it to the appropriate Simbody installation directory.
 
-You must already have the SimTK Core binaries installed from SimTK.org; go 
-to https://simtk.org/home/simtkcore, Downloads tab.
-
-If you want to use OpenMM acceleration, you must have installed that separately;
-go to https://simtk.org/home/openmm for information and downloads.
+You must already have the Simbody binaries installed from SimTK.org; go 
+to https://simtk.org/home/simbody, Downloads tab.
 
 To use the Visual Studio solution file provided in this directory proceed 
 to step 5)
 
-To create a new Visual Studio project for a SimTK example from scratch follow all steps:
+To create a new Visual Studio project for a Simbody example from scratch
+follow all steps:
 
 
 1) Create new Visual Studio project based on an example source file:
@@ -69,7 +68,7 @@ To create a new Visual Studio project for a SimTK example from scratch follow al
 
   * Select the "..." button, then the new directory (folder) button
 
-  * Add BOTH $(SimTK_INSTALL_DIR)/lib and $(SimTK_INSTALL_DIR)/bin to the "Additional Library Directories" section.
+  * Add $(SimTK_INSTALL_DIR)/lib to the "Additional Library Directories" section.
 
   * Click "OK"
 
@@ -82,8 +81,8 @@ To create a new Visual Studio project for a SimTK example from scratch follow al
      NOTE: Debug libraries are very sensitive to compiler version; if you can't
      use the prebuilt ones follow the Release instructions below unless you 
      have built your own Debug libraries from source.
-     CAUTION: You can't use Release libraries with a main program compiled
-     with Debug.
+     CAUTION: You may not be able to use Release libraries with a main 
+     program compiled with Debug.
 
     * Set the "Configuration:" pulldown to "Debug"
 
@@ -92,13 +91,10 @@ To create a new Visual Studio project for a SimTK example from scratch follow al
     * Select the "..." button
   
     * Add the following library names:
-       SimTKmolmodel_d.lib
        SimTKsimbody_d.lib
        SimTKmath_d.lib
-       SimTKcpodes_d.lib
        SimTKcommon_d.lib
        SimTKlapack.lib
-       SimTKsimbody_aux_d.lib
      Note that there is no "_d" lapack library; that's OK.
 
   * Click "Apply"
@@ -112,13 +108,10 @@ To create a new Visual Studio project for a SimTK example from scratch follow al
     * Select the "..." button
   
     * Add the following library names:
-       SimTKmolmodel.lib
        SimTKsimbody.lib
        SimTKmath.lib
-       SimTKcpodes.lib
        SimTKcommon.lib
        SimTKlapack.lib
-       SimTKsimbody_aux.lib
 
   * Click "Apply"
 
@@ -132,7 +125,7 @@ To create a new Visual Studio project for a SimTK example from scratch follow al
 
 * Your program should run
 
-* Type Ctrl-Break in the cmd.exe window to stop the program
+* Type Ctrl-C in the console (Command Prompt) window to stop the program
 
 
 6) To run another example program:
