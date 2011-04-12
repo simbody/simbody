@@ -30,9 +30,11 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKsimbody.h"
+#include <string>
 
 using std::cout;
 using std::endl;
+using std::string;
 
 using namespace SimTK;
 
@@ -98,40 +100,50 @@ void doCalcInternalGradientFromSpatial(MultibodySystem& system, State& state) {
     matter.calcInternalGradientFromSpatial(state, dEdR, dEdQ);
 }
 
+void doCalcCompositeBodyInertias(MultibodySystem& system, State& state) {
+    Vector_<SpatialMat> r;
+    system.getMatterSubsystem().calcCompositeBodyInertias(state, r);
+}
+
 /**
  * Time how long it takes to perform an operation 1000 times.  The test is repeated 5 times,
  * and the average is returned.  The return value represents CPU time, *not* clock time.
  */
-Real timeComputation(MultibodySystem& system, void function(MultibodySystem& system, State& state)) {
+void timeComputation(MultibodySystem& system, void function(MultibodySystem& system, State& state), const string& name, int iterations) {
     const int repeats = 5;
-    Vector times(repeats);
+    Vector cpuTimes(repeats);
+    Vector clockTimes(repeats);
     State state = system.getDefaultState();
     system.realize(state, Stage::Acceleration);
 
     // Repeatedly measure the CPU time for performing the operation 1000 times.
 
     for (int i = 0; i < repeats; i++) {
-        Real start = cpuTime();
-        for (int j = 0; j < 1000; j++)
+        Real startCpu = cpuTime();
+        Real startClock = realTime();
+        for (int j = 0; j < iterations; j++)
             function(system, state);
-        Real end = cpuTime();
-        times[i] = end-start;
+        Real endCpu = cpuTime();
+        Real endClock = realTime();
+        cpuTimes[i] = endCpu-startCpu;
+        clockTimes[i] = endClock-startClock;
     }
-    return mean(times);
+    std::cout << name<<": "<<(mean(cpuTimes)*1000/iterations)<<" "<<(mean(clockTimes)*1000/iterations)<< std::endl;
 }
 
 /**
  * Time all the different calculations for one system.
  */
 void runAllTests(MultibodySystem& system) {
-    std::cout << "realizePosition: " << timeComputation(system, doRealizePosition) << std::endl;
-    std::cout << "realizeVelocity: " << timeComputation(system, doRealizeVelocity) << std::endl;
-    std::cout << "realizeAcceleration: " << timeComputation(system, doRealizeAcceleration) << std::endl;
-    std::cout << "calcMV: " << timeComputation(system, doCalcMV) << std::endl;
-    std::cout << "calcMInverseV: " << timeComputation(system, doCalcMInverseV) << std::endl;
-    std::cout << "calcResidualForceIgnoringConstraints: " << timeComputation(system, doCalcResidualForceIgnoringConstraints) << std::endl;
-    std::cout << "calcMobilizerReactionForces: " << timeComputation(system, doCalcMobilizerReactionForces) << std::endl;
-    std::cout << "calcInternalGradientFromSpatial: " << timeComputation(system, doCalcInternalGradientFromSpatial) << std::endl;
+    timeComputation(system, doRealizePosition, "realizePosition", 1000);
+    timeComputation(system, doRealizeVelocity, "realizeVelocity", 1000);
+    timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 1000);
+    timeComputation(system, doCalcMV, "calcMV", 5000);
+    timeComputation(system, doCalcMInverseV, "calcMInverseV", 5000);
+    timeComputation(system, doCalcResidualForceIgnoringConstraints, "calcResidualForceIgnoringConstraints", 5000);
+    timeComputation(system, doCalcMobilizerReactionForces, "calcMobilizerReactionForces", 1000);
+    timeComputation(system, doCalcInternalGradientFromSpatial, "calcInternalGradientFromSpatial", 5000);
+    timeComputation(system, doCalcCompositeBodyInertias, "calcCompositeBodyInertias", 5000);
 }
 
 // The following routines create the systems to be profiled.
