@@ -1110,7 +1110,7 @@ SpatialInertia_ transform(const InverseTransform_<P>& X_FB) const
 /// combines the reexpressInPlace() and shiftInPlace() operations available 
 /// separately. Returns a reference to the modified object so that you can
 /// chain this operation in the manner of assignment operators. Cost is 109 flops.
-/// @see tranform() if you want to leave this object unmolested.
+/// @see transform() if you want to leave this object unmolested.
 SpatialInertia_& transformInPlace(const Transform_<P>& X_FB) {
     shiftInPlace(X_FB.p());     // shift to the new origin OB.
     reexpressInPlace(X_FB.R()); // get everything in B
