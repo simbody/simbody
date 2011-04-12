@@ -30,7 +30,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKsimbody.h"
-#include <ctime>
 
 using std::cout;
 using std::endl;
@@ -67,22 +66,22 @@ void doRealizeAcceleration(MultibodySystem& system, State& state) {
 
 void doCalcMV(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-    Vector v(matter.getNumMobilities());
+    Vector v(matter.getNumMobilities(), 1.0);
     Vector mv;
     matter.calcMV(state, v, mv);
 }
 
 void doCalcMInverseV(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-    Vector v(matter.getNumMobilities());
+    Vector v(matter.getNumMobilities(), 1.0);
     Vector minvv;
     matter.calcMInverseV(state, v, minvv);
 }
 
 void doCalcResidualForceIgnoringConstraints(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-    Vector appliedMobilityForces(matter.getNumMobilities());
-    Vector_<SpatialVec> appliedBodyForces(matter.getNumBodies());
+    Vector appliedMobilityForces(matter.getNumMobilities(), 1.0);
+    Vector_<SpatialVec> appliedBodyForces(matter.getNumBodies(), SpatialVec(Vec3(1, 0, 0), Vec3(0, 1, 0)));
     Vector knownUdot, residualMobilityForces;
     matter.calcResidualForceIgnoringConstraints(state, appliedMobilityForces, appliedBodyForces, knownUdot, residualMobilityForces);
 }
@@ -94,7 +93,7 @@ void doCalcMobilizerReactionForces(MultibodySystem& system, State& state) {
 
 void doCalcInternalGradientFromSpatial(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-    Vector_<SpatialVec> dEdR(matter.getNumBodies());
+    Vector_<SpatialVec> dEdR(matter.getNumBodies(), SpatialVec(Vec3(1, 0, 0), Vec3(0, 1, 0)));
     Vector dEdQ;
     matter.calcInternalGradientFromSpatial(state, dEdR, dEdQ);
 }
@@ -112,11 +111,11 @@ Real timeComputation(MultibodySystem& system, void function(MultibodySystem& sys
     // Repeatedly measure the CPU time for performing the operation 1000 times.
 
     for (int i = 0; i < repeats; i++) {
-        clock_t start = clock();
+        Real start = cpuTime();
         for (int j = 0; j < 1000; j++)
             function(system, state);
-        clock_t end = clock();
-        times[i] = (Real) (end-start)/CLOCKS_PER_SEC;
+        Real end = cpuTime();
+        times[i] = end-start;
     }
     return mean(times);
 }
