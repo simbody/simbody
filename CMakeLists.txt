@@ -119,7 +119,7 @@ SET( BUILD_EXAMPLES ON CACHE BOOL
 	"Control building of Simbody example programs.")
 
 # Set whether to build the Visualizer code.
-SET(BUILD_VISUALIZER OFF CACHE BOOL 
+SET(BUILD_VISUALIZER ON CACHE BOOL 
 	"Control building of VisualizerGUI component")
 
 # Turning this off reduces the build time (and space) substantially,
