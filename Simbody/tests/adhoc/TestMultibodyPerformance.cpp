@@ -101,7 +101,7 @@ void doCalcInternalGradientFromSpatial(MultibodySystem& system, State& state) {
 }
 
 void doCalcCompositeBodyInertias(MultibodySystem& system, State& state) {
-    Vector_<SpatialMat> r;
+    Array_<SpatialInertia> r;
     system.getMatterSubsystem().calcCompositeBodyInertias(state, r);
 }
 

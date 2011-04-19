@@ -282,7 +282,7 @@ calcGt(const State& s, Matrix& Gt) const {
 }
 
 void SimbodyMatterSubsystem::calcCompositeBodyInertias(const State& s,
-    Vector_<SpatialMat>& R) const
+    Array_<SpatialInertia>& R) const
 {
     getRep().calcCompositeBodyInertias(s,R);
 }
@@ -451,12 +451,12 @@ void SimbodyMatterSubsystem::realizeArticulatedBodyInertias(const State& s) cons
     getRep().realizeArticulatedBodyInertias(s);
 }
 
-const SpatialMat& 
+const SpatialInertia&
 SimbodyMatterSubsystem::getCompositeBodyInertia(const State& s, MobilizedBodyIndex mbx) const {
     return getRep().getCompositeBodyInertias(s)[mbx]; // will lazy-evaluate if necessary
 }
 
-const SpatialMat& 
+const ArticulatedInertia&
 SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyIndex mbx) const {
     return getRep().getArticulatedBodyInertias(s)[mbx]; // will lazy-evaluate if necessary
 }

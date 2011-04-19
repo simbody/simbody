@@ -2527,7 +2527,7 @@ void SimbodyMatterSubsystemRep::calcPositionConstraintMatrix(const State& s,
 // of a particular mobilized body. (Constraints have no effect on the result.)
 //
 void SimbodyMatterSubsystemRep::calcCompositeBodyInertias(const State& s,
-    Vector_<SpatialMat>& R) const 
+    Array_<SpatialInertia>& R) const
 {
     const SBTreePositionCache& tpc = getTreePositionCache(s);
     R.resize(getNumBodies());

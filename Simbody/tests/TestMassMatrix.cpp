@@ -439,7 +439,7 @@ void testCompositeInertia() {
     State state = mbs.realizeTopology();
     mbs.realize(state, Stage::Position);
 
-    Vector_<SpatialMat> R(pend.getNumBodies());
+    Array_<SpatialInertia> R(pend.getNumBodies());
     pend.calcCompositeBodyInertias(state, R);
 
     // Calculate expected inertias about the joint axes.
@@ -451,11 +451,11 @@ void testCompositeInertia() {
     // body inertias onto the joint axes using H matrices.
     const SpatialVec H1 = body1.getHCol(state, MobilizerUIndex(0));
     const SpatialVec H2 = body2.getHCol(state, MobilizerUIndex(0));
-    SimTK_TEST_EQ(~H2*R[2]*H2, expInertia2);
-    SimTK_TEST_EQ(~H1*R[1]*H1, expInertia1);
+    SimTK_TEST_EQ(~H2*(R[2]*H2), expInertia2);
+    SimTK_TEST_EQ(~H1*(R[1]*H1), expInertia1);
 
     // This should force realization of the composite body inertias.
-    SpatialMat cbi = pend.getCompositeBodyInertia(state, body1);
+    SpatialInertia cbi = pend.getCompositeBodyInertia(state, body1);
 
     body2.setAngle(state, Pi/4);
     // This is not allowed until Position stage.

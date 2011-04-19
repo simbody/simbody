@@ -78,13 +78,10 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc);
 
     // Calc Mk: the spatial inertia matrix about the body origin.
-    // Note that this is symmetric; offDiag is *skew* symmetric so
-    // that transpose(offDiag) = -offDiag.
     // Note: we need to calculate this now so that we'll be able to calculate
     // kinetic energy without going past the Velocity stage.
-    const Mat33 offDiag = crossMat(getMass()*getCB_G(pc));
-    updMk(pc) = SpatialMat( getInertia_OB_G(pc).toMat33() ,     offDiag ,
-                                   -offDiag               , Mat33(getMass()) );
+    Real invMass = (getMass() == 0 ? 1 : 1/getMass());
+    updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), UnitInertia(getInertia_OB_G(pc)*invMass));
 }
 
 // Calculate velocity-related quantities: spatial velocity (V_GB), 
@@ -196,18 +193,13 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 void
 RigidBodyNode::calcCompositeBodyInertiasInward(
     const SBTreePositionCache&  pc,
-    Vector_<SpatialMat>&        allR) const 
+    Array_<SpatialInertia>& allR) const
 {
-    SpatialMat& R = toB(allR);
+    SpatialInertia& R = toB(allR);
     R = getMk(pc);
     for (unsigned i=0; i<children.size(); ++i) {
-        const SpatialMat& RChild      = children[i]->fromB(allR);
+        const SpatialInertia& RChild  = children[i]->fromB(allR);
         const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
-
-        // TODO: this is around 260 flops but should be a small fraction 
-        // of that because (1) RChild is a rigid-body spatial inertia so has 
-        // exploitable structure including symmetry, and (2) the shifted
-        // result is also a rigid-body inertia as is the final sum.
-        R += phiChild * RChild * ~phiChild;
+        R += RChild.shift(-phiChild.l());
     }
 }

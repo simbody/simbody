@@ -974,6 +974,7 @@ class SimTK_SimTKCOMMON_EXPORT SpatialInertia_ {
     typedef Vec<3,P>        Vec3P;
     typedef UnitInertia_<P> UnitInertiaP;
     typedef Mat<3,3,P>      Mat33P;
+    typedef Mat<2,2,Mat33P> SpatialMatP;
     typedef Rotation_<P>    RotationP;
     typedef Transform_<P>   TransformP;
     typedef Inertia_<P>     InertiaP;
@@ -1042,6 +1043,10 @@ SpatialInertia_& operator*=(const RealP& s) {m *= s; return *this;}
 /// Divide a SpatialInertia by a scalar. Because we keep the mass
 /// factored out, this requires only a single divide.
 SpatialInertia_& operator/=(const RealP& s) {m /= s; return *this;}
+
+/// Multiply a SpatialInertia by a SpatialVec
+SpatialVec operator*(const SpatialVec& v) const
+{   return m*SpatialVec(G.asSymMat33()*v[0]+p%v[1], -p%v[0]+v[1]); }
 
 /// Return a new SpatialInertia object which is the same as this one except
 /// re-expressed in another coordinate frame. We consider this object to
@@ -1123,6 +1128,12 @@ SpatialInertia_& transformInPlace(const InverseTransform_<P>& X_FB) {
     shiftInPlace(X_FB.p());     // shift to the new origin OB.
     reexpressInPlace(X_FB.R()); // get everything in B
     return *this;
+}
+
+const SpatialMatP toSpatialMat() const {
+    Mat33P offDiag = crossMat(m*p);
+    return SpatialMatP(m*G.toMat33(), offDiag,
+                       -offDiag,      Mat33P(m));
 }
 
 private:
@@ -1232,6 +1243,10 @@ ArticulatedInertia_& operator+=(const ArticulatedInertia_& src)
 ArticulatedInertia_& operator-=(const ArticulatedInertia_& src)
 {   M-=src.M; J-=src.J; F-=src.F; return *this; }
 
+/// Multiply an ArticulatedIneria by a SpatialVec
+SpatialVec operator*(const SpatialVec& v) const
+{   return SpatialVec(J*v[0]+F*v[1], ~F*v[0]+M*v[1]); }
+
 /// Rigid-shift the origin of this Articulated Body Inertia P by a 
 /// shift vector s to produce a new ABI P'. The calculation is 
 /// <pre>
@@ -1254,6 +1269,19 @@ SymMat33P M;
 SymMat33P J;
 Mat33P    F;
 };
+
+/// Add two compatible articulated inertias. Cost is about 21 flops.
+/// @relates ArticulatedInertia_
+template <class P> inline ArticulatedInertia_<P>
+operator+(const ArticulatedInertia_<P>& l, const ArticulatedInertia_<P>& r)
+{   return ArticulatedInertia_<P>(l) += r; }
+
+/// Subtract one compatible articulated inertia from another. Cost is
+/// about 21 flops.
+/// @relates ArticulatedInertia_
+template <class P> inline ArticulatedInertia_<P>
+operator-(const ArticulatedInertia_<P>& l, const ArticulatedInertia_<P>& r)
+{   return ArticulatedInertia_<P>(l) -= r; }
 
 
 // -----------------------------------------------------------------------------

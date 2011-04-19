@@ -346,14 +346,14 @@ public:
 
     // Call at Position stage or later. If necessary, composite body inertias 
     // will be realized first.
-    const Vector_<SpatialMat>& getCompositeBodyInertias(const State& s) const {
+    const Array_<SpatialInertia>& getCompositeBodyInertias(const State& s) const {
         realizeCompositeBodyInertias(s);
         return getCompositeBodyInertiaCache(s).compositeBodyInertia;
     }
 
     // Call at Position stage or later. If necessary, articulated body 
     // inertias will be realized first.
-    const Vector_<SpatialMat>& getArticulatedBodyInertias(const State& s) const {
+    const Array_<ArticulatedInertia>& getArticulatedBodyInertias(const State& s) const {
         realizeArticulatedBodyInertias(s);
         return getArticulatedBodyInertiaCache(s).articulatedBodyInertia;
     }
@@ -425,7 +425,7 @@ public:
     Real calcKineticEnergy(const State&) const;
 
     void calcCompositeBodyInertias(const State&,
-        Vector_<SpatialMat>& R) const;
+        Array_<SpatialInertia>& R) const;
 
     // Calculate the product J*v where J is the kinematic Jacobian 
     // dV/du=~Phi*~H (Schwieters' and Jain's terminology; our H is transposed

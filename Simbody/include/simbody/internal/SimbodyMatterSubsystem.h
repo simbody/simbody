@@ -538,7 +538,7 @@ void calcMV(const State&, const Vector& v, Vector& MV) const;
 /// all the outboard mobilizers were welded in their current
 /// orientations.
 void calcCompositeBodyInertias(const State&,
-    Vector_<SpatialMat>& R) const;
+    Array_<SpatialInertia>& R) const;
 
 /**
 Given a complete set of generalized accelerations, this kinematic operator
@@ -735,7 +735,7 @@ void calcConstraintForcesFromMultipliers
 /// reaction forces accomplish. With that definition, mobility forces (as 
 /// opposed to body forces) are \e included in the reactions. Some 
 /// conventions do not include the mobility forces in the definition of a 
-/// reaction force. We chose to include them since this preserves Newton’s 
+/// reaction force. We chose to include them since this preserves Newtonï¿½s 
 /// 3rd law of equal and opposite reactions between bodies. Ours is the same 
 /// convention as used in SD/FAST.
 /// 
@@ -990,7 +990,7 @@ void realizeArticulatedBodyInertias(const State&) const;
 /// zero; its composite body inertia has infinite mass and principle moments of
 /// inertia, and zero center of mass.
 /// @see realizeCompositeBodyInertias()
-const SpatialMat& getCompositeBodyInertia(const State&, MobilizedBodyIndex) const;
+const SpatialInertia& getCompositeBodyInertia(const State&, MobilizedBodyIndex) const;
 
 /// Return the articulated body inertia for a particular mobilized body. You
 /// can call this any time after the State has been realized to Position
@@ -1000,7 +1000,7 @@ const SpatialMat& getCompositeBodyInertia(const State&, MobilizedBodyIndex) cons
 /// an ordinary Spatial Inertia but with infinite mass and principle moments of
 /// inertia, and zero center of mass.
 /// @see realizeArticulatedBodyInertias()
-const SpatialMat& getArticulatedBodyInertia(const State&, MobilizedBodyIndex) const;
+const ArticulatedInertia& getArticulatedBodyInertia(const State&, MobilizedBodyIndex) const;
 
     // POSITION STAGE operators //
 

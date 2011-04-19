@@ -172,8 +172,8 @@ public:
     // This overrides the base class default implementation.
     void calcCompositeBodyInertiasInward(
         const SBTreePositionCache&  pc,
-        Vector_<SpatialMat>&        R) const
-    {   R[0] = SpatialMat(Mat33(Infinity)); }
+        Array_<SpatialInertia>&     R) const
+    {   R[0] = SpatialInertia(Infinity, Vec3(0), UnitInertia(1)); }
 
     // Ground's "articulated" body inertia is still the infinite mass and
     // inertia it started with; no need to look at the children.
@@ -181,7 +181,7 @@ public:
         const SBInstanceCache&,
         const SBTreePositionCache&,
         SBArticulatedBodyInertiaCache& abc) const 
-    {   updP(abc) = SpatialMat(Mat33(Infinity)); }
+    {   updP(abc) = ArticulatedInertia(SymMat33(Infinity), Mat33(Infinity), SymMat33(0)); }
 
     void realizeYOutward(
         const SBInstanceCache&,
@@ -448,14 +448,11 @@ public:
         updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc);
 
         // Calc Mk: the spatial inertia matrix about the body origin.
-        // Note that this is symmetric; offDiag is *skew* symmetric so
-        // that transpose(offDiag) = -offDiag.
         // Note: we need to calculate this now so that we'll be able to calculate
         // kinetic energy without going past the Velocity stage.
         
-        const Mat33 offDiag = crossMat(getMass()*getCB_G(pc));
-        updMk(pc) = SpatialMat( getInertia_OB_G(pc).toMat33() ,     offDiag ,
-                                       -offDiag             ,   Mat33(getMass()) );
+        Real invMass = (getMass() == 0 ? 1 : 1/getMass());
+        updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), UnitInertia(getInertia_OB_G(pc)*invMass));
     }
     
     void realizeVelocity(const SBStateDigest& sbs) const {
@@ -491,30 +488,19 @@ public:
         const SBTreePositionCache&      pc, 
         SBArticulatedBodyInertiaCache&  abc) const 
     {
-        SpatialMat& P = updP(abc);
-        P = getMk(pc);
+        ArticulatedInertia& P = updP(abc);
+        P = ArticulatedInertia(getMk(pc));
         for (unsigned i=0 ; i<children.size() ; i++) {
-            const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
-            const SpatialMat& PChild      = children[i]->getP(abc);
+            const PhiMatrix&  phiChild           = children[i]->getPhi(pc);
+            const ArticulatedInertia& PChild     = children[i]->getP(abc);
+            const ArticulatedInertia& PPlusChild = children[i]->getPPlus(abc);
 
-            if (children[i]->isUDotKnown(ic)) {
-                P += phiChild * (PChild * ~phiChild); // ~250 flops; TODO: symmetric result
-            } else {
-                const SpatialMat& psiChild    = children[i]->getPsi(abc);
-
-                // TODO: too slow -- can get a 50% speedup by exploiting
-                // symmetry; see the RigidBodyNodeSpec<dof> 
-                // implementation for more info.
-                // (Subtracting here because our Psi has reverse sign convention
-                // from Jain's.)
-                P -= psiChild * (PChild * ~phiChild);
-            }
+            if (children[i]->isUDotKnown(ic))
+                P += PChild.shift(phiChild.l());
+            else
+                P += PPlusChild.shift(phiChild.l());
         }
-
-        // Note our backwards sign convention for TauBar and Psi (from Jain's).
-        updTauBar(abc) = -1; // -identity
-        // TODO: wasting 33 flops negating; just re-create from -p.
-        updPsi(abc)    = -getPhi(pc).toSpatialMat();
+        updPPlus(abc) = P;
     }
 
 
@@ -524,7 +510,11 @@ public:
         const SBArticulatedBodyInertiaCache&    abc,
         SBDynamicsCache&                        dc) const
     {
-        updY(dc) = ~getPsi(abc) * parent->getY(dc) * getPsi(abc);
+        // This psi actually has the wrong sign, but it doesn't matter since we multiply
+        // by it twice.
+
+        SpatialMat psi = getPhi(pc).toSpatialMat();
+        updY(dc) = ~psi * parent->getY(dc) * psi;
     }
 
     void realizeZ(

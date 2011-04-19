@@ -636,7 +636,7 @@ public:
     Array_<Transform>    bodyConfigInGround;           // nb (X_GB)
     Array_<PhiMatrix>    bodyToParentShift;            // nb (phi)
     Array_<Inertia>      bodyInertiaInGround;          // nb (I_OB_G)
-    Vector_<SpatialMat>       bodySpatialInertia;           // nb (Mk)
+    Array_<SpatialInertia>    bodySpatialInertia;           // nb (Mk)
     Vector_<Vec3>             bodyCOMInGround;              // nb (p_G_CB)
     Vector_<Vec3>             bodyCOMStationInGround;       // nb (p_CB_G)
 
@@ -756,7 +756,7 @@ public:
 
 class SBCompositeBodyInertiaCache {
 public:
-    Vector_<SpatialMat> compositeBodyInertia;     // nb (R)
+    Array_<SpatialInertia> compositeBodyInertia;     // nb (R)
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -800,10 +800,10 @@ public:
 // (pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid Body Dynamics 
 // Algorithms. 
 //
-// Intermediate quantities psi, tauBar, D, DI, and G are calculated here 
+// Intermediate quantities PPlus, D, DI, and G are calculated here
 // which are separately useful when dealing with "regular" mobilized bodies. 
 // These quantities are not calculated for prescribed mobilizers; they will 
-// remain NaN in that case (Use psi=-phi for prescribed mobilizers.) In 
+// remain NaN in that case. In
 // particular, this means that the prescribed-mobilizer mass properties do not 
 // have to be invertible, so you can have terminal massless bodies as long as 
 // their motion is always prescribed.
@@ -816,10 +816,9 @@ public:
 
 class SBArticulatedBodyInertiaCache {
 public:
-    Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
+    Array_<ArticulatedInertia> articulatedBodyInertia; // nb (P)
 
-    Vector_<SpatialMat> psi;                      // nb
-    Vector_<SpatialMat> tauBar;                   // nb
+    Array_<ArticulatedInertia> pPlus;              // nb
 
     Vector_<Real>       storageForD;              // sum(nu[j]^2)
     Vector_<Real>       storageForDI;             // sum(nu[j]^2)
@@ -838,8 +837,7 @@ public:
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
 
-        psi.resize(nBodies); // TODO: ground initialization
-        tauBar.resize(nBodies); // TODO: ground initialization
+        pPlus.resize(nBodies); // TODO: ground initialization
 
         storageForD.resize(nSqDofs);
         storageForDI.resize(nSqDofs);

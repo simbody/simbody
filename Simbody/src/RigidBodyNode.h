@@ -479,7 +479,7 @@ virtual void realizeYOutward(
 // but Ground.
 virtual void calcCompositeBodyInertiasInward(
     const SBTreePositionCache&  pc,
-    Vector_<SpatialMat>&        R) const;
+    Array_<SpatialInertia>&     R) const;
 
 virtual void calcSpatialKinematicsFromInternal(
     const SBTreePositionCache&  pc,
@@ -629,6 +629,8 @@ const Inertia&    fromB(const Array_<Inertia>&   i) const {return i[nodeNum];}
 int               fromB(const Array_<int>&       i) const {return i[nodeNum];}
 const SpatialVec& fromB(const Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 const SpatialMat& fromB(const Vector_<SpatialMat>&    m) const {return m[nodeNum];}
+const SpatialInertia& fromB(const Array_<SpatialInertia>& m) const {return m[nodeNum];}
+const ArticulatedInertia& fromB(const Array_<ArticulatedInertia>& m) const {return m[nodeNum];}
 const Vec3&       fromB(const Vector_<Vec3>&          v) const {return v[nodeNum];}
 
 Transform&  toB(Array_<Transform>& x) const {return x[nodeNum];}
@@ -638,6 +640,8 @@ Inertia&    toB(Array_<Inertia>&   i) const {return i[nodeNum];}
 int&        toB(Array_<int>&       i) const {return i[nodeNum];}
 SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 SpatialMat& toB(Vector_<SpatialMat>&    m) const {return m[nodeNum];}
+SpatialInertia& toB(Array_<SpatialInertia>& m) const {return m[nodeNum];}
+ArticulatedInertia& toB(Array_<ArticulatedInertia>& m) const {return m[nodeNum];}
 Vec3&       toB(Vector_<Vec3>&          v) const {return v[nodeNum];}
 
     // MODELING INFO
@@ -715,8 +719,8 @@ PhiMatrix&       updPhi(SBTreePositionCache&       pc) const {return toB  (pc.bo
 
 // Extract this body's spatial inertia matrix from the cache. This contains the mass properties
 // measured from (and about) the body frame origin, but expressed in the *ground* frame.
-const SpatialMat& getMk(const SBTreePositionCache& pc) const {return fromB(pc.bodySpatialInertia);}
-SpatialMat&       updMk(SBTreePositionCache&       pc) const {return toB  (pc.bodySpatialInertia);}
+const SpatialInertia& getMk(const SBTreePositionCache& pc) const {return fromB(pc.bodySpatialInertia);}
+SpatialInertia&       updMk(SBTreePositionCache&       pc) const {return toB  (pc.bodySpatialInertia);}
 
 // Extract from the cache the location of the body's center of mass, measured from the ground
 // origin and expressed in ground.
@@ -823,18 +827,15 @@ SpatialVec&       updGyroscopicForce(SBTreeVelocityCache&       vc) const {retur
     // DYNAMICS INFO
 
 // Composite body inertias.
-const SpatialMat& getR(const SBCompositeBodyInertiaCache& cbc) const {return fromB(cbc.compositeBodyInertia);}
-SpatialMat&       updR(SBCompositeBodyInertiaCache&       cbc) const {return toB  (cbc.compositeBodyInertia);}
+const SpatialInertia& getR(const SBCompositeBodyInertiaCache& cbc) const {return fromB(cbc.compositeBodyInertia);}
+SpatialInertia&       updR(SBCompositeBodyInertiaCache&       cbc) const {return toB  (cbc.compositeBodyInertia);}
 
 // Articulated body inertias and related calculations
-const SpatialMat& getP(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.articulatedBodyInertia);}
-SpatialMat&       updP(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.articulatedBodyInertia);}
+const ArticulatedInertia& getP(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.articulatedBodyInertia);}
+ArticulatedInertia&       updP(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.articulatedBodyInertia);}
 
-const SpatialMat& getPsi(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.psi);}
-SpatialMat&       updPsi(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.psi);}
-
-const SpatialMat& getTauBar(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.tauBar);}
-SpatialMat&       updTauBar(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.tauBar);}
+const ArticulatedInertia& getPPlus(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.pPlus);}
+ArticulatedInertia&       updPPlus(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.pPlus);}
 
 // Others
 const SpatialVec& getCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.centrifugalForces);}
