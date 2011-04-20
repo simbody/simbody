@@ -1176,28 +1176,28 @@ int LapackInterface::ilaenv<double>( const int& ispec,  const char* name,  const
      char d[10];
      d[0] = 'd';
      d[1] = '\0';
-     return (ilaenv_( ispec, strcat( d, name), opts, n1, n2, n3, n3, 6, strlen(opts)) ); 
+     return (ilaenv_( ispec, strcat( d, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) ); 
 }
 template <>
 int LapackInterface::ilaenv<float>( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) { 
      char s[10];
      s[0] = 's';
      s[1] = '\0';
-     return (ilaenv_( ispec, strcat( s, name), opts, n1, n2, n3, n3, 6, strlen(opts)) ); 
+     return (ilaenv_( ispec, strcat( s, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) ); 
 }
 template <>
 int LapackInterface::ilaenv<std::complex<double> >( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) { 
      char z[10];
      z[0] = 'z';
      z[1] = '\0';
-     return (ilaenv_( ispec, strcat( z, name), opts, n1, n2, n3, n3, 6, strlen(opts)) ); 
+     return (ilaenv_( ispec, strcat( z, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) ); 
 }
 template <>
 int LapackInterface::ilaenv<std::complex<float> >( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) { 
      char c[10];
      c[0] = 'c';
      c[1] = '\0';
-     return (ilaenv_( ispec, strcat( c, name), opts, n1, n2, n3, n3, 6, strlen(opts)) ); 
+     return (ilaenv_( ispec, strcat( c, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) ); 
 }
 
 
