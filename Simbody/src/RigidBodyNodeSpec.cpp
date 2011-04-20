@@ -219,7 +219,7 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
 // Given only position-related quantities from the State 
 //      Mk  (this body's spatial inertia matrix)
 //      Phi (composite body child-to-parent shift matrix)
-//      H   (joint transition matrix; sense is transposed from Jain and Schwieters)
+//      H   (joint transition matrix; sense is transposed from Jain & Schwieters)
 // we calculate dynamic quantities 
 //      P   (articulated body inertia)
 //      D   (factored mass matrix LDL' diagonal part D=~H*P*H)
@@ -229,6 +229,11 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
 // and put them in the state cache.
 // This must be called tip-to-base (inward).
 //
+// Cost is 93 flops per child plus
+//   n^3 + 23*n^2 + 115*n 
+//   e.g. pin=139, ball=579 (193/dof), free=1734 (289/dof)
+// Note that per-child cost is paid just once for each non-base body in
+// the whole tree.
 template<int dof> void
 RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     const SBInstanceCache&          ic,
@@ -239,29 +244,32 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     // Start with the spatial inertia of the current body.
     P = ArticulatedInertia(getMk(pc));
 
-    // For each child, take its articulated body inertia P and 
-    // remove the portion of that inertia that can't be felt from 
-    // the parent because of the joint mobilities. That is, we
-    // calculate Pnew = P - P H DI ~H P, where I believe the
-    // second term is the projection of P into the mobility space.
-    // Then we shift Pnew from child to parent: Pparent += Phi*Pnew*~Phi.
+    // For each child, we previously took its articulated body inertia P and 
+    // removed the portion of that inertia that can't be felt from  the parent
+    // because of the joint mobilities. That is, we calculated 
+    // P+ = P - P H DI ~H P, where the second term is the projection of P into
+    // the mobility space of the child's inboard mobilizer. Note that if the
+    // child's mobilizer is prescribed, then the entire inertia will be felt
+    // by the parent so P+ = P in that case. Now we're going to shift P+
+    // from child to parent: Pparent += Phi*P+*~Phi.
     // TODO: can this be optimized for the common case where the
     // child is a terminal body and hence its P is an ordinary
-    // rigid body inertia?
+    // spatial inertia? (Spatial inertia shift is 37 flops vs. 72 here; not
+    // really much help.)
     for (unsigned i=0; i<children.size(); ++i) {
-        const PhiMatrix&  phiChild           = children[i]->getPhi(pc);
+        const PhiMatrix&          phiChild   = children[i]->getPhi(pc);
         const ArticulatedInertia& PChild     = children[i]->getP(abc);
         const ArticulatedInertia& PPlusChild = children[i]->getPPlus(abc);
 
         // Apply the articulated body shift.
-        // Can be done in 93 flops (72 for the shift and 21 to add it in).
+        // This takes 93 flops (72 for the shift and 21 to add it in).
         if (children[i]->isUDotKnown(ic))
             P += PChild.shift(phiChild.l());
         else
             P += PPlusChild.shift(phiChild.l());
     }
 
-    // If this is a prescribed mobilizer, leave G, D, DI, tauBar, and psi
+    // If this is a prescribed mobilizer, leave G, D, DI, and PPlus
     // untouched -- they should have been set to NaN at Instance stage.
     if (isUDotKnown(ic))
         return;
@@ -271,20 +279,32 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     Mat<dof,dof>& D  = updD(abc);
     Mat<dof,dof>& DI = updDI(abc);
 
-    const Mat<2,dof,Vec3> PH = P.toSpatialMat() * H;       // 66*dof   flops
+    const HType PH = P.toSpatialMat() * H;  // 66*dof   flops
     D  = ~H * PH;                           // 11*dof^2 flops (symmetric result)
 
     // this will throw an exception if the matrix is ill conditioned
     DI = D.invert();                        // ~dof^3 flops (symmetric)
     G  = PH * DI;                           // 12*dof^2-6*dof flops
 
+    // Want P+ = P - P H DI ~H P = P - G*~PH. 
+    // We can do this in about 55*dof flops.
     ArticulatedInertia& PPlus = updPPlus(abc);
-    Mat33 mass = G.row(1)*~PH.row(1);
-    Mat33 massMoment = G.row(0)*~PH.row(1);
-    Mat33 inertia = G.row(0)*~PH.row(0);
-    SymMat33 symMass(mass(0,0), 0.5*(mass(1,0)+mass(0,1)), mass(1,1), 0.5*(mass(2,0)+mass(0,2)), 0.5*(mass(2,1)+mass(1,2)), mass(2,2));
-    SymMat33 symInertia(inertia(0,0), 0.5*(inertia(1,0)+inertia(0,1)), inertia(1,1), 0.5*(inertia(2,0)+inertia(0,2)), 0.5*(inertia(2,1)+inertia(1,2)), inertia(2,2));
-    PPlus = P-ArticulatedInertia(symMass, massMoment, symInertia);
+    // These require 9 dot products of length dof. The symmetric ones could
+    // be done with 6 dot products instead for a small savings but this gives
+    // us a chance to symmetrize and hopefully clean up some numerical errors.
+    // The full price for all three is 54*dof-27 flops.
+    Mat33 massMoment = G.row(0)*~PH.row(1); // (full)            9*(2*dof-1) flops
+    Mat33 mass       = G.row(1)*~PH.row(1); // symmetric result  9*(2*dof-1) flops
+    Mat33 inertia    = G.row(0)*~PH.row(0); // symmetric result  9*(2*dof-1) flops
+    // These must be symmetrized due to numerical errors for 12 more flops. 
+    SymMat33 symMass( mass(0,0), 
+                     (mass(1,0)+mass(0,1))/2,  mass(1,1), 
+                     (mass(2,0)+mass(0,2))/2, (mass(2,1)+mass(1,2))/2, mass(2,2));
+    SymMat33 symInertia( 
+         inertia(0,0), 
+        (inertia(1,0)+inertia(0,1))/2,  inertia(1,1), 
+        (inertia(2,0)+inertia(0,2))/2, (inertia(2,1)+inertia(1,2))/2, inertia(2,2));
+    PPlus = P - ArticulatedInertia(symMass, massMoment, symInertia); // 21 flops
 }
 
 //------------------------------------------------------------------------------

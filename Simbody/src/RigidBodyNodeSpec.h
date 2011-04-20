@@ -194,8 +194,10 @@ void calcBodyTransforms(
     const Transform& X_FM = getX_FM(pc); // just calculated
     const Transform& X_GP = getX_GP(pc); // already calculated
 
-    X_PB = X_PF * X_FM * X_MB;
-    X_GB = X_GP * X_PB;
+    // TODO: can save a lot of flops here for bodies whose joint frames
+    // coincide with their body frames.
+    X_PB = X_PF * X_FM * X_MB; // 126 flops
+    X_GB = X_GP * X_PB;        //  63 flops
 }
 
 // Same for all mobilizers. The return matrix here is precisely the 
@@ -305,8 +307,8 @@ void realizeVelocity(const SBStateDigest& sbs) const
     // Mobilizer specific.
     calcQDot(sbs, allU, sbs.updQDot());
 
-    updV_FM(vc)    = getH_FM(pc) * u;
-    updV_PB_G(vc)  = getH(pc)    * u;
+    updV_FM(vc)    = getH_FM(pc) * u;   // 6*dof flops
+    updV_PB_G(vc)  = getH(pc)    * u;   // 6*dof flops
 
     // REMINDER: our H matrix definition is transposed from Jain and Schwieters.
     if (isReversed()) calcReverseMobilizerHDot_FM       (sbs, updHDot_FM(vc));
@@ -318,7 +320,7 @@ void realizeVelocity(const SBStateDigest& sbs) const
     // frame B. The derivative is taken in the Ground frame and the result
     // is expressed in Ground. (F is fixed on P and M is fixed on B.)
     calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, updHDot(vc));
-    updVD_PB_G(vc) = getHDot(vc) * u;
+    updVD_PB_G(vc) = getHDot(vc) * u;   // 6*dof flops
 
     // Mobilizer independent.
     calcJointIndependentKinematicsVel(pc,vc);
