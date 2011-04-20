@@ -262,28 +262,48 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     endif()
 
     # C++
-    SET(CMAKE_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
+    SET(BUILD_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
       CACHE STRING "g++ Debug build compile flags")
-    SET(CMAKE_CXX_FLAGS_RELEASE        
+    SET(BUILD_CXX_FLAGS_RELEASE        
       "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
       CACHE STRING "g++ Release build compile flags")
-    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
+    SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
       "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
       CACHE STRING "g++ RelWithDebInfo build compile flags")
-    SET(CMAKE_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os -m${GCC_INST_SET}" 
+    SET(BUILD_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os -m${GCC_INST_SET}" 
       CACHE STRING "g++ MinSizeRel build compile flags")
 
     # C
-    SET(CMAKE_C_FLAGS_DEBUG            "-g -m${GCC_INST_SET}" 
+    SET(BUILD_C_FLAGS_DEBUG            "-g -m${GCC_INST_SET}" 
       CACHE STRING "gcc Debug build compile flags")
-    SET(CMAKE_C_FLAGS_RELEASE          
+    SET(BUILD_C_FLAGS_RELEASE          
       "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
       CACHE STRING "gcc Release build compile flags")
-    SET(CMAKE_C_FLAGS_RELWITHDEBINFO   
+    SET(BUILD_C_FLAGS_RELWITHDEBINFO   
       "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
       CACHE STRING "gcc RelWithDebInfo build compile flags")
-    SET(CMAKE_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os -m${GCC_INST_SET}" 
+    SET(BUILD_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os -m${GCC_INST_SET}" 
       CACHE STRING "gcc MinSizeRel build compile flags")
+
+    # C++
+    SET(CMAKE_CXX_FLAGS_DEBUG ${BUILD_CXX_FLAGS_DEBUG}
+        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+    SET(CMAKE_CXX_FLAGS_RELEASE ${BUILD_CXX_FLAGS_RELEASE}
+        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${BUILD_CXX_FLAGS_RELWITHDEBINFO}
+        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+    SET(CMAKE_CXX_FLAGS_MINSIZEREL ${BUILD_CXX_FLAGS_MINSIZEREL}
+        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+
+    # C
+    SET(CMAKE_C_FLAGS_DEBUG ${BUILD_C_FLAGS_DEBUG}
+        CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
+    SET(CMAKE_C_FLAGS_RELEASE ${BUILD_C_FLAGS_RELEASE}         
+        CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO ${BUILD_C_FLAGS_RELWITHDEBINFO}
+        CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
+    SET(CMAKE_C_FLAGS_MINSIZEREL ${BUILD_C_FLAGS_MINSIZEREL}
+        CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
@@ -294,34 +314,65 @@ IF(${CMAKE_C_COMPILER} MATCHES "cl")
     STRING(TOUPPER ${BUILD_INST_SET} CL_INST_SET)
 
     ## C++
-    SET(CMAKE_CXX_FLAGS_DEBUG        
+    SET(BUILD_CXX_FLAGS_DEBUG        
 	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ Debug build compile flags")
-    SET(CMAKE_CXX_FLAGS_RELEASE        
+    SET(BUILD_CXX_FLAGS_RELEASE        
 	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ Release build compile flags")
-    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
+    SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
 	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ RelWithDebInfo build compile flags")
-    SET(CMAKE_CXX_FLAGS_MINSIZEREL 
+    SET(BUILD_CXX_FLAGS_MINSIZEREL 
 	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- /arch:${CL_INST_SET}" 
         CACHE STRING "VC++ MinSizeRel build compile flags")
 
     ## C
-    SET(CMAKE_C_FLAGS_DEBUG        
+    SET(BUILD_C_FLAGS_DEBUG        
 	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ Debug build compile flags")
-    SET(CMAKE_C_FLAGS_RELEASE        
+        CACHE STRING "VC Debug build compile flags")
+    SET(BUILD_C_FLAGS_RELEASE        
 	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ Release build compile flags")
-    SET(CMAKE_C_FLAGS_RELWITHDEBINFO 
+        CACHE STRING "VC Release build compile flags")
+    SET(BUILD_C_FLAGS_RELWITHDEBINFO 
 	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ RelWithDebInfo build compile flags")
-    SET(CMAKE_C_FLAGS_MINSIZEREL 
+        CACHE STRING "VC RelWithDebInfo build compile flags")
+    SET(BUILD_C_FLAGS_MINSIZEREL 
 	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ MinSizeRel build compile flags")
+        CACHE STRING "VC MinSizeRel build compile flags")
+
+    ## C++
+    SET(CMAKE_CXX_FLAGS_DEBUG ${BUILD_CXX_FLAGS_DEBUG}
+        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+    SET(CMAKE_CXX_FLAGS_RELEASE ${BUILD_CXX_FLAGS_RELEASE}
+        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${BUILD_CXX_FLAGS_RELWITHDEBINFO}
+        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+    SET(CMAKE_CXX_FLAGS_MINSIZEREL ${BUILD_CXX_FLAGS_MINSIZEREL}
+        CACHE STRING "Can't change here -- see BUILD_CXX..." FORCE)
+
+    ## C
+    SET(CMAKE_C_FLAGS_DEBUG ${BUILD_C_FLAGS_DEBUG}
+        CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
+    SET(CMAKE_C_FLAGS_RELEASE ${BUILD_C_FLAGS_RELEASE}
+        CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO ${BUILD_C_FLAGS_RELWITHDEBINFO}
+        CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
+    SET(CMAKE_C_FLAGS_MINSIZEREL ${BUILD_C_FLAGS_MINSIZEREL}
+        CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
+
+MARK_AS_ADVANCED(
+    BUILD_CXX_FLAGS_DEBUG
+    BUILD_CXX_FLAGS_RELEASE
+    BUILD_CXX_FLAGS_RELWITHDEBINFO
+    BUILD_CXX_FLAGS_MINSIZEREL
+    BUILD_C_FLAGS_DEBUG
+    BUILD_C_FLAGS_RELEASE
+    BUILD_C_FLAGS_RELWITHDEBINFO
+    BUILD_C_FLAGS_MINSIZEREL
+)
 
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
