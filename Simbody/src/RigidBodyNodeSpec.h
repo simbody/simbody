@@ -656,17 +656,17 @@ Vec3&       toUVec3  (      Vector& u, int offs) const {return toUVec3  (&u[0], 
 
 // CAUTION: our H definition is transposed from Jain and Schwieters.
 const HType& getH_FM(const SBTreePositionCache& pc) const
-  { return HType::getAs(&pc.storageForH_FM(0,uIndex)); }
+  { return HType::getAs(&pc.storageForH_FM[2*uIndex]); }
 HType&       updH_FM(SBTreePositionCache& pc) const
-  { return HType::updAs(&pc.storageForH_FM(0,uIndex)); }
+  { return HType::updAs(&pc.storageForH_FM[2*uIndex]); }
 
 // "H" here should really be H_PB_G, that is, cross joint transition
 // matrix relating parent and body frames, but expressed in Ground.
 // CAUTION: our H definition is transposed from Jain and Schwieters.
 const HType& getH(const SBTreePositionCache& pc) const
-  { return HType::getAs(&pc.storageForH(0,uIndex)); }
+  { return HType::getAs(&pc.storageForH[2*uIndex]); }
 HType&       updH(SBTreePositionCache& pc) const
-  { return HType::updAs(&pc.storageForH(0,uIndex)); }
+  { return HType::updAs(&pc.storageForH[2*uIndex]); }
 
 // These are sines and cosines of angular qs. The rest of the slots are garbage.
 const Vec<dof>&   getSinQ (const SBTreePositionCache& pc) const {return fromQ (pc.sq);}
@@ -687,15 +687,15 @@ Vec4&             updQNorm(SBTreePositionCache&       pc) const {return toQuat  
 
 // CAUTION: our H definition is transposed from Jain and Schwieters.
 const HType& getHDot_FM(const SBTreeVelocityCache& vc) const
-  { return HType::getAs(&vc.storageForHDot_FM(0,uIndex)); }
+  { return HType::getAs(&vc.storageForHDot_FM[2*uIndex]); }
 HType&       updHDot_FM(SBTreeVelocityCache& vc) const
-  { return HType::updAs(&vc.storageForHDot_FM(0,uIndex)); }
+  { return HType::updAs(&vc.storageForHDot_FM[2*uIndex]); }
 
 // CAUTION: our H definition is transposed from Jain and Schwieters.
 const HType& getHDot(const SBTreeVelocityCache& vc) const
-  { return HType::getAs(&vc.storageForHDot(0,uIndex)); }
+  { return HType::getAs(&vc.storageForHDot[2*uIndex]); }
 HType&       updHDot(SBTreeVelocityCache& vc) const
-  { return HType::updAs(&vc.storageForHDot(0,uIndex)); }
+  { return HType::updAs(&vc.storageForHDot[2*uIndex]); }
 
     // Dynamics
 
@@ -707,9 +707,9 @@ const Mat<dof,dof>& getDI(const SBArticulatedBodyInertiaCache& abc) const {retur
 Mat<dof,dof>&       updDI(SBArticulatedBodyInertiaCache&       abc) const {return toUSq  (abc.storageForDI);}
 
 const Mat<2,dof,Vec3>& getG(const SBArticulatedBodyInertiaCache& abc) const
-  { return Mat<2,dof,Vec3>::getAs(&abc.storageForG(0,uIndex)); }
+  { return Mat<2,dof,Vec3>::getAs(&abc.storageForG[2*uIndex]); }
 Mat<2,dof,Vec3>&       updG(SBArticulatedBodyInertiaCache&       abc) const
-  { return Mat<2,dof,Vec3>::updAs(&abc.storageForG(0,uIndex)); }
+  { return Mat<2,dof,Vec3>::updAs(&abc.storageForG[2*uIndex]); }
 
 const Vec<dof>& getTau(const SBInstanceCache& ic, const Vector& tau) const {
     const PresForcePoolIndex tauIx = ic.getMobodInstanceInfo(nodeNum).firstPresForce;

@@ -451,7 +451,7 @@ public:
 
     Real              totalMass; // sum of all rigid body and particles masses
     Array_<Inertia>   centralInertias;           // nb
-    Vector_<Vec3>     principalMoments;          // nb
+    Array_<Vec3>      principalMoments;          // nb
     Array_<Rotation>  principalAxes;             // nb
     Array_<Transform> referenceConfiguration;    // nb
 
@@ -628,8 +628,8 @@ public:
     // CAUTION: our definition of the H matrix is transposed from those used
     // by Jain and by Schwieters. Jain would call these H* and Schwieters
     // would call them H^T, but we call them H.
-    Matrix_<Vec3> storageForH_FM; // 2 x ndof (H_FM)
-    Matrix_<Vec3> storageForH;    // 2 x ndof (H_PB_G)
+    Array_<Vec3> storageForH_FM; // 2 x ndof (H_FM)
+    Array_<Vec3> storageForH;    // 2 x ndof (H_PB_G)
 
     Array_<Transform>    bodyJointInParentJointFrame;  // nb (X_FM)
     Array_<Transform>    bodyConfigInParent;           // nb (X_PB)
@@ -637,8 +637,8 @@ public:
     Array_<PhiMatrix>    bodyToParentShift;            // nb (phi)
     Array_<UnitInertia>  bodyUnitInertiaInGround;          // nb (I_OB_G)
     Array_<SpatialInertia>    bodySpatialInertia;           // nb (Mk)
-    Vector_<Vec3>             bodyCOMInGround;              // nb (p_G_CB)
-    Vector_<Vec3>             bodyCOMStationInGround;       // nb (p_CB_G)
+    Array_<Vec3>              bodyCOMInGround;              // nb (p_G_CB)
+    Array_<Vec3>              bodyCOMStationInGround;       // nb (p_CB_G)
 
 
         // Ancestor Constrained Body Pool
@@ -666,8 +666,8 @@ public:
         cq.resize(maxNQs);
         qnorm.resize(maxNQs);
 
-        storageForH_FM.resize(2,nDofs);
-        storageForH.resize(2,nDofs);
+        storageForH_FM.resize(2*nDofs);
+        storageForH.resize(2*nDofs);
 
         bodyJointInParentJointFrame.resize(nBodies); 
         bodyJointInParentJointFrame[0].setToZero();
@@ -822,7 +822,7 @@ public:
 
     Vector_<Real>       storageForD;              // sum(nu[j]^2)
     Vector_<Real>       storageForDI;             // sum(nu[j]^2)
-    Matrix_<Vec3>       storageForG;              // 2 X ndof
+    Array_<Vec3>        storageForG;              // 2 X ndof
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -841,7 +841,7 @@ public:
 
         storageForD.resize(nSqDofs);
         storageForDI.resize(nSqDofs);
-        storageForG.resize(2,nDofs);
+        storageForG.resize(2*nDofs);
     }
 };
 //....................... ARTICULATED BODY INERTIA CACHE .......................
@@ -885,20 +885,20 @@ public:
 public:
     // qdot cache space is supplied directly by the State
 
-    Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_FM) cross-mobilizer velocity
-    Vector_<SpatialVec> bodyVelocityInParent;      // nb (V_PB) 
-    Vector_<SpatialVec> bodyVelocityInGround;      // nb (V_GB)
+    Array_<SpatialVec> mobilizerRelativeVelocity; // nb (V_FM) cross-mobilizer velocity
+    Array_<SpatialVec> bodyVelocityInParent;      // nb (V_PB)
+    Array_<SpatialVec> bodyVelocityInGround;      // nb (V_GB)
 
     // CAUTION: our definition of the H matrix is transposed from those used
     // by Jain and by Schwieters.
-    Matrix_<Vec3> storageForHDot_FM;  // 2 x ndof (HDot_FM)
-    Matrix_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
+    Array_<Vec3> storageForHDot_FM;  // 2 x ndof (HDot_FM)
+    Array_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
 
-    Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=HDot_PB_G*u
+    Array_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=HDot_PB_G*u
 
-    Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
-    Vector_<SpatialVec> totalCoriolisAcceleration;// nb (A)
-    Vector_<SpatialVec> gyroscopicForces;         // nb (b)
+    Array_<SpatialVec> coriolisAcceleration;     // nb (a)
+    Array_<SpatialVec> totalCoriolisAcceleration;// nb (A)
+    Array_<SpatialVec> gyroscopicForces;         // nb (b)
 
         // Ancestor Constrained Body Pool
 
@@ -928,8 +928,8 @@ public:
         bodyVelocityInGround.resize(nBodies);       
         bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
 
-        storageForHDot_FM.resize(2,nDofs);
-        storageForHDot.resize(2,nDofs);
+        storageForHDot_FM.resize(2*nDofs);
+        storageForHDot.resize(2*nDofs);
 
         bodyVelocityInParentDerivRemainder.resize(nBodies);       
         bodyVelocityInParentDerivRemainder[0] = SpatialVec(Vec3(0),Vec3(0));
@@ -993,10 +993,10 @@ public:
     Vector presUDotPool;    // Index with PresUDotPoolIndex
 
     // Dynamics
-    Vector_<SpatialVec> centrifugalForces;        // nb (P*a+b)
-    Vector_<SpatialVec> totalCentrifugalForces;   // nb (P*A+b)
+    Array_<SpatialVec> centrifugalForces;        // nb (P*a+b)
+    Array_<SpatialVec> totalCentrifugalForces;   // nb (P*A+b)
 
-    Vector_<SpatialMat> Y;                        // nb
+    Array_<SpatialMat> Y;                        // nb
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -1069,8 +1069,8 @@ public:
 
     // Temps used in calculating accelerations and prescribed forces.
     Vector              epsilon;                  // nu
-    Vector_<SpatialVec> z;                        // nb
-    Vector_<SpatialVec> Gepsilon;                 // nb
+    Array_<SpatialVec> z;                        // nb
+    Array_<SpatialVec> Gepsilon;                 // nb
 
         // Ancestor Constrained Body Pool
 
