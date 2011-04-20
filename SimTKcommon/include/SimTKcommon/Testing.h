@@ -118,8 +118,10 @@ namespace SimTK {
  *      SimTK_TEST_EQ_TOL(a,b,tol)   -- same as above with specified tolerance
  *      SimTK_TEST_NOTEQ_TOL(a,b,tol)
  *
- *      SimTK_TEST_MUST_THROW(statement)    -- we expect the statement to throw some exception
+ *      SimTK_TEST_MUST_THROW(statement)        -- we expect the statement to throw some exception
  *      SimTK_TEST_MUST_THROW_EXC(statement, exception) -- we expect a particular exception type
+ *      SimTK_TEST_MUST_THROW_DEBUG(statement)  -- same as above but only checked in Debug builds
+ *      SimTK_TEST_MUST_THROW_EXC_DEBUG(statement, exception) -- ditto
  * </pre>
  * The SimTK_TEST_EQ macros test scalar and composite numerical values for
  * equality to within a numerical tolerance, using both relative

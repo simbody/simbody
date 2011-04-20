@@ -53,6 +53,11 @@ SET(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
 SET(EXECUTABLE_OUTPUT_PATH ${BUILD_BINARY_DIR})
 SET(LIBRARY_OUTPUT_PATH ${BUILD_BINARY_DIR})
 
+# Static libraries, tests, and examples won't be built unless this 
+# is set.
+SET(BUILD_STATIC_LIBRARIES FALSE CACHE BOOL
+"Build '_static' versions of libraries in addition to dynamic libraries?")
+
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.
 SET(BUILD_USING_NAMESPACE "" CACHE STRING
@@ -126,7 +131,7 @@ SET(BUILD_VISUALIZER ON CACHE BOOL
 # but you may miss the occasional odd bug. Also currently on Windows it
 # is easier to debug the static tests than the DLL-liked ones.
 SET( BUILD_TESTING_STATIC ON CACHE BOOL
-    "If building test or example programs, include statically-linked ones?" )
+    "If building static libraries, build static test and example programs too?" )
 
 SET( BUILD_TESTING_SHARED ON CACHE BOOL
     "If building test or example programs, include dynamically-linked ones?" )

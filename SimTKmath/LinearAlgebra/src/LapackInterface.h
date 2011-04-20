@@ -33,12 +33,7 @@
 
 #include "SimTKcommon.h"
 #include "SimTKlapack.h"
-// TODO remove these once SimTKlapak.h is fixed
-extern "C" {
-extern void cgelss_(const int& m, const int& n, const int& nrhs, std::complex<float> *a, const int& lda, std::complex<float> *b, const int& ldb, float *s, const float& rcond, int& rank, std::complex<float> *work, const int& lwork, float *rwork, int& info);
-extern void zgelss_(const int& m, const int& n, const int& nrhs, std::complex<double> *a, const int& lda, std::complex<double> *b, const int& ldb, double *s, const double& rcond, int& rank, std::complex<double> *work, const int& lwork, double *rwork, int& info);
 
-}
 namespace SimTK {
 
 class LapackInterface { 
@@ -61,7 +56,7 @@ void gesdd( char jobz, int m, int n, T* a, int lda,
            T* vt, int ldvt, int& info);
 
 template <class T> static
-void geev (char jobvl, char jobvr, int n, T* a, int lda, 
+void geev(char jobvl, char jobvr, int n, T* a, int lda, 
     std::complex<typename CNT<T>::TReal>* values, 
     T* vl, int ldvl, std::complex<typename CNT<T>::TReal>* vr, 
     int ldvr, T* work, int lwork, int& info );
@@ -133,8 +128,7 @@ template <class T> static
 void trsm(const char& side, const char& uplo, const char& transA, const char& diag, const int& m, const int& n, const T& alpha, const T* A, const int& lda, T* B, const int& ldb );
  
 template <class T> static
-// TODO void ormrz(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, T* a, const int& lda, T* tau, T* c__, const int& ldc, T* work, const int& lwork, int& info);
-void ormrz(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, T* a, const int& lda, T* tau, T* c__, const int& ldc, T* work, const int& lwork, int& info);
+void ormrz(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, T* a, const int& lda, T* tau, T* c__, const int& ldc, T* work, const int& lwork, int& info);
  
 template <class T> static
 void copy( const int& n, const T* x, const int& incx, T* y, const int& incy);

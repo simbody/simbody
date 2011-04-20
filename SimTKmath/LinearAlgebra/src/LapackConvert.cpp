@@ -56,9 +56,9 @@ template < typename T, typename ELT>
 void LapackConvert::convertMatrixToLapack ( T* lapackArray,  const Matrix_<ELT>& mat ) {
     int m = mat.nrow();
     int n = mat.ncol();
-    for(int i=0;i<n;i++) {
-        for(int j=0;j<m;j++)  {
-             lapackArray[i*m+j] = mat(j,i);
+    for(int c=0;c<n;c++) {
+        for(int r=0;r<m;r++)  {
+             lapackArray[c*m+r] = mat(r,c);
         }
     }
     return;

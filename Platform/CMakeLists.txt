@@ -37,7 +37,7 @@ ENDFOREACH()
 
 ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
 SET_TARGET_PROPERTIES(PlatformFiles
-    PROPERTIES PROJECT_LABEL "Library - Platform Files")
+    PROPERTIES PROJECT_LABEL "Code - Platform Files")
 
 #
 # During build, we want to copy all the platform binaries

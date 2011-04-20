@@ -974,8 +974,7 @@ void LapackInterface::trsm<std::complex<float> >(const char& side, const char& u
      return;
 }
 template <> 
-// TODO void LapackInterface::ormrz<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, float* a, const int& lda, float* tau, float* c__, const int& ldc, float* work, const int& lwork, int& info) {
-void LapackInterface::ormrz<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, float* a, const int& lda, float* tau, float* c__, const int& ldc, float* work, const int& lwork, int& info) {
+void LapackInterface::ormrz<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, float* a, const int& lda, float* tau, float* c__, const int& ldc, float* work, const int& lwork, int& info) {
    sormrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
 
     if( info < 0 ) {
@@ -985,8 +984,7 @@ void LapackInterface::ormrz<float>(const char& side, const char& trans, const in
 }
 
 template <> 
-// TODO void LapackInterface::ormrz<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, double* a, const int& lda, double* tau, double* c__, const int& ldc, double* work, const int& lwork, int& info) {
-void LapackInterface::ormrz<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, double* a, const int& lda, double* tau, double* c__, const int& ldc, double* work, const int& lwork, int& info) {
+void LapackInterface::ormrz<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, double* a, const int& lda, double* tau, double* c__, const int& ldc, double* work, const int& lwork, int& info) {
    dormrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
 
     if( info < 0 ) {
@@ -996,10 +994,8 @@ void LapackInterface::ormrz<double>(const char& side, const char& trans, const i
 }
 
 template <> 
-//void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
-//   cunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
-void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
-   cunmrz_( side, trans, m, n, k, *l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
+   cunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
 
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cunmrz", info );
@@ -1008,10 +1004,8 @@ void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& 
 }
 
 template <> 
-//void LapackInterface::ormrz<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, std::complex<double>* a, const int& lda, std::complex<double>* tau, std::complex<double>* c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
-//   zunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
-void LapackInterface::ormrz<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, std::complex<double>* a, const int& lda, std::complex<double>* tau, std::complex<double>* c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
-   zunmrz_( side, trans, m, n, k, *l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+void LapackInterface::ormrz<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, std::complex<double>* a, const int& lda, std::complex<double>* tau, std::complex<double>* c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
+   zunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
 
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zunmrz", info );
@@ -1057,8 +1051,7 @@ void LapackInterface::getMachinePrecision<float>( float& smallNumber, float& big
     
     smallNumber = slamch_( 'S' )/slamch_( 'P' );
     bigNumber = 1.f/smallNumber;
-// TODO    slabad_(smallNumber, bigNumber );
-    slabad_(&smallNumber, &bigNumber );
+    slabad_(smallNumber, bigNumber );
 }
 
 template <>
@@ -1066,21 +1059,18 @@ void LapackInterface::getMachinePrecision<double>( double& smallNumber, double& 
     
     smallNumber = dlamch_( 'S' )/dlamch_( 'P' );
     bigNumber = 1.0/smallNumber;
-// TODO    dlabad_(smallNumber, bigNumber );
-    dlabad_(&smallNumber, &bigNumber );
+    dlabad_(smallNumber, bigNumber );
 }
 
 template <> 
 void LapackInterface::laic1<float>(const int& job, const int& j, const float* x, const float& sest, const float* w, const float& gamma, float& sestpr, float& s, float& c__ ) {
-// TODO    slaic1_( job, j, x, sest, w, gamma, sestpr, s, c__ );
-    slaic1_( job, j, *x, sest, *w, gamma, sestpr, s, c__ );
+    slaic1_( job, j, x, sest, w, gamma, sestpr, s, c__ );
     return;
 }
 
 template <> 
 void LapackInterface::laic1<double>(const int& job, const int& j, const double* x, const double& sest, const double* w, const double& gamma, double& sestpr, double& s, double& c__ ) {
-// TODO    dlaic1_( job, j, x, sest, w, gamma, sestpr, s, c__ );
-    dlaic1_( job, j, *x, sest, *w, gamma, sestpr, s, c__ );
+    dlaic1_( job, j, x, sest, w, gamma, sestpr, s, c__ );
     return;
 }
 

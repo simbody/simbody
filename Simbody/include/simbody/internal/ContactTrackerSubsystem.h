@@ -144,7 +144,7 @@ programs and in separate runs of the same program.
 
 The result of a ContactTracker when applied to a pair of contact
 surfaces, is either a determination that the surfaces are not in contact,
-or a Contact object describing their contact interation. There are different
+or a Contact object describing their contact interaction. There are different
 types of these Contact objects (for example, PointContact, LineContact, 
 MeshContact) and the same algorithm may result in different kinds of Contact 
 under different circumstances. At each evaluation, the subsystem passes in the 
@@ -222,7 +222,7 @@ cache entry value is precisely what will become the "previous impending
 contacts" state variable at the beginning of the next time step. An error
 will be thrown if we have to calculate the contacts here but fail to do so; 
 to avoid that you should realize them explicitly first. 
-@see realizeImpendingContacts()  **/
+@see realizePredictedContacts()  **/
 const ContactSnapshot& getPredictedContacts(const State& state) const;
 
 /** Calculate the current ActiveContacts set at Position stage or later if

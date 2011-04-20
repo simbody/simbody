@@ -18,7 +18,7 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
                  ${MATH_LIBS_TO_USE})
     
     SET_TARGET_PROPERTIES(${STATIC_TARGET} PROPERTIES
-    	PROJECT_LABEL "Library - ${STATIC_TARGET}")
+    	PROJECT_LABEL "Code - ${STATIC_TARGET}")
     
     # install library
     
@@ -48,7 +48,7 @@ IF(BUILD_VERSIONED_LIBRARIES)
                  ${MATH_LIBS_TO_USE_VN})
     
     SET_TARGET_PROPERTIES(${STATIC_TARGET_VN} PROPERTIES
-    	PROJECT_LABEL "Library - ${STATIC_TARGET_VN}")
+    	PROJECT_LABEL "Code - ${STATIC_TARGET_VN}")
     
     # install library
     

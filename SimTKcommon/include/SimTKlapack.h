@@ -1,100 +1,111 @@
 #ifndef SimTK_FORTRAN_LAPACK_H_
 #define SimTK_FORTRAN_LAPACK_H_
 
-/* Copyright (c) 2006 Stanford University and Jack Middleton.
- * Contributors: Michael Sherman, Chris Bruns
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR a PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/* -------------------------------------------------------------------------- *
+ *                             SimTK: Simbody(tm)                             *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK biosimulation toolkit originating from           *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
+ *                                                                            *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
+ * Authors: Jack Middleton                                                    *
+ * Contributors: Michael Sherman, Christopher Bruns                           *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
 
-/*            ******* WARNING WARNING WARNING TODO TODO *******
- * This file is being converted to const correctness but is not there yet.
- * Help would be appreciated!!!  (sherm 060329)
- *            ******* WARNING WARNING WARNING TODO TODO *******
+/*
+ * This header file contains const-correct function prototypes for C & C++ 
+ * programs calling the legacy (Fortran) interface for BLAS and LAPACK
+ * version 3. This header should work for almost any implementation of those
+ * routines, whether our SimTKlapack, Apple's Accelerate lapack & blas, Intel's
+ * Math Kernel Libraries (MKL), AMD's ACML, or Goto- or Atlas-generated 
+ * libraries. This will also work with netlib's slow reference implementation,
+ * and should work even using the f2c-translated version of that because
+ * (although the code is in C) it still implements the Fortran calling
+ * sequence.
  *
- * Yes, we know this is ugly with all the macros. Think of it as a "header
- * file generator" rather than a header file and it is more palatable. Once
- * we finish decorating all the arguments with their semantics, we can run
- * the preprocessor (or perl or whatever) on this thing a few times and
- * generate a set of nice headers. For now though we need to finish collecting
- * all the information, and you can use this directly in the meanwhile.
+ * CAUTION: THIS INTERFACE USES 32 BIT INTEGERS. So even though addresses
+ * are 8 bytes for a 64-bit lapack and blas, we're expecting all the integer
+ * arguments to remain 4 bytes.
+ *
+ * Do not confuse this interface with the CBLAS and CLAPACK interfaces which 
+ * are C-friendly wrappers around the legacy interface. Here we are dealing 
+ * with direct calls to the legacy routines (which are Fortran-like) from C 
+ * and C++ programs.
  * 
- * This header file contains the const-correct fuction prototypes for C & C++ programs
- * calling the Legacy (Fortran) interface for the SimTKlapack library. This is not
- * to be confused with the CBLAS and CLAPACK interfaces which are C-friendly wrappers
- * around the Legacy interface. Here we are dealing with direct calls to the Legacy
- * routines (which are Fortran-like) from C and C++ programs.
+ * The basic rules for C programs calling Fortran-like routines with the 
+ * convention we use (there are others) are:
  * 
- * The basic rules for C programs calling Fortran-like routines with the convention
- * we use (there are others) are:
+ * 1) Function names are in lower case and have an underscore appended to the 
+ *    name. For example, if a C program calls LAPACK's ZGEEV routine the call 
+ *    would be:
+ *       zgeev_(...).
  * 
- * 1) Function names are in lower case and have an underscore appended to the name.
- *    For example, if a C program calls LAPACK's ZGEEV routine the call would be:
- *    zgeev_(...).
- * 
- * 2) Fortran routines pass scalar arguments by reference. (except for character
- *    string "length" arguments that are normally hidden from FORTRAN programmers)
- *    Therefore a C program needs to pass pointers to scalar arguments. C++ 
- *    code can just pass the arguments; they will be passed by reference automatically
- *    because of the declarations here.
+ * 2) Fortran routines pass scalar arguments by reference. (except for 
+ *    character string "length" arguments that are normally hidden from 
+ *    FORTRAN programmers) Therefore a C program needs to pass pointers to 
+ *    scalar arguments. C++ code can just pass the arguments; they will be 
+ *    passed by reference automatically because of the declarations here.
  * 
  * 3) In Fortran 2-D arrays are stored in column major format meaning that
  *    the matrix    A = [ 1.0 2.0 ]
  *                      [ 3.0 4.0 ]
- *   declared as a(2,2) would be stored in memory as 1.0, 3.0, 2.0, 4.0.
- *   While a C 2-D array declared as a[2][2], would be stored in
- *   row-major order as 1.0, 2.0, 3.0, 4.0.
- *   Therefore C programs may need to transpose 2D arrays before calling the
- *   Fortran interface.
+ *    declared as A(2,2) would be stored in memory as 1.0, 3.0, 2.0, 4.0.
+ *    While a C 2-D array declared as a[2][2], would be stored in
+ *    row-major order as 1.0, 2.0, 3.0, 4.0. Therefore C programs may need to
+ *    transpose 2D arrays before calling the Fortran interface. Note that
+ *    SimTK Matrix objects are normally stored using the Fortran convention,
+ *    so their data is directly compatible with Lapack.
  * 
- * 4) The lengths of character strings need to be passed as additional arguments
- *    which are added to the end of the parameter list.
- *    For example, LAPACK's ZGEEV  routine has two arguments which are character
+ * 4) The lengths of character strings need to be passed as additional 
+ *    arguments which are added to the end of the parameter list. For example,
+ *    LAPACK's ZGEEV  routine has two arguments which are character
  *    strings: JOBVL, JOBVR.
  * 
  *    ZGEEV(JOBVL, JOBVR, N, A, LDA, W, VL, LDVL, VR, LDVR,
  *                          WORK, LWORK, RWORK, INFO)
  * 
- * 
- *    A C program calling ZGEEV would need to add two additional
- *    arguments at the end of the parameter list which contain the lengths of JOBVL, JOBVR
- *    arguments:
- * 
- *    char * jobvl = "N";
- *    char * jobvr = "Vectors";
- *    int  len_jobvl = 1;
- *    int  len_jobvr = 7;
+ *    A C program calling ZGEEV would need to add two additional arguments 
+ *    at the end of the parameter list which contain the lengths of JOBVL, JOBVR
+ *    arguments: 
+ *    char* jobvl = "N";
+ *    char* jobvr = "Vectors";
+ *    int   len_jobvl = 1;
+ *    int   len_jobvr = 7;
  *      .
  *      .
  *      .
  * 
- *    zgeev_(jobvl, jobvr, &n, a, &lda, w, vl, &ldvl, vr, &ldvr, work, &lwork, rwork, &info
- *            len_jobvl, len_jobvr);
- *            ^^^^^^^^   ^^^^^^^^
+ *    zgeev_(jobvl, jobvr, &n, a, &lda, w, vl, &ldvl, vr, &ldvr, 
+ *           work, &lwork, rwork, &info,
+ *           len_jobvl, len_jobvr);
+ *           ^^^^^^^^   ^^^^^^^^
  *           additional arguments
  * 
- *    In practice, only the first character is used for any Lapack option so the length
- *    can always be passed as 1. Since these length arguments are at the end, they can
- *    have defaults in C++ and are set to 1 below so C++ programs do not need to be
- *    aware of the length arguments. But calls from C will typically end with ",1,1,1)" or
- *    whatever.
+ *    In practice, only the first character is used for any Lapack option so 
+ *    the length can always be passed as 1. Since these length arguments are 
+ *    at the end, they can have defaults in C++ and are set to 1 below so 
+ *    C++ programs do not need to be aware of the length arguments. But calls 
+ *    from C will typically end with ",1,1,1)" or whatever.
  */
 
 /*
@@ -108,6 +119,11 @@
  * We define an assortment of temporary macros for other argument
  * passing situations.
  * We'll undefine these temporary macros at the end of this header.
+ *
+ * Yes, we know this is ugly with all the macros. Think of it as a "header
+ * file generator" rather than a header file and it is more palatable. Our
+ * goal is to capture all the argument semantics here and then generate the
+ * right behavior.
  */
 
 #ifdef __cplusplus
@@ -119,18 +135,25 @@
    #define SimTK_S_INPUT_(s)      const float& s
    #define SimTK_D_INPUT_(d)      const double& d
    #define SimTK_I_INPUT_(i)      const int& i
-   #define SimTK_C_INPUT_(c)      const SimTK_C_& c
-   #define SimTK_Z_INPUT_(z)      const SimTK_Z_& z
+   #define SimTK_C_INPUT_(c)      const std::complex<float>& c
+   #define SimTK_Z_INPUT_(z)      const std::complex<double>& z
+
+   #define SimTK_S_INOUT_(s)      float& s
+   #define SimTK_D_INOUT_(d)      double& d
+   #define SimTK_I_INOUT_(i)      int& i
+   #define SimTK_C_INOUT_(c)      std::complex<float>& c
+   #define SimTK_Z_INOUT_(z)      std::complex<double>& z
+
    #define SimTK_S_OUTPUT_(s)     float& s
    #define SimTK_D_OUTPUT_(d)     double& d
    #define SimTK_I_OUTPUT_(i)     int& i
-   #define SimTK_C_OUTPUT_(c)     SimTK_C_& c
-   #define SimTK_Z_OUTPUT_(z)     SimTK_Z_& z
+   #define SimTK_C_OUTPUT_(c)     std::complex<float>& c
+   #define SimTK_Z_OUTPUT_(z)     std::complex<double>& z
 
    #define SimTK_FDIM_(n)         const int& n        /* a dimension, e.g. N,M,lda */
    #define SimTK_FINC_(x)         const int& inc##x   /* increment, i.e. stride */
    #define SimTK_FOPT_(c)         const char& c       /* an option, passed as a single char */
-   #define SimTK_CHAR_OUTPUT_(c)  char& c      /* returns a single char */
+   #define SimTK_CHAR_OUTPUT_(c)  char& c             /* returns a single char */
    #define SimTK_FLEN_(c)         int c##_len=1       /* dummy length parameter added by Fortran */
    #define SimTK_INFO_            int& info           /* returns error code */
 #else
@@ -164,15 +187,23 @@
   #define SimTK_I_INPUT_(i)      const int* i
   #define SimTK_C_INPUT_(c)      const SimTK_C_* c
   #define SimTK_Z_INPUT_(z)      const SimTK_Z_* z
+
+  #define SimTK_S_INOUT_(s)      float* s
+  #define SimTK_D_INOUT_(d)      double* d
+  #define SimTK_I_INOUT_(i)      int* i
+  #define SimTK_C_INOUT_(c)      SimTK_C_* c
+  #define SimTK_Z_INOUT_(z)      SimTK_Z_* z
+
   #define SimTK_S_OUTPUT_(s)     float* s
   #define SimTK_D_OUTPUT_(d)     double* d
   #define SimTK_I_OUTPUT_(i)     int* i
   #define SimTK_C_OUTPUT_(c)     SimTK_C_* c
   #define SimTK_Z_OUTPUT_(z)     SimTK_Z_* z
+
   #define SimTK_FDIM_(n)         const int* n      /* a dimension, e.g. N,M,lda */
   #define SimTK_FINC_(x)         const int* inc##x /* increment, i.e. stride */
   #define SimTK_FOPT_(c)         const char* c     /* an option, passed as a single char */
-  #define SimTK_CHAR_OUTPUT_(c)  char* c        /* returns a single char */
+  #define SimTK_CHAR_OUTPUT_(c)  char* c           /* returns a single char */
   #define SimTK_FLEN_(c)         int c##_len       /* dummy length parameter (must set to 1 in call) */
   #define SimTK_INFO_            int *info         /* returns error code */
 
@@ -183,15 +214,16 @@ extern "C" {
 #endif
 
 /*
- * These are the standard routines provided by all SimTK libraries so that various
- * information about the particulars of the library can be extracted from the binary.
+ * These are the standard routines provided by all SimTK libraries so that 
+ * various information about the particulars of the library can be extracted 
+ * from the binary.
  */
 void SimTK_version_SimTKlapack(int*,int*,int*);
 void SimTK_about_SimTKlapack(const char*, int, char*);
 
 /*
- * These signatures define callouts to be made by some of the Lapack eigenvalue routines
- * for selecting eigenvalue subsets.
+ * These signatures define callouts to be made by some of the Lapack eigenvalue
+ * routines for selecting eigenvalue subsets.
  */
 typedef int (* SimTK_SELECT_2S)(SimTK_S_INPUT_(wr), SimTK_S_INPUT_(wi));
 typedef int (* SimTK_SELECT_3F)(SimTK_S_INPUT_(ar), SimTK_S_INPUT_(ai), SimTK_S_INPUT_(b));
@@ -214,15 +246,16 @@ typedef int (* SimTK_SELECT_2Z)(SimTK_Z_INPUT_(a),  SimTK_Z_INPUT_(b));
  *
  *  BLAS Level 1 functions (that is, value-returning methods).
  *
- *  TODO: The following functions return complex values. This is OK in C++ but what about C?
+ *  TODO: The following functions return complex values. This is OK in C++ but
+ *  what about C?
  *    cdotu_, zdotu_ (complex dot product without conjugation)
  *    cdotc_, zdotc_ (complex dot product with conjugation)
  * 
- *    SimTKlapack  1.2  was compiled with gfortran and the -ff2c flag on Mac and 
- *    Linux and g77 on Windows (gfortran still has issues on Windows). In either
- *    case the four routines below return SimTK_C_  or SimTK_Z_  type in C++ 
- *    but for C programs they return a pointer to a SimTK_C_ or SimTK_Z_ 
- *    type as an extra paramter 
+ *    SimTKlapack  1.2  was compiled with gfortran and the -ff2c flag on Mac 
+ *    and Linux and g77 on Windows (gfortran still had issues on Windows). In 
+ *    either case the four routines below return SimTK_C_ or SimTK_Z_ type in 
+ *    C++ but for C programs they return a pointer to a SimTK_C_ or SimTK_Z_ 
+ *    type as an extra parameter. 
  */
 /*
 #ifdef __cplusplus
@@ -322,7 +355,8 @@ extern void csscal_(SimTK_FDIM_(n), SimTK_S_INPUT_(alpha), SimTK_C_ *x, SimTK_FI
 extern void zdscal_(SimTK_FDIM_(n), SimTK_D_INPUT_(alpha), SimTK_Z_ *x, SimTK_FINC_(x));
 
 /*
- * Extra reference routines provided by ATLAS, but not mandated by the standard
+ * Extra reference routines provided by ATLAS, but not mandated by the 
+ * standard.
  */
 extern void crotg_(SimTK_C_OUTPUT_(a), SimTK_C_INPUT_(b), SimTK_S_OUTPUT_(c), SimTK_C_OUTPUT_(s) );
 extern void zrotg_(SimTK_Z_OUTPUT_(a), SimTK_Z_INPUT_(b), SimTK_D_OUTPUT_(c), SimTK_Z_OUTPUT_(s) );
@@ -333,7 +367,7 @@ extern void zdrot_(SimTK_FDIM_(n), SimTK_Z_ *x, SimTK_FINC_(x), SimTK_Z_ *y, Sim
 
 /*
  *===========================================================================
- *Prototypes for level 2 BLAS
+ * Prototypes for level 2 BLAS
  *===========================================================================
  */
 
@@ -553,9 +587,10 @@ extern void cgelq2_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_C_ *a, SimTK_FDIM_(lda
 extern void cgelqf_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_C_ *a, SimTK_FDIM_(lda), SimTK_C_ *tau, SimTK_C_ *work, SimTK_FDIM_(lwork), SimTK_INFO_);
 
 extern void cgels_(SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nrhs), SimTK_C_ *a, SimTK_FDIM_(lda), SimTK_C_ *b, SimTK_FDIM_(ldb), SimTK_C_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(trans));
+extern void cgelss_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nrhs), SimTK_C_ *a, SimTK_FDIM_(lda), SimTK_C_ *b, SimTK_FDIM_(ldb), float *s, SimTK_S_INPUT_(rcond), SimTK_I_OUTPUT_(rank), SimTK_C_ *work, SimTK_FDIM_(lwork), float *rwork, SimTK_INFO_);
 
+/* gelsx is deprecated; use gelsy instead */
 extern void cgelsx_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nrhs), SimTK_C_ *a, SimTK_FDIM_(lda), SimTK_C_ *b, SimTK_FDIM_(ldb), int *jpvt, SimTK_S_INPUT_(rcond), SimTK_I_OUTPUT_(rank), SimTK_C_ *work, float *rwork, SimTK_INFO_);
-
 extern void cgelsy_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nrhs), SimTK_C_ *a, SimTK_FDIM_(lda), SimTK_C_ *b, SimTK_FDIM_(ldb), int *jpvt, SimTK_S_INPUT_(rcond), SimTK_I_OUTPUT_(rank), SimTK_C_ *work, SimTK_FDIM_(lwork), float *rwork, SimTK_INFO_);
 
 extern void cgeql2_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_C_ *a, SimTK_FDIM_(lda), SimTK_C_ *tau, SimTK_C_ *work, SimTK_INFO_);
@@ -1088,7 +1123,7 @@ extern void cunmr3_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK
 
 extern void cunmrq_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), const SimTK_C_ *a, SimTK_FDIM_(lda), const SimTK_C_ *tau, SimTK_C_ *c__, SimTK_FDIM_(ldc), SimTK_C_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
 
-extern void cunmrz_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_I_INPUT_(l), const SimTK_C_ *a, SimTK_FDIM_(lda), const SimTK_C_ *tau, SimTK_C_ *c__, SimTK_FDIM_(ldc), SimTK_C_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
+extern void cunmrz_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(l), const SimTK_C_ *a, SimTK_FDIM_(lda), const SimTK_C_ *tau, SimTK_C_ *c__, SimTK_FDIM_(ldc), SimTK_C_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
 
 extern void cunmtr_(SimTK_FOPT_(side), SimTK_FOPT_(uplo), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), const SimTK_C_ *a, SimTK_FDIM_(lda), const SimTK_C_ *tau, SimTK_C_ *c__, SimTK_FDIM_(ldc), SimTK_C_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(uplo), SimTK_FLEN_(trans));
 
@@ -1252,7 +1287,7 @@ extern int disnan( SimTK_D_INPUT_(din) );
 
 extern int dlaisnan( SimTK_D_INPUT_(din1), SimTK_D_INPUT_(din2) );
 
-extern void dlabad_(double *small, double *large);
+extern void dlabad_(SimTK_D_INOUT_(small), SimTK_D_INOUT_(large));
 
 extern void dlabrd_(SimTK_FDIM_(m), SimTK_FDIM_(n),  SimTK_FDIM_(nb), double *a, SimTK_FDIM_(lda), double *d__, double *e, double *tauq, double *taup, double *x, SimTK_FDIM_(ldx), double *y, SimTK_FDIM_(ldy));
 
@@ -1317,7 +1352,7 @@ extern void dlahrd_(SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(nb), double *a, 
 
 extern void dlahr2_(SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(nb), double *a, SimTK_FDIM_(lda), double *tau, double *t, SimTK_FDIM_(ldt), double *y, SimTK_FDIM_(ldy));
 
-extern void dlaic1_(SimTK_I_INPUT_(job), SimTK_FDIM_(j), SimTK_D_INPUT_(x), SimTK_D_INPUT_(sest), SimTK_D_INPUT_(w), SimTK_D_INPUT_(gamma), SimTK_D_OUTPUT_(sestpr), SimTK_D_OUTPUT_(s), SimTK_D_OUTPUT_(c__) );
+extern void dlaic1_(SimTK_I_INPUT_(job), SimTK_FDIM_(j), const double *x, SimTK_D_INPUT_(sest), const double *w, SimTK_D_INPUT_(gamma), SimTK_D_OUTPUT_(sestpr), SimTK_D_OUTPUT_(s), SimTK_D_OUTPUT_(c__) );
 
 extern void dlaln2_(SimTK_I_INPUT_(ltrans), SimTK_I_INPUT_(na), SimTK_I_INPUT_(nw), SimTK_D_INPUT_(smin), SimTK_D_INPUT_(ca), const double *a, SimTK_FDIM_(lda), SimTK_D_INPUT_(d1), SimTK_D_INPUT_(d2), SimTK_D_INPUT_(b), SimTK_FDIM_(ldb), SimTK_D_INPUT_(wr), SimTK_D_INPUT_(wi), double *x, SimTK_FDIM_(ldx), SimTK_D_OUTPUT_(scale), double *xnorm, SimTK_INFO_);
 
@@ -1552,7 +1587,7 @@ extern void dormr3_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK
 
 extern void dormrq_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), double *a, SimTK_FDIM_(lda), double *tau, double *c__, SimTK_FDIM_(ldc), double *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
 
-extern void dormrz_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), int *l, double *a, SimTK_FDIM_(lda), double *tau, double *c__, SimTK_FDIM_(ldc), double *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
+extern void dormrz_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(l), double *a, SimTK_FDIM_(lda), double *tau, double *c__, SimTK_FDIM_(ldc), double *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
 
 extern void dormtr_(SimTK_FOPT_(side), SimTK_FOPT_(uplo), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), double *a, SimTK_FDIM_(lda), double *tau, double *c__, SimTK_FDIM_(ldc), double *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(uplo), SimTK_FLEN_(trans));
 
@@ -1955,7 +1990,7 @@ extern int sisnan( SimTK_S_INPUT_(sin) );
 
 extern int slaisnan( SimTK_S_INPUT_(sin1), SimTK_S_INPUT_(sin2) );
 
-extern void slabad_(float *small, float *large);
+extern void slabad_(SimTK_S_INOUT_(small), SimTK_S_INOUT_(large));
 
 extern void slabrd_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nb), float *a, SimTK_FDIM_(lda), float *d__, float *e, float *tauq, float *taup, float *x, SimTK_FDIM_(ldx), float *y, SimTK_FDIM_(ldy));
 
@@ -2019,7 +2054,7 @@ extern void slahrd_(SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(nb), float *a, S
 
 extern void slahr2_(SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(nb), float *a, SimTK_FDIM_(lda), float *tau, float *t, SimTK_FDIM_(ldt), float *y, SimTK_FDIM_(ldy));
 
-extern void slaic1_(SimTK_I_INPUT_(job), SimTK_FDIM_(j), SimTK_S_INPUT_(x), SimTK_S_INPUT_(sest), SimTK_S_INPUT_(w), SimTK_S_INPUT_(gamma), SimTK_S_OUTPUT_(sestpr), SimTK_S_OUTPUT_(s), SimTK_S_OUTPUT_(c__) ); 
+extern void slaic1_(SimTK_I_INPUT_(job), SimTK_FDIM_(j), const float *x, SimTK_S_INPUT_(sest), const float *w, SimTK_S_INPUT_(gamma), SimTK_S_OUTPUT_(sestpr), SimTK_S_OUTPUT_(s), SimTK_S_OUTPUT_(c__) ); 
 
 extern void slaln2_(SimTK_I_INPUT_(ltrans), SimTK_I_INPUT_(na), SimTK_I_INPUT_(nw), SimTK_S_INPUT_(smin), SimTK_S_INPUT_(ca), const float *a, SimTK_FDIM_(lda), SimTK_S_INPUT_(d1), SimTK_S_INPUT_(d2), SimTK_S_INPUT_(b), SimTK_FDIM_(ldb), SimTK_S_INPUT_(wr), SimTK_S_INPUT_(wi), float *x, SimTK_FDIM_(ldx), SimTK_S_OUTPUT_(scale), float *xnorm, SimTK_INFO_);
 
@@ -2345,7 +2380,7 @@ extern void sormr3_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK
 
 extern void sormrq_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), float *a, SimTK_FDIM_(lda), float *tau, float *c__, SimTK_FDIM_(ldc), float *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
 
-extern void sormrz_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), int *l, float *a, SimTK_FDIM_(lda), float *tau, float *c__, SimTK_FDIM_(ldc), float *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
+extern void sormrz_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(l), float *a, SimTK_FDIM_(lda), float *tau, float *c__, SimTK_FDIM_(ldc), float *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(trans));
 
 extern void sormtr_(SimTK_FOPT_(side), SimTK_FOPT_(uplo), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), float *a, SimTK_FDIM_(lda), float *tau, float *c__, SimTK_FDIM_(ldc), float *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(uplo), SimTK_FLEN_(trans));
 
@@ -2638,9 +2673,10 @@ extern void zgelq2_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_Z_ *a, SimTK_FDIM_(lda
 extern void zgelqf_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_Z_ *a, SimTK_FDIM_(lda), SimTK_Z_ *tau, SimTK_Z_ *work, SimTK_FDIM_(lwork), SimTK_INFO_);
 
 extern void zgels_(SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nrhs), SimTK_Z_ *a, SimTK_FDIM_(lda), SimTK_Z_ *b, SimTK_FDIM_(ldb), SimTK_Z_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(trans));
+extern void zgelss_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nrhs), SimTK_Z_ *a, SimTK_FDIM_(lda), SimTK_Z_ *b, SimTK_FDIM_(ldb), double *s, SimTK_D_INPUT_(rcond), SimTK_I_OUTPUT_(rank), SimTK_Z_ *work, SimTK_FDIM_(lwork), double *rwork, SimTK_INFO_);
 
+/* gelsx is deprecated; use gelsy instead */
 extern void zgelsx_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nrhs), SimTK_Z_ *a, SimTK_FDIM_(lda), SimTK_Z_ *b, SimTK_FDIM_(ldb), int *jpvt, SimTK_D_INPUT_(rcond), SimTK_I_OUTPUT_(rank), SimTK_Z_ *work, double *rwork, SimTK_INFO_);
-
 extern void zgelsy_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nrhs), SimTK_Z_ *a, SimTK_FDIM_(lda), SimTK_Z_ *b, SimTK_FDIM_(ldb), int *jpvt, SimTK_D_INPUT_(rcond), SimTK_I_OUTPUT_(rank), SimTK_Z_ *work, SimTK_FDIM_(lwork), double *rwork, SimTK_INFO_);
 
 extern void zgeql2_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_Z_ *a, SimTK_FDIM_(lda), SimTK_Z_ *tau, SimTK_Z_ *work, SimTK_INFO_);
@@ -3163,7 +3199,7 @@ extern void zunmr3_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK
 
 extern void zunmrq_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), const SimTK_Z_ *a, SimTK_FDIM_(lda), const SimTK_Z_ *tau, SimTK_Z_ *c__, SimTK_FDIM_(ldc), SimTK_Z_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(uplo));
 
-extern void zunmrz_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_I_INPUT_(l), const SimTK_Z_ *a, SimTK_FDIM_(lda), const SimTK_Z_ *tau, SimTK_Z_ *c__, SimTK_FDIM_(ldc), SimTK_Z_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(uplo));
+extern void zunmrz_(SimTK_FOPT_(side), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(l), const SimTK_Z_ *a, SimTK_FDIM_(lda), const SimTK_Z_ *tau, SimTK_Z_ *c__, SimTK_FDIM_(ldc), SimTK_Z_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(uplo));
 
 extern void zunmtr_(SimTK_FOPT_(side), SimTK_FOPT_(uplo), SimTK_FOPT_(trans), SimTK_FDIM_(m), SimTK_FDIM_(n), const SimTK_Z_ *a, SimTK_FDIM_(lda), const SimTK_Z_ *tau, SimTK_Z_ *c__, SimTK_FDIM_(ldc), SimTK_Z_ *work, SimTK_FDIM_(lwork), SimTK_INFO_, SimTK_FLEN_(side), SimTK_FLEN_(uplo), SimTK_FLEN_(trans));
 

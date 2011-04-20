@@ -26,7 +26,19 @@
 
 // No need to expose any of this; SimTK users must access CPodes
 // through the C++ API.
-#define SUNDIALS_EXPORT
+#ifdef _WIN32
+    #if defined(SimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
+        #define SUNDIALS_EXPORT __declspec(dllexport)
+    #elif defined(SimTK_SIMMATH_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
+        #define SUNDIALS_EXPORT
+    #else
+        /* i.e., a client of a shared library */
+        #define SUNDIALS_EXPORT __declspec(dllimport)
+    #endif
+#else
+    /* Linux, Mac */
+    #define SUNDIALS_EXPORT
+#endif
 
 /* Define precision of SUNDIALS data type 'realtype' 
  * Depending on the precision level, one of the following 

@@ -196,7 +196,9 @@ INSTALL(FILES ${PROJECT_SOURCE_DIR}/doc/SimmathUserGuide.pdf
 # These are at the end because we want them processed after
 # all the various variables have been set above.
 
-ADD_SUBDIRECTORY( staticTarget )
+IF(BUILD_STATIC_LIBRARIES)
+    ADD_SUBDIRECTORY( staticTarget )
+ENDIF()
 ADD_SUBDIRECTORY( sharedTarget )
 
 IF( BUILD_EXAMPLES )

@@ -255,10 +255,12 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
     if( scaleRHS ) {   // apply scale factor to RHS
         LapackInterface::lascl<T>( 'G', 0, 0, bnrm, rhsScaleF, b.nrow(), nrhs, &b(0,0), b.nrow(), info ); 
     }
-    // 
+    // b1 = Q'*b0
     LapackInterface::ormqr<T>( 'L', 'T', nRow, b.ncol(), mn, qtz.data, nRow, tauGEQP3.data,
                                &b(0,0), b.nrow(), work.data, work.size, info );
-    LapackInterface::trsm<T>( 'L', 'U', 'N', 'N', rank, b.ncol(), 1.0, qtz.data, nRow, &b(0,0), b.nrow() );
+    // b2 = T^-1*b1 = T^-1 * Q' * b0
+    LapackInterface::trsm<T>( 'L', 'U', 'N', 'N', rank, b.ncol(), 1.0, qtz.data, nRow, 
+                              &b(0,0), b.nrow() );
 
     //  zero out elements of RHS for rank deficient systems
     for( j = 0; j<nrhs; j++ ) {
@@ -268,9 +270,9 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
     }
    
     if( rank < nCol ) {
-// TODO  fix SimTKlapack.h  LapackInterface::ormrz<T>('L', 'T', nCol, x.ncol(), rank, nCol-rank, qtz.data, nRow, 
         int l = nCol-rank;
-        LapackInterface::ormrz<T>('L', 'T', nCol, b.ncol(), rank, &l, qtz.data, nRow, 
+        // b3 = Z'*b2 = Z'*T^-1*Q'*b0
+        LapackInterface::ormrz<T>('L', 'T', nCol, b.ncol(), rank, l, qtz.data, nRow, 
                                    tauORMQR.data, &b(0,0), b.nrow(), work.data, work.size, info );
     }
 
