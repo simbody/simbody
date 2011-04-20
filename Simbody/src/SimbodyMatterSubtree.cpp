@@ -263,9 +263,9 @@ public:
         // This pass is also O(N log N) because we have to look up the parent
         // mobilized body id in the map to get its assigned subtree body id.
 
-        allBodies.resize(subtreeBodyIndexMap.size());
-        parentSubtreeBodies.resize(subtreeBodyIndexMap.size());
-        childSubtreeBodies.resize(subtreeBodyIndexMap.size());
+        allBodies.resize((unsigned)subtreeBodyIndexMap.size());
+        parentSubtreeBodies.resize((unsigned)subtreeBodyIndexMap.size());
+        childSubtreeBodies.resize((unsigned)subtreeBodyIndexMap.size());
         allBodies[0] = ancestor;
         parentSubtreeBodies[0] = InvalidSubtreeBodyIndex;
 

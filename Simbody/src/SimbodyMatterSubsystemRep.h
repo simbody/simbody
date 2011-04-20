@@ -101,7 +101,7 @@ public:
     }
 
     void realizeTopology(const SimbodyMatterSubsystem& matter) {
-        coupledConstraints.resize(constraints.size());
+        coupledConstraints.resize((unsigned)constraints.size());
         std::set<ConstraintIndex>::const_iterator i = constraints.begin();
         for (int nxt=0; i != constraints.end(); ++i, ++nxt)
             coupledConstraints[nxt] = *i;

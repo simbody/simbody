@@ -357,7 +357,7 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
             vertices.push_back((float) center[0]);
             vertices.push_back((float) center[1]);
             vertices.push_back((float) center[2]);
-            int newIndex = vertices.size()-1;
+            int newIndex = (int)vertices.size()-1;
             for (int j = 0; j < numVert-1; j++) {
                 faces.push_back((unsigned short) mesh.getFaceVertex(i, j));
                 faces.push_back((unsigned short) mesh.getFaceVertex(i, j+1));
@@ -374,19 +374,19 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
         "Can't display a DecorativeMesh with more than 65535 vertices;"
         " received one with %llu.", (unsigned long long)faces.size());
 
-    const int index = NumPredefinedMeshes + meshes.size();
+    const int index = NumPredefinedMeshes + (int)meshes.size();
     SimTK_ERRCHK_ALWAYS(index <= 65535,
         "VisualizerProtocol::drawPolygonalMesh()",
         "Too many unique DecorativeMesh objects; max is 65535.");
     
     meshes[impl] = (unsigned short)index;    // insert new mesh
     WRITE(outPipe, &DefineMesh, 1);
-    unsigned short numVertices = vertices.size()/3;
-    unsigned short numFaces = faces.size()/3;
+    unsigned short numVertices = (unsigned)vertices.size()/3;
+    unsigned short numFaces = (unsigned)faces.size()/3;
     WRITE(outPipe, &numVertices, sizeof(short));
     WRITE(outPipe, &numFaces, sizeof(short));
-    WRITE(outPipe, &vertices[0], vertices.size()*sizeof(float));
-    WRITE(outPipe, &faces[0], faces.size()*sizeof(short));
+    WRITE(outPipe, &vertices[0], (unsigned)(vertices.size()*sizeof(float)));
+    WRITE(outPipe, &faces[0], (unsigned)(faces.size()*sizeof(short)));
 
     drawMesh(X_GM, Vec3(scale), color, (short) representation, index, 0);
 }
@@ -455,7 +455,7 @@ void VisualizerProtocol::drawText(const Vec3& position, Real scale, const Vec4& 
     buffer[5] = (float) color[1];
     buffer[6] = (float) color[2];
     WRITE(outPipe, buffer, 7*sizeof(float));
-    short length = string.size();
+    short length = (short)string.size();
     WRITE(outPipe, &length, sizeof(short));
     WRITE(outPipe, &string[0], length);
 }

@@ -292,7 +292,7 @@ int ContactGeometryImpl::getIndexForType(std::string type) {
     map<string, int>::iterator index = typeMap.find(type);
     int indexForType;
     if (index == typeMap.end()) {
-        indexForType = typeMap.size();
+        indexForType = (int)typeMap.size();
         typeMap[type] = indexForType;
     }
     else
@@ -1227,7 +1227,7 @@ void ContactGeometry::TriangleMeshImpl::createObbTree
     for (int i = 0; i < (int) faceIndices.size(); i++) 
         for (int j = 0; j < 3; j++)
             vertexIndices.insert(faces[faceIndices[i]].vertices[j]);
-    Vector_<Vec3> points(vertexIndices.size());
+    Vector_<Vec3> points((int)vertexIndices.size());
     int index = 0;
     for (set<int>::iterator iter = vertexIndices.begin(); 
                             iter != vertexIndices.end(); ++iter)

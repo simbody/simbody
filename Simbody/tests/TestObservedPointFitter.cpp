@@ -66,7 +66,7 @@ bool testFitting
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
     for (int i = 0; i < (int) bodyIxs.size(); ++i) {
         MobilizedBodyIndex id = bodyIxs[i];
-        numStations += stations[i].size();
+        numStations += (int)stations[i].size();
         for (int j = 0; j < (int) stations[i].size(); ++j)
             error += (targetLocations[i][j]-matter.getMobilizedBody(id).getBodyTransform(state)*stations[i][j]).normSqr();
     }

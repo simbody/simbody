@@ -173,7 +173,7 @@ void testIncorrectMeshes() {
 }
 
 void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices, Vec3 offset) {
-    int start = vertices.size();
+    int start = (int)vertices.size();
     vertices.push_back(Vec3(0, 1, 0)+offset);
     vertices.push_back(Vec3(1, 0, 0)+offset);
     vertices.push_back(Vec3(0, 0, 1)+offset);
