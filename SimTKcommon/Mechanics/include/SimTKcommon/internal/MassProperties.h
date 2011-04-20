@@ -636,7 +636,7 @@ the UnitInertia matrix for some differently-scaled object.
 
 Unit inertia matrices are sometimes called "gyration" matrices; we will often
 represent them with the symbol "G" to avoid confusion with general inertia
-matrices for which the symbol "I" is used. 
+matrices for which the symbol "I" (or sometimes "J") is used. 
 
 <h3>Abbreviations</h3>
 Typedefs exist for the most common invocations of UnitInertia_\<P\>:
@@ -974,6 +974,7 @@ class SimTK_SimTKCOMMON_EXPORT SpatialInertia_ {
     typedef Vec<3,P>        Vec3P;
     typedef UnitInertia_<P> UnitInertiaP;
     typedef Mat<3,3,P>      Mat33P;
+    typedef Vec<2, Vec3P>   SpatialVecP;
     typedef Mat<2,2,Mat33P> SpatialMatP;
     typedef Rotation_<P>    RotationP;
     typedef Transform_<P>   TransformP;
@@ -996,9 +997,9 @@ SpatialInertia_& setMassCenter(const Vec3P& com)
 SpatialInertia_& setUnitInertia(const UnitInertiaP& gyration) 
 {   G=gyration; return *this; }
 
-RealP            getMass()       const {return m;}
-const Vec3P&     getMassCenter() const {return p;}
-const UnitInertiaP& getUnitInertia()   const {return G;}
+RealP               getMass()        const {return m;}
+const Vec3P&        getMassCenter()  const {return p;}
+const UnitInertiaP& getUnitInertia() const {return G;}
 
 /// Calculate the first mass moment (mass-weighted COM location)
 /// from the mass and COM vector. Cost is 3 inline flops.
@@ -1044,9 +1045,10 @@ SpatialInertia_& operator*=(const RealP& s) {m *= s; return *this;}
 /// factored out, this requires only a single divide.
 SpatialInertia_& operator/=(const RealP& s) {m /= s; return *this;}
 
-/// Multiply a SpatialInertia by a SpatialVec
-SpatialVec operator*(const SpatialVec& v) const
-{   return m*SpatialVec(G.asSymMat33()*v[0]+p%v[1], -p%v[0]+v[1]); }
+/// Multiply a SpatialInertia by a SpatialVec to produce a SpatialVec
+/// result.
+SpatialVecP operator*(const SpatialVecP& v) const
+{   return m*SpatialVecP(G*v[0]+p%v[1], v[1]-p%v[0]); }
 
 /// Return a new SpatialInertia object which is the same as this one except
 /// re-expressed in another coordinate frame. We consider this object to
@@ -1211,9 +1213,10 @@ template <class P>
 class ArticulatedInertia_ {
     typedef P               RealP;
     typedef Vec<3,P>        Vec3P;
-    typedef UnitInertia_<P>    UnitInertiaP;
+    typedef UnitInertia_<P> UnitInertiaP;
     typedef Mat<3,3,P>      Mat33P;
     typedef SymMat<3,P>     SymMat33P;
+    typedef Vec<2, Vec3P>   SpatialVecP;
     typedef Mat<2,2,Mat33P> SpatialMatP;
     typedef Rotation_<P>    RotationP;
     typedef Transform_<P>   TransformP;
@@ -1243,9 +1246,9 @@ ArticulatedInertia_& operator+=(const ArticulatedInertia_& src)
 ArticulatedInertia_& operator-=(const ArticulatedInertia_& src)
 {   M-=src.M; J-=src.J; F-=src.F; return *this; }
 
-/// Multiply an ArticulatedIneria by a SpatialVec
-SpatialVec operator*(const SpatialVec& v) const
-{   return SpatialVec(J*v[0]+F*v[1], ~F*v[0]+M*v[1]); }
+/// Multiply an ArticulatedIneria by a SpatialVec.
+SpatialVecP operator*(const SpatialVecP& v) const
+{   return SpatialVecP(J*v[0]+F*v[1], ~F*v[0]+M*v[1]); }
 
 /// Rigid-shift the origin of this Articulated Body Inertia P by a 
 /// shift vector s to produce a new ABI P'. The calculation is 
