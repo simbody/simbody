@@ -152,7 +152,7 @@ static void computeBoundingSphereForVertices(const vector<float>& vertices, floa
 
 class Mesh {
 public:
-    Mesh(vector<float>& vertices, vector<float>& normals, vector<GLushort>& faces) : numVertices(vertices.size()/3), faces(faces) {
+    Mesh(vector<float>& vertices, vector<float>& normals, vector<GLushort>& faces) : numVertices((int)(vertices.size()/3)), faces(faces) {
         // Build OpenGL buffers.
 
         GLuint buffers[2];
@@ -190,11 +190,11 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, normBuffer);
         glNormalPointer(GL_FLOAT, 0, 0);
         if (representation == DecorativeGeometry::DrawSurface)
-            glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_SHORT, &faces[0]);
+            glDrawElements(GL_TRIANGLES, (GLsizei)faces.size(), GL_UNSIGNED_SHORT, &faces[0]);
         else if (representation == DecorativeGeometry::DrawPoints)
             glDrawArrays(GL_POINTS, 0, numVertices*3);
         else if (representation == DecorativeGeometry::DrawWireframe)
-            glDrawElements(GL_LINES, edges.size(), GL_UNSIGNED_SHORT, &edges[0]);
+            glDrawElements(GL_LINES, (GLsizei)edges.size(), GL_UNSIGNED_SHORT, &edges[0]);
     }
     void getBoundingSphere(float& radius, fVec3& center) {
         radius = this->radius;
@@ -261,7 +261,7 @@ public:
         glLineWidth(thickness);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glVertexPointer(3, GL_FLOAT, 0, &lines[0]);
-        glDrawArrays(GL_LINES, 0, lines.size()/3);
+        glDrawArrays(GL_LINES, 0, (GLsizei)(lines.size()/3));
     }
     vector<GLfloat>& getLines() {
         return lines;
@@ -1989,7 +1989,7 @@ static Scene* readNewScene() {
             fVec3 color = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             float thickness = floatBuffer[3];
             int index;
-            int numLines = newScene->lines.size();
+            int numLines = (int)newScene->lines.size();
             for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || thickness != newScene->lines[index].getThickness()); index++)
                 ;
             if (index == numLines)
@@ -2025,7 +2025,7 @@ static Scene* readNewScene() {
             float lineThickness = 1;
             fVec3 color = fVec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
             int index;
-            int numLines = newScene->lines.size();
+            int numLines = (int)newScene->lines.size();
             for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || newScene->lines[index].getThickness() != lineThickness); index++)
                 ;
             if (index == numLines)
@@ -2069,8 +2069,8 @@ static Scene* readNewScene() {
             mesh->vertices.resize(3*numVertices, 0);
             mesh->normals.resize(3*numVertices);
             mesh->faces.resize(3*numFaces);
-            readData((unsigned char*)&mesh->vertices[0], mesh->vertices.size()*sizeof(float));
-            readData((unsigned char*)&mesh->faces[0], mesh->faces.size()*sizeof(short));
+            readData((unsigned char*)&mesh->vertices[0], (int)(mesh->vertices.size()*sizeof(float)));
+            readData((unsigned char*)&mesh->faces[0], (int)(mesh->faces.size()*sizeof(short)));
 
             // Compute normal vectors for the mesh.
 

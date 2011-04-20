@@ -1322,8 +1322,8 @@ static unsigned encodeLZ77(uivector* out, const unsigned char* in, size_t insize
           unsigned skip = initialZerosTable.data[tablepos];
           if (skip > initialZeros)
             skip = initialZeros;
-          if (skip > insize-pos)
-            skip = insize-pos;
+          if (skip > (unsigned)(insize-pos))
+            skip = (unsigned)(insize-pos);
           backptr += skip;
           foreptr += skip;
         }
