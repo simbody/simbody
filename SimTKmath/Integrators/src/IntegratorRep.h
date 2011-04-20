@@ -718,7 +718,7 @@ private:
                         const Array_<Real>& estEventTimes,
                         Array_<int>&        eventOrder)
     {
-        const size_t n = eventIds.size();
+        const unsigned n = eventIds.size();
         assert(estEventTimes.size()==n);
         eventOrder.resize(n);
         if (n==0) 
@@ -734,7 +734,7 @@ private:
         for (unsigned i=0; i<n; ++i)
             events[i] = EventSorter(i, eventIds[i], estEventTimes[i]);
         std::sort(events.begin(), events.end());
-        for (size_t i=0; i<n; ++i) 
+        for (unsigned i=0; i<n; ++i) 
             eventOrder[i] = events[i].ordinal;
     }
 
