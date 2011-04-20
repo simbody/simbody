@@ -72,7 +72,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    updInertia_OB_G(pc) = getInertia_OB_B().reexpress(~getX_GB(pc).R());
+    updUnitInertia_OB_G(pc) = getUnitInertia_OB_B().reexpress(~getX_GB(pc).R());
     updCB_G(pc)         = getX_GB(pc).R()*getCOM_B();
 
     updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc);
@@ -80,8 +80,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note: we need to calculate this now so that we'll be able to calculate
     // kinetic energy without going past the Velocity stage.
-    Real invMass = (getMass() == 0 ? 1 : 1/getMass());
-    updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), UnitInertia(getInertia_OB_G(pc)*invMass));
+    updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), UnitInertia(getUnitInertia_OB_G(pc)));
 }
 
 // Calculate velocity-related quantities: spatial velocity (V_GB), 
@@ -109,8 +108,8 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
     const Vec3& v_GB = getV_GB(vc)[1];  // spatial linear velocity (of B origin in G)
 
     updGyroscopicForce(vc) = 
-        SpatialVec(    w_GB % (getInertia_OB_G(pc)*w_GB),     // gyroscopic moment (24 flops)
-                    getMass()*(w_GB % (w_GB % getCB_G(pc)))); // gyroscopic force  (21 flops)
+        getMass()*SpatialVec(w_GB % (getUnitInertia_OB_G(pc)*w_GB),     // gyroscopic moment (24 flops)
+                             (w_GB % (w_GB % getCB_G(pc)))); // gyroscopic force  (21 flops)
 
     // Parent velocity.
     const Vec3& w_GP = parent->getV_GB(vc)[0];

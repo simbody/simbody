@@ -1290,10 +1290,11 @@ operator-(const ArticulatedInertia_<P>& l, const ArticulatedInertia_<P>& r)
 // -----------------------------------------------------------------------------
 //                              MASS PROPERTIES
 // -----------------------------------------------------------------------------
-/** This class contains the mass, center of mass, and inertia of a rigid body B.
-The center of mass is a vector from B's origin, expressed in the B frame.
-The inertia is taken about the B origin, and expressed in B. The frame B is
-implicit; only the measurements are stored here. 
+/** This class contains the mass, center of mass, and unit inertia matrix of a
+rigid body B. The center of mass is a vector from B's origin, expressed in the
+B frame. The inertia is taken about the B origin, and expressed in B. The frame
+B is implicit; only the measurements are stored here. The unit inertia can be
+multiplied by the mass to get the inertia matrix for the body.
 
 <h3>Abbreviations</h3>
 Typedefs exist for the most common invocations of MassProperties_\<P\>:
@@ -1316,29 +1317,38 @@ class SimTK_SimTKCOMMON_EXPORT MassProperties_ {
 public:
 /** Create a mass properties object in which the mass, mass center, and 
 inertia are meaningless; you must assign values before using this. **/
-MassProperties_() { setMassProperties(0,Vec3P(0),InertiaP()); }
+MassProperties_() { setMassProperties(0,Vec3P(0),UnitInertiaP()); }
 /** Create a mass properties object from individually supplied mass,
-mass center, and inertia matrix. **/
+mass center, and inertia matrix.  The inertia matrix is divided by the
+mass to produce the unit inertia. **/
 MassProperties_(const RealP& m, const Vec3P& com, const InertiaP& inertia)
     { setMassProperties(m,com,inertia); }
 /** Create a mass properties object from individually supplied mass,
-mass center, and unit inertia (gyration) matrix. The actual inertia is the
-unit inertia multiplied by the mass. **/
+mass center, and unit inertia (gyration) matrix. **/
 MassProperties_(const RealP& m, const Vec3P& com, const UnitInertiaP& gyration)
     { setMassProperties(m,com,gyration); }
 
-/** Set mass, center of mass, and inertia. Behaves like an assignment in that
+/** Set mass, center of mass, and inertia. The inertia is divided by the mass to
+produce the unit inertia. Behaves like an assignment in that
 a reference to the modified MassProperties object is returned. **/
-MassProperties_& setMassProperties
-   (const RealP& m, const Vec3P& com, const InertiaP& inertia)
-{   mass=m; comInB=com; inertia_OB_B=inertia; return *this; }
+MassProperties_& setMassProperties(const RealP& m, const Vec3P& com, const InertiaP& inertia) {
+    mass = m;
+    comInB = com;
+    if (m == 0) {
+        SimTK_ASSERT(inertia.asSymMat33().getAsVec() == 0, "Mass is zero but inertia is nonzero");
+        unitInertia_OB_B = UnitInertiaP(0);
+    }
+    else {
+        unitInertia_OB_B = UnitInertiaP(inertia*(1/m));
+    }
+    return *this;
+}
 
-/** Set mass, center of mass, and unit inertia, so that the actual inertia
-is the unit inertia multiplied by the mass. Behaves like an assignment in that
-a reference to the modified MassProperties object is returned. **/
+/** Set mass, center of mass, and unit inertia. Behaves like an assignment in
+that a reference to the modified MassProperties object is returned. **/
 MassProperties_& setMassProperties
    (const RealP& m, const Vec3P& com, const UnitInertiaP& gyration)
-{   mass=m; comInB=com; inertia_OB_B=m*gyration; return *this; }
+{   mass=m; comInB=com; unitInertia_OB_B=gyration; return *this; }
 
 /** Return the mass currently stored in this MassProperties object. **/
 const RealP&    getMass()       const { return mass; }
@@ -1347,17 +1357,24 @@ this is expressed in an implicit frame we call "B", and measured from B's
 origin, but you have to know what that frame is in order to interpret the 
 returned vector. **/
 const Vec3P&    getMassCenter() const { return comInB; }
-/** Return the inertia currently stored in this MassProperties object;
+/** Return the unit inertia currently stored in this MassProperties object;
 this is expressed in an implicit frame we call "B", and measured about B's
 origin, but you have to know what that frame is in order to interpret the 
 returned value correctly. **/
-const InertiaP& getInertia()    const { return inertia_OB_B; }
-
+const UnitInertiaP& getUnitInertia()    const { return unitInertia_OB_B; }
+/** Return the inertia matrix for this MassProperties object; this is equal
+to the unit inertia times the mass.  It
+is expressed in an implicit frame we call "B", and measured about B's
+origin, but you have to know what that frame is in order to interpret the
+returned value correctly. **/
+const InertiaP calcInertia() const {
+    return mass*unitInertia_OB_B;
+}
 /** Return the inertia of this MassProperties object, but measured about the
 mass center rather than about the (implicit) B frame origin. The result is
 still expressed in B. **/
 InertiaP calcCentralInertia() const {
-    return inertia_OB_B - InertiaP(comInB, mass);
+    return mass*unitInertia_OB_B - InertiaP(comInB, mass);
 }
 /** Return the inertia of this MassProperties object, but with the "measured
 about" point shifted from the (implicit) B frame origin to a new point that
@@ -1405,7 +1422,7 @@ expressed is implicit; we don't actually have any way to verify that it is in
 B. Make sure you are certain about the current frame before using this 
 method. **/
 MassProperties_ reexpress(const RotationP& R_BC) const {
-    return MassProperties_(mass, ~R_BC*comInB, inertia_OB_B.reexpress(R_BC));
+    return MassProperties_(mass, ~R_BC*comInB, unitInertia_OB_B.reexpress(R_BC));
 }
 
 /** Return true only if the mass stored here is \e exactly zero.\ If the mass
@@ -1436,20 +1453,20 @@ bool isNearlyCentral(const RealP& tol=SignificantReal) const {
 
 /** Return true if any element of this MassProperties object is NaN. 
 @see isInf(), isFinite() **/
-bool isNaN() const {return SimTK::isNaN(mass) || comInB.isNaN() || inertia_OB_B.isNaN();}
+bool isNaN() const {return SimTK::isNaN(mass) || comInB.isNaN() || unitInertia_OB_B.isNaN();}
 /** Return true only if there are no NaN's in this MassProperties object, and
 at least one of the elements is Infinity.\ Ground's mass properties satisfy
 these conditions. 
 @see isNan(), isFinite() **/
 bool isInf() const {
     if (isNaN()) return false;
-    return SimTK::isInf(mass) || comInB.isInf() || inertia_OB_B.isInf();
+    return SimTK::isInf(mass) || comInB.isInf() || unitInertia_OB_B.isInf();
 }
 /** Return true if none of the elements of this MassProperties object are
 NaN or Infinity.\ Note that Ground's mass properties are not finite. 
 @see isNaN(), isInf() **/
 bool isFinite() const {
-    return SimTK::isFinite(mass) && comInB.isFinite() && inertia_OB_B.isFinite();
+    return SimTK::isFinite(mass) && comInB.isFinite() && unitInertia_OB_B.isFinite();
 }
 
 /** Convert this MassProperties object to a spatial inertia matrix and return
@@ -1457,7 +1474,7 @@ it as a SpatialMat, which is a 2x2 matrix of 3x3 submatrices.
 @see toMat66() **/
 SpatialMatP toSpatialMat() const {
     SpatialMatP M;
-    M(0,0) = inertia_OB_B.toMat33();
+    M(0,0) = mass*unitInertia_OB_B.toMat33();
     M(0,1) = mass*crossMat(comInB);
     M(1,0) = ~M(0,1);
     M(1,1) = mass; // a diagonal matrix
@@ -1471,7 +1488,7 @@ a Mat66 and SpatialMat.
 @see toSpatialMat() **/
 Mat66P toMat66() const {
     Mat66P M;
-    M.template updSubMat<3,3>(0,0) = inertia_OB_B.toMat33();
+    M.template updSubMat<3,3>(0,0) = mass*unitInertia_OB_B.toMat33();
     M.template updSubMat<3,3>(0,3) = mass*crossMat(comInB);
     M.template updSubMat<3,3>(3,0) = ~M.template getSubMat<3,3>(0,3);
     M.template updSubMat<3,3>(3,3) = mass; // a diagonal matrix
@@ -1479,9 +1496,9 @@ Mat66P toMat66() const {
 }
 
 private:
-RealP     mass;
-Vec3P     comInB;         // meas. from B origin, expr. in B
-InertiaP  inertia_OB_B;   // about B origin, expr. in B
+RealP        mass;
+Vec3P        comInB;         // meas. from B origin, expr. in B
+UnitInertiaP unitInertia_OB_B;   // about B origin, expr. in B
 };
 
 /** Output a human-readable representation of a MassProperties object to
@@ -1490,8 +1507,8 @@ template <class P> static inline std::ostream&
 operator<<(std::ostream& o, const MassProperties_<P>& mp) {
     return o << "{ mass=" << mp.getMass() 
              << "\n  com=" << mp.getMassCenter()
-             << "\n  Ixx,yy,zz=" << mp.getInertia().getMoments()
-             << "\n  Ixy,xz,yz=" << mp.getInertia().getProducts()
+             << "\n  Ixx,yy,zz=" << mp.getUnitInertia().getMoments()
+             << "\n  Ixy,xz,yz=" << mp.getUnitInertia().getProducts()
              << "\n}\n";
 }
 

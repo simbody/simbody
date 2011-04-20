@@ -635,7 +635,7 @@ public:
     Array_<Transform>    bodyConfigInParent;           // nb (X_PB)
     Array_<Transform>    bodyConfigInGround;           // nb (X_GB)
     Array_<PhiMatrix>    bodyToParentShift;            // nb (phi)
-    Array_<Inertia>      bodyInertiaInGround;          // nb (I_OB_G)
+    Array_<UnitInertia>  bodyUnitInertiaInGround;          // nb (I_OB_G)
     Array_<SpatialInertia>    bodySpatialInertia;           // nb (Mk)
     Vector_<Vec3>             bodyCOMInGround;              // nb (p_G_CB)
     Vector_<Vec3>             bodyCOMStationInGround;       // nb (p_CB_G)
@@ -681,7 +681,7 @@ public:
         bodyToParentShift.resize(nBodies);           
         bodyToParentShift[0].setToZero();
 
-        bodyInertiaInGround.resize(nBodies); // TODO: ground initialization
+        bodyUnitInertiaInGround.resize(nBodies); // TODO: ground initialization
         bodySpatialInertia.resize(nBodies);  // TODO: ground initialization
 
         bodyCOMInGround.resize(nBodies);             

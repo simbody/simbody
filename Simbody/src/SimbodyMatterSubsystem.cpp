@@ -544,7 +544,7 @@ MassProperties SimbodyMatterSubsystem::calcSystemMassPropertiesInGround(const St
         const Real            mb      = MB_OG_G.getMass();
         mass += mb;
         com  += mb * MB_OG_G.getMassCenter();
-        I    += MB_OG_G.getInertia();   // already has mass built in
+        I    += mb * MB_OG_G.getUnitInertia();
     }
 
     if (mass != 0)

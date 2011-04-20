@@ -158,7 +158,7 @@ try {
     Transform jointFrame(Vec3(-L/2,0,0));
     MassProperties mprops(m, Vec3(L/2,0,0), Inertia(Vec3(L/2,0,0), m)+Inertia(1e-6,1e-6,1e-6));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
-        << mprops.getMassCenter() << ", " << mprops.getInertia() << endl;
+        << mprops.getMassCenter() << ", " << mprops.getUnitInertia() << endl;
 
     Vec3 gravity(0.,-g,0.);
     Force::UniformGravity gravityForces(springs, pend, gravity);

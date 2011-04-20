@@ -283,11 +283,11 @@ public:
         return getBodyMassProperties(s).getMassCenter();
     }
 
-    /// Return a reference to this body's inertia matrix in the State cache, taken
+    /// Return a reference to this body's unit inertia matrix in the State cache, taken
     /// about the body origin and expressed in the body frame.
     /// The State must have been realized to Stage::Instance or higher.
-    const Inertia& getBodyInertiaAboutBodyOrigin(const State& s) const {
-        return getBodyMassProperties(s).getInertia();
+    const UnitInertia& getBodyUnitInertiaAboutBodyOrigin(const State& s) const {
+        return getBodyMassProperties(s).getUnitInertia();
     }
 
     /// Return a reference to this mobilizer's frame F fixed on the parent body P, as the fixed Transform

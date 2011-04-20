@@ -626,6 +626,7 @@ const Transform&  fromB(const Array_<Transform>& x) const {return x[nodeNum];}
 const PhiMatrix&  fromB(const Array_<PhiMatrix>& p) const {return p[nodeNum];}
 const MassProperties& fromB(const Array_<MassProperties>& m) const {return m[nodeNum];}
 const Inertia&    fromB(const Array_<Inertia>&   i) const {return i[nodeNum];}
+const UnitInertia& fromB(const Array_<UnitInertia>&   i) const {return i[nodeNum];}
 int               fromB(const Array_<int>&       i) const {return i[nodeNum];}
 const SpatialVec& fromB(const Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 const SpatialMat& fromB(const Vector_<SpatialMat>&    m) const {return m[nodeNum];}
@@ -637,6 +638,7 @@ Transform&  toB(Array_<Transform>& x) const {return x[nodeNum];}
 PhiMatrix&  toB(Array_<PhiMatrix>& p) const {return p[nodeNum];}
 MassProperties& toB(Array_<MassProperties>& m) const {return m[nodeNum];}
 Inertia&    toB(Array_<Inertia>&   i) const {return i[nodeNum];}
+UnitInertia& toB(Array_<UnitInertia>&   i) const {return i[nodeNum];}
 int&        toB(Array_<int>&       i) const {return i[nodeNum];}
 SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 SpatialMat& toB(Vector_<SpatialMat>&    m) const {return m[nodeNum];}
@@ -664,7 +666,7 @@ AnglePoolIndex getAnglePoolIndex(const SBModelCache& mc) const {
 const MassProperties& getMassProperties_OB_B() const {return massProps_B;}
 const Real&           getMass          () const {return massProps_B.getMass();}
 const Vec3&           getCOM_B         () const {return massProps_B.getMassCenter();}
-const Inertia&        getInertia_OB_B  () const {return massProps_B.getInertia();}
+const UnitInertia&    getUnitInertia_OB_B() const {return massProps_B.getUnitInertia();}
 const Transform&      getX_BM          () const {return X_BM;}
 const Transform&      getX_PF          () const {return X_PF;}
 
@@ -732,8 +734,8 @@ const Vec3& getCB_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyCO
 Vec3&       updCB_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyCOMStationInGround);}
 
 // Extract from the cache the body's inertia about the body origin OB, but reexpressed in Ground.
-const Inertia& getInertia_OB_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyInertiaInGround);}
-Inertia&       updInertia_OB_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyInertiaInGround);}
+const UnitInertia& getUnitInertia_OB_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyUnitInertiaInGround);}
+UnitInertia&       updUnitInertia_OB_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyUnitInertiaInGround);}
 
 // Extract from the cache the spatial (ground-relative) location and orientation of this body's
 // *parent's* body frame P.

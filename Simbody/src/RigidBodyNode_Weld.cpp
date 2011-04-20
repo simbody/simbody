@@ -443,7 +443,7 @@ public:
         // the local mass moments into the Ground frame and reconstruct the
         // spatial inertia matrix Mk.
 
-        updInertia_OB_G(pc) = getInertia_OB_B().reexpress(~getX_GB(pc).R());
+        updUnitInertia_OB_G(pc) = getUnitInertia_OB_B().reexpress(~getX_GB(pc).R());
         updCB_G(pc)         = getX_GB(pc).R()*getCOM_B();
         updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc);
 
@@ -451,8 +451,7 @@ public:
         // Note: we need to calculate this now so that we'll be able to calculate
         // kinetic energy without going past the Velocity stage.
         
-        Real invMass = (getMass() == 0 ? 1 : 1/getMass());
-        updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), UnitInertia(getInertia_OB_G(pc)*invMass));
+        updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), UnitInertia(getUnitInertia_OB_G(pc)));
     }
     
     void realizeVelocity(const SBStateDigest& sbs) const {
