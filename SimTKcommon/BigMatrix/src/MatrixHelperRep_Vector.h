@@ -150,6 +150,26 @@ public:
 
     // This will always produce a 1-element "contiguous" column vector.
     VectorHelper<S>* createDiagonalView_();
+    void copyInFromCompatibleSource_(const MatrixHelperRep<S>& source) {
+        if (this->getEltSize() == 1) {
+            // The elements are scalars, so we can copy them directly.
+
+            if (this->nrow() == 1) // a row vector
+                for (int j=0; j<this->ncol(); ++j)
+                    *this->updElt_(j) = *source.getElt(0,j);
+            else // a column vector
+                for (int i=0; i<this->nrow(); ++i)
+                    *this->updElt_(i) = *source.getElt(i,0);
+        }
+        else {
+            if (this->nrow() == 1) // a row vector
+                for (int j=0; j<this->ncol(); ++j)
+                    copyElt(this->updElt_(j), source.getElt(0,j));
+            else // a column vector
+                for (int i=0; i<this->nrow(); ++i)
+                    copyElt(this->updElt_(i), source.getElt(i,0));
+        }
+    }
 };
 
 //-------------------------- ContiguousVectorHelper ----------------------------
