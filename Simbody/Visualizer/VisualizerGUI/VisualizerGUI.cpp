@@ -2692,6 +2692,8 @@ int main(int argc, char** argv) {
     if (talkingToSimulator) {
         pthread_t thread;
         pthread_create(&thread, NULL, listenForInput, NULL);
+    } else {
+        scene = new Scene;
     }
 
     // Avoid hangs on Mac & Linux; posts orphan redisplays on all platforms.
