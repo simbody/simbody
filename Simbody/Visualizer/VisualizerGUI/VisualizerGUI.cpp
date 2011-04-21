@@ -2569,17 +2569,31 @@ static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
 
 int main(int argc, char** argv) {
   try
-  { SimTK_ERRCHK_ALWAYS(argc >= 3, "VisualizerGUI main()",
-        "VisualizerGUI: must be at least two command line arguments (pipes)");
+  { bool talkingToSimulator = false;
+      
+    if (argc >= 3) {
+        stringstream(argv[1]) >> inPipe;
+        stringstream(argv[2]) >> outPipe;
+        talkingToSimulator = true; // presumably those were the pipes
+  } else {
+        printf("\n**** VISUALIZER HAS NO SIMULATOR TO TALK TO ****\n");
+        printf("The Simbody VisualizerGUI was invoked directly with no simulator\n");
+        printf("process to talk to. Will attempt to bring up the display anyway\n");
+        printf("in case you want to look at the About message.\n");
+        printf("The VisualizerGUI is intended to be invoked programmatically.\n");
+    }
 
-    stringstream(argv[1]) >> inPipe;
-    stringstream(argv[2]) >> outPipe;
 
     // Initialize GLUT, then perform initial handshake with the parent
     // from the main thread here.
     glutInit(&argc, argv);
 
-    shakeHandsWithSimulator(inPipe, outPipe);
+    if (talkingToSimulator)
+        shakeHandsWithSimulator(inPipe, outPipe);
+    else {
+        simbodyVersionStr = "?.?.?";
+        simulatorExecutableName = "No simulator";
+    }
 
     // Construct the default initial title.
     string title = "Simbody " + simbodyVersionStr + ": " + simulatorExecutableName;
@@ -2675,8 +2689,10 @@ int main(int argc, char** argv) {
     pthread_cond_init(&sceneHasBeenDrawn, NULL);
 
     // Spawn the listener thread. After this it runs independently.
-    pthread_t thread;
-    pthread_create(&thread, NULL, listenForInput, NULL);
+    if (talkingToSimulator) {
+        pthread_t thread;
+        pthread_create(&thread, NULL, listenForInput, NULL);
+    }
 
     // Avoid hangs on Mac & Linux; posts orphan redisplays on all platforms.
     setKeepAlive(true);
