@@ -206,22 +206,31 @@ void createBallTree(MultibodySystem& system) {
     system.realizeTopology();
 }
 
-static int tenInts[10] = {1,2,3,4,5,-1,-2,-3,-4,-5};
+static int tenInts[10];
+static Real tenReals[10];
+// These should multiply out to about 1.
+static Real tenMults[10] = 
+    {0.501,0.2501,0.201,0.101,1.000000001,
+    (1/1.000000002),(1/.101), (1/.201), (1/.2501), (1/.501)};
 void testFunctions() {
     Real addRes=1,subRes=1,mulRes=1,divRes=1,sqrtRes=1,oosqrtRes=1,
          sinRes=1,cosRes=1,atan2Res=1,logRes=1,expRes=1;
     int intAddRes=1;
+    Random::Uniform rand; rand.setMin(-5); rand.setMax(5);
+    for (int i=0; i<10; i++) tenInts[i] = rand.getIntValue();
+    for (int i=0; i<10; i++) tenReals[i] = rand.getValue();
+
     Real tprev = threadCpuTime();
     for (int i = 0; i < 10*100000000; i++) {
         intAddRes += tenInts[0];
-        intAddRes += tenInts[1];
+        intAddRes -= tenInts[1];
         intAddRes += tenInts[2];
-        intAddRes += tenInts[3];
+        intAddRes -= tenInts[3];
         intAddRes += tenInts[4];
         intAddRes -= tenInts[5];
-        intAddRes -= tenInts[6];
+        intAddRes += tenInts[6];
         intAddRes -= tenInts[7];
-        intAddRes -= tenInts[8];
+        intAddRes += tenInts[8];
         intAddRes -= tenInts[9];
     }
     Real t = threadCpuTime(); Real intAddTime = (t-tprev)/10; // time for 1e9 ops
@@ -273,16 +282,20 @@ void testFunctions() {
     printf("mul %gs\n", t-tprev);
     tprev = threadCpuTime();
     for (int i = 0; i < 100000000; i++) {
-        divRes /= 0.501;
-        divRes /= 0.2501;
-        divRes /= 0.201;
-        divRes /= 0.101;
-        divRes /= 1.000000001;
-        divRes /= (1/1.000000002);
-        divRes /= (1/.101);
-        divRes /= (1/.201);
-        divRes /= (1/.2501);
-        divRes /= (1/.501);
+        divRes /= tenMults[7];
+        divRes /= tenMults[9];
+        divRes /= tenMults[8];
+        divRes /= tenMults[6];
+        divRes /= tenMults[2];
+        divRes /= tenMults[3];
+        divRes /= tenMults[1];
+        divRes /= tenMults[0];
+        divRes /= tenMults[4];
+        divRes /= tenMults[5];
+        // prevent clever optimization VC10 did to turn divides
+        // into multiplies.
+        tenMults[i%10]     *= 1.0000000000001; 
+        tenMults[(i+5)%10] *= 0.9999999999999; 
     }
     t = threadCpuTime(); Real divTime=(t-tprev);
     printf("div %gs\n", t-tprev);
@@ -404,6 +417,7 @@ void testFunctions() {
     Real flopTime = (addTime+mulTime)/2;
     std::cout << std::setprecision(5);
     std::cout << "1 flop=avg(add,mul)=" << flopTime << "ns\n";
+    printf("op\t t/10^9\t flops\t final result\n");
     std::cout << "int+:\t"  <<intAddTime<<"\t"<<intAddTime   /flopTime<<"\t"<<intAddRes<< "\n";
     std::cout << "+:\t"     <<addTime<<"\t"<<addTime   /flopTime<<"\t"<<addRes<< "\n";
     std::cout << "-:\t"     <<subTime<<"\t"<<subTime   /flopTime<<"\t"<<subRes<< "\n";
