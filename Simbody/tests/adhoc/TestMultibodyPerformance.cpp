@@ -105,6 +105,8 @@ void doCalcCompositeBodyInertias(MultibodySystem& system, State& state) {
     system.getMatterSubsystem().calcCompositeBodyInertias(state, r);
 }
 
+static Real flopTimeInNs;
+
 /**
  * Time how long it takes to perform an operation 1000 times.  The test is repeated 5 times,
  * and the average is returned.  The return value represents CPU time, *not* clock time.
@@ -112,32 +114,38 @@ void doCalcCompositeBodyInertias(MultibodySystem& system, State& state) {
 void timeComputation(MultibodySystem& system, void function(MultibodySystem& system, State& state), const string& name, int iterations) {
     const int repeats = 5;
     Vector cpuTimes(repeats);
-    Vector clockTimes(repeats);
     State state = system.getDefaultState();
     system.realize(state, Stage::Acceleration);
+
+    const int ndof = system.getMatterSubsystem().getNumMobilities();
+    const int nmovbod = system.getMatterSubsystem().getNumBodies()-1; // not Ground
 
     // Repeatedly measure the CPU time for performing the operation 1000 times.
 
     for (int i = 0; i < repeats; i++) {
-        Real startCpu = cpuTime();
-        Real startClock = realTime();
+        double startCpu = threadCpuTime();
         for (int j = 0; j < iterations; j++)
             function(system, state);
-        Real endCpu = cpuTime();
-        Real endClock = realTime();
+        double endCpu = threadCpuTime();
         cpuTimes[i] = endCpu-startCpu;
-        clockTimes[i] = endClock-startClock;
     }
-    std::cout << name<<": "<<(mean(cpuTimes)*1000/iterations)<<" "<<(mean(clockTimes)*1000/iterations)<< std::endl;
+
+    Real timePerIterUs = mean(cpuTimes)*1000000/iterations; // us
+    Real flopTimeUs = flopTimeInNs / 1000;
+    Real flopTimePerIter = timePerIterUs/flopTimeUs;
+    std::printf("%40s:%6.4gus -> %4d flp/dof, %4d flp/bod\n",
+        name.c_str(), timePerIterUs, (int)(flopTimePerIter/ndof),
+        (int)(flopTimePerIter/nmovbod));
 }
 
 /**
  * Time all the different calculations for one system.
  */
 void runAllTests(MultibodySystem& system) {
-    timeComputation(system, doRealizePosition, "realizePosition", 1000);
-    timeComputation(system, doRealizeVelocity, "realizeVelocity", 1000);
-    timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 1000);
+    std::cout << "# dofs=" << system.getMatterSubsystem().getNumMobilities() << "\n";
+    timeComputation(system, doRealizePosition, "realizePosition", 5000);
+    timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000);
+    timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 2000);
     timeComputation(system, doCalcMV, "calcMV", 5000);
     timeComputation(system, doCalcMInverseV, "calcMInverseV", 5000);
     timeComputation(system, doCalcResidualForceIgnoringConstraints, "calcResidualForceIgnoringConstraints", 5000);
@@ -170,6 +178,17 @@ void createPinChain(MultibodySystem& system) {
     MobilizedBody last = matter.updGround();
     for (int i = 0; i < 256; i++) {
         MobilizedBody::Pin next(last, Vec3(1, 0, 0), body, Vec3(0));
+        last = next;
+    }
+    system.realizeTopology();
+}
+
+void createSliderChain(MultibodySystem& system) {
+    SimbodyMatterSubsystem matter(system);
+    Body::Rigid body;
+    MobilizedBody last = matter.updGround();
+    for (int i = 0; i < 256; i++) {
+        MobilizedBody::Slider next(last, Vec3(1, 0, 0), body, Vec3(0));
         last = next;
     }
     system.realizeTopology();
@@ -212,7 +231,7 @@ static Real tenReals[10];
 static Real tenMults[10] = 
     {0.501,0.2501,0.201,0.101,1.000000001,
     (1/1.000000002),(1/.101), (1/.201), (1/.2501), (1/.501)};
-void testFunctions() {
+void testFunctions(Real& flopTime, bool flopTimeOnly=false) {
     Real addRes=1,subRes=1,mulRes=1,divRes=1,sqrtRes=1,oosqrtRes=1,
          sinRes=1,cosRes=1,atan2Res=1,logRes=1,expRes=1;
     int intAddRes=1;
@@ -280,6 +299,11 @@ void testFunctions() {
     }
     t = threadCpuTime(); Real mulTime=(t-tprev)/3;
     printf("mul %gs\n", t-tprev);
+    flopTime = (addTime+mulTime)/2;
+    std::cout << "1 flop=avg(add,mul)=" << flopTime << "ns\n";
+    if (flopTimeOnly)
+        return;
+
     tprev = threadCpuTime();
     for (int i = 0; i < 100000000; i++) {
         divRes /= tenMults[7];
@@ -414,7 +438,6 @@ void testFunctions() {
     printf("atan2 %gs\n", t-tprev);
     tprev = threadCpuTime();
 
-    Real flopTime = (addTime+mulTime)/2;
     std::cout << std::setprecision(5);
     std::cout << "1 flop=avg(add,mul)=" << flopTime << "ns\n";
     printf("op\t t/10^9\t flops\t final result\n");
@@ -435,8 +458,12 @@ void testFunctions() {
 
 int main() {
     {   std::cout << "\nCPU performance\n" << std::endl;
-        testFunctions();
+        testFunctions(flopTimeInNs, true /*flop time only*/);
     }
+    Real startClock  = realTime();
+    Real startCpu    = cpuTime();
+    Real startThread = threadCpuTime();
+
     {
         std::cout << "\nParticles:\n" << std::endl;
         MultibodySystem system;
@@ -453,6 +480,12 @@ int main() {
         std::cout << "\nPin Chain:\n" << std::endl;
         MultibodySystem system;
         createPinChain(system);
+        runAllTests(system);
+    }
+    {
+        std::cout << "\nSlider Chain:\n" << std::endl;
+        MultibodySystem system;
+        createSliderChain(system);
         runAllTests(system);
     }
     {
@@ -473,4 +506,9 @@ int main() {
         createBallTree(system);
         runAllTests(system);
     }
+
+    std::cout << "Total time:\n";
+    std::cout << "  process CPU=" << cpuTime()-startCpu << "s\n";
+    std::cout << "  thread CPU =" << threadCpuTime()-startThread << "s\n";
+    std::cout << "  real time  =" << realTime()-startClock << "s\n";
 }
