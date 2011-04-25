@@ -31,6 +31,7 @@
 
 #include "SimTKsimbody.h"
 #include <string>
+#include <ctime>
 
 using std::cout;
 using std::endl;
@@ -457,6 +458,9 @@ void testFunctions(Real& flopTime, bool flopTimeOnly=false) {
 
 
 int main() {
+    time_t now;
+    time(&now);
+    printf("Starting: %s\n", ctime(&now));
     {   std::cout << "\nCPU performance\n" << std::endl;
         testFunctions(flopTimeInNs, true /*flop time only*/);
     }

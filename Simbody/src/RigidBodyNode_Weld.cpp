@@ -444,14 +444,14 @@ public:
         // spatial inertia matrix Mk.
 
         updUnitInertia_OB_G(pc) = getUnitInertia_OB_B().reexpress(~getX_GB(pc).R());
-        updCB_G(pc)         = getX_GB(pc).R()*getCOM_B();
-        updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc);
+        updCB_G(pc)             = getX_GB(pc).R()*getCOM_B();
+        updCOM_G(pc)            = getX_GB(pc).p() + getCB_G(pc);
 
         // Calc Mk: the spatial inertia matrix about the body origin.
         // Note: we need to calculate this now so that we'll be able to calculate
         // kinetic energy without going past the Velocity stage.
         
-        updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), UnitInertia(getUnitInertia_OB_G(pc)));
+        updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), getUnitInertia_OB_G(pc));
     }
     
     void realizeVelocity(const SBStateDigest& sbs) const {

@@ -61,7 +61,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     SBTreePositionCache&    pc) const
 {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
-    const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p();
+    const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p(); // 15 flops
 
     // The Phi matrix conveniently performs child-to-parent (inward) shifting
     // on spatial quantities (forces); its transpose does parent-to-child
@@ -72,15 +72,16 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
+    // reexpress inertia in ground (57 flops)
     updUnitInertia_OB_G(pc) = getUnitInertia_OB_B().reexpress(~getX_GB(pc).R());
-    updCB_G(pc)         = getX_GB(pc).R()*getCOM_B();
+    updCB_G(pc)             = getX_GB(pc).R()*getCOM_B(); // 15 flops
 
-    updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc);
+    updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc); // 3 flops
 
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note: we need to calculate this now so that we'll be able to calculate
     // kinetic energy without going past the Velocity stage.
-    updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), UnitInertia(getUnitInertia_OB_G(pc)));
+    updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), getUnitInertia_OB_G(pc));
 }
 
 // Calculate velocity-related quantities: spatial velocity (V_GB), 
@@ -108,7 +109,7 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
     const Vec3& v_GB = getV_GB(vc)[1];  // spatial linear velocity (of B origin in G)
 
     updGyroscopicForce(vc) = 
-        getMass()*SpatialVec(w_GB % (getUnitInertia_OB_G(pc)*w_GB),     // gyroscopic moment (24 flops)
+        getMass()*SpatialVec(w_GB % (getUnitInertia_OB_G(pc)*w_GB), // gyroscopic moment (24 flops)
                              (w_GB % (w_GB % getCB_G(pc)))); // gyroscopic force  (21 flops)
 
     // Parent velocity.

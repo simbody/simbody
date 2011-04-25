@@ -572,7 +572,7 @@ Rotation_<P>::setRotationFromTwoAxes
 
 
 //------------------------------------------------------------------------------
-// Set this rotation matrix from the associated quaternion.
+// Set this rotation matrix from the associated quaternion. (31 flops)
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setRotationFromQuaternion( const Quaternion_<P>& q )  {
@@ -589,13 +589,14 @@ Rotation_<P>::setRotationFromQuaternion( const Quaternion_<P>& q )  {
 
 //------------------------------------------------------------------------------
 // Convert this Rotation matrix to the equivalent quaternion.
-// We use a modification of Richard Spurrier's method.
-// [Spurrier, R.A., "Comment on 'Singularity-Free Extraction of a Quaternion from a
-// Direction-Cosine Matrix'", J. Spacecraft and Rockets, 15(4):255, 1977.]
-// Our modification avoids all but one square root and divide.
-// In each of the four cases we compute 4q[m]*q where m is the "max" element, with
-// m=0 if the trace is larger than any diagonal or
-// m=i if the i,i element is the largest diagonal and larger than the trace.
+//
+// We use a modification of Richard Spurrier's method: Spurrier, R.A., "Comment
+// on 'Singularity-Free Extraction of a Quaternion from a Direction-Cosine 
+// Matrix'", J. Spacecraft and Rockets, 15(4):255, 1977. Our modification 
+// avoids all but one square root and divide. In each of the four cases we 
+// compute 4q[m]*q where m is the "max" element, with
+//   m=0 if the trace is larger than any diagonal or
+//   m=i if the i,i element is the largest diagonal and larger than the trace.
 // Then when we normalize at the end the scalar 4q[m] evaporates leaving us
 // with a perfectly normalized quaternion.
 //
@@ -603,6 +604,8 @@ Rotation_<P>::setRotationFromQuaternion( const Quaternion_<P>& q )  {
 // vector v=[vx vy vz] like this:    q = [ cos(a/2) sin(a/2)*v ]
 // We canonicalize the returned quaternion by insisting that
 // cos(a/2) >= 0, meaning that -180 < a <= 180.
+//
+// This takes about 40 flops.
 //------------------------------------------------------------------------------
 template <class P> Quaternion_<P>
 Rotation_<P>::convertRotationToQuaternion() const {
@@ -648,27 +651,30 @@ Rotation_<P>::convertRotationToQuaternion() const {
 
 
 //------------------------------------------------------------------------------
-// Determine whether "this" Rotation matrix is nearly identical to the one passed in (R)
-// within a specified "pointing angle error".  If "this" and "R" are nearly identical,
-// transpose(this) * R = closeToIdentity matrix.  After finding the equivalent angle-axis
-// for closeToIdentityMatrix, check the angle to see if it is less than okPointingAngleErrorRads.
+// Determine whether "this" Rotation matrix is nearly identical to the one 
+// passed in (R) within a specified "pointing angle error".  If "this" and "R" 
+// are nearly identical, transpose(this) * R = closeToIdentity matrix. After 
+// finding the equivalent angle-axis for closeToIdentityMatrix, check the angle
+// to see if it is less than okPointingAngleErrorRads.
 //------------------------------------------------------------------------------
 template <class P> bool
-Rotation_<P>::isSameRotationToWithinAngle(const Rotation_<P>& R, RealP okPointingAngleErrorRads ) const {
+Rotation_<P>::isSameRotationToWithinAngle
+   (const Rotation_<P>& R, RealP okPointingAngleErrorRads ) const {
     // The absolute minimum pointing error is 0 if "this" and R are identical.
     // The absolute maximum pointing error should be Pi (to machine precision).
     assert( 0 <= okPointingAngleErrorRads && okPointingAngleErrorRads <= Pi);
     const Rotation_<P> closeToIdentityMatrix = ~(*this) * R;
-    const Vec4P angleAxisEquivalent = closeToIdentityMatrix.convertRotationToAngleAxis();
+    const Vec4P angleAxisEquivalent = 
+        closeToIdentityMatrix.convertRotationToAngleAxis();
     const RealP pointingError = std::abs( angleAxisEquivalent[0] );
     return pointingError <= okPointingAngleErrorRads;
 }
 
 
 //------------------------------------------------------------------------------
-// This method is a poor man's orthogonalization from the supplied matrix to make 
-// a legitimate rotation. This is done by conversion to quaternions and back to 
-// Rotation and may not produce the closest rotation.
+// This method is a poor man's orthogonalization from the supplied matrix to 
+// make a legitimate rotation. This is done by conversion to quaternions and 
+// back to Rotation and may not produce the closest rotation.
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setRotationFromApproximateMat33( const Mat33P& m ) {
