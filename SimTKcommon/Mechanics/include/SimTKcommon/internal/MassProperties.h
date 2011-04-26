@@ -1222,31 +1222,44 @@ class ArticulatedInertia_ {
     typedef Transform_<P>   TransformP;
     typedef Inertia_<P>     InertiaP;
 public:
+/// Default contruction produces uninitialized junk at zero cost; be sure to 
+/// fill this in before referencing it.
 ArticulatedInertia_() {}
+/// Construct an ArticulatedInertia from the mass, first moment, and inertia matrices it contains.
 ArticulatedInertia_(const SymMat33P& mass, const Mat33P& massMoment, const SymMat33P& inertia)
 :   M(mass), J(inertia), F(massMoment) {}
 
 /// Construct an articulated body inertia (ABI) from a rigid body spatial inertia (RBI). 
-/// Every RBI is also the ABI for that (unarticulated) rigid body.
+/// Every RBI is also the ABI for that (unarticulated) rigid body. 12 flops.
 explicit ArticulatedInertia_(const SpatialInertia_<P>& rbi)
 :   M(rbi.getMass()), J(rbi.calcInertia()), F(crossMat(rbi.calcMassMoment())) {}
 
+/// Set the mass distribution matrix M in this ArticulatedInertia (symmetric).
 ArticulatedInertia_& setMass      (const SymMat33P& mass)       {M=mass;       return *this;}
+/// Set the mass first moment distribution matrix F in this ArticulatedInertia (full).
 ArticulatedInertia_& setMassMoment(const Mat33P&    massMoment) {F=massMoment; return *this;}
+/// Set the mass second moment (inertia) matrix J in this ArticulatedInertia (symmetric).
 ArticulatedInertia_& setInertia   (const SymMat33P& inertia)    {J=inertia;    return *this;}
 
+/// Get the mass distribution matrix M from this ArticulatedInertia (symmetric).
 const SymMat33P& getMass()       const {return M;}
+/// Get the mass first moment distribution matrix F from this ArticulatedInertia (full).
 const Mat33P&    getMassMoment() const {return F;}
+/// Get the mass second moment (inertia) matrix J from this ArticulatedInertia (symmetric).
 const SymMat33P& getInertia()    const {return J;}
 
 // default destructor, copy constructor, copy assignment
 
+/// Add in a compatible ArticulatedInertia to this one. Both inertias must be expressed
+/// in the same frame and measured about the same point. 21 flops.
 ArticulatedInertia_& operator+=(const ArticulatedInertia_& src)
 {   M+=src.M; J+=src.J; F+=src.F; return *this; }
+/// Subtract a compatible ArticulatedInertia from this one. Both inertias must be expressed
+/// in the same frame and measured about the same point. 21 flops.
 ArticulatedInertia_& operator-=(const ArticulatedInertia_& src)
 {   M-=src.M; J-=src.J; F-=src.F; return *this; }
 
-/// Multiply an ArticulatedIneria by a SpatialVec.
+/// Multiply an ArticulatedIneria by a SpatialVec (66 flops).
 SpatialVecP operator*(const SpatialVecP& v) const
 {   return SpatialVecP(J*v[0]+F*v[1], ~F*v[0]+M*v[1]); }
 
@@ -1263,6 +1276,8 @@ SimTK_SimTKCOMMON_EXPORT ArticulatedInertia_ shift(const Vec3P& s) const;
 /// @see shift() for details
 SimTK_SimTKCOMMON_EXPORT ArticulatedInertia_& shiftInPlace(const Vec3P& s);
 
+/// Convert the compactly-stored ArticulatedInertia (21 elements) into a 
+/// full SpatialMat with 36 elements.
 const SpatialMatP toSpatialMat() const {
     return SpatialMatP( Mat33P(J),     F,
                             ~F,       Mat33P(M) );
@@ -1273,14 +1288,14 @@ SymMat33P J;
 Mat33P    F;
 };
 
-/// Add two compatible articulated inertias. Cost is about 21 flops.
+/// Add two compatible articulated inertias. Cost is 21 flops.
 /// @relates ArticulatedInertia_
 template <class P> inline ArticulatedInertia_<P>
 operator+(const ArticulatedInertia_<P>& l, const ArticulatedInertia_<P>& r)
 {   return ArticulatedInertia_<P>(l) += r; }
 
 /// Subtract one compatible articulated inertia from another. Cost is
-/// about 21 flops.
+/// 21 flops.
 /// @relates ArticulatedInertia_
 template <class P> inline ArticulatedInertia_<P>
 operator-(const ArticulatedInertia_<P>& l, const ArticulatedInertia_<P>& r)

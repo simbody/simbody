@@ -203,6 +203,6 @@ RigidBodyNode::calcCompositeBodyInertiasInward(
     for (unsigned i=0; i<children.size(); ++i) {
         const SpatialInertia& RChild  = children[i]->fromB(allR);
         const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
-        R += RChild.shift(-phiChild.l());
+        R += RChild.shift(-phiChild.l()); // ~80 flops
     }
 }
