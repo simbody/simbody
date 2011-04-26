@@ -97,7 +97,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const HType& H_FM     = getH_FM(pc);
     const HType& HDot_FM = getHDot_FM(vc);
 
-    HType H_MB, HDot_MB;
+    HType HDot_MB;
 
     // want r_MB_F, that is, the vector from OM to OB, expressed in F
     const Vec3&     r_MB   = getX_MB().p();     // fixed
@@ -105,9 +105,6 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const Vec3      r_MB_F = R_FM*r_MB;         // 15 flops
 
     const Vec3& w_FM = getV_FM(vc)[0]; // local angular velocity
-
-    H_MB[0] = Vec3(0); // fills top row with zero
-    H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];      // 15*dof + 3 flops
 
     HDot_MB[0] = Vec3(0);
     HDot_MB[1] =   ~crossMat(r_MB_F)        * HDot_FM[0] // 30*dof + 18 flops
