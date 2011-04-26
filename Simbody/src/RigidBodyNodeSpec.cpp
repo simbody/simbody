@@ -241,8 +241,9 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     SBArticulatedBodyInertiaCache&  abc) const 
 {
     ArticulatedInertia& P = updP(abc);
-    // Start with the spatial inertia of the current body.
-    P = ArticulatedInertia(getMk(pc));
+
+    // Start with the spatial inertia of the current body (in Ground frame).
+    P = ArticulatedInertia(getMk_G(pc));
 
     // For each child, we previously took its articulated body inertia P and 
     // removed the portion of that inertia that can't be felt from  the parent
@@ -636,7 +637,7 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass2Inward(
     // Start with rigid body force from desired body acceleration and
     // gyroscopic forces due to angular velocity, minus external forces
     // applied directly to this body.
-    F = getMk(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
+    F = getMk_G(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
 
     // Add in forces on children, shifted to this body.
     for (unsigned i=0; i<children.size(); ++i) {
@@ -690,7 +691,8 @@ RigidBodyNodeSpec<dof>::calcMVPass2Inward(
     SpatialVec&       F     = toB(allF);
     Vec<dof>&         tau   = toU(allTau);
 
-    F = getMk(pc)*A_GB; // 66 flops TODO: 42 if you take advantage of Mk's structure
+    // 45 flops because Mk has a nice structure
+    F = getMk_G(pc)*A_GB; 
 
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);

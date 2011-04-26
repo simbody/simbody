@@ -72,16 +72,19 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    // reexpress inertia in ground (57 flops)
-    updUnitInertia_OB_G(pc) = getUnitInertia_OB_B().reexpress(~getX_GB(pc).R());
-    updCB_G(pc)             = getX_GB(pc).R()*getCOM_B(); // 15 flops
+    const Rotation& R_GB = getX_GB(pc).R();
+    const Vec3&     p_GB = getX_GB(pc).p();
 
-    updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc); // 3 flops
+    // reexpress inertia in ground (57 flops)
+    const UnitInertia G_Bo_G  = getUnitInertia_OB_B().reexpress(~R_GB);
+    const Vec3        p_BBc_G = R_GB*getCOM_B(); // 15 flops
+
+    updCOM_G(pc) = p_GB + p_BBc_G; // 3 flops
 
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note: we need to calculate this now so that we'll be able to calculate
     // kinetic energy without going past the Velocity stage.
-    updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), getUnitInertia_OB_G(pc));
+    updMk_G(pc) = SpatialInertia(getMass(), p_BBc_G, G_Bo_G);
 }
 
 // Calculate velocity-related quantities: spatial velocity (V_GB), 
@@ -145,7 +148,7 @@ Real RigidBodyNode::calcKineticEnergy(
     const SBTreePositionCache& pc,
     const SBTreeVelocityCache& vc) const 
 {
-    const Real ret = dot(getV_GB(vc) , getMk(pc)*getV_GB(vc));
+    const Real ret = dot(getV_GB(vc) , getMk_G(pc)*getV_GB(vc));
     return 0.5*ret;
 }
 
@@ -180,10 +183,10 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 
 //
 // Given only position-related quantities from the State 
-//      Mk  (this body's spatial inertia matrix)
-//      Phi (composite body child-to-parent shift matrix)
+//      Mk_G  (this body's spatial inertia matrix, exp. in Ground)
+//      Phi   (composite body child-to-parent shift matrix)
 // calculate the inverse dynamics quantity
-//      R   (composite body inertia)
+//      R     (composite body inertia)
 // This must be called tip-to-base (inward).
 //
 // Note that this method does not depend on the mobilities of
@@ -196,7 +199,7 @@ RigidBodyNode::calcCompositeBodyInertiasInward(
     Array_<SpatialInertia>& allR) const
 {
     SpatialInertia& R = toB(allR);
-    R = getMk(pc);
+    R = getMk_G(pc);
     for (unsigned i=0; i<children.size(); ++i) {
         const SpatialInertia& RChild  = children[i]->fromB(allR);
         const PhiMatrix&  phiChild    = children[i]->getPhi(pc);

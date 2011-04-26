@@ -443,15 +443,19 @@ public:
         // the local mass moments into the Ground frame and reconstruct the
         // spatial inertia matrix Mk.
 
-        updUnitInertia_OB_G(pc) = getUnitInertia_OB_B().reexpress(~getX_GB(pc).R());
-        updCB_G(pc)             = getX_GB(pc).R()*getCOM_B();
-        updCOM_G(pc)            = getX_GB(pc).p() + getCB_G(pc);
+        const Rotation& R_GB = getX_GB(pc).R();
+        const Vec3&     p_GB = getX_GB(pc).p();
+
+        // reexpress inertia in ground (57 flops)
+        const UnitInertia G_Bo_G  = getUnitInertia_OB_B().reexpress(~R_GB);
+        const Vec3        p_BBc_G = R_GB*getCOM_B(); // 15 flops
+
+        updCOM_G(pc) = p_GB + p_BBc_G; // 3 flops
 
         // Calc Mk: the spatial inertia matrix about the body origin.
         // Note: we need to calculate this now so that we'll be able to calculate
         // kinetic energy without going past the Velocity stage.
-        
-        updMk(pc) = SpatialInertia(getMass(), getCB_G(pc), getUnitInertia_OB_G(pc));
+        updMk_G(pc) = SpatialInertia(getMass(), p_BBc_G, G_Bo_G);
     }
     
     void realizeVelocity(const SBStateDigest& sbs) const {
@@ -488,7 +492,7 @@ public:
         SBArticulatedBodyInertiaCache&  abc) const 
     {
         ArticulatedInertia& P = updP(abc);
-        P = ArticulatedInertia(getMk(pc));
+        P = ArticulatedInertia(getMk_G(pc));
         for (unsigned i=0 ; i<children.size() ; i++) {
             const PhiMatrix&  phiChild           = children[i]->getPhi(pc);
             const ArticulatedInertia& PChild     = children[i]->getP(abc);
@@ -677,7 +681,7 @@ public:
         // Start with rigid body force from desired body acceleration and
         // gyroscopic forces due to angular velocity, minus external forces
         // applied directly to this body.
-        F = getMk(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
+        F = getMk_G(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
 
         // Add in forces on children, shifted to this body.
         for (unsigned i=0; i<children.size(); ++i) {
@@ -711,7 +715,7 @@ public:
         const SpatialVec& A_GB  = fromB(allA_GB);
         SpatialVec&       F     = toB(allF);
 
-        F = getMk(pc)*A_GB;
+        F = getMk_G(pc)*A_GB;
 
         for (int i=0 ; i<(int)children.size() ; i++) {
             const PhiMatrix&  phiChild  = children[i]->getPhi(pc);

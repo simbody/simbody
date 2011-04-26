@@ -754,23 +754,26 @@ Transform& updX_GB(SBTreePositionCache& pc) const {
 const PhiMatrix& getPhi(const SBTreePositionCache& pc) const {return fromB(pc.bodyToParentShift);}
 PhiMatrix&       updPhi(SBTreePositionCache&       pc) const {return toB  (pc.bodyToParentShift);}
 
-// Extract this body's spatial inertia matrix from the cache. This contains the mass properties
-// measured from (and about) the body frame origin, but expressed in the *ground* frame.
-const SpatialInertia& getMk(const SBTreePositionCache& pc) const {return fromB(pc.bodySpatialInertia);}
-SpatialInertia&       updMk(SBTreePositionCache&       pc) const {return toB  (pc.bodySpatialInertia);}
+// Extract this body's spatial inertia matrix from the cache. This contains 
+// the mass properties measured from (and about) the body frame origin, but 
+// expressed in the Ground frame.
+const SpatialInertia& getMk_G(const SBTreePositionCache& pc) const {return fromB(pc.bodySpatialInertiaInGround);}
+SpatialInertia&       updMk_G(SBTreePositionCache&       pc) const {return toB  (pc.bodySpatialInertiaInGround);}
 
 // Extract from the cache the location of the body's center of mass, measured from the ground
-// origin and expressed in ground.
+// origin and expressed in Ground.
 const Vec3& getCOM_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyCOMInGround);}
 Vec3&       updCOM_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyCOMInGround);}
 
-// Extract from the cache the vector from body B's origin to its center of mass, reexpressed in Ground.
-const Vec3& getCB_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyCOMStationInGround);}
-Vec3&       updCB_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyCOMStationInGround);}
+// Extract from the cache the vector from body B's origin to its center of 
+// mass, reexpressed in Ground.
+const Vec3& getCB_G(const SBTreePositionCache& pc) const 
+{   return getMk_G(pc).getMassCenter(); }
 
-// Extract from the cache the body's inertia about the body origin OB, but reexpressed in Ground.
-const UnitInertia& getUnitInertia_OB_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyUnitInertiaInGround);}
-UnitInertia&       updUnitInertia_OB_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyUnitInertiaInGround);}
+// Extract from the cache the body's inertia about the body origin OB, but 
+// reexpressed in Ground.
+const UnitInertia& getUnitInertia_OB_G(const SBTreePositionCache& pc) const 
+{   return getMk_G(pc).getUnitInertia(); }
 
 // Extract from the cache the spatial (ground-relative) location and orientation of this body's
 // *parent's* body frame P.

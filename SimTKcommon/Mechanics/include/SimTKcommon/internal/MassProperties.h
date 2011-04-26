@@ -1046,7 +1046,7 @@ SpatialInertia_& operator*=(const RealP& s) {m *= s; return *this;}
 SpatialInertia_& operator/=(const RealP& s) {m /= s; return *this;}
 
 /// Multiply a SpatialInertia by a SpatialVec to produce a SpatialVec
-/// result.
+/// result; 45 flops.
 SpatialVecP operator*(const SpatialVecP& v) const
 {   return m*SpatialVecP(G*v[0]+p%v[1], v[1]-p%v[0]); }
 

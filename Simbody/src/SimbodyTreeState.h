@@ -492,7 +492,7 @@ public:
     // This is a sum over all the mobilizers whose udots are currently prescribed, adding
     // the number of udots (mobilities) nu from each holonomic-, nonholonomic-, or 
     // acceleration-prescribed mobilizer. An array of this size is allocated
-    // in the DynamicsCache, and an entry is needed in the prescrived force array
+    // in the DynamicsCache, and an entry is needed in the prescribed force array
     // in the AccelerationCache as well. These nu-sized slots are allocated in 
     // order of MobilizedBodyIndex.
     int getTotalNumPresUDot() const {return (int)presUDot.size();}
@@ -635,10 +635,16 @@ public:
     Array_<Transform>    bodyConfigInParent;           // nb (X_PB)
     Array_<Transform>    bodyConfigInGround;           // nb (X_GB)
     Array_<PhiMatrix>    bodyToParentShift;            // nb (phi)
-    Array_<UnitInertia>  bodyUnitInertiaInGround;          // nb (I_OB_G)
-    Array_<SpatialInertia>    bodySpatialInertia;           // nb (Mk)
-    Array_<Vec3>              bodyCOMInGround;              // nb (p_G_CB)
-    Array_<Vec3>              bodyCOMStationInGround;       // nb (p_CB_G)
+
+    // This contains mass m, p_BBc_G (center of mass location measured from
+    // B origin, expressed in Ground), and G_Bo_G (unit inertia [gyration]
+    // matrix about B's origin, expressed in Ground). Note that this body's
+    // inertia is I_Bo_G = m*G_Bo_G.
+    Array_<SpatialInertia> bodySpatialInertiaInGround; // nb (Mk_G)
+
+    // This is the body center of mass location measured from the ground
+    // origin and expressed in ground, p_GBc = p_GB + p_BBc_G (above).
+    Array_<Vec3> bodyCOMInGround;                      // nb (p_GBc)
 
 
         // Ancestor Constrained Body Pool
@@ -681,14 +687,13 @@ public:
         bodyToParentShift.resize(nBodies);           
         bodyToParentShift[0].setToZero();
 
-        bodyUnitInertiaInGround.resize(nBodies); // TODO: ground initialization
-        bodySpatialInertia.resize(nBodies);  // TODO: ground initialization
+        bodySpatialInertiaInGround.resize(nBodies); 
+        bodySpatialInertiaInGround[0].setMass(Infinity);
+        bodySpatialInertiaInGround[0].setMassCenter(Vec3(0));
+        bodySpatialInertiaInGround[0].setUnitInertia(UnitInertia(Infinity));
 
         bodyCOMInGround.resize(nBodies);             
         bodyCOMInGround[0] = 0.;
-
-        bodyCOMStationInGround.resize(nBodies);      
-        bodyCOMStationInGround[0] = 0.;
 
         constrainedBodyConfigInAncestor.resize(nacb);
     }
