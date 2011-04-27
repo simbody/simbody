@@ -482,6 +482,34 @@ template <class E1, int S1, int N, class E2, int CS, int RS> inline
 Mat<3,N,typename CNT<E1>::template Result<E2>::Mul>
 operator%(const Vec<3,E1,S1>& v, const Mat<3,N,E2,CS,RS>& m) {return cross(v,m);}
 
+// Same as above except we have a Row of N Vec<3>s instead of the matrix.
+// Cost is 9*N flops.
+template <class E1, int S1, int N, class E2, int S2, int S3> inline
+Row< N,Vec<3,typename CNT<E1>::template Result<E2>::Mul> > // packed
+cross(const Vec<3,E1,S1>& v, const Row<N,Vec<3,E2,S2>,S3>& m) {
+    Row< N,Vec<3,typename CNT<E1>::template Result<E2>::Mul> > result;
+    for (int j=0; j < N; ++j)
+        result(j) = v % m(j);
+    return result;
+}
+// Specialize for N==3 to avoid ambiguity
+template <class E1, int S1, class E2, int S2, int S3> inline
+Row< 3,Vec<3,typename CNT<E1>::template Result<E2>::Mul> > // packed
+cross(const Vec<3,E1,S1>& v, const Row<3,Vec<3,E2,S2>,S3>& m) {
+    Row< 3,Vec<3,typename CNT<E1>::template Result<E2>::Mul> > result;
+    for (int j=0; j < 3; ++j)
+        result(j) = v % m(j);
+    return result;
+}
+template <class E1, int S1, int N, class E2, int S2, int S3> inline
+Row< N,Vec<3,typename CNT<E1>::template Result<E2>::Mul> > // packed
+operator%(const Vec<3,E1,S1>& v, const Row<N,Vec<3,E2,S2>,S3>& m) 
+{   return cross(v,m); }
+template <class E1, int S1, class E2, int S2, int S3> inline
+Row< 3,Vec<3,typename CNT<E1>::template Result<E2>::Mul> > // packed
+operator%(const Vec<3,E1,S1>& v, const Row<3,Vec<3,E2,S2>,S3>& m) 
+{   return cross(v,m); }
+
 // m = v % s
 // By writing this out elementwise for the symmetric case we can do this 
 // in 24 flops, a small savings over doing three cross products of 9 flops each.

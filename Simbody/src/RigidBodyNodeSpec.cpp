@@ -53,6 +53,7 @@
 //------------------------------------------------------------------------------
 // Same for all mobilizers.
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters.
+// Cost: 60 + 45*dof flops
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const SBModelVars&          mv,
@@ -61,14 +62,14 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
 {
     const HType& H_FM = getH_FM(pc);
 
-    // want r_MB_F, that is, the vector from OM to OB, expressed in F
+    // want r_MB_F, that is, the vector from Mo to Bo, expressed in F
     const Vec3&     r_MB   = getX_MB().p();     // fixed
     const Rotation& R_FM   = getX_FM(pc).R();   // just calculated
     const Vec3      r_MB_F = R_FM*r_MB;         // 15 flops
 
-    HType H_MB;
-    H_MB[0] = Vec3(0); // fills top row with zero
-    H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];      // 15*dof + 3 flops
+    HType H_MB_F;
+    H_MB_F[0] =  Vec3(0); // fills top row with zero
+    H_MB_F[1] = -r_MB_F % H_FM[0]; // 9*dof (negation not actually done)
 
     // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
@@ -79,7 +80,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const Rotation& R_GP = getX_GP(pc).R(); // parent orientation in ground
     const Rotation  R_GF = R_GP * R_PF;     // 45 flops
 
-    H_PB_G =  R_GF * (H_FM + H_MB);         // 36*dof flops
+    H_PB_G =  R_GF * (H_FM + H_MB_F);       // 36*dof flops
 }
 
 //------------------------------------------------------------------------------
@@ -87,6 +88,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
 //------------------------------------------------------------------------------
 // Same for all mobilizers.
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters.
+// Cost is 69 + 65*dof
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&          mv,
@@ -94,21 +96,22 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const SBTreeVelocityCache&  vc,
     HType&                      HDot_PB_G) const
 {
-    const HType& H_FM     = getH_FM(pc);
+    const HType& H_FM    = getH_FM(pc);
     const HType& HDot_FM = getHDot_FM(vc);
 
-    HType HDot_MB;
+    HType HDot_MB_F;
 
-    // want r_MB_F, that is, the vector from OM to OB, expressed in F
+    // want r_MB_F, that is, the vector from OM to OB, expressed in F 
     const Vec3&     r_MB   = getX_MB().p();     // fixed
     const Rotation& R_FM   = getX_FM(pc).R();   // just calculated
     const Vec3      r_MB_F = R_FM*r_MB;         // 15 flops
 
     const Vec3& w_FM = getV_FM(vc)[0]; // local angular velocity
 
-    HDot_MB[0] = Vec3(0);
-    HDot_MB[1] =   ~crossMat(r_MB_F)        * HDot_FM[0] // 30*dof + 18 flops
-                 + ~crossMat(w_FM % r_MB_F) * H_FM[0];
+    HDot_MB_F[0] = Vec3(0);
+    HDot_MB_F[1] =          -r_MB_F  % HDot_FM[0] // 21*dof + 9 flops
+                   - (w_FM % r_MB_F) % H_FM[0];
+
 
     // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
@@ -122,10 +125,11 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const Vec3& w_GF = getV_GP(vc)[0]; // F and P have same angular velocity
 
     // Note: time derivative of R_GF is crossMat(w_GF)*R_GF.
-    //      H = H_PB_G =  R_GF * (H_FM + H_MB) (see above method)
+    //      H = H_PB_G =  R_GF * (H_FM + H_MB_F) (see above method)
     const HType& H_PB_G = getH(pc);
-    HDot_PB_G = R_GF * (HDot_FM + HDot_MB) // 66*dof + 3 flops
-                 + crossMat(w_GF) * H_PB_G;
+    HDot_PB_G =   R_GF * (HDot_FM + HDot_MB_F) // 54*dof
+                + HType(w_GF % H_PB_G[0], 
+                        w_GF % H_PB_G[1]);
 }
 
 //------------------------------------------------------------------------------
