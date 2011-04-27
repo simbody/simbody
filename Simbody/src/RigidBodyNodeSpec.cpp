@@ -87,8 +87,8 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
 //                            CALC H_PB_G_DOT
 //------------------------------------------------------------------------------
 // Same for all mobilizers.
-// CAUTION: our H matrix definition is transposed from Jain and Schwieters.
-// Cost is 69 + 65*dof
+// CAUTION: our H matrix definition is transposed from Jain and Schwieters. 
+// Cost is 69 + 65*dof flops
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&          mv,
@@ -120,7 +120,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
 
     // Calculated already since we're going base to tip.
     const Rotation& R_GP = getX_GP(pc).R();     // parent orientation in ground
-    const Rotation  R_GF = R_GP * R_PF;         // 45 flops
+    const Rotation  R_GF = R_GP * R_PF;         // 45 flops (TODO: again??)
 
     const Vec3& w_GF = getV_GP(vc)[0]; // F and P have same angular velocity
 
@@ -231,8 +231,8 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
 // This must be called tip-to-base (inward).
 //
 // Cost is 93 flops per child plus
-//   n^3 + 23*n^2 + 115*n 
-//   e.g. pin=139, ball=579 (193/dof), free=1734 (289/dof)
+//   n^3 + 23*n^2 + 115*n + 12
+//   e.g. pin=143, ball=591 (197/dof), free=1746 (291/dof)
 // Note that per-child cost is paid just once for each non-base body in
 // the whole tree.
 template<int dof> void
@@ -244,7 +244,7 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     ArticulatedInertia& P = updP(abc);
 
     // Start with the spatial inertia of the current body (in Ground frame).
-    P = ArticulatedInertia(getMk_G(pc));
+    P = ArticulatedInertia(getMk_G(pc)); // 12 flops
 
     // For each child, we previously took its articulated body inertia P and 
     // removed the portion of that inertia that can't be felt from  the parent
@@ -596,7 +596,9 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
 // in O(N) time, where C(u) are the velocity-dependent coriolis, centrifugal and 
 // gyroscopic forces, f_applied are the applied body and joint forces, and udot 
 // is given.
-//
+//      pass1: 12*dof + 18 flops
+//      pass2: 12*dof + 75 flops
+//      total: 24*dof + 93 flops
 // Pass 1 is base to tip and calculates the body accelerations arising
 // from udot and the coriolis accelerations.
 template<int dof> void 
@@ -609,10 +611,10 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass1Outward(
     const Vec<dof>& udot = fromU(allUDot);
     SpatialVec&     A_GB = toB(allA_GB);
 
-    // Shift parent's A_GB outward. (Ground A_GB is zero.)
+    // Shift parent's A_GB outward. (Ground A_GB is zero.) 12 flops.
     const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc); 
+    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc); // 12*dof+6 flops.
 }
 
 // Pass 2 is tip to base. It takes body accelerations from pass 1 (including coriolis
@@ -638,18 +640,18 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass2Inward(
     // Start with rigid body force from desired body acceleration and
     // gyroscopic forces due to angular velocity, minus external forces
     // applied directly to this body.
-    F = getMk_G(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
+    F = getMk_G(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce; // 57 flops
 
     // Add in forces on children, shifted to this body.
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
         const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
-        F += phiChild * FChild;
+        F += phiChild * FChild;         // 18 flops
     }
 
     // Project body forces into hinge space and subtract any hinge forces already
     // being applied to get the remaining hinge forces needed.
-    tau = ~getH(pc)*F - myJointForce;
+    tau = ~getH(pc)*F - myJointForce;   // 12*dof flops
 }
 
 //------------------------------------------------------------------------------
@@ -658,8 +660,8 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass2Inward(
 // The next two methods calculate x=M*v (or f=M*a) in O(N) time, given v.
 // The first one is called base to tip.
 // Cost is: pass1 12*dof+12 flops
-//          pass2 11*dof+84 flops (TODO: could be 24 flops cheaper; see below).
-//          total 23*dof + 96     (TODO: 23*dof + 72)
+//          pass2 11*dof+63 flops
+//          total 23*dof + 75
 // TODO: Possibly this could be much faster if composite body inertias R were
 // precalculated along with D = ~H*R*H. Then I *think* this could be a single
 // pass with tau = D*udot. Whether this is worth it would depend on how much
@@ -728,7 +730,7 @@ RigidBodyNodeSpec<dof>::calcSpatialKinematicsFromInternal(
     // Shift parent's result outward (ground result is 0).
     const SpatialVec outP = ~getPhi(pc) * parent->fromB(Jv);
 
-    out = outP + getH(pc)*in;  
+    out = outP + getH(pc)*in;  // 12*dof flops
 }
 
 //------------------------------------------------------------------------------
