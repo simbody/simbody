@@ -96,6 +96,7 @@ bool  testRotationOneAxis( const Real angle, const CoordinateAxis& axis );
 bool  testRotationTwoAxes( const BodyOrSpaceType bodyOrSpace, const Real angle1, const CoordinateAxis& axis1, const Real angle2, const CoordinateAxis &axis2 );
 bool  testRotationThreeAxes( const BodyOrSpaceType bodyOrSpace, const Real angle1, const CoordinateAxis& axis1, const Real angle2, const CoordinateAxis &axis2, const Real angle3, const CoordinateAxis &axis3 );
 bool  testQuaternion( Real e0, Real e1, Real e2, Real e3 );
+bool  testSetRotationToBodyFixedXYZ();
 
 bool  testInverseRotation1Angle( Real angle, Real theta );
 bool  testInverseRotation2Angle( Real angle1, Real theta1,  Real angle2, Real theta2 );
@@ -285,6 +286,9 @@ bool  doRequiredTasks( ) {
 
     // Exhaustive test of Quaterions
     test = test && exhaustiveTestofQuaternions();
+
+    // Test special handling of body-fixed XYZ.
+    test = test && testSetRotationToBodyFixedXYZ();
 
     // Test out special code for rotating symmetric matrices.
     test = test && testReexpressSymMat33();
@@ -496,6 +500,27 @@ bool  testQuaternion( Real e0, Real e1, Real e2, Real e3 )
 
     // Test to see if they are the same
     bool test = rotationSpecified.areAllRotationElementsSameToMachinePrecision( testRotation );
+
+    return test;
+}
+
+//-------------------------------------------------------------------
+bool testSetRotationToBodyFixedXYZ() {
+    bool test = true;
+    const Real q0=.123, q1=-.234, q2=.787;
+    Rotation R0, R1, R2;
+    // The general case and special case implementation should produce
+    // the same result.
+    R0.setRotationFromThreeAnglesThreeAxes(
+        BodyRotationSequence, q0, XAxis, q1, YAxis, q2, ZAxis);
+    R1.setRotationToBodyFixedXYZ(Vec3(q0,q1,q2));
+    R2.setRotationToBodyFixedXYZ(
+        Vec3(std::cos(q0),std::cos(q1),std::cos(q2)),
+        Vec3(std::sin(q0),std::sin(q1),std::sin(q2)));
+
+    test = test && R0.areAllRotationElementsSameToMachinePrecision(R1);
+    test = test && R0.areAllRotationElementsSameToMachinePrecision(R2);
+    test = test && R1.areAllRotationElementsSameToMachinePrecision(R2);
 
     return test;
 }

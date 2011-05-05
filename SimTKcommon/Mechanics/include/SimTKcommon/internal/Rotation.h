@@ -1,9 +1,3 @@
-//-----------------------------------------------------------------------------
-// File:     Rotation.h
-// Class:    Rotation and InverseRotation 
-// Parent:   Mat33
-// Purpose:  3x3 rotation class relating two right-handed orthogonal bases
-//-----------------------------------------------------------------------------
 #ifndef SIMTK_ROTATION_H 
 #define SIMTK_ROTATION_H 
 
@@ -15,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Paul Mitiguy and Michael Sherman                                  *
  * Contributors:                                                              *
  *                                                                            *
@@ -120,6 +114,8 @@ class Rotation_ : public Mat<3,3,P> {
     typedef Mat<2,2,P>      Mat22P;
     typedef Mat<3,2,P>      Mat32P;
     typedef Mat<3,3,P>      Mat33P;
+    typedef Mat<4,3,P>      Mat43P;
+    typedef Mat<3,4,P>      Mat34P;
     typedef Vec<2,P>        Vec2P;
     typedef Vec<3,P>        Vec3P;
     typedef Vec<4,P>        Vec4P;
@@ -324,10 +320,27 @@ public:
     {   Mat33P& R = *this; R(0)=colA.asVec3(); R(1)=colB.asVec3(); R(2)=colC.asVec3(); return *this; }  
     //@}
 
-
-//--------------------------------- PAUL CONTINUE FROM HERE ----------------------------------
+//--------------------------- PAUL CONTINUE FROM HERE --------------------------
 public:
-//--------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+    // These are ad hoc routines that don't match the nice API Paul Mitiguy
+    // implemented above.
+
+
+    /// Given cosines and sines (in that order) of three angles, set this
+    /// Rotation matrix to the body-fixed 1-2-3 sequence of those angles.
+    /// Cost is 18 flops.
+    void setRotationToBodyFixedXYZ(const Vec3P& c, const Vec3P& s) {
+        Mat33P& R = *this;
+        const RealP s0s1=s[0]*s[1], s2c0=s[2]*c[0], c0c2=c[0]*c[2], nc1= -c[1];
+
+        R = Mat33P(     c[1]*c[2]      ,         s[2]*nc1       ,    s[1]  ,
+                    s2c0 + s0s1*c[2]   ,     c0c2 - s0s1*s[2]   , s[0]*nc1 ,
+                 s[0]*s[2] - s[1]*c0c2 ,  s[0]*c[2] + s[1]*s2c0 , c[0]*c[1] );
+    }
+
+
     /// Given Euler angles forming a body-fixed 3-2-1 sequence, and the relative
     /// angular velocity vector of B in the parent frame, *BUT EXPRESSED IN
     /// THE BODY FRAME*, return the Euler angle
@@ -358,51 +371,57 @@ public:
     }
 
     // TODO: sherm: is this right? Warning: everything is measured in the
-    // *PARENT* frame, but has to be expressed in the *BODY* frame.
+    // *PARENT* frame, but angular velocities and accelerations are
+    // expressed in the *BODY* frame.
+    // TODO: this is not an efficient way to do this computation.
     static Vec3P convertAngVelDotToBodyFixed321DotDot
-        (const Vec3P& q, const Vec3P& w_PB_B, const Vec3P& wdot)
+        (const Vec3P& q, const Vec3P& w_PB_B, const Vec3P& wdot_PB_B)
     {
         const RealP s1 = std::sin(q[1]), c1 = std::cos(q[1]);
         const RealP s2 = std::sin(q[2]), c2 = std::cos(q[2]);
         const RealP ooc1  = 1/c1;
-        const RealP s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
+        const RealP s2oc1 = s2*ooc1, c2oc1 = c2*ooc1, s1oc1 = s1*ooc1;
 
         const Mat33P E( 0 ,   s2oc1  ,  c2oc1  ,
                        0 ,     c2   ,   -s2   ,
                        1 , s1*s2oc1 , s1*c2oc1 );
         const Vec3P qdot = E * w_PB_B;
 
-        const RealP t =  qdot[1]*qdot[2]*s1*ooc1;
-        const RealP a =  t*c2oc1; // d/dt s2oc1
-        const RealP b = -t*s2oc1; // d/dt c2oc1
+        const RealP t = qdot[1]*s1oc1;
+        const RealP a = t*s2oc1 + qdot[2]*c2oc1; // d/dt s2oc1
+        const RealP b = t*c2oc1 - qdot[2]*s2oc1; // d/dt c2oc1
 
         const Mat33P Edot( 0 ,       a           ,         b         ,
                           0 ,   -qdot[2]*s2     ,    -qdot[2]*c2    ,
                           0 , s1*a + qdot[1]*s2 , s1*b + qdot[1]*c2 );
 
-        return E*wdot + Edot*w_PB_B;
+        return E*wdot_PB_B + Edot*w_PB_B;
     }
     
-    /// Given Euler angles q forming a body-fixed X-Y-Z sequence return the block
-    /// of the N matrix such that qdot=N(q)*w where w is the angular velocity of
-    /// B in P EXPRESSED IN *B*!!! This matrix will be singular if Y (q[1]) gets
-    /// near 90 degrees!
+    /// Given Euler angles q forming a body-fixed X-Y-Z sequence return the 
+    /// block N_B of the system N matrix such that qdot=N_B(q)*w_PB_B where 
+    /// w_PB_B is the angular velocity of B in P EXPRESSED IN *B*!!! Note that 
+    /// N_B=N_P*R_PB. This matrix will be singular if Y (q[1]) gets near 90 
+    /// degrees!
     /// @note This version is very expensive because it has to calculate sines
     ///       and cosines. If you already have those, use the alternate form
     ///       of this method.
+    ///
+    /// Cost: about 100 flops for sin/cos plus 12 to calculate N_B.
     /// @see Kane's Spacecraft Dynamics, page 427, body-three: 1-2-3.
     static Mat33P calcNForBodyXYZInBodyFrame(const Vec3P& q) {
         // Note: q[0] is not referenced so we won't waste time calculating
         // its cosine and sine here.
-        return calcNForBodyXYZInBodyFrame(Vec3P(0,std::cos(q[1]),std::cos(q[2])),
-                                          Vec3P(0,std::sin(q[1]),std::sin(q[2])));
+        return calcNForBodyXYZInBodyFrame
+           (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
+            Vec3P(0, std::sin(q[1]), std::sin(q[2])));
     }
 
-    /// This fast version of calcNForBodyXYZInBodyFrame() assumes you have already
-    /// calculated the cosine and sine of the three q's. Note that we only
-    /// look at the cosines and sines of q[1] and q[2]; q[0] does not matter
-    /// so you don't have to fill in the 0'th element of cq and sq.
-    /// Cost is one divide plus 6 flops.
+    /// This faster version of calcNForBodyXYZInBodyFrame() assumes you have 
+    /// already calculated the cosine and sine of the three q's. Note that we 
+    /// only look at the cosines and sines of q[1] and q[2]; q[0] does not 
+    /// matter so you don't have to fill in the 0'th element of cq and sq.
+    /// Cost is one divide plus 6 flops, say 12 flops.
     static Mat33P calcNForBodyXYZInBodyFrame(const Vec3P& cq, const Vec3P& sq) {
         const RealP s1 = sq[1], c1 = cq[1];
         const RealP s2 = sq[2], c2 = cq[2];
@@ -414,65 +433,261 @@ public:
                        -s1*c2oc1 , s1*s2oc1, 1 );
     }
 
-    /// Given Euler angles forming a body-fixed X-Y-Z sequence q, and their time
-    /// derivatives qdot, return the block of the NDot matrix such that 
-    /// qdotdot=N(q)*wdot + NDot(q,u)*w where w is the angular velocity of
-    /// B in P EXPRESSED IN *B*!!! This matrix will be singular if Y (q[1]) gets
-    /// near 90 degrees! See calcNForBodyXYZInBodyFrame() for the matrix we're
-    /// differentiating here.
+    /// Given Euler angles q forming a body-fixed X-Y-Z (123) sequence return 
+    /// the block N_P of the system N matrix such that qdot=N_P(q)*w_PB where 
+    /// w_PB is the angular velocity of B in P expressed in P (not the 
+    /// convention that Kane uses, where angular velocities are expressed in 
+    /// the outboard body B). Note that N_P = N_B*~R_PB. This matrix will be 
+    /// singular if Y (q[1]) gets near 90 degrees!
+    ///
     /// @note This version is very expensive because it has to calculate sines
     ///       and cosines. If you already have those, use the alternate form
     ///       of this method.
-    static Mat33P calcNDotForBodyXYZInBodyFrame(const Vec3P& q, const Vec3P& qdot) {
-        // Note: q[0] is not referenced so we won't waste time calculating
+    ///
+    /// Cost: about 100 flops for sin/cos plus 12 to calculate N_P. 
+    static Mat33P calcNForBodyXYZInParentFrame(const Vec3P& q) {
+        // Note: q[2] is not referenced so we won't waste time calculating
         // its cosine and sine here.
-        return calcNDotForBodyXYZInBodyFrame(Vec3P(0,std::cos(q[1]),std::cos(q[2])),
-                                             Vec3P(0,std::sin(q[1]),std::sin(q[2])),
-                                             qdot);
+        return calcNForBodyXYZInParentFrame
+           (Vec3P(std::cos(q[0]), std::cos(q[1]), 0),
+            Vec3P(std::sin(q[0]), std::sin(q[1]), 0));
     }
 
-    /// This fast version of calcNDotForBodyXYZInBodyFrame() assumes you have already
-    /// calculated the cosine and sine of the three q's. Note that we only
-    /// look at the cosines and sines of q[1] and q[2]; q[0] does not matter
-    /// so you don't have to fill in the 0'th element of cq and sq.
-    /// Cost is one divide plus 19 flops.
-    static Mat33P calcNDotForBodyXYZInBodyFrame(const Vec3P& cq, const Vec3P& sq, 
-                                                const Vec3P& qdot) 
+    /// This faster version of calcNForBodyXYZInParentFrame() assumes you have 
+    /// already calculated the cosine and sine of the three q's. Note that we 
+    /// only look at the cosines and sines of q[0] and q[1]; q[2] does not 
+    /// matter so you don't have to fill in the 3rd element of cq and sq.
+    /// Cost is one divide plus 6 flops, say 12 flops.
+    /// @see Paul Mitiguy
+    static Mat33P calcNForBodyXYZInParentFrame(const Vec3P& cq, const Vec3P& sq) {
+        const RealP s0 = sq[0], c0 = cq[0];
+        const RealP s1 = sq[1], c1 = cq[1];
+        const RealP ooc1  = 1/c1;
+        const RealP s0oc1 = s0*ooc1, c0oc1 = c0*ooc1;
+
+        return Mat33P( 1 , s1*s0oc1 , -s1*c0oc1,
+                       0 ,    c0    ,    s0,
+                       0 ,  -s0oc1  ,  c0oc1 );
+    }
+
+    /// This is the fastest way to form the product qdot=N_P*w_PB for a 
+    /// body-fixed XYZ sequence where angular velocity of child in parent is
+    /// expected to be expressed in the parent. Here we assume you have
+    /// previously calculated sincos(qx), sincos(qy), and 1/cos(qy).
+    /// Cost is 10 flops, faster even than the 15 it would take if you had saved
+    /// N_P and then formed the N_P*w_PB product explicitly.
+    static Vec3P multiplyByBodyXYZ_N_P(const Vec2P& cosxy,
+                                       const Vec2P& sinxy,
+                                       RealP        oocosy,
+                                       const Vec3P& w_PB)
+    {
+        const RealP s0 = sinxy[0], c0 = cosxy[0];
+        const RealP s1 = sinxy[1];
+        const RealP w0 = w_PB[0], w1 = w_PB[1], w2 = w_PB[2];
+
+        const RealP t = (s0*w1-c0*w2)*oocosy;
+        return Vec3P( w0 + t*s1, c0*w1 + s0*w2, -t ); // qdot
+    }
+
+    /// This is the fastest way to form the product v_P=~N_P*q; see the
+    /// untransposed method multiplyByBodyXYZ_N_P() for information.
+    /// Cost is 9 flops.
+    static Vec3P multiplyByBodyXYZ_NT_P(const Vec2P& cosxy,
+                                        const Vec2P& sinxy,
+                                        RealP        oocosy,
+                                        const Vec3P& q)
+    {
+        const RealP s0 = sinxy[0], c0 = cosxy[0];
+        const RealP s1 = sinxy[1];
+        const RealP q0 = q[0], q1 = q[1], q2 = q[2];
+
+        const RealP t = (q0*s1-q2) * oocosy;
+        return Vec3P( q0, c0*q1 + t*s0, s0*q1 - t*c0 ); // v_P
+    }
+
+    /// Calculate first time derivative qdot of body-fixed XYZ Euler angles q
+    /// given sines and cosines of the Euler angles and the angular velocity 
+    /// w_PB of child B in parent P, expressed in P. Cost is 10 flops.
+    ///
+    /// Theory: calculate qdot=N_P(q)*w_PB using multiplyByBodyXYZ_N_P().
+    /// @see multiplyByBodyXYZ_N_P()
+    static Vec3P convertAngVelInParentToBodyXYZDot
+       (const Vec2P& cosxy,  ///< cos(qx), cos(qy)
+        const Vec2P& sinxy,  ///< sin(qx), sin(qy)
+        RealP        oocosy, ///< 1/cos(qy)
+        const Vec3P& w_PB)   ///< angular velocity of B in P, exp. in P
+    {
+        return multiplyByBodyXYZ_N_P(cosxy,sinxy,oocosy,w_PB);
+    }
+
+    /// Calculate second time derivative qdotdot of body-fixed XYZ Euler 
+    /// angles q given sines and cosines of the Euler angles, the first 
+    /// derivative qdot and the angular acceleration b_PB of child B in 
+    /// parent P, expressed in P. Cost is 22 flops.
+    ///
+    /// Theory: we have qdot=N_P*w_PB, which we differentiate in P to 
+    /// get qdotdot=N_P*b_PB + NDot_P*w_PB. Note that NDot_P=NDot_P(q,qdot) 
+    /// and w_PB=NInv_P*qdot (because N_P is invertible). We can then rewrite
+    /// qdotdot=N_P*b_PB + NDot_P*(NInv_P*qdot) which can be calculated very 
+    /// efficiently. The second term is just an acceleration remainder term
+    /// quadratic in qdot.
+    static Vec3P convertAngAccInParentToBodyXYZDotDot
+       (const Vec2P& cosxy,  ///< cos(qx), cos(qy)
+        const Vec2P& sinxy,  ///< sin(qx), sin(qy)
+        RealP        oocosy, ///< 1/cos(qy)
+        const Vec3P& qdot,   ///< previously calculated BodyXYZDot
+        const Vec3P& b_PB)   ///< angular acceleration, a.k.a. wdot_PB
+    {
+        const RealP s1 = sinxy[1], c1 = cosxy[1];
+        const RealP q0 = qdot[0], q1 = qdot[1], q2 = qdot[2];
+
+        // 10 flops
+        const Vec3P Nb = multiplyByBodyXYZ_N_P(cosxy,sinxy,oocosy,b_PB);
+
+        const RealP q1oc1 = q1*oocosy;
+        const Vec3P NDotw((q0*s1-q2)*q1oc1,     //   NDot_P*w_PB
+                           q0*q2*c1,            // = NDot_P*(NInv_P*qdot)
+                          (q2*s1-q0)*q1oc1 );   // (9 flops)
+
+        return Nb + NDotw; // 3 flops
+    }
+
+
+    /// Fastest way to form the product w_PB=NInv_P*qdot. This is never
+    /// singular. Cost is 9 flops.
+    static Vec3P multiplyByBodyXYZ_NInv_P(const Vec2P& cosxy,
+                                          const Vec2P& sinxy,
+                                          const Vec3P& qdot)
+    {
+        const RealP s0 = sinxy[0], c0 = cosxy[0];
+        const RealP s1 = sinxy[1], c1 = cosxy[1];
+        const RealP q0 = qdot[0], q1 = qdot[1], q2 = qdot[2];
+        const RealP c1q2 = c1*q2;
+
+        return Vec3P( q0 + s1*q2,           // w_PB
+                      c0*q1 - s0*c1q2, 
+                      s0*q1 + c0*c1q2 );
+    }
+
+    /// Fastest way to form the product q= ~NInv_P*v_P. This is never
+    /// singular. Cost is 10 flops.NP
+    static Vec3P multiplyByBodyXYZ_NInvT_P(const Vec2P& cosxy,
+                                           const Vec2P& sinxy,
+                                           const Vec3P& v_P)
+    {
+        const RealP s0 = sinxy[0], c0 = cosxy[0];
+        const RealP s1 = sinxy[1], c1 = cosxy[1];
+        const RealP w0 = v_P[0], w1 = v_P[1], w2 = v_P[2];
+
+        return Vec3P( w0,                           // qdot-like
+                      c0*w1 + s0*w2,
+                      s1*w0 - s0*c1*w1 + c0*c1*w2);
+    }
+
+    /// Given Euler angles forming a body-fixed X-Y-Z (123) sequence q, and 
+    /// their time derivatives qdot, return the block of the NDot matrix such 
+    /// that qdotdot=N(q)*wdot + NDot(q,u)*w where w is the angular velocity 
+    /// of B in P EXPRESSED IN *B*!!! This matrix will be singular if Y (q[1]) 
+    /// gets near 90 degrees! See calcNForBodyXYZInBodyFrame() for the matrix 
+    /// we're differentiating here.
+    /// @note This version is very expensive because it has to calculate sines
+    ///       and cosines. If you already have those, use the alternate form
+    ///       of this method.
+    static Mat33P calcNDotForBodyXYZInBodyFrame
+       (const Vec3P& q, const Vec3P& qdot) {
+        // Note: q[0] is not referenced so we won't waste time calculating
+        // its cosine and sine here.
+        return calcNDotForBodyXYZInBodyFrame
+           (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
+            Vec3P(0, std::sin(q[1]), std::sin(q[2])),
+            qdot);
+    }
+
+    /// This faster version of calcNDotForBodyXYZInBodyFrame() assumes you 
+    /// have already calculated the cosine and sine of the three q's. Note 
+    /// that we only look at the cosines and sines of q[1] and q[2]; q[0] does 
+    /// not matter so you don't have to fill in the 0'th element of cq and sq.
+    /// Cost is one divide plus 21 flops.
+    static Mat33P calcNDotForBodyXYZInBodyFrame
+       (const Vec3P& cq, const Vec3P& sq, const Vec3P& qdot) 
     {
         const RealP s1 = sq[1], c1 = cq[1];
         const RealP s2 = sq[2], c2 = cq[2];
         const RealP ooc1  = 1/c1;
         const RealP s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
 
-        const RealP t =  qdot[1]*qdot[2]*s1*ooc1;
-        const RealP a =  t*c2oc1; // d/dt s2oc1
-        const RealP b = -t*s2oc1; // d/dt c2oc1
+        const RealP t = qdot[1]*s1*ooc1;
+        const RealP a = t*s2oc1 + qdot[2]*c2oc1; // d/dt s2oc1
+        const RealP b = t*c2oc1 - qdot[2]*s2oc1; // d/dt c2oc1
 
-        return Mat33P(       b           ,        -a         , 0,
-                          qdot[2]*c2     ,    -qdot[2]*s2    , 0,
-                      -s1*b - qdot[1]*c2 , s1*a + qdot[1]*s2 , 0 );
+        return Mat33P(       b             ,        -a         , 0,
+                          qdot[2]*c2       ,    -qdot[2]*s2    , 0,
+                      -(s1*b + qdot[1]*c2) , s1*a + qdot[1]*s2 , 0 );
     }
 
-    /// Inverse of the above routine. Return the inverse NInv of the N block
-    /// computed above, such that w=NInv(q)*qdot where w is the angular velocity of
-    /// B in P EXPRESSED IN *B*!!! This matrix is never singular.
+    /// Given Euler angles forming a body-fixed X-Y-Z (123) sequence q, and 
+    /// their time derivatives qdot, return the block of the NDot matrix such 
+    /// that qdotdot=N(q)*wdot + NDot(q,u)*w where w is the angular velocity of
+    /// B in P expressed in P. This matrix will be singular if Y (q[1]) gets
+    /// near 90 degrees! See calcNForBodyXYZInParentFrame() for the matrix 
+    /// we're differentiating here.
+    /// @note This version is very expensive because it has to calculate sines
+    ///       and cosines. If you already have those, use the alternate form
+    ///       of this method.
+    static Mat33P calcNDotForBodyXYZInParentFrame
+       (const Vec3P& q, const Vec3P& qdot) {
+        // Note: q[0] is not referenced so we won't waste time calculating
+        // its cosine and sine here.
+        return calcNDotForBodyXYZInParentFrame
+           (Vec3P(std::cos(q[0]), std::cos(q[1]), 0),
+            Vec3P(std::sin(q[0]), std::sin(q[1]), 0),
+            qdot);
+    }
+
+    /// This faster version of calcNDotForBodyXYZInParentFrame() assumes you 
+    /// have already calculated the cosine and sine of the three q's. Note that
+    /// we only look at the cosines and sines of q[0] and q[1]; q[2] does not 
+    /// matter so you don't have to fill in the 3rd element of cq and sq.
+    /// Cost is one divide plus 21 flops, say 27 flops.
+    static Mat33P calcNDotForBodyXYZInParentFrame
+       (const Vec3P& cq, const Vec3P& sq, const Vec3P& qdot) {
+        const RealP s0 = sq[0], c0 = cq[0];
+        const RealP s1 = sq[1], c1 = cq[1];
+        const RealP ooc1  = 1/c1;
+        const RealP s0oc1 = s0*ooc1, c0oc1 = c0*ooc1;
+
+        const RealP t = qdot[1]*s1*ooc1;
+        const RealP a = t*s0oc1 + qdot[0]*c0oc1; // d/dt s0oc1
+        const RealP b = t*c0oc1 - qdot[0]*s0oc1; // d/dt c0oc1
+
+        return Mat33P( 0,  s1*a + qdot[1]*s0, -(s1*b + qdot[1]*c0), 
+                       0,    -qdot[0]*s0    ,     qdot[0]*c0      ,
+                       0,        -a         ,         b            );
+    }
+
+    /// Inverse of routine calcNForBodyXYZInBodyFrame(). Return the inverse 
+    /// NInv_B of the N_B block computed above, such that w_PB_B=NInv_B(q)*qdot
+    /// where w_PB_B is the angular velocity of B in P EXPRESSED IN *B*!!! 
+    /// (Kane's convention.) Note that NInv_B=~R_PB*NInv_P. This matrix is 
+    /// never singular.
     /// @note This version is very expensive because it has to calculate sines
     ///       and cosines. If you already have those, use the alternate form
     ///       of this method.
     static Mat33P calcNInvForBodyXYZInBodyFrame(const Vec3P& q) {
         // Note: q[0] is not referenced so we won't waste time calculating
         // its cosine and sine here.
-        return calcNInvForBodyXYZInBodyFrame(Vec3P(0,std::cos(q[1]),std::cos(q[2])),
-                                             Vec3P(0,std::sin(q[1]),std::sin(q[2])));
+        return calcNInvForBodyXYZInBodyFrame
+           (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
+            Vec3P(0, std::sin(q[1]), std::sin(q[2])));
     }
 
-    /// This fast version of calcNInvForBodyXYZInBodyFrame() assumes you have already
-    /// calculated the cosine and sine of the three q's. Note that we only
-    /// look at the cosines and sines of q[1] and q[2]; q[0] does not matter
-    /// so you don't have to fill in the 0'th element of cq and sq.
+    /// This faster version of calcNInvForBodyXYZInBodyFrame() assumes you have
+    /// already calculated the cosine and sine of the three q's. Note that we 
+    /// only look at the cosines and sines of q[1] and q[2]; q[0] does not 
+    /// matter so you don't have to fill in the 0'th element of cq and sq.
     /// Cost is 3 flops.
-    static Mat33P calcNInvForBodyXYZInBodyFrame(const Vec3P& cq, const Vec3P& sq) 
-    {
+    static Mat33P calcNInvForBodyXYZInBodyFrame
+       (const Vec3P& cq, const Vec3P& sq) {
         const RealP s1 = sq[1], c1 = cq[1];
         const RealP s2 = sq[2], c2 = cq[2];
 
@@ -481,24 +696,58 @@ public:
                         s1   ,  0  , 1 );
     }
 
-    /// Given Euler angles forming a body-fixed 1-2-3 sequence, and the relative
-    /// angular velocity vector of B in the parent frame,  *BUT EXPRESSED IN
-    /// THE BODY FRAME*, return the Euler angle
+    /// Inverse of the above routine. Return the inverse NInv_P of the N_P 
+    /// block computed above, such that w_PB=NInv_P(q)*qdot where w_PB is the 
+    /// angular velocity of B in P (expressed in P). Note that 
+    /// NInv_P=R_PB*NInv_B. This matrix is never singular.
+    /// @note This version is very expensive because it has to calculate sines
+    ///       and cosines. If you already have those, use the alternate form
+    ///       of this method.
+    static Mat33P calcNInvForBodyXYZInParentFrame(const Vec3P& q) {
+        // Note: q[0] is not referenced so we won't waste time calculating
+        // its cosine and sine here.
+        return calcNInvForBodyXYZInParentFrame
+           (Vec3P(std::cos(q[0]), std::cos(q[1]), 0),
+            Vec3P(std::sin(q[0]), std::sin(q[1]), 0));
+    }
+
+    /// This faster version of calcNInvForBodyXYZInParentFrame() assumes you 
+    /// have already calculated the cosine and sine of the three q's. Note that
+    /// we only look at the cosines and sines of q[0] and q[1]; q[2] does not 
+    /// matter so you don't have to fill in the 3rd element of cq and sq.
+    /// Cost is 3 flops.
+    static Mat33P calcNInvForBodyXYZInParentFrame
+       (const Vec3P& cq, const Vec3P& sq) {
+        const RealP s0 = sq[0], c0 = cq[0];
+        const RealP s1 = sq[1], c1 = cq[1];
+
+        return Mat33P( 1 ,  0  ,   s1   ,
+                       0 ,  c0 , -s0*c1 ,
+                       0 ,  s0 ,  c0*c1 );
+    }
+
+    /// Given Euler angles forming a body-fixed X-Y-Z (123) sequence, and the 
+    /// relative angular velocity vector w_PB_B of B in the parent frame, 
+    /// <em>BUT EXPRESSED IN THE BODY FRAME</em>, return the Euler angle 
     /// derivatives. You are dead if q[1] gets near 90 degrees!
     /// @note This version is very expensive because it has to calculate sines
     ///       and cosines. If you already have those, use the alternate form
     ///       of this method.
     /// @see Kane's Spacecraft Dynamics, page 427, body-three: 1-2-3.
-    static Vec3P convertAngVelInBodyFrameToBodyXYZDot(const Vec3P& q, const Vec3P& w_PB_B)
-    {   return convertAngVelInBodyFrameToBodyXYZDot(Vec3P(0,std::cos(q[1]),std::cos(q[2])),
-                                                    Vec3P(0,std::sin(q[1]),std::sin(q[2])),
-                                                    w_PB_B); }
+    static Vec3P convertAngVelInBodyFrameToBodyXYZDot
+       (const Vec3P& q, const Vec3P& w_PB_B) {  
+        return convertAngVelInBodyFrameToBodyXYZDot
+           (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
+            Vec3P(0, std::sin(q[1]), std::sin(q[2])),
+            w_PB_B); 
+    }
 
-    /// This fast version of convertAngVelInBodyFrameToBodyXYZDot() assumes you have 
-    /// already calculated the cosine and sine of the three q's. Note that we only
-    /// look at the cosines and sines of q[1] and q[2]; q[0] does not matter
-    /// so you don't have to fill in the 0'th element of cq and sq.
-    /// Cost is one divide plus 21 flops.
+    /// This faster version of convertAngVelInBodyFrameToBodyXYZDot() assumes 
+    /// you have already calculated the cosine and sine of the three q's. Note
+    /// that we only look at the cosines and sines of q[1] and q[2]; q[0] does 
+    /// not matter so you don't have to fill in the 0'th element of cq and sq.
+    /// Cost is XXX.
+    //TODO: reimplement
     static Vec3P convertAngVelInBodyFrameToBodyXYZDot
        (const Vec3P& cq, const Vec3P& sq, const Vec3P& w_PB_B) 
     {   return calcNForBodyXYZInBodyFrame(cq,sq)*w_PB_B; }
@@ -508,16 +757,20 @@ public:
     /// @note This version is very expensive because it has to calculate sines
     ///       and cosines. If you already have those, use the alternate form
     ///       of this method.
-    static Vec3P convertBodyXYZDotToAngVelInBodyFrame(const Vec3P& q, const Vec3P& qdot)
-    {   return convertBodyXYZDotToAngVelInBodyFrame(Vec3P(0,std::cos(q[1]),std::cos(q[2])),
-                                                    Vec3P(0,std::sin(q[1]),std::sin(q[2])),
-                                                    qdot); }
+    static Vec3P convertBodyXYZDotToAngVelInBodyFrame
+       (const Vec3P& q, const Vec3P& qdot) {   
+           return convertBodyXYZDotToAngVelInBodyFrame
+                       (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
+                        Vec3P(0, std::sin(q[1]), std::sin(q[2])),
+                        qdot); 
+    }
 
-    /// This fast version of convertBodyXYZDotToAngVelInBodyFrame() assumes you have 
-    /// already calculated the cosine and sine of the three q's. Note that we only
-    /// look at the cosines and sines of q[1] and q[2]; q[0] does not matter
-    /// so you don't have to fill in the 0'th element of cq and sq.
-    /// Cost is 18 flops.
+    /// This faster version of convertBodyXYZDotToAngVelInBodyFrame() assumes
+    /// you have already calculated the cosine and sine of the three q's. Note 
+    /// that we only look at the cosines and sines of q[1] and q[2]; q[0] does 
+    /// not matter so you don't have to fill in the 0'th element of cq and sq.
+    /// Cost is XXX flops.
+    // TODO: reimplement
     static Vec3P convertBodyXYZDotToAngVelInBodyFrame
        (const Vec3P& cq, const Vec3P& sq, const Vec3P& qdot) 
     {   return calcNInvForBodyXYZInBodyFrame(cq,sq)*qdot; }
@@ -533,16 +786,18 @@ public:
         // Note: q[0] is not referenced so we won't waste time calculating
         // its cosine and sine here.
         return convertAngVelDotInBodyFrameToBodyXYZDotDot
-                   (Vec3P(0,std::cos(q[1]),std::cos(q[2])),
-                    Vec3P(0,std::sin(q[1]),std::sin(q[2])),
+                   (Vec3P(0, std::cos(q[1]), std::cos(q[2])),
+                    Vec3P(0, std::sin(q[1]), std::sin(q[2])),
                     w_PB_B, wdot_PB_B);
     }
 
-    /// This faster version of convertAngVelDotInBodyFrameToBodyXYZDotDot() assumes 
-    /// you have already calculated the cosine and sine of the three q's. Note 
-    /// that we only look at the cosines and sines of q[1] and q[2]; q[0] does not 
-    /// matter so you don't have to fill in the 0'th element of cq and sq.
-    /// Cost is two divides plus 73 flops.
+    /// This faster version of convertAngVelDotInBodyFrameToBodyXYZDotDot() 
+    /// assumes you have already calculated the cosine and sine of the three 
+    /// q's. Note that we only look at the cosines and sines of q[1] and q[2]; 
+    /// q[0] does not matter so you don't have to fill in the 0'th element of 
+    /// cq and sq.
+    /// Cost is XXX flops.
+    // TODO: reimplement
     static Vec3P convertAngVelDotInBodyFrameToBodyXYZDotDot
        (const Vec3P& cq, const Vec3P& sq, const Vec3P& w_PB_B, const Vec3P& wdot_PB_B)
     {
@@ -558,13 +813,13 @@ public:
     /// expect the angular velocity in the parent frame, i.e. w==w_PB_P.
     /// We don't normalize, so N=|q|N' where N' is the normalized version.
     /// Cost is 7 flops.
-    static Mat<4,3,P> calcUnnormalizedNForQuaternion(const Vec4P& q) {
+    static Mat43P calcUnnormalizedNForQuaternion(const Vec4P& q) {
         const Vec4P e = q/2;
         const RealP ne1 = -e[1], ne2 = -e[2], ne3 = -e[3];
-        return Mat<4,3,P>( ne1,  ne2,  ne3,
-                           e[0], e[3], ne2,
-                           ne3,  e[0], e[1],
-                           e[2], ne1,  e[0]);
+        return Mat43P( ne1,  ne2,  ne3,
+                       e[0], e[3], ne2,
+                       ne3,  e[0], e[1],
+                       e[2], ne1,  e[0]);
     }
 
     /// Given the time derivative qdot of a possibly unnormalized quaternion
@@ -573,13 +828,13 @@ public:
     /// NDot = d/dt N = d/dt (|q|N') = |q|(d/dt N'), where N' is the normalized
     /// matrix, since the length of the quaternion should be a constant.
     /// Cost is 7 flops.
-    static Mat<4,3,P> calcUnnormalizedNDotForQuaternion(const Vec4P& qdot) {
+    static Mat43P calcUnnormalizedNDotForQuaternion(const Vec4P& qdot) {
         const Vec4P ed = qdot/2;
         const RealP ned1 = -ed[1], ned2 = -ed[2], ned3 = -ed[3];
-        return Mat<4,3,P>( ned1,  ned2,  ned3,
-                           ed[0], ed[3], ned2,
-                           ned3,  ed[0], ed[1],
-                           ed[2], ned1,  ed[0]);
+        return Mat43P( ned1,  ned2,  ned3,
+                       ed[0], ed[3], ned2,
+                       ned3,  ed[0], ed[1],
+                       ed[2], ned1,  ed[0]);
     }
 
     /// Given a (possibly unnormalized) quaternion q, calculate the 3x4 matrix
@@ -590,12 +845,12 @@ public:
     /// |q|*inv(N')=|q|^2*inv(N). That is, NInv*N =|q|^2*I, which is I
     /// if the original q was normalized. (Note: N*NInv != I, not even close.)
     /// Cost is 7 flops.
-    static Mat<3,4,P> calcUnnormalizedNInvForQuaternion(const Vec4P& q) {
+    static Mat34P calcUnnormalizedNInvForQuaternion(const Vec4P& q) {
         const Vec4P e = 2*q;
         const RealP ne1 = -e[1], ne2 = -e[2], ne3 = -e[3];
-        return Mat<3,4,P>(ne1, e[0], ne3,  e[2],
-                          ne2, e[3], e[0], ne1,
-                          ne3, ne2,  e[1], e[0]);
+        return Mat34P(ne1, e[0], ne3,  e[2],
+                      ne2, e[3], e[0], ne1,
+                      ne3, ne2,  e[1], e[0]);
     }
 
 
@@ -619,14 +874,30 @@ public:
     /// derivative qdotdot of the quaternion. Everything is measured and 
     /// expressed in the parent.
     /// Cost is 78 flops.
-    static Vec4P convertAngVelDotToQuaternionDotDot
+    // TODO: reimplement
+    static Vec4P OLDconvertAngVelDotToQuaternionDotDot
        (const Vec4P& q, const Vec3P& w_PB_P, const Vec3P& wdot_PB_P)
     {
-        const Mat<4,3,P> N    = calcUnnormalizedNForQuaternion(q);
+        const Mat43P N    = calcUnnormalizedNForQuaternion(q);
         const Vec4P      qdot = N*w_PB_P;   // 20 flops
-        const Mat<4,3,P> NDot = calcUnnormalizedNDotForQuaternion(qdot);
+        const Mat43P NDot = calcUnnormalizedNDotForQuaternion(qdot);
 
         return  N*wdot_PB_P + NDot*w_PB_P;  // 44 flops
+    }
+
+    /// We want to differentiate qdot=N(q)*w to get qdotdot=N*b+NDot*w where
+    /// b is angular acceleration wdot. Note that NDot=NDot(qdot), but it is 
+    /// far better to calculate the matrix-vector product NDot(N*w)*w directly
+    /// rather than calculate NDot separately. That gives
+    /// <pre>NDot*w = -(w^2)/4 * q</pre>
+    /// Cost is 41 flops.
+    static Vec4P convertAngVelDotToQuaternionDotDot
+       (const Vec4P& q, const Vec3P& w_PB, const Vec3P& b_PB)
+    {
+        const Mat43P N     = calcUnnormalizedNForQuaternion(q); //  7 flops
+        const Vec4P  Nb    = N*b_PB;                            // 20 flops
+        const Vec4P  NDotw = RealP(-.25)*w_PB.normSqr()*q;      // 10 flops
+        return Nb + NDotw;                                      //  4 flops
     }
 
 

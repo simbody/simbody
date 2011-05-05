@@ -1,8 +1,3 @@
-//--------------------------------------------------------------------------
-// File:     Rotation.cpp
-// Class:    Rotation
-// Parent:   Mat33P
-// Purpose:  3x3 rotation class relating two right-handed orthogonal bases
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simmatrix(tm)                       *
  * -------------------------------------------------------------------------- *
@@ -11,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Paul Mitiguy and Michael Sherman                                  *
  * Contributors:                                                              *
  *                                                                            *
@@ -572,17 +567,18 @@ Rotation_<P>::setRotationFromTwoAxes
 
 
 //------------------------------------------------------------------------------
-// Set this rotation matrix from the associated quaternion. (31 flops)
+// Set this rotation matrix from the associated quaternion. (29 flops)
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setRotationFromQuaternion( const Quaternion_<P>& q )  {
     const RealP q00=q[0]*q[0], q11=q[1]*q[1], q22=q[2]*q[2], q33=q[3]*q[3];
     const RealP q01=q[0]*q[1], q02=q[0]*q[2], q03=q[0]*q[3];
     const RealP q12=q[1]*q[2], q13=q[1]*q[3], q23=q[2]*q[3];
+    const RealP q00mq11 = q00-q11, q22mq33 = q22-q33;
 
     Mat33P::operator=( Mat33P( q00+q11-q22-q33,    2*(q12-q03)  ,   2*(q13+q02),
-                                 2*(q12+q03)  ,  q00-q11+q22-q33,   2*(q23-q01),
-                                 2*(q13-q02)  ,    2*(q23+q01)  , q00-q11-q22+q33 )  );
+                                 2*(q12+q03)  ,  q00mq11+q22mq33,   2*(q23-q01),
+                                 2*(q13-q02)  ,    2*(q23+q01)  , q00mq11-q22mq33 )  );
     return *this;
 }
 
