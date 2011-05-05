@@ -132,8 +132,6 @@ virtual void setUToFitVelocityImpl(const SBStateDigest& sbs, const Vector& q, co
 // passed arguments to write their results into. In practice, these
 // arguments will typically be in the State cache (see below).
 
-// calcJointSinCosQNorm() and calcAcrossJointTransform() must have
-// been called already before calling these.
 
 // This mandatory routine calculates the joint transition matrix H_FM, giving
 // the change of velocity induced by the generalized speeds u for this 
@@ -254,19 +252,46 @@ void realizePosition(const SBStateDigest& sbs) const
     const SBInstanceCache&  ic   = sbs.getInstanceCache();
     const Vector&           allQ = sbs.getQ();
     SBTreePositionCache&    pc   = sbs.updTreePositionCache();
+    Vector&                 allQErr = sbs.updQErr();
 
     // Mobilizer specific.
-    calcJointSinCosQNorm(mv, mc, ic, allQ, pc.sq, pc.cq, sbs.updQErr(), pc.qnorm);
+    
+    const SBModelCache::PerMobilizedBodyModelInfo& mbInfo = getModelInfo(mc);
+
+    // First perform precalculations on these new q's, such as stashing away
+    // sines and cosines of angles. We'll put all the results into the State's
+    // position cache for later use. If there are local constraints on the q's
+    // (currently that means quaternion normalization constraints), then we
+    // calculate those here and put the result in the appropriate slot of qerr.
+
+    const int nq=mbInfo.nQInUse, nqpool=mbInfo.nQPoolInUse,
+              nqerr=(mbInfo.hasQuaternionInUse ? 1 : 0);
+    const Real* q0    = nq     ? &allQ[mbInfo.firstQIndex]                : 0;
+    Real*       qpool0= nqpool ? &pc.mobilizerQCache[mbInfo.startInQPool] : 0;
+    Real*       qerr0 = nqerr  ? &allQErr[ic.firstQuaternionQErrSlot
+                                          + mbInfo.quaternionPoolIndex]     
+                               : 0;
+    performQPrecalculations(sbs, q0, nq, qpool0, nqpool, qerr0, nqerr);
+
+    // Now that we've done the necessary precalculations, calculate the cross-
+    // mobilizer transform X_FM without recalculating anything. For reversed 
+    // mobilizers we have to do our own reversal here because mobilizers don't
+    // handle that themselves.
 
     if (isReversed()) {
         Transform X_MF;
-        calcAcrossJointTransform(sbs, allQ, X_MF);
+        calcX_FM(sbs, q0, nq, qpool0, nqpool, X_MF);
         updX_FM(pc) = ~X_MF;
     } else 
-        calcAcrossJointTransform(sbs, allQ, updX_FM(pc));
+        calcX_FM(sbs, q0, nq, qpool0, nqpool, updX_FM(pc));
 
+    // With X_FM in the cache, and X_GP for the parent already calculated (we're doing
+    // an outward pass), we can calculate X_PB and X_GB now.
     calcBodyTransforms(pc, updX_PB(pc), updX_GB(pc));
 
+    // Here we do allow the mobilizer to calculate the reversed H matrix, but the
+    // default implementation of the reversed method just calls the forward method
+    // and then reverses it. For some mobilizers that is unreasonably expensive.
     // REMINDER: our H matrix definition is transposed from Jain and Schwieters.
     if (isReversed()) calcReverseMobilizerH_FM       (sbs, updH_FM(pc));
     else              calcAcrossJointVelocityJacobian(sbs, updH_FM(pc));
@@ -452,9 +477,6 @@ virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQua
     startOfQuaternion.invalidate();
     return false;
 }
-
-// Most mobilizers do use angles, so we're not going to provide a default 
-// implementation of the pure virtual isUsingAngles() method here.
 
 // You must override the next few methods if qdot might not be the same
 // as u under *any* circumstance.
@@ -667,21 +689,6 @@ const HType& getH(const SBTreePositionCache& pc) const
   { return HType::getAs(&pc.storageForH[2*uIndex]); }
 HType&       updH(SBTreePositionCache& pc) const
   { return HType::updAs(&pc.storageForH[2*uIndex]); }
-
-// These are sines and cosines of angular qs. The rest of the slots are garbage.
-const Vec<dof>&   getSinQ (const SBTreePositionCache& pc) const {return fromQ (pc.sq);}
-Vec<dof>&         updSinQ (SBTreePositionCache&       pc) const {return toQ   (pc.sq);}
-const Real&       get1SinQ(const SBTreePositionCache& pc) const {return from1Q(pc.sq);}
-Real&             upd1SinQ(SBTreePositionCache&       pc) const {return to1Q  (pc.sq);}
-
-const Vec<dof>&   getCosQ (const SBTreePositionCache& pc) const {return fromQ (pc.cq);}
-Vec<dof>&         updCosQ (SBTreePositionCache&       pc) const {return toQ   (pc.cq);}
-const Real&       get1CosQ(const SBTreePositionCache& pc) const {return from1Q(pc.cq);}
-Real&             upd1CosQ(SBTreePositionCache&       pc) const {return to1Q  (pc.cq);}
-
-// These are normalized quaternions in slots for balls. Everything else is garbage.
-const Vec4&       getQNorm(const SBTreePositionCache& pc) const {return fromQuat(pc.qnorm);}
-Vec4&             updQNorm(SBTreePositionCache&       pc) const {return toQuat  (pc.qnorm);}
 
     // Velocity
 

@@ -870,7 +870,6 @@ void setMobilizerIsPrescribed(State&, MobilizedBodyIndex, bool) const;
 bool isMobilizerPrescribed  (const State&, MobilizedBodyIndex) const;
 bool isUsingQuaternion(const State&, MobilizedBodyIndex) const;
 QuaternionPoolIndex getQuaternionPoolIndex(const State&, MobilizedBodyIndex) const;
-AnglePoolIndex      getAnglePoolIndex(const State&, MobilizedBodyIndex) const;
 void setConstraintIsDisabled(State&, ConstraintIndex constraint, bool) const;
 bool isConstraintDisabled(const State&, ConstraintIndex constraint) const;
 

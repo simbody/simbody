@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *    Charles Schwieters (NIH): wrote the public domain IVM code from which   *
@@ -116,39 +116,33 @@ public:
         // we can represent is 0.
     }
 
-    // This is required for all mobilizers.
-    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
-        // U-joint has two angular coordinates.
-        startOfAngles = MobilizerQIndex(0); nAngles=2; 
-        return true;
+    enum {PoolSize=4}; // number of Reals
+    enum {CosQ=0, SinQ=2};
+    // We want space for cos(q01) and sin(q01).
+    int calcQPoolSize(const SBModelVars&) const
+    {   return PoolSize; }
+
+    void performQPrecalculations(const SBStateDigest& sbs,
+                                 const Real* q, int nq,
+                                 Real* qCache,  int nQCache,
+                                 Real* qErr,    int nQErr) const
+    {
+        assert(q && nq==2 && qCache && nQCache==PoolSize && nQErr==0);
+        Vec2::updAs(&qCache[CosQ]) = Vec2(std::cos(q[0]),std::cos(q[1]));
+        Vec2::updAs(&qCache[SinQ]) = Vec2(std::sin(q[0]),std::sin(q[1]));
     }
 
-    // Precalculate sines and cosines.
-    void calcJointSinCosQNorm(
-        const SBModelVars&  mv,
-        const SBModelCache& mc,
-        const SBInstanceCache& ic,
-        const Vector&       q, 
-        Vector&             sine, 
-        Vector&             cosine, 
-        Vector&             qErr,
-        Vector&             qnorm) const
+    void calcX_FM(const SBStateDigest& sbs,
+                  const Real* q,      int nq,
+                  const Real* qCache, int nQCache,
+                  Transform&  X_FM) const
     {
-        const Vec2& a = fromQ(q); // angular coordinates
-        toQ(sine)   = Vec2(std::sin(a[0]), std::sin(a[1]));
-        toQ(cosine) = Vec2(std::cos(a[0]), std::cos(a[1]));
-        // no quaternions
-    }
-
-    // Calculate X_FM.
-    void calcAcrossJointTransform(
-        const SBStateDigest& sbs,
-        const Vector&        q,
-        Transform&           X_FM) const
-    {
-        // We're only updating the orientation here because a U-joint can't translate.
-        X_FM.updR() = Rotation( BodyRotationSequence, fromQ(q)[0], XAxis, fromQ(q)[1], YAxis );  // body fixed 1-2 sequence
-        X_FM.updP() = 0.;
+        assert(q && nq==2 && qCache && nQCache==PoolSize);
+        // TODO: use qCache
+        // We're only updating the orientation here because a U-joint 
+        // can't translate. This is a body fixed X-Y sequence.
+        X_FM.updR() = Rotation( BodyRotationSequence, q[0], XAxis, q[1], YAxis );
+        X_FM.updP() = 0;
     }
 
     // The generalized speeds for this 2-dof rotational joint are the time derivatives of

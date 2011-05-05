@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *    Charles Schwieters (NIH): wrote the public domain IVM code from which   *
@@ -43,7 +43,7 @@
 #include "RigidBodyNode.h"
 #include "RigidBodyNodeSpec.h"
 
-/**
+/*
  * This is a mobilizer whose generalized coordinates are directly
  * interpretable as a spherical coordinate system in this order:
  * azimuth (longitude), zenith (latitude-90), radius. In the reference
@@ -170,14 +170,14 @@ public:
         toU(u)[2] = dot(v_FM, R_FM[axisT]); // i.e., v_FM*Mx_F or v_FM*Mz_F. 
     }
 
-    // This is required for all mobilizers.
-    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
-        // SphericalCoords mobilizer has two angular coordinates.
-        startOfAngles = MobilizerQIndex(0); nAngles=2; 
-        return true;
-    }
+    enum {PoolSize=4}; // number of Reals
+    enum {CosQ=0, SinQ=2};
+    // We want space for cos(q01) and sin(q01).
+    int calcQPoolSize(const SBModelVars&) const
+    {   return PoolSize; }
 
-    // Precalculate sines and cosines. Note: these are sines and cosines of q, not az and el.
+    // Precalculate sines and cosines. Note: these are sines and cosines of q, 
+    // not az and el.
     // az = s*q + az0, so 
     // sin(az) = sin(s*q + az0) 
     //    = sin(s*q)cos(az0) + cos(s*q)sin(az0)
@@ -188,31 +188,33 @@ public:
     // and similarly for the zenith angle. We can precalculate sine and cosine of the offsets
     // so we need only 4 flops to get sin or cos of the actual angles given sin and cos of
     // the generalized coordinates.
-    void calcJointSinCosQNorm(
-        const SBModelVars&  mv,
-        const SBModelCache& mc,
-        const SBInstanceCache& ic,
-        const Vector&       q, 
-        Vector&             sine, 
-        Vector&             cosine, 
-        Vector&             qErr,
-        Vector&             qnorm) const
+    void performQPrecalculations(const SBStateDigest& sbs,
+                                 const Real* q, int nq,
+                                 Real* qCache,  int nQCache,
+                                 Real* qErr,    int nQErr) const
     {
-        const Vec2& a = fromQ(q).getSubVec<2>(0); // first two are angular coordinates
-        toQ(sine).updSubVec<2>(0)   = sin(a);
-        toQ(cosine).updSubVec<2>(0) = cos(a);
-        // no quaternions
+        assert(q && nq==3 && qCache && nQCache==PoolSize && nQErr==0);
+        Vec2::updAs(&qCache[CosQ]) = Vec2(std::cos(q[0]),std::cos(q[1]));
+        Vec2::updAs(&qCache[SinQ]) = Vec2(std::sin(q[0]),std::sin(q[1]));
     }
 
-    // Calculate X_FM.
-    void calcAcrossJointTransform(
-        const SBStateDigest& sbs,
-        const Vector&        q,
-        Transform&           X_FM) const
+    void calcX_FM(const SBStateDigest& sbs,
+                  const Real* q,      int nq,
+                  const Real* qCache, int nQCache,
+                  Transform&  X_FM) const
     {
-        X_FM.updR() = calcR_FM(q);
+        assert(q && nq==3 && qCache && nQCache==PoolSize);
+        // Calculate azimuth and zenith angles from the first two qs.
+        const Vec2 azZe = calcAzZe(q[0], q[1]); 
 
-        const Real t = signT * fromQ(q)[2];
+        // Calculate R_FM from q's. This is always a body fixed Z-Y (3-2)
+        // sequence although the angles may be negated and shifted from the 
+        // generalized coordinates. 
+        // TODO: use qCache for speed.
+        X_FM.updR() = Rotation( BodyRotationSequence, 
+                                azZe[0], ZAxis, azZe[1], YAxis );
+
+        const Real t = signT * q[2];
         X_FM.updP() = t * X_FM.R()(axisT); // i.e., t*Mx or t*Mz, expressed in F
     }
 
@@ -289,12 +291,19 @@ private:
     const CoordinateAxis    axisT;                  // translation axis (X or Z)
     const Real              signAz, signZe, signT;  // 1 or -1
 
-    // Calculate R_FM from q's. This is always a body fixed 3-2 sequence although the angles
-    // may be negated and shifted from the generalized coordinates.
+    // Calculate azimuth and zenith angles from the first two qs.
+    Vec2 calcAzZe(Real q0, Real q1) const {
+        const Real az = signAz * q0 + az0;
+        const Real ze = signZe * q1 + ze0;
+        return Vec2(az,ze);
+    }
+
+    // Calculate R_FM from q's. This is always a body fixed 3-2 sequence 
+    // although the angles may be negated and shifted from the generalized 
+    // coordinates.
     Rotation calcR_FM(const Vector& q) const {
-        const Real az = signAz * fromQ(q)[0] + az0;
-        const Real ze = signZe * fromQ(q)[1] + ze0;
-        return Rotation( BodyRotationSequence, az, ZAxis, ze, YAxis );
+        const Vec2 azZe = calcAzZe(fromQ(q)[0], fromQ(q)[1]); 
+        return Rotation( BodyRotationSequence, azZe[0], ZAxis, azZe[1], YAxis );
     }
 };
 

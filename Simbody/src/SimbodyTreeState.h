@@ -195,7 +195,9 @@ public:
 
     // Restore this cache entry to its just-constructed condition.
     void clear() {
-        totalNQInUse=totalNUInUse=totalNQuaternionsInUse=totalNAnglesInUse = -1;
+        totalNQInUse=totalNUInUse=totalNQuaternionsInUse= -1;
+        totalNQPoolInUse= -1;
+
         mobilizedBodyModelInfo.clear();
     }
 
@@ -210,27 +212,27 @@ public:
     class PerMobilizedBodyModelInfo {
     public:
         PerMobilizedBodyModelInfo() 
-          : nQInUse(-1), nUInUse(-1), hasQuaternionInUse(false), nAnglesInUse(-1) {}
+        :   nQInUse(-1), nUInUse(-1), hasQuaternionInUse(false), 
+            nQPoolInUse(-1) {}
 
-        int nQInUse, nUInUse;
-        QIndex firstQIndex; // Count from 0 for this SimbodyMatterSubsystem
-        UIndex firstUIndex;
+        int     nQInUse, nUInUse;
+        QIndex  firstQIndex; // Count from 0 for this SimbodyMatterSubsystem
+        UIndex  firstUIndex;
 
-        // In case there is a quaternion in use by this Mobilizer. The index 
+        // In case there is a quaternion in use by this Mobilizer: The index 
         // here can be used to find precalculated data associated with this 
         // quaternion, such as its current length.
         bool                hasQuaternionInUse;
-        MobilizerQIndex     startOfQuaternion;   // 0..nQInUse-1: which local coordinate starts the quaternion if any?
-        QuaternionPoolIndex quaternionPoolIndex; // assigned slot # for this MB's quat, -1 if none
+        // 0..nQInUse-1: which local coordinate starts the quaternion if any?
+        MobilizerQIndex     startOfQuaternion;   
+        // assigned slot # for this MB's quat, -1 if none
+        QuaternionPoolIndex quaternionPoolIndex; 
 
-        // In case there are any generalized coordinates which are angles. We 
-        // require that the angular coordinates be consecutive and just store 
-        // the number of angles and the coordinate index of the first one. The 
-        // index can be used to find precalculated data associated with
-        // angles, such as their sines and cosines.
-        int             nAnglesInUse;
-        MobilizerQIndex startOfAngles;  // 0..nQInUse-1: which local coordinate starts angles if any?
-        AnglePoolIndex  anglePoolIndex; // start of assigned segment for this MB's angle information, if any
+        // Each mobilizer can request some position-cache storage space for 
+        // precalculations involving its generalized coordinates q.
+        // Here we keep track of our chunk.
+        int nQPoolInUse; // reserved space in sizeof(Real) units
+        MobodQPoolIndex startInQPool; // offset into pool
     };
 
     // Use these accessors so that you get type checking on the index types.
@@ -242,7 +244,8 @@ public:
 
 
     // These are sums over the per-MobilizedBody counts above.
-    int totalNQInUse, totalNUInUse, totalNQuaternionsInUse, totalNAnglesInUse;
+    int totalNQInUse, totalNUInUse, totalNQuaternionsInUse;
+    int totalNQPoolInUse;
 
         // STATE ALLOCATION FOR THIS SUBSYSTEM
 
@@ -265,8 +268,9 @@ public:
                           treeAccelerationCacheIndex, constrainedAccelerationCacheIndex;
 
 private:
-    // Use accessor routines for these so that you get type checking on the index types.
-    Array_<PerMobilizedBodyModelInfo> mobilizedBodyModelInfo; // MobilizedBody 0 is Ground
+    // Use accessor routines for these so that you get type checking on the 
+    // index types. MobilizedBody 0 is Ground.
+    Array_<PerMobilizedBodyModelInfo> mobilizedBodyModelInfo; 
 };
 
 inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) { 
@@ -279,8 +283,8 @@ inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) {
         if (mInfo.hasQuaternionInUse)
             o <<  "    firstQuat,quatPoolIx=" << mInfo.startOfQuaternion << "," << mInfo.quaternionPoolIndex << endl;
         else o << "    no quaternion in use\n";
-        if (mInfo.nAnglesInUse)
-             o << "    nangles,firstAngle,anglePoolIx=" << mInfo.nAnglesInUse << "," << mInfo.startOfAngles << "," << mInfo.anglePoolIndex << endl;
+        if (mInfo.nQPoolInUse)
+             o << "    nQPool,qPoolIx=" << mInfo.nQPoolInUse << "," << mInfo.startInQPool << endl;
         else o << "    no angles in use\n";
     }
     return o; 
@@ -621,9 +625,14 @@ public:
 public:
     // qerr cache space is provided directly by the State
 
-    Vector sq, cq;  // nq  Sin&cos of angle q's in appropriate slots; otherwise garbage
-    Vector qnorm;   // nq  Contains normalized quaternions in appropriate slots;
-                    //       all else is garbage.
+    // At model stage, each mobilizer (RBNode) is given a chance to grab
+    // a segment of this cache entry for its own private use. This includes
+    // pre-calculated sincos(q) for mobilizers with angular coordinates,
+    // and all or part of N and NInv for mobilizers for which qdot != u.
+    // Everything must be filled in by the end of realizePosition() but the
+    // mobilizer is free to fill in different parts at different times during
+    // its realizePosition() calculations.
+    Array_<Real, MobodQPoolIndex> mobilizerQCache;
 
     // CAUTION: our definition of the H matrix is transposed from those used
     // by Jain and by Schwieters. Jain would call these H* and Schwieters
@@ -668,9 +677,11 @@ public:
 
         // These contain uninitialized junk. Body-indexed entries get their
         // ground elements set appropriately now and forever.
-        sq.resize(maxNQs);
-        cq.resize(maxNQs);
-        qnorm.resize(maxNQs);
+        //sq.resize(maxNQs);
+        //cq.resize(maxNQs);
+        //qnorm.resize(maxNQs);
+
+        mobilizerQCache.resize(model.totalNQPoolInUse);
 
         storageForH_FM.resize(2*nDofs);
         storageForH.resize(2*nDofs);

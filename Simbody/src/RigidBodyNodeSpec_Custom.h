@@ -88,16 +88,6 @@ public:
         startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
         return true;
     }
-    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& numAngles) const {
-        if (nAngles == 0 || (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars()))) {
-            startOfAngles.invalidate();
-            numAngles = 0;
-            return false;
-        }
-        startOfAngles = MobilizerQIndex(0);
-        numAngles = std::min(nAngles, 3); 
-        return true;
-    }
     void copyQ(const SBModelVars& mv, const Vector& qIn, Vector& q) const {
         const int n = getNQInUse(mv);
         for (int i = 0; i < n; ++i)
@@ -253,30 +243,31 @@ public:
 
         // VIRTUAL METHODS FOR SINGLE-NODE OPERATOR CONTRIBUTIONS //
 
-    void calcJointSinCosQNorm(
-        const SBModelVars&  mv, 
-        const SBModelCache& mc,
-        const SBInstanceCache& ic,
-        const Vector&       q, 
-        Vector&             sine, 
-        Vector&             cosine, 
-        Vector&             qErr,
-        Vector&             qnorm) const {
-        
+    // We're not going to attempt to cache any q precalculations.
+    int calcQPoolSize(const SBModelVars&) const {return 0;}
+
+    void performQPrecalculations(const SBStateDigest& sbs,
+                                 const Real* q, int nq,
+                                 Real* qCache,  int nQCache,
+                                 Real* qErr,    int nQErr) const
+    {
+        assert(nq==getNQInUse(sbs.getModelVars()) && nQCache==0); 
+        if (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars())) {
+            // Need to calculate qerr
+            assert(nQErr==1);
+            const Real quatLen = Vec4::getAs(&q[0]).norm();
+            qErr[0] = quatLen - Real(1);    // normalization error
+        }
     }
     
-    void calcAcrossJointTransform(
-        const SBStateDigest& sbs,
-        const Vector&        q,
-        Transform&           X_F0M0) const {
-        int nq = getNQInUse(sbs.getModelVars());
-        if (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars())) {
-            Vec<nu+1> localQ = Vec<nu+1>::getAs(&q[this->getQIndex()]);
-            Vec4::updAs(&localQ[0]) = Vec4::getAs(&localQ[0]).normalize(); // Normalize the quaternion
-            X_F0M0 = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, &(localQ[0]));
-        }
-        else
-            X_F0M0 = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, &(q[this->getQIndex()]));
+    void calcX_FM(const SBStateDigest& sbs,
+                  const Real* q,      int nq,
+                  const Real* qCache, int nQCache,
+                  Transform&  X_F0M0) const
+    {
+        assert(nq==getNQInUse(sbs.getModelVars()) && nQCache==0); 
+        // Note: quaternion will be unnormalized.
+        X_F0M0 = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, q);
     }
     
     void calcAcrossJointVelocityJacobian(

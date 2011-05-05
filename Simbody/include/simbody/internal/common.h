@@ -96,9 +96,9 @@ namespace SimTK {
 This is for arrays indexed by mobilized body number within a subsystem
 (typically the SimbodyMatterSubsystem).\ It is assigned when a MobilizedBody is
 added to a subsystem.\ You can abbreviate this as MobodIndex if you prefer.
-These will be used of course to index MobilizedBody objects but also to index many 
-different kinds of information that may be stored on a per-MobilizedBody basis. 
-@see SimTK::GroundIndex, SimTK::MobodIndex 
+These will be used of course to index MobilizedBody objects but also to index 
+many different kinds of information that may be stored on a per-MobilizedBody 
+basis. @see SimTK::GroundIndex, SimTK::MobodIndex 
 @ingroup UniqueIndexTypes **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizedBodyIndex);
 
@@ -113,35 +113,38 @@ its index is always zero.
 static const MobilizedBodyIndex GroundIndex(0);
 
 /** @class SimTK::ConstraintIndex    
-This is for arrays indexed by constraint number within a subsystem (typically the
-SimbodyMatterSubsystem).\ It is assigned when a Constraint is added to the subsystem.
+This is for arrays indexed by constraint number within a subsystem (typically
+the SimbodyMatterSubsystem).\ It is assigned when a Constraint is added to the
+subsystem.
 @ingroup UniqueIndexTypes **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstraintIndex);
 
-// TODO: This is for arrays indexed by MatterSubsystem-global ParticleIndex, as yet to be defined.
+// TODO: This is for arrays indexed by MatterSubsystem-global ParticleIndex, 
+// as yet to be defined.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ParticleIndex);
 
-// Constrained Bodies in constraints where the Ancestor body is not Ground (we call
-// these "Ancestor Constrained Bodies") require some additional cached data, such as
-// their orientations and velocities in the Ancestor frame, so are each
-// allocated a slot in pools of that data. Those pools are indexed by this type.
+// Constrained Bodies in constraints where the Ancestor body is not Ground (we 
+// call these "Ancestor Constrained Bodies") require some additional cached 
+// data, such as their orientations and velocities in the Ancestor frame, so 
+// are each allocated a slot in pools of that data. Those pools are indexed by
+// this type.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(AncestorConstrainedBodyPoolIndex);
 
-// This is for "u-squared" arrays, that is, arrays which allocate space for an nuXnu block
-// for each MobilizedBody.
+// This is for "u-squared" arrays, that is, arrays which allocate space for an 
+// nuXnu block for each MobilizedBody.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(USquaredIndex);
 
-// This is for "quaternion information" arrays, which have total dimension equal to the
-// number of quaternions currently in use as generalized coordinates for modeling the Matter
-// Subsystem's MobilizedBodies. Primarily this is for storing the norm of quaternions so we need
-// calculate them only once.
+// This is for "quaternion information" arrays, which have total dimension 
+// equal to the number of quaternions currently in use as generalized 
+// coordinates for modeling the Matter Subsystem's MobilizedBodies. Primarily 
+// this is for storing the norm of quaternions so we need calculate them only 
+// once.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(QuaternionPoolIndex);
 
-// This is for "angle information" arrays, which have dimension equal to the total number
-// of generalized coordinates currently in use which are just angles in radians. For those
-// we want to precalculate some expensive things like sine and cosine so that we can just
-// do that once.
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(AnglePoolIndex);
+// This is for miscellaneous Real-valued position cache data that individual
+// mobilizers ask us to hold for generalized coordinate q precalculations
+// (e.g. sines and cosines).
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobodQPoolIndex);
 
 // These are for indexing the pools of prescribed q's, u's, udots, and calculated forces
 // needed to produce the udots. The arrays are allocated in order of MobilizedBodyIndex, and

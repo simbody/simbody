@@ -88,32 +88,27 @@ public:
         toU(u) = v_FM;
     }
 
-    // This is required for all mobilizers.
-    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
-        startOfAngles.invalidate(); nAngles=0; // no angles for a Cartesian mobilizer
-        return false;
+    // A translation joint doesn't need to cache any q calculations.
+    int calcQPoolSize(const SBModelVars&) const
+    {   return 0; }
+
+    void performQPrecalculations(const SBStateDigest& sbs,
+                                 const Real* q, int nq,
+                                 Real* qCache,  int nQCache,
+                                 Real* qErr,    int nQErr) const
+    {
+        assert(q && nq==3 && nQCache==0 && nQErr==0);
     }
 
-    // This is required but does nothing here since there are no rotations for this joint.
-    void calcJointSinCosQNorm(
-        const SBModelVars&  mv,
-        const SBModelCache& mc,
-        const SBInstanceCache& ic,
-        const Vector&       q, 
-        Vector&             sine, 
-        Vector&             cosine, 
-        Vector&             qErr,
-        Vector&             qnorm) const { }
-
-    // Calculate X_FM.
-    void calcAcrossJointTransform(
-        const SBStateDigest& sbs,
-        const Vector&        q,
-        Transform&           X_FM) const
+    void calcX_FM(const SBStateDigest& sbs,
+                  const Real* q,      int nq,
+                  const Real* qCache, int nQCache,
+                  Transform&  X_FM) const
     {
-        // Translation vector q is expressed in F (and M since they have same orientation).
-        // A Cartesian joint can't change orientation. 
-        X_FM = Transform(Rotation(), fromQ(q));
+        assert(q && nq==3 && nQCache==0);
+        // Translation vector q is expressed in F (and M since they have same 
+        // orientation). A translation (Cartesian) joint can't change orientation. 
+        X_FM = Transform(Rotation(), Vec3::getAs(&q[0]));
     }
 
     // Generalized speeds together are the velocity of M's origin in the F frame,

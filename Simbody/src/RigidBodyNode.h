@@ -136,12 +136,13 @@ public:
 
 // Every concrete RigidBodyNode sets this property on construction so we know
 // whether it can use simple default implementations for kinematic equations
-// (those involving the Q matrix), which rely on qdot=u.
+// (those involving the N matrix), which rely on qdot=u.
 enum QDotHandling {
-    QDotIsAlwaysTheSameAsU,
-    QDotMayDifferFromU
+    QDotIsAlwaysTheSameAsU, // can use default implementations
+    QDotMayDifferFromU      // must supply custom implementation
 };
 
+// This is a fixed property of a given concrete RigidBodyNode.
 bool isQDotAlwaysTheSameAsU() const
 {   return qdotHandling==QDotIsAlwaysTheSameAsU; }
 
@@ -154,6 +155,7 @@ enum QuaternionUse {
     QuaternionMayBeUsed
 };
 
+// This is a fixed property of a given concrete RigidBodyNode.
 bool isQuaternionEverUsed() const
 {   return quaternionUse==QuaternionMayBeUsed; }
 
@@ -169,20 +171,18 @@ virtual int getNQInUse(const SBModelVars&) const=0; //actual number of q's
 virtual int getNUInUse(const SBModelVars&) const=0; // actual number of u's
 
 // This depends on the mobilizer type and modeling options. If it returns
-// true it also returns the first generalized coordinate of the quaternion,
-// which is assumed to occupy that generalized coordinate and the next 
-// three contiguous ones. Quaternion-using mobilizers should be assigned a
-// slot in the quaternion pool.
+// true it also returns the first generalized coordinate of the quaternion
+// (numbering locally), which is assumed to occupy that generalized coordinate
+// and the next three contiguous ones. Quaternion-using mobilizers should be 
+// assigned a slot in the quaternion pool.
 virtual bool isUsingQuaternion(const SBStateDigest&, 
                                MobilizerQIndex& startOfQuaternion) const=0;
 
-// This depends on the mobilizer type and modeling options. If it returns true
-// it also returns the first generalized coordinate that is an angle, and the 
-// total number of angles in use (1-3). The additional angles are assumed to 
-// occupy contiguous generalized coordinates following the returned one. 
-// Angle-using mobilizers should be assigned slots in the angle pool.
-virtual bool isUsingAngles(const SBStateDigest&, 
-                           MobilizerQIndex& startOfAngles, int& nAngles) const=0;
+// This depends on the mobilizer type and modeling options. This is the amount
+// of position-cache storage this mobilizer wants us to set aside for
+// precalculatiosn involving its q's, in units of number of Reals. The meaning
+// of the entries in this pool is known only to the node.
+virtual int calcQPoolSize(const SBModelVars&) const = 0;
 
 // Copy the right q's from qIn to the corresponding slots in q. The number 
 // copied may depend on modeling choices as supplied in the first argument.
@@ -213,30 +213,90 @@ virtual void copyU(
 // to the bodies in a manner parallel to the q state variable, except that qErr
 // has just one slot per quaternion and must be accessed using the node's 
 // quaternionIndex which is in the Model cache.
-virtual void calcJointSinCosQNorm(
-    const SBModelVars&  mv, 
-    const SBModelCache& mc,
-    const SBInstanceCache& ic,
-    const Vector&       q, 
-    Vector&             sine, 
-    Vector&             cosine, 
-    Vector&             qErr,
-    Vector&             qnorm) const=0;
+//OBSOLETE
+//virtual void calcJointSinCosQNorm(
+//    const SBModelVars&  mv, 
+//    const SBModelCache& mc,
+//    const SBInstanceCache& ic,
+//    const Vector&       q, 
+//    Vector&             sine, 
+//    Vector&             cosine, 
+//    Vector&             qErr,
+//    Vector&             qnorm) const=0;
+
+// This operator is the first step in realizePosition() for this 
+// RBNode. Taking the q's from the supplied state digest, perform calculations
+// that can be done knowing only the current modeling parameters and the
+// values of the q's. The results go into the posCache and qErr arrays which
+// have already been set to the first entry belonging exclusively to this
+// RBNode. DO NOT write directly into the provided State. (Typically 
+// the output arrays will be referring to cache entries in the same State, but
+// they don't have to.) Either of those output arrays may be null, and the 
+// expected lengths are passed in for consistency checking -- at least in Debug
+// mode you should make sure they are what you're expecting.
+//
+// The only mandatory calculation here is that this routine *must* calculate 
+// constraint errors if there are any mobilizer-local constraints among
+// the q's -- typically that is the quaternion normalization error where
+// qerr=|q|-1. For many mobilizers, it is a good idea to precalculate
+// expensive operations like sin(q), cos(q), or 1/norm(q) so that these don't
+// need to be recalculated when forming X_FM, N, NInv, and NDot later.
+// Note that if you want to save such precalculations, you must have asked
+// for space to be set aside during realizeModel().
+//
+// The default implementation here checks the parameters and then does
+// nothing.
+virtual void performQPrecalculations(const SBStateDigest& sbs,
+                                     const Real* q,  int nq,
+                                     Real* posCache, int nPosCache,
+                                     Real* qErr,     int nQErr) const=0;
 
 // This mandatory routine calculates the across-joint transform X_FM generated
-// by the current q values. This may depend on sines & cosines or normalized
-// quaternions already being available in the State cache.
-// TODO: NOT TRUE -- we are depending in places on this method being stand alone!!
-//       This needs to be worked out so we don't have to duplicate sines, etc.
+// by the supplied q values. This may depend on sines & cosines or normalized
+// quaternions already having been calculated and placed into the supplied
+// posCache. If you just have q's, call the calcAcrossJointTransform() method
+// instead because it knows how to fill in the posCache if need be.
+//
 // This method constitutes the *definition* of the generalized coordinates for
-// a particular joint.
+// a particular mobilizer.
+//
 // Note: this calculates the transform between the *as defined* frames; we 
 // might reverse the frames in use. So we call this X_F0M0 while the possibly 
 // reversed version is X_FM.
-virtual void calcAcrossJointTransform(
+virtual void calcX_FM(const SBStateDigest& sbs,
+                      const Real* q,        int nq,
+                      const Real* posCache, int nPos,
+                      Transform&  X_F0M0) const = 0;
+
+// This is a pure operator form of calcX_FM(). The State must have been
+// realized to model stage. The result depends only on the passed-in q,
+// not anything in the State beyond model stage.
+void calcAcrossJointTransform(
+    const SBStateDigest& sbs,
+    const Real* q, int nq,
+    Transform&  X_F0M0) const
+{
+    const int poolz = getQPoolSize(sbs.getModelCache());
+    Real* qPool = poolz ? new Real[poolz] : 0;
+    Real qErr;
+    const int nQErr = isQuaternionInUse(sbs.getModelCache()) ? 1 : 0;
+    performQPrecalculations(sbs, q, nq, qPool, poolz, &qErr, nQErr);
+    calcX_FM(sbs, q, nq, qPool, poolz, X_F0M0);
+    delete[] qPool;
+}
+
+// An alternate signature for when you have all the Q's together; this
+// method will find just ours and call the above method.
+void calcAcrossJointTransform(
     const SBStateDigest& sbs,
     const Vector&        q,
-    Transform&           X_F0M0) const=0;
+    Transform&           X_F0M0) const
+{
+    const SBModelCache mc = sbs.getModelCache();
+    const int   nq = getNumQInUse(mc);
+    const Real* qp = nq ? &q[getFirstQIndex(mc)] : (Real*)0;
+    calcAcrossJointTransform(sbs, qp, nq, X_F0M0);
+}
 
 
 // Mobilizer-local operators. TODO?
@@ -405,7 +465,9 @@ void setQToFitRotation
 // part of the q's.
 void setQToFitTranslation
    (const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const
-{   if (!isReversed()) {setQToFitTranslationImpl(sbs, p_FM, q); return;}
+{   
+    if (!isReversed()) {setQToFitTranslationImpl(sbs, p_FM, q); return;}
+
     Transform X_MF; // note reversal of frames
     calcAcrossJointTransform(sbs, q, X_MF);
     setQToFitTranslationImpl(sbs, X_MF.R()*(-p_FM), q);
@@ -646,6 +708,7 @@ MobilizedBodyIndex getNodeNum() const {return nodeNum;}
 bool isGroundNode() const { return level==0; }
 bool isBaseNode()   const { return level==1; }
 
+// TODO: these should come from the model cache.
 UIndex getUIndex() const {return uIndex;}
 QIndex getQIndex() const {return qIndex;}
 
@@ -686,15 +749,40 @@ bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
 bool isPrescribed     (const SBModelVars& mv) const {return mv.prescribed[nodeNum];}
 
 // Find cache resources allocated to this RigidBodyNode.
+const SBModelCache::PerMobilizedBodyModelInfo& 
+getModelInfo(const SBModelCache& mc) const
+{   return mc.getMobilizedBodyModelInfo(nodeNum); }
+
+QIndex getFirstQIndex(const SBModelCache& mc) const
+{   return getModelInfo(mc).firstQIndex; }
+int getNumQInUse(const SBModelCache& mc) const
+{   return getModelInfo(mc).nQInUse; }
+
+UIndex getFirstUIndex(const SBModelCache& mc) const
+{   return getModelInfo(mc).firstUIndex; }
+int getNumUInUse(const SBModelCache& mc) const
+{   return getModelInfo(mc).nUInUse; }
 
 // Return value will be invalid if there are no quaternions currently in use here.
-QuaternionPoolIndex getQuaternionPoolIndex(const SBModelCache& mc) const {
-    return mc.getMobilizedBodyModelInfo(MobilizedBodyIndex(nodeNum)).quaternionPoolIndex;
-}
-// Return value will be invalid if there are no angles currently in use here.
-AnglePoolIndex getAnglePoolIndex(const SBModelCache& mc) const {
-    return mc.getMobilizedBodyModelInfo(MobilizedBodyIndex(nodeNum)).anglePoolIndex;
-}
+QuaternionPoolIndex getQuaternionPoolIndex(const SBModelCache& mc) const 
+{   return getModelInfo(mc).quaternionPoolIndex; }
+bool isQuaternionInUse(const SBModelCache& mc) const
+{   return getModelInfo(mc).hasQuaternionInUse; }
+
+// Return value will be invalid if this node is not currently using any space 
+// in the q-pool position cache entry.
+MobodQPoolIndex getQPoolIndex(const SBModelCache& mc) const 
+{   return getModelInfo(mc).startInQPool; }
+int getQPoolSize(const SBModelCache& mc) const
+{   return getModelInfo(mc).nQPoolInUse; }
+
+// Return a pointer to the first slot in the q cache pool that is
+// assigned to this node, or null if there are none.
+const Real* getQPool(const SBModelCache& mc,
+                       const SBTreePositionCache& pc) const
+{   const MobodQPoolIndex ix = getQPoolIndex(mc);
+    return ix.isValid() ? &pc.mobilizerQCache[ix] : (Real*)0; }
+
     // INSTANCE INFO
 
 // TODO: These ignore State currently since they aren't parametrizable.

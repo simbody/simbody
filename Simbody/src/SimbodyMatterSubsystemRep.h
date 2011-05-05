@@ -621,7 +621,6 @@ public:
     int  getNumQuaternionsInUse(const State&) const;                // mquat
     bool isUsingQuaternion(const State&, MobilizedBodyIndex) const;
     QuaternionPoolIndex getQuaternionPoolIndex(const State&, MobilizedBodyIndex) const; // Invalid if none
-    AnglePoolIndex      getAnglePoolIndex     (const State&, MobilizedBodyIndex) const; // Invalid if none
 
     // Note that although holonomic constraints are position-level constraints, they
     // do *not* include quaternion constraints (although the state's QErr vector does

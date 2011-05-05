@@ -112,10 +112,15 @@ static Real flopTimeInNs;
  * Time how long it takes to perform an operation 1000 times.  The test is repeated 5 times,
  * and the average is returned.  The return value represents CPU time, *not* clock time.
  */
-void timeComputation(MultibodySystem& system, void function(MultibodySystem& system, State& state), const string& name, int iterations) {
+void timeComputation(MultibodySystem& system, void function(MultibodySystem& system, State& state), 
+                     const string& name, int iterations, bool useEulerAngles) {
     const int repeats = 5;
     Vector cpuTimes(repeats);
     State state = system.getDefaultState();
+    if (useEulerAngles) {
+        system.getMatterSubsystem().setUseEulerAngles(state, true);
+        system.realizeModel(state);
+    }
     system.realize(state, Stage::Acceleration);
 
     const int ndof = system.getMatterSubsystem().getNumMobilities();
@@ -142,17 +147,17 @@ void timeComputation(MultibodySystem& system, void function(MultibodySystem& sys
 /**
  * Time all the different calculations for one system.
  */
-void runAllTests(MultibodySystem& system) {
+void runAllTests(MultibodySystem& system, bool useEulerAngles=false) {
     std::cout << "# dofs=" << system.getMatterSubsystem().getNumMobilities() << "\n";
-    timeComputation(system, doRealizePosition, "realizePosition", 5000);
-    timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000);
-    timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 2000);
-    timeComputation(system, doCalcMV, "calcMV", 5000);
-    timeComputation(system, doCalcMInverseV, "calcMInverseV", 5000);
-    timeComputation(system, doCalcResidualForceIgnoringConstraints, "calcResidualForceIgnoringConstraints", 5000);
-    timeComputation(system, doCalcMobilizerReactionForces, "calcMobilizerReactionForces", 1000);
-    timeComputation(system, doCalcInternalGradientFromSpatial, "calcInternalGradientFromSpatial", 5000);
-    timeComputation(system, doCalcCompositeBodyInertias, "calcCompositeBodyInertias", 5000);
+    timeComputation(system, doRealizePosition, "realizePosition", 5000, useEulerAngles);
+    timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000, useEulerAngles);
+    timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 2000, useEulerAngles);
+    timeComputation(system, doCalcMV, "calcMV", 5000, useEulerAngles);
+    timeComputation(system, doCalcMInverseV, "calcMInverseV", 5000, useEulerAngles);
+    timeComputation(system, doCalcResidualForceIgnoringConstraints, "calcResidualForceIgnoringConstraints", 5000, useEulerAngles);
+    timeComputation(system, doCalcMobilizerReactionForces, "calcMobilizerReactionForces", 1000, useEulerAngles);
+    timeComputation(system, doCalcInternalGradientFromSpatial, "calcInternalGradientFromSpatial", 5000, useEulerAngles);
+    timeComputation(system, doCalcCompositeBodyInertias, "calcCompositeBodyInertias", 5000, useEulerAngles);
 }
 
 // The following routines create the systems to be profiled.
@@ -201,6 +206,18 @@ void createBallChain(MultibodySystem& system) {
     MobilizedBody last = matter.updGround();
     for (int i = 0; i < 256; i++) {
         MobilizedBody::Ball next(last, Vec3(1, 0, 0), body, Vec3(0));
+        last = next;
+    }
+    system.realizeTopology();
+}
+
+
+void createGimbalChain(MultibodySystem& system) {
+    SimbodyMatterSubsystem matter(system);
+    Body::Rigid body;
+    MobilizedBody last = matter.updGround();
+    for (int i = 0; i < 256; i++) {
+        MobilizedBody::Gimbal next(last, Vec3(1, 0, 0), body, Vec3(0));
         last = next;
     }
     system.realizeTopology();
@@ -475,10 +492,16 @@ int main() {
         runAllTests(system);
     }
     {
-        std::cout << "\nFree Bodies:\n" << std::endl;
+        std::cout << "\nFree Bodies (Quaternions):\n" << std::endl;
         MultibodySystem system;
         createFreeBodies(system);
-        runAllTests(system);
+        runAllTests(system, false);
+    }
+    {
+        std::cout << "\nFree Bodies (Euler angles):\n" << std::endl;
+        MultibodySystem system;
+        createFreeBodies(system);
+        runAllTests(system, true);
     }
     {
         std::cout << "\nPin Chain:\n" << std::endl;
@@ -493,9 +516,21 @@ int main() {
         runAllTests(system);
     }
     {
-        std::cout << "\nBall Chain:\n" << std::endl;
+        std::cout << "\nBall Chain (Quaternions):\n" << std::endl;
         MultibodySystem system;
         createBallChain(system);
+        runAllTests(system, false);
+    }
+    {
+        std::cout << "\nBall Chain (Euler angles):\n" << std::endl;
+        MultibodySystem system;
+        createBallChain(system);
+        runAllTests(system, true);
+    }
+    {
+        std::cout << "\nGimbal Chain:\n" << std::endl;
+        MultibodySystem system;
+        createGimbalChain(system);
         runAllTests(system);
     }
     {

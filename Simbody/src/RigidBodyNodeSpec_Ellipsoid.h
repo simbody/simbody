@@ -187,70 +187,59 @@ void setUToFitLinearVelocityImpl
     toU(u) = w_FM;
 }
 
-// This is required for all mobilizers.
-bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
-    // Ellipsoid joint has three angular coordinates when Euler angles are 
-    // being used,  none when quaternions are being used.
-    if (!getUseEulerAngles(sbs.getModelVars())) 
-    {   startOfAngles.invalidate(); nAngles=0; return false; } 
+// When we're using Euler angles, we're going to want to cache cos and sin for
+// each angle, and also 1/cos of the middle angle will be handy to have around.
+// When we're using quaternions, we'll cache 1/|q| for convenient normalizing
+// of quaternions.
+enum {AnglePoolSize=7, QuatPoolSize=1};
+// cos x,y,z sin x,y,z 1/cos(y)
+enum {AngleCosQ=0, AngleSinQ=3, AngleOOCosQy=6};
+enum {QuatOONorm=0};
+int calcQPoolSize(const SBModelVars& mv) const
+{   return getUseEulerAngles(mv) ? AnglePoolSize : QuatPoolSize; }
 
-    startOfAngles = MobilizerQIndex(0);
-    nAngles = 3;
-    return true;
-}
-
-// Precalculate sines and cosines.
-void calcJointSinCosQNorm(
-    const SBModelVars&  mv,
-    const SBModelCache& mc,
-    const SBInstanceCache& ic,
-    const Vector&       q, 
-    Vector&             sine, 
-    Vector&             cosine, 
-    Vector&             qErr,
-    Vector&             qnorm) const
+void performQPrecalculations(const SBStateDigest& sbs,
+                             const Real* q,      int nq,
+                             Real*       qCache, int nQCache,
+                             Real*       qErr,   int nQErr) const
 {
-    const SBModelCache::PerMobilizedBodyModelInfo& bInfo = 
-        mc.getMobilizedBodyModelInfo(nodeNum);
-
-    if (getUseEulerAngles(mv)) {
-        const Vec3& a = fromQ(q); // angular coordinates
-        toQ(sine)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
-        toQ(cosine) = Vec3(std::cos(a[0]), std::cos(a[1]), std::cos(a[2]));
-        // no quaternions
+    if (getUseEulerAngles(sbs.getModelVars())) {
+        assert(q && nq==3 && qCache && nQCache==AnglePoolSize && nQErr==0);
+        const Real cy = std::cos(q[1]);
+        Vec3::updAs(&qCache[AngleCosQ]) =
+            Vec3(std::cos(q[0]), cy, std::cos(q[2]));
+        Vec3::updAs(&qCache[AngleSinQ]) =
+            Vec3(std::sin(q[0]), std::sin(q[1]), std::sin(q[2]));
+        qCache[AngleOOCosQy] = 1/cy; // trouble at 90 degrees
     } else {
-        // no angles
-        const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
-        const Real  quatLen = quat.norm();
-
-        assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
-
-        qErr[ic.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = 
-            quatLen - Real(1);
-        toQuat(qnorm) = quat / quatLen;
+        assert(q && nq==4 && qCache && nQCache==QuatPoolSize && 
+               qErr && nQErr==1);
+        const Real quatLen = Vec4::getAs(q).norm();
+        qErr[0] = quatLen - Real(1);    // normalization error
+        qCache[QuatOONorm] = 1/quatLen; // save for later
     }
 }
 
-// Calculate X_FM.
-void calcAcrossJointTransform(
-    const SBStateDigest& sbs,
-    const Vector&        q,
-    Transform&           X_F0M0) const
+void calcX_FM(const SBStateDigest& sbs,
+              const Real* q,      int nq,
+              const Real* qCache, int nQCache,
+              Transform&  X_F0M0) const
 {
-    // Calcuate the rotation R_FM first.
-    const SBModelVars& mv = sbs.getModelVars();
-    if (getUseEulerAngles(mv)){
-        const Vec3& a = fromQ(q);
-        X_F0M0.updR().setRotationToBodyFixedXYZ(a);
+    // Rotation
+    if (getUseEulerAngles(sbs.getModelVars())) {
+        assert(q && nq==3 && qCache && nQCache==AnglePoolSize);
+        X_F0M0.updR().setRotationToBodyFixedXYZ // 18 flops
+           (Vec3::getAs(&qCache[AngleCosQ]), Vec3::getAs(&qCache[AngleSinQ]));
     } else {
-        // TODO: should use qnorm pool
-        //       Conversion to Quaternion here involves expensive normalization
-        //       because state variables q can never be assumed normalized.
-        Quaternion quat = Quaternion(fromQuat(q));
-        X_F0M0.updR().setRotationFromQuaternion(quat);
+        assert(q && nq==4 && qCache && nQCache==QuatPoolSize);
+        // Must use a normalized quaternion to generate the rotation matrix.
+        // Here we normalize with just 4 flops using precalculated 1/norm(q).
+        const Quaternion quat(Vec4::getAs(q)*qCache[QuatOONorm], true); 
+        X_F0M0.updR().setRotationFromQuaternion(quat); // 29 flops
     }
 
-    const Vec3& n = X_F0M0.z();
+    // Translation.
+    const Vec3& n = X_F0M0.z(); // just calculated above
     X_F0M0.updP() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
 }
 

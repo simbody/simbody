@@ -76,21 +76,28 @@ public:
     int  getNQInUse(const SBModelVars&) const {return 0;}
     bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& ix) const
     {   ix.invalidate(); return false; }
-    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& ix, int& nAngles) const
-    {   ix.invalidate(); nAngles = 0; return false; }
+    int getPosPoolSize(const SBStateDigest&) const {return 0;}
+    int getVelPoolSize(const SBStateDigest&) const {return 0;}
     void copyQ(const SBStateDigest&, const Vector&, Vector&) const {}
     void copyU(const SBStateDigest&, const Vector&, Vector&) const {}
 
-    void calcJointSinCosQNorm(
-        const SBModelVars&  mv, 
-        const SBModelCache& mc,
-        const SBInstanceCache& ic,
-        const Vector&       q, 
-        Vector&             sine, 
-        Vector&             cosine, 
-        Vector&             qErr,
-        Vector&             qnorm) const {}
+    int calcQPoolSize(const SBModelVars&) const {return 0;}
 
+    void performQPrecalculations(const SBStateDigest& sbs,
+                                 const Real* q, int nq,
+                                 Real* qCache,  int nQCache,
+                                 Real* qErr,    int nQErr) const
+    {   assert(nq==0 && nQCache==0 && nQErr==0); }
+
+
+    // An immobile mobilizer holds the mobilized body's M frame coincident 
+    // with the parent body's F frame forever.
+    void calcX_FM(const SBStateDigest& sbs,
+                  const Real* q,      int nq,
+                  const Real* qCache, int nQCache,
+                  Transform&  X_FM) const
+    {   assert(nq==0 && nQCache==0);
+        X_FM.setToZero(); }
 
     void setQToFitTransformImpl
        (const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const {}
@@ -144,15 +151,6 @@ public:
                               UIndex(0), USquaredIndex(0), QIndex(0)) {}
 
     const char* type() const { return "ground"; }
-
-    // Imagine that Ground is welded to the universe at its origin. Its "inboard"
-    // joint is a Weld which keeps the Ground M frame aligned forever with the
-    // universe's F frame.
-    void calcAcrossJointTransform(
-        const SBStateDigest& sbs,
-        const Vector&        q,
-        Transform&           X_F0M0) const 
-    {   X_F0M0.setToZero(); }
 
     // Ground's motion is prescribed at zero.
     void setMobilizerDefaultModelValues(const SBTopologyCache&, SBModelVars& mv) const
@@ -406,13 +404,6 @@ public:
 
     const char* type() { return "weld"; }
 
-    // A Weld holds the mobilized body's M frame coincident with the
-    // parent body's F frame forever.
-    void calcAcrossJointTransform(
-        const SBStateDigest& sbs,
-        const Vector&        q,
-        Transform&           X_F0M0) const
-    {   X_F0M0.setToZero(); }
 
     // If you want to think of the Weld mobilizer as being always prescribed,
     // that's fine.

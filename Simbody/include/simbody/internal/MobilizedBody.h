@@ -2748,7 +2748,7 @@ public:
     /// to handle quaternion normalization and conversion automatically, and to find angles which
     /// need to have their sines and cosines calculated.
     ///
-    /// NOTE: if you don't say there are any angles, you can mange things yourself.
+    /// NOTE: if you don't say there are any angles, you can manage things yourself.
     /// However, there is no way to get quaternions normalized and converted if you don't tell
     /// Simbody about them.
     Implementation(SimbodyMatterSubsystem&, int nu, int nq, int nAngles=0);
@@ -2816,6 +2816,9 @@ public:
     /// the cross-mobilizer spatial Transform giving the configuration of the "moving" frame M
     /// fixed to the outboard (child) body B in the "fixed" frame F attached to the inboard (parent)
     /// body P. The state is guaranteed to have been realized to at least Instance stage.
+    /// Caution: if your mobilizer has a quaternion, the four q's will not necessarily be
+    /// normalized here but you \e must normalize them before converting them to a Rotation.
+    /// Casting them to a Quaternion will do that automatically.
     virtual Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const = 0;
 
 

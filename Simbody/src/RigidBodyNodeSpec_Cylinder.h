@@ -100,40 +100,29 @@ public:
         toU(u)[1] = v_FM[2];
     }
 
-    // This is required for all mobilizers.
-    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
-        // Cylinder joint has one angular coordinate, which comes first.
-        startOfAngles = MobilizerQIndex(0); nAngles=1; 
-        return true;
+    enum {CosQ=0, SinQ=1};
+    // We want space for cos(q0) and sin(q0).
+    int calcQPoolSize(const SBModelVars&) const
+    {   return 2; }
+
+    void performQPrecalculations(const SBStateDigest& sbs,
+                                 const Real* q,  int nq,
+                                 Real* qCache, int nQCache,
+                                 Real* qErr,     int nQErr) const
+    {
+        assert(q && nq==2 && qCache && nQCache==2 && nQErr==0);
+        qCache[CosQ] = std::cos(q[0]);
+        qCache[SinQ] = std::sin(q[0]);
     }
 
-    // Precalculate sines and cosines.
-    void calcJointSinCosQNorm(
-        const SBModelVars&  mv,
-        const SBModelCache& mc,
-        const SBInstanceCache& ic,
-        const Vector&       q, 
-        Vector&             sine, 
-        Vector&             cosine, 
-        Vector&             qErr,
-        Vector&             qnorm) const
+    void calcX_FM(const SBStateDigest& sbs,
+                  const Real* q,      int nq,
+                  const Real* qCache, int nQCache,
+                  Transform&  X_FM) const
     {
-        const Real& angle = fromQ(q)[0];
-        toQ(sine)[0]    = std::sin(angle);
-        toQ(cosine)[0]  = std::cos(angle);
-        // no quaternions
-    }
-
-    // Calculate X_FM.
-    void calcAcrossJointTransform(
-        const SBStateDigest& sbs,
-        const Vector&        q,
-        Transform&           X_FM) const
-    {
-        const Vec2& coords  = fromQ(q);
-
-        X_FM.updR().setRotationFromAngleAboutZ(coords[0]);
-        X_FM.updP() = Vec3(0,0,coords[1]);
+        assert(q && nq==2 && qCache && nQCache==2);
+        X_FM.updR().setRotationFromAngleAboutZ(qCache[CosQ], qCache[SinQ]);
+        X_FM.updP() = Vec3(0,0,q[1]);
     }
 
 

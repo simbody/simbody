@@ -104,40 +104,38 @@ void setUToFitLinearVelocityImpl
     // there is no way to create a linear velocity by rotating. So the 
     // only linear velocity we can represent is 0.
 }
+// We want to cache cos and sin for
+// each angle, and also 1/cos of the middle angle will be handy to have around.
+enum {PoolSize=7};
+// cos x,y,z sin x,y,z 1/cos(y)
+enum {CosQ=0, SinQ=3, OOCosQy=6};
+int calcQPoolSize(const SBModelVars& mv) const
+{   return PoolSize; }
 
-// This is required for all mobilizers.
-bool isUsingAngles(const SBStateDigest& sbs, 
-                   MobilizerQIndex& startOfAngles, int& nAngles) const {
-    // Gimbal joint has three angular coordinates.
-    startOfAngles = MobilizerQIndex(0); nAngles=3; 
-    return true;
+void performQPrecalculations(const SBStateDigest& sbs,
+                             const Real* q,      int nq,
+                             Real*       qCache, int nQCache,
+                             Real*       qErr,   int nQErr) const
+{
+    assert(q && nq==3 && qCache && nQCache==PoolSize && nQErr==0);
+    const Real cy = std::cos(q[1]);
+    Vec3::updAs(&qCache[CosQ]) =
+        Vec3(std::cos(q[0]), cy, std::cos(q[2]));
+    Vec3::updAs(&qCache[SinQ]) =
+        Vec3(std::sin(q[0]), std::sin(q[1]), std::sin(q[2]));
+    qCache[OOCosQy] = 1/cy; // trouble at 90 degrees
 }
 
-// Precalculate sines and cosines.
-void calcJointSinCosQNorm(
-    const SBModelVars&  mv,
-    const SBModelCache& mc,
-    const SBInstanceCache& ic,
-    const Vector&       q, 
-    Vector&             sine, 
-    Vector&             cosine, 
-    Vector&             qErr,
-    Vector&             qnorm) const
+void calcX_FM(const SBStateDigest& sbs,
+              const Real* q,      int nq,
+              const Real* qCache, int nQCache,
+              Transform&  X_F0M0) const
 {
-    const Vec3& a = fromQ(q); // angular coordinates
-    toQ(sine)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
-    toQ(cosine) = Vec3(std::cos(a[0]), std::cos(a[1]), std::cos(a[2]));
-    // no quaternions
-}
+    X_F0M0.updP() = 0.; // This joint can't translate.
 
-// Calculate X_FM.
-void calcAcrossJointTransform(
-    const SBStateDigest& sbs,
-    const Vector&        q,
-    Transform&           X_FM) const
-{
-    X_FM.updP() = 0.; // This joint can't translate.
-    X_FM.updR().setRotationToBodyFixedXYZ( fromQ(q) );
+    assert(q && nq==3 && qCache && nQCache==PoolSize);
+    X_F0M0.updR().setRotationToBodyFixedXYZ // 18 flops
+        (Vec3::getAs(&qCache[CosQ]), Vec3::getAs(&qCache[SinQ]));
 }
 
 // Generalized speeds are the angular velocity expressed in F, so they

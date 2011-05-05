@@ -389,9 +389,6 @@ bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, MobilizedBodyInde
 QuaternionPoolIndex SimbodyMatterSubsystem::getQuaternionPoolIndex(const State& s, MobilizedBodyIndex body) const {
     return getRep().getQuaternionPoolIndex(s, body);
 }
-AnglePoolIndex SimbodyMatterSubsystem::getAnglePoolIndex(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getAnglePoolIndex(s, body);
-}
 const SpatialVec&
 SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
     return getRep().getCoriolisAcceleration(s,body);

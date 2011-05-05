@@ -100,44 +100,39 @@ public:
         to1U(u) = v_FM[2]/pitch;
     }
 
-    // This is required for all mobilizers.
-    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
-        // We're currently using an angle as the generalized coordinate for the screw joint
-        // but could just as easily have used translation or some non-physical coordinate. It
-        // might make sense to offer a Model stage option to set the coordinate meaning.
-        startOfAngles = MobilizerQIndex(0); nAngles=1; 
-        return true;
-    }
+    // We're currently using an angle as the generalized coordinate for the 
+    // screw joint but could just as easily have used translation or some 
+    // non-physical coordinate. It might make sense to offer a Model stage 
+    // option to set the coordinate meaning.
 
-    // Precalculate sines and cosines.
-    void calcJointSinCosQNorm(
-        const SBModelVars&  mv,
-        const SBModelCache& mc,
-        const SBInstanceCache& ic,
-        const Vector&       q, 
-        Vector&             sine, 
-        Vector&             cosine, 
-        Vector&             qErr,
-        Vector&             qnorm) const
+    enum {PoolSize=2}; // number of Reals
+    enum {CosQ=0, SinQ=1};
+    // We want space for cos(q) and sin(q).
+    int calcQPoolSize(const SBModelVars&) const
+    {   return PoolSize; }
+
+    void performQPrecalculations(const SBStateDigest& sbs,
+                                 const Real* q, int nq,
+                                 Real* qCache,  int nQCache,
+                                 Real* qErr,    int nQErr) const
     {
-        const Real& angle = from1Q(q); // angular coordinate
-        to1Q(sine)    = std::sin(angle);
-        to1Q(cosine)  = std::cos(angle);
-        // no quaternions
+        assert(q && nq==1 && qCache && nQCache==PoolSize && nQErr==0);
+        qCache[CosQ] = std::cos(q[0]);
+        qCache[SinQ] = std::sin(q[0]);
     }
 
-    // Calculate X_FM.
-    void calcAcrossJointTransform(
-        const SBStateDigest& sbs,
-        const Vector&        q,
-        Transform&           X_FM) const
+    void calcX_FM(const SBStateDigest& sbs,
+                  const Real* q,      int nq,
+                  const Real* qCache, int nQCache,
+                  Transform&  X_FM) const
     {
-        const Real& theta  = from1Q(q);    // angular coordinate
-
-        X_FM.updR().setRotationFromAngleAboutZ(theta);
-        X_FM.updP() = Vec3(0,0,theta*pitch);
+        assert(q && nq==1 && qCache && nQCache==PoolSize);
+        X_FM.updR().setRotationFromAngleAboutZ(qCache[CosQ], qCache[SinQ]);
+        // Note that we're using the same coordinate to control 
+        // translation, using "pitch" as a conversion from radians to
+        // length units.
+        X_FM.updP() = Vec3(0,0,q[0]*pitch);
     }
-
 
     // The generalized speed is the angular velocity of M in the F frame,
     // about F's z axis, expressed in F. (This axis is also constant in M.)

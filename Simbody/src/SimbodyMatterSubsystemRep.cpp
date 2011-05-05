@@ -210,6 +210,13 @@ const SpatialVec&
 SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getTotalCentrifugalForces(getDynamicsCache(s));
 }
+
+
+
+//------------------------------------------------------------------------------
+//                               REALIZE TOPOLOGY
+//------------------------------------------------------------------------------
+
 // Here we lock in the topological structure of the multibody system,
 // and compute allocation sizes we're going to need later for state
 // variables and cache entries. We allocate and initialize all the
@@ -218,12 +225,11 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     if (subsystemTopologyHasBeenRealized()) 
         return; // already done
 
-    // This creates a RigidBodyNode owned by the the Topology cache of each MobilizedBody.
-    // Each RigidBodyNode lists as its parent the RigidBodyNode contained in the 
-    // MobilizedBody's parent.
-    //
-    // We simultaneously build up the computational version of the multibody tree,
-    // based on RigidBodyNode objects rather than on MobilizedBody objects.
+    // This creates a RigidBodyNode owned by the the Topology cache of each 
+    // MobilizedBody. Each RigidBodyNode lists as its parent the RigidBodyNode
+    // contained in the MobilizedBody's parent. We simultaneously build up the 
+    // computational version of the multibody tree, based on RigidBodyNode 
+    // objects rather than on MobilizedBody objects.
     nodeNum2NodeMap.clear();
     rbNodeLevels.clear();
     DOFTotal = SqDOFTotal = maxNQTotal = 0;
@@ -239,7 +245,8 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
         const MobilizedBodyImpl& mbr = getMobilizedBody(mbx).getImpl();
         const RigidBodyNode& n = mbr.realizeTopology(s,nextUSlot,nextUSqSlot,nextQSlot);
 
-        // Create the computational multibody tree data structures, organized by level.
+        // Create the computational multibody tree data structures, organized 
+        // by level.
         const int level = n.getLevel();
         if ((int)rbNodeLevels.size() <= level)
             rbNodeLevels.resize(level+1); // make room for the new level
@@ -253,8 +260,8 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
         maxNQTotal += n.getMaxNQ();
     }
     
-    // Order doesn't matter for constraints as long as the bodies are already there.
-    // Quaternion normalization constraints exist only at the 
+    // Order doesn't matter for constraints as long as the bodies are already 
+    // there. Quaternion normalization constraints exist only at the 
     // position level, however they are not topological since modeling
     // choices affect whether we use them. See realizeModel() below.
 
@@ -266,9 +273,10 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     nextAncestorConstrainedBodyPoolSlot = AncestorConstrainedBodyPoolIndex(0);
 
     for (ConstraintIndex cx(0); cx<getNumConstraints(); ++cx) {
-        // Note: currently there is no such thing as a disabled constraint at the Topology stage.
-        // Even a constraint which is disabled by default is not actually disabled until
-        // Model stage, and can be re-enabled at Model stage.
+        // Note: currently there is no such thing as a disabled constraint at
+        // the Topology stage. Even a constraint which is disabled by default 
+        // is not actually disabled until Model stage, and can be re-enabled 
+        // at Model stage.
         const ConstraintImpl& crep = getConstraint(cx).getImpl();
         crep.realizeTopology(s);
 
@@ -289,32 +297,27 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     }
 }
 
-
-
-//------------------------------------------------------------------------------
-//                               REALIZE TOPOLOGY
-//------------------------------------------------------------------------------
-
 int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
         "SimbodyMatterSubsystem::realizeTopology()");
 
-    // Some of our 'const' values must be treated as mutable *just for this call*.
-    // Afterwards they are truly const so we don't declare them mutable, but cheat
-    // here instead.
+    // Some of our 'const' values must be treated as mutable *just for this 
+    // call*. Afterwards they are truly const so we don't declare them mutable,
+    // but cheat here instead.
     SimbodyMatterSubsystemRep* mutableThis = const_cast<SimbodyMatterSubsystemRep*>(this);
 
     if (!subsystemTopologyHasBeenRealized()) mutableThis->endConstruction(s); // no more bodies after this!
 
     // Fill in the local copy of the topologyCache from the information
     // calculated in endConstruction(). Also ask the State for some room to
-    // put Modeling variables & cache and remember the indices in our construction
-    // cache.
+    // put Modeling variables & cache and remember the indices in our 
+    // construction cache.
 
     mutableThis->topologyCache.nBodies      = nodeNum2NodeMap.size();
     mutableThis->topologyCache.nConstraints = constraints.size();
     mutableThis->topologyCache.nParticles   = 0; // TODO
-    mutableThis->topologyCache.nAncestorConstrainedBodies = (int)nextAncestorConstrainedBodyPoolSlot;
+    mutableThis->topologyCache.nAncestorConstrainedBodies = 
+        (int)nextAncestorConstrainedBodyPoolSlot;
 
     mutableThis->topologyCache.nDOFs        = DOFTotal;
     mutableThis->topologyCache.maxNQs       = maxNQTotal;
@@ -382,45 +385,52 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
         // MOBILIZED BODY MODELING
 
     // Count quaternions, and assign a "quaternion pool" index to each 
-    // MobilizedBody that needs one, and do the same for the "angle pool". We 
+    // MobilizedBody that needs one, and allow mobilizers to reserve some
+    // position- and velocity-cache space for their own purposes. We 
     // can't do this until Model stage because it is a Model stage variable 
     // which decides whether ball-like joints get quaternions or Euler angles.
-    mc.totalNQInUse = mc.totalNUInUse = 0;
-    mc.totalNQuaternionsInUse = mc.totalNAnglesInUse = 0;
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+    mc.totalNQInUse = mc.totalNUInUse = mc.totalNQuaternionsInUse = 0;
+    mc.totalNQPoolInUse = 0;
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; ++i) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             SBModelCache::PerMobilizedBodyModelInfo& 
                 mbInfo = mc.updMobilizedBodyModelInfo(node.getNodeNum());
 
             // Assign q's.
-            mbInfo.nQInUse = node.getNQInUse(mv);
-            mbInfo.firstQIndex = QIndex(mc.totalNQInUse);
-            mc.totalNQInUse += mbInfo.nQInUse;
+            mbInfo.nQInUse     = node.getNQInUse(mv);
+            //KLUDGE: currently the Q slots are assigned at topology stage.
+            //mbInfo.firstQIndex = QIndex(mc.totalNQInUse);
+            mbInfo.firstQIndex = node.getQIndex(); // TODO
+            mc.totalNQInUse   += mbInfo.nQInUse;
 
             // Assign u's.
-            mbInfo.nUInUse = node.getNUInUse(mv);
-            mbInfo.firstUIndex = UIndex(mc.totalNUInUse);
-            mc.totalNUInUse += mbInfo.nUInUse;
+            mbInfo.nUInUse     = node.getNUInUse(mv);
+            //KLUDGE: currently the U slots are assigned at topology stage.
+            //mbInfo.firstUIndex = UIndex(mc.totalNUInUse);
+            mbInfo.firstUIndex = node.getUIndex(); // TODO
+            mc.totalNUInUse   += mbInfo.nUInUse;
 
             // Assign quaternion pool slot.
             if (node.isUsingQuaternion(sbs, mbInfo.startOfQuaternion)) {
-                mbInfo.hasQuaternionInUse = true;
-                mbInfo.quaternionPoolIndex = QuaternionPoolIndex(mc.totalNQuaternionsInUse);
+                mbInfo.hasQuaternionInUse  = true;
+                mbInfo.quaternionPoolIndex = 
+                    QuaternionPoolIndex(mc.totalNQuaternionsInUse);
                 mc.totalNQuaternionsInUse++;
             }
 
-            // Assign angle pool slots.
-            if (node.isUsingAngles(sbs, mbInfo.startOfAngles, mbInfo.nAnglesInUse)) {
-                mbInfo.anglePoolIndex = AnglePoolIndex(mc.totalNAnglesInUse);
-                mc.totalNAnglesInUse += mbInfo.nAnglesInUse;
-            }
+            // Assign misc. cache data slots for q's of this mobilizer.
+            if ((mbInfo.nQPoolInUse=node.calcQPoolSize(mv)) != 0) {
+                mbInfo.startInQPool = 
+                    MobodQPoolIndex(mc.totalNQPoolInUse);
+                mc.totalNQPoolInUse += mbInfo.nQPoolInUse;
+            } else mbInfo.startInQPool.invalidate();
         }
 
 
     // Give the bodies a chance to put something in the cache if they need to.
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; ++i) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j)
             rbNodeLevels[i][j]->realizeModel(sbs); 
 
         // CONSTRAINT MODELING
@@ -430,10 +440,11 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
         // STATE RESOURCE ALLOCATION
 
-    // Now allocate all remaining variables and cache entries and record the state
-    // resource index numbers in the ModelCache. Although we allocate all the resources
-    // now, we can only initialize those that depend only on Model-stage variables; 
-    // initialization of the rest will be performed at Instance stage.
+    // Now allocate all remaining variables and cache entries and record the 
+    // state resource index numbers in the ModelCache. Although we allocate 
+    // all the resources now, we can only initialize those that depend only on
+    // Model-stage variables; initialization of the rest will be performed at 
+    // Instance stage.
 
     // SBInstanceVars are allocated at topology stage; could also have instance
     // vars that aren't allocated until here but there aren't any right now.
@@ -467,24 +478,24 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // marked valid so later computations during the same realization can
     // access these quantities.
     mc.treePositionCacheIndex = 
-        allocateCacheEntry(s, Stage::Time, Stage::Infinity,
-                           new Value<SBTreePositionCache>());
+        allocateLazyCacheEntry(s, Stage::Time,
+                               new Value<SBTreePositionCache>());
 
     // Here is where later computations during realizePosition() go; these
     // will assume that the TreePositionCache is available. So you can 
     // calculate these prior to Position stage's completion but not until
     // the TreePositionCache has been marked valid.
     mc.constrainedPositionCacheIndex = 
-        allocateCacheEntry(s, Stage::Time, Stage::Infinity,
-                           new Value<SBConstrainedPositionCache>());
+        allocateLazyCacheEntry(s, Stage::Time,
+                               new Value<SBConstrainedPositionCache>());
 
     // Composite body inertias *can* be calculated any time after Position
     // stage but we want to put them off as long as possible since
     // they may never be needed. These will only be valid if they are 
     // explicitly realized at some point.
     mc.compositeBodyInertiaCacheIndex =
-        allocateCacheEntry(s, Stage::Position, Stage::Infinity, 
-                           new Value<SBCompositeBodyInertiaCache>());
+        allocateLazyCacheEntry(s, Stage::Position,
+                               new Value<SBCompositeBodyInertiaCache>());
 
     // Articulated body inertias *can* be calculated any time after Position 
     // stage but we want to put them off until Dynamics stage if possible.
@@ -495,7 +506,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // Velocity variables are just the generalized speeds u, which the State 
     // knows how to deal with. Zero is always a reasonable value for velocity,
     // so we'll initialize it here.
-
     Vector uInit(DOFTotal);
     setDefaultVelocityValues(mv, uInit);
 
@@ -505,20 +515,19 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // Basic tree velocity kinematics can be calculated any time after Position
     // stage and should be filled in first during realizeVelocity() and then
     // marked valid so later computations during the same realization can
-    // access these quantities.
-    // Note that qdots are automatically allocated in the State's Velocity-
-    // stage cache.
+    // access these quantities. Note that qdots are automatically allocated in 
+    // the State's Velocity-stage cache.
     mc.treeVelocityCacheIndex = 
-        allocateCacheEntry(s, Stage::Position, Stage::Infinity,
-                           new Value<SBTreeVelocityCache>());
+        allocateLazyCacheEntry(s, Stage::Position,
+                               new Value<SBTreeVelocityCache>());
 
     // Here is where later computations during realizeVelocity() go; these
     // will assume that the TreeVelocityCache is available. So you can 
     // calculate these prior to Velocity stage's completion but not until
     // the TreeVelocityCache has been marked valid.
     mc.constrainedVelocityCacheIndex = 
-        allocateCacheEntry(s, Stage::Position, Stage::Infinity,
-                           new Value<SBConstrainedVelocityCache>());
+        allocateLazyCacheEntry(s, Stage::Position,
+                               new Value<SBConstrainedVelocityCache>());
 
     // no z's
     // Probably no dynamics-stage variables but we'll allocate anyway.
@@ -546,16 +555,16 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // Note that qdotdots, udots, zdots are automatically allocated by
     // the State when we advance the stage past Model.
     mc.treeAccelerationCacheIndex = 
-        allocateCacheEntry(s, Stage::Dynamics, Stage::Infinity,
-                           new Value<SBTreeAccelerationCache>());
+        allocateLazyCacheEntry(s, Stage::Dynamics,
+                               new Value<SBTreeAccelerationCache>());
 
     // Here is where later computations during realizeAcceleration() go; these
     // will assume that the TreeAccelerationCache is available. So you can 
     // calculate these prior to Acceleration stage's completion but not until
     // the TreeAccelerationCache has been marked valid.
     mc.constrainedAccelerationCacheIndex = 
-        allocateCacheEntry(s, Stage::Dynamics, Stage::Infinity,
-                           new Value<SBConstrainedAccelerationCache>());
+        allocateLazyCacheEntry(s, Stage::Dynamics,
+                               new Value<SBConstrainedAccelerationCache>());
 
     return 0;
 }
@@ -765,9 +774,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
     // CONSTRAINT INSTANCE
 
 
-    // Count position, velocity, and acceleration constraint equations generated by
-    // each Constraint that has not been disabled. The State's QErr, UErr, UDotErr/Multiplier arrays
-    // are laid out like this:
+    // Count position, velocity, and acceleration constraint equations
+    // generated by each Constraint that has not been disabled. The State's 
+    // QErr, UErr, UDotErr/Multiplier arrays are laid out like this:
     //
     //            ---------------------- ---------------
     //    QErr   |      mHolonomic      |  mQuaternion  |
@@ -781,19 +790,21 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
     //
     // Multipliers are allocated exactly as for UDotErr.
     //
-    // Note that a Constraint with both holonomic and nonholonomic constraint equations
-    // will get two disjoint segments in UErr (and UDotErr).
-    //
+    // Note that a Constraint with both holonomic and nonholonomic constraint 
+    // equations will get two disjoint segments in UErr (and UDotErr).
 
-    // Each Constraint's realizeInstance() method will add its contribution to these.
+    // Each Constraint's realizeInstance() method will add its contribution to
+    // these.
     ic.totalNHolonomicConstraintEquationsInUse = ic.totalNNonholonomicConstraintEquationsInUse = 
         ic.totalNAccelerationOnlyConstraintEquationsInUse = 0;
 
 
-    // Build sets of kinematically coupled constraints. Kinematic coupling can be different at
-    // position, velocity, and acceleration levels, with only holonomic constraints included
-    // at the position level, holonomic+nonholonic at the velocity level, and
-    // holonomic+nonholonomic+accelerationOnly coupled at the acceleration level.
+    // Build sets of kinematically coupled constraints. Kinematic coupling can 
+    // be different at position, velocity, and acceleration levels, with only 
+    // holonomic constraints included at the position level, 
+    // holonomic+nonholonic at the velocity level, and
+    // holonomic+nonholonomic+accelerationOnly coupled at the acceleration 
+    // level.
 
     /*
     positionCoupledConstraints.clear();
@@ -813,10 +824,12 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
         getConstraint(cx).getImpl().realizeInstance(s);
 
 
-    // quaternion errors are located after last holonomic constraint error; see diagram above
+    // Quaternion errors are located after last holonomic constraint error; 
+    // see diagram above.
     ic.firstQuaternionQErrSlot = ic.totalNHolonomicConstraintEquationsInUse; 
 
-    // We'll store the the physical constraint errors, followed by the quaternion constraints.
+    // We'll store the the physical constraint errors, followed by the 
+    // quaternion constraints.
     ic.qErrIndex = allocateQErr(s, ic.totalNHolonomicConstraintEquationsInUse 
                                  + mc.totalNQuaternionsInUse);
 
@@ -829,8 +842,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
                                          + ic.totalNAccelerationOnlyConstraintEquationsInUse);
 
     // ALLOCATE REMAINING CACHE ENTRIES
-    // Now that we know all the Instance-stage info, we can allocate (or reallocate)
-    // the rest of the cache entries.
+    // Now that we know all the Instance-stage info, we can allocate (or 
+    // reallocate) the rest of the cache entries.
     updTimeCache(s).allocate(topologyCache, mc, ic);
     updTreePositionCache(s).allocate(topologyCache, mc, ic);
     updConstrainedPositionCache(s).allocate(topologyCache, mc, ic);
@@ -919,8 +932,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizePosition(stateDigest); 
 
-    // Ask the constraints to calculate ancestor-relative kinematics (still goes 
-    // in TreePositionCache).
+    // Ask the constraints to calculate ancestor-relative kinematics (still 
+    // goes in TreePositionCache).
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl()
             .calcConstrainedBodyTransformInAncestor(stateDigest, tpc);
@@ -996,8 +1009,8 @@ void SimbodyMatterSubsystemRep::realizeArticulatedBodyInertias(const State& stat
     const SBTreePositionCache&      tpc = getTreePositionCache(state);
     SBArticulatedBodyInertiaCache&  abc = updArticulatedBodyInertiaCache(state);
 
-    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; --i) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j)
             rbNodeLevels[i][j]->realizeArticulatedBodyInertiasInward(ic,tpc,abc);
 
     markCacheValueRealized(state, abx);
@@ -1041,8 +1054,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
     // and all global velocities relative to Ground (G).
 
     // Set generalized speeds: sweep from base to tips.
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; ++i) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j)
             rbNodeLevels[i][j]->realizeVelocity(stateDigest); 
 
     // Ask the constraints to calculate ancestor-relative velocity kinematics 
@@ -1112,8 +1125,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
 
     // realize velocity-dependent articulated body quantities needed for dynamics
     // base-to-tip
-    for (int i=0; i < (int)rbNodeLevels.size(); i++)
-        for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
+    for (int i=0; i < (int)rbNodeLevels.size(); ++i)
+        for (int j=0; j < (int)rbNodeLevels[i].size(); ++j)
             rbNodeLevels[i][j]->realizeDynamics(abc, stateDigest);
 
     // MobilizedBodies
@@ -1158,8 +1171,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s) 
         mbs.getRigidBodyForces(s, Stage::Dynamics));
 
     calcQDotDot(s, udot, qdotdot);
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; ++i) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j)
             rbNodeLevels[i][j]->realizeAcceleration(stateDigest); 
 
     return 0;
@@ -1176,8 +1189,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const 
 
     // realize MobilizedBody report
     SBStateDigest stateDigest(s, *this, Stage::Report);
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; ++i) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j)
             rbNodeLevels[i][j]->realizeReport(stateDigest);
 
     // realize Constraint report
@@ -1554,13 +1567,6 @@ QuaternionPoolIndex SimbodyMatterSubsystemRep::getQuaternionPoolIndex
 {
     const SBModelCache& mc = getModelCache(s); // must be >=Model stage
     return mc.getMobilizedBodyModelInfo(body).quaternionPoolIndex;
-}
-
-AnglePoolIndex SimbodyMatterSubsystemRep::getAnglePoolIndex
-   (const State& s, MobilizedBodyIndex body) const
-{
-    const SBModelCache& mc = getModelCache(s); // must be >=Model stage
-    return mc.getMobilizedBodyModelInfo(body).anglePoolIndex;
 }
 
 int SimbodyMatterSubsystemRep::getNumHolonomicConstraintEquationsInUse(const State& s) const {
