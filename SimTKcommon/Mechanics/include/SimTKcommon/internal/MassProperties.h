@@ -1366,25 +1366,29 @@ MassProperties_& setMassProperties
 {   mass=m; comInB=com; unitInertia_OB_B=gyration; return *this; }
 
 /** Return the mass currently stored in this MassProperties object. **/
-const RealP&    getMass()       const { return mass; }
+const RealP& getMass() const {return mass;}
 /** Return the mass center currently stored in this MassProperties object;
 this is expressed in an implicit frame we call "B", and measured from B's
 origin, but you have to know what that frame is in order to interpret the 
 returned vector. **/
-const Vec3P&    getMassCenter() const { return comInB; }
+const Vec3P& getMassCenter() const {return comInB;}
 /** Return the unit inertia currently stored in this MassProperties object;
 this is expressed in an implicit frame we call "B", and measured about B's
 origin, but you have to know what that frame is in order to interpret the 
 returned value correctly. **/
-const UnitInertiaP& getUnitInertia()    const { return unitInertia_OB_B; }
+const UnitInertiaP& getUnitInertia() const {return unitInertia_OB_B;}
 /** Return the inertia matrix for this MassProperties object; this is equal
-to the unit inertia times the mass.  It
-is expressed in an implicit frame we call "B", and measured about B's
-origin, but you have to know what that frame is in order to interpret the
-returned value correctly. **/
-const InertiaP calcInertia() const {
-    return mass*unitInertia_OB_B;
-}
+to the unit inertia times the mass and costs 6 flops. It is expressed in 
+an implicit frame we call "B", and measured about B's origin, but you have 
+to know what that frame is in order to interpret the returned value
+correctly. **/
+const InertiaP calcInertia() const {return mass*unitInertia_OB_B;}
+/** OBSOLETE -- this is just here for compatibility with 2.2; since the
+UnitInertia is stored now the full inertia must be calculated at a cost of
+6 flops, hence the method name should be calcInertia() and that's what
+you should use unless you want getUnitInertia(). **/
+const InertiaP getInertia() const {return calcInertia();}
+
 /** Return the inertia of this MassProperties object, but measured about the
 mass center rather than about the (implicit) B frame origin. The result is
 still expressed in B. **/
