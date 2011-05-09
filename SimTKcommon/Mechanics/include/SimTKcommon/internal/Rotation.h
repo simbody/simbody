@@ -489,8 +489,8 @@ public:
         return Vec3P( w0 + t*s1, c0*w1 + s0*w2, -t ); // qdot
     }
 
-    /// This is the fastest way to form the product v_P=~N_P*q; see the
-    /// untransposed method multiplyByBodyXYZ_N_P() for information.
+    /// This is the fastest way to form the product v_P=~N_P*q=~(~q*N_P); 
+    /// see the untransposed method multiplyByBodyXYZ_N_P() for information.
     /// Cost is 9 flops.
     static Vec3P multiplyByBodyXYZ_NT_P(const Vec2P& cosxy,
                                         const Vec2P& sinxy,
@@ -569,8 +569,8 @@ public:
                       s0*q1 + c0*c1q2 );
     }
 
-    /// Fastest way to form the product q= ~NInv_P*v_P. This is never
-    /// singular. Cost is 10 flops.NP
+    /// Fastest way to form the product q=~NInv_P*v_P=~(~v_P*NInv_P). 
+    /// This is never singular. Cost is 10 flops.
     static Vec3P multiplyByBodyXYZ_NInvT_P(const Vec2P& cosxy,
                                            const Vec2P& sinxy,
                                            const Vec3P& v_P)
@@ -636,24 +636,23 @@ public:
     ///       of this method.
     static Mat33P calcNDotForBodyXYZInParentFrame
        (const Vec3P& q, const Vec3P& qdot) {
-        // Note: q[0] is not referenced so we won't waste time calculating
+        // Note: q[2] is not referenced so we won't waste time calculating
         // its cosine and sine here.
+        const RealP cy = std::cos(q[1]); // cos(y)
         return calcNDotForBodyXYZInParentFrame
-           (Vec3P(std::cos(q[0]), std::cos(q[1]), 0),
-            Vec3P(std::sin(q[0]), std::sin(q[1]), 0),
-            qdot);
+           (Vec2P(std::cos(q[0]), cy), 
+            Vec2P(std::sin(q[0]), std::sin(q[1])),
+            1/cy, qdot);
     }
 
     /// This faster version of calcNDotForBodyXYZInParentFrame() assumes you 
     /// have already calculated the cosine and sine of the three q's. Note that
-    /// we only look at the cosines and sines of q[0] and q[1]; q[2] does not 
-    /// matter so you don't have to fill in the 3rd element of cq and sq.
-    /// Cost is one divide plus 21 flops, say 27 flops.
+    /// we only look at the cosines and sines of q[0] and q[1].
+    /// Cost is 21 flops.
     static Mat33P calcNDotForBodyXYZInParentFrame
-       (const Vec3P& cq, const Vec3P& sq, const Vec3P& qdot) {
+       (const Vec2P& cq, const Vec2P& sq, RealP ooc1, const Vec3P& qdot) {
         const RealP s0 = sq[0], c0 = cq[0];
         const RealP s1 = sq[1], c1 = cq[1];
-        const RealP ooc1  = 1/c1;
         const RealP s0oc1 = s0*ooc1, c0oc1 = c0*ooc1;
 
         const RealP t = qdot[1]*s1*ooc1;
