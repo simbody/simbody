@@ -318,9 +318,10 @@ void calcQDotDot(
         const Rotation& R_FM = getX_FM(pc).R();
         toQ(qdotdot)    = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
                               (fromQ(sbs.getQ()), ~R_FM*w_FM, ~R_FM*w_FM_dot);
-    } else
+    } else {
         toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
                               (fromQuat(sbs.getQ()),w_FM,w_FM_dot);
+    }
 }
 
 void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {

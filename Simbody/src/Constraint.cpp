@@ -2075,7 +2075,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State&
     const Vector& udot = s.updUDot();
     Vector qdotdot(s.getNQ());
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-    SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
+    SBStateDigest digest(s, matter.getRep(), Stage::Velocity.next());
     for (int i = 0; i < temp.size(); ++i) {
         component[0] = i;
         const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));

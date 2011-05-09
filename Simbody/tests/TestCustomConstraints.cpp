@@ -184,8 +184,9 @@ void createState(MultibodySystem& system, State& state, const Vector& y=Vector()
             state.updY()[i] = random.getValue();
     }
     system.realize(state, Stage::Velocity);
-    Vector temp(state.getNY());
-    system.project(state, TOL, Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), temp);
+    Vector dummy; // no error projection to do
+    system.project(state, TOL, Vector(state.getNY(), 1), 
+                   Vector(state.getNYErr(), 1), dummy);
     system.realize(state, Stage::Acceleration);
 }
 

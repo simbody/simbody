@@ -3075,11 +3075,11 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
 // -----------------------------------------------------------------------------
 //                                CALC QDOT
 // -----------------------------------------------------------------------------
-// Must be in ConfigurationStage to calculate qdot = N*u.
+// Must be done with Position stage to calculate qdot = N*u.
 void SimbodyMatterSubsystemRep::calcQDot
    (const State& s, const Vector& u, Vector& qdot) const 
 {
-    SBStateDigest sbs(s, *this, Stage::Velocity);
+    SBStateDigest sbs(s, *this, Stage::Position.next());
 
     assert(u.size() == getTotalDOF());
     qdot.resize(getTotalQAlloc());
@@ -3096,11 +3096,11 @@ void SimbodyMatterSubsystemRep::calcQDot
 // -----------------------------------------------------------------------------
 //                              CALC QDOTDOT
 // -----------------------------------------------------------------------------
-// Must be in Stage::Velocity to calculate qdotdot = Ndot*u + N*udot.
+// Must be done with Velocity stage to calculate qdotdot = Ndot*u + N*udot.
 void SimbodyMatterSubsystemRep::calcQDotDot
    (const State& s, const Vector& udot, Vector& qdotdot) const 
 {
-    SBStateDigest sbs(s, *this, Stage::Velocity);
+    SBStateDigest sbs(s, *this, Stage::Velocity.next());
 
     assert(udot.size() == getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
