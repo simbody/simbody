@@ -2,14 +2,14 @@
 #define SimTK_SIMBODY_MOBILIZED_BODY_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                              SimTK Simbody(tm)                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -1946,30 +1946,49 @@ public:
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Planar, PlanarImpl, MobilizedBody);
 };
 
-/**
- * Three mobilities -- body fixed 3-2 (z-y) rotation followed by translation
- * along body z or body x. Interpreted as spherical coordinates the first rotation
- * is the azimuth angle, the second is the zenith, and the translation is
- * the radius. We permit a simple mapping from generalized coordinates to
- * (azimuth, zenith, radius):
- * <pre>
- *     azimuth = s0*q0 + az0   (about Fz==Mz)
- *     zenith  = s1*q1 + ze0   (about My)
- *     radius  = s2*q2         (along Mz or Mx; Mz is default)
- * </pre>
- * where s0,s1,s2 are signs (1 or -1) and az0 and ze0 are offset angles. The
- * F and M frames are coincident when azimuth==zenith==radius==0. But note
- * that with non-zero offsets the F and M frames will not be aligned in
- * the reference configuration where q0==q1==q2==0. The F and M origins
- * will always be coincident when q2==0, however.
- *
- * This mobilizer can be used to give unrestricted 3-d motion to inertialess 
- * particles (as with a Cartesian mobilizer but parameterized torsion,bend,stretch
- * instead of x,y,z) but in this case you must watch for two possible 
- * singularities: (1) radius==0, and (2) zenith==n*Pi (or equivalently 
- * q1==n*Pi-s1*ze0). If your operating range steers clear of those singularities, 
- * you're fine.
- */
+/** Three mobilities -- body fixed 3-2 (z-y) rotation followed by translation
+along body z or body x. Interpreted as spherical coordinates the first rotation
+is the azimuth angle, the second is the zenith, and the translation is
+the radius. We permit a simple mapping from generalized coordinates to
+(azimuth, zenith, radius):
+<pre>
+    azimuth = s0*q0 + az0   (about Fz==Mz)
+    zenith  = s1*q1 + ze0   (about My)
+    radius  = s2*q2         (along Mz or Mx; Mz is default)
+</pre>
+where s0,s1,s2 are signs (1 or -1) and az0 and ze0 are offset angles. The
+F and M frames are coincident when azimuth==zenith==radius==0. But note
+that with non-zero offsets the F and M frames will not be aligned in
+the reference configuration where q0==q1==q2==0. The F and M origins
+will always be coincident when q2==0, however.
+
+With this you can define a "geographical" coordinate system where Mx is the 
+Greenwich line, a is latitude and z longitude (with north positive):
+<pre>
+     v  = Mx
+     s0 =  1, az0 = 0
+     s1 = -1, ze0 = 0
+     s2 =  1
+</pre>
+If you want the translation direction to be in Mz (the default) but would like 
+q1=0 to mean the equatorial position rather than the (possibly singular) north
+pole which should be -90, define
+<pre>
+     v  = Mz
+     s0 = 1, az0 = 0
+     s1 = 1, ze0 = Pi/2
+     s2 = 1
+</pre>
+One common convention for atomic (torsion,bend,stretch) uses the default 
+spherical coordinate system but the final stretch is along the -z direction. 
+For that, take all defaults but set s2=-1.
+
+This mobilizer can be used to give unrestricted 3-d motion to inertialess 
+particles (as with a Cartesian mobilizer but parameterized torsion,bend,stretch
+instead of x,y,z) but in this case you must watch for two possible 
+singularities: (1) radius==0, and (2) zenith==n*Pi (or equivalently 
+q1==n*Pi-s1*ze0). If your operating range steers clear of those singularities, 
+you're fine. **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::SphericalCoords : public MobilizedBody {
 public:
     explicit SphericalCoords(Direction=Forward);
