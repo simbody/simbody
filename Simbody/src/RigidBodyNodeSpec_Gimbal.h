@@ -235,11 +235,9 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
     Vec3&       out_v  = Vec3::updAs(out);
 
     if (matrixOnRight) { // out_q = in_u * inv(N) = ~inv(N) * in_u  (10 flops)
-        //TODO:test
         // transpose on left is same as untransposed on right
         out_v = Rotation::multiplyByBodyXYZ_NInvT_P(cosxy, sinxy, in_v);
     } else {             // out_u = inv(N) * in_q                   (9 flops)
-        // Tested already
         out_v = Rotation::multiplyByBodyXYZ_NInv_P(cosxy, sinxy, in_v);
     }
 }

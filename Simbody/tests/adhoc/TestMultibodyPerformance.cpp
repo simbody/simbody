@@ -114,7 +114,7 @@ static Real flopTimeInNs;
  */
 void timeComputation(MultibodySystem& system, void function(MultibodySystem& system, State& state), 
                      const string& name, int iterations, bool useEulerAngles) {
-    const int repeats = 5;
+    const int repeats = 3;
     Vector cpuTimes(repeats);
     State state = system.getDefaultState();
     if (useEulerAngles) {
@@ -491,6 +491,7 @@ int main() {
         createParticles(system);
         runAllTests(system);
     }
+    
     {
         std::cout << "\nFree Bodies (Quaternions):\n" << std::endl;
         MultibodySystem system;
@@ -503,6 +504,7 @@ int main() {
         createFreeBodies(system);
         runAllTests(system, true);
     }
+    
     {
         std::cout << "\nPin Chain:\n" << std::endl;
         MultibodySystem system;
@@ -533,6 +535,7 @@ int main() {
         createGimbalChain(system);
         runAllTests(system);
     }
+    
     {
         std::cout << "\nPin Tree:\n" << std::endl;
         MultibodySystem system;
@@ -545,6 +548,7 @@ int main() {
         createBallTree(system);
         runAllTests(system);
     }
+    
 
     std::cout << "Total time:\n";
     std::cout << "  process CPU=" << cpuTime()-startCpu << "s\n";
