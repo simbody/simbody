@@ -735,7 +735,7 @@ void calcConstraintForcesFromMultipliers
 /// reaction forces accomplish. With that definition, mobility forces (as 
 /// opposed to body forces) are \e included in the reactions. Some 
 /// conventions do not include the mobility forces in the definition of a 
-/// reaction force. We chose to include them since this preserves Newton�s 
+/// reaction force. We chose to include them since this preserves Newton's 
 /// 3rd law of equal and opposite reactions between bodies. Ours is the same 
 /// convention as used in SD/FAST.
 /// 
@@ -797,7 +797,7 @@ Note that we're using "monogram" notation for the spatial velocities, where
             G Bi
     V_GBi =  V
 </pre>
-the spatial velocity of body i's body frame Bi (at it origin), measured and
+the spatial velocity of body i's body frame Bi (at its origin), measured and
 expressed in the Ground frame G.
 
 This is a very fast operator, costing about 12*(nbod+ndof) flops. In contrast, 
@@ -848,7 +848,7 @@ Note that we're using "monogram" notation for the spatial velocities, where
             G Bi
     V_GBi =  V
 </pre>
-the spatial velocity of body i's body frame Bi (at it origin), measured and
+the spatial velocity of body i's body frame Bi (at its origin), measured and
 expressed in the Ground frame G.
 
 This is a very fast operator, costing about 18*nbod+11*ndof flops. In contrast, 
