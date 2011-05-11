@@ -760,18 +760,113 @@ void calcMobilizerReactionForces
    (const State&         state, 
     Vector_<SpatialVec>& forcesAtMInG) const;
 
-/// Requires realization through Stage::Position.
-void calcSpatialKinematicsFromInternal(const State&,
-    const Vector&        v,
-    Vector_<SpatialVec>& Jv) const;
+/** Calculate the product of the kinematic Jacobian J (also known as the 
+partial velocity matrix) and a mobility-space vector u in O(n) time. If
+the vector u is a set of generalized speeds, then this produces the
+body spatial velocities that result from those generalized speeds.
+That is, the result is V_GB = J*u where V_GB[i] is the spatial velocity
+of the i'th body's body frame origin (in Ground) that results from the
+given set of generalized speeds. 
 
-/// Requires realization through Stage::Position.
-void calcInternalGradientFromSpatial(const State&,
-    const Vector_<SpatialVec>& dEdR,
-    Vector&                    dEdQ) const; // really Qbar
+@param[in]      state
+    A State compatible with this System that has already been realized to
+    Stage::Position.
+@param[in]      u
+    A mobility-space Vector, such as a set of generalized speeds. The length
+    and order must match the mobilities of this system (that is, the number
+    of generalized speeds u \e not the number of generalized coordinates q).
+@param[out]     Ju
+    This is the product V=J*u as described above. Each element is a spatial
+    vector, one per mobilized body, to be indexed by MobilizedBodyIndex.
+    If the input vector is a set of generalized speeds u, then the results
+    are spatial velocities V_GB. Note that Ground is body 0 so the 0th element 
+    V_GB[0] is always zero on return.
 
-/// Requires realization through Stage::Velocity.
-Real calcKineticEnergy(const State&) const;
+The kinematic Jacobian (partial velocity matrix) J is defined as follows:
+<pre>
+        partial(V)                        T                  T
+    J = ----------, V = [V_GB0 V_GB1 ... ] ,  u = [u0 u1 ...]
+        partial(u)
+</pre>
+Thus the element J(i,j)=partial(V_GBi)/partial(uj) (each element of J is a
+spatial vector). The transpose of this matrix maps spatial forces to 
+generalized forces; see calcInternalGradientFromSpatial().
+
+Note that we're using "monogram" notation for the spatial velocities, where
+<pre>
+            G Bi
+    V_GBi =  V
+</pre>
+the spatial velocity of body i's body frame Bi (at it origin), measured and
+expressed in the Ground frame G.
+
+This is a very fast operator, costing about 12*(nbod+ndof) flops. In contrast, 
+even if you have already calculated the entire nbodXndofX6 matrix J, the 
+multiplication J*u would cost 12*nbod*ndof flops. As an example, for a 20 body 
+system with a free flying base and 19 pin joints (25 dofs altogether), this 
+method takes 12*(20+25)=540 flops while the explicit matrix-vector multiply 
+would take 12*20*25=6000 flops. So this method is already >10X faster for 
+that small system; for larger systems the difference grows rapidly. **/
+void calcSpatialKinematicsFromInternal(const State&         state,
+                                       const Vector&        u,
+                                       Vector_<SpatialVec>& Ju) const;
+
+/** Calculate the product of the transposed kinematic Jacobian J^T and a 
+vector F of spatial force-like elements, one per body, in O(n) time to 
+produce a generalized force-like result f=J^T*F. If F is actually a set of
+spatial forces applied at the body frame origin of each body, and expressed
+in the Ground frame, then the result is the equivalent set of generalized
+forces f that would produce the same accelerations as F.
+
+@param[in]      state
+    A State compatible with this System that has already been realized to
+    Stage::Position.
+@param[in]      F
+    This is a vector of SpatialVec elements, one per mobilized body and in
+    order of MobilizedBodyIndex (with the 0th entry a force on Ground; hence
+    ignored). Each SpatialVec is a spatial force-like pair of 3-vectors 
+    (moment,force) with the force applied at the body origin and the vectors
+    expressed in Ground.
+@param[out]     JtF
+    This is the product f=J^T*F as described above. This result is in the
+    generalized force space, that is, it has one scalar entry per system
+    mobility (velocity degree of freedom).
+
+The kinematic Jacobian (partial velocity matrix) J is defined as follows:
+<pre>
+        partial(V)                        T                  T
+    J = ----------, V = [V_GB0 V_GB1 ... ] ,  u = [u0 u1 ...]
+        partial(u)
+</pre>
+Thus the element J(i,j)=partial(V_GBi)/partial(uj) (each element of J is a
+spatial vector). J maps generalized speeds to spatial velocities (see
+calcSpatialKinematicsFromInternal(); its transpose J^T maps spatial forces 
+to generalized forces.
+
+Note that we're using "monogram" notation for the spatial velocities, where
+<pre>
+            G Bi
+    V_GBi =  V
+</pre>
+the spatial velocity of body i's body frame Bi (at it origin), measured and
+expressed in the Ground frame G.
+
+This is a very fast operator, costing about 18*nbod+11*ndof flops. In contrast, 
+even if you have already calculated the entire nbodXndofX6 matrix J, the 
+multiplication J^T*F would cost 12*nbod*ndof flops. As an example, for a 20 body 
+system with a free flying base and 19 pin joints (25 dofs altogether), this 
+method takes 18*20+11*25=635 flops while the explicit matrix-vector multiply 
+would take 12*20*25=6000 flops. So this method is already >9X faster for 
+that small system; for larger systems the difference grows rapidly. 
+@see calcSpatialKinematicsFromInternal() **/
+void calcInternalGradientFromSpatial(const State&               state,
+                                     const Vector_<SpatialVec>& F,
+                                     Vector&                    JtF) const;
+
+/// Calculate the total kinetic energy of all the mobilized bodies in this
+/// subsystem, given the configuration and velocities in \a state, which
+/// must have already been realized to Stage::Velocity.
+Real calcKineticEnergy(const State& state) const;
 
 /// Accounts for applied forces and inertial forces produced by non-
 /// zero velocities in the State. Returns a set of mobility forces which

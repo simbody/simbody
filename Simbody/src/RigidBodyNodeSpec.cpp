@@ -728,7 +728,7 @@ RigidBodyNodeSpec<dof>::calcSpatialKinematicsFromInternal(
     SpatialVec&     out = toB(Jv);
 
     // Shift parent's result outward (ground result is 0).
-    const SpatialVec outP = ~getPhi(pc) * parent->fromB(Jv);
+    const SpatialVec outP = ~getPhi(pc) * parent->fromB(Jv); // 12 flops
 
     out = outP + getH(pc)*in;  // 12*dof flops
 }
@@ -767,10 +767,10 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
         const SpatialVec& zChild   = zTmp[children[i]->getNodeNum()];
         const PhiMatrix&  phiChild = children[i]->getPhi(pc);
 
-        z += phiChild * zChild;
+        z += phiChild * zChild; // 18 flops
     }
 
-    out = ~getH(pc) * z; 
+    out = ~getH(pc) * z; // 11*dof flops
 }
 
 //------------------------------------------------------------------------------
