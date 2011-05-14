@@ -2557,6 +2557,8 @@ Vector_<E> operator-(const typename CNT<E>::T& l, const VectorBase<E>& r) {
     return (temp -= r);
 }
 
+// Scalar multiply and divide.
+
 template <class E> Vector_<E>
 operator*(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return Vector_<E>(l)*=r; }
@@ -2581,6 +2583,89 @@ operator*(int l, const VectorBase<E>& r)
 template <class E> Vector_<E>
 operator/(const VectorBase<E>& l, int r) 
   { return Vector_<E>(l)/= typename CNT<E>::StdNumber(r); }
+
+// These are fancier "scalars"; whether they are allowed depends on
+// whether the element type and the CNT are compatible.
+
+// Vector * Vec
+template <class E1, int M, class E2, int S> 
+Vector_<typename CNT<E1>::template Result< Vec<M,E2,S> >::Mul>
+operator*(const VectorBase<E1>& v, const Vec<M,E2,S>& s) {
+    Vector_<typename CNT<E1>::template Result< Vec<M,E2,S> >::Mul> res(v.nrow());
+    for (int i=0; i < v.nrow(); ++i)
+        res[i] = v[i]*s; 
+    return res;
+}
+
+// Vec * Vector
+template <class E1, int M, class E2, int S> 
+Vector_<typename CNT< Vec<M,E2,S> >::template Result<E1>::Mul>
+operator*(const Vec<M,E2,S>& s, const VectorBase<E1>& v) {
+    Vector_<typename CNT< Vec<M,E2,S> >::template Result<E1>::Mul> res(v.nrow());
+    for (int i=0; i < v.nrow(); ++i)
+        res[i] = s*v[i]; 
+    return res;
+}
+
+// Vector * Row
+template <class E1, int N, class E2, int S> 
+Vector_<typename CNT<E1>::template Result< Row<N,E2,S> >::Mul>
+operator*(const VectorBase<E1>& v, const Row<N,E2,S>& s) {
+    Vector_<typename CNT<E1>::template Result< Row<N,E2,S> >::Mul> res(v.nrow());
+    for (int i=0; i < v.nrow(); ++i)
+        res[i] = v[i]*s; 
+    return res;
+}
+
+// Row * Vector
+template <class E1, int N, class E2, int S> 
+Vector_<typename CNT< Row<N,E2,S> >::template Result<E1>::Mul>
+operator*(const Row<N,E2,S>& s, const VectorBase<E1>& v) {
+    Vector_<typename CNT< Row<N,E2,S> >::template Result<E1>::Mul> res(v.nrow());
+    for (int i=0; i < v.nrow(); ++i)
+        res[i] = s*v[i]; 
+    return res;
+}
+
+// Vector * Mat
+template <class E1, int M, int N, class E2, int S1, int S2> 
+Vector_<typename CNT<E1>::template Result< Mat<M,N,E2,S1,S2> >::Mul>
+operator*(const VectorBase<E1>& v, const Mat<M,N,E2,S1,S2>& s) {
+    Vector_<typename CNT<E1>::template Result< Mat<M,N,E2,S1,S2> >::Mul> res(v.nrow());
+    for (int i=0; i < v.nrow(); ++i)
+        res[i] = v[i]*s; 
+    return res;
+}
+
+// Mat * Vector
+template <class E1, int M, int N, class E2, int S1, int S2> 
+Vector_<typename CNT< Mat<M,N,E2,S1,S2> >::template Result<E1>::Mul>
+operator*(const Mat<M,N,E2,S1,S2>& s, const VectorBase<E1>& v) {
+    Vector_<typename CNT< Mat<M,N,E2,S1,S2> >::template Result<E1>::Mul> res(v.nrow());
+    for (int i=0; i < v.nrow(); ++i)
+        res[i] = s*v[i]; 
+    return res;
+}
+
+// Vector * SymMat
+template <class E1, int M, class E2, int S> 
+Vector_<typename CNT<E1>::template Result< SymMat<M,E2,S> >::Mul>
+operator*(const VectorBase<E1>& v, const SymMat<M,E2,S>& s) {
+    Vector_<typename CNT<E1>::template Result< SymMat<M,E2,S> >::Mul> res(v.nrow());
+    for (int i=0; i < v.nrow(); ++i)
+        res[i] = v[i]*s; 
+    return res;
+}
+
+// SymMat * Vector
+template <class E1, int M, class E2, int S> 
+Vector_<typename CNT< SymMat<M,E2,S> >::template Result<E1>::Mul>
+operator*(const SymMat<M,E2,S>& s, const VectorBase<E1>& v) {
+    Vector_<typename CNT< SymMat<M,E2,S> >::template Result<E1>::Mul> res(v.nrow());
+    for (int i=0; i < v.nrow(); ++i)
+        res[i] = s*v[i]; 
+    return res;
+}
 
 /// @}
 
@@ -2617,6 +2702,8 @@ RowVector_<E> operator-(const typename CNT<E>::T& l, const RowVectorBase<E>& r) 
     return (temp -= r);
 }
 
+// Scalar multiply and divide 
+
 template <class E> RowVector_<E>
 operator*(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return RowVector_<E>(l)*=r; }
@@ -2641,6 +2728,90 @@ operator*(int l, const RowVectorBase<E>& r)
 template <class E> RowVector_<E>
 operator/(const RowVectorBase<E>& l, int r) 
   { return RowVector_<E>(l)/= typename CNT<E>::StdNumber(r); }
+
+
+// These are fancier "scalars"; whether they are allowed depends on
+// whether the element type and the CNT are compatible.
+
+// RowVector * Vec
+template <class E1, int M, class E2, int S> 
+RowVector_<typename CNT<E1>::template Result< Vec<M,E2,S> >::Mul>
+operator*(const RowVectorBase<E1>& v, const Vec<M,E2,S>& s) {
+    RowVector_<typename CNT<E1>::template Result< Vec<M,E2,S> >::Mul> res(v.ncol());
+    for (int i=0; i < v.ncol(); ++i)
+        res[i] = v[i]*s; 
+    return res;
+}
+
+// Vec * RowVector
+template <class E1, int M, class E2, int S> 
+RowVector_<typename CNT< Vec<M,E2,S> >::template Result<E1>::Mul>
+operator*(const Vec<M,E2,S>& s, const RowVectorBase<E1>& v) {
+    RowVector_<typename CNT< Vec<M,E2,S> >::template Result<E1>::Mul> res(v.ncol());
+    for (int i=0; i < v.ncol(); ++i)
+        res[i] = s*v[i]; 
+    return res;
+}
+
+// RowVector * Row
+template <class E1, int N, class E2, int S> 
+RowVector_<typename CNT<E1>::template Result< Row<N,E2,S> >::Mul>
+operator*(const RowVectorBase<E1>& v, const Row<N,E2,S>& s) {
+    RowVector_<typename CNT<E1>::template Result< Row<N,E2,S> >::Mul> res(v.ncol());
+    for (int i=0; i < v.ncol(); ++i)
+        res[i] = v[i]*s; 
+    return res;
+}
+
+// Row * RowVector
+template <class E1, int N, class E2, int S> 
+RowVector_<typename CNT< Row<N,E2,S> >::template Result<E1>::Mul>
+operator*(const Row<N,E2,S>& s, const RowVectorBase<E1>& v) {
+    RowVector_<typename CNT< Row<N,E2,S> >::template Result<E1>::Mul> res(v.ncol());
+    for (int i=0; i < v.ncol(); ++i)
+        res[i] = s*v[i]; 
+    return res;
+}
+
+// RowVector * Mat
+template <class E1, int M, int N, class E2, int S1, int S2> 
+RowVector_<typename CNT<E1>::template Result< Mat<M,N,E2,S1,S2> >::Mul>
+operator*(const RowVectorBase<E1>& v, const Mat<M,N,E2,S1,S2>& s) {
+    RowVector_<typename CNT<E1>::template Result< Mat<M,N,E2,S1,S2> >::Mul> res(v.ncol());
+    for (int i=0; i < v.ncol(); ++i)
+        res[i] = v[i]*s; 
+    return res;
+}
+
+// Mat * RowVector
+template <class E1, int M, int N, class E2, int S1, int S2> 
+RowVector_<typename CNT< Mat<M,N,E2,S1,S2> >::template Result<E1>::Mul>
+operator*(const Mat<M,N,E2,S1,S2>& s, const RowVectorBase<E1>& v) {
+    RowVector_<typename CNT< Mat<M,N,E2,S1,S2> >::template Result<E1>::Mul> res(v.ncol());
+    for (int i=0; i < v.ncol(); ++i)
+        res[i] = s*v[i]; 
+    return res;
+}
+
+// RowVector * SymMat
+template <class E1, int M, class E2, int S> 
+RowVector_<typename CNT<E1>::template Result< SymMat<M,E2,S> >::Mul>
+operator*(const RowVectorBase<E1>& v, const SymMat<M,E2,S>& s) {
+    RowVector_<typename CNT<E1>::template Result< SymMat<M,E2,S> >::Mul> res(v.ncol());
+    for (int i=0; i < v.ncol(); ++i)
+        res[i] = v[i]*s; 
+    return res;
+}
+
+// SymMat * RowVector
+template <class E1, int M, class E2, int S> 
+RowVector_<typename CNT< SymMat<M,E2,S> >::template Result<E1>::Mul>
+operator*(const SymMat<M,E2,S>& s, const RowVectorBase<E1>& v) {
+    RowVector_<typename CNT< SymMat<M,E2,S> >::template Result<E1>::Mul> res(v.ncol());
+    for (int i=0; i < v.ncol(); ++i)
+        res[i] = s*v[i]; 
+    return res;
+}
 
 /// @}
 
