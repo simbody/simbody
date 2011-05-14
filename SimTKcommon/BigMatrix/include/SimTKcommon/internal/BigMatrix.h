@@ -2599,9 +2599,9 @@ operator*(const VectorBase<E1>& v, const Vec<M,E2,S>& s) {
 
 // Vec * Vector
 template <class E1, int M, class E2, int S> 
-Vector_<typename CNT< Vec<M,E2,S> >::template Result<E1>::Mul>
+Vector_<typename Vec<M,E2,S>::template Result<E1>::Mul>
 operator*(const Vec<M,E2,S>& s, const VectorBase<E1>& v) {
-    Vector_<typename CNT< Vec<M,E2,S> >::template Result<E1>::Mul> res(v.nrow());
+    Vector_<typename Vec<M,E2,S>::template Result<E1>::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
         res[i] = s*v[i]; 
     return res;
@@ -2619,9 +2619,9 @@ operator*(const VectorBase<E1>& v, const Row<N,E2,S>& s) {
 
 // Row * Vector
 template <class E1, int N, class E2, int S> 
-Vector_<typename CNT< Row<N,E2,S> >::template Result<E1>::Mul>
+Vector_<typename Row<N,E2,S>::template Result<E1>::Mul>
 operator*(const Row<N,E2,S>& s, const VectorBase<E1>& v) {
-    Vector_<typename CNT< Row<N,E2,S> >::template Result<E1>::Mul> res(v.nrow());
+    Vector_<typename Row<N,E2,S>::template Result<E1>::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
         res[i] = s*v[i]; 
     return res;
@@ -2639,9 +2639,9 @@ operator*(const VectorBase<E1>& v, const Mat<M,N,E2,S1,S2>& s) {
 
 // Mat * Vector
 template <class E1, int M, int N, class E2, int S1, int S2> 
-Vector_<typename CNT< Mat<M,N,E2,S1,S2> >::template Result<E1>::Mul>
+Vector_<typename Mat<M,N,E2,S1,S2>::template Result<E1>::Mul>
 operator*(const Mat<M,N,E2,S1,S2>& s, const VectorBase<E1>& v) {
-    Vector_<typename CNT< Mat<M,N,E2,S1,S2> >::template Result<E1>::Mul> res(v.nrow());
+    Vector_<typename Mat<M,N,E2,S1,S2>::template Result<E1>::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
         res[i] = s*v[i]; 
     return res;
@@ -2659,9 +2659,9 @@ operator*(const VectorBase<E1>& v, const SymMat<M,E2,S>& s) {
 
 // SymMat * Vector
 template <class E1, int M, class E2, int S> 
-Vector_<typename CNT< SymMat<M,E2,S> >::template Result<E1>::Mul>
+Vector_<typename SymMat<M,E2,S>::template Result<E1>::Mul>
 operator*(const SymMat<M,E2,S>& s, const VectorBase<E1>& v) {
-    Vector_<typename CNT< SymMat<M,E2,S> >::template Result<E1>::Mul> res(v.nrow());
+    Vector_<typename SymMat<M,E2,S>::template Result<E1>::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
         res[i] = s*v[i]; 
     return res;
@@ -2745,9 +2745,9 @@ operator*(const RowVectorBase<E1>& v, const Vec<M,E2,S>& s) {
 
 // Vec * RowVector
 template <class E1, int M, class E2, int S> 
-RowVector_<typename CNT< Vec<M,E2,S> >::template Result<E1>::Mul>
+RowVector_<typename Vec<M,E2,S>::template Result<E1>::Mul>
 operator*(const Vec<M,E2,S>& s, const RowVectorBase<E1>& v) {
-    RowVector_<typename CNT< Vec<M,E2,S> >::template Result<E1>::Mul> res(v.ncol());
+    RowVector_<typename Vec<M,E2,S>::template Result<E1>::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
         res[i] = s*v[i]; 
     return res;
@@ -2765,9 +2765,9 @@ operator*(const RowVectorBase<E1>& v, const Row<N,E2,S>& s) {
 
 // Row * RowVector
 template <class E1, int N, class E2, int S> 
-RowVector_<typename CNT< Row<N,E2,S> >::template Result<E1>::Mul>
+RowVector_<typename Row<N,E2,S>::template Result<E1>::Mul>
 operator*(const Row<N,E2,S>& s, const RowVectorBase<E1>& v) {
-    RowVector_<typename CNT< Row<N,E2,S> >::template Result<E1>::Mul> res(v.ncol());
+    RowVector_<typename Row<N,E2,S>::template Result<E1>::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
         res[i] = s*v[i]; 
     return res;
@@ -2785,9 +2785,9 @@ operator*(const RowVectorBase<E1>& v, const Mat<M,N,E2,S1,S2>& s) {
 
 // Mat * RowVector
 template <class E1, int M, int N, class E2, int S1, int S2> 
-RowVector_<typename CNT< Mat<M,N,E2,S1,S2> >::template Result<E1>::Mul>
+RowVector_<typename Mat<M,N,E2,S1,S2>::template Result<E1>::Mul>
 operator*(const Mat<M,N,E2,S1,S2>& s, const RowVectorBase<E1>& v) {
-    RowVector_<typename CNT< Mat<M,N,E2,S1,S2> >::template Result<E1>::Mul> res(v.ncol());
+    RowVector_<typename Mat<M,N,E2,S1,S2>::template Result<E1>::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
         res[i] = s*v[i]; 
     return res;
@@ -2805,9 +2805,9 @@ operator*(const RowVectorBase<E1>& v, const SymMat<M,E2,S>& s) {
 
 // SymMat * RowVector
 template <class E1, int M, class E2, int S> 
-RowVector_<typename CNT< SymMat<M,E2,S> >::template Result<E1>::Mul>
+RowVector_<typename SymMat<M,E2,S>::template Result<E1>::Mul>
 operator*(const SymMat<M,E2,S>& s, const RowVectorBase<E1>& v) {
-    RowVector_<typename CNT< SymMat<M,E2,S> >::template Result<E1>::Mul> res(v.ncol());
+    RowVector_<typename SymMat<M,E2,S>::template Result<E1>::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
         res[i] = s*v[i]; 
     return res;

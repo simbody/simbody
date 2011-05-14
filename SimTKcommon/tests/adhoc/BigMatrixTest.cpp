@@ -130,7 +130,7 @@ void testCharacter() {
     cout << "t commit=" << t.getCharacterCommitment() << "t actual=" << t.getMatrixCharacter();
 
     Vector v(10);
-    for (int i=0; i<10; ++i) v[i] = i;
+    for (int i=0; i<10; ++i) v[i] = i*.1;
     cout << "v commitment: " << v.getCharacterCommitment();
     cout << "v character: " << v.getMatrixCharacter();
     cout << "v=" << v << endl;
@@ -146,8 +146,46 @@ void testCharacter() {
     Complex cmplx[] = {Complex(1,2), Complex(3,4), Complex(-.2,.3),
                        Complex(-100,200), Complex(20,40), Complex(-.001,.002)};
 
-    ComplexMatrix cm(2,3,2,cmplx);
-    cout << "cm=" << cm;
+    ComplexMatrix cm(2,3,2,cmplx); // shared data is in column order
+    cout << "cm(2,3,lda=2,cmplx)=" << cm;
+
+    ComplexMatrix cm2(2,3,cmplx); // init constructor takes data in row order
+    cout << "cm(2,3,cmplx)=" << cm2;
+
+    // Share data but note that it is row order. Using MatrixBase to get to
+    // a general constructor.
+    MatrixCharacter::LapackFull mchar(2,3); 
+    mchar.setStorage(MatrixStorage(MatrixStorage::NoPacking,MatrixStorage::RowOrder));
+    MatrixBase<Complex> cm3(MatrixCommitment(), mchar, 3, cmplx);
+    cout << "cm3(RowOrder,2,3,lda=3,cmplx)=" << cm3;
+    cm3(0,1)=99;
+    cout << "cm3(0,1)=99 ->" << cm3;
+    cout << "cm (should have changed too) ->" << cm;
+    cout << "cm2 (should not have changed) ->" << cm2;
+}
+
+// Test "scalar" multiply for Vectors and RowVectors that have CNT types
+// as elements.
+// NOTE: the Vector elements and the "scalar" CNT must conform for this
+// to work; nonconforming will cause obscure compile errors.
+void testScalarMultiply() {
+    cout << "\n------ TEST SCALAR MULTIPLY ------\n"; 
+    Mat33 m33( .03, .04, .05,
+               .06, .08, .09,
+               .07, .10, .11 );
+    Vector_< SpatialVec > vs(3, SpatialVec(Vec3(1,2,3), Vec3(4,5,6)));
+    cout << "vs=" << vs << endl;
+    cout << "vs*SpatialRow=" << vs*SpatialRow(Row3(.1)) << endl;
+    cout << "SpatialRow*vs=" << SpatialRow(Row3(.1))*vs << endl;
+    cout << "m33 * SpatialVec=" << m33 * SpatialVec(Vec3(1,2,3), Vec3(4,5,6)) << endl;
+    cout << "m33 * vs=" << SpatialMat(m33) * vs << endl; // note cast to conforming diagonal matrix
+    cout << "SpatialRow * m33=" << ~SpatialVec(Vec3(1,2,3), Vec3(4,5,6)) * m33 << endl;
+    cout << "~vs*m33=" << ~vs * SpatialMat(m33) << endl; // note cast to conforming diagonal matrix
+    RowVector_< SymMat22 > rv(3, SymMat22(1,2,3));
+    cout << "rv=" << rv << endl;
+    cout << "rv*Vec2=" << rv*Vec2(.1,.2) << endl;
+    cout << "Row2*rv=" << Row2(.1,.2)*rv << endl;
+    cout << "------ END TEST SCALAR MULTIPLY ------\n\n"; 
 }
 
 int main()
@@ -155,6 +193,7 @@ int main()
   try {
     SimTK_DEBUG("Running BigMatrixTest ...\n");
 
+    testScalarMultiply();
     testCharacter();
 
     int major,minor,build;
