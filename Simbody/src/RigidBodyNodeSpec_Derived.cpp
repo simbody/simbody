@@ -40,7 +40,6 @@
 #include "RigidBodyNodeSpec_Pin.h"
 #include "RigidBodyNodeSpec_Slider.h"
 #include "RigidBodyNodeSpec_Cylinder.h"
-#include "RigidBodyNodeSpec_Translation.h"
 #include "RigidBodyNodeSpec_SphericalCoords.h"
 #include "RigidBodyNodeSpec_Ball.h"
 #include "RigidBodyNodeSpec_Ellipsoid.h"
@@ -215,18 +214,6 @@ RigidBodyNode* MobilizedBody::EllipsoidImpl::createRigidBodyNode(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
         getDefaultRadii(),
-        isReversed(),
-        nextUSlot,nextUSqSlot,nextQSlot);
-}
-
-RigidBodyNode* MobilizedBody::TranslationImpl::createRigidBodyNode(
-    UIndex&        nextUSlot,
-    USquaredIndex& nextUSqSlot,
-    QIndex&        nextQSlot) const
-{
-    return new RBNodeTranslate(
-        getDefaultRigidBodyMassProperties(),
-        getDefaultInboardFrame(),getDefaultOutboardFrame(),
         isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }

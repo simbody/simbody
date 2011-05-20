@@ -59,7 +59,7 @@ namespace SimTK {
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
     explicit MobilizedBodyImpl(MobilizedBody::Direction d) 
-    :   reversed(d==MobilizedBody::Reverse), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0) {
+    :   reversed(d==MobilizedBody::Reverse), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0), hasChildren(false) {
     }
 
     void setDirection(MobilizedBody::Direction d) {
@@ -402,10 +402,11 @@ public:
         myMobilizedBodyIndex    = index;
 
         if (index != GroundIndex) {
-            const MobilizedBody& parent = matter.getMobilizedBody(parentIndex);
+            MobilizedBody& parent = matter.updMobilizedBody(parentIndex);
             myLevel = parent.getLevelInMultibodyTree() + 1;
             myBaseBodyIndex = (myLevel == 1 ? myMobilizedBodyIndex 
                                          : parent.getBaseMobilizedBody().getMobilizedBodyIndex());
+            parent.updImpl().hasChildren = true;
         } else {
             myLevel = 0;
             myBaseBodyIndex = GroundIndex;
@@ -492,6 +493,10 @@ private:
     // this MobilizedBody. Be sure to delete it upon destruction and whenever
     // topology is re-realized.
     mutable RigidBodyNode* myRBnode;
+
+protected:
+    // Keep track of whether this body has any children.
+    bool hasChildren;
 };
 
 class MobilizedBody::PinImpl : public MobilizedBodyImpl {
