@@ -1,13 +1,12 @@
 Instructions for creating a Visual Studio project by hand to run a 
 Simbody example program.
-Simbody 2.2, April 2011
+Simbody 2.2, June 2011
 
 ----------------------------------------------------------------------------
 NOTE: By far the easiest way to create a Visual Studio project is to use
 CMake (www.cmake.org). We have supplied a CMakeLists.txt file here which 
 will build a single Visual Studio project containing all the examples.
 That works on all platforms also, using whatever build system is appropriate.
-See CMakeNotes.txt.
 ----------------------------------------------------------------------------
 
 But, if you insist on building a Visual Studio project by hand, here are

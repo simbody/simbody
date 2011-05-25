@@ -23,7 +23,7 @@ PROJECT(SimTKExamples)
 
 SET(BUILD_TESTING_SHARED TRUE CACHE BOOL 
 		"Build examples using dynamic SimTK libraries.")
-SET(BUILD_TESTING_STATIC TRUE CACHE BOOL
+SET(BUILD_TESTING_STATIC FALSE CACHE BOOL
 		"Build examples using static SimTK libraries.")
 
 SET(SimTK_SHARED_LIBS 

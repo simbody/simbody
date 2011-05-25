@@ -1,10 +1,16 @@
                      Simbody 2.2 Examples README
-                             April, 2011
+                             June, 2011
 
 This is an eclectic set of examples covering a range of systems that can
 be modeled with Simbody: mechanical systems, biomechanical systems, and
 molecular systems. These were collected rather than built specifically
 for their use here, so you will find a variety of styles.
+
+Precompiled binaries of these programs are installed in the examples/bin
+directory. In particular, you can run SimbodyInstallTest to check installation,
+or SimbodyInstallTestNoViz to check that everything other than the Visualizer
+is working. You should be able to re-create these binaries using the source
+provided here and instructions below.
 
 We have supplied an example Makefile that will work on Linux and Mac, and
 a CMakeLists.txt file that will work on all platforms. Although we have not
