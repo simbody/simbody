@@ -1,5 +1,8 @@
 # Makefile for building Simbody examples on Linux or Mac.
 # See README_Makefile.txt for more information.
+ 
+# Comment this out if you're building 64 bit examples (Linux only).
+M32FLAG = -m32
 
 # Uncomment DEBUG to use Simbody debug libraries instead of release libraries
 # DEBUG=_d
@@ -23,12 +26,14 @@ INCLUDE_DIR=$(SimTK_HOME)/include
 LIBS= -lSimTKsimbody$(DEBUG)
 
 ifeq "${DEBUG}" ""
-CFLAGS = -O2
+CFLAGS = -O2 ${M32FLAG}
 else
-CFLAGS = -g
+CFLAGS = -g ${M32FLAG}
 endif
 
 ALL_PROGS = \
+SimbodyInstallTestNoViz \
+SimbodyInstallTest \
 ChainExample \
 ExampleAmysIKProblem \
 ExampleAssemblerPlayground \
@@ -41,10 +46,9 @@ ExampleGears  \
 ExampleKneeJoint \
 ExamplePendulum \
 JaredsDude \
-Pendulum \
 Rattleback
 
-default: ExamplePendulum
+default: SimbodyInstallTestNoViz SimbodyInstallTest
 	@echo Using $(SimTK_HOME) as the SimTK installation directory.
 
 
