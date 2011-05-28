@@ -190,8 +190,9 @@ FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/intern
 INSTALL_FILES(/include/                 FILES ${CORE_HEADERS})
 INSTALL_FILES(/include/simmath/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/include/simmath/internal FILES ${INTERNAL_HEADERS})
-INSTALL(FILES ${PROJECT_SOURCE_DIR}/doc/SimmathUserGuide.pdf 
-	DESTINATION doc/simmath)
+
+FILE(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt)
+INSTALL(FILES ${SIMMATH_DOCS} DESTINATION doc)
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.
