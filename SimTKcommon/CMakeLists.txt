@@ -175,7 +175,10 @@ FILE(GLOB INTERNAL_HEADERS include/SimTKcommon/internal/*.h */include/SimTKcommo
 INSTALL_FILES("/include"                      FILES ${CORE_HEADERS})
 INSTALL_FILES("/include/SimTKcommon"          FILES ${TOP_HEADERS})
 INSTALL_FILES("/include/SimTKcommon/internal" FILES ${INTERNAL_HEADERS})
-INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/Simmatrix.pdf DESTINATION doc/simtkcommon )
+
+FILE(GLOB SIMTKCOMMON_DOCS doc/*.pdf doc/*.txt)
+INSTALL(FILES ${SIMTKCOMMON_DOCS} DESTINATION doc)
+
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.

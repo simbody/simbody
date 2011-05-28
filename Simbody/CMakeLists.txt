@@ -135,8 +135,9 @@ INSTALL_FILES(/include/simbody/internal FILES ${INTERNAL_HEADERS})
 # Notice that the (deprecated) INSTALL_FILES(dir ...) command works differently than the
 # newer (recommended) INSTALL(dir FILES ...) command
 # when the target directory starts with a slash
-INSTALL(FILES ${PROJECT_SOURCE_DIR}/doc/SimbodyTheoryManual.pdf 
-	DESTINATION doc/simbody )
+FILE(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt)
+INSTALL(FILES ${SIMBODY_DOCS} DESTINATION doc)
+
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.
