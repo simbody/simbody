@@ -512,7 +512,7 @@ ADD_SUBDIRECTORY( SimTKmath )
 ADD_SUBDIRECTORY( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set (but not used)
 
-# Install build-from-source instructions.
-INSTALL(FILES "HowToBuildSimbodyFromSource_Windows.pdf" DESTINATION "doc")
-INSTALL(FILES "HowToBuildSimbodyFromSource_MacLinux.pdf" DESTINATION "doc")
-INSTALL(FILES "Simbody2.2ReleaseNotes.pdf" DESTINATION "doc")
+# Install build-from-source instructions, release notes.
+FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
+INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION doc)
+
