@@ -18,11 +18,14 @@ comprehensive. As you will quickly realize if you look around, this is a large
 system providing a great deal of functionality. It is, however, very easy to 
 use if you know where to begin -- and this reference documentation is most
 definitely \e not the place to start if you want to learn how to use 
-Simbody. Instead, start with the tutorials that are available at the Simbody 
-project site https://simtk.org/home/simbody, "Documents" tab. If you have 
-specific questions, use the Simbody help forum under the "Advanced" tab. You 
-can also file bug reports and make feature requests using the tools provided 
-there.
+Simbody. Instead, start with the tutorials in the Simbody User's Guide that 
+you can find at the Simbody project site https://simtk.org/home/simbody, 
+"Documents" tab. There is also a collection of working example programs that
+come with the Simbody installation (in the examples directory). Both source
+and ready-to-execute binaries of the examples are installed. If you have 
+specific questions, use the Simbody help forum under the "Advanced" tab. 
+You can also file bug reports and make feature requests using the tools 
+provided there.
 
 <h2>What is Simbody?</h2>
 Simbody is a high-performance, industrial-grade open source C++ library 
