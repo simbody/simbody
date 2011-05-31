@@ -169,13 +169,32 @@ void realizeModel(SBStateDigest& sbs) const {
 }
 
 void realizeInstance(const SBStateDigest& sbs) const {
+    // Initialize cache entries that will never be changed at later stages.
+    
+    SBTreePositionCache& pc = sbs.updTreePositionCache();
+    SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
+    SBDynamicsCache& dc = sbs.updDynamicsCache();
+    SBTreeAccelerationCache& ac = sbs.updTreeAccelerationCache();
+    Transform& X_FM = toB(pc.bodyJointInParentJointFrame);
+    X_FM.updR().setRotationToIdentityMatrix();
+    updV_FM(vc)[0] = Vec3(0);
+    updV_PB_G(vc)[0] = Vec3(0);
+    updVD_PB_G(vc)[0] = Vec3(0);
+    updV_GB(vc)[0] = Vec3(0);
+    updGyroscopicForce(vc) = SpatialVec(Vec3(0), Vec3(0));
+    updCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+    updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+    updCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
+    updTotalCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
+    updY(dc) = SpatialMat(Mat33(0), Mat33(0), Mat33(0), Mat33(1.0/getMass()));
+    updA_GB(ac)[0] = Vec3(0);
 }
 
 void realizePosition(const SBStateDigest& sbs) const {
     SBTreePositionCache& pc = sbs.updTreePositionCache();
     Transform& X_FM = toB(pc.bodyJointInParentJointFrame);
     const Vec3& q = Vec3::getAs(&sbs.getQ()[qIndex]);
-    X_FM = Transform(Rotation(), q);
+    X_FM.updP() = q;
     updX_PB(pc) = X_FM;
     updX_GB(pc) = X_FM;
     updPhi(pc) = PhiMatrix(q);
@@ -190,19 +209,12 @@ void realizeVelocity(const SBStateDigest& sbs) const {
 
     calcQDot(sbs, allU, sbs.updQDot());
 
-    updV_FM(vc)    = SpatialVec(Vec3(0), u);
-    updV_PB_G(vc)  = SpatialVec(Vec3(0), u);
-    updVD_PB_G(vc) = Vec3(0);
-    updV_GB(vc) = SpatialVec(Vec3(0), u);
-    updGyroscopicForce(vc) = SpatialVec(Vec3(0), Vec3(0));
-    updCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
-    updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+    updV_FM(vc)[1] = u;
+    updV_PB_G(vc)[1] = u;
+    updV_GB(vc)[1] = u;
 }
 
 void realizeDynamics(const SBArticulatedBodyInertiaCache& abc, const SBStateDigest& sbs) const {
-    SBDynamicsCache& dc = sbs.updDynamicsCache();
-    updCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
-    updTotalCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
 }
 
 void realizeAcceleration(const SBStateDigest& sbs) const {
@@ -240,7 +252,7 @@ void realizeAccel(
     Vec3& udot = Vec3::updAs(&allUdot[uIndex]);
     Vec3 epsilon = getGepsilon(ac)[1];
     udot = epsilon/getMass();
-    updA_GB(ac) = SpatialVec(Vec3(0), udot);  
+    updA_GB(ac)[1] = udot;
 }
 
 void realizeYOutward(
@@ -248,7 +260,6 @@ void realizeYOutward(
             const SBTreePositionCache&            pc,
             const SBArticulatedBodyInertiaCache&  abc,
             SBDynamicsCache&                      dc) const {
-    updY(dc) = SpatialMat(Mat33(0), Mat33(0), Mat33(0), Mat33(1.0/getMass()));
 }
 
 void calcCompositeBodyInertiasInward(const SBTreePositionCache& pc, Array_<SpatialInertia>& R) const {

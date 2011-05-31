@@ -1483,7 +1483,7 @@ public:
 
     // Time
     SBTimeCache& updTimeCache() const {
-        assert(stage == Stage::Time);
+        assert(stage >= Stage::Instance && stage <= Stage::Time);
         assert(tc);
         return *tc;
     }
@@ -1505,7 +1505,7 @@ public:
         return *qErr;
     }
     SBTreePositionCache& updTreePositionCache() const {
-        assert(stage == Stage::Position);
+        assert(stage >= Stage::Instance && stage <= Stage::Position);
         assert(tpc);
         return *tpc;
     }
@@ -1515,7 +1515,7 @@ public:
         return *tpc;
     }
     SBConstrainedPositionCache& updConstrainedPositionCache() const {
-        assert(stage == Stage::Position);
+        assert(stage >= Stage::Instance && stage <= Stage::Position);
         assert(cpc);
         return *cpc;
     }
@@ -1547,7 +1547,7 @@ public:
         return *uErr;
     }
     SBTreeVelocityCache& updTreeVelocityCache() const {
-        assert(stage == Stage::Velocity);
+        assert(stage >= Stage::Instance && stage <= Stage::Velocity);
         assert(tvc);
         return *tvc;
     }
@@ -1557,7 +1557,7 @@ public:
         return *tvc;
     }
     SBConstrainedVelocityCache& updConstrainedVelocityCache() const {
-        assert(stage == Stage::Velocity);
+        assert(stage >= Stage::Instance && stage <= Stage::Velocity);
         assert(cvc);
         return *cvc;
     }
@@ -1569,7 +1569,7 @@ public:
 
     // Dynamics
     SBDynamicsCache& updDynamicsCache() const {
-        assert(stage == Stage::Dynamics);
+        assert(stage >= Stage::Instance && stage <= Stage::Dynamics);
         assert(dc);
         return *dc;
     }
@@ -1612,7 +1612,7 @@ public:
         return *udotErr;
     }
     SBTreeAccelerationCache& updTreeAccelerationCache() const {
-        assert(stage == Stage::Acceleration);
+        assert(stage >= Stage::Instance && stage <= Stage::Acceleration);
         assert(tac);
         return *tac;
     }
@@ -1622,7 +1622,7 @@ public:
         return *tac;
     }
     SBConstrainedAccelerationCache& updConstrainedAccelerationCache() const {
-        assert(stage == Stage::Acceleration);
+        assert(stage >= Stage::Instance && stage <= Stage::Acceleration);
         assert(cac);
         return *cac;
     }

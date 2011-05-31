@@ -763,13 +763,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
         }
     }
 
-    // Now instantiate the implementing RigidBodyNodes.
-    SBStateDigest stateDigest(s, *this, Stage::Instance);
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeInstance(stateDigest); 
-
-
     
     // CONSTRAINT INSTANCE
 
@@ -854,6 +847,12 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
     updDynamicsCache(s).allocate(topologyCache, mc, ic);
     updTreeAccelerationCache(s).allocate(topologyCache, mc, ic);
     updConstrainedAccelerationCache(s).allocate(topologyCache, mc, ic);
+
+    // Now let the implementing RigidBodyNodes do their realization.
+    SBStateDigest stateDigest(s, *this, Stage::Instance);
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizeInstance(stateDigest); 
     
     return 0;
 }
@@ -3336,22 +3335,35 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
     if (g >= Stage::Instance) {
         if (mc->instanceCacheIndex.isValid())
             ic = &matter.updInstanceCache(state);
+        
+        // All cache entries, for any stage, can be modified at instance stage or later.
+        
+        if (mc->timeCacheIndex.isValid())
+            tc = &matter.updTimeCache(state);
+        if (mc->treePositionCacheIndex.isValid())
+            tpc = &matter.updTreePositionCache(state);
+        if (mc->constrainedPositionCacheIndex.isValid())
+            cpc = &matter.updConstrainedPositionCache(state);
+        if (mc->treeVelocityCacheIndex.isValid())
+            tvc = &matter.updTreeVelocityCache(state);
+        if (mc->constrainedVelocityCacheIndex.isValid())
+            cvc = &matter.updConstrainedVelocityCache(state);
+        if (mc->dynamicsCacheIndex.isValid())
+            dc = &matter.updDynamicsCache(state);
+        if (mc->treeAccelerationCacheIndex.isValid())
+            tac = &matter.updTreeAccelerationCache(state);
+        if (mc->constrainedAccelerationCacheIndex.isValid())
+            cac = &matter.updConstrainedAccelerationCache(state);
     }
     if (g >= Stage::Time) {
         if (mc->timeVarsIndex.isValid())
             tv = &matter.getTimeVars(state);
-        if (mc->timeCacheIndex.isValid())
-            tc = &matter.updTimeCache(state);
     }
     if (g >= Stage::Position) {
         if (mc->qVarsIndex.isValid())
             pv = &matter.getPositionVars(state);
 
         qErr = &matter.updQErr(state);
-        if (mc->treePositionCacheIndex.isValid())
-            tpc = &matter.updTreePositionCache(state);
-        if (mc->constrainedPositionCacheIndex.isValid())
-            cpc = &matter.updConstrainedPositionCache(state);
     }
     if (g >= Stage::Velocity) {
         if (mc->uVarsIndex.isValid())
@@ -3359,16 +3371,10 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
 
         qdot = &matter.updQDot(state);
         uErr = &matter.updUErr(state);
-        if (mc->treeVelocityCacheIndex.isValid())
-            tvc = &matter.updTreeVelocityCache(state);
-        if (mc->constrainedVelocityCacheIndex.isValid())
-            cvc = &matter.updConstrainedVelocityCache(state);
     }
     if (g >= Stage::Dynamics) {
         if (mc->dynamicsVarsIndex.isValid())
             dv = &matter.getDynamicsVars(state);
-        if (mc->dynamicsCacheIndex.isValid())
-            dc = &matter.updDynamicsCache(state);
 
         // Prescribed accelerations are filled in at Dynamics
         // stage so we may need these now.
@@ -3380,10 +3386,6 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
             av = &matter.getAccelerationVars(state);
 
         udotErr = &matter.updUDotErr(state);
-        if (mc->treeAccelerationCacheIndex.isValid())
-            tac = &matter.updTreeAccelerationCache(state);
-        if (mc->constrainedAccelerationCacheIndex.isValid())
-            cac = &matter.updConstrainedAccelerationCache(state);
     }
 
     stage = g;

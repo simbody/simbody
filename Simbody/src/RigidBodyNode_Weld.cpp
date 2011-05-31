@@ -158,7 +158,16 @@ public:
 
     // TODO: should ground set the various cache entries here?
     void realizeModel   (SBStateDigest&) const {}
-    void realizeInstance(const SBStateDigest&) const {}
+    void realizeInstance(const SBStateDigest& sbs) const {
+        // Initialize cache entries that will never be changed at later stages.
+        
+        SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
+        SBDynamicsCache& dc = sbs.updDynamicsCache();
+        SBTreeAccelerationCache& ac = sbs.updTreeAccelerationCache();
+        updY(dc) = SpatialMat(Mat33(0));
+        updGepsilon(ac) = SpatialVec(Vec3(0));
+        updA_GB(ac) = 0;
+    }
     void realizePosition(const SBStateDigest&) const {}
     void realizeVelocity(const SBStateDigest&) const {}
     void realizeDynamics(const SBArticulatedBodyInertiaCache&, const SBStateDigest&) const {}
@@ -186,7 +195,8 @@ public:
         const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
         SBDynamicsCache&                        dc) const
-    {   updY(dc) = SpatialMat(Mat33(0)); }
+    {
+    }
 
     void realizeZ(
         const SBTreePositionCache&              pc,
@@ -204,7 +214,6 @@ public:
             const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
             updZ(ac) += phiChild * (zChild + GepsChild);
         }
-        updGepsilon(ac) = SpatialVec(Vec3(0));
     }
     void realizeAccel(
         const SBTreePositionCache&,
@@ -212,8 +221,9 @@ public:
         const SBTreeVelocityCache&,
         const SBDynamicsCache&,
         SBTreeAccelerationCache&                ac,
-        Vector&) const 
-    {   updA_GB(ac) = 0; }
+        Vector&) const
+    {
+    }
 
     void calcUDotPass1Inward(
         const SBInstanceCache&     ic,
@@ -227,18 +237,6 @@ public:
         Vector_<SpatialVec>&       allGepsilon,
         Vector&                    allEpsilon) const
     {
-        allZ[0] = -bodyForces[0];
-        for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-
-            if (children[i]->isUDotKnown(ic))
-                allZ[0] += phiChild * zChild;                 // 18 flops
-            else {
-                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-                allZ[0] += phiChild * (zChild + GepsChild);   // 24 flops
-            }
-        }
         allGepsilon[0] = 0;
     } 
     void calcUDotPass2Outward(
@@ -411,7 +409,16 @@ public:
     {   mv.prescribed[getNodeNum()] = true; }
 
     void realizeModel(SBStateDigest& sbs) const {}
-    void realizeInstance(const SBStateDigest& sbs) const {}
+    void realizeInstance(const SBStateDigest& sbs) const {
+        // Initialize cache entries that will never be changed at later stages.
+        
+        SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
+        SBTreeAccelerationCache& ac = sbs.updTreeAccelerationCache();
+        updV_FM(vc) = 0;
+        updV_PB_G(vc) = 0;
+        updVD_PB_G(vc) = 0;
+        updGepsilon(ac) = SpatialVec(Vec3(0));
+    }
 
     void realizePosition(const SBStateDigest& sbs) const {
         SBTreePositionCache& pc = sbs.updTreePositionCache();
@@ -452,10 +459,6 @@ public:
     void realizeVelocity(const SBStateDigest& sbs) const {
         const SBTreePositionCache& pc = sbs.getTreePositionCache();
         SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
-
-        updV_FM(vc) = 0;
-        updV_PB_G(vc) = 0;
-        updVD_PB_G(vc) = 0;
         calcJointIndependentKinematicsVel(pc,vc);
     }
 
@@ -530,7 +533,6 @@ public:
 
             z += phiChild * (zChild + GepsChild);
         }
-        updGepsilon(ac) = SpatialVec(Vec3(0));
     }
 
 
