@@ -171,7 +171,7 @@ void calcAcrossJointVelocityJacobianDot(
 
 // Here we again use the pooled trig evaluations to calculate qdot=N(q)*u
 // on the cheap (10 flops).
-void calcLocalQDotFromLocalU(const SBStateDigest& sbs, const Real* u, 
+void calcQDot(const SBStateDigest& sbs, const Real* u, 
                              Real* qdot) const {
     assert(sbs.getStage() >= Stage::Position);
     assert(u && qdot);
@@ -279,7 +279,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 // faster. Here we assume that qdot=N*u has already been calculated and this 
 // allows us to calculate qdotdot in only 22 flops, which is faster than
 // calculating NDot*v alone using the multiplyByNDot operator.
-void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, 
+void calcQDotDot(const SBStateDigest& sbs, 
                                    const Real* udot, Real* qdotdot) const {
     assert(sbs.getStage() > Stage::Velocity);
     assert(udot && qdotdot);
@@ -301,34 +301,6 @@ void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs,
     qdotdot_v = Rotation::convertAngAccInParentToBodyXYZDotDot
                                         (cosxy, sinxy, oocosy, qdot, b_FM);
 }
-
-
-// TODO: this can be done generically rather than per-mobilizer, since all
-// mobilizers implement the calcLocalQDotFromLocalU() operator.
-void calcQDot(
-    const SBStateDigest&   sbs,
-    const Vector&          allU, 
-    Vector&                allQDot) const 
-{
-    const Vec3& w_FM = fromU(allU); // angular velocity of M in F (parent)
-    Vec3&       qdot = toQ(allQDot);
-
-    calcLocalQDotFromLocalU(sbs, &w_FM[0], &qdot[0]);
-}
-
-// TODO: this can be done generically since every mobilizer implements
-// the calcLocalQDotDotFromLocalUDot() operator.
-void calcQDotDot(
-    const SBStateDigest&   sbs,
-    const Vector&          allUDot, 
-    Vector&                allQDotDot) const 
-{
-    const Vec3& b_FM    = fromU(allUDot); // = w_FM_dot (angular acceleration)
-    Vec3&       qdotdot = toQ(allQDotDot);
-
-    calcLocalQDotDotFromLocalUDot(sbs, &b_FM[0], &qdotdot[0]);
-}
-
 
 };
 

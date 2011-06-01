@@ -388,63 +388,53 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 
 void calcQDot(
     const SBStateDigest&   sbs,
-    const Vector&          u,
-    Vector&                qdot) const
+    const Real*            u,
+    Real*                  qdot) const
 {
     const SBModelVars&          mv = sbs.getModelVars();
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
-    const Vec3  w_FM_M = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity in M
-    const Vec3& v_FM   = fromUVec3(u,2);                    // Linear velocity in F
+    const Vec3  w_FM_M = Vec3(u[0], u[1], 0); // Angular velocity in M
+    const Vec3& v_FM   = Vec3::getAs(&u[2]);  // Linear velocity in F
 
     if (getUseEulerAngles(mv)) {
         const Vec3& theta = fromQVec3(sbs.getQ(),0); // Euler angles
-        toQVec3(qdot,0) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(theta,
+        Vec3::updAs(qdot) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(theta,
                                         w_FM_M); // need w in *body*, not parent
-        toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
-        toQVec3(qdot,3) = v_FM;
+        Vec3::updAs(&qdot[3]) = v_FM;
+        qdot[6] = 0;
     } else {
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec4& quat = fromQuat(sbs.getQ());
-        toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,
+        Vec4::updAs(qdot)   = Rotation::convertAngVelToQuaternionDot(quat,
                                         R_FM*w_FM_M); // need w in *parent* frame here
-        toQVec3(qdot,4) = v_FM;
+        Vec3::updAs(&qdot[4]) = v_FM;
     }
 }
 
 void calcQDotDot(
     const SBStateDigest&   sbs,
-    const Vector&          udot, 
-    Vector&                qdotdot) const 
+    const Real*            udot, 
+    Real*                  qdotdot) const 
 {
     const SBModelVars&          mv = sbs.getModelVars();
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
     const Vec3  w_FM_M     = Vec3(fromU(sbs.getU())[0], fromU(sbs.getU())[1], 0); // Angular velocity of M in F, exp. in M
     const Vec3& v_FM       = fromUVec3(sbs.getU(),2); // linear velocity of M in F, expressed in M
-    const Vec3  w_FM_M_dot = Vec3(fromU(udot)[0], fromU(udot)[1], 0);
-    const Vec3& v_FM_dot   = fromUVec3(udot,2);
+    const Vec3  w_FM_M_dot = Vec3(udot[0], udot[1], 0);
+    const Vec3& v_FM_dot   = Vec3::getAs(&udot[2]);
 
     if (getUseEulerAngles(mv)) {
         const Vec3& theta  = fromQVec3(sbs.getQ(),0); // Euler angles
-        toQVec3(qdotdot,0) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
+        Vec3::updAs(qdotdot) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
                                          (theta, w_FM_M, w_FM_M_dot); // needed in body frame here
-        toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
-        toQVec3(qdotdot,3) = v_FM_dot;
+        Vec3::updAs(&qdotdot[3]) = v_FM_dot;
+        qdotdot[6] = 0;
     } else {
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec4& quat  = fromQuat(sbs.getQ());
-        toQuat(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
+        Vec4::updAs(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
                                          (quat,R_FM*w_FM_M,R_FM*w_FM_M_dot); // needed in parent frame
-        toQVec3(qdotdot,4) = v_FM_dot;
-    }
-}
-
-void copyQ(const SBModelVars& mv, const Vector& qIn, Vector& q) const {
-    if (getUseEulerAngles(mv)) {
-        toQVec3(q,0) = fromQVec3(qIn,0); // euler angles
-        toQVec3(q,3) = fromQVec3(qIn,3); // translations
-    } else {
-        toQuat(q)    = fromQuat(qIn);    // quaternion
-        toQVec3(q,4) = fromQVec3(qIn,4); // translations
+        Vec3::updAs(&qdotdot[4]) = v_FM_dot;
     }
 }
 

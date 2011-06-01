@@ -88,17 +88,15 @@ public:
         startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
         return true;
     }
-    void copyQ(const SBModelVars& mv, const Vector& qIn, Vector& q) const {
-        const int n = getNQInUse(mv);
-        for (int i = 0; i < n; ++i)
-            q[i] = qIn[i];
-    }
-    void calcLocalQDotFromLocalU(const SBStateDigest& sbs, 
+    void calcQDot(const SBStateDigest& sbs, 
                                  const Real* u, Real* qdot) const 
     {
+        const int nqInUse = getNQInUse(sbs.getModelVars());
         impl.multiplyByN(sbs.getState(), false, nu, u, getNQInUse(sbs.getModelVars()), qdot);
+        for (int i = nqInUse; i < nq; ++i)
+            qdot[i] = 0.0;
     }
-    void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, 
+    void calcQDotDot(const SBStateDigest& sbs, 
                                        const Real* udot, Real* qdotdot) const 
     {
         const SBModelVars&          mv = sbs.getModelVars();
@@ -110,6 +108,8 @@ public:
         impl.multiplyByNDot(sbs.getState(), false, nu, u, nqInUse, temp);
         for (int i = 0; i < nqInUse; ++i)
             qdotdot[i] += temp[i];
+        for (int i = nqInUse; i < nq; ++i)
+            qdotdot[i] = 0.0;
     }
     void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight, 
                      const Real* in, Real* out) const 
@@ -157,28 +157,6 @@ public:
         impl.multiplyByNDot(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
 
-    void calcQDot(const SBStateDigest& sbs, const Vector& u, Vector& qdot) const {
-        const int nqInUse = getNQInUse(sbs.getModelVars());
-        const int qindex = this->getQIndex();
-        impl.multiplyByN(sbs.getState(), false, nu, &u[this->getUIndex()], nqInUse, &qdot[qindex]);
-        for (int i = nqInUse; i < nq; ++i)
-            qdot[qindex+i] = 0.0;
-    }
-
-    void calcQDotDot(const SBStateDigest& sbs, const Vector& udot, Vector& qdotdot) const {
-        const SBModelVars&          mv = sbs.getModelVars();
-        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
-        const int nqInUse = getNQInUse(sbs.getModelVars());
-        const int qindex = this->getQIndex();
-        const Real* u = &sbs.getU()[this->getUIndex()];
-        impl.multiplyByN(sbs.getState(), false, nu, &udot[this->getUIndex()], nqInUse, &qdotdot[qindex]);
-        Real temp[7];
-        impl.multiplyByNDot(sbs.getState(), false, nu, u, nqInUse, temp);
-        for (int i = 0; i < nqInUse; ++i)
-            qdotdot[qindex+i] += temp[i];
-        for (int i = nqInUse; i < nq; ++i)
-            qdotdot[qindex+i] = 0.0;
-    }
     bool enforceQuaternionConstraints(const SBStateDigest& sbs, Vector& q, Vector& qErrest) const {
         if (nAngles != 4 || this->getUseEulerAngles(sbs.getModelVars())) 
             return false;

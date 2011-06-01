@@ -2573,12 +2573,14 @@ void SimbodyMatterSubsystemRep::realizeZ(const State& s,
 
     const SBArticulatedBodyInertiaCache&    
             abc = getArticulatedBodyInertiaCache(s);
+    const Real* mobilityForcePtr = &mobilityForces[0];
+    const SpatialVec* bodyForcePtr = &bodyForces[0];
 
     // TODO: does this need to do level 0?
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.realizeZ(tpc,abc,tvc,dc,tac,mobilityForces,bodyForces);
+            node.realizeZ(tpc,abc,tvc,dc,tac,mobilityForcePtr,bodyForcePtr);
         }
 }
 
@@ -2594,13 +2596,14 @@ void SimbodyMatterSubsystemRep::realizeTreeAccel(const State& s) const {
 
     const SBArticulatedBodyInertiaCache&    
             abc     = getArticulatedBodyInertiaCache(s);
-    Vector& udot    = updUDot(s);
-    Vector& qdotdot = updQDotDot(s);
+    Real* udot    = &updUDot(s)[0];
+    Real* qdotdot = &updQDotDot(s)[0];
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            rbNodeLevels[i][j]->realizeAccel(tpc,abc,tvc,dc,tac,udot);
-            rbNodeLevels[i][j]->calcQDotDot(sbs, udot, qdotdot);
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.realizeAccel(tpc,abc,tvc,dc,tac,&udot[node.getUIndex()]);
+            node.calcQDotDot(sbs, &udot[node.getUIndex()], &qdotdot[node.getQIndex()]);
         }
 }
 
@@ -2656,20 +2659,28 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     // Temporaries
     Vector_<SpatialVec> allZ(getNumBodies());
     Vector_<SpatialVec> allGepsilon(getNumBodies());
+    const Real* mobilityForcePtr = &mobilityForces[0];
+    const SpatialVec* bodyForcePtr = &bodyForces[0];
+    Real* hingeForcePtr = &netHingeForces[0];
+    SpatialVec* aPtr = &A_GB[0];
+    Real* udotPtr = &udot[0];
+    Real* tauPtr = &tau[0];
+    SpatialVec* zPtr = &allZ[0];    
+    SpatialVec* gepsPtr = &allGepsilon[0];    
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcUDotPass1Inward(ic,tpc,abc,dc,
-                mobilityForces, bodyForces, udot, allZ, allGepsilon,
-                netHingeForces);
+                mobilityForcePtr, bodyForcePtr, udotPtr, zPtr, gepsPtr,
+                hingeForcePtr);
         }
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcUDotPass2Outward(ic,tpc,abc,tvc,dc, 
-                                      netHingeForces, A_GB, udot, tau);
+                                      hingeForcePtr, aPtr, udotPtr, tauPtr);
         }
 }
 
@@ -2700,19 +2711,24 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     Vector              allEpsilon(getTotalDOF());
     Vector_<SpatialVec> allZ(getNumBodies());
     Vector_<SpatialVec> allGepsilon(getNumBodies());
+    const Real* fPtr = &f[0];
+    SpatialVec* aPtr = &A_GB[0];
+    Real* udotPtr = &udot[0];
+    SpatialVec* zPtr = &allZ[0];
+    SpatialVec* gepsPtr = &allGepsilon[0];
+    Real* epsPtr = &allEpsilon[0];
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcMInverseFPass1Inward(ic,tpc,abc,dc,
-                f, allZ, allGepsilon,
-                allEpsilon);
+                fPtr, zPtr, gepsPtr, epsPtr);
         }
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass2Outward(ic,tpc,abc,dc, allEpsilon, A_GB, udot);
+            node.calcMInverseFPass2Outward(ic,tpc,abc,dc, epsPtr, aPtr, udotPtr);
         }
 }
 
@@ -2771,20 +2787,26 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
 
     // Allocate temporary.
     Vector_<SpatialVec> allFTmp(getNumBodies());
+    const Real* knownUdotPtr = &(*pKnownUdot)[0];
+    SpatialVec* aPtr = &A_GB[0];
+    const Real* mobilityForcePtr = &(*pAppliedMobForces)[0];
+    const SpatialVec* bodyForcePtr = &(*pAppliedBodyForces)[0];
+    Real *residualPtr = &residualMobilityForces[0];
+    SpatialVec* tempPtr = &allFTmp[0];
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcInverseDynamicsPass1Outward(tpc,tvc,*pKnownUdot,A_GB);
+            node.calcInverseDynamicsPass1Outward(tpc,tvc,knownUdotPtr,aPtr);
         }
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcInverseDynamicsPass2Inward(
-                tpc,tvc,A_GB,
-                *pAppliedMobForces,*pAppliedBodyForces,
-                allFTmp,residualMobilityForces);
+                tpc,tvc,aPtr,
+                mobilityForcePtr,bodyForcePtr,
+                tempPtr,residualPtr);
         }
 }
 
@@ -2808,20 +2830,24 @@ void SimbodyMatterSubsystemRep::calcMV(const State& s,
 
     A_GB.resize(getNumBodies());
     f.resize(getTotalDOF());
+    const Real* vPtr = &v[0];
+    SpatialVec* aPtr = &A_GB[0];
+    Real* fPtr = &f[0];
 
     // Temporary
     Vector_<SpatialVec> allFTmp(getNumBodies());
+    SpatialVec* tmpPtr = &allFTmp[0];
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMVPass1Outward(tpc, v, A_GB);
+            node.calcMVPass1Outward(tpc, vPtr, aPtr);
         }
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMVPass2Inward(tpc,A_GB,allFTmp,f);
+            node.calcMVPass2Inward(tpc,aPtr,tmpPtr,fPtr);
         }
 }
 
@@ -3082,11 +3108,15 @@ void SimbodyMatterSubsystemRep::calcQDot
 
     assert(u.size() == getTotalDOF());
     qdot.resize(getTotalQAlloc());
+    const Real* uPtr = &u[0];
+    Real* qdotPtr = &qdot[0];
 
     // Skip ground; it doesn't have qdots!
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcQDot(sbs, u, qdot);
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            rbNodeLevels[i][j]->calcQDot(sbs, &uPtr[node.getUIndex()], &qdotPtr[node.getQIndex()]);
+        }
 }
 //............................... CALC QDOT ....................................
 
@@ -3103,11 +3133,15 @@ void SimbodyMatterSubsystemRep::calcQDotDot
 
     assert(udot.size() == getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
+    const Real* udotPtr = &udot[0];
+    Real* qdotdotPtr = &qdotdot[0];
 
     // Skip ground; it doesn't have qdots!
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcQDotDot(sbs, udot, qdotdot);
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcQDotDot(sbs, &udotPtr[node.getUIndex()], &qdotdotPtr[node.getQIndex()]);
+        }
 }
 //............................. CALC QDOTDOT ...................................
 
@@ -3125,7 +3159,7 @@ calcMobilizerQDotFromU(const State& s, MobilizedBodyIndex mb, int nu, const Real
     assert(nu == n.getDOF());
     assert(nq == n.getNQInUse(sbState.getModelVars()));
 
-    n.calcLocalQDotFromLocalU(sbState, u, qdot);
+    n.calcQDot(sbState, u, qdot);
 }
 
 // State must be realized to Stage::Velocity, so that we can extract N(q),
@@ -3141,7 +3175,7 @@ calcMobilizerQDotDotFromUDot(const State& s, MobilizedBodyIndex mb, int nu, cons
     assert(nu == n.getDOF());
     assert(nq == n.getNQInUse(sbState.getModelVars()));
 
-    n.calcLocalQDotDotFromLocalUDot(sbState, udot, qdotdot);
+    n.calcQDotDot(sbState, udot, qdotdot);
 }
 
 // State must be realized through Stage::Instance. Neither the State nor its
@@ -3232,11 +3266,13 @@ void SimbodyMatterSubsystemRep::calcSpatialKinematicsFromInternal(const State& s
     assert(v.size() == getTotalDOF());
 
     Jv.resize(getNumBodies());
+    const Real* vPtr = &v[0];
+    SpatialVec* jvPtr = &Jv[0];
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcSpatialKinematicsFromInternal(tpc,v, Jv);
+            node.calcSpatialKinematicsFromInternal(tpc, vPtr, jvPtr);
         }
 }
 
@@ -3258,11 +3294,14 @@ void SimbodyMatterSubsystemRep::calcInternalGradientFromSpatial(const State& s,
 
     Vector_<SpatialVec> zTemp(getNumBodies()); zTemp.setToZero();
     JX.resize(getTotalDOF());
+    const SpatialVec* xPtr = &X[0];
+    Real* jxPtr = &JX[0];
+    SpatialVec* zPtr = &zTemp[0];
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcInternalGradientFromSpatial(tpc, zTemp, X, JX);
+            node.calcInternalGradientFromSpatial(tpc, zPtr, xPtr, jxPtr);
         }
 }
 
@@ -3280,14 +3319,17 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
     mobilityForces.resize(getTotalDOF());
 
     Vector_<SpatialVec> allZ(getNumBodies());
+    const SpatialVec* bodyForcePtr = &bodyForces[0];
+    Real* mobilityForcePtr = &mobilityForces[0];
+    SpatialVec* zPtr = &allZ[0];
 
     // Don't do ground's level since ground has no inboard joint.
     for (int i=rbNodeLevels.size()-1 ; i>0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcEquivalentJointForces(tpc,dc,
-                bodyForces, allZ,
-                mobilityForces);
+                bodyForcePtr, zPtr,
+                mobilityForcePtr);
         }
 }
 

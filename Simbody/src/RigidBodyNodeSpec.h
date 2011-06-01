@@ -214,27 +214,6 @@ void calcParentToChildVelocityJacobianInGroundDot(
     const SBTreeVelocityCache&  vc, 
     HType&                      HDot_PB_G) const;
 
-// These next two routines are optional, but if you supply one you
-// must supply the other. (That is, ball-containing joints provide
-// both of these routines.)
-virtual void calcQDot(
-    const SBStateDigest&   sbs,
-    const Vector&          u,
-    Vector&                qdot) const
-{
-    assert(qdotHandling == QDotIsAlwaysTheSameAsU);
-    toQ(qdot) = fromU(u);        // default is qdot=u
-}
-
-virtual void calcQDotDot(
-    const SBStateDigest&   sbs,
-    const Vector&          udot, 
-    Vector&                qdotdot) const
-{
-    assert(qdotHandling == QDotIsAlwaysTheSameAsU);
-    toQ(qdotdot) = fromU(udot);  // default is qdotdot=udot
-}
-
 void realizeModel(SBStateDigest& sbs) const 
 {
 }
@@ -330,7 +309,7 @@ void realizeVelocity(const SBStateDigest& sbs) const
     const Vec<dof>&             u = fromU(allU);
 
     // Mobilizer specific.
-    calcQDot(sbs, allU, sbs.updQDot());
+    calcQDot(sbs, &allU[uIndex], &sbs.updQDot()[qIndex]);
 
     updV_FM(vc)    = getH_FM(pc) * u;   // 6*dof flops
     updV_PB_G(vc)  = getH(pc)    * u;   // 6*dof flops
@@ -398,8 +377,8 @@ void realizeZ(
     const SBTreeVelocityCache&              vc,
     const SBDynamicsCache&                  dc,
     SBTreeAccelerationCache&                ac,
-    const Vector&                           mobilityForces,
-    const Vector_<SpatialVec>&              bodyForces) const;
+    const Real*                             mobilityForces,
+    const SpatialVec*                       bodyForces) const;
 
 void realizeAccel(
     const SBTreePositionCache&              pc,
@@ -407,7 +386,7 @@ void realizeAccel(
     const SBTreeVelocityCache&              vc,
     const SBDynamicsCache&                  dc,
     SBTreeAccelerationCache&                ac,
-    Vector&                                 udot) const;
+    Real*                                   udot) const;
 
 // These routines give each node a chance to set appropriate defaults in a piece
 // of the state corresponding to a particular stage. Default implementations here
@@ -427,28 +406,6 @@ virtual void setMobilizerDefaultVelocityValues(const SBModelVars&, Vector& u) co
 virtual void setMobilizerDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const {}
 virtual void setMobilizerDefaultAccelerationValues(const SBModelVars&, 
                                                    SBDynamicsVars& v) const {}
-
-// copyQ and copyU extract this node's values from the supplied
-// q-sized or u-sized array and put them in the corresponding
-// locations in the output variable. Joints which need quaternions should
-// override copyQ to copy the extra q.
-virtual void copyQ(
-    const SBModelVars& mv, 
-    const Vector&      qIn, 
-    Vector&            q) const
-{
-    assert(quaternionUse == QuaternionIsNeverUsed);
-    toQ(q) = fromQ(qIn);
-}
-
-// Not virtual -- the number of u's is always the template argument dof.
-void copyU(
-    const SBModelVars& mv, 
-    const Vector&      uIn, 
-    Vector&            u) const
-{
-    toU(u) = fromU(uIn);
-}
 
 int          getDOF()            const {return dof;}
 virtual int  getMaxNQ()          const {
@@ -483,7 +440,7 @@ virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQua
 
 // This method should calculate qdot=N*u, where N=N(q) is the kinematic
 // coupling matrix. State digest should be at Stage::Position.
-virtual void calcLocalQDotFromLocalU(const SBStateDigest&, 
+virtual void calcQDot(const SBStateDigest&, 
                                      const Real* u, Real* qdot) const 
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
@@ -501,7 +458,7 @@ virtual void calcLocalUFromLocalQDot(const SBStateDigest&,
 
 // This method should calculate qdotdot=N*udot + NDot*u, where N=N(q),
 // NDot=NDot(q,u). State digest should be at Stage::Velocity.
-virtual void calcLocalQDotDotFromLocalUDot(const SBStateDigest&, 
+virtual void calcQDotDot(const SBStateDigest&, 
                                            const Real* udot, Real* qdotdot) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
@@ -718,12 +675,12 @@ const Mat<2,dof,Vec3>& getG(const SBArticulatedBodyInertiaCache& abc) const
 Mat<2,dof,Vec3>&       updG(SBArticulatedBodyInertiaCache&       abc) const
   { return Mat<2,dof,Vec3>::updAs(&abc.storageForG[2*uIndex]); }
 
-const Vec<dof>& getTau(const SBInstanceCache& ic, const Vector& tau) const {
+const Vec<dof>& getTau(const SBInstanceCache& ic, const Real* tau) const {
     const PresForcePoolIndex tauIx = ic.getMobodInstanceInfo(nodeNum).firstPresForce;
     assert(tauIx.isValid());
     return Vec<dof>::getAs(&tau[tauIx]);
 }
-Vec<dof>& updTau(const SBInstanceCache& ic, Vector& tau) const {
+Vec<dof>& updTau(const SBInstanceCache& ic, Real* tau) const {
     const PresForcePoolIndex tauIx = ic.getMobodInstanceInfo(nodeNum).firstPresForce;
     assert(tauIx.isValid());
     return Vec<dof>::updAs(&tau[tauIx]);
@@ -739,33 +696,33 @@ Real&             upd1Epsilon(SBTreeAccelerationCache&       ac) const {return t
 
 void calcSpatialKinematicsFromInternal(
     const SBTreePositionCache&  pc,
-    const Vector&               v,
-    Vector_<SpatialVec>&        Jv) const;
+    const Real*                 v,
+    SpatialVec*                 Jv) const;
 
 void calcInternalGradientFromSpatial(
     const SBTreePositionCache&  pc, 
-    Vector_<SpatialVec>&        zTmp,
-    const Vector_<SpatialVec>&  X, 
-    Vector&                     JX) const;
+    SpatialVec*                 zTmp,
+    const SpatialVec*           X, 
+    Real*                       JX) const;
 
 void calcEquivalentJointForces(
     const SBTreePositionCache&  pc,
     const SBDynamicsCache&      dc,
-    const Vector_<SpatialVec>&  bodyForces,
-    Vector_<SpatialVec>&        allZ,
-    Vector&                     jointForces) const;
+    const SpatialVec*           bodyForces,
+    SpatialVec*                 allZ,
+    Real*                       jointForces) const;
 
 void calcUDotPass1Inward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
     const SBDynamicsCache&      dc,
-    const Vector&               jointForces,
-    const Vector_<SpatialVec>&  bodyForces,
-    const Vector&               allUDot,
-    Vector_<SpatialVec>&        allZ,
-    Vector_<SpatialVec>&        allGepsilon,
-    Vector&                     allEpsilon) const;
+    const Real*                 jointForces,
+    const SpatialVec*           bodyForces,
+    const Real*                 allUDot,
+    SpatialVec*                 allZ,
+    SpatialVec*                 allGepsilon,
+    Real*                       allEpsilon) const;
 
 void calcUDotPass2Outward(
     const SBInstanceCache&      ic,
@@ -773,54 +730,54 @@ void calcUDotPass2Outward(
     const SBArticulatedBodyInertiaCache&,
     const SBTreeVelocityCache&  vc,
     const SBDynamicsCache&      dc,
-    const Vector&               epsilonTmp,
-    Vector_<SpatialVec>&        allA_GB,
-    Vector&                     allUDot,
-    Vector&                     allTau) const;
+    const Real*                 epsilonTmp,
+    SpatialVec*                 allA_GB,
+    Real*                       allUDot,
+    Real*                       allTau) const;
 
 void calcMInverseFPass1Inward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
     const SBDynamicsCache&      dc,
-    const Vector&               f,
-    Vector_<SpatialVec>&        allZ,
-    Vector_<SpatialVec>&        allGepsilon,
-    Vector&                     allEpsilon) const;
+    const Real*                 f,
+    SpatialVec*                 allZ,
+    SpatialVec*                 allGepsilon,
+    Real*                       allEpsilon) const;
 
 void calcMInverseFPass2Outward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
     const SBDynamicsCache&      dc,
-    const Vector&               epsilonTmp,
-    Vector_<SpatialVec>&        allA_GB,
-    Vector&                     allUDot) const;
+    const Real*                 epsilonTmp,
+    SpatialVec*                 allA_GB,
+    Real*                       allUDot) const;
 
 void calcInverseDynamicsPass1Outward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
-    const Vector&               allUDot,
-    Vector_<SpatialVec>&        allA_GB) const;
+    const Real*                 allUDot,
+    SpatialVec*                 allA_GB) const;
 
 void calcInverseDynamicsPass2Inward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
-    const Vector_<SpatialVec>&  allA_GB,
-    const Vector&               jointForces,
-    const Vector_<SpatialVec>&  bodyForces,
-    Vector_<SpatialVec>&        allFTmp,
-    Vector&                     allTau) const; 
+    const SpatialVec*           allA_GB,
+    const Real*                 jointForces,
+    const SpatialVec*           bodyForces,
+    SpatialVec*                 allFTmp,
+    Real*                       allTau) const; 
 
 void calcMVPass1Outward(
     const SBTreePositionCache&  pc,
-    const Vector&               allUDot,
-    Vector_<SpatialVec>&        allA_GB) const;
+    const Real*                 allUDot,
+    SpatialVec*                 allA_GB) const;
 void calcMVPass2Inward(
     const SBTreePositionCache&  pc,
-    const Vector_<SpatialVec>&  allA_GB,
-    Vector_<SpatialVec>&        allFTmp,
-    Vector&                     allTau) const;
+    const SpatialVec*           allA_GB,
+    SpatialVec*                 allFTmp,
+    Real*                       allTau) const;
 
 };
 

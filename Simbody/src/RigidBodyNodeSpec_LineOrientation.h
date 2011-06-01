@@ -319,53 +319,42 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 
 void calcQDot(
     const SBStateDigest&   sbs,
-    const Vector&          u, 
-    Vector&                qdot) const 
+    const Real*            u, 
+    Real*                  qdot) const 
 {
     const SBModelVars& mv = sbs.getModelVars();
     const SBTreePositionCache& pc = sbs.getTreePositionCache();
-    const Vec3 w_FM_M = fromU(u).append1(0); // angular velocity of M in F, exp in M (with wz=0) 
+    const Vec3 w_FM_M = Vec2::getAs(u).append1(0); // angular velocity of M in F, exp in M (with wz=0) 
     if (getUseEulerAngles(mv)) {
-        toQuat(qdot)    = Vec4(0); // TODO: kludge, clear unused element
-        toQVec3(qdot,0) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(fromQVec3(sbs.getQ(),0),
+        Vec3::updAs(qdot) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(fromQVec3(sbs.getQ(),0),
                                     w_FM_M); // need w in *body*, not parent
+        qdot[3] = 0;
     } else {
         const Rotation& R_FM = getX_FM(pc).R();
-        toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(sbs.getQ()),
+        Vec4::updAs(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(sbs.getQ()),
                                     R_FM*w_FM_M); // need w in *parent* frame
     }
 }
 
 void calcQDotDot(
     const SBStateDigest&   sbs,
-    const Vector&          udot, 
-    Vector&                qdotdot) const 
+    const Real*            udot, 
+    Real*                  qdotdot) const 
 {
     const SBModelVars&          mv = sbs.getModelVars();
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
     const Vec3 w_FM_M     = fromU(sbs.getU()).append1(0); // angular velocity of M in F, exp in M (with wz=0)
-    const Vec3 w_FM_M_dot = fromU(udot).append1(0);
+    const Vec3 w_FM_M_dot = Vec2::getAs(udot).append1(0);
 
     if (getUseEulerAngles(mv)) {
-        toQuat(qdotdot)    = Vec4(0); // TODO: kludge, clear unused element
-        toQVec3(qdotdot,0) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
+        Vec3::updAs(qdotdot) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
                                    (fromQVec3(sbs.getQ(),0), w_FM_M, w_FM_M_dot); // body frame
+        qdotdot[3] = 0;
     } else {
         const Rotation& R_FM = getX_FM(pc).R();
-        toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
+        Vec4::updAs(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
                               (fromQuat(sbs.getQ()),R_FM*w_FM_M,R_FM*w_FM_M_dot); // parent frame
     }
-}
-
-void copyQ(
-    const SBModelVars& mv, 
-    const Vector&      qIn, 
-    Vector&            q) const 
-{
-    if (getUseEulerAngles(mv))
-        toQ(q) = fromQ(qIn);
-    else
-        toQuat(q) = fromQuat(qIn);
 }
 
 int getMaxNQ()              const {return 4;}

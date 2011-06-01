@@ -78,8 +78,6 @@ public:
     {   ix.invalidate(); return false; }
     int getPosPoolSize(const SBStateDigest&) const {return 0;}
     int getVelPoolSize(const SBStateDigest&) const {return 0;}
-    void copyQ(const SBStateDigest&, const Vector&, Vector&) const {}
-    void copyU(const SBStateDigest&, const Vector&, Vector&) const {}
 
     int calcQPoolSize(const SBModelVars&) const {return 0;}
 
@@ -121,8 +119,8 @@ public:
     void multiplyByNDot(const SBStateDigest&, bool matrixOnRight,
                         const Real* in, Real* out) const {}
 
-    void calcQDot(const SBStateDigest&,const Vector&,Vector&) const {}
-    void calcQDotDot(const SBStateDigest&, const Vector&, Vector&) const {}
+    void calcQDot(const SBStateDigest&, const Real* udot, Real* qdotdot) const {}
+    void calcQDotDot(const SBStateDigest&, const Real* udot, Real* qdotdot) const {}
 
     bool enforceQuaternionConstraints(
         const SBStateDigest& sbs,
@@ -204,8 +202,8 @@ public:
         const SBTreeVelocityCache&,
         const SBDynamicsCache&,
         SBTreeAccelerationCache&                ac,
-        const Vector&,
-        const Vector_<SpatialVec>&              bodyForces) const 
+        const Real*,
+        const SpatialVec*                       bodyForces) const 
     {   
         updZ(ac) = -bodyForces[0];
         for (unsigned i=0; i<children.size(); ++i) {
@@ -221,7 +219,7 @@ public:
         const SBTreeVelocityCache&,
         const SBDynamicsCache&,
         SBTreeAccelerationCache&                ac,
-        Vector&) const
+        Real*) const
     {
     }
 
@@ -230,12 +228,12 @@ public:
         const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
-        const Vector&              jointForces,
-        const Vector_<SpatialVec>& bodyForces,
-        const Vector&              allUDot,
-        Vector_<SpatialVec>&       allZ,
-        Vector_<SpatialVec>&       allGepsilon,
-        Vector&                    allEpsilon) const
+        const Real*                jointForces,
+        const SpatialVec*          bodyForces,
+        const Real*                allUDot,
+        SpatialVec*                allZ,
+        SpatialVec*                allGepsilon,
+        Real*                      allEpsilon) const
     {
         allGepsilon[0] = 0;
     } 
@@ -245,10 +243,10 @@ public:
         const SBArticulatedBodyInertiaCache&,
         const SBTreeVelocityCache&,
         const SBDynamicsCache&,
-        const Vector&              epsilonTmp,
-        Vector_<SpatialVec>&       allA_GB,
-        Vector&                    allUDot,
-        Vector&                    allTau) const
+        const Real*                epsilonTmp,
+        SpatialVec*                allA_GB,
+        Real*                      allUDot,
+        Real*                      allTau) const
     {
         allA_GB[0] = 0;
     }
@@ -258,10 +256,10 @@ public:
         const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
-        const Vector&              f,
-        Vector_<SpatialVec>&       allZ,
-        Vector_<SpatialVec>&       allGepsilon,
-        Vector&                    allEpsilon) const
+        const Real*                f,
+        SpatialVec*                allZ,
+        SpatialVec*                allGepsilon,
+        Real*                      allEpsilon) const
     {
         allZ[0] = 0;
         for (unsigned i=0; i<children.size(); ++i) {
@@ -284,9 +282,9 @@ public:
         const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
-        const Vector&               epsilonTmp,
-        Vector_<SpatialVec>&        allA_GB,
-        Vector&                     allUDot) const
+        const Real*                 epsilonTmp,
+        SpatialVec*                 allA_GB,
+        Real*                       allUDot) const
     {
         allA_GB[0] = 0;
     }
@@ -294,8 +292,8 @@ public:
     void calcInverseDynamicsPass1Outward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
-        const Vector&               allUDot,
-        Vector_<SpatialVec>&        allA_GB) const 
+        const Real*                 allUDot,
+        SpatialVec*                 allA_GB) const 
     {
         allA_GB[0] = 0;
     }
@@ -306,11 +304,11 @@ public:
     void calcInverseDynamicsPass2Inward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
-        const Vector_<SpatialVec>&  allA_GB,
-        const Vector&               jointForces,
-        const Vector_<SpatialVec>&  bodyForces,
-        Vector_<SpatialVec>&        allF,
-        Vector&                     allTau) const
+        const SpatialVec*           allA_GB,
+        const Real*                 jointForces,
+        const SpatialVec*           bodyForces,
+        SpatialVec*                 allF,
+        Real*                       allTau) const
     {
         allF[0] = -bodyForces[0];
 
@@ -326,17 +324,17 @@ public:
 
     void calcMVPass1Outward(
         const SBTreePositionCache&  pc,
-        const Vector&               allUDot,
-        Vector_<SpatialVec>&        allA_GB) const
+        const Real*                 allUDot,
+        SpatialVec*                 allA_GB) const
     {
         allA_GB[0] = 0;
     }
 
     void calcMVPass2Inward(
         const SBTreePositionCache&  pc,
-        const Vector_<SpatialVec>&  allA_GB,
-        Vector_<SpatialVec>&        allF,
-        Vector&                     allTau) const
+        const SpatialVec*           allA_GB,
+        SpatialVec*                 allF,
+        Real*                       allTau) const
     {
         allF[0] = 0;
 
@@ -353,17 +351,17 @@ public:
 
     void calcSpatialKinematicsFromInternal(
         const SBTreePositionCache&  pc,
-        const Vector&               v,
-        Vector_<SpatialVec>&        Jv) const    
+        const Real*                 v,
+        SpatialVec*                 Jv) const    
     {
         Jv[0] = SpatialVec(Vec3(0));
     }
 
     void calcInternalGradientFromSpatial(
         const SBTreePositionCache&  pc, 
-        Vector_<SpatialVec>&        zTmp,
-        const Vector_<SpatialVec>&  X, 
-        Vector&                     JX) const 
+        SpatialVec*                 zTmp,
+        const SpatialVec*           X, 
+        Real*                       JX) const 
     {
         zTmp[0] = X[0];
         for (unsigned i=0; i<children.size(); ++i) {
@@ -376,9 +374,9 @@ public:
     void calcEquivalentJointForces(
         const SBTreePositionCache&  pc,
         const SBDynamicsCache&,
-        const Vector_<SpatialVec>&  bodyForces,
-        Vector_<SpatialVec>&        allZ,
-        Vector&                     jointForces) const 
+        const SpatialVec*           bodyForces,
+        SpatialVec*                 allZ,
+        Real*                       jointForces) const 
     { 
         allZ[0] = bodyForces[0];
         for (unsigned i=0; i<children.size(); ++i) {
@@ -520,11 +518,11 @@ public:
         const SBTreeVelocityCache&,
         const SBDynamicsCache&                  dc,
         SBTreeAccelerationCache&                ac,
-        const Vector&,
-        const Vector_<SpatialVec>&              bodyForces) const 
+        const Real*,
+        const SpatialVec*                       bodyForces) const 
     {
         SpatialVec& z = updZ(ac);
-        z = getCentrifugalForces(dc) - fromB(bodyForces);
+        z = getCentrifugalForces(dc) - bodyForces[nodeNum];
 
         for (int i=0 ; i<(int)children.size() ; i++) {
             const SpatialVec& zChild    = children[i]->getZ(ac);
@@ -542,7 +540,7 @@ public:
         const SBTreeVelocityCache&              vc,
         const SBDynamicsCache&,
         SBTreeAccelerationCache&                ac,
-        Vector&) const
+        Real*) const
     {
         const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
         updA_GB(ac) = alphap + getCoriolisAcceleration(vc);  
@@ -554,16 +552,16 @@ public:
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
-        const Vector&               jointForces,
-        const Vector_<SpatialVec>&  bodyForces,
-        const Vector&               allUDot,
-        Vector_<SpatialVec>&        allZ,
-        Vector_<SpatialVec>&        allGepsilon,
-        Vector&                     allEpsilon) const 
+        const Real*                 jointForces,
+        const SpatialVec*           bodyForces,
+        const Real*                 allUDot,
+        SpatialVec*                 allZ,
+        SpatialVec*                 allGepsilon,
+        Real*                       allEpsilon) const 
     {
-        const SpatialVec& myBodyForce  = fromB(bodyForces);
-        SpatialVec&       z            = toB(allZ);
-        SpatialVec&       Geps         = toB(allGepsilon);
+        const SpatialVec& myBodyForce  = bodyForces[nodeNum];
+        SpatialVec&       z            = allZ[nodeNum];
+        SpatialVec&       Geps         = allGepsilon[nodeNum];
 
         z = getCentrifugalForces(dc) - myBodyForce;
 
@@ -588,12 +586,12 @@ public:
         const SBArticulatedBodyInertiaCache&,
         const SBTreeVelocityCache&  vc,
         const SBDynamicsCache&      dc,
-        const Vector&               allEpsilon,
-        Vector_<SpatialVec>&        allA_GB,
-        Vector&                     allUDot,
-        Vector&                     allTau) const
+        const Real*                 allEpsilon,
+        SpatialVec*                 allA_GB,
+        Real*                       allUDot,
+        Real*                       allTau) const
     {
-        SpatialVec& A_GB = toB(allA_GB);
+        SpatialVec& A_GB = allA_GB[nodeNum];
 
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
@@ -606,13 +604,13 @@ public:
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
-        const Vector&               f,
-        Vector_<SpatialVec>&        allZ,
-        Vector_<SpatialVec>&        allGepsilon,
-        Vector&                     allEpsilon) const 
+        const Real*                 f,
+        SpatialVec*                 allZ,
+        SpatialVec*                 allGepsilon,
+        Real*                       allEpsilon) const
     {
-        SpatialVec& z       = toB(allZ);
-        SpatialVec& Geps    = toB(allGepsilon);
+        SpatialVec& z       = allZ[nodeNum];
+        SpatialVec& Geps    = allGepsilon[nodeNum];
 
         z = 0;
         for (unsigned i=0; i<children.size(); ++i) {
@@ -634,11 +632,11 @@ public:
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
-        const Vector&               allEpsilon,
-        Vector_<SpatialVec>&        allA_GB,
-        Vector&                     allUDot) const
+        const Real*                 allEpsilon,
+        SpatialVec*                 allA_GB,
+        Real*                       allUDot) const
     {
-        SpatialVec& A_GB = toB(allA_GB);
+        SpatialVec& A_GB = allA_GB[nodeNum];
 
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         A_GB = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
@@ -647,10 +645,10 @@ public:
     void calcInverseDynamicsPass1Outward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
-        const Vector&               allUDot,
-        Vector_<SpatialVec>&        allA_GB) const 
+        const Real*                 allUDot,
+        SpatialVec*                 allA_GB) const 
     {
-        SpatialVec& A_GB = toB(allA_GB);
+        SpatialVec& A_GB = allA_GB[nodeNum];
 
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
@@ -661,15 +659,15 @@ public:
     void calcInverseDynamicsPass2Inward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
-        const Vector_<SpatialVec>&  allA_GB,
-        const Vector&               jointForces,
-        const Vector_<SpatialVec>&  bodyForces,
-        Vector_<SpatialVec>&        allF,
-        Vector&                     allTau) const
+        const SpatialVec*           allA_GB,
+        const Real*                 jointForces,
+        const SpatialVec*           bodyForces,
+        SpatialVec*                 allF,
+        Real*                       allTau) const
     {
-        const SpatialVec& myBodyForce   = fromB(bodyForces);
-        const SpatialVec& A_GB          = fromB(allA_GB);
-        SpatialVec&       F             = toB(allF);
+        const SpatialVec& myBodyForce   = bodyForces[nodeNum];
+        const SpatialVec& A_GB          = allA_GB[nodeNum];
+        SpatialVec&       F             = allF[nodeNum];
 
         // Start with rigid body force from desired body acceleration and
         // gyroscopic forces due to angular velocity, minus external forces
@@ -688,10 +686,10 @@ public:
 
     void calcMVPass1Outward(
         const SBTreePositionCache&  pc,
-        const Vector&               allUDot,
-        Vector_<SpatialVec>&        allA_GB) const
+        const Real*                 allUDot,
+        SpatialVec*                 allA_GB) const
     {
-        SpatialVec& A_GB = toB(allA_GB);
+        SpatialVec& A_GB = allA_GB[nodeNum];
 
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
@@ -701,12 +699,12 @@ public:
 
     void calcMVPass2Inward(
         const SBTreePositionCache&  pc,
-        const Vector_<SpatialVec>&  allA_GB,
-        Vector_<SpatialVec>&        allF,   // temp
-        Vector&                     allTau) const 
+        const SpatialVec*           allA_GB,
+        SpatialVec*                 allF,   // temp
+        Real*                       allTau) const 
     {
-        const SpatialVec& A_GB  = fromB(allA_GB);
-        SpatialVec&       F     = toB(allF);
+        const SpatialVec& A_GB  = allA_GB[nodeNum];
+        SpatialVec&       F     = allF[nodeNum];
 
         F = getMk_G(pc)*A_GB;
 
@@ -719,22 +717,22 @@ public:
 
     void calcSpatialKinematicsFromInternal(
         const SBTreePositionCache&  pc,
-        const Vector&               v,
-        Vector_<SpatialVec>&        Jv) const    
+        const Real*                 v,
+        SpatialVec*                 Jv) const    
     {
-        SpatialVec& out = toB(Jv);
+        SpatialVec& out = Jv[nodeNum];
 
         // Shift parent's result outward (ground result is 0).
-        const SpatialVec outP = ~getPhi(pc) * parent->fromB(Jv);
+        const SpatialVec outP = ~getPhi(pc) * Jv[parent->getNodeNum()];
 
         out = outP;  
     }
 
     void calcInternalGradientFromSpatial(
         const SBTreePositionCache&  pc, 
-        Vector_<SpatialVec>&        zTmp,
-        const Vector_<SpatialVec>&  X, 
-        Vector&                     JX) const
+        SpatialVec*                 zTmp,
+        const SpatialVec*           X, 
+        Real*                       JX) const
     {
         const SpatialVec& in  = X[getNodeNum()];
         SpatialVec&       z   = zTmp[getNodeNum()];
@@ -751,12 +749,12 @@ public:
     void calcEquivalentJointForces(
         const SBTreePositionCache&  pc,
         const SBDynamicsCache&      dc,
-        const Vector_<SpatialVec>&  bodyForces,
-        Vector_<SpatialVec>&        allZ,
-        Vector&                     jointForces) const 
+        const SpatialVec*           bodyForces,
+        SpatialVec*                 allZ,
+        Real*                       jointForces) const 
     {
-        const SpatialVec& myBodyForce  = fromB(bodyForces);
-        SpatialVec&       z            = toB(allZ);
+        const SpatialVec& myBodyForce  = bodyForces[nodeNum];
+        SpatialVec&       z            = allZ[nodeNum];
 
         // Centrifugal forces are PA+b where P is articulated body inertia,
         // A is total coriolis acceleration, and b is gyroscopic force.

@@ -2072,15 +2072,16 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State&
         }
     }
     Array_<int> component(1);
-    const Vector& udot = s.updUDot();
+    const Real* udot = &s.updUDot()[0];
     Vector qdotdot(s.getNQ());
+    Real* qdotdotPtr = &qdotdot[0];
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity.next());
     for (int i = 0; i < temp.size(); ++i) {
         component[0] = i;
         const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
         const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
-        node.calcQDotDot(digest, udot, qdotdot);
+        node.calcQDotDot(digest, &udot[node.getUIndex()], &qdotdotPtr[node.getQIndex()]);
         paerr[0] += function->calcDerivative(component, temp)*body.getOneFromQPartition(s, coordIndices[i], qdotdot);
     }
 }
@@ -2189,13 +2190,13 @@ void Constraint::PrescribedMotionImpl::realizePositionDotErrors(const State& s, 
 }
 
 void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
-    const Vector& udot = s.updUDot();
+    const Real* udot = &s.updUDot()[0];
     Vector qdotdot(s.getNQ());
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
     const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBody));
     const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
-    node.calcQDotDot(digest, udot, qdotdot);
+    node.calcQDotDot(digest, &udot[node.getUIndex()], &qdotdot[node.getQIndex()]);
     temp[0] = s.getTime();
     Array_<int> components(2, 0);
     paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) - function->calcDerivative(components, temp);

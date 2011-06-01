@@ -291,7 +291,7 @@ void calcAcrossJointVelocityJacobianDot(
 // mode (10 flops); quaternion mode is 27 flops.
 // TODO: we're expecting that there are 4 qdots even in Euler angle mode
 // so we have to zero out the last one in that case.
-void calcLocalQDotFromLocalU(const SBStateDigest& sbs, const Real* u, 
+void calcQDot(const SBStateDigest& sbs, const Real* u, 
                              Real* qdot) const {
     assert(sbs.getStage() >= Stage::Position);
     assert(u && qdot);
@@ -459,7 +459,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 // idea to calculate this using explicit N and NDot matrices; we can save
 // a lot of time by using more specialized methods.
 // Cost: Euler angle mode - 22 flops, Quaternion mode - 41 flops.
-void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, 
+void calcQDotDot(const SBStateDigest& sbs, const Real* udot, 
                                    Real* qdotdot) const {
     assert(sbs.getStage() > Stage::Velocity);
     assert(udot && qdotdot);
@@ -494,38 +494,6 @@ void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot,
         Vec4::updAs(qdotdot) = 
             Rotation::convertAngVelDotToQuaternionDotDot(quat,w_FM,b_FM);
     }
-}
-
-// TODO: this can be done generically rather than per-mobilizer, since all
-// mobilizers implement the calcLocalQDotFromLocalU() operator.
-void calcQDot(
-    const SBStateDigest&   sbs,
-    const Vector&          allU, 
-    Vector&                allQDot) const 
-{
-    calcLocalQDotFromLocalU(sbs, &allU[uIndex], &allQDot[qIndex]);
-}
-
-// TODO: this can be done generically since every mobilizer implements
-// the calcLocalQDotDotFromLocalUDot() operator.
-void calcQDotDot(
-    const SBStateDigest&   sbs,
-    const Vector&          allUDot, 
-    Vector&                allQDotDot) const 
-{
-    calcLocalQDotDotFromLocalUDot(sbs, &allUDot[uIndex], &allQDotDot[qIndex]);
-}
-
-
-void copyQ(
-    const SBModelVars& mv, 
-    const Vector&      qIn, 
-    Vector&            q) const 
-{
-    if (getUseEulerAngles(mv))
-        toQ(q) = fromQ(qIn);
-    else
-        toQuat(q) = fromQuat(qIn);
 }
 
 int getMaxNQ() const {return 4;}
