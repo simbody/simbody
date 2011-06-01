@@ -20,10 +20,9 @@ LIB_DIR=$(SimTK_HOME)/lib
 INCLUDE_DIR=$(SimTK_HOME)/include
 
 # You would need this whole list to link with static libraries; for 
-# dynamic libraries (shared objects) only the first library need be
-# listed explicitly.
-# LIBS= -lSimTKsimbody$(DEBUG) -lSimTKmath$(DEBUG) -lSimTKcommon$(DEBUG) -llapack -lblas -lpthread -lm -lrt
-LIBS= -lSimTKsimbody$(DEBUG)
+# dynamic libraries (shared objects) the others are picked up as needed.
+#       -llapack -lblas -lpthread -lm -lrt
+LIBS= -lSimTKsimbody$(DEBUG) -lSimTKmath$(DEBUG) -lSimTKcommon$(DEBUG)
 
 ifeq "${DEBUG}" ""
 CFLAGS = -O2 ${M32FLAG}
