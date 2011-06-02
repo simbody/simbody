@@ -763,10 +763,21 @@ MatrixHelperRep<S>::subIn(const MatrixHelper<typename CNT<S>::TNeg>& nh) {
 
 template <class S> void
 MatrixHelperRep<S>::fillWith(const S* eltp) {
-    // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
-    for (int j=0; j<ncol(); ++j)
-        for (int i=0; i<nrow(); ++i)
-            copyElt(updElt(i,j),eltp);
+    if (hasContiguousData()) {
+        int len = length();
+        if (getEltSize() == 1)
+            for (int i = 0; i < len; i++)
+                m_data[i] = *eltp;
+        else
+            for (int i = 0; i < len; i++)
+                for (int j = 0; j < getEltSize(); j++)
+                    m_data[i*getEltSize()+j] = eltp[j];
+    }
+    else {
+        for (int j=0; j<ncol(); ++j)
+            for (int i=0; i<nrow(); ++i)
+                copyElt(updElt(i,j),eltp);
+    }
 } 
 
 // We're copying data from a C++ row-oriented matrix into our general

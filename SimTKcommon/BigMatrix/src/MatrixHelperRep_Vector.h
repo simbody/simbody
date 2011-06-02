@@ -280,6 +280,13 @@ public:
         this->clearData();
         this->setData(newData);
     }
+
+    void copyInFromCompatibleSource_(const MatrixHelperRep<S>& source) {
+        if (source.hasContiguousData())
+            std::memcpy(this->m_data, source.getElt(0, 0), this->nScalars()*sizeof(S));
+        else
+            FullVectorHelper<S>::copyInFromCompatibleSource_(source);
+    }
 };
 
 
