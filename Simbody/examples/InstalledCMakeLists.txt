@@ -23,7 +23,7 @@ PROJECT(SimTKExamples)
 
 SET(BUILD_TESTING_SHARED TRUE CACHE BOOL 
 		"Build examples using dynamic SimTK libraries.")
-SET(BUILD_TESTING_STATIC TRUE CACHE BOOL
+SET(BUILD_TESTING_STATIC FALSE CACHE BOOL
 		"Build examples using static SimTK libraries.")
 
 SET(SimTK_SHARED_LIBS 
@@ -65,7 +65,10 @@ ENDIF(NOT SimTK)
 INCLUDE_DIRECTORIES($ENV{SimTK_INSTALL_DIR}/include)
 LINK_DIRECTORIES($ENV{SimTK_INSTALL_DIR}/lib)
 
-
+# On Mac, build 32 bit binaries.
+IF(APPLE)
+    SET(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "The processor architectures to build for" FORCE)
+ENDIF(APPLE)
 
 FILE(GLOB EXAMPLES "*.cpp")
 FOREACH(EX_PROG ${EXAMPLES})
