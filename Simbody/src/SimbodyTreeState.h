@@ -577,7 +577,7 @@ public:
 class SBTimeCache {
 public:
     // This holds values from Motion prescribed position (holonomic) calculations.
-    Vector presQPool;   // Index with PresQPoolIndex
+    Array_<Real> presQPool;   // Index with PresQPoolIndex
 
 public:
     void allocate(const SBTopologyCache& topo,
@@ -735,7 +735,7 @@ public:
 
     // This holds values from all the Motion prescribed velocity (nonholonomic) 
     // calculations, and those resulting from diffentiating prescribed positions.
-    Vector presUPool;   // Index with PresUPoolIndex
+    Array_<Real> presUPool;   // Index with PresUPoolIndex
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -839,6 +839,9 @@ public:
     Vector_<Real>       storageForD;              // sum(nu[j]^2)
     Vector_<Real>       storageForDI;             // sum(nu[j]^2)
     Array_<Vec3>        storageForG;              // 2 X ndof
+    Real* pointerToD;
+    Real* pointerToDI;
+    Vec3* pointerToG;
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -858,6 +861,9 @@ public:
         storageForD.resize(nSqDofs);
         storageForDI.resize(nSqDofs);
         storageForG.resize(2*nDofs);
+        pointerToD = &storageForD[0];
+        pointerToDI = &storageForDI[0];
+        pointerToG = &storageForG[0];
     }
 };
 //....................... ARTICULATED BODY INERTIA CACHE .......................
@@ -1006,7 +1012,7 @@ public:
     // This holds the values from all the Motion prescribed acceleration 
     // calculations, and those which result from diffentiating prescribed velocities,
     // or differentiating twice prescribed positions.
-    Vector presUDotPool;    // Index with PresUDotPoolIndex
+    Array_<Real> presUDotPool;    // Index with PresUDotPoolIndex
 
     // Dynamics
     Array_<SpatialVec> centrifugalForces;        // nb (P*a+b)
