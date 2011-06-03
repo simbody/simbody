@@ -83,7 +83,7 @@ using namespace SimTK;
 
 class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
-template <int dof> class RigidBodyNodeSpec;
+template <int dof, bool noR_FM, bool noX_MB, bool noR_PF> class RigidBodyNodeSpec;
 
 // defined below
 

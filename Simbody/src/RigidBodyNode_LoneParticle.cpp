@@ -447,9 +447,34 @@ RigidBodyNode* MobilizedBody::TranslationImpl::createRigidBodyNode(
     
     // Use RBNodeTranslate for the general case.
     
-    return new RBNodeTranslate(
-        getDefaultRigidBodyMassProperties(),
-        getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        isReversed(),
-        nextUSlot,nextUSqSlot,nextQSlot);
+    bool noX_MB = (getDefaultOutboardFrame().p() == 0 && getDefaultOutboardFrame().R() == Mat33(1));
+    bool noR_PF = (getDefaultInboardFrame().R() == Mat33(1));
+    if (noX_MB) {
+        if (noR_PF)
+            return new RBNodeTranslate<true, true> (
+                getDefaultRigidBodyMassProperties(),
+                getDefaultInboardFrame(),getDefaultOutboardFrame(),
+                isReversed(),
+                nextUSlot,nextUSqSlot,nextQSlot);
+        else
+            return new RBNodeTranslate<true, false> (
+                getDefaultRigidBodyMassProperties(),
+                getDefaultInboardFrame(),getDefaultOutboardFrame(),
+                isReversed(),
+                nextUSlot,nextUSqSlot,nextQSlot);
+    }
+    else {
+        if (noR_PF)
+            return new RBNodeTranslate<false, true> (
+                getDefaultRigidBodyMassProperties(),
+                getDefaultInboardFrame(),getDefaultOutboardFrame(),
+                isReversed(),
+                nextUSlot,nextUSqSlot,nextQSlot);
+        else
+            return new RBNodeTranslate<false, false> (
+                getDefaultRigidBodyMassProperties(),
+                getDefaultInboardFrame(),getDefaultOutboardFrame(),
+                isReversed(),
+                nextUSlot,nextUSqSlot,nextQSlot);
+    }
 }

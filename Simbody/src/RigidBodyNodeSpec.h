@@ -65,7 +65,7 @@
  * mobilities). Each implementation works only on fixed size Vec<> and Mat<> 
  * types, so can use very high speed inline operators.
  */
-template<int dof>
+template<int dof, bool noR_FM=false, bool noX_MB=false, bool noR_PF=false>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
 
@@ -192,9 +192,8 @@ void calcBodyTransforms(
     const Transform& X_FM = getX_FM(pc); // just calculated
     const Transform& X_GP = getX_GP(pc); // already calculated
 
-    // TODO: can save a lot of flops here for bodies whose joint frames
-    // coincide with their body frames.
-    X_PB = X_PF * X_FM * X_MB; // 126 flops
+    const Transform X_FB = (noX_MB ? X_FM : X_FM*X_MB); // 63 flops
+    X_PB = (noR_PF ? Transform(X_FB.R(), X_PF.p()+X_FB.p()) : X_PF*X_FB); // 63 flops
     X_GB = X_GP * X_PB;        //  63 flops
 }
 

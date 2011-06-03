@@ -51,8 +51,10 @@
 // Cartesian directions are the axes of the parent body's F frame, with M=F 
 // when all 3 coords are 0, and the orientation of M in F is 0 (identity) 
 // forever.
-class RBNodeTranslate : public RigidBodyNodeSpec<3> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeTranslate : public RigidBodyNodeSpec<3, true, noX_MB, noR_PF> {
 public:
+typedef typename RigidBodyNodeSpec<3, true, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "translate"; }
 
 RBNodeTranslate(const MassProperties& mProps_B,
@@ -62,11 +64,11 @@ RBNodeTranslate(const MassProperties& mProps_B,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, 
+:   RigidBodyNodeSpec<3, true, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
     // Implementations of virtual methods.
@@ -78,7 +80,7 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3&  p_FM, 
                               Vector& q) const {
     // here's what this joint is really good at!
-    toQ(q) = p_FM;
+    this->toQ(q) = p_FM;
 }
 
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, 
@@ -89,7 +91,7 @@ void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
 {
     // linear velocity is in a Cartesian joint's sweet spot
-    toU(u) = v_FM;
+    this->toU(u) = v_FM;
 }
 
 // A translation joint doesn't need to cache any q calculations.
