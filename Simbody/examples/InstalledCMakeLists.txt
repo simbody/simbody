@@ -45,13 +45,12 @@ SET(SimTK_STATIC_LIBS_D
 		debug SimTKcommon_static_d)
 
 
-# Lapack is only available as a shared, optimized library.
-SET(SimTK_GENERAL_LIBS SimTKlapack)
+# These extra libraries are only available as a shared, optimized.
 IF(WIN32)
-	SET(SimTK_GENERAL_LIBS ${SimTK_GENERAL_LIBS} pthreadVC2)
+	SET(SimTK_GENERAL_LIBS SimTKlapack pthreadVC2)
 ELSEIF(APPLE)
 ELSE() #Linux
-	SET(SimTK_GENERAL_LIBS ${SimTK_GENERAL_LIBS} dl rt)
+	SET(SimTK_GENERAL_LIBS dl rt)
 ENDIF()
 
 SET(SimTK $ENV{SimTK_INSTALL_DIR} CACHE PATH
@@ -59,11 +58,11 @@ SET(SimTK $ENV{SimTK_INSTALL_DIR} CACHE PATH
 
 IF(NOT SimTK)
 	MESSAGE(FATAL_ERROR 
-			"Expected SimTK_INSTALL_DIR environment var to be set.")
+"Expected SimTK_INSTALL_DIR environment var to be set, or set SimTK in CMake")
 ENDIF(NOT SimTK)
 
-INCLUDE_DIRECTORIES($ENV{SimTK_INSTALL_DIR}/include)
-LINK_DIRECTORIES($ENV{SimTK_INSTALL_DIR}/lib)
+INCLUDE_DIRECTORIES(${SimTK}/include)
+LINK_DIRECTORIES(${SimTK}/lib)
 
 # On Mac, build 32 bit binaries.
 IF(APPLE)
