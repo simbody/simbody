@@ -55,8 +55,10 @@
 // we rotate around z, which moves M's x with respect to F's x. Then
 // we slide along the rotated x axis. The two generalized coordinates are the 
 // rotation and the translation, in that order.
-class RBNodeBendStretch : public RigidBodyNodeSpec<2> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeBendStretch : public RigidBodyNodeSpec<2, false, noX_MB, noR_PF> {
 public:
+typedef typename RigidBodyNodeSpec<2, false, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "bendstretch"; }
 
 RBNodeBendStretch(const MassProperties&   mProps_B,
@@ -66,11 +68,11 @@ RBNodeBendStretch(const MassProperties&   mProps_B,
                     UIndex&               nextUSlot,
                     USquaredIndex&        nextUSqSlot,
                     QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, 
+:   RigidBodyNodeSpec<2, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 
@@ -79,7 +81,7 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
     // The only rotation our bend-stretch joint can handle is about z.
     // TODO: this code is bad -- see comments for Torsion joint above.
     const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
-    toQ(q)[0] = angles123[2];
+    this->toQ(q)[0] = angles123[2];
 }
 
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
@@ -93,16 +95,16 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
     // coordinate alone, otherwise rotate so M's x axis is aligned with r.
     if (d >= 4*Eps) {
         const Real angle = std::atan2(r[1],r[0]);
-        toQ(q)[0] = angle;
-        toQ(q)[1] = d;
+        this->toQ(q)[0] = angle;
+        this->toQ(q)[1] = d;
     } else
-        toQ(q)[1] = 0;
+        this->toQ(q)[1] = 0;
 }
 
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, 
                                   const Vec3& w_FM, Vector& u) const {
     // We can only represent an angular velocity along z with this joint.
-    toU(u)[0] = w_FM[2];
+    this->toU(u)[0] = w_FM[2];
 }
 
 // If the translational coordinate is zero, we can only represent a linear 
@@ -113,12 +115,12 @@ void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
 {
     // Decompose the requested v into "along Mx" and "along My" components.
-    const Rotation R_FM = Rotation( fromQ(q)[0], ZAxis ); // =[ Mx My Mz ] in F
+    const Rotation R_FM = Rotation( this->fromQ(q)[0], ZAxis ); // =[ Mx My Mz ] in F
     const Vec3 v_FM_M = ~R_FM*v_FM; // re-express in M frame
 
-    toU(u)[1] = v_FM_M[0]; // velocity along Mx we can represent directly
+    this->toU(u)[1] = v_FM_M[0]; // velocity along Mx we can represent directly
 
-    const Real x = fromQ(q)[1]; // translation along Mx (signed)
+    const Real x = this->fromQ(q)[1]; // translation along Mx (signed)
     if (std::abs(x) < SignificantReal) {
         // No translation worth mentioning; we can only do x velocity, which 
         // we just set above.
@@ -126,7 +128,7 @@ void setUToFitLinearVelocityImpl
     }
 
     // significant translation
-    toU(u)[0] = v_FM_M[1] / x; // set angular velocity about z to produce vy
+    this->toU(u)[0] = v_FM_M[1] / x; // set angular velocity about z to produce vy
 }
 
 enum {PoolSize=2}; // number of Reals
@@ -170,7 +172,7 @@ void calcAcrossJointVelocityJacobian(
 {
     // use "upd" because we're realizing positions now
     const SBTreePositionCache& pc = sbs.updTreePositionCache(); 
-    const Transform X_F0M0 = findX_F0M0(pc);
+    const Transform X_F0M0 = this->findX_F0M0(pc);
     const Rotation& R_F0M0 = X_F0M0.R();
 
     // Dropping the 0's here.
@@ -194,9 +196,9 @@ void calcAcrossJointVelocityJacobianDot(
     const SBTreePositionCache& pc = sbs.getTreePositionCache();
     const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); // use "upd" because we're realizing velocities now
 
-    const Transform  X_F0M0 = findX_F0M0(pc);
+    const Transform  X_F0M0 = this->findX_F0M0(pc);
     const Rotation&  R_F0M0 = X_F0M0.R();
-    const SpatialVec V_F0M0 = findV_F0M0(pc,vc);
+    const SpatialVec V_F0M0 = this->findV_F0M0(pc,vc);
 
     // Dropping the 0's here.
     const Vec3&     Mx_F = R_F0M0.x(); // M's x axis, expressed in F

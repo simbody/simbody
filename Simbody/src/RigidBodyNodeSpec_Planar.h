@@ -51,8 +51,10 @@
 // and the common z axis of F and M as the rotational axis. The generalized
 // coordinates are theta,x,y interpreted as rotation around z and translation
 // along the (space fixed) Fx and Fy axes.
-class RBNodePlanar : public RigidBodyNodeSpec<3> {
+template<bool noX_MB, bool noR_PF>
+class RBNodePlanar : public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
 public:
+typedef typename RigidBodyNodeSpec<3, false, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "planar"; }
 
 RBNodePlanar(const MassProperties&    mProps_B,
@@ -62,11 +64,11 @@ RBNodePlanar(const MassProperties&    mProps_B,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, 
+:   RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
     // Implementations of virtual methods.
@@ -79,24 +81,24 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, Vecto
     // TODO: isn't there a better way to come up with "the rotation around z that
     // best approximates a rotation R"?
     const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
-    toQ(q)[0] = angles123[2];
+    this->toQ(q)[0] = angles123[2];
 }
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3&  p_FM, Vector& q) const {
     // Ignore translation in the z direction.
-    toQ(q)[1] = p_FM[0]; // x
-    toQ(q)[2] = p_FM[1]; // y
+    this->toQ(q)[1] = p_FM[0]; // x
+    this->toQ(q)[2] = p_FM[1]; // y
 }
 
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
     // We can represent the z angular velocity exactly, but nothing else.
-    toU(u)[0] = w_FM[2];
+    this->toU(u)[0] = w_FM[2];
 }
 void setUToFitLinearVelocityImpl
     (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
 {
     // Ignore translational velocity in the z direction.
-    toU(u)[1] = v_FM[0]; // x
-    toU(u)[2] = v_FM[1]; // y
+    this->toU(u)[1] = v_FM[0]; // x
+    this->toU(u)[2] = v_FM[1]; // y
 }
 
 enum {PoolSize=2};

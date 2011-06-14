@@ -98,8 +98,10 @@ One common convention for atomic (torsion,bend,stretch) uses the default
 spherical coordinate system but the final stretch is along the -z direction. 
 For that, take all defaults but set s2=-1. */
 
-class RBNodeSphericalCoords : public RigidBodyNodeSpec<3> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeSphericalCoords : public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
 public:
+typedef typename RigidBodyNodeSpec<3, false, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "spherical coords"; }
 
 RBNodeSphericalCoords(const MassProperties&   mProps_B,
@@ -115,8 +117,8 @@ RBNodeSphericalCoords(const MassProperties&   mProps_B,
                         UIndex&               nextUSlot,
                         USquaredIndex&        nextUSqSlot,
                         QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, 
+:   RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed),
     az0(azimuthOffset), ze0(zenithOffset), axisT(translationAxis),
     signAz(azimuthNegated ? -1 : 1), signZe(zenithNegated ? -1 : 1), 
@@ -124,7 +126,7 @@ RBNodeSphericalCoords(const MassProperties&   mProps_B,
 {
     SimTK_ASSERT_ALWAYS( translationAxis != YAxis,
         "RBNodeSphericalCoords: translation axis must be x or z; not y.");
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
@@ -135,8 +137,8 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
     // supplied rotation matrix can be decomposed into (z,y) rotations.
     const Vec2 angles = R_FM.convertTwoAxesRotationToTwoAngles
                                         (BodyRotationSequence, ZAxis, YAxis);
-    toQ(q)[0] = signAz * (angles[0] - az0);
-    toQ(q)[1] = signZe * (angles[1] - ze0);
+    this->toQ(q)[0] = signAz * (angles[0] - az0);
+    this->toQ(q)[1] = signZe * (angles[1] - ze0);
 }
 
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
@@ -146,7 +148,7 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
     // along it.
     const Rotation R_FM = calcR_FM(q);
     // note: rows of R_FM are columns of R_MF.
-    toQ(q)[2] = signT * dot(p_FM, R_FM[axisT]); 
+    this->toQ(q)[2] = signT * dot(p_FM, R_FM[axisT]); 
 }
 
 // We can only express angular velocity that can be produced with our 
@@ -158,10 +160,10 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, 
                                   const Vec3& w_FM, Vector& u) const {
     const Rotation R_FM = calcR_FM(q);
-    toU(u)[0] = w_FM[2]; 
+    this->toU(u)[0] = w_FM[2]; 
     // Calculate the remaining angular velocity w-wz and re-express in M.
     const Vec3 wxy_FM_M = ~R_FM*Vec3(w_FM[0],w_FM[1],0);
-    toU(u)[1] = wxy_FM_M[1]; // can only deal with the y angular velocity now
+    this->toU(u)[1] = wxy_FM_M[1]; // can only deal with the y angular velocity now
 }
 
 // Although we could try to use angular velocity to affect linear velocity, 
@@ -171,7 +173,7 @@ void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
 {
     const Rotation R_FM = calcR_FM(q);
-    toU(u)[2] = dot(v_FM, R_FM[axisT]); // i.e., v_FM*Mx_F or v_FM*Mz_F. 
+    this->toU(u)[2] = dot(v_FM, R_FM[axisT]); // i.e., v_FM*Mx_F or v_FM*Mz_F. 
 }
 
 enum {PoolSize=4}; // number of Reals
@@ -237,7 +239,7 @@ void calcAcrossJointVelocityJacobian(
 {
     // "upd" because we're realizing positions now
     const SBTreePositionCache& pc = sbs.updTreePositionCache(); 
-    const Transform  X_F0M0 = findX_F0M0(pc);   // 18 flops if reversed
+    const Transform  X_F0M0 = this->findX_F0M0(pc);   // 18 flops if reversed
 
     // Dropping the 0's here.
     const Rotation& R_FM = X_F0M0.R();
@@ -269,8 +271,8 @@ void calcAcrossJointVelocityJacobianDot(
     // "upd" because we're realizing velocities now
     const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); 
 
-    const Transform  X_F0M0 = findX_F0M0(pc);       // 18 flops if reversed
-    const SpatialVec V_F0M0 = findV_F0M0(pc,vc);    // 45 flops if reversed
+    const Transform  X_F0M0 = this->findX_F0M0(pc);       // 18 flops if reversed
+    const SpatialVec V_F0M0 = this->findV_F0M0(pc,vc);    // 45 flops if reversed
 
     // Dropping the 0's here.
     const Rotation& R_FM = X_F0M0.R();
@@ -311,7 +313,7 @@ Vec2 calcAzZe(Real q0, Real q1) const {
 // although the angles may be negated and shifted from the generalized 
 // coordinates.
 Rotation calcR_FM(const Vector& q) const {
-    const Vec2 azZe = calcAzZe(fromQ(q)[0], fromQ(q)[1]); 
+    const Vec2 azZe = calcAzZe(this->fromQ(q)[0], this->fromQ(q)[1]); 
     return Rotation( BodyRotationSequence, azZe[0], ZAxis, azZe[1], YAxis );
 }
 

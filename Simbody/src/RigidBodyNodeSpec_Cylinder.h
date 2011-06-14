@@ -54,8 +54,10 @@
 // In addition, the origin points of M and F are separated only along the
 // z axis; i.e., they have the same x & y coords in the F frame. The two
 // generalized coordinates are the rotation and the translation, in that order.
-class RBNodeCylinder : public RigidBodyNodeSpec<2> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeCylinder : public RigidBodyNodeSpec<2, false, noX_MB, noR_PF> {
 public:
+    typedef typename RigidBodyNodeSpec<2, false, noX_MB, noR_PF>::HType HType;
     virtual const char* type() { return "cylinder"; }
 
     RBNodeCylinder(const MassProperties& mProps_B,
@@ -65,10 +67,10 @@ public:
                    UIndex&               nextUSlot,
                    USquaredIndex&        nextUSqSlot,
                    QIndex&               nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, isReversed)
+      : RigidBodyNodeSpec<2, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, isReversed)
     {
-        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+        this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
 
@@ -76,19 +78,19 @@ public:
         // The only rotation our cylinder joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
         const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
-        toQ(q)[0] = angles123[2];
+        this->toQ(q)[0] = angles123[2];
     }
 
     void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // Because the M and F origins must lie along their shared z axis, there is no way to
         // create a translation by rotating around z. So the only translation we can represent
         // is that component which is along z.
-        toQ(q)[1] = p_FM[2];
+        this->toQ(q)[1] = p_FM[2];
     }
 
     void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
-        toU(u)[0] = w_FM[2];
+        this->toU(u)[0] = w_FM[2];
     }
 
     void setUToFitLinearVelocityImpl
@@ -97,7 +99,7 @@ public:
         // Because the M and F origins must lie along their shared z axis, there is no way to
         // create a linear velocity by rotating around z. So the only linear velocity we can represent
         // is that component which is along z.
-        toU(u)[1] = v_FM[2];
+        this->toU(u)[1] = v_FM[2];
     }
 
     enum {CosQ=0, SinQ=1};

@@ -53,9 +53,11 @@
 // angle. For the generalized speed u we use the rotation rate, which is also 
 // the angular velocity of M in F (about the z axis). We compute the
 // translational position as pitch*q, and the translation rate as pitch*u.
-class RBNodeScrew : public RigidBodyNodeSpec<1> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeScrew : public RigidBodyNodeSpec<1, false, noX_MB, noR_PF> {
     Real pitch;
 public:
+typedef typename RigidBodyNodeSpec<1, false, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "screw"; }
 
 RBNodeScrew(const MassProperties& mProps_B,
@@ -66,12 +68,12 @@ RBNodeScrew(const MassProperties& mProps_B,
             UIndex&               nextUSlot,
             USquaredIndex&        nextUSqSlot,
             QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, 
+:   RigidBodyNodeSpec<1, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed),
     pitch(p)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
@@ -83,24 +85,24 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
     // TODO: isn't there a better way to come up with "the rotation around z 
     // that best approximates a rotation R"?
     const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
-    to1Q(q) = angles123[2];
+    this->to1Q(q) = angles123[2];
 }
 
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
                               Vector& q) const {
-    to1Q(q) = p_FM[2]/pitch;
+    this->to1Q(q) = p_FM[2]/pitch;
 }
 
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, 
                                   const Vec3& w_FM, Vector& u) const {
     // We can only represent an angular velocity along z with this joint.
-    to1U(u) = w_FM[2]; // project angular velocity onto z axis
+    this->to1U(u) = w_FM[2]; // project angular velocity onto z axis
 }
 
 void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
 {
-    to1U(u) = v_FM[2]/pitch;
+    this->to1U(u) = v_FM[2]/pitch;
 }
 
 // We're currently using an angle as the generalized coordinate for the 

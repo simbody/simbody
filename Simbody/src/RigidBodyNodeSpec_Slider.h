@@ -49,8 +49,10 @@
 // Sliding joint (1 dof translation). The translation is along the x
 // axis of the parent body's F frame, with M=F when the coordinate
 // is zero and the orientation of M in F frozen at 0 forever.
-class RBNodeSlider : public RigidBodyNodeSpec<1, true> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeSlider : public RigidBodyNodeSpec<1, true, noX_MB, noR_PF> {
 public:
+typedef typename RigidBodyNodeSpec<1, false, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "slider"; }
 
 RBNodeSlider(const MassProperties&    mProps_B,
@@ -60,11 +62,11 @@ RBNodeSlider(const MassProperties&    mProps_B,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<1, true>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, 
+:   RigidBodyNodeSpec<1, true, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
     // Implementations of virtual methods.
@@ -77,7 +79,7 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
                               Vector& q) const {
     // We can only represent the x coordinate with this joint.
-    to1Q(q) = p_FM[0];
+    this->to1Q(q) = p_FM[0];
 }
 
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, 
@@ -89,7 +91,7 @@ void setUToFitLinearVelocityImpl(const SBStateDigest& sbs, const Vector&,
                                  const Vec3& v_FM, Vector& u) const
 {
     // We can only represent a velocity along x with this joint.
-    to1U(u) = v_FM[0];
+    this->to1U(u) = v_FM[0];
 }
 
 // A sliding joint doesn't need to cache any q calculations.

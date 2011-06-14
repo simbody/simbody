@@ -71,7 +71,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcParentToChildVelocityJacobia
     const Rotation& R_GP = getX_GP(pc).R(); // parent orientation in ground
     const Rotation  R_GF = (noR_PF ? R_GP : R_GP * R_PF);     // 45 flops
 
-    if (noX_MB)
+    if (noX_MB || noR_FM)
         H_PB_G = R_GF * H_FM;       // 3*dof flops
     else {
         // want r_MB_F, that is, the vector from Mo to Bo, expressed in F
@@ -115,7 +115,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcParentToChildVelocityJacobia
     // Note: time derivative of R_GF is crossMat(w_GF)*R_GF.
     //      H = H_PB_G =  R_GF * (H_FM + H_MB_F) (see above method)
     const HType& H_PB_G = getH(pc);
-    if (noX_MB)
+    if (noX_MB || noR_FM)
         HDot_PB_G = R_GF * HDot_FM // 48*dof
                   + HType(w_GF % H_PB_G[0], 
                           w_GF % H_PB_G[1]);
@@ -834,19 +834,17 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::setVelFromSVel(
     // INSTANTIATIONS //
     ////////////////////
 
-#define INSTANTIATE(dof) \
-template class RigidBodyNodeSpec<dof, false, false, false>; \
-template class RigidBodyNodeSpec<dof, false, false, true>; \
-template class RigidBodyNodeSpec<dof, false, true, false>; \
-template class RigidBodyNodeSpec<dof, false, true, true>; \
-template class RigidBodyNodeSpec<dof, true, false, false>; \
-template class RigidBodyNodeSpec<dof, true, false, true>; \
-template class RigidBodyNodeSpec<dof, true, true, false>; \
-template class RigidBodyNodeSpec<dof, true, true, true>;
+#define INSTANTIATE(dof, noR_FM) \
+template class RigidBodyNodeSpec<dof, noR_FM, false, false>; \
+template class RigidBodyNodeSpec<dof, noR_FM, false, true>; \
+template class RigidBodyNodeSpec<dof, noR_FM, true, false>; \
+template class RigidBodyNodeSpec<dof, noR_FM, true, true>;
 
-INSTANTIATE(1)
-INSTANTIATE(2)
-INSTANTIATE(3)
-INSTANTIATE(4)
-INSTANTIATE(5)
-INSTANTIATE(6)
+INSTANTIATE(1, false)
+INSTANTIATE(2, false)
+INSTANTIATE(3, false)
+INSTANTIATE(4, false)
+INSTANTIATE(5, false)
+INSTANTIATE(6, false)
+INSTANTIATE(1, true)
+INSTANTIATE(3, true)

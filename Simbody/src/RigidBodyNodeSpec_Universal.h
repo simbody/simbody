@@ -66,8 +66,10 @@
 // Note that the U-Joint degrees of freedom relating the parent's F frame to 
 // the child's M frame are about x and y, with the "long" axis of the
 // driveshaft along z.
-class RBNodeUJoint : public RigidBodyNodeSpec<2> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeUJoint : public RigidBodyNodeSpec<2, false, noX_MB, noR_PF> {
 public:
+typedef typename RigidBodyNodeSpec<2, false, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "ujoint"; }
 
 RBNodeUJoint(const MassProperties& mProps_B,
@@ -77,11 +79,11 @@ RBNodeUJoint(const MassProperties& mProps_B,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, 
+:   RigidBodyNodeSpec<2, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
@@ -91,7 +93,7 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
     // that best approximates a rotation R"? Here we're just hoping that the 
     // supplied rotation matrix can be decomposed into (x,y) rotations.
     const Vec2 angles12 = R_FM.convertRotationToBodyFixedXY();
-    toQ(q) = angles12;
+    this->toQ(q) = angles12;
 }
 
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
@@ -110,9 +112,9 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, 
                                   const Vec3& w_FM, Vector& u) const {
     const Rotation R_FM = 
-        Rotation(BodyRotationSequence, fromQ(q)[0], XAxis, fromQ(q)[1], YAxis);  // body fixed 1-2 sequence
+        Rotation(BodyRotationSequence, this->fromQ(q)[0], XAxis, this->fromQ(q)[1], YAxis);  // body fixed 1-2 sequence
     const Vec3 wyz_FM_M = ~R_FM*Vec3(0,w_FM[1],w_FM[2]);
-    toU(u) = Vec2(w_FM[0], wyz_FM_M[1]);
+    this->toU(u) = Vec2(w_FM[0], wyz_FM_M[1]);
 }
 
 void setUToFitLinearVelocityImpl
@@ -165,7 +167,7 @@ void calcAcrossJointVelocityJacobian(
 {
     // "upd" because we're realizing positions now
     const SBTreePositionCache& pc = sbs.updTreePositionCache(); 
-    const Transform  X_F0M0 = findX_F0M0(pc);
+    const Transform  X_F0M0 = this->findX_F0M0(pc);
 
     // Dropping the 0's here.
     const Rotation& R_FM = X_F0M0.R();
@@ -187,11 +189,11 @@ void calcAcrossJointVelocityJacobianDot(
     // "upd" because we're realizing velocities now
     const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); 
 
-    const Transform  X_F0M0 = findX_F0M0(pc);
+    const Transform  X_F0M0 = this->findX_F0M0(pc);
 
     // Dropping the 0's here.
     const Rotation& R_FM = X_F0M0.R();
-    const Vec3      w_FM = find_w_F0M0(pc,vc); // angular velocity of M in F
+    const Vec3      w_FM = this->find_w_F0M0(pc,vc); // angular velocity of M in F
 
     HDot_FM(0) = SpatialVec(     Vec3(0)     , Vec3(0) );
     HDot_FM(1) = SpatialVec( w_FM % R_FM.y() , Vec3(0) );

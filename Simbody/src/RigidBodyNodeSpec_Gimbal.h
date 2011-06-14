@@ -61,9 +61,11 @@
 // modeling option allows the Ball to be switched to use Euler angles when 
 // convenient.
 
-class RBNodeGimbal : public RigidBodyNodeSpec<3> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeGimbal : public RigidBodyNodeSpec<3, false, noX_MB, noR_PF> {
 public:
 
+typedef typename RigidBodyNodeSpec<3, false, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "gimbal"; }
 
 RBNodeGimbal( const MassProperties& mProps_B,
@@ -73,15 +75,15 @@ RBNodeGimbal( const MassProperties& mProps_B,
               UIndex&               nextUSlot,
               USquaredIndex&        nextUSqSlot,
               QIndex&               nextQSlot)
-  : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotMayDifferFromU, QuaternionIsNeverUsed, isReversed)
+  : RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotMayDifferFromU, RigidBodyNode::QuaternionIsNeverUsed, isReversed)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const {
-    toQ(q) = R_FM.convertRotationToBodyFixedXYZ();
+    this->toQ(q) = R_FM.convertRotationToBodyFixedXYZ();
 }
 
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
@@ -95,7 +97,7 @@ void setUToFitAngularVelocityImpl
    (const SBStateDigest& sbs, const Vector&, const Vec3& w_FM,
     Vector& u) const 
 {
-    toU(u) = w_FM; // relative ang. vel. always used as generalized speeds
+    this->toU(u) = w_FM; // relative ang. vel. always used as generalized speeds
 }
 
 void setUToFitLinearVelocityImpl
@@ -178,7 +180,7 @@ void calcQDot(const SBStateDigest& sbs, const Real* u,
 
     const SBModelCache&        mc   = sbs.getModelCache();
     const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = getQPool(mc, pc);
+    const Real*                pool = this->getQPool(mc, pc);
 
     const Vec3& w_FM = Vec3::getAs(u);
     Vec3::updAs(qdot) = Rotation::convertAngVelInParentToBodyXYZDot(
@@ -198,7 +200,7 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
 
     const SBModelCache&        mc   = sbs.getModelCache();
     const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = getQPool(mc, pc);
+    const Real*                pool = this->getQPool(mc, pc);
 
     // Aliases.
     const Vec2& cosxy  = Vec2::getAs(&pool[CosQ]); // only need x,y angles
@@ -226,7 +228,7 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
 
     const SBModelCache&        mc   = sbs.getModelCache();
     const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = getQPool(mc, pc);
+    const Real*                pool = this->getQPool(mc, pc);
 
     // Aliases.
     const Vec2& cosxy  = Vec2::getAs(&pool[CosQ]); // only need x,y angles
@@ -255,13 +257,13 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 
     const SBModelCache&        mc   = sbs.getModelCache();
     const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = getQPool(mc, pc);
+    const Real*                pool = this->getQPool(mc, pc);
 
     // Aliases.
     const Vec2& cosxy  = Vec2::getAs(&pool[CosQ]); // only need x,y angles
     const Vec2& sinxy  = Vec2::getAs(&pool[SinQ]);
     const Real& oocosy = pool[OOCosQy];
-    const Vec3& qdot   = fromQ(sbs.getQDot());
+    const Vec3& qdot   = this->fromQ(sbs.getQDot());
 
     // We don't have a nice multiply-by routine here so just get the NDot
     // matrix and use it (21 flops).
@@ -286,13 +288,13 @@ void calcQDotDot(const SBStateDigest& sbs,
 
     const SBModelCache&        mc   = sbs.getModelCache();
     const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = getQPool(mc, pc);
+    const Real*                pool = this->getQPool(mc, pc);
 
     // Aliases.
     const Vec2& cosxy  = Vec2::getAs(&pool[CosQ]); // only need x,y angles
     const Vec2& sinxy  = Vec2::getAs(&pool[SinQ]);
     const Real& oocosy = pool[OOCosQy];
-    const Vec3& qdot = fromQ(sbs.getQDot());
+    const Vec3& qdot = this->fromQ(sbs.getQDot());
 
     const Vec3& b_FM      = Vec3::getAs(udot); // = w_FM_dot (angular accel.)
     Vec3&       qdotdot_v = Vec3::updAs(qdotdot);

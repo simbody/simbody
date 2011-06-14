@@ -63,9 +63,11 @@
 //
 // NOTE: An XYZ Euler angle sequence has a singularity when the middle angle
 // is at 90 or 270 degrees; quaternions are never singular. 
-class RBNodeFree : public RigidBodyNodeSpec<6> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeFree : public RigidBodyNodeSpec<6, false, noX_MB, noR_PF> {
 public:
 
+typedef typename RigidBodyNodeSpec<6, false, noX_MB, noR_PF>::HType HType;
 virtual const char* type() { return "free"; }
 
 RBNodeFree(const MassProperties& mProps_B,
@@ -75,19 +77,19 @@ RBNodeFree(const MassProperties& mProps_B,
            UIndex&               nextUSlot,
            USquaredIndex&        nextUSqSlot,
            QIndex&               nextQSlot)
-  : RigidBodyNodeSpec<6>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotMayDifferFromU, QuaternionMayBeUsed, isReversed)
+  : RigidBodyNodeSpec<6, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotMayDifferFromU, RigidBodyNode::QuaternionMayBeUsed, isReversed)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                           Vector& q) const 
 {
-    if (getUseEulerAngles(sbs.getModelVars()))
-        toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
+    if (this->getUseEulerAngles(sbs.getModelVars()))
+        this->toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
     else
-        toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
+        this->toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
 }
 
 // The user gives us the translation vector from OF to OM as a vector expressed
@@ -95,10 +97,10 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
 // with a free joint we never have to change orientation coordinates in order 
 // to achieve a translation.
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
-    if (getUseEulerAngles(sbs.getModelVars()))
-        toQVec3(q,3) = p_FM; // skip the 3 Euler angles
+    if (this->getUseEulerAngles(sbs.getModelVars()))
+        this->toQVec3(q,3) = p_FM; // skip the 3 Euler angles
     else
-        toQVec3(q,4) = p_FM; // skip the 4 quaternions
+        this->toQVec3(q,4) = p_FM; // skip the 4 quaternions
 }
 
 // Our 3 rotational generalized speeds are just the angular velocity vector of 
@@ -107,7 +109,7 @@ void setUToFitAngularVelocityImpl(const SBStateDigest& sbs,
                                   const Vector& q, const Vec3& w_FM,
                                   Vector& u) const
 {
-    toUVec3(u,0) = w_FM; // relative ang. vel. always used as generalized speeds
+    this->toUVec3(u,0) = w_FM; // relative ang. vel. always used as generalized speeds
 }
 
 // Our 3 translational generalized speeds are the linear velocity of M's origin 
@@ -115,7 +117,7 @@ void setUToFitAngularVelocityImpl(const SBStateDigest& sbs,
 void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
 {
-    toUVec3(u,3) = v_FM;
+    this->toUVec3(u,3) = v_FM;
 }
 
 // When we're using Euler angles, we're going to want to cache cos and sin for
@@ -127,7 +129,7 @@ enum {AnglePoolSize=7, QuatPoolSize=1};
 enum {AngleCosQ=0, AngleSinQ=3, AngleOOCosQy=6};
 enum {QuatOONorm=0};
 int calcQPoolSize(const SBModelVars& mv) const
-{   return getUseEulerAngles(mv) ? AnglePoolSize : QuatPoolSize; }
+{   return this->getUseEulerAngles(mv) ? AnglePoolSize : QuatPoolSize; }
 
 // This is expensive in Euler angle mode due to the three sin/cos computations
 // required (about 150 flops). In quaternion mode it is much cheaper (about
@@ -137,7 +139,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
                              Real*       qCache, int nQCache,
                              Real*       qErr,   int nQErr) const
 {
-    if (getUseEulerAngles(sbs.getModelVars())) {
+    if (this->getUseEulerAngles(sbs.getModelVars())) {
         assert(q && nq==6 && qCache && nQCache==AnglePoolSize && nQErr==0);
 
         const Real cy = std::cos(q[1]);
@@ -163,7 +165,7 @@ void calcX_FM(const SBStateDigest& sbs,
               const Real* qCache, int nQCache,
               Transform&  X_F0M0) const
 {
-    if (getUseEulerAngles(sbs.getModelVars())) {
+    if (this->getUseEulerAngles(sbs.getModelVars())) {
         assert(q && nq==6 && qCache && nQCache==AnglePoolSize);
 
         X_F0M0.updR().setRotationToBodyFixedXYZ // 18 flops
@@ -228,13 +230,13 @@ void calcQDot(const SBStateDigest& sbs, const Real* u,
     const Vec3& w_FM = Vec3::getAs(&u[0]); // Angular velocity in F
     const Vec3& v_FM = Vec3::getAs(&u[3]); // Linear velocity in F
 
-    if (getUseEulerAngles(mv)) {
+    if (this->getUseEulerAngles(mv)) {
         // Euler angle mode (10 flops)
         qdot[6] = 0; // TODO: kludge, clear unused element
 
         const SBModelCache&        mc   = sbs.getModelCache();
         const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-        const Real*                pool = getQPool(mc, pc);
+        const Real*                pool = this->getQPool(mc, pc);
 
         Vec3::updAs(&qdot[0]) = Rotation::convertAngVelInParentToBodyXYZDot(
              Vec2::getAs(&pool[AngleCosQ]), Vec2::getAs(&pool[AngleSinQ]), //x,y
@@ -242,7 +244,7 @@ void calcQDot(const SBStateDigest& sbs, const Real* u,
         Vec3::updAs(&qdot[3]) = v_FM;
     } else {
         // Quaternion mode (27 flops)
-        const Vec4& quat  = fromQuat(sbs.getQ()); // unnormalized
+        const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
         Vec4::updAs(&qdot[0]) = 
             Rotation::convertAngVelToQuaternionDot(quat, w_FM);
         Vec3::updAs(&qdot[4]) = v_FM;
@@ -265,11 +267,11 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
 
     const SBModelVars&          mv   = sbs.getModelVars();
 
-    if (getUseEulerAngles(mv)) {
+    if (this->getUseEulerAngles(mv)) {
         // Euler angle mode (10 flops).
         const SBModelCache&        mc   = sbs.getModelCache();
         const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-        const Real*                pool = getQPool(mc, pc);
+        const Real*                pool = this->getQPool(mc, pc);
 
         // Aliases.
         const Vec2& cosxy  = Vec2::getAs(&pool[AngleCosQ]); // only need x,y
@@ -288,7 +290,7 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
         Vec3::updAs(out+3) = Vec3::getAs(in+3);
     } else {
         // Quaternion mode (27 flops).
-        const Vec4& quat  = fromQuat(sbs.getQ()); // unnormalized
+        const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
         const Mat43 N_F = // This method returns N in the parent frame
             Rotation::calcUnnormalizedNForQuaternion(quat);
         // Translational part of N is identity so just copy in to out.
@@ -313,11 +315,11 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
 
     const SBModelVars&          mv   = sbs.getModelVars();
 
-    if (getUseEulerAngles(mv)) {
+    if (this->getUseEulerAngles(mv)) {
         // Euler angle mode (10 flops).
         const SBModelCache&        mc   = sbs.getModelCache();
         const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-        const Real*                pool = getQPool(mc, pc);
+        const Real*                pool = this->getQPool(mc, pc);
 
         // Aliases.
         const Vec2& cosxy  = Vec2::getAs(&pool[AngleCosQ]); // only need x,y
@@ -335,7 +337,7 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
         Vec3::updAs(out+3) = Vec3::getAs(in+3);
     } else {
         // Quaternion mode (27 flops).
-        const Vec4& quat  = fromQuat(sbs.getQ()); // unnormalized
+        const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
         const Mat34 NInv_F = // This method returns NInv in  parent frame
             Rotation::calcUnnormalizedNInvForQuaternion(quat); // 7 flops
         // Translational part of NInv is identity so just copy in to out.
@@ -362,17 +364,17 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 
     const SBModelVars& mv = sbs.getModelVars();
 
-    if (getUseEulerAngles(mv)) {
+    if (this->getUseEulerAngles(mv)) {
         // Euler angle mode (36 flops).
         const SBModelCache&        mc   = sbs.getModelCache();
         const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-        const Real*                pool = getQPool(mc, pc);
+        const Real*                pool = this->getQPool(mc, pc);
 
         // Aliases.
         const Vec2& cosxy  = Vec2::getAs(&pool[AngleCosQ]); // only need x,y
         const Vec2& sinxy  = Vec2::getAs(&pool[AngleSinQ]);
         const Real& oocosy = pool[AngleOOCosQy];
-        const Vec3& qdot   = fromQVec3(sbs.getQDot(),0);
+        const Vec3& qdot   = this->fromQVec3(sbs.getQDot(),0);
 
         // We don't have a nice multiply-by routine here so just get the NDot
         // matrix and use it (21 flops).
@@ -388,7 +390,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
         Vec3::updAs(out+3) = 0;
     } else {
         // Quaternion mode (27 flops).
-        const Vec4& qdot  = fromQuat(sbs.getQDot()); // unnormalized
+        const Vec4& qdot  = this->fromQuat(sbs.getQDot()); // unnormalized
         const Mat43 NDot_F = // This method returns NDot for the parent frame
             Rotation::calcUnnormalizedNDotForQuaternion(qdot); // 7 flops
         // Translational part of NDot is zero so set out to zero.
@@ -419,19 +421,19 @@ void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
     const Vec3& b_FM = Vec3::getAs(udot);   // a.k.a. w_FM_dot
     const Vec3& a_FM = Vec3::getAs(udot+3); // a.k.a. v_FM_dot
 
-    if (getUseEulerAngles(mv)) {
+    if (this->getUseEulerAngles(mv)) {
         // Euler angle mode (22 flops).
         qdotdot[6] = 0; // TODO: kludge, clear unused element
 
         const SBModelCache&        mc   = sbs.getModelCache();
         const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-        const Real*                pool = getQPool(mc, pc);
+        const Real*                pool = this->getQPool(mc, pc);
 
         // Aliases.
         const Vec2& cosxy     = Vec2::getAs(&pool[AngleCosQ]); // only need x,y
         const Vec2& sinxy     = Vec2::getAs(&pool[AngleSinQ]);
         const Real& oocosy    = pool[AngleOOCosQy];
-        const Vec3& qdot      = fromQVec3(sbs.getQDot(),0);
+        const Vec3& qdot      = this->fromQVec3(sbs.getQDot(),0);
 
         // 22 flops.
         Vec3::updAs(qdotdot+0) = Rotation::convertAngAccInParentToBodyXYZDotDot
@@ -439,8 +441,8 @@ void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
         Vec3::updAs(qdotdot+3) = a_FM;
     } else {
         // Quaternion mode (41 flops).
-        const Vec4& quat  = fromQuat(sbs.getQ()); // unnormalized
-        const Vec3& w_FM = fromUVec3(sbs.getU(),0);
+        const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
+        const Vec3& w_FM = this->fromUVec3(sbs.getU(),0);
         Vec4::updAs(qdotdot) = 
             Rotation::convertAngVelDotToQuaternionDotDot(quat,w_FM,b_FM);
         Vec3::updAs(qdotdot+4) = a_FM;
@@ -448,21 +450,21 @@ void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
 }
 
 int  getMaxNQ()                   const {return 7;}
-int  getNQInUse(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
+int  getNQInUse(const SBModelVars& mv) const {return this->getUseEulerAngles(mv) ? 6 : 7;} 
 bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
-    if (getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
+    if (this->getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
     startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
     return true;
 }
 
 void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
 {
-    if (getUseEulerAngles(mv)) {
-        toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
-        toQ(q) = 0.;
+    if (this->getUseEulerAngles(mv)) {
+        this->toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
+        this->toQ(q) = 0.;
     } else {
-        toQuat(q) = Vec4(1.,0.,0.,0.);
-        toQVec3(q,4) = 0.;
+        this->toQuat(q) = Vec4(1.,0.,0.,0.);
+        this->toQVec3(q,4) = 0.;
     }
 }
 
@@ -471,14 +473,14 @@ bool enforceQuaternionConstraints(
     Vector&             q,
     Vector&             qErrest) const
 {
-    if (getUseEulerAngles(sbs.getModelVars())) 
+    if (this->getUseEulerAngles(sbs.getModelVars())) 
         return false; // no change
 
-    Vec4& quat = toQuat(q);
+    Vec4& quat = this->toQuat(q);
     quat = quat / quat.norm();
 
     if (qErrest.size()) {
-        Vec4& qerr = toQuat(qErrest);
+        Vec4& qerr = this->toQuat(qErrest);
         qerr -= dot(qerr,quat) * quat;
     }
 
@@ -486,16 +488,16 @@ bool enforceQuaternionConstraints(
 }
 
 void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
-    toQVec3(outputQ, 4) = Vec3(0); // clear unused element
-    toQVec3(outputQ, 3) = fromQVec3(inputQ, 4);
-    toQVec3(outputQ, 0) = Rotation(Quaternion(fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
+    this->toQVec3(outputQ, 4) = Vec3(0); // clear unused element
+    this->toQVec3(outputQ, 3) = this->fromQVec3(inputQ, 4);
+    this->toQVec3(outputQ, 0) = Rotation(Quaternion(this->fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
 }
 
 void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
-    toQVec3(outputQ, 4) = fromQVec3(inputQ, 3);
+    this->toQVec3(outputQ, 4) = this->fromQVec3(inputQ, 3);
     Rotation rot;
-    rot.setRotationToBodyFixedXYZ(fromQVec3(inputQ, 0));
-    toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
+    rot.setRotationToBodyFixedXYZ(this->fromQVec3(inputQ, 0));
+    this->toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
 }
 
 

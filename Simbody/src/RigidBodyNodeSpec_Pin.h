@@ -51,9 +51,11 @@
 // rotational freedom about a particular axis, the z axis of the parent's F 
 // frame, which is aligned forever with the z axis of the body's M frame. In 
 // addition, the origin points Mo of M and Fo of F are identical forever.
-class RBNodeTorsion : public RigidBodyNodeSpec<1> {
+template<bool noX_MB, bool noR_PF>
+class RBNodeTorsion : public RigidBodyNodeSpec<1, false, noX_MB, noR_PF> {
 public:
 virtual const char* type() { return "torsion"; }
+typedef typename RigidBodyNodeSpec<1, false, noX_MB, noR_PF>::HType HType;
 
 RBNodeTorsion(const MassProperties&   mProps_B,
                 const Transform&      X_PF,
@@ -62,11 +64,11 @@ RBNodeTorsion(const MassProperties&   mProps_B,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
-:   RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, 
+:   RigidBodyNodeSpec<1, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed)
 {
-    updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
@@ -78,7 +80,7 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
     // TODO: isn't there a better way to come up with "the rotation around z 
     // that best approximates a rotation R"?
     const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
-    to1Q(q) = angles123[2];
+    this->to1Q(q) = angles123[2];
 }
 
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
@@ -91,7 +93,7 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
 void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, 
                                   const Vec3& w_FM, Vector& u) const {
     // We can only represent an angular velocity along z with this joint.
-    to1U(u) = w_FM[2]; // project angular velocity onto z axis
+    this->to1U(u) = w_FM[2]; // project angular velocity onto z axis
 }
 
 void setUToFitLinearVelocityImpl
