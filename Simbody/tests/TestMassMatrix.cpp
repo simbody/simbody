@@ -110,6 +110,111 @@ void sbrel2cart(const State& state,
         dvdu[i] = dvdV * J[i]; // or J[i][0] % p_BS_G + J[i][1]
 }
 
+// Can we do this faster using f=J^T*F rather than V=J*u?
+void sbrel2cart2(const State& state,
+              const SimbodyMatterSubsystem& matter,
+              MobilizedBodyIndex            bodyIx,
+              const Vec3&                   p_BS, // point in body frame
+              Vector_<Vec3>&                dvdu) // v is dS/dt in G
+{
+    const int nu = state.getNU();
+    const int nb = matter.getNumBodies(); // includes ground
+
+    const MobilizedBody& mobod = matter.getMobilizedBody(bodyIx);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS);
+
+    // Calculate J=dVdu where V is spatial velocity of body origin.
+    // (This is one row of J.)
+    Matrix Jt(nu, 6); // a column of Jt but with scalar elements
+
+    Vector_<SpatialVec> F(nb, SpatialVec(Vec3(0)));
+    SpatialVec& Fb = F[bodyIx]; // the only one we'll change
+    for (int which=0; which < 2; ++which) { // moment, force   
+        for (int i=0; i < 3; ++i) {
+            Fb[which][i] = 1;
+            VectorView col = Jt(3*which + i);
+            matter.calcInternalGradientFromSpatial(state,F,col);
+            Fb[which][i] = 0;
+        }
+    }
+
+    Row<2,Mat33> dvdV( -crossMat(p_BS_G), Mat33(1) );
+    dvdu.resize(nu);
+    for (int i=0; i < nu; ++i) {
+        const RowVectorView r = Jt[i]; 
+        SpatialVec V(Vec3::getAs(&r[0]), Vec3::getAs(&r[3]));
+        dvdu[i] = dvdV * V; // or J[i][0] % p_BS_G + J[i][1]
+    }
+}
+
+// If only translational Jacobian is wanted, can we do this with
+// just 3 evals?
+void sbrel2cart3(const State& state,
+              const SimbodyMatterSubsystem& matter,
+              MobilizedBodyIndex            bodyIx,
+              const Vec3&                   p_BS, // point in body frame
+              Vector_<Vec3>&                dvdu) // v is dS/dt in G
+{
+    const int nu = state.getNU();
+    const int nb = matter.getNumBodies(); // includes ground
+
+    const MobilizedBody& mobod = matter.getMobilizedBody(bodyIx);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS);
+
+    // Calculate J=dvdu where v is linear velocity of p_BS.
+    // (This is three rows of J.)
+    dvdu.resize(nu);
+
+    Vector_<SpatialVec> F(nb, SpatialVec(Vec3(0)));
+    SpatialVec& Fb = F[bodyIx]; // the only one we'll change
+    Vector col(nu); // temporary to hold column of J^T
+    for (int i=0; i < 3; ++i) {
+        Fb[1][i] = 1;
+        Fb[0] = p_BS_G % Fb[1]; // r X F
+        matter.calcInternalGradientFromSpatial(state,F,col);
+        for (int r=0; r < nu; ++r) dvdu[r][i] = col[r]; 
+        Fb[1][i] = 0;
+    }
+}
+
+// This gives full 6xnu Jacobian for one body at a specified station
+// on that body.
+void sbrel2cart4(const State& state,
+              const SimbodyMatterSubsystem& matter,
+              MobilizedBodyIndex            bodyIx,
+              const Vec3&                   p_BS, // point in body frame
+              RowVector_<SpatialVec>&       dVdu) // V is [w,v] in G
+{
+    const int nu = state.getNU();
+    const int nb = matter.getNumBodies(); // includes ground
+
+    const MobilizedBody& mobod = matter.getMobilizedBody(bodyIx);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS);
+
+    // Calculate J=dVdu where V is spatial velocity of p_BS.
+    // (This is six rows of J.)
+    dVdu.resize(nu);
+
+    Vector_<SpatialVec> F(nb, SpatialVec(Vec3(0)));
+    SpatialVec& Fb = F[bodyIx]; // the only one we'll change
+    Vector col(nu); // temporary to hold column of J^T
+    // Rotational part.
+    for (int i=0; i < 3; ++i) {
+        Fb[0][i] = 1;
+        matter.calcInternalGradientFromSpatial(state,F,col);
+        for (int r=0; r < nu; ++r) dVdu[r][0][i] = col[r]; 
+        Fb[0][i] = 0;
+    }
+    // Translational part.
+    for (int i=0; i < 3; ++i) {
+        Fb[1][i] = 1;
+        Fb[0] = p_BS_G % Fb[1]; // r X F
+        matter.calcInternalGradientFromSpatial(state,F,col);
+        for (int r=0; r < nu; ++r) dVdu[r][1][i] = col[r]; 
+        Fb[1][i] = 0;
+    }
+}
+
 void testRel2Cart() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -126,28 +231,69 @@ void testRel2Cart() {
     //      B ------ * O
     // Now |OS| = sqrt(2). At q=Pi/4, S will be horizontal
     // so partial(S)/partial(u) = (0, -sqrt(2)/2, 0).
+    //
+    // In all cases the partial angular velocity is (0,0,1).
     // 
     MobilizedBody::Pin pinBody
        (matter.Ground(),                       Transform(),
         MassProperties(1,Vec3(0),Inertia(1)),  Vec3(1,0,0));
     State s = system.realizeTopology();
 
-    Vector_<Vec3> dvdu;
+    Vector_<Vec3> dvdu, dvdu2, dvdu3;
+    RowVector_<SpatialVec> dvdu4;
 
     pinBody.setQ(s, 0);
     system.realize(s, Stage::Position);
     sbrel2cart(s, matter, pinBody, Vec3(0), dvdu);
     SimTK_TEST_EQ(dvdu[0], Vec3(0,-1,0));
 
+    sbrel2cart2(s, matter, pinBody, Vec3(0), dvdu2);
+    SimTK_TEST_EQ(dvdu2[0], Vec3(0,-1,0));
+
+    sbrel2cart3(s, matter, pinBody, Vec3(0), dvdu3);
+    SimTK_TEST_EQ(dvdu3[0], Vec3(0,-1,0));
+
+    sbrel2cart4(s, matter, pinBody, Vec3(0), dvdu4);
+    SimTK_TEST_EQ(dvdu4[0][1], Vec3(0,-1,0));
+
+
     pinBody.setQ(s, Pi/2);
     system.realize(s, Stage::Position);
     sbrel2cart(s, matter, pinBody, Vec3(0), dvdu);
     SimTK_TEST_EQ(dvdu[0], Vec3(1,0,0));
 
+    sbrel2cart2(s, matter, pinBody, Vec3(0), dvdu2);
+    SimTK_TEST_EQ(dvdu2[0], Vec3(1,0,0));
+
+    sbrel2cart3(s, matter, pinBody, Vec3(0), dvdu3);
+    SimTK_TEST_EQ(dvdu3[0], Vec3(1,0,0));
+
+    sbrel2cart4(s, matter, pinBody, Vec3(0), dvdu4);
+    SimTK_TEST_EQ(dvdu4[0][1], Vec3(1,0,0));
+
+
     pinBody.setQ(s, Pi/4);
     system.realize(s, Stage::Position);
     sbrel2cart(s, matter, pinBody, Vec3(0,1,0), dvdu);
     SimTK_TEST_EQ(dvdu[0], Vec3(0,-Sqrt2,0));
+
+    sbrel2cart2(s, matter, pinBody, Vec3(0,1,0), dvdu2);
+    SimTK_TEST_EQ(dvdu2[0], Vec3(0,-Sqrt2,0));
+
+    sbrel2cart3(s, matter, pinBody, Vec3(0,1,0), dvdu3);
+    SimTK_TEST_EQ(dvdu3[0], Vec3(0,-Sqrt2,0));
+
+    sbrel2cart4(s, matter, pinBody, Vec3(0,1,0), dvdu4);
+    SimTK_TEST_EQ(dvdu4[0][1], Vec3(0,-Sqrt2,0));
+    SimTK_TEST_EQ(dvdu4[0][0], Vec3(0,0,1));
+
+    std::cout << dvdu4 << std::endl;
+    Vector u = s.getU(); u = 1; // all 1s
+    std::cout << dvdu4*u << std::endl;
+    Real sss = SpatialRow(Row3(1)) * SpatialVec(Vec3(2));
+    Vector_<SpatialRow> vvv;
+    std::cout << vvv*SpatialVec(Vec3(1,0,0), Vec3(1,0,0)) << std::endl;
+    std::cout << ~dvdu4*SpatialVec(Vec3(1,0,0), Vec3(1,0,0)) << std::endl;
 }
               
 
