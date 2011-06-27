@@ -110,13 +110,14 @@ void multiplyByNInv(const SBStateDigest&, bool matrixOnRight, const Real* in, Re
     Vec3::updAs(out) = Vec3::getAs(in);
 }
 void multiplyByNDot(const SBStateDigest&, bool matrixOnRight, const Real* in, Real* out) const {
-    Vec3::updAs(out) = Vec3::getAs(in);
+    Vec3::updAs(out) = 0;
 }
 
 bool enforceQuaternionConstraints(
     const SBStateDigest& sbs,
     Vector&            q,
     Vector&            qErrest) const {
+    return false;
 }
 
 void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
