@@ -2664,7 +2664,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     Real* hingeForcePtr = &netHingeForces[0];
     SpatialVec* aPtr = &A_GB[0];
     Real* udotPtr = &udot[0];
-    Real* tauPtr = &tau[0];
+    Real* tauPtr = tau.size() ? &tau[0] : 0;
     SpatialVec* zPtr = &allZ[0];    
     SpatialVec* gepsPtr = &allGepsilon[0];    
 
