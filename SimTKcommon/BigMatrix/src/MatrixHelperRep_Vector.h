@@ -282,7 +282,7 @@ public:
     }
 
     void copyInFromCompatibleSource_(const MatrixHelperRep<S>& source) {
-        if (source.hasContiguousData())
+        if (source.hasContiguousData() && this->nScalars())
             std::memcpy(this->m_data, source.getElt(0, 0), this->nScalars()*sizeof(S));
         else
             FullVectorHelper<S>::copyInFromCompatibleSource_(source);
