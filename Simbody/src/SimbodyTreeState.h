@@ -861,9 +861,9 @@ public:
         storageForD.resize(nSqDofs);
         storageForDI.resize(nSqDofs);
         storageForG.resize(2*nDofs);
-        pointerToD = &storageForD[0];
-        pointerToDI = &storageForDI[0];
-        pointerToG = &storageForG[0];
+        pointerToD = storageForD.size() ? &storageForD[0] : NULL;
+        pointerToDI = storageForDI.size() ? &storageForDI[0] : NULL;
+        pointerToG = storageForG.size() ? &storageForG[0] : NULL;
     }
 };
 //....................... ARTICULATED BODY INERTIA CACHE .......................
