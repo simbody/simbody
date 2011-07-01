@@ -217,9 +217,13 @@ SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
 # On Mac, build universal binaries that work on OS X 10.5 (Leopard) or later.
+# TODO: we had problems using the OSX lapack for the 64-bit (x86_64) 
+# architecture so we're only building the 32-bit (i386) architecture by
+# default for now.
 IF(APPLE)
     IF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        SET(CMAKE_OSX_ARCHITECTURES "i386;x86_64" CACHE STRING "The processor architectures to build for" FORCE)
+	#SET(CMAKE_OSX_ARCHITECTURES "i386;x86_64" CACHE STRING "The processor architectures to build for" FORCE)
+        SET(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "The processor architectures to build for" FORCE)
         SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.5" CACHE STRING "The minimum version of OS X to support" FORCE)
         SET(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.5.sdk" CACHE STRING "The SDK to build against" FORCE)
     ENDIF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
