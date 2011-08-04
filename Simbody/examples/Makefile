@@ -44,6 +44,7 @@ ExampleEventReporter  \
 ExampleGears  \
 ExampleKneeJoint \
 ExamplePendulum \
+ExampleSampleAndHold \
 JaredsDude \
 Rattleback
 
