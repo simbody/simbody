@@ -1021,7 +1021,7 @@ DISABLE_INDEX          = NO
 # that doxygen will group on one line in the generated HTML documentation.
 # Note that a value of 0 will completely suppress the enum values from appearing in the overview section.
 
-ENUM_VALUES_PER_LINE   = 4
+ENUM_VALUES_PER_LINE   = 1
 
 # The GENERATE_TREEVIEW tag is used to specify whether a tree-like index
 # structure should be generated to display hierarchical information.
