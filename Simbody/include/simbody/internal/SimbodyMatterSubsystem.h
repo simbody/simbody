@@ -2,14 +2,14 @@
 #define SimTK_SIMBODY_MATTER_SUBSYSTEM_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                              SimTK Simbody(tm)                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -220,10 +220,10 @@ SpatialVec calcSystemCentralMomentum(const State& s) const;
     //////////////////
 
 /// Attach new matter by attaching it to the indicated parent body. The 
-/// mobilizer and mass properties provided by \a child. A new 
+/// mobilizer and mass properties are provided by \a child. A new 
 /// MobilizedBodyIndex is assigned for the child; it is guaranteed to be 
 /// numerically larger than the MobilizedBodyIndex of the parent. We take 
-/// over ownership of child's implementation object from the given 
+/// over ownership of \a child's implementation object from the given 
 /// MobilizedBody handle, leaving that handle as a reference to the 
 /// implementation object now owned by the matter subsystem. It is an 
 /// error if the given MobilizedBody handle wasn't the owner of the 
@@ -760,6 +760,35 @@ void calcMobilizerReactionForces
    (const State&         state, 
     Vector_<SpatialVec>& forcesAtMInG) const;
 
+/** @name Kinematic Jacobian Operators 
+
+The full kinematic Jacobian J(q) maps generalized speeds to spatial 
+velocities of each body, measured at the body frame origin. The transpose
+of this matrix maps applied spatial forces to generalized forces. The 
+operators in this section provide the ability to work with the full matrix,
+or just portions of it corresponding to a single body, or just a single
+point on that body. We provide fast O(n) methods that can form the products
+J*u or ~J*F without forming J. Alternatively, we provide methods that will
+return all or part of J explicitly; in general it is much faster to work
+with the matrix-vector multiply methods rather than explicit matrices.
+Note that the Jacobian is associated with an expressed-in frame for the
+velocity or force vector and a designated point on each body. We always use 
+the Ground frame for Jacobians. For the full Jacobian, the body origin
+is always the designated point; for single-body Jacobians we allow the
+point to be specified. We provide three different sets of methods for 
+working with
+    - the full System Jacobian: J_G, nbod X ndof 6-vectors
+    - the Station Jacobian for a single station (point) S: J_GS, ndof 
+      3-vectors
+    - the Frame Jacobian for a single frame F: J_GF, ndof 6-vectors
+
+Note that for Frame Jacobians we still need specify only a station on the
+body; the rotational part of the Jacobian is the same for any frame fixed
+to the same body.
+**/
+
+/**@{**/
+
 /** Calculate the product of the kinematic Jacobian J (also known as the 
 partial velocity matrix) and a mobility-space vector u in O(n) time. If
 the vector u is a set of generalized speeds, then this produces the
@@ -806,29 +835,32 @@ multiplication J*u would cost 12*nbod*ndof flops. As an example, for a 20 body
 system with a free flying base and 19 pin joints (25 dofs altogether), this 
 method takes 12*(20+25)=540 flops while the explicit matrix-vector multiply 
 would take 12*20*25=6000 flops. So this method is already >10X faster for 
-that small system; for larger systems the difference grows rapidly. **/
-void calcSpatialKinematicsFromInternal(const State&         state,
-                                       const Vector&        u,
-                                       Vector_<SpatialVec>& Ju) const;
+that small system; for larger systems the difference grows rapidly.
+@see multiplyBySystemJacobianTranspose(), calcSystemJacobian() **/
+void multiplyBySystemJacobian( const State&         state,
+                               const Vector&        u,
+                               Vector_<SpatialVec>& Ju) const;
+
+
 
 /** Calculate the product of the transposed kinematic Jacobian J^T and a 
-vector F of spatial force-like elements, one per body, in O(n) time to 
-produce a generalized force-like result f=J^T*F. If F is actually a set of
+vector F_G of spatial force-like elements, one per body, in O(n) time to 
+produce a generalized force-like result f=J^T*F. If F_G is actually a set of
 spatial forces applied at the body frame origin of each body, and expressed
 in the Ground frame, then the result is the equivalent set of generalized
-forces f that would produce the same accelerations as F.
+forces f that would produce the same accelerations as F_G.
 
 @param[in]      state
     A State compatible with this System that has already been realized to
     Stage::Position.
-@param[in]      F
+@param[in]      F_G
     This is a vector of SpatialVec elements, one per mobilized body and in
     order of MobilizedBodyIndex (with the 0th entry a force on Ground; hence
     ignored). Each SpatialVec is a spatial force-like pair of 3-vectors 
     (moment,force) with the force applied at the body origin and the vectors
     expressed in Ground.
-@param[out]     JtF
-    This is the product f=J^T*F as described above. This result is in the
+@param[out]     f
+    This is the product f=J^T*F_G as described above. This result is in the
     generalized force space, that is, it has one scalar entry per system
     mobility (velocity degree of freedom).
 
@@ -840,7 +872,7 @@ The kinematic Jacobian (partial velocity matrix) J is defined as follows:
 </pre>
 Thus the element J(i,j)=partial(V_GBi)/partial(uj) (each element of J is a
 spatial vector). J maps generalized speeds to spatial velocities (see
-calcSpatialKinematicsFromInternal(); its transpose J^T maps spatial forces 
+multiplyBySystemJacobian()); its transpose J^T maps spatial forces 
 to generalized forces.
 
 Note that we're using "monogram" notation for the spatial velocities, where
@@ -858,10 +890,129 @@ system with a free flying base and 19 pin joints (25 dofs altogether), this
 method takes 18*20+11*25=635 flops while the explicit matrix-vector multiply 
 would take 12*20*25=6000 flops. So this method is already >9X faster for 
 that small system; for larger systems the difference grows rapidly. 
-@see calcSpatialKinematicsFromInternal() **/
-void calcInternalGradientFromSpatial(const State&               state,
-                                     const Vector_<SpatialVec>& F,
-                                     Vector&                    JtF) const;
+@see multiplyBySystemJacobian(), calcSystemJacobianTranspose() **/
+void multiplyBySystemJacobianTranspose( const State&                state,
+                                        const Vector_<SpatialVec>&  F_G,
+                                        Vector&                     f) const;
+
+
+/** Explicitly calculate and return the nbod x nu whole-system kinematic 
+Jacobian J_G, with each element a 2x3 spatial vector. This matrix maps 
+generalized speeds to the spatial velocities of all the bodies, which 
+will be at the body origins, measured and expressed 
+in Ground. That is, if you have a set of nu generalized speeds u, you can 
+find the spatial velocities of all bodies as V_G = J_G*u. The transpose of 
+this matrix maps a set of spatial forces F_G, applied at the body frame 
+origins and expressed in Ground, to the equivalent set of nu generalized 
+forces f: f = ~J_G*F_G. But consider whether you really need to form this
+very large matrix which necessarily will take O(n^2) space and time; it will 
+almost always be faster to use the methods that directly calculate the 
+matrix-vector product in O(n) time without explictly forming the matrix.
+@note The 0th row of the return Jacobian is always zero since it represents
+the spatial velocity of Ground.
+@see multiplyBySystemJacobian(), multiplyBySystemJacobianTranspose()
+@see calcSystemJacobian() alternate signature **/
+void calcSystemJacobian(const State&            state,
+                        Matrix_<SpatialVec>&    J_G) const; // nb X nu
+
+/** Alternate signature that returns a system Jacobian as a 6*nbod X nu Matrix 
+rather than as an nbod X nu matrix of 2x3 spatial vectors. **/
+void calcSystemJacobian(const State&            state,
+                        Matrix&                 J_G) const; // 6 nb X nu
+
+/** Calculate the Cartesian velocity of a station (point fixed to a body)
+that results from a particular set of generalized speeds. The result is
+the point's velocity measured and expressed in Ground. This is considerably
+faster than forming the Jacobian explicitly and then performing the 
+matrix-vector multiply.
+@see multiplyByStationJacobianTranspose(), calcStationJacobian() **/
+Vec3 multiplyByStationJacobian(const State&         state,
+                               MobilizedBodyIndex   onBodyB,
+                               const Vec3&          stationS,
+                               const Vector&        u) const;
+
+/** Calculate the generalized forces resulting from a single force applied
+to a station (point fixed to a body). The applied force F_GS should be 
+a 3-vector expressed in Ground. This is considerably faster than forming the
+Jacobian explicitly and then performing the matrix-vector multiply.
+@see multiplyByStationJacobian(), calcStationJacobian() **/
+void multiplyByStationJacobianTranspose(const State&         state,
+                                        MobilizedBodyIndex   onBodyB,
+                                        const Vec3&          stationS,
+                                        const Vec3&          F_GS,
+                                        Vector&              f) const;
+
+/** Explicitly calculate and return the 3 x nu kinematic Jacobian J_GS for 
+a station S (a station is a point fixed on a particular mobilized body). This
+matrix maps generalized speeds to the Cartesian velocity of the station, 
+measured and expressed in Ground. That is, if you have a set of nu 
+generalized speeds u, you can find the Cartesian velocity of station S as 
+v_GS = J_GS*u. The transpose of this matrix maps a force vector F_GS 
+expressed in Ground and applied to S to the equivalent set of nu generalized 
+forces f: f = ~J_GS*F_GS. If you are only forming this to use it once, 
+consider using the methods that directly calculate the matrix-vector
+product without explictly forming the matrix.
+@see multiplyByStationJacobian(), multiplyByStationJacobianTranspose() **/
+void calcStationJacobian(const State&       state,
+                         MobilizedBodyIndex onBodyB,
+                         const Vec3&        stationS,
+                         RowVector_<Vec3>&  J_GS) const;
+
+/** Alternate signature that returns a station Jacobian as a 3 x nu Matrix 
+rather than as a row vector of Vec3s. **/
+void calcStationJacobian(const State&       state,
+                         MobilizedBodyIndex onBodyB,
+                         const Vec3&        stationS,
+                         Matrix&            J_GS) const;
+
+/** Calculate the Cartesian velocity of a station (point fixed to a body)
+that results from a particular set of generalized speeds. The result is
+the point's velocity measured and expressed in Ground. This is considerably
+faster than forming the Jacobian explicitly and then performing the 
+matrix-vector multiply.
+@see multiplyByFrameJacobianTranspose(), calcFrameJacobian() **/
+SpatialVec multiplyByFrameJacobian( const State&         state,
+                                    MobilizedBodyIndex   onBodyB,
+                                    const Vec3&          originFo,
+                                    const Vector&        u) const;
+
+/** Calculate the generalized forces resulting from a single force applied
+to a station (point fixed to a body). The applied force F_GS should be 
+a 3-vector expressed in Ground. This is considerably faster than forming the
+Jacobian explicitly and then performing the matrix-vector multiply.
+@see multiplyByFrameJacobian(), calcFrameJacobian() **/
+void multiplyByFrameJacobianTranspose(  const State&        state,
+                                        MobilizedBodyIndex  onBodyB,
+                                        const Vec3&         originFo,
+                                        const SpatialVec&   F_GFo,
+                                        Vector&             f) const;
+
+/** Explicitly calculate and return the 6 x nu kinematic Jacobian J_GF for 
+a frame F fixed to a particular mobilized body. This
+matrix maps generalized speeds to the Cartesian spatial velocity of the 
+frame, measured and expressed in Ground. That is, if you have a set of nu 
+generalized speeds u, you can find the Cartesian velocity of frame F as 
+V_GF = J_GF*u, where V_GF=~[w_GB, v_GFo] the angular velocity of the body and
+the linear velocity of F's origin point Fo. The transpose of this matrix 
+maps a spatial force vector F_GF=[t_GB, f_GFo] expressed in Ground and 
+applied at Fo to the equivalent set of nu generalized 
+forces f: f = ~J_GF*F_GF. If you are only forming this to use it once, 
+consider using the methods that directly calculate the matrix-vector
+product without explictly forming the matrix.
+@see multiplyByFrameJacobian(), multiplyByFrameJacobianTranspose() **/
+void calcFrameJacobian(const State&             state,
+                       MobilizedBodyIndex       onBodyB,
+                       const Vec3&              originFo,
+                       RowVector_<SpatialVec>&  J_GF) const;
+
+/** Alternate signature that returns a frame Jacobian as a 6 x nu Matrix 
+rather than as a row vector of SpatialVecs. **/
+void calcFrameJacobian(const State&             state,
+                       MobilizedBodyIndex       onBodyB,
+                       const Vec3&              originFo,
+                       Matrix&                  J_GF) const;
+
+/**@}**/
 
 /// Calculate the total kinetic energy of all the mobilized bodies in this
 /// subsystem, given the configuration and velocities in \a state, which
@@ -1175,23 +1326,32 @@ SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, Subsystem);
 const SimbodyMatterSubsystemRep& getRep() const;
 SimbodyMatterSubsystemRep&       updRep();
 
+/** @name Obsolete methods
+
+These methods are deprecated because there is a better way now to do what they
+used to do. This may involve just a name change, calling signature, or something
+more substantial; see the documentation for the individual obsolete methods.
+**/
+
+/**@{**/
+
+/** Obsolete synonym for multiplyBySystemJacobian().
+@see multiplyBySystemJacobian() **/
+void calcSpatialKinematicsFromInternal(const State&         state,
+                                       const Vector&        u,
+                                       Vector_<SpatialVec>& Ju) const
+{   multiplyBySystemJacobian(state,u,Ju); }
+
+/** Obsolete synonym for multiplyBySystemJacobianTranspose().
+@see multiplyBySystemJacobianTranspose() **/
+void calcInternalGradientFromSpatial(const State&               state,
+                                     const Vector_<SpatialVec>& F_G,
+                                     Vector&                    f) const
+{   multiplyBySystemJacobianTranspose(state, F_G, f); }
+
+/**@}**/
 
 private:
-// OBSOLETE; TODO: remove in SimTK 2.0
-void multiplyByQMatrix(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const
-{   multiplyByN(s,transposeMatrix,in,out);}
-// OBSOLETE; TODO: remove in SimTK 2.0
-void multiplyByQMatrixInverse(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const
-{   multiplyByNInv(s,transposeMatrix,in,out);}
-// OBSOLETE; TODO: remove in SimTK 2.0
-int getNBodies() const {return getNumBodies();}
-// OBSOLETE; TODO: remove in SimTK 2.0
-int getNConstraints() const {return getNumConstraints();}
-// OBSOLETE; TODO: remove in SimTK 2.0
-int getNMobilities() const {return getNumMobilities();}
-// OBSOLETE; TODO: remove in SimTK 2.0
-int getNParticles() const {return getNumParticles();}
-
 };
 
 SimTK_SIMBODY_EXPORT std::ostream& 

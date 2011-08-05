@@ -435,7 +435,7 @@ public:
     // This is an O(N) operator which can be called once the State is realized
     // to Stage::Position or higher. Because this is an operator, there is
     // no effect on the State cache.
-    void calcSpatialKinematicsFromInternal(const State&,
+    void multiplyBySystemJacobian(const State&,
         const Vector&        v,
         Vector_<SpatialVec>& Jv) const;
 
@@ -452,9 +452,9 @@ public:
     // generalized coordinates q. This is an O(n) operator which can be called 
     // after realizePosition(). Because this is an operator, there is no effect
     // on the State cache.
-    void calcInternalGradientFromSpatial(const State&, 
+    void multiplyBySystemJacobianTranspose(const State&, 
         const Vector_<SpatialVec>& X, 
-        Vector&                    JX) const;
+        Vector&                    JtX) const;
 
     // Given a set of body forces, return the equivalent set of mobilizer torques 
     // IGNORING CONSTRAINTS.

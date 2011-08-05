@@ -281,53 +281,350 @@ calcGt(const State& s, Matrix& Gt) const {
     rep.calcAccelerationOnlyConstraintMatrixAt (s, Gt(0, mHolo+mNonholo, nu, mAccOnly));
 }
 
-void SimbodyMatterSubsystem::calcCompositeBodyInertias(const State& s,
-    Array_<SpatialInertia>& R) const
+void SimbodyMatterSubsystem::multiplyBySystemJacobian
+   (const State& s, const Vector& u, Vector_<SpatialVec>& Ju) const
+{   getRep().multiplyBySystemJacobian(s,u,Ju); }
+
+void SimbodyMatterSubsystem::multiplyBySystemJacobianTranspose
+   (const State& s, const Vector_<SpatialVec>& F_G, Vector& f) const
+{   getRep().multiplyBySystemJacobianTranspose(s,F_G,f); }
+
+// Calculate J as an nb X nu matrix of SpatialVecs, by repeated calls 
+// to J*u with u=0 except one u[i]=1.
+void SimbodyMatterSubsystem::calcSystemJacobian
+   (const State&            state,
+    Matrix_<SpatialVec>&    J_G) const 
 {
-    getRep().calcCompositeBodyInertias(s,R);
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
+    J_G.resize(nb,nu);
+    Vector u(nu, Real(0));
+    for (int j=0; j<nu; ++j) { 
+        VectorView_<SpatialVec> col = J_G(j);
+        u[j] = 1; rep.multiplyBySystemJacobian(state,u,col); u[j] = 0;
+    }
 }
 
-// Convert internal kinematics to spatial equivalent, ignoring velocity and constraints.
-void SimbodyMatterSubsystem::calcSpatialKinematicsFromInternal(const State& s,
-    const Vector&        v,
-    Vector_<SpatialVec>& Jv) const
+// Alternate signature that returns a system Jacobian as a 6*nbod X nu Matrix 
+// rather than as an nbod X nu matrix of spatial vectors. Note that we
+// don't know whether the output matrix has contiguous rows, columns or
+// neither.
+void SimbodyMatterSubsystem::calcSystemJacobian
+   (const State&            state,
+    Matrix&                 J_G) const
 {
-    getRep().calcSpatialKinematicsFromInternal(s,v,Jv);
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
+    J_G.resize(6*nb,nu); // we don't know how this is stored
+    Vector u(nu, Real(0));
+    Vector_<SpatialVec> Ju(nb); // temp Ju=J_G*u
+    for (int j=0; j<nu; ++j) {
+        u[j] = 1; rep.multiplyBySystemJacobian(state,u,Ju); u[j] = 0;
+        VectorView col = J_G(j); // 6*nb long; maybe not contiguous!
+        int nxt = 0; // index into col
+        for (int b=0; b<nb; ++b) {
+            const SpatialVec& V = Ju[b];
+            for (int k=0; k<3; ++k) col[nxt++] = V[0][k]; // w
+            for (int k=0; k<3; ++k) col[nxt++] = V[1][k]; // v
+        }
+    }
 }
 
-// Convert spatial forces to internal equivalent, ignoring velocity and
-// constraints.
-void SimbodyMatterSubsystem::calcInternalGradientFromSpatial(const State& s,
-    const Vector_<SpatialVec>& dEdR,
-    Vector&                    dEdQ) const
+// We want v_GS = J_GS*u, the linear velocity of station S in Ground induced
+// by the given generalized speeds. Station S is on body B and is given by
+// the vector B-frame vector p_BoS. We can easily calculate V_GBo = J_GB*u,
+// the spatial velocity of body B's origin Bo. Then 
+//      v_GS = v_GBo + w_GB X p_BS_G
+// where p_BS_G is p_BS re-expressed in Ground.
+//
+// Cost is 27 + 12*(nb+nu) flops. If nb ~= nu this is 27+24*nu.
+Vec3 SimbodyMatterSubsystem::multiplyByStationJacobian
+   (const State&         state,
+    MobilizedBodyIndex   onBodyB,
+    const Vec3&          p_BS,
+    const Vector&        u) const
 {
-    getRep().calcInternalGradientFromSpatial(s,dEdR,dEdQ);
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
+
+    SimTK_INDEXCHECK_ALWAYS(onBodyB, nb,
+        "SimbodyMatterSubsystem::multiplyByStationJacobian()");
+
+    SimTK_ERRCHK2_ALWAYS(u.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByStationJacobian()",
+        "The supplied u-space Vector had length %d; expected %d.", 
+            u.size(), nu);
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS); //15flops
+
+    Vector_<SpatialVec> Ju(nb); // temp Ju=J_G*u
+    rep.multiplyBySystemJacobian(state,u,Ju); // 12*(nb+nu) flops
+
+    const SpatialVec& V_GB = Ju[onBodyB];
+    const SpatialVec  V_GS = shiftVelocityBy(V_GB, p_BS_G); // 12 flops
+
+    return V_GS[1]; // return linear velocity only
 }
 
-// Convert spatial forces and centrifugal forces to an equivalent set
-// of mobilizer forces, ignoring constraints.
-void SimbodyMatterSubsystem::calcTreeEquivalentMobilityForces(const State& s, 
-    const Vector_<SpatialVec>& bodyForces,
-    Vector&                    mobForces) const
+// We want f = ~J_GS*f_GS, the generalized forces produced by applying a
+// translational force vector f_GS to station S. Station S is on body B and is 
+// given by the vector B-frame vector p_BS (==p_BoS). We can easily calculate
+// fb = ~J_GB*F_GB, and F_GB = [p_BS_G X f_GS, f_GS]. 
+// Cost is 24 + 18nb + 11nu. If nb ~= nu, that's 24 + 29nu.
+void SimbodyMatterSubsystem::multiplyByStationJacobianTranspose
+   (const State&         state,
+    MobilizedBodyIndex   onBodyB,
+    const Vec3&          p_BS,
+    const Vec3&          f_GS,
+    Vector&              f) const
 {
-    getRep().calcTreeEquivalentMobilityForces(s,bodyForces,mobForces);
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
+
+    SimTK_INDEXCHECK_ALWAYS(onBodyB, nb,
+        "SimbodyMatterSubsystem::multiplyByStationJacobianTranspose()");
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS); //15flops
+
+    // Need an array putting a spatial force on each body.
+    Vector_<SpatialVec> F_G(nb); F_G.setToZero();
+    F_G[onBodyB] = SpatialVec(p_BS_G % f_GS, f_GS); // 9 flops
+    rep.multiplyBySystemJacobianTranspose(state,F_G,f); // 18nb+11nu flops
 }
 
-Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const {
-    return getRep().calcKineticEnergy(s);
+// Cost is 15+ 3*(9 + 18nb + 11nu) flops. If nb ~= nu, this is 42+87nu flops.
+// Each subsequent multiply by J_GS*u would be 6*nu-3 flops.
+void SimbodyMatterSubsystem::calcStationJacobian
+   (const State&       state,
+    MobilizedBodyIndex onBodyB,
+    const Vec3&        p_BS,    // location of station S on B
+    RowVector_<Vec3>&  J_GS) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(); // includes ground
+    const int nu = rep.getNumMobilities();
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS);//15flops
+
+    // Calculate J=dvdu where v is linear velocity of p_BS.
+    // (This is three rows of J.)
+    J_GS.resize(nu);
+
+    Vector_<SpatialVec> F(nb, SpatialVec(Vec3(0)));
+    SpatialVec& Fb = F[onBodyB]; // the only one we'll change
+    Vector col(nu); // temporary to hold column of J^T
+    for (int i=0; i < 3; ++i) {
+        Fb[1][i] = 1;
+        Fb[0] = p_BS_G % Fb[1]; // r X F (9 flops)
+        rep.multiplyBySystemJacobianTranspose(state,F,col);// 18nb+11nu flops
+        for (int r=0; r < nu; ++r) J_GS[r][i] = col[r]; 
+        Fb[1][i] = 0;
+    }
 }
 
-void SimbodyMatterSubsystem::calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const {
-    getRep().calcMobilizerReactionForces(s, forces);
+// Alternate signature that returns a station Jacobian as a 3 x nu Matrix 
+// rather than as a row vector of Vec3s.
+void SimbodyMatterSubsystem::calcStationJacobian
+   (const State&       state,
+    MobilizedBodyIndex onBodyB,
+    const Vec3&        p_BS,    // location of station S on B
+    Matrix&            J_GS) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(); // includes ground
+    const int nu = rep.getNumMobilities();
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS);
+
+    // Calculate J=dvdu where v is linear velocity of p_BS.
+    // (This is three rows of J.)
+    J_GS.resize(3,nu);
+
+    Vector_<SpatialVec> F(nb, SpatialVec(Vec3(0)));
+    SpatialVec& Fb = F[onBodyB]; // the only one we'll change
+    Vector col(nu); // temporary to hold column of J^T
+    for (int i=0; i < 3; ++i) {
+        Fb[1][i] = 1;
+        Fb[0] = p_BS_G % Fb[1]; // r X F
+        rep.multiplyBySystemJacobianTranspose(state,F,col);
+        J_GS[i] = ~col; // copy (TODO: avoid if rows are contiguous)
+        Fb[1][i] = 0;
+    }
 }
+
+// We want V_GA = J_GA*u, the spatial velocity of frame A in 
+// Ground induced by the given generalized speeds. Frame A is fixed on body B 
+// and would be given by the transform X_BA, except the result depends only 
+// on A's origin position p_BA (==p_BoAo) because angular velocity is the same 
+// for all frames fixed to the same body. We can easily calculate V_GB = J_GB*u,
+// the spatial velocity at body B's origin Bo. Then 
+//      V_GA = [w_GA, v_GAo] = [w_GB, v_GBo + w_GB X p_BA_G]
+// where p_BA_G is p_BA re-expressed in Ground.
+//
+// Cost is 27 + 12*(nb+nu) flops. If nb ~= nu this is 27+24*nu.
+SpatialVec SimbodyMatterSubsystem::multiplyByFrameJacobian
+   (const State&         state,
+    MobilizedBodyIndex   onBodyB,
+    const Vec3&          p_BA,
+    const Vector&        u) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
+
+    SimTK_INDEXCHECK_ALWAYS(onBodyB, nb,
+        "SimbodyMatterSubsystem::multiplyByFrameJacobian()");
+
+    SimTK_ERRCHK2_ALWAYS(u.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByFrameJacobian()",
+        "The supplied u-space Vector had length %d; expected %d.", 
+            u.size(), nu);
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 p_BA_G = mobod.expressVectorInGroundFrame(state, p_BA); //15flops
+
+    Vector_<SpatialVec> Ju(nb); // temp Ju=J_G*u
+    rep.multiplyBySystemJacobian(state,u,Ju); // 12*(nb+nu) flops
+
+    const SpatialVec& V_GB = Ju[onBodyB];
+    const SpatialVec  V_GA = shiftVelocityBy(V_GB, p_BA_G); // 12 flops
+
+    return V_GA;
+}
+
+// We want f = ~J_GA*F_GA, the generalized forces produced by applying a spatial
+// force vector F_GA=[m_G,f_GAo] at Ao, the origin of frame A, which is fixed
+// to some body B. Frame A would be given by transform X_BA, but the result
+// depends only on A's origin location p_BA (==p_BoAo) since a torque is the 
+// same wherever it is applied. We can easily calculate
+// fb = ~J_GB*F_GB, and F_GB = [m_G + p_BS_G X f_GAo, f_GAo]. 
+// Cost is 27 + 18nb + 11nu. If nb ~= nu, that's 27 + 29nu.
+void SimbodyMatterSubsystem::multiplyByFrameJacobianTranspose
+   (const State&        state,
+    MobilizedBodyIndex  onBodyB,
+    const Vec3&         p_BA,
+    const SpatialVec&   F_GAo,
+    Vector&             f) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
+
+    SimTK_INDEXCHECK_ALWAYS(onBodyB, nb,
+        "SimbodyMatterSubsystem::multiplyByFrameJacobianTranspose()");
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 p_BA_G = mobod.expressVectorInGroundFrame(state, p_BA); //15flops
+
+    // Need an array putting a spatial force on each body.
+    Vector_<SpatialVec> F_G(nb); F_G.setToZero();
+    F_G[onBodyB] = SpatialVec(F_GAo[0] + p_BA_G % F_GAo[1], // 12 flops 
+                              F_GAo[1]);
+    rep.multiplyBySystemJacobianTranspose(state,F_G,f); // 18nb+11nu flops
+}
+
+// Cost is 42+ 6*(18nb + 11nu) flops. If nb ~= nu, this is 42+174nu flops.
+// Each subsequent multiply by J_GF*u would be 12*nu-6 flops.
+void SimbodyMatterSubsystem::calcFrameJacobian
+   (const State&             state,
+    MobilizedBodyIndex       onBodyB,
+    const Vec3&              p_BFo,
+    RowVector_<SpatialVec>&  J_GF) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(); // includes ground
+    const int nu = rep.getNumMobilities();
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 p_BFo_G = mobod.expressVectorInGroundFrame(state, p_BFo);//15flops
+
+    // Calculate J=dVdu where V is spatial velocity of F.
+    // (This is six rows of J.)
+    J_GF.resize(nu);
+
+    Vector_<SpatialVec> F(nb, SpatialVec(Vec3(0)));
+    SpatialVec& Fb = F[onBodyB]; // the only one we'll change
+    Vector col(nu); // temporary to hold column of J^T
+    // Rotational part.
+    for (int i=0; i < 3; ++i) {
+        Fb[0][i] = 1;
+        rep.multiplyBySystemJacobianTranspose(state,F,col); // 18nb+11nu flops
+        for (int r=0; r < nu; ++r) J_GF[r][0][i] = col[r]; 
+        Fb[0][i] = 0;
+    }
+    // Translational part.
+    for (int i=0; i < 3; ++i) {
+        Fb[1][i] = 1;
+        Fb[0] = p_BFo_G % Fb[1]; // r X F (9 flops)
+        rep.multiplyBySystemJacobianTranspose(state,F,col); // 18nb+11nu flops
+        for (int r=0; r < nu; ++r) J_GF[r][1][i] = col[r]; 
+        Fb[1][i] = 0;
+    }
+}
+
+// Alternate signature that returns a frame Jacobian as a 6 x nu Matrix 
+// rather than as a row vector of SpatialVecs.
+void SimbodyMatterSubsystem::calcFrameJacobian
+   (const State&             state,
+    MobilizedBodyIndex       onBodyB,
+    const Vec3&              p_BFo,
+    Matrix&                  J_GF) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies(); // includes ground
+    const int nu = rep.getNumMobilities();
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 p_BFo_G = mobod.expressVectorInGroundFrame(state, p_BFo);
+
+    // Calculate J=dVdu where V is spatial velocity of F.
+    // (This is six rows of J.)
+    J_GF.resize(6,nu);
+
+    Vector_<SpatialVec> F(nb, SpatialVec(Vec3(0)));
+    SpatialVec& Fb = F[onBodyB]; // the only one we'll change
+    Vector col(nu); // temporary to hold column of J^T
+    // Rotational part.
+    for (int i=0; i < 3; ++i) {
+        Fb[0][i] = 1;
+        rep.multiplyBySystemJacobianTranspose(state,F,col);
+        J_GF[i] = ~col; // copy row (TODO: avoid if rows are contiguous)
+        Fb[0][i] = 0;
+    }
+    // Translational part.
+    for (int i=0; i < 3; ++i) {
+        Fb[1][i] = 1;
+        Fb[0] = p_BFo_G % Fb[1]; // r X F
+        rep.multiplyBySystemJacobianTranspose(state,F,col);
+        J_GF[i+3] = ~col; // copy row (TODO: avoid if rows are contiguous)
+        Fb[1][i] = 0;
+    }
+}
+
+
+void SimbodyMatterSubsystem::calcCompositeBodyInertias
+   (const State& s, Array_<SpatialInertia>& R) const
+{   getRep().calcCompositeBodyInertias(s,R); }
+
+void SimbodyMatterSubsystem::calcTreeEquivalentMobilityForces
+   (const State& s, const Vector_<SpatialVec>& bodyForces, 
+    Vector& mobForces) const
+{   getRep().calcTreeEquivalentMobilityForces(s,bodyForces,mobForces); }
+
+Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const 
+{   return getRep().calcKineticEnergy(s); }
+
+void SimbodyMatterSubsystem::calcMobilizerReactionForces
+   (const State& s, Vector_<SpatialVec>& forces) const 
+{   getRep().calcMobilizerReactionForces(s, forces); }
 
 void SimbodyMatterSubsystem::calcConstraintForcesFromMultipliers
    (const State& s, const Vector& lambda,
-    Vector_<SpatialVec>& bodyForcesInG,
-    Vector&              mobilityForces) const
-{
-    getRep().calcConstraintForcesFromMultipliers(s,lambda,bodyForcesInG,mobilityForces);
-}
+    Vector_<SpatialVec>& bodyForcesInG, Vector& mobilityForces) const
+{   getRep().calcConstraintForcesFromMultipliers
+                (s,lambda,bodyForcesInG,mobilityForces); }
 
 void SimbodyMatterSubsystem::calcQDot(const State& s,
     const Vector& u,

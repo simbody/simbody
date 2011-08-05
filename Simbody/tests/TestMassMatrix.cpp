@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2009 Stanford University and the Authors.           *
+ * Portions copyright (c) 2009-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -30,15 +30,19 @@
  * -------------------------------------------------------------------------- */
 
 
-// Test the functioning of Simbody operators which involve the mass matrix.
+// Test the functioning of Simbody operators which involve the mass matrix,
+// and other system matrices like the Jacobian (partial velocity matrix) that
+// maps between generalized and spatial coordinates.
 // The O(N) operators like calcMV() and calcMInverseV() are supposed to behave
 // *as though* they used the mass matrix, without actually forming it.
 
 #include "SimTKsimbody.h"
 #include "SimTKcommon/Testing.h"
 
+#include <iostream>
+
 using namespace SimTK;
-using namespace std;
+using std::cout; using std::endl;
 
 
 class MyForceImpl : public Force::Custom::Implementation {
@@ -62,29 +66,32 @@ private:
 
 // This is an imitation of SD/FAST's sdrel2cart() subroutine. We
 // are given a station point S fixed to a body B. S is given by
-// the constant vector p_BS from B's origin to point S, expressed 
+// the constant vector p_BS from B's origin Bo to point S, expressed 
 // in B's frame. Denote the position of S in the ground frame G
 // p_GS = p_GB + p_BS_G, where p_BS_G=R_GB*p_BS is the vector p_BS
 // reexpressed in G. The velocity of S in G is v_GS = d/dt p_GS, taken
 // in G. So v_GS = v_GB + w_GB X p_BS_G = v_GB - p_BS_G % w_GB.
 //
-// We would like to obtain the partial velocity of S
-// with respect to each of the generalized speeds u, taken in the
-// Ground frame, that is, d v_GS / du. We have a method that can
-// calculate J=d V_GB / du where V_GB=[w_GB;v_GB] is the spatial 
-// velocity of B. So we need to calculate
-//    d v_GS   d v_GS   d V_GB
-//    ------ = ------ * ------
-//      du     d V_GB     du
+// We would like to obtain the partial velocity of S with respect to each of 
+// the generalized speeds u, taken in the Ground frame, that is, 
+// JS=d v_GS / du. (JS is a 3xnu matrix, or a single row of Vec3s.) We have 
+// a method that can calculate J=d V_GB / du where V_GB=[w_GB;v_GB] is the 
+// spatial velocity of B at its origin. So we need to calculate
+//        d v_GS   d v_GS   d V_GB
+//   JS = ------ = ------ * ------ = 
+//          du     d V_GB     du
 // 
-//           = [ -px ; eye(3) ] * J
-//  where px is the cross product matrix of p_BS_G.
+//               = [ -px | eye(3) ] * J
+// where px is the cross product matrix of p_BS_G and eye(3) is a 3x3
+// identity matrix.
 // 
+// This function should produce the same result as the SimbodyMatterSubsystem
+// method calcStationJacobian().
 void sbrel2cart(const State& state,
-              const SimbodyMatterSubsystem& matter,
-              MobilizedBodyIndex            bodyIx,
-              const Vec3&                   p_BS, // point in body frame
-              Vector_<Vec3>&                dvdu) // v is dS/dt in G
+                const SimbodyMatterSubsystem& matter,
+                MobilizedBodyIndex            bodyIx,
+                const Vec3&                   p_BS, // point in body frame
+                RowVector_<Vec3>&             dvdu) // v is dS/dt in G
 {
     const int nu = state.getNU();
 
@@ -99,7 +106,7 @@ void sbrel2cart(const State& state,
     Vector_<SpatialVec> Ju(nu); // d allV / d ui 
     for (int i=0; i < nu; ++i) {
         u[i] = 1;
-        matter.calcSpatialKinematicsFromInternal(state,u,Ju);
+        matter.multiplyBySystemJacobian(state,u,Ju);
         u[i] = 0;
         J[i] = Ju[bodyIx]; // pick out the body of interest
     }
@@ -110,12 +117,13 @@ void sbrel2cart(const State& state,
         dvdu[i] = dvdV * J[i]; // or J[i][0] % p_BS_G + J[i][1]
 }
 
-// Can we do this faster using f=J^T*F rather than V=J*u?
+// Another way to calculate exactly what sbrel2cart() does -- can we do it
+// faster using f=J^T*F rather than V=J*u?
 void sbrel2cart2(const State& state,
-              const SimbodyMatterSubsystem& matter,
-              MobilizedBodyIndex            bodyIx,
-              const Vec3&                   p_BS, // point in body frame
-              Vector_<Vec3>&                dvdu) // v is dS/dt in G
+                 const SimbodyMatterSubsystem& matter,
+                 MobilizedBodyIndex            bodyIx,
+                 const Vec3&                   p_BS, // point in body frame
+                 RowVector_<Vec3>&             dvdu) // v is dS/dt in G
 {
     const int nu = state.getNU();
     const int nb = matter.getNumBodies(); // includes ground
@@ -133,7 +141,7 @@ void sbrel2cart2(const State& state,
         for (int i=0; i < 3; ++i) {
             Fb[which][i] = 1;
             VectorView col = Jt(3*which + i);
-            matter.calcInternalGradientFromSpatial(state,F,col);
+            matter.multiplyBySystemJacobianTranspose(state,F,col);
             Fb[which][i] = 0;
         }
     }
@@ -147,13 +155,15 @@ void sbrel2cart2(const State& state,
     }
 }
 
-// If only translational Jacobian is wanted, can we do this with
-// just 3 evals?
+// This is a further refinement that still calculates exactly what sbrel2cart()
+// does. But now try it without the intermediate storage for a row of J^T and
+// using only 3 J*v multiplies since only the translational (station) Jacobian
+// is wanted.
 void sbrel2cart3(const State& state,
-              const SimbodyMatterSubsystem& matter,
-              MobilizedBodyIndex            bodyIx,
-              const Vec3&                   p_BS, // point in body frame
-              Vector_<Vec3>&                dvdu) // v is dS/dt in G
+                 const SimbodyMatterSubsystem& matter,
+                 MobilizedBodyIndex            bodyIx,
+                 const Vec3&                   p_BS, // point in body frame
+                 RowVector_<Vec3>&             dvdu) // v is dS/dt in G
 {
     const int nu = state.getNU();
     const int nb = matter.getNumBodies(); // includes ground
@@ -171,14 +181,17 @@ void sbrel2cart3(const State& state,
     for (int i=0; i < 3; ++i) {
         Fb[1][i] = 1;
         Fb[0] = p_BS_G % Fb[1]; // r X F
-        matter.calcInternalGradientFromSpatial(state,F,col);
+        matter.multiplyBySystemJacobianTranspose(state,F,col);
         for (int r=0; r < nu; ++r) dvdu[r][i] = col[r]; 
         Fb[1][i] = 0;
     }
 }
 
-// This gives full 6xnu Jacobian for one body at a specified station
-// on that body.
+// Using the method of sbrel2cart3() but with 6 J*v multiplies, this gives
+// the full 6xnu "Frame Jacobian" for one body for a specified frame on that
+// body (only the origin, not the orientation, matters).
+// This should produce the same result as the built-in calcFrameJacobian()
+// method.
 void sbrel2cart4(const State& state,
               const SimbodyMatterSubsystem& matter,
               MobilizedBodyIndex            bodyIx,
@@ -201,7 +214,7 @@ void sbrel2cart4(const State& state,
     // Rotational part.
     for (int i=0; i < 3; ++i) {
         Fb[0][i] = 1;
-        matter.calcInternalGradientFromSpatial(state,F,col);
+        matter.multiplyBySystemJacobianTranspose(state,F,col);
         for (int r=0; r < nu; ++r) dVdu[r][0][i] = col[r]; 
         Fb[0][i] = 0;
     }
@@ -209,9 +222,47 @@ void sbrel2cart4(const State& state,
     for (int i=0; i < 3; ++i) {
         Fb[1][i] = 1;
         Fb[0] = p_BS_G % Fb[1]; // r X F
-        matter.calcInternalGradientFromSpatial(state,F,col);
+        matter.multiplyBySystemJacobianTranspose(state,F,col);
         for (int r=0; r < nu; ++r) dVdu[r][1][i] = col[r]; 
         Fb[1][i] = 0;
+    }
+}
+
+// Compare two representations of the same matrix: one as an mXn matrix
+// of SpatialVecs, the other as a 6mXn matrix of scalars. Note that this
+// will also work if the first actual parameter is a Vector_<SpatialVec> 
+// or RowVector_<SpatialVec> since those have implicit conversions to mX1 
+// or 1Xn Matrix_<SpatialVec>, resp.
+static void compareElementwise(const Matrix_<SpatialVec>& J,
+                               const Matrix&              Jf) 
+{
+    const int m = J.nrow(), n = J.ncol();
+    SimTK_TEST(Jf.nrow()==6*m && Jf.ncol()==n);
+
+    for (int b=0; b<m; ++b) {
+        const int r = 6*b; // row start for Jf
+        for (int i=0; i<6; ++i)
+            for (int j=0; j<n; ++j) {
+                SimTK_TEST_EQ(J (b,  j)[i/3][i%3], 
+                              Jf(r+i,j));
+            }
+    }
+}
+
+// Same thing but for comparing matrices where one has Vec3 elements.
+static void compareElementwise(const Matrix_<Vec3>& JS,
+                               const Matrix&        JSf) 
+{
+    const int m = JS.nrow(), n = JS.ncol();
+    SimTK_TEST(JSf.nrow()==3*m && JSf.ncol()==n);
+
+    for (int b=0; b<m; ++b) {
+        const int r = 3*b; // row start for JSf
+        for (int i=0; i<3; ++i)
+            for (int j=0; j<n; ++j) {
+                SimTK_TEST_EQ(JS (b,  j)[i], 
+                              JSf(r+i,j));
+            }
     }
 }
 
@@ -239,8 +290,17 @@ void testRel2Cart() {
         MassProperties(1,Vec3(0),Inertia(1)),  Vec3(1,0,0));
     State s = system.realizeTopology();
 
-    Vector_<Vec3> dvdu, dvdu2, dvdu3;
-    RowVector_<SpatialVec> dvdu4;
+    RowVector_<Vec3> dvdu, dvdu2, dvdu3;
+    RowVector_<Vec3> JS;
+    RowVector_<SpatialVec> dvdu4, JF;
+    Matrix_<SpatialVec> J, Jn;
+    Matrix JSf, JFf, Jf; // flat
+
+    // We'll compute Jacobians for the body origin Bo in 2 configurations, 
+    // q==0,pi/2 then for station S (0,1,0) at q==pi/4. Not
+    // much of a test, I know, but at least we know the right answer.
+
+    // q == 0; answer is JB == (0,-1,0)
 
     pinBody.setQ(s, 0);
     system.realize(s, Stage::Position);
@@ -253,9 +313,27 @@ void testRel2Cart() {
     sbrel2cart3(s, matter, pinBody, Vec3(0), dvdu3);
     SimTK_TEST_EQ(dvdu3[0], Vec3(0,-1,0));
 
+    matter.calcStationJacobian(s, pinBody, Vec3(0), JS);
+    matter.calcStationJacobian(s, pinBody, Vec3(0), JSf);
+    SimTK_TEST_EQ(JS, dvdu3); // == dvdu2 == dvdu
+    compareElementwise(JS, JSf);
+
     sbrel2cart4(s, matter, pinBody, Vec3(0), dvdu4);
+    SimTK_TEST_EQ(dvdu4[0][0], Vec3(0,0,1));
     SimTK_TEST_EQ(dvdu4[0][1], Vec3(0,-1,0));
 
+    matter.calcFrameJacobian(s, pinBody, Vec3(0), JF);
+    matter.calcFrameJacobian(s, pinBody, Vec3(0), JFf);
+    SimTK_TEST_EQ(dvdu4, JF);
+    compareElementwise(JF, JFf);
+
+    // Calculate the whole system Jacobian at q==0 in two different 
+    // representations and make sure they are the same.
+    matter.calcSystemJacobian(s, J);
+    matter.calcSystemJacobian(s, Jf);
+    compareElementwise(J, Jf);
+
+    // q == 90 degrees; answer is JB == (1,0,0)
 
     pinBody.setQ(s, Pi/2);
     system.realize(s, Stage::Position);
@@ -268,9 +346,27 @@ void testRel2Cart() {
     sbrel2cart3(s, matter, pinBody, Vec3(0), dvdu3);
     SimTK_TEST_EQ(dvdu3[0], Vec3(1,0,0));
 
+    matter.calcStationJacobian(s, pinBody, Vec3(0), JS);
+    matter.calcStationJacobian(s, pinBody, Vec3(0), JSf);
+    SimTK_TEST_EQ(JS, dvdu3); // == dvdu2 == dvdu
+    compareElementwise(JS, JSf);
+
     sbrel2cart4(s, matter, pinBody, Vec3(0), dvdu4);
+    SimTK_TEST_EQ(dvdu4[0][0], Vec3(0,0,1));
     SimTK_TEST_EQ(dvdu4[0][1], Vec3(1,0,0));
 
+    matter.calcFrameJacobian(s, pinBody, Vec3(0), JF);
+    matter.calcFrameJacobian(s, pinBody, Vec3(0), JFf);
+    SimTK_TEST_EQ(dvdu4, JF);
+    compareElementwise(JF, JFf);
+
+    // Calculate the whole system Jacobian at q==pi/2 in two different 
+    // representations and make sure they are the same.
+    matter.calcSystemJacobian(s, J);
+    matter.calcSystemJacobian(s, Jf);
+    compareElementwise(J, Jf);
+
+    // now station S, q == 45 degrees; answer is JS == (0,-sqrt(2),0)
 
     pinBody.setQ(s, Pi/4);
     system.realize(s, Stage::Position);
@@ -283,17 +379,68 @@ void testRel2Cart() {
     sbrel2cart3(s, matter, pinBody, Vec3(0,1,0), dvdu3);
     SimTK_TEST_EQ(dvdu3[0], Vec3(0,-Sqrt2,0));
 
-    sbrel2cart4(s, matter, pinBody, Vec3(0,1,0), dvdu4);
-    SimTK_TEST_EQ(dvdu4[0][1], Vec3(0,-Sqrt2,0));
-    SimTK_TEST_EQ(dvdu4[0][0], Vec3(0,0,1));
+    matter.calcStationJacobian(s, pinBody, Vec3(0,1,0), JS);
+    matter.calcStationJacobian(s, pinBody, Vec3(0,1,0), JSf);
+    SimTK_TEST_EQ(JS, dvdu3); // == dvdu2 == dvdu
+    compareElementwise(JS, JSf);
 
-    std::cout << dvdu4 << std::endl;
-    Vector u = s.getU(); u = 1; // all 1s
-    std::cout << dvdu4*u << std::endl;
-    Real sss = SpatialRow(Row3(1)) * SpatialVec(Vec3(2));
-    Vector_<SpatialRow> vvv;
-    std::cout << vvv*SpatialVec(Vec3(1,0,0), Vec3(1,0,0)) << std::endl;
-    std::cout << ~dvdu4*SpatialVec(Vec3(1,0,0), Vec3(1,0,0)) << std::endl;
+    // Calculate station Jacobian JS by multiplication to test that the
+    // multiplyByStationJacobian[Transpose] methods are working.
+    Vec3 JSn; // 3xnu
+    Vector u(1); u[0] = 1.;
+    JSn = matter.multiplyByStationJacobian(s, pinBody, Vec3(0,1,0), u);
+    SimTK_TEST_EQ(JSn, dvdu3[0]);
+
+    Vec3 FS(0);
+    Row3 JSnt;
+    for (int i=0; i<3; ++i) {
+        FS[i] = 1;
+        matter.multiplyByStationJacobianTranspose(s,pinBody,Vec3(0,1,0),
+            FS, u);
+        FS[i] = 0;
+        JSnt[i] = u[0];
+    }
+    SimTK_TEST_EQ(JSnt, ~dvdu3[0]);
+
+    sbrel2cart4(s, matter, pinBody, Vec3(0,1,0), dvdu4);
+    SimTK_TEST_EQ(dvdu4[0][0], Vec3(0,0,1));
+    SimTK_TEST_EQ(dvdu4[0][1], Vec3(0,-Sqrt2,0));
+
+    matter.calcFrameJacobian(s, pinBody, Vec3(0,1,0), JF);
+    matter.calcFrameJacobian(s, pinBody, Vec3(0,1,0), JFf);
+    SimTK_TEST_EQ(dvdu4, JF);
+    compareElementwise(JF, JFf);
+
+    // Calculate frame Jacobian JF by multiplication to test that the
+    // multiplyByFrameJacobian[Transpose] methods are working.
+    SpatialVec JFn; // 6xnu
+    u[0] = 1.;
+    JFn = matter.multiplyByFrameJacobian(s, pinBody, Vec3(0,1,0), u);
+    SimTK_TEST_EQ(JFn, dvdu4[0]);
+
+    SpatialVec FF(Vec3(0));
+    SpatialRow JFnt;
+    for (int i=0; i<6; ++i) {
+        FF[i/3][i%3] = 1;
+        matter.multiplyByFrameJacobianTranspose(s,pinBody,Vec3(0,1,0),
+            FF, u);
+        FF[i/3][i%3] = 0;
+        JFnt[i/3][i%3] = u[0];
+    }
+    SimTK_TEST_EQ(JFnt, ~dvdu4[0]);
+
+    // Calculate the whole system Jacobian at q==pi/4 in two different 
+    // representations and make sure they are the same.
+    matter.calcSystemJacobian(s, J);
+    matter.calcSystemJacobian(s, Jf);
+    compareElementwise(J, Jf);
+
+    // Generate the whole system Jacobian one body at a time by multiplication.
+    Jn.resize(matter.getNumBodies(), matter.getNumMobilities());
+    u[0] = 1;
+    for (MobodIndex i(0); i < matter.getNumBodies(); ++i)
+        Jn[i] = matter.multiplyByFrameJacobian(s,i,Vec3(0),u);
+    SimTK_TEST_EQ(Jn, J);
 }
               
 
@@ -611,11 +758,11 @@ void testCompositeInertia() {
     cbi = pend.getCompositeBodyInertia(state, body1);
 
     mbs.realize(state, Stage::Acceleration);
-    cout << "udots=" << state.getUDot() << endl;
+    //cout << "udots=" << state.getUDot() << endl;
 
     body1.setRate(state, 27);
     mbs.realize(state, Stage::Acceleration);
-    cout << "udots=" << state.getUDot() << endl;
+    //cout << "udots=" << state.getUDot() << endl;
 }
 
 int main() {

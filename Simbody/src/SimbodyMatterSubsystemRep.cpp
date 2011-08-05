@@ -3257,7 +3257,7 @@ calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyIndex mb, int
 // We have V_GB = J u where J=~Phi*~H is the kinematic Jacobian (partial velocity matrix)
 // that maps generalized speeds to spatial velocities. 
 //
-void SimbodyMatterSubsystemRep::calcSpatialKinematicsFromInternal(const State& s,
+void SimbodyMatterSubsystemRep::multiplyBySystemJacobian(const State& s,
     const Vector&              v,
     Vector_<SpatialVec>&       Jv) const 
 {
@@ -3284,7 +3284,7 @@ void SimbodyMatterSubsystemRep::calcSpatialKinematicsFromInternal(const State& s
 // quaternions, so be careful how you use this routine.
 // In Kane's terminology, we are calculating the product of a (generalized)
 // partial velocity with some vector.
-void SimbodyMatterSubsystemRep::calcInternalGradientFromSpatial(const State& s, 
+void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose(const State& s, 
                                                     const Vector_<SpatialVec>& X,
                                                     Vector& JX) const
 {
