@@ -339,7 +339,8 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
                               const DiagonalView&) : rep(0) {
     rep = h.rep->createDiagonalView(true);
 
-    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(writable,diagonal)",
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), 
+        "MatrixHelper::ctor(writable,diagonal)",
         "The actual matrix character of the diagonal of the source did not "
         "satisfy the specified handle character commitment.");
 
@@ -349,12 +350,14 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
 
 // Construct a read-only indexed view of a Vector.
 template <class S>
-MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, int n, const int* ix) : rep(0) {
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
+                              int n, const int* ix) : rep(0) {
     const VectorHelper<S>& vh = *dynamic_cast<const VectorHelper<S>*>(h.rep);
     rep = new IndexedVectorHelper<S>(vh.getEltSize(), vh.getCppEltSize(), n,
                                      vh.preferRowOrder_(), ix, n ? vh.getElt_(0) : 0, false);
 
-    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(const,indexed)",
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), 
+        "MatrixHelper::ctor(const,indexed)",
         "The actual matrix character of the indexed source did not "
         "satisfy the specified handle character commitment.");
 
@@ -364,12 +367,14 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
 
 // Construct a writable indexed view of a Vector.
 template <class S>
-MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, int n, const int* ix) : rep(0) {
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, 
+                              int n, const int* ix) : rep(0) {
     VectorHelper<S>& vh = *dynamic_cast<VectorHelper<S>*>(h.rep);
     rep = new IndexedVectorHelper<S>(vh.getEltSize(), vh.getCppEltSize(), n,
                                      vh.preferRowOrder_(), ix, n ? vh.updElt_(0) : 0, true);
 
-    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(writable,indexed)",
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), 
+        "MatrixHelper::ctor(writable,indexed)",
         "The actual matrix character of the indexed source did not "
         "satisfy the specified handle character commitment.");
 
