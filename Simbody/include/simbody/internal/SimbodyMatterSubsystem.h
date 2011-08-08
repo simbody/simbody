@@ -331,7 +331,9 @@ given \a state.
 @see setConstraintIsDisabled() **/
 bool isConstraintDisabled(const State&, ConstraintIndex constraint) const;
 
+/** Experimental -- don't use. **/
 void setMobilizerIsPrescribed(State&, MobilizedBodyIndex, bool) const;
+/** Experimental -- don't use. **/
 bool isMobilizerPrescribed  (const State&, MobilizedBodyIndex) const;
 
 
@@ -978,61 +980,6 @@ current orientations.
 void calcCompositeBodyInertias(const State&,
     Array_<SpatialInertia>& R) const;
 
-/** Given a complete set of generalized accelerations, this kinematic operator
-calculates the resulting body accelerations, including velocity-dependent 
-terms taken from the supplied State.
-@pre \a state must already be realized to Velocity stage
-@param[in] state
-    The State from which position- and velocity- related terms are taken; 
-    must already have been realized to Velocity stage.
-@param[in] knownUDot
-    A complete set of generalized accelerations. Must have the same length 
-    as the number of mobilities, or if length zero the udots will be taken 
-    as all zero in which case only velocity-dependent accelerations will be
-    returned in \a A_GB.
-@param[out] A_GB
-    Spatial accelerations of all the body frames measured and expressed in
-    the Ground frame, resulting from supplied generalized accelerations 
-    \a knownUDot and velocity-dependent acceleration terms taken from 
-    \a state. This will be resized if necessary to the number of bodies 
-    <em>including</em> Ground so that the returned array may be indexed by 
-    MobilizedBodyIndex with A_GB[0]==0 always. The angular acceleration
-    vector for MobilizedBody i is A_GB[i][0]; linear acceleration of the
-    body's origin is A_GB[i][1].
-@par Required stage
-  \c Stage::Velocity **/
-void calcAccelerationFromUDot(const State&         state,
-                              const Vector&        knownUDot,
-                              Vector_<SpatialVec>& A_GB) const;
-
-/** Calculated constraintErr = G udot - b, the residual error in the 
-acceleration constraint equation given a generalized acceleration udot.
-Requires velocites to have been realized so that b(t,q,u) is 
-available.
-@par Required stage
-  \c Stage::Velocity **/
-void calcAccConstraintErr(const State&,
-    const Vector&   knownUdot,
-    Vector&         constraintErr) const;
-
-/** Returns G*v, the product of the mXn acceleration constraint Jacobian
-and a vector of length n. m is the number of active acceleration 
-constraint equations, n is the number of mobilities.
-This is an O(m+n) operation. **/
-void calcGV(const State&,
-    const Vector&   v,
-    Vector&         Gv) const;
-
-/** Returns G^T*v, the product of the nXm transpose of the acceleration 
-constraint Jacobian G and a vector v of length m. m is the number of 
-active acceleration constraint equations, n is the number of 
-mobilities. If v is a set of constraint multipliers, then
-f=G^T*v is the set of equivalent generalized forces they generate.
-This is an O(m+n) operation. **/
-void calcGtV(const State&,
-    const Vector&   v,
-    Vector&         GtV) const;
-
 
 /** This operator explicitly calculates the n X n mass matrix M. Note that this
 is inherently an O(n^2) operation since the mass matrix has n^2 elements 
@@ -1059,17 +1006,6 @@ explicitly, you can get it with the calcM() method.
 @see calcM() **/
 void calcMInv(const State&, Matrix& MInv) const;
 
-/** This O(nm) operator explicitly calculates the m X n acceleration-level 
-constraint Jacobian G = [P;V;A] which appears in the system equations of 
-motion. This method generates G columnwise use the acceleration-level 
-constraint error equations. To within numerical error, this should be 
-identical to the transpose of the matrix returned by calcGt() which uses a 
-different method. Consider using the calcGV() method instead of this one, 
-which forms the matrix-vector product G*v in O(n) time without explicitly 
-forming G.
-@see calcGt()
-@see calcGV() **/
-void calcG(const State&, Matrix& G) const;
 
 /** This O(nm) operator explicitly calculates the n X m transpose of the 
 acceleration-level constraint Jacobian G = [P;V;A] which appears in the system 
@@ -1083,30 +1019,6 @@ G^T*v in O(n) time without explicitly forming G^T.
 @see calcGtV() **/
 void calcGt(const State&, Matrix& Gt) const;
 
-/** Calculate the matrix-vector product ~P*v where P is the mp X nu Jacobian 
-of the holonomic velocity constraints, which are the time derivatives of the 
-holonomic constraints (not including quaternion normalization constraints).
-That is, perrdot = dperr/dt = P*u. Here mp is the number of enabled holonomic 
-constraint equations and nu is the number of generalized speeds. Note that this
-method multiplies by ~P (P transpose) so v must be of length mp and PtV is of
-length nu.
-
-@par Complexity:
-The product is formed in O(m+n) time; the matrix P is not formed and no actual
-matrix-vector product is done.
-
-@par Implementation:
-Every SimTK::Constraint implements a method that can calculate in O(m) time the
-spatial (body) and generalized (mobility) forces that result from a given set
-of m Lagrange multipliers lambda, where m is the number of constraint equations 
-generated by that Constraint. (In this case we are just interested in the 
-Constraint's holonomic (position) constraint equations.) We accumulate these 
-across all the Constraints and then a single O(n) pass converts all forces 
-to generalized forces, that is, f = ~P * lambda. This can be used to form an 
-arbitrary ~P*v product with v supplied in place of lambda.
-@par Required stage
-  \c Stage::Position **/
-void calcPtV(const State& s, const Vector& v, Vector& PtV) const;
 
 /** Returns the mp X nq matrix PN^-1 which is the Jacobian of the holonomic
 (position) constraint errors with respect to the generalized coordinates q;
@@ -1455,6 +1367,106 @@ Methods in this section are just proposed APIs for new functionality. They
 may never be implemented or may change substantially before implementation.
 If you have comments or requests, please post to the Simbody forum. **/
 /**@{**/
+
+/** NOT IMPLEMENTED YET --
+Given a complete set of generalized accelerations, this kinematic operator
+calculates the resulting body accelerations, including velocity-dependent 
+terms taken from the supplied State.
+@pre \a state must already be realized to Velocity stage
+@param[in] state
+    The State from which position- and velocity- related terms are taken; 
+    must already have been realized to Velocity stage.
+@param[in] knownUDot
+    A complete set of generalized accelerations. Must have the same length 
+    as the number of mobilities, or if length zero the udots will be taken 
+    as all zero in which case only velocity-dependent accelerations will be
+    returned in \a A_GB.
+@param[out] A_GB
+    Spatial accelerations of all the body frames measured and expressed in
+    the Ground frame, resulting from supplied generalized accelerations 
+    \a knownUDot and velocity-dependent acceleration terms taken from 
+    \a state. This will be resized if necessary to the number of bodies 
+    <em>including</em> Ground so that the returned array may be indexed by 
+    MobilizedBodyIndex with A_GB[0]==0 always. The angular acceleration
+    vector for MobilizedBody i is A_GB[i][0]; linear acceleration of the
+    body's origin is A_GB[i][1].
+@par Required stage
+  \c Stage::Velocity **/
+void calcAccelerationFromUDot(const State&         state,
+                              const Vector&        knownUDot,
+                              Vector_<SpatialVec>& A_GB) const;
+
+/** NOT IMPLEMENTED YET --
+Calculated constraintErr = G udot - b, the residual error in the 
+acceleration constraint equation given a generalized acceleration udot.
+Requires velocites to have been realized so that b(t,q,u) is 
+available.
+@par Required stage
+  \c Stage::Velocity **/
+void calcAccConstraintErr(const State&,
+    const Vector&   knownUdot,
+    Vector&         constraintErr) const;
+
+/** NOT IMPLEMENTED YET --
+Returns G*v, the product of the mXn acceleration constraint Jacobian
+and a vector of length n. m is the number of active acceleration 
+constraint equations, n is the number of mobilities.
+This is an O(m+n) operation. **/
+void calcGV(const State&,
+    const Vector&   v,
+    Vector&         Gv) const;
+
+/** NOT IMPLEMENTED YET --
+Returns G^T*v, the product of the nXm transpose of the acceleration 
+constraint Jacobian G and a vector v of length m. m is the number of 
+active acceleration constraint equations, n is the number of 
+mobilities. If v is a set of constraint multipliers, then
+f=G^T*v is the set of equivalent generalized forces they generate.
+This is an O(m+n) operation. **/
+void calcGtV(const State&,
+    const Vector&   v,
+    Vector&         GtV) const;
+
+
+/** NOT IMPLEMENTED YET --
+This O(nm) operator explicitly calculates the m X n acceleration-level 
+constraint Jacobian G = [P;V;A] which appears in the system equations of 
+motion. This method generates G columnwise use the acceleration-level 
+constraint error equations. To within numerical error, this should be 
+identical to the transpose of the matrix returned by calcGt() which uses a 
+different method. Consider using the calcGV() method instead of this one, 
+which forms the matrix-vector product G*v in O(n) time without explicitly 
+forming G.
+@see calcGt()
+@see calcGV() **/
+void calcG(const State&, Matrix& G) const;
+
+
+/** NOT IMPLEMENTED YET --
+Calculate the matrix-vector product ~P*v where P is the mp X nu Jacobian 
+of the holonomic velocity constraints, which are the time derivatives of the 
+holonomic constraints (not including quaternion normalization constraints).
+That is, perrdot = dperr/dt = P*u. Here mp is the number of enabled holonomic 
+constraint equations and nu is the number of generalized speeds. Note that this
+method multiplies by ~P (P transpose) so v must be of length mp and PtV is of
+length nu.
+
+@par Complexity:
+The product is formed in O(m+n) time; the matrix P is not formed and no actual
+matrix-vector product is done.
+
+@par Implementation:
+Every SimTK::Constraint implements a method that can calculate in O(m) time the
+spatial (body) and generalized (mobility) forces that result from a given set
+of m Lagrange multipliers lambda, where m is the number of constraint equations 
+generated by that Constraint. (In this case we are just interested in the 
+Constraint's holonomic (position) constraint equations.) We accumulate these 
+across all the Constraints and then a single O(n) pass converts all forces 
+to generalized forces, that is, f = ~P * lambda. This can be used to form an 
+arbitrary ~P*v product with v supplied in place of lambda.
+@par Required stage
+  \c Stage::Position **/
+void calcPtV(const State& s, const Vector& v, Vector& PtV) const;
 
 
 /** NOT IMPLEMENTED YET --

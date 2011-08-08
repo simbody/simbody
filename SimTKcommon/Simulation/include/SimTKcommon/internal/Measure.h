@@ -765,7 +765,7 @@ public:
     // MINIMUM //
     /////////////
 
-/**
+/** NOT IMPLEMENTED YET --
  * This Measure tracks the minimum value attained by its source operand
  * since the last initialize() call. If the time derivative of the 
  * source operand is available, the measure will arrange to ensure
@@ -822,7 +822,7 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Minimum, Measure_<T>);
 };
 
-/**
+/** NOT IMPLEMENTED YET --
  * This is a Measure operator which, upon occurrence of a designated event, 
  * samples its source Measure and then holds its value in a discrete state 
  * variable until the next occurrence of the event. Any type of data can be 
