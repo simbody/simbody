@@ -43,6 +43,8 @@ namespace SimTK {
 
 // The following functions are used internally by Vec.
 
+// Hide from Doxygen.
+/** @cond **/
 namespace Impl {
 
 // For those wimpy compilers that don't unroll short, constant-limit loops, Peter Eastman added these
@@ -77,25 +79,61 @@ copy(Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2) {
 }
 
 }
+/** @endcond **/
 
-/// Generic Vec
+/** This is a fixed length column vector designed for no-overhead inline 
+computation.
+
+@tparam     M       The number of rows in the vector.
+@tparam     ELT     The element type. Must be a composite numerical type (CNT).
+                    The default is ELT=Real.
+@tparam     STRIDE  The spacing from one element to the next in memory, as an 
+                    integer number of elements of type ELT. The default is 
+                    STRIDE=1.
+**/
 template <int M, class ELT, int STRIDE>
 class Vec {
+public:
+    /** @name Advanced 
+    These are obscure members of %Vec that are used for template metaprogramming
+    and can be ignored by most users. **/
+    /**@{**/
+    /** Element type of this %Vec. **/
     typedef ELT                                 E;
+    /** Negated version of this %Vec's element type; ENeg==negator< E >. **/
     typedef typename CNT<E>::TNeg               ENeg;
+    /** Element type, stripped of negator<> if it has one. **/
     typedef typename CNT<E>::TWithoutNegator    EWithoutNegator;
+    /** Type showing just the real part of an element of this %Vec if elements
+    are complex; otherwise just the element type. **/
     typedef typename CNT<E>::TReal              EReal;
+    /** Type showing the imaginary part of an element of this %Vec as real,
+    if elements are complex; otherwise a type that can hold a zero of the 
+    element type. **/
     typedef typename CNT<E>::TImag              EImag;
+    /** Type that elements would have if complex, if E is currently real;
+    otherwise just the element type E. **/
     typedef typename CNT<E>::TComplex           EComplex;
+    /** Type of the Hermitian transpose of an element of this %Vec. **/
     typedef typename CNT<E>::THerm              EHerm;
+    /** Type of a \e positional transpose of an element of this %Vec. **/
     typedef typename CNT<E>::TPosTrans          EPosTrans;
+    /** Type of the expression ~E*E (default vector and matrix square;
+    symmetric). **/
     typedef typename CNT<E>::TSqHermT           ESqHermT;
+    /** Type of the expression E*~E ("row square"; symmetric). **/
     typedef typename CNT<E>::TSqTHerm           ESqTHerm;
-
+    /** Type required to hold the result of sqrt(E). **/
     typedef typename CNT<E>::TSqrt              ESqrt;
+    /** Type required to hold the result of abs(E). **/
     typedef typename CNT<E>::TAbs               EAbs;
+    /** Return type of standardize(E) method; a packed type that can hold the
+    value of an element after eliminating negator and conjugate types. **/
     typedef typename CNT<E>::TStandard          EStandard;
+    /** Packed type that can hold the value returned from invert(E), the
+    inverse type of an element. **/
     typedef typename CNT<E>::TInvert            EInvert;
+    /** Packed type that can hold the value returned from normalize(E). **/
     typedef typename CNT<E>::TNormalize         ENormalize;
 
     typedef typename CNT<E>::Scalar             EScalar;
@@ -105,8 +143,8 @@ class Vec {
     typedef typename CNT<E>::Precision          EPrecision;
     typedef typename CNT<E>::ScalarNormSq       EScalarNormSq;
 
-public:
-
+    /** These compile-time constants are required of every Composite
+    Numerical Type (CNT). **/
     enum {
         NRows               = M,
         NCols               = 1,
@@ -131,19 +169,36 @@ public:
 
     // These are reinterpretations of the current data, so have the
     // same packing (stride).
-    typedef Vec<M,E,STRIDE>                 T;
-    typedef Vec<M,ENeg,STRIDE>              TNeg;
-    typedef Vec<M,EWithoutNegator,STRIDE>   TWithoutNegator;
 
+    /** The type of this Vec. **/
+    typedef Vec<M,E,STRIDE>                 T;
+    /** Type this Vec would have if its elements were interpreted as
+    negated. **/
+    typedef Vec<M,ENeg,STRIDE>              TNeg;
+    /** Type of this Vec with negator removed from its element type, if
+    the element is negated. **/
+    typedef Vec<M,EWithoutNegator,STRIDE>   TWithoutNegator;
+    /** Type of this Vec cast to show only the real part of its element;
+    this might affect the stride. **/
     typedef Vec<M,EReal,STRIDE*CNT<E>::RealStrideFactor>         
                                             TReal;
+    /** Type of this Vec cast to show only the imaginary part of its element;
+    this might affect the stride. **/
     typedef Vec<M,EImag,STRIDE*CNT<E>::RealStrideFactor>         
                                             TImag;
     typedef Vec<M,EComplex,STRIDE>          TComplex;
+    /** Type of this Vec after casting to its Hermitian transpose; that is,
+    the Vec turns into a Row and each element turns into \e its Hermitian
+    transpose. **/
     typedef Row<M,EHerm,STRIDE>             THerm;
+    /** Type of this Vec after casting to its positional transpose; that is,
+    the Vec turns into a Row but the element type remains unchanged. **/
     typedef Row<M,E,STRIDE>                 TPosTrans;
+    /** Element type of this Vec. **/
     typedef E                               TElement;
+    /** Type of a row of this CNT object (for a Vec, just its element type). **/
     typedef E                               TRow;
+    /** Type of a column of this CNT object (for a Vec, the whole thing). **/
     typedef Vec                             TCol;
 
     // These are the results of calculations, so are returned in new, packed
@@ -165,45 +220,58 @@ public:
     typedef EStdNumber                      StdNumber;
     typedef EPrecision                      Precision;
     typedef EScalarNormSq                   ScalarNormSq;
+    /**@}**/
 
+    /** The number of elements in this Vec (note that stride does not 
+    affect this number.) **/
     int size()   const  { return M; }
+    /** The number of rows in a Vec is the number of elements. **/
     int nrow()   const  { return M; }
+    /** The number of columns in a Vec is always 1. **/
     int ncol()   const  { return 1; }
 
 
-    // Scalar norm square is sum( conjugate squares of all scalars )
+    /** Scalar norm square is sum( conjugate squares of all underlying scalars ), 
+    where conjugate square of scalar s is conj(s)*s. **/ 
     ScalarNormSq scalarNormSqr() const { 
         ScalarNormSq sum(0);
         for(int i=0;i<M;++i) sum += CNT<E>::scalarNormSqr(d[i*STRIDE]);
         return sum;
     }
 
-    // sqrt() is elementwise square root; that is, the return value has the same
-    // dimension as this Vec but with each element replaced by whatever it thinks
-    // its square root is.
+    /** Elementwise square root; that is, the return value has the same
+    length as this Vec but with each element replaced by whatever it thinks
+    its square root is. The element type may have changed and the stride
+    of the return Vec is always 1. **/
     TSqrt sqrt() const {
         TSqrt vsqrt;
         for(int i=0;i<M;++i) vsqrt[i] = CNT<E>::sqrt(d[i*STRIDE]);
         return vsqrt;
     }
 
-    // abs() is elementwise absolute value; that is, the return value has the same
-    // dimension as this Vec but with each element replaced by whatever it thinks
-    // its absolute value is.
+    /** Elementwise absolute value; that is, the return value has the same
+    dimension as this Vec but with each element replaced by whatever it thinks
+    its absolute value is. The element type may have changed and the stride
+    of the return Vec is always 1. **/
     TAbs abs() const {
         TAbs vabs;
         for(int i=0;i<M;++i) vabs[i] = CNT<E>::abs(d[i*STRIDE]);
         return vabs;
     }
 
+    /** Return a copy of this Vec but with the underlying scalar type
+    converted (if necessary) to one of the C++ standard real or complex
+    floating point types. This may require floating point negations to
+    occur to get read of negator or conjugate types. **/
     TStandard standardize() const {
         TStandard vstd;
         for(int i=0;i<M;++i) vstd[i] = CNT<E>::standardize(d[i*STRIDE]);
         return vstd;
     }
 
-    // Sum just adds up all the elements, getting rid of negators and
-    // conjugates in the process.
+    /** Sum just adds up all the elements into a single return element that
+    is the same type as this Vec's elements except standardized to use one
+    of the C++ built-in real or complex types as its underlying scalars. **/
     EStandard sum() const {
         E sum(0);
         for (int i=0;i<M;++i) sum += d[i*STRIDE];
@@ -211,9 +279,10 @@ public:
     }
 
 
-    // This gives the resulting vector type when (v[i] op P) is applied to each element of v.
-    // It is a vector of length M, stride 1, and element types which are the regular
-    // composite result of E op P. Typically P is a scalar type but it doesn't have to be.
+    // This gives the resulting vector type when (v[i] op P) is applied to 
+    // each element of v. It is a vector of length M, stride 1, and element 
+    // types which are the regular composite result of E op P. Typically P is 
+    // a scalar type but it doesn't have to be.
     template <class P> struct EltResult { 
         typedef Vec<M, typename CNT<E>::template Result<P>::Mul, 1> Mul;
         typedef Vec<M, typename CNT<E>::template Result<P>::Dvd, 1> Dvd;
@@ -221,8 +290,8 @@ public:
         typedef Vec<M, typename CNT<E>::template Result<P>::Sub, 1> Sub;
     };
 
-    // This is the composite result for v op P where P is some kind of appropriately shaped
-    // non-scalar type.
+    // This is the composite result for v op P where P is some kind of 
+    // appropriately shaped non-scalar type.
     template <class P> struct Result { 
         typedef MulCNTs<M,1,ArgDepth,Vec,ColSpacing,RowSpacing,
             CNT<P>::NRows, CNT<P>::NCols, CNT<P>::ArgDepth,
@@ -250,13 +319,18 @@ public:
         typedef typename SubOp::Type Sub;
     };
 
-    // Shape-preserving element substitution (always packed)
+    /** Shape-preserving element substitution (always packed). That is, if
+    T1==%Vec\<M,E,S> is the current %Vec type, then type
+    T2==T1::%Substitute\<P>::%Type is the type of a shape-compatible,
+    packed %Vec whose elements are of type P rather than E, that is,
+    T2==%Vec\<M,P,1>. **/
     template <class P> struct Substitute {
         typedef Vec<M,P> Type;
     };
 
-    // Default construction initializes to NaN when debugging but
-    // is left uninitialized otherwise.
+    /** Default construction initializes %Vec's elements to NaN when debugging 
+    but leaves them uninitialized garbage otherwise, so declarations have zero
+    cost in Release builds. **/
 	Vec(){ 
     #ifndef NDEBUG
         setToNaN();
@@ -266,47 +340,62 @@ public:
     // It's important not to use the default copy constructor or copy
     // assignment because the compiler doesn't understand that we may
     // have noncontiguous storage and will try to copy the whole array.
+
+    /** Copy constructor copies the logically-included elements from the
+    source %Vec; gaps due to stride are not accessed in either source or
+    destination. **/
     Vec(const Vec& src) {
         Impl::copy(*this, src);
     }
-    Vec& operator=(const Vec& src) {    // no harm if src and 'this' are the same
+    /** Copy assignment operator copies the logically-included elements from 
+    the source %Vec; gaps due to stride are not accessed in either source or
+    destination. OK if source and destination are the same vector; results
+    are unpredictable if they otherwise overlap with elements in common. **/
+    Vec& operator=(const Vec& src) {    
         Impl::copy(*this, src);
         return *this;
     }
 
-    // We want an implicit conversion from a Vec of the same length
-    // and element type but with a different stride.
+    /** This is an implicit conversion from a %Vec of the same length
+    and element type but with a different stride. **/
     template <int SS> Vec(const Vec<M,E,SS>& src) {
         Impl::copy(*this, src);
     }
 
-    // We want an implicit conversion from a Vec of the same length
-    // and *negated* element type (possibly with a different stride).
-
+    /** This is an implicit conversion from a %Vec of the same length
+    and \e negated element type (possibly with a different stride). **/
     template <int SS> Vec(const Vec<M,ENeg,SS>& src) {
         Impl::copy(*this, src);
     }
 
-    // Construct a Vec from a Vec of the same length, with any
-    // stride. Works as long as the element types are compatible.
-    template <class EE, int SS> explicit Vec(const Vec<M,EE,SS>& vv) {
-        Impl::copy(*this, vv);
+    /** Construct a Vec from a Vec of the same length, with any stride. Works 
+    as long as the element types are assignment compatible. **/
+    template <class EE, int SS> explicit Vec(const Vec<M,EE,SS>& src) {
+        Impl::copy(*this, src);
     }
 
-    // Construction using an element assigns to each element.
-    explicit Vec(const E& e)
-      { for (int i=0;i<M;++i) d[i*STRIDE]=e; }
+    /** Construction from a single value of this %Vec's element type assigns
+    that value to each element. **/
+    explicit Vec(const E& e) {for (int i=0;i<M;++i) d[i*STRIDE]=e;}
 
-    // Construction using a negated element assigns to each element.
-    explicit Vec(const ENeg& ne)
-      { for (int i=0;i<M;++i) d[i*STRIDE]=ne; }
+    /** Construction from a single value of this %Vec's negated element type 
+    assigns that value to each element, requiring floating point negation
+    to be performed once to compute the type-E representation of the 
+    type negator<E> value provided. **/
+    explicit Vec(const ENeg& ne) {
+        const E e = ne; // requires floating point negation
+        for (int i=0;i<M;++i) d[i*STRIDE]=e;
+    }
 
-    // Given an int, turn it into a suitable floating point number
-    // and then feed that to the above single-element constructor.
-    explicit Vec(int i) 
-      { new (this) Vec(E(Precision(i))); }
+    /** Given an int value, turn it into a suitable floating point number,
+    convert that to element type E and then feed that to the above 
+    single-element constructor. 
+    @see Vec::Vec(const E&). **/
+    explicit Vec(int i) {new (this) Vec(E(Precision(i)));}
 
     // A bevy of constructors for Vecs up to length 6.
+
+    /** Construct a Vec<2,E> from two elements of type E, etc. **/
     Vec(const E& e0,const E& e1)
       { assert(M==2);(*this)[0]=e0;(*this)[1]=e1; }
     Vec(const E& e0,const E& e1,const E& e2)
@@ -329,26 +418,44 @@ public:
       { assert(M==9);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
         (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6;(*this)[7]=e7;(*this)[8]=e8; }
 
-    // Construction or assignment from a pointer to anything assumes we're pointing
-    // at an element list of the right length.
+    /** Construction from a pointer to elements of any type EE assumes we're 
+    pointing at a C++ array of EE's of the right length, and that EE is
+    assignment compatible with this %Vec's element type E. The supplied
+    pointer cannot be null. **/
     template <class EE> explicit Vec(const EE* p)
-      { assert(p); for(int i=0;i<M;++i) d[i*STRIDE]=p[i]; }
-    template <class EE> Vec& operator=(const EE* p)
-      { assert(p); for(int i=0;i<M;++i) d[i*STRIDE]=p[i]; return *this; }
+    {   assert(p); for(int i=0;i<M;++i) d[i*STRIDE]=p[i]; }
 
-    // Conforming assignment ops.
-    template <class EE, int SS> Vec& operator=(const Vec<M,EE,SS>& vv) {
-        Impl::copy(*this, vv);
-        return *this;
-    }
+    /** Assignment to a pointer to elements of any type EE assumes we're 
+    pointing at a C++ array of EE's of the right length, and that EE is
+    assignment compatible with this %Vec's element type E. The supplied
+    pointer cannot be null. **/
+    template <class EE> Vec& operator=(const EE* p)
+    {   assert(p); for(int i=0;i<M;++i) d[i*STRIDE]=p[i]; return *this; }
+
+    /** Assignment to a conforming %Vec, of any element type and stride,
+    provided that the element types are assignment-compatible. **/
+    template <class EE, int SS> Vec& operator=(const Vec<M,EE,SS>& vv) 
+    {   Impl::copy(*this, vv); return *this; }
+
+    /** Add in a conforming %Vec, of any element type and stride,
+    provided that the element types are addition-compatible. **/
     template <class EE, int SS> Vec& operator+=(const Vec<M,EE,SS>& r)
-      { for(int i=0;i<M;++i) d[i*STRIDE] += r[i]; return *this; }
+    {   for(int i=0;i<M;++i) d[i*STRIDE] += r[i]; return *this; }
+    /** Add in a conforming %Vec, of any negated element type and stride,
+    provided that the element types are addition-compatible. The negation
+    is removed at zero cost by subtracting rather than adding. **/
     template <class EE, int SS> Vec& operator+=(const Vec<M,negator<EE>,SS>& r)
-      { for(int i=0;i<M;++i) d[i*STRIDE] -= -(r[i]); return *this; }
+    {   for(int i=0;i<M;++i) d[i*STRIDE] -= -(r[i]); return *this; }
+
+    /** Subtract off a conforming %Vec, of any element type and stride,
+    provided that the element types are addition-compatible. **/
     template <class EE, int SS> Vec& operator-=(const Vec<M,EE,SS>& r)
-      { for(int i=0;i<M;++i) d[i*STRIDE] -= r[i]; return *this; }
+    {   for(int i=0;i<M;++i) d[i*STRIDE] -= r[i]; return *this; }
+    /** Subtract off  a conforming %Vec, of any negated element type and stride,
+    provided that the element types are addition-compatible. The negation
+    is removed at zero cost by adding rather than subtracting. **/
     template <class EE, int SS> Vec& operator-=(const Vec<M,negator<EE>,SS>& r)
-      { for(int i=0;i<M;++i) d[i*STRIDE] += -(r[i]); return *this; }
+    {   for(int i=0;i<M;++i) d[i*STRIDE] += -(r[i]); return *this; }
 
     // Conforming binary ops with 'this' on left, producing new packed result.
     // Cases: v=v+v, v=v-v, m=v*r
@@ -373,26 +480,36 @@ public:
         return result;
     }
 
-	const E& operator[](int i) const { assert(0 <= i && i < M); return d[i*STRIDE]; }
-	E&       operator[](int i)	     { assert(0 <= i && i < M); return d[i*STRIDE]; }
-    const E& operator()(int i) const { return (*this)[i]; }
-	E&       operator()(int i)	     { return (*this)[i]; }
+    /** Select an element of this %Vec and return a const reference to it.
+    This is range-checked in Debug builds but has zero overhead in Release
+    builds. **/
+	const E& operator[](int i) const 
+    {   assert(0 <= i && i < M); return d[i*STRIDE]; }
+    /** Same as const operator[] above. **/
+    const E& operator()(int i) const {return (*this)[i];}
+
+    /** Select an element of this %Vec and return a writable reference 
+    to it. This is range-checked in Debug builds but has zero overhead in 
+    Release builds. **/
+	E& operator[](int i) {assert(0 <= i && i < M); return d[i*STRIDE];}
+    /** Same as non-const operator[] above. **/
+	E& operator()(int i) {return (*this)[i];}
 
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
     typename CNT<ScalarNormSq>::TSqrt 
         norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
-    // If the elements of this Vec are scalars, the result is what you get by
-    // dividing each element by the norm() calculated above. If the elements are
-    // *not* scalars, then the elements are *separately* normalized. That means
-    // you will get a different answer from Vec<2,Vec3>::normalize() than you
-    // would from a Vec<6>::normalize() containing the same scalars.
-    //
-    // Normalize returns a vector of the same dimension but in new, packed storage
-    // and with a return type that does not include negator<> even if the original
-    // Vec<> does, because we can eliminate the negation here almost for free.
-    // But we can't standardize (change conjugate to complex) for free, so we'll retain
-    // conjugates if there are any.
+    /** If the elements of this Vec are scalars, the result is what you get by
+    dividing each element by the norm() calculated above. If the elements are
+    \e not scalars, then the elements are *separately* normalized. That means
+    you will get a different answer from Vec<2,Vec3>::normalize() than you
+    would from a Vec<6>::normalize() containing the same scalars.
+    
+    Normalize returns a vector of the same dimension but in new, packed storage
+    and with a return type that does not include negator<> even if the original
+    Vec<> does, because we can eliminate the negation here almost for free.
+    But we can't standardize (change conjugate to complex) for free, so we'll retain
+    conjugates if there are any. **/
     TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
             return castAwayNegatorIfAny() / (SignInterpretation*norm());
@@ -404,41 +521,83 @@ public:
         }
     }
 
+    /** This method is not supported for %Vec objects. **/
     TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
 
+    /** Unary plus does nothing. **/
     const Vec&   operator+() const { return *this; }
+    /** Unary minus recasts this %Vec to a type that has the opposite 
+    interpretation of the sign but is otherwise identical, so no computation
+    or copying is performed here. **/
     const TNeg&  operator-() const { return negate(); }
+    /** Recast to negated type and return a writable reference; writing to
+    this will cause the negated result to be placed in the original %Vec. **/
     TNeg&        operator-()       { return updNegate(); }
+    /** The Hermitian transpose operator recasts this %Vec to a type that
+    specifies the opposite storage order (row vs.\ column) then returns a 
+    reference, so no computation or copying is performed here. **/
     const THerm& operator~() const { return transpose(); }
+    /** Recast to Hermitian transposed type and return a writable reference;
+    the effect is that writing to elements of the result affects the transposed
+    element of the original %Vec. **/
     THerm&       operator~()       { return updTranspose(); }
 
+    /** Non-operator version of unary negation; just a recast. **/
     const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
+    /** Non-operator version of unary negation; recasts and returns a 
+    writable reference. **/
     TNeg&        updNegate()    { return *reinterpret_cast<      TNeg*>(this); }
 
+    /** Non-operator version of Hermitian transpose; just a recast. **/
     const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
+    /** Non-operator version of Hermitian transpose; recasts and returns a 
+    writable reference. **/
     THerm&       updTranspose()       { return *reinterpret_cast<      THerm*>(this); }
 
+    /** Positional transpose turns this %Vec into a Row but does not transpose
+    the individual elements. That is, a Vec<2,Vec3> becomes a Row<2,Vec3>,
+    rather than a Row<2,Row3> as would happen with ordinary transpose(). This
+    is just a recast; no copying or computation is performed here. **/
     const TPosTrans& positionalTranspose() const
         { return *reinterpret_cast<const TPosTrans*>(this); }
+    /** Positional transpose returning a writable reference. **/
     TPosTrans&       updPositionalTranspose()
         { return *reinterpret_cast<TPosTrans*>(this); }
 
+    /** Return a reference to the real portion of this %Vec if it has complex
+    elements; otherwise the type doesn't change. This is just a recast; no
+    copying or computation is done here. The result may have a different 
+    stride than the original since the imaginary parts must be skipped. **/
     const TReal& real() const { return *reinterpret_cast<const TReal*>(this); }
+    /** Recast to show only the real portion of this %Vec and return a writable
+    reference. **/
     TReal&       real()       { return *reinterpret_cast<      TReal*>(this); }
 
-    // Had to contort these routines to get them through VC++ 7.net
+    // Had to contort these next two routines to get them through VC++ 7.net
+
+    /** Return a reference to the imaginary portion of this %Vec if it has 
+    complex elements; otherwise the type doesn't change. This is just a recast; 
+    no copying or computation is done here. The result may have a different 
+    stride than the original since the real parts must be skipped. **/
     const TImag& imag()    const { 
         const int offs = ImagOffset;
         const EImag* p = reinterpret_cast<const EImag*>(this);
         return *reinterpret_cast<const TImag*>(p+offs);
     }
+    /** Recast to show only the imaginary portion of this %Vec and return a 
+    writable reference. **/
     TImag& imag() { 
         const int offs = ImagOffset;
         EImag* p = reinterpret_cast<EImag*>(this);
         return *reinterpret_cast<TImag*>(p+offs);
     }
 
+    /** Recast to remove negators from this %Vec's type if present; this is
+    handy for simplifying operations where we know the sign can be ignored
+    such as squaring. **/
     const TWithoutNegator& castAwayNegatorIfAny() const {return *reinterpret_cast<const TWithoutNegator*>(this);}
+    /** Recast to remove negators from this %Vec's type if present and return
+    a writable reference. **/
     TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
 
     // These are elementwise binary operators, (this op ee) by default but 
@@ -526,30 +685,59 @@ public:
     template <class EE> Vec& scalarDivideEqFromLeft(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] = ee / d[i*STRIDE]; return *this; }
 
+    /** Set every scalar in this %Vec to NaN; this is the default initial
+    value in Debug builds, but not in Release. **/
     void setToNaN() {
         (*this) = CNT<ELT>::getNaN();
     }
 
+    /** Set every scalar in this %Vec to zero. **/
     void setToZero() {
         (*this) = ELT(0);
     }
 
-    // Extract a sub-Vec with size known at compile time. These have to be
-    // called with explicit template arguments, e.g. getSubVec<3>(i).
+    /** Extract a const reference to a sub-Vec with size known at compile time. 
+    This must be called with an explicit template argument for the size, for
+    example, getSubVec<3>(i). This is only a recast; no copying or computation
+    is performed. The size and index are range checked in Debug builds but
+    not in Release builds. **/
     template <int MM>
     const Vec<MM,ELT,STRIDE>& getSubVec(int i) const {
         assert(0 <= i && i + MM <= M);
         return Vec<MM,ELT,STRIDE>::getAs(&(*this)[i]);
     }
+    /** Extract a writable reference to a sub-Vec with size known at compile time. 
+    This must be called with an explicit template argument for the size, for
+    example, updSubVec<3>(i). This is only a recast; no copying or computation
+    is performed. The size and index are range checked in Debug builds but
+    not in Release builds. **/
     template <int MM>
     Vec<MM,ELT,STRIDE>& updSubVec(int i) {
         assert(0 <= i && i + MM <= M);
         return Vec<MM,ELT,STRIDE>::updAs(&(*this)[i]);
     }
 
-    // Return a vector one smaller than this one by dropping the element
-    // at the indicated position p. The result is packed but has same
-    // element type as this one.
+
+    /** Extract a subvector of type %Vec from a longer one that has the same
+    element type and stride, and return a const reference to the selected 
+    subsequence. **/
+    template <int MM>
+    static const Vec& getSubVec(const Vec<MM,ELT,STRIDE>& v, int i) {
+        assert(0 <= i && i + M <= MM);
+        return getAs(&v[i]);
+    }
+    /** Extract a subvector of type %Vec from a longer one that has the same
+    element type and stride, and return a writable reference to the selected 
+    subsequence. **/
+    template <int MM>
+    static Vec& updSubVec(Vec<MM,ELT,STRIDE>& v, int i) {
+        assert(0 <= i && i + M <= MM);
+        return updAs(&v[i]);
+    }
+
+    /** Return a vector one smaller than this one by dropping the element
+    at the indicated position p. The result is a packed copy with the same
+    element type as this one. **/
     Vec<M-1,ELT,1> drop1(int p) const {
         assert(0 <= p && p < M);
         Vec<M-1,ELT,1> out;
@@ -561,9 +749,9 @@ public:
         return out;
     }
 
-    // Return a vector one larger than this one by adding an element
-    // to the end. The result is packed but has same element type as
-    // this one. Works for any assignment compatible element.
+    /** Return a vector one larger than this one by adding an element
+    to the end. The result is a packed copy with the same element type as
+    this one. Works for any assignment compatible element. **/
     template <class EE> Vec<M+1,ELT,1> append1(const EE& v) const {
         Vec<M+1,ELT,1> out;
         Vec<M,ELT,1>::updAs(&out[0]) = (*this);
@@ -572,11 +760,11 @@ public:
     }
 
 
-    // Return a vector one larger than this one by inserting an element
-    // *before* the indicated one. The result is packed but has same element type as
-    // this one. Works for any assignment compatible element. The index
-    // can be one greater than normally allowed in which case the element
-    // is appended.
+    /** Return a vector one larger than this one by inserting an element
+    \e before the indicated one. The result is a packed copy with the same 
+    element type as this one. Works for any assignment compatible element. The 
+    index can be one greater than normally allowed in which case the element
+    is appended (but use append1() if you know you're appending). **/
     template <class EE> Vec<M+1,ELT,1> insert1(int p, const EE& v) const {
         assert(0 <= p && p <= M);
         if (p==M) return append1(v);
@@ -589,25 +777,22 @@ public:
         return out;
     }
             
-    // These assume we are given a pointer to d[0] of a Vec<M,E,S> like this one.
-    static const Vec& getAs(const ELT* p)  {return *reinterpret_cast<const Vec*>(p);}
-    static Vec&       updAs(ELT* p)        {return *reinterpret_cast<Vec*>(p);}
+    /** Recast an ordinary C++ array E[] to a const %Vec<M,E,S>; assumes 
+    compatible length, stride, and packing. **/
+    static const Vec& getAs(const ELT* p)  
+    {   return *reinterpret_cast<const Vec*>(p); }
+    /** Recast a writable ordinary C++ array E[] to a writable %Vec<M,E,S>; 
+    assumes compatible length, stride, and packing. **/
+    static Vec&       updAs(ELT* p)
+    {   return *reinterpret_cast<Vec*>(p); }
 
-    // Extract a subvector from a longer one. Element type and stride must match.
-    template <int MM>
-    static const Vec& getSubVec(const Vec<MM,ELT,STRIDE>& v, int i) {
-        assert(0 <= i && i + M <= MM);
-        return getAs(&v[i]);
-    }
-    template <int MM>
-    static Vec& updSubVec(Vec<MM,ELT,STRIDE>& v, int i) {
-        assert(0 <= i && i + M <= MM);
-        return updAs(&v[i]);
-    }
 
+    /** Return a %Vec of the same length and element type as this one but
+    with all elements set to NaN. The result is packed (stride==1) regardless
+    of the stride of this %Vec. **/
     static Vec<M,ELT,1> getNaN() { return Vec<M,ELT,1>(CNT<ELT>::getNaN()); }
 
-    /// Return true if any element of this Vec contains a NaN anywhere.
+    /** Return true if any element of this Vec contains a NaN anywhere. **/
     bool isNaN() const {
         for (int i=0; i<M; ++i)
             if (CNT<ELT>::isNaN((*this)[i]))
@@ -615,8 +800,8 @@ public:
         return false;
     }
 
-    /// Return true if any element of this Vec contains a +Inf
-    /// or -Inf somewhere but no element contains a NaN anywhere.
+    /** Return true if any element of this Vec contains a +Infinity
+    or -Infinity somewhere but no element contains a NaN anywhere. **/
     bool isInf() const {
         bool seenInf = false;
         for (int i=0; i<M; ++i) {
@@ -630,7 +815,8 @@ public:
         return seenInf;
     }
 
-    /// Return true if no element contains an Infinity or a NaN.
+    /** Return true if no element of this %Vec contains an Infinity or a NaN 
+    anywhere. **/
     bool isFinite() const {
         for (int i=0; i<M; ++i)
             if (!CNT<ELT>::isFinite((*this)[i]))
@@ -638,12 +824,12 @@ public:
         return true;
     }
 
-    /// For approximate comparisions, the default tolerance to use for a vector is
-    /// the same as its elements' default tolerance.
+    /** For approximate comparisions, the default tolerance to use for a vector is
+    the same as its elements' default tolerance. **/
     static double getDefaultTolerance() {return CNT<ELT>::getDefaultTolerance();}
 
-    /// %Test whether this vector is numerically equal to some other vector with
-    /// the same shape, using a specified tolerance.
+    /** %Test whether this vector is numerically equal to some other vector with
+    the same shape, using a specified tolerance. **/
     template <class E2, int RS2>
     bool isNumericallyEqual(const Vec<M,E2,RS2>& v, double tol) const {
         for (int i=0; i<M; ++i)
@@ -652,19 +838,19 @@ public:
         return true;
     }
 
-    /// %Test whether this vector is numerically equal to some other vector with
-    /// the same shape, using a default tolerance which is the looser of the
-    /// default tolerances of the two objects being compared.
+    /** %Test whether this vector is numerically equal to some other vector with
+    the same shape, using a default tolerance which is the looser of the
+    default tolerances of the two objects being compared. **/
     template <class E2, int RS2>
     bool isNumericallyEqual(const Vec<M,E2,RS2>& v) const {
         const double tol = std::max(getDefaultTolerance(),v.getDefaultTolerance());
         return isNumericallyEqual(v, tol);
     }
 
-    /// %Test whether every element of this vector is numerically equal to the given
-    /// element, using either a specified tolerance or the vector's 
-    /// default tolerance (which is always the same or looser than the default
-    /// tolerance for one of its elements).
+    /** %Test whether every element of this vector is numerically equal to the given
+    element, using either a specified tolerance or the vector's 
+    default tolerance (which is always the same or looser than the default
+    tolerance for one of its elements). **/
     bool isNumericallyEqual
        (const ELT& e,
         double     tol = getDefaultTolerance()) const 
@@ -675,6 +861,8 @@ public:
         return true;
     }
 private:
+    // TODO: should be an array of scalars rather than elements to control
+    // packing more carefully.
 	ELT d[NActualElements];    // data
 };
 
