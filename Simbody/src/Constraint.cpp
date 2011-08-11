@@ -281,7 +281,7 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
             }
             lambda[i] = 0;
 
-            rep.getMyMatterSubsystem().calcInternalGradientFromSpatial
+            rep.getMyMatterSubsystem().multiplyBySystemJacobianTranspose
                                                     (s,bodyForcesInG,Pt(i));
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
                 Pt(rep.getUIndexOfConstrainedU(s, cux), i) += mobilityForces[cux]; // unpack
@@ -380,7 +380,8 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
             }
             lambda[i] = 0;
 
-            rep.getMyMatterSubsystem().calcInternalGradientFromSpatial(s,bodyForcesInG,Vt(i));
+            rep.getMyMatterSubsystem().multiplyBySystemJacobianTranspose
+                                                        (s,bodyForcesInG,Vt(i));
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
                 Vt(rep.getUIndexOfConstrainedU(s, cux), i) += mobilityForces[cux]; // unpack
         }
@@ -481,7 +482,8 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
             }
             lambda[i] = 0;
 
-            rep.getMyMatterSubsystem().calcInternalGradientFromSpatial(s,bodyForcesInG,At(i));
+            rep.getMyMatterSubsystem().multiplyBySystemJacobianTranspose
+                                                        (s,bodyForcesInG,At(i));
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
                 At(rep.getUIndexOfConstrainedU(s, cux), i) += mobilityForces[cux]; // unpack
         }

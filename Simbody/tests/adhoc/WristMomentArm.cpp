@@ -637,7 +637,7 @@ int main() {
     system.realize(state, Stage::Acceleration);
     // Calculate the joint torques f0 equivalent to the equilibrium forces.
     Vector f0;
-    matter.calcInternalGradientFromSpatial(state,
+    matter.multiplyBySystemJacobianTranspose(state,
         system.getRigidBodyForces(state,Stage::Dynamics),
         f0);
     f0 += system.getMobilityForces(state,Stage::Dynamics);
@@ -692,7 +692,7 @@ int main() {
 
     // Calculate the joint torques f equivalent to the muscle forces F.
     Vector f1;
-    matter.calcInternalGradientFromSpatial(state,
+    matter.multiplyBySystemJacobianTranspose(state,
         system.getRigidBodyForces(state,Stage::Dynamics),
         f1);
     f1 += system.getMobilityForces(state,Stage::Dynamics);

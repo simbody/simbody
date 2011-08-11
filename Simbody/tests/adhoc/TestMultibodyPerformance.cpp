@@ -94,11 +94,11 @@ void doCalcMobilizerReactionForces(MultibodySystem& system, State& state) {
     system.getMatterSubsystem().calcMobilizerReactionForces(state, forces);
 }
 
-void doCalcInternalGradientFromSpatial(MultibodySystem& system, State& state) {
+void doMultiplyBySystemJacobianTranspose(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     Vector_<SpatialVec> dEdR(matter.getNumBodies(), SpatialVec(Vec3(1, 0, 0), Vec3(0, 1, 0)));
     Vector dEdQ;
-    matter.calcInternalGradientFromSpatial(state, dEdR, dEdQ);
+    matter.multiplyBySystemJacobianTranspose(state, dEdR, dEdQ);
 }
 
 void doCalcCompositeBodyInertias(MultibodySystem& system, State& state) {
@@ -156,7 +156,7 @@ void runAllTests(MultibodySystem& system, bool useEulerAngles=false) {
     timeComputation(system, doCalcMInverseV, "calcMInverseV", 5000, useEulerAngles);
     timeComputation(system, doCalcResidualForceIgnoringConstraints, "calcResidualForceIgnoringConstraints", 5000, useEulerAngles);
     timeComputation(system, doCalcMobilizerReactionForces, "calcMobilizerReactionForces", 1000, useEulerAngles);
-    timeComputation(system, doCalcInternalGradientFromSpatial, "calcInternalGradientFromSpatial", 5000, useEulerAngles);
+    timeComputation(system, doMultiplyBySystemJacobianTranspose, "multiplyBySystemJacobianTranspose", 5000, useEulerAngles);
     timeComputation(system, doCalcCompositeBodyInertias, "calcCompositeBodyInertias", 5000, useEulerAngles);
 }
 

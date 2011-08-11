@@ -243,7 +243,7 @@ void calcCompositeBodyInertiasInward(const SBTreePositionCache& pc, Array_<Spati
     toB(R) = getMk_G(pc);
 }
 
-void calcSpatialKinematicsFromInternal(
+void multiplyBySystemJacobian(
         const SBTreePositionCache&  pc,
         const Real*                 v,
         SpatialVec*                 Jv) const {
@@ -253,13 +253,13 @@ void calcSpatialKinematicsFromInternal(
     out[1] += in;
 }
 
-void calcInternalGradientFromSpatial(
+void multiplyBySystemJacobianTranspose(
         const SBTreePositionCache&  pc, 
         SpatialVec*                 zTmp,
         const SpatialVec*           X, 
-        Real*                       JX) const {
+        Real*                       JtX) const {
     const SpatialVec& in = X[getNodeNum()];
-    Vec3& out = Vec3::updAs(&JX[getUIndex()]);
+    Vec3& out = Vec3::updAs(&JtX[getUIndex()]);
     SpatialVec& z = zTmp[getNodeNum()];
     z = in;
     out = z[1]; 

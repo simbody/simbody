@@ -2513,7 +2513,7 @@ void SimbodyMatterSubsystemRep::calcPositionConstraintMatrix(const State& s,
         applyPositionConstraintForces(s, multipliers.size(), &multipliers[0],
             bodyForces, directMobilityForces);
 
-        calcInternalGradientFromSpatial(s, bodyForces, Pt(i));
+        multiplyBySystemJacobianTranspose(s, bodyForces, Pt(i));
         Pt(i) += directMobilityForces;
 
         multipliers[i] = 0;
@@ -3253,10 +3253,11 @@ calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyIndex mb, int
 
 
 
-//
-// We have V_GB = J u where J=~Phi*~H is the kinematic Jacobian (partial velocity matrix)
-// that maps generalized speeds to spatial velocities. 
-//
+
+// We have V_GB = J u where J=~Phi*~H is the kinematic Jacobian (partial 
+// velocity matrix) that maps generalized speeds to spatial velocities. 
+// This method performs the multiplication J*u in O(n) time (i.e., without
+// actually forming J).
 void SimbodyMatterSubsystemRep::multiplyBySystemJacobian(const State& s,
     const Vector&              v,
     Vector_<SpatialVec>&       Jv) const 
@@ -3272,36 +3273,34 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobian(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcSpatialKinematicsFromInternal(tpc, vPtr, jvPtr);
+            node.multiplyBySystemJacobian(tpc, vPtr, jvPtr);
         }
 }
 
-
-// If V is a spatial velocity, and you have an X=d(something)/dV (one per body)
-// this routine will return d(something)/du for internal generalized speeds u. If
-// instead you have d(something)/dR where R is a spatial configuration, this routine
-// returns d(something)/dq PROVIDED that dq/dt = u for all q's. That's not true for
-// quaternions, so be careful how you use this routine.
-// In Kane's terminology, we are calculating the product of a (generalized)
-// partial velocity with some vector.
-void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose(const State& s, 
-                                                    const Vector_<SpatialVec>& X,
-                                                    Vector& JX) const
+// The system Jacobian J (a.k.a. partial velocity matrix) is the kinematic 
+// mapping between generalized speeds u and body spatial velocities V. Its
+// transpose ~J maps body spatial forces to generalized forces. This method
+// calculates in O(n) time the product of ~J and a "spatial force-like" 
+// vector X.
+void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose
+   (const State& s, 
+    const Vector_<SpatialVec>& X,
+    Vector& JtX) const
 {
     assert(X.size() == getNumBodies());
 
     const SBTreePositionCache& tpc = getTreePositionCache(s);
 
     Vector_<SpatialVec> zTemp(getNumBodies()); zTemp.setToZero();
-    JX.resize(getTotalDOF());
+    JtX.resize(getTotalDOF());
     const SpatialVec* xPtr = X.size() ? &X[0] : NULL;
-    Real* jxPtr = JX.size() ? &JX[0] : NULL;
+    Real* jtxPtr = JtX.size() ? &JtX[0] : NULL;
     SpatialVec* zPtr = zTemp.size() ? &zTemp[0] : NULL;
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcInternalGradientFromSpatial(tpc, zPtr, xPtr, jxPtr);
+            node.multiplyBySystemJacobianTranspose(tpc, zPtr, xPtr, jtxPtr);
         }
 }
 

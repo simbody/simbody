@@ -1014,8 +1014,9 @@ int Markers::calcGoalGradient(const State& state, Vector& gradient) const {
             }
         }
     }
+    // Convert spatial forces dEdR to generalized forces dEdU.
     Vector dEdU;
-    matter.calcInternalGradientFromSpatial(state, dEdR, dEdU);
+    matter.multiplyBySystemJacobianTranspose(state, dEdR, dEdU);
 
     if (Weighted)
         dEdU /= wtot;

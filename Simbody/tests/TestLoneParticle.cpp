@@ -116,7 +116,7 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
     Vector knownUdot, residualMobilityForces;
     matter.calcResidualForceIgnoringConstraints(state, appliedMobilityForces, appliedBodyForces, knownUdot, residualMobilityForces);
     Vector dEdQ;
-    matter.calcInternalGradientFromSpatial(state, appliedBodyForces, dEdQ);
+    matter.multiplyBySystemJacobianTranspose(state, appliedBodyForces, dEdQ);
     Array_<SpatialInertia> compositeInertias;
     matter.calcCompositeBodyInertias(state, compositeInertias);
     

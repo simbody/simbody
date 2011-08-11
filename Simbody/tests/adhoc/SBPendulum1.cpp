@@ -294,7 +294,7 @@ try {
     for (int i=1; i < pend.getNumBodies(); ++i)
         dEdR[i] = SpatialVec(Vec3(0), Vec3(0.,2.,0.));
     Vector dEdQ;
-    pend.calcInternalGradientFromSpatial(s, dEdR, dEdQ);
+    pend.multiplyBySystemJacobianTranspose(s, dEdR, dEdQ);
     cout << "dEdR=" << dEdR << endl;
     cout << "dEdQ=" << dEdQ << endl;
 

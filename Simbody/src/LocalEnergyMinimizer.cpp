@@ -67,7 +67,8 @@ public:
         Vector_<SpatialVec> dEdR = system.getRigidBodyForces(state, Stage::Dynamics);
         const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
         Vector dEdU;
-        matter.calcInternalGradientFromSpatial(state, dEdR, dEdU);
+        // Convert spatial forces dEdR to generalized forces dEdU.
+        matter.multiplyBySystemJacobianTranspose(state, dEdR, dEdU);
         dEdU -= system.getMobilityForces(state, Stage::Dynamics);
         matter.multiplyByNInv(state, true, -1.0*dEdU, gradient);
         return 0;

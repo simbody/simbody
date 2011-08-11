@@ -349,7 +349,7 @@ public:
     }
 
 
-    void calcSpatialKinematicsFromInternal(
+    void multiplyBySystemJacobian(
         const SBTreePositionCache&  pc,
         const Real*                 v,
         SpatialVec*                 Jv) const    
@@ -357,11 +357,11 @@ public:
         Jv[0] = SpatialVec(Vec3(0));
     }
 
-    void calcInternalGradientFromSpatial(
+    void multiplyBySystemJacobianTranspose(
         const SBTreePositionCache&  pc, 
         SpatialVec*                 zTmp,
         const SpatialVec*           X, 
-        Real*                       JX) const 
+        Real*                       JtX) const 
     {
         zTmp[0] = X[0];
         for (unsigned i=0; i<children.size(); ++i) {
@@ -369,6 +369,7 @@ public:
             const PhiMatrix&  phiChild = children[i]->getPhi(pc);
             zTmp[0] += phiChild * zChild;
         }
+        // No generalized speeds so no contribution to JtX.
     }
 
     void calcEquivalentJointForces(
@@ -715,7 +716,7 @@ public:
         }
     }
 
-    void calcSpatialKinematicsFromInternal(
+    void multiplyBySystemJacobian(
         const SBTreePositionCache&  pc,
         const Real*                 v,
         SpatialVec*                 Jv) const    
@@ -728,11 +729,11 @@ public:
         out = outP;  
     }
 
-    void calcInternalGradientFromSpatial(
+    void multiplyBySystemJacobianTranspose(
         const SBTreePositionCache&  pc, 
         SpatialVec*                 zTmp,
         const SpatialVec*           X, 
-        Real*                       JX) const
+        Real*                       JtX) const
     {
         const SpatialVec& in  = X[getNodeNum()];
         SpatialVec&       z   = zTmp[getNodeNum()];
@@ -744,6 +745,7 @@ public:
             const PhiMatrix&  phiChild = children[i]->getPhi(pc);
             z += phiChild * zChild;
         }
+        // No generalized speeds so no contribution to JtX.
     }
 
     void calcEquivalentJointForces(

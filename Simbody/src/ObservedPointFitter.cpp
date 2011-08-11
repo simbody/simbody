@@ -89,7 +89,8 @@ public:
             }
         }
         Vector dEdU;
-        matter.calcInternalGradientFromSpatial(state, dEdR, dEdU);
+        // Convert spatial forces dEdR to generalized forces dEdU.
+        matter.multiplyBySystemJacobianTranspose(state, dEdR, dEdU);
         if (UseWeighted && wtot > 0) dEdU /= wtot;
         matter.multiplyByNInv(state, true, dEdU, gradient);
         return 0;

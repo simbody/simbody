@@ -540,18 +540,20 @@ virtual void calcCompositeBodyInertiasInward(
     const SBTreePositionCache&  pc,
     Array_<SpatialInertia>&     R) const;
 
-virtual void calcSpatialKinematicsFromInternal(
+virtual void multiplyBySystemJacobian(
     const SBTreePositionCache&  pc,
     const Real*                 v,
     SpatialVec*                 Jv) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcSpatialKinematicsFromInternal"); }
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", 
+    "multiplyBySystemJacobian"); }
 
-virtual void calcInternalGradientFromSpatial(
+virtual void multiplyBySystemJacobianTranspose(
     const SBTreePositionCache&  pc, 
     SpatialVec*                 zTmp,
     const SpatialVec*           X, 
-    Real*                       JX) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInternalGradientFromSpatial"); }
+    Real*                       JtX) const
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", 
+    "multiplyBySystemJacobianTranspose"); }
 
 virtual void calcEquivalentJointForces(
     const SBTreePositionCache&  pc,

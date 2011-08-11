@@ -693,16 +693,16 @@ const Real&       get1Epsilon(const SBTreeAccelerationCache& ac) const {return f
 Real&             upd1Epsilon(SBTreeAccelerationCache&       ac) const {return to1U  (ac.epsilon);}
 
 
-void calcSpatialKinematicsFromInternal(
+void multiplyBySystemJacobian(
     const SBTreePositionCache&  pc,
     const Real*                 v,
     SpatialVec*                 Jv) const;
 
-void calcInternalGradientFromSpatial(
+void multiplyBySystemJacobianTranspose(
     const SBTreePositionCache&  pc, 
     SpatialVec*                 zTmp,
     const SpatialVec*           X, 
-    Real*                       JX) const;
+    Real*                       JtX) const;
 
 void calcEquivalentJointForces(
     const SBTreePositionCache&  pc,

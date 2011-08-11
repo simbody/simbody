@@ -719,7 +719,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMVPass2Inward(
 }
 
 //------------------------------------------------------------------------------
-//                     CALC SPATIAL KINEMATICS FROM INTERNAL
+//                       MULTIPLY BY SYSTEM JACOBIAN
 //------------------------------------------------------------------------------
 // Calculate product of kinematic Jacobian J=~Phi*H and a mobility-space vector. Requires 
 // that Phi and H are available, so this should only be called in Stage::Position or higher.
@@ -731,7 +731,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMVPass2Inward(
 // Call base to tip (outward).
 //
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcSpatialKinematicsFromInternal(
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+multiplyBySystemJacobian(
     const SBTreePositionCache&  pc,
     const Real*                 v,
     SpatialVec*                 Jv) const
@@ -746,12 +747,12 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcSpatialKinematicsFromInterna
 }
 
 //------------------------------------------------------------------------------
-//                     CALC INTERNAL GRADIENT FROM SPATIAL
+//                   MULTIPLY BY SYSTEM JACOBIAN TRANSPOSE
 //------------------------------------------------------------------------------
-// Calculate product of kinematic Jacobian transpose ~J=~H*Phi and a gradient 
-// vector on each of the outboard bodies. Requires that Phi and H are available, 
-// so this should only be called in Stage::Position or higher. This does not 
-// change the cache at all.
+// Calculate product of kinematic Jacobian transpose ~J=~H*Phi and a spatial
+// forces vector on each of the outboard bodies. Requires that Phi and H are 
+// available, so this should only be called in Stage::Position or higher. This 
+// does not  change the cache at all.
 // NOTE (sherm 060214): I reworked this from the original. This one no longer 
 // incorporates applied hinge gradients if there are any; just add those in at 
 // the end if you want them.
@@ -763,14 +764,15 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcSpatialKinematicsFromInterna
 // Call tip to base.
 //
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcInternalGradientFromSpatial(
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+multiplyBySystemJacobianTranspose(
     const SBTreePositionCache&  pc,
     SpatialVec*                 zTmp,
     const SpatialVec*           X, 
-    Real*                       JX) const
+    Real*                       JtX) const
 {
     const SpatialVec& in  = X[getNodeNum()];
-    Vec<dof>&         out = Vec<dof>::updAs(&JX[getUIndex()]);
+    Vec<dof>&         out = Vec<dof>::updAs(&JtX[getUIndex()]);
     SpatialVec&       z   = zTmp[getNodeNum()];
 
     z = in;
