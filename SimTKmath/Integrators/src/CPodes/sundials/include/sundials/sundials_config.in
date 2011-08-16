@@ -1,0 +1,66 @@
+/*
+ * -----------------------------------------------------------------
+ * $Revision: 1.2 $
+ * $Date: 2007/01/24 01:05:12 $
+ * ----------------------------------------------------------------- 
+ * Programmer(s): Aaron Collier and Radu Serban @ LLNL
+ * -----------------------------------------------------------------
+ * Copyright (c) 2005, The Regents of the University of California.
+ * Produced at the Lawrence Livermore National Laboratory.
+ * All rights reserved.
+ * For details, see the LICENSE file.
+ *------------------------------------------------------------------
+ * SUNDIALS configuration header file
+ *------------------------------------------------------------------
+ */
+
+/* Define SUNDIALS version number */
+#define SUNDIALS_PACKAGE_VERSION "@PACKAGE_VERSION@"
+
+/* FCMIX: Define Fortran name-mangling macro 
+ * Depending on the inferred scheme, one of the following 
+ * six macros will be defined:
+ *     #define F77_FUNC(name,NAME) name
+ *     #define F77_FUNC(name,NAME) name ## _
+ *     #define F77_FUNC(name,NAME) name ## __
+ *     #define F77_FUNC(name,NAME) NAME
+ *     #define F77_FUNC(name,NAME) NAME ## _
+ *     #define F77_FUNC(name,NAME) NAME ## __
+ */
+@F77_MANGLE_MACRO1@
+@F77_MANGLE_MACRO2@
+
+/* Define precision of SUNDIALS data type 'realtype' 
+ * Depending on the precision level, one of the following 
+ * three macros will be defined:
+ *     #define SUNDIALS_SINGLE_PRECISION 1
+ *     #define SUNDIALS_DOUBLE_PRECISION 1
+ *     #define SUNDIALS_EXTENDED_PRECISION 1
+ */
+@PRECISION_LEVEL@
+
+/* Use generic math functions 
+ * If it was decided that generic math functions can be used, then
+ *     #define SUNDIALS_USE_GENERIC_MATH 1
+ * otherwise
+ *     #define SUNDIALS_USE_GENERIC_MATH 0
+ */
+@GENERIC_MATH_LIB@
+
+/* FNVECTOR: Allow user to specify different MPI communicator
+ * If it was found that the MPI implementation supports MPI_Comm_f2c, then
+ *      #define SUNDIALS_MPI_COMM_F2C 1
+ * otherwise
+ *      #define SUNDIALS_MPI_COMM_F2C 0
+ */
+@F77_MPI_COMM_F2C@
+
+/* Mark SUNDIALS API functions for export/import
+ * When building shared SUNDIALS libraries under Windows, use
+ *      #define SUNDIALS_EXPORT __declspec(dllexport)
+ * When linking to shared SUNDIALS libraries under Windows, use
+ *      #define SUNDIALS_EXPORT __declspec(dllimport)
+ * In all other cases (other platforms or static libraries under
+ * Windows), the SUNDIALS_EXPORT macro is empty
+ */
+@SUNDIALS_EXPORT@

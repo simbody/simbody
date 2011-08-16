@@ -1,0 +1,798 @@
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Authors: Michael Sherman                                                   *
+ * Contributors:                                                              *
+ *    Charles Schwieters (NIH): wrote the public domain IVM code from which   *
+ *                              this was derived.                             *
+ *    Peter Eastman wrote the Weld joint.                                     *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
+
+
+/**@file
+ * This file contains the implementations for RigidBodyNodes which have
+ * no degrees of freedom -- Ground and Weld mobilizers. These cannot be
+ * derived from the usual RigidBodyNodeSpec<dof> class because dof==0
+ * is problematic there. Also, these can have very efficient 
+ * implementations here since they know they have no dofs.
+ */
+
+#include "SimbodyMatterSubsystemRep.h"
+#include "RigidBodyNode.h"
+#include "MobilizedBodyImpl.h"
+
+
+////////////////////////////////////////////////
+// Define classes derived from RigidBodyNode. //
+////////////////////////////////////////////////
+
+/**
+ * This still-abstract class is the common base for any MobilizedBody which
+ * has no mobilities. Currently that is only the unique Ground body and
+ * MobilizedBody::Weld, but it is conceivable that others could crop up.
+ *
+ * The base class overrides all the virtual methods which deal in q's and u's
+ * so have common, trivial implementations if there are no q's and no u's.
+ */
+class ImmobileRigidBodyNode : public RigidBodyNode {
+public:
+    ImmobileRigidBodyNode(const MassProperties& mProps_B, const Transform& X_PF, const Transform& X_BM,
+        const UIndex& uIx, const USquaredIndex& usqIx, const QIndex& qIx)
+    :   RigidBodyNode(mProps_B, X_PF, X_BM, QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed) 
+    {
+        uIndex   = uIx;
+        uSqIndex = usqIx;
+        qIndex   = qIx;
+    }
+    ~ImmobileRigidBodyNode() {}
+
+    int  getDOF()   const {return 0;}
+    int  getMaxNQ() const {return 0;}
+    int  getNUInUse(const SBModelVars&) const {return 0;}
+    int  getNQInUse(const SBModelVars&) const {return 0;}
+    bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& ix) const
+    {   ix.invalidate(); return false; }
+    int getPosPoolSize(const SBStateDigest&) const {return 0;}
+    int getVelPoolSize(const SBStateDigest&) const {return 0;}
+
+    int calcQPoolSize(const SBModelVars&) const {return 0;}
+
+    void performQPrecalculations(const SBStateDigest& sbs,
+                                 const Real* q, int nq,
+                                 Real* qCache,  int nQCache,
+                                 Real* qErr,    int nQErr) const
+    {   assert(nq==0 && nQCache==0 && nQErr==0); }
+
+
+    // An immobile mobilizer holds the mobilized body's M frame coincident 
+    // with the parent body's F frame forever.
+    void calcX_FM(const SBStateDigest& sbs,
+                  const Real* q,      int nq,
+                  const Real* qCache, int nQCache,
+                  Transform&  X_FM) const
+    {   assert(nq==0 && nQCache==0);
+        X_FM.setToZero(); }
+
+    void setQToFitTransformImpl
+       (const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const {}
+    void setQToFitRotationImpl
+       (const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {}
+    void setQToFitTranslationImpl
+       (const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {}
+
+    void setUToFitVelocityImpl
+       (const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const {}
+    void setUToFitAngularVelocityImpl
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM, Vector& u) const {}
+    void setUToFitLinearVelocityImpl
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const {}
+
+    
+    void multiplyByN(const SBStateDigest&, bool matrixOnRight, 
+                     const Real* in, Real* out) const {}
+    void multiplyByNInv(const SBStateDigest&, bool matrixOnRight,
+                        const Real* in, Real* out) const {}
+    void multiplyByNDot(const SBStateDigest&, bool matrixOnRight,
+                        const Real* in, Real* out) const {}
+
+    void calcQDot(const SBStateDigest&, const Real* udot, Real* qdotdot) const {}
+    void calcQDotDot(const SBStateDigest&, const Real* udot, Real* qdotdot) const {}
+
+    bool enforceQuaternionConstraints(
+        const SBStateDigest& sbs,
+        Vector&             q,
+        Vector&             qErrest) const {return false;}
+
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {}
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {}
+
+    void setVelFromSVel(
+        const SBTreePositionCache&  pc, 
+        const SBTreeVelocityCache&  vc,
+        const SpatialVec&           sVel, 
+        Vector&                     u) const {}
+};
+
+/**
+ * This is the distinguished body representing the immobile ground frame. Other bodies may
+ * be fixed to this one, but only this is the actual Ground.
+ */
+class RBGroundBody : public ImmobileRigidBodyNode {
+public:
+    RBGroundBody()
+    :   ImmobileRigidBodyNode(MassProperties(Infinity, Vec3(0), Inertia(Infinity)), 
+                              Transform(), Transform(),
+                              UIndex(0), USquaredIndex(0), QIndex(0)) {}
+
+    const char* type() const { return "ground"; }
+
+    // Ground's motion is prescribed at zero.
+    void setMobilizerDefaultModelValues(const SBTopologyCache&, SBModelVars& mv) const
+    {   mv.prescribed[0] = true; }
+
+    // TODO: should ground set the various cache entries here?
+    void realizeModel   (SBStateDigest&) const {}
+    void realizeInstance(const SBStateDigest& sbs) const {
+        // Initialize cache entries that will never be changed at later stages.
+        
+        SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
+        SBDynamicsCache& dc = sbs.updDynamicsCache();
+        SBTreeAccelerationCache& ac = sbs.updTreeAccelerationCache();
+        updY(dc) = SpatialMat(Mat33(0));
+        updGepsilon(ac) = SpatialVec(Vec3(0));
+        updA_GB(ac) = 0;
+    }
+    void realizePosition(const SBStateDigest&) const {}
+    void realizeVelocity(const SBStateDigest&) const {}
+    void realizeDynamics(const SBArticulatedBodyInertiaCache&, const SBStateDigest&) const {}
+    void realizeAcceleration(const SBStateDigest&) const {}
+    void realizeReport  (const SBStateDigest&) const {}
+
+    // Ground's "composite" body inertia is still the infinite mass
+    // and inertia it started with; no need to look at the children.
+    // This overrides the base class default implementation.
+    void calcCompositeBodyInertiasInward(
+        const SBTreePositionCache&  pc,
+        Array_<SpatialInertia>&     R) const
+    {   R[0] = SpatialInertia(Infinity, Vec3(0), UnitInertia(1)); }
+
+    // Ground's "articulated" body inertia is still the infinite mass and
+    // inertia it started with; no need to look at the children.
+    void realizeArticulatedBodyInertiasInward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&,
+        SBArticulatedBodyInertiaCache& abc) const 
+    {   updP(abc) = ArticulatedInertia(SymMat33(Infinity), Mat33(Infinity), SymMat33(0)); }
+
+    void realizeYOutward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&,
+        const SBArticulatedBodyInertiaCache&,
+        SBDynamicsCache&                        dc) const
+    {
+    }
+
+    void realizeZ(
+        const SBTreePositionCache&              pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBTreeVelocityCache&,
+        const SBDynamicsCache&,
+        SBTreeAccelerationCache&                ac,
+        const Real*,
+        const SpatialVec*                       bodyForces) const 
+    {   
+        updZ(ac) = -bodyForces[0];
+        for (unsigned i=0; i<children.size(); ++i) {
+            const SpatialVec& zChild    = children[i]->getZ(ac);
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
+            updZ(ac) += phiChild * (zChild + GepsChild);
+        }
+    }
+    void realizeAccel(
+        const SBTreePositionCache&,
+        const SBArticulatedBodyInertiaCache&,
+        const SBTreeVelocityCache&,
+        const SBDynamicsCache&,
+        SBTreeAccelerationCache&                ac,
+        Real*) const
+    {
+    }
+
+    void calcUDotPass1Inward(
+        const SBInstanceCache&     ic,
+        const SBTreePositionCache& pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&,
+        const Real*                jointForces,
+        const SpatialVec*          bodyForces,
+        const Real*                allUDot,
+        SpatialVec*                allZ,
+        SpatialVec*                allGepsilon,
+        Real*                      allEpsilon) const
+    {
+        allGepsilon[0] = 0;
+    } 
+    void calcUDotPass2Outward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&,
+        const SBArticulatedBodyInertiaCache&,
+        const SBTreeVelocityCache&,
+        const SBDynamicsCache&,
+        const Real*                epsilonTmp,
+        SpatialVec*                allA_GB,
+        Real*                      allUDot,
+        Real*                      allTau) const
+    {
+        allA_GB[0] = 0;
+    }
+
+    void calcMInverseFPass1Inward(
+        const SBInstanceCache&     ic,
+        const SBTreePositionCache& pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&,
+        const Real*                f,
+        SpatialVec*                allZ,
+        SpatialVec*                allGepsilon,
+        Real*                      allEpsilon) const
+    {
+        allZ[0] = 0;
+        for (unsigned i=0; i<children.size(); ++i) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+
+            if (children[i]->isUDotKnown(ic))
+                allZ[0] += phiChild * zChild;                 // 18 flops
+            else {
+                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+                allZ[0] += phiChild * (zChild + GepsChild);   // 24 flops
+            }
+
+        }
+        allGepsilon[0] = 0;
+    } 
+
+    void calcMInverseFPass2Outward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&,
+        const Real*                 epsilonTmp,
+        SpatialVec*                 allA_GB,
+        Real*                       allUDot) const
+    {
+        allA_GB[0] = 0;
+    }
+
+    void calcInverseDynamicsPass1Outward(
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
+        const Real*                 allUDot,
+        SpatialVec*                 allA_GB) const 
+    {
+        allA_GB[0] = 0;
+    }
+
+    // Here Ground is the last body processed. Although it has no mobility forces
+    // we can still collect up all the forces from the base bodies to Ground
+    // in case anyone cares.
+    void calcInverseDynamicsPass2Inward(
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
+        const SpatialVec*           allA_GB,
+        const Real*                 jointForces,
+        const SpatialVec*           bodyForces,
+        SpatialVec*                 allF,
+        Real*                       allTau) const
+    {
+        allF[0] = -bodyForces[0];
+
+        // Add in forces on base bodies, shifted to Ground.
+        for (unsigned i=0; i<children.size(); ++i) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
+            allF[0] += phiChild * FChild;
+        }
+
+        // no taus
+    }
+
+    void calcMVPass1Outward(
+        const SBTreePositionCache&  pc,
+        const Real*                 allUDot,
+        SpatialVec*                 allA_GB) const
+    {
+        allA_GB[0] = 0;
+    }
+
+    void calcMVPass2Inward(
+        const SBTreePositionCache&  pc,
+        const SpatialVec*           allA_GB,
+        SpatialVec*                 allF,
+        Real*                       allTau) const
+    {
+        allF[0] = 0;
+
+        // Add in forces on base bodies, shifted to Ground.
+        for (unsigned i=0; i<children.size(); ++i) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
+            allF[0] += phiChild * FChild;
+        }
+
+        // no taus
+    }
+
+
+    void multiplyBySystemJacobian(
+        const SBTreePositionCache&  pc,
+        const Real*                 v,
+        SpatialVec*                 Jv) const    
+    {
+        Jv[0] = SpatialVec(Vec3(0));
+    }
+
+    void multiplyBySystemJacobianTranspose(
+        const SBTreePositionCache&  pc, 
+        SpatialVec*                 zTmp,
+        const SpatialVec*           X, 
+        Real*                       JtX) const 
+    {
+        zTmp[0] = X[0];
+        for (unsigned i=0; i<children.size(); ++i) {
+            const SpatialVec& zChild   = zTmp[children[i]->getNodeNum()];
+            const PhiMatrix&  phiChild = children[i]->getPhi(pc);
+            zTmp[0] += phiChild * zChild;
+        }
+        // No generalized speeds so no contribution to JtX.
+    }
+
+    void calcEquivalentJointForces(
+        const SBTreePositionCache&  pc,
+        const SBDynamicsCache&,
+        const SpatialVec*           bodyForces,
+        SpatialVec*                 allZ,
+        Real*                       jointForces) const 
+    { 
+        allZ[0] = bodyForces[0];
+        for (unsigned i=0; i<children.size(); ++i) {
+            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            allZ[0] += phiChild * zChild; 
+        }
+    }
+};
+
+    // WELD //
+
+// This is a "joint" with no degrees of freedom, that simply forces
+// the two reference frames to be identical. A Weld node always has a parent
+// but has no q's and no u's.
+class RBNodeWeld : public ImmobileRigidBodyNode {
+public:
+    RBNodeWeld(const MassProperties& mProps_B, const Transform& X_PF, const Transform& X_BM,
+        const UIndex& uIx, const USquaredIndex& usqIx, const QIndex& qIx)
+    :   ImmobileRigidBodyNode(mProps_B, X_PF, X_BM, uIx, usqIx, qIx) {}
+
+    const char* type() { return "weld"; }
+
+
+    // If you want to think of the Weld mobilizer as being always prescribed,
+    // that's fine.
+    void setMobilizerDefaultModelValues(const SBTopologyCache&, SBModelVars& mv) const
+    {   mv.prescribed[getNodeNum()] = true; }
+
+    void realizeModel(SBStateDigest& sbs) const {}
+    void realizeInstance(const SBStateDigest& sbs) const {
+        // Initialize cache entries that will never be changed at later stages.
+        
+        SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
+        SBTreeAccelerationCache& ac = sbs.updTreeAccelerationCache();
+        updV_FM(vc) = 0;
+        updV_PB_G(vc) = 0;
+        updVD_PB_G(vc) = 0;
+        updGepsilon(ac) = SpatialVec(Vec3(0));
+    }
+
+    void realizePosition(const SBStateDigest& sbs) const {
+        SBTreePositionCache& pc = sbs.updTreePositionCache();
+
+        const Transform& X_MB = getX_MB();   // fixed
+        const Transform& X_PF = getX_PF();   // fixed
+        const Transform& X_GP = getX_GP(pc); // already calculated
+
+        updX_FM(pc).setToZero();
+        updX_PB(pc) = X_PF * X_MB;
+        updX_GB(pc) = X_GP * getX_PB(pc);
+        const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p();
+
+        // The Phi matrix conveniently performs child-to-parent (inward) shifting
+        // on spatial quantities (forces); its transpose does parent-to-child
+        // (outward) shifting for velocities.
+        updPhi(pc) = PhiMatrix(p_PB_G);
+
+        // Calculate spatial mass properties. That means we need to transform
+        // the local mass moments into the Ground frame and reconstruct the
+        // spatial inertia matrix Mk.
+
+        const Rotation& R_GB = getX_GB(pc).R();
+        const Vec3&     p_GB = getX_GB(pc).p();
+
+        // reexpress inertia in ground (57 flops)
+        const UnitInertia G_Bo_G  = getUnitInertia_OB_B().reexpress(~R_GB);
+        const Vec3        p_BBc_G = R_GB*getCOM_B(); // 15 flops
+
+        updCOM_G(pc) = p_GB + p_BBc_G; // 3 flops
+
+        // Calc Mk: the spatial inertia matrix about the body origin.
+        // Note: we need to calculate this now so that we'll be able to calculate
+        // kinetic energy without going past the Velocity stage.
+        updMk_G(pc) = SpatialInertia(getMass(), p_BBc_G, G_Bo_G);
+    }
+    
+    void realizeVelocity(const SBStateDigest& sbs) const {
+        const SBTreePositionCache& pc = sbs.getTreePositionCache();
+        SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
+        calcJointIndependentKinematicsVel(pc,vc);
+    }
+
+    void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
+                         const SBStateDigest&                   sbs) const {
+        // Mobilizer-specific.
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
+        const SBTreeVelocityCache&  vc = sbs.getTreeVelocityCache();
+        SBDynamicsCache&            dc = sbs.updDynamicsCache();
+        
+        // Mobilizer independent.
+        calcJointIndependentDynamicsVel(pc,abc,vc,dc);
+    }
+
+
+    void realizeAcceleration(const SBStateDigest& sbs) const {}
+    void realizeReport(const SBStateDigest& sbs) const {}
+
+    // Weld uses base class implementation of calcCompositeBodyInertiasInward() since
+    // that is independent of mobilities.
+
+    void realizeArticulatedBodyInertiasInward
+       (const SBInstanceCache&          ic,
+        const SBTreePositionCache&      pc, 
+        SBArticulatedBodyInertiaCache&  abc) const 
+    {
+        ArticulatedInertia& P = updP(abc);
+        P = ArticulatedInertia(getMk_G(pc));
+        for (unsigned i=0 ; i<children.size() ; i++) {
+            const PhiMatrix&  phiChild           = children[i]->getPhi(pc);
+            const ArticulatedInertia& PChild     = children[i]->getP(abc);
+            const ArticulatedInertia& PPlusChild = children[i]->getPPlus(abc);
+
+            if (children[i]->isUDotKnown(ic))
+                P += PChild.shift(phiChild.l());
+            else
+                P += PPlusChild.shift(phiChild.l());
+        }
+        updPPlus(abc) = P;
+    }
+
+
+    void realizeYOutward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&              pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        SBDynamicsCache&                        dc) const
+    {
+        // This psi actually has the wrong sign, but it doesn't matter since we multiply
+        // by it twice.
+
+        SpatialMat psi = getPhi(pc).toSpatialMat();
+        updY(dc) = ~psi * parent->getY(dc) * psi;
+    }
+
+    void realizeZ(
+        const SBTreePositionCache&              pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBTreeVelocityCache&,
+        const SBDynamicsCache&                  dc,
+        SBTreeAccelerationCache&                ac,
+        const Real*,
+        const SpatialVec*                       bodyForces) const 
+    {
+        SpatialVec& z = updZ(ac);
+        z = getCentrifugalForces(dc) - bodyForces[nodeNum];
+
+        for (int i=0 ; i<(int)children.size() ; i++) {
+            const SpatialVec& zChild    = children[i]->getZ(ac);
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
+
+            z += phiChild * (zChild + GepsChild);
+        }
+    }
+
+
+    void realizeAccel(
+        const SBTreePositionCache&              pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBTreeVelocityCache&              vc,
+        const SBDynamicsCache&,
+        SBTreeAccelerationCache&                ac,
+        Real*) const
+    {
+        const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
+        updA_GB(ac) = alphap + getCoriolisAcceleration(vc);  
+    }
+
+    
+    void calcUDotPass1Inward(
+        const SBInstanceCache&      ic,
+        const SBTreePositionCache&  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&      dc,
+        const Real*                 jointForces,
+        const SpatialVec*           bodyForces,
+        const Real*                 allUDot,
+        SpatialVec*                 allZ,
+        SpatialVec*                 allGepsilon,
+        Real*                       allEpsilon) const 
+    {
+        const SpatialVec& myBodyForce  = bodyForces[nodeNum];
+        SpatialVec&       z            = allZ[nodeNum];
+        SpatialVec&       Geps         = allGepsilon[nodeNum];
+
+        z = getCentrifugalForces(dc) - myBodyForce;
+
+        for (unsigned i=0; i<children.size(); ++i) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+
+            if (children[i]->isUDotKnown(ic))
+                z += phiChild * zChild;                 // 18 flops
+            else {
+                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+                z += phiChild * (zChild + GepsChild);   // 24 flops
+            }
+        }
+
+        Geps = 0;
+    }
+
+    void calcUDotPass2Outward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBTreeVelocityCache&  vc,
+        const SBDynamicsCache&      dc,
+        const Real*                 allEpsilon,
+        SpatialVec*                 allA_GB,
+        Real*                       allUDot,
+        Real*                       allTau) const
+    {
+        SpatialVec& A_GB = allA_GB[nodeNum];
+
+        // Shift parent's A_GB outward. (Ground A_GB is zero.)
+        const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+
+        A_GB = A_GP + getCoriolisAcceleration(vc);  
+    }
+    
+    void calcMInverseFPass1Inward(
+        const SBInstanceCache&      ic,
+        const SBTreePositionCache&  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&      dc,
+        const Real*                 f,
+        SpatialVec*                 allZ,
+        SpatialVec*                 allGepsilon,
+        Real*                       allEpsilon) const
+    {
+        SpatialVec& z       = allZ[nodeNum];
+        SpatialVec& Geps    = allGepsilon[nodeNum];
+
+        z = 0;
+        for (unsigned i=0; i<children.size(); ++i) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+
+            if (children[i]->isUDotKnown(ic))
+                z += phiChild * zChild;                 // 18 flops
+            else {
+                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+                z += phiChild * (zChild + GepsChild);   // 24 flops
+            }
+        }
+        Geps = 0;
+    }
+
+    void calcMInverseFPass2Outward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&      dc,
+        const Real*                 allEpsilon,
+        SpatialVec*                 allA_GB,
+        Real*                       allUDot) const
+    {
+        SpatialVec& A_GB = allA_GB[nodeNum];
+
+        // Shift parent's A_GB outward. (Ground A_GB is zero.)
+        A_GB = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+    }
+
+    void calcInverseDynamicsPass1Outward(
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
+        const Real*                 allUDot,
+        SpatialVec*                 allA_GB) const 
+    {
+        SpatialVec& A_GB = allA_GB[nodeNum];
+
+        // Shift parent's A_GB outward. (Ground A_GB is zero.)
+        const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+
+        A_GB = A_GP + getCoriolisAcceleration(vc); 
+    }
+
+    void calcInverseDynamicsPass2Inward(
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
+        const SpatialVec*           allA_GB,
+        const Real*                 jointForces,
+        const SpatialVec*           bodyForces,
+        SpatialVec*                 allF,
+        Real*                       allTau) const
+    {
+        const SpatialVec& myBodyForce   = bodyForces[nodeNum];
+        const SpatialVec& A_GB          = allA_GB[nodeNum];
+        SpatialVec&       F             = allF[nodeNum];
+
+        // Start with rigid body force from desired body acceleration and
+        // gyroscopic forces due to angular velocity, minus external forces
+        // applied directly to this body.
+        F = getMk_G(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
+
+        // Add in forces on children, shifted to this body.
+        for (unsigned i=0; i<children.size(); ++i) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
+            F += phiChild * FChild;
+        }
+
+        // no taus.
+    }
+
+    void calcMVPass1Outward(
+        const SBTreePositionCache&  pc,
+        const Real*                 allUDot,
+        SpatialVec*                 allA_GB) const
+    {
+        SpatialVec& A_GB = allA_GB[nodeNum];
+
+        // Shift parent's A_GB outward. (Ground A_GB is zero.)
+        const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+
+        A_GB = A_GP;  
+    }
+
+    void calcMVPass2Inward(
+        const SBTreePositionCache&  pc,
+        const SpatialVec*           allA_GB,
+        SpatialVec*                 allF,   // temp
+        Real*                       allTau) const 
+    {
+        const SpatialVec& A_GB  = allA_GB[nodeNum];
+        SpatialVec&       F     = allF[nodeNum];
+
+        F = getMk_G(pc)*A_GB;
+
+        for (int i=0 ; i<(int)children.size() ; i++) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
+            F += phiChild * FChild;
+        }
+    }
+
+    void multiplyBySystemJacobian(
+        const SBTreePositionCache&  pc,
+        const Real*                 v,
+        SpatialVec*                 Jv) const    
+    {
+        SpatialVec& out = Jv[nodeNum];
+
+        // Shift parent's result outward (ground result is 0).
+        const SpatialVec outP = ~getPhi(pc) * Jv[parent->getNodeNum()];
+
+        out = outP;  
+    }
+
+    void multiplyBySystemJacobianTranspose(
+        const SBTreePositionCache&  pc, 
+        SpatialVec*                 zTmp,
+        const SpatialVec*           X, 
+        Real*                       JtX) const
+    {
+        const SpatialVec& in  = X[getNodeNum()];
+        SpatialVec&       z   = zTmp[getNodeNum()];
+
+        z = in;
+
+        for (unsigned i=0; i<children.size(); ++i) {
+            const SpatialVec& zChild   = zTmp[children[i]->getNodeNum()];
+            const PhiMatrix&  phiChild = children[i]->getPhi(pc);
+            z += phiChild * zChild;
+        }
+        // No generalized speeds so no contribution to JtX.
+    }
+
+    void calcEquivalentJointForces(
+        const SBTreePositionCache&  pc,
+        const SBDynamicsCache&      dc,
+        const SpatialVec*           bodyForces,
+        SpatialVec*                 allZ,
+        Real*                       jointForces) const 
+    {
+        const SpatialVec& myBodyForce  = bodyForces[nodeNum];
+        SpatialVec&       z            = allZ[nodeNum];
+
+        // Centrifugal forces are PA+b where P is articulated body inertia,
+        // A is total coriolis acceleration, and b is gyroscopic force.
+        z = myBodyForce - getTotalCentrifugalForces(dc);
+
+        for (int i=0 ; i<(int)children.size() ; i++) {
+            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            z += phiChild * zChild; 
+        }
+    }
+};
+
+
+// The Ground node is special because it doesn't need a mobilizer.
+/*static*/ RigidBodyNode*
+RigidBodyNode::createGroundNode() {
+    return new RBGroundBody();
+}
+
+RigidBodyNode* MobilizedBody::WeldImpl::createRigidBodyNode(
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
+{
+    return new RBNodeWeld(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nextUSlot, nextUSqSlot, nextQSlot);
+}
+
+RigidBodyNode* MobilizedBody::GroundImpl::createRigidBodyNode(
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
+{
+    return RigidBodyNode::createGroundNode();
+}
+

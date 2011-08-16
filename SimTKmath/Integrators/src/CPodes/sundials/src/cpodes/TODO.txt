@@ -1,0 +1,36 @@
+Not implemented yet:
+- various functions needed for projection in WRMS norm 
+  (in cpodes_dense and cpodes_lapack)
+- function to compute consistent y' for implicit-form ODEs 
+  (in cpodes_ic)
+- add some more optional I/O functions for IC calculation
+
+More tests needed:
+- test quadrature integration
+- test BAND linear solver for CP_IMPL case
+- test BANDPRE and BBDPRE preconditioner modules
+- recheck SPGMR, SPBCG, and SPTFQMR (particularly the CP_IMPL case) and test.
+
+Under consideration:
+- do I want to add a function to change from its default value of 1.0 the
+  variable dqincfac (cpSpilsDQjtvImpl in cpodes_spils), like it's done in IDA?
+- automatic stiff-nonstiff switch (through nonlinear solver switch)?
+  We could add a Lipschitz constant estimator for this. But what about the
+  influence of problem size (when using DQ Jacobians) or the relative cost 
+  of fct/Jac. evals (when the user provides the Jacobian)?
+
+NOTES: 
+
+- At this time, unless we allocate one additional vector, we cannot return the 
+  proper estimated local error vector if the error estimate was actually projected.
+  (i.e. we still return acor/tq[2] when we really should return P*acor/tq[2], but we
+  do not have P*acor anymore -- it was stored into a temporary vector). 
+
+- To save an additional function evaluation at the projected state (i.e. finding
+  yP' such that yP' = f(t,yP) or F(t, yP', yP) = 0, the latter also requiring
+  a nonlinear solve with a Jacobian which is not readily available), we use a
+  special trick in applying the projection correction (i.e. we do something slightly
+  different than it's done for the application of the NLS correction) => potential
+  problems when using Adams.
+
+
