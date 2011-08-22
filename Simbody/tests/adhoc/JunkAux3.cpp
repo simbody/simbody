@@ -126,13 +126,15 @@ public:
         const Vector uin = s.getU();
         cout << "BEFORE u=" << uin << endl;
 
+        // This is a ground-connected system -- system "center of mass" doesn't
+        // really mean anything since ground's mass is infinite.
         SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
+        SpatialVec PC = matter.calcSystemCentralMomentum(s);
 
         printf("Locking: BEFORE q=%.15g\n",
             m_mobod.getOneQ(s,0));
-        printf("  %5g mom=%g,%g E=%g\n", s.getTime(),
-            PG[0].norm(), PG[1].norm(), m_mbs.calcEnergy(s));
-
+        printf("  %5g G mom=%g,%g C mom=%g,%g E=%g\n", s.getTime(),
+            PG[0].norm(), PG[1].norm(), PC[0].norm(), PC[1].norm(), m_mbs.calcEnergy(s));
 
         Vector& mobilityForces = 
             m_mbs.updMobilityForces(s,Stage::Dynamics);
@@ -194,8 +196,9 @@ public:
             m_mobod.getOneQ(s,0));
 
         PG = matter.calcSystemMomentumAboutGroundOrigin(s);
-        printf("  %5g mom=%g,%g E=%g\n", s.getTime(),
-            PG[0].norm(), PG[1].norm(), m_mbs.calcEnergy(s));
+        PC = matter.calcSystemCentralMomentum(s);
+        printf("  %5g G mom=%g,%g C mom=%g,%g E=%g\n", s.getTime(),
+            PG[0].norm(), PG[1].norm(), PC[0].norm(), PC[1].norm(), m_mbs.calcEnergy(s));
         cout << "  uerr=" << s.getUErr() << endl;
         lowestModified = Stage::Instance;
     }
@@ -320,10 +323,10 @@ int main(int argc, char** argv) {
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
-    CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
+    //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
     //RungeKuttaFeldbergIntegrator integ(mbs);
     //RungeKuttaMersonIntegrator integ(mbs);
-    //RungeKutta3Integrator integ(mbs);
+    RungeKutta3Integrator integ(mbs);
     //VerletIntegrator integ(mbs);
     integ.setAccuracy(1e-3);
 

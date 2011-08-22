@@ -1,0 +1,7 @@
+            Changes made in experimental branch 
+      since split from Simbody 2.3 trunk on 8/16/2011
+----------------------------------------------------------------------
+8/16 Version changed to 3.0
+8/16 Checked in FrictionConstraints doc
+8/21 Rearchitected constraint API to support use of constraints
+     as operators (BREAKING CHANGE TO CUSTOM CONSTRAINTS)

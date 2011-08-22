@@ -56,7 +56,7 @@ by the values of those coordinates.
 There are many methods in the API for this class. For whole-system information
 and calculations, the methods here are the right ones to use. For information
 associated with individual objects contained in the subsystem, such as 
-MobilizedBody and Constraint object, it is generally easier to obtain the
+MobilizedBody and Constraint objects, it is generally easier to obtain the
 information through the contained objects' APIs instead.
 
 This class is is a "handle" containing only an opaque reference to the 
@@ -88,19 +88,19 @@ the following set of equations:
                                 p(t,q) = 0      Position constraints
                                   n(q) = 0      Normalization constraints
 </pre>
-where M(q) is the mass matrix, G(q) the acceleration constraint matrix, 
+where M(q) is the mass matrix, G(t,q,u) the acceleration constraint matrix, 
 C(q,u) the coriolis and gyroscopic forces, T is user-applied joint mobility
 forces, F is user-applied body forces and torques and gravity. J(q) is the
 System Jacobian (partial velocity matrix) whose transpose ~J maps spatial
 maps spatial forces to joint mobility forces. p(t,q) are the
 holonomic (position) constraints, v(t,q,u) the non-holonomic (velocity) 
 constraints, and a(t,q,u,udot) the acceleration-only constraints, which must be 
-linear, with A the coefficient matrix for a(). pdot, pdotdot are obtained
-by differentiation of p(), vdot by differentiation of v().
-P=partial(pdot)/partial(u) (yes, that's u, not q), V=partial(v)/partial(u).
-(We can get partial(p)/partial(q) when we need it as P*N^-1.) n(q) is the 
-set of quaternion normalization constraints, which exist only at the
-position level and are uncoupled from everything else.
+linear in udot, with A(t,q,u) the coefficient matrix for a(). pdot, pdotdot 
+are obtained by differentiation of p(), vdot by differentiation of v().
+P(t,q)=partial(pdot)/partial(u) (yes, that's u, not q), 
+V(t,q,u)=partial(v)/partial(u). (We can get partial(p)/partial(q) when we need it
+as P*N^-1.) n(q) is the set of quaternion normalization constraints, which exist 
+only at the position level and are uncoupled from everything else.
 
 We calculate the constraint multipliers like this:
 <pre>
@@ -109,7 +109,7 @@ We calculate the constraint multipliers like this:
 using the pseudo inverse of G M^-1 ~G to give a least squares solution for
 mult: mult = pinv(G M^-1 ~G)(G M^-1 f - b). Then the real udot is
 udot = udot0 - udotC, with udotC = M^-1 ~G mult. Note: M^-1* is an
-O(N) operator that provides the desired result; it *does not* require
+O(N) operator that provides the desired result; it <em>does not</em> require
 forming or factoring M.
 
 NOTE: only the following constraint matrices have to be formed and factored:
@@ -1015,6 +1015,8 @@ To within numerical error, this should be identical to the transpose of
 the matrix returned by calcG() which uses a different method. Consider using 
 the calcGtV() method instead of this one, which forms the matrix-vector product
 G^T*v in O(n) time without explicitly forming G^T.
+@par Required stage
+  \c Stage::Velocity
 @see calcG()
 @see calcGtV() **/
 void calcGt(const State&, Matrix& Gt) const;
@@ -1072,7 +1074,7 @@ State must be realized to Stage::Position to call this operator (although
 typically the multipliers are obtained by realizing to Stage::Acceleration).
     
 @par Required stage
-  \c Stage::Acceleration **/
+  \c Stage::Velocity **/
 void calcConstraintForcesFromMultipliers
   (const State& s, const Vector& multipliers,
    Vector_<SpatialVec>& bodyForcesInG,

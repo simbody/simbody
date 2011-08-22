@@ -71,26 +71,40 @@ public:
     // One non-holonomic (well, velocity-level) constraint equation.
     //    verr = u - s
     //    aerr = udot
-    // 
-    void realizeVelocityErrors(const State& s, int mv,  Real* verr) const {
-        assert(mv==1 && verr);
-        *verr = getOneU(s, theMobilizer, whichMobility) - prescribedSpeed;
+    //
+    void calcVelocityErrors     
+       (const State&                                    s,
+        const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+        const Array_<Real,      ConstrainedUIndex>&     constrainedU,
+        Array_<Real>&                                   verr) const
+    {
+        assert(verr.size() == 1);
+        verr[0] = getOneU(s, constrainedU, theMobilizer, whichMobility) 
+                - prescribedSpeed;
     }
 
-    void realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
-        assert(mv==1 && vaerr);
-        *vaerr = getOneUDot(s, theMobilizer, whichMobility, true);
+    void calcVelocityDotErrors     
+       (const State&                                    s,
+        const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+        const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
+        Array_<Real>&                                   vaerr) const
+    {
+        assert(vaerr.size() == 1);
+        vaerr[0] = getOneUDot(s, constrainedUDot,
+                              theMobilizer, whichMobility);
     }
 
     // apply generalized force lambda to the mobility
-    void applyVelocityConstraintForces
-       (const State& s, int mv, const Real* multipliers,
-        Vector_<SpatialVec>& bodyForcesInA,
-        Vector&              mobilityForces) const
+    void addInVelocityConstraintForcesVirtual
+       (const State&                                s, 
+        const Array_<Real>&                         multipliers,
+        Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
+        Array_<Real,ConstrainedUIndex>&             mobilityForces) const
     {
-        assert(mv==1 && multipliers);
-        const Real lambda = *multipliers;
-        addInOneMobilityForce(s, theMobilizer, whichMobility, lambda, mobilityForces);
+        assert(multipliers.size() == 1);
+        const Real lambda = multipliers[0];
+        addInOneMobilityForce(s, theMobilizer, whichMobility, 
+                              lambda, mobilityForces);
     }
 
 private:

@@ -92,7 +92,7 @@ int main() {
     MobilizedBody parent = pendulum;
     Vec3 offs(0,length,0), pos(0);
     int sign = -1;
-    for (int i=1; i < 220; ++i) {
+    for (int i=1; i < 40; ++i) {
         Rotation R_BM = Test::randRotation();
         MobilizedBody::Pin mobod(parent, pos, 
                                  pendulumBody, Transform(R_BM,Vec3(0,length,0)));

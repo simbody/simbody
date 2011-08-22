@@ -959,9 +959,11 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         const SBInstanceCache::PerConstraintInstanceInfo& 
             cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& pseg = cInfo.holoErrSegment;
-        if (pseg.length)
-            constraints[cx]->getImpl().realizePositionErrors
-               (s, pseg.length, &qErr[pseg.offset]);
+        if (pseg.length) {
+            Real* perrp = &qErr[pseg.offset];
+            ArrayView_<Real> perr(perrp, perrp+pseg.length);
+            constraints[cx]->getImpl().realizePositionErrors(s, perr);
+        }
     }
 
     // Now we're done with the ConstrainedPositionCache.
@@ -1087,13 +1089,17 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
         const Segment& holoseg    = cInfo.holoErrSegment; // for derivs of holo constraints
         const Segment& nonholoseg = cInfo.nonholoErrSegment; // includes holo+nonholo
         const int mHolo = holoseg.length, mNonholo = nonholoseg.length;
-        if (mHolo)
-            constraints[cx]->getImpl().realizePositionDotErrors
-               (s, mHolo,    &uErr[holoseg.offset]);
-        if (mNonholo)
-            constraints[cx]->getImpl().realizeVelocityErrors
-               (s, mNonholo, &uErr[ic.totalNHolonomicConstraintEquationsInUse 
-                                   + nonholoseg.offset]);
+        if (mHolo) {
+            Real* pverrp = &uErr[holoseg.offset];
+            ArrayView_<Real> pverr(pverrp, pverrp+mHolo);
+            constraints[cx]->getImpl().realizePositionDotErrors(s, pverr);
+        }
+        if (mNonholo) {
+            Real* verrp = &uErr[ic.totalNHolonomicConstraintEquationsInUse 
+                                + nonholoseg.offset];
+            ArrayView_<Real> verr(verrp, verrp+mNonholo);
+            constraints[cx]->getImpl().realizeVelocityErrors(s, verr);
+        }
     }
 
     // Now we're done with the ConstrainedVelocityCache.
@@ -1715,7 +1721,7 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const Sta
 //------------------------------------------------------------------------------
 //                  CALC CONSTRAINT FORCES FROM MULTIPLIERS
 //------------------------------------------------------------------------------
-// Must be realized to Stage::Position.
+// Must be realized to Stage::Velocity.
 // Note that constraint forces have the opposite sign from applied forces,
 // because we calculate multipliers from
 //    M udot + ~G lambda = f_applied
@@ -1727,6 +1733,8 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
    Vector&              mobilityForces) const
 {
     const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
     const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
     const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
     const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
@@ -1737,38 +1745,74 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
     bodyForcesInG.resize(getNumBodies()); bodyForcesInG.setToZero();
     mobilityForces.resize(getNU(s));      mobilityForces.setToZero();
 
-    Vector_<SpatialVec> bodyF1;          // per constraint
-    Vector              mobilityF1;
-    Vector              lambda1; // multipliers for 1 constraint
+    // These Arrays are for one constraint at a time.
+    Array_<SpatialVec,ConstrainedBodyIndex> bodyF1_A;   // in Ancestor frame
+    Array_<Real,ConstrainedUIndex>          mobilityF1; // generalized forces
+    Array_<Real> lambdap, lambdav, lambdaa; // multipliers
+
+    // Loop over all enabled constraints, ask them to generate forces, and
+    // accumulate the results in the global problem return vectors.
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
 
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const ConstraintImpl& crep  = constraints[cx]->getImpl();
+        const int ncb = crep.getNumConstrainedBodies();
+        const int ncu = crep.getNumConstrainedU(s);
+
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+                              cInfo = ic.getConstraintInstanceInfo(cx);
+
+        // Find this Constraint's multipliers within the global array.
         const Segment& holoSeg    = cInfo.holoErrSegment;
         const Segment& nonholoSeg = cInfo.nonholoErrSegment;
         const Segment& accOnlySeg = cInfo.accOnlyErrSegment;
-        const int mh=holoSeg.length, mnh=nonholoSeg.length, mao=accOnlySeg.length;
+        const int mh=holoSeg.length, mnh=nonholoSeg.length, 
+                  mao=accOnlySeg.length;
 
-        lambda1.resize(mh+mnh+mao);
-        lambda1(0,mh)        = lambda(holoSeg.offset, mh);
-        lambda1(mh, mnh)     = lambda(mHolo+nonholoSeg.offset, mnh);
-        lambda1(mh+mnh, mao) = lambda(mHolo+mNonholo+accOnlySeg.offset, mao);
+        // Pack the multipliers into small arrays lambdap for holonomic 2nd 
+        // derivs, labmdav for nonholonomic 1st derivs, and lambda for
+        // acceleration-only.
+        // Note: these lengths are *very* small integers!
+        lambdap.resize(mh);
+        lambdav.resize(mnh);
+        lambdaa.resize(mao);
+        for (int i=0; i<mh; ++i) 
+            lambdap[i] = lambda[                 holoSeg.offset    + i];
+        for (int i=0; i<mnh; ++i) 
+            lambdav[i] = lambda[mHolo          + nonholoSeg.offset + i];
+        for (int i=0; i<mao; ++i) 
+            lambdaa[i] = lambda[mHolo+mNonholo + accOnlySeg.offset + i];
 
-        const ConstraintImpl& crep = constraints[cx]->getImpl();
- 
-        bodyF1.resize(crep.getNumConstrainedBodies());
-        mobilityF1.resize(crep.getNumConstrainedU(s));
-        crep.calcConstraintForcesFromMultipliers(s,mh,mnh,mao,&lambda1[0],bodyF1,mobilityF1);
+        // Generate forces for this Constraint.
+        bodyF1_A.resize(ncb);
+        mobilityF1.resize(ncu);
+        crep.calcConstraintForcesFromMultipliers
+                        (s, lambdap, lambdav, lambdaa, bodyF1_A, mobilityF1);
 
-        if (crep.getNumConstrainedBodies()) {
-            const Rotation& R_GA = crep.getAncestorMobilizedBody().getBodyRotation(s);
-            for (ConstrainedBodyIndex cb(0); cb < crep.getNumConstrainedBodies(); ++cb)
-                bodyForcesInG[crep.getMobilizedBodyIndexOfConstrainedBody(cb)] += R_GA*bodyF1[cb];
+        if (crep.isAncestorDifferentFromGround()) {
+            const Rotation& R_GA = 
+                crep.getAncestorMobilizedBody().getBodyRotation(s);
+
+            // Re-express constrained body forces from Ancestor to Ground,
+            // unpack and add them to the proper slots in the global body
+            // forces array.
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx)
+                bodyForcesInG[crep.getMobilizedBodyIndexOfConstrainedBody(cbx)] 
+                    += R_GA*bodyF1_A[cbx];  // 36 flops
+        } else {
+            // Unpack constrained body forces and add them to the proper slots 
+            // in the global body forces array. They are already expressed in
+            // the Ground frame since that's the Ancestor body here (A==G).
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx)
+                bodyForcesInG[crep.getMobilizedBodyIndexOfConstrainedBody(cbx)] 
+                    += bodyF1_A[cbx];       // 6 flops
         }
 
-        for (ConstrainedUIndex cux(0); cux < crep.getNumConstrainedU(s); ++cux) 
-            mobilityForces[crep.getUIndexOfConstrainedU(s,cux)] += mobilityF1[cux];
+        // Unpack constrained mobility forces and add them into global array.
+        for (ConstrainedUIndex cux(0); cux < ncu; ++cux) 
+            mobilityForces[crep.getUIndexOfConstrainedU(s,cux)] 
+                += mobilityF1[cux];         // 1 flop
     }
 }
 
@@ -2306,18 +2350,24 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
         const Segment& nonholoseg = cInfo.nonholoErrSegment; // for 1st derivatives of nonholonomic constraints
         const Segment& acconlyseg = cInfo.accOnlyErrSegment; // for acceleration-only constraints
         const int mHolo = holoseg.length, mNonholo = nonholoseg.length, mAccOnly = acconlyseg.length;
-        if (mHolo)
-            constraints[cx]->getImpl().realizePositionDotDotErrors(s, mHolo,
-                &udotErr[holoseg.offset]);
-        if (mNonholo)
-            constraints[cx]->getImpl().realizeVelocityDotErrors(s, mNonholo, 
-                &udotErr[  ic.totalNHolonomicConstraintEquationsInUse 
-                         + nonholoseg.offset]);
-        if (mAccOnly)
-            constraints[cx]->getImpl().realizeAccelerationErrors(s, mAccOnly, 
-                &udotErr[  ic.totalNHolonomicConstraintEquationsInUse
-                         + ic.totalNNonholonomicConstraintEquationsInUse 
-                         + acconlyseg.offset]);
+        if (mHolo) {
+            Real* paerrp = &udotErr[holoseg.offset];
+            ArrayView_<Real> paerr(paerrp, paerrp+mHolo);
+            constraints[cx]->getImpl().realizePositionDotDotErrors(s, paerr);
+        }
+        if (mNonholo) {
+            Real* vaerrp = &udotErr[  ic.totalNHolonomicConstraintEquationsInUse 
+                                    + nonholoseg.offset];
+            ArrayView_<Real> vaerr(vaerrp, vaerrp+mNonholo);
+            constraints[cx]->getImpl().realizeVelocityDotErrors(s, vaerr);
+        }
+        if (mAccOnly) {
+            Real* aerrp = &udotErr[  ic.totalNHolonomicConstraintEquationsInUse
+                                   + ic.totalNNonholonomicConstraintEquationsInUse 
+                                   + acconlyseg.offset];
+            ArrayView_<Real> aerr(aerrp, aerrp+mAccOnly);
+            constraints[cx]->getImpl().realizeAccelerationErrors(s, aerr);
+        }
     }
 }
 

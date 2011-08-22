@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                              SimTK Simbody(tm)                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2007-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -48,9 +48,9 @@
 namespace SimTK {
 
 
-    ////////////////
-    // CONSTRAINT //
-    ////////////////
+//==============================================================================
+//                               CONSTRAINT
+//==============================================================================
 
 void Constraint::disable(State& s) const {
     getImpl().setDisabled(s, true);
@@ -194,6 +194,8 @@ Vector Constraint::calcAccelerationErrorFromUDot(const State&, const Vector& q) 
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Constraint", "calcAccelerationErrorFromUDot");
 }
 
+
+// TODO: change to use operator form to avoid State copying kludge.
 Matrix Constraint::calcPositionConstraintMatrixP(const State& s) const {
     int mp,mv,ma;
     getNumConstraintEquationsInUse(s, mp, mv, ma);
@@ -243,19 +245,20 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
     const int ncb = rep.getNumConstrainedBodies();
     const int ncu = rep.getNumConstrainedU(s);
 
-    Vector              mobilityForces(ncu);
-    Vector_<SpatialVec> bodyForcesInA(ncb); // might be zero of these
+    // Either of these may be zero length.
+    Array_<SpatialVec,ConstrainedBodyIndex> bodyForcesInA(ncb); 
+    Array_<Real,ConstrainedUIndex>          mobilityForces(ncu);
 
-    Vector lambda(mp);
-    lambda = 0;
+    Array_<Real> lambdap(mp, Real(0));
+
     if (ncb == 0) {
         // Mobility forces only
         for (int i=0; i<mp; ++i) {
-            lambda[i] = 1;
-            mobilityForces = 0;
-            rep.applyPositionConstraintForces(s, mp, &lambda[0], 
+            lambdap[i] = 1;
+            mobilityForces.fill(Real(0));
+            rep.addInPositionConstraintForces(s, lambdap, 
                                               bodyForcesInA, mobilityForces);
-            lambda[i] = 0;
+            lambdap[i] = 0;
             Pt(i) = 0;
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
                 Pt(rep.getUIndexOfConstrainedU(s, cux), i) = mobilityForces[cux]; // unpack
@@ -263,23 +266,23 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
     } else {
         // There are some body forces
         Vector_<SpatialVec> bodyForcesInG(nb);
-        bodyForcesInG = SpatialVec(Vec3(0), Vec3(0));
+        bodyForcesInG.setToZero();
 
         // For converting those A-relative forces to G
         const Rotation& R_GA = rep.getAncestorMobilizedBody().getBodyRotation(s);
 
         // Calculate Pt*lambda with each lambda set to 1 in turn.
         for (int i=0; i<mp; ++i) {
-            lambda[i] = 1;
-            bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
-            mobilityForces = 0;
-            rep.applyPositionConstraintForces(s, mp, &lambda[0], 
+            lambdap[i] = 1;
+            bodyForcesInA.fill(SpatialVec(Vec3(0), Vec3(0)));
+            mobilityForces.fill(Real(0));
+            rep.addInPositionConstraintForces(s, lambdap, 
                                               bodyForcesInA, mobilityForces);
             for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
                 bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
                     R_GA*bodyForcesInA[cb];
             }
-            lambda[i] = 0;
+            lambdap[i] = 0;
 
             rep.getMyMatterSubsystem().multiplyBySystemJacobianTranspose
                                                     (s,bodyForcesInG,Pt(i));
@@ -344,21 +347,23 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
     const int ncb = rep.getNumConstrainedBodies();
     const int ncu = rep.getNumConstrainedU(s);
 
-    Vector              mobilityForces(ncu);
-    Vector_<SpatialVec> bodyForcesInA(ncb); // might be zero of these
+        // Either of these may be zero length.
+    Array_<SpatialVec,ConstrainedBodyIndex> bodyForcesInA(ncb); 
+    Array_<Real,ConstrainedUIndex>          mobilityForces(ncu);
+    Array_<Real> lambdav(mv, Real(0));
 
-    Vector lambda(mv);
-    lambda = 0;
     if (ncb == 0) {
         // Mobility forces only
         for (int i=0; i<mv; ++i) {
-            lambda[i] = 1;
-            mobilityForces = 0;
-            rep.applyVelocityConstraintForces(s, mv, &lambda[0], bodyForcesInA, mobilityForces);
-            lambda[i] = 0;
-            Vt(i) = 0;
+            lambdav[i] = 1;
+            mobilityForces.fill(Real(0));
+            rep.addInVelocityConstraintForces(s, lambdav, 
+                                              bodyForcesInA, mobilityForces);
+            lambdav[i] = 0;
+            Vt(i) = 0; // set column i to zero
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
-                Vt(rep.getUIndexOfConstrainedU(s, cux), i) = mobilityForces[cux]; // unpack
+                Vt(rep.getUIndexOfConstrainedU(s, cux), i) = 
+                    mobilityForces[cux]; // unpack
         }
     } else {
         // There are some body forces
@@ -366,24 +371,33 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
         bodyForcesInG = SpatialVec(Vec3(0), Vec3(0));
 
         // For converting those A-relative forces to G
-        const Rotation& R_GA = rep.getAncestorMobilizedBody().getBodyRotation(s);
+        const Rotation& R_GA = 
+            rep.getAncestorMobilizedBody().getBodyRotation(s);
 
         // Calculate Vt*lambda with each lambda set to 1 in turn.
         for (int i=0; i<mv; ++i) {
-            lambda[i] = 1;
-            bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
-            mobilityForces = 0;
-            rep.applyVelocityConstraintForces(s, mv, &lambda[0], bodyForcesInA, mobilityForces);
+            lambdav[i] = 1;
+            bodyForcesInA.fill(SpatialVec(Vec3(0), Vec3(0)));
+            mobilityForces.fill(Real(0));
+            rep.addInVelocityConstraintForces(s, lambdav, 
+                                              bodyForcesInA, mobilityForces);
             for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
                 bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
                     R_GA*bodyForcesInA[cb];
             }
-            lambda[i] = 0;
+            lambdav[i] = 0;
 
+            // Convert body forces F to generalized forces f=~J*F.
+            // TODO: this should result in generalized forces only on the
+            // participating mobilities - does it?
             rep.getMyMatterSubsystem().multiplyBySystemJacobianTranspose
                                                         (s,bodyForcesInG,Vt(i));
+
+            // Now add in the generalized forces produced direction by the
+            // Constraint, unpacking into the right global mobility slot.
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
-                Vt(rep.getUIndexOfConstrainedU(s, cux), i) += mobilityForces[cux]; // unpack
+                Vt(rep.getUIndexOfConstrainedU(s,cux), i) 
+                                                        += mobilityForces[cux];
         }
     }
 
@@ -445,19 +459,19 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
     const int ncb = rep.getNumConstrainedBodies();
     const int ncu = rep.getNumConstrainedU(s);
 
-    Vector              mobilityForces(ncu);
-    Vector_<SpatialVec> bodyForcesInA(ncb); // might be zero of these
-
-    Vector lambda(ma);
-    lambda = 0;
+        // Either of these may be zero length.
+    Array_<SpatialVec,ConstrainedBodyIndex> bodyForcesInA(ncb); 
+    Array_<Real,ConstrainedUIndex>          mobilityForces(ncu);
+    Array_<Real> lambdaa(ma, Real(0));
     
     if (ncb == 0) {
         // Mobility forces only
         for (int i=0; i<ma; ++i) {
-            lambda[i] = 1;
-            mobilityForces = 0;
-            rep.applyAccelerationConstraintForces(s, ma, &lambda[0], bodyForcesInA, mobilityForces);
-            lambda[i] = 0;
+            lambdaa[i] = 1;
+            mobilityForces.fill(Real(0));
+            rep.addInAccelerationConstraintForces(s, lambdaa, 
+                                        bodyForcesInA, mobilityForces);
+            lambdaa[i] = 0;
             At(i) = 0;
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
                 At(rep.getUIndexOfConstrainedU(s, cux), i) = mobilityForces[cux]; // unpack
@@ -472,15 +486,16 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
 
         // Calculate At*lambda with each lambda set to 1 in turn.
         for (int i=0; i<ma; ++i) {
-            lambda[i] = 1;
-            bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
-            mobilityForces = 0;
-            rep.applyAccelerationConstraintForces(s, ma, &lambda[0], bodyForcesInA, mobilityForces);
+            lambdaa[i] = 1;
+            bodyForcesInA.fill(SpatialVec(Vec3(0), Vec3(0)));
+            mobilityForces.fill(Real(0));
+            rep.addInAccelerationConstraintForces(s, lambdaa, 
+                                        bodyForcesInA, mobilityForces);
             for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
                 bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
                     R_GA*bodyForcesInA[cb];
             }
-            lambda[i] = 0;
+            lambdaa[i] = 0;
 
             rep.getMyMatterSubsystem().multiplyBySystemJacobianTranspose
                                                         (s,bodyForcesInG,At(i));
@@ -528,16 +543,41 @@ void Constraint::calcConstraintForcesFromMultipliers(
 {
     int mp, mv, ma;
     getNumConstraintEquationsInUse(s, mp, mv, ma);
-    assert(lambda.size() == mp+mv+ma);
-    assert(lambda.hasContiguousData());
 
-    getImpl().calcConstraintForcesFromMultipliers(s,mp,mv,ma,&lambda[0],bodyForcesInA,mobilityForces);
+    SimTK_APIARGCHECK2_ALWAYS(lambda.size() == mp+mv+ma,
+        "Constraint", "calcConstraintForcesFromMultipliers()",
+        "Expected %d multipliers but got %d.", mp+mv+ma, lambda.size());
+
+    // We have to convert to and from Arrays since the underlying 
+    // constraint methods use those for speed.
+
+    Array_<Real> lambdap(mp), lambdav(mv), lambdaa(ma);
+    for (int i=0; i<mp; ++i) lambdap[i] = lambda[i];
+    for (int i=0; i<mv; ++i) lambdav[i] = lambda[mp+i];
+    for (int i=0; i<ma; ++i) lambdaa[i] = lambda[mp+mv+i];
+
+    Array_<SpatialVec,ConstrainedBodyIndex> tmpBodyForcesInA; 
+    Array_<Real,      ConstrainedUIndex>    tmpMobilityForces;
+
+    getImpl().calcConstraintForcesFromMultipliers
+       (s,lambdap,lambdav,lambdaa,tmpBodyForcesInA,tmpMobilityForces);
+
+    const int ncb = tmpBodyForcesInA.size();  // # constrained bodies
+    const int ncu = tmpMobilityForces.size(); // # constrained u's
+
+    bodyForcesInA.resize(ncb); mobilityForces.resize(ncu);
+
+    for (ConstrainedBodyIndex i(0); i<ncb; ++i) 
+        bodyForcesInA[i] = tmpBodyForcesInA[i];
+
+    for (ConstrainedUIndex i(0); i<ncu; ++i)
+        mobilityForces[i] = tmpMobilityForces[i];
 }
 
 
-    /////////////////////
-    // CONSTRAINT::ROD //
-    /////////////////////
+//==============================================================================
+//                             CONSTRAINT::ROD
+//==============================================================================
 
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Rod, Constraint::RodImpl, Constraint);
 
@@ -696,10 +736,11 @@ void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
 
 }
 
-    ////////////////////////////////
-    // CONSTRAINT::POINT IN PLANE //
-    ////////////////////////////////
 
+
+//==============================================================================
+//                         CONSTRAINT::POINT IN PLANE
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointInPlane, Constraint::PointInPlaneImpl, Constraint);
 
 Constraint::PointInPlane::PointInPlane
@@ -841,10 +882,9 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
 
 
 
-    ///////////////////////////////
-    // CONSTRAINT::POINT ON LINE //
-    ///////////////////////////////
-
+//==============================================================================
+//                        CONSTRAINT::POINT ON LINE
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointOnLine, Constraint::PointOnLineImpl, Constraint);
 
 Constraint::PointOnLine::PointOnLine
@@ -989,10 +1029,9 @@ void Constraint::PointOnLine::PointOnLineImpl::calcDecorativeGeometryAndAppendVi
 
 
 
-    ////////////////////////////////
-    // CONSTRAINT::CONSTANT ANGLE //
-    ////////////////////////////////
-
+//==============================================================================
+//                         CONSTRAINT::CONSTANT ANGLE
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantAngle, Constraint::ConstantAngleImpl, Constraint);
 
 Constraint::ConstantAngle::ConstantAngle
@@ -1104,10 +1143,11 @@ void Constraint::ConstantAngle::ConstantAngleImpl::calcDecorativeGeometryAndAppe
     }
 }
 
-    //////////////////////
-    // CONSTRAINT::BALL //
-    //////////////////////
 
+
+//==============================================================================
+//                              CONSTRAINT::BALL
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Ball, Constraint::BallImpl, Constraint);
 
 Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
@@ -1259,10 +1299,11 @@ void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
     }
 }
 
-    //////////////////////////////////////
-    // CONSTRAINT::CONSTANT ORIENTATION //
-    //////////////////////////////////////
 
+
+//==============================================================================
+//                      CONSTRAINT::CONSTANT ORIENTATION
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantOrientation, Constraint::ConstantOrientationImpl, Constraint);
 
 Constraint::ConstantOrientation::ConstantOrientation
@@ -1341,10 +1382,9 @@ Vec3 Constraint::ConstantOrientation::getMultipliers(const State& s) const {
 
 
 
-    //////////////////////
-    // CONSTRAINT::WELD //
-    //////////////////////
-
+//==============================================================================
+//                            CONSTRAINT::WELD
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Weld, Constraint::WeldImpl, Constraint);
 
 Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
@@ -1467,10 +1507,10 @@ void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
 }
 
 
-    ////////////////////////////
-    // CONSTRAINT::NO SLIP 1D //
-    ////////////////////////////
 
+//==============================================================================
+//                            CONSTRAINT::NO SLIP 1D
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::NoSlip1D, Constraint::NoSlip1DImpl, Constraint);
 
 Constraint::NoSlip1D::NoSlip1D
@@ -1590,10 +1630,10 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
 }
 
 
-    ////////////////////////////////
-    // CONSTRAINT::CONSTANT SPEED //
-    ////////////////////////////////
 
+//==============================================================================
+//                         CONSTRAINT::CONSTANT SPEED
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint);
 
 // This picks one of the mobilities from a multiple-mobility mobilizer.
@@ -1659,10 +1699,9 @@ Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {
 
 
 
-    ///////////////////////////////////////
-    // CONSTRAINT::CONSTANT ACCELERATION //
-    ///////////////////////////////////////
-
+//==============================================================================
+//                     CONSTRAINT::CONSTANT ACCELERATION
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS
    (Constraint::ConstantAcceleration, Constraint::ConstantAccelerationImpl, 
     Constraint);
@@ -1765,11 +1804,9 @@ updAcceleration(State& state) const {
 
 
 
-
-    ////////////////////////
-    // CONSTRAINT::CUSTOM //
-    ////////////////////////
-
+//==============================================================================
+//                            CONSTRAINT::CUSTOM
+//==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Custom, Constraint::CustomImpl, Constraint);
 
 // We are given an Implementation object which is already holding a CustomImpl
@@ -1812,28 +1849,37 @@ void Constraint::CustomImpl::takeOwnershipOfImplementation(Custom::Implementatio
     implementation = userImpl;
 }  
 
-    ////////////////////////////////////////
-    // CONSTRAINT::CUSTOM::IMPLEMENTATION //
-    ////////////////////////////////////////
 
-// Default constructor allocates a CustomImpl object and saves it in the ImplementationImpl object.
-// When this gets passed to a Custom handle we'll turn over ownership of the CustomImpl object
-// to the Custom handle.
-Constraint::Custom::Implementation::Implementation(SimbodyMatterSubsystem& matter) 
-  : PIMPLHandle<Implementation,ImplementationImpl>(new ImplementationImpl(new CustomImpl())) 
+
+//==============================================================================
+//                     CONSTRAINT::CUSTOM::IMPLEMENTATION
+//==============================================================================
+
+// Default constructor allocates a CustomImpl object and saves it in the 
+// ImplementationImpl object. When this gets passed to a Custom handle we'll 
+// turn over ownership of the CustomImpl object to the Custom handle.
+Constraint::Custom::Implementation::Implementation
+   (SimbodyMatterSubsystem& matter) 
+:   PIMPLHandle<Implementation,ImplementationImpl>
+        (new ImplementationImpl(new CustomImpl())) 
 {
-    // We don't know the ConstraintIndex yet since this hasn't been adopted by the MatterSubsystem.
+    // We don't know the ConstraintIndex yet since this hasn't been adopted 
+    // by the MatterSubsystem.
     updImpl().updCustomImpl().setMyMatterSubsystem(matter, ConstraintIndex());
 }
 
-Constraint::Custom::Implementation::Implementation(SimbodyMatterSubsystem& matter, int mp, int mv, int ma) 
-  : PIMPLHandle<Implementation,ImplementationImpl>(new ImplementationImpl(new CustomImpl(mp,mv,ma))) 
+Constraint::Custom::Implementation::Implementation
+   (SimbodyMatterSubsystem& matter, int mp, int mv, int ma) 
+:   PIMPLHandle<Implementation,ImplementationImpl>
+        (new ImplementationImpl(new CustomImpl(mp,mv,ma))) 
 {
-     // We don't know the ConstraintIndex yet since this hasn't been adopted by the MatterSubsystem.
-   updImpl().updCustomImpl().setMyMatterSubsystem(matter, ConstraintIndex());
+    // We don't know the ConstraintIndex yet since this hasn't been adopted 
+    // by the MatterSubsystem.
+    updImpl().updCustomImpl().setMyMatterSubsystem(matter, ConstraintIndex());
 }
 
-const SimbodyMatterSubsystem& Constraint::Custom::Implementation::getMatterSubsystem() const {
+const SimbodyMatterSubsystem& 
+Constraint::Custom::Implementation::getMatterSubsystem() const {
     return getImpl().getCustomImpl().getMyMatterSubsystem();
 }
 
@@ -1872,68 +1918,119 @@ getMobilizedBodyIndexOfConstrainedMobilizer(ConstrainedMobilizerIndex c) const {
 }
 
 Real Constraint::Custom::Implementation::
-getOneQ(const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex mqx) const {
-    return getImpl().getCustomImpl().getOneQ(s,cmx,mqx);
+getOneQ(const State&                                state,
+             const Array_<Real,ConstrainedQIndex>&  constrainedQ,
+             ConstrainedMobilizerIndex              mobilizer, 
+             MobilizerQIndex                        whichQ) const 
+{   return getImpl().getCustomImpl()
+            .getOneQ(state,constrainedQ,mobilizer,whichQ); }
+
+Real Constraint::Custom::Implementation::
+getOneQDot(const State&                                state,
+                const Array_<Real,ConstrainedQIndex>&  constrainedQDot,
+                ConstrainedMobilizerIndex              mobilizer, 
+                MobilizerQIndex                        whichQ) const
+{   return getImpl().getCustomImpl()
+            .getOneQDot(state,constrainedQDot,mobilizer,whichQ); }
+
+Real Constraint::Custom::Implementation::
+getOneQDotDot(const State&                                state,
+                   const Array_<Real,ConstrainedQIndex>&  constrainedQDotDot,
+                   ConstrainedMobilizerIndex              mobilizer, 
+                   MobilizerQIndex                        whichQ) const
+{   return getImpl().getCustomImpl()
+            .getOneQDotDot(state,constrainedQDotDot,mobilizer,whichQ); }
+
+
+Real Constraint::Custom::Implementation::
+getOneU(const State&                                state,
+             const Array_<Real,ConstrainedUIndex>&  constrainedU,
+             ConstrainedMobilizerIndex              mobilizer, 
+             MobilizerUIndex                        whichU) const
+{   return getImpl().getCustomImpl()
+            .getOneU(state,constrainedU,mobilizer,whichU); }
+
+Real Constraint::Custom::Implementation::
+getOneUDot(const State&                                state,
+                const Array_<Real,ConstrainedUIndex>&  constrainedUDot,
+                ConstrainedMobilizerIndex              mobilizer, 
+                MobilizerUIndex                        whichU) const
+{   return getImpl().getCustomImpl()
+            .getOneUDot(state,constrainedUDot,mobilizer,whichU); }
+
+Real Constraint::Custom::Implementation::
+getOneQFromState(const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex mqx) const {
+    return getImpl().getCustomImpl().getOneQFromState(s,cmx,mqx);
 }
 
 Real Constraint::Custom::Implementation::
-getOneU(const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex mux) const {
-    return getImpl().getCustomImpl().getOneU(s,cmx,mux);
+getOneUFromState(const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex mux) const {
+    return getImpl().getCustomImpl().getOneUFromState(s,cmx,mux);
 }
 
 
 Real Constraint::Custom::Implementation::
-getOneQDot(const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex mqx, bool realizingVelocity) const {
-    return getImpl().getCustomImpl().getOneQDot(s,cmx,mqx,realizingVelocity);
+getOneQDotFromState(const State&                s, 
+                    ConstrainedMobilizerIndex   cmx, 
+                    MobilizerQIndex             mqx) const {
+    return getImpl().getCustomImpl().getOneQDotFromState(s,cmx,mqx);
 }
 
-Real Constraint::Custom::Implementation::
-getOneQDotDot(const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex mqx, bool realizingAcceleration) const {
-    return getImpl().getCustomImpl().getOneQDotDot(s,cmx,mqx,realizingAcceleration);
-}
-
-Real Constraint::Custom::Implementation::
-getOneUDot(const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex mux, bool realizingAcceleration) const {
-    return getImpl().getCustomImpl().getOneUDot(s,cmx,mux,realizingAcceleration);
-}
 
 // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
 // adding it in to the appropriate slot of the mobilityForces vector.
 void Constraint::Custom::Implementation::
-addInOneMobilityForce(const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which,
-                      Real f, Vector& mobilityForces) const 
+addInOneMobilityForce
+   (const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which,
+    Real f, Array_<Real,ConstrainedUIndex>& mobilityForces) const 
 {
     getImpl().getCustomImpl().addInOneMobilityForce(s,M,which,f,mobilityForces);
 }
 
+const Transform& Constraint::Custom::Implementation::
+getBodyTransform
+   (const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    ConstrainedBodyIndex                            bodyB) const
+{   return getImpl().getCustomImpl().getBodyTransform(allX_AB,bodyB); }
+
+const SpatialVec& Constraint::Custom::Implementation::
+getBodyVelocity
+   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    ConstrainedBodyIndex                            bodyB) const
+{   return getImpl().getCustomImpl().getBodyVelocity(allV_AB,bodyB); }
+
+const SpatialVec& Constraint::Custom::Implementation::
+getBodyAcceleration
+   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    ConstrainedBodyIndex                            bodyB) const
+{   return getImpl().getCustomImpl().getBodyAcceleration(allA_AB,bodyB); }
+
 const Transform&  Constraint::Custom::Implementation::
-getBodyTransform(const State& s, ConstrainedBodyIndex B) const
+getBodyTransformFromState(const State& s, ConstrainedBodyIndex B) const
 {
-    return getImpl().getCustomImpl().getBodyTransform(s,B);
+    return getImpl().getCustomImpl().getBodyTransformFromState(s,B);
 }
 
 const SpatialVec& Constraint::Custom::Implementation::
-getBodyVelocity(const State& s, ConstrainedBodyIndex B) const
+getBodyVelocityFromState(const State& s, ConstrainedBodyIndex B) const
 {
-    return getImpl().getCustomImpl().getBodyVelocity(s,B);
-}
-
-const SpatialVec& Constraint::Custom::Implementation::
-getBodyAcceleration(const State& s, ConstrainedBodyIndex B) const
-{
-    return getImpl().getCustomImpl().getBodyAcceleration(s,B);
+    return getImpl().getCustomImpl().getBodyVelocityFromState(s,B);
 }
 
 void Constraint::Custom::Implementation::
-addInStationForce(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, 
-                       const Vec3& forceInA, Vector_<SpatialVec>& bodyForcesInA) const
+addInStationForce
+   (const State& s, ConstrainedBodyIndex B, const Vec3& p_B, 
+    const Vec3& forceInA, 
+    Array_<SpatialVec,ConstrainedBodyIndex>& bodyForcesInA) const
 {
     getImpl().getCustomImpl().addInStationForce(s,B,p_B,forceInA,bodyForcesInA);
 }
 
 void Constraint::Custom::Implementation::
-addInBodyTorque(const State& s, ConstrainedBodyIndex B,
-                     const Vec3& torqueInA, Vector_<SpatialVec>& bodyForcesInA) const
+addInBodyTorque
+   (const State& s, ConstrainedBodyIndex B,
+    const Vec3& torqueInA, 
+    Array_<SpatialVec,ConstrainedBodyIndex>& bodyForcesInA) const
 {
     getImpl().getCustomImpl().addInBodyTorque(s,B,torqueInA,bodyForcesInA);
 }
@@ -1944,92 +2041,140 @@ addInBodyTorque(const State& s, ConstrainedBodyIndex B,
 // given a non-zero value for mp, mv, and/or ma which is a promise to 
 // implement the associated methods.
 
-    // These must be defined if there are any positin (holonomic) constraints defined.
+    // These must be defined if there are any position (holonomic) constraints 
+    // defined.
 
 void Constraint::Custom::Implementation::
-realizePositionErrors(const State&, int mp,  Real* perr) const {
+calcPositionErrors     
+   (const State&                                    state,
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr) const
+{
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizePositionErrors");
+        "Constraint::Custom::Implementation", "calcPositionErrors");
 }
 
 void Constraint::Custom::Implementation::
-realizePositionDotErrors(const State&, int mp,  Real* pverr) const {
+calcPositionDotErrors      
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr) const
+{
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
         "Constraint::Custom::Implementation", "realizePositionDotErrors");
 }
 
 void Constraint::Custom::Implementation::
-realizePositionDotDotErrors(const State&, int mp,  Real* paerr) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizePositionDotDotErrors");
-}
-
-
-void Constraint::Custom::Implementation::
-applyPositionConstraintForces
-   (const State&, int mp, const Real* multipliers,
-    Vector_<SpatialVec>& bodyForces,
-    Vector&              mobilityForces) const
+calcPositionDotDotErrors     
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "applyPositionConstraintForces");
+        "Constraint::Custom::Implementation", "calcPositionDotDotErrors");
 }
 
-    // These must be defined if there are any velocity (nonholonomic) constraints defined.
-
 void Constraint::Custom::Implementation::
-realizeVelocityErrors(const State&, int mv,  Real* verr) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizeVelocityErrors");
-}
-
-
-void Constraint::Custom::Implementation::
-realizeVelocityDotErrors(const State&, int mv,  Real* vaerr) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizeVelocityDotErrors");
-}
-
-
-void Constraint::Custom::Implementation::
-applyVelocityConstraintForces
-   (const State&, int mv, const Real* multipliers,
-    Vector_<SpatialVec>& bodyForces,
-    Vector&              mobilityForces) const
+addInPositionConstraintForces
+   (const State&                                state, 
+    const Array_<Real>&                         multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "applyVelocityConstraintForces");
+        "Constraint::Custom::Implementation", "addInPositionConstraintForces");
 }
 
-
-
-// These must be defined if there are any acceleration-only constraints defined.
-void Constraint::Custom::Implementation::
-realizeAccelerationErrors(const State&, int ma,  Real* aerr) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizeAccelerationErrors");
-}
+    // These must be defined if there are any velocity (nonholonomic) 
+    // constraints defined.
 
 void Constraint::Custom::Implementation::
-applyAccelerationConstraintForces
-   (const State&, int ma, const Real* multipliers,
-    Vector_<SpatialVec>& bodyForces,
-    Vector&              mobilityForces) const
+calcVelocityErrors     
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedU,
+    Array_<Real>&                                   verr) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "applyAccelerationConstraintForces");
+        "Constraint::Custom::Implementation", "calcVelocityErrors");
 }
 
-    ////////////////////////////////////
-    // CONSTRAINT::COORDINATE COUPLER //
-    ////////////////////////////////////
 
-Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex)
-        : Custom(new CoordinateCouplerImpl(matter, function, coordBody, coordIndex)) {
+void Constraint::Custom::Implementation::
+calcVelocityDotErrors     
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
+    Array_<Real>&                                   vaerr) const
+{
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod,
+        "Constraint::Custom::Implementation", "calcVelocityDotErrors");
 }
 
-Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex)
-        : Implementation(matter, 1, 0, 0), function(function), coordBodies(coordBody.size()), coordIndices(coordIndex), temp(coordBodies.size()), referenceCount(new int[1]) {
+
+void Constraint::Custom::Implementation::
+addInVelocityConstraintForces
+   (const State&                                state, 
+    const Array_<Real>&                         multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const
+{
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod,
+        "Constraint::Custom::Implementation", "addInVelocityConstraintForces");
+}
+
+
+
+    // These must be defined if there are any acceleration-only constraints 
+    // defined.
+
+void Constraint::Custom::Implementation::
+calcAccelerationErrors      
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
+    Array_<Real>&                                   aerr) const
+{
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod,
+        "Constraint::Custom::Implementation", "calcAccelerationErrors");
+}
+
+void Constraint::Custom::Implementation::
+addInAccelerationConstraintForces
+   (const State&                                state, 
+    const Array_<Real>&                         multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const
+{
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod,
+      "Constraint::Custom::Implementation", "addInAccelerationConstraintForces");
+}
+
+
+
+//==============================================================================
+//                       CONSTRAINT::COORDINATE COUPLER
+//==============================================================================
+Constraint::CoordinateCoupler::CoordinateCoupler
+   (SimbodyMatterSubsystem&             matter, 
+    const Function*                     function, 
+    const Array_<MobilizedBodyIndex>&   coordBody, 
+    const Array_<MobilizerQIndex>&      coordIndex)
+:   Custom(new CoordinateCouplerImpl(matter, function, coordBody, coordIndex)) 
+{}
+
+Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl
+   (SimbodyMatterSubsystem&             matter, 
+    const Function*                     function, 
+    const Array_<MobilizedBodyIndex>&   coordBody, 
+    const Array_<MobilizerQIndex>&      coordIndex)
+:   Implementation(matter, 1, 0, 0), function(function), 
+    coordBodies(coordBody.size()), coordIndices(coordIndex), 
+    temp(coordBodies.size()), referenceCount(new int[1]) 
+{
     assert(coordBodies.size() == coordIndices.size());
     assert(coordIndices.size() == function->getArgumentSize());
     assert(function->getMaxDerivativeOrder() >= 2);
@@ -2037,42 +2182,67 @@ Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem&
     std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
     for (int i = 0; i < (int)coordBodies.size(); ++i) {
         if (bodyIndexMap.find(coordBody[i]) == bodyIndexMap.end())
-            bodyIndexMap[coordBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
+            bodyIndexMap[coordBody[i]] = 
+                addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
         coordBodies[i] = bodyIndexMap[coordBody[i]];
     }
 }
 
-void Constraint::CoordinateCouplerImpl::realizePositionErrors(const State& s, int mp,  Real* perr) const {
+void Constraint::CoordinateCouplerImpl::
+calcPositionErrors     
+   (const State&                                    s,
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr) const
+{
     for (int i = 0; i < temp.size(); ++i)
-        temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
+        temp[i] = getOneQ(s, constrainedQ, coordBodies[i], coordIndices[i]);
     perr[0] = function->calcValue(temp);
 }
 
-void Constraint::CoordinateCouplerImpl::realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
+void Constraint::CoordinateCouplerImpl::
+calcPositionDotErrors      
+   (const State&                                    s,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr) const
+{
     pverr[0] = 0.0;
     for (int i = 0; i < temp.size(); ++i)
-        temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
+        temp[i] = getOneQFromState(s, coordBodies[i], coordIndices[i]);
     Array_<int> components(1);
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
-        pverr[0] += function->calcDerivative(components, temp)*getOneQDot(s, coordBodies[i], coordIndices[i], true);
+        pverr[0] += function->calcDerivative(components, temp)
+                    * getOneQDot(s, constrainedQDot, 
+                                 coordBodies[i], coordIndices[i]);
     }
 }
 
-void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
+void Constraint::CoordinateCouplerImpl::
+calcPositionDotDotErrors     
+   (const State&                                    s,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr) const
+{
     paerr[0] = 0.0;
     for (int i = 0; i < temp.size(); ++i)
-        temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
+        temp[i] = getOneQFromState(s, coordBodies[i], coordIndices[i]);
     Array_<int> components(2);
     // TODO this could be made faster by using symmetry if necessary
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
-        Real qdoti = getOneQDot(s, coordBodies[i], coordIndices[i], true);
+        Real qdoti = getOneQDotFromState(s, coordBodies[i], coordIndices[i]);
         for (int j = 0; j < temp.size(); ++j) {
             components[1] = j;
-            paerr[0] += function->calcDerivative(components, temp)*qdoti*getOneQDot(s, coordBodies[j], coordIndices[j], true);
+            Real qdotj = getOneQDotFromState(s, coordBodies[j], coordIndices[j]);
+            paerr[0] += function->calcDerivative(components, temp)
+                        * qdoti * qdotj;
         }
     }
+
+    //TODO: why isn't this just calling getOneQDotDot()?
     Array_<int> component(1);
     const Real* udot = &s.updUDot()[0];
     Vector qdotdot(s.getNQ());
@@ -2081,23 +2251,33 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State&
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity.next());
     for (int i = 0; i < temp.size(); ++i) {
         component[0] = i;
-        const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
+        const MobilizedBody& body = matter.getMobilizedBody(
+            getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
         const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
-        node.calcQDotDot(digest, &udot[node.getUIndex()], &qdotdotPtr[node.getQIndex()]);
-        paerr[0] += function->calcDerivative(component, temp)*body.getOneFromQPartition(s, coordIndices[i], qdotdot);
+        node.calcQDotDot(digest, &udot[node.getUIndex()], 
+                         &qdotdotPtr[node.getQIndex()]);
+        paerr[0] += function->calcDerivative(component, temp)
+                    * body.getOneFromQPartition(s, coordIndices[i], qdotdot);
     }
 }
 
-void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
+void Constraint::CoordinateCouplerImpl::
+addInPositionConstraintForces
+   (const State&                                s, 
+    const Array_<Real>&                         multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const
+{
     for (int i = 0; i < temp.size(); ++i)
-        temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
+        temp[i] = getOneQFromState(s, coordBodies[i], coordIndices[i]);
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
     Array_<int> components(1);
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
         Real force = multipliers[0]*function->calcDerivative(components, temp);
-        const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
+        const MobilizedBody& body = matter.getMobilizedBody(
+            getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
         const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
         Vector grad(body.getNumQ(s), 0.0);
         Vector forces(body.getNumU(s));
@@ -2105,14 +2285,16 @@ void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const Stat
         // forces = ~N * grad
         node.multiplyByN(digest, true, &grad[0], &forces[0]);
         for (MobilizerUIndex index(0); index < forces.size(); index++)
-            addInOneMobilityForce(s, coordBodies[i], index, forces[index], mobilityForces);
+            addInOneMobilityForce(s, coordBodies[i], index, forces[index], 
+                                  mobilityForces);
     }
 }
 
-    ///////////////////////////////
-    // CONSTRAINT::SPEED COUPLER //
-    ///////////////////////////////
 
+
+//==============================================================================
+//                          CONSTRAINT::SPEED COUPLER
+//==============================================================================
 Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& speedBody, const Array_<MobilizerUIndex>& speedIndex)
         : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, Array_<MobilizedBodyIndex>(0), Array_<MobilizerQIndex>(0))) {
 }
@@ -2139,35 +2321,75 @@ Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, c
     }
 }
 
-void Constraint::SpeedCouplerImpl::realizeVelocityErrors(const State& s, int mv,  Real* verr) const {
-    findArguments(s);
+void Constraint::SpeedCouplerImpl::
+calcVelocityErrors     
+   (const State&                                    s,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedU,
+    Array_<Real>&                                   verr) const
+{
+    for (int i = 0; i < (int) speedBodies.size(); ++i)
+        temp[i] = getOneU(s, constrainedU, speedBodies[i], speedIndices[i]);
+    for (int i = 0; i < (int) coordBodies.size(); ++i)
+        temp[i+speedBodies.size()] = 
+            getMatterSubsystem().getMobilizedBody(coordBodies[i])
+                                .getOneQ(s, coordIndices[i]);
     verr[0] = function->calcValue(temp);
 }
 
-void Constraint::SpeedCouplerImpl::realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
+void Constraint::SpeedCouplerImpl::
+calcVelocityDotErrors     
+   (const State&                                    s,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
+    Array_<Real>&                                   vaerr) const 
+{
     vaerr[0] = 0.0;
-    findArguments(s);
+    for (int i = 0; i < (int) speedBodies.size(); ++i)
+        temp[i] = getOneUFromState(s, speedBodies[i], speedIndices[i]);
+    for (int i = 0; i < (int) coordBodies.size(); ++i)
+        temp[i+speedBodies.size()] = 
+            getMatterSubsystem().getMobilizedBody(coordBodies[i])
+                                .getOneQ(s, coordIndices[i]);
+
+    //TODO: aren't the derivatives with respect to the q's missing?
     Array_<int> components(1);
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
-        vaerr[0] += function->calcDerivative(components, temp)*getOneUDot(s, speedBodies[i], speedIndices[i], true);
+        vaerr[0] += function->calcDerivative(components, temp)
+                    * getOneUDot(s, constrainedUDot, 
+                                 speedBodies[i], speedIndices[i]);
     }
 }
 
-void Constraint::SpeedCouplerImpl::applyVelocityConstraintForces(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
-    findArguments(s);
+void Constraint::SpeedCouplerImpl::
+addInVelocityConstraintForces
+   (const State&                                s, 
+    const Array_<Real>&                         multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const
+{
+    for (int i = 0; i < (int) speedBodies.size(); ++i)
+        temp[i] = getOneUFromState(s, speedBodies[i], speedIndices[i]);
+    for (int i = 0; i < (int) coordBodies.size(); ++i)
+        temp[i+speedBodies.size()] = 
+            getMatterSubsystem().getMobilizedBody(coordBodies[i])
+                                .getOneQ(s, coordIndices[i]);
+
     Array_<int> components(1);
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
         Real force = multipliers[0]*function->calcDerivative(components, temp);
-        addInOneMobilityForce(s, speedBodies[i], speedIndices[i], force, mobilityForces);
+        addInOneMobilityForce(s, speedBodies[i], speedIndices[i], 
+                              force, mobilityForces);
     }
 }
 
-    ///////////////////////////////////
-    // CONSTRAINT::PRESCRIBED MOTION //
-    ///////////////////////////////////
 
+
+//==============================================================================
+//                        CONSTRAINT::PRESCRIBED MOTION
+//==============================================================================
 Constraint::PrescribedMotion::PrescribedMotion(SimbodyMatterSubsystem& matter, const Function* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
         : Custom(new PrescribedMotionImpl(matter, function, coordBody, coordIndex)) {
 }
@@ -2180,18 +2402,38 @@ Constraint::PrescribedMotionImpl::PrescribedMotionImpl(SimbodyMatterSubsystem& m
     this->coordBody = addConstrainedMobilizer(matter.getMobilizedBody(coordBody));
 }
 
-void Constraint::PrescribedMotionImpl::realizePositionErrors(const State& s, int mp,  Real* perr) const {
+void Constraint::PrescribedMotionImpl::
+calcPositionErrors     
+   (const State&                                    s,
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr) const
+{
     temp[0] = s.getTime();
-    perr[0] = getOneQ(s, coordBody, coordIndex) - function->calcValue(temp);
+    perr[0] = getOneQ(s, constrainedQ, coordBody, coordIndex) 
+              - function->calcValue(temp);
 }
 
-void Constraint::PrescribedMotionImpl::realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
+void Constraint::PrescribedMotionImpl::
+calcPositionDotErrors      
+   (const State&                                    s,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr) const
+{
     temp[0] = s.getTime();
     Array_<int> components(1, 0);
-    pverr[0] = getOneQDot(s, coordBody, coordIndex, true) - function->calcDerivative(components, temp);
+    pverr[0] = getOneQDot(s, constrainedQDot, coordBody, coordIndex) 
+               - function->calcDerivative(components, temp);
 }
 
-void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
+void Constraint::PrescribedMotionImpl::
+calcPositionDotDotErrors     
+   (const State&                                    s,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr) const
+{
     const Real* udot = &s.updUDot()[0];
     Vector qdotdot(s.getNQ());
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
@@ -2201,10 +2443,17 @@ void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& 
     node.calcQDotDot(digest, &udot[node.getUIndex()], &qdotdot[node.getQIndex()]);
     temp[0] = s.getTime();
     Array_<int> components(2, 0);
-    paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) - function->calcDerivative(components, temp);
+    paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) 
+               - function->calcDerivative(components, temp);
 }
 
-void Constraint::PrescribedMotionImpl::applyPositionConstraintForces(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
+void Constraint::PrescribedMotionImpl::
+addInPositionConstraintForces
+   (const State&                                s, 
+    const Array_<Real>&                         multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const
+{
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
     Real force = multipliers[0];
@@ -2219,17 +2468,20 @@ void Constraint::PrescribedMotionImpl::applyPositionConstraintForces(const State
         addInOneMobilityForce(s, coordBody, index, forces[index], mobilityForces);
 }
 
-    /////////////////////
-    // CONSTRAINT IMPL //
-    /////////////////////
+
+
+//==============================================================================
+//                              CONSTRAINT IMPL
+//==============================================================================
+
 
 // -----------------------------------------------------------------------------
 //                              REALIZE TOPOLOGY
 // -----------------------------------------------------------------------------
-void ConstraintImpl::realizeTopology(State& s) const
-{
-    // Calculate the relevant Subtree. There might not be any Constrained Bodies here
-    // but we want to make sure we have a properly initialized empty Subtree in that case.
+void ConstraintImpl::realizeTopology(State& s) const {
+    // Calculate the relevant Subtree. There might not be any Constrained 
+    // Bodies here but we want to make sure we have a properly initialized 
+    // empty Subtree in that case.
     mySubtree.clear();
     mySubtree.setSimbodyMatterSubsystem(getMyMatterSubsystem());
     for (ConstrainedBodyIndex b(0); b < myConstrainedBodies.size(); ++b)
@@ -2276,15 +2528,17 @@ void ConstraintImpl::realizeModel(State& s) const
 // -----------------------------------------------------------------------------
 // There are two main tasks here that can be performed now that we have values
 // for the Instance stage state variables:
-// (1) Count up the number of holonomic, nonholonomic, and acceleration-only constraint
-//     equations to be contributed by each Constraint, and assign corresponding slots
-//     in constraint-equation ordered arrays, such as the State's constraint error arrays.
-// (2) Above we assigned q's and u's to each mobilizer and stored the results in the
-//     Model cache, now we can determine which of those q's and u's are involved in each
-//     constraint. We need to collect up both the set of directly-constrained q's and u's
-//     resulting from ConstrainedMobilizers, and indirectly-constrained ones arising 
-//     from their effects on ConstrainedBodies. Together we call those "participating q's"
-//     and "participating u's" (or "participating mobilities").
+// (1) Count up the number of holonomic, nonholonomic, and acceleration-only 
+//     constraint equations to be contributed by each Constraint, and assign 
+//     corresponding slots in constraint-equation ordered arrays, such as the 
+//     State's constraint error arrays.
+// (2) Above we assigned q's and u's to each mobilizer and stored the results in
+//     the Model cache, now we can determine which of those q's and u's are 
+//     involved in each constraint. We need to collect up both the set of 
+//     directly-constrained q's and u's resulting from ConstrainedMobilizers, 
+//     and indirectly-constrained ones arising from their effects on 
+//     ConstrainedBodies. Together we call those "participating q's" and 
+//     "participating u's" (or "participating mobilities").
 // The results of these computations goes in the Instance cache.
 
 void ConstraintImpl::realizeInstance(const State& s) const {
@@ -2296,6 +2550,11 @@ void ConstraintImpl::realizeInstance(const State& s) const {
 
     cInfo.clear();
     cInfo.allocateConstrainedMobilizerInstanceInfo(getNumConstrainedMobilizers());
+
+    // We're in the process of counting up constraint equations in the
+    // totalN...Constraints variables; on entry they are set to the number
+    // we've seen so far and we'll increment them here to add in the 
+    // contributions from this Constraint.
 
     if (isDisabled(s)) {
         cInfo.holoErrSegment    = Segment(0,instanceCache.totalNHolonomicConstraintEquationsInUse);
@@ -2310,7 +2569,7 @@ void ConstraintImpl::realizeInstance(const State& s) const {
     int mHolo, mNonholo, mAccOnly;
     calcNumConstraintEquationsInUse(s, mHolo, mNonholo, mAccOnly);
 
-    // Must allocate space for the primary constraint equations and their time derivatives.
+    // Must allocate space for primary constraint equations & time derivatives.
     //                                length         offset
     cInfo.holoErrSegment    = Segment(mHolo,    instanceCache.totalNHolonomicConstraintEquationsInUse);
     cInfo.nonholoErrSegment = Segment(mNonholo, instanceCache.totalNNonholonomicConstraintEquationsInUse);
@@ -2322,16 +2581,20 @@ void ConstraintImpl::realizeInstance(const State& s) const {
 
     // At this point we can find out how many q's and u's are associated with
     // each of the constrained mobilizers. We'll create packed arrays of q's and
-    // u's ordered corresponding to the ConstrainedMobilizerIndices. We'll record
-    // these in the InstanceCache, by storing the ConstrainedQIndex and ConstrainedUIndex
-    // of the lowest-numbered coordinate and mobility associated with each of
-    // the ConstrainedMobilizers, along with the number of q's and u's.
+    // u's ordered corresponding to the ConstrainedMobilizerIndices. We'll 
+    // record these in the InstanceCache, by storing the ConstrainedQIndex and 
+    // ConstrainedUIndex of the lowest-numbered coordinate and mobility 
+    // associated with each of the ConstrainedMobilizers, along with the number 
+    // of q's and u's.
 
-    for (ConstrainedMobilizerIndex cmx(0); cmx < getNumConstrainedMobilizers(); ++cmx) {
+    for (ConstrainedMobilizerIndex cmx(0); cmx < getNumConstrainedMobilizers(); 
+         ++cmx) 
+    {
         SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo = 
             cInfo.updConstrainedMobilizerInstanceInfo(cmx);
 
-        const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(cmx);
+        const MobilizedBodyIndex mbx = 
+            getMobilizedBodyIndexOfConstrainedMobilizer(cmx);
         QIndex qix; int nq;
         UIndex uix; int nu;
         matter.findMobilizerQs(s,mbx,qix,nq);
@@ -2348,10 +2611,10 @@ void ConstraintImpl::realizeInstance(const State& s) const {
         }
     }
 
-    // Now collect all the participating mobilities. This includes the constrained mobilities
-    // as well as every q and u that can affect the constraint equations which involve 
-    // constrained bodies. At the end we'll sort this list by subsystem QIndex/UIndex
-    // and remove duplicates.
+    // Now collect all the participating mobilities. This includes the 
+    // constrained mobilities as well as every q and u that can affect the 
+    // constraint equations which involve constrained bodies. At the end we'll 
+    // sort this list by subsystem QIndex/UIndex and remove duplicates.
     cInfo.participatingQ = cInfo.constrainedQ;
     cInfo.participatingU = cInfo.constrainedU;
 
@@ -2491,47 +2754,55 @@ ConstraintImpl::getAncestorMobilizedBody() const {
     return getMyMatterSubsystemRep().getMobilizedBody(mySubtree.getAncestorMobilizedBodyIndex()); ;
 }
 
-Real ConstraintImpl::getOneQ
+Real ConstraintImpl::getOneQFromState
    (const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ) const
 {
     const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
     return getMyMatterSubsystemRep().getQ(s)[qx];
 }
 
-Real ConstraintImpl::getOneU
+Real ConstraintImpl::getOneUFromState
    (const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex whichU) const 
 {
     const UIndex ux = getUIndexOfConstrainedU(s, getConstrainedUIndex(s, cmx, whichU));
     return getMyMatterSubsystemRep().getU(s)[ux];
 }
 
-Real ConstraintImpl::getOneQDot(const State& s, 
-                ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ, bool realizing) const
+Real ConstraintImpl::getOneQDotFromState
+   (const State&                s, 
+    ConstrainedMobilizerIndex   cmx, 
+    MobilizerQIndex             whichQ) const
+{
+    const QIndex qx = getQIndexOfConstrainedQ
+                                (s, getConstrainedQIndex(s, cmx, whichQ));
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return matter.getQDot(s)[qx];
+}
+
+Real ConstraintImpl::getOneUDotFromState
+   (const State&                s,
+    ConstrainedMobilizerIndex   cmx, 
+    MobilizerUIndex             whichU) const
+{
+    const UIndex ux = getUIndexOfConstrainedU
+                                (s, getConstrainedUIndex(s, cmx, whichU));
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return matter.getUDot(s)[ux];
+}
+
+
+Real ConstraintImpl::getOneQDotDotFromState
+   (const State&                s, 
+    ConstrainedMobilizerIndex   cmx, 
+    MobilizerQIndex             whichQ) const
 {
     const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
     const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
-    return realizing ? matter.updQDot(s)[qx] : matter.getQDot(s)[qx];
-}
-
-Real ConstraintImpl::getOneUDot(const State& s,
-                ConstrainedMobilizerIndex cmx, MobilizerUIndex whichU, bool realizing) const
-{
-    const UIndex ux = getUIndexOfConstrainedU(s, getConstrainedUIndex(s, cmx, whichU));
-    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
-    return realizing ? matter.updUDot(s)[ux] : matter.getUDot(s)[ux];
-}
-
-
-Real ConstraintImpl::getOneQDotDot(const State& s, 
-                ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ, bool realizing) const
-{
-    const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
-    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
-    return realizing ? matter.updQDotDot(s)[qx] : matter.getQDotDot(s)[qx];
+    return matter.getQDotDot(s)[qx];
 }
 
 // These are used to retrieve the indicated values from the State cache.
-const Transform& ConstraintImpl::getBodyTransform
+const Transform& ConstraintImpl::getBodyTransformFromState
    (const State& s, ConstrainedBodyIndex B) const 
 {
     const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
@@ -2549,7 +2820,7 @@ const Transform& ConstraintImpl::getBodyTransform
     return matter.getTreePositionCache(s)
                     .constrainedBodyConfigInAncestor[bx]; // X_AB
 }
-const SpatialVec& ConstraintImpl::getBodyVelocity
+const SpatialVec& ConstraintImpl::getBodyVelocityFromState
    (const State& s, ConstrainedBodyIndex B) const
 {
     const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
@@ -2567,7 +2838,7 @@ const SpatialVec& ConstraintImpl::getBodyVelocity
     return matter.getTreeVelocityCache(s)
                     .constrainedBodyVelocityInAncestor[bx]; // V_AB
 }
-const SpatialVec& ConstraintImpl::getBodyAcceleration
+const SpatialVec& ConstraintImpl::getBodyAccelerationFromState
    (const State& s, ConstrainedBodyIndex B) const
 {
     const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
@@ -2806,8 +3077,9 @@ ConstrainedMobilizerIndex ConstraintImpl::addConstrainedMobilizer(const Mobilize
 }
 
 QIndex ConstraintImpl::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const {
-    const SBInstanceCache&                         mc    = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache& mc = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& 
+        cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
     return cInfo.getQIndexFromConstrainedQ(cqx);
 }
 
@@ -2818,15 +3090,17 @@ UIndex ConstraintImpl::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex
 }
 
 int ConstraintImpl::getNumConstrainedQ(const State& s) const {
-    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getNumConstrainedQ();
+    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex)
+                              .getNumConstrainedQ();
 }
 
 int ConstraintImpl::getNumConstrainedQ
    (const State& s, ConstrainedMobilizerIndex M) const
 {
     const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
-        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getConstrainedMobilizerInstanceInfo(M);
-    return mInfo.nQInUse; // same as corresponding MobilizedBody, or 0 if disabled
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex)
+                           .getConstrainedMobilizerInstanceInfo(M);
+    return mInfo.nQInUse; // same as corresponding Mobod, or 0 if disabled
 }
 
 ConstrainedQIndex ConstraintImpl::getConstrainedQIndex
@@ -3015,85 +3289,299 @@ const SBTreeAccelerationCache& ConstraintImpl::getTreeAccelerationCache(const St
     return getMyMatterSubsystemRep().getTreeAccelerationCache(s);
 }
 
+//------------------------------------------------------------------------------
 // Default implementations for ConstraintImpl virtuals throw "unimplemented"
 // exceptions. These shouldn't be called unless the concrete constraint has
 // given a non-zero value for mp, mv, and/or ma which is a promise to 
 // implement the associated methods.
+//------------------------------------------------------------------------------
 
-    // These must be defined if there are any positin (holonomic) constraints defined.
+    // These four must be defined if there are any position (holonomic) 
+    // constraints defined.
 
-void ConstraintImpl::
-realizePositionErrorsVirtual(const State&, int mp,  Real* perr) const {
+void ConstraintImpl::calcPositionErrorsVirtual      
+   (const State&                                    state,
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr)
+    const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "realizePositionErrors");
+        "ConstraintImpl", "calcPositionErrorsVirtual");
 }
 
-void ConstraintImpl::
-realizePositionDotErrorsVirtual(const State&, int mp,  Real* pverr) const {
+void ConstraintImpl::calcPositionDotErrorsVirtual      
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr)
+    const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "realizePositionDotErrors");
+        "ConstraintImpl", "calcPositionDotErrorsVirtual");
 }
 
-void ConstraintImpl::
-realizePositionDotDotErrorsVirtual(const State&, int mp,  Real* paerr) const {
+void ConstraintImpl::calcPositionDotDotErrorsVirtual      
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr)
+    const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "realizePositionDotDotErrors");
+        "ConstraintImpl", "calcPositionDotDotErrorsVirtual");
 }
 
-
-void ConstraintImpl::
-applyPositionConstraintForcesVirtual
-   (const State&, int mp, const Real* multipliers,
-    Vector_<SpatialVec>& bodyForces,
-    Vector&              mobilityForces) const
+void ConstraintImpl::addInPositionConstraintForcesVirtual
+   (const State&                                    state,
+    const Array_<Real>&                             multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForces,
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "applyPositionConstraintForces");
+        "ConstraintImpl", "addInPositionConstraintForcesVirtual");
 }
 
-    // These must be defined if there are any velocity (nonholonomic) constraints defined.
 
-void ConstraintImpl::
-realizeVelocityErrorsVirtual(const State&, int mv,  Real* verr) const {
+    // These three must be defined if there are any velocity (nonholonomic) 
+    // constraints defined.
+
+void ConstraintImpl::calcVelocityErrorsVirtual      
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedU,
+    Array_<Real>&                                   verr)
+    const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "realizeVelocityErrors");
+        "ConstraintImpl", "calcVelocityErrorsVirtual");
 }
 
-
-void ConstraintImpl::
-realizeVelocityDotErrorsVirtual(const State&, int mv,  Real* vaerr) const {
+void ConstraintImpl::calcVelocityDotErrorsVirtual      
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
+    Array_<Real>&                                   vaerr)
+    const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "realizeVelocityDotErrors");
+        "ConstraintImpl", "calcVelocityDotErrorsVirtual");
 }
 
-
-void ConstraintImpl::
-applyVelocityConstraintForcesVirtual
-   (const State&, int mv, const Real* multipliers,
-    Vector_<SpatialVec>& bodyForces,
-    Vector&              mobilityForces) const
+void ConstraintImpl::addInVelocityConstraintForcesVirtual
+   (const State&                                    state,
+    const Array_<Real>&                             multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForces,
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "applyVelocityConstraintForces");
+        "ConstraintImpl", "addInVelocityConstraintForcesVirtual");
 }
 
 
+    // These two must be defined if there are any acceleration-only constraints
+    // defined.
 
-// These must be defined if there are any acceleration-only constraints defined.
-void ConstraintImpl::
-realizeAccelerationErrorsVirtual(const State&, int ma,  Real* aerr) const {
+void ConstraintImpl::calcAccelerationErrorsVirtual      
+   (const State&                                    state,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
+    Array_<Real>&                                   aerr)
+    const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "realizeAccelerationErrors");
+        "ConstraintImpl", "calcAccelerationErrorsVirtual");
 }
 
-void ConstraintImpl::
-applyAccelerationConstraintForcesVirtual
-   (const State&, int ma, const Real* multipliers,
-    Vector_<SpatialVec>& bodyForces,
-    Vector&              mobilityForces) const
+void ConstraintImpl::addInAccelerationConstraintForcesVirtual
+   (const State&                                    state,
+    const Array_<Real>&                             multipliers,
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForces,
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintImpl", "applyAccelerationConstraintForces");
+        "ConstraintImpl", "addInAccelerationConstraintForcesVirtual");
+}
+
+//------------------------------------------------------------------------------
+// These are interfaces to the constraint operators which first extract
+// the operands from a given state. These are thus suitable for use when
+// realizing that state at the point where the constraint operator results
+// are about to go into the state cache. The cache is not updated here,
+// however. Instead the result is returned explicitly in an argument.
+//------------------------------------------------------------------------------
+
+// Calculate the mp position errors that would result from the configuration 
+// present in the supplied state (that is, q's and body transforms). The state
+// must be realized through Time stage and part way through realization of
+// Position stage.
+void ConstraintImpl::
+realizePositionErrors(const State& s, Array_<Real>& perr) const {
+    const SBInstanceCache& ic = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& 
+        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+    const Vector& q = s.getQ();
+
+    const int ncb = getNumConstrainedBodies();
+    const int ncq = cInfo.getNumConstrainedQ();
+
+    Array_<Transform, ConstrainedBodyIndex> X_AB(ncb);
+    Array_<Real, ConstrainedQIndex>         cq(ncq);
+
+    for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) 
+        X_AB[cbx] = getBodyTransformFromState(s, cbx);
+
+    for (ConstrainedQIndex cqx(0); cqx < ncq; ++cqx)
+        cq[cqx] = q[cInfo.getQIndexFromConstrainedQ(cqx)];
+        
+    calcPositionErrors(s,X_AB,cq,perr);
+}
+
+// Calculate the mp velocity errors resulting from pdot equations, given a
+// configuration and velocities in the supplied state which must be realized
+// through Position stage and part way through realization of Velocity stage.
+void ConstraintImpl::
+realizePositionDotErrors(const State& s, Array_<Real>& pverr) const {
+    const SBInstanceCache& ic = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& 
+        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+
+    // We're not checking, but the tree velocity cache better have been
+    // marked valid by now, indicating that we finished calculating qdots.
+    // The state doesn't know about that yet, so we have to use updQDot()
+    // here rather than getQDot().
+    const Vector& qdot = s.updQDot();
+
+    const int ncb = getNumConstrainedBodies();
+    const int ncq = cInfo.getNumConstrainedQ();
+
+    Array_<SpatialVec, ConstrainedBodyIndex> V_AB(ncb);
+    Array_<Real, ConstrainedQIndex>          cqdot(ncq);
+
+    for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) 
+        V_AB[cbx] = getBodyVelocityFromState(s, cbx);
+
+    for (ConstrainedQIndex cqx(0); cqx < ncq; ++cqx)
+        cqdot[cqx] = qdot[cInfo.getQIndexFromConstrainedQ(cqx)];
+
+    calcPositionDotErrors(s,V_AB,cqdot,pverr);
+}
+
+// Calculate the mp acceleration errors resulting from pdotdot equations, given
+// the udots already present in the supplied state which must be realized 
+// through Dynamics stage and part way through realization of Acceleration stage.
+void ConstraintImpl::
+realizePositionDotDotErrors(const State& s, Array_<Real>& paerr) const {
+    const SBInstanceCache& ic = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& 
+        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+
+    // We're not checking, but the tree acceleration cache better have been
+    // marked valid by now, indicating that we finished calculating qdotdots.
+    // The state doesn't know about that yet, so we have to use updQDotDot()
+    // here rather than getQDotDot().
+    const Vector& qdotdot = s.updQDotDot();
+
+    const int ncb = getNumConstrainedBodies();
+    const int ncq = cInfo.getNumConstrainedQ();
+
+    Array_<SpatialVec, ConstrainedBodyIndex> A_AB(ncb);
+    Array_<Real, ConstrainedQIndex>          cqdotdot(ncq);
+
+    for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) 
+        A_AB[cbx] = getBodyAccelerationFromState(s, cbx);
+
+    for (ConstrainedQIndex cqx(0); cqx < ncq; ++cqx)
+        cqdotdot[cqx] = qdotdot[cInfo.getQIndexFromConstrainedQ(cqx)];
+
+    calcPositionDotDotErrors(s,A_AB,cqdotdot,paerr);
+}
+
+
+// Calculate the mv velocity errors resulting from the nonholonomic constraint
+// equations here, taking the configuration and velocities (u, qdot, body
+// spatial velocities) from the supplied state, which must be realized through
+// Position stage and part way through realization of Velocity stage.
+void ConstraintImpl::
+realizeVelocityErrors(const State& s, Array_<Real>& verr) const {
+    const SBInstanceCache& ic = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& 
+        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+    const Vector& u = s.getU();
+
+    const int ncb = getNumConstrainedBodies();
+    const int ncu = cInfo.getNumConstrainedU();
+
+    Array_<SpatialVec, ConstrainedBodyIndex> V_AB(ncb);
+    Array_<Real, ConstrainedUIndex>          cu(ncu);
+
+    for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) 
+        V_AB[cbx] = getBodyVelocityFromState(s, cbx);
+
+    for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+        cu[cux] = u[cInfo.getUIndexFromConstrainedU(cux)];
+
+    calcVelocityErrorsVirtual(s,V_AB,cu,verr);
+}
+// Calculate the mv acceleration errors resulting from the vdot equations
+// (nonholonomic constraint derivatives) taking all information from the
+// supplied state, with udot, qdotdot, and body spatial accelerations
+// expected to be valid so the state must be realized through Dynamics stage
+// and part way through realization of Acceleration stage.
+void ConstraintImpl::
+realizeVelocityDotErrors(const State& s, Array_<Real>& vaerr) const {
+    const SBInstanceCache& ic = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& 
+        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+
+    // We're not checking, but the tree acceleration cache better have been
+    // marked valid by now, indicating that we finished calculating udots.
+    // The state doesn't know about that yet, so we have to use updUDot()
+    // here rather than getUDot().
+    const Vector& udot = s.updUDot();
+
+    const int ncb = getNumConstrainedBodies();
+    const int ncu = cInfo.getNumConstrainedU();
+
+    Array_<SpatialVec, ConstrainedBodyIndex> A_AB(ncb);
+    Array_<Real, ConstrainedUIndex>          cudot(ncu);
+
+    for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) 
+        A_AB[cbx] = getBodyAccelerationFromState(s, cbx);
+
+    for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+        cudot[cux] = udot[cInfo.getUIndexFromConstrainedU(cux)];
+
+    calcVelocityDotErrorsVirtual(s,A_AB,cudot,vaerr);
+}
+
+// Calculate the ma acceleration errors resulting from the acceleration-only
+// constraint equations here, taking all information from the supplied state,
+// with udot, qdotdot, and body spatial accelerations expected to be valid,
+// meaning the State must be realized to Dynamics stage and part way through
+// realization of Acceleration stage.
+void ConstraintImpl::
+realizeAccelerationErrors(const State& s, Array_<Real>& aerr) const {
+    const SBInstanceCache& ic = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& 
+        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+
+    // We're not checking, but the tree acceleration cache better have been
+    // marked valid by now, indicating that we finished calculating udots.
+    // The state doesn't know about that yet, so we have to use updUDot()
+    // here rather than getUDot().
+    const Vector& udot = s.updUDot();
+
+    const int ncb = getNumConstrainedBodies();
+    const int ncu = cInfo.getNumConstrainedU();
+
+    Array_<SpatialVec, ConstrainedBodyIndex> A_AB(ncb);
+    Array_<Real, ConstrainedUIndex>          cudot(ncu);
+
+    for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) 
+        A_AB[cbx] = getBodyAccelerationFromState(s, cbx);
+
+    for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+        cudot[cux] = udot[cInfo.getUIndexFromConstrainedU(cux)];
+
+    calcAccelerationErrors(s,A_AB,cudot,aerr);
 }
 
 
