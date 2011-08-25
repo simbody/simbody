@@ -195,8 +195,7 @@ void realizeVelocity(const SBStateDigest& sbs) const {
 void realizeDynamics(const SBArticulatedBodyInertiaCache& abc, const SBStateDigest& sbs) const {
 }
 
-void realizeAcceleration(const SBStateDigest& sbs) const {
-}
+// There is no realizeAcceleration().
 
 void realizeReport(const SBStateDigest& sbs) const {
 }

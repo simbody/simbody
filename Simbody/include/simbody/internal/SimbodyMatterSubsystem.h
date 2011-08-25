@@ -1063,20 +1063,31 @@ void calcP(const State& state, Matrix& P) const;
   \c Stage::Position **/
 void calcPt(const State& state, Matrix& Pt) const;
 
-/** Treating all constraints together, given a comprehensive set of multipliers
-lambda, generate the complete set of body and mobility forces applied by all 
-the constraints; watch the sign -- normally constraint forces have opposite 
-sign from applied forces. If you want to take Simbody-calculated multipliers 
-and use them to generate forces that look like applied forces, negate the 
-multipliers before making this call.
+/** Treating all Constraints together, given a comprehensive set of m 
+Lagrange multipliers \e lambda, generate the complete set of body spatial forces
+and mobility (generalized) forces applied by all the Constraints.
 
-State must be realized to Stage::Position to call this operator (although 
+Spatial forces are applied at each body's origin and the moment and force
+vectors therein are expressed in the Ground frame. Watch the 
+sign -- normally constraint forces have opposite sign from applied forces, 
+because our equations of motion are 
+    <pre>   M udot + ~G lambda = f_applied  </pre>
+If you want to take Simbody-calculated multipliers and use them to generate 
+forces that look like applied forces, negate the multipliers in the argument
+passed to this call.
+
+State must be realized to Stage::Velocity to call this operator (although 
 typically the multipliers are obtained by realizing to Stage::Acceleration).
+
+This is an O(m) operator. In particular it does \e not involve forming or
+multiplying by the constraint force matrix ~G. Instead, one constant-time call
+is made to each %Constraint's calcConstraintForce methods.
     
 @par Required stage
   \c Stage::Velocity **/
 void calcConstraintForcesFromMultipliers
-  (const State& s, const Vector& multipliers,
+  (const State&         state, 
+   const Vector&        multipliers,
    Vector_<SpatialVec>& bodyForcesInG,
    Vector&              mobilityForces) const;
 

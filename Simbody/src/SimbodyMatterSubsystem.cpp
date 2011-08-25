@@ -150,15 +150,18 @@ void SimbodyMatterSubsystem::calcAcceleration
     // Create a dummy acceleration cache to hold the result.
     const SBModelCache&    mc = getRep().getModelCache(state);
     const SBInstanceCache& ic = getRep().getInstanceCache(state);
-    SBTreeAccelerationCache tac;
+    SBTreeAccelerationCache        tac;
+    SBConstrainedAccelerationCache cac;
     tac.allocate(getRep().topologyCache, mc, ic);
+    cac.allocate(getRep().topologyCache, mc, ic);
 
-    Vector udotErr(getNUDotErr(state)); // unwanted return value
+    Vector qdotdot; // unwanted return value
     Vector multipliers(getNMultipliers(state)); // unwanted return value
+    Vector udotErr(getNUDotErr(state)); // unwanted return value
 
     getRep().calcLoopForwardDynamicsOperator(state, 
         appliedMobilityForces, appliedParticleForces, appliedBodyForces,
-        tac, udot, multipliers, udotErr);
+        tac, cac, udot, qdotdot, multipliers, udotErr);
 
     A_GB = tac.bodyAccelerationInGround;
 }
@@ -184,10 +187,11 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
 
     Vector netHingeForces(getNumMobilities()); // unwanted side effects
     Vector tau;
+    Vector qdotdot;
 
     getRep().calcTreeAccelerations(state,
         appliedMobilityForces, appliedBodyForces,
-        netHingeForces, A_GB, udot, tau);
+        netHingeForces, A_GB, udot, qdotdot, tau);
 }
 
 

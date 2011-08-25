@@ -304,14 +304,14 @@ Real MobilizedBody::getOneTau(const State& s, MobilizerUIndex which) const {
     const MobilizedBodyIndex         mbx    = mbimpl.getMyMobilizedBodyIndex();
     const SimbodyMatterSubsystemRep& matter = mbimpl.getMyMatterSubsystemRep();
     const SBModelCache&              mc     = matter.getModelCache(s);
-    const SBModelCache::PerMobilizedBodyModelInfo&
+    const SBModelPerMobodInfo&
         mobodModelInfo = mc.getMobilizedBodyModelInfo(mbx);
     const int nu = mobodModelInfo.nUInUse;
 
     SimTK_INDEXCHECK(which, nu, "MobilizedBody::getOneTau()");
 
     const SBInstanceCache& ic = matter.getInstanceCache(s);
-    const SBInstanceCache::PerMobodInstanceInfo& 
+    const SBInstancePerMobodInfo& 
         mobodInstanceInfo = ic.getMobodInstanceInfo(mbx);
     if (mobodInstanceInfo.udotMethod == Motion::Free)
         return 0; // not prescribed
@@ -325,12 +325,12 @@ Vector MobilizedBody::getTauAsVector(const State& s) const {
     const MobilizedBodyIndex         mbx    = mbimpl.getMyMobilizedBodyIndex();
     const SimbodyMatterSubsystemRep& matter = mbimpl.getMyMatterSubsystemRep();
     const SBModelCache&              mc     = matter.getModelCache(s);
-    const SBModelCache::PerMobilizedBodyModelInfo&
+    const SBModelPerMobodInfo&
         mobodModelInfo = mc.getMobilizedBodyModelInfo(mbx);
     const int nu = mobodModelInfo.nUInUse;
 
     const SBInstanceCache& ic = matter.getInstanceCache(s);
-    const SBInstanceCache::PerMobodInstanceInfo& 
+    const SBInstancePerMobodInfo& 
         mobodInstanceInfo = ic.getMobodInstanceInfo(mbx);
     if (mobodInstanceInfo.udotMethod == Motion::Free)
         return Vector(nu, Real(0)); // not prescribed
@@ -524,16 +524,15 @@ void MobilizedBodyImpl::realizeInstance(const SBStateDigest& sbs) const {
 
     // REALIZE TIME
 void MobilizedBodyImpl::realizeTime(const SBStateDigest& sbs) const {
-    const MobilizedBodyIndex    mbx = getMyMobilizedBodyIndex();
-    const SBInstanceCache&      ic  = sbs.getInstanceCache();
-    const SBInstanceCache::PerMobodInstanceInfo& 
-        instInfo = ic.getMobodInstanceInfo(mbx);
+    const MobilizedBodyIndex      mbx       = getMyMobilizedBodyIndex();
+    const SBInstanceCache&        ic        = sbs.getInstanceCache();
+    const SBInstancePerMobodInfo& instInfo  = ic.getMobodInstanceInfo(mbx);
 
     // Note that we only need to deal with explicitly prescribed motion;
     // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
     if (instInfo.qMethod==Motion::Prescribed) {
         const SBModelCache& mc = sbs.getModelCache();
-        const SBModelCache::PerMobilizedBodyModelInfo& 
+        const SBModelPerMobodInfo& 
             modelInfo = mc.getMobilizedBodyModelInfo(mbx);
         const int            nq  = modelInfo.nQInUse;
         const PresQPoolIndex pqx = instInfo.firstPresQ;
@@ -551,7 +550,7 @@ void MobilizedBodyImpl::realizeTime(const SBStateDigest& sbs) const {
 void MobilizedBodyImpl::realizePosition(const SBStateDigest& sbs) const {
     const MobilizedBodyIndex    mbx = getMyMobilizedBodyIndex();
     const SBInstanceCache&      ic  = sbs.getInstanceCache();
-    const SBInstanceCache::PerMobodInstanceInfo& 
+    const SBInstancePerMobodInfo& 
         instInfo = ic.getMobodInstanceInfo(mbx);
 
     // Note that we only need to deal with explicitly prescribed motion;
@@ -560,7 +559,7 @@ void MobilizedBodyImpl::realizePosition(const SBStateDigest& sbs) const {
     // of holonomic prescribed q.
     if (instInfo.uMethod==Motion::Prescribed) {
         const SBModelCache& mc = sbs.getModelCache();
-        const SBModelCache::PerMobilizedBodyModelInfo& 
+        const SBModelPerMobodInfo& 
             modelInfo = mc.getMobilizedBodyModelInfo(mbx);
         const int            nu  = modelInfo.nUInUse;
         const PresUPoolIndex pux = instInfo.firstPresU;
@@ -599,10 +598,9 @@ void MobilizedBodyImpl::realizeVelocity(const SBStateDigest& sbs) const {
 
     // REALIZE DYNAMICS
 void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
-    const MobilizedBodyIndex    mbx = getMyMobilizedBodyIndex();
-    const SBInstanceCache&      ic  = sbs.getInstanceCache();
-    const SBInstanceCache::PerMobodInstanceInfo& 
-        instInfo = ic.getMobodInstanceInfo(mbx);
+    const MobilizedBodyIndex      mbx      = getMyMobilizedBodyIndex();
+    const SBInstanceCache&        ic       = sbs.getInstanceCache();
+    const SBInstancePerMobodInfo& instInfo = ic.getMobodInstanceInfo(mbx);
 
     // Note that we only need to deal with explicitly prescribed motion;
     // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
@@ -611,7 +609,7 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
     // of holonomic prescribed q.
     if (instInfo.udotMethod==Motion::Prescribed) {
         const SBModelCache& mc = sbs.getModelCache();
-        const SBModelCache::PerMobilizedBodyModelInfo& 
+        const SBModelPerMobodInfo& 
             modelInfo = mc.getMobilizedBodyModelInfo(mbx);
         const int    nu = modelInfo.nUInUse;
         const UIndex ux = modelInfo.firstUIndex;

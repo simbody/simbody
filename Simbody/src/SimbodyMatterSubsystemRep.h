@@ -471,6 +471,7 @@ public:
         Vector&                    netHingeForces,
         Vector_<SpatialVec>&       A_GB,
         Vector&                    udot, // in/out (in for prescribed udots)
+        Vector&                    qdotdot,
         Vector&                    tau) const; 
 
     void calcMInverseF(const State& s,
@@ -641,13 +642,34 @@ public:
 
     void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
 
-    // Treating all constraints together, given a comprehensive set of multipliers lambda,
-    // generate the complete set of body and mobility forces applied by all the 
-    // constraints.
+    // Treating all constraints together, given a comprehensive set of 
+    // multipliers lambda, generate the complete set of body and mobility 
+    // forces applied by all the constraints. Return the
+    // individual Constraints' force contributions in the final two arguments.
     void calcConstraintForcesFromMultipliers
-      (const State& s, const Vector& lambda,
+      (const State&         state, 
+       const Vector&        lambda,
        Vector_<SpatialVec>& bodyForcesInG,
-       Vector&              mobilityForces) const;
+       Vector&              mobilityForces,
+       Array_<SpatialVec>&  constrainedBodyForcesInG,
+       Array_<Real>&        contraintMobilityForces) const;
+
+    // Call this signature if you don't care about the individual constraint
+    // contributions.
+    void calcConstraintForcesFromMultipliers
+      (const State&         state, 
+       const Vector&        lambda,
+       Vector_<SpatialVec>& bodyForcesInG,
+       Vector&              mobilityForces) const
+    {
+        const SBInstanceCache& ic = getInstanceCache(state);
+        const int ncb = ic.totalNConstrainedBodiesInUse;
+        const int ncu = ic.totalNConstrainedUInUse;
+        Array_<SpatialVec> constrainedBodyForcesInG(ncb);
+        Array_<Real>       constraintMobilityForces(ncu);
+        calcConstraintForcesFromMultipliers(state,lambda,bodyForcesInG,
+            mobilityForces,constrainedBodyForcesInG,constraintMobilityForces);
+    }
 
 
 
@@ -883,16 +905,19 @@ private:
         const Vector_<SpatialVec>&      bodyForces,
         const Vector*                   extraMobilityForces,
         const Vector_<SpatialVec>*      extraBodyForces,
-        SBTreeAccelerationCache&        tac,    // kinematics and prescribed forces into here
+        SBTreeAccelerationCache&        tac,    // kinematics & prescribed forces into here
         Vector&                         udot,   // in/out (in for prescribed udot)
+        Vector&                         qdotdot,
         Vector&                         udotErr) const;
 
     void calcLoopForwardDynamicsOperator(const State&, 
         const Vector&                   mobilityForces,
         const Vector_<Vec3>&            particleForces,
         const Vector_<SpatialVec>&      bodyForces,
-        SBTreeAccelerationCache&        tac,    // kinematics and prescribed forces into here
+        SBTreeAccelerationCache&        tac,    // kinematics & prescribed forces into here
+        SBConstrainedAccelerationCache& cac,    // constraint forces go here
         Vector&                         udot,   // in/out (in for prescribed udot)
+        Vector&                         qdotdot,
         Vector&                         multipliers,
         Vector&                         udotErr) const;
 

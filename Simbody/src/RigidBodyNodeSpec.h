@@ -234,7 +234,7 @@ void realizePosition(const SBStateDigest& sbs) const
 
     // Mobilizer specific.
     
-    const SBModelCache::PerMobilizedBodyModelInfo& mbInfo = getModelInfo(mc);
+    const SBModelPerMobodInfo& mbInfo = getModelInfo(mc);
 
     // First perform precalculations on these new q's, such as stashing away
     // sines and cosines of angles. We'll put all the results into the State's
@@ -329,6 +329,7 @@ void realizeVelocity(const SBStateDigest& sbs) const
     calcJointIndependentKinematicsVel(pc,vc);
 }
 
+// Articulated body inertias have been calculated; here we're 
 void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
                      const SBStateDigest&                   sbs) const 
 {
@@ -343,9 +344,7 @@ void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
     calcJointIndependentDynamicsVel(pc,abc,vc,dc);
 }
 
-void realizeAcceleration(const SBStateDigest& sbs) const
-{
-}
+// There is no realizeAcceleration().
 
 void realizeReport(const SBStateDigest& sbs) const
 {
@@ -440,7 +439,7 @@ virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQua
 // This method should calculate qdot=N*u, where N=N(q) is the kinematic
 // coupling matrix. State digest should be at Stage::Position.
 virtual void calcQDot(const SBStateDigest&, 
-                                     const Real* u, Real* qdot) const 
+                      const Real* u, Real* qdot) const 
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(qdot) = Vec<dof>::getAs(u); // default says qdot=u
@@ -458,7 +457,7 @@ virtual void calcLocalUFromLocalQDot(const SBStateDigest&,
 // This method should calculate qdotdot=N*udot + NDot*u, where N=N(q),
 // NDot=NDot(q,u). State digest should be at Stage::Velocity.
 virtual void calcQDotDot(const SBStateDigest&, 
-                                           const Real* udot, Real* qdotdot) const
+                         const Real* udot, Real* qdotdot) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(qdotdot) = Vec<dof>::getAs(udot); // default: qdotdot=udot

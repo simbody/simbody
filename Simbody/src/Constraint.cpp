@@ -1807,14 +1807,16 @@ updAcceleration(State& state) const {
 //==============================================================================
 //                            CONSTRAINT::CUSTOM
 //==============================================================================
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Custom, Constraint::CustomImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS
+   (Constraint::Custom, Constraint::CustomImpl, Constraint);
 
 // We are given an Implementation object which is already holding a CustomImpl
 // object for us. We'll first take away ownership of the CustomImpl, then
 // make the CustomImpl take over ownership of the Implementation object.
 Constraint::Custom::Custom(Constraint::Custom::Implementation* implementation)
-  : Constraint(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl()
-                                          : 0)
+:   Constraint(implementation 
+                ? implementation->updImpl().removeOwnershipOfCustomImpl()
+                : 0)
 {
     SimTK_ASSERT_ALWAYS(implementation,
         "Constraint::Custom::Custom(): Implementation pointer was NULL.");
@@ -1841,7 +1843,8 @@ Constraint::Custom::updImplementation() {
     // Constraint::CustomImpl
 
 // The Implementation object should already contain a pointer to this CustomImpl object.
-void Constraint::CustomImpl::takeOwnershipOfImplementation(Custom::Implementation* userImpl) {
+void Constraint::CustomImpl::
+takeOwnershipOfImplementation(Custom::Implementation* userImpl) {
     assert(!implementation); // you can only do this once!
     assert(userImpl);
     const Custom::ImplementationImpl& impImpl = userImpl->getImpl();
@@ -2035,6 +2038,18 @@ addInBodyTorque
     getImpl().getCustomImpl().addInBodyTorque(s,B,torqueInA,bodyForcesInA);
 }
 
+void Constraint::Custom::Implementation::
+getMultipliers(const State&  s, 
+               Array_<Real>& multipliers) const
+{
+    int mp, mv, ma;
+    const Constraint::CustomImpl& cimpl = getImpl().getCustomImpl();
+    cimpl.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    multipliers.resize(mp+mv+ma);
+    cimpl.getMultipliers(s, multipliers.size(), &multipliers[0]);
+}
+
+
 
 // Default implementations for ConstraintImpl virtuals throw "unimplemented"
 // exceptions. These shouldn't be called unless the concrete constraint has
@@ -2169,22 +2184,19 @@ Constraint::CoordinateCoupler::CoordinateCoupler
 Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl
    (SimbodyMatterSubsystem&             matter, 
     const Function*                     function, 
-    const Array_<MobilizedBodyIndex>&   coordBody, 
-    const Array_<MobilizerQIndex>&      coordIndex)
+    const Array_<MobilizedBodyIndex>&   coordMobod, 
+    const Array_<MobilizerQIndex>&      coordQIndex)
 :   Implementation(matter, 1, 0, 0), function(function), 
-    coordBodies(coordBody.size()), coordIndices(coordIndex), 
+    coordBodies(coordMobod.size()), coordIndices(coordQIndex),
     temp(coordBodies.size()), referenceCount(new int[1]) 
 {
     assert(coordBodies.size() == coordIndices.size());
     assert(coordIndices.size() == function->getArgumentSize());
     assert(function->getMaxDerivativeOrder() >= 2);
     referenceCount[0] = 1;
-    std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
     for (int i = 0; i < (int)coordBodies.size(); ++i) {
-        if (bodyIndexMap.find(coordBody[i]) == bodyIndexMap.end())
-            bodyIndexMap[coordBody[i]] = 
-                addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
-        coordBodies[i] = bodyIndexMap[coordBody[i]];
+        const MobilizedBody& mobod = matter.getMobilizedBody(coordMobod[i]);
+        coordBodies[i] =  addConstrainedMobilizer(mobod);
     }
 }
 
@@ -2207,7 +2219,7 @@ calcPositionDotErrors
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr) const
 {
-    pverr[0] = 0.0;
+    pverr[0] = 0;
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQFromState(s, coordBodies[i], coordIndices[i]);
     Array_<int> components(1);
@@ -2229,8 +2241,9 @@ calcPositionDotDotErrors
     paerr[0] = 0.0;
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQFromState(s, coordBodies[i], coordIndices[i]);
+
+    // TODO this could be made faster by using symmetry.
     Array_<int> components(2);
-    // TODO this could be made faster by using symmetry if necessary
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
         Real qdoti = getOneQDotFromState(s, coordBodies[i], coordIndices[i]);
@@ -2242,22 +2255,12 @@ calcPositionDotDotErrors
         }
     }
 
-    //TODO: why isn't this just calling getOneQDotDot()?
     Array_<int> component(1);
-    const Real* udot = &s.updUDot()[0];
-    Vector qdotdot(s.getNQ());
-    Real* qdotdotPtr = &qdotdot[0];
-    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-    SBStateDigest digest(s, matter.getRep(), Stage::Velocity.next());
     for (int i = 0; i < temp.size(); ++i) {
         component[0] = i;
-        const MobilizedBody& body = matter.getMobilizedBody(
-            getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
-        const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
-        node.calcQDotDot(digest, &udot[node.getUIndex()], 
-                         &qdotdotPtr[node.getQIndex()]);
         paerr[0] += function->calcDerivative(component, temp)
-                    * body.getOneFromQPartition(s, coordIndices[i], qdotdot);
+                    * getOneQDotDot(s, constrainedQDotDot, 
+                                    coordBodies[i], coordIndices[i]);
     }
 }
 
@@ -2295,29 +2298,46 @@ addInPositionConstraintForces
 //==============================================================================
 //                          CONSTRAINT::SPEED COUPLER
 //==============================================================================
-Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& speedBody, const Array_<MobilizerUIndex>& speedIndex)
-        : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, Array_<MobilizedBodyIndex>(0), Array_<MobilizerQIndex>(0))) {
-}
+Constraint::SpeedCoupler::SpeedCoupler
+   (SimbodyMatterSubsystem&             matter, 
+    const Function*                     function, 
+    const Array_<MobilizedBodyIndex>&   speedBody, 
+    const Array_<MobilizerUIndex>&      speedIndex)
+:   Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, 
+                                Array_<MobilizedBodyIndex>(), 
+                                Array_<MobilizerQIndex>())) {}
 
-Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& speedBody, const Array_<MobilizerUIndex>& speedIndex,
-        const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex)
-        : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, coordBody, coordIndex)) {
-}
+Constraint::SpeedCoupler::SpeedCoupler
+   (SimbodyMatterSubsystem&             matter, 
+    const Function*                     function, 
+    const Array_<MobilizedBodyIndex>&   speedBody, 
+    const Array_<MobilizerUIndex>&      speedIndex,
+    const Array_<MobilizedBodyIndex>&   coordBody, 
+    const Array_<MobilizerQIndex>&      coordIndex)
+:   Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, 
+                                coordBody, coordIndex)) {}
 
-Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& speedBody, const Array_<MobilizerUIndex>& speedIndex,
-        const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex)
-        : Implementation(matter, 0, 1, 0), function(function), speedBodies(speedBody.size()), speedIndices(speedIndex), coordBodies(coordBody), coordIndices(coordIndex),
-        temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) {
+Constraint::SpeedCouplerImpl::SpeedCouplerImpl
+   (SimbodyMatterSubsystem& matter, 
+    const Function* function, 
+    const Array_<MobilizedBodyIndex>& speedBody, 
+    const Array_<MobilizerUIndex>& speedIndex,
+    const Array_<MobilizedBodyIndex>& coordBody, 
+    const Array_<MobilizerQIndex>& coordIndex)
+:   Implementation(matter, 0, 1, 0), function(function), 
+    speedBodies(speedBody.size()), speedIndices(speedIndex), 
+    coordBodies(coordBody), coordIndices(coordIndex),
+    temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) 
+{
     assert(speedBodies.size() == speedIndices.size());
     assert(coordBodies.size() == coordIndices.size());
     assert(temp.size() == function->getArgumentSize());
     assert(function->getMaxDerivativeOrder() >= 2);
+
     referenceCount[0] = 1;
-    std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
     for (int i = 0; i < (int)speedBodies.size(); ++i) {
-        if (bodyIndexMap.find(speedBody[i]) == bodyIndexMap.end())
-            bodyIndexMap[speedBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(speedBody[i]));
-        speedBodies[i] = bodyIndexMap[speedBody[i]];
+        const MobilizedBody& mobod = matter.getMobilizedBody(speedBody[i]);
+        speedBodies[i] = addConstrainedMobilizer(mobod);
     }
 }
 
@@ -2344,7 +2364,7 @@ calcVelocityDotErrors
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr) const 
 {
-    vaerr[0] = 0.0;
+    vaerr[0] = 0;
     for (int i = 0; i < (int) speedBodies.size(); ++i)
         temp[i] = getOneUFromState(s, speedBodies[i], speedIndices[i]);
     for (int i = 0; i < (int) coordBodies.size(); ++i)
@@ -2390,16 +2410,27 @@ addInVelocityConstraintForces
 //==============================================================================
 //                        CONSTRAINT::PRESCRIBED MOTION
 //==============================================================================
-Constraint::PrescribedMotion::PrescribedMotion(SimbodyMatterSubsystem& matter, const Function* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
-        : Custom(new PrescribedMotionImpl(matter, function, coordBody, coordIndex)) {
-}
+Constraint::PrescribedMotion::PrescribedMotion
+   (SimbodyMatterSubsystem&     matter, 
+    const Function*             function, 
+    MobilizedBodyIndex          coordBody, 
+    MobilizerQIndex             coordIndex)
+:   Custom(new PrescribedMotionImpl(matter, function, coordBody, coordIndex)) {}
 
-Constraint::PrescribedMotionImpl::PrescribedMotionImpl(SimbodyMatterSubsystem& matter, const Function* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
-        : Implementation(matter, 1, 0, 0), function(function), coordIndex(coordIndex), temp(1), referenceCount(new int[1]) {
+Constraint::PrescribedMotionImpl::PrescribedMotionImpl
+   (SimbodyMatterSubsystem& matter, 
+    const Function* function, 
+    MobilizedBodyIndex coordBody, 
+    MobilizerQIndex coordIndex)
+:   Implementation(matter, 1, 0, 0), function(function), 
+    coordIndex(coordIndex), temp(1), referenceCount(new int[1]) 
+{
     assert(function->getArgumentSize() == 1);
     assert(function->getMaxDerivativeOrder() >= 2);
+
     referenceCount[0] = 1;
-    this->coordBody = addConstrainedMobilizer(matter.getMobilizedBody(coordBody));
+    const MobilizedBody& mobod = matter.getMobilizedBody(coordBody);
+    this->coordBody = addConstrainedMobilizer(mobod);
 }
 
 void Constraint::PrescribedMotionImpl::
@@ -2434,16 +2465,9 @@ calcPositionDotDotErrors
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr) const
 {
-    const Real* udot = &s.updUDot()[0];
-    Vector qdotdot(s.getNQ());
-    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-    SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
-    const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBody));
-    const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
-    node.calcQDotDot(digest, &udot[node.getUIndex()], &qdotdot[node.getQIndex()]);
     temp[0] = s.getTime();
     Array_<int> components(2, 0);
-    paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) 
+    paerr[0] = getOneQDotDot(s, constrainedQDotDot, coordBody, coordIndex)  
                - function->calcDerivative(components, temp);
 }
 
@@ -2475,9 +2499,9 @@ addInPositionConstraintForces
 //==============================================================================
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                              REALIZE TOPOLOGY
-// -----------------------------------------------------------------------------
+// =============================================================================
 void ConstraintImpl::realizeTopology(State& s) const {
     // Calculate the relevant Subtree. There might not be any Constrained 
     // Bodies here but we want to make sure we have a properly initialized 
@@ -2510,9 +2534,9 @@ void ConstraintImpl::realizeTopology(State& s) const {
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                               REALIZE MODEL
-// -----------------------------------------------------------------------------
+// =============================================================================
 void ConstraintImpl::realizeModel(State& s) const
 {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
@@ -2523,16 +2547,20 @@ void ConstraintImpl::realizeModel(State& s) const
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                              REALIZE INSTANCE
-// -----------------------------------------------------------------------------
-// There are two main tasks here that can be performed now that we have values
-// for the Instance stage state variables:
+// =============================================================================
+// There are several tasks here that can be performed now that we have values
+// for the Instance stage state variables (including the enable/disable flag
+// for Constraints):
 // (1) Count up the number of holonomic, nonholonomic, and acceleration-only 
 //     constraint equations to be contributed by each Constraint, and assign 
 //     corresponding slots in constraint-equation ordered arrays, such as the 
 //     State's constraint error arrays.
-// (2) Above we assigned q's and u's to each mobilizer and stored the results in
+// (2) Count up the number of constrained bodies, mobilizers, and corresoponding
+//     constrained mobilities to be affected by each Constraint, and assign
+//     corresponding slots for use in "pools" that are indexed by these.
+// (3) Above we assigned q's and u's to each mobilizer and stored the results in
 //     the Model cache, now we can determine which of those q's and u's are 
 //     involved in each constraint. We need to collect up both the set of 
 //     directly-constrained q's and u's resulting from ConstrainedMobilizers, 
@@ -2544,12 +2572,18 @@ void ConstraintImpl::realizeModel(State& s) const
 void ConstraintImpl::realizeInstance(const State& s) const {
     const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
     const SBInstanceVars& instanceVars  = matter.getInstanceVars(s);
-    SBInstanceCache&      instanceCache = matter.updInstanceCache(s);
-    SBInstanceCache::PerConstraintInstanceInfo& cInfo =
-        instanceCache.updConstraintInstanceInfo(myConstraintIndex);
+    SBInstanceCache&      ic = matter.updInstanceCache(s);
+
+    const int ncb = getNumConstrainedBodies();
+    const int ncm = getNumConstrainedMobilizers();
+
+    // Note that there is a "per constraint info" object for every declared
+    // constraint, whether enabled or not.
+    SBInstancePerConstraintInfo& cInfo =
+        ic.updConstraintInstanceInfo(myConstraintIndex);
 
     cInfo.clear();
-    cInfo.allocateConstrainedMobilizerInstanceInfo(getNumConstrainedMobilizers());
+    cInfo.allocateConstrainedMobilizerInstanceInfo(ncm);
 
     // We're in the process of counting up constraint equations in the
     // totalN...Constraints variables; on entry they are set to the number
@@ -2557,27 +2591,43 @@ void ConstraintImpl::realizeInstance(const State& s) const {
     // contributions from this Constraint.
 
     if (isDisabled(s)) {
-        cInfo.holoErrSegment    = Segment(0,instanceCache.totalNHolonomicConstraintEquationsInUse);
-        cInfo.nonholoErrSegment = Segment(0,instanceCache.totalNNonholonomicConstraintEquationsInUse);
-        cInfo.accOnlyErrSegment = Segment(0,instanceCache.totalNAccelerationOnlyConstraintEquationsInUse);
+        // Just to be neat, we'll assign zero-width segments where our slots
+        // would have gone if this constraint were enabled.
+        cInfo.holoErrSegment    = 
+            Segment(0,ic.totalNHolonomicConstraintEquationsInUse);
+        cInfo.nonholoErrSegment = 
+            Segment(0,ic.totalNNonholonomicConstraintEquationsInUse);
+        cInfo.accOnlyErrSegment = 
+            Segment(0,ic.totalNAccelerationOnlyConstraintEquationsInUse);
+        
+        cInfo.consBodySegment      = Segment(0, ic.totalNConstrainedBodiesInUse);
+        cInfo.consMobilizerSegment = Segment(0, ic.totalNConstrainedMobilizersInUse);
+        cInfo.consQSegment = Segment(0, ic.totalNConstrainedQInUse);
+        cInfo.consUSegment = Segment(0, ic.totalNConstrainedUInUse);    
         return;
     }
 
-    // This constraint is not disabled
+    // This constraint is enabled.
 
-    // These are just the primary contraint equations, not their time derivatives.
+    // These count just the primary contraint equations, not their time 
+    // derivatives.
     int mHolo, mNonholo, mAccOnly;
     calcNumConstraintEquationsInUse(s, mHolo, mNonholo, mAccOnly);
 
     // Must allocate space for primary constraint equations & time derivatives.
     //                                length         offset
-    cInfo.holoErrSegment    = Segment(mHolo,    instanceCache.totalNHolonomicConstraintEquationsInUse);
-    cInfo.nonholoErrSegment = Segment(mNonholo, instanceCache.totalNNonholonomicConstraintEquationsInUse);
-    cInfo.accOnlyErrSegment = Segment(mAccOnly, instanceCache.totalNAccelerationOnlyConstraintEquationsInUse);
+    cInfo.holoErrSegment    = Segment(mHolo,    ic.totalNHolonomicConstraintEquationsInUse);
+    cInfo.nonholoErrSegment = Segment(mNonholo, ic.totalNNonholonomicConstraintEquationsInUse);
+    cInfo.accOnlyErrSegment = Segment(mAccOnly, ic.totalNAccelerationOnlyConstraintEquationsInUse);
 
-    instanceCache.totalNHolonomicConstraintEquationsInUse        += mHolo;
-    instanceCache.totalNNonholonomicConstraintEquationsInUse     += mNonholo;
-    instanceCache.totalNAccelerationOnlyConstraintEquationsInUse += mAccOnly;  
+    ic.totalNHolonomicConstraintEquationsInUse        += mHolo;
+    ic.totalNNonholonomicConstraintEquationsInUse     += mNonholo;
+    ic.totalNAccelerationOnlyConstraintEquationsInUse += mAccOnly;  
+
+    cInfo.consBodySegment      = Segment(ncb, ic.totalNConstrainedBodiesInUse);
+    cInfo.consMobilizerSegment = Segment(ncm, ic.totalNConstrainedMobilizersInUse);
+    ic.totalNConstrainedBodiesInUse     += ncb;
+    ic.totalNConstrainedMobilizersInUse += ncm;
 
     // At this point we can find out how many q's and u's are associated with
     // each of the constrained mobilizers. We'll create packed arrays of q's and
@@ -2587,10 +2637,8 @@ void ConstraintImpl::realizeInstance(const State& s) const {
     // associated with each of the ConstrainedMobilizers, along with the number 
     // of q's and u's.
 
-    for (ConstrainedMobilizerIndex cmx(0); cmx < getNumConstrainedMobilizers(); 
-         ++cmx) 
-    {
-        SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo = 
+    for (ConstrainedMobilizerIndex cmx(0); cmx < ncm; ++cmx) {
+        SBInstancePerConstrainedMobilizerInfo& mInfo = 
             cInfo.updConstrainedMobilizerInstanceInfo(cmx);
 
         const MobilizedBodyIndex mbx = 
@@ -2610,6 +2658,14 @@ void ConstraintImpl::realizeInstance(const State& s) const {
             for (int i=1; i<nu; ++i) cInfo.addConstrainedU(UIndex(uix+i));
         }
     }
+
+    // Now we can assign slots for Qs and Us.
+    const int ncq = cInfo.getNumConstrainedQ();
+    const int ncu = cInfo.getNumConstrainedU();
+    cInfo.consQSegment = Segment(ncq, ic.totalNConstrainedQInUse);
+    cInfo.consUSegment = Segment(ncu, ic.totalNConstrainedUInUse);
+    ic.totalNConstrainedQInUse += ncq;
+    ic.totalNConstrainedUInUse += ncu;
 
     // Now collect all the participating mobilities. This includes the 
     // constrained mobilities as well as every q and u that can affect the 
@@ -2639,9 +2695,9 @@ void ConstraintImpl::realizeInstance(const State& s) const {
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                                REALIZE TIME
-// -----------------------------------------------------------------------------
+// =============================================================================
 void ConstraintImpl::realizeTime(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
     if (instanceVars.disabled[myConstraintIndex]) return;
@@ -2651,9 +2707,9 @@ void ConstraintImpl::realizeTime(const SBStateDigest& sbs) const {
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                             REALIZE POSITION
-// -----------------------------------------------------------------------------
+// =============================================================================
 void ConstraintImpl::realizePosition(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
     if (instanceVars.disabled[myConstraintIndex]) return;
@@ -2662,9 +2718,9 @@ void ConstraintImpl::realizePosition(const SBStateDigest& sbs) const {
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                              REALIZE VELOCITY
-// -----------------------------------------------------------------------------
+// =============================================================================
 void ConstraintImpl::realizeVelocity(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
     if (instanceVars.disabled[myConstraintIndex]) return;
@@ -2673,9 +2729,9 @@ void ConstraintImpl::realizeVelocity(const SBStateDigest& sbs) const {
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                              REALIZE DYNAMICS
-// -----------------------------------------------------------------------------
+// =============================================================================
 void ConstraintImpl::realizeDynamics(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
     if (instanceVars.disabled[myConstraintIndex]) return;
@@ -2684,9 +2740,9 @@ void ConstraintImpl::realizeDynamics(const SBStateDigest& sbs) const {
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                            REALIZE ACCELERATION
-// -----------------------------------------------------------------------------
+// =============================================================================
 void ConstraintImpl::realizeAcceleration(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
     if (instanceVars.disabled[myConstraintIndex]) return; 
@@ -2695,9 +2751,9 @@ void ConstraintImpl::realizeAcceleration(const SBStateDigest& sbs) const {
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                             REALIZE REPORT
-// -----------------------------------------------------------------------------
+// =============================================================================
 void ConstraintImpl::realizeReport(const State& s) const {
     if (isDisabled(s)) return;
     realizeReportVirtual(s); // nothing to do in the base class
@@ -2857,9 +2913,9 @@ const SpatialVec& ConstraintImpl::getBodyAccelerationFromState
                     .constrainedBodyAccelerationInAncestor[bx]; // A_AB
 }
 
-// -----------------------------------------------------------------------------
-//                 REALIZE CONSTRAINED BODY TRANSFORM IN ANCESTOR
-// -----------------------------------------------------------------------------
+// =============================================================================
+//                 CALC CONSTRAINED BODY TRANSFORM IN ANCESTOR
+// =============================================================================
 // 63 flops per constrained body
 void ConstraintImpl::calcConstrainedBodyTransformInAncestor      // X_AB
    (const SBStateDigest& sbs, SBTreePositionCache& tpc) const 
@@ -2884,9 +2940,9 @@ void ConstraintImpl::calcConstrainedBodyTransformInAncestor      // X_AB
     }
 }
 
-// -----------------------------------------------------------------------------
-//                 REALIZE CONSTRAINED BODY VELOCITY IN ANCESTOR
-// -----------------------------------------------------------------------------
+// =============================================================================
+//                  CALC CONSTRAINED BODY VELOCITY IN ANCESTOR
+// =============================================================================
 // 51 flops per constrained body
 void ConstraintImpl::calcConstrainedBodyVelocityInAncestor       // V_AB
    (const SBStateDigest& sbs, SBTreeVelocityCache& tvc) const 
@@ -2931,10 +2987,9 @@ void ConstraintImpl::calcConstrainedBodyVelocityInAncestor       // V_AB
 }
 
 
-
-// -----------------------------------------------------------------------------
-//               REALIZE CONSTRAINED BODY ACCELERATION IN ANCESTOR
-// -----------------------------------------------------------------------------
+// =============================================================================
+//                CALC CONSTRAINED BODY ACCELERATION IN ANCESTOR
+// =============================================================================
 // 105 flops per constrained body
 void ConstraintImpl::calcConstrainedBodyAccelerationInAncestor      // A_AB
    (const SBStateDigest& sbs, SBTreeAccelerationCache& tac) const 
@@ -3002,7 +3057,7 @@ void ConstraintImpl::calcConstrainedBodyAccelerationInAncestor      // A_AB
 void ConstraintImpl::getNumConstraintEquationsInUse
    (const State& s, int& mHolo, int& mNonholo, int& mAccOnly) const 
 {
-    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = 
+    const SBInstancePerConstraintInfo& cInfo = 
         getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex);
 
     mHolo    = cInfo.holoErrSegment.length;
@@ -3015,7 +3070,7 @@ void ConstraintImpl::getNumConstraintEquationsInUse
 void ConstraintImpl::getConstraintEquationSlots
    (const State& s, int& holo0, int& nonholo0, int& accOnly0) const
 {
-    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = 
+    const SBInstancePerConstraintInfo& cInfo = 
         getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex);
 
     const int mHolo    = cInfo.holoErrSegment.length;
@@ -3034,10 +3089,13 @@ bool ConstraintImpl::isDisabled(const State& s) const {
     return getMyMatterSubsystemRep().isConstraintDisabled(s, myConstraintIndex);
 }
 
-// Call this during construction phase to add a body to the topological structure of
-// this Constraint. This body's mobilizer's mobilities are *not* part of the constraint; 
-// mobilizers must be added separately.
-ConstrainedBodyIndex ConstraintImpl::addConstrainedBody(const MobilizedBody& b) {
+// Call this during construction phase to add a body to the topological 
+// structure of this Constraint. This body's mobilizer's mobilities are 
+// *not* part of the constraint; mobilizers must be added separately. It is OK
+// to add the same body multiple times; it will only get inserted once and 
+// you'll get the same index every time.
+ConstrainedBodyIndex ConstraintImpl::
+addConstrainedBody(const MobilizedBody& b) {
     assert(isInSameSubsystem(b));
     invalidateTopologyCache();
 
@@ -3046,19 +3104,26 @@ ConstrainedBodyIndex ConstraintImpl::addConstrainedBody(const MobilizedBody& b) 
     // Add to the Mobilized->Constrained map and check for duplicates.
     std::pair<MobilizedBody2ConstrainedBodyMap::iterator, bool> result;
     result = myMobilizedBody2ConstrainedBodyMap.insert(
-        MobilizedBody2ConstrainedBodyMap::value_type(b.getMobilizedBodyIndex(), nextIx));
-    SimTK_ASSERT_ALWAYS(result.second,
-        "addConstrainedBody(): a particular Constrained Body can be added only once per Constraint");
+        MobilizedBody2ConstrainedBodyMap::value_type(b.getMobilizedBodyIndex(), 
+                                                     nextIx));
+    if (!result.second) {
+        // It was already there.
+        return result.first->second; // the index we assigned before
+    }
 
-    // This is a new constrained body -- add it to the ConstrainedBody->MobilizedBody map too.
+    // This is a new constrained body -- add it to the 
+    // ConstrainedBody->MobilizedBody map too.
     myConstrainedBodies.push_back(b.getMobilizedBodyIndex());
     return nextIx;
 }
 
-// Call this during construction phase to add a mobilizer to the topological structure of
-// this Constraint. All the coordinates q and mobilities u for this mobilizer are added also,
-// but we don't know how many of those there will be until Stage::Model.
-ConstrainedMobilizerIndex ConstraintImpl::addConstrainedMobilizer(const MobilizedBody& b) {
+// Call this during construction phase to add a mobilizer to the topological 
+// structure of this Constraint. All the coordinates q and mobilities u for this
+// mobilizer are added also, but we don't know how many of those there will be 
+// until Stage::Model. It is OK to add the same mobilizer multiple times; it will
+// only get inserted once and you'll get the same index every time. 
+ConstrainedMobilizerIndex ConstraintImpl::
+addConstrainedMobilizer(const MobilizedBody& b) {
     assert(isInSameSubsystem(b));
     invalidateTopologyCache();
 
@@ -3066,26 +3131,32 @@ ConstrainedMobilizerIndex ConstraintImpl::addConstrainedMobilizer(const Mobilize
 
     // Add to the Mobilized->Constrained map and check for duplicates.
     std::pair<MobilizedBody2ConstrainedMobilizerMap::iterator, bool> result;
-    result = myMobilizedBody2ConstrainedMobilizerMap.insert(
-        MobilizedBody2ConstrainedMobilizerMap::value_type(b.getMobilizedBodyIndex(), nextIx));
-    SimTK_ASSERT_ALWAYS(result.second,
-        "addConstrainedMobilizer(): a particular Constrained Mobilizer can be added only once per Constraint");
-
-    // This is a new constrained mobilizer -- add it to the ConstrainedMobilizer->MobilizedBody map too.
+    result = myMobilizedBody2ConstrainedMobilizerMap.insert
+       (MobilizedBody2ConstrainedMobilizerMap::value_type
+                                            (b.getMobilizedBodyIndex(), nextIx));
+    
+    if (!result.second) {
+        // It was already there.
+        return result.first->second; // the index we assigned before
+    }
+    
+    // This is a new constrained mobilizer -- add it to the 
+    // ConstrainedMobilizer->MobilizedBody map too.
     myConstrainedMobilizers.push_back(b.getMobilizedBodyIndex());
     return nextIx;
 }
 
 QIndex ConstraintImpl::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const {
-    const SBInstanceCache& mc = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& 
-        cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache& ic = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& 
+        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
     return cInfo.getQIndexFromConstrainedQ(cqx);
 }
 
 UIndex ConstraintImpl::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const {
-    const SBInstanceCache&                         mc    = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
     return cInfo.getUIndexFromConstrainedU(cqx);
 }
 
@@ -3097,7 +3168,7 @@ int ConstraintImpl::getNumConstrainedQ(const State& s) const {
 int ConstraintImpl::getNumConstrainedQ
    (const State& s, ConstrainedMobilizerIndex M) const
 {
-    const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
+    const SBInstancePerConstrainedMobilizerInfo& mInfo =
         getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex)
                            .getConstrainedMobilizerInstanceInfo(M);
     return mInfo.nQInUse; // same as corresponding Mobod, or 0 if disabled
@@ -3108,21 +3179,24 @@ ConstrainedQIndex ConstraintImpl::getConstrainedQIndex
 {
     const int nq = getNumConstrainedQ(s,M);
     assert(0 <= which && which < nq);
-    const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
-        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getConstrainedMobilizerInstanceInfo(M);
+    const SBInstancePerConstrainedMobilizerInfo& mInfo =
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex)
+                           .getConstrainedMobilizerInstanceInfo(M);
     return ConstrainedQIndex(mInfo.firstConstrainedQIndex + which);
 }       
 
 int ConstraintImpl::getNumConstrainedU(const State& s) const {
-    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getNumConstrainedU();
+    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex)
+                              .getNumConstrainedU();
 }
 
 int ConstraintImpl::getNumConstrainedU
    (const State& s, ConstrainedMobilizerIndex M) const
 {
-    const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
-        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getConstrainedMobilizerInstanceInfo(M);
-    return mInfo.nUInUse; // same as corresponding MobilizedBody, or 0 if disabled
+    const SBInstancePerConstrainedMobilizerInfo& mInfo =
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex)
+                           .getConstrainedMobilizerInstanceInfo(M);
+    return mInfo.nUInUse; // same as corr. MobilizedBody, or 0 if disabled
 }
 
 ConstrainedUIndex ConstraintImpl::getConstrainedUIndex
@@ -3130,8 +3204,9 @@ ConstrainedUIndex ConstraintImpl::getConstrainedUIndex
 {
     const int nu = getNumConstrainedU(s,M);
     assert(0 <= which && which < nu);
-    const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
-        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getConstrainedMobilizerInstanceInfo(M);
+    const SBInstancePerConstrainedMobilizerInfo& mInfo =
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex)
+                           .getConstrainedMobilizerInstanceInfo(M);
     return ConstrainedUIndex(mInfo.firstConstrainedUIndex + which);
 }   
 
@@ -3141,7 +3216,7 @@ ConstrainedUIndex ConstraintImpl::getConstrainedUIndex
 // constraint equations generated by this Constraint. We expect that perr points
 // to an array of at least mp elements that we can write on.
 void ConstraintImpl::getPositionErrors(const State& s, int mp, Real* perr) const {
-    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = 
+    const SBInstancePerConstraintInfo& cInfo = 
         getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex);
 
     assert(mp == cInfo.holoErrSegment.length);
@@ -3166,8 +3241,9 @@ void ConstraintImpl::getPositionErrors(const State& s, int mp, Real* perr) const
 // by this Constraint. We expect that pverr points to an array of at least mp+mv
 // elements that we can write on.
 void ConstraintImpl::getVelocityErrors(const State& s, int mpv, Real* pverr) const {
-    const SBInstanceCache& mc = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
 
     assert(mpv ==  cInfo.holoErrSegment.length
                  + cInfo.nonholoErrSegment.length);
@@ -3182,7 +3258,7 @@ void ConstraintImpl::getVelocityErrors(const State& s, int mpv, Real* pverr) con
     for (int i=0; i < mHolo; ++i)
         pverr[i] = uerr[firstHoloErr+i];
 
-    const int firstNonholoErr = mc.totalNHolonomicConstraintEquationsInUse // total for whole subsystem
+    const int firstNonholoErr = ic.totalNHolonomicConstraintEquationsInUse // total for whole subsystem
                                 + cInfo.nonholoErrSegment.offset;
     const int mNonholo        = cInfo.nonholoErrSegment.length;
 
@@ -3200,8 +3276,9 @@ void ConstraintImpl::getVelocityErrors(const State& s, int mpv, Real* pverr) con
 // equations generated by this Constraint. We expect that pvaerr points to an array
 // of at least mp+mv+ma elements that we can write on.
 void ConstraintImpl::getAccelerationErrors(const State& s, int mpva, Real* pvaerr) const {
-    const SBInstanceCache& mc = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
 
     assert(mpva ==   cInfo.holoErrSegment.length
                    + cInfo.nonholoErrSegment.length
@@ -3217,15 +3294,15 @@ void ConstraintImpl::getAccelerationErrors(const State& s, int mpva, Real* pvaer
     for (int i=0; i < mHolo; ++i)
         pvaerr[i] = udoterr[firstHoloErr+i];
 
-    const int firstNonholoErr = mc.totalNHolonomicConstraintEquationsInUse // total for whole subsystem
+    const int firstNonholoErr = ic.totalNHolonomicConstraintEquationsInUse // total for whole subsystem
                                 + cInfo.nonholoErrSegment.offset;
     const int mNonholo        = cInfo.nonholoErrSegment.length;
 
     for (int i=0; i < mNonholo; ++i)
         pvaerr[mHolo+i] = udoterr[firstNonholoErr+i];
 
-    const int firstAccOnlyErr = mc.totalNHolonomicConstraintEquationsInUse
-                                + mc.totalNNonholonomicConstraintEquationsInUse // total for whole subsystem
+    const int firstAccOnlyErr = ic.totalNHolonomicConstraintEquationsInUse
+                                + ic.totalNNonholonomicConstraintEquationsInUse // total for whole subsystem
                                 + cInfo.accOnlyErrSegment.offset;
     const int mAccOnly        = cInfo.accOnlyErrSegment.length;
 
@@ -3240,15 +3317,17 @@ void ConstraintImpl::getAccelerationErrors(const State& s, int mpva, Real* pvaer
 // equations generated by this Constraint. We expect that lambda points to an array
 // of at least mp+mv+ma elements that we can write on.
 void ConstraintImpl::getMultipliers(const State& s, int mpva, Real* lambda) const {
-    const SBInstanceCache& mc = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
 
     assert(mpva ==   cInfo.holoErrSegment.length
                    + cInfo.nonholoErrSegment.length
                    + cInfo.accOnlyErrSegment.length);
 
-    // Get reference to all multipliers for the subsystem.
-    const Vector& multipliers = getMyMatterSubsystemRep().getMultipliers(s);
+    // Get reference to all multipliers for the subsystem. Use "upd" here
+    // because we might still be realizing this state.
+    const Vector& multipliers = getMyMatterSubsystemRep().updMultipliers(s);
 
     // Find the offset to our first multiplier in the ModelCache.
     const int firstHoloErr = cInfo.holoErrSegment.offset;
@@ -3257,15 +3336,15 @@ void ConstraintImpl::getMultipliers(const State& s, int mpva, Real* lambda) cons
     for (int i=0; i < mHolo; ++i)
         lambda[i] = multipliers[firstHoloErr+i];
 
-    const int firstNonholoErr = mc.totalNHolonomicConstraintEquationsInUse // total for whole subsystem
+    const int firstNonholoErr = ic.totalNHolonomicConstraintEquationsInUse // total for whole subsystem
                                 + cInfo.nonholoErrSegment.offset;
     const int mNonholo        = cInfo.nonholoErrSegment.length;
 
     for (int i=0; i < mNonholo; ++i)
         lambda[mHolo+i] = multipliers[firstNonholoErr+i];
 
-    const int firstAccOnlyErr = mc.totalNHolonomicConstraintEquationsInUse
-                                + mc.totalNNonholonomicConstraintEquationsInUse // total for whole subsystem
+    const int firstAccOnlyErr = ic.totalNHolonomicConstraintEquationsInUse
+                                + ic.totalNNonholonomicConstraintEquationsInUse // total for whole subsystem
                                 + cInfo.accOnlyErrSegment.offset;
     const int mAccOnly        = cInfo.accOnlyErrSegment.length;
 
@@ -3414,9 +3493,9 @@ void ConstraintImpl::addInAccelerationConstraintForcesVirtual
 // Position stage.
 void ConstraintImpl::
 realizePositionErrors(const State& s, Array_<Real>& perr) const {
-    const SBInstanceCache& ic = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& 
-        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
     const Vector& q = s.getQ();
 
     const int ncb = getNumConstrainedBodies();
@@ -3439,9 +3518,9 @@ realizePositionErrors(const State& s, Array_<Real>& perr) const {
 // through Position stage and part way through realization of Velocity stage.
 void ConstraintImpl::
 realizePositionDotErrors(const State& s, Array_<Real>& pverr) const {
-    const SBInstanceCache& ic = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& 
-        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
 
     // We're not checking, but the tree velocity cache better have been
     // marked valid by now, indicating that we finished calculating qdots.
@@ -3469,9 +3548,9 @@ realizePositionDotErrors(const State& s, Array_<Real>& pverr) const {
 // through Dynamics stage and part way through realization of Acceleration stage.
 void ConstraintImpl::
 realizePositionDotDotErrors(const State& s, Array_<Real>& paerr) const {
-    const SBInstanceCache& ic = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& 
-        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
 
     // We're not checking, but the tree acceleration cache better have been
     // marked valid by now, indicating that we finished calculating qdotdots.
@@ -3501,9 +3580,9 @@ realizePositionDotDotErrors(const State& s, Array_<Real>& paerr) const {
 // Position stage and part way through realization of Velocity stage.
 void ConstraintImpl::
 realizeVelocityErrors(const State& s, Array_<Real>& verr) const {
-    const SBInstanceCache& ic = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& 
-        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
     const Vector& u = s.getU();
 
     const int ncb = getNumConstrainedBodies();
@@ -3527,9 +3606,9 @@ realizeVelocityErrors(const State& s, Array_<Real>& verr) const {
 // and part way through realization of Acceleration stage.
 void ConstraintImpl::
 realizeVelocityDotErrors(const State& s, Array_<Real>& vaerr) const {
-    const SBInstanceCache& ic = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& 
-        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
 
     // We're not checking, but the tree acceleration cache better have been
     // marked valid by now, indicating that we finished calculating udots.
@@ -3559,9 +3638,9 @@ realizeVelocityDotErrors(const State& s, Array_<Real>& vaerr) const {
 // realization of Acceleration stage.
 void ConstraintImpl::
 realizeAccelerationErrors(const State& s, Array_<Real>& aerr) const {
-    const SBInstanceCache& ic = getInstanceCache(s);
-    const SBInstanceCache::PerConstraintInstanceInfo& 
-        cInfo = ic.getConstraintInstanceInfo(myConstraintIndex);
+    const SBInstanceCache&             ic    = getInstanceCache(s);
+    const SBInstancePerConstraintInfo& cInfo = 
+        ic.getConstraintInstanceInfo(myConstraintIndex);
 
     // We're not checking, but the tree acceleration cache better have been
     // marked valid by now, indicating that we finished calculating udots.

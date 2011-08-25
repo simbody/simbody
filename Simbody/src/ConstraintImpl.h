@@ -117,13 +117,17 @@ typedef std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex>
 
 // Call this during construction phase to add a body to the topological 
 // structure of this Constraint. This body's mobilizer's mobilities are *not* 
-// part of the constraint; mobilizers must be added separately.
+// part of the constraint; mobilizers must be added separately. If this
+// mobilized body has been seen as a constrained body before we'll return the
+// same index as first assigned to it.
 ConstrainedBodyIndex addConstrainedBody(const MobilizedBody&);
 
 // Call this during construction phase to add a mobilizer to the topological 
 // structure of this Constraint. All the coordinates q and mobilities u for 
-// this mobilizer are added also, but we don't know how many of those there 
-// will be until Stage::Model.
+// this mobilizer are added as "constrainable". We don't know how many
+// coordinates and speeds there are until Stage::Model. If this
+// mobilized body has been seen as a constrained mobilizer before we'll return
+// the same index as first assigned to it.
 ConstrainedMobilizerIndex addConstrainedMobilizer(const MobilizedBody&);
 
 MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedBody
@@ -2910,7 +2914,8 @@ CoordinateCouplerImpl(SimbodyMatterSubsystem&           matter,
     
 Implementation* clone() const {
     referenceCount[0]++;
-    return new CoordinateCouplerImpl(*this);
+    CoordinateCouplerImpl* newCoupler = new CoordinateCouplerImpl(*this);
+    return newCoupler;
 }
 
 void calcPositionErrors     
@@ -2939,11 +2944,24 @@ void addInPositionConstraintForces
 
 //------------------------------------------------------------------------------
                                     private:
+friend class Constraint::CoordinateCoupler;
+
+//  TOPOLOGY STATE
 const Function*                     function;
-int*                                referenceCount;
 Array_<ConstrainedMobilizerIndex>   coordBodies;
 Array_<MobilizerQIndex>             coordIndices;
+
+//  TOPOLOGY CACHE
+//  None.
+
+//  A reusable temporary variable allocated to the correct size
+//  to hold all the Function arguments.
 mutable Vector                      temp;
+
+// This allows copies to be made of this constraint which share
+// the function object.
+int*                                referenceCount;
+
 };
 
 

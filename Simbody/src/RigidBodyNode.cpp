@@ -149,7 +149,7 @@ Real RigidBodyNode::calcKineticEnergy(
     const SBTreeVelocityCache& vc) const 
 {
     const Real ret = dot(getV_GB(vc) , getMk_G(pc)*getV_GB(vc));
-    return 0.5*ret;
+    return ret/2;
 }
 
 // Calculate velocity-related quantities that are needed for building

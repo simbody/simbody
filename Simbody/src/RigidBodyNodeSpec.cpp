@@ -498,7 +498,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
     } else
         udot = getDI(abc) * eps - (~getG(abc)*A_GP); // 2*dof^2 + 11*dof
 
-    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);  
+    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);
 }
 
  

@@ -192,7 +192,8 @@ void createState(MultibodySystem& system, State& state, const Vector& y=Vector()
 
 void testCoordinateCoupler1() {
 
-    // Create a system using three CoordinateCouplers to fix the orientation of one body.
+    // Create a system using three CoordinateCouplers to fix the orientation 
+    // of one body.
     
     MultibodySystem system1;
     SimbodyMatterSubsystem matter1(system1);
@@ -210,12 +211,14 @@ void testCoordinateCoupler1() {
     State state1;
     createState(system1, state1);
 
-    // Create a system using a ConstantOrientation constraint to do the same thing.
+    // Create a system using a ConstantOrientation constraint to do the 
+    // same thing.
     
     MultibodySystem system2;
     SimbodyMatterSubsystem matter2(system2);
     createGimbalSystem(system2);
-    Constraint::ConstantOrientation orient(matter2.updGround(), Rotation(), matter2.updMobilizedBody(MobilizedBodyIndex(1)), Rotation());
+    Constraint::ConstantOrientation orient(matter2.updGround(), Rotation(), 
+        matter2.updMobilizedBody(MobilizedBodyIndex(1)), Rotation());
     State state2;
     createState(system2, state2, state1.getY());
     
@@ -256,18 +259,24 @@ void testCoordinateCoupler2() {
         args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(state, coordinates[i]);
     assertEqual(0.0, function->calcValue(args));
     
-    // Simulate it and make sure the constraint is working correctly and energy is being conserved.
+    // Simulate it and make sure the constraint is working correctly and
+    // energy is being conserved.
     
-    Real energy = system.calcEnergy(state);
+    Real energy0 = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setReturnEveryInternalStep(true);
     integ.initialize(state);
     while (integ.getTime() < 10.0) {
         integ.stepTo(10.0);
+
         for (int i = 0; i < args.size(); ++i)
-            args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(integ.getState(), coordinates[i]);
-        assertEqual(0.0, function->calcValue(args), integ.getConstraintToleranceInUse());
-        assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
+            args[i] = matter.getMobilizedBody(bodies[i])
+                            .getOneQ(integ.getState(), coordinates[i]);
+        assertEqual(0.0, function->calcValue(args), 
+                    integ.getConstraintToleranceInUse());
+
+        Real energy = system.calcEnergy(integ.getState());
+        assertEqual(energy0, energy, energy0*0.01);
     }
 }
 
@@ -467,7 +476,9 @@ void testPrescribedMotion1() {
     while (integ.getTime() < 10.0) {
         integ.stepTo(10.0);
         Vector args(1, state.getTime());
-        assertEqual(function->calcValue(args), matter.getMobilizedBody(body).getOneQ(state, coordinate), integ.getConstraintToleranceInUse());
+        assertEqual(function->calcValue(args), 
+            matter.getMobilizedBody(body).getOneQ(state, coordinate), 
+            integ.getConstraintToleranceInUse());
     }
 }
 

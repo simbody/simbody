@@ -130,7 +130,8 @@ typedef MobilizedBody Mobod;
  * in A via p_AP = X_AF * p_FP, where p_AP==p_OA_P. 
  */
 
-class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {
+class SimTK_SIMBODY_EXPORT MobilizedBody 
+:   public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {
 public:
 
     /// Constructors can take an argument of this type to indicate that the 

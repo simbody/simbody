@@ -178,33 +178,12 @@ virtual bool isUsingQuaternion(const SBStateDigest&,
 
 // This depends on the mobilizer type and modeling options. This is the amount
 // of position-cache storage this mobilizer wants us to set aside for
-// precalculatiosn involving its q's, in units of number of Reals. The meaning
+// precalculations involving its q's, in units of number of Reals. The meaning
 // of the entries in this pool is known only to the node.
 virtual int calcQPoolSize(const SBModelVars&) const = 0;
 
-// This mandatory routine performs expensive floating point operations sin,
-// cos, and 1/sqrt in one place so we don't end up repeating them. sin&cos are 
-// used only for mobilizers which have angular coordinates, and qErr and qnorm 
-// are only for mobilizers using quaternions. Other mobilizers can provide a 
-// null routine.
-//
-// Each of the passed-in Vectors is a "q-like" object, that is, allocated
-// to the bodies in a manner parallel to the q state variable, except that qErr
-// has just one slot per quaternion and must be accessed using the node's 
-// quaternionIndex which is in the Model cache.
-//OBSOLETE
-//virtual void calcJointSinCosQNorm(
-//    const SBModelVars&  mv, 
-//    const SBModelCache& mc,
-//    const SBInstanceCache& ic,
-//    const Vector&       q, 
-//    Vector&             sine, 
-//    Vector&             cosine, 
-//    Vector&             qErr,
-//    Vector&             qnorm) const=0;
-
-// This operator is the first step in realizePosition() for this 
-// RBNode. Taking the q's from the supplied state digest, perform calculations
+// This operator is the first step in realizePosition() for this RBNode. Taking
+// modeling information from the supplied state digest, perform calculations
 // that can be done knowing only the current modeling parameters and the
 // values of the q's. The results go into the posCache and qErr arrays which
 // have already been set to the first entry belonging exclusively to this
@@ -247,7 +226,7 @@ virtual void calcX_FM(const SBStateDigest& sbs,
                       const Real* posCache, int nPos,
                       Transform&  X_F0M0) const = 0;
 
-// This is a pure operator form of calcX_FM(). The State must have been
+// This is a pure operator form of calcX_FM(). The StateDigest must have been
 // realized to model stage. The result depends only on the passed-in q,
 // not anything in the State beyond model stage.
 void calcAcrossJointTransform(
@@ -501,8 +480,7 @@ virtual void realizeDynamics(
     const SBArticulatedBodyInertiaCache&    abc,
     const SBStateDigest&                    sbs) const=0;
 
-virtual void realizeAcceleration(
-    const SBStateDigest&         sbs) const=0;
+// There is no realizeAcceleration().
 
 virtual void realizeReport(
     const SBStateDigest&         sbs) const=0;
@@ -719,7 +697,7 @@ bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
 bool isPrescribed     (const SBModelVars& mv) const {return mv.prescribed[nodeNum];}
 
 // Find cache resources allocated to this RigidBodyNode.
-const SBModelCache::PerMobilizedBodyModelInfo& 
+const SBModelPerMobodInfo& 
 getModelInfo(const SBModelCache& mc) const
 {   return mc.getMobilizedBodyModelInfo(nodeNum); }
 

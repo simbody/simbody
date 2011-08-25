@@ -169,7 +169,7 @@ public:
     void realizePosition(const SBStateDigest&) const {}
     void realizeVelocity(const SBStateDigest&) const {}
     void realizeDynamics(const SBArticulatedBodyInertiaCache&, const SBStateDigest&) const {}
-    void realizeAcceleration(const SBStateDigest&) const {}
+    // There is no realizeAcceleration().
     void realizeReport  (const SBStateDigest&) const {}
 
     // Ground's "composite" body inertia is still the infinite mass
@@ -472,8 +472,8 @@ public:
         calcJointIndependentDynamicsVel(pc,abc,vc,dc);
     }
 
+    // There is no realizeAcceleration().
 
-    void realizeAcceleration(const SBStateDigest& sbs) const {}
     void realizeReport(const SBStateDigest& sbs) const {}
 
     // Weld uses base class implementation of calcCompositeBodyInertiasInward() since

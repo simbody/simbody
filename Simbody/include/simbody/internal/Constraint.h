@@ -34,7 +34,7 @@
 
 /** @file
 This defines the base Constraint class and related classes, which are used to 
-specify limitations on the mobility of the mobilized bodieds in a 
+specify limitations on the mobility of the mobilized bodies in a 
 SimbodyMatterSubsystem. **/
 
 
@@ -70,77 +70,113 @@ type is a local subclass within Constraint, and is also derived from Constraint.
 
 Constraint is a PIMPL-style abstract base class, with concrete classes defined 
 for each kind of constraint. **/
-class SimTK_SIMBODY_EXPORT Constraint : public PIMPLHandle<Constraint, ConstraintImpl, true> {
+class SimTK_SIMBODY_EXPORT Constraint 
+:   public PIMPLHandle<Constraint, ConstraintImpl, true> {
 public:
+/** Default constructor creates an empty %Constraint handle that can be used
+to reference any %Constraint. **/
 Constraint() { }
+/** For internal use: construct a new %Constraint handle referencing a 
+particular implementation object. **/
 explicit Constraint(ConstraintImpl* r) : HandleBase(r) { }
 
-/// Disable this constraint, effectively removing it from the system. This
-/// is an Instance-stage change and affects the allocation of constraint-
-/// related cache variables in the supplied State.
+/** Disable this constraint, effectively removing it from the system. This
+is an Instance-stage change and affects the allocation of constraint-
+related cache variables in the supplied State. **/
 void disable(State&) const;
-/// Enable this constraint, without necessarily satisfying it. This
-/// is an Instance-stage change and affects the allocation of constraint-
-/// related cache variables in the supplied State. Note that merely 
-/// enabling a constraint does not ensure that the State's positions and 
-/// velocities satisfy that constraint; initial satisfaction requires use
-/// of an appropriate solver.
+
+/** Enable this constraint, without necessarily satisfying it. This is an 
+Instance-stage change and affects the allocation of constraint-related cache 
+variables in the supplied State. Note that merely enabling a constraint does 
+not ensure that the State's positions and velocities satisfy that constraint; 
+initial satisfaction requires use of an appropriate solver. **/
 void enable(State&) const;
-/// Test whether this constraint is currently disabled in the supplied State.
+/** Test whether this constraint is currently disabled in the supplied 
+State. **/
 bool isDisabled(const State&) const;
-/// Test whether this constraint is disabled by default in which case it
-/// must be explicitly enabled before it will take effect.
-/// @see enable()
+/** Test whether this constraint is disabled by default in which case it must 
+be explicitly enabled before it will take effect.
+@see setDisabledByDefault(), enable() **/
 bool isDisabledByDefault() const;
 
-/// Normally Constraints are enabled when defined and can be disabled later. If
-/// you want to define this constraint but have it be off by default, use
-/// this method.
+/** Normally Constraints are enabled when defined and can be disabled later. If
+you want to define this constraint but have it be off by default, use
+this method.
+@see isDisabledByDefault(), enable(), disable(), isDisabled() **/
 void setDisabledByDefault(bool shouldBeDisabled);
 
-// Implicit conversion to ConstraintIndex when needed.
+/** This is an implicit conversion from %Constraint to ConstraintIndex when 
+needed. This will fail if the %Constraint is not contained in a subsystem. **/
 operator ConstraintIndex() const {return getConstraintIndex();}
 
-// These will fail unless this Constraint is owned by a MatterSubsystem.
-ConstraintIndex               getConstraintIndex()      const;
+/** Get a const reference to the matter subsystem that contains this 
+%Constraint. This will throw an exception if the %Constraint has not yet been
+added to any subsystem; if you aren't sure use isInSubsystem() first to
+check.  
+@see updMatterSubsystem(), isInSubsystem(), getConstraintIndex() **/
 const SimbodyMatterSubsystem& getMatterSubsystem()      const;
-SimbodyMatterSubsystem&       updMatterSubsystem();
 
+/** Assuming you have writable access to this %Constraint, get a writable 
+reference to the containing matter subsystem. This will throw an exception if 
+the %Constraint has not yet been added to any subsystem; if you aren't sure 
+use isInSubsystem() first to check.  
+@see getMatterSubsystem(), isInSubsystem(), getConstraintIndex() **/
+SimbodyMatterSubsystem& updMatterSubsystem();
+
+/** Get the ConstraintIndex that was assigned to this %Constraint when it was
+added to the matter subsystem. This will throw an exception if the %Constraint has not yet been
+added to any subsystem; if you aren't sure use isInSubsystem() first to
+check. There is also an implicit conversion from %Constraint to
+ConstraintIndex, so you don't normally need to call this directly.
+@see getMatterSubsystem(), isInSubsystem() **/
+ConstraintIndex getConstraintIndex() const;
+
+/** Test whether this %Constraint is contained within a matter subsystem. **/
 bool isInSubsystem() const;
-bool isInSameSubsystem(const MobilizedBody&) const;
+/** Test whether the supplied MobilizedBody is in the same matter subsystem
+as this %Constraint. Also returns false if either the %Constraint or the 
+%MobilizedBody is not in any subsystem, or if neither is. **/
+bool isInSameSubsystem(const MobilizedBody& mobod) const;
 
     // TOPOLOGY STAGE (i.e., post-construction) //
 
-/// Return the number of bodies *directly* restricted by this constraint. 
-/// Included are any bodies to which the Constraint may apply a body force
-/// (i.e., torque or point force). The Ancestor body is not included unless
-/// it was specified as a ConstrainedBody. This is the length of the 
-/// bodyForces array for this Constraint.
+/** Return the number of unique bodies \e directly restricted by this 
+constraint. Included are any bodies to which this %Constraint may apply a body 
+force (i.e., torque or point force). The Ancestor body is not included unless
+it was specified as a Constrained Body. This is the length of the bodyForces 
+array for this %Constraint. **/
 int getNumConstrainedBodies() const;
 
-/// Return a reference to the actual MobilizedBodies included in the count
-/// above. 0 <= index < getNumConstrainedBodies().
-const MobilizedBody& 
-    getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex) const;
+/** Return a const reference to the actual MobilizedBody corresponding to one
+of the Constrained Bodies included in the count returned by 
+getNumConstrainedBodies(). The index must be in the range 
+0 <= \a consBodyIx < getNumConstrainedBodies(). **/
+const MobilizedBody& getMobilizedBodyFromConstrainedBody
+   (ConstrainedBodyIndex consBodyIx) const;
 
-/// Return a reference to the actual MobilizedBody which is serving as
-/// the Ancestor body for the constrained bodies in this Constraint. This
-/// will fail if there are no constrained bodies (i.e., if 
-/// getNumConstrainedBodies()==0).
+/** Return a const reference to the actual MobilizedBody which is serving as
+the Ancestor body for the constrained bodies in this Constraint. This
+will fail if there are no constrained bodies (i.e., if 
+getNumConstrainedBodies()==0). **/
 const MobilizedBody& getAncestorMobilizedBody() const;
 
-/// Return the number of mobilizers *directly* restricted by this
-/// constraint. Included are any mobilizers to which the Constraint may
-/// apply any mobility force. Like bodies, mobilizers are referenced 
-/// using the MobilizedBody containing them.
+/** Return the number of unique mobilizers \e directly restricted by this
+%Constraint. Included are any mobilizers to which the %Constraint may
+apply any mobility force. Like bodies, mobilizers are referenced using the 
+MobilizedBody containing them. Note that all the mobilities of a Constrained
+Mobilizer are included in the set of constrainable Qs or constrainable Us for 
+this %Constraint even if not all of them are constrained. **/
 int getNumConstrainedMobilizers() const;
 
-/// Return a reference to the actual MobilizedBodies included in the count
-/// of constrained mobilizers above. 
-/// 0 <= index < getNumConstrainedMobilizers().
-const MobilizedBody& 
-    getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex) const;
+/** Return a const reference to the actual MobilizedBody corresponding to one
+of the Constrained Mobilizers included in the count returned by 
+getNumConstrainedMobilizers(). The index must be in the range 
+0 <= \a consMobilizerIx < getNumConstrainedMobilizers(). **/
+const MobilizedBody& getMobilizedBodyFromConstrainedMobilizer
+   (ConstrainedMobilizerIndex consMobilizerIx) const;
 
+/** Return a subtree object indicating which parts of the multibody tree
+are potentially affected by this %Constraint. **/
 const SimbodyMatterSubtree& getSubtree() const;
 
     // MODEL STAGE //
@@ -227,7 +263,7 @@ void calcConstraintForcesFromMultipliers(const State&,
 /// their own methods for getting this information in a more specific form.
 Vector getVelocityErrorsAsVector(const State&) const;   // mp+mv of these
 Vector calcVelocityErrorFromU(const State&,     // mp+mv of these
-                                const Vector& u) const;   // numParticipatingU u's
+                              const Vector& u) const;   // numParticipatingU u's
 
 // Matrix V = partial(verr)/partial(u) for just the non-holonomic 
 // constraints.
@@ -1537,82 +1573,103 @@ void addInBodyTorque
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA) const;
 /**@}**/
 
+/** @name             Utility methods
+These provide access to quantities associated with this constraint,
+suitable for use in the optional realize() virtual methods. **/
+/**@{**/
+/** Given a \a state as passed to your realizeAcceleration() implementation,
+obtain the multipliers that Simbody just calculated for this %Constraint. **/
+void getMultipliers(const State&  state, 
+                    Array_<Real>& multipliers) const;
+/**@}**/
+
 protected:
-/// @name             Optional realize() virtual methods
-/// Provide implementations of these methods if you want to allocate State variables (such
-/// as modeling options or parameters) or want to pre-calculate some expensive quantities and
-/// store them in the State cache for your future use. Note that the Position, Velocity, and
-/// Acceleration-stage realize methods will be called <em>before</em> the constraint error
-/// calculating methods associated with this Constraint's constraint equations. That means,
-/// for example, you can calculate some distances in realizePosition() and then use them
-/// in realizePositionErrors().
+/** @name             Optional realize() virtual methods
+Provide implementations of these methods if you want to allocate State 
+variables (such as modeling options or parameters) or want to pre-calculate 
+some expensive quantities and store them in the State cache for your future 
+use. Note that the Position, Velocity, and Acceleration-stage realize methods 
+will be called <em>after</em> the constraint error calculating methods 
+associated with this Constraint's constraint equations have been used by
+Simbody to perform any constraint calculations. That means, for example, you 
+can access calculated multipliers from your realizeAcceleration() method. **/
 
 /**@{**/
-/// The Matter Subsystem's realizeTopology() method will call this method after all MobilizedBody
-/// topology has been processed. This gives the Constraint a chance to 
-///   - pre-calculate Topology stage "cache" values (mutable values which are stored
-///     in the derived Implementation class directly), and
-///   - allocate Model-stage state variables for later use, and
-///   - allocate Model-stage cache entries in the State.
-/// The indices to the Model-stage state & cache entries are stored locally as part of 
-/// the Topology-stage cache.
+/** The Matter Subsystem's realizeTopology() method will call this method after
+all MobilizedBody topology has been processed. This gives the Constraint a 
+chance to 
+  - calculate Topology stage "cache" values (mutable values which are 
+    stored in the derived Implementation class directly), and
+  - allocate Model-stage state variables for later use, and
+  - allocate Model-stage cache entries in the State.
+The indices to the Model-stage state & cache entries must be stored locally as 
+part of the Topology-stage cache. **/
 virtual void realizeTopology(State&) const { }
 
-/// The Matter Subsystem's realizeModel() method will call this method after all MobilizedBody
-/// Model-stage processing has been done. This gives the Constraint a chance to 
-///   - pre-calculate Model stage cache values according to the settings of the Model variables,
-///   - allocate any later-Stage variables that may be needed (typically these will be 
-///     Instance stage variables containing geometric information or constraint parameters
-///     like lengths or velocities.
-/// The indices to any of the State entries allocated here are stored in the State as part
-/// of the Model-stage cache.
+/** The Matter Subsystem's realizeModel() method will call this method after 
+all MobilizedBody Model-stage processing has been done. This gives the 
+Constraint a chance to 
+  - calculate Model stage cache values according to the settings of the 
+    Model variables,
+  - allocate any later-Stage variables that may be needed (typically these 
+    will be Instance stage variables containing geometric information or 
+    constraint parameters like lengths or velocities.
+The indices to any of the State entries allocated here must be stored in the 
+State as part of the Model-stage cache. **/
 virtual void realizeModel(State&) const { }
 
-/// The Matter Subsystem's realizeInstance() method will call this method after all MobilizedBody
-/// Instance-stage processing has been done. This gives the Constraint a chance to 
-///   - pre-calculate Instance stage cache values according to the settings of the Instance variables.
+/** The Matter Subsystem's realizeInstance() method will call this method after
+all MobilizedBody Instance-stage processing has been done. This gives the 
+Constraint a chance to 
+  - calculate Instance stage cache values according to the settings of the 
+    Instance variables. **/
 virtual void realizeInstance(const State&) const { }
 
-/// The Matter Subsystem's realizeTime() method will call this method after any MobilizedBody
-/// Time-stage processing has been done. This gives the Constraint a chance to 
-///   - pre-calculate Time stage cache values according to the current value of time found
-///     in the State.
+/** The Matter Subsystem's realizeTime() method will call this method after any
+MobilizedBody Time-stage processing has been done. This gives the Constraint
+a chance to 
+  - calculate Time stage cache values according to the current value of 
+    time found in the State. **/
 virtual void realizeTime(const State&) const { }
 
-/// The Matter Subsystem's realizePosition() method will call this method after any MobilizedBody
-/// Position-stage processing has been done. This gives the Constraint a chance to 
-///   - pre-calculate Position stage cache values according to the current values of positions found
-///     in the State.
-/// Note that this is called <em>before</em> realizePositionErrors() if there are
-/// position-level constraints.
+/** The Matter Subsystem's realizePosition() method will call this method after
+any MobilizedBody Position-stage processing has been done, and \e after the
+call has been made to your calcPositionErrors() operator. This gives the 
+Constraint a chance to 
+  - calculate Position stage cache values according to the current values of 
+    positions and position errors found in the State. **/
 virtual void realizePosition(const State&) const { }
 
-/// The Matter Subsystem's realizeVelocity() method will call this method after any MobilizedBody
-/// Velocity-stage processing has been done. This gives the Constraint a chance to 
-///   - pre-calculate Velocity stage cache values according to the current values of velocities found
-///     in the State.
-/// Note that this is called <em>before</em> realizePositionDotErrors() and
-/// realizeVelocityErrors() if there are position-level or velocity-level constraints.
+/** The Matter Subsystem's realizeVelocity() method will call this method after
+any MobilizedBody Velocity-stage processing has been done, and \e after your
+calcVelocityErrors() and calcPositionDotErrors() operators have been called. 
+This gives the Constraint a chance to 
+  - calculate Velocity stage cache values according to the current values of 
+    velocities and velocity errors found in the State. **/
 virtual void realizeVelocity(const State&) const { }
 
-/// The Matter Subsystem's realizeDynamics() method will call this method after any MobilizedBody
-/// Dynamics-stage processing has been done. This gives the Constraint a chance to 
-///   - pre-calculate Dynamics stage cache values according to the current values found
-///     in the State.
+/** The Matter Subsystem's realizeDynamics() method will call this method after
+any MobilizedBody Dynamics-stage processing has been done. This gives the 
+Constraint a chance to 
+  - calculate Dynamics stage cache values according to the current values found
+    in the State. **/
 virtual void realizeDynamics(const State&) const { }
 
-/// The Matter Subsystem's realizeAcceleration() method will call this method after any MobilizedBody
-/// Acceleration-stage processing has been done. This gives the Constraint a chance to 
-///   - pre-calculate Acceleration stage cache values according to the current values of body
-///     and mobility accelerations found in the State.
-/// Note that this is called <em>before</em> realizePositionDotDotErrors(),
-/// realizeVelocityDotErrors(), and realizeAccelerationErrors().
+/** The Matter Subsystem's realizeAcceleration() method will call this method
+after any MobilizedBody Acceleration-stage processing has been done, and 
+\e after your calcAccelerationErrors(), calcVelocityDotErrors(), and
+calcPositionDotDotErrors() operators have been called. This gives the 
+Constraint a chance to 
+  - calculate Acceleration stage cache values according to the current values 
+    of body and mobility accelerations, acceleration errors, and multiplier
+    values found in the state. **/
 virtual void realizeAcceleration(const State&) const { }
 
-/// The Matter Subsystem's realizeReport() method will call this method after any MobilizedBody
-/// Report-stage processing has been done. This gives the Constraint a chance to 
-///   - calculate Report stage cache values according to the current values found
-///     in the State.
+/** The Matter Subsystem's realizeReport() method will call this method after 
+any MobilizedBody Report-stage processing has been done. This gives the 
+Constraint a chance to 
+  - calculate Report stage cache values according to the current values found
+    in the State. **/
 virtual void realizeReport(const State&) const { }
 /**@}**/
 
@@ -1690,7 +1747,7 @@ virtual void addInPositionConstraintForces
    (const State&                                state, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-    Array_<Real,ConstrainedUIndex>&             mobilityForces) const;
+    Array_<Real,      ConstrainedUIndex>&       mobilityForces) const;
 /**@}**/
 
 /** @name         Velocity (Nonholonomic) Constraint Virtuals
@@ -1754,7 +1811,7 @@ virtual void addInVelocityConstraintForces
    (const State&                                state, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-    Array_<Real,ConstrainedUIndex>&             mobilityForces) const;
+    Array_<Real,      ConstrainedUIndex>&       mobilityForces) const;
 /**@}**/
 
 /** @name           Acceleration-Only Constraint Virtuals
@@ -1803,7 +1860,7 @@ virtual void addInAccelerationConstraintForces
    (const State&                                state, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-    Array_<Real,ConstrainedUIndex>&             mobilityForces) const;
+    Array_<Real,      ConstrainedUIndex>&       mobilityForces) const;
 /**@}**/
 
 /** Implement this optional method if you would like your constraint to 
@@ -1826,30 +1883,41 @@ friend class Constraint::CustomImpl;
 //==============================================================================
 //                           COORDINATE COUPLER
 //==============================================================================
-/** This is a subclass of Constraint::Custom which uses a Function object to 
-define a holonomic (position) constraint. You provide a Function which takes
-some subset of the system's generalized coordinates as arguments, and 
-returns a single value.  It also must support partial derivatives up to 
-second order.  The constraint enforces that the value of the function should
-equal 0 at all times. **/
+/** This is a %Constraint that uses a Function object to define a single 
+holonomic (position) constraint equation acting to relate a set of generalized 
+coordinates q. You provide a Function which takes some subset of the system's 
+generalized coordinates as arguments, and returns a single value. It also must 
+support partial derivatives up to second order. The constraint enforces that 
+the value of the function should equal 0 at all times. For example, if you
+wanted q1 and q2 to be constrained to have the same value you could define your 
+function f as f=q1-q2. **/
 class SimTK_SIMBODY_EXPORT Constraint::CoordinateCoupler 
 :   public Constraint::Custom {
 public:
-    /**
-     * Create a CoordinateCoupler.  You specify a Function and a list of generalized coordinates to pass to it as arguments.
-     * Each generalized coordinate is specified by a MobilizedBody and the index of the coordinate within that body.  For example
-     * matter.getMobilizedBody(bodies[2]).getOneQ(state, coordinates[2]) will be passed to the function as the value of the
-     * second argument.
-     * 
-     * @param matter      the matter subsystem this constraint will be added to
-     * @param function    the Function whose value should equal 0 at all times.  The constraint takes over ownership of this
-     *                    object, and automatically deletes in when the constraint is deleted.
-     * @param coordBody   the MobilizedBody corresponding to each generalized coordinate that should be passed as a function argument
-     * @param coordIndex  the index corresponding to each generalized coordinate that should be passed as a function argument
-     */
-    CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, 
-                      const Array_<MobilizedBodyIndex>& coordBody, 
-                      const Array_<MobilizerQIndex>& coordIndex);
+    /** Create a CoordinateCoupler. You specify a Function and a list of 
+    generalized coordinates to pass to it as arguments. Each generalized 
+    coordinate is specified by a MobilizedBody and the index of the coordinate
+    within its mobilizer. For example <pre>
+        matter.getMobilizedBody(coordMobod[2]).getOneQ(state, coordQIndex[2])
+    </pre> will be passed to the Function as the value of the second argument.
+    
+    @param matter      
+        The matter subsystem to which this constraint will be added.
+    @param function    
+        The Function whose value should be maintained at zero by this 
+        constraint at all times. The constraint takes over ownership of this 
+        object, and automatically deletes in when the constraint is deleted.
+    @param coordMobod   
+        The MobilizedBody corresponding to each generalized coordinate that 
+        should be passed as a function argument.
+    @param coordQIndex  
+        The index corresponding to each generalized coordinate that should be 
+        passed as a function argument.
+    **/
+    CoordinateCoupler(SimbodyMatterSubsystem&           matter, 
+                      const Function*                   function, 
+                      const Array_<MobilizedBodyIndex>& coordMobod, 
+                      const Array_<MobilizerQIndex>&    coordQIndex);
 
     /** For compatibility with std::vector; no copying is done. **/
     CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, 
@@ -1860,6 +1928,7 @@ public:
             ArrayViewConst_<MobilizedBodyIndex>(coordBody),
             ArrayViewConst_<MobilizerQIndex>(coordIndex));
     }
+
 };
 
 
@@ -1867,7 +1936,7 @@ public:
 //==============================================================================
 //                              SPEED COUPLER
 //==============================================================================
-/** This is a subclass of Constraint::Custom which uses a Function object to 
+/** This is a %Constraint that uses a Function object to 
 define a nonholonomic (velocity) constraint. You provide a Function which takes
 some subset of the system's generalized speeds as arguments, and returns a 
 single value. It also must support partial derivatives up to second order. The
@@ -1969,7 +2038,7 @@ public:
 //==============================================================================
 //                             PRESCRIBED MOTION
 //==============================================================================
-/** This is a subclass of Constraint::Custom which uses a Function to prescribe
+/** This is a %Constraint that uses a Function to prescribe
 the behavior of a single generalized coordinate as a function of time. You 
 provide a Function which takes the current time as its argument and returns the
 required value of the generalized coordinate. It also must support derivatives 
