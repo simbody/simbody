@@ -2139,21 +2139,34 @@ Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, c
     }
 }
 
+// Constraint is f(q,u)=0, i.e. verr=f(q,u).
 void Constraint::SpeedCouplerImpl::realizeVelocityErrors(const State& s, int mv,  Real* verr) const {
     findArguments(s);
     verr[0] = function->calcValue(temp);
 }
 
+// d verr / dt = (df/du)*udot + (df/dq)*qdot.
 void Constraint::SpeedCouplerImpl::realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
     vaerr[0] = 0.0;
     findArguments(s);
     Array_<int> components(1);
+    // Differentiate the u-dependent terms here.
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
-        vaerr[0] += function->calcDerivative(components, temp)*getOneUDot(s, speedBodies[i], speedIndices[i], true);
+        vaerr[0] += function->calcDerivative(components, temp)
+                    * getOneUDot(s, speedBodies[i], speedIndices[i], true);
+    }
+    // Differentiate the q-dependent terms here.
+    for (int i = 0; i < (int)coordBodies.size(); ++i) {
+        components[0] = i + speedBodies.size();
+        const Real qdot = getMatterSubsystem().getMobilizedBody(coordBodies[i])
+                                              .getOneQDot(s, coordIndices[i]);
+        vaerr[0] += function->calcDerivative(components, temp) 
+                    * qdot;
     }
 }
 
+// Force is (df/du)*lambda.
 void Constraint::SpeedCouplerImpl::applyVelocityConstraintForces(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
     findArguments(s);
     Array_<int> components(1);
