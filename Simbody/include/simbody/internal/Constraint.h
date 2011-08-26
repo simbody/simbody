@@ -180,56 +180,68 @@ are potentially affected by this %Constraint. **/
 const SimbodyMatterSubtree& getSubtree() const;
 
     // MODEL STAGE //
+// nothing in base class currently
 
-/// Return the number of constrainable generalized coordinates q
-/// associated with a particular constrained mobilizer. This is just
-/// the number of generalized coordinates for that mobilizer; any or all
-/// of them may actually be unconstrained.
+    // INSTANCE STAGE //
+
+/** Return the number of constrainable generalized coordinates q associated 
+with a particular constrained mobilizer. This is just the number of generalized
+coordinates for that mobilizer; any or all of them may actually be 
+unconstrained. **/
 int getNumConstrainedQ(const State&, ConstrainedMobilizerIndex) const;
-/// Return the number of constrainable mobilities u associated with a 
-/// particular constrained mobilizer. This is just the number of 
-/// generalized speeds for that mobilizer; any or all of them may actually
-/// be unconstrained. The number of constrainable udots is the same.
+/** Return the number of constrainable mobilities u associated with a 
+particular constrained mobilizer. This is just the number of generalized speeds
+for that mobilizer; any or all of them may actually be unconstrained. The 
+number of constrainable udots is the same. **/
 int getNumConstrainedU(const State&, ConstrainedMobilizerIndex) const;
 
-/// Return the index into the constrained mobilities u array corresponding
-/// to a particular mobility of the indicated ConstrainedMobilizer. Don't 
-/// confuse this with the set of \e participating mobilities which also 
-/// includes all mobilities on each branch between the ancestor and a 
-/// constrained body. The \e constrained mobilities are just those belonging
-/// to the mobilizers which are directly constrained.
+/** Return the index into the constrained mobilities u array corresponding to a
+particular mobility of the indicated ConstrainedMobilizer. Don't confuse this 
+with the set of \e participating mobilities which also includes all mobilities
+on each branch between the ancestor and a constrained body. The \e constrained
+mobilities are just those belonging to the mobilizers which are directly 
+constrained. **/
 ConstrainedUIndex getConstrainedUIndex
     (const State&, ConstrainedMobilizerIndex, MobilizerUIndex which) const;
-/// Return the index into the constrained coordinates q array corresponding
-/// to a particular coordinate of the indicated ConstrainedMobilizer. Don't 
-/// confuse this with the set of \e participating coordinates which also 
-/// includes all coordinates on each branch between the ancestor and a 
-/// constrained body. The \e constrained coordinates are just those 
-/// belonging to the mobilizers which are directly constrained.
+/** Return the index into the constrained coordinates q array corresponding to 
+a particular coordinate of the indicated ConstrainedMobilizer. Don't confuse 
+this with the set of \e participating coordinates which also includes all 
+coordinates on each branch between the ancestor and a constrained body. The 
+\e constrained coordinates are just those belonging to the mobilizers which are
+directly constrained. **/
 ConstrainedQIndex getConstrainedQIndex
     (const State&, ConstrainedMobilizerIndex, MobilizerQIndex which) const;
 
-/// Return the sum of the number of coordinates q associated with each of
-/// the constrained mobilizers.
+/** Return the sum of the number of coordinates q associated with each of
+the constrained mobilizers. **/
 int getNumConstrainedQ(const State&) const;
 
-/// Return the sum of the number of mobilities u associated with each of
-/// the constrained mobilizers. These are the only mobilities to which 
-/// the constraint may directly apply a force, so this is the dimension
-/// of the mobilityForces array.
+/** Return the sum of the number of mobilities u associated with each of the 
+constrained mobilizers. These are the only mobilities to which the constraint 
+may directly apply a force, so this is also the dimension of the mobilityForces 
+array. **/
 int getNumConstrainedU(const State&) const;
-    
-/// Find out how many holonomic (position), nonholonomic (velocity), and
-/// acceleration-only constraint equations are currently being generated 
-/// by this Constraint.
-void getNumConstraintEquationsInUse(const State&, int& mp, int& mv, int& ma) const;
 
-    // INSTANCE STAGE //
-// nothing in base class currently
+/** Map one of this %Constraint's constrained q's to the corresponding index 
+within the matter subsystem's whole q vector. **/
+QIndex getQIndexOfConstrainedQ(const State&      state,
+                               ConstrainedQIndex consQIndex) const;
+/** Map one of this %Constraint's constrained U's (or mobilities) to the 
+corresponding index within the matter subsystem's whole u vector. **/
+UIndex getUIndexOfConstrainedU(const State&      state,
+                               ConstrainedUIndex consUIndex) const;
+
+/** Find out how many holonomic (position), nonholonomic (velocity), and
+acceleration-only constraint equations are currently being generated 
+by this Constraint. **/
+void getNumConstraintEquationsInUse(const State& state, 
+                                    int& mp, int& mv, int& ma) const;
+
+
 
     // POSITION STAGE //
-/// Get a Vector containing the position errors. Many subclasses provide 
-/// their own methods for getting this information in a more specific form.
+/** Get a Vector containing the position errors. Many subclasses provide 
+their own methods for getting this information in a more specific form. **/
 Vector getPositionErrorsAsVector(const State&) const;   // mp of these
 Vector calcPositionErrorFromQ(const State&, const Vector& q) const;
 
@@ -240,27 +252,29 @@ Matrix calcPositionConstraintMatrixPt(const State&) const; // nu X mp
 // Matrix PNInv = partial(perr)/partial(q) = P*N^-1
 Matrix calcPositionConstraintMatrixPNInv(const State&) const; // mp X nq
 
-/// This operator calculates this constraint's body and mobility forces
-/// given the complete set of multipliers lambda for this Constraint. We 
-/// expect that lambda has been packed to include multipliers associated 
-/// with the second derivatives of the position (holonomic) constraints, 
-/// the first derivatives of the velocity (nonholonomic) constraints, and 
-/// the acceleration only constraints, in that order.
-/// 
-/// The state must be realized already to Stage::Position. Returned body
-/// forces correspond only to the <em>constrained bodies</em> and the 
-/// mobility forces correspond only to the <em>constrained mobilities</em>; 
-/// they must be unpacked by the caller into the actual system mobilized 
-/// bodies and actual system mobilities. Note that the body forces are in 
-/// the ancestor body frame A, not necessarily the Ground frame G.
+/** This operator calculates this constraint's body and mobility forces given 
+the complete set of multipliers lambda for this Constraint. We expect that 
+lambda has been packed to include multipliers associated with the second 
+time derivatives of the position (holonomic) constraints, the first time
+derivatives of the velocity (nonholonomic) constraints, and the 
+acceleration-only constraints, in that order.
+
+The state must be realized already to Stage::Velocity. Returned body forces 
+correspond only to the <em>constrained bodies</em> and the mobility forces 
+correspond only to the <em>constrained mobilities</em>; they must be unpacked 
+by the caller into the actual system mobilized bodies and actual system 
+mobilities. Note that the body forces are in the ancestor body frame A, not 
+necessarily the Ground frame G, and that they are opposite in sign from
+applied forces. If you want to calculate forces you can treat as applied
+forces, negate \a lambda before the call. **/
 void calcConstraintForcesFromMultipliers(const State&,
     const Vector&        lambda,                // mp+mv+ma of these
     Vector_<SpatialVec>& bodyForcesInA,         // numConstrainedBodies
     Vector&              mobilityForces) const; // numConstrainedU
 
     // VELOCITY STAGE //
-/// Get a Vector containing the velocity errors. Many subclasses provide 
-/// their own methods for getting this information in a more specific form.
+/** Get a Vector containing the velocity errors. Many subclasses provide 
+their own methods for getting this information in a more specific form. **/
 Vector getVelocityErrorsAsVector(const State&) const;   // mp+mv of these
 Vector calcVelocityErrorFromU(const State&,     // mp+mv of these
                               const Vector& u) const;   // numParticipatingU u's
@@ -274,22 +288,83 @@ Matrix calcVelocityConstraintMatrixVt(const State&) const; // nu X mv
 // nothing in base class currently
 
     // ACCELERATION STAGE //
-/// Get a Vector containing the acceleration errors. Many subclasses 
-/// provide their own methods for getting this information in a more 
-/// specific form.
+/** Get a Vector containing the acceleration errors. Many subclasses 
+provide their own methods for getting this information in a more 
+specific form. **/
 Vector getAccelerationErrorsAsVector(const State&) const;   // mp+mv+ma of these
 Vector calcAccelerationErrorFromUDot(const State&,  // mp+mv+ma of these
-                                        const Vector& udot) const; // numParticipatingU udot's
+                                     const Vector& udot) const; // numParticipatingU udot's
 
-/// Get a Vector containing the Lagrange multipliers. Many subclasses 
-/// provide their own methods for getting this information in a more 
-/// specific form.
+/** Get a Vector containing the Lagrange multipliers. Many subclasses 
+provide their own methods for getting this information in a more 
+specific form. **/
 Vector getMultipliersAsVector(const State&) const;  // mp+mv+ma of these   
+
+/** Given a State realized through Acceleration stage, return the forces
+that were applied to the system by this %Constraint, with body forces
+expressed in Ground. Note that the sign convention for constraint forces
+is opposite that of applied forces, because constraints appear on the left
+hand side in Simbody's equations of motion, while applied forces are on 
+the right hand side.
+
+These forces are the same as what you would get if you get the multipliers 
+from this \a state using getMultipliersAsVector(), call 
+calcConstraintForcesFromMultipliers(), and re-express the constrained body 
+forces in the Ground frame. However, the ones returned here are already 
+calculated so require only copying out of the \a state cache. **/
+void getConstraintForcesAsVectors
+   (const State&         state,
+    Vector_<SpatialVec>& bodyForcesInG, // numConstrainedBodies
+    Vector&              mobilityForces) const; // numConstrainedU
+
+/** For convenience, returns constrained body forces as the function return. 
+@see getConstraintForcesAsVectors() **/
+Vector_<SpatialVec> getConstrainedBodyForcesAsVector(const State& state) const {
+    Vector_<SpatialVec> bodyForcesInG;
+    Vector              mobilityForces;
+    getConstraintForcesAsVectors(state,bodyForcesInG,mobilityForces);
+    return bodyForcesInG;
+}
+/** For convenience, returns constrained mobility forces as the function
+return. 
+@see getConstraintForcesAsVectors() **/
+Vector getConstrainedMobilityForcesAsVector(const State& state) const {
+    Vector_<SpatialVec> bodyForcesInG;
+    Vector              mobilityForces;
+    getConstraintForcesAsVectors(state,bodyForcesInG,mobilityForces);
+    return mobilityForces;
+}
+
+/** Calculate the power being applied by this %Constraint to the system.
+The \a state must be realized through Acceleration stage so that the 
+applied constraint forces are known. Then power is calculated as the
+dot product of the \e applied body spatial forces and body spatial velocities, 
+plus the dot product of the \e applied mobility forces and corresponding 
+mobilities (generalized speeds) u. I emphasized \e applied here because the
+sign convention is opposite for constraint forces, so the power calculation
+requires negating the constriant forces.
+
+For any non-working %Constraint, power should always be within machine
+precision of zero. This is a very useful test when debugging new Constraints.
+For working Constraints, you can calculate work done as the time integral of 
+the power. Then if you embed the %Constraint in an otherwise conservative
+system, the sum of system potential and kinetic energy, minus the work done
+by this constraint, should be constant to within integration accuracy.
+Power and work here are signed quantities with positive sign meaning that
+the %Constraint is adding energy to the system and negative meaning it is 
+removing energy from the system. 
+
+Computational cost here is low because the forces and velocities are already
+known. Only the dot product need be computed, at a cost of about 
+11 ncb + 2 ncu flops, where ncb is the number of constrained bodies and ncu
+is the number of constrained mobilities. **/
+Real calcPower(const State& state) const;
 
 // Matrix A = partial(aerr)/partial(udot) for just the acceleration-only 
 // constraints.
 Matrix calcAccelerationConstraintMatrixA(const State&) const;  // ma X nu
 Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
+                  
 
 // These are the built-in Constraint types. Types on the same line are
 // synonymous.

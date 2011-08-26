@@ -432,9 +432,9 @@ public:
     Segment accOnlyErrSegment; // (offset,mAccOnly) same, but for udotErr slots (after holo/nonholo derivs)
 
     Segment consBodySegment;
-    Segment consMobilizerSegment;
+    Segment consMobilizerSegment; // mobilizers, not *mobilities*
     Segment consQSegment;
-    Segment consUSegment;
+    Segment consUSegment;         // these (u) are *mobilities*
 public:
     Array_<SBInstancePerConstrainedMobilizerInfo,
            ConstrainedMobilizerIndex>   constrainedMobilizerInstanceInfo;

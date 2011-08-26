@@ -77,7 +77,7 @@ const SimbodyMatterSubsystem& Constraint::getMatterSubsystem() const {
 ConstraintIndex Constraint::getConstraintIndex() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getConstraintIndex() called on a Constraint that is not part of a subsystem.");
-    return getImpl().myConstraintIndex;
+    return getImpl().getMyConstraintIndex();
 }
 
 SimbodyMatterSubsystem& Constraint::updMatterSubsystem() {
@@ -106,6 +106,16 @@ int Constraint::getNumConstrainedQ(const State& s) const {
 }
 int Constraint::getNumConstrainedU(const State& s) const {
     return getImpl().getNumConstrainedU(s);
+}
+
+QIndex Constraint::getQIndexOfConstrainedQ(const State&      state,
+                                           ConstrainedQIndex consQIndex) const {
+    return getImpl().getQIndexOfConstrainedQ(state,consQIndex);
+}
+
+UIndex Constraint::getUIndexOfConstrainedU(const State&      state,
+                                           ConstrainedUIndex consUIndex) const {
+    return getImpl().getUIndexOfConstrainedU(state,consUIndex);
 }
 
 int Constraint::getNumConstrainedQ(const State& s, ConstrainedMobilizerIndex M) const {
@@ -181,6 +191,61 @@ Vector Constraint::getMultipliersAsVector(const State& s) const {
     if (mp+mv+ma) getImpl().getMultipliers(s, mp+mv+ma, &mult[0]);
     return mult;
 }
+
+void Constraint::getConstraintForcesAsVectors
+   (const State&         state,
+    Vector_<SpatialVec>& bodyForcesInG,
+    Vector&              mobilityForces) const 
+{
+    SimTK_ERRCHK1_ALWAYS(!isDisabled(state),
+        "Constraint::getConstraintForcesAsVector()",
+        "Constraint %d is currently disabled; you can't ask for its forces."
+        " Use isDisabled() to check.", (int)getConstraintIndex());
+
+    ArrayViewConst_<SpatialVec,ConstrainedBodyIndex>
+        bodyF_G   = getImpl().getConstrainedBodyForcesInGFromState(state);
+    ArrayViewConst_<Real,ConstrainedUIndex> 
+        mobilityF = getImpl().getConstrainedMobilityForcesFromState(state);
+
+    const int ncb = bodyF_G.size();
+    bodyForcesInG.resize(ncb);
+    for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx)
+        bodyForcesInG[cbx] = bodyF_G[cbx];
+
+    const int ncu = mobilityF.size();
+    mobilityForces.resize(ncu);
+    for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+        mobilityForces[cux] = mobilityF[cux];
+}
+
+// Multiply constraint forces (negated) by velocities to get power.
+// (Remember that constraint forces are on the LHS so have the opposite
+// sign from applied forces.)
+Real Constraint::calcPower(const State& state) const {
+    const ConstraintImpl& impl = getImpl();
+    const SimbodyMatterSubsystemRep& matter = impl.getMyMatterSubsystemRep();
+
+    ArrayViewConst_<SpatialVec,ConstrainedBodyIndex>
+        bodyF_G   = impl.getConstrainedBodyForcesInGFromState(state);
+    ArrayViewConst_<Real,ConstrainedUIndex> 
+        mobilityF = impl.getConstrainedMobilityForcesFromState(state);
+    
+    Real power = 0;
+    for (ConstrainedBodyIndex cbx(0); cbx < bodyF_G.size(); ++cbx) {
+        const MobilizedBodyIndex mbx = 
+            impl.getMobilizedBodyIndexOfConstrainedBody(cbx);
+        const SpatialVec& V_GB = matter.getBodyVelocity(state, mbx);
+        power -= ~bodyF_G[cbx] * V_GB;
+    }
+    const Vector& u = matter.getU(state);
+    for (ConstrainedUIndex cux(0); cux < mobilityF.size(); ++cux) {
+        const UIndex ux = impl.getUIndexOfConstrainedU(state, cux);
+        power -= mobilityF[cux] * u[ux];
+    }
+
+    return power;
+}
+
 
 Vector Constraint::calcPositionErrorFromQ(const State&, const Vector& q) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Constraint", "calcPositionErrorFromQ");
@@ -2271,6 +2336,11 @@ addInPositionConstraintForces
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
     Array_<Real,ConstrainedUIndex>&             mobilityForces) const
 {
+    assert(multipliers.size() == 1);
+    assert(bodyForces.size() == 0);
+
+    const Real lambda = multipliers[0];
+
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQFromState(s, coordBodies[i], coordIndices[i]);
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
@@ -2278,7 +2348,7 @@ addInPositionConstraintForces
     Array_<int> components(1);
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
-        Real force = multipliers[0]*function->calcDerivative(components, temp);
+        Real force = lambda * function->calcDerivative(components, temp);
         const MobilizedBody& body = matter.getMobilizedBody(
             getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
         const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
@@ -2341,6 +2411,7 @@ Constraint::SpeedCouplerImpl::SpeedCouplerImpl
     }
 }
 
+// Constraint is f(q,u)=0, i.e. verr=f(q,u).
 void Constraint::SpeedCouplerImpl::
 calcVelocityErrors     
    (const State&                                    s,
@@ -2357,6 +2428,7 @@ calcVelocityErrors
     verr[0] = function->calcValue(temp);
 }
 
+// d verr / dt = (df/du)*udot + (df/dq)*qdot.
 void Constraint::SpeedCouplerImpl::
 calcVelocityDotErrors     
    (const State&                                    s,
@@ -2364,24 +2436,33 @@ calcVelocityDotErrors
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr) const 
 {
-    vaerr[0] = 0;
-    for (int i = 0; i < (int) speedBodies.size(); ++i)
+    for (int i = 0; i < (int)speedBodies.size(); ++i)
         temp[i] = getOneUFromState(s, speedBodies[i], speedIndices[i]);
-    for (int i = 0; i < (int) coordBodies.size(); ++i)
-        temp[i+speedBodies.size()] = 
-            getMatterSubsystem().getMobilizedBody(coordBodies[i])
-                                .getOneQ(s, coordIndices[i]);
+    for (int i = 0; i < (int)coordBodies.size(); ++i) {
+        const Real q = getMatterSubsystem().getMobilizedBody(coordBodies[i])
+                                           .getOneQ(s, coordIndices[i]);
+        temp[i+speedBodies.size()] = q;
+    }
 
-    //TODO: aren't the derivatives with respect to the q's missing?
     Array_<int> components(1);
-    for (int i = 0; i < (int) speedBodies.size(); ++i) {
+    vaerr[0] = 0;
+    // Differentiate the u-dependent terms here.
+    for (int i = 0; i < (int)speedBodies.size(); ++i) {
         components[0] = i;
         vaerr[0] += function->calcDerivative(components, temp)
                     * getOneUDot(s, constrainedUDot, 
                                  speedBodies[i], speedIndices[i]);
     }
+    // Differentiate the q-dependent terms here.
+    for (int i = 0; i < (int)coordBodies.size(); ++i) {
+        components[0] = i + speedBodies.size();
+        const Real qdot = getMatterSubsystem().getMobilizedBody(coordBodies[i])
+                                              .getOneQDot(s, coordIndices[i]);
+        vaerr[0] += function->calcDerivative(components, temp) * qdot;
+    }
 }
 
+// Force is (df/du)*lambda.
 void Constraint::SpeedCouplerImpl::
 addInVelocityConstraintForces
    (const State&                                s, 
@@ -2389,6 +2470,9 @@ addInVelocityConstraintForces
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
     Array_<Real,ConstrainedUIndex>&             mobilityForces) const
 {
+    assert(multipliers.size() == 1);
+    const Real lambda = multipliers[0];
+
     for (int i = 0; i < (int) speedBodies.size(); ++i)
         temp[i] = getOneUFromState(s, speedBodies[i], speedIndices[i]);
     for (int i = 0; i < (int) coordBodies.size(); ++i)
@@ -2397,9 +2481,11 @@ addInVelocityConstraintForces
                                 .getOneQ(s, coordIndices[i]);
 
     Array_<int> components(1);
+    // Only the u-dependent terms generate forces.
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
-        Real force = multipliers[0]*function->calcDerivative(components, temp);
+        const Real force = function->calcDerivative(components, temp)
+                           * lambda;
         addInOneMobilityForce(s, speedBodies[i], speedIndices[i], 
                               force, mobilityForces);
     }
@@ -2453,7 +2539,7 @@ calcPositionDotErrors
     Array_<Real>&                                   pverr) const
 {
     temp[0] = s.getTime();
-    Array_<int> components(1, 0);
+    Array_<int> components(1, 0); // i.e., components={0}
     pverr[0] = getOneQDot(s, constrainedQDot, coordBody, coordIndex) 
                - function->calcDerivative(components, temp);
 }
@@ -2466,7 +2552,7 @@ calcPositionDotDotErrors
     Array_<Real>&                                   paerr) const
 {
     temp[0] = s.getTime();
-    Array_<int> components(2, 0);
+    Array_<int> components(2, 0); // i.e., components={0,0}
     paerr[0] = getOneQDotDot(s, constrainedQDotDot, coordBody, coordIndex)  
                - function->calcDerivative(components, temp);
 }
@@ -3352,6 +3438,53 @@ void ConstraintImpl::getMultipliers(const State& s, int mpva, Real* lambda) cons
         lambda[mHolo+mNonholo+i] = multipliers[firstAccOnlyErr+i];
 }
 
+// Reference this constraint's assigned partition within the larger array.
+ArrayView_<SpatialVec,ConstrainedBodyIndex> ConstraintImpl::
+updConstrainedBodyForces(const State&        state,
+                         Array_<SpatialVec>& allConsBodyForces) const 
+{
+    const SBInstanceCache& ic = getInstanceCache(state);
+    assert(allConsBodyForces.size() == ic.totalNConstrainedBodiesInUse);
+
+    const ConstraintIndex              cx    = getMyConstraintIndex();
+    const SBInstancePerConstraintInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+
+    const Segment& consBodySegment = cInfo.consBodySegment;
+    const int ncb = consBodySegment.length;
+
+    // No heap allocation is being done here. The longer array can be
+    // empty so we're using begin() here rather than &array[0] which 
+    // would be illegal in that case. This pointer may be null.
+    SpatialVec* firstBodySlot = allConsBodyForces.begin() 
+                                + consBodySegment.offset;
+
+    return ArrayView_<SpatialVec,ConstrainedBodyIndex>
+                (firstBodySlot, firstBodySlot + ncb);
+}
+
+ArrayView_<Real,ConstrainedUIndex> ConstraintImpl::
+updConstrainedMobilityForces(const State&  state,
+                             Array_<Real>& allConsMobForces) const
+{
+    const SBInstanceCache& ic = getInstanceCache(state);
+    assert(allConsMobForces.size() == ic.totalNConstrainedUInUse);
+
+    const ConstraintIndex              cx    = getMyConstraintIndex();
+    const SBInstancePerConstraintInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+
+    const Segment& consUSegment = cInfo.consUSegment;
+    const int ncu = consUSegment.length;
+
+    // No heap allocation is being done here. The longer array can be
+    // empty so we're using begin() here rather than &array[0] which 
+    // would be illegal in that case. This pointer may be null.
+    Real* firstMobSlot = allConsMobForces.begin() 
+                         + consUSegment.offset;
+
+    return ArrayView_<Real,ConstrainedUIndex>
+                (firstMobSlot, firstMobSlot + ncu);
+}
+
 const SBInstanceCache& ConstraintImpl::getInstanceCache(const State& s) const {
     return getMyMatterSubsystemRep().getInstanceCache(s);
 }
@@ -3366,6 +3499,14 @@ const SBTreeVelocityCache& ConstraintImpl::getTreeVelocityCache(const State& s) 
 }
 const SBTreeAccelerationCache& ConstraintImpl::getTreeAccelerationCache(const State& s) const {
     return getMyMatterSubsystemRep().getTreeAccelerationCache(s);
+}
+const SBConstrainedAccelerationCache& ConstraintImpl::
+getConstrainedAccelerationCache(const State& s) const {
+    return getMyMatterSubsystemRep().getConstrainedAccelerationCache(s);
+}
+SBConstrainedAccelerationCache& ConstraintImpl::
+updConstrainedAccelerationCache(const State& s) const {
+    return getMyMatterSubsystemRep().updConstrainedAccelerationCache(s);
 }
 
 //------------------------------------------------------------------------------

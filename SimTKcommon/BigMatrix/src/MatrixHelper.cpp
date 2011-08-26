@@ -496,13 +496,21 @@ MatrixHelper<S>::getAnyElt(int i, S* value) const
 {   return rep->getAnyElt(i,value); }
 
 template <class S> int 
-MatrixHelper<S>::nrow() const {return rep->nrow();}
+MatrixHelper<S>::nrow() const {
+    return rep->nrow();
+}
 template <class S> int 
-MatrixHelper<S>::ncol() const {return rep->ncol();} 
+MatrixHelper<S>::ncol() const {
+    return rep->ncol();
+} 
 template <class S> ptrdiff_t 
-MatrixHelper<S>::nelt() const {return rep->nelt();}
+MatrixHelper<S>::nelt() const {   
+    return rep->nelt(); 
+}
 template <class S> int 
-MatrixHelper<S>::length() const {return rep->length();}
+MatrixHelper<S>::length() const {
+    return rep->length();
+}
 
 template <class S> void 
 MatrixHelper<S>::resize    (int m, int n) {rep->resize(m,n,false);} 

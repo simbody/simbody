@@ -1782,6 +1782,21 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
 
         const ConstraintImpl& crep  = constraints[cx]->getImpl();
 
+        // No heap allocation is being done here. These are views directly
+        // into the proper segment of the longer array.
+        ArrayView_<SpatialVec,ConstrainedBodyIndex> bodyF1_G = 
+            crep.updConstrainedBodyForces(s, consBodyForcesInG);
+        ArrayView_<Real,ConstrainedUIndex>          mobilityF1 = 
+            crep.updConstrainedMobilityForces(s, consMobilityForces);
+
+        const int ncb = bodyF1_G.size();
+        const int ncu = mobilityF1.size();
+
+        // These have to be zeroed because a Constraint force method is not
+        // *required* to apply forces to all its bodies and mobilities.
+        bodyF1_G.fill(SpatialVec(Vec3(0), Vec3(0)));
+        mobilityF1.fill(Real(0));
+
         const SBInstancePerConstraintInfo& 
                               cInfo = ic.getConstraintInstanceInfo(cx);
 
@@ -1792,35 +1807,11 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
         const int mh=holoSeg.length, mnh=nonholoSeg.length, 
                   mao=accOnlySeg.length;
 
-        const Segment& consBodySegment = cInfo.consBodySegment;
-        const Segment& consUSegment    = cInfo.consUSegment;
-        const int ncb = cInfo.consBodySegment.length;
-        const int ncu = cInfo.consUSegment.length;
-
-        // No heap allocation is being done here. The longer arrays can be
-        // empty so we're using begin() here rather than &array[0] which 
-        // would be illegal in that case. Either of these pointers may be null.
-        SpatialVec* firstBodySlot     = consBodyForcesInG.begin() 
-                                        + consBodySegment.offset;
-        Real*       firstMobilitySlot = consMobilityForces.begin()
-                                        + consUSegment.offset;
-        ArrayView_<SpatialVec,ConstrainedBodyIndex>
-            bodyF1_G(firstBodySlot, firstBodySlot + ncb);
-        ArrayView_<Real,ConstrainedUIndex>          
-            mobilityF1(firstMobilitySlot, firstMobilitySlot + ncu);
-
-        // These have to be zeroed because a Constraint force method is not
-        // *required* to apply forces to all its bodies and mobilities.
-        bodyF1_G.fill(SpatialVec(Vec3(0), Vec3(0)));
-        mobilityF1.fill(Real(0));
-
         // Pack the multipliers into small arrays lambdap for holonomic 2nd 
         // derivs, labmdav for nonholonomic 1st derivs, and lambda for
         // acceleration-only.
         // Note: these lengths are *very* small integers!
-        lambdap.resize(mh);
-        lambdav.resize(mnh);
-        lambdaa.resize(mao);
+        lambdap.resize(mh); lambdav.resize(mnh); lambdaa.resize(mao);
         for (int i=0; i<mh; ++i) 
             lambdap[i] = lambda[                 holoSeg.offset    + i];
         for (int i=0; i<mnh; ++i) 
@@ -2424,6 +2415,8 @@ void SimbodyMatterSubsystemRep::realizeTreeForwardDynamics(
     const Vector*              extraMobilityForces,
     const Vector_<SpatialVec>* extraBodyForces) const
 {
+    const SBModelCache& mc  = getModelCache(s);
+
     // Output goes into State's global cache and our AccelerationCache.
     SBTreeAccelerationCache&        tac     = updTreeAccelerationCache(s);
     Vector&                         udot    = updUDot(s);
@@ -2434,6 +2427,8 @@ void SimbodyMatterSubsystemRep::realizeTreeForwardDynamics(
        (s, mobilityForces, particleForces, bodyForces,
         extraMobilityForces, extraBodyForces,
         tac, udot, qdotdot, udotErr);
+
+    markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
 }
 
 
@@ -2552,6 +2547,8 @@ void SimbodyMatterSubsystemRep::realizeLoopForwardDynamics(const State& s,
     const Vector_<Vec3>&        particleForces,
     const Vector_<SpatialVec>&  bodyForces) const 
 {
+    const SBModelCache& mc  = getModelCache(s);
+
     // Because we are realizing, we want to direct the output of the operator
     // back into the State cache.
     SBTreeAccelerationCache&        tac         = updTreeAccelerationCache(s);
@@ -2564,6 +2561,10 @@ void SimbodyMatterSubsystemRep::realizeLoopForwardDynamics(const State& s,
     calcLoopForwardDynamicsOperator
        (s, mobilityForces, particleForces, bodyForces,
         tac, cac, udot, qdotdot, multipliers, udotErr);
+
+    // Since we're realizing, note that we're done with these cache entries.
+    markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
+    markCacheValueRealized(s, mc.constrainedAccelerationCacheIndex);
 }
 
 
