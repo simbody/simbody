@@ -1746,7 +1746,9 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const Sta
 // because we calculate multipliers from
 //    M udot + ~G lambda = f_applied
 // If you want to view the constraint generated forces as though they
-// were applied forces, negate lambda before the call here.
+// were applied forces, negate lambda before the call here. This method
+// returns the individual constraint force contributions as well as returning
+// the combined forces.
 void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
   (const State&         s, 
    const Vector&        lambda,
@@ -1853,9 +1855,10 @@ static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, con
 }
 
 
-// -----------------------------------------------------------------------------
+
+// =============================================================================
 //                                PRESCRIBE
-// -----------------------------------------------------------------------------
+// =============================================================================
 // This is a solver that sets continuous state variables q, or u (depending 
 // on stage) to their prescribed values that will already have been computed. 
 // Note that prescribed udot=udot(t,q,u) is not dealt with here because it does 
@@ -2288,7 +2291,7 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
 
 
 //==============================================================================
-//                        CALC TREE FORWARD DYNAMICS
+//                     CALC TREE FORWARD DYNAMICS OPERATOR
 //==============================================================================
 //
 // Given a State realized through Stage::Dynamics, and a complete set of applied 
@@ -2403,6 +2406,11 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     }
 }
 
+
+
+//==============================================================================
+//                        REALIZE TREE FORWARD DYNAMICS
+//==============================================================================
 // This is the response version of the above operator; that is, it uses
 // the operator but puts the results in the State cache. Note that this
 // only makes sense if the force arguments also come from the State
@@ -2540,6 +2548,10 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
 }
 
 
+
+//==============================================================================
+//                       REALIZE LOOP FORWARD DYNAMICS
+//==============================================================================
 // Given the set of forces in the state, calculate accelerations resulting from
 // those forces and enforcement of acceleration constraints.
 void SimbodyMatterSubsystemRep::realizeLoopForwardDynamics(const State& s, 
@@ -2625,9 +2637,9 @@ void SimbodyMatterSubsystemRep::calcPositionConstraintMatrix(const State& s,
 */
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                        CALC COMPOSITE BODY INERTIAS
-// -----------------------------------------------------------------------------
+// =============================================================================
 // Given a State realized to Position stage, calculate the composite
 // body inertias seen by each mobilizer. A composite body inertia is
 // the inertia of the rigid body created by locking all joints outboard
@@ -3148,9 +3160,9 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                        CALC MOBILIZER REACTION FORCES
-// -----------------------------------------------------------------------------
+// =============================================================================
 void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
    (const State& s, Vector_<SpatialVec>& forces) const 
 {
@@ -3213,9 +3225,9 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                                CALC QDOT
-// -----------------------------------------------------------------------------
+// =============================================================================
 // Must be done with Position stage to calculate qdot = N*u.
 void SimbodyMatterSubsystemRep::calcQDot
    (const State& s, const Vector& u, Vector& qdot) const 
@@ -3238,9 +3250,9 @@ void SimbodyMatterSubsystemRep::calcQDot
 
 
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 //                              CALC QDOTDOT
-// -----------------------------------------------------------------------------
+// =============================================================================
 // Must be done with Velocity stage to calculate qdotdot = Ndot*u + N*udot.
 void SimbodyMatterSubsystemRep::calcQDotDot
    (const State& s, const Vector& udot, Vector& qdotdot) const 

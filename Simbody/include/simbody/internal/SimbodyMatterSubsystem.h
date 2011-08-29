@@ -817,15 +817,15 @@ and velocities are simply irrelevant here.
 
 Given applied forces f_applied, this operator solves this set of equations:
 <pre>
-     M udot + G^T lambda + f_bias = f_applied    (1)
-     G udot              - b      = 0            (2)
+     M udot + G^T lambda + f_inertial = f_applied    (1)
+     G udot              - b          = 0            (2)
 </pre>
 for udot and lambda (although it does not return lambda). 
 f_applied is the set of generalized (mobility) forces equivalent to the 
 \a mobilityForces and \a bodyForces arguments supplied here (in particular, 
 it does \e not include forces due to prescribed motion).
 M, G, and b are defined by the mobilized bodies, constraints, and prescribed 
-motions present in the System. f_bias includes 
+motions present in the System. f_inertial includes 
 the velocity-dependent gyroscopic and coriolis forces due to rigid body 
 rotations and is extracted internally from the already-realized state. 
 
@@ -854,10 +854,10 @@ effects are properly accounted for, but any forces that would have resulted
 from enforcing the contraints are not present.
 This operator solves the equation
 <pre>
-    M udot = f
+    M udot + f_inertial = f_applied
 </pre>
-for udot. Right hand side f includes both the applied forces and the "bias" 
-forces due to rigid body rotations, but does not include any constraint forces.
+for udot. f_inertial contains the velocity-dependent gyroscopic and coriolis
+forces due to rigid body rotations. No constraint forces are included.
 This is an O(n) operator.
 
 @par Required stage
@@ -1006,6 +1006,134 @@ explicitly, you can get it with the calcM() method.
 @see calcM() **/
 void calcMInv(const State&, Matrix& MInv) const;
 
+
+/** NOT IMPLEMENTED YET --
+Returns f = ~G*v, the product of the nXm transpose of the acceleration 
+constraint Jacobian G and a vector v of length m. m=mp+mv+ma is the number of 
+active acceleration-level constraint equations, n is the number of 
+mobilities. If v is a set of constraint multipliers, then
+f=~G*v is the set of equivalent generalized forces they generate.
+This is an O(m+n) operation.
+
+@pre \a state realized to Velocity stage
+@par Implementation
+This is accomplished by treating the input vector \a v as though it were
+a set of Lagrange multipliers, then calling each of the m active constraints'
+(constant time) force generation methods to get body forces F0 and mobility 
+forces f0 in O(m) time, then using the transposed system kinematic Jacobian to 
+convert the returned body spatial forces to generalized forces in O(n) time, 
+and finally returning f = ~J*F0 + f0. **/
+void multiplyByGTranspose(const State&  state,
+                          const Vector& v,
+                          Vector&       f) const
+{   SimTK_THROW1(Exception::UnimplementedMethod, 
+                 "SimbodyMatterSubsystem::multiplyByGTranspose()"); }
+
+/** NOT IMPLEMENTED YET --
+Returns e = G*a, the product of the mXn acceleration 
+constraint Jacobian G and a "u-like" (mobility space) vector a of length n. 
+m is the number of active acceleration-level constraint equations, n is the 
+number of mobilities. This is an O(m+n) operation.
+
+If you are going to call this method repeatedly at the same time, positions and
+velocities, you should precalculate the bias term once and supply it here.
+See the implementation notes for more information.
+
+@pre \a state realized to Velocity stage
+@par Implementation
+This is accomplished by treating the input vector \a a as though it were
+a set of generalized accelerations. These are mapped to body accelerations
+A in O(n) time; see calcBodyAccelerationsFromUdot() for more information.
+Then the body accelerations and generalized accelerations are supplied to each 
+of the m active constraints' (constant time) acceleration error methods to get 
+aerr(t,q,u;a)=G*a - b(t,q,u) in O(m) time. A second call is made to
+evaluate the bias term aerr(t,q,u;0)=-b(t,q,u). We then calculate 
+e = aerr(t,q,u;a)-aerr(t,q,u;0) in O(m) time.
+**/
+void multiplyByG(const State&  state,
+                 const Vector& a,
+                 Vector&       e) const {
+    Vector bias;
+    calcBiasForMultiplyByG(state, bias);
+    multiplyByG(state, a, bias, e);
+}
+
+
+/** Multiply e=G*a using the supplied precalculated bias vector to improve
+performance (approximately 2X) over the other signature. 
+@see calcBiasForMultiplyByG() **/
+void multiplyByG(const State&  state,
+                 const Vector& a,
+                 const Vector& bias,
+                 Vector&       e) const
+{   SimTK_THROW1(Exception::UnimplementedMethod, 
+                 "SimbodyMatterSubsystem::multiplyByG()"); }
+
+/** Calculate the bias vector needed for the higher-performance multiplyByG()
+method above. 
+
+@param[in]      state
+    Provides time t, positions q, and speeds u; must be realized through
+    Velocity stage so that all body spatial velocities are known.
+@param[out]     bias
+    This is the bias vector for use in repeated calls to multiplyByG(). It
+    will be resized if necessary to length m=mp+mv+ma, the total number of 
+    active acceleration-level constraint equations. 
+
+@pre \a state realized to Velocity stage
+@par Implementation
+We have constant-time constraint acceleration error methods 
+<pre>   aerr(t,q,u;a)=G*a - b(t,q,u)    </pre>
+for each %Constraint. This method sets \c a = 0 and invokes each of those 
+methods to obtain bias = aerr(t,q,u;0) = -b(t,q,u).
+**/
+void calcBiasForMultiplyByG(const State& state,
+                            Vector&      bias) const
+{   SimTK_THROW1(Exception::UnimplementedMethod, 
+                 "SimbodyMatterSubsystem::calcBiasForMultiplyByG()"); }
+
+/** NOT IMPLEMENTED YET --
+Given a complete set of n generalized accelerations udot, this kinematic 
+operator calculates in O(n) time the resulting body accelerations, including 
+velocity-dependent terms taken from the supplied \a state.
+
+@pre \a state must already be realized to Velocity stage
+@param[in] state
+    The State from which position- and velocity- related terms are taken; 
+    must already have been realized to Velocity stage.
+@param[in] knownUDot
+    A complete set of generalized accelerations. Must have the same length 
+    as the number of mobilities, or if length zero the udots will be taken 
+    as all zero in which case only velocity-dependent (Coriolis) accelerations 
+    will be returned in \a A_GB.
+@param[out] A_GB
+    Spatial accelerations of all the body frames measured and expressed in
+    the Ground frame, resulting from supplied generalized accelerations 
+    \a knownUDot and velocity-dependent acceleration terms taken from 
+    \a state. This will be resized if necessary to the number of bodies 
+    <em>including</em> Ground so that the returned array may be indexed by 
+    MobilizedBodyIndex with A_GB[0]==0 always. The angular acceleration
+    vector for MobilizedBody i is A_GB[i][0]; linear acceleration of the
+    body's origin is A_GB[i][1].
+
+@par Theory
+The generalized speeds u and spatial velocities V are related by the system
+Jacobian J as V=J*u. Thus the spatial accelerations A=Vdot=J*udot+Jdot*u.
+
+@par Implementation
+The Coriolis accelerations Jdot*u are already available in a State realized
+to Velocity stage. The J*udot term is just an application of 
+multiplyBySystemJacobian() to the \a knownUdot vector.
+
+@par Required stage
+  \c Stage::Velocity 
+  
+@see multiplyBySystemJacobian() **/
+void calcBodyAccelerationFromUDot(const State&         state,
+                                  const Vector&        knownUDot,
+                                  Vector_<SpatialVec>& A_GB) const
+{   SimTK_THROW1(Exception::UnimplementedMethod, 
+                 "SimbodyMatterSubsystem::calcBodyAccelerationFromUDot()"); }
 
 /** This O(nm) operator explicitly calculates the n X m transpose of the 
 acceleration-level constraint Jacobian G = [P;V;A] which appears in the system 
@@ -1235,6 +1363,8 @@ void addInMobilityForce(const State&        state,
                         Vector&             mobilityForces) const;
 /**@}**/
 
+
+
 //==============================================================================
 /** @name              Realization and response methods
 
@@ -1301,6 +1431,12 @@ const ArticulatedInertia& getArticulatedBodyInertia(const State&, MobilizedBodyI
 
     // VELOCITY STAGE responses //
 
+/** This is the angular velocity-dependent force on the body due to rotational 
+inertia.
+@par Required stage
+  \c Stage::Velocity **/
+const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyIndex) const;
+
 /** This is the cross-joint coriolis (angular velocity dependent) acceleration; 
 not too useful, see getTotalCoriolisAcceleration() instead.
 @par Required stage
@@ -1313,25 +1449,22 @@ angular velocity as well as the joint's.
   \c Stage::Velocity **/
 const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
 
-/** This is the angular velocity-dependent force on the body due to rotational 
-inertia.
-@par Required stage
-  \c Stage::Velocity **/
-const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyIndex) const;
+
+    // DYNAMICS STAGE responses //
 
 /** This is the angular velocity-dependent force accounting for gyroscopic 
 forces plus coriolis forces due only to the cross-joint velocity; this ignores
 the parent's velocity and is not too useful -- see getTotalCentrifugalForces()
 instead.
 @par Required stage
-  \c Stage::Velocity **/
+  \c Stage::Dynamics **/
 const SpatialVec& getCentrifugalForces(const State&, MobilizedBodyIndex) const;
 
 /** This is the total angular velocity-dependent force acting on this body, 
 including forces due to coriolis acceleration and forces due to rotational
 inertia.
 @par Required stage
-  \c Stage::Velocity **/
+  \c Stage::Dynamics **/
 const SpatialVec& getTotalCentrifugalForces(const State&, MobilizedBodyIndex) const;
 /**@}**/
 
@@ -1381,33 +1514,7 @@ may never be implemented or may change substantially before implementation.
 If you have comments or requests, please post to the Simbody forum. **/
 /**@{**/
 
-/** NOT IMPLEMENTED YET --
-Given a complete set of generalized accelerations, this kinematic operator
-calculates the resulting body accelerations, including velocity-dependent 
-terms taken from the supplied State.
-@pre \a state must already be realized to Velocity stage
-@param[in] state
-    The State from which position- and velocity- related terms are taken; 
-    must already have been realized to Velocity stage.
-@param[in] knownUDot
-    A complete set of generalized accelerations. Must have the same length 
-    as the number of mobilities, or if length zero the udots will be taken 
-    as all zero in which case only velocity-dependent accelerations will be
-    returned in \a A_GB.
-@param[out] A_GB
-    Spatial accelerations of all the body frames measured and expressed in
-    the Ground frame, resulting from supplied generalized accelerations 
-    \a knownUDot and velocity-dependent acceleration terms taken from 
-    \a state. This will be resized if necessary to the number of bodies 
-    <em>including</em> Ground so that the returned array may be indexed by 
-    MobilizedBodyIndex with A_GB[0]==0 always. The angular acceleration
-    vector for MobilizedBody i is A_GB[i][0]; linear acceleration of the
-    body's origin is A_GB[i][1].
-@par Required stage
-  \c Stage::Velocity **/
-void calcAccelerationFromUDot(const State&         state,
-                              const Vector&        knownUDot,
-                              Vector_<SpatialVec>& A_GB) const;
+
 
 /** NOT IMPLEMENTED YET --
 Calculated constraintErr = G udot - b, the residual error in the 
@@ -1429,16 +1536,6 @@ void calcGV(const State&,
     const Vector&   v,
     Vector&         Gv) const;
 
-/** NOT IMPLEMENTED YET --
-Returns G^T*v, the product of the nXm transpose of the acceleration 
-constraint Jacobian G and a vector v of length m. m is the number of 
-active acceleration constraint equations, n is the number of 
-mobilities. If v is a set of constraint multipliers, then
-f=G^T*v is the set of equivalent generalized forces they generate.
-This is an O(m+n) operation. **/
-void calcGtV(const State&,
-    const Vector&   v,
-    Vector&         GtV) const;
 
 
 /** NOT IMPLEMENTED YET --

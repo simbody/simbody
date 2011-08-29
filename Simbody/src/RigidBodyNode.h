@@ -891,14 +891,14 @@ const SpatialVec& getVD_PB_G (const SBTreeVelocityCache& vc) const
 SpatialVec&       updVD_PB_G (SBTreeVelocityCache&       vc) const 
     {return toB  (vc.bodyVelocityInParentDerivRemainder);}
 
+const SpatialVec& getGyroscopicForce(const SBTreeVelocityCache& vc) const {return fromB(vc.gyroscopicForces);}
+SpatialVec&       updGyroscopicForce(SBTreeVelocityCache&       vc) const {return toB  (vc.gyroscopicForces);}
+
 const SpatialVec& getCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.coriolisAcceleration);}
 SpatialVec&       updCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.coriolisAcceleration);}
 
 const SpatialVec& getTotalCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.totalCoriolisAcceleration);}
 SpatialVec&       updTotalCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.totalCoriolisAcceleration);}
-
-const SpatialVec& getGyroscopicForce(const SBTreeVelocityCache& vc) const {return fromB(vc.gyroscopicForces);}
-SpatialVec&       updGyroscopicForce(SBTreeVelocityCache&       vc) const {return toB  (vc.gyroscopicForces);}
 
     // DYNAMICS INFO
 
@@ -914,6 +914,7 @@ const ArticulatedInertia& getPPlus(const SBArticulatedBodyInertiaCache& abc) con
 ArticulatedInertia&       updPPlus(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.pPlus);}
 
 // Others
+
 const SpatialVec& getCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.centrifugalForces);}
 SpatialVec&       updCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.centrifugalForces);}
 

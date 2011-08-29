@@ -248,15 +248,15 @@ Real Constraint::calcPower(const State& state) const {
 
 
 Vector Constraint::calcPositionErrorFromQ(const State&, const Vector& q) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Constraint", "calcPositionErrorFromQ");
+    SimTK_THROW1(Exception::UnimplementedMethod, "Constraint::calcPositionErrorFromQ");
 }
 
-Vector Constraint::calcVelocityErrorFromU(const State&, const Vector& q) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Constraint", "calcVelocityErrorFromU");
+Vector Constraint::calcVelocityErrorFromU(const State&, const Vector& u) const {
+    SimTK_THROW1(Exception::UnimplementedMethod, "Constraint::calcVelocityErrorFromU");
 }
 
-Vector Constraint::calcAccelerationErrorFromUDot(const State&, const Vector& q) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Constraint", "calcAccelerationErrorFromUDot");
+Vector Constraint::calcAccelerationErrorFromUDot(const State&, const Vector& udot) const {
+    SimTK_THROW1(Exception::UnimplementedMethod, "Constraint::calcAccelerationErrorFromUDot");
 }
 
 

@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                              SimTK Simbody(tm)                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *    Charles Schwieters (NIH): wrote the public domain IVM code from which   *
@@ -88,7 +88,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
 }
 
 // Calculate velocity-related quantities: spatial velocity (V_GB), 
-// gyroscopic forces, coriolis acceleration. This must be
+// and coriolis acceleration. This must be
 // called base to tip: depends on parent's spatial velocity, and
 // the just-calculated cross-joint spatial velocity V_PB_G and
 // velocity-dependent acceleration remainder term VD_PB_G.
@@ -105,43 +105,73 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
         return;
     }
 
-    // 18 flops
-    updV_GB(vc) = ~getPhi(pc)*parent->getV_GB(vc) + getV_PB_G(vc);
+    const SpatialVec& V_GP   = parent->getV_GB(vc); // parent P's velocity in G
+    const SpatialVec& V_PB_G = getV_PB_G(vc); // child B's vel in P, exp. in G
+    const PhiMatrixTranspose PhiT = ~getPhi(pc); // shift outwards
 
-    const Vec3& w_GB = getV_GB(vc)[0];  // spatial angular velocity
-    const Vec3& v_GB = getV_GB(vc)[1];  // spatial linear velocity (of B origin in G)
+    // calc spatial velocity of B's origin Bo in G (angular,linear)
+    const SpatialVec V_GB = PhiT*V_GP + V_PB_G; // 18 flops
+    updV_GB(vc) = V_GB;
 
-    updGyroscopicForce(vc) = 
-        getMass()*SpatialVec(w_GB % (getUnitInertia_OB_G(pc)*w_GB), // gyroscopic moment (24 flops)
-                             (w_GB % (w_GB % getCB_G(pc)))); // gyroscopic force  (21 flops)
+    const Vec3& w_GB = V_GB[0]; // for convenience
+    const Vec3& v_GB = V_GB[1];
+
+    // Calculate gyroscopic moment and force (48 flops). Although this is 
+    // really a dynamic quantity (requires spatial inertia and is itself
+    // a force), we calculate this here rather than in stage Dynamics because 
+    // it is needed in inverse dynamics but does not require articulated body 
+    // inertias to be calculated. This could be deferred until needed but
+    // probably isn't worth the trouble.
+    updGyroscopicForce(vc) = getMass() *                   // 6 flops
+        SpatialVec( w_GB % (getUnitInertia_OB_G(pc)*w_GB), // moment (24 flops)
+                   (w_GB % (w_GB % getCB_G(pc))));         // force  (18 flops)
+
 
     // Parent velocity.
-    const Vec3& w_GP = parent->getV_GB(vc)[0];
-    const Vec3& v_GP = parent->getV_GB(vc)[1];
+    const Vec3& w_GP = V_GP[0]; // for convenience
+    const Vec3& v_GP = V_GP[1];
 
-    // Calc a: coriolis acceleration.
-    // The coriolis acceleration "a" is a 
-    // "remainder" term in the spatial acceleration, depending only on velocities,
-    // but involving time derivatives of the Phi and H matrices. 
+    // Calculate this joint's local contribution to coriolis acceleration, and
+    // this body's total coriolis acceleration (it parent's coriolis 
+    // acceleration plus the local contribution).
+    //
+    // We just calculated 
+    // (1)  V_GB = J*u = ~Phi * V_GP + H*u 
+    // above. Eventually we will  want to compute 
+    // (2)  A_GB = d/dt V_GB 
+    // (3)       = J*udot + Jdot*u
+    // (4)       = (~Phi*A_GP + H*udot) + (~Phidot*V_GP+Hdot*u).
+    // (Don't be tempted to match the "J" terms in (3) with the two terms in (4)
+    // because A_GP already includes coriolis terms up to the parent.)
+    // That second term in (4) is just velocity dependent so we can calculate 
+    // it here. That is what we're calling the "local contribution to coriolis 
+    // acceleration" of body B.
     // CAUTION: our definition of H is transposed from Jain's and Schwieters'.
     //
-    // Specifically,
-    //   a = ~PhiDot * V_GP + HDot * u
-    // As correctly calculated in Schwieters' paper, Eq [16], the first term above
-    // simplifies to SpatialVec( 0, w_GP % (v_GB-v_GP) ). However, Schwieters' second
-    // term in [16] is correct only if H is constant in P, in which case the derivative
-    // just accounts for the rotation of P in G. In general H is not constant in P,
-    // so we don't try to calculate the derivative here but assume that HDot*u has
-    // already been calculated for us and stored in VD_PB_G. (That is,
-    // V_PB_G = H*u, VD_PB_G = HDot*u.)
+    // So the local contribution to the coriolis acceleration is
+    //   Alocal = ~PhiDot * V_GP + HDot * u
+    // As correctly calculated in Schwieters' paper, Eq [16], the first term 
+    // above simplifies to SpatialVec( 0, w_GP % (v_GB-v_GP) ). However, 
+    // Schwieters' second term in [16] is correct only if H is constant in P, 
+    // in which case the derivative just accounts for the rotation of P in G. 
+    // In general H is not constant in P, so we don't try to calculate the 
+    // derivative here but assume that HDot*u has already been calculated for 
+    // us and stored in VD_PB_G. (That is, V_PB_G = H*u, VD_PB_G = HDot*u.)
+    //
+    // Note: despite all the ground-relative velocities here, this is just
+    // the contribution of the cross-joint velocity, but reexpressed in G.
+    const SpatialVec& VD_PB_G = getVD_PB_G(vc);
+    const SpatialVec  Alocal(VD_PB_G[0], 
+                             VD_PB_G[1] + w_GP % (v_GB-v_GP)); // 15 flops
 
-    updCoriolisAcceleration(vc) =
-        SpatialVec( Vec3(0), w_GP % (v_GB-v_GP) ) + getVD_PB_G(vc); // 18 flops
+    updCoriolisAcceleration(vc) = Alocal;
 
-    // 18 flops
+    // Finally, the total coriolis acceleration (normally just called "coriolis
+    // acceleration"!) of body B is the total coriolis acceleration of its 
+    // parent shifted outward, plus B's local contribution that we just 
+    // calculated.
     updTotalCoriolisAcceleration(vc) =
-        ~getPhi(pc) * parent->getTotalCoriolisAcceleration(vc)
-        + getCoriolisAcceleration(vc); // just calculated above
+        PhiT * parent->getTotalCoriolisAcceleration(vc) + Alocal; // 18 flops
 }
 
 Real RigidBodyNode::calcKineticEnergy(
@@ -152,10 +182,16 @@ Real RigidBodyNode::calcKineticEnergy(
     return ret/2;
 }
 
-// Calculate velocity-related quantities that are needed for building
-// our dynamics operators, namely the gyroscopic force and coriolis acceleration.
-// This routine expects that all spatial velocities & spatial inertias are
-// already available.
+
+
+//==============================================================================
+//                     CALC JOINT INDEPENDENT DYNAMICS VEL
+//==============================================================================
+// Calculate mass and velocity-related quantities that are needed for building
+// our dynamics operators, namely the gyroscopic force and centrifugal 
+// forces due to coriolis acceleration.
+// This routine expects that spatial velocities, spatial inertias, and
+// articulated body inertias are already available.
 // Must be called base to tip.
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(

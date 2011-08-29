@@ -240,6 +240,18 @@ public:
     virtual ~ValueWasNegative() throw() { }
 };
 
+class UnimplementedMethod : public Base {
+public:
+    UnimplementedMethod(const char* fn, int ln, std::string methodName) 
+    :   Base(fn,ln)
+	{ 
+	    setMessage("The method " + methodName
+            + "is not yet implemented. Please post to the Simbody forum"
+              " to find a workaround or request implementation.");
+	}
+    virtual ~UnimplementedMethod() throw() { }
+};
+
 class UnimplementedVirtualMethod : public Base {
 public:
     UnimplementedVirtualMethod(const char* fn, int ln, 

@@ -597,7 +597,7 @@ public:
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-        A_GB = A_GP + getCoriolisAcceleration(vc);  
+        A_GB = A_GP + getCoriolisAcceleration(vc);  // no udot for weld
     }
     
     void calcMInverseFPass1Inward(
@@ -654,7 +654,7 @@ public:
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-        A_GB = A_GP + getCoriolisAcceleration(vc); 
+        A_GB = A_GP + getCoriolisAcceleration(vc); // no udot for weld
     }
 
     void calcInverseDynamicsPass2Inward(

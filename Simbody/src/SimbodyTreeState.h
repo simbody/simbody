@@ -953,10 +953,10 @@ public:
     Array_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
 
     Array_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=HDot_PB_G*u
-
+    
+    Array_<SpatialVec> gyroscopicForces;         // nb (b)
     Array_<SpatialVec> coriolisAcceleration;     // nb (a)
     Array_<SpatialVec> totalCoriolisAcceleration;// nb (A)
-    Array_<SpatialVec> gyroscopicForces;         // nb (b)
 
         // Ancestor Constrained Body Pool
 
@@ -991,15 +991,15 @@ public:
 
         bodyVelocityInParentDerivRemainder.resize(nBodies);       
         bodyVelocityInParentDerivRemainder[0] = SpatialVec(Vec3(0),Vec3(0));
-
+        
+        gyroscopicForces.resize(nBodies);           
+        gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));
+     
         coriolisAcceleration.resize(nBodies);       
         coriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
 
         totalCoriolisAcceleration.resize(nBodies);       
         totalCoriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
-
-        gyroscopicForces.resize(nBodies);           
-        gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
         constrainedBodyVelocityInAncestor.resize(nacb);
     }
@@ -1051,6 +1051,9 @@ public:
     Array_<Real> presUDotPool;    // Index with PresUDotPoolIndex
 
     // Dynamics
+    // Here a=body's incremental contribution to coriolis acceleration
+    //      A=total coriolis acceleration for this body
+    //      b=gyroscopic force
     Array_<SpatialVec> centrifugalForces;        // nb (P*a+b)
     Array_<SpatialVec> totalCentrifugalForces;   // nb (P*A+b)
 
@@ -1068,14 +1071,14 @@ public:
         const int maxNQs  = tree.maxNQs;    // allocate the max # q's we'll ever need     
 
         presUDotPool.resize(instance.getTotalNumPresUDot());
-        
+
         centrifugalForces.resize(nBodies);           
         centrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
         totalCentrifugalForces.resize(nBodies);           
         totalCentrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
-        Y.resize(nBodies);
+        Y.resize(nBodies); // TODO: inverse op space inertias
         Y[0] = SpatialMat(Mat33(0));
     }
 };
