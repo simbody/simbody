@@ -290,20 +290,19 @@ public:
         // We require the stage to have been advanced to at least the one
         // before this measure's depends-on stage since this will get called
         // towards the end of the depends-on stage realization.
-        Stage prevStage = getDependsOnStage(derivOrder).prev();
+        if (getDependsOnStage(derivOrder) != Stage::Empty) {
+            Stage prevStage = getDependsOnStage(derivOrder).prev();
 
-        SimTK_ERRCHK2
-            (   getDependsOnStage(derivOrder)==Stage::Empty
-             || (isInSubsystem() 
-                 && getStage(s)>=prevStage)
-             || (!isInSubsystem() 
-                 && s.getSystemStage()>=prevStage),
-            "Measure_<T>::getValue()",
-            "Expected State to have been realized to at least stage "
-            "%s but stage was %s.", 
-            prevStage.getName().c_str(), 
-            (isInSubsystem() ? getStage(s) : s.getSystemStage())
-                .getName().c_str());
+            SimTK_ERRCHK2
+                (   ( isInSubsystem() && getStage(s)>=prevStage)
+                 || (!isInSubsystem() && s.getSystemStage()>=prevStage),
+                "Measure_<T>::getValue()",
+                "Expected State to have been realized to at least stage "
+                "%s but stage was %s.", 
+                prevStage.getName().c_str(), 
+                (isInSubsystem() ? getStage(s) : s.getSystemStage())
+                    .getName().c_str());
+        }
 
         if (derivOrder < getNumCacheEntries()) {
             if (!isCacheValueRealized(s,derivOrder)) {
