@@ -343,11 +343,11 @@ public:
     /// that stride is given in elements, with stride==1 meaning the elements
     /// are packed contiguously, in which case this is the wrong helper class to use.
     StridedVectorHelper(int esz, int cppesz, int n, bool isRow, 
-         int stride, const S* shared, bool canWrite) 
-    :   Base(esz,cppesz,isRow), m_spacing((ptrdiff_t)stride * esz)
+         int strideInElements, const S* shared, bool canWrite) 
+    :   Base(esz,cppesz,isRow), m_spacing((ptrdiff_t)strideInElements * esz)
     {        
-        SimTK_ASSERT1(stride >= 2, 
-            "StridedVectorHelper::ctor(): illegal stride %d", stride);
+        SimTK_ASSERT1(strideInElements >= 2, 
+            "StridedVectorHelper::ctor(): illegal stride %d", strideInElements);
         this->m_owner     = false;
         this->m_writable  = canWrite;
         this->setData(const_cast<S*>(shared));

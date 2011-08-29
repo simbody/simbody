@@ -194,6 +194,52 @@ int main() {
         // Test copy assignment
         vvv = ~mm[0]; testVector(vvv, Vec3(1,2,3));
 
+            // Test creating a Matrix that shares space with an Array
+
+        // Easy case: sizeof(element) == sizeof(scalar)
+        Array_<Real> rarrmat;
+        rarrmat.push_back(1.1); rarrmat.push_back(2.2); // col(0)
+        rarrmat.push_back(3.3); rarrmat.push_back(4.4); // col(1)
+        Matrix rmatrix(2,2, 2/*lda*/, &rarrmat[0]);
+        testMatrix<Matrix,2,2>(rmatrix, Mat22(1.1, 3.3,
+                                              2.2, 4.4));
+
+        // Here sizeof(element) != sizeof(scalar)
+        Array_<SpatialVec> svarrmat;                                 
+        svarrmat.push_back(SpatialVec(Vec3(1,2,3),Vec3(4,5,6)));
+        svarrmat.push_back(SpatialVec(Vec3(1.1,2.1,3.1),Vec3(4.1,5.1,6.1)));
+        svarrmat.push_back(SpatialVec(Vec3(1.2,2.2,3.2),Vec3(4.2,5.2,6.2)));
+        svarrmat.push_back(SpatialVec(Vec3(1.3,2.3,3.3),Vec3(4.3,5.3,6.3)));
+        const int szInScalars = sizeof(SpatialVec)/sizeof(Real);
+        Matrix_<SpatialVec> svmatrix(2,2, 2*szInScalars/*lda*/, 
+                                    (Real*)&svarrmat[0]); 
+        Matrix_<SpatialVec> svmatans(2,2);
+        svmatans(0,0) = svarrmat[0]; svmatans(1,0)=svarrmat[1];
+        svmatans(0,1) = svarrmat[2]; svmatans(1,1)=svarrmat[3];
+        cout << "svmatrix=" << svmatrix << "\n";
+        cout << "svmatans=" << svmatans << "\n";
+        SimTK_TEST_EQ_TOL(svmatrix, svmatans, 1e-16); // should be exact
+
+            // Test creating a Vector that shares space with an Array
+
+        // Easy case: sizeof(element) == sizeof(scalar)
+        Array_<Real> rarray;
+        rarray.push_back(1.1); rarray.push_back(2.2); rarray.push_back(3.3);
+        Vector rvector(3, &rarray[0], true);
+        testVector(rarray, Vec3(1.1,2.2,3.3));
+
+        // Here sizeof(element) != sizeof(scalar)
+        Array_<SpatialVec> svarray;
+        svarray.push_back(SpatialVec(Vec3(1,2,3),Vec3(4,5,6)));
+        svarray.push_back(SpatialVec(Vec3(1.1,2.1,3.1),Vec3(4.1,5.1,6.1)));
+        svarray.push_back(SpatialVec(Vec3(1.2,2.2,3.2),Vec3(4.2,5.2,6.2)));
+        Vector_<SpatialVec> svvector(3, (Real*)&svarray[0], true);
+        Vector_<SpatialVec> svanswer(3); 
+        svanswer[0]=svarray[0];svanswer[1]=svarray[1];svanswer[2]=svarray[2];
+        cout << "svvec=" << svvector << "\n";
+        cout << "svans=" << svanswer << "\n";
+        SimTK_TEST_EQ_TOL(svvector, svanswer, 1e-16); // should be exact
+
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
