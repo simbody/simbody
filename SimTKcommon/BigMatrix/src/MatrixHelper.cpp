@@ -496,13 +496,21 @@ MatrixHelper<S>::getAnyElt(int i, S* value) const
 {   return rep->getAnyElt(i,value); }
 
 template <class S> int 
-MatrixHelper<S>::nrow() const {return rep->nrow();}
+MatrixHelper<S>::nrow() const {
+    return rep->nrow();
+}
 template <class S> int 
-MatrixHelper<S>::ncol() const {return rep->ncol();} 
+MatrixHelper<S>::ncol() const {
+    return rep->ncol();
+} 
 template <class S> ptrdiff_t 
-MatrixHelper<S>::nelt() const {return rep->nelt();}
+MatrixHelper<S>::nelt() const {   
+    return rep->nelt(); 
+}
 template <class S> int 
-MatrixHelper<S>::length() const {return rep->length();}
+MatrixHelper<S>::length() const {
+    return rep->length();
+}
 
 template <class S> void 
 MatrixHelper<S>::resize    (int m, int n) {rep->resize(m,n,false);} 
@@ -704,11 +712,12 @@ MatrixHelperRep<S>::createExternalMatrixHelperRep
       case MatrixStructure::Matrix1d: {
         assert(nr==1 || nc==1);
         const int length = nr*nc;
-        if (spacing > 1)
+        const int strideInElements = spacing/esz;
+        if (strideInElements > 1)
             rep = (esz==1 ? (FullVectorHelper<S>*)new StridedVectorScalarHelper<S>(length,rowOrder,
-                                                            spacing,data,canWrite)
+                                                            strideInElements,data,canWrite)
                           : (FullVectorHelper<S>*)new StridedVectorHelper<S>(esz,cppEsz,length,rowOrder,
-                                                            spacing,data,canWrite));
+                                                            strideInElements,data,canWrite));
         else 
             rep = (esz==1 ? (FullVectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length,rowOrder,
                                                             data,canWrite)
