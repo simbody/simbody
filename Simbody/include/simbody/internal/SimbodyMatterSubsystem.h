@@ -1043,7 +1043,7 @@ See the implementation notes for more information.
 @par Implementation
 This is accomplished by treating the input vector \a a as though it were
 a set of generalized accelerations. These are mapped to body accelerations
-A in O(n) time; see calcBodyAccelerationsFromUdot() for more information.
+A in O(n) time; see calcBodyAccelerationFromUdot() for more information.
 Then the body accelerations and generalized accelerations are supplied to each 
 of the m active constraints' (constant time) acceleration error methods to get 
 aerr(t,q,u;a)=G*a - b(t,q,u) in O(m) time. A second call is made to
@@ -1092,8 +1092,7 @@ void calcBiasForMultiplyByG(const State& state,
 {   SimTK_THROW1(Exception::UnimplementedMethod, 
                  "SimbodyMatterSubsystem::calcBiasForMultiplyByG()"); }
 
-/** NOT IMPLEMENTED YET --
-Given a complete set of n generalized accelerations udot, this kinematic 
+/** Given a complete set of n generalized accelerations udot, this kinematic 
 operator calculates in O(n) time the resulting body accelerations, including 
 velocity-dependent terms taken from the supplied \a state.
 
@@ -1103,7 +1102,7 @@ velocity-dependent terms taken from the supplied \a state.
     must already have been realized to Velocity stage.
 @param[in] knownUDot
     A complete set of generalized accelerations. Must have the same length 
-    as the number of mobilities, or if length zero the udots will be taken 
+    as the number of mobilities nu, or if length zero the udots will be taken 
     as all zero in which case only velocity-dependent (Coriolis) accelerations 
     will be returned in \a A_GB.
 @param[out] A_GB
@@ -1122,18 +1121,17 @@ Jacobian J as V=J*u. Thus the spatial accelerations A=Vdot=J*udot+Jdot*u.
 
 @par Implementation
 The Coriolis accelerations Jdot*u are already available in a State realized
-to Velocity stage. The J*udot term is just an application of 
-multiplyBySystemJacobian() to the \a knownUdot vector.
+to Velocity stage. The J*udot term is equivalent to an application of 
+multiplyBySystemJacobian() to the \a knownUdot vector. The current implementation
+uses 12*nu + 18*nb flops to produce nb body accelerations.
 
 @par Required stage
   \c Stage::Velocity 
   
-@see multiplyBySystemJacobian() **/
+@see multiplyBySystemJacobian(), getTotalCoriolisAcceleration() **/
 void calcBodyAccelerationFromUDot(const State&         state,
                                   const Vector&        knownUDot,
-                                  Vector_<SpatialVec>& A_GB) const
-{   SimTK_THROW1(Exception::UnimplementedMethod, 
-                 "SimbodyMatterSubsystem::calcBodyAccelerationFromUDot()"); }
+                                  Vector_<SpatialVec>& A_GB) const;
 
 /** This O(nm) operator explicitly calculates the n X m transpose of the 
 acceleration-level constraint Jacobian G = [P;V;A] which appears in the system 
@@ -1437,14 +1435,18 @@ inertia.
   \c Stage::Velocity **/
 const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyIndex) const;
 
-/** This is the cross-joint coriolis (angular velocity dependent) acceleration; 
-not too useful, see getTotalCoriolisAcceleration() instead.
+/** This is the cross-mobilizer incremental contribution to coriolis 
+(angular velocity dependent) acceleration; not too useful, see 
+getTotalCoriolisAcceleration() instead.
 @par Required stage
   \c Stage::Velocity **/
-const SpatialVec& getCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
+const SpatialVec& getMobilizerCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
 
 /** This is the total coriolis acceleration including the effect of the parent's
-angular velocity as well as the joint's.
+angular velocity as well as the joint's. This is Jdot*u where J is the system
+kinematic Jacobian and u is the current set of generalized speeds in the 
+supplied state. It is thus the remainder term in calculation of body accelerations
+from generalized accelerations udot: since V=J*u, A=J*udot + Jdot*u.
 @par Required stage
   \c Stage::Velocity **/
 const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
@@ -1453,12 +1455,12 @@ const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex)
     // DYNAMICS STAGE responses //
 
 /** This is the angular velocity-dependent force accounting for gyroscopic 
-forces plus coriolis forces due only to the cross-joint velocity; this ignores
-the parent's velocity and is not too useful -- see getTotalCentrifugalForces()
-instead.
+forces plus coriolis forces due only to the cross-mobilizer velocity; this 
+ignores the parent's velocity and is not too useful -- see 
+getTotalCentrifugalForces() instead.
 @par Required stage
   \c Stage::Dynamics **/
-const SpatialVec& getCentrifugalForces(const State&, MobilizedBodyIndex) const;
+const SpatialVec& getMobilizerCentrifugalForces(const State&, MobilizedBodyIndex) const;
 
 /** This is the total angular velocity-dependent force acting on this body, 
 including forces due to coriolis acceleration and forces due to rotational

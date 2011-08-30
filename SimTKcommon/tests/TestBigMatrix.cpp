@@ -216,8 +216,6 @@ int main() {
         Matrix_<SpatialVec> svmatans(2,2);
         svmatans(0,0) = svarrmat[0]; svmatans(1,0)=svarrmat[1];
         svmatans(0,1) = svarrmat[2]; svmatans(1,1)=svarrmat[3];
-        cout << "svmatrix=" << svmatrix << "\n";
-        cout << "svmatans=" << svmatans << "\n";
         SimTK_TEST_EQ_TOL(svmatrix, svmatans, 1e-16); // should be exact
 
             // Test creating a Vector that shares space with an Array
@@ -236,8 +234,6 @@ int main() {
         Vector_<SpatialVec> svvector(3, (Real*)&svarray[0], true);
         Vector_<SpatialVec> svanswer(3); 
         svanswer[0]=svarray[0];svanswer[1]=svarray[1];svanswer[2]=svarray[2];
-        cout << "svvec=" << svvector << "\n";
-        cout << "svans=" << svanswer << "\n";
         SimTK_TEST_EQ_TOL(svvector, svanswer, 1e-16); // should be exact
 
     } catch(const std::exception& e) {

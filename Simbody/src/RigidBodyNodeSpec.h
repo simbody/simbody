@@ -752,7 +752,8 @@ void calcMInverseFPass2Outward(
     SpatialVec*                 allA_GB,
     Real*                       allUDot) const;
 
-void calcInverseDynamicsPass1Outward(
+// Also serves as pass 1 for inverse dynamics.
+void calcBodyAccelerationsFromUdotOutward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     const Real*                 allUDot,

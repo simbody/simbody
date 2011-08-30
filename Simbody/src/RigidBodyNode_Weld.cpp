@@ -289,7 +289,8 @@ public:
         allA_GB[0] = 0;
     }
 
-    void calcInverseDynamicsPass1Outward(
+    // Also serves as pass 1 for inverse dynamics.
+    void calcBodyAccelerationsFromUdotOutward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
         const Real*                 allUDot,
@@ -523,7 +524,7 @@ public:
         const SpatialVec*                       bodyForces) const 
     {
         SpatialVec& z = updZ(ac);
-        z = getCentrifugalForces(dc) - bodyForces[nodeNum];
+        z = getMobilizerCentrifugalForces(dc) - bodyForces[nodeNum];
 
         for (int i=0 ; i<(int)children.size() ; i++) {
             const SpatialVec& zChild    = children[i]->getZ(ac);
@@ -544,7 +545,7 @@ public:
         Real*) const
     {
         const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
-        updA_GB(ac) = alphap + getCoriolisAcceleration(vc);  
+        updA_GB(ac) = alphap + getMobilizerCoriolisAcceleration(vc);  
     }
 
     
@@ -564,7 +565,7 @@ public:
         SpatialVec&       z            = allZ[nodeNum];
         SpatialVec&       Geps         = allGepsilon[nodeNum];
 
-        z = getCentrifugalForces(dc) - myBodyForce;
+        z = getMobilizerCentrifugalForces(dc) - myBodyForce;
 
         for (unsigned i=0; i<children.size(); ++i) {
             const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
@@ -597,7 +598,7 @@ public:
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-        A_GB = A_GP + getCoriolisAcceleration(vc);  // no udot for weld
+        A_GB = A_GP + getMobilizerCoriolisAcceleration(vc);  // no udot for weld
     }
     
     void calcMInverseFPass1Inward(
@@ -643,7 +644,8 @@ public:
         A_GB = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
     }
 
-    void calcInverseDynamicsPass1Outward(
+    // Also serves as pass 1 for inverse dynamics.
+    void calcBodyAccelerationsFromUdotOutward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
         const Real*                 allUDot,
@@ -654,7 +656,7 @@ public:
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-        A_GB = A_GP + getCoriolisAcceleration(vc); // no udot for weld
+        A_GB = A_GP + getMobilizerCoriolisAcceleration(vc); // no udot for weld
     }
 
     void calcInverseDynamicsPass2Inward(

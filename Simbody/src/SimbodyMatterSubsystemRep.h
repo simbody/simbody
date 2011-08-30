@@ -359,11 +359,11 @@ public:
     }
 
     // velocity dependent
-    const SpatialVec& getCoriolisAcceleration     (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getGyroscopicForce          (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getCentrifugalForces        (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getTotalCentrifugalForces   (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getMobilizerCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getTotalCoriolisAcceleration    (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getGyroscopicForce              (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getMobilizerCentrifugalForces   (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getTotalCentrifugalForces       (const State&, MobilizedBodyIndex) const;
 
     // PARTICLES TODO
 
@@ -671,7 +671,15 @@ public:
             mobilityForces,constrainedBodyForcesInG,constraintMobilityForces);
     }
 
-
+    // Given an array of nu udots, return nb body accelerations in G (including
+    // Ground as the 0th body with A_GB[0]=0). The returned accelerations are
+    // A = J*udot + Jdot*u, with the Jdot*u (coriolis acceleration) term
+    // extracted from the supplied state, which must have been realized to
+    // Velocity stage.
+    // The input and output Vectors must use contiguous storage.
+    void calcBodyAccelerationFromUDot(const State&          state,
+                                      const Vector_<Real>&  knownUDot,
+                                      Vector_<SpatialVec>&  A_GB) const;
 
     // This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}

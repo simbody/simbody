@@ -450,6 +450,7 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     State state = system.realizeTopology();
     const int nq = state.getNQ();
     const int nu = state.getNU();
+    const int nb = matter.getNumBodies();
 
     // Attainable accuracy drops with problem size.
     const Real Slop = nu*SignificantReal;
@@ -544,13 +545,13 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     system.realize(state, Stage::Velocity);
 
     // Randomize body forces.
-    Vector_<SpatialVec> bodyForces(matter.getNumBodies());
-    for (int i=0; i < matter.getNumBodies(); ++i)
+    Vector_<SpatialVec> bodyForces(nb);
+    for (int i=0; i < nb; ++i)
         bodyForces[i] = Test::randSpatialVec();
 
     // Random mobility forces and known udots.
-    Vector mobilityForces = Test::randVector(matter.getNumMobilities());
-    Vector knownUdots = Test::randVector(matter.getNumMobilities());
+    Vector mobilityForces = Test::randVector(nu);
+    Vector knownUdots = Test::randVector(nu);
 
     // Check self consistency: compute residual, apply it, should be no remaining residual.
     Vector residualForces, shouldBeZeroResidualForces;
@@ -570,6 +571,35 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
         mobilityForces+residualForces, bodyForces, udots, bodyAccels);
 
     SimTK_TEST_EQ_TOL(udots, knownUdots, Slop);
+
+    // See if we get back the same body accelerations by feeding in 
+    // these udots.
+    Vector_<SpatialVec> A_GB, AC_GB;
+    matter.calcBodyAccelerationFromUDot(state, udots, A_GB);
+    SimTK_TEST_EQ_TOL(A_GB, bodyAccels, Slop);
+
+    // Collect coriolis accelerations.
+    AC_GB.resize(matter.getNumBodies());
+    for (MobodIndex i(0); i<nb; ++i)
+        AC_GB[i] = matter.getTotalCoriolisAcceleration(state, i);
+
+    // Verify that either a zero-length or all-zero udot gives just
+    // coriolis accelerations.
+    matter.calcBodyAccelerationFromUDot(state, Vector(), A_GB);
+    SimTK_TEST_EQ_TOL(A_GB, AC_GB, Slop);
+
+    Vector allZeroUdot(matter.getNumMobilities(), Real(0));
+    matter.calcBodyAccelerationFromUDot(state, allZeroUdot, A_GB);
+    SimTK_TEST_EQ_TOL(A_GB, AC_GB, Slop);
+
+    // Now let's test noncontiguous input and output vectors.
+    Matrix MatUdot(3, nu); // use middle row
+    MatUdot.setToNaN();
+    MatUdot[1] = ~udots;
+    Matrix_<SpatialRow> MatA_GB(3, nb); // use middle row
+    MatA_GB.setToNaN();
+    matter.calcBodyAccelerationFromUDot(state, ~MatUdot[1], ~MatA_GB[1]);
+    SimTK_TEST_EQ_TOL(MatA_GB[1], ~bodyAccels, Slop);
 
     // Verify that leaving out arguments makes them act like zeroes.
     Vector residualForces1, residualForces2;

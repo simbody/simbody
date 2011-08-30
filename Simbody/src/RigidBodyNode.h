@@ -581,12 +581,13 @@ virtual void calcMInverseFPass2Outward(
     SpatialVec*                             allA_GB,
     Real*                                   allUDot) const=0;
 
-virtual void calcInverseDynamicsPass1Outward(
+// Also serves as pass 1 for inverse dynamics.
+virtual void calcBodyAccelerationsFromUdotOutward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     const Real*                 allUDot,
     SpatialVec*                 allA_GB) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInverseDynamicsPass1Outward"); }
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcBodyAccelerationsFromUdotOutward"); }
 virtual void calcInverseDynamicsPass2Inward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
@@ -894,8 +895,8 @@ SpatialVec&       updVD_PB_G (SBTreeVelocityCache&       vc) const
 const SpatialVec& getGyroscopicForce(const SBTreeVelocityCache& vc) const {return fromB(vc.gyroscopicForces);}
 SpatialVec&       updGyroscopicForce(SBTreeVelocityCache&       vc) const {return toB  (vc.gyroscopicForces);}
 
-const SpatialVec& getCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.coriolisAcceleration);}
-SpatialVec&       updCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.coriolisAcceleration);}
+const SpatialVec& getMobilizerCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.mobilizerCoriolisAcceleration);}
+SpatialVec&       updMobilizerCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.mobilizerCoriolisAcceleration);}
 
 const SpatialVec& getTotalCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.totalCoriolisAcceleration);}
 SpatialVec&       updTotalCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.totalCoriolisAcceleration);}
@@ -915,8 +916,8 @@ ArticulatedInertia&       updPPlus(SBArticulatedBodyInertiaCache&       abc) con
 
 // Others
 
-const SpatialVec& getCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.centrifugalForces);}
-SpatialVec&       updCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.centrifugalForces);}
+const SpatialVec& getMobilizerCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.mobilizerCentrifugalForces);}
+SpatialVec&       updMobilizerCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.mobilizerCentrifugalForces);}
 
 const SpatialVec& getTotalCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.totalCentrifugalForces);}
 SpatialVec&       updTotalCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.totalCentrifugalForces);}

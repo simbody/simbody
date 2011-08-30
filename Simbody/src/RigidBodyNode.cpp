@@ -98,10 +98,10 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
     SBTreeVelocityCache&       vc) const
 {
     if (nodeNum == 0) { // ground, just in case
-        updV_GB(vc)                      = SpatialVec(Vec3(0), Vec3(0));
-        updGyroscopicForce(vc)           = SpatialVec(Vec3(0), Vec3(0));
-        updCoriolisAcceleration(vc)      = SpatialVec(Vec3(0), Vec3(0));
-        updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+        updV_GB(vc)                          = SpatialVec(Vec3(0), Vec3(0));
+        updGyroscopicForce(vc)               = SpatialVec(Vec3(0), Vec3(0));
+        updMobilizerCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+        updTotalCoriolisAcceleration(vc)     = SpatialVec(Vec3(0), Vec3(0));
         return;
     }
 
@@ -131,9 +131,9 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
     const Vec3& w_GP = V_GP[0]; // for convenience
     const Vec3& v_GP = V_GP[1];
 
-    // Calculate this joint's local contribution to coriolis acceleration, and
-    // this body's total coriolis acceleration (it parent's coriolis 
-    // acceleration plus the local contribution).
+    // Calculate this mobilizer's incremental contribution to coriolis 
+    // acceleration, and this body's total coriolis acceleration (it parent's 
+    // coriolis  acceleration plus the incremental contribution).
     //
     // We just calculated 
     // (1)  V_GB = J*u = ~Phi * V_GP + H*u 
@@ -144,12 +144,12 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
     // (Don't be tempted to match the "J" terms in (3) with the two terms in (4)
     // because A_GP already includes coriolis terms up to the parent.)
     // That second term in (4) is just velocity dependent so we can calculate 
-    // it here. That is what we're calling the "local contribution to coriolis 
-    // acceleration" of body B.
+    // it here. That is what we're calling the "incremental contribution to 
+    // coriolis acceleration" of mobilizer B.
     // CAUTION: our definition of H is transposed from Jain's and Schwieters'.
     //
-    // So the local contribution to the coriolis acceleration is
-    //   Alocal = ~PhiDot * V_GP + HDot * u
+    // So the incremental contribution to the coriolis acceleration is
+    //   Amob = ~PhiDot * V_GP + HDot * u
     // As correctly calculated in Schwieters' paper, Eq [16], the first term 
     // above simplifies to SpatialVec( 0, w_GP % (v_GB-v_GP) ). However, 
     // Schwieters' second term in [16] is correct only if H is constant in P, 
@@ -161,17 +161,17 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
     // Note: despite all the ground-relative velocities here, this is just
     // the contribution of the cross-joint velocity, but reexpressed in G.
     const SpatialVec& VD_PB_G = getVD_PB_G(vc);
-    const SpatialVec  Alocal(VD_PB_G[0], 
-                             VD_PB_G[1] + w_GP % (v_GB-v_GP)); // 15 flops
+    const SpatialVec  Amob(VD_PB_G[0], 
+                           VD_PB_G[1] + w_GP % (v_GB-v_GP)); // 15 flops
 
-    updCoriolisAcceleration(vc) = Alocal;
+    updMobilizerCoriolisAcceleration(vc) = Amob;
 
     // Finally, the total coriolis acceleration (normally just called "coriolis
     // acceleration"!) of body B is the total coriolis acceleration of its 
     // parent shifted outward, plus B's local contribution that we just 
     // calculated.
     updTotalCoriolisAcceleration(vc) =
-        PhiT * parent->getTotalCoriolisAcceleration(vc) + Alocal; // 18 flops
+        PhiT * parent->getTotalCoriolisAcceleration(vc) + Amob; // 18 flops
 }
 
 Real RigidBodyNode::calcKineticEnergy(
@@ -201,14 +201,14 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     SBDynamicsCache&                        dc) const
 {
     if (nodeNum == 0) { // ground, just in case
-        updCentrifugalForces(dc)         = SpatialVec(Vec3(0), Vec3(0));
-        updTotalCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
+        updMobilizerCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
+        updTotalCentrifugalForces(dc)       = SpatialVec(Vec3(0), Vec3(0));
         return;
     }
 
     // 72 flops
-    updCentrifugalForces(dc) =
-        getP(abc) * getCoriolisAcceleration(vc) + getGyroscopicForce(vc);
+    updMobilizerCentrifugalForces(dc) =
+        getP(abc) * getMobilizerCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 
     // 72 flops
     updTotalCentrifugalForces(dc) = 

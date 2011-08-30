@@ -954,9 +954,9 @@ public:
 
     Array_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=HDot_PB_G*u
     
-    Array_<SpatialVec> gyroscopicForces;         // nb (b)
-    Array_<SpatialVec> coriolisAcceleration;     // nb (a)
-    Array_<SpatialVec> totalCoriolisAcceleration;// nb (A)
+    Array_<SpatialVec> gyroscopicForces;                // nb (b)
+    Array_<SpatialVec> mobilizerCoriolisAcceleration;   // nb (a)
+    Array_<SpatialVec> totalCoriolisAcceleration;       // nb (A)
 
         // Ancestor Constrained Body Pool
 
@@ -995,8 +995,8 @@ public:
         gyroscopicForces.resize(nBodies);           
         gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));
      
-        coriolisAcceleration.resize(nBodies);       
-        coriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
+        mobilizerCoriolisAcceleration.resize(nBodies);       
+        mobilizerCoriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
 
         totalCoriolisAcceleration.resize(nBodies);       
         totalCoriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
@@ -1054,8 +1054,8 @@ public:
     // Here a=body's incremental contribution to coriolis acceleration
     //      A=total coriolis acceleration for this body
     //      b=gyroscopic force
-    Array_<SpatialVec> centrifugalForces;        // nb (P*a+b)
-    Array_<SpatialVec> totalCentrifugalForces;   // nb (P*A+b)
+    Array_<SpatialVec> mobilizerCentrifugalForces; // nb (P*a+b)
+    Array_<SpatialVec> totalCentrifugalForces;     // nb (P*A+b)
 
     Array_<SpatialMat> Y;                        // nb
 
@@ -1072,8 +1072,8 @@ public:
 
         presUDotPool.resize(instance.getTotalNumPresUDot());
 
-        centrifugalForces.resize(nBodies);           
-        centrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
+        mobilizerCentrifugalForces.resize(nBodies);           
+        mobilizerCentrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
         totalCentrifugalForces.resize(nBodies);           
         totalCentrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));

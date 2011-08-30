@@ -161,9 +161,9 @@ void realizeInstance(const SBStateDigest& sbs) const {
     updVD_PB_G(vc)[0] = Vec3(0);
     updV_GB(vc)[0] = Vec3(0);
     updGyroscopicForce(vc) = SpatialVec(Vec3(0), Vec3(0));
-    updCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+    updMobilizerCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
     updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
-    updCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
+    updMobilizerCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
     updTotalCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
     updY(dc) = SpatialMat(Mat33(0), Mat33(0), Mat33(0), Mat33(1.0/getMass()));
     updA_GB(ac)[0] = Vec3(0);
@@ -351,7 +351,8 @@ void calcMInverseFPass2Outward(
     }
 }
 
-void calcInverseDynamicsPass1Outward(
+// Also serves as pass 1 for inverse dynamics.
+void calcBodyAccelerationsFromUdotOutward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
         const Real*                 allUDot,

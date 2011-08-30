@@ -191,8 +191,8 @@ SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, MobilizedBodyInde
 }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getCoriolisAcceleration(getTreeVelocityCache(s));
+SimbodyMatterSubsystemRep::getMobilizerCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
+  return getRigidBodyNode(body).getMobilizerCoriolisAcceleration(getTreeVelocityCache(s));
 }
 const SpatialVec&
 SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
@@ -203,8 +203,8 @@ SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, MobilizedBodyIndex
   return getRigidBodyNode(body).getGyroscopicForce(getTreeVelocityCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
+SimbodyMatterSubsystemRep::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
+  return getRigidBodyNode(body).getMobilizerCentrifugalForces(getDynamicsCache(s));
 }
 const SpatialVec&
 SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
@@ -1847,6 +1847,53 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
     }
 }
 
+
+
+// =============================================================================
+//                     CALC BODY ACCELERATION FROM UDOT
+// =============================================================================
+// Input and output vectors must use contiguous storage.
+// The knownUDot argument must be of length nu; the output argument will be
+// resized if necessary to length nb.
+// Cost is 12*nu + 18*nb flops.
+void SimbodyMatterSubsystemRep::
+calcBodyAccelerationFromUDot(const State&           s,
+                             const Vector&          knownUDot,
+                             Vector_<SpatialVec>&   A_GB) const {
+    const int nu = getNU(s);
+    const int nb = getNumBodies();
+    A_GB.resize(nb); // always at least Ground
+
+    // Should have been checked before we got here.
+    assert(knownUDot.size() == nu);
+    if (nu == 0) {
+        A_GB.setToZero();
+        return;
+    }
+
+    assert(knownUDot.hasContiguousData() && A_GB.hasContiguousData());
+    const Real* knownUdotPtr = &knownUDot[0];
+    SpatialVec* aPtr         = &A_GB[0];
+
+    const SBTreePositionCache& tpc = getTreePositionCache(s);
+    const SBTreeVelocityCache& tvc = getTreeVelocityCache(s);
+
+    // Note: this is equivalent to calculating J*u with 
+    // multiplyBySystemJacobian() and adding in the totalCoriolisAcceleration
+    // for each body (which is Jdot*u). (sherm 110829: I tried it both ways)
+
+    // Sweep outward and delegate to RB nodes.
+    for (int i=0; i<(int)rbNodeLevels.size(); i++)
+        for (int j=0; j<(int)rbNodeLevels[i].size(); j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcBodyAccelerationsFromUdotOutward
+               (tpc,tvc,knownUdotPtr,aPtr);
+        }
+}
+
+
+
+
 static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, const State& s, const Vector& qErrest, const Vector& uWeights) {
     Vector qhatErrest(uWeights.size());
     matter.multiplyByNInv(s, false, qErrest, qhatErrest); // qhatErrest = N+ qErrest
@@ -2659,6 +2706,9 @@ void SimbodyMatterSubsystemRep::calcCompositeBodyInertias(const State& s,
 
 
 
+// =============================================================================
+//                                  REALIZE Y
+// =============================================================================
 // Y is used for length constraints: sweep from base to tip. You can call this
 // after Position stage but it may have to realize articulated bodies first.
 void SimbodyMatterSubsystemRep::realizeY(const State& s) const {
@@ -2673,6 +2723,9 @@ void SimbodyMatterSubsystemRep::realizeY(const State& s) const {
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
             rbNodeLevels[i][j]->realizeYOutward(ic,tpc,abc,dc);
 }
+//.................................. REALIZE Y .................................
+
+
 
 // Process forces for subsequent use by realizeTreeAccel() below.
 void SimbodyMatterSubsystemRep::realizeZ(const State& s, 
@@ -2923,7 +2976,8 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcInverseDynamicsPass1Outward(tpc,tvc,knownUdotPtr,aPtr);
+            node.calcBodyAccelerationsFromUdotOutward
+               (tpc,tvc,knownUdotPtr,aPtr);
         }
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
@@ -3395,15 +3449,18 @@ calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyIndex mb,
 // velocity matrix) that maps generalized speeds to spatial velocities. 
 // This method performs the multiplication J*u in O(n) time (i.e., without
 // actually forming J).
+// The input and output vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::multiplyBySystemJacobian(const State& s,
     const Vector&              v,
     Vector_<SpatialVec>&       Jv) const 
 {
+    Jv.resize(getNumBodies());
+
+    assert(v.size() == getNU(s));
+    assert(v.hasContiguousData() && Jv.hasContiguousData());
+
     const SBTreePositionCache& tpc = getTreePositionCache(s);
 
-    assert(v.size() == getTotalDOF());
-
-    Jv.resize(getNumBodies());
     const Real* vPtr = v.size() ? &v[0] : NULL;
     SpatialVec* jvPtr = Jv.size() ? &Jv[0] : NULL;
 
@@ -3419,17 +3476,20 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobian(const State& s,
 // transpose ~J maps body spatial forces to generalized forces. This method
 // calculates in O(n) time the product of ~J and a "spatial force-like" 
 // vector X.
+// The input and output vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose
-   (const State& s, 
-    const Vector_<SpatialVec>& X,
-    Vector& JtX) const
+   (const State&                s, 
+    const Vector_<SpatialVec>&  X,
+    Vector&                     JtX) const
 {
     assert(X.size() == getNumBodies());
+    JtX.resize(getNU(s));
+
+    assert(X.hasContiguousData() && JtX.hasContiguousData());
 
     const SBTreePositionCache& tpc = getTreePositionCache(s);
 
     Vector_<SpatialVec> zTemp(getNumBodies()); zTemp.setToZero();
-    JtX.resize(getTotalDOF());
     const SpatialVec* xPtr = X.size() ? &X[0] : NULL;
     Real* jtxPtr = JtX.size() ? &JtX[0] : NULL;
     SpatialVec* zPtr = zTemp.size() ? &zTemp[0] : NULL;

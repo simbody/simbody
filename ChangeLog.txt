@@ -5,3 +5,13 @@
 8/16 Checked in FrictionConstraints doc
 8/21 Rearchitected constraint API to support use of constraints
      as operators (BREAKING CHANGE TO CUSTOM CONSTRAINTS)
+8/25 Fixed bug 1521 in SpeedCoupler constraint; backported to 2.3.
+8/29 Fixed bug 1522 in memory-sharing Vector constructor; backported to 2.3.
+8/29 Added calcBodyAccelerationFromUDot() method to matter subsystem.
+8/29 Renamed getCoriolisAcceleration() to getMobilizerCoriolisAcceleration()
+     and getCentrifugalForces() to getMobilizerCentrifugalForces()
+     to make it clear that these are just mobilizer-incremental contributions.
+     This is a BREAKING CHANGE if anyone ever called those, but probably if
+     they did it was a mistake and they should have been calling 
+     getTotalCoriolisAccleration() or getTotalCentrifugalForces() which are
+     the meaningful physical quantities.

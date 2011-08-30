@@ -385,7 +385,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeZ(
     const SpatialVec*                       bodyForces) const 
 {
     SpatialVec& z = updZ(ac);
-    z = getCentrifugalForces(dc) - bodyForces[nodeNum];
+    z = getMobilizerCentrifugalForces(dc) - bodyForces[nodeNum];
 
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
@@ -416,7 +416,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeAccel(
     const SpatialVec A_GP = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
 
     Vec<dof>::updAs(udot) = getDI(abc) * getEpsilon(ac) - (~getG(abc)*A_GP);
-    updA_GB(ac) = A_GP + getH(pc)*Vec<dof>::getAs(udot) + getCoriolisAcceleration(vc);  
+    updA_GB(ac) = A_GP + getH(pc)*Vec<dof>::getAs(udot) 
+                       + getMobilizerCoriolisAcceleration(vc);  
 }
 
 //==============================================================================
@@ -444,7 +445,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
     Vec<dof>&         eps          = toU(allEpsilon);
 
     // Pa+b - F (TODO: include P*udot_p here also?)
-    z = getCentrifugalForces(dc) - myBodyForce; // 6 flops
+    z = getMobilizerCentrifugalForces(dc) - myBodyForce; // 6 flops
 
     if (isUDotKnown(ic) && !isUDotKnownToBeZero(ic)) {
         const Vec<dof>& udot = fromU(allUDot);
@@ -500,7 +501,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
     } else
         udot = getDI(abc) * eps - (~getG(abc)*A_GP); // 2*dof^2 + 11*dof
 
-    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);
+    A_GB = A_GP + getH(pc)*udot + getMobilizerCoriolisAcceleration(vc);
 }
 
  
@@ -602,22 +603,21 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMInverseFPass2Outward(
     }
 }
 
+
+
 //==============================================================================
-//                            CALC INVERSE DYNAMICS
+//                     CALC BODY ACCELERATIONS FROM UDOT
 //==============================================================================
-// The next two methods calculate 
-//      f = M*udot + C(u) - f_applied 
-// in O(N) time, where C(u) are the velocity-dependent coriolis, centrifugal and 
-// gyroscopic forces, f_applied are the applied body and joint forces, and udot 
-// is given.
-//      pass1: 12*dof + 18 flops
-//      pass2: 12*dof + 75 flops
-//      total: 24*dof + 93 flops
-// Pass 1 is base to tip and calculates the body accelerations arising
-// from udot and the coriolis accelerations.
+// This method calculates:
+//      A_GB = J*udot + Jdot*u
+// in O(N) time, where udot is supplied as an argument and Jdot*u is the 
+// coriolis acceleration which we get from the velocity cache. This also serves
+// as pass 1 for inverse dynamics.
+//
+// This must be called base to tip. The cost is 12*dof + 18 flops.
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
-calcInverseDynamicsPass1Outward(
+calcBodyAccelerationsFromUdotOutward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     const Real*                 allUDot,
@@ -629,13 +629,35 @@ calcInverseDynamicsPass1Outward(
     // Shift parent's A_GB outward. (Ground A_GB is zero.) 12 flops.
     const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc); // 12*dof+6 flops.
+    // 12*dof+6 flops.
+    A_GB = A_GP + getH(pc)*udot + getMobilizerCoriolisAcceleration(vc); 
 }
 
+
+
+//==============================================================================
+//                            CALC INVERSE DYNAMICS
+//==============================================================================
+// This algorithm calculates 
+//      f = M*udot + C(u) - f_applied 
+// in O(N) time, where C(u) are the velocity-dependent coriolis, centrifugal and 
+// gyroscopic forces, f_applied are the applied body and joint forces, and udot 
+// is given.
+//
+// Pass 1 is base to tip and is just a calculation of body accelerations arising
+// from udot and the coriolis accelerations. It is embodied in the reusable
+// calcBodyAccelerationsFromUdotOutward() method above.
+//
 // Pass 2 is tip to base. It takes body accelerations from pass 1 (including coriolis
 // accelerations as well as hinge accelerations), and the applied forces,
 // and calculates the additional hinge forces that would be necessary to produce 
 // the observed accelerations.
+//
+// Costs for inverse dynamics include both passes:
+//      pass1: 12*dof + 18 flops
+//      pass2: 12*dof + 75 flops
+//             -----------------
+//      total: 24*dof + 93 flops
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
 calcInverseDynamicsPass2Inward(
@@ -669,6 +691,8 @@ calcInverseDynamicsPass2Inward(
     // being applied to get the remaining hinge forces needed.
     tau = ~getH(pc)*F - myJointForce;   // 12*dof flops
 }
+
+
 
 //==============================================================================
 //                                 CALC M V

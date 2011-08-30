@@ -263,6 +263,65 @@ calcPt(const State& s, Matrix& Pt) const {
     return getRep().calcHolonomicVelocityConstraintMatrixPt(s,Pt);
 }
 
+void SimbodyMatterSubsystem::
+calcBodyAccelerationFromUDot(const State&         state,
+                             const Vector&        knownUDot,
+                             Vector_<SpatialVec>& A_GB) const
+{  
+    // Interpret 0-length knownUDot as nu all-zero udots.
+    if (knownUDot.size() == 0) {
+        // Acceleration is just the coriolis acceleration.
+        const SBTreeVelocityCache& vc = getRep().getTreeVelocityCache(state);
+        const Array_<SpatialVec>& tca = vc.totalCoriolisAcceleration;
+        const Vector_<SpatialVec> 
+            AC_GB(tca.size(), (const Real*)tca.begin(), true); // shallow ref
+        A_GB = AC_GB;
+        return;
+    }
+
+    const int nu = getNumMobilities();
+
+    SimTK_ERRCHK2_ALWAYS(knownUDot.size() == nu,
+        "SimbodyMatterSubsystem::calcBodyAccelerationFromUDot()",
+        "Length of knownUDot argument was %d but should have been either"
+        " zero or the same as the number of mobilities nu=%d.\n", 
+        knownUDot.size(), nu);
+
+    const int nb = getNumBodies();
+    A_GB.resize(nb);
+
+    // If the arguments use contiguous memory we'll work in place, otherwise
+    // we'll work in contiguous temporaries and copy back.
+
+    Vector              udotspace; // allocate only if we need to
+    Vector_<SpatialVec> Aspace;
+
+    const Vector*        udotp;
+    Vector_<SpatialVec>* Ap;
+
+    if (knownUDot.hasContiguousData()) {
+        udotp = &knownUDot;
+    } else {
+        udotspace.resize(nu); // contiguous memory
+        udotspace(0, nu) = knownUDot; // prevent reallocation
+        udotp = (const Vector*)&udotspace;
+    }
+
+    bool needToCopyBack = false;
+    if (A_GB.hasContiguousData()) {
+        Ap = &A_GB;
+    } else {
+        Aspace.resize(nb); // contiguous memory
+        Ap = &Aspace;
+        needToCopyBack = true;
+    }
+
+    getRep().calcBodyAccelerationFromUDot(state, *udotp, *Ap);
+
+    if (needToCopyBack)
+        A_GB = *Ap;
+}
+
 
 void SimbodyMatterSubsystem::
 calcGt(const State& s, Matrix& Gt) const {
@@ -691,8 +750,8 @@ QuaternionPoolIndex SimbodyMatterSubsystem::getQuaternionPoolIndex(const State& 
     return getRep().getQuaternionPoolIndex(s, body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getCoriolisAcceleration(s,body);
+SimbodyMatterSubsystem::getMobilizerCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getMobilizerCoriolisAcceleration(s,body);
 }
 const SpatialVec&
 SimbodyMatterSubsystem::getTotalCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
@@ -703,8 +762,8 @@ SimbodyMatterSubsystem::getGyroscopicForce(const State& s, MobilizedBodyIndex bo
     return getRep().getGyroscopicForce(s,body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getCentrifugalForces(s,body);
+SimbodyMatterSubsystem::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getMobilizerCentrifugalForces(s,body);
 }
 const SpatialVec&
 SimbodyMatterSubsystem::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
