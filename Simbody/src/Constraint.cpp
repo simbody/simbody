@@ -3095,10 +3095,6 @@ void ConstraintImpl::calcConstrainedBodyAccelerationInAncestor      // A_AB
     const SpatialVec& V_GA = tvc.getV_GB(ancestorA); 
     const SpatialVec& A_GA = tac.getA_GB(ancestorA); 
 
-    const Vec3&       p_GA = X_GA.p();  // convenient abbreviations
-    const Vec3&       w_GA = V_GA[0];
-    const Vec3&       b_GA = A_GA[0];
-
     for (ConstrainedBodyIndex cbx(0); cbx < getNumConstrainedBodies(); ++cbx) {
         const MobilizedBodyIndex bodyB = myConstrainedBodies[cbx];
         if (bodyB == ancestorA) continue; // skip the ancestor itself if it is a constrained body also
@@ -3109,31 +3105,9 @@ void ConstraintImpl::calcConstrainedBodyAccelerationInAncestor      // A_AB
         const SpatialVec& V_GB = tvc.getV_GB(bodyB);
         const SpatialVec& A_GB = tac.getA_GB(bodyB);
 
-        const Vec3&       p_GB = X_GB.p();  // convenient abbreviations
-        const Vec3&       w_GB = V_GB[0];
-        const Vec3&       b_GB = A_GB[0];
-
-        // 9 flops
-        const Vec3 p_AB_G        = p_GB     - p_GA;
-        const Vec3 p_AB_G_dot    = V_GB[1]  - V_GA[1];      // d/dt p taken in G
-        const Vec3 p_AB_G_dotdot = A_GB[1]  - A_GA[1];      // d^2/dt^2 taken in G
-
-        // 15 flops
-        const Vec3 w_AB_G     = w_GB - w_GA;                // relative angular velocity of B in A, exp. in G
-        const Vec3 v_AB_G     = p_AB_G_dot - w_GA % p_AB_G; // d/dt p taken in A, exp in G
-
-        // 27 flops
-        const Vec3 w_AB_G_dot = b_GB - b_GA;         // d/dt of w_AB_G taken in G
-        const Vec3 v_AB_G_dot = p_AB_G_dotdot - (b_GA % p_AB_G + w_GA % p_AB_G_dot); // d/dt v_AB_G taken in G
-
-        // We have the derivative in G; change it to derivative in A by adding in contribution caused
-        // by motion of G in A, that is w_AG X w_AB_G. (Note that w_AG=-w_GA.)
-        // 24 flops
-        const Vec3 b_AB_G = w_AB_G_dot - w_GA % w_AB_G;
-        const Vec3 a_AB_G = v_AB_G_dot - w_GA % v_AB_G; // taken in A, exp. in G
-
-        // 30 flops
-        tac.updA_AB(px) = ~X_GA.R() * SpatialVec(b_AB_G, a_AB_G); // taken in A, expressed in A
+        // 105 flops
+        tac.updA_AB(px) = findRelativeAcceleration(X_GA, V_GA, A_GA,
+                                                   X_GB, V_GB, A_GB);
     }
 }
 
@@ -3239,11 +3213,11 @@ QIndex ConstraintImpl::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex
     return cInfo.getQIndexFromConstrainedQ(cqx);
 }
 
-UIndex ConstraintImpl::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const {
+UIndex ConstraintImpl::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cux) const {
     const SBInstanceCache&             ic    = getInstanceCache(s);
     const SBInstancePerConstraintInfo& cInfo = 
         ic.getConstraintInstanceInfo(myConstraintIndex);
-    return cInfo.getUIndexFromConstrainedU(cqx);
+    return cInfo.getUIndexFromConstrainedU(cux);
 }
 
 int ConstraintImpl::getNumConstrainedQ(const State& s) const {

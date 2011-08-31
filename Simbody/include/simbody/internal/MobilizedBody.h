@@ -652,35 +652,15 @@ public:
     SpatialVec findBodyAccelerationInAnotherBody(const State& s,
                                                  const MobilizedBody& inBodyA) const
     {
-        const Vec3&       p_GB = this->getBodyOriginLocation(s);
         const Transform&  X_GA = inBodyA.getBodyTransform(s);
-        const SpatialVec& V_GB = this->getBodyVelocity(s);
         const SpatialVec& V_GA = inBodyA.getBodyVelocity(s);
-        const SpatialVec& A_GB = this->getBodyAcceleration(s);
         const SpatialVec& A_GA = inBodyA.getBodyAcceleration(s);
-        const Vec3&       p_GA = X_GA.p();
-        const Vec3&       w_GA = V_GA[0];
-        const Vec3&       w_GB = V_GB[0];
-        const Vec3&       b_GA = A_GA[0];
-        const Vec3&       b_GB = A_GB[0];
+        const Transform&  X_GB = this->getBodyTransform(s);
+        const SpatialVec& V_GB = this->getBodyVelocity(s);
+        const SpatialVec& A_GB = this->getBodyAcceleration(s);
 
-        const Vec3 p_AB_G        = p_GB     - p_GA;         // vector from OA to OB, in G   ( 3 flops)
-        const Vec3 p_AB_G_dot    = V_GB[1]  - V_GA[1];      // d/dt p taken in G            ( 3 flops)
-        const Vec3 p_AB_G_dotdot = A_GB[1]  - A_GA[1];      // d^2/dt^2 taken in G          ( 3 flops)
-
-        const Vec3 w_AB_G     = w_GB - w_GA;                // relative ang. vel. of B in A, exp. in G (3 flops)
-        const Vec3 v_AB_G     = p_AB_G_dot - w_GA % p_AB_G; // d/dt p taken in A, exp in G  (12 flops)
-
-        const Vec3 w_AB_G_dot = b_GB - b_GA;                // d/dt of w_AB_G taken in G    ( 3 flops)
-        const Vec3 v_AB_G_dot = p_AB_G_dotdot - (b_GA % p_AB_G + w_GA % p_AB_G_dot); // d/dt v_AB_G taken in G
-                                                                                     //     (24 flops)
-
-        // We have the derivative in G; change it to derivative in A by adding in contribution caused
-        // by motion of G in A, that is w_AG X w_AB_G. (Note that w_AG=-w_GA.)
-        const Vec3 b_AB_G = w_AB_G_dot - w_GA % w_AB_G; // ang. accel. of B in A            (12 flops)
-        const Vec3 a_AB_G = v_AB_G_dot - w_GA % v_AB_G; // taken in A, exp. in G            (12 flops)
-
-        return ~X_GA.R() * SpatialVec(b_AB_G, a_AB_G); // taken in A, expressed in A        (30 flops)
+        return findRelativeAcceleration(X_GA, V_GA, A_GA,
+                                        X_GB, V_GB, A_GB);
     }
 
     /// Return the angular acceleration of body B's frame in body A's frame, 
