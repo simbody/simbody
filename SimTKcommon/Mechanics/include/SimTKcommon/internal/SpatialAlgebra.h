@@ -70,7 +70,7 @@ Spatial configuration (pose) has to be handled differently though since
 orientation is not a vector quantity. We use the Transform class for this 
 concept, which includes an orientation matrix and a translation vector.
 @see Transform **/
-/*@{*/
+/**@{**/
 
 /** SpatialVec[0] is the rotational component; [1] is translational. **/
 typedef Vec<2,   Vec3>  SpatialVec;
@@ -82,13 +82,25 @@ typedef Mat<2,2, Mat33> SpatialMat;
 
 // Pre-declare methods here so that we can list them in whatever order we'd
 // like them to appear in Doxygen.
-inline SpatialVec findRelativeVelocity(const Transform&  X_FA,
-                                       const SpatialVec& V_FA,
-                                       const Transform&  X_FB,
-                                       const SpatialVec& V_FB);
-inline SpatialVec findRelativeVelocityInF(const Vec3&       p_AB_F,
-                                          const SpatialVec& V_FA,
-                                          const SpatialVec& V_FB);
+inline SpatialVec findRelativeVelocity( const Transform&  X_FA,
+                                        const SpatialVec& V_FA,
+                                        const Transform&  X_FB,
+                                        const SpatialVec& V_FB);
+inline SpatialVec findRelativeVelocityInF(  const Vec3&       p_AB_F,
+                                            const SpatialVec& V_FA,
+                                            const SpatialVec& V_FB);
+
+inline SpatialVec findRelativeAcceleration( const Transform&  X_FA,
+                                            const SpatialVec& V_FA,
+                                            const SpatialVec& A_FA,
+                                            const Transform&  X_FB,
+                                            const SpatialVec& V_FB,
+                                            const SpatialVec& A_FB);
+inline SpatialVec findRelativeAccelerationInF(  const Vec3&       p_AB_F,
+                                                const SpatialVec& V_FA,
+                                                const SpatialVec& A_FA,
+                                                const SpatialVec& V_FB,
+                                                const SpatialVec& A_FB);
 
 inline SpatialVec reverseRelativeVelocity(const Transform&  X_AB,
                                           const SpatialVec& V_AB);
@@ -105,6 +117,11 @@ inline SpatialVec shiftForceFromTo(const SpatialVec& F_AP,
                                    const Vec3&       fromP_A,
                                    const Vec3&       toQ_A);
 
+
+
+//==============================================================================
+//                           FIND RELATIVE VELOCITY
+//==============================================================================
 /** @brief Find the relative spatial velocity between two frames A and B whose 
 individual spatial velocities are known with respect to a third frame F, with
 the result returned in A.
@@ -125,11 +142,11 @@ the spatial velocity V_FB of frame B in F, and transforms giving the poses of
 frames A and B in F, calculate the relative velocity V_AB of frame B in 
 frame A, measured and expressed in A. Typical usage:
 @code
-    Transform X_GA, X_GB;       // assume these are known from somewhere
+    Transform  X_GA, X_GB;      // assume these are known from somewhere
     SpatialVec V_GA, V_GB;
 
-    SpatialVec V_AB = findRelativeVelocity(X_FA, V_FA, 
-                                           X_FB, V_FB);
+    SpatialVec V_AB = findRelativeVelocity(X_GA, V_GA, 
+                                           X_GB, V_GB);
 @endcode
 @note This returns the result expressed in A which is almost always what you
 want; however, if you don't want it in that frame you can save 30 flops by
@@ -145,6 +162,11 @@ inline SpatialVec findRelativeVelocity(const Transform&  X_FA,
     return ~X_FA.R()*findRelativeVelocityInF(p_AB_F,V_FA,V_FB); // 48 flops
 }
 
+
+
+//==============================================================================
+//                         FIND RELATIVE VELOCITY IN F
+//==============================================================================
 /** @brief Find the relative spatial velocity between two frames A and B whose 
 individual spatial velocities are known in a third frame F, but leave the 
 result in F.
@@ -165,7 +187,7 @@ in A. Use of this method saves the substantial cost of reexpressing the result,
 so is useful in the rare case that you don't want the final result in A.
 Example:
 @code
-    Transform X_GA, X_GB;       // assume these are known from somewhere
+    Transform  X_GA, X_GB;      // assume these are known from somewhere
     SpatialVec V_GA, V_GB;
 
     const Vec3 p_AB_G = X_GB.p() - X_GA.p();
@@ -187,6 +209,136 @@ inline SpatialVec findRelativeVelocityInF(const Vec3&       p_AB_F,
     return SpatialVec(w_AB_F, v_AB_F);
 }
 
+
+
+//==============================================================================
+//                        FIND RELATIVE ACCELERATION
+//==============================================================================
+/** @brief Find the relative spatial acceleration between two frames A and B 
+whose individual spatial accelerations are known with respect to a third 
+frame F, with the result returned in A.
+
+@param[in]      X_FA
+    The pose of frame A measured and expressed in frame F.
+@param[in]      V_FA
+    The spatial velocity of frame A measured and expressed in frame F.
+@param[in]      A_FA
+    The spatial acceleration of frame A measured and expressed in frame F.
+@param[in]      X_FB
+    The pose of frame B measured and expressed in frame F.
+@param[in]      V_FB
+    The spatial velocity of frame B measured and expressed in frame F.
+@param[in]      A_FB
+    The spatial acceleration of frame B measured and expressed in frame F.
+@return A_AB, the relative spatial acceleration of frame B in frame A, 
+    expressed in A.
+
+Given the spatial acceleration A_FA of frame A in a reference frame F, and
+the spatial acceleration A_FB of frame B in F, and corresonding pose and
+velcoity information, calculate the relative acceleration A_AB of frame B in 
+frame A, measured and expressed in A. Typical usage:
+@code
+    Transform  X_GA, X_GB;      // assume these are known from somewhere
+    SpatialVec V_GA, V_GB;
+    SpatialVec A_GA, A_GB;
+
+    SpatialVec A_AB = findRelativeAcceleration(X_GA, V_GA, A_GA,
+                                               X_GB, V_GB, A_GB);
+@endcode
+@note This returns the result expressed in A which is almost always what you
+want; however, if you don't want it in that frame you can save 30 flops by
+calling findRelativeAccelerationInF() instead.
+
+Cost is 105 flops. @see findRelativeAccelerationInF() **/
+inline SpatialVec findRelativeAcceleration( const Transform&  X_FA,
+                                            const SpatialVec& V_FA,
+                                            const SpatialVec& A_FA,
+                                            const Transform&  X_FB,
+                                            const SpatialVec& V_FB,
+                                            const SpatialVec& A_FB)
+{
+    const Vec3 p_AB_F = X_FB.p() - X_FA.p();                        //  3 flops
+    return ~X_FA.R() *                                              // 30 flops
+           findRelativeAccelerationInF(p_AB_F,V_FA,A_FA,V_FB,A_FB); // 72 flops
+}
+
+
+
+//==============================================================================
+//                       FIND RELATIVE ACCELERATION IN F
+//==============================================================================
+/** @brief Find the relative spatial acceleration between two frames A and B 
+whose individual spatial acceleration are known in a third frame F, but leave 
+the result in F.
+
+@param[in]      p_AB_F
+    The vector from the A frame origin OA to the B frame origin OB, but
+    expressed in frame F.
+@param[in]      V_FA
+    The spatial velocity of frame A measured and expressed in frame F.
+@param[in]      A_FA
+    The spatial acceleration of frame A measured and expressed in frame F.
+@param[in]      V_FB
+    The spatial velocity of frame B measured and expressed in frame F.
+@param[in]      A_FB
+    The spatial acceleration of frame B measured and expressed in frame F.
+@return A_AB_F, the relative spatial acceleration of frame B in frame A, but 
+    still expressed in F.
+
+Typically the relative acceleration of B in A would be returned in A; most
+users will want to use findRelativeAcceleration() instead which returns the 
+result in A. Use of this method saves the substantial cost of reexpressing the
+result, so is useful in the rare case that you don't want the final result in A.
+Example:
+@code
+    Transform  X_GA, X_GB;      // assume these are known from somewhere
+    SpatialVec V_GA, V_GB;
+    SpatialVec A_GA, A_GB;
+
+    const Vec3 p_AB_G = X_GB.p() - X_GA.p();
+    SpatialVec V_AB_G = findRelativeAccelerationInF(p_AB_G, V_GA, A_GA,
+                                                            V_GB, A_GB);
+@endcode
+Cost is 72 flops. @see findRelativeAcceleration() **/
+inline SpatialVec findRelativeAccelerationInF(  const Vec3&       p_AB_F,
+                                                const SpatialVec& V_FA,
+                                                const SpatialVec& A_FA,
+                                                const SpatialVec& V_FB,
+                                                const SpatialVec& A_FB)
+{
+    const Vec3& w_FA = V_FA[0];     // aliases for convenience
+    const Vec3& w_FB = V_FB[0];
+    const Vec3& b_FA = A_FA[0];
+    const Vec3& b_FB = A_FB[0];
+
+    const Vec3 p_AB_F_dot    = V_FB[1] - V_FA[1]; // d/dt p taken in F   (3 flops)
+    const Vec3 p_AB_F_dotdot = A_FB[1] - A_FA[1]; // d^2/dt^2 taken in F (3 flops)
+
+    const Vec3 w_AB_F =     // relative angvel of B in A, exp. in F
+        w_FB - w_FA;        // (3 flops)
+    const Vec3 v_AB_F =              // d/dt p taken in A, exp in F
+        p_AB_F_dot - w_FA % p_AB_F;  // (12 flops)
+
+    const Vec3 w_AB_F_dot = b_FB - b_FA; // d/dt of w_AB_F taken in F (3 flops)
+    const Vec3 v_AB_F_dot =              // d/dt v_AB_F taken in F
+        p_AB_F_dotdot - (b_FA % p_AB_F + w_FA % p_AB_F_dot); // (24 flops)
+    
+    // We have the derivative in F; change it to derivative in A by adding in 
+    // contribution caused by motion of F in A, that is w_AF X w_AB_F. (Note 
+    // that w_AF=-w_FA.)
+    const Vec3 b_AB_F =             // ang. accel. of B in A, exp. in F
+        w_AB_F_dot - w_FA % w_AB_F; // (12 flops)
+    const Vec3 a_AB_F =             // taken in A, exp. in F
+        v_AB_F_dot - w_FA % v_AB_F; // (12 flops)
+
+    return SpatialVec(b_AB_F, a_AB_F); // taken in A, expressed in F
+}
+
+
+
+//==============================================================================
+//                         REVERSE RELATIVE VELOCITY
+//==============================================================================
 /** @brief Given the relative velocity of frame B in frame A, reverse that to
 give the relative velocity of frame A in B.
 
@@ -227,6 +379,11 @@ inline SpatialVec reverseRelativeVelocity(const Transform&  X_AB,
     return ~X_AB.R()*V_BA_A;                                    // 30 flops
 }
 
+
+
+//==============================================================================
+//                       REVERSE RELATIVE VELOCITY IN A
+//==============================================================================
 /** @brief Given the relative velocity of frame B in frame A, reverse that to
 give the relative velocity of frame A in B, but leave the result expressed
 in frame A.
@@ -267,6 +424,10 @@ inline SpatialVec reverseRelativeVelocityInA(const Transform&  X_AB,
 }
 
 
+
+//==============================================================================
+//                           SHIFT VELOCITY BY
+//==============================================================================
 /** @brief Shift a relative spatial velocity measured at some point to that
 same relative spatial quantity but measured at a new point given by an offset
 from the old one.
@@ -300,6 +461,10 @@ Cost is 12 flops. @see shiftVelocityFromTo() **/
 inline SpatialVec shiftVelocityBy(const SpatialVec& V_AB, const Vec3& r_A)
 {   return SpatialVec( V_AB[0], V_AB[1] + V_AB[0] % r_A ); } // vp=v + wXr
 
+
+//==============================================================================
+//                          SHIFT VELOCITY FROM TO
+//==============================================================================
 /** @brief Shift a relative spatial velocity measured at some point P to that
 same relative spatial quantity but measured at a new point Q given the points
 P and Q.
@@ -340,6 +505,9 @@ inline SpatialVec shiftVelocityFromTo(const SpatialVec& V_A_BP,
 
 
 
+//==============================================================================
+//                              SHIFT FORCE BY
+//==============================================================================
 /** @brief Shift a spatial force applied at some point of a body to that
 same spatial force applied at a new point given by an offset
 from the old one.
@@ -373,6 +541,10 @@ inline SpatialVec shiftForceBy(const SpatialVec& F_AP, const Vec3& r_A)
 {   return SpatialVec(F_AP[0] -  r_A % F_AP[1], F_AP[1]); } // mq = mp - r X f
 
 
+
+//==============================================================================
+//                           SHIFT FORCE FROM TO
+//==============================================================================
 /** @brief Shift a spatial force applied at some point P of a body to that
 same spatial force applied at a new point Q, given P and Q.
 
@@ -413,9 +585,13 @@ inline SpatialVec shiftForceFromTo(const SpatialVec& F_AP,
                                    const Vec3&       toQ_A)
 {   return shiftForceBy(F_AP, toQ_A - fromP_A); }
 
-/*@}*/
+/**@}**/
 
 
+
+//==============================================================================
+//                                  PHI MATRIX
+//==============================================================================
 // support for efficient matrix multiplication involving the special phi
 // matrix
 
