@@ -52,15 +52,20 @@ void RigidBodyNode::addChild(RigidBodyNode* child) {
     children.push_back( child );
 }
 
-//
+
+
+//==============================================================================
+//                    CALC JOINT INDEPENDENT KINEMATICS POS
+//==============================================================================
 // Calc posCM, mass, Mk
 //      phi, inertia
 // Should be calc'd from base to tip.
 // We depend on transforms X_PB and X_GB being available.
+// Cost is 90 flops.
 void RigidBodyNode::calcJointIndependentKinematicsPos(
     SBTreePositionCache&    pc) const
 {
-    // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
+    // Re-express parent-to-child shift vector (Bo-Po) into the ground frame.
     const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p(); // 15 flops
 
     // The Phi matrix conveniently performs child-to-parent (inward) shifting
@@ -87,11 +92,17 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     updMk_G(pc) = SpatialInertia(getMass(), p_BBc_G, G_Bo_G);
 }
 
+
+
+//==============================================================================
+//                   CALC JOINT INDEPENDENT KINEMATICS VEL
+//==============================================================================
 // Calculate velocity-related quantities: spatial velocity (V_GB), 
 // and coriolis acceleration. This must be
 // called base to tip: depends on parent's spatial velocity, and
 // the just-calculated cross-joint spatial velocity V_PB_G and
 // velocity-dependent acceleration remainder term VD_PB_G.
+// Cost is about 100 flops.
 void 
 RigidBodyNode::calcJointIndependentKinematicsVel(
     const SBTreePositionCache& pc,
@@ -174,6 +185,12 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
         PhiT * parent->getTotalCoriolisAcceleration(vc) + Amob; // 18 flops
 }
 
+
+
+//==============================================================================
+//                          CALC KINETIC ENERGY
+//==============================================================================
+// Cost is 57 flops.
 Real RigidBodyNode::calcKineticEnergy(
     const SBTreePositionCache& pc,
     const SBTreeVelocityCache& vc) const 
@@ -190,9 +207,12 @@ Real RigidBodyNode::calcKineticEnergy(
 // Calculate mass and velocity-related quantities that are needed for building
 // our dynamics operators, namely the gyroscopic force and centrifugal 
 // forces due to coriolis acceleration.
-// This routine expects that spatial velocities, spatial inertias, and
+// This routine expects that coriolis accelerations, gyroscopic forces, and
 // articulated body inertias are already available.
-// Must be called base to tip.
+// As written, the calling order doesn't matter.
+// TODO: could this be done recursively instead to calculate both quanities
+// with only a single multiply by P?
+// Cost is 144 flops.
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(
     const SBTreePositionCache&              pc,
@@ -217,7 +237,10 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 }
 
 
-//
+
+//==============================================================================
+//                      CALC COMPOSITE BODY INERTIAS
+//==============================================================================
 // Given only position-related quantities from the State 
 //      Mk_G  (this body's spatial inertia matrix, exp. in Ground)
 //      Phi   (composite body child-to-parent shift matrix)
@@ -228,7 +251,7 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 // Note that this method does not depend on the mobilities of
 // the joint so can be implemented here rather than in RigidBodyNodeSpec.
 // Ground should override this implementation though.
-//
+// Cost is about 80 flops.
 void
 RigidBodyNode::calcCompositeBodyInertiasInward(
     const SBTreePositionCache&  pc,
