@@ -263,6 +263,112 @@ calcPt(const State& s, Matrix& Pt) const {
     return getRep().calcHolonomicVelocityConstraintMatrixPt(s,Pt);
 }
 
+
+
+//==============================================================================
+//                             MULTIPLY BY G
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necssary, call the
+// implementation method.
+void SimbodyMatterSubsystem::
+multiplyByG(const State&  s,
+            const Vector& ulike,
+            const Vector& bias,
+            Vector&       Gulike) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = rep.getNU(s);
+
+    SimTK_ERRCHK2_ALWAYS(ulike.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByG()",
+        "Argument 'ulike' had length %d but should have the same length"
+        " as the total number of mobilities nu=%d.", ulike.size(), nu);
+
+    SimTK_ERRCHK2_ALWAYS(bias.size() == m,
+        "SimbodyMatterSubsystem::multiplyByG()",
+        "Argument 'bias' had length %d but should have the same length"
+        " as the total number of constraint equations m=%d.", bias.size(), m);
+
+    Gulike.resize(m);
+    if (m==0) return;
+
+    // Assume at first that all Vectors are contiguous.
+    const Vector* culike  = &ulike;
+    const Vector* cbias   = &bias;
+    Vector*       cGulike = &Gulike;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_ulike, contig_bias, contig_Gulike;
+
+    if (!ulike.hasContiguousData()) {
+        contig_ulike.resize(nu); // contiguous memory
+        contig_ulike(0, nu) = ulike; // copy, prevent reallocation
+        culike = (const Vector*)&contig_ulike;
+    }
+    if (!bias.hasContiguousData()) {
+        contig_bias.resize(m); // contiguous memory
+        contig_bias(0, m) = bias; // copy, prevent reallocation
+        cbias = (const Vector*)&contig_bias;
+    }
+    if (!Gulike.hasContiguousData()) {
+        contig_Gulike.resize(m); // contiguous memory
+        cGulike = (Vector*)&contig_Gulike;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPVA(s, true, true, true, *cbias, *culike, *cGulike);
+    if (needToCopyBack)
+        Gulike = *cGulike;
+}
+
+
+
+//==============================================================================
+//                      CALC BIAS FOR MULTIPLY BY G
+//==============================================================================
+// Here we just make sure that we have a contiguous array for the result and
+// then call the implementation method.
+void SimbodyMatterSubsystem::
+calcBiasForMultiplyByG(const State& state,
+                       Vector&      bias) const
+{
+    const SBInstanceCache& ic = getRep().getInstanceCache(state);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+    const int m        = mHolo+mNonholo+mAccOnly;
+
+    bias.resize(m);
+    if (m==0) return;
+
+    if (bias.hasContiguousData()) {
+        getRep().calcBiasForMultiplyByPVA(state, true, true, true, bias);
+    } else {
+        Vector tmpbias(m); // contiguous
+        getRep().calcBiasForMultiplyByPVA(state, true, true, true, tmpbias);
+        bias = tmpbias;
+    }
+}
+
+
+
+//==============================================================================
+//                      CALC BODY ACCELERATION FROM UDOT
+//==============================================================================
+// Here we implement the zero-length udot, which is interpreted as an all-zero
+// udot meaning that only coriolis accelerations contribute. Otherwise, we
+// arrange to have contiguous input and output vectors to work with if the
+// supplied arguments won't do, then invoke the implementation method.
 void SimbodyMatterSubsystem::
 calcBodyAccelerationFromUDot(const State&         state,
                              const Vector&        knownUDot,
@@ -323,19 +429,64 @@ calcBodyAccelerationFromUDot(const State&         state,
 }
 
 
+
+//==============================================================================
+//                                 CALC G
+//==============================================================================
+void SimbodyMatterSubsystem::
+calcG(const State& s, Matrix& G) const {
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
+    const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
+    const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = rep.getNU(s);
+
+    G.resize(m,nu);
+    if (m==0 || nu==0)
+        return;
+
+    Vector bias(m);
+    rep.calcBiasForMultiplyByPVA(s, true, true, true, bias);
+    Vector ulike(nu, Real(0));
+
+    // If G's columns are contiguous we can avoid copying.
+    const bool isContiguous = G(0).hasContiguousData();
+    if (isContiguous) {
+        for (int i=0; i < nu; ++i) {
+            ulike[i] = 1; // column we're working on
+            rep.multiplyByPVA(s, true, true, true, bias, ulike, G(i));
+            ulike[i] = 0;
+        }
+    } else {
+        Vector contig_col(m);
+        for (int i=0; i < nu; ++i) {
+            ulike[i] = 1; // column we're working on
+            rep.multiplyByPVA(s, true, true, true, bias, ulike, contig_col);
+            ulike[i] = 0;
+            G(i) = contig_col;
+        }
+    }
+
+}
+
+
+
+//==============================================================================
+//                                 CALC Gt
+//==============================================================================
 void SimbodyMatterSubsystem::
 calcGt(const State& s, Matrix& Gt) const {
     const SimbodyMatterSubsystemRep& rep = getRep();
     const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
     const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
     const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
-    const int ma = mHolo+mNonholo+mAccOnly;
-    const int nq       = rep.getNQ(s);
-    const int nu       = rep.getNU(s);
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = rep.getNU(s);
 
-    Gt.resize(nu,ma);
+    Gt.resize(nu,m);
 
-    if (ma==0 || nu==0)
+    if (m==0 || nu==0)
         return;
 
     // Fill in all the columns of Gt

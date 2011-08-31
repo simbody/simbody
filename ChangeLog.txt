@@ -15,3 +15,4 @@
      they did it was a mistake and they should have been calling 
      getTotalCoriolisAccleration() or getTotalCentrifugalForces() which are
      the meaningful physical quantities.
+8/30 Added multiplyByG(), calcG() and related methods to matter subsystem.

@@ -1763,9 +1763,9 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
     const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
     const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
     const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
-    const int ma       = mHolo+mNonholo+mAccOnly;
+    const int m        = mHolo+mNonholo+mAccOnly;
 
-    assert(lambda.size() == ma);
+    assert(lambda.size() == m);
 
     // These must be zeroed because we'll be adding in constraint force
     // contributions and multiple constraints may generate forces on the
@@ -1782,7 +1782,7 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
         if (isConstraintDisabled(s,cx))
             continue;
 
-        const ConstraintImpl& crep  = constraints[cx]->getImpl();
+        const ConstraintImpl& crep = constraints[cx]->getImpl();
 
         // No heap allocation is being done here. These are views directly
         // into the proper segment of the longer array.
@@ -1806,19 +1806,19 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
         const Segment& holoSeg    = cInfo.holoErrSegment;
         const Segment& nonholoSeg = cInfo.nonholoErrSegment;
         const Segment& accOnlySeg = cInfo.accOnlyErrSegment;
-        const int mh=holoSeg.length, mnh=nonholoSeg.length, 
-                  mao=accOnlySeg.length;
+        const int mp=holoSeg.length, mv=nonholoSeg.length, 
+                  ma=accOnlySeg.length;
 
         // Pack the multipliers into small arrays lambdap for holonomic 2nd 
         // derivs, labmdav for nonholonomic 1st derivs, and lambda for
         // acceleration-only.
         // Note: these lengths are *very* small integers!
-        lambdap.resize(mh); lambdav.resize(mnh); lambdaa.resize(mao);
-        for (int i=0; i<mh; ++i) 
+        lambdap.resize(mp); lambdav.resize(mv); lambdaa.resize(ma);
+        for (int i=0; i<mp; ++i) 
             lambdap[i] = lambda[                 holoSeg.offset    + i];
-        for (int i=0; i<mnh; ++i) 
+        for (int i=0; i<mv; ++i) 
             lambdav[i] = lambda[mHolo          + nonholoSeg.offset + i];
-        for (int i=0; i<mao; ++i) 
+        for (int i=0; i<ma; ++i) 
             lambdaa[i] = lambda[mHolo+mNonholo + accOnlySeg.offset + i];
 
         // Generate forces for this Constraint. Body forces will come back
@@ -1842,8 +1842,582 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
 
         // Unpack constrained mobility forces and add them into global array.
         for (ConstrainedUIndex cux(0); cux < ncu; ++cux) 
-            mobilityForces[crep.getUIndexOfConstrainedU(s,cux)] 
+            mobilityForces[cInfo.getUIndexFromConstrainedU(cux)] 
                 += mobilityF1[cux];     // 1 flop
+    }
+}
+
+
+
+//==============================================================================
+//                      CALC BIAS FOR MULTIPLY BY PVA
+//==============================================================================
+// We have these constraint equations available:
+// (1)  pverr = P*N^-1*qdot - c(t,q)       (= P*u - c(t,q))
+// (2)  vaerr = V*udot      - b_v(t,q,u)
+// (3)  aerr  = A*udot      - b_a(t,q,u)
+// with P=P(t,q), N=N(q), V=V(t,q,u), A=A(t,q,u). Individual constraint
+// error equations are calculated in constant time, so the whole set can be 
+// evaluated in O(m) time where m is the total number of constraint equations.
+//
+// Our plan is to use those equations to perform the multiplications by the
+// matrices P,V, and/or A times a u-like vector. But first we need to calculate
+// those extra terms that don't involve the matrices so we can subtract them
+// off later. So we're going to compute:
+// (4)  bias=[  bias_p,   bias_v,      bias_a    ]
+//          =[ -c(t,q), -b_v(t,q,u), -b_a(t,q,u) ].
+// which we can get by using equations (1)-(3) with zero qdot or udot.
+//
+// In general the state must be realized through Velocity stage, but if the 
+// system contains only holonomic constraints, or if only P is requested, then 
+// bias is just bias_p and only time- and position-dependent since we just need
+// to use eq. (1). In that case we require only stage Position.
+//
+// Note that bias_p is correct for use when multiplying a u-like vector by P
+// or a q-like vector by P*N^-1.
+//
+// The output vector must use contiguous storage.
+void SimbodyMatterSubsystemRep::
+calcBiasForMultiplyByPVA(const State& s,
+                         bool         includeP,
+                         bool         includeV,
+                         bool         includeA,
+                         Vector&      bias) const
+{
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = includeP ? 
+        ic.totalNHolonomicConstraintEquationsInUse : 0;
+    const int mNonholo = includeV ? 
+        ic.totalNNonholonomicConstraintEquationsInUse : 0;
+    const int mAccOnly = includeA ? 
+        ic.totalNAccelerationOnlyConstraintEquationsInUse : 0;
+    const int m = mHolo+mNonholo+mAccOnly;
+
+    bias.resize(m);
+    if (m == 0) return;
+
+    assert(bias.hasContiguousData());
+
+    // Overlay this Array on the bias Vector's data so that we can manipulate
+    // small chunks of it repeatedly with no heap activity or virtual method
+    // calls.
+    ArrayView_<Real> biasArray(&bias[0], &bias[0] + m);
+
+    // Except for holonomic constraint equations where we can work at the
+    // velocity level, we'll need to supply body accelerations to the constraint
+    // acceleration error routines. Because the udots are zero, the body 
+    // accelerations include velocity-dependent terms only, i.e. the coriolis 
+    // accelerations. Those have already been calculated in the state, but they
+    // are AC_GB, the coriolis accelerations in Ground. The constraint methods
+    // want those relative to their Ancestor frames, which might not be Ground.
+    const Array_<SpatialVec>* allAC_GB = 0;
+    if (mNonholo || mAccOnly)
+        allAC_GB = &getTreeVelocityCache(s).totalCoriolisAcceleration;
+
+    // This array will be resized and filled with the Ancestor-relative
+    // coriolis accelerations for the constrained bodies of each velocity
+    // or acceleration-only Constraint in turn; we're declaring it outside the 
+    // loop to minimize heap allocation (resizing down doesn't normally free 
+    // heap space). This won't be used if we have only holonomic constraints.
+    Array_<SpatialVec,ConstrainedBodyIndex> AC_AB;
+
+    // Subarrays of these all-zero arrays will be used to supply zero body
+    // velocities and qdots (holonomic) or zero udots (nonholonomic and
+    // acceleration-only) for each Constraint in turn; we're declaring 
+    // them outside the loop to minimize heap allocation. They'll grow until 
+    // they hit the maximum size needed by any Constraint.
+    Array_<SpatialVec,ConstrainedBodyIndex> zeroV_AB;
+    Array_<Real,      ConstrainedQIndex>    zeroQDot;
+    Array_<Real,      ConstrainedUIndex>    zeroUDot;
+
+    // Loop over all enabled constraints, ask them to generate constraint
+    // errors, and collect those in the output bias vector.
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+
+        const SBInstancePerConstraintInfo& 
+            cInfo = ic.getConstraintInstanceInfo(cx);
+        // Find this Constraint's err segments within the global array.
+        const Segment& holoSeg    = cInfo.holoErrSegment;
+        const Segment& nonholoSeg = cInfo.nonholoErrSegment;
+        const Segment& accOnlySeg = cInfo.accOnlyErrSegment;
+        const int mp = includeP ? holoSeg.length    : 0;
+        const int mv = includeV ? nonholoSeg.length : 0;
+        const int ma = includeA ? accOnlySeg.length : 0;
+
+        const ConstraintImpl& crep = constraints[cx]->getImpl();
+        const int ncb = crep.getNumConstrainedBodies();
+
+        if (mp) { // holonomic -- use velocity equations
+            const int ncq = cInfo.getNumConstrainedQ();
+            // Make sure we have enough zeroes.
+            if (zeroV_AB.size() < ncb) zeroV_AB.resize(ncb, SpatialVec(Vec3(0)));
+            if (zeroQDot.size() < ncq) zeroQDot.resize(ncq, Real(0));
+
+            // Make subarrays; this does not require heap allocation.
+            const ArrayViewConst_<SpatialVec,ConstrainedBodyIndex> 
+                V0_AB = zeroV_AB(ConstrainedBodyIndex(0), ncb);
+            const ArrayViewConst_<Real,ConstrainedQIndex>    
+                qdot0 = zeroQDot(ConstrainedQIndex(0), ncq);
+
+            // The error slots start at the beginning of the bias array.
+            ArrayView_<Real> pverr = biasArray(holoSeg.offset, mp);
+
+            // Write errors into pverr, which is a segment of the bias argument.
+            crep.calcPositionDotErrors(s, V0_AB, qdot0, pverr);
+        }
+
+        if (!(mv || ma))
+            continue; // nothing else to do here
+
+        const int ncu = cInfo.getNumConstrainedU();
+        // Make sure we have enough zeroes for udots.
+        if (zeroUDot.size() < ncu) zeroUDot.resize(ncu, Real(0));
+        // Make a subarray of the right size.
+        const ArrayViewConst_<Real,ConstrainedUIndex>    
+            udot0 = zeroUDot(ConstrainedUIndex(0), ncu);
+
+        // Now fill in coriolis accelerations. If the Ancestor is Ground
+        // we're just reordering. If it isn't Ground we have to transform
+        // the coriolis accelerations from Ground to Ancestor, at a cost
+        // of 105 flops/constrained body (not just re-expressing).
+        AC_AB.resize(ncb);
+        if (crep.isAncestorDifferentFromGround()) {
+            const MobilizedBody& ancestor = crep.getAncestorMobilizedBody();
+            const MobilizedBodyIndex acx = ancestor.getMobilizedBodyIndex();
+            const Transform&  X_GA  = ancestor.getBodyTransform(s);
+            const SpatialVec& V_GA  = ancestor.getBodyVelocity(s);
+            const SpatialVec& AC_GA = (*allAC_GB)[acx];
+
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
+                const MobilizedBodyIndex mbx =
+                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
+                if (mbx == acx) { // common: Ancestor is a constrained body
+                    AC_AB[cbx] = SpatialVec(Vec3(0));
+                    continue;
+                }
+                const MobilizedBody& consBody = getMobilizedBody(mbx);
+                const Transform&  X_GB = consBody.getBodyTransform(s);
+                const SpatialVec& V_GB = consBody.getBodyVelocity(s);
+                const SpatialVec& AC_GB = (*allAC_GB)[mbx];
+                AC_AB[cbx] = findRelativeAcceleration(X_GA, V_GA, AC_GA,
+                                                      X_GB, V_GB, AC_GB);
+            }
+        } else {
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
+                const MobilizedBodyIndex mbx =
+                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
+                AC_AB[cbx] = (*allAC_GB)[mbx];
+            }
+        }
+
+        // At this point AC_AB holds the coriolis accelerations of each
+        // constrained body in A.
+
+        if (mv) {   // non-holonomic constraints
+            // The error slots begin after skipping the holonomic part of
+            // the bias array. (That could be empty if P wasn't included.)
+            const int start = mHolo+nonholoSeg.offset;
+            ArrayView_<Real> vaerr = biasArray(start, mv);
+            crep.calcVelocityDotErrors(s, AC_AB, udot0, vaerr);
+        }
+        if (ma) {   // acceleration-only constraints
+            // The error slots begin after skipping the holonomic and 
+            // non-holonomic parts of the bias array (those could be empty
+            // if P or V weren't included).
+            const int start = mHolo+mNonholo+accOnlySeg.offset;
+            ArrayView_<Real> aerr = biasArray(start, ma);
+            crep.calcAccelerationErrors(s, AC_AB, udot0, aerr);
+        }
+    }
+}
+
+
+
+//==============================================================================
+//                           MULTIPLY BY P NInv
+//==============================================================================
+// We have these mp constraint equations available:
+// (1)  pverr = P*N^-1*qdot - c(t,q)       (= P*u - c(t,q))
+// with P=P(t,q), N=N(q). Individual constraint
+// error equations are calculated in constant time, so the whole set can be 
+// evaluated in O(mp) time where mp is the total number of holonomic
+// constraint equations. We expect to be given bias_p=-c(t,q) as a precalculated
+// argument. (See calcBiasForMultiplyByPVA().)
+//
+// Given a q-like vector we can calculate
+//      PNInvq = P*N^-1*qlike = pverr(qlike) - bias_p.
+//
+// The state must be realized to stage Position.
+// All vectors must be using contiguous storage.
+void SimbodyMatterSubsystemRep::
+multiplyByPNInv(const State&   s,
+                const Vector&  bias_p,
+                const Vector&  qlike,
+                Vector&        PNInvq) const
+{
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo = ic.totalNHolonomicConstraintEquationsInUse;
+    const int m  = mHolo;
+    const int nq = getNQ(s);
+    const int nu = getNU(s);
+    const int nb = getNumBodies();
+
+    assert(bias_p.size() == m);
+    assert(qlike.size() == nq);
+
+    PNInvq.resize(m);
+    if (m == 0) return;
+
+    if (nq == 0) { // not likely!
+        PNInvq.setToZero();
+        return;
+    }
+
+    assert(bias_p.hasContiguousData() && qlike.hasContiguousData());
+    assert(PNInvq.hasContiguousData());
+
+    // Generate a u-like Vector via ulike = N^-1 * qlike. Then use that to
+    // calculate spatial velocities V_GB = J * ulike.
+    Vector ulike(nu);
+    Vector_<SpatialVec> V_GB(nb);
+    multiplyByNInv(s, false, qlike, ulike);   // cheap
+    multiplyBySystemJacobian(s, ulike, V_GB); // 12*(nu+nb) flops
+
+    // Overlay Arrays on the Vectors' data so that we can manipulate small 
+    // chunks of them repeatedly with no heap activity or virtual method calls.
+    const ArrayViewConst_<SpatialVec> V_GBArray  (&V_GB[0],   &V_GB[0]   + nb);
+    const ArrayViewConst_<Real>       qArray     (&qlike[0],  &qlike[0]  + nq);
+    const ArrayViewConst_<Real>       biasArray  (&bias_p[0], &bias_p[0] + m);
+    ArrayView_<Real> PNInvqArray(&PNInvq[0], &PNInvq[0] + m);
+
+    // This array will be resized and filled with the Ancestor-relative
+    // velocities for the constrained bodies of each Constraint in turn; 
+    // we're declaring it outside the loop to minimize heap allocation 
+    // (resizing down doesn't normally free heap space).
+    Array_<SpatialVec,ConstrainedBodyIndex> V_AB;
+    // Same, but for each constraint's qdot subset.
+    Array_<Real,ConstrainedQIndex> qdot;
+
+    // Loop over all enabled constraints, ask them to generate constraint
+    // errors, and collect those in the output vector, subtracting off the bias
+    // as we go so we can go through the memory just once.
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+
+        const SBInstancePerConstraintInfo& 
+            cInfo = ic.getConstraintInstanceInfo(cx);
+        // Find this Constraint's perr segment within the global array.
+        const Segment& holoSeg = cInfo.holoErrSegment;
+        const int mp = holoSeg.length;
+
+        if (!mp)
+            continue;
+
+        const ConstraintImpl& crep  = constraints[cx]->getImpl();
+        const int ncb = crep.getNumConstrainedBodies();
+        const int ncq = cInfo.getNumConstrainedQ();
+
+        V_AB.resize(ncb);
+        if (crep.isAncestorDifferentFromGround()) {
+            const MobilizedBody& ancestor = crep.getAncestorMobilizedBody();
+            const MobilizedBodyIndex acx = ancestor.getMobilizedBodyIndex();
+            const Transform&  X_GA  = ancestor.getBodyTransform(s);
+            const SpatialVec& V_GA  = V_GBArray[acx];
+
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
+                const MobilizedBodyIndex mbx =
+                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
+                if (mbx == acx) { // common: Ancestor is a constrained body
+                    V_AB[cbx] = SpatialVec(Vec3(0));
+                    continue;
+                }
+                const MobilizedBody& consBody = getMobilizedBody(mbx);
+                const Transform&  X_GB = consBody.getBodyTransform(s);
+                const SpatialVec& V_GB = V_GBArray[mbx];
+                V_AB[cbx] = findRelativeVelocity(X_GA, V_GA,    // 51 flops
+                                                 X_GB, V_GB);
+            }
+        } else {
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
+                const MobilizedBodyIndex mbx =
+                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
+                V_AB[cbx] = V_GBArray[mbx];
+            }
+        }
+
+        qdot.resize(ncq);
+        for (ConstrainedQIndex cqx(0); cqx < ncq; ++cqx)
+            qdot[cqx] = qArray[cInfo.getQIndexFromConstrainedQ(cqx)];
+
+        const int start = holoSeg.offset;
+        const ArrayViewConst_<Real> bias  = biasArray(start, mp);
+        ArrayView_<Real>            pverr = PNInvqArray(start, mp);
+        crep.calcPositionDotErrors(s, V_AB, qdot, pverr);
+        for (int i=0; i < mp; ++i)
+            pverr[i] -= bias[i];
+    }
+}
+
+
+
+//==============================================================================
+//                              MULTIPLY BY PVA
+//==============================================================================
+// We have these constraint equations available:
+// (1)  pverr = P*N^-1*qdot - c(t,q)       (= P*u - c(t,q))
+// (2)  vaerr = V*udot      - b_v(t,q,u)
+// (3)  aerr  = A*udot      - b_a(t,q,u)
+// with P=P(t,q), N=N(q), V=V(t,q,u), A=A(t,q,u). Individual constraint
+// error equations are calculated in constant time, so the whole set can be 
+// evaluated in O(m) time where m is the total number of constraint equations.
+//
+// Here we will use those equations to perform the multiplications by the
+// matrices P,V, and/or A times a u-like vector: 
+//             [P]           [ pverr(N*ulike) ]
+// (4)  PVAu = [V] * ulike = [  vaerr(ulike)  ] - bias.
+//             [A]           [   aerr(ulike)  ]
+//
+// We expect to be supplied as a precalculated argument "bias" the terms in 
+// equations (1)-(3) that don't involve P,V, or A:
+// (5)  bias=[  bias_p,   bias_v,      bias_a    ]
+//          =[ -c(t,q), -b_v(t,q,u), -b_a(t,q,u) ].
+// See calcBiasForMultiplyByPVA() for how to get the bias terms.
+//
+// In general the state must be realized through Velocity stage, but if the 
+// system contains only holonomic constraints, or if only P is included, then 
+// bias is just bias_p and the result is only time- and position-dependent 
+// since we just need to use eq. (1). In that case we require only that the
+// state be realized to stage Position.
+//
+// All of the Vector arguments must use contiguous storage.
+void SimbodyMatterSubsystemRep::
+multiplyByPVA(  const State&     s,
+                bool             includeP,
+                bool             includeV,
+                bool             includeA,
+                const Vector&    bias,
+                const Vector&    ulike,
+                Vector&          PVAu) const
+{
+    const SBInstanceCache&     ic  = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = includeP ? 
+        ic.totalNHolonomicConstraintEquationsInUse : 0;
+    const int mNonholo = includeV ? 
+        ic.totalNNonholonomicConstraintEquationsInUse : 0;
+    const int mAccOnly = includeA ? 
+        ic.totalNAccelerationOnlyConstraintEquationsInUse : 0;
+
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nq = getNQ(s);
+    const int nu = getNU(s);
+    const int nb = getNumBodies();
+
+    assert(bias.size() == m);
+    assert(ulike.size() == nu);
+
+    PVAu.resize(m);
+    if (m == 0) return;
+
+    if (nu == 0) { // not likely!
+        PVAu.setToZero();
+        return;
+    }
+
+    assert(bias.hasContiguousData() && ulike.hasContiguousData());
+    assert(PVAu.hasContiguousData());
+
+    // Generate body spatial velocities V=J*u or first term of the
+    // body spatial accelerations A=J*udot + Jdot*u, depending on how we're
+    // interpreting the ulike argument (as a u for holonomic constraints,
+    // and as udot for everything else).
+    Vector_<SpatialVec> Julike(nb);
+    multiplyBySystemJacobian(s, ulike, Julike); // 12*(nu+nb) flops
+
+    // Julike serves as V_GB when we're interpreting ulike as u.
+    const ArrayViewConst_<SpatialVec> allV_GB(&Julike[0], &Julike[0] + nb);
+
+    // If we're doing any nonholonomic or acceleration-only constraints, we'll 
+    // finish calculating body spatial accelerations and put them here.
+    Array_<SpatialVec> allA_GB;
+    if (mNonholo || mAccOnly) {
+        allA_GB.resize(nb);
+        const Array_<SpatialVec>& 
+            allAC_GB = getTreeVelocityCache(s).totalCoriolisAcceleration;
+        for (int b=0; b < nb; ++b)
+            allA_GB[b] = allV_GB[b] + allAC_GB[b]; // i.e., J*udot + Jdot*u
+    }
+
+    // If we're going to be dealing with holonomic (position) constraints,
+    // generate a q-like Vector via qlike = N * ulike since the position
+    // error derivative routine wants qdots.
+    Vector qlike(nq);
+    if (mHolo)
+        multiplyByN(s, false, ulike, qlike);   // cheap
+
+    // Overlay Arrays on the Vectors' data so that we can manipulate small 
+    // chunks of them repeatedly with no heap activity or virtual method calls.
+    const ArrayViewConst_<Real> uArray   (&ulike[0], &ulike[0] + nu);
+    const ArrayViewConst_<Real> qArray   (&qlike[0], &qlike[0] + nq);
+    const ArrayViewConst_<Real> biasArray(&bias[0],  &bias[0]  + m);
+    ArrayView_<Real>            PVAuArray(&PVAu[0],  &PVAu[0]  + m);
+
+    // This array will be resized and filled with the Ancestor-relative
+    // velocities for the constrained bodies of each holonomic Constraint in 
+    // turn; we're declaring it outside the loop to minimize heap allocation 
+    // (resizing down doesn't normally free heap space). This won't be used 
+    // if we aren't processing holonomic constraints.
+    Array_<SpatialVec,ConstrainedBodyIndex> V_AB;
+    // Same, but for each holonomic constraint's qdot subset.
+    Array_<Real,ConstrainedQIndex> qdot;
+
+    // This array will be resized and filled with the Ancestor-relative
+    // accelerations for the constrained bodies of each velocity
+    // or acceleration-only Constraint in turn. This won't be used if we have 
+    // only holonomic constraints.
+    Array_<SpatialVec,ConstrainedBodyIndex> A_AB;
+    // Same, but for each nonholonomic/acconly constraint's udot subset.
+    Array_<Real,ConstrainedUIndex> udot;
+
+    // Loop over all enabled constraints, ask them to generate constraint
+    // errors, and collect those in the output argument PVAu. Remove bias
+    // as we go so we only have to touch the memory once.
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+
+        const SBInstancePerConstraintInfo& 
+            cInfo = ic.getConstraintInstanceInfo(cx);
+        // Find this Constraint's err segments within the global array.
+        const Segment& holoSeg    = cInfo.holoErrSegment;
+        const Segment& nonholoSeg = cInfo.nonholoErrSegment;
+        const Segment& accOnlySeg = cInfo.accOnlyErrSegment;
+        const int mp = includeP ? holoSeg.length    : 0;
+        const int mv = includeV ? nonholoSeg.length : 0;
+        const int ma = includeA ? accOnlySeg.length : 0;
+
+        const ConstraintImpl& crep = constraints[cx]->getImpl();
+        const int ncb = crep.getNumConstrainedBodies();
+
+        if (mp) { // holonomic -- use velocity equations
+            const int ncq = cInfo.getNumConstrainedQ();
+            V_AB.resize(ncb);
+            if (crep.isAncestorDifferentFromGround()) {
+                const MobilizedBody& ancestor = crep.getAncestorMobilizedBody();
+                const MobilizedBodyIndex acx = ancestor.getMobilizedBodyIndex();
+                const Transform&  X_GA = ancestor.getBodyTransform(s);
+                const SpatialVec& V_GA = allV_GB[acx];
+
+                for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
+                    const MobilizedBodyIndex mbx =
+                        crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
+                    if (mbx == acx) { // common: Ancestor is a constrained body
+                        V_AB[cbx] = SpatialVec(Vec3(0));
+                        continue;
+                    }
+                    const MobilizedBody& consBody = getMobilizedBody(mbx);
+                    const Transform&  X_GB = consBody.getBodyTransform(s);
+                    const SpatialVec& V_GB = allV_GB[mbx];
+                    V_AB[cbx] = findRelativeVelocity(X_GA, V_GA,    // 51 flops
+                                                     X_GB, V_GB);
+                }
+            } else { // Ancestor is Ground
+                for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
+                    const MobilizedBodyIndex mbx =
+                        crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
+                    V_AB[cbx] = allV_GB[mbx];
+                }
+            }
+
+            qdot.resize(ncq);
+            for (ConstrainedQIndex cqx(0); cqx < ncq; ++cqx)
+                qdot[cqx] = qArray[cInfo.getQIndexFromConstrainedQ(cqx)];
+
+            // The error slots start at the beginning of the bias array.
+            const int start = holoSeg.offset;
+            const ArrayViewConst_<Real> bias  = biasArray(start, mp);
+            ArrayView_<Real>            pverr = PVAuArray(start, mp);
+            crep.calcPositionDotErrors(s, V_AB, qdot, pverr);
+            for (int i=0; i < mp; ++i)
+                pverr[i] -= bias[i];
+        }
+
+        if (!(mv || ma))
+            continue; // nothing else to do here
+
+        const int ncu = cInfo.getNumConstrainedU();
+
+        // Now fill in accelerations. If the Ancestor is Ground
+        // we're just reordering. If it isn't Ground we have to transform
+        // the accelerations from Ground to Ancestor, at a cost
+        // of 105 flops/constrained body (not just re-expressing).
+        A_AB.resize(ncb);
+        if (crep.isAncestorDifferentFromGround()) {
+            const MobilizedBody& ancestor = crep.getAncestorMobilizedBody();
+            const MobilizedBodyIndex acx = ancestor.getMobilizedBodyIndex();
+            const Transform&  X_GA  = ancestor.getBodyTransform(s);
+            const SpatialVec& V_GA  = ancestor.getBodyVelocity(s);
+            const SpatialVec& A_GA  = allA_GB[acx];     // calculated above
+
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
+                const MobilizedBodyIndex mbx =
+                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
+                if (mbx == acx) { // common: Ancestor is a constrained body
+                    A_AB[cbx] = SpatialVec(Vec3(0));
+                    continue;
+                }                const MobilizedBody& consBody = getMobilizedBody(mbx);
+                const Transform&  X_GB = consBody.getBodyTransform(s);
+                const SpatialVec& V_GB = consBody.getBodyVelocity(s);
+                const SpatialVec& A_GB = allA_GB[mbx];  // calculated above
+                A_AB[cbx] = findRelativeAcceleration(X_GA, V_GA, A_GA,
+                                                     X_GB, V_GB, A_GB);
+            }
+        } else {
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
+                const MobilizedBodyIndex mbx =
+                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
+                A_AB[cbx] = allA_GB[mbx];
+            }
+        }
+
+        // At this point A_AB holds the accelerations of each
+        // constrained body in A.
+
+        // Now pack together the appropriate udots.
+        udot.resize(ncu);
+        for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+            udot[cux] = uArray[cInfo.getUIndexFromConstrainedU(cux)];
+
+        if (mv) {   // non-holonomic constraints
+            // The error slots begin after skipping the holonomic part of
+            // the arrays. (Those could be empty if P wasn't included.)
+            const int start = mHolo + nonholoSeg.offset;
+            const ArrayViewConst_<Real> bias  = biasArray(start, mv);
+            ArrayView_<Real>            vaerr = PVAuArray(start, mv);
+            crep.calcVelocityDotErrors(s, A_AB, udot, vaerr);
+            for (int i=0; i < mv; ++i)
+                vaerr[i] -= bias[i];
+        }
+
+        if (ma) {   // acceleration-only constraints
+            // The error slots begin after skipping the holonomic and 
+            // non-holonomic parts of the arrays (those could be empty
+            // if P or V weren't included).
+            const int start = mHolo+mNonholo+accOnlySeg.offset;
+            const ArrayViewConst_<Real> bias = biasArray(start, ma);
+            ArrayView_<Real>            aerr = PVAuArray(start, ma);
+            crep.calcAccelerationErrors(s, A_AB, udot, aerr);
+            for (int i=0; i < ma; ++i)
+                aerr[i] -= bias[i];
+        }
     }
 }
 

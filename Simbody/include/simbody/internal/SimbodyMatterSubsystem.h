@@ -1029,48 +1029,46 @@ void multiplyByGTranspose(const State&  state,
 {   SimTK_THROW1(Exception::UnimplementedMethod, 
                  "SimbodyMatterSubsystem::multiplyByGTranspose()"); }
 
-/** NOT IMPLEMENTED YET --
-Returns e = G*a, the product of the mXn acceleration 
-constraint Jacobian G and a "u-like" (mobility space) vector a of length n. 
+/** Returns Gulike = G*ulike, the product of the mXn acceleration 
+constraint Jacobian G and a "u-like" (mobility space) vector of length n. 
 m is the number of active acceleration-level constraint equations, n is the 
 number of mobilities. This is an O(m+n) operation.
 
 If you are going to call this method repeatedly at the same time, positions and
-velocities, you should precalculate the bias term once and supply it here.
-See the implementation notes for more information.
+velocities, you should precalculate the bias term once and supply it to the
+alternate signature of this method. See the Implementation section for more 
+information.
 
 @pre \a state realized to Velocity stage
 @par Implementation
-This is accomplished by treating the input vector \a a as though it were
+This is accomplished by treating the input vector \a ulike as though it were
 a set of generalized accelerations. These are mapped to body accelerations
 A in O(n) time; see calcBodyAccelerationFromUdot() for more information.
 Then the body accelerations and generalized accelerations are supplied to each 
 of the m active constraints' (constant time) acceleration error methods to get 
-aerr(t,q,u;a)=G*a - b(t,q,u) in O(m) time. A second call is made to
+aerr(t,q,u;ulike)=G*ulike - b(t,q,u) in O(m) time. A second call is made to
 evaluate the bias term aerr(t,q,u;0)=-b(t,q,u). We then calculate 
-e = aerr(t,q,u;a)-aerr(t,q,u;0) in O(m) time.
+Gulike = aerr(t,q,u;ulike)-aerr(t,q,u;0) in O(m) time.
 **/
 void multiplyByG(const State&  state,
-                 const Vector& a,
-                 Vector&       e) const {
+                 const Vector& ulike,
+                 Vector&       Gulike) const {
     Vector bias;
     calcBiasForMultiplyByG(state, bias);
-    multiplyByG(state, a, bias, e);
+    multiplyByG(state, ulike, bias, Gulike);
 }
 
 
-/** Multiply e=G*a using the supplied precalculated bias vector to improve
-performance (approximately 2X) over the other signature. 
+/** Multiply Gulike=G*ulike using the supplied precalculated bias vector to 
+improve performance (approximately 2X) over the other signature. 
 @see calcBiasForMultiplyByG() **/
 void multiplyByG(const State&  state,
-                 const Vector& a,
+                 const Vector& ulike,
                  const Vector& bias,
-                 Vector&       e) const
-{   SimTK_THROW1(Exception::UnimplementedMethod, 
-                 "SimbodyMatterSubsystem::multiplyByG()"); }
+                 Vector&       Gulike) const;
 
-/** Calculate the bias vector needed for the higher-performance multiplyByG()
-method above. 
+/** Calculate the bias vector needed for the higher-performance signature of
+the multiplyByG() method above. 
 
 @param[in]      state
     Provides time t, positions q, and speeds u; must be realized through
@@ -1083,14 +1081,17 @@ method above.
 @pre \a state realized to Velocity stage
 @par Implementation
 We have constant-time constraint acceleration error methods 
-<pre>   aerr(t,q,u;a)=G*a - b(t,q,u)    </pre>
-for each %Constraint. This method sets \c a = 0 and invokes each of those 
-methods to obtain bias = aerr(t,q,u;0) = -b(t,q,u).
-**/
+<pre>   aerr(t,q,u;udot)=G*udot - b(t,q,u)    </pre>
+for each %Constraint. This method sets \c udot = 0 and invokes each of those 
+methods to obtain bias = aerr(t,q,u;0) = -b(t,q,u). The actual methods
+require both udot and body accelerations for the constrained bodies; even
+with udot==0 body accelerations may have a non-zero velocity-dependent
+component (the coriolis accelerations). Those are already available in 
+the state, but only as accelerations in Ground. For constraints that have
+a non-Ground Ancestor, we have to convert the accelerations to A at a cost
+of 105 flops/constrained body. **/
 void calcBiasForMultiplyByG(const State& state,
-                            Vector&      bias) const
-{   SimTK_THROW1(Exception::UnimplementedMethod, 
-                 "SimbodyMatterSubsystem::calcBiasForMultiplyByG()"); }
+                            Vector&      bias) const;
 
 /** Given a complete set of n generalized accelerations udot, this kinematic 
 operator calculates in O(n) time the resulting body accelerations, including 
@@ -1132,6 +1133,22 @@ uses 12*nu + 18*nb flops to produce nb body accelerations.
 void calcBodyAccelerationFromUDot(const State&         state,
                                   const Vector&        knownUDot,
                                   Vector_<SpatialVec>& A_GB) const;
+
+
+/** This O(m*n) operator explicitly calculates the m X n acceleration-level 
+constraint Jacobian G which appears in the system equations of 
+motion. Consider using the multiplyByG() method instead of this one, 
+which forms the matrix-vector product G*v in O(m+n) time without explicitly 
+forming G.
+
+@par Implementation
+This method generates G columnwise using repeated calls to multiplyByG(), 
+which makes use of the constraint error methods to perform a G*v product
+in O(m+n) time. To within numerical error, for non-working constraints
+this should be identical to the transpose of the matrix returned by calcGt() 
+which uses the constraint force methods instead. 
+@see multiplyByG(), calcGt() **/
+void calcG(const State& state, Matrix& G) const;
 
 /** This O(nm) operator explicitly calculates the n X m transpose of the 
 acceleration-level constraint Jacobian G = [P;V;A] which appears in the system 
@@ -1529,29 +1546,6 @@ void calcAccConstraintErr(const State&,
     const Vector&   knownUdot,
     Vector&         constraintErr) const;
 
-/** NOT IMPLEMENTED YET --
-Returns G*v, the product of the mXn acceleration constraint Jacobian
-and a vector of length n. m is the number of active acceleration 
-constraint equations, n is the number of mobilities.
-This is an O(m+n) operation. **/
-void calcGV(const State&,
-    const Vector&   v,
-    Vector&         Gv) const;
-
-
-
-/** NOT IMPLEMENTED YET --
-This O(nm) operator explicitly calculates the m X n acceleration-level 
-constraint Jacobian G = [P;V;A] which appears in the system equations of 
-motion. This method generates G columnwise use the acceleration-level 
-constraint error equations. To within numerical error, this should be 
-identical to the transpose of the matrix returned by calcGt() which uses a 
-different method. Consider using the calcGV() method instead of this one, 
-which forms the matrix-vector product G*v in O(n) time without explicitly 
-forming G.
-@see calcGt()
-@see calcGV() **/
-void calcG(const State&, Matrix& G) const;
 
 
 /** NOT IMPLEMENTED YET --

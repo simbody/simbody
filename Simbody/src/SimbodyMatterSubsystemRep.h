@@ -671,6 +671,41 @@ public:
             mobilityForces,constrainedBodyForcesInG,constraintMobilityForces);
     }
 
+    // Calculate the bias vector from the acceleration-level constraint
+    // equations aerr=G*udot-b(t,q,u). Here bias = -b(t,q,u), i.e. what you get
+    // when udot==0.
+    // The output Vector must use contiguous storage. It will be resized if
+    // necessary to length m=mp+mv+ma.
+    void calcBiasForMultiplyByPVA(const State& state,
+                                  bool         includeP,
+                                  bool         includeV,
+                                  bool         includeA,
+                                  Vector&      bias) const;
+
+    // Given a bias calculated by the above method using the same settings
+    // for the "include" flags, form the product 
+    //           [ P ]
+    //    PVAu = [ V ] * ulike
+    //           [ A ]
+    // with all or a subset of P,V,A included. The u-like vector must have
+    // length nu always. This is an O(n+m) method.
+    void multiplyByPVA(const State&     state,
+                       bool             includeP,
+                       bool             includeV,
+                       bool             includeA,
+                       const Vector&    bias,
+                       const Vector&    ulike,
+                       Vector&          PVAu) const;
+
+    // Given a bias calculated by the above method using just includeP=true
+    // (or the leading bias_p segment of a complete bias vector), form the
+    // product PNInvq = P*N^-1*qlike. The q-like vector must have length nq
+    // always. This is an O(n+mp) method.
+    void multiplyByPNInv(const State&   state,
+                         const Vector&  bias_p,
+                         const Vector&  qlike,
+                         Vector&        PNInvq) const;
+
     // Given an array of nu udots, return nb body accelerations in G (including
     // Ground as the 0th body with A_GB[0]=0). The returned accelerations are
     // A = J*udot + Jdot*u, with the Jdot*u (coriolis acceleration) term
