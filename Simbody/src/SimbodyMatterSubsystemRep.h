@@ -699,12 +699,13 @@ public:
 
     // Given a bias calculated by the above method using just includeP=true
     // (or the leading bias_p segment of a complete bias vector), form the
-    // product PNInvq = P*N^-1*qlike. The q-like vector must have length nq
-    // always. This is an O(n+mp) method.
-    void multiplyByPNInv(const State&   state,
-                         const Vector&  bias_p,
-                         const Vector&  qlike,
-                         Vector&        PNInvq) const;
+    // product PqXqlike = Pq*qlike (= P*N^-1*qlike). The q-like vector must 
+    // have length nq always and all Vectors must use contiguous storage.
+    // This is an O(nq+mp) method.
+    void multiplyByPq(  const State&   state,
+                        const Vector&  bias_p,
+                        const Vector&  qlike,
+                        Vector&        PqXqlike) const;
 
     // Given an array of nu udots, return nb body accelerations in G (including
     // Ground as the 0th body with A_GB[0]=0). The returned accelerations are

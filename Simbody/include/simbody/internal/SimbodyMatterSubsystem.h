@@ -91,47 +91,47 @@ the following set of equations:
 where M(q) is the mass matrix, G(t,q,u) the acceleration constraint matrix, 
 C(q,u) the coriolis and gyroscopic forces, T is user-applied joint mobility
 forces, F is user-applied body forces and torques and gravity. J(q) is the
-System Jacobian (partial velocity matrix) whose transpose ~J maps spatial
-maps spatial forces to joint mobility forces. p(t,q) are the
-holonomic (position) constraints, v(t,q,u) the non-holonomic (velocity) 
-constraints, and a(t,q,u,udot) the acceleration-only constraints, which must be 
-linear in udot, with A(t,q,u) the coefficient matrix for a(). pdot, pdotdot 
-are obtained by differentiation of p(), vdot by differentiation of v().
-P(t,q)=partial(pdot)/partial(u) (yes, that's u, not q), 
-V(t,q,u)=partial(v)/partial(u). (We can get partial(p)/partial(q) when we need it
-as P*N^-1.) n(q) is the set of quaternion normalization constraints, which exist 
-only at the position level and are uncoupled from everything else.
+%System Jacobian (partial velocity matrix) whose transpose ~J maps spatial
+forces to joint mobility forces. p(t,q) are the holonomic (position) 
+constraints, v(t,q,u) the non-holonomic (velocity) constraints, and 
+a(t,q,u,udot) the acceleration-only constraints, which must be linear in udot, 
+with A(t,q,u) the coefficient matrix for a(). pdot, pdotdot are obtained by 
+differentiation of p(), vdot by differentiation of v(). P(t,q)=Dpdot/Du 
+(yes, that's u, not q -- we can get Pq=Dp/Dq when we need it as Pq=P*N^-1) and
+V(t,q,u)=Dv/Du. (We use capital "D" to indicate partial derivative.) n(q) is 
+the set of quaternion normalization constraints, which exist only at the 
+position level and are uncoupled from everything else.
 
 We calculate the constraint multipliers like this:
 <pre>
-          G M^-1 ~G mult = G udot0 - b, udot0=M^-1 f
+          G M^-1 ~G mult = G udot0 - b
+          where    udot0 = M^-1 f
 </pre>
 using the pseudo inverse of G M^-1 ~G to give a least squares solution for
 mult: mult = pinv(G M^-1 ~G)(G M^-1 f - b). Then the real udot is
 udot = udot0 - udotC, with udotC = M^-1 ~G mult. Note: M^-1* is an
-O(N) operator that provides the desired result; it <em>does not</em> require
+O(n) operator that provides the desired result; it <em>does not</em> require
 forming or factoring M.
 
 NOTE: only the following constraint matrices have to be formed and factored:
 <pre>
-   [G M^-1 ~G]   to calculate multipliers (square, symmetric: LDL' if
-                 well conditioned, else pseudoinverse)
+   [G M^-1 ~G]   to calculate multipliers
 
-   [P N^-1]      for projection onto position manifold (pseudoinverse)
+   [P N^-1]      for projection onto position manifold (a.k.a. Pq)
 
-   [ P ]         for projection onto velocity manifold (pseudoinverse)
+   [ P ]         for projection onto velocity manifold
    [ V ]  
 </pre>
 
 When working in a weighted norm with weights W on the state variables and
 weights T (1/tolerance) on the constraint errors, the matrices we need are
-actually [Tp PN^-1 Wq^-1], [Tpv [P;V] Wu^-1], etc. with T and W diagonal
+actually [Tp Pq Wq^-1], [Tpv [P;V] Wu^-1], etc. with T and W diagonal
 weighting matrices. These can then be used to find least squares solutions
 in the weighted norms.
 
 In many cases these matrices consist of decoupled blocks which can
-be solved independently; we try to take advantage of that whenever possible
-to solve a set of smaller systems rather than one large one. Also, in the
+be solved independently. (TODO: take advantage of that whenever possible
+to solve a set of smaller systems rather than one large one.) Also, in the
 majority of biosimulation applications we are likely to have only holonomic
 (position) constraints, so there is no V or A and G=P is the whole story.
 **/
@@ -795,79 +795,40 @@ void calcFrameJacobian(const State&             state,
 /**@}**/
 
 //==============================================================================
-/** @name                  Miscellaneous Operators
+/** @name               System matrix manipulation
+The documentation for the SimbodyMatterSubsystem describes the system equations
+in matrix notion, although internal computations are generally matrix-free.
+The operators in this section provide the ability to perform fast operations
+that can be described in terms of those matrices (e.g., multiply by the mass
+matrix) but are actually done using O(n), matrix-free algorithims. There are
+also routines here for obtaining the matrices explicitly, although working with
+explicit matrices should be avoided whenever performance is an issue.
 
-Operators make use of the State but do not write their results back
-into the State, not even into the State cache. **/
+The mass matrix M and constraint matrix G are the most significant. G=[P;V;A]
+is composed of submatrices P for position (holonomic), V for velocity 
+(nonholonomic), and A for acceleration-only constraints. These matrices are
+sometimes needed separately. Also, these matrices are all in mobility space
+(generalized speeds u). When qdot != u, the matrix N in the equation
+qdot = N*u becomes important and operators for working with it efficiently
+are also provided here. In that case, the position constraint matrix 
+in generalized coordinate q space, Pq, can also be accessed. (In terms of
+the other matrices, Pq=P*N^-1.) **/
 /**@{**/
 
-/** This is the primary forward dynamics operator. It takes a state which
-has been realized to the Dynamics stage, a complete set of forces to apply,
-and returns the accelerations that result. Only the forces supplied here,
-and those calculated internally from prescribed motion, constraints, and
-centrifugal effects, affect the results. Acceleration constraints are 
-always satisfied on return as long as the constraints are consistent. 
-If the position and velocity constraints aren't already satisified in the 
-State, results are harder to interpret physically, but they will still be 
-calculated and the acceleration constraints will still be satisfied. No 
-attempt will be made to satisfy position and velocity constraints, or to 
-set prescribed positions and velocities, nor even to check whether these 
-are satisfied; position and velocity constraint and prescribed positions 
-and velocities are simply irrelevant here.
+/** This operator calculates in O(N) time the product M*v where M is the 
+system mass matrix and v is a supplied vector with one entry per 
+mobility. If v is a set of mobility accelerations (generalized 
+accelerations), then the result is a generalized force (f=M*a). 
+Only the supplied vector is used, and M depends only on position 
+states, so the result here is not affected by velocities in the State.
+Constraints and prescribed motions are ignored.
 
-Given applied forces f_applied, this operator solves this set of equations:
-<pre>
-     M udot + G^T lambda + f_inertial = f_applied    (1)
-     G udot              - b          = 0            (2)
-</pre>
-for udot and lambda (although it does not return lambda). 
-f_applied is the set of generalized (mobility) forces equivalent to the 
-\a mobilityForces and \a bodyForces arguments supplied here (in particular, 
-it does \e not include forces due to prescribed motion).
-M, G, and b are defined by the mobilized bodies, constraints, and prescribed 
-motions present in the System. f_inertial includes 
-the velocity-dependent gyroscopic and coriolis forces due to rigid body 
-rotations and is extracted internally from the already-realized state. 
-
-Prescribed accelerations are treated logically as constraints included in 
-equation (2), although the corresponding part of G is an identity matrix. 
-Thus the generalized forces used to enforce prescribed motion are a subset 
-of the lambdas. Note that this method does not allow you to specify your 
-own prescribed udots; those are calculated from the mobilizers' 
-state-dependent Motion specifications that are already part of the System.
-
-This is an O(n*m^2) operator worst case where all m constraint equations
-are coupled (prescribed motions are counted in n, not m).
-
+The current implementation requires about 120*n flops and does
+not require realization of composite-body or articulated-body
+inertias. 
 @par Required stage
-  \c Stage::Dynamics **/ 
-void calcAcceleration
-   (const State&               state,
-    const Vector&              mobilityForces,
-    const Vector_<SpatialVec>& bodyForces,
-    Vector&                    udot,    // output only; no prescribed motions
-    Vector_<SpatialVec>&       A_GB) const;
-
-/** This operator is similar to calcAcceleration but ignores the effects of
-acceleration constraints. The supplied forces and velocity-induced centrifugal
-effects are properly accounted for, but any forces that would have resulted
-from enforcing the contraints are not present.
-This operator solves the equation
-<pre>
-    M udot + f_inertial = f_applied
-</pre>
-for udot. f_inertial contains the velocity-dependent gyroscopic and coriolis
-forces due to rigid body rotations. No constraint forces are included.
-This is an O(n) operator.
-
-@par Required stage
-  \c Stage::Dynamics **/ 
-void calcAccelerationIgnoringConstraints
-   (const State&                state,
-    const Vector&               mobilityForces,
-    const Vector_<SpatialVec>&  bodyForces,
-    Vector&                     udot,    
-    Vector_<SpatialVec>&        A_GB) const;
+  \c Stage::Position **/
+void calcMV(const State&, const Vector& v, Vector& MV) const;
 
 /** This operator calculates in O(N) time the product M^-1*v where M is the 
 system mass matrix and v is a supplied vector with one entry per 
@@ -897,90 +858,6 @@ when all mobilizers have 1 dof.
 void calcMInverseV(const State&,
     const Vector&        v,
     Vector&              MinvV) const;
-
-
-/** This is the inverse dynamics operator for the tree system; if there are
-any constraints they are ignored. This method solves
-<pre>
-     f_residual = M udot + f_inertial - f_applied
-</pre> 
-in O(n) time, meaning that the mass matrix M is never formed. Inverse
-dynamics is considerably faster than forward dynamics, even though both are
-O(n) in Simbody.
-
-In the above equation we solve for the residual forces \c f_residual given
-desired accelerations and (optionally) a set of applied forces. Here 
-\c f_applied is the mobility-space equivalent of all the applied forces
-(including mobility and body forces), \c f_inertial is the mobility-space
-equivalent of the velocity-dependent inertial forces due to rigid 
-body rotations (coriolis and gyroscopic forces), and \c udot is the 
-given set of values for the desired generalized accelerations. The returned 
-\c f_residual is the additional generalized force (that is, mobilizer 
-force) that would have to be applied at each mobility to give the desired
-\c udot. The inertial forces depend on the velocities \c u already realized 
-in the State. Otherwise, only the explicitly-supplied forces affect the 
-results of this operator; any forces that may be present elsewhere in 
-the System are ignored.
-
-@param[in] state
-     A State valid for the containing System, already realized to
-     Stage::Velocity.
-@param[in] appliedMobilityForces
-     One scalar generalized force applied per mobility. Can be zero
-     length if there are no mobility forces; otherwise must have exactly 
-     one entry per mobility in the matter subsystem.
-@param[in] appliedBodyForces
-     One spatial force for each body. A spatial force is a force applied
-     to the body origin and a torque on the body, each expressed in the 
-     Ground frame. The supplied Vector must be either zero length or have 
-     exactly one entry per body in the matter subsystem.
-@param[in] knownUdot
-     These are the desired generalized accelerations, one per mobility. 
-     If this is zero length it will be treated as all-zero; otherwise 
-     it must have exactly one entry per mobility in the matter subsystem.
-@param[out] residualMobilityForces
-     These are the residual generalized forces which, if applied, would 
-     produce the \p knownUdot. This will be resized if necessary to have 
-     one scalar entry per mobility. 
-
-@par Required stage
-  \c Stage::Velocity 
-
-@see calcResidualForce(), calcMV()
-@see calcAcceleration(), calcAccelerationIgnoringConstraints() **/
-void calcResidualForceIgnoringConstraints
-   (const State&               state,
-    const Vector&              appliedMobilityForces,
-    const Vector_<SpatialVec>& appliedBodyForces,
-    const Vector&              knownUdot,
-    Vector&                    residualMobilityForces) const;
-
-/** This operator calculates in O(N) time the product M*v where M is the 
-system mass matrix and v is a supplied vector with one entry per 
-mobility. If v is a set of mobility accelerations (generalized 
-accelerations), then the result is a generalized force (f=M*a). 
-Only the supplied vector is used, and M depends only on position 
-states, so the result here is not affected by velocities in the State.
-Constraints and prescribed motions are ignored.
-
-The current implementation requires about 120*n flops and does
-not require realization of composite-body or articulated-body
-inertias. 
-@par Required stage
-  \c Stage::Position **/
-void calcMV(const State&, const Vector& v, Vector& MV) const;
-
-/** This operator calculates the composite body inertias R given a State 
-realized to Position stage. Composite body inertias are the spatial mass 
-properties of the rigid body formed by a particular body and all bodies 
-outboard of that body if all the outboard mobilizers were welded in their 
-current orientations. 
-@par Required stage
-  \c Stage::Position **/
-void calcCompositeBodyInertias(const State&,
-    Array_<SpatialInertia>& R) const;
-
-
 /** This operator explicitly calculates the n X n mass matrix M. Note that this
 is inherently an O(n^2) operation since the mass matrix has n^2 elements 
 (although only n(n+1)/2 are unique due to symmetry). <em>DO NOT USE THIS CALL 
@@ -1093,48 +970,6 @@ of 105 flops/constrained body. **/
 void calcBiasForMultiplyByG(const State& state,
                             Vector&      bias) const;
 
-/** Given a complete set of n generalized accelerations udot, this kinematic 
-operator calculates in O(n) time the resulting body accelerations, including 
-velocity-dependent terms taken from the supplied \a state.
-
-@pre \a state must already be realized to Velocity stage
-@param[in] state
-    The State from which position- and velocity- related terms are taken; 
-    must already have been realized to Velocity stage.
-@param[in] knownUDot
-    A complete set of generalized accelerations. Must have the same length 
-    as the number of mobilities nu, or if length zero the udots will be taken 
-    as all zero in which case only velocity-dependent (Coriolis) accelerations 
-    will be returned in \a A_GB.
-@param[out] A_GB
-    Spatial accelerations of all the body frames measured and expressed in
-    the Ground frame, resulting from supplied generalized accelerations 
-    \a knownUDot and velocity-dependent acceleration terms taken from 
-    \a state. This will be resized if necessary to the number of bodies 
-    <em>including</em> Ground so that the returned array may be indexed by 
-    MobilizedBodyIndex with A_GB[0]==0 always. The angular acceleration
-    vector for MobilizedBody i is A_GB[i][0]; linear acceleration of the
-    body's origin is A_GB[i][1].
-
-@par Theory
-The generalized speeds u and spatial velocities V are related by the system
-Jacobian J as V=J*u. Thus the spatial accelerations A=Vdot=J*udot+Jdot*u.
-
-@par Implementation
-The Coriolis accelerations Jdot*u are already available in a State realized
-to Velocity stage. The J*udot term is equivalent to an application of 
-multiplyBySystemJacobian() to the \a knownUdot vector. The current implementation
-uses 12*nu + 18*nb flops to produce nb body accelerations.
-
-@par Required stage
-  \c Stage::Velocity 
-  
-@see multiplyBySystemJacobian(), getTotalCoriolisAcceleration() **/
-void calcBodyAccelerationFromUDot(const State&         state,
-                                  const Vector&        knownUDot,
-                                  Vector_<SpatialVec>& A_GB) const;
-
-
 /** This O(m*n) operator explicitly calculates the m X n acceleration-level 
 constraint Jacobian G which appears in the system equations of 
 motion. Consider using the multiplyByG() method instead of this one, 
@@ -1147,8 +982,121 @@ which makes use of the constraint error methods to perform a G*v product
 in O(m+n) time. To within numerical error, for non-working constraints
 this should be identical to the transpose of the matrix returned by calcGt() 
 which uses the constraint force methods instead. 
-@see multiplyByG(), calcGt() **/
+@see multiplyByG(), calcGt(), calcPq() **/
 void calcG(const State& state, Matrix& G) const;
+
+/** Calculate in O(n) time the product Pq*qlike where Pq is the mp X nq 
+position (holonomic) constraint Jacobian and \a qlike is a "q-like" 
+(generalized coordinate space) vector of length nq. Here mp is the number of 
+active position-level constraint equations in this system.
+
+If you are going to call this method repeatedly at the same time t and 
+configuration q and want maximum efficiency, you can gain a factor of almost
+2X by precalculating a bias term once using calcBiasForMultiplyByPq() and 
+supplying it to the alternate signature of this method. See the Theory
+section below for an explanation of the bias term.
+
+@pre \a state realized to Position stage
+
+<h3>Theory</h3>
+Simbody's position (holonomic) constraints are defined by the constraint 
+error equation 
+<pre>
+    (1)    perr(t;q) = p(t,q)
+</pre>
+where we try to maintain perr=0 at all times. We also have available time 
+derivatives of equation (1); the first time derivative is relevant here:
+<pre>
+    (2)    pverr(t,q;qdot) = dperr/dt = Pq * qdot + Pt
+</pre>
+where Pq=Dperr/Dq and Pt=Dperr/Dt (capital "D" means partial derivative).
+Pt=Pt(t,q) is called the "bias" term. (Note that because u=N^-1*qdot we also
+have Pq=P*N^-1, where P=Dpverr/Du is the very useful mobility-space holonomic 
+constraint Jacobian.) Eq. (2) can be used to perform efficient multiplication 
+by Pq, since it can be used to calculate Pq*qlike+Pt, and a second evaluation 
+at qlike=0 can be used to calculate the unwanted bias term for removal: 
+<pre>
+    (3)    Pq*qlike = pverr(t,q;qlike) - pverr(t,q;0)  
+</pre>
+Despite appearances, eq. (2) calculates its result in constant time per
+constraint equation, for a total cost that is O(n) or more strictly O(mp+nq).
+The matrix Pq is never actually formed; instead the matrix-vector product
+is calculated directly.
+
+<h3>Implementation</h3>
+We treat the input vector \a qlike as though it were a set of generalized 
+coordinate derivatives qdot. These are mapped to body velocities V in O(n) 
+time, using V=Jq*qdot, where Jq is the coordinate space system Jacobian 
+(partial velocity matrix), with Jq=J*N^-1. Then the body velocities and qdots 
+are supplied to each of the mp active position constraints' (constant time) 
+velocity error methods to get pverr(t,q;qlike)=Pq*qlike-Pt in O(n) time. A 
+second call is made to evaluate the bias term pverr(t,q;0)=-Pt. We then 
+calculate the result \a PqXqlike = pverr(t,q;qlike)-pverr(t,q;0) in O(n) time
+using equation (3). 
+
+@see calcBiasForMultiplyByPq() **/
+void multiplyByPq(const State&  state,
+                  const Vector& qlike,
+                  Vector&       PqXqlike) const {
+    Vector biasp;
+    calcBiasForMultiplyByPq(state, biasp);
+    multiplyByPq(state, qlike, biasp, PqXqlike);
+}
+
+
+/** Multiply Pq*qlike using the supplied precalculated bias vector to 
+improve performance (approximately 2X) over the other signature. 
+@see calcBiasForMultiplyByPq() **/
+void multiplyByPq(const State&  state,
+                 const Vector&  qlike,
+                 const Vector&  biasp,
+                 Vector&        PqXqlike) const;
+
+/** Calculate the bias vector needed for the higher-performance signature of
+the multiplyByPq() method above. 
+
+@param[in]      state
+    Provides time t, and positions q; must be realized through
+    Position stage so that all body spatial poses are known.
+@param[out]     biasp
+    This is the bias vector for use in repeated calls to multiplyByPq(). It
+    will be resized if necessary to length mp, the total number of 
+    active position-level (holonomic) constraint equations. 
+
+@pre \a state realized to Position stage
+
+See multiplyByPq() for theory and implementation; this method is just 
+performing the qlike=0 case described there for calculating the bias term Pt.
+**/
+void calcBiasForMultiplyByPq(const State& state,
+                             Vector&      biasp) const;
+
+/** This O(m*n) operator explicitly calculates the mp X nq position-level 
+(holonomic) constraint Jacobian Pq (=P*N^-1), the partial derivative of the
+position error equations with respect to q. Consider using the multiplyByPq() 
+method instead of this one, which forms the matrix-vector product Pq*v in 
+O(m+n) time without explicitly forming Pq.
+
+@pre \a state realized to Position stage
+
+@param[in]      state
+    A State realized through Position stage so that time and the pose 
+    (configuration) of each body is known.
+@param[out]     Pq
+    The position constraint Jacobian Dperr/Dq. This will be resized to
+    mp X nq if necessary.
+
+@par Implementation
+This method generates Pq columnwise using repeated calls to multiplyByPq(), 
+which makes use of the position constraint velocity-level error methods to 
+perrform a Pq*v product in O(m+n) time. See multiplyByPq() for a more 
+detailed explanation. If Pq's columns are in contiguous memory we'll work
+in place, otherwise columns are generated into a contiguous temporary and
+then copied into Pq.
+
+@see multiplyByPq() **/
+void calcPq(const State& state, Matrix& Pq) const;
+
 
 /** This O(nm) operator explicitly calculates the n X m transpose of the 
 acceleration-level constraint Jacobian G = [P;V;A] which appears in the system 
@@ -1205,6 +1153,233 @@ void calcP(const State& state, Matrix& P) const;
 @par Required stage
   \c Stage::Position **/
 void calcPt(const State& state, Matrix& Pt) const;
+
+
+/** Calculate out_q = N(q)*in_u (like qdot=N*u) or out_u = ~N*in_q. Note that 
+one of "in" and "out" is always "q-like" while the other is "u-like", but which
+is which changes if the matrix is transposed. Note that the transposed 
+operation here is the same as multiplying by N on the right, with the Vectors 
+viewed as RowVectors instead. This is an O(n) operator since N is block 
+diagonal.
+@par Required stage
+  \c Stage::Position **/
+void multiplyByN(const State& s, bool transpose, 
+                 const Vector& in, Vector& out) const;
+
+/** Calculate out_u = NInv(q)*in_q (like u=NInv*qdot) or out_q = ~NInv*in_u. 
+Note that one of "in" and "out" is always "q-like" while the other is "u-like",
+but which is which changes if the matrix is transposed. Note that the 
+transposed operation here is the same as multiplying by NInv on the right, 
+with the Vectors viewed as RowVectors instead. This is an O(N) operator since 
+NInv is block diagonal. The configuration q is taken from the supplied state.
+@par Required stage
+  \c Stage::Position **/
+void multiplyByNInv(const State& s, bool transpose, 
+                    const Vector& in, Vector& out) const;
+
+/** Calculate out_q = NDot(q,u)*in_u or out_u = ~NDot(q,u)*in_q. This is used,
+for example, as part of the conversion between udot and qdotdot. Note that one
+of "in" and "out" is always "q-like" while the other is "u-like", but which is
+which changes if the matrix is transposed. Note that the transposed operation 
+here is the same as multiplying by NDot on the right, with the Vectors viewed
+as RowVectors instead. This is an O(N) operator since NDot is block diagonal.
+Configuration q and generalized speeds u are taken from the supplied state.
+@par Required stage
+  \c Stage::Velocity **/
+void multiplyByNDot(const State& s, bool transpose, 
+                    const Vector& in, Vector& out) const;
+
+/**@}**/
+
+
+//==============================================================================
+/** @name                  Miscellaneous Operators
+
+Operators make use of the State but do not write their results back
+into the State, not even into the State cache. **/
+/**@{**/
+
+/** This is the primary forward dynamics operator. It takes a state which
+has been realized to the Dynamics stage, a complete set of forces to apply,
+and returns the accelerations that result. Only the forces supplied here,
+and those calculated internally from prescribed motion, constraints, and
+centrifugal effects, affect the results. Acceleration constraints are 
+always satisfied on return as long as the constraints are consistent. 
+If the position and velocity constraints aren't already satisified in the 
+State, results are harder to interpret physically, but they will still be 
+calculated and the acceleration constraints will still be satisfied. No 
+attempt will be made to satisfy position and velocity constraints, or to 
+set prescribed positions and velocities, nor even to check whether these 
+are satisfied; position and velocity constraint and prescribed positions 
+and velocities are simply irrelevant here.
+
+Given applied forces f_applied, this operator solves this set of equations:
+<pre>
+     M udot + G^T lambda + f_inertial = f_applied    (1)
+     G udot              - b          = 0            (2)
+</pre>
+for udot and lambda (although it does not return lambda). 
+f_applied is the set of generalized (mobility) forces equivalent to the 
+\a mobilityForces and \a bodyForces arguments supplied here (in particular, 
+it does \e not include forces due to prescribed motion).
+M, G, and b are defined by the mobilized bodies, constraints, and prescribed 
+motions present in the System. f_inertial includes 
+the velocity-dependent gyroscopic and coriolis forces due to rigid body 
+rotations and is extracted internally from the already-realized state. 
+
+Prescribed accelerations are treated logically as constraints included in 
+equation (2), although the corresponding part of G is an identity matrix. 
+Thus the generalized forces used to enforce prescribed motion are a subset 
+of the lambdas. Note that this method does not allow you to specify your 
+own prescribed udots; those are calculated from the mobilizers' 
+state-dependent Motion specifications that are already part of the System.
+
+This is an O(n*m^2) operator worst case where all m constraint equations
+are coupled (prescribed motions are counted in n, not m).
+
+@par Required stage
+  \c Stage::Dynamics **/ 
+void calcAcceleration
+   (const State&               state,
+    const Vector&              mobilityForces,
+    const Vector_<SpatialVec>& bodyForces,
+    Vector&                    udot,    // output only; no prescribed motions
+    Vector_<SpatialVec>&       A_GB) const;
+
+/** This operator is similar to calcAcceleration but ignores the effects of
+acceleration constraints. The supplied forces and velocity-induced centrifugal
+effects are properly accounted for, but any forces that would have resulted
+from enforcing the contraints are not present.
+This operator solves the equation
+<pre>
+    M udot + f_inertial = f_applied
+</pre>
+for udot. f_inertial contains the velocity-dependent gyroscopic and coriolis
+forces due to rigid body rotations. No constraint forces are included.
+This is an O(n) operator.
+
+@par Required stage
+  \c Stage::Dynamics **/ 
+void calcAccelerationIgnoringConstraints
+   (const State&                state,
+    const Vector&               mobilityForces,
+    const Vector_<SpatialVec>&  bodyForces,
+    Vector&                     udot,    
+    Vector_<SpatialVec>&        A_GB) const;
+
+
+
+/** This is the inverse dynamics operator for the tree system; if there are
+any constraints they are ignored. This method solves
+<pre>
+     f_residual = M udot + f_inertial - f_applied
+</pre> 
+in O(n) time, meaning that the mass matrix M is never formed. Inverse
+dynamics is considerably faster than forward dynamics, even though both are
+O(n) in Simbody.
+
+In the above equation we solve for the residual forces \c f_residual given
+desired accelerations and (optionally) a set of applied forces. Here 
+\c f_applied is the mobility-space equivalent of all the applied forces
+(including mobility and body forces), \c f_inertial is the mobility-space
+equivalent of the velocity-dependent inertial forces due to rigid 
+body rotations (coriolis and gyroscopic forces), and \c udot is the 
+given set of values for the desired generalized accelerations. The returned 
+\c f_residual is the additional generalized force (that is, mobilizer 
+force) that would have to be applied at each mobility to give the desired
+\c udot. The inertial forces depend on the velocities \c u already realized 
+in the State. Otherwise, only the explicitly-supplied forces affect the 
+results of this operator; any forces that may be present elsewhere in 
+the System are ignored.
+
+@param[in] state
+     A State valid for the containing System, already realized to
+     Stage::Velocity.
+@param[in] appliedMobilityForces
+     One scalar generalized force applied per mobility. Can be zero
+     length if there are no mobility forces; otherwise must have exactly 
+     one entry per mobility in the matter subsystem.
+@param[in] appliedBodyForces
+     One spatial force for each body. A spatial force is a force applied
+     to the body origin and a torque on the body, each expressed in the 
+     Ground frame. The supplied Vector must be either zero length or have 
+     exactly one entry per body in the matter subsystem.
+@param[in] knownUdot
+     These are the desired generalized accelerations, one per mobility. 
+     If this is zero length it will be treated as all-zero; otherwise 
+     it must have exactly one entry per mobility in the matter subsystem.
+@param[out] residualMobilityForces
+     These are the residual generalized forces which, if applied, would 
+     produce the \p knownUdot. This will be resized if necessary to have 
+     one scalar entry per mobility. 
+
+@par Required stage
+  \c Stage::Velocity 
+
+@see calcResidualForce(), calcMV()
+@see calcAcceleration(), calcAccelerationIgnoringConstraints() **/
+void calcResidualForceIgnoringConstraints
+   (const State&               state,
+    const Vector&              appliedMobilityForces,
+    const Vector_<SpatialVec>& appliedBodyForces,
+    const Vector&              knownUdot,
+    Vector&                    residualMobilityForces) const;
+
+
+/** This operator calculates the composite body inertias R given a State 
+realized to Position stage. Composite body inertias are the spatial mass 
+properties of the rigid body formed by a particular body and all bodies 
+outboard of that body if all the outboard mobilizers were welded in their 
+current orientations. 
+@par Required stage
+  \c Stage::Position **/
+void calcCompositeBodyInertias(const State&,
+    Array_<SpatialInertia>& R) const;
+
+
+
+/** Given a complete set of n generalized accelerations udot, this kinematic 
+operator calculates in O(n) time the resulting body accelerations, including 
+velocity-dependent terms taken from the supplied \a state.
+
+@pre \a state must already be realized to Velocity stage
+@param[in] state
+    The State from which position- and velocity- related terms are taken; 
+    must already have been realized to Velocity stage.
+@param[in] knownUDot
+    A complete set of generalized accelerations. Must have the same length 
+    as the number of mobilities nu, or if length zero the udots will be taken 
+    as all zero in which case only velocity-dependent (Coriolis) accelerations 
+    will be returned in \a A_GB.
+@param[out] A_GB
+    Spatial accelerations of all the body frames measured and expressed in
+    the Ground frame, resulting from supplied generalized accelerations 
+    \a knownUDot and velocity-dependent acceleration terms taken from 
+    \a state. This will be resized if necessary to the number of bodies 
+    <em>including</em> Ground so that the returned array may be indexed by 
+    MobilizedBodyIndex with A_GB[0]==0 always. The angular acceleration
+    vector for MobilizedBody i is A_GB[i][0]; linear acceleration of the
+    body's origin is A_GB[i][1].
+
+@par Theory
+The generalized speeds u and spatial velocities V are related by the system
+Jacobian J as V=J*u. Thus the spatial accelerations A=Vdot=J*udot+Jdot*u.
+
+@par Implementation
+The Coriolis accelerations Jdot*u are already available in a State realized
+to Velocity stage. The J*udot term is equivalent to an application of 
+multiplyBySystemJacobian() to the \a knownUdot vector. The current implementation
+uses 12*nu + 18*nb flops to produce nb body accelerations.
+
+@par Required stage
+  \c Stage::Velocity 
+  
+@see multiplyBySystemJacobian(), getTotalCoriolisAcceleration() **/
+void calcBodyAccelerationFromUDot(const State&         state,
+                                  const Vector&        knownUDot,
+                                  Vector_<SpatialVec>& A_GB) const;
+
+
 
 /** Treating all Constraints together, given a comprehensive set of m 
 Lagrange multipliers \e lambda, generate the complete set of body spatial forces
@@ -1272,8 +1447,6 @@ void calcMobilizerReactionForces
     Vector_<SpatialVec>& forcesAtMInG) const;
 
 
-
-
 /** Accounts for applied forces and inertial forces produced by non-zero 
 velocities in the State. Returns a set of mobility forces which replace both 
 the applied bodyForces and the inertial forces.
@@ -1282,7 +1455,6 @@ the applied bodyForces and the inertial forces.
 void calcTreeEquivalentMobilityForces(const State&, 
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    mobilityForces) const;
-
 
 
 /** Calculate qdot = N(q)*u in O(n) time (very fast). Note that q is taken
@@ -1301,40 +1473,6 @@ this operator method.
 void calcQDotDot(const State& s,
     const Vector& udot,
     Vector&       qdotdot) const;
-
-/** Calculate out_q = N(q)*in_u (like qdot=N*u) or out_u = ~N*in_q. Note that 
-one of "in" and "out" is always "q-like" while the other is "u-like", but which
-is which changes if the matrix is transposed. Note that the transposed 
-operation here is the same as multiplying by N on the right, with the Vectors 
-viewed as RowVectors instead. This is an O(n) operator since N is block 
-diagonal.
-@par Required stage
-  \c Stage::Position **/
-void multiplyByN(const State& s, bool transpose, 
-                 const Vector& in, Vector& out) const;
-
-/** Calculate out_u = NInv(q)*in_q (like u=NInv*qdot) or out_q = ~NInv*in_u. 
-Note that one of "in" and "out" is always "q-like" while the other is "u-like",
-but which is which changes if the matrix is transposed. Note that the 
-transposed operation here is the same as multiplying by NInv on the right, 
-with the Vectors viewed as RowVectors instead. This is an O(N) operator since 
-NInv is block diagonal. The configuration q is taken from the supplied state.
-@par Required stage
-  \c Stage::Position **/
-void multiplyByNInv(const State& s, bool transpose, 
-                    const Vector& in, Vector& out) const;
-
-/** Calculate out_q = NDot(q,u)*in_u or out_u = ~NDot(q,u)*in_q. This is used,
-for example, as part of the conversion between udot and qdotdot. Note that one
-of "in" and "out" is always "q-like" while the other is "u-like", but which is
-which changes if the matrix is transposed. Note that the transposed operation 
-here is the same as multiplying by NDot on the right, with the Vectors viewed
-as RowVectors instead. This is an O(N) operator since NDot is block diagonal.
-Configuration q and generalized speeds u are taken from the supplied state.
-@par Required stage
-  \c Stage::Velocity **/
-void multiplyByNDot(const State& s, bool transpose, 
-                    const Vector& in, Vector& out) const;
 
 /** Add in to the given body forces vector a force applied to a station (fixed
 point) S on a body B. The new force is added into the existing spatial force 

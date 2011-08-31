@@ -2038,26 +2038,27 @@ calcBiasForMultiplyByPVA(const State& s,
 
 
 //==============================================================================
-//                           MULTIPLY BY P NInv
+//                              MULTIPLY BY Pq
 //==============================================================================
 // We have these mp constraint equations available:
-// (1)  pverr = P*N^-1*qdot - c(t,q)       (= P*u - c(t,q))
-// with P=P(t,q), N=N(q). Individual constraint
+// (1)  pverr(t,q;qdot) = Pq*qdot - Pt     (where Pq=P*N^-1)      
+//                      = P *u    - Pt
+// with P=P(t,q), N=N(q), and Pt=Pt(t,q). Individual constraint
 // error equations are calculated in constant time, so the whole set can be 
-// evaluated in O(mp) time where mp is the total number of holonomic
-// constraint equations. We expect to be given bias_p=-c(t,q) as a precalculated
-// argument. (See calcBiasForMultiplyByPVA().)
+// evaluated in O(nq+mp) time where mp is the total number of holonomic
+// constraint equations. We expect to be given bias_p=-Pt (Pt=c(t,q)) as a 
+// precalculated argument. (See calcBiasForMultiplyByPVA().)
 //
 // Given a q-like vector we can calculate
-//      PNInvq = P*N^-1*qlike = pverr(qlike) - bias_p.
+//      PqXqlike = Pq*qlike = P*N^-1*qlike = pverr(t,q;qlike) - bias_p.
 //
 // The state must be realized to stage Position.
 // All vectors must be using contiguous storage.
 void SimbodyMatterSubsystemRep::
-multiplyByPNInv(const State&   s,
-                const Vector&  bias_p,
-                const Vector&  qlike,
-                Vector&        PNInvq) const
+multiplyByPq(const State&   s,
+             const Vector&  bias_p,
+             const Vector&  qlike,
+             Vector&        PqXqlike) const
 {
     const SBInstanceCache& ic = getInstanceCache(s);
 
@@ -2071,16 +2072,16 @@ multiplyByPNInv(const State&   s,
     assert(bias_p.size() == m);
     assert(qlike.size() == nq);
 
-    PNInvq.resize(m);
+    PqXqlike.resize(m);
     if (m == 0) return;
 
     if (nq == 0) { // not likely!
-        PNInvq.setToZero();
+        PqXqlike.setToZero();
         return;
     }
 
     assert(bias_p.hasContiguousData() && qlike.hasContiguousData());
-    assert(PNInvq.hasContiguousData());
+    assert(PqXqlike.hasContiguousData());
 
     // Generate a u-like Vector via ulike = N^-1 * qlike. Then use that to
     // calculate spatial velocities V_GB = J * ulike.
@@ -2094,7 +2095,7 @@ multiplyByPNInv(const State&   s,
     const ArrayViewConst_<SpatialVec> V_GBArray  (&V_GB[0],   &V_GB[0]   + nb);
     const ArrayViewConst_<Real>       qArray     (&qlike[0],  &qlike[0]  + nq);
     const ArrayViewConst_<Real>       biasArray  (&bias_p[0], &bias_p[0] + m);
-    ArrayView_<Real> PNInvqArray(&PNInvq[0], &PNInvq[0] + m);
+    ArrayView_<Real> PNInvqArray(&PqXqlike[0], &PqXqlike[0] + m);
 
     // This array will be resized and filled with the Ancestor-relative
     // velocities for the constrained bodies of each Constraint in turn; 
