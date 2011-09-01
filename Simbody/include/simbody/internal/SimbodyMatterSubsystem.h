@@ -1077,6 +1077,9 @@ position error equations with respect to q. Consider using the multiplyByPq()
 method instead of this one, which forms the matrix-vector product Pq*v in 
 O(m+n) time without explicitly forming Pq.
 
+Note that quaternion normalization constraints are \e not included in mp; we
+do not consider those holonomic constraints.
+
 @pre \a state realized to Position stage
 
 @param[in]      state

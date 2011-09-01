@@ -641,6 +641,90 @@ calcBodyAccelerationFromUDot(const State&         state,
 }
 
 
+
+//==============================================================================
+//                        MULTIPLY BY N, NInv, NDot
+//==============================================================================
+// These methods arrange for contiguous Vectors if necessary, then call the
+// implementation method.
+void SimbodyMatterSubsystem::multiplyByN
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   
+    const bool inIsContig=in.hasContiguousData();
+    const bool outIsContig=out.hasContiguousData();
+
+    if (inIsContig && outIsContig) {
+        getRep().multiplyByN(s,matrixOnRight,in,out); 
+        return;
+    }
+
+    Vector inSpace, outSpace; // allocate if needed
+    const Vector* inp  = inIsContig  ? &in  : (const Vector*)&inSpace;
+    Vector*       outp = outIsContig ? &out : &outSpace;
+    if (!inIsContig) {
+        inSpace.resize(in.size());
+        inSpace(0, in.size()) = in; // prevent reallocation
+    }
+
+    getRep().multiplyByN(s,matrixOnRight,*inp,*outp);
+
+    if (!outIsContig)
+        out = *outp;
+}
+
+void SimbodyMatterSubsystem::multiplyByNInv
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   
+    const bool inIsContig=in.hasContiguousData();
+    const bool outIsContig=out.hasContiguousData();
+
+    if (inIsContig && outIsContig) {
+        getRep().multiplyByNInv(s,matrixOnRight,in,out); 
+        return;
+    }
+
+    Vector inSpace, outSpace; // allocate if needed
+    const Vector* inp  = inIsContig  ? &in  : (const Vector*)&inSpace;
+    Vector*       outp = outIsContig ? &out : &outSpace;
+    if (!inIsContig) {
+        inSpace.resize(in.size());
+        inSpace(0, in.size()) = in; // prevent reallocation
+    }
+
+    getRep().multiplyByNInv(s,matrixOnRight,*inp,*outp); 
+
+    if (!outIsContig)
+        out = *outp;
+}
+
+void SimbodyMatterSubsystem::multiplyByNDot
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   
+    const bool inIsContig=in.hasContiguousData();
+    const bool outIsContig=out.hasContiguousData();
+
+    if (inIsContig && outIsContig) {
+        getRep().multiplyByNDot(s,matrixOnRight,in,out); 
+        return;
+    }
+
+    Vector inSpace, outSpace; // allocate if needed
+    const Vector* inp  = inIsContig  ? &in  : (const Vector*)&inSpace;
+    Vector*       outp = outIsContig ? &out : &outSpace;
+    if (!inIsContig) {
+        inSpace.resize(in.size());
+        inSpace(0, in.size()) = in; // prevent reallocation
+    }
+
+    getRep().multiplyByNDot(s,matrixOnRight,*inp,*outp); 
+
+    if (!outIsContig)
+        out = *outp;
+}
+
+
+
+
 //==============================================================================
 //                            JACOBIAN METHODS
 //==============================================================================
@@ -967,6 +1051,7 @@ void SimbodyMatterSubsystem::calcFrameJacobian
     }
 }
 
+
 //==============================================================================
 //                              MISC OPERATORS
 //==============================================================================
@@ -1006,17 +1091,6 @@ void SimbodyMatterSubsystem::calcQDotDot(const State& s,
 {
     getRep().calcQDotDot(s, udot, qdotdot);
 }
-
-void SimbodyMatterSubsystem::multiplyByN
-   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   getRep().multiplyByN(s,matrixOnRight,in,out); }
-void SimbodyMatterSubsystem::multiplyByNInv
-   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   getRep().multiplyByNInv(s,matrixOnRight,in,out); }
-void SimbodyMatterSubsystem::multiplyByNDot
-   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   getRep().multiplyByNDot(s,matrixOnRight,in,out); }
-
 
 // Topological info. Note the lack of a State argument.
 int SimbodyMatterSubsystem::getNumBodies()        const {return getRep().getNumBodies();}

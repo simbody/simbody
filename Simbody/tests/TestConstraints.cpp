@@ -1,14 +1,14 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                              SimTK Simbody(tm)                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -48,7 +48,8 @@ static const Real ConstraintTol = 1e-10;
 
 // Compare two quantities that should have been calculated to machine tolerance
 // given the problem size, which we'll characterize by the number of mobilities.
-#define MACHINE_TEST(a,b) SimTK_TEST_EQ_SIZE(a,b, state.getNU())
+// (times 10 after I mangled the numbers -- sherm 110831).
+#define MACHINE_TEST(a,b) SimTK_TEST_EQ_SIZE(a,b, 10*state.getNU())
 
 
 /**
@@ -59,10 +60,28 @@ MultibodySystem& createSystem() {
     MultibodySystem* system = new MultibodySystem();
     SimbodyMatterSubsystem matter(*system);
     GeneralForceSubsystem forces(*system);
-    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    const Real mass = 1.23;
+    Body::Rigid body(MassProperties(mass, Vec3(.1,.2,-.03), 
+                     mass*UnitInertia(1.1, 1.2, 1.3, .01, -.02, .07)));
+
+    Rotation R_PF(Pi/20, UnitVec3(1,2,3));
+    Rotation R_BM(-Pi/17, UnitVec3(2,.2,3));
     for (int i = 0; i < NUM_BODIES; ++i) {
         MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
-        MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
+        
+        if (i == NUM_BODIES-5) {
+            MobilizedBody::Universal b(
+                parent, Transform(R_PF, Vec3(-.1,.3,.2)), 
+                body, Transform(R_BM, Vec3(BOND_LENGTH, 0, 0)));
+        } else if (i == NUM_BODIES-3) {
+            MobilizedBody::Ball b(
+                parent, Transform(R_PF, Vec3(-.1,.3,.2)), 
+                body, Transform(R_BM, Vec3(BOND_LENGTH, 0, 0)));
+        } else {
+            MobilizedBody::Gimbal b(
+                parent, Transform(R_PF, Vec3(-.1,.3,.2)), 
+                body, Transform(R_BM, Vec3(BOND_LENGTH, 0, 0)));
+        }
     }
     return *system;
 }
@@ -359,6 +378,8 @@ void testDisablingConstraints() {
     MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
     Constraint::Rod constraint(first, last, 3.0);
     createState(system, state);
+    const int numQuaternionsInUse = matter.getNumQuaternionsInUse(state);
+
     class DisableHandler : public ScheduledEventHandler {
     public:
         DisableHandler(Constraint& constraint) : constraint(constraint) {
@@ -380,7 +401,7 @@ void testDisablingConstraints() {
     for (int i = 0; i < 10; i++) {
         ts.stepTo(i+1);
         if (i < 4) {
-            CONSTRAINT_TEST(ts.getState().getNQErr(), 1);
+            CONSTRAINT_TEST(ts.getState().getNQErr(), numQuaternionsInUse+1);
             CONSTRAINT_TEST(ts.getState().getNUErr(), 1);
             MACHINE_TEST(ts.getState().getNUDotErr(), 1);
             Vec3 r1 = first.getBodyOriginLocation(ts.getState());
@@ -390,7 +411,7 @@ void testDisablingConstraints() {
             CONSTRAINT_TEST(dr.norm(), 3.0);
         }
         else {
-            CONSTRAINT_TEST(ts.getState().getNQErr(), 0);
+            CONSTRAINT_TEST(ts.getState().getNQErr(), numQuaternionsInUse);
             CONSTRAINT_TEST(ts.getState().getNUErr(), 0);
             MACHINE_TEST(ts.getState().getNUDotErr(), 0);
             Vec3 r1 = first.getBodyOriginLocation(ts.getState());
@@ -441,12 +462,93 @@ void testConstraintForces() {
     // we calculate the multiplier lambda from M udot + ~G lambda = f_applied. We'll negate
     // the calculated multipliers to turn these into applied forces.
     const Vector mults = -state.getMultipliers();
-    Vector_<SpatialVec> bodyForces;
+    Vector_<SpatialVec> constraintForces;
     Vector mobilityForces;
     matter.calcConstraintForcesFromMultipliers(state, mults,
-        bodyForces, mobilityForces);
+        constraintForces, mobilityForces);
 
-    MACHINE_TEST(bodyForces[loose.getMobilizedBodyIndex()], mobilizerReactions[welded.getMobilizedBodyIndex()]);
+    MACHINE_TEST(constraintForces[loose.getMobilizedBodyIndex()], 
+                 mobilizerReactions[welded.getMobilizedBodyIndex()]);
+
+    // This returns just the forces on the weld's two bodies: in this
+    // case Ground and "loose", in that order.
+    Vector_<SpatialVec> glueForces = 
+        glue.getConstrainedBodyForcesAsVector(state);
+
+    MACHINE_TEST(-glueForces[1], // watch the sign!
+                 mobilizerReactions[welded.getMobilizedBodyIndex()]);
+}
+
+// Test methods for multiplication by the various constraint matrices, and
+// for forming the whole matrices. The equations of motion are:
+//      M udot + ~G lambda + f_inertial = f_applied
+//                               G udot = b
+//                                 qdot = N * u
+//           [P]
+// where G = [V], and we are also interested in Pq = P*N^-1 which is the
+//           [A]
+// q-space Jacobian Pq = Dperr/Dq. Routines involving these matrices use the
+// constraint error routines; routines involving their transposes use the
+// constraint force routines -- that is, they use a completely different
+// algorithm so need separate tests.
+//
+// The code for working with G and ~G has flags allowing selection of P,V,A
+// submatrices or combinations; that needs testing too. Extracting the
+// right constraint-specific segments in the holonomic, nonholonomic, and
+// acceleration-only arrays is tricky.
+void testConstraintMatrices() {
+    // Create a chain of bodies 
+    State state;
+    MultibodySystem& system = createSystem();
+    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
+    MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
+    MobilizedBody& second = matter.updMobilizedBody(MobilizedBodyIndex(2));
+    MobilizedBody& fifth = matter.updMobilizedBody(MobilizedBodyIndex(5));
+    MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
+   
+    // Add a body on a free joint to body 5 then weld it.
+    MobilizedBody::Free extra(fifth, Transform(),
+        MassProperties(1, Vec3(.01,.02,.03), Inertia(1,1.1,1.2)), Transform());
+    Constraint::Weld weld(extra, fifth);
+    
+    Constraint::Ball ball(first, last);
+    Constraint::ConstantAcceleration accel2(second, MobilizerUIndex(1), .01);
+    Constraint::ConstantSpeed speed5(fifth, MobilizerUIndex(1), .1);
+    createState(system, state);
+
+    const int nu = matter.getNU(state);
+    const int nq = matter.getNQ(state);
+    const int nquat = matter.getNumQuaternionsInUse(state);
+    const int mp = matter.getNQErr(state) - nquat;
+    const int mv = matter.getNUErr(state) - mp;
+    const int ma = matter.getNUDotErr(state) - (mp+mv);
+
+
+    Matrix G, Gt;
+    matter.calcG(state, G); // use error routines
+    matter.calcGt(state, Gt); // use force routines
+    SimTK_TEST_EQ(G, ~Gt); // match to numerical precision
+
+    // Repeat using matrix views that have non-contiguous columns by 
+    // generating them into transposed matrices.
+    Matrix Gx(G.nrow(),G.ncol()), Gtx(Gt.nrow(),Gt.ncol());
+    matter.calcG(state, ~Gtx); 
+    matter.calcGt(state, ~Gx);
+    SimTK_TEST_EQ_TOL(G, ~Gtx, 1e-16); // should be identical
+    SimTK_TEST_EQ_TOL(Gt, ~Gx, 1e-16);
+
+    MatrixView P=G(0,0,mp,nu);
+    MatrixView V=G(mp,0,mv,nu);
+    MatrixView A=G(mp+mv,0,ma,nu);
+
+    // Calculate Pqx=P*N^-1 here and compare with Pq.
+    Matrix Pqx(mp, nq);
+    for (int i=0; i < mp; ++i) {
+        matter.multiplyByNInv(state, true, ~P[i], ~Pqx[i]);
+    }
+    Matrix Pq;
+    matter.calcPq(state, Pq);
+    SimTK_TEST_EQ(Pq, Pqx); // to numerical precision
 }
 
 int main() {
@@ -461,7 +563,8 @@ int main() {
         SimTK_SUBTEST(testRodConstraint);
         SimTK_SUBTEST(testWeldConstraint);
         SimTK_SUBTEST(testWeldConstraintWithPreAssembly);
-        SimTK_SUBTEST(testDisablingConstraints);
         SimTK_SUBTEST(testConstraintForces);
+        SimTK_SUBTEST(testConstraintMatrices);
+        SimTK_SUBTEST(testDisablingConstraints);
     SimTK_END_TEST();
 }
