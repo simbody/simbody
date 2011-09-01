@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -42,35 +42,39 @@
 namespace SimTK {
 
 
-//-------------------------------- VectorHelper --------------------------------
+/*-------------------------------- VectorHelper --------------------------------
 
-/// This abstract class represents a 1d matrix, a.k.a. a Vector or a RowVector
-/// (covector). Most operations don't care whether this is a column or a row,
-/// however we have to know so that we can support matrix operations on the
-/// vector when necessary. For example, getElt(i,j) still has to work (as long
-/// as the appropriate one of i or j is 0), even though getElt(i) is more
-/// efficient and direction-agnostic.
-///
-/// The most common layout is that all elements are stored, either consecutively
-/// in memory or with a regular stride. Vectors constructed from a larger pool 
-/// of stored data via indexing are also important and need to be implemented 
-/// efficiently.
-/// 
-/// TODO:  However, there are several other important
-/// layouts that arise most commonly from row and column selections performed
-/// on non-full matrices, like triangular or symmetric matrices. Supporting such
-/// selections allows simple (if inefficient) implementations of operations on
-/// mixed types of matrices by breaking them into row and column operations.
-/// Vectors selected in this way can be repetitions of the same element (often
-/// zero), negations or conjugations of stored elements, and may sometimes have
-/// a single "distinguished" element whose value is known (this occurs for example
-/// when crossing a non-stored unit diagonal).
-///
-/// TODO: Finally, we allow a Vector to be formed of a composition of smaller 
-/// Vectors. Then the whole vector can be accessed by element or more efficiently
-/// by segments.
+This abstract class represents a 1d matrix, a.k.a. a Vector or a RowVector
+(covector). However, its use is not limited to the SimTK::Vector and and
+SimTK::RowVector classes; any skinny Matrix or skinny slice of a fatter
+Matrix might use a VectorHelper since it provides faster access to memory
+than a generic 2d helper would.
+    
+Most operations don't care whether this is a column or a row,
+however we have to know so that we can support matrix operations on the
+vector when necessary. For example, getElt(i,j) still has to work (as long
+as the appropriate one of i or j is 0), even though getElt(i) is more
+efficient and direction-agnostic.
 
-//------------------------------------------------------------------------------
+The most common layout is that all elements are stored, either consecutively
+in memory or with a regular stride. Vectors constructed from a larger pool 
+of stored data via indexing are also important and need to be implemented 
+efficiently.
+
+TODO:  However, there are several other important
+layouts that arise most commonly from row and column selections performed
+on non-full matrices, like triangular or symmetric matrices. Supporting such
+selections allows simple (if inefficient) implementations of operations on
+mixed types of matrices by breaking them into row and column operations.
+Vectors selected in this way can be repetitions of the same element (often
+zero), negations or conjugations of stored elements, and may sometimes have
+a single "distinguished" element whose value is known (this occurs for example
+when crossing a non-stored unit diagonal).
+
+TODO: Finally, we allow a Vector to be formed of a composition of smaller 
+Vectors. Then the whole vector can be accessed by element or more efficiently
+by segments.
+------------------------------------------------------------------------------*/
 template <class S>
 class VectorHelper : public MatrixHelperRep<S> {
     typedef VectorHelper<S>         This;
@@ -86,8 +90,8 @@ public:
     }
 
 
-    // A deep copy of a Vector will always return another Vector, so we'll change
-    // the return type here.
+    // A deep copy of a Vector will always return another Vector, so we'll 
+    // change the return type here.
     virtual This* createDeepCopy_() const = 0;
 
     // Just changing the return type here.
@@ -111,15 +115,14 @@ public:
     virtual S*       updElt_ (int i)                 = 0;
     virtual void getAnyElt_  (int i, S* value) const = 0;
 
-
-
-    // (Positional) transpose view is identical to this one except that we'll call it
-    // a row rather than a column or vice versa.
+    // (Positional) transpose view is identical to this one except that we'll 
+    // call it a row rather than a column or vice versa.
     This* createTransposeView_() {
         This* p = cloneHelper_();
         p->m_data = this->m_data;
         p->m_row = !m_row;
-        p->m_actual.updStorage().setOrder(p->m_row ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder);
+        p->m_actual.updStorage().setOrder
+           (p->m_row ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder);
         return p;
     }
 
@@ -150,10 +153,11 @@ public:
 
     // This will always produce a 1-element "contiguous" column vector.
     VectorHelper<S>* createDiagonalView_();
+
+    // Source matches size and shape of this row or column.
     void copyInFromCompatibleSource_(const MatrixHelperRep<S>& source) {
         if (this->getEltSize() == 1) {
             // The elements are scalars, so we can copy them directly.
-
             if (this->nrow() == 1) // a row vector
                 for (int j=0; j<this->ncol(); ++j)
                     *this->updElt_(j) = *source.getElt(0,j);
@@ -161,7 +165,7 @@ public:
                 for (int i=0; i<this->nrow(); ++i)
                     *this->updElt_(i) = *source.getElt(i,0);
         }
-        else {
+        else {  // Here the elements are not scalars.
             if (this->nrow() == 1) // a row vector
                 for (int j=0; j<this->ncol(); ++j)
                     copyElt(this->updElt_(j), source.getElt(0,j));
@@ -199,7 +203,8 @@ public:
 
     // Use someone else's memory, which we assume to be the right size.
     // We take care of stride elsewhere.
-    ContiguousVectorHelper(int esz, int cppesz, int n, bool isRow, const S* shared, bool canWrite) 
+    ContiguousVectorHelper(int esz, int cppesz, int n, bool isRow, 
+                           const S* shared, bool canWrite) 
     :   Base(esz,cppesz,isRow)
     {        
         this->m_owner     = false;
@@ -208,21 +213,46 @@ public:
         this->m_actual.setStructure(MatrixStructure::Matrix1d);
         this->m_actual.setStorage(
             MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement, 
-                          isRow ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder, 
+                          isRow ? MatrixStorage::RowOrder 
+                                : MatrixStorage::ColumnOrder, 
                           MatrixStorage::NoDiag));
-        this->m_actual.setActualSize(isRow?1:n, isRow?n:1); // apparent size; sets Outline
+        // apparent size; sets Outline
+        this->m_actual.setActualSize(isRow?1:n, isRow?n:1); 
     }
 
     virtual This* cloneHelper_() const {return new This(*this);}
 
-    // A block view of a full, contiguous vector is a smaller full, contiguous vector.
-    This* createBlockView_(const EltBlock& block) {
-        This* p = cloneHelper_();
-        p->m_data = updElt_(block.row0() + block.col0());
+    // A block view of a full, contiguous row/column is either 
+    // (1) a smaller full, contiguous row/column, or (2) a zero-width
+    // slice. In the latter case it may no longer be a row or column so we
+    // have to switch helper types to a Full mX0 or 0Xn matrix.
+    MatrixHelperRep<S>* createBlockView_(const EltBlock& block) {
+        const int m=block.nrow(), n=block.ncol();
+        if (m && n) { // normal case; same orientation but smaller
+            This* p = cloneHelper_();
+            p->m_data = updElt_(block.row0() + block.col0());
+            return p;
+        }
+        // Here we know at least one of m or n is zero.
+        if (m==1 || n==1) { // i.e., (1,0) or (0,1)
+            This* p = cloneHelper_(); // still 1d "contiguous"
+            p->m_data = 0;
+            p->m_row = (m==1); // regardless of what it was
+            return p;
+        }
+
+        // Here one of m,n is zero and the other is > 1; not 1d any more.
+        RegularFullHelper<S>* p = 0;
+        if (this->getEltSize()==1)
+             p = new FullColOrderScalarHelper<S>(m,n,m,(S*)0,this->m_writable);
+        else p = new FullColOrderEltHelper<S>(this->getEltSize(), 
+                                              this->getCppEltSize(),
+                                              m,n,m,(S*)0,this->m_writable);
+        // Called shared-data constructor so p is non-owner.
         return p;
     }
 
-    // Row and column view are like block view.
+    // This creates an mx1 column vector.
     This* createColumnView_(int j, int i, int m) {
         This* p = cloneHelper_();
         p->m_data = m > 0 ? updElt_(i+j) : 0;
@@ -231,6 +261,7 @@ public:
         return p;
     }
 
+    // This creates a 1xn row vector.
     This* createRowView_(int i, int j, int n) {
         This* p = cloneHelper_();
         p->m_data = n > 0 ? updElt_(i+j) : 0;
@@ -361,12 +392,30 @@ public:
 
     virtual This* cloneHelper_() const {return new This(*this);}
 
-    // A block view of a strided vector is a smaller vector with identical stride.
-    // No stride needed if there are fewer than two elements, though.
-    VectorHelper<S>* createBlockView_(const EltBlock& block) {
+    // A block view of a strided vector is usually a smaller vector with 
+    // identical stride. No stride needed if there are fewer than two 
+    // elements, though. Also, this could be an mX0 or 0Xn slice which is
+    // no longer a Vector unless m==1 or n==1.
+     MatrixHelperRep<S>* createBlockView_(const EltBlock& block) {
+        const int m=block.nrow(), n=block.ncol();
+        if ((m==0 && n!=1) || (n==0 && m!=1)) {
+            // One or both dimensions is 0 and the other is not 1, so this
+            // is no longer a 1d object.
+            RegularFullHelper<S>* p = 0;
+            if (this->getEltSize()==1)
+                 p = new FullColOrderScalarHelper<S>(m,n,m,(S*)0,this->m_writable);
+            else p = new FullColOrderEltHelper<S>(this->getEltSize(), 
+                                                  this->getCppEltSize(),
+                                                  m,n,m,(S*)0,this->m_writable);
+            // Called shared-data constructor so p is non-owner.
+            return p;
+        }
+
+        // At least one of m,n is a 1. Could still be 1x0 or 0x1.
+
         VectorHelper<S>* p = 0;
         const int start = block.row0() + block.col0(); // one of those is zero
-        const int length = block.nrow()*block.ncol();  // one of those is one
+        const int length = m*n;  // one of those is one
         S* data = length ? updElt_(start) : 0;
 
         if (length <= 1) {
@@ -374,6 +423,7 @@ public:
                 ? new ContiguousVectorScalarHelper<S>(length, false, data, false)
                 : new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, length,
                                                 false, data, false);
+            // called a shared-data constructor, so p is non-owner
             return p;
         }
 
@@ -382,7 +432,8 @@ public:
         return p;
     }
 
-    // Row and column view are like block view.
+    // Row and column view are like block view but without the possibility
+    // of a non-Vector result.
     VectorHelper<S>* createColumnView_(int j, int i, int m) {
         VectorHelper<S>* p = 0;
         const int start = i+j; // one of those is zero
@@ -543,16 +594,48 @@ public:
     virtual This* cloneHelper_() const {return new This(*this);}
 
     // A block view of an indexed vector is a shorter indexed vector.
-    This* createBlockView_(const EltBlock& block) {
+    // Also, this could be an mX0 or 0Xn slice which is
+    // no longer a Vector unless m==1 or n==1.
+     MatrixHelperRep<S>* createBlockView_(const EltBlock& block) {
+        const int m=block.nrow(), n=block.ncol();
+        if ((m==0 && n!=1) || (n==0 && m!=1)) {
+            // One or both dimensions is 0 and the other is not 1, so this
+            // is no longer a 1d object.
+            RegularFullHelper<S>* p = 0;
+            if (this->getEltSize()==1)
+                 p = new FullColOrderScalarHelper<S>(m,n,m,(S*)0,this->m_writable);
+            else p = new FullColOrderEltHelper<S>(this->getEltSize(), 
+                                                  this->getCppEltSize(),
+                                                  m,n,m,(S*)0,this->m_writable);
+            // Called a shared-data constructor so p is non-owner.
+            return p;
+        }
+
+        // At least one of the dimensions is a 1. Could still be 1x0 or 0x1.
+
         const int start = block.row0() + block.col0(); // one of these is zero
-        const int n     = block.nrow()*block.ncol(); // one of these is 1 (TODO: might be 0x0)
+        const int length = block.nrow()*block.ncol(); // one of these is 1
+
+        if (length <= 1) {
+            // No need for indices; this is contiguous now.
+            S* data = length ? updElt_(start) : 0;
+            ContiguousVectorHelper<S>* p = (this->m_eltSize==1) 
+                ? new ContiguousVectorScalarHelper<S>
+                        (length, false, data, false)
+                : new ContiguousVectorHelper<S>
+                        (this->m_eltSize, this->m_cppEltSize, length,
+                         false, data, false);
+            // Called a shared-data constructor so p is non-owner.
+            return p;
+        }
+
+        // Still an indexed vector.
  
         This* p = new This(*this, true); // don't copy the indices
         p->m_data = this->m_data;
-        if (n) {
-            p->m_scalarIndices = new int[n];
-            std::memcpy(p->m_scalarIndices, m_scalarIndices+start, n*sizeof(int));
-        }
+        p->m_scalarIndices = new int[length];
+        std::memcpy(p->m_scalarIndices, m_scalarIndices+start, 
+                    length*sizeof(int));
         return p;
     }
 
