@@ -94,7 +94,7 @@ public:
         return 0;
     }
 
-    // The Jacobian of the holonomic constraint errors is PN^-1. We can get
+    // The Jacobian of the holonomic constraint errors is Pq=PN^-1. We can get
     // that analytically from Simbody but we might have to strip out some
     // of the columns if we aren't using all the q's.
     int calcErrorJacobian(const State& state, Matrix& jacobian) const {
@@ -102,14 +102,14 @@ public:
         const int np = getNumFreeQs();
         const int nq = state.getNQ();
 
-        jacobian.resize(state.getNQErr(), np);
+        jacobian.resize(state.getNQErr(), np); // ok cuz no quaternions
 
         if (np == nq) {
             // Jacobian is already the right shape.
-            matter.calcPNInv(state, jacobian);
+            matter.calcPq(state, jacobian);
         } else {
             Matrix fullJac(state.getNQErr(), nq);
-            matter.calcPNInv(state, fullJac);
+            matter.calcPq(state, fullJac);
             // Extract just the columns corresponding to free Qs
             for (Assembler::FreeQIndex fx(0); fx < np; ++fx)
                 jacobian(fx) = fullJac(getQIndexOfFreeQ(fx));

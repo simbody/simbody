@@ -101,7 +101,8 @@ int main() {
 
     Constraint pres[5];
     for (int i=0; i<5; ++i) {
-        pres[i] = Constraint::PrescribedMotion(matter, new Function::Constant(.1),
+        pres[i] = Constraint::PrescribedMotion(matter, 
+            new Function::Constant(.1),
             MobilizedBodyIndex(NBodies+2+i), MobilizerQIndex(2));
         //pres[i].setDisabledByDefault(true);
     }
@@ -125,7 +126,8 @@ int main() {
         pres[i].disable(state);
 
     for (int i=0; i<5; ++i)
-        cout << "state pres[" << i << "].isDisabled=" << pres[i].isDisabled(state) << endl;
+        cout << "state pres[" << i << "].isDisabled=" 
+             << pres[i].isDisabled(state) << endl;
 
     const Vec3 midTarget(1.5*NBodies,-NBodies*0.5*hdims[1],3);
     const Vec3 finalTarget(2*NBodies, -NBodies*0.3*hdims[1],2);
@@ -142,12 +144,14 @@ int main() {
     viz.report(state);
     State tempState = state; 
     for (int i=0; i<5; ++i)
-        cout << "tempState copy pres[" << i << "].isDisabled=" << pres[i].isDisabled(tempState) << endl;
+        cout << "tempState copy pres[" << i << "].isDisabled=" 
+             << pres[i].isDisabled(tempState) << endl;
 
     system.realize(tempState, Stage::Position);
+    const int nQuat = matter.getNumQuaternionsInUse(tempState);
     cout << "INITIAL CONFIGURATION\n"; 
     cout << tempState.getNU() << " dofs, " 
-         << tempState.getNQErr() << " constraints.\n";
+         << tempState.getNQErr()-nQuat << " constraints.\n";
     
     cout << "Type any character to continue:\n";
     getchar();
@@ -252,11 +256,14 @@ int main() {
     getchar();
    
     // Simulate it.
+    for (int i=0; i<5; ++i)
+        cout << "state pres[" << i << "].isDisabled=" 
+             << pres[i].isDisabled(state) << endl;
 
     RungeKuttaMersonIntegrator integ(system);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    ts.stepTo(100.0);
+    ts.stepTo(10.0);
 
     cout << "DONE SIMULATING.\n";
     cout << "Type any character to quit:\n";
