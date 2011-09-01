@@ -236,6 +236,48 @@ int main() {
         svanswer[0]=svarray[0];svanswer[1]=svarray[1];svanswer[2]=svarray[2];
         SimTK_TEST_EQ_TOL(svvector, svanswer, 1e-16); // should be exact
 
+        // Create 0-width slices of Matrix that has general shape,
+        // vector shape, and row vector shape. This caused trouble before
+        // because vector and row shapes use 1d matrix storage; when making
+        // a 0-width slice of those they have to go back to general shape.
+        // Note that you are allowed to index off the bottom and right if
+        // you make a zero-width slice.
+
+        Matrix general(3, 4);
+        MatrixView gslice1 = general(1,1,0,2); // middle
+        SimTK_TEST(gslice1.nrow()==0 && gslice1.ncol()==2);
+        MatrixView gslice2 = general(1,1,1,0); // middle
+        SimTK_TEST(gslice2.nrow()==1 && gslice2.ncol()==0);
+        MatrixView gslice3 = general(0,0,3,0); // left side
+        SimTK_TEST(gslice3.nrow()==3 && gslice3.ncol()==0);
+        MatrixView gslice4 = general(0,0,0,4); // top
+        SimTK_TEST(gslice4.nrow()==0 && gslice4.ncol()==4);
+        MatrixView gslice5 = general(3,0,0,4); // off the bottom
+        SimTK_TEST(gslice5.nrow()==0 && gslice5.ncol()==4);
+        MatrixView gslice6 = general(0,4,3,0); // off the right side
+        SimTK_TEST(gslice6.nrow()==3 && gslice6.ncol()==0);
+        MatrixView gslice7 = general(0,0,0,0);
+        SimTK_TEST(gslice7.nrow()==0 && gslice7.ncol()==0);
+        MatrixView gslice8 = general(1,2,0,0);
+        SimTK_TEST(gslice8.nrow()==0 && gslice8.ncol()==0);
+        MatrixView gslice9 = general(2,3,0,0);
+        SimTK_TEST(gslice9.nrow()==0 && gslice9.ncol()==0);
+
+        MatrixView vector = general(0,1,3,1);
+        SimTK_TEST(vector.nrow()==3 && vector.ncol()==1);
+        MatrixView vslice1 = vector(0,0,3,0);
+        SimTK_TEST(vslice1.nrow()==3 && vslice1.ncol()==0);
+        MatrixView vslice2 = vector(0,0,0,0);
+        SimTK_TEST(vslice2.nrow()==0 && vslice2.ncol()==0);
+        MatrixView vslice3 = vector(2,0,1,0);
+        SimTK_TEST(vslice3.nrow()==1 && vslice3.ncol()==0);
+        MatrixView vslice4 = vector(3,0,0,1); // off the bottom
+        SimTK_TEST(vslice4.nrow()==0 && vslice4.ncol()==1);
+        MatrixView vslice5 = vector(0,1,3,0); // off the right
+        SimTK_TEST(vslice5.nrow()==3 && vslice5.ncol()==0);
+        vslice5 = Matrix(3,0);
+
+
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
