@@ -522,18 +522,19 @@ void testConstraintMatrices() {
     const int mp = matter.getNQErr(state) - nquat;
     const int mv = matter.getNUErr(state) - mp;
     const int ma = matter.getNUDotErr(state) - (mp+mv);
+    const int m = mp+mv+ma;
 
 
     Matrix G, Gt;
     matter.calcG(state, G); // use error routines
-    matter.calcGt(state, Gt); // use force routines
+    matter.calcGTranspose(state, Gt); // use force routines
     SimTK_TEST_EQ(G, ~Gt); // match to numerical precision
 
     // Repeat using matrix views that have non-contiguous columns by 
     // generating them into transposed matrices.
     Matrix Gx(G.nrow(),G.ncol()), Gtx(Gt.nrow(),Gt.ncol());
     matter.calcG(state, ~Gtx); 
-    matter.calcGt(state, ~Gx);
+    matter.calcGTranspose(state, ~Gx);
     SimTK_TEST_EQ_TOL(G, ~Gtx, 1e-16); // should be identical
     SimTK_TEST_EQ_TOL(Gt, ~Gx, 1e-16);
 
@@ -549,6 +550,33 @@ void testConstraintMatrices() {
     Matrix Pq;
     matter.calcPq(state, Pq);
     SimTK_TEST_EQ(Pq, Pqx); // to numerical precision
+
+    Matrix Pqt;
+    matter.calcPqTranspose(state, Pqt);
+
+    // Check that multiplication method works like explicit multiplication.
+    Vector lambda = Test::randVector(m);
+    Vector lambdap = Test::randVector(mp);
+    Vector uin = Test::randVector(nu);
+    Vector qin = Test::randVector(nq);
+    Vector aerrOut, perrOut, fuout, fqout;
+
+    matter.multiplyByG(state, uin, aerrOut);
+    SimTK_TEST(aerrOut.size() == m);
+    SimTK_TEST_EQ_SIZE(aerrOut, G*uin, nu);
+
+    matter.multiplyByGTranspose(state, lambda, fuout);
+    SimTK_TEST(fuout.size() == nu);
+    SimTK_TEST_EQ_SIZE(fuout, Gt*lambda, nu);
+
+    matter.multiplyByPq(state, qin, perrOut);
+    SimTK_TEST(perrOut.size() == mp);
+    SimTK_TEST_EQ_SIZE(perrOut, Pq*qin, nq);
+
+    matter.multiplyByPqTranspose(state, lambdap, fqout);
+    SimTK_TEST(fqout.size() == nq);
+    SimTK_TEST_EQ_SIZE(fqout, Pqt*lambdap, nq);
+
 }
 
 int main() {

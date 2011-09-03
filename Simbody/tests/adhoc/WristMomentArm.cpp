@@ -653,7 +653,7 @@ int main() {
     const Vector udot0 = state.getUDot();
     const Vector lambda0 = state.getMultipliers();
     Matrix Gt;
-    matter.calcGt(state, Gt);
+    matter.calcGTranspose(state, Gt);
     cout << "Gt*l0=" << Gt*lambda0 << endl;
     Vector f0l = f0 - Gt*lambda0;
 
@@ -697,7 +697,7 @@ int main() {
         f1);
     f1 += system.getMobilityForces(state,Stage::Dynamics);
 
-    matter.calcGt(state, Gt);
+    matter.calcGTranspose(state, Gt);
     cout << "Gt*l1=" << Gt*lambda1 << endl;
     Vector f1l = f1 - Gt*lambda1;
 

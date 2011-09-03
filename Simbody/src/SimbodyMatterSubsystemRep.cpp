@@ -1607,6 +1607,9 @@ int SimbodyMatterSubsystemRep::getNumAccelerationOnlyConstraintEquationsInUse(co
     return ic.totalNAccelerationOnlyConstraintEquationsInUse;
 }
 
+//==============================================================================
+//                   OBSOLETE -- see calcPq()
+//==============================================================================
 void SimbodyMatterSubsystemRep::calcHolonomicConstraintMatrixPNInv(const State& s, Matrix& PNInv) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     const int mp = ic.totalNHolonomicConstraintEquationsInUse;
@@ -1625,6 +1628,10 @@ void SimbodyMatterSubsystemRep::calcHolonomicConstraintMatrixPNInv(const State& 
             constraints[cx]->calcPositionConstraintMatrixPNInv(s);
     }
 }
+
+//==============================================================================
+//                  CALC HOLONOMIC VELOCITY CONSTRAINT MATRIX P
+//==============================================================================
 void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixP(const State& s, Matrix& P) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     const int mHolo = ic.totalNHolonomicConstraintEquationsInUse;
@@ -1643,6 +1650,9 @@ void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixP(const Sta
             constraints[cx]->calcPositionConstraintMatrixP(s);
     }
 }
+//==============================================================================
+//                 CALC HOLONOMIC VELOCITY CONSTRAINT MATRIX P^T
+//==============================================================================
 void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixPt(const State& s, Matrix& Pt) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     const int mHolo = ic.totalNHolonomicConstraintEquationsInUse;
@@ -1662,6 +1672,10 @@ void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixPt(const St
             constraints[cx]->calcPositionConstraintMatrixPt(s);
     }
 }
+
+//==============================================================================
+//                  CALC NONHOLONOMIC CONSTRAINT MATRIX V
+//==============================================================================
 void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixV(const State& s, Matrix& V) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
@@ -1680,6 +1694,10 @@ void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixV(const State& s
             constraints[cx]->calcVelocityConstraintMatrixV(s);
     }
 }
+
+//==============================================================================
+//                  CALC NONHOLONOMIC CONSTRAINT MATRIX V^T
+//==============================================================================
 void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixVt(const State& s, Matrix& Vt) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
@@ -1699,6 +1717,9 @@ void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixVt(const State& 
             constraints[cx]->calcVelocityConstraintMatrixVt(s);
     }
 }
+//==============================================================================
+//                  CALC ACCELERATION ONLY CONSTRAINT MATRIX A
+//==============================================================================
 void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixA (const State& s, Matrix& A) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
@@ -1717,6 +1738,9 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixA (const Sta
             constraints[cx]->calcAccelerationConstraintMatrixA(s);
     }
 }
+//==============================================================================
+//                  CALC ACCELERATION ONLY CONSTRAINT MATRIX A^T
+//==============================================================================
 void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const State& s, Matrix& At) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
@@ -1749,13 +1773,14 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const Sta
 // were applied forces, negate lambda before the call here. This method
 // returns the individual constraint force contributions as well as returning
 // the combined forces.
-void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
-  (const State&         s, 
-   const Vector&        lambda,
-   Vector_<SpatialVec>& bodyForcesInG,
-   Vector&              mobilityForces,
-   Array_<SpatialVec>&  consBodyForcesInG,
-   Array_<Real>&        consMobilityForces) const
+void SimbodyMatterSubsystemRep::
+calcConstraintForcesFromMultipliers
+   (const State&         s, 
+    const Vector&        lambda,
+    Vector_<SpatialVec>& bodyForcesInG,
+    Vector&              mobilityForces,
+    Array_<SpatialVec>&  consBodyForcesInG,
+    Array_<Real>&        consMobilityForces) const
 {
     const SBInstanceCache& ic = getInstanceCache(s);
 
@@ -1845,6 +1870,200 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
             mobilityForces[cInfo.getUIndexFromConstrainedU(cux)] 
                 += mobilityF1[cux];     // 1 flop
     }
+}
+
+
+
+//==============================================================================
+//                         MULTIPLY BY PVA TRANSPOSE
+//==============================================================================
+// We have these constraint equations available:
+// (1)  [Fp,fp] = pforces(t,q;   lambdap)       holonomic (position)
+// (2)  [Fv,fv] = vforces(t,q,u; lambdav)       non-holonomic (velocity)
+// (3)  [Fa,fa] = aforces(t,q,u; lambdaa)       acceleration-only
+// where F denotes body spatial forces and f denotes u-space generalized forces.
+//
+// such that ~J*Fp+fp = ~P*lambdap
+//           ~J*Fv+fv = ~V*lambdav
+//       and ~J*Fa+fa = ~A*lambdaa
+//
+// with P=P(t,q), V=V(t,q,u), A=A(t,q,u). Note that P is the u-space matrix
+// P=Dperrdot/Du, *not* the q-space matrix Pq=Dperr/Dq=P*N^-1. 
+// (See multiplyByPqTranspose() to work conveniently with Pq.)
+//
+// Here we will use those equations to perform the multiplications by the
+// matrices ~P,~V, and/or ~A times a multiplier-like vector: 
+//                                    [lambdap]                       
+// (4)  fu = ~G*lambda = [~P ~V ~A] * [lambdav] = ~J*(Fp+Fv+Fa) + (fp+fv+fa).
+//                                    [lambdaa]
+//
+// Individual constraint force equations are calculated in constant time, so 
+// the whole multiplication can be done in O(m) time where m=mp+mv+ma is the 
+// total number of active constraint equations.
+//
+// In general the state must be realized through Velocity stage, but if the 
+// system contains only holonomic constraints, or if only ~P is included, then 
+// the result is only time- and position-dependent since we just need to use 
+// equation (1). In that case we require only that the state be realized to 
+// stage Position.
+//
+// All of the Vector arguments must use contiguous storage.
+void SimbodyMatterSubsystemRep::
+multiplyByPVATranspose( const State&     s,
+                        bool             includeP,
+                        bool             includeV,
+                        bool             includeA,
+                        const Vector&    lambda,
+                        Vector&          allfuVector) const
+{
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = includeP ? 
+        ic.totalNHolonomicConstraintEquationsInUse : 0;
+    const int mNonholo = includeV ? 
+        ic.totalNNonholonomicConstraintEquationsInUse : 0;
+    const int mAccOnly = includeA ? 
+        ic.totalNAccelerationOnlyConstraintEquationsInUse : 0;
+    const int m = mHolo+mNonholo+mAccOnly;
+
+    const int nu       = getNU(s);
+    const int nb       = getNumBodies();
+
+    assert(lambda.size() == m);
+    assert(lambda.hasContiguousData());
+
+    allfuVector.resize(nu);
+    assert(allfuVector.hasContiguousData());
+    if (nu==0) return;
+    if (m==0) {allfuVector.setToZero(); return;}
+
+    // Allocate a temporary body forces vector here. We'll map these to 
+    // generalized forces as the penultimate step, then add those into 
+    // the output argument allfuVector which will have already accumulated 
+    // all directly-generated mobility forces.
+    Vector_<SpatialVec> allF_GVector(nb);
+
+    // We'll be accumulating constraint forces into these Vectors so zero 
+    // them now. Multiple constraints may contribute to forces on the same 
+    // body or mobility. 
+    allF_GVector.setToZero();
+    allfuVector.setToZero();
+
+    // Overlay arrays on the contiguous Vector memory for faster elementwise
+    // access. Any of the lambda segments may be empty.
+    const Real* first = &lambda[0];
+    ArrayViewConst_<Real>  allLambdap(first, first+mHolo);
+    ArrayViewConst_<Real>  allLambdav(first+mHolo,
+                                      first+mHolo+mNonholo);
+    ArrayViewConst_<Real>  allLambdaa(first+mHolo+mNonholo, 
+                                      first+mHolo+mNonholo+mAccOnly);
+
+    ArrayView_<SpatialVec> allF_G(&allF_GVector[0], &allF_GVector[0] + nb);
+    ArrayView_<Real>       allfu (&allfuVector[0],  &allfuVector[0]  + nu);
+
+    // These Arrays are for one constraint at a time. We need separate 
+    // memory for these because constrained bodies and constrained u's are
+    // not ordered the same as the global ones, nor are they necessarily
+    // contiguous in the global arrays. We're declaring these arrays
+    // outside the loop to avoid heap allocation -- they will grow to the
+    // max size needed by any constraint, then get resized as needed without
+    // further heap allocation.
+    Array_<SpatialVec,ConstrainedBodyIndex> oneF_G; // body spatial forces
+    Array_<Real,      ConstrainedUIndex>    onefu;  // u-space mobility forces     
+
+    // Loop over all enabled constraints, ask them to generate forces, and
+    // accumulate the results in the global problem arrays (allF_G,allfu).
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+
+        const ConstraintImpl& crep = constraints[cx]->getImpl();
+        const SBInstancePerConstraintInfo& 
+                              cInfo = ic.getConstraintInstanceInfo(cx);
+        const int ncb = crep.getNumConstrainedBodies();
+        const int ncu = cInfo.getNumConstrainedU();
+
+        // These have to be zeroed because we're accumulating forces from
+        // each of the three possible constraint levels below.
+        oneF_G.resize(ncb);                onefu.resize(ncu);
+        oneF_G.fill(SpatialVec(Vec3(0)));  onefu.fill(Real(0));
+
+        // Find this Constraint's multiplier segments within the global array.
+        // (These match the acceleration error segments.)
+        const Segment& holoSeg    = cInfo.holoErrSegment;
+        const Segment& nonholoSeg = cInfo.nonholoErrSegment;
+        const Segment& accOnlySeg = cInfo.accOnlyErrSegment;
+        const int mp = includeP ? holoSeg.length    : 0;
+        const int mv = includeV ? nonholoSeg.length : 0;
+        const int ma = includeA ? accOnlySeg.length : 0;
+
+        // Now generate forces. Body forces will come back in the A frame; 
+        // if that's not Ground then we have to re-express them in Ground 
+        // before moving on.
+        if (mp) {
+            ArrayViewConst_<Real> lambdap(&allLambdap[holoSeg.offset],
+                                          &allLambdap[holoSeg.offset]+mp);
+            crep.addInPositionConstraintForces(s, lambdap, oneF_G, onefu);                                       
+        }
+        if (mv) {
+            ArrayViewConst_<Real> lambdav(&allLambdav[nonholoSeg.offset],
+                                          &allLambdav[nonholoSeg.offset]+mv);
+            crep.addInVelocityConstraintForces(s, lambdav, oneF_G, onefu);                                       
+        }
+        if (ma) {
+            ArrayViewConst_<Real> lambdaa(&allLambdaa[accOnlySeg.offset],
+                                          &allLambdaa[accOnlySeg.offset]+ma);
+            crep.addInAccelerationConstraintForces(s, lambdaa, oneF_G, onefu);                                       
+        }
+
+        // Fix expressed-in frame for body forces if necessary.
+        if (crep.isAncestorDifferentFromGround()) {
+            const Rotation& R_GA = 
+                crep.getAncestorMobilizedBody().getBodyRotation(s);
+            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx)
+                oneF_G[cbx] = R_GA*oneF_G[cbx];  // 30 flops
+        }
+
+        // Unpack constrained body forces and add them to the proper slots 
+        // in the global body forces array.
+        for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx)
+            allF_G[crep.getMobilizedBodyIndexOfConstrainedBody(cbx)] 
+                += oneF_G[cbx];       // 6 flops per constrained body
+
+        // Unpack constrained mobility forces and add them into global array.
+        // (1 flop per constrained mobility).
+        for (ConstrainedUIndex cux(0); cux < ncu; ++cux) 
+            allfu[cInfo.getUIndexFromConstrainedU(cux)] += onefu[cux]; 
+    }
+
+
+    // Map the body forces into u-space generalized forces.
+    // 12*nu + 18*nb flops.
+    Vector ftmp(nu);
+    multiplyBySystemJacobianTranspose(s, allF_GVector, ftmp);
+    allfuVector += ftmp;
+}
+
+
+
+//==============================================================================
+//                          MULTIPLY BY Pq TRANSPOSE
+//==============================================================================
+// First we calculate the u-space result fu=~P*lambdap, then we map that
+// result into q-space via fq=N^-T*fu.
+// See multiplyByPVATranspose() above for an explanation.
+// Vectors lambdap and fq must be using contiguous storage.
+void SimbodyMatterSubsystemRep::
+multiplyByPqTranspose(  const State&     state,
+                        const Vector&    lambdap,
+                        Vector&          fq) const
+{
+    Vector fu;
+    // Calculate fu = ~P*lambdap.
+    multiplyByPVATranspose(state, true, false, false, lambdap, fu);
+    // Calculate fq = ~(N^-1) * fu
+    multiplyByNInv(state, true/*transpose*/,fu,fq);
 }
 
 
@@ -2421,6 +2640,85 @@ multiplyByPVA(  const State&     s,
         }
     }
 }
+
+// =============================================================================
+//                            CALC G MInv G^T
+// =============================================================================
+// Calculate multipliers lambda as
+//     (G M^-1 ~G) lambda = aerr
+// Optimally, we would calculate this mXm matrix in O(m^2) time. I don't know 
+// how to calculate it that fast, but using m calls to operator sequence:
+//     Gt_j       = Gt* lambda_j        O(n)
+//     MInvGt_j   = M^-1* Gt_j          O(n)
+//     GMInvGt(j) = G* MInvGt_j         O(n)
+// we can calculate it in O(mn) time. As long as m << n, and
+// especially if m is a small constant independent of n, and even better
+// if we've partitioned it into little subblocks, this is all very 
+// reasonable. One slip up and you'll toss in a factor of mn^2 or m^2n and
+// screw this up -- be careful!
+//
+// Note that we do not require contiguous storage for GMInvGt's columns, 
+// although we'll take advantage of it if they are. If not, we'll work in
+// a contiguous temp and then copy back. This is because we want to allow
+// any matrix at the Simbody API level and we don't want to force the API
+// method to have to allocate a whole new mXm matrix when all we need for
+// a temporary here is an m-length temporary.
+//
+// TODO: as long as the force transmission matrix for all constraints is G^T
+// the resulting matrix is symmetric. But (a) I don't know how to take 
+// advantage of that in forming the matrix, and (b) some constraints may
+// result in the force transmission matrix != G (this occurs for example for
+// some kinds of "working" constraints like sliding friction).
+void SimbodyMatterSubsystemRep::
+calcGMInvGt(const State&   s,
+            Matrix&        GMInvGt) const
+{
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+    const int m        = mHolo+mNonholo+mAccOnly;  
+    const int nu       = getNU(s);
+
+    GMInvGt.resize(m,m);
+    if (m==0) return;
+
+    // If the output matrix doesn't have columns in contiguous memory, we'll
+    // allocate a contiguous-memory temp that we can use to hold one column
+    // at a time as we compute them.
+    const bool columnsAreContiguous = GMInvGt(0).hasContiguousData();
+    Vector GMInvGt_j(columnsAreContiguous ? 0 : m);
+
+    // These two temporaries are always needed to hold one column of Gt,
+    // then one column of M^-1 * Gt.
+    Vector Gtcol(nu), MInvGtcol(nu);
+
+    // This dummy is needed for calcMInverseF().
+    Vector_<SpatialVec> A_GB(getNumBodies());
+
+    // Precalculate bias so we can perform multiplication by G efficiently.
+    Vector bias(m);
+    calcBiasForMultiplyByPVA(s,true,true,true,bias);
+   
+    // Lambda is used to pluck out one column at a time of Gt. Exactly one
+    // element at a time of lambda will be 1, the rest are 0.
+    Vector lambda(m, Real(0));
+
+    for (int j=0; j < m; ++j) {
+        lambda[j] = 1;
+        multiplyByPVATranspose(s, true, true, true, lambda, Gtcol);
+        lambda[j] = 0;
+        calcMInverseF(s, Gtcol, A_GB, MInvGtcol);
+        if (columnsAreContiguous)
+            multiplyByPVA(s, true, true, true, bias, MInvGtcol, GMInvGt(j));
+        else {
+            multiplyByPVA(s, true, true, true, bias, MInvGtcol, GMInvGt_j);
+            GMInvGt(j) = GMInvGt_j;
+        }
+    }
+}  
 
 
 
@@ -3100,16 +3398,13 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     const int mHolo    = getNumHolonomicConstraintEquationsInUse(s);
     const int mNonholo = getNumNonholonomicConstraintEquationsInUse(s);
     const int mAccOnly = getNumAccelerationOnlyConstraintEquationsInUse(s);
-    const int ma       = mHolo+mNonholo+mAccOnly;
+    const int m        = mHolo+mNonholo+mAccOnly;
     const int nq       = getNQ(s);
     const int nu       = getNU(s);
 
-    if (ma==0 || nu==0) {
-        multipliers.resize(0);
-        return;
-    }
-
-    multipliers.resize(ma);
+    multipliers.resize(m);
+    if (m==0) return;
+    if (nu==0) {multipliers.setToZero(); return;}
 
     // Conditioning tolerance. This determines when we'll drop a 
     // constraint. 
@@ -3117,34 +3412,20 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     // and should be consistent with position and velocity projection ranks.
     // Tricky here because conditioning depends on mass matrix as well as
     // constraints.
-    const Real conditioningTol = ma 
+    const Real conditioningTol = m 
         //* SignificantReal;
         * SqrtEps*std::sqrt(SqrtEps); // Eps^(3/4)
 
-    Matrix Gt(nu,ma); // Gt==~P ~V ~A
-    // Fill in all the columns of Gt
-    calcHolonomicVelocityConstraintMatrixPt(s, Gt(0,     0,          nu, mHolo));
-    calcNonholonomicConstraintMatrixVt     (s, Gt(0,   mHolo,        nu, mNonholo));
-    calcAccelerationOnlyConstraintMatrixAt (s, Gt(0, mHolo+mNonholo, nu, mAccOnly));
-
     // Calculate multipliers lambda as
     //     (G M^-1 ~G) lambda = aerr
-    // TODO: Optimally, we would calculate this mXm matrix in O(m^2) time. Then 
-    // we'll factor it in O(m^3) time. I don't know how to calculate it that
-    // fast, but using m calls to the M^-1*f and G*udot O(n) operators
-    // we can calculate it in O(mn) time. As long as m << n, and
-    // especially if m is a small constant independent of n, and even better
-    // if we've partitioned it into little subblocks, this is all very 
-    // reasonable. One slip up and you'll toss in a factor of mn^2 or m^2n and
-    // screw this up -- be careful! (see below)
-    Matrix MInvGt(nu, ma);
-    Vector_<SpatialVec> A_GB(getNumBodies()); // dummy
-    for (int j=0; j<ma; ++j) // This is O(mn)
-        calcMInverseF(s, Gt(j), A_GB, MInvGt(j));
-
-    // TODO: Toldya! Check out this m^2n bit here ...
-    Matrix GMInvGt = (~Gt)*MInvGt; // TODO: BAD!!! O(m^2n) -- Use m x G udot operators instead for O(mn)
-    FactorQTZ qtz(GMInvGt, conditioningTol); // specify 1/cond at which we declare rank deficiency
+    // The method here calculates the mXm matrix G*M^-1*G^T as fast as 
+    // I know how to do, O(m*n) with O(n) temporary memory, using a series
+    // of O(n) operators. Then we'll factor it here in O(m^3) time. 
+    Matrix GMInvGt(m,m);
+    calcGMInvGt(s, GMInvGt);
+    
+    // specify 1/cond at which we declare rank deficiency
+    FactorQTZ qtz(GMInvGt, conditioningTol); 
     qtz.solve(udotErr, multipliers);
 
         //std::cout << "MULTIPLIER SOLVE TOL=" << conditioningTol
@@ -3201,62 +3482,6 @@ void SimbodyMatterSubsystemRep::realizeLoopForwardDynamics(const State& s,
     markCacheValueRealized(s, mc.constrainedAccelerationCacheIndex);
 }
 
-
-
-
-/* TODO:
-// Calculate the position (holonomic) constraint matrix P for all mp position
-// constraints in the system.
-// The returned matrix is mp X n (where n is the number of mobilities and u's).
-// The time complexity is also O(mp*n).
-void SimbodyMatterSubsystemRep::calcPositionConstraintMatrix(const State& s,
-    Matrix& P) const 
-{
-    const SBPositionCache& pc = getPositionCache(s);
-
-    // The first time derivative of the position constraint error methods
-    // contains the matrix we're interested in, like this (at the current configuration):
-    //     positionDotError(u) = Pu - c(t) = 0
-    // We can extract columns of P by setting a single u to 1 and the rest 0,
-    // but first we need to evaluate the bias term -c(t), which we get when
-    // u=0.
-
-    // Evaluate pdot errors at u=0, save -c(t) 
-    Vector pdotBias(getNumPositionConstraints());
-    calcPositionDotBias(s, pdotBias);
-
-    P.resize(getNumPositionConstraints(), getNumMobilities());
-    for (int i=0; i < getNumMobilities(s); ++i) {
-        calcPositionDotBiasedColumn(s, i, P(i)); // u[i]=1, all others 0
-        P(i) -= pdotBias;
-    }
-
-    // ALTERNATIVE:
-    // Use the applyPositionConstraintForces methods instead to calculate columns of ~P.
-
-    P.resize(getNumPositionConstraints(), getNumMobilities());
-    MatrixView Pt = ~P;
-
-    Vector              multipliers(getNumPositionConstraints());
-    Vector_<SpatialVec> bodyForces(getNumBodies());
-    Vector              directMobilityForces(getNumMobilities(s));
-
-    multipliers.setToZero();
-    for (int i=0; i < getNumPositionConstraints(); ++i) {
-        multipliers[i] = 1;
-
-        bodyForces.setToZero(); directMobilityForces.setToZero();
-        applyPositionConstraintForces(s, multipliers.size(), &multipliers[0],
-            bodyForces, directMobilityForces);
-
-        multiplyBySystemJacobianTranspose(s, bodyForces, Pt(i));
-        Pt(i) += directMobilityForces;
-
-        multipliers[i] = 0;
-    }
-
-}
-*/
 
 
 // =============================================================================

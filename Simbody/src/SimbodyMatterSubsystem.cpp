@@ -254,6 +254,7 @@ void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const
 void SimbodyMatterSubsystem::calcMInv(const State& s, Matrix& MInv) const 
 {   getRep().calcMInv(s, MInv); }
 
+// OBSOLETE
 void SimbodyMatterSubsystem::
 calcPNInv(const State& s, Matrix& PNInv) const {
     return getRep().calcHolonomicConstraintMatrixPNInv(s,PNInv);
@@ -272,9 +273,201 @@ calcPt(const State& s, Matrix& Pt) const {
 
 
 //==============================================================================
+//                          MULTIPLY BY G TRANSPOSE
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate f = ~G*lambda.
+void SimbodyMatterSubsystem::
+multiplyByGTranspose(const State&  s,
+                     const Vector& lambda,
+                     Vector&       f) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = rep.getNU(s);
+
+    SimTK_ERRCHK2_ALWAYS(lambda.size() == m,
+        "SimbodyMatterSubsystem::multiplyByGTranspose()",
+        "Argument 'lambda' had length %d but should have the same length"
+        " as the total number of active constraint equations m=%d.", 
+        lambda.size(), m);
+
+    f.resize(nu);
+    if (nu==0) return;
+    if (m==0) {f.setToZero(); return;}
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* clambda = &lambda;
+    Vector*       cf      = &f;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_lambda, contig_f;
+
+    if (!lambda.hasContiguousData()) {
+        contig_lambda.resize(m); // contiguous memory
+        contig_lambda(0, m) = lambda; // copy, prevent reallocation
+        clambda = (const Vector*)&contig_lambda;
+    }
+
+    if (!f.hasContiguousData()) {
+        contig_f.resize(nu); // contiguous memory
+        cf = (Vector*)&contig_f;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPVATranspose(s, true, true, true, *clambda, *cf);
+    if (needToCopyBack)
+        f = *cf;
+}
+
+
+
+//==============================================================================
+//                               CALC G TRANSPOSE
+//==============================================================================
+// Arranges for contiguous workspace if necessary, then makes repeated calls
+// to multiplyByPVATranspose() to compute one column at a time of ~G.
+void SimbodyMatterSubsystem::
+calcGTranspose(const State& s, Matrix& Gt) const {
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
+    const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
+    const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = rep.getNU(s);
+
+    Gt.resize(nu,m);
+    if (m==0 || nu==0)
+        return;
+
+    Vector lambda(m, Real(0));
+
+    // If Gt's columns are contiguous we can avoid copying.
+    const bool isContiguous = Gt(0).hasContiguousData();
+    if (isContiguous) {
+        for (int i=0; i < m; ++i) {
+            lambda[i] = 1; // column we're working on
+            rep.multiplyByPVATranspose(s, true, true, true, lambda, Gt(i));
+            lambda[i] = 0;
+        }
+    } else {
+        Vector contig_col(m);
+        for (int i=0; i < m; ++i) {
+            lambda[i] = 1; // column we're working on
+            rep.multiplyByPVATranspose(s, true, true, true, lambda, contig_col);
+            lambda[i] = 0;
+            Gt(i) = contig_col;
+        }
+    }
+}
+
+
+
+//==============================================================================
+//                          MULTIPLY BY Pq TRANSPOSE
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate fq = ~Pq*lambdap.
+void SimbodyMatterSubsystem::
+multiplyByPqTranspose(const State&  s,
+                      const Vector& lambdap,
+                      Vector&       fq) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mp = ic.totalNHolonomicConstraintEquationsInUse;
+    const int nq = rep.getNQ(s);
+
+    SimTK_ERRCHK2_ALWAYS(lambdap.size() == mp,
+        "SimbodyMatterSubsystem::multiplyByPqTranspose()",
+        "Argument 'lambdap' had length %d but should have had the same length"
+        " as the number of active position (holonomic) constraint equations"
+        " mp=%d.", lambdap.size(), mp);
+
+    fq.resize(nq);
+    if (nq==0) return;
+    if (mp==0) {fq.setToZero(); return;}
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* clambdap = &lambdap;
+    Vector*       cfq      = &fq;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_lambdap, contig_fq;
+
+    if (!lambdap.hasContiguousData()) {
+        contig_lambdap.resize(mp); // contiguous memory
+        contig_lambdap(0, mp) = lambdap; // copy, prevent reallocation
+        clambdap = (const Vector*)&contig_lambdap;
+    }
+
+    if (!fq.hasContiguousData()) {
+        contig_fq.resize(nq); // contiguous memory
+        cfq = (Vector*)&contig_fq;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPqTranspose(s, *clambdap, *cfq);
+    if (needToCopyBack)
+        fq = *cfq;
+}
+
+
+
+
+
+//==============================================================================
+//                             CALC Pq TRANSPOSE
+//==============================================================================
+// Arranges for contiguous workspace if necessary, then makes repeated calls
+// to multiplyByPVATranspose() to compute one column at a time of ~G.
+void SimbodyMatterSubsystem::
+calcPqTranspose(const State& s, Matrix& Pqt) const {
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int mp = rep.getNumHolonomicConstraintEquationsInUse(s);
+    const int nq = rep.getNQ(s);
+
+    Pqt.resize(nq, mp);
+    if (mp==0 || nq==0)
+        return;
+
+    Vector lambdap(mp, Real(0));
+
+    // If Pqt's columns are contiguous we can avoid copying.
+    const bool isContiguous = Pqt(0).hasContiguousData();
+    if (isContiguous) {
+        for (int i=0; i < mp; ++i) {
+            lambdap[i] = 1; // column we're working on
+            rep.multiplyByPqTranspose(s, lambdap, Pqt(i));
+            lambdap[i] = 0;
+        }
+    } else {
+        Vector contig_col(mp);
+        for (int i=0; i < mp; ++i) {
+            lambdap[i] = 1; // column we're working on
+            rep.multiplyByPqTranspose(s, lambdap, contig_col);
+            lambdap[i] = 0;
+            Pqt(i) = contig_col;
+        }
+    }
+}
+
+
+
+//==============================================================================
 //                             MULTIPLY BY G
 //==============================================================================
-// Check arguments, copy in/out of contiguous Vectors if necssary, call the
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
 // implementation method.
 void SimbodyMatterSubsystem::
 multiplyByG(const State&  s,
@@ -549,7 +742,7 @@ calcPq(const State& s, Matrix& Pq) const {
 
 
 //==============================================================================
-//                                 CALC Gt
+//             CALC Gt -- OBSOLETE, use calcGTranspose()
 //==============================================================================
 void SimbodyMatterSubsystem::
 calcGt(const State& s, Matrix& Gt) const {

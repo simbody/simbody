@@ -671,6 +671,26 @@ public:
             mobilityForces,constrainedBodyForcesInG,constraintMobilityForces);
     }
 
+    // Form the product 
+    //    fu = [ ~P ~V ~A ] * lambda
+    // with all or a subset of P,V,A included. The multiplier-like vector 
+    // must have length m=mp+mv+ma always. This is an O(n+m) method.
+    void multiplyByPVATranspose(const State&     state,
+                                bool             includeP,
+                                bool             includeV,
+                                bool             includeA,
+                                const Vector&    lambda,
+                                Vector&          fu) const;
+
+    // Form the product 
+    //    fq = [ ~Pq ] * lambdap
+    // The multiplier-like vector must have length m=mp always.
+    // This is equivalent to ~(P*N^-1)*lambdap = ~N^-1 * (~P * lambdap).
+    // This is an O(n+mp) method.
+    void multiplyByPqTranspose(const State&     state,
+                               const Vector&    lambdap,
+                               Vector&          fq) const;
+
     // Calculate the bias vector from the acceleration-level constraint
     // equations aerr=G*udot-b(t,q,u). Here bias = -b(t,q,u), i.e. what you get
     // when udot==0.
@@ -706,6 +726,20 @@ public:
                         const Vector&  bias_p,
                         const Vector&  qlike,
                         Vector&        PqXqlike) const;
+
+    // Calculate the mXm "projected mass matrix" G * M^-1 * G^T. By using
+    // a combination of O(n) operators we can calculate this in O(m*n) time.
+    // The method requires only O(n) memory also, except for the mXm result.
+    // State must be realized through Velocity stage unless all constraints
+    // are holonomic in which case Position will do. This matrix is used
+    // when solving for Lagrange multipliers: (G M^-1 G^T) lambda = aerr
+    // gives values for lambda that elimnate aerr.
+    // Performance is best if the output matrix has columns stored 
+    // contiguously in memory, but this method will work anyway, in that case
+    // using a contiguous temporary for column calculations and then copying
+    // out into the result.
+    void calcGMInvGt(const State&   state,
+                     Matrix&        GMInvGt) const;
 
     // Given an array of nu udots, return nb body accelerations in G (including
     // Ground as the 0th body with A_GB[0]=0). The returned accelerations are
