@@ -1908,6 +1908,7 @@ calcConstraintForcesFromMultipliers
 // stage Position.
 //
 // All of the Vector arguments must use contiguous storage.
+// Complexity is O(m+n).
 void SimbodyMatterSubsystemRep::
 multiplyByPVATranspose( const State&     s,
                         bool             includeP,
@@ -2052,7 +2053,7 @@ multiplyByPVATranspose( const State&     s,
 //==============================================================================
 // Arranges for contiguous workspace if necessary, then makes repeated calls
 // to multiplyByPVATranspose() to compute one column at a time of ~G.
-
+// Complexity is O(m^2 + m*n) = O(m*n).
 void SimbodyMatterSubsystemRep::
 calcPVATranspose(   const State&     s,
                     bool             includeP,
@@ -2105,6 +2106,7 @@ calcPVATranspose(   const State&     s,
 // result into q-space via fq=N^-T*fu.
 // See multiplyByPVATranspose() above for an explanation.
 // Vectors lambdap and fq must be using contiguous storage.
+// Complexity is O(mp + n).
 void SimbodyMatterSubsystemRep::
 multiplyByPqTranspose(  const State&     state,
                         const Vector&    lambdap,
@@ -2124,6 +2126,7 @@ multiplyByPqTranspose(  const State&     state,
 //==============================================================================
 // Arranges for contiguous workspace if necessary, then makes repeated calls
 // to multiplyByPVATranspose() to compute one column at a time of ~Pq.
+// Complexity is O(mp*mp + mp*n) = O(mp*n).
 void SimbodyMatterSubsystemRep::
 calcPqTranspose(const State& s, Matrix& Pqt) const {
     const SBInstanceCache& ic = getInstanceCache(s);
@@ -2184,6 +2187,7 @@ calcPqTranspose(const State& s, Matrix& Pqt) const {
 // or a q-like vector by P*N^-1.
 //
 // The output vector must use contiguous storage.
+// Complexity is O(m).
 void SimbodyMatterSubsystemRep::
 calcBiasForMultiplyByPVA(const State& s,
                          bool         includeP,
@@ -2361,6 +2365,7 @@ calcBiasForMultiplyByPVA(const State& s,
 //
 // The state must be realized to stage Position.
 // All vectors must be using contiguous storage.
+// Complexity is O(mp + n).
 void SimbodyMatterSubsystemRep::
 multiplyByPq(const State&   s,
              const Vector&  bias_p,
@@ -2480,6 +2485,7 @@ multiplyByPq(const State&   s,
 //==============================================================================
 // Arranges for contiguous workspace if necessary, then makes repeated calls
 // to multiplyByPq() to compute one column at a time of Pq (=P*N^-1).
+// Complexity is O(n*mp + n*n) = O(n^2).
 void SimbodyMatterSubsystemRep::
 calcPq(const State& s, Matrix& Pq) const 
 {
@@ -2544,6 +2550,7 @@ calcPq(const State& s, Matrix& Pq) const
 // state be realized to stage Position.
 //
 // All of the Vector arguments must use contiguous storage.
+// Complexity is O(m+n).
 void SimbodyMatterSubsystemRep::
 multiplyByPVA(  const State&     s,
                 bool             includeP,
@@ -2777,6 +2784,7 @@ multiplyByPVA(  const State&     s,
 // to multiplyByPVA() to compute one column at a time of G=PVA or a submatrix.
 // This is particularly useful for computing [P;V] which is the velocity-level
 // constraint projection matrix.
+// Complexity is O(n*m + n*n) = O(n^2).
 void SimbodyMatterSubsystemRep::
 calcPVA(const State&     s,
         bool             includeP,
@@ -2846,6 +2854,8 @@ calcPVA(const State&     s,
 // any matrix at the Simbody API level and we don't want to force the API
 // method to have to allocate a whole new mXm matrix when all we need for
 // a temporary here is an m-length temporary.
+//
+// Complexity is O(m^2 + m*n) = O(m*n).
 //
 // TODO: as long as the force transmission matrix for all constraints is G^T
 // the resulting matrix is symmetric. But (a) I don't know how to take 
