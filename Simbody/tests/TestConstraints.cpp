@@ -577,6 +577,14 @@ void testConstraintMatrices() {
     SimTK_TEST(fqout.size() == nq);
     SimTK_TEST_EQ_SIZE(fqout, Pqt*lambdap, nq);
 
+    Matrix MInv;
+    matter.calcMInv(state, MInv);
+    Matrix numGMInvGt = G*MInv*Gt; // O(m^2*n + m*n^2)
+    Matrix GMInvGt;
+    matter.calcProjectedMInv(state, GMInvGt); // O(m*n)
+    SimTK_TEST_EQ(GMInvGt, numGMInvGt);
+
+
 }
 
 int main() {

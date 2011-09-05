@@ -682,6 +682,19 @@ public:
                                 const Vector&    lambda,
                                 Vector&          fu) const;
 
+    // Explicitly form the u-space constraint Jacobian transpose 
+    // ~G=[~P ~V ~A] or selected submatrices of it. Performance is best if the 
+    // output matrix has columns stored contiguously in memory, but this method
+    // will work anyway, in that case using a contiguous temporary for column 
+    // calculations and then copying out into the result. The matrix will be
+    // resized as necessary to nu X (mp+mv+ma) where the constraint dimensions
+    // can be zero if that submatrix is not selected.
+    void calcPVATranspose(  const State&     state,
+                            bool             includeP,
+                            bool             includeV,
+                            bool             includeA,
+                            Matrix&          PVAt) const;
+
     // Form the product 
     //    fq = [ ~Pq ] * lambdap
     // The multiplier-like vector must have length m=mp always.
@@ -690,6 +703,15 @@ public:
     void multiplyByPqTranspose(const State&     state,
                                const Vector&    lambdap,
                                Vector&          fq) const;
+
+    // Explicitly form the q-space holonomic constraint Jacobian transpose
+    // Pqt (= ~(N^-1) * ~P). Performance is best if the output matrix has 
+    // columns stored contiguously in memory, but this method will work anyway,
+    // in that case using a contiguous temporary for column calculations and 
+    // then copying out into the result. The matrix will be resized as 
+    // necessary to nq X mp.
+    void calcPqTranspose(   const State&     state,
+                            Matrix&          Pqt) const;
 
     // Calculate the bias vector from the acceleration-level constraint
     // equations aerr=G*udot-b(t,q,u). Here bias = -b(t,q,u), i.e. what you get
@@ -717,6 +739,19 @@ public:
                        const Vector&    ulike,
                        Vector&          PVAu) const;
 
+    // Explicitly form the u-space constraint Jacobian G=[P;V;A] or 
+    // selected submatrices of it. Performance is best if the output matrix 
+    // has columns stored contiguously in memory, but this method will work 
+    // anyway, in that case using a contiguous temporary for column 
+    // calculations and then copying out into the result. The matrix will be
+    // resized as necessary to (mp+mv+ma) X nu where the constraint dimensions
+    // can be zero if that submatrix is not selected.
+    void calcPVA(   const State&     state,
+                    bool             includeP,
+                    bool             includeV,
+                    bool             includeA,
+                    Matrix&          PVA) const;
+
     // Given a bias calculated by the above method using just includeP=true
     // (or the leading bias_p segment of a complete bias vector), form the
     // product PqXqlike = Pq*qlike (= P*N^-1*qlike). The q-like vector must 
@@ -726,6 +761,14 @@ public:
                         const Vector&  bias_p,
                         const Vector&  qlike,
                         Vector&        PqXqlike) const;
+
+    // Explicitly form the q-space holonomic constraint Jacobian Pq (= P*N^-1).
+    // Performance is best if the output matrix has columns stored contiguously
+    // in memory, but this method will work anyway, in that case using a 
+    // contiguous temporary for column calculations and then copying out into 
+    // the result. The matrix will be resized as necessary to mp X nq.
+    void calcPq(    const State&     state,
+                    Matrix&          Pq) const;
 
     // Calculate the mXm "projected mass matrix" G * M^-1 * G^T. By using
     // a combination of O(n) operators we can calculate this in O(m*n) time.

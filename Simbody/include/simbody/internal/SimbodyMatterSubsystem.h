@@ -883,6 +883,46 @@ explicitly, you can get it with the calcM() method.
 @see calcM() **/
 void calcMInv(const State&, Matrix& MInv) const;
 
+/** This operator calculates in O(m*n) time the m X m "projected inverse
+mass matrix" Y=G*M^-1*~G, where G (mXn) is the acceleration-level constraint
+Jacobian and M (nXn) is the unconstrained system mass matrix. Y is 
+the projection of the inverse mass matrix onto the constraint manifold. It
+can be used to solve for the constraint forces that will eliminate a given
+constraint acceleration error:
+<pre>
+    (1)     Y * lambda = aerr
+    (2)     aerr = G*udot - b(t,q,u)
+</pre>
+where udot is an unconstrained generalized acceleration. Note that you can
+view equation (1) as a dynamic system in a reduced set of m generalized
+coordinates.
+
+In general Y is singular and does not uniquely determine lambda.
+Simbody normally calculates a least squares solution for lambda so that
+loads are distributed among redundant constraints. 
+
+@note If you just need to multiply Y by a vector or matrix, you do not need
+to form Y explicitly. Instead you can use the method described in the 
+Implementation section to produce a Y*v product in the O(n) time it takes to 
+compute a single column of Y.
+
+<h3>Implementation</h3>
+We are able to form Y without forming G or M^-1 and without
+performing any matrix-matrix multiplies. Instead, Y is calculated 
+using m applications of O(n) operators:
+    - multiplyByGTranspose() by a unit vector to form a column of ~G
+    - multiplyByMInv() to form a column of M^-1 ~G
+    - multiplyByG() to form a column of Y
+    
+Even if G and M^-1 were already available, computing Y by matrix multiplication
+would cost O(m^2*n + m*n^2) time and O(m*n) intermediate storage. Here we do 
+it in O(m*n) time with O(n) intermediate storage, which is a \e lot better.
+     
+@see multiplyByG(), calcG(), multiplyByGTranspose(), calcGTranspose()
+@see multiplyByMInv(), calcMInv() **/
+void calcProjectedMInv(const State&   s,
+                       Matrix&        GMInvGt) const;
+
 
 /** Returns Gulike = G*ulike, the product of the mXn acceleration 
 constraint Jacobian G and a "u-like" (mobility space) vector of length n. 
@@ -1443,7 +1483,6 @@ uses 12*nu + 18*nb flops to produce nb body accelerations.
 void calcBodyAccelerationFromUDot(const State&         state,
                                   const Vector&        knownUDot,
                                   Vector_<SpatialVec>& A_GB) const;
-
 
 
 /** Treating all Constraints together, given a comprehensive set of m 

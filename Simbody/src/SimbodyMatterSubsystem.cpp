@@ -254,6 +254,21 @@ void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const
 void SimbodyMatterSubsystem::calcMInv(const State& s, Matrix& MInv) const 
 {   getRep().calcMInv(s, MInv); }
 
+
+// Note: the implementation methods that generate matrices do *not* require 
+// contiguous storage, so we can just forward to them with no preliminaries.
+void SimbodyMatterSubsystem::calcProjectedMInv(const State&   s,
+                                               Matrix&        GMInvGt) const
+{   getRep().calcGMInvGt(s, GMInvGt); }
+void SimbodyMatterSubsystem::calcG(const State& s, Matrix& G) const 
+{   getRep().calcPVA(s, true, true, true, G); }
+void SimbodyMatterSubsystem::calcGTranspose(const State& s, Matrix& Gt) const 
+{   getRep().calcPVATranspose(s, true, true, true, Gt); }
+void SimbodyMatterSubsystem::calcPq(const State& s, Matrix& Pq) const 
+{   getRep().calcPq(s,Pq); }
+void SimbodyMatterSubsystem::calcPqTranspose(const State& s, Matrix& Pqt) const 
+{   getRep().calcPqTranspose(s,Pqt); }
+
 // OBSOLETE
 void SimbodyMatterSubsystem::
 calcPNInv(const State& s, Matrix& PNInv) const {
@@ -329,46 +344,6 @@ multiplyByGTranspose(const State&  s,
 
 
 
-//==============================================================================
-//                               CALC G TRANSPOSE
-//==============================================================================
-// Arranges for contiguous workspace if necessary, then makes repeated calls
-// to multiplyByPVATranspose() to compute one column at a time of ~G.
-void SimbodyMatterSubsystem::
-calcGTranspose(const State& s, Matrix& Gt) const {
-    const SimbodyMatterSubsystemRep& rep = getRep();
-    const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
-    const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
-    const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
-    const int m  = mHolo+mNonholo+mAccOnly;
-    const int nu = rep.getNU(s);
-
-    Gt.resize(nu,m);
-    if (m==0 || nu==0)
-        return;
-
-    Vector lambda(m, Real(0));
-
-    // If Gt's columns are contiguous we can avoid copying.
-    const bool isContiguous = Gt(0).hasContiguousData();
-    if (isContiguous) {
-        for (int i=0; i < m; ++i) {
-            lambda[i] = 1; // column we're working on
-            rep.multiplyByPVATranspose(s, true, true, true, lambda, Gt(i));
-            lambda[i] = 0;
-        }
-    } else {
-        Vector contig_col(m);
-        for (int i=0; i < m; ++i) {
-            lambda[i] = 1; // column we're working on
-            rep.multiplyByPVATranspose(s, true, true, true, lambda, contig_col);
-            lambda[i] = 0;
-            Gt(i) = contig_col;
-        }
-    }
-}
-
-
 
 //==============================================================================
 //                          MULTIPLY BY Pq TRANSPOSE
@@ -420,46 +395,6 @@ multiplyByPqTranspose(const State&  s,
     rep.multiplyByPqTranspose(s, *clambdap, *cfq);
     if (needToCopyBack)
         fq = *cfq;
-}
-
-
-
-
-
-//==============================================================================
-//                             CALC Pq TRANSPOSE
-//==============================================================================
-// Arranges for contiguous workspace if necessary, then makes repeated calls
-// to multiplyByPVATranspose() to compute one column at a time of ~G.
-void SimbodyMatterSubsystem::
-calcPqTranspose(const State& s, Matrix& Pqt) const {
-    const SimbodyMatterSubsystemRep& rep = getRep();
-    const int mp = rep.getNumHolonomicConstraintEquationsInUse(s);
-    const int nq = rep.getNQ(s);
-
-    Pqt.resize(nq, mp);
-    if (mp==0 || nq==0)
-        return;
-
-    Vector lambdap(mp, Real(0));
-
-    // If Pqt's columns are contiguous we can avoid copying.
-    const bool isContiguous = Pqt(0).hasContiguousData();
-    if (isContiguous) {
-        for (int i=0; i < mp; ++i) {
-            lambdap[i] = 1; // column we're working on
-            rep.multiplyByPqTranspose(s, lambdap, Pqt(i));
-            lambdap[i] = 0;
-        }
-    } else {
-        Vector contig_col(mp);
-        for (int i=0; i < mp; ++i) {
-            lambdap[i] = 1; // column we're working on
-            rep.multiplyByPqTranspose(s, lambdap, contig_col);
-            lambdap[i] = 0;
-            Pqt(i) = contig_col;
-        }
-    }
 }
 
 
@@ -561,48 +496,6 @@ calcBiasForMultiplyByG(const State& state,
 
 
 
-//==============================================================================
-//                                 CALC G
-//==============================================================================
-// Arranges for contiguous workspace if necessary, then makes repeated calls
-// to multiplyByPVA() to compute one column at a time of G.
-void SimbodyMatterSubsystem::
-calcG(const State& s, Matrix& G) const {
-    const SimbodyMatterSubsystemRep& rep = getRep();
-    const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
-    const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
-    const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
-    const int m  = mHolo+mNonholo+mAccOnly;
-    const int nu = rep.getNU(s);
-
-    G.resize(m,nu);
-    if (m==0 || nu==0)
-        return;
-
-    Vector bias(m);
-    rep.calcBiasForMultiplyByPVA(s, true, true, true, bias);
-    Vector ulike(nu, Real(0));
-
-    // If G's columns are contiguous we can avoid copying.
-    const bool isContiguous = G(0).hasContiguousData();
-    if (isContiguous) {
-        for (int i=0; i < nu; ++i) {
-            ulike[i] = 1; // column we're working on
-            rep.multiplyByPVA(s, true, true, true, bias, ulike, G(i));
-            ulike[i] = 0;
-        }
-    } else {
-        Vector contig_col(m);
-        for (int i=0; i < nu; ++i) {
-            ulike[i] = 1; // column we're working on
-            rep.multiplyByPVA(s, true, true, true, bias, ulike, contig_col);
-            ulike[i] = 0;
-            G(i) = contig_col;
-        }
-    }
-}
-
-
 
 //==============================================================================
 //                            MULTIPLY BY Pq
@@ -699,45 +592,6 @@ calcBiasForMultiplyByPq(const State& state,
     }
 }
 
-
-
-//==============================================================================
-//                                 CALC Pq
-//==============================================================================
-// Arranges for contiguous workspace if necessary, then makes repeated calls
-// to multiplyByPq() to compute one column at a time of Pq (=P*N^-1).
-void SimbodyMatterSubsystem::
-calcPq(const State& s, Matrix& Pq) const {
-    const SimbodyMatterSubsystemRep& rep = getRep();
-    const int mp = rep.getNumHolonomicConstraintEquationsInUse(s);
-    const int nq = rep.getNQ(s);
-
-    Pq.resize(mp,nq);
-    if (mp==0 || nq==0)
-        return;
-
-    Vector biasp(mp);
-    rep.calcBiasForMultiplyByPVA(s, true, false, false, biasp);
-    Vector qlike(nq, Real(0));
-
-    // If Pq's columns are contiguous we can avoid copying.
-    const bool isContiguous = Pq(0).hasContiguousData();
-    if (isContiguous) {
-        for (int i=0; i < nq; ++i) {
-            qlike[i] = 1; // column we're working on
-            rep.multiplyByPq(s, biasp, qlike, Pq(i));
-            qlike[i] = 0;
-        }
-    } else {
-        Vector contig_col(mp);
-        for (int i=0; i < nq; ++i) {
-            qlike[i] = 1; // column we're working on
-            rep.multiplyByPq(s, biasp, qlike, contig_col);
-            qlike[i] = 0;
-            Pq(i) = contig_col;
-        }
-    }
-}
 
 
 

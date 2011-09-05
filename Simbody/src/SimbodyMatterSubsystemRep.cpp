@@ -2048,6 +2048,57 @@ multiplyByPVATranspose( const State&     s,
 
 
 //==============================================================================
+//                             CALC PVA TRANSPOSE
+//==============================================================================
+// Arranges for contiguous workspace if necessary, then makes repeated calls
+// to multiplyByPVATranspose() to compute one column at a time of ~G.
+
+void SimbodyMatterSubsystemRep::
+calcPVATranspose(   const State&     s,
+                    bool             includeP,
+                    bool             includeV,
+                    bool             includeA,
+                    Matrix&          PVAt) const
+    {
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = includeP ? 
+        ic.totalNHolonomicConstraintEquationsInUse : 0;
+    const int mNonholo = includeV ? 
+        ic.totalNNonholonomicConstraintEquationsInUse : 0;
+    const int mAccOnly = includeA ? 
+        ic.totalNAccelerationOnlyConstraintEquationsInUse : 0;
+    const int m = mHolo+mNonholo+mAccOnly;
+
+    const int nu = getNU(s);
+
+    PVAt.resize(nu,m);
+    if (m==0 || nu==0)
+        return;
+
+    Vector lambda(m, Real(0));
+
+    // If PVAt's columns are contiguous we can avoid copying.
+    const bool isContiguous = PVAt(0).hasContiguousData();
+    Vector contig_col(isContiguous ? 0 : m);
+    for (int j=0; j < m; ++j) {
+        lambda[j] = 1; // column we're working on
+        if (isContiguous) {
+            multiplyByPVATranspose(s, includeP, includeV, includeA, lambda, 
+                                   PVAt(j));
+        } else {
+            multiplyByPVATranspose(s, includeP, includeV, includeA, lambda, 
+                                   contig_col);
+            PVAt(j) = contig_col;
+        }
+        lambda[j] = 0;
+    }
+}
+
+
+
+//==============================================================================
 //                          MULTIPLY BY Pq TRANSPOSE
 //==============================================================================
 // First we calculate the u-space result fu=~P*lambdap, then we map that
@@ -2064,6 +2115,43 @@ multiplyByPqTranspose(  const State&     state,
     multiplyByPVATranspose(state, true, false, false, lambdap, fu);
     // Calculate fq = ~(N^-1) * fu
     multiplyByNInv(state, true/*transpose*/,fu,fq);
+}
+
+
+
+//==============================================================================
+//                             CALC Pq TRANSPOSE
+//==============================================================================
+// Arranges for contiguous workspace if necessary, then makes repeated calls
+// to multiplyByPVATranspose() to compute one column at a time of ~Pq.
+void SimbodyMatterSubsystemRep::
+calcPqTranspose(const State& s, Matrix& Pqt) const {
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mp = ic.totalNHolonomicConstraintEquationsInUse;
+    const int nq = getNQ(s);
+
+    Pqt.resize(nq, mp);
+    if (mp==0 || nq==0)
+        return;
+
+    Vector lambdap(mp, Real(0));
+
+    // If Pqt's columns are contiguous we can avoid copying.
+    const bool isContiguous = Pqt(0).hasContiguousData();
+    Vector contig_col(isContiguous ? 0 : mp);
+
+    for (int i=0; i < mp; ++i) {
+        lambdap[i] = 1; // column we're working on
+        if (isContiguous) {
+            multiplyByPqTranspose(s, lambdap, Pqt(i));
+        } else {
+            multiplyByPqTranspose(s, lambdap, contig_col);
+            Pqt(i) = contig_col;
+        }
+        lambdap[i] = 0;
+    }
 }
 
 
@@ -2388,6 +2476,45 @@ multiplyByPq(const State&   s,
 
 
 //==============================================================================
+//                                 CALC Pq
+//==============================================================================
+// Arranges for contiguous workspace if necessary, then makes repeated calls
+// to multiplyByPq() to compute one column at a time of Pq (=P*N^-1).
+void SimbodyMatterSubsystemRep::
+calcPq(const State& s, Matrix& Pq) const 
+{
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mp = ic.totalNHolonomicConstraintEquationsInUse;
+    const int nq = getNQ(s);
+
+    Pq.resize(mp,nq);
+    if (mp==0 || nq==0)
+        return;
+
+    Vector biasp(mp);
+    calcBiasForMultiplyByPVA(s, true, false, false, biasp);
+    Vector qlike(nq, Real(0));
+
+    // If Pq's columns are contiguous we can avoid copying.
+    const bool isContiguous = Pq(0).hasContiguousData();
+    Vector contig_col(isContiguous ? 0 : mp);
+    for (int j=0; j < nq; ++j) {
+        qlike[j] = 1; // column we're working on
+        if (isContiguous)
+            multiplyByPq(s, biasp, qlike, Pq(j));
+        else {
+            multiplyByPq(s, biasp, qlike, contig_col);
+            Pq(j) = contig_col;
+        }
+        qlike[j] = 0;
+    }
+}
+
+
+
+//==============================================================================
 //                              MULTIPLY BY PVA
 //==============================================================================
 // We have these constraint equations available:
@@ -2640,6 +2767,62 @@ multiplyByPVA(  const State&     s,
         }
     }
 }
+
+
+
+//==============================================================================
+//                                CALC PVA
+//==============================================================================
+// Arranges for contiguous workspace if necessary, then makes repeated calls
+// to multiplyByPVA() to compute one column at a time of G=PVA or a submatrix.
+// This is particularly useful for computing [P;V] which is the velocity-level
+// constraint projection matrix.
+void SimbodyMatterSubsystemRep::
+calcPVA(const State&     s,
+        bool             includeP,
+        bool             includeV,
+        bool             includeA,
+        Matrix&          PVA) const
+{
+    const SBInstanceCache& ic  = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = includeP ? 
+        ic.totalNHolonomicConstraintEquationsInUse : 0;
+    const int mNonholo = includeV ? 
+        ic.totalNNonholonomicConstraintEquationsInUse : 0;
+    const int mAccOnly = includeA ? 
+        ic.totalNAccelerationOnlyConstraintEquationsInUse : 0;
+
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = getNU(s);
+
+    PVA.resize(m,nu);
+    if (m==0 || nu==0)
+        return;
+
+    Vector bias(m);
+    calcBiasForMultiplyByPVA(s, includeP, includeV, includeA, bias);
+    Vector ulike(nu, Real(0));
+
+    // If PVA's columns are contiguous we can avoid copying.
+    const bool isContiguous = PVA(0).hasContiguousData();
+    Vector contig_col(isContiguous ? 0 : m); // temp space if needed
+    for (int j=0; j < nu; ++j) {
+        ulike[j] = 1; // column we're working on
+        if (isContiguous) {
+            multiplyByPVA(s, includeP, includeV, includeA, bias, ulike, 
+                          PVA(j));
+        } else {
+            multiplyByPVA(s, includeP, includeV, includeA, bias, ulike, 
+                          contig_col);
+            PVA(j) = contig_col;
+        }
+        ulike[j] = 0;
+    }
+}
+
+
 
 // =============================================================================
 //                            CALC G MInv G^T
