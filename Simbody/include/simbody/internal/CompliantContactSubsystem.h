@@ -666,7 +666,7 @@ private:
 objects that meet at a point and generate a circular contact patch; those
 generate a CircularPointContact tracking object. Although this is just a special
 case of elliptical contact we treat it separately so we can take advantage
-of the significant simplificatiosn afforded by circular contact. **/
+of the significant simplifications afforded by circular contact. **/
 class SimTK_SIMBODY_EXPORT ContactForceGenerator::HertzCircular 
 :   public ContactForceGenerator {
 public:
