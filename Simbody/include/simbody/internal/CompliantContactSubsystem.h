@@ -335,7 +335,7 @@ void setForceOnSurface2(const SpatialVec& forceOnSurface2)
 /** Change the value stored for potential energy in this ContactForce object. **/
 void setPotentialEnergy(Real potentialEnergy) 
 {   m_potentialEnergy=potentialEnergy; }
-/** Change the value stored for potential energy in this ContactForce object. **/
+/** Change the value stored for power loss in this ContactForce object. **/
 void setPowerDissipation(Real powerLoss) {m_powerLoss=powerLoss;}
 
 /** Restore the ContactForce object to its default-constructed state with

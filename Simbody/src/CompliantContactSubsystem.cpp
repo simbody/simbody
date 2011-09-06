@@ -108,7 +108,8 @@ bool calcContactPatchDetailsById(const State&   state,
 
     const ContactSnapshot& active = m_tracker.getActiveContacts(state);
     const Contact& contact = active.getContactById(id);
-    if (contact.isEmpty()) {
+
+    if (contact.isEmpty() || contact.getCondition() == Contact::Broken) {
         patch_G.clear();
         return false;
     }
