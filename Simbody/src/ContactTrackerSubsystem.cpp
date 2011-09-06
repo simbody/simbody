@@ -450,10 +450,12 @@ void ensureActiveContactsUpdated(const State& state) const {
                 if (   prev->getCondition()==Contact::Untracked
                     || prev->getCondition()==Contact::Anticipated)
                     next.setCondition(Contact::NewContact);
-                else { // was NewContact or Ongoing; now Ongoing
+                else { // was NewContact or Ongoing; now Ongoing or Broken
                     assert(prev->getCondition()==Contact::NewContact
                            || prev->getCondition()==Contact::Ongoing);
-                    next.setCondition(Contact::Ongoing);
+                    if (next.getTypeId() != BrokenContact::classTypeId())
+                        next.setCondition(Contact::Ongoing);
+                    // Condition will already by Broken for a BrokenContact
                 }
                 nextActive.adoptContact(next);
             }

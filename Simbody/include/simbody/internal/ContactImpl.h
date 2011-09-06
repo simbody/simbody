@@ -132,7 +132,10 @@ public:
     BrokenContactImpl
        (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
         const Transform& X_S1S2, Real separation) 
-    : ContactImpl(surf1, surf2, X_S1S2), separation(separation) {}
+    :   ContactImpl(surf1, surf2, X_S1S2, Contact::Broken), 
+        separation(separation) 
+    {
+    }
 
     ContactTypeId getTypeId() const {return classTypeId();}
     static ContactTypeId classTypeId() {
