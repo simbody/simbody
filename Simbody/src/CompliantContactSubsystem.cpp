@@ -437,6 +437,10 @@ ensureForceCacheValid(const State& state) const {
     const int nContacts = active.getNumContacts();
     for (int i=0; i<nContacts; ++i) {
         const Contact& contact = active.getContact(i);
+        if (contact.getCondition() == Contact::Broken) {
+            // No need to generate forces; this will be gone next time.
+            continue;
+        }
         const Transform& X_S1S2 = contact.getTransform();
         const ContactSurfaceIndex surf1(contact.getSurface1());
         const ContactSurfaceIndex surf2(contact.getSurface2());
