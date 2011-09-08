@@ -1677,14 +1677,14 @@ bool OBBTreeNodeImpl::intersectsRay(const ContactGeometry::TriangleMeshImpl& mes
         const UnitVec3& faceNormal = mesh.faces[triangles[i]].normal;
         double vd = ~faceNormal*direction;
         if (vd == 0.0)
-            break; // The ray is parallel to the plane.
+            continue; // The ray is parallel to the plane.
         const Vec3& vert1 = mesh.vertices[mesh.faces[triangles[i]].vertices[0]].pos;
         double v0 = ~faceNormal*(vert1-origin);
         double t = v0/vd;
         if (t < 0.0)
-            break; // Ray points away from plane of triangle.
+            continue; // Ray points away from plane of triangle.
         if (foundIntersection && t >= distance)
-            break; // We already have a closer intersection.
+            continue; // We already have a closer intersection.
 
         // Determine whether the intersection point is inside the triangle by projecting onto
         // a plane and computing the barycentric coordinates.
@@ -1720,14 +1720,14 @@ bool OBBTreeNodeImpl::intersectsRay(const ContactGeometry::TriangleMeshImpl& mes
         edge2 *= denom;
         double v = edge2%pos;
         if (v < 0.0 || v > 1.0)
-            break;
+            continue;
         edge1 *= denom;
         double w = pos%edge1;
         if (w < 0.0 || w > 1.0)
-            break;
+            continue;
         double u = 1.0-v-w;
         if (u < 0.0 || u > 1.0)
-            break;
+            continue;
         
         // It intersects.
         
