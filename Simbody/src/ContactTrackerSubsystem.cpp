@@ -1369,7 +1369,10 @@ findBuriedFaces(const ContactGeometry::TriangleMesh&    mesh,       // M
                 const ContactGeometry::TriangleMesh&    otherMesh,  // O
                 const Transform&                        X_OM, 
                 std::set<int>&                          insideFaces) const 
-{   // Find which faces are inside.
+{  
+    // Find which faces are inside.
+    // We're passed in the list of Boundary faces, that is, those faces of
+    // "mesh" that intersect faces of "otherMesh".
     Array_<int> faceType(mesh.getNumFaces(), Unknown);
     for (std::set<int>::iterator iter = insideFaces.begin(); 
                                  iter != insideFaces.end(); ++iter)
@@ -1392,7 +1395,7 @@ findBuriedFaces(const ContactGeometry::TriangleMesh&    mesh,       // M
             } else
                 faceType[i] = Outside;
             
-            // Recursively mark adjacent insideFaces.           
+            // Recursively mark adjacent inside or outside Faces.           
             tagFaces(mesh, faceType, insideFaces, i, 0);
         }
     }
