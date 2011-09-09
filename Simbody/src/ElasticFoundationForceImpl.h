@@ -56,7 +56,8 @@ public:
     void processContact(const State& state, ContactSurfaceIndex meshIndex, 
                         ContactSurfaceIndex otherBodyIndex, 
                         const Parameters& param, 
-                        const std::set<int>& insideFaces, 
+                        const std::set<int>& insideFaces,
+                        Real areaScale,
                         Vector_<SpatialVec>& bodyForces, Real& pe) const;
 private:
     friend class ElasticFoundationForce;

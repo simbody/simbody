@@ -98,22 +98,29 @@ void ElasticFoundationForceImpl::calcForce
                 (subsystem.updCacheEntry(state, energyCacheIndex));
     pe = 0.0;
     for (int i = 0; i < (int) contacts.size(); i++) {
-        std::map<ContactSurfaceIndex, Parameters>::const_iterator iter = 
+        std::map<ContactSurfaceIndex, Parameters>::const_iterator iter1 = 
             parameters.find(contacts[i].getSurface1());
-        if (iter != parameters.end()) {
+        std::map<ContactSurfaceIndex, Parameters>::const_iterator iter2 = 
+            parameters.find(contacts[i].getSurface2());
+
+        // If there are two meshes, scale each one's contributions by 50%.
+        Real areaScale = (iter1==parameters.end() || iter2==parameters.end())
+                         ? Real(1) : Real(0.5);
+
+        if (iter1 != parameters.end()) {
             const TriangleMeshContact& contact = 
                 static_cast<const TriangleMeshContact&>(contacts[i]);
             processContact(state, contact.getSurface1(), 
-                contact.getSurface2(), iter->second, 
-                contact.getSurface1Faces(), bodyForces, pe);
+                contact.getSurface2(), iter1->second, 
+                contact.getSurface1Faces(), areaScale, bodyForces, pe);
         }
-        iter = parameters.find(contacts[i].getSurface2());
-        if (iter != parameters.end()) {
+
+        if (iter2 != parameters.end()) {
             const TriangleMeshContact& contact = 
                 static_cast<const TriangleMeshContact&>(contacts[i]);
             processContact(state, contact.getSurface2(), 
-                contact.getSurface1(), iter->second, 
-                contact.getSurface2Faces(), bodyForces, pe);
+                contact.getSurface1(), iter2->second, 
+                contact.getSurface2Faces(), areaScale, bodyForces, pe);
         }
     }
 }
@@ -121,8 +128,8 @@ void ElasticFoundationForceImpl::calcForce
 void ElasticFoundationForceImpl::processContact
    (const State& state, 
     ContactSurfaceIndex meshIndex, ContactSurfaceIndex otherBodyIndex, 
-    const Parameters& param, const std::set<int>& insideFaces, 
-    Vector_<SpatialVec>& bodyForces, Real& pe) const 
+    const Parameters& param, const std::set<int>& insideFaces,
+    Real areaScale, Vector_<SpatialVec>& bodyForces, Real& pe) const 
 {
     const ContactGeometry& otherObject = subsystem.getBodyGeometry(set, otherBodyIndex);
     const MobilizedBody& body1 = subsystem.getBody(set, meshIndex);
@@ -164,7 +171,8 @@ void ElasticFoundationForceImpl::processContact
         
         // Calculate the damping force.
         
-        const Real f = param.stiffness*param.springArea[face]*distance*(1+param.dissipation*vnormal);
+        const Real area = areaScale * param.springArea[face];
+        const Real f = param.stiffness*area*distance*(1+param.dissipation*vnormal);
         Vec3 force = (f > 0 ? f*forceDir : Vec3(0));
         
         // Calculate the friction force.
@@ -178,7 +186,7 @@ void ElasticFoundationForceImpl::processContact
 
         body1.applyForceToBodyPoint(state, station1, force, bodyForces);
         body2.applyForceToBodyPoint(state, station2, -force, bodyForces);
-        pe += 0.5*param.stiffness*param.springArea[face]*displacement.normSqr();
+        pe += 0.5*param.stiffness*area*displacement.normSqr();
     }
 }
 
