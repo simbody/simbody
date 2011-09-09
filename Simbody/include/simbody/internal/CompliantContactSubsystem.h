@@ -766,6 +766,7 @@ void processOneMesh
     const SpatialVec&                       V_MO,
     const ContactGeometry&                  other,
     Real                                    meshDeformationFraction, // 0..1
+    Real                                    areaScaleFactor, // >= 0
     Real k, Real c, Real us, Real ud, Real uv,
     const Vec3&                 resultantPt_M, // where to apply forces
     SpatialVec&                 resultantForceOnOther_M, // at resultant pt
