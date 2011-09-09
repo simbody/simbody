@@ -335,7 +335,7 @@ void setForceOnSurface2(const SpatialVec& forceOnSurface2)
 /** Change the value stored for potential energy in this ContactForce object. **/
 void setPotentialEnergy(Real potentialEnergy) 
 {   m_potentialEnergy=potentialEnergy; }
-/** Change the value stored for potential energy in this ContactForce object. **/
+/** Change the value stored for power loss in this ContactForce object. **/
 void setPowerDissipation(Real powerLoss) {m_powerLoss=powerLoss;}
 
 /** Restore the ContactForce object to its default-constructed state with
@@ -666,7 +666,7 @@ private:
 objects that meet at a point and generate a circular contact patch; those
 generate a CircularPointContact tracking object. Although this is just a special
 case of elliptical contact we treat it separately so we can take advantage
-of the significant simplificatiosn afforded by circular contact. **/
+of the significant simplifications afforded by circular contact. **/
 class SimTK_SIMBODY_EXPORT ContactForceGenerator::HertzCircular 
 :   public ContactForceGenerator {
 public:
@@ -766,6 +766,7 @@ void processOneMesh
     const SpatialVec&                       V_MO,
     const ContactGeometry&                  other,
     Real                                    meshDeformationFraction, // 0..1
+    Real                                    areaScaleFactor, // >= 0
     Real k, Real c, Real us, Real ud, Real uv,
     const Vec3&                 resultantPt_M, // where to apply forces
     SpatialVec&                 resultantForceOnOther_M, // at resultant pt

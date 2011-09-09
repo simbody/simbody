@@ -108,7 +108,8 @@ bool calcContactPatchDetailsById(const State&   state,
 
     const ContactSnapshot& active = m_tracker.getActiveContacts(state);
     const Contact& contact = active.getContactById(id);
-    if (contact.isEmpty()) {
+
+    if (contact.isEmpty() || contact.getCondition() == Contact::Broken) {
         patch_G.clear();
         return false;
     }
@@ -437,6 +438,10 @@ ensureForceCacheValid(const State& state) const {
     const int nContacts = active.getNumContacts();
     for (int i=0; i<nContacts; ++i) {
         const Contact& contact = active.getContact(i);
+        if (contact.getCondition() == Contact::Broken) {
+            // No need to generate forces; this will be gone next time.
+            continue;
+        }
         const Transform& X_S1S2 = contact.getTransform();
         const ContactSurfaceIndex surf1(contact.getSurface1());
         const ContactSurfaceIndex surf2(contact.getSurface2());
@@ -708,7 +713,8 @@ static void calcHertzContactForce
     const ContactMaterial& mat1   = surf1.getMaterial();
     const ContactMaterial& mat2   = surf2.getMaterial();
 
-    // Use 2/3 power of stiffness for combining here.
+    // Use 2/3 power of stiffness for combining here. (We'll raise the combined
+    // result k to the 3/2 power below.)
     const Real k1=mat1.getStiffness23(), k2=mat2.getStiffness23();
     const Real c1=mat1.getDissipation(), c2=mat2.getDissipation();
 
@@ -726,6 +732,7 @@ static void calcHertzContactForce
     // Calculate the Hertz force fH, which is conservative.
     const Real k = k1*s1; // (==k2*s2) == E^(2/3)
     const Real c = c1*s1 + c2*s2;
+    // fH = 4/3 e R^1/2 k^3/2 x^3/2
     const Real fH = e*(4./3.)*k*x*std::sqrt(R*k*x); // always >= 0
     
     // Calculate the relative velocity of the two bodies at the contact point.
@@ -1104,7 +1111,17 @@ void ContactForceGenerator::ElasticFoundation::calcContactPatch
         patch_S1.m_resultant, &patch_S1.m_elements);
 }
 
-
+// How to think about mesh-mesh contact:
+// There is only a single contact patch. We would like to mesh the patch
+// but we don't have that. Instead, we have two approximations of a meshed
+// patch, one on each surface after deformation, but at different resolutions. 
+// Either one would be sufficient alone, since both cover the whole patch and
+// apply equal and opposite forces to the two bodies. So when we evaluate
+// forces on each mesh, we are making two approximations of the same force.
+// DON'T APPLY BOTH! That would be double-counting. Instead, we use the
+// two independent calculations to refine our result. So we scale the 
+// areas of the two patch approximations so that each contributes 50% to
+// the overall patch area, forces, and center of pressure.
 
 void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
    (const State&            state,
@@ -1190,14 +1207,33 @@ void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
                                     + patchArea2*X_S1S2.p();
     }
 
-    // At this point one or two patch centroids are known; if one is unused
-    // it is (0,0,0) with 0 weight. Combine them into a single composite
-    // centroid for the patch.
-    const Real patchArea = patchArea1+patchArea2;
-    const Vec3 patchCentroid_S1 = 
-        patchArea > 0 ? (  weightedPatchCentroid1_S1
-                         + weightedPatchCentroid2_S1) / patchArea
-                      : Vec3(0);
+    // At this point one or two area-weighted patch centroids and corresponding
+    // patch area estimates are known; if one is unused it's (0,0,0) with 0 
+    // area weight. Combine them into a single composite centroid for the patch,
+    // with each contributing equally, and an averaged patch area estimate.
+    Real patchArea=0, areaScale1=0, areaScale2=0;
+    Vec3 patchCentroid_S1(0);
+    if (patchArea1 != 0) {
+        if (patchArea2 != 0) {
+            patchArea = (patchArea1 + patchArea2)/2;
+            areaScale1 = (patchArea/2) / patchArea1;
+            areaScale2 = (patchArea/2) / patchArea2;
+            patchCentroid_S1 = 
+                areaScale1 * weightedPatchCentroid1_S1 / patchArea1
+              + areaScale2 * weightedPatchCentroid2_S1 / patchArea2;
+        } else { // only patchArea1
+            patchArea=patchArea1;
+            areaScale1 = 1;
+            areaScale2 = 0;
+            patchCentroid_S1 = weightedPatchCentroid1_S1 / patchArea1;
+        }
+    } else if (patchArea2 != 0) { // only patchArea2
+        patchArea = patchArea2;
+        areaScale2 = 1;
+        areaScale1 = 0;
+        patchCentroid_S1 = weightedPatchCentroid2_S1 / patchArea2;
+    }
+
 
     // The patch centroid as calculated from one or two meshes is now
     // in patchCentroid_S1, measured from and expressed in S1. Now we'll
@@ -1233,7 +1269,8 @@ void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
         processOneMesh(state, 
             mesh, contact.getSurface1Faces(),
             X_S1S2, V_S1S2, shape2,
-            s1, k, c, us, ud, uv,
+            s1, areaScale1,
+            k, c, us, ud, uv,
             patchCentroid_S1,
             force1_S1, potEnergy1, powerLoss1,
             weightedCOP1_PC_S1, weightCOP1, 
@@ -1262,7 +1299,8 @@ void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
         processOneMesh(state, 
             mesh, contact.getSurface2Faces(),
             X_S2S1, V_S2S1, shape1,
-            s2, k, c, us, ud, uv,
+            s2, areaScale2,
+            k, c, us, ud, uv,
             patchCentroid_S2,
             force2_S2, potEnergy2, powerLoss2,
             weightedCOP2_PC_S2, weightCOP2,
@@ -1340,15 +1378,20 @@ calcWeightedPatchCentroid
 
 
 
-// Private method that calculates the net contact force produced by a single triangle
-// mesh in contact with some other object (which might be another
+// Private method that calculates the net contact force produced by a single 
+// triangle mesh in contact with some other object (which might be another
 // mesh; we don't care). We are given the relative spatial pose and velocity of
 // the two surface frames, and for the mesh we are given a specific list of
 // the faces that are suspected of being at least partially inside the 
-// other surface (in the undeformed geometry overlap).
-// Normally this just computes the resultant force but it can optionally append
-// contact patch details (one entry per element) as well, if the contactDetails
-// argument is non-null.
+// other surface (in the undeformed geometry overlap). Normally this just 
+// computes the resultant force but it can optionally append contact patch 
+// details (one entry per element) as well, if the contactDetails argument is 
+// non-null.
+// An area-scaling factor is used to scale the area represented by each face.
+// If there is only one mesh involved this should be 1. However, if this
+// is part of a pair of contact meshes each half of the pair should be scaled
+// so that both surfaces see the same overall patch area (so nominally the
+// area-scaling factor would be 0.5).
 void ContactForceGenerator::ElasticFoundation::
 processOneMesh
    (const State&                            state,
@@ -1358,6 +1401,7 @@ processOneMesh
     const SpatialVec&                       V_MO,
     const ContactGeometry&                  other,
     Real                                    meshDeformationFraction, // 0..1
+    Real                                    areaScaleFactor,
     Real k, Real c, Real us, Real ud, Real uv, // composite material props
     const Vec3&                 resultantPt_M, // where to apply forces
     SpatialVec&                 resultantForceOnOther_M, // at resultant pt
@@ -1396,7 +1440,7 @@ processOneMesh
                                        iter != insideFaces.end(); ++iter) 
     {   const int   face        = *iter;
         const Vec3  springPos_M = mesh.findCentroid(face);
-        const Real  faceArea    = mesh.getFaceArea(face);
+        const Real  faceArea    = areaScaleFactor*mesh.getFaceArea(face);
 
         bool        inside;
         UnitVec3    normal_O; // not used
@@ -1537,7 +1581,8 @@ processOneMesh
             detail.m_deformation        = overlap;
             detail.m_deformationRate    = odot;
             detail.m_patchArea          = faceArea;
-            detail.m_peakPressure       = (faceArea != 0 ? fNormal/faceArea : Real(0));
+            detail.m_peakPressure       = (faceArea != 0 ? fNormal/faceArea 
+                                                         : Real(0));
             detail.m_potentialEnergy    = PE;
             detail.m_powerLoss          = powerLossThisElement;
         }
