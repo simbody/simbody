@@ -709,6 +709,9 @@ static void calcHertzContactForce
 
     const ContactSurface&  surf1  = tracker.getContactSurface(surf1x);
     const ContactSurface&  surf2  = tracker.getContactSurface(surf2x);
+    // Note that Hertz doesn't care about the "thickness" property of a
+    // ContactSurface; it is able to estimate %strain from the relationship
+    // between the deformation and local radii of curvature.
 
     const ContactMaterial& mat1   = surf1.getMaterial();
     const ContactMaterial& mat2   = surf2.getMaterial();
@@ -1150,8 +1153,47 @@ void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
     const ContactSurface&  surf1  = tracker.getContactSurface(surf1x);
     const ContactSurface&  surf2  = tracker.getContactSurface(surf2x);
 
+    const ContactGeometry& shape1 = surf1.getShape();
+    const ContactGeometry& shape2 = surf2.getShape();
+
+    // One or both of these contact shapes must be a mesh.
+    const bool isMesh1 = 
+        (shape1.getTypeId() == ContactGeometry::TriangleMesh::classTypeId());
+    const bool isMesh2 = 
+        (shape2.getTypeId() == ContactGeometry::TriangleMesh::classTypeId());
+
+    // This is an assert because we should never have gotten here otherwise.
+    SimTK_ASSERT_ALWAYS(isMesh1 || isMesh2,
+      "ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails():"
+      " At least one of the two surfaces should have been a mesh.");
+
+    // We require that any elastic foundation mesh have a non-zero thickness
+    // specified for the ContactSurface. This is an error rather than an 
+    // assert because we might not find out until first contact that we need
+    // to know the thickness.
+    // For a non-mesh surface we'll *allow* a thickness but if there isn't
+    // one we'll assume it has the same thickness as the mesh.
+    // TODO: can't we do better than that?
+    Real h1=surf1.getThickness(), h2=surf2.getThickness();
+    SimTK_ERRCHK_ALWAYS(!isMesh1 || h1 > 0,
+        "ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails()",
+        " Surface 1 was a mesh but no thickness was provided for the"
+        " ContactSurface.");
+    SimTK_ERRCHK_ALWAYS(!isMesh2 || h2 > 0,
+        "ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails()",
+        " Surface 2 was a mesh but no thickness was provided for the"
+        " ContactSurface.");
+
+    assert(h1>0 || h2>0);
+
+    //TODO: for now assign the same thickness to the non-mesh as to the mesh.
+    //Should be able to do better than this.
+    if (h1==0) h1=h2;
+    if (h2==0) h2=h1;
+
     // Compute combined material properties just once -- they are the same
     // for all triangles.
+
     const ContactMaterial& mat1   = surf1.getMaterial();
     const ContactMaterial& mat2   = surf2.getMaterial();
 
@@ -1159,14 +1201,19 @@ void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
     const Real k1=mat1.getStiffness(), k2=mat2.getStiffness();
     const Real c1=mat1.getDissipation(), c2=mat2.getDissipation();
 
+    // Above stiffnesses are in pressure/unit strain; we need to work here
+    // with pressure/unit deformation using strain=x/h where x is deformation
+    // and h is thickness (that is, x==h => 100% strain).
+    const Real kh1 = k1/h1, kh2 = k2/h2;
+
     // Adjust the contact location based on the relative stiffness of the 
     // two materials. s1 is the fraction of the "squishing" (deformation) that
-    // is done by surface1 -- if surface2 is very stiff then surface1 does most.
-    const Real s1 = k2/(k1+k2); // 0..1
-    const Real s2 = 1-s1;       // 1..0
+    // is done by surface1 -- if surface2 is very stiff then surface1 does most. 
+    const Real s1 = kh2/(kh1+kh2); // 0..1   
+    const Real s2 = 1-s1;          // 1..0
     
-    // k is the effective stiffness, c the effective dissipation
-    const Real k = k1*s1; // (==k2*s2) == E
+    // kh is the effective stiffness, c the effective dissipation
+    const Real kh = kh1*s1; // (==kh2*s2) == E/x
     const Real c = c1*s1 + c2*s2;
 
     // Calculate effective coefficients of friction, being careful not
@@ -1179,8 +1226,7 @@ void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
     Real uv = 2*uv1*uv2; if (uv!=0) uv /= (uv1+uv2);
 
     // Now generate forces using the meshed surfaces only (one or two).
-    const ContactGeometry& shape1 = surf1.getShape();
-    const ContactGeometry& shape2 = surf2.getShape();
+
 
     // We want both patches to accumulate forces at the same point in
     // space. For numerical reasons this should be near the center of the
@@ -1270,7 +1316,7 @@ void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
             mesh, contact.getSurface1Faces(),
             X_S1S2, V_S1S2, shape2,
             s1, areaScale1,
-            k, c, us, ud, uv,
+            kh, c, us, ud, uv,
             patchCentroid_S1,
             force1_S1, potEnergy1, powerLoss1,
             weightedCOP1_PC_S1, weightCOP1, 
@@ -1300,7 +1346,7 @@ void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
             mesh, contact.getSurface2Faces(),
             X_S2S1, V_S2S1, shape1,
             s2, areaScale2,
-            k, c, us, ud, uv,
+            kh, c, us, ud, uv,
             patchCentroid_S2,
             force2_S2, potEnergy2, powerLoss2,
             weightedCOP2_PC_S2, weightCOP2,
@@ -1402,7 +1448,7 @@ processOneMesh
     const ContactGeometry&                  other,
     Real                                    meshDeformationFraction, // 0..1
     Real                                    areaScaleFactor,
-    Real k, Real c, Real us, Real ud, Real uv, // composite material props
+    Real kh, Real c, Real us, Real ud, Real uv, // composite material props
     const Vec3&                 resultantPt_M, // where to apply forces
     SpatialVec&                 resultantForceOnOther_M, // at resultant pt
     Real&                       potentialEnergy,
@@ -1503,9 +1549,10 @@ processOneMesh
         const Vec3 velTangent = vel-velNormal;          // 3 flops
         
         // Calculate scalar normal force                  (5 flops)
-        const Real fK = k*faceArea*overlap; // normal elastic force (conservative)
-        const Real fC = fK*c*odot;          // normal dissipation force (loss)
-        const Real fNormal = fK + fC;       // normal force
+        // Here kh has units of pressure/area/displacement
+        const Real fK = kh*faceArea*overlap; // normal elastic force (conservative)
+        const Real fC = fK*c*odot;           // normal dissipation force (loss)
+        const Real fNormal = fK + fC;        // normal force
 
         // Total force can be negative under unusual circumstances ("yanking");
         // that means no force is generated and no stored PE will be recovered.

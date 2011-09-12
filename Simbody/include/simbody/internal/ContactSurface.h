@@ -2,15 +2,15 @@
 #define SimTK_SIMBODY_CONTACT_SURFACE_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
- * Authors: Peter Eastman                                                     *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
+ * Authors: Peter Eastman and Michael Sherman                                 *
  * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
@@ -62,15 +62,16 @@ supported:
 Each of these techniques can respond to both impacts and continuous contact,
 and provides for both compressive and frictional effects.
 
-For compliant contact we distinguish two cases:
+For compliant contact this material can be applied in different ways:
   - the material represents an elastic solid, large in comparison to the 
     region of contact deformation
   - the material represents a uniform thin elastic layer over an 
     otherwise-rigid body (elastic foundation model).
 
-The elastic foundation layer thickness h may be specified at the time this 
-material is used to construct a ContactSurface; the material properties 
-supplied here should be independent of that.
+The elastic foundation layer thickness h is \e not a property of this material;
+instead it is specified at the time this material is used to construct a 
+ContactSurface; the material properties supplied here are independent of how
+the material is used.
 
 <h3>Compliant vs. rigid contact models</h3>
   
@@ -85,7 +86,8 @@ In compliant contact, energy dissipation occurs via a continuous function
 of deformation and deformation rate, based on a material property c we call
 the "dissipation coefficient" (Hunt & Crossley call this "alpha"). In rigid 
 contact, energy dissipation occurs via a "coefficient of restitution" e that 
-defines what fraction of impact velocity is lost on rebound. It is common 
+defines what fraction of (a) impact velocity (Newton's hypothesis) or (b)
+collision impulse (Poisson's hypothesis) is lost on rebound. It is common 
 practice, but blatantly incorrect, to use a constant value for the coefficient 
 of restitution. Empirically, coefficient of restitution e is known to be a 
 linear function of impact velocity for small velocities: e=1-c*v where c is 
@@ -102,7 +104,43 @@ ContactMaterial() {clear();}
 /** Create a contact material with a complete set of compliant contact
 material properties. This does not set the coefficient of restitution. 
 There are a variety of static methods provided to aid in calculating the
-stiffness and dissipation from available data. **/
+stiffness and dissipation from available data. 
+@param[in]      stiffness
+    This is in units of pressure per unit strain, where pressure is force per
+    unit area, and strain is a unitless measure of deformation. There are
+    a variety of ways to compute this from Young's modulus and Poisson's
+    ratio; see for example calcPlaneStrainStiffness() and 
+    calcConfinedCompressionStiffness(). Note that different compliant contact 
+    models determine strain differently for a given deformation x. For example,
+    Hertz uses the relationship between x and local curvatures to determine the
+    fractional strain, while Elastic Foundation must be given a "thickness" h 
+    with strain then defined as x/h. We require \a stiffness >= 0.
+@param[in]      dissipation
+    This is the Hunt and Crossley dissipation coefficient for this material
+    in units of 1/velocity. This is the fraction of stiffness force generated
+    as a dissipation force per unit deformation rate, via
+    f_dissipation = f_stiffness * (dissipation * v_deformation). You can
+    measures this as the slope of the coefficient of restitution (e) vs. impact
+    velocity (v) curve at low velocities, where e=1-c*v.
+    We require \a dissipation >= 0.
+@param[in]      staticFriction
+    This is the Coulomb "stiction" coefficient mu_s that is used at very low
+    sliding velocities, with tangential force limited to f=mu_s*N where N
+    is the contact normal force due to stiffness and dissipation effects. 
+    We require \a staticFriction >= \a dynamicFriction >= 0.
+@param[in]      dynamicFriction
+    This is the Coulomb friction coefficient mu_d that is to be used at 
+    significant sliding velocities, with velocity-independent tangential 
+    force magnitude f=mu_d*N produced opposing the sliding direction, where 
+    N is the contact normal force due to stiffness and dissipation effects. 
+    We require 0 <= \a dynamicFriction <= \a staticFriction.
+@param[in]      viscousFriction
+    This is the "wet" friction coefficient mu_v >= 0 for this material 
+    generating a sliding velocity-dependent tangential force of magnitude 
+    f=mu_v*v*N where v is the sliding velocity and N is the contact normal
+    force due to stiffness and dissipation effects. This is not commonly
+    used and defaults to zero.
+**/
 ContactMaterial(Real stiffness, Real dissipation, 
                 Real staticFriction, Real dynamicFriction,
                 Real viscousFriction = 0) {
@@ -130,18 +168,17 @@ Real getDissipation() const
 {   SimTK_ERRCHK(isValid(), "ContactMaterial::getDissipation()",
         "This is an invalid ContactMaterial.");
     return m_dissipation; }
-/** Return the coefficient of static friction (unitless). **/
+/** Return the coefficient of static friction mu_s (unitless). **/
 Real getStaticFriction() const 
 {   SimTK_ERRCHK(isValid(), "ContactMaterial::getStaticFriction()",
         "This is an invalid ContactMaterial.");
     return m_staticFriction; }
-/** Return the coefficient of dynamic friction (unitless). **/
+/** Return the coefficient of dynamic friction mu_d (unitless). **/
 Real getDynamicFriction() const 
 {   SimTK_ERRCHK(isValid(), "ContactMaterial::getDynamicFriction()",
         "This is an invalid ContactMaterial.");
     return m_dynamicFriction; }
-/** Return the coefficient of viscous friction (1/velocity). **/
-//TODO: should this be (force/area)/velocity?
+/** Return the coefficient of viscous friction mu_v (1/velocity). **/
 Real getViscousFriction() const 
 {   SimTK_ERRCHK(isValid(), "ContactMaterial::getViscousFriction()",
         "This is an invalid ContactMaterial.");
@@ -201,7 +238,7 @@ static Real calcPlaneStrainStiffness(Real youngsModulus,
                                      Real poissonsRatio) 
 {
     SimTK_ERRCHK2_ALWAYS(youngsModulus >= 0 &&
-                         -1 < poissonsRatio && poissonsRatio < 0.5,
+                         -1 < poissonsRatio && poissonsRatio <= 0.5,
                          "ContactMaterial::calcStiffnessForSolid()",
         "Illegal material properties E=%g, v=%g.", 
         youngsModulus, poissonsRatio);
@@ -245,7 +282,7 @@ v must be greater than zero. **/
 static Real calcDissipationFromObservedRestitution
    (Real restitution, Real speed) {
     if (restitution==1) return 0;
-    SimTK_ERRCHK2(0<=restitution && restitution<=1 && speed>0,
+    SimTK_ERRCHK2_ALWAYS(0<=restitution && restitution<=1 && speed>0,
         "ContactMaterial::calcDissipationFromRestitution()",
         "Illegal coefficient of restitution or speed (%g,%g).",
         restitution, speed);
@@ -289,8 +326,10 @@ Real    m_viscousFriction;  // uv: %normalForce/slipVelocity
 /** This class combines a piece of ContactGeometry with a ContactMaterial to
 make an object suitable for attaching to a body which can then engage in
 contact behavior with other contact surfaces. The ContactMaterial may be
-uniform throughout a large solid volume or a thin layer of uniform material
-thickness h on top of a rigid substrate.
+considered as uniform throughout a large solid volume or as a thin layer of 
+uniform material thickness h on top of a rigid substrate. Compliant contact
+models vary in how they deal with the thickness h: Hertz ignores it, Elastic
+Foundation uses it to define unit strain.
 
 Typically any contact surface can bump into any other contact surface. However, 
 some groups of surfaces can or should never interact; those groups are called 
@@ -304,8 +343,13 @@ public:
 /** Create an empty ContactSurface. **/
 ContactSurface() {}
 /** Create a ContactSurface with a given shape and material. **/
-ContactSurface(const ContactGeometry& shape, const ContactMaterial& material)
-:   m_shape(shape), m_material(material) {}
+ContactSurface(const ContactGeometry&   shape, 
+               const ContactMaterial&   material,
+               Real                     thickness=0)
+:   m_shape(shape), m_material(material), m_thickness(thickness) {
+    SimTK_ERRCHK1_ALWAYS(thickness >= 0, "ContactSurface::ctor()",
+        "Illegal thickness %g.", thickness);
+}
 
 /** Define a new shape for this ContactSurface. **/
 ContactSurface& setShape(const ContactGeometry& shape) 
@@ -314,15 +358,19 @@ ContactSurface& setShape(const ContactGeometry& shape)
 /** Define a new material for this ContactSurface, optionally providing
 the thickness of this elastic material layer over a rigid substrate. **/
 ContactSurface& setMaterial(const ContactMaterial& material,
-                            Real thickness = Infinity) 
+                            Real thickness = 0) 
 {   m_material = material; setThickness(thickness); return *this; }
 
 /** Set the thickness of the layer of elastic material coating this contact
-surface. Set this to Infinity to indicate that the surface is part of a solid
-object of this material, with dimensions treated as large compared to the 
-contact patch dimensions. **/
-ContactSurface& setThickness(Real thickness)
-{   m_thickness = thickness; return *this; }
+surface. This is required by the Elastic Foundation Model but is ignored
+by the Hertz model. Elastic Foundation uses this value to define "unit strain",
+that is, an element deformed by 0.1*thickness has 10% strain. **/
+ContactSurface& setThickness(Real thickness) {
+    SimTK_ERRCHK1_ALWAYS(thickness >= 0, "ContactSurface::setThickness()",
+        "Illegal thickness %g.", thickness);
+    m_thickness = thickness; 
+    return *this; 
+}
 
 /** Get read-only access to the shape of this contact surface. **/
 const ContactGeometry& getShape()    const {return m_shape;}
@@ -331,8 +379,7 @@ const ContactGeometry& getShape()    const {return m_shape;}
 const ContactMaterial& getMaterial() const {return m_material;}
 
 /** Get the thickness of the elastic material layer on this contact surface,
-with Infinity indicating that the surface is the outside of a solid made
-uniformly of this material. **/
+with zero indicating that the thickness has not been set. **/
 Real getThickness() const {return m_thickness;}
 
 /** Get writable access to the shape of this contact surface. **/
@@ -370,7 +417,7 @@ bool isInSameClique(const ContactSurface& other) const
 {   if (getCliques().empty() || other.getCliques().empty()) return false;//typical
     return cliquesIntersect(getCliques(), other.getCliques()); }
 
-/** Return a referemce tp the list of CliqueIds of the cliques in which this
+/** Return a reference to the list of CliqueIds of the cliques in which this
 contact surface is a member; the list is always sorted in ascending order. **/
 const Array_<ContactCliqueId,short>& getCliques() const {return m_cliques;}
 
