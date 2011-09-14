@@ -1094,18 +1094,17 @@ public:
 // realizeAcceleration() method. This includes
 //
 //  - basic kinematics A_GB giving body accelerations in Ground
-//  - for constrained bodies, A_AB giving body accelerations in their ancestor A
 //  - prescribed motion forces tau
 //  - logically, udot and qdotdot, but those arrays are provided as built-in 
 //    cache entries in State
 //
 //  - mobilizer reaction forces (TODO)
 //
-// This cache entry can be calculated after Stage::Dynamics and is guaranteed to 
-// have been calculated by the end of Stage::Acceleration. The matter subsystem's
-// realizeAcceleration() method will mark this done as soon as possible, so that
-// later calculations (constraint acceleration errors) can access these without a 
-// stage violation.
+// This cache entry can be calculated after Stage::Dynamics and is guaranteed 
+// to have been calculated by the end of Stage::Acceleration. The matter 
+// subsystem's realizeAcceleration() method will mark this done as soon as 
+// possible, so that later calculations (constraint acceleration errors) can 
+// access these without a stage violation.
 
 class SBTreeAccelerationCache {
 public:
@@ -1113,11 +1112,6 @@ public:
     {   return bodyAccelerationInGround[mbx]; }
     SpatialVec&       updA_GB(MobilizedBodyIndex mbx)       
     {   return bodyAccelerationInGround[mbx]; }
-
-    const SpatialVec& getA_AB(AncestorConstrainedBodyPoolIndex cbpx) const 
-    {   return constrainedBodyAccelerationInAncestor[cbpx]; }
-    SpatialVec&       updA_AB(AncestorConstrainedBodyPoolIndex cbpx)       
-    {   return constrainedBodyAccelerationInAncestor[cbpx]; }
 
 public:
     // udot, qdotdot cache space is provided directly by the State.
@@ -1138,14 +1132,6 @@ public:
     Array_<SpatialVec,MobilizedBodyIndex> z;        // nb
     Array_<SpatialVec,MobilizedBodyIndex> Gepsilon; // nb
 
-        // Ancestor Constrained Body Pool
-
-    // For Constraints whose Ancestor body A is not Ground G, we assign pool entries
-    // for each of their Constrained Bodies (call the total number 'nacb')
-    // to store the above information but measured and expressed in the Ancestor frame
-    // rather than Ground.
-    Array_<SpatialVec> constrainedBodyAccelerationInAncestor; // nacb (A_AB)
-
 public:
     void allocate(const SBTopologyCache& topo,
                   const SBModelCache&    model,
@@ -1156,7 +1142,6 @@ public:
         const int nDofs   = topo.nDOFs;     // this is the number of u's (nu)
         const int nSqDofs = topo.sumSqDOFs; // sum(ndof^2) for each joint
         const int maxNQs  = topo.maxNQs;    // allocate the max # q's we'll ever need
-        const int nacb    = topo.nAncestorConstrainedBodies;
 
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
@@ -1166,8 +1151,6 @@ public:
         epsilon.resize(nDofs);
         z.resize(nBodies);
         Gepsilon.resize(nBodies); // TODO: ground initialization
-
-        constrainedBodyAccelerationInAncestor.resize(nacb);
     }
 };
 //.......................... TREE ACCELERATION CACHE ...........................

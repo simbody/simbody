@@ -492,8 +492,6 @@ const Transform&  getBodyTransformFromState
    (const State& s, ConstrainedBodyIndex B) const;      // X_AB
 const SpatialVec& getBodyVelocityFromState   
    (const State& s, ConstrainedBodyIndex B) const;      // V_AB
-const SpatialVec& getBodyAccelerationFromState
-   (const State& s, ConstrainedBodyIndex B) const;      // A_AB
 
 // Extract just the rotational quantities from the spatial quantities above.
 const Rotation& getBodyRotationFromState
@@ -502,9 +500,6 @@ const Rotation& getBodyRotationFromState
 const Vec3& getBodyAngularVelocityFromState
    (const State& s, ConstrainedBodyIndex B)     const   // w_AB
     {return getBodyVelocityFromState(s,B)[0];}
-const Vec3& getBodyAngularAccelerationFromState
-   (const State& s, ConstrainedBodyIndex B) const       // b_AB
-    {return getBodyAccelerationFromState(s,B)[0];}
 
 // Extract just the translational (linear) quantities from the spatial quantities above.
 const Vec3& getBodyOriginLocationFromState
@@ -513,9 +508,6 @@ const Vec3& getBodyOriginLocationFromState
 const Vec3& getBodyOriginVelocityFromState
    (const State& s, ConstrainedBodyIndex B)     const   // v_AB
     {return getBodyVelocityFromState(s,B)[1];}     
-const Vec3& getBodyOriginAccelerationFromState
-   (const State& s, ConstrainedBodyIndex B) const       // a_AB
-    {return getBodyAccelerationFromState(s,B)[1];} 
 
 // These are analogous methods for when you've been given X_AB, V_AB, or A_AB
 // explicitly as an operand. These are all inline and trivial.
@@ -602,19 +594,7 @@ Vec3 findStationVelocity
     return V_AB[1] + (V_AB[0] % p_A);
 }
 
-// Given a station on body B, find its acceleration measured and expressed in
-// the Ancestor's frame A. 48 flops.
-Vec3 findStationAccelerationFromState
-   (const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const 
-{
-    // p_B rexpressed in A but not shifted to Ao
-    const Vec3        p_A  = getBodyRotationFromState(s,B) * p_B;
-    const Vec3&       w_AB = getBodyAngularVelocityFromState(s,B);
-    const SpatialVec& A_AB = getBodyAccelerationFromState(s,B);
-    const Vec3 a_A = A_AB[1] + (A_AB[0] % p_A) 
-                             + w_AB % (w_AB % p_A); // careful: % not associative
-    return a_A;
-}
+// There is no findStationAccelerationFromState().
 
 // Same, but only configuration and velocity come from state; accelerations
 // are an operand.
@@ -690,45 +670,26 @@ int calcNumAccelerationEquationsInUse(const State& s) const {
     return ma;
 }
 
-    // The next six methods are just interfaces to the constraint 
-    // operators like calcPositionErrors(); they extract the needed operands
+    // The next three methods are just interfaces to the constraint 
+    // operators like calcPositionErrors(); they extract needed operands
     // from the supplied state and then call the operator.
 
 // Calculate the mp position errors that would result from the configuration 
 // present in the supplied state (that is, q's and body transforms). The state
 // must be realized through Time stage and part way through realization of
 // Position stage.
-void realizePositionErrors(const State& s, Array_<Real>& perr) const;
+void calcPositionErrorsFromState(const State& s, Array_<Real>& perr) const;
 
 // Calculate the mp velocity errors resulting from pdot equations, given a
 // configuration and velocities in the supplied state which must be realized
 // through Position stage and part way through realization of Velocity stage.
-void realizePositionDotErrors(const State& s, Array_<Real>& pverr) const;
-
-// Calculate the mp acceleration errors resulting from pdotdot equations, given
-// the udots already present in the supplied state which must be realized 
-// through Dynamics stage and part way through realization of Acceleration stage.
-void realizePositionDotDotErrors(const State& s, Array_<Real>& paerr) const;
+void calcPositionDotErrorsFromState(const State& s, Array_<Real>& pverr) const;
 
 // Calculate the mv velocity errors resulting from the nonholonomic constraint
 // equations here, taking the configuration and velocities (u, qdot, body
 // spatial velocities) from the supplied state, which must be realized through
 // Position stage and part way through realization of Velocity stage.
-void realizeVelocityErrors(const State& s, Array_<Real>& verr) const;
-
-// Calculate the mv acceleration errors resulting from the vdot equations
-// (nonholonomic constraint derivatives) taking all information from the
-// supplied state, with udot, qdotdot, and body spatial accelerations
-// expected to be valid so the state must be realized through Dynamics stage
-// and part way through realization of Acceleration stage.
-void realizeVelocityDotErrors(const State& s, Array_<Real>& vaerr) const;
-
-// Calculate the ma acceleration errors resulting from the acceleration-only
-// constraint equations here, taking all information from the supplied state,
-// with udot, qdotdot, and body spatial accelerations expected to be valid,
-// meaning the State must be realized to Dynamics stage and part way through
-// realization of Acceleration stage.
-void realizeAccelerationErrors(const State& s, Array_<Real>& aerr) const;
+void calcVelocityErrorsFromState(const State& s, Array_<Real>& verr) const;
 
 // Calculate position errors given pose of the constrained bodies and the
 // values of the constrained q's. Pull t from state.
@@ -1102,9 +1063,7 @@ void calcConstrainedBodyTransformInAncestor(const SBStateDigest&,   // in only
                                             SBTreePositionCache&    // in/out
                                             ) const;
 
-// Similarly we calculate V_AB and A_AB during realizeVelocity() and 
-// realizeAcceleration():
-
+// Similarly we calculate V_AB during realizeVelocity().
 // Here we expect a StateDigest realized through Position stage, and a 
 // partly-filled-in VelocityCache where we'll put V_AB for the 
 // ConstrainedBodies.
@@ -1112,12 +1071,7 @@ void calcConstrainedBodyVelocityInAncestor(const SBStateDigest&,    // in only
                                            SBTreeVelocityCache&     // in/out
                                            ) const;
 
-// Similarly, here we expect a StateDigest realized through Dynamics stage,
-// and a partly-filled-in AccelerationCache where we'll put A_AB for the 
-// ConstrainedBodies.
-void calcConstrainedBodyAccelerationInAncestor(const SBStateDigest&,    // in only
-                                               SBTreeAccelerationCache& // in/out
-                                               ) const;
+// A_AB is not cached.
 
 private:
 friend class Constraint;

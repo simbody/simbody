@@ -1,7 +1,7 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                              SimTK Simbody(tm)                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
@@ -974,7 +974,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         if (pseg.length) {
             Real* perrp = &qErr[pseg.offset];
             ArrayView_<Real> perr(perrp, perrp+pseg.length);
-            constraints[cx]->getImpl().realizePositionErrors(s, perr);
+            constraints[cx]->getImpl().calcPositionErrorsFromState(s, perr);
         }
     }
 
@@ -1107,13 +1107,13 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
         if (mHolo) {
             Real* pverrp = &uErr[holoseg.offset];
             ArrayView_<Real> pverr(pverrp, pverrp+mHolo);
-            constraints[cx]->getImpl().realizePositionDotErrors(s, pverr);
+            constraints[cx]->getImpl().calcPositionDotErrorsFromState(s, pverr);
         }
         if (mNonholo) {
             Real* verrp = &uErr[ic.totalNHolonomicConstraintEquationsInUse 
                                 + nonholoseg.offset];
             ArrayView_<Real> verr(verrp, verrp+mNonholo);
-            constraints[cx]->getImpl().realizeVelocityErrors(s, verr);
+            constraints[cx]->getImpl().calcVelocityErrorsFromState(s, verr);
         }
     }
 
@@ -1268,145 +1268,22 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
 
     return 0;
 }
+
+// TODO: the weight for u_i should be something like the largest Dv_j/Du_i in 
+// the system Jacobian, where v_j is body j's origin speed, with a lower limit
+// given by length scale (e.g. 1 unit).
+// Then the q_i weight should be obtained via dq = N*du.
 int SimbodyMatterSubsystemRep::calcQUnitWeightsImpl(const State& s, Vector& weights) const {
     weights.resize(getNQ(s));
     weights = 1;
-    /*
-    Vec6 bounds;
-    State tempState = s;
-    getSystem().realize(tempState, Stage::Position);
-    calcQUnitWeightsRecursively(s, tempState, weights, bounds, getRigidBodyNode(getGround().getMobilizedBodyIndex()));
-    /**/
     return 0;
 }
 int SimbodyMatterSubsystemRep::calcUUnitWeightsImpl(const State& s, Vector& weights) const {
     weights.resize(getNU(s));
     weights = 1;
-    /*
-    Vec6 bounds;
-    State tempState = s;
-    tempState.updU() = 0;
-    getSystem().realize(tempState, Stage::Position);
-    calcUUnitWeightsRecursively(s, tempState, weights, bounds, getRigidBodyNode(getGround().getMobilizedBodyIndex()));
-    /**/
     return 0;
 }
-// DON'T USE THIS
-void SimbodyMatterSubsystemRep::calcQUnitWeightsRecursively(const State& s, State& tempState, Vector& weights, Vec6& bounds, const RigidBodyNode& body) const {
-    bounds[0] = bounds[2] = bounds[4] = Infinity;
-    bounds[1] = bounds[3] = bounds[5] = -Infinity;
-    
-    // Call this method recursively on the body's children, and build up a bounding box
-    // for everything downstream of it.
-    
-    for (int i = 0; i < body.getNumChildren(); ++i) {
-        Vec6 childBounds;
-        calcQUnitWeightsRecursively(s, tempState, weights, childBounds, *body.getChild(i));
-        bounds[0] = std::min(bounds[0], childBounds[0]);
-        bounds[2] = std::min(bounds[2], childBounds[2]);
-        bounds[4] = std::min(bounds[4], childBounds[4]);
-        bounds[1] = std::max(bounds[1], childBounds[1]);
-        bounds[3] = std::max(bounds[3], childBounds[3]);
-        bounds[5] = std::max(bounds[5], childBounds[5]);
-    }
-    const SBTreePositionCache& pc = getTreePositionCache(s);
-    const SBModelVars& mv = getModelVars(s);
-    Vec3 origin = body.getX_GB(pc).p();
-    bounds[0] = std::min(bounds[0], origin[0]);
-    bounds[2] = std::min(bounds[2], origin[1]);
-    bounds[4] = std::min(bounds[4], origin[2]);
-    bounds[1] = std::max(bounds[1], origin[0]);
-    bounds[3] = std::max(bounds[3], origin[1]);
-    bounds[5] = std::max(bounds[5], origin[2]);
-    Array_<Vec3> corners;
-    corners.push_back(Vec3(bounds[0], bounds[2], bounds[4]));
-    corners.push_back(Vec3(bounds[0], bounds[2], bounds[5]));
-    corners.push_back(Vec3(bounds[0], bounds[3], bounds[4]));
-    corners.push_back(Vec3(bounds[0], bounds[3], bounds[5]));
-    corners.push_back(Vec3(bounds[1], bounds[2], bounds[4]));
-    corners.push_back(Vec3(bounds[1], bounds[2], bounds[5]));
-    corners.push_back(Vec3(bounds[1], bounds[3], bounds[4]));
-    corners.push_back(Vec3(bounds[1], bounds[3], bounds[5]));
-    
-    // Try changing each Q, and see how much the position of each corner of the box is affected
-    
-    const Real delta = 1e-10;
-    Transform t = ~body.getX_GB(pc);
-    for (int i = 0; i < body.getNQInUse(mv); ++i) {
-        int qindex = body.getQIndex()+i;
-        tempState.updQ()[qindex] = s.getQ()[qindex]+delta;
-        getSystem().realize(tempState, Stage::Position);
-        const SBTreePositionCache& tempCache = getTreePositionCache(tempState);
-        Transform deltaT = body.getX_GB(tempCache)*t;
-        Real max = 0.0;
-        for (int j = 0; j < (int) corners.size(); ++j) {
-            Real dist = (corners[j]-deltaT*corners[j]).norm();
-            max = std::max(max, dist);
-        }
-        weights[qindex] = std::max(max/delta, 0.1);
-        tempState.updQ()[qindex] = s.getQ()[qindex];
-    }
-}
-// DON'T USE THIS
-void SimbodyMatterSubsystemRep::calcUUnitWeightsRecursively(const State& s, State& tempState, Vector& weights, Vec6& bounds, const RigidBodyNode& body) const {
-    bounds[0] = bounds[2] = bounds[4] = Infinity;
-    bounds[1] = bounds[3] = bounds[5] = -Infinity;
-    
-    // Call this method recursively on the body's children, and build up a bounding box
-    // for everything downstream of it.
-    
-    for (int i = 0; i < body.getNumChildren(); ++i) {
-        Vec6 childBounds;
-        calcUUnitWeightsRecursively(s, tempState, weights, childBounds, *body.getChild(i));
-        bounds[0] = std::min(bounds[0], childBounds[0]);
-        bounds[2] = std::min(bounds[2], childBounds[2]);
-        bounds[4] = std::min(bounds[4], childBounds[4]);
-        bounds[1] = std::max(bounds[1], childBounds[1]);
-        bounds[3] = std::max(bounds[3], childBounds[3]);
-        bounds[5] = std::max(bounds[5], childBounds[5]);
-    }
-    const SBTreePositionCache& pc = getTreePositionCache(s);
-    const SBModelVars& mv = getModelVars(s);
-    Vec3 origin = body.getX_GB(pc).p();
-    bounds[0] = std::min(bounds[0], origin[0]);
-    bounds[2] = std::min(bounds[2], origin[1]);
-    bounds[4] = std::min(bounds[4], origin[2]);
-    bounds[1] = std::max(bounds[1], origin[0]);
-    bounds[3] = std::max(bounds[3], origin[1]);
-    bounds[5] = std::max(bounds[5], origin[2]);
-    Array_<Vec3> corners;
-    corners.push_back(Vec3(bounds[0], bounds[2], bounds[4]));
-    corners.push_back(Vec3(bounds[0], bounds[2], bounds[5]));
-    corners.push_back(Vec3(bounds[0], bounds[3], bounds[4]));
-    corners.push_back(Vec3(bounds[0], bounds[3], bounds[5]));
-    corners.push_back(Vec3(bounds[1], bounds[2], bounds[4]));
-    corners.push_back(Vec3(bounds[1], bounds[2], bounds[5]));
-    corners.push_back(Vec3(bounds[1], bounds[3], bounds[4]));
-    corners.push_back(Vec3(bounds[1], bounds[3], bounds[5]));
-    
-    // Try changing each U, and see how much the position of each corner of the box is affected
-    
-    const Real delta = 1e-10;
-    const Real timescale = getSystem().calcTimescale(s);
-    Transform t = ~body.getX_GB(pc);
-    for (int i = 0; i < body.getDOF(); ++i) {
-        int uindex = body.getUIndex()+i;
-        tempState.updU()[uindex] = 1.0;
-        getSystem().realize(tempState, Stage::Velocity);
-        tempState.updQ() = s.getQ()+tempState.getQDot()*(delta/timescale);
-        getSystem().realize(tempState, Stage::Position);
-        const SBTreePositionCache& tempCache = getTreePositionCache(tempState);
-        Transform deltaT = body.getX_GB(tempCache)*t;
-        Real max = 0.0;
-        for (int j = 0; j < (int) corners.size(); ++j) {
-            Real dist = (corners[j]-deltaT*corners[j]).norm();
-            max = std::max(max, dist);
-        }
-        weights[uindex] = std::max(max/delta, 0.1);
-        tempState.updU()[uindex] = 0.0;
-        tempState.updQ() = s.getQ();
-    }
-}
+
 int SimbodyMatterSubsystemRep::getQIndex(MobilizedBodyIndex body) const {
     assert(subsystemTopologyHasBeenRealized());
     return getRigidBodyNode(body).getQIndex();
@@ -1524,15 +1401,18 @@ void SimbodyMatterSubsystemRep::setDefaultAccelerationValues(const SBModelVars& 
     // TODO: constraint defaults
 }
 
-void SimbodyMatterSubsystemRep::setUseEulerAngles(State& s, bool useAngles) const {
+void SimbodyMatterSubsystemRep::
+setUseEulerAngles(State& s, bool useAngles) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.useEulerAngles = useAngles;
 }
-void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, MobilizedBodyIndex body, bool prescribe) const {
+void SimbodyMatterSubsystemRep::
+setMobilizerIsPrescribed(State& s, MobilizedBodyIndex body, bool prescribe) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.prescribed[body] = prescribe;
 }
-void SimbodyMatterSubsystemRep::setConstraintIsDisabled(State& s, ConstraintIndex constraint, bool disable) const {
+void SimbodyMatterSubsystemRep::
+setConstraintIsDisabled(State& s, ConstraintIndex constraint, bool disable) const {
     SBInstanceVars& instanceVars = updInstanceVars(s); // check/adjust stage
     instanceVars.disabled[constraint] = disable;   
 }
@@ -1581,7 +1461,8 @@ convertToQuaternions(const State& inputState, State& outputState) const {
 }
 
 
-bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, MobilizedBodyIndex body) const {
+bool SimbodyMatterSubsystemRep::
+isUsingQuaternion(const State& s, MobilizedBodyIndex body) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     MobilizerQIndex startOfQuaternion; // we don't need this information here
     SBStateDigest sbs(s, *this, Stage::Model);
@@ -2174,9 +2055,9 @@ calcPqTranspose(const State& s, Matrix& Pqt) const {
 //                      CALC BIAS FOR MULTIPLY BY PVA
 //==============================================================================
 // We have these constraint equations available:
-// (1)  pverr = P*N^-1*qdot - c(t,q)       (= P*u - c(t,q))
-// (2)  vaerr = V*udot      - b_v(t,q,u)
-// (3)  aerr  = A*udot      - b_a(t,q,u)
+// (1)  pverr = Pq*qdot - Pt            (Pq==P*N^-1, Pt==c(t,q))
+// (2)  vaerr = V*udot  - b_v(t,q,u)
+// (3)  aerr  = A*udot  - b_a(t,q,u)
 // with P=P(t,q), N=N(q), V=V(t,q,u), A=A(t,q,u). Individual constraint
 // error equations are calculated in constant time, so the whole set can be 
 // evaluated in O(m) time where m is the total number of constraint equations.
@@ -2186,7 +2067,7 @@ calcPqTranspose(const State& s, Matrix& Pqt) const {
 // those extra terms that don't involve the matrices so we can subtract them
 // off later. So we're going to compute:
 // (4)  bias=[  bias_p,   bias_v,      bias_a    ]
-//          =[ -c(t,q), -b_v(t,q,u), -b_a(t,q,u) ].
+//          =[   -Pt,   -b_v(t,q,u), -b_a(t,q,u) ].
 // which we can get by using equations (1)-(3) with zero qdot or udot.
 //
 // In general the state must be realized through Velocity stage, but if the 
@@ -2195,7 +2076,7 @@ calcPqTranspose(const State& s, Matrix& Pqt) const {
 // to use eq. (1). In that case we require only stage Position.
 //
 // Note that bias_p is correct for use when multiplying a u-like vector by P
-// or a q-like vector by P*N^-1.
+// or a q-like vector by Pq (==P*N^-1).
 //
 // The output vector must use contiguous storage.
 // Complexity is O(m).
@@ -2285,7 +2166,7 @@ calcBiasForMultiplyByPVA(const State& s,
             const ArrayViewConst_<Real,ConstrainedQIndex>    
                 qdot0 = zeroQDot(ConstrainedQIndex(0), ncq);
 
-            // The error slots start at the beginning of the bias array.
+            // The holonomic error slots start at beginning of bias array.
             ArrayView_<Real> pverr = biasArray(holoSeg.offset, mp);
 
             // Write errors into pverr, which is a segment of the bias argument.
@@ -2335,12 +2216,12 @@ calcBiasForMultiplyByPVA(const State& s,
 //                              MULTIPLY BY Pq
 //==============================================================================
 // We have these mp constraint equations available:
-// (1)  pverr(t,q;qdot) = Pq*qdot - Pt     (where Pq=P*N^-1)      
+// (1)  pverr(t,q;qdot) = Pq*qdot - Pt     (where Pq=P*N^-1, Pt=c(t,q))      
 //                      = P *u    - Pt
 // with P=P(t,q), N=N(q), and Pt=Pt(t,q). Individual constraint
 // error equations are calculated in constant time, so the whole set can be 
 // evaluated in O(nq+mp) time where mp is the total number of holonomic
-// constraint equations. We expect to be given bias_p=-Pt (Pt=c(t,q)) as a 
+// constraint equations. We expect to be given bias_p=-Pt as a 
 // precalculated argument. (See calcBiasForMultiplyByPVA().)
 //
 // Given a q-like vector we can calculate
@@ -2482,9 +2363,9 @@ calcPq(const State& s, Matrix& Pq) const
 //                              MULTIPLY BY PVA
 //==============================================================================
 // We have these constraint equations available:
-// (1)  pverr = P*N^-1*qdot - c(t,q)       (= P*u - c(t,q))
-// (2)  vaerr = V*udot      - b_v(t,q,u)
-// (3)  aerr  = A*udot      - b_a(t,q,u)
+// (1)  pverr = Pq*qdot - Pt       (Pq==P*N^-1, Pt==c(t,q))
+// (2)  vaerr = V*udot  - b_v(t,q,u)
+// (3)  aerr  = A*udot  - b_a(t,q,u)
 // with P=P(t,q), N=N(q), V=V(t,q,u), A=A(t,q,u). Individual constraint
 // error equations are calculated in constant time, so the whole set can be 
 // evaluated in O(m) time where m is the total number of constraint equations.
@@ -2498,7 +2379,7 @@ calcPq(const State& s, Matrix& Pq) const
 // We expect to be supplied as a precalculated argument "bias" the terms in 
 // equations (1)-(3) that don't involve P,V, or A:
 // (5)  bias=[  bias_p,   bias_v,      bias_a    ]
-//          =[ -c(t,q), -b_v(t,q,u), -b_a(t,q,u) ].
+//          =[   -Pt,   -b_v(t,q,u), -b_a(t,q,u) ].
 // See calcBiasForMultiplyByPVA() for how to get the bias terms.
 //
 // In general the state must be realized through Velocity stage, but if the 
@@ -2518,7 +2399,7 @@ multiplyByPVA(  const State&     s,
                 const Vector&    ulike,
                 Vector&          PVAu) const
 {
-    const SBInstanceCache&     ic  = getInstanceCache(s);
+    const SBInstanceCache& ic = getInstanceCache(s);
 
     // Global problem dimensions.
     const int mHolo    = includeP ? 
@@ -2578,10 +2459,10 @@ multiplyByPVA(  const State&     s,
 
     // Overlay Arrays on the Vectors' data so that we can manipulate small 
     // chunks of them repeatedly with no heap activity or virtual method calls.
-    const ArrayViewConst_<Real,UIndex> uArray   (&ulike[0], &ulike[0] + nu);
-    const ArrayViewConst_<Real,QIndex> qArray   (&qlike[0], &qlike[0] + nq);
-    const ArrayViewConst_<Real> biasArray(&bias[0],  &bias[0]  + m);
-    ArrayView_<Real>            PVAuArray(&PVAu[0],  &PVAu[0]  + m);
+    const ArrayViewConst_<Real,UIndex>  uArray   (&ulike[0], &ulike[0] + nu);
+    const ArrayViewConst_<Real,QIndex>  qArray   (&qlike[0], &qlike[0] + nq);
+    const ArrayViewConst_<Real>         biasArray(&bias[0],  &bias[0]  + m );
+    ArrayView_<Real>                    PVAuArray(&PVAu[0],  &PVAu[0]  + m );
 
     // This array will be resized and filled with the Ancestor-relative
     // velocities for the constrained bodies of each holonomic Constraint in 
@@ -2618,7 +2499,6 @@ multiplyByPVA(  const State&     s,
         const int ma = includeA ? accOnlySeg.length : 0;
 
         const ConstraintImpl& crep = constraints[cx]->getImpl();
-        const int ncb = crep.getNumConstrainedBodies();
 
         if (mp) { // holonomic -- use velocity equations
             const int ncq = cInfo.getNumConstrainedQ();
@@ -2872,6 +2752,7 @@ calcBodyAccelerationFromUDot(const State&           s,
 //  - we don't want to get rid of the bias terms
 //  - state must be realized through Velocity stage even if there are only
 //    holonomic constraints
+//  - no option to work with only a subset of the constraints
 //
 // We have these constraint equations available:
 // (1)  paerr = Pq*qdotdot - b_p(t,q,u)     (Pq = P*N^-1)
@@ -2886,9 +2767,9 @@ calcBodyAccelerationFromUDot(const State&           s,
 void SimbodyMatterSubsystemRep::
 calcConstraintAccelerationErrors
        (const State&                s,
+        const Vector_<SpatialVec>&  A_GB,
         const Vector_<Real>&        udot,
         const Vector_<Real>&        qdotdot,
-        const Vector_<SpatialVec>&  A_GB,
         Vector&                     pvaerr) const
 {
     const SBInstanceCache&     ic  = getInstanceCache(s);
@@ -2903,9 +2784,9 @@ calcConstraintAccelerationErrors
     const int nu = getNU(s);
     const int nb = getNumBodies();
 
+    assert(A_GB.size()    == nb);
     assert(udot.size()    == nu);
     assert(qdotdot.size() == nq);
-    assert(A_GB.size()    == nb);
 
     pvaerr.resize(m);
     if (m == 0) return;
@@ -2920,10 +2801,10 @@ calcConstraintAccelerationErrors
 
     // Overlay Arrays on the Vectors' data so that we can manipulate small 
     // chunks of them repeatedly with no heap activity or virtual method calls.
-    const ArrayViewConst_<Real,UIndex>  udArray (&udot[0],    &udot[0]    + nu);
-    const ArrayViewConst_<Real,QIndex>  qddArray(&qdotdot[0], &qdotdot[0] + nq);
     const ArrayViewConst_<SpatialVec, MobilizedBodyIndex> 
                                         allA_GB (&A_GB[0],    &A_GB[0]    + nb);
+    const ArrayViewConst_<Real,UIndex>  udArray (&udot[0],    &udot[0]    + nu);
+    const ArrayViewConst_<Real,QIndex>  qddArray(&qdotdot[0], &qdotdot[0] + nq);
     ArrayView_<Real>                    allAerr (&pvaerr[0],  &pvaerr[0]  + m );
 
     // These arrays will be resized and filled with the input needs of each 
@@ -3543,54 +3424,15 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     Vector_<SpatialVec>& A_GB           = tac.bodyAccelerationInGround;
     Vector&              tau            = tac.presMotionForces;
 
+    // Calculate accelerations produced by these forces in three forms:
+    // body accelerations A_GB, u-space generalized acceleratiosn udot,
+    // and q-space generalized accelerations qdotdot.
     calcTreeAccelerations(s, *mobilityForcesToUse, *bodyForcesToUse,
                           netHingeForces, A_GB, udot, qdotdot, tau);
 
-    // Ask the constraints to calculate ancestor-relative acceleration 
-    // kinematics (still goes in TreeAccelerationCache).
-    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
-        getConstraint(cx).getImpl()
-            .calcConstrainedBodyAccelerationInAncestor(sbs, tac);
-
-
-    // TODO: we have to say we're done with the TreeAccelerationCache in the 
-    // State but that is wrong if "tac" is not from the State. So this alleged 
-    // "operator" currently can be used only for realization of the State; i.e.,
-    // the passed-in TreeAccelerationCache better have come from inside this 
-    // State! Need a different design for the constraint interface to support 
-    // operators.
-    markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
-
-    // Put acceleration constraint equation errors in udotErr
-    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
-        if (isConstraintDisabled(s,cx))
-            continue;
-        const SBInstancePerConstraintInfo& cInfo = 
-            ic.getConstraintInstanceInfo(cx);
-
-        const Segment& holoseg    = cInfo.holoErrSegment;    // for 2nd derivatives of holonomic constraints
-        const Segment& nonholoseg = cInfo.nonholoErrSegment; // for 1st derivatives of nonholonomic constraints
-        const Segment& acconlyseg = cInfo.accOnlyErrSegment; // for acceleration-only constraints
-        const int mHolo = holoseg.length, mNonholo = nonholoseg.length, mAccOnly = acconlyseg.length;
-        if (mHolo) {
-            Real* paerrp = &udotErr[holoseg.offset];
-            ArrayView_<Real> paerr(paerrp, paerrp+mHolo);
-            constraints[cx]->getImpl().realizePositionDotDotErrors(s, paerr);
-        }
-        if (mNonholo) {
-            Real* vaerrp = &udotErr[  ic.totalNHolonomicConstraintEquationsInUse 
-                                    + nonholoseg.offset];
-            ArrayView_<Real> vaerr(vaerrp, vaerrp+mNonholo);
-            constraints[cx]->getImpl().realizeVelocityDotErrors(s, vaerr);
-        }
-        if (mAccOnly) {
-            Real* aerrp = &udotErr[  ic.totalNHolonomicConstraintEquationsInUse
-                                   + ic.totalNNonholonomicConstraintEquationsInUse 
-                                   + acconlyseg.offset];
-            ArrayView_<Real> aerr(aerrp, aerrp+mAccOnly);
-            constraints[cx]->getImpl().realizeAccelerationErrors(s, aerr);
-        }
-    }
+    // Feed the accelerations into the constraint error methods to determine
+    // the acceleratin constraint errors they generate.
+    calcConstraintAccelerationErrors(s, A_GB, udot, qdotdot, udotErr);
 }
 
 
@@ -3623,6 +3465,7 @@ void SimbodyMatterSubsystemRep::realizeTreeForwardDynamics(
         extraMobilityForces, extraBodyForces,
         tac, udot, qdotdot, udotErr);
 
+    // Since we're realizing, mark the resulting cache entry valid.
     markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
 }
 
@@ -3695,16 +3538,11 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     FactorQTZ qtz(GMInvGt, conditioningTol); 
     qtz.solve(udotErr, multipliers);
 
-        //std::cout << "MULTIPLIER SOLVE TOL=" << conditioningTol
-        //          << " RANK=" << qtz.getRank() 
-        //          << " RCOND=" << qtz.getRCondEstimate() << std::endl;
-        //std::cout << " multipliers=" << multipliers << std::endl;
-
     // We have the multipliers, now turn them into forces.
 
-    Vector_<SpatialVec> bodyF;
+    Vector_<SpatialVec> bodyForcesInG;
     Vector              mobilityF;
-    calcConstraintForcesFromMultipliers(s,multipliers,bodyF,mobilityF,
+    calcConstraintForcesFromMultipliers(s,multipliers,bodyForcesInG,mobilityF,
         cac.constrainedBodyForcesInG, cac.constraintMobilityForces);
     // Note that constraint forces have the opposite sign from applied forces
     // so must be subtracted to calculate the total forces.
@@ -3714,7 +3552,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     // calculated now should be within numerical noise of zero.
     calcTreeForwardDynamicsOperator
        (s, mobilityForces, particleForces, bodyForces,
-        &mobilityF, &bodyF, tac, udot, qdotdot, udotErr);
+        &mobilityF, &bodyForcesInG, tac, udot, qdotdot, udotErr);
 }
 
 
@@ -3868,6 +3706,7 @@ Real SimbodyMatterSubsystemRep::calcKineticEnergy(const State& s) const {
 // Operator for open-loop forward dynamics.
 // This Subsystem must have already been realized to Dynamics stage so that 
 // dynamics quantities like articulated body inertias are available.
+// All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces,
@@ -3893,6 +3732,14 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     udot.resize(getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
     tau.resize(ic.totalNPresForce);
+
+    assert(mobilityForces.hasContiguousData());
+    assert(bodyForces.hasContiguousData());
+    assert(netHingeForces.hasContiguousData());
+    assert(A_GB.hasContiguousData());
+    assert(udot.hasContiguousData());
+    assert(qdotdot.hasContiguousData());
+    assert(tau.hasContiguousData());
 
     // Temporaries
     Vector_<SpatialVec> allZ(getNumBodies());
@@ -3938,6 +3785,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
 // Calculate udot = M^-1 f. We also get spatial accelerations A_GB for 
 // each body as a side effect.
 // This Subsystem must already be realized through Dynamics stage.
+// All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     const Vector&              f,
     Vector_<SpatialVec>&       A_GB,
@@ -3952,6 +3800,10 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
 
     A_GB.resize(getNumBodies());
     udot.resize(getTotalDOF());
+
+    assert(f.hasContiguousData());
+    assert(A_GB.hasContiguousData());
+    assert(udot.hasContiguousData());
 
     // Temporaries
     Vector              allEpsilon(getTotalDOF());
@@ -3974,7 +3826,8 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass2Outward(ic,tpc,abc,dc, epsPtr, aPtr, udotPtr);
+            node.calcMInverseFPass2Outward(ic,tpc,abc,dc, 
+                epsPtr, aPtr, udotPtr);
         }
 }
 
@@ -3986,6 +3839,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
 // Operator for tree system inverse dynamics. 
 // Note that this includes the effects of inertial forces.
 // This Subsystem must already have been realized to Velocity stage.
+// All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
     const Vector&              appliedMobilityForces,
     const Vector_<SpatialVec>& appliedBodyForces,
@@ -4031,13 +3885,23 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
     A_GB.resize(getNumBodies());
     residualMobilityForces.resize(getNumMobilities());
 
+    assert(pAppliedMobForces->hasContiguousData());
+    assert(pAppliedBodyForces->hasContiguousData());
+    assert(pKnownUdot->hasContiguousData());
+    assert(A_GB.hasContiguousData());
+    assert(residualMobilityForces.hasContiguousData());
+
+
     // Allocate temporary.
     Vector_<SpatialVec> allFTmp(getNumBodies());
     const Real* knownUdotPtr = &(*pKnownUdot)[0];
     SpatialVec* aPtr = A_GB.size() ? &A_GB[0] : NULL;
-    const Real* mobilityForcePtr = pAppliedMobForces->size() ? &(*pAppliedMobForces)[0] : NULL;
-    const SpatialVec* bodyForcePtr = pAppliedBodyForces->size() ? &(*pAppliedBodyForces)[0] : NULL;
-    Real *residualPtr = residualMobilityForces.size() ? &residualMobilityForces[0] : NULL;
+    const Real* mobilityForcePtr = pAppliedMobForces->size() 
+                                   ? &(*pAppliedMobForces)[0] : NULL;
+    const SpatialVec* bodyForcePtr = pAppliedBodyForces->size() 
+                                     ? &(*pAppliedBodyForces)[0] : NULL;
+    Real *residualPtr = residualMobilityForces.size() 
+                        ? &residualMobilityForces[0] : NULL;
     SpatialVec* tempPtr = allFTmp.size() ? &allFTmp[0] : NULL;
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
@@ -4066,6 +3930,7 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
 // udot, then we also get spatial accelerations A_GB for 
 // each body as a side effect.
 // This Subsystem must already have been realized to Position stage.
+// All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcMV(const State& s,
     const Vector&              v,
     Vector_<SpatialVec>&       A_GB,
@@ -4077,6 +3942,11 @@ void SimbodyMatterSubsystemRep::calcMV(const State& s,
 
     A_GB.resize(getNumBodies());
     f.resize(getTotalDOF());
+
+    assert(v.hasContiguousData());
+    assert(A_GB.hasContiguousData());
+    assert(f.hasContiguousData());
+
     const Real* vPtr = v.size() ? &v[0] : NULL;
     SpatialVec* aPtr = A_GB.size() ? &A_GB[0] : NULL;
     Real* fPtr = f.size() ? &f[0] : NULL;
@@ -4105,18 +3975,30 @@ void SimbodyMatterSubsystemRep::calcMV(const State& s,
 //==============================================================================
 // Calculate the mass matrix M in O(n^2) time. This Subsystem must already have
 // been realized to Position stage.
+// It is OK if M's data is not contiguous.
 void SimbodyMatterSubsystemRep::calcM(const State& s, Matrix& M) const {
     const int nu = getTotalDOF();
     M.resize(nu,nu);
+    if (nu==0) return;
 
     // This could be calculated much faster by doing it directly and calculating
     // only half of it. As a placeholder, however, we're doing this with 
     // repeated O(n) calls to calcMV() to get M one column at a time.
+
+    // If M's columns are contiguous we can avoid copying.
+    const bool isContiguous = M(0).hasContiguousData();
+    Vector contig_col(isContiguous ? 0 : nu);
+
     Vector_<SpatialVec> A_GB(getNumBodies()); // unused dummy needed
-    Vector v(nu); v = 0;
+    Vector v(nu); v.setToZero();
     for (int i=0; i < nu; ++i) {
         v[i] = 1;
-        calcMV(s, v, A_GB, M(i));
+        if (isContiguous) {
+            calcMV(s, v, A_GB, M(i));
+        } else {
+            calcMV(s, v, A_GB, contig_col);
+            M(i) = contig_col;
+        }
         v[i] = 0;
     }
 }
@@ -4128,18 +4010,30 @@ void SimbodyMatterSubsystemRep::calcM(const State& s, Matrix& M) const {
 //==============================================================================
 // Calculate the mass matrix inverse MInv(=M^-1) in O(n^2) time. This Subsystem
 // must already have been realized to Position stage.
+// It is OK if MInv's data is not contiguous.
 void SimbodyMatterSubsystemRep::calcMInv(const State& s, Matrix& MInv) const {
     const int nu = getTotalDOF();
     MInv.resize(nu,nu);
+    if (nu==0) return;
 
     // This could probably be calculated faster by doing it directly and
     // filling in only half. For now we're doing it with repeated calls to
     // the O(n) operator calcMInverseF().
+
+    // If M's columns are contiguous we can avoid copying.
+    const bool isContiguous = MInv(0).hasContiguousData();
+    Vector contig_col(isContiguous ? 0 : nu);
+
     Vector_<SpatialVec> A_GB(getNumBodies()); // unused dummy needed
     Vector f(nu); f = 0;
     for (int i=0; i < nu; ++i) {
         f[i] = 1;
-        calcMInverseF(s, f, A_GB, MInv(i));
+        if (isContiguous) {
+            calcMInverseF(s, f, A_GB, MInv(i));
+        } else {
+            calcMInverseF(s, f, A_GB, contig_col);
+            MInv(i) = contig_col;
+        }
         f[i] = 0;
     }
 }
@@ -4150,6 +4044,7 @@ void SimbodyMatterSubsystemRep::calcMInv(const State& s, Matrix& MInv) const {
 //                               MULTIPLY BY N
 //==============================================================================
 // q=Nu or u=~Nq
+// Both vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::multiplyByN
    (const State& s, bool transpose, const Vector& in, Vector& out) const
 {
@@ -4159,9 +4054,8 @@ void SimbodyMatterSubsystemRep::multiplyByN
     assert(in.size() == (transpose?getTotalQAlloc():getTotalDOF()));
     out.resize(transpose?getTotalDOF():getTotalQAlloc());
 
-    //TODO: this shouldn't be necessary
-    assert(in.size()  < 2 || &in[1]  == &in[0] +1); // for now must be contiguous in memory
-    assert(out.size() < 2 || &out[1] == &out[0]+1); 
+    assert(in.hasContiguousData());
+    assert(out.hasContiguousData());
 
     const Real*     inp  = in.size()  ? &in[0]  : 0;
     Real*           outp = out.size() ? &out[0] : 0;
@@ -4197,6 +4091,7 @@ void SimbodyMatterSubsystemRep::multiplyByN
 //                              MULTIPLY BY NDOT
 //==============================================================================
 // q=NDot*u or u=~NDot*q
+// Both vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::multiplyByNDot
    (const State& s, bool transpose, const Vector& in, Vector& out) const
 {
@@ -4206,9 +4101,8 @@ void SimbodyMatterSubsystemRep::multiplyByNDot
     assert(in.size() == (transpose?getTotalQAlloc():getTotalDOF()));
     out.resize(transpose?getTotalDOF():getTotalQAlloc());
 
-    //TODO: this shouldn't be necessary
-    assert(in.size()  < 2 || &in[1]  == &in[0] +1); // for now must be contiguous in memory
-    assert(out.size() < 2 || &out[1] == &out[0]+1); 
+    assert(in.hasContiguousData());
+    assert(out.hasContiguousData());
 
     const Real*     inp  = in.size()  ? &in[0]  : 0;
     Real*           outp = out.size() ? &out[0] : 0;
@@ -4244,6 +4138,7 @@ void SimbodyMatterSubsystemRep::multiplyByNDot
 //                              MULTIPLY BY NINV
 //==============================================================================
 // u= NInv * q or q = ~NInv * u
+// Both vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::multiplyByNInv
    (const State& s, bool transpose, const Vector& in, Vector& out) const
 {
@@ -4253,9 +4148,8 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
     assert(in.size() == (transpose?getTotalDOF():getTotalQAlloc()));
     out.resize(transpose?getTotalQAlloc():getTotalDOF());
 
-    //TODO: this shouldn't be necessary
-    assert(in.size()  < 2 || &in[1]  == &in[0] +1); // for now must be contiguous in memory
-    assert(out.size() < 2 || &out[1] == &out[0]+1); 
+    assert(in.hasContiguousData());
+    assert(out.hasContiguousData());
 
     const Real*     inp  = in.size()  ? &in[0]  : 0;
     Real*           outp = out.size() ? &out[0] : 0;
@@ -4290,6 +4184,8 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
 // =============================================================================
 //                        CALC MOBILIZER REACTION FORCES
 // =============================================================================
+// TODO: this is very expensive. Instead, reaction forces should be extracted
+// for free as a side effect of the udot-calculating recursion.
 void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
    (const State& s, Vector_<SpatialVec>& forces) const 
 {
@@ -4356,6 +4252,7 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
 //                                CALC QDOT
 // =============================================================================
 // Must be done with Position stage to calculate qdot = N*u.
+// Both vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcQDot
    (const State& s, const Vector& u, Vector& qdot) const 
 {
@@ -4363,6 +4260,10 @@ void SimbodyMatterSubsystemRep::calcQDot
 
     assert(u.size() == getTotalDOF());
     qdot.resize(getTotalQAlloc());
+
+    assert(u.hasContiguousData());
+    assert(qdot.hasContiguousData());
+
     const Real* uPtr    = u.size() ? &u[0] : NULL;
     Real*       qdotPtr = qdot.size() ? &qdot[0] : NULL;
 
@@ -4381,6 +4282,7 @@ void SimbodyMatterSubsystemRep::calcQDot
 //                              CALC QDOTDOT
 // =============================================================================
 // Must be done with Velocity stage to calculate qdotdot = Ndot*u + N*udot.
+// Both vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcQDotDot
    (const State& s, const Vector& udot, Vector& qdotdot) const 
 {
@@ -4388,6 +4290,10 @@ void SimbodyMatterSubsystemRep::calcQDotDot
 
     assert(udot.size() == getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
+
+    assert(udot.hasContiguousData());
+    assert(qdotdot.hasContiguousData());
+
     const Real* udotPtr    = udot.size() ? &udot[0] : NULL;
     Real*       qdotdotPtr = qdotdot.size() ? &qdotdot[0] : NULL;
 
@@ -4589,6 +4495,7 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose
 // This routine does the same thing as the above but accounts for centrifugal
 // forces induced by velocities. The equivalent joint forces returned include
 // both the applied forces and the centrifugal ones. Constraints are ignored.
+// Both vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    mobilityForces) const
@@ -4598,6 +4505,9 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
 
     assert(bodyForces.size() == getNumBodies());
     mobilityForces.resize(getTotalDOF());
+
+    assert(bodyForces.hasContiguousData());
+    assert(mobilityForces.hasContiguousData());
 
     Vector_<SpatialVec> allZ(getNumBodies());
     const SpatialVec* bodyForcePtr = bodyForces.size() ? &bodyForces[0] : NULL;

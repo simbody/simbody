@@ -806,9 +806,9 @@ public:
     // State must have been realized through Velocity stage.
     void calcConstraintAccelerationErrors
        (const State&                state,
+        const Vector_<SpatialVec>&  A_GB,
         const Vector_<Real>&        udot,
         const Vector_<Real>&        qdotdot,
-        const Vector_<SpatialVec>&  A_GB,
         Vector&                     pvaerr) const;
 
     // This is a solver which generates internal velocities from spatial ones.
@@ -1081,10 +1081,6 @@ private:
         const Vector_<Vec3>&       particleForces,
         const Vector_<SpatialVec>& bodyForces) const;
     
-    // Recursively calculate the weights for Q's or U's.
-    void calcQUnitWeightsRecursively(const State& s, State& tempState, Vector& weights, Vec6& bounds, const RigidBodyNode& body) const;
-    void calcUUnitWeightsRecursively(const State& s, State& tempState, Vector& weights, Vec6& bounds, const RigidBodyNode& body) const;
-
     friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
     friend class SimTK::SimbodyMatterSubsystem;
 
