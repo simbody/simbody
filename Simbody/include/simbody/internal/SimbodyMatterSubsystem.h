@@ -1438,8 +1438,8 @@ outboard of that body if all the outboard mobilizers were welded in their
 current orientations. 
 @par Required stage
   \c Stage::Position **/
-void calcCompositeBodyInertias(const State&,
-    Array_<SpatialInertia>& R) const;
+void calcCompositeBodyInertias(const State&    state,
+    Array_<SpatialInertia,MobilizedBodyIndex>& R) const;
 
 
 

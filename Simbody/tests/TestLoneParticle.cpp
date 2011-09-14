@@ -117,7 +117,7 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
     matter.calcResidualForceIgnoringConstraints(state, appliedMobilityForces, appliedBodyForces, knownUdot, residualMobilityForces);
     Vector dEdQ;
     matter.multiplyBySystemJacobianTranspose(state, appliedBodyForces, dEdQ);
-    Array_<SpatialInertia> compositeInertias;
+    Array_<SpatialInertia,MobilizedBodyIndex> compositeInertias;
     matter.calcCompositeBodyInertias(state, compositeInertias);
     
     // See whether the RBNodeLoneParticles and the RBNodeTranslates produced identical results.

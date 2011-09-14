@@ -1104,7 +1104,7 @@ void SimbodyMatterSubsystem::calcFrameJacobian
 //==============================================================================
 
 void SimbodyMatterSubsystem::calcCompositeBodyInertias
-   (const State& s, Array_<SpatialInertia>& R) const
+   (const State& s, Array_<SpatialInertia,MobilizedBodyIndex>& R) const
 {   getRep().calcCompositeBodyInertias(s,R); }
 
 void SimbodyMatterSubsystem::calcTreeEquivalentMobilityForces

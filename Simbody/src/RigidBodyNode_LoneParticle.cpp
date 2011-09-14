@@ -238,7 +238,9 @@ void realizeYOutward(
             SBDynamicsCache&                      dc) const {
 }
 
-void calcCompositeBodyInertiasInward(const SBTreePositionCache& pc, Array_<SpatialInertia>& R) const {
+void calcCompositeBodyInertiasInward
+   (const SBTreePositionCache& pc, 
+    Array_<SpatialInertia,MobilizedBodyIndex>& R) const {
     toB(R) = getMk_G(pc);
 }
 

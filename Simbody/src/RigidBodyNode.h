@@ -515,8 +515,8 @@ virtual void realizeYOutward(
 // This has a default implementation that is good for everything
 // but Ground.
 virtual void calcCompositeBodyInertiasInward(
-    const SBTreePositionCache&  pc,
-    Array_<SpatialInertia>&     R) const;
+    const SBTreePositionCache&                  pc,
+    Array_<SpatialInertia,MobilizedBodyIndex>&  R) const;
 
 virtual void multiplyBySystemJacobian(
     const SBTreePositionCache&  pc,
@@ -663,35 +663,38 @@ QIndex getQIndex() const {return qIndex;}
 
 
 // Access routines for plucking the right per-body data from the pool in the State.
-const Transform&  fromB(const Array_<Transform>& x) const {return x[nodeNum];}
-const PhiMatrix&  fromB(const Array_<PhiMatrix>& p) const {return p[nodeNum];}
-const MassProperties& fromB(const Array_<MassProperties>& m) const {return m[nodeNum];}
-const Inertia&    fromB(const Array_<Inertia>&   i) const {return i[nodeNum];}
-const UnitInertia& fromB(const Array_<UnitInertia>&   i) const {return i[nodeNum];}
-int               fromB(const Array_<int>&       i) const {return i[nodeNum];}
-const SpatialVec& fromB(const Vector_<SpatialVec>&    v) const {return v[nodeNum];}
-const SpatialVec& fromB(const Array_<SpatialVec>&    v) const {return v[nodeNum];}
-const SpatialMat& fromB(const Vector_<SpatialMat>&    m) const {return m[nodeNum];}
-const SpatialMat& fromB(const Array_<SpatialMat>&    m) const {return m[nodeNum];}
-const SpatialInertia& fromB(const Array_<SpatialInertia>& m) const {return m[nodeNum];}
-const ArticulatedInertia& fromB(const Array_<ArticulatedInertia>& m) const {return m[nodeNum];}
-const Vec3&       fromB(const Vector_<Vec3>&          v) const {return v[nodeNum];}
-const Vec3&       fromB(const Array_<Vec3>&          v) const {return v[nodeNum];}
+const Transform&  fromB(const Array_<Transform,MobilizedBodyIndex>& x) const {return x[nodeNum];}
+const PhiMatrix&  fromB(const Array_<PhiMatrix,MobilizedBodyIndex>& p) const {return p[nodeNum];}
+const MassProperties& fromB(const Array_<MassProperties,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+const Inertia&    fromB(const Array_<Inertia,MobilizedBodyIndex>&   i) const {return i[nodeNum];}
+const UnitInertia& fromB(const Array_<UnitInertia,MobilizedBodyIndex>&   i) const {return i[nodeNum];}
+int               fromB(const Array_<int,MobilizedBodyIndex>&       i) const {return i[nodeNum];}
+const SpatialVec& fromB(const Array_<SpatialVec,MobilizedBodyIndex>&    v) const {return v[nodeNum];}
+const SpatialMat& fromB(const Array_<SpatialMat,MobilizedBodyIndex>&    m) const {return m[nodeNum];}
+const SpatialInertia& fromB(const Array_<SpatialInertia,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+const ArticulatedInertia& fromB(const Array_<ArticulatedInertia,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+const Vec3&       fromB(const Array_<Vec3,MobilizedBodyIndex>&          v) const {return v[nodeNum];}
 
-Transform&  toB(Array_<Transform>& x) const {return x[nodeNum];}
-PhiMatrix&  toB(Array_<PhiMatrix>& p) const {return p[nodeNum];}
-MassProperties& toB(Array_<MassProperties>& m) const {return m[nodeNum];}
-Inertia&    toB(Array_<Inertia>&   i) const {return i[nodeNum];}
-UnitInertia& toB(Array_<UnitInertia>&   i) const {return i[nodeNum];}
-int&        toB(Array_<int>&       i) const {return i[nodeNum];}
-SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
-SpatialVec& toB(Array_<SpatialVec>&    v) const {return v[nodeNum];}
+
+Transform&  toB(Array_<Transform,MobilizedBodyIndex>& x) const {return x[nodeNum];}
+PhiMatrix&  toB(Array_<PhiMatrix,MobilizedBodyIndex>& p) const {return p[nodeNum];}
+MassProperties& toB(Array_<MassProperties,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+Inertia&    toB(Array_<Inertia,MobilizedBodyIndex>&   i) const {return i[nodeNum];}
+UnitInertia& toB(Array_<UnitInertia,MobilizedBodyIndex>&   i) const {return i[nodeNum];}
+int&        toB(Array_<int,MobilizedBodyIndex>&       i) const {return i[nodeNum];}
+SpatialVec& toB(Array_<SpatialVec,MobilizedBodyIndex>&    v) const {return v[nodeNum];}
+SpatialMat& toB(Array_<SpatialMat,MobilizedBodyIndex>&    m) const {return m[nodeNum];}
+SpatialInertia& toB(Array_<SpatialInertia,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+ArticulatedInertia& toB(Array_<ArticulatedInertia,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+Vec3&       toB(Array_<Vec3,MobilizedBodyIndex>&          v) const {return v[nodeNum];}
+
+// Elementwise access to Vectors is relatively expensive; use sparingly.
+const SpatialVec& fromB(const Vector_<SpatialVec>&    v) const {return v[nodeNum];}
+const SpatialMat& fromB(const Vector_<SpatialMat>&    m) const {return m[nodeNum];}
+const Vec3&       fromB(const Vector_<Vec3>&          v) const {return v[nodeNum];}
 SpatialMat& toB(Vector_<SpatialMat>&    m) const {return m[nodeNum];}
-SpatialMat& toB(Array_<SpatialMat>&    m) const {return m[nodeNum];}
-SpatialInertia& toB(Array_<SpatialInertia>& m) const {return m[nodeNum];}
-ArticulatedInertia& toB(Array_<ArticulatedInertia>& m) const {return m[nodeNum];}
 Vec3&       toB(Vector_<Vec3>&          v) const {return v[nodeNum];}
-Vec3&       toB(Array_<Vec3>&          v) const {return v[nodeNum];}
+SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 
     // MODELING INFO
 bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}

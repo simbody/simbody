@@ -2,7 +2,7 @@
 #define SimTK_SIMBODY_CONSTRAINT_H_
 
 /* -------------------------------------------------------------------------- *
- *                              SimTK Simbody(tm)                             *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
@@ -62,13 +62,14 @@ class ConstraintImpl;
     // CONSTRAINT BASE CLASS //
     ///////////////////////////
 
-/** This is the base class for all Constraint classes, which is just a handle 
+/** This is the base class for all %Constraint classes, which is just a handle 
 for the underlying hidden implementation. There is a set of built-in 
 constraints and a generic "Custom" constraint (an abstract base class) from 
 which advanced users may derive their own constraints. Each built-in constraint
-type is a local subclass within Constraint, and is also derived from Constraint.
+type is a local subclass within %Constraint, and is also derived from 
+%Constraint.
 
-Constraint is a PIMPL-style abstract base class, with concrete classes defined 
+%Constraint is a PIMPL-style abstract base class, with concrete classes defined 
 for each kind of constraint. **/
 class SimTK_SIMBODY_EXPORT Constraint 
 :   public PIMPLHandle<Constraint, ConstraintImpl, true> {
@@ -105,7 +106,7 @@ this method.
 @see isDisabledByDefault(), enable(), disable(), isDisabled() **/
 void setDisabledByDefault(bool shouldBeDisabled);
 
-/** This is an implicit conversion from %Constraint to ConstraintIndex when 
+/** This is an implicit conversion from Constraint to ConstraintIndex when 
 needed. This will fail if the %Constraint is not contained in a subsystem. **/
 operator ConstraintIndex() const {return getConstraintIndex();}
 
@@ -342,7 +343,7 @@ dot product of the \e applied body spatial forces and body spatial velocities,
 plus the dot product of the \e applied mobility forces and corresponding 
 mobilities (generalized speeds) u. I emphasized \e applied here because the
 sign convention is opposite for constraint forces, so the power calculation
-requires negating the constriant forces.
+requires negating the constraint forces.
 
 For any non-working %Constraint, power should always be within machine
 precision of zero. This is a very useful test when debugging new Constraints.
@@ -357,7 +358,7 @@ removing energy from the system.
 Computational cost here is low because the forces and velocities are already
 known. Only the dot product need be computed, at a cost of about 
 11 ncb + 2 ncu flops, where ncb is the number of constrained bodies and ncu
-is the number of constrained mobilities. **/
+is the number of constrained mobilities for this %Constraint. **/
 Real calcPower(const State& state) const;
 
 // Matrix A = partial(aerr)/partial(udot) for just the acceleration-only 
@@ -1167,7 +1168,7 @@ protected:
                                       Constraint::Custom::ImplementationImpl>;
 #endif
 
-/** This is the abstract base class for the implementatin of custom 
+/** This is the abstract base class for the implementation of custom 
 constraints.\ See Constraint::Custom for more information. **/
 class SimTK_SIMBODY_EXPORT Constraint::Custom::Implementation 
 :   public PIMPLHandle<Implementation,ImplementationImpl> {
@@ -1253,7 +1254,7 @@ getMobilizedBodyIndexOfConstrainedMobilizer(ConstrainedMobilizerIndex) const;
 
 /** @name       Methods for use with ConstrainedMobilizers
 When a constraint acts directly on generalized coordinates q or generalized
-speeds u (or their time derivatives), use methods in the section to access
+speeds u (or their time derivatives), use methods in this section to access
 those values in your constraint error and force methods. The "from state"
 methods should only be used to pull information from the state that is at a
 higher level than the method being written. For example, if you are calculating
@@ -1416,18 +1417,42 @@ Real getOneUDot(const State&                           state,
                 ConstrainedMobilizerIndex              mobilizer, 
                 MobilizerUIndex                        whichU) const;
 
-/** Apply a scalar generalized (mobility) force \p force to a particular 
-mobility of one of this Constraint's Constrained Mobilizers, \e adding it in to
+/** Apply a scalar generalized (mobility-space) force \a fu to a particular 
+mobility of one of this %Constraint's Constrained Mobilizers, \e adding it in to
 the appropriate slot of the mobilityForces vector, which is of length 
-getNumConstrainedU() for this Constraint. State need only have been realized 
-to Model stage, but this is intended for use in addInConstraintForce methods at
-Position stage. **/
+getNumConstrainedU() for this %Constraint. State need only have been realized 
+to Model stage, but this is intended for use in Velocity-stage calls to
+addInXXXConstraintForce() methods for nonholonomic (velocity) or acceleration-only
+constraint equations. 
+@see addInOneQForce() for use in position (holonomic) constraints **/
 void addInOneMobilityForce
    (const State&                    state, 
     ConstrainedMobilizerIndex       mobilizer, 
     MobilizerUIndex                 whichU,
-    Real                            force, 
+    Real                            fu, 
     Array_<Real,ConstrainedUIndex>& mobilityForces) const;
+
+/** For use with holonomic (position) constraints, this method allows 
+generalized forces to be applied in "q-space" rather than "u-space". 
+A scalar q-space generalized force \a fq is applied to a particular 
+generalized coordinate (q) of one of this position (holonomic) %Constraint's 
+Constrained Mobilizers, \e adding it in to the appropriate slot of the qForces 
+vector, which must be of length getNumConstrainedQ() for this %Constraint. 
+State need only have been realized to Model stage, but this is intended for 
+Position-stage use in the addInPositionConstraintForce() method for position
+constraint equations. 
+
+Simbody will convert these automatically to mobility (u) space as needed
+via fu = ~N * fq, where N is block-diagonal kinematic coupling matrix that 
+appears in the equation qdot = N*u.
+@see addInOneMobilityForces() for velocity and acceleration-only constraint
+equations **/
+void addInOneQForce
+   (const State&                    state, 
+    ConstrainedMobilizerIndex       mobilizer, 
+    MobilizerQIndex                 whichQ,
+    Real                            fq, 
+    Array_<Real,ConstrainedQIndex>& qForces) const;
 /**@}**/
 
 
@@ -1750,15 +1775,15 @@ virtual void realizeReport(const State&) const { }
 
 /** @name           Position (Holonomic) Constraint Virtuals
 These must be defined if there are any position (holonomic) constraint
-equations generated by this Constraint. **/
+equations generated by this %Constraint. **/
 /**@{**/
 
 /** Calculate the \e mp position-constraint errors due to the position-level 
 specification of a holonomic constraint and write them to \a perr, which will
-have been allocated to length \e mp; do not reallocate it. When this
-is called, \a state will have been realized to Stage::Time; all position
-information used in your implementation must be taken from the passed-in arguments
-\a X_AB and \a constrainedQ, not from \a state. **/
+have been allocated to length \e mp; do not reallocate it. When this is called,
+\a state will already have been realized to Stage::Time; all position 
+information used in your implementation must be taken from the passed-in 
+arguments \a X_AB and \a constrainedQ, not from \a state. **/
 virtual void calcPositionErrors     
    (const State&                                    state,      // Stage::Time
     const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
@@ -1766,16 +1791,17 @@ virtual void calcPositionErrors
     Array_<Real>&                                   perr)       // mp of these
     const;
 
-/** Calculate the \e mp errors arising from the first time derivative
-of the position-level specification of a holonomic constraint and write them to
-\a pverr, which will have been allocated to length \e mp; do not reallocate it.
-When this is called, \a state will have been realized to Stage::Position; all 
-velocity information used in your implementation must be taken from the 
-passed-in arguments \a V_AB and \a constrainedQDot, not from \a state. However,
-you can obtain position information for the constrained bodies and constrained
-mobilizers from \a state using getOneQFromState(), getBodyTransformFromState(),
-and related methods. The implementation of this method must produce \e exactly
-the time derivative of the implementation of calcPositionErrors(). **/
+/** Calculate the \e mp velocity errors arising from the first time derivative
+of the position-level holonomic constraint function calcPositionErrors(), and 
+write them to \a pverr, which will have been allocated to length \e mp; do not 
+reallocate it. When this is called, \a state will have already been realized to
+Stage::Position; all velocity information used in your implementation must be 
+taken from the passed-in arguments \a V_AB and \a constrainedQDot, not from 
+\a state. However, you can obtain position information for the constrained 
+bodies and constrained mobilizers from \a state using getOneQFromState(), 
+getBodyTransformFromState(), and related methods. The implementation of this 
+method must produce \e exactly the time derivative of the implementation of 
+calcPositionErrors(). **/
 virtual void calcPositionDotErrors      
    (const State&                                    state, // Stage::Position
     const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
@@ -1783,17 +1809,18 @@ virtual void calcPositionDotErrors
     Array_<Real>&                                   pverr) // mp of these
     const;
 
-/** Calculate the \e mp errors arising from the second time derivative
-of the position-level specification of a holonomic constraint and write them to
-\a paerr, which will have been allocated to length \e mp; do not reallocate it.
-When this is called, \a state will have been realized to Stage::Velocity; all 
-acceleration-level information used in your implementation must be taken from 
-the passed-in arguments \a A_AB and \a constrainedQDotDot, \e not from \a state.
-However, you can obtain position and velocity information for the constrained 
-bodies and constrained mobilizers from \a state using getOneQFromState(), 
-getOneQDotFromState(), getBodyTransformFromState(), getBodyVelocityFromState(),
-and related methods. The implementation of this method must produce \e exactly
-the time derivative of the implementation of calcPositionDotErrors(). **/
+/** Calculate the \e mp errors arising from the second time derivative of the 
+position-level holonomic constraint function calcPositionErrors(), and write 
+them to \a paerr, which will have been allocated to length \e mp; do not 
+reallocate it. When this is called, \a state will already have been realized to
+Stage::Velocity; all acceleration-level information used in your implementation
+must be taken from the passed-in arguments \a A_AB and \a constrainedQDotDot,
+\e not from \a state. However, you can obtain position and velocity information
+for the constrained bodies and constrained mobilizers from \a state using 
+getOneQFromState(), getOneQDotFromState(), getBodyTransformFromState(), 
+getBodyVelocityFromState(), and related methods. The implementation of this 
+method must produce \e exactly the time derivative of the implementation of 
+calcPositionDotErrors(). **/
 virtual void calcPositionDotDotErrors     
    (const State&                                    state, // Stage::Velocity
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
@@ -1803,17 +1830,18 @@ virtual void calcPositionDotDotErrors
 
 /** From the \e mp supplied Lagrange multipliers provided in \a multipliers,
 calculate the forces produced by this Constraint on its Constrained Bodies and
-Constrained Mobilities. Body spatial forces are applied at the body origin and 
+Constrained Qs. Body spatial forces are applied at the body origin and 
 expressed in the Ancestor frame and written to an array \a bodyForcesInA of 
-length getNumConstrainedBodies(). Mobility forces are written to an array 
-\a mobilityForces of length getNumConstrainedU(), that is, the number of 
-constrained \e mobilities, not the number of constrained \e mobilizers. The 
-State will have been realized to Stage::Position and all position-stage cache 
-information is available including any that may have been calculated during the
-prior call to this Constraint's calcPositionErrors() method and 
-realizePosition() method. Simbody will already have ensured that the 
-force-return arrays have been allocated to the right size and properly 
-initialized; you need update only the non-zero ones. 
+length getNumConstrainedBodies(). Q forces are written to an array \a qForces 
+of length getNumConstrainedQ(), that is, the number of constrained 
+<em>generalized coordinates</em> q, not the number of constrained \e mobilizers
+or constrained \e mobilities u. When this is called, \a state will already have
+been realized to Stage::Position and all position-stage cache information is 
+available including any that may have been calculated during the prior call to 
+this Constraint's calcPositionErrors() method and realizePosition() method. 
+Simbody will already have ensured that the force-return arrays have been 
+allocated to the right size and properly initialized; you need update only 
+those to which you are applying forces.
 
 @note Don't forget that you must <em>add in</em> your force contributions;
 don't just write them or you'll wipe out all preceding constraints'
@@ -1822,7 +1850,7 @@ virtual void addInPositionConstraintForces
    (const State&                                state, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&       mobilityForces) const;
+    Array_<Real,      ConstrainedQIndex>&       qForces) const;
 /**@}**/
 
 /** @name         Velocity (Nonholonomic) Constraint Virtuals

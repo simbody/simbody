@@ -255,7 +255,7 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 void
 RigidBodyNode::calcCompositeBodyInertiasInward(
     const SBTreePositionCache&  pc,
-    Array_<SpatialInertia>& allR) const
+    Array_<SpatialInertia,MobilizedBodyIndex>& allR) const
 {
     SpatialInertia& R = toB(allR);
     R = getMk_G(pc);

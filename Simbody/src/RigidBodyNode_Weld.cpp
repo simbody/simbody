@@ -176,9 +176,9 @@ public:
     // and inertia it started with; no need to look at the children.
     // This overrides the base class default implementation.
     void calcCompositeBodyInertiasInward(
-        const SBTreePositionCache&  pc,
-        Array_<SpatialInertia>&     R) const
-    {   R[0] = SpatialInertia(Infinity, Vec3(0), UnitInertia(1)); }
+        const SBTreePositionCache&                  pc,
+        Array_<SpatialInertia,MobilizedBodyIndex>&  R) const
+    {   R[GroundIndex] = SpatialInertia(Infinity, Vec3(0), UnitInertia(1)); }
 
     // Ground's "articulated" body inertia is still the infinite mass and
     // inertia it started with; no need to look at the children.

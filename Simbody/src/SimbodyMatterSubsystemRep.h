@@ -346,14 +346,16 @@ public:
 
     // Call at Position stage or later. If necessary, composite body inertias 
     // will be realized first.
-    const Array_<SpatialInertia>& getCompositeBodyInertias(const State& s) const {
+    const Array_<SpatialInertia,MobilizedBodyIndex>& 
+    getCompositeBodyInertias(const State& s) const {
         realizeCompositeBodyInertias(s);
         return getCompositeBodyInertiaCache(s).compositeBodyInertia;
     }
 
     // Call at Position stage or later. If necessary, articulated body 
     // inertias will be realized first.
-    const Array_<ArticulatedInertia>& getArticulatedBodyInertias(const State& s) const {
+    const Array_<ArticulatedInertia,MobilizedBodyIndex>& 
+    getArticulatedBodyInertias(const State& s) const {
         realizeArticulatedBodyInertias(s);
         return getArticulatedBodyInertiaCache(s).articulatedBodyInertia;
     }
@@ -425,7 +427,7 @@ public:
     Real calcKineticEnergy(const State&) const;
 
     void calcCompositeBodyInertias(const State&,
-        Array_<SpatialInertia>& R) const;
+        Array_<SpatialInertia,MobilizedBodyIndex>& R) const;
 
     // Calculate the product J*v where J is the kinematic Jacobian 
     // dV/du=~Phi*~H (Schwieters' and Jain's terminology; our H is transposed
@@ -713,11 +715,10 @@ public:
     void calcPqTranspose(   const State&     state,
                             Matrix&          Pqt) const;
 
-    // Calculate the bias vector from the acceleration-level constraint
-    // equations aerr=G*udot-b(t,q,u). Here bias = -b(t,q,u), i.e. what you get
-    // when udot==0.
-    // The output Vector must use contiguous storage. It will be resized if
-    // necessary to length m=mp+mv+ma.
+    // Calculate the bias vector from the constraint error
+    // equations used in multiplyByPVA. Here bias is what you would get
+    // when ulike==0. The output Vector must use contiguous storage. It will 
+    // be resized if necessary to length m=mp+mv+ma.
     void calcBiasForMultiplyByPVA(const State& state,
                                   bool         includeP,
                                   bool         includeV,
@@ -794,6 +795,22 @@ public:
                                       const Vector_<Real>&  knownUDot,
                                       Vector_<SpatialVec>&  A_GB) const;
 
+    // Given an array of nu udots and already-calculated corresponding 
+    // qdotdot=N*udot + NDot*u, and the set of corresponding
+    // Ground-relative body accelerations, compute the constraint
+    // acceleration errors that result due to the constraints currently active
+    // in the given state. All acceleration-level constraints are included:
+    // holonomic second derivatives, nonholonomic first derivatives, and 
+    // acceleratin-only constraints. This is a pure operator and does not 
+    // affect the state or state cache. Vectors must use contiguous data.
+    // State must have been realized through Velocity stage.
+    void calcConstraintAccelerationErrors
+       (const State&                state,
+        const Vector_<Real>&        udot,
+        const Vector_<Real>&        qdotdot,
+        const Vector_<SpatialVec>&  A_GB,
+        Vector&                     pvaerr) const;
+
     // This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
@@ -814,7 +831,7 @@ public:
     // Part of OLD constrained dynamics; TODO: may be useful in op space inertia calcs.
     void realizeY(const State&) const;
 
-    const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
+    const RigidBodyNode& getRigidBodyNode(MobilizedBodyIndex nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];
         return *rbNodeLevels[ix.level][ix.offset];
     }
@@ -1086,10 +1103,10 @@ private:
     // The handles in this array are the owners of the MobilizedBodies after they
     // are adopted. The MobilizedBodyIndex (converted to int) is the index of a
     // MobilizedBody in this array.
-    Array_<MobilizedBody*> mobilizedBodies;
+    Array_<MobilizedBody*,MobilizedBodyIndex> mobilizedBodies;
 
     // Constraints are treated similarly.
-    Array_<Constraint*>    constraints;
+    Array_<Constraint*,ConstraintIndex>    constraints;
 
     // Our realizeTopology method calls this after all bodies & constraints have been added,
     // to construct part of the topology cache below.
@@ -1115,8 +1132,8 @@ private:
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
     Array_<RBNodePtrList>      rbNodeLevels;
-    // Map nodeNum to (level,offset).
-    Array_<RigidBodyNodeIndex> nodeNum2NodeMap;
+    // Map nodeNum (a.k.a. MobilizedBodyIndex) to (level,offset).
+    Array_<RigidBodyNodeIndex,MobilizedBodyIndex> nodeNum2NodeMap;
 
         // Constraints
 

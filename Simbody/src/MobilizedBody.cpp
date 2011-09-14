@@ -252,6 +252,26 @@ Real& MobilizedBody::updOneFromUPartition(const State& s, int which, Vector& uli
     return ulike[uStart+which];
 }
 
+void MobilizedBody::
+convertQForceToUForce(  const State&                        state,
+                        const Array_<Real,MobilizerQIndex>& fq,
+                        Array_<Real,MobilizerUIndex>&       fu) const
+{
+    const MobilizedBodyImpl& impl = getImpl();
+    const SimbodyMatterSubsystemRep& matter = impl.getMyMatterSubsystemRep();
+
+    UIndex uStart; int nu;
+    QIndex qStart; int nq;
+    matter.findMobilizerUs(state, impl.getMyMobilizedBodyIndex(), uStart, nu);
+    matter.findMobilizerQs(state, impl.getMyMobilizedBodyIndex(), qStart, nq);
+    assert(fq.size() == nq);
+
+    fu.resize(nu);
+    const RigidBodyNode& node = impl.getMyRigidBodyNode();
+    const SBStateDigest digest(state, matter, Stage::Velocity);
+    node.multiplyByN(digest, true, fq.cbegin(), fu.begin());
+}
+
 
 void MobilizedBody::applyBodyForce(const State& s, const SpatialVec& spatialForceInG, 
                                    Vector_<SpatialVec>& bodyForces) const 

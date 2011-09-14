@@ -145,9 +145,10 @@ void SimbodyMatterSubsystemRep::createGroundBody() {
     invalidateSubsystemTopologyCache();
 
     mobilizedBodies.push_back(new MobilizedBody::Ground());
-    mobilizedBodies[0]->updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), 
-                                                       MobilizedBodyIndex(),    // no parent 
-                                                       MobilizedBodyIndex(0));
+    mobilizedBodies[GroundIndex]->updImpl()
+        .setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), 
+                              MobilizedBodyIndex(),    // no parent 
+                              GroundIndex); //== MobilizedBodyIndex(0)
 }
 
 MobilizedBodyIndex SimbodyMatterSubsystemRep::getParent(MobilizedBodyIndex body) const { 
@@ -612,7 +613,7 @@ realizeSubsystemInstanceImpl(const State& s) const {
 
     // Body mass properties are now available in the InstanceVars.
     ic.totalMass = iv.particleMasses.sum();
-    for (int i=0; i<getNumBodies(); ++i)
+    for (MobilizedBodyIndex i(1); i<getNumBodies(); ++i) // not Ground!
         ic.totalMass += iv.bodyMassProperties[i].getMass();
     // TODO: central and principal inertias
 
@@ -870,6 +871,8 @@ realizeSubsystemInstanceImpl(const State& s) const {
     return 0;
 }
 
+
+
 //==============================================================================
 //                                REALIZE TIME
 //==============================================================================
@@ -1010,8 +1013,10 @@ void SimbodyMatterSubsystemRep::realizeCompositeBodyInertias(const State& state)
 //==============================================================================
 //                     REALIZE ARTICULATED BODY INERTIAS
 //==============================================================================
-void SimbodyMatterSubsystemRep::realizeArticulatedBodyInertias(const State& state) const {
-    const CacheEntryIndex abx = getModelCache(state).articulatedBodyInertiaCacheIndex;
+void SimbodyMatterSubsystemRep::
+realizeArticulatedBodyInertias(const State& state) const {
+    const CacheEntryIndex abx = 
+        getModelCache(state).articulatedBodyInertiaCacheIndex;
 
     if (isCacheValueRealized(state, abx))
         return; // already realized
@@ -1023,6 +1028,7 @@ void SimbodyMatterSubsystemRep::realizeArticulatedBodyInertias(const State& stat
     const SBTreePositionCache&      tpc = getTreePositionCache(state);
     SBArticulatedBodyInertiaCache&  abc = updArticulatedBodyInertiaCache(state);
 
+    // tip-to-base sweep
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; --i) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j)
             rbNodeLevels[i][j]->realizeArticulatedBodyInertiasInward(ic,tpc,abc);
@@ -1046,7 +1052,7 @@ void SimbodyMatterSubsystemRep::realizeArticulatedBodyInertias(const State& stat
 // to calculate errors; unless someone has invoked a solver to update the State 
 // u's from the prescribed values they will not be the same.
 //
-// In step (2) we calculate the matter subsystem's other position dependencies
+// In step (2) we calculate the matter subsystem's other velocity dependencies
 // which are:
 //      - (no need to do prescribed accelerations yet)
 //      - velocity constraint errors  --> State's UErr array
@@ -1121,6 +1127,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
 }
 
 
+
 //==============================================================================
 //                               REALIZE DYNAMICS
 //==============================================================================
@@ -1141,8 +1148,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     // Get the Dynamics-stage cache; it was already allocated at Instance stage.
     SBDynamicsCache& dc = stateDigest.updDynamicsCache();
 
-    // realize velocity-dependent articulated body quantities needed for dynamics
-    // base-to-tip
+    // Realize velocity-dependent articulated body quantities needed for 
+    // dynamics: base-to-tip.
     for (int i=0; i < (int)rbNodeLevels.size(); ++i)
         for (int j=0; j < (int)rbNodeLevels[i].size(); ++j)
             rbNodeLevels[i][j]->realizeDynamics(abc, stateDigest);
@@ -1153,8 +1160,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     for (MobilizedBodyIndex mbx(0); mbx < mobilizedBodies.size(); ++mbx)
         getMobilizedBody(mbx).getImpl().realizeDynamics(stateDigest);
 
-    // realize Constraint dynamics
-
+    // Realize Constraint dynamics.
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizeDynamics(stateDigest);
 
@@ -1179,10 +1185,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s) 
     SBTreeAccelerationCache&        tac     = stateDigest.updTreeAccelerationCache();
     SBConstrainedAccelerationCache& cac     = stateDigest.updConstrainedAccelerationCache();
 
-    // We ask our containing MultibodySystem for a reference to the cached forces
-    // accumulated from all the force subsystems. We use these to compute accelerations,
-    // with all results going into the AccelerationCache.
-    const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
+    // We ask our containing MultibodySystem for a reference to the cached 
+    // forces accumulated from all the force subsystems. We use these to 
+    // compute accelerations, with all results going into the AccelerationCache.
+    const MultibodySystem& mbs = getMultibodySystem(); // owner of this subsystem
     realizeLoopForwardDynamics(s,
         mbs.getMobilityForces(s, Stage::Dynamics),
         mbs.getParticleForces(s, Stage::Dynamics),
@@ -1552,7 +1558,7 @@ convertToEulerAngles(const State& inputState, State& outputState) const {
         getMultibodySystem().realizeModel(outputState);
         const Vector& inputQ  = inputState.getQ();
         Vector&       outputQ = outputState.updQ();
-        for (int i = 0; i < getNumMobilizedBodies(); ++i) {
+        for (MobilizedBodyIndex i(0); i < getNumMobilizedBodies(); ++i) {
             const RigidBodyNode& node = getRigidBodyNode(i);
             node.convertToEulerAngles(inputQ, outputQ);
         }
@@ -1567,7 +1573,7 @@ convertToQuaternions(const State& inputState, State& outputState) const {
         getMultibodySystem().realizeModel(outputState);
         const Vector& inputQ  = inputState.getQ();
         Vector&       outputQ = outputState.updQ();
-        for (int i = 0; i < getNumMobilizedBodies(); ++i) {
+        for (MobilizedBodyIndex i(0); i < getNumMobilizedBodies(); ++i) {
             const RigidBodyNode& node = getRigidBodyNode(i);
             node.convertToQuaternions(inputQ, outputQ);
         }
@@ -1971,7 +1977,8 @@ multiplyByPVATranspose( const State&     s,
     // max size needed by any constraint, then get resized as needed without
     // further heap allocation.
     Array_<SpatialVec,ConstrainedBodyIndex> oneF_G; // body spatial forces
-    Array_<Real,      ConstrainedUIndex>    onefu;  // u-space mobility forces     
+    Array_<Real,      ConstrainedUIndex>    onefu;  // u-space generalized forces     
+    Array_<Real,      ConstrainedQIndex>    onefq;  // q-space generalized forces     
 
     // Loop over all enabled constraints, ask them to generate forces, and
     // accumulate the results in the global problem arrays (allF_G,allfu).
@@ -2003,9 +2010,13 @@ multiplyByPVATranspose( const State&     s,
         // if that's not Ground then we have to re-express them in Ground 
         // before moving on.
         if (mp) {
+            const int ncq = cInfo.getNumConstrainedQ();
+            onefq.resize(ncq); onefq.fill(Real(0));
             ArrayViewConst_<Real> lambdap(&allLambdap[holoSeg.offset],
                                           &allLambdap[holoSeg.offset]+mp);
-            crep.addInPositionConstraintForces(s, lambdap, oneF_G, onefu);                                       
+            crep.addInPositionConstraintForces(s, lambdap, oneF_G, onefq);
+            // OK just to write on onefu here because it is zero.
+            crep.convertQForcesToUForces(s, onefq, onefu);
         }
         if (mv) {
             ArrayViewConst_<Real> lambdav(&allLambdav[nonholoSeg.offset],
@@ -2125,7 +2136,7 @@ multiplyByPqTranspose(  const State&     state,
 //                             CALC Pq TRANSPOSE
 //==============================================================================
 // Arranges for contiguous workspace if necessary, then makes repeated calls
-// to multiplyByPVATranspose() to compute one column at a time of ~Pq.
+// to multiplyByPqTranspose() to compute one column at a time of ~Pq.
 // Complexity is O(mp*mp + mp*n) = O(mp*n).
 void SimbodyMatterSubsystemRep::
 calcPqTranspose(const State& s, Matrix& Pqt) const {
@@ -2223,7 +2234,7 @@ calcBiasForMultiplyByPVA(const State& s,
     // accelerations. Those have already been calculated in the state, but they
     // are AC_GB, the coriolis accelerations in Ground. The constraint methods
     // want those relative to their Ancestor frames, which might not be Ground.
-    const Array_<SpatialVec>* allAC_GB = 0;
+    const Array_<SpatialVec,MobilizedBodyIndex>* allAC_GB = 0;
     if (mNonholo || mAccOnly)
         allAC_GB = &getTreeVelocityCache(s).totalCoriolisAcceleration;
 
@@ -2295,35 +2306,7 @@ calcBiasForMultiplyByPVA(const State& s,
         // we're just reordering. If it isn't Ground we have to transform
         // the coriolis accelerations from Ground to Ancestor, at a cost
         // of 105 flops/constrained body (not just re-expressing).
-        AC_AB.resize(ncb);
-        if (crep.isAncestorDifferentFromGround()) {
-            const MobilizedBody& ancestor = crep.getAncestorMobilizedBody();
-            const MobilizedBodyIndex acx = ancestor.getMobilizedBodyIndex();
-            const Transform&  X_GA  = ancestor.getBodyTransform(s);
-            const SpatialVec& V_GA  = ancestor.getBodyVelocity(s);
-            const SpatialVec& AC_GA = (*allAC_GB)[acx];
-
-            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
-                const MobilizedBodyIndex mbx =
-                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
-                if (mbx == acx) { // common: Ancestor is a constrained body
-                    AC_AB[cbx] = SpatialVec(Vec3(0));
-                    continue;
-                }
-                const MobilizedBody& consBody = getMobilizedBody(mbx);
-                const Transform&  X_GB = consBody.getBodyTransform(s);
-                const SpatialVec& V_GB = consBody.getBodyVelocity(s);
-                const SpatialVec& AC_GB = (*allAC_GB)[mbx];
-                AC_AB[cbx] = findRelativeAcceleration(X_GA, V_GA, AC_GA,
-                                                      X_GB, V_GB, AC_GB);
-            }
-        } else {
-            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
-                const MobilizedBodyIndex mbx =
-                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
-                AC_AB[cbx] = (*allAC_GB)[mbx];
-            }
-        }
+        crep.convertBodyAccelToConstrainedBodyAccel(s, *allAC_GB, AC_AB);
 
         // At this point AC_AB holds the coriolis accelerations of each
         // constrained body in A.
@@ -2404,10 +2387,11 @@ multiplyByPq(const State&   s,
 
     // Overlay Arrays on the Vectors' data so that we can manipulate small 
     // chunks of them repeatedly with no heap activity or virtual method calls.
-    const ArrayViewConst_<SpatialVec> V_GBArray  (&V_GB[0],   &V_GB[0]   + nb);
-    const ArrayViewConst_<Real>       qArray     (&qlike[0],  &qlike[0]  + nq);
-    const ArrayViewConst_<Real>       biasArray  (&bias_p[0], &bias_p[0] + m);
-    ArrayView_<Real> PNInvqArray(&PqXqlike[0], &PqXqlike[0] + m);
+    const ArrayViewConst_<SpatialVec,MobilizedBodyIndex> 
+                                       V_GBArray  (&V_GB[0],    &V_GB[0]    +nb);
+    const ArrayViewConst_<Real,QIndex> qArray     (&qlike[0],   &qlike[0]   +nq);
+    const ArrayViewConst_<Real>        biasArray  (&bias_p[0],  &bias_p[0]  +m);
+    ArrayView_<Real>                   PNInvqArray(&PqXqlike[0],&PqXqlike[0]+m);
 
     // This array will be resized and filled with the Ancestor-relative
     // velocities for the constrained bodies of each Constraint in turn; 
@@ -2434,36 +2418,10 @@ multiplyByPq(const State&   s,
             continue;
 
         const ConstraintImpl& crep  = constraints[cx]->getImpl();
-        const int ncb = crep.getNumConstrainedBodies();
         const int ncq = cInfo.getNumConstrainedQ();
 
-        V_AB.resize(ncb);
-        if (crep.isAncestorDifferentFromGround()) {
-            const MobilizedBody& ancestor = crep.getAncestorMobilizedBody();
-            const MobilizedBodyIndex acx = ancestor.getMobilizedBodyIndex();
-            const Transform&  X_GA  = ancestor.getBodyTransform(s);
-            const SpatialVec& V_GA  = V_GBArray[acx];
-
-            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
-                const MobilizedBodyIndex mbx =
-                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
-                if (mbx == acx) { // common: Ancestor is a constrained body
-                    V_AB[cbx] = SpatialVec(Vec3(0));
-                    continue;
-                }
-                const MobilizedBody& consBody = getMobilizedBody(mbx);
-                const Transform&  X_GB = consBody.getBodyTransform(s);
-                const SpatialVec& V_GB = V_GBArray[mbx];
-                V_AB[cbx] = findRelativeVelocity(X_GA, V_GA,    // 51 flops
-                                                 X_GB, V_GB);
-            }
-        } else {
-            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
-                const MobilizedBodyIndex mbx =
-                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
-                V_AB[cbx] = V_GBArray[mbx];
-            }
-        }
+        // Need body velocities relative to Ancestor body.
+        crep.convertBodyVelocityToConstrainedBodyVelocity(s, V_GBArray, V_AB);
 
         qdot.resize(ncq);
         for (ConstrainedQIndex cqx(0); cqx < ncq; ++cqx)
@@ -2597,16 +2555,17 @@ multiplyByPVA(  const State&     s,
     multiplyBySystemJacobian(s, ulike, Julike); // 12*(nu+nb) flops
 
     // Julike serves as V_GB when we're interpreting ulike as u.
-    const ArrayViewConst_<SpatialVec> allV_GB(&Julike[0], &Julike[0] + nb);
+    const ArrayViewConst_<SpatialVec,MobilizedBodyIndex> 
+        allV_GB(&Julike[0], &Julike[0] + nb);
 
     // If we're doing any nonholonomic or acceleration-only constraints, we'll 
     // finish calculating body spatial accelerations and put them here.
-    Array_<SpatialVec> allA_GB;
+    Array_<SpatialVec,MobilizedBodyIndex> allA_GB;
     if (mNonholo || mAccOnly) {
         allA_GB.resize(nb);
         const Array_<SpatialVec>& 
             allAC_GB = getTreeVelocityCache(s).totalCoriolisAcceleration;
-        for (int b=0; b < nb; ++b)
+        for (MobilizedBodyIndex b(0); b < nb; ++b)
             allA_GB[b] = allV_GB[b] + allAC_GB[b]; // i.e., J*udot + Jdot*u
     }
 
@@ -2619,8 +2578,8 @@ multiplyByPVA(  const State&     s,
 
     // Overlay Arrays on the Vectors' data so that we can manipulate small 
     // chunks of them repeatedly with no heap activity or virtual method calls.
-    const ArrayViewConst_<Real> uArray   (&ulike[0], &ulike[0] + nu);
-    const ArrayViewConst_<Real> qArray   (&qlike[0], &qlike[0] + nq);
+    const ArrayViewConst_<Real,UIndex> uArray   (&ulike[0], &ulike[0] + nu);
+    const ArrayViewConst_<Real,QIndex> qArray   (&qlike[0], &qlike[0] + nq);
     const ArrayViewConst_<Real> biasArray(&bias[0],  &bias[0]  + m);
     ArrayView_<Real>            PVAuArray(&PVAu[0],  &PVAu[0]  + m);
 
@@ -2663,34 +2622,8 @@ multiplyByPVA(  const State&     s,
 
         if (mp) { // holonomic -- use velocity equations
             const int ncq = cInfo.getNumConstrainedQ();
-            V_AB.resize(ncb);
-            if (crep.isAncestorDifferentFromGround()) {
-                const MobilizedBody& ancestor = crep.getAncestorMobilizedBody();
-                const MobilizedBodyIndex acx = ancestor.getMobilizedBodyIndex();
-                const Transform&  X_GA = ancestor.getBodyTransform(s);
-                const SpatialVec& V_GA = allV_GB[acx];
-
-                for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
-                    const MobilizedBodyIndex mbx =
-                        crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
-                    if (mbx == acx) { // common: Ancestor is a constrained body
-                        V_AB[cbx] = SpatialVec(Vec3(0));
-                        continue;
-                    }
-                    const MobilizedBody& consBody = getMobilizedBody(mbx);
-                    const Transform&  X_GB = consBody.getBodyTransform(s);
-                    const SpatialVec& V_GB = allV_GB[mbx];
-                    V_AB[cbx] = findRelativeVelocity(X_GA, V_GA,    // 51 flops
-                                                     X_GB, V_GB);
-                }
-            } else { // Ancestor is Ground
-                for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
-                    const MobilizedBodyIndex mbx =
-                        crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
-                    V_AB[cbx] = allV_GB[mbx];
-                }
-            }
-
+            // Need body velocities in ancestor frame.
+            crep.convertBodyVelocityToConstrainedBodyVelocity(s, allV_GB, V_AB);
             qdot.resize(ncq);
             for (ConstrainedQIndex cqx(0); cqx < ncq; ++cqx)
                 qdot[cqx] = qArray[cInfo.getQIndexFromConstrainedQ(cqx)];
@@ -2713,35 +2646,7 @@ multiplyByPVA(  const State&     s,
         // we're just reordering. If it isn't Ground we have to transform
         // the accelerations from Ground to Ancestor, at a cost
         // of 105 flops/constrained body (not just re-expressing).
-        A_AB.resize(ncb);
-        if (crep.isAncestorDifferentFromGround()) {
-            const MobilizedBody& ancestor = crep.getAncestorMobilizedBody();
-            const MobilizedBodyIndex acx = ancestor.getMobilizedBodyIndex();
-            const Transform&  X_GA  = ancestor.getBodyTransform(s);
-            const SpatialVec& V_GA  = ancestor.getBodyVelocity(s);
-            const SpatialVec& A_GA  = allA_GB[acx];     // calculated above
-
-            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
-                const MobilizedBodyIndex mbx =
-                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
-                if (mbx == acx) { // common: Ancestor is a constrained body
-                    A_AB[cbx] = SpatialVec(Vec3(0));
-                    continue;
-                }                const MobilizedBody& consBody = getMobilizedBody(mbx);
-                const Transform&  X_GB = consBody.getBodyTransform(s);
-                const SpatialVec& V_GB = consBody.getBodyVelocity(s);
-                const SpatialVec& A_GB = allA_GB[mbx];  // calculated above
-                A_AB[cbx] = findRelativeAcceleration(X_GA, V_GA, A_GA,
-                                                     X_GB, V_GB, A_GB);
-            }
-        } else {
-            for (ConstrainedBodyIndex cbx(0); cbx < ncb; ++cbx) {
-                const MobilizedBodyIndex mbx =
-                    crep.getMobilizedBodyIndexOfConstrainedBody(cbx);
-                A_AB[cbx] = allA_GB[mbx];
-            }
-        }
-
+        crep.convertBodyAccelToConstrainedBodyAccel(s, allA_GB, A_AB);
         // At this point A_AB holds the accelerations of each
         // constrained body in A.
 
@@ -2959,13 +2864,143 @@ calcBodyAccelerationFromUDot(const State&           s,
 
 
 
+//==============================================================================
+//                   CALC CONSTRAINT ACCELERATION ERRORS
+//==============================================================================
+// Note: similar to multiplyByPVA() except:
+//  - we're using the holonomic *second* derivative here
+//  - we don't want to get rid of the bias terms
+//  - state must be realized through Velocity stage even if there are only
+//    holonomic constraints
+//
+// We have these constraint equations available:
+// (1)  paerr = Pq*qdotdot - b_p(t,q,u)     (Pq = P*N^-1)
+// (2)  vaerr = V*udot     - b_v(t,q,u)
+// (3)  aerr  = A*udot     - b_a(t,q,u)
+// with P=P(t,q), N=N(q), V=V(t,q,u), A=A(t,q,u). Individual constraint
+// error equations are calculated in constant time, so the whole set can be 
+// evaluated in O(m) time where m is the total number of constraint equations.
+//
+// All of the Vector arguments must use contiguous storage. Output is resized
+// to m=mp+mv+ma.  Complexity is O(m+n).
+void SimbodyMatterSubsystemRep::
+calcConstraintAccelerationErrors
+       (const State&                s,
+        const Vector_<Real>&        udot,
+        const Vector_<Real>&        qdotdot,
+        const Vector_<SpatialVec>&  A_GB,
+        Vector&                     pvaerr) const
+{
+    const SBInstanceCache&     ic  = getInstanceCache(s);
 
-static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, const State& s, const Vector& qErrest, const Vector& uWeights) {
-    Vector qhatErrest(uWeights.size());
-    matter.multiplyByNInv(s, false, qErrest, qhatErrest); // qhatErrest = N+ qErrest
-    qhatErrest.rowScaleInPlace(uWeights);                 // qhatErrest = Wu N+ qErrest
-    return qhatErrest.normRMS();
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nq = getNQ(s);
+    const int nu = getNU(s);
+    const int nb = getNumBodies();
+
+    assert(udot.size()    == nu);
+    assert(qdotdot.size() == nq);
+    assert(A_GB.size()    == nb);
+
+    pvaerr.resize(m);
+    if (m == 0) return;
+
+    if (nu == 0) { // not likely!
+        pvaerr.setToZero();
+        return;
+    }
+
+    assert(udot.hasContiguousData() && qdotdot.hasContiguousData());
+    assert(A_GB.hasContiguousData() && pvaerr.hasContiguousData());
+
+    // Overlay Arrays on the Vectors' data so that we can manipulate small 
+    // chunks of them repeatedly with no heap activity or virtual method calls.
+    const ArrayViewConst_<Real,UIndex>  udArray (&udot[0],    &udot[0]    + nu);
+    const ArrayViewConst_<Real,QIndex>  qddArray(&qdotdot[0], &qdotdot[0] + nq);
+    const ArrayViewConst_<SpatialVec, MobilizedBodyIndex> 
+                                        allA_GB (&A_GB[0],    &A_GB[0]    + nb);
+    ArrayView_<Real>                    allAerr (&pvaerr[0],  &pvaerr[0]  + m );
+
+    // These arrays will be resized and filled with the input needs of each 
+    // Constraint in turn. We're declaring them outside the loop to minimize 
+    // heap allocation (resizing down doesn't normally free heap space). 
+    Array_<SpatialVec,ConstrainedBodyIndex> A_AB;
+    Array_<Real,ConstrainedQIndex> qdd; // holonomic only
+    Array_<Real,ConstrainedUIndex> ud;  // nonholonomic or acc-only
+
+    // Loop over all enabled constraints, ask them to generate constraint
+    // errors, and collect those in the output argument pvaerr.
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+
+        const SBInstancePerConstraintInfo& 
+            cInfo = ic.getConstraintInstanceInfo(cx);
+        // Find this Constraint's err segments within the global array.
+        const Segment& holoSeg    = cInfo.holoErrSegment;
+        const Segment& nonholoSeg = cInfo.nonholoErrSegment;
+        const Segment& accOnlySeg = cInfo.accOnlyErrSegment;
+        const int mp = holoSeg.length;
+        const int mv = nonholoSeg.length;
+        const int ma = accOnlySeg.length;
+
+        const ConstraintImpl& crep = constraints[cx]->getImpl();
+
+        // Now fill in accelerations. If the Ancestor is Ground
+        // we're just reordering. If it isn't Ground we have to transform
+        // the accelerations from Ground to Ancestor, at a cost
+        // of 105 flops/constrained body (not just re-expressing).
+        crep.convertBodyAccelToConstrainedBodyAccel(s, allA_GB, A_AB);
+
+        // At this point A_AB holds the accelerations of each
+        // constrained body in A.
+
+
+        if (mp) { // holonomic
+            // Now pack together the appropriate qdotdots.
+            const int ncq = cInfo.getNumConstrainedQ();
+            qdd.resize(ncq);
+            for (ConstrainedQIndex cqx(0); cqx < ncq; ++cqx)
+                qdd[cqx] = qddArray[cInfo.getQIndexFromConstrainedQ(cqx)];
+
+            // The error slots start at the beginning of the pvaerr array.
+            const int start = holoSeg.offset;
+            ArrayView_<Real>  paerr = allAerr(start, mp);
+            crep.calcPositionDotDotErrors(s, A_AB, qdd, paerr);
+        }
+
+        if (!(mv || ma))
+            continue; // nothing else to do here
+
+        // Now pack together the appropriate udots.
+        const int ncu = cInfo.getNumConstrainedU();
+        ud.resize(ncu);
+        for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+            ud[cux] = udArray[cInfo.getUIndexFromConstrainedU(cux)];
+
+        if (mv) {   // non-holonomic constraints
+            // The error slots begin after skipping the holonomic part of
+            // the arrays.
+            const int start = mHolo + nonholoSeg.offset;
+            ArrayView_<Real> vaerr = allAerr(start, mv);
+            crep.calcVelocityDotErrors(s, A_AB, ud, vaerr);
+        }
+
+        if (ma) {   // acceleration-only constraints
+            // The error slots begin after skipping the holonomic and 
+            // non-holonomic parts of the arrays.
+            const int start = mHolo+mNonholo+accOnlySeg.offset;
+            ArrayView_<Real> aerr = allAerr(start, ma);
+            crep.calcAccelerationErrors(s, A_AB, ud, aerr);
+        }
+    }
 }
+
 
 
 
@@ -3034,6 +3069,14 @@ bool SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
 //==============================================================================
 //                       ENFORCE POSITION CONSTRAINTS
 //==============================================================================
+static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, 
+    const State& s, const Vector& qErrest, const Vector& uWeights) {
+    Vector qhatErrest(uWeights.size());
+    matter.multiplyByNInv(s, false, qErrest, qhatErrest); // qhatErrest = N+ qErrest
+    qhatErrest.rowScaleInPlace(uWeights);                 // qhatErrest = Wu N+ qErrest
+    return qhatErrest.normRMS();
+}
+
 void SimbodyMatterSubsystemRep::enforcePositionConstraints
    (State& s, Real consAccuracy, const Vector& yWeights,
     const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
@@ -3051,8 +3094,6 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
     const VectorView uWeights   = yWeights(nq,nu);
     const Vector     ooUWeights = uWeights.elementwiseInvert();
-    //Real oow[] = {1., 1., 1., .05, .05, .05};
-   // Vector     ooUWeights(nu, oow);
     const VectorView ooPTols  = ooTols(0,mHolo);
 
     VectorView qErrest = yErrest.size() ? yErrest(0,nq) : yErrest(0,0);
@@ -3070,8 +3111,21 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     const bool localOnly = opts.isOptionSet(System::ProjectOptions::LocalOnly);
 
     // Solve 
-    //   (Tp P Wu^-1) dqhat_WLS = T perr, q -= N*Wu^-1*dqhat_WLS
-    // until perr(q)_TRMS <= 0.1*accuracy.
+    //                perr_T  = T perr(q)
+    //   (Tp P Wu^-1) du_WLS  = perr_T
+    //                    du  = Wu^-1 du_WLS
+    //                    dq  = N du
+    //                     q -= du
+    // until RMS(perr_T) <= 0.1*accuracy.
+    //
+    // TODO: We are projecting the u-space variables here, then mapping to
+    // q-space for the update. An alternative
+    // would have been to work directly in q space using Pq instead of P.
+    // This u-space solution might not be a normal projection in q space so 
+    // could be wrong. The q projection would be
+    //   (Tp Pq Wq^-1) dq_WLS  = perr_T
+    //                     dq  = Wq^-1 dq_WLS
+    //                      q -= dq
     //
     // This is a nonlinear least squares problem. This is a full Newton 
     // iteration since we recalculate the iteration matrix each time around the
@@ -3114,8 +3168,8 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     if (normAchievedTRMS > consAccuracyToTryFor) {
         Vector saveQ = getQ(s);
         Matrix Pt(nu,mHolo);
-        Vector dqhat_WLS(nu);
-        Vector dq(nq); // = N Wu^-1 dqhat_WLS
+        Vector du_WLS(nu);
+        Vector dq(nq); // = N Wu^-1 du_WLS
         FactorQTZ P_qtz;
         Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
         const int MaxIterations  = 20;
@@ -3136,17 +3190,17 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
             //          << " RANK=" << P_qtz.getRank() 
             //          << " RCOND=" << P_qtz.getRCondEstimate() << std::endl;
 
-            P_qtz.solve(scaledPerrs, dqhat_WLS);
-            lastChangeMadeWRMS = dqhat_WLS.normRMS(); // size of change in weighted norm
-            //cout << "!!!! dqhat weighted=" << dqhat_WLS << endl;
+            P_qtz.solve(scaledPerrs, du_WLS);
+            lastChangeMadeWRMS = du_WLS.normRMS(); // size of change in weighted norm
+            //cout << "!!!! du weighted=" << du_WLS << endl;
 
-            // switch back to unweighted dqhat=Wu^-1*dqhat_WLS
-            dqhat_WLS.rowScaleInPlace(ooUWeights);
-            //cout << "!!!! dqhat unweighted=" << dqhat_WLS << endl;
+            // switch back to unweighted du=Wu^-1*du_WLS
+            du_WLS.rowScaleInPlace(ooUWeights); // in place to save memory
+            //cout << "!!!! du unweighted=" << du_WLS << endl;
 
-            multiplyByN(s, false, dqhat_WLS, dq); // N*(Wu^-1 dqhat_WLS)
+            multiplyByN(s, false, du_WLS, dq); // N*(Wu^-1 du_WLS)
             //cout << "!!!! dq unweighted=" << dq << endl;
-            updQ(s) -= dq; // this is actually unweighted dq
+            updQ(s) -= dq; // this is unweighted dq
             anyChange = true;
 
             // Now recalculate the position constraint errors at the new q.
@@ -3187,20 +3241,30 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
         // Next, if we projected out the position constraint errors, remove the
         // corresponding error from the integrator's error estimate.
-        //   (Tp P Wu^-1) dqhat_WLS = (Tp P Wu^-1) Wu N^+ qErrest, 
-        //                                  qErrest -= N Wu^-1 dqhat_WLS
+        //               uErrest  = N^-1 qErrest
+        //   (Tp P Wu^-1) du_WLS  = Tp P uErrest
+        //                    du  = Wu^-1 du_WLS
+        //                    dq  = N du
+        //               qErrest -= dq
         // No iteration is required.
+        //
+        // TODO: again this could be done better in q-space:
+        //   (Tp Pq Wq^-1) dq_WLS  = Tp Pq qErrest
+        //                     dq  = Wq^-1 dq_WLS
+        //                qErrest -= dq
         if (qErrest.size()) {
             // Work in qhat W-norm
-            Vector qhatErrest(nu), dqErrest(nq);
-            multiplyByNInv(s, false, qErrest, qhatErrest);
-            qhatErrest.rowScaleInPlace(uWeights); // qbarErrest = Wu * N^+ * qErrest
+            Vector uErrest(nu), dqErrest(nq);
+            multiplyByNInv(s, false, qErrest, uErrest);
+            // uErrest = Wu * N^-1 * qErrest
+            uErrest.rowScaleInPlace(uWeights); 
 
-            P_qtz.solve(~Pt*qhatErrest, dqhat_WLS);
-            const Real normOfAdjustment_WRMS = dqhat_WLS.normRMS();
+            //TODO: don't scale by Wu, use multiplyByP(), then scale by Tp
+            P_qtz.solve(~Pt*uErrest, du_WLS);
+            const Real normOfAdjustment_WRMS = du_WLS.normRMS();
 
-            dqhat_WLS.rowScaleInPlace(ooUWeights); // unscale the result
-            multiplyByN(s, false, dqhat_WLS, dqErrest);
+            du_WLS.rowScaleInPlace(ooUWeights); // unscale the result (now du)
+            multiplyByN(s, false, du_WLS, dqErrest);
             qErrest -= dqErrest; // unweighted
             //cout << "  !! FIXUP: now WRMS(qerrest)=" 
             //     << calcQErrestWeightedNorm(*this,s,qErrest,uWeights) 
@@ -3273,10 +3337,15 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     bool anyChange = false;
 
     // Solve 
-    //   (Tpv [P;V] Wu^-1) du_WLS = Tpv uerr, u -= Wu^-1*du_WLS
+    //   (Tpv [P;V] Wu^-1) du_WLS  = Tpv uerr
+    //                         du  = Wu^-1*du_WLS
+    //                          u -= du
     // Note that although this is a nonlinear least squares problem since uerr 
     // is a function of u, we do not need to refactor the matrix since it does 
     // not depend on u.
+    // TODO: I don't think that's true -- V can depend on u (rarely). That
+    // doesn't mean we need to refactor it, but this is a modified Newton
+    // iteration (rather than full) if we're not updating V when we could be.
     // TODO: Tp P Wu^-1 should already have been calculated for position 
     // projection (at least if any position projection occurred)
     //
@@ -3379,9 +3448,14 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
 
         // Next, if we projected out the velocity constraint errors, remove the
         // corresponding error from the integrator's error estimate.
-        //   (Tpv [P;V] Wu^-1) du_WLS = (Tpv [P;V] Wu^-1) Wu*uErrEst, 
-        //                                  uErrEst = Wu^-1(Wu*uErrEst - du_WLS)
+        //   (Tpv [P;V] Wu^-1) du_WLS = (Tpv [P;V] Wu^-1) Wu*uErrEst 
+        //                    uErrEst = Wu^-1(Wu*uErrEst - du_WLS)
         // No iteration is required.
+        // TODO: do it like this instead:
+        //   (Tpv [P;V] Wu^-1) du_WLS  = Tpv [P;V] uErrEst
+        //                         du  = Wu^-1 du_WLS
+        //                    uErrEst -= du
+
         if (uErrest.size()) {
             uErrest.rowScaleInPlace(uWeights); // uErrest = Wu*uErrEst
             PVqtz.solve(~PVt*uErrest, du_WLS);
@@ -3686,7 +3760,7 @@ void SimbodyMatterSubsystemRep::realizeLoopForwardDynamics(const State& s,
 // of a particular mobilized body. (Constraints have no effect on the result.)
 //
 void SimbodyMatterSubsystemRep::calcCompositeBodyInertias(const State& s,
-    Array_<SpatialInertia>& R) const
+    Array_<SpatialInertia,MobilizedBodyIndex>& R) const
 {
     const SBTreePositionCache& tpc = getTreePositionCache(s);
     R.resize(getNumBodies());
@@ -4024,6 +4098,8 @@ void SimbodyMatterSubsystemRep::calcMV(const State& s,
         }
 }
 
+
+
 //==============================================================================
 //                                  CALC M
 //==============================================================================
@@ -4045,6 +4121,8 @@ void SimbodyMatterSubsystemRep::calcM(const State& s, Matrix& M) const {
     }
 }
 
+
+
 //==============================================================================
 //                                CALC MInv
 //==============================================================================
@@ -4065,6 +4143,8 @@ void SimbodyMatterSubsystemRep::calcMInv(const State& s, Matrix& MInv) const {
         f[i] = 0;
     }
 }
+
+
 
 //==============================================================================
 //                               MULTIPLY BY N
@@ -4437,7 +4517,9 @@ calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyIndex mb,
 
 
 
-
+// =============================================================================
+//                         MULTIPLY BY SYSTEM JACOBIAN
+// =============================================================================
 // We have V_GB = J u where J=~Phi*~H is the kinematic Jacobian (partial 
 // velocity matrix) that maps generalized speeds to spatial velocities. 
 // This method performs the multiplication J*u in O(n) time (i.e., without
@@ -4464,6 +4546,11 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobian(const State& s,
         }
 }
 
+
+
+// =============================================================================
+//                     MULTIPLY BY SYSTEM JACOBIAN TRANSPOSE
+// =============================================================================
 // The system Jacobian J (a.k.a. partial velocity matrix) is the kinematic 
 // mapping between generalized speeds u and body spatial velocities V. Its
 // transpose ~J maps body spatial forces to generalized forces. This method
@@ -4494,6 +4581,11 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose
         }
 }
 
+
+
+// =============================================================================
+//                     CALC TREE EQUIVALENT MOBILITY FORCES
+// =============================================================================
 // This routine does the same thing as the above but accounts for centrifugal
 // forces induced by velocities. The equivalent joint forces returned include
 // both the applied forces and the centrifugal ones. Constraints are ignored.
@@ -4534,7 +4626,7 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystemRep& tree)
     o << "SimbodyMatterSubsystemRep has " << tree.getNumBodies() << " bodies (incl. G) in "
       << tree.rbNodeLevels.size() << " levels." << std::endl;
     o << "NodeNum->level,offset;stored nodeNum,level (stateOffset:dim)" << std::endl;
-    for (int i=0; i < tree.getNumBodies(); ++i) {
+    for (MobilizedBodyIndex i(0); i < tree.getNumBodies(); ++i) {
         o << i << "->" << tree.nodeNum2NodeMap[i].level << "," 
                        << tree.nodeNum2NodeMap[i].offset << ";";
         const RigidBodyNode& n = tree.getRigidBodyNode(i);

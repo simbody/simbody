@@ -477,13 +477,13 @@ public:
     //       for each rigid body
 
     Real              totalMass; // sum of all rigid body and particles masses
-    Array_<Inertia>   centralInertias;           // nb
-    Array_<Vec3>      principalMoments;          // nb
-    Array_<Rotation>  principalAxes;             // nb
-    Array_<Transform> referenceConfiguration;    // nb
+    Array_<Inertia,MobilizedBodyIndex>   centralInertias;           // nb
+    Array_<Vec3,MobilizedBodyIndex>      principalMoments;          // nb
+    Array_<Rotation,MobilizedBodyIndex>  principalAxes;             // nb
+    Array_<Transform,MobilizedBodyIndex> referenceConfiguration;    // nb
 
-    Array_<SBInstancePerMobodInfo>         mobodInstanceInfo;
-    Array_<SBInstancePerConstraintInfo>    constraintInstanceInfo;
+    Array_<SBInstancePerMobodInfo,MobilizedBodyIndex>      mobodInstanceInfo;
+    Array_<SBInstancePerConstraintInfo,ConstraintIndex>    constraintInstanceInfo;
 
     // This is a sum over all the mobilizers whose q's are currently prescribed,
     // adding the number of q's (generalized coordinates) nq currently being 
@@ -679,20 +679,20 @@ public:
     Array_<Vec3> storageForH_FM; // 2 x ndof (H_FM)
     Array_<Vec3> storageForH;    // 2 x ndof (H_PB_G)
 
-    Array_<Transform>    bodyJointInParentJointFrame;  // nb (X_FM)
-    Array_<Transform>    bodyConfigInParent;           // nb (X_PB)
-    Array_<Transform>    bodyConfigInGround;           // nb (X_GB)
-    Array_<PhiMatrix>    bodyToParentShift;            // nb (phi)
+    Array_<Transform,MobilizedBodyIndex>    bodyJointInParentJointFrame;  // nb (X_FM)
+    Array_<Transform,MobilizedBodyIndex>    bodyConfigInParent;           // nb (X_PB)
+    Array_<Transform,MobilizedBodyIndex>    bodyConfigInGround;           // nb (X_GB)
+    Array_<PhiMatrix,MobilizedBodyIndex>    bodyToParentShift;            // nb (phi)
 
     // This contains mass m, p_BBc_G (center of mass location measured from
     // B origin, expressed in Ground), and G_Bo_G (unit inertia [gyration]
     // matrix about B's origin, expressed in Ground). Note that this body's
     // inertia is I_Bo_G = m*G_Bo_G.
-    Array_<SpatialInertia> bodySpatialInertiaInGround; // nb (Mk_G)
+    Array_<SpatialInertia,MobilizedBodyIndex> bodySpatialInertiaInGround; // nb (Mk_G)
 
     // This is the body center of mass location measured from the ground
     // origin and expressed in ground, p_GBc = p_GB + p_BBc_G (above).
-    Array_<Vec3> bodyCOMInGround;                      // nb (p_GBc)
+    Array_<Vec3,MobilizedBodyIndex> bodyCOMInGround;                      // nb (p_GBc)
 
 
         // Constrained Body Pool
@@ -723,24 +723,24 @@ public:
         storageForH.resize(2*nDofs);
 
         bodyJointInParentJointFrame.resize(nBodies); 
-        bodyJointInParentJointFrame[0].setToZero();
+        bodyJointInParentJointFrame[GroundIndex].setToZero();
 
         bodyConfigInParent.resize(nBodies);          
-        bodyConfigInParent[0].setToZero();
+        bodyConfigInParent[GroundIndex].setToZero();
 
         bodyConfigInGround.resize(nBodies);          
-        bodyConfigInGround[0].setToZero();
+        bodyConfigInGround[GroundIndex].setToZero();
 
         bodyToParentShift.resize(nBodies);           
-        bodyToParentShift[0].setToZero();
+        bodyToParentShift[GroundIndex].setToZero();
 
         bodySpatialInertiaInGround.resize(nBodies); 
-        bodySpatialInertiaInGround[0].setMass(Infinity);
-        bodySpatialInertiaInGround[0].setMassCenter(Vec3(0));
-        bodySpatialInertiaInGround[0].setUnitInertia(UnitInertia(Infinity));
+        bodySpatialInertiaInGround[GroundIndex].setMass(Infinity);
+        bodySpatialInertiaInGround[GroundIndex].setMassCenter(Vec3(0));
+        bodySpatialInertiaInGround[GroundIndex].setUnitInertia(UnitInertia(Infinity));
 
         bodyCOMInGround.resize(nBodies);             
-        bodyCOMInGround[0] = 0.;
+        bodyCOMInGround[GroundIndex] = 0.;
 
         constrainedBodyConfigInAncestor.resize(nacb);
     }
@@ -808,7 +808,7 @@ public:
 
 class SBCompositeBodyInertiaCache {
 public:
-    Array_<SpatialInertia> compositeBodyInertia;     // nb (R)
+    Array_<SpatialInertia,MobilizedBodyIndex> compositeBodyInertia; // nb (R)
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -868,9 +868,9 @@ public:
 
 class SBArticulatedBodyInertiaCache {
 public:
-    Array_<ArticulatedInertia> articulatedBodyInertia; // nb (P)
+    Array_<ArticulatedInertia,MobilizedBodyIndex> articulatedBodyInertia; // nb (P)
 
-    Array_<ArticulatedInertia> pPlus;              // nb
+    Array_<ArticulatedInertia,MobilizedBodyIndex> pPlus; // nb
 
     Vector_<Real>       storageForD;              // sum(nu[j]^2)
     Vector_<Real>       storageForDI;             // sum(nu[j]^2)
@@ -943,20 +943,21 @@ public:
 public:
     // qdot cache space is supplied directly by the State
 
-    Array_<SpatialVec> mobilizerRelativeVelocity; // nb (V_FM) cross-mobilizer velocity
-    Array_<SpatialVec> bodyVelocityInParent;      // nb (V_PB)
-    Array_<SpatialVec> bodyVelocityInGround;      // nb (V_GB)
+    Array_<SpatialVec,MobilizedBodyIndex> mobilizerRelativeVelocity; // nb (V_FM) cross-mobilizer velocity
+    Array_<SpatialVec,MobilizedBodyIndex> bodyVelocityInParent;      // nb (V_PB)
+    Array_<SpatialVec,MobilizedBodyIndex> bodyVelocityInGround;      // nb (V_GB)
 
     // CAUTION: our definition of the H matrix is transposed from those used
     // by Jain and by Schwieters.
     Array_<Vec3> storageForHDot_FM;  // 2 x ndof (HDot_FM)
     Array_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
 
-    Array_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=HDot_PB_G*u
+    // nb (VB_PB_G=HDot_PB_G*u)
+    Array_<SpatialVec,MobilizedBodyIndex> bodyVelocityInParentDerivRemainder; 
     
-    Array_<SpatialVec> gyroscopicForces;                // nb (b)
-    Array_<SpatialVec> mobilizerCoriolisAcceleration;   // nb (a)
-    Array_<SpatialVec> totalCoriolisAcceleration;       // nb (A)
+    Array_<SpatialVec,MobilizedBodyIndex> gyroscopicForces;                // nb (b)
+    Array_<SpatialVec,MobilizedBodyIndex> mobilizerCoriolisAcceleration;   // nb (a)
+    Array_<SpatialVec,MobilizedBodyIndex> totalCoriolisAcceleration;       // nb (A)
 
         // Ancestor Constrained Body Pool
 
@@ -978,28 +979,28 @@ public:
         const int nacb    = tree.nAncestorConstrainedBodies;
 
         mobilizerRelativeVelocity.resize(nBodies);       
-        mobilizerRelativeVelocity[0] = SpatialVec(Vec3(0),Vec3(0));
+        mobilizerRelativeVelocity[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         bodyVelocityInParent.resize(nBodies);       
-        bodyVelocityInParent[0] = SpatialVec(Vec3(0),Vec3(0));
+        bodyVelocityInParent[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         bodyVelocityInGround.resize(nBodies);       
-        bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
+        bodyVelocityInGround[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         storageForHDot_FM.resize(2*nDofs);
         storageForHDot.resize(2*nDofs);
 
         bodyVelocityInParentDerivRemainder.resize(nBodies);       
-        bodyVelocityInParentDerivRemainder[0] = SpatialVec(Vec3(0),Vec3(0));
+        bodyVelocityInParentDerivRemainder[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
         
         gyroscopicForces.resize(nBodies);           
-        gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));
+        gyroscopicForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
      
         mobilizerCoriolisAcceleration.resize(nBodies);       
-        mobilizerCoriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
+        mobilizerCoriolisAcceleration[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         totalCoriolisAcceleration.resize(nBodies);       
-        totalCoriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
+        totalCoriolisAcceleration[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         constrainedBodyVelocityInAncestor.resize(nacb);
     }
@@ -1054,10 +1055,10 @@ public:
     // Here a=body's incremental contribution to coriolis acceleration
     //      A=total coriolis acceleration for this body
     //      b=gyroscopic force
-    Array_<SpatialVec> mobilizerCentrifugalForces; // nb (P*a+b)
-    Array_<SpatialVec> totalCentrifugalForces;     // nb (P*A+b)
+    Array_<SpatialVec,MobilizedBodyIndex> mobilizerCentrifugalForces; // nb (P*a+b)
+    Array_<SpatialVec,MobilizedBodyIndex> totalCentrifugalForces;     // nb (P*A+b)
 
-    Array_<SpatialMat> Y;                        // nb
+    Array_<SpatialMat,MobilizedBodyIndex> Y;                          // nb
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -1073,13 +1074,13 @@ public:
         presUDotPool.resize(instance.getTotalNumPresUDot());
 
         mobilizerCentrifugalForces.resize(nBodies);           
-        mobilizerCentrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
+        mobilizerCentrifugalForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         totalCentrifugalForces.resize(nBodies);           
-        totalCentrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
+        totalCentrifugalForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         Y.resize(nBodies); // TODO: inverse op space inertias
-        Y[0] = SpatialMat(Mat33(0));
+        Y[GroundIndex] = SpatialMat(Mat33(0));
     }
 };
 //............................... DYNAMICS CACHE ...............................
@@ -1133,9 +1134,9 @@ public:
     Vector presMotionForces;    // Index with PresForcePoolIndex
 
     // Temps used in calculating accelerations and prescribed forces.
-    Vector             epsilon;                  // nu
-    Array_<SpatialVec> z;                        // nb
-    Array_<SpatialVec> Gepsilon;                 // nb
+    Vector             epsilon;                     // nu
+    Array_<SpatialVec,MobilizedBodyIndex> z;        // nb
+    Array_<SpatialVec,MobilizedBodyIndex> Gepsilon; // nb
 
         // Ancestor Constrained Body Pool
 
@@ -1282,32 +1283,38 @@ public:
 // to a Model-stage variable is made (most notably useEulerAngles).
 class SBInstanceVars {
 public:
-    Array_<MassProperties> bodyMassProperties;
-    Array_<Transform>      outboardMobilizerFrames;
-    Array_<Transform>      inboardMobilizerFrames;
-    Vector                 particleMasses;
-    Array_<bool>           disabled;             // nc (# constraints)
+    Array_<MassProperties,MobilizedBodyIndex>   bodyMassProperties;
+    Array_<Transform,MobilizedBodyIndex>        outboardMobilizerFrames;
+    Array_<Transform,MobilizedBodyIndex>        inboardMobilizerFrames;
+    Vector particleMasses;
+
+    Array_<bool,ConstraintIndex> disabled;             // nc (# constraints)
 
 public:
 
     // We can access the tree or state variable & cache up to Modeling stage.
     void allocate(const SBTopologyCache& topology) const {
-        SBInstanceVars& mutvars = *const_cast<SBInstanceVars*>(this);
-        mutvars.bodyMassProperties.resize(topology.nBodies);
-        mutvars.outboardMobilizerFrames.resize(topology.nBodies);
-        mutvars.inboardMobilizerFrames.resize (topology.nBodies);
-        mutvars.particleMasses.resize(topology.nParticles);
-        mutvars.disabled.resize(topology.nConstraints, false);
+        const int nb = topology.nBodies;
+        const int np = topology.nParticles;
+        const int nc = topology.nConstraints;
 
-        // Set default values
-        for (int i = 0; i < (int)mutvars.bodyMassProperties.size(); ++i)
-            mutvars.bodyMassProperties[i] = MassProperties(1,Vec3(0),Inertia(1));
-        for (int i = 0; i < (int)mutvars.outboardMobilizerFrames.size(); ++i)
-            mutvars.outboardMobilizerFrames[i] = Transform(); // M frame on B
-        for (int i = 0; i < (int)mutvars.inboardMobilizerFrames.size(); ++i)
-            mutvars.inboardMobilizerFrames[i] = Transform();  // F frame on P
-        for (int i = 0; i < mutvars.particleMasses.size(); ++i)
-            mutvars.particleMasses[i] = Real(1);
+        SBInstanceVars& mutvars = *const_cast<SBInstanceVars*>(this);
+
+        // Clear first to make sure all entries are reset to default values.
+        mutvars.bodyMassProperties.clear();
+        mutvars.bodyMassProperties.resize(nb, MassProperties(1,Vec3(0),Inertia(1)));
+        
+        mutvars.outboardMobilizerFrames.clear();
+        mutvars.outboardMobilizerFrames.resize(nb, Transform());
+
+        mutvars.inboardMobilizerFrames.clear();
+        mutvars.inboardMobilizerFrames.resize(nb, Transform());
+
+        mutvars.particleMasses.resize(np);
+        mutvars.particleMasses = 1;
+
+        mutvars.disabled.clear();
+        mutvars.disabled.resize(nc, false);
     }
 };
 

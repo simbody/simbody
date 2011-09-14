@@ -102,7 +102,7 @@ void doMultiplyBySystemJacobianTranspose(MultibodySystem& system, State& state) 
 }
 
 void doCalcCompositeBodyInertias(MultibodySystem& system, State& state) {
-    Array_<SpatialInertia> r;
+    Array_<SpatialInertia, MobilizedBodyIndex> r;
     system.getMatterSubsystem().calcCompositeBodyInertias(state, r);
 }
 
