@@ -2324,7 +2324,7 @@ multiplyByPq(const State&   s,
 //==============================================================================
 // Arranges for contiguous workspace if necessary, then makes repeated calls
 // to multiplyByPq() to compute one column at a time of Pq (=P*N^-1).
-// Complexity is O(n*mp + n*n) = O(n^2).
+// Complexity is O(n*mp + n*n) = O(n^2) <-- EXPENSIVE! Use transpose instead.
 void SimbodyMatterSubsystemRep::
 calcPq(const State& s, Matrix& Pq) const 
 {
@@ -2569,7 +2569,7 @@ multiplyByPVA(  const State&     s,
 // to multiplyByPVA() to compute one column at a time of G=PVA or a submatrix.
 // This is particularly useful for computing [P;V] which is the velocity-level
 // constraint projection matrix.
-// Complexity is O(n*m + n*n) = O(n^2).
+// Complexity is O(n*m + n*n) = O(n^2) <-- EXPENSIVE! Use transpose instead.
 void SimbodyMatterSubsystemRep::
 calcPVA(const State&     s,
         bool             includeP,
@@ -2921,7 +2921,7 @@ bool SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
     case Stage::VelocityIndex: {
         const int npu = ic.getTotalNumPresU();
         const int nzu = ic.getTotalNumZeroU();
-        if (npu==0 && nzu==0) return false; // don't invalidate positions
+        if (npu==0 && nzu==0) return false; // don't invalidate velocities
 
         // copy prescribed u's from cache to state
         // set known-zero u's to zero
@@ -2943,7 +2943,7 @@ bool SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
 
     return true;
 }
-// .............................. PRESCRIBE ....................................
+//............................... PRESCRIBE ....................................
 
 
 
@@ -3184,6 +3184,7 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     if (anyChange)
         s.invalidateAll(Stage::Position);
 }
+//........................ ENFORCE POSITION CONSTRAINTS ........................
 
 
 
@@ -3355,13 +3356,13 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     if (anyChange)
         s.invalidateAll(Stage::Velocity);
 }
+//........................ ENFORCE VELOCITY CONSTRAINTS ........................
 
 
 
 //==============================================================================
 //                     CALC TREE FORWARD DYNAMICS OPERATOR
 //==============================================================================
-//
 // Given a State realized through Stage::Dynamics, and a complete set of applied 
 // forces, calculate all acceleration results into the return arguments here. 
 // This routine *does not* affect the State cache -- it is an operator. In 
@@ -3434,6 +3435,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     // the acceleratin constraint errors they generate.
     calcConstraintAccelerationErrors(s, A_GB, udot, qdotdot, udotErr);
 }
+//......................CALC TREE FORWARD DYNAMICS OPERATOR ....................
 
 
 
@@ -3468,13 +3470,13 @@ void SimbodyMatterSubsystemRep::realizeTreeForwardDynamics(
     // Since we're realizing, mark the resulting cache entry valid.
     markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
 }
+//....................... REALIZE TREE FORWARD DYNAMICS ........................
 
 
 
 //==============================================================================
 //                    CALC LOOP FORWARD DYNAMICS OPERATOR
 //==============================================================================
-// 
 // Given a State realized through Stage::Dynamics, and a complete set of applied 
 // forces, calculate all acceleration results resulting from those forces AND 
 // enforcement of the acceleration constraints. The results go into the return 
@@ -3554,6 +3556,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
        (s, mobilityForces, particleForces, bodyForces,
         &mobilityF, &bodyForcesInG, tac, udot, qdotdot, udotErr);
 }
+//................... CALC LOOP FORWARD DYNAMICS OPERATOR ......................
 
 
 
@@ -3586,6 +3589,7 @@ void SimbodyMatterSubsystemRep::realizeLoopForwardDynamics(const State& s,
     markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
     markCacheValueRealized(s, mc.constrainedAccelerationCacheIndex);
 }
+//....................... REALIZE LOOP FORWARD DYNAMICS ........................
 
 
 
@@ -3776,11 +3780,12 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
                              &qdotdotPtr[node.getQIndex()]);
         }
 }
+//......................... CALC TREE ACCELERATIONS ............................
 
 
 
 //==============================================================================
-//                           CALC M INVERSE F
+//                            CALC M INVERSE F
 //==============================================================================
 // Calculate udot = M^-1 f. We also get spatial accelerations A_GB for 
 // each body as a side effect.
@@ -3830,6 +3835,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
                 epsPtr, aPtr, udotPtr);
         }
 }
+//............................. CALC M INVERSE F ...............................
 
 
 
@@ -3838,8 +3844,14 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
 //==============================================================================
 // Operator for tree system inverse dynamics. 
 // Note that this includes the effects of inertial forces.
-// This Subsystem must already have been realized to Velocity stage.
-// All vectors must use contiguous storage.
+// This calculates
+//      f_resid = M(q) udot + f_inertial(q,u) - f_applied
+// given udot and f_applied as arguments, with the rest from the state.
+// No constraint forces are included unless the caller has included them in 
+// f_applied.
+//
+// This Subsystem must already have been realized to Velocity stage in the
+// supplied state. All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
     const Vector&              appliedMobilityForces,
     const Vector_<SpatialVec>& appliedBodyForces,
@@ -3850,7 +3862,8 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
     const SBTreePositionCache& tpc = getTreePositionCache(s);
     const SBTreeVelocityCache& tvc = getTreeVelocityCache(s);
 
-    // We allow the input Vectors to be zero length. For now we have
+    // We allow the input Vectors to be zero length, meaning they are to be
+    // considered as though they were full length but all zero. For now we have
     // to make explicit Vectors of zero for them in that case; better would
     // be to have a special operator.
     const Vector*              pAppliedMobForces  = &appliedMobilityForces;
@@ -3862,8 +3875,10 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
     if (appliedMobilityForces.size()==0 || knownUdot.size()==0) {
         zeroPerMobility.resize(getNumMobilities());
         zeroPerMobility = 0;
-        if (appliedMobilityForces.size()==0) pAppliedMobForces = &zeroPerMobility;
-        if (knownUdot.size()==0)             pKnownUdot        = &zeroPerMobility;
+        if (appliedMobilityForces.size()==0) 
+            pAppliedMobForces = &zeroPerMobility;
+        if (knownUdot.size()==0)             
+            pKnownUdot        = &zeroPerMobility;
     }
     if (appliedBodyForces.size()==0) {
         zeroPerBody.resize(getNumBodies());
@@ -3894,6 +3909,8 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
 
     // Allocate temporary.
     Vector_<SpatialVec> allFTmp(getNumBodies());
+
+    // Make pointers to (contiguous) Vector data for fast access.
     const Real* knownUdotPtr = &(*pKnownUdot)[0];
     SpatialVec* aPtr = A_GB.size() ? &A_GB[0] : NULL;
     const Real* mobilityForcePtr = pAppliedMobForces->size() 
@@ -3920,6 +3937,7 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
                 tempPtr,residualPtr);
         }
 }
+//........................ CALC TREE RESIDUAL FORCES ...........................
 
 
 
@@ -4451,6 +4469,7 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobian(const State& s,
             node.multiplyBySystemJacobian(tpc, vPtr, jvPtr);
         }
 }
+//......................... MULTIPLY BY SYSTEM JACOBIAN ........................
 
 
 
@@ -4486,6 +4505,7 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose
             node.multiplyBySystemJacobianTranspose(tpc, zPtr, xPtr, jtxPtr);
         }
 }
+//................... MULTIPLY BY SYSTEM JACOBIAN TRANSPOSE ....................
 
 
 
@@ -4496,6 +4516,7 @@ void SimbodyMatterSubsystemRep::multiplyBySystemJacobianTranspose
 // forces induced by velocities. The equivalent joint forces returned include
 // both the applied forces and the centrifugal ones. Constraints are ignored.
 // Both vectors must use contiguous storage.
+// TODO: is this useful for anything?
 void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    mobilityForces) const
@@ -4523,6 +4544,9 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
                 mobilityForcePtr);
         }
 }
+//.................... CALC TREE EQUIVALENT MOBILITY FORCES ....................
+
+
 
 bool SimbodyMatterSubsystemRep::getShowDefaultGeometry() const {
     return showDefaultGeometry;

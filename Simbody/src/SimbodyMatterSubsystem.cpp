@@ -209,36 +209,148 @@ void SimbodyMatterSubsystem::calcMInverseV(const State& s,
 //                  CALC RESIDUAL FORCE IGNORING CONSTRAINTS
 //==============================================================================
 // This is inverse dynamics.
+// This just checks the arguments, arranges for contiguous vectors to work
+// with if necessary, and then calls the implementation method.
 void SimbodyMatterSubsystem::calcResidualForceIgnoringConstraints
    (const State&               state,
     const Vector&              appliedMobilityForces,
-    const Vector_<SpatialVec>& appliedBodyForces,
+    const Vector_<SpatialVec>& appliedBodyForcesInG,
     const Vector&              knownUdot,
     Vector&                    residualMobilityForces) const
 {
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies();
+    const int nu = rep.getNU(state);
+
     SimTK_APIARGCHECK2_ALWAYS(
-        appliedMobilityForces.size()==0 || appliedMobilityForces.size()==getNumMobilities(),
+        appliedMobilityForces.size()==0 || appliedMobilityForces.size()==nu,
         "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d appliedMobilityForces but there are %d mobilities.",
-        appliedMobilityForces.size(), getNumMobilities());
+        appliedMobilityForces.size(), nu);
     SimTK_APIARGCHECK2_ALWAYS(
-        appliedBodyForces.size()==0 || appliedBodyForces.size()==getNumBodies(),
+        appliedBodyForcesInG.size()==0 || appliedBodyForcesInG.size()==nb,
         "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d appliedBodyForces but there are %d bodies (including Ground).",
-        appliedBodyForces.size(), getNumBodies());
+        appliedBodyForcesInG.size(), nb);
     SimTK_APIARGCHECK2_ALWAYS(
-        knownUdot.size()==0 || knownUdot.size()==getNumMobilities(),
+        knownUdot.size()==0 || knownUdot.size()==nu,
         "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d knownUdots but there are %d mobilities.",
-        knownUdot.size(), getNumMobilities());
+        knownUdot.size(), nu);
 
-    residualMobilityForces.resize(getNumMobilities());
+    residualMobilityForces.resize(nu);
 
-    Vector_<SpatialVec> A_GB(getNumBodies());
-    getRep().calcTreeResidualForces(state,
-        appliedMobilityForces, appliedBodyForces, knownUdot,
-        A_GB, residualMobilityForces);
+    // Assume at first that all Vectors are contiguous.
+    const Vector*               cmobForces  = &appliedMobilityForces;
+    const Vector_<SpatialVec>*  cbodyForces = &appliedBodyForcesInG;
+    const Vector*               cudot       = &knownUdot;
+    Vector*                     cresid      = &residualMobilityForces;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_mobForces, contig_udot, contig_resid;
+    Vector_<SpatialVec> contig_bodyForces;
+
+    if (!appliedMobilityForces.hasContiguousData()) {
+        contig_mobForces.resize(nu); // contiguous memory
+        contig_mobForces(0, nu) = appliedMobilityForces; // copy, no reallocation
+        cmobForces = (const Vector*)&contig_mobForces;
+    }
+    if (!appliedBodyForcesInG.hasContiguousData()) {
+        contig_bodyForces.resize(nb); // contiguous memory
+        contig_bodyForces(0, nb) = appliedBodyForcesInG; // copy, no reallocation
+        cbodyForces = (const Vector_<SpatialVec>*)&contig_bodyForces;
+    }
+    if (!knownUdot.hasContiguousData()) {
+        contig_udot.resize(nu); // contiguous memory
+        contig_udot(0, nu) = knownUdot; // copy, no reallocation
+        cudot = (const Vector*)&contig_udot;
+    }
+    if (!residualMobilityForces.hasContiguousData()) {
+        contig_resid.resize(nu); // contiguous memory
+        cresid = (Vector*)&contig_resid;
+        needToCopyBack = true;
+    }
+
+    Vector_<SpatialVec> A_GB(nb); // temp for unwanted result
+    rep.calcTreeResidualForces(state,
+        *cmobForces, *cbodyForces, *cudot,
+        A_GB, *cresid);
+
+    if (needToCopyBack)
+        residualMobilityForces = *cresid;
 }
+
+
+
+//==============================================================================
+//                          CALC RESIDUAL FORCE 
+//==============================================================================
+// This is inverse dynamics with constraints.
+void SimbodyMatterSubsystem::calcResidualForce
+   (const State&               state,
+    const Vector&              appliedMobilityForces,
+    const Vector_<SpatialVec>& appliedBodyForcesInG,
+    const Vector&              knownUdot,
+    const Vector&              knownLambda,
+    Vector&                    residualMobilityForces) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies();
+    const int nu = rep.getNU(state);
+    const int m  = rep.getNMultipliers(state);
+
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedMobilityForces.size()==0 || appliedMobilityForces.size()==nu,
+        "SimbodyMatterSubsystem", "calcResidualForce",
+        "Got %d appliedMobilityForces but there are %d mobilities.",
+        appliedMobilityForces.size(), nu);
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedBodyForcesInG.size()==0 || appliedBodyForcesInG.size()==nb,
+        "SimbodyMatterSubsystem", "calcResidualForce",
+        "Got %d appliedBodyForces but there are %d bodies (including Ground).",
+        appliedBodyForcesInG.size(), nb);
+    SimTK_APIARGCHECK2_ALWAYS(
+        knownUdot.size()==0 || knownUdot.size()==nu,
+        "SimbodyMatterSubsystem", "calcResidualForce",
+        "Got %d knownUdots but there are %d mobilities.",
+        knownUdot.size(), nu);
+    SimTK_APIARGCHECK2_ALWAYS(
+        knownLambda.size()==0 || knownLambda.size()==m,
+        "SimbodyMatterSubsystem", "calcResidualForce",
+        "Got %d knownLambdas but there are %d constraint equations.",
+        knownUdot.size(), m);
+
+    if (knownLambda.size() == 0) { // no constraint forces
+        // Call above method instead.
+        calcResidualForceIgnoringConstraints(state,
+            appliedMobilityForces, appliedBodyForcesInG, knownUdot,
+            residualMobilityForces);
+        return; 
+    }
+
+    // There are some lambdas, so calculate the forces they produce, with
+    // the result going in newly-allocated contiguous storage. We have to
+    // negate lambda to make the constraint forces have the sign of applied
+    // forces; we'll do that into a contiguous Vector also.
+    Vector_<SpatialVec> bodyForcesInG(nb);
+    Vector              mobilityForces(nu);
+    Vector              negLambda = -knownLambda;
+    rep.calcConstraintForcesFromMultipliers(state, negLambda,
+        bodyForcesInG, mobilityForces);
+
+    // Now add in the applied forces, and call the unconstrained routine.
+    if (appliedBodyForcesInG.size())
+        bodyForcesInG  += appliedBodyForcesInG;
+    if (appliedMobilityForces.size())
+        mobilityForces += appliedMobilityForces;
+
+    calcResidualForceIgnoringConstraints(state,
+        mobilityForces, bodyForcesInG, knownUdot,
+        residualMobilityForces);
+}
+
+
 
 void SimbodyMatterSubsystem::calcMV(const State& s, 
     const Vector& v, 

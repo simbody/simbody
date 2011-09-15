@@ -1414,9 +1414,12 @@ the System are ignored.
      If this is zero length it will be treated as all-zero; otherwise 
      it must have exactly one entry per mobility in the matter subsystem.
 @param[out] residualMobilityForces
-     These are the residual generalized forces which, if applied, would 
-     produce the \p knownUdot. This will be resized if necessary to have 
-     one scalar entry per mobility. 
+     These are the residual generalized forces which, if added to the applied
+     forces, would produce the given \a knownUdot in forward dynamics (assuming
+     the system is unconstrained). This will be resized if necessary to have 
+     length nu; that is, one scalar entry per mobility. You can view this as a 
+     measure of how much the given udot fails to satisfy the equations 
+     of motion.
 
 @par Required stage
   \c Stage::Velocity 
@@ -1428,6 +1431,74 @@ void calcResidualForceIgnoringConstraints
     const Vector&              appliedMobilityForces,
     const Vector_<SpatialVec>& appliedBodyForces,
     const Vector&              knownUdot,
+    Vector&                    residualMobilityForces) const;
+
+
+/** This is the inverse dynamics operator for when you know both the 
+accelerations and Lagrange multipliers for a constrained system. Using position
+and velocity from the given state, a set of applied forces, and a known set of 
+generalized accelerations udot and constraint multipliers lambda, it calculates
+the additional generalized forces that would be required to satisfy Newton's 
+2nd law, f=Ma. That is, this operator returns
+<pre>
+    f_residual = M udot + ~G lambda + f_inertial - f_applied
+</pre>
+where f_applied is the mobility-space equivalent to all the applied forces 
+(including mobility and body forces), f_inertial is the mobility-space 
+equivalent of the velocity-dependent inertial forces due to rigid body 
+rotations (coriolis and gyroscopic forces), and the udots and lambdas are given
+values of the generalized accelerations and constraint multipliers, resp.
+
+Note that there is no requirement that the given udots satisfy the constraint
+equations; we simply solve the above equation for \c f_residual.
+
+The inertial forces depend on the velocities \c u already realized 
+in the State. Otherwise, only the explicitly-supplied forces affect the 
+results of this operator; any forces that may be defined elsewhere in 
+the System are ignored here.
+
+@param[in] state
+     A State valid for the containing System, already realized to
+     \c Stage::Velocity.
+@param[in] appliedMobilityForces
+     One scalar generalized force applied per mobility. Can be zero
+     length if there are no mobility forces; otherwise must have exactly 
+     one entry per mobility in the matter subsystem.
+@param[in] appliedBodyForces
+     One spatial force for each body. A spatial force is a force applied
+     to the body origin and a torque on the body, each expressed in the 
+     Ground frame. The supplied Vector must be either zero length or have 
+     exactly one entry per body in the matter subsystem.
+@param[in] knownUdot
+     These are the specified generalized accelerations, one per mobility so
+     the length should be nu. If this is zero length it will be treated as 
+     all-zero of length nu; otherwise it must have exactly one entry per 
+     mobility in the matter subsystem.
+@param[in] knownLambda
+     These are the specified Lagrange multipliers, one per constraint
+     equation. If this is zero length it will be treated as all-zero; otherwise 
+     it must have exactly m entries, where m=mp+mv+ma is the total number of
+     position, velocity, and acceleration-only constraints. There are no
+     entries here corresponding to quaternion constraints, which do not 
+     generate forces.
+@param[out] residualMobilityForces
+     These are the residual generalized forces which, if added to the applied
+     forces along with the constraint forces ~G*lambda, would produce the 
+     given \a knownUdot in unconstrained forward dynamics. This will be resized
+     if necessary to have length nu; that is, one scalar entry per mobility.
+     You can view this as a measure of how much the given udot and lambda fail
+     to satisfy the equations of motion.
+
+@par Required stage
+  \c Stage::Velocity 
+
+@see calcResidualForceIgnoringConstraints() **/
+void calcResidualForce
+   (const State&               state,
+    const Vector&              appliedMobilityForces,
+    const Vector_<SpatialVec>& appliedBodyForces,
+    const Vector&              knownUdot,
+    const Vector&              knownLambda,
     Vector&                    residualMobilityForces) const;
 
 
@@ -1817,34 +1888,6 @@ arbitrary ~P*v product with v supplied in place of lambda.
 void calcPtV(const State& s, const Vector& v, Vector& PtV) const;
 
 
-/** NOT IMPLEMENTED YET --
-This is the primary inverse dynamics operator. Using position and velocity
-from the given state, a set of applied forces, and a known set of mobility
-accelerations and constraint multipliers, it calculates the additional
-mobility forces that would be required to satisfy Newton's 2nd law.
-That is, this operator returns
-<pre>
-    f_residual = M udot + G^T lambda + f_inertial - f_applied
-</pre>
-where f_applied is the mobility-space equivalent to all the
-applied forces (including mobility and body forces), f_inertial 
-is the mobility-space equivalent of the velocity-dependent
-inertial forces due to rigid body rotations (coriolis  
-and gyroscopic forces), and the udots and lambdas are given values of the 
-generalized accelerations and constraint multipliers, resp.
-TODO
-
-@par Required stage
-  \c Stage::Velocity 
-
-@see calcResidualForceIgnoringConstraints() **/
-void calcResidualForce
-   (const State&               state,
-    const Vector&              appliedMobilityForces,
-    const Vector_<SpatialVec>& appliedBodyForces,
-    const Vector&              knownUdot,
-    const Vector&              knownMultipliers,
-    Vector&                    residualMobilityForces) const;
 
 /** NOT IMPLEMENTED YET --
 This operator solves this set of equations:
