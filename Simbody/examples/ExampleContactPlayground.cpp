@@ -322,7 +322,8 @@ int main() {
     //ContactGeometry::Sphere geo3(rad);
     pendulumBody3.addContactSurface(Transform(),
         ContactSurface(geo3,
-                       ContactMaterial(fK*.1,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       ContactMaterial(fK*.1,fDis*.9,fFac*.8,fFac*.7,fVis*10),
+                       rad/2 /*thickness*/)
                        .joinClique(clique2));
     MobilizedBody::Pin pendulum3(matter.Ground(), Transform(Vec3(-2,0,0)), 
                                  pendulumBody3, Transform(Vec3(0, 2, 0)));
@@ -352,7 +353,8 @@ int main() {
     ballBody.addContactSurface(Transform(),
         ContactSurface(pyramid,
                        ContactMaterial(fK*.1,fDis*.9,
-                                       .1*fFac*.8,.1*fFac*.7,fVis*1))
+                                       .1*fFac*.8,.1*fFac*.7,fVis*1),
+                       .5 /*thickness*/)
                        //ContactMaterial(2e6,.01,.1,.05,.01))
                        //.joinClique(clique2)
                        );

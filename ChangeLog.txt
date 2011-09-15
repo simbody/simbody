@@ -16,3 +16,8 @@
      getTotalCoriolisAccleration() or getTotalCentrifugalForces() which are
      the meaningful physical quantities.
 8/30 Added multiplyByG(), calcG() and related methods to matter subsystem.
+9/XX Bug fixes to mesh-mesh elastic foundation code; backported to 2.2 & 2.3.
+9/14 calcAcceleration operators are now really operators (no effect on state 
+cache).
+9/15 Added calcResidualForces() method equivalent to sdfulltrq(); inverse
+dynamics with constraints.
