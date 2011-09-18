@@ -208,6 +208,7 @@ int main(int argc, char** argv) {
         cout << "qErr=" << s.getQErr() << endl;
     }
 
+
     Integrator::SuccessfulStepStatus status;
     int nextReport = 0;
     while ((status=myStudy.stepTo(nextReport*dt, Infinity))

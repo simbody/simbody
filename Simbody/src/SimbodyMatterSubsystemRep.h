@@ -725,6 +725,10 @@ public:
                                   bool         includeA,
                                   Vector&      bias) const;
 
+    void calcBiasForMultiplyByPq(const State& state,
+                                 Vector&      bias) const
+    {   calcBiasForMultiplyByPVA(state,true,false,false,bias); }
+
     // Given a bias calculated by the above method using the same settings
     // for the "include" flags, form the product 
     //           [ P ]
@@ -1080,6 +1084,13 @@ private:
         const Vector&              mobilityForces,
         const Vector_<Vec3>&       particleForces,
         const Vector_<SpatialVec>& bodyForces) const;
+
+    // calc ~(Tp Pq Wq^-1)
+    void calcWeightedPqTranspose(   
+        const State&     state,
+        const Vector&    Tp,    // 1/perr tols
+        const Vector&    Wqinv, // 1/q weights
+        Matrix&          Pqt) const;
     
     friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
     friend class SimTK::SimbodyMatterSubsystem;

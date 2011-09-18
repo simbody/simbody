@@ -2007,7 +2007,7 @@ multiplyByPqTranspose(  const State&     state,
     Vector fu;
     // Calculate fu = ~P*lambdap.
     multiplyByPVATranspose(state, true, false, false, lambdap, fu);
-    // Calculate fq = ~(N^-1) * fu
+    // Calculate fq = ~(N^-1) * fu = ~(~fu * N^-1)
     multiplyByNInv(state, true/*transpose*/,fu,fq);
 }
 
@@ -2035,7 +2035,7 @@ calcPqTranspose(const State& s, Matrix& Pqt) const {
 
     // If Pqt's columns are contiguous we can avoid copying.
     const bool isContiguous = Pqt(0).hasContiguousData();
-    Vector contig_col(isContiguous ? 0 : mp);
+    Vector contig_col(isContiguous ? 0 : nq);
 
     for (int i=0; i < mp; ++i) {
         lambdap[i] = 1; // column we're working on
@@ -2046,6 +2046,62 @@ calcPqTranspose(const State& s, Matrix& Pqt) const {
             Pqt(i) = contig_col;
         }
         lambdap[i] = 0;
+    }
+}
+
+
+
+//==============================================================================
+//                         CALC WEIGHTED Pq TRANSPOSE
+//==============================================================================
+// This is a private method.
+// We want constraint matrix Pq, but row scaled by 1/constraint tolerances
+// and column scaled by 1/q weights (and we're actually computing the
+// transpose). We call the result Pqw (or Pqwt for its transpose).
+//
+//   Pq = P N^-1
+//   Pqw = Tp Pq     Wq^-1 
+//       = Tp Pq (N Wu^-1 N^-1) 
+//       = Tp P Wu^-1 N^-1
+//   Pqwt = ~Pqw = ~N^-1 Wu^-1 ~P Tp  (weights are symmetric)
+//       (= ~N^-1 ~Pw)
+//
+// We calculate one column at a time to avoid any matrix ops. We can do the
+// column scaling of ~P by Tp for free, but the row scaling requires nq*mp flops.
+// Pqwt must have contiguous-data columns.
+void SimbodyMatterSubsystemRep::
+calcWeightedPqTranspose( 
+        const State&     s,
+        const Vector&    Tp,   // 1/perr tols
+        const Vector&    ooWu, // 1/u weights
+        Matrix&          Pqwt) const // nq X mp
+{
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mp = ic.totalNHolonomicConstraintEquationsInUse;
+    const int nu = getNU(s);
+    const int nq = getNQ(s);
+
+    assert(Tp.size() == mp);
+    assert(ooWu.size() == nu);
+
+    Pqwt.resize(nq, mp);
+    if (mp==0 || nq==0)
+        return;
+
+    assert(Pqwt(0).hasContiguousData());
+
+    Vector Ptcol(nu);
+    Vector lambdap(mp, Real(0));
+
+    for (int i=0; i < mp; ++i) {
+        lambdap[i] = Tp[i]; // this gives column i of ~P scaled by Tp[i]
+        multiplyByPVATranspose(s, true, false, false, lambdap, Ptcol);
+        lambdap[i] = 0;
+        Ptcol.rowScaleInPlace(ooWu); // now (Wu^-1 ~P Tp)_i
+        // Calculate (~Pqw)(i) = ~(N^-1) * (~Pw)(i)
+        multiplyByNInv(s, true/*transpose*/,Ptcol,Pqwt(i));
     }
 }
 
@@ -2950,12 +3006,29 @@ bool SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
 //==============================================================================
 //                       ENFORCE POSITION CONSTRAINTS
 //==============================================================================
-static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, 
+// A note on state variable weights:
+// - q and u weights are not independent
+// - we consider u weights Wu primary and want the weighted variables to be 
+//   related like the unweighted ones: qdot=N*u so qdotw=N*uw, where
+//   uw = Wu*u. So qdotw should be Wq*qdot=N*uw=N*Wu*u=N*Wu*N^-1*qdot ==>
+//   Wq = N*Wu*N^-1. (and Wq^-1=N*Wu^-1*N^-1)
+// - Wu is diagonal, but Wq is block diagonal. We have fast operators for
+//   multiplying these matrices by columns, but not for producing Wq so we 
+//   just create it operationally as we go.
+
+// These statics are for debugging use only.
+static Real calcQErrestWeightedNormU(const SimbodyMatterSubsystemRep& matter, 
     const State& s, const Vector& qErrest, const Vector& uWeights) {
     Vector qhatErrest(uWeights.size());
     matter.multiplyByNInv(s, false, qErrest, qhatErrest); // qhatErrest = N+ qErrest
     qhatErrest.rowScaleInPlace(uWeights);                 // qhatErrest = Wu N+ qErrest
     return qhatErrest.normRMS();
+}
+static Real calcQErrestWeightedNormQ(const SimbodyMatterSubsystemRep& matter, 
+    const State& s, const Vector& qErrest, const Vector& qWeights) {
+    Vector Wq_qErrest(qErrest.size());
+    Wq_qErrest = qErrest.rowScale(qWeights); // Wq*qErrest
+    return Wq_qErrest.normRMS();
 }
 
 void SimbodyMatterSubsystemRep::enforcePositionConstraints
@@ -2963,6 +3036,8 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
 {
     assert(getStage(s) >= Stage::Position-1);
+    SBStateDigest sbs(s, *this, Stage::Model);
+
     realizeSubsystemPosition(s);
 
     // First work only with the holonomic (position) constraints, which appear 
@@ -2973,8 +3048,10 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     const int nq     = getNQ(s);
     const int nu     = getNU(s);
 
+    // Wq    = N * Wu    * N^-1
+    // Wq^-1 = N * Wu^-1 * N^-1
     const VectorView uWeights   = yWeights(nq,nu);
-    const Vector     ooUWeights = uWeights.elementwiseInvert();
+    const Vector     ooUWeights = uWeights.elementwiseInvert(); //TODO: precalc
     const VectorView ooPTols  = ooTols(0,mHolo);
 
     VectorView qErrest = yErrest.size() ? yErrest(0,nq) : yErrest(0,0);
@@ -2982,7 +3059,6 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     // This is a const view into the State; the contents it refers to will 
     // change though.
     const VectorView pErrs = getQErr(s)(0,mHolo); // just leave off quaternions
-
     bool anyChange = false;
 
     // Check whether we should stop if we see the solution diverging
@@ -2992,40 +3068,28 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     const bool localOnly = opts.isOptionSet(System::ProjectOptions::LocalOnly);
 
     // Solve 
-    //                perr_T  = T perr(q)
-    //   (Tp P Wu^-1) du_WLS  = perr_T
-    //                    du  = Wu^-1 du_WLS
-    //                    dq  = N du
-    //                     q -= du
-    // until RMS(perr_T) <= 0.1*accuracy.
+    //       (Tp Pq Wq^-1) dq_WLS  = Tp perr
+    //                         dq  = Wq^-1 dq_WLS
+    //                          q -= dq
+    // until RMS(Tp perr) <= 0.1*accuracy.
     //
-    // TODO: We are projecting the u-space variables here, then mapping to
-    // q-space for the update. An alternative
-    // would have been to work directly in q space using Pq instead of P.
-    // This u-space solution might not be a normal projection in q space so 
-    // could be wrong. The q projection would be
-    //   (Tp Pq Wq^-1) dq_WLS  = perr_T
-    //                     dq  = Wq^-1 dq_WLS
-    //                      q -= dq
+    // But Pq=P*N^-1, Wq^-1=N*Wu^-1*N^-1 so Pq Wq^-1=P*Wu^-1*N^-1 so we can
+    // rewrite the above:
+    //     
+    //   (Tp P Wu^-1 N^-1) dq_WLS  = Tp perr
+    //                         dq  = N Wu^-1 N^-1 dq_WLS
+    //                          q -= dq
     //
-    // This is a nonlinear least squares problem. This is a full Newton 
+    // We define Pqwt = ~Pqw = ~(Tp P Wu^-1 N^-1) = ~N^-1 Wu^-1 ~P Tp
+    // because diagonal weights are symmetric.
+    //
+    // This is a nonlinear least squares problem. Below is a full Newton 
     // iteration since we recalculate the iteration matrix each time around the
     // loop. TODO: a solution could be found using the same iteration matrix, 
     // since we are projecting from (presumably) not too far away. Q1: will it
     // be the same solution? Q2: if not, does it matter?
     Vector scaledPerrs = pErrs.rowScale(ooPTols);
     Real normAchievedTRMS = scaledPerrs.normRMS();
-
-    
-    //cout << "!!!! initially @" << s.getTime() << ", perr TRMS=" 
-    //     << normAchievedTRMS << " consAcc=" << consAccuracy;
-    //if (qErrest.size())
-    //    cout << " qErrest WRMS=" 
-    //         << calcQErrestWeightedNorm(*this,s,qErrest,uWeights);
-    //else cout << " NO Q ERROR ESTIMATE";
-    //cout << endl;
-    //cout << "!!!! PERR=" << pErrs << endl;
- 
 
     Real lastChangeMadeWRMS = 0; // size of last change in weighted dq
     int nItsUsed = 0;
@@ -3038,74 +3102,61 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
     // Conditioning tolerance. This determines when we'll drop a 
     // constraint. 
-    // TODO: this is much too tight; should depend on constraint tolerance
+    // TODO: this is sloppy; should depend on constraint tolerance
     // and rank should be saved and reused in velocity and acceleration
     // constraint methods (or should be calculated elsewhere and passed in).
     const Real conditioningTol = mHolo         
-      //* SignificantReal;
+      //* SignificantReal; -- too tight
         * SqrtEps;
-    //cout << "  Conditioning tolerance=" << conditioningTol << endl;
 
     if (normAchievedTRMS > consAccuracyToTryFor) {
         Vector saveQ = getQ(s);
-        Matrix Pt(nu,mHolo);
-        Vector du_WLS(nu);
-        Vector dq(nq); // = N Wu^-1 du_WLS
-        FactorQTZ P_qtz;
+        Matrix Pqwt(nq,mHolo);
+        Vector dq_WLS(nq), du(nu), dq(nq); // = Wq^-1 dq_WLS
+        FactorQTZ Pqw_qtz;
         Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
         const int MaxIterations  = 20;
         do {
-            //Matrix P(mHolo,nu);
-            //calcHolonomicVelocityConstraintMatrixP(s, P); // mp X nu
-            //cout << "  P(verr)=" << P;
-            calcHolonomicVelocityConstraintMatrixPt(s, Pt); // nu X mp
-            //cout << "  P(lambda)=" << ~Pt;
-            //P.rowAndColScaleInPlace(ooPTols, ooUWeights); // P is now Tp P Wu^-1
-            Pt.rowAndColScaleInPlace(ooUWeights, ooPTols); // Pt is now ~(TPW)=Wu^-1 Pt Tp (weights are symmetric)
-            //cout << "TPW-1=" << P;
-            //cout << "TPW-1=" << ~Pt;
+            calcWeightedPqTranspose(s, ooPTols, ooUWeights, Pqwt); // nq X mp
 
-            P_qtz.factor<Real>(~Pt, conditioningTol); // this acts like a pseudoinverse
+            // This factorization acts like a pseudoinverse.
+            Pqw_qtz.factor<Real>(~Pqwt, conditioningTol); 
 
             //std::cout << "POSITION PROJECTION TOL=" << conditioningTol
-            //          << " RANK=" << P_qtz.getRank() 
-            //          << " RCOND=" << P_qtz.getRCondEstimate() << std::endl;
+            //          << " RANK=" << Pq_qtz.getRank() 
+            //          << " RCOND=" << Pq_qtz.getRCondEstimate() << std::endl;
 
-            P_qtz.solve(scaledPerrs, du_WLS);
-            lastChangeMadeWRMS = du_WLS.normRMS(); // size of change in weighted norm
-            //cout << "!!!! du weighted=" << du_WLS << endl;
+            Pqw_qtz.solve(scaledPerrs, dq_WLS); // this is weighted dq_WLS=Wq*dq
+            lastChangeMadeWRMS = dq_WLS.normRMS(); // change in weighted norm
 
-            // switch back to unweighted du=Wu^-1*du_WLS
-            du_WLS.rowScaleInPlace(ooUWeights); // in place to save memory
-            //cout << "!!!! du unweighted=" << du_WLS << endl;
+            // switch back to unweighted dq=Wq^-1*dq_WLS
+            // = N * Wu^-1 * N^-1 * dq_WLS
+            multiplyByNInv(s,false,dq_WLS,du);
+            du.rowScaleInPlace(ooUWeights); // in place to save memory
+            multiplyByN(s,false,du,dq);
 
-            multiplyByN(s, false, du_WLS, dq); // N*(Wu^-1 du_WLS)
-            //cout << "!!!! dq unweighted=" << dq << endl;
+            // This causes quaternions to become unnormalized, but it doesn't
+            // matter because N is calculated from the unnormalized q's so
+            // scales dq to match.
             updQ(s) -= dq; // this is unweighted dq
             anyChange = true;
 
             // Now recalculate the position constraint errors at the new q.
-            realizeSubsystemPosition(s);
-            //cout << "!!!! PERR=" << pErrs << endl;
-            scaledPerrs = pErrs.rowScale(ooPTols);
+            realizeSubsystemPosition(s); // pErrs changes here
+
+            scaledPerrs = pErrs.rowScale(ooPTols); // Tp * pErrs
             normAchievedTRMS = scaledPerrs.normRMS();
             ++nItsUsed;
 
-            //std::cout << "  !! iter " << nItsUsed << ": TRMS(perr)=" 
-            //    << normAchievedTRMS << ", WRMS(dq)=" 
-            //    << lastChangeMadeWRMS << endl;
-
             if (localOnly && nItsUsed >= 2 
                 && normAchievedTRMS > prevNormAchievedTRMS) {
-                //std::cout << "   POS NORM GOT WORSE -- STOP\n";
-                // restore to end of previous iteration
+                // perr norm got worse; restore to end of previous iteration
                 updQ(s) += dq;
-                realizeSubsystemPosition(s);
+                realizeSubsystemPosition(s); // pErrs changes here
                 scaledPerrs = pErrs.rowScale(ooPTols);
                 normAchievedTRMS = scaledPerrs.normRMS();
                 break; // diverging -- quit now to prevent a bad solution
             }
-
 
             prevNormAchievedTRMS = normAchievedTRMS;
 
@@ -3114,7 +3165,8 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
         // Make sure we achieved at least the required constraint accuracy.
         if (normAchievedTRMS > consAccuracy) {
-            updQ(s) = saveQ;
+            updQ(s) = saveQ; // revert
+            realizeSubsystemPosition(s);
             SimTK_THROW1(Exception::NewtonRaphsonFailure, 
                          "Failed to converge in position projection");
         }
@@ -3122,74 +3174,61 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
         // Next, if we projected out the position constraint errors, remove the
         // corresponding error from the integrator's error estimate.
-        //               uErrest  = N^-1 qErrest
-        //   (Tp P Wu^-1) du_WLS  = Tp P uErrest
-        //                    du  = Wu^-1 du_WLS
-        //                    dq  = N du
-        //               qErrest -= dq
+        //
+        //   (Tp Pq Wq^-1) dq_WLS  = (Tp Pq Wq^-1) Wq*qErrest
+        //                     dq  = Wq^-1 dq_WLS
+        //                         = N Wu^-1 N^-1 dq_WLS
+        //                qErrest -= dq
         // No iteration is required.
         //
-        // TODO: again this could be done better in q-space:
-        //   (Tp Pq Wq^-1) dq_WLS  = Tp Pq qErrest
-        //                     dq  = Wq^-1 dq_WLS
-        //                qErrest -= dq
+        // We can simplify the RHS of the first equation above:
+        //        (Tp Pq Wq^-1) Wq qErrest = Tp Pq qErrest
+        // for which we have an O(n) operator to use for the matrix-vector product.
         if (qErrest.size()) {
-            // Work in qhat W-norm
-            Vector uErrest(nu), dqErrest(nq);
-            multiplyByNInv(s, false, qErrest, uErrest);
-            // uErrest = Wu * N^-1 * qErrest
-            uErrest.rowScaleInPlace(uWeights); 
+            // Work in Wq-norm
+            Vector Tp_Pq_qErrest, bias_p;
+            calcBiasForMultiplyByPq(s, bias_p);
+            multiplyByPq(s, bias_p, qErrest, Tp_Pq_qErrest); // Pq*qErrest
+            Tp_Pq_qErrest.rowScaleInPlace(ooPTols); // now Tp*Pq*qErrest
 
-            //TODO: don't scale by Wu, use multiplyByP(), then scale by Tp
-            P_qtz.solve(~Pt*uErrest, du_WLS);
-            const Real normOfAdjustment_WRMS = du_WLS.normRMS();
-
-            du_WLS.rowScaleInPlace(ooUWeights); // unscale the result (now du)
-            multiplyByN(s, false, du_WLS, dqErrest);
-            qErrest -= dqErrest; // unweighted
-            //cout << "  !! FIXUP: now WRMS(qerrest)=" 
-            //     << calcQErrestWeightedNorm(*this,s,qErrest,uWeights) 
-            //     << " using WRMS(dq)=" << normOfAdjustment_WRMS << endl;
+            Pqw_qtz.solve(Tp_Pq_qErrest, dq_WLS); // weighted
+            const Real normOfAdjustment_WRMS = dq_WLS.normRMS();
+            // Switch back to unweighted dq=Wq^-1*dq_WLS
+            // = N * Wu^-1 * N^-1 * dq_WLS
+            multiplyByNInv(s,false,dq_WLS,du);
+            du.rowScaleInPlace(ooUWeights); // in place to save memory
+            multiplyByN(s,false,du,dq);
+            qErrest -= dq; // unweighted
         }
     }
 
     //cout << "!!!! perr TRMS achieved " << normAchievedTRMS << " in " 
     //     << nItsUsed << " iterations"  << endl;
-    //cout << "!!!! ... PERR=" << pErrs << endl;
 
     // By design, normalization of quaternions can't have any effect on the 
     // length constraints we just fixed (because we normalize internally for 
     // calculations). So now we can simply normalize the quaternions.
-    SBStateDigest sbs(s, *this, Stage::Model);
-
     if (mQuats) {
-        //cout << "!!!! QUAT START: errs=" << getQErr(s)(mHolo, mQuats) 
-        //     << " RMS(qErrest)=" << qErrest.normRMS() << endl;
-        Vector& q  = updQ(s); //TODO: this invalidates q's already
+        Vector& q  = updQ(s); // invalidates q's. TODO: see below.
 
         for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
             for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
                 if (rbNodeLevels[i][j]->enforceQuaternionConstraints(sbs,q,qErrest))
                     anyChange = true;
 
-        //TODO: shouldn't need this
+        // This will recalculate the qnorms (all 1), qerrs (all 0). The only
+        // other quaternion dependency is the N matrix (and NInv, NDot).
+        // TODO: better if these updates could be made without invalidating
+        // Position stage in general. I *think* N is always calculated on they fly.
         realizeSubsystemPosition(s);
-
-        //cout << "!!!! ... QUAT END: errs=" << getQErr(s)(mHolo, mQuats) 
-        //     << " RMS(qErrest)=" << qErrest.normRMS() << endl;
-        //TODO: quaternion constraints shouldn't invalidate anything except
-        // the qnorms, which will be all 1 now
     }
-
-    if (anyChange)
-        s.invalidateAll(Stage::Position);
 }
 //........................ ENFORCE POSITION CONSTRAINTS ........................
 
 
 
 //==============================================================================
-//                          ENFORCE VELOCITY CONSTRAINTS
+//                         ENFORCE VELOCITY CONSTRAINTS
 //==============================================================================
 void SimbodyMatterSubsystemRep::enforceVelocityConstraints
    (State& s, Real consAccuracy, const Vector& yWeights,
@@ -3226,24 +3265,22 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     // is a function of u, we do not need to refactor the matrix since it does 
     // not depend on u.
     // TODO: I don't think that's true -- V can depend on u (rarely). That
-    // doesn't mean we need to refactor it, but this is a modified Newton
+    // doesn't mean we need to refactor it, but then this is a modified Newton
     // iteration (rather than full) if we're not updating V when we could be.
     // TODO: Tp P Wu^-1 should already have been calculated for position 
     // projection (at least if any position projection occurred)
     //
     // This is a nonlinear least squares problem, but we only need to factor 
-    // once since only the RHS is dependent on u. 
+    // once since only the RHS is dependent on u (TODO: see above).
     Vector scaledVerrs = vErrs.rowScale(ooPVTols);
     Real normAchievedTRMS = scaledVerrs.normRMS();
     
-    //
     //cout << "!!!! initially @" << s.getTime() << ", verr TRMS=" 
     //     << normAchievedTRMS << " consAcc=" << consAccuracy;
     //if (uErrest.size())
     //    cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS();
     //else cout << " NO U ERROR ESTIMATE";
     //cout << endl;
-    //cout << "!!!! VERR=" << vErrs << endl;
     
 
     Real lastChangeMadeWRMS = 0;
@@ -3267,23 +3304,18 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     const Real conditioningTol = (mHolo+mNonholo) 
         //* SignificantReal;
         * SqrtEps;
-    //cout << "  Conditioning tolerance=" << conditioningTol << endl;
 
     if (normAchievedTRMS > consAccuracyToTryFor) {
         const Vector saveU = getU(s);
         Matrix PVt(nu, mHolo+mNonholo);
 
-        calcHolonomicVelocityConstraintMatrixPt(s, PVt(  0,  0,nu, mHolo));    // nu X mp
-        calcNonholonomicConstraintMatrixVt     (s, PVt(0,mHolo,nu, mNonholo)); // nu X mv
-        PVt.rowAndColScaleInPlace(ooUWeights, ooPVTols); // PVt is now Wu^-1 (Pt Vt) Tpv
+        calcPVATranspose(s, true, true, false, PVt); // just P,V
+        PVt.rowAndColScaleInPlace(ooUWeights, ooPVTols); 
+        // PVt is now Wu^-1 (Pt Vt) Tpv
 
         // Calculate pseudoinverse (just once)
         FactorQTZ PVqtz;
         PVqtz.factor<Real>(~PVt, conditioningTol);
-
-        //std::cout << "VELOCITY PROJECTION TOL=" << conditioningTol
-        //          << " RANK=" << PVqtz.getRank() 
-        //          << " RCOND=" << PVqtz.getRCondEstimate() << std::endl;
 
         Vector du_WLS(nu);
         Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
@@ -3301,14 +3333,9 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
             normAchievedTRMS=scaledVerrs.normRMS();
             ++nItsUsed;
 
-            //cout << "  !! iter " << nItsUsed << ": TRMS(verr)=" 
-            //     << normAchievedTRMS << ", WRMS(du)=" 
-            //     << lastChangeMadeWRMS << endl;
-
             if (localOnly && nItsUsed >= 2 
                 && normAchievedTRMS > prevNormAchievedTRMS) {
-                //std::cout << "   VEL NORM GOT WORSE -- STOP\n";
-                // restore to end of previous iteration
+                // Velocity norm got worse -- restore to end of previous iteration.
                 updU(s) += du_WLS;
                 realizeSubsystemVelocity(s);
                 scaledVerrs = vErrs.rowScale(ooPVTols);
@@ -3324,37 +3351,37 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
         // Make sure we achieved at least the required constraint accuracy.
         if (normAchievedTRMS > consAccuracy) {
             updU(s) = saveU;
+            realizeSubsystemVelocity(s);
             SimTK_THROW1(Exception::NewtonRaphsonFailure, 
                          "Failed to converge in velocity projection");
         }
 
         // Next, if we projected out the velocity constraint errors, remove the
         // corresponding error from the integrator's error estimate.
-        //   (Tpv [P;V] Wu^-1) du_WLS = (Tpv [P;V] Wu^-1) Wu*uErrEst 
-        //                    uErrEst = Wu^-1(Wu*uErrEst - du_WLS)
-        // No iteration is required.
-        // TODO: do it like this instead:
-        //   (Tpv [P;V] Wu^-1) du_WLS  = Tpv [P;V] uErrEst
+        //   (Tpv [P;V] Wu^-1) du_WLS  = (Tpv [P;V] Wu^-1) Wu uErrest
         //                         du  = Wu^-1 du_WLS
-        //                    uErrEst -= du
+        //                    uErrest -= du
+        // No iteration is required.
+        // We can simplify the RHS of the first equation above:
+        //   (Tpv [P;V] Wu^-1) Wu uErrest = Tpv [P;V] uErrest
+        // for which we have an O(n) operator to compute the matrix-vector product.
 
         if (uErrest.size()) {
-            uErrest.rowScaleInPlace(uWeights); // uErrest = Wu*uErrEst
-            PVqtz.solve(~PVt*uErrest, du_WLS);
-            uErrest -= du_WLS; // still weighted
-            //cout << "  !! U FIXUP: now WRMS(uerrest)=" << uErrest.normRMS() 
-            //     << " using WRMS(du)=" << du_WLS.normRMS() << endl;
-            uErrest.rowScaleInPlace(ooUWeights); // back to unscaled err. est.
+            Vector PV_uErrest(mHolo+mNonholo);
+            Vector bias_pv(mHolo+mNonholo);
+            calcBiasForMultiplyByPVA(s,true,true,false,bias_pv); // just P,V
+            multiplyByPVA(s,true,true,false,bias_pv,uErrest,PV_uErrest);
+            PV_uErrest.rowScaleInPlace(ooPVTols); // PV_uErrest = Tpv [P;V] uErrEst
+            PVqtz.solve(PV_uErrest, du_WLS);
+            du_WLS.rowScaleInPlace(ooUWeights); // now du (=Wu^-1*du_WLS)
+            uErrest -= du_WLS; // this is really unweighted du
         }
     }
-
-    
+   
     //cout << "!!!! verr achieved " << normAchievedTRMS << " in " 
     //     << nItsUsed << " iterations" << endl;
-    //cout << "!!!! ... VERR=" << vErrs << endl;
-
-    if (anyChange)
-        s.invalidateAll(Stage::Velocity);
+    //if (uErrest.size())
+    //    cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS() << endl;
 }
 //........................ ENFORCE VELOCITY CONSTRAINTS ........................
 
