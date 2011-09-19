@@ -3007,59 +3007,73 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
 //                        CALC MOBILIZER REACTION FORCES
 // -----------------------------------------------------------------------------
 void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
-   (const State& s, Vector_<SpatialVec>& forces) const 
+   (const State& s, Vector_<SpatialVec>& forces_G) const 
 {
-    forces.resize(getNumBodies());
+    // We're going to work with forces in Ground, applied at the body frame
+    // of each body. Then at the end we'll shift to the M frame as promised
+    // (though still expressed in Ground).
+    forces_G.resize(getNumBodies());
     
-    // Find the total body force on every body from all sources *other* than 
-    // mobilizer reaction forces.
+    // Find the body forces on every body from all sources *other* than 
+    // mobilizer reaction forces; we accumulate them in otherForces_G.
     
-    Vector_<SpatialVec> otherForces = getMultibodySystem().getRigidBodyForces(s, Stage::Dynamics);
-    Vector_<SpatialVec> constrainedBodyForces(getNumBodies());
+    // First, get the applied body forces.
+    Vector_<SpatialVec> otherForces_G = 
+        getMultibodySystem().getRigidBodyForces(s, Stage::Dynamics);
+
+    // Plus body forces applied by constraints (watch the sign).
+    Vector_<SpatialVec> constrainedBodyForces_G(getNumBodies());
     Vector constrainedMobilizerForces(s.getNU());
-    calcConstraintForcesFromMultipliers(s, s.getMultipliers(), constrainedBodyForces, constrainedMobilizerForces);
-    otherForces -= constrainedBodyForces;
+    calcConstraintForcesFromMultipliers(s, s.getMultipliers(), 
+        constrainedBodyForces_G, constrainedMobilizerForces);
+    otherForces_G -= constrainedBodyForces_G;
+
+    // Plus gyroscopic forces due to angular velocity.
     for (MobilizedBodyIndex index(0); index < getNumBodies(); index++)
-        otherForces[index] -= getGyroscopicForce(s, index);
+        otherForces_G[index] -= getGyroscopicForce(s, index);
     
-    // Find the total force that was actually applied.
-    
-    Vector_<SpatialVec> totalForce(forces.size());
-    for (MobilizedBodyIndex index(0); index < getNumBodies(); index++) {
-        const MobilizedBody& body = getMobilizedBody(index);
-        const MassProperties& mass = body.getBodyMassProperties(s);
-        const SpatialVec& acceleration = body.getBodyAcceleration(s);
-        if (mass.getMass() == Infinity)
-            totalForce[index] = SpatialVec(Vec3(0), Vec3(0));
-        else
-            totalForce[index] = body.calcBodySpatialInertiaMatrixInGround(s)
-                                        * acceleration;
+    // Now find the total force that was actually applied, from f=m*a.   
+    Vector_<SpatialVec> totalForce_G(forces_G.size());
+    totalForce_G[GroundIndex] = SpatialVec(Vec3(0), Vec3(0));
+    for (MobilizedBodyIndex mbx(1); mbx < getNumBodies(); mbx++) {
+        const MobilizedBody& body = getMobilizedBody(mbx);
+        const SpatialVec& A_GB = body.getBodyAcceleration(s);
+        const SpatialMat  MB_G = body.calcBodySpatialInertiaMatrixInGround(s);
+        totalForce_G[mbx] = MB_G * A_GB; // f = ma
     }
 
     // Starting from the leaf nodes and working back toward ground, take the 
-    // difference to find the reaction forces, then apply them to the parent.
-    
-    for (int i = (int) rbNodeLevels.size()-1; i >= 0; i--)
-        for (int j = 0; j < (int) rbNodeLevels[i].size(); j++) {
-            MobilizedBodyIndex index = rbNodeLevels[i][j]->getNodeNum();
-            forces[index] = totalForce[index]-otherForces[index];
-            if (i > 0) {
-                const MobilizedBody& body = getMobilizedBody(index);
-                MobilizedBodyIndex parentIndex = rbNodeLevels[i][j]->getParent()->getNodeNum();
-                const MobilizedBody& parent = getMobilizedBody(parentIndex);
-                Vec3 parentPos = parent.findStationAtAnotherBodyStation(s, body, body.getOutboardFrame(s).p());
-                parent.applyForceToBodyPoint(s, parentPos, -forces[index][1], otherForces);
-                Vec3 offset = parent.getBodyTransform(s).R()*(body.getMobilizerTransform(s).R()*body.getOutboardFrame(s).p());
-                otherForces[parentIndex][0] -= forces[index][0]-offset%forces[index][1];
-            }
+    // difference between the total force and the other forces we can account
+    // for to find the reaction force, then apply that to the parent as a
+    // known force.  
+    for (int i = (int)rbNodeLevels.size()-1; i >= 0; --i)
+        for (int j = 0; j < (int)rbNodeLevels[i].size(); ++j) {
+            const MobilizedBodyIndex mbx = rbNodeLevels[i][j]->getNodeNum();
+            // Body B's reaction force, but applied at Bo
+            forces_G[mbx] = totalForce_G[mbx] - otherForces_G[mbx];
+            if (i==0) continue; // no parent
+
+            // Now apply reaction to parent as an "otherForce".
+            const SpatialVec& FB_G = forces_G[mbx]; 
+            const MobilizedBody& body   = getMobilizedBody(mbx);
+            const MobilizedBody& parent = body.getParentMobilizedBody();
+
+            // Apply equal and opposite force & torqueto parent at same location
+            // in space (currently at Bo). Find Bo measured from Po and 
+            // expressed in parent body frame P.
+            const Vec3 p_PB = parent.findStationAtAnotherBodyOrigin(s, body);
+            parent.applyForceToBodyPoint(s, p_PB, -FB_G[1], otherForces_G);
+            parent.applyBodyTorque      (s,       -FB_G[0], otherForces_G);
         }
     
-    // Transform the force to be reported at the outboard joint location.
-    
-    for (MobilizedBodyIndex index(0); index < getNumBodies(); index++) {
-        const MobilizedBody& body = getMobilizedBody(index);
-        Vec3 localForce = ~body.getBodyTransform(s).R()*forces[index][1];
-        forces[index][0] -= body.getBodyTransform(s).R()*(body.getOutboardFrame(s).p()%localForce);
+    // Finally, shift the force to be reported at the outboard (M-frame) 
+    // location, but still expressed in Ground.   
+    for (MobilizedBodyIndex mbx(0); mbx < getNumBodies(); mbx++) {
+        const MobilizedBody& body = getMobilizedBody(mbx);
+        const Rotation&  R_GB   = body.getBodyTransform(s).R();
+        const Transform& X_BM   = body.getOutboardFrame(s);
+        const Vec3       p_BM_G = R_GB*X_BM.p(); // p_BM, but expressed in G
+        forces_G[mbx][0] -= p_BM_G % forces_G[mbx][1]; // shift from B to M
     }
 }
 //....................... CALC MOBILIZER REACTION FORCES .......................
