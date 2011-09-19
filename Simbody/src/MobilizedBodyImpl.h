@@ -137,20 +137,24 @@ public:
         // parent and display that in this body's color.
         if (myMobilizedBodyIndex != 0) {
             const Real pscale = 1.0;
-            const Transform& M = getDefaultOutboardFrame(); // TODO: get from state
-            if (M.p() != Vec3(0) || M.R() != Mat33(1)) {
-                geom.push_back(DecorativeFrame(scale*0.25).setBodyId(myMobilizedBodyIndex));
-                if (M.p() != Vec3(0))
-                    geom.push_back(DecorativeLine(Vec3(0), M.p()).setBodyId(myMobilizedBodyIndex));
+            const Transform& X_BM = getDefaultOutboardFrame(); // TODO: get from state
+            if (X_BM.p() != Vec3(0) || X_BM.R() != Mat33(1)) {
+                DecorativeFrame frameOnChild(scale*0.25);
+                frameOnChild.setBodyId(myMobilizedBodyIndex);
+                frameOnChild.setColor(Red);
+                frameOnChild.setTransform(X_BM);
+                geom.push_back(frameOnChild);
+                if (X_BM.p() != Vec3(0))
+                    geom.push_back(DecorativeLine(Vec3(0), X_BM.p()).setBodyId(myMobilizedBodyIndex));
             }
-            const Transform& Mb = getDefaultInboardFrame(); // TODO: from state
-            DecorativeFrame frameOnParent(pscale*0.25);
+            const Transform& X_PF = getDefaultInboardFrame(); // TODO: from state
+            DecorativeFrame frameOnParent(pscale*0.3); // slightly larger than child
             frameOnParent.setBodyId(myParentIndex);
-            frameOnParent.setColor(Black);
-            frameOnParent.setTransform(Mb);
+            frameOnParent.setColor(Blue);
+            frameOnParent.setTransform(X_PF);
             geom.push_back(frameOnParent);
-            if (Mb.p() != Vec3(0))
-                geom.push_back(DecorativeLine(Vec3(0),Mb.p()).setBodyId(myParentIndex));
+            if (X_PF.p() != Vec3(0))
+                geom.push_back(DecorativeLine(Vec3(0),X_PF.p()).setBodyId(myParentIndex));
         }
 
         // Put a little purple wireframe sphere at the COM, and add a line from 
