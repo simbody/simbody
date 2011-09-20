@@ -238,6 +238,11 @@ public:
         return getMyRigidBodyNode().getMassProperties_OB_B();
     }
 
+    const SpatialInertia& getBodySpatialInertiaInGround(const State& s) const {
+        const SBTreePositionCache& tpc = getMyMatterSubsystemRep().getTreePositionCache(s);
+        return getMyRigidBodyNode().getMk_G(tpc);
+    }
+
     const Transform& getInboardFrame (const State& s) const {
         // TODO: these should come from the state if the mobilizer has variable frames
         const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);

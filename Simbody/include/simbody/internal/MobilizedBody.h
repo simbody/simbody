@@ -272,6 +272,12 @@ public:
     /// The State must have been realized to Stage::Instance or higher.
     const MassProperties& getBodyMassProperties(const State&) const;
 
+    /// Return a reference to the already-calculated SpatialInertia of this 
+    /// body, taken about the body's origin (\e not its mass center), and 
+    /// expressed in the Ground frame. The State must have been realized to
+    /// Stage::Position or higher.
+    const SpatialInertia& getBodySpatialInertiaInGround(const State&) const;
+
     /// Return the mass of this body. The State must have been realized to Stage::Instance.
     Real getBodyMass(const State& s) const {
         return getBodyMassProperties(s).getMass();

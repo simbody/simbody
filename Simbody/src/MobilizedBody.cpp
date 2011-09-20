@@ -150,6 +150,11 @@ const MassProperties& MobilizedBody::getBodyMassProperties(const State& s) const
     return getImpl().getBodyMassProperties(s);
 }
 
+const SpatialInertia& MobilizedBody::
+getBodySpatialInertiaInGround(const State& s) const {
+    return getImpl().getBodySpatialInertiaInGround(s);
+}
+
 const Transform& MobilizedBody::getInboardFrame (const State& s) const {
     return getImpl().getInboardFrame(s);
 }
