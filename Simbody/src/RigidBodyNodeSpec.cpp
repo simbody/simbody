@@ -347,13 +347,14 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
         return;
     }
 
-    // Compute psi. Jain has TauBar=I-G*~H but we're negating that to G*~H-I because we
-    // can save 30 flops by just subtracting 1 from the diagonals rather than having
-    // to negate all the off-diagonals. Then Psi ends up with the wrong sign here
-    // also, which doesn't matter because we multiply by it twice.
+    // Compute psi. Jain has TauBar=I-G*~H but we're negating that to G*~H-I 
+    // because we can save 30 flops by just subtracting 1 from the diagonals 
+    // rather than having to negate all the off-diagonals. Then Psi ends up 
+    // with the wrong sign here also, which doesn't matter because we multiply 
+    // by it twice.
 
     SpatialMat tauBar = getG(abc)*~getH(pc);// 11*dof^2 flops
-    tauBar(0,0) -= 1; // subtract identity matrix (only touches diagonals -- 3 flops)
+    tauBar(0,0) -= 1; // subtract identity matrix (only touches diags: 3 flops)
     tauBar(1,1) -= 1; //    "    (3 flops)
     SpatialMat psi = getPhi(pc)*tauBar; // ~100 flops
 

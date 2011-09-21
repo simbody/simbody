@@ -223,6 +223,9 @@ public:
     {
     }
 
+    // Treat Ground as though welded to the universe at the ground
+    // origin. The reaction there collects the effects of all the
+    // base bodies and of any forces applied directly to Ground.
     void calcUDotPass1Inward(
         const SBInstanceCache&     ic,
         const SBTreePositionCache& pc,
@@ -235,8 +238,26 @@ public:
         SpatialVec*                allGepsilon,
         Real*                      allEpsilon) const
     {
-        allGepsilon[0] = 0;
+        const SpatialVec& myBodyForce  = bodyForces[0];
+        SpatialVec&       z            = allZ[0];
+        SpatialVec&       Geps         = allGepsilon[0];
+
+        z = -myBodyForce;
+
+        for (unsigned i=0; i<children.size(); ++i) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+
+            if (children[i]->isUDotKnown(ic))
+                z += phiChild * zChild;                 // 18 flops
+            else {
+                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+                z += phiChild * (zChild + GepsChild);   // 24 flops
+            }
+        }
+        Geps = 0;
     } 
+
     void calcUDotPass2Outward(
         const SBInstanceCache&,
         const SBTreePositionCache&,

@@ -360,6 +360,12 @@ public:
         return getArticulatedBodyInertiaCache(s).articulatedBodyInertia;
     }
 
+    // Call at Acceleration stage only.
+    const Array_<SpatialVec,MobilizedBodyIndex>& 
+    getArticulatedBodyForces(const State& s) const {
+        return getTreeAccelerationCache(s).z;
+    }
+
     // velocity dependent
     const SpatialVec& getMobilizerCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
     const SpatialVec& getTotalCoriolisAcceleration    (const State&, MobilizedBodyIndex) const;
@@ -471,6 +477,7 @@ public:
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    netHingeForces,
+        Array_<SpatialVec,MobilizedBodyIndex>& abForcesZ, 
         Vector_<SpatialVec>&       A_GB,
         Vector&                    udot, // in/out (in for prescribed udots)
         Vector&                    qdotdot,
@@ -643,6 +650,9 @@ public:
     void calcAccelerationOnlyConstraintMatrixAt(const State&, Matrix&) const; // nu X ma
 
     void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
+    // This alternative is for debugging and testing; it is slow but should
+    // produce the same answers as calcMobilizerReactionForces().
+    void calcMobilizerReactionForcesUsingFreebodyMethod(const State& s, Vector_<SpatialVec>& forces) const;
 
     // Treating all constraints together, given a comprehensive set of 
     // multipliers lambda, generate the complete set of body and mobility 

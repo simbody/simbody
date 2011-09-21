@@ -24,3 +24,5 @@ dynamics with constraints.
 9/18 Reworked pos & vel projection to use new operators; fixed pos projection
 so that it produces a normal projection in q-space (was u-space before).
 9/19 Fixed bug 1535 -- mobilizer reaction torque sometimes miscalculated.
+9/21 Replaced freebody reaction force method with faster method due to Abhi
+Jain.

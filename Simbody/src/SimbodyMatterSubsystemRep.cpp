@@ -3449,6 +3449,8 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
 
     // outputs
     Vector&              netHingeForces = tac.epsilon;
+    Array_<SpatialVec,MobilizedBodyIndex>&
+                         abForcesZ      = tac.z;
     Vector_<SpatialVec>& A_GB           = tac.bodyAccelerationInGround;
     Vector&              tau            = tac.presMotionForces;
 
@@ -3456,7 +3458,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     // body accelerations A_GB, u-space generalized acceleratiosn udot,
     // and q-space generalized accelerations qdotdot.
     calcTreeAccelerations(s, *mobilityForcesToUse, *bodyForcesToUse,
-                          netHingeForces, A_GB, udot, qdotdot, tau);
+                          netHingeForces, abForcesZ, A_GB, udot, qdotdot, tau);
 
     // Feed the accelerations into the constraint error methods to determine
     // the acceleratin constraint errors they generate.
@@ -3742,6 +3744,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    netHingeForces,
+    Array_<SpatialVec,MobilizedBodyIndex>& abForcesZ, 
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot,    // in/out (in for prescribed udots)
     Vector&                    qdotdot,
@@ -3759,6 +3762,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     assert(bodyForces.size() == getNumBodies());
 
     netHingeForces.resize(getTotalDOF());
+    abForcesZ.resize(getNumBodies());
     A_GB.resize(getNumBodies());
     udot.resize(getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
@@ -3772,8 +3776,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     assert(qdotdot.hasContiguousData());
     assert(tau.hasContiguousData());
 
-    // Temporaries
-    Vector_<SpatialVec> allZ(getNumBodies());
+    // Temporary
     Vector_<SpatialVec> allGepsilon(getNumBodies());
 
     const Real*       mobilityForcePtr = mobilityForces.size() 
@@ -3786,7 +3789,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     Real*             udotPtr          = udot.size()    ? &udot[0] : NULL;
     Real*             qdotdotPtr       = qdotdot.size() ? &qdotdot[0] : NULL;
     Real*             tauPtr           = tau.size()     ? &tau[0] : NULL;
-    SpatialVec*       zPtr             = allZ.size()    ? &allZ[0] : NULL;    
+    SpatialVec*       zPtr             = abForcesZ.begin();    
     SpatialVec*       gepsPtr          = allGepsilon.size() 
                                             ? &allGepsilon[0] : NULL;    
 
@@ -3806,10 +3809,6 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
             node.calcQDotDot(sbs, &udotPtr[node.getUIndex()], 
                              &qdotdotPtr[node.getQIndex()]);
         }
-
-    // Mobilizer reaction forces (applied at Bo) may be calculated here now as
-    // reactions[i] = P[i]*A_GB[i] + z[i]   (72 flops/body)
-    // You can shift them to M or F frames for a few more flops (~15).
 }
 //......................... CALC TREE ACCELERATIONS ............................
 
@@ -4233,9 +4232,61 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
 // =============================================================================
 //                        CALC MOBILIZER REACTION FORCES
 // =============================================================================
-// TODO: this is very expensive. Instead, reaction forces should be extracted
-// for free as a side effect of the udot-calculating recursion.
+// This method calculates mobilizer reaction forces using repeated application
+// of the equation
+//     reaction = P*(A-a) + z
+// where P is an articulated body inertia, A is the spatial acceleration of
+// that body, a is the Coriolis acceleration, and z is the articulated body
+// force. All of these quantities are already available at Stage::Acceleration.
+// See Abhi Jain's 2011 book "Robot and Multibody Dynamics", Eq. 7.34 on
+// page 128.
+//
+// After calculating the reaction at the body frame origin Bo, we shift it to
+// the mobilizer's outboard frame M and report it there, though expressed in G.
+// Note that any generalized forces applied at mobilities end up included in
+// the reaction forces.
+//
+// Cost is 105 flops/body plus lots of memory access to dredge up the 
+// already-calculated goodies. If you don't need all the reactions, you can 
+// calculate them one at a time as needed just as efficiently.
 void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
+   (const State& s, Vector_<SpatialVec>& FM_G) const 
+{
+    const int nb = getNumBodies();
+    // We're going to work with forces in Ground, applied at the body frame
+    // of each body. Then at the end we'll shift to the M frame as promised
+    // (though still expressed in Ground).
+    FM_G.resize(nb);
+
+    const Array_<ArticulatedInertia,MobilizedBodyIndex>& P = 
+                                            getArticulatedBodyInertias(s);
+    const Array_<SpatialVec,MobilizedBodyIndex>& z =
+                                            getArticulatedBodyForces(s);
+
+    for (MobodIndex mbx(0); mbx < nb; ++mbx) {
+        const MobilizedBody& body   = getMobilizedBody(mbx);
+        const SpatialVec& A_GB = body.getBodyAcceleration(s);
+        const SpatialVec& a    = getMobilizerCoriolisAcceleration(s,mbx);
+        SpatialVec FB_G = z[mbx];
+        if (mbx != GroundIndex) FB_G += P[mbx]*(A_GB-a); // 78 flops
+        // Shift to M
+        const Transform& X_GB   = body.getBodyTransform(s);
+        const Vec3&      p_BM   = body.getOutboardFrame(s).p();
+        const Vec3       p_BM_G = X_GB.R()*p_BM; // p_BM in G, 15 flops
+        FM_G[mbx] = shiftForceBy(FB_G, p_BM_G);  // 12 flops
+    }
+}
+//....................... CALC MOBILIZER REACTION FORCES .......................
+
+
+
+// =============================================================================
+//            CALC MOBILIZER REACTION FORCES USING FREEBODY METHOD
+// =============================================================================
+// This method provides an alternative way to calculate mobilizer reaction
+// forces. It is about 3X slower than calcMobilizerReactionForces() so should
+// not be used except for Simbody debugging and regression testing purposes.
+void SimbodyMatterSubsystemRep::calcMobilizerReactionForcesUsingFreebodyMethod
    (const State& s, Vector_<SpatialVec>& FM_G) const 
 {
     const int nb = getNumBodies();

@@ -186,12 +186,13 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
         appliedBodyForces.size(), getNumBodies());
 
     Vector netHingeForces(getNumMobilities()); // unwanted side effects
+    Array_<SpatialVec,MobilizedBodyIndex> abForcesZ(getNumBodies());   
     Vector tau;
     Vector qdotdot;
 
     getRep().calcTreeAccelerations(state,
         appliedMobilityForces, appliedBodyForces,
-        netHingeForces, A_GB, udot, qdotdot, tau);
+        netHingeForces, abForcesZ, A_GB, udot, qdotdot, tau);
 }
 
 
@@ -1230,6 +1231,10 @@ Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const
 void SimbodyMatterSubsystem::calcMobilizerReactionForces
    (const State& s, Vector_<SpatialVec>& forces) const 
 {   getRep().calcMobilizerReactionForces(s, forces); }
+
+void SimbodyMatterSubsystem::calcMobilizerReactionForcesUsingFreebodyMethod
+   (const State& s, Vector_<SpatialVec>& forces) const 
+{   getRep().calcMobilizerReactionForcesUsingFreebodyMethod(s, forces); }
 
 void SimbodyMatterSubsystem::calcConstraintForcesFromMultipliers
    (const State& s, const Vector& lambda,
