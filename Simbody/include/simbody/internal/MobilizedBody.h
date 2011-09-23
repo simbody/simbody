@@ -33,21 +33,20 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This defines the MobilizedBody class, which associates a new body (the 
- * "child", "outboard", or "successor" body) with a Mobilizer and a reference 
- * frame on an existing body (the "parent", "inboard", or "predecessor" body)
- * that is already part of a MatterSubsystem.
- *
- * MobilizedBody is an abstract base class handle, with concrete classes 
- * defined for each kind of mobilizer. There are a set of built-in mobilizers
- * and a generic "Custom" mobilizer (an actual abstract base class) from
- * which advanced users may derive their own mobilizers.
- *
- * A Mobilizer may be associated with a Motion object which defines how
- * it is to move; otherwise its motion is calculated as a result of the 
- * application of forces (either directly applied or resulting from constraint
- * forces generated to satisfy restrictions imposed by Constraint objects).
- */
+This defines the MobilizedBody class, which associates a new body (the 
+"child", "outboard", or "successor" body) with a Mobilizer and a reference 
+frame on an existing body (the "parent", "inboard", or "predecessor" body)
+that is already part of a MatterSubsystem.
+
+MobilizedBody is an abstract base class handle, with concrete classes 
+defined for each kind of mobilizer. There are a set of built-in mobilizers
+and a generic "Custom" mobilizer (an actual abstract base class) from
+which advanced users may derive their own mobilizers.
+
+A Mobilizer may be associated with a Motion object which defines how
+it is to move; otherwise its motion is calculated as a result of the 
+application of forces (either directly applied or resulting from constraint
+forces generated to satisfy restrictions imposed by Constraint objects). **/
 
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
@@ -76,59 +75,61 @@ use it if you get tired of typing or seeing the full name.
 typedef MobilizedBody Mobod;
 
 
-/**
- * This is the base class for all MobilizedBody classes, which include a
- * body and a particular kind of mobilizer (joint) connecting that body
- * to its parent. Each built-in MobilizedBody type is a local 
- * subclass within MobilizedBody, so the built-ins have names like 
- * MobilizedBody::Pin. All concrete MobilizedBodies, including the built-ins, 
- * are derived from MobilizedBody.
- *
- * There are three sets of methods used for obtaining MobilizedBody-specific 
- * data from the containing System's State. These are:
- *    - State Access
- *    - Basic Operators
- *    - High Level Operators
- *
- * <em>State Access</em> methods simply extract already-calculated data from the 
- * State or State Cache, or set State values. They involve no additional 
- * computation, have names beginning with "get" and "upd" (update) and return 
- * references to the requested quantities rather than calculated values. We 
- * divide these into routines which deal with bodies and routines which deal 
- * with mobilizers and mobilities.
- *
- * <em>Basic Operators</em> use State Access methods to compute basic quantities
- * which cannot be precomputed, such as the velocity of an arbitrary point, 
- * using an inline combination of basic floating point operations which can be 
- * reliably determined at compile time. These have names beginning with "find" 
- * or a more specific verb, as a reminder that they do not require a great deal 
- * of computation. 
- *
- * <em>High Level Operators</em> combine responses and basic operators with 
- * run-time tests to calculate more complex quantities, with more complicated 
- * implementations that can exploit special cases at run time. These begin with 
- * "calc" (calculate) as a reminder that they may involve substantial run time 
- * computation.
- *
- * There is also a set of methods used for construction, and miscellaneous 
- * utilities. These methods are primarly intended for use by concrete 
- * MobilizedBody classes and are not generally used by end users.
- *
- * In the API below, we'll refer to the current ("this") MobilizedBody as "body
- * B". It is the "object" or "main" body with which we are concerned. Often 
- * there will be another body mentioned in the argument list as a target for 
- * some conversion. That "another" body will be called "body A". The Ground 
- * body is abbreviated "G".
- *
- * We use Fo to mean "the origin of frame F", Bc is "the mass center of body 
- * B". R_AF is the rotation matrix giving frame F's orientation in frame A, 
- * such that a vector v expressed in F is reexpressed in A by v_A = R_AF * v_F.
- * X_AF is the spatial transform giving frame F's origin location and 
- * orientation in frame A, such that a point P whose location is measured 
- * from F's origin Fo and expressed in F by position vector p_FP (or more 
- * explicitly p_FoP) is remeasured from frame A's origin Ao and reexpressed 
- * in A via p_AP = X_AF * p_FP, where p_AP==p_AoP. 
- */
+
+//==============================================================================
+//                            MOBILIZED BODY
+//==============================================================================
+/** This is the base class for all MobilizedBody classes, which include a
+body and a particular kind of mobilizer (joint) connecting that body
+to its parent. Each built-in MobilizedBody type is a local 
+subclass within MobilizedBody, so the built-ins have names like 
+MobilizedBody::Pin. All concrete MobilizedBodies, including the built-ins, 
+are derived from MobilizedBody.
+
+There are three sets of methods used for obtaining MobilizedBody-specific 
+data from the containing System's State. These are:
+   - State Access
+   - Basic Operators
+   - High Level Operators
+
+<em>State Access</em> methods simply extract already-calculated data from the 
+State or State Cache, or set State values. They involve no additional 
+computation, have names beginning with "get" and "upd" (update) and return 
+references to the requested quantities rather than calculated values. We 
+divide these into routines which deal with bodies and routines which deal 
+with mobilizers and mobilities.
+
+<em>Basic Operators</em> use State Access methods to compute basic quantities
+which cannot be precomputed, such as the velocity of an arbitrary point, 
+using an inline combination of basic floating point operations which can be 
+reliably determined at compile time. These have names beginning with "find" 
+or a more specific verb, as a reminder that they do not require a great deal 
+of computation. 
+
+<em>High Level Operators</em> combine responses and basic operators with 
+run-time tests to calculate more complex quantities, with more complicated 
+implementations that can exploit special cases at run time. These begin with 
+"calc" (calculate) as a reminder that they may involve substantial run time 
+computation.
+
+There is also a set of methods used for construction, and miscellaneous 
+utilities. These methods are primarly intended for use by concrete 
+MobilizedBody classes and are not generally used by end users.
+
+In the API below, we'll refer to the current ("this") MobilizedBody as "body
+B". It is the "object" or "main" body with which we are concerned. Often 
+there will be another body mentioned in the argument list as a target for 
+some conversion. That "another" body will be called "body A". The Ground 
+body is abbreviated "G".
+
+We use Fo to mean "the origin of frame F", Bc is "the mass center of body 
+B". R_AF is the rotation matrix giving frame F's orientation in frame A, 
+such that a vector v expressed in F is reexpressed in A by v_A = R_AFv_F.
+X_AF is the spatial transform giving frame F's origin location and 
+orientation in frame A, such that a point P whose location is measured 
+from F's origin Fo and expressed in F by position vector p_FP (or more 
+explicitly p_FoP) is remeasured from frame A's origin Ao and reexpressed 
+in A via p_AP = X_AFp_FP, where p_AP==p_AoP. **/
 
 class SimTK_SIMBODY_EXPORT MobilizedBody 
 :   public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {

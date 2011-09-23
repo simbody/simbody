@@ -369,23 +369,6 @@ void realizeYOutward(
     const SBArticulatedBodyInertiaCache&    abc,
     SBDynamicsCache&                        dc) const;
 
-void realizeZ(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    const Real*                             mobilityForces,
-    const SpatialVec*                       bodyForces) const;
-
-void realizeAccel(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    Real*                                   udot) const;
-
 // These routines give each node a chance to set appropriate defaults in a piece
 // of the state corresponding to a particular stage. Default implementations here
 // assume non-ball joint; override if necessary.

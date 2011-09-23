@@ -1648,14 +1648,17 @@ quantities:
 <h3>Implementation</h3>
 This method combines already-calculated quantities to calculate the reactions.
 See Abhi Jain's 2011 book "Robot and Multibody Dynamics", Eq. 7.34 page 128: 
-<pre>   F_reaction = P*(A-a) + z  </pre>
+<pre>   F_reaction = PPlus*APlus + zPlus  </pre>
 where P is the articulated body inertia, A is the spatial acceleration,
-a the Coriolis acceleration and z the articulated body forces. After 
-calculating F_reaction at the body frame origin, we shift it to M for 
-reporting.
+a the Coriolis acceleration and z the articulated body forces, and "Plus"
+indicates that we evaluate these on the inboard (parent) side of the mobilizer
+rather than on the body's side. (The alternative P(A-a)+z given there does not 
+work for prescribed mobilizers unless you replace "a" with "a_underscore" from
+equation 16.14.) After calculating F_reaction at the body frame
+origin Bo, we shift it to M for reporting.
 
 <h3>Performance</h3>
-The cost of the above calculation is 105 flops/body. The code presented
+The cost of the above calculation is 114 flops/body. The code presented
 above for converting from M to F costs an additional 81 flops/body if you
 use it.
     

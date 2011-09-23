@@ -163,7 +163,6 @@ public:
         SBDynamicsCache& dc = sbs.updDynamicsCache();
         SBTreeAccelerationCache& ac = sbs.updTreeAccelerationCache();
         updY(dc) = SpatialMat(Mat33(0));
-        updGepsilon(ac) = SpatialVec(Vec3(0));
         updA_GB(ac) = 0;
     }
     void realizePosition(const SBStateDigest&) const {}
@@ -186,7 +185,11 @@ public:
         const SBInstanceCache&,
         const SBTreePositionCache&,
         SBArticulatedBodyInertiaCache& abc) const 
-    {   updP(abc) = ArticulatedInertia(SymMat33(Infinity), Mat33(Infinity), SymMat33(0)); }
+    {   ArticulatedInertia& P = updP(abc);
+        P = ArticulatedInertia(SymMat33(Infinity), Mat33(Infinity), 
+                                       SymMat33(0)); 
+        updPPlus(abc) = P;
+    }
 
     void realizeYOutward(
         const SBInstanceCache&,
@@ -196,32 +199,6 @@ public:
     {
     }
 
-    void realizeZ(
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&,
-        const SBTreeVelocityCache&,
-        const SBDynamicsCache&,
-        SBTreeAccelerationCache&                ac,
-        const Real*,
-        const SpatialVec*                       bodyForces) const 
-    {   
-        updZ(ac) = -bodyForces[0];
-        for (unsigned i=0; i<children.size(); ++i) {
-            const SpatialVec& zChild    = children[i]->getZ(ac);
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
-            updZ(ac) += phiChild * (zChild + GepsChild);
-        }
-    }
-    void realizeAccel(
-        const SBTreePositionCache&,
-        const SBArticulatedBodyInertiaCache&,
-        const SBTreeVelocityCache&,
-        const SBDynamicsCache&,
-        SBTreeAccelerationCache&                ac,
-        Real*) const
-    {
-    }
 
     // Treat Ground as though welded to the universe at the ground
     // origin. The reaction there collects the effects of all the
@@ -235,27 +212,22 @@ public:
         const SpatialVec*          bodyForces,
         const Real*                allUDot,
         SpatialVec*                allZ,
-        SpatialVec*                allGepsilon,
+        SpatialVec*                allZPlus,
         Real*                      allEpsilon) const
     {
-        const SpatialVec& myBodyForce  = bodyForces[0];
+        const SpatialVec& F            = bodyForces[0];
         SpatialVec&       z            = allZ[0];
-        SpatialVec&       Geps         = allGepsilon[0];
+        SpatialVec&       zPlus        = allZPlus[0];
 
-        z = -myBodyForce;
+        z = -F;
 
         for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-
-            if (children[i]->isUDotKnown(ic))
-                z += phiChild * zChild;                 // 18 flops
-            else {
-                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-                z += phiChild * (zChild + GepsChild);   // 24 flops
-            }
+            const PhiMatrix&  phiChild   = children[i]->getPhi(pc);
+            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
+            z += phiChild * zPlusChild; // 18 flops
         }
-        Geps = 0;
+
+        zPlus = z;
     } 
 
     void calcUDotPass2Outward(
@@ -279,23 +251,16 @@ public:
         const SBDynamicsCache&,
         const Real*                f,
         SpatialVec*                allZ,
-        SpatialVec*                allGepsilon,
+        SpatialVec*                allZPlus,
         Real*                      allEpsilon) const
     {
         allZ[0] = 0;
         for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-
-            if (children[i]->isUDotKnown(ic))
-                allZ[0] += phiChild * zChild;                 // 18 flops
-            else {
-                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-                allZ[0] += phiChild * (zChild + GepsChild);   // 24 flops
-            }
-
+            const PhiMatrix&  phiChild   = children[i]->getPhi(pc);
+            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
+            allZ[0] += phiChild * zPlusChild;  // 18 flops
         }
-        allGepsilon[0] = 0;
+        allZPlus[0] = 0;
     } 
 
     void calcMInverseFPass2Outward(
@@ -438,7 +403,6 @@ public:
         updV_FM(vc) = 0;
         updV_PB_G(vc) = 0;
         updVD_PB_G(vc) = 0;
-        updGepsilon(ac) = SpatialVec(Vec3(0));
     }
 
     void realizePosition(const SBStateDigest& sbs) const {
@@ -509,14 +473,10 @@ public:
         ArticulatedInertia& P = updP(abc);
         P = ArticulatedInertia(getMk_G(pc));
         for (unsigned i=0 ; i<children.size() ; i++) {
-            const PhiMatrix&  phiChild           = children[i]->getPhi(pc);
-            const ArticulatedInertia& PChild     = children[i]->getP(abc);
+            const PhiMatrix&          phiChild   = children[i]->getPhi(pc);
             const ArticulatedInertia& PPlusChild = children[i]->getPPlus(abc);
 
-            if (children[i]->isUDotKnown(ic))
-                P += PChild.shift(phiChild.l());
-            else
-                P += PPlusChild.shift(phiChild.l());
+            P += PPlusChild.shift(phiChild.l());
         }
         updPPlus(abc) = P;
     }
@@ -535,40 +495,6 @@ public:
         updY(dc) = ~psi * parent->getY(dc) * psi;
     }
 
-    void realizeZ(
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&,
-        const SBTreeVelocityCache&,
-        const SBDynamicsCache&                  dc,
-        SBTreeAccelerationCache&                ac,
-        const Real*,
-        const SpatialVec*                       bodyForces) const 
-    {
-        SpatialVec& z = updZ(ac);
-        z = getMobilizerCentrifugalForces(dc) - bodyForces[nodeNum];
-
-        for (int i=0 ; i<(int)children.size() ; i++) {
-            const SpatialVec& zChild    = children[i]->getZ(ac);
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
-
-            z += phiChild * (zChild + GepsChild);
-        }
-    }
-
-
-    void realizeAccel(
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&,
-        const SBTreeVelocityCache&              vc,
-        const SBDynamicsCache&,
-        SBTreeAccelerationCache&                ac,
-        Real*) const
-    {
-        const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
-        updA_GB(ac) = alphap + getMobilizerCoriolisAcceleration(vc);  
-    }
-
     
     void calcUDotPass1Inward(
         const SBInstanceCache&      ic,
@@ -579,28 +505,23 @@ public:
         const SpatialVec*           bodyForces,
         const Real*                 allUDot,
         SpatialVec*                 allZ,
-        SpatialVec*                 allGepsilon,
+        SpatialVec*                 allZPlus,
         Real*                       allEpsilon) const 
     {
         const SpatialVec& myBodyForce  = bodyForces[nodeNum];
         SpatialVec&       z            = allZ[nodeNum];
-        SpatialVec&       Geps         = allGepsilon[nodeNum];
+        SpatialVec&       zPlus        = allZPlus[nodeNum];
 
         z = getMobilizerCentrifugalForces(dc) - myBodyForce;
 
         for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+            const PhiMatrix&  phiChild   = children[i]->getPhi(pc);
+            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
 
-            if (children[i]->isUDotKnown(ic))
-                z += phiChild * zChild;                 // 18 flops
-            else {
-                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-                z += phiChild * (zChild + GepsChild);   // 24 flops
-            }
+            z += phiChild * zPlusChild;                 // 18 flops
         }
 
-        Geps = 0;
+        zPlus = z;
     }
 
     void calcUDotPass2Outward(
@@ -616,10 +537,14 @@ public:
     {
         SpatialVec& A_GB = allA_GB[nodeNum];
 
-        // Shift parent's A_GB outward. (Ground A_GB is zero.)
-        const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+        const PhiMatrix&    phi = getPhi(pc);
+        const SpatialVec&   a   = getMobilizerCoriolisAcceleration(vc);
 
-        A_GB = A_GP + getMobilizerCoriolisAcceleration(vc);  // no udot for weld
+        // Shift parent's acceleration outward (Ground==0). 12 flops
+        const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+        const SpatialVec  APlus = ~phi * A_GP;
+
+        A_GB = APlus + a;  // no udot for weld
     }
     
     void calcMInverseFPass1Inward(
@@ -629,25 +554,21 @@ public:
         const SBDynamicsCache&      dc,
         const Real*                 f,
         SpatialVec*                 allZ,
-        SpatialVec*                 allGepsilon,
+        SpatialVec*                 allZPlus,
         Real*                       allEpsilon) const
     {
         SpatialVec& z       = allZ[nodeNum];
-        SpatialVec& Geps    = allGepsilon[nodeNum];
+        SpatialVec& zPlus   = allZPlus[nodeNum];
 
         z = 0;
-        for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
 
-            if (children[i]->isUDotKnown(ic))
-                z += phiChild * zChild;                 // 18 flops
-            else {
-                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-                z += phiChild * (zChild + GepsChild);   // 24 flops
-            }
+        for (unsigned i=0; i<children.size(); i++) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
+            z += phiChild * zPlusChild; // 18 flops
         }
-        Geps = 0;
+
+        zPlus = z;
     }
 
     void calcMInverseFPass2Outward(

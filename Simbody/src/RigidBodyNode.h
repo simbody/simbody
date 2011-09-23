@@ -490,22 +490,6 @@ virtual void realizeArticulatedBodyInertiasInward(
     const SBTreePositionCache&      pc,
     SBArticulatedBodyInertiaCache&  abc) const=0;
 
-virtual void realizeZ(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    const Real*                             mobilityForces,
-    const SpatialVec*                       bodyForces) const=0;
-virtual void realizeAccel(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    Real*                                   udot) const=0;
-
 virtual void realizeYOutward(
     const SBInstanceCache&                ic,
     const SBTreePositionCache&            pc,
@@ -925,11 +909,11 @@ SpatialVec&       updMobilizerCentrifugalForces(SBDynamicsCache&       dc) const
 const SpatialVec& getTotalCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.totalCentrifugalForces);}
 SpatialVec&       updTotalCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.totalCentrifugalForces);}
 
-const SpatialVec& getZ(const SBTreeAccelerationCache& rc) const {return fromB(rc.z);}
-SpatialVec&       updZ(SBTreeAccelerationCache&       rc) const {return toB  (rc.z);}
+const SpatialVec& getZ(const SBTreeAccelerationCache& tac) const {return fromB(tac.z);}
+SpatialVec&       updZ(SBTreeAccelerationCache&       tac) const {return toB  (tac.z);}
 
-const SpatialVec& getGepsilon(const SBTreeAccelerationCache& rc) const {return fromB(rc.Gepsilon);}
-SpatialVec&       updGepsilon(SBTreeAccelerationCache&       rc) const {return toB  (rc.Gepsilon);}
+const SpatialVec& getZPlus(const SBTreeAccelerationCache& tac) const {return fromB(tac.zPlus);}
+SpatialVec&       updZPlus(SBTreeAccelerationCache&       tac) const {return toB  (tac.zPlus);}
 
 
 const SpatialMat& getY(const SBDynamicsCache& dc) const {return fromB(dc.Y);}

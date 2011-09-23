@@ -98,6 +98,13 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
     system.realize(state, Stage::Acceleration);
     Vector_<SpatialVec> reactionForces;
     matter.calcMobilizerReactionForces(state, reactionForces);
+    Vector_<SpatialVec> reactionForcesFreebody;
+    matter.calcMobilizerReactionForcesUsingFreebodyMethod(state, reactionForcesFreebody);
+
+    // Both methods should produce the same results.
+    SimTK_TEST_EQ(reactionForces, reactionForcesFreebody);
+    
+    
     Vector mv, minvv;
     matter.calcMV(state, state.getU(), mv);
     matter.calcMInverseV(state, state.getU(), minvv);

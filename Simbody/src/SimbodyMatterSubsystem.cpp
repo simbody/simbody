@@ -187,12 +187,14 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
 
     Vector netHingeForces(getNumMobilities()); // unwanted side effects
     Array_<SpatialVec,MobilizedBodyIndex> abForcesZ(getNumBodies());   
+    Array_<SpatialVec,MobilizedBodyIndex> abForcesZPlus(getNumBodies());   
     Vector tau;
     Vector qdotdot;
 
     getRep().calcTreeAccelerations(state,
         appliedMobilityForces, appliedBodyForces,
-        netHingeForces, abForcesZ, A_GB, udot, qdotdot, tau);
+        netHingeForces, abForcesZ, abForcesZPlus, 
+        A_GB, udot, qdotdot, tau);
 }
 
 

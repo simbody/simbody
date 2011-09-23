@@ -231,24 +231,33 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerHDot_FM(
 //==============================================================================
 //                     REALIZE ARTICULATED BODY INERTIAS
 //==============================================================================
+// Compute articulated body inertia and related quantities for this body B.
+// This must be called tip-to-base (inward).
+//
 // Given only position-related quantities from the State 
 //      Mk  (this body's spatial inertia matrix)
 //      Phi (composite body child-to-parent shift matrix)
 //      H   (joint transition matrix; sense is transposed from Jain & Schwieters)
 // we calculate dynamic quantities 
 //      P   (articulated body inertia)
+//    PPlus (articulated body inertia as seen through the mobilizer)
+// For a prescribed mobilizer, we have PPlus==P. Otherwise we also compute
 //      D   (factored mass matrix LDL' diagonal part D=~H*P*H)
 //      DI  (inverse of D)
 //      G   (P * H * DI)
-//    PPlus (P - P * H * DI * ~H * P)
+//    PPlus (P - P * H * DI * ~H * P = P - G * ~H * P)
 // and put them in the state cache.
-// This must be called tip-to-base (inward).
+//
+// This is Algorithm 6.1 on page 106 of Jain's 2011 book modified to accommodate
+// prescribed motion as described on page 323. Note that although P+ is "as 
+// felt" on the inboard side of the mobilizer it is still calculated about 
+// Bo just as is P.
 //
 // Cost is 93 flops per child plus
 //   n^3 + 23*n^2 + 115*n + 12
 //   e.g. pin=143, ball=591 (197/dof), free=1746 (291/dof)
 // Note that per-child cost is paid just once for each non-base body in
-// the whole tree.
+// the whole tree; that is, each body is touched just once.
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
 realizeArticulatedBodyInertiasInward(
@@ -262,7 +271,7 @@ realizeArticulatedBodyInertiasInward(
     P = ArticulatedInertia(getMk_G(pc)); // 12 flops
 
     // For each child, we previously took its articulated body inertia P and 
-    // removed the portion of that inertia that can't be felt from  the parent
+    // removed the portion of that inertia that can't be felt from the parent
     // because of the joint mobilities. That is, we calculated 
     // P+ = P - P H DI ~H P, where the second term is the projection of P into
     // the mobility space of the child's inboard mobilizer. Note that if the
@@ -275,21 +284,26 @@ realizeArticulatedBodyInertiasInward(
     // really much help.)
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&          phiChild   = children[i]->getPhi(pc);
-        const ArticulatedInertia& PChild     = children[i]->getP(abc);
         const ArticulatedInertia& PPlusChild = children[i]->getPPlus(abc);
 
         // Apply the articulated body shift.
         // This takes 93 flops (72 for the shift and 21 to add it in).
-        if (children[i]->isUDotKnown(ic))
-            P += PChild.shift(phiChild.l());
-        else
-            P += PPlusChild.shift(phiChild.l());
+        // (Note that PPlusChild==PChild if child's mobilizer is prescribed.)
+        P += PPlusChild.shift(phiChild.l());
     }
 
-    // If this is a prescribed mobilizer, leave G, D, DI, and PPlus
-    // untouched -- they should have been set to NaN at Instance stage.
-    if (isUDotKnown(ic))
+    // Now compute PPlus. P+ = P for a prescribed mobilizer. Otherwise
+    // it is P+ = P - P H DI ~H P = P - G*~PH. In the prescribed case
+    // we leave G, D, DI untouched -- they should have been set to NaN at
+    // Instance stage.
+    ArticulatedInertia& PPlus = updPPlus(abc);
+
+    if (isUDotKnown(ic)) {
+        PPlus = P;  // prescribed
         return;
+    }
+
+    // This is a non-prescribed mobilizer. Compute D, DI, G then P+.
 
     const HType&  H  = getH(pc);
     HType&        G  = updG(abc);
@@ -303,9 +317,7 @@ realizeArticulatedBodyInertiasInward(
     DI = D.invert();                        // ~dof^3 flops (symmetric)
     G  = PH * DI;                           // 12*dof^2-6*dof flops
 
-    // Want P+ = P - P H DI ~H P = P - G*~PH. 
-    // We can do this in about 55*dof flops.
-    ArticulatedInertia& PPlus = updPPlus(abc);
+    // Want P+ = P - G*~PH. We can do this in about 55*dof flops.
     // These require 9 dot products of length dof. The symmetric ones could
     // be done with 6 dot products instead for a small savings but this gives
     // us a chance to symmetrize and hopefully clean up some numerical errors.
@@ -324,108 +336,34 @@ realizeArticulatedBodyInertiasInward(
     PPlus = P - ArticulatedInertia(symMass, massMoment, symInertia); // 21 flops
 }
 
-//==============================================================================
-//                                  REALIZE Y
-//==============================================================================
-// To be called base to tip.
-// sherm 060723: As best I can tell this is calculating the inverse of
-// the "operational space inertia" at the body frame origin for each body.
-// See Equation 20 in Rodriguez,Jain, & Kreutz-Delgado: A spatial operator algebra 
-// for manipulator modeling and control. Intl. J. Robotics Research 
-// 10(4):371-381 (1991).
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
-   (const SBInstanceCache&                  ic,
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    SBDynamicsCache&                        dc) const
-{
-    if (isUDotKnown(ic)) {
-        //TODO: (sherm 090810) is this right?
-        assert(false);
-        //updY(dc) = (~getPhi(pc) * parent->getY(dc)) * getPhi(pc); // rigid shift
-        return;
-    }
 
-    // Compute psi. Jain has TauBar=I-G*~H but we're negating that to G*~H-I 
-    // because we can save 30 flops by just subtracting 1 from the diagonals 
-    // rather than having to negate all the off-diagonals. Then Psi ends up 
-    // with the wrong sign here also, which doesn't matter because we multiply 
-    // by it twice.
-
-    SpatialMat tauBar = getG(abc)*~getH(pc);// 11*dof^2 flops
-    tauBar(0,0) -= 1; // subtract identity matrix (only touches diags: 3 flops)
-    tauBar(1,1) -= 1; //    "    (3 flops)
-    SpatialMat psi = getPhi(pc)*tauBar; // ~100 flops
-
-    // TODO: this is very expensive (~1000 flops?) Could cut be at least half
-    // by exploiting symmetry. Also, does Psi have special structure?
-    // And does this need to be computed for every body or only those
-    // which are loop "base" bodies or some such?
-
-
-    // Psi here has the opposite sign from Jain's, but we're multiplying twice
-    // by it here so it doesn't matter.
-    updY(dc) = (getH(pc) * getDI(abc) * ~getH(pc)) 
-                + (~psi * parent->getY(dc) * psi);
-}
-
-//==============================================================================
-//                  REALIZE Z and REALIZE ACCEL (obsolete)
-//==============================================================================
-// To be called from tip to base.
-//
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeZ(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    const Real*                             mobilityForces,
-    const SpatialVec*                       bodyForces) const 
-{
-    SpatialVec& z = updZ(ac);
-    z = getMobilizerCentrifugalForces(dc) - bodyForces[nodeNum];
-
-    for (unsigned i=0; i<children.size(); ++i) {
-        const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-        const SpatialVec& zChild    = children[i]->getZ(ac);
-        const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
-
-        z += phiChild * (zChild + GepsChild);
-    }
-
-    updEpsilon(ac)  = fromU(mobilityForces) - ~getH(pc)*z;
-    updGepsilon(ac) = getG(abc)  * getEpsilon(ac);
-}
-
-//
-// Calculate acceleration in internal coordinates, based on the last set
-// of forces that were fed to realizeZ (as embodied in 'epsilon').
-// (Base to tip)
-//
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeAccel(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    Real*                                   udot) const 
-{
-    const SpatialVec A_GP = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
-
-    Vec<dof>::updAs(udot) = getDI(abc) * getEpsilon(ac) - (~getG(abc)*A_GP);
-    updA_GB(ac) = A_GP + getH(pc)*Vec<dof>::getAs(udot) 
-                       + getMobilizerCoriolisAcceleration(vc);  
-}
 
 //==============================================================================
 //                                   CALC UDOT
 //==============================================================================
 // To be called from tip to base.
 // Temps do not need to be initialized.
+//
+// First pass
+// ----------
+// Given previously-calculated quantities from the State 
+//      P       this body's articulated body inertia
+//     Phi      composite body child-to-parent shift matrix
+//      H       joint transition matrix; sense is transposed from Jain
+//      G       P * H * DI
+// and supplied arguments
+//      F       body force applied to B
+//      f       generalize forces applied to B's mobilities
+//    udot_p    known udots (if mobilizer is prescribed)
+// calculate 
+//      z       articulated body residual force on B
+//    zPlus     AB residual force as felt on inboard side of mobilizer
+//     eps      f - ~H*z  gen force plus gen equiv of body forces
+// For a prescribed mobilizer we have zPlus=z. Otherwise, zPlus = z + G*eps.
+//
+// This is the first (inward) loop of Algorithm 16.2 on page 323 of Jain's
+// 2011 book, modified to include the applied body force and not including
+// the auxiliary quantity "nu=DI*eps".
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
     const SBInstanceCache&                  ic,
@@ -436,39 +374,41 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
     const SpatialVec*                       bodyForces,
     const Real*                             allUDot,
     SpatialVec*                             allZ,
-    SpatialVec*                             allGepsilon,
+    SpatialVec*                             allZPlus,
     Real*                                   allEpsilon) const 
 {
-    const Vec<dof>&   myJointForce = fromU(jointForces);
-    const SpatialVec& myBodyForce  = bodyForces[nodeNum];
-    SpatialVec&       z            = allZ[nodeNum];
-    SpatialVec&       Geps         = allGepsilon[nodeNum];
-    Vec<dof>&         eps          = toU(allEpsilon);
+    const Vec<dof>&   f     = fromU(jointForces);
+    const SpatialVec& F     = bodyForces[nodeNum];
+    SpatialVec&       z     = allZ[nodeNum];
+    SpatialVec&       zPlus = allZPlus[nodeNum];
+    Vec<dof>&         eps   = toU(allEpsilon);
 
-    // Pa+b - F (TODO: include P*udot_p here also?)
-    z = getMobilizerCentrifugalForces(dc) - myBodyForce; // 6 flops
+    const bool isPrescribed = isUDotKnown(ic);
+    const HType&              H = getH(pc);
+    const ArticulatedInertia& P = getP(abc);
+    const HType&              G = getG(abc);
 
-    if (isUDotKnown(ic) && !isUDotKnownToBeZero(ic)) {
+    // z = Pa+b - F
+    z = getMobilizerCentrifugalForces(dc) - F; // 6 flops
+
+    // z += P H udot_p if prescribed
+    if (isPrescribed && !isUDotKnownToBeZero(ic)) {
         const Vec<dof>& udot = fromU(allUDot);
-        z += getP(abc)*(getH(pc)*udot); // add in P*udot_p (66+12*dof flops)
+        z += P*(H*udot); // 66+12*dof flops
     }
 
+    // z += sum(Phi(child) * zPlus(child)) for all children
     for (unsigned i=0; i<children.size(); ++i) {
-        const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-        const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-
-        if (children[i]->isUDotKnown(ic))
-            z += phiChild * zChild;
-        else {
-            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-            z += phiChild * (zChild + GepsChild);
-        }
+        const PhiMatrix&  phiChild   = children[i]->getPhi(pc);
+        const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
+        z += phiChild * zPlusChild; // 18 flops
     }
 
-    eps  = myJointForce - ~getH(pc)*z; // 12*dof flops
+    eps  = f - ~H*z; // 12*dof flops
 
-    if (!isUDotKnown(ic))
-        Geps = getG(abc) * eps; // 12*dof-6 flops
+    zPlus = z;
+    if (!isPrescribed)
+        zPlus += G*eps; // 12*dof flops
 }
 
 //
@@ -493,16 +433,27 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
     SpatialVec&     A_GB = allA_GB[nodeNum];
     Vec<dof>&       udot = toU(allUDot);    // pull out this node's udot
 
-    // Shift parent's A_GB outward. (Ground A_GB is zero.)
-    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+    const bool isPrescribed = isUDotKnown(ic);
+    const HType&              H   = getH(pc);
+    const PhiMatrix&          phi = getPhi(pc);
+    const ArticulatedInertia& P   = getP(abc);
+    const SpatialVec&         a   = getMobilizerCoriolisAcceleration(vc);
+    const Mat<dof,dof>&       DI  = getDI(abc);
+    const HType&              G   = getG(abc);
 
-    if (isUDotKnown(ic)) {
+    // Shift parent's acceleration outward (Ground==0). 12 flops
+    const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+    const SpatialVec  APlus = ~phi * A_GP;
+
+    if (isPrescribed) {
         Vec<dof>& tau = updTau(ic,allTau);  // pull out this node's tau
-        tau = ~getH(pc)*(getP(abc)*A_GP) - eps; // 66 + 12*dof flops
-    } else
-        udot = getDI(abc) * eps - (~getG(abc)*A_GP); // 2*dof^2 + 11*dof
+        // This is ~H(P*APlus + z) - f; compare Jain 16.17b
+        tau = ~H*(P*APlus) - eps; // 66 + 12*dof flops
+    } else {
+        udot = DI*eps - ~G*APlus; // 2*dof^2 + 11*dof
+    }
 
-    A_GB = A_GP + getH(pc)*udot + getMobilizerCoriolisAcceleration(vc);
+    A_GB = APlus + H*udot + a;
 }
 
  
@@ -545,33 +496,36 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMInverseFPass1Inward(
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
     const SBDynamicsCache&                  dc,
-    const Real*                             f,
+    const Real*                             jointForces,
     SpatialVec*                             allZ,
-    SpatialVec*                             allGepsilon,
+    SpatialVec*                             allZPlus,
     Real*                                   allEpsilon) const
 {
-    const Vec<dof>&   myJointForce = fromU(f);
-    SpatialVec&       z            = allZ[nodeNum];
-    SpatialVec&       Geps         = allGepsilon[nodeNum];
-    Vec<dof>&         eps          = toU(allEpsilon);
+    const Vec<dof>&   f     = fromU(jointForces);
+    SpatialVec&       z     = allZ[nodeNum];
+    SpatialVec&       zPlus = allZPlus[nodeNum];
+    Vec<dof>&         eps   = toU(allEpsilon);
+
+    const bool isPrescribed = isUDotKnown(ic);
+    const HType&              H = getH(pc);
+    const ArticulatedInertia& P = getP(abc);
+    const HType&              G = getG(abc);
 
     z = 0;
 
+    // TODO: no provision for prescribed udot_p here
+
     for (unsigned i=0; i<children.size(); i++) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-        const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-
-        if (children[i]->isUDotKnown(ic))
-            z += phiChild * zChild;                 // 18 flops
-        else {
-            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-            z += phiChild * (zChild + GepsChild);   // 24 flops
-        }
+        const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
+        z += phiChild * zPlusChild; // 18 flops
     }
 
-    if (!isUDotKnown(ic)) {
-        eps  = myJointForce - ~getH(pc)*z;          // 12*dof flops
-        Geps = getG(abc) * eps;                     // 12*dof-6 flops
+    // TODO: not right for prescribed motion if we need taus as output in pass2
+    zPlus = z;
+    if (!isPrescribed) {
+        eps    = f - ~H*z;    // 12*dof flops
+        zPlus += G*eps;     // 12*dof flops
     }
 }
 
@@ -595,12 +549,19 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMInverseFPass2Outward(
     SpatialVec&     A_GB = allA_GB[nodeNum];
     Vec<dof>&       udot = toU(allUDot); // pull out this node's udot
 
-    // Shift parent's A_GB outward. (Ground A_GB is zero.)
-    A_GB = ~getPhi(pc) * allA_GB[parent->getNodeNum()]; // 12 flops
+    const bool isPrescribed = isUDotKnown(ic);
+    const HType&        H   = getH(pc);
+    const PhiMatrix&    phi = getPhi(pc);
+    const Mat<dof,dof>& DI  = getDI(abc);
+    const HType&        G   = getG(abc);
 
-    if (!isUDotKnown(ic)) {
-        udot = getDI(abc) * eps - (~getG(abc)*A_GB);    // 2dof^2 + 11 dof flops
-        A_GB += getH(pc)*udot;                          // 12 dof flops
+    // Shift parent's acceleration outward (Ground==0). 12 flops
+    const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+    const SpatialVec  APlus = ~phi * A_GP;
+
+    if (!isPrescribed) {
+        udot = DI*eps - ~G*APlus;   // 2dof^2 + 11 dof flops
+        A_GB = APlus + H*udot;      // 12 dof flops
     }
 }
 
@@ -746,6 +707,57 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMVPass2Inward(
 
     tau = ~getH(pc)*F;          // 11*dof flops
 }
+
+
+
+//==============================================================================
+//                                  REALIZE Y
+//==============================================================================
+// To be called base to tip.
+// This is calculating what Abhi Jain calls the operational space compliance
+// kernel in his 2011 book. This is the inverse of the operational space inertia
+// for each body at its body frame. Also, see Equation 20 in Rodriguez,Jain, 
+// & Kreutz-Delgado:  A spatial operator algebra 
+// for manipulator modeling and control. Intl. J. Robotics Research 
+// 10(4):371-381 (1991).
+template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
+   (const SBInstanceCache&                  ic,
+    const SBTreePositionCache&              pc,
+    const SBArticulatedBodyInertiaCache&    abc,
+    SBDynamicsCache&                        dc) const
+{
+    if (isUDotKnown(ic)) {
+        //TODO: (sherm 090810) is this right?
+        assert(false);
+        //updY(dc) = (~getPhi(pc) * parent->getY(dc)) * getPhi(pc); // rigid shift
+        return;
+    }
+
+    // Compute psi. Jain has TauBar=I-G*~H but we're negating that to G*~H-I 
+    // because we can save 30 flops by just subtracting 1 from the diagonals 
+    // rather than having to negate all the off-diagonals. Then Psi ends up 
+    // with the wrong sign here also, which doesn't matter because we multiply 
+    // by it twice.
+
+    SpatialMat tauBar = getG(abc)*~getH(pc);// 11*dof^2 flops
+    tauBar(0,0) -= 1; // subtract identity matrix (only touches diags: 3 flops)
+    tauBar(1,1) -= 1; //    "    (3 flops)
+    SpatialMat psi = getPhi(pc)*tauBar; // ~100 flops
+
+    // TODO: this is very expensive (~1000 flops?) Could cut be at least half
+    // by exploiting symmetry. Also, does Psi have special structure?
+    // And does this need to be computed for every body or only those
+    // which are loop "base" bodies or some such?
+
+
+    // Psi here has the opposite sign from Jain's, but we're multiplying twice
+    // by it here so it doesn't matter.
+    updY(dc) = (getH(pc) * getDI(abc) * ~getH(pc)) 
+                + (~psi * parent->getY(dc) * psi);
+}
+
+
 
 //==============================================================================
 //                       MULTIPLY BY SYSTEM JACOBIAN

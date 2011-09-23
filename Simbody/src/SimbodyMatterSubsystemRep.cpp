@@ -3451,6 +3451,8 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     Vector&              netHingeForces = tac.epsilon;
     Array_<SpatialVec,MobilizedBodyIndex>&
                          abForcesZ      = tac.z;
+    Array_<SpatialVec,MobilizedBodyIndex>&
+                         abForcesZPlus  = tac.zPlus;
     Vector_<SpatialVec>& A_GB           = tac.bodyAccelerationInGround;
     Vector&              tau            = tac.presMotionForces;
 
@@ -3458,7 +3460,8 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     // body accelerations A_GB, u-space generalized acceleratiosn udot,
     // and q-space generalized accelerations qdotdot.
     calcTreeAccelerations(s, *mobilityForcesToUse, *bodyForcesToUse,
-                          netHingeForces, abForcesZ, A_GB, udot, qdotdot, tau);
+                          netHingeForces, abForcesZ, abForcesZPlus,
+                          A_GB, udot, qdotdot, tau);
 
     // Feed the accelerations into the constraint error methods to determine
     // the acceleratin constraint errors they generate.
@@ -3665,55 +3668,6 @@ void SimbodyMatterSubsystemRep::realizeY(const State& s) const {
 
 
 
-// Process forces for subsequent use by realizeTreeAccel() below.
-void SimbodyMatterSubsystemRep::realizeZ(const State& s, 
-    const Vector&              mobilityForces,
-    const Vector_<SpatialVec>& bodyForces) const
-{
-    const SBStateDigest sbs(s, *this, Stage::Acceleration);
-    const SBTreePositionCache&  tpc = sbs.getTreePositionCache();
-    const SBTreeVelocityCache&  tvc = sbs.getTreeVelocityCache();
-    const SBDynamicsCache&      dc  = sbs.getDynamicsCache();
-    SBTreeAccelerationCache&    tac = sbs.updTreeAccelerationCache();
-
-    const SBArticulatedBodyInertiaCache&    
-            abc = getArticulatedBodyInertiaCache(s);
-    const Real* mobilityForcePtr = mobilityForces.size() ? &mobilityForces[0] : NULL;
-    const SpatialVec* bodyForcePtr = bodyForces.size() ? &bodyForces[0] : NULL;
-
-    // TODO: does this need to do level 0?
-    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.realizeZ(tpc,abc,tvc,dc,tac,mobilityForcePtr,bodyForcePtr);
-        }
-}
-
-// Calc acceleration: sweep from base to tip. This uses the forces
-// that were last supplied to realizeZ()above.
-void SimbodyMatterSubsystemRep::realizeTreeAccel(const State& s) const {
-
-    SBStateDigest sbs(s, *this, Stage::Acceleration);
-    const SBTreePositionCache&  tpc = sbs.getTreePositionCache();
-    const SBTreeVelocityCache&  tvc = sbs.getTreeVelocityCache();
-    const SBDynamicsCache&      dc  = sbs.getDynamicsCache();
-    SBTreeAccelerationCache&    tac = sbs.updTreeAccelerationCache();
-
-    const SBArticulatedBodyInertiaCache&    
-          abc     = getArticulatedBodyInertiaCache(s);
-    Real* udot    = updUDot(s).size() ? &updUDot(s)[0] : NULL;
-    Real* qdotdot = updQDotDot(s).size() ? &updQDotDot(s)[0] : NULL;
-
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.realizeAccel(tpc,abc,tvc,dc,tac,&udot[node.getUIndex()]);
-            node.calcQDotDot(sbs, &udot[node.getUIndex()], &qdotdot[node.getQIndex()]);
-        }
-}
-
-
-
 //==============================================================================
 //                           CALC KINETIC ENERGY
 //==============================================================================
@@ -3744,7 +3698,8 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    netHingeForces,
-    Array_<SpatialVec,MobilizedBodyIndex>& abForcesZ, 
+    Array_<SpatialVec,MobilizedBodyIndex>& allZ, 
+    Array_<SpatialVec,MobilizedBodyIndex>& allZPlus, 
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot,    // in/out (in for prescribed udots)
     Vector&                    qdotdot,
@@ -3762,7 +3717,8 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     assert(bodyForces.size() == getNumBodies());
 
     netHingeForces.resize(getTotalDOF());
-    abForcesZ.resize(getNumBodies());
+    allZ.resize(getNumBodies());
+    allZPlus.resize(getNumBodies());
     A_GB.resize(getNumBodies());
     udot.resize(getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
@@ -3776,9 +3732,6 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     assert(qdotdot.hasContiguousData());
     assert(tau.hasContiguousData());
 
-    // Temporary
-    Vector_<SpatialVec> allGepsilon(getNumBodies());
-
     const Real*       mobilityForcePtr = mobilityForces.size() 
                                             ? &mobilityForces[0] : NULL;
     const SpatialVec* bodyForcePtr     = bodyForces.size() 
@@ -3789,15 +3742,14 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     Real*             udotPtr          = udot.size()    ? &udot[0] : NULL;
     Real*             qdotdotPtr       = qdotdot.size() ? &qdotdot[0] : NULL;
     Real*             tauPtr           = tau.size()     ? &tau[0] : NULL;
-    SpatialVec*       zPtr             = abForcesZ.begin();    
-    SpatialVec*       gepsPtr          = allGepsilon.size() 
-                                            ? &allGepsilon[0] : NULL;    
+    SpatialVec*       zPtr             = allZ.begin();    
+    SpatialVec*       zPlusPtr         = allZPlus.begin(); 
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcUDotPass1Inward(ic,tpc,abc,dc,
-                mobilityForcePtr, bodyForcePtr, udotPtr, zPtr, gepsPtr,
+                mobilityForcePtr, bodyForcePtr, udotPtr, zPtr, zPlusPtr,
                 hingeForcePtr);
         }
 
@@ -3843,19 +3795,19 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     // Temporaries
     Vector              allEpsilon(getTotalDOF());
     Vector_<SpatialVec> allZ(getNumBodies());
-    Vector_<SpatialVec> allGepsilon(getNumBodies());
+    Vector_<SpatialVec> allZPlus(getNumBodies());
     const Real* fPtr = f.size() ? &f[0] : NULL;
     SpatialVec* aPtr = A_GB.size() ? &A_GB[0] : NULL;
     Real* udotPtr = udot.size() ? &udot[0] : NULL;
     SpatialVec* zPtr = allZ.size() ? &allZ[0] : NULL;
-    SpatialVec* gepsPtr = allGepsilon.size() ? &allGepsilon[0] : NULL;
+    SpatialVec* zPlusPtr = allZPlus.size() ? &allZPlus[0] : NULL;
     Real* epsPtr = allEpsilon.size() ? &allEpsilon[0] : NULL;
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcMInverseFPass1Inward(ic,tpc,abc,dc,
-                fPtr, zPtr, gepsPtr, epsPtr);
+                fPtr, zPtr, zPlusPtr, epsPtr);
         }
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
@@ -4234,19 +4186,25 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
 // =============================================================================
 // This method calculates mobilizer reaction forces using repeated application
 // of the equation
-//     reaction = P*(A-a) + z
+//     F_reaction = PPlus*APlus + zPlus
 // where P is an articulated body inertia, A is the spatial acceleration of
-// that body, a is the Coriolis acceleration, and z is the articulated body
-// force. All of these quantities are already available at Stage::Acceleration.
+// that body, and z is the articulated body residual force. The "Plus" 
+// indicates that the quantity is as seen on the *inboard* side of the
+// mobilizer, although still measured about Bo and expressed in G.
+// All of these quantities are already available at Stage::Acceleration except
+// APlus= ~phi * A_GP, the parent body's acceleration shifted to the child.
+//
 // See Abhi Jain's 2011 book "Robot and Multibody Dynamics", Eq. 7.34 on
-// page 128.
+// page 128: reaction = P(A-a)+z = PPlus*APlus + zPlus. The first equation
+// is not correct if there is prescribed motion (you'd have to remove H*udot
+// also), but the "Plus" version works regardless.
 //
 // After calculating the reaction at the body frame origin Bo, we shift it to
 // the mobilizer's outboard frame M and report it there, though expressed in G.
 // Note that any generalized forces applied at mobilities end up included in
 // the reaction forces.
 //
-// Cost is 105 flops/body plus lots of memory access to dredge up the 
+// Cost is 114 flops/body plus lots of memory access to dredge up the 
 // already-calculated goodies. If you don't need all the reactions, you can 
 // calculate them one at a time as needed just as efficiently.
 void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
@@ -4258,19 +4216,26 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
     // (though still expressed in Ground).
     FM_G.resize(nb);
 
-    const Array_<ArticulatedInertia,MobilizedBodyIndex>& P = 
-                                            getArticulatedBodyInertias(s);
-    const Array_<SpatialVec,MobilizedBodyIndex>& z =
-                                            getArticulatedBodyForces(s);
+    const Array_<ArticulatedInertia,MobilizedBodyIndex>& PPlus = 
+                                            getArticulatedBodyInertiasPlus(s);
+    const Array_<SpatialVec,MobilizedBodyIndex>& zPlus =
+                                            getArticulatedBodyForcesPlus(s);
 
     for (MobodIndex mbx(0); mbx < nb; ++mbx) {
-        const MobilizedBody& body   = getMobilizedBody(mbx);
-        const SpatialVec& A_GB = body.getBodyAcceleration(s);
-        const SpatialVec& a    = getMobilizerCoriolisAcceleration(s,mbx);
-        SpatialVec FB_G = z[mbx];
-        if (mbx != GroundIndex) FB_G += P[mbx]*(A_GB-a); // 78 flops
+        const MobilizedBody& body = getMobilizedBody(mbx);
+        const Transform& X_GB = body.getBodyTransform(s);
+     
+        SpatialVec FB_G = zPlus[mbx];
+        if (mbx != GroundIndex) {
+            const MobilizedBody& parent = body.getParentMobilizedBody();
+            const Transform&  X_GP = parent.getBodyTransform(s);
+            const SpatialVec& A_GP = parent.getBodyAcceleration(s);
+            const Vec3& p_PB_G = X_GB.p() - X_GP.p(); // 3 flops
+            SpatialVec APlus( A_GP[0],
+                              A_GP[1] + A_GP[0] % p_PB_G ); // 12 flops
+            FB_G += PPlus[mbx]*APlus; // 72 flops
+        }
         // Shift to M
-        const Transform& X_GB   = body.getBodyTransform(s);
         const Vec3&      p_BM   = body.getOutboardFrame(s).p();
         const Vec3       p_BM_G = X_GB.R()*p_BM; // p_BM in G, 15 flops
         FM_G[mbx] = shiftForceBy(FB_G, p_BM_G);  // 12 flops

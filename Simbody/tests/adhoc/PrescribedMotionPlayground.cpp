@@ -34,6 +34,7 @@
  */
 
 #include "SimTKsimbody.h"
+#include "SimTKcommon/Testing.h"
 
 #include <cstdio>
 #include <exception>
@@ -111,6 +112,17 @@ int main() {
          << "\nudot=" << pendulum.getUDotAsVector(state) << pendulum2.getUDotAsVector(state) 
          << "\ntau=" << pendulum.getTauAsVector(state) << pendulum2.getTauAsVector(state) 
          << endl;
+
+    Vector_<SpatialVec> reactionForces, reactionForcesFreebody;
+    matter.calcMobilizerReactionForces(state, reactionForces);
+    matter.calcMobilizerReactionForcesUsingFreebodyMethod(state, reactionForcesFreebody);
+
+    cout << "reactions PA+z: " << reactionForces << endl;
+    cout << "react freebody: " << reactionForcesFreebody << endl;
+
+    SimTK_TEST_EQ(reactionForces, reactionForcesFreebody);
+
+
     c=getchar();
 
     //pendulum.setOneU(state, 0, 1.0);

@@ -1079,7 +1079,7 @@ public:
         totalCentrifugalForces.resize(nBodies);           
         totalCentrifugalForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
-        Y.resize(nBodies); // TODO: inverse op space inertias
+        Y.resize(nBodies); // TODO: op space compliance kernel (see Jain 2011)
         Y[GroundIndex] = SpatialMat(Mat33(0));
     }
 };
@@ -1128,9 +1128,9 @@ public:
     Vector presMotionForces;    // Index with PresForcePoolIndex
 
     // Temps used in calculating accelerations and prescribed forces.
-    Vector             epsilon;                     // nu
+    Vector                                epsilon;  // nu
     Array_<SpatialVec,MobilizedBodyIndex> z;        // nb
-    Array_<SpatialVec,MobilizedBodyIndex> Gepsilon; // nb
+    Array_<SpatialVec,MobilizedBodyIndex> zPlus;    // nb
 
 public:
     void allocate(const SBTopologyCache& topo,
@@ -1140,8 +1140,6 @@ public:
         // Pull out topology-stage information from the tree.
         const int nBodies = topo.nBodies;
         const int nDofs   = topo.nDOFs;     // this is the number of u's (nu)
-        const int nSqDofs = topo.sumSqDOFs; // sum(ndof^2) for each joint
-        const int maxNQs  = topo.maxNQs;    // allocate the max # q's we'll ever need
 
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
@@ -1150,7 +1148,7 @@ public:
 
         epsilon.resize(nDofs);
         z.resize(nBodies);
-        Gepsilon.resize(nBodies); // TODO: ground initialization
+        zPlus.resize(nBodies); // TODO: ground initialization
     }
 };
 //.......................... TREE ACCELERATION CACHE ...........................

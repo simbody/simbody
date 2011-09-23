@@ -360,10 +360,20 @@ public:
         return getArticulatedBodyInertiaCache(s).articulatedBodyInertia;
     }
 
+    const Array_<ArticulatedInertia,MobilizedBodyIndex>& 
+    getArticulatedBodyInertiasPlus(const State& s) const {
+        realizeArticulatedBodyInertias(s);
+        return getArticulatedBodyInertiaCache(s).pPlus;
+    }
+
     // Call at Acceleration stage only.
     const Array_<SpatialVec,MobilizedBodyIndex>& 
     getArticulatedBodyForces(const State& s) const {
         return getTreeAccelerationCache(s).z;
+    }
+    const Array_<SpatialVec,MobilizedBodyIndex>& 
+    getArticulatedBodyForcesPlus(const State& s) const {
+        return getTreeAccelerationCache(s).zPlus;
     }
 
     // velocity dependent
@@ -478,6 +488,7 @@ public:
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    netHingeForces,
         Array_<SpatialVec,MobilizedBodyIndex>& abForcesZ, 
+        Array_<SpatialVec,MobilizedBodyIndex>& abForcesZPlus, 
         Vector_<SpatialVec>&       A_GB,
         Vector&                    udot, // in/out (in for prescribed udots)
         Vector&                    qdotdot,
@@ -834,13 +845,6 @@ public:
                                     const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
     // Unconstrained (tree) dynamics methods for use during realization.
-
-
-     // articulated body remainder forces
-    void realizeZ(const State&, 
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces) const;
-    void realizeTreeAccel(const State&) const; // accels with forces from last realizeZ
 
     // Part of OLD constrained dynamics; TODO: may be useful in op space inertia calcs.
     void realizeY(const State&) const;
