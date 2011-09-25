@@ -470,16 +470,16 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
 // When there is prescribed motion, it is already reflected in the articulated
 // body inertias, which were formed with rigid body shifts across the prescribed
 // mobilizers. In that case you can think of the udots and generalized forces f
-// as partitioned into two sets each: udot={udot_p, udot_r}, f={f_p, f_r}. We
+// as partitioned into two sets each: udot={udot_r, udot_p}, f={f_r, f_p}. We
 // can discuss them as though the partitions were contiguous although they are
 // not and the code deals with that properly. So now you can view the system as
-//     [ Mpp ~Mrp ] [udot_p]   [tau_p]   [f_p]
-//     [ Mrp  Mrr ] [udot_r] + [  0  ] = [f_r]
-// where udot_p is given and the unknowns are udot_r (the free accelerations)
-// and tau_p (the unknown forces that enforce the prescribed motion). This 
-// produces two equations when multiplied out:
-//     (1) Mrr udot_r = f_r - Mrp udot_p
-//     (2)     tau_p  = f_p - Mpp udot_p - ~Mrp udot_r 
+//     [ Mrr Mrp ] [udot_r]   [  0  ]   [f_r]
+//     [~Mrp Mpp ] [udot_p] + [tau_p] = [f_p]
+// where udot_p, f_r, and f_p are given and the unknowns are udot_r (the free 
+// accelerations) and tau_p (the unknown forces that enforce the prescribed 
+// motion). This produces two equations when multiplied out:
+//     (1) Mrr udot_r = f_r -  Mrp udot_p
+//     (2)      tau_p = f_p - ~Mrp udot_r - Mpp udot_p 
 //
 // Now we can define what the present method does: it assumes udot_p is zero,
 // and then calculates udot_r = Mrr^-1 f_r. f_p is ignored and won't be 
@@ -487,11 +487,10 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
 //
 // Cost per body is 
 //      30 + 47*ndof_r + 2*ndof_r^2
-// where ndof_r is the number of u's for a free mobilizer; 0 for a prescribed 
-// one.
-//
+// where ndof_r is the number of u's for a regular (non-prescribed) mobilizer;
+// 0 for a prescribed one.
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMInverseFPass1Inward(
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass1Inward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -508,12 +507,9 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMInverseFPass1Inward(
 
     const bool isPrescribed = isUDotKnown(ic);
     const HType&              H = getH(pc);
-    const ArticulatedInertia& P = getP(abc);
     const HType&              G = getG(abc);
 
     z = 0;
-
-    // TODO: no provision for prescribed udot_p here
 
     for (unsigned i=0; i<children.size(); i++) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
@@ -521,22 +517,19 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMInverseFPass1Inward(
         z += phiChild * zPlusChild; // 18 flops
     }
 
-    // TODO: not right for prescribed motion if we need taus as output in pass2
     zPlus = z;
     if (!isPrescribed) {
-        eps    = f - ~H*z;    // 12*dof flops
+        eps    = f - ~H*z;  // 12*dof flops
         zPlus += G*eps;     // 12*dof flops
     }
 }
 
-//
-// Calculate acceleration in internal coordinates, based on the last set
-// of forces that were reduced into epsilon (e.g., see above).
+
+// Pass 2 of multiplyByMInv.
 // Base to tip: temp allA_GB does not need to be initialized before
 // beginning the iteration.
-//
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMInverseFPass2Outward(
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -559,9 +552,11 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMInverseFPass2Outward(
     const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
     const SpatialVec  APlus = ~phi * A_GP;
 
+    // For a prescribed mobilizer, take udot==0.
+    A_GB = APlus;
     if (!isPrescribed) {
         udot = DI*eps - ~G*APlus;   // 2dof^2 + 11 dof flops
-        A_GB = APlus + H*udot;      // 12 dof flops
+        A_GB += H*udot;             // 12 dof flops
     }
 }
 
@@ -669,7 +664,7 @@ calcInverseDynamicsPass2Inward(
 // pass with tau = D*udot. Whether this is worth it would depend on how much
 // this gets re-used after R and D are calculated.
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMVPass1Outward(
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,
     const Real*                 allUDot,
     SpatialVec*                 allA_GB) const
@@ -683,10 +678,10 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMVPass1Outward(
     A_GB = A_GP + getH(pc)*udot;    // 12*dof flops
 }
 
-// Call tip to base after calling calcMVPass1Outward() for each
+// Call tip to base after calling multiplyByMPass1Outward() for each
 // rigid body.
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcMVPass2Inward(
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass2Inward(
     const SBTreePositionCache&  pc,
     const SpatialVec*           allA_GB,
     SpatialVec*                 allF,   // temp

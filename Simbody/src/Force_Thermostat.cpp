@@ -489,8 +489,8 @@ void Force::ThermostatImpl::realizeModel(State& state) const {
 // at about 125*N flops if all joints are 1 dof.
 void Force::ThermostatImpl::realizeVelocity(const State& state) const {
     Vector& Mu = updMomentum(state);
-    matter.calcMV(state, state.getU(), Mu);     // <-- expensive ~123*N flops
-    updKE(state) = (~state.getU() * Mu) / 2;    // 2*N flops
+    matter.multiplyByM(state, state.getU(), Mu); // <-- expensive ~123*N flops
+    updKE(state) = (~state.getU() * Mu) / 2;     // 2*N flops
 }
 
 // Calculate time derivatives of the various state variables.

@@ -322,7 +322,9 @@ void calcUDotPass2Outward(
     A_GB = SpatialVec(Vec3(0), udot);
 }
 
-void calcMInverseFPass1Inward(
+// Note that we're not setting temporaries here; you can't count on that as
+// a side effect the M^-1*f kernel.
+void multiplyByMInvPass1Inward(
         const SBInstanceCache&                  ic,
         const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
@@ -330,25 +332,19 @@ void calcMInverseFPass1Inward(
         const Real*                             jointForces,
         SpatialVec*                             allZ,
         SpatialVec*                             allZPlus,
-        Real*                                   allEpsilon) const {
-    const Vec3&     f     = Vec3::getAs(&jointForces[uIndex]);
-    SpatialVec&     z     = allZ[nodeNum];
-    SpatialVec&     zPlus = allZPlus[nodeNum];
-     Vec3&          eps   = Vec3::updAs(&allEpsilon[uIndex]);
+        Real*                                   allEpsilon) const 
+{
+    if (isUDotKnown(ic)) // prescribed
+        return;
 
-    const bool      isPrescribed = isUDotKnown(ic);
+    // We promised not to look at f if it is part of f_p (prescribed).
+    const Vec3& f     = Vec3::getAs(&jointForces[uIndex]);
+    Vec3&       eps   = Vec3::updAs(&allEpsilon[uIndex]);
 
-    z = 0;
-
-    // No children.
-
-    zPlus = z;
-    if (!isPrescribed) {
-        eps  = f;
-        zPlus[1] += eps;
-    }
+    eps = f;
 }
-void calcMInverseFPass2Outward(
+
+void multiplyByMInvPass2Outward(
         const SBInstanceCache&                  ic,
         const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
@@ -357,16 +353,15 @@ void calcMInverseFPass2Outward(
         SpatialVec*                             allA_GB,
         Real*                                   allUDot) const 
 {
+    if (isUDotKnown(ic)) // prescribed
+        return;
+
+    // We promised not to touch udot if it is part of udot_p (prescribed).
+
     const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
-    SpatialVec& A_GB = allA_GB[nodeNum];
-    Vec3& udot = Vec3::updAs(&allUDot[uIndex]); // pull out this node's udot
+    Vec3&       udot = Vec3::updAs(&allUDot[uIndex]);
 
-    const bool isPrescribed = isUDotKnown(ic);
-
-    if (!isPrescribed) {
-        udot = eps/getMass();
-        A_GB = SpatialVec(Vec3(0), udot);
-    }
+    udot = eps/getMass();
 }
 
 // Also serves as pass 1 for inverse dynamics.
@@ -396,7 +391,7 @@ void calcInverseDynamicsPass2Inward(
     tau = F[1] - myJointForce;
 }
 
-void calcMVPass1Outward(
+void multiplyByMPass1Outward(
         const SBTreePositionCache&  pc,
         const Real*                 allUDot,
         SpatialVec*                 allA_GB) const {
@@ -404,7 +399,7 @@ void calcMVPass1Outward(
     SpatialVec& A_GB = allA_GB[nodeNum];
     A_GB = SpatialVec(Vec3(0), udot);
 }
-void calcMVPass2Inward(
+void multiplyByMPass2Inward(
         const SBTreePositionCache&  pc,
         const SpatialVec*           allA_GB,
         SpatialVec*                 allF,

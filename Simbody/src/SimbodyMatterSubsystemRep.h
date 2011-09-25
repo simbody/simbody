@@ -494,22 +494,17 @@ public:
         Vector&                    qdotdot,
         Vector&                    tau) const; 
 
-    void calcMInverseF(const State& s,
-        const Vector&        f,
-        Vector_<SpatialVec>& A_GB,
-        Vector&              udot) const; 
+    // Multiply by the mass matrix in O(n) time.
+    void multiplyByM(const State& s,
+        const Vector&             a,
+        Vector&                   Ma) const;
 
-    void calcTreeResidualForces(const State&,
-        const Vector&               appliedMobilityForces,
-        const Vector_<SpatialVec>&  appliedBodyForces,
-        const Vector&               knownUdot,
-        Vector_<SpatialVec>&        A_GB,
-        Vector&                     residualMobilityForces) const;
-
-    void calcMV(const State& s,
-        const Vector&           v,
-        Vector_<SpatialVec>&    A_GB,
-        Vector&                 f) const;
+    // Multiply by the mass matrix inverse in O(n) time. Works only with the
+    // non-prescribed submatrix Mrr of M; entries f_p in f are not accessed,
+    // and entries MInvf_p in MInvf are not written.
+    void multiplyByMInv(const State&    s,
+        const Vector&                   f,
+        Vector&                         MInvf) const; 
 
     // Calculate the mass matrix in O(n^2) time. State must have already
     // been realized to Position stage. M must be resizeable or already the
@@ -520,8 +515,18 @@ public:
     // Calculate the mass matrix inverse in O(n^2) time. State must have already
     // been realized to Position stage. MInv must be resizeable or already the
     // right size (nXn). The result is symmetric but the entire matrix is
-    // filled in.
+    // filled in. Only the non-prescribed block Mrr is inverted; other elements
+    // are not written.
     void calcMInv(const State& s, Matrix& MInv) const;
+
+    void calcTreeResidualForces(const State&,
+        const Vector&               appliedMobilityForces,
+        const Vector_<SpatialVec>&  appliedBodyForces,
+        const Vector&               knownUdot,
+        Vector_<SpatialVec>&        A_GB,
+        Vector&                     residualMobilityForces) const;
+
+
 
     // Must be in Stage::Position to calculate out_q = N(q)*in_u (e.g., qdot=N*u)
     // or out_u = in_q * N(q). Note that one of "in" and "out" is always "q-like" while

@@ -33,8 +33,8 @@
 // Test the functioning of Simbody operators which involve the mass matrix,
 // and other system matrices like the Jacobian (partial velocity matrix) that
 // maps between generalized and spatial coordinates.
-// The O(N) operators like calcMV() and calcMInverseV() are supposed to behave
-// *as though* they used the mass matrix, without actually forming it.
+// The O(N) operators like multiplyByM() and multiplyByMInv() are supposed to 
+// behave *as though* they used the mass matrix, without actually forming it.
 
 #include "SimTKsimbody.h"
 #include "SimTKcommon/Testing.h"
@@ -578,12 +578,12 @@ void testUnconstrainedSystem() {
 
     // result1 = M*v
     system.realize(state, Stage::Position);
-    matter.calcMV(state, randVec, result1);
+    matter.multiplyByM(state, randVec, result1);
     SimTK_TEST_EQ(result1.size(), nu);
 
     // result2 = M^-1 * result1 == M^-1 * M * v == v
     system.realize(state, Stage::Dynamics);
-    matter.calcMInverseV(state, result1, result2);
+    matter.multiplyByMInv(state, result1, result2);
     SimTK_TEST_EQ(result2.size(), nu);
 
     SimTK_TEST_EQ_TOL(result2, randVec, Slop);
@@ -593,8 +593,8 @@ void testUnconstrainedSystem() {
     Vector v(nu, Real(0));
     for (int j=0; j < nu; ++j) {
         v[j] = 1;
-        matter.calcMV(state, v, M(j));
-        matter.calcMInverseV(state, v, MInv(j));
+        matter.multiplyByM(state, v, M(j));
+        matter.multiplyByMInv(state, v, MInv(j));
         v[j] = 0;
     }
 
@@ -622,7 +622,7 @@ void testUnconstrainedSystem() {
     Vector accel = state.getUDot();
     //cout << "v!=0, accel=" << accel << endl;
 
-    matter.calcMInverseV(state, randVec, result1);
+    matter.multiplyByMInv(state, randVec, result1);
     //cout << "With velocities, |a - M^-1*f|=" << (accel-result1).norm() << endl;
 
     SimTK_TEST_NOTEQ(accel, result1); // because of the velocities
@@ -639,7 +639,7 @@ void testUnconstrainedSystem() {
     SimTK_TEST_EQ(accel, result1); // because no velocities
 
     // And then M*a should = f.
-    matter.calcMV(state, accel, result2);
+    matter.multiplyByM(state, accel, result2);
     //cout << "v=0, M*accel=" << result2 << endl;
     //cout << "v=0, |M*accel-f|=" << (result2-randVec).norm() << endl;
 

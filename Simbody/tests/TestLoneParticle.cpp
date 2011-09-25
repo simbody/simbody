@@ -106,8 +106,8 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
     
     
     Vector mv, minvv;
-    matter.calcMV(state, state.getU(), mv);
-    matter.calcMInverseV(state, state.getU(), minvv);
+    matter.multiplyByM(state, state.getU(), mv);
+    matter.multiplyByMInv(state, state.getU(), minvv);
     Vector appliedMobilityForces(matter.getNumMobilities());
     Vector_<SpatialVec> appliedBodyForces(matter.getNumBodies());
     for (int i = 0; i < numBodies; i++) {

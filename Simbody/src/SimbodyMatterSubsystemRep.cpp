@@ -2729,9 +2729,6 @@ calcGMInvGt(const State&   s,
     // then one column of M^-1 * Gt.
     Vector Gtcol(nu), MInvGtcol(nu);
 
-    // This dummy is needed for calcMInverseF().
-    Vector_<SpatialVec> A_GB(getNumBodies());
-
     // Precalculate bias so we can perform multiplication by G efficiently.
     Vector bias(m);
     calcBiasForMultiplyByPVA(s,true,true,true,bias);
@@ -2744,7 +2741,7 @@ calcGMInvGt(const State&   s,
         lambda[j] = 1;
         multiplyByPVATranspose(s, true, true, true, lambda, Gtcol);
         lambda[j] = 0;
-        calcMInverseF(s, Gtcol, A_GB, MInvGtcol);
+        multiplyByMInv(s, Gtcol, MInvGtcol);
         if (columnsAreContiguous)
             multiplyByPVA(s, true, true, true, bias, MInvGtcol, GMInvGt(j));
         else {
@@ -3767,57 +3764,170 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
 
 
 //==============================================================================
-//                            CALC M INVERSE F
+//                            MULTIPLY BY M INV
 //==============================================================================
 // Calculate udot = M^-1 f. We also get spatial accelerations A_GB for 
 // each body as a side effect.
 // This Subsystem must already be realized through Dynamics stage.
 // All vectors must use contiguous storage.
-void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
-    const Vector&              f,
-    Vector_<SpatialVec>&       A_GB,
-    Vector&                    udot) const 
+void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
+    const Vector&                                           f,
+    Vector&                                                 MInvf) const 
 {
     const SBInstanceCache&                  ic  = getInstanceCache(s);
     const SBTreePositionCache&              tpc = getTreePositionCache(s);
     const SBDynamicsCache&                  dc  = getDynamicsCache(s);
     const SBArticulatedBodyInertiaCache&    abc = getArticulatedBodyInertiaCache(s);
 
-    assert(f.size() == getTotalDOF());
+    const int nb = getNumBodies();
+    const int nu = getNU(s);
 
-    A_GB.resize(getNumBodies());
-    udot.resize(getTotalDOF());
+    assert(f.size() == nu);
+
+    MInvf.resize(nu);
+    if (nu==0)
+        return;
 
     assert(f.hasContiguousData());
-    assert(A_GB.hasContiguousData());
-    assert(udot.hasContiguousData());
+    assert(MInvf.hasContiguousData());
 
     // Temporaries
-    Vector              allEpsilon(getTotalDOF());
-    Vector_<SpatialVec> allZ(getNumBodies());
-    Vector_<SpatialVec> allZPlus(getNumBodies());
-    const Real* fPtr = f.size() ? &f[0] : NULL;
-    SpatialVec* aPtr = A_GB.size() ? &A_GB[0] : NULL;
-    Real* udotPtr = udot.size() ? &udot[0] : NULL;
-    SpatialVec* zPtr = allZ.size() ? &allZ[0] : NULL;
-    SpatialVec* zPlusPtr = allZPlus.size() ? &allZPlus[0] : NULL;
-    Real* epsPtr = allEpsilon.size() ? &allEpsilon[0] : NULL;
+    Array_<Real>        eps(nu);
+    Array_<SpatialVec>  z(nb), zPlus(nb), A_GB(nb);
+
+    // Point to raw data of input arguments.
+    const Real* fPtr     = &f[0];       
+    Real*       MInvfPtr = &MInvf[0];
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass1Inward(ic,tpc,abc,dc,
-                fPtr, zPtr, zPlusPtr, epsPtr);
+            node.multiplyByMInvPass1Inward(ic,tpc,abc,dc,
+                fPtr, z.begin(), zPlus.begin(), eps.begin());
         }
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass2Outward(ic,tpc,abc,dc, 
-                epsPtr, aPtr, udotPtr);
+            node.multiplyByMInvPass2Outward(ic,tpc,abc,dc, 
+                eps.cbegin(), A_GB.begin(), MInvfPtr);
         }
 }
 //............................. CALC M INVERSE F ...............................
+
+
+
+//==============================================================================
+//                              MULTIPLY BY M
+//==============================================================================
+// Calculate f = M a.
+// This Subsystem must already have been realized to Position stage.
+// All vectors must use contiguous storage.
+void SimbodyMatterSubsystemRep::multiplyByM(const State&    s,
+                                            const Vector&   a,
+                                            Vector&         Ma) const 
+{
+
+    const SBTreePositionCache& tpc = getTreePositionCache(s);
+    const int nb = getNumBodies();
+    const int nu = getNU(s);
+
+    assert(a.size() == nu);
+    Ma.resize(nu);
+
+    if (nu == 0)
+        return;
+
+    assert(a.hasContiguousData());
+    assert(Ma.hasContiguousData());
+
+    // Temporaries
+    Array_<SpatialVec>  fTmp(nb), A_GB(nb);
+
+    // Point to raw data of input arguments.
+    const Real* aPtr    = &a[0];       
+    Real*       MaPtr   = &Ma[0];
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.multiplyByMPass1Outward(tpc, aPtr, A_GB.begin());
+        }
+
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.multiplyByMPass2Inward(tpc,A_GB.cbegin(),fTmp.begin(),MaPtr);
+        }
+}
+
+
+
+//==============================================================================
+//                                  CALC M
+//==============================================================================
+// Calculate the mass matrix M in O(n^2) time. This Subsystem must already have
+// been realized to Position stage.
+// It is OK if M's data is not contiguous.
+void SimbodyMatterSubsystemRep::calcM(const State& s, Matrix& M) const {
+    const int nu = getTotalDOF();
+    M.resize(nu,nu);
+    if (nu==0) return;
+
+    // This could be calculated much faster by doing it directly and calculating
+    // only half of it. As a placeholder, however, we're doing this with 
+    // repeated O(n) calls to multiplyByM() to get M one column at a time.
+
+    // If M's columns are contiguous we can avoid copying.
+    const bool isContiguous = M(0).hasContiguousData();
+    Vector contig_col(isContiguous ? 0 : nu);
+
+    Vector v(nu); v.setToZero();
+    for (int i=0; i < nu; ++i) {
+        v[i] = 1;
+        if (isContiguous) {
+            multiplyByM(s, v, M(i));
+        } else {
+            multiplyByM(s, v, contig_col);
+            M(i) = contig_col;
+        }
+        v[i] = 0;
+    }
+}
+
+
+
+//==============================================================================
+//                                CALC MInv
+//==============================================================================
+// Calculate the mass matrix inverse MInv(=M^-1) in O(n^2) time. This Subsystem
+// must already have been realized to Position stage.
+// It is OK if MInv's data is not contiguous.
+void SimbodyMatterSubsystemRep::calcMInv(const State& s, Matrix& MInv) const {
+    const int nu = getTotalDOF();
+    MInv.resize(nu,nu);
+    if (nu==0) return;
+
+    // This could probably be calculated faster by doing it directly and
+    // filling in only half. For now we're doing it with repeated calls to
+    // the O(n) operator multiplyByMInv().
+
+    // If M's columns are contiguous we can avoid copying.
+    const bool isContiguous = MInv(0).hasContiguousData();
+    Vector contig_col(isContiguous ? 0 : nu);
+
+    Vector f(nu); f.setToZero();
+    for (int i=0; i < nu; ++i) {
+        f[i] = 1;
+        if (isContiguous) {
+            multiplyByMInv(s, f, MInv(i));
+        } else {
+            multiplyByMInv(s, f, contig_col);
+            MInv(i) = contig_col;
+        }
+        f[i] = 0;
+    }
+}
 
 
 
@@ -3920,123 +4030,6 @@ void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
         }
 }
 //........................ CALC TREE RESIDUAL FORCES ...........................
-
-
-
-//==============================================================================
-//                                 CALC M V
-//==============================================================================
-// Calculate x = M v. If the vector v is a generalized acceleration
-// udot, then we also get spatial accelerations A_GB for 
-// each body as a side effect.
-// This Subsystem must already have been realized to Position stage.
-// All vectors must use contiguous storage.
-void SimbodyMatterSubsystemRep::calcMV(const State& s,
-    const Vector&              v,
-    Vector_<SpatialVec>&       A_GB,
-    Vector&                    f) const 
-{
-    const SBTreePositionCache& tpc = getTreePositionCache(s);
-
-    assert(v.size() == getTotalDOF());
-
-    A_GB.resize(getNumBodies());
-    f.resize(getTotalDOF());
-
-    assert(v.hasContiguousData());
-    assert(A_GB.hasContiguousData());
-    assert(f.hasContiguousData());
-
-    const Real* vPtr = v.size() ? &v[0] : NULL;
-    SpatialVec* aPtr = A_GB.size() ? &A_GB[0] : NULL;
-    Real* fPtr = f.size() ? &f[0] : NULL;
-
-    // Temporary
-    Vector_<SpatialVec> allFTmp(getNumBodies());
-    SpatialVec* tmpPtr = allFTmp.size() ? &allFTmp[0] : NULL;
-
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMVPass1Outward(tpc, vPtr, aPtr);
-        }
-
-    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMVPass2Inward(tpc,aPtr,tmpPtr,fPtr);
-        }
-}
-
-
-
-//==============================================================================
-//                                  CALC M
-//==============================================================================
-// Calculate the mass matrix M in O(n^2) time. This Subsystem must already have
-// been realized to Position stage.
-// It is OK if M's data is not contiguous.
-void SimbodyMatterSubsystemRep::calcM(const State& s, Matrix& M) const {
-    const int nu = getTotalDOF();
-    M.resize(nu,nu);
-    if (nu==0) return;
-
-    // This could be calculated much faster by doing it directly and calculating
-    // only half of it. As a placeholder, however, we're doing this with 
-    // repeated O(n) calls to calcMV() to get M one column at a time.
-
-    // If M's columns are contiguous we can avoid copying.
-    const bool isContiguous = M(0).hasContiguousData();
-    Vector contig_col(isContiguous ? 0 : nu);
-
-    Vector_<SpatialVec> A_GB(getNumBodies()); // unused dummy needed
-    Vector v(nu); v.setToZero();
-    for (int i=0; i < nu; ++i) {
-        v[i] = 1;
-        if (isContiguous) {
-            calcMV(s, v, A_GB, M(i));
-        } else {
-            calcMV(s, v, A_GB, contig_col);
-            M(i) = contig_col;
-        }
-        v[i] = 0;
-    }
-}
-
-
-
-//==============================================================================
-//                                CALC MInv
-//==============================================================================
-// Calculate the mass matrix inverse MInv(=M^-1) in O(n^2) time. This Subsystem
-// must already have been realized to Position stage.
-// It is OK if MInv's data is not contiguous.
-void SimbodyMatterSubsystemRep::calcMInv(const State& s, Matrix& MInv) const {
-    const int nu = getTotalDOF();
-    MInv.resize(nu,nu);
-    if (nu==0) return;
-
-    // This could probably be calculated faster by doing it directly and
-    // filling in only half. For now we're doing it with repeated calls to
-    // the O(n) operator calcMInverseF().
-
-    // If M's columns are contiguous we can avoid copying.
-    const bool isContiguous = MInv(0).hasContiguousData();
-    Vector contig_col(isContiguous ? 0 : nu);
-
-    Vector_<SpatialVec> A_GB(getNumBodies()); // unused dummy needed
-    Vector f(nu); f = 0;
-    for (int i=0; i < nu; ++i) {
-        f[i] = 1;
-        if (isContiguous) {
-            calcMInverseF(s, f, A_GB, MInv(i));
-        } else {
-            calcMInverseF(s, f, A_GB, contig_col);
-            MInv(i) = contig_col;
-        }
-        f[i] = 0;
-    }
-}
 
 
 

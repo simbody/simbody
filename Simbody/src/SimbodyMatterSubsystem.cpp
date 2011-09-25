@@ -198,12 +198,11 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
 }
 
 
-void SimbodyMatterSubsystem::calcMInverseV(const State& s,
-    const Vector&        v,
-    Vector&              MinvV) const
+void SimbodyMatterSubsystem::multiplyByMInv(const State&    state,
+                                            const Vector&   f,
+                                            Vector&         MInvf) const
 {
-    Vector_<SpatialVec> A_GB;
-    getRep().calcMInverseF(s,v, A_GB, MinvV);
+    getRep().multiplyByMInv(state,f,MInvf);
 }
 
 
@@ -355,12 +354,11 @@ void SimbodyMatterSubsystem::calcResidualForce
 
 
 
-void SimbodyMatterSubsystem::calcMV(const State& s, 
-    const Vector& v, 
-    Vector& MV) const
+void SimbodyMatterSubsystem::multiplyByM(const State& state, 
+                                         const Vector& a, 
+                                         Vector& Ma) const
 {
-    Vector_<SpatialVec> A_GB;
-    getRep().calcMV(s,v, A_GB, MV);
+    getRep().multiplyByM(state, a, Ma);
 }
 
 void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const 

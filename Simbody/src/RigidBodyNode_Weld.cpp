@@ -244,7 +244,10 @@ public:
         allA_GB[0] = 0;
     }
 
-    void calcMInverseFPass1Inward(
+    // Ground doesn't contribute to M^-1*f. Note that none of the temporaries
+    // get set -- you're not allowed to assume they are for this kernel,
+    // unlike calcUDot.
+    void multiplyByMInvPass1Inward(
         const SBInstanceCache&     ic,
         const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
@@ -254,16 +257,9 @@ public:
         SpatialVec*                allZPlus,
         Real*                      allEpsilon) const
     {
-        allZ[0] = 0;
-        for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild   = children[i]->getPhi(pc);
-            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
-            allZ[0] += phiChild * zPlusChild;  // 18 flops
-        }
-        allZPlus[0] = 0;
     } 
 
-    void calcMInverseFPass2Outward(
+    void multiplyByMInvPass2Outward(
         const SBInstanceCache&,
         const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
@@ -272,7 +268,6 @@ public:
         SpatialVec*                 allA_GB,
         Real*                       allUDot) const
     {
-        allA_GB[0] = 0;
     }
 
     // Also serves as pass 1 for inverse dynamics.
@@ -309,7 +304,7 @@ public:
         // no taus
     }
 
-    void calcMVPass1Outward(
+    void multiplyByMPass1Outward(
         const SBTreePositionCache&  pc,
         const Real*                 allUDot,
         SpatialVec*                 allA_GB) const
@@ -317,7 +312,7 @@ public:
         allA_GB[0] = 0;
     }
 
-    void calcMVPass2Inward(
+    void multiplyByMPass2Inward(
         const SBTreePositionCache&  pc,
         const SpatialVec*           allA_GB,
         SpatialVec*                 allF,
@@ -547,7 +542,9 @@ public:
         A_GB = APlus + a;  // no udot for weld
     }
     
-    void calcMInverseFPass1Inward(
+    // A weld doesn't have udots but we still have to calculate z, zPlus,
+    // and A_GB for use by the parent of this body.
+    void multiplyByMInvPass1Inward(
         const SBInstanceCache&      ic,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
@@ -571,7 +568,7 @@ public:
         zPlus = z;
     }
 
-    void calcMInverseFPass2Outward(
+    void multiplyByMInvPass2Outward(
         const SBInstanceCache&,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
@@ -580,10 +577,14 @@ public:
         SpatialVec*                 allA_GB,
         Real*                       allUDot) const
     {
-        SpatialVec& A_GB = allA_GB[nodeNum];
+        SpatialVec&      A_GB = allA_GB[nodeNum];
+        const PhiMatrix& phi  = getPhi(pc);
 
-        // Shift parent's A_GB outward. (Ground A_GB is zero.)
-        A_GB = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+        // Shift parent's acceleration outward (Ground==0). 12 flops
+        const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+        const SpatialVec  APlus = ~phi * A_GP;
+
+        A_GB = APlus;
     }
 
     // Also serves as pass 1 for inverse dynamics.
@@ -629,7 +630,7 @@ public:
         // no taus.
     }
 
-    void calcMVPass1Outward(
+    void multiplyByMPass1Outward(
         const SBTreePositionCache&  pc,
         const Real*                 allUDot,
         SpatialVec*                 allA_GB) const
@@ -642,7 +643,7 @@ public:
         A_GB = A_GP;  
     }
 
-    void calcMVPass2Inward(
+    void multiplyByMPass2Inward(
         const SBTreePositionCache&  pc,
         const SpatialVec*           allA_GB,
         SpatialVec*                 allF,   // temp

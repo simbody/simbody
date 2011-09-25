@@ -547,7 +547,7 @@ virtual void calcUDotPass2Outward(
     Real*                                   allUDot,
     Real*                                   allTau) const=0;
 
-virtual void calcMInverseFPass1Inward(
+virtual void multiplyByMInvPass1Inward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -556,7 +556,7 @@ virtual void calcMInverseFPass1Inward(
     SpatialVec*                             allZ,
     SpatialVec*                             allGepsilon,
     Real*                                   allEpsilon) const=0;
-virtual void calcMInverseFPass2Outward(
+virtual void multiplyByMInvPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -582,17 +582,17 @@ virtual void calcInverseDynamicsPass2Inward(
     Real*                       allTau) const
   { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInverseDynamicsPass2Inward"); }
 
-virtual void calcMVPass1Outward(
+virtual void multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,
     const Real*                 allUDot,
     SpatialVec*                 allA_GB) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMVPass1Outward"); }
-virtual void calcMVPass2Inward(
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByMPass1Outward"); }
+virtual void multiplyByMPass2Inward(
     const SBTreePositionCache&  pc,
     const SpatialVec*           allA_GB,
     SpatialVec*                 allFTmp,
     Real*                       allTau) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMVPass2Inward"); }
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByMPass2Inward"); }
 
 
 virtual void setVelFromSVel(const SBStateDigest&,

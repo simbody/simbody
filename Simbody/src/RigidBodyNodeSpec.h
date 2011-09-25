@@ -716,7 +716,7 @@ void calcUDotPass2Outward(
     Real*                       allUDot,
     Real*                       allTau) const;
 
-void calcMInverseFPass1Inward(
+void multiplyByMInvPass1Inward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
@@ -726,7 +726,7 @@ void calcMInverseFPass1Inward(
     SpatialVec*                 allGepsilon,
     Real*                       allEpsilon) const;
 
-void calcMInverseFPass2Outward(
+void multiplyByMInvPass2Outward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
@@ -751,11 +751,11 @@ void calcInverseDynamicsPass2Inward(
     SpatialVec*                 allFTmp,
     Real*                       allTau) const; 
 
-void calcMVPass1Outward(
+void multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,
     const Real*                 allUDot,
     SpatialVec*                 allA_GB) const;
-void calcMVPass2Inward(
+void multiplyByMPass2Inward(
     const SBTreePositionCache&  pc,
     const SpatialVec*           allA_GB,
     SpatialVec*                 allFTmp,

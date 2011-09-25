@@ -372,14 +372,14 @@ documented with the method. **/
   \c Stage::Instance **/
 Real calcSystemMass(const State& s) const;
 
-/** Return the location r_OG_C of the system mass center C, measured from the ground
-origin OG, and expressed in Ground. 
+/** Return the location r_OG_C of the system mass center C, measured from the 
+Ground origin, and expressed in Ground. 
 @par Required stage
   \c Stage::Position **/
 Vec3 calcSystemMassCenterLocationInGround(const State& s) const;
 
-/** Return total system mass, mass center location measured from the Ground origin,
-and system inertia taken about the Ground origin, expressed in Ground.
+/** Return total system mass, mass center location measured from the Ground 
+origin, and system inertia taken about the Ground origin, expressed in Ground.
 @par Required stage
   \c Stage::Position **/
 MassProperties calcSystemMassPropertiesInGround(const State& s) const;
@@ -390,14 +390,14 @@ expressed in Ground.
   \c Stage::Position **/
 Inertia calcSystemCentralInertiaInGround(const State& s) const;
 
-/** Return the velocity V_G_C = d/dt r_OG_C of the system mass center C in the Ground frame G,
-expressed in G.
+/** Return the velocity V_G_C = d/dt r_OG_C of the system mass center C in the 
+Ground frame G, expressed in G.
 @par Required stage
   \c Stage::Velocity **/
 Vec3 calcSystemMassCenterVelocityInGround(const State& s) const;
 
-/** Return the acceleration A_G_C = d^2/dt^2 r_OG_C of the system mass center C in
-the Ground frame G, expressed in G.
+/** Return the acceleration A_G_C = d^2/dt^2 r_OG_C of the system mass center 
+C in the Ground frame G, expressed in G.
 @par Required stage
   \c Stage::Acceleration **/
 Vec3 calcSystemMassCenterAccelerationInGround(const State& s) const;
@@ -828,47 +828,95 @@ not require realization of composite-body or articulated-body
 inertias. 
 @par Required stage
   \c Stage::Position **/
-void calcMV(const State&, const Vector& v, Vector& MV) const;
+void multiplyByM(const State& state, const Vector& a, Vector& Ma) const;
 
-/** This operator calculates in O(N) time the product M^-1*v where M is the 
-system mass matrix and v is a supplied vector with one entry per 
-mobility. If v is a set of generalized forces f, the result is a 
-generalized acceleration (udot=M^-1*f). Only the supplied vector is 
-used, M depends only on position states, so the result here is not 
-affected by velocities in the State. In particular, you'll have to 
-calculate your own inertial forces and put them in f if you want 
-them included.
+/** This operator calculates in O(n) time the product M^-1*v where M is the 
+system mass matrix and v is a supplied vector with one entry per u-space
+mobility. If v is a set of generalized forces f, the result is a generalized 
+acceleration (udot=M^-1*f). Only the supplied vector is used, and M depends 
+only on position states, so the result here is not affected by velocities in 
+\a state. In particular, you'll have to calculate your own inertial forces and 
+put them in f if you want them included.
 
+@param[in]      state
+    This is a State that has been realized through Position stage, from which
+    the current system configuration and articulated body inertias are 
+    obtained. If necessary, the articulated body inertias will be realized in
+    the state the first time this is called. They will then be retained in the
+    \a state cache for speed.
+@param[in]      v
+    This is a generalized-force like vector in mobility space (u-space). If 
+    there is any prescribed motion specified using Motion objects (see below),
+    then only the entries of v corresponding to non-prescribed mobilities are
+    examined by this method; the prescribed ones are not referenced at all. 
+@param[out]     MinvV
+    This is the result M^-1*v. If there is any prescribed motion specified
+    using Motion objects (see below), then only the non-prescribed entries
+    in MinvV are written; the prescribed ones are left unmodified.
+
+<h3>Behavior with specified Motion</h3>
+If you specify the motion of one or more mobilizers using a Motion object,
+the behavior of this method is altered. (This does \e not apply if you use
+Constraint objects to specify the motion.) In the Motion case, this method 
+works only with the "regular" (non-prescribed) mobilities. Only the entries in
+\a v corresponding to regular mobilities are examined, and only the entries in 
+the result \a MinvV corresponding to free mobilities are written.
+
+<h3>Theory</h3>
+View the unconstrained, prescribed zero-velocity equations of motion 
+M a + tau = f as partitioned into "regular" and "prescribed" variables like 
+this:
+<pre>
+    [M_rr ~M_rp] [a_r]   [ 0 ]   [f_r]
+    [          ] [   ] + [   ] = [   ]
+    [M_rp  M_pp] [a_p]   [tau]   [f_p]
+</pre>
+The regular and prescribed variables have been grouped here for clarity but
+in general they are interspersed among the columns and rows of M.
+
+Given that decomposition, this method solves only the first row, and works 
+under the assumption that a_p==0. Thus it returns a_r=(M_rr)^-1*f_r. When there
+is no prescribed motion M_rr is the entire mass matrix, and the result is 
+a_r=a=M^-1*f. When there is prescribed motion M_rr is a subset of M, and the 
+result is the r elements of a_r given a_p==0. That is a different result than
+if prescribed accelerations were taken into account, because in general 
+a_r = M_rr^-1 (f_r - ~M_rp*a_p) and we are not calculating that last term. 
+
+<h3>Implementation</h3>
+This is a stripped-down version of forward dynamics. It requires the hybrid
+articulated body inertias to have been realized already and will initiate
+that calculation if necessary the first time it is called for a given 
+configuration q. The calculation requires two sweeps of the multibody tree,
+an inward sweep to accumulate forces, followed by an outward sweep to 
+propagate accelerations.
+
+<h3>Performance</h3>
 If the supplied State does not already contain realized values for the
-articulated body inertias, then they will be realized when this operator
-is first called for a new set of positions. When there are prescribed 
-accelerations, articulated body inertias are created using mixed 
-articulated and composite inertia calculations depending on the 
-prescribed status of the corresponding mobilizers. In that case this
-method works only with the "free" (non-prescribed) mobilities. Only
-the entries in v corresponding to free mobilities are examined, and
-only the entries in MinvV corresponding to free mobilities are written.
-
-Once the appropriate articulated body inertias are available, repeated
-calls to this operator are very fast, with worst case around 80*n flops
-when all mobilizers have 1 dof.
+articulated body inertias, then they will be realized when this operator is 
+first called for a new set of positions. Calculating articulated body inertias
+is O(n) but relatively expensive. Once the appropriate articulated body 
+inertias are available, repeated calls to this operator are very fast, with 
+worst case around 80*n flops when all mobilizers have 1 dof. If you want to
+force realization of the articulated body inertias, call the method
+realizeArticulatedBodyInertias().
 
 @par Required stage
-  \c Stage::Position **/ 
-void calcMInverseV(const State&,
-    const Vector&        v,
-    Vector&              MinvV) const;
+  \c Stage::Position 
+
+@see multiplyByM(), calcMInv(), realizeArticulatedBodyInertias() **/ 
+void multiplyByMInv(const State& state,
+    const Vector&               v,
+    Vector&                     MinvV) const;
 
 /** This operator explicitly calculates the n X n mass matrix M. Note that this
 is inherently an O(n^2) operation since the mass matrix has n^2 elements 
 (although only n(n+1)/2 are unique due to symmetry). <em>DO NOT USE THIS CALL 
 DURING NORMAL DYNAMICS</em>. To do so would change an O(n) operation into an 
-O(n^2) one. Instead, see if you can accomplish what you need with O(n) 
-operators like calcMV() which calculates the matrix-vector product M*v in O(n)
+O(n^2) one. Instead, see if you can accomplish what you need with O(n) operators
+like multiplyByM() which calculates the matrix-vector product M*v in O(n)
 without explicitly forming M. Also, don't invert this matrix numerically to get
 M^-1. Instead, call the method calcMInv() which can produce M^-1 directly.
-@see calcMV()
-@see calcMInv() **/
+@see multiplyByM(), calcMInv() **/
 void calcM(const State&, Matrix& M) const;
 
 /** This operator explicitly calculates the n X n mass matrix inverse M^-1. 
@@ -877,45 +925,44 @@ optimal for returning a matrix with n^2 elements explicitly. (There are
 actually only n(n+1)/2 unique elements since the matrix is symmetric.)
 <em>DO NOT USE THIS CALL DURING NORMAL DYNAMICS</em>. To do so would change an 
 O(n) operation into an O(n^2) one. Instead, see if you can accomplish what you
-need with O(n) operators like calcMInvV() which calculates the matrix-vector 
+need with O(n) operators like multiplyByMInv() which calculates the matrix-vector 
 product M^-1*v in O(n) without explicitly forming M or M^-1. If you need M 
 explicitly, you can get it with the calcM() method.
-@see calcMInvV()
-@see calcM() **/
+@see multiplyByMInv(), calcM() **/
 void calcMInv(const State&, Matrix& MInv) const;
 
-/** This operator calculates in O(m*n) time the m X m "projected inverse
-mass matrix" Y=G*M^-1*~G, where G (mXn) is the acceleration-level constraint
-Jacobian and M (nXn) is the unconstrained system mass matrix. Y is 
-the projection of the inverse mass matrix onto the constraint manifold. It
-can be used to solve for the constraint forces that will eliminate a given
-constraint acceleration error:
+/** This operator calculates in O(m*n) time the m X m "projected inverse mass 
+matrix" or "constraint compliance matrix" W=G*M^-1*~G, where G (mXn) is the 
+acceleration-level constraint Jacobian and M (nXn) is the unconstrained system
+mass matrix. W is the projection of the inverse mass matrix onto the constraint
+manifold. It can be used to solve for the constraint forces that will eliminate
+a given constraint acceleration error:
 <pre>
-    (1)     Y * lambda = aerr
+    (1)     W * lambda = aerr
     (2)     aerr = G*udot - b(t,q,u)
 </pre>
 where udot is an unconstrained generalized acceleration. Note that you can
 view equation (1) as a dynamic system in a reduced set of m generalized
-coordinates.
+coordinates, with the caveat that W may be singular.
 
-In general Y is singular and does not uniquely determine lambda.
-Simbody normally calculates a least squares solution for lambda so that
-loads are distributed among redundant constraints. 
+In general W is singular and does not uniquely determine lambda. Simbody 
+normally calculates a least squares solution for lambda so that loads are 
+distributed among redundant constraints. 
 
-@note If you just need to multiply Y by a vector or matrix, you do not need
-to form Y explicitly. Instead you can use the method described in the 
-Implementation section to produce a Y*v product in the O(n) time it takes to 
-compute a single column of Y.
+@note If you just need to multiply W by a vector or matrix, you do not need
+to form W explicitly. Instead you can use the method described in the 
+Implementation section to produce a W*v product in the O(n) time it takes to 
+compute a single column of W.
 
 <h3>Implementation</h3>
-We are able to form Y without forming G or M^-1 and without
-performing any matrix-matrix multiplies. Instead, Y is calculated 
-using m applications of O(n) operators:
+We are able to form W without forming G or M^-1 and without performing any 
+matrix-matrix multiplies. Instead, W is calculated using m applications of 
+O(n) operators:
     - multiplyByGTranspose() by a unit vector to form a column of ~G
     - multiplyByMInv() to form a column of M^-1 ~G
-    - multiplyByG() to form a column of Y
+    - multiplyByG() to form a column of W
     
-Even if G and M^-1 were already available, computing Y by matrix multiplication
+Even if G and M^-1 were already available, computing W by matrix multiplication
 would cost O(m^2*n + m*n^2) time and O(m*n) intermediate storage. Here we do 
 it in O(m*n) time with O(n) intermediate storage, which is a \e lot better.
      
@@ -1425,7 +1472,7 @@ the System are ignored.
 @par Required stage
   \c Stage::Velocity 
 
-@see calcResidualForce(), calcMV()
+@see calcResidualForce(), multiplyByM()
 @see calcAcceleration(), calcAccelerationIgnoringConstraints() **/
 void calcResidualForceIgnoringConstraints
    (const State&               state,
@@ -2125,6 +2172,18 @@ void calcInternalGradientFromSpatial(const State&               state,
                                      const Vector_<SpatialVec>& F_G,
                                      Vector&                    f) const
 {   multiplyBySystemJacobianTranspose(state, F_G, f); }
+
+/** Obsolete synonym for multiplyByM().
+@see multiplyByM() **/
+void calcMV(const State& state, const Vector& v, Vector& MV) const
+{   multiplyByM(state,v,MV); }
+
+/** Obsolete synonym for multiplyByMInv().
+@see multiplyByMInv() **/
+void calcMInverseV(const State& state,
+    const Vector&               v,
+    Vector&                     MinvV) const
+{   multiplyByMInv(state,v,MinvV); }
 
 /** Obsolete slow version of calcPq.
 @see calcPq() **/
