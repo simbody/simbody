@@ -355,17 +355,18 @@ void multiplyByMInvPass2Outward(
         SpatialVec*                             allA_GB,
         Real*                                   allUDot) const 
 {
-    if (isUDotKnown(ic)) // prescribed
-        return;
-
-    // We promised not to touch udot if it is part of udot_p (prescribed).
-
+    const bool isPrescribed = isUDotKnown(ic);
     const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
     SpatialVec& A_GB = allA_GB[nodeNum];
     Vec3&       udot = Vec3::updAs(&allUDot[uIndex]);
 
-    udot = eps/getMass();
-    A_GB = SpatialVec(Vec3(0), udot);
+    if (isPrescribed) {
+        udot = 0;
+        A_GB = SpatialVec(Vec3(0), Vec3(0));
+    } else {
+        udot = eps/getMass();
+        A_GB = SpatialVec(Vec3(0), udot);
+    }
 }
 
 // Also serves as pass 1 for inverse dynamics.

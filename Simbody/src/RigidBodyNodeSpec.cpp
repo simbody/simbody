@@ -460,12 +460,11 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
 //==============================================================================
 //                              CALC M INVERSE F
 //==============================================================================
-// To be called from tip to base.
 // Temps do not need to be initialized.
 //
-// This calculates udot = M^-1 f in two O(N) passes. Note that we are ignoring 
-// velocities; if there are any velocity-dependent forces they should already be
-// in f.
+// This calculates udot = M^-1 f in two O(n) passes. Note that we are ignoring 
+// velocities; if there are any velocity-dependent forces you care about, they 
+// should already be in f.
 //
 // When there is prescribed motion, it is already reflected in the articulated
 // body inertias, which were formed with rigid body shifts across the prescribed
@@ -481,14 +480,17 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
 //     (1) Mrr udot_r = f_r -  Mrp udot_p
 //     (2)      tau_p = f_p - ~Mrp udot_r - Mpp udot_p 
 //
-// Now we can define what the present method does: it assumes udot_p is zero,
-// and then calculates udot_r = Mrr^-1 f_r. f_p is ignored and won't be 
-// examined; udot_p is ignored and won't be written.
+// Now we can define what the present method does: it returns
+//                 [udot_r]   [udot_r]   [Mrr^-1 0] [f_r]
+//                 [udot_p] = [   0  ] = [  0    0] [f_p]
+// f_p is ignored and won't be examined; udot_p will be set to zero on return.
 //
 // Cost per body is 
 //      30 + 47*ndof_r + 2*ndof_r^2
 // where ndof_r is the number of u's for a regular (non-prescribed) mobilizer;
 // 0 for a prescribed one.
+
+// Pass 1, to be called from tip to base.
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass1Inward(
     const SBInstanceCache&                  ic,
@@ -552,11 +554,13 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
     const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
     const SpatialVec  APlus = ~phi * A_GP;
 
-    // For a prescribed mobilizer, take udot==0.
-    A_GB = APlus;
-    if (!isPrescribed) {
+    // For a prescribed mobilizer, set udot==0.
+    if (isPrescribed) {
+        udot = 0;
+        A_GB = APlus;
+    } else {
         udot = DI*eps - ~G*APlus;   // 2dof^2 + 11 dof flops
-        A_GB += H*udot;             // 12 dof flops
+        A_GB = APlus + H*udot;      // 12 dof flops
     }
 }
 

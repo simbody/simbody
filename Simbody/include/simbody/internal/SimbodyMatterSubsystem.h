@@ -852,15 +852,16 @@ put them in f if you want them included.
 @param[out]     MinvV
     This is the result M^-1*v. If there is any prescribed motion specified
     using Motion objects (see below), then only the non-prescribed entries
-    in MinvV are written; the prescribed ones are left unmodified.
+    in MinvV are calculated; the prescribed ones are set to zero.
 
-<h3>Behavior with specified Motion</h3>
+<h3>Behavior with prescribed Motion</h3>
 If you specify the motion of one or more mobilizers using a Motion object,
 the behavior of this method is altered. (This does \e not apply if you use
 Constraint objects to specify the motion.) In the Motion case, this method 
 works only with the "regular" (non-prescribed) mobilities. Only the entries in
 \a v corresponding to regular mobilities are examined, and only the entries in 
-the result \a MinvV corresponding to free mobilities are written.
+the result \a MinvV corresponding to free mobilities are calculated; the 
+others are set to zero.
 
 <h3>Theory</h3>
 View the unconstrained, prescribed zero-velocity equations of motion 
@@ -874,20 +875,22 @@ this:
 The regular and prescribed variables have been grouped here for clarity but
 in general they are interspersed among the columns and rows of M.
 
-Given that decomposition, this method solves only the first row, and works 
-under the assumption that a_p==0. Thus it returns a_r=(M_rr)^-1*f_r. When there
-is no prescribed motion M_rr is the entire mass matrix, and the result is 
-a_r=a=M^-1*f. When there is prescribed motion M_rr is a subset of M, and the 
-result is the r elements of a_r given a_p==0. That is a different result than
-if prescribed accelerations were taken into account, because in general 
-a_r = M_rr^-1 (f_r - ~M_rp*a_p) and we are not calculating that last term. 
+Given that decomposition, this method returns
+<pre>
+    [a_r]   [a_r]   [M_rr^-1  0  ][f_r]
+    [   ] = [   ] = [            ][   ]
+    [a_p]   [ 0 ]   [   0     0  ][f_p]
+</pre>
+When there is no prescribed motion M_rr is the entire mass matrix, and the 
+result is a_r=a=M^-1*f. When there is prescribed motion M_rr is a submatrix of
+M, and the result is the r elements of a_r and a_p=0.
 
 <h3>Implementation</h3>
 This is a stripped-down version of forward dynamics. It requires the hybrid
-articulated body inertias to have been realized already and will initiate
+articulated body inertias to have been realized and will initiate
 that calculation if necessary the first time it is called for a given 
-configuration q. The calculation requires two sweeps of the multibody tree,
-an inward sweep to accumulate forces, followed by an outward sweep to 
+configuration q. The M^-1*f calculation requires two sweeps of the multibody 
+tree, an inward sweep to accumulate forces, followed by an outward sweep to 
 propagate accelerations.
 
 <h3>Performance</h3>
@@ -919,22 +922,30 @@ M^-1. Instead, call the method calcMInv() which can produce M^-1 directly.
 @see multiplyByM(), calcMInv() **/
 void calcM(const State&, Matrix& M) const;
 
-/** This operator explicitly calculates the n X n mass matrix inverse M^-1. 
-This is an O(n^2) operation, which is of course within a constant factor of 
-optimal for returning a matrix with n^2 elements explicitly. (There are 
-actually only n(n+1)/2 unique elements since the matrix is symmetric.)
-<em>DO NOT USE THIS CALL DURING NORMAL DYNAMICS</em>. To do so would change an 
-O(n) operation into an O(n^2) one. Instead, see if you can accomplish what you
-need with O(n) operators like multiplyByMInv() which calculates the matrix-vector 
-product M^-1*v in O(n) without explicitly forming M or M^-1. If you need M 
-explicitly, you can get it with the calcM() method.
+/** This operator explicitly calculates the inverse of the part of the system
+mobility-space mass matrix corresponding to "regular" (non-prescribed)
+mobilities. The returned matrix is always n X n, but rows and columns 
+corresponding to prescribed mobilities are zero. This is an O(n^2) operation, 
+which is of course within a constant factor of optimal for returning a matrix 
+with n^2 elements explicitly. (There are actually only n(n+1)/2 unique elements
+since the matrix is symmetric.) <em>DO NOT USE THIS CALL DURING NORMAL 
+DYNAMICS</em>. To do so would change an O(n) operation into an O(n^2) one. 
+Instead, see if you can accomplish what you need with O(n) operators like 
+multiplyByMInv() which calculates the matrix-vector product M^-1*v in O(n) 
+without explicitly forming M or M^-1. If you need M explicitly, you can get it
+with the calcM() method.
 @see multiplyByMInv(), calcM() **/
 void calcMInv(const State&, Matrix& MInv) const;
 
 /** This operator calculates in O(m*n) time the m X m "projected inverse mass 
 matrix" or "constraint compliance matrix" W=G*M^-1*~G, where G (mXn) is the 
 acceleration-level constraint Jacobian and M (nXn) is the unconstrained system
-mass matrix. W is the projection of the inverse mass matrix onto the constraint
+mass matrix. In case there is prescribed motion specified with Motion objects,
+M^-1 here is really Mrr^-1, that is, it is restricted to the non-prescribed 
+mobilities, but scattered into a full n X n matrix (conceptually). See 
+multiplyByMInv() and calcMInv() for more information.
+
+W is the projection of the inverse mass matrix onto the constraint
 manifold. It can be used to solve for the constraint forces that will eliminate
 a given constraint acceleration error:
 <pre>
