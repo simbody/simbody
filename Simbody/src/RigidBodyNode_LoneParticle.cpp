@@ -322,7 +322,7 @@ void calcUDotPass2Outward(
     A_GB = SpatialVec(Vec3(0), udot);
 }
 
-// Note that we're not setting temporaries here; you can't count on that as
+// Note that we're not setting z temporaries here; you can't count on that as
 // a side effect the M^-1*f kernel.
 void multiplyByMInvPass1Inward(
         const SBInstanceCache&                  ic,
@@ -344,6 +344,8 @@ void multiplyByMInvPass1Inward(
     eps = f;
 }
 
+// Outward pass must set A_GB properly so it can be propagated
+// to children.
 void multiplyByMInvPass2Outward(
         const SBInstanceCache&                  ic,
         const SBTreePositionCache&              pc,
@@ -359,9 +361,11 @@ void multiplyByMInvPass2Outward(
     // We promised not to touch udot if it is part of udot_p (prescribed).
 
     const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
+    SpatialVec& A_GB = allA_GB[nodeNum];
     Vec3&       udot = Vec3::updAs(&allUDot[uIndex]);
 
     udot = eps/getMass();
+    A_GB = SpatialVec(Vec3(0), udot);
 }
 
 // Also serves as pass 1 for inverse dynamics.

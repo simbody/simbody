@@ -126,6 +126,11 @@ Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintIndex id) {
     return updRep().updConstraint(id);
 }
 
+
+
+//==============================================================================
+//                            CALC ACCELERATION
+//==============================================================================
 //TODO: should allow zero-length force arrays to stand for zeroes.
 void SimbodyMatterSubsystem::calcAcceleration
    (const State&                state,
@@ -166,6 +171,11 @@ void SimbodyMatterSubsystem::calcAcceleration
     A_GB = tac.bodyAccelerationInGround;
 }
 
+
+
+//==============================================================================
+//                    CALC ACCELERATION IGNORING CONSTRAINTS
+//==============================================================================
 //TODO: should allow zero-length force arrays to stand for zeroes.
 void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
    (const State&                state,
@@ -196,16 +206,6 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
         netHingeForces, abForcesZ, abForcesZPlus, 
         A_GB, udot, qdotdot, tau);
 }
-
-
-void SimbodyMatterSubsystem::multiplyByMInv(const State&    state,
-                                            const Vector&   f,
-                                            Vector&         MInvf) const
-{
-    getRep().multiplyByMInv(state,f,MInvf);
-}
-
-
 
 //==============================================================================
 //                  CALC RESIDUAL FORCE IGNORING CONSTRAINTS
@@ -354,12 +354,103 @@ void SimbodyMatterSubsystem::calcResidualForce
 
 
 
-void SimbodyMatterSubsystem::multiplyByM(const State& state, 
+//==============================================================================
+//                               MULTIPLY BY M
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate f = M*a.
+void SimbodyMatterSubsystem::multiplyByM(const State&  state, 
                                          const Vector& a, 
-                                         Vector& Ma) const
+                                         Vector&       Ma) const
 {
-    getRep().multiplyByM(state, a, Ma);
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nu = rep.getNU(state);
+
+    SimTK_ERRCHK2_ALWAYS(a.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByMInv()",
+        "Argument 'a' had length %d but should have the same length"
+        " as the number of mobilities (generalized speeds u) %d.", 
+        a.size(), nu);
+
+    Ma.resize(nu);
+    if (nu==0) return;
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* ca    = &a;
+    Vector*       cMa   = &Ma;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_a, contig_Ma;
+
+    if (!a.hasContiguousData()) {
+        contig_a.resize(nu); // contiguous memory
+        contig_a(0, nu) = a; // copy, prevent reallocation
+        ca = (const Vector*)&contig_a;
+    }
+
+    if (!Ma.hasContiguousData()) {
+        contig_Ma.resize(nu); // contiguous memory
+        cMa = (Vector*)&contig_Ma;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByM(state, *ca, *cMa);
+
+    if (needToCopyBack)
+        Ma = *cMa;
 }
+
+
+
+//==============================================================================
+//                             MULTIPLY BY M INV
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate a = M^-1*f.
+void SimbodyMatterSubsystem::multiplyByMInv(const State&    state,
+                                            const Vector&   f,
+                                            Vector&         MInvf) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nu = rep.getNU(state);
+
+    SimTK_ERRCHK2_ALWAYS(f.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByMInv()",
+        "Argument 'f' had length %d but should have the same length"
+        " as the number of mobilities (generalized speeds u) %d.", 
+        f.size(), nu);
+
+    MInvf.resize(nu);
+    if (nu==0) return;
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* cf    = &f;
+    Vector*       cMInvf   = &MInvf;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_f, contig_MInvf;
+
+    if (!f.hasContiguousData()) {
+        contig_f.resize(nu); // contiguous memory
+        contig_f(0, nu) = f; // copy, prevent reallocation
+        cf = (const Vector*)&contig_f;
+    }
+
+    if (!MInvf.hasContiguousData()) {
+        contig_MInvf.resize(nu); // contiguous memory
+        cMInvf = (Vector*)&contig_MInvf;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByMInv(state, *cf, *cMInvf);
+
+    if (needToCopyBack)
+        MInvf = *cMInvf;
+}
+
+
 
 void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const 
 {   getRep().calcM(s, M); }

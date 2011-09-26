@@ -152,8 +152,8 @@ void runAllTests(MultibodySystem& system, bool useEulerAngles=false) {
     timeComputation(system, doRealizePosition, "realizePosition", 5000, useEulerAngles);
     timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000, useEulerAngles);
     timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 2000, useEulerAngles);
-    timeComputation(system, doCalcMV, "multiplyByM", 5000, useEulerAngles);
-    timeComputation(system, doCalcMInverseV, "multiplyByMInv", 5000, useEulerAngles);
+    timeComputation(system, doMultiplyByM, "multiplyByM", 5000, useEulerAngles);
+    timeComputation(system, doMultiplyByMInv, "multiplyByMInv", 5000, useEulerAngles);
     timeComputation(system, doCalcResidualForceIgnoringConstraints, "calcResidualForceIgnoringConstraints", 5000, useEulerAngles);
     timeComputation(system, doCalcMobilizerReactionForces, "calcMobilizerReactionForces", 1000, useEulerAngles);
     timeComputation(system, doMultiplyBySystemJacobianTranspose, "multiplyBySystemJacobianTranspose", 5000, useEulerAngles);

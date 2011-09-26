@@ -244,9 +244,8 @@ public:
         allA_GB[0] = 0;
     }
 
-    // Ground doesn't contribute to M^-1*f. Note that none of the temporaries
-    // get set -- you're not allowed to assume they are for this kernel,
-    // unlike calcUDot.
+    // Ground doesn't contribute to M^-1*f. Inward pass does nothing since
+    // Ground can't be the child of any body.
     void multiplyByMInvPass1Inward(
         const SBInstanceCache&     ic,
         const SBTreePositionCache& pc,
@@ -259,6 +258,8 @@ public:
     {
     } 
 
+    // Outward pass must make sure A_GB[0] is zero so it can be propagated
+    // outwards properly.
     void multiplyByMInvPass2Outward(
         const SBInstanceCache&,
         const SBTreePositionCache&,
@@ -268,6 +269,7 @@ public:
         SpatialVec*                 allA_GB,
         Real*                       allUDot) const
     {
+        allA_GB[0] = 0;
     }
 
     // Also serves as pass 1 for inverse dynamics.
@@ -543,7 +545,7 @@ public:
     }
     
     // A weld doesn't have udots but we still have to calculate z, zPlus,
-    // and A_GB for use by the parent of this body.
+    // for use by the parent of this body.
     void multiplyByMInvPass1Inward(
         const SBInstanceCache&      ic,
         const SBTreePositionCache&  pc,
@@ -568,6 +570,7 @@ public:
         zPlus = z;
     }
 
+    // Must set A_GB properly for propagation to children.
     void multiplyByMInvPass2Outward(
         const SBInstanceCache&,
         const SBTreePositionCache&  pc,
