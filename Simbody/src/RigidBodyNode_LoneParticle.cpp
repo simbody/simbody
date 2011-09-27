@@ -315,7 +315,7 @@ void calcUDotPass2Outward(
             ic.getMobodInstanceInfo(nodeNum).firstPresForce;
         assert(tauIx.isValid());
         Vec3& tau = Vec3::updAs(&allTau[tauIx]);
-        tau = -eps;
+        tau = eps; // our sign convention
     } else 
         udot = eps/getMass();
 

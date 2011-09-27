@@ -529,11 +529,13 @@ public:
     Array_<UIndex> zeroUDot;
     Array_<UIndex> freeUDot; // calculated from forces
 
-    // This is a sum over all the mobilizers whose udots are known for any 
-    // reason whether prescribed or not, e.g. they are Zero or Discrete 
-    // (anything but Free). These need slots in the array of calculated 
-    // prescribed motion forces.
-    int totalNPresForce;
+    // This includes all the mobilizers whose udots are known for any 
+    // reason: Prescribed, Zero, Discrete, or Fast (anything but Free). 
+    // These need slots in the array of calculated prescribed motion 
+    // forces (taus). This maps those tau entries to the mobility at
+    // which they are generalized forces.
+    int getTotalNumPresForces() const {return (int)presForce.size();}
+    Array_<UIndex> presForce;
 
     // Quaternion errors go in qErr also, but after all the physical contraint 
     // errors. That is, they start at index 
@@ -574,7 +576,6 @@ public:
         referenceConfiguration.resize(topo.nBodies);    // X0_PB
 
         mobodInstanceInfo.resize(topo.nBodies);
-        totalNPresForce = 0;
 
         constraintInstanceInfo.resize(topo.nConstraints);
         firstQuaternionQErrSlot = qErrIndex = uErrIndex = udotErrIndex = -1;
@@ -1119,7 +1120,7 @@ public:
 
     Vector_<SpatialVec> bodyAccelerationInGround; // nb (A_GB)
 
-    // This is where the calculated prescribed motion "lambdas" go. (That is, 
+    // This is where the calculated prescribed motion "taus" go. (That is, 
     // generalized forces needed to implement prescribed generalized 
     // accelerations.) Slots here are doled out only for mobilizers that have 
     // known accelerations; there is one scalar here per mobility in those 
@@ -1144,7 +1145,7 @@ public:
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
 
-        presMotionForces.resize(instance.totalNPresForce);
+        presMotionForces.resize(instance.getTotalNumPresForces());
 
         epsilon.resize(nDofs);
         z.resize(nBodies);

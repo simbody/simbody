@@ -447,8 +447,9 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
 
     if (isPrescribed) {
         Vec<dof>& tau = updTau(ic,allTau);  // pull out this node's tau
-        // This is ~H(P*APlus + z) - f; compare Jain 16.17b
-        tau = ~H*(P*APlus) - eps; // 66 + 12*dof flops
+        // This is f - ~H(P*APlus + z); compare Jain 16.17b. Note sign
+        // change since our tau is on the LHS while his is on the RHS.
+        tau = eps - ~H*(P*APlus); // 66 + 12*dof flops
     } else {
         udot = DI*eps - ~G*APlus; // 2*dof^2 + 11*dof
     }

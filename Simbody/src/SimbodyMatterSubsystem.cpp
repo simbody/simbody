@@ -1323,15 +1323,46 @@ void SimbodyMatterSubsystem::calcMobilizerReactionForces
    (const State& s, Vector_<SpatialVec>& forces) const 
 {   getRep().calcMobilizerReactionForces(s, forces); }
 
-void SimbodyMatterSubsystem::calcMobilizerReactionForcesUsingFreebodyMethod
+const Vector& SimbodyMatterSubsystem::
+getMotionMultipliers(const State& s) const 
+{   return getRep().getMotionMultipliers(s); }
+
+void SimbodyMatterSubsystem::
+findMotionForces(const State&         s,
+                 Vector&              mobilityForces) const 
+{   getRep().findMotionForces(s, mobilityForces); }
+
+const Vector& SimbodyMatterSubsystem::
+getConstraintMultipliers(const State& s) const
+{   return getRep().getConstraintMultipliers(s); }
+
+void SimbodyMatterSubsystem::
+findConstraintForces(const State&         s, 
+                     Vector_<SpatialVec>& bodyForcesInG,
+                     Vector&              mobilityForces) const 
+{   getRep().findConstraintForces(s, bodyForcesInG, mobilityForces); }
+
+Real SimbodyMatterSubsystem::
+calcMotionPower(const State& s) const
+{   return getRep().calcMotionPower(s); }
+
+Real SimbodyMatterSubsystem::
+calcConstraintPower(const State& s) const
+{   return getRep().calcConstraintPower(s); }
+
+void SimbodyMatterSubsystem::
+calcConstraintForcesFromMultipliers(const State&         s,
+                                    const Vector&        lambda,
+                                    Vector_<SpatialVec>& bodyForcesInG, 
+                                    Vector&              mobilityForces) const
+{   getRep().calcConstraintForcesFromMultipliers
+                (s,lambda,bodyForcesInG,mobilityForces); }
+
+void SimbodyMatterSubsystem::
+calcMobilizerReactionForcesUsingFreebodyMethod
    (const State& s, Vector_<SpatialVec>& forces) const 
 {   getRep().calcMobilizerReactionForcesUsingFreebodyMethod(s, forces); }
 
-void SimbodyMatterSubsystem::calcConstraintForcesFromMultipliers
-   (const State& s, const Vector& lambda,
-    Vector_<SpatialVec>& bodyForcesInG, Vector& mobilityForces) const
-{   getRep().calcConstraintForcesFromMultipliers
-                (s,lambda,bodyForcesInG,mobilityForces); }
 
 void SimbodyMatterSubsystem::calcQDot(const State& s,
     const Vector& u,

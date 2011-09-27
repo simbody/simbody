@@ -670,6 +670,28 @@ public:
     // produce the same answers as calcMobilizerReactionForces().
     void calcMobilizerReactionForcesUsingFreebodyMethod(const State& s, Vector_<SpatialVec>& forces) const;
 
+
+
+    // Constraint multipliers are known to the State object.
+    const Vector& getConstraintMultipliers(const State& s) const
+    {   return this->getMultipliers(s); }
+
+    // But taus (prescribed motion "multipliers") are internal.
+    const Vector& getMotionMultipliers(const State& s) const {
+        const SBTreeAccelerationCache& tac = getTreeAccelerationCache(s);
+        return tac.presMotionForces;
+    }
+
+
+    void findMotionForces(const State&         s,
+                          Vector&              mobilityForces) const;
+    void findConstraintForces(const State&         s, 
+                              Vector_<SpatialVec>& bodyForcesInG,
+                              Vector&              mobilityForces) const;
+
+    Real calcMotionPower(const State& s) const;
+    Real calcConstraintPower(const State& s) const;
+
     // Treating all constraints together, given a comprehensive set of 
     // multipliers lambda, generate the complete set of body and mobility 
     // forces applied by all the constraints. Return the
