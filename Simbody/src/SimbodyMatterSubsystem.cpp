@@ -1472,6 +1472,32 @@ void SimbodyMatterSubsystem::realizeArticulatedBodyInertias(const State& s) cons
     getRep().realizeArticulatedBodyInertias(s);
 }
 
+
+const Array_<QIndex>& SimbodyMatterSubsystem::
+getFreeQIndex(const State& state) const
+{   return getRep().getFreeQIndex(state); }
+const Array_<UIndex>& SimbodyMatterSubsystem::
+getFreeUIndex(const State& state) const
+{   return getRep().getFreeUIndex(state); }
+const Array_<UIndex>& SimbodyMatterSubsystem::
+getFreeUDotIndex(const State& state) const
+{   return getRep().getFreeUDotIndex(state); }
+const Array_<UIndex>& SimbodyMatterSubsystem::
+getKnownUDotIndex(const State& state) const
+{   return getRep().getKnownUDotIndex(state); }
+void SimbodyMatterSubsystem::
+packFreeQ(const State& s, const Vector& allQ, Vector& packedFreeQ) const
+{   getRep().packFreeQ(s,allQ,packedFreeQ); }
+void SimbodyMatterSubsystem::
+unpackFreeQ(const State& s, const Vector& packedFreeQ, Vector& unpackedFreeQ) const
+{   getRep().unpackFreeQ(s,packedFreeQ,unpackedFreeQ); }
+void SimbodyMatterSubsystem::
+packFreeU(const State& s, const Vector& allU, Vector& packedFreeU) const
+{   getRep().packFreeU(s,allU,packedFreeU); }
+void SimbodyMatterSubsystem::
+unpackFreeU(const State& s, const Vector& packedFreeU, Vector& unpackedFreeU) const
+{   getRep().unpackFreeU(s,packedFreeU,unpackedFreeU); }
+
 const SpatialInertia&
 SimbodyMatterSubsystem::getCompositeBodyInertia(const State& s, MobilizedBodyIndex mbx) const {
     return getRep().getCompositeBodyInertias(s)[mbx]; // will lazy-evaluate if necessary

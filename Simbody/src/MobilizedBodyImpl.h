@@ -208,6 +208,11 @@ public:
     void findMobilizerQs(const State&, QIndex& qStart, int& nq) const;
     void findMobilizerUs(const State&, UIndex& uStart, int& nu) const;
 
+
+    Motion::Method getQMotionMethod(const State&) const;
+    Motion::Method getUMotionMethod(const State&) const;
+    Motion::Method getUDotMotionMethod(const State&) const;
+
     // Given the Model stage state variables (if any are relevant), each
     // concrete mobilizer should return the number of q's and u's it expects
     // to be allotted.
@@ -356,6 +361,22 @@ public:
         SimTK_ASSERT(myMatterSubsystemRep,
             "An operation was illegal because a MobilizedBody was not in a Subsystem.");
         return *myMatterSubsystemRep;
+    }
+
+    const SBModelPerMobodInfo& getMyModelInfo(const State& s) const {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        const SBModelCache& mc = matterRep.getModelCache(s);
+        const SBModelPerMobodInfo& info = 
+            mc.getMobodModelInfo(myMobilizedBodyIndex);
+        return info;
+    }
+
+    const SBInstancePerMobodInfo& getMyInstanceInfo(const State& s) const {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        const SBInstanceCache& ic = matterRep.getInstanceCache(s);
+        const SBInstancePerMobodInfo& info = 
+            ic.getMobodInstanceInfo(myMobilizedBodyIndex);
+        return info;
     }
 
     const MobilizedBody& getMyHandle() const {

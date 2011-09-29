@@ -1126,13 +1126,64 @@ private:
         const Vector_<Vec3>&       particleForces,
         const Vector_<SpatialVec>& bodyForces) const;
 
-    // calc ~(Tp Pq Wq^-1)
-    void calcWeightedPqTranspose(   
+    // calc ~(Tp Pq Wq^-1)_r (nfq X mp)
+    void calcWeightedPqrTranspose(   
         const State&     state,
         const Vector&    Tp,    // 1/perr tols
         const Vector&    Wqinv, // 1/q weights
-        Matrix&          Pqt) const;
-    
+        Matrix&          Pqrt) const;
+
+    // calc ~(Tp P Wu^-1)
+    //       (Tv V Wu^-1)_r (nfu X (mp+mv))
+    void calcWeightedPVrTranspose(
+        const State&     s,
+        const Vector&    Tpv,   // 1/verr tols
+        const Vector&    Wuinv, // 1/u weights
+        Matrix&          PVrt) const;
+
+    const Array_<QIndex>& getFreeQIndex(const State& state) const;
+    const Array_<QIndex>& getPresQIndex(const State& state) const;
+    const Array_<QIndex>& getZeroQIndex(const State& state) const;
+
+    const Array_<UIndex>& getFreeUIndex(const State& state) const;
+    const Array_<UIndex>& getPresUIndex(const State& state) const;
+    const Array_<UIndex>& getZeroUIndex(const State& state) const;
+
+    const Array_<UIndex>& getFreeUDotIndex(const State& state) const;
+    const Array_<UIndex>& getKnownUDotIndex(const State& state) const;
+
+    // Output must already be sized for number of free q's nfq.
+    // Input must be size nq.
+    void packFreeQ(const State& s, const Vector& allQ,
+                   Vector& packedFreeQ) const;
+
+    // For efficiency, you must provide an output array of the right size nq.
+    // This method *will not* touch the prescribed slots in the output so
+    // if you want them zero make sure you do it yourself.
+    void unpackFreeQ(const State& s, const Vector& packedFreeQ,
+                     Vector& unpackedFreeQ) const;
+
+    // Given a q-like array with nq entries, write zeroes onto the entries
+    // corresponding to known (prescribed) q's. The result looks like
+    // a properly-zeroed unpackedFreeQ.
+    void zeroKnownQ(const State& s, Vector& qlike) const;
+
+    // Output must already be sized for number of free u's nfu.
+    // Input must be size nu.
+    void packFreeU(const State& s, const Vector& allU,
+                   Vector& packedFreeU) const;
+
+    // For efficiency, you must provide an output array of the right size nu.
+    // This method *will not* touch the prescribed slots in the output so
+    // if you want them zero make sure you do it yourself.
+    void unpackFreeU(const State& s, const Vector& packedFreeU,
+                     Vector& unpackedFreeU) const;
+
+    // Given a u-like array with nu entries, write zeroes onto the entries
+    // corresponding to known (prescribed) u's. The result looks like
+    // a properly-zeroed unpackedFreeU.
+    void zeroKnownU(const State& s, Vector& ulike) const;
+
     friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
     friend class SimTK::SimbodyMatterSubsystem;
 

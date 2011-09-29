@@ -687,7 +687,7 @@ bool isPrescribed     (const SBModelVars& mv) const {return mv.prescribed[nodeNu
 // Find cache resources allocated to this RigidBodyNode.
 const SBModelPerMobodInfo& 
 getModelInfo(const SBModelCache& mc) const
-{   return mc.getMobilizedBodyModelInfo(nodeNum); }
+{   return mc.getMobodModelInfo(nodeNum); }
 
 QIndex getFirstQIndex(const SBModelCache& mc) const
 {   return getModelInfo(mc).firstQIndex; }

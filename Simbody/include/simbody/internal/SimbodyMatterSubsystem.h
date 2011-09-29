@@ -1910,6 +1910,21 @@ stage.
 void realizeArticulatedBodyInertias(const State&) const;
 
 
+    // INSTANCE STAGE responses //
+
+const Array_<QIndex>& getFreeQIndex(const State& state) const;
+const Array_<UIndex>& getFreeUIndex(const State& state) const;
+const Array_<UIndex>& getFreeUDotIndex(const State& state) const;
+const Array_<UIndex>& getKnownUDotIndex(const State& state) const;
+void packFreeQ
+   (const State& s, const Vector& allQ, Vector& packedFreeQ) const;
+void unpackFreeQ
+   (const State& s, const Vector& packedFreeQ, Vector& unpackedFreeQ) const;
+void packFreeU
+   (const State& s, const Vector& allU, Vector& packedFreeU) const;
+void unpackFreeU
+   (const State& s, const Vector& packedFreeU, Vector& unpackedFreeU) const;
+
 
     // POSITION STAGE responses //
 

@@ -142,6 +142,7 @@ private:
     const SimbodyMatterSubsystem& m_matter;
 };
 
+const Real RodLength = 1.1;
 int main() {
   try
   { // Create the system.
@@ -160,40 +161,61 @@ int main() {
 
 
     // Prescribed system.
-
     MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)), 
                                 pendulumBody,    Transform(Vec3(0, 1, 0)));
     Motion::Sinusoid(pendulum, Motion::Position, Pi/8, 2*Pi, Pi/4); // amp, rate, phase
-
     MobilizedBody::Pin pendulum2(pendulum, Transform(Vec3(0)), 
                                  pendulumBody,    Transform(Vec3(0, 1, 0)));
-
     MobilizedBody::Pin pendulum3(pendulum2, Vec3(0),
                                  pendulumBody, Vec3(0,.5,0));
     Motion::Steady(pendulum3, 4*Pi); // rate
-
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         100, 0*(Pi/180));
 
     // Identical constrained system.
-
-    MobilizedBody::Pin cpendulum(matter.Ground(), Transform(Vec3(3,0,0)), 
+    MobilizedBody::Pin cpendulum(matter.Ground(), Transform(Vec3(2,0,0)), 
                                  pendulumBody,    Transform(Vec3(0, 1, 0)));
-
     Constraint::PrescribedMotion(matter, 
                                  new MySinusoid(Pi/8,2*Pi,Pi/4), //amp,rate,phase
                                  cpendulum, MobilizerQIndex(0));
-
     MobilizedBody::Pin cpendulum2(cpendulum, Transform(Vec3(0)), 
                                   pendulumBody, Transform(Vec3(0, 1, 0)));
-
     MobilizedBody::Pin cpendulum3(cpendulum2, Vec3(0),
                                  pendulumBody, Vec3(0,.5,0));
-
     Constraint::ConstantSpeed(cpendulum3, 4*Pi);
-
     Force::MobilityLinearSpring(forces, cpendulum2, MobilizerUIndex(0),
         100, 0*(Pi/180));
+
+    Constraint::Rod(pendulum3, cpendulum3, RodLength);
+
+    // Identical mixed system 1.
+    MobilizedBody::Pin m1pendulum(matter.Ground(), Transform(Vec3(4,0,0)), 
+                                  pendulumBody,    Transform(Vec3(0, 1, 0)));
+    Motion::Sinusoid(m1pendulum, Motion::Position, Pi/8, 2*Pi, Pi/4); // amp, rate, phase
+    MobilizedBody::Pin m1pendulum2(m1pendulum, Transform(Vec3(0)), 
+                                   pendulumBody, Transform(Vec3(0, 1, 0)));
+    MobilizedBody::Pin m1pendulum3(m1pendulum2, Vec3(0),
+                                   pendulumBody, Vec3(0,.5,0));
+    Constraint::ConstantSpeed(m1pendulum3, 4*Pi);
+    Force::MobilityLinearSpring(forces, m1pendulum2, MobilizerUIndex(0),
+        100, 0*(Pi/180));
+
+
+    // Identical mixed system 2.
+    MobilizedBody::Pin m2pendulum(matter.Ground(), Transform(Vec3(6,0,0)), 
+                                 pendulumBody,    Transform(Vec3(0, 1, 0)));
+    Constraint::PrescribedMotion(matter, 
+                                 new MySinusoid(Pi/8,2*Pi,Pi/4), //amp,rate,phase
+                                 m2pendulum, MobilizerQIndex(0));
+    MobilizedBody::Pin m2pendulum2(m2pendulum, Transform(Vec3(0)), 
+                                   pendulumBody, Transform(Vec3(0, 1, 0)));
+    MobilizedBody::Pin m2pendulum3(m2pendulum2, Vec3(0),
+                                   pendulumBody, Vec3(0,.5,0));
+    Motion::Steady(m2pendulum3, 4*Pi); // rat
+    Force::MobilityLinearSpring(forces, m2pendulum2, MobilizerUIndex(0),
+        100, 0*(Pi/180));
+
+    Constraint::Rod(m1pendulum3, m2pendulum3, RodLength);
 
 
     Visualizer viz(system);
@@ -209,26 +231,43 @@ int main() {
     const int m  = state.getNMultipliers();
 
     viz.report(state);
+    system.realize(state, Stage::Velocity);
     clog << "Default state -- hit ENTER\n";
     clog << "t=" << state.getTime() 
-         << " q=" << state.getQ() 
-         << " u=" << state.getU() 
+         << "\nq=" << state.getQ() 
+         << "\nu=" << state.getU() 
+         << "\nqerr=" << state.getQErr()
+         << "\nuerr=" << state.getUErr()
          << endl;
     char c=getchar();
 
     state.setTime(0);
     system.realize(state, Stage::Time);
-    if (matter.prescribe(state, Stage::Position)) clog << "Some PresQ\n";
-    else clog << "NO PresQ\n";
+    //if (matter.prescribe(state, Stage::Position)) clog << "Some PresQ\n";
+    //else clog << "NO PresQ\n";
+    //clog << "after prescribe q=" << state.getQ() << "\n";
     Assembler asmb(system);
-    asmb.setAccuracy(1e-10);
-    asmb.assemble(state);
+    asmb.setAccuracy(1e-10).assemble(state);
+    //system.project(state, 1e-10, Vector(nq+nu,1), Vector(m,1), 
+      //              Vector(), System::ProjectOptions::PositionOnly);
     viz.report(state);
-    clog << "After prescribe(Position) & assemble -- hit ENTER\n";
+    clog << "After prescribe(Position) & project -- hit ENTER\n";
     clog << "t=" << state.getTime() 
-         << " q=" << state.getQ() 
-         << " u=" << state.getU() 
+         << "\nq=" << state.getQ() 
+         << "\nu=" << state.getU() 
+         << "\nqerr=" << state.getQErr()
          << endl;
+
+    const int nfq = matter.getFreeQIndex(state).size();
+    clog << "freeQ:     " << matter.getFreeQIndex(state) << "\n";
+
+    Vector q = state.getQ(), packedQ(nfq), unpackedQ(nq);
+    clog << "allQ         =" << q << "\n";
+    matter.packFreeQ(state, q, packedQ);
+    clog << "packedFreeQ  =" << packedQ << "\n";
+    matter.unpackFreeQ(state, packedQ, unpackedQ);
+    clog << "unpackedFreeQ=" << unpackedQ << "\n";
+
     c=getchar();
 
     if (matter.prescribe(state, Stage::Velocity)) clog << "Some PresU\n";
@@ -238,9 +277,22 @@ int main() {
     viz.report(state);
     clog << "After prescribe(Velocity) & project -- hit ENTER\n";
     clog << "t=" << state.getTime() 
-         << " q=" << state.getQ() 
-         << " u=" << state.getU() 
+         << "\nq=" << state.getQ() 
+         << "\nu=" << state.getU() 
+         << "\nuerr=" << state.getUErr()
          << endl;
+
+    const int nfu = matter.getFreeUIndex(state).size();
+    clog << "freeU:     " << matter.getFreeUIndex(state) << "\n";
+
+    Vector u = state.getU(), packedU(nfu), unpackedU(nu);
+    clog << "allU         =" << u << "\n";
+    matter.packFreeU(state, u, packedU);
+    clog << "packedFreeU  =" << packedU << "\n";
+    matter.unpackFreeU(state, packedU, unpackedU);
+    clog << "unpackedFreeU=" << unpackedU << "\n";
+
+
     c=getchar();
 
     system.realize(state, Stage::Acceleration);
@@ -258,8 +310,8 @@ int main() {
 
     clog << "reactions PA+z: " << reactionForces << endl;
     clog << "react freebody: " << reactionForcesFreebody << endl;
-
-    SimTK_TEST_EQ(reactionForces, reactionForcesFreebody);
+    clog << "diff=" << reactionForces-reactionForcesFreebody << "\n";
+    SimTK_TEST_EQ_SIZE(reactionForces, reactionForcesFreebody, nu);
 
     clog << "tau=" << matter.getMotionMultipliers(state) << "\n";
     Vector motFrcs;
@@ -277,6 +329,43 @@ int main() {
     clog << "cons pwr=" << matter.calcConstraintPower(state) << "\n";
 
 
+    clog << "freeUDot:  " << matter.getFreeUDotIndex(state) << "\n";
+    clog << "knownUDot: " << matter.getKnownUDotIndex(state) << "\n";
+
+    Matrix GMInvGt_r;
+    matter.calcProjectedMInv(state, GMInvGt_r);
+
+    Matrix G, M, Minv_r;
+    matter.calcG(state, G);
+    matter.calcM(state, M);
+    matter.calcMInv(state, Minv_r);
+    Matrix Minv = M.invert();
+
+    const Array_<UIndex>& freeUDot = matter.getFreeUDotIndex(state);
+    const int nfudot = freeUDot.size();
+    Matrix Gr(m,nfudot), Mr(nfudot,nfudot);
+
+    for (int i=0; i < nfu; ++i) {
+        Gr(i) = G(freeUDot[i]);
+        matter.packFreeU(state, M(freeUDot[i]), Mr(i));
+    }
+
+    cout << std::fixed;
+    cout << "G=" << G;
+    cout << "Gr=" << Gr;
+    cout << "M=" <<  M;
+    cout << "Mr=" <<  Mr;
+
+    cout << "inv(M) =" << Minv;
+    cout << "Minv_r =" << Minv_r;
+    cout << "inv(Mr)=" << Mr.invert();
+
+    clog << "GMInvGt_r     =" << GMInvGt_r;
+    clog << "GMInv_rGt     =" << G*Minv_r*~G;
+    clog << "Gr inv(Mr) ~Gr=" << Gr*Mr.invert()*~Gr;
+    clog << "GMInvGt       =" << G*Minv*~G;
+
+
     c=getchar();
 
     //pendulum.setOneU(state, 0, 1.0);
@@ -289,7 +378,8 @@ int main() {
 
     RungeKuttaMersonIntegrator integ(system);
     //integ.setMinimumStepSize(1e-1);
-    integ.setAccuracy(1e-3);
+    integ.setAccuracy(1e-2);
+    //integ.setConstraintTolerance(1e-5);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(10.0);

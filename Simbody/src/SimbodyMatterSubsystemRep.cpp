@@ -398,7 +398,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j) {
             const RigidBodyNode& node  = *rbNodeLevels[i][j];
             SBModelPerMobodInfo& mbInfo = 
-                mc.updMobilizedBodyModelInfo(node.getNodeNum());
+                mc.updMobodModelInfo(node.getNodeNum());
 
             // Assign q's.
             mbInfo.nQInUse     = node.getNQInUse(mv);
@@ -670,7 +670,7 @@ realizeSubsystemInstanceImpl(const State& s) const {
     for (MobilizedBodyIndex mbx(0); mbx < mobilizedBodies.size(); ++mbx) {
         const MobilizedBody& mobod = getMobilizedBody(mbx);
         const SBModelPerMobodInfo& 
-            modelInfo    = mc.getMobilizedBodyModelInfo(mbx);
+            modelInfo    = mc.getMobodModelInfo(mbx);
         SBInstancePerMobodInfo&
             instanceInfo = ic.updMobodInstanceInfo(mbx);
 
@@ -1480,7 +1480,7 @@ QuaternionPoolIndex SimbodyMatterSubsystemRep::getQuaternionPoolIndex
    (const State& s, MobilizedBodyIndex body) const
 {
     const SBModelCache& mc = getModelCache(s); // must be >=Model stage
-    return mc.getMobilizedBodyModelInfo(body).quaternionPoolIndex;
+    return mc.getMobodModelInfo(body).quaternionPoolIndex;
 }
 
 int SimbodyMatterSubsystemRep::getNumHolonomicConstraintEquationsInUse(const State& s) const {
@@ -1494,6 +1494,222 @@ int SimbodyMatterSubsystemRep::getNumNonholonomicConstraintEquationsInUse(const 
 int SimbodyMatterSubsystemRep::getNumAccelerationOnlyConstraintEquationsInUse(const State& s) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     return ic.totalNAccelerationOnlyConstraintEquationsInUse;
+}
+
+
+const Array_<QIndex>& SimbodyMatterSubsystemRep::
+getFreeQIndex(const State& state) const {
+    const SBInstanceCache& ic = getInstanceCache(state);
+    return ic.freeQ;
+}
+
+const Array_<QIndex>& SimbodyMatterSubsystemRep::
+getPresQIndex(const State& state) const {
+    const SBInstanceCache& ic = getInstanceCache(state);
+    return ic.presQ;
+}
+const Array_<QIndex>& SimbodyMatterSubsystemRep::
+getZeroQIndex(const State& state) const {
+    const SBInstanceCache& ic = getInstanceCache(state);
+    return ic.zeroQ;
+}
+
+const Array_<UIndex>& SimbodyMatterSubsystemRep::
+getFreeUIndex(const State& state) const {
+    const SBInstanceCache& ic = getInstanceCache(state);
+    return ic.freeU;
+}
+
+const Array_<UIndex>& SimbodyMatterSubsystemRep::
+getPresUIndex(const State& state) const {
+    const SBInstanceCache& ic = getInstanceCache(state);
+    return ic.presU;
+}
+const Array_<UIndex>& SimbodyMatterSubsystemRep::
+getZeroUIndex(const State& state) const {
+    const SBInstanceCache& ic = getInstanceCache(state);
+    return ic.zeroU;
+}
+
+const Array_<UIndex>& SimbodyMatterSubsystemRep::
+getFreeUDotIndex(const State& state) const {
+    const SBInstanceCache& ic = getInstanceCache(state);
+    return ic.freeUDot;
+}
+
+const Array_<UIndex>& SimbodyMatterSubsystemRep::
+getKnownUDotIndex(const State& state) const {
+    const SBInstanceCache& ic = getInstanceCache(state);
+    return ic.presForce;
+}
+
+
+
+//==============================================================================
+//                      PACK/UNPACK FREE Q/U, ZERO KNOWN Q/U
+//==============================================================================
+void SimbodyMatterSubsystemRep::
+packFreeQ(const State& s, const Vector& allQ, 
+          Vector& packedFreeQ) const 
+{
+    const Array_<QIndex>& freeQX = getFreeQIndex(s);
+    const int nq = getNQ(s);
+    const int nfq = freeQX.size();
+    assert(allQ.size() == nq);
+    assert(packedFreeQ.size() == nfq);
+
+    if (nfq==0) return;                         // all prescribed
+    if (nfq==nq) {packedFreeQ=allQ; return;}    // none prescribed
+
+    if (allQ.hasContiguousData() && packedFreeQ.hasContiguousData()) {
+        const Real* allQp        = &allQ[0];
+        Real*       packedFreeQp = &packedFreeQ[0];
+        for (int i=0; i < nfq; ++i)
+            packedFreeQp[i] = allQp[freeQX[i]];
+        return;
+    } 
+
+    // Slower copy for noncontiguous data.
+    for (int i=0; i < nfq; ++i)
+        packedFreeQ[i] = allQ[freeQX[i]];
+}
+
+void SimbodyMatterSubsystemRep::
+unpackFreeQ(const State& s, const Vector& packedFreeQ, 
+            Vector& unpackedFreeQ) const 
+{
+    const Array_<QIndex>& freeQX = getFreeQIndex(s);
+    const int nq = getNQ(s);
+    const int nfq = freeQX.size();
+    assert(packedFreeQ.size()   == nfq);
+    assert(unpackedFreeQ.size() == nq);
+
+    if (nfq==0) return;                                 // all prescribed
+    if (nfq==nq) {unpackedFreeQ=packedFreeQ; return;}   // none prescribed
+
+    if (packedFreeQ.hasContiguousData() && unpackedFreeQ.hasContiguousData()) {
+        const Real* packedFreeQp   = &packedFreeQ[0];
+        Real*       unpackedFreeQp = &unpackedFreeQ[0];
+        for (int i=0; i < nfq; ++i)
+            unpackedFreeQp[freeQX[i]] = packedFreeQp[i];
+        return;
+    } 
+
+    // Slower copy for noncontiguous data.
+    for (int i=0; i < nfq; ++i)
+        unpackedFreeQ[freeQX[i]] = packedFreeQ[i];
+}
+
+
+void SimbodyMatterSubsystemRep::
+zeroKnownQ(const State& s, Vector& qlike) const
+{   // known = prescribed + zero
+    const int nq  = getNQ(s);
+    assert(qlike.size() == nq);
+
+    const Array_<QIndex>& presQX = getPresQIndex(s);
+    const Array_<QIndex>& zeroQX = getZeroQIndex(s);
+    const int npq = presQX.size();
+    const int nzq = zeroQX.size();
+
+    if (npq==0 && nzq==0) return; // all q's are free
+
+    if (qlike.hasContiguousData()) {
+        Real* qp = &qlike[0];
+        for (int i=0; i < npq; ++i)
+            qp[presQX[i]] = 0;
+        for (int i=0; i < nzq; ++i)
+            qp[zeroQX[i]] = 0;
+        return;
+    } 
+
+    // Slower zeroing for noncontiguous data.
+    for (int i=0; i < npq; ++i)
+        qlike[presQX[i]] = 0;
+    for (int i=0; i < nzq; ++i)
+        qlike[zeroQX[i]] = 0;
+}
+
+void SimbodyMatterSubsystemRep::
+packFreeU(const State& s, const Vector& allU, 
+          Vector& packedFreeU) const 
+{
+    const Array_<UIndex>& freeUX = getFreeUIndex(s);
+    const int nu = getNU(s);
+    const int nfu = freeUX.size();
+    assert(allU.size() == nu);
+    assert(packedFreeU.size() == nfu);
+
+    if (nfu==0) return;                         // all prescribed
+    if (nfu==nu) {packedFreeU=allU; return;}    // none prescribed
+
+    if (allU.hasContiguousData() && packedFreeU.hasContiguousData()) {
+        const Real* allUp        = &allU[0];
+        Real*       packedFreeUp = &packedFreeU[0];
+        for (int i=0; i < nfu; ++i)
+            packedFreeUp[i] = allUp[freeUX[i]];
+        return;
+    } 
+
+    // Slower copy for noncontiguous data.
+    for (int i=0; i < nfu; ++i)
+        packedFreeU[i] = allU[freeUX[i]];
+}
+
+void SimbodyMatterSubsystemRep::
+unpackFreeU(const State& s, const Vector& packedFreeU, 
+            Vector& unpackedFreeU) const 
+{
+    const Array_<UIndex>& freeUX = getFreeUIndex(s);
+    const int nu = getNU(s);
+    const int nfu = freeUX.size();
+    assert(packedFreeU.size()   == nfu);
+    assert(unpackedFreeU.size() == nu);
+
+    if (nfu==0) return;                                 // all prescribed
+    if (nfu==nu) {unpackedFreeU=packedFreeU; return;}   // none prescribed
+
+    if (packedFreeU.hasContiguousData() && unpackedFreeU.hasContiguousData()) {
+        const Real* packedFreeUp   = &packedFreeU[0];
+        Real*       unpackedFreeUp = &unpackedFreeU[0];
+        for (int i=0; i < nfu; ++i)
+            unpackedFreeUp[freeUX[i]] = packedFreeUp[i];
+        return;
+    } 
+
+    // Slower copy for noncontiguous data.
+    for (int i=0; i < nfu; ++i)
+        unpackedFreeU[freeUX[i]] = packedFreeU[i];
+}
+
+
+void SimbodyMatterSubsystemRep::
+zeroKnownU(const State& s, Vector& ulike) const
+{   // known = prescribed + zero
+    const int nu  = getNU(s);
+    assert(ulike.size() == nu);
+
+    const Array_<UIndex>& presUX = getPresUIndex(s);
+    const Array_<UIndex>& zeroUX = getZeroUIndex(s);
+    const int npu = presUX.size();
+    const int nzu = zeroUX.size();
+
+    if (npu==0 && nzu==0) return; // all u's are free
+
+    if (ulike.hasContiguousData()) {
+        Real* up = &ulike[0];
+        for (int i=0; i < npu; ++i)
+            up[presUX[i]] = 0;
+        for (int i=0; i < nzu; ++i)
+            up[zeroUX[i]] = 0;
+        return;
+    } 
+
+    // Slower zeroing for noncontiguous data.
+    for (int i=0; i < npu; ++i)
+        ulike[presUX[i]] = 0;
+    for (int i=0; i < nzu; ++i)
+        ulike[zeroUX[i]] = 0;
 }
 
 //==============================================================================
@@ -2054,29 +2270,33 @@ calcPqTranspose(const State& s, Matrix& Pqt) const {
 
 
 //==============================================================================
-//                         CALC WEIGHTED Pq TRANSPOSE
+//                         CALC WEIGHTED Pq_r TRANSPOSE
 //==============================================================================
-// This is a private method.
-// We want constraint matrix Pq, but row scaled by 1/constraint tolerances
-// and column scaled by 1/q weights (and we're actually computing the
-// transpose). We call the result Pqw (or Pqwt for its transpose).
+// The full Pq matrix is mp X nq. We want the mp X nfq submatrix that retains 
+// only the columns that correspond to free (not prescribed) q's; call that 
+// Pq_r. Also, we want the rows scaled by 1/constraint tolerances and retained 
+// columns scaled by 1/q weights; call that Pqw_r. And we're actually going to 
+// compute the nfq X mp transpose ~Pqw_r, which we'll call Pqw_rt.
 //
 //   Pq = P N^-1
 //   Pqw = Tp Pq     Wq^-1 
 //       = Tp Pq (N Wu^-1 N^-1) 
-//       = Tp P Wu^-1 N^-1
+//       = (Tp P Wu^-1) N^-1
+//       =     Pw       N^-1
 //   Pqwt = ~Pqw = ~N^-1 Wu^-1 ~P Tp  (weights are symmetric)
 //       (= ~N^-1 ~Pw)
 //
+//   Pqw_rt = Pqwt submatrix with rows removed if they correspond to q_p.
+//
 // We calculate one column at a time to avoid any matrix ops. We can do the
 // column scaling of ~P by Tp for free, but the row scaling requires nq*mp flops.
-// Pqwt must have contiguous-data columns.
+// Return matrix Pqw_rt must have contiguous-data columns.
 void SimbodyMatterSubsystemRep::
-calcWeightedPqTranspose( 
+calcWeightedPqrTranspose( 
         const State&     s,
-        const Vector&    Tp,   // 1/perr tols
-        const Vector&    ooWu, // 1/u weights
-        Matrix&          Pqwt) const // nq X mp
+        const Vector&    Tp,   // 1/perr tols (mp)
+        const Vector&    ooWu, // 1/u weights (nu)
+        Matrix&          Pqw_rt) const // nfq X mp
 {
     const SBInstanceCache& ic = getInstanceCache(s);
 
@@ -2084,17 +2304,20 @@ calcWeightedPqTranspose(
     const int mp = ic.totalNHolonomicConstraintEquationsInUse;
     const int nu = getNU(s);
     const int nq = getNQ(s);
+    const int nfq = ic.getTotalNumFreeQ();
+    assert(nfq <= nq);
+    const bool mustPack = (nfq != nq);
 
     assert(Tp.size() == mp);
     assert(ooWu.size() == nu);
 
-    Pqwt.resize(nq, mp);
-    if (mp==0 || nq==0)
+    Pqw_rt.resize(nfq, mp);
+    if (mp==0 || nfq==0)
         return;
 
-    assert(Pqwt(0).hasContiguousData());
+    assert(Pqw_rt(0).hasContiguousData());
 
-    Vector Ptcol(nu);
+    Vector Ptcol(nu), PNInvtcol;
     Vector lambdap(mp, Real(0));
 
     for (int i=0; i < mp; ++i) {
@@ -2103,7 +2326,82 @@ calcWeightedPqTranspose(
         lambdap[i] = 0;
         Ptcol.rowScaleInPlace(ooWu); // now (Wu^-1 ~P Tp)_i
         // Calculate (~Pqw)(i) = ~(N^-1) * (~Pw)(i)
-        multiplyByNInv(s, true/*transpose*/,Ptcol,Pqwt(i));
+        if (mustPack) {
+            multiplyByNInv(s, true/*transpose*/,Ptcol,PNInvtcol);
+            packFreeQ(s, PNInvtcol, Pqw_rt(i));
+        } else
+            multiplyByNInv(s, true/*transpose*/,Ptcol,Pqw_rt(i));
+    }
+}
+
+
+
+//==============================================================================
+//                        CALC WEIGHTED PV_r TRANSPOSE
+//==============================================================================
+// The full P;V matrix is mpv X nu, where mpv=(mp+mv). Here we want the 
+// mpv X nfu submatrix 
+// that retains only the columns that correspond to free (not prescribed) u's;
+// call that PV_r. Also, we want the rows scaled by 1/constraint tolerances and 
+// retained columns scaled by 1/u weights; call that PVw_r. And we're actually 
+// going to compute the nfu X mpv transpose ~PVw_r, which we'll call PVw_rt.
+//
+//   PV   = [P]
+//          [V]
+//   PVw  = Tpv PV Wu^-1 
+//   PVwt = ~PVw = Wu^-1 ~PV Tpv  (weights are symmetric)
+//
+//   PVw_rt = PVwt submatrix with rows removed if they correspond to u_p.
+//
+// We calculate one column at a time to avoid any matrix ops. We can do the
+// column scaling of ~PV by Tpv for free, but the row scaling requires nu*mpv 
+// flops. Return matrix PVw_rt must have contiguous-data columns.
+void SimbodyMatterSubsystemRep::
+calcWeightedPVrTranspose(
+    const State&     s,
+    const Vector&    Tpv,    // 1/verr tols (mp+mv)
+    const Vector&    ooWu, // 1/u weights (nu)
+    Matrix&          PVw_rt) const
+{
+    const SBInstanceCache& ic = getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mp = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mv = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mpv = mp+mv;
+
+    const int nu = getNU(s);
+    const int nfu = ic.getTotalNumFreeU();
+    assert(nfu <= nu);
+    const bool mustPack = (nfu != nu);
+
+    assert(Tpv.size() == mpv);
+    assert(ooWu.size() == nu);
+
+    PVw_rt.resize(nfu,mpv);
+    if (mpv==0 || nfu==0)
+        return;
+
+    assert(PVw_rt.hasContiguousData());
+
+    Vector lambdapv(mpv, Real(0));
+    if (mustPack) {
+        Vector PVtcol(nu);
+        for (int j=0; j < mpv; ++j) {
+            lambdapv[j] = Tpv[j]; // this gives column j of ~PV scaled by Tpv[i]
+            multiplyByPVATranspose(s, true, true, false, lambdapv, PVtcol);
+            lambdapv[j] = 0;
+            PVtcol.rowScaleInPlace(ooWu); // now (Wu^-1 ~PV Tpv)_j
+            packFreeU(s, PVtcol, PVw_rt(j));
+        }
+    } else { // No prescribed motion so we can work in place.
+        for (int j=0; j < mpv; ++j) {
+            VectorView PVw_rt_j = PVw_rt(j);
+            lambdapv[j] = Tpv[j]; // this gives column j of ~PV scaled by Tpv[i]
+            multiplyByPVATranspose(s, true, true, false, lambdapv, PVw_rt_j);
+            lambdapv[j] = 0;
+            PVw_rt_j.rowScaleInPlace(ooWu); // now (Wu^-1 ~PV Tpv)_j
+        }
     }
 }
 
@@ -2678,9 +2976,10 @@ calcPVA(const State&     s,
 // =============================================================================
 //                            CALC G MInv G^T
 // =============================================================================
-// Calculate multipliers lambda as
+// We will calculate multipliers lambda as
 //     (G M^-1 ~G) lambda = aerr
-// Optimally, we would calculate this mXm matrix in O(m^2) time. I don't know 
+// and need a fast way to explicitly calculate this mXm matrix.
+// Optimally, we would calculate it in O(m^2) time. I don't know 
 // how to calculate it that fast, but using m calls to operator sequence:
 //     Gt_j       = Gt* lambda_j        O(n)
 //     MInvGt_j   = M^-1* Gt_j          O(n)
@@ -2690,6 +2989,14 @@ calcPVA(const State&     s,
 // if we've partitioned it into little subblocks, this is all very 
 // reasonable. One slip up and you'll toss in a factor of mn^2 or m^2n and
 // screw this up -- be careful!
+//
+// When there is prescribed motion in the system the matrix we want is
+// Gr Mrr^-1 ~Gr. That is still an mXm matrix and we are able to produce it
+// with no visible effort due to the definition of our a=M^-1*f operator. It 
+// ignores the prescribed part fp of f (here a column of ~Gp), and returns
+// zeroes in the prescribed part ap of a. Those zeroes have the effect of
+// removing the Gp columns of G in the final operation. Note: the resulting
+// matrix is *not* a submatrix of G*M^-1*~G!
 //
 // Note that we do not require contiguous storage for GMInvGt's columns, 
 // although we'll take advantage of it if they are. If not, we'll work in
@@ -3035,7 +3342,8 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
 {
     assert(getStage(s) >= Stage::Position-1);
-    SBStateDigest sbs(s, *this, Stage::Model);
+
+    const SBInstanceCache& ic = getInstanceCache(s);
 
     realizeSubsystemPosition(s);
 
@@ -3045,7 +3353,9 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     const int mHolo  = getNumHolonomicConstraintEquationsInUse(s);
     const int mQuats = getNumQuaternionsInUse(s);
     const int nq     = getNQ(s);
+    const int nfq    = ic.getTotalNumFreeQ();
     const int nu     = getNU(s);
+    bool hasPrescribedMotion = (nfq != nq);
 
     // Wq    = N * Wu    * N^-1
     // Wq^-1 = N * Wu^-1 * N^-1
@@ -3080,7 +3390,8 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     //                          q -= dq
     //
     // We define Pqwt = ~Pqw = ~(Tp P Wu^-1 N^-1) = ~N^-1 Wu^-1 ~P Tp
-    // because diagonal weights are symmetric.
+    // because diagonal weights are symmetric. We only retain rows that 
+    // correspond to free (non prescribed) q's.
     //
     // This is a nonlinear least squares problem. Below is a full Newton 
     // iteration since we recalculate the iteration matrix each time around the
@@ -3110,27 +3421,35 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
     if (normAchievedTRMS > consAccuracyToTryFor) {
         Vector saveQ = getQ(s);
-        Matrix Pqwt(nq,mHolo);
-        Vector dq_WLS(nq), du(nu), dq(nq); // = Wq^-1 dq_WLS
-        FactorQTZ Pqw_qtz;
+        Matrix Pqwrt(nfq,mHolo);
+        Vector dfq_WLS(nfq), du(nu), dq(nq); // = Wq^-1 dq_WLS
+        Vector udfq_WLS(hasPrescribedMotion ? nq : 0); // unpacked if needed
+        udfq_WLS.setToZero(); // must initialize unwritten elements
+        FactorQTZ Pqwr_qtz;
         Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
         const int MaxIterations  = 20;
         do {
-            calcWeightedPqTranspose(s, ooPTols, ooUWeights, Pqwt); // nq X mp
+            calcWeightedPqrTranspose(s, ooPTols, ooUWeights, Pqwrt);//nfq X mp
 
             // This factorization acts like a pseudoinverse.
-            Pqw_qtz.factor<Real>(~Pqwt, conditioningTol); 
+            Pqwr_qtz.factor<Real>(~Pqwrt, conditioningTol); 
 
             //std::cout << "POSITION PROJECTION TOL=" << conditioningTol
-            //          << " RANK=" << Pq_qtz.getRank() 
-            //          << " RCOND=" << Pq_qtz.getRCondEstimate() << std::endl;
+            //          << " RANK=" << Pqwr_qtz.getRank() 
+            //          << " RCOND=" << Pqwr_qtz.getRCondEstimate() << std::endl;
 
-            Pqw_qtz.solve(scaledPerrs, dq_WLS); // this is weighted dq_WLS=Wq*dq
-            lastChangeMadeWRMS = dq_WLS.normRMS(); // change in weighted norm
+            Pqwr_qtz.solve(scaledPerrs, dfq_WLS); // this is weighted dq_WLS=Wq*dq
+            lastChangeMadeWRMS = dfq_WLS.normRMS(); // change in weighted norm
 
             // switch back to unweighted dq=Wq^-1*dq_WLS
             // = N * Wu^-1 * N^-1 * dq_WLS
-            multiplyByNInv(s,false,dq_WLS,du);
+            if (hasPrescribedMotion) {
+                unpackFreeQ(s, dfq_WLS, udfq_WLS); // zeroes in q_p slots
+                multiplyByNInv(s,false,udfq_WLS,du);
+            } else {
+                multiplyByNInv(s,false,dfq_WLS,du);
+            }
+
             du.rowScaleInPlace(ooUWeights); // in place to save memory
             multiplyByN(s,false,du,dq);
 
@@ -3174,27 +3493,39 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
         // Next, if we projected out the position constraint errors, remove the
         // corresponding error from the integrator's error estimate.
         //
-        //   (Tp Pq Wq^-1) dq_WLS  = (Tp Pq Wq^-1) Wq*qErrest
-        //                     dq  = Wq^-1 dq_WLS
-        //                         = N Wu^-1 N^-1 dq_WLS
-        //                qErrest -= dq
+        //   (Tp Pq Wq^-1)_r dqr_WLS = (Tp Pq Wq^-1)_r (Wq*qErrest)_r
+        //                    dq_WLS = unpack(dqr_WLS) (with zero fill)
+        //                       dq  = Wq^-1 dq_WLS
+        //                           = N Wu^-1 N^-1 dq_WLS
+        //                  qErrest -= dq
         // No iteration is required.
         //
         // We can simplify the RHS of the first equation above:
-        //        (Tp Pq Wq^-1) Wq qErrest = Tp Pq qErrest
-        // for which we have an O(n) operator to use for the matrix-vector product.
+        //        (Tp Pq Wq^-1)_r (Wq qErrest)_r = Tp Pq unpack(qErrest_r)
+        // for which we have an O(n) operator to use for the matrix-vector 
+        // product.
         if (qErrest.size()) {
             // Work in Wq-norm
             Vector Tp_Pq_qErrest, bias_p;
             calcBiasForMultiplyByPq(s, bias_p);
-            multiplyByPq(s, bias_p, qErrest, Tp_Pq_qErrest); // Pq*qErrest
-            Tp_Pq_qErrest.rowScaleInPlace(ooPTols); // now Tp*Pq*qErrest
 
-            Pqw_qtz.solve(Tp_Pq_qErrest, dq_WLS); // weighted
-            const Real normOfAdjustment_WRMS = dq_WLS.normRMS();
             // Switch back to unweighted dq=Wq^-1*dq_WLS
             // = N * Wu^-1 * N^-1 * dq_WLS
-            multiplyByNInv(s,false,dq_WLS,du);
+            if (hasPrescribedMotion) {
+                Vector qErrest_0(qErrest);
+                zeroKnownQ(s, qErrest_0); // zero out prescribed entries
+                multiplyByPq(s, bias_p, qErrest_0, Tp_Pq_qErrest); // (Pq*qErrest)_r
+                Tp_Pq_qErrest.rowScaleInPlace(ooPTols); // now Tp*(Pq*qErrest)_r
+                Pqwr_qtz.solve(Tp_Pq_qErrest, dfq_WLS); // weighted
+                unpackFreeQ(s, dfq_WLS, udfq_WLS); // zeroes in q_p slots
+                multiplyByNInv(s,false,udfq_WLS,du);
+            } else {
+                multiplyByPq(s, bias_p, qErrest, Tp_Pq_qErrest); // Pq*qErrest
+                Tp_Pq_qErrest.rowScaleInPlace(ooPTols); // now Tp*Pq*qErrest
+                Pqwr_qtz.solve(Tp_Pq_qErrest, dfq_WLS); // weighted
+                multiplyByNInv(s,false,dfq_WLS,du);
+            }
+
             du.rowScaleInPlace(ooUWeights); // in place to save memory
             multiplyByN(s,false,du,dq);
             qErrest -= dq; // unweighted
@@ -3207,13 +3538,22 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     // By design, normalization of quaternions can't have any effect on the 
     // length constraints we just fixed (because we normalize internally for 
     // calculations). So now we can simply normalize the quaternions.
+    // Don't touch any q's that are prescribed, though.
     if (mQuats) {
+        SBStateDigest sbs(s, *this, Stage::Model);
         Vector& q  = updQ(s); // invalidates q's. TODO: see below.
 
         for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-            for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-                if (rbNodeLevels[i][j]->enforceQuaternionConstraints(sbs,q,qErrest))
+            for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) { 
+                const RigidBodyNode& node = *rbNodeLevels[i][j];
+                const SBInstancePerMobodInfo& mobodInfo =
+                    ic.mobodInstanceInfo[node.getNodeNum()];
+                if (mobodInfo.qMethod != Motion::Free)
+                    continue;
+
+                if (node.enforceQuaternionConstraints(sbs,q,qErrest))
                     anyChange = true;
+            }
 
         // This will recalculate the qnorms (all 1), qerrs (all 0). The only
         // other quaternion dependency is the N matrix (and NInv, NDot).
@@ -3234,6 +3574,9 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
 {
     assert(getStage(s) >= Stage::Velocity-1);
+
+    const SBInstanceCache& ic = getInstanceCache(s);
+
     realizeSubsystemVelocity(s);
 
     // Here we deal with the nonholonomic (velocity) constraints and the 
@@ -3242,6 +3585,8 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     const int mNonholo = getNumNonholonomicConstraintEquationsInUse(s);
     const int nq       = getNQ(s);
     const int nu       = getNU(s);
+    const int nfu      = ic.getTotalNumFreeU();
+    bool hasPrescribedMotion = (nfu != nu);
 
     const VectorView uWeights   = yWeights(nq,nu); // skip the first nq weights
     const Vector     ooUWeights = uWeights.elementwiseInvert();
@@ -3306,24 +3651,31 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
 
     if (normAchievedTRMS > consAccuracyToTryFor) {
         const Vector saveU = getU(s);
-        Matrix PVt(nu, mHolo+mNonholo);
+        Matrix PVwrt(nfu, mHolo+mNonholo);
+        Vector dfu_WLS(nfu);
+        Vector du(nu); // unpacked into here if necessary
+        if (hasPrescribedMotion)
+            du.setToZero(); // must initialize unwritten elements
 
-        calcPVATranspose(s, true, true, false, PVt); // just P,V
-        PVt.rowAndColScaleInPlace(ooUWeights, ooPVTols); 
-        // PVt is now Wu^-1 (Pt Vt) Tpv
+        calcWeightedPVrTranspose(s, ooPVTols, ooUWeights, PVwrt);
+        // PVwrt is now Wu^-1 (Pt Vt) Tpv
 
         // Calculate pseudoinverse (just once)
-        FactorQTZ PVqtz;
-        PVqtz.factor<Real>(~PVt, conditioningTol);
+        FactorQTZ PVwr_qtz;
+        PVwr_qtz.factor<Real>(~PVwrt, conditioningTol);
 
-        Vector du_WLS(nu);
         Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
         const int MaxIterations  = 7;
         do {
-            PVqtz.solve(scaledVerrs, du_WLS);
-            lastChangeMadeWRMS = du_WLS.normRMS(); // change size in weighted norm
-            du_WLS.rowScaleInPlace(ooUWeights); // remove scaling: du=Wu^-1*du_WLS
-            updU(s) -= du_WLS; // this is actually unweighted du
+            PVwr_qtz.solve(scaledVerrs, dfu_WLS);
+            lastChangeMadeWRMS = dfu_WLS.normRMS(); // change in weighted norm
+            if (hasPrescribedMotion) {
+                unpackFreeU(s, dfu_WLS, du);    // zeroes in u_p slots
+                du.rowScaleInPlace(ooUWeights); // du=Wu^-1*unpack(dfu_WLS)
+            } else {
+                du = dfu_WLS.rowScale(ooUWeights); // unscale: du=Wu^-1*du_WLS
+            }
+            updU(s) -= du;
             anyChange = true;
 
             // Recalculate the constraint errors for the new u's.
@@ -3334,8 +3686,8 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
 
             if (localOnly && nItsUsed >= 2 
                 && normAchievedTRMS > prevNormAchievedTRMS) {
-                // Velocity norm got worse -- restore to end of previous iteration.
-                updU(s) += du_WLS;
+                // Velocity norm worse -- restore to end of previous iteration.
+                updU(s) += du;
                 realizeSubsystemVelocity(s);
                 scaledVerrs = vErrs.rowScale(ooPVTols);
                 normAchievedTRMS=scaledVerrs.normRMS();
@@ -3357,23 +3709,38 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
 
         // Next, if we projected out the velocity constraint errors, remove the
         // corresponding error from the integrator's error estimate.
-        //   (Tpv [P;V] Wu^-1) du_WLS  = (Tpv [P;V] Wu^-1) Wu uErrest
+        //
+        //   (Tpv [P;V] Wu^-1)_f dfu_WLS  = (Tpv [P;V] Wu^-1)_f (Wu uErrest)_f
+        //                        du_WLS  = unpack(dfu_WLS) (with zero fill)
         //                         du  = Wu^-1 du_WLS
         //                    uErrest -= du
         // No iteration is required.
+        //
         // We can simplify the RHS of the first equation above:
-        //   (Tpv [P;V] Wu^-1) Wu uErrest = Tpv [P;V] uErrest
-        // for which we have an O(n) operator to compute the matrix-vector product.
+        //   (Tpv [P;V] Wu^-1)_f (Wu uErrest)_f = Tpv [P;V] unpack(uErrest_f)
+        // for which we have an O(n) operator to compute the matrix-vector 
+        // product.
 
         if (uErrest.size()) {
-            Vector PV_uErrest(mHolo+mNonholo);
+            // Work in Wu-norm
+            Vector Tpv_PV_uErrest(mHolo+mNonholo);
             Vector bias_pv(mHolo+mNonholo);
             calcBiasForMultiplyByPVA(s,true,true,false,bias_pv); // just P,V
-            multiplyByPVA(s,true,true,false,bias_pv,uErrest,PV_uErrest);
-            PV_uErrest.rowScaleInPlace(ooPVTols); // PV_uErrest = Tpv [P;V] uErrEst
-            PVqtz.solve(PV_uErrest, du_WLS);
-            du_WLS.rowScaleInPlace(ooUWeights); // now du (=Wu^-1*du_WLS)
-            uErrest -= du_WLS; // this is really unweighted du
+            if (hasPrescribedMotion) {
+                Vector uErrest_0(uErrest);
+                zeroKnownU(s, uErrest_0); // zero out prescribed entries
+                multiplyByPVA(s,true,true,false,bias_pv,
+                              uErrest_0,Tpv_PV_uErrest);
+                Tpv_PV_uErrest.rowScaleInPlace(ooPVTols); // = Tpv*PV*uErrest_0
+                PVwr_qtz.solve(Tpv_PV_uErrest, dfu_WLS);
+                unpackFreeU(s, dfu_WLS, du); // still weighted
+            } else {
+                multiplyByPVA(s,true,true,false,bias_pv,uErrest,Tpv_PV_uErrest);
+                Tpv_PV_uErrest.rowScaleInPlace(ooPVTols); // = Tpv PV uErrEst
+                PVwr_qtz.solve(Tpv_PV_uErrest, du);
+            }
+            du.rowScaleInPlace(ooUWeights); // now du=Wu^-1*unpack(dfu_WLS)
+            uErrest -= du; // this is unweighted now
         }
     }
    

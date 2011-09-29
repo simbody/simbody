@@ -235,6 +235,13 @@ UIndex MobilizedBody::getFirstUIndex(const State& s) const {
     return uStart;
 }
 
+Motion::Method MobilizedBody::getQMotionMethod(const State& s) const 
+{   return getImpl().getQMotionMethod(s); }
+Motion::Method MobilizedBody::getUMotionMethod(const State& s) const
+{   return getImpl().getUMotionMethod(s); }
+Motion::Method MobilizedBody::getUDotMotionMethod(const State& s) const
+{   return getImpl().getUDotMotionMethod(s); }
+
 Real  MobilizedBody::getOneFromQPartition(const State& s, int which, const Vector& qlike) const {
     QIndex qStart; int nq; getImpl().findMobilizerQs(s, qStart, nq);
     assert(0 <= which && which < nq);
@@ -330,7 +337,7 @@ Real MobilizedBody::getOneTau(const State& s, MobilizerUIndex which) const {
     const SimbodyMatterSubsystemRep& matter = mbimpl.getMyMatterSubsystemRep();
     const SBModelCache&              mc     = matter.getModelCache(s);
     const SBModelPerMobodInfo&
-        mobodModelInfo = mc.getMobilizedBodyModelInfo(mbx);
+        mobodModelInfo = mc.getMobodModelInfo(mbx);
     const int nu = mobodModelInfo.nUInUse;
 
     SimTK_INDEXCHECK(which, nu, "MobilizedBody::getOneTau()");
@@ -351,7 +358,7 @@ Vector MobilizedBody::getTauAsVector(const State& s) const {
     const SimbodyMatterSubsystemRep& matter = mbimpl.getMyMatterSubsystemRep();
     const SBModelCache&              mc     = matter.getModelCache(s);
     const SBModelPerMobodInfo&
-        mobodModelInfo = mc.getMobilizedBodyModelInfo(mbx);
+        mobodModelInfo = mc.getMobodModelInfo(mbx);
     const int nu = mobodModelInfo.nUInUse;
 
     const SBInstanceCache& ic = matter.getInstanceCache(s);
@@ -445,6 +452,13 @@ void MobilizedBodyImpl::findMobilizerUs(const State& s, UIndex& uStart, int& nu)
     getMyMatterSubsystemRep()
         .findMobilizerUs(s, myMobilizedBodyIndex, uStart, nu);
 }
+
+Motion::Method MobilizedBodyImpl::getQMotionMethod(const State& s) const 
+{   return getMyInstanceInfo(s).qMethod; }
+Motion::Method MobilizedBodyImpl::getUMotionMethod(const State& s) const 
+{   return getMyInstanceInfo(s).uMethod; }
+Motion::Method MobilizedBodyImpl::getUDotMotionMethod(const State& s) const 
+{   return getMyInstanceInfo(s).udotMethod; }
 
 void MobilizedBodyImpl::copyOutDefaultQ(const State& s, Vector& qDefault) const {
     SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(s), Stage::Topology,
@@ -558,7 +572,7 @@ void MobilizedBodyImpl::realizeTime(const SBStateDigest& sbs) const {
     if (instInfo.qMethod==Motion::Prescribed) {
         const SBModelCache& mc = sbs.getModelCache();
         const SBModelPerMobodInfo& 
-            modelInfo = mc.getMobilizedBodyModelInfo(mbx);
+            modelInfo = mc.getMobodModelInfo(mbx);
         const int            nq  = modelInfo.nQInUse;
         const PresQPoolIndex pqx = instInfo.firstPresQ;
         SBTimeCache& tc = sbs.updTimeCache();
@@ -585,7 +599,7 @@ void MobilizedBodyImpl::realizePosition(const SBStateDigest& sbs) const {
     if (instInfo.uMethod==Motion::Prescribed) {
         const SBModelCache& mc = sbs.getModelCache();
         const SBModelPerMobodInfo& 
-            modelInfo = mc.getMobilizedBodyModelInfo(mbx);
+            modelInfo = mc.getMobodModelInfo(mbx);
         const int            nu  = modelInfo.nUInUse;
         const PresUPoolIndex pux = instInfo.firstPresU;
         SBConstrainedPositionCache& cpc = sbs.updConstrainedPositionCache();
@@ -635,7 +649,7 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
     if (instInfo.udotMethod==Motion::Prescribed) {
         const SBModelCache& mc = sbs.getModelCache();
         const SBModelPerMobodInfo& 
-            modelInfo = mc.getMobilizedBodyModelInfo(mbx);
+            modelInfo = mc.getMobodModelInfo(mbx);
         const int    nu = modelInfo.nUInUse;
         const UIndex ux = modelInfo.firstUIndex;
         Vector&      udot = sbs.updUDot();

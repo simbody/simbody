@@ -338,6 +338,13 @@ public:
     /// range from getFirstUIndex() to UIndex(getFirstUIndex()+getNumU()-1).
     UIndex getFirstUIndex(const State&) const;
 
+    /// Determine how generalized coordinate q values are being determined.
+    Motion::Method getQMotionMethod(const State&) const;
+    /// Determine how generalized speed u values are being determined.
+    Motion::Method getUMotionMethod(const State&) const;
+    /// Determine how generalized acceleration udot values are being determined.
+    Motion::Method getUDotMotionMethod(const State&) const;
+
 
     /// Return one of the generalized coordinates q from this mobilizer's partition of the matter
     /// subsystem's full q vector in the State. The particular coordinate is selected using the \p which
@@ -1305,7 +1312,7 @@ public:
     /// whether it is available.
     bool hasMotion() const;
 
-    /// If there is a Motion object assocated with this MobilizedBody, this returns
+    /// If there is a Motion object associated with this MobilizedBody, this returns
     /// a const reference to it. Otherwise it will throw an exception. You can check first
     /// using hasMotion(). Note that there is no provision to obtain a writable
     /// reference to the contained Motion object; if you want to change it clear the

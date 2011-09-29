@@ -2,14 +2,14 @@
 #define SimTK_SIMBODY_MULTIBODY_SYSTEM_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -45,15 +45,14 @@ class DecorationSubsystem;
 class GeneralContactSubsystem;
 
 
-/**
- * The job of the MultibodySystem class is to coordinate the activities of 
- * various subsystems which can be part of a multibody system. We insist on 
- * having exactly one MatterSubsystem, and we would like also to have:
- *    - one or more ForceSubsystems
- *    - a DecorationSubsystem for visualization
- *    - a GeneralContactSubsystem for contact geometry
- * There will also be a generic System-level "subsystem" for global variables.
- */
+/** The job of the MultibodySystem class is to coordinate the activities of 
+various subsystems which can be part of a multibody system. We insist on 
+having exactly one SimbodyMatterSubsystem, and we would like also to have:
+    - one or more ForceSubsystems
+    - a DecorationSubsystem for visualization
+    - a GeneralContactSubsystem for contact geometry
+There will also be a generic System-level "subsystem" for global variables.
+**/
 class SimTK_SIMBODY_EXPORT MultibodySystem : public System {
 public:
     MultibodySystem();
@@ -114,22 +113,6 @@ public:
     const MultibodySystemRep& getRep() const;
 protected:
     explicit MultibodySystem(MultibodySystemRep*);
-};
-
-class SimTK_SIMBODY_EXPORT MultibodyDynamicsStudy : public Study {
-public:
-    MultibodyDynamicsStudy() { }
-    MultibodyDynamicsStudy(const MultibodyDynamicsStudy&);
-    MultibodyDynamicsStudy& operator=(const MultibodyDynamicsStudy&);
-    ~MultibodyDynamicsStudy();
-
-    MultibodyDynamicsStudy(const MultibodySystem&);
-
-    const MultibodySystem& getMultibodySystem() const;
-
-    void advanceTimeBy(const Real& h); //TODO
-
-    SimTK_PIMPL_DOWNCAST(MultibodyDynamicsStudy, Study);
 };
 
 

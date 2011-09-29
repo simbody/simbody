@@ -228,21 +228,21 @@ public:
         totalNQInUse=totalNUInUse=totalNQuaternionsInUse= -1;
         totalNQPoolInUse= -1;
 
-        mobilizedBodyModelInfo.clear();
+        mobodModelInfo.clear();
     }
 
     // Allocate the entries in this ModelCache based on information provided in
     // the TopologyCache.
     void allocate(const SBTopologyCache& tc) {
-        mobilizedBodyModelInfo.resize(tc.nBodies);
+        mobodModelInfo.resize(tc.nBodies);
     }
 
     // Use these accessors so that you get type checking on the index types.
-    int getNumMobilizedBodies() const {return (int)mobilizedBodyModelInfo.size();}
-    SBModelPerMobodInfo& updMobilizedBodyModelInfo(MobilizedBodyIndex mbx) 
-    {   return mobilizedBodyModelInfo[mbx]; }
-    const SBModelPerMobodInfo& getMobilizedBodyModelInfo(MobilizedBodyIndex mbx) const
-    {   return mobilizedBodyModelInfo[mbx]; }
+    int getNumMobilizedBodies() const {return (int)mobodModelInfo.size();}
+    SBModelPerMobodInfo& updMobodModelInfo(MobilizedBodyIndex mbx) 
+    {   return mobodModelInfo[mbx]; }
+    const SBModelPerMobodInfo& getMobodModelInfo(MobilizedBodyIndex mbx) const
+    {   return mobodModelInfo[mbx]; }
 
 
     // These are sums over the per-MobilizedBody counts above.
@@ -271,14 +271,14 @@ public:
 
 private:
     // MobilizedBody 0 is Ground.
-    Array_<SBModelPerMobodInfo,MobilizedBodyIndex> mobilizedBodyModelInfo; 
+    Array_<SBModelPerMobodInfo,MobilizedBodyIndex> mobodModelInfo; 
 };
 
 inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) { 
     o << "SBModelCache:\n";
     o << "  " << c.getNumMobilizedBodies() << " Mobilized Bodies:\n";
     for (MobilizedBodyIndex mbx(0); mbx < c.getNumMobilizedBodies(); ++mbx) {
-        const SBModelPerMobodInfo& mInfo = c.getMobilizedBodyModelInfo(mbx);
+        const SBModelPerMobodInfo& mInfo = c.getMobodModelInfo(mbx);
         o << "  " << mbx << ": nq,nu="   << mInfo.nQInUse << "," << mInfo.nUInUse
                          <<  " qix,uix=" << mInfo.firstQIndex << "," << mInfo.firstUIndex << endl;
         if (mInfo.hasQuaternionInUse)
@@ -482,8 +482,19 @@ public:
     Array_<Rotation,MobilizedBodyIndex>  principalAxes;             // nb
     Array_<Transform,MobilizedBodyIndex> referenceConfiguration;    // nb
 
-    Array_<SBInstancePerMobodInfo,MobilizedBodyIndex>      mobodInstanceInfo;
-    Array_<SBInstancePerConstraintInfo,ConstraintIndex>    constraintInstanceInfo;
+    int getNumMobilizedBodies() const {return (int)mobodInstanceInfo.size();}
+    SBInstancePerMobodInfo& updMobodInstanceInfo(MobilizedBodyIndex mbx)
+    {   return mobodInstanceInfo[mbx]; }
+    const SBInstancePerMobodInfo& getMobodInstanceInfo(MobilizedBodyIndex mbx) const
+    {   return mobodInstanceInfo[mbx]; }
+    Array_<SBInstancePerMobodInfo,MobilizedBodyIndex> mobodInstanceInfo;
+
+    int getNumConstraints() const {return (int)constraintInstanceInfo.size();}
+    SBInstancePerConstraintInfo& updConstraintInstanceInfo(ConstraintIndex cx)
+    {   return constraintInstanceInfo[cx]; }
+    const SBInstancePerConstraintInfo& getConstraintInstanceInfo(ConstraintIndex cx) const
+    {   return constraintInstanceInfo[cx]; }
+    Array_<SBInstancePerConstraintInfo,ConstraintIndex> constraintInstanceInfo;
 
     // This is a sum over all the mobilizers whose q's are currently prescribed,
     // adding the number of q's (generalized coordinates) nq currently being 
@@ -590,17 +601,6 @@ public:
         totalNConstrainedUInUse          = 0; 
     }
 
-    int getNumMobilizedBodies() const {return (int)mobodInstanceInfo.size();}
-    SBInstancePerMobodInfo& updMobodInstanceInfo(MobilizedBodyIndex mbx)
-    {   return mobodInstanceInfo[mbx]; }
-    const SBInstancePerMobodInfo& getMobodInstanceInfo(MobilizedBodyIndex mbx) const
-    {   return mobodInstanceInfo[mbx]; }
-
-    int getNumConstraints() const {return (int)constraintInstanceInfo.size();}
-    SBInstancePerConstraintInfo& updConstraintInstanceInfo(ConstraintIndex cx)
-    {   return constraintInstanceInfo[cx]; }
-    const SBInstancePerConstraintInfo& getConstraintInstanceInfo(ConstraintIndex cx) const
-    {   return constraintInstanceInfo[cx]; }
 };
 //.............................. INSTANCE CACHE ................................
 
