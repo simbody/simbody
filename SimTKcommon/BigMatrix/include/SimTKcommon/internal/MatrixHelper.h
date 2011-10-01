@@ -179,14 +179,18 @@ public:
     MatrixHelper(const MatrixCommitment&, MatrixHelper&,       const DiagonalView&); // a writable diagonal view
 
     // "Indexed" view of a 1d matrix.
-    MatrixHelper(const MatrixCommitment&, const MatrixHelper&, int n, const int* indices);
-    MatrixHelper(const MatrixCommitment&, MatrixHelper&, int n, const int* indices);
+    MatrixHelper(const MatrixCommitment&, const MatrixHelper&, 
+                 int n, const int* indices);
+    MatrixHelper(const MatrixCommitment&, MatrixHelper&, 
+                 int n, const int* indices);
 
     // These invoke the previous constructors but with friendlier index source.
-    MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, const Array_<int>& indices)
-    {   new (this) MatrixHelper(mc, h, (int)indices.size(), &indices[0]); }
-    MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, const Array_<int>& indices)
-    {   new (this) MatrixHelper(mc, h, (int)indices.size(), &indices[0]); }
+    MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, 
+                 const Array_<int>& indices)
+    {   new (this) MatrixHelper(mc, h, (int)indices.size(), indices.cbegin()); }
+    MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, 
+                 const Array_<int>& indices)
+    {   new (this) MatrixHelper(mc, h, (int)indices.size(), indices.cbegin()); }
 
     // "Copy" an existing MatrixHelper by making a new view into the same data. 
     // The const form loses writability, non-const retains same writability status 

@@ -2,14 +2,14 @@
 #define SimTK_SimTKCOMMON_SYSTEM_GUTS_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -56,7 +56,7 @@ class DecorativeGeometry;
  * which allocated a piece of memory can access it. Exception: both
  * the client and library side must agree on the virtual function
  * table (VFT) ordering of the client's virtual functions.
- * @verbatim
+ * <pre>
  *               CLIENT SIDE                    .  LIBRARY SIDE
  *                                              .
  *       System              System::Guts       . System::Guts::GutsRep
@@ -69,7 +69,7 @@ class DecorativeGeometry;
  *   Concrete System       ------------------   .  |             |
  *     adds no data                             .   -------------
  *       members
- * @endverbatim
+ * </pre>
  *
  * If the concrete System::Guts class also has an opaque implementation,
  * as it will for concrete Systems provided by the SimTK Core, then
@@ -210,11 +210,6 @@ protected:
 
     virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
     virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
-
-private:
-    // OBSOLETE
-    // Part of our ongoing crusade to turn getN's into getNums for API consistency.
-    int getNSubsystems() const {return getNumSubsystems();}
 
 private:
     Guts& operator=(const Guts&); // suppress default copy assignment operator

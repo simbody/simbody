@@ -194,67 +194,6 @@ public:
     ProjectOptions& operator-=(Option opt) {clearOption(opt); return *this;}
 };
 
-    ////////////////
-    // STATISTICS //
-    ////////////////
-
-/**@name                         Statistics
-The System keeps mutable statistics internally, initialized to zero at 
-construction. These *must not* affect results in any way. **/
-/**@{**/
-
-/** Zero out the statistics for this System. Although the statistics are 
-mutable, we only allow them to be reset by a caller who has write access since
-setting the stats to zero is associated with construction. **/
-void resetAllCountersToZero();
-
-    // Realization
-
-/** Whenever the system was realized from Stage-1 to the indicated Stage,
-this counter is bumped. Note that a single call to realize() can cause 
-several counters to get bumped. **/
-int getNumRealizationsOfThisStage(Stage) const;
-
-/** Return the total number of calls to realizeTopology(), realizeModel(),
-or realize(), regardless of whether these routines actually did
-anything when called. **/
-int getNumRealizeCalls() const;
-
-    // Prescribed motion
-
-/** Return the total number of calls to the System's prescribe() method.
-We don't distinguish the calls by stage so this may be incremented
-several times per step. **/
-int getNumPrescribeCalls() const;
-
-    // Projection
-
-/** Count the number of times we call project() with a particular
-option set. **/
-int getNumQProjections() const;
-int getNumUProjections() const;
-int getNumQErrorEstimateProjections() const;
-int getNumUErrorEstimateProjections() const;
-
-/** Return the total number of calls to project(), regardless of
-whether the call did anything. **/
-int getNumProjectCalls() const;
-
-    // Event handling and reporting
-
-/** handleEvents() reports the lowest Stage it modified and we bump
-the counter for that Stage. We also count reportEvents() calls here
-as having "changed" Stage::Report. **/
-int getNumHandlerCallsThatChangedStage(Stage) const;
-
-/** This is the total number of calls to handleEvents() regardless
-of the outcome. **/
-int getNumHandleEventCalls() const;
-
-/** This is the total number of calls to reportEvents() regardless
-of the outcome. **/
-int getNumReportEventCalls() const;
-/**@}**/
 
     /////////////////
     // REALIZATION //
@@ -338,7 +277,7 @@ void calcDecorativeGeometryAndAppend(const State&, Stage,
 
 /**@name                    The Continuous System
 These methods deal with the continuous (smoothly-evolving) aspects of this 
-%System. **/
+%System. They are primarly for use by numerical integrators. **/
 /**@{**/
 
         // UNCONSTRAINED
@@ -437,7 +376,7 @@ since they are the potential energy gradient. That may require repeated
 realization to Acceleration stage.
 
 Note that when q's are fast, the corresponding u's and udots are 
-*prescribed* (to zero), they are not *fast*. And when u's are fast, their 
+\e prescribed (to zero), they are not \e fast. And when u's are fast, their 
 udots are also zero (their q's are regular integrated variables). Fast 
 z's have zero zdots. Any other variables (that is, x-partition variables) 
 can also be fast but don't have derivatives.
@@ -543,6 +482,68 @@ static Real calcWeightedInfinityNorm(const Vector& values, const Vector& weights
     }
     return maxval;
 }
+
+    ////////////////
+    // STATISTICS //
+    ////////////////
+
+/**@name                         Statistics
+The System keeps mutable statistics internally, initialized to zero at 
+construction. These *must not* affect results in any way. **/
+/**@{**/
+
+/** Zero out the statistics for this System. Although the statistics are 
+mutable, we only allow them to be reset by a caller who has write access since
+setting the stats to zero is associated with construction. **/
+void resetAllCountersToZero();
+
+    // Realization
+
+/** Whenever the system was realized from Stage-1 to the indicated Stage,
+this counter is bumped. Note that a single call to realize() can cause 
+several counters to get bumped. **/
+int getNumRealizationsOfThisStage(Stage) const;
+
+/** Return the total number of calls to realizeTopology(), realizeModel(),
+or realize(), regardless of whether these routines actually did
+anything when called. **/
+int getNumRealizeCalls() const;
+
+    // Prescribed motion
+
+/** Return the total number of calls to the System's prescribe() method.
+We don't distinguish the calls by stage so this may be incremented
+several times per step. **/
+int getNumPrescribeCalls() const;
+
+    // Projection
+
+/** Count the number of times we call project() with a particular
+option set. **/
+int getNumQProjections() const;
+int getNumUProjections() const;
+int getNumQErrorEstimateProjections() const;
+int getNumUErrorEstimateProjections() const;
+
+/** Return the total number of calls to project(), regardless of
+whether the call did anything. **/
+int getNumProjectCalls() const;
+
+    // Event handling and reporting
+
+/** handleEvents() reports the lowest Stage it modified and we bump
+the counter for that Stage. We also count reportEvents() calls here
+as having "changed" Stage::Report. **/
+int getNumHandlerCallsThatChangedStage(Stage) const;
+
+/** This is the total number of calls to handleEvents() regardless
+of the outcome. **/
+int getNumHandleEventCalls() const;
+
+/** This is the total number of calls to reportEvents() regardless
+of the outcome. **/
+int getNumReportEventCalls() const;
+/**@}**/
 
 /**@name                Construction and bookkeeping
 These methods are mostly for use by concrete Systems and will not typically

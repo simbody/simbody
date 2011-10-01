@@ -2,14 +2,14 @@
 #define SimTK_SIMMATH_INTEGRATOR_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmath(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -45,85 +45,82 @@ namespace SimTK {
     
 class IntegratorRep;
 
-/**
- * An Integrator is an object that can simulate the behavior of a System through
- * time.  This is an abstract class.  Subclasses implement a variety of different
- * integration methods, which vary in their speed, accuracy, stability, and various
- * other properties.
- * 
- * <h3>Usage</h3>
- * 
- * An Integrator is most often used in combination with a TimeStepper.  The
- * TimeStepper automates much of the work of using an Integrator: invoking it repeatedly to
- * advance time, calling event handlers, reintializing the Integrator as necessary,
- * and so on.  A typical use of an Integrator generally resembles the following:
- * 
- * <pre>
- * // Instantiate an Integrator subclass which is appropriate for your problem.
- * VerletIntegrator integ(system);
- * // Set configuration options on the Integrator.
- * integ.setAccuracy(1e-3);
- * // Create a TimeStepper and use it to run the simulation.
- * TimeStepper stepper(system, integ);
- * stepper.initialize(initialState);
- * stepper.stepTo(finalTime);
- * </pre>
- * 
- * <h3>Mathematical Overview</h3>
- * 
- * Given a continuous system of differential equations for state variables y, and
- * optionally a manifold (set of algebraic equations) on which the solution must lie,
- * an Integrator object will advance that system through time. If the full system
- * is continuous, this is sufficient. However, most interesting systems consist
- * of both continuous and discrete equations, in
- * which case the overall time advancement is handled by a TimeStepper object which
- * will use an Integrator as an "inner loop" for advancing the system across 
- * continuous intervals between discrete updates. In that case, in addition to 
- * continuous state variables y there will be a set of discrete variables d which
- * are held constant during an integration interval.
- *
- * The continuous part of the system is an ODE-on-a-manifold
- * system suitable for solution via coordinate projection[1], structured like
- * this:
- *         (1)  y' = f[d](t,y)        differential equations
- *         (2)  0  = c[d](t,y)        algebraic equations (manifold is c=0)
- *         (3)  e  = e[d](t,y)        event triggers (watch for zero crossings)
- * with initial conditions t0,y0 such that c=0. The [d] is a reminder that
- * the overall system is dependent on discrete variables d as well as y, but
- * d cannot change during a continuous interval.
- * 
- * By "ODE on a manifold" we mean that the ODE (1) automatically satisfies
- * the condition that IF c==0, THEN c'=0, where
- *     c'=partial(c)/partial(t) + [partial(c)/partial(y)]*y'.
- * This is a less stringent condition than an ODE with "first integral" invariant,
- * in which c'=0 regardless of whether c=0.
- *
- * [1] Hairer, Lubich, Wanner, "Geometric Numerical Integration: Structure-Preserving
- * Algorithms for Ordinary Differential Equations", 2nd ed., section IV.4, pg 109ff,
- * Springer, 2006.
- *
- * The discrete variables d are updated by the time stepper upon occurence of specific
- * events, which terminate a continuous interval. The Integrator detects these
- * using a set of scalar-valued event trigger functions shown as equation (3) above. 
- * An event trigger function for a particular event must be designed so that it has a
- * zero crossing when the event occurs. The integrator can thus watch for sign changes
- * in event triggers and terminate the current step when a zero crossing occurs,
- * notifying the system and giving it a chance to handle the event; that is, 
- * update its state variables discontinuously.
- *
- * The zero crossings of continuous event trigger functions will
- * be isolated quickly; discontinuous ones have to be "binary chopped" which
- * is more expensive but they will still work.
- *
- * We are given a set of weights W for the y's, and a set of tolerances T
- * for the constraint errors. Given an accuracy specification (like 0.1%),
- * the integrators here are expected to solve for y(t) such that the
- * local error |W*yerr|_RMS <= accuracy, and |T*c(t,y)|_RMS <= accuracy at
- * all times.
- *
- * TODO: isolation tolerances for witnesses; dealing with simultaneity.
- *
- */
+/** An Integrator is an object that can advance the State of a System 
+through time. This is an abstract class. Subclasses implement a variety of 
+different integration methods, which vary in their speed, accuracy, stability, 
+and various other properties.
+
+<h3>Usage</h3>
+
+An Integrator is most often used in combination with a TimeStepper.  The
+TimeStepper automates much of the work of using an Integrator: invoking it 
+repeatedly to advance time, calling event handlers, reintializing the 
+Integrator as necessary, and so on.  A typical use of an Integrator generally 
+resembles the following:
+
+@code
+    // Instantiate an Integrator subclass which is appropriate for your problem.
+    VerletIntegrator integ(system);
+    // Set configuration options on the Integrator.
+    integ.setAccuracy(1e-3);
+    // Create a TimeStepper and use it to run the simulation.
+    TimeStepper stepper(system, integ);
+    stepper.initialize(initialState);
+    stepper.stepTo(finalTime);
+@endcode
+
+<h3>Mathematical Overview</h3>
+
+Given a continuous system of differential equations for state variables y, and
+optionally a manifold (set of algebraic equations) on which the solution must
+lie, an Integrator object will advance that system through time. If the full 
+system is continuous, this is sufficient. However, most interesting systems 
+consist of both continuous and discrete equations, in which case the overall 
+time advancement is handled by a TimeStepper object which will use an 
+Integrator as an "inner loop" for advancing the system across continuous 
+intervals between discrete updates. In that case, in addition to continuous 
+state variables y there will be a set of discrete variables d which are held 
+constant during an integration interval.
+
+The continuous part of the system is an ODE-on-a-manifold system suitable for 
+solution via coordinate projection[1], structured like this:
+        (1)  y' = f(d;t,y)        differential equations
+        (2)  0  = c(d;t,y)        algebraic equations (manifold is c=0)
+        (3)  e  = e(d;t,y)        event triggers (watch for zero crossings)
+with initial conditions t0,y0 such that c=0. The "d;" is a reminder that the 
+overall system is dependent on discrete variables d as well as y, but d cannot 
+change during a continuous interval.
+
+By "ODE on a manifold" we mean that the ODE (1) automatically satisfies the 
+condition that IF c==0, THEN c'=0, where
+    c'=partial(c)/partial(t) + [partial(c)/partial(y)]*y'.
+This is a less stringent condition than an ODE with "first integral" invariant,
+in which c'=0 regardless of whether c=0.
+
+[1] Hairer, Lubich, Wanner, "Geometric Numerical Integration: 
+Structure-Preserving Algorithms for Ordinary Differential Equations", 2nd ed., 
+section IV.4, pg 109ff, Springer, 2006.
+
+The discrete variables d are updated by the time stepper upon occurence of 
+specific events, which terminate a continuous interval. The Integrator detects
+these using a set of scalar-valued event trigger functions shown as equation 
+(3) above. An event trigger function for a particular event must be designed so
+that it has a zero crossing when the event occurs. The integrator can thus 
+watch for sign changes in event triggers and terminate the current step when a
+zero crossing occurs, notifying the system and giving it a chance to handle the
+event; that is, update its state variables discontinuously.
+
+The zero crossings of continuous event trigger functions will be isolated 
+quickly; discontinuous ones have to be "binary chopped" which is more expensive
+but they will still work.
+
+We are given a set of weights W for the y's, and a set of tolerances T for the
+constraint errors. Given an accuracy specification (like 0.1%), the integrators
+here are expected to solve for y(t) such that the local error 
+|W*yerr|_RMS <= accuracy, and |T*c(t,y)|_RMS <= accuracy at all times.
+
+TODO: isolation tolerances for witnesses; dealing with simultaneity.
+**/
 class SimTK_SIMMATH_EXPORT Integrator {
 public:
     Integrator() : rep(0) { }
@@ -399,16 +396,6 @@ protected:
     // opaque implementation for binary compatibility
     IntegratorRep* rep;
     friend class IntegratorRep;
-
-private:
-    // OBSOLETE
-    int getNStepsAttempted() const {return getNumStepsAttempted();}
-    int getNStepsTaken() const {return getNumStepsTaken();} 
-    int getNRealizations() const {return getNumRealizations();}
-    int getNProjections() const {return getNumProjections();}
-    int getNErrorTestFailures() const {return getNumErrorTestFailures();}
-    int getNRealizationFailures() const {return getNumRealizationFailures();}
-    int getNProjectionFailures() const {return getNumProjectionFailures();}
 };
 
 } // namespace SimTK

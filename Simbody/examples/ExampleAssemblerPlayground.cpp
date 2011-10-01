@@ -122,8 +122,7 @@ int main() {
     system.realizeTopology();
 
     State state = system.getDefaultState();
-    for (int i=0; i<5; ++i)
-        pres[i].disable(state);
+    //for (int i=0; i<5; ++i) pres[i].disable(state);
 
     for (int i=0; i<5; ++i)
         cout << "state pres[" << i << "].isDisabled=" 

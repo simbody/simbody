@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -48,12 +48,13 @@ namespace SimTK {
 // subsequently invalidated, and keeping their allocations stacked by
 // stage allows that to be done efficiently.
 //
-// The method are templatized and expect the stacks to be in std::vectors
+// The method are templatized and expect the stacks to be in Arrays
 // of the same template. The template value must be a type that supports
 // three methods (the template analog to virtual functions):
 //      deepAssign()            a non-shallow assignment, i.e. clone the value
 //      deepDestruct()          destroy any owned heap space
-//      getAllocationStage()    return the stage being worked on when this was allocated
+//      getAllocationStage()    return the stage being worked on when this was 
+//                              allocated
 // The template type must otherwise support shallow copy semantics so that
 // the Array_ can move them around without causing any heap activity.
 
@@ -121,7 +122,7 @@ static void copyAllocationStackThroughStage
 // Here we have a block of continuous, real-valued, second order state variables
 // q (generalized positions) paired with first order state variables u 
 // (generalized speeds) such that qdot = N(q)*u for some invertible block 
-// diagonal matrix N. This block is allocated during realization of Topology
+// diagonal matrix N. This space is allocated during realization of Topology
 // or Model stage. The actual number nq of q's and nu <= nq of u's in all such 
 // blocks must be known by the end of this Subsystem's realization of its Model 
 // stage. Then:
@@ -136,11 +137,11 @@ static void copyAllocationStackThroughStage
 // particular, prescribed motion (which provides udots as a function of t,q,
 // and u) may also provide a formula for u=u(t,q), and if it does it may 
 // additionally provide a formula for q=q(t). So we may need zero, one, or
-// two integrations for any mobility u. By the end of the Subsystem's realization 
-// of Instance stage, we must know the number nq_integ <= nq of q's and 
-// nu_integ <= nu of u's that are defined by differential equations and thus 
-// require integration of qdots and udots respectively. (A second order integrator 
-// like Verlet may find q from qdotdot rather than qdot.) Then:
+// two integrations for any mobility u. By the end of the Subsystem's 
+// realization of Instance stage, we must know the number nq_integ <= nq 
+// of q's and nu_integ <= nu of u's that are defined by differential equations
+// and thus require integration of qdots and udots respectively. (A second order
+// integrator like Verlet may find q from qdotdot rather than qdot.) Then:
 //
 //  System-level resources allocated upon realize(Instance):
 //      - nqInteg slots in the q partition of the yInteg Vector
@@ -382,7 +383,7 @@ private:
 
     // These change at run time.
     AbstractValue*          value;
-    StageVersion            versionWhenLastComputed;   // version of Stage dependsOn
+    StageVersion            versionWhenLastComputed; // version of Stage dependsOn
 
     bool isReasonable() const
     {    return (   allocationStage==Stage::Topology
@@ -642,15 +643,15 @@ private:
     void copyEventsThroughStage(const Array_<EventInfo>& src, const Stage& g)
     {   copyAllocationStackThroughStage(eventInfo, src, g); }
 
-    // Restore this subsystem to the way it last was at realize(g) for a given Stage g; 
-    // that is, invalidate all stages > g. Allocations will be forgotten as Instance, 
-    // Model, and Topology stages are invalidated.
+    // Restore this subsystem to the way it last was at realize(g) for a given 
+    // Stage g; that is, invalidate all stages > g. Allocations will be 
+    // forgotten as Instance, Model, and Topology stages are invalidated.
     void restoreToStage(Stage g) {
         if (currentStage <= g)
-			return;
+            return;
 
         if (g < Stage::Instance) {
-			clearReferencesToInstanceStageGlobals();
+            clearReferencesToInstanceStageGlobals();
 
             // TODO: this assumes that all constraint error and event trigger
             // allocations are performed at Stage::Instance. Should allow
@@ -761,7 +762,8 @@ public:
     // We'll do the copy constructor and assignment explicitly here
     // to get tight control over what's allowed.
     StateImpl(const StateImpl& src)
-    :   currentSystemStage(Stage::Empty), lowestModifiedSystemStage(Stage::Topology)
+    :   currentSystemStage(Stage::Empty), 
+        lowestModifiedSystemStage(Stage::Topology)
     {
         subsystems = src.subsystems;
         if (src.currentSystemStage >= Stage::Topology) {
@@ -962,8 +964,7 @@ public:
             }
         }
         else if (g == Stage::Instance) {
-            // We know the shared state pool sizes now. Allocate the
-            // states and matching shared cache pools.
+            // We know the shared cache pool sizes now. Allocate them.
             int nqerr=0, nuerr=0, nudoterr=0, nAllTriggers=0;
             int ntriggers[Stage::NValid];
             for (int j=0; j<Stage::NValid; ++j)
@@ -1151,25 +1152,35 @@ public:
         return nxt;
     }
     
-    // Topology- and Model-stage State variables can only be added during construction; that is,
-    // while stage <= Topology. Other entries can be added while stage < Model.
-    DiscreteVariableIndex allocateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp) {
-        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), invalidates, Stage::HighestRuntime, 
+    // Topology- and Model-stage State variables can only be added during 
+    // construction; that is, while stage <= Topology. Other entries can be 
+    // added while stage < Model.
+    DiscreteVariableIndex allocateDiscreteVariable
+       (SubsystemIndex subsys, Stage invalidates, AbstractValue* vp) 
+    {
+        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(),
+                                      invalidates, Stage::HighestRuntime, 
             "StateImpl::allocateDiscreteVariable()");
     
-        const Stage maxAcceptable = (invalidates <= Stage::Model ? Stage::Empty : Stage::Topology);
+        const Stage maxAcceptable = (invalidates <= Stage::Model 
+                                     ? Stage::Empty : Stage::Topology);
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
             maxAcceptable.next(), "StateImpl::allocateDiscreteVariable()");
     
         PerSubsystemInfo& ss = subsystems[subsys];
         const DiscreteVariableIndex nxt(ss.discreteInfo.size());
-        ss.discreteInfo.push_back(DiscreteVarInfo(getSubsystemStage(subsys).next(),invalidates,vp));
+        ss.discreteInfo.push_back
+           (DiscreteVarInfo(getSubsystemStage(subsys).next(),invalidates,vp));
         return nxt;
     }
     
     // Cache entries can be allocated while stage < Instance.
-    CacheEntryIndex allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* vp) const {
-        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), dependsOn, Stage::HighestRuntime, 
+    CacheEntryIndex allocateCacheEntry
+       (SubsystemIndex subsys, Stage dependsOn, Stage computedBy,
+        AbstractValue* vp) const 
+    {
+        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), 
+                                      dependsOn, Stage::HighestRuntime, 
             "StateImpl::allocateCacheEntry()");
         SimTK_STAGECHECK_RANGE_ALWAYS(dependsOn, computedBy, Stage::Infinity, 
             "StateImpl::allocateCacheEntry()");
@@ -1178,15 +1189,16 @@ public:
 
         const PerSubsystemInfo& ss = subsystems[subsys];
         const CacheEntryIndex nxt(ss.cacheInfo.size());
-        ss.cacheInfo.push_back(CacheEntryInfo(getSubsystemStage(subsys).next(),dependsOn,computedBy,vp)); // mutable
+        ss.cacheInfo.push_back(CacheEntryInfo(getSubsystemStage(subsys).next(),
+                                              dependsOn,computedBy,vp));//mutable
         return nxt;
     }
 
     // Allocate a discrete variable and a corresponding cache entry for
     // updating it, and connect them together.
-    DiscreteVariableIndex
-    allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
-                                       Stage updateDependsOn)
+    DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
+       (SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
+        Stage updateDependsOn)
     {
         const DiscreteVariableIndex dx = 
             allocateDiscreteVariable(subsys,invalidates,vp->clone());

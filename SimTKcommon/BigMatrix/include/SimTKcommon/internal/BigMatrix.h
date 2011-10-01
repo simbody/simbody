@@ -1280,13 +1280,16 @@ public:
     VectorView_<ELT> operator()(int i, int m) const {return Base::operator()(i,0,m,1).getAsVectorView();}
     VectorView_<ELT> operator()(int i, int m)       {return Base::operator()(i,0,m,1).updAsVectorView();}
 
-    // Indexed view creation (arbitrary subvector). Indices must be monotonically increasing.
+    // Indexed view creation (arbitrary subvector). Indices must be 
+    // monotonically increasing.
     VectorView_<ELT> index(const Array_<int>& indices) const {
-        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::getHelper(), indices);
+        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), 
+                               Base::getHelper(), indices);
         return VectorView_<ELT>(h);
     }
     VectorView_<ELT> updIndex(const Array_<int>& indices) {
-        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::updHelper(), indices);
+        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), 
+                               Base::updHelper(), indices);
         return VectorView_<ELT>(h);
     }
 
