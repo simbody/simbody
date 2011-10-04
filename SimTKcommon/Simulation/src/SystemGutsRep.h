@@ -103,12 +103,12 @@ public:
     Subsystem&       updSubsystem(SubsystemIndex i)       {return subsystems[i];}
 
 
-	// Take over ownership from the Subsystem handle, allocate a new
+    // Take over ownership from the Subsystem handle, allocate a new
     // subsystem slot for it, and return the slot number. This is only 
     // allowed if the supplied Subsytem already has a rep, but is
     // NOT part of some other System.
-	SubsystemIndex adoptSubsystem(Subsystem& child) {
-		assert(child.hasGuts() && !child.isInSystem()); // TODO
+    SubsystemIndex adoptSubsystem(Subsystem& child) {
+        assert(child.hasGuts() && !child.isInSystem()); // TODO
         assert(child.isOwnerHandle());
 
         // This is a topology change.
@@ -116,15 +116,15 @@ public:
 
         const SubsystemIndex id = SubsystemIndex((int)subsystems.size());
         subsystems.resize(id+1); // grow
-		Subsystem& s = subsystems.back(); // refer to the empty handle
+        Subsystem& s = subsystems.back(); // refer to the empty handle
 
         // Take over ownership of the child's guts, leaving the child
         // as a non-owner reference to the same guts.
         s.adoptSubsystemGuts(&child.updSubsystemGuts());
         s.setSystem(*myHandle, id);
 
-		return id;
-	}
+        return id;
+    }
 
     void setMyHandle(System& h) {myHandle = &h;}
     void clearMyHandle() {myHandle=0;}
@@ -142,7 +142,7 @@ public:
 protected:
     String systemName;
     String systemVersion;
-	StableArray<Subsystem> subsystems;
+    StableArray<Subsystem> subsystems;
 
 private:
     friend class System;
@@ -155,7 +155,9 @@ private:
     bool                useUniformBackground;   // visualization hint
 
     bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
-       // TOPOLOGY STAGE CACHE //
+       
+    
+    // TOPOLOGY STAGE CACHE //
 
     // This should only be true when *all* subsystems have successfully
     // completed realizeTopology(). Anything which invalidates topology for

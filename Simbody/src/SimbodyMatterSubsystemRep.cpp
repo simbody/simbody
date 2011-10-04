@@ -634,14 +634,14 @@ realizeSubsystemInstanceImpl(const State& s) const {
     // allocate them in Simbody's cache entries at the appropriate stages. The 
     // prescribed q pool is in the TimeCache, prescribed u (dependent on the 
     // TreePositionCache) is written into the ConstrainedPositionCache, 
-    // prescribed udots are written directly into the udot array in the State,
+    // prescribed udots are written to the DynamicsCache,
     // and the prescribed forces tau are calculated at the same time as the 
-    // unprescribed udots and are thus in the TreeAccelerationCache.
+    // free (non-prescribed) udots and are thus in the TreeAccelerationCache.
     //
     // NOTE: despite appearances here, each pool is in MobilizedBodyIndex order, 
     // meaning that the prescribed position, velocity, and acceleration, and the
-    // other known udot entries, will be intermingled here rather than neatly 
-    // lined up as I've drawn them.
+    // other known udot entries, will be intermingled in the ForcePool rather than 
+    // neatly lined up as I've drawn them.
     //
     //            --------------------
     //     QPool |       nPresQ       |      NOTE: not really ordered like this
@@ -662,17 +662,15 @@ realizeSubsystemInstanceImpl(const State& s) const {
 
     // Motion options for all mobilizers are now available in the InstanceVars.
     // We need to figure out what cache resources are required, including
-    // slots for the constraint forces that implement prescribed motion.
+    // slots for the generalized forces that implement prescribed motion.
     ic.presQ.clear();       ic.zeroQ.clear();       ic.freeQ.clear();
     ic.presU.clear();       ic.zeroU.clear();       ic.freeU.clear();
     ic.presUDot.clear();    ic.zeroUDot.clear();    ic.freeUDot.clear();
     ic.presForce.clear();
     for (MobilizedBodyIndex mbx(0); mbx < mobilizedBodies.size(); ++mbx) {
-        const MobilizedBody& mobod = getMobilizedBody(mbx);
-        const SBModelPerMobodInfo& 
-            modelInfo    = mc.getMobodModelInfo(mbx);
-        SBInstancePerMobodInfo&
-            instanceInfo = ic.updMobodInstanceInfo(mbx);
+        const MobilizedBody&       mobod        = getMobilizedBody(mbx);
+        const SBModelPerMobodInfo& modelInfo    = mc.getMobodModelInfo(mbx);
+        SBInstancePerMobodInfo&    instanceInfo = ic.updMobodInstanceInfo(mbx);
 
         const int nq = modelInfo.nQInUse;
         const int nu = modelInfo.nUInUse;
@@ -741,8 +739,8 @@ realizeSubsystemInstanceImpl(const State& s) const {
         }
 
         // Assign udots to appropriate index vectors for convenient
-        // manipulation. Prescribed udots also need pool allocation,
-        // and any non-Free udot needs a prescribed force (tau) slot.
+        // manipulation. Prescribed udots also need pool allocation.
+
         switch(instanceInfo.udotMethod) {
         case Motion::Prescribed:
             instanceInfo.firstPresUDot = PresUDotPoolIndex(ic.presUDot.size());
@@ -762,6 +760,7 @@ realizeSubsystemInstanceImpl(const State& s) const {
             break; // nothing to do for these here
         }
 
+        // Any non-Free udot needs a prescribed force (tau) slot.
         // Count mobilities that need a slot to hold the calculated force due
         // to a known udot, whether prescribed or known for some other reason.
         if (instanceInfo.udotMethod != Motion::Free) {
@@ -3825,9 +3824,10 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     // Calculate accelerations produced by these forces in three forms:
     // body accelerations A_GB, u-space generalized acceleratiosn udot,
     // and q-space generalized accelerations qdotdot.
-    calcTreeAccelerations(s, *mobilityForcesToUse, *bodyForcesToUse,
-                          netHingeForces, abForcesZ, abForcesZPlus,
-                          A_GB, udot, qdotdot, tau);
+    calcTreeAccelerations
+       (s, *mobilityForcesToUse, *bodyForcesToUse, dc.presUDotPool,
+        netHingeForces, abForcesZ, abForcesZPlus,
+        A_GB, udot, qdotdot, tau);
 
     // Feed the accelerations into the constraint error methods to determine
     // the acceleratin constraint errors they generate.
@@ -4058,11 +4058,12 @@ Real SimbodyMatterSubsystemRep::calcKineticEnergy(const State& s) const {
 //==============================================================================
 // Operator for open-loop forward dynamics.
 // This Subsystem must have already been realized to Dynamics stage so that 
-// dynamics quantities like articulated body inertias are available.
-// All vectors must use contiguous storage.
+// coriolis terms are available, and articulated body inertias should have been
+// realized. All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces,
+    const Array_<Real>&        presUDots, // packed
     Vector&                    netHingeForces,
     Array_<SpatialVec,MobilizedBodyIndex>& allZ, 
     Array_<SpatialVec,MobilizedBodyIndex>& allZPlus, 
@@ -4110,6 +4111,14 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     Real*             tauPtr           = tau.size()     ? &tau[0] : NULL;
     SpatialVec*       zPtr             = allZ.begin();    
     SpatialVec*       zPlusPtr         = allZPlus.begin(); 
+
+    // If there are any prescribed udots, scatter them into the appropriate
+    // udot entries now. We must also set known-zero udots to zero here.
+    assert(presUDots.size() == ic.getTotalNumPresUDot());
+    for (PresUDotPoolIndex i(0); i < presUDots.size(); ++i)
+        udotPtr[ic.presUDot[i]] = presUDots[i];
+    for (int i=0; i < ic.zeroUDot.size(); ++i)
+        udotPtr[ic.zeroUDot[i]] = 0;
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
@@ -4675,6 +4684,94 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForcesUsingFreebodyMethod
         }
 }
 //....................... CALC MOBILIZER REACTION FORCES .......................
+
+
+
+//==============================================================================
+//                             CALC MOTION ERRORS
+//==============================================================================
+// Return one error per known value, in order of mobilized bodies.
+Vector SimbodyMatterSubsystemRep::
+calcMotionErrors(const State& s, const Stage& stage) const
+{
+    const SBInstanceCache& ic = getInstanceCache(s);
+    Vector errs;
+
+    if (stage == Stage::Position) {
+        const SBTimeCache tc = getTimeCache(s);
+        assert(tc.presQPool.size() == ic.getTotalNumPresQ());
+        errs.resize(ic.getTotalNumPresQ()+ic.getTotalNumZeroQ());
+        int nxt = 0;
+        for (MobodIndex mbx(1); mbx < getNumBodies(); ++mbx) {
+            const Mobod& mobod = getMobilizedBody(mbx);
+            const int nq = mobod.getNumQ(s);
+            const MobilizedBodyImpl& mbimpl = mobod.getImpl();
+            const SBInstancePerMobodInfo& mbinfo = mbimpl.getMyInstanceInfo(s);
+            if (mbinfo.qMethod == Motion::Zero) {
+                errs(nxt, nq) = mobod.getQAsVector(s); //TODO not right for quats
+                nxt += nq;
+            } else if (mbinfo.qMethod == Motion::Prescribed) {
+                Vector pres(nq, &tc.presQPool[mbinfo.firstPresQ], true);
+                errs(nxt, nq) = mobod.getQAsVector(s) - pres;
+                nxt += nq;
+            }
+        }
+        return errs;
+    }
+
+    if (stage == Stage::Velocity) {
+        const SBConstrainedPositionCache cpc = getConstrainedPositionCache(s);
+        assert(cpc.presUPool.size() == ic.getTotalNumPresU());
+        errs.resize(ic.getTotalNumPresU()+ic.getTotalNumZeroU());
+        int nxt = 0;
+        for (MobodIndex mbx(1); mbx < getNumBodies(); ++mbx) {
+            const Mobod& mobod = getMobilizedBody(mbx);
+            const int nu = mobod.getNumU(s);
+            const MobilizedBodyImpl& mbimpl = mobod.getImpl();
+            const SBInstancePerMobodInfo& mbinfo = mbimpl.getMyInstanceInfo(s);
+            if (mbinfo.uMethod == Motion::Zero) {
+                errs(nxt, nu) = mobod.getUAsVector(s);
+                nxt += nu;
+            } else if (mbinfo.uMethod == Motion::Prescribed) {
+                Vector pres(nu, &cpc.presUPool[mbinfo.firstPresU], true);
+                errs(nxt, nu) = mobod.getUAsVector(s) - pres;
+                nxt += nu;
+            }
+        }
+        return errs;
+    }
+
+    if (stage == Stage::Acceleration) {
+        const SBDynamicsCache dc = getDynamicsCache(s);
+        assert(dc.presUDotPool.size() == ic.getTotalNumPresUDot());
+        errs.resize(ic.getTotalNumPresUDot()+ic.getTotalNumZeroUDot());
+        int nxt = 0;
+        for (MobodIndex mbx(1); mbx < getNumBodies(); ++mbx) {
+            const Mobod& mobod = getMobilizedBody(mbx);
+            const int nu = mobod.getNumU(s);
+            const MobilizedBodyImpl& mbimpl = mobod.getImpl();
+            const SBInstancePerMobodInfo& mbinfo = mbimpl.getMyInstanceInfo(s);
+            if (mbinfo.udotMethod == Motion::Zero) {
+                errs(nxt, nu) = mobod.getUDotAsVector(s);
+                nxt += nu;
+            } else if (mbinfo.udotMethod == Motion::Prescribed) {
+                Vector pres(nu, &dc.presUDotPool[mbinfo.firstPresUDot], true);
+                errs(nxt, nu) = mobod.getUDotAsVector(s) - pres;
+                nxt += nu;
+            }
+        }
+        return errs;
+    }
+
+    SimTK_APIARGCHECK1_ALWAYS
+       (Stage::Position <= stage && stage <= Stage::Acceleration,
+        "SimbodyMatterSubsystem", "calcMotionErrors()",
+        "Requested stage must be Position, Velocity, or Acceleration but"
+        " was %s.", stage.getName().c_str());
+
+    /*NOTREACHED*/
+    return errs;
+}
 
 
 

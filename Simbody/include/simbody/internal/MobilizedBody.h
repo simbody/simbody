@@ -339,10 +339,13 @@ public:
     UIndex getFirstUIndex(const State&) const;
 
     /// Determine how generalized coordinate q values are being determined.
-    Motion::Method getQMotionMethod(const State&) const;
+    /// @param[in] state    Must be realized to Instance stage.
+    Motion::Method getQMotionMethod(const State& state) const;
     /// Determine how generalized speed u values are being determined.
+    /// @param[in] state    Must be realized to Instance stage.
     Motion::Method getUMotionMethod(const State&) const;
     /// Determine how generalized acceleration udot values are being determined.
+    /// @param[in] state    Must be realized to Instance stage.
     Motion::Method getUDotMotionMethod(const State&) const;
 
 

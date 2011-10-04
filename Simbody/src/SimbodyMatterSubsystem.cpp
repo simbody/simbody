@@ -201,11 +201,15 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
     Vector tau;
     Vector qdotdot;
 
+    const SBDynamicsCache& dc = getRep().getDynamicsCache(state);
+
     getRep().calcTreeAccelerations(state,
-        appliedMobilityForces, appliedBodyForces,
+        appliedMobilityForces, appliedBodyForces, dc.presUDotPool,
         netHingeForces, abForcesZ, abForcesZPlus, 
         A_GB, udot, qdotdot, tau);
 }
+
+
 
 //==============================================================================
 //                  CALC RESIDUAL FORCE IGNORING CONSTRAINTS
@@ -1326,6 +1330,10 @@ void SimbodyMatterSubsystem::calcMobilizerReactionForces
 const Vector& SimbodyMatterSubsystem::
 getMotionMultipliers(const State& s) const 
 {   return getRep().getMotionMultipliers(s); }
+
+Vector SimbodyMatterSubsystem::
+calcMotionErrors(const State& s, const Stage& stage) const
+{   return getRep().calcMotionErrors(s,stage); }
 
 void SimbodyMatterSubsystem::
 findMotionForces(const State&         s,

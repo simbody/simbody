@@ -647,13 +647,14 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
     // derivative of nonholonomic prescribed u, or to 2nd derivative
     // of holonomic prescribed q.
     if (instInfo.udotMethod==Motion::Prescribed) {
-        const SBModelCache& mc = sbs.getModelCache();
-        const SBModelPerMobodInfo& 
-            modelInfo = mc.getMobodModelInfo(mbx);
-        const int    nu = modelInfo.nUInUse;
-        const UIndex ux = modelInfo.firstUIndex;
-        Vector&      udot = sbs.updUDot();
+        const SBModelCache&         mc = sbs.getModelCache();
+        const SBModelPerMobodInfo&  modelInfo = mc.getMobodModelInfo(mbx);
+        const int                   nu = modelInfo.nUInUse;
+        const UIndex                ux = modelInfo.firstUIndex;
+        const PresUDotPoolIndex     pudx = instInfo.firstPresUDot;
+        SBDynamicsCache& dc = sbs.updDynamicsCache();
         const MotionImpl& motion = getMotion().getImpl();
+        Real* presUDotp = &dc.presUDotPool[pudx];
 
         if (instInfo.qMethod==Motion::Prescribed) {
             // Holonomic
@@ -663,7 +664,7 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
             if (rbn.isQDotAlwaysTheSameAsU()) {
                 assert(nq==nu);
                 motion.calcPrescribedPositionDotDot(sbs.getState(), nu,
-                                                    &udot[ux]);
+                                                    &dc.presUDotPool[pudx]);
             } else {
                 Real ndotU[8]; // remainder term NDot*u (nq of these; max is 7)
                 const Vector& u = sbs.getU();
@@ -676,14 +677,14 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
                     qdotdot[i] -= ndotU[i]; // velocity correction
 
                 // udot = N^-1 (qdotdot - NDot*u)
-                rbn.multiplyByNInv(sbs, false, qdotdot, &udot[ux]);
+                rbn.multiplyByNInv(sbs, false, qdotdot, presUDotp);
             }
         } else if (instInfo.uMethod==Motion::Prescribed) { 
             // Non-holonomic
-            motion.calcPrescribedVelocityDot(sbs.getState(), nu, &udot[ux]);
+            motion.calcPrescribedVelocityDot(sbs.getState(), nu, presUDotp);
         } else { 
             // Acceleration-only
-            motion.calcPrescribedAcceleration(sbs.getState(), nu, &udot[ux]);
+            motion.calcPrescribedAcceleration(sbs.getState(), nu, presUDotp);
         }
     }
 

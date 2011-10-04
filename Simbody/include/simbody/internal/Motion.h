@@ -317,7 +317,7 @@ public:
     /// Anything not prescribed will be determined by numerical
     /// integration, by relaxation, or by discrete changes driven by
     /// events, depending on whether the associated mobilizer is 
-    /// "regular", "fast", or "slow", respectively.
+    /// "free", "fast", or "slow", respectively.
     virtual Motion::Level getLevel(const State&) const = 0;
 
     virtual Motion::Method getLevelMethod(const State&) const {

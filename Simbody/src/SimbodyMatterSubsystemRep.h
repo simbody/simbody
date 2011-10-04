@@ -486,6 +486,7 @@ public:
     void calcTreeAccelerations(const State& s,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
+        const Array_<Real>&        presUDots, // packed
         Vector&                    netHingeForces,
         Array_<SpatialVec,MobilizedBodyIndex>& abForcesZ, 
         Array_<SpatialVec,MobilizedBodyIndex>& abForcesZPlus, 
@@ -682,6 +683,7 @@ public:
         return tac.presMotionForces;
     }
 
+    Vector calcMotionErrors(const State& state, const Stage& stage) const;
 
     void findMotionForces(const State&         s,
                           Vector&              mobilityForces) const;
