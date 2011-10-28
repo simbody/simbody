@@ -251,6 +251,7 @@ public:
 
     This* createDeepCopy_() const {
         This* p = cloneHelper_();
+        p->m_leadingDim = this->nrow()*this->m_eltSize; // packed now
         p->m_writable = true;
         p->m_owner = true;
         p->allocateData(this->nelt());
@@ -369,6 +370,7 @@ public:
 
     This* createDeepCopy_() const {
         This* p = cloneHelper_();
+        p->m_leadingDim = this->ncol()*this->m_eltSize; // packed now
         p->m_writable = true;
         p->m_owner = true;
         p->allocateData(this->nelt());
