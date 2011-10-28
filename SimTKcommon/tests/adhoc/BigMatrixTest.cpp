@@ -188,11 +188,26 @@ void testScalarMultiply() {
     cout << "------ END TEST SCALAR MULTIPLY ------\n\n"; 
 }
 
+
+void testAjaysBlock() {
+    cout << "\n------ TEST AJAY'S BLOCK ------\n"; 
+    const int nu =6, nm=3;
+    Matrix J(6,nu);
+    for (int i=0; i<6; ++i)
+        for (int j=0; j<nu; ++j)
+            J(i,j) = 1000*i+j;
+    Matrix t = J(0,3,3,nm);
+    cout << J << endl;
+    cout << "t=" << t;
+    cout << "\n------ END TEST AJAY'S BLOCK ------\n"; 
+}
+
 int main()
 {
   try {
     SimTK_DEBUG("Running BigMatrixTest ...\n");
 
+    testAjaysBlock();
     testScalarMultiply();
     testCharacter();
 
