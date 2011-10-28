@@ -211,6 +211,22 @@ void testInertia() {
     SimTK_TEST_EQ(Gshft, G);
     SimTK_TEST_EQ(Ishft, I);
 
+    // Check that we catch bad inertias in debug mode
+#ifndef NDEBUG
+    Inertia bad1;
+    SimTK_TEST_MUST_THROW(bad1 = Inertia(1,2,NaN));
+    SimTK_TEST_MUST_THROW(bad1 = Inertia(1,2,-.000003)); // negative diag
+    SimTK_TEST_MUST_THROW(bad1 = Inertia(5,1,2)); // triangle inequality violated
+
+    // A little slop should be allowed for the triangle inequality.
+    Real tooMuchSlop = 1e-3;
+    Real okSlop = SignificantReal;
+    SimTK_TEST_MUST_THROW(bad1 = Inertia(1, 2+tooMuchSlop, 1));
+    bad1 = Inertia(1, 2+okSlop, 1);
+
+
+#endif
+
 }
 
 // Calculate the lower half of vx*F where vx is the cross product matrix

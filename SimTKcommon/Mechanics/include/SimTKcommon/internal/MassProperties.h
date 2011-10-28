@@ -516,23 +516,25 @@ const UnitInertia_<P>& getAsUnitInertia() const
 UnitInertia_<P>& updAsUnitInertia()
 {   return *reinterpret_cast<UnitInertia_<P>*>(this); }
 
-// If error checking is enabled (typically only in Debug mode), this 
+// If error checking is enabled (only in Debug mode), this 
 // method will run some tests on the current contents of this Inertia 
 // matrix and throw an error message if it is not valid. This should be 
 // the same set of tests as run by the isValidInertiaMatrix() method above.
 void errChk(const char* methodName) const {
-    const RealP Slop = NTraits<P>::getSignificant();
+#ifndef NDEBUG
     SimTK_ERRCHK(!isNaN(), methodName,
         "Inertia matrix contains a NaN.");
     const Vec3P& d = I_OF_F.diag();
     SimTK_ERRCHK3(d >= 0, methodName,
         "Diagonals of an Inertia matrix must be nonnegative; got %g,%g,%g.",
         (double)d[0],(double)d[1],(double)d[2]);
+    const RealP Slop = std::sqrt(NTraits<P>::getEps());
     SimTK_ERRCHK3(d[0]+d[1]+Slop>=d[2] && d[0]+d[2]+Slop>=d[1] && d[1]+d[2]+Slop>=d[0],
         methodName,
         "Diagonals of an Inertia matrix must satisfy the triangle "
         "inequality; got %g,%g,%g.",
         (double)d[0],(double)d[1],(double)d[2]);
+#endif
 }
 
 // Inertia expressed in frame F and about F's origin OF. Note that frame F
