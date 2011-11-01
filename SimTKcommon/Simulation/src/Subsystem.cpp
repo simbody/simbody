@@ -360,6 +360,8 @@ void Subsystem::Guts::markCacheValueNotRealized(const State& s, CacheEntryIndex 
 const Vector& Subsystem::Guts::getQ(const State& s) const {return s.getQ(getRep().getMySubsystemIndex());}
 const Vector& Subsystem::Guts::getU(const State& s) const {return s.getU(getRep().getMySubsystemIndex());}
 const Vector& Subsystem::Guts::getZ(const State& s) const {return s.getZ(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getUWeights(const State& s) const {return s.getUWeights(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getZWeights(const State& s) const {return s.getZWeights(getRep().getMySubsystemIndex());}
 
 Vector& Subsystem::Guts::updQ(State& s) const {return s.updQ(getRep().getMySubsystemIndex());}
 Vector& Subsystem::Guts::updU(State& s) const {return s.updU(getRep().getMySubsystemIndex());}
@@ -377,6 +379,9 @@ Vector& Subsystem::Guts::updQDotDot(const State& s) const {return s.updQDotDot(g
 
 const Vector& Subsystem::Guts::getQErr(const State& s) const {return s.getQErr(getRep().getMySubsystemIndex());}
 const Vector& Subsystem::Guts::getUErr(const State& s) const {return s.getUErr(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getQErrWeights(const State& s) const {return s.getQErrWeights(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getUErrWeights(const State& s) const {return s.getUErrWeights(getRep().getMySubsystemIndex());}
+
 const Vector& Subsystem::Guts::getUDotErr(const State& s) const {return s.getUDotErr(getRep().getMySubsystemIndex());}
 const Vector& Subsystem::Guts::getMultipliers(const State& s) const {return s.getMultipliers(getRep().getMySubsystemIndex());}
 const Vector& Subsystem::Guts::getEventTriggersByStage(const State& s, Stage g) const
@@ -578,22 +583,6 @@ void Subsystem::Guts::realizeSubsystemReport(const State& s) const {
 }
 
 
-void Subsystem::Guts::calcQUnitWeights(const State& s, Vector& weights) const {
-    calcQUnitWeightsImpl(s,weights);
-}
-void Subsystem::Guts::calcUUnitWeights(const State& s, Vector& weights) const {
-    calcUUnitWeightsImpl(s,weights);
-}
-void Subsystem::Guts::calcZUnitWeights(const State& s, Vector& weights) const {
-    calcZUnitWeightsImpl(s,weights);
-}
-void Subsystem::Guts::calcQErrUnitTolerances(const State& s, Vector& tolerances) const {
-    calcQErrUnitTolerancesImpl(s,tolerances);
-}
-void Subsystem::Guts::calcUErrUnitTolerances(const State& s, Vector& tolerances) const {
-    calcUErrUnitTolerancesImpl(s,tolerances);
-}
-
 void Subsystem::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const {
     calcDecorativeGeometryAndAppendImpl(s,stage,geom);
 }
@@ -629,41 +618,16 @@ void Subsystem::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stag
     return 0; 
 }
 
-/*virtual*/ int Subsystem::Guts::calcQUnitWeightsImpl(const State& s, Vector& weights) const {
-    weights.resize(getNQ(s));
-    weights = 1; // default says everyone's opinion is just as valid
-    return 0;
-}
-/*virtual*/ int Subsystem::Guts::calcUUnitWeightsImpl(const State& s, Vector& weights) const {
-    weights.resize(getNU(s));
-    weights = 1;
-    return 0;
-}
-/*virtual*/ int Subsystem::Guts::calcZUnitWeightsImpl(const State& s, Vector& weights) const {
-    weights.resize(getNZ(s));
-    weights = 1;
-    return 0;
-}
-/*virtual*/ int Subsystem::Guts::calcQErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
-    tolerances.resize(getNQErr(s));
-    tolerances = 1;
-    return 0;
-}
-/*virtual*/ int Subsystem::Guts::calcUErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
-    tolerances.resize(getNUErr(s));
-    tolerances = 1;
-    return 0;
-}
 /*virtual*/ int Subsystem::Guts::calcDecorativeGeometryAndAppendImpl
                                 (const State&, Stage, Array_<DecorativeGeometry>&) const
 {
     return 0;
 }
 void Subsystem::Guts::handleEvents(State&, Event::Cause, const Array_<EventId>& eventIds,
-    Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-    Stage& lowestModified, bool& shouldTerminate) const
+    const HandleEventsOptions& options, HandleEventsResults& results) const
 {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", "handleEvents"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", 
+                 "handleEvents"); 
 }
 void Subsystem::Guts::reportEvents(const State&, Event::Cause, const Array_<EventId>& eventIds) const
 {
@@ -684,10 +648,15 @@ void Subsystem::Guts::calcTimeOfNextScheduledReport(const State&, Real& tNextEve
     // SUBSYSTEM::GUTS::GUTSREP //
     //////////////////////////////
 
+// Invalidating a Subsystem's topology cache forces invalidation of the
+// whole System's topology cache, which will in turn invalidate all the other
+// Subsystem's topology caches.
 void Subsystem::Guts::GutsRep::invalidateSubsystemTopologyCache() const {
-    subsystemTopologyRealized = false;
-    if (isInSystem()) 
-        getSystem().getSystemGuts().invalidateSystemTopologyCache();
+    if (subsystemTopologyRealized) {
+        subsystemTopologyRealized = false;
+        if (isInSystem()) 
+            getSystem().getSystemGuts().invalidateSystemTopologyCache();
+    }
 }
 
 

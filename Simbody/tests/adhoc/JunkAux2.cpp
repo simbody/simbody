@@ -331,9 +331,11 @@ int main(int argc, char** argv) {
     cout << "Using Integrator " << std::string(myStudy.getMethodName()) << ":\n";
     cout << "ACCURACY IN USE=" << myStudy.getAccuracyInUse() << endl;
     cout << "CTOL IN USE=" << myStudy.getConstraintToleranceInUse() << endl;
-    cout << "TIMESCALE=" << myStudy.getTimeScaleInUse() << endl;
-    cout << "Y WEIGHTS=" << myStudy.getStateWeightsInUse() << endl;
-    cout << "1/CTOLS=" << myStudy.getConstraintWeightsInUse() << endl;
+    cout << "TIMESCALE=" << mbs.getDefaultTimeScale() << endl;
+    cout << "U WEIGHTS=" << s.getUWeights() << endl;
+    cout << "Z WEIGHTS=" << s.getZWeights() << endl;
+    cout << "1/QTOLS=" << s.getQErrWeights() << endl;
+    cout << "1/UTOLS=" << s.getUErrWeights() << endl;
 
     {
         const State& s = myStudy.getState();
@@ -414,11 +416,11 @@ int main(int argc, char** argv) {
     printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
 
-    printf("System stats: realize %dP %dV %dA, project %d\n",
+    printf("System stats: realize %dP %dV %dA, projectQ %d, projectU %d\n",
         mbs.getNumRealizationsOfThisStage(Stage::Position),
         mbs.getNumRealizationsOfThisStage(Stage::Velocity),
         mbs.getNumRealizationsOfThisStage(Stage::Acceleration),
-        mbs.getNumProjectCalls());
+        mbs.getNumProjectQCalls(), mbs.getNumProjectUCalls());
 
 
     while(true) {

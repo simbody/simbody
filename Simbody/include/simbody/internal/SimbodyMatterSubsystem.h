@@ -2040,43 +2040,6 @@ const SpatialVec& getTotalCentrifugalForces(const State&, MobilizedBodyIndex) co
 /**@}**/
 
 
-//==============================================================================
-/** @name                            Solvers
-
-Solvers are methods that modify a State to satisfy some defined condition. **/
-/**@{**/
-
-    // POSITION STAGE solvers //
-
-/** This solver transfers prescribed positions presQ or prescribed velocities
-presU into the supplied State. When called with Stage::Position, the State
-must have already been realized to Time stage; when called with 
-Stage::Velocity, the State must already have been realized to Position
-Stage. Returns true if it makes any State changes. **/
-bool prescribe(State& state, Stage stage) const;
-
-/** This is a solver you can call after the State has been realized to stage 
-Position. It will project the q constraints along the error norm so that 
-getQConstraintNorm() <= consAccuracy, and will project out the corresponding 
-component of yErrest so that yErrest's q norm is reduced. Returns true if it 
-does anything at all to State or yErrest. **/
-bool projectQConstraints(State& state, Real consAccuracy, const Vector& yWeights,
-                         const Vector& ooTols, Vector& yErrest, 
-                         System::ProjectOptions) const;
-
-    // VELOCITY STAGE solvers //
-
-/** This is a solver you can call after the State has been realized to stage 
-Velocity. It will project the u constraints along the error norm so that 
-getUConstraintNorm() <= consAccuracy, and will project out the corresponding 
-component of yErrest so that yErrest's u norm is reduced. Returns true if it 
-does anything at all to State or yErrest. **/
-bool projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                         const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
-
-/**@}**/
-
-
 
 //==============================================================================
 /** @name              Testing and debugging utilities

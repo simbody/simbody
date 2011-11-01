@@ -231,8 +231,7 @@ void createState(MultibodySystem& system, State& state, const Vector& y=Vector()
     system.realize(state, Stage::Velocity);
     Vector dummy; // no error projection to do
     // Solve to tight tolerance here
-    system.project(state, 1e-12, Vector(state.getNY(), 1), 
-                   Vector(state.getNYErr(), 1), dummy);
+    system.project(state, 1e-12);
     system.realize(state, Stage::Acceleration);
 }
 

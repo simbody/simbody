@@ -48,63 +48,63 @@ using namespace SimTK;
 
 
 
-void testLowestModified() {
-    const SubsystemIndex Sub0(0), Sub1(1);
-    State s;
-    s.setNumSubsystems(2);
-    SimTK_TEST(s.getSystemStage()==Stage::Empty);
-    SimTK_TEST(s.getSubsystemStage(Sub0)==Stage::Empty && s.getSubsystemStage(Sub1)==Stage::Empty);
-    SimTK_TEST(s.getLowestStageModified()==Stage::Topology);
-
-    const DiscreteVariableIndex dvxModel = s.allocateDiscreteVariable(Sub1, Stage::Model, new Value<Real>(2));
-
-    // "realize" Topology stage
-    s.advanceSubsystemToStage(Sub0, Stage::Topology);
-    s.advanceSubsystemToStage(Sub1, Stage::Topology);
-    s.advanceSystemToStage(Stage::Topology);
-    SimTK_TEST(s.getLowestStageModified()==Stage::Topology);    // shouldn't have changed
-
-    const DiscreteVariableIndex dvxInstance = s.allocateDiscreteVariable(Sub0, Stage::Instance, new Value<int>(-4));
-
-    // A Model-stage variable must be allocated before Topology is realized, and this condition
-    // should be tested even in Release mode.
-    try {
-        s.allocateDiscreteVariable(Sub0, Stage::Model, new Value<int>(0));
-        SimTK_TEST(!"Shouldn't have allowed allocation of Model-stage var here");
-    } catch (...) {}
-
-    // "realize" Model stage
-    s.advanceSubsystemToStage(Sub0, Stage::Model);
-    s.advanceSubsystemToStage(Sub1, Stage::Model);
-    s.advanceSystemToStage(Stage::Model);
-    SimTK_TEST(s.getSystemStage() == Stage::Model);
-
-    SimTK_TEST(s.getLowestStageModified()==Stage::Topology); // shouldn't have changed
-    s.resetLowestStageModified();
-    SimTK_TEST(s.getLowestStageModified()==Stage::Instance);  // i.e., lowest invalid stage
-
-    // This variable invalidates Instance stage, so shouldn't change anything now.
-    SimTK_TEST(Value<int>::downcast(s.getDiscreteVariable(Sub0, dvxInstance))==-4);
-    Value<int>::downcast(s.updDiscreteVariable(Sub0, dvxInstance)) = 123;
-    SimTK_TEST(Value<int>::downcast(s.getDiscreteVariable(Sub0, dvxInstance))== 123);
-
-    SimTK_TEST(s.getSystemStage()==Stage::Model);
-    SimTK_TEST(s.getLowestStageModified()==Stage::Instance);
-
-    // This variable invalidates Model Stage, so should back up the stage to Topology,
-    // invalidating Model.
-    Value<Real>::downcast(s.updDiscreteVariable(Sub1, dvxModel)) = 29;
-    SimTK_TEST(s.getSubsystemStage(Sub1)==Stage::Topology);
-    SimTK_TEST(s.getLowestStageModified()==Stage::Model);
-
-    // Now realize Model stage again; shouldn't affect lowestStageModified.
-    s.advanceSubsystemToStage(Sub0, Stage::Model);
-    s.advanceSubsystemToStage(Sub1, Stage::Model);
-    s.advanceSystemToStage(Stage::Model);
-    SimTK_TEST(s.getSystemStage() == Stage::Model);
-
-    SimTK_TEST(s.getLowestStageModified()==Stage::Model); // shouldn't have changed
-}
+//void testLowestModified() {
+//    const SubsystemIndex Sub0(0), Sub1(1);
+//    State s;
+//    s.setNumSubsystems(2);
+//    SimTK_TEST(s.getSystemStage()==Stage::Empty);
+//    SimTK_TEST(s.getSubsystemStage(Sub0)==Stage::Empty && s.getSubsystemStage(Sub1)==Stage::Empty);
+//    SimTK_TEST(s.getLowestStageModified()==Stage::Topology);
+//
+//    const DiscreteVariableIndex dvxModel = s.allocateDiscreteVariable(Sub1, Stage::Model, new Value<Real>(2));
+//
+//    // "realize" Topology stage
+//    s.advanceSubsystemToStage(Sub0, Stage::Topology);
+//    s.advanceSubsystemToStage(Sub1, Stage::Topology);
+//    s.advanceSystemToStage(Stage::Topology);
+//    SimTK_TEST(s.getLowestStageModified()==Stage::Topology);    // shouldn't have changed
+//
+//    const DiscreteVariableIndex dvxInstance = s.allocateDiscreteVariable(Sub0, Stage::Instance, new Value<int>(-4));
+//
+//    // A Model-stage variable must be allocated before Topology is realized, and this condition
+//    // should be tested even in Release mode.
+//    try {
+//        s.allocateDiscreteVariable(Sub0, Stage::Model, new Value<int>(0));
+//        SimTK_TEST(!"Shouldn't have allowed allocation of Model-stage var here");
+//    } catch (...) {}
+//
+//    // "realize" Model stage
+//    s.advanceSubsystemToStage(Sub0, Stage::Model);
+//    s.advanceSubsystemToStage(Sub1, Stage::Model);
+//    s.advanceSystemToStage(Stage::Model);
+//    SimTK_TEST(s.getSystemStage() == Stage::Model);
+//
+//    SimTK_TEST(s.getLowestStageModified()==Stage::Topology); // shouldn't have changed
+//    s.resetLowestStageModified();
+//    SimTK_TEST(s.getLowestStageModified()==Stage::Instance);  // i.e., lowest invalid stage
+//
+//    // This variable invalidates Instance stage, so shouldn't change anything now.
+//    SimTK_TEST(Value<int>::downcast(s.getDiscreteVariable(Sub0, dvxInstance))==-4);
+//    Value<int>::downcast(s.updDiscreteVariable(Sub0, dvxInstance)) = 123;
+//    SimTK_TEST(Value<int>::downcast(s.getDiscreteVariable(Sub0, dvxInstance))== 123);
+//
+//    SimTK_TEST(s.getSystemStage()==Stage::Model);
+//    SimTK_TEST(s.getLowestStageModified()==Stage::Instance);
+//
+//    // This variable invalidates Model Stage, so should back up the stage to Topology,
+//    // invalidating Model.
+//    Value<Real>::downcast(s.updDiscreteVariable(Sub1, dvxModel)) = 29;
+//    SimTK_TEST(s.getSubsystemStage(Sub1)==Stage::Topology);
+//    SimTK_TEST(s.getLowestStageModified()==Stage::Model);
+//
+//    // Now realize Model stage again; shouldn't affect lowestStageModified.
+//    s.advanceSubsystemToStage(Sub0, Stage::Model);
+//    s.advanceSubsystemToStage(Sub1, Stage::Model);
+//    s.advanceSystemToStage(Stage::Model);
+//    SimTK_TEST(s.getSystemStage() == Stage::Model);
+//
+//    SimTK_TEST(s.getLowestStageModified()==Stage::Model); // shouldn't have changed
+//}
 
 void testCacheValidity() {
     const SubsystemIndex Sub0(0), Sub1(1);
@@ -258,7 +258,7 @@ int main() {
 
 
     SimTK_START_TEST("StateTest");
-        SimTK_SUBTEST(testLowestModified);
+        //SimTK_SUBTEST(testLowestModified);
         SimTK_SUBTEST(testCacheValidity);
         SimTK_SUBTEST(testMisc);
     SimTK_END_TEST();

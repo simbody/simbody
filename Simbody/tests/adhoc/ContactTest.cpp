@@ -302,9 +302,11 @@ try
     cout << "Using Integrator " << std::string(ee.getMethodName()) << ":\n";
     cout << "ACCURACY IN USE=" << ee.getAccuracyInUse() << endl;
     cout << "CTOL IN USE=" << ee.getConstraintToleranceInUse() << endl;
-    cout << "TIMESCALE=" << ee.getTimeScaleInUse() << endl;
-    cout << "Y WEIGHTS=" << ee.getStateWeightsInUse() << endl;
-    cout << "1/CTOLS=" << ee.getConstraintWeightsInUse() << endl;
+    cout << "TIMESCALE=" << mbs.getDefaultTimeScale() << endl;
+    cout << "U WEIGHTS=" << s.getUWeights() << endl;
+    cout << "Z WEIGHTS=" << s.getZWeights() << endl;
+    cout << "1/QTOLS=" << s.getQErrWeights() << endl;
+    cout << "1/UTOLS=" << s.getUErrWeights() << endl;
 
     const double startCPU  = cpuTime();
     const double startThreadCPU  = threadCpuTime();

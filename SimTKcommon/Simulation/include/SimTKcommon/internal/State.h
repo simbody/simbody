@@ -346,6 +346,12 @@ void advanceSubsystemToStage(SubsystemIndex, Stage) const;
 /// @see advanceSubsystemToStage()
 void advanceSystemToStage(Stage) const;
 
+/** The Topology stage version number (an integer) stored in this %State must 
+match the topology cache version number stored in the System for which it is 
+allegedly a state. 
+@see System::getSystemTopologyCacheVersion() **/
+StageVersion getSystemTopologyStageVersion() const;
+
 /// These continuous state variables are shared among all the subsystems
 /// and are not allocated until the \e system is advanced to Stage::Model.
 /// The returned index is local to each subsystem. After the system is modeled,
@@ -374,17 +380,6 @@ QErrIndex    allocateQErr   (SubsystemIndex, int nqerr) const;    // these are c
 UErrIndex    allocateUErr   (SubsystemIndex, int nuerr) const;
 UDotErrIndex allocateUDotErr(SubsystemIndex, int nudoterr) const;
 
-/// This method is used to obtain one or more consecutive EventIndex's which are
-/// unique within the indicated subsystem. These can be allocated in a State that
-/// has not yet been advanced to Instance stage, and the stage at which they
-/// are allocated is remembered so that reducing the stage below that causes
-/// the more-recently-allocated EventIndex's to be forgotten. When Instance stage is
-/// realized, global SystemEventIndex's will be allocated such that each
-/// (Subsystem,EventIndex) pair has a unique SystemEventIndex. Also, SystemEventIndex's
-/// are doled out consecutively within each Subsystem so finding the first one allows
-/// you to compute the rest for a given Subsystem.
-EventIndex allocateEventIndex(SubsystemIndex, int nevent=1) const;
-
 /// Some Events require a slot in the %State cache to hold the current value
 /// of the event trigger function (a.k.a. event "witness" function).
 /// The Stage here is the stage at which the trigger function's value
@@ -396,9 +391,6 @@ EventIndex allocateEventIndex(SubsystemIndex, int nevent=1) const;
 /// will be allocated, collecting all same-stage event triggers together
 /// consecutively for the convenience of the TimeStepper. Within a stage,
 /// a given subsystem's event trigger slots for that stage are consecutive.
-EventTriggerByStageIndex allocateEventTrigger(SubsystemIndex, Stage, EventIndex, int nevent=1) const;
-
-//OBSOLETE
 EventTriggerByStageIndex allocateEventTrigger(SubsystemIndex, Stage, int nevent) const;
 
 
@@ -767,22 +759,32 @@ SystemEventTriggerIndex getEventTriggerStartByStage(Stage) const; // per-stage
 /// @see Global Resource Dimensions 
 /// @{
 
-SystemQIndex getQStart(SubsystemIndex)       const; int getNQ(SubsystemIndex)       const;
-SystemUIndex getUStart(SubsystemIndex)       const; int getNU(SubsystemIndex)       const;
-SystemZIndex getZStart(SubsystemIndex)       const; int getNZ(SubsystemIndex)       const;
+SystemQIndex getQStart(SubsystemIndex) const; 
+int getNQ(SubsystemIndex) const;
+SystemUIndex getUStart(SubsystemIndex) const; 
+int getNU(SubsystemIndex) const;
+SystemZIndex getZStart(SubsystemIndex) const; 
+int getNZ(SubsystemIndex) const;
 
-SystemQErrIndex       getQErrStart(SubsystemIndex)    const; int getNQErr(SubsystemIndex)    const;
-SystemUErrIndex       getUErrStart(SubsystemIndex)    const; int getNUErr(SubsystemIndex)    const;
-SystemUDotErrIndex    getUDotErrStart(SubsystemIndex) const; int getNUDotErr(SubsystemIndex) const;
+
+SystemQErrIndex getQErrStart(SubsystemIndex) const; 
+int getNQErr(SubsystemIndex) const;
+SystemUErrIndex getUErrStart(SubsystemIndex) const; 
+int getNUErr(SubsystemIndex) const;
+SystemUDotErrIndex getUDotErrStart(SubsystemIndex) const; 
+int getNUDotErr(SubsystemIndex) const;
 SystemMultiplierIndex getMultipliersStart(SubsystemIndex) const;
-int getNMultipliers(SubsystemIndex)     const;
+int getNMultipliers(SubsystemIndex) const;
 
-SystemEventTriggerByStageIndex getEventTriggerStartByStage(SubsystemIndex, Stage) const;
+SystemEventTriggerByStageIndex 
+    getEventTriggerStartByStage(SubsystemIndex, Stage) const;
 int getNEventTriggersByStage(SubsystemIndex, Stage) const;
 
 /// @}
 
 /// @name Global-to-Subsystem Maps
+///
+/// TODO -- not implemented yet.
 ///
 /// Once the dimensions and allocations of the global shared resources
 /// are known, you can call these methods to map a global resource index
@@ -817,13 +819,13 @@ void mapUDotErrToSubsystem(SystemUDotErrIndex, SubsystemIndex&, UDotErrIndex&) c
 void mapMultiplierToSubsystem(SystemMultiplierIndex, SubsystemIndex&, MultiplierIndex&) const;
 /// For a given global event trigger function index, return the Subsystem that allocated it and
 /// the Subsystem-local index by which it is known; callable at Instance stage.
-void mapEventTriggerToSubsystem(SystemEventTriggerIndex, SubsystemIndex&, EventTriggerIndex&) const;
+//void mapEventTriggerToSubsystem(SystemEventTriggerIndex, SubsystemIndex&, EventTriggerIndex&) const;
 /// For a given global event trigger function index, return the Stage at which that
 /// trigger function should be evaluated; callable at Instance stage.
 void mapEventTriggerToStage(SystemEventTriggerIndex, Stage&, SystemEventTriggerByStageIndex&) const;
 /// Given a Subsystem-wide event index, map that to a particular Stage and an index
 /// within that Stage.
-void mapSubsystemEventTriggerToStage(EventTriggerIndex, Stage&, EventTriggerByStageIndex&) const;
+//void mapSubsystemEventTriggerToStage(EventTriggerIndex, Stage&, EventTriggerByStageIndex&) const;
 
 /// @}
 
@@ -840,9 +842,15 @@ const Vector& getQ(SubsystemIndex) const;
 const Vector& getU(SubsystemIndex) const;
 const Vector& getZ(SubsystemIndex) const;
 
+const Vector& getUWeights(SubsystemIndex) const;
+const Vector& getZWeights(SubsystemIndex) const;
+
 Vector& updQ(SubsystemIndex);
 Vector& updU(SubsystemIndex);
 Vector& updZ(SubsystemIndex);
+
+Vector& updUWeights(SubsystemIndex);
+Vector& updZWeights(SubsystemIndex);
 
 /// Per-subsystem access to the shared cache entries.
 const Vector& getQDot(SubsystemIndex) const;
@@ -859,10 +867,17 @@ const Vector& getQErr(SubsystemIndex) const;
 const Vector& getUErr(SubsystemIndex) const;
 const Vector& getUDotErr(SubsystemIndex) const;
 const Vector& getMultipliers(SubsystemIndex) const;
+
+const Vector& getQErrWeights(SubsystemIndex) const;
+const Vector& getUErrWeights(SubsystemIndex) const;
+
 Vector& updQErr(SubsystemIndex) const;    // these are mutable
 Vector& updUErr(SubsystemIndex) const;
 Vector& updUDotErr(SubsystemIndex) const;
 Vector& updMultipliers(SubsystemIndex) const;
+
+Vector& updQErrWeights(SubsystemIndex);
+Vector& updUErrWeights(SubsystemIndex);
 
 /// You can call these as long as *system* stage >= Model.
 const Real&   getTime() const;
@@ -872,6 +887,61 @@ const Vector& getY() const; // {Q,U,Z} packed and in that order
 const Vector& getQ() const;
 const Vector& getU() const;
 const Vector& getZ() const;
+
+
+/** Get a unit weighting (1/unit change) for each u that can be used to 
+weight a vector du so that the disparate elements are comparable in physical
+effect. This permits mixing of generalized speeds
+that have different units, and scaling of generalized speeds that have
+differing amounts of leverage due to their positions in the multibody tree.
+This can be used to create a scaled norm that represents the overall
+significance of a change du to u.
+
+Define a unit change di for each ui such that a change
+ui+eps*di to each generalized speed in turn produces a physical velocity change
+of roughly equal significance. Then a diagonal matrix Wu=diag(1/di) is 
+a weighting matrix such that wdu=Wu*du is a vector in which each element wdu_i
+has units of "unit change" for its corresponding ui. This method returns a
+vector which is the diagonal of Wu.
+
+These same weights on u also determine the scaling of the generalized
+coordinates q, because q and u are related via qdot=N*u. For cases where
+qdot_i=u_i, the numerical value of the unit change to q_i is just di because 
+dP/dq_i == dV/du_i. Otherwise, they are related by Wq = N*Wu*pinv(N) where 
+Wq is the weighting matrix for dq (block diagonal), and pinv() is the
+pseudoinverse.
+
+For example, say you define unit scaling for an angle coordinate to be 1 radian
+(about 57 degrees), meaning that a 1 radian change of coordinate produces
+(roughly) one length unit of meaningful position change. Then if a generalized
+coordinate is measured in radians, its unit scale would be 1. If instead you 
+created a generalized coordinate with units of degrees, its unit scale would 
+be 57 degrees. That would allow mixing of such coordinates in the same system 
+by bringing the coordinates into a physically-meaningful basis.
+Scaling is defined in the u basis where each variable is independent;
+the N matrix couples variables in the q basis. So here the units would actually
+be 1 radian/time unit and 57 degrees/time unit (numerically identical).
+
+This is allocated and set to 1 at the end of realize(Model). **/
+const Vector& getUWeights() const;    // diag(Wu)
+
+/** Get a unit weighting (1/unit change) for each z that can be used to 
+weight a vector dz so that the disparate elements are comparable in physical
+effect. This defines a weighting matrix Wz=diag(1/unitchange_zi) such
+that wdz=Wz*dz is a vector in which each element wdz_i has units of
+"unit change" for its corresponding zi.  This method returns a
+vector which is the diagonal of Wz. **/
+const Vector& getZWeights() const;
+
+/** Set u weights (and q weights indirectly). You can call this after Model 
+stage has been realized. This will invalidate just Report stage because it is 
+not used in calculating udots. **/
+Vector& updUWeights();
+
+/** Set z weights. You can call this after Model stage has been realized. This
+will invalidate just Report stage because it is not used in calculating 
+zdots. **/
+Vector& updZWeights();
 
 /// You can call these as long as System stage >= Model, but the
 /// stage will be backed up if necessary to the indicated stage.
@@ -925,6 +995,34 @@ const Vector& getUErr() const;  // Stage::Velocity (index 2 constraints)
 const Vector& getUDotErr()     const; // Stage::Acceleration (index 1 constraints)
 const Vector& getMultipliers() const; // Stage::Acceleration
 
+/** Get the unit weighting (1/unit error) for each of the mp+mquat position 
+constraints equations. Allocated and initialized to 1 on realize(Instance). **/
+const Vector& getQErrWeights() const;
+
+/** Get the unit weighting (1/unit error) for each of the mp+mv velocity-level 
+constraint equations, meaning mp time derivatives of position (holonomic) 
+constraint equations followed by mv velocity (nonholonomic) constraints.
+Typically the weight of position constraint derivatives is just the
+position constraint weight times the System's characteristic time scale. 
+
+There is no entry corresponding to quaternions here since they do not 
+produce velocity-level constraints in Simbody's forumulation.
+
+This is allocated and initialized to 1 on realize(Instance). **/
+const Vector& getUErrWeights() const;
+
+/** Set the unit weighting (1/unit error) for each of the mp+mquat position 
+constraint equations. You can call this after the weight variable is allocated 
+at the end of Instance stage. Position stage is invalidated to force 
+recalculation of weighted position constraint errors. **/
+Vector& updQErrWeights();
+
+/** Set the unit weighting (1/unit error) for each of the mp+mv velocity-level
+constraints. You can call this after the weight variable is allocated at the 
+end of Instance stage. Velocity stage is invalidated to force recalculation of 
+weighted velocity-level constraint errors. **/
+Vector& updUErrWeights();
+
 /// These are mutable
 Vector& updYErr() const; // Stage::Velocity-1
 Vector& updQErr() const; // Stage::Position-1 (view into YErr)
@@ -933,18 +1031,38 @@ Vector& updUErr() const; // Stage::Velocity-1        "
 Vector& updUDotErr()     const; // Stage::Acceleration-1 (not a view)
 Vector& updMultipliers() const; // Stage::Acceleration-1 (not a view)
 
-/// Return the lowest System Stage that was invalidated since the last time this
-/// "low water mark" was reset. The returned value is never higher than the
-/// one just following the State's current System Stage, but can be lower.
-const Stage& getLowestStageModified() const;
+/** (Advanced) Record the current version numbers of each valid System-level 
+stage. This can be used to unambiguously determine what stages have been 
+changed by some opaque operation, even if that operation realized the stages 
+after modifying them. This is particularly useful for event handlers as a way 
+for a time stepper to know how much damage may have been done by a handler, and
+thus how much reinitialization is required before continuing on.
+@see getLowestSystemStageDifference() **/
+void getSystemStageVersions(Array_<StageVersion>& versions) const;
 
-/// Reset the invalid System Stage "low water mark" to the one just above the
-/// State's current System Stage.
-void resetLowestStageModified() const;
+/** (Advanced) Given a list of per-stage version numbers extracted by an 
+earlier call to getSystemStageVersions(), note the lowest system stage in the 
+current State whose version number differs from the corresponding previous 
+version number. Returns Stage::Infinity if all the stages present in 
+\a prevVersions are valid and have identical versions now, even if there are 
+additional valid stages now, since nothing the caller cared about before has 
+been changed. If the current State is not realized as far as the previous one, 
+then the first unrealized stage is returned if all the lower versions match.
+@see getSystemStageVersions() **/
+Stage getLowestSystemStageDifference
+   (const Array_<StageVersion>& prevVersions) const;
 
-/// This is called at the beginning of every integration step to set
-/// the values of auto-update discrete variables from the values stored
-/// in their associated cache entries.
+/** (Advanced) This explicitly modifies the Topology stage version; don't
+use this method unless you know what you're doing! This can be used to force
+compatibility with a System that has had Topology changes since this %State
+was created. This has no effect on the realization level.
+@see getSystemTopologyStageVersion(), System::getSystemTopologyCacheVersion()
+**/
+void setSystemTopologyStageVersion(StageVersion topoVersion);
+
+/** (Advanced) This is called at the beginning of every integration step to set
+the values of auto-update discrete variables from the values stored in their 
+associated cache entries. **/
 void autoUpdateDiscreteVariables();
 
 String toString() const;

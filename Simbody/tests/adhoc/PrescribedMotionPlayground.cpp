@@ -64,6 +64,11 @@ public:
         //for (int i=0; i < state.getNQ(); ++i)
         //    cout << " " << state.getQ()[i];
         cout << "\n";
+        const SimbodyMatterSubsystem& matter = m_system.getMatterSubsystem();
+        cout << "qperr=" << matter.calcMotionErrors(state,Stage::Position) << "\n";
+        cout << "uperr=" << matter.calcMotionErrors(state,Stage::Velocity) << "\n";
+        cout << "qerr=" << state.getQErr() << "\n";
+        cout << "uerr=" << state.getUErr() << "\n";
     }
 private:
     const MultibodySystem& m_system;
@@ -219,6 +224,8 @@ int main() {
 
 
     Visualizer viz(system);
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.addEventReporter(new MyReporter(system, powMeas, workMeas, 0.01));
 
    
     // Initialize the system and state.
@@ -243,13 +250,27 @@ int main() {
 
     state.setTime(0);
     system.realize(state, Stage::Time);
+
+
+    clog << "After realize(Time) motion qerr=" 
+         << matter.calcMotionErrors(state, Stage::Position) << "\n";
+    system.prescribeQ(state);
+
+    clog << "After prescribe() motion qerr=" 
+         << matter.calcMotionErrors(state, Stage::Position) << "\n";
+
     //if (matter.prescribe(state, Stage::Position)) clog << "Some PresQ\n";
     //else clog << "NO PresQ\n";
     //clog << "after prescribe q=" << state.getQ() << "\n";
-    Assembler asmb(system);
-    asmb.setAccuracy(1e-10).assemble(state);
-    //system.project(state, 1e-10, Vector(nq+nu,1), Vector(m,1), 
-      //              Vector(), System::ProjectOptions::PositionOnly);
+    system.realize(state, Stage::Position);
+
+
+    ProjectResults projResults;
+
+    system.projectQ(state, Vector(), ProjectOptions(1e-10), projResults);
+    //Assembler asmb(system);
+    //asmb.setAccuracy(1e-10).assemble(state);
+
     viz.report(state);
     clog << "After prescribe(Position) & project -- hit ENTER\n";
     clog << "t=" << state.getTime() 
@@ -270,10 +291,14 @@ int main() {
 
     c=getchar();
 
-    if (matter.prescribe(state, Stage::Velocity)) clog << "Some PresU\n";
-    else clog << "NO PresU\n";
-    system.project(state, 1e-10, Vector(nq+nu,1), Vector(m,1), 
-                    Vector(), System::ProjectOptions::VelocityOnly);
+    clog << "After realize(Position) motion uerr=" 
+         << matter.calcMotionErrors(state, Stage::Velocity) << "\n";
+    system.prescribeU(state);
+    clog << "After prescribe() motion uerr=" 
+         << matter.calcMotionErrors(state, Stage::Velocity) << "\n";
+
+    system.realize(state, Stage::Velocity);
+    system.projectU(state, Vector(), ProjectOptions(1e-10), projResults);
     viz.report(state);
     clog << "After prescribe(Velocity) & project -- hit ENTER\n";
     clog << "t=" << state.getTime() 
@@ -296,6 +321,9 @@ int main() {
     c=getchar();
 
     system.realize(state, Stage::Acceleration);
+    clog << "After realize(Acceleration) motion udoterr=" 
+         << matter.calcMotionErrors(state, Stage::Acceleration) << "\n";
+
     clog << "After realize(Acceleration) -- hit ENTER\n";
     clog << "t=" << state.getTime() 
          << "\nq=" << state.getQ()
@@ -373,13 +401,17 @@ int main() {
     
     // Simulate it.
 
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
-    system.addEventReporter(new MyReporter(system, powMeas, workMeas, 0.01));
 
+    //ExplicitEulerIntegrator integ(system);
+    //RungeKutta3Integrator integ(system);
+    //VerletIntegrator integ(system);
     RungeKuttaMersonIntegrator integ(system);
+    //RungeKuttaFeldbergIntegrator integ(system);
+    //integ.setAllowInterpolation(false);
+    //integ.setProjectInterpolatedStates(false);
     //integ.setMinimumStepSize(1e-1);
     integ.setAccuracy(1e-2);
-    //integ.setConstraintTolerance(1e-5);
+    //integ.setConstraintTolerance(1e-3);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(10.0);

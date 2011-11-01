@@ -413,22 +413,21 @@ public:
     // have been computed. Note that prescribed udot=udot(t,q,u) is not
     // dealt with here because it does not involve a state change.
     // Returns true if it makes any changes.
-    bool prescribe(State& s, Stage g) const;
+    bool prescribeQ(State& s) const;
+    bool prescribeU(State& s) const;
 
-    bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                             const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
-    {
-        // TODO
-        enforcePositionConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts);
-        return true;
-    }
-    bool projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                             const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
-    { 
-        // TODO
-        enforceVelocityConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts);
-        return true;
-    }
+    // Project quaternions onto their constraint manifold by normalizing
+    // them. Also removes any error component along the length of the
+    // quaternions if given a qErrest. Returns true if any change was made.
+    // This is used by projectQ().
+    bool normalizeQuaternions(State& s, Vector& qErrest) const;
+
+    int projectQ(State& s, Vector& qErrest, 
+                 const ProjectOptions& opts,
+                 ProjectResults& results) const;
+    int projectU(State& s, Vector& uErrest, 
+                 const ProjectOptions& opts,
+                 ProjectResults& results) const;
 
         // REALIZATIONS //
 
@@ -869,9 +868,9 @@ public:
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
     void enforcePositionConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                                    const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
+                                    const Vector& ooTols, Vector& yErrest, ProjectOptions) const;
     void enforceVelocityConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                                    const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
+                                    const Vector& ooTols, Vector& yErrest, ProjectOptions) const;
 
     // Unconstrained (tree) dynamics methods for use during realization.
 

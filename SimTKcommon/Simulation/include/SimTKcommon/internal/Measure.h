@@ -129,7 +129,7 @@ namespace SimTK {
 class State;
 class Subsystem;
 class System;
-class EventIndex;
+class EventId;
 
 /// Define a unique integral type for safe indexing of Measures. 
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MeasureIndex);
@@ -842,7 +842,7 @@ class Measure_<T>::SampleAndHold : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(SampleAndHold, Measure_<T>);
 
-    SampleAndHold(Subsystem& sub, const Measure_<T>& source, EventIndex e);
+    SampleAndHold(Subsystem& sub, const Measure_<T>& source, EventId e);
 
     /// Set the held value to a particular value, unrelated to the source.
     /// The time stamp will be taken from the supplied State.
@@ -852,10 +852,10 @@ public:
     void sample(State& s) const;
 
     const Measure_<T>& getSource() const;
-    EventIndex         getEvent() const;
+    EventId            getEventId() const;
 
     SampleAndHold& setSource(const Measure_<T>& s);
-    SampleAndHold& setEvent(EventIndex);
+    SampleAndHold& setEventId(EventId);
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(SampleAndHold, Measure_<T>);
 };

@@ -271,18 +271,14 @@ try {
    // pend.setJointQ(s,1,5,-3.3);
 
     mbs.realize(s, Stage::Position);
-    Vector wts; mbs.calcYUnitWeights(s,wts);
-    cout << "Y WEIGHTS: " << wts << endl;
-    Vector tols; mbs.calcYErrUnitTolerances(s,tols);
-    cout << "YERR TOLERANCES: " << tols << endl;
 
     Transform bodyConfig = aPendulum.getBodyTransform(s);
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
-    Vector dummy;
-    pend.projectQConstraints(s, 1e-3, wts, tols, dummy, System::ProjectOptions::All);
-    mbs.realize(s, Stage::Position);
+    Vector dummy; ProjectResults results;
+    mbs.projectQ(s, dummy, ProjectOptions().setRequiredAccuracy(1e-3),
+                 results);
 
     cout << "-------> STATE after realize(Position):" << s;
     cout << "<------- STATE after realize(Position)." << endl;

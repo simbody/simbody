@@ -2,16 +2,16 @@
 #define SimTK_SimTKCOMMON_VECTOR_MATH_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -46,12 +46,13 @@
 
 namespace SimTK {
 
-// We can use a single definition for a number of functions that simply call a function
-// on each element, returning a value of the same type.
+// We can use a single definition for a number of functions that simply call a 
+// function on each element, returning a value of the same type.
+// Note that some of these intentionally copy their argument for use as a temp.
 
 #define SimTK_ELEMENTWISE_FUNCTION(func)               \
 template <class ELEM>                                  \
-VectorBase<ELEM> func(const VectorBase<ELEM> v) {      \
+VectorBase<ELEM> func(const VectorBase<ELEM>& v) {     \
     const int size = v.size();                         \
     Vector_<ELEM> temp(size);                          \
     for (int i = 0; i < size; ++i)                     \
@@ -59,7 +60,7 @@ VectorBase<ELEM> func(const VectorBase<ELEM> v) {      \
     return temp;                                       \
 }                                                      \
 template <class ELEM>                                  \
-RowVectorBase<ELEM> func(const RowVectorBase<ELEM> v) {\
+RowVectorBase<ELEM> func(const RowVectorBase<ELEM>& v){\
     const int size = v.size();                         \
     RowVector_<ELEM> temp(size);                       \
     for (int i = 0; i < size; ++i)                     \
@@ -67,7 +68,7 @@ RowVectorBase<ELEM> func(const RowVectorBase<ELEM> v) {\
     return temp;                                       \
 }                                                      \
 template <class ELEM>                                  \
-MatrixBase<ELEM> func(const MatrixBase<ELEM> v) {      \
+MatrixBase<ELEM> func(const MatrixBase<ELEM>& v) {     \
     const int rows = v.nrow(), cols = v.ncol();        \
     Matrix_<ELEM> temp(rows, cols);                    \
     for (int i = 0; i < rows; ++i)                     \
@@ -120,69 +121,69 @@ SimTK_ELEMENTWISE_FUNCTION(tanh)
 // The abs() function.
 
 template <class ELEM>
-VectorBase<typename CNT<ELEM>::TAbs> abs(const VectorBase<ELEM> v) {
+VectorBase<typename CNT<ELEM>::TAbs> abs(const VectorBase<ELEM>& v) {
     return v.abs();
 }
 template <class ELEM>
-RowVectorBase<typename CNT<ELEM>::TAbs> abs(const RowVectorBase<ELEM> v) {
+RowVectorBase<typename CNT<ELEM>::TAbs> abs(const RowVectorBase<ELEM>& v) {
     return v.abs();
 }
 template <class ELEM>
-MatrixBase<typename CNT<ELEM>::TAbs> abs(const MatrixBase<ELEM> v) {
+MatrixBase<typename CNT<ELEM>::TAbs> abs(const MatrixBase<ELEM>& v) {
     return v.abs();
 }
 template <int N, class ELEM>
-Vec<N, typename CNT<ELEM>::TAbs> abs(const Vec<N, ELEM> v) {
+Vec<N, typename CNT<ELEM>::TAbs> abs(const Vec<N, ELEM>& v) {
     return v.abs();
 }
 template <int N, class ELEM>
-Row<N, typename CNT<ELEM>::TAbs> abs(const Row<N, ELEM> v) {
+Row<N, typename CNT<ELEM>::TAbs> abs(const Row<N, ELEM>& v) {
     return v.abs();
 }
 template <int M, int N, class ELEM>
-Mat<M, N, typename CNT<ELEM>::TAbs> abs(const Mat<M, N, ELEM> v) {
+Mat<M, N, typename CNT<ELEM>::TAbs> abs(const Mat<M, N, ELEM>& v) {
     return v.abs();
 }
 template <int N, class ELEM>
-SymMat<N, typename CNT<ELEM>::TAbs> abs(const SymMat<N, ELEM> v) {
+SymMat<N, typename CNT<ELEM>::TAbs> abs(const SymMat<N, ELEM>& v) {
     return v.abs();
 }
 
 // The sum() function.
 
 template <class ELEM>
-ELEM sum(const VectorBase<ELEM> v) {
+ELEM sum(const VectorBase<ELEM>& v) {
     return v.sum();
 }
 template <class ELEM>
-ELEM sum(const RowVectorBase<ELEM> v) {
+ELEM sum(const RowVectorBase<ELEM>& v) {
     return v.sum();
 }
 template <class ELEM>
-RowVectorBase<ELEM> sum(const MatrixBase<ELEM> v) {
+RowVectorBase<ELEM> sum(const MatrixBase<ELEM>& v) {
     return v.sum();
 }
 template <int N, class ELEM>
-ELEM sum(const Vec<N, ELEM> v) {
+ELEM sum(const Vec<N, ELEM>& v) {
     return v.sum();
 }
 template <int N, class ELEM>
-ELEM sum(const Row<N, ELEM> v) {
+ELEM sum(const Row<N, ELEM>& v) {
     return v.sum();
 }
 template <int M, int N, class ELEM>
-Row<N, ELEM> sum(const Mat<M, N, ELEM> v) {
+Row<N, ELEM> sum(const Mat<M, N, ELEM>& v) {
     return v.sum();
 }
 template <int N, class ELEM>
-Row<N, ELEM> sum(const SymMat<N, ELEM> v) {
+Row<N, ELEM> sum(const SymMat<N, ELEM>& v) {
     return v.sum();
 }
 
 // The min() function.
 
 template <class ELEM>
-ELEM min(const VectorBase<ELEM> v) {
+ELEM min(const VectorBase<ELEM>& v) {
     const int size = v.size();
     ELEM min = NTraits<ELEM>::getMostPositive();
     for (int i = 0; i < size; ++i) {
@@ -193,7 +194,7 @@ ELEM min(const VectorBase<ELEM> v) {
     return min;
 }
 template <class ELEM>
-ELEM min(const RowVectorBase<ELEM> v) {
+ELEM min(const RowVectorBase<ELEM>& v) {
     const int size = v.size();
     ELEM min = NTraits<ELEM>::getMostPositive();
     for (int i = 0; i < size; ++i) {
@@ -204,7 +205,7 @@ ELEM min(const RowVectorBase<ELEM> v) {
     return min;
 }
 template <class ELEM>
-RowVectorBase<ELEM> min(const MatrixBase<ELEM> v) {
+RowVectorBase<ELEM> min(const MatrixBase<ELEM>& v) {
     int cols = v.ncol();
     RowVectorBase<ELEM> temp(cols);
     for (int i = 0; i < cols; ++i)
@@ -212,7 +213,7 @@ RowVectorBase<ELEM> min(const MatrixBase<ELEM> v) {
     return temp;
 }
 template <int N, class ELEM>
-ELEM min(const Vec<N, ELEM> v) {
+ELEM min(const Vec<N, ELEM>& v) {
     ELEM min = NTraits<ELEM>::getMostPositive();
     for (int i = 0; i < N; ++i) {
         ELEM val = v[i];
@@ -222,7 +223,7 @@ ELEM min(const Vec<N, ELEM> v) {
     return min;
 }
 template <int N, class ELEM>
-ELEM min(Row<N, ELEM> v) {
+ELEM min(const Row<N, ELEM>& v) {
     ELEM min = NTraits<ELEM>::getMostPositive();
     for (int i = 0; i < N; ++i) {
         ELEM val = v[i];
@@ -232,14 +233,14 @@ ELEM min(Row<N, ELEM> v) {
     return min;
 }
 template <int M, int N, class ELEM>
-Row<N, ELEM> min(const Mat<M, N, ELEM> v) {
+Row<N, ELEM> min(const Mat<M, N, ELEM>& v) {
     Row<N, ELEM> temp;
     for (int i = 0; i < N; ++i)
         temp[i] = min(v(i));
     return temp;
 }
 template <int N, class ELEM>
-Row<N, ELEM> min(SymMat<N, ELEM> v) {
+Row<N, ELEM> min(const SymMat<N, ELEM>& v) {
     Row<N, ELEM> temp(~v.getDiag());
     for (int i = 1; i < N; ++i)
         for (int j = 0; j < i; ++j) {
@@ -255,7 +256,7 @@ Row<N, ELEM> min(SymMat<N, ELEM> v) {
 // The max() function.
 
 template <class ELEM>
-ELEM max(const VectorBase<ELEM> v) {
+ELEM max(const VectorBase<ELEM>& v) {
     const int size = v.size();
     ELEM max = NTraits<ELEM>::getMostNegative();
     for (int i = 0; i < size; ++i) {
@@ -266,7 +267,7 @@ ELEM max(const VectorBase<ELEM> v) {
     return max;
 }
 template <class ELEM>
-ELEM max(const RowVectorBase<ELEM> v) {
+ELEM max(const RowVectorBase<ELEM>& v) {
     const int size = v.size();
     ELEM max = NTraits<ELEM>::getMostNegative();
     for (int i = 0; i < size; ++i) {
@@ -277,7 +278,7 @@ ELEM max(const RowVectorBase<ELEM> v) {
     return max;
 }
 template <class ELEM>
-RowVectorBase<ELEM> max(const MatrixBase<ELEM> v) {
+RowVectorBase<ELEM> max(const MatrixBase<ELEM>& v) {
     int cols = v.ncol();
     RowVectorBase<ELEM> temp(cols);
     for (int i = 0; i < cols; ++i)
@@ -285,7 +286,7 @@ RowVectorBase<ELEM> max(const MatrixBase<ELEM> v) {
     return temp;
 }
 template <int N, class ELEM>
-ELEM max(Vec<N, ELEM> v) {
+ELEM max(const Vec<N, ELEM>& v) {
     ELEM max = NTraits<ELEM>::getMostNegative();
     for (int i = 0; i < N; ++i) {
         ELEM val = v[i];
@@ -295,7 +296,7 @@ ELEM max(Vec<N, ELEM> v) {
     return max;
 }
 template <int N, class ELEM>
-ELEM max(const Row<N, ELEM> v) {
+ELEM max(const Row<N, ELEM>& v) {
     ELEM max = NTraits<ELEM>::getMostNegative();
     for (int i = 0; i < N; ++i) {
         ELEM val = v[i];
@@ -305,14 +306,14 @@ ELEM max(const Row<N, ELEM> v) {
     return max;
 }
 template <int M, int N, class ELEM>
-Row<N, ELEM> max(const Mat<M, N, ELEM> v) {
+Row<N, ELEM> max(const Mat<M, N, ELEM>& v) {
     Row<N, ELEM> temp;
     for (int i = 0; i < N; ++i)
         temp[i] = max(v(i));
     return temp;
 }
 template <int N, class ELEM>
-Row<N, ELEM> max(const SymMat<N, ELEM> v) {
+Row<N, ELEM> max(const SymMat<N, ELEM>& v) {
     Row<N, ELEM> temp(~v.getDiag());
     for (int i = 1; i < N; ++i)
         for (int j = 0; j < i; ++j) {
@@ -328,52 +329,52 @@ Row<N, ELEM> max(const SymMat<N, ELEM> v) {
 // The mean() function.
 
 template <class ELEM>
-ELEM mean(const VectorBase<ELEM> v) {
+ELEM mean(const VectorBase<ELEM>& v) {
     return sum(v)/v.size();
 }
 template <class ELEM>
-ELEM mean(const RowVectorBase<ELEM> v) {
+ELEM mean(const RowVectorBase<ELEM>& v) {
     return sum(v)/v.size();
 }
 template <class ELEM>
-RowVectorBase<ELEM> mean(const MatrixBase<ELEM> v) {
+RowVectorBase<ELEM> mean(const MatrixBase<ELEM>& v) {
     return sum(v)/v.nrow();
 }
 template <int N, class ELEM>
-ELEM mean(const Vec<N, ELEM> v) {
+ELEM mean(const Vec<N, ELEM>& v) {
     return sum(v)/N;
 }
 template <int N, class ELEM>
-ELEM mean(const Row<N, ELEM> v) {
+ELEM mean(const Row<N, ELEM>& v) {
     return sum(v)/N;
 }
 template <int M, int N, class ELEM>
-Row<N, ELEM> mean(const Mat<M, N, ELEM> v) {
+Row<N, ELEM> mean(const Mat<M, N, ELEM>& v) {
     return sum(v)/M;
 }
 template <int N, class ELEM>
-Row<N, ELEM> mean(const SymMat<N, ELEM> v) {
+Row<N, ELEM> mean(const SymMat<N, ELEM>& v) {
     return sum(v)/N;
 }
 
 // The sort() function.
 
 template <class ELEM>
-VectorBase<ELEM> sort(const VectorBase<ELEM> v) {
+VectorBase<ELEM> sort(const VectorBase<ELEM>& v) {
     const int size = v.size();
     VectorBase<ELEM> temp(v);
     std::sort(temp.begin(), temp.end());
     return temp;
 }
 template <class ELEM>
-RowVectorBase<ELEM> sort(const RowVectorBase<ELEM> v) {
+RowVectorBase<ELEM> sort(const RowVectorBase<ELEM>& v) {
     const int size = v.size();
     RowVectorBase<ELEM> temp(v);
     std::sort(temp.begin(), temp.end());
     return temp;
 }
 template <class ELEM>
-MatrixBase<ELEM> sort(const MatrixBase<ELEM> v) {
+MatrixBase<ELEM> sort(const MatrixBase<ELEM>& v) {
     const int rows = v.nrow(), cols = v.ncol();
     MatrixBase<ELEM> temp(v);
     for (int i = 0; i < cols; ++i)
@@ -381,25 +382,25 @@ MatrixBase<ELEM> sort(const MatrixBase<ELEM> v) {
     return temp;
 }
 template <int N, class ELEM>
-Vec<N, ELEM> sort(Vec<N, ELEM> v) {
+Vec<N, ELEM> sort(Vec<N, ELEM> v) { // intentional copy of argument
     ELEM* pointer = reinterpret_cast<ELEM*>(&v);
     std::sort(pointer, pointer+N);
     return v;
 }
 template <int N, class ELEM>
-Row<N, ELEM> sort(Row<N, ELEM> v) {
+Row<N, ELEM> sort(Row<N, ELEM> v) { // intentional copy of argument
     ELEM* pointer = reinterpret_cast<ELEM*>(&v);
     std::sort(pointer, pointer+N);
     return v;
 }
 template <int M, int N, class ELEM>
-Mat<M, N, ELEM> sort(Mat<M, N, ELEM> v) {
+Mat<M, N, ELEM> sort(Mat<M, N, ELEM> v) { // intentional copy of argument
     for (int i = 0; i < N; ++i)
         v.col(i) = sort(v.col(i));
     return v;
 }
 template <int N, class ELEM>
-Mat<N, N, ELEM> sort(const SymMat<N, ELEM> v) {
+Mat<N, N, ELEM> sort(const SymMat<N, ELEM>& v) {
     return sort(Mat<N, N, ELEM>(v));
 }
 
@@ -426,17 +427,17 @@ ELEM median(RandomAccessIterator start, RandomAccessIterator end) {
     return *mid;
 }
 template <class ELEM>
-ELEM median(const VectorBase<ELEM> v) {
+ELEM median(const VectorBase<ELEM>& v) {
     VectorBase<ELEM> temp(v);
     return median<ELEM>(temp.begin(), temp.end());
 }
 template <class ELEM>
-ELEM median(const RowVectorBase<ELEM> v) {
+ELEM median(const RowVectorBase<ELEM>& v) {
     RowVectorBase<ELEM> temp(v);
     return median<ELEM>(temp.begin(), temp.end());
 }
 template <class ELEM>
-RowVectorBase<ELEM> median(const MatrixBase<ELEM> v) {
+RowVectorBase<ELEM> median(const MatrixBase<ELEM>& v) {
     int cols = v.ncol(), rows = v.nrow();
     RowVectorBase<ELEM> temp(cols);
     VectorBase<ELEM> column(rows);
@@ -447,24 +448,24 @@ RowVectorBase<ELEM> median(const MatrixBase<ELEM> v) {
     return temp;
 }
 template <int N, class ELEM>
-ELEM median(Vec<N, ELEM> v) {
+ELEM median(Vec<N, ELEM> v) { // intentional copy of argument
     ELEM* pointer = reinterpret_cast<ELEM*>(&v);
     return  median<ELEM>(pointer, pointer+N);
 }
 template <int N, class ELEM>
-ELEM median(Row<N, ELEM> v) {
+ELEM median(Row<N, ELEM> v) { // intentional copy of argument
     ELEM* pointer = reinterpret_cast<ELEM*>(&v);
     return  median<ELEM>(pointer, pointer+N);
 }
 template <int M, int N, class ELEM>
-Row<N, ELEM> median(const Mat<M, N, ELEM> v) {
+Row<N, ELEM> median(const Mat<M, N, ELEM>& v) {
     Row<N, ELEM> temp;
     for (int i = 0; i < N; ++i)
         temp[i] = median(v(i));
     return temp;
 }
 template <int N, class ELEM>
-Row<N, ELEM> median(const SymMat<N, ELEM> v) {
+Row<N, ELEM> median(const SymMat<N, ELEM>& v) {
     return median(Mat<N, N, ELEM>(v));
 }
 

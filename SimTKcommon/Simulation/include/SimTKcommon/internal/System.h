@@ -48,6 +48,235 @@ class ScheduledEventReporter;
 class TriggeredEventHandler;
 class TriggeredEventReporter;
 
+//==============================================================================
+//                    REALIZE OPTIONS and REALIZE RESULTS 
+//==============================================================================
+/** Options for the advanced realize() methods. **/
+class RealizeOptions {
+    unsigned int optionSet;
+    explicit RealizeOptions(unsigned o) : optionSet(o) { }
+public:
+
+    enum Option {
+        None      = 0x00,
+        DontThrow = 0x01
+    };
+
+
+    RealizeOptions() : optionSet(0) { }
+
+    // This is an implicit conversion
+    RealizeOptions(Option opt) : optionSet((unsigned)opt) { }
+
+    // Implicit conversion to bool when needed
+    operator bool() const {return optionSet != 0;}
+    bool isEmpty() const {return optionSet==0;}
+
+    bool isOptionSet(Option opt) const {return (optionSet&(unsigned)opt) != 0;}
+    void clear() {optionSet=0;}
+    void clearOption(Option opt) {optionSet &= ~(unsigned)opt;}
+    void setOption  (Option opt) {optionSet |= (unsigned)opt;}
+
+    // Set operators: or, and
+    RealizeOptions& operator|=(RealizeOptions opts) {optionSet |= opts.optionSet; return *this;}
+    RealizeOptions& operator&=(RealizeOptions opts) {optionSet &= opts.optionSet; return *this;}
+
+    RealizeOptions& operator|=(Option opt) {setOption(opt); return *this;}
+    RealizeOptions& operator-=(Option opt) {clearOption(opt); return *this;}
+};
+
+/** Results for advanced users of realize() methods. **/
+class RealizeResults {
+};
+
+
+
+//==============================================================================
+//                     PROJECT OPTIONS and PROJECT RESULTS
+//==============================================================================
+/** Options for the advanced project() methods. The default is to require
+project() methods to reduce constraint errors to an RMS norm of 1e-4, while
+asking them to attempt 10X tighter accuracy if possible. **/
+class ProjectOptions {
+public:
+    enum Option {
+        /** Take all defaults. **/
+        None            = 0x0000,
+        /** This option says we expect the state to be close to a solution 
+        already and restricts projection to move downhill in the local 
+        vicinity. This should be used during any continuous integration to 
+        prevent erroneous jumps in the state. **/
+        LocalOnly       = 0x0001,
+        /** Normally failure to meet the accuracy requirements throws an
+        exception. This will force the project() method to quietly return bad 
+        status instead. **/
+        DontThrow       = 0x0002,
+        /** Use the stricter infinity (max absolute value) norm rather than
+        the default RMS norm to determine when accuracy has been achieved. **/
+        UseInfinityNorm = 0x0004,
+        /** Normally a project() method will return immediately after 
+        evaluating the norm if it is already at or below the required accuracy.
+        This option forces it to make at least one iteration. **/
+        ForceProjection = 0x0008,
+        /** A project() method is free to use an out-of-date Jacobian when
+        solving the nonlinear system. This option forces recalculation of
+        the Jacobian at the start of each iteration. **/
+        ForceFullNewton = 0x0010
+    };
+
+    ProjectOptions() {clear();}
+    explicit ProjectOptions(Real accuracy) 
+    {   clear(); setRequiredAccuracy(accuracy); }
+    explicit ProjectOptions(Option opt)
+    {   clear(); setOption(opt); }
+
+    /** Restore this object to its default-constructed state (no options
+    selected, default accuracy and overshoot). A reference to the
+    newly-cleared object is returned. **/
+    ProjectOptions& clear() 
+    {   optionSet=0; setAccuracyDefaults(); return *this; }
+
+    /** The norm of the constraint errors must be driven to below this value
+    for a project() to be considered successful. Normally an RMS norm is used
+    but you can override that to use an infinity norm instead. **/
+    ProjectOptions& setRequiredAccuracy(Real accuracy) {
+        assert(accuracy > 0);
+        requiredAccuracy = accuracy;
+        return *this;
+    }
+
+    /** Project will attempt to reach accuracy*overshoot but settle for 
+    just accuracy. **/ 
+    ProjectOptions& setOvershootFactor(Real overshoot) {
+        assert(0 < overshoot && overshoot <= 1);
+        desiredOvershoot = overshoot;
+        return *this;
+    }
+
+    /** Project will fail immediately if the initial norm is greater than
+    the projection limit, with status FailureToConverge. **/ 
+    ProjectOptions& setProjectionLimit(Real limit) {
+        assert(limit > 0);
+        projectionLimit = limit;
+        return *this;
+    }
+
+    /** Remove a given option from the set. Nothing happens if the option wasn't
+    already set. **/
+    ProjectOptions& clearOption(Option opt) 
+    {   optionSet &= ~(unsigned)opt; return *this; }
+    /** Select a given option from the set. Nothing happens if the option wasn't
+    already set. **/
+    ProjectOptions& setOption  (Option opt) 
+    {   optionSet |= (unsigned)opt; return *this; }
+
+    /** Return the current value for the required accuracy option. **/
+    Real getRequiredAccuracy()       const {return requiredAccuracy;}
+    /** Return the factor by which a project() method should try to do better
+    than the required accuracy. **/
+    Real getOvershootFactor() const {return desiredOvershoot;}
+    /** Return the maximum norm we're allowed to attempt to correct. **/
+    Real getProjectionLimit() const {return projectionLimit;}
+
+    bool isOptionSet(Option opt) const {return (optionSet&(unsigned)opt) != 0;}
+
+    static Real getDefaultRequiredAccuracy() {return Real(1e-4);}
+    static Real getDefaultOvershootFactor()  {return Real(0.1);} //i.e., 1e-5
+
+    // Set operators: not, or, and, set difference
+    ProjectOptions& operator|=(const ProjectOptions& opts) 
+    {   optionSet |= opts.optionSet; return *this; }
+    ProjectOptions& operator&=(const ProjectOptions& opts) 
+    {   optionSet &= opts.optionSet; return *this; }
+    ProjectOptions& operator-=(const ProjectOptions& opts) 
+    {   optionSet &= ~opts.optionSet; return *this; }
+
+    ProjectOptions& operator|=(Option opt) {setOption(opt); return *this;}
+    ProjectOptions& operator-=(Option opt) {clearOption(opt); return *this;}
+
+private:
+    Real     requiredAccuracy;
+    Real     desiredOvershoot; // try for accuracy*overshoot
+    Real     projectionLimit;  // abort if initial norm is worse than this
+    unsigned optionSet;
+
+    void setAccuracyDefaults() {
+        requiredAccuracy = getDefaultRequiredAccuracy();
+        desiredOvershoot = getDefaultOvershootFactor(); 
+        projectionLimit  = Infinity; // we'll try from however far away
+    }
+};
+
+/** Results for advanced users of project() methods. **/
+class ProjectResults {
+public:
+    ProjectResults() {clear();}
+
+    enum Status {
+        /** This object has not been filled in yet and holds no results. **/
+        Invalid                 = -1,
+        /** The project() was successful either because no projection was
+        necessary or projection was able to achieve the required accuracy. **/
+        Succeeded               = 0,
+        /** Projection converged but was unable to achieve the required
+        accuracy. **/
+        FailedToAchieveAccuracy = 1,
+        /** The Newton iterations were diverging. This is especially common
+        when the LocalOnly option is set since project() will quit at the 
+        first sign of divergence in that case. This is also the return if
+        a projection limit has been set and the initial norm is larger. **/
+        FailedToConverge        = 2    
+    };
+
+    /** Restore this object to its default-constructed state, with the return
+    status set to Invalid. **/
+    ProjectResults& clear() {
+        m_exitStatus = Invalid;
+        m_anyChangeMade = m_projectionLimitExceeded = false;
+        m_numIterations = 0;
+        m_worstError = -1;
+        m_normOnEntrance = m_normOnExit = NaN;
+        return *this;
+    }
+    bool    isValid()           const {return m_exitStatus != Invalid;}
+    Status  getExitStatus()     const {return m_exitStatus;}
+
+    bool getAnyChangeMade()     const {assert(isValid());return m_anyChangeMade;}
+    int  getNumIterations()     const {assert(isValid());return m_numIterations;}
+    Real getNormOnEntrance()    const {assert(isValid());return m_normOnEntrance;}
+    Real getNormOnExit()        const {assert(isValid());return m_normOnExit;}
+    int  getWorstErrorOnEntrance()    const {assert(isValid());return m_worstError;}
+    bool getProjectionLimitExceeded() const {assert(isValid());return m_projectionLimitExceeded;}
+
+    ProjectResults& setExitStatus(Status status) 
+    {   m_exitStatus=status; return *this; }
+    ProjectResults& setAnyChangeMade(bool changeMade) 
+    {   m_anyChangeMade=changeMade; return *this; }
+    ProjectResults& setProjectionLimitExceeded(bool limitExceeded) 
+    {   m_projectionLimitExceeded=limitExceeded; return *this; }
+    ProjectResults& setNumIterations(int numIterations) 
+    {   m_numIterations=numIterations; return *this; }
+    ProjectResults& setNormOnEntrance(Real norm, int worstError) 
+    {   m_normOnEntrance=norm; m_worstError=worstError; return *this; }
+    ProjectResults& setNormOnExit(Real norm) 
+    {   m_normOnExit=norm; return *this; }
+private:
+    Status  m_exitStatus;
+    bool    m_anyChangeMade;
+    bool    m_projectionLimitExceeded;
+    int     m_numIterations;
+    int     m_worstError;       // index of worst error on entrance
+    Real    m_normOnEntrance;   // in selected rms or infinity norm
+    Real    m_normOnExit;
+};
+
+
+
+
+
+//==============================================================================
+//                                 SYSTEM
+//==============================================================================
 /** This is the handle class that serves as the abstract parent of all System
 handles.
 
@@ -116,6 +345,35 @@ of the event reporter object. The handler is actually
 added to the DefaultSystemSubsystem that is contained in this System. **/
 inline void addEventReporter(TriggeredEventReporter* handler) const;
 
+/** (Advanced) This is a hint used for some default behaviors, such as 
+determining an initial step size for an integrator, or the default unit error 
+for a constraint error derivative from the original constraint. Most users can
+ignore this and just take the default.
+
+This should be set to roughly the time scale at which you expect to see 
+interesting things happen, that is the scale at which you might choose to
+view reporting output. An orbital simulation using seconds as time units might
+set this to 10 or 100s, for example, while a biomechanical simulation could
+use 0.1s. This will affect the time scale on which velocity constraints are
+stabilized, with longer time scales being more demanding since there is more time to
+drift. By default this is 0.1 time units, so 100ms for systems measuring time in 
+seconds and 100fs for systems measuring time in ps. **/
+System& setDefaultTimeScale(Real tc);
+/** Get the currently-set value for the default time scale, 0.1 time units
+if it has never been set. **/
+Real getDefaultTimeScale() const;
+/** (Advanced) This is a hint that can be used to get a sense of what a "unit 
+length" looks like for this System in the units it uses. Most users can ignore
+this and just take the default.
+
+For example, a model of a small toy car expressed in MKS units might set this to 
+0.01 (1 cm). The default for this is 1 length unit, meaning 1 meter in MKS and 1 
+nm in MD units. **/
+System& setDefaultLengthScale(Real lc);
+/** Get the currently-set value for the default length scale, 1 length unit
+if it has never been set. **/
+Real getDefaultLengthScale() const;
+
 /** This is a hint to visualization software as to which way this System's
 designer considers to be "up".\ This is the best direction to use as the 
 default up direction for the camera. The default up direction is  +YAxis, 
@@ -144,55 +402,6 @@ hint. **/
 bool getUseUniformBackground() const;
 
 
-class ProjectOptions {
-    unsigned int optionSet;
-    explicit ProjectOptions(unsigned o) : optionSet(o) { }
-public:
-
-    enum Option {
-        None   = 0x00,
-
-        Q      = 0x01,
-        U      = 0x02,
-        QError = 0x04,
-        UError = 0x08,
-
-        PositionOnly = (Q|QError),
-        VelocityOnly = (U|UError),
-        All          = (PositionOnly|VelocityOnly),
-
-        // This option says we expect the state to be close to a 
-        // solution already and restricts projection to move downhill
-        // in the local vicinity. This should be used during any
-        // continuous integration to prevent erroneous jumps in the state.
-        LocalOnly = 0x1000
-    };
-
-    ProjectOptions() : optionSet(0) { }
-
-    // This is an implicit conversion
-    ProjectOptions(Option opt) : optionSet((unsigned)opt) { }
-
-    // Implicit conversion to bool when needed
-    operator bool() const {return optionSet != 0;}
-    bool hasAnyPositionOptions() const {return (optionSet&(unsigned)PositionOnly) != 0;}
-    bool hasAnyVelocityOptions() const {return (optionSet&(unsigned)VelocityOnly) != 0;}
-    bool isEmpty() const {return optionSet==0;}
-
-    bool isOptionSet(Option opt) const {return (optionSet&(unsigned)opt) != 0;}
-    void clear() {optionSet=0;}
-    void clearOption(Option opt) {optionSet &= ~(unsigned)opt;}
-    void setOption  (Option opt) {optionSet |= (unsigned)opt;}
-
-    // Set operators: not, or, and, set difference
-    ProjectOptions operator~() const {return ProjectOptions( (~optionSet) & (unsigned)All );}
-    ProjectOptions& operator|=(ProjectOptions opts) {optionSet |= opts.optionSet; return *this;}
-    ProjectOptions& operator&=(ProjectOptions opts) {optionSet &= opts.optionSet; return *this;}
-    ProjectOptions& operator-=(ProjectOptions opts) {optionSet &= ~opts.optionSet; return *this;}
-
-    ProjectOptions& operator|=(Option opt) {setOption(opt); return *this;}
-    ProjectOptions& operator-=(Option opt) {clearOption(opt); return *this;}
-};
 
 
     /////////////////
@@ -210,7 +419,8 @@ made to this System, before the System can be used to perform any
 computations. Perhaps surprisingly, the method is const. That's because 
 the topology cannot be changed by this method. Various mutable "cache" 
 entries will get calculated, including the default State, a reference 
-to which is returned. The returned State has already been realized 
+to which is returned. The returned State has a Topology stage version number
+that matches the System, and will have already been realized 
 through the Model Stage, using the defaults for the Model-stage 
 variables, meaning that all later stage variables have been allocated 
 and set to their default values as well. You can access this same 
@@ -224,7 +434,8 @@ exception if realizeTopology() has not been called since the
 most recent topological change to this System. This method returns the
 same reference returned by realizeTopology(). The State to which
 a reference is returned was created by the most recent
-realizeTopology() call. It has already been realized through the
+realizeTopology() call. It has a Topology version number that matches the one
+currently in this System, and has already been realized through the
 Model Stage, using default values for all the Model-stage variables.
 All later-stage variables have been allocated and set to their
 default values. You can use this state directly to obtain information
@@ -233,6 +444,7 @@ to initialize other States to which you have write access. Those
 States are then suitable for further computation with this System. **/
 const State& getDefaultState() const;
 State&       updDefaultState();
+
 
 /** This call is required if Model-stage variables are changed from
 their default values. The System topology must already have been
@@ -260,12 +472,45 @@ or higher, nothing happens here. Otherwise, the state is realized
 one stage at a time until it reaches the requested stage. **/
 void realize(const State& s, Stage g = Stage::HighestRuntime) const;
 
-/** Generate all decorative geometry computable at a specific stage. This 
-will throw an exception if the state hasn't already been realized
-to that stage. Note that the list is not inclusive -- you have to
-request geometry from each stage to get all of it. This routine asks 
-each subsystem in succession to generate its decorative geometry and
-append it to the end of the vector. If the stage is Stage::Topology, 
+/** (Advanced) You can check whether realizeTopology() has been called since the
+last topological change to this Syatem. If you don't check and just plunge
+ahead you are likely to encounter an exception since very few things
+will work without topology having been realized. **/
+bool systemTopologyHasBeenRealized() const;
+
+/** (Advanced) Return the current version number of this system's Topology
+cache information. This is a counter that is incremented each time the Topology
+is invalidated. Any State to be used with this System must have the same
+Topology version number as the System does. The version number is returned
+regardless of whether topology has been realized; you can check that with
+systemTopologyHasBeenRealized(). 
+@see State::getSystemTopologyStageVersion() **/
+StageVersion getSystemTopologyCacheVersion() const;
+
+/** (Really advanced) Set the current version number of this system's 
+Topology cache information. Don't use this method unless you really know what
+you're doing! This has no effect on realization status; if topology has not
+yet been realized this is the version number it will have after the next 
+realizeTopology() call. **/
+void setSystemTopologyCacheVersion(StageVersion topoVersion) const;
+
+/** (Advanced) Mark the Topology stage of this system and all its subsystems
+"not realized." This is normally handled automatically by whenever you make a 
+Topology-stage change to any subsystem. Occasionally you may want to force 
+recomputation of the Topology-stage cache, for example during testing. After 
+this call the method systemTopologyHasBeenRealized() will return false and you 
+will not be able to call getDefaultState(). A subsequent call to 
+realizeTopology() will invoke all the subsystems' realizeTopology() methods.
+The Topology stage version number will have changed, so all previously-created
+State objects will be invalid. **/
+void invalidateSystemTopologyCache() const;
+
+/** (Advanced) Generate all decorative geometry computable at a specific stage;
+this is useful for visualizers. This will throw an exception if the state hasn't
+already been realized to the given stage. Note that the list is not inclusive --
+you have to request geometry from each stage to get all of it. This routine 
+asks each subsystem in succession to generate its decorative geometry and
+append it to the end of the array. If the stage is Stage::Topology, 
 realizeTopology() must already have been called but the State is ignored. **/
 void calcDecorativeGeometryAndAppend(const State&, Stage, 
                                      Array_<DecorativeGeometry>&) const;
@@ -277,48 +522,96 @@ void calcDecorativeGeometryAndAppend(const State&, Stage,
 
 /**@name                    The Continuous System
 These methods deal with the continuous (smoothly-evolving) aspects of this 
-%System. They are primarly for use by numerical integrators. **/
+%System. They are primarly for use by numerical integrators. 
+TODO: this is currenly just a vague design **/
 /**@{**/
+
+/** Free q's are the subset of the given state's q's that need to be 
+integrated from corresponding qdots and optionally qdotdots. You can call this 
+at Instance stage after we know which q's are prescribed. The result is in
+a form suitable for constructing a view of a full q array that shows only
+the free q's. **/
+const Array_<int>& getFreeQIndex(const State& state) const;
+
+/** Free u's are the subset of the given state's u's that need to be 
+integrated from corresponding udots. You can call this at Instance stage after 
+we know which u's are prescribed. The result is in a form suitable for 
+constructing a view of a full u array that shows only the free u's. **/
+const Array_<int>& getFreeUIndex(const State& state) const;
+
+/** Free udots are the subset of the given state's udots that are determined
+from forces. You can call this at Instance stage after we know which udots are 
+prescribed. The result is in a form suitable for constructing a view of a full 
+udot array that shows only the free udots. **/
+const Array_<int>& getFreeUDotIndex(const State& state) const;
+
+const Array_<bool>& getUseRelativeAccuracyU(const State& state) const;
+Array_<bool>& updUseRelativeAccuracyU(State& state) const;
+
+const Array_<bool>& getUseRelativeAccuracyZ(const State& state) const;
+Array_<bool>& updUseRelativeAccuracyZ(State& state) const;
+
+
+/** Given a qdot-like vector dq, weight it to produce dqw=Wq*dq, where
+Wq=N*Wu*pinv(N). Wu is the set of u weights. **/
+void calcWeightedDQ(const State& state, const Vector& dq, Vector& dqw) const;
+
+/** Given a udot-like vector du, weight it to produce duw=Eu*du, where
+Eu_i=min(Wu_i, 1/u_i) if we're looking for relative accuracy on u_i, otherwise
+Eu_i=Wu_i. Wu is the set of u weights. **/
+void calcWeightedDU(const State& state, const Vector& du, Vector& duw) const;
+
+/** Given a zdot-like vector dz, weight it to produce dzw=Ez*dz, where
+Ez_i=min(Wz_i, 1/z_i) if we're looking for relative accuracy on z_i, otherwise
+Ez_i=Wz_i. Wz is the set of z weights. **/
+void calcWeightedDZ(const State& state, const Vector& dz, Vector& dzw) const;
+
+/**@name           Kinematic differential equations
+
+Generalized coordinates q are not independent of generalized speeds u;
+they are related by the kinematic differential equation qdot=N(q)*u, where
+N is an nqXnu block diagonal, invertible matrix in the sense that 
+u=pinv(N)*qdot, where pinv(N) is the pseudoinverse of N. N has full column rank,
+so pinv(N)*N = I, but N*pinv(N) != I.
+
+Just as N provides the relation between velocities expressed in u-space and
+the equivalent in q-space, its transpose ~N relates forces in q-space to
+their equivalent in u-space: fu=~N*fq, and fq=~pinv(N)*fu. (Note that
+~pinv(X)==pinv(~X).) This satisfies power=~fq*qdot==~fu*u as it must.
+
+We provide fast O(n) operators for multiplication by N, pinv(N), and their 
+transposes. N is often mostly an identity matrix so very little computation
+is required. **/
+/**@{**/
+/** Calculate dq=N*u in O(n) time (very fast). **/
+void multiplyByN(const State& state, const Vector& u, 
+                 Vector& dq) const;
+/** Calculate fu=~N*fq in O(n) time (very fast). **/
+void multiplyByNTranspose(const State& state, const Vector& fq, 
+                          Vector& fu) const;
+/** Calculate u=pinv(N)*dq in O(n) time (very fast). **/
+void multiplyByNPInv(const State& state, const Vector& dq, 
+                     Vector& u) const;
+/** Calculate fq=~pinv(N)*fu in O(n) time (very fast). **/
+void multiplyByNPInvTranspose(const State& state, const Vector& fu, 
+                              Vector& fq) const;
+/**@}**/
 
         // UNCONSTRAINED
 
-/** This operator can be called at Stage::Instance or higher and returns a
-rough estimate of a length of time we consider significant for this 
-system. For example, this could be the period of the highest-frequency
-oscillation that we care about. This can be used as a hint by numerical
-integrators in choosing their initial step size, and suggests how 
-velocity variables should be scaled relative to their corresponding 
-position variables. **/
-Real calcTimescale(const State&) const;
 
-/** This operator can be called at Stage::Position to calculate a weighting
-vector w, with one entry for each state variable y={q,u,z}, ordered
-the same as y in the State and calculated specifically for the current
-values of y in the State. Weight wi is proportional to the "importance"
-of state variable yi with respect to some criteria determined by
-the System, such that wi*dyi=1 indicates that a change dyi in state
-yi produces approximately a unit change in the weighting criteria. This
-is intended for use by numerical integration methods for step size 
-control. The idea is to allow creation of a weighted RMS norm which 
-returns 1 just when all the state variable changes have a unit effect. 
-The norm is RMS(W*dy) where W=diag(w). A value of 1 for this norm would 
-typically be a huge error. For example, if your accuracy requirement is 
-0.1%, you would test that the weighted RMS norm is <= .001. We expect 
-this operation to be fairly expensive and thus the integrator is expected 
-to invoke it only occasionally. **/
-void calcYUnitWeights(const State&, Vector& weights) const;
 
         // CONSTRAINED
 
 /** This optional solver should set state variables q and u to known values
 as a function of time and earlier-stage state variables.
-    - prescribe(Stage::Position) sets each prescribed qi=qi(t).
-    - prescribe(Stage::Velocity) sets each prescribed ui=ui(t,q).
+    - prescribeQ sets each prescribed qi=qi(t).
+    - prescribeU sets each prescribed ui=ui(t,q).
 
 In each case we expect the supplied State already to have been realized to the 
 previous stage. Note that the \e derivatives of prescribed variables (which are
 of necessity also prescribed but are not themselves state variables) are set in
-the subsequent realize() call. For example, prescribe(Velocity) sets the 
+the subsequent realize() call. For example, prescribeU sets the 
 prescribed u's, then the next realize(Velocity) call will use them to calculate
 the prescribed qdots=N*u. realize(Dynamics) calculates known forces and the 
 prescribed udoti=udoti(t,q,u). realize(Acceleration) calculates the
@@ -326,39 +619,118 @@ remaining udots, lambdas, taus, and all the zdots.
 
 Note that this method is \e not used to set prescribed udots, because those are
 not state variables. Instead, prescribed udots (which depend on time, positions,
-and velocities) are set as part of realize(Dynamics). **/
-void prescribe(State&, Stage) const;
+and velocities) are set as part of realize(Dynamics). 
 
-/** This optional solver projects the given State back on to the constraint
-manifold, by the shortest path possible in the weighted norm given by the 
-supplied weights, satisfying the constraints by reducing the supplied 
-tolerance norm to below consAccuracy. May also project out the 
-constraint-normal component of the passed-in error estimate vector yerrest.
+@return \c true if any change was made to \a state **/
+bool prescribeQ(State& state) const;
+bool prescribeU(State& state) const;
+
+/** Set values for prescribed positions q and velocities u.
+Prescribed positions are functions of time q(t) and prescribed velocities are 
+functions of time and position u(t,q). Both can also depend on earlier-stage 
+discrete variables such as modeling and instance parameters.
+
+@param[in,out]  state
+    The State to be modified. Time and the values of non-prescribed q's are 
+    obtained from \a state and prescribed q's and u's are modified on return.
+    The \a state will be realized as needed and on return will have been
+    realized through Position stage. The prescribed velocities will have been
+    set but not yet realized.
+
+@see prescribeQ(), prescribeU(), project(), realize() **/
+void prescribe(State& state) const {
+    realize(state, Stage::Time);
+    prescribeQ(state);
+    realize(state, Stage::Position);
+    prescribeU(state);
+}
+
+/** This solver projects the given state back on to the position or velocity
+constraint manifold, by the shortest path possible in the scaled norm defined in
+that state, and modifying only free (non-prescribed) variables. Constraint 
+errors are scaled by their unit error weightings, then satisfied to a given 
+accuracy using an RMS norm, or optionally using the stricter infinity norm. 
+
+Optionally, this method can also project out the constraint-normal component of
+the passed-in error estimate vector yerrest.
 This is part of the integration of the continuous DAE system and thus 
-should never require an integrator restart. The System author must ensure 
-that only position and velocity stage, continuous variables are updated by 
-this call. On return the state will be realized to at least 
-Stage::Velocity.
+should never require an integrator restart. 
 
-If ProjectOptions::VelocityOnly is selected, only the velocity will be 
-projected. In that case it is assumed that the positions already satisfy
-the constraints (to within tolerance), and the State has already been 
-realized to at least Stage::Position.
+Options
+- use infinity norm
+- local projection only
+- force projection
+- don't throw an exception
+- force full Newton
 
-TODO: why not put weights in the State instead? **/
-void project(State&, Real consAccuracy, const Vector& yWeights,
-                const Vector& cWeights, Vector& yerrest, 
-                ProjectOptions=ProjectOptions::All) const;
+This method is not for satisfying acceleration constraints, which does not
+involve modifications to state variables. Acceleration constraints are 
+satisfied automatically when you realize a state to Acceleration stage using
+realize(state); the resulting udots will satisfy the acceleration constraints
+(if possible), even if the position and velocity constraints are not satisfied.
 
-/** This provides scaling information for each of the position and velocity
-constraints (YErr) in the State. The tolerance is the absolute error in 
-the constraint which is considered a "unit violation" of that state.
-Then if T=diag(tol) and c the vector of constraint errors, we can use a
-weighted RMS norm condition like RMS(T*c) <= accuracy to define when 
-constraints have been adequately met. This is expected to be a cheap 
-operation and not to change during a study. State must be realized to 
-Stage::Model. **/
-void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
+<h3>Theory</h3>
+Position constraints are satisfied as follows:
+<pre>
+    solve |Tp*perr(t;q+dq)|_n <= accuracy for dq (n==rms or inf)
+    such that |Wq*dq|_2 is minimized
+</pre>
+Here Tp=diag(1./unit_p) scales each position constraint error to a fraction of
+its unit error. Wq=N*Wu*pinv(N) weights dq to include both the "unit change"
+weightings on u and the artifactual configuration-dependent weightings on q
+generated by choice of orientation coordinates such as quaternions or rotation
+angles. (N as in qdot=N*u; pinv() is pseudoinverse.) We do not allow relative 
+weighting on dq based on the current values of q; Simbody always solves q to 
+absolute accuracy since arbitrary translations and rotations by 2pi should not 
+affect physically-significant results.
+
+Velocity constraints are satisfied as follows:
+<pre>
+    solve |Tpv*pverr(t,q;u+du)|_n <= accuracy for du (n==rms or inf)
+    such that |Eu*du|_2 is minimized
+</pre> 
+Here Tpv=diag(ts./unit_p 1./unit_v) where ts is the system's time scale used to 
+scale the holonomic constraint's unit errors, and unit_v is the unit error for 
+the holonomic constraints. The error weighting matrix Eu combines relative
+and absolute accuracy requirements as follows:
+<pre>
+    Eu_i={ min(Wu_i, 1/u_i), relative accuracy OK for u_i
+         {       Wu_i,       otherwise
+</pre>
+ **/
+
+
+void project(State& state, Real accuracy=1e-4) const {
+    ProjectResults projResults;
+    ProjectOptions projOptions;
+    projOptions.setRequiredAccuracy(accuracy);
+
+    realize(state, Stage::Time);
+    prescribeQ(state);
+    realize(state, Stage::Position);
+    projectQ(state, Vector(), projOptions, projResults);
+    prescribeU(state);
+    realize(state, Stage::Velocity);
+    projectU(state, Vector(), projOptions, projResults);
+}
+
+/** Advanced: project free q's so that position constraints are satisfied and 
+remove
+the corresponding error from the supplied error estimate. This is primarily
+intended for use by numerical integration algorithms. You must already have
+set prescribed q's; this method will not modify them but may depend on their
+current values. State must be realized to Position stage on entry and will 
+still be realized through Position stage on return. 
+
+If the norm of perr is already less than or equal to accuracy on entry, nothing
+will happen unless you have selected the "ForceProjection" option. You can 
+find out what actually happened by looking in the returned \a results.
+@see ProjectOptions, ProjectResults, project()
+**/
+void projectQ(State&, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const;
+void projectU(State&, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const;
 
         // FAST VARIABLES
 
@@ -381,9 +753,8 @@ udots are also zero (their q's are regular integrated variables). Fast
 z's have zero zdots. Any other variables (that is, x-partition variables) 
 can also be fast but don't have derivatives.
 
-TODO: why not put weights in the State instead? **/
-void relax(State&, Stage, Real accuracy, 
-            const Vector& yWeights, const Vector& cWeights) const;
+TODO: should take options and return results. **/
+void relax(State&, Stage, Real accuracy) const;
 /**@}**/
 
     ////////////////////////////////
@@ -418,19 +789,19 @@ it must perform on the underlying numerical integrator. When in doubt,
 set lowestModified to Stage::Model, which will cause a complete restart.
 Finally, if the handler determines that the occurrence of some event
 requires that the simulation be terminated it should set 
-\p shouldTerminate to true before returning.
-
-TODO: why not put weights in the State instead? **/
-void handleEvents
-    (State&, Event::Cause, const Array_<EventId>& eventIds,
-    Real accuracy, const Vector& yWeights, const Vector& cWeights,
-    Stage& lowestModified, bool& shouldTerminate) const;
+\p shouldTerminate to true before returning.  **/
+void handleEvents(State&                        state, 
+                  Event::Cause                  cause, 
+                  const Array_<EventId>&        eventIds,
+                  const HandleEventsOptions&    options,
+                  HandleEventsResults&          results) const;
     
 /** This method is similar to handleEvents(), but does not allow the State 
 to be modified.  It is used for scheduled events that were marked as 
 being reports. **/
-void reportEvents(const State& s, Event::Cause cause, 
-                    const Array_<EventId>& eventIds) const;
+void reportEvents(const State&                  state, 
+                  Event::Cause                  cause, 
+                  const Array_<EventId>&        eventIds) const;
 
 /** This routine provides the Integrator with information it needs about the
 individual event trigger functions, such as which sign transitions are
@@ -439,49 +810,30 @@ Instance stage information so cannot change during a continuous integration
 interval (so an Integrator can process it upon restart(Instance)), 
 however it can be updated whenever a discrete update is made to the 
 State. A default implementation is provided which returns default 
-EventTriggerInfo for each event trigger in State. State must already be 
+EventTriggerInfo for each event trigger in \a state. The \a state must already be 
 realized to Stage::Instance. **/
-void calcEventTriggerInfo(const State&, Array_<EventTriggerInfo>&) const;
+void calcEventTriggerInfo(const State&              state,
+                          Array_<EventTriggerInfo>& triggerInfo) const;
 
 /** This routine should be called to determine if and when there is an event
-scheduled to occur at a particular time. This is a *lot* cheaper than
+scheduled to occur at a particular time. This is a \e lot cheaper than
 making the Integrator hunt these down like ordinary state-dependent events.
 The returned time can be passed to the Integrator's stepping function as
 the advance time limit. **/
-void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, 
-                                  Array_<EventId>& eventIds, bool includeCurrentTime) const;
+void calcTimeOfNextScheduledEvent(const State&      state, 
+                                  Real&             tNextEvent, 
+                                  Array_<EventId>&  eventIds, 
+                                  bool              includeCurrentTime) const;
 
 /** This routine is similar to calcTimeOfNextScheduledEvent(), but is used for
-"reporting events" which do not modify the state.  Events returned by this
-method should be handled by invoking reportEvents() instead of handleEvents(). **/
-void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, 
-                                   Array_<EventId>& eventIds, bool includeCurrentTime) const;
+"reporting events" which do not modify the state. Events returned by this
+method should be handled by invoking reportEvents() instead of 
+handleEvents(). **/
+void calcTimeOfNextScheduledReport(const State&     state, 
+                                   Real&            tNextEvent, 
+                                   Array_<EventId>& eventIds, 
+                                   bool             includeCurrentTime) const;
 /**@}**/
-
-//TODO: these operators should be provided by the Vector class where they
-//can be performed more efficiently.
-
-static Real calcWeightedRMSNorm(const Vector& values, const Vector& weights) {
-    assert(weights.size() == values.size());
-    if (values.size()==0) return 0;
-    Real sumsq = 0;
-    for (int i=0; i<values.size(); ++i) {
-        const Real wv = weights[i]*values[i];
-        sumsq += wv*wv;
-    }
-    return std::sqrt(sumsq/weights.size());
-}
-
-static Real calcWeightedInfinityNorm(const Vector& values, const Vector& weights) {
-    assert(weights.size() == values.size());
-    if (values.size()==0) return 0;
-    Real maxval = 0;
-    for (int i=0; i<values.size(); ++i) {
-        const Real wv = std::abs(weights[i]*values[i]);
-        if (wv > maxval) maxval=wv;
-    }
-    return maxval;
-}
 
     ////////////////
     // STATISTICS //
@@ -511,23 +863,36 @@ int getNumRealizeCalls() const;
 
     // Prescribed motion
 
-/** Return the total number of calls to the System's prescribe() method.
-We don't distinguish the calls by stage so this may be incremented
-several times per step. **/
-int getNumPrescribeCalls() const;
+/** Return the total number of calls to the System's prescribeQ() method. **/
+int getNumPrescribeQCalls() const;
+/** Return the total number of calls to the System's prescribeU() method. **/
+int getNumPrescribeUCalls() const;
 
     // Projection
 
-/** Count the number of times we call project() with a particular
-option set. **/
-int getNumQProjections() const;
-int getNumUProjections() const;
-int getNumQErrorEstimateProjections() const;
-int getNumUErrorEstimateProjections() const;
-
-/** Return the total number of calls to project(), regardless of
+/** Return the total number of calls to projectQ(), regardless of
 whether the call did anything. **/
-int getNumProjectCalls() const;
+int getNumProjectQCalls() const;
+/** Return the total number of calls to projectQ() that failed. **/
+int getNumFailedProjectQCalls() const;
+/** How many of the successful projectQ() calls actually did a constraint 
+projection, rather than returning quickly? **/
+int getNumQProjections() const;
+/** How many of the projectQ() calls that did a constraint projection also
+projected an error estimate? **/
+int getNumQErrorEstimateProjections() const;
+
+/** Return the total number of calls to projectU(), regardless of
+whether the call did anything. **/
+int getNumProjectUCalls() const;
+/** Return the total number of calls to projectU() that failed. **/
+int getNumFailedProjectUCalls() const;
+/** How many of the successful projectU() calls actually did a constraint 
+projection, rather than returning quickly? **/
+int getNumUProjections() const;
+/** How many of the projectU() calls that did a constraint projection also
+projected an error estimate? **/
+int getNumUErrorEstimateProjections() const;
 
     // Event handling and reporting
 
@@ -591,11 +956,6 @@ bool isEmptyHandle() const;
 they are considered to be the same System. **/
 bool isSameSystem(const System& otherSystem) const;
 
-/** You can check whether realizeTopology() has been called since the last
-topological change to this Syatem. If you don't check and just plunge
-ahead you are likely to encounter an exception since very few things
-will work without topology having been realized. **/
-bool systemTopologyHasBeenRealized() const;
 
 /** Obtain a const reference to the System::Guts object to which this handle
 refers. You should then dynamic_cast the returned reference to a reference to 
@@ -657,16 +1017,6 @@ inline void System::addEventReporter(TriggeredEventReporter* handler) const
 
 inline System::operator const Subsystem&() const {return getDefaultSubsystem();}
 inline System::operator Subsystem&() {return updDefaultSubsystem();}
-
-inline static System::ProjectOptions operator|(System::ProjectOptions::Option  o1,    System::ProjectOptions::Option o2)    {return System::ProjectOptions(o1) |= o2;}
-inline static System::ProjectOptions operator|(System::ProjectOptions          opts,  System::ProjectOptions::Option o)     {return opts |= o;}
-inline static System::ProjectOptions operator|(System::ProjectOptions::Option  o,     System::ProjectOptions         opts)  {return opts |= o;}
-inline static System::ProjectOptions operator&(System::ProjectOptions::Option  o1,    System::ProjectOptions::Option o2)    {return System::ProjectOptions(o1) &= o2;}
-inline static System::ProjectOptions operator&(System::ProjectOptions          opts,  System::ProjectOptions::Option o)     {return opts &= o;}
-inline static System::ProjectOptions operator&(System::ProjectOptions::Option  o,     System::ProjectOptions         opts)  {return opts &= o;}
-inline static System::ProjectOptions operator~(System::ProjectOptions::Option  o)                                           {return ~System::ProjectOptions(o);}
-inline static System::ProjectOptions operator-(System::ProjectOptions          opts,  System::ProjectOptions::Option o)     {return opts -= o;}
-inline static System::ProjectOptions operator-(System::ProjectOptions          opts1, System::ProjectOptions         opts2) {return opts1 -= opts2;}
 
 } // namespace SimTK
 

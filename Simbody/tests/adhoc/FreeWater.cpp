@@ -185,9 +185,11 @@ int main(int argc, char** argv) {
     cout << "Using Integrator " << std::string(myStudy.getMethodName()) << ":\n";
     cout << "ACCURACY IN USE=" << myStudy.getAccuracyInUse() << endl;
     cout << "CTOL IN USE=" << myStudy.getConstraintToleranceInUse() << endl;
-    cout << "TIMESCALE=" << myStudy.getTimeScaleInUse() << endl;
-    cout << "Y WEIGHTS=" << myStudy.getStateWeightsInUse() << endl;
-    cout << "1/CTOLS=" << myStudy.getConstraintWeightsInUse() << endl;
+    cout << "TIMESCALE=" << mbs.getDefaultTimeScale() << endl;
+    cout << "U WEIGHTS=" << s.getUWeights() << endl;
+    cout << "Z WEIGHTS=" << s.getZWeights() << endl;
+    cout << "1/QTOLS=" << s.getQErrWeights() << endl;
+    cout << "1/UTOLS=" << s.getUErrWeights() << endl;
 
     Integrator::SuccessfulStepStatus status;
     int nextReport = 0;

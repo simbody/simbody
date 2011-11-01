@@ -873,8 +873,9 @@ public:
                 mabs(i,j) = CNT<E>::abs((*this)(i,j));
     }
 
-    /// abs() with the result as a function return. More convenient than the other
-    /// abs() member function, but may involve an additional copy of the matrix.
+    /// abs() with the result as a function return. More convenient than the 
+    /// other abs() member function, but may involve an additional copy of the 
+    /// matrix.
     TAbs abs() const { TAbs mabs; abs(mabs); return mabs; }
 
     /// Return a Matrix of the same shape and contents as this one but
@@ -896,15 +897,17 @@ public:
         return mstd;
     }
 
-    /// This is the scalar Frobenius norm, and its square. Note: if this is a Matrix then the Frobenius
-    /// norm is NOT the same as the 2-norm, although they are equivalent for Vectors.
+    /// This is the scalar Frobenius norm, and its square. Note: if this is a 
+    /// Matrix then the Frobenius norm is NOT the same as the 2-norm, although
+    /// they are equivalent for Vectors.
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
     // TODO -- not good; unnecessary overflow
     typename CNT<ScalarNormSq>::TSqrt 
         norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
-    /// We only allow RMS norm if the elements are scalars. If there are no elements in this Matrix,
-    /// we'll define its RMS norm to be 0, although NaN might be a better choice.
+    /// We only allow RMS norm if the elements are scalars. If there are no 
+    /// elements in this Matrix, we'll define its RMS norm to be 0, although 
+    /// NaN might be a better choice.
     typename CNT<ScalarNormSq>::TSqrt 
     normRMS() const {
         if (!CNT<ELT>::IsScalar)
@@ -1164,7 +1167,7 @@ public:
     /// everything else is set to zero.)
     VectorBase& operator=(const ELT& t) { Base::setTo(t); return *this; }  
 
-    /// There's only one column here so it's a bit wierd to use rowScale rather than
+    /// There's only one column here so it's a bit weird to use rowScale rather than
     /// elementwiseMultiply, but there's nothing really wrong with it. Using colScale
     /// would be really wacky since it is the same as a scalar multiply. We won't support
     /// colScale here except through inheritance where it will not be much use.
@@ -1174,6 +1177,144 @@ public:
 	{ Base::rowScale(v,out); }
     template <class EE> inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
 	{ typename EltResult<EE>::Mul out(nrow()); Base::rowScale(v,out); return out; }
+
+    /** Return the root-mean-square (RMS) norm of a Vector of scalars, with 
+    optional return of the index of the element of largest absolute value. 
+    The RMS norm of a Vector v of length n is rms=sqrt(~v*v/n). If n==0 we
+    define the RMS norm to be zero but return the element index as -1. **/
+    typename CNT<ScalarNormSq>::TSqrt 
+    normRMS(int* worstOne=0) const {
+        if (!CNT<ELT>::IsScalar)
+            SimTK_THROW1(Exception::Cant, 
+                "Vector::normRMS() only defined for scalar elements.");
+        const int n = nelt();
+        if (n == 0) {
+            if (worstOne) *worstOne = -1;
+            return typename CNT<ScalarNormSq>::TSqrt(0);
+        }
+
+        ScalarNormSq sumsq = 0;
+        if (worstOne) {
+            *worstOne = 0;
+            ScalarNormSq maxsq = 0; 
+            for (int i=0; i<n; ++i) {
+                const ScalarNormSq v2 = square((*this)[i]);
+                if (v2 > maxsq) maxsq=v2, *worstOne=i;
+                sumsq += v2;
+            }
+        } else { // don't track the worst element
+            for (int i=0; i<n; ++i) {
+                const ScalarNormSq v2 = square((*this)[i]);
+                sumsq += v2;
+            }
+        }
+
+        return CNT<ScalarNormSq>::sqrt(sumsq/n);
+    }
+
+    /** Return the weighted root-mean-square (WRMS) norm of a Vector of 
+    scalars, with optional return of the index of the weighted element of 
+    largest absolute value. The WRMS norm of a Vector v of length n with
+    weights w is wrms=sqrt(sum_i((w_i*v_i)^2))/n). If n==0 we
+    define the WRMS norm to be zero but return the element index as -1. **/
+    template <class EE>
+    typename CNT<ScalarNormSq>::TSqrt 
+    weightedNormRMS(const VectorBase<EE>& w, int* worstOne=0) const {
+        if (!CNT<ELT>::IsScalar || !CNT<EE>::IsScalar)
+            SimTK_THROW1(Exception::Cant, 
+            "Vector::weightedNormRMS() only defined for scalar elements"
+            " and weights.");
+        const int n = nelt();
+        assert(w.nelt()==n);
+        if (n == 0) {
+            if (worstOne) *worstOne = -1;
+            return typename CNT<ScalarNormSq>::TSqrt(0);
+        }
+
+        ScalarNormSq sumsq = 0;
+        if (worstOne) {
+            *worstOne = 0;
+            ScalarNormSq maxsq = 0; 
+            for (int i=0; i<n; ++i) {
+                const ScalarNormSq wv2 = square(w[i]*(*this)[i]);
+                if (wv2 > maxsq) maxsq=wv2, *worstOne=i;
+                sumsq += wv2;
+            }
+        } else { // don't track the worst element
+            for (int i=0; i<n; ++i) {
+                const ScalarNormSq wv2 = square(w[i]*(*this)[i]);
+                sumsq += wv2;
+            }
+        }
+
+        return CNT<ScalarNormSq>::sqrt(sumsq/n);
+    }
+
+    /** Return the infinity norm (max absolute value) of a Vector of scalars, 
+    with optional return of the index of the element of largest absolute value. 
+    The Inf norm of a Vector v is inf=max_i(|v_i|). If n==0 we
+    define the Inf norm to be zero but return the element index as -1. **/
+    EAbs normInf(int* worstOne=0) const {
+        if (!CNT<ELT>::IsScalar)
+            SimTK_THROW1(Exception::Cant, 
+                "Vector::normInf() only defined for scalar elements.");
+        const int n = nelt();
+        if (n == 0) {
+            if (worstOne) *worstOne = -1;
+            return EAbs(0);
+        }
+
+        EAbs maxabs = 0;
+        if (worstOne) {
+            *worstOne = 0;
+            for (int i=0; i<n; ++i) {
+                const EAbs a = std::abs((*this)[i]);
+                if (a > maxabs) maxabs=a, *worstOne=i;
+            }
+        } else { // don't track the worst element
+            for (int i=0; i<n; ++i) {
+                const EAbs a = std::abs((*this)[i]);
+                if (a > maxabs) maxabs=a;
+            }
+        }
+
+        return maxabs;
+    }
+
+    /** Return the weighted infinity norm (max absolute value) WInf of a Vector
+    of scalars, with optional return of the index of the weighted element of 
+    largest absolute value. The WInf norm of a Vector v of length n with
+    weights w is winf=max_i(|w_i*v_i|). If n==0 we
+    define the WInf norm to be zero but return the element index as -1. **/
+    template <class EE>
+    EAbs weightedNormInf(const VectorBase<EE>& w, int* worstOne=0) const {
+        if (!CNT<ELT>::IsScalar || !CNT<EE>::IsScalar)
+            SimTK_THROW1(Exception::Cant, 
+            "Vector::weightedNormInf() only defined for scalar elements"
+            " and weights.");
+        const int n = nelt();
+        assert(w.nelt()==n);
+        if (n == 0) {
+            if (worstOne) *worstOne = -1;
+            return EAbs(0);
+        }
+
+        EAbs maxabs = 0;
+        if (worstOne) {
+            *worstOne = 0;
+            for (int i=0; i<n; ++i) {
+                const EAbs wv = std::abs(w[i]*(*this)[i]);
+                if (wv > maxabs) maxabs=wv, *worstOne=i;
+            }
+        } else { // don't track the worst element
+            for (int i=0; i<n; ++i) {
+                const EAbs wv = std::abs(w[i]*(*this)[i]);
+                if (wv > maxabs) maxabs=wv;
+            }
+        }
+
+        return maxabs;
+    }
 
     /// Set this[i] = this[i]^-1.
     VectorBase& elementwiseInvertInPlace() {

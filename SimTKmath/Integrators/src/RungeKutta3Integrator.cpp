@@ -95,11 +95,9 @@ RungeKutta3IntegratorRep::RungeKutta3IntegratorRep
 // is left over from an evaluation at the end of the last step.
 
 bool RungeKutta3IntegratorRep::attemptODEStep
-   (Real t0, Real t1, 
-    const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-    const Vector& u0, const Vector& udot0, const Vector& z0, 
-    const Vector& zdot0, Vector& y1err, int& errOrder, int& numIterations)
+   (Real t1, Vector& y1err, int& errOrder, int& numIterations)
 {
+    const Real t0 = getPreviousTime();
     assert(t1 > t0);
 
     statsStepsAttempted++;

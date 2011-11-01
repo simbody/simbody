@@ -57,7 +57,7 @@ public:
     static PeriodicHandler* handler;
     PeriodicHandler() : PeriodicEventHandler(1.0) {
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
         
         // This should be triggered every (interval) time units.
         
@@ -76,7 +76,7 @@ public:
     Real getValue(const State& state) const {
         return state.getQ(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
         
         // This should be triggered when the pendulum crosses x == 0.
         
@@ -93,7 +93,6 @@ public:
             hasAccelerated = true;
             SubsystemIndex subsys = pendulum.getGuts().getSubsysIndex();
             state.updU(subsys) *= std::sqrt(1.5);
-            lowestModified = Stage::Velocity;
         }
     }
 private:
@@ -110,7 +109,7 @@ public:
     Real getValue(const State& state) const {
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
         
         // This should be triggered when the pendulum reaches its farthest point in the
         // negative direction: q[0] == -1, u[0] == 0.
@@ -142,8 +141,10 @@ public:
         
         const Vector q = state.getQ(pendulum.getGuts().getSubsysIndex());
         const Vector u = state.getU(pendulum.getGuts().getSubsysIndex());
-        Real energy = pendulum.getMass(state)*(0.5*(u[0]*u[0]+u[1]*u[1])+pendulum.getGravity(state)*(1.0+q[1]));
-        Real expectedEnergy = pendulum.getMass(state)*pendulum.getGravity(state);
+        Real energy =   pendulum.getMass(state)*(0.5*(u[0]*u[0]+u[1]*u[1])
+                      + pendulum.getGravity(state)*(1.0+q[1]));
+        Real expectedEnergy = pendulum.getMass(state)
+                              * pendulum.getGravity(state);
         if (ZeroPositionHandler::hasAccelerated)
             expectedEnergy *= 1.5;
         ASSERT(std::abs(1.0-energy/expectedEnergy) < 0.05);

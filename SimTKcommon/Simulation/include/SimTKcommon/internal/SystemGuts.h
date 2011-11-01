@@ -72,7 +72,7 @@ class DecorativeGeometry;
  * </pre>
  *
  * If the concrete System::Guts class also has an opaque implementation,
- * as it will for concrete Systems provided by the SimTK Core, then
+ * as it will for concrete Systems provided by Simbody, then
  * the System author should expose only the data-free handle class 
  * derived from System.
  */
@@ -124,6 +124,8 @@ public:
     GutsRep&       updRep() const {assert(rep); return *rep;}
 
     bool systemTopologyHasBeenRealized() const;
+    StageVersion getSystemTopologyCacheVersion() const;
+    void setSystemTopologyCacheVersion(StageVersion topoVersion) const;
     void invalidateSystemTopologyCache() const;
 
     // Wrap the cloneImpl virtual method.
@@ -145,16 +147,27 @@ public:
     void realizeReport      (const State& s) const;
 
     // These wrap the other virtual methods.
-    Real calcTimescale(const State&) const;
-    void calcYUnitWeights(const State&, Vector& weights) const;
-    void prescribe(State&, Stage) const;
-    void project(State&, Real consAccuracy, const Vector& yweights,
-                 const Vector& ootols, Vector& yerrest, System::ProjectOptions) const;
-    void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
+    void multiplyByN(const State& state, const Vector& u, 
+                     Vector& dq) const;
+    void multiplyByNTranspose(const State& state, const Vector& fq, 
+                              Vector& fu) const;
+    void multiplyByNPInv(const State& state, const Vector& dq, 
+                         Vector& u) const;
+    void multiplyByNPInvTranspose(const State& state, const Vector& fu, 
+                                  Vector& fq) const;
+
+    bool prescribeQ(State&) const;
+    bool prescribeU(State&) const;
+
+    void projectQ(State&, Vector& qErrEst, 
+                  const ProjectOptions& options, ProjectResults& results) const;
+    void projectU(State&, Vector& uErrEst, 
+                  const ProjectOptions& options, ProjectResults& results) const;
+
     void handleEvents
         (State&, Event::Cause, const Array_<EventId>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const;
+         const HandleEventsOptions& options,
+         HandleEventsResults& results) const;
     void reportEvents(const State&, Event::Cause, const Array_<EventId>& eventIds) const;
     void calcEventTriggerInfo(const State&, Array_<EventTriggerInfo>&) const;
     void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
@@ -190,19 +203,26 @@ protected:
     virtual int realizeAccelerationImpl(const State&) const;
     virtual int realizeReportImpl(const State&) const;
 
-    virtual Real calcTimescaleImpl(const State&) const;
+    virtual void multiplyByNImpl(const State& state, const Vector& u, 
+                                 Vector& dq) const;
+    virtual void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
+                                          Vector& fu) const;
+    virtual void multiplyByNPInvImpl(const State& state, const Vector& dq, 
+                                     Vector& u) const;
+    virtual void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
+                                              Vector& fq) const;
 
-    virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
+    virtual bool prescribeQImpl(State&) const;
+    virtual bool prescribeUImpl(State&) const;
 
-    virtual int prescribeImpl(State&, Stage) const;
-    virtual int projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                            const Vector& ootols, Vector& yerrest, System::ProjectOptions) const;
-    virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
+    virtual void projectQImpl(State&, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const;
+    virtual void projectUImpl(State&, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const;
 
-    virtual int handleEventsImpl
-        (State&, Event::Cause, const Array_<EventId>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const;
+    virtual void handleEventsImpl
+       (State&, Event::Cause, const Array_<EventId>& eventIds,
+        const HandleEventsOptions& options, HandleEventsResults& results) const;
 
     virtual int reportEventsImpl(const State&, Event::Cause, const Array_<EventId>& eventIds) const;
 

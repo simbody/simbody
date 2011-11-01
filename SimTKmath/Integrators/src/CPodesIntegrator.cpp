@@ -103,15 +103,25 @@ public:
     // portion normal to the manifold.
     int project(Real t, const Vector& y, Vector& ycorr, Real epsProj, Vector& err) const {
         integ.setAdvancedState(t,y);
+        State& advanced = integ.updAdvancedState();
+       
         try {
-            const Real tol = integ.getConstraintToleranceInUse();
-            system.realize(integ.getAdvancedState(), Stage::Position);
-            system.project(integ.updAdvancedState(), tol, integ.getStateWeightsInUse(), 
-                           integ.getConstraintWeightsInUse(), err,
-                           System::ProjectOptions::All | System::ProjectOptions::LocalOnly);
+            system.realize(advanced, Stage::Time);
+            system.prescribeQ(advanced); // set q_p
+            system.realize(advanced, Stage::Position);
+            bool anyChanges;
+            if (!integ.localProjectQAndQErrEstNoThrow
+                    (advanced, err, anyChanges, Infinity)) //TODO: proj limit?
+                return CPodes::RecoverableError;
+
+            system.prescribeU(advanced); // set u_p
+            system.realize(advanced, Stage::Velocity);
+            if (!integ.localProjectUAndUErrEstNoThrow
+                    (advanced, err, anyChanges, Infinity)) //TODO: proj limit?
+                return CPodes::RecoverableError;
         }
         catch (...) { return CPodes::RecoverableError; } // assume recoverable
-        ycorr = integ.getAdvancedState().getY()-y;
+        ycorr = advanced.getY()-y;
         return CPodes::Success;
     }
     
@@ -180,6 +190,9 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
                      "Failed to calculate ydot");
     }
     int retval;
+    //TODO: change this to do abstol only for q, reltol for u&z
+    Real relTol = getAccuracyInUse();
+    Real absTol = 0.1*relTol; //TODO: base on weights
     if ((retval=cpodes->init(*cps, state.getTime(), 
                              Vector(state.getY()), ydot, 
                              CPodes::ScalarScalar, relTol, &absTol)) 
@@ -191,8 +204,13 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     cpodes->lapackDense(ny);
     cpodes->setNonlinConvCoef(0.01); // TODO (default is 0.1)
     if (useCpodesProjection) {
+        const int nqerr = state.getNQErr(), nuerr = state.getNUErr();
+        const Real tol = getConstraintToleranceInUse();
+        Vector constraintTols(nqerr+nuerr);
+        constraintTols(0,nqerr) = tol*state.getQErrWeights();
+        constraintTols(nqerr,nuerr) = tol*state.getUErrWeights();
         cpodes->projInit(CPodes::L2Norm, CPodes::Nonlinear, 
-                         getAccuracyInUse()*getConstraintWeightsInUse());
+                         constraintTols);
         cpodes->lapackDenseProj(nc, ny, CPodes::ProjectWithQRPivot);
     }
     else {
@@ -223,7 +241,12 @@ void CPodesIntegratorRep::methodReinitialize
         pendingReturnCode = -1;
         State state = getAdvancedState();
         getSystem().realize(state, Stage::Acceleration);
-        cpodes->reInit(*cps, state.getTime(), Vector(state.getY()), Vector(state.getYDot()), CPodes::ScalarScalar, relTol, &absTol);
+        //TODO: change this to do abstol only for q, reltol for u&z
+        Real relTol = getAccuracyInUse();
+        Real absTol = 0.1*relTol; //TODO: base on weights
+        cpodes->reInit(*cps, state.getTime(), 
+                       Vector(state.getY()), Vector(state.getYDot()), 
+                       CPodes::ScalarScalar, relTol, &absTol);
     }
 }
 
@@ -276,9 +299,9 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
     // the current state will be seen as part of the trajectory.
 
     if (startOfContinuousInterval) {
-          // The set of constraints or event triggers might have changed.
-        getSystem().calcEventTriggerInfo(getAdvancedState(), updEventTriggerInfo());
-        getSystem().calcYErrUnitTolerances(getAdvancedState(), updConstraintWeightsInUse());
+          // The set of event triggers might have changed.
+        getSystem().calcEventTriggerInfo(getAdvancedState(), 
+                                         updEventTriggerInfo());
         startOfContinuousInterval = false;
         return Integrator::StartOfContinuousInterval;
     }

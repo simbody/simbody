@@ -142,9 +142,8 @@ void testWeld() {
     p1.setU(state, Vec3(1, 2, 3));
     p2.setU(state, Vec3(1, 2, 3));
     system.realize(state, Stage::Velocity);
-    Vector temp;
-    system.project(state, 1e-10, Vector(state.getNY(), Real(1)), Vector(state.getNYErr(), Real(1)), temp);
-    system.realize(state, Stage::Velocity);
+    system.project(state, 1e-10);
+
     assertEqual(c1.getBodyTransform(state), c2.getBodyTransform(state));
     assertEqual(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
     

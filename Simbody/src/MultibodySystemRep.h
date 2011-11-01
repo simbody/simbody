@@ -430,48 +430,52 @@ public:
     int realizeReportImpl      (const State&) const;
 
     // Currently prescribe() and project() affect only the Matter subsystem.
-
-    int prescribeImpl(State& s, Stage g) const {
+    bool prescribeQImpl(State& state) const {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
-        mech.getRep().prescribe(s,g);
-        return 0;
+        return mech.getRep().prescribeQ(state);
+    }
+    bool prescribeUImpl(State& state) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        return mech.getRep().prescribeU(state);
     }
 
-    // Note that we do all "q" projections before any "u" projections.
-    int projectImpl(State& s, Real consAccuracy, const Vector& yWeights,
-                    const Vector& ooTols, Vector& yErrest, 
-                    System::ProjectOptions opts) const
+    void projectQImpl(State& state, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const
     {
-        bool anyChange = false;
-
-        realize(s, Stage::Time);
-
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
-
-        if (opts.hasAnyPositionOptions()) {
-            mech.getRep().realizeSubsystemPosition(s);
-            if (mech.projectQConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts))
-                anyChange = true;
-        }
-
-        realize(s, Stage::Position);  // realize the whole system now
-
-        if (opts.hasAnyVelocityOptions()) {
-            mech.getRep().realizeSubsystemVelocity(s);
-            if (mech.projectUConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts))
-                anyChange = true;
-        }
-
-        realize(s, Stage::Velocity);  // realize the whole system now
-
-        return 0;
+        mech.getRep().projectQ(state, qErrEst, options, results);
+        realize(state, Stage::Position);  // realize the whole system now
     }
+    void projectUImpl(State& state, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const
+    {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().projectU(state, uErrEst, options, results);
+        realize(state, Stage::Velocity);  // realize the whole system now
+    }
+
+    void multiplyByNImpl(const State& s, const Vector& u, Vector& dq) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().multiplyByN(s,false,u,dq);
+    }
+    void multiplyByNTransposeImpl(const State& s, const Vector& fq, 
+                                  Vector& fu) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().multiplyByN(s,true,fq,fu);
+    }
+    void multiplyByNPInvImpl(const State& s, const Vector& dq, 
+                             Vector& u) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().multiplyByNInv(s,false,dq,u);
+    }
+    void multiplyByNPInvTransposeImpl(const State& s, const Vector& fu, 
+                                              Vector& fq) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().multiplyByNInv(s,true,fu,fq);
+    }  
 
     /* TODO: not yet
-    virtual Real calcTimescaleImpl(const State&) const;
-    virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
-    virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
-    virtual int handleEventsImpl
+    virtual void handleEventsImpl
        (State&, EventCause, const Array<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;

@@ -257,9 +257,6 @@ public:
     Real getAccuracyInUse() const {return accuracyInUse;}
     Real getConstraintToleranceInUse() const {return consTol;}
     Real getTimeScaleInUse() const {return timeScaleInUse;}
-    const Vector& getStateWeightsInUse() const {return stateWeightsInUse;}
-    const Vector& getConstraintWeightsInUse() const 
-    {   return constraintWeightsInUse; }
 
     // What was the size of the first successful step after the last initialize() call?
     virtual Real getActualInitialStepSizeTaken() const = 0;
@@ -452,28 +449,99 @@ public:
             ids.push_back(eventTriggerInfo[indices[i]].getEventId());
     }
 
-    // TODO: these utilities don't really belong here
-    static Real calcWeightedRMSNorm(const Vector& values, const Vector& weights) {
-        assert(weights.size() == values.size());
-        if (values.size()==0) return 0;
-        Real sumsq = 0;
-        for (int i=0; i<values.size(); ++i) {
-            const Real wv = values[i]*weights[i];
-            sumsq += wv*wv;
+    // Calculate the error norm using RMS or Inf norm, and report which y
+    // was dominant.
+    Real calcErrorNorm(const State& s, const Vector& yErrEst, 
+                       int& worstY) const {
+        const int nq=s.getNQ(), nu=s.getNU(), nz=s.getNZ();
+        int worstQ, worstU, worstZ;
+        Real qNorm, uNorm, zNorm, maxNorm;
+        if (userUseInfinityNorm == 1) {
+            qNorm = calcWeightedInfNormQ(s, s.getUWeights(), yErrEst(0,nq),
+                                         worstQ);
+            uNorm = calcWeightedInfNorm(getPreviousUScale(), yErrEst(nq,nu),
+                                        worstU);
+            zNorm = calcWeightedInfNorm(getPreviousZScale(), yErrEst(nq+nu,nz),
+                                        worstZ);
+        } else {
+            qNorm = calcWeightedRMSNormQ(s, s.getUWeights(), yErrEst(0,nq),
+                                         worstQ);
+            uNorm = calcWeightedRMSNorm(getPreviousUScale(), yErrEst(nq,nu),
+                                        worstU);
+            zNorm = calcWeightedRMSNorm(getPreviousZScale(), yErrEst(nq+nu,nz),
+                                        worstZ);
         }
-        return std::sqrt(sumsq/weights.size());
+
+        // Find the largest of the three norms and report the corresponding
+        // worst offender within q, u, or z.
+        if (qNorm >= uNorm) {
+            if (qNorm >= zNorm) 
+                 {maxNorm = qNorm; worstY = worstQ;}        // q>=u && q>=z
+            else {maxNorm = zNorm; worstY = nq+nu+worstZ;}  // z>q>=u
+        } else { // qNorm < uNorm
+            if (uNorm >= zNorm) 
+                 {maxNorm = uNorm; worstY = nq + worstU;}   // u>q && u>=z
+            else {maxNorm = zNorm; worstY = nq+nu+worstZ;}  // z>u>q
+        }
+
+        return maxNorm;
     }
 
-    static Real calcWeightedInfinityNorm(const Vector& values, const Vector& weights) {
-        assert(weights.size() == values.size());
-        if (values.size()==0) return 0;
-        Real maxval = 0;
-        for (int i=0; i<values.size(); ++i) {
-            const Real wv = std::abs(values[i]*weights[i]);
-            if (wv > maxval) maxval=wv;
-        }
-        return maxval;
+
+    // Given a proposed absolute change dq to generalized coordinates q, scale 
+    // it to produce fq, such that fq_i is the fraction of q_i's "unit change"
+    // represented by dq_i. A suitable norm of fq can then be compared directly
+    // with the relative accuracy requirement. 
+    //
+    // Because q's are not independent of u's (qdot=N(q)*u), the "unit change"
+    // of q is related to the unit change of u. We want fq=Wq*dq, but we 
+    // determine Wq from Wu via Wq = N*Wu*N^+. Wq is block diagonal while Wu 
+    // is diagonal. State must be realized to Position stage.
+    void scaleDQ(const State& state, const Vector& Wu,
+                 const Vector& dq, Vector& dqw) const // in/out 
+    {
+        const System& system = getSystem();
+        const int nq = state.getNQ();
+        const int nu = state.getNU();
+        assert(dq.size() == nq);
+        assert(Wu.size() == nu);
+        dqw.resize(nq);
+        if (nq==0) return;
+        Vector du(nu);
+        system.multiplyByNPInv(state, dq, du);
+        du.rowScaleInPlace(Wu);
+        system.multiplyByN(state, du, dqw);
     }
+    // Calculate |Wq*dq|_RMS=|N*Wu*pinv(N)*dq|_RMS
+    Real calcWeightedRMSNormQ(const State& state, const Vector& Wu,
+                              const Vector& dq, int& worstQ) const
+    {
+        const int nq = state.getNQ();
+        Vector dqw(nq);
+        scaleDQ(state, Wu, dq, dqw);
+        return dqw.normRMS(&worstQ);
+    }
+    // Calculate |Wq*dq|_Inf=|N*Wu*pinv(N)*dq|_Inf
+    Real calcWeightedInfNormQ(const State& state, const Vector& Wu,
+                              const Vector& dq, int& worstQ) const
+    {
+        const int nq = state.getNQ();
+        Vector dqw(nq);
+        scaleDQ(state, Wu, dq, dqw);
+        return dqw.normInf(&worstQ);
+    }
+
+    // TODO: these utilities don't really belong here
+    static Real calcWeightedRMSNorm(const Vector& weights, const Vector& values, 
+                                    int& worstOne) {
+        return values.weightedNormRMS(weights, &worstOne);
+    }
+
+    static Real calcWeightedInfNorm(const Vector& weights, const Vector& values,
+                                    int& worstOne) {
+        return values.weightedNormInf(weights, &worstOne);
+    }
+
     virtual const char* getMethodName() const = 0;
     virtual int getMethodMinOrder() const = 0;
     virtual int getMethodMaxOrder() const = 0;
@@ -482,16 +550,12 @@ public:
 protected:
     const System& getSystem() const {return sys;}
 
-    // This is information we extract from the DynamicSystem during initialization or
-    // reinitialization and save here. Only the state variable weights can be updated during
-    // simulation (since they are configuration dependent). However, the weights must remain
-    // constant across a time step, and usually across many time steps.
+    // This is information we extract from the System during initialization or
+    // reinitialization and save here.
     bool getDynamicSystemHasTimeAdvancedEvents()      const {return systemHasTimeAdvancedEvents;}
     Real getDynamicSystemTimescale()                  const {return timeScaleInUse;}
     const Array_<EventTriggerInfo>&
         getDynamicSystemEventTriggerInfo()            const {return eventTriggerInfo;}
-    const Vector& getDynamicSystemOneOverTolerances() const {return constraintWeightsInUse;}
-    const Vector& getDynamicSystemWeights()           const {return stateWeightsInUse;}
 
     const State& getInterpolatedState() const {return interpolatedState;}
     State&       updInterpolatedState()       {return interpolatedState;}
@@ -551,54 +615,101 @@ protected:
     }
 
     const Real&   getPreviousTime()          const {return tPrev;}
-    const Vector& getPreviousY()             const {return yPrev;}
-    const Vector& getPreviousYDot()          const {return ydotPrev;}
+
+    // q,u,z are views into y.
+    const Vector& getPreviousY()            const {return yPrev;}
+    const Vector& getPreviousQ()            const {return qPrev;}
+    const Vector& getPreviousU()            const {return uPrev;}
+    const Vector& getPreviousZ()            const {return zPrev;}
+
+    const Vector& getPreviousUScale()       const {return uScalePrev;}
+    const Vector& getPreviousZScale()       const {return zScalePrev;}
+
+    // qdot,udot,zdot are views into ydot.
+    const Vector& getPreviousYDot()         const {return ydotPrev;}
+    const Vector& getPreviousQDot()         const {return qdotPrev;}
+    const Vector& getPreviousUDot()         const {return udotPrev;}
+    const Vector& getPreviousZDot()         const {return zdotPrev;}
+
+    const Vector& getPreviousQDotDot()      const {return qdotdotPrev;}
+
     const Vector& getPreviousEventTriggers() const {return triggersPrev;}
-    Real&         updPreviousTime()                {return tPrev;}
-    Vector&       updPreviousY()                   {return yPrev;}
-    Vector&       updPreviousYDot()                {return ydotPrev;}
-    Vector&       updPreviousEventTriggers()       {return triggersPrev;}
 
     Array_<EventTriggerInfo>& updEventTriggerInfo() {return eventTriggerInfo;}
-    Vector& updConstraintWeightsInUse() {return constraintWeightsInUse;}
+
+    // Given an array of state variables v (either u or z) and corresponding
+    // weights w (1/absolute scale), return relative scale min(wi,1/|vi|) for
+    // each variable i. That is, we choose the current value of vi as its
+    // scale when it is large enough, otherwise use absolute scale.
+    static void calcRelativeScaling(const Vector& v, const Vector& w, 
+                                    Vector& vScale)
+    {
+        const int nv = v.size();
+        assert(w.size() == nv);
+        vScale.resize(nv);
+        for (int i=0; i<nv; ++i) {
+            const Real vi = std::abs(v[i]);
+            const Real wi = w[i];
+            vScale[i] = vi*wi > 1 ? 1/vi : wi;
+        }
+    }
+
 
     // State must already have been evaluated through Stage::Acceleration
-    // or this will throw a stage violation.
+    // or this will throw a stage violation. We calculate the scaling for
+    // u and z here which may include relative scaling based on their current
+    // values. This scaling is frozen during a step attempt.
     void saveStateAsPrevious(const State& s) {
+        const int nq = s.getNQ(), nu = s.getNU(), nz = s.getNZ();
+
         tPrev        = s.getTime();
+
         yPrev        = s.getY();
+        qPrev.viewAssign(yPrev(0,     nq));
+        uPrev.viewAssign(yPrev(nq,    nu));
+        zPrev.viewAssign(yPrev(nq+nu, nz));
+
+        calcRelativeScaling(s.getU(), s.getUWeights(), uScalePrev); 
+        calcRelativeScaling(s.getZ(), s.getZWeights(), zScalePrev);
+
         ydotPrev     = s.getYDot();
+        qdotPrev.viewAssign(ydotPrev(0,     nq));
+        udotPrev.viewAssign(ydotPrev(nq,    nu));
+        zdotPrev.viewAssign(ydotPrev(nq+nu, nz));
+
+        qdotdotPrev  = s.getQDotDot();
         triggersPrev = s.getEventTriggers();
     }
 
     // collect user requests
     Real userInitStepSize, userMinStepSize, userMaxStepSize;
-    Real userAccuracy; // use for relTol, absTol, constraintTol
-    Real userRelTol, userAbsTol, userConsTol; // for fussy people
+    Real userAccuracy; // also use for constraintTol
+    Real userConsTol; // for fussy people
     Real userFinalTime; // never go past this
     int  userInternalStepLimit; // that is, in a single call to step(); 0=no limit
 
     // three-state booleans
-    int  userReturnEveryInternalStep;   // -1 (not supplied), 0(false), 1(true)
+    int  userUseInfinityNorm;           // -1 (not supplied), 0(false), 1(true)
+    int  userReturnEveryInternalStep;   //      "
     int  userProjectEveryStep;          //      "
     int  userAllowInterpolation;        //      "
     int  userProjectInterpolatedStates; //      "
+    int  userForceFullNewton;           //      "
 
     // Mark all user-supplied options "not supplied by user".
     void initializeUserStuff() {
         userInitStepSize = userMinStepSize = userMaxStepSize = -1.;
-        userAccuracy = userRelTol = userAbsTol = userConsTol = -1.;
+        userAccuracy = userConsTol = -1.;
         userFinalTime = -1.;
         userInternalStepLimit = -1;
 
         // booleans
-        userReturnEveryInternalStep = userProjectEveryStep = userAllowInterpolation
-            = userProjectInterpolatedStates = -1;
+        userUseInfinityNorm = userReturnEveryInternalStep = 
+            userProjectEveryStep = userAllowInterpolation = 
+            userProjectInterpolatedStates = userForceFullNewton = -1;
 
         accuracyInUse = NaN;
         consTol  = NaN;
-        relTol   = NaN;
-        absTol   = NaN;
     }
 
     // Required accuracy and constraint tolerance.
@@ -607,15 +718,9 @@ protected:
 
     Real consTol;   // fraction of the constraint unit tolerance to be applied to each constraint
 
-    // These are here just to accommodate integration methods which use these concepts.
-    Real relTol;    // relative tolerance to be used for state variable (default==accuracy)
-    Real absTol;    // absolute tolerance to be used for state variables near zero 
-
     void setAccuracyAndTolerancesFromUserRequests() {
         accuracyInUse = (userAccuracy != -1. ? userAccuracy : 1e-3);
         consTol       = (userConsTol  != -1. ? userConsTol  : 0.1*accuracyInUse); 
-        relTol        = (userRelTol   != -1. ? userRelTol   : accuracyInUse); 
-        absTol        = (userAbsTol   != -1. ? userAbsTol   : 0.1*accuracyInUse); 
     }
     
     // If this is set to true, the next call to stepTo() will return immediately
@@ -637,33 +742,157 @@ protected:
         }
     }
 
-    // Project the supplied state onto the constraint manifold and
-    // remove the corresponding errors from errEst. Assumes state is near solution and only permits
-    // local downhill projection. Throws an exception if it fails. Updates stats.
-    void projectStateAndErrorEstimate(State& s, Vector& errEst, 
-                                      System::ProjectOptions opts=System::ProjectOptions::All) {
-        ++statsProjections; ++statsProjectionFailures;
-        opts |= System::ProjectOptions::LocalOnly;
-        getSystem().project(s,
-            consTol,getDynamicSystemWeights(),getDynamicSystemOneOverTolerances(),errEst,opts);
-        --statsProjectionFailures;
+    // State should have had its q's prescribed and realized through Position
+    // stage. This will attempt to project q's and the q part of the yErrEst
+    // (if yErrEst is not length zero). Returns false if we fail which you
+    // can consider a convergence failure for the step. This is intended for
+    // use during integration.
+    // Stats are properly updated. State is realized through Position stage
+    // on successful return.
+    bool localProjectQAndQErrEstNoThrow(State& s, Vector& yErrEst,
+        bool& anyChanges, Real projectionLimit=Infinity) 
+    {
+        ProjectOptions options;
+        options.setRequiredAccuracy(getConstraintToleranceInUse());
+        options.setProjectionLimit(projectionLimit);
+        options.setOption(ProjectOptions::LocalOnly);
+        options.setOption(ProjectOptions::DontThrow);
+        if (userProjectEveryStep==1) 
+            options.setOption(ProjectOptions::ForceProjection);
+        if (userUseInfinityNorm==1)
+            options.setOption(ProjectOptions::UseInfinityNorm);
+        if (userForceFullNewton==1)
+            options.setOption(ProjectOptions::ForceFullNewton);
+
+        anyChanges = false;
+        ProjectResults results;
+        // Nothing happens here if position constraints were already satisfied
+        // unless we set the ForceProjection option above.
+        if (yErrEst.size()) {
+            VectorView qErrEst = yErrEst(0, s.getNQ());
+            getSystem().projectQ(s, qErrEst, options, results);
+        } else {
+            getSystem().projectQ(s, yErrEst, options, results);
+        }
+        if (results.getExitStatus() != ProjectResults::Succeeded) {
+            ++statsProjectionFailures;
+            return false;
+        }
+        anyChanges = results.getAnyChangeMade();
+        if (anyChanges)
+            ++statsProjections;
+
+        return true;
     }
 
-    // Project the supplied state onto the constraint manifold, not assuming we're near a solution. Throws 
-    // an exception if it fails. Updates stats.
-    void projectStateNonLocal(State& s, System::ProjectOptions opts=System::ProjectOptions::All) {
-        ++statsProjections; ++statsProjectionFailures;
-        Vector temp;
-        getSystem().project(s,
-            consTol,getDynamicSystemWeights(),getDynamicSystemOneOverTolerances(),temp,opts);
-        --statsProjectionFailures;
+    // State should have had its q's and u's prescribed and realized through 
+    // Velocity stage. This will attempt to project u's and the u part of the 
+    // yErrEst (if yErrEst is not length zero). Returns false if we fail which 
+    // you can consider a convergence failure for the step. This is intended for
+    // use during integration.
+    // Stats are properly updated. State is realized through Velocity stage
+    // on successful return.
+    bool localProjectUAndUErrEstNoThrow(State& s, Vector& yErrEst,
+        bool& anyChanges, Real projectionLimit=Infinity) 
+    {
+        ProjectOptions options;
+        options.setRequiredAccuracy(getConstraintToleranceInUse());
+        options.setProjectionLimit(projectionLimit);
+        options.setOption(ProjectOptions::LocalOnly);
+        options.setOption(ProjectOptions::DontThrow);
+        if (userProjectEveryStep==1) 
+            options.setOption(ProjectOptions::ForceProjection);
+        if (userUseInfinityNorm==1)
+            options.setOption(ProjectOptions::UseInfinityNorm);
+        if (userForceFullNewton==1)
+            options.setOption(ProjectOptions::ForceFullNewton);
+
+        anyChanges = false;
+        ProjectResults results;
+        // Nothing happens here if velocity constraints were already satisfied
+        // unless we set the ForceProjection option above.
+        if (yErrEst.size()) {
+            VectorView uErrEst = yErrEst(s.getNQ(), s.getNU());
+            getSystem().projectU(s, uErrEst, options, results);
+        } else {
+            getSystem().projectQ(s, yErrEst, options, results);
+        }
+        if (results.getExitStatus() != ProjectResults::Succeeded) {
+            ++statsProjectionFailures;
+            return false;
+        }
+        anyChanges = results.getAnyChangeMade();
+        if (anyChanges)
+            ++statsProjections;
+
+        return true;
+    }
+
+    // Given a state which has just had t and y updated, realize it through
+    // velocity stage taking care of prescribed motion, projection, and 
+    // throwing an exception if anything goes wrong. This is not for use 
+    // during normal integration but good for initialization and generation
+    // of interpolated states.
+    // Extra options to consider are whether to restrict projection to the
+    // local neighborhood, and whether to unconditionally force projection.
+    // Stats are properly updated. State is realized through Velocity stage
+    // on return.
+    void realizeAndProjectKinematicsWithThrow(State& s,
+        ProjectOptions::Option xtraOption1=ProjectOptions::None,
+        ProjectOptions::Option xtraOption2=ProjectOptions::None,
+        ProjectOptions::Option xtraOption3=ProjectOptions::None) 
+    {
+        const System& system = getSystem();
+        ProjectOptions options;
+        options.setRequiredAccuracy(getConstraintToleranceInUse());
+        options.setOption(xtraOption1);
+        options.setOption(xtraOption2);
+        options.setOption(xtraOption3);
+        if (userProjectEveryStep==1) 
+            options.setOption(ProjectOptions::ForceProjection);
+        if (userUseInfinityNorm==1)
+            options.setOption(ProjectOptions::UseInfinityNorm);
+        if (userForceFullNewton==1)
+            options.setOption(ProjectOptions::ForceFullNewton);
+
+        system.realize(s, Stage::Time);
+        system.prescribeQ(s);
+        system.realize(s, Stage::Position);
+
+        Vector dummy; // no error estimate to project
+        ProjectResults results;
+        ++statsProjectionFailures; // assume failure, then fix if no throw
+        system.projectQ(s, dummy, options, results);
+        --statsProjectionFailures; // false alarm -- it succeeded
+        if (results.getAnyChangeMade())
+            ++statsProjections;
+
+        system.prescribeU(s);
+        system.realize(s, Stage::Velocity);
+
+        results.clear();
+        ++statsProjectionFailures; // assume failure, then fix if no throw
+        system.projectU(s, dummy, options, results);
+        --statsProjectionFailures; // false alarm -- it succeeded
+        if (results.getAnyChangeMade())
+            ++statsProjections;
     }
 
     // Set the advanced state and then evaluate state derivatives. Throws an
     // exception if it fails. Updates stats.
     void setAdvancedStateAndRealizeDerivatives(const Real& t, const Vector& y) 
     {
+        const System& system = getSystem();
+        State& advanced = updAdvancedState();
+
         setAdvancedState(t,y);
+
+        system.realize(advanced, Stage::Time);
+        system.prescribeQ(advanced); // set q_p
+        system.realize(advanced, Stage::Position);
+        system.prescribeU(advanced); // set u_p
+
+        // Now realize Velocity, Dynamics, and Acceleration stages.
         realizeStateDerivatives(getAdvancedState());
     }
 
@@ -672,8 +901,18 @@ protected:
     // we only need to realize kinematics.
     void setAdvancedStateAndRealizeKinematics(const Real& t, const Vector& y)
     {
+        const System& system = getSystem();
+        State& advanced = updAdvancedState();
+
         setAdvancedState(t,y);
-        getSystem().realize(getAdvancedState(), Stage::Velocity);
+
+        system.realize(advanced, Stage::Time);
+        system.prescribeQ(advanced); // set q_p
+        system.realize(advanced, Stage::Position);
+        system.prescribeU(advanced); // set u_p
+
+        // Now realize remaining kinematics.
+        system.realize(advanced, Stage::Velocity);
     }
 
 
@@ -784,19 +1023,6 @@ private:
     // This is Stage::Instance information.
     Real timeScaleInUse;
 
-    // These are the constraint unit tolerances (actually 1/tol), given in 
-    // physical units. The actual tolerances enforced during integration
-    // will be these numbers scaled by the user-requested accuracy.
-    // This is Stage::Instance information.
-    Vector constraintWeightsInUse;
-
-    // These are the weights for each continuous state variable. These are
-    // configuration-dependent (i.e., Stage::Position) but never change during
-    // an integration interval so are considered to be constants. The integrator
-    // is expected to ask the DynamicSystem to update them from time to time.
-    Vector stateWeightsInUse;
-
-
         // INTEGRATOR INTERNAL STATE 
         // Persists between stepTo() calls.
         // A concrete integrator is free to have more state.
@@ -852,11 +1078,23 @@ private:
     Real    tPrev;
     Vector  yPrev;
 
+    // These combine weightings from the Prev state with the possible
+    // requirement of relative accuracy using the current values of u and z.
+    // The result is min( wxi, 1/|xi|) for the relative ones where wxi is
+    // the weight (1/absolute scale) and xi is either ui or zi.
+    Vector  uScalePrev;
+    Vector  zScalePrev;
+
     // Save continuous derivatives and event function values
     // from previous accepted state also so we don't have to
     // recalculate for restarts.
     Vector  ydotPrev;
+    Vector  qdotdotPrev;
     Vector  triggersPrev;
+
+    // These are views into yPrev and ydotPrev.
+    Vector qPrev, uPrev, zPrev;
+    Vector qdotPrev, udotPrev, zdotPrev;
 
     // We'll leave the various arrays above sized as they are and full
     // of garbage. They'll be resized when first assigned to something

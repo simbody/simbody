@@ -188,15 +188,6 @@ public:
     /// Get the constraint tolerance which is being used for error control.  Usually this is the same value that was
     /// specified to setConstraintTolerance().
     Real getConstraintToleranceInUse() const;
-    /// Get the characteristic timescale of the System being integrated.  This is calculated by calling
-    /// calcTimescale() on the System.
-    Real getTimeScaleInUse() const;
-    /// Get the vector of weights being used to normalize errors in the state variables.  This is calculated by calling
-    /// calcYUnitWeights() on the System.
-    const Vector& getStateWeightsInUse() const;
-    /// Get the vector of weights being used to normalize constraint errors.  This is calculated by calling
-    /// calcYErrUnitTolerances() on the System.
-    const Vector& getConstraintWeightsInUse() const;
 
     /// When a step is successful, it will return an indication of what
     /// caused it to stop where it did. When unsuccessful it will throw
@@ -340,54 +331,62 @@ public:
     /// Some integrators may not support this option.
     void setMaximumStepSize(Real hmax);
     
-    /// Set the integrator to use a single fixed step size for all steps.  This is exactly equivalent
-    /// to calling setInitialStepSize(), setMinimumStepSize(), and setMaximumStepSize(), passing the
-    /// same value to each one.  This will therefore not work correctly if the integrator does not
-    /// support minimum and/or maximum step sizes.
+    /// Set the integrator to use a single fixed step size for all steps. This 
+    /// is exactly equivalent to calling setInitialStepSize(), 
+    /// setMinimumStepSize(), and setMaximumStepSize(), passing the same value 
+    /// to each one. This will therefore not work correctly if the integrator
+    /// does not support minimum and/or maximum step sizes.
     void setFixedStepSize(Real stepSize);
 
-    /// Set the overall accuracy that should be used for integration.  If the Integrator does not support
-    /// error control (methodHasErrorControl() returns false), this may have no effect.
+    /// Set the overall accuracy that should be used for integration.  If the 
+    /// Integrator does not support error control (methodHasErrorControl() 
+    /// returns false), this may have no effect.
     void setAccuracy(Real accuracy);
-    /// Set the relative error tolerance to be used for integration.  Some Integrators do not allow
-    /// relative and absolute tolerances to be specified independently, in which case this will have
-    /// no effect.  Even for Integrators which do support it, it is usually sufficient to call only
-    /// setAccuracy(), and allow the Integrator to select relative and absolute tolerances accordingly.
-    void setRelativeTolerance(Real relTol);
-    /// Set the absolute error tolerance to be used for integration.  Some Integrators do not allow
-    /// relative and absolute tolerances to be specified independently, in which case this will have
-    /// no effect.  Even for Integrators which do support it, it is usually sufficient to call only
-    /// setAccuracy(), and allow the Integrator to select relative and absolute tolerances accordingly.
-    void setAbsoluteTolerance(Real absTol);
     /// Set the tolerance within which constraints must be satisfied.
     void setConstraintTolerance(Real consTol);
+    /// (Advanced) Use infinity norm (maximum absolute value) instead of 
+    /// default RMS norm to evaluate whether accuracy has been achieved for 
+    /// states and for constraint tolerance. The infinity norm is more strict 
+    /// but may permit use of a looser accuracy request.
+    void setUseInfinityNorm(bool useInfinityNorm);
+    /// (Advanced) Are we currently using the infinity norm?
+    bool isInfinityNormInUse() const;
 
-    /// Set the maximum number of steps that may be taken within a single call to stepTo() or stepBy().
-    /// If this many internal steps occur before reaching the report time, it will return control with
-    /// a ReachedStepLimit status.  If nSteps <= 0, the number of steps will be unlimited.
+
+    /// Set the maximum number of steps that may be taken within a single call
+    /// to stepTo() or stepBy(). If this many internal steps occur before 
+    /// reaching the report time, it will return control with a ReachedStepLimit
+    /// status. If nSteps <= 0, the number of steps will be unlimited.
     void setInternalStepLimit(int nSteps);
 
-    /// Set whether the Integrator should return from stepTo() or stepBy() after every internal step,
-    /// even if no event has occurred and the report time has not been reached.  The default is false.
+    /// Set whether the Integrator should return from stepTo() or stepBy() after
+    /// every internal step, even if no event has occurred and the report time 
+    /// has not been reached. The default is false.
     void setReturnEveryInternalStep(bool shouldReturn);
 
-    /// Set whether the system should be projected back to the constraint manifold after every step.
-    /// If this is false, projection will only be performed when the constraint error exceeds the
-    /// allowed tolerance.
+    /// Set whether the system should be projected back to the constraint 
+    /// manifold after every step. If this is false, projection will only be 
+    /// performed when the constraint error exceeds the allowed tolerance.
     void setProjectEveryStep(bool forceProject);    
-    /// Set whether the Integrator is permitted to return interpolated states for reporting purposes
-    /// which may be less accurate than the "real" states that form the trajectory.  Setting this to
-    /// false may significantly affect performance, since the Integrator will be forced to decrease its
-    /// step size at every scheduled reporting time.
+    /// Set whether the Integrator is permitted to return interpolated states 
+    /// for reporting purposes which may be less accurate than the "real" 
+    /// states that form the trajectory. Setting this to false may 
+    /// significantly affect performance, since the Integrator will be forced 
+    /// to decrease its step size at every scheduled reporting time.
     ///
-    /// This option is generally only meaningful if interpolated states are less accurate than other
-    /// states on the trajectory.  If an Integrator can produce interpolated states that have the same
-    /// accuracy as the rest of the trajectory, it may ignore this option.
+    /// This option is generally only meaningful if interpolated states are 
+    /// less accurate than other states on the trajectory. If an Integrator can
+    /// produce interpolated states that have the same accuracy as the rest of 
+    /// the trajectory, it may ignore this option.
     void setAllowInterpolation(bool shouldInterpolate);
-    /// Set whether interpolated states should be projected back to the constraint manifold after
-    /// interpolation is performed.
+    /// Set whether interpolated states should be projected back to the 
+    /// constraint manifold after interpolation is performed. The default is
+    /// "true".
     void setProjectInterpolatedStates(bool shouldProject);
-
+    /// (Advanced) Constraint projection may use an out-of-date iteration
+    /// matrix for efficiency. You can force strict use of a current iteration
+    /// matrix recomputed at each iteration if you want.
+    void setForceFullNewton(bool forceFullNewton);
 
 protected:
     const IntegratorRep& getRep() const {assert(rep); return *rep;}

@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmath(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -106,6 +106,12 @@ TimeStepperRep::TimeStepperRep(TimeStepper* handle, const System& system) : myHa
 }
 
 Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
+    HandleEventsOptions handleOpts(integ->getConstraintToleranceInUse());
+    // Handler is allowed to throw an exception if it fails since we don't
+    // have a way to recover.
+    if (integ->isInfinityNormInUse())
+        handleOpts.setOption(HandleEventsOptions::UseInfinityNorm);
+
     while (!integ->isSimulationOver()) {
         Array_<EventId> scheduledEventIds;
         Array_<EventId> scheduledReportIds;
@@ -114,12 +120,20 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
         Real currentTime         = integ->getTime();
         system.realize(integ->getState(), Stage::Time);
         system.realize(integ->getAdvancedState(), Stage::Time);
-        system.calcTimeOfNextScheduledEvent (integ->getState(), nextScheduledEvent,  scheduledEventIds,  lastEventTime  != currentTime);
-        system.calcTimeOfNextScheduledReport(integ->getState(), nextScheduledReport, scheduledReportIds, lastReportTime != currentTime);
+        system.calcTimeOfNextScheduledEvent 
+           (integ->getState(), nextScheduledEvent,  scheduledEventIds,  
+            lastEventTime != currentTime);  // whether to allow now as an answer
+        system.calcTimeOfNextScheduledReport
+           (integ->getState(), nextScheduledReport, scheduledReportIds, 
+            lastReportTime != currentTime); // whether to allow now as an answer
 
         Real reportTime = std::min(nextScheduledReport, time);
         Real eventTime  = std::min(nextScheduledEvent,  time);
-        Integrator::SuccessfulStepStatus status = integ->stepTo(reportTime, eventTime);
+
+        //---------------- take continuous step ----------------
+        Integrator::SuccessfulStepStatus status = 
+            integ->stepTo(reportTime, eventTime);
+        //------------------------------------------------------
 
         Stage lowestModified = Stage::Report;
         bool shouldTerminate;
@@ -146,44 +160,48 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
                 continue;
             }
             case Integrator::ReachedScheduledEvent: {
+                HandleEventsResults results;
                 system.handleEvents(integ->updAdvancedState(),
-                    Event::Cause::Scheduled,
-                    scheduledEventIds,
-                    integ->getAccuracyInUse(),
-                    integ->getStateWeightsInUse(),
-                    integ->getConstraintWeightsInUse(),
-                    lowestModified, shouldTerminate);
+                                    Event::Cause::Scheduled,
+                                    scheduledEventIds,
+                                    handleOpts, results);
+                lowestModified = results.getLowestModifiedStage();
+                shouldTerminate = 
+                    results.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 lastEventTime = integ->getTime();
                 break;
             }
             case Integrator::TimeHasAdvanced: {
+                HandleEventsResults results;
                 system.handleEvents(integ->updAdvancedState(),
-                    Event::Cause::TimeAdvanced,
-                    Array_<EventId>(),
-                    integ->getAccuracyInUse(),
-                    integ->getStateWeightsInUse(),
-                    integ->getConstraintWeightsInUse(),
-                    lowestModified, shouldTerminate);
+                                    Event::Cause::TimeAdvanced,
+                                    Array_<EventId>(),
+                                    handleOpts, results);
+                lowestModified = results.getLowestModifiedStage();
+                shouldTerminate = 
+                    results.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 break;
             }
             case Integrator::ReachedEventTrigger: {
+                HandleEventsResults results;
                 system.handleEvents(integ->updAdvancedState(),
-                    Event::Cause::Triggered,
-                    integ->getTriggeredEvents(),
-                    integ->getAccuracyInUse(),
-                    integ->getStateWeightsInUse(),
-                    integ->getConstraintWeightsInUse(),
-                    lowestModified, shouldTerminate);
+                                    Event::Cause::Triggered,
+                                    integ->getTriggeredEvents(),
+                                    handleOpts, results);
+                lowestModified = results.getLowestModifiedStage();
+                shouldTerminate = 
+                    results.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 break;
             }
             case Integrator::EndOfSimulation: {
+                HandleEventsResults results;
                 system.handleEvents(integ->updAdvancedState(),
-                    Event::Cause::Termination,
-                    Array_<EventId>(),
-                    integ->getAccuracyInUse(),
-                    integ->getStateWeightsInUse(),
-                    integ->getConstraintWeightsInUse(),
-                    lowestModified, shouldTerminate);
+                                    Event::Cause::Termination,
+                                    Array_<EventId>(),
+                                    handleOpts, results);
+                lowestModified = results.getLowestModifiedStage();
+                shouldTerminate = 
+                    results.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 break;
             }
             default: assert(!"Unrecognized return from stepTo()");

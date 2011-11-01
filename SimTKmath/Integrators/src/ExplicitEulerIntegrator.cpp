@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmath(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -65,6 +65,11 @@ ExplicitEulerIntegratorRep::ExplicitEulerIntegratorRep
 {
 }
 
+
+
+//==============================================================================
+//                         CREATE INTERPOLATED STATE
+//==============================================================================
 // Create an interpolated state at time t, which is between tPrev and tCurrent.
 // If we haven't yet delivered an interpolated state in this interval, we have
 // to initialize its discrete part from the advanced state.
@@ -79,46 +84,24 @@ void ExplicitEulerIntegratorRep::createInterpolatedState(Real t) {
     interp.updY() = weight1*getPreviousY()+weight2*getAdvancedState().getY();
     interp.updTime() = t;
 
-    system.realize(interp, Stage::Time);
-    system.prescribe(interp, Stage::Position);
-    system.realize(interp, Stage::Position);
-
-    Vector dummy;
-    // Project position constraints if allowed and warranted.
-    if (userProjectInterpolatedStates != 0) {
-        bool projectQ = (userProjectEveryStep == 1);
-        if (!projectQ) {
-            const VectorView ooQTol = getDynamicSystemOneOverTolerances()
-                                        (0, interp.getNQErr());
-            const Real qError = 
-                IntegratorRep::calcWeightedRMSNorm(interp.getQErr(),ooQTol); 
-            projectQ = (qError > consTol);
-        }
-        if (projectQ)
-            projectStateAndErrorEstimate
-               (interp, dummy, System::ProjectOptions::PositionOnly);
+    if (userProjectInterpolatedStates == 0) {
+        system.realize(interp, Stage::Time);
+        system.prescribeQ(interp);
+        system.realize(interp, Stage::Position);
+        system.prescribeU(interp);
+        system.realize(interp, Stage::Velocity);
+        return;
     }
 
-    system.prescribe(interp, Stage::Velocity);
-    system.realize(interp, Stage::Velocity);
-
-    // Project velocity constraints if allowed and warranted.
-    if (userProjectInterpolatedStates != 0) {
-        bool projectU = (userProjectEveryStep == 1);
-        if (!projectU) {
-            const VectorView ooUTol = getDynamicSystemOneOverTolerances()
-                                        (interp.getNQErr(), interp.getNUErr());
-            const Real uError = 
-                IntegratorRep::calcWeightedRMSNorm(interp.getUErr(),ooUTol); 
-            projectU = (uError > consTol);
-        }
-        if (projectU)
-            projectStateAndErrorEstimate
-               (interp, dummy, System::ProjectOptions::VelocityOnly);
-    }
+    // We may need to project onto constraint manifold. Allow project()
+    // to throw an exception if it fails since there is no way to recover here.
+    realizeAndProjectKinematicsWithThrow(interp, ProjectOptions::LocalOnly);
 }
 
 
+//==============================================================================
+//                  BACK UP ADVANCED STATE BY INTERPOLATION
+//==============================================================================
 // Interpolate the advanced state back to an earlier part of the interval,
 // forgetting about the rest of the interval. This is necessary, for
 // example after we have localized an event trigger to an interval tLow:tHigh
@@ -126,14 +109,10 @@ void ExplicitEulerIntegratorRep::createInterpolatedState(Real t) {
 void ExplicitEulerIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
     const System& system   = getSystem();
     State& advanced = updAdvancedState();
-    Vector dummy;
 
     assert(getPreviousTime() <= t && t <= advanced.getTime());
     advanced.updY() = getPreviousY() + (t-getPreviousTime())*getPreviousYDot();
     advanced.updTime() = t;
-    system.realize(advanced, Stage::Time);
-    system.prescribe(advanced, Stage::Position);
-    system.realize(advanced, Stage::Position);
 
     // Ignore any user request not to project interpolated states here -- this
     // is the actual advanced state which will be propagated through the
@@ -141,35 +120,18 @@ void ExplicitEulerIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
     // constraints!
     // But it is OK if it just *barely* satisfies the constraints so we
     // won't get carried away if the user isn't being finicky about it.
-    bool projectQ = (userProjectEveryStep == 1);
-    if (!projectQ) {
-        const VectorView ooQTol = getDynamicSystemOneOverTolerances()
-                                    (0, advanced.getNQErr());
-        const Real qError = 
-            IntegratorRep::calcWeightedRMSNorm(advanced.getQErr(),ooQTol); 
-        projectQ = (qError > consTol);
-    }
-    if (projectQ)
-        projectStateAndErrorEstimate
-            (advanced, dummy, System::ProjectOptions::PositionOnly);
 
-    system.prescribe(advanced, Stage::Velocity);
-    system.realize(advanced, Stage::Velocity);
+    // Project position constraints if warranted. Allow project()
+    // to throw an exception if it fails since there is no way to recover here.
 
-    bool projectU = (userProjectEveryStep == 1);
-    if (!projectU) {
-        const VectorView ooUTol = getDynamicSystemOneOverTolerances()
-                                    (advanced.getNQErr(), advanced.getNUErr());
-        const Real uError = 
-            IntegratorRep::calcWeightedRMSNorm(advanced.getUErr(),ooUTol); 
-        projectU = (uError > consTol);
-    }
-    if (projectU)
-        projectStateAndErrorEstimate
-            (advanced, dummy, System::ProjectOptions::VelocityOnly);
+    realizeAndProjectKinematicsWithThrow(advanced, ProjectOptions::LocalOnly);
 }
 
 
+
+//==============================================================================
+//                            ATTEMPT DAE STEP
+//==============================================================================
 // Note that ExplicitEuler overrides the entire DAE step because it can't use
 // the default ODE-then-DAE structure. Instead the constraint projections are
 // interwoven here. The reason is that we need the end-of-step derivative
@@ -177,18 +139,13 @@ void ExplicitEulerIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
 // must not be calculated until projection is done or we would do more than
 // one function evaluation per step.
 bool ExplicitEulerIntegratorRep::attemptDAEStep
-   (Real t0, Real t1, 
-    const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-    const Vector& u0, const Vector& udot0, 
-    const Vector& z0, const Vector& zdot0, 
-    Vector& yErrEst, int& errOrder, int& numIterations)
+   (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
 {
     const System& system   = getSystem();
     State& advanced = updAdvancedState();
-    Vector dummy;
 
     statsStepsAttempted++;
-    const Real h = t1 - t0;
+    const Real h = t1 - getPreviousTime();
 
     // Take the step.
     advanced.updTime() = t1;
@@ -196,50 +153,32 @@ bool ExplicitEulerIntegratorRep::attemptDAEStep
     yErrEst = advanced.getY(); // save unprojected Y for error estimate
 
     system.realize(advanced, Stage::Time);
-    system.prescribe(advanced, Stage::Position);
+    system.prescribeQ(advanced);
     system.realize(advanced, Stage::Position);
 
-    // Consider position constraint projection.
-    bool projectQ = (userProjectEveryStep == 1);
-    if (!projectQ) {
-        const VectorView ooQTol = getDynamicSystemOneOverTolerances()
-                                    (0, advanced.getNQErr());
-        const Real qError = 
-            IntegratorRep::calcWeightedRMSNorm(advanced.getQErr(),ooQTol); 
-        projectQ = (qError > consTol);
-    }
-    if (projectQ) {
-        try {
-            projectStateAndErrorEstimate
-                (advanced, dummy, System::ProjectOptions::PositionOnly);
-        } catch (...) {
-            return false; // projection failed
-        }
-    }
+    // Consider position constraint projection. Note that we have to do this
+    // projection prior to calculating prescribed u's since the prescription
+    // can depend on q's. Prevent project() from throwing an exception since
+    // failure here may be recoverable.
+    Vector dummy; // no error estimate to project
+    bool anyChanges;
+    if (!localProjectQAndQErrEstNoThrow(advanced, dummy, anyChanges))
+        return false; // convergence failure for this step
 
-    system.prescribe(advanced, Stage::Velocity);
+    // q's satisfy the position constraint manifold. Now work on u's.
+
+    system.prescribeU(advanced);
     system.realize(advanced, Stage::Velocity);
 
-    // Consider velocity constraint projection.
-    bool projectU = (userProjectEveryStep == 1);
-    if (!projectU) {
-        const VectorView ooUTol = getDynamicSystemOneOverTolerances()
-                                    (advanced.getNQErr(), advanced.getNUErr());
-        const Real uError = 
-            IntegratorRep::calcWeightedRMSNorm(advanced.getUErr(),ooUTol); 
-        projectU = (uError > consTol);
-    }
-    if (projectU) {
-        try {
-            projectStateAndErrorEstimate
-                (advanced, dummy, System::ProjectOptions::VelocityOnly);
-        } catch (...) {
-            return false; // projection failed
-        }
-    }
+    // Now try velocity constraint projection. Nothing will happen if
+    // velocity constraints are already satisfied unless user has set the
+    // ForceProjection option.
+
+    if (!localProjectUAndUErrEstNoThrow(advanced, dummy, anyChanges))
+        return false; // convergence failure for this step
 
     // Now calculate derivatives at the end of this interval/start of next
-    // interval.
+    // interval. TODO: prevent this from throwing
     try {realizeStateDerivatives(advanced);}
     catch (...) {return false;} // evaluation failed
     

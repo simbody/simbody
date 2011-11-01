@@ -131,9 +131,38 @@ void testCharacter() {
 
     Vector v(10);
     for (int i=0; i<10; ++i) v[i] = i*.1;
+    v[4] = -17.3;
     cout << "v commitment: " << v.getCharacterCommitment();
     cout << "v character: " << v.getMatrixCharacter();
     cout << "v=" << v << endl;
+    Vector w1(10, Real(1));
+    cout << "weights w1=" << w1 << endl;
+    int worst;
+    cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "|v|_rms=" << v.normRMS(&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "|v|_inf=" << v.normInf(&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "2nd sig: |v|_rms=" << v.normRMS() << "\n";
+    cout << "2nd sig: |v|_inf=" << v.normInf() << "\n";
+
+    w1(9) = 100;
+    cout << "weights w1=" << w1 << endl;
+    cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "2nd sig: |w1*v|_rms=" << v.weightedNormRMS(w1) << "\n";
+    cout << "2nd sig: |w1*v|_inf=" << v.weightedNormInf(w1) << "\n";
+
+    cout << "rms(zero length)=" << Vector().normRMS(&worst) << "\n";
+    cout << "  worst=" << worst << "\n";
+    cout << "inf(zero length)=" << Vector().normInf(&worst) << "\n";
+    cout << "  worst=" << worst << "\n";
+
 
     Array_<int> vx;
     vx.push_back(2); vx.push_back(5); vx.push_back(7); vx.push_back(8);
@@ -188,11 +217,26 @@ void testScalarMultiply() {
     cout << "------ END TEST SCALAR MULTIPLY ------\n\n"; 
 }
 
+
+void testAjaysBlock() {
+    cout << "\n------ TEST AJAY'S BLOCK ------\n"; 
+    const int nu =7, nm=4;
+    Matrix J(6,nu);
+    for (int i=0; i<6; ++i)
+        for (int j=0; j<nu; ++j)
+            J(i,j) = 1000*i+j;
+    Matrix t = ~J(0,3,3,nm);
+    cout << "J=" << J << endl;
+    cout << "t=" << t;
+    cout << "\n------ END TEST AJAY'S BLOCK ------\n"; 
+}
+
 int main()
 {
   try {
     SimTK_DEBUG("Running BigMatrixTest ...\n");
 
+    testAjaysBlock();
     testScalarMultiply();
     testCharacter();
 

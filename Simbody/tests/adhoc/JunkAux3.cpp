@@ -115,9 +115,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, const Vector& yWeights, 
-        const Vector& ooConstraintTols, 
-        Stage& lowestModified, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const 
     {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         assert(m_lock.isDisabled(s));
@@ -183,7 +181,6 @@ public:
             m_lock.disable(s); // oops can't lock
             s.updU() = uin;
             printf("CAN'T LOCK: force would have been %g\n", f);
-            lowestModified = Stage::Instance;
             return;
         }
 
@@ -200,7 +197,6 @@ public:
         printf("  %5g G mom=%g,%g C mom=%g,%g E=%g\n", s.getTime(),
             PG[0].norm(), PG[1].norm(), PC[0].norm(), PC[1].norm(), m_mbs.calcEnergy(s));
         cout << "  uerr=" << s.getUErr() << endl;
-        lowestModified = Stage::Instance;
     }
 
 private:
@@ -236,9 +232,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, const Vector& yWeights, 
-        const Vector& ooConstraintTols, 
-        Stage& lowestModified, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const 
     {
         assert(!m_lock.isDisabled(s));
 
@@ -249,7 +243,6 @@ public:
 
         m_lock.disable(s);
         m_offTimes.push_back(s.getTime());
-        lowestModified = Stage::Instance;
     }
 
 private:

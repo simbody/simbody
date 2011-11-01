@@ -47,9 +47,8 @@ public:
     // Note: in general a discontinuous velocity change should be followed by
     // an impulse-momentum analysis to ensure that momentum is conserved. We're
     // not doing that here.
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
         state.updU()[0] *= -1;
-        lowestModified = Stage::Velocity;
     }
 };
 

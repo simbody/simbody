@@ -78,11 +78,15 @@ public:
     bool methodHasErrorControl() const;
 
 protected:
-    /**
-     * Given initial values for all the continuous variables y=(q,u,z) and 
+    /*
+     * Given initial values for time, all the continuous variables y=(q,u,z) and 
      * their derivatives (not necessarily what's in advancedState currently), 
      * take a trial step of size h=(t1-t0), optimistically storing the result 
-     * in advancedState. Also estimate the absolute error in each element of y,
+     * in advancedState. The starting values have been saved in the parent
+     * IntegratorRep class and are accessible with getPreviousTime(), 
+     * getPreviousY() and getPreviousYDot().
+     *
+     * Also estimate the absolute error in each element of y,
      * and store them in yErrEst. Returns true if the step converged (always 
      * true for non-iterative methods), false otherwise. The number of internal
      * iterations just for this step is return in numIterations, which should 
@@ -101,83 +105,7 @@ protected:
      * estimate is meaningless and the step will be rejected.
      */
     virtual bool attemptDAEStep
-       (Real t0, Real t1, 
-        const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-        const Vector& u0, const Vector& udot0, 
-        const Vector& z0, const Vector& zdot0, 
-        Vector& yErrEst, int& errOrder, int& numIterations)
-    {
-        bool ODEconverged = false;
-        try {
-            numIterations = 1; // so non-iterative ODEs can forget about this
-            ODEconverged = attemptODEStep(t0,t1,q0,qdot0,qdotdot0,
-                                          u0,udot0,z0,zdot0,
-                                          yErrEst, errOrder, numIterations);
-        } catch (...) {return false;}
-
-        if (!ODEconverged)
-            return false;
-
-        // The ODE step did not throw an exception and says it converged,
-        // meaning its error estimate is worth a look.
-        Real rmsErr = calcWeightedRMSNorm(yErrEst, getDynamicSystemWeights());
-
-        // If the estimated error is extremely bad, don't attempt the 
-        // projection. If we're near the edge, though, the projection may
-        // clean up the error estimate enough to allow the step to be
-        // accepted. We'll define "near the edge" to mean that a half-step
-        // would have succeeded where this one failed. If the current error
-        // norm is eStep then a half step would have given us an error of
-        // eHalf = eStep/(2^p). We want to try the projection as long as 
-        // eHalf <= accuracy, i.e., eStep <= 2^p * accuracy.
-        if (rmsErr > std::pow(Real(2),errOrder)*getAccuracyInUse())
-            return true; // this step converged, but isn't worth projecting
-
-        // The ODE error estimate is good enough or at least worth trying
-        // to salvage via projection. If the constraint violation is 
-        // extreme, however, we must not attempt to project it. The goal
-        // here is to ensure that the Newton iteration in projection is
-        // well behaved, running near its quadratic convergence regime.
-        // Thus we'll consider failure to reach sqrt(consTol) to be extreme. 
-        // To guard against numerically large values of consTol, we'll 
-        // always permit projection if we come within 2X of consTol. Examples:
-        //      consTol        projectionLimit
-        //        1e-12             1e-6
-        //        1e-4              1e-2
-        //        0.01              0.1
-        //        0.1               0.316
-        //        0.5               1
-        //        1                 2
-        const Real projectionLimit = 
-            std::max(2*getConstraintToleranceInUse(), 
-                     std::sqrt(getConstraintToleranceInUse()));
-
-        const Real consErrAfterODE = 
-            calcWeightedRMSNorm(getAdvancedState().getYErr(),
-                                getDynamicSystemOneOverTolerances());
-
-        if (consErrAfterODE > projectionLimit) {
-            ++statsProjectionFailures;
-            return false; // "convergence" failure; caller can't use error est.
-        }
-
-        // Now we'll project if the constraints aren't already satisifed,
-        // or if the user said we have to project every step regardless.
-        // Only local projection is allowed here.
-        if (   userProjectEveryStep == 1 
-            || consErrAfterODE > getConstraintToleranceInUse())
-        {
-            try {   
-                projectStateAndErrorEstimate(updAdvancedState(), yErrEst);
-            } catch (...) {
-                return false; // projection failed
-            }
-        }
-
-        // ODE step and projection (if any) were successful, although 
-        // the accuracy requirement may not have been met.
-        return true;
-    }
+       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations);
 
     // Any integrator that doesn't override the above attemptDAEStep() method
     // must override at least the ODE part here. The method must take an ODE
@@ -188,11 +116,7 @@ protected:
     // onto the position and velocity constraint manifolds first so the
     // derivative calculation would have been wasted.
     virtual bool attemptODEStep
-       (Real t0, Real t1, 
-        const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-        const Vector& u0, const Vector& udot0, 
-        const Vector& z0, const Vector& zdot0, 
-        Vector& yErrEst, int& errOrder, int& numIterations) 
+       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations) 
     {
         SimTK_ERRCHK_ALWAYS(!"Unimplemented virtual function", 
             "AbstractIntegratorRep::attemptODEStep()",

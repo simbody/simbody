@@ -101,8 +101,7 @@ void createState(MultibodySystem& system, State& state, const Vector& qOverride=
     system.realize(state, Stage::Velocity);
 
     Vector dummy;
-    system.project(state, ConstraintTol, 
-        Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), dummy);
+    system.project(state, ConstraintTol);
     system.realize(state, Stage::Acceleration);
 }
 
@@ -384,9 +383,8 @@ void testDisablingConstraints() {
     public:
         DisableHandler(Constraint& constraint) : constraint(constraint) {
         }
-        void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
+        void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
             constraint.disable(state);
-            lowestModified = Stage::Instance;
         }
         Real getNextEventTime(const State&, bool includeCurrentTime) const {
             return 4.9;

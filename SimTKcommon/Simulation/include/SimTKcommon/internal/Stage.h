@@ -122,10 +122,35 @@ public:
        const char* objectName, const char* methodName) : Base(fn,ln)
     {
         setMessage(String(methodName) + ": " + String(objectType) + " " + String(objectName)
-           + " topology has not yet been realized -- must call realizeTopology() first");
+           + " topology has not been realized since the last topological change"
+             " -- you must call realizeTopology() first.");
     }
     virtual ~RealizeTopologyMustBeCalledFirst() throw() { }
 };
+
+class StateAndSystemTopologyVersionsMustMatch : public Base {
+public:
+    StateAndSystemTopologyVersionsMustMatch(const char* fn, int ln,
+       const char* objectType, // e.g., "System", "Subsystem"
+       const char* objectName, const char* methodName,
+       int sysTopoVersion,
+       int stateTopoVersion) : Base(fn,ln)
+    {
+        setMessage(String(methodName) 
+        + ": The given State's Topology stage version number (" 
+        + String(stateTopoVersion)
+        + ") doesn't match the current topology cache version number (" 
+        + String(sysTopoVersion)
+        + ") of " + String(objectType) + " " + String(objectName) + "."
+        + " That means there has been a topology change to this System since this"
+          " State was created so they are no longer compatible. You should create"
+          " a new State from the System's default State."
+          " (Loopholes exist for advanced users.)");
+    }
+    virtual ~StateAndSystemTopologyVersionsMustMatch() throw() { }
+};
+
+
 
 class StageTooLow : public Base {
 public:

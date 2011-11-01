@@ -36,9 +36,9 @@
 
 using namespace SimTK;
 
-//------------------------------------------------------------------------------
+//==============================================================================
 //                            VERLET INTEGRATOR
-//------------------------------------------------------------------------------
+//==============================================================================
 
 VerletIntegrator::VerletIntegrator(const System& sys) {
     rep = new VerletIntegratorRep(this, sys);
@@ -55,24 +55,46 @@ VerletIntegrator::~VerletIntegrator() {
 
 
 
-//------------------------------------------------------------------------------
+//==============================================================================
 //                          VERLET INTEGRATOR REP
-//------------------------------------------------------------------------------
+//==============================================================================
 VerletIntegratorRep::VerletIntegratorRep(Integrator* handle, const System& sys)
 :   AbstractIntegratorRep(handle, sys, 2, 3, "Verlet",  true) 
 {
 }
 
+
+
+//==============================================================================
+//                            ATTEMPT DAE STEP
+//==============================================================================
 // Note that Verlet overrides the entire DAE step because it can't use the
 // default ODE-then-DAE structure. Instead the constraint projections are
 // interwoven here.
 bool VerletIntegratorRep::attemptDAEStep
-   (Real t0, Real t1, 
-    const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-    const Vector& u0, const Vector& udot0, 
-    const Vector& z0, const Vector& zdot0, 
-    Vector& yErrEst, int& errOrder, int& numIterations)
+   (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
 {
+    const System& system   = getSystem();
+    State& advanced = updAdvancedState();
+    Vector dummyErrEst; // for when we don't want the error estimate projected
+    
+    statsStepsAttempted++;
+
+    const Real    t0        = getPreviousTime();       // nicer names
+    const Vector& q0        = getPreviousQ();
+    const Vector& u0        = getPreviousU();
+    const Vector& z0        = getPreviousZ();
+    const Vector& qdot0     = getPreviousQDot();
+    const Vector& udot0     = getPreviousUDot();
+    const Vector& zdot0     = getPreviousZDot();
+    const Vector& qdotdot0  = getPreviousQDotDot();
+
+    const Real h = t1-t0;
+
+    const int nq = advanced.getNQ();
+    const int nu = advanced.getNU();
+    const int nz = advanced.getNZ();
+
     // We will catch any exceptions thrown by realize() or project() and simply
     // treat that as a failure to take a step due to the step size being too 
     // big. The idea is that the caller should reduce the step size and try 
@@ -80,46 +102,49 @@ bool VerletIntegratorRep::attemptDAEStep
 
   try
   {
-    statsStepsAttempted++;
-    errOrder = 3;
     numIterations = 0;
-    const Real h = t1-t0;
-    State& advanced = updAdvancedState();
 
-    const int nq = advanced.getNQ();
-    const int nu = advanced.getNU();
-    const int nz = advanced.getNZ();
-
-    VectorView qErrEst = yErrEst(    0, nq);
-    VectorView uErrEst = yErrEst(   nq, nu);
-    VectorView zErrEst = yErrEst(nq+nu, nz);
-
-    // use this when we don't want the error estimate projected
-    Vector dummyErrEst; 
+    VectorView qErrEst  = yErrEst(    0, nq);       // all 3rd order estimates
+    VectorView uErrEst  = yErrEst(   nq, nu);
+    VectorView zErrEst  = yErrEst(nq+nu, nz);
+    VectorView uzErrEst = yErrEst(   nq, nu+nz);    // all 2nd order estimates
     
     // Calculate the new positions q (3rd order) and initial (1st order) 
     // estimate for the velocities u and auxiliary variables z.
     
     // These are final values (the q's will get projected, though).
     advanced.updTime() = t1;
-    advanced.updQ()    = q0 + qdot0*h + 0.5*qdotdot0*h*h;
+    advanced.updQ()    = q0 + h*qdot0 + (h*h/2)*qdotdot0;
 
-    const Vector u1_est = u0 + udot0*h;
-    const Vector z1_est = z0 + zdot0*h;
+    system.realize(advanced, Stage::Time);
+    system.prescribeQ(advanced);
+    system.realize(advanced, Stage::Position);
 
-    advanced.updU()    = u1_est; // these will change
-    advanced.updZ()    = z1_est;
+    // Consider position constraint projection. (See AbstractIntegratorRep
+    // for how we decide not to project.)
+    const Real projectionLimit = 
+        std::max(2*getConstraintToleranceInUse(), 
+                    std::sqrt(getConstraintToleranceInUse()));
 
-    // Here we'll project the q's to their final constrained values, and 
-    // project our estimated u's also. TODO: does this mess up the error 
-    // estimation?
+    bool anyChangesQ;
+    if (!localProjectQAndQErrEstNoThrow(advanced, dummyErrEst, anyChangesQ, 
+                                        projectionLimit))
+        return false; // convergence failure for this step
 
-    getSystem().realize(advanced, Stage::Velocity);
-    const Real yErrNorm = IntegratorRep::calcWeightedRMSNorm
-                    (advanced.getYErr(), getDynamicSystemOneOverTolerances());
+    // q is now at its final integrated, prescribed, and projected value.
 
-    if (userProjectEveryStep == 1 || yErrNorm > consTol)
-        projectStateAndErrorEstimate(advanced, dummyErrEst); // local only
+
+    // Now make an initial estimate of first-order variable u and z.
+    const Vector u1_est = u0 + h*udot0;
+    const Vector z1_est = z0 + h*zdot0;
+
+    advanced.updU() = u1_est; // these will change
+    advanced.updZ() = z1_est;
+
+    system.prescribeU(advanced);
+    system.realize(advanced, Stage::Velocity);
+
+    // No u projection yet.
 
     // Get new values for the derivatives.
     realizeStateDerivatives(advanced);
@@ -148,19 +173,14 @@ bool VerletIntegratorRep::attemptDAEStep
         const Vector& zdot1 = advanced.getZDot();
         
         // Refine u and z estimates.
-        advanced.setU(u0 + 0.5*h*(udot0 + udot1));
-        advanced.setZ(z0 + 0.5*h*(zdot0 + zdot1));
+        advanced.setU(u0 + (h/2)*(udot0 + udot1));
+        advanced.setZ(z0 + (h/2)*(zdot0 + zdot1));
 
-        // Project only the velocities; we're done with the q's for good.
-        getSystem().realize(advanced, Stage::Velocity);
-        //TODO: should only look at the UErr's here (getUErr()) but need
-        //to make sure the right partition of the tolerance is used.
-        const Real uErrNorm = IntegratorRep::calcWeightedRMSNorm
-                    (advanced.getYErr(), getDynamicSystemOneOverTolerances());
+        // Fix prescribed u's which may have been changed here.
+        system.prescribeU(advanced);
+        system.realize(advanced, Stage::Velocity);
 
-        if (userProjectEveryStep == 1 || uErrNorm > consTol)
-            projectStateAndErrorEstimate(advanced, dummyErrEst, 
-                               System::ProjectOptions::VelocityOnly); // also local
+        // No projection yet.
 
         // Calculate fresh derivatives UDot and ZDot.
         realizeStateDerivatives(advanced);
@@ -186,7 +206,7 @@ bool VerletIntegratorRep::attemptDAEStep
     // estimates for u and z. Note that we have already realized the state with
     // the new values, so QDot reflects the new u's.
 
-    qErrEst = q0 + 0.5*h*(qdot0+advanced.getQDot()) // implicit trapezoid rule integral
+    qErrEst = q0 + (h/2)*(qdot0+advanced.getQDot()) // implicit trapezoid rule integral
               - advanced.getQ();                    // Verlet integral
 
     uErrEst = u1_est                    // explicit Euler integral
@@ -197,14 +217,11 @@ bool VerletIntegratorRep::attemptDAEStep
     // get our position errors reduced here, which is a shame. Should be able 
     // to do this even though we had to project q's earlier, because the 
     // projection matrix should still be around.
-    // TODO: should only look at the UErr's here (getUErr()) but need
-    // to make sure the right partition of the tolerance is used.
-    const Real uErrNorm = IntegratorRep::calcWeightedRMSNorm
-                (advanced.getYErr(), getDynamicSystemOneOverTolerances());
-    if (userProjectEveryStep == 1 || uErrNorm > consTol)
-        projectStateAndErrorEstimate(advanced, yErrEst, 
-                                     System::ProjectOptions::VelocityOnly); // also local
-    
+    bool anyChangesU;
+    if (!localProjectUAndUErrEstNoThrow(advanced, yErrEst, anyChangesU,
+                                        projectionLimit))
+        return false; // convergence failure for this step
+
     // Two different integrators were used to estimate errors: trapezoidal for 
     // Q, and explicit Euler for U and Z.  This means that the U and Z errors
     // are of a different order than the Q errors.  We therefore multiply them 
@@ -215,7 +232,12 @@ bool VerletIntegratorRep::attemptDAEStep
     // them since h is probably < 1) which will affect whether the caller
     // decides to accept the step. Instead, a different error order should
     // be used when one of these is driving the step size.
+
     uErrEst *= h; zErrEst *= h; // everything is 3rd order in h now
+    errOrder = 3;
+
+    //errOrder = qErrRMS > uzErrRMS ? 3 : 2;
+
     return converged;
   }
   catch (std::exception ex) {

@@ -69,10 +69,7 @@ RungeKuttaFeldbergIntegratorRep::RungeKuttaFeldbergIntegratorRep(Integrator* han
 }
 
 bool RungeKuttaFeldbergIntegratorRep::attemptODEStep
-   (Real t0, Real t1, 
-    const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-    const Vector& u0, const Vector& udot0, const Vector& z0, 
-    const Vector& zdot0, Vector& y1err, int& errOrder, int& numIterations)
+   (Real t1, Vector& y1err, int& errOrder, int& numIterations)
 {
     const double C21	=  1.0/4.0;
     const double C22	=  1.0/4.0;
@@ -110,6 +107,7 @@ bool RungeKuttaFeldbergIntegratorRep::attemptODEStep
     const double CE4	=  -9.0/50.0-CY4;
     const double CE5	=  2.0/55.0;
 
+    const Real t0 = getPreviousTime();
     assert(t1 > t0);
 
     statsStepsAttempted++;

@@ -833,7 +833,7 @@ Real Assembler::assemble() {
 
     // First step: satisfy prescribed motion (exactly).
     system.realize(internalState, Stage::Time);
-    system.prescribe(internalState, Stage::Position);
+    system.prescribeQ(internalState);
 
     // Optimize
     Vector freeQs = getFreeQsFromInternalState();
@@ -880,7 +880,7 @@ Real Assembler::track(Real frameTime) {
         internalState.setTime(frameTime);
         system.realize(internalState, Stage::Time);
         // Satisfy prescribed motion (exactly).
-        system.prescribe(internalState, Stage::Position);
+        system.prescribeQ(internalState);
     }
 
     const int nfreeq = getNumFreeQs();

@@ -26,3 +26,17 @@ so that it produces a normal projection in q-space (was u-space before).
 9/19 Fixed bug 1535 -- mobilizer reaction torque sometimes miscalculated.
 9/21 Replaced freebody reaction force method with faster method due to Abhi
 Jain.
+
+Converting from 2.X to 3.0:
+- project(): drop most arguments; always does q and u and prescribed now. If
+you want to do just q or just u, call projectQ() or projectU() instead.
+- ProjectOptions has changed; no longer accepted by project(); used only by
+lower-level projectQ and projectU methods
+- handleEvent() virtual: must convert to reduced signature, get rid of
+"lowestModified"
+- constraint virtuals: changed to operators, meaning needed inputs are
+supplied as arguments rather than extracted from State
+- adding an EventHandler or EventReporter invalidates System topology now so
+you must call realizeTopology() after the last handler or reporter has been
+added
+
