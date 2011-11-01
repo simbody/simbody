@@ -952,8 +952,8 @@ public:
             q.clear(); u.clear(); z.clear(); // y views
             // Finally nuke the actual y data.
             y.unlockShape(); y.clear(); 
-            uWeights.unlockShape(); u.clear();
-            zWeights.unlockShape(); z.clear();
+            uWeights.unlockShape(); uWeights.clear();
+            zWeights.unlockShape(); zWeights.clear();
 
             qdot.clear(); udot.clear(); zdot.clear();   // ydot views
             ydot.unlockShape();        ydot.clear();    // ydot data

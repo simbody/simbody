@@ -251,7 +251,7 @@ void VisualizerProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
     Pathname::deconstructPathname(Pathname::getThisExecutablePath(),
         isAbsolutePath, directory, fileName, extension);
     // We're just sending the file name, not a full path. Keep it short.
-    unsigned nameLength = std::max((unsigned)fileName.size(), (unsigned)255);
+    unsigned nameLength = std::min((unsigned)fileName.size(), (unsigned)255);
     WRITE(outPipe, &nameLength, sizeof(unsigned));
     WRITE(outPipe, fileName.c_str(), nameLength);
 
