@@ -74,7 +74,7 @@ public:
 
     PowerMeasure(Subsystem& sub,
                  const Constraint& constraint)
-    :   Measure_<T>(sub, new Implementation(constraint), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(constraint), AbstractMeasure::SetHandle()) {}
     SimTK_MEASURE_HANDLE_POSTSCRIPT(PowerMeasure, Measure_<T>);
 };
 

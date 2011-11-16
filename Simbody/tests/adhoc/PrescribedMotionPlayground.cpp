@@ -116,7 +116,7 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(PowerMeasure, Measure_<T>);
 
     PowerMeasure(Subsystem& sub, const SimbodyMatterSubsystem& matter)
-    :   Measure_<T>(sub, new Implementation(matter), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(matter), AbstractMeasure::SetHandle()) {}
     SimTK_MEASURE_HANDLE_POSTSCRIPT(PowerMeasure, Measure_<T>);
 };
 

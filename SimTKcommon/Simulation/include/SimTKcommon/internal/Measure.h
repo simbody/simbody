@@ -68,7 +68,8 @@
 #define SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH) \
     class Implementation;                                           \
     explicit MH(Implementation* imp) : PH(imp) {}                   \
-    MH(Subsystem& sub, Implementation* imp, const SetHandle& sh)    \
+    MH(Subsystem& sub, Implementation* imp,                         \
+       const AbstractMeasure::SetHandle& sh)                        \
     :   PH(sub,imp,sh) {}                                           \
     MH& operator=(const MH& src) {PH::operator=(src); return *this;}\
     MH& shallowAssign(const MH& src) {PH::shallowAssign(src); return *this;}\
@@ -81,7 +82,7 @@
     SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH)   \
     MH() : PH(new Implementation()) {}          \
     explicit MH(Subsystem& sub)                 \
-    : PH(sub,new Implementation(), SetHandle()) {}
+    : PH(sub,new Implementation(), AbstractMeasure::SetHandle()) {}
 
 // The default constructor for a still-abstract derived class can't
 // instantiate an Implementation.
@@ -335,7 +336,8 @@ public:
     :   Measure_<T>(new Implementation(value)) {}
 
     Constant(Subsystem& sub, const T& value)
-    :   Measure_<T>(sub, new Implementation(value), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(value), 
+                    AbstractMeasure::SetHandle()) {}
 
     /// Note that this does not require a State since it is a Topology-stage 
     /// change.
@@ -416,7 +418,7 @@ public:
     // and allow subsequent users to check it.
     Variable(Subsystem& sub, Stage invalidates, const T& defaultValue)
     :   Measure_<T>(sub, new Implementation(invalidates, defaultValue), 
-                    SetHandle()) {}
+                    AbstractMeasure::SetHandle()) {}
 
     /// Note that this does not require a State since it is a Topology-stage 
     /// change.
@@ -476,7 +478,7 @@ public:
     /// invalidated when this value is changed.
     Result(Subsystem& sub, Stage dependsOn, Stage invalidated)
     :   Measure_<T>(sub, new Implementation(dependsOn, invalidated), 
-                    SetHandle()) {}
+                    AbstractMeasure::SetHandle()) {}
 
     /// Get the \a dependsOn stage for this measure's value.
     Stage getDependsOnStage() const {return getImpl().getDependsOnStage();}
@@ -581,7 +583,8 @@ public:
              const T& amplitude, 
              const T& frequency,
              const T& phase=T(0))
-    :   Measure_<T>(sub, new Implementation(amplitude,frequency,phase), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(amplitude,frequency,phase), 
+                    AbstractMeasure::SetHandle()) {}
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Sinusoid, Measure_<T>);
 };
@@ -599,8 +602,8 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Plus, Measure_<T>);
 
     Plus(Subsystem& sub, const Measure_<T>& left, const Measure_<T>& right)
-    :   Measure_<T>(sub,
-                    new Implementation(left, right), SetHandle())
+    :   Measure_<T>(sub, new Implementation(left, right), 
+                    AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
            (   this->getSubsystem().isSameSubsystem(left.getSubsystem())
             && this->getSubsystem().isSameSubsystem(right.getSubsystem()),
@@ -624,8 +627,8 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Minus, Measure_<T>);
 
     Minus(Subsystem& sub, const Measure_<T>& left, const Measure_<T>& right)
-    :   Measure_<T>(sub,
-                    new Implementation(left, right), SetHandle())
+    :   Measure_<T>(sub, new Implementation(left, right), 
+                    AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
            (   this->getSubsystem().isSameSubsystem(left.getSubsystem())
             && this->getSubsystem().isSameSubsystem(right.getSubsystem()),
@@ -649,8 +652,8 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Scale, Measure_<T>);
 
     Scale(Subsystem& sub, Real factor, const Measure_<T>& operand)
-    :   Measure_<T>(sub,
-                    new Implementation(factor, operand), SetHandle())
+    :   Measure_<T>(sub, new Implementation(factor, operand), 
+                    AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
            (this->getSubsystem().isSameSubsystem(operand.getSubsystem()),
             "Measure_<T>::Scale::ctor()",
@@ -670,7 +673,8 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Integrate, Measure_<T>);
 
     Integrate(Subsystem& sub, const Measure_<T>& deriv, const Measure_<T>& ic)
-    :   Measure_<T>(sub, new Implementation(deriv,ic), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(deriv,ic), 
+                    AbstractMeasure::SetHandle()) {}
 
     void setValue(State& s, const T& value) const 
     {   return getImpl().setValue(s, value); }
@@ -725,7 +729,8 @@ public:
     @param  subsystem   The Subsystem into which this measure will be placed.
     @param  operand     The Measure to be differentiated. **/
     Differentiate(Subsystem& subsystem, const Measure_<T>& operand)
-    :   Measure_<T>(subsystem, new Implementation(operand), SetHandle()) {}
+    :   Measure_<T>(subsystem, new Implementation(operand), 
+                    AbstractMeasure::SetHandle()) {}
 
     /** Test whether the derivative returned as the value of this measure is
     being estimated numerically, either because the operand measure is unable
@@ -805,7 +810,8 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Minimum, Measure_<T>);
 
     Minimum(Subsystem& sub, const Measure_<T>& source, const Measure_<T>& sourceDot)
-    :   Measure_<T>(sub, new Implementation(source, sourceDot), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(source, sourceDot), 
+                    AbstractMeasure::SetHandle()) {}
 
     void setValue(State& s, const T& value) const 
     {   return getImpl().setValue(s, value); }
