@@ -71,14 +71,14 @@ void testSpline() {
     Spline_<Vec3> spline(1, x, coeff);
     for (int i = 0; i < x.size(); ++i)
         assertEqual(coeff[i], spline.calcValue(Vector(1, x[i])));
-    std::vector<int> deriv;
-    deriv.push_back(0);
+    std::vector<int> deriv1;
+    deriv1.push_back(0); // means "take first derivative"
     for (int i = 0; i < x.size()-1; ++i) {
         for (int j = 0; j < 10; ++j) {
-            Real fract = (i+1.0)/12.0;
+            Real fract = (j+1.0)/12.0;
             Real t = x[i]+fract*(x[i+1]-x[i]);
             assertEqual(spline.calcValue(Vector(1, t)), coeff[i]+fract*(coeff[i+1]-coeff[i]));
-            assertEqual(spline.calcDerivative(deriv, Vector(1, t)), (coeff[i+1]-coeff[i])/(x[i+1]-x[i]));
+            assertEqual(spline.calcDerivative(deriv1, Vector(1, t)), (coeff[i+1]-coeff[i])/(x[i+1]-x[i]));
         }
     }
     
@@ -88,11 +88,11 @@ void testSpline() {
     Real delta = 1e-10;
     for (int i = 0; i < x.size()-1; ++i) {
         for (int j = 0; j < 10; ++j) {
-            Real fract = (i+1.0)/12.0;
+            Real fract = (j+1.0)/12.0;
             Real t = x[i]+fract*(x[i+1]-x[i]);
             Vec3 value1 = spline.calcValue(Vector(1, t-delta));
             Vec3 value2 = spline.calcValue(Vector(1, t+delta));
-            assertEqual(spline.calcDerivative(deriv, Vector(1, t)), (value2-value1)/(2*delta), 1e-4);
+            assertEqual(spline.calcDerivative(deriv1, Vector(1, t)), (value2-value1)/(2*delta), 1e-4);
         }
     }
 }
@@ -154,7 +154,7 @@ void testRealSpline() {
     deriv.push_back(0);
     for (int i = 0; i < x.size()-1; ++i) {
         for (int j = 0; j < 10; ++j) {
-            Real fract = (i+1.0)/12.0;
+            Real fract = (j+1.0)/12.0;
             Real t = x[i]+fract*(x[i+1]-x[i]);
             assertEqual(spline.calcValue(Vector(1, t)), coeff[i]+fract*(coeff[i+1]-coeff[i]));
             assertEqual(spline.calcDerivative(deriv, Vector(1, t)), (coeff[i+1]-coeff[i])/(x[i+1]-x[i]));
