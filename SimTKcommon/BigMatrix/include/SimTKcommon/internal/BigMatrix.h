@@ -1049,6 +1049,8 @@ private:
 //  ----------------------------------------------------------------------------
 template <class ELT> class VectorBase : public MatrixBase<ELT> {
     typedef MatrixBase<ELT>                             Base;
+    typedef typename Base::ScalarNormSq                 ScalarNormSq;
+    typedef typename Base::EAbs                         EAbs;
     typedef typename CNT<ELT>::Scalar                   Scalar;
     typedef typename CNT<ELT>::Number                   Number;
     typedef typename CNT<ELT>::StdNumber                StdNumber;
