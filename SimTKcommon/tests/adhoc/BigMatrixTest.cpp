@@ -207,6 +207,12 @@ int main()
   try {
     SimTK_DEBUG("Running BigMatrixTest ...\n");
 
+    Matrix assignToMe(5,4);
+    assignToMe.elementwiseAssign(1.);
+    std::cout << "assignToMe=" << assignToMe;
+    assignToMe.elementwiseAssign(14);
+    std::cout << "assignToMe=" << assignToMe;
+
     testAjaysBlock();
     testScalarMultiply();
     testCharacter();
