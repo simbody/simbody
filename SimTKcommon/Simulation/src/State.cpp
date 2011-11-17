@@ -2263,7 +2263,7 @@ public:
     
             for (int j=0; j<Stage::NValid; ++j) {
                 out += "  <Vector name=triggers[";
-                out += Stage::getValue(j).getName();
+                out += Stage(j).getName();
                 out += "] size=" + String(info.triggers[j].size()) + ">\n";
             }
     

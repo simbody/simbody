@@ -1250,12 +1250,12 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
 
     // Now add in any subsystem-level geometry.
     switch(stage) {
-    case Stage::TopologyIndex: {
+    case Stage::Topology: {
         assert(subsystemTopologyHasBeenRealized());
         // none yet
         break;
     }
-    case Stage::PositionIndex: {
+    case Stage::Position: {
         assert(getStage(s) >= Stage::Position);
         //TODO: just to check control flow, put a ball at system COM
         //const Vec3 com = getMyMatterSubsystemHandle().calcSystemMassCenterLocationInGround(s);
@@ -4739,7 +4739,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     Vector&                    qdotdot,
     Vector&                    tau) const 
 {
-    SBStateDigest sbs(s, *this, Stage::Dynamics.next());
+    SBStateDigest sbs(s, *this, Stage::Acceleration);
     const SBArticulatedBodyInertiaCache& abc = getArticulatedBodyInertiaCache(s);
 
     const SBInstanceCache&      ic  = sbs.getInstanceCache();
@@ -5575,7 +5575,7 @@ calcConstraintPower(const State& s) const {
 void SimbodyMatterSubsystemRep::calcQDot
    (const State& s, const Vector& u, Vector& qdot) const 
 {
-    SBStateDigest sbs(s, *this, Stage::Position.next());
+    SBStateDigest sbs(s, *this, Stage::Velocity);
 
     assert(u.size() == getTotalDOF());
     qdot.resize(getTotalQAlloc());
@@ -5605,7 +5605,7 @@ void SimbodyMatterSubsystemRep::calcQDot
 void SimbodyMatterSubsystemRep::calcQDotDot
    (const State& s, const Vector& udot, Vector& qdotdot) const 
 {
-    SBStateDigest sbs(s, *this, Stage::Velocity.next());
+    SBStateDigest sbs(s, *this, Stage::Dynamics);
 
     assert(udot.size() == getTotalDOF());
     qdotdot.resize(getTotalQAlloc());

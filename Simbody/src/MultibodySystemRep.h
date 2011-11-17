@@ -115,7 +115,7 @@ calculations like forces and potential energy. */
 class MultibodySystemGlobalSubsystemRep : public Subsystem::Guts {
     // Topological variables
 
-    static const int NumForceCacheEntries = (Stage::DynamicsIndex-Stage::ModelIndex+1);
+    static const int NumForceCacheEntries = (Stage::Dynamics-Stage::Model+1);
     mutable CacheEntryIndex forceCacheIndices[NumForceCacheEntries]; // where in state to find our stuff
 
     const ForceCacheEntry& getForceCacheEntry(const State& s, Stage g) const {

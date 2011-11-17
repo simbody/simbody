@@ -228,13 +228,13 @@ void testMisc() {
 
     printf("ntriggers=%d, by stage:\n", s.getNEventTriggers());
     for (int j=0; j<Stage::NValid; ++j) {
-        Stage g = Stage::getValue(j);
+        Stage g = Stage(j);
         cout << g.getName() << ": " << s.getNEventTriggersByStage(g) << endl;
     }
 
     printf("subsys 0 by stage:\n");
     for (int j=0; j<Stage::NValid; ++j) {
-        Stage g = Stage::getValue(j);
+        Stage g = Stage(j);
         cout << g.getName() << ": " << s.getNEventTriggersByStage(SubsystemIndex(0),g) << endl;
     }
     //cout << "State s=" << s;

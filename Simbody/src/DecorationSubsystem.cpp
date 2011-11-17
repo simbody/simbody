@@ -121,13 +121,13 @@ int DecorationSubsystemGuts::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     switch(stage) {
-    case Stage::TopologyIndex: {
+    case Stage::Topology: {
         assert(subsystemTopologyHasBeenRealized());
         for (int i=0; i<(int)geometry.size(); ++i)
             geom.push_back(geometry[i]);
         break;
     }
-    case Stage::PositionIndex: {
+    case Stage::Position: {
         assert(getStage(s) >= Stage::Position);
         const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
