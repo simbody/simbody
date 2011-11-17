@@ -600,6 +600,10 @@ public:
     template <class S> inline MatrixBase&
     elementwiseAssign(const S& s);
 
+    /// Overloaded to allow an integer argument, which is converted to Real.
+    MatrixBase& elementwiseAssign(int s)
+    {   return elementwiseAssign<Real>(Real(s)); }
+
     /// Set M(i,j) = M(i,j)^-1.
     MatrixBase& elementwiseInvertInPlace();
 
@@ -2396,6 +2400,14 @@ MatrixBase<ELT>::rowAndColScale(
 			out(i,j) = (*this)(i,j) * (r[i]*c[j]);
 }
 
+// M(i,j) = s
+template <class ELT> template <class S> inline MatrixBase<ELT>& 
+MatrixBase<ELT>::elementwiseAssign(const S& s) {
+    for (int j=0; j<ncol(); ++j)
+	for (int i=0; i<nrow(); ++i)
+	    (*this)(i,j) = s;
+    return *this;
+}
 
 // Set M(i,j) = M(i,j)^-1.
 template <class ELT> inline MatrixBase<ELT>& 

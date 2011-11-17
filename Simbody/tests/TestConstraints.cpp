@@ -376,8 +376,6 @@ void testDisablingConstraints() {
     MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
     MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
     Constraint::Rod constraint(first, last, 3.0);
-    createState(system, state);
-    const int numQuaternionsInUse = matter.getNumQuaternionsInUse(state);
 
     class DisableHandler : public ScheduledEventHandler {
     public:
@@ -392,6 +390,9 @@ void testDisablingConstraints() {
         Constraint& constraint;
     };
     system.addEventHandler(new DisableHandler(constraint));
+    createState(system, state);
+    const int numQuaternionsInUse = matter.getNumQuaternionsInUse(state);
+
     RungeKuttaMersonIntegrator integ(system);
     integ.setConstraintTolerance(ConstraintTol);
     TimeStepper ts(system, integ);

@@ -330,8 +330,9 @@ void testCoordinateCoupler2() {
         SimTK_TEST_EQ_TOL(0.0, function->calcValue(cq), 
                           integ.getConstraintToleranceInUse());
 
-        // Power output should always be zero to machine precision.
-        SimTK_TEST_EQ(0.0, power);
+        // Power output should always be zero to machine precision
+        // with some slop for calculation of multipliers.
+        SimTK_TEST_EQ_SIZE(0.0, power, istate.getNU());
 
         // Energy conservation depends on global integration accuracy;
         // accuracy returned here is local so we'll fudge at 10X.
