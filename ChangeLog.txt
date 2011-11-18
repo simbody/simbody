@@ -40,3 +40,12 @@ supplied as arguments rather than extracted from State
 you must call realizeTopology() after the last handler or reporter has been
 added
 
+11/17/2011
+Stage class has been simplified. Constants like Stage::Position are just enums
+now and can be used in case statements. Previously you had to use
+Stage::PositionIndex, etc. for that purpose. Those extra enums are gone now so
+if you were using Stage::VelocityIndex just switch to Stage::Velocity.
+
+The Enumeration<> and EnumerationSet<> types have been removed since they were
+not being used any more. If anyone was using them, let me know.
+
