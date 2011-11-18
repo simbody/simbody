@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
             //anAtom.getQ(s)[0], anAtom.getQ(s)[1], anAtom.getQ(s)[2],
             mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
-            Integrator::successfulStepStatusString(status).c_str(),
+            Integrator::getSuccessfulStepStatusString(status).c_str(),
             myStudy.isStateInterpolated()?" (INTERP)":"");
 
         display.report(s);

@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
             H1.getAngle(s), O.getAngle(s), H2.getOneQ(s,0), H2.getOneQ(s,1),
             mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
-            Integrator::successfulStepStatusString(status).c_str(),
+            Integrator::getSuccessfulStepStatusString(status).c_str(),
             myStudy.isStateInterpolated()?" (INTERP)":"");
 
         display.report(s);

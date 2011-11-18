@@ -775,12 +775,12 @@ protected:
             getSystem().projectQ(s, yErrEst, options, results);
         }
         if (results.getExitStatus() != ProjectResults::Succeeded) {
-            ++statsProjectionFailures;
+            ++statsQProjectionFailures;
             return false;
         }
         anyChanges = results.getAnyChangeMade();
         if (anyChanges)
-            ++statsProjections;
+            ++statsQProjections;
 
         return true;
     }
@@ -815,15 +815,15 @@ protected:
             VectorView uErrEst = yErrEst(s.getNQ(), s.getNU());
             getSystem().projectU(s, uErrEst, options, results);
         } else {
-            getSystem().projectQ(s, yErrEst, options, results);
+            getSystem().projectU(s, yErrEst, options, results);
         }
         if (results.getExitStatus() != ProjectResults::Succeeded) {
-            ++statsProjectionFailures;
+            ++statsUProjectionFailures;
             return false;
         }
         anyChanges = results.getAnyChangeMade();
         if (anyChanges)
-            ++statsProjections;
+            ++statsUProjections;
 
         return true;
     }
@@ -861,21 +861,21 @@ protected:
 
         Vector dummy; // no error estimate to project
         ProjectResults results;
-        ++statsProjectionFailures; // assume failure, then fix if no throw
+        ++statsQProjectionFailures; // assume failure, then fix if no throw
         system.projectQ(s, dummy, options, results);
-        --statsProjectionFailures; // false alarm -- it succeeded
+        --statsQProjectionFailures; // false alarm -- it succeeded
         if (results.getAnyChangeMade())
-            ++statsProjections;
+            ++statsQProjections;
 
         system.prescribeU(s);
         system.realize(s, Stage::Velocity);
 
         results.clear();
-        ++statsProjectionFailures; // assume failure, then fix if no throw
+        ++statsUProjectionFailures; // assume failure, then fix if no throw
         system.projectU(s, dummy, options, results);
-        --statsProjectionFailures; // false alarm -- it succeeded
+        --statsUProjectionFailures; // false alarm -- it succeeded
         if (results.getAnyChangeMade())
-            ++statsProjections;
+            ++statsUProjections;
     }
 
     // Set the advanced state and then evaluate state derivatives. Throws an
@@ -918,23 +918,18 @@ protected:
 
     void resetIntegratorStatistics() {
         statsRealizations = 0;
-        statsProjections = 0;
+        statsQProjections = statsUProjections = 0;
         statsRealizationFailures = 0;
-        statsProjectionFailures = 0;
+        statsQProjectionFailures = statsUProjectionFailures = 0;
     }
 
-    int getNumRealizations() const {
-        return statsRealizations;
-    } 
-    int getNumProjections() const {
-        return statsProjections;
-    } 
-    int getNumRealizationFailures() const {
-        return statsRealizationFailures;
-    } 
-    int getNumProjectionFailures() const {
-        return statsProjectionFailures;
-    } 
+    int getNumRealizations() const {return statsRealizations;} 
+    int getNumQProjections() const {return statsQProjections;}
+    int getNumUProjections() const {return statsUProjections;}
+
+    int getNumRealizationFailures() const {return statsRealizationFailures;} 
+    int getNumQProjectionFailures() const {return statsQProjectionFailures;} 
+    int getNumUProjectionFailures() const {return statsUProjectionFailures;} 
 
 private:
     class EventSorter {
@@ -987,8 +982,8 @@ private:
 protected:
     // realization and projection stats are shared by all integrators;
     // others are left to the individual integration methods
-    mutable int statsProjectionFailures;
-    mutable int statsProjections;
+    mutable int statsQProjectionFailures, statsUProjectionFailures;
+    mutable int statsQProjections, statsUProjections;
     mutable int statsRealizations;
     mutable int statsRealizationFailures;
 private:

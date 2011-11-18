@@ -83,7 +83,8 @@ Integrator::TerminationReason Integrator::getTerminationReason() const {
     return getRep().getTerminationReason();
 }
 
-/*static*/ String Integrator::successfulStepStatusString(SuccessfulStepStatus stat) {
+/*static*/ String Integrator::
+getSuccessfulStepStatusString(SuccessfulStepStatus stat) {
     switch(stat) { 
         case ReachedReportTime: return "ReachedReportTime";
         case ReachedEventTrigger: return "ReachedEventTrigger";
@@ -93,7 +94,20 @@ Integrator::TerminationReason Integrator::getTerminationReason() const {
         case EndOfSimulation: return "EndOfSimulation";
         case StartOfContinuousInterval: return "StartOfContinuousInterval";
         case InvalidSuccessfulStepStatus: return "InvalidSuccessfulStepStatus";
-        default: return String("UNKNOWN SUCCESSFUL STEP STATUS ") + String((int)stat);
+        default: return String("UNKNOWN SUCCESSFUL STEP STATUS ") 
+                      + String((int)stat);
+    }
+}
+
+/*static*/ String Integrator::
+getTerminationReasonString(TerminationReason reason) {
+    switch(reason) { 
+        case ReachedFinalTime: return "ReachedFinalTime";
+        case AnUnrecoverableErrorOccurred: return "AnUnrecoverableErrorOccurred";
+        case EventHandlerRequestedTermination: return "EventHandlerRequestedTermination";
+        case InvalidTerminationReason: return "InvalidTerminationReason";
+        default: return String("UNKNOWN TERMINATION REASON ") 
+                      + String((int)reason);
     }
 }
 
@@ -184,8 +198,15 @@ int Integrator::getNumStepsTaken() const {
 int Integrator::getNumRealizations() const {
     return getRep().getNumRealizations();
 }
+int Integrator::getNumQProjections() const {
+    return getRep().getNumQProjections();
+}
+int Integrator::getNumUProjections() const {
+    return getRep().getNumUProjections();
+}
 int Integrator::getNumProjections() const {
-    return getRep().getNumProjections();
+    return getRep().getNumQProjections()
+         + getRep().getNumUProjections();
 }
 int Integrator::getNumErrorTestFailures() const {
     return getRep().getNumErrorTestFailures();
@@ -196,8 +217,15 @@ int Integrator::getNumConvergenceTestFailures() const {
 int Integrator::getNumRealizationFailures() const {
     return getRep().getNumRealizationFailures();
 }
+int Integrator::getNumQProjectionFailures() const {
+    return getRep().getNumQProjectionFailures();
+}
+int Integrator::getNumUProjectionFailures() const {
+    return getRep().getNumUProjectionFailures();
+}
 int Integrator::getNumProjectionFailures() const {
-    return getRep().getNumProjectionFailures();
+    return getRep().getNumQProjectionFailures()
+         + getRep().getNumUProjectionFailures();
 }
 int Integrator::getNumConvergentIterations() const {
     return getRep().getNumConvergentIterations();

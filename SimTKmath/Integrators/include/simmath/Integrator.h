@@ -224,7 +224,7 @@ public:
         InvalidSuccessfulStepStatus = -1
     };
     /// Get a human readable description of the reason a step returned.
-    static String successfulStepStatusString(SuccessfulStepStatus);
+    static String getSuccessfulStepStatusString(SuccessfulStepStatus);
 
     /// Integrate the System until something happens which requires outside processing, and return a status code describing what happened.
     /// @param reportTime           the time of the next scheduled report
@@ -272,6 +272,9 @@ public:
     /// isSimulationOver() returns true.
     TerminationReason getTerminationReason() const;
 
+    /// Get a human readable description of the termination reason.
+    static String getTerminationReasonString(TerminationReason);
+
     /// Reset all statistics to zero.
     void resetAllStatistics();
 
@@ -291,7 +294,14 @@ public:
     int getNumStepsTaken() const; 
     /// Get the total number of state realizations that have been performed since the last call to resetAllStatistics().
     int getNumRealizations() const;
-    /// Get the total number of times a state has been projected since the last call to resetAllStatistics().
+    /// Get the total number of times a state positions Q have been projected
+    /// since the last call to resetAllStatistics().
+    int getNumQProjections() const;
+    /// Get the total number of times a state velocities U have been projected
+    /// since the last call to resetAllStatistics().
+    int getNumUProjections() const;
+    /// Get the total number of times a state has been projected (counting 
+    /// both Q and U projections) since the last call to resetAllStatistics().
     int getNumProjections() const;
     /// Get the number of attempted steps that have failed due to the error being unacceptably high since
     /// the last call to resetAllStatistics().
@@ -304,7 +314,16 @@ public:
     /// Get the number of attempted steps that have failed due to an error when realizing the state since
     /// the last call to resetAllStatistics().
     int getNumRealizationFailures() const;
-    /// Get the number of attempted steps that have failed due to an error when projecting the state since
+    /// Get the number of attempted steps that have failed due to an error 
+    /// when projecting the state positions (Q) since the last call to 
+    /// resetAllStatistics().
+    int getNumQProjectionFailures() const;
+    /// Get the number of attempted steps that have failed due to an error 
+    /// when projecting the state velocities (U) since the last call to 
+    /// resetAllStatistics().
+    int getNumUProjectionFailures() const;
+    /// Get the number of attempted steps that have failed due to an error 
+    /// when projecting the state (either a Q- or U-projection) since
     /// the last call to resetAllStatistics().
     int getNumProjectionFailures() const;
     /// For iterative methods, get the number of internal step iterations in steps that led to 
@@ -387,6 +406,10 @@ public:
     /// matrix for efficiency. You can force strict use of a current iteration
     /// matrix recomputed at each iteration if you want.
     void setForceFullNewton(bool forceFullNewton);
+
+    /// OBSOLETE: use getSuccessfulStepStatusString().
+    static String successfulStepStatusString(SuccessfulStepStatus stat)
+    {   return getSuccessfulStepStatusString(stat); }
 
 protected:
     const IntegratorRep& getRep() const {assert(rep); return *rep;}

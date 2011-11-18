@@ -357,14 +357,12 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             previousStartTime = getAdvancedTime();
             Vector yout(getAdvancedState().getY().size());
             Vector ypout(getAdvancedState().getY().size()); // ignored
-            int oldSteps=0, oldTestFailures=0, oldNonlinIterations=0, oldNonlinConvFailures=0, 
-                 oldProjections=0, oldProjectionFailures=0;
+            int oldSteps=0, oldTestFailures=0, oldNonlinIterations=0, 
+                oldNonlinConvFailures=0;
             cpodes->getNumSteps(&oldSteps);
             cpodes->getNumErrTestFails(&oldTestFailures);
             cpodes->getNumNonlinSolvIters(&oldNonlinIterations);
             cpodes->getNumNonlinSolvConvFails(&oldNonlinConvFailures);
-            cpodes->getProjNumProj(&oldProjections);
-            cpodes->getProjNumFailures(&oldProjectionFailures);
             res = cpodes->step(tMax, &tret, yout, ypout, mode);
             if (res == CPodes::TooClose) {
                 
@@ -379,18 +377,15 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
                 yout = getAdvancedState().getY();
                 res = 0;
             }
-            int newSteps=0, newTestFailures=0, newNonlinIterations=0, newNonlinConvFailures=0,
-                 newProjections=0, newProjectionFailures=0;
+            int newSteps=0, newTestFailures=0, newNonlinIterations=0, 
+                newNonlinConvFailures=0;
             cpodes->getNumSteps(&newSteps);
             cpodes->getNumErrTestFails(&newTestFailures);
             cpodes->getNumNonlinSolvIters(&newNonlinIterations);
             cpodes->getNumNonlinSolvConvFails(&newNonlinConvFailures);
-            cpodes->getProjNumProj(&newProjections);
-            cpodes->getProjNumFailures(&newProjectionFailures);
             statsStepsTaken += newSteps-oldSteps;
             statsErrorTestFailures += newTestFailures-oldTestFailures;
-            statsProjections += newProjections-oldProjections;
-            statsProjectionFailures += newProjectionFailures-oldProjectionFailures;
+            // Project stats were already updated in project() above.
             statsIterations += newNonlinIterations-oldNonlinIterations;
             statsConvergenceTestFailures += newNonlinConvFailures-oldNonlinConvFailures;
             updAdvancedState().updY() = yout;
@@ -518,7 +513,7 @@ Real CPodesIntegratorRep::getPredictedNextStepSize() const {
 
 int CPodesIntegratorRep::getNumStepsAttempted() const {
     assert(initialized);
-    return statsStepsTaken+statsErrorTestFailures+statsConvergenceTestFailures+statsProjectionFailures;
+    return statsStepsTaken+statsErrorTestFailures+statsConvergenceTestFailures;
 }
 
 int CPodesIntegratorRep::getNumStepsTaken() const {

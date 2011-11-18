@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
             crankAngle,
             mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
-            Integrator::successfulStepStatusString(status).c_str(),
+            Integrator::getSuccessfulStepStatusString(status).c_str(),
             myStudy.isStateInterpolated()?" (INTERP)":"");
         printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
             crankRocker.getQErr(s).normRMS(),
