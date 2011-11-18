@@ -70,6 +70,7 @@ applications that use Simbody.
 #include "SimTKcommon/internal/Plugin.h"
 #include "SimTKcommon/internal/Timing.h"
 #include "SimTKcommon/internal/Xml.h"
+#include "SimTKcommon/Testing.h"
 #endif
 
 
