@@ -873,12 +873,9 @@ public:
 
     Array_<ArticulatedInertia,MobilizedBodyIndex> pPlus; // nb
 
-    Vector_<Real>       storageForD;              // sum(nu[j]^2)
-    Vector_<Real>       storageForDI;             // sum(nu[j]^2)
-    Array_<Vec3>        storageForG;              // 2 X ndof
-    Real* pointerToD;
-    Real* pointerToDI;
-    Vec3* pointerToG;
+    Vector_<Real>       storageForD;    // sum(nu[j]^2)
+    Vector_<Real>       storageForDI;   // sum(nu[j]^2)
+    Array_<Vec3>        storageForG;    // 2 X ndof
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -898,9 +895,6 @@ public:
         storageForD.resize(nSqDofs);
         storageForDI.resize(nSqDofs);
         storageForG.resize(2*nDofs);
-        pointerToD = storageForD.size() ? &storageForD[0] : NULL;
-        pointerToDI = storageForDI.size() ? &storageForDI[0] : NULL;
-        pointerToG = storageForG.size() ? &storageForG[0] : NULL;
     }
 };
 //....................... ARTICULATED BODY INERTIA CACHE .......................

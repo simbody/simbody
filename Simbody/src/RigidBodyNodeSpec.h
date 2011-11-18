@@ -645,16 +645,20 @@ HType&       updHDot(SBTreeVelocityCache& vc) const
     // Dynamics
 
 // These are calculated with articulated body inertias.
-const Mat<dof,dof>& getD(const SBArticulatedBodyInertiaCache& abc) const {return fromUSq(abc.pointerToD);}
-Mat<dof,dof>&       updD(SBArticulatedBodyInertiaCache&       abc) const {return toUSq  (abc.pointerToD);}
+const Mat<dof,dof>& getD(const SBArticulatedBodyInertiaCache& abc) const 
+{return fromUSq(abc.storageForD);}
+Mat<dof,dof>&       updD(SBArticulatedBodyInertiaCache&       abc) const 
+{return toUSq  (abc.storageForD);}
 
-const Mat<dof,dof>& getDI(const SBArticulatedBodyInertiaCache& abc) const {return fromUSq(abc.pointerToDI);}
-Mat<dof,dof>&       updDI(SBArticulatedBodyInertiaCache&       abc) const {return toUSq  (abc.pointerToDI);}
+const Mat<dof,dof>& getDI(const SBArticulatedBodyInertiaCache& abc) const 
+{return fromUSq(abc.storageForDI);}
+Mat<dof,dof>&       updDI(SBArticulatedBodyInertiaCache&       abc) const 
+{return toUSq  (abc.storageForDI);}
 
 const Mat<2,dof,Vec3>& getG(const SBArticulatedBodyInertiaCache& abc) const
-  { return Mat<2,dof,Vec3>::getAs(&abc.pointerToG[2*uIndex]); }
+  { return Mat<2,dof,Vec3>::getAs(&abc.storageForG[2*uIndex]); }
 Mat<2,dof,Vec3>&       updG(SBArticulatedBodyInertiaCache&       abc) const
-  { return Mat<2,dof,Vec3>::updAs(&abc.pointerToG[2*uIndex]); }
+  { return Mat<2,dof,Vec3>::updAs(&abc.storageForG[2*uIndex]); }
 
 const Vec<dof>& getTau(const SBInstanceCache& ic, const Real* tau) const {
     const PresForcePoolIndex tauIx = ic.getMobodInstanceInfo(nodeNum).firstPresForce;
