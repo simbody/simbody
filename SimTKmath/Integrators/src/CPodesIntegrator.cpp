@@ -471,12 +471,20 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
                 if (eventFlags[i] != 0) {
                     eventIndices.push_back(i);
                     eventTimes.push_back(tret);
-                    eventTransitions.push_back(eventFlags[i] == 1 ? Event::Rising : Event::Falling);
+                    eventTransitions.push_back(eventFlags[i] == 1 
+                        ? Event::Rising : Event::Falling);
                 }
             delete[] eventFlags;
             Array_<EventId> ids;
             findEventIds(eventIndices, ids);
-            setTriggeredEvents(previousStartTime, tret, ids, eventTimes, eventTransitions);
+            // Need to fake up the lower end of the event window.
+            Real tLow = std::max(previousStartTime,
+                                 (1-SignificantReal)*tret);
+            setUseInterpolatedState(true);
+            createInterpolatedState(tLow);
+            realizeStateDerivatives(getInterpolatedState());
+
+            setTriggeredEvents(tLow, tret, ids, eventTimes, eventTransitions);
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);
             return Integrator::ReachedEventTrigger;
         }
