@@ -149,13 +149,18 @@ public:
     // to correct that. Time will be the same before and after, but the
     // state may have changed discontinuously.
     /*virtual*/void handleEventsImpl
-       (State& s, Event::Cause cause, const Array_<int>& eventIds,
+       (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
         const HandleEventsOptions& options, HandleEventsResults& results) const
     {
         cout << "===> t=" << s.getTime() << ": HANDLING " 
              << Event::getCauseName(cause) << " EVENT!!!" << endl;
-//        if (eventIds.size())
-//            cout << "  EVENT IDS: " << eventIds << endl;
+        if (eventIds.size())
+            cout << "  EVENT IDS: " << eventIds << endl;
+        if (cause != Event::Cause::TimeAdvanced) {
+            std::swap(s.updQ()[0],s.updQ()[1]); // invalidates Position stage
+            s.updU()=0;
+        }
+        results.setExitStatus(HandleEventsResults::Succeeded);
     }
 
 };
@@ -243,10 +248,37 @@ public:
 };
 
 static void printFinalStats(const Integrator& integ);
+
+static void reportState(const char* msg,
+                        const System& sys, const Integrator& integ) {
+    if (*msg) printf("%s\n", msg);
+    const State& s = integ.getState();
+
+    sys.realize(s);
+    printf(
+        " -%6s- %9.6lf(%9.6lf) %14.10lf  %14.10lf  %14.10lf  %14.10lf | %14.10lf %14.10lf %14.10lf %14.10lf %14.10lf\n",
+        integ.isStateInterpolated() ? "INTERP" : "------",
+        s.getTime(), integ.getAdvancedTime(),
+        s.getY()[0], s.getY()[1], s.getY()[2], s.getY()[3],
+        s.getYErr()[0], s.getYErr()[1], 
+        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[0], 
+        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[1], 
+        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[2]);
+
+    cout << "YDot:        " << s.getYDot() << endl;
+    cout << "Multipliers: " << s.getMultipliers() << endl;
+    cout << "UDotErrs:    " << s.getUDotErr() << endl;
+}
+
 int main () {
   try 
   { MyPendulum sys;
     RungeKuttaMersonIntegrator integ(sys);
+    //RungeKuttaFeldbergIntegrator integ(sys);
+    //RungeKutta3Integrator integ(sys);
+    //CPodesIntegrator integ(sys);
+    //VerletIntegrator integ(sys);
+    //ExplicitEulerIntegrator integ(sys);
 
     const Real t0=0;
     const Real qi[] = {1,0}; // (x,y)=(1,0)
@@ -290,12 +322,13 @@ int main () {
         switch(integ.stepTo(reportNo*hReport, nextScheduledEvent)) {
             case Integrator::ReachedStepLimit: printf("STEP LIMIT\n"); break;
             case Integrator::ReachedReportTime: printf("REPORT TIME AT t=%.17g\n", integ.getTime()); break;
-            case Integrator::StartOfContinuousInterval: printf("START OF CONTINUOUS INTERVAL"); break;
+            case Integrator::StartOfContinuousInterval: printf("START OF CONTINUOUS INTERVAL\n"); break;
 
             case Integrator::ReachedScheduledEvent:  {
                 Stage lowestModified = Stage::Empty;
                 bool shouldTerminate;
                 printf("SCHEDULED EVENT\n");
+                reportState("BEFORE SCHEDULED EVENT:", sys, integ);
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Scheduled,
                     scheduledEventIds,handleOpts,handleResults);
@@ -333,7 +366,7 @@ int main () {
                     cout << " " << Event::eventTriggerString(integ.getEventTransitionsSeen()[i]);
                 cout << endl;
                 cout << "Est event times:  " << integ.getEstimatedEventTimes() << "\n";
-
+                reportState("BEFORE TRIGGERED EVENT:", sys, integ);
                 // state(t-) => state(t+)
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Triggered,
@@ -367,22 +400,7 @@ int main () {
         }
 
         // fall through to here to report
-        const State& s = integ.getState();
-
-        sys.realize(s);
-        printf(
-            " -%6s- %9.6lf(%9.6lf) %14.10lf  %14.10lf  %14.10lf  %14.10lf | %14.10lf %14.10lf %14.10lf %14.10lf %14.10lf\n",
-            integ.isStateInterpolated() ? "INTERP" : "------",
-            s.getTime(), integ.getAdvancedTime(),
-            s.getY()[0], s.getY()[1], s.getY()[2], s.getY()[3],
-            s.getYErr()[0], s.getYErr()[1], 
-            s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[0], 
-            s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[1], 
-            s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[2]);
-
-        cout << "YDot:        " << s.getYDot() << endl;
-        cout << "Multipliers: " << s.getMultipliers() << endl;
-        cout << "UDotErrs:    " << s.getUDotErr() << endl;
+        reportState("", sys, integ);
     }
 
     printFinalStats(integ);
@@ -530,8 +548,10 @@ int MyPendulumGuts::realizePositionImpl(const State& s) const {
     
     s.updEventTriggersByStage(subsysIndex, Stage::Position)[0] = 100*q[0]-q[1];
 
+    // Make sure this boolean trigger *crosses* zero; it won't work right
+    // if one end is actually zero. We'll use -.5 for false, .5 for true.
     s.updEventTriggersByStage(subsysIndex, Stage::Position)[1] = 
-        s.getTime() > 1.49552 && s.getTime() < 12.28937;
+        (s.getTime() > /*1.49552*/1.49545 && s.getTime() < 12.28937)-0.5;
 
     s.updEventTriggersByStage(subsysIndex, Stage::Position)[2] = 
         s.getTime()-1.495508;
@@ -574,12 +594,14 @@ int MyPendulumGuts::realizeAccelerationImpl(const State& s) const {
     const Vector& q    = s.getQ(subsysIndex);
     const Vector& u    = s.getU(subsysIndex);
     Vector&       udot = s.updUDot(subsysIndex);
+    Vector&       qdotdot = s.updQDotDot(subsysIndex);
 
     const Real r2 = q[0]*q[0] + q[1]*q[1];
     const Real v2 = u[0]*u[0] + u[1]*u[1];
     const Real L  = (m*v2 - mg*q[1])/r2;
     udot[0] = - q[0]*L/m;
     udot[1] = - q[1]*L/m - g;
+    qdotdot = udot; // N=identity for this problem
     s.updMultipliers(subsysIndex)[0] = L;
     s.updUDotErr(subsysIndex)[0] = q[0]*udot[0] + q[1]*udot[1] + v2;
     System::Guts::realizeAccelerationImpl(s);
