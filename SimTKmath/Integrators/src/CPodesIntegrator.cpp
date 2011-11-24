@@ -285,50 +285,49 @@ void CPodesIntegratorRep::createInterpolatedState(Real t) {
     interp.updTime() = t;
 }
 
-Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
-   (Real reportTime, Real scheduledEventTime) {
+// Take a step. See AbstractIntegratorRep::stepTo() for how this is supposed
+// to behave. We have to go through some contortions to squeeze CPodes into
+// that mold.
+Integrator::SuccessfulStepStatus CPodesIntegratorRep::
+stepTo(Real reportTime, Real scheduledEventTime) {
     assert(initialized);
     assert(reportTime >= getState().getTime());
     assert(scheduledEventTime >= getState().getTime());
-
-    
-    // Ask CPodes to perform the integration.
-
     
     // If this is the start of a continuous interval, return immediately so
     // the current state will be seen as part of the trajectory.
-
     if (startOfContinuousInterval) {
-          // The set of event triggers might have changed.
+        // The set of event triggers might have changed.
         getSystem().calcEventTriggerInfo(getAdvancedState(), 
                                          updEventTriggerInfo());
+        pendingReturnCode = -1; // forget post-event state
         startOfContinuousInterval = false;
         return Integrator::StartOfContinuousInterval;
     }
-    Real tMax = std::min(reportTime, scheduledEventTime);
+
     CPodes::StepMode mode;
-    if (userFinalTime != -1) {
-        if (userReturnEveryInternalStep == 1)
-            mode = CPodes::OneStepTstop;
-        else
-            mode = CPodes::NormalTstop;
-    }
-    else {
-        if (userReturnEveryInternalStep == 1)
-            mode = CPodes::OneStep;
-        else
-            mode = CPodes::Normal;
-    }
+    if (userFinalTime != -1)
+        mode = (userReturnEveryInternalStep == 1) ? CPodes::OneStepTstop
+                                                  : CPodes::NormalTstop;
+    else
+        mode = (userReturnEveryInternalStep == 1) ? CPodes::OneStep
+                                                  : CPodes::Normal;
 
+    // Keep taking steps until something interesting happens at tMax or
+    // earlier.
+    Real tMax = std::min(reportTime, scheduledEventTime);
 
+    // Assume we'll return at the advanced state; we'll change this below
+    // if necessary.
+    setUseInterpolatedState(false);
     while (true) {
         Real tret;
         int res;
-        if (pendingReturnCode != -1) {
-            
+        if (pendingReturnCode != -1) {            
             // The last time returned was an event or report time. The 
             // integrator has already gone beyond that time, so reset 
-            // everything to how it was after the last call to cpodes->step().
+            // everything to how it was after the last call to cpodes->step()
+            // and then process the step.
             
             res = pendingReturnCode;
             tret = previousTimeReturned;
@@ -348,10 +347,10 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
         else {
             // We're going to advance time now.
     
-            // Auto-update discrete variables. This update is not allowed to affect
-            // any computations performed at the current state value so does not
-            // invalidate any stage.
-            // Swap the discrete state update cache entries with the state variables.
+            // Auto-update discrete variables. This update is not allowed to 
+            // affect any computations performed at the current state value so
+            // does not invalidate any stage. Swap the discrete state update 
+            // cache entries with the state variables.
             updAdvancedState().autoUpdateDiscreteVariables();
 
             previousStartTime = getAdvancedTime();
@@ -363,20 +362,22 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             cpodes->getNumErrTestFails(&oldTestFailures);
             cpodes->getNumNonlinSolvIters(&oldNonlinIterations);
             cpodes->getNumNonlinSolvConvFails(&oldNonlinConvFailures);
+
+            //---------------------step------------------------
             res = cpodes->step(tMax, &tret, yout, ypout, mode);
-            if (res == CPodes::TooClose) {
-                
+            //-------------------------------------------------
+            if (res == CPodes::TooClose) {              
                 // This happens when the user asked the integrator to advance 
                 // time by a tiny amount, comparable to numerical precision.
                 // Since CPODES cannot advance time by such small increments, 
                 // and the state would not change significantly in that time 
                 // anyway, just set the time while leaving the rest of the 
-                // state unchanged.
-                
+                // state unchanged.             
                 tret = tMax;
                 yout = getAdvancedState().getY();
-                res = 0;
+                res = CPodes::Success;
             }
+
             int newSteps=0, newTestFailures=0, newNonlinIterations=0, 
                 newNonlinConvFailures=0;
             cpodes->getNumSteps(&newSteps);
@@ -388,6 +389,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             // Project stats were already updated in project() above.
             statsIterations += newNonlinIterations-oldNonlinIterations;
             statsConvergenceTestFailures += newNonlinConvFailures-oldNonlinConvFailures;
+            
             updAdvancedState().updY() = yout;
             previousTimeReturned = tret;
         }
@@ -395,51 +397,63 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
         realizeStateDerivatives(getAdvancedState());
 
         
-        // Check for integration errors.
-        
-        if (res == CPodes::TooMuchWork) {
-            
-            // The maximum number of steps was reached.
-            
+        // Check for integration errors.        
+        if (res == CPodes::TooMuchWork) {         
+            // The maximum number of steps was reached.          
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedNoEvent);
             return Integrator::ReachedStepLimit;
         }
-        if (res < 0) {
-            
-            // An error of some sort occurred.
-            
-            SimTK_THROW2(Integrator::StepFailed, getAdvancedState().getTime(), "CPodes::step() returned an error");
+        if (res < 0) {           
+            // An error of some sort occurred.           
+            SimTK_THROW2(Integrator::StepFailed, getAdvancedState().getTime(), 
+                         "CPodes::step() returned an error");
         }
-        
-        // If necessary, generate an interpolated state.
-        
-        if (tret > tMax) {
-            setUseInterpolatedState(true);
-            createInterpolatedState(tMax);
-            realizeStateDerivatives(getInterpolatedState());
+
+        // No error occurred.      
+
+        // If a triggered event was isolated to the window (tLo,tHi], 
+        // CPodes will have returned with tret==tHi, which is where the
+        // advancedState is now. We need to return an interpolated, "last good"
+        // state at tLo, with return status ReachedEventTrigger. The calling
+        // TimeStepper will then invoke the event
+        // handler to fix up the advanced state at tHi without reporting it.
+        // (If the event handler modified the state, startOfContinuousInterval
+        // will be set.) Then we will get called here again and need to report
+        // the now-fixed advanced state at tHi as part of the trajectory,
+        // either as an ordinary time advanced state or as a 
+        // StartOfContinuousInterval state if something happened.
+        // But there might be some reports due prior to tLo first.
+
+        if (res == CPodes::RootReturn) {
+            Real tLo, tHi;
+            cpodes->getRootWindow(&tLo, &tHi);
+            //TODO: Faking up the lower end of the event window because
+            //CPodes sets tLo=tHi before we can get to it.
+            tLo = std::max(previousStartTime, (1-SignificantReal)*tret);
+            tret = tLo;
         }
-        else
-            setUseInterpolatedState(false);
         
         // Determine the correct return code.
         
-        if (tret >= reportTime && reportTime <= scheduledEventTime) {
-            
-            // We reached the scheduled report time.
-            
+        if (tret >= reportTime && reportTime <= scheduledEventTime) {          
+            // We reached the scheduled report time.  
+            // If necessary, generate an interpolated state.      
+            if (tret > tMax) {
+                setUseInterpolatedState(true);
+                createInterpolatedState(tMax);
+                realizeStateDerivatives(getInterpolatedState());
+            }
             savedY.resize(0);
             pendingReturnCode = res;
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedNoEvent);
             return Integrator::ReachedReportTime;
         }
-        if (tret >= scheduledEventTime) {
-            
-            // We reached a scheduled event time.
-            
-            if (tret > scheduledEventTime) {
-                
-                // Back up the advanced state to the event time.
-                
+
+        if (tret >= scheduledEventTime) {           
+            // We reached a scheduled event time.            
+            savedY.resize(0);
+            if (tret > scheduledEventTime) {              
+                // Back up the advanced state to the event time.               
                 savedY = getAdvancedState().getY();
                 updAdvancedState().updY() = getInterpolatedState().getY();
                 updAdvancedState().updTime() = scheduledEventTime;
@@ -449,17 +463,18 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);
             return Integrator::ReachedScheduledEvent;
         }
-        if (res == CPodes::TstopReturn) {
-            
-            // The specified final time was reached.
-    
+
+        if (res == CPodes::TstopReturn) {           
+            // The specified final time was reached.  
             setStepCommunicationStatus(IntegratorRep::FinalTimeHasBeenReturned);
             terminationReason = Integrator::ReachedFinalTime;
             return Integrator::EndOfSimulation;
         }
-        if (res == CPodes::RootReturn) {
-            
-            // An event was triggered.
+
+        if (res == CPodes::RootReturn) {           
+            // An event was triggered in the interval (tLo,tHi]. We're 
+            // going to return with an interpolated state at tLo; CPodes has
+            // already capped the advanced state at tHi.
             
             Array_<SystemEventTriggerIndex> eventIndices;
             Array_<Real> eventTimes;
@@ -470,31 +485,37 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             for (SystemEventTriggerIndex i(0); i < nevents; ++i)
                 if (eventFlags[i] != 0) {
                     eventIndices.push_back(i);
-                    eventTimes.push_back(tret);
+                    eventTimes.push_back(previousTimeReturned);
                     eventTransitions.push_back(eventFlags[i] == 1 
                         ? Event::Rising : Event::Falling);
                 }
             delete[] eventFlags;
             Array_<EventId> ids;
             findEventIds(eventIndices, ids);
-            // Need to fake up the lower end of the event window.
-            Real tLow = std::max(previousStartTime,
-                                 (1-SignificantReal)*tret);
+
+            // Generate an interpolated state at tLo.      
             setUseInterpolatedState(true);
-            createInterpolatedState(tLow);
+            createInterpolatedState(tret);
             realizeStateDerivatives(getInterpolatedState());
 
-            setTriggeredEvents(tLow, tret, ids, eventTimes, eventTransitions);
+            setTriggeredEvents(tret, previousTimeReturned, 
+                               ids, eventTimes, eventTransitions);
+
+            // For next time, we'll treat the state at tHi as an ordinary
+            // trajectory step since we expect an event handler to have
+            // already been called to fix it up.
+            pendingReturnCode = CPodes::Success;
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);
             return Integrator::ReachedEventTrigger;
         }
-        if (userReturnEveryInternalStep == 1) {
-            
-            // The user asked to be notified of every internal step.
-            
+
+        if (userReturnEveryInternalStep == 1) {           
+            // The user asked to be notified of every internal step.           
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedNoEvent);
             return Integrator::TimeHasAdvanced;
         }
+
+        // Otherwise keep going -- no one wants to see this step.
     }
 }
 

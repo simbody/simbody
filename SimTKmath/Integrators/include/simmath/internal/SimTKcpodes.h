@@ -315,6 +315,7 @@ public:
     int getEstLocalErrors(Vector& ele) ;
     int getNumGEvals(int* ngevals);
     int getRootInfo(int* rootsfound);
+    int getRootWindow(Real* tLo, Real* tHi);
     int getIntegratorStats(int* nsteps,
                            int* nfevals, int* nlinsetups,
                            int* netfails, int* qlast,

@@ -548,6 +548,9 @@ int CPodes::getNumGEvals(int* ngevals) {
 int CPodes::getRootInfo(int* rootsfound) {
     return CPodeGetRootInfo(updRep().cpode_mem,rootsfound);
 }
+int CPodes::getRootWindow(Real* tLo, Real* tHi) {
+    return CPodeGetRootWindow(updRep().cpode_mem,tLo,tHi);
+}
 int CPodes::getIntegratorStats(int* nsteps,
                           int* nfevals, int* nlinsetups,
                           int* netfails, int* qlast,

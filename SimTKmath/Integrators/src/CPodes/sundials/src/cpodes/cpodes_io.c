@@ -1178,6 +1178,28 @@ int CPodeGetRootInfo(void *cpode_mem, int *rootsfound)
   return(CP_SUCCESS);
 }
 
+/*
+ * CPodeGetRootWindow
+ *
+ * Returns the window (tLo,tHi] within which root(s) were found. The result
+ * is meaningless unless this is called right after a root-found return.
+ */
+
+int CPodeGetRootWindow(void *cpode_mem, realtype *tLo, realtype *tHi)
+{
+  CPodeMem cp_mem;
+
+  if (cpode_mem==NULL) {
+    cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeGetRootWindow", MSGCP_NO_MEM);
+    return(CP_MEM_NULL);
+  }
+  cp_mem = (CPodeMem) cpode_mem;
+
+  *tLo = cp_mem->cp_tlo;
+  *tHi = cp_mem->cp_thi;
+
+  return(CP_SUCCESS);
+}
 
 /* 
  * CPodeGetNumNonlinSolvIters

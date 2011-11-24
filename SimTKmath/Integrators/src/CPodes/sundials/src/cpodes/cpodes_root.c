@@ -427,21 +427,23 @@ int cpRcheck3(CPodeMem cp_mem)
  * nge      = cumulative counter for gfun calls.
  *
  * ttol     = a convergence tolerance for trout.  Input only.
- *            When a root at trout is found, it is located only to
+ *            When a root at trout is found, it is located in time only to
  *            within a tolerance of ttol.  Typically, ttol should
  *            be set to a value on the order of
  *               100 * UROUND * max (ABS(tlo), ABS(thi))
  *            where UROUND is the unit roundoff of the machine.
  *
  * tlo, thi = endpoints of the interval in which roots are sought.
- *            On input, and must be distinct, but tlo - thi may
+ *            On input, they must be distinct, but tlo - thi may
  *            be of either sign.  The direction of integration is
  *            assumed to be from tlo to thi.  On return, tlo and thi
- *            are the endpoints of the final relevant interval.
+ *            are the endpoints of the final relevant interval (tLo,tHi];
+ *            that is, the root has not yet occurred at tLo but has
+ *            definitely occurred by tHi.
  *
  * glo, ghi = arrays of length nrtfn containing the vectors g(tlo)
  *            and g(thi) respectively.  Input and output.  On input,
- *            none of the glo[i] should be zero.
+ *            none of the active glo[i] should be zero.
  *
  * trout    = root location, if a root was found, or thi if not.
  *            Output only.  If a root was found other than an exact
@@ -464,15 +466,13 @@ int cpRcheck3(CPodeMem cp_mem)
  *      RTFOUND        > 0 if a root of g was found, or
  *      CP_SUCCESS     = 0 otherwise.
  */
-
 static int cpRootfind(CPodeMem cp_mem, realtype ttol)
 {
   realtype alpha, tmid, my_tmid, tmid_saved, thi_saved, fracint, fracsub;
   int i, retval, side, sideprev;
   booleantype zroot;
 
-  /*
-   * alpha is a bias weight in the secant method.
+  /* alpha is a bias weight in the secant method.
    * On the first two passes, set alpha = 1.  Thereafter, reset alpha
    * according to the side (low vs high) of the subinterval in which
    * the sign change was found in the previous two passes.
@@ -482,23 +482,17 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
    * The next guess tmid is the secant method value if alpha = 1, but
    * is closer to tlo if alpha < 1, and closer to thi if alpha > 1.
    */
-
   alpha = ONE;
 
-  /*
-   * First, for each active g function, check whether an event occured in (tlo,thi).
-   * Since glo != 0 for an active component, this means we check for a sign change
-   * or for ghi = 0 (taking into account rootdir). For each component that triggers
-   * an event, we estimate a "proposal" mid point (by bisection if ghi=0 or with 
-   * secant method otherwise) and select the one closest to tlo.
-   */
-
+  /* First, for each active g function, check whether an event occured in 
+   * (tlo,thi). Since glo != 0 for an active component, this means we check for
+   * a sign change or for ghi = 0 (taking into account rootdir). For each 
+   * component that triggers an event, we estimate a "proposal" mid point (by
+   * bisection if ghi=0 or with secant method otherwise) and select the one 
+   * closest to tlo. */
   zroot = FALSE;
-
   tmid = thi;
-  
   for (i = 0;  i < nrtfn; i++) {
-
     if(!gactive[i]) continue;
 
     if ( (glo[i]*ghi[i] <= ZERO) && (rootdir[i]*glo[i] <= ZERO) ) {
@@ -508,13 +502,12 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
       } else {
         my_tmid = thi - (thi - tlo)*ghi[i]/(ghi[i] - alpha*glo[i]);
       }
+      /* Pick my_tmid if it is closer to tlo than the current tmid. */
       if ( (my_tmid-tmid)*h < ZERO ) tmid = my_tmid;
     }
-
   }
 
   /* If no event was detected, set trout to thi and return CP_SUCCESS */
-
   if (!zroot) {
     trout = thi;
     for (i = 0; i < nrtfn; i++) grout[i] = ghi[i];
@@ -522,16 +515,13 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
   }
 
   /* An event was detected. Loop to locate nearest root. */
-
   side = 0;
 
   loop {
-
     sideprev = side;
 
     /* If tmid is too close to tlo or thi, adjust it inward,
      * by a fractional distance that is between 0.1 and 0.5. */
-
     if (ABS(tmid - tlo) < HALF*ttol) {
       fracint = ABS(thi - tlo)/ttol;
       fracsub = (fracint > FIVE) ? PT1 : HALF/fracint;
@@ -544,26 +534,19 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
     }
 
     /* Get solution at tmid and evaluate g(tmid). */
-
     (void) cpGetSolution(cp_mem, tmid, y, yp);
     retval = gfun(tmid, y, yp, grout, g_data);
     nge++;
     if (retval != 0) return(CP_RTFUNC_FAIL);
 
-    /*
-     * Check (tlo, tmid) to see if an event occured in the "low" side
+    /* Check (tlo, tmid) to see if an event occured in the "low" side
      * First make temporary copies of thi and tmid in case the event
-     * turns out to be on the "high" side.
-     */
-
+     * turns out to be on the "high" side. */
     tmid_saved = tmid;
     thi_saved  = thi;
-
     thi = tmid;
     zroot = FALSE;
-
     for (i = 0;  i < nrtfn; i++) {
-
       if(!gactive[i]) continue;
 
       if ( (glo[i]*grout[i] <= ZERO) && (rootdir[i]*glo[i] <= ZERO) ) {
@@ -574,20 +557,16 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
           my_tmid = thi - (thi - tlo)*grout[i]/(grout[i] - alpha*glo[i]);
         }
         if ( (my_tmid-tmid)*h < ZERO ) tmid = my_tmid;
-      }
-      
+      }      
     }
 
     /* If we detected an event in the "low" side:
-     * - accept current value of thi.
-     * - set ghi <- grout
-     * - test for convergence and break from loop if converged.
-     * - set side=1 (low) and if the previous side was also 1, scale alpha by 1/2
-     * - return in loop
-     */
-
+       - accept current value of thi
+       - set ghi <- grout
+       - test for convergence and break from loop if converged
+       - set side=1 (low); if previous side was also 1, scale alpha by 1/2
+       - continue looping to refine root location */
     if (zroot) {
-
       for (i = 0; i < nrtfn; i++) ghi[i] = grout[i];
       if (ABS(thi - tlo) <= ttol) break;
 
@@ -596,28 +575,22 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
       else               alpha = ONE;
 
       continue;
-
     }
 
-    /* No event detected in the "low" side. The event must be in the "high" side.
-     * - fall back onto previously saved values for thi and set tlo = tmid_saved.
-     * - set glo <- grout
-     * - test for convergence and break from loop if converged.
-     * - set side=2 (high) and if the previous side was also 2, scale alpha by 2
-     * - return in loop
-     */
-
+    /* No event detected in "low" side; event must be in "high" side.
+       - restore previously saved values for thi and set tlo = tmid_saved
+       - set glo <- grout
+       - test for convergence and break from loop if converged
+       - set side=2 (high); if previous side was also 2, scale alpha by 2
+       - continue looping to refine root location */
     thi = thi_saved;
     tlo = tmid_saved;
 
     for (i = 0; i < nrtfn; i++) glo[i] = grout[i];
-
     if (ABS(thi - tlo) <= ttol) break;
 
-    tmid = thi;
-  
+    tmid = thi;  
     for (i = 0;  i < nrtfn; i++) {
-
       if(!gactive[i]) continue;
 
       if ( (glo[i]*ghi[i] <= ZERO) && (rootdir[i]*glo[i] <= ZERO) ) {
@@ -627,8 +600,7 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
           my_tmid = thi - (thi - tlo)*ghi[i]/(ghi[i] - alpha*glo[i]);
         }
         if ( (my_tmid-tmid)*h < ZERO ) tmid = my_tmid;
-      }
-      
+      }      
     }
 
     side = 2;
@@ -637,11 +609,11 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
 
   } /* End of root-search loop */
 
-  /* Reset trout and grout
-   * Set iroots
-   * Return RTFOUND.
-   */
-
+  /* Root has been isolated to (tlo,thi] and |thi-tlo| <= ttol. We'll declare
+  that the root was found at trout=thi. 
+     - Reset trout and grout
+     - Set iroots
+     - Return RTFOUND. */
   trout = thi;
   for (i = 0; i < nrtfn; i++) {
     grout[i] = ghi[i];
@@ -652,7 +624,6 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
   }
 
   return(RTFOUND);
-
 }
 
 
