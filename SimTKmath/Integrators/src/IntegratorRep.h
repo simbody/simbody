@@ -225,24 +225,32 @@ public:
     // partial reinitialization of the integrator MUST NOT change the 
     // integrator's communication state.
     enum StepCommunicationStatus {
-        CompletedInternalStepNoEvent,   // Time has advanced from t_prev to t_advanced; no event
-                                        //   triggered. We have not yet returned to the caller with
-                                        //   time t_advanced, although we may have returned at interpolated
-                                        //   report times t_prev < t_report < t_advanced.
-        CompletedInternalStepWithEvent, // Time has advanced from t_prev to t_advanced with an
-                                        //   event trigger localized to the interval (t_low,t_high]
-                                        //   where t_high==t_advanced. We have not yet returned to
-                                        //   the caller with time t_low, although we may have
-                                        //   returned at interpolated report times 
-                                        //   t_prev < t_report < t_low.
-        StepHasBeenReturnedNoEvent,     // We have already returned control to the caller at t_advanced
-                                        //   with the strongest stopping reason given;
-                                        //   no more returns are allowed for this step.
-        StepHasBeenReturnedWithEvent,   // We have already returned control to the caller at t_low
-                                        //   with "EventTriggered" as the stopping reason;
-                                        //   no more returns are allowed for this step.
-        FinalTimeHasBeenReturned,       // Any call to stepTo() when the integrator is already in this
-                                        //   state is a fatal error.
+        // Time has advanced from t_prev to t_advanced; no event triggered. We
+        // have not yet returned to the caller with time t_advanced, although 
+        // we may have returned at interpolated report times 
+        // t_prev < t_report < t_advanced.
+        CompletedInternalStepNoEvent,   
+
+        // Time has advanced from t_prev to t_advanced with an event trigger 
+        // localized to the interval (t_low,t_high] where t_high==t_advanced. 
+        // We have not yet returned to the caller with time t_low, although we 
+        // may have returned at interpolated report times 
+        // t_prev < t_report < t_low.
+        CompletedInternalStepWithEvent, 
+
+        // We have already returned control to the caller at t_advanced with 
+        // the strongest stopping reason given; no more returns are allowed for
+        // this step.
+        StepHasBeenReturnedNoEvent,     
+
+        // We have already returned control to the caller at t_low with 
+        // "EventTriggered" as the stopping reason; no more returns are allowed
+        // for this step.
+        StepHasBeenReturnedWithEvent,   
+
+        // Any call to stepTo() when the integrator is already in this state is
+        // a fatal error.
+        FinalTimeHasBeenReturned,       
 
         InvalidStepCommunicationStatus = -1
     };
@@ -724,7 +732,9 @@ protected:
     }
     
     // If this is set to true, the next call to stepTo() will return immediately
-    // with result code StartOfContinuousInterval.
+    // with result code StartOfContinuousInterval. This is set by initialize()
+    // and by reinitialize() after an event handler call that modified the
+    // state.
     bool startOfContinuousInterval;
     
     // The reason the simulation ended.  If isSimulationOver() returns false,

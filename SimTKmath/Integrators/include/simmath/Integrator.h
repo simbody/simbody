@@ -219,7 +219,8 @@ public:
         ReachedStepLimit     =5,
         /// termination; don't call again
         EndOfSimulation      =6,
-        /// the beginning of a continuous interval: either the start of the simulation, or t_high after an event handler has modified the state.
+        /// the beginning of a continuous interval: either the start of the 
+        /// simulation, or t_high after an event handler has modified the state.
         StartOfContinuousInterval=7,
         InvalidSuccessfulStepStatus = -1
     };
