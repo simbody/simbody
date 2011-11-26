@@ -179,6 +179,12 @@ int CPodeRootInit(void *cpode_mem, int nrtfn, CPRootFn gfun, void *g_data)
  * made inactive and will be later reactivated only when they move
  * away from zero.
  *
+ * sherm 111125:
+ *  thi (output only)    set to tn
+ *  ghi (output only)    set to g(thi)
+ * where we may have advanced time by smallh to see whether g's that were zero
+ * at tn and deactivated can be reactivated at tn+smallh.
+ *
  * The return value will be
  *    CV_RTFUNC_FAIL < 0 if the g function failed
  *    CP_SUCCESS     = 0 otherwise.
@@ -192,7 +198,7 @@ int cpRcheck1(CPodeMem cp_mem)
 
   for (i = 0; i < nrtfn; i++) iroots[i] = 0;
 
-  tlo = tn;
+  thi = tlo = tn;
   ttol = (ABS(tn) + ABS(h))*uround*FUZZ_FACTOR;
 
   /*
@@ -204,6 +210,9 @@ int cpRcheck1(CPodeMem cp_mem)
   retval = gfun(tlo, zn[0], zn[1], glo, g_data);
   nge = 1;
   if (retval != 0) return(CP_RTFUNC_FAIL);
+
+  /* Assume we won't find a root at the start. */
+  for (i = 0; i < nrtfn; i++) ghi[i] = glo[i];
 
   zroot = FALSE;
   for (i = 0; i < nrtfn; i++) {
@@ -223,9 +232,9 @@ int cpRcheck1(CPodeMem cp_mem)
 
   hratio = MAX(ttol/ABS(h), PT1);
   smallh = hratio*h;
-  tlo += smallh;
+  thi += smallh;
   N_VLinearSum(ONE, zn[0], hratio, zn[1], y);
-  retval = gfun(tlo, y, zn[1], glo, g_data);
+  retval = gfun(thi, y, zn[1], ghi, g_data);
   nge++;
   if (retval != 0) return(CP_RTFUNC_FAIL);
 
@@ -235,7 +244,7 @@ int cpRcheck1(CPodeMem cp_mem)
    */
 
   for (i = 0; i < nrtfn; i++) {
-    if (!gactive[i] && ABS(glo[i]) != ZERO) {
+    if (!gactive[i] && ABS(ghi[i]) != ZERO) {
       gactive[i] = TRUE;
     }
   }
@@ -247,16 +256,17 @@ int cpRcheck1(CPodeMem cp_mem)
 /*
  * cpRcheck2
  *
- * This routine is called at the beginning of a step.
- * It first checks for exact zeros of any active g at tlo. 
- * It then checks for a close pair of zeros (a condition that 
+ * This routine is called at the beginning of a step to find the beginning tlo
+ * of the next root search interval, which is usually the end (thi) of the
+ * previous search interval. But it first checks for exact zeros of any active
+ * g at thi. It then checks for a close pair of zeros (a condition that 
  * would trigger making inactive the corresponding components 
  * of g), and for a new root at a nearby point.  
- * The left endpoint (tlo) of the search interval is thus adjusted
+ * The endpoint thi of the previous search interval is thus adjusted
  * if necessary to assure that all active g_i are nonzero there,
  * before returning to do a root search in the interval.
  *
- * On entry, tlo = tretlast is the last value of tret returned by
+ * On entry, thi = tretlast is the last value of tret returned by
  * CPode.  This may be the previous tn, the previous tout value, or
  * the last root location.
  *
@@ -272,12 +282,17 @@ int cpRcheck2(CPodeMem cp_mem)
   realtype ttol, smallh, hratio;
   booleantype zroot;
 
+  /* Move tlo up to end of previous search interval in case we find a root
+  here. */
+  tlo = thi;
   /* Evaluate g(tlo) */
-
   (void) cpGetSolution(cp_mem, tlo, y, yp);
   retval = gfun(tlo, y, yp, glo, g_data);
   nge++;
   if (retval != 0) return(CP_RTFUNC_FAIL);
+
+  /* Assume we won't find a root at the start. */
+  for (i = 0; i < nrtfn; i++) ghi[i] = glo[i];
 
   /* Check if any active g function is exactly ZERO at tlo.
    * If not, simply return CP_SUCCESS. */
@@ -292,31 +307,32 @@ int cpRcheck2(CPodeMem cp_mem)
     }
   }
 
+  /* If no root then tlo==thi, glo==ghi. */
   if (!zroot) return(CP_SUCCESS);
 
   /* One or more g_i has a zero at tlo.
-   * Evaluate g(tlo+smallh). */
+   * Evaluate g(thi=tlo+smallh). */
 
   ttol = (ABS(tn) + ABS(h))*uround*FUZZ_FACTOR;
   smallh = (h > ZERO) ? ttol : -ttol;
-  tlo += smallh;
-  if ( (tlo - tn)*h >= ZERO) {
+  thi = tlo+smallh;
+  if ( (thi - tn)*h >= ZERO) {
     hratio = smallh/h;
     N_VLinearSum(ONE, y, hratio, zn[1], y);
   } else {
-    (void) cpGetSolution(cp_mem, tlo, y, yp);
+    (void) cpGetSolution(cp_mem, thi, y, yp);
   }
-  retval = gfun(tlo, y, yp, glo, g_data);
+  retval = gfun(thi, y, yp, ghi, g_data);
   nge++;
   if (retval != 0) return(CP_RTFUNC_FAIL);
 
-  /* Check if any active function is ZERO at tlo+smallh.
-   * Make inactive those that were also ZERO at tlo.
+  /* Check if any active function is ZERO at thi+smallh.
+   * Make inactive those that were also ZERO at thi.
    * Report a root for those that only became ZERO at tlo+smallh. */
 
   zroot = FALSE;
   for (i = 0; i < nrtfn; i++) {
-    if (ABS(glo[i]) == ZERO) {
+    if (ABS(ghi[i]) == ZERO) {
       if (!gactive[i]) continue;
       if (iroots[i] == 1) { iroots[i] = 0; gactive[i] = FALSE; }
       else                { iroots[i] = 1; zroot = TRUE; }
@@ -335,6 +351,14 @@ int cpRcheck2(CPodeMem cp_mem)
  * between tlo and either tn or tout, whichever comes first.
  * Only roots beyond tlo in the direction of integration are sought.
  *
+ * On entry, both thi and ghi=g(thi) should have been evaluated. We start by
+ * setting tlo=thi and glo=ghi, shiting the search interval to start at the
+ * end of the previous one.
+ * On return, if there is a root it is in (tlo,thi] which will have been 
+ * adjusted to a very narrow bracket around the zero crossing. If there is no 
+ * root then thi and ghi are at the end of the search interval, where they can
+ * serve as the start for the next one.
+ *
  * This routine returns an int equal to:
  *      CP_RTFUNC_FAIL < 0 if the g function failed,
  *      RTFOUND        > 0 if a root of g was found, or
@@ -345,6 +369,10 @@ int cpRcheck3(CPodeMem cp_mem)
 {
   int i, retval, ier;
   realtype ttol;
+
+  /* Move start of search interval to end of previous one. */
+  tlo = thi;
+  for (i = 0; i < nrtfn; ++i) glo[i] = ghi[i];
 
   /* Set thi = tn or tout, whichever comes first. */
   switch (taskc) {
@@ -364,7 +392,8 @@ int cpRcheck3(CPodeMem cp_mem)
   nge++;
   if (retval != 0) return(CP_RTFUNC_FAIL);
 
-  /* Call cpRootfind to search (tlo,thi) for roots. */
+  /* Call cpRootfind to search (tlo,thi) for roots, and to modify tlo,thi
+  to create a very narrow bracket around the first root. */
   ttol = (ABS(tn) + ABS(h))*uround*FUZZ_FACTOR;
   ier = cpRootfind(cp_mem, ttol);
 
@@ -372,12 +401,10 @@ int cpRcheck3(CPodeMem cp_mem)
   if (ier == CP_RTFUNC_FAIL) return(CP_RTFUNC_FAIL);
 
   /* If any of the inactive components moved away from zero,
-   * activate them now. Next, replace tlo with trout. */
+   * activate them now. */
   for(i=0; i<nrtfn; i++) {
     if(!gactive[i] && grout[i] != ZERO) gactive[i] = TRUE;
   }
-  tlo = trout;
-  for (i = 0; i < nrtfn; i++) glo[i] = grout[i];
 
   /* If no root found, return CP_SUCCESS. */  
   if (ier == CP_SUCCESS) return(CP_SUCCESS);
@@ -437,20 +464,21 @@ int cpRcheck3(CPodeMem cp_mem)
  *            On input, they must be distinct, but tlo - thi may
  *            be of either sign.  The direction of integration is
  *            assumed to be from tlo to thi.  On return, tlo and thi
- *            are the endpoints of the final relevant interval (tLo,tHi];
- *            that is, the root has not yet occurred at tLo but has
- *            definitely occurred by tHi.
+ *            are the endpoints of the final relevant interval (tlo,thi];
+ *            that is, the root has not yet occurred at tlo but has
+ *            definitely occurred by thi. The reported root time trout is
+ *            always the same as thi.
  *
  * glo, ghi = arrays of length nrtfn containing the vectors g(tlo)
  *            and g(thi) respectively.  Input and output.  On input,
  *            none of the active glo[i] should be zero.
  *
- * trout    = root location, if a root was found, or thi if not.
- *            Output only.  If a root was found other than an exact
- *            zero of g, trout is the endpoint thi of the final
- *            interval bracketing the root, with size at most ttol.
+ * trout    = root location (same as thi), if a root was found, or the original
+ *            value of thi if not. Output only. trout is the endpoint thi of 
+ *            the final interval (tlo,thi] bracketing the root, with |thi-tlo|
+ *            at most ttol.
  *
- * grout    = array of length nrtfn containing g(trout) on return.
+ * grout    = array of length nrtfn containing g(trout) (==ghi) on return.
  *
  * iroots   = int array of length nrtfn with root information.
  *            Output only.  If a root was found, iroots indicates

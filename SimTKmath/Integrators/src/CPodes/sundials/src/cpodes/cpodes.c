@@ -978,6 +978,7 @@ int CPodeQuadReInit(void *cpode_mem, CPQuadFn qfun, void *q_data, N_Vector q0)
 
 #define doRootfinding  (cp_mem->cp_doRootfinding)
 #define tlo            (cp_mem->cp_tlo)
+#define thi            (cp_mem->cp_thi)
 #define tretlast       (cp_mem->cp_tretlast)
 #define toutc          (cp_mem->cp_toutc)
 #define taskc          (cp_mem->cp_taskc)
@@ -1154,7 +1155,10 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
 
     cp_mem->cp_h0u = h;
 
-    /* Check for zeros of root function g at and near t0. */
+    /* Check for zeros of root function g at and near t0. If found at t0 we'll 
+    advance time a little to see whether the zeroes go away. If not, we'll
+    deactivate the g's that stay zero. On return we will have marked the
+    end of the "previous" rootfinding interval as thi, with ghi=g(thi). */
     if (doRootfinding) {
       retval = cpRcheck1(cp_mem);
       if (retval == CP_RTFUNC_FAIL) {
@@ -1196,14 +1200,16 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
     if (doRootfinding) {
 
       irfndp = irfnd;
-      
+      /* This may find a root at the start of the interval in which case
+      (tlo,thi] brackets it and glo and ghi are set. If no root then thi and
+      ghi are set ready for the call to cpRcheck3(). */
       retval = cpRcheck2(cp_mem);
 
       if (retval == CP_RTFUNC_FAIL) {
         cpProcessError(cp_mem, CP_RTFUNC_FAIL, "CPODES", "cpRcheck2", MSGCP_RTFUNC_FAILED, tlo);
         return(CP_RTFUNC_FAIL);
       } else if (retval == RTFOUND) {
-        tretlast = *tret = tlo;
+        tretlast = *tret = thi;
         return(CP_ROOT_RETURN);
       }
 
@@ -1211,6 +1217,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
          check remaining interval for roots */
       if ( ABS(tn - tretlast) > troundoff ) {
 
+        /* Search for a root between the old thi and tn, updating tlo,thi. */
         retval = cpRcheck3(cp_mem);
 
         if (retval == CP_SUCCESS) {     /* no root found */
@@ -1222,10 +1229,10 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
           }
         } else if (retval == RTFOUND) {  /* a new root was found */
           irfnd = 1;
-          tretlast = *tret = tlo;
+          tretlast = *tret = thi;
           return(CP_ROOT_RETURN);
         } else if (retval == CP_RTFUNC_FAIL) {  /* g failed */
-          cpProcessError(cp_mem, CP_RTFUNC_FAIL, "CPODES", "cpRcheck3", MSGCP_RTFUNC_FAILED, tlo);
+          cpProcessError(cp_mem, CP_RTFUNC_FAIL, "CPODES", "cpRcheck3", MSGCP_RTFUNC_FAILED, thi);
           return(CP_RTFUNC_FAIL);
         }
 
@@ -1374,18 +1381,20 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
     
     nstloc++;
 
-    /* Check for root in last step taken. */
+    /* Check for root in step just taken. */
     if (doRootfinding) {
-
+      /* This will move tlo up to the previous thi, then move thi to the
+      end of the current step and then use (tlo,thi] as the initial search 
+      interval. */
       retval = cpRcheck3(cp_mem);
 
       if (retval == RTFOUND) {  /* A new root was found */
         irfnd = 1;
         istate = CP_ROOT_RETURN;
-        tretlast = *tret = tlo;
+        tretlast = *tret = thi;
         break;
       } else if (retval == CP_RTFUNC_FAIL) { /* g failed */
-        cpProcessError(cp_mem, CP_RTFUNC_FAIL, "CPODES", "cpRcheck3", MSGCP_RTFUNC_FAILED, tlo);
+        cpProcessError(cp_mem, CP_RTFUNC_FAIL, "CPODES", "cpRcheck3", MSGCP_RTFUNC_FAILED, thi);
         istate = CP_RTFUNC_FAIL;
         break;
       }

@@ -427,9 +427,6 @@ stepTo(Real reportTime, Real scheduledEventTime) {
         if (res == CPodes::RootReturn) {
             Real tLo, tHi;
             cpodes->getRootWindow(&tLo, &tHi);
-            //TODO: Faking up the lower end of the event window because
-            //CPodes sets tLo=tHi before we can get to it.
-            tLo = std::max(previousStartTime, (1-SignificantReal)*tret);
             tret = tLo;
         }
         
@@ -502,8 +499,10 @@ stepTo(Real reportTime, Real scheduledEventTime) {
                                ids, eventTimes, eventTransitions);
 
             // For next time, we'll treat the state at tHi as an ordinary
-            // trajectory step since we expect an event handler to have
-            // already been called to fix it up.
+            // trajectory step, but this will only get used if the event
+            // handler makes no changes. Otherwise, we'll be called with
+            // startOfContinuousInterval==true and the handler-modified
+            // state will get reported above instead.
             pendingReturnCode = CPodes::Success;
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);
             return Integrator::ReachedEventTrigger;
