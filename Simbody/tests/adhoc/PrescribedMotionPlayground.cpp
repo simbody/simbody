@@ -403,9 +403,10 @@ int main() {
 
 
     //ExplicitEulerIntegrator integ(system);
+    CPodesIntegrator integ(system);
     //RungeKutta3Integrator integ(system);
     //VerletIntegrator integ(system);
-    RungeKuttaMersonIntegrator integ(system);
+    //RungeKuttaMersonIntegrator integ(system);
     //RungeKuttaFeldbergIntegrator integ(system);
     //integ.setAllowInterpolation(false);
     //integ.setProjectInterpolatedStates(false);
