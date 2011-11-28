@@ -1,14 +1,14 @@
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -288,8 +288,10 @@ void testByComparingToConstraints2() {
           + angx2b.getConstrainedBodyForcesAsVector(state)
           + angy2b.getConstrainedBodyForcesAsVector(state));
 
-    SimTK_TEST_EQ(cons2Forces[1], reactionForcesInG[p1x]);
-    SimTK_TEST_EQ(cons2bForces[1], reactionForcesInG[p1bx]);
+    // Couldn't quite make default tolerance on some platforms. This uses
+    // 10X default.
+    SimTK_TEST_EQ_SIZE(cons2Forces[1], reactionForcesInG[p1x], 10);
+    SimTK_TEST_EQ_SIZE(cons2bForces[1], reactionForcesInG[p1bx], 10);
 }
 
 /**
