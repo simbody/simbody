@@ -503,8 +503,8 @@ public:
     //
     // Because q's are not independent of u's (qdot=N(q)*u), the "unit change"
     // of q is related to the unit change of u. We want fq=Wq*dq, but we 
-    // determine Wq from Wu via Wq = N*Wu*N^+. Wq is block diagonal while Wu 
-    // is diagonal. State must be realized to Position stage.
+    // determine Wq from Wu via Wq = N*Wu*pinv(N). Wq is block diagonal while 
+    // Wu is diagonal. State must be realized to Position stage.
     void scaleDQ(const State& state, const Vector& Wu,
                  const Vector& dq, Vector& dqw) const // in/out 
     {

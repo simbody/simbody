@@ -276,6 +276,7 @@ void CPodesIntegratorRep::reconstructForNewModel() {
 // If we haven't yet delivered an interpolated state in this interval, we have
 // to initialize its discrete part from the advanced state.
 void CPodesIntegratorRep::createInterpolatedState(Real t) {
+    const System& system  = getSystem();
     const State& advanced = getAdvancedState();
     State&       interp   = updInterpolatedState();
     interp = advanced; // pick up discrete stuff.
@@ -283,6 +284,19 @@ void CPodesIntegratorRep::createInterpolatedState(Real t) {
     cpodes->getDky(t, 0, yout);
     interp.updY() = yout;
     interp.updTime() = t;
+
+    if (userProjectInterpolatedStates == 0) {
+        system.realize(interp, Stage::Time);
+        system.prescribeQ(interp);
+        system.realize(interp, Stage::Position);
+        system.prescribeU(interp);
+        system.realize(interp, Stage::Velocity);
+        return;
+    }
+
+    // We may need to project onto constraint manifold. Allow project()
+    // to throw an exception if it fails since there is no way to recover here.
+    realizeAndProjectKinematicsWithThrow(interp, ProjectOptions::LocalOnly);
 }
 
 // Take a step. See AbstractIntegratorRep::stepTo() for how this is supposed
@@ -331,8 +345,11 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             
             res = pendingReturnCode;
             tret = previousTimeReturned;
-            if (savedY.size() > 0)
-                updAdvancedState().updY() = savedY;
+            if (savedY.size() > 0) { 
+                setAdvancedStateAndRealizeKinematics(tret, savedY);
+            } else {
+                updAdvancedState().updTime() = tret;
+            }
             pendingReturnCode = -1;
         }
         else if (tMax == getState().getTime()) {
@@ -343,6 +360,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             res = CPodes::Success;
             tret = tMax;
             previousTimeReturned = tret;
+            updAdvancedState().updTime() = tret;
         }
         else {
             // We're going to advance time now.
@@ -389,13 +407,13 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             // Project stats were already updated in project() above.
             statsIterations += newNonlinIterations-oldNonlinIterations;
             statsConvergenceTestFailures += newNonlinConvFailures-oldNonlinConvFailures;
-            
-            updAdvancedState().updY() = yout;
+ 
+            // This takes care of prescribed motion.
+            setAdvancedStateAndRealizeKinematics(tret, yout);
             previousTimeReturned = tret;
         }
-        updAdvancedState().updTime() = tret;
-        realizeStateDerivatives(getAdvancedState());
 
+        realizeStateDerivatives(getAdvancedState());
         
         // Check for integration errors.        
         if (res == CPodes::TooMuchWork) {         
@@ -452,9 +470,8 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             if (tret > scheduledEventTime) {              
                 // Back up the advanced state to the event time.               
                 savedY = getAdvancedState().getY();
-                updAdvancedState().updY() = getInterpolatedState().getY();
-                updAdvancedState().updTime() = scheduledEventTime;
-                realizeStateDerivatives(getAdvancedState());
+                setAdvancedStateAndRealizeDerivatives(scheduledEventTime,
+                                              getInterpolatedState().getY());
             }
             pendingReturnCode = res;
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);
