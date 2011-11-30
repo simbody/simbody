@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -412,10 +412,11 @@ const SymMat33P& asSymMat33() const {return I_OF_F;}
 /// matrix with all elements set.
 Mat33P toMat33() const {return Mat33P(I_OF_F);}
 
-/// Obtain the inertia moments (diagonal of the Inertia matrix) as a Vec3.
+/// Obtain the inertia moments (diagonal of the Inertia matrix) as a Vec3
+/// ordered xx, yy, zz.
 const Vec3P& getMoments()  const {return I_OF_F.getDiag();}
 /// Obtain the inertia products (off-diagonals of the Inertia matrix)
-/// as a Vec3 with elements ordered xx, xy, yz.
+/// as a Vec3 with elements ordered xy, xz, yz.
 const Vec3P& getProducts() const {return I_OF_F.getLower();}
 
 bool isNaN()    const {return I_OF_F.isNaN();}
@@ -435,16 +436,26 @@ bool isNumericallyEqual(const Inertia_<P>& other, double tol) const
 {   return I_OF_F.isNumericallyEqual(other.I_OF_F, tol); }
 
 /// %Test some conditions that must hold for a valid Inertia matrix.
-/// Cost is about 12 flops.
-/// TODO: this may not be comprehensive.
+/// Cost is about 25 flops.
 static bool isValidInertiaMatrix(const SymMat33P& m) {
-    const RealP Slop = NTraits<P>::getSignificant();
     if (m.isNaN()) return false;
+
     const Vec3P& d = m.diag();
-    if (!(d >= 0)) return false; // diagonals must be nonnegative
+    if (!(d >= 0)) return false;    // diagonals must be nonnegative
+
+    const RealP Slop = std::max(d.sum(),RealP(1))
+                       * NTraits<P>::getSignificant();
+
     if (!(d[0]+d[1]+Slop>=d[2] && d[0]+d[2]+Slop>=d[1] && d[1]+d[2]+Slop>=d[0]))
-        return false; // must satisfy triangle inequality
-    //TODO: what else?
+        return false;               // must satisfy triangle inequality
+
+    // Thanks to Paul Mitiguy for this condition on products of inertia.
+    const Vec3P& p = m.getLower();
+    if (!( d[0]+Slop>=std::abs(2*p[2])
+        && d[1]+Slop>=std::abs(2*p[1])
+        && d[2]+Slop>=std::abs(2*p[0])))
+        return false;               // max products are limited by moments
+
     return true;
 }
 
@@ -524,16 +535,36 @@ void errChk(const char* methodName) const {
 #ifndef NDEBUG
     SimTK_ERRCHK(!isNaN(), methodName,
         "Inertia matrix contains a NaN.");
-    const Vec3P& d = I_OF_F.diag();
+
+    const Vec3P& d = I_OF_F.getDiag();  // moments
+    const Vec3P& p = I_OF_F.getLower(); // products
+    const Real Ixx = d[0], Iyy = d[1], Izz = d[2];
+    const Real Ixy = p[0], Ixz = p[1], Iyz = p[2];
+
     SimTK_ERRCHK3(d >= 0, methodName,
         "Diagonals of an Inertia matrix must be nonnegative; got %g,%g,%g.",
-        (double)d[0],(double)d[1],(double)d[2]);
-    const RealP Slop = std::sqrt(NTraits<P>::getEps());
-    SimTK_ERRCHK3(d[0]+d[1]+Slop>=d[2] && d[0]+d[2]+Slop>=d[1] && d[1]+d[2]+Slop>=d[0],
+        (double)Ixx,(double)Iyy,(double)Izz);
+
+    // TODO: This is looser than it should be as a workaround for distorted
+    // rotation matrices that were produced by an 11,000 body chain that
+    // Sam Flores encountered. 
+    const RealP Slop = std::max(d.sum(),RealP(1))
+                       * std::sqrt(NTraits<P>::getEps());
+
+    SimTK_ERRCHK3(   Ixx+Iyy+Slop>=Izz 
+                  && Ixx+Izz+Slop>=Iyy 
+                  && Iyy+Izz+Slop>=Ixx,
         methodName,
         "Diagonals of an Inertia matrix must satisfy the triangle "
         "inequality; got %g,%g,%g.",
-        (double)d[0],(double)d[1],(double)d[2]);
+        (double)Ixx,(double)Iyy,(double)Izz);
+
+    // Thanks to Paul Mitiguy for this condition on products of inertia.
+    SimTK_ERRCHK(   Ixx+Slop>=std::abs(2*Iyz) 
+                 && Iyy+Slop>=std::abs(2*Ixz)
+                 && Izz+Slop>=std::abs(2*Ixy),
+        methodName,
+        "The magnitude of a product of inertia was too large to be physical.");
 #endif
 }
 
