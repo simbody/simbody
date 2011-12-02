@@ -762,34 +762,37 @@ void relax(State&, Stage, Real accuracy) const;
     ////////////////////////////////
 
 /**@name                    The Discrete System
-These methods deal with the discrete (event-driven) aspects of this 
-%System. **/
+These methods deal with the discrete (event-driven) aspects of this %System. **/
 /**@{**/
 
 /** This determines whether this System wants to be notified whenever time
 advances irreversibly. If set true, time advancement is treated as an
-event. Otherwise, time advancement proceeds silently.
-TODO: currently not using State so this is a Topology stage variable,
-but should probably be Model stage. **/
+event, and the handleEvents() method is invoked with its \a cause argument
+set to indicate a time-advanced event occurred. By default, time advancement 
+proceeds silently. **/
 void setHasTimeAdvancedEvents(bool); // default=false
+/** Return the current value of the flag indicating whether this %System wants
+an event generated whenever time advances irreversibly. **/
 bool hasTimeAdvancedEvents() const;
 
 /** This solver handles a set of events which a TimeStepper has denoted as 
-having occurred. The event handler may make discontinuous changes in 
-the State, in general both to discrete and continuous variables, but 
-NOT to time. It cannot change topological information. If changes are 
-made to continuous variables, the handler is required to make sure the 
-returned state satisfies the constraints to the indicated accuracy 
-level.
+having occurred at the given time and state. The event handler may make 
+discontinuous changes in the State, in general both to discrete and continuous
+variables, but \e not to time or topological information. If changes are made 
+to continuous variables, the handler is required to make sure the returned 
+state satisfies the constraints to the accuracy level specified in \a options.
 
-On return, the handleEvents routine should set the output variable
-lowestModified to the Stage level of the lowest-stage variable it 
-modified. This information tells the time stepper how much of a restart
-it must perform on the underlying numerical integrator. When in doubt, 
-set lowestModified to Stage::Model, which will cause a complete restart.
-Finally, if the handler determines that the occurrence of some event
-requires that the simulation be terminated it should set 
-\p shouldTerminate to true before returning.  **/
+On return, the handleEvents() method will set the output variable \a results
+to indicate what happened. If any invoked handler determines that the 
+occurrence of some event requires that the simulation be terminated, that 
+information is returned in \a results and a well-behaved TimeStepper will stop
+when it sees that.
+
+Simbody will automatically set a field in \a results that says how much of
+the \a state was changed by the handler so that the calling TimeStepper will
+be able to determine how much reinitialization is required.
+
+@see HandleEventsOptions, HandleEventsResults **/
 void handleEvents(State&                        state, 
                   Event::Cause                  cause, 
                   const Array_<EventId>&        eventIds,

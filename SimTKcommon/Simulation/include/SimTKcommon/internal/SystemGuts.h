@@ -57,17 +57,17 @@ class DecorativeGeometry;
  * the client and library side must agree on the virtual function
  * table (VFT) ordering of the client's virtual functions.
  * <pre>
- *               CLIENT SIDE                    .  LIBRARY SIDE
- *                                              .
- *       System              System::Guts       . System::Guts::GutsRep
- *   ---------------       ------------------   .   -------------
+ *               CLIENT SIDE                    |  LIBRARY SIDE
+ *                                              |
+ *       System              System::Guts       | System::Guts::GutsRep
+ *   ---------------       ------------------   |   -------------
  *  | System::Guts* | --> | System::GutsRep* | --> |   GutsRep   |
- *   ---------------       ------------------   .  |             |
- *          ^             | Concrete Guts    |  .  |  Opaque     |
- *          |             | class data and   |  .  |  stuff      |
- *   ===============      | virt func table  |  .  |             |
- *   Concrete System       ------------------   .  |             |
- *     adds no data                             .   -------------
+ *   ---------------       ------------------   |  |             |
+ *          ^             | Concrete Guts    |  |  |  Opaque     |
+ *          |             | class data and   |  |  |  stuff      |
+ *   ===============      | virt func table  |  |  |             |
+ *   Concrete System       ------------------   |  |             |
+ *     adds no data                             |   -------------
  *       members
  * </pre>
  *
