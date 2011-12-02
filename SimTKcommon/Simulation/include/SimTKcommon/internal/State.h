@@ -267,7 +267,7 @@ global Stage advances to "Model" and tossed out if that stage is
 invalidated. Similarly, cache resources are allocated at stage Instance
 and forgotten when Instance is invalidated. Note that subsystems will
 "register" their use of the global variable pools during their own modeling
-stages, but that the actual global resources won't exist until the \r system 
+stages, but that the actual global resources won't exist until the \e system 
 has been advanced to Model or Instance stage. **/
 class SimTK_SimTKCOMMON_EXPORT State {
 public:
