@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -47,34 +47,78 @@ namespace SimTK {
 /** @cond **/
 namespace Impl {
 
-// For those wimpy compilers that don't unroll short, constant-limit loops, Peter Eastman added these
-// recursive template implementations of add and subtract.
+// For those wimpy compilers that don't unroll short, constant-limit loops, 
+// Peter Eastman added these recursive template implementations of 
+// elementwise add, subtract, and copy. Sherm added multiply and divide.
 
 template <class E1, int S1, class E2, int S2> void
-conformingAdd(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, Vec<1,typename CNT<E1>::template Result<E2>::Add>& result) {
+conformingAdd(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, 
+              Vec<1,typename CNT<E1>::template Result<E2>::Add>& result) {
     result[0] = r1[0] + r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-conformingAdd(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, Vec<N,typename CNT<E1>::template Result<E2>::Add>& result) {
-    conformingAdd(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), reinterpret_cast<Vec<N-1,typename CNT<E1>::template Result<E2>::Add>&>(result));
+conformingAdd(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, 
+              Vec<N,typename CNT<E1>::template Result<E2>::Add>& result) {
+    conformingAdd(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), 
+                  reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), 
+                  reinterpret_cast<Vec<N-1,typename CNT<E1>::
+                              template Result<E2>::Add>&>(result));
     result[N-1] = r1[N-1] + r2[N-1];
 }
+
 template <class E1, int S1, class E2, int S2> void
-conformingSubtract(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, Vec<1,typename CNT<E1>::template Result<E2>::Sub>& result) {
+conformingSubtract(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, 
+                   Vec<1,typename CNT<E1>::template Result<E2>::Sub>& result) {
     result[0] = r1[0] - r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-conformingSubtract(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, Vec<N,typename CNT<E1>::template Result<E2>::Sub>& result) {
-    conformingSubtract(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), reinterpret_cast<Vec<N-1,typename CNT<E1>::template Result<E2>::Sub>&>(result));
+conformingSubtract(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, 
+                   Vec<N,typename CNT<E1>::template Result<E2>::Sub>& result) {
+    conformingSubtract(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), 
+                       reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), 
+                       reinterpret_cast<Vec<N-1,typename CNT<E1>::
+                                   template Result<E2>::Sub>&>(result));
     result[N-1] = r1[N-1] - r2[N-1];
 }
+
+template <class E1, int S1, class E2, int S2> void
+elementwiseMultiply(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, 
+              Vec<1,typename CNT<E1>::template Result<E2>::Mul>& result) {
+    result[0] = r1[0] * r2[0];
+}
+template <int N, class E1, int S1, class E2, int S2> void
+elementwiseMultiply(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, 
+              Vec<N,typename CNT<E1>::template Result<E2>::Mul>& result) {
+    elementwiseMultiply(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), 
+                        reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), 
+                        reinterpret_cast<Vec<N-1,typename CNT<E1>::
+                                    template Result<E2>::Mul>&>(result));
+    result[N-1] = r1[N-1] * r2[N-1];
+}
+
+template <class E1, int S1, class E2, int S2> void
+elementwiseDivide(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, 
+              Vec<1,typename CNT<E1>::template Result<E2>::Dvd>& result) {
+    result[0] = r1[0] / r2[0];
+}
+template <int N, class E1, int S1, class E2, int S2> void
+elementwiseDivide(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, 
+              Vec<N,typename CNT<E1>::template Result<E2>::Dvd>& result) {
+    elementwiseDivide(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), 
+                      reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), 
+                      reinterpret_cast<Vec<N-1,typename CNT<E1>::
+                                  template Result<E2>::Dvd>&>(result));
+    result[N-1] = r1[N-1] / r2[N-1];
+}
+
 template <class E1, int S1, class E2, int S2> void
 copy(Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2) {
     r1[0] = r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
 copy(Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2) {
-    copy(reinterpret_cast<Vec<N-1,E1,S1>&>(r1), reinterpret_cast<const Vec<N-1,E2,S2>&>(r2));
+    copy(reinterpret_cast<Vec<N-1,E1,S1>&>(r1), 
+         reinterpret_cast<const Vec<N-1,E2,S2>&>(r2));
     r1[N-1] = r2[N-1];
 }
 
@@ -459,12 +503,15 @@ public:
 
     // Conforming binary ops with 'this' on left, producing new packed result.
     // Cases: v=v+v, v=v-v, m=v*r
+
+    /** Vector addition -- use operator+ instead. **/
     template <class EE, int SS> Vec<M,typename CNT<E>::template Result<EE>::Add>
     conformingAdd(const Vec<M,EE,SS>& r) const {
         Vec<M,typename CNT<E>::template Result<EE>::Add> result;
         Impl::conformingAdd(*this, r, result);
         return result;
     }
+    /** Vector subtraction -- use operator- instead. **/
     template <class EE, int SS> Vec<M,typename CNT<E>::template Result<EE>::Sub>
     conformingSubtract(const Vec<M,EE,SS>& r) const {
         Vec<M,typename CNT<E>::template Result<EE>::Sub> result;
@@ -472,11 +519,27 @@ public:
         return result;
     }
 
-    // outer product (m = col*row)
+    /** Same as outer product (m = col*row) -- use operator* or outer() 
+    instead. **/
     template <class EE, int SS> Mat<M,M,typename CNT<E>::template Result<EE>::Mul>
     conformingMultiply(const Row<M,EE,SS>& r) const {
         Mat<M,M,typename CNT<E>::template Result<EE>::Mul> result;
         for (int j=0;j<M;++j) result(j) = scalarMultiply(r(j));
+        return result;
+    }
+
+    /** Elementwise multiply (Matlab .* operator). **/
+    template <class EE, int SS> Vec<M,typename CNT<E>::template Result<EE>::Mul>
+    elementwiseMultiply(const Vec<M,EE,SS>& r) const {
+        Vec<M,typename CNT<E>::template Result<EE>::Mul> result;
+        Impl::elementwiseMultiply(*this, r, result);
+        return result;
+    }
+    /** Elementwise divide (Matlab ./ operator). **/
+    template <class EE, int SS> Vec<M,typename CNT<E>::template Result<EE>::Dvd>
+    elementwiseDivide(const Vec<M,EE,SS>& r) const {
+        Vec<M,typename CNT<E>::template Result<EE>::Dvd> result;
+        Impl::elementwiseDivide(*this, r, result);
         return result;
     }
 

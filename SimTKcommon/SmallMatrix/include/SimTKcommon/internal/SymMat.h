@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -524,6 +524,22 @@ public:
             for (int i=0;i<M;++i)
                 result(i,j) = (*this)[i] * s(j);
         return result;
+    }
+
+    // sy= this .* sy
+    template <class E2, int RS2> 
+    typename EltResult<E2>::Mul
+    elementwiseMultiply(const SymMat<M,E2,RS2>& r) const {
+        return typename EltResult<E2>::Mul
+            (getAsVec().elementwiseMultiply(r.getAsVec()));
+    }
+
+    // sy= this ./ sy
+    template <class E2, int RS2> 
+    typename EltResult<E2>::Dvd
+    elementwiseDivide(const SymMat<M,E2,RS2>& r) const {
+        return typename EltResult<E2>::Dvd
+            (getAsVec().elementwiseDivide(r.getAsVec()));
     }
 
     // TODO: need the rest of the SymMat operators

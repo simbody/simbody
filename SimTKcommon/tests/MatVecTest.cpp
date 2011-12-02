@@ -66,6 +66,40 @@ void testNegator() {
     SimTK_TEST(-rrr-rrr == (-2*rrr));
 }
 
+void testElementwiseOps() {
+    Vec3 vvv(1,2,3); Vec3 www(7,9,2);
+    Row3 rrr(1,2,3); Row3 sss(5,4,10);
+
+    Vec3 mv=vvv.elementwiseMultiply(www);
+    Vec3 dv=vvv.elementwiseDivide(www);
+    SimTK_TEST_EQ(mv, Vec3(7,18,6));
+    SimTK_TEST_EQ(dv, Vec3(Real(1)/7, Real(2)/9, Real(3)/2));
+
+    Row3 mr=rrr.elementwiseMultiply(sss);
+    Row3 dr=rrr.elementwiseDivide(sss);
+    SimTK_TEST_EQ(mr, Row3(5,8,30));
+    SimTK_TEST_EQ(dr, Row3(Real(1)/5, Real(2)/4, Real(3)/10));
+
+    Mat22 mmm(1, 2,
+              3, 4);
+    Mat22 nnn(7, 9,
+              2, 3);
+    SymMat22 yyy(1,
+                 2, 3);
+    SymMat22 zzz(5,
+                 4, 10);
+
+    Mat22 mm=mmm.elementwiseMultiply(nnn);
+    Mat22 dm=mmm.elementwiseDivide(nnn);
+    SymMat22 my=yyy.elementwiseMultiply(zzz);
+    SymMat22 dy=yyy.elementwiseDivide(zzz);
+
+    SimTK_TEST_EQ(mm, Mat22(7,18,6,12));
+    SimTK_TEST_EQ(dm, Mat22(Real(1)/7,Real(2)/9,Real(3)/2,Real(4)/3));
+    SimTK_TEST_EQ(my, SymMat22(5,8,30));
+    SimTK_TEST_EQ(dy, SymMat22(Real(1)/5,Real(2)/4,Real(3)/10));
+}
+
 void testMiscellaneous()
 {
     cout << std::setprecision(16);
@@ -478,6 +512,7 @@ int main() {
     SimTK_START_TEST("MatVecTest");
 
         SimTK_SUBTEST(testNegator);
+        SimTK_SUBTEST(testElementwiseOps);
         SimTK_SUBTEST(testMiscellaneous);
         SimTK_SUBTEST(testMatInverse);
 

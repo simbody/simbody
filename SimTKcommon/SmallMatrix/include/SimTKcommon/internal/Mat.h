@@ -565,6 +565,26 @@ public:
         return l.conformingSubtract(*this);
     }
 
+    // m= this .* m
+    template <class E2, int CS2, int RS2> 
+    typename EltResult<E2>::Mul
+    elementwiseMultiply(const Mat<M,N,E2,CS2,RS2>& r) const {
+        typename EltResult<E2>::Mul result;
+        for (int j=0;j<N;++j) 
+            result(j) = (*this)(j).elementwiseMultiply(r(j));
+        return result;
+    }
+
+    // m= this ./ m
+    template <class E2, int CS2, int RS2> 
+    typename EltResult<E2>::Dvd
+    elementwiseDivide(const Mat<M,N,E2,CS2,RS2>& r) const {
+        typename EltResult<E2>::Dvd result;
+        for (int j=0;j<N;++j) 
+            result(j) = (*this)(j).elementwiseDivide(r(j));
+        return result;
+    }
+
     // We always punt to the SymMat since it knows better what to do.
     // m = this + sym
     template <class E2, int RS2> 
