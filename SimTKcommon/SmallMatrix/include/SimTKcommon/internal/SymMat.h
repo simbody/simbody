@@ -834,8 +834,25 @@ public:
     const EHerm& getEltUpper(int i, int j) const {return getUpper()[lowerIx(j,i)];}
     EHerm&       updEltUpper(int i, int j)       {return updUpper()[lowerIx(j,i)];}
     
-    TRow sum() const {
+    /// Returns a row vector (Row) containing the column sums of this matrix.
+    TRow colSum() const {
         TRow temp(~getDiag());
+        for (int i = 1; i < M; ++i)
+            for (int j = 0; j < i; ++j) {
+                const E& value = getEltLower(i, j);;
+                temp[j] += value;
+                temp[i] += E(reinterpret_cast<const EHerm&>(value));
+            }
+        return temp;
+    }
+    /// This is an alternate name for colSum(); behaves like the Matlab
+    /// function of the same name.
+    TRow sum() const {return colSum();}
+
+    /// Returns a column vector (Vec) containing the row sums of this matrix.
+    /// This will be the conjugate transpose of the column sums.
+    TCol rowSum() const {
+        TCol temp(getDiag());
         for (int i = 1; i < M; ++i)
             for (int j = 0; j < i; ++j) {
                 const E& value = getEltLower(i, j);;
@@ -844,7 +861,6 @@ public:
             }
         return temp;
     }
-
 private:
     E d[NActualElements];
 

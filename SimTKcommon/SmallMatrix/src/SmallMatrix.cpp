@@ -49,7 +49,7 @@ template class Mat<5,5,negator< std::complex<double> > >;
 template class Mat< 3,3,negator<Real> >;
 template class Mat< 3,3,conjugate<float>,2 >;
 
-template class SymMat< 4, std::complex<long double>, 7>;
+template class SymMat< 4, std::complex<double>, 7>;
 
 
 template Real       SimTK::det(const Mat<1,1,Real>&);

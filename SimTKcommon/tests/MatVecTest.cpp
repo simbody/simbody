@@ -100,6 +100,43 @@ void testElementwiseOps() {
     SimTK_TEST_EQ(dy, SymMat22(Real(1)/5,Real(2)/4,Real(3)/10));
 }
 
+void testSums() {
+    Mat22 m(1,2,
+            3,4);
+    SimTK_TEST_EQ(m.colSum(), Row2(4,6));
+    SimTK_TEST_EQ(m.rowSum(), Vec2(3,7));
+    SimTK_TEST(m.sum() == m.colSum()); // should be exact
+
+    SymMat22 y(3, /*4*/
+               4, 5);
+    SimTK_TEST_EQ(y.colSum(), Row2(7,9)); // same for real, sym
+    SimTK_TEST_EQ(y.rowSum(), Vec2(7,9));
+    SimTK_TEST(y.sum() == y.colSum()); // should be exact
+
+    Mat22 sm(y); // create fully populated symmetric matrix
+    SimTK_TEST_EQ(sm.rowSum(), y.rowSum());
+    SimTK_TEST_EQ(sm.colSum(), y.colSum());
+
+    Mat<2,2,Complex> mc(1+2*I, 3+4*I,
+                        5+6*I, 7+8*I);
+    typedef Row<2,Complex> CRow2;
+    typedef Vec<2,Complex> CVec2;
+    SimTK_TEST_EQ(mc.colSum(), CRow2(6+8*I, 10+12*I));
+    SimTK_TEST_EQ(mc.rowSum(), CVec2(4+6*I, 12+14*I));
+    SimTK_TEST(mc.sum() == mc.colSum()); // should be exact
+
+    // Row sum and col sum for Hermitian are conjugates; not the same.
+    SymMat<2,Complex> yc( 1, /*3+6*I*/
+                         3-6*I, 4);
+    SimTK_TEST_EQ(yc.colSum(), CRow2(4-6*I, 7+6*I));
+    SimTK_TEST_EQ(yc.rowSum(), CVec2(4+6*I, 7-6*I));
+    SimTK_TEST(yc.sum() == yc.colSum()); // should be exact
+
+    Mat<2,2,Complex> smc(yc); // create fully populated symmetric matrix
+    SimTK_TEST_EQ(smc.rowSum(), yc.rowSum());
+    SimTK_TEST_EQ(smc.colSum(), yc.colSum());
+}
+
 void testMiscellaneous()
 {
     cout << std::setprecision(16);
@@ -511,6 +548,7 @@ void testMatInverse() {
 int main() {
     SimTK_START_TEST("MatVecTest");
 
+        SimTK_SUBTEST(testSums);
         SimTK_SUBTEST(testNegator);
         SimTK_SUBTEST(testElementwiseOps);
         SimTK_SUBTEST(testMiscellaneous);
