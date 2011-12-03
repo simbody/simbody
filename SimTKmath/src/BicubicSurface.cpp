@@ -474,7 +474,7 @@ void BicubicSurface::getFdF(const Vector& aXY, Vector& fV,
                    a[ 8],   a[ 9]*xpt,   a[10]*xpt2,   a[11]*xpt3,
                    a[12],   a[13]*xpt,   a[14]*xpt2,   a[15]*xpt3);
     // 12 flops
-    const Vec4 xsum(mx[0].sum(), mx[1].sum(), mx[2].sum(), mx[3].sum()); 
+    const Vec4 xsum = mx.rowSum();
     // 6 flops
     const Real f = xsum[0] + ypt*xsum[1] + ypt2*xsum[2] + ypt3*xsum[3];
 
@@ -491,7 +491,7 @@ void BicubicSurface::getFdF(const Vector& aXY, Vector& fV,
                     a[ 5]*dxpt,    a[ 6]*dxpt2,    a[ 7]*dxpt3,
                     a[ 9]*dxpt,    a[10]*dxpt2,    a[11]*dxpt3,
                     a[13]*dxpt,    a[14]*dxpt2,    a[15]*dxpt3);
-    const Vec4 dxsum(mdx[0].sum(), mdx[1].sum(), mdx[2].sum(), mdx[3].sum());
+    const Vec4 dxsum = mdx.rowSum();
     const Real fx   = dxsum[0] + ypt*dxsum[1] + ypt2*dxsum[2] + ypt3*dxsum[3];
 
     //--------------------------------------------------------------------------
@@ -508,7 +508,7 @@ void BicubicSurface::getFdF(const Vector& aXY, Vector& fV,
                      a[ 6]*dxxpt2,    a[ 7]*dxxpt3,
                      a[10]*dxxpt2,    a[11]*dxxpt3,
                      a[14]*dxxpt2,    a[15]*dxxpt3);
-    const Vec4 dxxsum(mdxx[0].sum(), mdxx[1].sum(), mdxx[2].sum(), mdxx[3].sum()); 
+    const Vec4 dxxsum = mdxx.rowSum();
     const Real fxx  = dxxsum[0] + ypt*dxxsum[1] + ypt2*dxxsum[2] + ypt3*dxxsum[3];
 
     //--------------------------------------------------------------------------
