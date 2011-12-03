@@ -296,64 +296,46 @@ Real BicubicSurface::calcValue(const Vector& aXY) const
 Real BicubicSurface::calcDerivative(const Array_<int>& aDerivComponents, 
                                     const Vector& aXY) const
 {
-    Real dF = 0;
-    
-    Vector aFdF; 
-    Vector fV;
-    Vector aV;
+    if (aDerivComponents.empty())
+        return calcValue(aXY);  // the "0th" derivative is the function value
+
+    for (int i=0; i < (int)aDerivComponents.size(); ++i) {
+        SimTK_ERRCHK2_ALWAYS(aDerivComponents[i]==0 || aDerivComponents[i]==1,
+            "BicubicSurface::calcDerivative()",
+            "Component %d was %d but must be 0 or 1 for x or y.",
+            i, aDerivComponents[i]);
+    }
+
+    if (aDerivComponents.size() > 3)
+        return 0;   // 4th and higher derivatives are all zero
+
+    Vector fV, aV, aFdF; 
     getFdF(aXY,fV,aV,aFdF);
-    
-    int derCase = 0;
-    std::vector<int> partialDeriv(2);
-    partialDeriv[0] = 0;
-    partialDeriv[1] = 0;
-    for(unsigned int i=0; i < aDerivComponents.size(); i++){
-        switch(aDerivComponents[i]){
-            case 0:
-                partialDeriv[0] += 1;
-                break;
-            case 1:
-                partialDeriv[1] += 1;
-                break;     
-        }
+    // 0=f, 1=fx, 2=fy, 3=fxy, 4=fxx, 5=fyy, 6=fxxx, 7=fxxy, 8=fyyy, 9=fxyy
+    //                   =fyx                         =fyxx           =fyyx
+    //                                                =fxyx           =fyxy
+
+    if (aDerivComponents.size() == 1)
+        return aDerivComponents[0]==0 ? aFdF[1] : aFdF[2];      // fx : fy
+
+    if (aDerivComponents.size() == 2)
+        if (aDerivComponents[0]==0) //x
+            return aDerivComponents[1]==0 ? aFdF[4] : aFdF[3];  // fxx:fxy
+        else //y (fyx==fxy)
+            return aDerivComponents[1]==0 ? aFdF[3] : aFdF[5];  // fyx:fyy
+
+    // Third derivative.
+    if (aDerivComponents[0]==0) { //x
+        if (aDerivComponents[1]==0) // xx
+            return aDerivComponents[2]==0 ? aFdF[6] : aFdF[7];  // fxxx:fxxy
+        else // xy (fxyx==fxxy)
+            return aDerivComponents[2]==0 ? aFdF[7] : aFdF[9];  // fxyx:fxyy
+    } else { //y (fyx==fxy)
+        if (aDerivComponents[1]==0) // yx (fyxx==fxxy, fyxy==fxyy)
+            return aDerivComponents[2]==0 ? aFdF[7] : aFdF[9];  // fyxx:fyxy
+        else // yy (fyyx==fxyy)
+            return aDerivComponents[2]==0 ? aFdF[9] : aFdF[8];  // fyyx:fyyy
     }
-
-    if (partialDeriv[0]+partialDeriv[1] <= 3){
-        derCase = partialDeriv[1]*10+partialDeriv[0];   
-        switch(derCase){
-            case 1: //fx
-                dF = aFdF(1);
-                break;
-            case 10: //fy
-                dF = aFdF(2);
-                break;
-            case 11: //fxy
-                dF = aFdF(3);
-                break;
-            case 2: //fxx
-                dF = aFdF(4);
-                break;
-            case 20: //fyy
-                dF = aFdF(5);
-                break;
-            case 3: //fxxx
-                dF = aFdF(6);
-                break;
-            case 12: //fxxy
-                dF = aFdF(7);
-                break;
-            case 30: //fyyy
-                dF = aFdF(8);
-                break;                        
-            case 21: //fxyy
-                dF = aFdF(9);
-                break;        
-      }
-
-    }
-
-
-    return dF;
 }
 
 bool BicubicSurface::isSurfaceDefined(const Vector& XYval) const
@@ -440,7 +422,7 @@ void BicubicSurface::getFdF(const Vector& aXY, Vector& fV,
     const Real ooxS = 1/xS, ooxS2 = ooxS*ooxS, ooxS3=ooxS*ooxS2;
     const Real ooyS = 1/yS, ooyS2 = ooyS*ooyS, ooyS3=ooyS*ooyS2;
 
-    //3. Multiply by Ainv to form coeffcient vector a
+    //3. Multiply by Ainv to form coefficient vector a
     fV.resize(16);                       
     aijV.resize(16);
             
