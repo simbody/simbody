@@ -1154,10 +1154,22 @@ public:
         return true;
     }
     
-    TRow sum() const {
+    /// Returns a row vector (Row) containing the column sums of this matrix.
+    TRow colSum() const {
         TRow temp;
         for (int j = 0; j < N; ++j)
             temp[j] = col(j).sum();
+        return temp;
+    }
+    /// This is an alternate name for colSum(); behaves like the Matlab
+    /// function of the same name.
+    TRow sum() const {return colSum();}
+
+    /// Returns a column vector (Vec) containing the row sums of this matrix.
+    TCol rowSum() const {
+        TCol temp;
+        for (int i = 0; i < M; ++i)
+            temp[i] = row(i).sum();
         return temp;
     }
 
