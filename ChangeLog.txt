@@ -49,3 +49,9 @@ if you were using Stage::VelocityIndex just switch to Stage::Velocity.
 The Enumeration<> and EnumerationSet<> types have been removed since they were
 not being used any more. If anyone was using them, let me know.
 
+11/30/2011
+- Added Function::Sinusoid
+- Added additional inertia sanity check looking at products of inertia which have to obey conditions like Ixx>=|2*Iyz| (thanks to Paul Mitiguy). The strictest test is for central inertias; if those are OK then shifting them away always results in a good inertia.
+
+12/3/2011
+- Added missing rowSum() methods to Matrix, Mat and SymMat; fixed a bug in SymMat's existing sum() method for complex matrices.
