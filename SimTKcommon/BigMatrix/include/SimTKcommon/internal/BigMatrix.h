@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -919,12 +919,23 @@ public:
     }
 
     /// Form the column sums of this matrix, returned as a RowVector.
-    RowVectorBase<ELT> sum() const {
+    RowVector_<ELT> colSum() const {
         const int cols = ncol();
-        RowVectorBase<ELT> row(cols);
-        for (int i = 0; i < cols; ++i)
-            helper.colSum(i, reinterpret_cast<Scalar*>(&row[i]));
+        RowVector_<ELT> row(cols);
+        for (int j = 0; j < cols; ++j)
+            helper.colSum(j, reinterpret_cast<Scalar*>(&row[j]));
         return row;
+    }
+    /// Alternate name for colSum(); behaves like the Matlab function sum().
+    RowVector_<ELT> sum() const {return colSum();}
+
+    /// Form the row sums of this matrix, returned as a Vector.
+    Vector_<ELT> rowSum() const {
+        const int rows = nrow();
+        Vector_<ELT> col(rows);
+        for (int i = 0; i < rows; ++i)
+            helper.rowSum(i, reinterpret_cast<Scalar*>(&col[i]));
+        return col;
     }
 
     //TODO: make unary +/- return a self-view so they won't reallocate?
