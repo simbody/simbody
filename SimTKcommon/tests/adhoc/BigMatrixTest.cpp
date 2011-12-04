@@ -29,8 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/Simmatrix.h"
-#include "SimTKcommon/TemplatizedLapack.h"
+#include "SimTKcommon.h"
 
 #include <cstdlib> // for rand()
 #include <cstdio>
@@ -84,6 +83,24 @@ void dump(const String& s, const MatrixView_<NT>& mv)
 extern "C" {
     void SimTK_version_SimTKlapack(int* major, int* minor, int* build);
     void SimTK_about_SimTKlapack(const char* key, int maxlen, char* value);
+}
+
+void testSums() {
+    Matrix m(Mat22(1,2,
+                   3,4));
+    SimTK_TEST_EQ(m.colSum(), RowVector(Row2(4,6)));
+    SimTK_TEST_EQ(m.rowSum(), Vector(Vec2(3,7)));
+    SimTK_TEST_EQ(m.sum(), m.colSum()); // should be exact
+
+    Matrix_<Complex> mc(Mat<2,2,Complex>(1+2*I, 3+4*I,
+                                         5+6*I, 7+8*I));
+    typedef Row<2,Complex> CRow2;
+    typedef Vec<2,Complex> CVec2;
+    typedef RowVector_<Complex> CRowVector;
+    typedef Vector_<Complex> CVector;
+    SimTK_TEST_EQ(mc.colSum(), CRowVector(CRow2(6+8*I, 10+12*I)));
+    SimTK_TEST_EQ(mc.rowSum(), CVector(CVec2(4+6*I, 12+14*I)));
+    SimTK_TEST_EQ(mc.sum(), mc.colSum()); // should be exact
 }
 
 void testCharacter() {
@@ -236,6 +253,7 @@ int main()
   try {
     SimTK_DEBUG("Running BigMatrixTest ...\n");
 
+    testSums();
 
     Matrix assignToMe(5,4);
     assignToMe.elementwiseAssign(1.);
