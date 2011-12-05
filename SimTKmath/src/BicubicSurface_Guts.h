@@ -54,15 +54,12 @@ accessed patch to accelerate the common case of repeated access to the same
 patch or to nearby patches. **/
 class BicubicSurface::PatchHint::Guts {
 public:
-    Guts() : level(-1) {initObsoleteData();}
+    Guts() : level(-1) {}
     // Default copy constructor, copy assignment, destructor
 
-    bool isEmpty() const {return level < 0;}
-    void clear() {level = -1;initObsoleteData();}
+    bool isEmpty() const {return x0 < 0;}
+    void clear() {x0=y0=level = -1;}
 
-    // -1: empty, 0: function value only, 1: function value and 1st derivatives,
-    // 2: function value, 1st & 2nd derivatives, 3: plus 3rd derivatives.
-    int level;
 
     // Patch information. 
     // This is valid whenever level >= 0 and does not change
@@ -70,39 +67,34 @@ public:
     int x0, y0; // Indices of the lower-left corner of the patch.
     // These are the precalculated patch dimensions and their reciprocals. 
     // xScale=x[x0+1]-x[x0], yScale=y[y0+1]-y[y0].
-    Real xScale, yScale, ooxScale, ooyScale;
+    Real xS, ooxS, ooxS2, ooxS3;
+    Real yS, ooyS, ooyS2, ooyS3;
     // These are the bicubic patch coefficients a00-a33 for this patch, in
     // column order (a00 a10 a20 a30 a01 a11 ...).
     Vec<16> a;
+    // These are the scaled function values at the corners of this patch, in
+    // the order f00,f10,f01,f11,
+    //           fx00,fx10,fx01,fx11,
+    //           fy00,fy10,fy01,fy11,
+    //           fxy00,fxy10,fxy01,fxy11
+    Vec<16> fV;
 
     // Point information. 
     // This information records the results of the last 
     // access to the above patch, which was point (x,y,f(x,y)). This will 
     // change whenever a new point is accessed, even if it is on the same patch.
-    Real x, y, f; // f(x,y); valid if level >= 0.
+
+    // -1: nothing, 0: function value only, 1: function value and 1st derivs,
+    // 2: function value, 1st & 2nd derivatives, 3: plus 3rd derivatives.
+    int level;
+    Vec2 xy;
+    Real f; // f(x,y); valid if level >= 0.
 
     // These are valid only if level has reached the value indicated.
     Real fx, fy;                    // level >= 1
     Real fxy, fxx, fyy;             // level >= 2 (fyx==fxy)
     Real fxxx, fxxy, fyyy, fxyy;    // level == 3 (fyxx==fxyx==fxxy,
                                     //             fyyx==fyxy==fxyy)
-
- //TODO: OBSOLETE HINT DATA
-    void initObsoleteData() {
-       _pXYVal.setToNaN();
-       _pXYIdx = Array_<int>(4, -1);
-       _pFdF.setToNaN();
-       _fV.setToNaN();
-       _aV.setToNaN();
-    }
-    //This is all 'hint' data that is stored between calls to this
-    //object to reduce the time required to find the patch the user
-    //is in.
-    Vec2        _pXYVal;
-    Array_<int> _pXYIdx;
-    Vec<10>      _pFdF;
-    Vec<16>      _fV;
-    Vec<16>      _aV;
 };
 
 
@@ -275,7 +267,7 @@ public:
         Vec<16> fV, aV;
         Vec<10> aFdF;
         BicubicSurface::PatchHint hint;
-        getFdF(XY,fV,aV,aFdF,hint);
+        getFdF(XY,-1,fV,aV,aFdF,hint); // just need patch info
         return fV;
 
     }
@@ -293,7 +285,7 @@ public:
         Vec<16> fV, aV;
         Vec<10> aFdF;
         BicubicSurface::PatchHint hint;
-        getFdF(XY,fV,aV,aFdF,hint);
+        getFdF(XY,-1,fV,aV,aFdF,hint); // just need patch info
         return aV;
     }
 
@@ -316,7 +308,8 @@ private:
     int calcLowerBoundIndex(const Vector& vecV, Real value, int pIdx,
                                                     bool evenlySpaced) const;
     void getCoefficients(const Vec<16>& f, Vec<16>& aV) const;
-    void getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
+    void getFdF(const Vec2& aXY, int wantLevel,
+                Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
                 BicubicSurface::PatchHint& hint) const;
 
     // This is called from each constructor to initialize this object.

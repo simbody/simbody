@@ -337,54 +337,61 @@ Real BicubicSurface::Guts::calcValue(const Vec2& aXY, PatchHint& hint) const
 {    
     Vec<16> fV, aV;
     Vec<10> aFdF;
-    getFdF(aXY,fV,aV,aFdF, hint);
-    return aFdF(0);
+    getFdF(aXY,0,fV,aV,aFdF, hint); // just function value
+    const PatchHint::Guts& h = hint.getGuts();
+    assert(h.xy == aXY && h.level >= 0);
+    return h.f;
 }
 
 
 Real BicubicSurface::Guts::calcDerivative
    (const Array_<int>& aDerivComponents, const Vec2& aXY, PatchHint& hint) const
 {
-    if (aDerivComponents.empty())
+    const int wantLevel = (int)aDerivComponents.size();
+
+    if (wantLevel == 0)
         return calcValue(aXY, hint);  // "0th" deriv is the function value
 
-    for (int i=0; i < (int)aDerivComponents.size(); ++i) {
+    for (int i=0; i < wantLevel; ++i) {
         SimTK_ERRCHK2_ALWAYS(aDerivComponents[i]==0 || aDerivComponents[i]==1,
             "BicubicSurface::calcDerivative()",
             "Component %d was %d but must be 0 or 1 for x or y.",
             i, aDerivComponents[i]);
     }
 
-    if (aDerivComponents.size() > 3)
+    if (wantLevel > 3)
         return 0;   // 4th and higher derivatives are all zero
 
     Vec<16> fV, aV;
     Vec<10> aFdF;
-    getFdF(aXY,fV,aV,aFdF, hint);
+    getFdF(aXY,wantLevel,fV,aV,aFdF, hint);
+    const PatchHint::Guts& h = hint.getGuts();
+    assert(h.xy == aXY && h.level >= wantLevel);
+
     // 0=f, 1=fx, 2=fy, 3=fxy, 4=fxx, 5=fyy, 6=fxxx, 7=fxxy, 8=fyyy, 9=fxyy
     //                   =fyx                         =fyxx           =fyyx
     //                                                =fxyx           =fyxy
 
     if (aDerivComponents.size() == 1)
-        return aDerivComponents[0]==0 ? aFdF[1] : aFdF[2];      // fx : fy
+        return aDerivComponents[0]==0 ? h.fx : h.fy;        // fx : fy
 
     if (aDerivComponents.size() == 2)
         if (aDerivComponents[0]==0) //x
-            return aDerivComponents[1]==0 ? aFdF[4] : aFdF[3];  // fxx:fxy
+            return aDerivComponents[1]==0 ? h.fxx : h.fxy;  // fxx:fxy
         else //y (fyx==fxy)
-            return aDerivComponents[1]==0 ? aFdF[3] : aFdF[5];  // fyx:fyy
+            return aDerivComponents[1]==0 ? h.fxy : h.fyy;  // fyx:fyy
 
     // Third derivative.
     if (aDerivComponents[0]==0) { //x
         if (aDerivComponents[1]==0) // xx
-            return aDerivComponents[2]==0 ? aFdF[6] : aFdF[7];  // fxxx:fxxy
+            return aDerivComponents[2]==0 ? h.fxxx : h.fxxy;  // fxxx:fxxy
         else // xy (fxyx==fxxy)
-            return aDerivComponents[2]==0 ? aFdF[7] : aFdF[9];  // fxyx:fxyy
+            return aDerivComponents[2]==0 ? h.fxxy : h.fxyy;  // fxyx:fxyy
     } else { //y (fyx==fxy)
         if (aDerivComponents[1]==0) // yx (fyxx==fxxy, fyxy==fxyy)
-            return aDerivComponents[2]==0 ? aFdF[7] : aFdF[9];  // fyxx:fyxy
+            return aDerivComponents[2]==0 ? h.fxxy : h.fxyy;  // fyxx:fyxy
         else // yy (fyyx==fxyy)
-            return aDerivComponents[2]==0 ? aFdF[9] : aFdF[8];  // fyyx:fyyy
+            return aDerivComponents[2]==0 ? h.fxyy : h.fyyy;  // fyyx:fyyy
     }
 }
 
@@ -427,7 +434,8 @@ derivatives at the point XY. These values are stored in the following order:
             fxxx(x,y) fxxy(x,y) fyyy(x,y) fxyy(x,y)
 */
 void BicubicSurface::Guts::
-getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
+getFdF(const Vec2& aXY, int wantLevel,
+       Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
        PatchHint& hint) const
 {
     //0. Check if the surface is defined for the XY value given
@@ -438,73 +446,99 @@ getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
         " The surface is valid from x[%g %g], y[%g %g].", aXY(0), aXY(1),
         _x[0], _x[_x.size()-1], _y[0], _y[_y.size()-1]);
 
+    // -1 means just do the patch
+    // 0 means patch and function value
+    // 1 means add 1st deriv, 2 is 2nd, 3 is 3rd
+    assert(-1 <= wantLevel && wantLevel <= 3);
+
     Real val = 0;
     int pXidx = -1;
     int pYidx = -1;
 
-    BicubicSurface::PatchHint::Guts& hintg = hint.updGuts();
+    BicubicSurface::PatchHint::Guts& h = hint.updGuts();
 
     //1. Check to see if we have already computed values for the requested point.
-    if(aXY(0) == hintg._pXYVal(0) && aXY(1) == hintg._pXYVal(1)){
-        aFdF    = hintg._pFdF;
-        fV      = hintg._fV;
-        aijV    = hintg._aV;
+    if(h.level >= wantLevel && aXY == h.xy){
+        fV      = h.fV;
+        aijV    = h.a;
+        aFdF.setToNaN();
+        if (wantLevel < 0) return;
+        aFdF[0] = h.f;
+        if (wantLevel < 1) return;
+        aFdF[1]=h.fx; aFdF[2]=h.fy;
+        if (wantLevel < 2) return;
+        aFdF[3]=h.fxy; aFdF[4]=h.fxx; aFdF[5]=h.fyy;
+        if (wantLevel < 3) return;
+        aFdF[6]=h.fxxx; aFdF[7]=h.fxxy; aFdF[8]=h.fyyy; aFdF[9]=h.fxyy;
         return;    
     }
 
-    // Nope.
+    // Nope. We're at least changing points.
+    h.xy = aXY;
+    h.level = -1; // we don't know anything about this point
+
     //1. Compute the indices that define the patch that the value is in    
-    int x0 = calcLowerBoundIndex(_x,aXY(0),pXidx,_flagXEvenlySpaced);
+    int x0 = calcLowerBoundIndex(_x,aXY[0],pXidx,_flagXEvenlySpaced);
     int x1 = x0+1;
-    int y0 = calcLowerBoundIndex(_y,aXY(1),pYidx,_flagYEvenlySpaced);
+    int y0 = calcLowerBoundIndex(_y,aXY[1],pYidx,_flagYEvenlySpaced);
     int y1 = y0+1;
 
     //2. Form the vector f
-
-    // Compute the scaling of the local patch. Note that neither patch 
-    // dimension can be zero since we don't allow duplicates in x or y.
-    const Real xS = _x(x1)-_x(x0);
-    const Real yS = _y(y1)-_y(y0);
-    const Real ooxS = 1/xS, ooxS2 = ooxS*ooxS, ooxS3=ooxS*ooxS2;
-    const Real ooyS = 1/yS, ooyS2 = ooyS*ooyS, ooyS3=ooyS*ooyS2;
-
     //3. Multiply by Ainv to form coefficient vector a
             
     //Compute Bicubic coefficients only if we're in a new patch
     //else use the old ones, because this is an expensive step!
-    if( !(hintg._pXYIdx[0] == x0 && hintg._pXYIdx[2] == y0) ) {
+    if( !(h.x0 == x0 && h.y0 == y0) ) {
+        // The hint is no good at all since it is for the wrong patch.
+        h.clear();
+        h.x0 = x0; h.y0 = y0;
+
+        // Compute the scaling of the new patch. Note that neither patch 
+        // dimension can be zero since we don't allow duplicates in x or y.
+        h.xS = _x(x1)-_x(x0);
+        h.yS = _y(y1)-_y(y0);
+        h.ooxS = 1/h.xS; h.ooxS2 = h.ooxS*h.ooxS; h.ooxS3=h.ooxS*h.ooxS2;
+        h.ooyS = 1/h.yS; h.ooyS2 = h.ooyS*h.ooyS; h.ooyS3=h.ooyS*h.ooyS2;
+
         const Vec4& f00 = _ff(x0,y0);
         const Vec4& f01 = _ff(x0,y1);
         const Vec4& f10 = _ff(x1,y0);
         const Vec4& f11 = _ff(x1,y1);
 
-        fV(0) = f00[F];
-        fV(1) = f10[F];
-        fV(2) = f01[F];
-        fV(3) = f11[F];
+        h.fV[0] = f00[F];
+        h.fV[1] = f10[F];
+        h.fV[2] = f01[F];
+        h.fV[3] = f11[F];
 
-        fV(4) = f00[Fx]*xS;
-        fV(5) = f10[Fx]*xS;
-        fV(6) = f01[Fx]*xS;
-        fV(7) = f11[Fx]*xS;
+        // Can't precalculate these scaled values because the same grid point
+        // is used for up to four different patches, each scaled differently.
+        h.fV[4] = f00[Fx]*h.xS;
+        h.fV[5] = f10[Fx]*h.xS;
+        h.fV[6] = f01[Fx]*h.xS;
+        h.fV[7] = f11[Fx]*h.xS;
     
-        fV(8)  = f00[Fy]*yS;
-        fV(9)  = f10[Fy]*yS;
-        fV(10) = f01[Fy]*yS;
-        fV(11) = f11[Fy]*yS;
+        h.fV[8]  = f00[Fy]*h.yS;
+        h.fV[9]  = f10[Fy]*h.yS;
+        h.fV[10] = f01[Fy]*h.yS;
+        h.fV[11] = f11[Fy]*h.yS;
 
-        fV(12)  = f00[Fxy]*xS*yS;
-        fV(13)  = f10[Fxy]*xS*yS;
-        fV(14)  = f01[Fxy]*xS*yS;
-        fV(15)  = f11[Fxy]*xS*yS;
+        h.fV[12]  = f00[Fxy]*h.xS*h.yS;
+        h.fV[13]  = f10[Fxy]*h.xS*h.yS;
+        h.fV[14]  = f01[Fxy]*h.xS*h.yS;
+        h.fV[15]  = f11[Fxy]*h.xS*h.yS;
 
-        getCoefficients(fV,aijV);
-    }else{
-        fV      = hintg._fV;
-        aijV    = hintg._aV;
+        getCoefficients(h.fV,h.a);
     }
 
-    const Vec<16>& a = Vec<16>::getAs(&aijV[0]);
+    fV      = h.fV;
+    aijV    = h.a;
+
+    if (wantLevel == -1) {
+        aFdF.setToNaN();
+        return;   
+    }
+
+    const Vec<16>& a = h.a; // abbreviate
 
 
     //Compute where in the patch we are. This has to
@@ -515,8 +549,8 @@ getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
     // Evaluate function value f (38 flops).
 
     // 8 flops
-    const Real xpt = (aXY(0)-_x(x0))*ooxS, xpt2=xpt*xpt, xpt3=xpt*xpt2;
-    const Real ypt = (aXY(1)-_y(y0))*ooyS, ypt2=ypt*ypt, ypt3=ypt*ypt2;
+    const Real xpt = (aXY(0)-_x(x0))*h.ooxS, xpt2=xpt*xpt, xpt3=xpt*xpt2;
+    const Real ypt = (aXY(1)-_y(y0))*h.ooyS, ypt2=ypt*ypt, ypt3=ypt*ypt2;
     // 12 flops
     const Mat44 mx(a[ 0],   a[ 1]*xpt,   a[ 2]*xpt2,   a[ 3]*xpt3,
                    a[ 4],   a[ 5]*xpt,   a[ 6]*xpt2,   a[ 7]*xpt3,
@@ -525,69 +559,83 @@ getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
     // 12 flops
     const Vec4 xsum = mx.rowSum();
     // 6 flops
-    const Real f = xsum[0] + ypt*xsum[1] + ypt2*xsum[2] + ypt3*xsum[3];
+    h.f = xsum[0] + ypt*xsum[1] + ypt2*xsum[2] + ypt3*xsum[3];
+    h.level = 0; // function value is ready
+    aFdF[0] = h.f;
+    if (wantLevel == 0) {
+        Vec9::updAs(&aFdF[1]).setToNaN();
+        return;
+    }
 
     //--------------------------------------------------------------------------
     // Evaluate first derivatives fx, fy (43 flops).
 
     // fy is 9 flops
-    const Real dypt = ooyS, dypt2= 2*ypt*ooyS, dypt3= 3*ypt2*ooyS;
-    const Real fy = dypt*xsum[1] + dypt2*xsum[2] + dypt3*xsum[3];
+    const Real dypt = h.ooyS, dypt2= 2*ypt*h.ooyS, dypt3= 3*ypt2*h.ooyS;
+    h.fy = dypt*xsum[1] + dypt2*xsum[2] + dypt3*xsum[3];
 
     // fx is 34 flops
-    const Real dxpt=ooxS, dxpt2=2*xpt*ooxS, dxpt3=3*xpt2*ooxS;
+    const Real dxpt=h.ooxS, dxpt2=2*xpt*h.ooxS, dxpt3=3*xpt2*h.ooxS;
     const Mat43 mdx(a[ 1]*dxpt,    a[ 2]*dxpt2,    a[ 3]*dxpt3,
                     a[ 5]*dxpt,    a[ 6]*dxpt2,    a[ 7]*dxpt3,
                     a[ 9]*dxpt,    a[10]*dxpt2,    a[11]*dxpt3,
                     a[13]*dxpt,    a[14]*dxpt2,    a[15]*dxpt3);
     const Vec4 dxsum = mdx.rowSum();
-    const Real fx   = dxsum[0] + ypt*dxsum[1] + ypt2*dxsum[2] + ypt3*dxsum[3];
+    h.fx   = dxsum[0] + ypt*dxsum[1] + ypt2*dxsum[2] + ypt3*dxsum[3];
+    h.level = 1; // first derivatives are ready
+    aFdF[1] = h.fx;
+    aFdF[2] = h.fy;
+    if (wantLevel == 1) {
+        Vec7::updAs(&aFdF[3]).setToNaN();
+        return;
+    }
 
     //--------------------------------------------------------------------------
     // Evaluate second derivatives fxy, fxx, fyy (40 flops).
 
     // fxy, fyy are 11 flops
-    const Real fxy = dypt*dxsum[1] + dypt2*dxsum[2] + dypt3*dxsum[3];
-    const Real dyypt2=2*ooyS2, dyypt3=6*ypt*ooyS2;
-    const Real fyy = dyypt2*xsum[2] + dyypt3*xsum[3];
+    h.fxy = dypt*dxsum[1] + dypt2*dxsum[2] + dypt3*dxsum[3];
+    const Real dyypt2=2*h.ooyS2, dyypt3=6*ypt*h.ooyS2;
+    h.fyy = dyypt2*xsum[2] + dyypt3*xsum[3];
 
     // fxx is 29 flops
-    const Real dxxpt2=2*ooxS2, dxxpt3=6*xpt*ooxS2;
+    const Real dxxpt2=2*h.ooxS2, dxxpt3=6*xpt*h.ooxS2;
     const Mat42 mdxx(a[ 2]*dxxpt2,    a[ 3]*dxxpt3,
                      a[ 6]*dxxpt2,    a[ 7]*dxxpt3,
                      a[10]*dxxpt2,    a[11]*dxxpt3,
                      a[14]*dxxpt2,    a[15]*dxxpt3);
     const Vec4 dxxsum = mdxx.rowSum();
-    const Real fxx  = dxxsum[0] + ypt*dxxsum[1] + ypt2*dxxsum[2] + ypt3*dxxsum[3];
+    h.fxx  = dxxsum[0] + ypt*dxxsum[1] + ypt2*dxxsum[2] + ypt3*dxxsum[3];
+    h.level = 2; // second derivatives are ready
+    aFdF[3] = h.fxy;
+    aFdF[4] = h.fxx;
+    aFdF[5] = h.fyy;
+    if (wantLevel == 2) {
+        Vec4::updAs(&aFdF[6]).setToNaN();
+        return;
+    }
 
     //--------------------------------------------------------------------------
     // Evaluate third derivatives fxxx, fxxy, fyyy, fxyy (21 flops).
 
     // 10 flops
-    const Real dyyypt3=6*ooyS3;
-    const Real fyyy = dyyypt3*xsum[3];
-    const Real fxyy = dyypt2*dxsum[2] + dyypt3*dxsum[3];
-    const Real fxxy = dypt*dxxsum[1] + dypt2*dxxsum[2] + dypt3*dxxsum[3];
+    const Real dyyypt3=6*h.ooyS3;
+    h.fyyy = dyyypt3*xsum[3];
+    h.fxyy = dyypt2*dxsum[2] + dyypt3*dxsum[3];
+    h.fxxy = dypt*dxxsum[1] + dypt2*dxxsum[2] + dypt3*dxxsum[3];
 
     // 11 flops
-    const Real dxxxpt3=6*ooxS3;
+    const Real dxxxpt3=6*h.ooxS3;
     const Vec4 mdxxx(a[ 3]*dxxxpt3,
                      a[ 7]*dxxxpt3,
                      a[11]*dxxxpt3,
                      a[15]*dxxxpt3);
-    const Real fxxx = mdxxx[0] + ypt* mdxxx[1] + ypt2*mdxxx[2] + ypt3*mdxxx[3];
-
-    //Populate the output vector
-    aFdF(0) = f;
-    aFdF(1) = fx;
-    aFdF(2) = fy;
-    aFdF(3) = fxy;
-    aFdF(4) = fxx;
-    aFdF(5) = fyy;
-    aFdF(6) = fxxx;
-    aFdF(7) = fxxy;
-    aFdF(8) = fyyy;
-    aFdF(9) = fxyy;
+    h.fxxx = mdxxx[0] + ypt* mdxxx[1] + ypt2*mdxxx[2] + ypt3*mdxxx[3];
+    h.level = 3; // third derivatives are ready
+    aFdF[6] = h.fxxx;
+    aFdF[7] = h.fxxy;
+    aFdF[8] = h.fyyy;
+    aFdF[9] = h.fxyy;
 
     if(_debug == true){
         cout<<" getFdF" << endl;
@@ -603,7 +651,7 @@ getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
         cout <<"XY: " << aXY << endl;
         printf("[x0 x1], [y0 y1]: [%d %d],[%d %d]\n",x0,x1,y0,y1);
         printf("[x0V x1V], [y0V y1V]: [%f %f],[%f %f]\n",_x(x0),_x(x1),_y(y0),_y(y1));
-        cout <<" xS " << xS << " yS " << yS << endl;
+        cout <<" xS " << h.xS << " yS " << h.yS << endl;
         printf("(xp,yp): (%f %f)\n",xpt,ypt);
         //cout << " axpt : " << axVec << endl;
         //cout << " adxpt : " << adxVec << endl;
@@ -612,21 +660,8 @@ getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
         cout << "\n\n\n"<<endl;
 
         cout <<" Final Output Vector " << endl;
-        cout << "f,fx,fy,fxy" << aFdF << endl;
+        cout << "f,fx,fy,fxy..." << aFdF << endl;
     }
-
-    //Update the previous value records
-            
-    hintg._pXYVal  = aXY;
-
-    hintg._pXYIdx[0]  = x0;
-    hintg._pXYIdx[1]  = x1;
-    hintg._pXYIdx[2]  = y0;
-    hintg._pXYIdx[3]  = y1;
-            
-    hintg._pFdF       = aFdF;
-    hintg._fV         = fV;
-    hintg._aV         = aijV;
 }
 
 
