@@ -80,14 +80,14 @@ Note that the each XY location can only have a unique value associated with it
     
 Technically a bicubic surface interpolation requires the partial derivatives 
 fx, fy and fxy at each of the grid points. To take this burden from the user, 
-these partial derivative matricies are computed using only the the supplied 
+these partial derivative matrices are computed using only the the supplied 
 points for X, Y and F. For the interested reader, these partial derivatives are 
 computed by fitting splines through the points provided, and then taking 
 derivatives of splines. 
 
 These splines will pass through the points exactly when the smoothness 
 parameter of the surface is set to 0, and will be interpolated using natural 
-cubic splines. When the smoothness paramter is between 0 and 1, the surface 
+cubic splines. When the smoothness parameter is between 0 and 1, the surface 
 will be 'relaxed' using the algorithm used in SplineFitter, and will not
 exactly pass through the points given, but will smoothly come close to the 
 points. The smoothness parameter can thus
@@ -108,8 +108,8 @@ public:
     /** Destructor deletes the underlying surface if there are no more handles
     referencing it, otherwise does nothing. **/
     ~BicubicSurface();
-    /** Copy constructor makes a shallow copy of the \a source; the new handle
-    will reference the same underlying suface as does \a source. **/
+    /** Copy constructor makes a shallow copy of \a source; the new handle
+    will reference the same underlying surface as does \a source. **/
     BicubicSurface(const BicubicSurface& source);
     /** Copy assignment is shallow; it makes this handle reference the same 
     underlying surface as does \a source. If this handle was currently 
@@ -117,21 +117,10 @@ public:
     was the last reference to it. **/
     BicubicSurface& operator=(const BicubicSurface& source);
 
-    /** Return \c true if this is an empty handle meaning that it does not
-    currently refer to any surface. This is the state the handle will have
-    after default construction or a call to clear(). **/
-    bool isEmpty() const {return guts==0;}
-
-    /** Return this handle to its default-constructed state, meaning that
-    it will not refer to any surface. If the handle was referencing some
-    surface, and that was the last reference to that surface, then the
-    surface will be destructed. After a call to clear(), isEmpty() will
-    return \c true. **/
-    void clear();
     
     /** Construct a bicubic surface that approximates f(x,y)
     with the spacing between each grid point in f defined by the vectors x and 
-    y. The smoothness paramter controls how closely the surface approaches the 
+    y. The smoothness parameter controls how closely the surface approaches the 
     grid points specified in matrix f, with the default being that the surface
     will pass exactly through those points.
 
@@ -159,24 +148,29 @@ public:
     grid points specified in matrix f, with the default being that the surface
     will pass exactly through those points.
 
-    @param xSpacing     Spacing for x-axis sampling; must be greater than 0.
-    @param ySpacing     Spacing for y-axis sampling; must be greater than 0.
-    @param f            
+    @param      XY           
+        A Vec2 giving the (x0,y0) sample location associated with the (0,0) 
+        grid position in matrix \a f.
+    @param      spacing     
+        A Vec2 giving regular spacing along the x and y directions; both 
+        entries must be greater than 0. The (i,j)th sample location is then 
+        taken to be XY + (i*spacing[0], j*spacing[1]).
+    @param      f            
         Matrix of function values (or surface heights) evaluated at points of 
-        the x-y plane regularly sampled using the upplied spacings. Can be 
+        the x-y plane regularly sampled using the supplied spacings. Can be 
         rectangular but must have minimum dimension 4x4. Here 
-        f(i,j)=F(i*xSpacing,j*ySpacing) where F is the function being 
+        f(i,j)=F(i*spacing[0],j*spacing[1]) where F is the function being 
         approximated.
-    @param smoothness 
+    @param      smoothness 
         A value of 0 will force surface to pass through all of the 
-        points in f(x,y). As smoothness tends to 1, the surface will 
+        points in \a f. As smoothness tends to 1, the surface will 
         become smoother and smoother, but will not pass through the knot 
         points stored in matrix \a f. (Optional, default is 0.)
 
-    If your sample points are not regularly spaced, use the other constructor.
-    **/
-    BicubicSurface(Real xSpacing, Real ySpacing, const Matrix& f, 
-                   Real smoothness=0);
+    If your sample points are not regularly spaced, use the other constructor
+    which allows for specified sample points. **/
+    BicubicSurface(const Vec2& XY, const Vec2& spacing, 
+                   const Matrix& f, Real smoothness=0);
 
     /** Calculate the value of the surface at a particular XY coordinate. Note
     that XY must be a vector with only 2 elements in it (because this is a
@@ -232,21 +226,36 @@ public:
     are not sure. **/
     bool isSurfaceDefined(const Vec2& XY) const;
 
+    /** Return \c true if this is an empty handle meaning that it does not
+    currently refer to any surface. This is the state the handle will have
+    after default construction or a call to clear(). **/
+    bool isEmpty() const {return guts==0;}
+
+    /** Return this handle to its default-constructed state, meaning that
+    it will not refer to any surface. If the handle was referencing some
+    surface, and that was the last reference to that surface, then the
+    surface will be destructed. After a call to clear(), isEmpty() will
+    return \c true. **/
+    void clear();
+
     /**
     DEBUGGING CODE ONLY. DO NOT USE.  
 
     A constructor for a bicubic surface that sets the partial derivatives of the
     surface to the values specified by fx, fy, and fxy.
 
-    @param x: vector of X grid points (minimum 4 values)
-    @param y: vector of Y grid points (minimum 4 values)
-    @param f:   matrix of the surface heights evaluated at the grid formed 
+    @param x   vector of X grid points (minimum 4 values)
+    @param y   vector of Y grid points (minimum 4 values)
+    @param f   matrix of the surface heights evaluated at the grid formed 
                 by x and y (minumum 4x4)
-    @param fx:  matrix of the partial derivative of f w.r.t to x (minumum 4x4)
-    @param fy:  matrix of the partial derivative of f w.r.t to y (minumum 4x4)
-    @param fxy: matrix of the partial derivative of f w.r.t to x,y (minumum 4x4)
+    @param fx  matrix of the partial derivative of f w.r.t to x (minumum 4x4)
+    @param fy  matrix of the partial derivative of f w.r.t to y (minumum 4x4)
+    @param fxy matrix of the partial derivative of f w.r.t to x,y (minumum 4x4)
     */
     BicubicSurface(const Vector& x, const Vector& y, const Matrix& f, 
+                   const Matrix& fx, const Matrix& fy, const Matrix& fxy);
+    /** Same, but with regular grid spacing. **/
+    BicubicSurface(const Vec2& XY, const Vec2& spacing, const Matrix& f, 
                    const Matrix& fx, const Matrix& fy, const Matrix& fxy);
 
     const BicubicSurface::Guts& getGuts() const

@@ -92,9 +92,9 @@ BicubicSurface::BicubicSurface
 
 // Constructor for regularly spaced samples.
 BicubicSurface::BicubicSurface
-   (Real xSpacing, Real ySpacing, const Matrix& f, Real smoothness) 
+   (const Vec2& XY, const Vec2& spacing, const Matrix& f, Real smoothness)
 :   guts(0) {
-    guts = new BicubicSurface::Guts(xSpacing,ySpacing,f,smoothness);
+    guts = new BicubicSurface::Guts(XY,spacing,f,smoothness);
     guts->incrReferenceCount(); // will be 1
 }
 
@@ -104,6 +104,15 @@ BicubicSurface::BicubicSurface
     const Matrix& fx, const Matrix& fy, const Matrix& fxy)
 :   guts(0) {
     guts = new BicubicSurface::Guts(x,y,f,fx,fy,fxy);
+    guts->incrReferenceCount(); // will be 1
+}
+
+// Constructor from known patch derivatives with regular spacing.
+BicubicSurface::BicubicSurface
+   (const Vec2& XY, const Vec2& spacing, const Matrix& f, 
+    const Matrix& fx, const Matrix& fy, const Matrix& fxy)
+:   guts(0) {
+    guts = new BicubicSurface::Guts(XY,spacing,f,fx,fy,fxy);
     guts->incrReferenceCount(); // will be 1
 }
 
@@ -145,111 +154,157 @@ Real BicubicSurface::calcDerivative
 //                          BICUBIC SURFACE :: GUTS
 //==============================================================================
 
+// This is the constructor for irregularly-spaced samples.
 BicubicSurface::Guts::Guts(const Vector& aX, const Vector& aY, 
                            const Matrix& af, Real smoothness)
 {
     construct();
+
+    _x.resize(aX.size()); _y.resize(aY.size());
+    _x = aX; _y = aY;
+
+    _hasRegularSpacing = false;
+
+    constructFromSplines(af, smoothness);
+}
+
+
+// This is the constructor for regularly spaced samples.
+BicubicSurface::Guts::Guts
+   (const Vec2& XY, const Vec2& spacing, const Matrix& af, Real smoothness)
+{
+    construct();
     
-    // CHECK NUMBER OF DATA POINTS
-    SimTK_ERRCHK2_ALWAYS(aX.size() >= 4 && aY.size() >= 4,
+    // Check for reasonable spacing.
+    SimTK_ERRCHK2_ALWAYS(spacing > 0,
+        "BicubicSurface::ctor(XY,spacing,af,smoothness)", 
+        "A BicubicSurface requires positive spacing in both x and y"
+        " but spacing was %g and %g.", spacing[0], spacing[1]);
+
+    const int nx = af.nrow(), ny = af.ncol();
+    _x.resize(nx); _y.resize(ny);
+
+    for (int i=0; i < nx; ++i)
+        _x[i] = XY[0] + i*spacing[0];
+    for (int j=0; j < ny; ++j)
+        _y[j] = XY[1] + j*spacing[1];
+
+    _hasRegularSpacing = true;
+    _spacing = spacing;
+
+    constructFromSplines(af, smoothness);
+}
+
+// This implementation is shared by the regular and irregular constructors.
+// We expect _x and _y already to have been filled in with the grid sample
+// locations (either as supplied or as generated from regular spacing).
+void BicubicSurface::Guts::
+constructFromSplines(const Matrix& af, Real smoothness)
+{
+    const int nx = af.nrow(), ny = af.ncol();
+
+    // Check for sufficient sample size.
+    SimTK_ERRCHK2_ALWAYS(af.nrow() >= 4 && af.ncol() >= 4,
         "BicubicSurface::ctor()", 
-        "A BicubicSurface requires both aX and aY to be of length at least 4"
-        " but lengths were %d and %d.", aX.size(), aY.size());
+        "A BicubicSurface requires at least 4 sample in x and y directions"
+        " but grid dimensions were %d and %d.", nx, ny);
 
-    // CHECK DIMENSIONS OF AF
-    SimTK_ERRCHK4_ALWAYS((af.ncol() == aX.size()
-                      && af.nrow() == aY.size()), 
+    SimTK_ERRCHK4_ALWAYS(_x.size() == nx && _y.size() == ny,
         "BicubicSurface::ctor()", 
-        "Matrix f(x,y) must have a row dimension that matches the size of"
-        " vector X (%d), and a column dimension that matches the size of"
-        " vector Y (%d), but it was %d X %d.", aX.size(), aY.size(),
-        af.nrow(), af.ncol());
+        "Number of samples must match the grid dimension (%d X %d) but"
+        "the number of supplied sample points was %d X %d.",
+        nx, ny, _x.size(), _y.size());
 
-    // INDEPENDENT VALUES (KNOT SEQUENCE)
-    _x.resize(aX.size());
-    _y.resize(aY.size());
-    _ff.resize(af.nrow(),af.ncol());
+    // We're checking this even for generated regularly-spaced samples
+    // to catch the rare case that the spacing was so small that it 
+    // produced two identical sample locations.
 
-    _flagXEvenlySpaced = true;
-    _flagYEvenlySpaced = true;
+    SimTK_ERRCHK_ALWAYS(   isMonotonicallyIncreasing(_x)
+                        && isMonotonicallyIncreasing(_y),
+        "BicubicSurface::ctor()",
+        "Sample vectors must each be monotonically increasing.");
+
+    // The grid data stores a Vec4 at each grid point with (possibly smoothed)
+    // function value f, and derivatives fx, fy, fxy in that order.
+    _ff.resize(nx, ny);
+
     _debug = false;
 
     // These temporaries are needed for indexing into the Spline functions.
     Vector            coord(1);
     const Array_<int> deriv1(1,0); // just one zero to pick 1st derivative
 
-    Real xsp = aX(1)-aX(0);
-    Real ysp = aY(1)-aY(0);
-    Real xspi=0.0;
-    Real yspj=0.0;
+    // This temporary will hold either the original function values or the
+    // smoothed ones.
+    Matrix fSmooth(nx,ny);
+
+    // Smoothing strategy: we want something that is symmetric in x and y
+    // so that you will get the same surface if you rotate the grid 90 degrees
+    // to exchange the meaning of x and y. To accomplish that, we smooth
+    // the grid separately along the rows and columns, and then average the
+    // results to produce a new grid to which we fit the surface.
+
+    if (smoothness > 0) {
+        // This temp holds the function values as they look after smoothing
+        // in the x direction (that is, down the columns of constant y).
+        Matrix xf(nx,ny);
     
-    // Interpolate position data along lines of constant y (columns of the
-    // sampling matrix f), according to the smoothness factor.
-    // TODO: should this also smooth along x?
-    for(int j=0; j<_y.size();j++){       
+        // Smooth position data along lines of constant y.
+        for(int j=0; j < ny; ++j){       
+            Spline_<Real> xspline = SplineFitter<Real>::fitForSmoothingParameter
+                                            (3,_x,af(j),smoothness).getSpline();
+            for(int i=0; i < nx; ++i){    
+                coord[0] = _x[i];
+                xf(i,j) = xspline.calcValue(coord);
+            }
+        }
+
+        // Smooth position data along lines of constant x, then average the
+        // result with the corresponding value from smoothing the other way. 
+        for(int i=0; i < nx; ++i){       
+            Spline_<Real> yspline = SplineFitter<Real>::fitForSmoothingParameter
+                                           (3,_y,~af[i],smoothness).getSpline();
+            for(int j=0; j < ny; ++j){    
+                coord[0] = _y[j];
+                const Real yfij = yspline.calcValue(coord);
+                fSmooth(i,j) = (xf(i,j) + yfij) / 2; // average xf,xy
+            }
+        }
+    } else {
+        // Not smoothing.
+        fSmooth = af;
+    }
+
+    // Now fill in the f and fx entries in our internal grid by exactly
+    // fitting a spline to the already-smoothed data.
+    for(int j=0; j < ny; ++j){       
         Spline_<Real> xspline = SplineFitter<Real>::fitForSmoothingParameter
-                                        (3,aX,af(j),smoothness).getSpline();
-        for(int i=0; i<_x.size(); i++){    
-            coord[0] = aX(i);
+                                        (3,_x,fSmooth(j),0).getSpline();
+        for(int i=0; i < nx; ++i){    
+            coord[0] = _x[i];
             Vec4& fij = _ff(i,j);
-            fij[F] = xspline.calcValue(coord);
+            fij[F]  = fSmooth(i,j);
             fij[Fx] = xspline.calcDerivative(deriv1,coord);
         }
     }
 
-    //TODO: get rid of this.
-
-    //Copy the data over, check for even spacing.
-    for(int i=0; i<_x.size();i++) {
-        _x(i) = aX(i);
-        if(i > 0) { 
-            xspi = _x(0) + i*xsp;//aX[i]-aX[i-1];
-            if(std::abs(xspi-_x(i))/xsp > 1e-6) 
-                _flagXEvenlySpaced = false;
-        }               
-    }
-
-    for(int j=0; j<_y.size();j++) {
-        _y(j) = aY(j);
-        if(j > 0){ 
-            yspj = _y(0) + j*ysp;//yspj = aY[j]-aY[j-1];
-            if(std::abs(yspj-_y(j))/ysp > 1e-6) 
-                _flagYEvenlySpaced = false;
-        }
-    }
-
-    //Compute fx using NaturalCubicSplines
-    //Future upgrade: make the type of spline user selectable
-
-    // sherm: why does this have to be done separately? I moved it above.
-    //for(int j=0; j<_y.size();j++){
-    //    tmpVX = _f(j); // round brackets grabs a column        
-    //    Spline_<Real> xspline = SplineFitter<Real>::fitForSmoothingParameter
-    //                                               (3,_x,tmpVX,0.0).getSpline();
-    //    for(int i=0; i<_x.size(); i++){    
-    //        coord[0] = _x(i);
-    //        _fx(i,j) = xspline.calcDerivative(deriv1,coord);
-    //    }
-    //}
-
-    // Compute fy and fxy using NaturalCubicSplines
+    // Compute fy and fxy by fitting splines along the rows.
     // Note that we are using the already-smoothed value of f here.
-    Vector tmpRow(_y.size());
-    for(int i=0; i<_x.size();i++){
+    Vector tmpRow(ny);
+    for(int i=0; i < nx; ++i){
         // Fit splines along rows of constant x to go exactly through the 
         // already-smoothed sample points in order to get fy=Df/Dy.
-        for (int j=0; j<_y.size(); ++j) tmpRow[j] = _ff(i,j)[F];
         Spline_<Real> yspline = SplineFitter<Real>::fitForSmoothingParameter
-                                                 (3,_y,tmpRow,0).getSpline();
+                                               (3,_y,~fSmooth[i],0).getSpline();
 
         // Fit splines along rows of constant x to interpolate fx in the y
-        // direction to give fxy=Dfx/dy.
+        // direction to give fxy=Dfx/Dy.
         for (int j=0; j<_y.size(); ++j) tmpRow[j] = _ff(i,j)[Fx];
         Spline_<Real> ydxspline = SplineFitter<Real>::fitForSmoothingParameter
                                                  (3,_y,tmpRow,0).getSpline();
 
-        for(int j=0; j<_y.size(); j++){    
-            coord[0] = _y(j);
+        for(int j=0; j < ny; ++j){    
+            coord[0] = _y[j];
             Vec4& fij = _ff(i,j);
             fij[Fy]  = yspline.calcDerivative(deriv1,coord);            
             fij[Fxy] = ydxspline.calcDerivative(deriv1,coord);
@@ -257,62 +312,86 @@ BicubicSurface::Guts::Guts(const Vector& aX, const Vector& aY,
     }
 }
 
+// This is the advanced constructor where everything is known already.
 BicubicSurface::Guts::Guts
    (const Vector& aX, const Vector& aY, const Matrix& af, 
     const Matrix& afx, const Matrix& afy, const Matrix& afxy)
 {
     construct();
 
-    // CHECK NUMBER OF DATA POINTS
-    SimTK_ERRCHK_ALWAYS((aX.size() >= 4     && aY.size() >= 4) 
-                     && (af.ncol() >= 4     && af.nrow() >= 4)
-                     && (afx.ncol() >= 4    && afx.nrow() >= 4)
-                     && (afy.ncol() >= 4    && afy.nrow() >= 4)
-                     && (afxy.ncol() >= 4   && afxy.nrow() >= 4), 
-        "BicubicSurface::BicubicSurface", 
-        "A BicubicSurface requires aX and aY to be of length 4, and af to"
-        " be 4x4");
+    _x.resize(aX.size()); _y.resize(aY.size());
+    _x = aX; _y = aY;
 
+    _hasRegularSpacing = false;
 
-    // CHECK DIMENSIONS OF AF
-    SimTK_ERRCHK_ALWAYS((( af.nrow() == aX.size() &&   af.ncol() == aY.size())
-                     &&  (afx.nrow() == aX.size() &&  afx.ncol() == aY.size())
-                     &&  (afy.nrow() == aX.size() &&  afy.ncol() == aY.size())
-                     && (afxy.nrow() == aX.size() && afxy.ncol() == aY.size())), 
-        "BicubicSurface::BicubicSurface", 
-        "Matrix f,fx,fy,fxy must have row dimensions that match the length"
-        "\nof vector X, and column dimensions that match the length of "
-        "\nof vector Y.");
+    constructFromKnownFunction(af, afx, afy, afxy);
+}
 
-    // INDEPENDENT VALUES (KNOT SEQUENCE)
-    _x.resize(aX.size());
-    _y.resize(aY.size());
-    _ff.resize(af.nrow(),af.ncol());
+BicubicSurface::Guts::Guts
+   (const Vec2& XY, const Vec2& spacing, const Matrix& af, 
+    const Matrix& afx, const Matrix& afy, const Matrix& afxy)
+{
+    construct();
 
-    _flagXEvenlySpaced = true;
-    _flagYEvenlySpaced = true;
+    // Check for reasonable spacing.
+    SimTK_ERRCHK2_ALWAYS(spacing > 0,
+        "BicubicSurface::ctor(XY,spacing,af,smoothness)", 
+        "A BicubicSurface requires positive spacing in both x and y"
+        " but spacing was %g and %g.", spacing[0], spacing[1]);
+
+    const int nx = af.nrow(), ny = af.ncol();
+    _x.resize(nx); _y.resize(ny);
+
+    for (int i=0; i < nx; ++i)
+        _x[i] = XY[0] + i*spacing[0];
+    for (int j=0; j < ny; ++j)
+        _y[j] = XY[1] + j*spacing[1];
+
+    _hasRegularSpacing = true;
+    _spacing = spacing;
+
+    constructFromKnownFunction(af, afx, afy, afxy);
+}
+
+// Expects _x and _y already to be filled in.
+void BicubicSurface::Guts::
+constructFromKnownFunction
+   (const Matrix& af, const Matrix& afx, const Matrix& afy,
+    const Matrix& afxy)
+{ 
+    const int nx = af.nrow(), ny = af.ncol();
+
+    // Check for sufficient sample size.
+    SimTK_ERRCHK2_ALWAYS(nx >= 4 && ny >= 4,
+        "BicubicSurface::ctor(f,fx,fy,fxy)", 
+        "A BicubicSurface requires at least 4 sample in x and y directions"
+        " but grid dimensions were %d and %d.", nx, ny);
+
+    SimTK_ERRCHK4_ALWAYS(_x.size() == nx && _y.size() == ny,
+        "BicubicSurface::ctor(f,fx,fy,fxy)", 
+        "Number of samples must match the grid dimension (%d X %d) but"
+        "the number of supplied sample points was %d X %d.",
+        nx, ny, _x.size(), _y.size());
+
+    SimTK_ERRCHK2_ALWAYS(   afx.nrow()  == nx && afx.ncol()  == ny
+                         && afy.nrow()  == nx && afy.ncol()  == ny
+                         && afxy.nrow() == nx && afxy.ncol() == ny,
+        "BicubicSurface::ctor(f,fx,fy,fxy)", 
+        "All the derivative sample matrices must match the grid dimension"
+        " (%d X %d).", nx, ny);
+
+    SimTK_ERRCHK_ALWAYS(   isMonotonicallyIncreasing(_x)
+                        && isMonotonicallyIncreasing(_y),
+        "BicubicSurface::ctor(f,fx,fy,fxy)",
+        "Sample vectors must each be monotonically increasing.");
+
+    _ff.resize(nx,ny);
+
     _debug = false;
 
-    Matrix tmpf(af.nrow(),af.ncol());
-    Vector tmpfcol(_x.size());
-    Vector tmpVal(1);
-
-    Real xsp = aX(1)-aX(0);
-    Real ysp = aY(1)-aY(0);
-    Real xspi=0.0;
-    Real yspj=0.0;
-
-    //Copy the data over, check for even spacing.
-    for(int i=0; i<_x.size();i++)
-    {
-        _x(i) = aX(i);
-        if(i > 0){ 
-            xspi = _x(0) + i*xsp;
-            if(std::abs(xspi-_x(i))/xsp > 1e-6) 
-                _flagXEvenlySpaced = false;
-        }
-
-        for(int j=0; j<_y.size();j++){
+    //Copy the data into our packed data structure.
+    for(int i=0; i < nx; ++i) {
+        for(int j=0; j < ny; ++j){
             Vec4& fij = _ff(i,j);
             fij[F]    = af(i,j);      
             fij[Fx]   = afx(i,j);
@@ -320,17 +399,8 @@ BicubicSurface::Guts::Guts
             fij[Fxy]  = afxy(i,j);
         }
     }
-
-    for(int j=0; j<_y.size();j++)
-    {
-        _y(j) = aY(j);
-        if(j > 0){ 
-            yspj = _y(0) + j*ysp;
-            if(std::abs(yspj-_y(j))/ysp > 1e-6) 
-                _flagYEvenlySpaced = false;
-        }
-    }
 }
+
 //_____________________________________________________________________________
 
 Real BicubicSurface::Guts::calcValue(const Vec2& aXY, PatchHint& hint) const
@@ -438,8 +508,9 @@ getFdF(const Vec2& aXY, int wantLevel,
        Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
        PatchHint& hint) const
 {
-    //0. Check if the surface is defined for the XY value given
-    //   Check if desired point is inside the grid, else throw an exception
+    ++numAccesses; // All surface accesses come through here.
+
+    //0. Check if the surface is defined for the XY value given.
     SimTK_ERRCHK6_ALWAYS(isSurfaceDefined(aXY), 
         "BicubicSurface::getFdF (private fcn)", 
         "BicubicSurface is not defined at requested location (%g,%g)."
@@ -451,14 +522,11 @@ getFdF(const Vec2& aXY, int wantLevel,
     // 1 means add 1st deriv, 2 is 2nd, 3 is 3rd
     assert(-1 <= wantLevel && wantLevel <= 3);
 
-    Real val = 0;
-    int pXidx = -1;
-    int pYidx = -1;
-
     BicubicSurface::PatchHint::Guts& h = hint.updGuts();
 
     //1. Check to see if we have already computed values for the requested point.
     if(h.level >= wantLevel && aXY == h.xy){
+        ++numAccessesSamePoint;
         fV      = h.fV;
         aijV    = h.a;
         aFdF.setToNaN();
@@ -477,17 +545,26 @@ getFdF(const Vec2& aXY, int wantLevel,
     h.xy = aXY;
     h.level = -1; // we don't know anything about this point
 
-    //1. Compute the indices that define the patch that the value is in    
-    int x0 = calcLowerBoundIndex(_x,aXY[0],pXidx,_flagXEvenlySpaced);
-    int x1 = x0+1;
-    int y0 = calcLowerBoundIndex(_y,aXY[1],pYidx,_flagYEvenlySpaced);
-    int y1 = y0+1;
+    // We're going to feed calcLowerBoundIndex() our best guess as to the
+    // patch this point is on. For regularly-spaced grid points we can find
+    // it exactly, except for some possible roundoff. Otherwise the best we
+    // can do is supply the current index from the hint.
+    int pXidx = h.x0, pYidx = h.y0;
+    if (_hasRegularSpacing) {
+        pXidx = clamp(0, (int)std::floor((h.xy[0]-_x[0])/_spacing[0]),
+                      _x.size()-2); // can't be last index
+        pYidx = clamp(0, (int)std::floor((h.xy[1]-_y[0])/_spacing[1]),
+                      _y.size()-2);
+    }
 
-    //2. Form the vector f
-    //3. Multiply by Ainv to form coefficient vector a
-            
-    //Compute Bicubic coefficients only if we're in a new patch
-    //else use the old ones, because this is an expensive step!
+    // Compute the indices that define the patch containing this value.    
+    const int x0 = calcLowerBoundIndex(_x,aXY[0],pXidx);
+    const int x1 = x0+1;
+    const int y0 = calcLowerBoundIndex(_y,aXY[1],pYidx);
+    const int y1 = y0+1;
+ 
+    // Compute Bicubic coefficients only if we're in a new patch
+    // else use the old ones, because this is an expensive step!
     if( !(h.x0 == x0 && h.y0 == y0) ) {
         // The hint is no good at all since it is for the wrong patch.
         h.clear();
@@ -499,6 +576,8 @@ getFdF(const Vec2& aXY, int wantLevel,
         h.yS = _y(y1)-_y(y0);
         h.ooxS = 1/h.xS; h.ooxS2 = h.ooxS*h.ooxS; h.ooxS3=h.ooxS*h.ooxS2;
         h.ooyS = 1/h.yS; h.ooyS2 = h.ooyS*h.ooyS; h.ooyS3=h.ooyS*h.ooyS2;
+
+        // Form the vector f and multiply Ainv*f to form coefficient vector a.
 
         const Vec4& f00 = _ff(x0,y0);
         const Vec4& f01 = _ff(x0,y1);
@@ -530,20 +609,24 @@ getFdF(const Vec2& aXY, int wantLevel,
         getCoefficients(h.fV,h.a);
     }
 
+    // At this point we know that the hint contains valid patch information,
+    // but it contains no valid point information.
+
+    // TODO: get rid of these return values.
     fV      = h.fV;
     aijV    = h.a;
 
     if (wantLevel == -1) {
-        aFdF.setToNaN();
+        aFdF.setToNaN(); // caller just wanted patch info
         return;   
     }
 
-    const Vec<16>& a = h.a; // abbreviate
+    const Vec<16>& a = h.a; // abbreviate for convenience
 
 
-    //Compute where in the patch we are. This has to
-    //be done everytime the location within the patch changes
-    // ... which has happened if this code gets executed
+    // Compute where in the patch we are. This has to
+    // be done everytime the location within the patch changes
+    // ... which has happened if this code gets executed.
 
     //--------------------------------------------------------------------------
     // Evaluate function value f (38 flops).
@@ -695,95 +778,87 @@ not found a binary search is performed
             aVal without exceeding it.
 
 */
+
+// Return true if aVal is on the patch (really the line) between 
+// aVec[indxL] and aVec[indxL+1]. By "on the patch" we mean that
+// aVec[indxL] <= aVal < aVec[indxL+1] unless this is the last patch in
+// which case we allow aVec[indxL] < aVal <= aVec[indxL+1].
+static bool isOnPatch(const Vector& aVec, int indxL, Real aVal) {
+    assert(aVec.size() >= 2);
+    const int maxLB = aVec.size() - 2;
+    assert(0 <= indxL && indxL <= maxLB);
+
+    const Real low = aVec[indxL], high = aVec[indxL+1];
+
+    if (aVal < low || aVal > high)
+        return false;
+
+    // Here we know low <= aVal <= high.
+    if (aVal < high)
+        return true;
+
+    // Here we know low < aVal == high. This is only allowed on the last patch.
+    return indxL == maxLB;
+}
+
 int BicubicSurface::Guts::
-calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx, bool evenlySpaced) const
-{
+calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx) const {
     int idxLB = -1;
     bool idxComputed = false;
-    bool scalarVector = false;
 
-    if(aVec.size()<=1) scalarVector = true;
+    assert(aVec.size() >= 2);
 
-    
-    if(scalarVector == false){
-        //Compute index if the data is evenly spaced    
-        if(evenlySpaced==true){
-            Real sp = aVec(1)-aVec(0);
-            Real minVal = aVec(0);
-            idxLB = (int)floor((aVal-minVal)/sp);
-            idxComputed = true;
-        }else{ 
-            //We have to search for the index
+    // Because we're trying to find the lower index, it can't be the very
+    // last knot.
+    const int maxLB = aVec.size() - 2;
         
-            //1. Do a local search around the previous index, if one is given
-            if(pIdx >= 0 && pIdx <= aVec.size()){                
-                int idxL = std::max(pIdx-1,0);
-                int idxU = std::min(pIdx+1,aVec.size());
-                if(aVal < aVec(idxU)  && aVal > aVec(idxL)){
-                    if(aVal > aVec(pIdx))
-                        idxLB = pIdx;    
-                    else
-                        idxLB = idxL;                        
-                    idxComputed = true;
-                }    
+    // 1. Do a local search around the previous index, if one is given.
+    if(0 <= pIdx && pIdx <= maxLB) {    
+        // Are we still on the same patch? Caution -- can't be equal to the
+        // upper knot unless it is the last one.
+        if (isOnPatch(aVec, pIdx, aVal)) {
+            ++numAccessesSamePatch;
+            return pIdx;
+        }
+
+        // Not on the same patch, how about adjacent patches?
+        if (aVal < aVec[pIdx]) {
+            // Value moved below the current patch.
+            if (pIdx > 0 && isOnPatch(aVec, pIdx-1, aVal)) {
+                ++numAccessesNearbyPatch;
+                return pIdx-1; // found it next door!
             }
+        } else if (aVal >= aVec[pIdx+1]) {
+            // Value moved above the current patch.
+            if (pIdx < maxLB && isOnPatch(aVec, pIdx+1, aVal)) {
+                ++numAccessesNearbyPatch;
+                return pIdx+1; // found it next door!
+            }
+        }    
+    }
     
-            
-            if(idxComputed == false){
-                //2. If still not found check the end points
-                if(aVal <= aVec(0)){ 
-                    idxLB = 0;
-                    idxComputed = true;
-                }else if(aVal >= aVec(aVec.size()-1)){
-                    idxLB = aVec.size()-1;
-                    idxComputed = true;
-                }
+    // Either we didn't have a previous index to try, or it didn't help.
+
+    // 2. Check the end points. We'll count these as "nearby patches" since
+    // they are about the same amount of work.
+    if (aVal <= aVec[0]) {
+        ++numAccessesNearbyPatch;
+        return 0;
+    }
+    if (aVal >= aVec[maxLB+1])  {
+        ++numAccessesNearbyPatch;
+        return maxLB;
+    }
         
-                //If still not found, use bisection method to find the appropriate index
-                if(idxComputed == false){
-                    int idxL = 0;
-                    int idxU = aVec.size()-1;
-                    int idxM = 0;
-                    while (idxU-idxL > 1) {
-                        idxM = (idxU+idxL)/2;
-                        if (aVec(idxM) > aVal)
-                            idxU = idxM;
-                        else
-                            idxL = idxM;
-                    }
-                    if(aVal > aVec(idxL) && aVal < aVec(idxU)){
-                        idxLB = idxL;
-                        idxComputed = true;
-                    }
-
-
-                }
-            }
-        }
-    }
-    //Check to ensure that idxLB is within the bounds of the vector. 
-    //This index could be outside the bounds if the data is evenly spaced, and aVal
-    //is outside the range of the vector.
-    if(idxLB < 0)
-        idxLB = 0;
-    if(idxLB >= (aVec.size()-1))
-        idxLB = aVec.size()-2;
-
-    if (!evenlySpaced) {
-        const Real* lower = std::lower_bound(&aVec[0], &aVec[0] + aVec.size(), aVal);
-        int lowerIx = std::max((int)(lower-&aVec[1]), 0);
-
-        //printf("-----> Matt computed %d, --lower=%d\n",
-        //    idxLB, lowerIx);
-
-        if (idxLB != lowerIx) {
-            printf("*** DISAGREED WITH LOWER FOR aVal=%g Matt=%g --lower=%g\n", 
-            aVal, aVal-aVec[idxLB], aVal-aVec[lowerIx]);
-            assert(false);
-        }
-    }
-
-    return idxLB;
+    // 3. If still not found, use binary search to find the appropriate index.
+    
+    // std::upper_bound returns the index of the first element that
+    // is strictly greater than aVal (one after the last element
+    // if aVal is exactly equal to the last knot).
+    const Real* upper = 
+        std::upper_bound(&aVec[0], &aVec[0] + aVec.size(), aVal);
+    const int upperIx = clamp(0, (int)(upper-&aVec[1]), maxLB);
+    return upperIx;
 }
 
 /**

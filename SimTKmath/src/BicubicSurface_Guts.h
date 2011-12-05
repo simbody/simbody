@@ -102,107 +102,42 @@ public:
 //==============================================================================
 //                  CLASS BICUBIC SURFACE :: GUTS
 //==============================================================================
-/** Private implementation of BicubicSurface. **/
+// Private implementation of BicubicSurface.
 class SimTK_SIMMATH_EXPORT BicubicSurface::Guts {
 friend class BicubicSurface;
 public:
-    /** Construct an uninitialized BicubicSurface object. This can be filled
-    in later by assignment. Reference count is zero after construction. **/    
+    // Construct an uninitialized BicubicSurface object. This can be filled
+    // in later by assignment. Reference count is zero after construction.   
     Guts() {construct();}
+    // This class should not be destructed until the reference count drops
+    //to zero.
     ~Guts() {assert(referenceCount==0);}
 
     
-    /** Construct a bicubic surface that approximates f(x,y)
-    with the spacing between each grid point in f defined by the vectors x and 
-    y. The smoothness paramter controls how closely the surface approaches the 
-    grid points specified in matrix f, with the default being that the surface
-    will pass exactly through those points.
-
-    @param x    Vector of sample locations along the X axis (minimum 4 values).
-                Must be monotonically increasing (no duplicates).
-    @param y    Vector of sample locations along the Y axis (minimum 4 values).
-                Must be monotonically increasing (no duplicates).            
-    @param f    
-        Matrix of function values (or surface heights) evaluated at the grid 
-        points formed by x and y (dimension x.size() X y.size()), such that 
-        f(i,j) is F(x[i],y[j]) where F is the function being approximated here.
-    @param smoothness 
-        A value of 0 will force surface to pass through all of the 
-        points in f(x,y). As smoothness tends to 1, the surface will 
-        become smoother and smoother, but will not pass through the knot 
-        points stored in matrix \a f.
-
-    If your sample points are regularly spaced, use the other constructor. **/
+    // Implementation of the specified-sample points constructor.
     Guts(const Vector& x, const Vector& y, const Matrix& f, 
-                   Real smoothness);
+         Real smoothness);
 
-    /** Construct a bicubic surface that approximates f(x,y)
-    over a grid with regular spacing in both the x and y directions. The 
-    smoothness parameter controls how closely the surface approaches the 
-    grid points specified in matrix f, with the default being that the surface
-    will pass exactly through those points.
+    // Implementation the regularly-sampled constructor.
+    Guts(const Vec2& XY, const Vec2& spacing, 
+         const Matrix& f, Real smoothness);
 
-    @param xSpacing     Spacing for x-axis sampling; must be greater than 0.
-    @param ySpacing     Spacing for y-axis sampling; must be greater than 0.
-    @param f            
-        Matrix of function values (or surface heights) evaluated at points of 
-        the x-y plane regularly sampled using the upplied spacings. Can be 
-        rectangular but must have minimum dimension 4x4. Here 
-        f(i,j)=F(i*xSpacing,j*ySpacing) where F is the function being 
-        approximated.
-    @param smoothness 
-        A value of 0 will force surface to pass through all of the 
-        points in f(x,y). As smoothness tends to 1, the surface will 
-        become smoother and smoother, but will not pass through the knot 
-        points stored in matrix \a f.
+    // Implementation of the advanced constructor that gives all derivatives
+    // at each grid point.
+    Guts(const Vector& x, const Vector& y, const Matrix& f, 
+         const Matrix& fx, const Matrix& fy, const Matrix& fxy);
+    Guts(const Vec2& XY, const Vec2& spacing, const Matrix& f, 
+         const Matrix& fx, const Matrix& fy, const Matrix& fxy);
 
-    If your sample points are not regularly spaced, use the other constructor.
-    **/
-    Guts(Real xSpacing, Real ySpacing, const Matrix& f, Real smoothness)
-    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
-        "BicubicSurface::Guts", "ctor(xSpacing,ySpacing,f,smoothness)"); }
-
-    /** Calculate the value of the surface at a particular XY coordinate. Note
-    that XY must be a vector with only 2 elements in it (because this is a
-    2-argument function), anything else will throw an exception. This is the
-    required implementation of the Function base class pure virtual.
-     
-    @param XY the 2-Vector of input arguments X and Y. 
-    @return The interpolated value of the function at point (X,Y). **/
+    // Calculate the value of the surface at a particular XY coordinate.
     Real calcValue(const Vec2& XY, PatchHint& hint) const;
     
-    /** Calculate a partial derivative of this function at a particular point.  
-    Which derivative to take is specified by listing the input components
-    (0==x, 1==y) with which to take it. For example, if derivComponents=={0}, 
-    that indicates a first derivative with respective to argument x.  
-    If derivComponents=={0, 0, 0}, that indicates a third derivative with
-    respective to argument x.  If derivComponents=={0, 1}, that indicates 
-    a partial second derivative with respect to x and y, that is Df(x,y)/DxDy.
-    (We use capital D to indicate partial derivative.)
-     
-    @param derivComponents  
-        The input components with respect to which the derivative should be 
-        taken. Its size must be less than or equal to the  value returned by 
-        getMaxDerivativeOrder().      
-    @param XY    
-        The vector of two input arguments that define the XY location on the 
-        surface. 
-    @return The interpolated value of the selected function partial derivative
-    for arguments (X,Y). **/
+    // Calculate a partial derivative of this function at a particular pXY
+    // coordinate.
     Real calcDerivative(const Array_<int>& derivComponents, 
                         const Vec2& XY, PatchHint& hint) const;
     
-    /** The surface interpolation only works within the grid defined by the 
-    vectors x and y used in the constructor. This function check to see if an 
-    XYval is within the defined bounds of this particular BicubicSurface.
-     
-    @param XY   The vector of exactly 2 input arguments that define the XY 
-                location on the surface.
-    @return \c true if the point is in range, \c false otherwise. 
-    
-    An attempt to invoke calcValue() or calcDerivative() on an out-of-range
-    point will raise an exception; use this method to check first if you 
-    are not sure. **/
+    // Determine if a point is within the defined surface.
     bool isSurfaceDefined(const Vec2& XY) const;
 
     int getReferenceCount() const {return referenceCount;}
@@ -210,47 +145,29 @@ public:
     int decrReferenceCount() const 
     {assert(referenceCount);return --referenceCount;}
 
-    /** @return The total number of elements in the matrix f **/
+    // return The total number of elements in the matrix f
     int getFnelt() const {return _ff.nelt();}
-    /** @return The number of elements in the vector X **/
+    // return The number of elements in the vector X
     int getXnelt() const {return _x.nelt();}
-    /** @return  The number of elements in the vector Y **/
+    // return  The number of elements in the vector Y
     int getYnelt() const {return _y.nelt();}
     
-    /** @name           Methods for debugging and testing
-    Don't call these methods unless you are sure you know what you're doing.
-    There is no guarantee that these will remain in the API from release to
-    release. **/
-    /**@{**/
+    // Methods for debugging and testing
 
-    /** Sets a flag that prints a lot of useful debugging data to the screen
-    when this class is used.
-    @param aDebug   setting this value to true will cause a lot of data to be
-                    printed to the screen **/
+    // Sets a flag that prints a lot of useful debugging data to the screen
+    // when this class is used.
     void setDebug(bool aDebug) {_debug = aDebug;}
      
-    /** @return  the matrix ff, which defines the grid points that the surface
-    actually passes through, and derivatives fx,fy,fxy. **/
+    // return  the matrix ff, which defines the grid points that the surface
+    // actually passes through, and derivatives fx,fy,fxy.
     const Matrix_<Vec4>& getff() const {return _ff;}
 
-    ///** @return  the matrix fx, which defines the values of fx(x,y) at the 
-    //grid pts **/
-    //const Matrix& getfx() const {return _fx;}
-    
-    ///** @return  the matrix fy, which defines the values of fy(x,y) at the 
-    //grid pts **/
-    //const Matrix& getfy() const {return _fy;}
-
-    ///** @return  the matrix fxy, which defines the values of fxy(x,y) at the 
-    //grid pts **/
-    //const Matrix& getfxy() const {return _fxy;}
-
-    /** @return  the vector x, which defines one side of the mesh grid for 
-    which f(x,y) is defined. **/
+    // return  the vector x, which defines one side of the mesh grid for 
+    // which f(x,y) is defined.
     const Vector& getx() const {return _x;}
     
-    /** @return  the vector y, which defines one side of the mesh grid for 
-    which f(x,y) is defined. **/
+    // return  the vector y, which defines one side of the mesh grid for 
+    // which f(x,y) is defined.
     const Vector& gety() const {return _y;}
 
     /** Return the function values for the patch containing a particular point.
@@ -289,24 +206,9 @@ public:
         return aV;
     }
 
-    /** A constructor for a bicubic surface that sets the partial derivatives 
-    of the surface to the values specified by fx, fy, and fxy.
-
-    @param x: vector of X grid points (minimum 4 values)
-    @param y: vector of Y grid points (minimum 4 values)
-    @param f:   matrix of the surface heights evaluated at the grid formed 
-                by x and y (minumum 4x4)
-    @param fx:  matrix of the partial derivative of f w.r.t to x (minumum 4x4)
-    @param fy:  matrix of the partial derivative of f w.r.t to y (minumum 4x4)
-    @param fxy: matrix of the partial derivative of f w.r.t to x,y (minumum 4x4)
-    */
-    Guts(const Vector& x, const Vector& y, const Matrix& f, 
-         const Matrix& fx, const Matrix& fy, const Matrix& fxy);
-    /**@}**/
 
 private:
-    int calcLowerBoundIndex(const Vector& vecV, Real value, int pIdx,
-                                                    bool evenlySpaced) const;
+    int calcLowerBoundIndex(const Vector& vecV, Real value, int pIdx) const;
     void getCoefficients(const Vec<16>& f, Vec<16>& aV) const;
     void getFdF(const Vec2& aXY, int wantLevel,
                 Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
@@ -316,9 +218,24 @@ private:
     void construct() {
         referenceCount = 0;
         resetStatistics();
-        _flagXEvenlySpaced = _flagYEvenlySpaced = false;
+        _hasRegularSpacing = false;
         _debug = false;
     }
+
+    // Return true if the entries in this vector are monotonically increasing
+    // (no duplicates allowed).
+    static bool isMonotonicallyIncreasing(const Vector& v) {
+        for (int i=1; i < v.size(); ++i)
+            if (v[i] <= v[i-1]) return false;
+        return true;
+    }
+
+    // Shared by the irregular and regular-spaced constructors.
+    void constructFromSplines
+       (const Matrix& f, Real smoothness);
+    void constructFromKnownFunction
+       (const Matrix& f, const Matrix& fx, const Matrix& fy,
+        const Matrix& fxy);
 
 //=============================================================================
 // MEMBER VARIABLES
@@ -340,9 +257,18 @@ private:
     // PROPERTIES
     // Array of values for the independent variables (i.e., the spline knot
     // sequence). Each array must be monotonically increasing, of size nx and 
-    // ny elements.
+    // ny elements. These are filled in even if the grid is regularly 
+    // spaced, although we'll use the spacing to avoid a search. The values
+    // here define the actual grid points; if roundoff causes a calculated
+    // grid location to be different, these take priority.
     Vector _x, _y;
-    bool _flagXEvenlySpaced, _flagYEvenlySpaced;
+
+    // If the grid has regular spacing we remember the specified spacing
+    // here and use it instead of searching when we need to move to a new patch.
+    // Note that the grid values are _x[0]+i*spacing[0] and _y[0]+j*spacing[1],
+    // but you still have to check in _x and _y to avoid roundoff problems.
+    bool _hasRegularSpacing;
+    Vec2 _spacing;
 
     // 2D nx X ny z values that correspond to the values at the grid defined
     // by x and y, and the partial differentials at those grid points. The
