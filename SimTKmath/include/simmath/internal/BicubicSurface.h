@@ -232,113 +232,6 @@ public:
     are not sure. **/
     bool isSurfaceDefined(const Vec2& XY) const;
 
-
-#ifdef NOTDEF
-    /**
-     
-     @return The total number of elements in the matrix f 
-    */
-    int getFnelt() const;
-    /**
-    
-    @return The number of elements in the vector X
-    */
-    int getXnelt() const;
-    /**
-    
-    @return  The number of elements in the vector Y
-    */
-    int getYnelt() const;
-    
-    /** @name           Methods for debugging and testing
-    Don't call these methods unless you are sure you know what you're doing.
-    There is no guarantee that these will remain in the API from release to
-    release. **/
-    /**@{**/
-
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.    
-    Sets a flag that prints a lot of useful debugging data to the screen when
-    this class is used
-
-    @param aDebug   setting this value to true will cause a lot of data to be
-                    printed to the screen
-    */
-    void setDebug(bool aDebug);
-    
-    
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.    
-    
-    @return  the matrix f, which defines the grid points that the surface
-    actually passes through
-    */
-    Matrix getf();
-
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.   
-    
-    @return  the matrix fx, which defines the values of fx(x,y) at the grid pts
-    */
-    Matrix getfx();
-    
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.   
-    
-    @return  the matrix fy, which defines the values of fy(x,y) at the grid pts
-    */
-    Matrix getfy();
-
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.   
-    
-    @return  the matrix fxy, which defines the values of fxy(x,y) at the grid pts
-    */
-    Matrix getfxy();
-
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.   
-    
-    @return  the vector x, which defines one side of the mesh grid for which
-             f(x,y) is defined.
-    */
-    Vector getx();
-    
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.   
-    
-    @return  the vector y, which defines one side of the mesh grid for which
-             f(x,y) is defined.
-    */
-    Vector gety();
-
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.  
-
-    @param  XY an (X,Y) location within the grid
-    @return  The 16x1 vector that defines the values of f,fx,fy, and fxy at the 
-             corners. The vector is given in the following order
-
-             f(0,0)   f(1,0)   f(0,1)   f(1,1),
-             fx(0,0)  fx(1,0)  fx(0,1)  fx(1,1),
-             fy(0,0)  fy(1,0)  fy(0,1)  fy(1,1),
-             fxy(0,0) fxy(1,0) fxy(0,1) fxy(1,1)
-    */
-    Vector getPatchFunctionVector(const Vec2& XY);
-    
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE. 
-
-    @param  XY an (X,Y) location within the grid
-    @return  The 16x1 vector that defines the values of the coefficients aij of 
-             the bicubic surface interpolation in this patch. The coefficient 
-             vector is given in the following order
-             
-             a00,a10,a20,a30,a01,a11,a21,a31,a02,a12,a22,a32,a03,a13,a23,a33
-    */
-    Vector getPatchBicubicCoefficients(const Vec2& XY);
-#endif
-
     /**
     DEBUGGING CODE ONLY. DO NOT USE.  
 
@@ -395,9 +288,13 @@ public:
     call isEmpty() will return \c true. **/
     void clear();
 
-private:
+    /** @cond **/ // Hide from Doxygen
     class Guts; // Hidden implementation of PatchHint.
-    PatchHint::Guts* guts;
+    const Guts& getGuts() const {return *guts;}
+    Guts&       updGuts()       {return *guts;}
+    /** @endcond **/
+private:
+    Guts* guts;
 };
 
 

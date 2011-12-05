@@ -49,6 +49,10 @@ using namespace std;
 //                              BICUBIC SURFACE
 //==============================================================================
 
+// This is just a handle for BicubicSurface::Guts, which is the shared,
+// underlying surface representation. Here we just manage the reference
+// count and otherwise forward all requests to the Guts class.
+
 // Default constructor is inline; just sets guts pointer to null.
 
 // Destructor: delete guts if this is the last referencing handle.
@@ -147,69 +151,65 @@ BicubicSurface::Guts::Guts(const Vector& aX, const Vector& aY,
     construct();
     
     // CHECK NUMBER OF DATA POINTS
-    SimTK_ERRCHK_ALWAYS( ((aX.size() >= 4 && aY.size() >= 4)
-                      && ( af.ncol() >= 4 && af.nrow() >= 4) ), 
-        "BicubicSurface::BicubicSurface", 
-        "A BicubicSurface requires aX and aY to be of length 4,"
-        " and af to be 4x4");
+    SimTK_ERRCHK2_ALWAYS(aX.size() >= 4 && aY.size() >= 4,
+        "BicubicSurface::ctor()", 
+        "A BicubicSurface requires both aX and aY to be of length at least 4"
+        " but lengths were %d and %d.", aX.size(), aY.size());
 
     // CHECK DIMENSIONS OF AF
-    SimTK_ERRCHK_ALWAYS((af.ncol() == aX.size()
+    SimTK_ERRCHK4_ALWAYS((af.ncol() == aX.size()
                       && af.nrow() == aY.size()), 
-        "BicubicSurface::BicubicSurface", 
-        "Matrix f(x,y) must have a row dimension that matches the size of "
-        "\n vector X, and a column dimension that matches the size of "
-        "\n vector Y");
-
+        "BicubicSurface::ctor()", 
+        "Matrix f(x,y) must have a row dimension that matches the size of"
+        " vector X (%d), and a column dimension that matches the size of"
+        " vector Y (%d), but it was %d X %d.", aX.size(), aY.size(),
+        af.nrow(), af.ncol());
 
     // INDEPENDENT VALUES (KNOT SEQUENCE)
     _x.resize(aX.size());
     _y.resize(aY.size());
-    _f.resize(af.nrow(),af.ncol());
-
-    _fx.resize(af.nrow(),af.ncol());
-    _fy.resize(af.nrow(),af.ncol());
-    _fxy.resize(af.nrow(),af.ncol());
+    _ff.resize(af.nrow(),af.ncol());
 
     _flagXEvenlySpaced = true;
     _flagYEvenlySpaced = true;
     _debug = false;
 
-    Matrix tmpf(af.nrow(),af.ncol());
-    Vector tmpfcol(_x.size());
-    Vector tmpVal(1);
+    // These temporaries are needed for indexing into the Spline functions.
+    Vector            coord(1);
+    const Array_<int> deriv1(1,0); // just one zero to pick 1st derivative
 
     Real xsp = aX(1)-aX(0);
     Real ysp = aY(1)-aY(0);
     Real xspi=0.0;
     Real yspj=0.0;
     
-    //Interpolate position data according to the smoothness factor.
-    for(int j=0; j<_y.size();j++){
-        tmpfcol = af(j);        
-        Spline_<Real> xspline = SplineFitter<Real>::fitForSmoothingParameter(3,aX,tmpfcol,smoothness).getSpline();
+    // Interpolate position data along lines of constant y (columns of the
+    // sampling matrix f), according to the smoothness factor.
+    // TODO: should this also smooth along x?
+    for(int j=0; j<_y.size();j++){       
+        Spline_<Real> xspline = SplineFitter<Real>::fitForSmoothingParameter
+                                        (3,aX,af(j),smoothness).getSpline();
         for(int i=0; i<_x.size(); i++){    
-            tmpVal(0) = aX(i);
-            tmpf(i,j) = xspline.calcValue(tmpVal);
+            coord[0] = aX(i);
+            Vec4& fij = _ff(i,j);
+            fij[F] = xspline.calcValue(coord);
+            fij[Fx] = xspline.calcDerivative(deriv1,coord);
         }
     }
 
+    //TODO: get rid of this.
+
     //Copy the data over, check for even spacing.
-    for(int i=0; i<_x.size();i++)
-    {
+    for(int i=0; i<_x.size();i++) {
         _x(i) = aX(i);
-        if(i > 0){ 
+        if(i > 0) { 
             xspi = _x(0) + i*xsp;//aX[i]-aX[i-1];
             if(std::abs(xspi-_x(i))/xsp > 1e-6) 
                 _flagXEvenlySpaced = false;
-        }
-
-        for(int j=0; j<_y.size();j++)
-            _f(i,j) = tmpf(i,j);                        
+        }               
     }
 
-    for(int j=0; j<_y.size();j++)
-    {
+    for(int j=0; j<_y.size();j++) {
         _y(j) = aY(j);
         if(j > 0){ 
             yspj = _y(0) + j*ysp;//yspj = aY[j]-aY[j-1];
@@ -218,69 +218,43 @@ BicubicSurface::Guts::Guts(const Vector& aX, const Vector& aY,
         }
     }
 
-    Vector tmpVX(_x.size());
-    RowVector tmpVY(_y.size());
-    RowVector tmpVXY(_y.size());
-    Vector tmpdFV;    
-    Vector tmpdFXYV;
-    Array_<int, unsigned int> deriv1(1);
-    deriv1[0]=0;
-
     //Compute fx using NaturalCubicSplines
     //Future upgrade: make the type of spline user selectable
-    //tmpdFV.resize(_x.size());
-    
-    tmpVal.resize(1);
 
-    for(int j=0; j<_y.size();j++){
-        tmpVX = _f(j);        
-        Spline_<Real> xspline = 
-            SplineFitter<Real>::fitForSmoothingParameter(3,_x,tmpVX,0.0).getSpline();
-        for(int i=0; i<_x.size(); i++){    
-            tmpVal(0) = _x(i);
-            _fx(i,j) = xspline.calcDerivative(deriv1,tmpVal);
-        }
-    }
+    // sherm: why does this have to be done separately? I moved it above.
+    //for(int j=0; j<_y.size();j++){
+    //    tmpVX = _f(j); // round brackets grabs a column        
+    //    Spline_<Real> xspline = SplineFitter<Real>::fitForSmoothingParameter
+    //                                               (3,_x,tmpVX,0.0).getSpline();
+    //    for(int i=0; i<_x.size(); i++){    
+    //        coord[0] = _x(i);
+    //        _fx(i,j) = xspline.calcDerivative(deriv1,coord);
+    //    }
+    //}
 
-    //Compute fy and fxy using NaturalCubicSplines
-    //Future upgrade: make the type of spline user selectable
-    tmpdFV.resize(_y.size());
-    tmpdFXYV.resize(_y.size());
-
+    // Compute fy and fxy using NaturalCubicSplines
+    // Note that we are using the already-smoothed value of f here.
+    Vector tmpRow(_y.size());
     for(int i=0; i<_x.size();i++){
-        tmpVY = _f[i]; //square brackets grabs a row
-        tmpVXY = _fx[i];
-        Spline_<Real> yspline   = 
-            SplineFitter<Real>::fitForSmoothingParameter(3,_y,~tmpVY,0.0).getSpline();        
-        Spline_<Real> ydxspline = 
-            SplineFitter<Real>::fitForSmoothingParameter(3,_y,~tmpVXY,0.0).getSpline();
+        // Fit splines along rows of constant x to go exactly through the 
+        // already-smoothed sample points in order to get fy=Df/Dy.
+        for (int j=0; j<_y.size(); ++j) tmpRow[j] = _ff(i,j)[F];
+        Spline_<Real> yspline = SplineFitter<Real>::fitForSmoothingParameter
+                                                 (3,_y,tmpRow,0).getSpline();
 
+        // Fit splines along rows of constant x to interpolate fx in the y
+        // direction to give fxy=Dfx/dy.
+        for (int j=0; j<_y.size(); ++j) tmpRow[j] = _ff(i,j)[Fx];
+        Spline_<Real> ydxspline = SplineFitter<Real>::fitForSmoothingParameter
+                                                 (3,_y,tmpRow,0).getSpline();
 
         for(int j=0; j<_y.size(); j++){    
-            tmpVal(0) = _y(j);            
-            _fy(i,j)    =   yspline.calcDerivative(deriv1,tmpVal);            
-            _fxy(i,j)    = ydxspline.calcDerivative(deriv1,tmpVal);
+            coord[0] = _y(j);
+            Vec4& fij = _ff(i,j);
+            fij[Fy]  = yspline.calcDerivative(deriv1,coord);            
+            fij[Fxy] = ydxspline.calcDerivative(deriv1,coord);
         }
     }
-
-    //These are mutable so I can set them in the const functions that the user
-    //uses to call calcValue, and calcDerivative
-    _pXYVal     = Vector(2);
-    _pXYIdx     = Array_<int>(4);
-    _pFdF       = Vector(10);
-    _fV         = Vector(16);
-    _aV         = Vector(16);
-
-    //Initialize the record data with values that will not show up in any
-    //user's mesh grid.
-    _pXYVal = NaN;
-    _pXYIdx[0] = -1;
-    _pXYIdx[1] = -1;
-    _pXYIdx[2] = -1;
-    _pXYIdx[3] = -1;
-    _pFdF = NaN;
-    _fV = NaN;
-    _aV =  NaN;
 }
 
 BicubicSurface::Guts::Guts
@@ -313,11 +287,7 @@ BicubicSurface::Guts::Guts
     // INDEPENDENT VALUES (KNOT SEQUENCE)
     _x.resize(aX.size());
     _y.resize(aY.size());
-    _f.resize(af.nrow(),af.ncol());
-
-    _fx.resize(af.nrow(),af.ncol());
-    _fy.resize(af.nrow(),af.ncol());
-    _fxy.resize(af.nrow(),af.ncol());
+    _ff.resize(af.nrow(),af.ncol());
 
     _flagXEvenlySpaced = true;
     _flagYEvenlySpaced = true;
@@ -343,10 +313,11 @@ BicubicSurface::Guts::Guts
         }
 
         for(int j=0; j<_y.size();j++){
-            _f(i,j)     = af(i,j);      
-            _fx(i,j)    = afx(i,j);
-            _fy(i,j)    = afy(i,j);
-            _fxy(i,j)   = afxy(i,j);
+            Vec4& fij = _ff(i,j);
+            fij[F]    = af(i,j);      
+            fij[Fx]   = afx(i,j);
+            fij[Fy]   = afy(i,j);
+            fij[Fxy]  = afxy(i,j);
         }
     }
 
@@ -359,31 +330,13 @@ BicubicSurface::Guts::Guts
                 _flagYEvenlySpaced = false;
         }
     }
-
-    //These are mutable so I can set them in the const functions that the user
-    //uses to call calcValue, and calcDerivative
-    _pXYVal     = Vector(2);
-    _pXYIdx     = Array_<int>(4);
-    _pFdF       = Vector(10);
-    _fV         = Vector(16);
-    _aV         = Vector(16);
-
-    //Initialize the record data with values that will not show up in any
-    //user's mesh grid.
-    _pXYVal = NaN;
-    _pXYIdx[0] = -1;
-    _pXYIdx[1] = -1;
-    _pXYIdx[2] = -1;
-    _pXYIdx[3] = -1;
-    _pFdF = NaN;
-    _fV = NaN;
-    _aV =  NaN;
 }
 //_____________________________________________________________________________
 
 Real BicubicSurface::Guts::calcValue(const Vec2& aXY, PatchHint& hint) const
 {    
-    Vector fV, aV, aFdF; 
+    Vec<16> fV, aV;
+    Vec<10> aFdF;
     getFdF(aXY,fV,aV,aFdF, hint);
     return aFdF(0);
 }
@@ -405,7 +358,8 @@ Real BicubicSurface::Guts::calcDerivative
     if (aDerivComponents.size() > 3)
         return 0;   // 4th and higher derivatives are all zero
 
-    Vector fV, aV, aFdF; 
+    Vec<16> fV, aV;
+    Vec<10> aFdF;
     getFdF(aXY,fV,aV,aFdF, hint);
     // 0=f, 1=fx, 2=fy, 3=fxy, 4=fxx, 5=fyy, 6=fxxx, 7=fxxy, 8=fyyy, 9=fxyy
     //                   =fyx                         =fyxx           =fyyx
@@ -473,7 +427,7 @@ derivatives at the point XY. These values are stored in the following order:
             fxxx(x,y) fxxy(x,y) fyyy(x,y) fxyy(x,y)
 */
 void BicubicSurface::Guts::
-getFdF(const Vec2& aXY, Vector& fV, Vector& aijV, Vector& aFdF,
+getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
        PatchHint& hint) const
 {
     //0. Check if the surface is defined for the XY value given
@@ -487,13 +441,14 @@ getFdF(const Vec2& aXY, Vector& fV, Vector& aijV, Vector& aFdF,
     Real val = 0;
     int pXidx = -1;
     int pYidx = -1;
-    aFdF.resize(10);
+
+    BicubicSurface::PatchHint::Guts& hintg = hint.updGuts();
 
     //1. Check to see if we have already computed values for the requested point.
-    if(aXY(0) == _pXYVal(0) && aXY(1) == _pXYVal(1)){
-        aFdF    = _pFdF;
-        fV      = _fV;
-        aijV    = _aV;
+    if(aXY(0) == hintg._pXYVal(0) && aXY(1) == hintg._pXYVal(1)){
+        aFdF    = hintg._pFdF;
+        fV      = hintg._fV;
+        aijV    = hintg._aV;
         return;    
     }
 
@@ -514,36 +469,39 @@ getFdF(const Vec2& aXY, Vector& fV, Vector& aijV, Vector& aFdF,
     const Real ooyS = 1/yS, ooyS2 = ooyS*ooyS, ooyS3=ooyS*ooyS2;
 
     //3. Multiply by Ainv to form coefficient vector a
-    fV.resize(16);                       
-    aijV.resize(16);
             
     //Compute Bicubic coefficients only if we're in a new patch
     //else use the old ones, because this is an expensive step!
-    if( !(_pXYIdx[0] == x0 && _pXYIdx[2] == y0) ){
-        fV(0) =  _f(x0,y0);
-        fV(1) =  _f(x1,y0);
-        fV(2) =  _f(x0,y1);
-        fV(3) =  _f(x1,y1);
+    if( !(hintg._pXYIdx[0] == x0 && hintg._pXYIdx[2] == y0) ) {
+        const Vec4& f00 = _ff(x0,y0);
+        const Vec4& f01 = _ff(x0,y1);
+        const Vec4& f10 = _ff(x1,y0);
+        const Vec4& f11 = _ff(x1,y1);
 
-        fV(4) = _fx(x0,y0)*xS;
-        fV(5) = _fx(x1,y0)*xS;
-        fV(6) = _fx(x0,y1)*xS;
-        fV(7) = _fx(x1,y1)*xS;
+        fV(0) = f00[F];
+        fV(1) = f10[F];
+        fV(2) = f01[F];
+        fV(3) = f11[F];
+
+        fV(4) = f00[Fx]*xS;
+        fV(5) = f10[Fx]*xS;
+        fV(6) = f01[Fx]*xS;
+        fV(7) = f11[Fx]*xS;
     
-        fV(8)  = _fy(x0,y0)*yS;
-        fV(9)  = _fy(x1,y0)*yS;
-        fV(10) = _fy(x0,y1)*yS;
-        fV(11) = _fy(x1,y1)*yS;
+        fV(8)  = f00[Fy]*yS;
+        fV(9)  = f10[Fy]*yS;
+        fV(10) = f01[Fy]*yS;
+        fV(11) = f11[Fy]*yS;
 
-        fV(12)  = _fxy(x0,y0)*xS*yS;
-        fV(13)  = _fxy(x1,y0)*xS*yS;
-        fV(14)  = _fxy(x0,y1)*xS*yS;
-        fV(15)  = _fxy(x1,y1)*xS*yS;
+        fV(12)  = f00[Fxy]*xS*yS;
+        fV(13)  = f10[Fxy]*xS*yS;
+        fV(14)  = f01[Fxy]*xS*yS;
+        fV(15)  = f11[Fxy]*xS*yS;
 
         getCoefficients(fV,aijV);
     }else{
-        fV      = _fV;
-        aijV    = _aV;
+        fV      = hintg._fV;
+        aijV    = hintg._aV;
     }
 
     const Vec<16>& a = Vec<16>::getAs(&aijV[0]);
@@ -638,14 +596,8 @@ getFdF(const Vec2& aXY, Vector& fV, Vector& aijV, Vector& aFdF,
         cout << "\n"<<endl;
         cout << "_y" << _y << endl;
         cout << "\n"<<endl;
-        cout << "_f" << _f << endl;
+        cout << "_ff" << _ff << endl;
         cout << "\n"<<endl;
-        cout << "_fx" << _fx << endl;
-        cout << "\n"<<endl;
-        cout << "_fy" << _fy << endl;
-        cout << "\n"<<endl;
-        cout << "_fxy" << _fxy << endl;
-        cout << "\n\n\n"<<endl;
 
         cout <<" Intermediate variables " << endl;
         cout <<"XY: " << aXY << endl;
@@ -665,16 +617,16 @@ getFdF(const Vec2& aXY, Vector& fV, Vector& aijV, Vector& aFdF,
 
     //Update the previous value records
             
-    _pXYVal(0)    = aXY(0);
-    _pXYVal(1)    = aXY(1);
-    _pXYIdx[0]  = x0;
-    _pXYIdx[1]  = x1;
-    _pXYIdx[2]  = y0;
-    _pXYIdx[3]  = y1;
+    hintg._pXYVal  = aXY;
+
+    hintg._pXYIdx[0]  = x0;
+    hintg._pXYIdx[1]  = x1;
+    hintg._pXYIdx[2]  = y0;
+    hintg._pXYIdx[3]  = y1;
             
-    _pFdF       = aFdF;
-    _fV         = fV;
-    _aV         = aijV;
+    hintg._pFdF       = aFdF;
+    hintg._fV         = fV;
+    hintg._aV         = aijV;
 }
 
 
@@ -810,14 +762,14 @@ so it is called only when absolutely necessary.
             f(0,0)   f(1,0)   f(0,1)   f(1,1),
             fx(0,0)  fx(1,0)  fx(0,1)  fx(1,1),
             fy(0,0)  fy(1,0)  fy(0,1)  fy(1,1),
-        fxy(0,0) fxy(1,0) fxy(0,1) fxy(1,1)
+            fxy(0,0) fxy(1,0) fxy(0,1) fxy(1,1)
 @param aV  An empty vector for which the coefficients aij are written into
                 in the following order:
 
                 a00,a10,a20,a30,a01,a11,a21,a31,a02,a12,a22,a32,a03,a13,a23,a33
 */
 void BicubicSurface::Guts::
-getCoefficients(const Vector& fV, Vector& aV) const {
+getCoefficients(const Vec<16>& fV, Vec<16>& aV) const {
     // This is what the full matrix inverse looks like (copied here from
     // Wikipedia). It is very sparse and contains only a few unique values
     // so the matrix-vector product can be done very cheaply if worked out
@@ -842,13 +794,13 @@ getCoefficients(const Vector& fV, Vector& aV) const {
        -6, 6, 6,-6,    -4,-2, 4, 2,    -3, 3,-3, 3,    -2,-1,-2,-1, 
         4,-4,-4, 4,     2, 2,-2,-2,     2,-2, 2,-2,     1, 1, 1, 1 
     };
-    Matrix AinvM(16,16,Ainv);
+    Mat<16,16> AinvM(Ainv);
     aV = AinvM*fV; // So cool that I can do this in C++! Go Sherm!
     */
 
+
     // Matt's masterful Maple work, plus a little manual hacking by Sherm
     // produced this version:
-    aV.resize(16);
 
     // Caution: note index change.
     Real f1=fV[0], f2=fV[1], f3=fV[2], f4=fV[3], f5=fV[4], f6=fV[5],

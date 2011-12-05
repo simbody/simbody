@@ -54,11 +54,11 @@ accessed patch to accelerate the common case of repeated access to the same
 patch or to nearby patches. **/
 class BicubicSurface::PatchHint::Guts {
 public:
-    Guts() : level(-1) {}
+    Guts() : level(-1) {initObsoleteData();}
     // Default copy constructor, copy assignment, destructor
 
     bool isEmpty() const {return level < 0;}
-    void clear() {level = -1;}
+    void clear() {level = -1;initObsoleteData();}
 
     // -1: empty, 0: function value only, 1: function value and 1st derivatives,
     // 2: function value, 1st & 2nd derivatives, 3: plus 3rd derivatives.
@@ -84,8 +84,25 @@ public:
     // These are valid only if level has reached the value indicated.
     Real fx, fy;                    // level >= 1
     Real fxy, fxx, fyy;             // level >= 2 (fyx==fxy)
-    Vec4 fxxx, fxxy, fyyy, fxyy;    // level == 3 (fyxx==fxyx==fxxy,
+    Real fxxx, fxxy, fyyy, fxyy;    // level == 3 (fyxx==fxyx==fxxy,
                                     //             fyyx==fyxy==fxyy)
+
+ //TODO: OBSOLETE HINT DATA
+    void initObsoleteData() {
+       _pXYVal.setToNaN();
+       _pXYIdx = Array_<int>(4, -1);
+       _pFdF.setToNaN();
+       _fV.setToNaN();
+       _aV.setToNaN();
+    }
+    //This is all 'hint' data that is stored between calls to this
+    //object to reduce the time required to find the patch the user
+    //is in.
+    Vec2        _pXYVal;
+    Array_<int> _pXYIdx;
+    Vec<10>      _pFdF;
+    Vec<16>      _fV;
+    Vec<16>      _aV;
 };
 
 
@@ -202,7 +219,7 @@ public:
     {assert(referenceCount);return --referenceCount;}
 
     /** @return The total number of elements in the matrix f **/
-    int getFnelt() const {return _f.nelt();}
+    int getFnelt() const {return _ff.nelt();}
     /** @return The number of elements in the vector X **/
     int getXnelt() const {return _x.nelt();}
     /** @return  The number of elements in the vector Y **/
@@ -220,21 +237,21 @@ public:
                     printed to the screen **/
     void setDebug(bool aDebug) {_debug = aDebug;}
      
-    /** @return  the matrix f, which defines the grid points that the surface
-    actually passes through **/
-    const Matrix& getf() const {return _f;}
+    /** @return  the matrix ff, which defines the grid points that the surface
+    actually passes through, and derivatives fx,fy,fxy. **/
+    const Matrix_<Vec4>& getff() const {return _ff;}
 
-    /** @return  the matrix fx, which defines the values of fx(x,y) at the 
-    grid pts **/
-    const Matrix& getfx() const {return _fx;}
+    ///** @return  the matrix fx, which defines the values of fx(x,y) at the 
+    //grid pts **/
+    //const Matrix& getfx() const {return _fx;}
     
-    /** @return  the matrix fy, which defines the values of fy(x,y) at the 
-    grid pts **/
-    const Matrix& getfy() const {return _fy;}
+    ///** @return  the matrix fy, which defines the values of fy(x,y) at the 
+    //grid pts **/
+    //const Matrix& getfy() const {return _fy;}
 
-    /** @return  the matrix fxy, which defines the values of fxy(x,y) at the 
-    grid pts **/
-    const Matrix& getfxy() const {return _fxy;}
+    ///** @return  the matrix fxy, which defines the values of fxy(x,y) at the 
+    //grid pts **/
+    //const Matrix& getfxy() const {return _fxy;}
 
     /** @return  the vector x, which defines one side of the mesh grid for 
     which f(x,y) is defined. **/
@@ -254,8 +271,9 @@ public:
              fy(0,0)  fy(1,0)  fy(0,1)  fy(1,1),
              fxy(0,0) fxy(1,0) fxy(0,1) fxy(1,1)
     **/
-    Vector getPatchFunctionVector(const Vec2& XY) const {
-        Vector fV, aV, aFdF;
+    Vec<16> getPatchFunctionVector(const Vec2& XY) const {
+        Vec<16> fV, aV;
+        Vec<10> aFdF;
         BicubicSurface::PatchHint hint;
         getFdF(XY,fV,aV,aFdF,hint);
         return fV;
@@ -271,8 +289,9 @@ public:
              
              a00,a10,a20,a30,a01,a11,a21,a31,a02,a12,a22,a32,a03,a13,a23,a33
     */
-    Vector getPatchBicubicCoefficients(const Vec2& XY) const {
-        Vector fV, aV, aFdF; 
+    Vec<16> getPatchBicubicCoefficients(const Vec2& XY) const {
+        Vec<16> fV, aV;
+        Vec<10> aFdF;
         BicubicSurface::PatchHint hint;
         getFdF(XY,fV,aV,aFdF,hint);
         return aV;
@@ -296,8 +315,8 @@ public:
 private:
     int calcLowerBoundIndex(const Vector& vecV, Real value, int pIdx,
                                                     bool evenlySpaced) const;
-    void getCoefficients(const Vector& f, Vector& aV) const;
-    void getFdF(const Vec2& aXY, Vector& fV, Vector& aijV, Vector& aFdF,
+    void getCoefficients(const Vec<16>& f, Vec<16>& aV) const;
+    void getFdF(const Vec2& aXY, Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
                 BicubicSurface::PatchHint& hint) const;
 
     // This is called from each constructor to initialize this object.
@@ -330,25 +349,13 @@ private:
     // sequence). Each array must be monotonically increasing, of size nx and 
     // ny elements.
     Vector _x, _y;
-
-    // 2D nx X ny z values that correspond to the values at the grid defined
-    // by x and y. 
-    Matrix _f;
     bool _flagXEvenlySpaced, _flagYEvenlySpaced;
 
-    //This is all 'hint' data that is stored between calls to this
-    //object to reduce the time required to find the patch the user
-    //is in.
-    mutable Vector      _pXYVal;
-    mutable Array_<int> _pXYIdx;
-    mutable Vector      _pFdF;
-    mutable Vector      _fV;
-    mutable Vector      _aV;
-
-    //The matrices of partial differentials of the surface w.r.t. x, y and xy
-    Matrix _fx;
-    Matrix _fy;
-    Matrix _fxy;
+    // 2D nx X ny z values that correspond to the values at the grid defined
+    // by x and y, and the partial differentials at those grid points. The
+    // entries at each grid point are ordered f, fx, fy, fxy.
+    enum {F=0, Fx=1, Fy=2, Fxy=3}; 
+    Matrix_<Vec4> _ff;
 
     //A private debugging flag - if set to true, a lot of useful debugging
     //data will be printed tot the screen

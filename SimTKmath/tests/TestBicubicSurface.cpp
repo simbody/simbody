@@ -266,11 +266,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
     if(flag_verbosePrint == true && size <= 10){
         cout << "\n\nx:\n" << bcsg.getx() << endl;
         cout << "\n\ny:\n" << bcsg.gety() << endl;
-        cout << "\n\nf:\n" << bcsg.getf() << endl;
-
-        cout << "\n\nfx:\n" << bcsg.getfx() << endl;
-        cout << "\n\nfy:\n" << bcsg.getfy() << endl;
-        cout << "\n\nfxy:\n" << bcsg.getfxy() << endl;
+        cout << "\n\nff:\n" << bcsg.getff() << endl;
     }
 
     //Test it at the knot points, mid grid and compute the error
@@ -512,11 +508,11 @@ void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
     4 knot points to be defined.
     */
     Vector xV(size), yV(size), xeV(2*size-1), yeV(2*size-1);
-    Vector fT(16), aV(16), fV(16),fVerr(16), tmpV(4);
-
     Matrix zM(size,size);
-    Matrix AM(16,16,A), ATest(16,16);
+    Vector tmpV(size);
 
+    Vec<16> fT, aV, fV, fVerr;
+    Mat<16,16> AM(A), ATest;
 
     //Initialize the grid
     for(int i=0; i<size; i++){
@@ -937,28 +933,6 @@ void testCopyConstEqOp(){
 
     // These tests are meaningless now if the above ones succeed, since
     // obviously if they are the same object they will produce the same info!
-
-    //Assert that the stored matrices of f,fx,fy,fxy and the stored
-    //vectors of x and y are all equal
-
-    SimTK_TEST_EQ(bcsg.getx(),   bcsCCg.getx());
-    SimTK_TEST_EQ(bcsg.getx(), bcsEQOPg.getx());
-
-    SimTK_TEST_EQ(bcsg.gety(),   bcsCCg.gety());
-    SimTK_TEST_EQ(bcsg.gety(), bcsEQOPg.gety());
-
-    SimTK_TEST_EQ(bcsg.getf(),   bcsCCg.getf());
-    SimTK_TEST_EQ(bcsg.getf(), bcsEQOPg.getf());
-
-    SimTK_TEST_EQ(bcsg.getfx(),   bcsCCg.getfx());
-    SimTK_TEST_EQ(bcsg.getfx(), bcsEQOPg.getfx());
-
-    SimTK_TEST_EQ(bcsg.getfy(),   bcsCCg.getfy());
-    SimTK_TEST_EQ(bcsg.getfy(), bcsEQOPg.getfy());
-
-    SimTK_TEST_EQ(bcsg.getfxy(),   bcsCCg.getfxy());
-    SimTK_TEST_EQ(bcsg.getfxy(), bcsEQOPg.getfxy());
-
 
     //Just to be extra sure, we'll actually check some values
     //computed from each of these different surfaces as well
