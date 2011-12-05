@@ -28,25 +28,123 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
+
+/**@file
+This file contains the library-side implementations of classes
+BicubicSurface, BicubicSurface::Guts, and BicubicSurface::PatchHint. **/
+
 #include "SimTKCommon.h" 
 #include "simmath/internal/common.h"
 #include "simmath/internal/BicubicSurface.h"
 #include "simmath/internal/SplineFitter.h"
+
+#include "BicubicSurface_Guts.h"
 
 #include <algorithm>
 
 using namespace SimTK;
 using namespace std;
 
-BicubicSurface::BicubicSurface()
-{
-    setNull();
+//==============================================================================
+//                              BICUBIC SURFACE
+//==============================================================================
+
+// Default constructor is inline; just sets guts pointer to null.
+
+// Destructor: delete guts if this is the last referencing handle.
+BicubicSurface::~BicubicSurface() {clear();}
+
+// Copy constructor is shallow.
+BicubicSurface::BicubicSurface(const BicubicSurface& source) {
+    guts = source.guts; // copy pointer
+    if (guts) guts->incrReferenceCount();
 }
 
-BicubicSurface::BicubicSurface(const Vector& aX, const Vector& aY, 
-                               const Matrix& af, Real smoothness)
+// Copy assignment is shallow.
+BicubicSurface& BicubicSurface::operator=(const BicubicSurface& source) {
+    if (guts != source.guts) {
+        clear();
+        guts = source.guts; // copy pointer
+        if (guts) guts->incrReferenceCount();
+    }
+    return *this;
+}
+
+// Return handle to its default-constructed state, deleting guts if this was
+// the last reference.
+void BicubicSurface::clear() {
+    if (guts && guts->decrReferenceCount()==0) 
+        delete guts;
+    guts = 0;
+}
+
+// Constructor for irregularly spaced samples.
+BicubicSurface::BicubicSurface
+   (const Vector& x, const Vector& y, const Matrix& f, Real smoothness) 
+:   guts(0) {
+    guts = new BicubicSurface::Guts(x,y,f,smoothness);
+    guts->incrReferenceCount(); // will be 1
+}
+
+// Constructor for regularly spaced samples.
+BicubicSurface::BicubicSurface
+   (Real xSpacing, Real ySpacing, const Matrix& f, Real smoothness) 
+:   guts(0) {
+    guts = new BicubicSurface::Guts(xSpacing,ySpacing,f,smoothness);
+    guts->incrReferenceCount(); // will be 1
+}
+
+// Constructor from known patch derivatives.
+BicubicSurface::BicubicSurface
+   (const Vector& x, const Vector& y, const Matrix& f, 
+    const Matrix& fx, const Matrix& fy, const Matrix& fxy)
+:   guts(0) {
+    guts = new BicubicSurface::Guts(x,y,f,fx,fy,fxy);
+    guts->incrReferenceCount(); // will be 1
+}
+
+// calcValue(), the fast version.
+Real BicubicSurface::calcValue(const Vec2& XY, PatchHint& hint) const {
+    SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcValue()",
+        "This method can't be called on an empty handle.");
+    return guts->calcValue(XY, hint); 
+}
+
+// calcValue(), the slow version.
+Real BicubicSurface::calcValue(const Vec2& XY) const {
+    SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcValue()",
+        "This method can't be called on an empty handle.");
+    PatchHint hint; // create an empty hint
+    return guts->calcValue(XY, hint); 
+}
+
+// calcDerivative(), the fast version.
+Real BicubicSurface::calcDerivative
+   (const Array_<int>& components, const Vec2& XY, PatchHint& hint) const {
+    SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcDerivative()",
+        "This method can't be called on an empty handle.");
+    return guts->calcDerivative(components, XY, hint); 
+}
+
+// calcDerivative(), the slow version.
+Real BicubicSurface::calcDerivative
+   (const Array_<int>& components, const Vec2& XY) const {
+    SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcDerivative()",
+        "This method can't be called on an empty handle.");
+    PatchHint hint; // create an empty hint
+    return guts->calcDerivative(components, XY, hint); 
+}
+
+
+
+//==============================================================================
+//                          BICUBIC SURFACE :: GUTS
+//==============================================================================
+
+BicubicSurface::Guts::Guts(const Vector& aX, const Vector& aY, 
+                           const Matrix& af, Real smoothness)
 {
-    setNull();
+    construct();
     
     // CHECK NUMBER OF DATA POINTS
     SimTK_ERRCHK_ALWAYS( ((aX.size() >= 4 && aY.size() >= 4)
@@ -185,11 +283,11 @@ BicubicSurface::BicubicSurface(const Vector& aX, const Vector& aY,
     _aV =  NaN;
 }
 
-BicubicSurface::BicubicSurface(Vector& aX, Vector& aY, 
- Matrix& af, Matrix& afx, Matrix& afy, Matrix& afxy)
+BicubicSurface::Guts::Guts
+   (const Vector& aX, const Vector& aY, const Matrix& af, 
+    const Matrix& afx, const Matrix& afy, const Matrix& afxy)
 {
-
-    setNull();
+    construct();
 
     // CHECK NUMBER OF DATA POINTS
     SimTK_ERRCHK_ALWAYS((aX.size() >= 4     && aY.size() >= 4) 
@@ -283,21 +381,19 @@ BicubicSurface::BicubicSurface(Vector& aX, Vector& aY,
 }
 //_____________________________________________________________________________
 
-Real BicubicSurface::calcValue(const Vector& aXY) const
+Real BicubicSurface::Guts::calcValue(const Vec2& aXY, PatchHint& hint) const
 {    
-    Vector aFdF; 
-    Vector fV;
-    Vector aV;
-    getFdF(aXY,fV,aV,aFdF);
+    Vector fV, aV, aFdF; 
+    getFdF(aXY,fV,aV,aFdF, hint);
     return aFdF(0);
 }
 
 
-Real BicubicSurface::calcDerivative(const Array_<int>& aDerivComponents, 
-                                    const Vector& aXY) const
+Real BicubicSurface::Guts::calcDerivative
+   (const Array_<int>& aDerivComponents, const Vec2& aXY, PatchHint& hint) const
 {
     if (aDerivComponents.empty())
-        return calcValue(aXY);  // the "0th" derivative is the function value
+        return calcValue(aXY, hint);  // "0th" deriv is the function value
 
     for (int i=0; i < (int)aDerivComponents.size(); ++i) {
         SimTK_ERRCHK2_ALWAYS(aDerivComponents[i]==0 || aDerivComponents[i]==1,
@@ -310,7 +406,7 @@ Real BicubicSurface::calcDerivative(const Array_<int>& aDerivComponents,
         return 0;   // 4th and higher derivatives are all zero
 
     Vector fV, aV, aFdF; 
-    getFdF(aXY,fV,aV,aFdF);
+    getFdF(aXY,fV,aV,aFdF, hint);
     // 0=f, 1=fx, 2=fy, 3=fxy, 4=fxx, 5=fyy, 6=fxxx, 7=fxxy, 8=fyyy, 9=fxyy
     //                   =fyx                         =fyxx           =fyyx
     //                                                =fxyx           =fyxy
@@ -338,14 +434,12 @@ Real BicubicSurface::calcDerivative(const Array_<int>& aDerivComponents,
     }
 }
 
-bool BicubicSurface::isSurfaceDefined(const Vector& XYval) const
+bool BicubicSurface::Guts::isSurfaceDefined(const Vec2& XYval) const
 {
-    bool valueDefined = false;
-    if(XYval.size() == getArgumentSize()){
-        if(XYval(0) >= _x(0) &&  XYval(0) <= _x(_x.size()-1) &&
-           XYval(1) >= _y(0) &&  XYval(1) <= _y(_y.size()-1))
-            valueDefined = true;
-    }
+    const bool valueDefined = 
+            (_x[0] <= XYval[0] &&  XYval[0] <= _x[_x.size()-1])
+        &&  (_y[0] <= XYval[1] &&  XYval[1] <= _y[_y.size()-1]);
+
     return valueDefined;
 }
 
@@ -378,13 +472,10 @@ derivatives at the point XY. These values are stored in the following order:
             f(x,y) fx(x,y)  fy(x,y)  fxy(x,y)  fxx(x,y)  fyy(x,y) 
             fxxx(x,y) fxxy(x,y) fyyy(x,y) fxyy(x,y)
 */
-void BicubicSurface::getFdF(const Vector& aXY, Vector& fV, 
-                            Vector& aijV, Vector& aFdF) const
+void BicubicSurface::Guts::
+getFdF(const Vec2& aXY, Vector& fV, Vector& aijV, Vector& aFdF,
+       PatchHint& hint) const
 {
-    SimTK_ERRCHK_ALWAYS((aXY.size() == 2), 
-        "BicubicSurface::getFdF (private fcn)", 
-        "The vector aXY must have a length of 2");
-
     //0. Check if the surface is defined for the XY value given
     //   Check if desired point is inside the grid, else throw an exception
     SimTK_ERRCHK6_ALWAYS(isSurfaceDefined(aXY), 
@@ -586,82 +677,6 @@ void BicubicSurface::getFdF(const Vector& aXY, Vector& fV,
     _aV         = aijV;
 }
 
-/**
-* Test Code Helper Function
-*/
-Matrix BicubicSurface::getfx(){
-    return _fx;
-}
-
-/**
-* Test Code Helper Function
-*/
-Matrix BicubicSurface::getfy(){
-    return _fy;
-}
-
-/**
-* Test Code Helper Function
-*/
-Matrix BicubicSurface::getfxy(){
-    return _fxy;
-}
-
-/**
-* Test Code Helper Function
-*/
-Matrix BicubicSurface::getf(){
-    return _f;
-}
-
-/**
-* Test Code Helper Function
-*/
-Vector BicubicSurface::getx(){
-    return _x;
-}
-
-/**
-* Test Code Helper Function
-*/
-Vector BicubicSurface::gety(){
-    return _y;
-}
-
-/**
-* Test Code Helper Function
-*/
-Vector BicubicSurface::getPatchFunctionVector(Vector aXY){
-    SimTK_ERRCHK_ALWAYS((aXY.size() == 2), 
-        "BicubicSurface::getPatchFunctionVector", 
-        "The vector aXY must have a length of 2");
-
-    Vector aFdF; 
-    Vector fV;
-    Vector aV;
-    getFdF(aXY,fV,aV,aFdF);
-    return fV;
-
-}
-
-/**
-* Test Code Helper Function
-*/
-Vector BicubicSurface::getPatchBicubicCoefficients(Vector aXY){
-        SimTK_ERRCHK_ALWAYS((aXY.size() == 2), 
-        "BicubicSurface::getPatchBicubicCoefficients", 
-        "The vector aXY must have a length of 2");
-
-
-    Vector aFdF; 
-    Vector fV;
-    Vector aV;
-    getFdF(aXY,fV,aV,aFdF);
-    return aV;
-}
-
-
-
 
 /** Given a search value aVal and an n-vector aVec (n>=2) containing 
 monotonically increasing values (no duplicates), this method finds the unique
@@ -693,7 +708,7 @@ not found a binary search is performed
             aVal without exceeding it.
 
 */
-int BicubicSurface::
+int BicubicSurface::Guts::
 calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx, bool evenlySpaced) const
 {
     int idxLB = -1;
@@ -801,7 +816,7 @@ so it is called only when absolutely necessary.
 
                 a00,a10,a20,a30,a01,a11,a21,a31,a02,a12,a22,a32,a03,a13,a23,a33
 */
-void BicubicSurface::
+void BicubicSurface::Guts::
 getCoefficients(const Vector& fV, Vector& aV) const {
     // This is what the full matrix inverse looks like (copied here from
     // Wikipedia). It is very sparse and contains only a few unique values
@@ -882,110 +897,27 @@ getCoefficients(const Vector& fV, Vector& aV) const {
     }
 }
 
-int BicubicSurface::getFnelt() const
-{
-    return _f.nelt();
-}
-
-int BicubicSurface::getXnelt() const
-{
-    return _x.nelt();
-}
-
-int BicubicSurface::getYnelt() const
-{
-    return _y.nelt();
-}
-
-void BicubicSurface::setDebug(bool aDebug){
-    _debug = aDebug;
-}
-
-//_____________________________________________________________________________
-/**
- * Set all member variables to their NULL or default values.
- */
-void BicubicSurface::setNull()
-{
-    _x.clear();
-    _y.clear();
-
-    _f.clear();
-    _flagXEvenlySpaced = false;
-    _flagYEvenlySpaced = false;
-
-    _fx.clear();
-    _fy.clear();
-    _fxy.clear();
-
-    _pXYVal.clear();
-    _pFdF.clear();
-    _pXYIdx.clear();
-    _fV.clear();
-    _aV.clear();
-
-    _debug = false;
-}
 
 
-//_____________________________________________________________________________
-/**
- * Set all member variables equal to the members of another object.
- * Note that this method is private.  It is only meant for copying the data
- * members defined in this class.  It does not, for example, make any changes
- * to data members of base classes.
- */
-void BicubicSurface::setEqual(const BicubicSurface &aBicubicSurf)
-{
-    setNull();
+//==============================================================================
+//                     BICUBIC SURFACE :: PATCH HINT
+//==============================================================================
 
-    // CHECK ARRAY SIZES
-    if(aBicubicSurf.getFnelt()<=0) return;
+// Here we ensure that there is always a valid PatchHint::Guts object present
+// and forward all operations to it.
 
-    // Copy matricies and vectors
-    _x.resize(aBicubicSurf._x.size());
-    _y.resize(aBicubicSurf._y.size());
-    _f.resize(aBicubicSurf._f.nrow(),aBicubicSurf._f.ncol());
-    _fx.resize(aBicubicSurf._fx.nrow(),aBicubicSurf._fx.ncol());
-    _fy.resize(aBicubicSurf._fy.nrow(),aBicubicSurf._fy.ncol());
-    _fxy.resize(aBicubicSurf._fxy.nrow(),aBicubicSurf._fxy.ncol());
+BicubicSurface::PatchHint::PatchHint() : guts(new PatchHint::Guts) {}
+BicubicSurface::PatchHint::~PatchHint() {delete guts;}
 
-    //aBicubicSurf._x1.copyAssign(_x1); MM I can't do this. Why?
-    _x.copyAssign(aBicubicSurf._x);
-    _y.copyAssign(aBicubicSurf._y);
-    _f.copyAssign(aBicubicSurf._f);
-    _flagXEvenlySpaced = aBicubicSurf._flagXEvenlySpaced;
-    _flagYEvenlySpaced = aBicubicSurf._flagYEvenlySpaced;
-    _fx.copyAssign(aBicubicSurf._fx);
-    _fy.copyAssign(aBicubicSurf._fy);
-    _fxy.copyAssign(aBicubicSurf._fxy);
-    _debug = false;
+BicubicSurface::PatchHint::PatchHint(const PatchHint& src)
+:   guts(new PatchHint::Guts(*src.guts)) {}
 
-    //These are mutable so I can set them in the const functions that the user
-    //uses to call calcValue, and calcDerivative
-    _pXYVal     = Vector(2);
-    _pXYIdx     = Array_<int>(4);
-    _pFdF       = Vector(10);
-    _fV         = Vector(16);
-    _aV         = Vector(16);
+BicubicSurface::PatchHint&
+BicubicSurface::PatchHint::operator=(const PatchHint& src) 
+{   *guts = *src.guts; return *this; }
 
-    //Initialize the record data with values that will not show up in any
-    //user's mesh grid.
-    _pXYVal = NaN;
-    _pXYIdx[0] = -1;
-    _pXYIdx[1] = -1;
-    _pXYIdx[2] = -1;
-    _pXYIdx[3] = -1;
-    _pFdF = NaN;
-    _fV = NaN;
-    _aV =  NaN;
-}
-
-
-
-
-
-
+bool BicubicSurface::PatchHint::isEmpty() const {return guts->isEmpty();}
+void BicubicSurface::PatchHint::clear()         {guts->clear();}
 
 
 

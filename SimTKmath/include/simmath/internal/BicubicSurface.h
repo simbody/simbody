@@ -32,6 +32,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+/** @file
+This file defines the BicubicSurface class, and the BicubicFunction class
+that uses it to create a two-argument Function object. **/
+
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 
@@ -39,9 +43,13 @@
 
 namespace SimTK { 
 
-/** This function will create a smooth surface that approximates a two-argument
+//==============================================================================
+//                           CLASS BICUBIC SURFACE
+//==============================================================================
+/** This class will create a smooth surface that approximates a two-argument
 function F(X,Y) from a given set of samples of that function on a rectangular
-grid. A bicubic surface interpolation is used to approximate the function
+grid with regular or irregular spacing. A bicubic surface interpolation is used
+to approximate the function
 between the sample points. That is desirable for simulation use because it is 
 continuous up to the second derivative, providing smoothly varying first 
 derivatives, and a very smooth surface. The third derivatives will be 
@@ -89,20 +97,39 @@ Here is the Wikipedia entry from which we implemented this method:
 http://en.wikipedia.org/wiki/Bicubic_interpolation
 
 @see SplineFitter for implementation notes regarding smoothing. **/
-class SimTK_SIMMATH_EXPORT BicubicSurface : public Function_<Real> {
+class SimTK_SIMMATH_EXPORT BicubicSurface {
 public:
-    //--------------------------------------------------------------------------
-    // CONSTRUCTION
-    //--------------------------------------------------------------------------
-    
-    /** Construct an uninitialized BicubicSurface object. This can be filled
+    class PatchHint;
+    class Guts;
+ 
+    /** Construct an uninitialized BicubicSurface handle. This can be filled
     in later by assignment. **/    
-    BicubicSurface();
+    BicubicSurface() : guts(0) {}
+    /** Destructor deletes the underlying surface if there are no more handles
+    referencing it, otherwise does nothing. **/
+    ~BicubicSurface();
+    /** Copy constructor makes a shallow copy of the \a source; the new handle
+    will reference the same underlying suface as does \a source. **/
+    BicubicSurface(const BicubicSurface& source);
+    /** Copy assignment is shallow; it makes this handle reference the same 
+    underlying surface as does \a source. If this handle was currently 
+    referencing a different surface, that surface will be destructed if that
+    was the last reference to it. **/
+    BicubicSurface& operator=(const BicubicSurface& source);
 
-    // default destructor, copy constructor, copy assignment
+    /** Return \c true if this is an empty handle meaning that it does not
+    currently refer to any surface. This is the state the handle will have
+    after default construction or a call to clear(). **/
+    bool isEmpty() const {return guts==0;}
 
+    /** Return this handle to its default-constructed state, meaning that
+    it will not refer to any surface. If the handle was referencing some
+    surface, and that was the last reference to that surface, then the
+    surface will be destructed. After a call to clear(), isEmpty() will
+    return \c true. **/
+    void clear();
     
-    /** Construct a bicubic surface that approaches the grid points in f(x,y)
+    /** Construct a bicubic surface that approximates f(x,y)
     with the spacing between each grid point in f defined by the vectors x and 
     y. The smoothness paramter controls how closely the surface approaches the 
     grid points specified in matrix f, with the default being that the surface
@@ -126,7 +153,7 @@ public:
     BicubicSurface(const Vector& x, const Vector& y, const Matrix& f, 
                    Real smoothness=0);
 
-    /** Construct a bicubic surface that approaches the grid points in f(x,y)
+    /** Construct a bicubic surface that approximates f(x,y)
     over a grid with regular spacing in both the x and y directions. The 
     smoothness parameter controls how closely the surface approaches the 
     grid points specified in matrix f, with the default being that the surface
@@ -148,7 +175,8 @@ public:
 
     If your sample points are not regularly spaced, use the other constructor.
     **/
-    BicubicSurface(Real xSpacing, Real ySpacing, Matrix& f, Real smoothness=0);
+    BicubicSurface(Real xSpacing, Real ySpacing, const Matrix& f, 
+                   Real smoothness=0);
 
     /** Calculate the value of the surface at a particular XY coordinate. Note
     that XY must be a vector with only 2 elements in it (because this is a
@@ -157,7 +185,12 @@ public:
      
     @param XY the 2-Vector of input arguments X and Y. 
     @return The interpolated value of the function at point (X,Y). **/
-    virtual Real calcValue(const Vector& XY) const;
+    Real calcValue(const Vec2& XY, PatchHint& hint) const;
+
+    /** This is the slow-but-convenient version of calcValue() since it does 
+    not provide for a PatchHint. See the other signature for a much faster
+    version. **/
+    Real calcValue(const Vec2& XY) const;
     
     /** Calculate a partial derivative of this function at a particular point.  
     Which derivative to take is specified by listing the input components
@@ -177,8 +210,14 @@ public:
         surface. 
     @return The interpolated value of the selected function partial derivative
     for arguments (X,Y). **/
-    virtual Real calcDerivative(const Array_<int>& derivComponents, 
-                                const Vector& XY) const;
+    Real calcDerivative(const Array_<int>& derivComponents, 
+                        const Vec2& XY, PatchHint& hint) const;
+
+    /** This is the slow-but-convenient version of calcDerivative() since it
+    does not provide for a PatchHint. See the other signatrue for a much faster
+    version. **/
+    Real calcDerivative(const Array_<int>& derivComponents, 
+                        const Vec2& XY) const;
     
     /** The surface interpolation only works within the grid defined by the 
     vectors x and y used in the constructor. This function check to see if an 
@@ -191,21 +230,10 @@ public:
     An attempt to invoke calcValue() or calcDerivative() on an out-of-range
     point will raise an exception; use this method to check first if you 
     are not sure. **/
-    bool isSurfaceDefined(const Vector& XY) const;
-
-    /** This implements the Function base class pure virtual; here it
-    always returns 2 (X and Y). **/
-    virtual int getArgumentSize() const {return 2;}
-
-    /** This implements the Function base class pure virtual specifying how
-    many derivatives can be taken of this function; here it is unlimited.
-    However, note that a bicubic surface is continuous up to the second 
-    derivative, discontinuous at the third, and zero for any derivatives equal 
-    to or higher than the fourth. **/
-    virtual int getMaxDerivativeOrder() const 
-    {   return std::numeric_limits<int>::max(); }
+    bool isSurfaceDefined(const Vec2& XY) const;
 
 
+#ifdef NOTDEF
     /**
      
      @return The total number of elements in the matrix f 
@@ -296,7 +324,7 @@ public:
              fy(0,0)  fy(1,0)  fy(0,1)  fy(1,1),
              fxy(0,0) fxy(1,0) fxy(0,1) fxy(1,1)
     */
-    Vector getPatchFunctionVector(Vector XY);
+    Vector getPatchFunctionVector(const Vec2& XY);
     
     /**
     DEBUGGING CODE ONLY. DO NOT USE. 
@@ -308,7 +336,9 @@ public:
              
              a00,a10,a20,a30,a01,a11,a21,a31,a02,a12,a22,a32,a03,a13,a23,a33
     */
-    Vector getPatchBicubicCoefficients(Vector XY);
+    Vector getPatchBicubicCoefficients(const Vec2& XY);
+#endif
+
     /**
     DEBUGGING CODE ONLY. DO NOT USE.  
 
@@ -323,57 +353,138 @@ public:
     @param fy:  matrix of the partial derivative of f w.r.t to y (minumum 4x4)
     @param fxy: matrix of the partial derivative of f w.r.t to x,y (minumum 4x4)
     */
-    BicubicSurface(Vector& x, Vector& y, Matrix& f, 
-               Matrix& fx, Matrix& fy, Matrix& fxy);
+    BicubicSurface(const Vector& x, const Vector& y, const Matrix& f, 
+                   const Matrix& fx, const Matrix& fy, const Matrix& fxy);
+
+    const BicubicSurface::Guts& getGuts() const
+    {   assert(guts); return *guts; }
     /**@}**/
-
 private:
-    void setNull();
-    void setEqual(const BicubicSurface &aSpline);
-    int calcLowerBoundIndex(const Vector& vecV, Real value, int pIdx,
-                                                    bool evenlySpaced) const;
-    void getCoefficients(const Vector& f, Vector& aV) const;
-    void getFdF(const Vector& aXY, 
-                Vector& fV, Vector& aijV, Vector& aFdF) const;
-
-//=============================================================================
-// MEMBER VARIABLES
-//=============================================================================
-private:
-    // PROPERTIES
-    /* Array of values for the independent variables (i.e., the spline knot
-    sequence).  Each array must be monotonically increasing, of size nx and 
-    ny elements */
-    Vector _x;
-    Vector _y;
-
-    /*  2D nx X ny z values that correspond to the values at the grid defined
-        by x and y. */  
-    Matrix _f;
-    bool _flagXEvenlySpaced;
-    bool _flagYEvenlySpaced;
-
-    //This is all 'hint' data that is stored between calls to this
-    //object to reduce the time required to find the patch the user
-    //is in.
-    mutable Vector      _pXYVal;
-    mutable Array_<int> _pXYIdx;
-    mutable Vector      _pFdF;
-    mutable Vector      _fV;
-    mutable Vector      _aV;
-
-    //The matrices of partial differentials of the surface w.r.t. x, y and xy
-    Matrix _fx;
-    Matrix _fy;
-    Matrix _fxy;
-
-    //A private debugging flag - if set to true, a lot of useful debugging
-    //data will be printed tot the screen
-    bool _debug;
-
+    BicubicSurface::Guts* guts;
 
 //=============================================================================
 };    // END class BicubicSurface
+
+
+
+//==============================================================================
+//                 CLASS BICUBIC FUNCTION :: PATCH HINT
+//==============================================================================
+/** This object is used to hold precalculated data about the most recently
+accessed patch to accelerate the common case of repeated access to the same
+patch or to nearby patches. **/
+class SimTK_SIMMATH_EXPORT BicubicSurface::PatchHint {
+public:
+    /** Creates an empty PatchHint, meaning it contains no meaningful
+    hint information. **/
+    PatchHint();
+    /** Copy an existing PatchHint to create a new one with the same
+    contents. If \a source is empty, the new one will be also. **/
+    PatchHint(const PatchHint& source);
+    /** Set the contents of this PatchHint to be the same as that of
+    \a source. If \a source is empty, this one will be empty after the
+    assignment. **/  
+    PatchHint& operator=(const PatchHint& source);
+    /** Destruct this PatchHint. **/
+    ~PatchHint();
+
+    /** Return \c true if this object currently contains no meaningful
+    hint information. **/
+    bool isEmpty() const;
+    /** Erase any information currently stored in this %PatchHint. After this
+    call isEmpty() will return \c true. **/
+    void clear();
+
+private:
+    class Guts; // Hidden implementation of PatchHint.
+    PatchHint::Guts* guts;
+};
+
+
+
+//==============================================================================
+//                           CLASS BICUBIC FUNCTION
+//==============================================================================
+
+/** This is a two-argument Function built using a shared BicubicSurface and
+managing current state to optimize for localized access. Each
+distinct use of the BicubicSurface should create its own BicubicFunction,
+which is a lightweight wrapper around the BicubicSurface. This allows for
+localized access pattern optimization to be effective for each use of the
+surface.
+
+<h3>Thread safety</h3>
+BicubicFunction is \e not thread-safe, but the underlying BicubicSurface is. 
+Each thread should thus have a private BicubicFunction that it uses to access
+the shared surface.
+**/
+class SimTK_SIMMATH_EXPORT BicubicFunction : public Function_<Real> {
+public:
+    /** Create a BicubicFunction referencing the given BicubicSurface, which
+    is shared not copied. **/
+    BicubicFunction(const BicubicSurface& surface) : surface(surface) {}
+
+    /** Return a reference to the BicubicSurface object being used by this
+    BicubicFunction. **/
+    const BicubicSurface& getBicubicSurface() const {return surface;}
+
+    /** Calculate the value of the function at a particular XY coordinate. Note
+    that XY must be a vector with only 2 elements in it (because this is a
+    2-argument function), anything else will throw an exception. This is the
+    required implementation of the Function base class pure virtual.
+     
+    @param XY the 2-Vector of input arguments X and Y. 
+    @return The interpolated value of the function at point (X,Y). **/
+    virtual Real calcValue(const Vector& XY) const {
+        SimTK_ERRCHK1(XY.size()==2, "BicubicFunction::calcValue()",
+        "The argument Vector XY must have exactly 2 elements but had %d.",
+        XY.size());        
+        return surface.calcValue(Vec2(XY[0],XY[1]), hint); 
+    }
+    
+    /** Calculate a partial derivative of this function at a particular point.  
+    Which derivative to take is specified by listing the input components
+    (0==x, 1==y) with which to take it. For example, if derivComponents=={0}, 
+    that indicates a first derivative with respective to argument x.  
+    If derivComponents=={0, 0, 0}, that indicates a third derivative with
+    respective to argument x.  If derivComponents=={0, 1}, that indicates 
+    a partial second derivative with respect to x and y, that is Df(x,y)/DxDy.
+    (We use capital D to indicate partial derivative.)
+     
+    @param derivComponents  
+        The input components with respect to which the derivative should be 
+        taken. Each entry must be 0 or 1, and if there are 4 or more entries
+        the result will be zero since the surface has only 3 non-zero 
+        derivatives.
+    @param XY    
+        The vector of two input arguments that define the XY location on the 
+        surface. 
+    @return The interpolated value of the selected function partial derivative
+    for arguments (X,Y). **/
+    virtual Real calcDerivative(const Array_<int>& derivComponents, 
+                                const Vector& XY) const {
+        SimTK_ERRCHK1(XY.size()==2, "BicubicFunction::calcDerivative()",
+        "The argument Vector XY must have exactly 2 elements but had %d.",
+        XY.size());        
+        return surface.calcDerivative(derivComponents, Vec2(XY[0],XY[1]), hint); 
+    }
+
+    /** This implements the Function base class pure virtual; here it
+    always returns 2 (X and Y). **/
+    virtual int getArgumentSize() const {return 2;}
+
+    /** This implements the Function base class pure virtual specifying how
+    many derivatives can be taken of this function; here it is unlimited.
+    However, note that a bicubic surface is continuous up to the second 
+    derivative, discontinuous at the third, and zero for any derivatives equal 
+    to or higher than the fourth. **/
+    virtual int getMaxDerivativeOrder() const 
+    {   return std::numeric_limits<int>::max(); }
+private:
+    BicubicSurface                      surface;
+    mutable BicubicSurface::PatchHint   hint;
+};
+
 
 
 }; //namespace

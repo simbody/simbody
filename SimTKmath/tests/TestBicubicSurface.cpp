@@ -30,10 +30,15 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKmath.h"
+
+// Include the private implementation class declaration for testing purposes;
+// this is not part of the API.
+#include "../src/BicubicSurface_Guts.h"
+
+
 #include <cstdio>
 #include <iostream>
 #include <fstream>
-
 
 using namespace SimTK;
 using namespace std;
@@ -54,11 +59,10 @@ is estimated by linearly extrapolating the dy/dx values beside the  end points
 
  @returns dy/dx computed using central differences
 */
-Vector getCentralDifference(Vector x, Vector y,
-                                                    bool extrap_endpoints){
+Vector getCentralDifference(Vector x, Vector y, bool extrap_endpoints) {
     Vector dy(x.size());
-    double dx1,dx2;
-    double dy1,dy2;
+    Real dx1,dx2;
+    Real dy1,dy2;
     int size = x.size();
     for(int i=1; i<x.size()-1; i++){
         dx1 = x(i)-x(i-1);
@@ -96,7 +100,7 @@ Vector getCentralDifference(Vector x, Vector y,
          fcnType = 3 :f(x,y) = cos( (3x^2+y^2)^0.5 )
          fcnType = 4 : f(x,y) = 3x^2 + y^2
 */
-Vector getAnalyticFunction(double x, double y, int fcnType){
+Vector getAnalyticFunction(Real x, Real y, int fcnType){
     Vector fdF(4);
     fdF = -1;
 
@@ -180,11 +184,11 @@ Vector getAnalyticFunction(double x, double y, int fcnType){
 @params flag_matlabcompre: true:    Will print
 @returns nothing
 */
-void testBicubicAgainstAnalyticFcn(double xmin, double xmax, double ymin, 
-                double ymax, int size, int fcnType, bool flag_verbosePrint,
+void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin, 
+                Real ymax, int size, int fcnType, bool flag_verbosePrint,
                                                    bool flag_matlabcompare){
         
-    double deltaX,deltaY;
+    Real deltaX,deltaY;
     deltaX = (xmax-xmin)/(size-1);
     deltaY = (ymax-ymin)/(size-1);
         
@@ -199,11 +203,11 @@ void testBicubicAgainstAnalyticFcn(double xmin, double xmax, double ymin,
     Matrix zM(size-1,size-1),zMx(size-1,size-1),zMy(size-1,size-1),zMxy(size-1,size-1);
 
     for (int i = 0; i < size; i++) {
-        x(i) = xmin + ((double)i)*deltaX;
-        y(i) = ymin + ((double)i)*deltaY;
+        x(i) = xmin + ((Real)i)*deltaX;
+        y(i) = ymin + ((Real)i)*deltaY;
         if(i<size-1){
-            xM(i) = xmin + deltaX/(double)2 + ((double)i)*deltaX;
-            yM(i) = ymin + deltaY/(double)2 + ((double)i)*deltaY;
+            xM(i) = xmin + deltaX/(Real)2 + ((Real)i)*deltaX;
+            yM(i) = ymin + deltaY/(Real)2 + ((Real)i)*deltaY;
         }
     }
 
@@ -254,17 +258,19 @@ void testBicubicAgainstAnalyticFcn(double xmin, double xmax, double ymin,
 
 
     //Initialize the Bicubic Surface
-    double smoothness = 0.0;
+    Real smoothness = 0.0;
     BicubicSurface bcs(x, y, z, zx, zy, zxy);
+    const BicubicSurface::Guts& bcsg = bcs.getGuts();
+    BicubicFunction bcsf(bcs);
 
     if(flag_verbosePrint == true && size <= 10){
-        cout << "\n\nx:\n" << bcs.getx() << endl;
-        cout << "\n\ny:\n" << bcs.gety() << endl;
-        cout << "\n\nf:\n" << bcs.getf() << endl;
+        cout << "\n\nx:\n" << bcsg.getx() << endl;
+        cout << "\n\ny:\n" << bcsg.gety() << endl;
+        cout << "\n\nf:\n" << bcsg.getf() << endl;
 
-        cout << "\n\nfx:\n" << bcs.getfx() << endl;
-        cout << "\n\nfy:\n" << bcs.getfy() << endl;
-        cout << "\n\nfxy:\n" << bcs.getfxy() << endl;
+        cout << "\n\nfx:\n" << bcsg.getfx() << endl;
+        cout << "\n\nfy:\n" << bcsg.getfy() << endl;
+        cout << "\n\nfxy:\n" << bcsg.getfxy() << endl;
     }
 
     //Test it at the knot points, mid grid and compute the error
@@ -318,17 +324,17 @@ void testBicubicAgainstAnalyticFcn(double xmin, double xmax, double ymin,
             XY(0)=x(i);
             XY(1)=y(j);
 
-            fk(i,j)     = bcs.calcValue(XY);
-            fxk(i,j)    = bcs.calcDerivative(fx,XY);
-            fyk(i,j)    = bcs.calcDerivative(fy,XY);
-            fxyk(i,j)   = bcs.calcDerivative(fxy,XY);
-            fxxk(i,j)   = bcs.calcDerivative(fxx,XY);
-            fyyk(i,j)   = bcs.calcDerivative(fyy,XY);
+            fk(i,j)     = bcsf.calcValue(XY);
+            fxk(i,j)    = bcsf.calcDerivative(fx,XY);
+            fyk(i,j)    = bcsf.calcDerivative(fy,XY);
+            fxyk(i,j)   = bcsf.calcDerivative(fxy,XY);
+            fxxk(i,j)   = bcsf.calcDerivative(fxx,XY);
+            fyyk(i,j)   = bcsf.calcDerivative(fyy,XY);
 
-            fxxxk(i,j)   = bcs.calcDerivative(fxxx,XY);
-            fyyyk(i,j)   = bcs.calcDerivative(fyyy,XY);
-            fxxyk(i,j)   = bcs.calcDerivative(fxxy,XY);
-            fxyyk(i,j)   = bcs.calcDerivative(fxyy,XY);
+            fxxxk(i,j)   = bcsf.calcDerivative(fxxx,XY);
+            fyyyk(i,j)   = bcsf.calcDerivative(fyyy,XY);
+            fxxyk(i,j)   = bcsf.calcDerivative(fxxy,XY);
+            fxyyk(i,j)   = bcsf.calcDerivative(fxyy,XY);
 
             if( errV(0) < abs(fk(i,j) - z(i,j)) )
                 errV(0) = abs(fk(i,j) - z(i,j));
@@ -348,17 +354,17 @@ void testBicubicAgainstAnalyticFcn(double xmin, double xmax, double ymin,
             if(i<size-1 && j<size-1){
                 XYM(0)=xM(i);
                 XYM(1)=yM(j);
-                fMk(i,j)    = bcs.calcValue(XYM);                            
-                fxMk(i,j)   = bcs.calcDerivative(fx,XYM);
-                fyMk(i,j)   = bcs.calcDerivative(fy,XYM);
-                fxyMk(i,j)  = bcs.calcDerivative(fxy,XYM);    
-                fxxMk(i,j)  = bcs.calcDerivative(fxx,XYM);
-                fyyMk(i,j)  = bcs.calcDerivative(fyy,XYM);
+                fMk(i,j)    = bcsf.calcValue(XYM);                            
+                fxMk(i,j)   = bcsf.calcDerivative(fx,XYM);
+                fyMk(i,j)   = bcsf.calcDerivative(fy,XYM);
+                fxyMk(i,j)  = bcsf.calcDerivative(fxy,XYM);    
+                fxxMk(i,j)  = bcsf.calcDerivative(fxx,XYM);
+                fyyMk(i,j)  = bcsf.calcDerivative(fyy,XYM);
 
-                fxxxMk(i,j)   = bcs.calcDerivative(fxxx,XYM);
-                fyyyMk(i,j)   = bcs.calcDerivative(fyyy,XYM);
-                fxxyMk(i,j)   = bcs.calcDerivative(fxxy,XYM);
-                fxyyMk(i,j)   = bcs.calcDerivative(fxyy,XYM);
+                fxxxMk(i,j)   = bcsf.calcDerivative(fxxx,XYM);
+                fyyyMk(i,j)   = bcsf.calcDerivative(fyyy,XYM);
+                fxxyMk(i,j)   = bcsf.calcDerivative(fxxy,XYM);
+                fxyyMk(i,j)   = bcsf.calcDerivative(fxyy,XYM);
 
                 if( errVM(0) < abs(fMk(i,j) - zM(i,j)) )
                     errVM(0) = abs(fMk(i,j) - zM(i,j));
@@ -413,8 +419,8 @@ void testBicubicAgainstAnalyticFcn(double xmin, double xmax, double ymin,
     }
 
                 
-    double mid_tol = (1e-1)*(deltaX/2+deltaY/2);
-    double knot_tol = 0;
+    Real mid_tol = (1e-1)*(deltaX/2+deltaY/2);
+    Real knot_tol = 0;
 
     if(flag_verbosePrint == true){
         printf("    Smoothness set to : %f\n", smoothness);
@@ -479,11 +485,11 @@ where as the one in the test code is a hand derived version of A.
  @returns nothing
 
 */
-void testBicubicCoefficients(double xmin,double xmax,double ymin, double ymax, 
-                                              int fcnType, double smoothness){
+void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax, 
+                                              int fcnType, Real smoothness){
     int size = 4;
 
-    const double A[] = {1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    const Real A[] = {1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
                         1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
                         1, 0, 0, 0,  1, 0, 0, 0,  1, 0, 0, 0,  1, 0, 0, 0,
                         1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,
@@ -514,8 +520,8 @@ void testBicubicCoefficients(double xmin,double xmax,double ymin, double ymax,
 
     //Initialize the grid
     for(int i=0; i<size; i++){
-        xV(i) = xmin + i*(xmax-xmin)/((double)size-1.0);
-        yV(i) = xmin + i*(ymax-ymin)/((double)size-1.0);        
+        xV(i) = xmin + i*(xmax-xmin)/((Real)size-1.0);
+        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);        
     }
     for(int i=0; i<size;i++){
         for(int j=0; j<size; j++){
@@ -526,23 +532,23 @@ void testBicubicCoefficients(double xmin,double xmax,double ymin, double ymax,
 
     //Create the bicubic surface using the regular constuctor
     BicubicSurface bcs(xV, yV, zM, smoothness);
+    const BicubicSurface::Guts& bcsg = bcs.getGuts();
 
     //Initialize the grid to evaluate the surface at the knots and at 
     //the midpoints
     for(int i=0; i<(2*size-1); i++){
-        xeV(i) = xmin + i*(xmax-xmin)/((double)(2*size)-1.0);
-        yeV(i) = ymin + i*(ymax-ymin)/((double)(2*size)-1.0);
+        xeV(i) = xmin + i*(xmax-xmin)/((Real)(2*size)-1.0);
+        yeV(i) = ymin + i*(ymax-ymin)/((Real)(2*size)-1.0);
     }
 
     //Evaluate the surface at the knot points, and at the 
     //mid grid points and test if fV = A*aV holds
-    Vector aXY(2);    
+    Vec2 aXY;    
     for(int i=0; i<(2*size-1); i++){
         for(int j=0; j<(2*size-1); j++){
-            aXY(0) = xeV(i);
-            aXY(1) = yeV(j);
-            fV = bcs.getPatchFunctionVector(aXY);
-            aV = bcs.getPatchBicubicCoefficients(aXY);
+            aXY = Vec2(xeV(i), yeV(j));
+            fV = bcsg.getPatchFunctionVector(aXY);
+            aV = bcsg.getPatchBicubicCoefficients(aXY);
             fT = AM*aV;
             fVerr = fV-fT;
             
@@ -585,23 +591,23 @@ void testBicubicCoefficients(double xmin,double xmax,double ymin, double ymax,
                               checks
  @returns nothing
 */
-void testBicubicConsistencyContinuity(double xmin, double xmax, double ymin, 
-             double ymax, int fcnType, double smoothness, bool verbosePrint){
+void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin, 
+             Real ymax, int fcnType, Real smoothness, bool verbosePrint){
     int size = 4;
-    double minstep = min((xmax-xmin),(ymax-ymin));
-    double dh = (minstep/(double)size)/100.0;
+    Real minstep = min((xmax-xmin),(ymax-ymin));
+    Real dh = (minstep/(Real)size)/100.0;
 
     Vector xV(size), yV(size),dxV(4),dyV(4), tmpV(4), aXY(2);
     Matrix zM(size,size);
 
 
     //Initialize the 4x4 grid with a non-even grid spacing
-    double spacingX =1*(xmax-xmin)/((double)size-1.0);
-    double spacingY =1*(ymax-ymin)/((double)size-1.0);
+    Real spacingX =1*(xmax-xmin)/((Real)size-1.0);
+    Real spacingY =1*(ymax-ymin)/((Real)size-1.0);
 
     for(int i=0; i<size; i++){
-        xV(i) = xmin + i*(xmax-xmin)/((double)size-1.0);
-        yV(i) = xmin + i*(ymax-ymin)/((double)size-1.0);        
+        xV(i) = xmin + i*(xmax-xmin)/((Real)size-1.0);
+        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);        
     }
 
     //Adjust the interior points a little bit to make
@@ -627,13 +633,14 @@ void testBicubicConsistencyContinuity(double xmin, double xmax, double ymin,
     
     //Create the bicubic surface
     BicubicSurface bcs(xV, yV, zM, smoothness);
+    BicubicFunction bcsf(bcs);
 
     //Initialize the vectors dxV and dyV to be near an interior knot
     //with the inner patch a distance h away from the knot point
     //and the second patch a distance h+dx away from the knot point
 
     int tsize = 17;
-    double tsizeh = floor((double)tsize/2.0);    
+    Real tsizeh = floor((Real)tsize/2.0);    
 
     Matrix meshX(tsize,tsize), meshY(tsize,tsize);
 
@@ -701,23 +708,23 @@ void testBicubicConsistencyContinuity(double xmin, double xmax, double ymin,
             aXY(0) = meshX(i,j);
             aXY(1) = meshY(i,j);
             
-            bcsF(i,j) = bcs.calcValue(aXY);
+            bcsF(i,j) = bcsf.calcValue(aXY);
             
-            bcsFx(i,j)= bcs.calcDerivative(derivX,aXY);
-            bcsFy(i,j)= bcs.calcDerivative(derivY,aXY);
+            bcsFx(i,j)= bcsf.calcDerivative(derivX,aXY);
+            bcsFy(i,j)= bcsf.calcDerivative(derivY,aXY);
             
-            bcsFxy(i,j)= bcs.calcDerivative(derivXY,aXY);
-            bcsFxx(i,j)= bcs.calcDerivative(derivXX,aXY);
-            bcsFyy(i,j)= bcs.calcDerivative(derivYY,aXY);
+            bcsFxy(i,j)= bcsf.calcDerivative(derivXY,aXY);
+            bcsFxx(i,j)= bcsf.calcDerivative(derivXX,aXY);
+            bcsFyy(i,j)= bcsf.calcDerivative(derivYY,aXY);
 
-            bcsFxxy(i,j)= bcs.calcDerivative(derivXXY,aXY);
-            bcsFxyy(i,j)= bcs.calcDerivative(derivXYY,aXY);
-            bcsFxxx(i,j)= bcs.calcDerivative(derivXXX,aXY);
-            bcsFyyy(i,j)= bcs.calcDerivative(derivYYY,aXY);
+            bcsFxxy(i,j)= bcsf.calcDerivative(derivXXY,aXY);
+            bcsFxyy(i,j)= bcsf.calcDerivative(derivXYY,aXY);
+            bcsFxxx(i,j)= bcsf.calcDerivative(derivXXX,aXY);
+            bcsFyyy(i,j)= bcsf.calcDerivative(derivYYY,aXY);
 
             //Should be zero, just testing.
-            bcsF4x(i,j) = bcs.calcDerivative(deriv4X,aXY);
-            bcsF4y(i,j) = bcs.calcDerivative(deriv4Y,aXY);
+            bcsF4x(i,j) = bcsf.calcDerivative(deriv4X,aXY);
+            bcsF4y(i,j) = bcsf.calcDerivative(deriv4Y,aXY);
         }
     }
 
@@ -740,9 +747,9 @@ void testBicubicConsistencyContinuity(double xmin, double xmax, double ymin,
         numFxyy[i]  = ~getCentralDifference(~meshY[i],    ~numFxy[i],    true); 
     }       
 
-    double tol1 = dh;
-    double tol2 = dh*10;
-    double tol3 = dh*100;
+    Real tol1 = dh;
+    Real tol2 = dh*10;
+    Real tol3 = dh*100;
     Vector dirXY(2);
 
     
@@ -786,38 +793,38 @@ void testBicubicConsistencyContinuity(double xmin, double xmax, double ymin,
                 dirXY(0) = meshX(i,j)-meshX(8,8);
                 dirXY(1) = meshY(i,j)-meshY(8,8);
 
-                double dist = pow(dirXY(0)*dirXY(0) + dirXY(1)*dirXY(1),0.5);
+                Real dist = pow(dirXY(0)*dirXY(0) + dirXY(1)*dirXY(1),0.5);
 
                 //Test for surface continuity
-                double f0 = bcsF(i,j) -(bcsFx(i,j)*dirXY(0) 
+                Real f0 = bcsF(i,j) -(bcsFx(i,j)*dirXY(0) 
                                       + bcsFy(i,j)*dirXY(1));
-                double err0 =f0-bcsF(8,8);
-                double errR0= abs(err0)/( abs(bcsF(8,8)) + 1e-10);
+                Real err0 =f0-bcsF(8,8);
+                Real errR0= abs(err0)/( abs(bcsF(8,8)) + 1e-10);
                 
                 //Test for fx derivative continuity
-                double f1x = bcsFx(i,j) -(bcsFxx(i,j)*dirXY(0));
-                double err1x =f1x-bcsFx(8,8);
-                double errR1x= abs(err1x)/( abs(bcsFx(8,8)) + 1e-10);
+                Real f1x = bcsFx(i,j) -(bcsFxx(i,j)*dirXY(0));
+                Real err1x =f1x-bcsFx(8,8);
+                Real errR1x= abs(err1x)/( abs(bcsFx(8,8)) + 1e-10);
 
                 //Test for fy derivative continity
-                double f1y = bcsFy(i,j) -(bcsFyy(i,j)*dirXY(1));
-                double err1y =f1y-bcsFy(8,8);
-                double errR1y= abs(err1y)/( abs(bcsFy(8,8)) + 1e-10);
+                Real f1y = bcsFy(i,j) -(bcsFyy(i,j)*dirXY(1));
+                Real err1y =f1y-bcsFy(8,8);
+                Real errR1y= abs(err1y)/( abs(bcsFy(8,8)) + 1e-10);
 
                 //Test for fxx derivative continuity
-                double f2x = bcsFxx(i,j) -(bcsFxxx(i,j)*dirXY(0));
-                double err2x =f2x-bcsFxx(8,8);
-                double errR2x= abs(err2x)/( abs(bcsFxx(8,8)) + 1e-10);
+                Real f2x = bcsFxx(i,j) -(bcsFxxx(i,j)*dirXY(0));
+                Real err2x =f2x-bcsFxx(8,8);
+                Real errR2x= abs(err2x)/( abs(bcsFxx(8,8)) + 1e-10);
 
                 //Test for fyy derivative continuity
-                double f2y = bcsFyy(i,j) -(bcsFyyy(i,j)*dirXY(1));
-                double err2y =f2y-bcsFyy(8,8);
-                double errR2y= abs(err2y)/( abs(bcsFyy(8,8)) + 1e-10);
+                Real f2y = bcsFyy(i,j) -(bcsFyyy(i,j)*dirXY(1));
+                Real err2y =f2y-bcsFyy(8,8);
+                Real errR2y= abs(err2y)/( abs(bcsFyy(8,8)) + 1e-10);
 
                 //Test for fxy derivative continuity
-                double fxy = bcsFxy(i,j) -(bcsFxxy(i,j)*dirXY(0) + bcsFxyy(i,j)*dirXY(1));
-                double errxy =fxy-bcsFxy(8,8);
-                double errRxy= abs(errxy)/( abs(bcsFxy(8,8)) + 1e-10);
+                Real fxy = bcsFxy(i,j) -(bcsFxxy(i,j)*dirXY(0) + bcsFxyy(i,j)*dirXY(1));
+                Real errxy =fxy-bcsFxy(8,8);
+                Real errRxy= abs(errxy)/( abs(bcsFxy(8,8)) + 1e-10);
 
 
                 if(verbosePrint==true){
@@ -858,27 +865,27 @@ void testBicubicConsistencyContinuity(double xmin, double xmax, double ymin,
 */
 void testCopyConstEqOp(){
     int fcnType = 4;
-    double xmin = 0;
-    double xmax = 2*Pi;
-    double ymin = 0;
-    double ymax = Pi;
-    double smoothness = 0.1;
+    Real xmin = 0;
+    Real xmax = 2*Pi;
+    Real ymin = 0;
+    Real ymax = Pi;
+    Real smoothness = 0.1;
 
     int size = 4;
-    double minstep = min((xmax-xmin),(ymax-ymin));
-    double dh = (minstep/(double)size)/100.0;
+    Real minstep = min((xmax-xmin),(ymax-ymin));
+    Real dh = (minstep/(Real)size)/100.0;
 
     Vector xV(size), yV(size),dxV(4),dyV(4), tmpV(4), aXY(2);
     Matrix zM(size,size);
 
 
     //Initialize the 4x4 grid with a non-even grid spacing
-    double spacingX =1*(xmax-xmin)/((double)size-1.0);
-    double spacingY =1*(ymax-ymin)/((double)size-1.0);
+    Real spacingX =1*(xmax-xmin)/((Real)size-1.0);
+    Real spacingY =1*(ymax-ymin)/((Real)size-1.0);
 
     for(int i=0; i<size; i++){
-        xV(i) = xmin + i*(xmax-xmin)/((double)size-1.0);
-        yV(i) = xmin + i*(ymax-ymin)/((double)size-1.0);        
+        xV(i) = xmin + i*(xmax-xmin)/((Real)size-1.0);
+        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);        
     }
 
     //Adjust the interior points a little bit to make
@@ -908,32 +915,55 @@ void testCopyConstEqOp(){
     BicubicSurface bcsEQOP;
     bcsEQOP = bcs;
 
+    // Extract the implementation objects so we can look at the internals.
+    const BicubicSurface::Guts& bcsg     = bcs.getGuts();
+    const BicubicSurface::Guts& bcsCCg   = bcsCC.getGuts();
+    const BicubicSurface::Guts& bcsEQOPg = bcsEQOP.getGuts();
+
+    // These should all be the same underlying object, and the reference
+    // count should be 3.
+    SimTK_TEST(&bcsCCg == &bcsg);
+    SimTK_TEST(&bcsEQOPg == &bcsg);
+    SimTK_TEST(bcsg.getReferenceCount() == 3);
+
+    // Create Function objects referencing the surface(s).
+    BicubicFunction bcsf(bcs);
+    BicubicFunction bcsCCf(bcs);
+    BicubicFunction bcsEQOPf(bcs);
+
+    // Reference count should now be 6.
+    SimTK_TEST(bcsg.getReferenceCount() == 6);
+
+
+    // These tests are meaningless now if the above ones succeed, since
+    // obviously if they are the same object they will produce the same info!
+
     //Assert that the stored matrices of f,fx,fy,fxy and the stored
     //vectors of x and y are all equal
 
-    SimTK_TEST_EQ(bcs.getx(),   bcsCC.getx());
-    SimTK_TEST_EQ(bcs.getx(), bcsEQOP.getx());
+    SimTK_TEST_EQ(bcsg.getx(),   bcsCCg.getx());
+    SimTK_TEST_EQ(bcsg.getx(), bcsEQOPg.getx());
 
-    SimTK_TEST_EQ(bcs.gety(),   bcsCC.gety());
-    SimTK_TEST_EQ(bcs.gety(), bcsEQOP.gety());
+    SimTK_TEST_EQ(bcsg.gety(),   bcsCCg.gety());
+    SimTK_TEST_EQ(bcsg.gety(), bcsEQOPg.gety());
 
-    SimTK_TEST_EQ(bcs.getf(),   bcsCC.getf());
-    SimTK_TEST_EQ(bcs.getf(), bcsEQOP.getf());
+    SimTK_TEST_EQ(bcsg.getf(),   bcsCCg.getf());
+    SimTK_TEST_EQ(bcsg.getf(), bcsEQOPg.getf());
 
-    SimTK_TEST_EQ(bcs.getfx(),   bcsCC.getfx());
-    SimTK_TEST_EQ(bcs.getfx(), bcsEQOP.getfx());
+    SimTK_TEST_EQ(bcsg.getfx(),   bcsCCg.getfx());
+    SimTK_TEST_EQ(bcsg.getfx(), bcsEQOPg.getfx());
 
-    SimTK_TEST_EQ(bcs.getfy(),   bcsCC.getfy());
-    SimTK_TEST_EQ(bcs.getfy(), bcsEQOP.getfy());
+    SimTK_TEST_EQ(bcsg.getfy(),   bcsCCg.getfy());
+    SimTK_TEST_EQ(bcsg.getfy(), bcsEQOPg.getfy());
 
-    SimTK_TEST_EQ(bcs.getfxy(),   bcsCC.getfxy());
-    SimTK_TEST_EQ(bcs.getfxy(), bcsEQOP.getfxy());
+    SimTK_TEST_EQ(bcsg.getfxy(),   bcsCCg.getfxy());
+    SimTK_TEST_EQ(bcsg.getfxy(), bcsEQOPg.getfxy());
 
 
     //Just to be extra sure, we'll actually check some values
     //computed from each of these different surfaces as well
-    double deltaX = (xmax-xmin)/15;
-    double deltaY = (ymax-ymin)/15;
+    Real deltaX = (xmax-xmin)/15;
+    Real deltaY = (ymax-ymin)/15;
     Array_<int> dX(1);
     Array_<int> dY(1);
     Array_<int> dXY(2);
@@ -971,36 +1001,35 @@ for(int i=0;i<16;i++){
     aXY(0) = xmin + i*deltaX;
     for(int j=0;j<16;j++){
         aXY(1) = ymin + j*deltaY;
-        SimTK_TEST_EQ(bcs.calcValue(aXY),  bcsCC.calcValue(aXY));
-        SimTK_TEST_EQ(bcs.calcValue(aXY),bcsEQOP.calcValue(aXY));
+        SimTK_TEST_EQ(bcsf.calcValue(aXY),  bcsCCf.calcValue(aXY));
+        SimTK_TEST_EQ(bcsf.calcValue(aXY),bcsEQOPf.calcValue(aXY));
 
-        SimTK_TEST_EQ(bcs.calcDerivative(dX,aXY),  bcsCC.calcDerivative(dX,aXY));
-        SimTK_TEST_EQ(bcs.calcDerivative(dX,aXY),bcsEQOP.calcDerivative(dX,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dX,aXY),  bcsCCf.calcDerivative(dX,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dX,aXY),bcsEQOPf.calcDerivative(dX,aXY));
 
-        SimTK_TEST_EQ(bcs.calcDerivative(dY,aXY),  bcsCC.calcDerivative(dY,aXY));
-        SimTK_TEST_EQ(bcs.calcDerivative(dY,aXY),bcsEQOP.calcDerivative(dY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dY,aXY),  bcsCCf.calcDerivative(dY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dY,aXY),bcsEQOPf.calcDerivative(dY,aXY));
 
-        SimTK_TEST_EQ(bcs.calcDerivative(dXY,aXY),  bcsCC.calcDerivative(dXY,aXY));
-        SimTK_TEST_EQ(bcs.calcDerivative(dXY,aXY),bcsEQOP.calcDerivative(dXY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dXY,aXY),  bcsCCf.calcDerivative(dXY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dXY,aXY),bcsEQOPf.calcDerivative(dXY,aXY));
 
-        SimTK_TEST_EQ(bcs.calcDerivative(dXXY,aXY),  bcsCC.calcDerivative(dXXY,aXY));
-        SimTK_TEST_EQ(bcs.calcDerivative(dXXY,aXY),bcsEQOP.calcDerivative(dXXY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dXXY,aXY),  bcsCCf.calcDerivative(dXXY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dXXY,aXY),bcsEQOPf.calcDerivative(dXXY,aXY));
 
-        SimTK_TEST_EQ(bcs.calcDerivative(dXYY,aXY),  bcsCC.calcDerivative(dXYY,aXY));
-        SimTK_TEST_EQ(bcs.calcDerivative(dXYY,aXY),bcsEQOP.calcDerivative(dXYY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dXYY,aXY),  bcsCCf.calcDerivative(dXYY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dXYY,aXY),bcsEQOPf.calcDerivative(dXYY,aXY));
 
-        SimTK_TEST_EQ(bcs.calcDerivative(dXXX,aXY),  bcsCC.calcDerivative(dXXX,aXY));
-        SimTK_TEST_EQ(bcs.calcDerivative(dXXX,aXY),bcsEQOP.calcDerivative(dXXX,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dXXX,aXY),  bcsCCf.calcDerivative(dXXX,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dXXX,aXY),bcsEQOPf.calcDerivative(dXXX,aXY));
 
-        SimTK_TEST_EQ(bcs.calcDerivative(dYYY,aXY),  bcsCC.calcDerivative(dYYY,aXY));
-        SimTK_TEST_EQ(bcs.calcDerivative(dYYY,aXY),bcsEQOP.calcDerivative(dYYY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dYYY,aXY),  bcsCCf.calcDerivative(dYYY,aXY));
+        SimTK_TEST_EQ(bcsf.calcDerivative(dYYY,aXY),bcsEQOPf.calcDerivative(dYYY,aXY));
     }
 }
 
 }
 
 int main() {
-    //try {
     //Evaluate the bicubic surface interpolation against an analytical 
     //function. Throw an error if the values of the function are different
     //at the knot points, or different within tolerance at the mid grid points
@@ -1022,7 +1051,7 @@ int main() {
     testBicubicCoefficients(      0.0, 1.0, 0.0, 1.0,  3, 0.0);          
     testBicubicCoefficients(      0.0, 1.0, 0.0, 1.0,  3, 0.5);
     printf("\n\n*Test Passed*. Constructor with x,y,f specified,"
-           " \n\tSmoothness parameter %f and %f tested",(double)0.0,(double)0.5);
+           " \n\tSmoothness parameter %f and %f tested",(Real)0.0,(Real)0.5);
     cout << "\n---------------------------------------------"<< endl;
 
     cout << "\n\n---------------------------------------------"<< endl;
@@ -1037,7 +1066,7 @@ int main() {
     testBicubicConsistencyContinuity(        0.0, 1.0, 0.0, 1.0,  3, 0.0, false);
     testBicubicConsistencyContinuity(        0.0, 1.0, 0.0, 1.0,  3, 0.5, false);
     printf("\n\n*Test Passed*. Constructor with x,y,f specified,"
-            " \n\tSmoothness parameter %f and %f tested",(double)0.0,(double)0.5);
+            " \n\tSmoothness parameter %f and %f tested",(Real)0.0,(Real)0.5);
     cout << "\n---------------------------------------------"<< endl;
 
     cout << "\n\n---------------------------------------------"<< endl;
@@ -1052,15 +1081,5 @@ int main() {
     cout << "\n---------------------------------------------"<< endl;
 
     SimTK_END_TEST();
-
-        //}catch(const Exception& e){
-        //    e.print(cerr);
-        //    return 1;
-        //}
-
-        
-    cout << "\n\n Done: All Bicubic Interpolation Tests Passed. Press any key to return" << endl;
-    getchar();
-    return 0;
 }
 
