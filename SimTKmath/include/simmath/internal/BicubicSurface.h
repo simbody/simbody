@@ -193,6 +193,26 @@ public:
     not provide for a PatchHint. See the other signature for a much faster
     version. **/
     Real calcValue(const Vec2& XY) const;
+
+    /** Calculate the outward unit normal to the surface at a particular XY 
+    coordinate.
+     
+    @param[in]      XY 
+        A Vec2 giving the (X,Y) point at which the normal is to be evaluated.
+    @param[in,out]  hint 
+        Information saved from an earlier invocation of calcValue(),
+        calcUnitNormal(), or calcDerivative() that is used to reduce execution 
+        time. 
+    @return The outward unit normal at point (X,Y). 
+
+    This requires evaluating the first derivatives of the patch, constructing
+    tangents, finding their cross product and normalizing. **/
+    UnitVec3 calcUnitNormal(const Vec2& XY, PatchHint& hint) const;
+
+    /** This is a slow-but-convenient version of calcUnitNormal() since it does 
+    not provide for a PatchHint. See the other signature for a much faster
+    version. **/
+    UnitVec3 calcUnitNormal(const Vec2& XY) const;
     
     /** Calculate a partial derivative of this function at a particular point.  
     Which derivative to take is specified by listing the input components
@@ -228,7 +248,7 @@ public:
                         const Vec2& XY) const;
     
     /** The surface interpolation only works within the grid defined by the 
-    vectors x and y used in the constructor. This function check to see if an 
+    vectors x and y used in the constructor. This function checks to see if an 
     XYval is within the defined bounds of this particular BicubicSurface.
      
     @param XY   The vector of exactly 2 input arguments that define the XY 
@@ -239,6 +259,13 @@ public:
     point will raise an exception; use this method to check first if you 
     are not sure. **/
     bool isSurfaceDefined(const Vec2& XY) const;
+
+    /** Return the lowest XY pair for which this surface is defined; that is
+    the point (xmin,ymin). **/
+    Vec2 getMinXY() const;
+    /** Return the highest XY pair for which this surface is defined; that is
+    the point (xmax,ymax). **/
+    Vec2 getMaxXY() const;
 
     /** Create a mesh that can be used to visualize this surface. The default
     resolution will generate a few triangles per patch. Set \a resolution to

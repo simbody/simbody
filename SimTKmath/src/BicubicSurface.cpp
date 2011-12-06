@@ -148,6 +148,30 @@ Real BicubicSurface::calcDerivative
     return guts->calcDerivative(components, XY, hint); 
 }
 
+UnitVec3 BicubicSurface::calcUnitNormal(const Vec2& XY, PatchHint& hint) const {
+    const Array_<int> dx(1,0), dy(1,1);
+    const Real fx = calcDerivative(dx,XY,hint);
+    const Real fy = calcDerivative(dy,XY,hint);
+    return UnitVec3(-fx, -fy, 1); // (1,0,fx) X (0,1,fy)
+}
+UnitVec3 BicubicSurface::calcUnitNormal(const Vec2& XY) const {
+    PatchHint hint;
+    return calcUnitNormal(XY,hint);
+}
+
+bool BicubicSurface::isSurfaceDefined(const Vec2& XY) const 
+{   return getGuts().isSurfaceDefined(XY); }
+
+Vec2 BicubicSurface::getMinXY() const {
+    const BicubicSurface::Guts& guts = getGuts();
+    return Vec2(guts._x[0],guts._y[0]);
+}
+
+Vec2 BicubicSurface::getMaxXY() const {
+    const BicubicSurface::Guts& guts = getGuts();
+    return Vec2(guts._x[guts._x.size()-1],guts._y[guts._y.size()-1]);
+}
+
 PolygonalMesh BicubicSurface::createPolygonalMesh(Real resolution) const {
     PolygonalMesh mesh;
     getGuts().createPolygonalMesh(resolution, mesh);
