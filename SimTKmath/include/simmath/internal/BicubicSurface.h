@@ -55,7 +55,7 @@ continuous up to the second derivative, providing smoothly varying first
 derivatives, and a very smooth surface. The third derivatives will be 
 discontinuous between grid boundaries; all higher derivatives are zero.
 
-The user only need provide two vectors x and y defining the sample points,
+The user need only provide two vectors x and y defining the sample points,
 and a matrix f that defines the value of the function at each sample (you can
 think of that as the height Z of the surface over the X-Y plane). If the 
 samples along both axes are regularly spaced, x and y can be defined just by
@@ -87,7 +87,8 @@ derivatives of splines.
 
 These splines will pass through the points exactly when the smoothness 
 parameter of the surface is set to 0, and will be interpolated using natural 
-cubic splines. When the smoothness parameter is between 0 and 1, the surface 
+cubic splines, meaning that the curvature will be zero at the boundaries. 
+When the smoothness parameter is between 0 and 1, the surface 
 will be 'relaxed' using the algorithm used in SplineFitter, and will not
 exactly pass through the points given, but will smoothly come close to the 
 points. The smoothness parameter can thus
@@ -98,10 +99,9 @@ http://en.wikipedia.org/wiki/Bicubic_interpolation
 
 @see SplineFitter for implementation notes regarding smoothing. **/
 class SimTK_SIMMATH_EXPORT BicubicSurface {
-public:
-    class PatchHint;
-    class Guts;
- 
+public:   
+    class PatchHint; // See below for definition of PatchHint.
+
     /** Construct an uninitialized BicubicSurface handle. This can be filled
     in later by assignment. **/    
     BicubicSurface() : guts(0) {}
@@ -124,15 +124,17 @@ public:
     grid points specified in matrix f, with the default being that the surface
     will pass exactly through those points.
 
-    @param x    Vector of sample locations along the X axis (minimum 4 values).
-                Must be monotonically increasing (no duplicates).
-    @param y    Vector of sample locations along the Y axis (minimum 4 values).
-                Must be monotonically increasing (no duplicates).            
-    @param f    
+    @param[in]      x    
+        Vector of sample locations along the X axis (minimum 4 values). Must be
+        monotonically increasing (no duplicates).
+    @param[in]      y    
+        Vector of sample locations along the Y axis (minimum 4 values). Must be
+        monotonically increasing (no duplicates).            
+    @param[in]      f    
         Matrix of function values (or surface heights) evaluated at the grid 
         points formed by x and y (dimension x.size() X y.size()), such that 
         f(i,j) is F(x[i],y[j]) where F is the function being approximated here.
-    @param smoothness 
+    @param[in]      smoothness 
         A value of 0 will force surface to pass through all of the 
         points in f(x,y). As smoothness tends to 1, the surface will 
         become smoother and smoother, but will not pass through the knot 
@@ -148,20 +150,20 @@ public:
     grid points specified in matrix f, with the default being that the surface
     will pass exactly through those points.
 
-    @param      XY           
+    @param[in]      XY           
         A Vec2 giving the (x0,y0) sample location associated with the (0,0) 
         grid position in matrix \a f.
-    @param      spacing     
+    @param[in]      spacing     
         A Vec2 giving regular spacing along the x and y directions; both 
         entries must be greater than 0. The (i,j)th sample location is then 
         taken to be XY + (i*spacing[0], j*spacing[1]).
-    @param      f            
+    @param[in]      f            
         Matrix of function values (or surface heights) evaluated at points of 
         the x-y plane regularly sampled using the supplied spacings. Can be 
         rectangular but must have minimum dimension 4x4. Here 
         f(i,j)=F(i*spacing[0],j*spacing[1]) where F is the function being 
         approximated.
-    @param      smoothness 
+    @param[in]      smoothness 
         A value of 0 will force surface to pass through all of the 
         points in \a f. As smoothness tends to 1, the surface will 
         become smoother and smoother, but will not pass through the knot 
@@ -172,16 +174,22 @@ public:
     BicubicSurface(const Vec2& XY, const Vec2& spacing, 
                    const Matrix& f, Real smoothness=0);
 
-    /** Calculate the value of the surface at a particular XY coordinate. Note
-    that XY must be a vector with only 2 elements in it (because this is a
-    2-argument function), anything else will throw an exception. This is the
-    required implementation of the Function base class pure virtual.
+    /** Calculate the value of the surface at a particular XY coordinate.
      
-    @param XY the 2-Vector of input arguments X and Y. 
-    @return The interpolated value of the function at point (X,Y). **/
+    @param[in]      XY 
+        A Vec2 giving the (X,Y) point at which F(X,Y) is to be evaluated.
+    @param[in,out]  hint 
+        Information saved from an earlier invocation of calcValue()
+        or calcDerivative() that is used to reduce execution time. 
+    @return The interpolated value of the function at point (X,Y). 
+
+    Cost is minimal for repeated access to the same point, and considerably
+    reduced if access is to the same patch. We also take advantage of 
+    a regularly-spaced grid if there is one to avoid searching for the right 
+    patch. **/
     Real calcValue(const Vec2& XY, PatchHint& hint) const;
 
-    /** This is the slow-but-convenient version of calcValue() since it does 
+    /** This is a slow-but-convenient version of calcValue() since it does 
     not provide for a PatchHint. See the other signature for a much faster
     version. **/
     Real calcValue(const Vec2& XY) const;
@@ -195,20 +203,26 @@ public:
     a partial second derivative with respect to x and y, that is Df(x,y)/DxDy.
     (We use capital D to indicate partial derivative.)
      
-    @param derivComponents  
+    @param[in]      derivComponents  
         The input components with respect to which the derivative should be 
         taken. Its size must be less than or equal to the  value returned by 
         getMaxDerivativeOrder().      
-    @param XY    
+    @param[in]      XY    
         The vector of two input arguments that define the XY location on the 
-        surface. 
+        surface.
+    @param[in,out   hint 
+        Information saved from an earlier invocation of calcValue()
+        or calcDerivative() that is used to reduce execution time. 
     @return The interpolated value of the selected function partial derivative
-    for arguments (X,Y). **/
+    for arguments (X,Y). 
+
+    See comments in calcValue() for a discussion of cost and how the hint
+    is used to reduce the cost. **/
     Real calcDerivative(const Array_<int>& derivComponents, 
                         const Vec2& XY, PatchHint& hint) const;
 
-    /** This is the slow-but-convenient version of calcDerivative() since it
-    does not provide for a PatchHint. See the other signatrue for a much faster
+    /** This is a slow-but-convenient version of calcDerivative() since it
+    does not provide for a PatchHint. See the other signature for a much faster
     version. **/
     Real calcDerivative(const Array_<int>& derivComponents, 
                         const Vec2& XY) const;
@@ -226,23 +240,53 @@ public:
     are not sure. **/
     bool isSurfaceDefined(const Vec2& XY) const;
 
-    /** Return \c true if this is an empty handle meaning that it does not
-    currently refer to any surface. This is the state the handle will have
-    after default construction or a call to clear(). **/
-    bool isEmpty() const {return guts==0;}
+    //--------------------------------------------------------------------------
+    /**@name                        Statistics
+    This class keeps track of the number of surface accesses made (using
+    either calcValue() or calcDerivative(), and how many of those were
+    resolved successfully using some or all of the hint information. 
+    Methods in this section allow access to those statistics. Note that
+    these statistics include accesses from all users of this surface. **/
+    /**@{**/
+    /** This is the total number of calls made to either calcValue() or
+    calcDerivative(). **/
+    int getNumAccesses() const;
+    /** This is the number of accesses which specified a point whose 
+    information was already available in the hint. Note that if different
+    information is requested about the point, and that information is not
+    already available, we count that as "same patch" but not "same point". 
+    These accesses are resolved with essentially no computation. **/
+    int getNumAccessesSamePoint() const;
+    /** This is the number of accesses which specified a new point on the
+    same patch as was already present in the hint, or asked for new information
+    about the same point. These accesses are resolved without having to search
+    for the patch, and without having to compute patch information. However,
+    specific point information still must be calculated. **/
+    int getNumAccessesSamePatch() const;
+    /** This is the number of accesses which specified on a point that was
+    not on the patch currently in the hint, but was close enough that we did
+    not have to do a general search. This also applies if the point is on an
+    edge since those don't require searching either. So these accesses avoided
+    searching, but still required patch and point information to be computed,
+    which can be expensive. **/
+    int getNumAccessesNearbyPatch() const;
+    /** Reset all statistics to zero. Note that statistics are mutable so you
+    do not have to have write access to the surface. Any user of this surface
+    can reset statistics and we make no attempt to handle simultaneous access
+    by multiple threads in any careful manner. **/
+    void resetStatistics() const;
+    /**@}**/
 
-    /** Return this handle to its default-constructed state, meaning that
-    it will not refer to any surface. If the handle was referencing some
-    surface, and that was the last reference to that surface, then the
-    surface will be destructed. After a call to clear(), isEmpty() will
-    return \c true. **/
-    void clear();
 
-    /**
-    DEBUGGING CODE ONLY. DO NOT USE.  
+    //--------------------------------------------------------------------------
+    /**@name               Advanced surface constructors
+    These constructors assume you have already computed the function values
+    and derivatives. Most users should use the constructors that construct
+    this information automatically from given data points. **/
+    /**@{**/
 
-    A constructor for a bicubic surface that sets the partial derivatives of the
-    surface to the values specified by fx, fy, and fxy.
+    /** A constructor for a bicubic surface that sets the partial derivatives 
+    of the surface to the values specified by fx, fy, and fxy.
 
     @param x   vector of X grid points (minimum 4 values)
     @param y   vector of Y grid points (minimum 4 values)
@@ -257,14 +301,34 @@ public:
     /** Same, but with regular grid spacing. **/
     BicubicSurface(const Vec2& XY, const Vec2& spacing, const Matrix& f, 
                    const Matrix& fx, const Matrix& fy, const Matrix& fxy);
+    /**@}**/
 
+    //--------------------------------------------------------------------------
+    /**@name                        Bookkeeping
+    Methods in this section are administrative and most users will not need
+    to use them. **/
+    /**@{**/
+
+    /** Return \c true if this is an empty handle meaning that it does not
+    currently refer to any surface. This is the state the handle will have
+    after default construction or a call to clear(). **/
+    bool isEmpty() const {return guts==0;}
+
+    /** Return this handle to its default-constructed state, meaning that
+    it will not refer to any surface. If the handle was referencing some
+    surface, and that was the last reference to that surface, then the
+    surface will be destructed. After a call to clear(), isEmpty() will
+    return \c true. **/
+    void clear();
+    /**@}**/
+
+    /** @cond **/ // Hide from Doxygen.    
+    class Guts; // Opaque implementation class.
     const BicubicSurface::Guts& getGuts() const
     {   assert(guts); return *guts; }
-    /**@}**/
+    /** @endcond **/
 private:
     BicubicSurface::Guts* guts;
-
-//=============================================================================
 };    // END class BicubicSurface
 
 

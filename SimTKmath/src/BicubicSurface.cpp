@@ -148,6 +148,21 @@ Real BicubicSurface::calcDerivative
     return guts->calcDerivative(components, XY, hint); 
 }
 
+int BicubicSurface::getNumAccesses() const
+{   return getGuts().numAccesses; }
+
+int BicubicSurface::getNumAccessesSamePoint() const
+{   return getGuts().numAccessesSamePoint; }
+
+int BicubicSurface::getNumAccessesSamePatch() const
+{   return getGuts().numAccessesSamePatch; }
+
+int BicubicSurface::getNumAccessesNearbyPatch() const
+{   return getGuts().numAccessesNearbyPatch; }
+
+void BicubicSurface::resetStatistics() const
+{   return getGuts().resetStatistics(); }
+
 
 
 //==============================================================================
