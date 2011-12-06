@@ -148,6 +148,12 @@ Real BicubicSurface::calcDerivative
     return guts->calcDerivative(components, XY, hint); 
 }
 
+PolygonalMesh BicubicSurface::createPolygonalMesh(Real resolution) const {
+    PolygonalMesh mesh;
+    getGuts().createPolygonalMesh(resolution, mesh);
+    return mesh;
+}
+
 int BicubicSurface::getNumAccesses() const
 {   return getGuts().numAccesses; }
 
@@ -934,7 +940,78 @@ getCoefficients(const Vec<16>& fV, Vec<16>& aV) const {
     }
 }
 
+// We're going to generate quads in strips like this:
+//    *  <- *  <-  *  <-   *
+//    v    ^ v    ^ v      ^
+//    * ->  *  ->  *  ->   *
+// Each patch will generate the same number of quads so there will be more
+// quads where the surface is denser.
+void BicubicSurface::Guts::
+createPolygonalMesh(Real resolution, PolygonalMesh& mesh) const {
+    PatchHint hint;
+    // Number of patches in x and y direction.
+    const int nxpatch = _x.size()-1;
+    const int nypatch = _y.size()-1;
+    // n is the number of subdivisions per patch
+    const int n = std::max(1 +  (int)(resolution+.5), 1); // round
+    const int nx = nxpatch*n + 1; // number of vertices along each row
+    const int ny = nypatch*n + 1;
+    // These will alternately serve as previous and current.
+    Array_<int> row1(ny), row2(ny);
+    Array_<int>* prevRowVerts = &row1;
+    Array_<int>* curRowVerts  = &row2;
+    Vector xVals(nx), yVals(ny);
 
+    // Calculate the x and y sample values.
+    int nxt = 0;
+    for (int px=0; px < nxpatch; ++px) {
+        const Real xlo = _x[px], xhi = _x[px+1];
+        const Real xs = xhi - xlo, width = xs/n;
+        // For each quad within patch px
+        for (int qx=0; qx < n; ++qx)
+            xVals[nxt++] = xlo + qx*width;
+    }
+    xVals[nxt++] = _x[_x.size()-1];
+    assert(nxt == nx);
+
+    nxt = 0;
+    for (int py=0; py < nypatch; ++py) {
+        const Real ylo = _y[py], yhi = _y[py+1];
+        const Real ys = yhi - ylo, width = ys/n;
+        // For each quad within patch py
+        for (int qx=0; qx < n; ++qx)
+            yVals[nxt++] = ylo + qx*width;
+    }
+    yVals[nxt++] = _y[_y.size()-1];
+    assert(nxt == ny);
+
+    // Fill in the zeroth row.
+    Vec2 pt; pt[0] = xVals[0];
+    for (int j=0; j < ny; ++j) {
+        pt[1] = yVals[j];
+        const Real z = calcValue(pt, hint);
+        (*prevRowVerts)[j] = mesh.addVertex(Vec3(pt[0],pt[1],z));
+    }
+
+    // For each remaining row, generate vertices and then a strip of faces.
+    Array_<int> face(4);
+    for (int i=1; i < nx; ++i) {
+        Vec2 pt; pt[0] = xVals[i];
+        for (int j=0; j < ny; ++j) {
+            pt[1] = yVals[j];
+            const Real z = calcValue(pt, hint);
+            (*curRowVerts)[j] = mesh.addVertex(Vec3(pt[0],pt[1],z));
+        }
+        for (int j=1; j < ny; ++j) {
+            face[0] = (*curRowVerts)[j-1]; // counterclockwise
+            face[1] = (*curRowVerts)[j];
+            face[2] = (*prevRowVerts)[j];
+            face[3] = (*prevRowVerts)[j-1];
+            mesh.addFace(face);
+        }
+        std::swap(prevRowVerts, curRowVerts);
+    }
+}
 
 //==============================================================================
 //                     BICUBIC SURFACE :: PATCH HINT

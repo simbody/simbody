@@ -140,6 +140,9 @@ public:
     // Determine if a point is within the defined surface.
     bool isSurfaceDefined(const Vec2& XY) const;
 
+    // Put a visualization mesh into the given PolygonalMesh argument.
+    void createPolygonalMesh(Real resolution, PolygonalMesh& mesh) const;
+
     int getReferenceCount() const {return referenceCount;}
     void incrReferenceCount() const {++referenceCount;}
     int decrReferenceCount() const 

@@ -240,6 +240,11 @@ public:
     are not sure. **/
     bool isSurfaceDefined(const Vec2& XY) const;
 
+    /** Create a mesh that can be used to visualize this surface. The default
+    resolution will generate a few triangles per patch. Set \a resolution to
+    larger numbers to get a denser mesh. **/
+    PolygonalMesh createPolygonalMesh(Real resolution=1) const;
+
     //--------------------------------------------------------------------------
     /**@name                        Statistics
     This class keeps track of the number of surface accesses made (using
