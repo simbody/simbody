@@ -420,9 +420,7 @@ constructFromKnownFunction
 
 Real BicubicSurface::Guts::calcValue(const Vec2& aXY, PatchHint& hint) const
 {    
-    Vec<16> fV, aV;
-    Vec<10> aFdF;
-    getFdF(aXY,0,fV,aV,aFdF, hint); // just function value
+    getFdF(aXY,0,hint); // just function value
     const PatchHint::Guts& h = hint.getGuts();
     assert(h.xy == aXY && h.level >= 0);
     return h.f;
@@ -447,36 +445,30 @@ Real BicubicSurface::Guts::calcDerivative
     if (wantLevel > 3)
         return 0;   // 4th and higher derivatives are all zero
 
-    Vec<16> fV, aV;
-    Vec<10> aFdF;
-    getFdF(aXY,wantLevel,fV,aV,aFdF, hint);
+    getFdF(aXY, wantLevel, hint);
     const PatchHint::Guts& h = hint.getGuts();
     assert(h.xy == aXY && h.level >= wantLevel);
 
-    // 0=f, 1=fx, 2=fy, 3=fxy, 4=fxx, 5=fyy, 6=fxxx, 7=fxxy, 8=fyyy, 9=fxyy
-    //                   =fyx                         =fyxx           =fyyx
-    //                                                =fxyx           =fyxy
-
     if (aDerivComponents.size() == 1)
-        return aDerivComponents[0]==0 ? h.fx : h.fy;        // fx : fy
+        return aDerivComponents[0]==0 ? h.fx : h.fy;            // fx : fy
 
     if (aDerivComponents.size() == 2)
         if (aDerivComponents[0]==0) //x
-            return aDerivComponents[1]==0 ? h.fxx : h.fxy;  // fxx:fxy
+            return aDerivComponents[1]==0 ? h.fxx : h.fxy;      // fxx:fxy
         else //y (fyx==fxy)
-            return aDerivComponents[1]==0 ? h.fxy : h.fyy;  // fyx:fyy
+            return aDerivComponents[1]==0 ? h.fxy : h.fyy;      // fyx:fyy
 
     // Third derivative.
     if (aDerivComponents[0]==0) { //x
         if (aDerivComponents[1]==0) // xx
-            return aDerivComponents[2]==0 ? h.fxxx : h.fxxy;  // fxxx:fxxy
+            return aDerivComponents[2]==0 ? h.fxxx : h.fxxy;    // fxxx:fxxy
         else // xy (fxyx==fxxy)
-            return aDerivComponents[2]==0 ? h.fxxy : h.fxyy;  // fxyx:fxyy
+            return aDerivComponents[2]==0 ? h.fxxy : h.fxyy;    // fxyx:fxyy
     } else { //y (fyx==fxy)
         if (aDerivComponents[1]==0) // yx (fyxx==fxxy, fyxy==fxyy)
-            return aDerivComponents[2]==0 ? h.fxxy : h.fxyy;  // fyxx:fyxy
+            return aDerivComponents[2]==0 ? h.fxxy : h.fxyy;    // fyxx:fyxy
         else // yy (fyyx==fxyy)
-            return aDerivComponents[2]==0 ? h.fxyy : h.fyyy;  // fyyx:fyyy
+            return aDerivComponents[2]==0 ? h.fxyy : h.fyyy;    // fyyx:fyyy
     }
 }
 
@@ -519,10 +511,7 @@ derivatives at the point XY. These values are stored in the following order:
             fxxx(x,y) fxxy(x,y) fyyy(x,y) fxyy(x,y)
 */
 void BicubicSurface::Guts::
-getFdF(const Vec2& aXY, int wantLevel,
-       Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
-       PatchHint& hint) const
-{
+getFdF(const Vec2& aXY, int wantLevel, PatchHint& hint) const {
     ++numAccesses; // All surface accesses come through here.
 
     //0. Check if the surface is defined for the XY value given.
@@ -542,17 +531,6 @@ getFdF(const Vec2& aXY, int wantLevel,
     //1. Check to see if we have already computed values for the requested point.
     if(h.level >= wantLevel && aXY == h.xy){
         ++numAccessesSamePoint;
-        fV      = h.fV;
-        aijV    = h.a;
-        aFdF.setToNaN();
-        if (wantLevel < 0) return;
-        aFdF[0] = h.f;
-        if (wantLevel < 1) return;
-        aFdF[1]=h.fx; aFdF[2]=h.fy;
-        if (wantLevel < 2) return;
-        aFdF[3]=h.fxy; aFdF[4]=h.fxx; aFdF[5]=h.fyy;
-        if (wantLevel < 3) return;
-        aFdF[6]=h.fxxx; aFdF[7]=h.fxxy; aFdF[8]=h.fyyy; aFdF[9]=h.fxyy;
         return;    
     }
 
@@ -633,14 +611,8 @@ getFdF(const Vec2& aXY, int wantLevel,
     // At this point we know that the hint contains valid patch information,
     // but it contains no valid point information.
 
-    // TODO: get rid of these return values.
-    fV      = h.fV;
-    aijV    = h.a;
-
-    if (wantLevel == -1) {
-        aFdF.setToNaN(); // caller just wanted patch info
-        return;   
-    }
+    if (wantLevel == -1)
+        return; // caller just wanted patch info
 
     const Vec<16>& a = h.a; // abbreviate for convenience
 
@@ -665,11 +637,8 @@ getFdF(const Vec2& aXY, int wantLevel,
     // 6 flops
     h.f = xsum[0] + ypt*xsum[1] + ypt2*xsum[2] + ypt3*xsum[3];
     h.level = 0; // function value is ready
-    aFdF[0] = h.f;
-    if (wantLevel == 0) {
-        Vec9::updAs(&aFdF[1]).setToNaN();
+    if (wantLevel == 0)
         return;
-    }
 
     //--------------------------------------------------------------------------
     // Evaluate first derivatives fx, fy (43 flops).
@@ -687,12 +656,9 @@ getFdF(const Vec2& aXY, int wantLevel,
     const Vec4 dxsum = mdx.rowSum();
     h.fx   = dxsum[0] + ypt*dxsum[1] + ypt2*dxsum[2] + ypt3*dxsum[3];
     h.level = 1; // first derivatives are ready
-    aFdF[1] = h.fx;
-    aFdF[2] = h.fy;
-    if (wantLevel == 1) {
-        Vec7::updAs(&aFdF[3]).setToNaN();
+    if (wantLevel == 1)
         return;
-    }
+
 
     //--------------------------------------------------------------------------
     // Evaluate second derivatives fxy, fxx, fyy (40 flops).
@@ -711,13 +677,8 @@ getFdF(const Vec2& aXY, int wantLevel,
     const Vec4 dxxsum = mdxx.rowSum();
     h.fxx  = dxxsum[0] + ypt*dxxsum[1] + ypt2*dxxsum[2] + ypt3*dxxsum[3];
     h.level = 2; // second derivatives are ready
-    aFdF[3] = h.fxy;
-    aFdF[4] = h.fxx;
-    aFdF[5] = h.fyy;
-    if (wantLevel == 2) {
-        Vec4::updAs(&aFdF[6]).setToNaN();
+    if (wantLevel == 2)
         return;
-    }
 
     //--------------------------------------------------------------------------
     // Evaluate third derivatives fxxx, fxxy, fyyy, fxyy (21 flops).
@@ -736,10 +697,6 @@ getFdF(const Vec2& aXY, int wantLevel,
                      a[15]*dxxxpt3);
     h.fxxx = mdxxx[0] + ypt* mdxxx[1] + ypt2*mdxxx[2] + ypt3*mdxxx[3];
     h.level = 3; // third derivatives are ready
-    aFdF[6] = h.fxxx;
-    aFdF[7] = h.fxxy;
-    aFdF[8] = h.fyyy;
-    aFdF[9] = h.fxyy;
 
     if(_debug == true){
         cout<<" getFdF" << endl;
@@ -757,14 +714,7 @@ getFdF(const Vec2& aXY, int wantLevel,
         printf("[x0V x1V], [y0V y1V]: [%f %f],[%f %f]\n",_x(x0),_x(x1),_y(y0),_y(y1));
         cout <<" xS " << h.xS << " yS " << h.yS << endl;
         printf("(xp,yp): (%f %f)\n",xpt,ypt);
-        //cout << " axpt : " << axVec << endl;
-        //cout << " adxpt : " << adxVec << endl;
-        //cout << " ypt : " << yVec << endl;
-        //cout << " dypt : " << dyVec << endl;
         cout << "\n\n\n"<<endl;
-
-        cout <<" Final Output Vector " << endl;
-        cout << "f,fx,fy,fxy..." << aFdF << endl;
     }
 }
 

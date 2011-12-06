@@ -181,11 +181,10 @@ public:
              fxy(0,0) fxy(1,0) fxy(0,1) fxy(1,1)
     **/
     Vec<16> getPatchFunctionVector(const Vec2& XY) const {
-        Vec<16> fV, aV;
-        Vec<10> aFdF;
         BicubicSurface::PatchHint hint;
-        getFdF(XY,-1,fV,aV,aFdF,hint); // just need patch info
-        return fV;
+        getFdF(XY,-1,hint); // just need patch info
+        const BicubicSurface::PatchHint::Guts& h = hint.getGuts();
+        return h.fV;
 
     }
     
@@ -199,11 +198,10 @@ public:
              a00,a10,a20,a30,a01,a11,a21,a31,a02,a12,a22,a32,a03,a13,a23,a33
     */
     Vec<16> getPatchBicubicCoefficients(const Vec2& XY) const {
-        Vec<16> fV, aV;
-        Vec<10> aFdF;
         BicubicSurface::PatchHint hint;
-        getFdF(XY,-1,fV,aV,aFdF,hint); // just need patch info
-        return aV;
+        getFdF(XY,-1,hint); // just need patch info
+        const BicubicSurface::PatchHint::Guts& h = hint.getGuts();
+        return h.a;
     }
 
 
@@ -212,7 +210,6 @@ private:
                             int& howResolved) const;
     void getCoefficients(const Vec<16>& f, Vec<16>& aV) const;
     void getFdF(const Vec2& aXY, int wantLevel,
-                Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,
                 BicubicSurface::PatchHint& hint) const;
 
     // This is called from each constructor to initialize this object.
