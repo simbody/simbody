@@ -572,11 +572,17 @@ getFdF(const Vec2& aXY, int wantLevel,
                       _y.size()-2);
     }
 
-    // Compute the indices that define the patch containing this value.    
-    const int x0 = calcLowerBoundIndex(_x,aXY[0],pXidx);
+    // Compute the indices that define the patch containing this value.
+    int howResolvedX, howResolvedY;
+    const int x0 = calcLowerBoundIndex(_x,aXY[0],pXidx,howResolvedX);
     const int x1 = x0+1;
-    const int y0 = calcLowerBoundIndex(_y,aXY[1],pYidx);
+    const int y0 = calcLowerBoundIndex(_y,aXY[1],pYidx,howResolvedY);
     const int y1 = y0+1;
+
+    // 0->same patch, 1->nearby patch, 2->had to search
+    const int howResolved = std::max(howResolvedX, howResolvedY);
+    if      (howResolved == 0) ++numAccessesSamePatch;
+    else if (howResolved == 1) ++numAccessesNearbyPatch;
  
     // Compute Bicubic coefficients only if we're in a new patch
     // else use the old ones, because this is an expensive step!
@@ -816,8 +822,10 @@ static bool isOnPatch(const Vector& aVec, int indxL, Real aVal) {
     return indxL == maxLB;
 }
 
+// howResolved: 0->same patch, 1->nearby patch, 2->search
 int BicubicSurface::Guts::
-calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx) const {
+calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx,
+                    int& howResolved) const {
     int idxLB = -1;
     bool idxComputed = false;
 
@@ -832,7 +840,7 @@ calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx) const {
         // Are we still on the same patch? Caution -- can't be equal to the
         // upper knot unless it is the last one.
         if (isOnPatch(aVec, pIdx, aVal)) {
-            ++numAccessesSamePatch;
+            howResolved = 0;
             return pIdx;
         }
 
@@ -840,13 +848,13 @@ calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx) const {
         if (aVal < aVec[pIdx]) {
             // Value moved below the current patch.
             if (pIdx > 0 && isOnPatch(aVec, pIdx-1, aVal)) {
-                ++numAccessesNearbyPatch;
+                howResolved = 1;
                 return pIdx-1; // found it next door!
             }
         } else if (aVal >= aVec[pIdx+1]) {
             // Value moved above the current patch.
             if (pIdx < maxLB && isOnPatch(aVec, pIdx+1, aVal)) {
-                ++numAccessesNearbyPatch;
+                howResolved = 1;
                 return pIdx+1; // found it next door!
             }
         }    
@@ -857,11 +865,11 @@ calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx) const {
     // 2. Check the end points. We'll count these as "nearby patches" since
     // they are about the same amount of work.
     if (aVal <= aVec[0]) {
-        ++numAccessesNearbyPatch;
+        howResolved = 1;
         return 0;
     }
     if (aVal >= aVec[maxLB+1])  {
-        ++numAccessesNearbyPatch;
+        howResolved = 1;
         return maxLB;
     }
         
@@ -873,6 +881,8 @@ calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx) const {
     const Real* upper = 
         std::upper_bound(&aVec[0], &aVec[0] + aVec.size(), aVal);
     const int upperIx = clamp(0, (int)(upper-&aVec[1]), maxLB);
+
+    howResolved = 2;
     return upperIx;
 }
 

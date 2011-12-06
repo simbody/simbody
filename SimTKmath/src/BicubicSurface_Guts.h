@@ -208,7 +208,8 @@ public:
 
 
 private:
-    int calcLowerBoundIndex(const Vector& vecV, Real value, int pIdx) const;
+    int calcLowerBoundIndex(const Vector& vecV, Real value, int pIdx,
+                            int& howResolved) const;
     void getCoefficients(const Vec<16>& f, Vec<16>& aV) const;
     void getFdF(const Vec2& aXY, int wantLevel,
                 Vec<16>& fV, Vec<16>& aijV, Vec<10>& aFdF,

@@ -1003,11 +1003,52 @@ for(int i=0;i<16;i++){
 
 }
 
+void testHint() {
+    const Real xData[4] = { .1, 1, 2, 10 };
+    const Real yData[5] = { -3, -2, 0, 1, 3 };
+    const Real fData[] = { 1,   2,   3,   4,   5,
+                           1.1, 2.1, 3.1, 4.1, 5.1,
+                           1,   2,   3,   4,   5,
+                           1.2, 2.2, 3.2, 4.2, 5.2 };
+    const Vector x(4,   xData);
+    const Vector y(5,   yData);
+    const Matrix f(4,5, fData);
+    BicubicSurface surf(x, y, f, 0); // not smoothed
+
+    SimTK_TEST(surf.getNumAccesses() == 0);
+
+    BicubicSurface::PatchHint hint;
+    Real val = surf.calcValue(Vec2(.5, .5), hint);
+    SimTK_TEST(surf.getNumAccesses() == 1);
+    val = surf.calcValue(Vec2(.5, .5), hint); // should be free
+    SimTK_TEST(surf.getNumAccesses() == 2);
+    SimTK_TEST(surf.getNumAccessesSamePoint() == 1);
+
+    val = surf.calcValue(Vec2(.50001, .50002), hint);
+    SimTK_TEST(surf.getNumAccessesSamePatch() == 1);
+
+    val = surf.calcValue(Vec2(1.5, -1), hint);
+    SimTK_TEST(surf.getNumAccessesNearbyPatch() == 1);
+
+    // This should report "same patch" rather than "same point" because
+    // derivative info hasn't been calculated yet.
+    Array_<int> deriv1(1, 1), deriv2(2, 0); // fy, fxx
+    val = surf.calcDerivative(deriv2, Vec2(1.5, -1), hint);
+    SimTK_TEST(surf.getNumAccessesSamePatch() == 2);
+
+    // When 2nd deriv info is calculated we get 1st deriv also. So now
+    // we should get "same point" even though we haven't asked for this yet.
+    val = surf.calcDerivative(deriv1, Vec2(1.5, -1), hint);
+    SimTK_TEST(surf.getNumAccessesSamePoint() == 2);
+
+}
+
 int main() {
     //Evaluate the bicubic surface interpolation against an analytical 
     //function. Throw an error if the values of the function are different
     //at the knot points, or different within tolerance at the mid grid points
     SimTK_START_TEST("Testing Bicubic Interpolation");
+        SimTK_SUBTEST(testHint);
 
     cout << "\n---------------------------------------------"<< endl;
     cout<< "\n\nANALYTICAL FUNCTION COMPARISON:" << endl;
