@@ -275,8 +275,6 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
 
     Vector bcsV(4);    //Spline surface values at the knots
     Vector bcsMV(4);    //Spline surface values at the midpoints
-    Vector fcnV(4);    //Analytic function evaluations at knots
-    Vector fcnMV(4);    //Analytic function evaluations at midpoints
         
     Vector XY(2); //XY value at the knot points;
     Vector XYM(2); //XY value at mid grid;
@@ -342,9 +340,11 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
                 errV(3) = abs(fxyk(i,j) - zxy(i,j));
                         
                 /*if(abs(errV(0)) > 1e-4 ){
-                    printf("Analytic (x,y),f,fx,fy,fxy: (%g,%g),%g, %g, %g, %g\n",x(i),y(j),z(i,j),zx(i,j),zy(i,j),zxy(i,j));
-                    printf("Approx.  (x,y),f,fx,fy,fxy: (%g,%g),%g, %g, %g, %g\n\n",x(i),y(j),fcnV(0),fcnV(1),fcnV(2),fcnV(3));
-                    bcs.setDebug(true);                            
+                    printf("Analytic (x,y),f,fx,fy,fxy: (%g,%g),%g, %g, %g, %g\n",
+                        x(i),y(j),z(i,j),zx(i,j),zy(i,j),zxy(i,j));
+                    printf("Approx.  (x,y),f,fx,fy,fxy: (%g,%g),%g, %g, %g, %g\n\n",
+                        x(i),y(j),fk(i,j),fxk(i,j),fyk(i,j),fxyk(i,j));
+                    bcs.setDebug(true);
                 }*/
 
             if(i<size-1 && j<size-1){
@@ -1052,11 +1052,15 @@ int main() {
 
     cout << "\n---------------------------------------------"<< endl;
     cout<< "\n\nANALYTICAL FUNCTION COMPARISON:" << endl;
+    testBicubicAgainstAnalyticFcn(0.0, 1.0, 0.0, 1.0,9,0,false,false);
+    testBicubicAgainstAnalyticFcn(0.0, 1.0, 0.0, 1.0,9,1,false,false);
+    testBicubicAgainstAnalyticFcn(0.0, 1.0, 0.0, 1.0,9,2,false,false);
     testBicubicAgainstAnalyticFcn(0.0, 1.0, 0.0, 1.0,9,3,false,false);
+    testBicubicAgainstAnalyticFcn(0.0, 1.0, 0.0, 1.0,9,4,false,false);
     printf("\n\n*Test Passed*. Constructor with x,y,f,fx,fy,fxy specified,"
             " \n\tSmoothness parameter %f tested\n"
                 "\tAdditional smoothness parameters not tested because"
-                "\n\tsurface will not pass through the knot points",0);
+                "\n\tsurface will not pass through the knot points",Real(0));
     cout << "\n---------------------------------------------"<< endl;
 
     cout << "\n---------------------------------------------"<< endl;
