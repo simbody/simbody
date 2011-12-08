@@ -54,11 +54,17 @@ accessed patch to accelerate the common case of repeated access to the same
 patch or to nearby patches. **/
 class BicubicSurface::PatchHint::Guts {
 public:
-    Guts() : level(-1) {}
+    Guts() {clear();}
     // Default copy constructor, copy assignment, destructor
 
     bool isEmpty() const {return x0 < 0;}
-    void clear() {x0=y0=level = -1;}
+    void clear() {
+        x0=y0=level = -1;
+        #ifndef NDEBUG
+            xS=ooxS=ooxS2=ooxS3=yS=ooyS=ooyS2=ooyS3 = NaN;
+            f=fx=fy=fxy=fxx=fyy=fxxx=fxxy=fyyy=fxyy = NaN; 
+        #endif
+    }
 
 
     // Patch information. 
