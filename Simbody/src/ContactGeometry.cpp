@@ -114,10 +114,11 @@ void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
     getImpl().getBoundingSphere(center, radius);
 }
 
-Vec2 ContactGeometry::evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
-                             const Vec3& dPdu, const Vec3& dPdv,
-                             const Vec3& d2Pdu2, const Vec3& d2Pdv2, const Vec3& d2Pdudv,
-                             Transform& X_EP)
+/*static*/Vec2 ContactGeometry::
+evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
+                        const Vec3& dPdu, const Vec3& dPdv,
+                        const Vec3& d2Pdu2, const Vec3& d2Pdv2, const Vec3& d2Pdudv,
+                        Transform& X_EP)
 {
     // All this is 42 flops
     Real E =  ~dPdu*dPdu,  F =  ~dPdu*dPdv,   G =  ~dPdv*dPdv;
@@ -127,33 +128,33 @@ Vec2 ContactGeometry::evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
     Real kmax, kmin;
     UnitVec3 dmax;
     if (std::abs(F) < SignificantReal) {
-        Real ku = e/E, kv = g/G; // two divides ~40 flops
+        Real ku = e/E, kv = g/G; // two divides ~20 flops
         if (ku < kv) {
             kmax=kv, kmin=ku;
-            dmax=UnitVec3(dPdv); // normalizing, ~40 flops
+            dmax=UnitVec3(dPdv); // normalizing, ~35 flops
         } else {
             kmax=ku, kmin=kv;
-            dmax=UnitVec3(dPdu); // normalizing, ~40 flops
+            dmax=UnitVec3(dPdu); // normalizing, ~35 flops
         }
     } else {
-        // ~50 flops
+        // ~40 flops
         // t = (-b +/- sqrt(b^2-4ac)) / 2a
         // Discriminant must be nonnegative for real surfaces
         // but could be slightly negative due to numerical noise.
         Real sqrtd = std::sqrt(std::max(B*B - 4*A*C, Real(0)));
-        Vec2 t = Vec2(-B + sqrtd, -B - sqrtd) / (2*A);
+        Vec2 t = Vec2(sqrtd - B, -sqrtd - B) / (2*A);
 
-        // Two divides + misc: ~50 flops
+        // Two divides + misc: ~30 flops
         Real kr = (e + f*t[0])/(E+F*t[0]); // Struik, eq. 6-4, pg 80
         Real ks = (e + f*t[1])/(E+F*t[1]); // (works only because these are extremes)
                                            // otherwise use eq. 6-3.
 
         if (kr < ks) {
             kmax=ks, kmin=kr;
-            dmax = UnitVec3(t[1]*dPdv + dPdu); // Sdir, normalizing, ~50 flops
+            dmax = UnitVec3(t[1]*dPdv + dPdu); // Sdir, normalizing, ~40 flops
         } else {
             kmax=kr, kmin=ks;
-            dmax = UnitVec3(t[0]*dPdv + dPdu); // Rdir, normalizing, ~50 flops
+            dmax = UnitVec3(t[0]*dPdv + dPdu); // Rdir, normalizing, ~40 flops
         }
     }
 
