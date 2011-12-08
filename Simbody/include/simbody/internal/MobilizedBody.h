@@ -343,10 +343,10 @@ public:
     Motion::Method getQMotionMethod(const State& state) const;
     /// Determine how generalized speed u values are being determined.
     /// @param[in] state    Must be realized to Instance stage.
-    Motion::Method getUMotionMethod(const State&) const;
+    Motion::Method getUMotionMethod(const State& state) const;
     /// Determine how generalized acceleration udot values are being determined.
     /// @param[in] state    Must be realized to Instance stage.
-    Motion::Method getUDotMotionMethod(const State&) const;
+    Motion::Method getUDotMotionMethod(const State& state) const;
 
 
     /// Return one of the generalized coordinates q from this mobilizer's partition of the matter
