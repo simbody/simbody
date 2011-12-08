@@ -7,8 +7,8 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
  * Portions copyright (c) 2011 Stanford University and the Authors.           *
- * Authors: Matthew Millard                                                   *
- * Contributors: Michael Sherman                                              *
+ * Authors: Matthew Millard, Michael Sherman                                  *
+ * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *

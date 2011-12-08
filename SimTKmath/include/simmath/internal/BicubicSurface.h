@@ -10,8 +10,8 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
  * Portions copyright (c) 2011 Stanford University and the Authors.           *
- * Authors: Matthew Millard                                                   *
- * Contributors: Michael Sherman                                              *
+ * Authors: Matthew Millard, Michael Sherman                                  *
+ * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -51,6 +51,8 @@ function F(X,Y) from a given set of samples of that function on a rectangular
 grid with regular or irregular spacing. This is useful both for function
 interpolation and to provide height-mapped terrain surfaces. See the related
 class BicubicFunction if you need to satisfy the SimTK::Function interface.
+A single BicubicSurface can be shared among multiple accessors and threads
+once constructed.
 
 A bicubic surface interpolation is used to approximate the function
 between the sample points. That is desirable for simulation use because it is 
@@ -64,9 +66,59 @@ think of that as the height Z of the surface over the X-Y plane). If the
 samples along both axes are regularly spaced, x and y can be defined just by
 giving the spacing; otherwise, the sample locations are given explicitly.
 
-Graphically if these vectors and matrices were laid next to each other 
-consistently with how the surface is computed the diagram would look like this:
-<pre>
+<h3>Usage</h3>
+The following code generates an unsmoothed and smoothed surface using a 3x4 
+grid of bicubic patches from a matrix of 4x5 irregularly-spaced sample points:
+@code
+    const int Nx = 4, Ny = 5;
+    const Real xData[Nx]    = { .1, 1, 2, 4 };
+    const Real yData[Ny]    = { -3, -2, 0, 1, 3 };
+    const Real fData[Nx*Ny] = { 1,   2,   3,   3,   2,
+                               1.1, 2.1, 3.1, 3.1, 2.1,
+                                1,   2,   7,   3,   2,
+                               1.2, 2.2, 3.2, 3.2, 2.2 };
+    const Vector x(Nx,    xData);
+    const Vector y(Ny,    yData);
+    const Matrix f(Nx,Ny, fData);
+    BicubicSurface surfaceThroughSamples(x, y, f);
+    BicubicSurface smoothedSurface(x, y, f, 1); 
+
+    // Evaluate the surface at (.5,.5):
+    Real val = smoothedSurface.calcValue(Vec2(.5,.5));
+@endcode
+
+When accessing the surface repeatedly, you can significantly improve performance
+by maintaining a "hint" object that allows for very fast repeated access to the
+same patch, a very common access pattern. Alternatively, use a BicubicFunction
+as the interface to your BicubicSurface; in that case the hint is managed for
+you automatically. Here is an example of explicit hint usage:
+@code
+    PatchHint hint;
+    val = smoothedSurface.calcValue(Vec2(.5,.6), hint);
+    val = smoothedSufrace.calcValue(Vec2(.51,.61), hint);
+@endcode
+
+Additional methods are provided for obtaining the surface normals, and all the
+surface partial derivatives. Advanced users can obtain principal curvature 
+directions, and performance statistics, among other specialized functions.
+
+If you want to visualize the surface, you can ask it to generate a polygonal
+mesh (with optional control over the resolution). That mesh can be used to
+generate a DecorativeMesh compatible with the Simbody Visualizer. This example
+creates a mesh of the smoothed surface, then places it on the Ground body so
+that the Visualizer will pick it up.
+@code
+    PolygonalMesh smoothedMesh = smoothedSurface.createPolygonalMesh();
+    matter.Ground().addBodyDecoration(Vec3(0), // place at origin
+        DecorativeMesh(smoothedMesh)
+            .setRepresentation(DecorativeGeometry::Wireframe)
+            .setColor(Blue));
+@endcode
+
+<h3>Discussion</h3>
+Graphically if the defining sample vectors and matrices were laid next to each 
+other consistently with how the surface is computed the diagram would look 
+like this: <pre>
              y(0)       y(1)    ...   y(ny-1)
             ------     ------         --------
     x(0)  |  f(0,0)     f(0,1)  ...   f(0,ny-1)
@@ -322,14 +374,14 @@ public:
 
 
     //--------------------------------------------------------------------------
-    /**@name               Advanced methods
+    /**@name                    Advanced methods
     The constructors here assume you have already computed the function values
     and derivatives. Most users should use the constructors that construct
     this information automatically from given data points. **/
     /**@{**/
 
-    /** A constructor for a bicubic surface that sets the partial derivatives 
-    of the surface to the values specified by fx, fy, and fxy.
+    /** (Advanced) A constructor for a bicubic surface that sets the partial 
+    derivatives  of the surface to the values specified by fx, fy, and fxy.
 
     @param x   vector of X grid points (minimum 2 values)
     @param y   vector of Y grid points (minimum 2 values)
@@ -341,13 +393,13 @@ public:
     */
     BicubicSurface(const Vector& x, const Vector& y, const Matrix& f, 
                    const Matrix& fx, const Matrix& fy, const Matrix& fxy);
-    /** Same, but with regular grid spacing. **/
+    /** (Advanced) Same, but with regular grid spacing. **/
     BicubicSurface(const Vec2& XY, const Vec2& spacing, const Matrix& f, 
                    const Matrix& fx, const Matrix& fy, const Matrix& fxy);
 
-    /** For use with Hertz contact at a point Q we need to know the surface
-    normal and principal curvature magnitudes and directions. This can be 
-    viewed as an approximating paraboloid at Q in a frame P where OP=Q, Pz is
+    /** (Advanced) For use with Hertz contact at a point Q we need to know the 
+    surface normal and principal curvature magnitudes and directions. This can 
+    be viewed as an approximating paraboloid at Q in a frame P where OP=Q, Pz is
     the outward-facing unit normal to the surface at Q, Px is the direction of
     maximum curvature and Py is the direction of minimum curvature. 
     k=(kmax,kmin) are the returned curvatures with kmax >= kmin > 0. The 
@@ -370,11 +422,11 @@ public:
         paraboloid P) at point Q.
     **/
     void calcParaboloid(const Vec2& XY, PatchHint& hint, 
-                        Transform& X_EP, Vec2& k) const;
-    /** This is a slow-but-convenient version of calcParaboloid() since it
-    does not provide for a PatchHint. See the other signature for a much faster
-    version. **/
-    void calcParaboloid(const Vec2& XY, Transform& X_EP, Vec2& k) const;
+                        Transform& X_SP, Vec2& k) const;
+    /** (Advanced) This is a slow-but-convenient version of calcParaboloid() 
+    since it does not provide for a PatchHint. See the other signature for a 
+    much faster version. **/
+    void calcParaboloid(const Vec2& XY, Transform& X_SP, Vec2& k) const;
     /**@}**/
 
     //--------------------------------------------------------------------------

@@ -40,14 +40,22 @@
 
 namespace SimTK {
 
-/**
- * This class implements a non-uniform B-spline curve.  It requires the spline degree to be odd (linear, cubic, quintic, etc.), but
- * supports arbitrarily high degrees.  Only spline curves are supported, not surfaces or higher dimensional objects, but the curve
- * may be defined in an arbitrary dimensional space.  That is, a Spline_ is a Function_ that calculates an arbitrary number of output
- * values based on a single input value.  The template argument must be either Real or Vec<N> from some integer N.  The name "Spline"
- * (with no trailing _) may be used as a synonym for Spline_<Real>.
- */
+/** This class implements a non-uniform B-spline curve. It requires the spline 
+degree to be odd (linear, cubic, quintic, etc.), but supports arbitrarily high
+degrees. Only spline curves are supported, not surfaces or higher dimensional 
+objects, but the curve may be defined in an arbitrary dimensional space.
+That is, a Spline_ is a Function_ that calculates an arbitrary number of 
+output values based on a single input value. The template argument must be 
+either Real or Vec<N> from some integer N.  The name "Spline" (with no trailing
+"_") may be used as a synonym for Spline_<Real>.
 
+Most users should generate Spline_ objects using SplineFitter which can be
+used to generate spline curves through data points rather than requiring
+Bezier control points.
+
+@see SplineFitter for best-fitting a spline through sampled data.
+@see BicubicSurface for fitting a smooth surface to 2D sample data.
+**/
 template <class T>
 class Spline_ : public Function_<T> {
 public:
