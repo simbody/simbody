@@ -154,6 +154,8 @@ be used to generate a surface that smoothly interpolates noisy surface data.
 Here is a Wikipedia entry that describes the basic approach:
 http://en.wikipedia.org/wiki/Bicubic_interpolation
 
+@author Matthew Millard, Michael Sherman
+
 @see SplineFitter for implementation notes regarding smoothing. 
 @see BicubicFunction **/
 class SimTK_SIMMATH_EXPORT BicubicSurface {
@@ -309,8 +311,8 @@ public:
     vectors x and y used in the constructor. This function checks to see if an 
     XYval is within the defined bounds of this particular BicubicSurface.
      
-    @param XY   The vector of exactly 2 input arguments that define the XY 
-                location on the surface.
+    @param[in] XY   The vector of exactly 2 input arguments that define the XY 
+                        location on the surface.
     @return \c true if the point is in range, \c false otherwise. 
     
     An attempt to invoke calcValue() or calcDerivative() on an out-of-range
@@ -383,14 +385,14 @@ public:
     /** (Advanced) A constructor for a bicubic surface that sets the partial 
     derivatives  of the surface to the values specified by fx, fy, and fxy.
 
-    @param x   vector of X grid points (minimum 2 values)
-    @param y   vector of Y grid points (minimum 2 values)
-    @param f   matrix of the surface heights evaluated at the grid formed 
-                by x and y (minumum 2x2)
-    @param fx  matrix of the partial derivative of f w.r.t to x (minumum 2x2)
-    @param fy  matrix of the partial derivative of f w.r.t to y (minumum 2x2)
-    @param fxy matrix of the partial derivative of f w.r.t to x,y (minumum 2x2)
-    */
+    @param[in] x   vector of X grid points (minimum 2 values)
+    @param[in] y   vector of Y grid points (minimum 2 values)
+    @param[in] f   matrix of the surface heights evaluated at the grid formed 
+                       by x and y (minumum 2x2)
+    @param[in] fx  matrix of partial derivative of f w.r.t to x (minumum 2x2)
+    @param[in] fy  matrix of partial derivative of f w.r.t to y (minumum 2x2)
+    @param[in] fxy matrix of partial derivative of f w.r.t to x,y (minumum 2x2)
+    **/
     BicubicSurface(const Vector& x, const Vector& y, const Matrix& f, 
                    const Matrix& fx, const Matrix& fy, const Matrix& fxy);
     /** (Advanced) Same, but with regular grid spacing. **/
@@ -513,7 +515,8 @@ surface.
 BicubicFunction is \e not thread-safe, but the underlying BicubicSurface is. 
 Each thread should thus have a private BicubicFunction that it uses to access
 the shared surface.
-**/
+
+@author Matthew Millard, Michael Sherman **/
 class SimTK_SIMMATH_EXPORT BicubicFunction : public Function_<Real> {
 public:
     /** Create a BicubicFunction referencing the given BicubicSurface, which
@@ -529,7 +532,7 @@ public:
     2-argument function), anything else will throw an exception. This is the
     required implementation of the Function base class pure virtual.
      
-    @param XY the 2-Vector of input arguments X and Y. 
+    @param[in] XY   the 2-Vector of input arguments X and Y. 
     @return The interpolated value of the function at point (X,Y). **/
     virtual Real calcValue(const Vector& XY) const {
         SimTK_ERRCHK1(XY.size()==2, "BicubicFunction::calcValue()",
@@ -547,12 +550,12 @@ public:
     a partial second derivative with respect to x and y, that is Df(x,y)/DxDy.
     (We use capital D to indicate partial derivative.)
      
-    @param derivComponents  
+    @param[in]      derivComponents  
         The input components with respect to which the derivative should be 
         taken. Each entry must be 0 or 1, and if there are 4 or more entries
         the result will be zero since the surface has only 3 non-zero 
         derivatives.
-    @param XY    
+    @param[in]      XY    
         The vector of two input arguments that define the XY location on the 
         surface. 
     @return The interpolated value of the selected function partial derivative
