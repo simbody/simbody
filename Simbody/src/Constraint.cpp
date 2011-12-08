@@ -2208,7 +2208,7 @@ void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& 
     const Real* udot = &s.updUDot()[0];
     Vector qdotdot(s.getNQ());
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-    SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
+    SBStateDigest digest(s, matter.getRep(), Stage::Dynamics);
     const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBody));
     const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
     node.calcQDotDot(digest, &udot[node.getUIndex()], &qdotdot[node.getQIndex()]);
