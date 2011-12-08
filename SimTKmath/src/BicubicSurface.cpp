@@ -125,10 +125,8 @@ Real BicubicSurface::calcValue(const Vec2& XY, PatchHint& hint) const {
 
 // calcValue(), the slow version.
 Real BicubicSurface::calcValue(const Vec2& XY) const {
-    SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcValue()",
-        "This method can't be called on an empty handle.");
     PatchHint hint; // create an empty hint
-    return guts->calcValue(XY, hint); 
+    return calcValue(XY, hint); 
 }
 
 // calcDerivative(), the fast version.
@@ -142,10 +140,8 @@ Real BicubicSurface::calcDerivative
 // calcDerivative(), the slow version.
 Real BicubicSurface::calcDerivative
    (const Array_<int>& components, const Vec2& XY) const {
-    SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcDerivative()",
-        "This method can't be called on an empty handle.");
     PatchHint hint; // create an empty hint
-    return guts->calcDerivative(components, XY, hint); 
+    return calcDerivative(components, XY, hint); 
 }
 
 UnitVec3 BicubicSurface::calcUnitNormal(const Vec2& XY, PatchHint& hint) const {
@@ -157,6 +153,21 @@ UnitVec3 BicubicSurface::calcUnitNormal(const Vec2& XY, PatchHint& hint) const {
 UnitVec3 BicubicSurface::calcUnitNormal(const Vec2& XY) const {
     PatchHint hint;
     return calcUnitNormal(XY,hint);
+}
+
+void BicubicSurface::calcParaboloid
+   (const Vec2& XY, PatchHint& hint, Transform& X_SP, Vec2& k) const
+{
+    SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcParaboloid()",
+        "This method can't be called on an empty handle.");
+    guts->calcParaboloid(XY, hint, X_SP, k);
+}
+
+void BicubicSurface::calcParaboloid
+   (const Vec2& XY, Transform& X_SP, Vec2& k) const
+{
+    PatchHint hint;
+    calcParaboloid(XY, hint, X_SP, k);
 }
 
 bool BicubicSurface::isSurfaceDefined(const Vec2& XY) const 
@@ -407,9 +418,9 @@ constructFromKnownFunction
     const int nx = af.nrow(), ny = af.ncol();
 
     // Check for sufficient sample size.
-    SimTK_ERRCHK2_ALWAYS(nx >= 4 && ny >= 4,
+    SimTK_ERRCHK2_ALWAYS(nx >= 2 && ny >= 2,
         "BicubicSurface::ctor(f,fx,fy,fxy)", 
-        "A BicubicSurface requires at least 4 sample in x and y directions"
+        "A BicubicSurface requires at least 2 sample in x and y directions"
         " but grid dimensions were %d and %d.", nx, ny);
 
     SimTK_ERRCHK4_ALWAYS(_x.size() == nx && _y.size() == ny,
@@ -500,6 +511,83 @@ Real BicubicSurface::Guts::calcDerivative
         else // yy (fyyx==fxyy)
             return aDerivComponents[2]==0 ? h.fxyy : h.fyyy;    // fyyx:fyyy
     }
+}
+
+// TODO: I copied this over here from Simbody's ContactGeometry code which
+// should be moved to SimTKmath along with other general geometry tools.
+// See ContactGeometry.h for documentation. Cost is about 165 flops. 
+// Could be optimized a little to special case for BicubicSurface since the
+// input arguments are mostly 0's and 1's, but probably not worth the trouble.
+static Vec2 
+evalParametricCurvature
+   (const Vec3& P, const UnitVec3& nn,
+    const Vec3& dPdu, const Vec3& dPdv,
+    const Vec3& d2Pdu2, const Vec3& d2Pdv2, const Vec3& d2Pdudv,
+    Transform& X_EP)
+{
+    // All this is 42 flops. TODO: simplify for BicubicSurface
+    Real E =  ~dPdu*dPdu,  F =  ~dPdu*dPdv,   G =  ~dPdv*dPdv;
+    Real e =-(~d2Pdu2*nn), f =-(~d2Pdudv*nn), g =-(~d2Pdv2*nn);
+    Real A = F*g-G*f, B = E*g-G*e, C = E*f-F*e;
+
+    Real kmax, kmin;
+    UnitVec3 dmax;
+    if (std::abs(F) < SignificantReal) {
+        Real ku = e/E, kv = g/G; // two divides ~20 flops
+        if (ku < kv) {
+            kmax=kv, kmin=ku;
+            dmax=UnitVec3(dPdv); // normalizing, ~35 flops
+        } else {
+            kmax=ku, kmin=kv;
+            dmax=UnitVec3(dPdu); // normalizing, ~35 flops
+        }
+    } else {
+        // ~40 flops
+        // t = (-b +/- sqrt(b^2-4ac)) / 2a
+        // Discriminant must be nonnegative for real surfaces
+        // but could be slightly negative due to numerical noise.
+        Real sqrtd = std::sqrt(std::max(B*B - 4*A*C, Real(0)));
+        Vec2 t = Vec2(sqrtd - B, -sqrtd - B) / (2*A);
+
+        // Two divides + misc: ~30 flops
+        Real kr = (e + f*t[0])/(E+F*t[0]); // Struik, eq. 6-4, pg 80
+        Real ks = (e + f*t[1])/(E+F*t[1]); // (works only because these are extremes)
+                                           // otherwise use eq. 6-3.
+
+        if (kr < ks) {
+            kmax=ks, kmin=kr;
+            dmax = UnitVec3(t[1]*dPdv + dPdu); // Sdir, normalizing, ~40 flops
+        } else {
+            kmax=kr, kmin=ks;
+            dmax = UnitVec3(t[0]*dPdv + dPdu); // Rdir, normalizing, ~40 flops
+        }
+    }
+
+    // y=z%x ensures right handed; already unit vec (9 flops)
+    UnitVec3 dmin = UnitVec3(nn % dmax, true);
+    X_EP.updR().setRotationFromUnitVecsTrustMe(dmax, dmin, nn);
+    X_EP.updP() = P; // the origin point
+
+    return Vec2(kmax, kmin);
+}
+
+// Cost is patch evaluation + about 200 flops.
+void BicubicSurface::Guts::calcParaboloid
+   (const Vec2& aXY, PatchHint& hint, Transform& X_SP, Vec2& k) const
+{
+    getFdF(aXY, 2, hint); // calculate through 2nd derivatives
+    const PatchHint::Guts& h = hint.getGuts();
+    assert(h.xy == aXY && h.level >= 2);
+
+    const Vec3 P = aXY.append1(h.f);
+    const Vec3 dPdx(1,0,h.fx);
+    const Vec3 dPdy(0,1,h.fy);
+    const UnitVec3 nn(-h.fx, -h.fy, 1); // dPdx X dPdy (normalizing, ~35 flops)
+    const Vec3 d2Pdx2(0,0,h.fxx);
+    const Vec3 d2Pdy2(0,0,h.fyy);
+    const Vec3 d2Pdxdy(0,0,h.fxy);
+
+    k = evalParametricCurvature(P,nn,dPdx,dPdy,d2Pdx2,d2Pdy2,d2Pdxdy,X_SP);
 }
 
 bool BicubicSurface::Guts::isSurfaceDefined(const Vec2& XYval) const

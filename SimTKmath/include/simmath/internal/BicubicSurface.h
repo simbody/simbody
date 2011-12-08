@@ -48,8 +48,11 @@ namespace SimTK {
 //==============================================================================
 /** This class will create a smooth surface that approximates a two-argument
 function F(X,Y) from a given set of samples of that function on a rectangular
-grid with regular or irregular spacing. A bicubic surface interpolation is used
-to approximate the function
+grid with regular or irregular spacing. This is useful both for function
+interpolation and to provide height-mapped terrain surfaces. See the related
+class BicubicFunction if you need to satisfy the SimTK::Function interface.
+
+A bicubic surface interpolation is used to approximate the function
 between the sample points. That is desirable for simulation use because it is 
 continuous up to the second derivative, providing smoothly varying first 
 derivatives, and a very smooth surface. The third derivatives will be 
@@ -78,26 +81,29 @@ such that f(i,j)=F(x(i),y(j)).
 Note that the each XY location can only have a unique value associated with it
 -- cave-like structures cannot be represented using this interpolation method.
     
-Technically a bicubic surface interpolation requires the partial derivatives 
-fx, fy and fxy at each of the grid points. To take this burden from the user, 
-these partial derivative matrices are computed using only the the supplied 
-points for X, Y and F. For the interested reader, these partial derivatives are 
+A bicubic surface interpolation requires the partial derivatives 
+fx=Df/Dx, fy=Df/Dy and fxy=Dfx/Dy=D^2f/DxDy at each of the grid points. If you
+already know those, you can provide them directly. However, in most cases you
+will only know the sample points and not the derivatives. You can provide
+just the sample points and BicubicSurface will estimate the derivatives
+automatically. For the interested reader, these partial derivatives are 
 computed by fitting splines through the points provided, and then taking 
 derivatives of splines. 
 
 These splines will pass through the points exactly when the smoothness 
 parameter of the surface is set to 0, and will be interpolated using natural 
 cubic splines, meaning that the curvature will be zero at the boundaries. 
-When the smoothness parameter is between 0 and 1, the surface 
-will be 'relaxed' using the algorithm used in SplineFitter, and will not
+When the smoothness parameter is greater than zero, the surface 
+will be "relaxed" using the algorithm provided by SplineFitter, and will not
 exactly pass through the points given, but will smoothly come close to the 
 points. The smoothness parameter can thus
 be used to generate a surface that smoothly interpolates noisy surface data.
 
-Here is the Wikipedia entry from which we implemented this method:
+Here is a Wikipedia entry that describes the basic approach:
 http://en.wikipedia.org/wiki/Bicubic_interpolation
 
-@see SplineFitter for implementation notes regarding smoothing. **/
+@see SplineFitter for implementation notes regarding smoothing. 
+@see BicubicFunction **/
 class SimTK_SIMMATH_EXPORT BicubicSurface {
 public:   
     class PatchHint; // See below for definition of PatchHint.
@@ -118,8 +124,8 @@ public:
     BicubicSurface& operator=(const BicubicSurface& source);
 
     
-    /** Construct a bicubic surface that approximates f(x,y)
-    with the spacing between each grid point in f defined by the vectors x and 
+    /** Construct a bicubic surface that approximates F(X,Y) given samples
+    f(i,j) with the sample locations in f defined by the vectors x and 
     y. The smoothness parameter controls how closely the surface approaches the 
     grid points specified in matrix f, with the default being that the surface
     will pass exactly through those points.
@@ -132,20 +138,20 @@ public:
         monotonically increasing (no duplicates).            
     @param[in]      f    
         Matrix of function values (or surface heights) evaluated at the grid 
-        points formed by x and y (dimension x.size() X y.size()), such that 
+        points formed by x and y (dimension x.size() by y.size()), such that 
         f(i,j) is F(x[i],y[j]) where F is the function being approximated here.
     @param[in]      smoothness 
         A value of 0 will force surface to pass through all of the 
-        points in f(x,y). As smoothness tends to 1, the surface will 
-        become smoother and smoother, but will not pass through the knot 
+        points in f(x,y). As smoothness increases, the surface will 
+        become smoother and smoother but will increasingly deviate from the
         points stored in matrix \a f. (Optional, default is 0.)
 
     If your sample points are regularly spaced, use the other constructor. **/
     BicubicSurface(const Vector& x, const Vector& y, const Matrix& f, 
                    Real smoothness=0);
 
-    /** Construct a bicubic surface that approximates f(x,y)
-    over a grid with regular spacing in both the x and y directions. The 
+    /** Construct a bicubic surface that approximates F(X,Y) given samples
+    f(i,j) over a grid with regular spacing in both the x and y directions. The 
     smoothness parameter controls how closely the surface approaches the 
     grid points specified in matrix f, with the default being that the surface
     will pass exactly through those points.
@@ -161,12 +167,12 @@ public:
         Matrix of function values (or surface heights) evaluated at points of 
         the x-y plane regularly sampled using the supplied spacings. Can be 
         rectangular but must have minimum dimension 4x4. Here 
-        f(i,j)=F(i*spacing[0],j*spacing[1]) where F is the function being 
-        approximated.
+        f(i,j)=F(XY[0]+i*spacing[0],XY[1]+j*spacing[1]) where F is the function
+        being approximated.
     @param[in]      smoothness 
         A value of 0 will force surface to pass through all of the 
-        points in \a f. As smoothness tends to 1, the surface will 
-        become smoother and smoother, but will not pass through the knot 
+        points in \a f. As smoothness increases, the surface will 
+        become smoother and smoother but will increasingly deviate from the
         points stored in matrix \a f. (Optional, default is 0.)
 
     If your sample points are not regularly spaced, use the other constructor
@@ -174,13 +180,13 @@ public:
     BicubicSurface(const Vec2& XY, const Vec2& spacing, 
                    const Matrix& f, Real smoothness=0);
 
-    /** Calculate the value of the surface at a particular XY coordinate.
-     
+    /** Calculate the value of the surface at a particular XY coordinate.     
     @param[in]      XY 
         A Vec2 giving the (X,Y) point at which F(X,Y) is to be evaluated.
     @param[in,out]  hint 
-        Information saved from an earlier invocation of calcValue()
-        or calcDerivative() that is used to reduce execution time. 
+        Information saved from an earlier invocation of calcValue(), 
+        calcUnitNormal(), or calcDerivative() that is used to reduce 
+        execution time. 
     @return The interpolated value of the function at point (X,Y). 
 
     Cost is minimal for repeated access to the same point, and considerably
@@ -195,8 +201,7 @@ public:
     Real calcValue(const Vec2& XY) const;
 
     /** Calculate the outward unit normal to the surface at a particular XY 
-    coordinate.
-     
+    coordinate.     
     @param[in]      XY 
         A Vec2 giving the (X,Y) point at which the normal is to be evaluated.
     @param[in,out]  hint 
@@ -230,9 +235,10 @@ public:
     @param[in]      XY    
         The vector of two input arguments that define the XY location on the 
         surface.
-    @param[in,out   hint 
-        Information saved from an earlier invocation of calcValue()
-        or calcDerivative() that is used to reduce execution time. 
+    @param[in,out]  hint 
+        Information saved from an earlier invocation of calcValue(), 
+        calcUnitNormal(), or calcDerivative() that is used to reduce 
+        execution time. 
     @return The interpolated value of the selected function partial derivative
     for arguments (X,Y). 
 
@@ -268,8 +274,13 @@ public:
     Vec2 getMaxXY() const;
 
     /** Create a mesh that can be used to visualize this surface. The default
-    resolution will generate a few triangles per patch. Set \a resolution to
-    larger numbers to get a denser mesh. **/
+    resolution will generate four quads (2x2) per patch. Set \a resolution to
+    the number of times you want each patch subdivided. The default is 1; set
+    resolution=0 to get just one quad per patch, resolution=3 would give
+    16 quads (4x4) per patch. 
+
+    The resulting mesh has its origin at (0,0,0), not at (x[0],y[0],0) as
+    you might expect. X,Y,Z directions match the surface description. **/
     PolygonalMesh createPolygonalMesh(Real resolution=1) const;
 
     //--------------------------------------------------------------------------
@@ -311,8 +322,8 @@ public:
 
 
     //--------------------------------------------------------------------------
-    /**@name               Advanced surface constructors
-    These constructors assume you have already computed the function values
+    /**@name               Advanced methods
+    The constructors here assume you have already computed the function values
     and derivatives. Most users should use the constructors that construct
     this information automatically from given data points. **/
     /**@{**/
@@ -320,19 +331,50 @@ public:
     /** A constructor for a bicubic surface that sets the partial derivatives 
     of the surface to the values specified by fx, fy, and fxy.
 
-    @param x   vector of X grid points (minimum 4 values)
-    @param y   vector of Y grid points (minimum 4 values)
+    @param x   vector of X grid points (minimum 2 values)
+    @param y   vector of Y grid points (minimum 2 values)
     @param f   matrix of the surface heights evaluated at the grid formed 
-                by x and y (minumum 4x4)
-    @param fx  matrix of the partial derivative of f w.r.t to x (minumum 4x4)
-    @param fy  matrix of the partial derivative of f w.r.t to y (minumum 4x4)
-    @param fxy matrix of the partial derivative of f w.r.t to x,y (minumum 4x4)
+                by x and y (minumum 2x2)
+    @param fx  matrix of the partial derivative of f w.r.t to x (minumum 2x2)
+    @param fy  matrix of the partial derivative of f w.r.t to y (minumum 2x2)
+    @param fxy matrix of the partial derivative of f w.r.t to x,y (minumum 2x2)
     */
     BicubicSurface(const Vector& x, const Vector& y, const Matrix& f, 
                    const Matrix& fx, const Matrix& fy, const Matrix& fxy);
     /** Same, but with regular grid spacing. **/
     BicubicSurface(const Vec2& XY, const Vec2& spacing, const Matrix& f, 
                    const Matrix& fx, const Matrix& fy, const Matrix& fxy);
+
+    /** For use with Hertz contact at a point Q we need to know the surface
+    normal and principal curvature magnitudes and directions. This can be 
+    viewed as an approximating paraboloid at Q in a frame P where OP=Q, Pz is
+    the outward-facing unit normal to the surface at Q, Px is the direction of
+    maximum curvature and Py is the direction of minimum curvature. 
+    k=(kmax,kmin) are the returned curvatures with kmax >= kmin > 0. The 
+    equation of the resulting paraboloid in the P frame is 
+    -2z = kmax*x^2 + kmin*y^2.
+
+    @param[in]      XY    
+        The Vec2 that defines the desired location on the surface such that the
+        contact point Q=F(X,Y).
+    @param[in,out]  hint 
+        Information saved from an earlier invocation of this or another 
+        hint-using method in this class.
+    @param[out]     X_SP    
+        The frame of the paraboloid P, measured and expressed in the surface
+        local frame S. X_SP.p() is Q, X_SP.x() is the calculated direction of 
+        maximum curvature kmax; y() is the direction of minimum curvature kmin;
+        z is the outward facing normal at Q.
+    @param[out]     k       
+        The maximum (k[0]) and minimum (k[1]) curvatures of the surface (and 
+        paraboloid P) at point Q.
+    **/
+    void calcParaboloid(const Vec2& XY, PatchHint& hint, 
+                        Transform& X_EP, Vec2& k) const;
+    /** This is a slow-but-convenient version of calcParaboloid() since it
+    does not provide for a PatchHint. See the other signature for a much faster
+    version. **/
+    void calcParaboloid(const Vec2& XY, Transform& X_EP, Vec2& k) const;
     /**@}**/
 
     //--------------------------------------------------------------------------

@@ -132,10 +132,15 @@ public:
     // Calculate the value of the surface at a particular XY coordinate.
     Real calcValue(const Vec2& XY, PatchHint& hint) const;
     
-    // Calculate a partial derivative of this function at a particular pXY
+    // Calculate a partial derivative of this function at a particular XY
     // coordinate.
     Real calcDerivative(const Array_<int>& derivComponents, 
                         const Vec2& XY, PatchHint& hint) const;
+
+    // Calculate a paraboloid and the max/min principal curvatures at a contact
+    // point at XY.
+    void calcParaboloid
+       (const Vec2& XY, PatchHint& hint, Transform& X_SP, Vec2& k) const;
     
     // Determine if a point is within the defined surface.
     bool isSurfaceDefined(const Vec2& XY) const;
