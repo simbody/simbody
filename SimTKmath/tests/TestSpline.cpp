@@ -224,7 +224,7 @@ Vector getCentralDifference(Vector x, Vector y,
 */
 void printMatrixToFile(Vector col0,Matrix data, string filename){
     ofstream datafile;
-    datafile.open(filename);
+    datafile.open(filename.c_str());
 
     for(int i = 0; i < data.nrow(); i++){
         datafile << col0(i) << ",";
