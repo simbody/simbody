@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -64,8 +64,10 @@ public:
     virtual ContactGeometryTypeId getTypeId() const = 0;
 
     virtual ContactGeometryImpl* clone() const = 0;
-    virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const = 0;
-    virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const = 0;
+    virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+                                  UnitVec3& normal) const = 0;
+    virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+                               Real& distance, UnitVec3& normal) const = 0;
     virtual void getBoundingSphere(Vec3& center, Real& radius) const = 0;
     ContactGeometry* getMyHandle() {
         return myHandle;
@@ -86,30 +88,37 @@ protected:
 //==============================================================================
 //                                 CONVEX IMPL
 //==============================================================================
-class SimTK_SIMBODY_EXPORT ContactGeometry::ConvexImpl : public ContactGeometryImpl {
+class SimTK_SIMBODY_EXPORT ContactGeometry::ConvexImpl 
+:   public ContactGeometryImpl {
 public:
     ConvexImpl(const std::string& type) : ContactGeometryImpl(type) {
     }
     /**
-     * Evaluate the support mapping function for this shape.  Given a direction, this should
-     * return the point on the surface that has the maximum dot product with the direction.
+     * Evaluate the support mapping function for this shape.  Given a direction,
+     * this should return the point on the surface that has the maximum dot 
+     * product with the direction.
      */
     virtual Vec3 getSupportMapping(UnitVec3 direction) const = 0;
     /**
      * Compute the curvature of the surface.
      *
      * @param point        a point at which to compute the curvature
-     * @param curvature    on exit, this should contain the maximum (curvature[0]) and minimum
-     *                     (curvature[1]) curvature of the surface at the point
-     * @param orientation  on exit, this should specify the orientation of the surface as follows:
-     *                     the x axis along the direction of maximum curvature, the y axis along
-     *                     the direction of minimum curvature, and the z axis along the surface normal
+     * @param curvature    on exit, this should contain the maximum 
+     *                     (curvature[0]) and minimum (curvature[1]) curvature
+     *                     of the surface at the point
+     * @param orientation  on exit, this should specify the orientation of the 
+     *                     surface as follows: the x axis along the direction 
+     *                     of maximum curvature, the y axis along the direction 
+     *                     of minimum curvature, and the z axis along the 
+     *                     surface normal
      */
-    virtual void computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const = 0;
+    virtual void computeCurvature(const Vec3& point, Vec2& curvature, 
+                                  Rotation& orientation) const = 0;
     /**
-     * This should return a Function that provides an implicit representation of the surface.  The function
-     * should be positive inside the object, 0 on the surface, and negative outside the object.  It must
-     * support first and second derivatives.
+     * This should return a Function that provides an implicit representation 
+     * of the surface. The function should be positive inside the object, 0 on 
+     * the surface, and negative outside the object. It must support first and 
+     * second derivatives.
      */
     virtual const Function& getImplicitFunction() const = 0;
 };
@@ -137,8 +146,10 @@ public:
         static std::string type = "halfspace";
         return type;
     }
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+                          UnitVec3& normal) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+                       Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
 };
 
@@ -154,7 +165,8 @@ public:
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::SphereImpl& owner) {ownerp=&owner;}
     Real calcValue(const Vector& x) const;
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const;
+    Real calcDerivative(const Array_<int>& derivComponents, 
+                        const Vector& x) const;
     int getArgumentSize() const;
     int getMaxDerivativeOrder() const;
 private:
@@ -186,13 +198,16 @@ public:
         static std::string type = "sphere";
         return type;
     }
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+                          UnitVec3& normal) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+                       Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
     Vec3 getSupportMapping(UnitVec3 direction) const {
         return radius*direction;
     }
-    void computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const;
+    void computeCurvature(const Vec3& point, Vec2& curvature, 
+                          Rotation& orientation) const;
     const Function& getImplicitFunction() const {
         return function;
     }
@@ -213,11 +228,12 @@ public:
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::EllipsoidImpl& owner) {ownerp=&owner;}
     Real calcValue(const Vector& x) const;
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const;
+    Real calcDerivative(const Array_<int>& derivComponents, 
+                        const Vector& x) const;
     int getArgumentSize() const;
     int getMaxDerivativeOrder() const;
 private:
-    const ContactGeometry::EllipsoidImpl* ownerp; // just a reference; don't delete
+    const ContactGeometry::EllipsoidImpl* ownerp;// just a ref.; don't delete
 };
 
 class ContactGeometry::EllipsoidImpl : public ConvexImpl {
@@ -256,14 +272,19 @@ public:
         static std::string type = "ellipsoid";
         return type;
     }
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+                          UnitVec3& normal) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+                       Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
+
+    // The point furthest in this direction is the unique point whose outward
+    // normal is this direction.
     Vec3 getSupportMapping(UnitVec3 direction) const {
-        Vec3 temp(radii[0]*direction[0], radii[1]*direction[1], radii[2]*direction[2]);
-        return Vec3(radii[0]*temp[0], radii[1]*temp[1], radii[2]*temp[2])/temp.norm();
+        return findPointWithThisUnitNormal(direction);
     }
-    void computeCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const;
+    void computeCurvature(const Vec3& point, Vec2& curvature, 
+                          Rotation& orientation) const;
     const Function& getImplicitFunction() const {
         return function;
     }
@@ -275,17 +296,21 @@ private:
 };
 
 // Given an ellipsoid and a unit normal direction, find the unique point on the
-// ellipsoid whose outward normal matches. The unnormalized normal was
-//    n = [x/a^2, y/b^2, z/c^2]
-// If we had that, we'd have x=n[0]*a^2,y=n[1]*b^2,z=n[2]*c^2,
+// ellipsoid whose outward normal matches. The unnormalized normal at a point
+// p=[x y z] is the gradient of the ellipsoid's implicit equation there:
+// (1)      n(p) = grad(f(p)) = 2*[x/a^2, y/b^2, z/c^2]
+// If we had that, we'd have 
+// (2)      p=[n[0]*a^2, n[1]*b^2, n[2]*c^2]/2,
 // but instead we're given the normalized normal that has been divided
 // by the length of n:
-//    nn = n/|n| = s * [x/a^2, y/b^2, z/c^2]
-// where s = 1/|n|. We can solve for s using the fact that x,y,z must
-// lie on the ellipsoid so |x/a,y/b,z/c|=1. Construct the vector
-// v = [nn[0]*a, nn[1]*b, nn[2]*c] = s*[x/a, y/b, z/c]
-// Now we have |v|=s. So n = nn/|v|. 
-// Cost is about 50 flops.
+// (3)      nn = n/|n| = s * [x/a^2, y/b^2, z/c^2]
+// where s = 2/|n|. 
+// 
+// We can solve for s using the fact that x,y,z must lie on the ellipsoid so
+// |x/a,y/b,z/c|=1. Construct the vector
+//          v = [nn[0]*a, nn[1]*b, nn[2]*c] = s*[x/a, y/b, z/c]
+// Now we have |v|=s. So n/2 = nn/|v| and we can use equation (2) to solve
+// for p. Cost is about 40 flops.
 inline Vec3 ContactGeometry::EllipsoidImpl::
 findPointWithThisUnitNormal(const UnitVec3& nn) const {
     const Real& a=radii[0]; const Real& b=radii[1]; const Real& c=radii[2];
@@ -298,7 +323,7 @@ findPointWithThisUnitNormal(const UnitVec3& nn) const {
 // of the ray d=Q-O with the ellipse surface. This just requires scaling the 
 // direction vector d by a factor s so that f(s*d)=0, that is, 
 //       s*|x/a y/b z/c|=1  => s = 1/|x/a y/b z/c|
-// Cost is about 50 flops.
+// Cost is about 40 flops.
 inline Vec3 ContactGeometry::EllipsoidImpl::
 findPointInSameDirection(const Vec3& Q) const {
     Real s = 1/Vec3(Q[0]*curvatures[0], 
@@ -318,7 +343,7 @@ findPointInSameDirection(const Vec3& Q) const {
 // If Q is not on the ellipsoid this is equivalent to scaling the ray Q-O
 // until it hits the ellipsoid surface at Q'=s*Q, and then reporting the outward
 // normal at Q' instead.
-// Cost is about 50 flops.
+// Cost is about 40 flops.
 inline UnitVec3 ContactGeometry::EllipsoidImpl::
 findUnitNormalAtPoint(const Vec3& Q) const {
     const Vec3 kk(square(curvatures[0]), square(curvatures[1]), 
@@ -341,8 +366,12 @@ public:
     OBBTreeNodeImpl* child2;
     Array_<int> triangles;
     int numTriangles;
-    Vec3 findNearestPoint(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& position, Real cutoff2, Real& distance2, int& face, Vec2& uv) const;
-    bool intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
+    Vec3 findNearestPoint(const ContactGeometry::TriangleMeshImpl& mesh, 
+                          const Vec3& position, Real cutoff2, Real& distance2, 
+                          int& face, Vec2& uv) const;
+    bool intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh, 
+                       const Vec3& origin, const UnitVec3& direction, 
+                       Real& distance, int& face, Vec2& uv) const;
 };
 
 
@@ -356,7 +385,8 @@ public:
     class Face;
     class Vertex;
 
-    TriangleMeshImpl(const ArrayViewConst_<Vec3>& vertexPositions, const ArrayViewConst_<int>& faceIndices, bool smooth);
+    TriangleMeshImpl(const ArrayViewConst_<Vec3>& vertexPositions, 
+                     const ArrayViewConst_<int>& faceIndices, bool smooth);
     TriangleMeshImpl(const PolygonalMesh& mesh, bool smooth);
     ContactGeometryImpl* clone() const {
         return new TriangleMeshImpl(*this);
@@ -376,19 +406,26 @@ public:
     Vec3     findPoint(int face, const Vec2& uv) const;
     Vec3     findCentroid(int face) const;
     UnitVec3 findNormalAtPoint(int face, const Vec2& uv) const;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const;
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+                          UnitVec3& normal) const;
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, int& face, 
+                          Vec2& uv) const;
     Vec3 findNearestPointToFace(const Vec3& position, int face, Vec2& uv) const;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+                       Real& distance, UnitVec3& normal) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+                       Real& distance, int& face, Vec2& uv) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
 
     void createPolygonalMesh(PolygonalMesh& mesh) const;
 private:
     void init(const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices);
     void createObbTree(OBBTreeNodeImpl& node, const Array_<int>& faceIndices);
-    void splitObbAxis(const Array_<int>& parentIndices, Array_<int>& child1Indices, Array_<int>& child2Indices, int axis);
-    void findBoundingSphere(Vec3* point[], int p, int b, Vec3& center, Real& radius);
+    void splitObbAxis(const Array_<int>& parentIndices, 
+                      Array_<int>& child1Indices, 
+                      Array_<int>& child2Indices, int axis);
+    void findBoundingSphere(Vec3* point[], int p, int b, 
+                            Vec3& center, Real& radius);
     friend class ContactGeometry::TriangleMesh;
     friend class OBBTreeNodeImpl;
 

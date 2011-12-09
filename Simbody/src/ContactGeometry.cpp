@@ -710,7 +710,7 @@ bool ContactGeometry::EllipsoidImpl::intersectsRay
     Real sy = rx2/(radii[1]*radii[1]);
     Real sz = rx2/(radii[2]*radii[2]);
     Vec3 scaledDir(direction[0], sy*direction[1], sz*direction[2]);
-    Real b = -~scaledDir*origin;
+    Real b = -(~scaledDir*origin);
     Real c = origin[0]*origin[0] + sy*origin[1]*origin[1] + sz*origin[2]*origin[2] - rx2;
     if (c > 0) {
         // Ray origin is outside ellipsoid.
