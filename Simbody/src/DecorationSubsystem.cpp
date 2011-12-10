@@ -39,7 +39,6 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/DecorationGenerator.h"
 #include "simbody/internal/DecorationSubsystem.h"
 
 #include "DecorationSubsystemRep.h"

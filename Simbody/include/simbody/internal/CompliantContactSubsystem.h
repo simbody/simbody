@@ -32,10 +32,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/Contact.h"
-#include "simbody/internal/ContactGeometry.h"
 
 #include <cassert>
 

@@ -34,9 +34,8 @@
 
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "SimTKcommon/internal/SubsystemGuts.h"
+//#include "SimTKcommon/internal/SubsystemGuts.h"
 #include "simbody/internal/Contact.h"
-#include "simbody/internal/ContactGeometryImpl.h"
 
 #include "simbody/internal/ContactTrackerSubsystem.h"
 
@@ -689,9 +688,8 @@ bool ContactTracker::HalfSpaceSphere::trackContact
        "ContactTracker::HalfSpaceSphere::trackContact()");
 
     // No need for an expensive dynamic cast here; we know what we have.
-    const ContactGeometry::SphereImpl& sphere = 
-        reinterpret_cast<const ContactGeometry::SphereImpl&>
-            (geoSphere.getImpl());
+    const ContactGeometry::Sphere& sphere = 
+        ContactGeometry::Sphere::getAs(geoSphere);
 
     const Rotation R_HG = ~X_GH.R(); // inverse rotation; no flops
 
@@ -771,9 +769,8 @@ bool ContactTracker::HalfSpaceEllipsoid::trackContact
        "ContactTracker::HalfSpaceEllipsoid::trackContact()");
 
     // No need for an expensive dynamic cast here; we know what we have.
-    const ContactGeometry::EllipsoidImpl& ellipsoid = 
-        reinterpret_cast<const ContactGeometry::EllipsoidImpl&>
-            (geoEllipsoid.getImpl());
+    const ContactGeometry::Ellipsoid& ellipsoid = 
+        ContactGeometry::Ellipsoid::getAs(geoEllipsoid);
 
     // Our half space occupies the +x half so the normal is -x.
     const Transform X_HE = ~X_GH*X_GE; // 63 flops
@@ -863,12 +860,10 @@ bool ContactTracker::SphereSphere::trackContact
        "ContactTracker::SphereSphere::trackContact()");
 
     // No need for an expensive dynamic casts here; we know what we have.
-    const ContactGeometry::SphereImpl& sphere1 = 
-        reinterpret_cast<const ContactGeometry::SphereImpl&>
-            (geoSphere1.getImpl());
-    const ContactGeometry::SphereImpl& sphere2 = 
-        reinterpret_cast<const ContactGeometry::SphereImpl&>
-            (geoSphere2.getImpl());
+    const ContactGeometry::Sphere& sphere1 = 
+        ContactGeometry::Sphere::getAs(geoSphere1);
+    const ContactGeometry::Sphere& sphere2 = 
+        ContactGeometry::Sphere::getAs(geoSphere2);
 
     currentStatus.clear();
 
@@ -1182,10 +1177,10 @@ void ContactTracker::SphereTriangleMesh::processBox
     
     // This is a leaf node that may be penetrating; check the triangles.
     const Array_<int>& triangles = node.getTriangles();
-    const ContactGeometry::TriangleMeshImpl& impl = mesh.getImpl();
     for (unsigned i = 0; i < triangles.size(); i++) {
         Vec2 uv;
-        Vec3 nearest_M = impl.findNearestPointToFace(center_M, triangles[i], uv);
+        Vec3 nearest_M = mesh.findNearestPointToFace
+                                    (center_M, triangles[i], uv);
         if ((nearest_M-center_M).normSqr() < radius2)
             insideFaces.insert(triangles[i]);
     }

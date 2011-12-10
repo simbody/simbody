@@ -1,10 +1,10 @@
-#ifndef SimTK_SIMBODY_CONTACT_GEOMETRY_IMPL_H_
-#define SimTK_SIMBODY_CONTACT_GEOMETRY_IMPL_H_
+#ifndef SimTK_SIMMATH_CONTACT_GEOMETRY_IMPL_H_
+#define SimTK_SIMMATH_CONTACT_GEOMETRY_IMPL_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
@@ -33,26 +33,21 @@
  * -------------------------------------------------------------------------- */
 
 
-#include "simbody/internal/ContactGeometry.h"
+#include "simmath/internal/ContactGeometry.h"
+
+#include <limits>
 
 namespace SimTK {
 
 //==============================================================================
 //                             CONTACT GEOMETRY IMPL
 //==============================================================================
-class SimTK_SIMBODY_EXPORT ContactGeometryImpl {
+class SimTK_SIMMATH_EXPORT ContactGeometryImpl {
 public:
-    ContactGeometryImpl(const std::string& type);
+    ContactGeometryImpl() : myHandle(0) {}
     virtual ~ContactGeometryImpl() {
         clearMyHandle();
     }
-    const std::string& getType() const {
-        return type;
-    }
-    int getTypeIndex() const {
-        return typeIndex;
-    }
-    static int getIndexForType(std::string type);
 
     /* Create a new ContactGeometryTypeId and return this unique integer 
     (thread safe). Each distinct type of ContactGeometry should use this to
@@ -61,96 +56,111 @@ public:
     {   static AtomicInteger nextAvailableId = 1;
         return ContactGeometryTypeId(nextAvailableId++); }
 
+    virtual ContactGeometryImpl*  clone() const = 0;
     virtual ContactGeometryTypeId getTypeId() const = 0;
 
-    virtual ContactGeometryImpl* clone() const = 0;
     virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                                   UnitVec3& normal) const = 0;
     virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
                                Real& distance, UnitVec3& normal) const = 0;
     virtual void getBoundingSphere(Vec3& center, Real& radius) const = 0;
-    ContactGeometry* getMyHandle() {
-        return myHandle;
-    }
-    void setMyHandle(ContactGeometry& h) {
-        myHandle = &h;
-    }
-    void clearMyHandle() {
-        myHandle = 0;
-    }
+
+    virtual bool isSmooth() const = 0;
+    virtual bool isConvex() const = 0;
+    virtual bool isFinite() const = 0;
+
+    // Smooth surfaces only.
+    virtual void calcCurvature(const Vec3& point, Vec2& curvature, 
+                       Rotation& orientation) const
+    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
+        "ContactGeometryImpl", "calcCurvature()"); }
+
+    // Smooth surfaces only.
+    virtual const Function& getImplicitFunction() const
+    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
+        "ContactGeometryImpl", "getImplicitFunction()"); }
+
+    // Convex surfaces only.
+    virtual Vec3 calcSupportPoint(UnitVec3 direction) const
+    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
+        "ContactGeometryImpl", "calcSupportPoint()"); }
+
+
+    ContactGeometry* getMyHandle() {return myHandle;}
+    void setMyHandle(ContactGeometry& h) {myHandle = &h;}
+    void clearMyHandle() {myHandle = 0;}
 protected:
     ContactGeometry* myHandle;
-    const std::string& type;
-    int typeIndex;
 };
 
-
-//==============================================================================
-//                                 CONVEX IMPL
-//==============================================================================
-class SimTK_SIMBODY_EXPORT ContactGeometry::ConvexImpl 
-:   public ContactGeometryImpl {
-public:
-    ConvexImpl(const std::string& type) : ContactGeometryImpl(type) {
-    }
-    /**
-     * Evaluate the support mapping function for this shape.  Given a direction,
-     * this should return the point on the surface that has the maximum dot 
-     * product with the direction.
-     */
-    virtual Vec3 getSupportMapping(UnitVec3 direction) const = 0;
-    /**
-     * Compute the curvature of the surface.
-     *
-     * @param point        a point at which to compute the curvature
-     * @param curvature    on exit, this should contain the maximum 
-     *                     (curvature[0]) and minimum (curvature[1]) curvature
-     *                     of the surface at the point
-     * @param orientation  on exit, this should specify the orientation of the 
-     *                     surface as follows: the x axis along the direction 
-     *                     of maximum curvature, the y axis along the direction 
-     *                     of minimum curvature, and the z axis along the 
-     *                     surface normal
-     */
-    virtual void computeCurvature(const Vec3& point, Vec2& curvature, 
-                                  Rotation& orientation) const = 0;
-    /**
-     * This should return a Function that provides an implicit representation 
-     * of the surface. The function should be positive inside the object, 0 on 
-     * the surface, and negative outside the object. It must support first and 
-     * second derivatives.
-     */
-    virtual const Function& getImplicitFunction() const = 0;
-};
 
 
 //==============================================================================
 //                             HALF SPACE IMPL
 //==============================================================================
+class HalfSpaceImplicitFunction : public Function {
+public:
+    HalfSpaceImplicitFunction() : ownerp(0) {}
+    HalfSpaceImplicitFunction(const ContactGeometry::HalfSpaceImpl& owner) 
+    :   ownerp(&owner) {}
+    void setOwner(const ContactGeometry::HalfSpaceImpl& owner) {ownerp=&owner;}
+
+    // Value is positive for x>0.
+    Real calcValue(const Vector& P) const {return P[0];}
+    // First derivative w.r.t. x is 1, all else is zero.
+    Real calcDerivative(const Array_<int>& components, 
+                        const Vector& P) const
+    {   if (components.empty()) return calcValue(P);
+        if (components.size()==1 && components[0]==0) return 1;
+        return 0; }
+
+    int getArgumentSize() const {return 3;}
+    int getMaxDerivativeOrder() const
+    {   return std::numeric_limits<int>::max(); }
+private:
+    const ContactGeometry::HalfSpaceImpl* ownerp; // just a ref.; don't delete
+};
+
+
 class ContactGeometry::HalfSpaceImpl : public ContactGeometryImpl {
 public:
-    HalfSpaceImpl() : ContactGeometryImpl(Type()) {
+    HalfSpaceImpl() : ContactGeometryImpl() {
     }
     ContactGeometryImpl* clone() const {
         return new HalfSpaceImpl();
     }
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
-    static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
-            createNewContactGeometryTypeId();
-        return id;
-    }
 
-    static const std::string& Type() {
-        static std::string type = "halfspace";
-        return type;
-    }
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                           UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
                        Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
+
+    bool isSmooth() const {return true;}
+    bool isConvex() const {return false;}
+    bool isFinite() const {return false;}
+
+    // Curvature is zero everywhere. Since the half plane occupies x>0 in
+    // its own frame, the surface normal is -x, and -x,y,-z forms a right 
+    // handed set.
+    void calcCurvature(const Vec3& point, Vec2& curvature, 
+                       Rotation& orientation) const
+    {   curvature = 0;
+        orientation.setRotationFromUnitVecsTrustMe
+            (UnitVec3(-XAxis), UnitVec3(YAxis), UnitVec3(-ZAxis));
+    }
+
+    const Function& getImplicitFunction() const {return function;}
+
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = 
+            createNewContactGeometryTypeId();
+        return id;
+    }
+private:
+    HalfSpaceImplicitFunction function;
 };
 
 
@@ -167,15 +177,16 @@ public:
     Real calcValue(const Vector& x) const;
     Real calcDerivative(const Array_<int>& derivComponents, 
                         const Vector& x) const;
-    int getArgumentSize() const;
-    int getMaxDerivativeOrder() const;
+    int getArgumentSize() const {return 3;}
+    int getMaxDerivativeOrder() const
+    {   return std::numeric_limits<int>::max(); }
 private:
     const ContactGeometry::SphereImpl* ownerp; // just a reference; don't delete
 };
 
-class ContactGeometry::SphereImpl : public ConvexImpl {
+class ContactGeometry::SphereImpl : public ContactGeometryImpl {
 public:
-    explicit SphereImpl(Real radius) : ConvexImpl(Type()), radius(radius) 
+    explicit SphereImpl(Real radius) : radius(radius) 
     {   function.setOwner(*this); }
     ContactGeometryImpl* clone() const {
         return new SphereImpl(radius);
@@ -188,28 +199,30 @@ public:
     }
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
-    static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
-            createNewContactGeometryTypeId();
-        return id;
-    }
 
-    static const std::string& Type() {
-        static std::string type = "sphere";
-        return type;
-    }
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                           UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
                        Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
-    Vec3 getSupportMapping(UnitVec3 direction) const {
+
+    bool isSmooth() const {return true;}
+    bool isConvex() const {return true;}
+    bool isFinite() const {return true;}
+
+    Vec3 calcSupportPoint(UnitVec3 direction) const {
         return radius*direction;
     }
-    void computeCurvature(const Vec3& point, Vec2& curvature, 
-                          Rotation& orientation) const;
+    void calcCurvature(const Vec3& point, Vec2& curvature, 
+                       Rotation& orientation) const;
     const Function& getImplicitFunction() const {
         return function;
+    }
+
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = 
+            createNewContactGeometryTypeId();
+        return id;
     }
 private:
     Real radius;
@@ -230,16 +243,17 @@ public:
     Real calcValue(const Vector& x) const;
     Real calcDerivative(const Array_<int>& derivComponents, 
                         const Vector& x) const;
-    int getArgumentSize() const;
-    int getMaxDerivativeOrder() const;
+    int getArgumentSize() const {return 3;}
+    int getMaxDerivativeOrder() const
+    {   return std::numeric_limits<int>::max(); }
 private:
     const ContactGeometry::EllipsoidImpl* ownerp;// just a ref.; don't delete
 };
 
-class ContactGeometry::EllipsoidImpl : public ConvexImpl {
+class ContactGeometry::EllipsoidImpl : public ContactGeometryImpl  {
 public:
     explicit EllipsoidImpl(const Vec3& radii)
-    :   ConvexImpl(Type()), radii(radii),
+    :   radii(radii),
         curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])) 
     {   function.setOwner(*this); }
 
@@ -255,7 +269,7 @@ public:
     inline Vec3 findPointInSameDirection(const Vec3& Q) const;
     inline UnitVec3 findUnitNormalAtPoint(const Vec3& Q) const;
 
-    // Cost is findParaboloidAtPointWithNormal + about 50 flops.
+    // Cost is findParaboloidAtPointWithNormal + about 40 flops.
     void findParaboloidAtPoint(const Vec3& Q, Transform& X_EP, Vec2& k) const
     {   findParaboloidAtPointWithNormal(Q,findUnitNormalAtPoint(Q),X_EP,k); }
 
@@ -263,30 +277,33 @@ public:
         Transform& X_EP, Vec2& k) const;
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
-    static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = createNewContactGeometryTypeId();
-        return id;
-    }
 
-    static const std::string& Type() {
-        static std::string type = "ellipsoid";
-        return type;
-    }
+
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                           UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
                        Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
 
+    bool isSmooth() const {return true;}
+    bool isConvex() const {return true;}
+    bool isFinite() const {return true;}
+
     // The point furthest in this direction is the unique point whose outward
     // normal is this direction.
-    Vec3 getSupportMapping(UnitVec3 direction) const {
+    Vec3 calcSupportPoint(UnitVec3 direction) const {
         return findPointWithThisUnitNormal(direction);
     }
-    void computeCurvature(const Vec3& point, Vec2& curvature, 
-                          Rotation& orientation) const;
+    void calcCurvature(const Vec3& point, Vec2& curvature, 
+                       Rotation& orientation) const;
     const Function& getImplicitFunction() const {
         return function;
+    }
+
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = 
+            createNewContactGeometryTypeId();
+        return id;
     }
 private:
     Vec3 radii;
@@ -393,16 +410,7 @@ public:
     }
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
-    static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
-            createNewContactGeometryTypeId();
-        return id;
-    }
 
-    static const std::string& Type() {
-        static std::string type = "triangle mesh";
-        return type;
-    }
     Vec3     findPoint(int face, const Vec2& uv) const;
     Vec3     findCentroid(int face) const;
     UnitVec3 findNormalAtPoint(int face, const Vec2& uv) const;
@@ -417,7 +425,17 @@ public:
                        Real& distance, int& face, Vec2& uv) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
 
+    bool isSmooth() const {return false;}
+    bool isConvex() const {return false;}
+    bool isFinite() const {return true;}
+
     void createPolygonalMesh(PolygonalMesh& mesh) const;
+
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = 
+            createNewContactGeometryTypeId();
+        return id;
+    }
 private:
     void init(const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices);
     void createObbTree(OBBTreeNodeImpl& node, const Array_<int>& faceIndices);
@@ -491,4 +509,4 @@ public:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_CONTACT_GEOMETRY_IMPL_H_
+#endif // SimTK_SIMMATH_CONTACT_GEOMETRY_IMPL_H_

@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -29,15 +29,20 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "simbody/internal/OrientedBoundingBox.h"
-#include "SimTKmath.h"
+
+#include "SimTKcommon.h"
+#include "simmath/internal/common.h"
+#include "simmath/LinearAlgebra.h"
+#include "simmath/internal/OrientedBoundingBox.h"
 
 namespace SimTK {
 
 OrientedBoundingBox::OrientedBoundingBox() {
 }
 
-OrientedBoundingBox::OrientedBoundingBox(const Transform& transform, const Vec3& size) : transform(transform), size(size) {
+OrientedBoundingBox::OrientedBoundingBox
+   (const Transform& transform, const Vec3& size) 
+:   transform(transform), size(size) {
 }
 
 const Transform& OrientedBoundingBox::getTransform() const {
@@ -49,7 +54,8 @@ const Vec3& OrientedBoundingBox::getSize() const {
 }
 
 OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
-    SimTK_APIARGCHECK(points.size() > 0, "OrientedBoundingBox", "OrientedBoundingBox", "No points passed to constructor");
+    SimTK_APIARGCHECK(points.size() > 0, "OrientedBoundingBox", 
+                      "OrientedBoundingBox", "No points passed to constructor");
     
     // Construct the covariance matrix of the points.
     
@@ -62,7 +68,8 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
                 c(j, k) += p[i][j]*p[i][k];
     c *= 1.0/p.size();
     
-    // Find the eigenvectors, which will be our initial guess for the axes of the box.
+    // Find the eigenvectors, which will be our initial guess for the axes of 
+    // the box.
     
     Vector_<std::complex<Real> > eigenvalues;
     Matrix_<std::complex<Real> > eigenvectors;
@@ -123,7 +130,8 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
     transform = Transform(rot, rot*(minExtent-tol));
 }
 
-Real OrientedBoundingBox::calculateVolume(const Vector_<Vec3>& points, const Rotation& rotation) {
+Real OrientedBoundingBox::calculateVolume
+   (const Vector_<Vec3>& points, const Rotation& rotation) {
     Vec3 minExtent = Vec3(MostPositiveReal);
     Vec3 maxExtent = Vec3(MostNegativeReal);
     for (int i = 0; i < points.size(); i++) {
@@ -147,7 +155,8 @@ bool OrientedBoundingBox::containsPoint(const Vec3& point) const {
 bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     // Precalculate various quantities.
     
-    const Transform t = ~getTransform()*box.getTransform(); // From the other box's frame to this one's
+    // From the other box's frame to this one's
+    const Transform t = ~getTransform()*box.getTransform(); 
     const Mat33& r = t.R().asMat33();
     const Mat33 rabs = r.abs();
     const Vec3 a = 0.5*getSize();
@@ -156,11 +165,12 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     const Vec3 center2 = t*b;
     const Vec3 d = center2-center1;
     
-    // Now perform a series of 15 tests where we project each box onto an axis and see if
-    // they overlap.  This is described in Gottschalk, S., Lin, MC, Manocha, D, "OBBTree:
-    // a hierarchical structure for rapid interference detection." Proceedings of the 23rd
-    // Annual Conference on Computer Graphics and Interactive Techniques, pp. 171-180, 1996.
-    // We also perform an additional check which allows an early acceptance if the center of
+    // Now perform a series of 15 tests where we project each box onto an axis 
+    // and see if they overlap.  This is described in Gottschalk, S., Lin, MC, 
+    // Manocha, D, "OBBTree: a hierarchical structure for rapid interference 
+    // detection." Proceedings of the 23rd Annual Conference on Computer 
+    // Graphics and Interactive Techniques, pp. 171-180, 1996. We also perform 
+    // an additional check which allows an early acceptance if the center of
     // one box is inside the other one.
     
     // First check the three axes of this box.
@@ -193,7 +203,8 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     if (accept)
         return true;
     
-    // Now check the nine axes formed from cross products of one axis from each box.
+    // Now check the nine axes formed from cross products of one axis from each 
+    // box.
     
     {
         Real ra = a[1]*rabs(2, 0)+a[2]*rabs(1, 0);
@@ -253,7 +264,8 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     return true;
 }
 
-bool OrientedBoundingBox::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance) const {
+bool OrientedBoundingBox::intersectsRay
+   (const Vec3& origin, const UnitVec3& direction, Real& distance) const {
     // Transform the ray to the bounding box's reference frame.
     
     Vec3 orig = ~getTransform()*origin;
@@ -375,7 +387,8 @@ void OrientedBoundingBox::getCorners(Vec3 corners[8]) const {
     corners[7] = corners[3]+dz;
 }
 
-OrientedBoundingBox operator*(const Transform& t, const OrientedBoundingBox& box) {
+OrientedBoundingBox 
+operator*(const Transform& t, const OrientedBoundingBox& box) {
     return OrientedBoundingBox(t*box.getTransform(), box.getSize());
 }
 

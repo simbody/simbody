@@ -29,11 +29,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-
+#include "SimTKmath.h"
 #include "simbody/internal/CollisionDetectionAlgorithm.h"
 #include "simbody/internal/Contact.h"
-#include "simbody/internal/ContactGeometryImpl.h"
-#include "SimTKmath.h"
+
 #include <set>
 
 using std::map;
@@ -52,31 +51,57 @@ CollisionDetectionAlgorithm::AlgorithmMap::~AlgorithmMap() {
         delete i->second;
 }
 
-// map<pair<int, int>, CollisionDetectionAlgorithm*> CollisionDetectionAlgorithm::algorithmMap;
-CollisionDetectionAlgorithm::AlgorithmMap CollisionDetectionAlgorithm::algorithmMap;
+CollisionDetectionAlgorithm::AlgorithmMap 
+    CollisionDetectionAlgorithm::algorithmMap;
 
 static int registerStandardAlgorithms() {
-    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::HalfSpaceImpl::Type(), ContactGeometry::SphereImpl::Type(), new CollisionDetectionAlgorithm::HalfSpaceSphere());
-    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::SphereImpl::Type(), ContactGeometry::SphereImpl::Type(), new CollisionDetectionAlgorithm::SphereSphere());
-    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::HalfSpaceImpl::Type(), ContactGeometry::EllipsoidImpl::Type(), new CollisionDetectionAlgorithm::HalfSpaceEllipsoid());
-    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::EllipsoidImpl::Type(), ContactGeometry::SphereImpl::Type(), new CollisionDetectionAlgorithm::ConvexConvex());
-    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::EllipsoidImpl::Type(), ContactGeometry::EllipsoidImpl::Type(), new CollisionDetectionAlgorithm::ConvexConvex());
-    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::HalfSpaceImpl::Type(), ContactGeometry::TriangleMeshImpl::Type(), new CollisionDetectionAlgorithm::HalfSpaceTriangleMesh());
-    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::SphereImpl::Type(), ContactGeometry::TriangleMeshImpl::Type(), new CollisionDetectionAlgorithm::SphereTriangleMesh());
-    CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::TriangleMeshImpl::Type(), ContactGeometry::TriangleMeshImpl::Type(), new CollisionDetectionAlgorithm::TriangleMeshTriangleMesh());
+    CollisionDetectionAlgorithm::registerAlgorithm
+       (ContactGeometry::HalfSpace::classTypeId(), 
+        ContactGeometry::Sphere::classTypeId(), 
+        new CollisionDetectionAlgorithm::HalfSpaceSphere());
+    CollisionDetectionAlgorithm::registerAlgorithm
+       (ContactGeometry::Sphere::classTypeId(), 
+        ContactGeometry::Sphere::classTypeId(), 
+        new CollisionDetectionAlgorithm::SphereSphere());
+    CollisionDetectionAlgorithm::registerAlgorithm
+       (ContactGeometry::HalfSpace::classTypeId(), 
+        ContactGeometry::Ellipsoid::classTypeId(), 
+        new CollisionDetectionAlgorithm::HalfSpaceEllipsoid());
+    CollisionDetectionAlgorithm::registerAlgorithm
+       (ContactGeometry::Ellipsoid::classTypeId(), 
+        ContactGeometry::Sphere::classTypeId(), 
+        new CollisionDetectionAlgorithm::ConvexConvex());
+    CollisionDetectionAlgorithm::registerAlgorithm
+       (ContactGeometry::Ellipsoid::classTypeId(), 
+        ContactGeometry::Ellipsoid::classTypeId(), 
+        new CollisionDetectionAlgorithm::ConvexConvex());
+    CollisionDetectionAlgorithm::registerAlgorithm
+       (ContactGeometry::HalfSpace::classTypeId(), 
+        ContactGeometry::TriangleMesh::classTypeId(), 
+        new CollisionDetectionAlgorithm::HalfSpaceTriangleMesh());
+    CollisionDetectionAlgorithm::registerAlgorithm
+       (ContactGeometry::Sphere::classTypeId(), 
+        ContactGeometry::TriangleMesh::classTypeId(), 
+        new CollisionDetectionAlgorithm::SphereTriangleMesh());
+    CollisionDetectionAlgorithm::registerAlgorithm
+       (ContactGeometry::TriangleMesh::classTypeId(), 
+        ContactGeometry::TriangleMesh::classTypeId(), 
+        new CollisionDetectionAlgorithm::TriangleMeshTriangleMesh());
     return 1;
 }
 
 static int staticInitializer = registerStandardAlgorithms();
 
-void CollisionDetectionAlgorithm::registerAlgorithm(const std::string& type1, const std::string& type2, CollisionDetectionAlgorithm* algorithm) {
-    int typeIndex1 = ContactGeometryImpl::getIndexForType(type1);
-    int typeIndex2 = ContactGeometryImpl::getIndexForType(type2);
-    algorithmMap[pair<int, int>(typeIndex1, typeIndex2)] = algorithm;
+void CollisionDetectionAlgorithm::registerAlgorithm
+   (ContactGeometryTypeId type1, ContactGeometryTypeId type2, 
+    CollisionDetectionAlgorithm* algorithm) {
+    algorithmMap[std::make_pair(type1,type2)] = algorithm;
 }
 
-CollisionDetectionAlgorithm* CollisionDetectionAlgorithm::getAlgorithm(int typeIndex1, int typeIndex2) {
-    map<pair<int, int>, CollisionDetectionAlgorithm*>::const_iterator iter = algorithmMap.find(pair<int, int>(typeIndex1, typeIndex2));
+CollisionDetectionAlgorithm* CollisionDetectionAlgorithm::
+getAlgorithm(ContactGeometryTypeId type1, ContactGeometryTypeId type2) {
+    AlgorithmMap::const_iterator 
+        iter = algorithmMap.find(std::make_pair(type1, type2));
     if (iter == algorithmMap.end())
         return NULL;
     return iter->second;
@@ -95,16 +120,20 @@ void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects
     const Transform& transform2, 
     Array_<Contact>& contacts) const 
 {
-    const ContactGeometry::SphereImpl& sphere = dynamic_cast<const ContactGeometry::SphereImpl&>(object2.getImpl());
-    Vec3 location = (~transform1)*transform2.p(); // Location of the sphere in the half-space's coordinate frame
+    const ContactGeometry::Sphere& sphere = 
+        ContactGeometry::Sphere::getAs(object2);
+    // Location of the sphere in the half-space's coordinate frame
+    Vec3 location = (~transform1)*transform2.p(); 
     Real r = sphere.getRadius();
     Real depth = r+location[0];
     if (depth > 0) {
         // They are overlapping.
 
         Vec3 normal = transform1.R()*Vec3(-1, 0, 0);
-        Vec3 contactLocation = transform1*Vec3(0.5*depth, location[1], location[2]);
-        contacts.push_back(PointContact(index1, index2, contactLocation, normal, r, depth));
+        Vec3 contactLocation = 
+            transform1*Vec3(0.5*depth, location[1], location[2]);
+        contacts.push_back(PointContact(index1, index2, contactLocation, 
+                                        normal, r, depth));
     }
 }
 
@@ -120,8 +149,10 @@ void CollisionDetectionAlgorithm::SphereSphere::processObjects
     const Transform& transform2, 
     Array_<Contact>& contacts) const 
 {
-    const ContactGeometry::SphereImpl& sphere1 = dynamic_cast<const ContactGeometry::SphereImpl&>(object1.getImpl());
-    const ContactGeometry::SphereImpl& sphere2 = dynamic_cast<const ContactGeometry::SphereImpl&>(object2.getImpl());
+    const ContactGeometry::Sphere& sphere1 = 
+        ContactGeometry::Sphere::getAs(object1);
+    const ContactGeometry::Sphere& sphere2 = 
+        ContactGeometry::Sphere::getAs(object2);
     Vec3 delta = transform2.p()-transform1.p();
     Real dist = delta.norm();
     if (dist == 0)
@@ -151,7 +182,9 @@ void CollisionDetectionAlgorithm::HalfSpaceEllipsoid::processObjects
     const Transform& transform2,
     Array_<Contact>& contacts) const
 {
-    const ContactGeometry::EllipsoidImpl& ellipsoid = dynamic_cast<const ContactGeometry::EllipsoidImpl&>(object2.getImpl());
+    const ContactGeometry::Ellipsoid& ellipsoid = 
+        ContactGeometry::Ellipsoid::getAs(object2);
+
     const Vec3& radii = ellipsoid.getRadii();
     const Vec3 r2(radii[0]*radii[0], radii[1]*radii[1], radii[2]*radii[2]);
     const Vec3 ri2(1/r2[0], 1/r2[1], 1/r2[2]);
@@ -159,10 +192,13 @@ void CollisionDetectionAlgorithm::HalfSpaceEllipsoid::processObjects
     const Transform trans = (~transform1)*transform2;
     Vec3 normal = ~trans.R()*Vec3(-1, 0, 0);
     Vec3 location(normal[0]*r2[0], normal[1]*r2[1], normal[2]*r2[2]);
-    location /= -std::sqrt(normal[0]*location[0]+normal[1]*location[1]+normal[2]*location[2]);
+    location /= -std::sqrt(  normal[0]*location[0]
+                           + normal[1]*location[1]
+                           + normal[2]*location[2]);
     Real depth = (trans*location)[0];
     if (depth > 0) {
-        // They are overlapping.  We need to calculate the principal radii of curvature.
+        // They are overlapping. We need to calculate the principal radii of 
+        // curvature.
 
         Vec3 v1 = ~trans.R()*Vec3(0, 1, 0);
         Vec3 v2 = ~trans.R()*Vec3(0, 0, 1);
@@ -170,10 +206,15 @@ void CollisionDetectionAlgorithm::HalfSpaceEllipsoid::processObjects
         Real dyy = v2[0]*v2[0]*ri2[0] + v2[1]*v2[1]*ri2[1] + v2[2]*v2[2]*ri2[2];
         Real dxy = v1[0]*v2[0]*ri2[0] + v1[1]*v2[1]*ri2[1] + v1[2]*v2[2]*ri2[2];
         Vec<2, complex<Real> > eigenvalues;
-        PolynomialRootFinder::findRoots(Vec3(1, -dxx-dyy, dxx*dyy-dxy*dxy), eigenvalues);
+        PolynomialRootFinder::findRoots(Vec3(1, -dxx-dyy, dxx*dyy-dxy*dxy), 
+                                        eigenvalues);
         Vec3 contactNormal = transform2.R()*normal;
         Vec3 contactPoint = transform2*(location+(0.5*depth)*normal);
-        contacts.push_back(PointContact(index1, index2, contactPoint, contactNormal, 1/std::sqrt(eigenvalues[0].real()), 1/std::sqrt(eigenvalues[1].real()), depth));
+        contacts.push_back(PointContact(index1, index2, contactPoint, 
+                                        contactNormal, 
+                                        1/std::sqrt(eigenvalues[0].real()), 
+                                        1/std::sqrt(eigenvalues[1].real()), 
+                                        depth));
     }
 }
 
@@ -190,7 +231,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processObjects
     Array_<Contact>& contacts) const 
 {
     const ContactGeometry::TriangleMesh& mesh = 
-        static_cast<const ContactGeometry::TriangleMesh&>(object2);
+        ContactGeometry::TriangleMesh::getAs(object2);
     // Transform giving mesh (S2) frame in the halfspace (S1) frame.
     const Transform X_HM = (~X_GH)*X_GM; 
     set<int> insideFaces;
@@ -271,10 +312,10 @@ void CollisionDetectionAlgorithm::SphereTriangleMesh::processObjects
     const Transform& X_GM, 
     Array_<Contact>& contacts) const 
 {
-    const ContactGeometry::Sphere&          sphere = 
-        static_cast<const ContactGeometry::Sphere&>(object1);
-    const ContactGeometry::TriangleMesh&    mesh = 
-        static_cast<const ContactGeometry::TriangleMesh&>(object2);
+    const ContactGeometry::Sphere& sphere = 
+        ContactGeometry::Sphere::getAs(object1);
+    const ContactGeometry::TriangleMesh& mesh = 
+        ContactGeometry::TriangleMesh::getAs(object2);
 
     const Transform X_SM = ~X_GS*X_GM;
     // Want the sphere center measured and expressed in the mesh frame.
@@ -309,10 +350,10 @@ void CollisionDetectionAlgorithm::SphereTriangleMesh::processBox
     // Check the triangles.
     
     const Array_<int>& triangles = node.getTriangles();
-    const ContactGeometry::TriangleMeshImpl& impl = mesh.getImpl();
     for (int i = 0; i < (int) triangles.size(); i++) {
         Vec2 uv;
-        Vec3 nearestPoint = impl.findNearestPointToFace(center, triangles[i], uv);
+        Vec3 nearestPoint = mesh.findNearestPointToFace
+                                            (center, triangles[i], uv);
         if ((nearestPoint-center).normSqr() < radius2)
             insideFaces.insert(triangles[i]);
     }
@@ -332,9 +373,9 @@ processObjects
     Array_<Contact>& contacts) const 
 {
     const ContactGeometry::TriangleMesh& mesh1 = 
-        static_cast<const ContactGeometry::TriangleMesh&>(object1);
+        ContactGeometry::TriangleMesh::getAs(object1);
     const ContactGeometry::TriangleMesh& mesh2 = 
-        static_cast<const ContactGeometry::TriangleMesh&>(object2);
+        ContactGeometry::TriangleMesh::getAs(object2);
 
     // Get mesh2's frame measured and expressed in mesh1's frame.
     const Transform X_M1M2 = (~X_GM1)*X_GM2; 
@@ -489,32 +530,37 @@ tagFaces(const ContactGeometry::TriangleMesh&   mesh,
 //==============================================================================
 //                              CONVEX - CONVEX
 //==============================================================================
-Vec3 CollisionDetectionAlgorithm::ConvexConvex::computeSupport(const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2, const Transform& transform, UnitVec3 direction) {
-    return object1.getSupportMapping(direction)-transform*object2.getSupportMapping(~transform.R()*-direction);
+Vec3 CollisionDetectionAlgorithm::ConvexConvex::
+computeSupport(const ContactGeometry& obj1, 
+               const ContactGeometry& obj2, 
+               const Transform& transform, UnitVec3 direction) {
+    return   obj1.calcSupportPoint(direction)
+           - transform*obj2.calcSupportPoint(~transform.R()*-direction);
 }
 
 void CollisionDetectionAlgorithm::ConvexConvex::processObjects
-   (ContactSurfaceIndex index1, const ContactGeometry& object1,
+   (ContactSurfaceIndex index1, const ContactGeometry& obj1,
     const Transform& transform1,
-    ContactSurfaceIndex index2, const ContactGeometry& object2,
+    ContactSurfaceIndex index2, const ContactGeometry& obj2,
     const Transform& transform2,
     Array_<Contact>& contacts) const
 {
-    const ContactGeometry::ConvexImpl& obj1 = static_cast<const ContactGeometry::ConvexImpl&>(object1.getImpl());
-    const ContactGeometry::ConvexImpl& obj2 = static_cast<const ContactGeometry::ConvexImpl&>(object2.getImpl());
     Transform transform = ~transform1*transform2;
 
-    // Compute a point that is known to be inside the Minkowski difference, and a ray directed
-    // from that point to the origin.
+    // Compute a point that is known to be inside the Minkowski difference, and 
+    // a ray directed from that point to the origin.
 
-    Vec3 v0 = computeSupport(obj1, obj2, transform, UnitVec3(1, 0, 0))+computeSupport(obj1, obj2, transform, UnitVec3(-1, 0, 0));
+    Vec3 v0 =   computeSupport(obj1, obj2, transform, UnitVec3(1, 0, 0))
+              + computeSupport(obj1, obj2, transform, UnitVec3(-1, 0, 0));
     if (v0 == 0.0) {
-        // This is a pathological case: the two objects are directly on top of each other with their centers at
-        // exactly the same place.  Just return *some* vaguely plausible contact.
+        // This is a pathological case: the two objects are directly on top of 
+        // each other with their centers at exactly the same place. Just 
+        // return *some* vaguely plausible contact.
 
-        Vec3 point1 = obj1.getSupportMapping(UnitVec3(1, 0, 0));
-        Vec3 point2 = obj2.getSupportMapping(~transform.R()*UnitVec3(-1, 0, 0));
-        addContact(index1, index2, obj1, obj2, transform1, transform2, transform, point1, point2, contacts);
+        Vec3 point1 = obj1.calcSupportPoint(UnitVec3(1, 0, 0));
+        Vec3 point2 = obj2.calcSupportPoint(~transform.R()*UnitVec3(-1, 0, 0));
+        addContact(index1, index2, obj1, obj2, transform1, transform2, 
+                   transform, point1, point2, contacts);
         return;
     }
 
@@ -525,9 +571,10 @@ void CollisionDetectionAlgorithm::ConvexConvex::processObjects
     if (~v1*dir1 <= 0.0)
         return;
     if (v1%v0 == 0.0) {
-        Vec3 point1 = obj1.getSupportMapping(dir1);
-        Vec3 point2 = obj2.getSupportMapping(~transform.R()*-dir1);
-        addContact(index1, index2, obj1, obj2, transform1, transform2, transform, point1, point2, contacts);
+        Vec3 point1 = obj1.calcSupportPoint(dir1);
+        Vec3 point2 = obj2.calcSupportPoint(~transform.R()*-dir1);
+        addContact(index1, index2, obj1, obj2, transform1, transform2, 
+                   transform, point1, point2, contacts);
         return;
     }
     UnitVec3 dir2 = UnitVec3(v1%v0);
@@ -562,7 +609,8 @@ void CollisionDetectionAlgorithm::ConvexConvex::processObjects
         v3 = computeSupport(obj1, obj2, transform, dir3);
     }
 
-    // We have a portal that the origin ray passes through.  Now we need to refine it.
+    // We have a portal that the origin ray passes through. Now we need to 
+    // refine it.
 
     while (true) {
         UnitVec3 portalDir = UnitVec3((v2-v1)%(v3-v1));
@@ -572,8 +620,9 @@ void CollisionDetectionAlgorithm::ConvexConvex::processObjects
         Vec3 v4 = computeSupport(obj1, obj2, transform, portalDir);
         Real dist4 = ~portalDir*v4;
         if (dist1 >= 0.0) {
-            // The origin is inside the portal, so we have an intersection.  Compute the barycentric
-            // coordinates of the origin in the outer face of the portal.
+            // The origin is inside the portal, so we have an intersection.  
+            // Compute the barycentric coordinates of the origin in the outer 
+            // face of the portal.
 
             Vec3 origin = v0+v0*(~portalDir*(v1-v0)/(~portalDir*v0));
             Real totalArea = ((v2-v1)%(v3-v1)).norm();
@@ -585,9 +634,15 @@ void CollisionDetectionAlgorithm::ConvexConvex::processObjects
 
             // Compute the contact properties.
 
-            Vec3 point1 = u*obj1.getSupportMapping(dir1) + v*obj1.getSupportMapping(dir2) + w*obj1.getSupportMapping(dir3);
-            Vec3 point2 = u*obj2.getSupportMapping(~transform.R()*-dir1) + v*obj2.getSupportMapping(~transform.R()*-dir2) + w*obj2.getSupportMapping(~transform.R()*-dir3);
-            addContact(index1, index2, obj1, obj2, transform1, transform2, transform, point1, point2, contacts);
+            Vec3 point1 =  u*obj1.calcSupportPoint(dir1) 
+                         + v*obj1.calcSupportPoint(dir2) 
+                         + w*obj1.calcSupportPoint(dir3);
+            Vec3 point2 =   u*obj2.calcSupportPoint(~transform.R()*-dir1) 
+                          + v*obj2.calcSupportPoint(~transform.R()*-dir2) 
+                          + w*obj2.calcSupportPoint(~transform.R()*-dir3);
+            addContact(index1, index2, obj1, obj2, 
+                       transform1, transform2, transform, 
+                       point1, point2, contacts);
             return;
         }
         if (dist4 <= 0.0)
@@ -616,11 +671,15 @@ void CollisionDetectionAlgorithm::ConvexConvex::processObjects
     }
 }
 
-void CollisionDetectionAlgorithm::ConvexConvex::addContact(ContactSurfaceIndex index1, ContactSurfaceIndex index2,
-        const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2,
-        const Transform& transform1, const Transform& transform2, const Transform& transform12,
-        Vec3 point1, Vec3 point2, Array_<Contact>& contacts) {
-    // We have a rough estimate of the contact points.  Use Newton iteration to refine them.
+void CollisionDetectionAlgorithm::ConvexConvex::addContact
+   (ContactSurfaceIndex index1, ContactSurfaceIndex index2,
+    const ContactGeometry& object1, 
+    const ContactGeometry& object2,
+    const Transform& transform1, const Transform& transform2, 
+    const Transform& transform12,
+    Vec3 point1, Vec3 point2, Array_<Contact>& contacts) {
+    // We have a rough estimate of the contact points. Use Newton iteration to
+    // refine them.
 
     Vec6 err = computeErrorVector(object1, object2, point1, point2, transform12);
     while (err.norm() > 1e-12) {
@@ -640,11 +699,13 @@ void CollisionDetectionAlgorithm::ConvexConvex::addContact(ContactSurfaceIndex i
             f /= 2;
             point1 = point1old - f*delta.getSubVec<3>(0);
             point2 = point2old - f*delta.getSubVec<3>(3);
-            err = computeErrorVector(object1, object2, point1, point2, transform12);
+            err = computeErrorVector(object1, object2, point1, point2, 
+                                     transform12);
         } while (err.norm() > errold.norm());
         if (f < 0.1) {
-            // We're clearly outside the region where Newton iteration is going to work properly.
-            // Just project the points onto the surfaces and then exit.
+            // We're clearly outside the region where Newton iteration is going
+            // to work properly. Just project the points onto the surfaces and 
+            // then exit.
             
             bool inside;
             UnitVec3 normal;
@@ -658,23 +719,28 @@ void CollisionDetectionAlgorithm::ConvexConvex::addContact(ContactSurfaceIndex i
 
     Vec2 curvature1, curvature2;
     Rotation orientation1, orientation2;
-    object1.computeCurvature(point1, curvature1, orientation1);
-    object2.computeCurvature(point2, curvature2, orientation2);
+    object1.calcCurvature(point1, curvature1, orientation1);
+    object2.calcCurvature(point2, curvature2, orientation2);
     Vec2 curvature;
     UnitVec3 maxDir2(transform12.R()*orientation2(0));
-    ContactGeometry::combineParaboloids(orientation1, curvature1, maxDir2, curvature2, curvature);
+    ContactGeometry::combineParaboloids(orientation1, curvature1, 
+                                        maxDir2, curvature2, curvature);
 
     // Record the contact.
 
     Vec3 p1 = transform1*point1;
     Vec3 p2 = transform2*point2;
-    Vec3 position = 0.5*(p1+p2);
+    Vec3 position = (p1+p2)/2;
     UnitVec3 normal(p1-p2);
-    contacts.push_back(PointContact(index1, index2, position, normal, 1.0/curvature[0], 1.0/curvature[1], (p1-p2).norm()));
+    contacts.push_back(PointContact(index1, index2, position, normal, 
+                                    1/curvature[0], 1/curvature[1], 
+                                    (p1-p2).norm()));
 }
 
-Vec6 CollisionDetectionAlgorithm::ConvexConvex::computeErrorVector(const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2,
-        Vec3 pos1, Vec3 pos2, const Transform& transform12) {
+Vec6 CollisionDetectionAlgorithm::ConvexConvex::computeErrorVector
+   (const ContactGeometry& object1, 
+    const ContactGeometry& object2,
+    Vec3 pos1, Vec3 pos2, const Transform& transform12) {
     // Compute the function value and normal vector for each object.
 
     const Function& f1 = object1.getImplicitFunction();
@@ -704,27 +770,37 @@ Vec6 CollisionDetectionAlgorithm::ConvexConvex::computeErrorVector(const Contact
     Vec3 v1 = n1%u1; // Already a unit vector, so we don't need to normalize it.
     Vec3 v2 = n2%u2;
 
-    // Compute the error vector.  The components indicate, in order, that n1 must be perpendicular
-    // to both tangents of object 2, that the separation vector should be zero or perpendicular to
-    // the tangents of object 1, and that both points should be on their respective surfaces.
+    // Compute the error vector. The components indicate, in order, that n1 
+    // must be perpendicular to both tangents of object 2, that the separation 
+    // vector should be zero or perpendicular to the tangents of object 1, and 
+    // that both points should be on their respective surfaces.
 
     Vec3 delta = pos1-transform12*pos2;
     return Vec6(~n1*u2, ~n1*v2, ~delta*u1, ~delta*v1, error1, error2);
 }
 
-Mat66 CollisionDetectionAlgorithm::ConvexConvex::computeJacobian(const ContactGeometry::ConvexImpl& object1, const ContactGeometry::ConvexImpl& object2, Vec3 pos1, Vec3 pos2, const Transform& transform12) {
+Mat66 CollisionDetectionAlgorithm::ConvexConvex::computeJacobian
+   (const ContactGeometry& object1, 
+    const ContactGeometry& object2, 
+    Vec3 pos1, Vec3 pos2, const Transform& transform12) {
     Real dt = 1e-7;
     Vec6 err0 = computeErrorVector(object1, object2, pos1, pos2, transform12);
     Vec3 d1 = dt*Vec3(1, 0, 0);
     Vec3 d2 = dt*Vec3(0, 1, 0);
     Vec3 d3 = dt*Vec3(0, 0, 1);
-    Vec6 err1 = computeErrorVector(object1, object2, pos1+d1, pos2, transform12)-err0;
-    Vec6 err2 = computeErrorVector(object1, object2, pos1+d2, pos2, transform12)-err0;
-    Vec6 err3 = computeErrorVector(object1, object2, pos1+d3, pos2, transform12)-err0;
-    Vec6 err4 = computeErrorVector(object1, object2, pos1, pos2+d1, transform12)-err0;
-    Vec6 err5 = computeErrorVector(object1, object2, pos1, pos2+d2, transform12)-err0;
-    Vec6 err6 = computeErrorVector(object1, object2, pos1, pos2+d3, transform12)-err0;
-    return Mat66(err1, err2, err3, err4, err5, err6)*(1.0/dt);
+    Vec6 err1 = computeErrorVector(object1, object2, pos1+d1, pos2, transform12)
+                - err0;
+    Vec6 err2 = computeErrorVector(object1, object2, pos1+d2, pos2, transform12)
+                - err0;
+    Vec6 err3 = computeErrorVector(object1, object2, pos1+d3, pos2, transform12)
+                - err0;
+    Vec6 err4 = computeErrorVector(object1, object2, pos1, pos2+d1, transform12)
+                - err0;
+    Vec6 err5 = computeErrorVector(object1, object2, pos1, pos2+d2, transform12)
+                - err0;
+    Vec6 err6 = computeErrorVector(object1, object2, pos1, pos2+d3, transform12)
+                - err0;
+    return Mat66(err1, err2, err3, err4, err5, err6) / dt;
 }
 
 } // namespace SimTK

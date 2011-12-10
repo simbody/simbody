@@ -1,10 +1,10 @@
-#ifndef SimTK_SIMBODY_CONTACT_GEOMETRY_H_
-#define SimTK_SIMBODY_CONTACT_GEOMETRY_H_
+#ifndef SimTK_SIMMATH_CONTACT_GEOMETRY_H_
+#define SimTK_SIMMATH_CONTACT_GEOMETRY_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
@@ -37,8 +37,8 @@ Defines the ContactGeometry class and its API-visible local subclasses for
 individual contact shapes. **/
 
 #include "SimTKcommon.h"
-#include "simbody/internal/common.h"
-#include "simbody/internal/OrientedBoundingBox.h"
+#include "simmath/internal/common.h"
+#include "simmath/internal/OrientedBoundingBox.h"
 
 #include <cassert>
 
@@ -62,7 +62,7 @@ It is used with GeneralContactSubsystem or ContactTrackerSubsystem for doing
 collision detection and contact modeling. This is the base class for the
 geometry handles; user code will typically reference one of the local classes
 it defines instead for specific shapes. **/
-class SimTK_SIMBODY_EXPORT ContactGeometry {
+class SimTK_SIMMATH_EXPORT ContactGeometry {
 public:
 class HalfSpace;
 class Sphere;
@@ -117,6 +117,57 @@ bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
 @param[out] radius  On exit, this contains the radius of the bounding 
                     sphere. **/
 void getBoundingSphere(Vec3& center, Real& radius) const;
+
+/** Returns \c true if this is a smooth surface, meaning that it can provide
+meaningful curvature information and continuous derivatives with respect to its
+parameterization. **/
+bool isSmooth() const;
+
+/** Compute the principal curvatures and their directions, and the surface 
+normal, at a given point on a smooth surface.
+@param[in]      point        
+    A point at which to compute the curvature.
+@param[out]     curvature    
+    On return, this will contain the maximum (curvature[0]) and minimum 
+    (curvature[1]) curvatures of the surface at the point.
+@param[out]     orientation  
+    On return, this will contain the orientation of the surface at the given
+    point as follows: the x axis along the direction of maximum curvature, the 
+    y axis along the direction of minimum curvature, and the z axis along the 
+    surface normal. These vectors are expressed in the surface's coordinate 
+    frame.
+
+Non-smooth surfaces will not implement this method and will throw an exception
+if you call it. **/
+void calcCurvature(const Vec3& point, Vec2& curvature, 
+                   Rotation& orientation) const;
+
+/** Our smooth surfaces define a function f(P)=0 that provides an implicit 
+representation of the surface. P=(x,y,z) is any point in space expressed in 
+the surface's coordinate frame S (that is, given by a vector P-So, expressed in
+S). The function is positive inside the object, 0 on the surface, and negative 
+outside the object. The returned Function object supports first and second 
+partial derivatives with respect to the three function arguments x, y, and z.
+Evaluation of the function and its derivatives is cheap. 
+
+Non-smooth surfaces will not implement this method and will throw an exception
+if you call it. **/
+const Function& getImplicitFunction() const;
+
+/** Returns \c true if this surface is known to be convex. This can be true
+for smooth or polygonal surfaces. **/
+bool isConvex() const;
+
+/** Given a direction expressed in the surface's frame S, return the point P on 
+the surface that is the furthest in that direction (or one of those points if
+there is more than one). This will be the point such that dot(P-So, direction)
+is maximal for the surface (where So is the origin of the surface). This is 
+particularly useful for convex surfaces and should be very fast for them. **/
+Vec3 calcSupportPoint(UnitVec3 direction) const;
+
+/** ContactTrackerSubsystem uses this id for fast identification of specific
+surface shapes. **/
+ContactGeometryTypeId getTypeId() const;
 
 /** Calculate surface curvature at a point using differential geometry as 
 suggested by Harris 2006, "Curvature of ellipsoids and other surfaces" Ophthal.
@@ -258,18 +309,6 @@ static void combineParaboloids(const Rotation& R_SP1, const Vec2& k1,
                                const UnitVec3& x2, const Vec2& k2,
                                Vec2& k);
 
-/** Get a string which uniquely identifies the type of geometry this object 
-represents. Typically each subclass of ContactGeometry defines its own
-value. **/
-const std::string& getType() const;
-/** Get an integer which uniquely identifies the type of geometry this object
-represents. A unique index is generated automatically for each unique type 
-value as returned by getType(). **/
-int getTypeIndex() const;
-
-/** ContactTrackerSubsystem uses this id for fast identification of specific
-surface shapes. **/
-ContactGeometryTypeId getTypeId() const;
 
 explicit ContactGeometry(ContactGeometryImpl* impl); /**< Internal use only. **/
 bool isOwnerHandle() const;                          /**< Internal use only. **/
@@ -291,7 +330,7 @@ ContactGeometryImpl* impl; /**< Internal use only. **/
 //==============================================================================
 /** This ContactGeometry subclass represents an object that occupies the 
 entire half-space x>0. This is useful for representing walls and floors. **/
-class SimTK_SIMBODY_EXPORT ContactGeometry::HalfSpace : public ContactGeometry {
+class SimTK_SIMMATH_EXPORT ContactGeometry::HalfSpace : public ContactGeometry {
 public:
 HalfSpace();
 
@@ -316,7 +355,7 @@ static ContactGeometryTypeId classTypeId();
 //==============================================================================
 /** This ContactGeometry subclass represents a sphere centered at the 
 origin. **/
-class SimTK_SIMBODY_EXPORT ContactGeometry::Sphere : public ContactGeometry {
+class SimTK_SIMMATH_EXPORT ContactGeometry::Sphere : public ContactGeometry {
 public:
 explicit Sphere(Real radius);
 Real getRadius() const;
@@ -365,7 +404,7 @@ measured along the unit direction v of minimum curvature. kmax,kmin are the
 curvatures with kmax >= kmin > 0. The signs of the mutually perpendicular
 vectors u and v are chosen so that (u,v,n) forms a right-handed coordinate 
 system for the paraboloid. **/
-class SimTK_SIMBODY_EXPORT ContactGeometry::Ellipsoid : public ContactGeometry {
+class SimTK_SIMMATH_EXPORT ContactGeometry::Ellipsoid : public ContactGeometry {
 public:
 /** Construct an Ellipsoid given its three principal half-axis dimensions a,b,c
 (all positive) along the local x,y,z directions respectively. The curvatures 
@@ -376,7 +415,7 @@ ellipsoid. **/
 const Vec3& getRadii() const;
 /** Set the three half-axis dimensions a,b,c (all positive) used to define this
 ellipsoid, overriding the current radii and recalculating the principal 
-curvatures at a cost of about 50 flops. 
+curvatures at a cost of about 30 flops. 
 @param[in] radii    The three half-dimensions of the ellipsoid, in the 
                     ellipsoid's local x, y, and z directions respectively. **/
 void setRadii(const Vec3& radii);
@@ -393,7 +432,7 @@ outward normal to the ellipsoid at that point. If \a P is not on the surface,
 the result is the same as for the point obtained by scaling the vector 
 \a P - O until it just touches the surface. That is, we compute 
 P'=findPointInThisDirection(P) and then return the normal at P'. Cost is about
-50 flops regardless of whether P was initially on the surface. 
+40 flops regardless of whether P was initially on the surface. 
 @param[in] P    A point on the ellipsoid surface, measured and expressed in the
                 ellipsoid's local frame. See text for what happens if \a P is
                 not actually on the ellipsoid surface.
@@ -403,7 +442,7 @@ pointed to by \a P).
 UnitVec3 findUnitNormalAtPoint(const Vec3& P) const;
 
 /** Given a unit direction \a n, find the unique point P on the ellipsoid 
-surface at which the outward-facing normal is \a n. Cost is about 50 flops. 
+surface at which the outward-facing normal is \a n. Cost is about 40 flops. 
 @param[in] n    The unit vector for which we want to find a match on the
                 ellipsoid surface, expressed in the ellipsoid's local frame. 
 @return The point on the ellipsoid's surface at which the outward-facing
@@ -414,7 +453,7 @@ Vec3 findPointWithThisUnitNormal(const UnitVec3& n) const;
 /** Given a direction d defined by the vector Q-O for an arbitrary point in 
 space Q=(x,y,z)!=O, find the unique point P on the ellipsoid surface that is 
 in direction d from the ellipsoid origin O. That is, P=s*d for some scalar 
-s > 0 such that f(P)=0. Cost is about 50 flops. 
+s > 0 such that f(P)=0. Cost is about 40 flops. 
 @param[in] Q    A point in space measured from the ellipsoid origin but not the
                 origin.
 @return P, the intersection of the ray in the direction Q-O with the ellipsoid
@@ -426,7 +465,7 @@ paraboloid at Q in a frame P where OP=Q, Pz is the outward-facing unit
 normal to the ellipsoid at Q, Px is the direction of maximum curvature
 and Py is the direction of minimum curvature. k=(kmax,kmin) are the returned
 curvatures with kmax >= kmin > 0. The equation of the resulting paraboloid 
-in the P frame is -2z = kmax*x^2 + kmin*y^2. Cost is about 270 flops; you can
+in the P frame is -2z = kmax*x^2 + kmin*y^2. Cost is about 260 flops; you can
 save a little time if you already know the normal at Q by using the other
 overloaded signature for this method.
  
@@ -446,7 +485,7 @@ surface. If it is not you will quietly get a meaningless result.
 void findParaboloidAtPoint(const Vec3& Q, Transform& X_EP, Vec2& k) const;
 
 /** If you already have both a point and the unit normal at that point, this 
-will save about 50 flops by trusting that you have provided the correct normal;
+will save about 40 flops by trusting that you have provided the correct normal;
 be careful -- no one is going to check that you got this right. The results are
 meaningless if the point and normal are not consistent. Cost is about 220 flops.
 @see findParaboloidAtPoint() for details **/
@@ -497,7 +536,7 @@ problems.  If a mesh fails to satisfy any of these requirements, the results of
 calculations performed with it are undefined. For example, collisions involving
 it might fail to be detected, or contact forces on it might be calculated 
 incorrectly. **/
-class SimTK_SIMBODY_EXPORT ContactGeometry::TriangleMesh 
+class SimTK_SIMMATH_EXPORT ContactGeometry::TriangleMesh 
 :   public ContactGeometry {
 public:
 class OBBTreeNode;
@@ -603,6 +642,19 @@ may return any of them.
 @return The point on the surface of the object which is closest to the 
 specified point. **/
 Vec3 findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const;
+
+/** Given a point and a face of this object, find the point of the face that is
+nearest the given point. If multiple points on the face are equally close to 
+the specified point, this may return any of them.
+@param position    The point in question.
+@param face        The face to be examined.
+@param uv          On exit, this contains the barycentric coordinates (u and v)
+                   of the returned point within the face.
+@return The face point, in the surface's frame, that is closest to the 
+specified point. **/
+Vec3 findNearestPointToFace(const Vec3& position, int face, Vec2& uv) const;
+
+
 /** Determine whether this mesh intersects a ray, and if so, find the 
 intersection point.
 @param origin     The position at which the ray begins.
@@ -665,7 +717,7 @@ TriangleMeshImpl& updImpl();
 TriangleMesh. Each node has an OrientedBoundingBox that fully encloses all 
 triangles contained within it or its  children. This is a binary tree: each 
 non-leaf node has two children. Triangles are stored only in the leaf nodes. **/
-class SimTK_SIMBODY_EXPORT ContactGeometry::TriangleMesh::OBBTreeNode {
+class SimTK_SIMMATH_EXPORT ContactGeometry::TriangleMesh::OBBTreeNode {
 public:
 OBBTreeNode(const OBBTreeNodeImpl& impl);
 /** Get the OrientedBoundingBox which encloses all triangles in this node or 
@@ -693,4 +745,4 @@ const OBBTreeNodeImpl* impl;
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_CONTACT_GEOMETRY_H_
+#endif // SimTK_SIMMATH_CONTACT_GEOMETRY_H_

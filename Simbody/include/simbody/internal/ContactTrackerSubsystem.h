@@ -34,7 +34,6 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/ContactGeometry.h"
 #include "simbody/internal/ContactSurface.h"
 
 namespace SimTK {
