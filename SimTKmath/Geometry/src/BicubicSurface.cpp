@@ -531,7 +531,7 @@ void BicubicSurface::Guts::calcParaboloid
     const Vec3 d2Pdxdy(0,0,h.fxy);
 
     // TODO: could save a little time here by taking advantage of the known
-    // sparsity of these vectors.
+    // sparsity of these vectors (probably not worth the trouble).
     k = ContactGeometry::evalParametricCurvature
                                 (P,nn,dPdx,dPdy,d2Pdx2,d2Pdy2,d2Pdxdy,X_SP);
 }
