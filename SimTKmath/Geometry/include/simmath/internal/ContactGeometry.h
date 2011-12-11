@@ -72,7 +72,6 @@ class HalfSpaceImpl;
 class SphereImpl;
 class EllipsoidImpl;
 class TriangleMeshImpl;
-class ConvexImpl;
 
 /** Base class default constructor creates an empty handle. **/
 ContactGeometry() : impl(0) {}

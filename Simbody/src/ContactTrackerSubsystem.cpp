@@ -777,7 +777,7 @@ bool ContactTracker::HalfSpaceEllipsoid::trackContact
     // Halfspace normal is -x, so the ellipsoid normal we're looking for is
     // in the half space's +x direction.
     const UnitVec3& n_E = (~X_HE.R()).x(); // halfspace normal in E
-    const Vec3 Q_E = ellipsoid.findPointWithThisUnitNormal(n_E); // 50 flops
+    const Vec3 Q_E = ellipsoid.findPointWithThisUnitNormal(n_E); // 40 flops
     const Vec3 Q_H = X_HE*Q_E; // Q measured from half space origin (18 flops)
     const Real depth = Q_H[0]; // x > 0 is penetrated
 
