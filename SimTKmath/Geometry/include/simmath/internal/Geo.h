@@ -145,7 +145,7 @@ Vec3P   p;
 /** A geometric primitive representing a sphere by its radius and center 
 point, and a collection of sphere-related utility methods. **/
 template <class P>
-class SimTK_SIMMATH_EXPORT Geo::Sphere_ {
+class Geo::Sphere_ {
 typedef P           RealP;
 typedef Vec<3,P>    Vec3P;
 typedef Vec<4,P>    Vec4P;
@@ -180,10 +180,10 @@ static Sphere_ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1)
 {   const RealP r = (p1-p0).norm()/2, tol = Geo::getDefaultTol<P>();
     return Sphere_((p0+p1)/2, (1+tol)*r); }
 /** Create a minimal bounding sphere around three points. **/
-static Sphere_ calcBoundingSphere
+SimTK_SIMMATH_EXPORT static Sphere_ calcBoundingSphere
    (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2);
 /** Create a minimal bounding sphere around four points. **/
-static Sphere_ calcBoundingSphere
+SimTK_SIMMATH_EXPORT static Sphere_ calcBoundingSphere
    (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, const Vec3P& p3);
 /** Create a minimal bounding sphere around a collection of n points. 
 This is expensive but creates a perfect bounding sphere. **/
