@@ -42,12 +42,13 @@ namespace SimTK {
 //                                   GEO
 //==============================================================================
 
-// Template instantiations for all the subclasses.
+// Template instantiations for subclasses that don't have their own source
+// files.
 
 template class Geo::Point_<float>;
 template class Geo::Point_<double>;
 
-template class Geo::Sphere_<float>;
-template class Geo::Sphere_<double>;
+template class Geo::LineSeg_<float>;
+template class Geo::LineSeg_<double>;
 
 }  // End of namespace SimTK
