@@ -42,23 +42,26 @@ namespace SimTK {
 class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
-      : myHandle(0), body(0), placement(), resolution(-1), scale(-1),
-      colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), faceCamera(false), representation(DecorativeGeometry::DrawDefault)
-    { 
-    }
+    :   myHandle(0), body(0), placement(), resolution(-1), scale(-1),
+        colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), faceCamera(-1), 
+        representation(DecorativeGeometry::DrawDefault)
+    {}
 
     ~DecorativeGeometryRep() {
         clearMyHandle();
     }
+
+    virtual DecorativeGeometryRep* cloneDecorativeGeometryRep() const = 0;
+    virtual void implementGeometry(DecorativeGeometryImplementation&) const = 0;
+
+
 
     void setBodyId(int b) {
         body = b;
     }
     int getBodyId() const {return body;}
 
-    void setTransform(const Transform& X_BD) {
-        placement = X_BD;
-    }
+    void setTransform(const Transform& X_BD) {placement = X_BD;}
     const Transform& getTransform() const    {return placement;}
 
     // This sets resolution to some factor times the object-specific default.
@@ -99,24 +102,22 @@ public:
     }
     Real getLineThickness() const {return lineThickness;}
     
-    void setFaceCamera(bool face) {
-        faceCamera = face;
+    void setFaceCamera(int shouldFace) {
+        faceCamera = shouldFace==0 ? 0 : (shouldFace>0 ? 1 : -1);
     }
     
-    bool getFaceCamera() const {return faceCamera;}
+    int getFaceCamera() const {return faceCamera;}
 
-    void setRepresentation(const DecorativeGeometry::Representation& r) {representation=r;}
-    DecorativeGeometry::Representation getRepresentation() const {return representation;}
+    void setRepresentation(const DecorativeGeometry::Representation& r) 
+    {   representation=r; }
+    DecorativeGeometry::Representation getRepresentation() const 
+    {   return representation; }
 
     DecorativeGeometryRep* clone() const {
         DecorativeGeometryRep* dup = cloneDecorativeGeometryRep();
         dup->clearMyHandle();
         return dup;
     }
-
-    virtual DecorativeGeometryRep* cloneDecorativeGeometryRep() const = 0;
-
-    virtual void implementGeometry(DecorativeGeometryImplementation&) const = 0;
 
     void setMyHandle(DecorativeGeometry& h) {
         myHandle = &h;
@@ -125,22 +126,72 @@ public:
         myHandle=0;
     }
 
-private:
-    friend class DecorativeGeometry;
-
-    int       body;
-    Transform placement;    // default is identity
-    Real      resolution;   // -1 means use default
-    Real      scale;        // -1 means use default
-
-    Vec3 colorRGB;          // set R to -1 for "use default"
-    Real opacity;           // -1 means "use default"
-    Real lineThickness;     // -1 means "use default"
-    bool faceCamera;
-    DecorativeGeometry::Representation  representation; // e.g. points, wireframe, surface
+    // Set any properties that still have their default values to the ones
+    // from src. Source body is transferred unconditionally; source
+    // placement is composed with this one unconditionally. 
+    void inheritPropertiesFrom(const DecorativeGeometryRep& srep) {
+        body = srep.body;
+        placement = srep.placement * placement;
+        if (resolution == -1) resolution = srep.resolution;
+        if (scale == -1) scale = srep.scale;
+        if (colorRGB[0] == -1) colorRGB = srep.colorRGB;
+        if (opacity == -1) opacity = srep.opacity;
+        if (lineThickness == -1) lineThickness = srep.lineThickness;
+        if (faceCamera == -1) faceCamera = srep.faceCamera;
+        if (representation == DecorativeGeometry::DrawDefault)
+            representation = srep.representation;
+    }
 
 protected:
-    DecorativeGeometry* myHandle;         // the owner of this rep
+    friend class DecorativeGeometry;
+
+    int         body;
+    Transform   placement;          // default is identity
+    Real        resolution;         // -1 means use default
+    Real        scale;              // -1 means use default
+
+    Vec3        colorRGB;           // set R to -1 for "use default"
+    Real        opacity;            // -1 means "use default"
+    Real        lineThickness;      // -1 means "use default"
+    int         faceCamera;
+    DecorativeGeometry::Representation  
+                representation;     // e.g. points, wireframe, surface
+
+    DecorativeGeometry* myHandle;   // the owner of this rep
+};
+
+    ////////////////////////
+    // DecorativePointRep //
+    ////////////////////////
+
+class DecorativePointRep : public DecorativeGeometryRep {
+public:
+    // no default constructor
+    DecorativePointRep(const Vec3& p) : point(p) {}
+
+    void setPoint(const Vec3& p) {point=p; }
+
+    const Vec3& getPoint() const {return point;}
+
+    // virtuals
+    DecorativePointRep* cloneDecorativeGeometryRep() const {
+        DecorativePointRep* DGRep = new DecorativePointRep(*this);
+        return DGRep; 
+    }
+
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementPointGeometry(getMyPointHandle());
+    }
+
+    SimTK_DOWNCAST(DecorativePointRep, DecorativeGeometryRep);
+private:
+    Vec3 point;
+
+    // This is just a static downcast since the DecorativeGeometry handle class
+    // is not virtual.
+    const DecorativePoint& getMyPointHandle() const {
+        return *reinterpret_cast<const DecorativePoint*>(myHandle);
+    }
 };
 
     ///////////////////////
@@ -475,6 +526,59 @@ PolygonalMesh mesh;
 const DecorativeMesh& getMyMeshHandle() const {
     return *reinterpret_cast<const DecorativeMesh*>(myHandle);
 }
+};
+
+
+    ////////////////////
+    // DecorationsRep //
+    ////////////////////
+
+class DecorationsRep : public DecorativeGeometryRep {
+public:
+    DecorationsRep() {}
+
+    int addDecoration(const DecorativeGeometry& decoration) {
+        geom.push_back(decoration);
+        return (int)(geom.size()-1);
+    }
+    int addDecoration(const Transform& X_DE,
+                      const DecorativeGeometry& element) {
+        geom.push_back(element);
+        // The current transform goes from the element's frame E to the 
+        // frame G of the actual geometry. We would normally put E at the
+        // Decorations frame D, but now we want to relocate it.
+        const Transform& X_EG = geom.back().getTransform();
+        geom.back().setTransform(X_DE*X_EG);
+        return (int)(geom.size()-1);
+    }
+
+    int getNumDecorations() const {return (int)geom.size();}
+    const DecorativeGeometry& getDecoration(int i) const {return geom[i];}
+
+    // virtuals
+
+    DecorationsRep* cloneDecorativeGeometryRep() const {
+        DecorationsRep* DGRep = new DecorationsRep(*this);
+        return DGRep; 
+    }
+
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        for (unsigned i=0; i < geom.size(); ++i) {
+            DecorativeGeometry copy = geom[i];
+            copy.updRep().inheritPropertiesFrom(*this);
+            copy.implementGeometry(geometry);
+        }
+    }
+
+    SimTK_DOWNCAST(DecorationsRep, DecorativeGeometryRep);
+private:
+    Array_<DecorativeGeometry> geom;
+
+    // This is just a static downcast since the DecorativeGeometry handle class
+    // is not virtual.
+    const Decorations& getMyHandle() const {
+        return *reinterpret_cast<const Decorations*>(myHandle);
+    }
 };
 
 

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Jack Middleton                                               *
  *                                                                            *
@@ -32,7 +32,6 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/DecorativeGeometry.h"
-#include "SimTKcommon/internal/AnalyticGeometry.h"
 
 #include "DecorativeGeometryRep.h"
 
@@ -76,10 +75,6 @@ DecorativeGeometry& DecorativeGeometry::operator=(const DecorativeGeometry& src)
     return *this;
 }
 
-DecorativeGeometry::DecorativeGeometry(const AnalyticGeometry& ag) : rep(0) {
-    *this = ag.generateDecorativeGeometry(); // TODO: avoid copy of rep
-}
-
 DecorativeGeometry& DecorativeGeometry::setBodyId(int b) {updRep().setBodyId(b);return *this;}
 int DecorativeGeometry::getBodyId() const {return getRep().getBodyId();}
 
@@ -105,8 +100,10 @@ DecorativeGeometry& DecorativeGeometry::setRepresentation(const DecorativeGeomet
     updRep().setRepresentation(r);return *this;
 }
 
-DecorativeGeometry& DecorativeGeometry::setFaceCamera(bool face) {updRep().setFaceCamera(face);return *this;}
-bool DecorativeGeometry::getFaceCamera() const {return getRep().getFaceCamera();}
+DecorativeGeometry& DecorativeGeometry::setFaceCamera(int shouldFace) 
+{   updRep().setFaceCamera(shouldFace);return *this; }
+int DecorativeGeometry::getFaceCamera() const 
+{   return getRep().getFaceCamera(); }
 
 DecorativeGeometry::Representation
 DecorativeGeometry::getRepresentation() const {return getRep().getRepresentation();}
@@ -114,6 +111,46 @@ DecorativeGeometry::getRepresentation() const {return getRep().getRepresentation
 void DecorativeGeometry::implementGeometry(DecorativeGeometryImplementation& geometry) const
 {
     getRep().implementGeometry(geometry);
+}
+
+
+    //////////////////////
+    // DECORATIVE POINT //
+    //////////////////////
+
+/*static*/ bool 
+DecorativePoint::isInstanceOf(const DecorativeGeometry& s) {
+    return DecorativePointRep::isA(s.getRep());
+}
+/*static*/ const DecorativePoint&
+DecorativePoint::downcast(const DecorativeGeometry& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const DecorativePoint&>(s);
+}
+/*static*/ DecorativePoint&
+DecorativePoint::updDowncast(DecorativeGeometry& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<DecorativePoint&>(s);
+}
+
+const DecorativePointRep& 
+DecorativePoint::getRep() const {
+    return dynamic_cast<const DecorativePointRep&>(*rep);
+}
+DecorativePointRep&       
+DecorativePoint::updRep() {
+    return dynamic_cast<DecorativePointRep&>(*rep);
+}
+
+DecorativePoint::DecorativePoint(const Vec3& p) {
+    rep = new DecorativePointRep(p);
+    rep->setMyHandle(*this);
+}
+DecorativePoint& DecorativePoint::setPoint(const Vec3& p) {
+    DecorativePointRep::downcast(*rep).setPoint(p); return *this;
+}
+const Vec3& DecorativePoint::getPoint() const {
+    return DecorativePointRep::downcast(*rep).getPoint();
 }
 
 
@@ -277,7 +314,6 @@ Real DecorativeFrame::getAxisLength() const {
 DecorativeText::DecorativeText(const std::string& label) {
     rep = new DecorativeTextRep(label);
     rep->setMyHandle(*this);
-    setFaceCamera(true);
 }
 
 void DecorativeText::setText(const std::string& label) {
@@ -298,6 +334,60 @@ DecorativeMesh::DecorativeMesh(const PolygonalMesh& mesh) {
 const PolygonalMesh& DecorativeMesh::getMesh() const {
     return DecorativeMeshRep::downcast(*rep).getMesh();
 }
+
+
+    /////////////////
+    // DECORATIONS //
+    /////////////////
+
+/*static*/ bool 
+Decorations::isInstanceOf(const DecorativeGeometry& s) {
+    return DecorationsRep::isA(s.getRep());
+}
+/*static*/ const Decorations&
+Decorations::downcast(const DecorativeGeometry& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const Decorations&>(s);
+}
+/*static*/ Decorations&
+Decorations::updDowncast(DecorativeGeometry& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<Decorations&>(s);
+}
+
+const DecorationsRep& 
+Decorations::getRep() const {
+    return dynamic_cast<const DecorationsRep&>(*rep);
+}
+DecorationsRep&       
+Decorations::updRep() {
+    return dynamic_cast<DecorationsRep&>(*rep);
+}
+
+Decorations::Decorations() {
+    rep = new DecorationsRep();
+    rep->setMyHandle(*this);
+}
+Decorations::Decorations(const DecorativeGeometry& decoration) {
+    rep = new DecorationsRep();
+    rep->setMyHandle(*this);
+    updRep().addDecoration(decoration);
+}
+Decorations& Decorations::
+addDecoration(const DecorativeGeometry& decoration) {
+    updRep().addDecoration(decoration);
+    return *this;
+}
+Decorations& Decorations::
+addDecoration(const Transform& placement,
+              const DecorativeGeometry& decoration) {
+    updRep().addDecoration(placement, decoration);
+    return *this;
+}
+int Decorations::getNumDecorations() const
+{   return getRep().getNumDecorations(); }
+const DecorativeGeometry& Decorations::getDecoration(int i) const
+{   return getRep().getDecoration(i); }
 
 } // namespace SimTK
 

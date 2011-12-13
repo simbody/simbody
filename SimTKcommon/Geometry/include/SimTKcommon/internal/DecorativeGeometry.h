@@ -33,68 +33,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the client-side interface to an implementation-independent
- * representation of "Decorations" suitable for visualization, annotation,
- * logging, or debugging but which cannot have any effect on the behavior of
- * a System or the evolution of a Study. 
- * DO NOT confuse this with AnalyticGeometry which can represent
- * physically meaningful objects that may interact and change the behavior
- * of a System. However, an AnalyticGeometry object is likely to generate a
- * corresponding Decoration for visualization.
- *
- * Why is there a DecorativeGeometry facility at the System level at all, so far away from
- * any application program? That's because for crude visualization and debugging
- * purposes, the Subsystems themselves are best able to produce some illustrative
- * geometry. Otherwise, you need a special purpose visualization tool which understands
- * what's going on inside each subsystem. If you don't mind taking what you get, just
- * ask each subsystem to generate what it thinks would be helpful visualization. To do
- * that, the subysystems need a way to talk about geometry without knowing anything
- * about how that geometry will eventually get onto someone's screen. And that's why
- * we're here!
- *
- * Each DecorativeGeometry object has its own local coordinate system
- * and is defined self-consistently
- * but independent of anything else. Clients can associate these with a reference
- * frame (e.g. a body), and place the local frame of the geometry objects on the 
- * reference frame, or at a fixed transform from the reference frame. That places
- * the DecorativeGeometry objects in a scene. We support both 3D objects
- * which are attached to actors in the scene, and 2D "screen"
- * objects like titles which are attached to the display rather than the actors.
- * The classes here deal only with the local-frame definitions of the geometric
- * objects, not their placement in the scene.
- */
-
-/* TODO: NEW TEXT -- NOT IMPLEMENTED YET (just thinking out loud)
- *
- * Each kind of Decoration defines a parameterized object, whose appearance
- * is specified once its parameters are known. Parameters will be scalars,
- * points, direction vectors, and transforms. These involve dependencies on
- * a fixed set of reference frames: the ground body frame, the moving body frames,
- * and the screen or viewing frame. The body frames are defined by the System;
- * while the viewing frame is defined by whatever application is communicating
- * to a user. The World frame of the viewer and the Ground frame of the System
- * are the same. At run time a System can always report the configuration of its
- * moving bodies with respect to Ground, and hence these can be placed in the
- * scene with respect to the World frame. A text label, for example, could be tethered
- * to a point on a moving body while defined to remain parallel to the viewing plane.
- *
- * In addition to their geometric representations, Decorations defined here can 
- * state preferences, if any, for a variety of viewing options such as color,
- * drawing style, and transparency. If left unspecified, the viewer will have to
- * determine how to set these options; if specified the viewer may want to use
- * the specified options but can override them if it has good reason to do so.
- * Many different implementations of Decorations are possible. The generic 
- * implementation is defined below as an abstract class; each viewer will use
- * a particular implementation that defines a concrete implementation for each of the virtual
- * methods of the abstraction.
- *
- * There are two Stages associated with a Decoration. When is the Decoration
- * known to exist (including its parameterization), and when are values for its 
- * parameters calculatable. For example, a permanent body-fixed sphere is known
- * to exist a the Topological stage (i.e., as soon as the body exists). Its 
- * configuration in the World frame, however, cannot be computed until we
- * know the body's configuration, that is, Stage::Position.
- */
+Declarations of DecorativeGeometry and related derived classes. **/
 
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/PolygonalMesh.h"
@@ -103,9 +42,6 @@
 
 
 namespace SimTK {
-
-class AnalyticGeometry;
-
 
 // Some common RGB values;
 static const Vec3 Black   = Vec3( 0, 0, 0);
@@ -124,135 +60,194 @@ static const Vec3 White   = Vec3( 1, 1, 1);
 
 class DecorativeGeometryImplementation;
 
-/**
- * This is an abstract handle class using the PIMPL design pattern to hide the private
- * implementation. This is effectively an abstract class although the virtual
- * function table is hidden in the private part.
- */
+/** This is the client-side interface to an implementation-independent
+representation of "Decorations" suitable for visualization, annotation,
+logging, or debugging but which cannot have any effect on the behavior of
+a System or the evolution of a Study. DO NOT confuse this with real geometry 
+(like contact geometry) which can represent physically meaningful objects that 
+may interact and change the behavior of a System. However, all geometry objects
+can generate DecorativgeGeometry for their visualization.
+
+Why is there a DecorativeGeometry facility at the System level at all, so far 
+away from any application program? That's because for crude visualization and 
+debugging purposes, the Subsystems themselves are best able to produce some 
+illustrative geometry. Otherwise, you need a special purpose visualization 
+tool which understands what's going on inside each subsystem. If you don't mind
+taking what you get, just ask each subsystem to generate what it thinks would 
+be helpful visualization. To do that, the subysystems need a way to talk about 
+geometry without knowing anything about how that geometry will eventually get 
+onto someone's screen. And that's why we're here!
+
+Each DecorativeGeometry object has its own local coordinate system and is 
+defined self-consistently but independent of anything else. Clients can 
+associate these with a reference frame (e.g. a body), and place the local frame
+of the geometry objects on the reference frame, or at a fixed transform from 
+the reference frame. That places the DecorativeGeometry objects in a scene. We
+support both 3D objects which are attached to actors in the scene, and 2D 
+"screen" objects like titles which are attached to the display rather than the 
+actors. The classes here deal only with the local-frame definitions of the 
+geometric objects, not their placement in the scene. 
+
+This is an abstract handle class using the PIMPL design pattern to hide the
+private implementation. This is effectively an abstract class although the 
+virtual function table is hidden in the private part. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeGeometry {
 public:
-    DecorativeGeometry() : rep(0) { }
-    ~DecorativeGeometry();
-    DecorativeGeometry(const DecorativeGeometry&);
-    DecorativeGeometry& operator=(const DecorativeGeometry&);
+DecorativeGeometry() : rep(0) { }
+~DecorativeGeometry();
+DecorativeGeometry(const DecorativeGeometry&);
+DecorativeGeometry& operator=(const DecorativeGeometry&);
 
-    // Drawing modes.
-    enum Representation {
-        DrawPoints    =  1,
-        DrawWireframe =  2,
-        DrawSurface   =  3,
+// Drawing modes.
+enum Representation {
+    DrawPoints    =  1,
+    DrawWireframe =  2,
+    DrawSurface   =  3,
 
-        DrawDefault   = -1
-    };
-
-    /// Implicit conversion
-    DecorativeGeometry(const AnalyticGeometry&);
-
-    /// By default the geometry will be placed on ground. If you want it attached to
-    /// another reference frame (body), say so here. The geometry should be rendered
-    /// with respect to the indicated body frame; however, the interpretation of this
-    /// integer Id is left to the implementation.
-    DecorativeGeometry& setBodyId(int);
-
-    /// This transform shifts the generated polygons with respect to this object's
-    /// local frame. Subsequent calls with other transforms simply replace the earlier
-    /// one; they do not accumulate. The default transform is identity and you can 
-    /// call setTransform(Transform()) to put the transform back into its original state.
-    /// This value affects the generated polygonal data.
-    DecorativeGeometry& setTransform(const Transform& X_BG);
-
-    /// Each concrete DecorativeGeometry object is expected to have a default resolution
-    /// that gets the point across but is cheap to draw and hence probably somewhat "chunky".
-    /// The resolution parameter here scales that default up or down. The number of faces
-    /// in the displayed representation is roughly proportional to this value. 1.0 means to
-    /// use the default resolution. Values less than 1.0 are lower resolution, and values
-    /// greater than 1.0 are higher resolution. A value less than
-    /// or equal to zero here is interpreted as an instruction to "use the default".
-    DecorativeGeometry& setResolution(Real);
-
-    /// Each concrete DecorativeGeometry object is expected to have a default size
-    /// around "1", whatever that means for a particular object, and most objects also
-    /// allow a user-specified size on construction. The scale factor here applies to
-    /// the object as the user built it, or to the default if the user didn't specify
-    /// a size. The default scaling is 1, and any value less than or equal to zero
-    /// here is interpreted as a request to "use the default".
-    /// This value affects the generated polygonal data.
-    DecorativeGeometry& setScale(Real);
-
-    /// Return the body to which this geometry is attached. The geometry's placement is
-    /// interpreted relative to the body's frame.
-    int getBodyId() const;
-
-    /// Return the current setting of the "resolution" factor. A return value of -1
-    /// means "use the default".
-    Real getResolution() const;
-
-    /// Return the current value of the object's transform. If none has been set this
-    /// will be the identity transform. Note that this transform specifies how the
-    /// polygons are placed with respect to the object's local frame.
-    const Transform& getTransform() const;
-
-    /// Return the current setting of the "scale" factor. A return value of -1 
-    /// means "use the default" (which is typically 1).
-    Real getScale() const;
-
-    /// Request a specific color for this DecorativeGeometry object. This does NOT
-    /// affect the generated geometry here. The default is that the color is
-    /// determined elsewhere.
-    DecorativeGeometry& setColor(const Vec3& rgb); // 0-1 for each color
-
-    /// Request a level of transparency for this DecorativeGeometry. This does NOT
-    /// affect the generated geometry here. The default is that opacity is 
-    /// determined elsewhere.
-    DecorativeGeometry& setOpacity(Real);          // 0-1; default is 1 (opaque)
-
-    /// Request an adjustment to the default rendering of lines and curves. This 
-    /// does NOT affect geometry generated here; it is a request passed on to the
-    /// renderer which will probably pass it on to the hardware. A value less
-    /// than or equal to zero here is interpreted as "use the default".
-    DecorativeGeometry& setLineThickness(Real);
-
-    const Vec3& getColor()      const;
-    Real        getOpacity()    const;
-    Real        getLineThickness() const;
-    
-    /// Set whether the geometry acts as a billboard, always rotating to face the camera.
-    DecorativeGeometry& setFaceCamera(bool face);
-    /// Get whether the geometry acts as a billboard, always rotating to face the camera.
-    bool getFaceCamera() const;
-
-    /// Request a particular rendering representation of this DecorativeGeometry
-    /// object. The default is that the rendering representation choice is made elsewhere.
-    DecorativeGeometry& setRepresentation(const Representation&);
-
-    /// returns drawing mode: -1 means "use default"; see above for others
-    Representation getRepresentation() const;
-
-    void implementGeometry(DecorativeGeometryImplementation&) const;
-
-    // Bookkeeping below here -- internal use only. Don't look below or you will
-    // turn into a pillar of salt.
-    bool isOwnerHandle() const;
-    bool isEmptyHandle() const;
-    explicit DecorativeGeometry(class DecorativeGeometryRep* r) : rep(r) { }
-    bool hasRep() const {return rep!=0;}
-    const DecorativeGeometryRep& getRep() const {assert(rep); return *rep;}
-    DecorativeGeometryRep&       updRep()       {assert(rep); return *rep;}
-protected:
-    DecorativeGeometryRep* rep;
+    DrawDefault   = -1
 };
 
-/**
- * A line between two points. Note that the actual placement can be changed 
- * by the parent class transform & scale; here we are just generating the 
- * initial line in the geometry object's local frame. 
- *
- * There is a default constructor for this object but it is not much
- * use unless followed by endpoint specifications. By default we produce
- * a line going from (0,0,0) to (1,1,1) just so it will show up if you
- * forget to set it to something meaningful. Having a default constructor
- * allows us to have arrays of these objects.
- */
+/** By default the geometry will be placed on ground. If you want it attached to
+another reference frame (body), say so here. The geometry should be rendered
+with respect to the indicated body frame; however, the interpretation of this
+integer Id is left to the implementation. **/
+DecorativeGeometry& setBodyId(int);
+
+/** This transform shifts the generated polygons with respect to this object's
+local frame. Subsequent calls with other transforms simply replace the earlier
+one; they do not accumulate. The default transform is identity and you can call
+setTransform(Transform()) to put the transform back into its original state.
+This value affects the generated polygonal data. **/
+DecorativeGeometry& setTransform(const Transform& X_BG);
+
+/** Each concrete DecorativeGeometry object is expected to have a default 
+resolution that gets the point across but is cheap to draw and hence probably 
+somewhat "chunky". The resolution parameter here scales that default up or 
+down. The number of faces in the displayed representation is roughly 
+proportional to this value. 1.0 means to use the default resolution. Values 
+less than 1.0 are lower resolution, and values greater than 1.0 are higher 
+resolution. A value less than or equal to zero here is interpreted as an 
+instruction to "use the default". **/
+DecorativeGeometry& setResolution(Real);
+
+/** Each concrete DecorativeGeometry object is expected to have a default size
+around "1", whatever that means for a particular object, and most objects also
+allow a user-specified size on construction. The scale factor here applies to
+the object as the user built it, or to the default if the user didn't specify
+a size. The default scaling is 1, and any value less than or equal to zero
+here is interpreted as a request to "use the default".
+This value affects the generated polygonal data. **/
+DecorativeGeometry& setScale(Real);
+
+/** Return the body to which this geometry is attached. The geometry's 
+placement is interpreted relative to the body's frame. **/
+int getBodyId() const;
+
+/** Return the current setting of the "resolution" factor. A return value of
+-1 means "use the default". **/
+Real getResolution() const;
+
+/** Return the current value of the object's transform. If none has been set 
+this will be the identity transform. Note that this transform specifies how the
+polygons are placed with respect to the object's local frame. **/
+const Transform& getTransform() const;
+
+/** Return the current setting of the "scale" factor. A return value of -1 
+means "use the default" (which is typically 1). **/
+Real getScale() const;
+
+/** Request a specific color for this DecorativeGeometry object. This does NOT
+affect the generated geometry here. The default is that the color is
+determined elsewhere. **/
+DecorativeGeometry& setColor(const Vec3& rgb); // 0-1 for each color
+
+/** Request a level of transparency for this DecorativeGeometry. This does NOT
+affect the generated geometry here. The default is that opacity is 
+determined elsewhere. **/
+DecorativeGeometry& setOpacity(Real);          // 0-1; default is 1 (opaque)
+
+/** Request an adjustment to the default rendering of lines and curves. This 
+does NOT affect geometry generated here; it is a request passed on to the
+renderer which will probably pass it on to the hardware. A value less
+than or equal to zero here is interpreted as "use the default". **/
+DecorativeGeometry& setLineThickness(Real);
+
+const Vec3& getColor()      const;
+Real        getOpacity()    const;
+Real        getLineThickness() const;
+    
+/** Set whether the geometry acts as a billboard, always rotating to face the 
+camera. The default is typically no except for text. If you want 3D text that
+moves with your model, set this to true. Here 0 means false, 1 means true,
+and -1 means "use default". **/
+DecorativeGeometry& setFaceCamera(int shouldFace);
+/** Get whether the geometry acts as a billboard, always rotating to face the 
+camera. Returns 0 for no, 1 for yes, -1 for "is using default". **/
+int getFaceCamera() const;
+
+/** Request a particular rendering representation of this DecorativeGeometry
+object. The default is that the rendering representation choice is made 
+elsewhere. **/
+DecorativeGeometry& setRepresentation(const Representation&);
+
+/** Returns drawing mode: -1 means "use default"; see above for others. **/
+Representation getRepresentation() const;
+
+void implementGeometry(DecorativeGeometryImplementation&) const;
+
+// Bookkeeping below here -- internal use only. Don't look below or you will
+// turn into a pillar of salt.
+bool isOwnerHandle() const;
+bool isEmptyHandle() const;
+explicit DecorativeGeometry(class DecorativeGeometryRep* r) : rep(r) { }
+bool hasRep() const {return rep!=0;}
+const DecorativeGeometryRep& getRep() const {assert(rep); return *rep;}
+DecorativeGeometryRep&       updRep()       {assert(rep); return *rep;}
+protected:
+DecorativeGeometryRep* rep;
+};
+
+
+/** A point of interest. Note that the point's location is given relative
+to the DecorativeGeometry frame so it will move if the geometry is transformed
+when attached somewhere or displayed. The default constructor will put the
+point at (0,0,0). **/
+class SimTK_SimTKCOMMON_EXPORT DecorativePoint : public DecorativeGeometry {
+public:
+    explicit DecorativePoint(const Vec3& p=Vec3(0));
+
+    // These are specific to DecorativePoint.
+
+    DecorativePoint& setPoint(const Vec3& p);
+    const Vec3& getPoint() const;
+
+    // Retain the derived type when setting generic geometry options.
+
+    DecorativePoint& setBodyId(int b)          {DecorativeGeometry::setBodyId(b);        return *this;}
+    DecorativePoint& setTransform(const Transform& X_BD) {DecorativeGeometry::setTransform(X_BD); return *this;}
+    DecorativePoint& setResolution(Real r)     {DecorativeGeometry::setResolution(r);    return *this;}
+    DecorativePoint& setScale(Real s)          {DecorativeGeometry::setScale(s);         return *this;}
+    DecorativePoint& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
+    DecorativePoint& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
+    DecorativePoint& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}
+    DecorativePoint& setRepresentation(const Representation& r) 
+    {   DecorativeGeometry::setRepresentation(r); return *this; }
+
+    SimTK_PIMPL_DOWNCAST(DecorativePoint, DecorativeGeometry);
+private:
+    class DecorativePointRep& updRep();
+    const DecorativePointRep& getRep() const;
+};
+
+/** A line between two points. Note that the actual placement can be changed 
+by the parent class transform & scale; here we are just generating the 
+initial line in the geometry object's local frame. 
+
+There is a default constructor for this object but it is not much
+use unless followed by endpoint specifications. By default we produce
+a line going from (0,0,0) to (1,1,1) just so it will show up if you
+forget to set it to something meaningful. Having a default constructor
+allows us to have arrays of these objects. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeLine : public DecorativeGeometry {
 public:
     explicit DecorativeLine(const Vec3& p1=Vec3(0), const Vec3& p2=Vec3(1)); // line between p1 and p2
@@ -283,10 +278,8 @@ private:
     const DecorativeLineRep& getRep() const;
 };
 
-/**
- * This defines a circle in the x-y plane, centered at the origin. The
- * default constructor creates a circle of diameter 1.
- */
+/** This defines a circle in the x-y plane, centered at the origin. The
+default constructor creates a circle of diameter 1. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeCircle : public DecorativeGeometry {
 public:
     explicit DecorativeCircle(Real radius=0.5);
@@ -300,10 +293,8 @@ private:
     const DecorativeCircleRep& getRep() const;
 };
 
-/**
- * This defines a sphere centered at the origin. The
- * default constructor creates a sphere of diameter 1.
- */
+/** This defines a sphere centered at the origin. The default constructor 
+creates a sphere of diameter 1. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeSphere : public DecorativeGeometry {
 public:
     explicit DecorativeSphere(Real radius=0.5);
@@ -317,11 +308,9 @@ private:
     const DecorativeSphereRep& getRep() const;
 };
 
-/**
- * This defines an ellipsoidal solid centered at the origin and
- * aligned with the local frame axes. The default constructor creates 
- * an ellipsoid with radii (1/2, 1/3, 1/4) in x,y,z resp.
- */
+/** This defines an ellipsoidal solid centered at the origin and aligned with
+the local frame axes. The default constructor creates an ellipsoid with radii 
+(1/2, 1/3, 1/4) in x,y,z resp. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeEllipsoid : public DecorativeGeometry {
 public:
     explicit DecorativeEllipsoid(const Vec3& radii = Vec3(0.5,1/3.,0.25));
@@ -335,11 +324,9 @@ private:
     const DecorativeEllipsoidRep& getRep() const;
 };
 
-/**
- * This defines a rectangular solid centered at the origin and
- * aligned with the local frame axes. The default constructor creates 
- * a cube of length 1 on each side.
- */
+/** This defines a rectangular solid centered at the origin and aligned with 
+the local frame axes. The default constructor creates a cube of length 1 on 
+each side. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeBrick : public DecorativeGeometry {
 public:
     explicit DecorativeBrick(const Vec3& halfLengths = Vec3(0.5));
@@ -353,11 +340,9 @@ private:
     const DecorativeBrickRep& getRep() const;
 };
 
-/**
- * This defines a cylinder centered on the origin and aligned in the
- * y direction. The default constructor gives it a height of 1 and
- * the base circle a diameter of 1.
- */
+/** This defines a cylinder centered on the origin and aligned in the y 
+direction. The default constructor gives it a height of 1 and the base circle 
+a diameter of 1. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeCylinder : public DecorativeGeometry {
 public:
     explicit DecorativeCylinder(Real radius=0.5, Real halfHeight=0.5);
@@ -373,11 +358,9 @@ private:
     const DecorativeCylinderRep& getRep() const;
 };
 
-/**
- * This defines geometry to represent a coordinate frame. The default
- * constructor makes three perpendicular lines beginning at the 
- * origin and extending in the +x, +y, and +z directions by 1 unit.
- */
+/** This defines geometry to represent a coordinate frame. The default 
+constructor makes three perpendicular lines beginning at the origin and 
+extending in the +x, +y, and +z directions by 1 unit. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeFrame : public DecorativeGeometry {
 public:
     explicit DecorativeFrame(Real axisLength=1);
@@ -391,10 +374,8 @@ private:
     const DecorativeFrameRep& getRep() const;
 };
 
-/**
- * This defines a text label with its base at the origin. The
- * default constructor creates a blank label.
- */
+/** This defines a text label with its base at the origin. The default 
+constructor creates a blank label. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeText : public DecorativeGeometry {
 public:
     explicit DecorativeText(const std::string& label="");
@@ -408,9 +389,8 @@ private:
     const DecorativeTextRep& getRep() const;
 };
 
-/**
- * This defines a polygonal mesh.
- */
+/** This defines a displayable mesh by referencing an already-existing
+PolygonalMesh object. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeMesh : public DecorativeGeometry {
 public:
     explicit DecorativeMesh(const PolygonalMesh& mesh);
@@ -422,13 +402,56 @@ private:
     const DecorativeMeshRep& getRep() const;
 };
 
-/**
- * Use this abstract class to connect your implementation of decorative geometry
- * to the implementation-independent classes above.
- */
+
+/** This defines a single DecorativeGeometry object that is composed of a
+collection of other DecorativeGeometry objects. Parameters set for the
+parent object serve as defaults for the contained objects, but those objects
+can override the default. **/
+class SimTK_SimTKCOMMON_EXPORT Decorations : public DecorativeGeometry {
+public:
+    /** Construct an empty container for DecorativeGeometry objects. **/
+    Decorations();
+    /** Construct a Decorations container initially consting of just a single
+    DecorativeGeometry object. **/
+    explicit Decorations(const DecorativeGeometry& decoration);
+    /** Add a DecorativeGeometry object to this collection. **/
+    Decorations& addDecoration(const DecorativeGeometry& decoration);
+    /** Add a DecorativeGeometry object to this collection and place it
+    relative to the Decoratations frame. **/
+    Decorations& addDecoration(const Transform& placement,
+                               const DecorativeGeometry& decoration);
+    /** Determine how many DecorativeGeometry objects are in this 
+    collection. **/
+    int getNumDecorations() const;
+    /** Get access to one of the DecorativeGeometry objects in this 
+    collection. **/
+    const DecorativeGeometry& getDecoration(int i) const;
+
+    // Retain the derived type when setting generic geometry options.
+
+    Decorations& setBodyId(int b)          {DecorativeGeometry::setBodyId(b);        return *this;}
+    Decorations& setTransform(const Transform& X_BD) {DecorativeGeometry::setTransform(X_BD); return *this;}
+    Decorations& setResolution(Real r)     {DecorativeGeometry::setResolution(r);    return *this;}
+    Decorations& setScale(Real s)          {DecorativeGeometry::setScale(s);         return *this;}
+    Decorations& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
+    Decorations& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
+    Decorations& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}
+    Decorations& setRepresentation(const Representation& r) 
+    {   DecorativeGeometry::setRepresentation(r); return *this; }
+
+
+    SimTK_PIMPL_DOWNCAST(Decorations, DecorativeGeometry);
+private:
+    class DecorationsRep& updRep();
+    const DecorationsRep& getRep() const;
+};
+
+/** Use this abstract class to connect your implementation of decorative 
+geometry to the implementation-independent classes above. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeGeometryImplementation {
 public:
     virtual ~DecorativeGeometryImplementation() { }
+    virtual void implementPointGeometry(    const DecorativePoint&)    = 0;
     virtual void implementLineGeometry(     const DecorativeLine&)     = 0;
     virtual void implementBrickGeometry(    const DecorativeBrick&)    = 0;
     virtual void implementCylinderGeometry( const DecorativeCylinder&) = 0;
