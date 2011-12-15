@@ -95,7 +95,7 @@ you automatically. Here is an example of explicit hint usage:
 @code
     PatchHint hint;
     val = smoothedSurface.calcValue(Vec2(.5,.6), hint);
-    val = smoothedSufrace.calcValue(Vec2(.51,.61), hint);
+    val = smoothedSurface.calcValue(Vec2(.51,.61), hint);
 @endcode
 
 Additional methods are provided for obtaining the surface normals, and all the
