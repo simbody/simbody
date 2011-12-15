@@ -233,7 +233,7 @@ BicubicSurface::Guts::Guts
     
     // Check for reasonable spacing.
     SimTK_ERRCHK2_ALWAYS(spacing > 0,
-        "BicubicSurface::ctor(XY,spacing,af,smoothness)", 
+        "BicubicSurface::BicubicSurface(XY,spacing,af,smoothness)", 
         "A BicubicSurface requires positive spacing in both x and y"
         " but spacing was %g and %g.", spacing[0], spacing[1]);
 
@@ -261,12 +261,12 @@ constructFromSplines(const Matrix& af, Real smoothness)
 
     // Check for sufficient sample size.
     SimTK_ERRCHK2_ALWAYS(af.nrow() >= 4 && af.ncol() >= 4,
-        "BicubicSurface::ctor()", 
+        "BicubicSurface::BicubicSurface()", 
         "A BicubicSurface requires at least 4 sample in x and y directions"
         " but grid dimensions were %d and %d.", nx, ny);
 
     SimTK_ERRCHK4_ALWAYS(_x.size() == nx && _y.size() == ny,
-        "BicubicSurface::ctor()", 
+        "BicubicSurface::BicubicSurface()", 
         "Number of samples must match the grid dimension (%d X %d) but"
         "the number of supplied sample points was %d X %d.",
         nx, ny, _x.size(), _y.size());
@@ -277,7 +277,7 @@ constructFromSplines(const Matrix& af, Real smoothness)
 
     SimTK_ERRCHK_ALWAYS(   isMonotonicallyIncreasing(_x)
                         && isMonotonicallyIncreasing(_y),
-        "BicubicSurface::ctor()",
+        "BicubicSurface::BicubicSurface()",
         "Sample vectors must each be monotonically increasing.");
 
     // The grid data stores a Vec4 at each grid point with (possibly smoothed)
@@ -391,7 +391,7 @@ BicubicSurface::Guts::Guts
 
     // Check for reasonable spacing.
     SimTK_ERRCHK2_ALWAYS(spacing > 0,
-        "BicubicSurface::ctor(XY,spacing,af,smoothness)", 
+        "BicubicSurface::BicubicSurface(XY,spacing,af,smoothness)", 
         "A BicubicSurface requires positive spacing in both x and y"
         " but spacing was %g and %g.", spacing[0], spacing[1]);
 
@@ -419,12 +419,12 @@ constructFromKnownFunction
 
     // Check for sufficient sample size.
     SimTK_ERRCHK2_ALWAYS(nx >= 2 && ny >= 2,
-        "BicubicSurface::ctor(f,fx,fy,fxy)", 
+        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)", 
         "A BicubicSurface requires at least 2 sample in x and y directions"
         " but grid dimensions were %d and %d.", nx, ny);
 
     SimTK_ERRCHK4_ALWAYS(_x.size() == nx && _y.size() == ny,
-        "BicubicSurface::ctor(f,fx,fy,fxy)", 
+        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)", 
         "Number of samples must match the grid dimension (%d X %d) but"
         "the number of supplied sample points was %d X %d.",
         nx, ny, _x.size(), _y.size());
@@ -432,13 +432,13 @@ constructFromKnownFunction
     SimTK_ERRCHK2_ALWAYS(   afx.nrow()  == nx && afx.ncol()  == ny
                          && afy.nrow()  == nx && afy.ncol()  == ny
                          && afxy.nrow() == nx && afxy.ncol() == ny,
-        "BicubicSurface::ctor(f,fx,fy,fxy)", 
+        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)", 
         "All the derivative sample matrices must match the grid dimension"
         " (%d X %d).", nx, ny);
 
     SimTK_ERRCHK_ALWAYS(   isMonotonicallyIncreasing(_x)
                         && isMonotonicallyIncreasing(_y),
-        "BicubicSurface::ctor(f,fx,fy,fxy)",
+        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)",
         "Sample vectors must each be monotonically increasing.");
 
     _ff.resize(nx,ny);
