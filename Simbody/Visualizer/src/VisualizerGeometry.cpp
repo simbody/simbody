@@ -73,12 +73,12 @@ implementPointGeometry(const SimTK::DecorativePoint& geom) {
     const Real length = getScale(geom) * DefaultLength;
     const Vec4 color = getColor(geom, DefaultPointColor);
 
-    protocol.drawLine(p_GP - DefaultLength*X_GB.x(), 
-                      p_GP + DefaultLength*X_GB.x(), color, thickness);
-    protocol.drawLine(p_GP - DefaultLength*X_GB.y(), 
-                      p_GP + DefaultLength*X_GB.y(), color, thickness);
-    protocol.drawLine(p_GP - DefaultLength*X_GB.z(), 
-                      p_GP + DefaultLength*X_GB.z(), color, thickness);
+    protocol.drawLine(p_GP - length*X_GB.x(), 
+                      p_GP + length*X_GB.x(), color, thickness);
+    protocol.drawLine(p_GP - length*X_GB.y(), 
+                      p_GP + length*X_GB.y(), color, thickness);
+    protocol.drawLine(p_GP - length*X_GB.z(), 
+                      p_GP + length*X_GB.z(), color, thickness);
 }
 
 void VisualizerGeometry::implementLineGeometry(const SimTK::DecorativeLine& geom) {

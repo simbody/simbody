@@ -39,6 +39,8 @@ Defines geometric primitive shapes and algorthms. **/
 #include "simmath/internal/common.h"
 
 #include <cassert>
+#include <cmath>
+#include <algorithm>
 
 namespace SimTK {
 
@@ -83,10 +85,24 @@ SignificantReal which is eps^(7/8) where eps is the resolution of P. That
 makes this tolerance around 2e-14 in double precision and 9e-7 in float. **/
 template <class P> static P getDefaultTol() 
 {   return NTraits<P>::getSignificant(); }
+template <class P> static P getEps() 
+{   return NTraits<P>::getEps(); }
 template <class P> static P getNaN() 
 {   return NTraits<P>::getNaN(); }
 template <class P> static P getInfinity() 
 {   return NTraits<P>::getInfinity(); }
+
+/** Stretch a dimension by a given tolerance amount. The result is the
+given \a length increased by at least an absolute amount \a tol, or by a
+relative amount length*tol if length > 1. Cost is 3 flops. **/
+template <class P> static P stretchBy(P length, P tol)
+{   assert(tol >= getEps<P>()); 
+    return length + std::max(length*tol, tol); }
+
+/** Stretch a dimension using the default tolerance for this precision as
+the tolerance in stretchBy(). Cost is 3 flops. **/
+template <class P> static P stretch(P length)
+{   return stretchBy(length, getDefaultTol<P>()); }
 
 };
 
@@ -115,22 +131,29 @@ Point_& setLocation(const Vec3P& location) {p=location; return *this;}
 /** Get the location of this Point. **/
 const Vec3P& getLocation() const {return p;}
 
-/** Find the distance between this point and another one whose location is
-expressed in the same frame. Cost is about 35 flops. **/
-RealP findDistance(const Point_& p2) const 
-{   return findDistance(*this, p2); }
+/** Calculate the distance between this point and another one whose location is
+expressed in the same frame (expensive). Cost is about 30 flops. **/
+RealP calcDistance(const Vec3P& p2) const 
+{   return calcDistance(p, p2); }
 /** Find the square of the distance between this point and another one whose
-location is expressed in the same frame. Cost is 5 flops. **/
-RealP findDistanceSqr(const Point_& p2) const 
-{   return findDistanceSqr(*this, p2); }
+location is expressed in the same frame (cheap). Cost is 8 flops. **/
+RealP findDistanceSqr(const Vec3P& p2) const 
+{   return findDistanceSqr(p, p2); }
 
 /**@name                 Point-related utilities
 These static methods work with points or collections of points. **/
 /**@{**/
-static RealP findDistance(const Point_<P>& p1, const Point_<P>& p2)
-{   return (p2.p-p1.p).norm(); }
-static RealP findDistanceSqr(const Point_<P>& p1, const Point_<P>& p2)
-{   return (p2.p-p1.p).normSqr(); }
+/** Calculate the distance between two points (expensive). Cost is about 
+30 flops. **/
+static RealP calcDistance(const Vec3P& p1, const Vec3P& p2)
+{   return std::sqrt(findDistanceSqr(p1,p2)); }
+/** Find the square of the distance between two points (cheap). Cost is 
+8 flops. **/
+static RealP findDistanceSqr(const Vec3P& p1, const Vec3P& p2)
+{   return (p2-p1).normSqr(); }
+/** Find the point midway between two points. Cost is 4 flops. **/
+static Vec3P findMidpoint(const Vec3P& p1, const Vec3P& p2)
+{   return (p1+p2)/2; }
 /**@}**/
 
 private:
@@ -163,34 +186,122 @@ Sphere_& setRadius(RealP radius)
 Sphere_& setLocation(const Vec3P& location) 
 {   Vec3P::updAs(&cr[0])=location; return *this; }
 
+/** Modify this sphere to scale its radius by a fractional amount f,
+that is we set radius to f*radius.
+@return A reference to this now-resized sphere. **/
+Sphere_& scaleBy(RealP f)
+{   setRadius(f*getRadius()); return *this; }
+
+/** Stretch this sphere by a small amount to ensure that there will be no 
+roundoff problems if this is used as a bounding sphere. The amount to stretch
+depends on the default tolerance for this precision, the radius, and the
+position of the sphere in space. A very large sphere, or a sphere that is very
+far from the origin, must be stretched more than a small one at the origin. 
+@see Geo class for tolerance information. **/
+Sphere_& stretchBoundary() {
+    const RealP tol = Geo::getDefaultTol<P>();
+    const RealP maxdim = max(getCenter().abs());
+    const RealP scale = std::max(maxdim, getRadius());
+    updRadius() += std::max(scale*Geo::getEps<P>(), tol);
+    return *this; 
+}
+
+
 const Vec3P& getCenter() const {return Vec3P::getAs(&cr[0]);}
+Vec3P& updCenter() {return Vec3P::updAs(&cr[0]);}
 RealP getRadius() const {return cr[3];}
+RealP& updRadius() {return cr[3];}
 
 /**@name                 Sphere-related utilities
-These static methods work with spheres or collections of spheres. **/
+These static methods work with spheres or collections of spheres. 
+  - Minimum sphere methods calculate the smallest sphere around a given set of
+    points such that no point is outside the sphere, although some may be on 
+    its surface. How many and specifically which points were actually used to 
+    define the sphere is returned; there will never be more than 4. Roundoff
+    errors are expected so defining points may not be exactly on the surface
+    and some points may be slightly outside.
+  - Bounding sphere methods make use of the minimum sphere calculations but
+    address roundoff by stretching the sphere enough to guarantee that all
+    points are strictly inside the sphere. That avoids trouble later when these
+    are used to look for possible intersections -- you could miss one using
+    a minimum sphere but you won't if you use a bounding sphere.
+    
+**/
 /**@{**/
+
 /** Create a tiny bounding sphere around a single point. The center is the
 point and the radius is tiny but non-zero. **/
 static Sphere_ calcBoundingSphere(const Vec3P& p)
-{   return Sphere_(p, Geo::getDefaultTol<P>()); }
+{   return Sphere_(p, 0).stretchBoundary(); }
+
 /** Create a minimal bounding sphere around two points. The center is the 
 midpoint, and the radius is half the distance between the points, plus a small 
-amount to avoid roundoff problems later. Cost is about 45 flops. **/
+amount to avoid roundoff problems later. Cost is about 35 flops. **/
 static Sphere_ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1)
-{   const RealP r = (p1-p0).norm()/2, tol = Geo::getDefaultTol<P>();
-    return Sphere_((p0+p1)/2, (1+tol)*r); }
+{   const RealP r = Point_<P>::calcDistance(p0,p1)/2;
+    return Sphere_(Point_<P>::findMidpoint(p0,p1), r).stretchBoundary(); }
+
 /** Create a minimal bounding sphere around three points. **/
 SimTK_SIMMATH_EXPORT static Sphere_ calcBoundingSphere
-   (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2);
+   (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2) {
+    Array_<int> which;
+    Sphere_ minSphere = calcMinimumSphere(p0,p1,p2,which);
+    return minSphere.stretchBoundary();
+}
+
 /** Create a minimal bounding sphere around four points. **/
 SimTK_SIMMATH_EXPORT static Sphere_ calcBoundingSphere
-   (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, const Vec3P& p3);
+   (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, const Vec3P& p3) {
+    Array_<int> which;
+    Sphere_ minSphere = calcMinimumSphere(p0,p1,p2,p3,which);
+    return minSphere.stretchBoundary();
+}
+
 /** Create a minimal bounding sphere around a collection of n points. 
-This is expensive but creates a perfect bounding sphere. **/
-static Sphere_ calcMinimalBoundingSphere(const Vec3P p[], int n)
-{SimTK_ASSERT_ALWAYS(!"implemented", 
-"Geo::Sphere_::calcMinimalBoundingSphere(): Not implemented yet.");
-return Sphere_();}
+This has expected O(n) performance and yields a perfect bounding sphere. **/
+static Sphere_ calcBoundingSphere(const Array_<Vec3P>& points) {
+    Array_<int> which; 
+    Sphere_ minSphere = calcMinimumSphere(points, which);
+    return minSphere.stretchBoundary();
+}
+
+/** Create a minimum sphere around a single point. The center is the
+point and the radius is zero. There is always 1 support point. **/
+static Sphere_ calcMinimumSphere(const Vec3P& p0, Array_<int>& which) 
+{   which.clear(); which.push_back(0); return Sphere_(p0,0); }
+
+/** Create a minimum sphere around two points. The center is the 
+midpoint, and the radius is half the distance between the points. There will
+be two support points for the circle unless the given points are within
+twice machine epsilon of each other. In that case, we treat these as a single 
+point and report that only 1 point was used to define the sphere.
+Cost is about 35 flops. **/
+static Sphere_ calcMinimumSphere(const Vec3P& p0, const Vec3P& p1,
+                                 Array_<int>& which) {   
+    const RealP r = Point_<P>::calcDistance(p0,p1)/2;
+    which.clear(); which.push_back(0); // always use p0
+    if (r > getEps<P>()) which.push_back(1); // use p1 also
+    return Sphere_(Point_<P>::findMidpoint(p0,p1), r); 
+}
+
+/** Create a minimum sphere around three points. There can be 1, 2, or 3
+support points returned. **/
+SimTK_SIMMATH_EXPORT static Sphere_ 
+calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
+                  Array_<int>& which);
+
+/** Create a minimum sphere around four points. There can be 1, 2, 3, or 4
+support points returned.  **/
+SimTK_SIMMATH_EXPORT static Sphere_ 
+calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
+                  const Vec3P& p3, Array_<int>& which);
+
+/** Create an optimal minimum sphere around a collection of n points. This has 
+expected O(n) performance and yields a perfect minimum sphere. There can be
+1, 2, 3, or 4 support points used to define the sphere and \a which reports
+which of the input points were used. **/
+SimTK_SIMMATH_EXPORT static Sphere_ 
+calcMinimumSphere(const Array_<Vec3P>& points, Array_<int>& which);
 
 /**@}**/
 
