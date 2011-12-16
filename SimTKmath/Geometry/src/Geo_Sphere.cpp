@@ -104,7 +104,7 @@ http://realtimecollisiondetection.net/blog/?p=20
 Accessed 12/12/2011 and reimplemented by Sherm. The main change is handling of
 singular triangles.
 
-Cost is about 90 flops for a typical case.
+Cost is about 110 flops for a typical case.
 
 Implementation
 --------------
@@ -229,11 +229,18 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
     const RealP s = ds*oodm, t = dt*oodm; //   2 flops
     const Vec3P aToCenter = s*ab + t*ac;  //   9 flops
     const Vec3P ctr = a + aToCenter;      //   3 flops
-    const RealP rad = aToCenter.norm();   // ~25 flops
+
+    // This cleans up ugly roundoff errors that cause the center not to be
+    // exactly equidistant from the points. This makes sure that the radius
+    // touches the outermost point with the rest inside.
+    const RealP rmax2 = std::max((a-ctr).normSqr(),  // 27 flops
+                        std::max((b-ctr).normSqr(),
+                                 (c-ctr).normSqr()));
+    const RealP rad = std::sqrt(rmax2);              // 20 flops
 
     // We're using all the points!
     which.clear(); which.push_back(0); which.push_back(1); which.push_back(2);
-    return Sphere_<P>(ctr, rad);    // 3 flops
+    return Sphere_<P>(ctr, rad);
 }
 
 
@@ -245,7 +252,7 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
 suggestion on his blog page -- see the 3 point routine above. The derivation
 here was done by Sherm since Ericson didn't work out the 4-point case.
 
-Cost is about 160 flops in a typical case.
+Cost is about 185 flops in a typical case.
 
 Implementation
 --------------
@@ -414,12 +421,21 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
     const RealP s = ds*oodm, t = dt*oodm, u = du*oodm; //   3 flops
     const Vec3P aToCenter = s*ab + t*ac + u*ad;        //  12 flops
     const Vec3P ctr = a + aToCenter;                   //   3 flops
-    const RealP rad = aToCenter.norm();                // ~25 flops
+
+    // This cleans up ugly roundoff errors that cause the center not to be
+    // exactly equidistant from the points. This makes sure that the radius
+    // touches the outermost point with the rest inside.
+    const RealP rmax2 = std::max((a-ctr).normSqr(),  // 32 flops
+                        std::max((b-ctr).normSqr(),
+                        std::max((c-ctr).normSqr()),
+                        std::max((d-ctr).normSqr())));
+    const RealP rad = std::sqrt(rmax2);              // 20 flops
 
     // We're using all the points!
-    which.clear(); which.push_back(0); which.push_back(1); 
+    which.clear(); 
+    which.push_back(0); which.push_back(1);  
     which.push_back(2); which.push_back(3);
-    return Sphere_<P>(ctr, rad);    // 3 flops
+    return Sphere_<P>(ctr, rad);
 }
 
 
