@@ -205,8 +205,12 @@ Sphere_& stretchBoundary() {
     updRadius() += std::max(scale*Geo::getEps<P>(), tol);
     return *this; 
 }
-
-
+/** Return true if a given point is strictly outside this sphere. Just touching
+the sphere does not qualify. **/
+bool isPointOutside(const Vec3P& p) const {
+    const RealP r2 = Geo::Point_<P>::findDistanceSqr(p, getCenter());
+    return r2 > square(getRadius());
+}
 const Vec3P& getCenter() const {return Vec3P::getAs(&cr[0]);}
 Vec3P& updCenter() {return Vec3P::updAs(&cr[0]);}
 RealP getRadius() const {return cr[3];}
@@ -274,15 +278,11 @@ static Sphere_ calcMinimumSphere(const Vec3P& p0, Array_<int>& which)
 midpoint, and the radius is half the distance between the points. There will
 be two support points for the circle unless the given points are within
 twice machine epsilon of each other. In that case, we treat these as a single 
-point and report that only 1 point was used to define the sphere.
-Cost is about 35 flops. **/
+point and report that only 1 point was used to define the sphere. Points
+far from the origin will produce a larger sphere because of roundoff.
+Cost is about 40 flops. **/
 static Sphere_ calcMinimumSphere(const Vec3P& p0, const Vec3P& p1,
-                                 Array_<int>& which) {   
-    const RealP r = Point_<P>::calcDistance(p0,p1)/2;
-    which.clear(); which.push_back(0); // always use p0
-    if (r > getEps<P>()) which.push_back(1); // use p1 also
-    return Sphere_(Point_<P>::findMidpoint(p0,p1), r); 
-}
+                                 Array_<int>& which);
 
 /** Create a minimum sphere around three points. There can be 1, 2, or 3
 support points returned. **/

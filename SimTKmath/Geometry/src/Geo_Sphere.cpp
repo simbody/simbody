@@ -42,6 +42,53 @@ namespace SimTK {
 //                            GEO :: SPHERE
 //==============================================================================
 
+//==============================================================================
+//                       CALC MINIMUM SPHERE - 2 POINTS
+//==============================================================================
+/* I bet you think this is easy! Unfortunately if the points in question are
+far from the origin (at 100, say) but close together, we can't compute the 
+separation very accurately (around 100*eps for this example). So the resulting
+sphere can be too big (annoying but OK) or too small (very bad). Also, if the
+line length is <= tol, we want to consider these a single point rather than
+two supporting points for the sphere; in that case we pick one of the points
+and center the sphere around that with radius tol. */
+template <class P> /*static*/
+Geo::Sphere_<P> Geo::Sphere_<P>::
+calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which) {
+    const RealP tol = Geo::getDefaultTol<P>();
+
+    // Choose the tentative center, subject to scaled roundoff.
+    const Vec3P ctr = (p0 + p1)/2; // 4 flops
+
+    // Rather than using (p0-p1)/2 as the radius which can result in a sphere
+    // that doesn't include the points by a large margin (I tried it), measure 
+    // the actual distances from the center to each point and use the larger 
+    // as the radius. If that radius is <= tol/2 (meaning line length <= tol) 
+    // then we'll just move the center to the closer point, set the radius to 
+    // tol and return with 1 support point (i.e., we consider this a point not 
+    // a line).
+    const RealP p0d2 = (p0-ctr).normSqr();  // squared dist from center
+    const RealP p1d2 = (p1-ctr).normSqr();  // (8 flops each)
+
+    RealP rad;
+    which.clear();
+    if (p0d2 >= p1d2) {
+        rad = std::sqrt(p0d2);          // 20 flops
+        if (rad <= tol/2) {             //  2 flops
+            which.push_back(1);
+            return Sphere_(p1, tol); 
+        }
+    } else { // p1d2 > p0d2
+        rad = std::sqrt(p1d2);          // same cost here
+        if (rad <= tol/2) {
+            which.push_back(0);
+            return Sphere_(p0, tol); 
+        }
+    }
+    // use both points
+    which.push_back(0); which.push_back(1);
+    return Sphere_(ctr, rad); 
+}
 
 //==============================================================================
 //                       CALC BOUNDING SPHERE - 3 POINTS
@@ -380,28 +427,68 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
 //==============================================================================
 //                       CALC BOUNDING SPHERE - N POINTS
 //==============================================================================
+// This is called recursively to calculate the bounding sphere for the mesh.  
+// It uses an algorithm developed by Emo Welzl, and is based on a description 
+// by Nicolas Capens at 
+// http://www.flipcode.com/archives/Smallest_Enclosing_Spheres.shtml.
+// As described there, the algorithm is highly susceptible to numerical 
+// instabilities. Bernd Gartner describes an improved version in "Fast and 
+// robust smallest enclosing balls", Proc. 7th Annual ACM European Symposium on 
+// Algorithms, v. 1643 Lecture Notes in Computer Science, pp. 325-338, 1999.
+
+template <class P> static
+Geo::Sphere_<P>
+findWelzlSphere(Array_<const Vec<3,P>*>& p, int b, Array_<int>& which) {
+    // The first b points are the support set.
+    
+    Geo::Sphere_<P> minSphere;
+    switch(b) {
+    // Create a bounding sphere for 0, 1, 2, 3, or 4 points.
+    case 0: 
+        which.clear();
+        minSphere = Geo::Sphere_<P>(Vec<3,P>(0),0);
+        break;
+    case 1:
+        minSphere = Geo::Sphere_<P>::calcMinimumSphere(*p[0],which);
+        break;
+    case 2:
+        minSphere = Geo::Sphere_<P>::calcMinimumSphere(*p[0],*p[1],which);
+        break;
+    case 3:
+        minSphere = Geo::Sphere_<P>::calcMinimumSphere(*p[0],*p[1],*p[2],which);
+        break;
+    case 4:
+        // Never need more than 4 points.
+        return Geo::Sphere_<P>::calcMinimumSphere(*p[0],*p[1],*p[2],*p[3],which);
+    }
+
+    // We're here because we used fewer than 4 support points (???).
+    // Now add in all the other points
+    
+    for (unsigned i = b; i < p.size(); ++i) {
+        if (minSphere.isPointOutside(*p[i])) {
+            // This point is outside the current bounding sphere.  
+            // Move it to the start of the list.
+            for (int j = i; j > 0; --j)
+                std::swap(p[j], p[j-1]);
+            
+            // Update the bounding sphere, taking the new point into account.
+            ArrayView_<const Vec<3,P>*> toBound(p.begin(), &p[i]+1);
+            minSphere = findWelzlSphere<P>(toBound, b+1, which);
+        }
+    }
+
+    return minSphere;
+}
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Sphere_<P>::
 calcMinimumSphere(const Array_<Vec3P>& points, Array_<int>& which) {
-    switch(points.size()) {
-    case 0: 
-        which.clear();
-        return Sphere_(Vec3P(0),0);
-    case 1:
-        return calcMinimumSphere(points[0],which);
-    case 2:
-        return calcMinimumSphere(points[0],points[1],which);
-    case 3:
-        return calcMinimumSphere(points[0],points[1],points[2],which);
-    case 4:
-        return calcMinimumSphere(points[0],points[1],points[2],points[3],which);
-    default: 
-        SimTK_ASSERT_ALWAYS(!"implemented",
-            "Sphere_<P>::calcMinimumSphere(): only up to 4 so far.");
-    }
-    return Sphere_();
-}
+    Array_<const Vec3P*> p(points.size());
+    for (unsigned i=0; i<points.size(); ++i) p[i] = &points[i];
 
+    Sphere_<P> sph = findWelzlSphere<P>(p, 0, which);
+    return sph;
+}
 
 
 // Explicit instantiations for float and double.
