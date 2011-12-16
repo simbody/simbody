@@ -427,8 +427,8 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
     // touches the outermost point with the rest inside.
     const RealP rmax2 = std::max((a-ctr).normSqr(),  // 32 flops
                         std::max((b-ctr).normSqr(),
-                        std::max((c-ctr).normSqr()),
-                        std::max((d-ctr).normSqr())));
+                        std::max((c-ctr).normSqr(),
+                                 (d-ctr).normSqr())));
     const RealP rad = std::sqrt(rmax2);              // 20 flops
 
     // We're using all the points!
@@ -451,59 +451,137 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
 // instabilities. Bernd Gartner describes an improved version in "Fast and 
 // robust smallest enclosing balls", Proc. 7th Annual ACM European Symposium on 
 // Algorithms, v. 1643 Lecture Notes in Computer Science, pp. 325-338, 1999.
+// The implementation here follows Capens but the primitives have been 
+// reworked so that they deal nicely with singularities and roundoff.
 
 template <class P> static
 Geo::Sphere_<P>
-findWelzlSphere(Array_<const Vec<3,P>*>& p, int b, Array_<int>& which) {
+findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
+                int bIn, Array_<int>& which) {
     // The first b points are the support set.
     
     Geo::Sphere_<P> minSphere;
-    switch(b) {
-    // Create a bounding sphere for 0, 1, 2, 3, or 4 points.
+    int bActual;
+    switch(bIn) {
+    // Create a bounding sphere for 0, 1, 2, 3, or 4 points. Note which
+    // points were actually used, and set bActual. If we manage to use the
+    // maximum of 4 support points, we return; otherwise, we'll fall through
+    // and hunt for another support point.
     case 0: 
         which.clear();
         minSphere = Geo::Sphere_<P>(Vec<3,P>(0),0);
+        bActual = 0;
         break;
     case 1:
-        minSphere = Geo::Sphere_<P>::calcMinimumSphere(*p[0],which);
+        minSphere = Geo::Sphere_<P>::calcMinimumSphere(*p[ix[0]],which);
+        for (unsigned i=0; i<which.size(); ++i) which[i]=ix[which[i]];
+        bActual = (int)which.size();
         break;
     case 2:
-        minSphere = Geo::Sphere_<P>::calcMinimumSphere(*p[0],*p[1],which);
+        minSphere = Geo::Sphere_<P>::calcMinimumSphere
+                            (*p[ix[0]],*p[ix[1]],which);
+        for (unsigned i=0; i<which.size(); ++i) which[i]=ix[which[i]];
+        bActual = (int)which.size();
         break;
     case 3:
-        minSphere = Geo::Sphere_<P>::calcMinimumSphere(*p[0],*p[1],*p[2],which);
+        minSphere = Geo::Sphere_<P>::calcMinimumSphere
+                            (*p[ix[0]],*p[ix[1]],*p[ix[2]],which);
+        for (unsigned i=0; i<which.size(); ++i) which[i]=ix[which[i]];
+        bActual = (int)which.size();
         break;
     case 4:
         // Never need more than 4 points.
-        return Geo::Sphere_<P>::calcMinimumSphere(*p[0],*p[1],*p[2],*p[3],which);
+        minSphere = Geo::Sphere_<P>::calcMinimumSphere
+                            (*p[ix[0]],*p[ix[1]],*p[ix[2]],*p[ix[3]],which);
+        for (unsigned i=0; i<which.size(); ++i) which[i]=ix[which[i]];
+        bActual = (int)which.size();
+        if (bActual==4) return minSphere;
     }
 
-    // We're here because we used fewer than 4 support points (???).
-    // Now add in all the other points
+    // We're here because we used fewer than 4 support points.
+    // Now add in all the other points.
     
-    for (unsigned i = b; i < p.size(); ++i) {
-        if (minSphere.isPointOutside(*p[i])) {
+    for (unsigned i = bActual; i < ix.size(); ++i) {
+        if (minSphere.isPointOutside(*p[ix[i]])) {
             // This point is outside the current bounding sphere.  
-            // Move it to the start of the list.
+            // Move it to the start of the list. (Without reordering; I *think*
+            // that is necessary to avoid messing up other recursions, but I'm
+            // not sure -- Sherm 111216.)
             for (int j = i; j > 0; --j)
-                std::swap(p[j], p[j-1]);
+                std::swap(ix[j], ix[j-1]);
             
             // Update the bounding sphere, taking the new point into account.
-            ArrayView_<const Vec<3,P>*> toBound(p.begin(), &p[i]+1);
-            minSphere = findWelzlSphere<P>(toBound, b+1, which);
+            ArrayView_<int> toBoundIx(ix.begin(), &ix[i]+1);
+            minSphere = findWelzlSphere<P>(p, toBoundIx, bActual+1, which);
         }
     }
 
     return minSphere;
 }
+
+// This signature takes an array of points, creates an array of pointers to 
+// those points and calls the other signature.
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Sphere_<P>::
 calcMinimumSphere(const Array_<Vec3P>& points, Array_<int>& which) {
     Array_<const Vec3P*> p(points.size());
-    for (unsigned i=0; i<points.size(); ++i) p[i] = &points[i];
+    for (unsigned i=0; i<points.size(); ++i)
+        p[i] = &points[i];
+    return calcMinimumSphere(p, which);
+}
 
-    Sphere_<P> sph = findWelzlSphere<P>(p, 0, which);
-    return sph;
+template <class P> /*static*/
+Geo::Sphere_<P> Geo::Sphere_<P>::
+calcMinimumSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
+    const unsigned npoints = points.size();
+
+    // Allocate and initialize an array of point indices. These will get 
+    // moved around during the computation.
+    Array_<int> ix(npoints); for (unsigned i=0; i<npoints; ++i) ix[i] = i; 
+
+    if (npoints < 10) {
+        // Not worth rearranging.
+        return findWelzlSphere<P>(points, ix, 0, which);
+    }
+
+    // There are enough points that we'll try to improve the ordering so that
+    // the bounding sphere gets large quickly. This optimization helps *a lot* 
+    // for large numbers of points.
+
+    // Find the six points that have the most extreme
+    // x,y, and z coordinates (not necessarily six unique points) and move
+    // them to the front so they get processed first.
+    Vec3P lo=*points[0], hi=*points[0]; // initialize extremes
+    int   ilo[3], ihi[3]; for (int i=0; i<3; ++i) ilo[i]=ihi[i]=0;
+    for (unsigned i=0; i<points.size(); ++i) {
+        const Vec3P& p = *points[i];
+        if (p[0] > hi[0]) hi[0]=p[0], ihi[0]=i;
+        if (p[0] < lo[0]) lo[0]=p[0], ilo[0]=i;
+        if (p[1] > hi[1]) hi[1]=p[1], ihi[1]=i;
+        if (p[1] < lo[1]) lo[1]=p[1], ilo[1]=i;
+        if (p[2] > hi[2]) hi[2]=p[2], ihi[2]=i;
+        if (p[2] < lo[2]) lo[2]=p[2], ilo[2]=i;
+    }
+    // Find the nx <= 6 unique extreme points.
+    std::set<int> pending;
+    pending.insert(ilo, ilo+3); pending.insert(ihi, ihi+3);
+    const int nx = pending.size();
+    // Go through the first n points. If the point is already an extreme,
+    // remove it from the pending list. If not, swap it with one of the
+    // extreme points.
+    for (int i=0; i < nx; ++i) {
+        std::set<int>::iterator p = pending.find(ix[i]);
+        if (p != pending.end()) {
+            pending.erase(p);
+            continue;
+        }
+        p = pending.begin(); // first unmoved extreme
+        const int extremeIx = *p;
+        pending.erase(p);
+        std::swap(ix[i], ix[extremeIx]);
+    }
+
+    return findWelzlSphere<P>(points, ix, 0, which);
 }
 
 

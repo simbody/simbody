@@ -303,6 +303,10 @@ which of the input points were used. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
 calcMinimumSphere(const Array_<Vec3P>& points, Array_<int>& which);
 
+/** Alternate signature works with an array of pointers to points. **/
+SimTK_SIMMATH_EXPORT static Sphere_ 
+calcMinimumSphere(const Array_<const Vec3P*>& points, Array_<int>& which);
+
 /**@}**/
 
 private:
