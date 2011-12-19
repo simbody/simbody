@@ -42,6 +42,56 @@ namespace SimTK {
 //                            GEO :: SPHERE
 //==============================================================================
 
+// These local helpers find the minimum or maximum of several values and 
+// return which one was the extreme value.
+template <class P>
+inline static void minOf(P a, P b, P& minVal, int& which) {
+    minVal=a; which=0;
+    if (b<minVal) minVal=b, which=1;
+}
+
+template <class P>
+inline static void minOf(P a, P b, P c, P& minVal, int& which) {
+    minVal=a; which=0;
+    if (b<minVal) minVal=b, which=1;
+    if (c<minVal) minVal=c, which=2;
+}
+
+template <class P>
+inline static void minOf(P a, P b, P c, P d, P& minVal, int& which) {
+    minVal=a; which=0;
+    if (b<minVal) minVal=b, which=1;
+    if (c<minVal) minVal=c, which=2;
+    if (d<minVal) minVal=d, which=3;
+}
+template <class P>
+inline static void maxOf(P a, P b, P& maxVal, int& which) {
+    maxVal=a; which=0;
+    if (b>maxVal) maxVal=b, which=1;
+}
+
+template <class P>
+inline static void maxOf(P a, P b, P c, P& maxVal, int& which) {
+    maxVal=a; which=0;
+    if (b>maxVal) maxVal=b, which=1;
+    if (c>maxVal) maxVal=c, which=2;
+}
+
+template <class P>
+inline static void maxOf(P a, P b, P c, P d, P& maxVal, int& which) {
+    maxVal=a; which=0;
+    if (b>maxVal) maxVal=b, which=1;
+    if (c>maxVal) maxVal=c, which=2;
+    if (d>maxVal) maxVal=d, which=3;
+}
+
+// This helper replaces the 0-based indices in "which" with corresponding
+// indices in "map". We assume map is long enough.
+inline static void fixWhich(const int* map, Array_<int>& which) {
+    for (unsigned i=0; i<which.size(); ++i)
+        which[i] = map[which[i]];
+}
+
 //==============================================================================
 //                       CALC MINIMUM SPHERE - 2 POINTS
 //==============================================================================
@@ -58,7 +108,7 @@ calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which) {
     const RealP tol = Geo::getDefaultTol<P>();
 
     // Choose the tentative center, subject to scaled roundoff.
-    const Vec3P ctr = (p0 + p1)/2; // 4 flops
+    const Vec3P ctr = (p0 + p1)/2; // 6 flops
 
     // Rather than using (p0-p1)/2 as the radius which can result in a sphere
     // that doesn't include the points by a large margin (I tried it), measure 
@@ -94,15 +144,17 @@ calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which) {
 //                       CALC BOUNDING SPHERE - 3 POINTS
 //==============================================================================
 /* (Note that the 3- and 4-point methods from Nicolas Capens compute only the
-sphere that passes through all points, which can be *way* too big.)
+sphere that passes through all points (the circumsphere), which can be *way* 
+too big.)
 
 This method produces the minimum bounding sphere around three points (i.e.,
-a triangle) for all cases except some very, very small triangles. It is 
+a triangle) for all cases except some very, very small triangles where it will
+give a small, but perhaps not minimal, bounding sphere. It is 
 modified from Christer Ericson's blog: "Minimum bounding circle (sphere) for 
 a triangle (tetrahedron)" July 27, 2007. 
 http://realtimecollisiondetection.net/blog/?p=20
 Accessed 12/12/2011 and reimplemented by Sherm. The main change is handling of
-singular triangles.
+singular triangles and roundoff problems.
 
 Cost is about 110 flops for a typical case.
 
@@ -146,20 +198,26 @@ Geo::Sphere_<P> Geo::Sphere_<P>::
 calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
                   Array_<int>& which) {
     const RealP tol = Geo::getDefaultTol<P>();
-    const Vec3P* pts[3] = {&a,&b,&c}; // to support indexing
-    int map[3]; // to support rearranging
 
     const Vec3P ab = b - a, ac = c - a;                     //  6 flops
     const RealP ab2 = ab.normSqr(), ac2 = ac.normSqr();     // 10 flops
-    const RealP abac = dot(ab, ac); // == |ab||ac|cos theta   ( 5 flops)
-    const RealP ab2ac2 = ab2*ac2; // 1 flop
+    const RealP abac = dot(ab, ac); // == |ab||ac|cos theta     5 flops
+    const RealP ab2ac2 = ab2*ac2;                           //  1 flop
 
     // The expression below is equivalent to 
     //      dm = 2 * (|ab||ac|)^2 * (1-cos^2 theta)
     // where theta is the angle between side ab and ac. That quantity can't
     // be negative except for roundoff error. Note that the area of this 
     // triangle is area = 1/2 sqrt(ab2*ac2-square(abac)) so dm = 8*area^2
-    const RealP dm = 2*(ab2ac2 - square(abac));              // 3 flops
+    const RealP dm = 2*(ab2ac2 - square(abac));             //  3 flops
+
+    // We'll use one of three ways to find the center point and determine
+    // the set of supporting vertices (in which):
+    //  1) singular (2 or 1 support vertices)
+    //  2) non-singular with 2 support vertices
+    //  3) non-singular using circumsphere (3 support vertices)
+
+    Vec3P ctr;
 
     // Consider the triangle singular if its area is less than tol.
     if (dm <= 8*square(tol)) {                               // 3 flops
@@ -167,79 +225,82 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
         const Vec3P bc = c - b;
         const RealP bc2 = bc.normSqr();
         // Find the longest edge.
-        RealP maxLen2=ab2; int maxEdge=0;
-        if (ac2 > maxLen2) maxLen2=ac2, maxEdge=1;
-        if (bc2 > maxLen2) maxLen2=bc2, maxEdge=2;
-        // Fill map[0..1] with longest edge; map[2] is the dropped vertex.
+        RealP maxLen2; int maxEdge;
+        maxOf(ab2,ac2,bc2,maxLen2,maxEdge);
+        // Now create a sphere around that edge using 2 or 1 support points,
+        // but we're only going to keep the center.
+        Sphere_<P> edgeSphere; int map[2];
         switch(maxEdge) {
-        case 0: map[0]=0; map[1]=1; map[2]=2; break; // use (a,b) drop c
-        case 1: map[0]=0; map[1]=2; map[2]=1; break; // use (a,c) drop b
-        case 2: map[0]=1; map[1]=2; map[2]=0; break; // use (b,c) drop a
+        case 0: map[0]=0; map[1]=1; // (a,b) drop c
+            edgeSphere=calcMinimumSphere(a,b,which); break;
+        case 1: map[0]=0; map[1]=2; // (a,c) drop b
+            edgeSphere=calcMinimumSphere(a,c,which); break;
+        case 2: map[0]=1; map[1]=2; // (b,c) drop a
+            edgeSphere=calcMinimumSphere(b,c,which); break;
         };
-        const Vec3P& p0=*pts[map[0]]; const Vec3P& p1=*pts[map[1]];
-        const Vec3P& p2=*pts[map[2]]; // this is the dropped one
-        Sphere_<P> edgeSphere=calcMinimumSphere(p0,p1,which);
-        for (unsigned i=0; i<which.size(); ++i)
-            which[i] = map[which[i]]; // fix indices
-        const Vec3P& ctr = edgeSphere.getCenter();
-        RealP        rad = edgeSphere.getRadius();
-        // If the point we dropped isn't inside, it can't be far from one
-        // of the vertices we used. We'll just replace that vertex.
-        const RealP  r2  = (p2-ctr).normSqr();
-        if (which.size()==2 && r2 > square(rad)) {
-            rad=std::sqrt(r2); // grow sphere & replace nearer support point
-            const RealP d02 = Point_<P>::findDistanceSqr(*pts[which[0]], p2);
-            const RealP d12 = Point_<P>::findDistanceSqr(*pts[which[1]], p2);
-            if (d02 <= d12) which[0]=map[2]; // which[0] was closer
-            else which[1]=map[2];            // which[1] was closer
+        fixWhich(map, which); // fix the indices
+        ctr = edgeSphere.getCenter();
+    } else {
+        // Triangle is non-singular. It is still possible that we won't need
+        // all 3 points to be on the sphere surface. If one or more of the
+        // barycentric coordinates is negative, it means that the circumsphere
+        // center is outside the triangle. Pick the most negative, then drop
+        // the opposite vertex. The circumsphere around the remaining edge will 
+        // include the dropped one for free. 
+
+        // s controls P's height over ac, t over ab, u=1-s-t over bc.
+        const RealP ds = ab2ac2 - ac2*abac;                 // 2 flops
+        const RealP dt = ab2ac2 - ab2*abac;                 // 2 flops
+        const RealP du = dm-ds-dt;                          // 2 flops
+        const RealP oodm = 1/dm; // (> 0)                    ~10 flops
+        const RealP s = ds*oodm, t = dt*oodm, u = du*oodm; //  3 flops
+
+        RealP minBary; int minBaryIx;
+        minOf(s,t,u,minBary,minBaryIx); // 2 flops
+
+        if (minBary <= 0) { // 1 flop
+            Sphere_<P> edgeSphere; int map[2];
+            switch(minBaryIx) {
+            case 0: // s is the most negative
+                map[0]=0; map[1]=2; // sphere around ac includes b
+                edgeSphere=calcMinimumSphere(a,c,which); 
+                assert(!edgeSphere.isPointOutside(b));
+                break;
+            case 1: // t is the most negative
+                map[0]=0; map[1]=1; // sphere around ab includes c
+                edgeSphere=calcMinimumSphere(a,b,which); 
+                assert(!edgeSphere.isPointOutside(c));
+                break;
+            case 2: // u=1-s-t is the most negative
+                map[0]=1; map[1]=2; // sphere around bc includes a
+                edgeSphere=calcMinimumSphere(b,c,which); 
+                assert(!edgeSphere.isPointOutside(a));
+                break;
+            };
+            fixWhich(map, which);
+            ctr = edgeSphere.getCenter();
+        } else { // s,t,u > 0
+            // All barycentric coordinates are positive. The circumsphere's 
+            // center will be inside the triangle and thus of minimal size.
+            which.clear(); 
+            which.push_back(0); which.push_back(1); which.push_back(2);
+            const Vec3P aToCenter = s*ab + t*ac;    //   9 flops
+            ctr = a + aToCenter;                    //   3 flops
         }
-        // We used 2 or fewer support vertices.
-        return Sphere_<P>(ctr, rad);
-    } 
-
-    // Triangle is non-singular. It is still very likely that we won't need
-    // all three points to be on the sphere surface.
-
-    // s controls P's height over ac, t over ab, 1-s-t over bc.
-    const RealP ds = ab2ac2 - ac2*abac;     // 2 flops
-    if (ds <= 0) {      // implies s<=0       (1 flop)
-        map[0]=0; map[1]=2; // sphere around ac includes b
-        const Sphere_<P> sph=calcMinimumSphere(a,c,which); 
-        for (unsigned i=0; i<which.size(); ++i) which[i]=map[which[i]];
-        return sph;
     }
 
-    const RealP dt = ab2ac2 - ab2*abac;     // 2 flops
-    if (dt <= 0) {      // implies t<=0       (1 flop)
-        map[0]=0; map[1]=1; // sphere around ab includes c
-        const Sphere_<P> sph=calcMinimumSphere(a,b,which); 
-        for (unsigned i=0; i<which.size(); ++i) which[i]=map[which[i]];
-        return sph;
-    }
-
-    if (ds+dt >= dm) {  // implies u=1-s-t<=0 (2 flops)
-        map[0]=1; map[1]=2; // sphere around bc includes a
-        const Sphere_<P> sph=calcMinimumSphere(b,c,which); 
-        for (unsigned i=0; i<which.size(); ++i) which[i]=map[which[i]];
-        return sph;
-    }
-
-    // Must calculate circumsphere and use all the points.
-    const RealP oodm = 1/dm; // (> 0)        ~10 flops
-    const RealP s = ds*oodm, t = dt*oodm; //   2 flops
-    const Vec3P aToCenter = s*ab + t*ac;  //   9 flops
-    const Vec3P ctr = a + aToCenter;      //   3 flops
+    // All methods lead here. At this point we have the support points
+    // and center point chosen but still need to pick the radius.
 
     // This cleans up ugly roundoff errors that cause the center not to be
     // exactly equidistant from the points. This makes sure that the radius
-    // touches the outermost point with the rest inside.
-    const RealP rmax2 = std::max((a-ctr).normSqr(),  // 27 flops
-                        std::max((b-ctr).normSqr(),
-                                 (c-ctr).normSqr()));
+    // touches the outermost point with the rest inside. This is 
+    // expensive but worth it to ensure a trouble-free sphere.
+    RealP rmax2; int rmaxIx;
+    maxOf((a-ctr).normSqr(),(b-ctr).normSqr(),(c-ctr).normSqr(),
+            rmax2, rmaxIx);                          // 27 flops
     const RealP rad = std::sqrt(rmax2);              // 20 flops
 
-    // We're using all the points!
-    which.clear(); which.push_back(0); which.push_back(1); which.push_back(2);
     return Sphere_<P>(ctr, rad);
 }
 
@@ -298,8 +359,6 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
                   const Vec3P& c, const Vec3P& d,
                   Array_<int>& which) {
     const RealP tol = Geo::getDefaultTol<P>();
-    const Vec3P* pts[4] = {&a,&b,&c,&d}; // to support indexing
-    int map[4]; // to support rearranging
 
     const Vec3P ab = b-a, ac = c-a, ad = d-a;               //  9 flops
     const RealP abac = dot(ab, ac); // == |ab||ac|cos theta   ( 5 flops)
@@ -317,124 +376,129 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
                          - ac2*abad2
                          + 2*abac*abad*acad); // 72 v^2
 
+    // We'll use one of three ways to find the center point and determine
+    // the set of supporting vertices (in which):
+    //  1) singular (3, 2, or 1 support vertices)
+    //  2) non-singular with 3 support vertices
+    //  3) non-singular using circumsphere (4 support vertices)
+
+    Vec3P ctr;
+
     // Consider the tetrahedron singular if its volume is less than tol.
     if (dm <= 72*square(tol)) {                             // 3 flops
         // Tetrahedron is near singular or very small.
         const Vec3P bc = c-b, cd = d-c;
         const RealP bccd = dot(bc, cd), bccd2 = square(bccd);
         const RealP bc2=bc.normSqr(), cd2=cd.normSqr(), bc2cd2=bc2*cd2;
-        // The expressions below are equivalent to, for example 
-        //      (|ab||ac|)^2 * (1-cos^2 theta)
+        // Find the largest face.The expressions below are equivalent to, for 
+        // example: (|ab||ac|)^2 * (1-cos^2 theta)
         // where theta is the angle between side ab and ac. Note that the area
         // of this triangle is area = 1/2 sqrt(ab2*ac2-square(abac)).
         const RealP abc4Area2 = ab2ac2-abac2; // 4*area(abc)^2
         const RealP abd4Area2 = ab2ad2-abad2; // 4*area(abd)^2
         const RealP acd4Area2 = ac2ad2-acad2; // 4*area(acd)^2
         const RealP bcd4Area2 = bc2cd2-bccd2; // 4*area(bcd)^2
-        // Find the largest face.
-        RealP maxArea=abc4Area2;  int   maxFace=0;
-        if (abd4Area2 > maxArea) maxArea=abd4Area2, maxFace=1;
-        if (acd4Area2 > maxArea) maxArea=acd4Area2, maxFace=2;
-        if (bcd4Area2 > maxArea) maxArea=bcd4Area2, maxFace=3;
-        // Fill map[0..2] with largest face; map[3] is the dropped vertex.
+        RealP maxArea2; int maxFace=0;
+        maxOf(abc4Area2,abd4Area2,acd4Area2,bcd4Area2,maxArea2,maxFace);
+        // Now create a sphere around that edge using 3,2, or 1 support points,
+        // but we're only going to keep the center.
+        Sphere_<P> faceSphere; int map[3];
         switch(maxFace) {
-        case 0: map[0]=0; map[1]=1; map[2]=2; map[3]=3; break; //abc, drop d
-        case 1: map[0]=0; map[1]=1; map[2]=3; map[3]=2; break; //abd, drop c
-        case 2: map[0]=0; map[1]=2; map[2]=3; map[3]=1; break; //acd, drop b
-        case 3: map[0]=1; map[1]=2; map[2]=3; map[3]=0; break; //bcd, drop a
+        case 0: map[0]=0; map[1]=1; map[2]=2; map[3]=3; //abc, drop d
+            faceSphere=calcMinimumSphere(a,b,c,which); break;
+        case 1: map[0]=0; map[1]=1; map[2]=3; map[3]=2; //abd, drop c
+            faceSphere=calcMinimumSphere(a,b,d,which); break;
+        case 2: map[0]=0; map[1]=2; map[2]=3; map[3]=1; //acd, drop b
+            faceSphere=calcMinimumSphere(a,c,d,which); break;
+        case 3: map[0]=1; map[1]=2; map[2]=3; map[3]=0; //bcd, drop a
+            faceSphere=calcMinimumSphere(b,c,d,which); break;
         };
-        const Vec3P& p0=*pts[map[0]]; const Vec3P& p1=*pts[map[1]];
-        const Vec3P& p2=*pts[map[2]];
-        const Vec3P& p3=*pts[map[3]]; // this is the dropped one
-        Sphere_<P> faceSphere=calcMinimumSphere(p0,p1,p2,which);
-        for (unsigned i=0; i<which.size(); ++i)
-            which[i] = map[which[i]]; // fix indices
-        const Vec3P& ctr = faceSphere.getCenter();
-        RealP        rad = faceSphere.getRadius();
-        // If the point we dropped isn't inside, it can't be far from one
-        // of the vertices we used. We'll just replace that vertex.
-        const RealP  r2  = (p3-ctr).normSqr();
-        if (which.size()==3 && r2 > square(rad)) {
-            rad=std::sqrt(r2); // grow sphere & replace nearest support point
-            const RealP d03 = Point_<P>::findDistanceSqr(*pts[which[0]], p3);
-            const RealP d13 = Point_<P>::findDistanceSqr(*pts[which[1]], p3);
-            const RealP d23 = Point_<P>::findDistanceSqr(*pts[which[2]], p3);
-            if (d03 <= d13 && d03 <= d23) which[0]=map[3]; // which[0] closest
-            else if (d13 <= d03 && d13 <= d23) which[1]=map[3]; // [1] closest
-            else which[2]=map[3];   // which[2] was closest
+        fixWhich(map, which); // fix the indices
+        ctr = faceSphere.getCenter();
+    } else {
+        // Tetrahedron is non-singular. It is still possible that we won't need
+        // all four points to be on the sphere surface. If one or more of the
+        // barycentric coordinates is negative, it means that the circumsphere
+        // center is outside the tetrahedron. Pick the most negative, then drop
+        // the opposite vertex. The circumsphere around the remaining face will 
+        // include the dropped one for free. 
+
+        // s controls height over acd, t over abd, u over abc, 1-s-t-u over bcd.
+        const RealP ds =  ab2ac2ad2             // 12 flops
+                         + ac2*abad*acad
+                         + ad2*abac*acad
+                         - ab2*acad2
+                         - ac2ad2*abac
+                         - ac2ad2*abad;
+         const RealP dt =  ab2ac2ad2            // 12 flops
+                         + ab2*abad*acad
+                         + ad2*abac*abad
+                         - ac2*abad2
+                         - ab2ad2*acad
+                         - ab2ad2*abac;
+        const RealP du =   ab2ac2ad2            // 12 flops
+                         + ab2*abac*acad
+                         + ac2*abac*abad
+                         - ad2*abac2
+                         - ab2ac2*acad
+                         - ab2ac2*abad;    
+        const RealP dv = dm-ds-dt-du;           //  3 flops  
+        const RealP oodm = 1/dm; // (> 0)         ~10 flops
+        const RealP s=ds*oodm, t=dt*oodm, u=du*oodm, v=dv*oodm; // 4 flops
+
+        RealP minBary; int minBaryIx;
+        minOf(s,t,u,v,minBary,minBaryIx);   // 3 flops
+
+        if (minBary <= 0) { // 1 flop
+            Sphere_<P> faceSphere; int map[3];
+            switch(minBaryIx) {
+            case 0: // s is the most negative
+                map[0]=0; map[1]=2; map[2]=3; // sphere around acd includes b
+                faceSphere=calcMinimumSphere(a,c,d,which); 
+                assert(!faceSphere.isPointOutside(b));
+                break;
+            case 1: // t is the most negative
+                map[0]=0; map[1]=1; map[2]=3; // sphere around abd includes c
+                faceSphere=calcMinimumSphere(a,b,d,which); 
+                assert(!faceSphere.isPointOutside(c));
+                break;
+            case 2: // u is the most negative
+                map[0]=0; map[1]=1; map[2]=2; // sphere around abc includes d
+                faceSphere=calcMinimumSphere(a,b,c,which); 
+                assert(!faceSphere.isPointOutside(d));
+                break;
+            case 3: // v is the most negative
+                map[0]=1; map[1]=2; map[2]=3; // sphere around bcd includes a
+                faceSphere=calcMinimumSphere(b,c,d,which); 
+                assert(!faceSphere.isPointOutside(a));
+                break;
+            };
+            fixWhich(map, which);
+            ctr = faceSphere.getCenter();
+        } else { // s,t,u,v > 0
+            // All barycentric coordinates are positive. The circumsphere's 
+            // center will be inside the tetrahedron and thus of minimal size.
+            which.clear(); 
+            which.push_back(0); which.push_back(1);  
+            which.push_back(2); which.push_back(3);
+            const Vec3P aToCenter = s*ab + t*ac + u*ad;     //  12 flops
+            ctr = a + aToCenter;                            //   3 flops
         }
-        // We used 3 or fewer support vertices.
-        return Sphere_<P>(ctr, rad);
     }
 
-    // Tetrahedron is non-singular. It is still very likely that we won't need
-    // all four points to be on the sphere surface.
-
-    // s controls height over acd, t over abd, u over abc, 1-s-t-u over bcd.
-    const RealP ds =   ab2ac2ad2            // 12 flops
-                     + ac2*abad*acad
-                     + ad2*abac*acad
-                     - ab2*acad2
-                     - ac2ad2*abac
-                     - ac2ad2*abad;
-    if (ds <= 0) { // implies s<=0 (1 flop)
-        map[0]=0; map[1]=2; map[2]=3; // sphere around acd includes b
-        const Sphere_<P> sph=calcMinimumSphere(a,c,d,which); 
-        for (unsigned i=0; i<which.size(); ++i) which[i]=map[which[i]];
-        return sph;
-    }
-    const RealP dt =   ab2ac2ad2            // 12 flops
-                     + ab2*abad*acad
-                     + ad2*abac*abad
-                     - ac2*abad2
-                     - ab2ad2*acad
-                     - ab2ad2*abac;
-    if (dt <= 0) { // implies t<=0 (1 flop)
-        map[0]=0; map[1]=1; map[2]=3; // sphere around abd includes c
-        const Sphere_<P> sph=calcMinimumSphere(a,b,d,which); 
-        for (unsigned i=0; i<which.size(); ++i) which[i]=map[which[i]];
-        return sph;
-    }
-
-    const RealP du =   ab2ac2ad2            // 12 flops
-                     + ab2*abac*acad
-                     + ac2*abac*abad
-                     - ad2*abac2
-                     - ab2ac2*acad
-                     - ab2ac2*abad;
-    if (du <= 0) { // implies u<=0 (1 flop)
-        map[0]=0; map[1]=1; map[2]=2; // sphere around abc includes d
-        const Sphere_<P> sph=calcMinimumSphere(a,b,c,which); 
-        for (unsigned i=0; i<which.size(); ++i) which[i]=map[which[i]];
-        return sph;
-    }
-
-    if (ds+dt+du >= dm) { // implies v=1-s-t-u<=0 (3 flops)
-        map[0]=1; map[1]=2; map[2]=3; // sphere around bcd includes a
-        const Sphere_<P> sph=calcMinimumSphere(b,c,d,which); 
-        for (unsigned i=0; i<which.size(); ++i) which[i]=map[which[i]];
-        return sph;
-    }
-
-    // Must calculate circumsphere.
-    const RealP oodm = 1/dm; // (> 0)                     ~10 flops
-    const RealP s = ds*oodm, t = dt*oodm, u = du*oodm; //   3 flops
-    const Vec3P aToCenter = s*ab + t*ac + u*ad;        //  12 flops
-    const Vec3P ctr = a + aToCenter;                   //   3 flops
+    // All methods lead here. At this point we have the support points
+    // and center point chosen but still need to pick the radius.
 
     // This cleans up ugly roundoff errors that cause the center not to be
     // exactly equidistant from the points. This makes sure that the radius
-    // touches the outermost point with the rest inside.
-    const RealP rmax2 = std::max((a-ctr).normSqr(),  // 32 flops
-                        std::max((b-ctr).normSqr(),
-                        std::max((c-ctr).normSqr(),
-                                 (d-ctr).normSqr())));
+    // touches the outermost point with the rest inside. This is 
+    // expensive but worth it to ensure a trouble-free sphere.
+    RealP rmax2; int rmaxIx;
+    maxOf((a-ctr).normSqr(),(b-ctr).normSqr(),
+          (c-ctr).normSqr(),(d-ctr).normSqr(),
+            rmax2, rmaxIx);                          // 35 flops
     const RealP rad = std::sqrt(rmax2);              // 20 flops
 
-    // We're using all the points!
-    which.clear(); 
-    which.push_back(0); which.push_back(1);  
-    which.push_back(2); which.push_back(3);
     return Sphere_<P>(ctr, rad);
 }
 
@@ -443,9 +507,10 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
 //==============================================================================
 //                       CALC BOUNDING SPHERE - N POINTS
 //==============================================================================
-// This is called recursively to calculate the bounding sphere for the mesh.  
-// It uses an algorithm developed by Emo Welzl, and is based on a description 
-// by Nicolas Capens at 
+// This is called recursively to calculate the minimum bounding sphere for a
+// set of points (like the vertices of a mesh). It uses an algorithm developed 
+// by Emo Welzl which, despite appearances, has O(n) expected running time.
+// The implementation here is based on a description by Nicolas Capens at 
 // http://www.flipcode.com/archives/Smallest_Enclosing_Spheres.shtml.
 // As described there, the algorithm is highly susceptible to numerical 
 // instabilities. Bernd Gartner describes an improved version in "Fast and 
@@ -457,51 +522,84 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
 template <class P> static
 Geo::Sphere_<P>
 findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
-                int bIn, Array_<int>& which) {
-    // The first b points are the support set.
+                int bIn, Array_<int>& which, int recursionLevel) {
+
+    // The first bIn points should be an independent support set, and we're 
+    // hoping to calculate their circumsphere here. Although in theory the 
+    // algorithm wouldn't have gotten here if all bIn points weren't 
+    // independent, roundoff issues may cause the underlying primitive to 
+    // disagree. So we might use only a subset of the available points, and
+    // "which" will list the ones we used. If necessary we'll rearrange the
+    // first few entries in "ix" to make sure that the indices of the new
+    // support set come first.
     
     Geo::Sphere_<P> minSphere;
-    int bActual;
+
     switch(bIn) {
     // Create a bounding sphere for 0, 1, 2, 3, or 4 points. Note which
-    // points were actually used, and set bActual. If we manage to use the
+    // points were actually used, and how many. If we manage to use the
     // maximum of 4 support points, we return; otherwise, we'll fall through
     // and hunt for another support point.
     case 0: 
-        which.clear();
         minSphere = Geo::Sphere_<P>(Vec<3,P>(0),0);
-        bActual = 0;
+        which.clear();
         break;
     case 1:
         minSphere = Geo::Sphere_<P>::calcMinimumSphere(*p[ix[0]],which);
-        for (unsigned i=0; i<which.size(); ++i) which[i]=ix[which[i]];
-        bActual = (int)which.size();
         break;
     case 2:
         minSphere = Geo::Sphere_<P>::calcMinimumSphere
                             (*p[ix[0]],*p[ix[1]],which);
-        for (unsigned i=0; i<which.size(); ++i) which[i]=ix[which[i]];
-        bActual = (int)which.size();
         break;
     case 3:
         minSphere = Geo::Sphere_<P>::calcMinimumSphere
                             (*p[ix[0]],*p[ix[1]],*p[ix[2]],which);
-        for (unsigned i=0; i<which.size(); ++i) which[i]=ix[which[i]];
-        bActual = (int)which.size();
         break;
     case 4:
         // Never need more than 4 points.
         minSphere = Geo::Sphere_<P>::calcMinimumSphere
                             (*p[ix[0]],*p[ix[1]],*p[ix[2]],*p[ix[3]],which);
-        for (unsigned i=0; i<which.size(); ++i) which[i]=ix[which[i]];
-        bActual = (int)which.size();
-        if (bActual==4) return minSphere;
+        if (which.size() == 4) {
+            // We can return now after fixing up the indices in which.
+            fixWhich(ix.begin(), which);
+            return minSphere;
+        }
+        break;
     }
 
-    // We're here because we used fewer than 4 support points.
-    // Now add in all the other points.
+    // We're here because we used fewer than 4 support points. 
     
-    for (unsigned i = bActual; i < ix.size(); ++i) {
+    // First, fix the indices in which (the primitives number from 0).
+    fixWhich(ix.begin(), which);
+    const int bActual = (int)which.size(); // <= 3
+
+    // It is possible that we didn't use all the bIn points we were given, but
+    // instead used a smaller number, bActual (probably bIn-1). In that case we
+    // have to make sure that the *first* bActual are the support points. So 
+    // we'll look at the entries [bActual..bIn-1]; if one is now part of the 
+    // support set we'll swap it with a now-unused point in [0..bActual-1].
+    for (int i=bActual; i < bIn; ++i) {
+        int* w = std::find(which.begin(), which.end(), ix[i]);
+        if (w == which.end()) continue; // not being used
+        // ix[i] is part of the support set
+        bool swapped=false; // There has to be one to swap with!
+        for (int j=0; j < bActual; ++j) {
+            int* ww = std::find(which.begin(), which.end(), ix[j]);
+            if (ww == which.end()) {
+                // ix[j] is not part of the support set; swap with i
+                std::swap(ix[i], ix[j]); swapped=true;
+                break;
+            }
+        }
+        assert(swapped); // can't happen
+    }
+
+    // The indices of the support points are the first bActual entries in ix,
+    // and there may be unused points after that that we already processed
+    // but didn't need. Now run through all subsequent points and update the
+    // sphere to include them.
+  
+    for (int i = bIn; i < (int)ix.size(); ++i) {
         if (minSphere.isPointOutside(*p[ix[i]])) {
             // This point is outside the current bounding sphere.  
             // Move it to the start of the list. (Without reordering; I *think*
@@ -512,7 +610,8 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
             
             // Update the bounding sphere, taking the new point into account.
             ArrayView_<int> toBoundIx(ix.begin(), &ix[i]+1);
-            minSphere = findWelzlSphere<P>(p, toBoundIx, bActual+1, which);
+            minSphere = findWelzlSphere<P>(p, toBoundIx, bActual+1, which,
+                                           recursionLevel+1);
         }
     }
 
@@ -541,7 +640,7 @@ calcMinimumSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
 
     if (npoints < 10) {
         // Not worth rearranging.
-        return findWelzlSphere<P>(points, ix, 0, which);
+        return findWelzlSphere<P>(points, ix, 1, which, 0);
     }
 
     // There are enough points that we'll try to improve the ordering so that
@@ -581,7 +680,7 @@ calcMinimumSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
         std::swap(ix[i], ix[extremeIx]);
     }
 
-    return findWelzlSphere<P>(points, ix, 0, which);
+    return findWelzlSphere<P>(points, ix, 1, which, 0);
 }
 
 

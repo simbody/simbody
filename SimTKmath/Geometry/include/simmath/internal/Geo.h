@@ -211,6 +211,13 @@ bool isPointOutside(const Vec3P& p) const {
     const RealP r2 = Geo::Point_<P>::findDistanceSqr(p, getCenter());
     return r2 > square(getRadius());
 }
+/** Return true if a given point is more than a given tolerance outside the
+sphere. **/
+bool isPointOutside(const Vec3P& p, RealP tol) const {
+    assert(tol >= 0);
+    const RealP r2 = Geo::Point_<P>::findDistanceSqr(p, getCenter());
+    return r2 > square(getRadius()+tol);
+}
 const Vec3P& getCenter() const {return Vec3P::getAs(&cr[0]);}
 Vec3P& updCenter() {return Vec3P::updAs(&cr[0]);}
 RealP getRadius() const {return cr[3];}
