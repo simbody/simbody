@@ -40,6 +40,9 @@
 #include "simmath/internal/BicubicSurface.h"
 #include "simmath/internal/ContactGeometry.h"
 #include "simmath/internal/OrientedBoundingBox.h"
+#include "simmath/internal/Contact.h"
+#include "simmath/internal/ContactTracker.h"
+#include "simmath/internal/CollisionDetectionAlgorithm.h"
 
 #include "simmath/LinearAlgebra.h"
 #include "simmath/Differentiator.h"

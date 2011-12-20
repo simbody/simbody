@@ -35,7 +35,6 @@
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
-#include "simbody/internal/Contact.h"
 
 #include <cassert>
 

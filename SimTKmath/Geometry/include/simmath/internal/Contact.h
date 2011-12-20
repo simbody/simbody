@@ -1,8 +1,8 @@
-#ifndef SimTK_SIMBODY_CONTACT_H_
-#define SimTK_SIMBODY_CONTACT_H_
+#ifndef SimTK_SIMMATH_CONTACT_H_
+#define SimTK_SIMMATH_CONTACT_H_
 
 /* -------------------------------------------------------------------------- *
- *                              SimTK Simbody(tm)                             *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
@@ -33,8 +33,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
-
-#include "simbody/internal/common.h"
+#include "simmath/internal/common.h"
 
 namespace SimTK {
 
@@ -85,7 +84,7 @@ The base class records only the indices of the two surfaces that are in
 contact. CollisionDetectionAlgorithms which characterize contacts in more 
 complex ways will typically define subclasses of Contact that provide
 additional information. **/
-class SimTK_SIMBODY_EXPORT Contact {
+class SimTK_SIMMATH_EXPORT Contact {
 public:
     /** The Contact::Condition tracks the status of a Contact through its
     lifetime. **/
@@ -182,7 +181,7 @@ not yet being tracked; there is no ContactId for them. We don't yet know what
 kind of Contact object would be appropriate for them, so this is a placeholder
 until a ContactTracker replaces it with something meaningful. The contact
 condition for one of these is always "Untracked". **/
-class SimTK_SIMBODY_EXPORT UntrackedContact : public Contact {
+class SimTK_SIMMATH_EXPORT UntrackedContact : public Contact {
 public:
     /** Default constructor creates an empty handle. **/
     UntrackedContact() {}
@@ -216,7 +215,7 @@ is the last time we will use this ContactId. The only parameters here are the
 surfaces and the separation distance (> cutoff). If someone cares, the 
 separation distance can be used to estimate the time at which contact was
 broken. **/
-class SimTK_SIMBODY_EXPORT BrokenContact : public Contact {
+class SimTK_SIMMATH_EXPORT BrokenContact : public Contact {
 public:
     /** Create a BrokenContact object.
     @param surf1        The index of the first surface involved in the contact.
@@ -260,7 +259,7 @@ R=1/(1/R1+1/R2), a normal vector z defining the penetration direction, a scalar
 penetration depth d (d>0 when surfaces overlap), and a patch origin point OP
 located centered on the patch normal such that each undeformed surface is d/2
 up or down the normal from OP. **/
-class SimTK_SIMBODY_EXPORT CircularPointContact : public Contact {
+class SimTK_SIMMATH_EXPORT CircularPointContact : public Contact {
 public:
     /** Create a CircularPointContact object.
     @param surf1        the index of the first surface involved in the contact 
@@ -355,7 +354,7 @@ O+(d/2)z.
       (corrected ed. 1987), sec. 4.1, pp. 84-88. 
     - Goldsmith, W. "Impact", Dover, 2001, sec. 4.2, pp. 83-85.
 **/
-class SimTK_SIMBODY_EXPORT EllipticalPointContact : public Contact {
+class SimTK_SIMMATH_EXPORT EllipticalPointContact : public Contact {
 public:
     /** Create a EllipticalPointContact object.
     @param surf1        the index of the first surface involved in the contact 
@@ -419,7 +418,7 @@ private:
 /** This subclass of Contact is used when one or both of the ContactGeometry 
 objects is a TriangleMesh. It stores a list of every face on each object 
 that is partly or completely inside the other one. **/
-class SimTK_SIMBODY_EXPORT TriangleMeshContact : public Contact {
+class SimTK_SIMMATH_EXPORT TriangleMeshContact : public Contact {
 public:
     /** Create a TriangleMeshContact object.
     @param surf1    the index of the first surface involved in the contact, 
@@ -483,7 +482,7 @@ private:
  * characterizes the contact by the center location and radius of the contact 
  * patch, the normal vector, and the penetration depth.
  */
-class SimTK_SIMBODY_EXPORT PointContact : public Contact {
+class SimTK_SIMMATH_EXPORT PointContact : public Contact {
 public:
     /**
      * Create a PointContact object representing a general (elliptical) contact.
@@ -567,4 +566,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_CONTACT_H_
+#endif // SimTK_SIMMATH_CONTACT_H_

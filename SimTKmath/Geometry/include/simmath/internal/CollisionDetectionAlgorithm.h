@@ -1,10 +1,10 @@
-#ifndef SimTK_SIMBODY_COLLISION_DETECTION_ALGORITHM_H_
-#define SimTK_SIMBODY_COLLISION_DETECTION_ALGORITHM_H_
+#ifndef SimTK_SIMMATH_COLLISION_DETECTION_ALGORITHM_H_
+#define SimTK_SIMMATH_COLLISION_DETECTION_ALGORITHM_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
@@ -32,9 +32,11 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKmath.h"
-#include "simbody/internal/common.h"
-#include "simbody/internal/Contact.h"
+#include "SimTKcommon.h"
+#include "simmath/internal/common.h"
+#include "simmath/internal/ContactGeometry.h"
+#include "simmath/internal/Contact.h"
+
 #include <map>
 
 namespace SimTK {
@@ -46,7 +48,7 @@ usually is no reason to access it directly. The exception is if you are
 defining a new ContactGeometry subclass. In that case, you will also need to 
 define one or more CollisionDetectionAlgorithms to detect collisions with your 
 new geometry type, then register it calling registerAlgorithm(). **/
-class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm {
+class SimTK_SIMMATH_EXPORT CollisionDetectionAlgorithm {
 public:
     class HalfSpaceSphere;
     class SphereSphere;
@@ -116,7 +118,7 @@ private:
  * This algorithm detects contacts between a ContactGeometry::HalfSpace and a 
  * ContactGeometry::Sphere.
  */
-class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceSphere 
+class SimTK_SIMMATH_EXPORT CollisionDetectionAlgorithm::HalfSpaceSphere 
 :   public CollisionDetectionAlgorithm {
 public:
     virtual ~HalfSpaceSphere() {}
@@ -132,7 +134,7 @@ public:
  * This algorithm detects contacts between a ContactGeometry::HalfSpace and a 
  * ContactGeometry::Ellipsoid.
  */
-class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceEllipsoid 
+class SimTK_SIMMATH_EXPORT CollisionDetectionAlgorithm::HalfSpaceEllipsoid 
 :   public CollisionDetectionAlgorithm {
 public:
     virtual ~HalfSpaceEllipsoid() {}
@@ -147,7 +149,7 @@ public:
 /**
  * This algorithm detects contacts between two ContactGeometry::Sphere objects.
  */
-class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereSphere 
+class SimTK_SIMMATH_EXPORT CollisionDetectionAlgorithm::SphereSphere 
 :   public CollisionDetectionAlgorithm {
 public:
     virtual ~SphereSphere() {}
@@ -163,7 +165,7 @@ public:
  * This algorithm detects contacts between a ContactGeometry::HalfSpace and a 
  * ContactGeometry::TriangleMesh.
  */
-class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceTriangleMesh 
+class SimTK_SIMMATH_EXPORT CollisionDetectionAlgorithm::HalfSpaceTriangleMesh 
 :   public CollisionDetectionAlgorithm {
 public:
     virtual ~HalfSpaceTriangleMesh() {}
@@ -186,7 +188,7 @@ private:
  * This algorithm detects contacts between a ContactGeometry::Sphere and a 
  * ContactGeometry::TriangleMesh.
  */
-class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereTriangleMesh 
+class SimTK_SIMMATH_EXPORT CollisionDetectionAlgorithm::SphereTriangleMesh 
 :   public CollisionDetectionAlgorithm {
 public:
     virtual ~SphereTriangleMesh() {}
@@ -207,7 +209,7 @@ private:
  * This algorithm detects contacts between two ContactGeometry::TriangleMesh 
  * objects.
  */
-class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::TriangleMeshTriangleMesh
+class SimTK_SIMMATH_EXPORT CollisionDetectionAlgorithm::TriangleMeshTriangleMesh
 :   public CollisionDetectionAlgorithm {
 public:
     virtual ~TriangleMeshTriangleMesh() {}
@@ -241,7 +243,7 @@ private:
 /**
  * This algorithm detects contacts between two ContactGeometry::Convex objects.
  */
-class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::ConvexConvex 
+class SimTK_SIMMATH_EXPORT CollisionDetectionAlgorithm::ConvexConvex 
 :   public CollisionDetectionAlgorithm {
 public:
     virtual ~ConvexConvex() {}
@@ -274,4 +276,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_COLLISION_DETECTION_ALGORITHM_H_
+#endif // SimTK_SIMMATH_COLLISION_DETECTION_ALGORITHM_H_

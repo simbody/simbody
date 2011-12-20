@@ -32,7 +32,6 @@
 #include "SimTKcommon.h"
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/Contact.h"
 #include "simbody/internal/GeneralContactSubsystem.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "ElasticFoundationForceImpl.h"

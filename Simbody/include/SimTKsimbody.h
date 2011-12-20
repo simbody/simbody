@@ -51,8 +51,6 @@ will include this one). **/
 #include "simbody/internal/Motion.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/Constraint.h"
-#include "simbody/internal/Contact.h"
-#include "simbody/internal/CollisionDetectionAlgorithm.h"
 #include "simbody/internal/ElasticFoundationForce.h"
 #include "simbody/internal/Force.h"
 #include "simbody/internal/Force_Gravity.h"
