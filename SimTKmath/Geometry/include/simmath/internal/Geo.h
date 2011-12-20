@@ -446,7 +446,7 @@ Vec3P   e[2];
 in some unspecified frame, and a collection of triangle-related utility 
 methods. We support a u-v parameterization for the triangle. **/
 template <class P>
-class SimTK_SIMMATH_EXPORT Geo::Triangle_ {
+class Geo::Triangle_ {
 typedef P               RealP;
 typedef Vec<2,P>        Vec2P;
 typedef Vec<3,P>        Vec3P;
@@ -556,14 +556,14 @@ bool intersectsRay(const Vec3P& origin, const UnitVec3P& direction,
 
 /** Determine yes/no whether this triangle overlaps another one. Note that
 exactly touching is not overlapping. **/
-bool overlapsTriangle(const Triangle_<P>& other) const;
+SimTK_SIMMATH_EXPORT bool overlapsTriangle(const Triangle_<P>& other) const;
 /** Determine whether this triangle intersects another one, and if so then
 if they are not coplanar return the line segment representing their 
 intersection. If the triangles are coplanar and intersect we'll return true
 and set \a isCoplanar true, but not return a line segment. Note that the 
 triangles may meet at a point so the line segment may be degenerate in any
 case. **/
-bool intersectsTriangle(const Triangle_<P>& other, LineSeg_<P>& seg,
+SimTK_SIMMATH_EXPORT bool intersectsTriangle(const Triangle_<P>& other, LineSeg_<P>& seg,
                         bool& isCoplanar) const;
 
 /**@name                 Triangle-related utilities

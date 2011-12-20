@@ -29,7 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
+#include "SimTKmath.h"
 #include "simbody/internal/common.h"
 
 #include "simbody/internal/MultibodySystem.h"
@@ -1279,13 +1279,6 @@ bool ContactTracker::TriangleMeshTriangleMesh::trackContact
     return true; // success
 }
 
-
-
-
-extern "C" int tri_tri_overlap_test_3d
-   (const Real p1[3], const Real q1[3], const Real r1[3], 
-    const Real p2[3], const Real q2[3], const Real r2[3]);
-
 void ContactTracker::TriangleMeshTriangleMesh::
 findIntersectingFaces
    (const ContactGeometry::TriangleMesh&                mesh1, 
@@ -1339,13 +1332,14 @@ findIntersectingFaces
         Vec3 a1 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(face2, 0));
         Vec3 a2 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(face2, 1));
         Vec3 a3 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(face2, 2));
+        const Geo::Triangle A(a1,a2,a3);
         for (unsigned j = 0; j < node1triangles.size(); j++) {
             const int face1 = node1triangles[j];
             const Vec3& b1 = mesh1.getVertexPosition(mesh1.getFaceVertex(face1, 0));
             const Vec3& b2 = mesh1.getVertexPosition(mesh1.getFaceVertex(face1, 1));
             const Vec3& b3 = mesh1.getVertexPosition(mesh1.getFaceVertex(face1, 2));
-            if (tri_tri_overlap_test_3d(&a1[0], &a2[0], &a3[0], 
-                                        &b1[0], &b2[0], &b3[0])) 
+            const Geo::Triangle B(b1,b2,b3);
+            if (A.overlapsTriangle(B)) 
             {   // The triangles intersect.
                 triangles1.insert(face1);
                 triangles2.insert(face2);

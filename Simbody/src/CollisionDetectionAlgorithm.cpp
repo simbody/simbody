@@ -395,12 +395,6 @@ processObjects
                                            triangles1, triangles2));
 }
 
-
-
-extern "C" int tri_tri_overlap_test_3d
-   (const Real p1[3], const Real q1[3], const Real r1[3], 
-    const Real p2[3], const Real q2[3], const Real r2[3]);
-
 void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::
 processNodes
    (const ContactGeometry::TriangleMesh&                mesh1, 
@@ -449,13 +443,14 @@ processNodes
         Vec3 a1 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 0));
         Vec3 a2 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 1));
         Vec3 a3 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 2));
+        Geo::Triangle A(a1,a2,a3);
         for (int j = 0; j < (int) node1triangles.size(); j++) {
             const Vec3& b1 = mesh1.getVertexPosition(mesh1.getFaceVertex(node1triangles[j], 0));
             const Vec3& b2 = mesh1.getVertexPosition(mesh1.getFaceVertex(node1triangles[j], 1));
             const Vec3& b3 = mesh1.getVertexPosition(mesh1.getFaceVertex(node1triangles[j], 2));
-            if (tri_tri_overlap_test_3d(&a1[0], &a2[0], &a3[0], &b1[0], &b2[0], &b3[0])) {
-                // The triangles intersect.
-                
+            Geo::Triangle B(b1,b2,b3);
+            if (A.overlapsTriangle(B)) {
+                // The triangles intersect.            
                 triangles1.insert(node1triangles[j]);
                 triangles2.insert(node2triangles[i]);
             }
@@ -530,6 +525,12 @@ tagFaces(const ContactGeometry::TriangleMesh&   mesh,
 //==============================================================================
 //                              CONVEX - CONVEX
 //==============================================================================
+// This is an implementation based on the Minkowski Portal Refinement method
+// used by XenoCollide. See G. Snethen, “Xenocollide: Complex collision made 
+// simple,” in Game Programming Gems 7, 2008. MPR is used to obtain an initial
+// guess for the contact location which is then refined to numerical precision
+// by using the smooth representation of the colliding objects.
+
 Vec3 CollisionDetectionAlgorithm::ConvexConvex::
 computeSupport(const ContactGeometry& obj1, 
                const ContactGeometry& obj2, 

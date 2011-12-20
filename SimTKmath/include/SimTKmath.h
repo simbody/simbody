@@ -34,6 +34,7 @@
 
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
+#include "simmath/internal/Geo.h"
 #include "simmath/internal/Spline.h"
 #include "simmath/internal/SplineFitter.h"
 #include "simmath/internal/BicubicSurface.h"
