@@ -101,7 +101,7 @@ separation very accurately (around 100*eps for this example). So the resulting
 sphere can be too big (annoying but OK) or too small (very bad). Also, if the
 line length is <= tol, we want to consider these a single point rather than
 two supporting points for the sphere; in that case we pick one of the points
-and center the sphere around that with radius tol. */
+and center the sphere around that with radius tol. About 45 flops. */
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Sphere_<P>::
 calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which) {
@@ -184,14 +184,15 @@ How to calculate the circumsphere:
            (P-b)^2 = (P-a)^2, (P-c)^2 = (P-a)^2
     Substituting the definition of P gives us the following system of equations
     for s and t:
-           [ab^2  abac] [s]   [ab^2]
-       2 * [abac  ac^2] [t] = [ac^2]   or   M x = b
+           [ab^2  abac] [s]   [ab^2/2]
+           [abac  ac^2] [t] = [ac^2/2]   or   M x = b
     We'll use Cramer's rule to solve the equation, which requires computing 
     determinants of three matrices: M, Ms, Mt where the latter are M with its 
     1st or 2nd column replaced by b. Let dm=det(M), ds=det(Ms), dt=det(Mt). 
     Then s=ds/dm, t=dt/dm. Determinant dm is related to the area of the 
-    triangle by 2*a = sqrt(dm/2), so dm = 8 a^2. Note that dm can't be negative
-    except possibly due to roundoff error.
+    triangle by 2*a = sqrt(dm), so dm = 4 a^2. Note that dm can't be negative
+    except possibly due to roundoff error. Below we'll actually calculate
+    2*dm, 2*ds, etc. since that saves some multiplies.
 */
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Sphere_<P>::
@@ -205,11 +206,11 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
     const RealP ab2ac2 = ab2*ac2;                           //  1 flop
 
     // The expression below is equivalent to 
-    //      dm = 2 * (|ab||ac|)^2 * (1-cos^2 theta)
+    //      dm2 = 2*dm = 2 * (|ab||ac|)^2 * (1-cos^2 theta)
     // where theta is the angle between side ab and ac. That quantity can't
     // be negative except for roundoff error. Note that the area of this 
-    // triangle is area = 1/2 sqrt(ab2*ac2-square(abac)) so dm = 8*area^2
-    const RealP dm = 2*(ab2ac2 - square(abac));             //  3 flops
+    // triangle is area = 1/2 sqrt(ab2*ac2-square(abac)) so dm2 = 8*area^2
+    const RealP dm2 = 2*(ab2ac2 - square(abac));             //  3 flops
 
     // We'll use one of three ways to find the center point and determine
     // the set of supporting vertices (in which):
@@ -220,7 +221,7 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
     Vec3P ctr;
 
     // Consider the triangle singular if its area is less than tol.
-    if (dm <= 8*square(tol)) {                               // 3 flops
+    if (dm2 <= 8*square(tol)) {                               // 3 flops
         // Triangle is near singular or very small.
         const Vec3P bc = c - b;
         const RealP bc2 = bc.normSqr();
@@ -249,11 +250,11 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
         // include the dropped one for free. 
 
         // s controls P's height over ac, t over ab, u=1-s-t over bc.
-        const RealP ds = ab2ac2 - ac2*abac;                 // 2 flops
-        const RealP dt = ab2ac2 - ab2*abac;                 // 2 flops
-        const RealP du = dm-ds-dt;                          // 2 flops
-        const RealP oodm = 1/dm; // (> 0)                    ~10 flops
-        const RealP s = ds*oodm, t = dt*oodm, u = du*oodm; //  3 flops
+        const RealP ds2 = ab2ac2 - ac2*abac;                 // 2 flops
+        const RealP dt2 = ab2ac2 - ab2*abac;                 // 2 flops
+        const RealP du2 = dm2-ds2-dt2;                       // 2 flops
+        const RealP oodm2 = 1/dm2; // (> 0)                   ~10 flops
+        const RealP s = ds2*oodm2, t = dt2*oodm2, u = du2*oodm2; //  3 flops
 
         RealP minBary; int minBaryIx;
         minOf(s,t,u,minBary,minBaryIx); // 2 flops
@@ -313,7 +314,7 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
 suggestion on his blog page -- see the 3 point routine above. The derivation
 here was done by Sherm since Ericson didn't work out the 4-point case.
 
-Cost is about 185 flops in a typical case.
+Cost is about 190 flops in a typical case where all 4 points are used.
 
 Implementation
 --------------
@@ -341,17 +342,18 @@ How to calculate the circumsphere:
            (P-b)^2 = (P-a)^2, (P-c)^2 = (P-a)^2, (P-d)^2 = (P-a)^2
     Substituting the definition of P gives us the following system of equations
     for s, t, and u:
-         [ab^2  abac  abad] [s]   [ab^2]
-       2*[abac  ac^2  acad] [t] = [ac^2]   or   M x = b
-         [abad  acad  ad^2] [u] = [ad^2]
+         [ab^2  abac  abad] [s]   [ab^2/2]
+         [abac  ac^2  acad] [t] = [ac^2/2]   or   M x = b
+         [abad  acad  ad^2] [u] = [ad^2/2]
     We'll use Cramer's rule to solve the equation, which requires computing 
     determinants of four matrices: M, Ms, Mt, Mu where the latter are M with 
     its 1st, 2nd, or 3rd column replaced by b. Let dm=det(M), ds=det(Ms), 
     dt=det(Mt), du=det(Mu). Then s=ds/dm, t=dt/dm, u=du/dm. There are going to 
     be lots of common subexpressions, and we can pick up face areas along the 
     way. Also, determinant dm is related to the volume of the tetrahedron by 
-    6*v = sqrt(dm/2), so dm = 72 v^2. Note that dm can't be negative except
-    possibly due to roundoff error.
+    6*v = sqrt(dm), so dm = 36 v^2. Note that dm can't be negative except
+    possibly due to roundoff error. Below we'll work with 2*dm, 2*ds, etc.
+    because it saves some multiplies.
 */
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Sphere_<P>::
@@ -370,7 +372,7 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
     const RealP ab2ac2=ab2*ac2, ab2ad2=ab2*ad2, ac2ad2=ac2*ad2;
     const RealP ab2ac2ad2=ab2ac2*ad2;
    
-    const RealP dm = 2*(  ab2ac2ad2             // 10 flops
+    const RealP dm2 = 2*(  ab2ac2ad2          // 10 flops
                          - ab2*acad2
                          - ad2*abac2
                          - ac2*abad2
@@ -385,7 +387,7 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
     Vec3P ctr;
 
     // Consider the tetrahedron singular if its volume is less than tol.
-    if (dm <= 72*square(tol)) {                             // 3 flops
+    if (dm2 <= 72*square(tol)) {                             // 3 flops
         // Tetrahedron is near singular or very small.
         const Vec3P bc = c-b, cd = d-c;
         const RealP bccd = dot(bc, cd), bccd2 = square(bccd);
@@ -424,27 +426,28 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
         // include the dropped one for free. 
 
         // s controls height over acd, t over abd, u over abc, 1-s-t-u over bcd.
-        const RealP ds =  ab2ac2ad2             // 12 flops
+        const RealP ds2 =  ab2ac2ad2            // 12 flops
                          + ac2*abad*acad
                          + ad2*abac*acad
                          - ab2*acad2
                          - ac2ad2*abac
                          - ac2ad2*abad;
-         const RealP dt =  ab2ac2ad2            // 12 flops
+        const RealP dt2 =  ab2ac2ad2            // 12 flops
                          + ab2*abad*acad
                          + ad2*abac*abad
                          - ac2*abad2
                          - ab2ad2*acad
                          - ab2ad2*abac;
-        const RealP du =   ab2ac2ad2            // 12 flops
+        const RealP du2 =  ab2ac2ad2            // 12 flops
                          + ab2*abac*acad
                          + ac2*abac*abad
                          - ad2*abac2
                          - ab2ac2*acad
                          - ab2ac2*abad;    
-        const RealP dv = dm-ds-dt-du;           //  3 flops  
-        const RealP oodm = 1/dm; // (> 0)         ~10 flops
-        const RealP s=ds*oodm, t=dt*oodm, u=du*oodm, v=dv*oodm; // 4 flops
+        const RealP dv2 = dm2-ds2-dt2-du2;      //  3 flops  
+        const RealP oodm2 = 1/dm2; // (> 0)       ~10 flops
+        const RealP s=ds2*oodm2, t=dt2*oodm2, u=du2*oodm2, v=dv2*oodm2; 
+                                                //  4 flops
 
         RealP minBary; int minBaryIx;
         minOf(s,t,u,v,minBary,minBaryIx);   // 3 flops
@@ -496,7 +499,7 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
     RealP rmax2; int rmaxIx;
     maxOf((a-ctr).normSqr(),(b-ctr).normSqr(),
           (c-ctr).normSqr(),(d-ctr).normSqr(),
-            rmax2, rmaxIx);                          // 35 flops
+          rmax2, rmaxIx);                            // 35 flops
     const RealP rad = std::sqrt(rmax2);              // 20 flops
 
     return Sphere_<P>(ctr, rad);
@@ -579,12 +582,12 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
     // we'll look at the entries [bActual..bIn-1]; if one is now part of the 
     // support set we'll swap it with a now-unused point in [0..bActual-1].
     for (int i=bActual; i < bIn; ++i) {
-        int* w = std::find(which.begin(), which.end(), ix[i]);
+        const int* w = std::find(which.begin(), which.end(), ix[i]);
         if (w == which.end()) continue; // not being used
         // ix[i] is part of the support set
         bool swapped=false; // There has to be one to swap with!
         for (int j=0; j < bActual; ++j) {
-            int* ww = std::find(which.begin(), which.end(), ix[j]);
+            const int* ww = std::find(which.begin(), which.end(), ix[j]);
             if (ww == which.end()) {
                 // ix[j] is not part of the support set; swap with i
                 std::swap(ix[i], ix[j]); swapped=true;
