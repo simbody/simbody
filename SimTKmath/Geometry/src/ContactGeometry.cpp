@@ -31,6 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
+#include "simmath/internal/Geo.h"
 #include "simmath/internal/ContactGeometry.h"
 
 #include "ContactGeometryImpl.h"
@@ -1231,15 +1232,12 @@ void ContactGeometry::TriangleMeshImpl::init
     createObbTree(obb, allFaces);
     
     // Find the bounding sphere.
-    
-    Vec3** points = new Vec3*[vertices.size()];
+    Array_<const Vec3*> points(vertices.size());
     for (int i = 0; i < (int) vertices.size(); i++)
         points[i] = &vertices[i].pos;
-    findBoundingSphere(points, vertices.size(), 0, boundingSphereCenter, 
-                       boundingSphereRadius);
-    delete[] points;
-    Real tol = std::max(1e-10, boundingSphereRadius*1e-5);
-    boundingSphereRadius += tol;
+    const Geo::Sphere bnd = Geo::Sphere::calcBoundingSphere(points);
+    boundingSphereCenter = bnd.getCenter();
+    boundingSphereRadius = bnd.getRadius();
 }
 
 void ContactGeometry::TriangleMeshImpl::createObbTree
@@ -1462,99 +1460,6 @@ Vec3 ContactGeometry::TriangleMeshImpl::findNearestPointToFace
     uv = Vec2(1-s-t, s);
     return vert1 + s*e0 + t*e1;
 }
-
-// This is called recursively to calculate the bounding sphere for the mesh.  
-// It uses an algorithm developed by Emo Welzl, and is based on a description 
-// by Nicolas Capens at 
-// http://www.flipcode.com/archives/Smallest_Enclosing_Spheres.shtml.
-// As described there, the algorithm is highly susceptible to numerical 
-// instabilities. Bernd Gartner describes an improved version in "Fast and 
-// robust smallest enclosing balls", Proc. 7th Annual European Symposium on 
-// Algorithms. Unfortunately, his method of dealing with the instabilities has 
-// the effect of sometimes allowing points to lie slightly outside the bounding
-// sphere, which is not acceptable for our purposes. Instead, we fall back to 
-// an approximate method when instability is detected. This no longer 
-// guarantees the smallest possible bounding sphere, but does guarantee that 
-// all points will be inside it.
-void ContactGeometry::TriangleMeshImpl::findBoundingSphere
-   (Vec3* point[], int p, int b, Vec3& center, Real& radius) {
-    
-    switch (b) {
-        // Create a bounding sphere for 0, 1, 2, 3, or 4 points.
-        
-        case 0:
-            center = Vec3(Infinity); // Ensure that any point will be outside.
-            radius = 0;
-            break;
-        case 1:
-            center = *point[-1];
-            radius = 0;
-            break;
-        case 2:
-            center = 0.5*(*point[-1]+*point[-2]);
-            radius = 0.5*(*point[-1]-*point[-2]).norm();
-            break;
-        case 3: {
-            Vec3 a = *point[-2]-*point[-1];
-            Vec3 b = *point[-3]-*point[-1];
-            Vec3 cross = a%b;
-            Real denom = 2*(~cross*cross);
-            if (std::abs(denom) < 1e-10) {
-                // Use an approximate method.             
-                center = (*point[-1]+*point[-2]+*point[-3])/3;
-                radius = std::sqrt(std::max((*point[-1]-center).normSqr(), 
-                                   std::max((*point[-2]-center).normSqr(), 
-                                            (*point[-3]-center).normSqr())));
-                break;
-            }
-            Vec3 o = (b.normSqr()*(cross%a) +
-                      a.normSqr()*(b%cross))/denom;
-            radius = o.norm();
-            center = *point[-1]+o;
-            break;
-        }
-        case 4: {
-            Vec3 a = *point[-2]-*point[-1];
-            Vec3 b = *point[-3]-*point[-1];
-            Vec3 c = *point[-4]-*point[-1];
-            Real denom = 2*(a[0]*b[1]*c[2] + a[1]*b[2]*c[0] + a[2]*b[0]*c[1] 
-                          - a[2]*b[1]*c[0] - a[0]*b[2]*c[1] - a[1]*b[0]*c[2]);
-            if (std::abs(denom) < 1e-10) {
-                // Use an approximate method.
-                center = (*point[-1]+*point[-2]+*point[-3]+*point[-4])/4;
-                radius = std::sqrt(std::max((*point[-1]-center).normSqr(), 
-                                   std::max((*point[-2]-center).normSqr(), 
-                                   std::max((*point[-3]-center).normSqr(), 
-                                            (*point[-4]-center).normSqr()))));
-                return;
-            }
-            Vec3 o = (c.normSqr()*(a%b) +
-                      b.normSqr()*(c%a) +
-                      a.normSqr()*(b%c))/denom;
-            radius = o.norm();
-            center = *point[-1]+o;
-            return;
-        }
-    }
-    
-    // Now add in all the others.
-    
-    for (int i = 0; i < p; ++i) {
-        if ((center-*point[i]).normSqr() > radius*radius) {
-            // This point is outside the current bounding sphere.  
-            // Move it to the start of the list.
-            for (int j = i; j > 0; --j) {
-                Vec3* temp = point[j];
-                point[j] = point[j-1];
-                point[j-1] = temp;
-            }
-            
-            // Update the bounding sphere, taking the new point into account. 
-            findBoundingSphere(point+1, i, b+1, center, radius);
-        }
-    }
-}
-
 
 
 //==============================================================================
