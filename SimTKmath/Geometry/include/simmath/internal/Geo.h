@@ -245,15 +245,17 @@ point and the radius is tiny but non-zero. **/
 static Sphere_ calcBoundingSphere(const Vec3P& p)
 {   return Sphere_(p, 0).stretchBoundary(); }
 
-/** Create a minimal bounding sphere around two points. The center is the 
-midpoint, and the radius is half the distance between the points, plus a small 
-amount to avoid roundoff problems later. Cost is about 35 flops. **/
-static Sphere_ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1)
-{   const RealP r = Point_<P>::calcDistance(p0,p1)/2;
-    return Sphere_(Point_<P>::findMidpoint(p0,p1), r).stretchBoundary(); }
+/** Create a minimal bounding sphere around two points. Some care is taken
+to avoid roundoff problems if the points are far from the origin or very
+close together. **/
+static Sphere_ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1) {
+    Array_<int> which;
+    Sphere_ minSphere = calcMinimumSphere(p0,p1,which);
+    return minSphere.stretchBoundary();
+}
 
 /** Create a minimal bounding sphere around three points. **/
-SimTK_SIMMATH_EXPORT static Sphere_ calcBoundingSphere
+static Sphere_ calcBoundingSphere
    (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2) {
     Array_<int> which;
     Sphere_ minSphere = calcMinimumSphere(p0,p1,p2,which);
@@ -261,7 +263,7 @@ SimTK_SIMMATH_EXPORT static Sphere_ calcBoundingSphere
 }
 
 /** Create a minimal bounding sphere around four points. **/
-SimTK_SIMMATH_EXPORT static Sphere_ calcBoundingSphere
+static Sphere_ calcBoundingSphere
    (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, const Vec3P& p3) {
     Array_<int> which;
     Sphere_ minSphere = calcMinimumSphere(p0,p1,p2,p3,which);
@@ -276,29 +278,39 @@ static Sphere_ calcBoundingSphere(const Array_<Vec3P>& points) {
     return minSphere.stretchBoundary();
 }
 
+/** Create a minimal bounding sphere around a collection of n points, given
+indirectly as an array of pointers. This has expected O(n) performance and 
+yields a perfect bounding sphere. **/
+static Sphere_ calcBoundingSphere(const Array_<const Vec3P*>& points) {
+    Array_<int> which; 
+    Sphere_ minSphere = calcMinimumSphere(points, which);
+    return minSphere.stretchBoundary();
+}
+
 /** Create a minimum sphere around a single point. The center is the
 point and the radius is zero. There is always 1 support point. **/
 static Sphere_ calcMinimumSphere(const Vec3P& p0, Array_<int>& which) 
 {   which.clear(); which.push_back(0); return Sphere_(p0,0); }
 
 /** Create a minimum sphere around two points. The center is the 
-midpoint, and the radius is half the distance between the points. There will
-be two support points for the circle unless the given points are within
-twice machine epsilon of each other. In that case, we treat these as a single 
-point and report that only 1 point was used to define the sphere. Points
-far from the origin will produce a larger sphere because of roundoff.
-Cost is about 40 flops. **/
-static Sphere_ calcMinimumSphere(const Vec3P& p0, const Vec3P& p1,
-                                 Array_<int>& which);
+midpoint, and the radius is roughly half the distance between the points,
+possibly expanded in the face of roundoff to ensure that neither point tests
+outside. There will be two support points for the circle unless the given 
+points are very close to one another. In that case, we treat these as a single 
+point and report in \a which that only 1 point was used to define the sphere. 
+Points far from the origin will produce a larger sphere because of roundoff.
+Cost is about 45 flops. **/
+SimTK_SIMMATH_EXPORT static Sphere_ 
+calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which);
 
 /** Create a minimum sphere around three points. There can be 1, 2, or 3
-support points returned. **/
+support points returned in \a which. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
 calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
                   Array_<int>& which);
 
 /** Create a minimum sphere around four points. There can be 1, 2, 3, or 4
-support points returned.  **/
+support points returned in \a which.  **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
 calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
                   const Vec3P& p3, Array_<int>& which);
