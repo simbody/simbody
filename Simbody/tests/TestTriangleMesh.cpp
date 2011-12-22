@@ -333,7 +333,8 @@ void testBoundingSphere() {
         vector<int> faceIndices;
         int numOctohedra = random.getIntValue()+1;
         for (int i = 0; i < numOctohedra; i++)
-            addOctohedron(vertices, faceIndices, Vec3(random.getValue(), random.getValue(), random.getValue()));
+            addOctohedron(vertices, faceIndices, 
+            Vec3(random.getValue(), random.getValue(), random.getValue()));
         ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
 
         // Verify that all points are inside the bounding sphere.

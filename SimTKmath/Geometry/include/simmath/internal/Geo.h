@@ -85,10 +85,13 @@ SignificantReal which is eps^(7/8) where eps is the resolution of P. That
 makes this tolerance around 2e-14 in double precision and 9e-7 in float. **/
 template <class P> static P getDefaultTol() 
 {   return NTraits<P>::getSignificant(); }
+/** Return machine precision for floating point calculations at precision P. **/
 template <class P> static P getEps() 
 {   return NTraits<P>::getEps(); }
+/** Return a NaN (not a number) at precision P. **/
 template <class P> static P getNaN() 
 {   return NTraits<P>::getNaN(); }
+/** Return Infinity at precision P. **/
 template <class P> static P getInfinity() 
 {   return NTraits<P>::getInfinity(); }
 
@@ -177,14 +180,14 @@ public:
 will be garbage. **/
 Sphere_() {}
 /** Construct a sphere from its center location and radius. **/
-Sphere_(const Vec3P& location, RealP radius)
-:   cr(location[0], location[1], location[2], radius) {}
+Sphere_(const Vec3P& center, RealP radius)
+:   cr(center[0], center[1], center[2], radius) {assert(radius>=0);}
 /** Change the radius of this sphere. **/
 Sphere_& setRadius(RealP radius) 
-{   cr[3]=radius; return *this; }
-/** Change the location of this sphere. **/
-Sphere_& setLocation(const Vec3P& location) 
-{   Vec3P::updAs(&cr[0])=location; return *this; }
+{   assert(radius>=0); cr[3]=radius; return *this; }
+/** Change the center location of this sphere. **/
+Sphere_& setCenter(const Vec3P& center) 
+{   Vec3P::updAs(&cr[0])=center; return *this; }
 
 /** Modify this sphere to scale its radius by a fractional amount f,
 that is we set radius to f*radius.
@@ -192,11 +195,12 @@ that is we set radius to f*radius.
 Sphere_& scaleBy(RealP f)
 {   setRadius(f*getRadius()); return *this; }
 
-/** Stretch this sphere by a small amount to ensure that there will be no 
-roundoff problems if this is used as a bounding sphere. The amount to stretch
-depends on the default tolerance for this precision, the radius, and the
-position of the sphere in space. A very large sphere, or a sphere that is very
-far from the origin, must be stretched more than a small one at the origin. 
+/** Stretch this sphere in place by a small amount to ensure that there will 
+be no roundoff problems if this is used as a bounding sphere. The amount to 
+stretch depends on the default tolerance for this precision, the radius, and 
+the position of the sphere in space. A very large sphere, or a sphere that is 
+very far from the origin, must be stretched more than a small one at the 
+origin. Cost is 6 flops.
 @see Geo class for tolerance information. **/
 Sphere_& stretchBoundary() {
     const RealP tol = Geo::getDefaultTol<P>();
@@ -205,6 +209,14 @@ Sphere_& stretchBoundary() {
     updRadius() += std::max(scale*Geo::getEps<P>(), tol);
     return *this; 
 }
+
+/** Return the volume of this sphere (4/3 pi r^3). **/
+RealP findVolume() const 
+{   return (RealP(4)/3) * NTraits<P>::getPi() * cube(getRadius()); }
+/** Return the surface area of this sphere (4 pi r^2). **/
+RealP findArea() const 
+{   return 4 * NTraits<P>::getPi() * square(getRadius()); }
+
 /** Return true if a given point is strictly outside this sphere. Just touching
 the sphere does not qualify. **/
 bool isPointOutside(const Vec3P& p) const {
@@ -218,26 +230,46 @@ bool isPointOutside(const Vec3P& p, RealP tol) const {
     const RealP r2 = Geo::Point_<P>::findDistanceSqr(p, getCenter());
     return r2 > square(getRadius()+tol);
 }
+/** Get the location of the sphere's center point. **/
 const Vec3P& getCenter() const {return Vec3P::getAs(&cr[0]);}
+/** Get a writable reference to the sphere's center point. **/
 Vec3P& updCenter() {return Vec3P::updAs(&cr[0]);}
+/** Get the sphere's radius. **/
 RealP getRadius() const {return cr[3];}
+/** Get a writable reference to the sphere's radius. **/
 RealP& updRadius() {return cr[3];}
 
 /**@name                 Sphere-related utilities
-These static methods work with spheres or collections of spheres. 
-  - Minimum sphere methods calculate the smallest sphere around a given set of
-    points such that no point is outside the sphere, although some may be on 
-    its surface. How many and specifically which points were actually used to 
-    define the sphere is returned; there will never be more than 4. Roundoff
-    errors are expected so defining points may not be exactly on the surface
-    and some points may be slightly outside.
-  - Bounding sphere methods make use of the minimum sphere calculations but
-    address roundoff by stretching the sphere enough to guarantee that all
-    points are strictly inside the sphere. That avoids trouble later when these
-    are used to look for possible intersections -- you could miss one using
-    a minimum sphere but you won't if you use a bounding sphere.
-    
-**/
+These static methods work with spheres or collections of spheres.
+
+<h3>Bounding spheres</h3>
+Bounding sphere methods calculate the smallest sphere around a given set of
+points such that no point is outside the sphere, although some may be on 
+its surface. How many and specifically which points were actually used to 
+define the sphere can be returned; there will never be more than 4. This 
+information is primarily used to construct bounding sphere algorithms; users
+normally just need the sphere so can use the simpler signatures.
+
+Bounding sphere methods address roundoff by stretching the sphere enough to 
+guarantee that all points are strictly inside the sphere and that later tests
+can produce only false positives not false negatives which might cause a
+contact to be missed. To do that we have to account not just for machine
+precision, but for relative errors caused by spheres of large radius or
+spheres that are located far from the origin. These adjustments ensure that
+if a test point appears numerically to be outside the sphere, it really cannot 
+contact anything that is inside the sphere. 
+
+We use a bounding sphere method due originally to Emo Welzl that computes a 
+near-perfect minimal bounding sphere around a set of points with expected O(n) 
+run time. Our implementation has been extensively modified to deal with
+singular cases so you do not have to precondition the points before asking
+for their bounding sphere. 
+
+We also provide a conventional fast and dumb approximate bounding sphere using
+Ritter's method as described in Christer Ericson's book. This is mostly 
+useful for testing the Welzl method's accuracy and performance and should
+not generally be used. A Welzl bounding sphere should never be larger than
+a Ritter sphere and should normally be substantially smaller. **/
 /**@{**/
 
 /** Create a tiny bounding sphere around a single point. The center is the
@@ -245,37 +277,35 @@ point and the radius is tiny but non-zero. **/
 static Sphere_ calcBoundingSphere(const Vec3P& p)
 {   return Sphere_(p, 0).stretchBoundary(); }
 
+
 /** Create a minimal bounding sphere around two points. Some care is taken
 to avoid roundoff problems if the points are far from the origin or very
 close together. **/
 static Sphere_ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1) {
     Array_<int> which;
-    Sphere_ minSphere = calcMinimumSphere(p0,p1,which);
-    return minSphere.stretchBoundary();
+    return calcBoundingSphere(p0,p1,which);
 }
+
 
 /** Create a minimal bounding sphere around three points. **/
 static Sphere_ calcBoundingSphere
    (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2) {
     Array_<int> which;
-    Sphere_ minSphere = calcMinimumSphere(p0,p1,p2,which);
-    return minSphere.stretchBoundary();
+    return calcBoundingSphere(p0,p1,p2,which);
 }
 
 /** Create a minimal bounding sphere around four points. **/
 static Sphere_ calcBoundingSphere
    (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, const Vec3P& p3) {
     Array_<int> which;
-    Sphere_ minSphere = calcMinimumSphere(p0,p1,p2,p3,which);
-    return minSphere.stretchBoundary();
+    return calcBoundingSphere(p0,p1,p2,p3,which);
 }
 
 /** Create a minimal bounding sphere around a collection of n points. 
 This has expected O(n) performance and yields a perfect bounding sphere. **/
 static Sphere_ calcBoundingSphere(const Array_<Vec3P>& points) {
     Array_<int> which; 
-    Sphere_ minSphere = calcMinimumSphere(points, which);
-    return minSphere.stretchBoundary();
+    return calcBoundingSphere(points, which);
 }
 
 /** Create a minimal bounding sphere around a collection of n points, given
@@ -283,14 +313,15 @@ indirectly as an array of pointers. This has expected O(n) performance and
 yields a perfect bounding sphere. **/
 static Sphere_ calcBoundingSphere(const Array_<const Vec3P*>& points) {
     Array_<int> which; 
-    Sphere_ minSphere = calcMinimumSphere(points, which);
-    return minSphere.stretchBoundary();
+    return calcBoundingSphere(points, which);
 }
 
-/** Create a minimum sphere around a single point. The center is the
-point and the radius is zero. There is always 1 support point. **/
-static Sphere_ calcMinimumSphere(const Vec3P& p0, Array_<int>& which) 
-{   which.clear(); which.push_back(0); return Sphere_(p0,0); }
+
+/** Create one-point bounding sphere and return the (trivial) support 
+point, of which there is always one. **/
+static Sphere_ calcBoundingSphere(const Vec3P& p0, Array_<int>& which) 
+{   which.clear(); which.push_back(0); 
+    return Sphere_(p0,0).stretchBoundary(); }
 
 /** Create a minimum sphere around two points. The center is the 
 midpoint, and the radius is roughly half the distance between the points,
@@ -301,31 +332,39 @@ point and report in \a which that only 1 point was used to define the sphere.
 Points far from the origin will produce a larger sphere because of roundoff.
 Cost is about 45 flops. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
-calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which);
+calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which);
 
 /** Create a minimum sphere around three points. There can be 1, 2, or 3
 support points returned in \a which. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
-calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
-                  Array_<int>& which);
+calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
+                   Array_<int>& which);
 
 /** Create a minimum sphere around four points. There can be 1, 2, 3, or 4
 support points returned in \a which.  **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
-calcMinimumSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
-                  const Vec3P& p3, Array_<int>& which);
+calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
+                   const Vec3P& p3, Array_<int>& which);
 
 /** Create an optimal minimum sphere around a collection of n points. This has 
-expected O(n) performance and yields a perfect minimum sphere. There can be
+expected O(n) performance and yields a near-perfect minimum sphere. There can be
 1, 2, 3, or 4 support points used to define the sphere and \a which reports
 which of the input points were used. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
-calcMinimumSphere(const Array_<Vec3P>& points, Array_<int>& which);
+calcBoundingSphere(const Array_<Vec3P>& points, Array_<int>& which);
 
 /** Alternate signature works with an array of pointers to points. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
-calcMinimumSphere(const Array_<const Vec3P*>& points, Array_<int>& which);
+calcBoundingSphere(const Array_<const Vec3P*>& points, Array_<int>& which);
 
+/** Calculate an approximate bounding sphere.\ You should normally use
+calcBoundingSphere() which will give a much smaller sphere. **/
+SimTK_SIMMATH_EXPORT static Sphere_ 
+calcApproxBoundingSphere(const Array_<Vec3P>& points);
+
+/** Alternate signature works with an array of pointers to points. **/
+SimTK_SIMMATH_EXPORT static Sphere_ 
+calcApproxBoundingSphere(const Array_<const Vec3P*>& points);
 /**@}**/
 
 private:
