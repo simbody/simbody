@@ -265,17 +265,14 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
             case 0: // s is the most negative
                 map[0]=0; map[1]=2; // sphere around ac includes b
                 edgeSphere=calcMinimumSphere(a,c,which); 
-                assert(!edgeSphere.isPointOutside(b));
                 break;
             case 1: // t is the most negative
                 map[0]=0; map[1]=1; // sphere around ab includes c
                 edgeSphere=calcMinimumSphere(a,b,which); 
-                assert(!edgeSphere.isPointOutside(c));
                 break;
             case 2: // u=1-s-t is the most negative
                 map[0]=1; map[1]=2; // sphere around bc includes a
                 edgeSphere=calcMinimumSphere(b,c,which); 
-                assert(!edgeSphere.isPointOutside(a));
                 break;
             };
             fixWhich(map, which);
@@ -458,22 +455,18 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
             case 0: // s is the most negative
                 map[0]=0; map[1]=2; map[2]=3; // sphere around acd includes b
                 faceSphere=calcMinimumSphere(a,c,d,which); 
-                assert(!faceSphere.isPointOutside(b));
                 break;
             case 1: // t is the most negative
                 map[0]=0; map[1]=1; map[2]=3; // sphere around abd includes c
                 faceSphere=calcMinimumSphere(a,b,d,which); 
-                assert(!faceSphere.isPointOutside(c));
                 break;
             case 2: // u is the most negative
                 map[0]=0; map[1]=1; map[2]=2; // sphere around abc includes d
                 faceSphere=calcMinimumSphere(a,b,c,which); 
-                assert(!faceSphere.isPointOutside(d));
                 break;
             case 3: // v is the most negative
                 map[0]=1; map[1]=2; map[2]=3; // sphere around bcd includes a
                 faceSphere=calcMinimumSphere(b,c,d,which); 
-                assert(!faceSphere.isPointOutside(a));
                 break;
             };
             fixWhich(map, which);
@@ -525,7 +518,7 @@ calcMinimumSphere(const Vec3P& a, const Vec3P& b,
 template <class P> static
 Geo::Sphere_<P>
 findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
-                int bIn, Array_<int>& which, int recursionLevel) {
+                int bIn, int nxtP, Array_<int>& which, int recursionLevel) {
 
     // The first bIn points should be an independent support set, and we're 
     // hoping to calculate their circumsphere here. Although in theory the 
@@ -602,8 +595,8 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
     // but didn't need. Now run through all subsequent points and update the
     // sphere to include them.
   
-    for (int i = bIn; i < (int)ix.size(); ++i) {
-        if (minSphere.isPointOutside(*p[ix[i]])) {
+    for (int i = nxtP; i < (int)ix.size(); ++i) {
+        if (minSphere.isPointOutside(*p[ix[i]],Geo::getDefaultTol<P>())) {
             // This point is outside the current bounding sphere.  
             // Move it to the start of the list. (Without reordering; I *think*
             // that is necessary to avoid messing up other recursions, but I'm
@@ -613,8 +606,8 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
             
             // Update the bounding sphere, taking the new point into account.
             ArrayView_<int> toBoundIx(ix.begin(), &ix[i]+1);
-            minSphere = findWelzlSphere<P>(p, toBoundIx, bActual+1, which,
-                                           recursionLevel+1);
+            minSphere = findWelzlSphere<P>(p, toBoundIx, bActual+1, nxtP+1,
+                                           which, recursionLevel+1);
         }
     }
 
@@ -643,7 +636,7 @@ calcMinimumSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
 
     if (npoints < 10) {
         // Not worth rearranging.
-        return findWelzlSphere<P>(points, ix, 1, which, 0);
+        return findWelzlSphere<P>(points, ix, 1, 1, which, 0);
     }
 
     // There are enough points that we'll try to improve the ordering so that
@@ -683,7 +676,7 @@ calcMinimumSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
         std::swap(ix[i], ix[extremeIx]);
     }
 
-    return findWelzlSphere<P>(points, ix, 1, which, 0);
+    return findWelzlSphere<P>(points, ix, 1, 1, which, 0);
 }
 
 

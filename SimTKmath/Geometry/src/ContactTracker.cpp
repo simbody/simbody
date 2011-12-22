@@ -41,6 +41,288 @@ using std::cout; using std::endl;
 namespace SimTK {
 
 //==============================================================================
+//                             CONTACT TRACKER
+//==============================================================================
+
+// Given a direction in shape A's frame, calculate A's support point SA in
+// that direction, and B's support point SB in the opposite direction. Then
+// return the vector (SA-SB) expressed in A's frame.
+static Vec3
+computeSupport(const ContactGeometry& shapeA, const ContactGeometry& shapeB, 
+               const Transform& X_AB, const UnitVec3& dirInA) {
+    const UnitVec3 dirInB = ~X_AB.R() * dirInA;
+    return        shapeA.calcSupportPoint( dirInA) 
+           - X_AB*shapeB.calcSupportPoint(-dirInB);
+}
+
+// Generate a rough guess at the contact points. Point P is returned in A's
+// frame and point Q is in B's frame, but all the work here is done in frame A.
+/*static*/ bool ContactTracker::
+estimateImplicitPairContactUsingMPR
+   (const ContactGeometry& shapeA, const ContactGeometry& shapeB, 
+    const Transform& X_AB, 
+    Vec3& pointP, Vec3& pointQ, int& numIterations)
+{
+    const Rotation& R_AB = X_AB.R();
+    numIterations = 0;
+
+    // Compute a point that is known to be inside the Minkowski difference, and 
+    // a ray directed from that point to the origin.
+
+    Vec3 v0 =   computeSupport(shapeA, shapeB, X_AB, UnitVec3( XAxis))
+              + computeSupport(shapeA, shapeB, X_AB, UnitVec3(-XAxis));
+    if (v0 == 0.0) {
+        // This is a pathological case: the two objects are directly on top of 
+        // each other with their centers at exactly the same place. Just 
+        // return *some* vaguely plausible contact.
+
+        pointP = shapeA.calcSupportPoint(      UnitVec3( XAxis));
+        pointQ = shapeB.calcSupportPoint(~R_AB*UnitVec3(-XAxis)); // in B
+        return true;
+    }
+
+    // Select three points that define the initial portal.
+
+    UnitVec3 dir1 = UnitVec3(-v0);
+    Vec3 v1 = computeSupport(shapeA, shapeB, X_AB, dir1);
+    if (~v1*dir1 <= 0) {
+        pointP = pointQ = NaN;
+        return false;
+    }
+    if (v1%v0 == 0) {
+        pointP = shapeA.calcSupportPoint(dir1);
+        pointQ = shapeB.calcSupportPoint(~R_AB*-dir1);
+        return true;
+    }
+    UnitVec3 dir2 = UnitVec3(v1%v0);
+    Vec3 v2 = computeSupport(shapeA, shapeB, X_AB, dir2);
+    if (~v2*dir2 <= 0.0) {
+        pointP = pointQ = NaN;
+        return false;
+    }
+    UnitVec3 dir3 = UnitVec3((v1-v0)%(v2-v0));
+    if (~dir3*v0 > 0) {
+        UnitVec3 swap1 = dir1;
+        Vec3 swap2 = v1;
+        dir1 = dir2;
+        v1 = v2;
+        dir2 = swap1;
+        v2 = swap2;
+        dir3 = -dir3;
+    }
+    Vec3 v3 = computeSupport(shapeA, shapeB, X_AB, dir3);
+    if (~v3*dir3 <= 0.0) {
+        pointP = pointQ = NaN;
+        return false;
+    }
+    while (true) {
+        if (~v0*(v1%v3) < -SignificantReal) {
+            dir2 = dir3;
+            v2 = v3;
+        }
+        else if (~v0*(v3%v2) < -SignificantReal) {
+            dir1 = dir3;
+            v1 = v3;
+        }
+        else
+            break;
+        dir3 = UnitVec3((v1-v0)%(v2-v0));
+        v3 = computeSupport(shapeA, shapeB, X_AB, dir3);
+    }
+
+    // We have a portal that the origin ray passes through. Now we need to 
+    // refine it.
+
+    while (true) {
+        ++numIterations;
+        UnitVec3 portalDir = UnitVec3((v2-v1)%(v3-v1));
+        if (~portalDir*v0 > 0)
+            portalDir = -portalDir;
+        Real dist1 = ~portalDir*v1;
+        Vec3 v4 = computeSupport(shapeA, shapeB, X_AB, portalDir);
+        Real dist4 = ~portalDir*v4;
+        if (dist1 >= 0.0) {
+            // The origin is inside the portal, so we have an intersection.  
+            // Compute the barycentric coordinates of the origin in the outer 
+            // face of the portal.
+
+            Vec3 origin = v0+v0*(~portalDir*(v1-v0)/(~portalDir*v0));
+            Real totalArea = ((v2-v1)%(v3-v1)).norm();
+            Real area1 = ~portalDir*((v2-origin)%(v3-origin));
+            Real area2 = ~portalDir*((v3-origin)%(v1-origin));
+            Real u = area1/totalArea;
+            Real v = area2/totalArea;
+            Real w = 1.0-u-v;
+
+            // Compute the contact points in their own shape's frame.
+
+            pointP =  u*shapeA.calcSupportPoint(dir1) 
+                    + v*shapeA.calcSupportPoint(dir2) 
+                    + w*shapeA.calcSupportPoint(dir3);
+            pointQ =  u*shapeB.calcSupportPoint(~R_AB*-dir1) 
+                    + v*shapeB.calcSupportPoint(~R_AB*-dir2) 
+                    + w*shapeB.calcSupportPoint(~R_AB*-dir3);
+            return true;
+        }
+        if (dist4 <= 0.0) {
+            pointP = pointQ = NaN;
+            return false;
+        }
+        Vec3 cross = v4%v0;
+        if (~v1*cross > 0.0) {
+            if (~v2*cross > 0.0) {
+                dir1 = portalDir;
+                v1 = v4;
+            }
+            else {
+                dir3 = portalDir;
+                v3 = v4;
+            }
+        }
+        else {
+            if (~v3*cross > 0.0) {
+                dir2 = portalDir;
+                v2 = v4;
+            }
+            else {
+                dir1 = portalDir;
+                v1 = v4;
+            }
+        }
+    }
+}
+
+// We have a rough estimate of the contact points. Use Newton iteration to
+// refine them.
+/*static*/ bool ContactTracker::
+refineImplicitPair
+   (const ContactGeometry& shapeA, Vec3& pointP,    // in/out (in A)
+    const ContactGeometry& shapeB, Vec3& pointQ,    // in/out (in B)
+    const Transform& X_AB, Real accuracyRequested,
+    Real& accuracyAchieved, int& numIterations)
+{ 
+    const int MaxIterations = 8;
+    numIterations = 0;
+    Vec6 err = findImplicitPairError(shapeA, pointP, shapeB, pointQ, X_AB);
+    accuracyAchieved = err.norm();
+    while (   accuracyAchieved > accuracyRequested 
+           && numIterations < MaxIterations) 
+    {
+        ++numIterations;
+        Mat66 J = calcImplicitPairJacobian(shapeA, pointP, shapeB, pointQ, 
+                                           X_AB, err);
+        FactorQTZ qtz;
+        qtz.factor(Matrix(J), SqrtEps); // TODO: Peter had 1e-6
+        Vector deltaVec(6);
+        qtz.solve(Vector(err), deltaVec);
+        Vec6 delta(&deltaVec[0]);
+
+        // Line search for safety in case starting guess bad. Don't accept
+        // any move that makes things worse.      
+        Real f = 2; // scale back factor
+        Vec3 oldP = pointP, oldQ = pointQ;
+        Real oldAccuracyAchieved = accuracyAchieved;
+        do {
+            f /= 2;
+            pointP = oldP - f*delta.getSubVec<3>(0);
+            pointQ = oldQ - f*delta.getSubVec<3>(3);
+            err = findImplicitPairError(shapeA, pointP, shapeB, pointQ, X_AB);
+            accuracyAchieved = err.norm();
+        } while (accuracyAchieved > oldAccuracyAchieved);
+
+        if (f < Real(0.1)) {
+            // We're clearly outside the region where Newton iteration is going
+            // to work properly. Just project the points onto the surfaces and 
+            // then exit.         
+            bool inside;
+            UnitVec3 normal;
+            pointP = shapeA.findNearestPoint(pointP, inside, normal);
+            pointQ = shapeB.findNearestPoint(pointQ, inside, normal);
+            err = findImplicitPairError(shapeA, pointP, shapeB, pointQ, X_AB);
+            accuracyAchieved = err.norm();
+            break;
+        }
+    }
+
+    return accuracyAchieved <= accuracyRequested;
+}
+
+/*static*/ Vec6 ContactTracker::
+findImplicitPairError
+   (const ContactGeometry& shapeA, const Vec3& pointP,  // in A
+    const ContactGeometry& shapeB, const Vec3& pointQ,  // in B
+    const Transform& X_AB) 
+{
+    // Compute the function value and normal vector for each object.
+
+    const Function& fA = shapeA.getImplicitFunction();
+    const Function& fB = shapeB.getImplicitFunction();
+    Vector x(3);
+    Array_<int> components(1);
+    Vec3 gradA, gradB;
+    Vec3::updAs(&x[0]) = pointP;
+    for (int i = 0; i < 3; i++) {
+        components[0] = i;
+        gradA[i] = fA.calcDerivative(components, x);
+    }
+    Real errorA = fA.calcValue(x);
+    Vec3::updAs(&x[0]) = pointQ;
+    for (int i = 0; i < 3; i++) {
+        components[0] = i;
+        gradB[i] = fB.calcDerivative(components, x);
+    }
+    Real errorB = fB.calcValue(x);
+
+    // Construct a coordinate frame for each object.
+    // TODO: this needs some work to make sure it is as stable as possible
+    // so the perpendicularity errors are stable as the solution advances
+    // and especially as the Jacobian is calculated by perturbation.
+
+    UnitVec3 nA(-gradA);
+    UnitVec3 nB(-X_AB.R()*gradB);
+    UnitVec3 uA(fabs(nA[0]) > 0.5 ? nA%Vec3(0, 1, 0) : nA%Vec3(1, 0, 0));
+    UnitVec3 uB(fabs(nB[0]) > 0.5 ? nB%Vec3(0, 1, 0) : nB%Vec3(1, 0, 0));
+    Vec3 vA = nA%uA; // Already a unit vector, so we don't need to normalize it.
+    Vec3 vB = nB%uB;
+
+    // Compute the error vector. The components indicate, in order, that nA 
+    // must be perpendicular to both tangents of object B, that the separation 
+    // vector should be zero or perpendicular to the tangents of object A, and 
+    // that both points should be on their respective surfaces.
+
+    Vec3 delta = pointP-X_AB*pointQ;
+    return Vec6(~nA*uB, ~nA*vB, ~delta*uA, ~delta*vA, errorA, errorB);
+}
+
+
+/*static*/ Mat66 ContactTracker::calcImplicitPairJacobian
+   (const ContactGeometry& shapeA, const Vec3& pointP,
+    const ContactGeometry& shapeB, const Vec3& pointQ,
+    const Transform& X_AB, const Vec6& err0) 
+{
+    Real dt = SqrtEps;
+
+    Vec3 d1 = dt*Vec3(1, 0, 0);
+    Vec3 d2 = dt*Vec3(0, 1, 0);
+    Vec3 d3 = dt*Vec3(0, 0, 1);
+    Vec6 err1 = findImplicitPairError(shapeA, pointP+d1, shapeB, pointQ, X_AB)
+                - err0;
+    Vec6 err2 = findImplicitPairError(shapeA, pointP+d2, shapeB, pointQ, X_AB)
+                - err0;
+    Vec6 err3 = findImplicitPairError(shapeA, pointP+d3, shapeB, pointQ, X_AB)
+                - err0;
+    Vec6 err4 = findImplicitPairError(shapeA, pointP, shapeB, pointQ+d1, X_AB)
+                - err0;
+    Vec6 err5 = findImplicitPairError(shapeA, pointP, shapeB, pointQ+d2, X_AB)
+                - err0;
+    Vec6 err6 = findImplicitPairError(shapeA, pointP, shapeB, pointQ+d3, X_AB)
+                - err0;
+    return Mat66(err1, err2, err3, err4, err5, err6) / dt;
+}
+
+
+
+//==============================================================================
 //                     HALFSPACE-SPHERE CONTACT TRACKER
 //==============================================================================
 // Cost is 21 flops if no contact, 67 with contact.
@@ -814,6 +1096,98 @@ bool ContactTracker::TriangleMeshTriangleMesh::initializeContact
     Contact&               contactStatus) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
     "ContactTracker::TriangleMeshTriangleMesh::initializeContact() not implemented yet."); 
+    return false; }
+
+
+
+//==============================================================================
+//               CONVEX IMPLICIT SURFACE PAIR CONTACT TRACKER
+//==============================================================================
+// This will return an elliptical point contact.
+bool ContactTracker::ConvexImplicitPair::trackContact
+   (const Contact&         priorStatus,
+    const Transform&       X_GA, 
+    const ContactGeometry& shapeA,
+    const Transform&       X_GB, 
+    const ContactGeometry& shapeB,
+    Real                   cutoff,
+    Contact&               currentStatus) const
+{
+    SimTK_ASSERT
+       (   shapeA.isConvex() && shapeA.isSmooth() 
+        && shapeB.isConvex() && shapeB.isSmooth(),
+       "ContactTracker::ConvexImplicitPair::trackContact()");
+
+    // We'll work in the shape A frame.
+    const Transform X_AB = ~X_GA*X_GB; // 63 flops
+    const Rotation& R_AB = X_AB.R();
+
+    // 1. Get a rough guess at the contact points P and Q.
+    Vec3 pointP, pointQ; // on A and B, resp.
+    int numMPRIters;
+    bool foundContact = estimateImplicitPairContactUsingMPR
+                           (shapeA, shapeB, X_AB, pointP, pointQ, numMPRIters);
+    if (!foundContact) {
+        currentStatus.clear(); // not touching
+        return true; // successful return
+    }
+
+    // 2. Refine the contact points to near machine precision.
+    const Real accuracyRequested = SignificantReal;
+    Real accuracyAchieved; int numNewtonIters;
+    bool converged = refineImplicitPair(shapeA,pointP,shapeB,pointQ,
+        X_AB, accuracyRequested, accuracyAchieved, numNewtonIters);
+    const Vec3 pointQ_A = X_AB*pointQ;  // measured & expressed in A
+
+    //printf("MPR %d iters, accuracy=%g in %d iters\n",
+    //    numMPRIters, accuracyAchieved, numNewtonIters);
+
+    // 3. Compute the curvature of the two surfaces at P and Q.
+    Rotation R_AP, R_BQ; Vec2 curvatureP, curvatureQ;
+    shapeA.calcCurvature(pointP, curvatureP, R_AP);
+    shapeB.calcCurvature(pointQ, curvatureQ, R_BQ);
+    UnitVec3 maxDirB_A(R_AB*R_BQ.x());
+
+    // 4. Compute the effective contact frame C and corresponding relative
+    //    curvatures.
+    Transform X_AC; Vec2 curvatureC;
+    X_AC.updP() = (pointP+pointQ_A)/2;
+    const Real depth = (pointP-pointQ_A).norm();
+    ContactGeometry::combineParaboloids(R_AP, curvatureP, 
+                                        maxDirB_A, curvatureQ, 
+                                        X_AC.updR(), curvatureC);
+
+    // 5. Return the elliptical point contact for force generation.
+    currentStatus = EllipticalPointContact(priorStatus.getSurface1(),
+                                           priorStatus.getSurface2(),
+                                           X_AB, X_AC, curvatureC, depth);
+    return true; // success
+}
+
+
+bool ContactTracker::ConvexImplicitPair::predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactTracker::ConvexImplicitPair::predictContact() not implemented yet."); 
+    return false; }
+
+bool ContactTracker::ConvexImplicitPair::initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactTracker::ConvexImplicitPair::initializeContact() not implemented yet."); 
     return false; }
 
 

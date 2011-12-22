@@ -58,7 +58,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactId);
 /** @class SimTK::ContactTypeId
 This is a small integer that serves as the unique typeid for each type
 of concrete Contact class. This is used to select an appropriate contact
-response method for a given type of Contact. This Id is unique across all
+response method for a given type of Contact. This Id is shared by all
 threads of a given program execution but you can't expect to get the same Id
 for different programs or different executions of the same program. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactTypeId);
@@ -76,14 +76,16 @@ class PointContactImpl;
 //==============================================================================
 //                                CONTACT
 //==============================================================================
-/** A Contact contains information about two surfaces that are in contact with
-each other. It usually is created by a CollisionDetectionAlgorithm, and is 
-retrieved by calling getContacts() on a GeneralContactSubsystem.
+/** A Contact contains information about the spatial relationship between two 
+surfaces that are near, or in contact with, each other. It usually is created 
+by a ContactTracker or CollisionDetectionAlgorithm, and is retrieved from a
+ContactTrackerSubsystem or GeneralContactSubsystem.
 
 The base class records only the indices of the two surfaces that are in 
-contact. CollisionDetectionAlgorithms which characterize contacts in more 
-complex ways will typically define subclasses of Contact that provide
-additional information. **/
+contact, and the relative Transform between them at the time the Contact
+was recorded. ContactTrackers or CollisionDetectionAlgorithms which 
+characterize contacts in more complex ways will return objects that are 
+subclasses of Contact that provide additional information. **/
 class SimTK_SIMMATH_EXPORT Contact {
 public:
     /** The Contact::Condition tracks the status of a Contact through its
@@ -476,7 +478,7 @@ private:
 //==============================================================================
 //                               POINT CONTACT
 //==============================================================================
-/**
+/** OBSOLETE -- use CircularPointContact or EllipticalPointContact.
  * This subclass of Contact represents a symmetric contact centered at a single
  * point, such as between two spheres or a sphere and a half space. It 
  * characterizes the contact by the center location and radius of the contact 

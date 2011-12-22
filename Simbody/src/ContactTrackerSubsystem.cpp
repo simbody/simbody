@@ -138,6 +138,15 @@ ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     adoptContactTracker(new ContactTracker::HalfSpaceTriangleMesh());
     adoptContactTracker(new ContactTracker::SphereTriangleMesh());
     adoptContactTracker(new ContactTracker::TriangleMeshTriangleMesh());
+
+    // Handle sphere-ellipsoid and ellipsoid-ellipsoid by treating them as
+    // convex objects represented by their implicit functions.
+    adoptContactTracker(new ContactTracker::ConvexImplicitPair
+                                (ContactGeometry::Sphere::classTypeId(),
+                                 ContactGeometry::Ellipsoid::classTypeId()));
+    adoptContactTracker(new ContactTracker::ConvexImplicitPair
+                                (ContactGeometry::Ellipsoid::classTypeId(),
+                                 ContactGeometry::Ellipsoid::classTypeId()));
 }
 
 ~ContactTrackerSubsystemImpl() {

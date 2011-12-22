@@ -75,6 +75,7 @@ class SphereSphere;
 class HalfSpaceTriangleMesh;
 class SphereTriangleMesh;
 class TriangleMeshTriangleMesh;
+class ConvexImplicitPair;
 
 /** Base class constructor for use by the concrete classes. **/
 ContactTracker(ContactGeometryTypeId typeOfSurface1,
@@ -133,6 +134,55 @@ virtual bool initializeContact
     Real                   cutoff,
     Real                   intervalOfInterest,
     Contact&               contactStatus) const = 0;
+
+/** Given two shapes for which implicit functions are known, and a rough-guess
+contact point for each shape, refine those contact points to obtain the nearest
+pair that satisfies contact conditions to a requested accuracy. For separated
+objects, these will be the points of closest approach between the surfaces; for
+contacting objects these are the points of maximum penetration.
+
+In implicit form there are six unknowns (spatial coordinates of the contact 
+points). The six contact conditions we use are:
+  - 2 equations: Point P is on the surface of shape A and point Q is on the 
+    surface of shape B (that is, the implicit functions both return zero).
+  - 2 equations: The normal vector at point P is perpendicular to the
+    tangent plane at point Q.
+  - 2 equations: The separation vector (P-Q) is zero or perpendicular to the
+    tangent plane at P.
+
+Note that these equations could be satisfied by incorrect points that have the
+opposite normals because the perpendicularity conditions can't distinguish n
+from -n. We are depending on having an initial guess that is good enough so
+that we find the correct solution by going downhill from there. Don't try to
+use this if you don't have a reasonably good guess already. 
+
+@returns \c true if the requested accuracy is achieved but returns its best
+attempt at the refined points regardless. **/
+static bool refineImplicitPair
+   (const ContactGeometry& shapeA, Vec3& pointP,    // in/out
+    const ContactGeometry& shapeB, Vec3& pointQ,    // in/out
+    const Transform& X_AB, Real accuracyRequested,
+    Real& accuracyAchieved, int& numIterations);
+
+/** Use Minkowski Portal Refinement (XenoCollide method by G. Snethen) to
+generate a reasonably good starting estimate of the contact points between
+two implicit shapes that are in contact. MPR cannot find those points if the
+surfaces are separated. Returns \c true if a contact was found; otherwise
+the returned points are meaningless. **/
+static bool estimateImplicitPairContactUsingMPR
+   (const ContactGeometry& shapeA, const ContactGeometry& shapeB, 
+    const Transform& X_AB, 
+    Vec3& pointP, Vec3& pointQ, int& numIterations);
+
+static Vec6 findImplicitPairError
+   (const ContactGeometry& shapeA, const Vec3& pointP,
+    const ContactGeometry& shapeB, const Vec3& pointQ,
+    const Transform& X_AB);
+
+static Mat66 calcImplicitPairJacobian
+   (const ContactGeometry& shapeA, const Vec3& pointP,
+    const ContactGeometry& shapeB, const Vec3& pointQ,
+    const Transform& X_AB, const Vec6& err0);
 
 //--------------------------------------------------------------------------
                                 private:
@@ -446,6 +496,51 @@ void tagFaces(const ContactGeometry::TriangleMesh&   mesh,
               int                                    index,
               int                                    depth) const;
 };
+
+
+//==============================================================================
+//               CONVEX IMPLICIT SURFACE PAIR CONTACT TRACKER
+//==============================================================================
+/** This ContactTracker handles contacts between two smooth, convex objects
+by using their implicit functions. Create one of these for each possible
+pair that you want handled this way. **/
+class SimTK_SIMMATH_EXPORT ContactTracker::ConvexImplicitPair 
+:   public ContactTracker {
+public:
+ConvexImplicitPair(ContactGeometryTypeId type1, ContactGeometryTypeId type2) 
+:   ContactTracker(type1, type2) {}
+
+virtual ~ConvexImplicitPair() {}
+
+virtual bool trackContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, 
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, 
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Contact&               currentStatus) const;
+
+virtual bool predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const;
+
+virtual bool initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const;
+};
+
 
 } // namespace SimTK
 
