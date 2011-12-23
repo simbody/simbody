@@ -36,27 +36,6 @@
 using namespace SimTK;
 using namespace std;
 
-const Real TOL = 1e-10;
-
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
-
-template <class T>
-void assertEqual(T val1, T val2) {
-    ASSERT(abs(val1-val2) < TOL);
-}
-
-template <int N>
-void assertEqual(Vec<N> val1, Vec<N> val2) {
-    for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < TOL);
-}
-
-template <class P, int N>
-void assertEqual(UnitVec<P,N> val1, UnitVec<P,N> val2) {
-    for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < TOL);
-}
-
 void testTriangleMesh() {
     // Create a mesh representing a tetrahedron (4 vertices, 4 faces, 6 edges).
     
@@ -71,18 +50,18 @@ void testTriangleMesh() {
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]);
     ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
-    ASSERT(mesh.getNumVertices() == 4);
-    ASSERT(mesh.getNumFaces() == 4);
-    ASSERT(mesh.getNumEdges() == 6);
+    SimTK_TEST(mesh.getNumVertices() == 4);
+    SimTK_TEST(mesh.getNumFaces() == 4);
+    SimTK_TEST(mesh.getNumEdges() == 6);
     
     // Verify that all faces and vertices are correct.
     
     for (int i = 0; i < (int) vertices.size(); i++)
-        assertEqual(vertices[i], mesh.getVertexPosition(i));
+        SimTK_TEST_EQ(vertices[i], mesh.getVertexPosition(i));
     for (int i = 0; i < 4; i++) {
-        ASSERT(faces[i][0] == mesh.getFaceVertex(i, 0));
-        ASSERT(faces[i][1] == mesh.getFaceVertex(i, 1));
-        ASSERT(faces[i][2] == mesh.getFaceVertex(i, 2));
+        SimTK_TEST(faces[i][0] == mesh.getFaceVertex(i, 0));
+        SimTK_TEST(faces[i][1] == mesh.getFaceVertex(i, 1));
+        SimTK_TEST(faces[i][2] == mesh.getFaceVertex(i, 2));
     }
     
     // Verify that all indices are consistent.
@@ -90,37 +69,38 @@ void testTriangleMesh() {
     for (int i = 0; i < mesh.getNumFaces(); i++) {
         for (int j = 0; j < 3; j++) {
             int edge = mesh.getFaceEdge(i, j);
-            ASSERT(mesh.getEdgeFace(edge, 0) == i || mesh.getEdgeFace(edge, 1) == i);
+            SimTK_TEST(   mesh.getEdgeFace(edge, 0) == i 
+                       || mesh.getEdgeFace(edge, 1) == i);
             for (int k = 0; k < 2; k++)
-                ASSERT(mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 0) ||
-                        mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 1) ||
-                        mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 2));
+                SimTK_TEST(mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 0) ||
+                           mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 1) ||
+                           mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 2));
         }
     }
     for (int i = 0; i < mesh.getNumEdges(); i++) {
         for (int j = 0; j < 2; j++) {
             int face = mesh.getEdgeFace(i, j);
-            ASSERT(mesh.getFaceEdge(face, 0) == i || mesh.getFaceEdge(face, 1) == i || mesh.getFaceEdge(face, 2) == i);
+            SimTK_TEST(mesh.getFaceEdge(face, 0) == i || mesh.getFaceEdge(face, 1) == i || mesh.getFaceEdge(face, 2) == i);
         }
     }
     for (int i = 0; i < mesh.getNumVertices(); i++) {
         Array_<int> edges;
         mesh.findVertexEdges(i, edges);
-        ASSERT(edges.size() == 3);
+        SimTK_TEST(edges.size() == 3);
         for (int j = 0; j < (int) edges.size(); j++)
-            ASSERT(mesh.getEdgeVertex(edges[j], 0) == i || mesh.getEdgeVertex(edges[j], 1) == i);
+            SimTK_TEST(mesh.getEdgeVertex(edges[j], 0) == i || mesh.getEdgeVertex(edges[j], 1) == i);
     }
     
     // Check the face normals and areas.
     
-    assertEqual(mesh.getFaceArea(0), 0.5);
-    assertEqual(mesh.getFaceArea(1), 0.5);
-    assertEqual(mesh.getFaceArea(2), 0.5);
-    assertEqual(mesh.getFaceArea(3), std::sin(Pi/3.0));
-    assertEqual(mesh.getFaceNormal(0), Vec3(0, 0, -1));
-    assertEqual(mesh.getFaceNormal(1), Vec3(-1, 0, 0));
-    assertEqual(mesh.getFaceNormal(2), Vec3(0, -1, 0));
-    assertEqual(mesh.getFaceNormal(3), Vec3(1, 1, 1)/Sqrt3);
+    SimTK_TEST_EQ(mesh.getFaceArea(0), 0.5);
+    SimTK_TEST_EQ(mesh.getFaceArea(1), 0.5);
+    SimTK_TEST_EQ(mesh.getFaceArea(2), 0.5);
+    SimTK_TEST_EQ(mesh.getFaceArea(3), std::sin(Pi/3.0));
+    SimTK_TEST_EQ(mesh.getFaceNormal(0), Vec3(0, 0, -1));
+    SimTK_TEST_EQ(mesh.getFaceNormal(1), Vec3(-1, 0, 0));
+    SimTK_TEST_EQ(mesh.getFaceNormal(2), Vec3(0, -1, 0));
+    SimTK_TEST_EQ(mesh.getFaceNormal(3), Vec3(1, 1, 1)/Sqrt3);
 }
 
 /**
@@ -132,12 +112,8 @@ void verifyMeshThrowsException(vector<Vec3> vertices, int faces[][3], int numFac
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]);
-    try {
-        ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
-        ASSERT(false);
-    }
-    catch (std::exception&) {
-    }
+    SimTK_TEST_MUST_THROW(
+        ContactGeometry::TriangleMesh mesh(vertices, faceIndices));
 }
 
 void testIncorrectMeshes() {
@@ -189,38 +165,23 @@ void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices, Vec3 offset
 void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry::TriangleMesh::OBBTreeNode node, ContactGeometry::TriangleMesh::OBBTreeNode parent, vector<int>& faceReferenceCount) {
     if (node.isLeafNode()) {
         const Array_<int>& triangles = node.getTriangles();
-        ASSERT(triangles.size() > 0);
-        ASSERT(triangles.size() == node.getNumTriangles());
+        SimTK_TEST(triangles.size() > 0);
+        SimTK_TEST(triangles.size() == node.getNumTriangles());
         for (int i = 0; i < (int) triangles.size(); i++) {
             faceReferenceCount[triangles[i]]++;
             for (int j = 0; j < 3; j++) {
-                ASSERT(node.getBounds().containsPoint(mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], j))));
-                ASSERT(parent.getBounds().containsPoint(mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], j))));
+                SimTK_TEST(node.getBounds().containsPoint(mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], j))));
+                SimTK_TEST(parent.getBounds().containsPoint(mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], j))));
             }
         }
-        try {
-            node.getFirstChildNode();
-            ASSERT(false); // This should have produced an exception.
-        }
-        catch (std::exception ex) {
-        }
-        try {
-            node.getFirstChildNode();
-            ASSERT(false); // This should have produced an exception.
-        }
-        catch (std::exception ex) {
-        }
+        SimTK_TEST_MUST_THROW(node.getFirstChildNode());
+        SimTK_TEST_MUST_THROW(node.getFirstChildNode());
     }
     else {
-        try {
-            node.getTriangles();
-            ASSERT(false); // This should have produced an exception.
-        }
-        catch (std::exception ex) {
-        }
+        SimTK_TEST_MUST_THROW(node.getTriangles());
         validateOBBTree(mesh, node.getFirstChildNode(), node, faceReferenceCount);
         validateOBBTree(mesh, node.getSecondChildNode(), node, faceReferenceCount);
-        ASSERT(node.getNumTriangles() == node.getFirstChildNode().getNumTriangles()+node.getSecondChildNode().getNumTriangles());
+        SimTK_TEST(node.getNumTriangles() == node.getFirstChildNode().getNumTriangles()+node.getSecondChildNode().getNumTriangles());
     }
 }
 
@@ -245,7 +206,7 @@ void testOBBTree() {
     vector<int> faceReferenceCount(mesh.getNumFaces(), 0);
     validateOBBTree(mesh, mesh.getOBBTreeNode(), mesh.getOBBTreeNode(), faceReferenceCount);
     for (int i = 0; i < (int) faceReferenceCount.size(); i++)
-        ASSERT(faceReferenceCount[i] == 1);
+        SimTK_TEST(faceReferenceCount[i] == 1);
 }
 
 void testRayIntersection() {
@@ -260,16 +221,16 @@ void testRayIntersection() {
     
     Real distance;
     UnitVec3 normal;
-    ASSERT(!mesh.intersectsRay(Vec3(2, 0, 0), UnitVec3(1, 0, 0), distance, normal));
-    ASSERT(mesh.intersectsRay(Vec3(2, 0, 0), UnitVec3(-1, 0, 0), distance, normal));
-    assertEqual(1.0, distance);
-    ASSERT(mesh.intersectsRay(Vec3(0, 0, 0), UnitVec3(1, 1, 1), distance, normal));
-    assertEqual(1.0/Sqrt3, distance);
-    assertEqual(normal, Vec3(1, 1, 1)/Sqrt3);
-    ASSERT(mesh.intersectsRay(Vec3(0.1, 0.1, 0.1), UnitVec3(-1, -1, -1), distance, normal));
-    assertEqual(std::sqrt(3*0.1*0.1)+1.0/Sqrt3, distance);
-    assertEqual(normal, Vec3(-1, -1, -1)/Sqrt3);
-    ASSERT(!mesh.intersectsRay(Vec3(-1, -1, -1), UnitVec3(-1, -1, -1), distance, normal));
+    SimTK_TEST(!mesh.intersectsRay(Vec3(2, 0, 0), UnitVec3(1, 0, 0), distance, normal));
+    SimTK_TEST(mesh.intersectsRay(Vec3(2, 0, 0), UnitVec3(-1, 0, 0), distance, normal));
+    SimTK_TEST_EQ(1.0, distance);
+    SimTK_TEST(mesh.intersectsRay(Vec3(0, 0, 0), UnitVec3(1, 1, 1), distance, normal));
+    SimTK_TEST_EQ(1.0/Sqrt3, distance);
+    SimTK_TEST_EQ(normal, Vec3(1, 1, 1)/Sqrt3);
+    SimTK_TEST(mesh.intersectsRay(Vec3(0.1, 0.1, 0.1), UnitVec3(-1, -1, -1), distance, normal));
+    SimTK_TEST_EQ(std::sqrt(3*0.1*0.1)+1.0/Sqrt3, distance);
+    SimTK_TEST_EQ(normal, Vec3(-1, -1, -1)/Sqrt3);
+    SimTK_TEST(!mesh.intersectsRay(Vec3(-1, -1, -1), UnitVec3(-1, -1, -1), distance, normal));
 }
 
 void testSmoothMesh() {
@@ -284,18 +245,18 @@ void testSmoothMesh() {
     // At the center of every face, the normals should be identical.
  
     for (int i = 0; i < 8; i++)
-        assertEqual(mesh1.findNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)), mesh2.findNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)));
+        SimTK_TEST_EQ(mesh1.findNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)), mesh2.findNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)));
     
     // At the vertices, the smooth mesh normal should point directly outward, while the faceted mesh should
     // be the same as the face normal.
     
     for (int i = 0; i < 8; i++) {
-        assertEqual(mesh1.findNormalAtPoint(i, Vec2(1, 0)), mesh1.getFaceNormal(i));
-        assertEqual(mesh1.findNormalAtPoint(i, Vec2(0, 1)), mesh1.getFaceNormal(i));
-        assertEqual(mesh1.findNormalAtPoint(i, Vec2(0, 0)), mesh1.getFaceNormal(i));
-        assertEqual(mesh2.findNormalAtPoint(i, Vec2(1, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 0)));
-        assertEqual(mesh2.findNormalAtPoint(i, Vec2(0, 1)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 1)));
-        assertEqual(mesh2.findNormalAtPoint(i, Vec2(0, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 2)));
+        SimTK_TEST_EQ(mesh1.findNormalAtPoint(i, Vec2(1, 0)), mesh1.getFaceNormal(i));
+        SimTK_TEST_EQ(mesh1.findNormalAtPoint(i, Vec2(0, 1)), mesh1.getFaceNormal(i));
+        SimTK_TEST_EQ(mesh1.findNormalAtPoint(i, Vec2(0, 0)), mesh1.getFaceNormal(i));
+        SimTK_TEST_EQ(mesh2.findNormalAtPoint(i, Vec2(1, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 0)));
+        SimTK_TEST_EQ(mesh2.findNormalAtPoint(i, Vec2(0, 1)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 1)));
+        SimTK_TEST_EQ(mesh2.findNormalAtPoint(i, Vec2(0, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 2)));
     }
 }
 
@@ -315,11 +276,11 @@ void testFindNearestPoint() {
         bool inside;
         UnitVec3 normal;
         Vec3 nearest = mesh.findNearestPoint(pos, inside, normal);
-        ASSERT(inside == (~pos*normal < 1/Sqrt3));
-        assertEqual(~nearest*normal, 1/Sqrt3);
+        SimTK_TEST(inside == (~pos*normal < 1/Sqrt3));
+        SimTK_TEST_EQ(~nearest*normal, 1/Sqrt3);
         for (int j = 0; j < 3; j++) {
-            ASSERT(pos[j]*nearest[j] >= 0 || std::abs(nearest[j]) < 100*Eps);
-            ASSERT(pos[j]*normal[j] >= 0);
+            SimTK_TEST(pos[j]*nearest[j] >= 0 || std::abs(nearest[j]) < 100*Eps);
+            SimTK_TEST(pos[j]*normal[j] >= 0);
         }
     }
 }
@@ -344,30 +305,24 @@ void testBoundingSphere() {
         mesh.getBoundingSphere(center, radius);
         for (int i = 0; i < mesh.getNumVertices(); i++) {
             Real dist = (center-mesh.getVertexPosition(i)).norm();
-            ASSERT(dist <= radius);
+            SimTK_TEST(dist <= radius);
         }
         
         // Make sure the bounding sphere is reasonably compact.
         
         Vec3 boxRadius = 0.5*mesh.getOBBTreeNode().getBounds().getSize();
-        ASSERT(radius <= boxRadius.norm());
+        SimTK_TEST(radius <= boxRadius.norm());
     }
 }
 
 int main() {
-    try {
-        testTriangleMesh();
-        testIncorrectMeshes();
-        testOBBTree();
-        testRayIntersection();
-        testSmoothMesh();
-        testFindNearestPoint();
-        testBoundingSphere();
-    }
-    catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    cout << "Done" << endl;
-    return 0;
+    SimTK_START_TEST("TestTriangleMesh");
+        SimTK_SUBTEST(testTriangleMesh);
+        SimTK_SUBTEST(testIncorrectMeshes);
+        SimTK_SUBTEST(testOBBTree);
+        SimTK_SUBTEST(testRayIntersection);
+        SimTK_SUBTEST(testSmoothMesh);
+        SimTK_SUBTEST(testFindNearestPoint);
+        SimTK_SUBTEST(testBoundingSphere);
+    SimTK_END_TEST();
 }
