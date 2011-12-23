@@ -36,6 +36,10 @@ Non-inline static methods from the Geo::Sphere_ class. **/
 #include "simmath/internal/common.h"
 #include "simmath/internal/Geo.h"
 
+#include <cstdio>
+#include <iostream>
+using std::cout; using std::endl;
+
 namespace SimTK {
 
 //==============================================================================
@@ -534,9 +538,11 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
 
     switch(bIn) {
     // Create a bounding sphere for 0, 1, 2, 3, or 4 points. Note which
-    // points were actually used, and how many. If we manage to use the
-    // maximum of 4 support points, we return; otherwise, we'll fall through
-    // and hunt for another support point.
+    // points were actually used, and how many. The original algorithm returned
+    // when four points are used, but we still have to check that we have the
+    // *right* four points because our primitives might not have used all
+    // the points they were given earlier and we need to make sure the new
+    // 4-point circumsphere includes the points that were dropped.
     case 0: 
         minSphere = Geo::Sphere_<P>(Vec<3,P>(0),0);
         which.clear();
@@ -553,28 +559,23 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
                             (*p[ix[0]],*p[ix[1]],*p[ix[2]],which);
         break;
     case 4:
-        // Never need more than 4 points.
         minSphere = Geo::Sphere_<P>::calcBoundingSphere
                             (*p[ix[0]],*p[ix[1]],*p[ix[2]],*p[ix[3]],which);
-        if (which.size() == 4) {
-            // We can return now after fixing up the indices in which.
-            fixWhich(ix.begin(), which);
-            return minSphere;
-        }
         break;
     }
 
-    // We're here because we used fewer than 4 support points. 
+    // We have a sphere that surrounds all bIn points.
     
     // First, fix the indices in which (the primitives number from 0).
     fixWhich(ix.begin(), which);
     const int bActual = (int)which.size(); // <= 3
 
-    // It is possible that we didn't use all the bIn points we were given, but
-    // instead used a smaller number, bActual (probably bIn-1). In that case we
-    // have to make sure that the *first* bActual are the support points. So 
-    // we'll look at the entries [bActual..bIn-1]; if one is now part of the 
-    // support set we'll swap it with a now-unused point in [0..bActual-1].
+    // It is possible that we didn't need as support points all the bIn points
+    // we were given, but instead used a smaller number, bActual (probably 
+    // bIn-1). In that case we have to make sure that the *first* bActual are 
+    // the support points. So we'll look at the entries [bActual..bIn-1]; if 
+    // one is now part of the support set we'll swap it with a now-unused 
+    // point in [0..bActual-1].
     for (int i=bActual; i < bIn; ++i) {
         const int* w = std::find(which.begin(), which.end(), ix[i]);
         if (w == which.end()) continue; // not being used
@@ -607,10 +608,14 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
             for (int j = i; j > 0; --j)
                 std::swap(ix[j], ix[j-1]);
             
-            // Update the bounding sphere, taking the new point into account.
+            // Update the bounding sphere, taking the new point into account
+            // and ensuring that the resulting sphere also includes all the
+            // previous points as well. You never need more than 4 points.
             ArrayView_<int> toBoundIx(ix.begin(), &ix[i]+1);
-            minSphere = findWelzlSphere<P>(p, toBoundIx, bActual+1, 
+            minSphere = findWelzlSphere<P>(p, toBoundIx, 
+                                           std::min(bActual+1,4), 
                                            which, recursionLevel+1);
+
         }
     }
 
