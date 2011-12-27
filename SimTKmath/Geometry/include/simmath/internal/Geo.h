@@ -291,21 +291,30 @@ static Sphere_ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1) {
 static Sphere_ calcBoundingSphere
    (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2) {
     Array_<int> which;
-    return calcBoundingSphere(p0,p1,p2,which);
+    return calcBoundingSphere(p0,p1,p2,false,which);
 }
 
 /** Create a minimal bounding sphere around four points. **/
 static Sphere_ calcBoundingSphere
    (const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, const Vec3P& p3) {
     Array_<int> which;
-    return calcBoundingSphere(p0,p1,p2,p3,which);
+    return calcBoundingSphere(p0,p1,p2,p3,false,which);
 }
 
 /** Create a minimal bounding sphere around a collection of n points. 
-This has expected O(n) performance and yields a perfect bounding sphere. **/
+This has expected O(n) performance and usually yields a near-perfect 
+bounding sphere. **/
 static Sphere_ calcBoundingSphere(const Array_<Vec3P>& points) {
     Array_<int> which; 
     return calcBoundingSphere(points, which);
+}
+
+/** This signature takes an std::vector rather than a SimTK::Array_; no
+extra copying is required. **/
+static Sphere_ 
+calcBoundingSphere(const std::vector<Vec3P>& points) {
+    return calcBoundingSphere // no copy done here
+                (ArrayViewConst_<Vec3P>(points));
 }
 
 /** Create a minimal bounding sphere around a collection of n points, given
@@ -316,6 +325,13 @@ static Sphere_ calcBoundingSphere(const Array_<const Vec3P*>& points) {
     return calcBoundingSphere(points, which);
 }
 
+/** This signature takes an std::vector rather than a SimTK::Array_; no
+extra copying is required. **/
+static Sphere_ 
+calcBoundingSphere(const std::vector<const Vec3P*>& points) {
+    return calcBoundingSphere // no copy done here
+                (ArrayViewConst_<const Vec3P*>(points));
+}
 
 /** Create one-point bounding sphere and return the (trivial) support 
 point, of which there is always one. **/
@@ -335,16 +351,24 @@ SimTK_SIMMATH_EXPORT static Sphere_
 calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which);
 
 /** Create a minimum sphere around three points. There can be 1, 2, or 3
-support points returned in \a which. **/
+support points returned in \a which. You can optionally force use of the 
+3-point circumsphere, which will not always be minimal. Even if
+\a forceCircumsphere is set \c true, if the points are
+singular (coincident, collinear, coplanar) then it may not be
+possible to generate a circumsphere and fewer support points will be used. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
 calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
-                   Array_<int>& which);
+                   bool forceCircumsphere, Array_<int>& which);
 
 /** Create a minimum sphere around four points. There can be 1, 2, 3, or 4
-support points returned in \a which.  **/
+support points returned in \a which. You can optionally force use of the 
+4-point circumsphere, which will not always be minimal. Even if
+\a forceCircumsphere is set \c true, if the points are
+singular (coincident, collinear, coplanar, cospherical) then it may not be
+possible to generate a circumsphere and fewer support points will be used. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
 calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, const Vec3P& p2, 
-                   const Vec3P& p3, Array_<int>& which);
+                   const Vec3P& p3, bool forceCircumsphere, Array_<int>& which);
 
 /** Create an optimal minimum sphere around a collection of n points. This has 
 expected O(n) performance and yields a near-perfect minimum sphere. There can be
@@ -358,13 +382,29 @@ SimTK_SIMMATH_EXPORT static Sphere_
 calcBoundingSphere(const Array_<const Vec3P*>& points, Array_<int>& which);
 
 /** Calculate an approximate bounding sphere.\ You should normally use
-calcBoundingSphere() which will give a much smaller sphere. **/
+calcBoundingSphere() which will give a smaller sphere. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
 calcApproxBoundingSphere(const Array_<Vec3P>& points);
+
+/** This signature takes an std::vector rather than a SimTK::Array_; no
+extra copying is required. **/
+static Sphere_ 
+calcApproxBoundingSphere(const std::vector<Vec3P>& points) {
+    return calcApproxBoundingSphere // no copy done here
+                (ArrayViewConst_<Vec3P>(points));
+}
 
 /** Alternate signature works with an array of pointers to points. **/
 SimTK_SIMMATH_EXPORT static Sphere_ 
 calcApproxBoundingSphere(const Array_<const Vec3P*>& points);
+
+/** This signature takes an std::vector rather than a SimTK::Array_; no
+extra copying is required. **/
+static Sphere_ 
+calcApproxBoundingSphere(const std::vector<const Vec3P*>& points) {
+    return calcApproxBoundingSphere // no copy done here
+                (ArrayViewConst_<const Vec3P*>(points));
+}
 /**@}**/
 
 private:
