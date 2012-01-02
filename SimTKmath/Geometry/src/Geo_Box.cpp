@@ -30,42 +30,43 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-Non-inline static methods from the Geo class. **/
+Non-inline static methods from the Geo::Box_ class. **/
 
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 #include "simmath/internal/Geo.h"
-#include "simmath/internal/Geo_Point.h"
-#include "simmath/internal/Geo_LineSeg.h"
 #include "simmath/internal/Geo_Box.h"
-#include "simmath/internal/Geo_CubicHermiteCurve.h"
-#include "simmath/internal/Geo_BicubicHermitePatch.h"
-#include "simmath/internal/Geo_CubicBezierCurve.h"
-#include "simmath/internal/Geo_BicubicBezierPatch.h"
+#include "simmath/internal/Geo_Sphere.h"
+
+#include <cstdio>
+#include <iostream>
+using std::cout; using std::endl;
 
 namespace SimTK {
 
 //==============================================================================
-//                                   GEO
+//                               GEO :: BOX
 //==============================================================================
 
-// Template instantiations for subclasses that don't have their own source
-// files.
+    
+//==============================================================================
+//                           GEO :: ALIGNED BOX
+//==============================================================================
 
-template class Geo::LineSeg_<float>;
-template class Geo::LineSeg_<double>;
+    
+//==============================================================================
+//                           GEO :: ORIENTED BOX
+//==============================================================================
 
-template class Geo::CubicHermiteCurve_<float>;
-template class Geo::CubicHermiteCurve_<double>;
 
-template class Geo::BicubicHermitePatch_<float>;
-template class Geo::BicubicHermitePatch_<double>;
+// Explicit instantiations for float and double.
+template class Geo::Box_<float>;
+template class Geo::Box_<double>;
 
-template class Geo::CubicBezierCurve_<float>;
-template class Geo::CubicBezierCurve_<double>;
+template class Geo::AlignedBox_<float>;
+template class Geo::AlignedBox_<double>;
 
-template class Geo::BicubicBezierPatch_<float>;
-template class Geo::BicubicBezierPatch_<double>;
-
+template class Geo::OrientedBox_<float>;
+template class Geo::OrientedBox_<double>;
 
 }  // End of namespace SimTK

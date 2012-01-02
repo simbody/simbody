@@ -103,7 +103,7 @@ void testTriMeshBoundingSphere() {
         // Compare with fast & crude Ritter sphere. On lucky occasions the
         // Ritter sphere can be just as good, and then roundoff might make
         // it trivially better but it shouldn't ever actually *be* better.
-        Geo::Sphere ritter = Geo::Sphere::calcApproxBoundingSphere(vertices);
+        Geo::Sphere ritter = Geo::Point::calcApproxBoundingSphere(vertices);
         SimTK_TEST(radius <= ritter.getRadius()*(1.01));
 
         const Real bsoas = cube(radius/ritter.getRadius());
@@ -145,15 +145,15 @@ void testRandomPoints() {
             pts.push_back(pt+offs); fpts.push_back(fpt+foffs);
         }
 
-        Geo::Sphere bs = Geo::Sphere::calcBoundingSphere(pts);
+        Geo::Sphere bs = Geo::Point::calcBoundingSphere(pts);
         checkSphere(bs, pts);
         Geo::Sphere_<float> fbs = 
-            Geo::Sphere_<float>::calcBoundingSphere(fpts);
+            Geo::Point_<float>::calcBoundingSphere(fpts);
         checkSphere(fbs, fpts);
-        Geo::Sphere as = Geo::Sphere::calcApproxBoundingSphere(pts);
+        Geo::Sphere as = Geo::Point::calcApproxBoundingSphere(pts);
         checkSphere(as, pts);
         Geo::Sphere_<float> fas = 
-            Geo::Sphere_<float>::calcApproxBoundingSphere(fpts);
+            Geo::Point_<float>::calcApproxBoundingSphere(fpts);
         checkSphere(fas, fpts);
 
         const Real bsoas = cube(bs.getRadius()/as.getRadius());
@@ -223,15 +223,15 @@ void testCollinearPoints() {
 
         Real radius = (pts[maxpos]-pts[minpos]).norm()/2;
 
-        Geo::Sphere bs = Geo::Sphere::calcBoundingSphere(pts);
+        Geo::Sphere bs = Geo::Point::calcBoundingSphere(pts);
         checkSphere(bs, pts);
         Geo::Sphere_<float> fbs = 
-            Geo::Sphere_<float>::calcBoundingSphere(fpts);
+            Geo::Point_<float>::calcBoundingSphere(fpts);
         checkSphere(fbs, fpts);
-        Geo::Sphere as = Geo::Sphere::calcApproxBoundingSphere(pts);
+        Geo::Sphere as = Geo::Point::calcApproxBoundingSphere(pts);
         checkSphere(as, pts);
         Geo::Sphere_<float> fas = 
-            Geo::Sphere_<float>::calcApproxBoundingSphere(fpts);
+            Geo::Point_<float>::calcApproxBoundingSphere(fpts);
         checkSphere(fas, fpts);
 
         Real scale = std::max(std::max(max(offs.abs()), radius), One);
@@ -252,13 +252,13 @@ void testCollinearPoints() {
             fpts[p] += NTraits<float>::getSignificant()*fnoise;
         }
 
-        bs = Geo::Sphere::calcBoundingSphere(pts);
+        bs = Geo::Point::calcBoundingSphere(pts);
         checkSphere(bs, pts);
-        fbs = Geo::Sphere_<float>::calcBoundingSphere(fpts);
+        fbs = Geo::Point_<float>::calcBoundingSphere(fpts);
         checkSphere(fbs, fpts);
-        as = Geo::Sphere::calcApproxBoundingSphere(pts);
+        as = Geo::Point::calcApproxBoundingSphere(pts);
         checkSphere(as, pts);
-        fas = Geo::Sphere_<float>::calcApproxBoundingSphere(fpts);
+        fas = Geo::Point_<float>::calcApproxBoundingSphere(fpts);
         checkSphere(fas, fpts);
 
         SimTK_TEST_EQ_TOL(bs.getRadius(), radius, tol);
@@ -285,15 +285,15 @@ void testCollocatedPoints() {
             pts.push_back(pt); fpts.push_back(fpt);
         }
 
-        Geo::Sphere bs = Geo::Sphere::calcBoundingSphere(pts);
+        Geo::Sphere bs = Geo::Point::calcBoundingSphere(pts);
         checkSphere(bs, pts);
         Geo::Sphere_<float> fbs = 
-            Geo::Sphere_<float>::calcBoundingSphere(fpts);
+            Geo::Point_<float>::calcBoundingSphere(fpts);
         checkSphere(fbs, fpts);
-        Geo::Sphere as = Geo::Sphere::calcApproxBoundingSphere(pts);
+        Geo::Sphere as = Geo::Point::calcApproxBoundingSphere(pts);
         checkSphere(as, pts);
         Geo::Sphere_<float> fas = 
-            Geo::Sphere_<float>::calcApproxBoundingSphere(fpts);
+            Geo::Point_<float>::calcApproxBoundingSphere(fpts);
         checkSphere(fas, fpts);
 
         SimTK_TEST(bs.getRadius() < SqrtEps)
@@ -309,13 +309,13 @@ void testCollocatedPoints() {
             fpts[p] += NTraits<float>::getSignificant()*fnoise;
         }
 
-        bs = Geo::Sphere::calcBoundingSphere(pts);
+        bs = Geo::Point::calcBoundingSphere(pts);
         checkSphere(bs, pts);
-        fbs = Geo::Sphere_<float>::calcBoundingSphere(fpts);
+        fbs = Geo::Point_<float>::calcBoundingSphere(fpts);
         checkSphere(fbs, fpts);
-        as = Geo::Sphere::calcApproxBoundingSphere(pts);
+        as = Geo::Point::calcApproxBoundingSphere(pts);
         checkSphere(as, pts);
-        fas = Geo::Sphere_<float>::calcApproxBoundingSphere(fpts);
+        fas = Geo::Point_<float>::calcApproxBoundingSphere(fpts);
         checkSphere(fas, fpts);
     }
 }

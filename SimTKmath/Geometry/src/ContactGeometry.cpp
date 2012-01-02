@@ -32,6 +32,9 @@
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 #include "simmath/internal/Geo.h"
+#include "simmath/internal/Geo_Point.h"
+#include "simmath/internal/Geo_Sphere.h"
+#include "simmath/internal/BicubicSurface.h"
 #include "simmath/internal/ContactGeometry.h"
 
 #include "ContactGeometryImpl.h"
@@ -120,7 +123,8 @@ Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const
 /*static*/Vec2 ContactGeometry::
 evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
                         const Vec3& dPdu, const Vec3& dPdv,
-                        const Vec3& d2Pdu2, const Vec3& d2Pdv2, const Vec3& d2Pdudv,
+                        const Vec3& d2Pdu2, const Vec3& d2Pdv2, 
+                        const Vec3& d2Pdudv,
                         Transform& X_EP)
 {
     // All this is 42 flops
@@ -286,20 +290,20 @@ static void combineParaboloidsHelper
 //                             HALF SPACE & IMPL
 //==============================================================================
 ContactGeometry::HalfSpace::HalfSpace()
-:   ContactGeometry(new HalfSpaceImpl()) {}
+:   ContactGeometry(new HalfSpace::Impl()) {}
 
 /*static*/ ContactGeometryTypeId ContactGeometry::HalfSpace::classTypeId() 
-{   return ContactGeometry::HalfSpaceImpl::classTypeId(); }
+{   return ContactGeometry::HalfSpace::Impl::classTypeId(); }
 
 // Point position is given in the half space frame.
-Vec3 ContactGeometry::HalfSpaceImpl::findNearestPoint
+Vec3 ContactGeometry::HalfSpace::Impl::findNearestPoint
    (const Vec3& position, bool& inside, UnitVec3& normal) const {
     inside = (position[0] >= 0);
     normal = -UnitVec3(XAxis); // this does not require normalization
     return Vec3(0, position[1], position[2]);
 }
 
-bool ContactGeometry::HalfSpaceImpl::intersectsRay
+bool ContactGeometry::HalfSpace::Impl::intersectsRay
    (const Vec3& origin, const UnitVec3& direction, 
     Real& distance, UnitVec3& normal) const 
 {
@@ -315,10 +319,22 @@ bool ContactGeometry::HalfSpaceImpl::intersectsRay
     return true;
 }
 
-void ContactGeometry::HalfSpaceImpl::getBoundingSphere
+void ContactGeometry::HalfSpace::Impl::getBoundingSphere
    (Vec3& center, Real& radius) const 
 {   center = Vec3(0);
     radius = Infinity; }
+
+const ContactGeometry::HalfSpace::Impl& ContactGeometry::HalfSpace::
+getImpl() const {
+    assert(impl);
+    return static_cast<const HalfSpace::Impl&>(*impl);
+}
+
+ContactGeometry::HalfSpace::Impl& ContactGeometry::HalfSpace::
+updImpl() {
+    assert(impl);
+    return static_cast<HalfSpace::Impl&>(*impl);
+}
 
 
 
@@ -327,10 +343,10 @@ void ContactGeometry::HalfSpaceImpl::getBoundingSphere
 //==============================================================================
 
 ContactGeometry::Sphere::Sphere(Real radius) 
-:   ContactGeometry(new SphereImpl(radius)) {}
+:   ContactGeometry(new Sphere::Impl(radius)) {}
 
 /*static*/ ContactGeometryTypeId ContactGeometry::Sphere::classTypeId() 
-{   return ContactGeometry::SphereImpl::classTypeId(); }
+{   return ContactGeometry::Sphere::Impl::classTypeId(); }
 
 Real ContactGeometry::Sphere::getRadius() const {
     return getImpl().getRadius();
@@ -340,23 +356,23 @@ void ContactGeometry::Sphere::setRadius(Real radius) {
     updImpl().setRadius(radius);
 }
 
-const ContactGeometry::SphereImpl& ContactGeometry::Sphere::getImpl() const {
+const ContactGeometry::Sphere::Impl& ContactGeometry::Sphere::getImpl() const {
     assert(impl);
-    return static_cast<const SphereImpl&>(*impl);
+    return static_cast<const Sphere::Impl&>(*impl);
 }
 
-ContactGeometry::SphereImpl& ContactGeometry::Sphere::updImpl() {
+ContactGeometry::Sphere::Impl& ContactGeometry::Sphere::updImpl() {
     assert(impl);
-    return static_cast<SphereImpl&>(*impl);
+    return static_cast<Sphere::Impl&>(*impl);
 }
 
-Vec3 ContactGeometry::SphereImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+Vec3 ContactGeometry::Sphere::Impl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     inside = (position.normSqr() <= radius*radius);
     normal = UnitVec3(position); // expensive -- normalizing
     return normal*radius;
 }
 
-bool ContactGeometry::SphereImpl::intersectsRay
+bool ContactGeometry::Sphere::Impl::intersectsRay
    (const Vec3& origin, const UnitVec3& direction, 
     Real& distance, UnitVec3& normal) const 
 {
@@ -385,13 +401,13 @@ bool ContactGeometry::SphereImpl::intersectsRay
     return true;
 }
 
-void ContactGeometry::SphereImpl::
+void ContactGeometry::Sphere::Impl::
 getBoundingSphere(Vec3& center, Real& radius) const {
     center = Vec3(0);
     radius = this->radius;
 }
 
-void ContactGeometry::SphereImpl::
+void ContactGeometry::Sphere::Impl::
 calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
     orientation = Rotation(UnitVec3(point), ZAxis, fabs(point[0]) > 0.5 ? Vec3(0, 1, 0) : Vec3(1, 0, 0), XAxis);
     curvature = 1/radius;
@@ -418,13 +434,13 @@ calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
 //==============================================================================
 
 ContactGeometry::Ellipsoid::Ellipsoid(const Vec3& radii)
-:   ContactGeometry(new EllipsoidImpl(radii)) {}
+:   ContactGeometry(new Ellipsoid::Impl(radii)) {}
 
 void ContactGeometry::Ellipsoid::setRadii(const Vec3& radii) 
 {   updImpl().setRadii(radii); }
 
 /*static*/ ContactGeometryTypeId ContactGeometry::Ellipsoid::classTypeId()
-{   return ContactGeometry::EllipsoidImpl::classTypeId(); }
+{   return ContactGeometry::Ellipsoid::Impl::classTypeId(); }
 
 const Vec3& ContactGeometry::Ellipsoid::getRadii() const 
 {   return getImpl().getRadii(); }
@@ -454,16 +470,16 @@ findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
 {   return getImpl().findParaboloidAtPointWithNormal(Q,nn,X_EP,k); }
 
 
-const ContactGeometry::EllipsoidImpl& ContactGeometry::Ellipsoid::
+const ContactGeometry::Ellipsoid::Impl& ContactGeometry::Ellipsoid::
 getImpl() const {
     assert(impl);
-    return static_cast<const EllipsoidImpl&>(*impl);
+    return static_cast<const Ellipsoid::Impl&>(*impl);
 }
 
-ContactGeometry::EllipsoidImpl& ContactGeometry::Ellipsoid::
+ContactGeometry::Ellipsoid::Impl& ContactGeometry::Ellipsoid::
 updImpl() {
     assert(impl);
-    return static_cast<EllipsoidImpl&>(*impl);
+    return static_cast<Ellipsoid::Impl&>(*impl);
 }
 
 // Given a point Q on an ellipsoid, with outward unit normal nn at Q: find the 
@@ -548,7 +564,7 @@ updImpl() {
 // return (kmax,kmin) the principal curvatures at Q, and a Transform with 
 // x=dmax, y=dmin, z=nn, O=Q that gives the principal curvature directions. 
 // (Note: A=1/a^2, B=1/b^2, C=1/c^2 where a,b,c are the ellipsoid radii.)
-void ContactGeometry::EllipsoidImpl::
+void ContactGeometry::Ellipsoid::Impl::
 findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
                                 Transform& X_EP, Vec2& k) const
 {
@@ -635,7 +651,7 @@ findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
 // this implementation. -- Sherm 20110203.
 //
 // TODO: use faster method?
-Vec3 ContactGeometry::EllipsoidImpl::
+Vec3 ContactGeometry::Ellipsoid::Impl::
 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     Real a2 = radii[0]*radii[0];
     Real b2 = radii[1]*radii[1];
@@ -677,7 +693,7 @@ findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
 // and is most likely a special case of the general ray-quadric intersection
 // method presented by Cychosz and Waggenspack in Graphics Gems III, pg. 275,
 // "Intersecting a ray with a quadric surface."
-bool ContactGeometry::EllipsoidImpl::intersectsRay
+bool ContactGeometry::Ellipsoid::Impl::intersectsRay
    (const Vec3& origin, const UnitVec3& direction,
     Real& distance, UnitVec3& normal) const
 {
@@ -712,13 +728,13 @@ bool ContactGeometry::EllipsoidImpl::intersectsRay
     return true;
 }
 
-void ContactGeometry::EllipsoidImpl::
+void ContactGeometry::Ellipsoid::Impl::
 getBoundingSphere(Vec3& center, Real& radius) const {
     center = Vec3(0);
     radius = max(radii);
 }
 
-void ContactGeometry::EllipsoidImpl::
+void ContactGeometry::Ellipsoid::Impl::
 calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
     Transform transform;
     findParaboloidAtPoint(point, transform, curvature);
@@ -748,20 +764,118 @@ calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
 
 
 //==============================================================================
+//                          SMOOTH HEIGHT MAP & IMPL
+//==============================================================================
+
+ContactGeometry::SmoothHeightMap::
+SmoothHeightMap(const BicubicSurface& surface) 
+:   ContactGeometry(new SmoothHeightMap::Impl(surface)) {}
+
+/*static*/ ContactGeometryTypeId ContactGeometry::SmoothHeightMap::
+classTypeId() 
+{   return ContactGeometry::SmoothHeightMap::Impl::classTypeId(); }
+
+const BicubicSurface& ContactGeometry::SmoothHeightMap::
+getBicubicSurface() const {return getImpl().getBicubicSurface();}
+
+const ContactGeometry::SmoothHeightMap::Impl& ContactGeometry::SmoothHeightMap::
+getImpl() const {
+    assert(impl);
+    return static_cast<const SmoothHeightMap::Impl&>(*impl);
+}
+
+ContactGeometry::SmoothHeightMap::Impl& ContactGeometry::SmoothHeightMap::
+updImpl() {
+    assert(impl);
+    return static_cast<SmoothHeightMap::Impl&>(*impl);
+}
+
+// This is the main constructor.
+ContactGeometry::SmoothHeightMap::Impl::
+Impl(const BicubicSurface& surface) 
+:   surface(surface) { 
+    implicitFunction.setOwner(*this); 
+
+    // Create bounding sphere.
+    // TODO: fake this using mesh; this needs to be done correctly instead
+    // by the BicubicSurface itself. Using 5 subdivisions per patch.
+    PolygonalMesh mesh = surface.createPolygonalMesh(5);
+
+    // Collect all the vertices.
+    const int n = mesh.getNumVertices();
+    Array_<const Vec3*> points(n);
+    for (int i=0; i<n; ++i)
+        points[i] = &mesh.getVertexPosition(i);
+    boundingSphere = Geo::Point::calcBoundingSphere(points);
+    // Add 10% as a hack to make it less likely we'll miss part of the surface.
+    boundingSphere.updRadius() *= 1.1;
+}
+
+// This constructor is used by clone() to avoid recalculating the bounding
+// sphere.
+ContactGeometry::SmoothHeightMap::Impl::
+Impl(const BicubicSurface& surface, const Geo::Sphere& boundingSphere) 
+:   surface(surface), boundingSphere(boundingSphere) 
+{   implicitFunction.setOwner(*this); }
+
+Vec3 ContactGeometry::SmoothHeightMap::Impl::
+findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    assert(false);
+    return Vec3(NaN);
+}
+
+bool ContactGeometry::SmoothHeightMap::Impl::intersectsRay
+   (const Vec3& origin, const UnitVec3& direction, 
+    Real& distance, UnitVec3& normal) const 
+{
+    assert(false);
+    return true;
+}
+
+Real SmoothHeightMapImplicitFunction::
+calcValue(const Vector& p) const {
+    const BicubicSurface&      surf = ownerp->getBicubicSurface();
+    BicubicSurface::PatchHint& hint = ownerp->updHint();
+    const Real z = surf.calcValue(Vec2(p[0],p[1]), hint);
+    //TODO: this is negated from convention
+    return z - p[2]; // negative outside, positive inside
+}
+
+// First deriv with respect to z (component 2) is -1, all higher derivs are 0.
+// Higher partials involving z are zero.
+Real SmoothHeightMapImplicitFunction::
+calcDerivative(const Array_<int>& derivComponents, const Vector& p) const {
+    if (derivComponents.empty()) return calcValue(p);
+    if (derivComponents.size() == 1 && derivComponents[0]==2)
+        return -1;
+    for (unsigned i=0; i<derivComponents.size(); ++i)
+        if (derivComponents[i]==2) return 0;
+
+    // We're asking only for derivatives in x and y.
+    const BicubicSurface&      surf = ownerp->getBicubicSurface();
+    BicubicSurface::PatchHint& hint = ownerp->updHint();
+    const Real d = surf.calcDerivative(derivComponents, Vec2(p[0],p[1]), hint);
+    return d;
+}
+
+
+
+
+//==============================================================================
 //                              TRIANGLE MESH
 //==============================================================================
 
 ContactGeometry::TriangleMesh::TriangleMesh
    (const ArrayViewConst_<Vec3>& vertices, 
     const ArrayViewConst_<int>& faceIndices, bool smooth) 
-:   ContactGeometry(new TriangleMeshImpl(vertices, faceIndices, smooth)) {}
+:   ContactGeometry(new TriangleMesh::Impl(vertices, faceIndices, smooth)) {}
 
 ContactGeometry::TriangleMesh::TriangleMesh
    (const PolygonalMesh& mesh, bool smooth) 
-:   ContactGeometry(new TriangleMeshImpl(mesh, smooth)) {}
+:   ContactGeometry(new TriangleMesh::Impl(mesh, smooth)) {}
 
 /*static*/ ContactGeometryTypeId ContactGeometry::TriangleMesh::classTypeId() 
-{   return ContactGeometry::TriangleMeshImpl::classTypeId(); }
+{   return ContactGeometry::TriangleMesh::Impl::classTypeId(); }
 
 
 int ContactGeometry::TriangleMesh::getNumEdges() const {
@@ -828,11 +942,11 @@ findVertexEdges(int vertex, Array_<int>& edges) const {
     
     do {
         edges.push_back(previousEdge);
-        const ContactGeometry::TriangleMeshImpl::Edge& 
+        const ContactGeometry::TriangleMesh::Impl::Edge& 
             edge = getImpl().edges[previousEdge];
         int nextFace = (edge.faces[0] == previousFace ? edge.faces[1] 
                                                       : edge.faces[0]);
-        const ContactGeometry::TriangleMeshImpl::Face& 
+        const ContactGeometry::TriangleMesh::Impl::Face& 
             face = getImpl().faces[nextFace];
         int nextEdge;
         if (    face.edges[0] != previousEdge
@@ -899,16 +1013,16 @@ PolygonalMesh ContactGeometry::TriangleMesh::createPolygonalMesh() const {
     return mesh;
 }
 
-const ContactGeometry::TriangleMeshImpl& 
+const ContactGeometry::TriangleMesh::Impl& 
 ContactGeometry::TriangleMesh::getImpl() const {
     assert(impl);
-    return static_cast<const TriangleMeshImpl&>(*impl);
+    return static_cast<const TriangleMesh::Impl&>(*impl);
 }
 
-ContactGeometry::TriangleMeshImpl& 
+ContactGeometry::TriangleMesh::Impl& 
 ContactGeometry::TriangleMesh::updImpl() {
     assert(impl);
-    return static_cast<TriangleMeshImpl&>(*impl);
+    return static_cast<TriangleMesh::Impl&>(*impl);
 }
 
 
@@ -917,7 +1031,7 @@ ContactGeometry::TriangleMesh::updImpl() {
 //                            TRIANGLE MESH IMPL
 //==============================================================================
 
-Vec3 ContactGeometry::TriangleMeshImpl::findPoint
+Vec3 ContactGeometry::TriangleMesh::Impl::findPoint
    (int face, const Vec2& uv) const {
     const Face& f = faces[face];
     return             uv[0] * vertices[f.vertices[0]].pos
@@ -926,14 +1040,14 @@ Vec3 ContactGeometry::TriangleMeshImpl::findPoint
 }
 
 // same as findPoint(face, (1/3,1/3)) but faster
-Vec3 ContactGeometry::TriangleMeshImpl::findCentroid(int face) const {
+Vec3 ContactGeometry::TriangleMesh::Impl::findCentroid(int face) const {
     const Face& f = faces[face];
     return (  vertices[f.vertices[0]].pos
             + vertices[f.vertices[1]].pos
             + vertices[f.vertices[2]].pos) / 3;
 }
 
-UnitVec3 ContactGeometry::TriangleMeshImpl::findNormalAtPoint
+UnitVec3 ContactGeometry::TriangleMesh::Impl::findNormalAtPoint
    (int face, const Vec2& uv) const {
     const Face& f = faces[face];
     if (smooth)
@@ -943,7 +1057,7 @@ UnitVec3 ContactGeometry::TriangleMeshImpl::findNormalAtPoint
     return f.normal;
 }
 
-Vec3 ContactGeometry::TriangleMeshImpl::
+Vec3 ContactGeometry::TriangleMesh::Impl::
 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     int face;
     Vec2 uv;
@@ -952,7 +1066,7 @@ findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     return nearestPoint;
 }
 
-Vec3 ContactGeometry::TriangleMeshImpl::
+Vec3 ContactGeometry::TriangleMesh::Impl::
 findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const 
 {
     Real distance2;
@@ -962,7 +1076,7 @@ findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const
     return nearestPoint;
 }
 
-bool ContactGeometry::TriangleMeshImpl::
+bool ContactGeometry::TriangleMesh::Impl::
 intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, 
               UnitVec3& normal) const {
     int face;
@@ -973,7 +1087,7 @@ intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance,
     return true;
 }
 
-bool ContactGeometry::TriangleMeshImpl::
+bool ContactGeometry::TriangleMesh::Impl::
 intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, 
               int& face, Vec2& uv) const {
     Real boundsDistance;
@@ -982,13 +1096,13 @@ intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance,
     return obb.intersectsRay(*this, origin, direction, distance, face, uv);
 }
 
-void ContactGeometry::TriangleMeshImpl::
+void ContactGeometry::TriangleMesh::Impl::
 getBoundingSphere(Vec3& center, Real& radius) const {
     center = boundingSphereCenter;
     radius = boundingSphereRadius;
 }
 
-void ContactGeometry::TriangleMeshImpl::
+void ContactGeometry::TriangleMesh::Impl::
 createPolygonalMesh(PolygonalMesh& mesh) const {
     for (unsigned vx=0; vx < vertices.size(); ++vx)
         mesh.addVertex(vertices[vx].pos);
@@ -999,14 +1113,14 @@ createPolygonalMesh(PolygonalMesh& mesh) const {
     }
 }
 
-ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
+ContactGeometry::TriangleMesh::Impl::Impl
    (const ArrayViewConst_<Vec3>& vertexPositions, 
     const ArrayViewConst_<int>& faceIndices, bool smooth) 
 :   ContactGeometryImpl(), smooth(smooth) {
     init(vertexPositions, faceIndices);
 }
 
-ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
+ContactGeometry::TriangleMesh::Impl::Impl
    (const PolygonalMesh& mesh, bool smooth) 
 :   ContactGeometryImpl(), smooth(smooth) 
 {   // Create the mesh, triangulating faces as necessary.
@@ -1094,10 +1208,10 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
     }
 }
 
-void ContactGeometry::TriangleMeshImpl::init
+void ContactGeometry::TriangleMesh::Impl::init
    (const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices) 
 {   SimTK_APIARGCHECK_ALWAYS(faceIndices.size()%3 == 0, 
-        "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl", 
+        "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl", 
         "The number of indices must be a multiple of 3.");
     int numFaces = faceIndices.size()/3;
     
@@ -1118,26 +1232,26 @@ void ContactGeometry::TriangleMeshImpl::init
            (   v1 >= 0 && v1 < (int) vertices.size() 
             && v2 >= 0 && v2 < (int) vertices.size() 
             && v3 >= 0 && v3 < (int) vertices.size(),
-            "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+            "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Face %d contains a vertex with an illegal index.", i);
         Vec3 cross =   (vertexPositions[v2]-vertexPositions[v1])
                      % (vertexPositions[v3]-vertexPositions[v1]);
         Real norm = cross.norm();
         cross *= 1.0/norm;
         SimTK_APIARGCHECK1_ALWAYS(norm > 0, 
-            "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+            "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Face %d is degenerate.", i);
         faces.push_back(Face(v1, v2, v3, cross, 0.5*norm));
         int edges[3][2] = {{v1, v2}, {v2, v3}, {v3, v1}};
         for (int j = 0; j < 3; j++) {
             SimTK_APIARGCHECK1_ALWAYS(edges[j][0] != edges[j][1], 
-                "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+                "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
                 "Vertices %d appears twice in a single face.", edges[j][0]);
             if (edges[j][0] < edges[j][1]) {
                 SimTK_APIARGCHECK2_ALWAYS
                    (forwardEdges.find(pair<int, int>(edges[j][0], edges[j][1])) 
                     == forwardEdges.end(),
-                    "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+                    "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
                     "Multiple faces have an edge between vertices %d and %d"
                     " in the same order.", edges[j][0], edges[j][1]);
                 forwardEdges[pair<int, int>(edges[j][0], edges[j][1])] = i;
@@ -1146,7 +1260,7 @@ void ContactGeometry::TriangleMeshImpl::init
                 SimTK_APIARGCHECK2_ALWAYS
                    (backwardEdges.find(pair<int, int>(edges[j][1], edges[j][0]))
                     == backwardEdges.end(),
-                    "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+                    "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
                     "Multiple faces have an edge between vertices %d and %d"
                     " in the same order.", edges[j][1], edges[j][0]);
                 backwardEdges[pair<int, int>(edges[j][1], edges[j][0])] = i;
@@ -1157,7 +1271,7 @@ void ContactGeometry::TriangleMeshImpl::init
     // Create the edges.
     
     SimTK_APIARGCHECK_ALWAYS(forwardEdges.size() == backwardEdges.size(), 
-        "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+        "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
         "Each edge must be shared by exactly two faces.");
     for (map<pair<int, int>, int>::iterator iter = forwardEdges.begin(); 
          iter != forwardEdges.end(); ++iter) {
@@ -1167,7 +1281,7 @@ void ContactGeometry::TriangleMeshImpl::init
         map<pair<int, int>, int>::iterator iter2 = 
             backwardEdges.find(pair<int, int>(vert1, vert2));
         SimTK_APIARGCHECK_ALWAYS(iter2 != backwardEdges.end(), 
-            "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+            "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Each edge must be shared by exactly two faces.");
         int face2 = iter2->second;
         edges.push_back(Edge(vert1, vert2, face1, face2));
@@ -1203,7 +1317,7 @@ void ContactGeometry::TriangleMeshImpl::init
     }
     for (int i = 0; i < (int) vertices.size(); i++)
         SimTK_APIARGCHECK1_ALWAYS(vertices[i].firstEdge >= 0, 
-            "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+            "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Vertex %d is not part of any face.", i);
     
     // Calculate a normal for each vertex.
@@ -1235,12 +1349,12 @@ void ContactGeometry::TriangleMeshImpl::init
     Array_<const Vec3*> points(vertices.size());
     for (int i = 0; i < (int) vertices.size(); i++)
         points[i] = &vertices[i].pos;
-    const Geo::Sphere bnd = Geo::Sphere::calcBoundingSphere(points);
+    const Geo::Sphere bnd = Geo::Point::calcBoundingSphere(points);
     boundingSphereCenter = bnd.getCenter();
     boundingSphereRadius = bnd.getRadius();
 }
 
-void ContactGeometry::TriangleMeshImpl::createObbTree
+void ContactGeometry::TriangleMesh::Impl::createObbTree
    (OBBTreeNodeImpl& node, const Array_<int>& faceIndices) 
 {   // Find all vertices in the node and build the OrientedBoundingBox.
     node.numTriangles = faceIndices.size();
@@ -1319,7 +1433,7 @@ void ContactGeometry::TriangleMeshImpl::createObbTree
                           faceIndices.end());
 }
 
-void ContactGeometry::TriangleMeshImpl::splitObbAxis
+void ContactGeometry::TriangleMesh::Impl::splitObbAxis
    (const Array_<int>& parentIndices, Array_<int>& child1Indices, 
     Array_<int>& child2Indices, int axis) 
 {   // For each face, find its minimum and maximum extent along the axis.
@@ -1354,13 +1468,13 @@ void ContactGeometry::TriangleMeshImpl::splitObbAxis
     }
 }
 
-Vec3 ContactGeometry::TriangleMeshImpl::findNearestPointToFace
+Vec3 ContactGeometry::TriangleMesh::Impl::findNearestPointToFace
    (const Vec3& position, int face, Vec2& uv) const {
     // Calculate the distance between a point in space and a face of the mesh.
     // This algorithm is based on a description by David Eberly found at 
     // http://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf.
     
-    const ContactGeometry::TriangleMeshImpl::Face& fc = faces[face];
+    const ContactGeometry::TriangleMesh::Impl::Face& fc = faces[face];
     const Vec3& vert1 = vertices[fc.vertices[0]].pos;
     const Vec3& vert2 = vertices[fc.vertices[1]].pos;
     const Vec3& vert3 = vertices[fc.vertices[2]].pos;
@@ -1487,7 +1601,7 @@ OBBTreeNodeImpl::~OBBTreeNodeImpl() {
 }
 
 Vec3 OBBTreeNodeImpl::findNearestPoint
-   (const ContactGeometry::TriangleMeshImpl& mesh, 
+   (const ContactGeometry::TriangleMesh::Impl& mesh, 
     const Vec3& position, Real cutoff2, 
     Real& distance2, int& face, Vec2& uv) const 
 {
@@ -1562,7 +1676,7 @@ Vec3 OBBTreeNodeImpl::findNearestPoint
 }
 
 bool OBBTreeNodeImpl::
-intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh,
+intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
               const Vec3& origin, const UnitVec3& direction, Real& distance, 
               int& face, Vec2& uv) const {
     if (child1 != NULL) {

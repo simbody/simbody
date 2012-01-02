@@ -76,6 +76,7 @@ class HalfSpaceTriangleMesh;
 class SphereTriangleMesh;
 class TriangleMeshTriangleMesh;
 class ConvexImplicitPair;
+class GeneralImplicitPair;
 
 /** Base class constructor for use by the concrete classes. **/
 ContactTracker(ContactGeometryTypeId typeOfSurface1,
@@ -541,6 +542,52 @@ virtual bool initializeContact
     Contact&               contactStatus) const;
 };
 
+
+//==============================================================================
+//                GENERAL IMPLICIT SURFACE PAIR CONTACT TRACKER
+//==============================================================================
+/** This ContactTracker handles contacts between two arbitrary smooth surfaces
+by using their implicit functions, with no shape restrictions. Each surface
+must provide a bounding hierarchy with "safe" leaf objects, meaning that
+interactions between a leaf of each surface yield at most one solution.
+
+Create one of these for each possible pair that you want handled this way. **/
+class SimTK_SIMMATH_EXPORT ContactTracker::GeneralImplicitPair 
+:   public ContactTracker {
+public:
+GeneralImplicitPair(ContactGeometryTypeId type1, ContactGeometryTypeId type2) 
+:   ContactTracker(type1, type2) {}
+
+virtual ~GeneralImplicitPair() {}
+
+virtual bool trackContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, 
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, 
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Contact&               currentStatus) const;
+
+virtual bool predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const;
+
+virtual bool initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const;
+};
 
 } // namespace SimTK
 

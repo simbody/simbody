@@ -33,6 +33,8 @@
  * -------------------------------------------------------------------------- */
 
 
+#include "simmath/internal/Geo.h"
+#include "simmath/internal/Geo_Sphere.h"
 #include "simmath/internal/ContactGeometry.h"
 
 #include <limits>
@@ -101,9 +103,9 @@ protected:
 class HalfSpaceImplicitFunction : public Function {
 public:
     HalfSpaceImplicitFunction() : ownerp(0) {}
-    HalfSpaceImplicitFunction(const ContactGeometry::HalfSpaceImpl& owner) 
+    HalfSpaceImplicitFunction(const ContactGeometry::HalfSpace::Impl& owner) 
     :   ownerp(&owner) {}
-    void setOwner(const ContactGeometry::HalfSpaceImpl& owner) {ownerp=&owner;}
+    void setOwner(const ContactGeometry::HalfSpace::Impl& owner) {ownerp=&owner;}
 
     // Value is positive for x>0.
     Real calcValue(const Vector& P) const {return P[0];}
@@ -118,16 +120,16 @@ public:
     int getMaxDerivativeOrder() const
     {   return std::numeric_limits<int>::max(); }
 private:
-    const ContactGeometry::HalfSpaceImpl* ownerp; // just a ref.; don't delete
+    const ContactGeometry::HalfSpace::Impl* ownerp; // just a ref.; don't delete
 };
 
 
-class ContactGeometry::HalfSpaceImpl : public ContactGeometryImpl {
+class ContactGeometry::HalfSpace::Impl : public ContactGeometryImpl {
 public:
-    HalfSpaceImpl() : ContactGeometryImpl() {
+    Impl() : ContactGeometryImpl() {
     }
     ContactGeometryImpl* clone() const {
-        return new HalfSpaceImpl();
+        return new Impl();
     }
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
@@ -171,9 +173,9 @@ private:
 class SphereImplicitFunction : public Function {
 public:
     SphereImplicitFunction() : ownerp(0) {}
-    SphereImplicitFunction(const ContactGeometry::SphereImpl& owner) 
+    SphereImplicitFunction(const ContactGeometry::Sphere::Impl& owner) 
     :   ownerp(&owner) {}
-    void setOwner(const ContactGeometry::SphereImpl& owner) {ownerp=&owner;}
+    void setOwner(const ContactGeometry::Sphere::Impl& owner) {ownerp=&owner;}
     Real calcValue(const Vector& x) const;
     Real calcDerivative(const Array_<int>& derivComponents, 
                         const Vector& x) const;
@@ -181,15 +183,15 @@ public:
     int getMaxDerivativeOrder() const
     {   return std::numeric_limits<int>::max(); }
 private:
-    const ContactGeometry::SphereImpl* ownerp; // just a reference; don't delete
+    const ContactGeometry::Sphere::Impl* ownerp; // just a reference; don't delete
 };
 
-class ContactGeometry::SphereImpl : public ContactGeometryImpl {
+class ContactGeometry::Sphere::Impl : public ContactGeometryImpl {
 public:
-    explicit SphereImpl(Real radius) : radius(radius) 
+    explicit Impl(Real radius) : radius(radius) 
     {   function.setOwner(*this); }
     ContactGeometryImpl* clone() const {
-        return new SphereImpl(radius);
+        return new Impl(radius);
     }
     Real getRadius() const {
         return radius;
@@ -237,9 +239,9 @@ private:
 class EllipsoidImplicitFunction : public Function {
 public:
     EllipsoidImplicitFunction() : ownerp(0) {}
-    EllipsoidImplicitFunction(const ContactGeometry::EllipsoidImpl& owner) 
+    EllipsoidImplicitFunction(const ContactGeometry::Ellipsoid::Impl& owner) 
     :   ownerp(&owner) {}
-    void setOwner(const ContactGeometry::EllipsoidImpl& owner) {ownerp=&owner;}
+    void setOwner(const ContactGeometry::Ellipsoid::Impl& owner) {ownerp=&owner;}
     Real calcValue(const Vector& x) const;
     Real calcDerivative(const Array_<int>& derivComponents, 
                         const Vector& x) const;
@@ -247,17 +249,17 @@ public:
     int getMaxDerivativeOrder() const
     {   return std::numeric_limits<int>::max(); }
 private:
-    const ContactGeometry::EllipsoidImpl* ownerp;// just a ref.; don't delete
+    const ContactGeometry::Ellipsoid::Impl* ownerp;// just a ref.; don't delete
 };
 
-class ContactGeometry::EllipsoidImpl : public ContactGeometryImpl  {
+class ContactGeometry::Ellipsoid::Impl : public ContactGeometryImpl  {
 public:
-    explicit EllipsoidImpl(const Vec3& radii)
+    explicit Impl(const Vec3& radii)
     :   radii(radii),
         curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])) 
     {   function.setOwner(*this); }
 
-    ContactGeometryImpl* clone() const {return new EllipsoidImpl(radii);}
+    ContactGeometryImpl* clone() const {return new Impl(radii);}
     const Vec3& getRadii() const {return radii;}
     void setRadii(const Vec3& r) 
     {   radii = r; curvatures = Vec3(1/r[0],1/r[1],1/r[2]); }
@@ -328,7 +330,7 @@ private:
 //          v = [nn[0]*a, nn[1]*b, nn[2]*c] = s*[x/a, y/b, z/c]
 // Now we have |v|=s. So n/2 = nn/|v| and we can use equation (2) to solve
 // for p. Cost is about 40 flops.
-inline Vec3 ContactGeometry::EllipsoidImpl::
+inline Vec3 ContactGeometry::Ellipsoid::Impl::
 findPointWithThisUnitNormal(const UnitVec3& nn) const {
     const Real& a=radii[0]; const Real& b=radii[1]; const Real& c=radii[2];
     const Vec3 v  = Vec3(nn[0]*a, nn[1]*b, nn[2]*c);
@@ -341,7 +343,7 @@ findPointWithThisUnitNormal(const UnitVec3& nn) const {
 // direction vector d by a factor s so that f(s*d)=0, that is, 
 //       s*|x/a y/b z/c|=1  => s = 1/|x/a y/b z/c|
 // Cost is about 40 flops.
-inline Vec3 ContactGeometry::EllipsoidImpl::
+inline Vec3 ContactGeometry::Ellipsoid::Impl::
 findPointInSameDirection(const Vec3& Q) const {
     Real s = 1/Vec3(Q[0]*curvatures[0], 
                     Q[1]*curvatures[1], 
@@ -361,12 +363,100 @@ findPointInSameDirection(const Vec3& Q) const {
 // until it hits the ellipsoid surface at Q'=s*Q, and then reporting the outward
 // normal at Q' instead.
 // Cost is about 40 flops.
-inline UnitVec3 ContactGeometry::EllipsoidImpl::
+inline UnitVec3 ContactGeometry::Ellipsoid::Impl::
 findUnitNormalAtPoint(const Vec3& Q) const {
     const Vec3 kk(square(curvatures[0]), square(curvatures[1]), 
                   square(curvatures[2]));
     return UnitVec3(kk[0]*Q[0], kk[1]*Q[1], kk[2]*Q[2]);
 }
+
+
+
+//==============================================================================
+//                          SMOOTH HEIGHT MAP IMPL
+//==============================================================================
+class SmoothHeightMapImplicitFunction : public Function {
+public:
+    SmoothHeightMapImplicitFunction() : ownerp(0) {}
+    SmoothHeightMapImplicitFunction
+       (const ContactGeometry::SmoothHeightMap::Impl& owner) 
+    :   ownerp(&owner) {}
+    void setOwner(const ContactGeometry::SmoothHeightMap::Impl& owner) 
+    {   ownerp=&owner; }
+    Real calcValue(const Vector& x) const;
+    Real calcDerivative(const Array_<int>& derivComponents, 
+                        const Vector& x) const;
+    int getArgumentSize() const {return 3;}
+    int getMaxDerivativeOrder() const
+    {   return std::numeric_limits<int>::max(); }
+private:
+    // just a reference; don't delete
+    const ContactGeometry::SmoothHeightMap::Impl*   ownerp; 
+};
+
+
+
+class ContactGeometry::SmoothHeightMap::Impl : public ContactGeometryImpl {
+public:
+    explicit Impl(const BicubicSurface& surface);
+
+    // This is for if you already know the bounding sphere; God help you
+    // if it is wrong.
+    Impl(const BicubicSurface& surface, const Geo::Sphere& boundingSphere);
+
+    ContactGeometryImpl* clone() const {
+        return new Impl(surface, boundingSphere);
+    }
+
+    const BicubicSurface& getBicubicSurface() const {return surface;}
+    BicubicSurface::PatchHint& updHint() const {return hint;}
+
+    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+                          UnitVec3& normal) const;
+
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+                       Real& distance, UnitVec3& normal) const;
+
+    void getBoundingSphere(Vec3& center, Real& radius) const {
+        center = boundingSphere.getCenter();
+        radius = boundingSphere.getRadius();
+    }
+
+    bool isSmooth() const {return true;}
+    bool isConvex() const {return false;}
+    bool isFinite() const {return true;}
+
+    Vec3 calcSupportPoint(UnitVec3 direction) const {
+        assert(false);
+        return Vec3(NaN);
+    }
+
+    // We ignore the z coordinate here and just return the curvature of
+    // the unique point at (x,y).
+    void calcCurvature(const Vec3& point, Vec2& curvature, 
+                       Rotation& orientation) const {
+        Transform X_SP;
+        surface.calcParaboloid(Vec2(point[0],point[1]), hint, X_SP, curvature);
+        orientation = X_SP.R();
+    }
+
+    const Function& getImplicitFunction() const {return implicitFunction;}
+
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = 
+            createNewContactGeometryTypeId();
+        return id;
+    }
+private:
+    BicubicSurface                      surface;
+    mutable BicubicSurface::PatchHint   hint;
+    Geo::Sphere                         boundingSphere;
+    SmoothHeightMapImplicitFunction     implicitFunction;
+};
+
+
 
 
 //==============================================================================
@@ -383,10 +473,10 @@ public:
     OBBTreeNodeImpl* child2;
     Array_<int> triangles;
     int numTriangles;
-    Vec3 findNearestPoint(const ContactGeometry::TriangleMeshImpl& mesh, 
+    Vec3 findNearestPoint(const ContactGeometry::TriangleMesh::Impl& mesh, 
                           const Vec3& position, Real cutoff2, Real& distance2, 
                           int& face, Vec2& uv) const;
-    bool intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh, 
+    bool intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh, 
                        const Vec3& origin, const UnitVec3& direction, 
                        Real& distance, int& face, Vec2& uv) const;
 };
@@ -396,17 +486,17 @@ public:
 //==============================================================================
 //                            TRIANGLE MESH IMPL
 //==============================================================================
-class ContactGeometry::TriangleMeshImpl : public ContactGeometryImpl {
+class ContactGeometry::TriangleMesh::Impl : public ContactGeometryImpl {
 public:
     class Edge;
     class Face;
     class Vertex;
 
-    TriangleMeshImpl(const ArrayViewConst_<Vec3>& vertexPositions, 
-                     const ArrayViewConst_<int>& faceIndices, bool smooth);
-    TriangleMeshImpl(const PolygonalMesh& mesh, bool smooth);
+    Impl(const ArrayViewConst_<Vec3>& vertexPositions, 
+         const ArrayViewConst_<int>& faceIndices, bool smooth);
+    Impl(const PolygonalMesh& mesh, bool smooth);
     ContactGeometryImpl* clone() const {
-        return new TriangleMeshImpl(*this);
+        return new Impl(*this);
     }
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
@@ -461,7 +551,7 @@ private:
 //==============================================================================
 //                          TriangleMeshImpl EDGE
 //==============================================================================
-class ContactGeometry::TriangleMeshImpl::Edge {
+class ContactGeometry::TriangleMesh::Impl::Edge {
 public:
     Edge(int vert1, int vert2, int face1, int face2) {
         vertices[0] = vert1;
@@ -478,7 +568,7 @@ public:
 //==============================================================================
 //                           TriangleMeshImpl FACE
 //==============================================================================
-class ContactGeometry::TriangleMeshImpl::Face {
+class ContactGeometry::TriangleMesh::Impl::Face {
 public:
     Face(int vert1, int vert2, int vert3, 
          const Vec3& normal, Real area) 
@@ -498,7 +588,7 @@ public:
 //==============================================================================
 //                          TriangleMeshImpl VERTEX
 //==============================================================================
-class ContactGeometry::TriangleMeshImpl::Vertex {
+class ContactGeometry::TriangleMesh::Impl::Vertex {
 public:
     Vertex(Vec3 pos) : pos(pos), firstEdge(-1) {
     }

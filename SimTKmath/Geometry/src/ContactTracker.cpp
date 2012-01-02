@@ -1192,5 +1192,100 @@ bool ContactTracker::ConvexImplicitPair::initializeContact
 
 
 
+
+//==============================================================================
+//                GENERAL IMPLICIT SURFACE PAIR CONTACT TRACKER
+//==============================================================================
+// This will return an elliptical point contact. TODO: should return a set
+// of contacts.
+//TODO: not implemented yet -- this is just the Convex-convex code here.
+bool ContactTracker::GeneralImplicitPair::trackContact
+   (const Contact&         priorStatus,
+    const Transform&       X_GA, 
+    const ContactGeometry& shapeA,
+    const Transform&       X_GB, 
+    const ContactGeometry& shapeB,
+    Real                   cutoff,
+    Contact&               currentStatus) const
+{
+    SimTK_ASSERT
+       (   shapeA.isSmooth() && shapeB.isSmooth(),
+       "ContactTracker::GeneralImplicitPair::trackContact()");
+
+    // We'll work in the shape A frame.
+    const Transform X_AB = ~X_GA*X_GB; // 63 flops
+    const Rotation& R_AB = X_AB.R();
+
+    // 1. Get a rough guess at the contact points P and Q.
+    Vec3 pointP, pointQ; // on A and B, resp.
+    int numMPRIters;
+    bool foundContact = estimateImplicitPairContactUsingMPR
+                           (shapeA, shapeB, X_AB, pointP, pointQ, numMPRIters);
+    if (!foundContact) {
+        currentStatus.clear(); // not touching
+        return true; // successful return
+    }
+
+    // 2. Refine the contact points to near machine precision.
+    const Real accuracyRequested = SignificantReal;
+    Real accuracyAchieved; int numNewtonIters;
+    bool converged = refineImplicitPair(shapeA,pointP,shapeB,pointQ,
+        X_AB, accuracyRequested, accuracyAchieved, numNewtonIters);
+    const Vec3 pointQ_A = X_AB*pointQ;  // measured & expressed in A
+
+    //printf("MPR %d iters, accuracy=%g in %d iters\n",
+    //    numMPRIters, accuracyAchieved, numNewtonIters);
+
+    // 3. Compute the curvature of the two surfaces at P and Q.
+    Rotation R_AP, R_BQ; Vec2 curvatureP, curvatureQ;
+    shapeA.calcCurvature(pointP, curvatureP, R_AP);
+    shapeB.calcCurvature(pointQ, curvatureQ, R_BQ);
+    UnitVec3 maxDirB_A(R_AB*R_BQ.x());
+
+    // 4. Compute the effective contact frame C and corresponding relative
+    //    curvatures.
+    Transform X_AC; Vec2 curvatureC;
+    X_AC.updP() = (pointP+pointQ_A)/2;
+    const Real depth = (pointP-pointQ_A).norm();
+    ContactGeometry::combineParaboloids(R_AP, curvatureP, 
+                                        maxDirB_A, curvatureQ, 
+                                        X_AC.updR(), curvatureC);
+
+    // 5. Return the elliptical point contact for force generation.
+    currentStatus = EllipticalPointContact(priorStatus.getSurface1(),
+                                           priorStatus.getSurface2(),
+                                           X_AB, X_AC, curvatureC, depth);
+    return true; // success
+}
+
+
+bool ContactTracker::GeneralImplicitPair::predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactTracker::GeneralImplicitPair::predictContact() not implemented yet."); 
+    return false; }
+
+bool ContactTracker::GeneralImplicitPair::initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactTracker::GeneralImplicitPair::initializeContact() not implemented yet."); 
+    return false; }
+
+
+
+
 } // namespace SimTK
 

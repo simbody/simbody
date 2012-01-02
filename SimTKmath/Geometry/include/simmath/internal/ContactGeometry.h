@@ -57,21 +57,65 @@ class OBBTreeNodeImpl;
 //==============================================================================
 //                             CONTACT GEOMETRY
 //==============================================================================
-/** A ContactGeometry object describes the physical shape of contact surface.
-It is used with GeneralContactSubsystem or ContactTrackerSubsystem for doing
-collision detection and contact modeling. This is the base class for the
-geometry handles; user code will typically reference one of the local classes
-it defines instead for specific shapes. **/
+/** A ContactGeometry object describes the shape of all or part of the boundary
+of a solid object, for the purpose of modeling with Simbody physical 
+effects that occur at the surface of that object, such as contact and 
+wrapping forces. Surfaces may be finite or infinite (e.g. a halfspace). 
+Surfaces may be smooth or discrete (polyhedral). Smooth surfaces may be defined implicitly 
+as f(p)=0 or parametrically as p=f(u,v) or both (p=[px,py,pz] is a point 
+expressed in the surface's local frame). 
+
+A variety of operators are implemented by each specific surface type. Some of
+these are designed to support efficient implementation of higher-level 
+algorithms that deal in pairs of interacting objects, such as broad- and
+narrow-phase contact and minimimum-distance calculations.
+
+The idea here is to collect all the important knowledge about a particular
+kind of geometric shape in one place, adding operators as needed to support
+new algorithms from time to time. 
+
+All surfaces provide these operations:
+  - find closest point to a given point
+  - find intersection with a given ray
+  - find most extreme point in a given direction
+  - return the outward-facing surface normal at a point
+  - generate a polygonal mesh that approximates the surface
+
+Finite surfaces provide
+  - a bounding sphere that encloses the entire surface
+  - a bounding volume hierarchy with tight-fitting leaf nodes containing
+    only simple primitives
+
+Smooth surfaces provide
+  - Min/max curvatures and directions, and outward normal at a point
+
+Additionally
+  - Each surface type has a unique integer id that may be used for to 
+    quickly determine the concrete type of a generic surface
+
+Individual surface types generally support additional operations that may
+be used by specialized algorithms that know they are working with that 
+particular kind of surface. For example, an algorithm for determining 
+ellipsoid-halfspace contact is likely to take advantage of special properties
+of both surfaces.
+
+We do not require
+detailed solid geometry, but neither can the surface be treated without some
+information about the solid it bounds. For example, for contact we must know
+which side of the surface is the "inside". However, we don't need a fully
+consistent treatment of the solid; for ease of modeling we require only that
+the surface behave properly in those locations at which it is evaluated at run
+time. The required behavior may vary depending on the algorithm using it.
+
+This is the base class for surface handles; user code will typically 
+reference one of the local classes it defines instead for specific shapes. **/
 class SimTK_SIMMATH_EXPORT ContactGeometry {
 public:
 class HalfSpace;
 class Sphere;
 class Ellipsoid;
+class SmoothHeightMap;
 class TriangleMesh;
-class HalfSpaceImpl;
-class SphereImpl;
-class EllipsoidImpl;
-class TriangleMeshImpl;
 
 /** Base class default constructor creates an empty handle. **/
 ContactGeometry() : impl(0) {}
@@ -208,7 +252,7 @@ the curvatures are ku = e/E and kv = g/G (eq. 6-8).
 
 We're going to return principal curvatures kmax and kmin such that kmax >= kmin,
 along with the perpendicular tangent unit directions dmax,dmin that are the 
-corresonding principal curvature directions, oriented so that (dmax,dmin,nn) 
+corresponding principal curvature directions, oriented so that (dmax,dmin,nn) 
 form a right-handed coordinate frame.
 
 Cost: given a point P, normalized normal nn, unnormalized u,v tangents and 
@@ -219,9 +263,10 @@ second derivatives <pre>
                 ~165
 </pre>  **/
 static Vec2 evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
-                             const Vec3& dPdu, const Vec3& dPdv,
-                             const Vec3& d2Pdu2, const Vec3& d2Pdv2, const Vec3& d2Pdudv,
-                             Transform& X_EP);
+                                    const Vec3& dPdu, const Vec3& dPdv,
+                                    const Vec3& d2Pdu2, const Vec3& d2Pdv2, 
+                                    const Vec3& d2Pdudv,
+                                    Transform& X_EP);
 
 /** This utility method is useful for characterizing the relative geometry of
 two locally-smooth surfaces in contact, in a way that is useful for later
@@ -345,6 +390,10 @@ static HalfSpace& updAs(ContactGeometry& geo)
 
 /** Obtain the unique id for HalfSpace contact geometry. **/
 static ContactGeometryTypeId classTypeId();
+
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
 };
 
 
@@ -373,8 +422,9 @@ static Sphere& updAs(ContactGeometry& geo)
 /** Obtain the unique id for Sphere contact geometry. **/
 static ContactGeometryTypeId classTypeId();
 
-const SphereImpl& getImpl() const;
-SphereImpl& updImpl();
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
 };
 
 
@@ -407,7 +457,7 @@ class SimTK_SIMMATH_EXPORT ContactGeometry::Ellipsoid : public ContactGeometry {
 public:
 /** Construct an Ellipsoid given its three principal half-axis dimensions a,b,c
 (all positive) along the local x,y,z directions respectively. The curvatures 
-(reciprocals of radii) are precalculated here at a cost of about 50 flops. **/
+(reciprocals of radii) are precalculated here at a cost of about 30 flops. **/
 explicit Ellipsoid(const Vec3& radii);
 /** Obtain the three half-axis dimensions a,b,c used to define this
 ellipsoid. **/
@@ -504,10 +554,54 @@ static Ellipsoid& updAs(ContactGeometry& geo)
 /** Obtain the unique id for Ellipsoid contact geometry. **/
 static ContactGeometryTypeId classTypeId();
 
-/** Internal use only. **/
-const EllipsoidImpl& getImpl() const;
-/** Internal use only. **/
-EllipsoidImpl& updImpl();
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
+};
+
+
+
+//==============================================================================
+//                            SMOOTH HEIGHT MAP
+//==============================================================================
+/** This ContactGeometry subclass represents a smooth surface fit through a
+set of sampled points using bicubic patches to provide C2 continuity. It is
+particularly useful as a bounded terrain. The boundary is an axis-aligned
+rectangle in the local x-y plane. Within the boundary, every (x,y) location has
+a unique height z, so caves and overhangs cannot be represented.
+
+The surface is parameterized as z=f(x,y) where x,y,z are measured in 
+the surface's local coordinate frame. This can also be described as the 
+implicit function F(x,y,z)=f(x,y)-z=0, as though this were an infinitely thick
+slab in the -z direction below the surface. **/
+class SimTK_SIMMATH_EXPORT 
+ContactGeometry::SmoothHeightMap : public ContactGeometry {
+public:
+/** Create a SmoothHeightMap surface using an already-existing BicubicSurface.
+The BicubicSurface object is referenced, not copied, so it may be shared with
+other users. **/
+explicit SmoothHeightMap(const BicubicSurface& surface);
+
+/** Return a reference to the BicubicSurface object being used by this
+SmoothHeightMap. **/
+const BicubicSurface& getBicubicSurface() const;
+
+/** Return true if the supplied ContactGeometry object is a SmoothHeightMap. **/
+static bool isInstance(const ContactGeometry& geo)
+{   return geo.getTypeId()==classTypeId(); }
+/** Cast the supplied ContactGeometry object to a const SmoothHeightMap. **/
+static const SmoothHeightMap& getAs(const ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<const SmoothHeightMap&>(geo); }
+/** Cast the supplied ContactGeometry object to a writable SmoothHeightMap. **/
+static SmoothHeightMap& updAs(ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<SmoothHeightMap&>(geo); }
+
+/** Obtain the unique id for SmoothHeightMap contact geometry. **/
+static ContactGeometryTypeId classTypeId();
+
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
 };
 
 
@@ -701,10 +795,9 @@ static TriangleMesh& updAs(ContactGeometry& geo)
 /** Obtain the unique id for TriangleMesh contact geometry. **/
 static ContactGeometryTypeId classTypeId();
 
-/** Internal use only. **/
-const TriangleMeshImpl& getImpl() const;
-/** Internal use only. **/
-TriangleMeshImpl& updImpl();
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
 };
 
 

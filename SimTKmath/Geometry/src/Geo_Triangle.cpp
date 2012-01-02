@@ -35,6 +35,8 @@ Non-inline static methods from the Geo::Triangle class. **/
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 #include "simmath/internal/Geo.h"
+#include "simmath/internal/Geo_LineSeg.h"
+#include "simmath/internal/Geo_Triangle.h"
 
 namespace SimTK {
 

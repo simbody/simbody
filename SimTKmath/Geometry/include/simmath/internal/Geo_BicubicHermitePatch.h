@@ -1,3 +1,6 @@
+#ifndef SimTK_SIMMATH_GEO_BICUBIC_HERMITE_PATCH_H_
+#define SimTK_SIMMATH_GEO_BICUBIC_HERMITE_PATCH_H_
+
 /* -------------------------------------------------------------------------- *
  *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
@@ -30,42 +33,52 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-Non-inline static methods from the Geo class. **/
+Provides primitive operations for a single bicubic Hermite patch using either
+single or double precision. **/
 
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 #include "simmath/internal/Geo.h"
-#include "simmath/internal/Geo_Point.h"
-#include "simmath/internal/Geo_LineSeg.h"
-#include "simmath/internal/Geo_Box.h"
-#include "simmath/internal/Geo_CubicHermiteCurve.h"
-#include "simmath/internal/Geo_BicubicHermitePatch.h"
-#include "simmath/internal/Geo_CubicBezierCurve.h"
-#include "simmath/internal/Geo_BicubicBezierPatch.h"
+
+#include <cassert>
+#include <cmath>
+#include <algorithm>
 
 namespace SimTK {
 
+
 //==============================================================================
-//                                   GEO
+//                         GEO BICUBIC HERMITE PATCH
 //==============================================================================
+/** A primitive useful for computations involving a single bicubic Hermite
+patch. Note that a bicubic Hermite spline surface would not necessarily be
+composed of these, but could use the static methods here for patch 
+computations. **/
+template <class P>
+class Geo::BicubicHermitePatch_ {
+typedef P               RealP;
+typedef Vec<3,RealP>    Vec3P;
 
-// Template instantiations for subclasses that don't have their own source
-// files.
-
-template class Geo::LineSeg_<float>;
-template class Geo::LineSeg_<double>;
-
-template class Geo::CubicHermiteCurve_<float>;
-template class Geo::CubicHermiteCurve_<double>;
-
-template class Geo::BicubicHermitePatch_<float>;
-template class Geo::BicubicHermitePatch_<double>;
-
-template class Geo::CubicBezierCurve_<float>;
-template class Geo::CubicBezierCurve_<double>;
-
-template class Geo::BicubicBezierPatch_<float>;
-template class Geo::BicubicBezierPatch_<double>;
+public:
+/** Construct an uninitialized patch; control points will be garbage. **/
+BicubicHermitePatch_() {}
+/** Construct a bicubic Hermite patch using the given geometry matrix B. **/
+explicit BicubicHermitePatch_(const Mat<4,4,Vec3P>& geometry) 
+: B(geometry) {} 
 
 
-}  // End of namespace SimTK
+/**@name                 Utility methods
+These static methods work with given control points. **/
+/**@{**/
+
+/**@}**/
+
+private:
+Mat<4,4,Vec3P> B;
+};
+
+
+
+} // namespace SimTK
+
+#endif // SimTK_SIMMATH_GEO_BICUBIC_HERMITE_PATCH_H_
