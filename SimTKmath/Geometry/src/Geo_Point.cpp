@@ -386,13 +386,16 @@ calcOrientedBoundingBox(const Array_<Vec3P>& points_F,
     center_F = R_FB*(high_B+low_B)/2;
 
     // This is a very abbreviated steepest-descent optimizer. Starting with
-    // R_FB0 it uses three Euler angles as parameters and calculates volume
-    // as a function of those angles. It calculates the downhill gradient once, then does a line search along that gradient
-    // and quits as soon as it stops making significant progress.
+    // R_FB0 it uses three Euler angles a as parameters for an incremental
+    // rotation R_B0B(a) and calculates volume of the box whose orientation
+    // is R_FB(a)=R_FB0*R_B0B(a). It calculates the downhill gradient once, 
+    // then does a line search along that gradient and quits as soon as it 
+    // stops making significant progress.
     if (optimize) {
         VolumeGradient<P> grad(points_F, R_FB);
         Differentiator diff(grad);
-        Vector g = diff.calcGradient(Vector(3, Real(0)));
+        Vector g;
+        diff.calcGradient(Vector(3, Real(0)), volume, g);
         Vec3P dir; dir[0]=P(g[0]); dir[1]=P(g[1]); dir[2]=P(g[2]);
 
         // Gradient has units of volume/radian.
@@ -418,7 +421,7 @@ calcOrientedBoundingBox(const Array_<Vec3P>& points_F,
             if (tryVol < volume) {
                 const RealP improvement = (volume-tryVol)/volume;
                 for (int j=0; j<3; ++j) 
-                    least[i]=tryLeast[i], most[i]=tryMost[i];
+                    least[j]=tryLeast[j], most[j]=tryMost[j];
                 R_FB = tryR_FB;
                 extent_B = tryExtent_B;
                 center_F = R_FB*(tryHigh_B+tryLow_B)/2;
