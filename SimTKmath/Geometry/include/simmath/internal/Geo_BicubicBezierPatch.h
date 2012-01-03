@@ -64,7 +64,7 @@ public:
 BicubicBezierPatch_() {}
 /** Construct a bicubic Bezier patch using the given control points. **/
 explicit BicubicBezierPatch_(const Mat<4,4,Vec3P>& controlPoints) 
-: P(controlPoints) {} 
+: B(controlPoints) {} 
 
 
 /**@name                 Utility methods
@@ -74,7 +74,7 @@ These static methods work with given control points. **/
 /**@}**/
 
 private:
-Mat<4,4,Vec3P> P;
+Mat<4,4,Vec3P> B;
 };
 
 
