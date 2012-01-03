@@ -212,7 +212,7 @@ public:
     // Return the value of the objective to be minimized when the freeQs
     // have the values given by the parameters.
     int objectiveFunc(const Vector&     parameters, 
-                      const bool        new_parameters, 
+                      bool              new_parameters, 
                       Real&             objectiveValue) const 
     {   ++nEvalObjective;
 
@@ -271,7 +271,7 @@ public:
     };
 
     int gradientFunc(const Vector&     parameters, 
-                     const bool        new_parameters, 
+                     bool              new_parameters, 
                      Vector&           gradient) const 
     {   SimTK_ASSERT2_ALWAYS(gradient.size() == getNumFreeQs(),
             "AssemblySystem::gradientFunc(): expected gradient vector of"
@@ -334,7 +334,7 @@ public:
 
     // Return the errors in the hard assembly error conditions.
     int constraintFunc(const Vector&    parameters, 
-                       const bool       new_parameters, 
+                       bool             new_parameters, 
                        Vector&          qerrs) const 
     {   ++nEvalConstraints;
 
@@ -401,7 +401,7 @@ public:
     };
 
     int constraintJacobian(const Vector&    parameters, 
-                           const bool       new_parameters, 
+                           bool             new_parameters, 
                            Matrix&          J) const 
     {   ++nEvalJacobian;
 

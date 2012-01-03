@@ -2434,7 +2434,7 @@ void MobilizedBody::Custom::Implementation::setQToFitTransform(const State& stat
         OptimizerFunction(const MobilizedBody::Custom::Implementation& impl, const State& state, int nq, const Transform& X_FM) :
                 OptimizerSystem(nq), impl(impl), state(state), X_FM(X_FM) {
         }
-        int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
+        int objectiveFunc(const Vector& parameters, bool new_parameters, Real& f) const {
             Transform transform = impl.calcMobilizerTransformFromQ(state, parameters.size(), &parameters[0]);
             f = (transform.p()-X_FM.p()).norm();
             f += std::abs((~transform.R()*X_FM.R()).convertRotationToAngleAxis()[0]);
@@ -2468,7 +2468,7 @@ void MobilizedBody::Custom::Implementation::setUToFitVelocity(const State& state
         OptimizerFunction(const MobilizedBody::Custom::Implementation& impl, const State& state, int nu, const SpatialVec& V_FM) :
                 OptimizerSystem(nu), impl(impl), state(state), V_FM(V_FM) {
         }
-        int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
+        int objectiveFunc(const Vector& parameters, bool new_parameters, Real& f) const {
             SpatialVec v = impl.multiplyByHMatrix(state, parameters.size(), &parameters[0]);
             f = (v[0]-V_FM[0]).norm();
             f += (v[1]-V_FM[1]).norm();

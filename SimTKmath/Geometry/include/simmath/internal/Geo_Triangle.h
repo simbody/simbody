@@ -52,7 +52,7 @@ namespace SimTK {
 //==============================================================================
 /** A geometric primitive representing a triangle by its vertices as points
 in some unspecified frame, and a collection of triangle-related utility 
-methods. We support a u-v parameterization for the triangle. **/
+methods. We support a u-v barycentric parameterization for the triangle. **/
 template <class P>
 class Geo::Triangle_ {
 typedef P               RealP;
@@ -110,12 +110,12 @@ LineSeg_<P> getEdge(int i) const
     return LineSeg_<P>(v[i],v[(i+1)%3]); }
 
 /** Return a point on the triangle's face given by its (u,v) coordinates. 
-Cost is 13 flops. **/
+Cost is 17 flops. **/
 Vec3P findPoint(const Vec2P& uv) const
 {   return uv[0]*v[0] + uv[1]*v[1] + (1-uv[0]-uv[1])*v[2]; }
 
 /** Return the centroid point on the triangle's face; this is the same as
-findPoint(1/3,1/3) but faster. Cost is 7 flops. **/
+findPoint(1/3,1/3) but faster. Cost is 9 flops. **/
 Vec3P findCentroid() const
 {   return (v[0]+v[1]+v[2]) / RealP(3); }
 
@@ -130,9 +130,13 @@ numerical reasons it is possible for the sphere to be a little too big. **/
 Sphere_<P> calcBoundingSphere() const
 {   return Geo::Point_<P>::calcBoundingSphere(v[0],v[1],v[2]); }
 
-/** Return the area of this triangle. Cost is about 50 flops. **/
+/** Return the area of this triangle. Cost is about 40 flops. **/
 RealP calcArea() const 
 {   return ((v[1]-v[0]) % (v[2]-v[0])).norm() / 2; }
+
+/** Return the square of the area of this triangle. Cost is 23 flops. **/
+RealP calcAreaSqr() const 
+{   return ((v[1]-v[0]) % (v[2]-v[0])).normSqr() / 4; }
 
 /** Given a location in space, find the point of this triangular face that
 is closest to that location. If the answer is not unique then one of the 

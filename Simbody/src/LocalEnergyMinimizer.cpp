@@ -53,14 +53,14 @@ public:
         system.realize(state, Stage::Time); // we'll only change Position stage and above
         setNumEqualityConstraints(state.getNQErr());
     }
-    int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
+    int objectiveFunc(const Vector& parameters, bool new_parameters, Real& f) const {
         if (new_parameters)
             state.updQ() = parameters;
         system.realize(state, Stage::Dynamics);
         f = system.calcPotentialEnergy(state);
         return 0;
     }
-    int gradientFunc(const Vector& parameters, const bool new_parameters, Vector& gradient) const  {
+    int gradientFunc(const Vector& parameters, bool new_parameters, Vector& gradient) const  {
         if (new_parameters)
             state.updQ() = parameters;
         system.realize(state, Stage::Dynamics);
@@ -73,7 +73,7 @@ public:
         matter.multiplyByNInv(state, true, -1.0*dEdU, gradient);
         return 0;
     }
-    int constraintFunc(const Vector& parameters, const bool new_parameters, Vector& constraints) const {
+    int constraintFunc(const Vector& parameters, bool new_parameters, Vector& constraints) const {
         state.updQ() = parameters;
         system.realize(state, Stage::Position);
         constraints = state.getQErr();

@@ -53,7 +53,12 @@ frame, and a collection of point-related utility methods. **/
 template <class P>
 class Geo::Point_ {
 typedef P               RealP;
-typedef Vec<3,RealP>    Vec3P;
+typedef Vec<3,P>        Vec3P;
+typedef Mat<3,3,P>      Mat33P;
+typedef SymMat<3,P>     SymMat33P;
+typedef UnitVec<P,1>    UnitVec3P;
+typedef Rotation_<P>    RotationP;
+typedef Transform_<P>   TransformP;
 
 public:
 /** Construct an uninitialized Point object; the location will be garbage. **/
@@ -72,6 +77,7 @@ const Vec3P& getLocation() const {return p;}
 expressed in the same frame (expensive). Cost is about 30 flops. **/
 RealP calcDistance(const Vec3P& p2) const 
 {   return calcDistance(p, p2); }
+
 /** Find the square of the distance between this point and another one whose
 location is expressed in the same frame (cheap). Cost is 8 flops. **/
 RealP findDistanceSqr(const Vec3P& p2) const 
@@ -80,23 +86,73 @@ RealP findDistanceSqr(const Vec3P& p2) const
 /**@name            Miscellaneous point-related utilities
 These static methods work with points or collections of points. **/
 /**@{**/
+
 /** Calculate the distance between two points (expensive). Cost is about 
 30 flops. **/
 static RealP calcDistance(const Vec3P& p1, const Vec3P& p2)
 {   return std::sqrt(findDistanceSqr(p1,p2)); }
+
 /** Find the square of the distance between two points (cheap). Cost is 
 8 flops. **/
 static RealP findDistanceSqr(const Vec3P& p1, const Vec3P& p2)
 {   return (p2-p1).normSqr(); }
+
 /** Find the point midway between two points. Cost is 4 flops. **/
 static Vec3P findMidpoint(const Vec3P& p1, const Vec3P& p2)
 {   return (p1+p2)/2; }
+
+/** Given a set of points, find the one that is the furthest in a given
+direction, and return its index and location along that direction. There must 
+be at least one point in the set. **/
+SimTK_SIMMATH_EXPORT static void
+findSupportPoint(const Array_<Vec3P>& points, const UnitVec3P& direction,
+                 int& most, RealP& mostCoord);
+
+/** Given a set of points, find the two points that are the most extreme along
+a given direction (not necessarily distinct), and return their indices and
+locations along the given direction. There must be at least one point
+in the set. **/
+SimTK_SIMMATH_EXPORT static void
+findExtremePoints(const Array_<Vec3P>& points, const UnitVec3P& direction,
+                  int& least, int& most,
+                  RealP& leastCoord, RealP& mostCoord);
+
+/** Given a set of points, calculate the centroid (average location) of those 
+points. Cost is about 3*n+10 flops for n points. **/
+SimTK_SIMMATH_EXPORT static Vec3P
+calcCentroid(const Array_<Vec3P>& points_F);
+
+/** Given a set of points, calculate the centroid (average location) and
+covariance matrix of those points. **/
+SimTK_SIMMATH_EXPORT static void
+calcCovariance(const Array_<Vec3P>& points_F,
+               Vec3P& centroid, SymMat33P& covariance);
+
+/** Given a set of points in an unspecified frame F, find the principal
+component directions describing the distribution of the points in space. The
+result is a frame P with origin at the centroid, x axis along the direction
+of maximum dispersion, y axis along the direction of minimum dispersion, and
+z=x X y. Note that clustering of points affects the directions. **/
+SimTK_SIMMATH_EXPORT static void
+calcPrincipalComponents(const Array_<Vec3P>& points_F,
+                        TransformP&          X_FP);
+
 /**@}**/
 
 /**@name              Axis-aligned bounding box creation
 These static methods create a minimal axis-aligned box that includes all
 of a set of given points. **/
 /**@{**/
+
+/** Given a set of points, find the six points that are the most extreme along
+the axial directions (not necessarily distinct points). Return the indices of
+the extreme points and the locations of the box corners. Note that the corners
+do not necessarily correspond to any points in the set. There must be at least 
+one point in the set. **/
+SimTK_SIMMATH_EXPORT static void
+findAxisAlignedExtremePoints(const Array_<Vec3P>& points,
+                             int least[3], int most[3],
+                             Vec3P& low, Vec3P& high);
 
 /** Calculate the smallest axis-aligned bounding box including all n given
 points. Cost is O(n). **/
@@ -130,12 +186,30 @@ includes all of a set of given points. The OBB is not guaranteed to be minimal
 but will usually be very good. You can optionally obtain the set of support
 points that determined the size of the box. **/
 /**@{**/
+
+/** Given a set of points, find the six points that are the most extreme along
+specified orientation directions (not necessarily distinct points). The points
+are given in an arbitrary frame F. We have an oriented "box" frame B given
+by its orientation in F, R_FB. The origin of the B frame is coincident with
+the F frame. We'll find the points that are the most extreme along the B frame 
+axis directions, and we'll also return the corner points <em>in B</em> (that 
+is, the points having minimum and maximum x,y,z values in B). Note that the
+corners do not necessarily correspond to any points in the set. If you want to
+know where the corners are in F, just compute R_FB*low_B and R_FB*high_B on 
+return. There must be at least one point in the given set. **/
+SimTK_SIMMATH_EXPORT static void
+findOrientedExtremePoints(const Array_<Vec3P>&  points_F, 
+                          const RotationP&      R_FB,
+                          int least[3], int most[3],
+                          Vec3P& low_B, Vec3P& high_B);
+
 /** Calculate a tight-fitting oriented bounding box (OBB) that includes all
 n given points. The OBB is not guaranteed to be minimal but will usually be
-very good. Cost is O(n). **/
+very good unless you suppress optimization to save runtime. Cost is O(n). **/
 SimTK_SIMMATH_EXPORT static Geo::OrientedBox_<P> 
 calcOrientedBoundingBox(const Array_<Vec3P>& points,
-                        Array_<int>&         support);
+                        Array_<int>&         support,
+                        bool                 optimize=true);
 
 /** Alternate signature doesn't return support points. **/
 static Geo::OrientedBox_<P> 
@@ -147,13 +221,15 @@ calcOrientedBoundingBox(const Array_<Vec3P>& points)
 points themselves. **/
 SimTK_SIMMATH_EXPORT static Geo::OrientedBox_<P> 
 calcOrientedBoundingBox(const Array_<const Vec3P*>& points,
-                        Array_<int>&                support);
+                        Array_<int>&                support,
+                        bool                        optimize=true);
 
 /** Alternate signature doesn't return support points. **/
 static Geo::OrientedBox_<P> 
-calcOrientedBoundingBox(const Array_<const Vec3P*>& points)
+calcOrientedBoundingBox(const Array_<const Vec3P*>& points,
+                        bool                        optimize=true)
 {   Array_<int> support; 
-    return calcOrientedBoundingBox(points,support); }
+    return calcOrientedBoundingBox(points,support,optimize); }
 /**@}**/
 
 /**@name                 Sphere-related utilities

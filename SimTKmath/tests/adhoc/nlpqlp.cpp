@@ -224,7 +224,7 @@ public:
 
     int m;
 
-    int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
+    int objectiveFunc(  const Vector &coefficients, bool new_coefficients, Real& f ) const {
         int mode = 2;
         int i;
 
@@ -245,7 +245,7 @@ public:
         return (0);
     }
 
-    int gradientFunc( const Vector &coefficients, const bool new_coefficients, Vector &gradient ) const {
+    int gradientFunc( const Vector &coefficients, bool new_coefficients, Vector &gradient ) const {
         int i,mode = 3;
         int fmode = 2;
 
@@ -267,7 +267,7 @@ public:
         return(0);
     }
 
-    int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vector &constraints)  const {
+    int constraintFunc( const Vector &coefficients, bool new_coefficients, Vector &constraints)  const {
         int i,mode = 4;
 
         Real *nx = (Real *)&l2_;
@@ -286,7 +286,7 @@ public:
         return(0);
     }
 
-    int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Matrix& jac)  const {
+    int constraintJacobian( const Vector& coefficients, bool new_coefficients, Matrix& jac)  const {
         int i,j;
         int mode = 5;
 

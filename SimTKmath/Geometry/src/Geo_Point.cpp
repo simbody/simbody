@@ -34,6 +34,8 @@ Non-inline static methods from the Geo::Point_ class. **/
 
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
+#include "simmath/LinearAlgebra.h"
+#include "simmath/Optimizer.h"
 #include "simmath/internal/Geo.h"
 #include "simmath/internal/Geo_Point.h"
 #include "simmath/internal/Geo_Box.h"
@@ -100,10 +102,147 @@ inline static void fixWhich(const int* map, Array_<int>& which) {
         which[i] = map[which[i]];
 }
 
+
+// Given a set of points, find the one that is the furthest in a given
+// direction. There must be at least one point in the set.
+template <class P> /*static*/ void Geo::Point_<P>::
+findSupportPoint(const Array_<Vec3P>& points, const UnitVec3P& direction,
+                 int& most, RealP& maxCoord) {
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", "findSupportPoint()",
+        "There must be at least one point in the set.");
+    most=0; maxCoord = dot(points[0],direction);
+    for (int i=1; i < (int)points.size(); ++i) {
+        const RealP coord = dot(points[i],direction);
+        if (coord > maxCoord) most=i, maxCoord=coord;
+    }
+}
+
+/** Given a set of points, find the two points that are the most extreme along
+a given direction (not necessarily distinct). There must be at least one point
+in the set. **/
+template <class P> /*static*/ void Geo::Point_<P>::
+findExtremePoints(const Array_<Vec3P>& points, const UnitVec3P& direction,
+                  int& least, int& most, RealP& leastCoord, RealP& mostCoord) {
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", "findExtremePoints()",
+        "There must be at least one point in the set.");
+    least=most=0; 
+    leastCoord = dot(points[0],direction); mostCoord=leastCoord;
+    for (int i=1; i < (int)points.size(); ++i) {
+        const Vec3P& p = points[i];
+        const RealP coord = dot(p,direction);
+        if (coord < leastCoord) least=i, leastCoord=coord;
+        if (coord > mostCoord)  most=i,  mostCoord=coord;
+    }
+}
+
+template <class P> /*static*/ Vec<3,P> Geo::Point_<P>::
+calcCentroid(const Array_<Vec3P>& points) {
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", "calcCentroid()",
+        "There must be at least one point in the set.");
+
+    const int   n   = (int)points.size();
+    const RealP oon = RealP(1)/n;   // ~10 flops
+
+    Vec3P centroid(0);
+    for (int i=0; i < n; ++i)
+        centroid += points[i];      // 3 flops
+    centroid *= oon;
+
+    return centroid;
+}
+
+template <class P> /*static*/ void Geo::Point_<P>::
+calcCovariance(const Array_<Vec3P>& points_F,
+               Vec3P& centroid, SymMat33P& covariance) {
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", "calcCovariance()",
+        "There must be at least one point in the set.");
+
+    const int   n   = (int)points_F.size();
+    const RealP oon = RealP(1)/n;   // ~10 flops
+
+    // Pass 1: find the centroid
+    centroid = RealP(0);
+    for (int i=0; i < n; ++i)
+        centroid += points_F[i];    // 3 flops
+    centroid *= oon;
+
+    // Pass 2: calculate the covariance matrix.
+    covariance.setToZero();
+    Vec3P& diag  = covariance.updDiag();
+    Vec3P& lower = covariance.updLower(); // 1,0 2,0 2,1
+    for (int i=0; i < n; ++i) {
+        const Vec3P p = points_F[i] - centroid;
+        diag[0]  += p[0]*p[0]; diag[1]  += p[1]*p[1]; diag[2]  += p[2]*p[2];
+        lower[0] += p[0]*p[1]; lower[1] += p[0]*p[2]; lower[2] += p[1]*p[2];
+    }
+
+    covariance *= oon;
+}
+
+template <class P> /*static*/ void Geo::Point_<P>::
+calcPrincipalComponents(const Array_<Vec3P>& points_F,
+                        TransformP&          X_FP) {
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
+        "calcPrincipalComponents()",
+        "There must be at least one point in the set.");
+
+    Vec3P     centroid;
+    SymMat33P covariance;
+    calcCovariance(points_F, X_FP.updP(), covariance);
+
+    // Calculate eigenvalues and eigenvectors.
+    const Mat33P cov33(covariance);
+    Matrix_<P> cov(cov33);
+    Vector_< std::complex<P> > evals;
+    Matrix_< std::complex<P> > evecs;
+    Eigen(cov).getAllEigenValuesAndVectors(evals, evecs);
+
+    // Find the largest and smallest eigenvalues and corresponding vectors.
+    const Vec3P vals(evals[0].real(), evals[1].real(), evals[2].real());
+    int minIx, maxIx; RealP minVal, maxVal;
+    minOf(vals[0], vals[1], vals[2], minVal, minIx);
+    maxOf(vals[0], vals[1], vals[2], maxVal, maxIx);
+
+    if (maxIx == minIx) // eigenvalues must all be the same
+        maxIx = (minIx+1) % 3; // pick a different axis
+
+    // Eigenvectors for a real symmetric matrix are perpendicular and
+    // normalized already.
+    UnitVec3P longAxis( Vec3P(evecs(0,maxIx).real(), evecs(1,maxIx).real(), 
+                              evecs(2,maxIx).real()), 
+                        true); // "trust me" to prevent normalizing
+    UnitVec3P shortAxis(Vec3P(evecs(0,minIx).real(), evecs(1,minIx).real(), 
+                              evecs(2,minIx).real()), 
+                        true);
+    X_FP.updR() = RotationP(longAxis, XAxis, shortAxis, YAxis);
+}
+
 //==============================================================================
 //                       CALC AXIS ALIGNED BOUNDING BOX
 //==============================================================================
 
+
+template <class P> /*static*/ void Geo::Point_<P>::
+findAxisAlignedExtremePoints(const Array_<Vec3P>& points,
+                             int least[3], int most[3],
+                             Vec3P& low, Vec3P& high) {
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", 
+        "findAxisAlignedExtremePoints()",
+        "There must be at least one point in the set.");
+
+    low=points[0]; high=points[0];
+    for (int i=0; i<3; i++) least[i]=most[i]=0; // point 0 most extreme so far
+    
+    for (int i=1; i < (int)points.size(); ++i) {
+        const Vec3P& p = points[i];
+        if (p[0] < low [0]) low [0]=p[0], least[0]=i;
+        if (p[0] > high[0]) high[0]=p[0], most [0]=i;
+        if (p[1] < low [1]) low [1]=p[1], least[1]=i;
+        if (p[1] > high[1]) high[1]=p[1], most [1]=i;
+        if (p[2] < low [2]) low [2]=p[2], least[2]=i;
+        if (p[2] > high[2]) high[2]=p[2], most [2]=i;
+    }
+}
 
 // This signature takes an array of points, creates an array of pointers to 
 // those points and calls the other signature.
@@ -160,21 +299,154 @@ calcAxisAlignedBoundingBox(const Array_<const Vec3P*>& points,
     return AlignedBox_<P>(ctr, hdim).stretchBoundary(); 
 }
 
+
+
 //==============================================================================
 //                       CALC ORIENTED BOUNDING BOX
 //==============================================================================
 
-/** Calculate a tight-fitting oriented bounding box (OBB) that includes all
-n given points. The OBB is not guaranteed to be minimal but will usually be
-very good. Cost is O(n). **/
+template <class P> /*static*/ void Geo::Point_<P>::
+findOrientedExtremePoints(const Array_<Vec3P>& points_F, 
+                          const RotationP& R_FB,
+                          int least[3], int most[3],
+                          Vec3P& low_B, Vec3P& high_B) {
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
+        "findOrientedExtremePoints()",
+        "There must be at least one point in the set.");
+    const RotationP R_BF = ~R_FB;
+
+    low_B=R_BF*points_F[0]; high_B=R_BF*points_F[0];
+    for (int i=0; i<3; i++) least[i]=most[i]=0; // point 0 most extreme so far
+    
+    for (int i=1; i < (int)points_F.size(); ++i) {
+        const Vec3P p = R_BF*points_F[i];
+        if (p[0] < low_B [0]) low_B [0]=p[0], least[0]=i;
+        if (p[0] > high_B[0]) high_B[0]=p[0], most [0]=i;
+        if (p[1] < low_B [1]) low_B [1]=p[1], least[1]=i;
+        if (p[1] > high_B[1]) high_B[1]=p[1], most [1]=i;
+        if (p[2] < low_B [2]) low_B [2]=p[2], least[2]=i;
+        if (p[2] > high_B[2]) high_B[2]=p[2], most [2]=i;
+    }
+}
+
+// Differentiate the above function being careful to note the low accuracy
+// when running in single precision.
+template <class P>
+class VolumeGradient : public Differentiator::GradientFunction {
+    typedef Vec<3,P> Vec3P;
+public:
+    VolumeGradient(const Array_<Vec3P>& points, const Rotation_<P>& R_FB0)
+    :   Differentiator::GradientFunction(3,(Real)Geo::getDefaultTol<P>()), 
+        p(&points), R_FB0(R_FB0) {}
+
+    // This function calculates the volume as a function of rotation angles
+    // relative to the starting frame B0.
+    int f(const Vector& angles, Real& volume) const {
+        Vec3P a; a[0] = P(angles[0]); a[1] = P(angles[1]); a[2] = P(angles[2]);
+        Rotation_<P> R_B0B(BodyRotationSequence,
+                           a[0], XAxis, a[1], YAxis, a[2], ZAxis);
+        int least[3], most[3];
+        Vec<3,P> low_B, high_B;
+        Geo::Point_<P>::findOrientedExtremePoints(*p, R_FB0*R_B0B,
+                                                  least, most, low_B, high_B);
+        const Vec<3,P> extent(high_B - low_B);
+        volume = (Real)(extent[0]*extent[1]*extent[2]);
+        return 0;
+    }
+private:
+    const Array_<Vec3P>* p; // points to array of points
+    const Rotation_<P>   R_FB0; // starting orientation
+};
+
+
 template <class P> /*static*/
 Geo::OrientedBox_<P> Geo::Point_<P>::
-calcOrientedBoundingBox(const Array_<Vec3P>& points,
-                        Array_<int>&         support) {
-    Array_<const Vec3P*> p(points.size());
-    for (unsigned i=0; i<points.size(); ++i)
-        p[i] = &points[i];
-    return calcOrientedBoundingBox(p, support);
+calcOrientedBoundingBox(const Array_<Vec3P>& points_F,
+                        Array_<int>&         support,
+                        bool                 optimize) {
+    TransformP X_FB0;
+    //TODO: this is not a good initial guess because it is sensitive to
+    // point clustering and distribution of interior points. Should start
+    // with a convex hull, get the mass properties of that and use principal
+    // moments as directions.
+    calcPrincipalComponents(points_F, X_FB0);
+
+    // We'll update these as we go.
+    RotationP R_FB = X_FB0.R();
+    Vec3P center_F = X_FB0.p();
+
+    int least[3], most[3];
+    Vec3P low_B, high_B;
+    findOrientedExtremePoints(points_F, R_FB,
+                              least, most, low_B, high_B);
+
+    // Initial guess at OBB.
+    Vec3P extent_B = high_B - low_B;
+    RealP volume = extent_B[0]*extent_B[1]*extent_B[2];
+    center_F = R_FB*(high_B+low_B)/2;
+
+    // This is a very abbreviated steepest-descent optimizer. Starting with
+    // R_FB0 it uses three Euler angles as parameters and calculates volume
+    // as a function of those angles. It calculates the downhill gradient once, then does a line search along that gradient
+    // and quits as soon as it stops making significant progress.
+    if (optimize) {
+        VolumeGradient<P> grad(points_F, R_FB);
+        Differentiator diff(grad);
+        Vector g = diff.calcGradient(Vector(3, Real(0)));
+        Vec3P dir; dir[0]=P(g[0]); dir[1]=P(g[1]); dir[2]=P(g[2]);
+
+        // Gradient has units of volume/radian.
+        // Set initial step to attempt a 10% volume reduction.
+        RealP dirNorm = dir.norm();
+        RealP incr = volume/(10*dirNorm);
+        const RealP MinImprovement = RealP(.001); // .1% or give up
+        RealP minIncr = incr / 1000000;
+        RealP step = 0;
+        for (int i=0; i < 20; ++i) {
+            step -= incr;
+            Vec3P a(step*dir); // angles away from B0
+            Rotation_<P> R_B0B(BodyRotationSequence,
+                               a[0], XAxis, a[1], YAxis, a[2], ZAxis);
+            Rotation_<P> tryR_FB = X_FB0.R()*R_B0B;
+            int tryLeast[3], tryMost[3];
+            Vec3P tryLow_B, tryHigh_B;
+            findOrientedExtremePoints(points_F, tryR_FB,
+                                      tryLeast, tryMost, tryLow_B, tryHigh_B);
+            Vec3P tryExtent_B = tryHigh_B - tryLow_B;
+            RealP tryVol = tryExtent_B[0]*tryExtent_B[1]*tryExtent_B[2];
+
+            if (tryVol < volume) {
+                const RealP improvement = (volume-tryVol)/volume;
+                for (int j=0; j<3; ++j) 
+                    least[i]=tryLeast[i], most[i]=tryMost[i];
+                R_FB = tryR_FB;
+                extent_B = tryExtent_B;
+                center_F = R_FB*(tryHigh_B+tryLow_B)/2;
+                volume = tryVol;
+                if (improvement < MinImprovement)
+                    break;           
+                incr *= RealP(1.5); // grow slowly
+                continue;
+            } 
+
+            // Volume got worse.
+            step += incr; // back to previous best 
+            if (incr <= minIncr) 
+                break;
+            incr /= 10; // shrink fast
+        }
+    }
+
+    // Sort the support points and eliminate duplicates.
+    std::set<int> supportSet;
+    for (unsigned i=0; i<3; ++i) {
+        supportSet.insert(least[i]);
+        supportSet.insert(most[i]);
+    }
+    support.assign(supportSet.begin(), supportSet.end());
+    
+    OrientedBox_<P> obb(TransformP(R_FB,center_F), extent_B/2);
+    return obb.stretchBoundary();
 }
 
 /** Alternate signature taking an array of pointers to points rather than the
@@ -182,7 +454,8 @@ points themselves. **/
 template <class P> /*static*/
 Geo::OrientedBox_<P> Geo::Point_<P>::
 calcOrientedBoundingBox(const Array_<const Vec3P*>& points,
-                        Array_<int>&                support) {
+                        Array_<int>&                support,
+                        bool                        optimize) {
     assert(false);
     return Geo::OrientedBox_<P>();
 }
