@@ -129,8 +129,8 @@ multiply Mh*H would take 3x28=84 flops, while the hand-worked version is:
 <pre>
        [ a3 ]   [ 2 (h0 - h1) +   hu0 + hu1 ]
    A = [ a2 ] = [-3 (h0 - h1) - 2 hu0 - hu1 ]
-       [ a1 ] = [           hu0             ]                      
-       [ a0 ] = [           h0              ]
+       [ a1 ]   [           hu0             ]                      
+       [ a0 ]   [           h0              ]
 </pre> which instead takes 3x8=24 flops, 3.5X faster.
 
 @see CubicBezierCurve_, BicubicHermitePatch_, BicubicBezierPatch_
@@ -303,6 +303,14 @@ static Mat<4,4,P> getMh() {
                        1,  0,  0,  0 );
 }
 
+/** Form the product of the Hermite basis matrix Mh and a 4-vector, exploiting
+the structure of Mh (which is not symmetric). Cost is 8 flops. **/
+static Vec<4,P> multiplyByMh(const Vec<4,P>& v) {
+    const RealP v0=v[0], v1=v[1], v2=v[2], v3=v[3];
+    const RealP v01 = v0-v1;
+    return Vec<4,P>(2*v01+v2+v3, -3*v01-2*v2-v3, v2, v0);
+}
+
 /** Obtain the inverse inv(Mh) of the Hermite basis matrix explicitly. This is
 mostly useful for testing since specialized routines can save a lot of CPU time
 over working directly in matrix form. This is a constant matrix so there is no
@@ -312,6 +320,14 @@ static Mat<4,4,P> getMhInv() {
                        1,  1,  1,  1,
                        0,  0,  1,  0,
                        3,  2,  1,  0 );
+}
+
+/** Form the product of the inverse Hermite basis matrix inv(Mh) and a 
+4-vector, exploiting the structure of inv(Mh) (which is not symmetric). 
+Cost is 7 flops. **/
+static Vec<4,P> multiplyByMhInv(const Vec<4,P>& v) {
+    const RealP v0=v[0], v1=v[1], v2=v[2], v3=v[3];
+    return Vec<4,P>(v3, v0+v1+v2+v3, v2, 3*v0+2*v1+v2);
 }
 /**@}**/
 

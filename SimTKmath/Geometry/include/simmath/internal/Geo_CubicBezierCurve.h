@@ -306,7 +306,7 @@ static Vec3P evalPuuuUsingB(const Vec<4,Vec3P>& B, RealP u) {
 /** Obtain the Bezier basis matrix Mb explicitly. This is mostly useful for
 testing since specialized routines can save a lot of CPU time over working
 directly in matrix form. This is a constant matrix so there is no computation
-cost. **/
+cost. The matrix is symmetric although we return a full 4x4 here. **/
 static Mat<4,4,P> getMb() {
     return Mat<4,4,P>( -1,  3, -3,  1,
                         3, -6,  3,  0,
@@ -314,10 +314,20 @@ static Mat<4,4,P> getMb() {
                         1,  0,  0,  0);
 }
 
+/** Form the product of the Bezier basis matrix Mb and a 4-vector, exploiting
+the structure of Mb. Since Mb is symmetric you can also use this for 
+multiplication by a row from the left, i.e. ~b*Mb=~(~Mb*b)=~(Mb*b).
+Cost is 10 flops. **/
+static Vec<4,P> multiplyByMb(const Vec<4,P>& b) {
+    const RealP b0=b[0], b1=b[1], b2=b[2], b3=b[3];
+    return Vec<4,P>(3*(b1-b2)+b3-b0, 3*(b0+b2)-6*b1, 3*(b1-b0), b0);
+}
+
 /** Obtain the inverse inv(Mb) of the Bezier basis matrix explicitly. This is
 mostly useful for testing since specialized routines can save a lot of CPU time
 over working directly in matrix form. This is a constant matrix so there is no
-computation cost. **/
+computation cost. The matrix is symmetric although we return a full 4x4 
+here. **/
 static Mat<4,4,P> getMbInv() {
     return Mat<4,4,P>( 0,    0,       0,   1,
                        0,    0,   P(1)/3,  1,
@@ -325,30 +335,55 @@ static Mat<4,4,P> getMbInv() {
                        1,    1,       1,   1 );
 }
 
+/** Form the product of the inverse inv(Mb) of the Bezier basis matrix Mb and a 
+4-vector, exploiting the structure of inv(Mb). Since inv(Mb) is symmetric you 
+can also use this for multiplication by a row from the left, i.e. 
+~b*Mb^-1=~(Mb^-T*b)=~(Mb^-1*b). Cost is 9 flops. **/
+static Vec<4,P> multiplyByMbInv(const Vec<4,P>& b) {
+    const RealP b0=b[0], b1=b[1], b2=b[2], b3=b[3];
+    return Vec<4,P>(b3, b2/3+b3, (b1+2*b2)/3+b3, b0+b1+b2+b3);
+}
+
 /** Obtain the product Mh^-1*Mb explicitly; this is the matrix used for 
-conversion from Bezier to Hermite bases since H=Mh^-1 Mb B. This is mostly 
-useful for testing since specialized routines can save a lot of CPU time over 
-working directly in matrix form. This is a constant matrix so there is no 
-computation cost. **/
+conversion from Bezier to Hermite bases since H=Mh^-1 Mb B and is the inverse
+of the matrix Mb^-1*Mh. This is mostly useful for testing since specialized 
+routines can save a lot of CPU time over working directly in matrix form. 
+There is a very efficient method for forming matrix-vector products with this
+matrix. This is a constant matrix so there is no computation cost. 
+@see multiplyByMhInvMb(), getMbInvMh() **/
 static Mat<4,4,P> getMhInvMb() {
     return Mat<4,4,P>(  1,  0,  0,  0,
                         0,  0,  0,  1,
                        -3,  3,  0,  0,
                         0,  0, -3,  3 );
 }
+/** Given a vector v, form the product inv(Mh)*Mb*v, exploiting the structure
+of the constant matrix inv(Mh)*Mb (not symmetric). Cost is 4 flops. **/
+static Vec<4,P> multiplyByMhInvMb(const Vec<4,P>& v) {
+    const RealP v0=v[0], v1=v[1], v2=v[2], v3=v[3];
+    return Vec<4,P>(v0, v3, 3*(v1-v0), 3*(v3-v2));
+}
 
 /** Obtain the product Mb^-1*Mh explicitly; this is the matrix used for 
-conversion from Hermite to Bezier bases since B=Mb^-1 Mh H. This is mostly 
+conversion from Hermite to Bezier bases since B=Mb^-1 Mh H and is the inverse
+of the matrix Mh^-1*Mb. This matrix is not symmetric. This method is mostly 
 useful for testing since specialized routines can save a lot of CPU time over 
-working directly in matrix form. This is a constant matrix so there is no 
-computation cost. **/
+working directly in matrix form. There is a very efficient method for forming 
+matrix-vector products with this matrix. This is a constant matrix so there is 
+no computation cost here. 
+@see multiplyByMhInvMb(), getMhInvMb() **/
 static Mat<4,4,P> getMbInvMh() {
     return Mat<4,4,P>(  1,  0,    0,      0,
                         1,  0, P(1)/3,    0,
                         0,  1,    0,   P(-1)/3,
                         0,  1,    0,      0 );
 }
-
+/** Given a vector v, form the product inv(Mb)*Mh*v, exploiting the structure
+of the constant matrix inv(Mb)*Mh (not symmetric). Cost is 4 flops. **/
+static Vec<4,P> multiplyByMbInvMh(const Vec<4,P>& v) {
+    const RealP v0=v[0], v1=v[1], v2=v[2], v3=v[3];
+    return Vec<4,P>(v0, v0+v2/3, v1-v3/3, v1);
+}
 /**@}**/
 
 private:
