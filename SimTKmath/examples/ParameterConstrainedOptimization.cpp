@@ -35,7 +35,7 @@ class ProblemSystem : public OptimizerSystem {
 
    ProblemSystem( const int numParameters ) : OptimizerSystem( numParameters ) {}
 
-   int objectiveFunc(   const Vector &coefficients, const bool new_coefficients,  Real& f  ) const  {
+   int objectiveFunc(   const Vector &coefficients, bool new_coefficients,  Real& f  ) const  {
       const Real *x = &coefficients[0];
 
       f = .25 *(x[0]-1.0)*(x[0]-1.0);
@@ -47,7 +47,7 @@ class ProblemSystem : public OptimizerSystem {
       return( 0 ); 
    }
 
-   int gradientFunc( const Vector &coefficients, const bool new_coefficients,  Vector &gradient ) const {
+   int gradientFunc( const Vector &coefficients, bool new_coefficients,  Vector &gradient ) const {
       const Real *x;
       Real t1,t2;
 
