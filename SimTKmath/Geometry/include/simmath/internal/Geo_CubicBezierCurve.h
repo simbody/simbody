@@ -149,10 +149,17 @@ typedef Vec<3,RealP>    Vec3P;
 public:
 /** Construct an uninitialized curve; control points will be garbage. **/
 CubicBezierCurve_() {}
+
 /** Construct a cubic Bezier curve using the given control points 
 B=[b0 b1 b2 b3]. **/
 explicit CubicBezierCurve_(const Vec<4,Vec3P>& controlPoints) 
-: B(controlPoints) {} 
+:   B(controlPoints) {} 
+
+/** Alternate signature accepts a Row of control points, although they are
+stored internally as a Vec. **/
+explicit CubicBezierCurve_(const Row<4,Vec3P>& controlPoints) 
+:   B(controlPoints.positionalTranspose()) {} 
+
 /** Return a reference to the Bezier control points B=[b0 b1 b2 b3] that are
 stored in this object. **/
 const Vec<4,Vec3P>& getControlPoints() const {return B;}
