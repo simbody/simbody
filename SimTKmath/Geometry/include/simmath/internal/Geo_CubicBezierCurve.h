@@ -145,6 +145,9 @@ template <class P>
 class Geo::CubicBezierCurve_ {
 typedef P               RealP;
 typedef Vec<3,RealP>    Vec3P;
+typedef UnitVec<P,1>    UnitVec3P;
+typedef Rotation_<P>    RotationP;
+typedef Transform_<P>   TransformP;
 
 public:
 /** Construct an uninitialized curve; control points will be garbage. **/
@@ -186,6 +189,87 @@ ignored here since the 3rd derivative of a cubic curve is a constant. Cost is
 3 flops. **/
 Vec3P evalPuuu(RealP u) const {return evalPuuuUsingB(B,u);}
 
+/** Return ds/du, the change in arc length per change in curve parameter.
+This is the magnitude of the tangent vector Pu=dP/du. Cost is about 40 
+flops. **/
+RealP calcDsdu(RealP u) const {return evalPu(u).norm();}
+
+/** The unit tangent vector t=dP/ds where s is the arc length. This is 
+undefined at a cusp (Pu(u)==0). Cost is about 50 flops. See Struik, 2nd ed. 
+eqn. 2-8. **/
+UnitVec3P calcUnitTangent(RealP u) const {
+    return UnitVec3P(evalPu(u));
+}
+
+
+/** In our definition, the unit normal vector points in the "outward" 
+direction, that is, it points away from the center of curvature (opposite
+the curvature vector). This convention 
+is the opposite of Struik, where he has the normal point in the same direction
+as the curvature vector. The normal undefined at a cusp (Pu(u)==0), and 
+arbitrary at an inflection point (Puu(u)==0). (If the curve is a straight
+line then every point has Puu==0.) **/
+UnitVec3P calcUnitNormal(RealP u) const {
+    const RealP tol = Geo::getDefaultTol<P>();
+    const Vec3P Pu = evalPu(u), Puu = evalPuu(u);
+    if (Puu.normSqr() <= tol*tol) return UnitVec3P(Pu).perp();
+    // Calculate the curvature vector, negate, and normalize.
+    const RealP uPrimeSqr = 1/Pu.normSqr();                 // ~15 flops
+    const RealP u2Prime   = -(~Pu*Puu) * square(uPrimeSqr); // 8 flops
+    const Vec3P c = uPrimeSqr*Puu + u2Prime*Pu;             // 9 flops}
+    return UnitVec3P(-c);
+}
+
+// Return the magnitude of the curvature (always positive), and a frame
+// whose origin is a point along the curve, x axis is the outward unit normal,
+// y is the unit tangent, and z=x X y is a normal to the osculating plane.
+// This undefined at a cusp (Pu==0), and the normal is arbitrary at an 
+// inflection point (Puu(u)==0) or if the curve is a line (Puu==0 everywhere).
+RealP calcCurveFrame(RealP u, TransformP& X_FP) const {
+    const RealP tol = Geo::getDefaultTol<P>();
+    X_FP.updP() = evalP(u);                     //  20 flops
+    const Vec3P Pu=evalPu(u), Puu=evalPuu(u);   //  25 flops
+    const RealP uPrimeSqr = 1/Pu.normSqr();     // ~15 flops
+    const RealP uPrime    = std::sqrt(uPrimeSqr);
+    const UnitVec3P t(uPrime*Pu, true); // 3 flops 
+    UnitVec3P n;
+    RealP k; // curvature magnitude
+    if (Puu.normSqr() <= tol*tol) {   // 7 flops
+        k = 0;
+        n = t.perp(); // arbitrary
+    } else {
+        // Calculate the curvature vector, negate, and normalize.
+        const RealP u2Prime = -(~Pu*Puu) * square(uPrimeSqr); //   8 flops
+        const Vec3P c = uPrimeSqr*Puu + u2Prime*Pu;           //   9 flops
+        k = c.norm();                         // curvature >= 0, ~25 flops
+        n = UnitVec3P((-1/k)*c, true);                        // ~13 flops
+    }
+    const UnitVec3P b(n % t, true); // 9 flops
+    X_FP.updR().setRotationFromUnitVecsTrustMe(n,t,b);
+    return k;
+}
+
+/** The curvature vector kvec=dt/ds where t is the unit tangent vector
+(t=dP/ds) and s is arclength. Let prime denote differentiation with respect to
+arclength:
+<pre>
+    u' = 1/|Pu|
+    u'' = -(~Pu Puu)/Pu^4 = -(~Pu Puu) * u'^4
+    t = P' = Pu u' = Pu/|Pu|
+    kvec = t' = P'' = Puu u'^2 + Pu u''
+         = Puu/Pu^2 - Pu (~Pu Puu)/Pu^4
+         = -k * n, k is signed curvature, n is unit normal
+</pre>
+Cost is about 57 flops. See Struik, 2nd ed. eqn. 4-4, but we've reversed
+the direction of the unit normal so that it points \e away from the center
+of curvature. **/
+Vec3P calcCurvatureVector(RealP u) const {
+    const Vec3P Pu=evalPu(u), Puu=evalPuu(u);               //  25 flops
+    const RealP uPrimeSqr = 1/Pu.normSqr();                 // ~15 flops
+    const RealP u2Prime   = -(~Pu*Puu) * square(uPrimeSqr); // 8 flops
+    return uPrimeSqr*Puu + u2Prime*Pu;                      // 9 flops
+}
+
 /** Return a sphere that surrounds the entire curve segment in the u=[0..1]
 range. We use the fact that the curve is enclosed within the convex hull of
 its control points and generate the minimum bounding sphere that includes all
@@ -221,24 +305,24 @@ static Row<4,P> calcFb(RealP u) {
     return Row<4,P>(u13, 3*u*u12, 3*u2*u1, u3); 
 }
 
-/** Calculate first derivatives Fbu=[B0u..B3u] of the Bernstein basis functions
+/** Calculate first derivatives dFb=[B0u..B3u] of the Bernstein basis functions
 for a given value of the parameter u. Cost is 10 flops. **/
-static Row<4,P> calcFbu(RealP u) {
+static Row<4,P> calcDFb(RealP u) {
     const RealP u6=6*u, u2 = u*u, u23 = 3*u2, u29 = 9*u2;
-    return Row<4,P>(u6-u23-3, u29-12*u+3, u6-u29); 
+    return Row<4,P>(u6-u23-3, u29-12*u+3, u6-u29, u23); 
 }
 
-/** Calculate second derivatives Fbuu=[B0uu..B3uu] of the Bernstein basis
+/** Calculate second derivatives d2Fb=[B0uu..B3uu] of the Bernstein basis
 functions for a given value of the parameter u. Cost is 5 flops. **/
-static Row<4,P> calcFbuu(RealP u) {
+static Row<4,P> calcD2Fb(RealP u) {
     const RealP u6  = 6*u, u18 = 18*u;
     return Row<4,P>(6-u6, u18-12, 6-u18, u6); 
 }
 
-/** Calculate third derivatives Fbuuu=[B0uuu..B3uuu] of the Bernstein basis 
+/** Calculate third derivatives d3Fb=[B0uuu..B3uuu] of the Bernstein basis 
 functions for a given value of the parameter u. For a cubic curve this is
 just a constant. Cost is 0 flops. **/
-static Row<4,P> calcFbuuu(RealP u) {
+static Row<4,P> calcD3Fb(RealP u) {
     return Row<4,P>(-6, 18, -18, 6); 
 }
 
@@ -292,7 +376,7 @@ if you need to do this for the same curve more than once, it is cheaper to
 convert to algebraic form using calcAFromB() (30 flops) and then evaluate using
 A (15 flops). **/
 static Vec3P evalPuUsingB(const Vec<4,Vec3P>& B, RealP u) { 
-    return calcFbu(u)*B; // 10 + 3*7 = 31 flops
+    return calcDFb(u)*B; // 10 + 3*7 = 31 flops
 }
 /** Given Bezier control points B and a value for the curve parameter u, return
 the second derivative Puu(u)=d2P/du2 at that location. Cost is 26 flops. Note 
@@ -300,7 +384,7 @@ that if you need to do this for the same curve more than once, it is cheaper to
 convert to algebraic form using calcAFromB() (30 flops) and then evaluate using
 A (10 flops). **/
 static Vec3P evalPuuUsingB(const Vec<4,Vec3P>& B, RealP u) { 
-    return calcFbuu(u)*B; // 5 + 3*7 = 26 flops
+    return calcD2Fb(u)*B; // 5 + 3*7 = 26 flops
 }
 /** Given Bezier control points B and a value for the curve parameter u, return
 the third derivative Puuu(u)=d3P/du3 at that location. Cost is 21 flops. Note 
@@ -308,7 +392,7 @@ that if you need to do this for the same curve more than once, it is cheaper to
 convert to algebraic form using calcAFromB() (30 flops) and then evaluate using
 A (3 flops). **/
 static Vec3P evalPuuuUsingB(const Vec<4,Vec3P>& B, RealP u) { 
-    return calcFbuuu(u)*B; // 0 + 3*7 = 21 flops
+    return calcD3Fb(u)*B; // 0 + 3*7 = 21 flops
 }
 /** Obtain the Bezier basis matrix Mb explicitly. This is mostly useful for
 testing since specialized routines can save a lot of CPU time over working

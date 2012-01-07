@@ -82,6 +82,8 @@ typedef Line_<Real>         Line;
 typedef Plane_<Real>        Plane;
 typedef Circle_<Real>       Circle;
 typedef Box_<Real>          Box;
+typedef AlignedBox_<Real>   AlignedBox;
+typedef OrientedBox_<Real>  OrientedBox;
 typedef Triangle_<Real>     Triangle;
 typedef CubicHermiteCurve_<Real>    CubicHermiteCurve;
 typedef BicubicHermitePatch_<Real>  BicubicHermitePatch;

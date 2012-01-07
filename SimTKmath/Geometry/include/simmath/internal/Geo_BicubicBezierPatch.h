@@ -120,6 +120,33 @@ control points with the calcBFromA() or calcHFromA() provided here. **/
 explicit BicubicBezierPatch_(const Mat<4,4,Vec3P>& controlPoints) 
 :   B(controlPoints) {} 
 
+
+/** Evaluate a point P(u,w) on this patch given values for the
+parameters u and w in [0,1]. Values outside this range are permitted but do 
+not lie on the patch. Cost is 123 flops. **/
+Vec3P evalP(RealP u, RealP w) const {return evalPUsingB(B,u,w);}
+
+/** Evaluate the tangents Pu=dP/du, Pw=dP/dw on this patch given values for the
+parameters u and w in [0,1]. Values outside this range are permitted but do not
+lie on the curve segment. Cost is 248 flops. **/
+void evalP1(RealP u, RealP w, Vec3P& Pu, Vec3P& Pw) const 
+{   return evalP1UsingB(B,u,w,Pu,Pw); }
+
+/** Evaluate the second derivatives Puu=d2P/du2, Pww=d2P/dw2, and cross
+derivative Puw=Pwu=d2P/dudw on this patch given values for the parameters u 
+and w in [0,1]. Values outside this range are permitted but do not lie on the 
+curve segment. Cost is 363 flops. **/
+void evalP2(RealP u, RealP w, Vec3P& Puu, Vec3P& Puw, Vec3P& Pww) const 
+{   evalP2UsingB(B,u,w,Puu,Puw,Pww); }
+
+/** Evaluate the third derivatives Puuu=d3P/du3, Pwww=d3P/dw3, and cross
+derivatives Puuw=Pwuu=Puwu=d3P/du2dw and Puww=Pwwu=Pwuw=d3P/dudw2 on this patch 
+given values for the parameters u and w in [0,1]. Cost is 468 flops. All
+higher derivatives of a cubic patch are zero. **/
+void evalP3(RealP u, RealP w, Vec3P& Puuu, Vec3P& Puuw, 
+                              Vec3P& Puww, Vec3P& Pwww) const 
+{   evalP3UsingB(B,u,w,Puuu,Puuw,Puww,Pwww); }
+
 /** Return a reference to the Bezier control points B that are
 stored in this object. See the documentation for this class to see how the
 returned matrix of control points is defined. **/
@@ -170,6 +197,67 @@ CubicBezierCurve_<P> calcIsoCurveW(RealP w0) const
 /**@name                 Utility methods
 These static methods work with given control points. **/
 /**@{**/
+
+/** Given Bezier control points B and values for the curve parameters 
+u and w in [0..1], return the point P(u,w)=Fb(u)*B*~Fb(w) at that location, 
+where Fb is a vector of Bezier basis functions. Cost is 
+3x35+18=123 flops. **/
+static Vec3P evalPUsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w) { 
+    Row<4,P> Fbu = CubicBezierCurve_<P>::calcFb(u);     // 9 flops
+    Row<4,P> Fbw = CubicBezierCurve_<P>::calcFb(w);     // 9 flops
+    return Fbu * B * ~Fbw;                              // 3x35 flops
+}
+
+/** Given Bezier control points B and values for the curve parameters 
+u and w in [0..1], return the tangents Pu(u,w)=dFb(u)*B*~Fb(w) and 
+Pw(u,w)=Fb(u)*B*~dFb(w) at 
+that location. Cost is 3x70+38=248 flops. **/
+static void evalP1UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
+                         Vec3P& Pu, Vec3P& Pw) {
+    Row<4,P> Fbu  = CubicBezierCurve_<P>::calcFb(u);     //  9 flops
+    Row<4,P> Fbw  = CubicBezierCurve_<P>::calcFb(w);     //  9 flops
+    Row<4,P> dFbu = CubicBezierCurve_<P>::calcDFb(u);    // 10 flops
+    Row<4,P> dFbw = CubicBezierCurve_<P>::calcDFb(w);    // 10 flops
+    Pu = dFbu * B * ~Fbw;                                // 3x35
+    Pw = Fbu  * B * ~dFbw;                               // 3x35
+}
+
+/** Given Bezier control points B and values for the curve parameters 
+u and w in [0..1], return the second derivatives Puu(u,w)=d2Fb(u)*B*~Fb(w),
+Puw(u,w)=dFb(u)*B*~dFb(w) and Pww(u,w)=Fb(u)*B*~d2Fb(w) at that location. 
+Cost is 3x105+48=363 flops. **/
+static void evalP2UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
+                         Vec3P& Puu, Vec3P& Puw, Vec3P& Pww) {
+    Row<4,P> Fbu   = CubicBezierCurve_<P>::calcFb(u);     //  9 flops
+    Row<4,P> Fbw   = CubicBezierCurve_<P>::calcFb(w);     //  9 flops
+    Row<4,P> dFbu  = CubicBezierCurve_<P>::calcDFb(u);    // 10 flops
+    Row<4,P> dFbw  = CubicBezierCurve_<P>::calcDFb(w);    // 10 flops
+    Row<4,P> d2Fbu = CubicBezierCurve_<P>::calcD2Fb(u);   //  5 flops
+    Row<4,P> d2Fbw = CubicBezierCurve_<P>::calcD2Fb(w);   //  5 flops
+    Puu = d2Fbu * B * ~Fbw;                               // 3x35
+    Puw = dFbu  * B * ~dFbw;                              // 3x35
+    Pww = Fbu   * B * ~d2Fbw;                             // 3x35
+}
+
+/** Given Bezier control points B and values for the curve parameters 
+u and w in [0..1], return the third derivatives Puuu(u,w)=d3Fb(u)*B*~Fb(w),
+Puuw(u,w)=d2Fb(u)*B*~dFb(w), Puww(u,w)=dFb(u)*B*~d2Fb(w) and 
+Pwww(u,w)=Fb(u)*B*~d3Fb(w) at that location. Cost is 3x140+48=468 flops. **/
+static void evalP3UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
+                         Vec3P& Puuu, Vec3P& Puuw, Vec3P& Puww, Vec3P& Pwww) {
+    Row<4,P> Fbu   = CubicBezierCurve_<P>::calcFb(u);     //  9 flops
+    Row<4,P> Fbw   = CubicBezierCurve_<P>::calcFb(w);     //  9 flops
+    Row<4,P> dFbu  = CubicBezierCurve_<P>::calcDFb(u);    // 10 flops
+    Row<4,P> dFbw  = CubicBezierCurve_<P>::calcDFb(w);    // 10 flops
+    Row<4,P> d2Fbu = CubicBezierCurve_<P>::calcD2Fb(u);   //  5 flops
+    Row<4,P> d2Fbw = CubicBezierCurve_<P>::calcD2Fb(w);   //  5 flops
+    Row<4,P> d3Fbu = CubicBezierCurve_<P>::calcD3Fb(u);   //  0 
+    Row<4,P> d3Fbw = CubicBezierCurve_<P>::calcD3Fb(w);   //  0
+    Puuu = d3Fbu * B * ~Fbw;                              // 3x35
+    Puuw = d2Fbu * B * ~dFbw;                             // 3x35
+    Puww = dFbu  * B * ~d2Fbw;                            // 3x35
+    Pwww = Fbu   * B * ~d3Fbw;                            // 3x35
+}
 
 /** Given a particular value u0 for patch coordinate u, create a cubic Bezier
 curve segment P(w)=P(u0,w) for the isoparametric curve along the patch at fixed
