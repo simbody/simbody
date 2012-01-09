@@ -38,7 +38,7 @@ class ProblemSystem : public OptimizerSystem {
 
    ProblemSystem( int numParameters) : OptimizerSystem( numParameters){}
 
-   int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
+   int objectiveFunc(  const Vector &coefficients, bool new_coefficients, Real& f ) const {
 
       const Real x = coefficients[0];
       const Real y = coefficients[1];
