@@ -38,6 +38,9 @@ that uses it to create a two-argument Function object. **/
 
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
+#include "simmath/internal/Geo.h"
+#include "simmath/internal/Geo_BicubicHermitePatch.h"
+#include "simmath/internal/Geo_BicubicBezierPatch.h"
 
 #include <limits>
 
@@ -429,6 +432,22 @@ public:
     since it does not provide for a PatchHint. See the other signature for a 
     much faster version. **/
     void calcParaboloid(const Vec2& XY, Transform& X_SP, Vec2& k) const;
+
+    /** (Advanced) Get the number of individual bicubic patches used to form
+    this surface, as the dimensions along each side of a rectangular grid.
+    There are nx X ny patches with indices in [0..nx-1, 0..ny-1]. **/
+    void getNumPatches(int& nx, int& ny) const;
+
+    /** (Advanced) Select a patch by its (x,y) position in the rectangular
+    grid of individual bicubic patches from which this surface is constructed.
+    Some computation is involved to create the patch coefficients which are
+    saved in the PatchHint. **/
+    Geo::BicubicHermitePatch calcHermitePatch(int x, int y, 
+                                              PatchHint& hint) const;
+    /** (Advanced) Alternate signature in case you don't care about the
+    hint. **/
+    Geo::BicubicHermitePatch calcHermitePatch(int x, int y) const;
+
     /**@}**/
 
     //--------------------------------------------------------------------------

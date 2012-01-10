@@ -40,6 +40,9 @@ nearby patches. **/
 
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
+#include "simmath/internal/Geo.h"
+#include "simmath/internal/Geo_BicubicHermitePatch.h"
+#include "simmath/internal/Geo_BicubicBezierPatch.h"
 #include "simmath/internal/BicubicSurface.h"
 
 #include <cassert>
@@ -147,7 +150,48 @@ public:
     // point at XY.
     void calcParaboloid
        (const Vec2& XY, PatchHint& hint, Transform& X_SP, Vec2& k) const;
-    
+   
+    void getNumPatches(int& nx, int &ny) const {
+        nx = _ff.nrow()-1;
+        ny = _ff.ncol()-1;
+    }
+
+    // Need to match out-of-order algebraic coefficients to the required
+    // matrix form:
+    //      [ a33 a32 a31 a30 ] 
+    //  A = [ a23 a22 a21 a20 ] 
+    //      [ a13 a12 a11 a10 ]
+    //      [ a03 a02 a01 a00 ]
+    // in which each entry is a 3-vector,
+    // given scalar algebraic coefficients for the z coordinates in this order:
+    //   0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
+    //  a00 a10 a20 a30 a01 a11 a21 a31 a02 a12 a22 a32 a03 a13 a23 a33
+    //                                        
+    // All x,y coefficients will be zero except for the constant and linear
+    // terms a00, a01, a10.
+    Geo::BicubicHermitePatch
+    calcHermitePatch(int i, int j, BicubicSurface::PatchHint& hint) const {
+        int nx, ny; getNumPatches(nx,ny);
+        SimTK_ERRCHK4_ALWAYS(0<=i && i<nx && 0<=j && j<ny,
+            "BicubicSurface::calcHermitePatch()",
+            "Patch coordinates (%d,%d) out of range [0..%d,0..%d].",
+            i,j,nx-1,ny-1);
+        BicubicSurface::PatchHint::Guts& h = hint.updGuts();
+        getPatchInfoIfNeeded(i,j,h); // need patch info
+        const Vec<16>& a = h.a;
+        const Vec3 
+        a33(0,0,a[15]), a32(0,0,a[11]), a31(0,  0, a[7]), a30(   0,   0,  a[3]),
+        a23(0,0,a[14]), a22(0,0,a[10]), a21(0,  0, a[6]), a20(   0,   0,  a[2]),
+        a13(0,0,a[13]), a12(0,0,a[9] ), a11(0,  0, a[5]), a10( h.xS,  0,  a[1]),
+        a03(0,0,a[12]), a02(0,0,a[8] ), a01(0,h.yS,a[4]), a00(_x[i],_y[j],a[0]);
+
+        const Mat<4,4,Vec3> A(a33, a32, a31, a30, 
+                              a23, a22, a21, a20, 
+                              a13, a12, a11, a10,
+                              a03, a02, a01, a00);
+        return Geo::BicubicHermitePatch(A);
+    }
+
     // Determine if a point is within the defined surface.
     bool isSurfaceDefined(const Vec2& XY) const;
 
@@ -225,6 +269,8 @@ private:
     void getCoefficients(const Vec<16>& f, Vec<16>& aV) const;
     void getFdF(const Vec2& aXY, int wantLevel,
                 BicubicSurface::PatchHint& hint) const;
+    void getPatchInfoIfNeeded(int x0, int y0, 
+                              BicubicSurface::PatchHint::Guts& h) const;
 
     // This is called from each constructor to initialize this object.
     void construct() {

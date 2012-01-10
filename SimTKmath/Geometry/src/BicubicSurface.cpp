@@ -171,6 +171,17 @@ void BicubicSurface::calcParaboloid
     calcParaboloid(XY, hint, X_SP, k);
 }
 
+void BicubicSurface::getNumPatches(int& nx, int& ny) const 
+{   guts->getNumPatches(nx,ny); }
+
+Geo::BicubicHermitePatch BicubicSurface::
+calcHermitePatch(int x, int y, PatchHint& hint) const
+{   return guts->calcHermitePatch(x,y,hint); }
+
+Geo::BicubicHermitePatch BicubicSurface::
+calcHermitePatch(int x, int y) const
+{   PatchHint hint; return guts->calcHermitePatch(x,y,hint); }
+
 bool BicubicSurface::isSurfaceDefined(const Vec2& XY) const 
 {   return getGuts().isSurfaceDefined(XY); }
 
@@ -545,6 +556,60 @@ bool BicubicSurface::Guts::isSurfaceDefined(const Vec2& XYval) const
     return valueDefined;
 }
 
+/* This function ensures that the given hint contains correct information for
+the patch indexed (x0,y0). */
+void BicubicSurface::Guts::
+getPatchInfoIfNeeded(int x0, int y0, BicubicSurface::PatchHint::Guts& h) const {
+    const int x1 = x0+1, y1 = y0+1;
+
+    // Compute Bicubic coefficients only if we're in a new patch
+    // else use the old ones, because this is an expensive step!
+    if( !(h.x0 == x0 && h.y0 == y0) ) {
+        // The hint is no good at all since it is for the wrong patch.
+        h.clear();
+        h.x0 = x0; h.y0 = y0;
+
+        // Compute the scaling of the new patch. Note that neither patch 
+        // dimension can be zero since we don't allow duplicates in x or y.
+        h.xS = _x(x1)-_x(x0);
+        h.yS = _y(y1)-_y(y0);
+        h.ooxS = 1/h.xS; h.ooxS2 = h.ooxS*h.ooxS; h.ooxS3=h.ooxS*h.ooxS2;
+        h.ooyS = 1/h.yS; h.ooyS2 = h.ooyS*h.ooyS; h.ooyS3=h.ooyS*h.ooyS2;
+
+        // Form the vector f and multiply Ainv*f to form coefficient vector a.
+
+        const Vec4& f00 = _ff(x0,y0);
+        const Vec4& f01 = _ff(x0,y1);
+        const Vec4& f10 = _ff(x1,y0);
+        const Vec4& f11 = _ff(x1,y1);
+
+        h.fV[0] = f00[F];
+        h.fV[1] = f10[F];
+        h.fV[2] = f01[F];
+        h.fV[3] = f11[F];
+
+        // Can't precalculate these scaled values because the same grid point
+        // is used for up to four different patches, each scaled differently.
+        h.fV[4] = f00[Fx]*h.xS;
+        h.fV[5] = f10[Fx]*h.xS;
+        h.fV[6] = f01[Fx]*h.xS;
+        h.fV[7] = f11[Fx]*h.xS;
+    
+        h.fV[8]  = f00[Fy]*h.yS;
+        h.fV[9]  = f10[Fy]*h.yS;
+        h.fV[10] = f01[Fy]*h.yS;
+        h.fV[11] = f11[Fy]*h.yS;
+
+        h.fV[12]  = f00[Fxy]*h.xS*h.yS;
+        h.fV[13]  = f10[Fxy]*h.xS*h.yS;
+        h.fV[14]  = f01[Fxy]*h.xS*h.yS;
+        h.fV[15]  = f11[Fxy]*h.xS*h.yS;
+
+        getCoefficients(h.fV,h.a);
+    }
+}
+
+
 /**
 This function computes the surface value and all derivatives (because it is
 cheap to compute these derivatives once the bicubic interpolation 
@@ -628,49 +693,7 @@ getFdF(const Vec2& aXY, int wantLevel, PatchHint& hint) const {
  
     // Compute Bicubic coefficients only if we're in a new patch
     // else use the old ones, because this is an expensive step!
-    if( !(h.x0 == x0 && h.y0 == y0) ) {
-        // The hint is no good at all since it is for the wrong patch.
-        h.clear();
-        h.x0 = x0; h.y0 = y0;
-
-        // Compute the scaling of the new patch. Note that neither patch 
-        // dimension can be zero since we don't allow duplicates in x or y.
-        h.xS = _x(x1)-_x(x0);
-        h.yS = _y(y1)-_y(y0);
-        h.ooxS = 1/h.xS; h.ooxS2 = h.ooxS*h.ooxS; h.ooxS3=h.ooxS*h.ooxS2;
-        h.ooyS = 1/h.yS; h.ooyS2 = h.ooyS*h.ooyS; h.ooyS3=h.ooyS*h.ooyS2;
-
-        // Form the vector f and multiply Ainv*f to form coefficient vector a.
-
-        const Vec4& f00 = _ff(x0,y0);
-        const Vec4& f01 = _ff(x0,y1);
-        const Vec4& f10 = _ff(x1,y0);
-        const Vec4& f11 = _ff(x1,y1);
-
-        h.fV[0] = f00[F];
-        h.fV[1] = f10[F];
-        h.fV[2] = f01[F];
-        h.fV[3] = f11[F];
-
-        // Can't precalculate these scaled values because the same grid point
-        // is used for up to four different patches, each scaled differently.
-        h.fV[4] = f00[Fx]*h.xS;
-        h.fV[5] = f10[Fx]*h.xS;
-        h.fV[6] = f01[Fx]*h.xS;
-        h.fV[7] = f11[Fx]*h.xS;
-    
-        h.fV[8]  = f00[Fy]*h.yS;
-        h.fV[9]  = f10[Fy]*h.yS;
-        h.fV[10] = f01[Fy]*h.yS;
-        h.fV[11] = f11[Fy]*h.yS;
-
-        h.fV[12]  = f00[Fxy]*h.xS*h.yS;
-        h.fV[13]  = f10[Fxy]*h.xS*h.yS;
-        h.fV[14]  = f01[Fxy]*h.xS*h.yS;
-        h.fV[15]  = f11[Fxy]*h.xS*h.yS;
-
-        getCoefficients(h.fV,h.a);
-    }
+    getPatchInfoIfNeeded(x0,y0,h);
 
     // At this point we know that the hint contains valid patch information,
     // but it contains no valid point information.

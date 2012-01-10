@@ -155,12 +155,14 @@ CubicBezierCurve_() {}
 
 /** Construct a cubic Bezier curve using the given control points 
 B=[b0 b1 b2 b3]. **/
-explicit CubicBezierCurve_(const Vec<4,Vec3P>& controlPoints) 
+template <int S>
+explicit CubicBezierCurve_(const Vec<4,Vec3P,S>& controlPoints) 
 :   B(controlPoints) {} 
 
 /** Alternate signature accepts a Row of control points, although they are
 stored internally as a Vec. **/
-explicit CubicBezierCurve_(const Row<4,Vec3P>& controlPoints) 
+template <int S>
+explicit CubicBezierCurve_(const Row<4,Vec3P,S>& controlPoints) 
 :   B(controlPoints.positionalTranspose()) {} 
 
 /** Return a reference to the Bezier control points B=[b0 b1 b2 b3] that are
@@ -361,7 +363,8 @@ static Row<4,P> calcD3Fb(RealP u) {
 /** Given the Bezier control points B=~[b0 b1 b2 b3], return the algebraic
 coefficients A=~[a3 a2 a1 a0]. All coefficients are 3-vectors. Cost is 30
 flops. **/
-static Vec<4,Vec3P> calcAFromB(const Vec<4,Vec3P>& B) {
+template <int S>
+static Vec<4,Vec3P> calcAFromB(const Vec<4,Vec3P,S>& B) {
     const Vec3P& b0=B[0]; const Vec3P& b1=B[1];    // aliases for beauty
     const Vec3P& b2=B[2]; const Vec3P& b3=B[3];
     return Vec<4,Vec3P>(b3-b0+3*(b1-b2), 3*(b0+b2)-6*b1, 3*(b1-b0), b0);
@@ -370,7 +373,8 @@ static Vec<4,Vec3P> calcAFromB(const Vec<4,Vec3P>& B) {
 /** Given the algebraic coefficients A=~[a3 a2 a1 a0], return the Bezier 
 control points B=~[b0 b1 b2 b3]. All coefficients are 3-vectors. Cost is 27
 flops. **/
-static Vec<4,Vec3P> calcBFromA(const Vec<4,Vec3P>& A) {
+template <int S>
+static Vec<4,Vec3P> calcBFromA(const Vec<4,Vec3P,S>& A) {
     const Vec3P& a3=A[0]; const Vec3P& a2=A[1];    // aliases for beauty
     const Vec3P& a1=A[2]; const Vec3P& a0=A[3];
     return Vec<4,Vec3P>(a0, a1/3 + a0, (a2+2*a1)/3 + a0, a3+a2+a1+a0);
@@ -379,7 +383,8 @@ static Vec<4,Vec3P> calcBFromA(const Vec<4,Vec3P>& A) {
 /** Given the Bezier control points B=~[b0 b1 b2 b3], return the Hermite
 coefficients H=~[h0 h1 hu0 hu1]. All coefficients are 3-vectors. Cost is 12
 flops. **/
-static Vec<4,Vec3P> calcHFromB(const Vec<4,Vec3P>& B) {
+template <int S>
+static Vec<4,Vec3P> calcHFromB(const Vec<4,Vec3P,S>& B) {
     const Vec3P& b0=B[0]; const Vec3P& b1=B[1];    // aliases for beauty
     const Vec3P& b2=B[2]; const Vec3P& b3=B[3];
     return Vec<4,Vec3P>(b0, b3, 3*(b1-b0), 3*(b3-b2));
@@ -388,7 +393,8 @@ static Vec<4,Vec3P> calcHFromB(const Vec<4,Vec3P>& B) {
 /** Given the Hermite coefficients H=~[h0 h1 hu0 hu1], return the Bezier
 control points B=~[b0 b1 b2 b3]. All coefficients are 3-vectors. Cost is 12
 flops. **/
-static Vec<4,Vec3P> calcBFromH(const Vec<4,Vec3P>& H) {
+template <int S>
+static Vec<4,Vec3P> calcBFromH(const Vec<4,Vec3P,S>& H) {
     const Vec3P& h0= H[0]; const Vec3P& h1= H[1];    // aliases for beauty
     const Vec3P& hu0=H[2]; const Vec3P& hu1=H[3];
     return Vec<4,Vec3P>(h0, h0 + hu0/3, h1 - hu1/3, h1);
@@ -399,7 +405,8 @@ the point P(u) at that location. Cost is 30 flops. Note that if you need to
 do this for the same curve more than twice, it is cheaper to convert to
 algebraic form using calcAFromB() (30 flops) and then evaluate using A 
 (20 flops). **/
-static Vec3P evalPUsingB(const Vec<4,Vec3P>& B, RealP u) { 
+template <int S>
+static Vec3P evalPUsingB(const Vec<4,Vec3P,S>& B, RealP u) { 
     return calcFb(u)*B; // 9 + 3*7 = 30 flops
 }
 /** Given Bezier control points B and a value for the curve parameter u, return
@@ -407,7 +414,8 @@ the first derivative Pu(u)=dP/du at that location. Cost is 31 flops. Note that
 if you need to do this for the same curve more than once, it is cheaper to 
 convert to algebraic form using calcAFromB() (30 flops) and then evaluate using
 A (15 flops). **/
-static Vec3P evalPuUsingB(const Vec<4,Vec3P>& B, RealP u) { 
+template <int S>
+static Vec3P evalPuUsingB(const Vec<4,Vec3P,S>& B, RealP u) { 
     return calcDFb(u)*B; // 10 + 3*7 = 31 flops
 }
 /** Given Bezier control points B and a value for the curve parameter u, return
@@ -415,7 +423,8 @@ the second derivative Puu(u)=d2P/du2 at that location. Cost is 26 flops. Note
 that if you need to do this for the same curve more than once, it is cheaper to 
 convert to algebraic form using calcAFromB() (30 flops) and then evaluate using
 A (10 flops). **/
-static Vec3P evalPuuUsingB(const Vec<4,Vec3P>& B, RealP u) { 
+template <int S>
+static Vec3P evalPuuUsingB(const Vec<4,Vec3P,S>& B, RealP u) { 
     return calcD2Fb(u)*B; // 5 + 3*7 = 26 flops
 }
 /** Given Bezier control points B and a value for the curve parameter u, return
@@ -423,7 +432,8 @@ the third derivative Puuu(u)=d3P/du3 at that location. Cost is 21 flops. Note
 that if you need to do this for the same curve more than once, it is cheaper to 
 convert to algebraic form using calcAFromB() (30 flops) and then evaluate using
 A (3 flops). **/
-static Vec3P evalPuuuUsingB(const Vec<4,Vec3P>& B, RealP u) { 
+template <int S>
+static Vec3P evalPuuuUsingB(const Vec<4,Vec3P,S>& B, RealP u) { 
     return calcD3Fb(u)*B; // 0 + 3*7 = 21 flops
 }
 /** Obtain the Bezier basis matrix Mb explicitly. This is mostly useful for
@@ -441,7 +451,8 @@ static Mat<4,4,P> getMb() {
 the structure of Mb. Since Mb is symmetric you can also use this for 
 multiplication by a row from the left, i.e. ~b*Mb=~(~Mb*b)=~(Mb*b).
 Cost is 10 flops. **/
-static Vec<4,P> multiplyByMb(const Vec<4,P>& b) {
+template <int S>
+static Vec<4,P> multiplyByMb(const Vec<4,P,S>& b) {
     const RealP b0=b[0], b1=b[1], b2=b[2], b3=b[3];
     return Vec<4,P>(3*(b1-b2)+b3-b0, 3*(b0+b2)-6*b1, 3*(b1-b0), b0);
 }
@@ -462,7 +473,8 @@ static Mat<4,4,P> getMbInv() {
 4-vector, exploiting the structure of inv(Mb). Since inv(Mb) is symmetric you 
 can also use this for multiplication by a row from the left, i.e. 
 ~b*Mb^-1=~(Mb^-T*b)=~(Mb^-1*b). Cost is 9 flops. **/
-static Vec<4,P> multiplyByMbInv(const Vec<4,P>& b) {
+template <int S>
+static Vec<4,P> multiplyByMbInv(const Vec<4,P,S>& b) {
     const RealP b0=b[0], b1=b[1], b2=b[2], b3=b[3];
     return Vec<4,P>(b3, b2/3+b3, (b1+2*b2)/3+b3, b0+b1+b2+b3);
 }
@@ -482,7 +494,8 @@ static Mat<4,4,P> getMhInvMb() {
 }
 /** Given a vector v, form the product inv(Mh)*Mb*v, exploiting the structure
 of the constant matrix inv(Mh)*Mb (not symmetric). Cost is 4 flops. **/
-static Vec<4,P> multiplyByMhInvMb(const Vec<4,P>& v) {
+template <int S>
+static Vec<4,P> multiplyByMhInvMb(const Vec<4,P,S>& v) {
     const RealP v0=v[0], v1=v[1], v2=v[2], v3=v[3];
     return Vec<4,P>(v0, v3, 3*(v1-v0), 3*(v3-v2));
 }
@@ -503,7 +516,8 @@ static Mat<4,4,P> getMbInvMh() {
 }
 /** Given a vector v, form the product inv(Mb)*Mh*v, exploiting the structure
 of the constant matrix inv(Mb)*Mh (not symmetric). Cost is 4 flops. **/
-static Vec<4,P> multiplyByMbInvMh(const Vec<4,P>& v) {
+template <int S>
+static Vec<4,P> multiplyByMbInvMh(const Vec<4,P,S>& v) {
     const RealP v0=v[0], v1=v[1], v2=v[2], v3=v[3];
     return Vec<4,P>(v0, v0+v2/3, v1-v3/3, v1);
 }
