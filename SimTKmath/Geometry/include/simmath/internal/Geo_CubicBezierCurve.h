@@ -256,6 +256,51 @@ RealP calcCurveFrame(RealP u, TransformP& X_FP) const {
     return Geo::calcCurveFrame(P,Pu,Puu,X_FP);
 }
 
+/** Split this curve into two at a point u=t such that 0 < t < 1, such that
+the first curve coincides with the u=0..t segment of this curve, and the
+second coincides with the u=t..1 segment. Each of the new curves is 
+reparameterized so that its curve parameter goes from 0 to 1. This method
+is only allowed for tol <= t <= 1-tol where tol is the default tolerance
+for this precision. Cost is 3x15=45 flops. **/
+void split(RealP u, CubicBezierCurve_<P>& left, 
+                    CubicBezierCurve_<P>& right) const {
+    const RealP tol = getDefaultTol<RealP>();
+    SimTK_ERRCHK1(tol <= u && u <= 1-tol, "Geo::CubicBezierCurve::split()",
+        "Can't split curve at parameter %g; it is either out of range or"
+        " too close to an end point.", (double)u);
+
+    const RealP u1 = 1-u;
+    const Vec3P p01 = u1*B[0] + u*B[1];                     // 3x9 flops
+    const Vec3P p12 = u1*B[1] + u*B[2];
+    const Vec3P p23 = u1*B[2] + u*B[3];
+    left.B[0] = B[0];
+    left.B[1] = p01;
+    left.B[2] = u1*p01 + u*p12;                             // 3x3 flops
+
+    right.B[3] = B[3];
+    right.B[2] = p23;
+    right.B[1] = u1*p12 + u*p23;
+    left.B[3] = right.B[0] = u1*left.B[2] + u*right.B[1];   // 3x3 flops
+}
+
+/** Split this curve into two at the point u=1/2 (halfway in parameter space,
+not necessarily in arclength). This is a faster special case
+of the split() method. Cost is 3x10=30 flops. **/
+void bisect(CubicBezierCurve_<P>& left, 
+            CubicBezierCurve_<P>& right) const {
+    const Vec3P p01 = (B[0] + B[1])/2;                     // 3x6 flops
+    const Vec3P p12 = (B[1] + B[2])/2;
+    const Vec3P p23 = (B[2] + B[3])/2;
+    left.B[0] = B[0];
+    left.B[1] = p01;
+    left.B[2] = (p01 + p12)/2;                             // 3x2 flops
+
+    right.B[3] = B[3];
+    right.B[2] = p23;
+    right.B[1] = (p12 + p23)/2;
+    left.B[3] = right.B[0] = (left.B[2] + right.B[1])/2;   // 3x2 flops
+}
+
 
 /** Return a sphere that surrounds the entire curve segment in the u=[0..1]
 range. We use the fact that the curve is enclosed within the convex hull of
