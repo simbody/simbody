@@ -307,6 +307,38 @@ void split(RealP u, RealP w, BicubicBezierPatch_<P>& patch00,
     }
 }
 
+/** Return a sphere that surrounds the entire patch in the 0<= u,w <=1
+range. 
+
+@bug Currently we use the fact that the patch is enclosed within the convex 
+hull of its control points and generate the minimum bounding sphere that 
+includes all control points; that is not necessarily the 
+tightest-fitting sphere. **/
+Geo::Sphere_<P> calcBoundingSphere() const 
+{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy 
+    return Geo::Point_<P>::calcBoundingSphere(points); }
+
+/** Return an axis-aligned bounding box (AABB) that surrounds the entire patch 
+segment in the 0<= u,w <=1 range. 
+
+@bug Currently we use the fact that the patch is enclosed within the convex 
+hull of its control points and generate the minimum bounding box that 
+includes all control points; that is not necessarily the 
+tightest-fitting box. **/
+Geo::AlignedBox_<P> calcAxisAlignedBoundingBox() const 
+{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy 
+    return Geo::Point_<P>::calcAxisAlignedBoundingBox(points); }
+
+/** Return an oriented bounding box (OBB) that surrounds the entire curve 
+segment in the 0<= u,w <=1 range. 
+
+@bug Currently we use the fact that the patch is enclosed within the convex 
+hull of its control points and generate an oriented bounding box that 
+includes all control points; that is not necessarily the 
+tightest-fitting box. **/
+Geo::OrientedBox_<P> calcOrientedBoundingBox() const 
+{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy 
+    return Geo::Point_<P>::calcOrientedBoundingBox(points); }
 
 /**@name                 Utility methods
 These static methods work with given control points. **/
