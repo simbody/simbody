@@ -70,10 +70,11 @@ Mortenson) but call the Hermite basis matrix Mh (rather than Mf).
 The 16 control points are laid out like this, matching Mortenson, with the
 Hermite coefficient matrix for comparison:
 <pre>
-        [ b11 b12 b13 b14 ]         [ h00  h01  w00  w01 ]    u=dp/du
-    B = [ b21 b22 b23 b24 ]     H = [ h10  h11  w10  w11 ]    w=dp/dw
-        [ b31 b32 b33 b34 ]         [ u00  u01  t00  t01 ]    t=d2p/dudw
-        [ b41 b42 b43 b44 ]         [ u10  u11  t10  t11 ]      ("twist")
+        [ b11 b12 b13 b14 ] u=0        [ h00  h01  w00  w01 ]    u=dp/du
+    B = [ b21 b22 b23 b24 ]  .     H = [ h10  h11  w10  w11 ]    w=dp/dw
+        [ b31 b32 b33 b34 ]  .         [ u00  u01  t00  t01 ]    t=d2p/dudw
+        [ b41 b42 b43 b44 ] u=1        [ u10  u11  t10  t11 ]      ("twist")
+          w=0   . .   w=1
 </pre>
 We store those in a 4x4 hypermatrix; subtract one from each control point
 index to get the matrix indices (sorry). 
@@ -151,6 +152,10 @@ void evalP3(RealP u, RealP w, Vec3P& Puuu, Vec3P& Puuw,
 stored in this object. See the documentation for this class to see how the
 returned matrix of control points is defined. **/
 const Mat<4,4,Vec3P>& getControlPoints() const {return B;}
+/** Return a writable reference to the Bezier control points B that are
+stored in this object. See the documentation for this class to see how the
+returned matrix of control points is defined. **/
+Mat<4,4,Vec3P>& updControlPoints() {return B;}
 /** Calculate the algebraic coefficients A from the stored Bezier control
 points. See the documentation for BicubicHermitePatch_ to see how the
 returned matrix of coefficients is defined. Cost is 240 flops. **/
@@ -192,6 +197,116 @@ w=w0. Cost is 93 flops. **/
 CubicBezierCurve_<P> calcIsoCurveW(RealP w0) const 
 {   return calcIsoCurveW(B, w0); }
 
+/** Split this patch into two along the u direction, along an isoparametric 
+curve of constant u=t such that 0 < t < 1. On return, \a patch0 coincides with
+the u=0..t subpatch, and \a patch1 coincides with the u=t..1 subpatch. Each of 
+the new patches is reparameterized so that its u parameter goes from 0 to 1, 
+and the w direction remains parameterized as before. This method is only 
+allowed for tol <= t <= 1-tol where tol is the default tolerance for this 
+precision. 
+
+@param[in]  u       The u parameter of splitting isoparametric curve
+                    (tol <= u <= 1-tol).
+@param[out] patch0 Subpatch covering domain [0..u,0..1] (contains 0,0 corner).
+@param[out] patch1 Subpatch covering domain [u..1,0..1] (contains 1,1 corner).
+
+Cost is 180 flops, or 120 flops if u=1/2. **/
+void splitU(RealP u, BicubicBezierPatch_<P>& patch0, 
+                     BicubicBezierPatch_<P>& patch1) const {
+    const RealP tol = getDefaultTol<RealP>();
+    SimTK_ERRCHK1(tol <= u && u <= 1-tol, "Geo::BicubicBezierPatch::splitU()",
+        "Can't split patch at parameter u=%g; it is either out of range or"
+        " too close to an edge.", (double)u);
+    CubicBezierCurve_<P> l,h;
+    if (u==RealP(0.5)) // bisecting
+        for (int i=0; i<4; ++i) {
+            CubicBezierCurve_<P>(B(i)).bisect(l,h);
+            patch0.B(i) = l.getControlPoints(); 
+            patch1.B(i) = h.getControlPoints();
+        }
+    else 
+        for (int i=0; i<4; ++i) {
+            CubicBezierCurve_<P>(B(i)).split(u,l,h);
+            patch0.B(i) = l.getControlPoints(); 
+            patch1.B(i) = h.getControlPoints();
+        }
+}
+
+/** Split this patch into two along the w direction, along an isoparametric 
+curve of constant w=t such that 0 < t < 1. On return, \a patch0 coincides with
+the w=0..t subpatch, and \a patch1 coincides with the w=t..1 subpatch. Each of 
+the new patches is reparameterized so that its w parameter goes from 0 to 1, 
+and the u direction remains parameterized as before. This method is only 
+allowed for tol <= t <= 1-tol where tol is the default tolerance for this 
+precision. 
+
+@param[in]  w       The w parameter of splitting isoparametric curve
+                    (tol <= w <= 1-tol).
+@param[out] patch0 Subpatch covering domain [0..1,0..w] (contains 0,0 corner).
+@param[out] patch1 Subpatch covering domain [0..1,w..1] (contains 1,1 corner).
+
+Cost is 180 flops, or 120 flops if w=1/2. **/
+void splitW(RealP w, BicubicBezierPatch_<P>& patch0, 
+                     BicubicBezierPatch_<P>& patch1) const {
+    const RealP tol = getDefaultTol<RealP>();
+    SimTK_ERRCHK1(tol <= w && w <= 1-tol, "Geo::BicubicBezierPatch::splitW()",
+        "Can't split patch at parameter w=%g; it is either out of range or"
+        " too close to an edge.", (double)w);
+    CubicBezierCurve_<P> l,h;
+    if (w==RealP(0.5)) // bisecting
+        for (int i=0; i<4; ++i) {
+            CubicBezierCurve_<P>(B[i]).bisect(l,h);
+            patch0.B[i] = l.getControlPoints().positionalTranspose(); 
+            patch1.B[i] = h.getControlPoints().positionalTranspose();
+        }
+    else 
+        for (int i=0; i<4; ++i) {
+            CubicBezierCurve_<P>(B[i]).split(w,l,h);
+            patch0.B[i] = l.getControlPoints().positionalTranspose(); 
+            patch1.B[i] = h.getControlPoints().positionalTranspose();
+        }
+}
+
+
+/** Split this patch into four subpatches at a particular parametric point 
+(u,w) such that 0 < u,w < 1, with each resulting subpatch covering part of the 
+original parametric domain in each direction. The subpatches are reparametrized
+to have [0..1,0..1] domains. This method is only allowed for 
+tol <= u,w <= 1-tol where tol is the default tolerance for this precision. 
+
+@param[in]  u       The u parameter of the splitting point (tol <= u <= 1-tol).
+@param[in]  w       The w parameter of the splitting point (tol <= w <= 1-tol).
+@param[out] patch00 Subpatch covering domain [0..u,0..w] (contains 0,0 corner).
+@param[out] patch01 Subpatch covering domain [0..u,w..1] (contains 0,1 corner).
+@param[out] patch10 Subpatch covering domain [u..1,0..w] (contains 1,0 corner).
+@param[out] patch11 Subpatch covering domain [u..1,w..1] (contains 1,1 corner).
+
+Cost is 360, 420, or 540 flops depending on whether both, one, or neither 
+parameter is 1/2. **/
+void split(RealP u, RealP w, BicubicBezierPatch_<P>& patch00, 
+                             BicubicBezierPatch_<P>& patch01, 
+                             BicubicBezierPatch_<P>& patch10, 
+                             BicubicBezierPatch_<P>& patch11) const {
+    const RealP tol = getDefaultTol<RealP>();
+    SimTK_ERRCHK2((tol <= u && u <= 1-tol) && (tol <= w && w <= 1-tol), 
+        "Geo::BicubicBezierPatch::split()",
+        "Can't split patch at parametric point u,w=%g,%g; it is either out of"
+        " range or too close to an edge.", (double)u, (double)w);
+
+    BicubicBezierPatch_<P> patch0, patch1; // results of the first split
+
+    // We split once along one direction, and then twice along the other, so
+    // make sure the second direction is the cheap bisecting one.
+    if (u == Real(0.5)) {
+        splitW(w,patch0,patch1);            // 120 or 180 flops
+        patch0.splitU(u, patch00, patch10); // 120 flops
+        patch1.splitU(u, patch01, patch11); // 120 flops
+    } else {
+        splitU(u,patch0,patch1);            // 180 flops
+        patch0.splitW(w, patch00, patch01); // 120 or 180 flops
+        patch1.splitW(w, patch10, patch11); // 120 or 180 flops
+    }
+}
 
 
 /**@name                 Utility methods
