@@ -59,7 +59,7 @@ computations.
 The primary reference for this implementation is the book "Geometric Modeling, 
 3rd ed." by Michael E. Mortenson, Industrial Press 2006, chapter 8. We follow
 Mortenson's notation here (with some name changes) and equation numbers are 
-from the text. See CubicHermiteCurve_ and BicubicHermiteSurface_ comments for 
+from the text. See CubicHermiteCurve_ and BicubicHermitePatch_ comments for 
 introductory material; here we add the Bezier description to the algebraic and 
 Hermite (geometric) forms described there.
 
@@ -101,10 +101,9 @@ conversion from Bezier to Hermite takes 3x28=84 flops (all entries are
 B = [h00+u00/3 {h00+u00/3}+w00/3+t00/9 {h01+u01/3}-w01/3-t01/9 h01+u01/3 ]
     [h10-u10/3 {h10-u10/3}+w10/3-t10/9 {h11-u11/3}-w11/3+t11/9 h11-u11/3 ]
     [   h10            h10+w10/3               h11-w11/3          h11    ] 
+</pre>
 Exploiting the common subexpressions in braces, conversion from Hermite to 
-Bezier takes 3x32=96 flops.
-
-**/
+Bezier takes 3x32=96 flops. **/
 template <class P>
 class Geo::BicubicBezierPatch_ {
 typedef P               RealP;
