@@ -192,6 +192,17 @@ public:
         return Geo::BicubicHermitePatch(A);
     }
 
+    // Return as a Bezier patch. Currently we just create an algebraic patch
+    // which is cheap (~110 flops), and then do an expensive algebraic-to-Bezier 
+    // conversion (~220 flops). I don't know of a cheaper approach.
+    Geo::BicubicBezierPatch
+    calcBezierPatch(int i, int j, BicubicSurface::PatchHint& hint) const {
+        const Geo::BicubicHermitePatch hpatch = calcHermitePatch(i,j,hint);
+        const Mat<4,4,Vec3>& A = hpatch.getAlgebraicCoefficients();
+        const Mat<4,4,Vec3>  B = Geo::BicubicBezierPatch::calcBFromA(A);
+        return Geo::BicubicBezierPatch(B);
+    }
+
     // Determine if a point is within the defined surface.
     bool isSurfaceDefined(const Vec2& XY) const;
 

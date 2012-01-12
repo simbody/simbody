@@ -439,15 +439,14 @@ public:
     void getNumPatches(int& nx, int& ny) const;
 
     /** (Advanced) Select a patch by its (x,y) position in the rectangular
-    grid of individual bicubic patches from which this surface is constructed.
-    Some computation is involved to create the patch coefficients which are
-    saved in the PatchHint. **/
-    Geo::BicubicHermitePatch calcHermitePatch(int x, int y, 
-                                              PatchHint& hint) const;
-    /** (Advanced) Alternate signature in case you don't care about the
-    hint. **/
+    grid of individual bicubic patches from which this surface is constructed,
+    returning it as a Hermite patch. Cost is roughly 110 flops. **/
     Geo::BicubicHermitePatch calcHermitePatch(int x, int y) const;
 
+    /** (Advanced) Select a patch by its (x,y) position in the rectangular
+    grid of individual bicubic patches from which this surface is constructed,
+    returning it as a Bezier patch. Cost is roughly 330 flops. **/
+    Geo::BicubicBezierPatch calcBezierPatch(int x, int y) const;
     /**@}**/
 
     //--------------------------------------------------------------------------

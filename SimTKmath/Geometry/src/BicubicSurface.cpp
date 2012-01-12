@@ -175,12 +175,12 @@ void BicubicSurface::getNumPatches(int& nx, int& ny) const
 {   guts->getNumPatches(nx,ny); }
 
 Geo::BicubicHermitePatch BicubicSurface::
-calcHermitePatch(int x, int y, PatchHint& hint) const
-{   return guts->calcHermitePatch(x,y,hint); }
-
-Geo::BicubicHermitePatch BicubicSurface::
 calcHermitePatch(int x, int y) const
-{   PatchHint hint; return guts->calcHermitePatch(x,y,hint); }
+{   PatchHint hint; return guts->calcHermitePatch(x,y, hint); }
+
+Geo::BicubicBezierPatch BicubicSurface::
+calcBezierPatch(int x, int y) const
+{   PatchHint hint; return guts->calcBezierPatch(x,y, hint); }
 
 bool BicubicSurface::isSurfaceDefined(const Vec2& XY) const 
 {   return getGuts().isSurfaceDefined(XY); }
