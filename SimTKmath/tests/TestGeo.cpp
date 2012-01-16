@@ -320,8 +320,52 @@ void testCollocatedPoints() {
     }
 }
 
+void testBox() {
+    Geo::Box box(Vec3(3,4,2)); // half lengths
+    SimTK_TEST(box.findVolume() == 8*24);
+    SimTK_TEST(box.getOrderedAxis(0) == ZAxis); // smallest
+    SimTK_TEST(box.getOrderedAxis(1) == XAxis); // medium
+    SimTK_TEST(box.getOrderedAxis(2) == YAxis); // largest
+
+    Geo::AlignedBox abox(Vec3(0), Vec3(1,2,3));
+    abox.setCenter(Vec3(3,4,2)+Vec3(1,2,3)-Vec3(1e-6)); 
+    SimTK_TEST(box.intersectsAlignedBox(abox));
+
+    abox.setCenter(Vec3(3,4,2)+Vec3(1,2,3)+Vec3(1e-6)); 
+    SimTK_TEST(!box.intersectsAlignedBox(abox));
+
+    Geo::OrientedBox obox(Transform(), Vec3(1,2,3));
+    SimTK_TEST(box.mayIntersectOrientedBox(obox)); // centers overlap
+    SimTK_TEST(box.intersectsOrientedBox(obox));
+
+    obox.setTransform(Vec3(10,0,0)); // x axis should separate
+    SimTK_TEST(!box.mayIntersectOrientedBox(obox));
+    SimTK_TEST(!box.intersectsOrientedBox(obox));
+
+    obox.setTransform(Vec3(3.123,-1.3,.7)); // parallel boxes that intersect
+    SimTK_TEST(box.mayIntersectOrientedBox(obox));
+    SimTK_TEST(box.intersectsOrientedBox(obox));
+
+    // Non-intersecting box for which no face will serve as separator.
+    // In this case the fast method can't tell they are separated.
+    obox.setTransform(Transform(
+        Rotation(BodyRotationSequence, Pi/4, XAxis, Pi/8, YAxis, -Pi/4, ZAxis),
+        Vec3(1.5, -5, 5.25)));
+    SimTK_TEST(box.mayIntersectOrientedBox(obox));
+    SimTK_TEST(!box.intersectsOrientedBox(obox));
+
+    // This should make them intersect.
+    obox.setTransform(Transform(
+        Rotation(BodyRotationSequence, Pi/4, XAxis, Pi/8, YAxis, -Pi/4, ZAxis),
+        Vec3(1.5, -5, 4.5)));
+    SimTK_TEST(box.mayIntersectOrientedBox(obox));
+    SimTK_TEST(box.intersectsOrientedBox(obox));
+
+}
+
 int main() {
     SimTK_START_TEST("TestGeo");
+        SimTK_SUBTEST(testBox);
         SimTK_SUBTEST(testTriMeshBoundingSphere);
         SimTK_SUBTEST(testRandomPoints);
         SimTK_SUBTEST(testCollinearPoints);

@@ -34,6 +34,7 @@
 #include "simmath/internal/Geo.h"
 #include "simmath/internal/Geo_Point.h"
 #include "simmath/internal/Geo_Sphere.h"
+#include "simmath/internal/Geo_BicubicBezierPatch.h"
 #include "simmath/internal/BicubicSurface.h"
 #include "simmath/internal/ContactGeometry.h"
 
@@ -413,6 +414,20 @@ calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
     curvature = 1/radius;
 }
 
+//TODO: just an axis-aligned leaf box for now
+void ContactGeometry::Sphere::Impl::createOBBTree() {
+    OBBNode& root = obbTree.updRoot();
+    root.box.setHalfLengths(Vec3(radius));
+    root.normal = UnitVec3(XAxis);  // doesn't matter
+    root.coneHalfAngle = Pi;        // has all possible normals
+    root.pointOnSurface = Vec3(radius,0,0); // doesn't matter
+    root.children.clear(); // This is a leaf
+
+    // Leaf contents.
+    root.centerUW = Vec2(0,0);
+    root.dims = Vec2(Pi, Pi/2); // u in [-Pi,Pi], v in [-Pi/2,Pi/2]
+}
+
 Real SphereImplicitFunction::
 calcValue(const Vector& x) const {
     return 1-(x[0]*x[0]+x[1]*x[1]+x[2]*x[2])/square(ownerp->getRadius());
@@ -741,6 +756,21 @@ calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
     orientation = transform.R();
 }
 
+
+//TODO: just an axis-aligned leaf box for now
+void ContactGeometry::Ellipsoid::Impl::createOBBTree() {
+    OBBNode& root = obbTree.updRoot();
+    root.box.setHalfLengths(radii);
+    root.normal = UnitVec3(XAxis);  // doesn't matter
+    root.coneHalfAngle = Pi;        // has all possible normals
+    root.pointOnSurface = Vec3(radii[0],0,0); // doesn't matter
+    root.children.clear(); // This is a leaf
+
+    // Leaf contents.
+    root.centerUW = Vec2(0,0);
+    root.dims = Vec2(Pi, Pi/2); // u in [-Pi,Pi], v in [-Pi/2,Pi/2]
+}
+
 Real EllipsoidImplicitFunction::
 calcValue(const Vector& x) const {
     const Vec3& radii = ownerp->getRadii();
@@ -778,6 +808,9 @@ classTypeId()
 const BicubicSurface& ContactGeometry::SmoothHeightMap::
 getBicubicSurface() const {return getImpl().getBicubicSurface();}
 
+const OBBTree& ContactGeometry::SmoothHeightMap::
+getOBBTree() const {return getImpl().getOBBTree();}
+
 const ContactGeometry::SmoothHeightMap::Impl& ContactGeometry::SmoothHeightMap::
 getImpl() const {
     assert(impl);
@@ -796,6 +829,106 @@ Impl(const BicubicSurface& surface)
 :   surface(surface) { 
     implicitFunction.setOwner(*this); 
 
+    createBoundingVolumes();
+
+}
+
+void ContactGeometry::SmoothHeightMap::Impl::
+assignPatch(const Geo::BicubicBezierPatch& patch, 
+            OBBNode& node, int depth,
+            Array_<const Vec3*>* parentControlPoints) const 
+{
+    const Mat<4,4,Vec3>& nodeB = patch.getControlPoints();
+    const Vec2& nodeB11 = nodeB(0,0).getSubVec<2>(0); // just x,y
+    const Vec2& nodeB44 = nodeB(3,3).getSubVec<2>(0);
+    node.centerUW = (nodeB11+nodeB44)/2;
+    node.dims     = (nodeB11-nodeB44).abs()/2;
+
+    // For now just split 4 ways; need to be done recursively based on
+    // flatness of patch.
+    node.children.resize(4);
+    patch.split(0.5,0.5,node.children[0].patch, node.children[1].patch,
+                        node.children[2].patch, node.children[3].patch);
+    Array_<const Vec3*> myControlPoints;
+    for (int c=0; c<4; ++c) {
+        OBBNode& child = node.children[c];
+        child.depth = depth+1;
+        child.height = 0;
+        child.box = child.patch.calcOrientedBoundingBox();
+        const Mat<4,4,Vec3>& B = child.patch.getControlPoints();
+        const Vec2& b11 = B(0,0).getSubVec<2>(0); // just x,y
+        const Vec2& b44 = B(3,3).getSubVec<2>(0);
+        child.centerUW = (b11+b44)/2;
+        child.dims     = (b11-b44).abs()/2;
+        for (int i=0; i<4; ++i) 
+            for (int j=0; j<4; ++j) 
+                myControlPoints.push_back(&B(i,j));
+    }
+
+    node.depth = depth;
+    node.height = 1 + std::max(node.children[0].height,
+                      std::max(node.children[1].height,
+                      std::max(node.children[2].height,
+                               node.children[3].height)));
+    node.box = Geo::Point::calcOrientedBoundingBoxIndirect(myControlPoints);
+
+    if (parentControlPoints)
+        for (unsigned i=0; i<myControlPoints.size(); ++i)
+            parentControlPoints->push_back(myControlPoints[i]);
+}
+
+void ContactGeometry::SmoothHeightMap::Impl::
+splitPatches(int x0,int y0, int nx, int ny, 
+             OBBNode& node, int depth,
+             Array_<const Vec3*>* parentControlPoints) const {
+    assert(nx>0 && ny>0 && depth>=0);
+
+
+    node.x0=0; node.y0=0; node.nx=nx; node.ny=ny;
+    if (nx==1 && ny==1) {
+        assignPatch(surface.calcBezierPatch(x0,y0), node, depth,
+                    parentControlPoints);
+        return;
+    } 
+
+    // Add two children.
+    node.children.resize(2);
+    Array_<const Vec3*> myControlPoints;
+
+    // Split on the long direction
+    if (nx > ny) {
+        splitPatches(x0,      y0, nx/2,    ny, node.children[0],
+            depth+1, &myControlPoints);
+        splitPatches(x0+nx/2, y0, nx-nx/2, ny, node.children[1],
+            depth+1, &myControlPoints);
+    } else {
+        splitPatches(x0, y0,      nx, ny/2,    node.children[0],
+            depth+1, &myControlPoints);
+        splitPatches(x0, y0+ny/2, nx, ny-ny/2, node.children[1],
+            depth+1, &myControlPoints);
+    }
+    node.depth = depth;
+    node.height = 1 + std::max(node.children[0].height,
+                               node.children[1].height);
+
+    node.box = Geo::Point::calcOrientedBoundingBoxIndirect(myControlPoints);
+
+    if (parentControlPoints) {
+        for (unsigned i=0; i<myControlPoints.size(); ++i)
+            parentControlPoints->push_back(myControlPoints[i]);
+    }
+}
+
+void ContactGeometry::SmoothHeightMap::Impl::
+createBoundingVolumes() {
+    // Temporarily convert the surface into a set of Bezier patches (using
+    // a lot more memory than the original).
+
+    int nx,ny; surface.getNumPatches(nx,ny);
+    OBBNode& root = obbTree.updRoot();
+    splitPatches(0,0,nx,ny,root,0);
+
+
     // Create bounding sphere.
     // TODO: fake this using mesh; this needs to be done correctly instead
     // by the BicubicSurface itself. Using 5 subdivisions per patch.
@@ -806,17 +939,10 @@ Impl(const BicubicSurface& surface)
     Array_<const Vec3*> points(n);
     for (int i=0; i<n; ++i)
         points[i] = &mesh.getVertexPosition(i);
-    boundingSphere = Geo::Point::calcBoundingSphere(points);
+    boundingSphere = Geo::Point::calcBoundingSphereIndirect(points);
     // Add 10% as a hack to make it less likely we'll miss part of the surface.
     boundingSphere.updRadius() *= 1.1;
 }
-
-// This constructor is used by clone() to avoid recalculating the bounding
-// sphere.
-ContactGeometry::SmoothHeightMap::Impl::
-Impl(const BicubicSurface& surface, const Geo::Sphere& boundingSphere) 
-:   surface(surface), boundingSphere(boundingSphere) 
-{   implicitFunction.setOwner(*this); }
 
 Vec3 ContactGeometry::SmoothHeightMap::Impl::
 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
@@ -1349,7 +1475,7 @@ void ContactGeometry::TriangleMesh::Impl::init
     Array_<const Vec3*> points(vertices.size());
     for (int i = 0; i < (int) vertices.size(); i++)
         points[i] = &vertices[i].pos;
-    const Geo::Sphere bnd = Geo::Point::calcBoundingSphere(points);
+    const Geo::Sphere bnd = Geo::Point::calcBoundingSphereIndirect(points);
     boundingSphereCenter = bnd.getCenter();
     boundingSphereRadius = bnd.getRadius();
 }

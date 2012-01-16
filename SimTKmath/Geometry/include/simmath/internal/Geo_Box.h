@@ -50,34 +50,60 @@ namespace SimTK {
 //==============================================================================
 /** A 3d rectangular box aligned with an unspecified frame F and centered at 
 that frame's origin. The box has a local frame B, centered at the box center 
-and oriented along the box edges, and B==F. **/
+and oriented along the box edges, and B==F. We keep track of the relative
+edge lengths to facilitate short-to-long processing. **/
 template <class P>
-class SimTK_SIMMATH_EXPORT Geo::Box_ {
+class Geo::Box_ {
 typedef P               RealP;
-typedef Vec<3,RealP>    Vec3P;
+typedef Vec<3,P>        Vec3P;
+typedef Mat<3,3,P>      Mat33P;
+typedef Rotation_<P>    RotationP;
+typedef Transform_<P>    TransformP;
 
 public:
 /** Construct an uninitialized Box object; the dimensions will be garbage. **/
 Box_() {}
-/** Construct a Box with the given nonnegative half-dimensions. **/
+/** Construct a Box with the given nonnegative half-dimensions. Cost is 4
+flops to sort the edges. **/
 Box_(const Vec3P& halfLengths) {setHalfLengths(halfLengths);} 
 
-/** Change the half-dimensions of this box. Dimensions must be nonnegative. **/
-Box_& setHalfLengths(const Vec3P& halfLengths) 
-{   assert(halfLengths >= 0);
-    h = halfLengths; return *this; }
+/** Change the half-dimensions of this box. Dimensions must be nonnegative. 
+Cost is 4 flops to sort the edges. **/
+Box_& setHalfLengths(const Vec3P& halfLengths) {
+    SimTK_ERRCHK3(halfLengths >= 0, "Geo::Box_::setHalfLengths()",
+        "Half lengths must be nonnegative; got %g,%g,%g.",
+        (double)halfLengths[0],(double)halfLengths[1],(double)halfLengths[2]);
+    h = halfLengths; 
+    sortEdges();
+    return *this; 
+}
 
 /** Change the half-dimensions of this box by adding the given vector. The
-result must be nonnegative. Cost is 3 flops. **/
-Box_& addToHalfLengths(const Vec3P& incr) 
-{   h += incr; assert(h >= 0); return *this; }
+result must be nonnegative. Cost is 7 flops, including resorting the edges. **/
+Box_& addToHalfLengths(const Vec3P& incr) {
+    h += incr; 
+    SimTK_ERRCHK3(h >= 0, "Geo::Box_::addToHalfLengths()",
+        "Half lengths must be nonnegative but were %g,%g,%g after change.",
+        (double)h[0],(double)h[1],(double)h[2]);
+    sortEdges();
+    return *this; 
+}
 
 /** Return the half-lengths of this box as a Vec3 from the center to the
 first quadrant vertex. **/
 const Vec3P& getHalfLengths() const {return h;}
 
-// Don't allow update access to the half lengths in case we want to add
-// some precalculations later.
+/** Get lengths in order shortest to longest; 0 is shortest, 2 is longest. **/
+RealP getOrderedHalfLength(int i) const {
+    SimTK_INDEXCHECK(i, 3, "Geo::Box_::getOrderedHalfLength()");
+    return h[order[i]];
+}
+
+/** Get axes in order shortest to longest; 0 is shortest, 2 is longest. **/
+CoordinateAxis getOrderedAxis(int i) const {
+    SimTK_INDEXCHECK(i, 3, "Geo::Box_::getOrderedAxis()");
+    return CoordinateAxis(order[i]);
+}
 
 /** Calculate the volume of this box. Cost is 4 flops. **/
 RealP findVolume() const {return 8*h[0]*h[1]*h[2];}
@@ -86,15 +112,116 @@ all pairs of sides are counted even if coincident). Cost is 6 flops. **/
 RealP findArea() const {return 8*(h[0]*h[1] + h[0]*h[2] + h[1]*h[2]);}
 
 /** Given a point measured and expressed in the box frame, determine whether
-it is strictly contained in the box (just touching doesn't count). The point
+it is inside the box (we count touching the surface as inside). The point
 must be measured from the box center. Cost is about 5 flops. **/
 bool containsPoint(const Vec3P& pt) const {
     const Vec3P absPt = pt.abs(); // reflect to first quadrant
-    return absPt < h;
+    return absPt <= h;
 }
 
+/** Return the square of the distance from this box to a given point whose
+location is measured from and expressed in the box frame (at the box center). 
+If the point is on or inside the box the returned distance is zero. Cost is 
+about 14 flops. **/
+RealP findDistanceSqrToPoint(const Vec3P& pt) const {
+    const Vec3P absPt = pt.abs(); // reflect to first quadrant
+    RealP d2 = 0;
+    if (absPt[0] > h[0]) d2 += square(absPt[0]-h[0]);
+    if (absPt[1] > h[1]) d2 += square(absPt[1]-h[1]);
+    if (absPt[2] > h[2]) d2 += square(absPt[2]-h[2]);
+    return d2;
+}
+
+/** Return the square of the distance from this box to a given sphere whose
+center location is measured from and expressed in the box frame (at the box 
+center). If the sphere intersects the box the returned distance is zero. Cost 
+is about 17 flops. **/
+RealP findDistanceSqrToSphere(const Geo::Sphere_<P>& sphere) const {
+    const Vec3P absCtr = sphere.getCenter().abs(); // reflect to first quadrant
+    const Vec3P grow = h + sphere.getRadius(); // 3 flops
+    RealP d2 = 0;
+    if (absCtr[0] > grow[0]) d2 += square(absCtr[0]-grow[0]);
+    if (absCtr[1] > grow[1]) d2 += square(absCtr[1]-grow[1]);
+    if (absCtr[2] > grow[2]) d2 += square(absCtr[2]-grow[2]);
+    return d2;
+}
+
+/** Return the square of the distance from this box to an axis-aligned box whose
+center location is measured from and expressed in this box frame (at the box 
+center). If the boxes intersect the returned distance is zero. Cost 
+is about 17 flops. **/
+RealP findDistanceSqrToAlignedBox(const Geo::AlignedBox_<P>& aab) const {
+    const Vec3P absCtr = aab.getCenter().abs(); // reflect to first quadrant
+    const Vec3P grow = h + aab.getHalfLengths();
+    RealP d2 = 0;
+    if (absCtr[0] > grow[0]) d2 += square(absCtr[0]-grow[0]);
+    if (absCtr[1] > grow[1]) d2 += square(absCtr[1]-grow[1]);
+    if (absCtr[2] > grow[2]) d2 += square(absCtr[2]-grow[2]);
+    return d2;
+}
+
+/** Given a sphere with center measured and expressed in the box frame, return
+true if the box and sphere intersect. We are treating both objects as solids,
+so we'll say yes even if one object completely contains the other. We also 
+return true if they are just touching. Cost is about 8 flops. **/
+bool intersectsSphere(const Geo::Sphere_<P>& sphere) const {
+    const Vec3P absCtr = sphere.getCenter().abs(); // reflect to first quadrant
+    const RealP r = sphere.getRadius();
+    if (absCtr[0] > h[0]+r) return false;
+    if (absCtr[1] > h[1]+r) return false;
+    if (absCtr[2] > h[2]+r) return false;
+    return true;
+}
+
+/** Given an aligned box with center measured and expressed in the from of
+this box, return true if the two boxes intersect. We are treating both objects 
+as solids, so we'll say yes even if one box completely contains the other. We 
+also return true if they are just touching. Cost is about 8 flops. **/
+bool intersectsAlignedBox(const Geo::AlignedBox_<P>& aab) const {
+    const Vec3P absCtr = aab.getCenter().abs(); // reflect to first quadrant
+    const Vec3P& aabh = aab.getHalfLengths();
+    if (absCtr[0] > h[0]+aabh[0]) return false;
+    if (absCtr[1] > h[1]+aabh[1]) return false;
+    if (absCtr[2] > h[2]+aabh[2]) return false;
+    return true;
+}
+
+/** Given an oriented box whose pose is measured and expressed in the frame
+of this box, return true if the two boxes intersect. We are treating both 
+objects as solids, so we'll say yes even if one box completely contains the 
+other. We also return true if they are just touching. This is an exact but
+fairly expensive test if the boxes are separated; if you don't mind some
+false positives, use mayIntersectOrientedBox() instead. **/
+SimTK_SIMMATH_EXPORT bool 
+intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const;
+
+/** Given an oriented box whose pose is measured and expressed in the frame
+of this box, return true if the two boxes may be intersecting. Only relatively
+cheap operations are performed at the expense of returning false positives
+sometimes. If you need an exact determination, use intersectsOrientedBox().
+**/
+SimTK_SIMMATH_EXPORT bool 
+mayIntersectOrientedBox(const Geo::OrientedBox_<P>& ob) const;
+
+
 private:
-Vec3P   h;  // half-dimensions of the box
+// Call this whenever an edge length changes. Each axis will appear once.
+void sortEdges() {
+    CoordinateAxis shortest = XAxis, longest = ZAxis; 
+    if (h[YAxis] < h[shortest]) shortest=YAxis;
+    if (h[ZAxis] < h[shortest]) shortest=ZAxis;
+    if (h[XAxis] > h[longest])  longest=XAxis;
+    if (h[YAxis] > h[longest])  longest=YAxis;
+    order[0] = shortest; order[2] = longest; 
+    order[1] = shortest.getThirdAxis(longest); // not shortest or longest
+}
+
+int intersectsOrientedBoxHelper(const OrientedBox_<P>& O,
+                                Mat33P&  absR_BO, 
+                                Vec3P&   absP_BO) const;
+
+Vec3P           h;         // half-dimensions of the box
+unsigned char   order[3];  // 0,1,2 reordered short to long
 };
 
 

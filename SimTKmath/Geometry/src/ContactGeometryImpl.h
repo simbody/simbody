@@ -35,6 +35,7 @@
 
 #include "simmath/internal/Geo.h"
 #include "simmath/internal/Geo_Sphere.h"
+#include "simmath/internal/OBBTree.h"
 #include "simmath/internal/ContactGeometry.h"
 
 #include <limits>
@@ -65,7 +66,9 @@ public:
                                   UnitVec3& normal) const = 0;
     virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
                                Real& distance, UnitVec3& normal) const = 0;
+
     virtual void getBoundingSphere(Vec3& center, Real& radius) const = 0;
+
 
     virtual bool isSmooth() const = 0;
     virtual bool isConvex() const = 0;
@@ -87,12 +90,15 @@ public:
     {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
         "ContactGeometryImpl", "calcSupportPoint()"); }
 
+    const OBBTree& getOBBTree() const {return obbTree;}
 
     ContactGeometry* getMyHandle() {return myHandle;}
     void setMyHandle(ContactGeometry& h) {myHandle = &h;}
     void clearMyHandle() {myHandle = 0;}
 protected:
-    ContactGeometry* myHandle;
+    ContactGeometry*        myHandle;
+    OBBTree                 obbTree;
+
 };
 
 
@@ -188,8 +194,11 @@ private:
 
 class ContactGeometry::Sphere::Impl : public ContactGeometryImpl {
 public:
-    explicit Impl(Real radius) : radius(radius) 
-    {   function.setOwner(*this); }
+    explicit Impl(Real radius) : radius(radius) {
+        function.setOwner(*this);
+        createOBBTree(); 
+    }
+
     ContactGeometryImpl* clone() const {
         return new Impl(radius);
     }
@@ -227,8 +236,10 @@ public:
         return id;
     }
 private:
-    Real radius;
-    SphereImplicitFunction function;
+    void createOBBTree();
+
+    Real                    radius;
+    SphereImplicitFunction  function;
 };
 
 
@@ -257,7 +268,8 @@ public:
     explicit Impl(const Vec3& radii)
     :   radii(radii),
         curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])) 
-    {   function.setOwner(*this); }
+    {   function.setOwner(*this);
+        createOBBTree(); }
 
     ContactGeometryImpl* clone() const {return new Impl(radii);}
     const Vec3& getRadii() const {return radii;}
@@ -308,6 +320,9 @@ public:
         return id;
     }
 private:
+    void createOBBTree();
+
+
     Vec3 radii;
     // The curvatures are calculated whenever the radii are set.
     Vec3 curvatures; // (1/radii[0], 1/radii[1], 1/radii[2])
@@ -400,12 +415,8 @@ class ContactGeometry::SmoothHeightMap::Impl : public ContactGeometryImpl {
 public:
     explicit Impl(const BicubicSurface& surface);
 
-    // This is for if you already know the bounding sphere; God help you
-    // if it is wrong.
-    Impl(const BicubicSurface& surface, const Geo::Sphere& boundingSphere);
-
     ContactGeometryImpl* clone() const {
-        return new Impl(surface, boundingSphere);
+        return new Impl(surface);
     }
 
     const BicubicSurface& getBicubicSurface() const {return surface;}
@@ -450,6 +461,23 @@ public:
         return id;
     }
 private:
+    void createBoundingVolumes();
+    // The given OBBNode is assigned this range of patches. If there is
+    // more than one patch in the range, it will dole those out to its
+    // children recursively until the leaves each have responsibility for
+    // one patch. Then we'll deal with that patch, which may have to be
+    // subdivided into submission.
+    void splitPatches(int x0,int y0, int nx, int ny, 
+                      OBBNode& node, int depth,
+                      Array_<const Vec3*>* parentControlPoints=0) const;
+
+    // The supplied OBBNode has responsibility for the given subpatch, which
+    // may need further subdivision.
+    void assignPatch(const Geo::BicubicBezierPatch& patch,
+                     OBBNode& node, int depth, 
+                     Array_<const Vec3*>* parentControlPoints=0) const;
+
+
     BicubicSurface                      surface;
     mutable BicubicSurface::PatchHint   hint;
     Geo::Sphere                         boundingSphere;

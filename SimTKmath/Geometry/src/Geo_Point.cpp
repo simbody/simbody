@@ -102,6 +102,16 @@ inline static void fixWhich(const int* map, Array_<int>& which) {
         which[i] = map[which[i]];
 }
 
+// Given an array of point locations, create an indirect array of pointers
+// to those point locations.
+template <class P> void
+makeIndirect(const Array_< Vec<3,P> >&  points,
+             Array_<const Vec<3,P>*>&   pointsIndirect) {
+    pointsIndirect.resize(points.size());
+    for (unsigned i=0; i < points.size(); ++i)
+        pointsIndirect[i] = &points[i];
+}
+
 
 // Given a set of points, find the one that is the furthest in a given
 // direction. There must be at least one point in the set.
@@ -117,9 +127,23 @@ findSupportPoint(const Array_<Vec3P>& points, const UnitVec3P& direction,
     }
 }
 
-/** Given a set of points, find the two points that are the most extreme along
-a given direction (not necessarily distinct). There must be at least one point
-in the set. **/
+template <class P> /*static*/ void Geo::Point_<P>::
+findSupportPointIndirect(const Array_<const Vec3P*>& points, 
+                         const UnitVec3P& direction,
+                         int& most, RealP& maxCoord) {
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", 
+        "findSupportPointIndirect()",
+        "There must be at least one point in the set.");
+    most=0; maxCoord = dot(*points[0],direction);
+    for (int i=1; i < (int)points.size(); ++i) {
+        const RealP coord = dot(*points[i],direction);
+        if (coord > maxCoord) most=i, maxCoord=coord;
+    }
+}
+
+// Given a set of points, find the two points that are the most extreme along
+// a given direction (not necessarily distinct). There must be at least one 
+// point in the set.
 template <class P> /*static*/ void Geo::Point_<P>::
 findExtremePoints(const Array_<Vec3P>& points, const UnitVec3P& direction,
                   int& least, int& most, RealP& leastCoord, RealP& mostCoord) {
@@ -129,6 +153,24 @@ findExtremePoints(const Array_<Vec3P>& points, const UnitVec3P& direction,
     leastCoord = dot(points[0],direction); mostCoord=leastCoord;
     for (int i=1; i < (int)points.size(); ++i) {
         const Vec3P& p = points[i];
+        const RealP coord = dot(p,direction);
+        if (coord < leastCoord) least=i, leastCoord=coord;
+        if (coord > mostCoord)  most=i,  mostCoord=coord;
+    }
+}
+
+template <class P> /*static*/ void Geo::Point_<P>::
+findExtremePointsIndirect(const Array_<const Vec3P*>& points, 
+                          const UnitVec3P& direction,
+                          int& least, int& most, 
+                          RealP& leastCoord, RealP& mostCoord) {
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", 
+        "findExtremePointsIndirect()",
+        "There must be at least one point in the set.");
+    least=most=0; 
+    leastCoord = dot(*points[0],direction); mostCoord=leastCoord;
+    for (int i=1; i < (int)points.size(); ++i) {
+        const Vec3P& p = *points[i];
         const RealP coord = dot(p,direction);
         if (coord < leastCoord) least=i, leastCoord=coord;
         if (coord > mostCoord)  most=i,  mostCoord=coord;
@@ -151,10 +193,35 @@ calcCentroid(const Array_<Vec3P>& points) {
     return centroid;
 }
 
+template <class P> /*static*/ Vec<3,P> Geo::Point_<P>::
+calcCentroidIndirect(const Array_<const Vec3P*>& points) {
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", "calcCentroidIndirect()",
+        "There must be at least one point in the set.");
+
+    const int   n   = (int)points.size();
+    const RealP oon = RealP(1)/n;   // ~10 flops
+
+    Vec3P centroid(0);
+    for (int i=0; i < n; ++i)
+        centroid += *points[i];      // 3 flops
+    centroid *= oon;
+
+    return centroid;
+}
+
 template <class P> /*static*/ void Geo::Point_<P>::
 calcCovariance(const Array_<Vec3P>& points_F,
                Vec3P& centroid, SymMat33P& covariance) {
-    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", "calcCovariance()",
+    Array_<const Vec3P*> indirect_F;
+    makeIndirect(points_F, indirect_F);
+    calcCovarianceIndirect(indirect_F, centroid, covariance);
+}
+
+template <class P> /*static*/ void Geo::Point_<P>::
+calcCovarianceIndirect(const Array_<const Vec3P*>& points_F,
+                       Vec3P& centroid, SymMat33P& covariance) {
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
+        "calcCovarianceIndirect()",
         "There must be at least one point in the set.");
 
     const int   n   = (int)points_F.size();
@@ -163,7 +230,7 @@ calcCovariance(const Array_<Vec3P>& points_F,
     // Pass 1: find the centroid
     centroid = RealP(0);
     for (int i=0; i < n; ++i)
-        centroid += points_F[i];    // 3 flops
+        centroid += *points_F[i];    // 3 flops
     centroid *= oon;
 
     // Pass 2: calculate the covariance matrix.
@@ -171,7 +238,7 @@ calcCovariance(const Array_<Vec3P>& points_F,
     Vec3P& diag  = covariance.updDiag();
     Vec3P& lower = covariance.updLower(); // 1,0 2,0 2,1
     for (int i=0; i < n; ++i) {
-        const Vec3P p = points_F[i] - centroid;
+        const Vec3P p = *points_F[i] - centroid;
         diag[0]  += p[0]*p[0]; diag[1]  += p[1]*p[1]; diag[2]  += p[2]*p[2];
         lower[0] += p[0]*p[1]; lower[1] += p[0]*p[2]; lower[2] += p[1]*p[2];
     }
@@ -179,16 +246,25 @@ calcCovariance(const Array_<Vec3P>& points_F,
     covariance *= oon;
 }
 
+
 template <class P> /*static*/ void Geo::Point_<P>::
 calcPrincipalComponents(const Array_<Vec3P>& points_F,
-                        TransformP&          X_FP) {
+                        TransformP&          X_FP)  {
+    Array_<const Vec3P*> indirect_F;
+    makeIndirect(points_F, indirect_F);
+    calcPrincipalComponentsIndirect(indirect_F, X_FP);
+}
+
+template <class P> /*static*/ void Geo::Point_<P>::
+calcPrincipalComponentsIndirect(const Array_<const Vec3P*>& points_F,
+                                TransformP&                 X_FP) {
     SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
-        "calcPrincipalComponents()",
+        "calcPrincipalComponentsIndirect()",
         "There must be at least one point in the set.");
 
     Vec3P     centroid;
     SymMat33P covariance;
-    calcCovariance(points_F, X_FP.updP(), covariance);
+    calcCovarianceIndirect(points_F, X_FP.updP(), covariance);
 
     // Calculate eigenvalues and eigenvectors.
     const Mat33P cov33(covariance);
@@ -244,24 +320,38 @@ findAxisAlignedExtremePoints(const Array_<Vec3P>& points,
     }
 }
 
-// This signature takes an array of points, creates an array of pointers to 
-// those points and calls the other signature.
-template <class P> /*static*/ 
-Geo::AlignedBox_<P> Geo::Point_<P>::
-calcAxisAlignedBoundingBox(const Array_<Vec3P>& points,
-                           Array_<int>&         support) {
-    Array_<const Vec3P*> p(points.size());
-    for (unsigned i=0; i<points.size(); ++i)
-        p[i] = &points[i];
-    return calcAxisAlignedBoundingBox(p, support);
+// This signature taking an array of pointers to points rather than the
+// points themselves.
+
+template <class P> /*static*/ void Geo::Point_<P>::
+findAxisAlignedExtremePointsIndirect(const Array_<const Vec3P*>& points,
+                                     int least[3], int most[3],
+                                     Vec3P& low, Vec3P& high) {
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", 
+        "findAxisAlignedExtremePointsIndirect()",
+        "There must be at least one point in the set.");
+
+    low=(*points[0]); high=(*points[0]);
+    for (int i=0; i<3; i++) least[i]=most[i]=0; // point 0 most extreme so far
+    
+    for (int i=1; i < (int)points.size(); ++i) {
+        const Vec3P& p = (*points[i]);
+        if (p[0] < low [0]) low [0]=p[0], least[0]=i;
+        if (p[0] > high[0]) high[0]=p[0], most [0]=i;
+        if (p[1] < low [1]) low [1]=p[1], least[1]=i;
+        if (p[1] > high[1]) high[1]=p[1], most [1]=i;
+        if (p[2] < low [2]) low [2]=p[2], least[2]=i;
+        if (p[2] > high[2]) high[2]=p[2], most [2]=i;
+    }
 }
 
-/** Alternate signature taking an array of pointers to points rather than the
-points themselves. **/
+
+// This signature taking an array of pointers to points rather than the
+// points themselves.
 template <class P> /*static*/
 Geo::AlignedBox_<P> Geo::Point_<P>::
-calcAxisAlignedBoundingBox(const Array_<const Vec3P*>& points,
-                           Array_<int>&                support) {
+calcAxisAlignedBoundingBoxIndirect(const Array_<const Vec<3,P>*>& points,
+                                   Array_<int>&                   support) {
     const unsigned npoints = points.size();
     if (npoints == 0) {
         const P inf = NTraits<P>::getInfinity();
@@ -270,36 +360,38 @@ calcAxisAlignedBoundingBox(const Array_<const Vec3P*>& points,
     }
 
     // Find the extreme points along each of the coordinate axes.
-    Vec3P lo=*points[0], hi=*points[0]; // initialize extremes
-    int   ilo[3], ihi[3]; for (int i=0; i<3; ++i) ilo[i]=ihi[i]=0;
-    for (unsigned i=0; i<points.size(); ++i) {
-        const Vec3P& p = *points[i];
-        if (p[0] > hi[0]) hi[0]=p[0], ihi[0]=i;
-        if (p[0] < lo[0]) lo[0]=p[0], ilo[0]=i;
-        if (p[1] > hi[1]) hi[1]=p[1], ihi[1]=i;
-        if (p[1] < lo[1]) lo[1]=p[1], ilo[1]=i;
-        if (p[2] > hi[2]) hi[2]=p[2], ihi[2]=i;
-        if (p[2] < lo[2]) lo[2]=p[2], ilo[2]=i;
-    }
+    int least[3], most[3];
+    Vec3P low, high;
+    findAxisAlignedExtremePointsIndirect(points, least, most, low, high);
 
     // Sort the support points and eliminate duplicates.
     std::set<int> supportSet;
     for (unsigned i=0; i<3; ++i) {
-        supportSet.insert(ilo[i]);
-        supportSet.insert(ihi[i]);
+        supportSet.insert(least[i]);
+        supportSet.insert(most[i]);
     }
     support.assign(supportSet.begin(), supportSet.end());
 
-    const Vec3P ctr = (lo+hi)/2;
+    const Vec3P ctr = (low+high)/2;
     // Make sure nothing gets left out due to roundoff.
-    const Vec3P hdim(std::max(hi[0]-ctr[0], ctr[0]-lo[0]),
-                     std::max(hi[1]-ctr[1], ctr[1]-lo[1]),
-                     std::max(hi[2]-ctr[2], ctr[2]-lo[2]));
+    const Vec3P hdim(std::max(high[0]-ctr[0], ctr[0]-low[0]),
+                     std::max(high[1]-ctr[1], ctr[1]-low[1]),
+                     std::max(high[2]-ctr[2], ctr[2]-low[2]));
 
     return AlignedBox_<P>(ctr, hdim).stretchBoundary(); 
 }
 
 
+// This signature takes an array of points, creates an array of pointers to 
+// those points and calls the other signature.
+template <class P> /*static*/ 
+Geo::AlignedBox_<P> Geo::Point_<P>::
+calcAxisAlignedBoundingBox(const Array_< Vec<3,P> >& points,
+                           Array_<int>&         support) {
+    Array_<const Vec<3,P>*> indirect;
+    makeIndirect(points, indirect);
+    return calcAxisAlignedBoundingBoxIndirect(indirect, support);
+}
 
 //==============================================================================
 //                       CALC ORIENTED BOUNDING BOX
@@ -329,13 +421,39 @@ findOrientedExtremePoints(const Array_<Vec3P>& points_F,
     }
 }
 
+
+template <class P> /*static*/ void Geo::Point_<P>::
+findOrientedExtremePointsIndirect(const Array_<const Vec3P*>& points_F, 
+                                  const RotationP& R_FB,
+                                  int least[3], int most[3],
+                                  Vec3P& low_B, Vec3P& high_B) {
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
+        "findOrientedExtremePointsIndirect()",
+        "There must be at least one point in the set.");
+    const RotationP R_BF = ~R_FB;
+
+    low_B=R_BF*(*points_F[0]); high_B=R_BF*(*points_F[0]);
+    for (int i=0; i<3; i++) least[i]=most[i]=0; // point 0 most extreme so far
+    
+    for (int i=1; i < (int)points_F.size(); ++i) {
+        const Vec3P p = R_BF*(*points_F[i]);
+        if (p[0] < low_B [0]) low_B [0]=p[0], least[0]=i;
+        if (p[0] > high_B[0]) high_B[0]=p[0], most [0]=i;
+        if (p[1] < low_B [1]) low_B [1]=p[1], least[1]=i;
+        if (p[1] > high_B[1]) high_B[1]=p[1], most [1]=i;
+        if (p[2] < low_B [2]) low_B [2]=p[2], least[2]=i;
+        if (p[2] > high_B[2]) high_B[2]=p[2], most [2]=i;
+    }
+}
+
 // Differentiate the above function being careful to note the low accuracy
 // when running in single precision.
 template <class P>
 class VolumeGradient : public Differentiator::GradientFunction {
     typedef Vec<3,P> Vec3P;
 public:
-    VolumeGradient(const Array_<Vec3P>& points, const Rotation_<P>& R_FB0)
+    VolumeGradient(const Array_<const Vec3P*>&  points, 
+                   const Rotation_<P>&          R_FB0)
     :   Differentiator::GradientFunction(3,(Real)Geo::getDefaultTol<P>()), 
         p(&points), R_FB0(R_FB0) {}
 
@@ -347,29 +465,29 @@ public:
                            a[0], XAxis, a[1], YAxis, a[2], ZAxis);
         int least[3], most[3];
         Vec<3,P> low_B, high_B;
-        Geo::Point_<P>::findOrientedExtremePoints(*p, R_FB0*R_B0B,
-                                                  least, most, low_B, high_B);
+        Geo::Point_<P>::findOrientedExtremePointsIndirect
+                                (*p, R_FB0*R_B0B, least, most, low_B, high_B);
         const Vec<3,P> extent(high_B - low_B);
         volume = (Real)(extent[0]*extent[1]*extent[2]);
         return 0;
     }
 private:
-    const Array_<Vec3P>* p; // points to array of points
-    const Rotation_<P>   R_FB0; // starting orientation
+    const Array_<const Vec3P*>* p; // points to array of points
+    const Rotation_<P>          R_FB0; // starting orientation
 };
 
 
 template <class P> /*static*/
 Geo::OrientedBox_<P> Geo::Point_<P>::
-calcOrientedBoundingBox(const Array_<Vec3P>& points_F,
-                        Array_<int>&         support,
-                        bool                 optimize) {
+calcOrientedBoundingBoxIndirect(const Array_<const Vec3P*>& points_F,
+                                Array_<int>&                support,
+                                bool                        optimize) {
     TransformP X_FB0;
     //TODO: this is not a good initial guess because it is sensitive to
     // point clustering and distribution of interior points. Should start
     // with a convex hull, get the mass properties of that and use principal
     // moments as directions.
-    calcPrincipalComponents(points_F, X_FB0);
+    calcPrincipalComponentsIndirect(points_F, X_FB0);
 
     // We'll update these as we go.
     RotationP R_FB = X_FB0.R();
@@ -377,8 +495,8 @@ calcOrientedBoundingBox(const Array_<Vec3P>& points_F,
 
     int least[3], most[3];
     Vec3P low_B, high_B;
-    findOrientedExtremePoints(points_F, R_FB,
-                              least, most, low_B, high_B);
+    findOrientedExtremePointsIndirect(points_F, R_FB,
+                                      least, most, low_B, high_B);
 
     // Initial guess at OBB.
     Vec3P extent_B = high_B - low_B;
@@ -413,8 +531,8 @@ calcOrientedBoundingBox(const Array_<Vec3P>& points_F,
             Rotation_<P> tryR_FB = X_FB0.R()*R_B0B;
             int tryLeast[3], tryMost[3];
             Vec3P tryLow_B, tryHigh_B;
-            findOrientedExtremePoints(points_F, tryR_FB,
-                                      tryLeast, tryMost, tryLow_B, tryHigh_B);
+            findOrientedExtremePointsIndirect
+                   (points_F, tryR_FB, tryLeast, tryMost, tryLow_B, tryHigh_B);
             Vec3P tryExtent_B = tryHigh_B - tryLow_B;
             RealP tryVol = tryExtent_B[0]*tryExtent_B[1]*tryExtent_B[2];
 
@@ -452,15 +570,17 @@ calcOrientedBoundingBox(const Array_<Vec3P>& points_F,
     return obb.stretchBoundary();
 }
 
-/** Alternate signature taking an array of pointers to points rather than the
-points themselves. **/
+// This signature takes an array of points rather than an array of pointers
+// to points. Allocate a temporary array of pointers and then call the other
+// signature.
 template <class P> /*static*/
 Geo::OrientedBox_<P> Geo::Point_<P>::
-calcOrientedBoundingBox(const Array_<const Vec3P*>& points,
-                        Array_<int>&                support,
-                        bool                        optimize) {
-    assert(false);
-    return Geo::OrientedBox_<P>();
+calcOrientedBoundingBox(const Array_<Vec3P>& points,
+                        Array_<int>&         support,
+                        bool                 optimize) {
+    Array_<const Vec3P*> indirect;
+    makeIndirect(points, indirect);
+    return calcOrientedBoundingBoxIndirect(indirect,support,optimize);
 }
 
 
@@ -1024,7 +1144,8 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
         Array_<const Vec<3,P>*> ritterPoints;
         for (int i=0; i < (int)ix.size(); ++i)
             ritterPoints.push_back(p[ix[i]]);
-        minSphere = Geo::Point_<P>::calcApproxBoundingSphere(ritterPoints);
+        minSphere = 
+            Geo::Point_<P>::calcApproxBoundingSphereIndirect(ritterPoints);
         which.clear(); // we don't know
         return minSphere;
     }
@@ -1066,10 +1187,9 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Point_<P>::
 calcBoundingSphere(const Array_<Vec3P>& points, Array_<int>& which) {
-    Array_<const Vec3P*> p(points.size());
-    for (unsigned i=0; i<points.size(); ++i)
-        p[i] = &points[i];
-    return calcBoundingSphere(p, which);
+    Array_<const Vec3P*> indirect;
+    makeIndirect(points, indirect);
+    return calcBoundingSphereIndirect(indirect, which);
 }
 
 // This was the outer block for the basic Emo Welzl "move to front" algorithm
@@ -1132,7 +1252,8 @@ calcBoundingSphere(const Array_<Vec3P>& points, Array_<int>& which) {
 
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Point_<P>::
-calcBoundingSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
+calcBoundingSphereIndirect(const Array_<const Vec3P*>& points, 
+                           Array_<int>& which) {
     const unsigned npoints = points.size();
     if (npoints == 0)
         return Geo::Sphere_<P>(Vec<3,P>(NTraits<P>::getInfinity()),0);
@@ -1164,7 +1285,7 @@ calcBoundingSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
             break;
 
         if (iters == MaxIters) {
-            minSphere = calcApproxBoundingSphere(points);
+            minSphere = calcApproxBoundingSphereIndirect(points);
             which.clear(); // we don't know
             break;
         }
@@ -1191,10 +1312,9 @@ calcBoundingSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Point_<P>::
 calcApproxBoundingSphere(const Array_<Vec3P>& points) {
-    Array_<const Vec3P*> p(points.size());
-    for (unsigned i=0; i<points.size(); ++i)
-        p[i] = &points[i];
-    return calcApproxBoundingSphere(p);
+    Array_<const Vec3P*> indirect;
+    makeIndirect(points, indirect);
+    return calcApproxBoundingSphereIndirect(indirect);
 }
 
 // Calculate a Ritter sphere using the method described by Christer Ericson
@@ -1204,7 +1324,7 @@ calcApproxBoundingSphere(const Array_<Vec3P>& points) {
 // sphere to just include the current sphere plus the new point.
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Point_<P>::
-calcApproxBoundingSphere(const Array_<const Vec3P*>& points) {
+calcApproxBoundingSphereIndirect(const Array_<const Vec3P*>& points) {
     const unsigned npoints = points.size();
     if (npoints == 0)
         return Geo::Sphere_<P>(Vec<3,P>(0),0);

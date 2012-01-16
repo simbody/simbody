@@ -51,6 +51,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactGeometryTypeId);
 
 class ContactGeometryImpl;
 class OBBTreeNodeImpl;
+class OBBTree;
 
 
 
@@ -585,6 +586,10 @@ explicit SmoothHeightMap(const BicubicSurface& surface);
 /** Return a reference to the BicubicSurface object being used by this
 SmoothHeightMap. **/
 const BicubicSurface& getBicubicSurface() const;
+
+/** (Advanced) Return a reference to the oriented bounding box tree for this
+surface. **/
+const OBBTree& getOBBTree() const;
 
 /** Return true if the supplied ContactGeometry object is a SmoothHeightMap. **/
 static bool isInstance(const ContactGeometry& geo)

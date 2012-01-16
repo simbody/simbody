@@ -84,7 +84,10 @@ RealP findDistanceSqr(const Vec3P& p2) const
 {   return findDistanceSqr(p, p2); }
 
 /**@name            Miscellaneous point-related utilities
-These static methods work with points or collections of points. **/
+These static methods work with points or collections of points. Collections
+of points are represented either as an Array of point locations or as
+an indirect Array of pointers to point locations, which can save a lot of
+copying for large point sets. **/
 /**@{**/
 
 /** Calculate the distance between two points (expensive). Cost is about 
@@ -108,6 +111,13 @@ SimTK_SIMMATH_EXPORT static void
 findSupportPoint(const Array_<Vec3P>& points, const UnitVec3P& direction,
                  int& most, RealP& mostCoord);
 
+/** Alternate signature taking an array of pointers to points rather than the
+points themselves. **/
+SimTK_SIMMATH_EXPORT static void
+findSupportPointIndirect(const Array_<const Vec3P*>& points, 
+                         const UnitVec3P& direction,
+                         int& most, RealP& mostCoord);
+
 /** Given a set of points, find the two points that are the most extreme along
 a given direction (not necessarily distinct), and return their indices and
 locations along the given direction. There must be at least one point
@@ -117,16 +127,35 @@ findExtremePoints(const Array_<Vec3P>& points, const UnitVec3P& direction,
                   int& least, int& most,
                   RealP& leastCoord, RealP& mostCoord);
 
+/** Alternate signature taking an array of pointers to points rather than the
+points themselves. **/
+SimTK_SIMMATH_EXPORT static void
+findExtremePointsIndirect(const Array_<const Vec3P*>& points, 
+                          const UnitVec3P& direction,
+                          int& least, int& most,
+                          RealP& leastCoord, RealP& mostCoord);
+
 /** Given a set of points, calculate the centroid (average location) of those 
 points. Cost is about 3*n+10 flops for n points. **/
 SimTK_SIMMATH_EXPORT static Vec3P
 calcCentroid(const Array_<Vec3P>& points_F);
+
+/** Alternate signature taking an array of pointers to points rather than the
+points themselves. **/
+SimTK_SIMMATH_EXPORT static Vec3P
+calcCentroidIndirect(const Array_<const Vec3P*>& points_F);
 
 /** Given a set of points, calculate the centroid (average location) and
 covariance matrix of those points. **/
 SimTK_SIMMATH_EXPORT static void
 calcCovariance(const Array_<Vec3P>& points_F,
                Vec3P& centroid, SymMat33P& covariance);
+
+/** Alternate signature taking an array of pointers to points rather than the
+points themselves. **/
+SimTK_SIMMATH_EXPORT static void
+calcCovarianceIndirect(const Array_<const Vec3P*>& points_F,
+                       Vec3P& centroid, SymMat33P& covariance);
 
 /** Given a set of points in an unspecified frame F, find the principal
 component directions describing the distribution of the points in space. The
@@ -136,6 +165,12 @@ z=x X y. Note that clustering of points affects the directions. **/
 SimTK_SIMMATH_EXPORT static void
 calcPrincipalComponents(const Array_<Vec3P>& points_F,
                         TransformP&          X_FP);
+
+/** Alternate signature taking an array of pointers to points rather than the
+points themselves. **/
+SimTK_SIMMATH_EXPORT static void
+calcPrincipalComponentsIndirect(const Array_<const Vec3P*>& points_F,
+                                TransformP&                 X_FP);
 
 /**@}**/
 
@@ -154,6 +189,13 @@ findAxisAlignedExtremePoints(const Array_<Vec3P>& points,
                              int least[3], int most[3],
                              Vec3P& low, Vec3P& high);
 
+/** Alternate signature taking an array of pointers to points rather than the
+points themselves. **/
+SimTK_SIMMATH_EXPORT static void
+findAxisAlignedExtremePointsIndirect(const Array_<const Vec3P*>& points,
+                                     int least[3], int most[3],
+                                     Vec3P& low, Vec3P& high);
+
 /** Calculate the smallest axis-aligned bounding box including all n given
 points. Cost is O(n). **/
 SimTK_SIMMATH_EXPORT static Geo::AlignedBox_<P> 
@@ -169,14 +211,14 @@ calcAxisAlignedBoundingBox(const Array_<Vec3P>& points)
 /** Alternate signature taking an array of pointers to points rather than the
 points themselves. **/
 SimTK_SIMMATH_EXPORT static Geo::AlignedBox_<P> 
-calcAxisAlignedBoundingBox(const Array_<const Vec3P*>& points,
-                           Array_<int>&                support);
+calcAxisAlignedBoundingBoxIndirect(const Array_<const Vec3P*>& points,
+                                   Array_<int>&                support);
 
 /** Alternate signature doesn't return support points. **/
 static Geo::AlignedBox_<P> 
-calcAxisAlignedBoundingBox(const Array_<const Vec3P*>& points)
+calcAxisAlignedBoundingBoxIndirect(const Array_<const Vec3P*>& points)
 {   Array_<int> support; 
-    return calcAxisAlignedBoundingBox(points,support); }
+    return calcAxisAlignedBoundingBoxIndirect(points,support); }
 
 /**@}**/
 
@@ -203,6 +245,14 @@ findOrientedExtremePoints(const Array_<Vec3P>&  points_F,
                           int least[3], int most[3],
                           Vec3P& low_B, Vec3P& high_B);
 
+/** Alternate signature taking an array of pointers to points rather than the
+points themselves. **/
+SimTK_SIMMATH_EXPORT static void
+findOrientedExtremePointsIndirect(const Array_<const Vec3P*>&  points_F, 
+                                  const RotationP&             R_FB,
+                                  int least[3], int most[3],
+                                  Vec3P& low_B, Vec3P& high_B);
+
 /** Calculate a tight-fitting oriented bounding box (OBB) that includes all
 n given points. The OBB is not guaranteed to be minimal but will usually be
 very good unless you suppress optimization to save runtime. Cost is O(n). **/
@@ -220,16 +270,16 @@ calcOrientedBoundingBox(const Array_<Vec3P>& points)
 /** Alternate signature taking an array of pointers to points rather than the
 points themselves. **/
 SimTK_SIMMATH_EXPORT static Geo::OrientedBox_<P> 
-calcOrientedBoundingBox(const Array_<const Vec3P*>& points,
-                        Array_<int>&                support,
-                        bool                        optimize=true);
+calcOrientedBoundingBoxIndirect(const Array_<const Vec3P*>& points,
+                                Array_<int>&                support,
+                                bool                        optimize=true);
 
 /** Alternate signature doesn't return support points. **/
 static Geo::OrientedBox_<P> 
-calcOrientedBoundingBox(const Array_<const Vec3P*>& points,
-                        bool                        optimize=true)
+calcOrientedBoundingBoxIndirect(const Array_<const Vec3P*>& points,
+                                bool                        optimize=true)
 {   Array_<int> support; 
-    return calcOrientedBoundingBox(points,support,optimize); }
+    return calcOrientedBoundingBoxIndirect(points,support,optimize); }
 /**@}**/
 
 /**@name                 Sphere-related utilities
@@ -313,16 +363,16 @@ calcBoundingSphere(const std::vector<Vec3P>& points) {
 /** Create a minimal bounding sphere around a collection of n points, given
 indirectly as an array of pointers. This has expected O(n) performance and 
 yields a perfect bounding sphere. **/
-static Sphere_<P> calcBoundingSphere(const Array_<const Vec3P*>& points) {
+static Sphere_<P> calcBoundingSphereIndirect(const Array_<const Vec3P*>& points) {
     Array_<int> which; 
-    return calcBoundingSphere(points, which);
+    return calcBoundingSphereIndirect(points, which);
 }
 
 /** This signature takes an std::vector rather than a SimTK::Array_; no
 extra copying is required. **/
 static Sphere_<P> 
 calcBoundingSphere(const std::vector<const Vec3P*>& points) {
-    return calcBoundingSphere // no copy done here
+    return calcBoundingSphereIndirect // no copy done here
                 (ArrayViewConst_<const Vec3P*>(points));
 }
 
@@ -372,7 +422,8 @@ calcBoundingSphere(const Array_<Vec3P>& points, Array_<int>& which);
 
 /** Alternate signature works with an array of pointers to points. **/
 SimTK_SIMMATH_EXPORT static Sphere_<P> 
-calcBoundingSphere(const Array_<const Vec3P*>& points, Array_<int>& which);
+calcBoundingSphereIndirect(const Array_<const Vec3P*>& points, 
+                           Array_<int>& which);
 
 /** Calculate an approximate bounding sphere.\ You should normally use
 calcBoundingSphere() which will give a smaller sphere. **/
@@ -389,13 +440,13 @@ calcApproxBoundingSphere(const std::vector<Vec3P>& points) {
 
 /** Alternate signature works with an array of pointers to points. **/
 SimTK_SIMMATH_EXPORT static Sphere_<P> 
-calcApproxBoundingSphere(const Array_<const Vec3P*>& points);
+calcApproxBoundingSphereIndirect(const Array_<const Vec3P*>& points);
 
 /** This signature takes an std::vector rather than a SimTK::Array_; no
 extra copying is required. **/
 static Sphere_<P> 
-calcApproxBoundingSphere(const std::vector<const Vec3P*>& points) {
-    return calcApproxBoundingSphere // no copy done here
+calcApproxBoundingSphereIndirect(const std::vector<const Vec3P*>& points) {
+    return calcApproxBoundingSphereIndirect // no copy done here
                 (ArrayViewConst_<const Vec3P*>(points));
 }
 /**@}**/
