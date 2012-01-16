@@ -150,6 +150,7 @@ intersectsOrientedBoxHelper(const OrientedBox_<P>&  O,
     return 1; // probably intersect
 }
 
+// Worst case 74 flops.
 template <class P> bool Geo::Box_<P>::
 mayIntersectOrientedBox(const Geo::OrientedBox_<P>& ob) const {
     Mat33P absR_BO; Vec3P absP_BO;
@@ -157,6 +158,7 @@ mayIntersectOrientedBox(const Geo::OrientedBox_<P>& ob) const {
     return result != 0;
 }
 
+// Worst case 74 + 9 + 9*12 = 191 flops.
 template <class P> bool Geo::Box_<P>::
 intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const {
     Mat33P absR_BO; 
@@ -218,6 +220,7 @@ intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const {
     const Vec3P&    p    = p_BO;
     const Mat33P&   Rabs = absR_BO;
 
+    // Each of these tests takes about 12 flops.
     rb = h[1] *Rabs(2, 0)+h[2] *Rabs(1, 0);         // b0 X oO
     ro = oh[1]*Rabs(0, 2)+oh[2]*Rabs(0, 1);
     d  = std::abs(p[2]*R(1, 0) - p[1]*R(2, 0)); 

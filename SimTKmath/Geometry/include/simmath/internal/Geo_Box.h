@@ -191,15 +191,19 @@ of this box, return true if the two boxes intersect. We are treating both
 objects as solids, so we'll say yes even if one box completely contains the 
 other. We also return true if they are just touching. This is an exact but
 fairly expensive test if the boxes are separated; if you don't mind some
-false positives, use mayIntersectOrientedBox() instead. **/
+false positives, use mayIntersectOrientedBox() instead. Cost is about 200
+flops worst case (when boxes are intersecting) although it can return 
+\c false in as few as 16 flops. **/
 SimTK_SIMMATH_EXPORT bool 
 intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const;
 
 /** Given an oriented box whose pose is measured and expressed in the frame
 of this box, return true if the two boxes may be intersecting. Only relatively
 cheap operations are performed at the expense of returning false positives
-sometimes. If you need an exact determination, use intersectsOrientedBox().
-**/
+sometimes (allegedly less than 10% of the time). If you need an exact 
+determination, use intersectsOrientedBox(). Cost is about 75 flops worst 
+case (when boxes appear to be intersecting) but can return \c false in as few 
+as 16 flops. **/
 SimTK_SIMMATH_EXPORT bool 
 mayIntersectOrientedBox(const Geo::OrientedBox_<P>& ob) const;
 
