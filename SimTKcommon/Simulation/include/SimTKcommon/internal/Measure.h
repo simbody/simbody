@@ -82,7 +82,7 @@
     SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH)   \
     MH() : PH(new Implementation()) {}          \
     explicit MH(Subsystem& sub)                 \
-    : PH(sub,new Implementation(), AbstractMeasure::SetHandle()) {}
+    : PH(sub,new Implementation(), PH::SetHandle()) {}
 
 // The default constructor for a still-abstract derived class can't
 // instantiate an Implementation.
