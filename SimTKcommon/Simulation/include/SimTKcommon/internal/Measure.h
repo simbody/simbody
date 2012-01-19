@@ -68,7 +68,8 @@
 #define SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH) \
     class Implementation;                                           \
     explicit MH(Implementation* imp) : PH(imp) {}                   \
-    MH(Subsystem& sub, Implementation* imp, const SetHandle& sh)    \
+    MH(Subsystem& sub, Implementation* imp,                         \
+       const AbstractMeasure::SetHandle& sh)                        \
     :   PH(sub,imp,sh) {}                                           \
     MH& operator=(const MH& src) {PH::operator=(src); return *this;}\
     MH& shallowAssign(const MH& src) {PH::shallowAssign(src); return *this;}\
@@ -81,7 +82,7 @@
     SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH)   \
     MH() : PH(new Implementation()) {}          \
     explicit MH(Subsystem& sub)                 \
-    : PH(sub,new Implementation(), SetHandle()) {}
+    : PH(sub,new Implementation(), PH::SetHandle()) {}
 
 // The default constructor for a still-abstract derived class can't
 // instantiate an Implementation.
