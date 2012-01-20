@@ -71,7 +71,7 @@ namespace SimTK {
  * just "." or ".." are directory path names, meaning that the "filename"
  * and "extension" components are empty. Other pathnames may be directories
  * or filenames depending on context. Whenever we generate a pathname that
- * we know to e a directory, it will end in a final slash.
+ * we know to be a directory, it will end in a final slash.
  *
  * There is also the concept of a "drive" which on Windows is a drive 
  * letter followed by a colon (e.g. "c:") but is always the empty string 
