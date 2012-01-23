@@ -71,6 +71,7 @@ applications that use Simbody.
 #include "SimTKcommon/internal/ParallelWorkQueue.h"
 #include "SimTKcommon/internal/ThreadLocal.h"
 #include "SimTKcommon/internal/AtomicInteger.h"
+#include "SimTKcommon/internal/Pathname.h"
 #include "SimTKcommon/internal/Plugin.h"
 #include "SimTKcommon/internal/Timing.h"
 #include "SimTKcommon/internal/Xml.h"
