@@ -171,6 +171,10 @@ public:
         return absPath;
     }
 
+    /// Return true if the given pathname names a file that exists and is
+    /// readable.
+    static bool fileExists(const std::string& fileName);
+
     /// Get the default installation directory for this platform. This will
     /// be /usr/local/ for Linux and Apple, and the value of the \%ProgramFiles\%
     /// registry entry on Windows (typically c:\\Program Files\\).
