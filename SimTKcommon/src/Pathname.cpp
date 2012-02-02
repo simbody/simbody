@@ -40,6 +40,7 @@ using std::string;
 using std::tolower;
 
 #include <iostream>
+#include <fstream>
 
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
@@ -241,6 +242,12 @@ void Pathname::deconstructPathname( const string&   name,
         extension = fileName.substr(lastDot);
         fileName.erase(lastDot);
     }
+}
+
+bool Pathname::fileExists(const std::string& fileName) {
+    std::ifstream f(fileName.c_str());
+    return f.good();
+    // File is closed by destruction of f.
 }
 
 string Pathname::getDefaultInstallDir() {
