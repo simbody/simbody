@@ -351,13 +351,15 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
             // Add a vertex at the center, then split it into triangles.
 
             Vec3 center(0);
-            for (int j = 0; j < numVert; j++)
-                center += vertices[mesh.getFaceVertex(i, j)];
+            for (int j = 0; j < numVert; j++) {
+                Vec3 pos = mesh.getVertexPosition(mesh.getFaceVertex(i,j));
+                center += pos;
+            }
             center /= numVert;
             vertices.push_back((float) center[0]);
             vertices.push_back((float) center[1]);
             vertices.push_back((float) center[2]);
-            int newIndex = (int)vertices.size()-1;
+            const unsigned newIndex = vertices.size()/3-1;
             for (int j = 0; j < numVert-1; j++) {
                 faces.push_back((unsigned short) mesh.getFaceVertex(i, j));
                 faces.push_back((unsigned short) mesh.getFaceVertex(i, j+1));
