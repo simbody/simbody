@@ -195,7 +195,8 @@ int main() {
         showFemur.setColor(Cyan).setOpacity(.2));
     matter.Ground().updBody().addContactSurface(Vec3(0,0,0),
         ContactSurface(femurTri,
-            ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10)));
+            ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10),
+            .01 /*thickness*/));
 
 
     Body::Rigid patellaBody(MassProperties(1.0, Vec3(0), Inertia(1)));
@@ -203,7 +204,8 @@ int main() {
         showPatella.setColor(Red).setOpacity(.2));
     patellaBody.addContactSurface(Transform(),
         ContactSurface(patellaTri,
-            ContactMaterial(fK*.001,fDis*.9,fFac*.8,fFac*.7,fVis*10)));
+            ContactMaterial(fK*.001,fDis*.9,fFac*.8,fFac*.7,fVis*10),
+            .01 /*thickness*/));
 
     MobilizedBody::Free patella(matter.Ground(), Transform(Vec3(0)), 
                                 patellaBody,    Transform(Vec3(0)));
