@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmath(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -320,7 +320,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
     }
 
     CPodes::StepMode mode;
-    if (userFinalTime != -1)
+    if (userFinalTime != -1 || userAllowInterpolation==0)
         mode = (userReturnEveryInternalStep == 1) ? CPodes::OneStepTstop
                                                   : CPodes::NormalTstop;
     else
@@ -330,6 +330,15 @@ stepTo(Real reportTime, Real scheduledEventTime) {
     // Keep taking steps until something interesting happens at tMax or
     // earlier.
     Real tMax = std::min(reportTime, scheduledEventTime);
+
+    // We might have to create a fake tstop to prevent interpolation.
+    bool isFakeTstop = false;
+    if (userAllowInterpolation==0) {
+        if (userFinalTime == -1 || userFinalTime > tMax) {
+            isFakeTstop = true;
+            cpodes->setStopTime(tMax);
+        }
+    }
 
     // Assume we'll return at the advanced state; we'll change this below
     // if necessary.
@@ -384,6 +393,9 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             //---------------------step------------------------
             res = cpodes->step(tMax, &tret, yout, ypout, mode);
             //-------------------------------------------------
+            if (res == CPodes::TstopReturn && isFakeTstop)
+                res = CPodes::Success;
+
             if (res == CPodes::TooClose) {              
                 // This happens when the user asked the integrator to advance 
                 // time by a tiny amount, comparable to numerical precision.
