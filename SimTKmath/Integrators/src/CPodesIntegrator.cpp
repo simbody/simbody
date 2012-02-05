@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmath(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -284,7 +284,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
     }
     Real tMax = std::min(reportTime, scheduledEventTime);
     CPodes::StepMode mode;
-    if (userFinalTime != -1) {
+    if (userFinalTime != -1 || userAllowInterpolation==0) {
         if (userReturnEveryInternalStep == 1)
             mode = CPodes::OneStepTstop;
         else
@@ -297,6 +297,14 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             mode = CPodes::Normal;
     }
 
+    // We might have to create a fake tstop to prevent interpolation.
+    bool isFakeTstop = false;
+    if (userAllowInterpolation==0) {
+        if (userFinalTime == -1 || userFinalTime > tMax) {
+            isFakeTstop = true;
+            cpodes->setStopTime(tMax);
+        }
+    }
 
     while (true) {
         Real tret;
@@ -343,6 +351,9 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             cpodes->getProjNumProj(&oldProjections);
             cpodes->getProjNumFailures(&oldProjectionFailures);
             res = cpodes->step(tMax, &tret, yout, ypout, mode);
+            if (res == CPodes::TstopReturn && isFakeTstop)
+                res = CPodes::Success;
+
             if (res == CPodes::TooClose) {
                 
                 // This happens when the user asked the integrator to advance 
