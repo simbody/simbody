@@ -33,7 +33,7 @@
 This file contains the library-side implementations of classes
 BicubicSurface, BicubicSurface::Guts, and BicubicSurface::PatchHint. **/
 
-#include "SimTKCommon.h" 
+#include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 #include "simmath/internal/BicubicSurface.h"
 #include "simmath/internal/SplineFitter.h"
