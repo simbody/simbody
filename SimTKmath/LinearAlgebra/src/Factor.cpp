@@ -303,63 +303,11 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
     int lda = nRow;
     int info;
 
-/*  TODO after 1.0
-    if( structure == MatrixStructures::Symmetric ) {
-        if( condition == MatrixConditions::PositiveDefinite ) {
-            positiveDefinite = true; 
-            if( storage == MatrixStorageFormats::Packed ) {
-//                LapackInterface::pptrf<ELT>( );     
-            } else if( sparsity == MatrixSparseFormats::Banded ) {
-//  TODO               LapackInterface::pbtrf<ELT>( );     
-            } else if( structure == MatrixStructures::TriDiagonal ) {
-//    TODO             LapackInterface::pttrf<ELT>( );     
-            } else {
-                char uplo = 'L';
-                LapackInterface::potrf<T>(uplo, nRow, lu.data, lda, info);     
-                if( info > 0 ) {
-                    singularIndex = info;
-                    SimTK_THROW2( SimTK::Exception::NotPositiveDefinite, 
-                    getSingularIndex(), "FactorLU:LapackInterface::potrf" ); 
-                }
- //           }
-        }  else {
-
-            if( storage == MatrixStorageFormats::Packed ) {
-//                LapackInterface::sptrf<ELT>();
-            } else {
-
-                long workSize = nCol*LapackInterface::ilaenv<T>(1, "sytrf", "U", nCol, -1, -1, -1);
-                TypedWorkSpace<T>  work( workSize );
-                
-                LapackInterface::sytrf<T>(nRow, nCol, lu.data, lda, pivots.data, work.data, workSize, info);
-                if( info > 0 ) {
-                    singularIndex = info;
-                    SimTK_THROW2( SimTK::Exception::SingularMatrix, 
-                    getSingularIndex(), "FactorLU:LapackInterface::sytrf" ); 
-                }
- //           }
-        }
-    } else {
-
-        if( sparsity == MatrixSparseFormats::Banded ) {
-//    TODO          LapackInterface::gbtrf<T>(nRow, nCol kl, ku, lu.data, lda, pivots.data, info);
-        } else if( structure == MatrixStructures::Tridiagonal ) {
-//             double *dl, *d, *du, *du2;
-//    TODO          LapackInterface::gttrf<T>(nRow, nCol, dl, d, du, du2, pivots.data, info);
-            if( info > 0 ) {
-                singularIndex = info;
-                SimTK_THROW2( SimTK::Exception::SingularMatrix, 
-                getSingularIndex(), "FactorLU:LapackInterface::gttrf" ); 
-            }
-        } else {
-*/
-            LapackInterface::getrf<T>(nRow, nCol, lu.data, lda, pivots.data, info);
-            if( info > 0 ) 
-                singularIndex = info; // matrix is singular info = i when U(i,i) is exactly zero
-            else 
-                singularIndex = 0;
- //       }
- //   }
+    LapackInterface::getrf<T>(nRow, nCol, lu.data, lda, pivots.data, info);
+    if( info > 0 ) 
+        singularIndex = info; // matrix is singular info = i when U(i,i) is exactly zero
+    else 
+        singularIndex = 0;
 
 }
 

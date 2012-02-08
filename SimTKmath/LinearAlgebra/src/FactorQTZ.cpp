@@ -1,26 +1,34 @@
+/* -------------------------------------------------------------------------- *
+ *                        SimTK Simbody: SimTKmath                            *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK biosimulation toolkit originating from           *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Authors: Jack Middleton                                                    *
+ * Contributors: Michael Sherman                                              *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
 
-/* Portions copyright (c) 2007 Stanford University and Jack Middleton.
- * Contributors:
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
 /**@file
  *
  * Factors systems of linear algebra equations.
@@ -231,16 +239,23 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
 
     if( rank == 0 ) return;
 
-    // compute size of workspace 
-    // for dormqr, dormrz:  lwork = n*nb
-    int lwork1 = n*LapackInterface::ilaenv<T>(1, "ormqr", "LT ", nRow, b.ncol(), -1, -1);
-    int lwork2 = n*LapackInterface::ilaenv<T>(1, "ormrz", "LUNN", rank, b.ncol(), -1, -1);
-    TypedWorkSpace<T> work( lwork1>lwork2 ? lwork1 : lwork2);
+    // Ask the experts for their optimal workspace sizes. The size parameters
+    // here must match the calls below.
+    T workSz;
+    LapackInterface::ormqr<T>( 'L', 'T', nRow, b.ncol(), mn, 0, nRow, 
+                               0, 0, b.nrow(), &workSz, -1, info );
+    const int lwork1 = (int)NTraits<T>::real(workSz);
+
+    LapackInterface::ormrz<T>('L', 'T', nCol, b.ncol(), rank, nCol-rank, 
+                              0, nRow, 0, 0, b.nrow(), &workSz, -1, info );
+    const int lwork2 = (int)NTraits<T>::real(workSz);
+    
+    TypedWorkSpace<T> work(std::max(lwork1, lwork2));
 
     // compute norm of RHS
-    bnrm = (RealType)LapackInterface::lange<T>( 'M', m, nrhs, &b(0,0), b.nrow() );
+    bnrm = (RealType)LapackInterface::lange<T>('M', m, nrhs, &b(0,0), b.nrow());
 
-    LapackInterface::getMachinePrecision<RealType>( smlnum, bignum);
+    LapackInterface::getMachinePrecision<RealType>(smlnum, bignum);
  
     // compute scale for RHS
     if( bnrm > Zero  && bnrm < smlnum ) {
@@ -324,18 +339,22 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
     if( mat.nelt() == 0 ) return;
 
 
-    // compute optimal block size
-    // dtzrzf: lwork = m*nb  
-    int lwork1 = nRow*LapackInterface::ilaenv<T>(1, "tzrzf", " ", nCol, -1, -1, -1);
+    // Compute optimal size for work space for dtzrzf and dgepq3. The
+    // arguments here should match the calls below, although we'll use nRow
+    // rather than rank since we don't know the rank yet.
+    T workSz;
+    LapackInterface::tzrzf<T>(nRow, nCol, 0, nRow, 0, &workSz, -1, info);
+    const int lwork1 = (int)NTraits<T>::real(workSz);
 
-    // dgepq3: lwork = 2*N+( N+1 )*NB
-    int lwork2 = 2*nCol + (nCol+1)*LapackInterface::ilaenv<T>(1, "geqp3", " ", nRow, nCol,  -1, -1);
-    TypedWorkSpace<T> work( lwork1>lwork2 ? lwork1 : lwork2 );
+    LapackInterface::geqp3<T>(nRow, nCol, 0, nRow, 0, 0, &workSz, -1, info);
+    const int lwork2 = (int)NTraits<T>::real(workSz);
+   
+    TypedWorkSpace<T> work(std::max(lwork1, lwork2));
 
     LapackInterface::getMachinePrecision<RealType>( smlnum, bignum);
 
     // scale the input system of equations
-    anrm = (RealType)LapackInterface::lange<T>( 'M', nRow, nCol, qtz.data, nRow );
+    anrm = (RealType)LapackInterface::lange<T>('M', nRow, nCol, qtz.data, nRow);
 
     if( anrm > 0 && anrm < smlnum ) {
         scaleLinSys = true;
@@ -348,13 +367,14 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
         rank = 0;
     } else {
         if ( scaleLinSys ) {
-           LapackInterface::lascl<T>( 'G', 0, 0, anrm, linSysScaleF, nRow, nCol, qtz.data, nRow, info );
+           LapackInterface::lascl<T>('G', 0, 0, anrm, linSysScaleF, nRow, nCol,
+                                     qtz.data, nRow, info );
         }
 
         // compute QR factorization with column pivoting: A = Q * R
         // Q * R is returned in qtz.data
         LapackInterface::geqp3<T>(nRow, nCol, qtz.data, nRow, pivots.data, 
-                                tauGEQP3.data, work.data, work.size, info );
+                                  tauGEQP3.data, work.data, work.size, info );
 
         // compute Rank
         work.data[0] = 1;
@@ -369,13 +389,16 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
             RealType smaxpr,sminpr;
 
             // Determine rank using incremental condition estimate
-            for( rank=1,smaxpr=0.0,sminpr=1.0; rank<mn && smaxpr*rcond < sminpr; ) {
+            for (rank=1,smaxpr=0.0,sminpr=1.0; 
+                 rank<mn && smaxpr*rcond < sminpr; ) 
+            {
+                LapackInterface::laic1<T>(smallestSingularValue, rank, 
+                    work.data, smin, &qtz.data[rank*nRow], 
+                    qtz.data[(rank*nRow)+rank], sminpr, s1, c1);
 
-                LapackInterface::laic1<T>( smallestSingularValue, rank, work.data, smin,
-                      &qtz.data[rank*nRow], qtz.data[(rank*nRow)+rank], sminpr, s1, c1 );
-
-                LapackInterface::laic1<T>( largestSingularValue,  rank, &work.data[mn], smax,
-                       &qtz.data[rank*nRow], qtz.data[(rank*nRow)+rank], smaxpr, s2, c2 );
+                LapackInterface::laic1<T>(largestSingularValue, rank, 
+                    &work.data[mn], smax, &qtz.data[rank*nRow], 
+                    qtz.data[(rank*nRow)+rank], smaxpr, s2, c2);
 
                 if( smaxpr*rcond < sminpr ) {
                     for(int i=0;i<rank;i++) {
@@ -397,8 +420,9 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
             // factor R from an upper trapezoidal to an upper triangular matrix
             // T is returned in qtz.data and Z is returned in tauORMQR.data
             if( rank < nCol ) {
-                LapackInterface::tzrzf<T>( rank, nCol, qtz.data, nRow, tauORMQR.data, work.data, 
-                                    work.size, info );
+                LapackInterface::tzrzf<T>(rank, nCol, qtz.data, nRow, 
+                                          tauORMQR.data, work.data, 
+                                          work.size, info);
             }
         }
     }
