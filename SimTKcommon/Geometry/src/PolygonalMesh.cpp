@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -292,6 +292,13 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
+    Xml::Element pointData = points.getRequiredElement("DataArray");
+    SimTK_ERRCHK1_ALWAYS(pointData.getRequiredAttributeValue("format")
+                         == "ascii", method, 
+        "Only format=\"ascii\" is supported for .vtp file DataArray elements,"
+        " got format=\"%s\" for Points DataArray.",
+        pointData.getRequiredAttributeValue("format").c_str());
+
     Vector_<Vec3> coords = 
         points.getRequiredElementValueAs< Vector_<Vec3> >("DataArray");
 
@@ -314,9 +321,17 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     Xml::Element econnectivity, eoffsets;
     for (Xml::element_iterator p = polys.element_begin("DataArray");
          p != polys.element_end(); ++p) 
-    {   const String& name = p->getRequiredAttributeValue("Name");
+    {       
+        const String& name = p->getRequiredAttributeValue("Name");
+        SimTK_ERRCHK2_ALWAYS(p->getRequiredAttributeValue("format")
+                             == "ascii", method, 
+            "Only format=\"ascii\" is supported for .vtp file DataArray"
+            " elements, but format=\"%s\" for DataArray '%s'.",
+            p->getRequiredAttributeValue("format").c_str(), name.c_str());
+
         if (name == "connectivity") econnectivity = *p;
-        else if (name == "offsets") eoffsets = *p; }
+        else if (name == "offsets") eoffsets = *p; 
+    }
 
     SimTK_ERRCHK_ALWAYS(econnectivity.isValid() && eoffsets.isValid(), method, 
         "Expected to find a DataArray with name='connectivity' and one with"
