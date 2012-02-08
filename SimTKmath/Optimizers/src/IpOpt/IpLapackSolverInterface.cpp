@@ -82,13 +82,6 @@ double *afact;
          const char opts = ' ';
          s = new double[n];
 
-/*    TODO JACKM use ilaenv after everyone has moved to new SimTKlapack.h
-         smlsiz = ilaenv_( ispec, name, opts, n, n, n, n, 6, 0);
-         if( smlsiz < 0 ) {
-             printf("ilaenv arg# %d illegal value \n",smlsiz );
-             return retval;
-         }
-*/
          smlsiz = 25;
          nosmlsiz = n/(smlsiz+1);
 /* 
