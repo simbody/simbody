@@ -197,8 +197,12 @@ int main () {
 
         return 0;
     } 
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
+        return 1;
+    }
+    catch (...) {
+        std::printf("FAILED: Unknown exception\n");
         return 1;
     }
 }
