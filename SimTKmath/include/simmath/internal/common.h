@@ -111,12 +111,13 @@ private:
 class IllegalLapackArg : public Base {
 public:
         IllegalLapackArg( const char *fn, int ln, const char *lapackRoutine, 
-                  int argNum ) : Base(fn, ln)
+                  int info ) : Base(fn, ln)
         {
         char buf[1024];
 
-        sprintf(buf, "SimTK internal error: %s called with an illegal value to arguement #%d \n Please report this to SimTK",
-            lapackRoutine, argNum );
+        sprintf(buf, "SimTK internal error: %s called with an illegal value to"
+            " argument #%d.\nPlease report this at SimTK.org.",
+            lapackRoutine, -info );
         setMessage(String(buf));
 
         }

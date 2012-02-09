@@ -201,6 +201,10 @@ int main () {
         std::printf("FAILED: %s\n", e.what());
         return 1;
     }
+    catch (...) {
+        std::printf("FAILED: Unknown exception\n");
+        return 1;
+    }
 }
 
 

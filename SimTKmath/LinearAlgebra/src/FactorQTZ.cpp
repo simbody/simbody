@@ -340,10 +340,11 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
 
 
     // Compute optimal size for work space for dtzrzf and dgepq3. The
-    // arguments here should match the calls below, although we'll use nRow
+    // arguments here should match the calls below, although we'll use maxRank
     // rather than rank since we don't know the rank yet.
     T workSz;
-    LapackInterface::tzrzf<T>(nRow, nCol, 0, nRow, 0, &workSz, -1, info);
+    const int maxRank = std::min(nRow, nCol);
+    LapackInterface::tzrzf<T>(maxRank, nCol, 0, nRow, 0, &workSz, -1, info);
     const int lwork1 = (int)NTraits<T>::real(workSz);
 
     LapackInterface::geqp3<T>(nRow, nCol, 0, nRow, 0, 0, &workSz, -1, info);
