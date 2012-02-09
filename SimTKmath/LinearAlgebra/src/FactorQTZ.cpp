@@ -325,6 +325,10 @@ void FactorQTZRep<T>::inverse(  Matrix_<T>& inverse ) const {
 template <class T> 
     template<typename ELT>
 void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
+    SimTK_APIARGCHECK2_ALWAYS(mat.nelt() > 0,"FactorQTZ","factor",
+       "Can't factor a matrix that has a zero dimension -- got %d X %d.",
+       (int)mat.nrow(), (int)mat.ncol());
+
 
     // allocate and initialize the matrix we pass to LAPACK
     // converts (negated,conjugated etc.) to LAPACK format 

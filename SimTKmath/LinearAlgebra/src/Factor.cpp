@@ -292,6 +292,10 @@ template <class T>
     template<typename ELT>
 void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
 
+    SimTK_APIARGCHECK2_ALWAYS(mat.nelt() > 0,"FactorLU","factor",
+       "Can't factor a matrix that has a zero dimension -- got %d X %d.",
+       (int)mat.nrow(), (int)mat.ncol());
+    
     elementSize = sizeof( T );
     imagOffset = CNT<ELT>::ImagOffset;  // real/complex (usefull for debugging)
    
