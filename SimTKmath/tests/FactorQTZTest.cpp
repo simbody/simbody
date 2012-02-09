@@ -187,17 +187,19 @@ int main () {
         zqtz.solve( bz, xz );
         cout << " solve with mat all zeros : " << endl;
         for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
-
-        Matrix_<double> z0;
-        FactorQTZ z0qtz(z0);
-        Vector_<double> bz0(0);
-        z0qtz.solve( bz0, xz );
-        cout << " solve with mat(0,0) : " << endl;
-        for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
-
-        return 0;
+        try {
+            Matrix_<double> z0;
+            FactorQTZ z0qtz(z0);
+            Vector_<double> bz0(0);
+            z0qtz.solve( bz0, xz );
+            cout << " solve with mat(0,0) : " << endl;
+            for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
+        } catch (const std::exception& e) {
+             cout << "(EXPECTED EXCEPTION) NULL matrix test: " 
+                 << e.what() << endl;
+        }
     } 
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
         return 1;
     }
@@ -205,6 +207,8 @@ int main () {
         std::printf("FAILED: Unknown exception\n");
         return 1;
     }
+
+    return 0;
 }
 
 

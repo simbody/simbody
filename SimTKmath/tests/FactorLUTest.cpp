@@ -123,8 +123,8 @@ int main () {
         cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
         ASSERT((x-x_right).norm() < 10*SignificantReal);
         
-Real C[4] = { 1.0,   2.0,
-              1.0,   3.0  };
+        Real C[4] = { 1.0,   2.0,
+                      1.0,   3.0  };
         Matrix c(2,2, C);
         FactorLU clu(c);
         Matrix invC;
@@ -134,30 +134,33 @@ Real C[4] = { 1.0,   2.0,
         cout << invC[1] << endl;
         Real Z[4] = { 0.0,   0.0,
                      0.0,   0.0  };
-        try {
-            Matrix z(2,2, Z);
-            FactorLU zlu(z);
-            Vector_<double> xz;
-            Vector_<double> bz(2);
-            bz(1) = bz(0) = 0.0;
-            zlu.solve( bz, xz );
-            cout << " solve with mat all zeros : " << endl;
-            for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
+        Matrix z(2,2, Z);
+        FactorLU zlu(z);
+        Vector_<double> xz;
+        Vector_<double> bz(2);
+        bz(1) = bz(0) = 0.0;
+        zlu.solve( bz, xz );
+        cout << " solve with mat all zeros : " << endl;
+        for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
    
+        try {
             Matrix_<double> z0;
             FactorLU z0lu(z0);
             Vector_<double> bz0(0);
             z0lu.solve( bz0, xz );
             cout << " solve with mat(0,0) : " << endl;
             for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
-        } catch ( SimTK::Exception::SingularMatrix cptn ) {
-             cout << "NULL matrix test " << cptn.getMessage() << '\n';
+        } catch (const std::exception& e) {
+             cout << "(EXPECTED EXCEPTION) NULL matrix test: " 
+                 << e.what() << endl;
         }
     } 
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
         return 1;
     }
+
+    return 0;
 }
 
 
