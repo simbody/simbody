@@ -226,8 +226,7 @@ void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
 }
 
 template <typename T >
-void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
-    int i,j;
+void FactorQTZRep<T>::doSolve(Matrix_<T>& b, Matrix_<T>& x) const {
     int info;
     typedef typename CNT<T>::TReal RealType;
     RealType bnrm, smlnum, bignum;
@@ -237,17 +236,18 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
     typename CNT<T>::TReal rhsScaleF; // scale factor applied to right hand side
     bool scaleRHS = false; // true if right hand side should be scaled
 
-    if( rank == 0 ) return;
+    if (rank == 0) return;
 
     // Ask the experts for their optimal workspace sizes. The size parameters
     // here must match the calls below.
     T workSz;
-    LapackInterface::ormqr<T>( 'L', 'T', nRow, b.ncol(), mn, 0, nRow, 
+    LapackInterface::ormqr<T>('L', 'T', nRow, b.ncol(), mn, 0, nRow, 
                                0, 0, b.nrow(), &workSz, -1, info );
     const int lwork1 = (int)NTraits<T>::real(workSz);
 
     LapackInterface::ormrz<T>('L', 'T', nCol, b.ncol(), rank, nCol-rank, 
-                              0, nRow, 0, 0, b.nrow(), &workSz, -1, info );
+                              0, nRow, 0, 0, 
+                              b.nrow(), &workSz, -1, info );
     const int lwork2 = (int)NTraits<T>::real(workSz);
     
     TypedWorkSpace<T> work(std::max(lwork1, lwork2));
@@ -258,60 +258,63 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
     LapackInterface::getMachinePrecision<RealType>(smlnum, bignum);
  
     // compute scale for RHS
-    if( bnrm > Zero  && bnrm < smlnum ) {
+    if (bnrm > Zero && bnrm < smlnum) {
         scaleRHS = true;
         rhsScaleF = smlnum;
-    } else if( bnrm > bignum ) {
+    } else if (bnrm > bignum) {
         scaleRHS = true;
         rhsScaleF = bignum;
     }
 
 
-    if( scaleRHS ) {   // apply scale factor to RHS
-        LapackInterface::lascl<T>( 'G', 0, 0, bnrm, rhsScaleF, b.nrow(), nrhs, &b(0,0), b.nrow(), info ); 
+    if (scaleRHS) {   // apply scale factor to RHS
+        LapackInterface::lascl<T>('G', 0, 0, bnrm, rhsScaleF, b.nrow(), nrhs, 
+                                  &b(0,0), b.nrow(), info ); 
     }
     // b1 = Q'*b0
-    LapackInterface::ormqr<T>( 'L', 'T', nRow, b.ncol(), mn, qtz.data, nRow, tauGEQP3.data,
-                               &b(0,0), b.nrow(), work.data, work.size, info );
+    LapackInterface::ormqr<T>('L', 'T', nRow, b.ncol(), mn, qtz.data, 
+                              nRow, tauGEQP3.data, &b(0,0), b.nrow(), 
+                              work.data, work.size, info );
     // b2 = T^-1*b1 = T^-1 * Q' * b0
-    LapackInterface::trsm<T>( 'L', 'U', 'N', 'N', rank, b.ncol(), 1.0, qtz.data, nRow, 
-                              &b(0,0), b.nrow() );
+    LapackInterface::trsm<T>('L', 'U', 'N', 'N', rank, b.ncol(), 1.0, 
+                             qtz.data, nRow, &b(0,0), b.nrow() );
 
     //  zero out elements of RHS for rank deficient systems
-    for( j = 0; j<nrhs; j++ ) {
-        for( i = rank; i<n; i++ ) {
+    for(int j = 0; j<nrhs; ++j) {
+        for(int i = rank; i<n; ++i)
             b(i,j) = 0;
-        }
     }
    
-    if( rank < nCol ) {
-        int l = nCol-rank;
+    if (rank < nCol) {
         // b3 = Z'*b2 = Z'*T^-1*Q'*b0
-        LapackInterface::ormrz<T>('L', 'T', nCol, b.ncol(), rank, l, qtz.data, nRow, 
-                                   tauORMQR.data, &b(0,0), b.nrow(), work.data, work.size, info );
+        LapackInterface::ormrz<T>('L', 'T', nCol, b.ncol(), rank, nCol-rank, 
+                                  qtz.data, nRow, tauORMQR.data, &b(0,0), 
+                                  b.nrow(), work.data, work.size, info );
     }
 
     // adjust for pivoting
-    for( j = 0; j<nrhs; j++ ) {
-        for( i = 0; i<n; i++ ) {
-            work.data[ pivots.data[i]-1] = b(i,j);
-        }
-        LapackInterface::copy<T>(n, work.data, 1, &x(0,j), 1 );
+    Array_<T> b_pivot(n);
+    for(int j = 0; j<nrhs; ++j) {
+        for(int i = 0; i<n; ++i)
+            b_pivot[pivots.data[i]-1] = b(i,j);
+
+        LapackInterface::copy<T>(n, b_pivot.begin(), 1, &x(0,j), 1 );
     }
 
- 
     // compensate for scaling of linear system 
-    if( scaleLinSys ) { 
-        LapackInterface::lascl<T>( 'g', 0, 0, anrm, linSysScaleF, nCol, x.ncol(), &x(0,0), nCol, info );
+    if (scaleLinSys) { 
+        LapackInterface::lascl<T>('g', 0, 0, anrm, linSysScaleF, nCol, x.ncol(),
+                                  &x(0,0), nCol, info );
     }
 
     // compensate for scaling of RHS 
-    if( scaleRHS  ) { 
-        LapackInterface::lascl<T>('g', 0, 0, bnrm, rhsScaleF, nCol, x.ncol(), &x(0,0), nCol, info);
+    if (scaleRHS) { 
+        LapackInterface::lascl<T>('g', 0, 0, bnrm, rhsScaleF, nCol, x.ncol(), 
+                                  &x(0,0), nCol, info);
     }
-    
-    return;
 }
+
+
 template < class T >
 void FactorQTZRep<T>::inverse(  Matrix_<T>& inverse ) const {
     Matrix_<T> iden(mn,mn);
@@ -340,7 +343,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
     typedef typename CNT<T>::TReal  RealType;
     RealType smlnum, bignum, smin, smax;
 
-    if( mat.nelt() == 0 ) return;
+    if (mat.nelt() == 0) return;
 
 
     // Compute optimal size for work space for dtzrzf and dgepq3. The
@@ -361,17 +364,17 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
     // scale the input system of equations
     anrm = (RealType)LapackInterface::lange<T>('M', nRow, nCol, qtz.data, nRow);
 
-    if( anrm > 0 && anrm < smlnum ) {
+    if (anrm > 0 && anrm < smlnum) {
         scaleLinSys = true;
         linSysScaleF = smlnum;
     } else if( anrm > bignum )  {
         scaleLinSys = true;
         linSysScaleF = bignum;
     } 
-    if( anrm == 0  ) { // matrix all zeros
+    if (anrm == 0) { // matrix all zeros
         rank = 0;
     } else {
-        if ( scaleLinSys ) {
+        if (scaleLinSys) {
            LapackInterface::lascl<T>('G', 0, 0, anrm, linSysScaleF, nRow, nCol,
                                      qtz.data, nRow, info );
         }
@@ -382,8 +385,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
                                   tauGEQP3.data, work.data, work.size, info );
 
         // compute Rank
-        work.data[0] = 1;
-        work.data[mn] = 1;
+
         smax = CNT<T>::abs( qtz.data[0] );
         smin = smax;
         if( CNT<T>::abs(qtz.data[0]) == 0 ) {
@@ -394,24 +396,26 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
             RealType smaxpr,sminpr;
 
             // Determine rank using incremental condition estimate
+            Array_<T> xSmall(mn), xLarge(mn); // temporaries
+            xSmall[0] = xLarge[0] = 1;
             for (rank=1,smaxpr=0.0,sminpr=1.0; 
                  rank<mn && smaxpr*rcond < sminpr; ) 
             {
                 LapackInterface::laic1<T>(smallestSingularValue, rank, 
-                    work.data, smin, &qtz.data[rank*nRow], 
+                    xSmall.begin(), smin, &qtz.data[rank*nRow], 
                     qtz.data[(rank*nRow)+rank], sminpr, s1, c1);
 
                 LapackInterface::laic1<T>(largestSingularValue, rank, 
-                    &work.data[mn], smax, &qtz.data[rank*nRow], 
+                    xLarge.begin(), smax, &qtz.data[rank*nRow], 
                     qtz.data[(rank*nRow)+rank], smaxpr, s2, c2);
 
-                if( smaxpr*rcond < sminpr ) {
-                    for(int i=0;i<rank;i++) {
-                         work.data[i]    *= s1;
-                         work.data[i+mn] *= s2;
+                if (smaxpr*rcond < sminpr) {
+                    for(int i=0; i<rank; i++) {
+                         xSmall[i] *= s1;
+                         xLarge[i] *= s2;
                     }
-                    work.data[rank] = c1;
-                    work.data[rank+mn] = c2;
+                    xSmall[rank] = c1;
+                    xLarge[rank] = c2;
                     smin = sminpr;
                     smax = smaxpr;
                     actualRCond = (double)(smin/smax);
@@ -424,15 +428,13 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
             // applying orthogonal transformations from the right to 
             // factor R from an upper trapezoidal to an upper triangular matrix
             // T is returned in qtz.data and Z is returned in tauORMQR.data
-            if( rank < nCol ) {
+            if (rank < nCol) {
                 LapackInterface::tzrzf<T>(rank, nCol, qtz.data, nRow, 
                                           tauORMQR.data, work.data, 
                                           work.size, info);
             }
         }
     }
-
-    return;
 }
 
 // instantiate
