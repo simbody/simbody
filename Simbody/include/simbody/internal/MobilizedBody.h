@@ -311,9 +311,11 @@ public:
 
     /// TODO: not implemented yet. Set the location and orientation of the inboard (parent) mobilizer
     /// frame F, fixed to this mobilizer's parent body P.
+    /// @see setDefaultInboardFrame()
     void setInboardFrame (State&, const Transform& X_PF) const;
     /// TODO: not implemented yet. Set the location and orientation of the outboard mobilizer
     /// frame M, fixed to this body B.
+    /// @see setDefaultOutboardFrame()
     void setOutboardFrame(State&, const Transform& X_BM) const;
 
     // End of State Access - Bodies
