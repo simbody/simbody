@@ -129,10 +129,10 @@ int main () {
             initState.setTime(startTime);
             integ.initialize(initState);
             while (true) {
-                const Real t = integ.getTime();
+                const Real prevT = integ.getTime();
                 // Use this for even report intervals:
                 //Integrator::SuccessfulStepStatus 
-                //    status = integ.stepTo(t + reportInterval);
+                //    status = integ.stepTo(prevT + reportInterval);
 
                 // Use this for variable step output.
                 Integrator::SuccessfulStepStatus 
@@ -142,6 +142,7 @@ int main () {
                     break;
 
                 const State& state = integ.getState();
+                const Real t = state.getTime();
                 const Real numerical = state.getZ()[0];
                 const Real analytic = analyticIntegral(state.getTime());
 
