@@ -307,6 +307,16 @@ stepTo(Real reportTime, Real scheduledEventTime) {
     assert(initialized);
     assert(reportTime >= getState().getTime());
     assert(scheduledEventTime >= getState().getTime());
+
+    if (getStepCommunicationStatus() == FinalTimeHasBeenReturned) {
+        SimTK_ERRCHK2_ALWAYS(!"EndOfSimulation already returned",
+            "Integrator::stepTo()",
+            "Attempted stepTo(t=%g) but final time %g had already been "
+            "reached and returned."
+            "\nCheck for Integrator::EndOfSimulation status, or use the "
+            "Integrator::initialize() method to restart.",
+            reportTime, userFinalTime);
+    }
     
     // If this is the start of a continuous interval, return immediately so
     // the current state will be seen as part of the trajectory.
@@ -346,7 +356,8 @@ stepTo(Real reportTime, Real scheduledEventTime) {
     while (true) {
         Real tret;
         int res;
-        if (pendingReturnCode != -1) {            
+        const bool usePendingReturnCode = (pendingReturnCode != -1);
+        if (usePendingReturnCode) {            
             // The last time returned was an event or report time. The 
             // integrator has already gone beyond that time, so reset 
             // everything to how it was after the last call to cpodes->step()
@@ -490,12 +501,6 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             return Integrator::ReachedScheduledEvent;
         }
 
-        if (res == CPodes::TstopReturn) {           
-            // The specified final time was reached.  
-            setStepCommunicationStatus(IntegratorRep::FinalTimeHasBeenReturned);
-            terminationReason = Integrator::ReachedFinalTime;
-            return Integrator::EndOfSimulation;
-        }
 
         if (res == CPodes::RootReturn) {           
             // An event was triggered in the interval (tLo,tHi]. We're 
@@ -535,6 +540,28 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             pendingReturnCode = CPodes::Success;
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);
             return Integrator::ReachedEventTrigger;
+        }
+
+        if (res == CPodes::TstopReturn) {
+            // The specified final time was reached.  
+            if (usePendingReturnCode) {
+                // The final step result was already reported; now just return
+                // the same state but with an "end of simulation" status. No
+                // further calls should be made to stepTo().
+                setStepCommunicationStatus(IntegratorRep::FinalTimeHasBeenReturned);
+                terminationReason = Integrator::ReachedFinalTime;
+                return Integrator::EndOfSimulation;
+            }
+            // This is our first encounter with the final time. Report this as
+            // a TimeHasAdvanced state if the user has asked for those, 
+            // otherwise pretend there was a report scheduled there. This should
+            // match the behavior of AbstractIntegratorRep.
+            savedY.resize(0);
+            pendingReturnCode = res;
+            setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedNoEvent);
+            return (userReturnEveryInternalStep == 1)
+                ? Integrator::TimeHasAdvanced
+                : Integrator::ReachedReportTime;
         }
 
         if (userReturnEveryInternalStep == 1) {           

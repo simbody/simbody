@@ -222,6 +222,7 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
       // the current state will be seen as part of the trajectory.
       if (startOfContinuousInterval) {
           startOfContinuousInterval = false;
+          setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
           return Integrator::StartOfContinuousInterval;
       }
       
@@ -251,7 +252,16 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
 
           switch (getStepCommunicationStatus()) {
             case FinalTimeHasBeenReturned:
-              assert(!"can't call after final time reported"); //TODO: throw
+              // Copy advanced state to previous just so the error message
+              // in the catch() below will show the right time.
+              saveStateAsPrevious(getAdvancedState()); 
+              SimTK_ERRCHK2_ALWAYS(!"EndOfSimulation already returned",
+                  "Integrator::stepTo()",
+                  "Attempted stepTo(t=%g) but final time %g had already been "
+                  "reached and returned."
+                  "\nCheck for Integrator::EndOfSimulation status, or use the "
+                  "Integrator::initialize() method to restart.",
+                  reportTime, finalTime);
               break;
 
             case StepHasBeenReturnedNoEvent:
@@ -310,27 +320,35 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
                   if (reportTime < getAdvancedTime()) {
                       createInterpolatedState(reportTime);
                       setUseInterpolatedState(true);
+                      // No change to step communication status -- this doesn't 
+                      // count as reporting the current step since it is earlier 
+                      // than advancedTime.
                   }
-                  else
+                  else {
+                      // This counts as reporting the current step since we're
+                      // exactly at advancedTime.
                       setUseInterpolatedState(false);
-                  // No change to step communication status -- this doesn't 
-                  // count as reporting the current step since it is earlier 
-                  // than advancedTime.
+                      setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
+                  }
+
                   return Integrator::ReachedReportTime;
               }
 
-              Integrator::SuccessfulStepStatus reportReason = Integrator::InvalidSuccessfulStepStatus;
+              // Here we know advancedTime < reportTime. But there may be other
+              // reasons to return.
+
+              Integrator::SuccessfulStepStatus reportReason = 
+                                        Integrator::InvalidSuccessfulStepStatus;
               setUseInterpolatedState(false);
 
               if (getAdvancedTime() >= scheduledEventTime) {
                   reportReason = Integrator::ReachedScheduledEvent;
               } else if (userReturnEveryInternalStep == 1) {
                   reportReason = Integrator::TimeHasAdvanced;
-              } else if (getAdvancedTime() >= reportTime) {
-                  reportReason = Integrator::ReachedReportTime;
               } else if (getAdvancedTime() >= finalTime) {
                   reportReason = Integrator::ReachedReportTime;
-              } else if (userInternalStepLimit > 0 && internalStepsTaken >= userInternalStepLimit) {
+              } else if (   userInternalStepLimit > 0 
+                         && internalStepsTaken >= userInternalStepLimit) {
                   // Last-ditch excuse: too much work.
                   reportReason = Integrator::ReachedStepLimit; // too much work
               }
