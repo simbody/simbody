@@ -69,7 +69,7 @@ static void drawBoundingSphere( const Array_<Vec<3,P> >& v,
     //    dec.setOpacity(.3).setLineThickness(1));
 
     tstart = realTime();
-    auto obb = Geo::Point_<P>::calcOrientedBoundingBox(v, support);
+    SimTK::Geo::OrientedBox_<P> obb = Geo::Point_<P>::calcOrientedBoundingBox(v, support);
     printf("OBB time for %d points: %gs\n", v.size(), realTime()-tstart);
     cout << "ctr=" << obb.getCenter() << " rad=" << obb.getHalfLengths() << "\n";
     cout << "volume=" << obb.getBox().findVolume() << "\n";
@@ -114,7 +114,7 @@ static void drawApproxBoundingSphere( const Array_<Vec<3,P> >& v,
 {
     return;
     Real tstart = realTime();
-    auto pms = Geo::Point_<P>::calcApproxBoundingSphere(v); 
+    SimTK::Geo::Sphere_<P> pms = Geo::Point_<P>::calcApproxBoundingSphere(v); 
     printf("Time for approx sphere around %d points: %gs\n", 
         v.size(), realTime()-tstart);
     cout << "ctr=" << pms.getCenter() << " rad=" << pms.getRadius() << "\n";
