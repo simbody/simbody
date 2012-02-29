@@ -254,8 +254,8 @@ arbitrary at an inflection point (Puu(u)==0) or if the
 curve is a line (Puu==0 everywhere). Cost is about 160 flops.
 **/
 RealP calcCurveFrame(RealP u, TransformP& X_FP) const {
-    const Vec3P P=evalP(u), Pu=evalPu(u), Puu=evalPuu(u);       //  45 flops
-    return Geo::calcCurveFrame(P,Pu,Puu,X_FP);
+    const Vec3P Pval=evalP(u), Pu=evalPu(u), Puu=evalPuu(u); //  45 flops
+    return Geo::calcCurveFrame(Pval,Pu,Puu,X_FP);
 }
 
 /** Split this curve into two at a point u=t such that 0 < t < 1, such that
