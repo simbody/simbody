@@ -185,7 +185,8 @@ int main() {
 
         for(SubsystemIndex i=(SubsystemIndex)0;i<(SubsystemIndex)system.getNumSubsystems();i++)
         {
-            fprintf(stderr,"subsytem name %d %s\n",i,system.getSubsystem((SubsystemIndex)i).getName().data());
+            fprintf(stderr,"subsytem name %d %s\n",i,
+                system.getSubsystem((SubsystemIndex)i).getName().c_str());
         }
 
         const Real rad = .4;
