@@ -183,9 +183,9 @@ int main() {
         //GeneralContactSubsystem contactsys(system);
         CompliantContactSubsystem contactForces(system, tracker);
 
-        for(SubsystemIndex i=(SubsystemIndex)0;i<(SubsystemIndex)system.getNumSubsystems();i++)
+        for(SubsystemIndex i(0); i<system.getNumSubsystems(); ++i)
         {
-            fprintf(stderr,"subsytem name %d %s\n",i,
+            fprintf(stderr,"subsytem name %d %s\n", (int)i,
                 system.getSubsystem((SubsystemIndex)i).getName().c_str());
         }
 
