@@ -194,6 +194,42 @@ bool System::prescribeQ(State& s) const
 bool System::prescribeU(State& s) const
 {   return getSystemGuts().prescribeU(s); }
 
+void System::project(State& state, Real accuracy) const {
+    const ProjectOptions projOptions(accuracy);
+    ProjectResults projResults;
+    Vector noErrEst;    // empty
+
+    realize(state, Stage::Time);
+    prescribeQ(state);
+    realize(state, Stage::Position);
+    projectQ(state, noErrEst, projOptions, projResults);
+    prescribeU(state);
+    realize(state, Stage::Velocity);
+    projectU(state, noErrEst, projOptions, projResults);
+}
+
+void System::projectQ(State& state, Real accuracy) const {
+    const ProjectOptions projOptions(accuracy);
+    ProjectResults projResults;
+    Vector noErrEst;    // empty
+
+    realize(state, Stage::Time);
+    prescribeQ(state);
+    realize(state, Stage::Position);
+    projectQ(state, noErrEst, projOptions, projResults);
+}
+
+void System::projectU(State& state, Real accuracy) const {
+    const ProjectOptions projOptions(accuracy);
+    ProjectResults projResults;
+    Vector noErrEst;    // empty
+
+    realize(state, Stage::Position);
+    prescribeU(state);
+    realize(state, Stage::Velocity);
+    projectU(state, noErrEst, projOptions, projResults);
+}
+
 void System::projectQ(State& s, Vector& qErrEst, 
              const ProjectOptions& options, ProjectResults& results) const
 {   getSystemGuts().projectQ(s,qErrEst,options,results); }
@@ -694,30 +730,6 @@ int System::Guts::realizeAccelerationImpl(const State& s) const {
 }
 int System::Guts::realizeReportImpl(const State& s) const { 
     return 0;
-}
-
-bool System::Guts::prescribeQImpl(State&) const
-{
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "prescribeQImpl"); 
-    return false;
-}
-
-bool System::Guts::prescribeUImpl(State&) const
-{
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "prescribeUImpl"); 
-    return false;
-}
-
-void System::Guts::projectQImpl(State& s, Vector& qErrEst, 
-                                const ProjectOptions& options, 
-                                ProjectResults& results) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "projectQImpl"); 
-}
-
-void System::Guts::projectUImpl(State& s, Vector& uErrEst, 
-                                const ProjectOptions& options, 
-                                ProjectResults& results) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "projectUImpl"); 
 }
 
 

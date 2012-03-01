@@ -614,10 +614,7 @@ int main() {
     system.realize(state, Stage::Velocity);
     cout << "before project u=" << state.getU() << endl;
 
-    Vector uErrEst;
-    const ProjectOptions options(1e-10);
-    ProjectResults results;
-    system.projectU(state, uErrEst, options, results);
+    system.projectU(state, 1e-10);
     cout << "after project u=" << state.getU() << " uerr=" << state.getUErr() << endl;
     // To compute thetadot, convert u's to angular rates and add.
     const Real thetaDot =   aux1.getAngularRate(state) 

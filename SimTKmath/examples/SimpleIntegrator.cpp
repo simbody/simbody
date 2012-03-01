@@ -183,17 +183,6 @@ class MySystemGuts : public System::Guts {
         return 0;
     }
 
-    // Disable prescribe and project since we have no constraints or
-    // prescribed state variables to worry about.
-    bool prescribeQImpl(State&) const {return false;}
-    bool prescribeUImpl(State&) const {return false;}
-    void projectQImpl(State&, Vector&, 
-                      const ProjectOptions&, ProjectResults& result) const 
-    {   result.clear(); result.setExitStatus(ProjectResults::Succeeded);}
-    void projectUImpl(State&, Vector&, 
-                      const ProjectOptions&, ProjectResults& result) const 
-    {   result.clear(); result.setExitStatus(ProjectResults::Succeeded);}
-
 private:
     SomeStuff stuff;
 };

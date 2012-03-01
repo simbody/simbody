@@ -212,13 +212,18 @@ protected:
     virtual void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
                                               Vector& fq) const;
 
-    virtual bool prescribeQImpl(State&) const;
-    virtual bool prescribeUImpl(State&) const;
+    // Defaults assume no prescribed motion; hence, no change made.
+    virtual bool prescribeQImpl(State&) const {return false;}
+    virtual bool prescribeUImpl(State&) const {return false;}
 
+    // Defaults assume no constraints and return success meaning "all 
+    // constraints satisfied".
     virtual void projectQImpl(State&, Vector& qErrEst, 
-             const ProjectOptions& options, ProjectResults& results) const;
+             const ProjectOptions& options, ProjectResults& results) const
+    {   results.clear(); results.setExitStatus(ProjectResults::Succeeded); }
     virtual void projectUImpl(State&, Vector& uErrEst, 
-             const ProjectOptions& options, ProjectResults& results) const;
+             const ProjectOptions& options, ProjectResults& results) const
+    {   results.clear(); results.setExitStatus(ProjectResults::Succeeded); }
 
     virtual void handleEventsImpl
        (State&, Event::Cause, const Array_<EventId>& eventIds,
