@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-2009 Stanford University and the Authors.      *
+ * Portions copyright (c) 2008-2012 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -40,7 +40,7 @@
 
 namespace SimTK {
 
-/** This class implements a non-uniform B-spline curve. It requires the spline 
+/** This class implements a non-uniform Bezier curve. It requires the spline 
 degree to be odd (linear, cubic, quintic, etc.), but supports arbitrarily high
 degrees. Only spline curves are supported, not surfaces or higher dimensional 
 objects, but the curve may be defined in an arbitrary dimensional space.
@@ -66,10 +66,11 @@ public:
      * @param x      the values of the independent variable for each control point
      * @param y      the values of the dependent variables for each control point
      */
-    Spline_(int degree, const Vector& x, const Vector_<T>& y) : impl(new SplineImpl(degree, x, y)) {
-    }
+    Spline_(int degree, const Vector& x, const Vector_<T>& y) 
+    :   impl(new SplineImpl(degree, x, y)) {}
+
     Spline_(const Spline_& copy) : impl(copy.impl) {
-        impl->referenceCount++;
+        if (impl) impl->referenceCount++;
     }
     Spline_() : impl(NULL) {
     }
@@ -80,8 +81,7 @@ public:
                 delete impl;
         }
         impl = copy.impl;
-        assert(impl);
-        impl->referenceCount++;
+        if (impl) impl->referenceCount++;
         return *this;
     }
     ~Spline_() {
