@@ -61,7 +61,7 @@ public:
     Spline_(int degree, const Vector& x, const Vector_<T>& y) : impl(new SplineImpl(degree, x, y)) {
     }
     Spline_(const Spline_& copy) : impl(copy.impl) {
-        impl->referenceCount++;
+        if (impl) impl->referenceCount++;
     }
     Spline_() : impl(NULL) {
     }
@@ -72,8 +72,7 @@ public:
                 delete impl;
         }
         impl = copy.impl;
-        assert(impl);
-        impl->referenceCount++;
+        if (impl) impl->referenceCount++;
         return *this;
     }
     ~Spline_() {
