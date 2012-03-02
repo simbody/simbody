@@ -67,18 +67,18 @@ void doRealizeAcceleration(MultibodySystem& system, State& state) {
     system.realize(state, Stage::Acceleration);
 }
 
-void doCalcMV(MultibodySystem& system, State& state) {
+void doMultiplyByM(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     Vector v(matter.getNumMobilities(), 1.0);
     Vector mv;
-    matter.calcMV(state, v, mv);
+    matter.multiplyByM(state, v, mv);
 }
 
-void doCalcMInverseV(MultibodySystem& system, State& state) {
+void doMultiplyByMInv(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     Vector v(matter.getNumMobilities(), 1.0);
     Vector minvv;
-    matter.calcMInverseV(state, v, minvv);
+    matter.multiplyByMInv(state, v, minvv);
 }
 
 void doCalcResidualForceIgnoringConstraints(MultibodySystem& system, State& state) {
@@ -102,7 +102,7 @@ void doMultiplyBySystemJacobianTranspose(MultibodySystem& system, State& state) 
 }
 
 void doCalcCompositeBodyInertias(MultibodySystem& system, State& state) {
-    Array_<SpatialInertia> r;
+    Array_<SpatialInertia, MobilizedBodyIndex> r;
     system.getMatterSubsystem().calcCompositeBodyInertias(state, r);
 }
 
@@ -152,8 +152,8 @@ void runAllTests(MultibodySystem& system, bool useEulerAngles=false) {
     timeComputation(system, doRealizePosition, "realizePosition", 5000, useEulerAngles);
     timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000, useEulerAngles);
     timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 2000, useEulerAngles);
-    timeComputation(system, doCalcMV, "calcMV", 5000, useEulerAngles);
-    timeComputation(system, doCalcMInverseV, "calcMInverseV", 5000, useEulerAngles);
+    timeComputation(system, doMultiplyByM, "multiplyByM", 5000, useEulerAngles);
+    timeComputation(system, doMultiplyByMInv, "multiplyByMInv", 5000, useEulerAngles);
     timeComputation(system, doCalcResidualForceIgnoringConstraints, "calcResidualForceIgnoringConstraints", 5000, useEulerAngles);
     timeComputation(system, doCalcMobilizerReactionForces, "calcMobilizerReactionForces", 1000, useEulerAngles);
     timeComputation(system, doMultiplyBySystemJacobianTranspose, "multiplyBySystemJacobianTranspose", 5000, useEulerAngles);

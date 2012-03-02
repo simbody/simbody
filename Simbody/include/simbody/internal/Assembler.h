@@ -2,14 +2,14 @@
 #define SimTK_SIMBODY_ASSEMBLER_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2010 Stanford University and the Authors.           *
+ * Portions copyright (c) 2010-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -62,7 +62,10 @@ The complete specification for an Assembly study consists of four elements:
   - A set of assembly error conditions that \e must be satisfied.
   - A set of weighted assembly goals that are to be achieved as best we can.
 
-By default, all q's may be modified with no range restrictions. The assembly
+By default, all q's may be modified with no range restrictions. The q's whose
+value is a prescribed function of time will be set to that value, while free
+q's are available for satisfying the assembly error conditions and goals. The 
+assembly
 error conditions are just the errors in the position (holonomic) constraints 
 that are present in the MultibodySystem and currently enabled. (Quaternion 
 normalization constraints will also be satisfied, but do not generate assembly
@@ -75,7 +78,8 @@ increasingly desperate measures to do so.
 <h2>Basic assembly:</h2>
 This is the most common use of the Assembler: modify a System's given State
 so that its configuration (set of generalized coordinates q) satisfies the 
-System's built-in Constraints that are currently enabled in that State. This 
+position-affecting Motion and Constraint objects in the System that are 
+currently enabled in that State. This 
 is done to a default tolerance if you don't provide one, and that tolerance is
 suitable for use with subsequent dynamic studies that are run at their default
 tolerances. Although the assembly begins from the configuration provided in
@@ -175,7 +179,8 @@ class TrackFailed;
 /** @name             Construction and setup
 By default, the only assembly condition is that any Simbody Constraints
 in the System that are enabled must be satisifed to within the assembly
-tolerance. You can selectively enable and disable Constraints in the
+tolerance. (Prescribed motions specified with Motion objects are satisfied
+exactly.) You can selectively enable and disable Constraints in the
 state using the ordinary Constraint::disable() and enable() methods. You
 can also apply an overall weighting to these Constraints here if you want; 
 if the weight is zero they will be ignored; if Infinity they are treated
@@ -199,12 +204,13 @@ value can be used for all of them. By default, tolerance is set to
 accuracy/10 if accuracy has been set, otherwise 1e-4; calling 
 setErrorTolerance() with no argument or with zero restores it to its default 
 behavior. **/
-void setErrorTolerance(Real tolerance=0) {
+Assembler& setErrorTolerance(Real tolerance=0) {
     SimTK_ERRCHK1_ALWAYS(0 <= tolerance,
         "Assembler::setTolerance()", "The requested error tolerance %g"
         " is illegal; we require 0 <= tolerance, with 0 indicating that"
         " the default tolerance (accuracy/10) is to be used.", tolerance);
     this->tolerance = tolerance;
+    return *this;
 }
 /** Obtain the tolerance setting that will be used during the next 
 assemble() or track() call. Note that this may be an explicitly-set
@@ -224,12 +230,13 @@ However, if you don't say otherwise, this number is also used to set the
 absolute error tolerance used to determine whether the assembly succeeded 
 or failed, by the following formula: error tolerance = accuracy/10. By
 default, we set accuracy=1e-3 and tolerance=1e-4. **/
-void setAccuracy(Real accuracy=0) {
+Assembler& setAccuracy(Real accuracy=0) {
     SimTK_ERRCHK2_ALWAYS(0 <= accuracy && accuracy < 1,
         "Assembler::setAccuracy()", "The requested accuracy %g is illegal;"
         " we require 0 <= accuracy < 1, with 0 indicating that the default"
         " accuracy (%g) is to be used.", Real(1)/OODefaultAccuracy, accuracy);
     this->accuracy = accuracy;
+    return *this;
 }
 /** Obtain the accuracy setting that will be used during the next 
 assemble() or track() call. The default is to use 1e-3, i.e., 1/10 of 1%. **/
@@ -243,9 +250,10 @@ the built-ins are treated as must-satisfy constraints; otherwise they are
 included in the assembly cost function with the given weight. If the weight is 
 given as zero the built-in Constraints will be ignored altogether.
 @see setAssemblyConditionWeight() **/
-void setSystemConstraintsWeight(Real weight)
+Assembler& setSystemConstraintsWeight(Real weight)
 {   assert(systemConstraints.isValid());
-    setAssemblyConditionWeight(systemConstraints,weight); }
+    setAssemblyConditionWeight(systemConstraints,weight);
+    return *this; }
 
 /** Return the current weight being given to the System's built-in
 Constraints; the default is Infinity. 
@@ -260,13 +268,15 @@ set to Infinity, the condition will be treated as an assembly error condition
 that must be satisfied to tolerance. Otherwise (finite weight) the condition
 will be treated as an assembly goal and the weight will be used to combine its 
 cost function with that of the other assembly goals. **/
-void setAssemblyConditionWeight(AssemblyConditionIndex condition, Real weight) {
+Assembler& setAssemblyConditionWeight(AssemblyConditionIndex condition, 
+                                      Real                   weight) {
     SimTK_INDEXCHECK_ALWAYS(condition, conditions.size(),
         "Assembler::setAssemblyConditionWeight()");
     SimTK_ERRCHK1_ALWAYS(weight >= 0, "Assembler::setAssemblyConditionWeight()",
         "Illegal weight %g; weight must be nonnegative.", weight);
     uninitialize();
     weights[condition] = weight;
+    return *this;
 }
 
 /** Return the weight currently in use for this AssemblyCondition. If the
@@ -304,10 +314,11 @@ be suitable for use with the Assembler's System as supplied at the time
 the Assembler was constructed. All variables are copied, not just q's, so
 the Assembler must be reinitialized after this call in case modeling 
 options, instance variables, or time have changed. **/
-void setInternalState(const State& state) {
+Assembler& setInternalState(const State& state) {
     uninitialize();
     getMatterSubsystem().convertToEulerAngles(state, internalState);
     system.realizeModel(internalState);
+    return *this;
 }
 /** Initialize the Assembler to prepare for performing assembly analysis.
 This is normally called automatically when assemble() is called, but you 
@@ -393,7 +404,9 @@ void updateFromInternalState(State& state) const {
 /** @name                Parameter restrictions
 These methods restrict which q's are allowed to be modified while trying
 to assemble the system, or restrict the range within which the final q's
-must lie. **/
+must lie. A prescribed mobilizer is always treated as locked; its q's
+are set to their prescribed values and are not changed to satisfy assembly
+conditions. **/
 /*@{*/
 
 /** Lock this mobilizer at its starting position. This overrides any 
@@ -403,7 +416,9 @@ void lockMobilizer(MobilizedBodyIndex mbx)
 {   uninitialize(); userLockedMobilizers.insert(mbx); }
 /** Unlock this mobilizer as a whole; some of its q's may remain locked
 if they were locked individually. It is OK if this mobilizer was already
-unlocked; in that case this does nothing. **/
+unlocked; in that case this does nothing. Attempts to unlock a prescribed
+mobilizer have no effect; you must disable the mobilizer's Motion object
+instead. **/
 void unlockMobilizer(MobilizedBodyIndex mbx) 
 {   uninitialize(); userLockedMobilizers.erase(mbx); }
 
@@ -423,7 +438,8 @@ void lockQ(MobilizedBodyIndex mbx, MobilizerQIndex qx)
 
 /** Unlock one of this mobilizer's q's if it was locked. Note that this will
 not take effect immediately if the mobilizer as a whole has been locked with 
-lockMobilizer(); you have to unlockMobilizer() first. **/
+lockMobilizer(); you have to unlockMobilizer() first. This has no effect on
+a prescribed q. **/
 void unlockQ(MobilizedBodyIndex mbx, MobilizerQIndex qx)
 {   LockedQs::iterator p = userLockedQs.find(mbx);
     if (p == userLockedQs.end()) return;
@@ -439,7 +455,7 @@ void unlockQ(MobilizedBodyIndex mbx, MobilizerQIndex qx)
 you understand the order of the generalized coordinates used by this 
 particular mobilizer during assembly; see lockQ() for a discussion. You can
 use -Infinity or Infinity to indicate that the q is not bounded in one 
-direction. **/
+direction. This has no effect on a prescribed q. **/
 void restrictQ(MobilizedBodyIndex mbx, MobilizerQIndex qx,
                Real lowerBound, Real upperBound)
 {   SimTK_ERRCHK2_ALWAYS(lowerBound <= upperBound, "Assembler::restrictQ()", 
@@ -452,10 +468,10 @@ void restrictQ(MobilizedBodyIndex mbx, MobilizerQIndex qx,
 }
 
 
-/** Unrestrict a particular generalized coordinate q if it was
-previously restricted. Note that this is independent of whether the q has
-been locked with lockMobilizer() or lockQ(); that is, the q may still be
-locked even though it is now unrestricted. **/
+/** Unrestrict a particular generalized coordinate q if it was previously 
+restricted. Note that this is independent of whether the q has been locked 
+with lockMobilizer() or lockQ(); that is, the q may still be locked even 
+though it is now unrestricted. This has no effect on a prescribed q. **/
 void unrestrictQ(MobilizedBodyIndex mbx, MobilizerQIndex qx)
 {   RestrictedQs::iterator p = userRestrictedQs.find(mbx);
     if (p == userRestrictedQs.end()) return;
@@ -550,7 +566,7 @@ void addReporter(const EventReporter& reporter) {
 
 /** Return the number of q's which are free to be changed by this 
 already-initialized assembly analysis. The rest of the q's are locked
-at their initial values. **/
+at their initial values or set to their prescribed values. **/
 int getNumFreeQs() const 
 {   return freeQ2Q.size(); }
 
@@ -1110,6 +1126,7 @@ ignored.
     markers whose indices are never listed are ignored. If \a observationOrder
     is supplied as a zero-length array, then we'll assume there are as
     many observations as markers and that their indices match.
+
 @note If you don't call this method at all, a default correspondence will
 be defined as described for a zero-length \a observationOrder array (that is,
 same number of observations and markers with matching indices). Whenever you 

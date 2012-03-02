@@ -53,7 +53,7 @@ class ProblemSystem : public OptimizerSystem {
 public:
 
 
-   int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
+   int objectiveFunc(  const Vector &coefficients, bool new_coefficients, Real& f ) const {
       const Real *x;
 
       x = &coefficients[0];
@@ -62,7 +62,7 @@ public:
       return( 0 ); 
    }
 
-   int gradientFunc( const Vector &coefficients, const bool new_coefficients, Vector &gradient ) const{
+   int gradientFunc( const Vector &coefficients, bool new_coefficients, Vector &gradient ) const{
       const Real *x;
 
       x = &coefficients[0]; 
@@ -78,7 +78,7 @@ public:
   ** Method to compute the value of the constraints.
   ** Equality constraints are first followed by the any inequality constraints
   */ 
-  int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vector &constraints)  const{
+  int constraintFunc( const Vector &coefficients, bool new_coefficients, Vector &constraints)  const{
       const Real *x;
 
       x = &coefficients[0]; 
@@ -93,7 +93,7 @@ public:
   ** Method to compute the jacobian of the constraints.
   **
   */
-  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Matrix& jac)  const{
+  int constraintJacobian( const Vector& coefficients, bool new_coefficients, Matrix& jac)  const{
       const Real *x;
 
       x = &coefficients[0]; 

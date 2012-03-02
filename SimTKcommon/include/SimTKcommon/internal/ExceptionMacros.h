@@ -175,6 +175,13 @@
 #define SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(cond,objType,objName,methodNm)  \
     do{if(!(cond)) SimTK_THROW3(SimTK::Exception::RealizeTopologyMustBeCalledFirst, \
         (objType),(objName),(methodNm));}while(false)
+#define SimTK_STAGECHECK_TOPOLOGY_VERSION_ALWAYS(sysTopoVersion,            \
+                                stateTopoVersion,objType,objName,methodNm)  \
+    do{if((stateTopoVersion)!=(sysTopoVersion))                             \
+        SimTK_THROW5(SimTK::Exception::StateAndSystemTopologyVersionsMustMatch, \
+        (objType),(objName),(methodNm),                     \
+        (int)(sysTopoVersion),(int)(stateTopoVersion));}    \
+    while(false)
 #define SimTK_STAGECHECK_EQ_ALWAYS(currentStage,targetStage,methodNm) \
     do{if((currentStage)!=(targetStage)) SimTK_THROW3(SimTK::Exception::StageIsWrong,   \
         (currentStage),(targetStage),(methodNm));}while(false)
@@ -191,6 +198,8 @@
 // This one is present only in Debug mode or if SimTK_KEEP_STAGECHECK is explicitly defined.
 #if defined(NDEBUG) && !defined(SimTK_KEEP_STAGECHECK)
     #define SimTK_STAGECHECK_TOPOLOGY_REALIZED(cond,objType,objName,methodName)
+    #define SimTK_STAGECHECK_TOPOLOGY_VERSIONS(sysTopoVersion,stateTopoVersion,\
+                                               objType,objName,methodNm)   
     #define SimTK_STAGECHECK_EQ(currentStage,targetStage,methodNm)
     #define SimTK_STAGECHECK_GE(currentStage,targetStage,methodNm)
     #define SimTK_STAGECHECK_LT(currentStage,targetStage,methodNm)
@@ -198,6 +207,10 @@
 #else
     #define SimTK_STAGECHECK_TOPOLOGY_REALIZED(cond,objType,objName,methodName) \
         SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(cond,objType,objName,methodName)
+    #define SimTK_STAGECHECK_TOPOLOGY_VERSION(sysTopoVersion,stateTopoVersion, \
+                                              objType,objName,methodNm)  \
+        SimTK_STAGECHECK_TOPOLOGY_VERSION_ALWAYS(sysTopoVersion,stateTopoVersion,\
+                                                 objType,objName,methodNm)
     #define SimTK_STAGECHECK_EQ(currentStage,targetStage,methodNm) \
         SimTK_STAGECHECK_EQ_ALWAYS(currentStage,targetStage,methodNm)
     #define SimTK_STAGECHECK_GE(currentStage,targetStage,methodNm) \

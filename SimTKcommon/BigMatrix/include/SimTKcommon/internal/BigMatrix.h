@@ -543,13 +543,13 @@ public:
     scalarDivideFromLeftInPlace(const S&);
 
 
-	/// M = diag(r) * M; r must have nrow() elements.
-	/// That is, M[i] *= r[i].
+    /// M = diag(r) * M; r must have nrow() elements.
+    /// That is, M[i] *= r[i].
     template <class EE> inline MatrixBase& 
     rowScaleInPlace(const VectorBase<EE>&);
 
-	/// Return type is a new matrix which will have the same dimensions as 'this' but
-	/// will have element types appropriate for the elementwise multiply being performed.
+    /// Return type is a new matrix which will have the same dimensions as 'this' but
+    /// will have element types appropriate for the elementwise multiply being performed.
     template <class EE> inline void 
     rowScale(const VectorBase<EE>& r, typename EltResult<EE>::Mul& out) const;
 
@@ -558,9 +558,9 @@ public:
         typename EltResult<EE>::Mul out(nrow(), ncol()); rowScale(r,out); return out;
     }
 
-	/// M = M * diag(c); c must have ncol() elements.
-	/// That is, M(j) *= c[j].
-	template <class EE> inline MatrixBase& 
+    /// M = M * diag(c); c must have ncol() elements.
+    /// That is, M(j) *= c[j].
+    template <class EE> inline MatrixBase& 
     colScaleInPlace(const VectorBase<EE>&);
 
 	template <class EE> inline void 
@@ -572,18 +572,18 @@ public:
     }
 
 
-	/// M = diag(r) * M * diag(c); r must have nrow() elements;  must have ncol() elements.
-	/// That is, M(i,j) *= r[i]*c[j].
+    /// M = diag(r) * M * diag(c); r must have nrow() elements;  must have ncol() elements.
+    /// That is, M(i,j) *= r[i]*c[j].
     /// Having a combined row & column scaling operator means we can go through the matrix
     /// memory once instead of twice.
-	template <class ER, class EC> inline MatrixBase& 
+    template <class ER, class EC> inline MatrixBase& 
     rowAndColScaleInPlace(const VectorBase<ER>& r, const VectorBase<EC>& c);
 
-	template <class ER, class EC> inline void 
+    template <class ER, class EC> inline void 
     rowAndColScale(const VectorBase<ER>& r, const VectorBase<EC>& c, 
                    typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul& out) const;
 
-	template <class ER, class EC> inline typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul
+    template <class ER, class EC> inline typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul
     rowAndColScale(const VectorBase<ER>& r, const VectorBase<EC>& c) const {
         typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul 
             out(nrow(), ncol()); 
@@ -708,30 +708,30 @@ public:
         return out;
     }
 
-	/// M(i,j) /= R(i,j); R must have same dimensions as this.
-	template <class EE> inline MatrixBase& 
+    /// M(i,j) /= R(i,j); R must have same dimensions as this.
+    template <class EE> inline MatrixBase& 
     elementwiseDivideInPlace(const MatrixBase<EE>&);
 
-	template <class EE> inline void 
+    template <class EE> inline void 
     elementwiseDivide(const MatrixBase<EE>&, typename EltResult<EE>::Dvd&) const;
 
-	template <class EE> inline typename EltResult<EE>::Dvd 
+    template <class EE> inline typename EltResult<EE>::Dvd 
     elementwiseDivide(const MatrixBase<EE>& m) const {
         typename EltResult<EE>::Dvd out(nrow(), ncol()); 
         elementwiseDivide<EE>(m,out); 
         return out;
     }
 
-	/// M(i,j) = R(i,j) / M(i,j); R must have same dimensions as this.
-	template <class EE> inline MatrixBase& 
+    /// M(i,j) = R(i,j) / M(i,j); R must have same dimensions as this.
+    template <class EE> inline MatrixBase& 
     elementwiseDivideFromLeftInPlace(const MatrixBase<EE>&);
 
-	template <class EE> inline void 
+    template <class EE> inline void 
     elementwiseDivideFromLeft(
         const MatrixBase<EE>&,
         typename MatrixBase<EE>::template EltResult<E>::Dvd&) const;
 
-	template <class EE> inline typename MatrixBase<EE>::template EltResult<EE>::Dvd 
+    template <class EE> inline typename MatrixBase<EE>::template EltResult<EE>::Dvd 
     elementwiseDivideFromLeft(const MatrixBase<EE>& m) const {
         typename MatrixBase<EE>::template EltResult<E>::Dvd out(nrow(), ncol()); 
         elementwiseDivideFromLeft<EE>(m,out); 
@@ -877,8 +877,9 @@ public:
                 mabs(i,j) = CNT<E>::abs((*this)(i,j));
     }
 
-    /// abs() with the result as a function return. More convenient than the other
-    /// abs() member function, but may involve an additional copy of the matrix.
+    /// abs() with the result as a function return. More convenient than the 
+    /// other abs() member function, but may involve an additional copy of the 
+    /// matrix.
     TAbs abs() const { TAbs mabs; abs(mabs); return mabs; }
 
     /// Return a Matrix of the same shape and contents as this one but
@@ -900,15 +901,17 @@ public:
         return mstd;
     }
 
-    /// This is the scalar Frobenius norm, and its square. Note: if this is a Matrix then the Frobenius
-    /// norm is NOT the same as the 2-norm, although they are equivalent for Vectors.
+    /// This is the scalar Frobenius norm, and its square. Note: if this is a 
+    /// Matrix then the Frobenius norm is NOT the same as the 2-norm, although
+    /// they are equivalent for Vectors.
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
     // TODO -- not good; unnecessary overflow
     typename CNT<ScalarNormSq>::TSqrt 
         norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
-    /// We only allow RMS norm if the elements are scalars. If there are no elements in this Matrix,
-    /// we'll define its RMS norm to be 0, although NaN might be a better choice.
+    /// We only allow RMS norm if the elements are scalars. If there are no 
+    /// elements in this Matrix, we'll define its RMS norm to be 0, although 
+    /// NaN might be a better choice.
     typename CNT<ScalarNormSq>::TSqrt 
     normRMS() const {
         if (!CNT<ELT>::IsScalar)
@@ -1061,6 +1064,8 @@ private:
 //  ----------------------------------------------------------------------------
 template <class ELT> class VectorBase : public MatrixBase<ELT> {
     typedef MatrixBase<ELT>                             Base;
+    typedef typename Base::ScalarNormSq                 ScalarNormSq;
+    typedef typename Base::EAbs                         EAbs;
     typedef typename CNT<ELT>::Scalar                   Scalar;
     typedef typename CNT<ELT>::Number                   Number;
     typedef typename CNT<ELT>::StdNumber                StdNumber;
@@ -1179,16 +1184,154 @@ public:
     /// everything else is set to zero.)
     VectorBase& operator=(const ELT& t) { Base::setTo(t); return *this; }  
 
-	/// There's only one column here so it's a bit wierd to use rowScale rather than
-	/// elementwiseMultiply, but there's nothing really wrong with it. Using colScale
-	/// would be really wacky since it is the same as a scalar multiply. We won't support
-	/// colScale here except through inheritance where it will not be much use.
-	template <class EE> VectorBase& rowScaleInPlace(const VectorBase<EE>& v)
-	  { Base::template rowScaleInPlace<EE>(v); return *this; }
-	template <class EE> inline void rowScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
-	  { Base::rowScale(v,out); }
-	template <class EE> inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
-	  { typename EltResult<EE>::Mul out(nrow()); Base::rowScale(v,out); return out; }
+    /// There's only one column here so it's a bit weird to use rowScale rather than
+    /// elementwiseMultiply, but there's nothing really wrong with it. Using colScale
+    /// would be really wacky since it is the same as a scalar multiply. We won't support
+    /// colScale here except through inheritance where it will not be much use.
+    template <class EE> VectorBase& rowScaleInPlace(const VectorBase<EE>& v)
+	{ Base::template rowScaleInPlace<EE>(v); return *this; }
+    template <class EE> inline void rowScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
+	{ Base::rowScale(v,out); }
+    template <class EE> inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
+	{ typename EltResult<EE>::Mul out(nrow()); Base::rowScale(v,out); return out; }
+
+    /** Return the root-mean-square (RMS) norm of a Vector of scalars, with 
+    optional return of the index of the element of largest absolute value. 
+    The RMS norm of a Vector v of length n is rms=sqrt(~v*v/n). If n==0 we
+    define the RMS norm to be zero but return the element index as -1. **/
+    typename CNT<ScalarNormSq>::TSqrt 
+    normRMS(int* worstOne=0) const {
+        if (!CNT<ELT>::IsScalar)
+            SimTK_THROW1(Exception::Cant, 
+                "Vector::normRMS() only defined for scalar elements.");
+        const int n = nelt();
+        if (n == 0) {
+            if (worstOne) *worstOne = -1;
+            return typename CNT<ScalarNormSq>::TSqrt(0);
+        }
+
+        ScalarNormSq sumsq = 0;
+        if (worstOne) {
+            *worstOne = 0;
+            ScalarNormSq maxsq = 0; 
+            for (int i=0; i<n; ++i) {
+                const ScalarNormSq v2 = square((*this)[i]);
+                if (v2 > maxsq) maxsq=v2, *worstOne=i;
+                sumsq += v2;
+            }
+        } else { // don't track the worst element
+            for (int i=0; i<n; ++i) {
+                const ScalarNormSq v2 = square((*this)[i]);
+                sumsq += v2;
+            }
+        }
+
+        return CNT<ScalarNormSq>::sqrt(sumsq/n);
+    }
+
+    /** Return the weighted root-mean-square (WRMS) norm of a Vector of 
+    scalars, with optional return of the index of the weighted element of 
+    largest absolute value. The WRMS norm of a Vector v of length n with
+    weights w is wrms=sqrt(sum_i((w_i*v_i)^2))/n). If n==0 we
+    define the WRMS norm to be zero but return the element index as -1. **/
+    template <class EE>
+    typename CNT<ScalarNormSq>::TSqrt 
+    weightedNormRMS(const VectorBase<EE>& w, int* worstOne=0) const {
+        if (!CNT<ELT>::IsScalar || !CNT<EE>::IsScalar)
+            SimTK_THROW1(Exception::Cant, 
+            "Vector::weightedNormRMS() only defined for scalar elements"
+            " and weights.");
+        const int n = nelt();
+        assert(w.nelt()==n);
+        if (n == 0) {
+            if (worstOne) *worstOne = -1;
+            return typename CNT<ScalarNormSq>::TSqrt(0);
+        }
+
+        ScalarNormSq sumsq = 0;
+        if (worstOne) {
+            *worstOne = 0;
+            ScalarNormSq maxsq = 0; 
+            for (int i=0; i<n; ++i) {
+                const ScalarNormSq wv2 = square(w[i]*(*this)[i]);
+                if (wv2 > maxsq) maxsq=wv2, *worstOne=i;
+                sumsq += wv2;
+            }
+        } else { // don't track the worst element
+            for (int i=0; i<n; ++i) {
+                const ScalarNormSq wv2 = square(w[i]*(*this)[i]);
+                sumsq += wv2;
+            }
+        }
+
+        return CNT<ScalarNormSq>::sqrt(sumsq/n);
+    }
+
+    /** Return the infinity norm (max absolute value) of a Vector of scalars, 
+    with optional return of the index of the element of largest absolute value. 
+    The Inf norm of a Vector v is inf=max_i(|v_i|). If n==0 we
+    define the Inf norm to be zero but return the element index as -1. **/
+    EAbs normInf(int* worstOne=0) const {
+        if (!CNT<ELT>::IsScalar)
+            SimTK_THROW1(Exception::Cant, 
+                "Vector::normInf() only defined for scalar elements.");
+        const int n = nelt();
+        if (n == 0) {
+            if (worstOne) *worstOne = -1;
+            return EAbs(0);
+        }
+
+        EAbs maxabs = 0;
+        if (worstOne) {
+            *worstOne = 0;
+            for (int i=0; i<n; ++i) {
+                const EAbs a = std::abs((*this)[i]);
+                if (a > maxabs) maxabs=a, *worstOne=i;
+            }
+        } else { // don't track the worst element
+            for (int i=0; i<n; ++i) {
+                const EAbs a = std::abs((*this)[i]);
+                if (a > maxabs) maxabs=a;
+            }
+        }
+
+        return maxabs;
+    }
+
+    /** Return the weighted infinity norm (max absolute value) WInf of a Vector
+    of scalars, with optional return of the index of the weighted element of 
+    largest absolute value. The WInf norm of a Vector v of length n with
+    weights w is winf=max_i(|w_i*v_i|). If n==0 we
+    define the WInf norm to be zero but return the element index as -1. **/
+    template <class EE>
+    EAbs weightedNormInf(const VectorBase<EE>& w, int* worstOne=0) const {
+        if (!CNT<ELT>::IsScalar || !CNT<EE>::IsScalar)
+            SimTK_THROW1(Exception::Cant, 
+            "Vector::weightedNormInf() only defined for scalar elements"
+            " and weights.");
+        const int n = nelt();
+        assert(w.nelt()==n);
+        if (n == 0) {
+            if (worstOne) *worstOne = -1;
+            return EAbs(0);
+        }
+
+        EAbs maxabs = 0;
+        if (worstOne) {
+            *worstOne = 0;
+            for (int i=0; i<n; ++i) {
+                const EAbs wv = std::abs(w[i]*(*this)[i]);
+                if (wv > maxabs) maxabs=wv, *worstOne=i;
+            }
+        } else { // don't track the worst element
+            for (int i=0; i<n; ++i) {
+                const EAbs wv = std::abs(w[i]*(*this)[i]);
+                if (wv > maxabs) maxabs=wv;
+            }
+        }
+
+        return maxabs;
+    }
 
     /// Set this[i] = this[i]^-1.
     VectorBase& elementwiseInvertInPlace() {
@@ -1208,18 +1351,18 @@ public:
         return out;
     }
 
-        // elementwise multiply
-	template <class EE> VectorBase& elementwiseMultiplyInPlace(const VectorBase<EE>& r)
-	  { Base::template elementwiseMultiplyInPlace<EE>(r); return *this; }
-	template <class EE> inline void elementwiseMultiply(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
-	  { Base::template elementwiseMultiply<EE>(v,out); }
-	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const VectorBase<EE>& v) const
-	  { typename EltResult<EE>::Mul out(nrow()); Base::template elementwiseMultiply<EE>(v,out); return out; }
+    // elementwise multiply
+    template <class EE> VectorBase& elementwiseMultiplyInPlace(const VectorBase<EE>& r)
+	{ Base::template elementwiseMultiplyInPlace<EE>(r); return *this; }
+    template <class EE> inline void elementwiseMultiply(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
+	{ Base::template elementwiseMultiply<EE>(v,out); }
+    template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const VectorBase<EE>& v) const
+	{ typename EltResult<EE>::Mul out(nrow()); Base::template elementwiseMultiply<EE>(v,out); return out; }
 
-        // elementwise multiply from left
-	template <class EE> VectorBase& elementwiseMultiplyFromLeftInPlace(const VectorBase<EE>& r)
-	  { Base::template elementwiseMultiplyFromLeftInPlace<EE>(r); return *this; }
-	template <class EE> inline void 
+    // elementwise multiply from left
+    template <class EE> VectorBase& elementwiseMultiplyFromLeftInPlace(const VectorBase<EE>& r)
+	{ Base::template elementwiseMultiplyFromLeftInPlace<EE>(r); return *this; }
+    template <class EE> inline void 
     elementwiseMultiplyFromLeft(
         const VectorBase<EE>& v, 
         typename VectorBase<EE>::template EltResult<ELT>::Mul& out) const
@@ -1234,18 +1377,18 @@ public:
         return out;
     }
 
-        // elementwise divide
-	template <class EE> VectorBase& elementwiseDivideInPlace(const VectorBase<EE>& r)
-	  { Base::template elementwiseDivideInPlace<EE>(r); return *this; }
-	template <class EE> inline void elementwiseDivide(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
-	  { Base::template elementwiseDivide<EE>(v,out); }
-	template <class EE> inline typename EltResult<EE>::Dvd elementwiseDivide(const VectorBase<EE>& v) const
-	  { typename EltResult<EE>::Dvd out(nrow()); Base::template elementwiseDivide<EE>(v,out); return out; }
+    // elementwise divide
+    template <class EE> VectorBase& elementwiseDivideInPlace(const VectorBase<EE>& r)
+	{ Base::template elementwiseDivideInPlace<EE>(r); return *this; }
+    template <class EE> inline void elementwiseDivide(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
+	{ Base::template elementwiseDivide<EE>(v,out); }
+    template <class EE> inline typename EltResult<EE>::Dvd elementwiseDivide(const VectorBase<EE>& v) const
+	{ typename EltResult<EE>::Dvd out(nrow()); Base::template elementwiseDivide<EE>(v,out); return out; }
 
-        // elementwise divide from left
-	template <class EE> VectorBase& elementwiseDivideFromLeftInPlace(const VectorBase<EE>& r)
-	  { Base::template elementwiseDivideFromLeftInPlace<EE>(r); return *this; }
-	template <class EE> inline void 
+    // elementwise divide from left
+    template <class EE> VectorBase& elementwiseDivideFromLeftInPlace(const VectorBase<EE>& r)
+	{ Base::template elementwiseDivideFromLeftInPlace<EE>(r); return *this; }
+    template <class EE> inline void 
     elementwiseDivideFromLeft(
         const VectorBase<EE>& v, 
         typename VectorBase<EE>::template EltResult<ELT>::Dvd& out) const
@@ -1273,13 +1416,13 @@ public:
 
 
     // size() for Vectors is Base::nelt() but returns int instead of ptrdiff_t.
-	int size() const { 
-		assert(Base::nelt() <= (ptrdiff_t)std::numeric_limits<int>::max()); 
-		assert(Base::ncol()==1);
-		return (int)Base::nelt();
-	}
-	int       nrow() const {assert(Base::ncol()==1); return Base::nrow();}
-	int       ncol() const {assert(Base::ncol()==1); return Base::ncol();}
+    int size() const { 
+	assert(Base::nelt() <= (ptrdiff_t)std::numeric_limits<int>::max()); 
+	assert(Base::ncol()==1);
+	return (int)Base::nelt();
+    }
+    int       nrow() const {assert(Base::ncol()==1); return Base::nrow();}
+    int       ncol() const {assert(Base::ncol()==1); return Base::ncol();}
     ptrdiff_t nelt() const {assert(Base::ncol()==1); return Base::nelt();}
 
     // Override MatrixBase operators to return the right shape
@@ -1295,13 +1438,16 @@ public:
     VectorView_<ELT> operator()(int i, int m) const {return Base::operator()(i,0,m,1).getAsVectorView();}
     VectorView_<ELT> operator()(int i, int m)       {return Base::operator()(i,0,m,1).updAsVectorView();}
 
-    // Indexed view creation (arbitrary subvector). Indices must be monotonically increasing.
+    // Indexed view creation (arbitrary subvector). Indices must be 
+    // monotonically increasing.
     VectorView_<ELT> index(const Array_<int>& indices) const {
-        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::getHelper(), indices);
+        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), 
+                               Base::getHelper(), indices);
         return VectorView_<ELT>(h);
     }
     VectorView_<ELT> updIndex(const Array_<int>& indices) {
-        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::updHelper(), indices);
+        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), 
+                               Base::updHelper(), indices);
         return VectorView_<ELT>(h);
     }
 
@@ -1328,8 +1474,8 @@ public:
     VectorBase& resize(int m)     {Base::resize(m,1); return *this;}
     VectorBase& resizeKeep(int m) {Base::resizeKeep(m,1); return *this;}
 
-	//TODO: this is not re-locking the number of columns at 1.
-	void clear() {Base::clear(); Base::resize(0,1);}
+    //TODO: this is not re-locking the number of columns at 1.
+    void clear() {Base::clear(); Base::resize(0,1);}
 
     ELT sum() const {ELT s; Base::getHelper().sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
     VectorIterator<ELT, VectorBase<ELT> > begin() {
@@ -1473,65 +1619,64 @@ public:
     /// everything else is set to zero.)
     RowVectorBase& operator=(const ELT& t) { Base::setTo(t); return *this; } 
 
-	/// There's only one row here so it's a bit wierd to use colScale rather than
-	/// elementwiseMultiply, but there's nothing really wrong with it. Using rowScale
-	/// would be really wacky since it is the same as a scalar multiply. We won't support
-	/// rowScale here except through inheritance where it will not be much use.
-	template <class EE> RowVectorBase& colScaleInPlace(const VectorBase<EE>& v)
-	  { Base::template colScaleInPlace<EE>(v); return *this; }
-	template <class EE> inline void colScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
-	  { return Base::template colScale<EE>(v,out); }
-	template <class EE> inline typename EltResult<EE>::Mul colScale(const VectorBase<EE>& v) const
-	  { typename EltResult<EE>::Mul out(ncol()); Base::template colScale<EE>(v,out); return out; }
+    /// There's only one row here so it's a bit wierd to use colScale rather than
+    /// elementwiseMultiply, but there's nothing really wrong with it. Using rowScale
+    /// would be really wacky since it is the same as a scalar multiply. We won't support
+    /// rowScale here except through inheritance where it will not be much use.
+    template <class EE> RowVectorBase& colScaleInPlace(const VectorBase<EE>& v)
+	{ Base::template colScaleInPlace<EE>(v); return *this; }
+    template <class EE> inline void colScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
+	{ return Base::template colScale<EE>(v,out); }
+    template <class EE> inline typename EltResult<EE>::Mul colScale(const VectorBase<EE>& v) const
+	{ typename EltResult<EE>::Mul out(ncol()); Base::template colScale<EE>(v,out); return out; }
 
 
-        // elementwise multiply
-	template <class EE> RowVectorBase& elementwiseMultiplyInPlace(const RowVectorBase<EE>& r)
-	  { Base::template elementwiseMultiplyInPlace<EE>(r); return *this; }
-	template <class EE> inline void elementwiseMultiply(const RowVectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
-	  { Base::template elementwiseMultiply<EE>(v,out); }
-	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const RowVectorBase<EE>& v) const
-	  { typename EltResult<EE>::Mul out(nrow()); Base::template elementwiseMultiply<EE>(v,out); return out; }
+    // elementwise multiply
+    template <class EE> RowVectorBase& elementwiseMultiplyInPlace(const RowVectorBase<EE>& r)
+	{ Base::template elementwiseMultiplyInPlace<EE>(r); return *this; }
+    template <class EE> inline void elementwiseMultiply(const RowVectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
+	{ Base::template elementwiseMultiply<EE>(v,out); }
+    template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const RowVectorBase<EE>& v) const
+	{ typename EltResult<EE>::Mul out(nrow()); Base::template elementwiseMultiply<EE>(v,out); return out; }
 
-        // elementwise multiply from left
-	template <class EE> RowVectorBase& elementwiseMultiplyFromLeftInPlace(const RowVectorBase<EE>& r)
-	  { Base::template elementwiseMultiplyFromLeftInPlace<EE>(r); return *this; }
-	template <class EE> inline void 
+    // elementwise multiply from left
+    template <class EE> RowVectorBase& elementwiseMultiplyFromLeftInPlace(const RowVectorBase<EE>& r)
+	{ Base::template elementwiseMultiplyFromLeftInPlace<EE>(r); return *this; }
+    template <class EE> inline void 
     elementwiseMultiplyFromLeft(
         const RowVectorBase<EE>& v, 
         typename RowVectorBase<EE>::template EltResult<ELT>::Mul& out) const
 	{ 
         Base::template elementwiseMultiplyFromLeft<EE>(v,out);
     }
-	template <class EE> inline typename RowVectorBase<EE>::template EltResult<ELT>::Mul 
-    elementwiseMultiplyFromLeft(const RowVectorBase<EE>& v) const
-	{ 
+    template <class EE> inline 
+    typename RowVectorBase<EE>::template EltResult<ELT>::Mul 
+    elementwiseMultiplyFromLeft(const RowVectorBase<EE>& v) const {
         typename RowVectorBase<EE>::template EltResult<ELT>::Mul out(nrow()); 
         Base::template elementwiseMultiplyFromLeft<EE>(v,out); 
         return out;
     }
 
-        // elementwise divide
-	template <class EE> RowVectorBase& elementwiseDivideInPlace(const RowVectorBase<EE>& r)
-	  { Base::template elementwiseDivideInPlace<EE>(r); return *this; }
-	template <class EE> inline void elementwiseDivide(const RowVectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
-	  { Base::template elementwiseDivide<EE>(v,out); }
-	template <class EE> inline typename EltResult<EE>::Dvd elementwiseDivide(const RowVectorBase<EE>& v) const
-	  { typename EltResult<EE>::Dvd out(nrow()); Base::template elementwiseDivide<EE>(v,out); return out; }
+    // elementwise divide
+    template <class EE> RowVectorBase& elementwiseDivideInPlace(const RowVectorBase<EE>& r)
+	{ Base::template elementwiseDivideInPlace<EE>(r); return *this; }
+    template <class EE> inline void elementwiseDivide(const RowVectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
+	{ Base::template elementwiseDivide<EE>(v,out); }
+    template <class EE> inline typename EltResult<EE>::Dvd elementwiseDivide(const RowVectorBase<EE>& v) const
+	{ typename EltResult<EE>::Dvd out(nrow()); Base::template elementwiseDivide<EE>(v,out); return out; }
 
-        // elementwise divide from left
-	template <class EE> RowVectorBase& elementwiseDivideFromLeftInPlace(const RowVectorBase<EE>& r)
-	  { Base::template elementwiseDivideFromLeftInPlace<EE>(r); return *this; }
-	template <class EE> inline void 
-    elementwiseDivideFromLeft(
-        const RowVectorBase<EE>& v, 
-        typename RowVectorBase<EE>::template EltResult<ELT>::Dvd& out) const
-	{ 
+    // elementwise divide from left
+    template <class EE> RowVectorBase& elementwiseDivideFromLeftInPlace(const RowVectorBase<EE>& r)
+	{ Base::template elementwiseDivideFromLeftInPlace<EE>(r); return *this; }
+    template <class EE> inline void 
+    elementwiseDivideFromLeft
+       (const RowVectorBase<EE>& v, 
+        typename RowVectorBase<EE>::template EltResult<ELT>::Dvd& out) const { 
         Base::template elementwiseDivideFromLeft<EE>(v,out);
     }
-	template <class EE> inline typename RowVectorBase<EE>::template EltResult<ELT>::Dvd 
-    elementwiseDivideFromLeft(const RowVectorBase<EE>& v) const
-	{ 
+    template <class EE> inline 
+    typename RowVectorBase<EE>::template EltResult<ELT>::Dvd 
+    elementwiseDivideFromLeft(const RowVectorBase<EE>& v) const	{ 
         typename RowVectorBase<EE>::template EltResult<ELT>::Dvd out(nrow()); 
         Base::template elementwiseDivideFromLeft<EE>(v,out); 
         return out;
@@ -1550,14 +1695,14 @@ public:
     
 
     // size() for RowVectors is Base::nelt() but returns int instead of ptrdiff_t.
-	int size() const { 
-		assert(Base::nelt() <= (ptrdiff_t)std::numeric_limits<int>::max()); 
-		assert(Base::nrow()==1);
-		return (int)Base::nelt();
-	}
-	int       nrow() const {assert(Base::nrow()==1); return Base::nrow();}
-	int       ncol() const {assert(Base::nrow()==1); return Base::ncol();}
-	ptrdiff_t nelt() const {assert(Base::nrow()==1); return Base::nelt();}
+    int size() const { 
+	    assert(Base::nelt() <= (ptrdiff_t)std::numeric_limits<int>::max()); 
+	    assert(Base::nrow()==1);
+	    return (int)Base::nelt();
+    }
+    int       nrow() const {assert(Base::nrow()==1); return Base::nrow();}
+    int       ncol() const {assert(Base::nrow()==1); return Base::ncol();}
+    ptrdiff_t nelt() const {assert(Base::nrow()==1); return Base::nelt();}
 
     // Override MatrixBase operators to return the right shape
     TAbs abs() const {
@@ -1607,8 +1752,8 @@ public:
     RowVectorBase& resize(int n)     {Base::resize(1,n); return *this;}
     RowVectorBase& resizeKeep(int n) {Base::resizeKeep(1,n); return *this;}
 
-	//TODO: this is not re-locking the number of rows at 1.
-	void clear() {Base::clear(); Base::resize(1,0);}
+    //TODO: this is not re-locking the number of rows at 1.
+    void clear() {Base::clear(); Base::resize(1,0);}
 
     ELT sum() const {ELT s; Base::getHelper().sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
     VectorIterator<ELT, RowVectorBase<ELT> > begin() {

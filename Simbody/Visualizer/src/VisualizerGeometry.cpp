@@ -37,18 +37,48 @@
 using namespace SimTK;
 
 static const Vec3 DefaultBodyColor = Gray;
+static const Vec3 DefaultPointColor = Magenta;
 
 VisualizerGeometry::VisualizerGeometry
-   (VisualizerProtocol& protocol, const SimbodyMatterSubsystem& matter, const State& state) 
+   (VisualizerProtocol& protocol, const SimbodyMatterSubsystem& matter, 
+    const State& state) 
 :   protocol(protocol), matter(matter), state(state) {}
 
-// The DecorativeGeometry's frame D is given in the body frame B, via transform X_BD. We want to
-// know X_GD, the pose of the geometry in Ground, which we get via X_GD=X_GB*X_BD.
+// The DecorativeGeometry's frame D is given in the body frame B, via transform
+// X_BD. We want to know X_GD, the pose of the geometry in Ground, which we get 
+// via X_GD=X_GB*X_BD.
 Transform VisualizerGeometry::calcX_GD(const DecorativeGeometry& geom) const {
-    const MobilizedBody& mobod = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId()));
+    const MobilizedBody& mobod = 
+        matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId()));
     const Transform& X_GB  = mobod.getBodyTransform(state);
     const Transform& X_BD  = geom.getTransform();
     return X_GB*X_BD;
+}
+
+
+// We're going to draw three short lines aligned with the body axes
+// that intersect at the point.
+void VisualizerGeometry::
+implementPointGeometry(const SimTK::DecorativePoint& geom) {
+    const MobilizedBody& mobod = 
+        matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId()));
+    const Transform& X_GB  = mobod.getBodyTransform(state);
+    const Transform& X_BD  = geom.getTransform();
+    const Transform X_GD = X_GB*X_BD;
+    const Vec3 p_GP = X_GD*geom.getPoint();
+    const Real thickness = 
+        geom.getLineThickness() == -1 ? Real(1) : geom.getLineThickness();
+
+    const Real DefaultLength = 0.05; // 1/20 of a unit length
+    const Real length = getScale(geom) * DefaultLength;
+    const Vec4 color = getColor(geom, DefaultPointColor);
+
+    protocol.drawLine(p_GP - length*X_GB.x(), 
+                      p_GP + length*X_GB.x(), color, thickness);
+    protocol.drawLine(p_GP - length*X_GB.y(), 
+                      p_GP + length*X_GB.y(), color, thickness);
+    protocol.drawLine(p_GP - length*X_GB.z(), 
+                      p_GP + length*X_GB.z(), color, thickness);
 }
 
 void VisualizerGeometry::implementLineGeometry(const SimTK::DecorativeLine& geom) {
@@ -88,7 +118,10 @@ void VisualizerGeometry::implementFrameGeometry(const SimTK::DecorativeFrame& ge
 
 void VisualizerGeometry::implementTextGeometry(const SimTK::DecorativeText& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawText(X_GD.p(), getScale(geom), getColor(geom), geom.getText());
+    // The default is to face the camera.
+    bool faceCamera = geom.getFaceCamera()<0 ? true : (geom.getFaceCamera()!=0);
+    protocol.drawText(X_GD.p(), getScale(geom), getColor(geom), 
+                      geom.getText(), faceCamera);
 }
 
 void VisualizerGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& geom) {
@@ -96,9 +129,15 @@ void VisualizerGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& geom
     protocol.drawPolygonalMesh(geom.getMesh(), X_GD, getScale(geom), getColor(geom), getRepresentation(geom));
 }
 
-Vec4 VisualizerGeometry::getColor(const DecorativeGeometry& geom) {
+Vec4 VisualizerGeometry::getColor(const DecorativeGeometry& geom,
+                                  const Vec3& defaultColor) {
     Vec4 result;
-    result.updSubVec<3>(0) = (geom.getColor()[0] == -1 ? DefaultBodyColor : geom.getColor());
+    if (geom.getColor()[0] >= 0) 
+        result.updSubVec<3>(0) = geom.getColor();
+    else {
+        const Vec3 def = defaultColor[0] >= 0 ? defaultColor : DefaultBodyColor;
+        result.updSubVec<3>(0) = def;
+    }
     result[3] = (geom.getOpacity() < 0 ? 1 : geom.getOpacity());
     return result;
 }

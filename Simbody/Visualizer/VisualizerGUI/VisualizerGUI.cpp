@@ -283,8 +283,10 @@ private:
 
 class RenderedText {
 public:
-    RenderedText(const fVec3& position, float scale, const fVec3& color, const string& text) :
-            position(position), scale(scale/119), text(text) {
+    RenderedText(const fVec3& position, float scale, const fVec3& color, 
+                 const string& text, bool faceCamera = true) 
+    :   position(position), scale(scale/119), text(text),
+        faceCamera(faceCamera) {
         this->color[0] = color[0];
         this->color[1] = color[1];
         this->color[2] = color[2];
@@ -293,7 +295,8 @@ public:
         glPushMatrix();
         glTranslated(position[0], position[1], position[2]);
         fVec4 rot = X_GC.R().convertRotationToAngleAxis();
-        glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
+        if (faceCamera)
+            glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
         glScaled(scale, scale, scale);
         glColor3fv(color);
         for (int i = 0; i < (int) text.size(); i++)
@@ -302,13 +305,15 @@ public:
     }
     void computeBoundingSphere(float& radius, fVec3& center) const {
         center = position;
-        radius = glutStrokeLength(GLUT_STROKE_ROMAN, (unsigned char*) text.c_str())*scale;
+        radius = glutStrokeLength(GLUT_STROKE_ROMAN, 
+                                  (unsigned char*)text.c_str())*scale;
     }
 private:
     fVec3 position;
     float scale;
     GLfloat color[3];
     string text;
+    bool faceCamera;
 };
 
 
@@ -2005,13 +2010,17 @@ static Scene* readNewScene() {
         }
 
         case AddText: {
-            readData(buffer, 7*sizeof(float)+sizeof(short));
+            readData(buffer, 7*sizeof(float)+2*sizeof(short));
             fVec3 position = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             float scale = floatBuffer[3];
             fVec3 color = fVec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
-            short length = shortBuffer[7*sizeof(float)/sizeof(short)];
+            unsigned short* shortp = &shortBuffer[7*sizeof(float)/sizeof(short)];
+            bool faceCamera = (shortp[0] != 0);
+            short length = shortp[1];
             readData(buffer, length);
-            newScene->strings.push_back(RenderedText(position, scale, color, string((char*)buffer, length)));
+            newScene->strings.push_back
+               (RenderedText(position, scale, color, 
+                             string((char*)buffer, length), faceCamera));
             break;
         }
 

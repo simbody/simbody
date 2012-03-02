@@ -234,7 +234,7 @@ void realizePosition(const SBStateDigest& sbs) const
 
     // Mobilizer specific.
     
-    const SBModelCache::PerMobilizedBodyModelInfo& mbInfo = getModelInfo(mc);
+    const SBModelPerMobodInfo& mbInfo = getModelInfo(mc);
 
     // First perform precalculations on these new q's, such as stashing away
     // sines and cosines of angles. We'll put all the results into the State's
@@ -329,6 +329,7 @@ void realizeVelocity(const SBStateDigest& sbs) const
     calcJointIndependentKinematicsVel(pc,vc);
 }
 
+// Articulated body inertias have been calculated; here we're 
 void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
                      const SBStateDigest&                   sbs) const 
 {
@@ -343,9 +344,7 @@ void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
     calcJointIndependentDynamicsVel(pc,abc,vc,dc);
 }
 
-void realizeAcceleration(const SBStateDigest& sbs) const
-{
-}
+// There is no realizeAcceleration().
 
 void realizeReport(const SBStateDigest& sbs) const
 {
@@ -369,23 +368,6 @@ void realizeYOutward(
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
     SBDynamicsCache&                        dc) const;
-
-void realizeZ(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    const Real*                             mobilityForces,
-    const SpatialVec*                       bodyForces) const;
-
-void realizeAccel(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    Real*                                   udot) const;
 
 // These routines give each node a chance to set appropriate defaults in a piece
 // of the state corresponding to a particular stage. Default implementations here
@@ -440,7 +422,7 @@ virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQua
 // This method should calculate qdot=N*u, where N=N(q) is the kinematic
 // coupling matrix. State digest should be at Stage::Position.
 virtual void calcQDot(const SBStateDigest&, 
-                                     const Real* u, Real* qdot) const 
+                      const Real* u, Real* qdot) const 
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(qdot) = Vec<dof>::getAs(u); // default says qdot=u
@@ -458,7 +440,7 @@ virtual void calcLocalUFromLocalQDot(const SBStateDigest&,
 // This method should calculate qdotdot=N*udot + NDot*u, where N=N(q),
 // NDot=NDot(q,u). State digest should be at Stage::Velocity.
 virtual void calcQDotDot(const SBStateDigest&, 
-                                           const Real* udot, Real* qdotdot) const
+                         const Real* udot, Real* qdotdot) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(qdotdot) = Vec<dof>::getAs(udot); // default: qdotdot=udot
@@ -738,7 +720,7 @@ void calcUDotPass2Outward(
     Real*                       allUDot,
     Real*                       allTau) const;
 
-void calcMInverseFPass1Inward(
+void multiplyByMInvPass1Inward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
@@ -748,7 +730,7 @@ void calcMInverseFPass1Inward(
     SpatialVec*                 allGepsilon,
     Real*                       allEpsilon) const;
 
-void calcMInverseFPass2Outward(
+void multiplyByMInvPass2Outward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
@@ -757,7 +739,8 @@ void calcMInverseFPass2Outward(
     SpatialVec*                 allA_GB,
     Real*                       allUDot) const;
 
-void calcInverseDynamicsPass1Outward(
+// Also serves as pass 1 for inverse dynamics.
+void calcBodyAccelerationsFromUdotOutward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     const Real*                 allUDot,
@@ -772,11 +755,11 @@ void calcInverseDynamicsPass2Inward(
     SpatialVec*                 allFTmp,
     Real*                       allTau) const; 
 
-void calcMVPass1Outward(
+void multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,
     const Real*                 allUDot,
     SpatialVec*                 allA_GB) const;
-void calcMVPass2Inward(
+void multiplyByMPass2Inward(
     const SBTreePositionCache&  pc,
     const SpatialVec*           allA_GB,
     SpatialVec*                 allFTmp,

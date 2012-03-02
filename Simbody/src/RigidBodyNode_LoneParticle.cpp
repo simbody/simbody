@@ -161,9 +161,9 @@ void realizeInstance(const SBStateDigest& sbs) const {
     updVD_PB_G(vc)[0] = Vec3(0);
     updV_GB(vc)[0] = Vec3(0);
     updGyroscopicForce(vc) = SpatialVec(Vec3(0), Vec3(0));
-    updCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+    updMobilizerCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
     updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
-    updCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
+    updMobilizerCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
     updTotalCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
     updY(dc) = SpatialMat(Mat33(0), Mat33(0), Mat33(0), Mat33(1.0/getMass()));
     updA_GB(ac)[0] = Vec3(0);
@@ -195,8 +195,7 @@ void realizeVelocity(const SBStateDigest& sbs) const {
 void realizeDynamics(const SBArticulatedBodyInertiaCache& abc, const SBStateDigest& sbs) const {
 }
 
-void realizeAcceleration(const SBStateDigest& sbs) const {
-}
+// There is no realizeAcceleration().
 
 void realizeReport(const SBStateDigest& sbs) const {
 }
@@ -205,31 +204,10 @@ void realizeArticulatedBodyInertiasInward(
         const SBInstanceCache&          ic,
         const SBTreePositionCache&      pc,
         SBArticulatedBodyInertiaCache&  abc) const {
-    updP(abc) = ArticulatedInertia(getMk_G(pc));
-}
+    ArticulatedInertia& P     = updP(abc);
+    ArticulatedInertia& PPlus = updPPlus(abc);
 
-void realizeZ(
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&    abc,
-        const SBTreeVelocityCache&              vc,
-        const SBDynamicsCache&                  dc,
-        SBTreeAccelerationCache&                ac,
-        const Real*                             mobilityForces,
-        const SpatialVec*                       bodyForces) const {
-    updZ(ac) = -bodyForces[nodeNum];
-    Vec3 epsilon = Vec3::getAs(&mobilityForces[uIndex])-getZ(ac)[1];
-    updGepsilon(ac) = SpatialVec(getCOM_B()%epsilon, epsilon);
-}
-void realizeAccel(
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&    abc,
-        const SBTreeVelocityCache&              vc,
-        const SBDynamicsCache&                  dc,
-        SBTreeAccelerationCache&                ac,
-        Real*                                   udot) const {
-    Vec3 epsilon = getGepsilon(ac)[1];
-    Vec3::updAs(udot) = epsilon/getMass();
-    updA_GB(ac)[1] = Vec3::getAs(udot);
+    PPlus = P = ArticulatedInertia(getMk_G(pc));
 }
 
 void realizeYOutward(
@@ -239,7 +217,9 @@ void realizeYOutward(
             SBDynamicsCache&                      dc) const {
 }
 
-void calcCompositeBodyInertiasInward(const SBTreePositionCache& pc, Array_<SpatialInertia>& R) const {
+void calcCompositeBodyInertiasInward
+   (const SBTreePositionCache& pc, 
+    Array_<SpatialInertia,MobilizedBodyIndex>& R) const {
     toB(R) = getMk_G(pc);
 }
 
@@ -287,15 +267,33 @@ void calcUDotPass1Inward(
         const SpatialVec*                       bodyForces,
         const Real*                             allUDot,
         SpatialVec*                             allZ,
-        SpatialVec*                             allGepsilon,
-        Real*                                   allEpsilon) const {
-    const Vec3& myJointForce = Vec3::getAs(&jointForces[uIndex]);
-    const SpatialVec& myBodyForce = bodyForces[nodeNum];
-    SpatialVec& z = allZ[nodeNum];
-    Vec3& eps = Vec3::updAs(&allEpsilon[uIndex]);
-    z = -myBodyForce;
-    eps = myJointForce - z[1];
+        SpatialVec*                             allZPlus,
+        Real*                                   allEpsilon) const 
+{
+    const Vec3&         f       = Vec3::getAs(&jointForces[uIndex]);
+    const SpatialVec&   F       = bodyForces[nodeNum];
+    SpatialVec&         z       = allZ[nodeNum];
+    SpatialVec&         zPlus   = allZPlus[nodeNum];
+    Vec3&               eps     = Vec3::updAs(&allEpsilon[uIndex]);
+
+    const bool isPrescribed = isUDotKnown(ic);
+
+    z = -F;
+
+    if (isPrescribed && !isUDotKnownToBeZero(ic)) {
+        const Vec3& udot = Vec3::getAs(&allUDot[uIndex]);
+        z[1] += getMass()*udot; // == P*H*udot
+    }
+
+    // Lone particle has no children.
+
+    eps = f - z[1];
+
+    zPlus = z;
+    if (!isPrescribed)
+        zPlus[1] += eps;
 }
+
 void calcUDotPass2Outward(
         const SBInstanceCache&                  ic,
         const SBTreePositionCache&              pc,
@@ -306,53 +304,73 @@ void calcUDotPass2Outward(
         SpatialVec*                             allA_GB,
         Real*                                   allUDot,
         Real*                                   allTau) const {
+    const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
     SpatialVec& A_GB = allA_GB[nodeNum];
     Vec3& udot = Vec3::updAs(&allUDot[uIndex]);
-    const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
-    if (!isUDotKnown(ic))
+
+    const bool isPrescribed = isUDotKnown(ic);
+
+    if (isPrescribed) {
+        const PresForcePoolIndex tauIx = 
+            ic.getMobodInstanceInfo(nodeNum).firstPresForce;
+        assert(tauIx.isValid());
+        Vec3& tau = Vec3::updAs(&allTau[tauIx]);
+        tau = eps; // our sign convention
+    } else 
         udot = eps/getMass();
+
     A_GB = SpatialVec(Vec3(0), udot);
 }
 
-void calcMInverseFPass1Inward(
+// Note that we're not setting z temporaries here; you can't count on that as
+// a side effect the M^-1*f kernel.
+void multiplyByMInvPass1Inward(
         const SBInstanceCache&                  ic,
         const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
         const SBDynamicsCache&                  dc,
-        const Real*                             f,
+        const Real*                             jointForces,
         SpatialVec*                             allZ,
-        SpatialVec*                             allGepsilon,
-        Real*                                   allEpsilon) const {
-    SpatialVec& z = allZ[nodeNum];
-    z = 0;
-    if (!isUDotKnown(ic)) {
-        const Vec3& myJointForce = Vec3::getAs(&f[uIndex]);
-        SpatialVec& Geps = allGepsilon[nodeNum];
-        Vec3& eps = Vec3::updAs(&allEpsilon[uIndex]);
-        eps  = myJointForce;
-        Geps = SpatialVec(getCOM_B()%eps, eps);
-    }
+        SpatialVec*                             allZPlus,
+        Real*                                   allEpsilon) const 
+{
+    if (isUDotKnown(ic)) // prescribed
+        return;
+
+    // We promised not to look at f if it is part of f_p (prescribed).
+    const Vec3& f     = Vec3::getAs(&jointForces[uIndex]);
+    Vec3&       eps   = Vec3::updAs(&allEpsilon[uIndex]);
+
+    eps = f;
 }
-void calcMInverseFPass2Outward(
+
+// Outward pass must set A_GB properly so it can be propagated
+// to children.
+void multiplyByMInvPass2Outward(
         const SBInstanceCache&                  ic,
         const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
         const SBDynamicsCache&                  dc,
         const Real*                             allEpsilon,
         SpatialVec*                             allA_GB,
-        Real*                                   allUDot) const {
+        Real*                                   allUDot) const 
+{
+    const bool isPrescribed = isUDotKnown(ic);
+    const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
     SpatialVec& A_GB = allA_GB[nodeNum];
-    if (isUDotKnown(ic))
-        A_GB = 0;
-    else {
-        const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
-        Vec3& udot = Vec3::updAs(&allUDot[uIndex]); // pull out this node's udot
+    Vec3&       udot = Vec3::updAs(&allUDot[uIndex]);
+
+    if (isPrescribed) {
+        udot = 0;
+        A_GB = SpatialVec(Vec3(0), Vec3(0));
+    } else {
         udot = eps/getMass();
         A_GB = SpatialVec(Vec3(0), udot);
     }
 }
 
-void calcInverseDynamicsPass1Outward(
+// Also serves as pass 1 for inverse dynamics.
+void calcBodyAccelerationsFromUdotOutward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
         const Real*                 allUDot,
@@ -378,7 +396,7 @@ void calcInverseDynamicsPass2Inward(
     tau = F[1] - myJointForce;
 }
 
-void calcMVPass1Outward(
+void multiplyByMPass1Outward(
         const SBTreePositionCache&  pc,
         const Real*                 allUDot,
         SpatialVec*                 allA_GB) const {
@@ -386,7 +404,7 @@ void calcMVPass1Outward(
     SpatialVec& A_GB = allA_GB[nodeNum];
     A_GB = SpatialVec(Vec3(0), udot);
 }
-void calcMVPass2Inward(
+void multiplyByMPass2Inward(
         const SBTreePositionCache&  pc,
         const SpatialVec*           allA_GB,
         SpatialVec*                 allF,

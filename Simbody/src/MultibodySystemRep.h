@@ -2,14 +2,14 @@
 #define SimTK_SIMBODY_MULTIBODY_SYSTEM_REP_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,10 +32,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/** @file
- * Define the private implementation of the MultibodySystem
- * class (a kind of System).
- */
+/* Here we define the private implementation of the MultibodySystem class 
+(a kind of System). This is not part of the Simbody API. */
 
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/SystemGuts.h"
@@ -57,19 +55,21 @@ namespace SimTK {
 class AnalyticGeometry;
 class DecorativeGeometry;
 
-/**
- * This is a set of global variables for the MultibodySystem, stored as a cache
- * entry in the system's State, one at each Stage. Technically it is owned by the
- * MultibodySystemGlobalSubsystem, but it is manipulated directly by
- * the MultibodySystem.
- *
- * The entry at a given Stage includes all the contributions from the previous
- * Stages. For example, if some forces are generated at Stage::Model, those
- * are used to initialize the ones at Stage::Instance. That way when we get
- * to the final set at Stage::Dynamics we can use it directly to produce
- * accelerations. This structure allows us to invalidate a higher Stage without
- * having to recalculate forces that were known at a lower Stage.
- */
+
+//==============================================================================
+//                              FORCE CACHE ENTRY
+//==============================================================================
+/* This is a set of global variables for the MultibodySystem, stored as a cache
+entry in the system's State, one at each Stage. Technically it is owned by the
+MultibodySystemGlobalSubsystem, but it is manipulated directly by
+the MultibodySystem.
+
+The entry at a given Stage includes all the contributions from the previous
+Stages. For example, if some forces are generated at Stage::Model, those
+are used to initialize the ones at Stage::Instance. That way when we get
+to the final set at Stage::Dynamics we can use it directly to produce
+accelerations. This structure allows us to invalidate a higher Stage without
+having to recalculate forces that were known at a lower Stage. */
 struct ForceCacheEntry {
     ForceCacheEntry() 
     { }
@@ -105,14 +105,17 @@ struct ForceCacheEntry {
 inline std::ostream& operator<<(std::ostream& o, const ForceCacheEntry&) 
 {assert(false);return o;}
 
-/**
- * This is the subsystem used by a MultibodySystem to manage global state
- * calculations like forces and potential energy.
- */
+
+
+//==============================================================================
+//                   MULTIBODY SYSTEM GLOBAL SUBSYSTEM REP
+//==============================================================================
+/* This is the subsystem used by a MultibodySystem to manage global state
+calculations like forces and potential energy. */
 class MultibodySystemGlobalSubsystemRep : public Subsystem::Guts {
     // Topological variables
 
-    static const int NumForceCacheEntries = (Stage::DynamicsIndex-Stage::ModelIndex+1);
+    static const int NumForceCacheEntries = (Stage::Dynamics-Stage::Model+1);
     mutable CacheEntryIndex forceCacheIndices[NumForceCacheEntries]; // where in state to find our stuff
 
     const ForceCacheEntry& getForceCacheEntry(const State& s, Stage g) const {
@@ -291,10 +294,12 @@ public:
 };
 
 
-/**
- * The job of the MultibodySystem class is to coordinate the activities of a
- * MatterSubsystem and a set of ForceSubsystems.
- */
+
+//==============================================================================
+//                          MULTIBODY SYSTEM REP
+//==============================================================================
+/* The job of the MultibodySystem class is to coordinate the activities of a
+MatterSubsystem and a set of ForceSubsystems. */
 class MultibodySystemRep : public System::Guts {
 public:
     MultibodySystemRep() 
@@ -425,49 +430,52 @@ public:
     int realizeReportImpl      (const State&) const;
 
     // Currently prescribe() and project() affect only the Matter subsystem.
-
-    int prescribeImpl(State& s, Stage g) {
+    bool prescribeQImpl(State& state) const {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
-        mech.getRep().prescribe(s,g);
-        return 0;
+        return mech.getRep().prescribeQ(state);
+    }
+    bool prescribeUImpl(State& state) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        return mech.getRep().prescribeU(state);
     }
 
-    // Note that we do all "q" projections before any "u" projections.
-    //
-    // TODO: yWeights & ooTols are being ignored here but shouldn't be!
-    int projectImpl(State& s, Real consAccuracy, const Vector& yWeights,
-                    const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
+    void projectQImpl(State& state, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const
     {
-        bool anyChange = false;
-
-        realize(s, Stage::Time);
-
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
-
-        if (opts.hasAnyPositionOptions()) {
-            mech.getRep().realizeSubsystemPosition(s);
-            if (mech.projectQConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts))
-                anyChange = true;
-        }
-
-        realize(s, Stage::Position);  // realize the whole system now
-
-        if (opts.hasAnyVelocityOptions()) {
-            mech.getRep().realizeSubsystemVelocity(s);
-            if (mech.projectUConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts))
-                anyChange = true;
-        }
-
-        realize(s, Stage::Velocity);  // realize the whole system now
-
-        return 0;
+        mech.getRep().projectQ(state, qErrEst, options, results);
+        realize(state, Stage::Position);  // realize the whole system now
     }
+    void projectUImpl(State& state, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const
+    {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().projectU(state, uErrEst, options, results);
+        realize(state, Stage::Velocity);  // realize the whole system now
+    }
+
+    void multiplyByNImpl(const State& s, const Vector& u, Vector& dq) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().multiplyByN(s,false,u,dq);
+    }
+    void multiplyByNTransposeImpl(const State& s, const Vector& fq, 
+                                  Vector& fu) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().multiplyByN(s,true,fq,fu);
+    }
+    void multiplyByNPInvImpl(const State& s, const Vector& dq, 
+                             Vector& u) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().multiplyByNInv(s,false,dq,u);
+    }
+    void multiplyByNPInvTransposeImpl(const State& s, const Vector& fu, 
+                                              Vector& fq) const {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().multiplyByNInv(s,true,fu,fq);
+    }  
 
     /* TODO: not yet
-    virtual Real calcTimescaleImpl(const State&) const;
-    virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
-    virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
-    virtual int handleEventsImpl
+    virtual void handleEventsImpl
        (State&, EventCause, const Array<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;

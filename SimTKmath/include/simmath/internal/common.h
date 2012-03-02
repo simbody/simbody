@@ -123,7 +123,6 @@ public:
         }
 private:
 };
-
 class IncorrectArrayLength : public Base {
 public:
         IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,  

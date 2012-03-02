@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                              SimTK Simbody(tm)                             *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2010 Stanford University and the Authors.           *
+ * Portions copyright (c) 2010-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -94,7 +94,7 @@ public:
         return 0;
     }
 
-    // The Jacobian of the holonomic constraint errors is PN^-1. We can get
+    // The Jacobian of the holonomic constraint errors is Pq=PN^-1. We can get
     // that analytically from Simbody but we might have to strip out some
     // of the columns if we aren't using all the q's.
     int calcErrorJacobian(const State& state, Matrix& jacobian) const {
@@ -102,14 +102,14 @@ public:
         const int np = getNumFreeQs();
         const int nq = state.getNQ();
 
-        jacobian.resize(state.getNQErr(), np);
+        jacobian.resize(state.getNQErr(), np); // ok cuz no quaternions
 
         if (np == nq) {
             // Jacobian is already the right shape.
-            matter.calcPNInv(state, jacobian);
+            matter.calcPq(state, jacobian);
         } else {
             Matrix fullJac(state.getNQErr(), nq);
-            matter.calcPNInv(state, fullJac);
+            matter.calcPq(state, fullJac);
             // Extract just the columns corresponding to free Qs
             for (Assembler::FreeQIndex fx(0); fx < np; ++fx)
                 jacobian(fx) = fullJac(getQIndexOfFreeQ(fx));
@@ -123,11 +123,10 @@ public:
         return 0;
     }
 
-    // Gradient is ~(d goal/dq) = ~(~qerr * dqerr/dq) = ~(~qerr*P*N^-1)
-    // = ~N^-1 ~P qerr. This can be done in O(n+m) time since we can calculate
-    // the matrix-vector product N^-T*v in O(n) and P^T*v in O(n+m) time, where
+    // Gradient is ~(d goal/dq) = ~(~qerr * dqerr/dq) = ~(~qerr*Pq)
+    // = ~Pq qerr. This can be done in O(n+m) time since we can calculate
+    // the matrix-vector product ~Pq*v in O(n+m) time, where
     // n=#q's and m=# constraint equations.
-    // TODO: not being done efficiently now
     int calcGoalGradient(const State& state, Vector& grad) const {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const int np = getNumFreeQs();
@@ -135,19 +134,12 @@ public:
 
         grad.resize(np);
 
-        Vector PtQerr(state.getNU());
-        //TODO: use calcPtV
-        Matrix Pt;
-        matter.calcPt(state, Pt);
-        PtQerr = Pt*state.getQErr();
-        //matter.calcPtV(state, state.getQErr(), PtQerr);
-
         if (np == nq) {
             // Nothing locked; analytic gradient is the right size
-            matter.multiplyByNInv(state, true, PtQerr, grad);
+            matter.multiplyByPqTranspose(state, state.getQErr(), grad);
         } else {
             Vector fullGrad(nq);
-            matter.multiplyByNInv(state, true, PtQerr, fullGrad);
+            matter.multiplyByPqTranspose(state, state.getQErr(), fullGrad);
             // Extract just the entries corresponding to free Qs
             for (Assembler::FreeQIndex fx(0); fx < np; ++fx)
                 grad[fx] = fullGrad[getQIndexOfFreeQ(fx)];
@@ -220,7 +212,7 @@ public:
     // Return the value of the objective to be minimized when the freeQs
     // have the values given by the parameters.
     int objectiveFunc(const Vector&     parameters, 
-                      const bool        new_parameters, 
+                      bool              new_parameters, 
                       Real&             objectiveValue) const 
     {   ++nEvalObjective;
 
@@ -279,7 +271,7 @@ public:
     };
 
     int gradientFunc(const Vector&     parameters, 
-                     const bool        new_parameters, 
+                     bool              new_parameters, 
                      Vector&           gradient) const 
     {   SimTK_ASSERT2_ALWAYS(gradient.size() == getNumFreeQs(),
             "AssemblySystem::gradientFunc(): expected gradient vector of"
@@ -342,7 +334,7 @@ public:
 
     // Return the errors in the hard assembly error conditions.
     int constraintFunc(const Vector&    parameters, 
-                       const bool       new_parameters, 
+                       bool             new_parameters, 
                        Vector&          qerrs) const 
     {   ++nEvalConstraints;
 
@@ -409,7 +401,7 @@ public:
     };
 
     int constraintJacobian(const Vector&    parameters, 
-                           const bool       new_parameters, 
+                           bool             new_parameters, 
                            Matrix&          J) const 
     {   ++nEvalJacobian;
 
@@ -571,7 +563,14 @@ void Assembler::initialize() const {
     Array_<QIndex> toBeLocked;
     reinitializeWithExtraQsLocked(toBeLocked);
     alreadyInitialized = true;
-return;
+    return;
+
+    /*NOTREACHED*/
+    // TODO: This currently unused code would allow the Assembler to lock out 
+    // variables that it thinks aren't worth bothering with. Needs real-world
+    // testing and probably some override options. And should there be a
+    // desperation mode where all variables are tried if we can't assemble
+    // with some of them removed?
     Vector grad = abs(asmSys->calcCurrentGradient());
     Real maxGrad = 0;
     for (FreeQIndex fx(0); fx < grad.size(); ++fx)
@@ -620,7 +619,19 @@ void Assembler::reinitializeWithExtraQsLocked
     extraQsLocked = toBeLocked;
     lockedQs.insert(extraQsLocked.begin(), extraQsLocked.end());
 
-    // First lock all the q's for locked mobilizers.
+    // Find all the mobilizers that have prescribed positions and lock
+    // all their q's.
+    for (MobodIndex mbx(0); mbx < matter.getNumBodies(); ++mbx) {
+        const MobilizedBody& mobod  = matter.getMobilizedBody(mbx);
+        if (mobod.getQMotionMethod(internalState) == Motion::Free)
+            continue;
+        const QIndex         q0     = mobod.getFirstQIndex(internalState);
+        const int            nq     = mobod.getNumQ(internalState);
+        for (int i=0; i<nq; ++i)
+            lockedQs.insert(QIndex(q0+i));
+    }
+
+    // Lock all the q's for locked mobilizers.
     for (LockedMobilizers::const_iterator p = userLockedMobilizers.begin();
          p != userLockedMobilizers.end(); ++p)
     {
@@ -820,6 +831,10 @@ Real Assembler::assemble() {
     for (unsigned i=0; i < reporters.size(); ++i)
         reporters[i]->handleEvent(internalState);
 
+    // First step: satisfy prescribed motion (exactly).
+    system.realize(internalState, Stage::Time);
+    system.prescribeQ(internalState);
+
     // Optimize
     Vector freeQs = getFreeQsFromInternalState();
     // Use tolerance if there are any error conditions, else accuracy.
@@ -864,6 +879,8 @@ Real Assembler::track(Real frameTime) {
     if (frameTime >= 0 && internalState.getTime() != frameTime) {
         internalState.setTime(frameTime);
         system.realize(internalState, Stage::Time);
+        // Satisfy prescribed motion (exactly).
+        system.prescribeQ(internalState);
     }
 
     const int nfreeq = getNumFreeQs();

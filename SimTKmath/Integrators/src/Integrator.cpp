@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmath(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -83,7 +83,8 @@ Integrator::TerminationReason Integrator::getTerminationReason() const {
     return getRep().getTerminationReason();
 }
 
-/*static*/ String Integrator::successfulStepStatusString(SuccessfulStepStatus stat) {
+/*static*/ String Integrator::
+getSuccessfulStepStatusString(SuccessfulStepStatus stat) {
     switch(stat) { 
         case ReachedReportTime: return "ReachedReportTime";
         case ReachedEventTrigger: return "ReachedEventTrigger";
@@ -93,7 +94,20 @@ Integrator::TerminationReason Integrator::getTerminationReason() const {
         case EndOfSimulation: return "EndOfSimulation";
         case StartOfContinuousInterval: return "StartOfContinuousInterval";
         case InvalidSuccessfulStepStatus: return "InvalidSuccessfulStepStatus";
-        default: return String("UNKNOWN SUCCESSFUL STEP STATUS ") + String((int)stat);
+        default: return String("UNKNOWN SUCCESSFUL STEP STATUS ") 
+                      + String((int)stat);
+    }
+}
+
+/*static*/ String Integrator::
+getTerminationReasonString(TerminationReason reason) {
+    switch(reason) { 
+        case ReachedFinalTime: return "ReachedFinalTime";
+        case AnUnrecoverableErrorOccurred: return "AnUnrecoverableErrorOccurred";
+        case EventHandlerRequestedTermination: return "EventHandlerRequestedTermination";
+        case InvalidTerminationReason: return "InvalidTerminationReason";
+        default: return String("UNKNOWN TERMINATION REASON ") 
+                      + String((int)reason);
     }
 }
 
@@ -166,18 +180,6 @@ Real Integrator::getConstraintToleranceInUse() const {
     return getRep().getConstraintToleranceInUse();
 }
 
-Real Integrator::getTimeScaleInUse() const {
-    return getRep().getTimeScaleInUse();
-}
-
-const Vector& Integrator::getStateWeightsInUse() const {
-    return getRep().getStateWeightsInUse();
-}
-
-const Vector& Integrator::getConstraintWeightsInUse() const {
-    return getRep().getConstraintWeightsInUse();
-}
-
 Real Integrator::getActualInitialStepSizeTaken() const {
     return getRep().getActualInitialStepSizeTaken();
 }
@@ -196,8 +198,15 @@ int Integrator::getNumStepsTaken() const {
 int Integrator::getNumRealizations() const {
     return getRep().getNumRealizations();
 }
+int Integrator::getNumQProjections() const {
+    return getRep().getNumQProjections();
+}
+int Integrator::getNumUProjections() const {
+    return getRep().getNumUProjections();
+}
 int Integrator::getNumProjections() const {
-    return getRep().getNumProjections();
+    return getRep().getNumQProjections()
+         + getRep().getNumUProjections();
 }
 int Integrator::getNumErrorTestFailures() const {
     return getRep().getNumErrorTestFailures();
@@ -208,8 +217,15 @@ int Integrator::getNumConvergenceTestFailures() const {
 int Integrator::getNumRealizationFailures() const {
     return getRep().getNumRealizationFailures();
 }
+int Integrator::getNumQProjectionFailures() const {
+    return getRep().getNumQProjectionFailures();
+}
+int Integrator::getNumUProjectionFailures() const {
+    return getRep().getNumUProjectionFailures();
+}
 int Integrator::getNumProjectionFailures() const {
-    return getRep().getNumProjectionFailures();
+    return getRep().getNumQProjectionFailures()
+         + getRep().getNumUProjectionFailures();
 }
 int Integrator::getNumConvergentIterations() const {
     return getRep().getNumConvergentIterations();
@@ -257,17 +273,18 @@ void Integrator::setAccuracy(Real accuracy) {
     assert(accuracy == -1. || (0. < accuracy && accuracy < 1.));
     updRep().userAccuracy = accuracy;
 }
-void Integrator::setRelativeTolerance(Real relTol) {
-    assert(relTol  == -1. || (0. < relTol  && relTol  <= 1.));
-    updRep().userRelTol=relTol;
-}
-void Integrator::setAbsoluteTolerance(Real absTol) {
-    assert(absTol  == -1. || (0. < absTol  && absTol  <= 1.));
-    updRep().userAbsTol=absTol;
-}
 void Integrator::setConstraintTolerance(Real consTol) {
     assert(consTol == -1. || (0. < consTol && consTol <= 1.));
     updRep().userConsTol=consTol;
+}
+void Integrator::setUseInfinityNorm(bool useInfinityNorm) {
+    updRep().userUseInfinityNorm = useInfinityNorm ? 1 : 0;
+}
+bool Integrator::isInfinityNormInUse() const
+{   return getRep().userUseInfinityNorm == 1; }
+
+void Integrator::setForceFullNewton(bool forceFullNewton) {
+    updRep().userForceFullNewton = forceFullNewton ? 1 : 0;
 }
 void Integrator::setReturnEveryInternalStep(bool shouldReturn) {
     updRep().userReturnEveryInternalStep = shouldReturn ? 1 : 0;
@@ -336,11 +353,9 @@ void IntegratorRep::initialize(const State& initState) {
     const int ny = getAdvancedState().getNY();
     const int nc = getAdvancedState().getNYErr();
     const int ne = getAdvancedState().getNEventTriggers();
-    stateWeightsInUse.resize(ny);
-    constraintWeightsInUse.resize(nc);
-    timeScaleInUse = getSystem().calcTimescale(getAdvancedState());
+    timeScaleInUse = getSystem().getDefaultTimeScale();
 
-    // Set accuracy, consTol, relTol, absTol to their user-requested values or
+    // Set accuracy and consTol to their user-requested values or
     // to the appropriate defaults.
     setAccuracyAndTolerancesFromUserRequests();
 
@@ -350,33 +365,15 @@ void IntegratorRep::initialize(const State& initState) {
     // -- be sure to multiply by timescale before using.
     getSystem().calcEventTriggerInfo(getAdvancedState(), eventTriggerInfo);
 
-    // Obtain the constraint error tolerance units (actually 1/tolerance) for 
-    // each constraint. Tolerance units are Instance stage information; they 
-    // cannot change with time. The actual tolerances we'll use will be these 
-    // unit tolerances scaled by the user's accuracy request.
-    getSystem().calcYErrUnitTolerances(getAdvancedState(), 
-                                       constraintWeightsInUse);
-
-    // Obtain the state variable weights. Weights are Position-stage 
-    // information but are expected to remain constant over substantial 
-    // intervals, so that we can consider them to be constant during a time 
-    // step. These should be recalculated from time to time during a 
-    // simulation, whenever "substantial" changes to the configuration have 
-    // been made.
-    getSystem().realize(getAdvancedState(), Stage::Position);
-    getSystem().calcYUnitWeights(getAdvancedState(), stateWeightsInUse);
-
-    // Using the constraint unit tolerances and state weights we just 
-    // calculated, project the states to drive constraint errors below 
-    // accuracy*unitTolerance for each constraint. 
-    getSystem().realize(getAdvancedState(), Stage::Velocity); // all kinematics
-    // Since we're initializing we won't assume we're near a solution and
-    // we'll allow project() to make desperate attempts to find one.
-    projectStateNonLocal(updAdvancedState());
-
-    // Refresh the weights in case anything significant was done by the initial
-    // projection.
-    getSystem().calcYUnitWeights(getAdvancedState(), stateWeightsInUse);
+    // Project q's onto position constraint manifold to drive constraint errors
+    // below accuracy*unitTolerance for each constraint. We'll allow project()
+    // to throw an exception if it fails since we can't recover from here.
+    // However, we won't set the LocalOnly option which means project() is
+    // allowed to thrash around wildly to attempt to find *some* solution.
+    // Also force repeated updates of iteration matrix to maximize chances of 
+    // finding a solution; we're not in a hurry here.
+    realizeAndProjectKinematicsWithThrow(updAdvancedState(),
+        ProjectOptions::ForceProjection, ProjectOptions::ForceFullNewton);
 
     // Now evaluate the state through the Acceleration stage to calculate
     // the initial state derivatives.

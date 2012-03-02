@@ -126,6 +126,11 @@ Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintIndex id) {
     return updRep().updConstraint(id);
 }
 
+
+
+//==============================================================================
+//                            CALC ACCELERATION
+//==============================================================================
 //TODO: should allow zero-length force arrays to stand for zeroes.
 void SimbodyMatterSubsystem::calcAcceleration
    (const State&                state,
@@ -150,19 +155,27 @@ void SimbodyMatterSubsystem::calcAcceleration
     // Create a dummy acceleration cache to hold the result.
     const SBModelCache&    mc = getRep().getModelCache(state);
     const SBInstanceCache& ic = getRep().getInstanceCache(state);
-    SBTreeAccelerationCache tac;
+    SBTreeAccelerationCache        tac;
+    SBConstrainedAccelerationCache cac;
     tac.allocate(getRep().topologyCache, mc, ic);
+    cac.allocate(getRep().topologyCache, mc, ic);
 
-    Vector udotErr(getNUDotErr(state)); // unwanted return value
+    Vector qdotdot; // unwanted return value
     Vector multipliers(getNMultipliers(state)); // unwanted return value
+    Vector udotErr(getNUDotErr(state)); // unwanted return value
 
     getRep().calcLoopForwardDynamicsOperator(state, 
         appliedMobilityForces, appliedParticleForces, appliedBodyForces,
-        tac, udot, multipliers, udotErr);
+        tac, cac, udot, qdotdot, multipliers, udotErr);
 
     A_GB = tac.bodyAccelerationInGround;
 }
 
+
+
+//==============================================================================
+//                    CALC ACCELERATION IGNORING CONSTRAINTS
+//==============================================================================
 //TODO: should allow zero-length force arrays to stand for zeroes.
 void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
    (const State&                state,
@@ -183,60 +196,265 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
         appliedBodyForces.size(), getNumBodies());
 
     Vector netHingeForces(getNumMobilities()); // unwanted side effects
+    Array_<SpatialVec,MobilizedBodyIndex> abForcesZ(getNumBodies());   
+    Array_<SpatialVec,MobilizedBodyIndex> abForcesZPlus(getNumBodies());   
     Vector tau;
+    Vector qdotdot;
+
+    const SBDynamicsCache& dc = getRep().getDynamicsCache(state);
 
     getRep().calcTreeAccelerations(state,
-        appliedMobilityForces, appliedBodyForces,
-        netHingeForces, A_GB, udot, tau);
+        appliedMobilityForces, appliedBodyForces, dc.presUDotPool,
+        netHingeForces, abForcesZ, abForcesZPlus, 
+        A_GB, udot, qdotdot, tau);
 }
 
 
-void SimbodyMatterSubsystem::calcMInverseV(const State& s,
-    const Vector&        v,
-    Vector&              MinvV) const
-{
-    Vector_<SpatialVec> A_GB;
-    getRep().calcMInverseF(s,v, A_GB, MinvV);
-}
 
+//==============================================================================
+//                  CALC RESIDUAL FORCE IGNORING CONSTRAINTS
+//==============================================================================
+// This is inverse dynamics.
+// This just checks the arguments, arranges for contiguous vectors to work
+// with if necessary, and then calls the implementation method.
 void SimbodyMatterSubsystem::calcResidualForceIgnoringConstraints
    (const State&               state,
     const Vector&              appliedMobilityForces,
-    const Vector_<SpatialVec>& appliedBodyForces,
+    const Vector_<SpatialVec>& appliedBodyForcesInG,
     const Vector&              knownUdot,
     Vector&                    residualMobilityForces) const
 {
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies();
+    const int nu = rep.getNU(state);
+
     SimTK_APIARGCHECK2_ALWAYS(
-        appliedMobilityForces.size()==0 || appliedMobilityForces.size()==getNumMobilities(),
+        appliedMobilityForces.size()==0 || appliedMobilityForces.size()==nu,
         "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d appliedMobilityForces but there are %d mobilities.",
-        appliedMobilityForces.size(), getNumMobilities());
+        appliedMobilityForces.size(), nu);
     SimTK_APIARGCHECK2_ALWAYS(
-        appliedBodyForces.size()==0 || appliedBodyForces.size()==getNumBodies(),
+        appliedBodyForcesInG.size()==0 || appliedBodyForcesInG.size()==nb,
         "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d appliedBodyForces but there are %d bodies (including Ground).",
-        appliedBodyForces.size(), getNumBodies());
+        appliedBodyForcesInG.size(), nb);
     SimTK_APIARGCHECK2_ALWAYS(
-        knownUdot.size()==0 || knownUdot.size()==getNumMobilities(),
+        knownUdot.size()==0 || knownUdot.size()==nu,
         "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d knownUdots but there are %d mobilities.",
-        knownUdot.size(), getNumMobilities());
+        knownUdot.size(), nu);
 
-    residualMobilityForces.resize(getNumMobilities());
+    residualMobilityForces.resize(nu);
 
-    Vector_<SpatialVec> A_GB(getNumBodies());
-    getRep().calcTreeResidualForces(state,
-        appliedMobilityForces, appliedBodyForces, knownUdot,
-        A_GB, residualMobilityForces);
+    // Assume at first that all Vectors are contiguous.
+    const Vector*               cmobForces  = &appliedMobilityForces;
+    const Vector_<SpatialVec>*  cbodyForces = &appliedBodyForcesInG;
+    const Vector*               cudot       = &knownUdot;
+    Vector*                     cresid      = &residualMobilityForces;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_mobForces, contig_udot, contig_resid;
+    Vector_<SpatialVec> contig_bodyForces;
+
+    if (!appliedMobilityForces.hasContiguousData()) {
+        contig_mobForces.resize(nu); // contiguous memory
+        contig_mobForces(0, nu) = appliedMobilityForces; // copy, no reallocation
+        cmobForces = (const Vector*)&contig_mobForces;
+    }
+    if (!appliedBodyForcesInG.hasContiguousData()) {
+        contig_bodyForces.resize(nb); // contiguous memory
+        contig_bodyForces(0, nb) = appliedBodyForcesInG; // copy, no reallocation
+        cbodyForces = (const Vector_<SpatialVec>*)&contig_bodyForces;
+    }
+    if (!knownUdot.hasContiguousData()) {
+        contig_udot.resize(nu); // contiguous memory
+        contig_udot(0, nu) = knownUdot; // copy, no reallocation
+        cudot = (const Vector*)&contig_udot;
+    }
+    if (!residualMobilityForces.hasContiguousData()) {
+        contig_resid.resize(nu); // contiguous memory
+        cresid = (Vector*)&contig_resid;
+        needToCopyBack = true;
+    }
+
+    Vector_<SpatialVec> A_GB(nb); // temp for unwanted result
+    rep.calcTreeResidualForces(state,
+        *cmobForces, *cbodyForces, *cudot,
+        A_GB, *cresid);
+
+    if (needToCopyBack)
+        residualMobilityForces = *cresid;
 }
 
-void SimbodyMatterSubsystem::calcMV(const State& s, 
-    const Vector& v, 
-    Vector& MV) const
+
+
+//==============================================================================
+//                          CALC RESIDUAL FORCE 
+//==============================================================================
+// This is inverse dynamics with constraints.
+void SimbodyMatterSubsystem::calcResidualForce
+   (const State&               state,
+    const Vector&              appliedMobilityForces,
+    const Vector_<SpatialVec>& appliedBodyForcesInG,
+    const Vector&              knownUdot,
+    const Vector&              knownLambda,
+    Vector&                    residualMobilityForces) const
 {
-    Vector_<SpatialVec> A_GB;
-    getRep().calcMV(s,v, A_GB, MV);
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nb = rep.getNumBodies();
+    const int nu = rep.getNU(state);
+    const int m  = rep.getNMultipliers(state);
+
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedMobilityForces.size()==0 || appliedMobilityForces.size()==nu,
+        "SimbodyMatterSubsystem", "calcResidualForce",
+        "Got %d appliedMobilityForces but there are %d mobilities.",
+        appliedMobilityForces.size(), nu);
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedBodyForcesInG.size()==0 || appliedBodyForcesInG.size()==nb,
+        "SimbodyMatterSubsystem", "calcResidualForce",
+        "Got %d appliedBodyForces but there are %d bodies (including Ground).",
+        appliedBodyForcesInG.size(), nb);
+    SimTK_APIARGCHECK2_ALWAYS(
+        knownUdot.size()==0 || knownUdot.size()==nu,
+        "SimbodyMatterSubsystem", "calcResidualForce",
+        "Got %d knownUdots but there are %d mobilities.",
+        knownUdot.size(), nu);
+    SimTK_APIARGCHECK2_ALWAYS(
+        knownLambda.size()==0 || knownLambda.size()==m,
+        "SimbodyMatterSubsystem", "calcResidualForce",
+        "Got %d knownLambdas but there are %d constraint equations.",
+        knownUdot.size(), m);
+
+    if (knownLambda.size() == 0) { // no constraint forces
+        // Call above method instead.
+        calcResidualForceIgnoringConstraints(state,
+            appliedMobilityForces, appliedBodyForcesInG, knownUdot,
+            residualMobilityForces);
+        return; 
+    }
+
+    // There are some lambdas, so calculate the forces they produce, with
+    // the result going in newly-allocated contiguous storage. We have to
+    // negate lambda to make the constraint forces have the sign of applied
+    // forces; we'll do that into a contiguous Vector also.
+    Vector_<SpatialVec> bodyForcesInG(nb);
+    Vector              mobilityForces(nu);
+    Vector              negLambda = -knownLambda;
+    rep.calcConstraintForcesFromMultipliers(state, negLambda,
+        bodyForcesInG, mobilityForces);
+
+    // Now add in the applied forces, and call the unconstrained routine.
+    if (appliedBodyForcesInG.size())
+        bodyForcesInG  += appliedBodyForcesInG;
+    if (appliedMobilityForces.size())
+        mobilityForces += appliedMobilityForces;
+
+    calcResidualForceIgnoringConstraints(state,
+        mobilityForces, bodyForcesInG, knownUdot,
+        residualMobilityForces);
 }
+
+
+
+//==============================================================================
+//                               MULTIPLY BY M
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate f = M*a.
+void SimbodyMatterSubsystem::multiplyByM(const State&  state, 
+                                         const Vector& a, 
+                                         Vector&       Ma) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nu = rep.getNU(state);
+
+    SimTK_ERRCHK2_ALWAYS(a.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByMInv()",
+        "Argument 'a' had length %d but should have the same length"
+        " as the number of mobilities (generalized speeds u) %d.", 
+        a.size(), nu);
+
+    Ma.resize(nu);
+    if (nu==0) return;
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* ca    = &a;
+    Vector*       cMa   = &Ma;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_a, contig_Ma;
+
+    if (!a.hasContiguousData()) {
+        contig_a.resize(nu); // contiguous memory
+        contig_a(0, nu) = a; // copy, prevent reallocation
+        ca = (const Vector*)&contig_a;
+    }
+
+    if (!Ma.hasContiguousData()) {
+        contig_Ma.resize(nu); // contiguous memory
+        cMa = (Vector*)&contig_Ma;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByM(state, *ca, *cMa);
+
+    if (needToCopyBack)
+        Ma = *cMa;
+}
+
+
+
+//==============================================================================
+//                             MULTIPLY BY M INV
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate a = M^-1*f.
+void SimbodyMatterSubsystem::multiplyByMInv(const State&    state,
+                                            const Vector&   f,
+                                            Vector&         MInvf) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int nu = rep.getNU(state);
+
+    SimTK_ERRCHK2_ALWAYS(f.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByMInv()",
+        "Argument 'f' had length %d but should have the same length"
+        " as the number of mobilities (generalized speeds u) %d.", 
+        f.size(), nu);
+
+    MInvf.resize(nu);
+    if (nu==0) return;
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* cf    = &f;
+    Vector*       cMInvf   = &MInvf;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_f, contig_MInvf;
+
+    if (!f.hasContiguousData()) {
+        contig_f.resize(nu); // contiguous memory
+        contig_f(0, nu) = f; // copy, prevent reallocation
+        cf = (const Vector*)&contig_f;
+    }
+
+    if (!MInvf.hasContiguousData()) {
+        contig_MInvf.resize(nu); // contiguous memory
+        cMInvf = (Vector*)&contig_MInvf;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByMInv(state, *cf, *cMInvf);
+
+    if (needToCopyBack)
+        MInvf = *cMInvf;
+}
+
+
 
 void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const 
 {   getRep().calcM(s, M); }
@@ -244,6 +462,22 @@ void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const
 void SimbodyMatterSubsystem::calcMInv(const State& s, Matrix& MInv) const 
 {   getRep().calcMInv(s, MInv); }
 
+
+// Note: the implementation methods that generate matrices do *not* require 
+// contiguous storage, so we can just forward to them with no preliminaries.
+void SimbodyMatterSubsystem::calcProjectedMInv(const State&   s,
+                                               Matrix&        GMInvGt) const
+{   getRep().calcGMInvGt(s, GMInvGt); }
+void SimbodyMatterSubsystem::calcG(const State& s, Matrix& G) const 
+{   getRep().calcPVA(s, true, true, true, G); }
+void SimbodyMatterSubsystem::calcGTranspose(const State& s, Matrix& Gt) const 
+{   getRep().calcPVATranspose(s, true, true, true, Gt); }
+void SimbodyMatterSubsystem::calcPq(const State& s, Matrix& Pq) const 
+{   getRep().calcPq(s,Pq); }
+void SimbodyMatterSubsystem::calcPqTranspose(const State& s, Matrix& Pqt) const 
+{   getRep().calcPqTranspose(s,Pqt); }
+
+// OBSOLETE
 void SimbodyMatterSubsystem::
 calcPNInv(const State& s, Matrix& PNInv) const {
     return getRep().calcHolonomicConstraintMatrixPNInv(s,PNInv);
@@ -260,19 +494,330 @@ calcPt(const State& s, Matrix& Pt) const {
 }
 
 
+
+//==============================================================================
+//                          MULTIPLY BY G TRANSPOSE
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate f = ~G*lambda.
+void SimbodyMatterSubsystem::
+multiplyByGTranspose(const State&  s,
+                     const Vector& lambda,
+                     Vector&       f) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = rep.getNU(s);
+
+    SimTK_ERRCHK2_ALWAYS(lambda.size() == m,
+        "SimbodyMatterSubsystem::multiplyByGTranspose()",
+        "Argument 'lambda' had length %d but should have the same length"
+        " as the total number of active constraint equations m=%d.", 
+        lambda.size(), m);
+
+    f.resize(nu);
+    if (nu==0) return;
+    if (m==0) {f.setToZero(); return;}
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* clambda = &lambda;
+    Vector*       cf      = &f;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_lambda, contig_f;
+
+    if (!lambda.hasContiguousData()) {
+        contig_lambda.resize(m); // contiguous memory
+        contig_lambda(0, m) = lambda; // copy, prevent reallocation
+        clambda = (const Vector*)&contig_lambda;
+    }
+
+    if (!f.hasContiguousData()) {
+        contig_f.resize(nu); // contiguous memory
+        cf = (Vector*)&contig_f;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPVATranspose(s, true, true, true, *clambda, *cf);
+    if (needToCopyBack)
+        f = *cf;
+}
+
+
+
+
+//==============================================================================
+//                          MULTIPLY BY Pq TRANSPOSE
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method to calculate fq = ~Pq*lambdap.
+void SimbodyMatterSubsystem::
+multiplyByPqTranspose(const State&  s,
+                      const Vector& lambdap,
+                      Vector&       fq) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mp = ic.totalNHolonomicConstraintEquationsInUse;
+    const int nq = rep.getNQ(s);
+
+    SimTK_ERRCHK2_ALWAYS(lambdap.size() == mp,
+        "SimbodyMatterSubsystem::multiplyByPqTranspose()",
+        "Argument 'lambdap' had length %d but should have had the same length"
+        " as the number of active position (holonomic) constraint equations"
+        " mp=%d.", lambdap.size(), mp);
+
+    fq.resize(nq);
+    if (nq==0) return;
+    if (mp==0) {fq.setToZero(); return;}
+
+    // Assume at first that both Vectors are contiguous.
+    const Vector* clambdap = &lambdap;
+    Vector*       cfq      = &fq;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_lambdap, contig_fq;
+
+    if (!lambdap.hasContiguousData()) {
+        contig_lambdap.resize(mp); // contiguous memory
+        contig_lambdap(0, mp) = lambdap; // copy, prevent reallocation
+        clambdap = (const Vector*)&contig_lambdap;
+    }
+
+    if (!fq.hasContiguousData()) {
+        contig_fq.resize(nq); // contiguous memory
+        cfq = (Vector*)&contig_fq;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPqTranspose(s, *clambdap, *cfq);
+    if (needToCopyBack)
+        fq = *cfq;
+}
+
+
+
+//==============================================================================
+//                             MULTIPLY BY G
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necessary, call the
+// implementation method.
+void SimbodyMatterSubsystem::
+multiplyByG(const State&  s,
+            const Vector& ulike,
+            const Vector& bias,
+            Vector&       Gulike) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = rep.getNU(s);
+
+    SimTK_ERRCHK2_ALWAYS(ulike.size() == nu,
+        "SimbodyMatterSubsystem::multiplyByG()",
+        "Argument 'ulike' had length %d but should have the same length"
+        " as the total number of mobilities nu=%d.", ulike.size(), nu);
+
+    SimTK_ERRCHK2_ALWAYS(bias.size() == m,
+        "SimbodyMatterSubsystem::multiplyByG()",
+        "Argument 'bias' had length %d but should have the same length"
+        " as the total number of constraint equations m=%d.", bias.size(), m);
+
+    Gulike.resize(m);
+    if (m==0) return;
+
+    // Assume at first that all Vectors are contiguous.
+    const Vector* culike  = &ulike;
+    const Vector* cbias   = &bias;
+    Vector*       cGulike = &Gulike;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_ulike, contig_bias, contig_Gulike;
+
+    if (!ulike.hasContiguousData()) {
+        contig_ulike.resize(nu); // contiguous memory
+        contig_ulike(0, nu) = ulike; // copy, prevent reallocation
+        culike = (const Vector*)&contig_ulike;
+    }
+    if (!bias.hasContiguousData()) {
+        contig_bias.resize(m); // contiguous memory
+        contig_bias(0, m) = bias; // copy, prevent reallocation
+        cbias = (const Vector*)&contig_bias;
+    }
+    if (!Gulike.hasContiguousData()) {
+        contig_Gulike.resize(m); // contiguous memory
+        cGulike = (Vector*)&contig_Gulike;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPVA(s, true, true, true, *cbias, *culike, *cGulike);
+    if (needToCopyBack)
+        Gulike = *cGulike;
+}
+
+
+
+//==============================================================================
+//                      CALC BIAS FOR MULTIPLY BY G
+//==============================================================================
+// Here we just make sure that we have a contiguous array for the result and
+// then call the implementation method.
+void SimbodyMatterSubsystem::
+calcBiasForMultiplyByG(const State& state,
+                       Vector&      bias) const
+{
+    const SBInstanceCache& ic = getRep().getInstanceCache(state);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+    const int m        = mHolo+mNonholo+mAccOnly;
+
+    bias.resize(m);
+    if (m==0) return;
+
+    if (bias.hasContiguousData()) {
+        getRep().calcBiasForMultiplyByPVA(state, true, true, true, bias);
+    } else {
+        Vector tmpbias(m); // contiguous
+        getRep().calcBiasForMultiplyByPVA(state, true, true, true, tmpbias);
+        bias = tmpbias;
+    }
+}
+
+
+
+
+//==============================================================================
+//                            MULTIPLY BY Pq
+//==============================================================================
+// Check arguments, copy in/out of contiguous Vectors if necssary, call the
+// implementation method.
+void SimbodyMatterSubsystem::
+multiplyByPq(const State&   s,
+             const Vector&  qlike,
+             const Vector&  biasp,
+             Vector&        PqXqlike) const
+{   
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const SBInstanceCache& ic = rep.getInstanceCache(s);
+
+    // Problem dimensions.
+    const int mp = ic.totalNHolonomicConstraintEquationsInUse;
+    const int nq = rep.getNQ(s);
+
+    SimTK_ERRCHK2_ALWAYS(qlike.size() == nq,
+        "SimbodyMatterSubsystem::multiplyByPq()",
+        "Argument 'qlike' had length %d but should have been the same length"
+        " as the total number of generalized coordinates nq=%d.", 
+        qlike.size(), nq);
+
+    SimTK_ERRCHK2_ALWAYS(biasp.size() == mp,
+        "SimbodyMatterSubsystem::multiplyByPq()",
+        "Argument 'biasp' had length %d but should have been the same length"
+        " as the total number of position (holonomic) constraint"
+        " equations mp=%d.", biasp.size(), mp);
+
+    PqXqlike.resize(mp);
+    if (mp==0) return;
+
+    // Assume at first that all Vectors are contiguous.
+    const Vector* cqlike    = &qlike;
+    const Vector* cbiasp    = &biasp;
+    Vector*       cPqXqlike = &PqXqlike;
+    bool needToCopyBack = false;
+
+    // We'll allocate these or not as needed.
+    Vector contig_qlike, contig_biasp, contig_PqXqlike;
+
+    if (!qlike.hasContiguousData()) {
+        contig_qlike.resize(nq); // contiguous memory
+        contig_qlike(0, nq) = qlike; // copy, prevent reallocation
+        cqlike = (const Vector*)&contig_qlike;
+    }
+    if (!biasp.hasContiguousData()) {
+        contig_biasp.resize(mp); // contiguous memory
+        contig_biasp(0, mp) = biasp; // copy, prevent reallocation
+        cbiasp = (const Vector*)&contig_biasp;
+    }
+    if (!PqXqlike.hasContiguousData()) {
+        contig_PqXqlike.resize(mp); // contiguous memory
+        cPqXqlike = (Vector*)&contig_PqXqlike;
+        needToCopyBack = true;
+    }
+
+    rep.multiplyByPq(s, *cbiasp, *cqlike, *cPqXqlike);
+    if (needToCopyBack)
+        PqXqlike = *cPqXqlike;
+}
+
+
+
+//==============================================================================
+//                       CALC BIAS FOR MULTIPLY BY Pq
+//==============================================================================
+// The bias term is the same for P as for Pq because you can view the 
+// position error first derivative as either 
+//           pverr = Pq * qdot + Pt
+//      or   pverr = P  * u    + Pt
+// since Pq = P*N^-1. Either way the bias term is just Pt (or c(t,q)).
+void SimbodyMatterSubsystem::
+calcBiasForMultiplyByPq(const State& state,
+                        Vector&      biasp) const
+{      
+    const SBInstanceCache& ic = getRep().getInstanceCache(state);
+
+    // Problem dimension.
+    const int mp = ic.totalNHolonomicConstraintEquationsInUse;
+
+    biasp.resize(mp);
+    if (mp==0) return;
+
+    if (biasp.hasContiguousData()) {
+        // Just ask for P's bias term.
+        getRep().calcBiasForMultiplyByPVA(state, true, false, false, biasp);
+    } else {
+        Vector tmpbias(mp); // contiguous
+        getRep().calcBiasForMultiplyByPVA(state, true, false, false, tmpbias);
+        biasp = tmpbias;
+    }
+}
+
+
+
+
+//==============================================================================
+//             CALC Gt -- OBSOLETE, use calcGTranspose()
+//==============================================================================
 void SimbodyMatterSubsystem::
 calcGt(const State& s, Matrix& Gt) const {
     const SimbodyMatterSubsystemRep& rep = getRep();
     const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
     const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
     const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
-    const int ma = mHolo+mNonholo+mAccOnly;
-    const int nq       = rep.getNQ(s);
-    const int nu       = rep.getNU(s);
+    const int m  = mHolo+mNonholo+mAccOnly;
+    const int nu = rep.getNU(s);
 
-    Gt.resize(nu,ma);
+    Gt.resize(nu,m);
 
-    if (ma==0 || nu==0)
+    if (m==0 || nu==0)
         return;
 
     // Fill in all the columns of Gt
@@ -280,6 +825,164 @@ calcGt(const State& s, Matrix& Gt) const {
     rep.calcNonholonomicConstraintMatrixVt     (s, Gt(0,   mHolo,        nu, mNonholo));
     rep.calcAccelerationOnlyConstraintMatrixAt (s, Gt(0, mHolo+mNonholo, nu, mAccOnly));
 }
+
+
+
+
+//==============================================================================
+//                      CALC BODY ACCELERATION FROM UDOT
+//==============================================================================
+// Here we implement the zero-length udot, which is interpreted as an all-zero
+// udot meaning that only coriolis accelerations contribute. Otherwise, we
+// arrange to have contiguous input and output vectors to work with if the
+// supplied arguments won't do, then invoke the implementation method.
+void SimbodyMatterSubsystem::
+calcBodyAccelerationFromUDot(const State&         state,
+                             const Vector&        knownUDot,
+                             Vector_<SpatialVec>& A_GB) const
+{  
+    // Interpret 0-length knownUDot as nu all-zero udots.
+    if (knownUDot.size() == 0) {
+        // Acceleration is just the coriolis acceleration.
+        const SBTreeVelocityCache& vc = getRep().getTreeVelocityCache(state);
+        const Array_<SpatialVec>& tca = vc.totalCoriolisAcceleration;
+        const Vector_<SpatialVec> 
+            AC_GB(tca.size(), (const Real*)tca.begin(), true); // shallow ref
+        A_GB = AC_GB;
+        return;
+    }
+
+    const int nu = getNumMobilities();
+
+    SimTK_ERRCHK2_ALWAYS(knownUDot.size() == nu,
+        "SimbodyMatterSubsystem::calcBodyAccelerationFromUDot()",
+        "Length of knownUDot argument was %d but should have been either"
+        " zero or the same as the number of mobilities nu=%d.\n", 
+        knownUDot.size(), nu);
+
+    const int nb = getNumBodies();
+    A_GB.resize(nb);
+
+    // If the arguments use contiguous memory we'll work in place, otherwise
+    // we'll work in contiguous temporaries and copy back.
+
+    Vector              udotspace; // allocate only if we need to
+    Vector_<SpatialVec> Aspace;
+
+    const Vector*        udotp;
+    Vector_<SpatialVec>* Ap;
+
+    if (knownUDot.hasContiguousData()) {
+        udotp = &knownUDot;
+    } else {
+        udotspace.resize(nu); // contiguous memory
+        udotspace(0, nu) = knownUDot; // prevent reallocation
+        udotp = (const Vector*)&udotspace;
+    }
+
+    bool needToCopyBack = false;
+    if (A_GB.hasContiguousData()) {
+        Ap = &A_GB;
+    } else {
+        Aspace.resize(nb); // contiguous memory
+        Ap = &Aspace;
+        needToCopyBack = true;
+    }
+
+    getRep().calcBodyAccelerationFromUDot(state, *udotp, *Ap);
+
+    if (needToCopyBack)
+        A_GB = *Ap;
+}
+
+
+
+//==============================================================================
+//                        MULTIPLY BY N, NInv, NDot
+//==============================================================================
+// These methods arrange for contiguous Vectors if necessary, then call the
+// implementation method.
+void SimbodyMatterSubsystem::multiplyByN
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   
+    const bool inIsContig=in.hasContiguousData();
+    const bool outIsContig=out.hasContiguousData();
+
+    if (inIsContig && outIsContig) {
+        getRep().multiplyByN(s,matrixOnRight,in,out); 
+        return;
+    }
+
+    Vector inSpace, outSpace; // allocate if needed
+    const Vector* inp  = inIsContig  ? &in  : (const Vector*)&inSpace;
+    Vector*       outp = outIsContig ? &out : &outSpace;
+    if (!inIsContig) {
+        inSpace.resize(in.size());
+        inSpace(0, in.size()) = in; // prevent reallocation
+    }
+
+    getRep().multiplyByN(s,matrixOnRight,*inp,*outp);
+
+    if (!outIsContig)
+        out = *outp;
+}
+
+void SimbodyMatterSubsystem::multiplyByNInv
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   
+    const bool inIsContig=in.hasContiguousData();
+    const bool outIsContig=out.hasContiguousData();
+
+    if (inIsContig && outIsContig) {
+        getRep().multiplyByNInv(s,matrixOnRight,in,out); 
+        return;
+    }
+
+    Vector inSpace, outSpace; // allocate if needed
+    const Vector* inp  = inIsContig  ? &in  : (const Vector*)&inSpace;
+    Vector*       outp = outIsContig ? &out : &outSpace;
+    if (!inIsContig) {
+        inSpace.resize(in.size());
+        inSpace(0, in.size()) = in; // prevent reallocation
+    }
+
+    getRep().multiplyByNInv(s,matrixOnRight,*inp,*outp); 
+
+    if (!outIsContig)
+        out = *outp;
+}
+
+void SimbodyMatterSubsystem::multiplyByNDot
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   
+    const bool inIsContig=in.hasContiguousData();
+    const bool outIsContig=out.hasContiguousData();
+
+    if (inIsContig && outIsContig) {
+        getRep().multiplyByNDot(s,matrixOnRight,in,out); 
+        return;
+    }
+
+    Vector inSpace, outSpace; // allocate if needed
+    const Vector* inp  = inIsContig  ? &in  : (const Vector*)&inSpace;
+    Vector*       outp = outIsContig ? &out : &outSpace;
+    if (!inIsContig) {
+        inSpace.resize(in.size());
+        inSpace(0, in.size()) = in; // prevent reallocation
+    }
+
+    getRep().multiplyByNDot(s,matrixOnRight,*inp,*outp); 
+
+    if (!outIsContig)
+        out = *outp;
+}
+
+
+
+
+//==============================================================================
+//                            JACOBIAN METHODS
+//==============================================================================
 
 void SimbodyMatterSubsystem::multiplyBySystemJacobian
    (const State& s, const Vector& u, Vector_<SpatialVec>& Ju) const
@@ -604,8 +1307,12 @@ void SimbodyMatterSubsystem::calcFrameJacobian
 }
 
 
+//==============================================================================
+//                              MISC OPERATORS
+//==============================================================================
+
 void SimbodyMatterSubsystem::calcCompositeBodyInertias
-   (const State& s, Array_<SpatialInertia>& R) const
+   (const State& s, Array_<SpatialInertia,MobilizedBodyIndex>& R) const
 {   getRep().calcCompositeBodyInertias(s,R); }
 
 void SimbodyMatterSubsystem::calcTreeEquivalentMobilityForces
@@ -620,11 +1327,50 @@ void SimbodyMatterSubsystem::calcMobilizerReactionForces
    (const State& s, Vector_<SpatialVec>& forces) const 
 {   getRep().calcMobilizerReactionForces(s, forces); }
 
-void SimbodyMatterSubsystem::calcConstraintForcesFromMultipliers
-   (const State& s, const Vector& lambda,
-    Vector_<SpatialVec>& bodyForcesInG, Vector& mobilityForces) const
+const Vector& SimbodyMatterSubsystem::
+getMotionMultipliers(const State& s) const 
+{   return getRep().getMotionMultipliers(s); }
+
+Vector SimbodyMatterSubsystem::
+calcMotionErrors(const State& s, const Stage& stage) const
+{   return getRep().calcMotionErrors(s,stage); }
+
+void SimbodyMatterSubsystem::
+findMotionForces(const State&         s,
+                 Vector&              mobilityForces) const 
+{   getRep().findMotionForces(s, mobilityForces); }
+
+const Vector& SimbodyMatterSubsystem::
+getConstraintMultipliers(const State& s) const
+{   return getRep().getConstraintMultipliers(s); }
+
+void SimbodyMatterSubsystem::
+findConstraintForces(const State&         s, 
+                     Vector_<SpatialVec>& bodyForcesInG,
+                     Vector&              mobilityForces) const 
+{   getRep().findConstraintForces(s, bodyForcesInG, mobilityForces); }
+
+Real SimbodyMatterSubsystem::
+calcMotionPower(const State& s) const
+{   return getRep().calcMotionPower(s); }
+
+Real SimbodyMatterSubsystem::
+calcConstraintPower(const State& s) const
+{   return getRep().calcConstraintPower(s); }
+
+void SimbodyMatterSubsystem::
+calcConstraintForcesFromMultipliers(const State&         s,
+                                    const Vector&        lambda,
+                                    Vector_<SpatialVec>& bodyForcesInG, 
+                                    Vector&              mobilityForces) const
 {   getRep().calcConstraintForcesFromMultipliers
                 (s,lambda,bodyForcesInG,mobilityForces); }
+
+void SimbodyMatterSubsystem::
+calcMobilizerReactionForcesUsingFreebodyMethod
+   (const State& s, Vector_<SpatialVec>& forces) const 
+{   getRep().calcMobilizerReactionForcesUsingFreebodyMethod(s, forces); }
+
 
 void SimbodyMatterSubsystem::calcQDot(const State& s,
     const Vector& u,
@@ -639,17 +1385,6 @@ void SimbodyMatterSubsystem::calcQDotDot(const State& s,
 {
     getRep().calcQDotDot(s, udot, qdotdot);
 }
-
-void SimbodyMatterSubsystem::multiplyByN
-   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   getRep().multiplyByN(s,matrixOnRight,in,out); }
-void SimbodyMatterSubsystem::multiplyByNInv
-   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   getRep().multiplyByNInv(s,matrixOnRight,in,out); }
-void SimbodyMatterSubsystem::multiplyByNDot
-   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   getRep().multiplyByNDot(s,matrixOnRight,in,out); }
-
 
 // Topological info. Note the lack of a State argument.
 int SimbodyMatterSubsystem::getNumBodies()        const {return getRep().getNumBodies();}
@@ -687,8 +1422,8 @@ QuaternionPoolIndex SimbodyMatterSubsystem::getQuaternionPoolIndex(const State& 
     return getRep().getQuaternionPoolIndex(s, body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getCoriolisAcceleration(s,body);
+SimbodyMatterSubsystem::getMobilizerCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getMobilizerCoriolisAcceleration(s,body);
 }
 const SpatialVec&
 SimbodyMatterSubsystem::getTotalCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
@@ -699,8 +1434,8 @@ SimbodyMatterSubsystem::getGyroscopicForce(const State& s, MobilizedBodyIndex bo
     return getRep().getGyroscopicForce(s,body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getCentrifugalForces(s,body);
+SimbodyMatterSubsystem::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getMobilizerCentrifugalForces(s,body);
 }
 const SpatialVec&
 SimbodyMatterSubsystem::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
@@ -745,6 +1480,32 @@ void SimbodyMatterSubsystem::realizeArticulatedBodyInertias(const State& s) cons
     getRep().realizeArticulatedBodyInertias(s);
 }
 
+
+const Array_<QIndex>& SimbodyMatterSubsystem::
+getFreeQIndex(const State& state) const
+{   return getRep().getFreeQIndex(state); }
+const Array_<UIndex>& SimbodyMatterSubsystem::
+getFreeUIndex(const State& state) const
+{   return getRep().getFreeUIndex(state); }
+const Array_<UIndex>& SimbodyMatterSubsystem::
+getFreeUDotIndex(const State& state) const
+{   return getRep().getFreeUDotIndex(state); }
+const Array_<UIndex>& SimbodyMatterSubsystem::
+getKnownUDotIndex(const State& state) const
+{   return getRep().getKnownUDotIndex(state); }
+void SimbodyMatterSubsystem::
+packFreeQ(const State& s, const Vector& allQ, Vector& packedFreeQ) const
+{   getRep().packFreeQ(s,allQ,packedFreeQ); }
+void SimbodyMatterSubsystem::
+unpackFreeQ(const State& s, const Vector& packedFreeQ, Vector& unpackedFreeQ) const
+{   getRep().unpackFreeQ(s,packedFreeQ,unpackedFreeQ); }
+void SimbodyMatterSubsystem::
+packFreeU(const State& s, const Vector& allU, Vector& packedFreeU) const
+{   getRep().packFreeU(s,allU,packedFreeU); }
+void SimbodyMatterSubsystem::
+unpackFreeU(const State& s, const Vector& packedFreeU, Vector& unpackedFreeU) const
+{   getRep().unpackFreeU(s,packedFreeU,unpackedFreeU); }
+
 const SpatialInertia&
 SimbodyMatterSubsystem::getCompositeBodyInertia(const State& s, MobilizedBodyIndex mbx) const {
     return getRep().getCompositeBodyInertias(s)[mbx]; // will lazy-evaluate if necessary
@@ -775,21 +1536,6 @@ Vector_<Vec3>& SimbodyMatterSubsystem::updAllParticleLocations(State& s) const {
 }
 Vector_<Vec3>& SimbodyMatterSubsystem::updAllParticleVelocities(State& s) const {
     return getRep().updAllParticleVelocities(s);
-}
-
-bool SimbodyMatterSubsystem::prescribe(State& s, Stage g) const {
-    return getRep().prescribe(s,g);
-}
-
-bool SimbodyMatterSubsystem::projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                                                 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
-{ 
-    return getRep().projectQConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts); 
-}
-bool SimbodyMatterSubsystem::projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                                                 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
-{ 
-    return getRep().projectUConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts); 
 }
 
 /// Calculate the total system mass.

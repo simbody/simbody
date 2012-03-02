@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-2008 Stanford University and the Authors.      *
+ * Portions copyright (c) 2007-2011 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -30,7 +30,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKsimbody.h"
-#include "../src/ForceImpl.h"
 
 using namespace SimTK;
 using namespace std;
@@ -46,10 +45,9 @@ void verifyForces(const Force& force, const State& state, Vector_<SpatialVec> bo
     Vector_<SpatialVec> actualBodyForces(bodyForces.size());
     Vector_<Vec3> actualParticleForces(particleForces.size());
     Vector actualMobilityForces(mobilityForces.size());
-    actualBodyForces = SpatialVec(Vec3(0), Vec3(0));
-    actualParticleForces = Vec3(0);
-    actualMobilityForces = 0;
-    force.getImpl().calcForce(state, actualBodyForces, actualParticleForces, actualMobilityForces);
+    force.calcForceContribution(state, actualBodyForces, actualParticleForces, 
+                                actualMobilityForces);
+
     for (int i = 0; i < bodyForces.size(); ++i)
         ASSERT((bodyForces[i]-actualBodyForces[i]).norm() < 1e-10);
     for (int i = 0; i < particleForces.size(); ++i)
@@ -60,9 +58,9 @@ void verifyForces(const Force& force, const State& state, Vector_<SpatialVec> bo
 
 class MyForceImpl : public Force::Custom::Implementation {
 public:
-    mutable bool hasRealized[Stage::ReportIndex+1];
+    mutable bool hasRealized[Stage::Report+1];
     MyForceImpl() {
-        for (int i = 0; i < Stage::size(); i++)
+        for (int i = 0; i < Stage::NValid; i++)
             hasRealized[i] = false;
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
@@ -73,31 +71,31 @@ public:
         return 0.0;
     }
     void realizeTopology(State& state) const {
-        hasRealized[Stage::TopologyIndex] = true;
+        hasRealized[Stage::Topology] = true;
     }
     void realizeModel(State& state) const {
-        hasRealized[Stage::ModelIndex] = true;
+        hasRealized[Stage::Model] = true;
     }
     void realizeInstance(const State& state) const {
-        hasRealized[Stage::InstanceIndex] = true;
+        hasRealized[Stage::Instance] = true;
     }
     void realizeTime(const State& state) const {
-        hasRealized[Stage::TimeIndex] = true;
+        hasRealized[Stage::Time] = true;
     }
     void realizePosition(const State& state) const {
-        hasRealized[Stage::PositionIndex] = true;
+        hasRealized[Stage::Position] = true;
     }
     void realizeVelocity(const State& state) const {
-        hasRealized[Stage::VelocityIndex] = true;
+        hasRealized[Stage::Velocity] = true;
     }
     void realizeDynamics(const State& state) const {
-        hasRealized[Stage::DynamicsIndex] = true;
+        hasRealized[Stage::Dynamics] = true;
     }
     void realizeAcceleration(const State& state) const {
-        hasRealized[Stage::AccelerationIndex] = true;
+        hasRealized[Stage::Acceleration] = true;
     }
     void realizeReport(const State& state) const {
-        hasRealized[Stage::ReportIndex] = true;
+        hasRealized[Stage::Report] = true;
     }
 };
 
@@ -305,9 +303,9 @@ void testCustomRealization() {
     MyForceImpl* impl = new MyForceImpl();
     Force::Custom custom(forces, impl);
     State state = system.realizeTopology();
-    for (int j = Stage::ModelIndex; j <= Stage::ReportIndex; j++) {
-        system.realize(state, Stage::getValue(j));
-        for (int i = Stage::TopologyIndex; i <= Stage::ReportIndex; i++)
+    for (Stage j = Stage::Model; j <= Stage::Report; j++) {
+        system.realize(state, j);
+        for (Stage i = Stage::Topology; i <= Stage::Report; i++)
             ASSERT(impl->hasRealized[i] == (i <= j));
     }
 }

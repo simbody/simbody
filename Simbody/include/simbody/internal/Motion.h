@@ -1,14 +1,14 @@
 #ifndef SimTK_SIMBODY_MOTION_H_
 #define SimTK_SIMBODY_MOTION_H_
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                             SimTK Simbody(tm)                              *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2009 Stanford University and the Authors.           *
+ * Portions copyright (c) 2009-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -33,7 +33,7 @@
 
 /** @file
  * This defines the Motion class, which is used to specify how the mobilities
- * associated with a particular mobilizer are to be calculated.
+ * associated with a particular mobilizer are to be treated.
  */
 
 #include "SimTKcommon.h"
@@ -83,8 +83,7 @@ velocity as Zero is the same as specifying position as Discrete.
 
 For mobilizers with more than one mobility, the associated Motion controls
 \e all the mobilities and moreover they are all driven at the same level and
-by the same method. TODO?: provide Motion::Composite for building up a Motion
-from individual axis specifications.
+by the same method.
 
 Motion is a PIMPL-style abstract base class, with concrete classes defined
 for each kind of Motion. There is a set of built-in Motions and a generic 
@@ -318,7 +317,7 @@ public:
     /// Anything not prescribed will be determined by numerical
     /// integration, by relaxation, or by discrete changes driven by
     /// events, depending on whether the associated mobilizer is 
-    /// "regular", "fast", or "slow", respectively.
+    /// "free", "fast", or "slow", respectively.
     virtual Motion::Level getLevel(const State&) const = 0;
 
     virtual Motion::Method getLevelMethod(const State&) const {

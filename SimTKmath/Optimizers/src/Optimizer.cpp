@@ -46,7 +46,7 @@ bool Optimizer::isAlgorithmAvailable(OptimizerAlgorithm algorithm) {
 }
 
 Optimizer::Optimizer( const OptimizerSystem& sys) : rep(0) {
-    rep = constructOptimizerRep(sys, BestAvailiable );
+    rep = constructOptimizerRep(sys, BestAvailable );
 }
 Optimizer::Optimizer( const OptimizerSystem& sys, OptimizerAlgorithm algorithm) : rep(0) {
     rep = constructOptimizerRep(sys, algorithm);
@@ -58,7 +58,7 @@ Optimizer::Optimizer() : rep(0) {
 
 void Optimizer::setOptimizerSystem( const OptimizerSystem& sys ) {
     delete rep;
-    rep = constructOptimizerRep( sys, BestAvailiable );
+    rep = constructOptimizerRep( sys, BestAvailable );
 }
 void Optimizer::setOptimizerSystem( const OptimizerSystem& sys, OptimizerAlgorithm algorithm ) {
     delete rep;

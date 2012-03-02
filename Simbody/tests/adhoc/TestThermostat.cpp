@@ -168,7 +168,6 @@ void testConservationOfEnergy() {
     state.setTime(0);
     system.realize(state, Stage::Acceleration);
     Vector initU(state.getNU());
-    //matter.calcMInverseV(state,Test::randVector(state.getNU()), initU);
     initU = Test::randVector(state.getNU());
     state.updU()=initU;
     

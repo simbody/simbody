@@ -40,7 +40,7 @@
 namespace SimTK {
 
 enum OptimizerAlgorithm {
-     BestAvailiable = 0, // Simmath will select best Optimizer based on problem type
+     BestAvailable  = 0, // Simmath will select best Optimizer based on problem type
      InteriorPoint  = 1, // IPOPT interior point optimizer
      LBFGS          = 2, // LBFGS optimizer
      LBFGSB         = 3, // LBFGS optimizer with simple bounds
@@ -79,32 +79,32 @@ public:
     /// Objective/cost function which is to be optimized; return 0 when successful.
     /// This method must be supplied by concrete class.
     virtual int objectiveFunc      ( const Vector& parameters, 
-                                 const bool new_parameters, Real& f ) const {
+                                 bool new_parameters, Real& f ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "objectiveFunc" );
                                  return -1; }
   
     /// Computes the gradient of the objective function; return 0 when successful.
     /// This method does not have to be supplied if a numerical gradient is used.
     virtual int gradientFunc       ( const Vector &parameters, 
-                                 const bool new_parameters, Vector &gradient ) const  {
+                                 bool new_parameters, Vector &gradient ) const  {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "gradientFunc" );
                                  return -1; }
     /// Computes the value of the constraints; return 0 when successful.
     /// This method must be supplied if the objective function has constraints.
     virtual int constraintFunc     ( const Vector & parameters, 
-                                 const bool new_parameters, Vector & constraints ) const {
+                                 bool new_parameters, Vector & constraints ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintFunc" );
                                  return -1; }
     /// Computes Jacobian of the constraints; return 0 when successful.
     /// This method does not have to be supplied if a numerical jacobian is used.
     virtual int constraintJacobian ( const Vector& parameters, 
-                                  const bool new_parameters, Matrix& jac ) const {
+                                  bool new_parameters, Matrix& jac ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintJacobian" );
                                  return -1; }
     /// Computes Hessian of the objective function; return 0 when successful.
     /// This method does not have to be supplied if limited memory is used.
     virtual int hessian            (  const Vector &parameters, 
-                                 const bool new_parameters, Vector &gradient) const {
+                                 bool new_parameters, Vector &gradient) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "hessian" );
                                  return -1; }
 

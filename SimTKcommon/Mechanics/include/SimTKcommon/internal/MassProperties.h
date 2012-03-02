@@ -364,7 +364,7 @@ Inertia_ shiftFromMassCenter(const Vec3P& p, const RealP& mass) const
 /// point mass of mass mtot (the total body mass) located at p, about CF.
 /// Cost is 20 flops.
 /// @see shiftFromMassCenter() if you want to leave this object unmolested.
-/// @see shitToMassCenterInPlace()
+/// @see shiftToMassCenterInPlace()
 Inertia_& shiftFromMassCenterInPlace(const Vec3P& p, const RealP& mass)
 {   (*this) += pointMassAt(p, mass);
     errChk("Inertia::shiftFromMassCenterInPlace()");

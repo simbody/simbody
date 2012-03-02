@@ -147,6 +147,18 @@ public:
     // (Definition is below after InverseTransform is declared.)
     inline Transform_&  operator=( const InverseTransform_<P>& X );
 
+    /// Add an offset to the position vector in this %Transform. Cost 
+    /// is 3 flops.
+    template <int S>
+    Transform_& operator+=(const Vec<3,P,S>& offset_B)
+    {   p_BF += offset_B; return *this; }
+
+    /// Subtract an offset from the position vector in this %Transform. Cost
+    /// is 3 flops.
+    template <int S>
+    Transform_& operator-=(const Vec<3,P,S>& offset_B)
+    {   p_BF -= offset_B; return *this; }
+
     /// Assign a new value to this transform, explicitly providing
     /// the rotation and translation separately. We return a reference to
     /// the now-modified transform as though this were an assignment operator.
@@ -402,28 +414,47 @@ private:
     Vec<3,P>     p_FB; // our translation is -(R_BF*p_FB)=-(~R_FB*p_FB)
 };
 
-
 /// If we multiply a transform or inverse transform by a 3-vector, we treat 
 /// the vector as though it had a 4th element "1" appended, that is, it is 
 /// treated as a \e station rather than a \e vector. This way we use both
 /// the rotational and translational components of the transform.
-//@{
+/// @relates Transform_
 template <class P, int S> inline Vec<3,P>  
-operator*(const Transform_<P>& X_BF,        const Vec<3,P,S>& s_F)  {return X_BF.shiftFrameStationToBase(s_F);}
+operator*(const Transform_<P>& X_BF,        const Vec<3,P,S>& s_F)  
+{   return X_BF.shiftFrameStationToBase(s_F); }
 template <class P, int S> inline Vec<3,P>  
-operator*(const InverseTransform_<P>& X_BF, const Vec<3,P,S>& s_F)  {return X_BF.shiftFrameStationToBase(s_F);}
+operator*(const InverseTransform_<P>& X_BF, const Vec<3,P,S>& s_F)  
+{   return X_BF.shiftFrameStationToBase(s_F); }
 template <class P, int S> inline Vec<3,P>  
-operator*(const Transform_<P>& X_BF,        const Vec<3,negator<P>,S>& s_F)  {return X_BF*Vec<3,P>(s_F);}
+operator*(const Transform_<P>& X_BF,        const Vec<3,negator<P>,S>& s_F)  
+{   return X_BF*Vec<3,P>(s_F); }
 template <class P, int S> inline Vec<3,P>  
-operator*(const InverseTransform_<P>& X_BF, const Vec<3,negator<P>,S>& s_F)  {return X_BF*Vec<3,P>(s_F);}
-//@}
+operator*(const InverseTransform_<P>& X_BF, const Vec<3,negator<P>,S>& s_F)  
+{   return X_BF*Vec<3,P>(s_F); }
+
+/// Adding a 3-vector to a Transform produces a new shifted transform.
+/// @relates Transform_
+template <class P, int S> inline Transform_<P>
+operator+(const Transform_<P>& X_BF, const Vec<3,P,S>& offset_B)
+{   return Transform_<P>(X_BF) += offset_B; }
+/// Adding a 3-vector to a Transform produces a new shifted transform.
+/// @relates Transform_
+template <class P, int S> inline Transform_<P>
+operator+(const Vec<3,P,S>& offset_B, const Transform_<P>& X_BF)
+{   return Transform_<P>(X_BF) += offset_B; }
+
+/// Subtracting a 3-vector from a Transform produces a new shifted transform.
+/// @relates Transform_
+template <class P, int S> inline Transform_<P>
+operator-(const Transform_<P>& X_BF, const Vec<3,P,S>& offset_B)
+{   return Transform_<P>(X_BF) -= offset_B; }
 
 //-----------------------------------------------------------------------------
 /// If we multiply a transform or inverse transform by an augmented 4-vector, 
 /// we use the 4th element to decide how to treat it. The 4th element must be 
 /// 0 or 1. If 0 it is treated as a vector only and the translation is ignored. 
 /// If 1 it is treated as a station and rotated & shifted.
-//@{
+/// @relates Transform_
 template <class P, int S> inline Vec<4,P> 
 operator*(const Transform_<P>& X_BF, const Vec<4,P,S>& a_F) {
     assert(a_F[3]==0 || a_F[3]==1);
@@ -449,12 +480,11 @@ template <class P, int S> inline Vec<4,P>
 operator*(const Transform_<P>& X_BF,        const Vec<4,negator<P>,S>& s_F)  {return X_BF*Vec<4,P>(s_F);}
 template <class P, int S> inline Vec<4,P>  
 operator*(const InverseTransform_<P>& X_BF, const Vec<4,negator<P>,S>& s_F)  {return X_BF*Vec<4,P>(s_F);}
-//@}
 //-----------------------------------------------------------------------------
 
 /// Multiplying a matrix or vector by a Transform_<P> applies it to each element 
 /// individually.
-//@{
+/// @relates Transform_
 template <class P, class E> inline Vector_<E> 
 operator*(const Transform_<P>& X, const VectorBase<E>& v) {
     Vector_<E> result(v.size());
@@ -544,8 +574,6 @@ operator*(const Mat<M,N,E,CS,RS>& v, const Transform_<P>& X) {
     return result;
 }
 
-//@}
-
 // These Transform definitions had to wait for InverseTransform to be declared.
 
 template <class P> inline Transform_<P>&
@@ -564,7 +592,7 @@ Transform_<P>::compose( const InverseTransform_<P>& X_FY ) const {
 
 /// Composition of transforms. Operators are provided for all the combinations
 /// of transform and inverse transform.
-//@{
+/// @relates Transform_
 template <class P> inline Transform_<P>
 operator*(const Transform_<P>& X1,        const Transform_<P>& X2)         {return X1.compose(X2);}
 template <class P> inline Transform_<P>
@@ -573,11 +601,10 @@ template <class P> inline Transform_<P>
 operator*(const InverseTransform_<P>& X1, const Transform_<P>& X2)         {return X1.compose(X2);}
 template <class P> inline Transform_<P>
 operator*(const InverseTransform_<P>& X1, const InverseTransform_<P>& X2)  {return X1.compose(X2);}
-//@}
 
 /// Comparison operators return true only if the two transforms are bit
 /// identical; that's not too useful.
-//@{
+/// @relates Transform_
 template <class P> inline bool
 operator==(const Transform_<P>& X1,        const Transform_<P>& X2)         {return X1.R()==X2.R() && X1.p()==X2.p();}
 template <class P> inline bool
@@ -586,12 +613,13 @@ template <class P> inline bool
 operator==(const Transform_<P>& X1,        const InverseTransform_<P>& X2)  {return X1.R()==X2.R() && X1.p()==X2.p();}
 template <class P> inline bool
 operator==(const InverseTransform_<P>& X1, const Transform_<P>& X2)         {return X1.R()==X2.R() && X1.p()==X2.p();}
-//@}
 
 /// Generate formatted output of a Transform to an output stream.
+/// @relates Transform_
 template <class P> SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream&, const Transform_<P>&);
 /// Generate formatted output of an InverseTransform to an output stream.
+/// @relates InverseTransform_
 template <class P> SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream&, const InverseTransform_<P>&);
 

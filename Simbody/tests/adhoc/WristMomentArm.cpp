@@ -539,7 +539,6 @@ int main() {
                                      hand, Vec3(1,-1,0));
     inPlane.setDisabledByDefault(true);
 
-    system.realizeTopology();
 
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
@@ -556,8 +555,8 @@ int main() {
     system.addEventReporter(&myRep);
 
     // Initialize the system and state.
+    State state = system.realizeTopology();
     
-    State state = system.getDefaultState();
     aux1.setAngle(state,0);
     aux2.setAngle(state,0);
     hand.setAngle(state,0);
@@ -612,12 +611,10 @@ int main() {
 
     state.updU() = 0;
     aux1.setU(state, 1);
+    system.realize(state, Stage::Velocity);
     cout << "before project u=" << state.getU() << endl;
-    const Vector yWeights(state.getNY(), 1);
-    const Vector cWeights(state.getNMultipliers(), 1);
-    Vector yErrEst;
-    system.project(state, 1e-10, yWeights, cWeights, yErrEst, 
-        System::ProjectOptions::VelocityOnly);
+
+    system.projectU(state, 1e-10);
     cout << "after project u=" << state.getU() << " uerr=" << state.getUErr() << endl;
     // To compute thetadot, convert u's to angular rates and add.
     const Real thetaDot =   aux1.getAngularRate(state) 
@@ -630,7 +627,7 @@ int main() {
     cout << "calc c=" << calcc << " csum=" << calccsum << endl;
     state.updU() = 0;
 
-    // None of the acceleratin- and multiplier-dependent stuff here 
+    // None of the acceleration- and multiplier-dependent stuff here 
     // matters for moment arm; this is just for playing around with 
     // related dynamic quantities. Feel free to ignore.
 
@@ -653,7 +650,7 @@ int main() {
     const Vector udot0 = state.getUDot();
     const Vector lambda0 = state.getMultipliers();
     Matrix Gt;
-    matter.calcGt(state, Gt);
+    matter.calcGTranspose(state, Gt);
     cout << "Gt*l0=" << Gt*lambda0 << endl;
     Vector f0l = f0 - Gt*lambda0;
 
@@ -697,7 +694,7 @@ int main() {
         f1);
     f1 += system.getMobilityForces(state,Stage::Dynamics);
 
-    matter.calcGt(state, Gt);
+    matter.calcGTranspose(state, Gt);
     cout << "Gt*l1=" << Gt*lambda1 << endl;
     Vector f1l = f1 - Gt*lambda1;
 

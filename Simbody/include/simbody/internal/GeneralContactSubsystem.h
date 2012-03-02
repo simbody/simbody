@@ -32,10 +32,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
-
+#include "SimTKmath.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/Contact.h"
 
 namespace SimTK {
 

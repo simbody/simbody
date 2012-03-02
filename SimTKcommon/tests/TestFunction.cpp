@@ -129,6 +129,33 @@ void testRealFunction() {
     assertEqual(0, f.calcDerivative(derivComponents2, Vector(Vec2(1, 0))));
 }
 
+void testSinusoid() { 
+    Real a=11.23, w=1.1, p=Pi/4;
+    Vector t1(1,.23), t2(1,-3.2), t3(1,14.1);
+    Function::Sinusoid s1(a,w,p);
+    SimTK_TEST_EQ(s1.calcValue(Vector(1,0.)), a*std::sin(p));
+    SimTK_TEST_EQ(s1.calcValue(t1), a*std::sin(w*t1[0]+p));
+    SimTK_TEST_EQ(s1.calcValue(t2), a*std::sin(w*t2[0]+p));
+    SimTK_TEST_EQ(s1.calcValue(t3), a*std::sin(w*t3[0]+p));
+
+    // Do enough of these to make sure we reach the general forumula.
+    Array_<int> deriv; // 0th derivative is function
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t1), s1.calcValue(t1)); // 0th
+    deriv.push_back(0); // 1st deriv
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), a*w*std::cos(w*t2[0]+p));
+    deriv.push_back(0); // 2nd deriv
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t3), -a*w*w*std::sin(w*t3[0]+p));
+    deriv.push_back(0); // 3rd deriv
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t1), -a*w*w*w*std::cos(w*t1[0]+p));
+    deriv.push_back(0); // 4th deriv
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t1), a*w*w*w*w*std::sin(w*t1[0]+p));
+    deriv.push_back(0); // 5th deriv
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), a*w*w*w*w*w*std::cos(w*t2[0]+p));
+    deriv.push_back(0); // 6th deriv
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), -a*w*w*w*w*w*w*std::sin(w*t2[0]+p));
+    deriv.push_back(0); // 7th deriv
+    SimTK_TEST_EQ(s1.calcDerivative(deriv, t2), -a*w*w*w*w*w*w*w*std::cos(w*t2[0]+p));
+}
 
 void testStep() {
     Function::Step s1(-1,1,0,1); // y in [-1,1] as x in [0,1]
@@ -183,6 +210,7 @@ int main () {
         SimTK_SUBTEST(testConstant);
         SimTK_SUBTEST(testLinear);
         SimTK_SUBTEST(testPolynomial);
+        SimTK_SUBTEST(testSinusoid);
         SimTK_SUBTEST(testRealFunction);
         SimTK_SUBTEST(testStep);
 

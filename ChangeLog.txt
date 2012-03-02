@@ -1,0 +1,57 @@
+            Changes made in experimental branch 
+      since split from Simbody 2.3 trunk on 8/16/2011
+----------------------------------------------------------------------
+8/16 Version changed to 3.0
+8/16 Checked in FrictionConstraints doc
+8/21 Rearchitected constraint API to support use of constraints
+     as operators (BREAKING CHANGE TO CUSTOM CONSTRAINTS)
+8/25 Fixed bug 1521 in SpeedCoupler constraint; backported to 2.3.
+8/29 Fixed bug 1522 in memory-sharing Vector constructor; backported to 2.3.
+8/29 Added calcBodyAccelerationFromUDot() method to matter subsystem.
+8/29 Renamed getCoriolisAcceleration() to getMobilizerCoriolisAcceleration()
+     and getCentrifugalForces() to getMobilizerCentrifugalForces()
+     to make it clear that these are just mobilizer-incremental contributions.
+     This is a BREAKING CHANGE if anyone ever called those, but probably if
+     they did it was a mistake and they should have been calling 
+     getTotalCoriolisAccleration() or getTotalCentrifugalForces() which are
+     the meaningful physical quantities.
+8/30 Added multiplyByG(), calcG() and related methods to matter subsystem.
+9/XX Bug fixes to mesh-mesh elastic foundation code; backported to 2.2 & 2.3.
+9/14 calcAcceleration operators are now really operators (no effect on state 
+cache).
+9/15 Added calcResidualForces() method equivalent to sdfulltrq(); inverse
+dynamics with constraints.
+9/18 Reworked pos & vel projection to use new operators; fixed pos projection
+so that it produces a normal projection in q-space (was u-space before).
+9/19 Fixed bug 1535 -- mobilizer reaction torque sometimes miscalculated.
+9/21 Replaced freebody reaction force method with faster method due to Abhi
+Jain.
+
+Converting from 2.X to 3.0:
+- project(): drop most arguments; always does q and u and prescribed now. If
+you want to do just q or just u, call projectQ() or projectU() instead.
+- ProjectOptions has changed; no longer accepted by project(); used only by
+lower-level projectQ and projectU methods
+- handleEvent() virtual: must convert to reduced signature, get rid of
+"lowestModified"
+- constraint virtuals: changed to operators, meaning needed inputs are
+supplied as arguments rather than extracted from State
+- adding an EventHandler or EventReporter invalidates System topology now so
+you must call realizeTopology() after the last handler or reporter has been
+added
+
+11/17/2011
+Stage class has been simplified. Constants like Stage::Position are just enums
+now and can be used in case statements. Previously you had to use
+Stage::PositionIndex, etc. for that purpose. Those extra enums are gone now so
+if you were using Stage::VelocityIndex just switch to Stage::Velocity.
+
+The Enumeration<> and EnumerationSet<> types have been removed since they were
+not being used any more. If anyone was using them, let me know.
+
+11/30/2011
+- Added Function::Sinusoid
+- Added additional inertia sanity check looking at products of inertia which have to obey conditions like Ixx>=|2*Iyz| (thanks to Paul Mitiguy). The strictest test is for central inertias; if those are OK then shifting them away always results in a good inertia.
+
+12/3/2011
+- Added missing rowSum() methods to Matrix, Mat and SymMat; fixed a bug in SymMat's existing sum() method for complex matrices.

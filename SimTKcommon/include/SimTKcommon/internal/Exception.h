@@ -100,9 +100,9 @@ public:
         va_start(args, fmt);
         vsprintf(buf, fmt, args);
 
-        setMessage("Internal SimTK bug detected: " + std::string(buf)
+        setMessage("Internal bug detected: " + std::string(buf)
                    + "\n  (Assertion '" + std::string(assertion) + "' failed).\n"
-            "  Please file a SimTKcore bug report at https://simtk.org/home/simtkcore (Advanced tab).\n"
+            "  Please file a bug report at https://simtk.org/home/simbody (Advanced tab).\n"
             "  Include the above information and anything else needed to reproduce the problem.");
         va_end(args);
     }
@@ -128,7 +128,7 @@ public:
         va_start(args, fmt);
         vsprintf(buf, fmt, args);
 
-        setMessage("Error detected by SimTK method " 
+        setMessage("Error detected by Simbody method " 
             + std::string(whereChecked) + ": "
             + std::string(buf)
             + "\n  (Required condition '" + std::string(assertion) + "' was not met.)\n");
@@ -154,7 +154,7 @@ public:
         va_list args;
         va_start(args, fmt);
         vsprintf(buf, fmt, args);
-        setMessage("Bad call to SimTK API method " 
+        setMessage("Bad call to Simbody API method " 
                    + std::string(className) + "::" + std::string(methodName) + "(): "
                    + std::string(buf)
                    + "\n  (Required condition '" + std::string(assertion) + "' was not met.)");
@@ -238,6 +238,18 @@ public:
         setMessage(std::string(buf));
     }
     virtual ~ValueWasNegative() throw() { }
+};
+
+class UnimplementedMethod : public Base {
+public:
+    UnimplementedMethod(const char* fn, int ln, std::string methodName) 
+    :   Base(fn,ln)
+	{ 
+	    setMessage("The method " + methodName
+            + "is not yet implemented. Please post to the Simbody forum"
+              " to find a workaround or request implementation.");
+	}
+    virtual ~UnimplementedMethod() throw() { }
 };
 
 class UnimplementedVirtualMethod : public Base {

@@ -61,6 +61,7 @@ public:
     class Constant;
     class Linear;
     class Polynomial;
+    class Sinusoid;
     class Step;
     virtual ~Function_() {
     }
@@ -156,8 +157,8 @@ private:
 };
 
 /**
- * This is a Function_ subclass whose output value is a linear function of its arguments:
- * f(x, y, ...) = ax+by+...+c.
+ * This is a Function_ subclass whose output value is a linear function of its 
+ * arguments: f(x, y, ...) = ax+by+...+c.
  */
 template <class T>
 class Function_<T>::Linear : public Function_<T> {
@@ -206,8 +207,8 @@ private:
 
 
 /**
- * This is a Function_ subclass whose output value is a polynomial of its argument:
- * f(x) = ax^n+bx^(n-1)+...+c.
+ * This is a Function_ subclass whose output value is a polynomial of its 
+ * argument: f(x) = ax^n+bx^(n-1)+...+c.
  */
 template <class T>
 class Function_<T>::Polynomial : public Function_<T> {
@@ -256,6 +257,77 @@ public:
     {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 private:
     const Vector_<T> coefficients;
+};
+
+
+/**
+ * This is a Function_ subclass whose output value is a sinusoid of its 
+ * argument: f(x) = a*sin(w*x + p) where a is amplitude, w is frequency
+ * in radians per unit of x, p is phase in radians.
+ *
+ * This is only defined for a scalar (Real) return value.
+ */
+template <>
+class Function_<Real>::Sinusoid : public Function_<Real> {
+public:
+    /**
+     * Create a Function::Sinusoid object, returning a*sin(w*x+p).
+     * 
+     * @param[in] amplitude 'a' in the above formula
+     * @param[in] frequency 'w' in the above formula
+     * @param[in] phase     'p' in the above formula
+     */
+    Sinusoid(Real amplitude, Real frequency, Real phase=0) 
+    :   a(amplitude), w(frequency), p(phase) {}
+
+    void setAmplitude(Real amplitude) {a=amplitude;}
+    void setFrequency(Real frequency) {w=frequency;}
+    void setPhase    (Real phase)     {p=phase;}
+
+    Real getAmplitude() const {return a;}
+    Real getFrequency() const {return w;}
+    Real getPhase    () const {return p;}
+
+    // Implementation of Function_<T> virtuals.
+
+    virtual Real calcValue(const Vector& x) const {
+        const Real t = x[0]; // we expect just one argument
+        return a*std::sin(w*t + p);
+    }
+
+    virtual Real calcDerivative(const Array_<int>& derivComponents,
+                                const Vector&      x) const {
+        const Real t = x[0]; // time is the only argument
+        const int order = derivComponents.size();
+        // The n'th derivative is
+        //    sign * a * w^n * sc
+        // where sign is -1 if floor(order/2) is odd, else 1
+        // and   sc is cos(w*t+p) if order is odd, else sin(w*t+p)
+        switch(order) {
+        case 0: return  a*      std::sin(w*t + p);
+        case 1: return  a*w*    std::cos(w*t + p);
+        case 2: return -a*w*w*  std::sin(w*t + p);
+        case 3: return -a*w*w*w*std::cos(w*t + p);
+        default:
+            const Real sign = Real(((order/2) & 0x1) ? -1 : 1);
+            const Real sc   = (order & 0x1) ? std::cos(w*t+p) : std::sin(w*t+p);
+            const Real wn   = std::pow(w, order);
+            return sign*a*wn*sc;
+        }
+    }
+
+    virtual int getArgumentSize() const {return 1;} // just time
+    virtual int getMaxDerivativeOrder() const {
+        return std::numeric_limits<int>::max();
+    }
+
+    /** This provides compatibility with std::vector without requiring any 
+    copying. **/
+    Real calcDerivative(const std::vector<int>& derivComponents, 
+                        const Vector& x) const 
+    {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
+private:
+    Real a, w, p;
 };
 
 /**

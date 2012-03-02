@@ -28,7 +28,7 @@ INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
 	            ${SimTKCOMMON_INCLUDE_DIRECTORIES})
 
 # code is in "./src" and in each of these subdirectories/src
-SET(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers)
+SET(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
 
 # Collect up information about the version of the SimTKmath library 
 # we're building and make it available to the code so it can be built 

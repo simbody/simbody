@@ -29,14 +29,12 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "SimTKmath.h"
 
+#include "simbody/internal/common.h"
 #include "simbody/internal/GeneralContactSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "SimTKcommon/internal/SubsystemGuts.h"
-#include "simbody/internal/Contact.h"
-#include "simbody/internal/ContactGeometryImpl.h"
-#include "simbody/internal/CollisionDetectionAlgorithm.h"
 
 #include <algorithm>
 
@@ -206,7 +204,7 @@ public:
                 const ContactSurfaceIndex index1 = extents[i].index;
                 const Transform transform1 = set.bodies[index1].getBodyTransform(state)*set.transforms[index1];
                 const ContactGeometry& geom1 = set.geometry[index1];
-                const int typeIndex1 = geom1.getTypeIndex();
+                const ContactGeometryTypeId typeId1 = geom1.getTypeId();
                 for (int j = i+1; j < numBodies && extents[j].start <= extents[i].end; j++) {
                     // They overlap along this axis.  See if the bounding spheres overlap.
                     
@@ -217,16 +215,23 @@ public:
 
                         const Transform transform2 = set.bodies[index2].getBodyTransform(state)*set.transforms[index2];
                         const ContactGeometry& geom2 = set.geometry[index2];
-                        const int typeIndex2 = geom2.getTypeIndex();
-                        CollisionDetectionAlgorithm* algorithm = CollisionDetectionAlgorithm::getAlgorithm(typeIndex1, typeIndex2);
+                        const ContactGeometryTypeId typeId2 = geom2.getTypeId();
+                        CollisionDetectionAlgorithm* algorithm = 
+                            CollisionDetectionAlgorithm::getAlgorithm
+                                                            (typeId1, typeId2);
                         if (algorithm == NULL) {
-                            algorithm = CollisionDetectionAlgorithm::getAlgorithm(typeIndex2, typeIndex1);
+                            algorithm = CollisionDetectionAlgorithm::
+                                                getAlgorithm(typeId2, typeId1);
                             if (algorithm == NULL)
                                 continue; // No algorithm available for detecting collisions between these two objects.
-                            algorithm->processObjects(index2, geom2, transform2, index1, geom1, transform1, contacts[setIndex]);
+                            algorithm->processObjects(index2, geom2, transform2,
+                                                      index1, geom1, transform1,
+                                                      contacts[setIndex]);
                         }
                         else {
-                            algorithm->processObjects(index1, geom1, transform1, index2, geom2, transform2, contacts[setIndex]);
+                            algorithm->processObjects(index1, geom1, transform1,
+                                                      index2, geom2, transform2,
+                                                      contacts[setIndex]);
                         }
                     }
                 }

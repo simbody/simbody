@@ -178,33 +178,12 @@ virtual bool isUsingQuaternion(const SBStateDigest&,
 
 // This depends on the mobilizer type and modeling options. This is the amount
 // of position-cache storage this mobilizer wants us to set aside for
-// precalculatiosn involving its q's, in units of number of Reals. The meaning
+// precalculations involving its q's, in units of number of Reals. The meaning
 // of the entries in this pool is known only to the node.
 virtual int calcQPoolSize(const SBModelVars&) const = 0;
 
-// This mandatory routine performs expensive floating point operations sin,
-// cos, and 1/sqrt in one place so we don't end up repeating them. sin&cos are 
-// used only for mobilizers which have angular coordinates, and qErr and qnorm 
-// are only for mobilizers using quaternions. Other mobilizers can provide a 
-// null routine.
-//
-// Each of the passed-in Vectors is a "q-like" object, that is, allocated
-// to the bodies in a manner parallel to the q state variable, except that qErr
-// has just one slot per quaternion and must be accessed using the node's 
-// quaternionIndex which is in the Model cache.
-//OBSOLETE
-//virtual void calcJointSinCosQNorm(
-//    const SBModelVars&  mv, 
-//    const SBModelCache& mc,
-//    const SBInstanceCache& ic,
-//    const Vector&       q, 
-//    Vector&             sine, 
-//    Vector&             cosine, 
-//    Vector&             qErr,
-//    Vector&             qnorm) const=0;
-
-// This operator is the first step in realizePosition() for this 
-// RBNode. Taking the q's from the supplied state digest, perform calculations
+// This operator is the first step in realizePosition() for this RBNode. Taking
+// modeling information from the supplied state digest, perform calculations
 // that can be done knowing only the current modeling parameters and the
 // values of the q's. The results go into the posCache and qErr arrays which
 // have already been set to the first entry belonging exclusively to this
@@ -247,7 +226,7 @@ virtual void calcX_FM(const SBStateDigest& sbs,
                       const Real* posCache, int nPos,
                       Transform&  X_F0M0) const = 0;
 
-// This is a pure operator form of calcX_FM(). The State must have been
+// This is a pure operator form of calcX_FM(). The StateDigest must have been
 // realized to model stage. The result depends only on the passed-in q,
 // not anything in the State beyond model stage.
 void calcAcrossJointTransform(
@@ -501,8 +480,7 @@ virtual void realizeDynamics(
     const SBArticulatedBodyInertiaCache&    abc,
     const SBStateDigest&                    sbs) const=0;
 
-virtual void realizeAcceleration(
-    const SBStateDigest&         sbs) const=0;
+// There is no realizeAcceleration().
 
 virtual void realizeReport(
     const SBStateDigest&         sbs) const=0;
@@ -511,22 +489,6 @@ virtual void realizeArticulatedBodyInertiasInward(
     const SBInstanceCache&          ic,
     const SBTreePositionCache&      pc,
     SBArticulatedBodyInertiaCache&  abc) const=0;
-
-virtual void realizeZ(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    const Real*                             mobilityForces,
-    const SpatialVec*                       bodyForces) const=0;
-virtual void realizeAccel(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBTreeVelocityCache&              vc,
-    const SBDynamicsCache&                  dc,
-    SBTreeAccelerationCache&                ac,
-    Real*                                   udot) const=0;
 
 virtual void realizeYOutward(
     const SBInstanceCache&                ic,
@@ -537,8 +499,8 @@ virtual void realizeYOutward(
 // This has a default implementation that is good for everything
 // but Ground.
 virtual void calcCompositeBodyInertiasInward(
-    const SBTreePositionCache&  pc,
-    Array_<SpatialInertia>&     R) const;
+    const SBTreePositionCache&                  pc,
+    Array_<SpatialInertia,MobilizedBodyIndex>&  R) const;
 
 virtual void multiplyBySystemJacobian(
     const SBTreePositionCache&  pc,
@@ -585,7 +547,7 @@ virtual void calcUDotPass2Outward(
     Real*                                   allUDot,
     Real*                                   allTau) const=0;
 
-virtual void calcMInverseFPass1Inward(
+virtual void multiplyByMInvPass1Inward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -594,7 +556,7 @@ virtual void calcMInverseFPass1Inward(
     SpatialVec*                             allZ,
     SpatialVec*                             allGepsilon,
     Real*                                   allEpsilon) const=0;
-virtual void calcMInverseFPass2Outward(
+virtual void multiplyByMInvPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
@@ -603,12 +565,13 @@ virtual void calcMInverseFPass2Outward(
     SpatialVec*                             allA_GB,
     Real*                                   allUDot) const=0;
 
-virtual void calcInverseDynamicsPass1Outward(
+// Also serves as pass 1 for inverse dynamics.
+virtual void calcBodyAccelerationsFromUdotOutward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     const Real*                 allUDot,
     SpatialVec*                 allA_GB) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInverseDynamicsPass1Outward"); }
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcBodyAccelerationsFromUdotOutward"); }
 virtual void calcInverseDynamicsPass2Inward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
@@ -619,17 +582,17 @@ virtual void calcInverseDynamicsPass2Inward(
     Real*                       allTau) const
   { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInverseDynamicsPass2Inward"); }
 
-virtual void calcMVPass1Outward(
+virtual void multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,
     const Real*                 allUDot,
     SpatialVec*                 allA_GB) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMVPass1Outward"); }
-virtual void calcMVPass2Inward(
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByMPass1Outward"); }
+virtual void multiplyByMPass2Inward(
     const SBTreePositionCache&  pc,
     const SpatialVec*           allA_GB,
     SpatialVec*                 allFTmp,
     Real*                       allTau) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMVPass2Inward"); }
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByMPass2Inward"); }
 
 
 virtual void setVelFromSVel(const SBStateDigest&,
@@ -684,44 +647,47 @@ QIndex getQIndex() const {return qIndex;}
 
 
 // Access routines for plucking the right per-body data from the pool in the State.
-const Transform&  fromB(const Array_<Transform>& x) const {return x[nodeNum];}
-const PhiMatrix&  fromB(const Array_<PhiMatrix>& p) const {return p[nodeNum];}
-const MassProperties& fromB(const Array_<MassProperties>& m) const {return m[nodeNum];}
-const Inertia&    fromB(const Array_<Inertia>&   i) const {return i[nodeNum];}
-const UnitInertia& fromB(const Array_<UnitInertia>&   i) const {return i[nodeNum];}
-int               fromB(const Array_<int>&       i) const {return i[nodeNum];}
-const SpatialVec& fromB(const Vector_<SpatialVec>&    v) const {return v[nodeNum];}
-const SpatialVec& fromB(const Array_<SpatialVec>&    v) const {return v[nodeNum];}
-const SpatialMat& fromB(const Vector_<SpatialMat>&    m) const {return m[nodeNum];}
-const SpatialMat& fromB(const Array_<SpatialMat>&    m) const {return m[nodeNum];}
-const SpatialInertia& fromB(const Array_<SpatialInertia>& m) const {return m[nodeNum];}
-const ArticulatedInertia& fromB(const Array_<ArticulatedInertia>& m) const {return m[nodeNum];}
-const Vec3&       fromB(const Vector_<Vec3>&          v) const {return v[nodeNum];}
-const Vec3&       fromB(const Array_<Vec3>&          v) const {return v[nodeNum];}
+const Transform&  fromB(const Array_<Transform,MobilizedBodyIndex>& x) const {return x[nodeNum];}
+const PhiMatrix&  fromB(const Array_<PhiMatrix,MobilizedBodyIndex>& p) const {return p[nodeNum];}
+const MassProperties& fromB(const Array_<MassProperties,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+const Inertia&    fromB(const Array_<Inertia,MobilizedBodyIndex>&   i) const {return i[nodeNum];}
+const UnitInertia& fromB(const Array_<UnitInertia,MobilizedBodyIndex>&   i) const {return i[nodeNum];}
+int               fromB(const Array_<int,MobilizedBodyIndex>&       i) const {return i[nodeNum];}
+const SpatialVec& fromB(const Array_<SpatialVec,MobilizedBodyIndex>&    v) const {return v[nodeNum];}
+const SpatialMat& fromB(const Array_<SpatialMat,MobilizedBodyIndex>&    m) const {return m[nodeNum];}
+const SpatialInertia& fromB(const Array_<SpatialInertia,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+const ArticulatedInertia& fromB(const Array_<ArticulatedInertia,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+const Vec3&       fromB(const Array_<Vec3,MobilizedBodyIndex>&          v) const {return v[nodeNum];}
 
-Transform&  toB(Array_<Transform>& x) const {return x[nodeNum];}
-PhiMatrix&  toB(Array_<PhiMatrix>& p) const {return p[nodeNum];}
-MassProperties& toB(Array_<MassProperties>& m) const {return m[nodeNum];}
-Inertia&    toB(Array_<Inertia>&   i) const {return i[nodeNum];}
-UnitInertia& toB(Array_<UnitInertia>&   i) const {return i[nodeNum];}
-int&        toB(Array_<int>&       i) const {return i[nodeNum];}
-SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
-SpatialVec& toB(Array_<SpatialVec>&    v) const {return v[nodeNum];}
+
+Transform&  toB(Array_<Transform,MobilizedBodyIndex>& x) const {return x[nodeNum];}
+PhiMatrix&  toB(Array_<PhiMatrix,MobilizedBodyIndex>& p) const {return p[nodeNum];}
+MassProperties& toB(Array_<MassProperties,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+Inertia&    toB(Array_<Inertia,MobilizedBodyIndex>&   i) const {return i[nodeNum];}
+UnitInertia& toB(Array_<UnitInertia,MobilizedBodyIndex>&   i) const {return i[nodeNum];}
+int&        toB(Array_<int,MobilizedBodyIndex>&       i) const {return i[nodeNum];}
+SpatialVec& toB(Array_<SpatialVec,MobilizedBodyIndex>&    v) const {return v[nodeNum];}
+SpatialMat& toB(Array_<SpatialMat,MobilizedBodyIndex>&    m) const {return m[nodeNum];}
+SpatialInertia& toB(Array_<SpatialInertia,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+ArticulatedInertia& toB(Array_<ArticulatedInertia,MobilizedBodyIndex>& m) const {return m[nodeNum];}
+Vec3&       toB(Array_<Vec3,MobilizedBodyIndex>&          v) const {return v[nodeNum];}
+
+// Elementwise access to Vectors is relatively expensive; use sparingly.
+const SpatialVec& fromB(const Vector_<SpatialVec>&    v) const {return v[nodeNum];}
+const SpatialMat& fromB(const Vector_<SpatialMat>&    m) const {return m[nodeNum];}
+const Vec3&       fromB(const Vector_<Vec3>&          v) const {return v[nodeNum];}
 SpatialMat& toB(Vector_<SpatialMat>&    m) const {return m[nodeNum];}
-SpatialMat& toB(Array_<SpatialMat>&    m) const {return m[nodeNum];}
-SpatialInertia& toB(Array_<SpatialInertia>& m) const {return m[nodeNum];}
-ArticulatedInertia& toB(Array_<ArticulatedInertia>& m) const {return m[nodeNum];}
 Vec3&       toB(Vector_<Vec3>&          v) const {return v[nodeNum];}
-Vec3&       toB(Array_<Vec3>&          v) const {return v[nodeNum];}
+SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 
     // MODELING INFO
 bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
 bool isPrescribed     (const SBModelVars& mv) const {return mv.prescribed[nodeNum];}
 
 // Find cache resources allocated to this RigidBodyNode.
-const SBModelCache::PerMobilizedBodyModelInfo& 
+const SBModelPerMobodInfo& 
 getModelInfo(const SBModelCache& mc) const
-{   return mc.getMobilizedBodyModelInfo(nodeNum); }
+{   return mc.getMobodModelInfo(nodeNum); }
 
 QIndex getFirstQIndex(const SBModelCache& mc) const
 {   return getModelInfo(mc).firstQIndex; }
@@ -913,14 +879,14 @@ const SpatialVec& getVD_PB_G (const SBTreeVelocityCache& vc) const
 SpatialVec&       updVD_PB_G (SBTreeVelocityCache&       vc) const 
     {return toB  (vc.bodyVelocityInParentDerivRemainder);}
 
-const SpatialVec& getCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.coriolisAcceleration);}
-SpatialVec&       updCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.coriolisAcceleration);}
+const SpatialVec& getGyroscopicForce(const SBTreeVelocityCache& vc) const {return fromB(vc.gyroscopicForces);}
+SpatialVec&       updGyroscopicForce(SBTreeVelocityCache&       vc) const {return toB  (vc.gyroscopicForces);}
+
+const SpatialVec& getMobilizerCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.mobilizerCoriolisAcceleration);}
+SpatialVec&       updMobilizerCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.mobilizerCoriolisAcceleration);}
 
 const SpatialVec& getTotalCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.totalCoriolisAcceleration);}
 SpatialVec&       updTotalCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.totalCoriolisAcceleration);}
-
-const SpatialVec& getGyroscopicForce(const SBTreeVelocityCache& vc) const {return fromB(vc.gyroscopicForces);}
-SpatialVec&       updGyroscopicForce(SBTreeVelocityCache&       vc) const {return toB  (vc.gyroscopicForces);}
 
     // DYNAMICS INFO
 
@@ -936,17 +902,18 @@ const ArticulatedInertia& getPPlus(const SBArticulatedBodyInertiaCache& abc) con
 ArticulatedInertia&       updPPlus(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.pPlus);}
 
 // Others
-const SpatialVec& getCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.centrifugalForces);}
-SpatialVec&       updCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.centrifugalForces);}
+
+const SpatialVec& getMobilizerCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.mobilizerCentrifugalForces);}
+SpatialVec&       updMobilizerCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.mobilizerCentrifugalForces);}
 
 const SpatialVec& getTotalCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.totalCentrifugalForces);}
 SpatialVec&       updTotalCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.totalCentrifugalForces);}
 
-const SpatialVec& getZ(const SBTreeAccelerationCache& rc) const {return fromB(rc.z);}
-SpatialVec&       updZ(SBTreeAccelerationCache&       rc) const {return toB  (rc.z);}
+const SpatialVec& getZ(const SBTreeAccelerationCache& tac) const {return fromB(tac.z);}
+SpatialVec&       updZ(SBTreeAccelerationCache&       tac) const {return toB  (tac.z);}
 
-const SpatialVec& getGepsilon(const SBTreeAccelerationCache& rc) const {return fromB(rc.Gepsilon);}
-SpatialVec&       updGepsilon(SBTreeAccelerationCache&       rc) const {return toB  (rc.Gepsilon);}
+const SpatialVec& getZPlus(const SBTreeAccelerationCache& tac) const {return fromB(tac.zPlus);}
+SpatialVec&       updZPlus(SBTreeAccelerationCache&       tac) const {return toB  (tac.zPlus);}
 
 
 const SpatialMat& getY(const SBDynamicsCache& dc) const {return fromB(dc.Y);}

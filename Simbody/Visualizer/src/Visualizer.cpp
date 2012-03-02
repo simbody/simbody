@@ -34,7 +34,7 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/Visualizer.h"
 #include "simbody/internal/Visualizer_InputListener.h"
-#include "simbody/internal/DecorationGenerator.h"
+
 #include "VisualizerGeometry.h"
 #include "VisualizerProtocol.h"
 

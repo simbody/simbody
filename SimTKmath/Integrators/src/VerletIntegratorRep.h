@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-2008 Stanford University and the Authors.      *
+ * Portions copyright (c) 2007-2011 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -41,10 +41,7 @@ public:
     VerletIntegratorRep(Integrator* handle, const System& sys);
 protected:
     bool attemptDAEStep
-       (Real t0, Real t1, 
-        const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-        const Vector& u0, const Vector& udot0, const Vector& z0, 
-        const Vector& zdot0, Vector& yErrEst, int& errOrder, int& numIterations);
+       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations);
 };
 
 } // namespace SimTK

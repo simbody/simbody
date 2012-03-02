@@ -97,11 +97,9 @@ RungeKuttaMersonIntegratorRep::RungeKuttaMersonIntegratorRep
 // We will call the derivatives at stage f1,f2,f3,f4 but these are done with 
 // only two temporaries fa and fb. (What we're calling "f" Hairer calls "k".)
 bool RungeKuttaMersonIntegratorRep::attemptODEStep
-   (Real t0, Real t1, 
-    const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-    const Vector& u0, const Vector& udot0, const Vector& z0, 
-    const Vector& zdot0, Vector& y1err, int& errOrder, int& numIterations)
+   (Real t1, Vector& y1err, int& errOrder, int& numIterations)
 {
+    const Real t0 = getPreviousTime();
     assert(t1 > t0);
 
     statsStepsAttempted++;

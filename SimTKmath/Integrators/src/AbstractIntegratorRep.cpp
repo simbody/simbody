@@ -1,13 +1,13 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmath(tm)                         *
+ *                        SimTK Simbody: SimTKmath                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-2008 Stanford University and the Authors.      *
- * Authors: Peter Eastman                                                     *
+ * Portions copyright (c) 2007-2011 Stanford University and the Authors.      *
+ * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
@@ -34,10 +34,17 @@
 
 using namespace SimTK;
 
-AbstractIntegratorRep::AbstractIntegratorRep(Integrator* handle, const System& sys, int minOrder, int maxOrder, const std::string& methodName, bool hasErrorControl) :
-    IntegratorRep(handle, sys), minOrder(minOrder), maxOrder(maxOrder), methodName(methodName), hasErrorControl(hasErrorControl) {
-}
+AbstractIntegratorRep::AbstractIntegratorRep
+   (Integrator* handle, const System& sys, int minOrder, int maxOrder, 
+    const std::string& methodName, bool hasErrorControl) 
+:   IntegratorRep(handle, sys), minOrder(minOrder), maxOrder(maxOrder), 
+    methodName(methodName), hasErrorControl(hasErrorControl) {}
 
+
+
+//==============================================================================
+//                             METHOD INITIALIZE
+//==============================================================================
 void AbstractIntegratorRep::methodInitialize(const State& state) {
     initialized = true;
     if (userInitStepSize != -1)
@@ -53,32 +60,157 @@ void AbstractIntegratorRep::methodInitialize(const State& state) {
     resetMethodStatistics();
  }
 
+
+
+//==============================================================================
+//                         CREATE INTERPOLATED STATE
+//==============================================================================
 // Create an interpolated state at time t, which is between tPrev and tCurrent.
 // If we haven't yet delivered an interpolated state in this interval, we have
 // to initialize its discrete part from the advanced state.
 void AbstractIntegratorRep::createInterpolatedState(Real t) {
-    const State& advanced = getAdvancedState();
-    State&       interp   = updInterpolatedState();
+    const System& system   = getSystem();
+    const State&  advanced = getAdvancedState();
+    State&        interp   = updInterpolatedState();
     interp = advanced; // pick up discrete stuff.
     interpolateOrder3(getPreviousTime(),  getPreviousY(),  getPreviousYDot(),
                       advanced.getTime(), advanced.getY(), advanced.getYDot(),
                       t, interp.updY());
     interp.updTime() = t;
-    getSystem().realize(interp, Stage::Velocity); // cheap  
-    if (userProjectInterpolatedStates == 0) // default is yes
-        return; // leave 'em in "as is" condition
-    if (userProjectEveryStep != 1) {
-        const Real constraintError =  IntegratorRep::calcWeightedRMSNorm(interp.getYErr(), getDynamicSystemOneOverTolerances());
-        if (constraintError <= consTol)
-            return; // no need to project
+
+    if (userProjectInterpolatedStates == 0) {
+        system.realize(interp, Stage::Time);
+        system.prescribeQ(interp);
+        system.realize(interp, Stage::Position);
+        system.prescribeU(interp);
+        system.realize(interp, Stage::Velocity);
+        return;
     }
 
-    // No error estimate to project here; just pass an empty Vector.
-    // Local projection only is allowed; we should be close to the manifold.
-    Vector temp;
-    projectStateAndErrorEstimate(interp, temp);
+    // We may need to project onto constraint manifold. Allow project()
+    // to throw an exception if it fails since there is no way to recover here.
+    realizeAndProjectKinematicsWithThrow(interp, ProjectOptions::LocalOnly);
 }
 
+
+//==============================================================================
+//                  BACK UP ADVANCED STATE BY INTERPOLATION
+//==============================================================================
+// Interpolate the advanced state back to an earlier part of the interval,
+// forgetting about the rest of the interval. This is necessary, for
+// example after we have localized an event trigger to an interval tLow:tHigh
+// where tHigh < tAdvanced.
+void AbstractIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
+    const System& system   = getSystem();
+    State& advanced = updAdvancedState();
+    Vector yinterp, dummy;
+
+    assert(getPreviousTime() <= t && t <= advanced.getTime());
+    interpolateOrder3(getPreviousTime(),  getPreviousY(),  getPreviousYDot(),
+                      advanced.getTime(), advanced.getY(), advanced.getYDot(),
+                      t, yinterp);
+    advanced.updY() = yinterp;
+    advanced.updTime() = t;
+
+    // Ignore any user request not to project interpolated states here -- this
+    // is the actual advanced state which will be propagated through the
+    // rest of the trajectory so we can't allow it not to satisfy the 
+    // constraints!
+    // But it is OK if it just *barely* satisfies the constraints so we
+    // won't get carried away if the user isn't being finicky about it.
+
+    // Project position constraints if warranted. Allow project()
+    // to throw an exception if it fails since there is no way to recover here.
+
+    realizeAndProjectKinematicsWithThrow(advanced, ProjectOptions::LocalOnly);
+}
+
+
+
+//==============================================================================
+//                            ATTEMPT DAE STEP
+//==============================================================================
+// This is the default implementation of this virtual method. Most integrators
+// can use this method and just override attemptODEStep(). Some will have to
+// override this, however.
+bool AbstractIntegratorRep::attemptDAEStep
+    (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
+{
+    const System& system   = getSystem();
+    State&        advanced = updAdvancedState();
+
+    bool ODEconverged = false;
+    try {
+        numIterations = 1; // so non-iterative ODEs can forget about this
+        ODEconverged = attemptODEStep(t1, yErrEst, errOrder, numIterations);
+    } catch (...) {return false;}
+
+    if (!ODEconverged)
+        return false;
+
+    // The ODE step did not throw an exception and says it converged,
+    // meaning its error estimate is worth a look.
+    int worstOne;
+    Real errNorm = calcErrorNorm(advanced, yErrEst, worstOne);
+
+    // If the estimated error is extremely bad, don't attempt the 
+    // projection. If we're near the edge, though, the projection may
+    // clean up the error estimate enough to allow the step to be
+    // accepted. We'll define "near the edge" to mean that a half-step
+    // would have succeeded where this one failed. If the current error
+    // norm is eStep then a half step would have given us an error of
+    // eHalf = eStep/(2^p). We want to try the projection as long as 
+    // eHalf <= accuracy, i.e., eStep <= 2^p * accuracy.
+    if (errNorm > std::pow(Real(2),errOrder)*getAccuracyInUse())
+        return true; // this step converged, but isn't worth projecting
+
+    // The ODE error estimate is good enough or at least worth trying
+    // to salvage via projection. If the constraint violation is 
+    // extreme, however, we must not attempt to project it. The goal
+    // here is to ensure that the Newton iteration in projection is
+    // well behaved, running near its quadratic convergence regime.
+    // Thus we'll consider failure to reach sqrt(consTol) to be extreme. 
+    // To guard against numerically large values of consTol, we'll 
+    // always permit projection if we come within 2X of consTol. Examples:
+    //      consTol        projectionLimit
+    //        1e-12             1e-6
+    //        1e-4              1e-2
+    //        0.01              0.1
+    //        0.1               0.316
+    //        0.5               1
+    //        1                 2
+    const Real projectionLimit = 
+        std::max(2*getConstraintToleranceInUse(), 
+                    std::sqrt(getConstraintToleranceInUse()));
+
+    bool anyChanges;
+    if (!localProjectQAndQErrEstNoThrow(advanced, yErrEst, anyChanges,
+                                        projectionLimit))
+        return false; // convergence failure for this step
+
+    // q's satisfy the position constraint manifold. Now work on u's.
+
+    system.prescribeU(advanced);
+    system.realize(advanced, Stage::Velocity);
+
+    // Now try velocity constraint projection. Nothing will happen if
+    // velocity constraints are already satisfied unless user has set the
+    // ForceProjection option.
+
+    if (!localProjectUAndUErrEstNoThrow(advanced, yErrEst, anyChanges,
+                                        projectionLimit))
+        return false; // convergence failure for this step
+
+    // ODE step and projection (if any) were successful, although 
+    // the accuracy requirement may not have been met.
+    return true;
+}
+
+
+
+//==============================================================================
+//                                  STEP TO
+//==============================================================================
 Integrator::SuccessfulStepStatus 
 AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
     try {
@@ -89,10 +221,8 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
       // If this is the start of a continuous interval, return immediately so
       // the current state will be seen as part of the trajectory.
       if (startOfContinuousInterval) {
-          // The set of constraints or event triggers might have changed.
-          getSystem().calcEventTriggerInfo(getAdvancedState(), updEventTriggerInfo());
-          getSystem().calcYErrUnitTolerances(getAdvancedState(), updConstraintWeightsInUse());
           startOfContinuousInterval = false;
+          setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
           return Integrator::StartOfContinuousInterval;
       }
       
@@ -122,7 +252,16 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
 
           switch (getStepCommunicationStatus()) {
             case FinalTimeHasBeenReturned:
-              assert(!"can't call after final time reported"); //TODO: throw
+              // Copy advanced state to previous just so the error message
+              // in the catch() below will show the right time.
+              saveStateAsPrevious(getAdvancedState()); 
+              SimTK_ERRCHK2_ALWAYS(!"EndOfSimulation already returned",
+                  "Integrator::stepTo()",
+                  "Attempted stepTo(t=%g) but final time %g had already been "
+                  "reached and returned."
+                  "\nCheck for Integrator::EndOfSimulation status, or use the "
+                  "Integrator::initialize() method to restart.",
+                  reportTime, finalTime);
               break;
 
             case StepHasBeenReturnedNoEvent:
@@ -136,23 +275,24 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
               break;
 
             case CompletedInternalStepWithEvent: {
-              // Time has been advanced, but the step ended by triggering an event
-              // at tAdvanced (==tHigh). We will return the last-good state at tLow<tHigh,
-              // but first we need to dispatch any pending reports that are supposed
-              // to occur before tLow in which case we interpolate back and
-              // return control before moving on.
+              // Time has been advanced, but the step ended by triggering an 
+              // event at tAdvanced (==tHigh). We will return the last-good 
+              // state at tLow<tHigh, but first we need to dispatch any pending
+              // reports that are supposed to occur before tLow in which case 
+              // we interpolate back and return control before moving on.
               if (reportTime <= getEventWindowLow()) {
-                  // Report time reached: take a brief time-out to make an interpolated report.
-                  // After that we'll come right back here with the user having advanced
-                  // the reportTime (hopefully).
+                  // Report time reached: take a brief time-out to make an 
+                  // interpolated report. After that we'll come right back here
+                  // with the user having advanced the reportTime (hopefully).
                   if (reportTime < getAdvancedTime()) {
                       createInterpolatedState(reportTime);
                       setUseInterpolatedState(true);
                   }
                   else
                       setUseInterpolatedState(false);
-                  // No change to step communication status -- this doesn't count as
-                  // reporting the current step since it is earlier than advancedTime.
+                  // No change to step communication status -- this doesn't 
+                  // count as reporting the current step since it is earlier 
+                  // than advancedTime.
                   return Integrator::ReachedReportTime;
               }
 
@@ -170,35 +310,45 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
               // Fall through to the next case.
 
             case CompletedInternalStepNoEvent: {
-              // Time has been advanced. If there is a report due before tAdvanced,
-              // then we interpolate back and return control before moving on.
+              // Time has been advanced. If there is a report due before 
+              // tAdvanced, then we interpolate back and return control before
+              // moving on.
               if (reportTime <= getAdvancedTime()) {
-                  // Report time reached: take a brief time-out to make an interpolated report.
-                  // After that we'll come right back here with the user having advanced
-                  // the reportTime (hopefully).
+                  // Report time reached: take a brief time-out to make an 
+                  // interpolated report. After that we'll come right back here
+                  // with the user having advanced the reportTime (hopefully).
                   if (reportTime < getAdvancedTime()) {
                       createInterpolatedState(reportTime);
                       setUseInterpolatedState(true);
+                      // No change to step communication status -- this doesn't 
+                      // count as reporting the current step since it is earlier 
+                      // than advancedTime.
                   }
-                  else
+                  else {
+                      // This counts as reporting the current step since we're
+                      // exactly at advancedTime.
                       setUseInterpolatedState(false);
-                  // No change to step communication status -- this doesn't count as
-                  // reporting the current step since it is earlier than advancedTime.
+                      setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
+                  }
+
                   return Integrator::ReachedReportTime;
               }
 
-              Integrator::SuccessfulStepStatus reportReason = Integrator::InvalidSuccessfulStepStatus;
+              // Here we know advancedTime < reportTime. But there may be other
+              // reasons to return.
+
+              Integrator::SuccessfulStepStatus reportReason = 
+                                        Integrator::InvalidSuccessfulStepStatus;
               setUseInterpolatedState(false);
 
               if (getAdvancedTime() >= scheduledEventTime) {
                   reportReason = Integrator::ReachedScheduledEvent;
               } else if (userReturnEveryInternalStep == 1) {
                   reportReason = Integrator::TimeHasAdvanced;
-              } else if (getAdvancedTime() >= reportTime) {
-                  reportReason = Integrator::ReachedReportTime;
               } else if (getAdvancedTime() >= finalTime) {
                   reportReason = Integrator::ReachedReportTime;
-              } else if (userInternalStepLimit > 0 && internalStepsTaken >= userInternalStepLimit) {
+              } else if (   userInternalStepLimit > 0 
+                         && internalStepsTaken >= userInternalStepLimit) {
                   // Last-ditch excuse: too much work.
                   reportReason = Integrator::ReachedStepLimit; // too much work
               }
@@ -216,36 +366,45 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
               assert(!"unrecognized stepCommunicationStatus");
           }
 
-          // If a report or event is requested at the current time, return immediately.
+          // If a report or event is requested at the current time, return 
+          // immediately.
           if (getState().getTime() == reportTime)
               return Integrator::ReachedReportTime;
           if (getState().getTime() == scheduledEventTime)
               return Integrator::ReachedScheduledEvent;
 
-          // At this point we know we are going to have to advance the state, meaning
-          // that the current state will become the previous one. We need to 
+          // At this point we know we are going to have to advance the state, 
+          // meaning that the current state will become the previous one. We 
+          // need to 
           // (1) ensure that all needed computations have been performed
-          // (2) update the auto-update discrete variables, whose update is not permitted
-          //     to change any of the results calculated in (1)
-          // (3) save the continuous pieces of the current state for integrator restarts 
-          //     and interpolation.
-          // The continuous state variables will be updated below only when we make 
-          // irreversible progress. Otherwise we'll use the saved ones to put things back 
-          // the way we found them after any failures.
+          // (2) update the auto-update discrete variables, whose update is not
+          //     permitted to change any of the results calculated in (1)
+          // (3) save the continuous pieces of the current state for integrator
+          //     restarts and interpolation.
+          // The continuous state variables will be updated below only when we 
+          // make irreversible progress. Otherwise we'll use the saved ones to 
+          // put things back the way we found them after any failures.
 
-          // Ensure that all derivatives and other derived quantities are known, including
-          // discrete state updates.
+          // Ensure that all derivatives and other derived quantities are known,
+          // including discrete state updates.
           realizeStateDerivatives(getAdvancedState());
-          // Swap the discrete state update cache entries with the state variables.
+          // Swap the discrete state update cache entries with the state 
+          // variables.
           updAdvancedState().autoUpdateDiscreteVariables();
-          // Record continuous state and derivative information for step restarts.
+          // Record continuous state and derivative information for step 
+          // restarts.
           saveStateAsPrevious(getAdvancedState());
           
+          //---------------- TAKE ONE STEP --------------------
           // Now take a step and see whether an event occurred.
           bool eventOccurred = takeOneStep(tMax, reportTime);
+          //---------------------------------------------------
+
           ++internalStepsTaken;
           ++statsStepsTaken;
-          setStepCommunicationStatus(eventOccurred ? CompletedInternalStepWithEvent : CompletedInternalStepNoEvent);
+          setStepCommunicationStatus(eventOccurred 
+                                      ? CompletedInternalStepWithEvent 
+                                      : CompletedInternalStepNoEvent);
       } // END OF MAIN STEP LOOP
 
       //NOTREACHED
@@ -263,6 +422,11 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
       return Integrator::InvalidSuccessfulStepStatus;
 }
 
+
+
+//==============================================================================
+//                               ADJUST STEP SIZE
+//==============================================================================
 // This is the default implementation for the virtual method adjustStepSize().
 //
 // Adjust the step size for next time based on the accuracy achieved this
@@ -324,28 +488,34 @@ bool AbstractIntegratorRep::adjustStepSize
     return success;
 }
 
+
+
+//==============================================================================
+//                              TAKE ONE STEP
+//==============================================================================
+// Just prior to this call, advanced.t, advanced.y, advanced.ydot were copied 
+// into the "previous" members so that they can be used for restarts.
+// Advanced has been realized through Acceleration stage.
 // This is a private method.
 bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 {
     Real t1;
     State& advanced = updAdvancedState();
 
-    // Make sure we're realized through Stage::Acceleration. This won't
-    // do anything if the state is already realized that far.
-    realizeStateDerivatives(advanced);
+    // These are the pre-recorded starting values. State "advanced" will
+    // get mangled during trial steps but these remain unchanged.
+    const Real    t0     = getPreviousTime();
+    const Vector& y0     = getPreviousY();
+    const Vector& ydot0  = getPreviousYDot();
+    const Vector& uScale = getPreviousUScale();
+    const Vector& zScale = getPreviousZScale();
 
-    // Record the starting values for the continuous variables and their
-    // derivatives in case we have to back up.
-    const Real   t0         = getPreviousTime();
-    const Vector q0         = advanced.getQ();
-    const Vector qdot0      = advanced.getQDot();
-    const Vector qdotdot0   = advanced.getQDotDot();
-    const Vector u0         = advanced.getU();
-    const Vector udot0      = advanced.getUDot();
-    const Vector z0         = advanced.getZ();
-    const Vector zdot0      = advanced.getZDot();
+    const int nq = advanced.getNQ(), 
+              nu = advanced.getNU(), 
+              nz = advanced.getNZ(), 
+              ny = nq+nu+nz;
     
-    Vector yErrEst(advanced.getNY());
+    Vector yErrEst(ny);
     bool stepSucceeded = false;
     do {
         // If we lose more than a small fraction of the step size we wanted
@@ -357,31 +527,31 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
             "Unable to advance time past %g.", t0);
         int errOrder;
         int numIterations=1; // non-iterative methods can ignore this
-        bool converged = attemptDAEStep(t0, t1, q0, qdot0, qdotdot0, 
-                                        u0, udot0, z0, zdot0, 
-                                        yErrEst, errOrder, numIterations);
-        Real rmsErr;
+        //--------------------------------------------------------------------
+        bool converged = attemptDAEStep(t1, yErrEst, errOrder, numIterations);
+        //--------------------------------------------------------------------
+        Real errNorm=NaN; int worstY=-1;
         if (converged) {
-            rmsErr = calcWeightedRMSNorm(yErrEst, getDynamicSystemWeights());
+            errNorm = calcErrorNorm(advanced, yErrEst, worstY);
             statsConvergentIterations += numIterations;
         } else {
-            rmsErr = Infinity; // step didn't converge so error is *very* bad!
+            errNorm = Infinity; // step didn't converge so error is *very* bad!
             ++statsConvergenceTestFailures;
             statsDivergentIterations += numIterations;
         }
 
         // TODO: this isn't right for a non-error controlled integrator that
         // didn't converge, if there is such a thing.
-        stepSucceeded = (hasErrorControl ? adjustStepSize(rmsErr, errOrder, 
+        stepSucceeded = (hasErrorControl ? adjustStepSize(errNorm, errOrder, 
                                                     hWasArtificiallyLimited)
                                          : true);
         if (!stepSucceeded)
             statsErrorTestFailures++;
-		else { // step succeeded
-			lastStepSize = t1-t0;
-			if (isNaN(actualInitialStepSizeTaken))
-				actualInitialStepSizeTaken = lastStepSize;
-		}
+	else { // step succeeded
+	    lastStepSize = t1-t0;
+	    if (isNaN(actualInitialStepSizeTaken))
+                actualInitialStepSizeTaken = lastStepSize;
+	}
     } while (!stepSucceeded);
     
     // The step succeeded. Check for event triggers. If there aren't any, we're
@@ -416,7 +586,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     assert(e0.size() == e1.size() && 
            e0.size() == getAdvancedState().getNEventTriggers());
 
-	const Real MinWindow = 
+    const Real MinWindow = 
         SignificantReal * std::max(Real(1), getAdvancedTime());
     Array_<SystemEventTriggerIndex> eventCandidates, newEventCandidates;
     Array_<Event::Trigger> 
@@ -556,42 +726,11 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     return true;
 }
 
-// Interpolate the advanced state back to an earlier part of the interval,
-// forgetting about the rest of the interval. This is necessary, for
-// example after we have localized an event trigger to an interval tLow:tHigh
-// where tHigh < tAdvanced.
-void AbstractIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
-    State& advanced = updAdvancedState();
-    Vector yinterp;
 
-    assert(getPreviousTime() <= t && t <= advanced.getTime());
-    interpolateOrder3(getPreviousTime(),  getPreviousY(),  getPreviousYDot(),
-                      advanced.getTime(), advanced.getY(), advanced.getYDot(),
-                      t, yinterp);
-    advanced.updY() = yinterp;
-    advanced.updTime() = t;
-    getSystem().realize(advanced, Stage::Velocity); // cheap 
 
-    // Ignore any user request not to project interpolated states here -- this
-    // is the actual advanced state which will be propagated through the
-    // rest of the trajectory so we can't allow it not to satisfy the 
-    // constraints!
-
-    // But it is OK if it just *barely* satisfies the constraints so we
-    // won't get carried away if the user isn't being finicky about it.
-    if (userProjectEveryStep != 1) {
-        const Real constraintError = 
-            IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(),
-                                               getDynamicSystemOneOverTolerances());
-        if (constraintError <= consTol)
-            return; // no need to project
-    }
-
-    // No error estimate to project here; just pass an empty Vector. Local
-    // projection only is allowed; we should be close to the manifold.
-    Vector temp;
-    projectStateAndErrorEstimate(advanced, temp);
-}
+//==============================================================================
+//                              STATUS & MISC
+//==============================================================================
 
 Real AbstractIntegratorRep::getActualInitialStepSizeTaken() const {
     return actualInitialStepSizeTaken;

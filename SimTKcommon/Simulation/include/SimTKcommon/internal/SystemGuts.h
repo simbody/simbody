@@ -2,14 +2,14 @@
 #define SimTK_SimTKCOMMON_SYSTEM_GUTS_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -56,23 +56,23 @@ class DecorativeGeometry;
  * which allocated a piece of memory can access it. Exception: both
  * the client and library side must agree on the virtual function
  * table (VFT) ordering of the client's virtual functions.
- * @verbatim
- *               CLIENT SIDE                    .  LIBRARY SIDE
- *                                              .
- *       System              System::Guts       . System::Guts::GutsRep
- *   ---------------       ------------------   .   -------------
+ * <pre>
+ *               CLIENT SIDE                    |  LIBRARY SIDE
+ *                                              |
+ *       System              System::Guts       | System::Guts::GutsRep
+ *   ---------------       ------------------   |   -------------
  *  | System::Guts* | --> | System::GutsRep* | --> |   GutsRep   |
- *   ---------------       ------------------   .  |             |
- *          ^             | Concrete Guts    |  .  |  Opaque     |
- *          |             | class data and   |  .  |  stuff      |
- *   ===============      | virt func table  |  .  |             |
- *   Concrete System       ------------------   .  |             |
- *     adds no data                             .   -------------
+ *   ---------------       ------------------   |  |             |
+ *          ^             | Concrete Guts    |  |  |  Opaque     |
+ *          |             | class data and   |  |  |  stuff      |
+ *   ===============      | virt func table  |  |  |             |
+ *   Concrete System       ------------------   |  |             |
+ *     adds no data                             |   -------------
  *       members
- * @endverbatim
+ * </pre>
  *
  * If the concrete System::Guts class also has an opaque implementation,
- * as it will for concrete Systems provided by the SimTK Core, then
+ * as it will for concrete Systems provided by Simbody, then
  * the System author should expose only the data-free handle class 
  * derived from System.
  */
@@ -124,6 +124,8 @@ public:
     GutsRep&       updRep() const {assert(rep); return *rep;}
 
     bool systemTopologyHasBeenRealized() const;
+    StageVersion getSystemTopologyCacheVersion() const;
+    void setSystemTopologyCacheVersion(StageVersion topoVersion) const;
     void invalidateSystemTopologyCache() const;
 
     // Wrap the cloneImpl virtual method.
@@ -145,16 +147,27 @@ public:
     void realizeReport      (const State& s) const;
 
     // These wrap the other virtual methods.
-    Real calcTimescale(const State&) const;
-    void calcYUnitWeights(const State&, Vector& weights) const;
-    void prescribe(State&, Stage) const;
-    void project(State&, Real consAccuracy, const Vector& yweights,
-                 const Vector& ootols, Vector& yerrest, System::ProjectOptions) const;
-    void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
+    void multiplyByN(const State& state, const Vector& u, 
+                     Vector& dq) const;
+    void multiplyByNTranspose(const State& state, const Vector& fq, 
+                              Vector& fu) const;
+    void multiplyByNPInv(const State& state, const Vector& dq, 
+                         Vector& u) const;
+    void multiplyByNPInvTranspose(const State& state, const Vector& fu, 
+                                  Vector& fq) const;
+
+    bool prescribeQ(State&) const;
+    bool prescribeU(State&) const;
+
+    void projectQ(State&, Vector& qErrEst, 
+                  const ProjectOptions& options, ProjectResults& results) const;
+    void projectU(State&, Vector& uErrEst, 
+                  const ProjectOptions& options, ProjectResults& results) const;
+
     void handleEvents
         (State&, Event::Cause, const Array_<EventId>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const;
+         const HandleEventsOptions& options,
+         HandleEventsResults& results) const;
     void reportEvents(const State&, Event::Cause, const Array_<EventId>& eventIds) const;
     void calcEventTriggerInfo(const State&, Array_<EventTriggerInfo>&) const;
     void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
@@ -190,19 +203,31 @@ protected:
     virtual int realizeAccelerationImpl(const State&) const;
     virtual int realizeReportImpl(const State&) const;
 
-    virtual Real calcTimescaleImpl(const State&) const;
+    virtual void multiplyByNImpl(const State& state, const Vector& u, 
+                                 Vector& dq) const;
+    virtual void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
+                                          Vector& fu) const;
+    virtual void multiplyByNPInvImpl(const State& state, const Vector& dq, 
+                                     Vector& u) const;
+    virtual void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
+                                              Vector& fq) const;
 
-    virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
+    // Defaults assume no prescribed motion; hence, no change made.
+    virtual bool prescribeQImpl(State&) const {return false;}
+    virtual bool prescribeUImpl(State&) const {return false;}
 
-    virtual int prescribeImpl(State&, Stage) const;
-    virtual int projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                            const Vector& ootols, Vector& yerrest, System::ProjectOptions) const;
-    virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
+    // Defaults assume no constraints and return success meaning "all 
+    // constraints satisfied".
+    virtual void projectQImpl(State&, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const
+    {   results.clear(); results.setExitStatus(ProjectResults::Succeeded); }
+    virtual void projectUImpl(State&, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const
+    {   results.clear(); results.setExitStatus(ProjectResults::Succeeded); }
 
-    virtual int handleEventsImpl
-        (State&, Event::Cause, const Array_<EventId>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const;
+    virtual void handleEventsImpl
+       (State&, Event::Cause, const Array_<EventId>& eventIds,
+        const HandleEventsOptions& options, HandleEventsResults& results) const;
 
     virtual int reportEventsImpl(const State&, Event::Cause, const Array_<EventId>& eventIds) const;
 
@@ -210,11 +235,6 @@ protected:
 
     virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
     virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
-
-private:
-    // OBSOLETE
-    // Part of our ongoing crusade to turn getN's into getNums for API consistency.
-    int getNSubsystems() const {return getNumSubsystems();}
 
 private:
     Guts& operator=(const Guts&); // suppress default copy assignment operator

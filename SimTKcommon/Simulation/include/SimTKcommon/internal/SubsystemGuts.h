@@ -103,12 +103,19 @@ public:
     const Vector& getQ(const State&) const;
     const Vector& getU(const State&) const;
     const Vector& getZ(const State&) const;
+    const Vector& getUWeights(const State&) const;
+    const Vector& getZWeights(const State&) const;
+
     const Vector& getQDot(const State&) const;
     const Vector& getUDot(const State&) const;
     const Vector& getZDot(const State&) const;
     const Vector& getQDotDot(const State&) const;
+
     const Vector& getQErr(const State&) const;
     const Vector& getUErr(const State&) const;
+    const Vector& getQErrWeights(const State&) const;
+    const Vector& getUErrWeights(const State&) const;
+
     const Vector& getUDotErr(const State&) const;
     const Vector& getMultipliers(const State&) const;
     const Vector& getEventTriggersByStage(const State&, Stage) const;
@@ -204,13 +211,13 @@ public:
     template <class T> Measure_<T> getMeasure_(MeasureIndex mx) const
     {   return Measure_<T>::getAs(getMeasure(mx));}
 
-	bool isInSystem() const;
-	bool isInSameSystem(const Subsystem& otherSubsystem) const;
+    bool isInSystem() const;
+    bool isInSameSystem(const Subsystem& otherSubsystem) const;
 
-	const System& getSystem() const;
-	System&       updSystem();
+    const System& getSystem() const;
+    System&       updSystem();
 
-	SubsystemIndex getMySubsystemIndex() const;
+    SubsystemIndex getMySubsystemIndex() const;
 
     // Internal use only
     const Subsystem& getOwnerSubsystemHandle() const;
@@ -222,10 +229,10 @@ public:
 
     class GutsRep;
     explicit Guts(GutsRep* r) : rep(r) { }
-    bool                hasRep() const {return rep!=0;}
+    bool           hasRep() const {return rep!=0;}
     const GutsRep& getRep() const {assert(rep); return *rep;}
     GutsRep&       updRep() const {assert(rep); return *rep;}
-	void setRep(GutsRep& r) {assert(!rep); rep = &r;}
+    void setRep(GutsRep& r) {assert(!rep); rep = &r;}
 
     bool subsystemTopologyHasBeenRealized() const;
     void invalidateSubsystemTopologyCache() const;
@@ -250,47 +257,6 @@ public:
     void realizeSubsystemDynamics    (const State&) const;
     void realizeSubsystemAcceleration(const State&) const;
     void realizeSubsystemReport      (const State&) const;
-
-    // Calculate weights and tolerances.
-
-    // Given the current values of our own position variables,
-    // calculate a "unit weighting" for changes to these position
-    // variables. 
-    // @param[out] weights must be resizable or already the right size
-    // @pre State must be realized to >= Stage::Position (this subsystem).
-    void calcQUnitWeights(const State&, Vector& weights) const;
-
-    // Given the current values of our own position variables,
-    // calculate a "unit weighting" for changes to our velocity
-    // variables.
-    // @param[out] weights must be resizable or already the right size
-    // @pre State must be realized to >= Stage::Position (this subsystem).
-    void calcUUnitWeights(const State&, Vector& weights) const;
-
-    // Given the current values of our own position variables,
-    // calculate a "unit weighting" for changes to our auxiliary
-    // variables.
-    // @param[out] weights must be resizable or already the right size
-    // @pre State must be realized to >= Stage::Position (this subsystem).
-    void calcZUnitWeights(const State&, Vector& weights) const;
-
-    // Calculate a "unit tolerance" for errors in each of this subsystem's
-    // position-level constraints.
-    // @param[out] tolerances must be resizable or already the right size
-    // @pre State must be realized to >= Stage::Model (this subsystem).
-    // @remark Tolerances are expected to be constant during a study; typically
-    //         they just reflect the units in which the contraint equations
-    //         are calculated, e.g. angles or lengths.
-    void calcQErrUnitTolerances(const State&, Vector& tolerances) const;
-
-    // Calculate a "unit tolerance" for errors in each of this subsystem's
-    // velocity-level constraints.
-    // @param[out] tolerances must be resizable or already the right size
-    // @pre State must be realized to >= Stage::Model (this subsystem).
-    // @remark Tolerances are expected to be constant during a study; typically
-    //         they just reflect the units in which the contraint equations
-    //         are calculated, e.g. angles/time or lengths/time.
-    void calcUErrUnitTolerances(const State&, Vector& tolerances) const;
 
     // Generate decorative geometry computable at a specific stage. This will
     // throw an exception if this subsystem's state hasn't already been realized
@@ -319,8 +285,7 @@ public:
         bool includeCurrentTime) const;
     virtual void handleEvents
        (State&, Event::Cause, const Array_<EventId>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const;
+        const HandleEventsOptions& options, HandleEventsResults& results) const;
     virtual void reportEvents
        (const State&, Event::Cause, const Array_<EventId>& eventIds) const;
 
@@ -354,11 +319,6 @@ protected:
     virtual int realizeSubsystemAccelerationImpl(const State& s) const;
     virtual int realizeSubsystemReportImpl(const State& s) const;
 
-    virtual int calcQUnitWeightsImpl(const State& s, Vector& weights) const;
-    virtual int calcUUnitWeightsImpl(const State& s, Vector& weights) const;
-    virtual int calcZUnitWeightsImpl(const State& s, Vector& weights) const;
-    virtual int calcQErrUnitTolerancesImpl(const State& s, Vector& tolerances) const;
-    virtual int calcUErrUnitTolerancesImpl(const State& s, Vector& tolerances) const;
     virtual int calcDecorativeGeometryAndAppendImpl
        (const State&, Stage, Array_<DecorativeGeometry>&) const;
 

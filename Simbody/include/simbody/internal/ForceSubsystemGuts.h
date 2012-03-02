@@ -37,7 +37,6 @@
  */
 
 #include "SimTKcommon.h"
-#include "SimTKcommon/internal/SubsystemGuts.h"
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"

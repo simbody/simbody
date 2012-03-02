@@ -60,13 +60,11 @@ public:
 
     // This method is called whenever this event occurs.
     virtual void handleEvent
-       (State& state, Real, const Vector&, const Vector&, 
-        Stage& lowestModified, bool&) const 
+       (State& state, Real, bool&) const 
     {
         m_system.realize(state, Stage::Position);
         Vec3 location = m_mobod.findStationLocationInGround(state,m_station);
         m_sample.setValue(state, location);
-        lowestModified = Stage::Position; // stage we just invalidated
     }
 
 private:

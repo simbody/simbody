@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -53,9 +53,9 @@
 
 namespace SimTK {
 
-    ////////////
-    // SYSTEM //
-    ////////////
+//==============================================================================
+//                                   SYSTEM
+//==============================================================================
 
 bool System::isEmptyHandle() const {return guts==0;}
 bool System::isOwnerHandle() const {return guts==0 || &guts->getSystem()==this;}
@@ -100,6 +100,15 @@ void System::adoptSystemGuts(System::Guts* g) {
 const String& System::getName()    const {return getSystemGuts().getName();}
 const String& System::getVersion() const {return getSystemGuts().getVersion();}
 
+System& System::setDefaultTimeScale(Real tc) 
+{   updSystemGuts().updRep().setDefaultTimeScale(tc); return *this; }
+Real System::getDefaultTimeScale() const
+{   return getSystemGuts().getRep().getDefaultTimeScale(); }
+System& System::setDefaultLengthScale(Real lc)
+{   updSystemGuts().updRep().setDefaultLengthScale(lc); return *this; }
+Real System::getDefaultLengthScale() const
+{   return getSystemGuts().getRep().getDefaultLengthScale(); }
+
 System& System::setUpDirection(const CoordinateDirection& up) 
 {   updSystemGuts().updRep().setUpDirection(up); return *this; }
 CoordinateDirection System::getUpDirection() const
@@ -113,12 +122,19 @@ bool System::getUseUniformBackground() const
 void System::resetAllCountersToZero() {updSystemGuts().updRep().resetAllCounters();}
 int System::getNumRealizationsOfThisStage(Stage g) const {return getSystemGuts().getRep().nRealizationsOfStage[g];}
 int System::getNumRealizeCalls() const {return getSystemGuts().getRep().nRealizeCalls;}
+
+int System::getNumPrescribeQCalls() const {return getSystemGuts().getRep().nPrescribeQCalls;}
+int System::getNumPrescribeUCalls() const {return getSystemGuts().getRep().nPrescribeUCalls;}
+
+int System::getNumProjectQCalls() const {return getSystemGuts().getRep().nProjectQCalls;}
+int System::getNumProjectUCalls() const {return getSystemGuts().getRep().nProjectUCalls;}
+int System::getNumFailedProjectQCalls() const {return getSystemGuts().getRep().nFailedProjectQCalls;}
+int System::getNumFailedProjectUCalls() const {return getSystemGuts().getRep().nFailedProjectUCalls;}
 int System::getNumQProjections() const {return getSystemGuts().getRep().nQProjections;}
 int System::getNumUProjections() const {return getSystemGuts().getRep().nUProjections;} 
 int System::getNumQErrorEstimateProjections() const {return getSystemGuts().getRep().nQErrEstProjections;}
 int System::getNumUErrorEstimateProjections() const {return getSystemGuts().getRep().nUErrEstProjections;}
-int System::getNumPrescribeCalls() const {return getSystemGuts().getRep().nPrescribeCalls;}
-int System::getNumProjectCalls() const {return getSystemGuts().getRep().nProjectCalls;}
+
 int System::getNumHandlerCallsThatChangedStage(Stage g) const {return getSystemGuts().getRep().nHandlerCallsThatChangedStage[g];}
 int System::getNumHandleEventCalls() const {return getSystemGuts().getRep().nHandleEventsCalls;}
 int System::getNumReportEventCalls() const {return getSystemGuts().getRep().nReportEventsCalls;}
@@ -146,31 +162,85 @@ void System::setHasTimeAdvancedEvents(bool hasEm) {
 bool System::hasTimeAdvancedEvents() const {
     return getSystemGuts().hasTimeAdvancedEvents();
 }
-bool System::systemTopologyHasBeenRealized() const {
-    return getSystemGuts().systemTopologyHasBeenRealized();
-}
+bool System::systemTopologyHasBeenRealized() const 
+{   return getSystemGuts().systemTopologyHasBeenRealized(); }
+StageVersion System::getSystemTopologyCacheVersion() const
+{   return getSystemGuts().getSystemTopologyCacheVersion(); }
+void System::setSystemTopologyCacheVersion(StageVersion topoVersion) const
+{   getSystemGuts().setSystemTopologyCacheVersion(topoVersion); }
+void System::invalidateSystemTopologyCache() const
+{   getSystemGuts().invalidateSystemTopologyCache(); }
+
+
+
 const State& System::realizeTopology() const {return getSystemGuts().realizeTopology();}
 void System::realizeModel(State& s) const {getSystemGuts().realizeModel(s);}
 void System::realize(const State& s, Stage g) const {getSystemGuts().realize(s,g);}
-void System::calcDecorativeGeometryAndAppend(const State& s, Stage g, Array_<DecorativeGeometry>& geom) const {
-    getSystemGuts().calcDecorativeGeometryAndAppend(s,g,geom);
+void System::calcDecorativeGeometryAndAppend
+   (const State& s, Stage g, Array_<DecorativeGeometry>& geom) const 
+{   getSystemGuts().calcDecorativeGeometryAndAppend(s,g,geom); }
+
+void System::multiplyByN(const State& s, const Vector& u, Vector& dq) const
+{   getSystemGuts().multiplyByN(s,u,dq); }
+void System::multiplyByNTranspose(const State& s, const Vector& fq, Vector& fu) const
+{   getSystemGuts().multiplyByNTranspose(s,fq,fu); }
+void System::multiplyByNPInv(const State& s, const Vector& dq, Vector& u) const
+{   getSystemGuts().multiplyByNPInv(s,dq,u); }
+void System::multiplyByNPInvTranspose(const State& s, const Vector& fu, Vector& fq) const
+{   getSystemGuts().multiplyByNPInvTranspose(s,fu,fq); }
+
+bool System::prescribeQ(State& s) const
+{   return getSystemGuts().prescribeQ(s); }
+bool System::prescribeU(State& s) const
+{   return getSystemGuts().prescribeU(s); }
+
+void System::project(State& state, Real accuracy) const {
+    const ProjectOptions projOptions(accuracy);
+    ProjectResults projResults;
+    Vector noErrEst;    // empty
+
+    realize(state, Stage::Time);
+    prescribeQ(state);
+    realize(state, Stage::Position);
+    projectQ(state, noErrEst, projOptions, projResults);
+    prescribeU(state);
+    realize(state, Stage::Velocity);
+    projectU(state, noErrEst, projOptions, projResults);
 }
 
-Real System::calcTimescale(const State& s) const {return getSystemGuts().calcTimescale(s);}
-void System::calcYUnitWeights(const State& s, Vector& weights) const
-{   getSystemGuts().calcYUnitWeights(s,weights); }
-void System::prescribe(State& s, Stage g) const
-{   getSystemGuts().prescribe(s,g); }
-void System::project(State& s, Real consAccuracy, const Vector& yweights,
-                     const Vector& ootols, Vector& yerrest, System::ProjectOptions opts) const
-{   getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest, opts); }
-void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const
-{   getSystemGuts().calcYErrUnitTolerances(s,tolerances); }
-void System::handleEvents(State& s, Event::Cause cause, const Array_<EventId>& eventIds,
-                          Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-                          Stage& lowestModified, bool& shouldTerminate) const
-{   getSystemGuts().handleEvents(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
-                               lowestModified,shouldTerminate); }
+void System::projectQ(State& state, Real accuracy) const {
+    const ProjectOptions projOptions(accuracy);
+    ProjectResults projResults;
+    Vector noErrEst;    // empty
+
+    realize(state, Stage::Time);
+    prescribeQ(state);
+    realize(state, Stage::Position);
+    projectQ(state, noErrEst, projOptions, projResults);
+}
+
+void System::projectU(State& state, Real accuracy) const {
+    const ProjectOptions projOptions(accuracy);
+    ProjectResults projResults;
+    Vector noErrEst;    // empty
+
+    realize(state, Stage::Position);
+    prescribeU(state);
+    realize(state, Stage::Velocity);
+    projectU(state, noErrEst, projOptions, projResults);
+}
+
+void System::projectQ(State& s, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const
+{   getSystemGuts().projectQ(s,qErrEst,options,results); }
+void System::projectU(State& s, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const
+{   getSystemGuts().projectU(s,uErrEst,options,results); }
+
+void System::handleEvents
+   (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
+    const HandleEventsOptions& options, HandleEventsResults& results) const
+{   getSystemGuts().handleEvents(s,cause,eventIds,options,results); }
 void System::reportEvents(const State& s, Event::Cause cause, const Array_<EventId>& eventIds) const
 {   getSystemGuts().reportEvents(s,cause,eventIds); }
 void System::calcEventTriggerInfo(const State& s, Array_<EventTriggerInfo>& info) const
@@ -184,9 +254,9 @@ void System::calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent,
 
 
 
-    //////////////////
-    // SYSTEM::GUTS //
-    //////////////////
+//==============================================================================
+//                             SYSTEM :: GUTS
+//==============================================================================
 
 // This is also the default constructor.
 System::Guts::Guts(const String& name, const String& version) {
@@ -239,19 +309,26 @@ bool System::Guts::hasTimeAdvancedEvents() const {
 const String& System::Guts::getName()    const {return getRep().getName();}
 const String& System::Guts::getVersion() const {return getRep().getVersion();}
 
-bool System::Guts::systemTopologyHasBeenRealized() const {
-    return getRep().systemTopologyHasBeenRealized();
-}
-
-void System::Guts::invalidateSystemTopologyCache() const {
-    return getRep().invalidateSystemTopologyCache(); // mutable
-}
+bool System::Guts::systemTopologyHasBeenRealized() const 
+{   return getRep().systemTopologyHasBeenRealized(); }
+StageVersion System::Guts::getSystemTopologyCacheVersion() const
+{   return getRep().getSystemTopologyCacheVersion(); }
+void System::Guts::setSystemTopologyCacheVersion(StageVersion topoVersion) const
+{   getRep().setSystemTopologyCacheVersion(topoVersion); }
+void System::Guts::invalidateSystemTopologyCache() const 
+{   return getRep().invalidateSystemTopologyCache(); } // mutable
 
 const State& System::Guts::getDefaultState() const {
+    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(systemTopologyHasBeenRealized(),
+        "System", getName(), "System::Guts::getDefaultState()");
+
     return getRep().getDefaultState();
 }
 
 State& System::Guts::updDefaultState() {
+    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(systemTopologyHasBeenRealized(),
+        "System", getName(), "System::Guts::updDefaultState()");
+
     return updRep().updDefaultState();
 }
 
@@ -265,27 +342,37 @@ System::Guts* System::Guts::clone() const {
 
 const State& System::Guts::realizeTopology() const {
     State& defaultState = getRep().defaultState; // mutable
-    if (!getRep().systemTopologyHasBeenRealized()) {
-        defaultState.clear();
-        defaultState.setNumSubsystems(getNumSubsystems());
-        for (SubsystemIndex i(0); i<getNumSubsystems(); ++i) 
-            defaultState.initializeSubsystem(i, getRep().subsystems[i].getName(), 
-                                                getRep().subsystems[i].getVersion());
-        
-        // Allow the subclass to do processing.
-        realizeTopologyImpl(defaultState); // defaultState is mutable
-        // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
-            if (getRep().subsystems[i].getStage(defaultState) < Stage::Topology)
-                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTopology(defaultState);
-        getRep().systemTopologyRealized = true; // mutable
-        defaultState.advanceSystemToStage(Stage::Topology);
-        getRep().nRealizationsOfStage[Stage::Topology]++; // mutable counter
+    if (getRep().systemTopologyHasBeenRealized())
+        return defaultState;
 
-        // Realize the model using the default settings of the Model variables.
-        // This allocates all the later-stage State variables.
-        realizeModel(defaultState);
-    }
+    defaultState.clear();
+    defaultState.setNumSubsystems(getNumSubsystems());
+    for (SubsystemIndex i(0); i<getNumSubsystems(); ++i) 
+        defaultState.initializeSubsystem(i, getRep().subsystems[i].getName(), 
+                                            getRep().subsystems[i].getVersion());
+        
+    // Allow the concrete System subclass to do its processing.
+    realizeTopologyImpl(defaultState); // defaultState is mutable
+
+    // Realize any subsystems that the subclass didn't already take care of.
+    for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
+        if (getRep().subsystems[i].getStage(defaultState) < Stage::Topology)
+            getRep().subsystems[i].getSubsystemGuts()
+                                  .realizeSubsystemTopology(defaultState);
+
+    // Force the defaultState's Topology stage version number to match the
+    // Topology cache version in this System.
+    defaultState.setSystemTopologyStageVersion
+       (getRep().getSystemTopologyCacheVersion());
+    defaultState.advanceSystemToStage(Stage::Topology);
+
+    getRep().systemTopologyRealized = true; // mutable
+    getRep().nRealizationsOfStage[Stage::Topology]++; // mutable counter
+
+    // Realize the model using the default settings of the Model variables.
+    // This allocates all the later-stage State variables.
+    realizeModel(defaultState);
+
     return defaultState;
 }
 
@@ -294,18 +381,23 @@ void System::Guts::realizeModel(State& s) const {
         "System", getName(), "System::Guts::realizeModel()");
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Topology, 
         "System::Guts::realizeModel()");
+    SimTK_STAGECHECK_TOPOLOGY_VERSION_ALWAYS(
+        getSystemTopologyCacheVersion(), s.getSystemTopologyStageVersion(),
+        "System", getName(), "System::Guts::realizeModel()");
     if (s.getSystemStage() < Stage::Model) {
-        // Allow the subclass to do processing.
+        // Allow the subclass to do its processing.
         realizeModelImpl(s);
         // Realize any subsystems that the subclass didn't already take care of.
         for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Model)
-                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemModel(s);
+                getRep().subsystems[i].getSubsystemGuts()
+                                      .realizeSubsystemModel(s);
         s.advanceSystemToStage(Stage::Model);
 
         getRep().nRealizationsOfStage[Stage::Model]++; // mutable counter
     }
 }
+
 void System::Guts::realizeInstance(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Instance).prev(), 
         "System::Guts::realizeInstance()");
@@ -314,12 +406,14 @@ void System::Guts::realizeInstance(const State& s) const {
         // Realize any subsystems that the subclass didn't already take care of.
         for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Instance)
-                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemInstance(s);
+                getRep().subsystems[i].getSubsystemGuts()
+                                      .realizeSubsystemInstance(s);
         s.advanceSystemToStage(Stage::Instance);
 
         getRep().nRealizationsOfStage[Stage::Instance]++; // mutable counter
     }
 }
+
 void System::Guts::realizeTime(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Time).prev(), 
         "System::Guts::realizeTime()");
@@ -329,7 +423,8 @@ void System::Guts::realizeTime(const State& s) const {
         // Realize any subsystems that the subclass didn't already take care of.
         for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Time)
-                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTime(s);
+                getRep().subsystems[i].getSubsystemGuts()
+                                      .realizeSubsystemTime(s);
         s.advanceSystemToStage(Stage::Time);
 
         getRep().nRealizationsOfStage[Stage::Time]++; // mutable counter
@@ -344,7 +439,8 @@ void System::Guts::realizePosition(const State& s) const {
         // Realize any subsystems that the subclass didn't already take care of.
         for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Position)
-                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemPosition(s);
+                getRep().subsystems[i].getSubsystemGuts()
+                                      .realizeSubsystemPosition(s);
         s.advanceSystemToStage(Stage::Position);
 
         getRep().nRealizationsOfStage[Stage::Position]++; // mutable counter
@@ -359,12 +455,14 @@ void System::Guts::realizeVelocity(const State& s) const {
         // Realize any subsystems that the subclass didn't already take care of.
         for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Velocity)
-                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemVelocity(s);
+                getRep().subsystems[i].getSubsystemGuts()
+                                      .realizeSubsystemVelocity(s);
         s.advanceSystemToStage(Stage::Velocity);
 
         getRep().nRealizationsOfStage[Stage::Velocity]++; // mutable counter
     }
 }
+
 void System::Guts::realizeDynamics(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Dynamics).prev(), 
         "System::Guts::realizeDynamics()");
@@ -374,12 +472,14 @@ void System::Guts::realizeDynamics(const State& s) const {
         // Realize any subsystems that the subclass didn't already take care of.
         for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Dynamics)
-                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemDynamics(s);
+                getRep().subsystems[i].getSubsystemGuts()
+                                      .realizeSubsystemDynamics(s);
         s.advanceSystemToStage(Stage::Dynamics);
 
         getRep().nRealizationsOfStage[Stage::Dynamics]++; // mutable counter
     }
 }
+
 void System::Guts::realizeAcceleration(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Acceleration).prev(), 
         "System::Guts::realizeAcceleration()");
@@ -389,12 +489,14 @@ void System::Guts::realizeAcceleration(const State& s) const {
         // Realize any subsystems that the subclass didn't already take care of.
         for (SubsystemIndex i(0); i<getNumSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Acceleration)
-                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemAcceleration(s);
+                getRep().subsystems[i].getSubsystemGuts()
+                                      .realizeSubsystemAcceleration(s);
         s.advanceSystemToStage(Stage::Acceleration);
 
         getRep().nRealizationsOfStage[Stage::Acceleration]++; // mutable counter
     }
 }
+
 void System::Guts::realizeReport(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Report).prev(), 
         "System::Guts::realizeReport()");
@@ -411,55 +513,101 @@ void System::Guts::realizeReport(const State& s) const {
     }
 }
 
-Real System::Guts::calcTimescale(const State& s) const {
-    SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Instance,
-        "System::Guts::calcTimescale()");
-    return calcTimescaleImpl(s);
-}
-
-void System::Guts::calcYUnitWeights(const State& s, Vector& weights) const {
+void System::Guts::multiplyByN(const State& s, const Vector& u, 
+                               Vector& dq) const {
     SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Position,
-        "System::Guts::calcYUnitWeights()");
-    calcYUnitWeightsImpl(s,weights);
+        "System::Guts::multiplyByN()");
+    return multiplyByNImpl(s,u,dq);
+}
+void System::Guts::multiplyByNTranspose(const State& s, const Vector& fq, 
+                                        Vector& fu) const {
+    SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Position,
+        "System::Guts::multiplyByNTranspose()");
+    return multiplyByNTransposeImpl(s,fq,fu);
+}
+void System::Guts::multiplyByNPInv(const State& s, const Vector& dq, 
+                                   Vector& u) const {
+    SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Position,
+        "System::Guts::multiplyByNPInv()");
+    return multiplyByNPInvImpl(s,dq,u);
+}
+void System::Guts::multiplyByNPInvTranspose(const State& s, const Vector& fu, 
+                                            Vector& fq) const {
+    SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Position,
+        "System::Guts::multiplyByNPInvTranspose()");
+    return multiplyByNPInvTransposeImpl(s,fu,fq);
 }
 
-void System::Guts::calcYErrUnitTolerances(const State& s, Vector& tolerances) const {
-    SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Instance,
-        "System::Guts::calcYErrUnitTolerances()");
-    calcYErrUnitTolerancesImpl(s,tolerances);
+bool System::Guts::prescribeQ(State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Time,
+                               "System::Guts::prescribeQ()");
+    getRep().nPrescribeQCalls++; // mutable counter
+    return prescribeQImpl(s);
 }
 
-void System::Guts::prescribe(State& s, Stage g) const {
-    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), g.prev(),
-                               "System::Guts::prescribe()");
-    prescribeImpl(s,g);
-    getRep().nPrescribeCalls++; // mutable counter
+bool System::Guts::prescribeU(State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Position,
+                               "System::Guts::prescribeU()");
+    getRep().nPrescribeUCalls++; // mutable counter
+    return prescribeUImpl(s);
 }
 
-void System::Guts::project(State& s, Real consAccuracy, const Vector& yweights,
-                           const Vector& ootols, Vector& yerrest, System::ProjectOptions opts) const
-{
-    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Instance, // TODO: is this the right stage?
-        "System::Guts::project()");
-    projectImpl(s,consAccuracy,yweights,ootols,yerrest,opts);
+void System::Guts::projectQ(State& s, Vector& qErrEst, 
+                            const ProjectOptions& options, 
+                            ProjectResults& results) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Position,
+                               "System::Guts::projectQ()");
+    const System::Guts::GutsRep& rep = getRep();
 
-    getRep().nProjectCalls++; // mutable counter
-    if (opts&ProjectOptions::Q) getRep().nQProjections++;
-    if (opts&ProjectOptions::U) getRep().nUProjections++;
-    if (opts&ProjectOptions::QError) getRep().nQErrEstProjections++;
-    if (opts&ProjectOptions::UError) getRep().nUErrEstProjections++;
+    rep.nProjectQCalls++;       // counters are mutable
+    rep.nFailedProjectQCalls++; // assume this will throw an exception
+    //---------------------------------------------------------
+    projectQImpl(s,qErrEst,options,results);
+    //---------------------------------------------------------
+    if (results.getExitStatus()==ProjectResults::Succeeded) {
+        rep.nFailedProjectQCalls--; // never mind!
+        if (results.getAnyChangeMade()) rep.nQProjections++;
+        if (qErrEst.size()) rep.nQErrEstProjections++;
+    }
 }
+
+void System::Guts::projectU(State& s, Vector& uErrEst, 
+                            const ProjectOptions& options, 
+                            ProjectResults& results) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Velocity,
+                               "System::Guts::projectU()");
+    const System::Guts::GutsRep& rep = getRep();
+
+    rep.nProjectUCalls++;       // counters are mutable
+    rep.nFailedProjectUCalls++; // assume this will throw an exception
+    //---------------------------------------------------------
+    projectUImpl(s,uErrEst,options,results);
+    //---------------------------------------------------------
+    if (results.getExitStatus()==ProjectResults::Succeeded) {
+        rep.nFailedProjectUCalls--; // never mind!
+        if (results.getAnyChangeMade()) rep.nUProjections++;
+        if (uErrEst.size()) rep.nUErrEstProjections++;
+    }
+}
+
 
 void System::Guts::handleEvents
    (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
-    Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-    Stage& lowestModified, bool& shouldTerminate) const
+    const HandleEventsOptions& options, HandleEventsResults& results) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, // TODO: is this the right stage?
         "System::Guts::handleEvents()");
     const Real savedTime = s.getTime();
-    handleEventsImpl(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
-                     lowestModified, shouldTerminate);
+
+    // Save the stage version numbers so we can look for changes.
+    Array_<StageVersion> stageVersions;
+    s.getSystemStageVersions(stageVersions);
+
+    handleEventsImpl(s, cause, eventIds, options, results);
+
+    // Note the lowest stage whose version was changed by the handler.
+    const Stage lowestModified = s.getLowestSystemStageDifference(stageVersions);
+    results.setLowestModifiedStage(lowestModified);
 
     getRep().nHandleEventsCalls++; // mutable counters
     getRep().nHandlerCallsThatChangedStage[lowestModified]++;
@@ -511,13 +659,13 @@ void System::Guts::realize(const State& s, Stage g) const {
     Stage stageNow = Stage::Empty;
     while ((stageNow=s.getSystemStage()) < g) {
         switch (stageNow) {
-        case Stage::ModelIndex:        realizeInstance(s);     break;
-        case Stage::InstanceIndex:     realizeTime(s);         break;
-        case Stage::TimeIndex:         realizePosition(s);     break;
-        case Stage::PositionIndex:     realizeVelocity(s);     break;
-        case Stage::VelocityIndex:     realizeDynamics(s);     break;
-        case Stage::DynamicsIndex:     realizeAcceleration(s); break;
-        case Stage::AccelerationIndex: realizeReport(s);       break;
+        case Stage::Model:        realizeInstance(s);     break;
+        case Stage::Instance:     realizeTime(s);         break;
+        case Stage::Time:         realizePosition(s);     break;
+        case Stage::Position:     realizeVelocity(s);     break;
+        case Stage::Velocity:     realizeDynamics(s);     break;
+        case Stage::Dynamics:     realizeAcceleration(s); break;
+        case Stage::Acceleration: realizeReport(s);       break;
         default: assert(!"System::Guts::realize(): bad stage");
         }
     }
@@ -534,8 +682,27 @@ SubsystemIndex System::Guts::adoptSubsystem(Subsystem& src) {
     return updRep().adoptSubsystem(src);
 }
 
-// Default implementations of virtual methods. These quietly succeed
+// Default implementations of virtual methods. Most quietly succeed
 // at doing nothing.
+
+
+// These multiplyByN methods must be implemented if used.
+void System::Guts::multiplyByNImpl
+   (const State& state, const Vector& u, Vector& dq) const
+{   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System::Guts", 
+                 "multiplyByNImpl"); }
+void System::Guts::multiplyByNTransposeImpl
+   (const State& state, const Vector& fq, Vector& fu) const 
+{   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System::Guts", 
+                 "multiplyByNTransposeImpl"); }
+void System::Guts::multiplyByNPInvImpl
+   (const State& state, const Vector& dq, Vector& u) const 
+{   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System::Guts", 
+                 "multiplyByNPInvImpl"); }
+void System::Guts::multiplyByNPInvTransposeImpl
+   (const State& state, const Vector& fu, Vector& fq) const 
+{   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System::Guts", 
+                 "multiplyByNPInvTransposeImpl"); }
 
 int System::Guts::realizeTopologyImpl(State& s) const { 
     return 0;
@@ -565,89 +732,49 @@ int System::Guts::realizeReportImpl(const State& s) const {
     return 0;
 }
 
-Real System::Guts::calcTimescaleImpl(const State&) const {
-    return 0.1; // TODO!!!
-}
 
-int System::Guts::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
-    weights.resize(s.getNY());
-    VectorView qwts = weights(s.getQStart(), s.getNQ());   // writable views
-    VectorView uwts = weights(s.getUStart(), s.getNU());
-    VectorView zwts = weights(s.getZStart(), s.getNZ());
-
-    for (SubsystemIndex i(0); i<getNumSubsystems(); ++i) {
-        const Subsystem::Guts& sub = getRep().subsystems[i].getSubsystemGuts();
-        sub.calcQUnitWeights(s, qwts(s.getQStart(i), s.getNQ(i)));
-        sub.calcUUnitWeights(s, uwts(s.getUStart(i), s.getNU(i)));
-        sub.calcZUnitWeights(s, zwts(s.getZStart(i), s.getNZ(i)));
-    }
-    return 0;
-}
-
-int System::Guts::prescribeImpl(State&, Stage) const
-{
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "prescribe"); 
-    return std::numeric_limits<int>::min();
-}
-
-int System::Guts::projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                              const Vector& ootols, Vector& yerrest, System::ProjectOptions) const
-{
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "project"); 
-    return std::numeric_limits<int>::min();
-}
-
-
-int System::Guts::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) const {
-    ootols.resize(s.getNYErr());
-    VectorView qtols = ootols(s.getQErrStart(), s.getNQErr()); // writable views
-    VectorView utols = ootols(s.getUErrStart(), s.getNUErr());
-
-    for (SubsystemIndex i(0); i<getNumSubsystems(); ++i) {
-        const Subsystem::Guts& sub = getRep().subsystems[i].getSubsystemGuts();
-        sub.calcQErrUnitTolerances(s, qtols(s.getQErrStart(i), s.getNQErr(i)));
-        sub.calcUErrUnitTolerances(s, utols(s.getUErrStart(i), s.getNUErr(i)));
-    }
-    return 0;
-}
-
-int System::Guts::handleEventsImpl
+void System::Guts::handleEventsImpl
    (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
-    Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-    Stage& lowestModified, bool& shouldTerminate) const
+    const HandleEventsOptions& options, HandleEventsResults& results) const
 {
     // Event handlers should not be able to modify the time. We'll
     // save time here and restore it at the end if it might have been
     // changed.
     const Real savedT = state.getTime();
 
+    // Note: caller will take care of lowest modified stage.
+    results.setExitStatus(HandleEventsResults::Succeeded); // assume success
+
     // Loop over each subsystem, see which events belong to it, and 
     // allow it to handle those events.
     
-    lowestModified = Stage::Infinity;
-    shouldTerminate = false;
     Array_<EventId> eventsForSubsystem;
     for (SubsystemIndex i(0); i<getNumSubsystems(); ++i) {
-        Stage subsysLowestModified = Stage::Infinity;
-        bool subsysShouldTerminate = false;
+        HandleEventsResults subsysResults;
+
         getSystem().getDefaultSubsystem().findSubsystemEventIds
            (getRep().subsystems[i].getMySubsystemIndex(), state, eventIds, 
             eventsForSubsystem);
+
         if (eventsForSubsystem.size() > 0) {
             getRep().subsystems[i].getSubsystemGuts().handleEvents
-               (state, cause, eventsForSubsystem, accuracy, yWeights, 
-                ooConstraintTols, subsysLowestModified, subsysShouldTerminate);
-            if (subsysLowestModified < lowestModified)
-                lowestModified = subsysLowestModified;
-            if (subsysShouldTerminate)
-                shouldTerminate = true;
+               (state, cause, eventsForSubsystem, options, subsysResults);
+            if (subsysResults.getAnyChangeMade())
+                results.setAnyChangeMade(true);
+            if (subsysResults.getExitStatus() == HandleEventsResults::Failed) {
+                results.setExitStatus(HandleEventsResults::Failed);
+                results.setMessage(subsysResults.getMessage());
+                break; // must quit at first failure
+            }
+            if (subsysResults.getExitStatus()
+                    ==HandleEventsResults::ShouldTerminate)
+                results.setExitStatus(HandleEventsResults::ShouldTerminate);
+                // but keep going
         }
     }
 
-    if (lowestModified <= Stage::Time)
+    if (state.getTime() != savedT)
         state.setTime(savedT);
-
-    return 0;
 }
 
 int System::Guts::reportEventsImpl(const State& s, Event::Cause cause, const Array_<EventId>& eventIds) const
@@ -715,35 +842,65 @@ int System::Guts::calcTimeOfNextScheduledReportImpl(const State& s, Real& tNextE
     return 0;
 }
 
-    ///////////////////////////
-    // SYSTEM::GUTS::GUTSREP //
-    ///////////////////////////
 
+
+//==============================================================================
+//                         SYSTEM :: GUTS :: GUTS REP
+//==============================================================================
 // All inline currently.
 
 
-    //////////////////////////////
-    // DEFAULT SYSTEM SUBSYSTEM //
-    //////////////////////////////
+
+//==============================================================================
+//                         DEFAULT SYSTEM SUBSYSTEM
+//==============================================================================
+
+// Instance-stage cache entry that records the motion method for every q, u,
+// and udot.
+// TODO: not used yet
+class MotionInfo {
+public:
+    // Allocated at end of realize(Model) when we know nq and nu and initialized
+    // to "free". Subsystems fill these in during realize(Instance).
+    Array_<unsigned char> qMotion;      // nq
+    Array_<unsigned char> uMotion;      // nu
+    Array_<unsigned char> udotMotion;   // nu
+
+    // We'll calculate these index arrays once all Subsystems have had a 
+    // chance to set the motion info for their variables.
+    Array_<int>& freeQIndex;    // nfq indices of each q still marked "free"
+    Array_<int>& freeUIndex;    // nfu indices of each u still marked "free"
+    Array_<int>& freeUDotIndex; // nfudot indices of udot still marked "free"
+};
+
+// Whether to use relative accuracy for u and z variables. 
+// TODO: not used yet
+class StateVarUseRelAccuracyUZ {
+public:
+    // Whether to scale by 1/u and 1/z when u and z are large. We never
+    // use relative accuracy for q.
+    Array_<bool> useRelativeAccuracyU; // nu
+    Array_<bool> useRelativeAccuracyZ; // nz
+};
+
+// This class stores various information used by the default subsystem 
+// that needs to be stored in the state.
+class CachedEventInfo {
+public:
+    CachedEventInfo() : eventIdCounter(0) {}
+    int eventIdCounter;
+    std::map<int, SubsystemIndex> eventOwnerMap;
+    Array_<EventId> scheduledEventIds;
+    Array_<EventTriggerByStageIndex> triggeredEventIndices;
+    Array_<EventId> triggeredEventIds;
+    Array_<EventId> scheduledReportIds;
+    Array_<EventTriggerByStageIndex> triggeredReportIndices;
+    Array_<EventId> triggeredReportIds;
+};
 
 class DefaultSystemSubsystem::Guts : public Subsystem::Guts {
 public:
-    /**
-     * This class stores various information used by the default subsystem that needs to be stored in the state.
-     */
 
-    class CacheInfo {
-    public:
-        CacheInfo() : eventIdCounter(0) {}
-        mutable int eventIdCounter;
-        mutable std::map<int, SubsystemIndex> eventOwnerMap;
-        Array_<EventId> scheduledEventIds;
-        Array_<EventTriggerByStageIndex> triggeredEventIndices;
-        Array_<EventId> triggeredEventIds;
-        Array_<EventId> scheduledReportIds;
-        Array_<EventTriggerByStageIndex> triggeredReportIndices;
-        Array_<EventId> triggeredReportIds;
-    };
     Guts() : Subsystem::Guts("DefaultSystemSubsystem::Guts", "0.0.1") { }
     
     ~Guts() {
@@ -766,6 +923,7 @@ public:
     }
     
     Array_<ScheduledEventHandler*>& updScheduledEventHandlers() {
+        invalidateSubsystemTopologyCache();
         return scheduledEventHandlers;
     }
     
@@ -774,6 +932,7 @@ public:
     }
     
     Array_<TriggeredEventHandler*>& updTriggeredEventHandlers() {
+        invalidateSubsystemTopologyCache();
         return triggeredEventHandlers;
     }
     
@@ -782,6 +941,7 @@ public:
     }
     
     Array_<ScheduledEventReporter*>& updScheduledEventReporters() const {
+        invalidateSubsystemTopologyCache();
         return scheduledEventReporters;
     }
     
@@ -790,19 +950,62 @@ public:
     }
     
     Array_<TriggeredEventReporter*>& updTriggeredEventReporters() const {
+        invalidateSubsystemTopologyCache();
         return triggeredEventReporters;
     }
     
-    const CacheInfo& getCacheInfo(const State& s) const {
-        return Value<CacheInfo>::downcast(getCacheEntry(s, cacheInfoIndex)).get();
+    const CachedEventInfo& getCachedEventInfo(const State& s) const {
+        return Value<CachedEventInfo>::downcast(getCacheEntry(s, cachedEventInfoIndex)).get();
     }
     
-    CacheInfo& updCacheInfo(const State& s) const {
-        return Value<CacheInfo>::downcast(updCacheEntry(s, cacheInfoIndex)).upd();
+    CachedEventInfo& updCachedEventInfo(const State& s) const {
+        return Value<CachedEventInfo>::downcast(updCacheEntry(s, cachedEventInfoIndex)).upd();
     }
 
     int realizeSubsystemTopologyImpl(State& s) const {
-        cacheInfoIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Topology, new Value<CacheInfo>());
+        cachedEventInfoIndex = s.allocateCacheEntry(getMySubsystemIndex(), 
+                                                    Stage::Topology, 
+                                                    new Value<CachedEventInfo>());
+        CachedEventInfo& info = updCachedEventInfo(s);
+        info.scheduledEventIds.clear();
+        info.triggeredEventIndices.clear();
+        info.triggeredEventIds.clear();
+        info.scheduledReportIds.clear();
+        info.triggeredReportIndices.clear();
+        info.triggeredReportIds.clear();
+        info.eventIdCounter = 0;
+        for (Array_<ScheduledEventHandler*>::const_iterator 
+                 e = scheduledEventHandlers.begin(); 
+                 e != scheduledEventHandlers.end(); e++) {
+            EventId id;
+            createScheduledEvent(s, id);
+            info.scheduledEventIds.push_back(id);
+        }
+        for (Array_<TriggeredEventHandler*>::const_iterator 
+                 e = triggeredEventHandlers.begin(); 
+                 e != triggeredEventHandlers.end(); e++) {
+            EventId id;
+            EventTriggerByStageIndex index;
+            createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
+            info.triggeredEventIds.push_back(id);
+            info.triggeredEventIndices.push_back(index);
+        }
+        for (Array_<ScheduledEventReporter*>::const_iterator 
+                 e = scheduledEventReporters.begin(); 
+                 e != scheduledEventReporters.end(); e++) {
+            EventId id;
+            createScheduledEvent(s, id);
+            info.scheduledReportIds.push_back(id);
+        }
+        for (Array_<TriggeredEventReporter*>::const_iterator 
+                 e = triggeredEventReporters.begin(); 
+                 e != triggeredEventReporters.end(); e++) {
+            EventId id;
+            EventTriggerByStageIndex index;
+            createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
+            info.triggeredReportIds.push_back(id);
+            info.triggeredReportIndices.push_back(index);
+        }
         return 0;
     }
     
@@ -811,57 +1014,23 @@ public:
     }
 
     int realizeEventTriggers(const State& s, Stage g) const {
-        const CacheInfo& info = getCacheInfo(s);
+        const CachedEventInfo& info = getCachedEventInfo(s);
         Vector& triggers = s.updEventTriggersByStage(getMySubsystemIndex(), g);
         for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
             if (g == triggeredEventHandlers[i]->getRequiredStage())
-                triggers[info.triggeredEventIndices[i]] = triggeredEventHandlers[i]->getValue(s);
+                triggers[info.triggeredEventIndices[i]] = 
+                    triggeredEventHandlers[i]->getValue(s);
         }
         for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
             if (g == triggeredEventReporters[i]->getRequiredStage())
-                triggers[info.triggeredReportIndices[i]] = triggeredEventReporters[i]->getValue(s);
+                triggers[info.triggeredReportIndices[i]] = 
+                    triggeredEventReporters[i]->getValue(s);
         }
         return 0;
     }
     
     int realizeSubsystemInstanceImpl(const State& s) const {
-        CacheInfo& info = updCacheInfo(s);
-        info.scheduledEventIds.clear();
-        info.triggeredEventIndices.clear();
-        info.triggeredEventIds.clear();
-        info.scheduledReportIds.clear();
-        info.triggeredReportIndices.clear();
-        info.triggeredReportIds.clear();
-        info.eventIdCounter = 0;
-        if (scheduledEventHandlers.size() > 0)
-            for (Array_<ScheduledEventHandler*>::const_iterator e = scheduledEventHandlers.begin(); e != scheduledEventHandlers.end(); e++) {
-                EventId id;
-                createScheduledEvent(s, id);
-                info.scheduledEventIds.push_back(id);
-            }
-        if (triggeredEventHandlers.size() > 0)
-            for (Array_<TriggeredEventHandler*>::const_iterator e = triggeredEventHandlers.begin(); e != triggeredEventHandlers.end(); e++) {
-                EventId id;
-                EventTriggerByStageIndex index;
-                createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
-                info.triggeredEventIds.push_back(id);
-                info.triggeredEventIndices.push_back(index);
-            }
-        if (scheduledEventReporters.size() > 0)
-            for (Array_<ScheduledEventReporter*>::const_iterator e = scheduledEventReporters.begin(); e != scheduledEventReporters.end(); e++) {
-                EventId id;
-                createScheduledEvent(s, id);
-                info.scheduledReportIds.push_back(id);
-            }
-        if (triggeredEventReporters.size() > 0)
-            for (Array_<TriggeredEventReporter*>::const_iterator e = triggeredEventReporters.begin(); e != triggeredEventReporters.end(); e++) {
-                EventId id;
-                EventTriggerByStageIndex index;
-                createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
-                info.triggeredReportIds.push_back(id);
-                info.triggeredReportIndices.push_back(index);
-            }
-        return 0;
+        return 0;        
     }
     int realizeSubsystemTimeImpl(const State& s) const {
         return realizeEventTriggers(s, Stage::Time);
@@ -883,35 +1052,39 @@ public:
     }
     void calcEventTriggerInfo(const State& s, Array_<EventTriggerInfo>& trigInfo) const {
         
-        // Loop over all registered TriggeredEventHandlers and TriggeredEventReporters, and ask
-        // each one for its EventTriggerInfo.
+        // Loop over all registered TriggeredEventHandlers and 
+        // TriggeredEventReporters, and ask each one for its EventTriggerInfo.
         
-        const CacheInfo& info = getCacheInfo(s);
-        trigInfo.resize(triggeredEventHandlers.size()+triggeredEventReporters.size());
+        const CachedEventInfo& info = getCachedEventInfo(s);
+        trigInfo.resize(  triggeredEventHandlers.size()
+                        + triggeredEventReporters.size());
+
         for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
-            Stage stage = triggeredEventHandlers[i]->getRequiredStage();
-            SystemEventTriggerIndex index = SystemEventTriggerIndex
-                                                     (info.triggeredEventIndices[i]
-                                                      + s.getEventTriggerStartByStage(stage)
-                                                      + s.getEventTriggerStartByStage(getMySubsystemIndex(), stage));
+            const Stage stage = triggeredEventHandlers[i]->getRequiredStage();
+            const SystemEventTriggerIndex index
+               (  info.triggeredEventIndices[i]
+                + s.getEventTriggerStartByStage(stage)
+                + s.getEventTriggerStartByStage(getMySubsystemIndex(), stage));
             trigInfo[index] = triggeredEventHandlers[i]->getTriggerInfo();
             trigInfo[index].setEventId(info.triggeredEventIds[i]);
         }
+
         for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
-            Stage stage = triggeredEventReporters[i]->getRequiredStage();
-            SystemEventTriggerIndex index = SystemEventTriggerIndex
-                                                     (info.triggeredReportIndices[i]
-                                                      + s.getEventTriggerStartByStage(stage)
-                                                      + s.getEventTriggerStartByStage(getMySubsystemIndex(), stage));
+            const Stage stage = triggeredEventReporters[i]->getRequiredStage();
+            const SystemEventTriggerIndex index
+               (  info.triggeredReportIndices[i]
+                + s.getEventTriggerStartByStage(stage)
+                + s.getEventTriggerStartByStage(getMySubsystemIndex(), stage));
             trigInfo[index] = triggeredEventReporters[i]->getTriggerInfo();
             trigInfo[index].setEventId(info.triggeredReportIds[i]);
         }
     }
-    void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const {
+    void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, 
+        Array_<EventId>& eventIds, bool includeCurrentTime) const {      
+        // Loop over all registered ScheduledEventHandlers, and ask each one 
+        // when its next event occurs.
         
-        // Loop over all registered ScheduledEventHandlers, and ask each one when its next event occurs.
-        
-        const CacheInfo& info = getCacheInfo(s);
+        const CachedEventInfo& info = getCachedEventInfo(s);
         tNextEvent = Infinity;
         for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i) {
             Real time = scheduledEventHandlers[i]->getNextEventTime(s, includeCurrentTime);
@@ -923,11 +1096,12 @@ public:
             }
         }
     }
-    void calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const {
+    void calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent, 
+        Array_<EventId>& eventIds, bool includeCurrentTime) const {      
+        // Loop over all registered ScheduledEventReporters, and ask each one 
+        // when its next event occurs.
         
-        // Loop over all registered ScheduledEventReporters, and ask each one when its next event occurs.
-        
-        const CacheInfo& info = getCacheInfo(s);
+        const CachedEventInfo& info = getCachedEventInfo(s);
         tNextEvent = Infinity;
         for (int i = 0; i < (int)scheduledEventReporters.size(); ++i) {
             Real time = scheduledEventReporters[i]->getNextEventTime(s, includeCurrentTime);
@@ -939,14 +1113,16 @@ public:
             }
         }
     }
-    void handleEvents(State& s, Event::Cause cause, const Array_<EventId>& eventIds, Real accuracy, const Vector& yWeights,
-            const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
-        const CacheInfo& info = getCacheInfo(s);
-        lowestModified = Stage::Infinity;
-        shouldTerminate = false;
+    void handleEvents(State& s, Event::Cause cause, 
+                      const Array_<EventId>& eventIds, 
+                      const HandleEventsOptions& options, 
+                      HandleEventsResults& results) const 
+    {
+        const CachedEventInfo& info = getCachedEventInfo(s);
+        const Real accuracy = options.getAccuracy();
+        bool shouldTerminate = false;
         
-        // Build a set of the ids for quick lookup.
-        
+        // Build a set of the ids for quick lookup.      
         std::set<EventId> idSet;
         for (int i = 0; i < (int)eventIds.size(); ++i)
             idSet.insert(eventIds[i]);
@@ -956,11 +1132,8 @@ public:
         if (cause == Event::Cause::Triggered) {
             for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
                 if (idSet.find(info.triggeredEventIds[i]) != idSet.end()) {
-                    Stage eventLowestModified = Stage::Infinity;
                     bool eventShouldTerminate = false;
-                    triggeredEventHandlers[i]->handleEvent(s, accuracy, yWeights, ooConstraintTols, eventLowestModified, eventShouldTerminate);
-                    if (eventLowestModified < lowestModified)
-                        lowestModified = eventLowestModified;
+                    triggeredEventHandlers[i]->handleEvent(s, accuracy, eventShouldTerminate);
                     if (eventShouldTerminate)
                         shouldTerminate = true;
                 }
@@ -976,11 +1149,8 @@ public:
         if (cause == Event::Cause::Scheduled) {
             for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i) {
                 if (idSet.find(info.scheduledEventIds[i]) != idSet.end()) {
-                    Stage eventLowestModified = Stage::Infinity;
                     bool eventShouldTerminate = false;
-                    scheduledEventHandlers[i]->handleEvent(s, accuracy, yWeights, ooConstraintTols, eventLowestModified, eventShouldTerminate);
-                    if (eventLowestModified < lowestModified)
-                        lowestModified = eventLowestModified;
+                    scheduledEventHandlers[i]->handleEvent(s, accuracy, eventShouldTerminate);
                     if (eventShouldTerminate)
                         shouldTerminate = true;
                 }
@@ -990,10 +1160,18 @@ public:
                     scheduledEventReporters[i]->handleEvent(s);
             }
         }
+
+        // Assume some change was made.
+        results.setAnyChangeMade(true);
+
+        results.setExitStatus(shouldTerminate 
+            ? HandleEventsResults::ShouldTerminate
+            : HandleEventsResults::Succeeded);
     }
 
-    void reportEvents(const State& s, Event::Cause cause, const Array_<EventId>& eventIds) const {
-        const CacheInfo& info = getCacheInfo(s);
+    void reportEvents(const State& s, Event::Cause cause, 
+                      const Array_<EventId>& eventIds) const {
+        const CachedEventInfo& info = getCachedEventInfo(s);
         
         // Build a set of the ids for quick lookup.
         
@@ -1021,14 +1199,14 @@ public:
     }
 
 private:
-    mutable CacheEntryIndex                 cacheInfoIndex;
+    mutable CacheEntryIndex                 cachedEventInfoIndex;
     mutable Array_<ScheduledEventHandler*>  scheduledEventHandlers;
     mutable Array_<TriggeredEventHandler*>  triggeredEventHandlers;
     mutable Array_<ScheduledEventReporter*> scheduledEventReporters;
     mutable Array_<TriggeredEventReporter*> triggeredEventReporters;
 };
 
-std::ostream& operator<<(std::ostream& o, const DefaultSystemSubsystem::Guts::CacheInfo& info) {
+std::ostream& operator<<(std::ostream& o, const CachedEventInfo& info) {
     o << "DefaultSystemSubsystemGuts::CacheInfo";
     return o;
 }
@@ -1047,86 +1225,93 @@ DefaultSystemSubsystem::Guts& DefaultSystemSubsystem::updGuts() {
 }
 
 /**
- * Add a ScheduledEventHandler to the System.  This must be called before the Model stage is realized.
+ * Add a ScheduledEventHandler to the System.  This must be called before the 
+ * Model stage is realized.
  * 
- * The System assumes ownership of the object passed to this method, and will delete it when the
- * System is deleted.
+ * The System assumes ownership of the object passed to this method, and will 
+ * delete it when the System is deleted.
  */
-
 void DefaultSystemSubsystem::addEventHandler(ScheduledEventHandler* handler) {
     updGuts().updScheduledEventHandlers().push_back(handler);
 }
 
 /**
- * Add a TriggeredEventHandler to the System.  This must be called before the Model stage is realized.
+ * Add a TriggeredEventHandler to the System.  This must be called before the 
+ * Model stage is realized.
  * 
- * The System assumes ownership of the object passed to this method, and will delete it when the
- * System is deleted.
+ * The System assumes ownership of the object passed to this method, and will 
+ * delete it when the System is deleted.
  */
-
 void DefaultSystemSubsystem::addEventHandler(TriggeredEventHandler* handler) {
     updGuts().updTriggeredEventHandlers().push_back(handler);
 }
 
 /**
- * Add a ScheduledEventReporter to the System.  This must be called before the Model stage is realized.
+ * Add a ScheduledEventReporter to the System.  This must be called before the 
+ * Model stage is realized.
  * 
- * The System assumes ownership of the object passed to this method, and will delete it when the
- * System is deleted.
+ * The System assumes ownership of the object passed to this method, and will 
+ * delete it when the System is deleted.
  * 
- * Note that this method is const.  Because an EventReporter cannot affect the behavior of the system
- * being simulated, it is permitted to add one to a const System.
+ * Note that this method is const.  Because an EventReporter cannot affect the
+ * behavior of the system being simulated, it is permitted to add one to a 
+ * const System.
  */
-
 void DefaultSystemSubsystem::addEventReporter(ScheduledEventReporter* handler) const {
     getGuts().updScheduledEventReporters().push_back(handler);
 }
 
 /**
- * Add a TriggeredEventReporter to the System.  This must be called before the Model stage is realized.
+ * Add a TriggeredEventReporter to the System.  This must be called before the 
+ * Model stage is realized.
  * 
- * The System assumes ownership of the object passed to this method, and will delete it when the
- * System is deleted.
+ * The System assumes ownership of the object passed to this method, and will 
+ * delete it when the System is deleted.
  * 
- * Note that this method is const.  Because an EventReporter cannot affect the behavior of the system
- * being simulated, it is permitted to add one to a const System.
+ * Note that this method is const.  Because an EventReporter cannot affect the 
+ * behavior of the system being simulated, it is permitted to add one to a 
+ * const System.
  */
-
 void DefaultSystemSubsystem::addEventReporter(TriggeredEventReporter* handler) const {
     getGuts().updTriggeredEventReporters().push_back(handler);
 }
 
 /**
- * Generate a new, globally unique event ID.  Typically you will not call this directly.  When a Subsystem
- * needs to obtain an event ID for an event it defines, it should do so by calling
- * Subsystem::Guts::createScheduledEvent() or Subsystem::Guts::createTriggeredEvent().
+ * Generate a new, globally unique event ID.  Typically you will not call this 
+ * directly.  When a Subsystem needs to obtain an event ID for an event it 
+ * defines, it should do so by calling Subsystem::Guts::createScheduledEvent() 
+ * or Subsystem::Guts::createTriggeredEvent().
  */
-
 EventId DefaultSystemSubsystem::createEventId(SubsystemIndex subsys, const State& state) const {
-    const Guts::CacheInfo& info = getGuts().getCacheInfo(state);
+    // Must use "upd" here because this is called from realize() 
+    // while we're still filling in the CachedEventInfo.   
+    CachedEventInfo& info = getGuts().updCachedEventInfo(state);
     int id = info.eventIdCounter++;
     info.eventOwnerMap[id] = subsys;
     return EventId(id);
 }
 
 /**
- * Given a list of event IDs, filter it to produce a list of those events belonging to a particular Subsystem.
+ * Given a list of event IDs, filter it to produce a list of those events 
+ * belonging to a particular Subsystem.
  * 
  * @param subsys       the Subsystem for which to find events
  * @param state        the State which produced the events
  * @param allEvents    a list of event IDs to filter
- * @param eventsForSubsystem    on exit, this Array_ contains the filtered list of event IDs belonging to the
- *                              specified Subsystem.
+ * @param eventsForSubsystem  on exit, this Array_ contains the filtered list
+ *                            of event IDs belonging to the specified Subsystem.
  */
-
 void DefaultSystemSubsystem::findSubsystemEventIds
    (SubsystemIndex subsys, const State& state, const Array_<EventId>& allEvents, 
     Array_<EventId>& eventsForSubsystem) const 
 {
-    const Guts::CacheInfo& info = getGuts().getCacheInfo(state);
+    const CachedEventInfo& info = getGuts().getCachedEventInfo(state);
     eventsForSubsystem.clear();
     for (int i = 0; i < (int)allEvents.size(); ++i) {
-        if (info.eventOwnerMap[allEvents[i]] == subsys)
+        std::map<int, SubsystemIndex>::const_iterator p =
+            info.eventOwnerMap.find(allEvents[i]);
+        assert(p != info.eventOwnerMap.end());
+        if (p->second == subsys)
             eventsForSubsystem.push_back(allEvents[i]);
     }
 }

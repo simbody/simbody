@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2009 Stanford University and the Authors.           *
+ * Portions copyright (c) 2009-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -147,7 +147,8 @@ public:
         adoptSubsystemGuts(new SystemSubsystemGuts());
     }
 
-    void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub, EventId start, int nEvents) const
+    void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub, 
+                                   EventId start, int nEvents) const
     {   EventRegistry& er = getGuts().updEventRegistry(s);
         SubsystemIndex sx = sub.getMySubsystemIndex();
         for (int i=start; i < start+nEvents; ++i)
@@ -172,39 +173,47 @@ public:
     // implementations of System::Guts virtuals
     TestSystemGuts* cloneImpl() const {return new TestSystemGuts(*this);}
 
-    int projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                    const Vector& ootols, Vector& yerrest, System::ProjectOptions) const
+    bool prescribeQImpl(State& state) const
     {
-        return 0;
+        return false;
     }
-
-    int handleEventsImpl
-       (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const
+    bool prescribeUImpl(State& state) const
     {
-        cout << "handleEventsImpl t=" << s.getTime() << " cause=" << Event::getCauseName(cause) << endl;
+        return false;
+    }
+    void projectQImpl(State& state, Vector& yerrest, const ProjectOptions& opts, 
+                     ProjectResults& result) const
+    {   
+        result.setExitStatus(ProjectResults::Succeeded);
+    }
+    void projectUImpl(State& state, Vector& yerrest, const ProjectOptions& opts, 
+                     ProjectResults& result) const
+    {
+        result.setExitStatus(ProjectResults::Succeeded);
+    }
+    void handleEventsImpl
+       (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
+        const HandleEventsOptions& options, HandleEventsResults& results) const
+    {
+        cout << "handleEventsImpl t=" << s.getTime() 
+             << " cause=" << Event::getCauseName(cause) << endl;
         const EventRegistry& registry = getSystemSubsystem().getEventRegistry(s);
 
         std::map<SubsystemIndex, Array_<EventId> > eventsPerSub;
         for (EventId eid(0); eid < eventIds.size(); ++eid)
             eventsPerSub[ registry.find(eid)->second ].push_back(eid);
 
-        std::map<SubsystemIndex, Array_<EventId> >::const_iterator i = eventsPerSub.begin();
+        std::map<SubsystemIndex, Array_<EventId> >::const_iterator 
+            i = eventsPerSub.begin();
         for (; i != eventsPerSub.end(); ++i) {
             Stage lowest = Stage::Report;
             bool  terminate = false;
             const Subsystem& sub = getSubsystem(i->first);
-            sub.getSubsystemGuts().handleEvents(s, cause, i->second, accuracy, yWeights, ooConstraintTols, lowest, terminate);
-            if (lowest < lowestModified)
-                lowestModified = lowest;
-            if (terminate) {
-                shouldTerminate = true;
+            sub.getSubsystemGuts().handleEvents(s, cause, i->second, 
+                options, results);
+            if (results.getExitStatus()==HandleEventsResults::Failed)
                 break;
-            }
         }
-            
-        return 0;
     }
 
     int reportEventsImpl(const State& s, Event::Cause cause, const Array_<EventId>& eventIds) const
@@ -303,7 +312,6 @@ public:
         cache.timeTriggerIx = allocateEventTriggersByStage(s, Stage::Time, 2);
         cache.velTriggerIx  = allocateEventTriggersByStage(s, Stage::Velocity, 1);
 
-        // TODO: this doesn't work
         getTestSystem().registerEventsToSubsystem(s, *this, EventId(cache.timeTriggerIx), 2);
         getTestSystem().registerEventsToSubsystem(s, *this, EventId(cache.velTriggerIx), 1);
         return 0;
@@ -334,17 +342,27 @@ public:
         return 0;
     }
 
-    void handleEvents(State& s, Event::Cause cause, const Array_<EventId>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const
+    void handleEvents(State& s, Event::Cause cause, 
+                      const Array_<EventId>& eventIds,
+                      const HandleEventsOptions& options,
+                      HandleEventsResults& results) const
     {
-        cout << "**** TestSubsystem::handleEvents t=" << s.getTime() << " eventIds=";
+        cout << "**** TestSubsystem::handleEvents t=" << s.getTime() 
+             << " acc=" << options.getAccuracy()
+             << " eventIds=";
         for (unsigned i=0; i < eventIds.size(); ++i)
            cout << " " << eventIds[i];
         cout << " ****" << endl;
+
+        // Pretend we changed a position to test lowestModifiedStage
+        // calculation. Try to hide our duplicity by realizing it again.
+        s.invalidateAllCacheAtOrAbove(Stage::Position); 
+        getSystem().realize(s, Stage::Velocity);
+        results.setExitStatus(HandleEventsResults::Succeeded);
     }
 
-    void reportEvents(const State&, Event::Cause, const Array_<EventId>& eventIds) const
+    void reportEvents(const State&, Event::Cause, 
+                      const Array_<EventId>& eventIds) const
     {
     }
 
@@ -427,8 +445,6 @@ static void findEvents(const State& state, Stage g, const Vector& triggers0,
 
 static Real   accuracy = 1e-6;
 static Real   timescale;
-static Vector weights;
-static Vector ooTols;
 
 static bool handleEvents(const System& sys, State& state, Stage g,
                          const Array_<EventId>& triggered) 
@@ -441,13 +457,25 @@ static bool handleEvents(const System& sys, State& state, Stage g,
         cout << " " << triggered[i];
     cout << endl;
 
-    Stage lowestModified = Stage::Report;
     bool shouldTerminate = false; 
-    sys.handleEvents(state, Event::Cause::Triggered, triggered, accuracy, weights, ooTols, 
-                     lowestModified, shouldTerminate);
+    HandleEventsOptions options(accuracy);
+    HandleEventsResults results;
 
-    if (shouldTerminate) {
-        cout << "==> Event at Stage " << g << " requested termination at t=" << state.getTime() << endl;
+    Array_<StageVersion> stageVersions;
+    state.getSystemStageVersions(stageVersions);
+    cout << "BEFORE handling stage versions=\n";
+    cout << stageVersions << "\n";
+    sys.handleEvents(state, Event::Cause::Triggered, triggered,
+                     options, results);
+    state.getSystemStageVersions(stageVersions);
+    cout << "AFTER handling stage versions=\n";
+    cout << stageVersions << "\n";
+    cout << "Results lowestStage=" << results.getLowestModifiedStage() <<"\n";
+
+    if (results.getExitStatus()==HandleEventsResults::ShouldTerminate) {
+        cout << "==> Event at Stage " << g 
+             << " requested termination at t=" << state.getTime() << endl;
+        shouldTerminate = true;
     }
 
     return shouldTerminate;
@@ -517,6 +545,34 @@ void testOne() {
 
 
     State state = sys.realizeTopology();
+    cout << "sys topo version=" << sys.getSystemTopologyCacheVersion() << "\n";
+    cout << "state topo version=" << state.getSystemTopologyStageVersion() << "\n";
+    sys.invalidateSystemTopologyCache();
+    sys.realizeTopology();
+    cout << "sys topo version=" << sys.getSystemTopologyCacheVersion() << "\n";
+    // Use sneaky loophole since we know state is still good.
+    state.setSystemTopologyStageVersion(sys.getSystemTopologyCacheVersion());
+    sys.realizeModel(state);
+
+    cout << "uWeights=" << state.getUWeights() << "\n";
+    cout << "zWeights=" << state.getZWeights() << "\n";
+
+    state.updUWeights()[1] = 9;
+    state.updZWeights() = 21;
+
+    cout << "uWeights=" << state.getUWeights() << "\n";
+    cout << "zWeights=" << state.getZWeights() << "\n";
+
+    sys.realize(state,Stage::Instance);
+
+    cout << "qerrWeights=" << state.getQErrWeights() << "\n";
+    cout << "uerrWeights=" << state.getUErrWeights() << "\n";
+
+    State dupState = state;
+    cout << "dup uWeights=" << state.getUWeights() << "\n";
+    cout << "dup zWeights=" << state.getZWeights() << "\n";
+    cout << "dup qerrWeights=" << state.getQErrWeights() << "\n";
+    cout << "dup uerrWeights=" << state.getUErrWeights() << "\n";
 
     // Allocate vectorResult and initialize it. (Can't mark it valid yet.)
     vectorResult.updValue(state).resize(3);
@@ -543,7 +599,7 @@ void testOne() {
     s2 = state; // should do only assignments w/o heap allocation
 
     // Explicit midpoint steps.
-    const Real h = .0001;
+    const Real h = .001;
     const int nSteps = 2000;
     const int outputInterval = 100;
     state.setTime(0);
@@ -578,9 +634,7 @@ void testOne() {
     cout << "autoResult=" << autoResult.getValue(state) << endl;
 
     // Fill in statics above.
-    timescale = sys.calcTimescale(state);
-    sys.calcYUnitWeights(state, weights);
-    sys.calcYErrUnitTolerances(state, ooTols);
+    timescale = sys.getDefaultTimeScale();
 
     sys.realize(state, Stage::Acceleration);
 
@@ -635,6 +689,10 @@ void testOne() {
         // First integrator stage: unconstrained continuous system only.
         state.updY()    += h2*ydot0;
         state.updTime() += h2;
+        sys.realize(state, Stage::Time);
+        sys.prescribeQ(state);
+        sys.realize(state, Stage::Position);
+        sys.prescribeU(state);
         sys.realize(state);
 
         // Second (final) integrator stage.
@@ -642,17 +700,22 @@ void testOne() {
         const Vector& ydot = state.getYDot();
         state.updY() += h2*ydot; // that is, y = y0 + h*(ydot0+ydot)/2
         state.updTime() += h2;
+        sys.realize(state, Stage::Time);
+        sys.prescribeQ(state);
 
         // 2. Deal with time-dependent events.
-        sys.realize(state, Stage::Time);
         findEvents(state, Stage::Time, triggers0, triggered);
         if (handleEvents(sys, state, Stage::Time, triggered))
             break;
 
-        // 3a. Project position-dependent constraints.
         sys.realize(state, Stage::Position);
+        sys.prescribeU(state);
+
+        // 3a. Project position-dependent constraints.
         Vector temp;
-        sys.project(state, accuracy, weights, ooTols, temp, System::ProjectOptions::PositionOnly);
+        ProjectOptions opts(accuracy);
+        ProjectResults results;
+        sys.projectQ(state, temp, opts, results);
 
         // 3b. Handle position-dependent events.
         findEvents(state, Stage::Position, triggers0, triggered);
@@ -661,7 +724,7 @@ void testOne() {
 
         // 4a. Project velocity-dependent constraints.
         sys.realize(state, Stage::Velocity);
-        sys.project(state, accuracy, weights, ooTols, temp, System::ProjectOptions::VelocityOnly);
+        sys.projectU(state, temp, opts, results);
 
         // 4b. Handle velocity-dependent events.
         findEvents(state, Stage::Velocity, triggers0, triggered);

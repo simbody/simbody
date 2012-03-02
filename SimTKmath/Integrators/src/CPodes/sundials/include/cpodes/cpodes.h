@@ -1155,6 +1155,8 @@ SUNDIALS_EXPORT int CPodeGetConsistentIC(void *cpode_mem, N_Vector yy0, N_Vector
  *    have a root. The user must allocate space for rootsfound. 
  *    For i = 0 ... nrtfn-1, rootsfound[i] = 1 if g_i has a root, 
  *    and = 0 if not.
+ * CPodeGetRootWindow returns the most recent (tLo,tHi] window in 
+ *    which a g_i was found to have a root.
  * CPodeGetIntegratorStats retruns most of the optional outputs as
  *    a group.
  * CPodeGet* return values:
@@ -1181,6 +1183,7 @@ SUNDIALS_EXPORT int CPodeGetErrWeights(void *cpode_mem, N_Vector eweight);
 SUNDIALS_EXPORT int CPodeGetEstLocalErrors(void *cpode_mem, N_Vector ele);
 SUNDIALS_EXPORT int CPodeGetNumGEvals(void *cpode_mem, long int *ngevals);
 SUNDIALS_EXPORT int CPodeGetRootInfo(void *cpode_mem, int *rootsfound);
+SUNDIALS_EXPORT int CPodeGetRootWindow(void *cpode_mem, realtype *tlo, realtype *thi);
 SUNDIALS_EXPORT int CPodeGetIntegratorStats(void *cpode_mem, long int *nsteps,
 					    long int *nfevals, long int *nlinsetups,
 					    long int *netfails, int *qlast,

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2010 Stanford University and the Authors.           *
+ * Portions copyright (c) 2011 Stanford University and the Authors.           *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                                             *
  *                                                                            *
@@ -46,7 +46,7 @@ using namespace SimTK;
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 27;
+static const unsigned ProtocolVersion   = 28;
 
 // The VisualizerGUI has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -116,7 +116,8 @@ public:
     void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution);
     void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation);
     void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness);
-    void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
+    void drawText(const Vec3& position, Real scale, const Vec4& color, 
+                  const std::string& string, bool faceCamera=true);
     void drawCoords(const Transform& transform, Real axisLength, const Vec4& color);
     
     void addMenu(const String& title, int id, const Array_<std::pair<String, int> >& items);

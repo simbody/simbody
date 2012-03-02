@@ -323,6 +323,12 @@ public:
     template <class E1, class E2>
     static bool numericallyEqual(const Vector_<E1>& v1, const Vector_<E2>& v2, int n, double tol=(defTol2<E1,E2>()))
     {   return numericallyEqual((const VectorView_<E1>&)v1, (const VectorView_<E2>&)v2, n, tol); }
+    template <class E1, class E2>
+    static bool numericallyEqual(const Vector_<E1>& v1, const VectorView_<E2>& v2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const VectorView_<E1>&)v1, (const VectorView_<E2>&)v2, n, tol); }
+    template <class E1, class E2>
+    static bool numericallyEqual(const VectorView_<E1>& v1, const Vector_<E2>& v2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const VectorView_<E1>&)v1, (const VectorView_<E2>&)v2, n, tol); }
 
     template <class E1, class E2>
     static bool numericallyEqual(const RowVectorView_<E1>& v1, const RowVectorView_<E2>& v2, int n, double tol=(defTol2<E1,E2>())) {
@@ -334,6 +340,12 @@ public:
     template <class E1, class E2>
     static bool numericallyEqual(const RowVector_<E1>& v1, const RowVector_<E2>& v2, int n, double tol=(defTol2<E1,E2>()))
     {   return numericallyEqual((const RowVectorView_<E1>&)v1, (const RowVectorView_<E2>&)v2, n, tol); }
+    template <class E1, class E2>
+    static bool numericallyEqual(const RowVector_<E1>& v1, const RowVectorView_<E2>& v2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const RowVectorView_<E1>&)v1, (const RowVectorView_<E2>&)v2, n, tol); }
+    template <class E1, class E2>
+    static bool numericallyEqual(const RowVectorView_<E1>& v1, const RowVector_<E2>& v2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const RowVectorView_<E1>&)v1, (const RowVectorView_<E2>&)v2, n, tol); }
 
     template <class E1, class E2>
     static bool numericallyEqual(const MatrixView_<E1>& v1, const MatrixView_<E2>& v2, int n, double tol=(defTol2<E1,E2>())) {
@@ -344,6 +356,12 @@ public:
     }
     template <class E1, class E2>
     static bool numericallyEqual(const Matrix_<E1>& m1, const Matrix_<E2>& m2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const MatrixView_<E1>&)m1, (const MatrixView_<E2>&)m2, n, tol); }
+    template <class E1, class E2>
+    static bool numericallyEqual(const Matrix_<E1>& m1, const MatrixView_<E2>& m2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const MatrixView_<E1>&)m1, (const MatrixView_<E2>&)m2, n, tol); }
+    template <class E1, class E2>
+    static bool numericallyEqual(const MatrixView_<E1>& m1, const Matrix_<E2>& m2, int n, double tol=(defTol2<E1,E2>()))
     {   return numericallyEqual((const MatrixView_<E1>&)m1, (const MatrixView_<E2>&)m2, n, tol); }
 
     template <class P>

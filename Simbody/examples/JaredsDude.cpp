@@ -42,8 +42,7 @@ public:
     UserInputHandler(Visualizer::InputSilo& silo, const Force::Gravity& gravity, Real interval) 
     :   PeriodicEventHandler(interval), m_silo(silo), m_gravity(gravity) {}
 
-    virtual void handleEvent(State& state, Real accuracy, const Vector& yWeights, 
-                             const Vector& ooConstraintTols, Stage& lowestModified, 
+    virtual void handleEvent(State& state, Real accuracy,  
                              bool& shouldTerminate) const 
     {
         unsigned key, modifiers;
@@ -60,33 +59,34 @@ public:
 
         const UnitVec3& down = m_gravity.getDownDirection(state);
         bool control = (modifiers & Visualizer::InputListener::ControlIsDown) != 0;
+        bool gotOne = false;
         switch(key) {
         case Visualizer::InputListener::KeyLeftArrow:
                 m_gravity.setDownDirection(state, down + KeyFactor*Vec3(-1,0,0));
-                lowestModified = Stage::Instance;
+                gotOne = true;
                 break;
         case Visualizer::InputListener::KeyRightArrow:
                 m_gravity.setDownDirection(state, down + KeyFactor*Vec3(1,0,0));
-                lowestModified = Stage::Instance;
+                gotOne = true;
                 break;
         case Visualizer::InputListener::KeyUpArrow:
                 m_gravity.setDownDirection(state, down + KeyFactor*Vec3(0,1,0));
-                lowestModified = Stage::Instance;
+                gotOne = true;
                 break;
         case Visualizer::InputListener::KeyDownArrow:
                 m_gravity.setDownDirection(state,  down + KeyFactor*Vec3(0,-1,0));
-                lowestModified = Stage::Instance;
+                gotOne = true;
                 break;
         case Visualizer::InputListener::KeyPageUp:
                 m_gravity.setDownDirection(state, down + KeyFactor*Vec3(0,0,-1));
-                lowestModified = Stage::Instance;
+                gotOne = true;
                 break;
         case Visualizer::InputListener::KeyPageDown:
                 m_gravity.setDownDirection(state, down + KeyFactor*Vec3(0,0,1));
-                lowestModified = Stage::Instance;
+                gotOne = true;
                 break;
         }
-        if (lowestModified = Stage::Instance)
+        if (gotOne)
             std::cout << "New gravity down=" << m_gravity.getDownDirection(state) << std::endl;
 
     }
@@ -242,6 +242,7 @@ int main() {
 
     system.addEventHandler(
         new UserInputHandler(*silo, dude.m_gravity, 0.1)); // 100ms
+    system.addEventReporter(new Visualizer::Reporter(viz, TimeScale/FrameRate));
      
     // Initialize the system and state.
 
@@ -253,7 +254,6 @@ int main() {
 
     // Simulate it.
 
-    system.addEventReporter(new Visualizer::Reporter(viz, TimeScale/FrameRate));
 
     //RungeKutta3Integrator integ(system);
     RungeKuttaMersonIntegrator integ(system);

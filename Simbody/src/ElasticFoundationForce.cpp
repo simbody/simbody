@@ -32,8 +32,6 @@
 #include "SimTKcommon.h"
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/Contact.h"
-#include "simbody/internal/ContactGeometryImpl.h"
 #include "simbody/internal/GeneralContactSubsystem.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "ElasticFoundationForceImpl.h"
@@ -63,7 +61,8 @@ void ElasticFoundationForce::setTransitionVelocity(Real v) {
     updImpl().transitionVelocity = v;
 }
 
-ElasticFoundationForceImpl::ElasticFoundationForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
+ElasticFoundationForceImpl::ElasticFoundationForceImpl
+   (GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
         subsystem(subsystem), set(set), transitionVelocity(0.01) {
 }
 
@@ -72,10 +71,16 @@ void ElasticFoundationForceImpl::setBodyParameters
     Real staticFriction, Real dynamicFriction, Real viscousFriction) {
     SimTK_APIARGCHECK1(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set), "ElasticFoundationForceImpl", "setBodyParameters",
             "Illegal body index: %d", (int)bodyIndex);
-    SimTK_APIARGCHECK1(subsystem.getBodyGeometry(set, bodyIndex).getType() == ContactGeometry::TriangleMeshImpl::Type(), "ElasticFoundationForceImpl", "setBodyParameters",
-            "Body %d is not a triangle mesh", (int)bodyIndex);
-    parameters[bodyIndex] = Parameters(stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
-    const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(subsystem.getBodyGeometry(set, bodyIndex));
+    SimTK_APIARGCHECK1(subsystem.getBodyGeometry(set, bodyIndex).getTypeId() 
+                        == ContactGeometry::TriangleMesh::classTypeId(), 
+        "ElasticFoundationForceImpl", "setBodyParameters",
+        "Body %d is not a triangle mesh", (int)bodyIndex);
+    parameters[bodyIndex] = 
+        Parameters(stiffness, dissipation, staticFriction, dynamicFriction, 
+                   viscousFriction);
+    const ContactGeometry::TriangleMesh& mesh = 
+        ContactGeometry::TriangleMesh::getAs
+                (subsystem.getBodyGeometry(set, bodyIndex));
     Parameters& param = parameters[bodyIndex];
     param.springPosition.resize(mesh.getNumFaces());
     param.springNormal.resize(mesh.getNumFaces());

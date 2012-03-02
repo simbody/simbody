@@ -61,7 +61,8 @@ public:
              << " ke=" << system.calcKineticEnergy(s) 
              << " E=" << system.calcEnergy(s)
              << endl;
-        cout << "    u=" << s.getU() << "\n\n";
+        cout << "    u=" << s.getU() << "\n";
+        cout << " uerr=" << s.getUErr() << "\n\n";
     }
 private:
     const MultibodySystem& system;
@@ -152,7 +153,7 @@ int main()
     viz.setBackgroundType(Visualizer::SolidColor);
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
 
-    system.addEventReporter(new EnergyReport(system, .1));
+    system.addEventReporter(new EnergyReport(system, .01));
 	system.realizeTopology();
 	State state = system.getDefaultState();
 
@@ -169,8 +170,8 @@ int main()
 	// Velocity
 	ODD_PART_1_body.setOneU(state,0, -11.2);
 
-	RungeKuttaMersonIntegrator integ(system);
-	//RungeKutta3Integrator integ(system);
+	//RungeKuttaMersonIntegrator integ(system);
+	RungeKutta3Integrator integ(system);
 	//RungeKuttaFeldbergIntegrator integ(system);
 	//VerletIntegrator integ(system);
 	//CPodesIntegrator integ(system);
@@ -178,6 +179,7 @@ int main()
     // Accuracy needs to be fairly tight to avoid lockup that would occur
     // if the constraints were allowed to drift.
     integ.setAccuracy(1e-5);
+    //integ.setConstraintTolerance(1e-8);
     integ.initialize(state);
 
 

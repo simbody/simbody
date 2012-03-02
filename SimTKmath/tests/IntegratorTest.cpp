@@ -48,6 +48,9 @@ using std::printf;
 using std::cout;
 using std::endl;
 
+static int qProj, qProjFail;
+static int uProj, uProjFail;
+
 // User-defined system to be integrated. This is a kind of SimTK::System.
 class MyPendulum;
 class MyPendulumGuts: public System::Guts {
@@ -89,31 +92,24 @@ public:
     /*virtual*/int realizeDynamicsImpl(const State&) const;
     /*virtual*/int realizeAccelerationImpl(const State&) const;
 
-    /*virtual*/Real calcTimescaleImpl(const State& s) const {
-        assert(s.getSystemStage() >= Stage::Instance);
-        return 1;
-    }
+    // qdot==u here so these are just copies
+    /*virtual*/void multiplyByNImpl(const State& state, const Vector& u, 
+                                 Vector& dq) const {dq=u;}
+    /*virtual*/void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
+                                          Vector& fu) const {fu=fq;}
+    /*virtual*/void multiplyByNPInvImpl(const State& state, const Vector& dq, 
+                                     Vector& u) const {u=dq;}
+    /*virtual*/void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
+                                              Vector& fq) const {fq=fu;}
 
+    // No prescribed motion.
+    /*virtual*/bool prescribeQImpl(State&) const {return false;}
+    /*virtual*/bool prescribeUImpl(State&) const {return false;}
 
-    /*virtual*/int calcYUnitWeightsImpl(const State& s, Vector& wts) const {
-        assert(s.getSystemStage() >= Stage::Position);
-        wts.resize(s.getNY());
-        wts = 1; wts[1]=1;
-        return 0;
-    }
-
-
-    // Returns *inverse* tols 1/ti.
-    /*virtual*/int calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) const {
-        assert(s.getSystemStage() >= Stage::Instance);
-        ootols.resize(s.getNYErr());
-        ootols=1; ootols[0]=1; ootols[1]=1;
-        return 0;
-    }
-
-
-    /*virtual*/int projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                           const Vector& ctols, Vector& yerrest, System::ProjectOptions) const;
+    /*virtual*/void projectQImpl(State&, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const;
+    /*virtual*/void projectUImpl(State&, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const;
 
 
         ////////////////////////////////////////////////
@@ -131,8 +127,9 @@ public:
         return 0;
     }
 
-    /*virtual*/int calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, 
-                                                    Array_<int>& eventIds, bool includeCurrentTime) const
+    /*virtual*/int calcTimeOfNextScheduledEventImpl
+                    (const State& s, Real& tNextEvent, 
+                     Array_<EventId>& eventIds, bool includeCurrentTime) const
     {
         // Generate an event every 5.123 seconds.
         int nFives = (int)(s.getTime() / 5.123); // rounded down
@@ -151,17 +148,19 @@ public:
     // state is inconsistent in some way and we expect the event handlers
     // to correct that. Time will be the same before and after, but the
     // state may have changed discontinuously.
-    /*virtual*/int handleEventsImpl
-       (State& s, Event::Cause cause, const Array_<int>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const
+    /*virtual*/void handleEventsImpl
+       (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
+        const HandleEventsOptions& options, HandleEventsResults& results) const
     {
         cout << "===> t=" << s.getTime() << ": HANDLING " 
              << Event::getCauseName(cause) << " EVENT!!!" << endl;
-//        if (eventIds.size())
-//            cout << "  EVENT IDS: " << eventIds << endl;
-
-        return 0;
+        if (eventIds.size())
+            cout << "  EVENT IDS: " << eventIds << endl;
+        if (cause != Event::Cause::TimeAdvanced) {
+            std::swap(s.updQ()[0],s.updQ()[1]); // invalidates Position stage
+            s.updU()=0;
+        }
+        results.setExitStatus(HandleEventsResults::Succeeded);
     }
 
 };
@@ -249,10 +248,37 @@ public:
 };
 
 static void printFinalStats(const Integrator& integ);
+
+static void reportState(const char* msg,
+                        const System& sys, const Integrator& integ) {
+    if (*msg) printf("%s\n", msg);
+    const State& s = integ.getState();
+
+    sys.realize(s);
+    printf(
+        " -%6s- %9.6lf(%9.6lf) %14.10lf  %14.10lf  %14.10lf  %14.10lf | %14.10lf %14.10lf %14.10lf %14.10lf %14.10lf\n",
+        integ.isStateInterpolated() ? "INTERP" : "------",
+        s.getTime(), integ.getAdvancedTime(),
+        s.getY()[0], s.getY()[1], s.getY()[2], s.getY()[3],
+        s.getYErr()[0], s.getYErr()[1], 
+        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[0], 
+        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[1], 
+        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[2]);
+
+    cout << "YDot:        " << s.getYDot() << endl;
+    cout << "Multipliers: " << s.getMultipliers() << endl;
+    cout << "UDotErrs:    " << s.getUDotErr() << endl;
+}
+
 int main () {
   try 
   { MyPendulum sys;
     RungeKuttaMersonIntegrator integ(sys);
+    //RungeKuttaFeldbergIntegrator integ(sys);
+    //RungeKutta3Integrator integ(sys);
+    //CPodesIntegrator integ(sys);
+    //VerletIntegrator integ(sys);
+    //ExplicitEulerIntegrator integ(sys);
 
     const Real t0=0;
     const Real qi[] = {1,0}; // (x,y)=(1,0)
@@ -266,9 +292,13 @@ int main () {
 
     integ.setAccuracy(1e-2);
     integ.setConstraintTolerance(1e-4);
+
     //integ.setAllowInterpolation(false);
     //integ.setProjectEveryStep(true);
     //integ.setProjectInterpolatedStates(false);
+    //integ.setInitialStepSize(0.1);
+    //integ.setUseInfinityNorm(true);
+    //integ.setReturnEveryInternalStep(true);
 
     const Real tFinal = 30.003;
     const Real hReport = 1.;
@@ -287,79 +317,82 @@ int main () {
         sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(), 
             nextScheduledEvent, scheduledEventIds, true);
 
+        HandleEventsOptions handleOpts(integ.getAccuracyInUse());
+        HandleEventsResults handleResults;
+
         switch(integ.stepTo(reportNo*hReport, nextScheduledEvent)) {
             case Integrator::ReachedStepLimit: printf("STEP LIMIT\n"); break;
             case Integrator::ReachedReportTime: printf("REPORT TIME AT t=%.17g\n", integ.getTime()); break;
-            case Integrator::StartOfContinuousInterval: printf("START OF CONTINUOUS INTERVAL"); break;
+            case Integrator::StartOfContinuousInterval: printf("START OF CONTINUOUS INTERVAL\n"); break;
 
             case Integrator::ReachedScheduledEvent:  {
-                Stage lowestModified = Stage::Report;
+                Stage lowestModified = Stage::Empty;
                 bool shouldTerminate;
                 printf("SCHEDULED EVENT\n");
+                reportState("BEFORE SCHEDULED EVENT:", sys, integ);
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Scheduled,
-                    scheduledEventIds,
-                    integ.getAccuracyInUse(),
-                    integ.getStateWeightsInUse(),
-                    integ.getConstraintWeightsInUse(),
-                    lowestModified, shouldTerminate);
+                    scheduledEventIds,handleOpts,handleResults);
+                shouldTerminate = 
+                    handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
+                lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
                 break;
             }
 
             case Integrator::TimeHasAdvanced: {
-                Stage lowestModified = Stage::Report;
+                Stage lowestModified = Stage::Empty;
                 bool shouldTerminate;
                 printf("TIME HAS ADVANCED TO %g\n", integ.getTime()); 
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::TimeAdvanced,
-                    Array_<EventId>(),
-                    integ.getAccuracyInUse(),
-                    integ.getStateWeightsInUse(),
-                    integ.getConstraintWeightsInUse(),
-                    lowestModified, shouldTerminate);
+                    Array_<EventId>(),handleOpts,handleResults);
+                shouldTerminate = 
+                    handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
+                lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
                 break;
                                               }
 
             case Integrator::ReachedEventTrigger: {
-                Stage lowestModified = Stage::Report;
+                Stage lowestModified = Stage::Empty;
                 bool shouldTerminate;
                 printf("EVENT TRIGGERED AT tLow=%.17g tHigh=%.17g!!\n", 
                     integ.getTime(), integ.getAdvancedTime());
                 cout << std::setprecision(17);
                 cout << "Event window:     " << integ.getEventWindow() << endl;
-//                cout << "Triggered events: " << integ.getTriggeredEvents();
+                cout << "Triggered events: " << integ.getTriggeredEvents()<<"\n";
                 cout << "Transitions seen:";
                 for (int i=0; i<(int)integ.getEventTransitionsSeen().size(); ++i)
                     cout << " " << Event::eventTriggerString(integ.getEventTransitionsSeen()[i]);
                 cout << endl;
-//                cout << "Est event times:  " << integ.getEstimatedEventTimes();
-
+                cout << "Est event times:  " << integ.getEstimatedEventTimes() << "\n";
+                reportState("BEFORE TRIGGERED EVENT:", sys, integ);
                 // state(t-) => state(t+)
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Triggered,
-                    integ.getTriggeredEvents(),
-                    integ.getAccuracyInUse(),
-                    integ.getStateWeightsInUse(),
-                    integ.getConstraintWeightsInUse(),
-                    lowestModified, shouldTerminate);
+                    integ.getTriggeredEvents(),handleOpts,handleResults);
+                shouldTerminate = 
+                    handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
+                lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
                 break;
             }
                                                   
             case Integrator::EndOfSimulation: {
-                Stage lowestModified = Stage::Report;
+                Stage lowestModified = Stage::Empty;
                 bool shouldTerminate;
+                String reason = integ.getTerminationReasonString
+                    (integ.getTerminationReason());
 
-                printf("SIMULATION IS OVER. TERMINATION REASON=<TODO>\n");
+                printf("SIMULATION IS OVER. TERMINATION REASON=%s\n",
+                       reason.c_str());
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Termination,
-                    Array_<EventId>(),
-                    integ.getAccuracyInUse(),
-                    integ.getStateWeightsInUse(),
-                    integ.getConstraintWeightsInUse(),
-                    lowestModified, shouldTerminate);
+                    Array_<EventId>(),handleOpts,handleResults);
+                shouldTerminate = 
+                    handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
+                lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
                 break;
             }
@@ -368,21 +401,7 @@ int main () {
         }
 
         // fall through to here to report
-        const State& s = integ.getState();
-
-        sys.realize(s);
-        printf(
-            " -%6s- %9.6lf(%9.6lf) %14.10lf  %14.10lf  %14.10lf  %14.10lf | %14.10lf %14.10lf %14.10lf %14.10lf %14.10lf\n",
-            integ.isStateInterpolated() ? "INTERP" : "------",
-            s.getTime(), integ.getAdvancedTime(),
-            s.getY()[0], s.getY()[1], s.getY()[2], s.getY()[3],
-            s.getYErr()[0], s.getYErr()[1], 
-            s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[0], s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[1], 
-            s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[2]);
-
-        cout << "YDot:        " << s.getYDot() << endl;
-        cout << "Multipliers: " << s.getMultipliers() << endl;
-        cout << "UDotErrs:    " << s.getUDotErr() << endl;
+        reportState("", sys, integ);
     }
 
     printFinalStats(integ);
@@ -398,12 +417,12 @@ int main () {
 static void printFinalStats(const Integrator& integ)
 {
   Real h0u;
-  long int nst, nfe, nsetups, nje, nfeLS, nni, ncfn, netf, nge;
-  long int nproj, nce, nsetupsP, nprf;
+  int nst, nattempt, nfe, nsetups, nje, nfeLS, nni, ncfn, netf, nge;
+  int nproj, nprojq, nproju, nce, nsetupsP, nprf, nprqf, npruf;
 
   h0u=NaN;
-  nst=nfe=nsetups=nje=nfeLS=nni=ncfn=netf=nge=-1;
-  nproj=nce=nsetupsP=nprf=-1;
+  nst=nattempt=nfe=nsetups=nje=nfeLS=nni=ncfn=netf=nge=-1;
+  nproj=nprojq=nproju=nce=nsetupsP=nprf=nprqf=npruf=-1;
 
   /*
   flag = cpode.getActualInitStep(&h0u);
@@ -421,22 +440,32 @@ static void printFinalStats(const Integrator& integ)
 
   h0u   = integ.getActualInitialStepSizeTaken();
   nst   = integ.getNumStepsTaken();
+  nattempt = integ.getNumStepsAttempted();
   nfe   = integ.getNumRealizations();
   netf  = integ.getNumErrorTestFailures();
   nproj = integ.getNumProjections();
+  nprojq = integ.getNumQProjections();
+  nproju = integ.getNumUProjections();
   nprf  = integ.getNumProjectionFailures();
+  nprqf  = integ.getNumQProjectionFailures();
+  npruf  = integ.getNumUProjectionFailures();
 
   printf("\nFinal Statistics:\n");
   printf("h0u = %g\n",h0u);
-  printf("nst = %-6ld nfe  = %-6ld nsetups = %-6ld\n",
-	 nst, nfe, nsetups);
-  printf("nfeLS = %-6ld nje = %ld\n",
+  printf("nst = %-6d nattempt = %-6d nfe  = %-6d nsetups = %-6d\n",
+	 nst, nattempt, nfe, nsetups);
+  printf("nfeLS = %-6d nje = %d\n",
 	 nfeLS, nje);
-  printf("nni = %-6ld ncfn = %-6ld netf = %-6ld \n",
+  printf("nni = %-6d ncfn = %-6d netf = %-6d \n",
 	 nni, ncfn, netf);
-  printf("nproj = %-6ld nce = %-6ld nsetupsP = %-6ld nprf = %-6ld\n",
-         nproj, nce, nsetupsP, nprf);
-  printf("nge = %ld\n", nge);
+  printf("nproj = %-6d nprojq = %-6d nproju = %-6d\n",
+         nproj, nprojq, nproju);
+  printf("nprf = %-6d nprqf = %-6d npruf = %-6d\n",
+         nprf, nprqf, npruf);
+  printf("nge = %d\n", nge);
+
+  printf("qProj=%d qProjFail=%d\n", qProj, qProjFail);
+  printf("uProj=%d uProjFail=%d\n", uProj, uProjFail);
 
 }
 
@@ -520,10 +549,13 @@ int MyPendulumGuts::realizePositionImpl(const State& s) const {
     
     s.updEventTriggersByStage(subsysIndex, Stage::Position)[0] = 100*q[0]-q[1];
 
+    // Make sure this boolean trigger *crosses* zero; it won't work right
+    // if one end is actually zero. We'll use -.5 for false, .5 for true.
     s.updEventTriggersByStage(subsysIndex, Stage::Position)[1] = 
-        s.getTime() > 1.49552 && s.getTime() < 12.28937;
+        (s.getTime() > /*1.49552*/1.49545 && s.getTime() < 12.28937)-0.5;
 
-    s.updEventTriggersByStage(subsysIndex, Stage::Position)[2] = s.getTime()-1.495508;
+    s.updEventTriggersByStage(subsysIndex, Stage::Position)[2] = 
+        s.getTime()-1.495508;
     System::Guts::realizePositionImpl(s);
     return 0;
 }
@@ -563,12 +595,14 @@ int MyPendulumGuts::realizeAccelerationImpl(const State& s) const {
     const Vector& q    = s.getQ(subsysIndex);
     const Vector& u    = s.getU(subsysIndex);
     Vector&       udot = s.updUDot(subsysIndex);
+    Vector&       qdotdot = s.updQDotDot(subsysIndex);
 
     const Real r2 = q[0]*q[0] + q[1]*q[1];
     const Real v2 = u[0]*u[0] + u[1]*u[1];
     const Real L  = (m*v2 - mg*q[1])/r2;
     udot[0] = - q[0]*L/m;
     udot[1] = - q[1]*L/m - g;
+    qdotdot = udot; // N=identity for this problem
     s.updMultipliers(subsysIndex)[0] = L;
     s.updUDotErr(subsysIndex)[0] = q[0]*udot[0] + q[1]*udot[1] + v2;
     System::Guts::realizeAccelerationImpl(s);
@@ -611,46 +645,123 @@ static Real wrms(const Vector& y, const Vector& w) {
     return std::sqrt(sumsq/y.size());
 }
 
-int MyPendulumGuts::projectImpl(State& s, Real consAccuracy,
-                                const Vector& yweights, const Vector& ctols,
-                                Vector& yerrest, System::ProjectOptions opts) const // yerrest is in/out
+// qerrest is in/out
+void MyPendulumGuts::projectQImpl(State& s, Vector& qerrest, 
+                                const ProjectOptions& opts,
+                                ProjectResults& results) const 
+                                
 {
-    const Vec2& wq = Vec2::getAs(&yweights[0]);
-    const Vec2& wu = Vec2::getAs(&yweights[2]);
+    const Real consAccuracy = opts.getRequiredAccuracy();
+    const Real projLimit = opts.getProjectionLimit();
+    const bool forceProj = opts.isOptionSet(ProjectOptions::ForceProjection);
+    const Vector& uweights = s.getUWeights(subsysIndex);
+    const Vector& ctols = s.getQErrWeights(subsysIndex);
+    // Since qdot=u here we can use uweights directly as qweights.
+    const Vec2& wq = Vec2::getAs(&uweights[0]);
     const Real& tp = ctols[0]; // inverse tolerances 1/ti
-    const Real& tv = ctols[1];
+
+    const Vec2& q = Vec2::getAs(&s.getQ(subsysIndex)[0]); // set up aliases
+    Real& ep = s.updQErr(subsysIndex)[0]; // ep changes as we go
+
+    results.setAnyChangeMade(false);
+
+    //cout << "BEFORE wperr=" << tp*ep << endl;
+    if (!forceProj && std::abs(tp*ep) <= consAccuracy) {
+        results.setExitStatus(ProjectResults::Succeeded);
+        return;
+    }
+    if (std::abs(tp*ep) > projLimit) {
+        results.setProjectionLimitExceeded(true);
+        results.setExitStatus(ProjectResults::FailedToConverge);
+        ++qProjFail;
+        return;
+    }
+    ++qProj;
+    results.setAnyChangeMade(true);
+    Real wqchg;
+    do {
+        // Position projection
+        Real r2 = ~q*q; // x^2+y^2
+        Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
+        Row2 P(~q), PW(tp*q[0]/wq[0], tp*q[1]/wq[1]);
+        Vec2 Pinv(q/r2);
+        Vec2 PWinv = Vec2(square(wq[1])*wq[0]*q[0], 
+                            square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
+        Vec2 dq  = Pinv*(ep);      //cout << "dq=" << dq << endl;
+        Vec2 wdq = PWinv*(tp*ep);  //cout << "wdq=" << wdq << endl;
+    
+        wqchg = std::sqrt(wdq.normSqr()/q.size()); // wrms norm
+    
+        s.updQ(subsysIndex)[0] -= wdq[0]/wq[0]; 
+        s.updQ(subsysIndex)[1] -= wdq[1]/wq[1]; 
+        realize(s, Stage::Position); // recalc QErr (ep)
+    
+        //cout << "AFTER q-=wdq/W wperr=" << tp*ep << " wqchg=" << wqchg << endl;
+    } while (std::abs(tp*ep) > consAccuracy && wqchg >= 0.01*consAccuracy);
+    
+    //cout << "...AFTER wperr=" << tp*ep << endl;
+
+    // Now do error estimates.
+
+    if (qerrest.size()) {
+        Vec2& eq = Vec2::updAs(&qerrest[0]);
+
+        // Recalc PW, PWInv:
+        const Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
+        const Row2 PW = Row2(tp*q[0]/wq[0], tp*q[1]/wq[1]);
+        const Vec2 PWinv = Vec2(wq[0]*square(wq[1])*q[0], 
+                                square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
+
+        Vec2 qperp = PWinv*(PW*eq);
+
+        //cout << "ERREST before=" << yerrest 
+        //     << " wrms=" << wrms(qerrest,qweights) << endl;
+        //cout << "PW*eq=" << PW*eq << endl;
+        eq -= qperp;
+
+        //cout << "ERREST after=" << yerrest 
+        //     << " wrms=" << wrms(qerrest,qweights) << endl;
+        //cout << "PW*eq=" << PW*eq << endl;
+    }
+
+    results.setExitStatus(ProjectResults::Succeeded);
+}
+
+void MyPendulumGuts::projectUImpl(State& s, Vector& uerrest, 
+             const ProjectOptions& opts, ProjectResults& results) const
+{
+    const Real consAccuracy = opts.getRequiredAccuracy();
+    const Real projLimit = opts.getProjectionLimit();
+    const bool forceProj = opts.isOptionSet(ProjectOptions::ForceProjection);
+    const Vector& uweights = s.getUWeights(subsysIndex);
+    const Vector& ctols = s.getUErrWeights(subsysIndex);
+
+    const Vec2& wu = Vec2::getAs(&uweights[0]);
+    const Real& tv = ctols[0];
 
     const Vec2& q = Vec2::getAs(&s.getQ(subsysIndex)[0]); // set up aliases
     const Vec2& u = Vec2::getAs(&s.getU(subsysIndex)[0]);
-    Real& ep = s.updQErr(subsysIndex)[0];
-    Real& ev = s.updUErr(subsysIndex)[0];
+    Real& ev = s.updUErr(subsysIndex)[0]; // ev changes as we go
 
-    //cout << "BEFORE wperr=" << tp*ep << endl;
+    results.setAnyChangeMade(false);
 
-    Real wqchg;
-    if (opts.hasAnyPositionOptions()) {
-        do {
-            // Position projection
-            Real r2 = ~q*q; // x^2+y^2
-            Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
-            Row2 P(~q), PW(tp*q[0]/wq[0], tp*q[1]/wq[1]);
-            Vec2 Pinv(q/r2);
-            Vec2 PWinv = Vec2(square(wq[1])*wq[0]*q[0], 
-                              square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
-            Vec2 dq  = Pinv*(ep);      //cout << "dq=" << dq << endl;
-            Vec2 wdq = PWinv*(tp*ep);  //cout << "wdq=" << wdq << endl;
-    
-            wqchg = std::sqrt(wdq.normSqr()/q.size()); // wrms norm
-    
-            s.updQ(subsysIndex)[0] -= wdq[0]/wq[0]; 
-            s.updQ(subsysIndex)[1] -= wdq[1]/wq[1]; 
-            realize(s, Stage::Position); // recalc QErr (ep)
-    
-            //cout << "AFTER q-=wdq/W wperr=" << tp*ep << " wqchg=" << wqchg << endl;
-        } while (std::abs(tp*ep) > consAccuracy && wqchg >= 0.01*consAccuracy);
+    //cout << "BEFORE wverr=" << tv*ev << endl;
+    if (!forceProj && std::abs(tv*ev) <= consAccuracy) {
+        results.setExitStatus(ProjectResults::Succeeded);
+        return;
+    }
+    if (std::abs(tv*ev) > projLimit) {
+        results.setProjectionLimitExceeded(true);
+        results.setExitStatus(ProjectResults::FailedToConverge);
+        ++uProjFail;
+        return;
     }
 
-    // Do velocity projection at new values of q
+    ++uProj;
+    results.setAnyChangeMade(true);
+
+    // Do velocity projection at current values of q, which should have
+    // been projected already.
     Real r2 = ~q*q; // x^2+y^2
     Real wur2 = square(wu[1]*q[0]) + square(wu[0]*q[1]);
     Row2 V(~q), VW(tv*q[0]/wu[0], tv*q[1]/wu[1]);
@@ -669,33 +780,26 @@ int MyPendulumGuts::projectImpl(State& s, Real consAccuracy,
     realize(s, Stage::Velocity); // recalc UErr
     //cout << "AFTER u-=wdu wverr=" << tv*ev << endl;
 
+    //cout << "...AFTER wverr=" << tv*ev << endl;
+
     // Now do error estimates.
 
 
-    if (yerrest.size()) {
-        Vec2& eq = Vec2::updAs(&yerrest[0]);
-        Vec2& eu = Vec2::updAs(&yerrest[2]);
-
-        // Recalc PW, PWInv:
-        const Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
-        const Row2 PW = Row2(tp*q[0]/wq[0], tp*q[1]/wq[1]);
-        const Vec2 PWinv = Vec2(wq[0]*square(wq[1])*q[0], 
-                                square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
-
-        Vec2 qperp = PWinv*(PW*eq);
+    if (uerrest.size()) {
+        Vec2& eu = Vec2::updAs(&uerrest[0]);
         Vec2 uperp = VWinv*(VW*eu);
 
-        //cout << "ERREST before=" << yerrest 
-        //     << " wrms=" << wrms(yerrest,yweights) << endl;
-        //cout << "PW*eq=" << PW*eq << " VW*eu=" << VW*eu << endl;
-        eq -= qperp; eu -= uperp;
+        //cout << "ERREST before=" << uerrest 
+        //     << " wrms=" << wrms(uerrest,uweights) << endl;
+        //cout << " VW*eu=" << VW*eu << endl;
+        eu -= uperp;
 
         //cout << "ERREST after=" << yerrest 
-        //     << " wrms=" << wrms(yerrest,yweights) << endl;
-        //cout << "PW*eq=" << PW*eq << " VW*eu=" << VW*eu << endl;
+        //     << " wrms=" << wrms(uerrest,uweights) << endl;
+        //cout << " VW*eu=" << VW*eu << endl;
     }
 
-    return 0;
+    results.setExitStatus(ProjectResults::Succeeded);
 }
 
 

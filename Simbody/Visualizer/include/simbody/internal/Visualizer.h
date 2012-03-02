@@ -611,7 +611,7 @@ const Visualizer& setSliderRange(int slider, Real newMin, Real newMax) const;
 
 /** @name            Methods for debugging and statistics **/
 /**@{**/
-/** Dump statistics to the given ostream (e.g. std::cout). **/
+/** Dump statistics to the given ostream (for example, std::cout). **/
 void dumpStats(std::ostream& o) const;
 /** Reset all statistics to zero. **/
 void clearStats();

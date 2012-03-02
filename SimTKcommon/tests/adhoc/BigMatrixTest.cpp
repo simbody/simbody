@@ -29,8 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/Simmatrix.h"
-#include "SimTKcommon/TemplatizedLapack.h"
+#include "SimTKcommon.h"
 
 #include <cstdlib> // for rand()
 #include <cstdio>
@@ -86,6 +85,24 @@ extern "C" {
     void SimTK_about_SimTKlapack(const char* key, int maxlen, char* value);
 }
 
+void testSums() {
+    Matrix m(Mat22(1,2,
+                   3,4));
+    SimTK_TEST_EQ(m.colSum(), RowVector(Row2(4,6)));
+    SimTK_TEST_EQ(m.rowSum(), Vector(Vec2(3,7)));
+    SimTK_TEST_EQ(m.sum(), m.colSum()); // should be exact
+
+    Matrix_<Complex> mc(Mat<2,2,Complex>(1+2*I, 3+4*I,
+                                         5+6*I, 7+8*I));
+    typedef Row<2,Complex> CRow2;
+    typedef Vec<2,Complex> CVec2;
+    typedef RowVector_<Complex> CRowVector;
+    typedef Vector_<Complex> CVector;
+    SimTK_TEST_EQ(mc.colSum(), CRowVector(CRow2(6+8*I, 10+12*I)));
+    SimTK_TEST_EQ(mc.rowSum(), CVector(CVec2(4+6*I, 12+14*I)));
+    SimTK_TEST_EQ(mc.sum(), mc.colSum()); // should be exact
+}
+
 void testCharacter() {
     MatrixCommitment mc;
    // mc = MatrixCommitment::Symmetric();
@@ -131,9 +148,38 @@ void testCharacter() {
 
     Vector v(10);
     for (int i=0; i<10; ++i) v[i] = i*.1;
+    v[4] = -17.3;
     cout << "v commitment: " << v.getCharacterCommitment();
     cout << "v character: " << v.getMatrixCharacter();
     cout << "v=" << v << endl;
+    Vector w1(10, Real(1));
+    cout << "weights w1=" << w1 << endl;
+    int worst;
+    cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "|v|_rms=" << v.normRMS(&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "|v|_inf=" << v.normInf(&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "2nd sig: |v|_rms=" << v.normRMS() << "\n";
+    cout << "2nd sig: |v|_inf=" << v.normInf() << "\n";
+
+    w1(9) = 100;
+    cout << "weights w1=" << w1 << endl;
+    cout << "|w1*v|_rms=" << v.weightedNormRMS(w1,&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "|w1*v|_inf=" << v.weightedNormInf(w1,&worst) << "\n";
+    cout << "(worst=" << worst << ")\n";
+    cout << "2nd sig: |w1*v|_rms=" << v.weightedNormRMS(w1) << "\n";
+    cout << "2nd sig: |w1*v|_inf=" << v.weightedNormInf(w1) << "\n";
+
+    cout << "rms(zero length)=" << Vector().normRMS(&worst) << "\n";
+    cout << "  worst=" << worst << "\n";
+    cout << "inf(zero length)=" << Vector().normInf(&worst) << "\n";
+    cout << "  worst=" << worst << "\n";
+
 
     Array_<int> vx;
     vx.push_back(2); vx.push_back(5); vx.push_back(7); vx.push_back(8);
@@ -197,7 +243,7 @@ void testAjaysBlock() {
         for (int j=0; j<nu; ++j)
             J(i,j) = 1000*i+j;
     Matrix t = ~J(0,3,3,nm);
-    cout << J << endl;
+    cout << "J=" << J << endl;
     cout << "t=" << t;
     cout << "\n------ END TEST AJAY'S BLOCK ------\n"; 
 }
@@ -206,6 +252,8 @@ int main()
 {
   try {
     SimTK_DEBUG("Running BigMatrixTest ...\n");
+
+    testSums();
 
     Matrix assignToMe(5,4);
     assignToMe.elementwiseAssign(1.);

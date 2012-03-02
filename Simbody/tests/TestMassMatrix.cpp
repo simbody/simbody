@@ -33,8 +33,8 @@
 // Test the functioning of Simbody operators which involve the mass matrix,
 // and other system matrices like the Jacobian (partial velocity matrix) that
 // maps between generalized and spatial coordinates.
-// The O(N) operators like calcMV() and calcMInverseV() are supposed to behave
-// *as though* they used the mass matrix, without actually forming it.
+// The O(N) operators like multiplyByM() and multiplyByMInv() are supposed to 
+// behave *as though* they used the mass matrix, without actually forming it.
 
 #include "SimTKsimbody.h"
 #include "SimTKcommon/Testing.h"
@@ -44,7 +44,8 @@
 using namespace SimTK;
 using std::cout; using std::endl;
 
-
+// This will apply a constant set of mobility forces that can be set
+// externally.
 class MyForceImpl : public Force::Custom::Implementation {
 public:
     MyForceImpl() {}
@@ -52,16 +53,23 @@ public:
                    Vector& mobilityForces) const 
     {
         SimTK_TEST( f.size() == 0 || f.size() == mobilityForces.size() );
-        if (f.size() > 0)
+        SimTK_TEST( F.size() == 0 || F.size() == bodyForces.size() );
+        if (f.size())
             mobilityForces += f;
+        if (F.size())
+            bodyForces += F;
     }
     Real calcPotentialEnergy(const State&) const {return 0;}
 
-    void setForce(const Vector& frc) {
-        f = frc;
+    void setMobilityForces(const Vector& mobFrc) {
+        f = mobFrc;
+    }
+    void setBodyForces(const Vector_<SpatialVec>& bodFrc) {
+        F = bodFrc;
     }
 private:
-    Vector f;
+    Vector              f;
+    Vector_<SpatialVec> F;
 };
 
 // This is an imitation of SD/FAST's sdrel2cart() subroutine. We
@@ -443,186 +451,10 @@ void testRel2Cart() {
     SimTK_TEST_EQ(Jn, J);
 }
               
-
-void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
-    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-
-    State state = system.realizeTopology();
-    const int nq = state.getNQ();
-    const int nu = state.getNU();
-
-    // Attainable accuracy drops with problem size.
-    const Real Slop = nu*SignificantReal;
-
-    system.realizeModel(state);
-    // Randomize state.
-    state.updQ() = Test::randVector(nq);
-    state.updU() = Test::randVector(nu);
-
-    Vector randVec = 100*Test::randVector(nu);
-    Vector result1, result2;
-
-    // result1 = M*v
-    system.realize(state, Stage::Position);
-    matter.calcMV(state, randVec, result1);
-    SimTK_TEST_EQ(result1.size(), nu);
-
-    // result2 = M^-1 * result1 == M^-1 * M * v == v
-    system.realize(state, Stage::Dynamics);
-    matter.calcMInverseV(state, result1, result2);
-    SimTK_TEST_EQ(result2.size(), nu);
-
-    SimTK_TEST_EQ_TOL(result2, randVec, Slop);
-
-    Matrix M(nu,nu), MInv(nu,nu);
-
-    Vector v(nu, Real(0));
-    for (int j=0; j < nu; ++j) {
-        v[j] = 1;
-        matter.calcMV(state, v, M(j));
-        matter.calcMInverseV(state, v, MInv(j));
-        v[j] = 0;
-    }
-
-    Matrix MInvCalc(M);
-    MInvCalc.invertInPlace();
-    SimTK_TEST_EQ_SIZE(MInv, MInvCalc, nu);
-
-    Matrix identity(nu,nu); identity=1;
-    SimTK_TEST_EQ_SIZE(M*MInv, identity, nu);
-    SimTK_TEST_EQ_SIZE(MInv*M, identity, nu);
-
-    // Compare above-calculated values with values returned by the
-    // calcM() and calcMInv() methods.
-    Matrix MM, MMInv;
-    matter.calcM(state,MM); matter.calcMInv(state,MMInv);
-    SimTK_TEST_EQ_SIZE(MM, M, nu);
-    SimTK_TEST_EQ_SIZE(MMInv, MInv, nu);
-
-    //assertIsIdentity(eye);
-    //assertIsIdentity(MInv*M);
-
-    frcp->setForce(randVec);
-    //cout << "f=" << randVec << endl;
-    system.realize(state, Stage::Acceleration);
-    Vector accel = state.getUDot();
-    //cout << "v!=0, accel=" << accel << endl;
-
-    matter.calcMInverseV(state, randVec, result1);
-    //cout << "With velocities, |a - M^-1*f|=" << (accel-result1).norm() << endl;
-
-    SimTK_TEST_NOTEQ(accel, result1); // because of the velocities
-    //SimTK_TEST((accel-result1).norm() > SignificantReal); // because of velocities
-
-    // With no velocities M^-1*f should match calculated acceleration.
-    state.updU() = 0;
-    system.realize(state, Stage::Acceleration);
-    accel = state.getUDot();
-    //cout << "v=0, accel=" << accel << endl;
-
-    //cout << "With v=0, |a - M^-1*f|=" << (accel-result1).norm() << endl;
-
-    SimTK_TEST_EQ(accel, result1); // because no velocities
-
-    // And then M*a should = f.
-    matter.calcMV(state, accel, result2);
-    //cout << "v=0, M*accel=" << result2 << endl;
-    //cout << "v=0, |M*accel-f|=" << (result2-randVec).norm() << endl;
-
-
-    // Test forward and inverse dynamics operators.
-    // Apply random forces and a random prescribed acceleration to
-    // get back the residual generalized forces. Then applying those
-    // should result in zero residual, and applying them. 
-
-    // Randomize state.
-    state.updQ() = Test::randVector(nq);
-    state.updU() = Test::randVector(nu);
-
-
-    // Inverse dynamics should require realization only to Velocity stage.
-    system.realize(state, Stage::Velocity);
-
-    // Randomize body forces.
-    Vector_<SpatialVec> bodyForces(matter.getNumBodies());
-    for (int i=0; i < matter.getNumBodies(); ++i)
-        bodyForces[i] = Test::randSpatialVec();
-
-    // Random mobility forces and known udots.
-    Vector mobilityForces = Test::randVector(matter.getNumMobilities());
-    Vector knownUdots = Test::randVector(matter.getNumMobilities());
-
-    // Check self consistency: compute residual, apply it, should be no remaining residual.
-    Vector residualForces, shouldBeZeroResidualForces;
-    matter.calcResidualForceIgnoringConstraints(state,
-        mobilityForces, bodyForces, knownUdots, residualForces);
-    matter.calcResidualForceIgnoringConstraints(state,
-        mobilityForces+residualForces, bodyForces, knownUdots, shouldBeZeroResidualForces);
-
-    SimTK_TEST(shouldBeZeroResidualForces.norm() <= Slop);
-
-    // Now apply these forces in forward dynamics and see if we get the desired
-    // acceleration. State must be realized to Dynamics stage.
-    system.realize(state, Stage::Dynamics);
-    Vector udots;
-    Vector_<SpatialVec> bodyAccels;
-    matter.calcAccelerationIgnoringConstraints(state, 
-        mobilityForces+residualForces, bodyForces, udots, bodyAccels);
-
-    SimTK_TEST_EQ_TOL(udots, knownUdots, Slop);
-
-    // Verify that leaving out arguments makes them act like zeroes.
-    Vector residualForces1, residualForces2;
-    matter.calcResidualForceIgnoringConstraints(state,
-        0*mobilityForces, 0*bodyForces, 0*knownUdots, residualForces1);
-    // no, the residual is not zero here because of the angular velocities
-    matter.calcResidualForceIgnoringConstraints(state,
-        Vector(), Vector_<SpatialVec>(), Vector(), residualForces2);
-
-    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
-
-    // Same, but leave out combinations of arguments.
-    matter.calcResidualForceIgnoringConstraints(state,
-        0*mobilityForces, bodyForces, knownUdots, residualForces1);
-    matter.calcResidualForceIgnoringConstraints(state,
-        Vector(), bodyForces, knownUdots, residualForces2);
-    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
-    matter.calcResidualForceIgnoringConstraints(state,
-        mobilityForces, 0*bodyForces, knownUdots, residualForces1);
-    matter.calcResidualForceIgnoringConstraints(state,
-        mobilityForces, Vector_<SpatialVec>(), knownUdots, residualForces2);
-    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
-    matter.calcResidualForceIgnoringConstraints(state,
-        mobilityForces, bodyForces, 0*knownUdots, residualForces1);
-    matter.calcResidualForceIgnoringConstraints(state,
-        mobilityForces, bodyForces, Vector(), residualForces2);
-    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
-    matter.calcResidualForceIgnoringConstraints(state,
-        0*mobilityForces, bodyForces, 0*knownUdots, residualForces1);
-    matter.calcResidualForceIgnoringConstraints(state,
-        Vector(), bodyForces, Vector(), residualForces2);
-    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
-    matter.calcResidualForceIgnoringConstraints(state,
-        mobilityForces, 0*bodyForces, 0*knownUdots, residualForces1);
-    matter.calcResidualForceIgnoringConstraints(state,
-        mobilityForces, Vector_<SpatialVec>(), Vector(), residualForces2);
-    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
-
-    // Check that we object to wrong-length arguments.
-    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
-        Vector(3,Zero), bodyForces, knownUdots, residualForces2));
-    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
-         mobilityForces, Vector_<SpatialVec>(5), knownUdots, residualForces2));
-    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
-         mobilityForces, bodyForces, Vector(2), residualForces2));
-
-}
-
-void testTreeSystem() {
-    MultibodySystem         mbs;
+void makeSystem(bool constrained, MultibodySystem& mbs, MyForceImpl*& frcp) {    
     SimbodyMatterSubsystem  pend(mbs);
     GeneralForceSubsystem   forces(mbs);
-    MyForceImpl* frcp = new MyForceImpl();
+    frcp = new MyForceImpl();
     Force::Custom(forces, frcp);
 
     const Real randomAngle1 = (Pi/2)*Test::randReal();
@@ -709,8 +541,307 @@ void testTreeSystem() {
                         Transform(Rotation(randomAngle2, randomVecs[2]),
                                   randomVecs[1]));
 
-    testSystem(mbs, frcp);
+
+    if (constrained) { // probably can't be satisfied, but doesn't matter
+        Constraint::Rod(pendBody4, pendBody2b, 1.); // holonomic
+        Constraint::ConstantSpeed
+            (pendBody2a, MobilizerUIndex(0), -3.); // nonholo
+        Constraint::ConstantAcceleration
+            (pendBody5, MobilizerUIndex(2), 0.01); // acc only
+        Constraint::Weld(pendBody4a, Test::randTransform(),
+                         pendBody4, Test::randTransform());
+    }
 }
+
+
+void testUnconstrainedSystem() {
+    MultibodySystem system;
+    MyForceImpl* frcp;
+    makeSystem(false, system, frcp);
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+
+    State state = system.realizeTopology();
+    const int nq = state.getNQ();
+    const int nu = state.getNU();
+    const int nb = matter.getNumBodies();
+
+    // Attainable accuracy drops with problem size.
+    const Real Slop = nu*SignificantReal;
+
+    system.realizeModel(state);
+    // Randomize state.
+    state.updQ() = Test::randVector(nq);
+    state.updU() = Test::randVector(nu);
+
+    Vector randVec = 100*Test::randVector(nu);
+    Vector result1, result2;
+
+    // result1 = M*v
+    system.realize(state, Stage::Position);
+    matter.multiplyByM(state, randVec, result1);
+    SimTK_TEST_EQ(result1.size(), nu);
+
+    // result2 = M^-1 * result1 == M^-1 * M * v == v
+    system.realize(state, Stage::Dynamics);
+    matter.multiplyByMInv(state, result1, result2);
+    SimTK_TEST_EQ(result2.size(), nu);
+
+    SimTK_TEST_EQ_TOL(result2, randVec, Slop);
+
+    Matrix M(nu,nu), MInv(nu,nu);
+
+    Vector v(nu, Real(0));
+    for (int j=0; j < nu; ++j) {
+        v[j] = 1;
+        matter.multiplyByM(state, v, M(j));
+        matter.multiplyByMInv(state, v, MInv(j));
+        v[j] = 0;
+    }
+
+    Matrix MInvCalc(M);
+    MInvCalc.invertInPlace();
+    SimTK_TEST_EQ_SIZE(MInv, MInvCalc, nu);
+
+    Matrix identity(nu,nu); identity=1;
+    SimTK_TEST_EQ_SIZE(M*MInv, identity, nu);
+    SimTK_TEST_EQ_SIZE(MInv*M, identity, nu);
+
+    // Compare above-calculated values with values returned by the
+    // calcM() and calcMInv() methods.
+    Matrix MM, MMInv;
+    matter.calcM(state,MM); matter.calcMInv(state,MMInv);
+    SimTK_TEST_EQ_SIZE(MM, M, nu);
+    SimTK_TEST_EQ_SIZE(MMInv, MInv, nu);
+
+    //assertIsIdentity(eye);
+    //assertIsIdentity(MInv*M);
+
+    frcp->setMobilityForces(randVec);
+    //cout << "f=" << randVec << endl;
+    system.realize(state, Stage::Acceleration);
+    Vector accel = state.getUDot();
+    //cout << "v!=0, accel=" << accel << endl;
+
+    matter.multiplyByMInv(state, randVec, result1);
+    //cout << "With velocities, |a - M^-1*f|=" << (accel-result1).norm() << endl;
+
+    SimTK_TEST_NOTEQ(accel, result1); // because of the velocities
+    //SimTK_TEST((accel-result1).norm() > SignificantReal); // because of velocities
+
+    // With no velocities M^-1*f should match calculated acceleration.
+    state.updU() = 0;
+    system.realize(state, Stage::Acceleration);
+    accel = state.getUDot();
+    //cout << "v=0, accel=" << accel << endl;
+
+    //cout << "With v=0, |a - M^-1*f|=" << (accel-result1).norm() << endl;
+
+    SimTK_TEST_EQ(accel, result1); // because no velocities
+
+    // And then M*a should = f.
+    matter.multiplyByM(state, accel, result2);
+    //cout << "v=0, M*accel=" << result2 << endl;
+    //cout << "v=0, |M*accel-f|=" << (result2-randVec).norm() << endl;
+
+
+    // Test forward and inverse dynamics operators.
+    // Apply random forces and a random prescribed acceleration to
+    // get back the residual generalized forces. Then applying those
+    // should result in zero residual, and applying them. 
+
+    // Randomize state.
+    state.updQ() = Test::randVector(nq);
+    state.updU() = Test::randVector(nu);
+
+
+    // Inverse dynamics should require realization only to Velocity stage.
+    system.realize(state, Stage::Velocity);
+
+    // Randomize body forces.
+    Vector_<SpatialVec> bodyForces(nb);
+    for (int i=0; i < nb; ++i)
+        bodyForces[i] = Test::randSpatialVec();
+
+    // Random mobility forces and known udots.
+    Vector mobilityForces = Test::randVector(nu);
+    Vector knownUdots = Test::randVector(nu);
+
+    // Check self consistency: compute residual, apply it, should be no remaining residual.
+    Vector residualForces, shouldBeZeroResidualForces;
+    matter.calcResidualForceIgnoringConstraints(state,
+        mobilityForces, bodyForces, knownUdots, residualForces);
+    matter.calcResidualForceIgnoringConstraints(state,
+        mobilityForces+residualForces, bodyForces, knownUdots, shouldBeZeroResidualForces);
+
+    SimTK_TEST(shouldBeZeroResidualForces.norm() <= Slop);
+
+    // Now apply these forces in forward dynamics and see if we get the desired
+    // acceleration. State must be realized to Dynamics stage.
+    system.realize(state, Stage::Dynamics);
+    Vector udots;
+    Vector_<SpatialVec> bodyAccels;
+    matter.calcAccelerationIgnoringConstraints(state, 
+        mobilityForces+residualForces, bodyForces, udots, bodyAccels);
+
+    SimTK_TEST_EQ_TOL(udots, knownUdots, Slop);
+
+    // See if we get back the same body accelerations by feeding in 
+    // these udots.
+    Vector_<SpatialVec> A_GB, AC_GB;
+    matter.calcBodyAccelerationFromUDot(state, udots, A_GB);
+    SimTK_TEST_EQ_TOL(A_GB, bodyAccels, Slop);
+
+    // Collect coriolis accelerations.
+    AC_GB.resize(matter.getNumBodies());
+    for (MobodIndex i(0); i<nb; ++i)
+        AC_GB[i] = matter.getTotalCoriolisAcceleration(state, i);
+
+    // Verify that either a zero-length or all-zero udot gives just
+    // coriolis accelerations.
+    matter.calcBodyAccelerationFromUDot(state, Vector(), A_GB);
+    SimTK_TEST_EQ_TOL(A_GB, AC_GB, Slop);
+
+    Vector allZeroUdot(matter.getNumMobilities(), Real(0));
+    matter.calcBodyAccelerationFromUDot(state, allZeroUdot, A_GB);
+    SimTK_TEST_EQ_TOL(A_GB, AC_GB, Slop);
+
+    // Now let's test noncontiguous input and output vectors.
+    Matrix MatUdot(3, nu); // use middle row
+    MatUdot.setToNaN();
+    MatUdot[1] = ~udots;
+    Matrix_<SpatialRow> MatA_GB(3, nb); // use middle row
+    MatA_GB.setToNaN();
+    matter.calcBodyAccelerationFromUDot(state, ~MatUdot[1], ~MatA_GB[1]);
+    SimTK_TEST_EQ_TOL(MatA_GB[1], ~bodyAccels, Slop);
+
+    // Verify that leaving out arguments makes them act like zeroes.
+    Vector residualForces1, residualForces2;
+    matter.calcResidualForceIgnoringConstraints(state,
+        0*mobilityForces, 0*bodyForces, 0*knownUdots, residualForces1);
+    // no, the residual is not zero here because of the angular velocities
+    matter.calcResidualForceIgnoringConstraints(state,
+        Vector(), Vector_<SpatialVec>(), Vector(), residualForces2);
+
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
+
+    // Same, but leave out combinations of arguments.
+    matter.calcResidualForceIgnoringConstraints(state,
+        0*mobilityForces, bodyForces, knownUdots, residualForces1);
+    matter.calcResidualForceIgnoringConstraints(state,
+        Vector(), bodyForces, knownUdots, residualForces2);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
+    matter.calcResidualForceIgnoringConstraints(state,
+        mobilityForces, 0*bodyForces, knownUdots, residualForces1);
+    matter.calcResidualForceIgnoringConstraints(state,
+        mobilityForces, Vector_<SpatialVec>(), knownUdots, residualForces2);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
+    matter.calcResidualForceIgnoringConstraints(state,
+        mobilityForces, bodyForces, 0*knownUdots, residualForces1);
+    matter.calcResidualForceIgnoringConstraints(state,
+        mobilityForces, bodyForces, Vector(), residualForces2);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
+    matter.calcResidualForceIgnoringConstraints(state,
+        0*mobilityForces, bodyForces, 0*knownUdots, residualForces1);
+    matter.calcResidualForceIgnoringConstraints(state,
+        Vector(), bodyForces, Vector(), residualForces2);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
+    matter.calcResidualForceIgnoringConstraints(state,
+        mobilityForces, 0*bodyForces, 0*knownUdots, residualForces1);
+    matter.calcResidualForceIgnoringConstraints(state,
+        mobilityForces, Vector_<SpatialVec>(), Vector(), residualForces2);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
+
+    // Check that we object to wrong-length arguments.
+    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
+        Vector(3,Zero), bodyForces, knownUdots, residualForces2));
+    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
+         mobilityForces, Vector_<SpatialVec>(5), knownUdots, residualForces2));
+    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
+         mobilityForces, bodyForces, Vector(2), residualForces2));
+
+}
+
+
+
+void testConstrainedSystem() {
+    MultibodySystem mbs;
+    MyForceImpl* frcp;
+    makeSystem(true, mbs, frcp);
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+
+    State state = mbs.realizeTopology();
+    mbs.realize(state, Stage::Instance); // allocate multipliers, etc.
+
+    const int nq = state.getNQ();
+    const int nu = state.getNU();
+    const int m  = state.getNMultipliers();
+    const int nb = matter.getNumBodies();
+
+    // Attainable accuracy drops with problem size.
+    const Real Slop = nu*SignificantReal;
+
+    mbs.realizeModel(state);
+    // Randomize state.
+    state.updQ() = Test::randVector(nq);
+    state.updU() = Test::randVector(nu);
+
+    Vector randMobFrc = 100*Test::randVector(nu);
+    Vector_<SpatialVec> randBodyFrc(nb);
+    for (int i=0; i < nb; ++i)
+        randBodyFrc[i] = Test::randSpatialVec();
+
+    // Apply random mobility forces
+    frcp->setMobilityForces(randMobFrc);
+
+    mbs.realize(state); // calculate accelerations and multipliers
+    Vector udot = state.getUDot();
+    Vector lambda = state.getMultipliers();
+    Vector residual;
+    matter.calcResidualForce(state,randMobFrc,Vector_<SpatialVec>(),
+                             udot, lambda, residual);
+
+    // Residual should be zero since we accounted for everything.
+    SimTK_TEST_EQ_TOL(residual, 0*randMobFrc, Slop);
+
+    // Add in some body forces
+    state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+    frcp->setBodyForces(randBodyFrc);
+    mbs.realize(state);
+    udot = state.getUDot();
+    lambda = state.getMultipliers();
+    matter.calcResidualForce(state,randMobFrc,randBodyFrc,
+                             udot, lambda, residual);
+    SimTK_TEST_EQ_TOL(residual, 0*randMobFrc, Slop);
+
+    // Try body forces only.
+    state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+    frcp->setMobilityForces(0*randMobFrc);
+    mbs.realize(state);
+    udot = state.getUDot();
+    lambda = state.getMultipliers();
+    matter.calcResidualForce(state,Vector(),randBodyFrc,
+                             udot, lambda, residual);
+    SimTK_TEST_EQ_TOL(residual, 0*randMobFrc, Slop);
+
+    // Put vectors in noncontiguous storage.
+    Matrix udotmat(3,nu); // rows are noncontig
+    Matrix mobFrcMat(11,nu);
+    Matrix lambdamat(5,m);
+    Matrix_<SpatialRow> bodyFrcMat(3,nb);
+    udotmat[2]    = ~udot;
+    lambdamat[3]  = ~lambda;
+    mobFrcMat[8] = ~randMobFrc;
+    bodyFrcMat[2] = ~randBodyFrc;
+    Matrix residmat(4,nu);
+
+    // We last computed udot,lambda with no mobility forces. This time
+    // will throw some in and then make sure the residual tries to cancel them.
+    matter.calcResidualForce(state,~mobFrcMat[8],~bodyFrcMat[2],
+        ~udotmat[2],~lambdamat[3],~residmat[2]);
+    SimTK_TEST_EQ_TOL(residmat[2], -1*mobFrcMat[8], Slop);
+}
+
+
 
 void testCompositeInertia() {
     MultibodySystem         mbs;
@@ -722,17 +853,19 @@ void testCompositeInertia() {
     MobilizedBody::Pin
         body1( pend.Ground(), Transform(), 
                pointMass, Vec3(1.5,0,0));
+    const MobilizedBodyIndex body1x = body1.getMobilizedBodyIndex();
 
     // A second body 2 units further along x, rotating about the
     // first point mass origin.
     MobilizedBody::Pin
         body2( body1, Transform(), 
                pointMass, Vec3(2,0,0));
+    const MobilizedBodyIndex body2x = body2.getMobilizedBodyIndex();
 
     State state = mbs.realizeTopology();
     mbs.realize(state, Stage::Position);
 
-    Array_<SpatialInertia> R(pend.getNumBodies());
+    Array_<SpatialInertia, MobilizedBodyIndex> R(pend.getNumBodies());
     pend.calcCompositeBodyInertias(state, R);
 
     // Calculate expected inertias about the joint axes.
@@ -744,8 +877,8 @@ void testCompositeInertia() {
     // body inertias onto the joint axes using H matrices.
     const SpatialVec H1 = body1.getHCol(state, MobilizerUIndex(0));
     const SpatialVec H2 = body2.getHCol(state, MobilizerUIndex(0));
-    SimTK_TEST_EQ(~H2*(R[2]*H2), expInertia2);
-    SimTK_TEST_EQ(~H1*(R[1]*H1), expInertia1);
+    SimTK_TEST_EQ(~H2*(R[body2x]*H2), expInertia2);
+    SimTK_TEST_EQ(~H1*(R[body1x]*H1), expInertia1);
 
     // This should force realization of the composite body inertias.
     SpatialInertia cbi = pend.getCompositeBodyInertia(state, body1);
@@ -769,7 +902,8 @@ int main() {
     SimTK_START_TEST("TestMassMatrix");
         SimTK_SUBTEST(testRel2Cart);
         SimTK_SUBTEST(testCompositeInertia);
-        SimTK_SUBTEST(testTreeSystem);
+        SimTK_SUBTEST(testUnconstrainedSystem);
+        SimTK_SUBTEST(testConstrainedSystem);
     SimTK_END_TEST();
 }
 

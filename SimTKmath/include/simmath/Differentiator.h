@@ -142,12 +142,6 @@ public:
 private:
     // opaque implementation for binary compatibility
     DifferentiatorRep* rep;
-
-private:
-    //OBSOLETE NAMES
-    int getNDifferentiations() const {return getNumDifferentiations();}
-    int getNDifferentiationFailures() const {return getNumDifferentiationFailures();}
-    int getNCallsToUserFunction() const {return getNumCallsToUserFunction();}
 };
 
 /**
@@ -192,17 +186,6 @@ private:
     // suppress copy constructor and copy assignment
     Function(const Function&);
     Function& operator=(const Function&);
-
-private:
-    //OBSOLETE NAMES
-    Function& setNFunctions(int n) {return setNumFunctions(n);}
-    Function& setNParameters(int n) {return setNumParameters(n);}
-    int  getNFunctions()  const {return getNumFunctions();}
-    int  getNParameters() const {return getNumParameters();}
-    int getNCalls()    const {return getNumCalls();}
-    int getNFailures() const {return getNumFailures();}
-
-
 
 friend class Differentiator;
 };

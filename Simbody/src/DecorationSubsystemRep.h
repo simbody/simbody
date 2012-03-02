@@ -38,11 +38,9 @@
  */
 
 #include "SimTKcommon.h"
-#include "SimTKcommon/internal/SubsystemGuts.h"
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/DecorationSubsystem.h"
-#include "simbody/internal/DecorationGenerator.h"
 
 namespace SimTK {
 

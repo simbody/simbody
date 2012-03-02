@@ -160,8 +160,7 @@ public:
                      Real interval) 
     :   PeriodicEventHandler(interval), m_viz(viz), m_silo(silo), m_gravity(gravity) {}
 
-    virtual void handleEvent(State& state, Real accuracy, const Vector& yWeights, 
-                             const Vector& ooConstraintTols, Stage& lowestModified, 
+    virtual void handleEvent(State& state, Real accuracy,
                              bool& shouldTerminate) const 
     {
         while (m_silo.isAnyUserInput()) {

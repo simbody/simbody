@@ -2,14 +2,14 @@
 #define SimTK_SimTKCOMMON_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -52,14 +52,17 @@ applications that use Simbody.
 #include "SimTKcommon/internal/State.h"
 #include "SimTKcommon/internal/Measure.h"
 #include "SimTKcommon/internal/MeasureImplementation.h"
+#include "SimTKcommon/internal/PolygonalMesh.h"
 #include "SimTKcommon/internal/DecorativeGeometry.h"
+#include "SimTKcommon/internal/DecorationGenerator.h"
 #include "SimTKcommon/internal/System.h"
+#include "SimTKcommon/internal/SystemGuts.h"
 #include "SimTKcommon/internal/Subsystem.h"
+#include "SimTKcommon/internal/SubsystemGuts.h"
 #include "SimTKcommon/internal/Study.h"
 #include "SimTKcommon/internal/Function.h"
 #include "SimTKcommon/internal/Random.h"
 #include "SimTKcommon/internal/PolynomialRootFinder.h"
-#include "SimTKcommon/internal/Enumeration.h"
 #include "SimTKcommon/internal/PrivateImplementation.h"
 #include "SimTKcommon/internal/EventHandler.h"
 #include "SimTKcommon/internal/EventReporter.h"
@@ -68,6 +71,7 @@ applications that use Simbody.
 #include "SimTKcommon/internal/ParallelWorkQueue.h"
 #include "SimTKcommon/internal/ThreadLocal.h"
 #include "SimTKcommon/internal/AtomicInteger.h"
+#include "SimTKcommon/internal/Pathname.h"
 #include "SimTKcommon/internal/Plugin.h"
 #include "SimTKcommon/internal/Timing.h"
 #include "SimTKcommon/internal/Xml.h"

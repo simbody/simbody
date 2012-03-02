@@ -1,14 +1,14 @@
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-11 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -30,6 +30,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKsimbody.h"
+#include "SimTKcommon/Testing.h"
 
 using namespace SimTK;
 using namespace std;
@@ -146,8 +147,8 @@ void testByComparingToConstraints() {
     ft2.setQToFitTransform(state, t2transform);
     ft1.setUToFitVelocity(state, t1velocity);
     ft2.setUToFitVelocity(state, t2velocity);
-    Vector temp;
-    system.project(state, TOL, Vector(state.getNY(), 1.0), Vector(state.getNYErr(), 1.0), temp);
+
+    system.project(state, TOL);
     system.realize(state, Stage::Acceleration);
     
     // Make sure the free and constrained bodies really are identical.
@@ -181,6 +182,116 @@ void testByComparingToConstraints() {
     compareReactionToConstraint(reactionForce[b2.getMobilizedBodyIndex()], fb2constraint, state);
     compareReactionToConstraint(reactionForce[t1.getMobilizedBodyIndex()], ft1constraint, state);
     compareReactionToConstraint(reactionForce[t2.getMobilizedBodyIndex()], ft2constraint, state);
+}
+
+/*
+ * (sherm 110919) None of the existing tests caught the problem reported
+ * in bug #1535 -- incorrect reaction torques sometimes.
+ * This is a pair of identical two-body pendulums, one done with pin joints
+ * and one done with equivalent constraints.
+ */
+void testByComparingToConstraints2() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(10, -9.8, 3));
+
+    Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
+    pendulumBody.addDecoration(Transform(), DecorativeSphere(0.1).setColor(Red));
+
+    // First double pendulum, using Pin joints.
+    Rotation x45(Pi/4, XAxis);
+    MobilizedBody::Pin pendulum1(matter.updGround(), 
+                                Transform(x45,Vec3(0,-1,0)), 
+                                pendulumBody, 
+                                Transform(Vec3(0, 1, 0)));
+    MobilizedBody::Pin pendulum1b(pendulum1, 
+                                Transform(x45,Vec3(0,-1,0)), 
+                                pendulumBody, 
+                                Transform(Vec3(0, 1, 0)));
+
+    // Second double pendulum, using Free joints plus 5 constraints.
+    MobilizedBody::Free pendulum2(matter.updGround(), 
+                                  Transform(x45,Vec3(2,-1,0)),
+                                  pendulumBody, 
+                                  Transform(Vec3(0,1,0)));
+    Constraint::Ball ballcons2(matter.updGround(), Vec3(2,-1,0),
+                               pendulum2, Vec3(0,1,0));
+    const Transform& X_GF2 = pendulum2.getDefaultInboardFrame();
+    const Transform& X_P2M = pendulum2.getDefaultOutboardFrame();
+    Constraint::ConstantAngle angx2(matter.Ground(), X_GF2.x(),
+                              pendulum2, X_P2M.z());
+    Constraint::ConstantAngle angy2(matter.Ground(), X_GF2.y(),
+                              pendulum2, X_P2M.z());
+
+    MobilizedBody::Free pendulum2b(pendulum2, 
+                                   Transform(x45,Vec3(0,-1,0)),
+                                   pendulumBody, 
+                                   Transform(Vec3(0,1,0)));
+    Constraint::Ball ballcons2b(pendulum2, Vec3(0,-1,0),
+                                pendulum2b, Vec3(0,1,0));
+    const Transform& X_GF2b = pendulum2b.getDefaultInboardFrame();
+    const Transform& X_P2Mb = pendulum2b.getDefaultOutboardFrame();
+    Constraint::ConstantAngle angx2b(pendulum2, X_GF2b.x(),
+                              pendulum2b, X_P2Mb.z());
+    Constraint::ConstantAngle angy2b(pendulum2, X_GF2b.y(),
+                              pendulum2b, X_P2Mb.z());
+
+    // Uncomment if you want to see this.
+    //Visualizer viz(system);
+    
+    // Initialize the system and state.
+    
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    pendulum1.setOneQ(state, 0, Pi/4);
+    pendulum1.setOneU(state, 0, 1.0); // initial velocity 1 rad/sec
+
+    pendulum1b.setOneU(state, 0, 1.0); // initial velocity 1 rad/sec
+    pendulum1b.setOneQ(state, 0, Pi/4);
+
+    pendulum2.setQToFitRotation(state, Rotation(Pi/4, ZAxis));
+    pendulum2.setUToFitAngularVelocity(state, Vec3(0,0,1));
+    pendulum2b.setQToFitRotation(state, Rotation(Pi/4, ZAxis));
+    pendulum2b.setUToFitAngularVelocity(state, Vec3(0,0,1));
+
+    system.realize(state);
+    //viz.report(state);
+
+    const MobodIndex p2x = pendulum2.getMobilizedBodyIndex();
+    const MobodIndex p2bx = pendulum2b.getMobilizedBodyIndex();
+
+    // Shift the reaction forces to body origins for easy comparison with
+    // the reported constraint forces.
+    Vector_<SpatialVec> reactionForcesInG;
+    matter.calcMobilizerReactionForces(state, reactionForcesInG);
+    const MobodIndex p1x = pendulum1.getMobilizedBodyIndex();
+    const MobodIndex p1bx = pendulum1b.getMobilizedBodyIndex();
+    const Rotation& R_G1 = pendulum1.getBodyTransform(state).R();
+    const Rotation& R_G1b = pendulum1b.getBodyTransform(state).R();
+    reactionForcesInG[p1x] = shiftForceFromTo(reactionForcesInG[p1x],
+                                         R_G1*Vec3(0,1,0), Vec3(0));
+    reactionForcesInG[p1bx] = shiftForceFromTo(reactionForcesInG[p1bx],
+                                         R_G1b*Vec3(0,1,0), Vec3(0));
+
+    // The constraints apply forces to parent and body; we want to compare
+    // forces on the body, which will be the second entry here. We're assuming
+    // the ball and constant angle constraints are ordered the same way; if
+    // that ever changes the constraints can be queried to find the mobilized
+    // body index corresponding to the constrained body index.
+    Vector_<SpatialVec> cons2Forces = 
+        -(ballcons2.getConstrainedBodyForcesAsVector(state)
+          + angx2.getConstrainedBodyForcesAsVector(state)
+          + angy2.getConstrainedBodyForcesAsVector(state));
+    Vector_<SpatialVec> cons2bForces = 
+        -(ballcons2b.getConstrainedBodyForcesAsVector(state) 
+          + angx2b.getConstrainedBodyForcesAsVector(state)
+          + angy2b.getConstrainedBodyForcesAsVector(state));
+
+    // Couldn't quite make default tolerance on some platforms. This uses
+    // 10X default.
+    SimTK_TEST_EQ_SIZE(cons2Forces[1], reactionForcesInG[p1x], 10);
+    SimTK_TEST_EQ_SIZE(cons2bForces[1], reactionForcesInG[p1bx], 10);
 }
 
 /**
@@ -302,8 +413,7 @@ void testByComparingToSDFASTWithConstraint() {
     Constraint::Rod constraint(body4, body5, 0.15);
     State state = system.realizeTopology();
     system.realize(state, Stage::Velocity);
-    Vector temp;
-    system.project(state, 1e-10, Vector(state.getNY(), 1), Vector(1, 1), temp);
+    system.project(state, 1e-10);
     system.realize(state, Stage::Acceleration);
     
     // Calculate reaction forces, and compare to the values that were generated by SD/FAST.
@@ -382,18 +492,12 @@ void testFreeMobilizer() {
 }
 
 int main() {
-    try {
-        testByComparingToConstraints();
-        testByComparingToSDFAST();
-        testByComparingToSDFAST2();
-        testByComparingToSDFASTWithConstraint();
-
-        testFreeMobilizer();
-    }
-    catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    cout << "Done" << endl;
-    return 0;
+    SimTK_START_TEST("TestMobilizerReactionForces");
+        SimTK_SUBTEST(testByComparingToConstraints);
+        SimTK_SUBTEST(testByComparingToConstraints2);
+        SimTK_SUBTEST(testByComparingToSDFAST);
+        SimTK_SUBTEST(testByComparingToSDFAST2);
+        SimTK_SUBTEST(testByComparingToSDFASTWithConstraint);
+        SimTK_SUBTEST(testFreeMobilizer);
+    SimTK_END_TEST();
 }

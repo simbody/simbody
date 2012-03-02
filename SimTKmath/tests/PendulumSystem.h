@@ -84,31 +84,24 @@ public:
     /*virtual*/int realizeDynamicsImpl(const State&) const;
     /*virtual*/int realizeAccelerationImpl(const State&) const;
 
-    /*virtual*/Real calcTimescaleImpl(const State& s) const {
-        assert(s.getSystemStage() >= Stage::Instance);
-        return 1;
-    }
+    // qdot==u here so these are just copies
+    /*virtual*/void multiplyByNImpl(const State& state, const Vector& u, 
+                                 Vector& dq) const {dq=u;}
+    /*virtual*/void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
+                                          Vector& fu) const {fu=fq;}
+    /*virtual*/void multiplyByNPInvImpl(const State& state, const Vector& dq, 
+                                     Vector& u) const {u=dq;}
+    /*virtual*/void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
+                                              Vector& fq) const {fq=fu;}
 
+    // No prescribed motion.
+    /*virtual*/bool prescribeQImpl(State&) const {return false;}
+    /*virtual*/bool prescribeUImpl(State&) const {return false;}
 
-    /*virtual*/int calcYUnitWeightsImpl(const State& s, Vector& wts) const {
-        assert(s.getSystemStage() >= Stage::Position);
-        wts.resize(s.getNY());
-        wts = 1; wts[1]=1;
-        return 0;
-    }
-
-
-    // Returns *inverse* tols 1/ti.
-    /*virtual*/int calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) const {
-        assert(s.getSystemStage() >= Stage::Instance);
-        ootols.resize(s.getNYErr());
-        ootols=1; ootols[0]=1; ootols[1]=1;
-        return 0;
-    }
-
-
-    /*virtual*/int projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                           const Vector& ctols, Vector& yerrest, System::ProjectOptions) const;
+    /*virtual*/void projectQImpl(State&, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const;
+    /*virtual*/void projectUImpl(State&, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const;
 
 };
 
@@ -345,46 +338,176 @@ static Real wrms(const Vector& y, const Vector& w) {
     return std::sqrt(sumsq/y.size());
 }
 
-int PendulumSystemGuts::projectImpl(State& s, Real consAccuracy,
-                                const Vector& yweights, const Vector& ctols,
-                                Vector& yerrest, System::ProjectOptions opts) const // yerrest is in/out
+//int PendulumSystemGuts::projectImpl(State& s, Real consAccuracy,
+//                                const Vector& yweights, const Vector& ctols,
+//                                Vector& yerrest, System::ProjectOptions opts) const // yerrest is in/out
+//{
+//    const Vec2& wq = Vec2::getAs(&yweights[0]);
+//    const Vec2& wu = Vec2::getAs(&yweights[2]);
+//    const Real& tp = ctols[0]; // inverse tolerances 1/ti
+//    const Real& tv = ctols[1];
+//
+//    const Vec2& q = Vec2::getAs(&s.getQ(subsysIndex)[0]); // set up aliases
+//    const Vec2& u = Vec2::getAs(&s.getU(subsysIndex)[0]);
+//    Real& ep = s.updQErr(subsysIndex)[0];
+//    Real& ev = s.updUErr(subsysIndex)[0];
+//
+//    //cout << "BEFORE wperr=" << tp*ep << endl;
+//
+//    Real wqchg;
+//    if (opts.hasAnyPositionOptions()) {
+//        do {
+//            // Position projection
+//            Real r2 = ~q*q; // x^2+y^2
+//            Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
+//            Row2 P(~q), PW(tp*q[0]/wq[0], tp*q[1]/wq[1]);
+//            Vec2 Pinv(q/r2);
+//            Vec2 PWinv = Vec2(square(wq[1])*wq[0]*q[0], 
+//                              square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
+//            Vec2 dq  = Pinv*(ep);      //cout << "dq=" << dq << endl;
+//            Vec2 wdq = PWinv*(tp*ep);  //cout << "wdq=" << wdq << endl;
+//    
+//            wqchg = std::sqrt(wdq.normSqr()/q.size()); // wrms norm
+//    
+//            s.updQ(subsysIndex)[0] -= wdq[0]/wq[0]; 
+//            s.updQ(subsysIndex)[1] -= wdq[1]/wq[1]; 
+//            realize(s, Stage::Position); // recalc QErr (ep)
+//    
+//            //cout << "AFTER q-=wdq/W wperr=" << tp*ep << " wqchg=" << wqchg << endl;
+//        } while (std::abs(tp*ep) > consAccuracy && wqchg >= 0.01*consAccuracy);
+//    }
+//
+//    // Do velocity projection at new values of q
+//    Real r2 = ~q*q; // x^2+y^2
+//    Real wur2 = square(wu[1]*q[0]) + square(wu[0]*q[1]);
+//    Row2 V(~q), VW(tv*q[0]/wu[0], tv*q[1]/wu[1]);
+//    Vec2 Vinv(q/r2);
+//    Vec2 VWinv = Vec2(square(wu[1])*wu[0]*q[0], 
+//                      square(wu[0])*wu[1]*q[1]) / (tv*wur2);
+//    realize(s, Stage::Velocity); // calculate UErr (ev)
+//
+//    //cout << "BEFORE wverr=" << tv*ev << endl;
+//    Vec2 du  = Vinv*(ev);      //cout << "du=" << du << endl;
+//    Vec2 wdu = VWinv*(tv*ev);  //cout << "wdu=" << wdu << endl;
+//
+//    s.updU(subsysIndex)[0] -= wdu[0]/wu[0]; 
+//    s.updU(subsysIndex)[1] -= wdu[1]/wu[1];
+//
+//    realize(s, Stage::Velocity); // recalc UErr
+//    //cout << "AFTER u-=wdu wverr=" << tv*ev << endl;
+//
+//    // Now do error estimates.
+//
+//
+//    if (yerrest.size()) {
+//        Vec2& eq = Vec2::updAs(&yerrest[0]);
+//        Vec2& eu = Vec2::updAs(&yerrest[2]);
+//
+//        // Recalc PW, PWInv:
+//        const Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
+//        const Row2 PW = Row2(tp*q[0]/wq[0], tp*q[1]/wq[1]);
+//        const Vec2 PWinv = Vec2(wq[0]*square(wq[1])*q[0], 
+//                                square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
+//
+//        Vec2 qperp = PWinv*(PW*eq);
+//        Vec2 uperp = VWinv*(VW*eu);
+//
+//        //cout << "ERREST before=" << yerrest 
+//        //     << " wrms=" << wrms(yerrest,yweights) << endl;
+//        //cout << "PW*eq=" << PW*eq << " VW*eu=" << VW*eu << endl;
+//        eq -= qperp; eu -= uperp;
+//
+//        //cout << "ERREST after=" << yerrest 
+//        //     << " wrms=" << wrms(yerrest,yweights) << endl;
+//        //cout << "PW*eq=" << PW*eq << " VW*eu=" << VW*eu << endl;
+//    }
+//
+//    return 0;
+//}
+
+// qerrest is in/out
+void PendulumSystemGuts::projectQImpl(State& s, Vector& qerrest, 
+                                const ProjectOptions& opts,
+                                ProjectResults& results) const 
+                                
 {
-    const Vec2& wq = Vec2::getAs(&yweights[0]);
-    const Vec2& wu = Vec2::getAs(&yweights[2]);
+    const Real consAccuracy = opts.getRequiredAccuracy();
+    const Vector& uweights = s.getUWeights(subsysIndex);
+    const Vector& ctols = s.getQErrWeights(subsysIndex);
+    // Since qdot=u here we can use uweights directly as qweights.
+    const Vec2& wq = Vec2::getAs(&uweights[0]);
     const Real& tp = ctols[0]; // inverse tolerances 1/ti
-    const Real& tv = ctols[1];
 
     const Vec2& q = Vec2::getAs(&s.getQ(subsysIndex)[0]); // set up aliases
-    const Vec2& u = Vec2::getAs(&s.getU(subsysIndex)[0]);
     Real& ep = s.updQErr(subsysIndex)[0];
-    Real& ev = s.updUErr(subsysIndex)[0];
 
     //cout << "BEFORE wperr=" << tp*ep << endl;
 
     Real wqchg;
-    if (opts.hasAnyPositionOptions()) {
-        do {
-            // Position projection
-            Real r2 = ~q*q; // x^2+y^2
-            Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
-            Row2 P(~q), PW(tp*q[0]/wq[0], tp*q[1]/wq[1]);
-            Vec2 Pinv(q/r2);
-            Vec2 PWinv = Vec2(square(wq[1])*wq[0]*q[0], 
-                              square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
-            Vec2 dq  = Pinv*(ep);      //cout << "dq=" << dq << endl;
-            Vec2 wdq = PWinv*(tp*ep);  //cout << "wdq=" << wdq << endl;
+    do {
+        // Position projection
+        Real r2 = ~q*q; // x^2+y^2
+        Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
+        Row2 P(~q), PW(tp*q[0]/wq[0], tp*q[1]/wq[1]);
+        Vec2 Pinv(q/r2);
+        Vec2 PWinv = Vec2(square(wq[1])*wq[0]*q[0], 
+                            square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
+        Vec2 dq  = Pinv*(ep);      //cout << "dq=" << dq << endl;
+        Vec2 wdq = PWinv*(tp*ep);  //cout << "wdq=" << wdq << endl;
     
-            wqchg = std::sqrt(wdq.normSqr()/q.size()); // wrms norm
+        wqchg = std::sqrt(wdq.normSqr()/q.size()); // wrms norm
     
-            s.updQ(subsysIndex)[0] -= wdq[0]/wq[0]; 
-            s.updQ(subsysIndex)[1] -= wdq[1]/wq[1]; 
-            realize(s, Stage::Position); // recalc QErr (ep)
+        s.updQ(subsysIndex)[0] -= wdq[0]/wq[0]; 
+        s.updQ(subsysIndex)[1] -= wdq[1]/wq[1]; 
+        realize(s, Stage::Position); // recalc QErr (ep)
     
-            //cout << "AFTER q-=wdq/W wperr=" << tp*ep << " wqchg=" << wqchg << endl;
-        } while (std::abs(tp*ep) > consAccuracy && wqchg >= 0.01*consAccuracy);
+        //cout << "AFTER q-=wdq/W wperr=" << tp*ep << " wqchg=" << wqchg << endl;
+    } while (std::abs(tp*ep) > consAccuracy && wqchg >= 0.01*consAccuracy);
+
+    // Now do error estimates.
+
+    if (qerrest.size()) {
+        Vec2& eq = Vec2::updAs(&qerrest[0]);
+
+        // Recalc PW, PWInv:
+        const Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
+        const Row2 PW = Row2(tp*q[0]/wq[0], tp*q[1]/wq[1]);
+        const Vec2 PWinv = Vec2(wq[0]*square(wq[1])*q[0], 
+                                square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
+
+        Vec2 qperp = PWinv*(PW*eq);
+
+        //cout << "ERREST before=" << yerrest 
+        //     << " wrms=" << wrms(qerrest,qweights) << endl;
+        //cout << "PW*eq=" << PW*eq << endl;
+        eq -= qperp;
+
+        //cout << "ERREST after=" << yerrest 
+        //     << " wrms=" << wrms(qerrest,qweights) << endl;
+        //cout << "PW*eq=" << PW*eq << endl;
     }
 
-    // Do velocity projection at new values of q
+    results.setExitStatus(ProjectResults::Succeeded);
+}
+
+void PendulumSystemGuts::projectUImpl(State& s, Vector& uerrest, 
+             const ProjectOptions& opts, ProjectResults& results) const
+{
+    const Real consAccuracy = opts.getRequiredAccuracy();
+    const Vector& uweights = s.getUWeights(subsysIndex);
+    const Vector& ctols = s.getUErrWeights(subsysIndex);
+
+    const Vec2& wu = Vec2::getAs(&uweights[0]);
+    const Real& tv = ctols[0];
+
+    const Vec2& q = Vec2::getAs(&s.getQ(subsysIndex)[0]); // set up aliases
+    const Vec2& u = Vec2::getAs(&s.getU(subsysIndex)[0]);
+    Real& ev = s.updUErr(subsysIndex)[0];
+
+    //cout << "BEFORE wperr=" << tp*ep << endl;
+
+    // Do velocity projection at current values of q, which should have
+    // been projected already.
     Real r2 = ~q*q; // x^2+y^2
     Real wur2 = square(wu[1]*q[0]) + square(wu[0]*q[1]);
     Row2 V(~q), VW(tv*q[0]/wu[0], tv*q[1]/wu[1]);
@@ -406,30 +529,21 @@ int PendulumSystemGuts::projectImpl(State& s, Real consAccuracy,
     // Now do error estimates.
 
 
-    if (yerrest.size()) {
-        Vec2& eq = Vec2::updAs(&yerrest[0]);
-        Vec2& eu = Vec2::updAs(&yerrest[2]);
-
-        // Recalc PW, PWInv:
-        const Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
-        const Row2 PW = Row2(tp*q[0]/wq[0], tp*q[1]/wq[1]);
-        const Vec2 PWinv = Vec2(wq[0]*square(wq[1])*q[0], 
-                                square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
-
-        Vec2 qperp = PWinv*(PW*eq);
+    if (uerrest.size()) {
+        Vec2& eu = Vec2::updAs(&uerrest[0]);
         Vec2 uperp = VWinv*(VW*eu);
 
-        //cout << "ERREST before=" << yerrest 
-        //     << " wrms=" << wrms(yerrest,yweights) << endl;
-        //cout << "PW*eq=" << PW*eq << " VW*eu=" << VW*eu << endl;
-        eq -= qperp; eu -= uperp;
+        //cout << "ERREST before=" << uerrest 
+        //     << " wrms=" << wrms(uerrest,uweights) << endl;
+        //cout << " VW*eu=" << VW*eu << endl;
+        eu -= uperp;
 
         //cout << "ERREST after=" << yerrest 
-        //     << " wrms=" << wrms(yerrest,yweights) << endl;
-        //cout << "PW*eq=" << PW*eq << " VW*eu=" << VW*eu << endl;
+        //     << " wrms=" << wrms(uerrest,uweights) << endl;
+        //cout << " VW*eu=" << VW*eu << endl;
     }
 
-    return 0;
+    results.setExitStatus(ProjectResults::Succeeded);
 }
 
 #endif /*SimTK_SIMMATH_PENDULUMSYSTEM_H_*/

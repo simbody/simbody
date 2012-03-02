@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -48,12 +48,13 @@ namespace SimTK {
 // subsequently invalidated, and keeping their allocations stacked by
 // stage allows that to be done efficiently.
 //
-// The method are templatized and expect the stacks to be in std::vectors
+// The method are templatized and expect the stacks to be in Arrays
 // of the same template. The template value must be a type that supports
 // three methods (the template analog to virtual functions):
 //      deepAssign()            a non-shallow assignment, i.e. clone the value
 //      deepDestruct()          destroy any owned heap space
-//      getAllocationStage()    return the stage being worked on when this was allocated
+//      getAllocationStage()    return the stage being worked on when this was 
+//                              allocated
 // The template type must otherwise support shallow copy semantics so that
 // the Array_ can move them around without causing any heap activity.
 
@@ -101,157 +102,26 @@ static void copyAllocationStackThroughStage
 //      CacheVarInfo
 //      EventInfo
 // contain the information needed for each discrete variable and cache entry,
-// including a reference to its current value and everything needed to understand
-// its dependencies, as well as information for each Event allocated by a
-// Subsystem.
+// including a reference to its current value and everything needed to 
+// understand its dependencies, as well as information for each Event allocated
+// by a Subsystem.
 //
 // These are intended as elements in an allocation stack as described above,
-// so it is expected that they will get reaallocated, copied, and destructed during 
-// allocation as the Array_ gets resized from time to time. However, the
+// so it is expected that they will get reaallocated, copied, and destructed 
+// during allocation as the Array_ gets resized from time to time. However, the
 // discrete variable and cache entry *values* must remain in a fixed location in 
-// memory once allocated, because callers are permitted to retain references to these 
-// values once they have been allocated. So pointers to the AbstractValues are kept
-// in these objects, and only the pointers are copied around. That means the actual 
-// value object will not be deleted by the destructor; be sure to do that explicitly
-// in the higher-level destructor or you'll have a nasty leak.
-
-//------------------------------------------------------------------------------
-//                              MechanicalStateInfo
-//
-// Here we have a block of continuous, real-valued, second order state variables
-// q (generalized positions) paired with first order state variables u 
-// (generalized speeds) such that qdot = N(q)*u for some invertible block 
-// diagonal matrix N. This block is allocated during realization of Topology
-// or Model stage. The actual number nq of q's and nu <= nq of u's in all such 
-// blocks must be known by the end of this Subsystem's realization of its Model 
-// stage. Then:
-//
-//  System-level resources allocated upon realize(Model):
-//      - nq slots in the global q, qdot, and qdotdot Vectors
-//      - nu slots in the global u and udot Vectors
-//
-// The fact that these are continuous variables with time derivatives does not
-// necessarily mean we have to use numerical integration to find their values.
-// In some cases we may have closed forms for the integrals q and u also. In
-// particular, prescribed motion (which provides udots as a function of t,q,
-// and u) may also provide a formula for u=u(t,q), and if it does it may 
-// additionally provide a formula for q=q(t). So we may need zero, one, or
-// two integrations for any mobility u. By the end of the Subsystem's realization 
-// of Instance stage, we must know the number nq_integ <= nq of q's and 
-// nu_integ <= nu of u's that are defined by differential equations and thus 
-// require integration of qdots and udots respectively. (A second order integrator 
-// like Verlet may find q from qdotdot rather than qdot.) Then:
-//
-//  System-level resources allocated upon realize(Instance):
-//      - nqInteg slots in the q partition of the yInteg Vector
-//      - nuInteg slots in the u partition of the yInteg Vector
-//
-//------------------------------------------------------------------------------
-class MechanicalStateInfo {
-public:
-    MechanicalStateInfo() : allocationStage(Stage::Empty) {}
-
-    MechanicalStateInfo(Stage allocation)
-    :   allocationStage(allocation)
-    {   assert(isReasonable()); }
-
-    // Default copy constructor, copy assignment, destructor are fine since there
-    // is no heap object owned here.
-
-    // These are the "virtual" methods required by template methods elsewhere.
-    MechanicalStateInfo&   deepAssign(const MechanicalStateInfo& src) {return operator=(src);}
-    void         deepDestruct() {}
-    const Stage& getAllocationStage() const {return allocationStage;}
-private:
-    // This is fixed at construction.
-    Stage allocationStage;
-
-    // These are initialized at construction but can be changed during realization
-    // of allocationStage+1.
-    Vector  qInit; // generalized position (2nd order variables)
-    Vector  uInit; // generalized speeds (1st order variables); nu <= nq
-
-    // These are assigned at realization of allocationStage+1.
-    SystemQIndex    globalQIndex;
-    SystemUIndex    globalUIndex;
-
-    // These are initialized to nq,nu during realization of allocationStage+1 but
-    // can be changed during realization of allocationStage+2.
-    int     nqInteg;    // number of q's to be calculated by integration
-    int     nuInteg;    // number of u's to be calculated by integration
-
-    //SystemQIntegIndex   globalQIntegIndex;
-    //SystemUIntegIndex   globalUIntegIndex;
+// memory once allocated, because callers are permitted to retain references to
+// these values once they have been allocated. So pointers to the AbstractValues
+// are kept in these objects, and only the pointers are copied around. That 
+// means the actual value object will not be deleted by the destructor; be sure
+// to do that explicitly in the higher-level destructor or you'll have a nasty
+// leak.
 
 
-    bool isReasonable() const {
-        return (    allocationStage==Stage::Topology
-                 || allocationStage==Stage::Model);
-    }
-};
 
-
-//------------------------------------------------------------------------------
-//                              AuxiliaryStateInfo
-//
-// Here we have a block of continuous real-valued state variables z, allocated
-// during realization of Topology or Model stage. The actual number nz of z's in 
-// all such blocks must be known by the end of this Subsystem's realization of
-// its Model stage. Then:
-//
-//  System-level resources allocated upon realize(Model):
-//      - nz slots in the global z Vector
-//      - nz slots in the global zdot Vector
-//
-// By the end of the Subsystem's realization of Instance stage, we must know
-// the number nz_integ of the z's that are defined by differential equations and
-// thus require integration of zdots. Then:
-//
-//  System-level resources allocated upon realize(Instance):
-//      - nz_integ slots in the z partition of the y_integ Vector
-//
-//------------------------------------------------------------------------------
-class AuxiliaryStateInfo {
-public:
-    AuxiliaryStateInfo() : allocationStage(Stage::Empty) {}
-
-    AuxiliaryStateInfo(Stage allocation)
-    :   allocationStage(allocation)
-    {   assert(isReasonable()); }
-
-    // Default copy constructor, copy assignment, destructor are fine since there
-    // is no heap object owned here.
-
-    // These the the "virtual" methods required by template methods elsewhere.
-    AuxiliaryStateInfo&   deepAssign(const AuxiliaryStateInfo& src) {return operator=(src);}
-    void         deepDestruct() {}
-    const Stage& getAllocationStage() const {return allocationStage;}
-private:
-    // This is fixed at construction.
-    Stage allocationStage;
-
-    // This is initialized at construction but can be changed during realization
-    // of allocationStage+1.
-    Vector  zInit; // nz and initial values for z's
-
-    // This is assigned at realization of allocationStage+1.
-    SystemZIndex    globalZIndex;
-
-    // This is initialized to nz during realization of allocationStage+1 but
-    // can be changed during realization of allocationStage+2.
-    int     nzInteg;    // number of z's to be calculated by integration
-
-    //SystemZIntegIndex   globalZIntegIndex;
-
-    bool isReasonable() const {
-        return (    allocationStage==Stage::Topology
-                 || allocationStage==Stage::Model);
-    }
-};
-
-//------------------------------------------------------------------------------
-//                              DiscreteVarInfo
-//------------------------------------------------------------------------------
+//==============================================================================
+//                           DISCRETE VAR INFO
+//==============================================================================
 class DiscreteVarInfo {
 public:
     DiscreteVarInfo()
@@ -314,9 +184,11 @@ private:
              && (value != 0); }
 };
 
-//------------------------------------------------------------------------------
-//                              CacheEntryInfo
-//------------------------------------------------------------------------------
+
+
+//==============================================================================
+//                            CACHE ENTRY INFO
+//==============================================================================
 class CacheEntryInfo {
 public:
     CacheEntryInfo()
@@ -382,7 +254,7 @@ private:
 
     // These change at run time.
     AbstractValue*          value;
-    StageVersion            versionWhenLastComputed;   // version of Stage dependsOn
+    StageVersion            versionWhenLastComputed; // version of Stage dependsOn
 
     bool isReasonable() const
     {    return (   allocationStage==Stage::Topology
@@ -393,43 +265,155 @@ private:
              && (versionWhenLastComputed >= 0); }
 };
 
-//--------------------------------- EventInfo ----------------------------------
-//
-//------------------------------------------------------------------------------
-class EventInfo {
+
+
+//==============================================================================
+//                               TRIGGER INFO
+//==============================================================================
+class TriggerInfo {
 public:
-    EventInfo() : allocationStage(Stage::Empty), triggerStage(Stage::Empty) {}
+    TriggerInfo() 
+    :   allocationStage(Stage::Empty), firstIndex(-1), nslots(0) {}
 
-    EventInfo(Stage allocation, Event::Cause cause, Stage triggered=Stage::Empty)
-    :   allocationStage(allocation), cause(cause), triggerStage(triggered)
-    {   assert(isReasonable()); }
+    TriggerInfo(Stage allocation, int index, int n)
+    :   allocationStage(allocation), firstIndex(index), nslots(n)
+    {   assert(isReasonable()); assert(n>0);}
 
-    // Default copy constructor, copy assignment, destructor are fine since there
-    // is no heap object owned here.
+    // Default copy constructor, copy assignment, destructor are fine since 
+    // there is no heap object owned here.
+
+    int getFirstIndex() const {return firstIndex;}
+    int getNumSlots() const {return nslots;}
 
     // These the the "virtual" methods required by template methods elsewhere.
-    EventInfo&   deepAssign(const EventInfo& src) {return operator=(src);}
+    TriggerInfo& deepAssign(const TriggerInfo& src) 
+    {   return operator=(src); }
     void         deepDestruct() {}
     const Stage& getAllocationStage() const {return allocationStage;}
 private:
     // These are fixed at construction.
     Stage                   allocationStage;
-    Event::Cause            cause;
-    Stage                   triggerStage;   // only if EventCause==Triggered
-
-    // These are assigned and filled in when the System Stage is advanced to Instance.
-    SystemEventIndex               globalEventId;          // unique Id for this Event
-    SystemEventTriggerByStageIndex globalByStageTriggerId; // only if EventCause==Triggered
+    int                     firstIndex;
+    int                     nslots;
 
     bool isReasonable() const {
         return (    allocationStage==Stage::Topology
                  || allocationStage==Stage::Model
-                 || allocationStage==Stage::Instance)
-            && cause.isValid()
-            && (cause != Event::Cause::Triggered || triggerStage >= Stage::Time);
+                 || allocationStage==Stage::Instance);
     }
 };
 
+
+
+//==============================================================================
+//                           CONTINUOUS VAR INFO
+//==============================================================================
+// Used for q, u, and z (in separate stacks).
+// These accumulate default values for this subsystem's use of shared
+// global state variables. After the System is advanced to Stage::Model,
+// the state will allocate those globals and copy the initial
+// values stored here into them. Some of these are allocated at Topology
+// stage, and some at Model stage. If Model stage is invalidated, variables
+// allocated then are forgotten while the ones allocated at Topology stage
+// remain.
+class ContinuousVarInfo {
+public:
+    ContinuousVarInfo() : allocationStage(Stage::Empty), firstIndex(-1) {}
+
+    ContinuousVarInfo(Stage         allocation, 
+                      int           index,  // QIndex, UIndex, or ZIndex
+                      const Vector& initVals, 
+                      const Vector& varWeights=Vector())
+    :   allocationStage(allocation), firstIndex(index), initialValues(initVals)
+    {   assert(isReasonable());
+        assert(varWeights.size()==0 || varWeights.size()==initVals.size());
+        assert(weightsAreOK(varWeights));
+        if (varWeights.size()) weights=varWeights;
+        else weights=Vector(initVals.size(), Real(1));
+    }
+
+    int getFirstIndex() const {return firstIndex;}
+    int getNumVars() const {return initialValues.size();}
+    const Vector& getInitialValues() const {return initialValues;}
+    const Vector& getWeights() const {return weights;}
+
+    // Default copy constructor, copy assignment, destructor are fine since 
+    // there is no heap object owned here.
+
+    // These the the "virtual" methods required by template methods elsewhere.
+    ContinuousVarInfo& deepAssign(const ContinuousVarInfo& src) 
+    {   return operator=(src); }
+    void               deepDestruct() {}
+    const Stage&       getAllocationStage() const {return allocationStage;}
+private:
+    // These are fixed at construction.
+    Stage     allocationStage;
+    int       firstIndex;   // a QIndex, UIndex, or ZIndex
+    Vector    initialValues;
+    Vector    weights; // only used for u and z
+
+    static bool weightsAreOK(const Vector& wts) {
+        for (int i=0; i<wts.size(); ++i)
+            if (wts[i] <= 0) return false;
+        return true;
+    }
+
+    bool isReasonable() const {
+        return (    allocationStage==Stage::Topology
+                 || allocationStage==Stage::Model);
+    }
+};
+
+//==============================================================================
+//                           CONSTRAINT ERR INFO
+//==============================================================================
+// Used for qerr, uerr, and udoterr.
+class ConstraintErrInfo {
+public:
+    ConstraintErrInfo() : allocationStage(Stage::Empty), firstIndex(-1) {}
+
+    ConstraintErrInfo(Stage         allocation,
+                      int           index, // QErr, UErr, or UDotErrIndex
+                      int           nerr,
+                      const Vector& varWeights=Vector())
+    :   allocationStage(allocation), firstIndex(index)
+    {   assert(isReasonable());
+        assert(varWeights.size()==0 || varWeights.size()==nerr);
+        assert(weightsAreOK(varWeights));
+        if (varWeights.size()) weights=varWeights;
+        else weights=Vector(nerr, Real(1));
+    }
+
+    int getFirstIndex() const {return firstIndex;}
+    int getNumErrs() const {return weights.size();}
+    const Vector& getWeights() const {return weights;}
+
+    // Default copy constructor, copy assignment, destructor are fine since 
+    // there is no heap object owned here.
+
+    // These the the "virtual" methods required by template methods elsewhere.
+    ConstraintErrInfo& deepAssign(const ConstraintErrInfo& src) 
+    {   return operator=(src); }
+    void               deepDestruct() {}
+    const Stage&       getAllocationStage() const {return allocationStage;}
+private:
+    // These are fixed at construction.
+    Stage     allocationStage;
+    int       firstIndex;   // a QErrIndex, UErrIndex, or UDotErrIndex
+    Vector    weights;      // only used for u and z
+
+    static bool weightsAreOK(const Vector& wts) {
+        for (int i=0; i<wts.size(); ++i)
+            if (wts[i] <= 0) return false;
+        return true;
+    }
+
+    bool isReasonable() const {
+        return (    allocationStage==Stage::Topology
+                 || allocationStage==Stage::Model
+                 || allocationStage==Stage::Instance);
+    }
+};
 
 
 
@@ -448,25 +432,23 @@ public:
     // stored in the discrete variable and cache entry arrays. Be sure to
     // delete those prior to allowing the arrays themselves to destruct.
     ~PerSubsystemInfo() {
-        clearDiscreteVars();
-        clearCache();
-        clearEvents();
+        clearAllStacks();
     }
 
     // Copy constructor copies all variables but cache only through
-    // modeled stage. Note that this must be done in conjunction with
+    // Instance stage. Note that this must be done in conjunction with
     // copying the whole state or our global resource indices will
     // be nonsense.
     PerSubsystemInfo(const PerSubsystemInfo& src) : currentStage(Stage::Empty) {
         initialize();
-        copyFrom(src, Stage::Model);
+        copyFrom(src, Stage::Instance);
     }
 
     PerSubsystemInfo& operator=(const PerSubsystemInfo& src) {
         // destination is already initialized; copyFrom() will try
         // to reuse space and will properly clean up unused stuff
         if (&src != this)
-            copyFrom(src, Stage::Model);
+            copyFrom(src, Stage::Instance);
         return *this;
     }
 
@@ -488,12 +470,6 @@ public:
         assert(g > Stage::Empty);
         assert(currentStage == g.prev());
 
-        if (g == Stage::Topology) {
-            qTopoSize = qInit.size();   // record now in case we have to
-            uTopoSize = uInit.size();   //  back up later
-            zTopoSize = zInit.size();
-        }
-
         // This validates whatever the current version number is of Stage g.
         currentStage = g;
     }
@@ -503,10 +479,14 @@ public:
         qstart.invalidate(); ustart.invalidate(); 
         zstart.invalidate();
         q.clear(); u.clear(); z.clear();
+        uWeights.clear(); zWeights.clear();
         qdot.clear(); udot.clear(); zdot.clear(); qdotdot.clear();
     }
 
-    void clearReferencesToInstanceStageGlobals() const {
+    void clearReferencesToInstanceStageGlobals() {
+        // These are late-allocated state variables.
+        qerrWeights.clear(); uerrWeights.clear();
+
         // These are all mutable cache entries.
         qerrstart.invalidate(); uerrstart.invalidate(); udoterrstart.invalidate();
         qerr.clear(); uerr.clear(); udoterr.clear(); multipliers.clear();
@@ -517,51 +497,77 @@ public:
         }
     }
 
+    QIndex getNextQIndex() const {
+        if (qInfo.empty()) return QIndex(0);
+        const ContinuousVarInfo& last = qInfo.back();
+        return QIndex(last.getFirstIndex()+last.getNumVars());
+    }
+    UIndex getNextUIndex() const {
+        if (uInfo.empty()) return UIndex(0);
+        const ContinuousVarInfo& last = uInfo.back();
+        return UIndex(last.getFirstIndex()+last.getNumVars());
+    }
+    ZIndex getNextZIndex() const {
+        if (zInfo.empty()) return ZIndex(0);
+        const ContinuousVarInfo& last = zInfo.back();
+        return ZIndex(last.getFirstIndex()+last.getNumVars());
+    }
+
+    QErrIndex getNextQErrIndex() const {
+        if (qerrInfo.empty()) return QErrIndex(0);
+        const ConstraintErrInfo& last = qerrInfo.back();
+        return QErrIndex(last.getFirstIndex()+last.getNumErrs());
+    }
+    UErrIndex getNextUErrIndex() const {
+        if (uerrInfo.empty()) return UErrIndex(0);
+        const ConstraintErrInfo& last = uerrInfo.back();
+        return UErrIndex(last.getFirstIndex()+last.getNumErrs());
+    }
+    UDotErrIndex getNextUDotErrIndex() const {
+        if (udoterrInfo.empty()) return UDotErrIndex(0);
+        const ConstraintErrInfo& last = udoterrInfo.back();
+        return UDotErrIndex(last.getFirstIndex()+last.getNumErrs());
+    }
+    DiscreteVariableIndex getNextDiscreteVariableIndex() const {
+        return DiscreteVariableIndex(discreteInfo.size());
+    }
+    CacheEntryIndex getNextCacheEntryIndex() const {
+        return CacheEntryIndex(cacheInfo.size());
+    }
+    EventTriggerByStageIndex getNextEventTriggerByStageIndex(Stage g) const {
+        if (triggerInfo[g].empty()) return EventTriggerByStageIndex(0);
+        const TriggerInfo& last = triggerInfo[g].back();
+        return EventTriggerByStageIndex
+            (last.getFirstIndex()+last.getNumSlots());
+    }
+
 
     String name;
     String version;
 
         // DEFINITIONS //
 
-    // Discrete variables can be defined (allocated) during realization
-    // of Topology or Model stages. Cache entries and Events can be defined during
-    // realization of Topology, Model, or Instance stages. No further
-    // allocations are allowed. Then, when one of these stages is invalidated,
-    // all the definitions that occurred during realization of that stage
-    // must be forgotten.
+    // State variables (continuous or discrete) can be defined (allocated) 
+    // during realization of Topology or Model stages. Cache entries,
+    // constraint error slots, and event trigger slots can be defined during 
+    // realization of Topology, Model, or Instance stages. No further 
+    // allocations are allowed. Then, when one of these stages is invalidated, 
+    // all the definitions that occurred during realization of that stage must 
+    // be forgotten.
     // 
-    // To do that the discrete variables and cache entries are stored
-    // in arrays which are really stacks, with definitions pushed onto the ends
-    // as the stage is advanced and popped off the ends as the stage is reduced.
+    // To do that the allocation entries are stored in arrays which are really 
+    // stacks, with definitions pushed onto the ends as the stage is advanced 
+    // and popped off the ends as the stage is reduced.
 
-    // Topology and Model stage definitions. TODO: some of these aren't used yet
-    Array_<MechanicalStateInfo>    quInfo;
-    Array_<AuxiliaryStateInfo>     zInfo;
+    // Topology and Model stage definitions. 
+    Array_<ContinuousVarInfo>      qInfo, uInfo, zInfo;
     Array_<DiscreteVarInfo>        discreteInfo;
 
     // Topology, Model, and Instance stage definitions.
-    //mutable Array_<ConstraintInfo> constraintInfo;
-    mutable Array_<EventInfo>      eventInfo;
-    mutable Array_<CacheEntryInfo> cacheInfo;
-
-        // AGGREGATE GLOBAL RESOURCE NEEDS //
-    
-    // These accumulate default values for this subsystem's use of shared
-    // global state variables. After the System is advanced to Stage::Model,
-    // the state will allocate those globals and copy these initial
-    // values into them. The lengths of these Vectors define the 
-    // needs of this Subsystem. Some of these are allocated at Topology
-    // stage, and some at Model stage so we record the size upon realizeTopology()
-    // in case we need to wipe out just Model stage later.
-    Vector qInit, uInit, zInit;
-    mutable int qTopoSize, uTopoSize, zTopoSize;
-
-    // For constraints we need just lengths (nmultipliers==nudoterr).
-    mutable int nqerr, nuerr, nudoterr;
-
-    // For event trigger functions we need just lengths, for each stage.
-    mutable int ntriggers[Stage::NValid];
-
+    mutable Array_<ConstraintErrInfo>   qerrInfo, uerrInfo, udoterrInfo;
+    mutable Array_<TriggerInfo>         triggerInfo[Stage::NValid];
+    mutable Array_<CacheEntryInfo>      cacheInfo;
+   
         // GLOBAL RESOURCE ALLOCATIONS //
 
     // These are our own private views into partitions of the global
@@ -572,22 +578,27 @@ public:
     // the time the views are built.
 
     // Model stage global resources and views into them.
-    SystemQIndex                    qstart;
-    SystemUIndex                    ustart;
-    SystemZIndex                    zstart;
-    Vector q, u, z;
+    SystemQIndex    qstart;
+    SystemUIndex    ustart;
+    SystemZIndex    zstart;
+    Vector          q, u, z;
+    Vector          uWeights, zWeights;
 
-    mutable Vector qdot, udot, zdot, qdotdot;
+    mutable Vector  qdot, udot, zdot, qdotdot;
 
     // Instance stage global resources and views into them.
+    Vector          qerrWeights, uerrWeights;
+
     // Note that multipliers just use the same indices as udoterr.
     mutable SystemQErrIndex                 qerrstart;
     mutable SystemUErrIndex                 uerrstart;
     mutable SystemUDotErrIndex              udoterrstart;
     mutable SystemEventTriggerByStageIndex  triggerstart[Stage::NValid];
-    mutable Vector qerr, uerr;
-    mutable Vector udoterr, multipliers; // same size and partioning
-    mutable Vector triggers[Stage::NValid];
+
+    mutable Vector  qerr, uerr;
+
+    mutable Vector  udoterr, multipliers; // same size and partioning
+    mutable Vector  triggers[Stage::NValid];
 
     // The currentStage is the highest stage of this subsystem that is valid,
     // meaning that it has been realized since the last change to any variable
@@ -603,71 +614,119 @@ public:
     mutable StageVersion stageVersions[Stage::NValid];
 
 private:
-    // This is for use in constructors and for resetting an existing State into its
-    // post-construction condition.
+    // This is for use in constructors and for resetting an existing State into
+    // its just-constructed condition.
     void initialize() {
-        clearDiscreteVars(); clearCache(); clearEvents();
-        qInit.clear(); uInit.clear(); zInit.clear();
-        qTopoSize = uTopoSize = zTopoSize = 0;
-        nqerr = nuerr = nudoterr= 0;
+        clearAllStacks();
         qstart.invalidate(); ustart.invalidate(); zstart.invalidate();
         qerrstart.invalidate(); uerrstart.invalidate(); udoterrstart.invalidate();
         for (int j=0; j<Stage::NValid; ++j) {
-            ntriggers[j] = 0;
             triggerstart[j].invalidate();
             stageVersions[j] = 1; // never 0
         }
         currentStage = Stage::Empty;
     }
 
-    // Manage allocation stacks for DiscreteVars, CacheEntries, and Events.
+    // Manage allocation stacks.
 
-    void clearDiscreteVars()                        {clearAllocationStack(discreteInfo);}
-    void clearCache()                               {clearAllocationStack(cacheInfo);}
-    void clearEvents()                              {clearAllocationStack(eventInfo);}
+    void clearContinuousVars()  {clearAllocationStack(qInfo);
+                                 clearAllocationStack(uInfo);
+                                 clearAllocationStack(zInfo); }
+    void clearConstraintErrs()  {clearAllocationStack(qerrInfo);
+                                 clearAllocationStack(uerrInfo);
+                                 clearAllocationStack(udoterrInfo); }
+    void clearDiscreteVars()    {clearAllocationStack(discreteInfo);}
+    void clearEventTriggers(int g)   {clearAllocationStack(triggerInfo[g]);}
+    void clearCache()           {clearAllocationStack(cacheInfo);}
 
-    void resizeDiscreteVars        (int newSize)    {resizeAllocationStack(discreteInfo,newSize);}
-    void resizeCache               (int newSize)    {resizeAllocationStack(cacheInfo,newSize);}
-    void resizeEvents              (int newSize)    {resizeAllocationStack(eventInfo,newSize);}
+    void clearAllStacks() {
+        clearContinuousVars(); clearDiscreteVars();
+        clearConstraintErrs(); clearCache();
+        for (int i=0; i < Stage::NValid; ++i)
+            clearEventTriggers(i);
+    }
 
-    void popDiscreteVarsBackToStage(const Stage& g) {popAllocationStackBackToStage(discreteInfo,g);}
-    void popCacheBackToStage       (const Stage& g) {popAllocationStackBackToStage(cacheInfo,g);}
-    void popEventsBackToStage      (const Stage& g) {popAllocationStackBackToStage(eventInfo,g);}
+    void popContinuousVarsBackToStage(const Stage& g) 
+    {   popAllocationStackBackToStage(qInfo,g);
+        popAllocationStackBackToStage(uInfo,g);
+        popAllocationStackBackToStage(zInfo,g); }
+    void popDiscreteVarsBackToStage(const Stage& g) 
+    {   popAllocationStackBackToStage(discreteInfo,g); }
+    void popConstraintErrsBackToStage(const Stage& g) 
+    {   popAllocationStackBackToStage(qerrInfo,g);
+        popAllocationStackBackToStage(uerrInfo,g);
+        popAllocationStackBackToStage(udoterrInfo,g); }
+    void popCacheBackToStage(const Stage& g) 
+    {   popAllocationStackBackToStage(cacheInfo,g); }
+    void popEventTriggersBackToStage(const Stage& g) {
+        for (int i=0; i < Stage::NValid; ++i)
+            popAllocationStackBackToStage(triggerInfo[i],g); 
+    }
+
+    void popAllStacksBackToStage(const Stage& g)
+    {   popContinuousVarsBackToStage(g);
+        popDiscreteVarsBackToStage(g);
+        popConstraintErrsBackToStage(g);
+        popCacheBackToStage(g);
+        popEventTriggersBackToStage(g); }
+
+    // Call once each for qInfo, uInfo, zInfo.
+    void copyContinuousVarInfoThroughStage
+       (const Array_<ContinuousVarInfo>& src, const Stage& g,
+        Array_<ContinuousVarInfo>& dest)
+    {   copyAllocationStackThroughStage(dest, src, g); }
 
     void copyDiscreteVarsThroughStage
        (const Array_<DiscreteVarInfo>& src, const Stage& g)
     {   copyAllocationStackThroughStage(discreteInfo, src, g); }
-    void copyCacheThroughStage(const Array_<CacheEntryInfo>& src, const Stage& g)
-    {   copyAllocationStackThroughStage(cacheInfo, src, g); }
-    void copyEventsThroughStage(const Array_<EventInfo>& src, const Stage& g)
-    {   copyAllocationStackThroughStage(eventInfo, src, g); }
 
-    // Restore this subsystem to the way it last was at realize(g) for a given Stage g; 
-    // that is, invalidate all stages > g. Allocations will be forgotten as Instance, 
-    // Model, and Topology stages are invalidated.
+    // Call once each for qerrInfo, uerrInfo, udoterrInfo.
+    void copyConstraintErrInfoThroughStage
+       (const Array_<ConstraintErrInfo>& src, const Stage& g,
+        Array_<ConstraintErrInfo>& dest)
+    {   copyAllocationStackThroughStage(dest, src, g); }
+
+    void copyCacheThroughStage
+       (const Array_<CacheEntryInfo>& src, const Stage& g)
+    {   copyAllocationStackThroughStage(cacheInfo, src, g); }
+
+    void copyEventsThroughStage
+       (const Array_<TriggerInfo>& src, const Stage& g,
+        Array_<TriggerInfo>& dest)
+    {   copyAllocationStackThroughStage(dest, src, g); }
+
+    void copyAllStacksThroughStage(const PerSubsystemInfo& src, const Stage& g)
+    {
+        copyContinuousVarInfoThroughStage(src.qInfo, g, qInfo);
+        copyContinuousVarInfoThroughStage(src.uInfo, g, uInfo);
+        copyContinuousVarInfoThroughStage(src.zInfo, g, zInfo);
+
+        copyDiscreteVarsThroughStage(src.discreteInfo, g);
+
+        copyConstraintErrInfoThroughStage(src.qerrInfo,    g, qerrInfo);
+        copyConstraintErrInfoThroughStage(src.uerrInfo,    g, uerrInfo);
+        copyConstraintErrInfoThroughStage(src.udoterrInfo, g, udoterrInfo);
+
+        copyCacheThroughStage(src.cacheInfo, g);
+        for (int i=0; i < Stage::NValid; ++i)
+            copyEventsThroughStage(src.triggerInfo[i], g, triggerInfo[i]);
+    }
+
+
+
+    // Restore this subsystem to the way it last was at realize(g) for a given 
+    // Stage g; that is, invalidate all stages > g. Allocations will be 
+    // forgotten as Instance, Model, and Topology stages are invalidated.
     void restoreToStage(Stage g) {
         if (currentStage <= g)
-			return;
+            return;
 
         if (g < Stage::Instance) {
-			clearReferencesToInstanceStageGlobals();
-
-            // TODO: this assumes that all constraint error and event trigger
-            // allocations are performed at Stage::Instance. Should allow
-            // them to be done earlier also.
-            nqerr = nuerr = nudoterr = 0;
-            for (int i = 0; i < Stage::NValid; i++)
-                ntriggers[i] = 0;
+            clearReferencesToInstanceStageGlobals();
         }
 
         if (g < Stage::Model) {
             clearReferencesToModelStageGlobals();
-
-            // Some of these may have been allocated at Topology stage so
-            // we shrink them back just to that size.
-            qInit.resizeKeep(qTopoSize); 
-            uInit.resizeKeep(uTopoSize); 
-            zInit.resizeKeep(zTopoSize);
         }
 
         if (g == Stage::Empty) {
@@ -678,9 +737,7 @@ private:
         }
 
         // Backup all the allocation stacks.
-        popDiscreteVarsBackToStage(g);
-        popCacheBackToStage(g);
-        popEventsBackToStage(g);
+        popAllStacksBackToStage(g);
 
         // Raise the version number for every stage that we're invalidating.
         for (int i=currentStage; i > g; --i)
@@ -701,36 +758,12 @@ private:
         clearReferencesToInstanceStageGlobals();
         clearReferencesToModelStageGlobals();
 
-        // Make sure the destination state doesn't have anything past targetStage.
+        // Make sure destination state doesn't have anything past targetStage.
         restoreToStage(targetStage);
 
         name     = src.name;
         version  = src.version;
-        copyDiscreteVarsThroughStage(src.discreteInfo, targetStage);
-        copyCacheThroughStage(src.cacheInfo, targetStage);
-        copyEventsThroughStage(src.eventInfo, targetStage);
-
-        if (targetStage >= Stage::Topology) {
-            qTopoSize=src.qTopoSize; uTopoSize=src.uTopoSize; zTopoSize=src.zTopoSize;
-            if (targetStage == Stage::Topology) {
-                qInit = src.qInit(0, qTopoSize); 
-                uInit = src.uInit(0, uTopoSize); 
-                zInit = src.zInit(0, zTopoSize); 
-            } else { // targetStage is at least Model
-                qInit = src.qInit;
-                uInit = src.uInit;
-                zInit = src.zInit;
-            }
-
-            if (targetStage >= Stage::Instance) {
-                // Get the specifications for global cache entries.
-                nqerr = src.nqerr;
-                nuerr = src.nuerr;
-                nudoterr = src.nudoterr;
-                for (int j=0; j<Stage::NValid; ++j)
-                    ntriggers[j] = src.ntriggers[j];
-            }
-        }
+        copyAllStacksThroughStage(src, targetStage);
 
         // Set stage versions so that any cache entries we copied can still
         // be valid if they were valid in the source and depended only on
@@ -753,24 +786,49 @@ private:
 //==============================================================================
 
 class StateImpl {
+    void initializeStageVersions() {
+        for (int i=0; i < Stage::NValid; ++i)
+            systemStageVersions[i] = 1; // never 0
+    }
 public:
     StateImpl() 
-    :   t(NaN), currentSystemStage(Stage::Empty), 
-        lowestModifiedSystemStage(Stage::Topology) {} 
+    :   t(NaN), currentSystemStage(Stage::Empty) {initializeStageVersions();} 
 
     // We'll do the copy constructor and assignment explicitly here
     // to get tight control over what's allowed.
     StateImpl(const StateImpl& src)
-    :   currentSystemStage(Stage::Empty), lowestModifiedSystemStage(Stage::Topology)
+    :   currentSystemStage(Stage::Empty)
     {
+        initializeStageVersions();
+
+        // Make sure that no copied cache entry could accidentally think
+        // it was up to date. We'll change some of these below if appropriate.
+        // (We're skipping the Empty stage 0.)
+        for (int i=1; i <= src.currentSystemStage; ++i)
+            systemStageVersions[i] = src.systemStageVersions[i]+1;
+
         subsystems = src.subsystems;
         if (src.currentSystemStage >= Stage::Topology) {
             advanceSystemToStage(Stage::Topology);
+            systemStageVersions[Stage::Topology] = 
+                src.systemStageVersions[Stage::Topology];
             t = src.t;
             if (src.currentSystemStage >= Stage::Model) {
                 advanceSystemToStage(Stage::Model);
+                systemStageVersions[Stage::Model] = 
+                    src.systemStageVersions[Stage::Model];
                 // careful -- don't allow reallocation
                 y = src.y;
+                uWeights = src.uWeights;
+                zWeights = src.zWeights;
+            }
+            if (src.currentSystemStage >= Stage::Instance) {
+                advanceSystemToStage(Stage::Instance);
+                systemStageVersions[Stage::Instance] = 
+                    src.systemStageVersions[Stage::Instance];
+                // careful -- don't allow reallocation
+                qerrWeights = src.qerrWeights;
+                uerrWeights = src.uerrWeights;
             }
         }
     }
@@ -780,14 +838,35 @@ public:
         invalidateJustSystemStage(Stage::Topology);
         for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i)
             subsystems[i].invalidateStageJustThisSubsystem(Stage::Topology);
+
+        // Make sure that no copied cache entry could accidentally think
+        // it was up to date. We'll change some of these below if appropriate.
+        // (We're skipping the Empty stage 0.)
+        for (int i=1; i <= src.currentSystemStage; ++i)
+            systemStageVersions[i] = src.systemStageVersions[i]+1;
+
         subsystems = src.subsystems;
         if (src.currentSystemStage >= Stage::Topology) {
             advanceSystemToStage(Stage::Topology);
+            systemStageVersions[Stage::Topology] = 
+                src.systemStageVersions[Stage::Topology];
             t = src.t;
             if (src.currentSystemStage >= Stage::Model) {
                 advanceSystemToStage(Stage::Model);
+                systemStageVersions[Stage::Model] = 
+                    src.systemStageVersions[Stage::Model];
                 // careful -- don't allow reallocation
                 y = src.y;
+                uWeights = src.uWeights;
+                zWeights = src.zWeights;
+            }
+            if (src.currentSystemStage >= Stage::Instance) {
+                advanceSystemToStage(Stage::Instance);
+                systemStageVersions[Stage::Instance] = 
+                    src.systemStageVersions[Stage::Instance];
+                // careful -- don't allow reallocation
+                qerrWeights = src.qerrWeights;
+                uerrWeights = src.uerrWeights;
             }
         }
         return *this;
@@ -853,6 +932,8 @@ public:
 
             // Finally nuke the actual cache data.
             yerr.unlockShape();        yerr.clear();
+            qerrWeights.unlockShape(); qerrWeights.clear();
+            uerrWeights.unlockShape(); uerrWeights.clear();
             udoterr.unlockShape();     udoterr.clear();
             multipliers.unlockShape(); multipliers.clear();
             allTriggers.unlockShape(); allTriggers.clear();
@@ -871,6 +952,8 @@ public:
             q.clear(); u.clear(); z.clear(); // y views
             // Finally nuke the actual y data.
             y.unlockShape(); y.clear(); 
+            uWeights.unlockShape(); uWeights.clear();
+            zWeights.unlockShape(); zWeights.clear();
 
             qdot.clear(); udot.clear(); zdot.clear();   // ydot views
             ydot.unlockShape();        ydot.clear();    // ydot data
@@ -882,10 +965,11 @@ public:
             t = NaN;
         }
 
-        // Now record the lowest System Stage we have invalidated, and
+        // Raise the version number for every stage that we're invalidating and
         // set the current System Stage one lower than the one being invalidated.
-        lowestModifiedSystemStage = std::min(lowestModifiedSystemStage, g);
-        currentSystemStage        = g.prev();
+        for (int i=currentSystemStage; i >= g; --i)
+            systemStageVersions[i]++;
+        currentSystemStage = g.prev();
     }
 
     // Advance the System stage from g-1 to g. It is a fatal error if
@@ -898,19 +982,30 @@ public:
         assert(allSubsystemsAtLeastAtStage(g));
 
         if (g == Stage::Topology) {
-            // As the final "Topology" step, initialize time to 0 (it's NaN before this).
+            // As the final "Topology" step, initialize time to 0 (it's NaN 
+            // before this).
             const_cast<StateImpl*>(this)->t = 0;
         }
         else if (g == Stage::Model) {
             // We know the shared state pool sizes now. Allocate the
             // states and matching shared cache pools.
-            int nq=0, nu=0, nz=0;
+            int nq=0, nu=0, nz=0; // total sizes
+            Array_<int> ssnq(subsystems.size(), 0); // per subsystem sizes
+            Array_<int> ssnu(subsystems.size(), 0);
+            Array_<int> ssnz(subsystems.size(), 0);
 
             // Count up all 
-            for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
-                nq += subsystems[i].qInit.size();
-                nu += subsystems[i].uInit.size();
-                nz += subsystems[i].zInit.size();
+            for (SubsystemIndex i(0); i<subsystems.size(); ++i) {
+                const PerSubsystemInfo& ss = subsystems[i];
+                for (unsigned j=0; j<ss.qInfo.size(); ++j)
+                    ssnq[i] += ss.qInfo[j].getNumVars();
+                nq += ssnq[i];
+                for (unsigned j=0; j<ss.uInfo.size(); ++j)
+                    ssnu[i] += ss.uInfo[j].getNumVars();
+                nu += ssnu[i];
+                for (unsigned j=0; j<ss.zInfo.size(); ++j)
+                    ssnz[i] += ss.zInfo[j].getNumVars();
+                nz += ssnz[i];
             }
 
             // Allocate the actual shared state variables & cache 
@@ -918,6 +1013,8 @@ public:
             // We need write access temporarily to set up the state.
             StateImpl* wThis = const_cast<StateImpl*>(this);
             wThis->y.resize(nq+nu+nz);      wThis->y.lockShape();
+            wThis->uWeights.resize(nu);     wThis->uWeights.lockShape();
+            wThis->zWeights.resize(nz);     wThis->zWeights.lockShape();
 
             ydot.resize(nq+nu+nz);          ydot.lockShape();
             qdotdot.resize(nq);             qdotdot.lockShape();
@@ -938,19 +1035,41 @@ public:
             SystemZIndex nxtz(0);
 
             for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
-                PerSubsystemInfo& ss = const_cast<PerSubsystemInfo&>(subsystems[i]);
-                const int nq=ss.qInit.size(), nu=ss.uInit.size(), nz=ss.zInit.size();
+                PerSubsystemInfo& ss = 
+                    const_cast<PerSubsystemInfo&>(subsystems[i]);
+                const int nq=ssnq[i], nu=ssnu[i], nz=ssnz[i];
 
                 // Assign the starting indices.
                 ss.qstart=nxtq; ss.ustart=nxtu; ss.zstart=nxtz;
  
                 // Build the views.
-                ss.q.viewAssign(wThis->q(nxtq, nq)); 
-                ss.q = ss.qInit;
+                ss.q.viewAssign(wThis->q(nxtq, nq));
+                int nxt=0;
+                for (unsigned j=0; j<ss.qInfo.size(); ++j) {
+                    const int nv = ss.qInfo[j].getNumVars();
+                    ss.q(nxt, nv) = ss.qInfo[j].getInitialValues();
+                    nxt += nv;
+                }
+
                 ss.u.viewAssign(wThis->u(nxtu, nu)); 
-                ss.u = ss.uInit;
+                ss.uWeights.viewAssign(wThis->uWeights(nxtu, nu));
+                nxt=0;
+                for (unsigned j=0; j<ss.uInfo.size(); ++j) {
+                    const int nv = ss.uInfo[j].getNumVars();
+                    ss.u(nxt, nv)        = ss.uInfo[j].getInitialValues();
+                    ss.uWeights(nxt, nv) = ss.uInfo[j].getWeights();
+                    nxt += nv;
+                }
+
                 ss.z.viewAssign(wThis->z(nxtz, nz)); 
-                ss.z = ss.zInit;
+                ss.zWeights.viewAssign(wThis->zWeights(nxtz, nz));
+                nxt=0;
+                for (unsigned j=0; j<ss.zInfo.size(); ++j) {
+                    const int nv = ss.zInfo[j].getNumVars();
+                    ss.z(nxt, nv)        = ss.zInfo[j].getInitialValues();
+                    ss.zWeights(nxt, nv) = ss.zInfo[j].getWeights();
+                    nxt += nv;
+                }
 
                 ss.qdot.viewAssign(qdot(nxtq, nq));
                 ss.qdotdot.viewAssign(qdotdot(nxtq, nq));
@@ -962,28 +1081,52 @@ public:
             }
         }
         else if (g == Stage::Instance) {
-            // We know the shared state pool sizes now. Allocate the
-            // states and matching shared cache pools.
+            // We know the shared cache pool sizes now. Allocate them.
+
+            // Global sizes.
             int nqerr=0, nuerr=0, nudoterr=0, nAllTriggers=0;
-            int ntriggers[Stage::NValid];
-            for (int j=0; j<Stage::NValid; ++j)
-                ntriggers[j] = 0;
+            Array_<int> ntriggers(Stage::NValid, 0);
+
+            // Per-subsystem sizes.
+            const unsigned nss = subsystems.size();
+            Array_<int> ssnqerr(nss, 0), ssnuerr(nss, 0), ssnudoterr(nss, 0);
+            Array_< Array_<int> > ssntriggers(nss);
+            for (unsigned i=0; i<nss; ++i)
+                ssntriggers[i].resize(Stage::NValid, 0);
 
             // Count up all 
-            for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
-                nqerr    += subsystems[i].nqerr;
-                nuerr    += subsystems[i].nuerr;
-                nudoterr += subsystems[i].nudoterr;
+            for (SubsystemIndex i(0); i<nss; ++i) {
+                const PerSubsystemInfo& ss = subsystems[i];
+                for (unsigned j=0; j<ss.qerrInfo.size(); ++j)
+                    ssnqerr[i] += ss.qerrInfo[j].getNumErrs();
+                nqerr += ssnqerr[i];
+                for (unsigned j=0; j<ss.uerrInfo.size(); ++j)
+                    ssnuerr[i] += ss.uerrInfo[j].getNumErrs();
+                nuerr += ssnuerr[i];
+                for (unsigned j=0; j<ss.udoterrInfo.size(); ++j)
+                    ssnudoterr[i] += ss.udoterrInfo[j].getNumErrs();
+                nudoterr += ssnudoterr[i];
 
-                for (int j=0; j<Stage::NValid; ++j)
-                    ntriggers[j] += subsystems[i].ntriggers[j];
+                Array_<int>& ssntrigs = ssntriggers[i];
+                for (int g=0; g<Stage::NValid; ++g)
+                    for (unsigned j=0; j<ss.triggerInfo[g].size(); ++j)
+                        ssntrigs[g] += ss.triggerInfo[g][j].getNumSlots();
+
+                for (int g=0; g<Stage::NValid; ++g)
+                    ntriggers[g] += ssntrigs[g];
             }
-            for (int j=0; j<Stage::NValid; ++j)
-                nAllTriggers += ntriggers[j];
+            for (int g=0; g<Stage::NValid; ++g)
+                nAllTriggers += ntriggers[g];
+
+            // We need write access temporarily to set up the state.
+            StateImpl* wThis = const_cast<StateImpl*>(this);
+            wThis->qerrWeights.resize(nqerr); wThis->qerrWeights.lockShape();
+            wThis->uerrWeights.resize(nuerr); wThis->uerrWeights.lockShape();
 
             // Allocate the actual shared state variables & cache 
             // entries and make sure no one can accidentally change the size.
             yerr.resize(nqerr+nuerr);         yerr.lockShape();
+
             udoterr.resize(nudoterr);         udoterr.lockShape();
             multipliers.resize(nudoterr);     multipliers.lockShape(); // same size as udoterr
             allTriggers.resize(nAllTriggers); allTriggers.lockShape();
@@ -1005,30 +1148,51 @@ public:
             SystemUErrIndex nxtuerr(0);
             SystemUDotErrIndex nxtudoterr(0);
             SystemEventTriggerByStageIndex nxttrigger[Stage::NValid];
-            for (int j=0; j<Stage::NValid; ++j)
-                nxttrigger[j] = SystemEventTriggerByStageIndex(0);
+            for (int g=0; g<Stage::NValid; ++g)
+                nxttrigger[g] = SystemEventTriggerByStageIndex(0);
 
             for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
-                const PerSubsystemInfo& ss = subsystems[i];
+                PerSubsystemInfo& ss = 
+                    const_cast<PerSubsystemInfo&>(subsystems[i]);
+                const int nqerr=ssnqerr[i], nuerr=ssnuerr[i], 
+                          nudoterr=ssnudoterr[i];
+                const Array_<int>& ssntrigs = ssntriggers[i];
+
+                // Build the views. Only weights need initialization.
+                ss.qerr.viewAssign(qerr(nxtqerr, nqerr));
+                ss.qerrWeights.viewAssign(wThis->qerrWeights(nxtqerr, nqerr));
+                int nxt=0;
+                for (unsigned j=0; j<ss.qerrInfo.size(); ++j) {
+                    const int nerr = ss.qerrInfo[j].getNumErrs();
+                    ss.qerrWeights(nxt, nerr) = ss.qerrInfo[j].getWeights();
+                    nxt += nerr;
+                }
+                ss.uerr.viewAssign(uerr(nxtuerr, nuerr));
+                ss.uerrWeights.viewAssign(wThis->uerrWeights(nxtuerr, nuerr));
+                nxt=0;
+                for (unsigned j=0; j<ss.uerrInfo.size(); ++j) {
+                    const int nerr = ss.uerrInfo[j].getNumErrs();
+                    ss.uerrWeights(nxt, nerr) = ss.uerrInfo[j].getWeights();
+                    nxt += nerr;
+                }
+
+                ss.udoterr.viewAssign(udoterr(nxtudoterr, nudoterr));
+                // multipliers have same partitioning as udoterr
+                ss.multipliers.viewAssign(multipliers(nxtudoterr, nudoterr));
 
                 // Assign the starting indices.
-                ss.qerrstart=nxtqerr; ss.uerrstart=nxtuerr; ss.udoterrstart=nxtudoterr;
-
-                // Build the views.
-                ss.qerr.viewAssign(qerr(nxtqerr, ss.nqerr));
-                ss.uerr.viewAssign(uerr(nxtuerr, ss.nuerr));
-                ss.udoterr.viewAssign(udoterr(nxtudoterr, ss.nudoterr));
-                // multipliers have same partitioning as udoterr
-                ss.multipliers.viewAssign(multipliers(nxtudoterr, ss.nudoterr));
+                ss.qerrstart=nxtqerr; ss.uerrstart=nxtuerr; 
+                ss.udoterrstart=nxtudoterr;
 
                 // Consume the slots.
-                nxtqerr += ss.nqerr; nxtuerr += ss.nuerr; nxtudoterr += ss.nudoterr;
+                nxtqerr += nqerr; nxtuerr += nuerr; nxtudoterr += nudoterr;
 
                 // Same thing for event trigger slots, but by stage.
-                for (int j=0; j<Stage::NValid; ++j) {
-                    ss.triggerstart[j] = nxttrigger[j];
-                    ss.triggers[j].viewAssign(triggers[j](nxttrigger[j], ss.ntriggers[j]));
-                    nxttrigger[j] += ss.ntriggers[j];
+                for (int g=0; g<Stage::NValid; ++g) {
+                    ss.triggerstart[g] = nxttrigger[g];
+                    ss.triggers[g].viewAssign
+                        (triggers[g](nxttrigger[g], ssntrigs[g]));
+                    nxttrigger[g] += ssntrigs[g];
                 }
 
             }
@@ -1104,89 +1268,122 @@ public:
     // we'll keep error checking on even in Release mode.
     
     QIndex allocateQ(SubsystemIndex subsys, const Vector& qInit) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateImpl::allocateQ()");
-        const QIndex nxt(subsystems[subsys].qInit.size());
-        subsystems[subsys].qInit.resizeKeep(nxt + qInit.size());
-        subsystems[subsys].qInit(nxt, qInit.size()) = qInit;
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, 
+                                   "StateImpl::allocateQ()");
+        // We are currently realizing the next stage.
+        const Stage allocStage = getSubsystemStage(subsys).next();
+        PerSubsystemInfo& ss = subsystems[subsys];
+        const QIndex nxt(ss.getNextQIndex());
+        ss.qInfo.push_back(ContinuousVarInfo(allocStage,nxt,qInit,Vector())); 
         return nxt;
     }
     
     UIndex allocateU(SubsystemIndex subsys, const Vector& uInit) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateImpl::allocateU()");
-        const UIndex nxt(subsystems[subsys].uInit.size());
-        subsystems[subsys].uInit.resizeKeep(nxt + uInit.size());
-        subsystems[subsys].uInit(nxt, uInit.size()) = uInit;
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, 
+                                   "StateImpl::allocateU()");
+        const Stage allocStage = getSubsystemStage(subsys).next();
+        PerSubsystemInfo& ss = subsystems[subsys];
+        const UIndex nxt(ss.getNextUIndex());
+        ss.uInfo.push_back(ContinuousVarInfo(allocStage,nxt,uInit,Vector())); 
         return nxt;
     }
     ZIndex allocateZ(SubsystemIndex subsys, const Vector& zInit) {
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateImpl::allocateZ()");
-        const ZIndex nxt(subsystems[subsys].zInit.size());
-        subsystems[subsys].zInit.resizeKeep(nxt + zInit.size());
-        subsystems[subsys].zInit(nxt, zInit.size()) = zInit;
+        const Stage allocStage = getSubsystemStage(subsys).next();
+        PerSubsystemInfo& ss = subsystems[subsys];
+        const ZIndex nxt(ss.getNextZIndex());
+        ss.zInfo.push_back(ContinuousVarInfo(allocStage,nxt,zInit,Vector())); 
         return nxt;
     }
     
     QErrIndex allocateQErr(SubsystemIndex subsys, int nqerr) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateImpl::allocateQErr()");
-        const QErrIndex nxt(subsystems[subsys].nqerr);
-        subsystems[subsys].nqerr += nqerr;
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, 
+                                   "StateImpl::allocateQErr()");
+        const Stage allocStage = getSubsystemStage(subsys).next();
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        const QErrIndex nxt(ss.getNextQErrIndex());
+        ss.qerrInfo.push_back(ConstraintErrInfo(allocStage,nxt,nqerr,Vector())); 
         return nxt;
     }
     UErrIndex allocateUErr(SubsystemIndex subsys, int nuerr) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateImpl::al()");
-        const UErrIndex nxt(subsystems[subsys].nuerr);
-        subsystems[subsys].nuerr += nuerr;
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
+                                   Stage::Instance, "StateImpl::allocateUErr()");
+        const Stage allocStage = getSubsystemStage(subsys).next();
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        const UErrIndex nxt(ss.getNextUErrIndex());
+        ss.uerrInfo.push_back(ConstraintErrInfo(allocStage,nxt,nuerr,Vector())); 
         return nxt;
     }
     UDotErrIndex allocateUDotErr(SubsystemIndex subsys, int nudoterr) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateImpl::allocateUDotErr()");
-        const UDotErrIndex nxt(subsystems[subsys].nudoterr);
-        subsystems[subsys].nudoterr += nudoterr;
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance,
+                                   "StateImpl::allocateUDotErr()");
+        const Stage allocStage = getSubsystemStage(subsys).next();
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        const UDotErrIndex nxt(ss.getNextUDotErrIndex());
+        ss.udoterrInfo.push_back
+           (ConstraintErrInfo(allocStage,nxt,nudoterr,Vector())); 
         return nxt;
     }
-    EventTriggerByStageIndex allocateEventTrigger(SubsystemIndex subsys, Stage g, int nt) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateImpl::allocateEvent()");
-        const EventTriggerByStageIndex nxt(subsystems[subsys].ntriggers[g]);
-        subsystems[subsys].ntriggers[g] += nt;
+    EventTriggerByStageIndex allocateEventTrigger
+       (SubsystemIndex subsys, Stage g, int nt) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, 
+                                   "StateImpl::allocateEventTrigger()");
+        const Stage allocStage = getSubsystemStage(subsys).next();
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        const EventTriggerByStageIndex nxt(ss.getNextEventTriggerByStageIndex(g));
+        ss.triggerInfo[g].push_back(TriggerInfo(allocStage,nxt,nt)); 
         return nxt;
     }
     
-    // Topology- and Model-stage State variables can only be added during construction; that is,
-    // while stage <= Topology. Other entries can be added while stage < Model.
-    DiscreteVariableIndex allocateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp) {
-        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), invalidates, Stage::HighestRuntime, 
+    // Topology- and Model-stage State variables can only be added during 
+    // construction; that is, while stage <= Topology. Other entries can be 
+    // added while stage < Model.
+    DiscreteVariableIndex allocateDiscreteVariable
+       (SubsystemIndex subsys, Stage invalidates, AbstractValue* vp) 
+    {
+        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(),
+                                      invalidates, Stage::HighestRuntime, 
             "StateImpl::allocateDiscreteVariable()");
     
-        const Stage maxAcceptable = (invalidates <= Stage::Model ? Stage::Empty : Stage::Topology);
+        const Stage maxAcceptable = (invalidates <= Stage::Model 
+                                     ? Stage::Empty : Stage::Topology);
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
             maxAcceptable.next(), "StateImpl::allocateDiscreteVariable()");
-    
+
+        const Stage allocStage = getSubsystemStage(subsys).next();    
         PerSubsystemInfo& ss = subsystems[subsys];
-        const DiscreteVariableIndex nxt(ss.discreteInfo.size());
-        ss.discreteInfo.push_back(DiscreteVarInfo(getSubsystemStage(subsys).next(),invalidates,vp));
+        const DiscreteVariableIndex nxt(ss.getNextDiscreteVariableIndex());
+        ss.discreteInfo.push_back
+           (DiscreteVarInfo(allocStage,invalidates,vp));
         return nxt;
     }
     
     // Cache entries can be allocated while stage < Instance.
-    CacheEntryIndex allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* vp) const {
-        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), dependsOn, Stage::HighestRuntime, 
+    CacheEntryIndex allocateCacheEntry
+       (SubsystemIndex subsys, Stage dependsOn, Stage computedBy,
+        AbstractValue* vp) const 
+    {
+        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), 
+                                      dependsOn, Stage::HighestRuntime, 
             "StateImpl::allocateCacheEntry()");
         SimTK_STAGECHECK_RANGE_ALWAYS(dependsOn, computedBy, Stage::Infinity, 
             "StateImpl::allocateCacheEntry()");
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
             Stage::Instance, "StateImpl::allocateCacheEntry()");
 
+        const Stage allocStage = getSubsystemStage(subsys).next();    
         const PerSubsystemInfo& ss = subsystems[subsys];
-        const CacheEntryIndex nxt(ss.cacheInfo.size());
-        ss.cacheInfo.push_back(CacheEntryInfo(getSubsystemStage(subsys).next(),dependsOn,computedBy,vp)); // mutable
+        const CacheEntryIndex nxt(ss.getNextCacheEntryIndex());
+        ss.cacheInfo.push_back(CacheEntryInfo(allocStage,
+                                              dependsOn,computedBy,vp));//mutable
         return nxt;
     }
 
     // Allocate a discrete variable and a corresponding cache entry for
     // updating it, and connect them together.
-    DiscreteVariableIndex
-    allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
-                                       Stage updateDependsOn)
+    DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
+       (SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
+        Stage updateDependsOn)
     {
         const DiscreteVariableIndex dx = 
             allocateDiscreteVariable(subsys,invalidates,vp->clone());
@@ -1364,7 +1561,18 @@ public:
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getZ(subsys)");
         return getSubsystem(subsys).z;
     }
-    
+
+    const Vector& getUWeights(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, 
+            "StateImpl::getUWeights(subsys)");
+        return getSubsystem(subsys).uWeights;
+    }
+    const Vector& getZWeights(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, 
+            "StateImpl::getZWeights(subsys)");
+        return getSubsystem(subsys).zWeights;
+    }
+
     const Vector& getQDot(SubsystemIndex subsys) const {
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getQDot(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "StateImpl::getQDot(subsys)");
@@ -1401,6 +1609,19 @@ public:
         invalidateAll(Stage::Dynamics);
         return updSubsystem(subsys).z;
     }
+
+    Vector& updUWeights(SubsystemIndex subsys) {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, 
+            "StateImpl::updUWeights(subsys)");
+        invalidateAll(Stage::Report);
+        return updSubsystem(subsys).uWeights;
+    }
+    Vector& updZWeights(SubsystemIndex subsys) {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, 
+            "StateImpl::updZWeights(subsys)");
+        invalidateAll(Stage::Report);
+        return updSubsystem(subsys).zWeights;
+    }
     
         // These are mutable so the routines are const.
     
@@ -1432,6 +1653,18 @@ public:
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "StateImpl::getUErr(subsys)");
         return getSubsystem(subsys).uerr;
     }
+
+    const Vector& getQErrWeights(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+            "StateImpl::getQErrWeights(subsys)");
+        return getSubsystem(subsys).qerrWeights;
+    }
+    const Vector& getUErrWeights(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+            "StateImpl::getUErrWeights(subsys)");
+        return getSubsystem(subsys).uerrWeights;
+    }
+
     const Vector& getUDotErr(SubsystemIndex subsys) const {
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getUDotErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateImpl::getUDotErr(subsys)");
@@ -1457,6 +1690,20 @@ public:
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updUErr(subsys)");
         return getSubsystem(subsys).uerr;
     }
+    
+    Vector& updQErrWeights(SubsystemIndex subsys) {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+            "StateImpl::updQErrWeights(subsys)");
+        invalidateAll(Stage::Position);
+        return updSubsystem(subsys).qerrWeights;
+    }
+    Vector& updUErrWeights(SubsystemIndex subsys) {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+            "StateImpl::updUErrWeights(subsys)");
+        invalidateAll(Stage::Velocity);
+        return updSubsystem(subsys).uerrWeights;
+    }
+
     Vector& updUDotErr(SubsystemIndex subsys) const {
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updUDotErr(subsys)");
         return getSubsystem(subsys).udoterr;
@@ -1498,8 +1745,19 @@ public:
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getZ()");
         return z;
     }
+        
+    const Vector& getUWeights() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, 
+            "StateImpl::getUWeights()");
+        return uWeights;
+    }
     
-    
+    const Vector& getZWeights() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, 
+            "StateImpl::getZWeights()");
+        return zWeights;
+    }
+       
     // You can call these as long as stage >= allocation stage, but the
     // stage will be backed up if necessary to one stage prior to the invalidated stage.
     Real& updTime() {  // Back to Stage::Time-1
@@ -1531,7 +1789,21 @@ public:
         invalidateAll(Stage::Dynamics);
         return z;
     }
+     
+    Vector& updUWeights() { // Invalidates Report stage only
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, 
+            "StateImpl::updUWeights()");
+        invalidateAll(Stage::Report);
+        return uWeights;
+    }
     
+    Vector& updZWeights() { // Invalidates Report stage only
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, 
+            "StateImpl::updZWeights()");
+        invalidateAll(Stage::Dynamics);
+        return zWeights;
+    }   
+
     // These cache entries you can get at their "computedBy" stages.
     const Vector& getYDot() const {
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateImpl::getYDot()");
@@ -1598,6 +1870,18 @@ public:
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "StateImpl::getUErr()");
         return uerr;
     }
+    
+    const Vector& getQErrWeights() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+            "StateImpl::getQErrWeights()");
+        return qerrWeights;
+    }
+    const Vector& getUErrWeights() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+            "StateImpl::getUErrWeights()");
+        return uerrWeights;
+    }
+
     const Vector& getUDotErr() const {
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateImpl::getUDotErr()");
         return udoterr;
@@ -1619,6 +1903,20 @@ public:
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updUErr()");
         return uerr;
     }
+
+    Vector& updQErrWeights() {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+            "StateImpl::updQErrWeights()");
+        invalidateAll(Stage::Position);
+        return qerrWeights;
+    }
+    Vector& updUErrWeights() {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+            "StateImpl::updUErrWeights()");
+        invalidateAll(Stage::Velocity);
+        return uerrWeights;
+    }
+
     Vector& updUDotErr() const{
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
                             "StateImpl::updUDotErr()");
@@ -1827,11 +2125,40 @@ public:
         ce.invalidate();
     }
 
-    const Stage& getLowestStageModified() const {
-        return lowestModifiedSystemStage;
+    StageVersion getSystemTopologyStageVersion() const
+    {   return systemStageVersions[Stage::Topology]; }
+
+    void setSystemTopologyStageVersion(StageVersion topoVersion)
+    {   assert(topoVersion>0); 
+        systemStageVersions[Stage::Topology]=topoVersion; }
+
+    // Capture the stage versions only for currently-realized stages.
+    void getSystemStageVersions(Array_<StageVersion>& versions) const {
+        versions.resize(currentSystemStage+1);
+        for (int i=0; i <= currentSystemStage; ++i)
+            versions[i] = systemStageVersions[i];
     }
-    void resetLowestStageModified() const {
-        lowestModifiedSystemStage = std::min(Stage::Infinity, currentSystemStage.next());
+
+    // If the current state is realized at least as high as the previous one, 
+    // then report Stage::Infinity if all of those stage versions match.
+    // Otherwise report either the first mismatch or the first now-invalid
+    // stage if lower stages match.
+    Stage getLowestSystemStageDifference
+       (const Array_<StageVersion>& prevVersions) const {
+        const int nRealizedBefore = (int)prevVersions.size();
+        const int nRealizedNow    = (int)currentSystemStage+1; // count from 0
+        const int nRealizedBoth   = std::min(nRealizedBefore,nRealizedNow);
+
+        // First check the stages both had in common.
+        Stage g=Stage::Topology; 
+        for (; g < nRealizedBoth; ++g)
+            if (systemStageVersions[g] != prevVersions[g])
+                return g;
+
+        // All stages that were valid before and now have identical versions.
+        // If that's all there was before then nothing has changed.
+        return nRealizedNow >= nRealizedBefore ? Stage::Infinity
+                                               : g; // 1st unrealized stage
     }
 
     void autoUpdateDiscreteVariables() {
@@ -1875,6 +2202,17 @@ public:
             out += String(z[i]) + "\n";
         out += "</Vector>\n";
     
+        out += "<Vector name=uWeights size=" + String(uWeights.size()) + ">";
+        if (uWeights.size()) out += "\n";
+        for (int i=0; i<uWeights.size(); ++i)
+            out += String(uWeights[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=zWeights size=" + String(zWeights.size()) + ">";
+        if (zWeights.size()) out += "\n";
+        for (int i=0; i<zWeights.size(); ++i)
+            out += String(zWeights[i]) + "\n";
+        out += "</Vector>\n";    
     
         for (SubsystemIndex ss(0); ss < (int)subsystems.size(); ++ss) {
             const PerSubsystemInfo& info = subsystems[ss];
@@ -1882,15 +2220,13 @@ public:
                 + " version=" + info.version + ">\n";
     
             out += "  <DISCRETE VARS TODO>\n";
-    
-            out += "  <Vector name=qInit size=" + String(info.qInit.size()) + ">\n";
-            out += "  <Vector name=uInit size=" + String(info.uInit.size()) + ">\n";
-            out += "  <Vector name=zInit size=" + String(info.zInit.size()) + ">\n";
-    
+        
             out += "  <Vector name=q size=" + String(info.q.size()) + ">\n";
             out += "  <Vector name=u size=" + String(info.u.size()) + ">\n";
             out += "  <Vector name=z size=" + String(info.z.size()) + ">\n";
-    
+
+            out += "  <Vector name=uWeights size=" + String(info.uWeights.size()) + ">\n";
+            out += "  <Vector name=zWeights size=" + String(info.zWeights.size()) + ">\n";    
             out += "</Subsystem>\n";
         }
     
@@ -1917,13 +2253,17 @@ public:
             out += "  <Vector name=qdotdot size=" + String(info.qdotdot.size()) + ">\n";
     
             out += "  <Vector name=qerr size=" + String(info.qerr.size()) + ">\n";
+            out += "  <Vector name=qerrWeights size=" + String(info.qerrWeights.size()) + ">\n";
             out += "  <Vector name=uerr size=" + String(info.uerr.size()) + ">\n";
+            out += "  <Vector name=uerrWeights size=" + String(info.uerrWeights.size()) + ">\n";
+
             out += "  <Vector name=udoterr size=" + String(info.udoterr.size()) + ">\n";
             out += "  <Vector name=multipliers size=" + String(info.multipliers.size()) + ">\n";
+
     
             for (int j=0; j<Stage::NValid; ++j) {
                 out += "  <Vector name=triggers[";
-                out += Stage::getValue(j).getName();
+                out += Stage(j).getName();
                 out += "] size=" + String(info.triggers[j].size()) + ">\n";
             }
     
@@ -1960,12 +2300,24 @@ public:
             out += String(qerr[i]) + "\n";
         out += "</Vector>\n";
     
+        out += "<Vector name=qerrWeights size=" + String(qerrWeights.size()) + ">";
+        if (qerrWeights.size()) out += "\n";
+        for (int i=0; i<qerrWeights.size(); ++i)
+            out += String(qerrWeights[i]) + "\n";
+        out += "</Vector>\n";
+
         out += "<Vector name=uerr size=" + String(uerr.size()) + ">";
         if (uerr.size()) out += "\n";
         for (int i=0; i<uerr.size(); ++i)
             out += String(uerr[i]) + "\n";
         out += "</Vector>\n";
-    
+        
+        out += "<Vector name=uerrWeights size=" + String(uerrWeights.size()) + ">";
+        if (uerrWeights.size()) out += "\n";
+        for (int i=0; i<uerrWeights.size(); ++i)
+            out += String(uerrWeights[i]) + "\n";
+        out += "</Vector>\n";
+        
         out += "<Vector name=udoterr size=" + String(udoterr.size()) + ">";
         if (udoterr.size()) out += "\n";
         for (int i=0; i<udoterr.size(); ++i)
@@ -2001,16 +2353,23 @@ private:
     Vector          u; // Stage::Velocity continuous variables
     Vector          z; // Stage::Dynamics continuous variables
 
+        // These are not views; there are no qWeights.
+    Vector          uWeights; // scaling for u
+    Vector          zWeights; // scaling for z
+
+        // These are Instance stage state variables.
+    Vector          qerrWeights; // Scaling for perrs
+    Vector          uerrWeights; // Scaling for pdoterrs and verrs
 
         // Shared global resource Cache entries //
 
     // This is the System's currently highest-valid Stage.
-    mutable Stage   currentSystemStage;
-
-    // This tracks the lowest invalidated System Stage since the last time
-    // it was reset, which is done by an external call. It is *never* higher
-    // than currentSystemStage+1.
-    mutable Stage   lowestModifiedSystemStage;
+    mutable Stage        currentSystemStage;
+    // This contains a counter for each system stage which is bumped each
+    // time that stage is invalidated. This allows detection of a state
+    // that has been changed even after a subsequent realization. The
+    // Topology stage entry should match the System's Topology version.
+    mutable StageVersion systemStageVersions[Stage::NValid];
 
         // DIFFERENTIAL EQUATIONS
 
@@ -2295,6 +2654,12 @@ const Vector& State::getU(SubsystemIndex subsys) const {
 const Vector& State::getZ(SubsystemIndex subsys) const {
     return getImpl().getZ(subsys);
 }
+const Vector& State::getUWeights(SubsystemIndex subsys) const {
+    return getImpl().getUWeights(subsys);
+}
+const Vector& State::getZWeights(SubsystemIndex subsys) const {
+    return getImpl().getZWeights(subsys);
+}
 Vector& State::updQ(SubsystemIndex subsys) {
     return updImpl().updQ(subsys);
 }
@@ -2303,6 +2668,12 @@ Vector& State::updU(SubsystemIndex subsys) {
 }
 Vector& State::updZ(SubsystemIndex subsys) {
     return updImpl().updZ(subsys);
+}
+Vector& State::updUWeights(SubsystemIndex subsys) {
+    return updImpl().updUWeights(subsys);
+}
+Vector& State::updZWeights(SubsystemIndex subsys) {
+    return updImpl().updZWeights(subsys);
 }
 const Vector& State::getQDot(SubsystemIndex subsys) const {
     return getImpl().getQDot(subsys);
@@ -2334,6 +2705,12 @@ const Vector& State::getQErr(SubsystemIndex subsys) const {
 const Vector& State::getUErr(SubsystemIndex subsys) const {
     return getImpl().getUErr(subsys);
 }
+const Vector& State::getQErrWeights(SubsystemIndex subsys) const {
+    return getImpl().getQErrWeights(subsys);
+}
+const Vector& State::getUErrWeights(SubsystemIndex subsys) const {
+    return getImpl().getUErrWeights(subsys);
+}
 const Vector& State::getUDotErr(SubsystemIndex subsys) const {
     return getImpl().getUDotErr(subsys);
 }
@@ -2345,6 +2722,12 @@ Vector& State::updQErr(SubsystemIndex subsys) const {
 }
 Vector& State::updUErr(SubsystemIndex subsys) const {
     return getImpl().updUErr(subsys);
+}
+Vector& State::updQErrWeights(SubsystemIndex subsys) {
+    return updImpl().updQErrWeights(subsys);
+}
+Vector& State::updUErrWeights(SubsystemIndex subsys) {
+    return updImpl().updUErrWeights(subsys);
 }
 Vector& State::updUDotErr(SubsystemIndex subsys) const {
     return getImpl().updUDotErr(subsys);
@@ -2367,6 +2750,12 @@ const Vector& State::getU() const {
 const Vector& State::getZ() const {
     return getImpl().getZ();
 }
+const Vector& State::getUWeights() const {
+    return getImpl().getUWeights();
+}
+const Vector& State::getZWeights() const {
+    return getImpl().getZWeights();
+}
 Real& State::updTime() {
     return updImpl().updTime();
 }
@@ -2387,6 +2776,12 @@ Vector& State::updU() {
 }
 Vector& State::updZ() {
     return updImpl().updZ();
+}
+Vector& State::updUWeights() {
+    return updImpl().updUWeights();
+}
+Vector& State::updZWeights() {
+    return updImpl().updZWeights();
 }
 void State::setQ(const Vector& q) {
     updQ() = q;
@@ -2436,6 +2831,12 @@ const Vector& State::getQErr() const {
 const Vector& State::getUErr() const {
     return getImpl().getUErr();
 }
+const Vector& State::getQErrWeights() const {
+    return getImpl().getQErrWeights();
+}
+const Vector& State::getUErrWeights() const {
+    return getImpl().getUErrWeights();
+}
 const Vector& State::getUDotErr() const {
     return getImpl().getUDotErr();
 }
@@ -2450,6 +2851,12 @@ Vector& State::updQErr() const {
 }
 Vector& State::updUErr() const {
     return getImpl().updUErr();
+}
+Vector& State::updQErrWeights() {
+    return updImpl().updQErrWeights();
+}
+Vector& State::updUErrWeights() {
+    return updImpl().updUErrWeights();
 }
 Vector& State::updUDotErr() const {
     return getImpl().updUDotErr();
@@ -2516,11 +2923,18 @@ void State::markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) cons
 void State::markCacheValueNotRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
     getImpl().markCacheValueNotRealized(subx, cx); 
 }
-const Stage& State::getLowestStageModified() const {
-    return getImpl().getLowestStageModified(); 
+
+StageVersion State::getSystemTopologyStageVersion() const 
+{   return getImpl().getSystemTopologyStageVersion(); }
+void State::setSystemTopologyStageVersion(StageVersion topoVersion)
+{   return updImpl().setSystemTopologyStageVersion(topoVersion); }
+
+
+void State::getSystemStageVersions(Array_<StageVersion>& versions) const {
+    return getImpl().getSystemStageVersions(versions); 
 }
-void State::resetLowestStageModified() const {
-    getImpl().resetLowestStageModified(); 
+Stage State::getLowestSystemStageDifference(const Array_<StageVersion>& prev) const {
+    return getImpl().getLowestSystemStageDifference(prev); 
 }
 void State::autoUpdateDiscreteVariables() {
     updImpl().autoUpdateDiscreteVariables(); 

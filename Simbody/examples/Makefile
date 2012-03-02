@@ -37,12 +37,12 @@ ChainExample \
 ExampleAmysIKProblem \
 ExampleAssemblerPlayground \
 ExampleBricardMechanism \
-ExampleChain \
 ExampleContactPlayground \
 ExampleEventHandler  \
 ExampleEventReporter  \
 ExampleGears  \
 ExampleKneeJoint \
+ExampleLongPendulum \
 ExamplePendulum \
 ExampleSampleAndHold \
 JaredsDude \

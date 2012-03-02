@@ -98,9 +98,16 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
     system.realize(state, Stage::Acceleration);
     Vector_<SpatialVec> reactionForces;
     matter.calcMobilizerReactionForces(state, reactionForces);
+    Vector_<SpatialVec> reactionForcesFreebody;
+    matter.calcMobilizerReactionForcesUsingFreebodyMethod(state, reactionForcesFreebody);
+
+    // Both methods should produce the same results.
+    SimTK_TEST_EQ(reactionForces, reactionForcesFreebody);
+    
+    
     Vector mv, minvv;
-    matter.calcMV(state, state.getU(), mv);
-    matter.calcMInverseV(state, state.getU(), minvv);
+    matter.multiplyByM(state, state.getU(), mv);
+    matter.multiplyByMInv(state, state.getU(), minvv);
     Vector appliedMobilityForces(matter.getNumMobilities());
     Vector_<SpatialVec> appliedBodyForces(matter.getNumBodies());
     for (int i = 0; i < numBodies; i++) {
@@ -117,7 +124,7 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
     matter.calcResidualForceIgnoringConstraints(state, appliedMobilityForces, appliedBodyForces, knownUdot, residualMobilityForces);
     Vector dEdQ;
     matter.multiplyBySystemJacobianTranspose(state, appliedBodyForces, dEdQ);
-    Array_<SpatialInertia> compositeInertias;
+    Array_<SpatialInertia,MobilizedBodyIndex> compositeInertias;
     matter.calcCompositeBodyInertias(state, compositeInertias);
     
     // See whether the RBNodeLoneParticles and the RBNodeTranslates produced identical results.

@@ -367,7 +367,6 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
             }
         }
     }
-
     SimTK_ERRCHK1_ALWAYS(vertices.size() <= 65535*3, 
         "VisualizerProtocol::drawPolygonalMesh()",
         "Can't display a DecorativeMesh with more than 65535 vertices;"
@@ -443,7 +442,9 @@ drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness)
     WRITE(outPipe, buffer, 10*sizeof(float));
 }
 
-void VisualizerProtocol::drawText(const Vec3& position, Real scale, const Vec4& color, const string& string) {
+void VisualizerProtocol::
+drawText(const Vec3& position, Real scale, const Vec4& color, 
+         const string& string, bool faceCamera) {
     SimTK_ERRCHK1_ALWAYS(string.size() <= 256,
         "VisualizerProtocol::drawText()",
         "Can't display DecorativeText longer than 256 characters;"
@@ -458,6 +459,8 @@ void VisualizerProtocol::drawText(const Vec3& position, Real scale, const Vec4& 
     buffer[5] = (float) color[1];
     buffer[6] = (float) color[2];
     WRITE(outPipe, buffer, 7*sizeof(float));
+    short face = (short)faceCamera;
+    WRITE(outPipe, &face, sizeof(short));
     short length = (short)string.size();
     WRITE(outPipe, &length, sizeof(short));
     WRITE(outPipe, &string[0], length);

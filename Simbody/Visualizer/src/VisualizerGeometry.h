@@ -51,6 +51,7 @@ public:
     VisualizerGeometry(VisualizerProtocol& protocol, const SimbodyMatterSubsystem& matter, const State& state);
     ~VisualizerGeometry() {
     }
+    void implementPointGeometry(const DecorativePoint& geom);
     void implementLineGeometry(const DecorativeLine& geom);
     void implementBrickGeometry(const DecorativeBrick& geom);
     void implementCylinderGeometry(const DecorativeCylinder& geom);
@@ -60,7 +61,8 @@ public:
     void implementFrameGeometry(const DecorativeFrame& geom);
     void implementTextGeometry(const DecorativeText& geom);
     void implementMeshGeometry(const DecorativeMesh& geom);
-    static Vec4 getColor(const DecorativeGeometry& geom);
+    static Vec4 getColor(const DecorativeGeometry& geom,
+                         const Vec3& defaultColor = Vec3(-1));
 private:
     int getRepresentation(const DecorativeGeometry& geom) const;
     unsigned short getResolution(const DecorativeGeometry& geom) const;

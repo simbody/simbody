@@ -163,22 +163,21 @@ public:
         SBDynamicsCache& dc = sbs.updDynamicsCache();
         SBTreeAccelerationCache& ac = sbs.updTreeAccelerationCache();
         updY(dc) = SpatialMat(Mat33(0));
-        updGepsilon(ac) = SpatialVec(Vec3(0));
         updA_GB(ac) = 0;
     }
     void realizePosition(const SBStateDigest&) const {}
     void realizeVelocity(const SBStateDigest&) const {}
     void realizeDynamics(const SBArticulatedBodyInertiaCache&, const SBStateDigest&) const {}
-    void realizeAcceleration(const SBStateDigest&) const {}
+    // There is no realizeAcceleration().
     void realizeReport  (const SBStateDigest&) const {}
 
     // Ground's "composite" body inertia is still the infinite mass
     // and inertia it started with; no need to look at the children.
     // This overrides the base class default implementation.
     void calcCompositeBodyInertiasInward(
-        const SBTreePositionCache&  pc,
-        Array_<SpatialInertia>&     R) const
-    {   R[0] = SpatialInertia(Infinity, Vec3(0), UnitInertia(1)); }
+        const SBTreePositionCache&                  pc,
+        Array_<SpatialInertia,MobilizedBodyIndex>&  R) const
+    {   R[GroundIndex] = SpatialInertia(Infinity, Vec3(0), UnitInertia(1)); }
 
     // Ground's "articulated" body inertia is still the infinite mass and
     // inertia it started with; no need to look at the children.
@@ -186,7 +185,11 @@ public:
         const SBInstanceCache&,
         const SBTreePositionCache&,
         SBArticulatedBodyInertiaCache& abc) const 
-    {   updP(abc) = ArticulatedInertia(SymMat33(Infinity), Mat33(Infinity), SymMat33(0)); }
+    {   ArticulatedInertia& P = updP(abc);
+        P = ArticulatedInertia(SymMat33(Infinity), Mat33(Infinity), 
+                                       SymMat33(0)); 
+        updPPlus(abc) = P;
+    }
 
     void realizeYOutward(
         const SBInstanceCache&,
@@ -196,33 +199,10 @@ public:
     {
     }
 
-    void realizeZ(
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&,
-        const SBTreeVelocityCache&,
-        const SBDynamicsCache&,
-        SBTreeAccelerationCache&                ac,
-        const Real*,
-        const SpatialVec*                       bodyForces) const 
-    {   
-        updZ(ac) = -bodyForces[0];
-        for (unsigned i=0; i<children.size(); ++i) {
-            const SpatialVec& zChild    = children[i]->getZ(ac);
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
-            updZ(ac) += phiChild * (zChild + GepsChild);
-        }
-    }
-    void realizeAccel(
-        const SBTreePositionCache&,
-        const SBArticulatedBodyInertiaCache&,
-        const SBTreeVelocityCache&,
-        const SBDynamicsCache&,
-        SBTreeAccelerationCache&                ac,
-        Real*) const
-    {
-    }
 
+    // Treat Ground as though welded to the universe at the ground
+    // origin. The reaction there collects the effects of all the
+    // base bodies and of any forces applied directly to Ground.
     void calcUDotPass1Inward(
         const SBInstanceCache&     ic,
         const SBTreePositionCache& pc,
@@ -232,11 +212,24 @@ public:
         const SpatialVec*          bodyForces,
         const Real*                allUDot,
         SpatialVec*                allZ,
-        SpatialVec*                allGepsilon,
+        SpatialVec*                allZPlus,
         Real*                      allEpsilon) const
     {
-        allGepsilon[0] = 0;
+        const SpatialVec& F            = bodyForces[0];
+        SpatialVec&       z            = allZ[0];
+        SpatialVec&       zPlus        = allZPlus[0];
+
+        z = -F;
+
+        for (unsigned i=0; i<children.size(); ++i) {
+            const PhiMatrix&  phiChild   = children[i]->getPhi(pc);
+            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
+            z += phiChild * zPlusChild; // 18 flops
+        }
+
+        zPlus = z;
     } 
+
     void calcUDotPass2Outward(
         const SBInstanceCache&,
         const SBTreePositionCache&,
@@ -251,33 +244,23 @@ public:
         allA_GB[0] = 0;
     }
 
-    void calcMInverseFPass1Inward(
+    // Ground doesn't contribute to M^-1*f. Inward pass does nothing since
+    // Ground can't be the child of any body.
+    void multiplyByMInvPass1Inward(
         const SBInstanceCache&     ic,
         const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
         const Real*                f,
         SpatialVec*                allZ,
-        SpatialVec*                allGepsilon,
+        SpatialVec*                allZPlus,
         Real*                      allEpsilon) const
     {
-        allZ[0] = 0;
-        for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-
-            if (children[i]->isUDotKnown(ic))
-                allZ[0] += phiChild * zChild;                 // 18 flops
-            else {
-                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-                allZ[0] += phiChild * (zChild + GepsChild);   // 24 flops
-            }
-
-        }
-        allGepsilon[0] = 0;
     } 
 
-    void calcMInverseFPass2Outward(
+    // Outward pass must make sure A_GB[0] is zero so it can be propagated
+    // outwards properly.
+    void multiplyByMInvPass2Outward(
         const SBInstanceCache&,
         const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
@@ -289,7 +272,8 @@ public:
         allA_GB[0] = 0;
     }
 
-    void calcInverseDynamicsPass1Outward(
+    // Also serves as pass 1 for inverse dynamics.
+    void calcBodyAccelerationsFromUdotOutward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
         const Real*                 allUDot,
@@ -322,7 +306,7 @@ public:
         // no taus
     }
 
-    void calcMVPass1Outward(
+    void multiplyByMPass1Outward(
         const SBTreePositionCache&  pc,
         const Real*                 allUDot,
         SpatialVec*                 allA_GB) const
@@ -330,7 +314,7 @@ public:
         allA_GB[0] = 0;
     }
 
-    void calcMVPass2Inward(
+    void multiplyByMPass2Inward(
         const SBTreePositionCache&  pc,
         const SpatialVec*           allA_GB,
         SpatialVec*                 allF,
@@ -416,7 +400,6 @@ public:
         updV_FM(vc) = 0;
         updV_PB_G(vc) = 0;
         updVD_PB_G(vc) = 0;
-        updGepsilon(ac) = SpatialVec(Vec3(0));
     }
 
     void realizePosition(const SBStateDigest& sbs) const {
@@ -472,8 +455,8 @@ public:
         calcJointIndependentDynamicsVel(pc,abc,vc,dc);
     }
 
+    // There is no realizeAcceleration().
 
-    void realizeAcceleration(const SBStateDigest& sbs) const {}
     void realizeReport(const SBStateDigest& sbs) const {}
 
     // Weld uses base class implementation of calcCompositeBodyInertiasInward() since
@@ -487,14 +470,10 @@ public:
         ArticulatedInertia& P = updP(abc);
         P = ArticulatedInertia(getMk_G(pc));
         for (unsigned i=0 ; i<children.size() ; i++) {
-            const PhiMatrix&  phiChild           = children[i]->getPhi(pc);
-            const ArticulatedInertia& PChild     = children[i]->getP(abc);
+            const PhiMatrix&          phiChild   = children[i]->getPhi(pc);
             const ArticulatedInertia& PPlusChild = children[i]->getPPlus(abc);
 
-            if (children[i]->isUDotKnown(ic))
-                P += PChild.shift(phiChild.l());
-            else
-                P += PPlusChild.shift(phiChild.l());
+            P += PPlusChild.shift(phiChild.l());
         }
         updPPlus(abc) = P;
     }
@@ -513,40 +492,6 @@ public:
         updY(dc) = ~psi * parent->getY(dc) * psi;
     }
 
-    void realizeZ(
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&,
-        const SBTreeVelocityCache&,
-        const SBDynamicsCache&                  dc,
-        SBTreeAccelerationCache&                ac,
-        const Real*,
-        const SpatialVec*                       bodyForces) const 
-    {
-        SpatialVec& z = updZ(ac);
-        z = getCentrifugalForces(dc) - bodyForces[nodeNum];
-
-        for (int i=0 ; i<(int)children.size() ; i++) {
-            const SpatialVec& zChild    = children[i]->getZ(ac);
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
-
-            z += phiChild * (zChild + GepsChild);
-        }
-    }
-
-
-    void realizeAccel(
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&,
-        const SBTreeVelocityCache&              vc,
-        const SBDynamicsCache&,
-        SBTreeAccelerationCache&                ac,
-        Real*) const
-    {
-        const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
-        updA_GB(ac) = alphap + getCoriolisAcceleration(vc);  
-    }
-
     
     void calcUDotPass1Inward(
         const SBInstanceCache&      ic,
@@ -557,28 +502,23 @@ public:
         const SpatialVec*           bodyForces,
         const Real*                 allUDot,
         SpatialVec*                 allZ,
-        SpatialVec*                 allGepsilon,
+        SpatialVec*                 allZPlus,
         Real*                       allEpsilon) const 
     {
         const SpatialVec& myBodyForce  = bodyForces[nodeNum];
         SpatialVec&       z            = allZ[nodeNum];
-        SpatialVec&       Geps         = allGepsilon[nodeNum];
+        SpatialVec&       zPlus        = allZPlus[nodeNum];
 
-        z = getCentrifugalForces(dc) - myBodyForce;
+        z = getMobilizerCentrifugalForces(dc) - myBodyForce;
 
         for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+            const PhiMatrix&  phiChild   = children[i]->getPhi(pc);
+            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
 
-            if (children[i]->isUDotKnown(ic))
-                z += phiChild * zChild;                 // 18 flops
-            else {
-                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-                z += phiChild * (zChild + GepsChild);   // 24 flops
-            }
+            z += phiChild * zPlusChild;                 // 18 flops
         }
 
-        Geps = 0;
+        zPlus = z;
     }
 
     void calcUDotPass2Outward(
@@ -594,41 +534,44 @@ public:
     {
         SpatialVec& A_GB = allA_GB[nodeNum];
 
-        // Shift parent's A_GB outward. (Ground A_GB is zero.)
-        const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+        const PhiMatrix&    phi = getPhi(pc);
+        const SpatialVec&   a   = getMobilizerCoriolisAcceleration(vc);
 
-        A_GB = A_GP + getCoriolisAcceleration(vc);  
+        // Shift parent's acceleration outward (Ground==0). 12 flops
+        const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+        const SpatialVec  APlus = ~phi * A_GP;
+
+        A_GB = APlus + a;  // no udot for weld
     }
     
-    void calcMInverseFPass1Inward(
+    // A weld doesn't have udots but we still have to calculate z, zPlus,
+    // for use by the parent of this body.
+    void multiplyByMInvPass1Inward(
         const SBInstanceCache&      ic,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Real*                 f,
         SpatialVec*                 allZ,
-        SpatialVec*                 allGepsilon,
+        SpatialVec*                 allZPlus,
         Real*                       allEpsilon) const
     {
         SpatialVec& z       = allZ[nodeNum];
-        SpatialVec& Geps    = allGepsilon[nodeNum];
+        SpatialVec& zPlus   = allZPlus[nodeNum];
 
         z = 0;
-        for (unsigned i=0; i<children.size(); ++i) {
-            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
 
-            if (children[i]->isUDotKnown(ic))
-                z += phiChild * zChild;                 // 18 flops
-            else {
-                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-                z += phiChild * (zChild + GepsChild);   // 24 flops
-            }
+        for (unsigned i=0; i<children.size(); i++) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
+            z += phiChild * zPlusChild; // 18 flops
         }
-        Geps = 0;
+
+        zPlus = z;
     }
 
-    void calcMInverseFPass2Outward(
+    // Must set A_GB properly for propagation to children.
+    void multiplyByMInvPass2Outward(
         const SBInstanceCache&,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
@@ -637,13 +580,18 @@ public:
         SpatialVec*                 allA_GB,
         Real*                       allUDot) const
     {
-        SpatialVec& A_GB = allA_GB[nodeNum];
+        SpatialVec&      A_GB = allA_GB[nodeNum];
+        const PhiMatrix& phi  = getPhi(pc);
 
-        // Shift parent's A_GB outward. (Ground A_GB is zero.)
-        A_GB = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+        // Shift parent's acceleration outward (Ground==0). 12 flops
+        const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+        const SpatialVec  APlus = ~phi * A_GP;
+
+        A_GB = APlus;
     }
 
-    void calcInverseDynamicsPass1Outward(
+    // Also serves as pass 1 for inverse dynamics.
+    void calcBodyAccelerationsFromUdotOutward(
         const SBTreePositionCache&  pc,
         const SBTreeVelocityCache&  vc,
         const Real*                 allUDot,
@@ -654,7 +602,7 @@ public:
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
         const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-        A_GB = A_GP + getCoriolisAcceleration(vc); 
+        A_GB = A_GP + getMobilizerCoriolisAcceleration(vc); // no udot for weld
     }
 
     void calcInverseDynamicsPass2Inward(
@@ -685,7 +633,7 @@ public:
         // no taus.
     }
 
-    void calcMVPass1Outward(
+    void multiplyByMPass1Outward(
         const SBTreePositionCache&  pc,
         const Real*                 allUDot,
         SpatialVec*                 allA_GB) const
@@ -698,7 +646,7 @@ public:
         A_GB = A_GP;  
     }
 
-    void calcMVPass2Inward(
+    void multiplyByMPass2Inward(
         const SBTreePositionCache&  pc,
         const SpatialVec*           allA_GB,
         SpatialVec*                 allF,   // temp

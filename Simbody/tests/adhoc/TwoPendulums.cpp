@@ -299,9 +299,11 @@ int main(int argc, char** argv) {
     cout << "Using Integrator " << std::string(myStudy.getMethodName()) << ":\n";
     cout << "ACCURACY IN USE=" << myStudy.getAccuracyInUse() << endl;
     cout << "CTOL IN USE=" << myStudy.getConstraintToleranceInUse() << endl;
-    cout << "TIMESCALE=" << myStudy.getTimeScaleInUse() << endl;
-    cout << "Y WEIGHTS=" << myStudy.getStateWeightsInUse() << endl;
-    cout << "1/CTOLS=" << myStudy.getConstraintWeightsInUse() << endl;
+    cout << "TIMESCALE=" << mbs.getDefaultTimeScale() << endl;
+    cout << "U WEIGHTS=" << s.getUWeights() << endl;
+    cout << "Z WEIGHTS=" << s.getZWeights() << endl;
+    cout << "1/QTOLS=" << s.getQErrWeights() << endl;
+    cout << "1/UTOLS=" << s.getUErrWeights() << endl;
 
     {
         const State& s = myStudy.getState();
@@ -330,7 +332,7 @@ int main(int argc, char** argv) {
                 leftPendulumAngle,
                 mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
                 myStudy.getPreviousStepSizeTaken(),
-                Integrator::successfulStepStatusString(status).c_str(),
+                Integrator::getSuccessfulStepStatusString(status).c_str(),
                 myStudy.isStateInterpolated()?" (INTERP)":"");
             printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
                 twoPends.getQErr(s).normRMS(),
