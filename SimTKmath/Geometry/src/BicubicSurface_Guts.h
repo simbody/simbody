@@ -62,7 +62,8 @@ public:
 
     bool isEmpty() const {return x0 < 0;}
     void clear() {
-        x0=y0=level = -1;
+        x0=y0=-1;
+        level = -2; // means "everything is invalid"
         #ifndef NDEBUG
             xS=ooxS=ooxS2=ooxS3=yS=ooyS=ooyS2=ooyS3 = NaN;
             f=fx=fy=fxy=fxx=fyy=fxxx=fxxy=fyyy=fxyy = NaN; 
@@ -71,7 +72,7 @@ public:
 
 
     // Patch information. 
-    // This is valid whenever level >= 0 and does not change
+    // This is valid whenever level >= -1 and does not change
     // for repeated access anywhere within the same patch.
     int x0, y0; // Indices of the lower-left corner of the patch.
     // These are the precalculated patch dimensions and their reciprocals. 
@@ -93,8 +94,12 @@ public:
     // access to the above patch, which was point (x,y,f(x,y)). This will 
     // change whenever a new point is accessed, even if it is on the same patch.
 
-    // -1: nothing, 0: function value only, 1: function value and 1st derivs,
-    // 2: function value, 1st & 2nd derivatives, 3: plus 3rd derivatives.
+    // -2: nothing, 
+    // -1: patch info only, 
+    //  0: patch info and function value only, 
+    //  1: patch info, function value, and 1st derivs,
+    //  2: ... plus 2nd derivatives, 
+    //  3: ... plus 3rd derivatives.
     int level;
     Vec2 xy;
     Real f; // f(x,y); valid if level >= 0.
