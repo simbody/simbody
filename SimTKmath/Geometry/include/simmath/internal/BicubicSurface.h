@@ -57,6 +57,8 @@ class BicubicFunction if you need to satisfy the SimTK::Function interface.
 A single BicubicSurface can be shared among multiple accessors and threads
 once constructed.
 
+@image html BicubicSurface1.png "A single-patch bicubic surface"
+
 A bicubic surface interpolation is used to approximate the function
 between the sample points. That is desirable for simulation use because it is 
 continuous up to the second derivative, providing smoothly varying first 

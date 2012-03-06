@@ -27,6 +27,8 @@ specific questions, use the Simbody help forum under the "Advanced" tab.
 You can also file bug reports and make feature requests using the tools 
 provided there.
 
+@image html isaac.png "Our hero, Sir Isaac Newton"
+
 <h2>What is Simbody?</h2>
 Simbody is a high-performance, industrial-grade open source C++ library 
 providing sophisticated treatment of articulated multibody systems with special
