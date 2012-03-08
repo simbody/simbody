@@ -232,10 +232,7 @@ int main() {
     //clog << "after prescribe q=" << state.getQ() << "\n";
     system.realize(state, Stage::Position);
 
-
-    ProjectResults projResults;
-
-    system.projectQ(state, Vector(), ProjectOptions(1e-10), projResults);
+    system.projectQ(state, 1e-10);
     //Assembler asmb(system);
     //asmb.setAccuracy(1e-10).assemble(state);
 
@@ -266,7 +263,7 @@ int main() {
          << matter.calcMotionErrors(state, Stage::Velocity) << "\n";
 
     system.realize(state, Stage::Velocity);
-    system.projectU(state, Vector(), ProjectOptions(1e-10), projResults);
+    system.projectU(state, 1e-10);
     viz.report(state);
     clog << "After prescribe(Velocity) & project -- hit ENTER\n";
     clog << "t=" << state.getTime() 
