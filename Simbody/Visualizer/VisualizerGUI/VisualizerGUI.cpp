@@ -192,7 +192,7 @@ public:
         if (representation == DecorativeGeometry::DrawSurface)
             glDrawElements(GL_TRIANGLES, (GLsizei)faces.size(), GL_UNSIGNED_SHORT, &faces[0]);
         else if (representation == DecorativeGeometry::DrawPoints)
-            glDrawArrays(GL_POINTS, 0, numVertices*3);
+            glDrawArrays(GL_POINTS, 0, numVertices);
         else if (representation == DecorativeGeometry::DrawWireframe)
             glDrawElements(GL_LINES, (GLsizei)edges.size(), GL_UNSIGNED_SHORT, &edges[0]);
     }
@@ -1593,6 +1593,9 @@ static float sceneScale; // for scaling translations
 // function handles those properly if they are present.
 static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
     const int GlutWheelUp = 3, GlutWheelDown = 4;
+
+    if (scene == NULL)
+        return; // probably mouse click during startup
 
     float radius;
     fVec3 sceneCenter;
