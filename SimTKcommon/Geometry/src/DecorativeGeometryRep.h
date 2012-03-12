@@ -42,8 +42,9 @@ namespace SimTK {
 class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
-    :   myHandle(0), body(0), placement(), resolution(-1), scale(-1),
-        colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), faceCamera(-1), 
+    :   myHandle(0), body(0), placement(), resolution(-1), 
+        scaleFactors(-1,-1,-1), colorRGB(-1,-1,-1), opacity(-1), 
+        lineThickness(-1), faceCamera(-1), 
         representation(DecorativeGeometry::DrawDefault)
     {}
 
@@ -75,10 +76,11 @@ public:
     // This sets the scale to some factor times the default size of the object,
     // which will be somewhere around 1 length unit. Set to 0 or less to mean
     // "use default".
-    void setScale(Real s) {
-        scale = s > 0 ? s : -1.;
+    void setScaleFactors(const Vec3& s) {
+        for (int i=0; i<3; ++i)
+            scaleFactors[i] = s[i] > 0 ? s[i] : -1;
     }
-    Real getScale() const {return scale;}
+    const Vec3& getScaleFactors() const {return scaleFactors;}
 
 
     void setColor(const Vec3& rgb) {
@@ -128,18 +130,37 @@ public:
 
     // Set any properties that still have their default values to the ones
     // from src. Source body is transferred unconditionally; source
-    // placement is composed with this one unconditionally. 
+    // placement is composed with this one unconditionally. Scale factors,
+    // resolution, opacity, and line thickness are composed, with a default
+    // (-1) value treated as 1.
     void inheritPropertiesFrom(const DecorativeGeometryRep& srep) {
         body = srep.body;
         placement = srep.placement * placement;
-        if (resolution == -1) resolution = srep.resolution;
-        if (scale == -1) scale = srep.scale;
+
+        // These are multiplied together if both are valid, otherwise we
+        // take the valid one, or set to -1 if neither is valid.
+        for (int i=0; i<3; ++i)
+            scaleFactors[i] = compose(scaleFactors[i], srep.scaleFactors[i]);
+        resolution    = compose(resolution,    srep.resolution);
+        opacity       = compose(opacity,       srep.opacity);
+        lineThickness = compose(lineThickness, srep.lineThickness);
+
+        // These are left alone if already specified in the destination,
+        // otherwise they are given the source value.
         if (colorRGB[0] == -1) colorRGB = srep.colorRGB;
-        if (opacity == -1) opacity = srep.opacity;
-        if (lineThickness == -1) lineThickness = srep.lineThickness;
         if (faceCamera == -1) faceCamera = srep.faceCamera;
         if (representation == DecorativeGeometry::DrawDefault)
             representation = srep.representation;
+    }
+private:
+    // Given arguments where ai < 0 means it hasn't been specified,
+    // compose them if they are both valid, otherwise return the valid
+    // one if there is one, otherwise return -1. Note that we're treating
+    // 0 as specified; composing it with anything will return 0.
+    static Real compose(Real a1, Real a2) {
+        if (a1 >= 0) return a2 >= 0 ? a1*a2 : a1;
+        if (a2 >= 0) return a2;
+        return -1;
     }
 
 protected:
@@ -147,9 +168,9 @@ protected:
 
     int         body;
     Transform   placement;          // default is identity
-    Real        resolution;         // -1 means use default
-    Real        scale;              // -1 means use default
+    Vec3        scaleFactors;       // -1 means use default in that direction
 
+    Real        resolution;         // -1 means use default
     Vec3        colorRGB;           // set R to -1 for "use default"
     Real        opacity;            // -1 means "use default"
     Real        lineThickness;      // -1 means "use default"

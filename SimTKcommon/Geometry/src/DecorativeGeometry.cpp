@@ -84,8 +84,10 @@ const Transform& DecorativeGeometry::getTransform() const    {return getRep().ge
 DecorativeGeometry& DecorativeGeometry::setResolution(Real r) {updRep().setResolution(r);return *this;}
 Real DecorativeGeometry::getResolution() const {return getRep().getResolution();}
 
-DecorativeGeometry& DecorativeGeometry::setScale(Real s) {updRep().setScale(s);return *this;}
-Real DecorativeGeometry::getScale() const {return getRep().getScale();}
+DecorativeGeometry& DecorativeGeometry::setScaleFactors(const Vec3& s) 
+{   updRep().setScaleFactors(s); return *this; }
+const Vec3& DecorativeGeometry::getScaleFactors() const 
+{   return getRep().getScaleFactors(); }
 
 DecorativeGeometry& DecorativeGeometry::setColor(const Vec3& rgb) {updRep().setColor(rgb);return *this;}
 const Vec3& DecorativeGeometry::getColor() const   {return getRep().getColor();}

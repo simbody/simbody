@@ -283,7 +283,7 @@ private:
 
 class RenderedText {
 public:
-    RenderedText(const fVec3& position, float scale, const fVec3& color, 
+    RenderedText(const fVec3& position, const fVec3& scale, const fVec3& color, 
                  const string& text, bool faceCamera = true) 
     :   position(position), scale(scale/119), text(text),
         faceCamera(faceCamera) {
@@ -297,7 +297,7 @@ public:
         fVec4 rot = X_GC.R().convertRotationToAngleAxis();
         if (faceCamera)
             glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
-        glScaled(scale, scale, scale);
+        glScaled(scale[0], scale[1], scale[2]);
         glColor3fv(color);
         for (int i = 0; i < (int) text.size(); i++)
             glutStrokeCharacter(GLUT_STROKE_ROMAN, text[i]);
@@ -306,11 +306,11 @@ public:
     void computeBoundingSphere(float& radius, fVec3& center) const {
         center = position;
         radius = glutStrokeLength(GLUT_STROKE_ROMAN, 
-                                  (unsigned char*)text.c_str())*scale;
+                                  (unsigned char*)text.c_str())*scale[0];
     }
 private:
     fVec3 position;
-    float scale;
+    fVec3 scale;
     GLfloat color[3];
     string text;
     bool faceCamera;
@@ -2010,11 +2010,11 @@ static Scene* readNewScene() {
         }
 
         case AddText: {
-            readData(buffer, 7*sizeof(float)+2*sizeof(short));
+            readData(buffer, 9*sizeof(float)+2*sizeof(short));
             fVec3 position = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-            float scale = floatBuffer[3];
-            fVec3 color = fVec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
-            unsigned short* shortp = &shortBuffer[7*sizeof(float)/sizeof(short)];
+            fVec3 scale = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            fVec3 color = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
+            unsigned short* shortp = &shortBuffer[9*sizeof(float)/sizeof(short)];
             bool faceCamera = (shortp[0] != 0);
             short length = shortp[1];
             readData(buffer, length);
@@ -2025,22 +2025,28 @@ static Scene* readNewScene() {
         }
 
         case AddCoords: {
-            readData(buffer, 10*sizeof(float));
+            readData(buffer, 12*sizeof(float));
             fRotation rotation;
-            rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+            rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], 
+                                                     floatBuffer[1], 
+                                                     floatBuffer[2]));
             fVec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-            float axisLength = floatBuffer[6];
-            float textScale = 0.2f*axisLength;
+            fVec3 axisLengths(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
+            fVec3 textScale = fVec3(0.2f*min(axisLengths));
             float lineThickness = 1;
-            fVec3 color = fVec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
+            fVec3 color = fVec3(floatBuffer[9], floatBuffer[10], floatBuffer[11]);
             int index;
             int numLines = (int)newScene->lines.size();
-            for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || newScene->lines[index].getThickness() != lineThickness); index++)
+            for (index = 0; 
+                 index < numLines && (color != newScene->lines[index].getColor() 
+                                      || newScene->lines[index].getThickness() 
+                                                              != lineThickness); 
+                 index++)
                 ;
             if (index == numLines)
                 newScene->lines.push_back(RenderedLine(color, lineThickness));
             vector<GLfloat>& line = newScene->lines[index].getLines();
-            fVec3 end = position+rotation*fVec3(axisLength, 0, 0);
+            fVec3 end = position+rotation*fVec3(axisLengths[0], 0, 0);
             line.push_back(position[0]);
             line.push_back(position[1]);
             line.push_back(position[2]);
@@ -2048,7 +2054,7 @@ static Scene* readNewScene() {
             line.push_back(end[1]);
             line.push_back(end[2]);
             newScene->strings.push_back(RenderedText(end, textScale, color, "X"));
-            end = position+rotation*fVec3(0, axisLength, 0);
+            end = position+rotation*fVec3(0, axisLengths[1], 0);
             line.push_back(position[0]);
             line.push_back(position[1]);
             line.push_back(position[2]);
@@ -2056,7 +2062,7 @@ static Scene* readNewScene() {
             line.push_back(end[1]);
             line.push_back(end[2]);
             newScene->strings.push_back(RenderedText(end, textScale, color, "Y"));
-            end = position+rotation*fVec3(0, 0, axisLength);
+            end = position+rotation*fVec3(0, 0, axisLengths[2]);
             line.push_back(position[0]);
             line.push_back(position[1]);
             line.push_back(position[2]);

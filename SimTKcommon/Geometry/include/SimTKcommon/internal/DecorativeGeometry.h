@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Jack Middleton, Peter Eastman                                *
  *                                                                            *
@@ -123,7 +123,7 @@ DecorativeGeometry& setTransform(const Transform& X_BG);
 /** Each concrete DecorativeGeometry object is expected to have a default 
 resolution that gets the point across but is cheap to draw and hence probably 
 somewhat "chunky". The resolution parameter here scales that default up or 
-down. The number of faces in the displayed representation is roughly 
+down. The face density in the displayed representation is roughly 
 proportional to this value. 1.0 means to use the default resolution. Values 
 less than 1.0 are lower resolution, and values greater than 1.0 are higher 
 resolution. A value less than or equal to zero here is interpreted as an 
@@ -132,12 +132,15 @@ DecorativeGeometry& setResolution(Real);
 
 /** Each concrete DecorativeGeometry object is expected to have a default size
 around "1", whatever that means for a particular object, and most objects also
-allow a user-specified size on construction. The scale factor here applies to
-the object as the user built it, or to the default if the user didn't specify
-a size. The default scaling is 1, and any value less than or equal to zero
-here is interpreted as a request to "use the default".
-This value affects the generated polygonal data. **/
-DecorativeGeometry& setScale(Real);
+allow a user-specified size on construction. The x,y,z scale factors here are
+given in the object's coordinate frame, and apply to the object as the user 
+built it, or to the default if the user didn't specify a size. The default 
+scaling is 1,1,1 and any value less than or equal to zero here is interpreted 
+as a request to "use the default" in that direction. **/
+DecorativeGeometry& setScaleFactors(const Vec3& scale);
+
+/** Convenience method to set all three scale factors to the same value. **/
+DecorativeGeometry& setScale(Real scale) {return setScaleFactors(Vec3(scale));}
 
 /** Return the body to which this geometry is attached. The geometry's 
 placement is interpreted relative to the body's frame. **/
@@ -152,13 +155,16 @@ this will be the identity transform. Note that this transform specifies how the
 polygons are placed with respect to the object's local frame. **/
 const Transform& getTransform() const;
 
-/** Return the current setting of the "scale" factor. A return value of -1 
-means "use the default" (which is typically 1). **/
-Real getScale() const;
+/** Return the current setting of the "scale" factors. A return value of -1 
+in one of the factors means to "use the default" (which is typically 1) in
+that direction. **/
+const Vec3& getScaleFactors() const;
 
-/** Request a specific color for this DecorativeGeometry object. This does NOT
-affect the generated geometry here. The default is that the color is
-determined elsewhere. **/
+/** Request a specific color for this DecorativeGeometry object. The default 
+is that the color is determined elsewhere. To explicitly request the default,
+set the color to Vec3(-1). The implementation will check the 0'th element
+(that is, the "R" element) and if it is less than zero will ignore the other
+two elements and use the default for all three. **/
 DecorativeGeometry& setColor(const Vec3& rgb); // 0-1 for each color
 
 /** Request a level of transparency for this DecorativeGeometry. This does NOT
@@ -172,9 +178,14 @@ renderer which will probably pass it on to the hardware. A value less
 than or equal to zero here is interpreted as "use the default". **/
 DecorativeGeometry& setLineThickness(Real);
 
+/** Return the color specified for this object, if any, otherwise Vec3(-1)
+indicating that the default color will be used. **/
 const Vec3& getColor()      const;
-Real        getOpacity()    const;
-Real        getLineThickness() const;
+/** Return the opacity specified for this object. **/
+Real getOpacity()    const;
+/** Return the line thickness specified for this object, if any, otherwise
+return -1 to indicate that the default line thickness should be used. **/
+Real getLineThickness() const;
     
 /** Set whether the geometry acts as a billboard, always rotating to face the 
 camera. The default is typically no except for text. If you want 3D text that
@@ -226,7 +237,7 @@ public:
     DecorativePoint& setBodyId(int b)          {DecorativeGeometry::setBodyId(b);        return *this;}
     DecorativePoint& setTransform(const Transform& X_BD) {DecorativeGeometry::setTransform(X_BD); return *this;}
     DecorativePoint& setResolution(Real r)     {DecorativeGeometry::setResolution(r);    return *this;}
-    DecorativePoint& setScale(Real s)          {DecorativeGeometry::setScale(s);         return *this;}
+    DecorativePoint& setScaleFactors(const Vec3& s) {DecorativeGeometry::setScaleFactors(s); return *this;}
     DecorativePoint& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
     DecorativePoint& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
     DecorativePoint& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}
@@ -256,7 +267,7 @@ public:
     DecorativeLine& setBodyId(int b)          {DecorativeGeometry::setBodyId(b);        return *this;}
     DecorativeLine& setTransform(const Transform& X_BD) {DecorativeGeometry::setTransform(X_BD); return *this;}
     DecorativeLine& setResolution(Real r)     {DecorativeGeometry::setResolution(r);    return *this;}
-    DecorativeLine& setScale(Real s)          {DecorativeGeometry::setScale(s);         return *this;}
+    DecorativeLine& setScaleFactors(const Vec3& s) {DecorativeGeometry::setScaleFactors(s); return *this;}
     DecorativeLine& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
     DecorativeLine& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
     DecorativeLine& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}
@@ -417,7 +428,7 @@ public:
     /** Add a DecorativeGeometry object to this collection. **/
     Decorations& addDecoration(const DecorativeGeometry& decoration);
     /** Add a DecorativeGeometry object to this collection and place it
-    relative to the Decoratations frame. **/
+    relative to the Decorations frame. **/
     Decorations& addDecoration(const Transform& placement,
                                const DecorativeGeometry& decoration);
     /** Determine how many DecorativeGeometry objects are in this 
@@ -432,7 +443,7 @@ public:
     Decorations& setBodyId(int b)          {DecorativeGeometry::setBodyId(b);        return *this;}
     Decorations& setTransform(const Transform& X_BD) {DecorativeGeometry::setTransform(X_BD); return *this;}
     Decorations& setResolution(Real r)     {DecorativeGeometry::setResolution(r);    return *this;}
-    Decorations& setScale(Real s)          {DecorativeGeometry::setScale(s);         return *this;}
+    Decorations& setScaleFactors(const Vec3& s) {DecorativeGeometry::setScaleFactors(s); return *this;}
     Decorations& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
     Decorations& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
     Decorations& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}

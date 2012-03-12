@@ -46,7 +46,7 @@ using namespace SimTK;
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 28;
+static const unsigned ProtocolVersion   = 29;
 
 // The VisualizerGUI has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -110,17 +110,29 @@ public:
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void beginScene(Real simTime);
     void finishScene();
-    void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution);
-    void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution);
-    void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation, unsigned short resolution);
-    void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation);
-    void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness);
-    void drawText(const Vec3& position, Real scale, const Vec4& color, 
+    void drawBox(const Transform& transform, const Vec3& scale, 
+                 const Vec4& color, int representation);
+    void drawEllipsoid(const Transform& transform, const Vec3& scale, 
+                       const Vec4& color, int representation, 
+                       unsigned short resolution);
+    void drawCylinder(const Transform& transform, const Vec3& scale, 
+                      const Vec4& color, int representation, 
+                      unsigned short resolution);
+    void drawCircle(const Transform& transform, const Vec3& scale, 
+                    const Vec4& color, int representation, 
+                    unsigned short resolution);
+    void drawPolygonalMesh(const PolygonalMesh& mesh, 
+                           const Transform& transform, const Vec3& scale, 
+                           const Vec4& color, int representation);
+    void drawLine(const Vec3& end1, const Vec3& end2, const 
+                  Vec4& color, Real thickness);
+    void drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
                   const std::string& string, bool faceCamera=true);
-    void drawCoords(const Transform& transform, Real axisLength, const Vec4& color);
+    void drawCoords(const Transform& transform, const Vec3& axisLengths, 
+                    const Vec4& color);
     
-    void addMenu(const String& title, int id, const Array_<std::pair<String, int> >& items);
+    void addMenu(const String& title, int id, 
+                 const Array_<std::pair<String, int> >& items);
     void addSlider(const String& title, int id, Real min, Real max, Real value);
     void setSliderValue(int id, Real newValue) const;
     void setSliderRange(int id, Real newMin, Real newMax) const;
@@ -138,8 +150,9 @@ public:
     void setFieldOfView(Real fov) const;
     void setClippingPlanes(Real near, Real far) const;
 private:
-    void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, 
-                  short representation, unsigned short meshIndex, unsigned short resolution);
+    void drawMesh(const Transform& transform, const Vec3& scale, 
+                  const Vec4& color, short representation, 
+                  unsigned short meshIndex, unsigned short resolution);
     int outPipe;
 
     // For user-defined meshes, map their unique memory addresses to the 

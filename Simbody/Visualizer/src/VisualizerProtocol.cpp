@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2010 Stanford University and the Authors.           *
- * Authors: Peter Eastman                                                     *
- * Contributors: Michael Sherman                                              *     
+ * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Authors: Peter Eastman, Michael Sherman                                    *
+ * Contributors:                                                              *     
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -307,13 +307,13 @@ void VisualizerProtocol::drawCircle(const Transform& X_GB, const Vec3& scale, co
     drawMesh(X_GB, scale, color, (short) representation, MeshCircle, resolution);
 }
 
-void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& X_GM, Real scale, const Vec4& color, int representation) {
+void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& X_GM, const Vec3& scale, const Vec4& color, int representation) {
     const void* impl = &mesh.getImpl();
     map<const void*, unsigned short>::const_iterator iter = meshes.find(impl);
 
     if (iter != meshes.end()) {
         // This mesh was already cached; just reference it by index number.
-        drawMesh(X_GM, Vec3(scale), color, (short)representation, iter->second, 0);
+        drawMesh(X_GM, scale, color, (short)representation, iter->second, 0);
         return;
     }
 
@@ -390,7 +390,7 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
     WRITE(outPipe, &vertices[0], (unsigned)(vertices.size()*sizeof(float)));
     WRITE(outPipe, &faces[0], (unsigned)(faces.size()*sizeof(short)));
 
-    drawMesh(X_GM, Vec3(scale), color, (short) representation, index, 0);
+    drawMesh(X_GM, scale, color, (short) representation, index, 0);
 }
 
 void VisualizerProtocol::
@@ -443,22 +443,24 @@ drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness)
 }
 
 void VisualizerProtocol::
-drawText(const Vec3& position, Real scale, const Vec4& color, 
+drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
          const string& string, bool faceCamera) {
     SimTK_ERRCHK1_ALWAYS(string.size() <= 256,
         "VisualizerProtocol::drawText()",
         "Can't display DecorativeText longer than 256 characters;"
         " received text of length %u.", (unsigned)string.size());
     WRITE(outPipe, &AddText, 1);
-    float buffer[7];
+    float buffer[9];
     buffer[0] = (float) position[0];
     buffer[1] = (float) position[1];
     buffer[2] = (float) position[2];
-    buffer[3] = (float) scale;
-    buffer[4] = (float) color[0];
-    buffer[5] = (float) color[1];
-    buffer[6] = (float) color[2];
-    WRITE(outPipe, buffer, 7*sizeof(float));
+    buffer[3] = (float) scale[0];
+    buffer[4] = (float) scale[1];
+    buffer[5] = (float) scale[2];
+    buffer[6] = (float) color[0];
+    buffer[7] = (float) color[1];
+    buffer[8] = (float) color[2];
+    WRITE(outPipe, buffer, 9*sizeof(float));
     short face = (short)faceCamera;
     WRITE(outPipe, &face, sizeof(short));
     short length = (short)string.size();
@@ -467,9 +469,9 @@ drawText(const Vec3& position, Real scale, const Vec4& color,
 }
 
 void VisualizerProtocol::
-drawCoords(const Transform& X_GF, Real axisLength, const Vec4& color) {
+drawCoords(const Transform& X_GF, const Vec3& axisLengths, const Vec4& color) {
     WRITE(outPipe, &AddCoords, 1);
-    float buffer[10];
+    float buffer[12];
     Vec3 rot = X_GF.R().convertRotationToBodyFixedXYZ();
     buffer[0] = (float) rot[0];
     buffer[1] = (float) rot[1];
@@ -477,11 +479,13 @@ drawCoords(const Transform& X_GF, Real axisLength, const Vec4& color) {
     buffer[3] = (float) X_GF.p()[0];
     buffer[4] = (float) X_GF.p()[1];
     buffer[5] = (float) X_GF.p()[2];
-    buffer[6] = (float) axisLength;
-    buffer[7] = (float) color[0];
-    buffer[8] = (float) color[1];
-    buffer[9] = (float) color[2];
-    WRITE(outPipe, buffer, 10*sizeof(float));
+    buffer[6] = (float) axisLengths[0];
+    buffer[7] = (float) axisLengths[1];
+    buffer[8] = (float) axisLengths[2];
+    buffer[9] = (float) color[0];
+    buffer[10]= (float) color[1];
+    buffer[11]= (float) color[2];
+    WRITE(outPipe, buffer, 12*sizeof(float));
 }
 
 void VisualizerProtocol::

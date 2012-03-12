@@ -66,7 +66,7 @@ public:
 private:
     int getRepresentation(const DecorativeGeometry& geom) const;
     unsigned short getResolution(const DecorativeGeometry& geom) const;
-    Real getScale(const DecorativeGeometry& geom) const;
+    Vec3 getScaleFactors(const DecorativeGeometry& geom) const;
     Transform calcX_GD(const DecorativeGeometry& geom) const;
     VisualizerProtocol& protocol;
     const SimbodyMatterSubsystem& matter;

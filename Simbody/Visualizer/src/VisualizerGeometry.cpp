@@ -70,15 +70,15 @@ implementPointGeometry(const SimTK::DecorativePoint& geom) {
         geom.getLineThickness() == -1 ? Real(1) : geom.getLineThickness();
 
     const Real DefaultLength = 0.05; // 1/20 of a unit length
-    const Real length = getScale(geom) * DefaultLength;
+    const Vec3 lengths = DefaultLength * getScaleFactors(geom);
     const Vec4 color = getColor(geom, DefaultPointColor);
 
-    protocol.drawLine(p_GP - length*X_GB.x(), 
-                      p_GP + length*X_GB.x(), color, thickness);
-    protocol.drawLine(p_GP - length*X_GB.y(), 
-                      p_GP + length*X_GB.y(), color, thickness);
-    protocol.drawLine(p_GP - length*X_GB.z(), 
-                      p_GP + length*X_GB.z(), color, thickness);
+    protocol.drawLine(p_GP - lengths[0]*X_GB.x(), 
+                      p_GP + lengths[0]*X_GB.x(), color, thickness);
+    protocol.drawLine(p_GP - lengths[1]*X_GB.y(), 
+                      p_GP + lengths[1]*X_GB.y(), color, thickness);
+    protocol.drawLine(p_GP - lengths[2]*X_GB.z(), 
+                      p_GP + lengths[2]*X_GB.z(), color, thickness);
 }
 
 void VisualizerGeometry::implementLineGeometry(const SimTK::DecorativeLine& geom) {
@@ -88,45 +88,57 @@ void VisualizerGeometry::implementLineGeometry(const SimTK::DecorativeLine& geom
 
 void VisualizerGeometry::implementBrickGeometry(const SimTK::DecorativeBrick& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawBox(X_GD, getScale(geom)*geom.getHalfLengths(), getColor(geom), getRepresentation(geom));
+    const Vec3 hlen = getScaleFactors(geom).elementwiseMultiply(geom.getHalfLengths());
+    protocol.drawBox(X_GD, hlen, getColor(geom), getRepresentation(geom));
 }
 
 void VisualizerGeometry::implementCylinderGeometry(const SimTK::DecorativeCylinder& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawCylinder(X_GD, getScale(geom)*Vec3(geom.getRadius(), geom.getHalfHeight(), geom.getRadius()), getColor(geom), getRepresentation(geom), getResolution(geom));
+    const Vec3 scale = getScaleFactors(geom);
+    protocol.drawCylinder(X_GD, Vec3(scale[0]*geom.getRadius(), 
+                                     scale[1]*geom.getHalfHeight(), 
+                                     scale[2]*geom.getRadius()), 
+                          getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementCircleGeometry(const SimTK::DecorativeCircle& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawCircle(X_GD, getScale(geom)*Vec3(geom.getRadius(), geom.getRadius(), 1), getColor(geom), getRepresentation(geom), getResolution(geom));
+    const Vec3 scale = getScaleFactors(geom); // z ignored
+    protocol.drawCircle(X_GD, Vec3(scale[0]*geom.getRadius(), 
+                                   scale[1]*geom.getRadius(), 1), 
+                        getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementSphereGeometry(const SimTK::DecorativeSphere& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawEllipsoid(X_GD, getScale(geom)*Vec3(geom.getRadius()), getColor(geom), getRepresentation(geom), getResolution(geom));
+    protocol.drawEllipsoid(X_GD, geom.getRadius()*getScaleFactors(geom), 
+                           getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementEllipsoidGeometry(const SimTK::DecorativeEllipsoid& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawEllipsoid(X_GD, getScale(geom)*geom.getRadii(), getColor(geom), getRepresentation(geom), getResolution(geom));
+    const Vec3 radii = getScaleFactors(geom).elementwiseMultiply(geom.getRadii());
+    protocol.drawEllipsoid(X_GD, radii, getColor(geom), getRepresentation(geom),
+                           getResolution(geom));
 }
 
 void VisualizerGeometry::implementFrameGeometry(const SimTK::DecorativeFrame& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawCoords(X_GD, getScale(geom)*geom.getAxisLength(), getColor(geom));
+    protocol.drawCoords(X_GD, geom.getAxisLength()*getScaleFactors(geom), getColor(geom));
 }
 
 void VisualizerGeometry::implementTextGeometry(const SimTK::DecorativeText& geom) {
     const Transform X_GD = calcX_GD(geom);
     // The default is to face the camera.
     bool faceCamera = geom.getFaceCamera()<0 ? true : (geom.getFaceCamera()!=0);
-    protocol.drawText(X_GD.p(), getScale(geom), getColor(geom), 
+    protocol.drawText(X_GD.p(), getScaleFactors(geom), getColor(geom), 
                       geom.getText(), faceCamera);
 }
 
 void VisualizerGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawPolygonalMesh(geom.getMesh(), X_GD, getScale(geom), getColor(geom), getRepresentation(geom));
+    protocol.drawPolygonalMesh(geom.getMesh(), X_GD, getScaleFactors(geom), 
+                               getColor(geom), getRepresentation(geom));
 }
 
 Vec4 VisualizerGeometry::getColor(const DecorativeGeometry& geom,
@@ -148,14 +160,17 @@ int VisualizerGeometry::getRepresentation(const DecorativeGeometry& geom) const 
     return geom.getRepresentation();
 }
 
-unsigned short VisualizerGeometry::getResolution(const DecorativeGeometry& geom) const {
+unsigned short VisualizerGeometry::
+getResolution(const DecorativeGeometry& geom) const {
     if (geom.getResolution() <= 0)
         return 2;
     return std::max((unsigned short) 1, (unsigned short) (geom.getResolution()*2));
 }
 
-Real VisualizerGeometry::getScale(const DecorativeGeometry& geom) const {
-    if (geom.getScale() == -1)
-        return 1;
-    return geom.getScale();
+Vec3 VisualizerGeometry::getScaleFactors(const DecorativeGeometry& geom) const {
+    const Vec3& scale = geom.getScaleFactors();
+    Vec3 actual;
+    for (int i=0; i<3; ++i)
+        actual[i] = scale[i] <= 0 ? 1 : scale[i];
+    return actual;
 }
