@@ -160,15 +160,43 @@ class InputSilo;       //                 "
 class Reporter;        // defined in Visualizer_Reporter.h
 
 
-/** Construct a new Visualizer for the indicated System. The camera's "up" 
-direction will initially be set to match the "up" direction hint that is 
+/** Construct a new %Visualizer for the indicated System, and launch the
+visualizer display executable from a default or specified location. The camera's
+"up" direction will initially be set to match the "up" direction hint that is 
 stored with the supplied \a system; the default is that "up" is in the 
 direction of the positive Y axis. The background will normally include a 
 ground plane and sky, but if the \a system has been set to request a uniform 
 background we'll use a plain white background instead. You can override the 
-chosen defaults using Visualizer methods setSystemUpDirection() and 
-setBackgroundType(). **/
-Visualizer(const MultibodySystem& system);
+chosen defaults using %Visualizer methods setSystemUpDirection() and 
+setBackgroundType(). 
+
+Simbody is shipped with a separate executable program that provides the 
+graphics display and collects user input. Normally that executable is 
+installed in the "bin" subdirectory of the Simbody installation directory.
+However, first we look in the same directory as the currently-running
+executable and, if found, we will use that visualizer. If no visualizer
+is found with the executable, we check if environment variables SIMBODY_HOME 
+or SimTK_INSTALL_DIR exist, and look in their "bin" subdirectories if so.
+Otherwise we'll look in <defaultInstallDir>/SimTK/bin where <defaultInstallDir>
+is the ProgramFiles registry entry on Windows, or /usr/local on other platforms.
+The other constructor allows specification of a search path that will be 
+checked before attempting to find the installation directory.
+
+The SimTK::Pathname class is used to process the supplied search path, which
+can consist of absolute, working directory-relative, or executable 
+directory-relative path names.
+
+@see SimTK::Pathname **/
+explicit Visualizer(const MultibodySystem& system);
+
+/** Construct a new Visualizer for a given system, with a specified search
+path for locating the SimbodyVisualizer executable. The search path is
+checked \e after looking in the current executable directory, and \e before 
+trying to locate the Simbody or SimTK installation directory. See the other
+constructor's documentation for more information. **/
+Visualizer(const MultibodySystem& system,
+           const Array_<String>&  searchPath);
+
 /** Copy constructor has reference counted, shallow copy semantics;
 that is, the Visualizer copy is just another reference to the same
 Visualizer object. **/

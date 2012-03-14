@@ -105,8 +105,9 @@ public:
 class Visualizer::Impl {
 public:
     // Create a Visualizer and put it in PassThrough mode.
-    Impl(Visualizer* owner, const MultibodySystem& system) 
-    :   m_system(system), m_protocol(*owner),
+    Impl(Visualizer* owner, const MultibodySystem& system,
+         const Array_<String>& searchPath) 
+    :   m_system(system), m_protocol(*owner, searchPath),
         m_upDirection(YAxis), m_groundHeight(0),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
         m_simTimeUnitsPerSec(1), 
@@ -776,7 +777,13 @@ Visualizer::Visualizer(Visualizer::Impl* srcImpl) : impl(srcImpl) {
 }
 
 Visualizer::Visualizer(const MultibodySystem& system) : impl(0) {
-    impl = new Impl(this, system);
+    impl = new Impl(this, system, Array_<String>());
+    impl->incrRefCount();
+}
+
+Visualizer::Visualizer(const MultibodySystem& system,
+                       const Array_<String>& searchPath) : impl(0) {
+    impl = new Impl(this, system, searchPath);
     impl->incrRefCount();
 }
 

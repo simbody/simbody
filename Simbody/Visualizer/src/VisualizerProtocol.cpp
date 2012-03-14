@@ -81,42 +81,54 @@ static int createPipe(int pipeHandles[2]) {
 // this platform. We take two executables to try in order,
 // and return after the first one succeeds. If neither works, we throw
 // an error that is hopefully helful.
-static void spawnViz(const char* localPath, const char* installPath,
-                    const char* appName, int toSimPipe, int fromSimPipe)
+static void spawnViz(const Array_<String>& searchPath,
+                     const String& appName, int toSimPipe, int fromSimPipe)
 {
     int status;
     char vizPipeToSim[32], vizPipeFromSim[32];
     sprintf(vizPipeToSim, "%d", toSimPipe);
     sprintf(vizPipeFromSim, "%d", fromSimPipe);
 
+    String exePath; // search path + appName
+
 #ifdef _WIN32
     intptr_t handle;
-    handle = _spawnl(P_NOWAIT, localPath, appName, 
-                     vizPipeToSim, vizPipeFromSim, (const char*)0);
-    if (handle == -1)
-        handle = _spawnl(P_NOWAIT, installPath, appName, 
+    for (unsigned i=0; i < searchPath.size(); ++i) {
+        exePath = searchPath[i] + appName;
+        handle = _spawnl(P_NOWAIT, exePath.c_str(), appName.c_str(), 
                          vizPipeToSim, vizPipeFromSim, (const char*)0);
+        if (handle != -1)
+            break; // success!
+    }
     status = (handle==-1) ? -1 : 0;
 #else
     const pid_t pid = fork();
     if (pid == 0) {
         // child process
-        status = execl(localPath, appName, vizPipeToSim, vizPipeFromSim,
-                       (const char*)0); 
-        // if we get here the execl() failed
-        status = execl(installPath, appName, vizPipeToSim, vizPipeFromSim,
-                       (const char*)0); 
-       // fall through
+        for (unsigned i=0; i < searchPath.size(); ++i) {
+            exePath = searchPath[i] + appName;
+            status = execl(exePath.c_str(), appName.c_str(), 
+                           vizPipeToSim, vizPipeFromSim, (const char*)0); 
+            // if we get here the execl() failed
+        }
+        // fall through -- we failed on every try
     } else {
         // parent process
         status = (pid==-1) ? -1 : 0;
     }
 #endif
 
-    SimTK_ERRCHK4_ALWAYS(status == 0, "VisualizerProtocol::ctor()",
-        "Unable to spawn the Visualizer GUI; tried '%s' and '%s'. Got"
-        " errno=%d (%s).", 
-        localPath, installPath, errno, strerror(errno));
+    if (status != 0) {
+        // Create a chronicle of our failures above.
+        String failedPath;
+        for (unsigned i=0; i < searchPath.size(); ++i)
+            failedPath += ("  " + searchPath[i] + "\n");
+
+        SimTK_ERRCHK4_ALWAYS(status == 0, "VisualizerProtocol::ctor()",
+            "Unable to spawn executable '%s' from directories:\n%s"
+            "Final system error was errno=%d (%s).", 
+            appName.c_str(), failedPath.c_str(), errno, strerror(errno));
+    }
 }
 
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
@@ -186,16 +198,47 @@ static void* listenForVisualizerEvents(void* arg) {
     return (void*)0;
 }
 
-VisualizerProtocol::VisualizerProtocol(Visualizer& visualizer) {
+VisualizerProtocol::VisualizerProtocol
+   (Visualizer& visualizer, const Array_<String>& userSearchPath) 
+{
     // Launch the GUI application. We'll first look for one in the same directory
     // as the running executable; then if that doesn't work we'll look in the
     // bin subdirectory of the SimTK installation.
 
     const char* GuiAppName = "VisualizerGUI";
-    const String localPath = Pathname::getThisExecutableDirectory() + GuiAppName;
-    const String installPath =
-        Pathname::addDirectoryOffset(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK"),
-                                     "bin") + GuiAppName;
+
+    Array_<String> actualSearchPath;
+    // Always start with the current executable's directory.
+    actualSearchPath.push_back(Pathname::getThisExecutableDirectory());
+    // User's stuff comes next, if any directories were provided. We're going
+    // to turn these into absolute pathnames, interpreting them as defined
+    // by Pathname, which includes executable-relative names. The "bin"
+    // subdirectory if any must already be present in the directory names.
+    for (unsigned i=0; i < userSearchPath.size(); ++i)
+        actualSearchPath.push_back
+           (Pathname::getAbsoluteDirectoryPathname(userSearchPath[i]));
+
+    if (Pathname::environmentVariableExists("SIMBODY_HOME")) {
+        const std::string e = Pathname::getAbsoluteDirectoryPathname(
+                Pathname::getEnvironmentVariable("SIMBODY_HOME"));
+        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
+    } else if (Pathname::environmentVariableExists("SimTK_INSTALL_DIR")) {
+        const std::string e = Pathname::getAbsoluteDirectoryPathname(
+            Pathname::getEnvironmentVariable("SimTK_INSTALL_DIR"));
+        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
+    } else {
+        // No environment variables set. Our last desperate attempts will
+        // be  <platformDefaultInstallDir>/Simbody/bin
+        // and <platformDefaultInstallDir>/SimTK/bin
+        const std::string def = Pathname::getDefaultInstallDir();
+
+        actualSearchPath.push_back(
+            Pathname::addDirectoryOffset(def,
+                Pathname::addDirectoryOffset("Simbody", "bin")));
+        actualSearchPath.push_back(
+            Pathname::addDirectoryOffset(def,
+                Pathname::addDirectoryOffset("SimTK", "bin")));
+    }
 
     int sim2vizPipe[2], viz2simPipe[2], status;
 
@@ -210,7 +253,7 @@ VisualizerProtocol::VisualizerProtocol(Visualizer& visualizer) {
     inPipe = viz2simPipe[0];
 
     // Spawn the visualizer gui, trying local first then installed version.
-    spawnViz(localPath.c_str(), installPath.c_str(),
+    spawnViz(actualSearchPath,
              GuiAppName, sim2vizPipe[0], viz2simPipe[1]);
 
     // Before we do anything else, attempt to exchange handshake messages with

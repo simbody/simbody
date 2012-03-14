@@ -37,7 +37,7 @@ using namespace SimTK;
 using std::cout; using std::endl;
 
 int main() {
-    
+  try {   
     // Create the system, with subsystems for the bodies and some forces.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -189,4 +189,13 @@ int main() {
     matter.calcMobilizerReactionForces(state, forcesAtMInG);
     std::cout << "FM_G=" << forcesAtMInG << "\n";
 
+  } catch (const std::exception& e) {
+      std::cout << "ERROR: " << e.what() << std::endl;
+      return 1;
+  } catch (...) {
+      std::cout << "UNKNOWN EXCEPTION\n";
+      return 1;
+  }
+
+    return 0;
 }

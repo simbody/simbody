@@ -106,7 +106,8 @@ static const unsigned char SliderMoved           = 4;
 
 class VisualizerProtocol {
 public:
-    VisualizerProtocol(Visualizer& visualizer);
+    VisualizerProtocol(Visualizer& visualizer,
+                       const Array_<String>& searchPath);
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void beginScene(Real simTime);
     void finishScene();
