@@ -177,7 +177,7 @@ However, first we look in the same directory as the currently-running
 executable and, if found, we will use that visualizer. If no visualizer
 is found with the executable, we check if environment variables SIMBODY_HOME 
 or SimTK_INSTALL_DIR exist, and look in their "bin" subdirectories if so.
-Otherwise we'll look in <defaultInstallDir>/SimTK/bin where <defaultInstallDir>
+Otherwise we'll look in defaultInstallDir/SimTK/bin where defaultInstallDir
 is the ProgramFiles registry entry on Windows, or /usr/local on other platforms.
 The other constructor allows specification of a search path that will be 
 checked before attempting to find the installation directory.
