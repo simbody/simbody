@@ -1,16 +1,16 @@
-#ifndef SimTK_COORDINATEAXIS_H 
-#define SimTK_COORDINATEAXIS_H 
+#ifndef SimTK_COORDINATE_AXIS_H_ 
+#define SimTK_COORDINATE_AXIS_H_ 
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmatrix(tm)                       *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
- * Authors: Michael Sherman and Paul Mitiguy                                  *
+ * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
@@ -35,6 +35,7 @@
 /** @file
 Defines the CoordinateAxis and CoordinateDirection classes. **/
 
+#include "SimTKcommon/internal/common.h"
 #include <cassert>
 
 namespace SimTK {
@@ -112,7 +113,8 @@ public:
     bool isSameAxis( const CoordinateAxis& axis2 ) const
     {   return m_myAxisId == int(axis2); }
     /** Return true if both \a axis2 and \a axis3 are the same as this one. **/
-    bool areAllSameAxes( const CoordinateAxis& axis2, const CoordinateAxis &axis3 ) const       
+    bool areAllSameAxes( const CoordinateAxis& axis2, 
+                         const CoordinateAxis &axis3 ) const       
     {   return isSameAxis(axis2) && isSameAxis(axis3); }
     /** Return true if the given \a axis2 is not the same one as this 
     one.\ You can use operator!=() to perform the same comparison.  **/
@@ -121,8 +123,10 @@ public:
     /** Return true if neither \a axis2 nor \a axis3 is the same as this
     axis nor each other; that is, (this,axis2,axis3) together cover all three
     axes. **/
-    bool areAllDifferentAxes( const CoordinateAxis& axis2, const CoordinateAxis& axis3 ) const  
-    {   return isDifferentAxis(axis2) && isDifferentAxis(axis3) && axis2.isDifferentAxis(axis3); }
+    bool areAllDifferentAxes( const CoordinateAxis& axis2, 
+                              const CoordinateAxis& axis3 ) const  
+    {   return isDifferentAxis(axis2) && isDifferentAxis(axis3) 
+               && axis2.isDifferentAxis(axis3); }
     /** Return true if the given \a axis2 is the one following this one in a
     forward cyclical direction, that is, if \a axis2 is the one that would be
     reported by getNextAxis(). **/
@@ -158,10 +162,11 @@ public:
                                  : getThirdAxis(axis2); }
     /** Return the axis and sign along that axis that would result from a
     cross product between this axis and \a axis2; this combines the functions
-    of both crossProductAxis() and crossProductSign(). Note that if \a axis2 is the same as this
-    axis we'll just return this as the axis but the sign is zero since the
-    magnitude of the result would be zero. No floating point calculations are 
-    performed. @see crossProductSign(), crossProductAxis() **/
+    of both crossProductAxis() and crossProductSign(). Note that if \a axis2 is
+    the same as this axis we'll just return this as the axis but the sign is 
+    zero since the magnitude of the result would be zero. No floating point 
+    calculations are performed. 
+    @see crossProductSign(), crossProductAxis() **/
     CoordinateAxis crossProduct( const CoordinateAxis& axis2, int& sign ) const
     {   sign = crossProductSign(axis2); return crossProductAxis(axis2); }
 
@@ -208,13 +213,13 @@ class CoordinateAxis::ZCoordinateAxis : public CoordinateAxis {
 
 /** Constant representing the X coordinate axis; will implicitly convert to
 the integer 0 when used in a context requiring an integer. **/
-static const CoordinateAxis::XCoordinateAxis  XAxis;
+extern SimTK_SimTKCOMMON_EXPORT const CoordinateAxis::XCoordinateAxis  XAxis;
 /** Constant representing the Y coordinate axis; will implicitly convert to
 the integer 1 when used in a context requiring an integer. **/
-static const CoordinateAxis::YCoordinateAxis  YAxis;
+extern SimTK_SimTKCOMMON_EXPORT const CoordinateAxis::YCoordinateAxis  YAxis;
 /** Constant representing the Z coordinate axis; will implicitly convert to
 the integer 2 when used in a context requiring an integer. **/
-static const CoordinateAxis::ZCoordinateAxis  ZAxis;
+extern SimTK_SimTKCOMMON_EXPORT const CoordinateAxis::ZCoordinateAxis  ZAxis;
 
 inline const CoordinateAxis& CoordinateAxis::getCoordinateAxis(int i) {
     assertIndexIsInRange(i);
@@ -326,7 +331,8 @@ public:
     return this as the axis but the sign is zero since the magnitude of the 
     result would be zero. No floating point calculations are 
     performed. @see crossProductSign(), crossProductAxis() **/
-    CoordinateAxis crossProduct( const CoordinateDirection& dir2, int& sign ) const
+    CoordinateAxis crossProduct( const CoordinateDirection& dir2, 
+                                 int&                       sign ) const
     {   sign = crossProductSign(dir2); return crossProductAxis(dir2); }
 
     // Local class declarations for helper classes.
@@ -350,9 +356,12 @@ class CoordinateDirection::NegZDirection : public CoordinateDirection {
 };
 
 // Predefine constants for the negative X,Y,Z directions.
-static const CoordinateDirection::NegXDirection  NegXAxis;
-static const CoordinateDirection::NegYDirection  NegYAxis;
-static const CoordinateDirection::NegZDirection  NegZAxis;
+extern SimTK_SimTKCOMMON_EXPORT const CoordinateDirection::NegXDirection  
+    NegXAxis; ///< Global constant indicating -X coordinate direction.
+extern SimTK_SimTKCOMMON_EXPORT const CoordinateDirection::NegYDirection  
+    NegYAxis; ///< Global constant indicating -Y coordinate direction.
+extern SimTK_SimTKCOMMON_EXPORT const CoordinateDirection::NegZDirection  
+    NegZAxis; ///< Global constant indicating -Z coordinate direction.
 
 /// Compare two CoordinateDirection objects. @relates CoordinateDirection 
 inline bool operator==(const CoordinateDirection& d1, 
@@ -410,7 +419,7 @@ operator-(const CoordinateDirection& dir)
 
 }  // End of namespace
 
-#endif // SimTK_COORDINATEAXIS_H
+#endif // SimTK_COORDINATE_AXIS_H_
 
 
 

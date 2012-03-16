@@ -2,14 +2,14 @@
 #define SimTK_SimTKCOMMON_COMMON_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -189,6 +189,8 @@ or any other Index type to an argument expecting a certain Index type. **/
 	 * CAUTION: every linked-together compilation unit must have this set the same
 	 * way. Everyone who properly includes this file first is fine; but as of this
 	 * writing Simmath's IpOpt doesn't do so.
+     * NOTE: Microsoft corrected this problem with VC10 -- the feature is 
+     * disabled by default in that compiler and later.
      */
 	/* (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
 	 * tricky on VC++ 9 because all libraries, including 3rd party, must
@@ -536,8 +538,9 @@ the library side. **/
     static Derived&       updDowncast(Parent&)
 
 namespace SimTK {
-    
-namespace Options { }
+
+/** This sub-namespace of SimTK is used for the exception types that are
+thrown by our error handing code. **/
 namespace Exception { }
 
 /** This is the default compiled-in floating point type for SimTK, either
