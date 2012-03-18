@@ -116,6 +116,13 @@ bool VerletIntegratorRep::attemptDAEStep
     advanced.updTime() = t1;
     advanced.updQ()    = q0 + h*qdot0 + (h*h/2)*qdotdot0;
 
+    // Now make an initial estimate of first-order variable u and z.
+    const Vector u1_est = u0 + h*udot0;
+    const Vector z1_est = z0 + h*zdot0;
+
+    advanced.updU() = u1_est; // u's and z's will change in advanced below
+    advanced.updZ() = z1_est;
+
     system.realize(advanced, Stage::Time);
     system.prescribeQ(advanced);
     system.realize(advanced, Stage::Position);
@@ -132,14 +139,7 @@ bool VerletIntegratorRep::attemptDAEStep
         return false; // convergence failure for this step
 
     // q is now at its final integrated, prescribed, and projected value.
-
-
-    // Now make an initial estimate of first-order variable u and z.
-    const Vector u1_est = u0 + h*udot0;
-    const Vector z1_est = z0 + h*zdot0;
-
-    advanced.updU() = u1_est; // these will change
-    advanced.updZ() = z1_est;
+    // u and z still need refinement.
 
     system.prescribeU(advanced);
     system.realize(advanced, Stage::Velocity);
