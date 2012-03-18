@@ -44,17 +44,17 @@ Declarations of DecorativeGeometry and related derived classes. **/
 namespace SimTK {
 
 // Some common RGB values;
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Black;   ///< RGB=( 0, 0, 0);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Gray;    ///< RGB=(.5,.5,.5);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Red;     ///< RGB=( 1, 0, 0);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Green;   ///< RGB=( 0, 1, 0);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Blue;    ///< RGB=( 0, 0, 1);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Yellow;  ///< RGB=( 1, 1, 0);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Orange;  ///< RGB=( 1,.5, 0);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Magenta; ///< RGB=( 1, 0, 1);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Purple;  ///< RGB=(.5, 0,.5);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 Cyan;    ///< RGB=( 0, 1, 1);
-extern SimTK_SimTKCOMMON_EXPORT const Vec3 White;   ///< RGB=( 1, 1, 1);
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Black;   ///< RGB=( 0, 0, 0)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Gray;    ///< RGB=(.5,.5,.5)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Red;     ///< RGB=( 1, 0, 0)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Green;   ///< RGB=( 0, 1, 0)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Blue;    ///< RGB=( 0, 0, 1)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Yellow;  ///< RGB=( 1, 1, 0)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Orange;  ///< RGB=( 1,.5, 0)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Magenta; ///< RGB=( 1, 0, 1)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Purple;  ///< RGB=(.5, 0,.5)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 Cyan;    ///< RGB=( 0, 1, 1)
+extern SimTK_SimTKCOMMON_EXPORT const Vec3 White;   ///< RGB=( 1, 1, 1)
 
 // Drawing representations
 
