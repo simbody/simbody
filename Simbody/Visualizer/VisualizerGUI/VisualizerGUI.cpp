@@ -430,6 +430,7 @@ static void forceMopUpRedisplay() {
 // class.
 class PendingCommand {
 public:
+    virtual ~PendingCommand() {}
     virtual void execute() = 0;
 };
 
