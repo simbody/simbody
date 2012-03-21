@@ -45,6 +45,7 @@ namespace SimTK {
 template <class T>
 class UserFunction {
 public:
+    virtual ~UserFunction() {}
     virtual T evaluate(const System& system, const State& state) = 0;
 };
 

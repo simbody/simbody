@@ -520,7 +520,7 @@ void LapackInterface::gesdd<std::complex<float> >( char jobz, int m, int n,
 
     int mn = (m < n ) ? m : n;  // min(m,n)
     TypedWorkSpace<float> rwork;
-    if( jobz = 'N' ) {
+    if( jobz == 'N' ) {
         rwork.resize(5*mn);
     } else {
         rwork.resize(5*mn*mn + 7*mn);
@@ -546,7 +546,7 @@ void LapackInterface::gesdd<std::complex<double> >( char jobz, int m, int n,
 
     int mn = (m < n ) ? m : n;  // min(m,n)
     TypedWorkSpace<double> rwork;
-    if( jobz = 'N' ) {
+    if( jobz == 'N' ) {
         rwork.resize(5*mn);
     } else {
         rwork.resize(5*mn*mn + 7*mn);

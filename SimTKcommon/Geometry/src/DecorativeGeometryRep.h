@@ -48,7 +48,7 @@ public:
         representation(DecorativeGeometry::DrawDefault)
     {}
 
-    ~DecorativeGeometryRep() {
+    virtual ~DecorativeGeometryRep() {
         clearMyHandle();
     }
 

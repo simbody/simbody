@@ -2,14 +2,14 @@
 #define SimTK_SimTKCOMMON_MEASURE_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -88,8 +88,7 @@
 // instantiate an Implementation.
 #define SimTK_MEASURE_HANDLE_PREAMBLE_ABSTRACT(MH,PH)   \
     SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH)           \
-    MH() : PH() {}                                      \
-    explicit MH(Subsystem& sub) : PH(sub) {}    
+    MH() : PH() {}
 
 /**
  * Every measure handle class "MH" derived directly or indirectly from the
@@ -156,9 +155,9 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(MeasureIndex);
  */
 class SimTK_SimTKCOMMON_EXPORT AbstractMeasure {
 protected:
-	// An object of this type is used as a dummy argument to make sure the 
-    // automatically-generated handle constructor's signature doesn't conflict 
-    // with an explicitly-defined one.
+	/// An object of this type is used as a dummy argument to make sure the 
+    /// automatically-generated handle constructor's signature doesn't conflict 
+    /// with an explicitly-defined one.
 	class SetHandle {};
 
 public:
