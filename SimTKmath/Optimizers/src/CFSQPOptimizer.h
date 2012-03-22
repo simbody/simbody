@@ -27,7 +27,7 @@
 
 #include "simmath/internal/common.h"
 
-#include "OptimizerRep.h"
+#include "simmath/internal/OptimizerRep.h"
 
 //=============================================================================
 //=============================================================================

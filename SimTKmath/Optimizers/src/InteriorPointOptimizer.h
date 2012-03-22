@@ -30,7 +30,7 @@
 #include "IpOpt/IpStdCInterface.h"
 #include "IpOpt/IpReturnCodes.h"
 
-#include "OptimizerRep.h"
+#include "simmath/internal/OptimizerRep.h"
 
 namespace SimTK {
 
