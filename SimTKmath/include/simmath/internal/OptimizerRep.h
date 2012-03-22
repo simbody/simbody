@@ -63,7 +63,7 @@ class Optimizer::OptimizerRep {
 public:
     virtual ~OptimizerRep();
     OptimizerRep(const OptimizerSystem& sys) 
-       : sysp(0), 
+       : sysp(&sys), 
          myHandle(0), 
          cf(0),
          of(0),
