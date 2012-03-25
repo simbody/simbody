@@ -203,14 +203,14 @@ public:
     // Compute the missing elements.
     void getAnyElt_(int i, int j, S* value) const { 
         if (i==j || this->eltIsStored_(i,j)) {
-            copyElt(value, this->getElt_(i,j)); 
+        	this->copyElt(value, this->getElt_(i,j));
             return; 
         }
         // Missing elements are all zero for triangular matrices, or if
         // either dimension is outside the square part of any triangular-storage
         // matrix (i.e., the matrix is trapezoidal).
         if (m_triangular || i >= m_minmn || j >= m_minmn) {
-            fillElt(value, StdNumber(0));
+        	this->fillElt(value, StdNumber(0));
             return;
         }
 
@@ -219,12 +219,12 @@ public:
         const S* e = this->getElt_(j,i);
 
         if (m_hermitian) {
-            if (m_skew) copyAndNegConjugateElt(value, e);
-            else copyAndConjugateElt(value, e);
+            if (m_skew) this->copyAndNegConjugateElt(value, e);
+            else this->copyAndConjugateElt(value, e);
         } else {
             // symmetric but not hermitian
-            if (m_skew) copyAndNegateElt(value, e);
-            else copyElt(value, e); // no change to stored element
+            if (m_skew) this->copyAndNegateElt(value, e);
+            else this->copyElt(value, e); // no change to stored element
         }
     }
 

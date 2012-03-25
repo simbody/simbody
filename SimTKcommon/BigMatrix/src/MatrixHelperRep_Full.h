@@ -93,7 +93,7 @@ public:
     int getLeadingDim() const {return m_leadingDim;}
 
     void getAnyElt_(int i, int j, S* value) const 
-    {   copyElt(value, this->getElt_(i,j)); }
+    {   this->copyElt(value, this->getElt_(i,j)); }
 
     // The meaning of "Full" is that every element is stored in memory somewhere.
     bool eltIsStored_(int, int) const {return true;}
@@ -235,7 +235,7 @@ public:
     virtual S*          updElt_(int i, int j)       
     {   return this->m_data + this->eltIx(i,j); }
     virtual bool        hasContiguousData_()  const 
-    {   return isContiguousElt(this->nrow()); }
+    {   return this->isContiguousElt(this->nrow()); }
     virtual This*       cloneHelper_()        const 
     {   return new This(*this); }
 
@@ -307,7 +307,7 @@ public:
     S*          updElt_(int i, int j)       
     {   return this->m_data + this->scalarIx(i,j); }
     bool        hasContiguousData_()  const 
-    {   return isContiguousScalar(this->nrow()); }
+    {   return this->isContiguousScalar(this->nrow()); }
     This*       cloneHelper_()        const 
     {   return new This(*this); }
 
@@ -357,7 +357,7 @@ public:
     virtual S*          updElt_(int i, int j)       
     {   return this->m_data + this->eltIx(j,i); }
     virtual bool        hasContiguousData_()  const 
-    {   return isContiguousElt(this->ncol()); }
+    {   return this->isContiguousElt(this->ncol()); }
     virtual This*       cloneHelper_()        const 
     {   return new This(*this); }
 
@@ -424,7 +424,7 @@ public:
     S*          updElt_(int i, int j)       
     {   return this->m_data + this->scalarIx(j,i); }
     bool        hasContiguousData_()  const 
-    {   return isContiguousScalar(this->ncol()); }
+    {   return this->isContiguousScalar(this->ncol()); }
     This*       cloneHelper_()        const 
     {   return new This(*this); }
 
@@ -538,7 +538,7 @@ public:
             for (int i=0; i < this->nrow(); ++i) {
                 S* dest = p->updElt_(i,0);   // start of a dense row
                 for (int j=0; j < this->ncol(); ++j, dest += this->m_eltSize)
-                    copyElt(dest, this->getElt_(i,j));
+                	this->copyElt(dest, this->getElt_(i,j));
             }
             return p;
         } else {
@@ -548,7 +548,7 @@ public:
             for (int j=0; j < this->ncol(); ++j) {
                 S* dest = p->updElt_(0,j);   // start of a dense column
                 for (int i=0; i < this->nrow(); ++i, dest += this->m_eltSize)
-                    copyElt(dest, this->getElt_(i,j));
+                	this->copyElt(dest, this->getElt_(i,j));
             }
             return p;
         }
@@ -560,7 +560,7 @@ protected:
     int row(int i, int j) const {return m_indexer.row(i,j);}
     int col(int i, int j) const {return m_indexer.col(i,j);}
 
-    ptrdiff_t ixEltIx(int i, int j) const {return eltIx(row(i,j),col(i,j));}
+    ptrdiff_t ixEltIx(int i, int j) const {return this->eltIx(row(i,j),col(i,j));}
 };
 
 // Full, indexed, scalar, final.
@@ -611,7 +611,7 @@ public:
 
 private:
     ptrdiff_t ixScalarIx(int i, int j) const 
-    {   return scalarIx(this->row(i,j),this->col(i,j)); }
+    {   return this->scalarIx(this->row(i,j),this->col(i,j)); }
 };
 
 template <class S> inline RegularFullHelper<S>*

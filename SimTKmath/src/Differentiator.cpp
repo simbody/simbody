@@ -595,11 +595,13 @@ Differentiator::getMethodName(Differentiator::Method m) {
 /*static*/ int 
 Differentiator::getMethodOrder(Differentiator::Method m) {
     throwIfMethodInvalid(m, "getMethodOrder");
-    if (m==UnspecifiedMethod) 
+    if (m==UnspecifiedMethod)
         m = DifferentiatorRep::DefaultDefaultMethod;
     switch(m) {
     case ForwardDifference: return 1;
     case CentralDifference: return 2;
+    default:
+    	assert(!"Shouldn't be any other cases");
     }
     assert(!"Shouldn't have gotten here since method was already checked");
     return -1;

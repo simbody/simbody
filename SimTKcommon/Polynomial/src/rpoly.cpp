@@ -307,7 +307,7 @@ void RPoly<T>::fxshfr(int l2,int *nz)
  */
         vtry = 0;
         stry = 0;
-        if (spass && (!vpass) || tss < tvv) goto _40;
+        if ( ( spass && (!vpass) ) || tss < tvv) goto _40;
 _20:        
         quadit(&ui,&vi,nz);
         if (*nz > 0) return;

@@ -198,8 +198,9 @@ public:
         return 0;
     }
     // This is just a local method providing std::vector compatibility without copying.
-    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
-    {   calcDerivative(ArrayViewConst_<int>(derivComponents), x); }
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+    	return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
+    }
 
     int getArgumentSize() const{
         // constant has no arguments
@@ -240,8 +241,9 @@ public:
         return 0;
     }
     // This is just a local method providing std::vector compatibility without copying.
-    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
-    {   calcDerivative(ArrayViewConst_<int>(derivComponents), x); }
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+    	return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
+    }
 
     int getArgumentSize() const{
         return 1;
@@ -269,8 +271,9 @@ public:
         return 0.0;
     }
     // This is just a local method providing std::vector compatibility without copying.
-    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
-    {   calcDerivative(ArrayViewConst_<int>(derivComponents), x); }
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+    	return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
+    }
 
     int getArgumentSize() const{
         return 2;

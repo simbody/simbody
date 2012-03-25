@@ -857,7 +857,7 @@ UnitInertia_& setFromUnitInertia(const Inertia_<P>& I)
 /// Cost is about 9 flops.
 /// TODO: this may not be comprehensive.
 static bool isValidUnitInertiaMatrix(const SymMat33P& m) 
-{   return isValidInertiaMatrix(m); }
+{   return Inertia_<P>::isValidInertiaMatrix(m); }
 
 /// @name UnitInertia matrix factories
 /// These are UnitInertia matrix factories for some common 3D solids. Each 

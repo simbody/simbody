@@ -415,10 +415,10 @@ ArrayViewConst_(const T* first, const T* last1)
         "One of the source pointers was null (0); either both must be"
         " non-null or both must be null.");
 
-    SimTK_ERRCHK3(isSizeOK(last1-first), methodName, 
+    SimTK_ERRCHK3(this->isSizeOK(last1-first), methodName,
         "The source data's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
-        ull(last1-first), ullMaxSize(), indexName());
+        this->ull(last1-first), ullMaxSize(), indexName());
 
     pData = const_cast<T*>(first); 
     nUsed = packed_size_type(last1-first); 
@@ -457,11 +457,11 @@ ArrayViewConst_(const std::vector<T,A>& src)
 :   pData(0),nUsed(0),nAllocated(0) { 
     if (src.empty()) return;
 
-    SimTK_ERRCHK3(isSizeOK(src.size()), 
+    SimTK_ERRCHK3(this->isSizeOK(src.size()),
         "ArrayViewConst_<T>::ctor(std::vector<T>)",
         "The source std::vector's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
-        ull(src.size()), ullMaxSize(), indexName());
+        this->ull(src.size()), ullMaxSize(), indexName());
 
     pData = const_cast<T*>(&src.front()); 
     nUsed = packed_size_type(src.size()); 
@@ -601,10 +601,10 @@ ArrayViewConst_ operator()(index_type index, size_type length) const {
     const size_type ix(index);
     SimTK_ERRCHK2(isSizeInRange(ix, size()), methodName,
         "For this operator, we must have 0 <= index <= size(), but"
-        " index==%llu and size==%llu.", ull(ix), ullSize());
+        " index==%llu and size==%llu.", this->ull(ix), ullSize());
     SimTK_ERRCHK2(isSizeInRange(length, size_type(size()-ix)), methodName, 
         "This operator requires 0 <= length <= size()-index, but"
-        " length==%llu and size()-index==%llu.",ull(length),ull(size()-ix));
+        " length==%llu and size()-index==%llu.",this->ull(length),this->ull(size()-ix));
 
     return ArrayViewConst_(pData+ix, pData+ix+length);
 }
@@ -977,7 +977,7 @@ void assign(size_type n, const T& fillValue) {
         "Assignment to an ArrayView is permitted only if the source"
         " is the same size. Here n==%llu element(s) but the"
         " ArrayView has a fixed size of %llu.", 
-        ull(n), ull(size()));
+        this->ull(n), this->ull(size()));
 
     fill(fillValue);
 }
@@ -1143,10 +1143,10 @@ ArrayView_ operator()(index_type index, size_type length) {
     const size_type ix(index);
     SimTK_ERRCHK2(isSizeInRange(ix, size()), methodName,
         "For this operator, we must have 0 <= index <= size(), but"
-        " index==%llu and size==%llu.", ull(ix), ullSize());
+        " index==%llu and size==%llu.", this->ull(ix), ullSize());
     SimTK_ERRCHK2(isSizeInRange(length, size_type(size()-ix)), methodName, 
         "This operator requires 0 <= length <= size()-index, but"
-        " length==%llu and size()-index==%llu.",ull(length),ull(size()-ix));
+        " length==%llu and size()-index==%llu.",this->ull(length),this->ull(size()-ix));
 
     return ArrayView_(data()+ix, data()+ix+length);
 }
@@ -1299,7 +1299,7 @@ void avAssignIteratorDispatch(const InputIterator& first,
     SimTK_ERRCHK2_ALWAYS(nCopied == size(), methodName,
         "The supplied input_iterator provided only %llu elements but this"
         " ArrayView has a fixed size of %llu elements.",
-        ull(nCopied), ullSize());
+        this->ull(nCopied), ullSize());
 
     // We don't care if there are still more input elements available.
 }
@@ -1324,7 +1324,7 @@ void avAssignIteratorDispatch(const ForwardIterator& first,
     SimTK_ERRCHK2_ALWAYS(nCopied == size(), methodName,
         "The supplied forward_ or bidirectional_iterator source range provided"
         " only %llu elements but this ArrayView has a fixed size of"
-        " %llu elements.", ull(nCopied), ullSize());
+        " %llu elements.", this->ull(nCopied), ullSize());
 
     // Make sure we ran out of source elements.
     SimTK_ERRCHK1_ALWAYS(src == last1, methodName,
@@ -1343,13 +1343,13 @@ void avAssignIteratorDispatch(const RandomAccessIterator& first,
                               std::random_access_iterator_tag, 
                               const char* methodName) 
 {
-    SimTK_ERRCHK2_ALWAYS(isSameSize(last1-first), methodName,
+    SimTK_ERRCHK2_ALWAYS(this->isSameSize(last1-first), methodName,
         "Assignment to an ArrayView is permitted only if the source"
         " is the same size. Here the source had %llu element(s) but the"
         " ArrayView has a fixed size of %llu.", 
-        ull(last1-first), ull(size()));
+        this->ull(last1-first), this->ull(size()));
 
-    SimTK_ERRCHK_ALWAYS(!overlapsWithData(first,last1), methodName, 
+    SimTK_ERRCHK_ALWAYS(!this->overlapsWithData(first,last1), methodName,
         "Source range can't overlap with the destination data.");
 
     T* p = begin();
@@ -1580,10 +1580,10 @@ Array_(const T2* first, const T2* last1) : Base() {
     const char* methodName = "Array_<T>::ctor(first,last1)";
     SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
         "Pointers must be non-null unless they are both null.");
-    SimTK_ERRCHK3(isSizeOK(last1-first), methodName,
+    SimTK_ERRCHK3(this->isSizeOK(last1-first), methodName,
         "Source has %llu elements but this array is limited to %llu"
         " elements by its index type %s.",
-        ull(last1-first), ullMaxSize(), indexName());
+        this->ull(last1-first), ullMaxSize(), indexName());
 
     setSize(size_type(last1-first));
     allocateNoConstruct(size());
@@ -1598,10 +1598,10 @@ template <class T2>
 explicit Array_(const std::vector<T2>& v) : Base() { 
     if (v.empty()) return;
 
-    SimTK_ERRCHK3(isSizeOK(v.size()), "Array_<T>::ctor(std::vector<T2>)",
+    SimTK_ERRCHK3(this->isSizeOK(v.size()), "Array_<T>::ctor(std::vector<T2>)",
         "The source std::vector's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
-        ull(v.size()), ullMaxSize(), indexName());
+        this->ull(v.size()), ullMaxSize(), indexName());
 
     // Call the above constructor, making sure to use pointers into the
     // vector's data rather than the iterators begin() and end() in case
@@ -1773,14 +1773,14 @@ copying), followed by \a n calls to T's copy constructor.
 @see fill() **/ 
 void assign(size_type n, const T& fillValue) {
     const char* methodName = "Array_<T>::assign(n,value)";
-    SimTK_ERRCHK3(isSizeOK(n), methodName,
+    SimTK_ERRCHK3(this->isSizeOK(n), methodName,
         "Requested size %llu is too big for this array which is limited"
         " to %llu elements by its index type %s.",
-        ull(n), ullMaxSize(), indexName());
+        this->ull(n), ullMaxSize(), indexName());
 
     SimTK_ERRCHK2(isOwner() || n==size(), methodName,
         "Requested size %llu is not allowed because this is a non-owner"
-        " array of fixed size %llu.", ull(n), ull(size()));
+        " array of fixed size %llu.", this->ull(n), this->ull(size()));
 
     if (!isOwner())
         this->Base::fill(fillValue);
@@ -1835,7 +1835,7 @@ void assign(const T2* first, const T2* last1) {
     const char* methodName = "Array_<T>::assign(T2* first, T2* last1)";
     SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
         "Pointers must be non-null unless they are both null.");
-    SimTK_ERRCHK(!overlapsWithData(first,last1), methodName, 
+    SimTK_ERRCHK(!this->overlapsWithData(first,last1), methodName,
         "Source range can't overlap the current array contents.");
     // Pointers are random access iterators.
     assignIteratorDispatch(first,last1,std::random_access_iterator_tag(),
@@ -1947,11 +1947,11 @@ Array_& adoptData(T* newData, size_type dataSize,
     SimTK_SIZECHECK(dataCapacity, max_size(), methodName);
     SimTK_ERRCHK2(dataSize <= dataCapacity, methodName, 
         "Specified data size %llu was greater than the specified data"
-        " capacity of %llu.", ull(dataSize), ull(dataCapacity));
+        " capacity of %llu.", this->ull(dataSize), this->ull(dataCapacity));
     SimTK_ERRCHK(newData || dataCapacity==0, methodName,
         "A null data pointer is allowed only if the size and capacity are"
         " specified as zero.");
-    SimTK_ERRCHK(!overlapsWithData(newData, newData+dataSize), methodName,
+    SimTK_ERRCHK(!this->overlapsWithData(newData, newData+dataSize), methodName,
         "The new data can't overlap with the old data.");
 
     deallocate();
@@ -1984,7 +1984,7 @@ Array_& shareData(T* newData, size_type dataSize) {
     SimTK_SIZECHECK(dataSize, max_size(), methodName);
     SimTK_ERRCHK(newData || dataSize==0, methodName,
         "A null data pointer is allowed only if the size is zero.");
-    SimTK_ERRCHK(!overlapsWithData(newData, newData+dataSize), methodName,
+    SimTK_ERRCHK(!this->overlapsWithData(newData, newData+dataSize), methodName,
         "The new data can't overlap with the old data.");
 
     deallocate();
@@ -1997,10 +1997,10 @@ Array_& shareData(T* newData, size_type dataSize) {
 /** Same as shareData(data,size) but uses a pointer range [first,last1) to
 identify the data to be referenced. **/
 Array_& shareData(T* first, const T* last1) {
-    SimTK_ERRCHK3(isSizeOK(last1-first), "Array_<T>::shareData(first,last1)",
+    SimTK_ERRCHK3(this->isSizeOK(last1-first), "Array_<T>::shareData(first,last1)",
         "Requested size %llu is too big for this array which is limited"
         " to %llu elements by its index type %s.",
-        ull(last1-first), ullMaxSize(), indexName());
+        this->ull(last1-first), ullMaxSize(), indexName());
     return shareData(first, size_type(last1-first));
 }
 
@@ -2041,7 +2041,7 @@ void resize(size_type n) {
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::resize(n)",
         "Requested size change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", ull(n), ull(size()));
+        " non-owner array of fixed size %llu.", this->ull(n), this->ull(size()));
 
     if (n < size()) {
         erase(data()+n, cend());
@@ -2062,7 +2062,7 @@ void resize(size_type n, const T& initVal) {
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::resize(n,value)",
         "Requested size change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", ull(n), ull(size()));
+        " non-owner array of fixed size %llu.", this->ull(n), this->ull(size()));
 
     if (n < size()) {
         erase(data()+n, cend());
@@ -2086,7 +2086,7 @@ void reserve(size_type n) {
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::reserve()",
         "Requested capacity change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", ull(n), ull(size()));
+        " non-owner array of fixed size %llu.", this->ull(n), this->ull(size()));
 
     T* newData = allocN(n); // no construction yet
     copyConstructThenDestructSource(newData, newData+size(), data());
@@ -2586,7 +2586,7 @@ T* insert(T* p, const T2* first, const T2* last1) {
     const char* methodName = "Array_<T>::insert(T* p, T2* first, T2* last1)";
     SimTK_ERRCHK((first&&last1) || (first==last1), methodName, 
         "One of first or last1 was null; either both or neither must be null.");
-    SimTK_ERRCHK(!overlapsWithData(first,last1), methodName, 
+    SimTK_ERRCHK(!this->overlapsWithData(first,last1), methodName,
         "Source range can't overlap with the current array contents.");
     // Pointers are random access iterators.
     return insertIteratorDispatch(p, first, last1,
@@ -2803,14 +2803,14 @@ ctorIteratorDispatch(const ForwardIterator& first, const ForwardIterator& last1,
     // iterDistance() is constant time for random access iterators, but 
     // O(last1-first) for forward and bidirectional since it has to increment 
     // to count how far apart they are.
-    const difference_type nInput = iterDistance(first,last1);
+    const difference_type nInput = this->iterDistance(first,last1);
 
     SimTK_ERRCHK(nInput >= 0, methodName, "Iterators were out of order.");
 
-    SimTK_ERRCHK3(isSizeOK(nInput), methodName,
+    SimTK_ERRCHK3(this->isSizeOK(nInput), methodName,
         "Source has %llu elements but this array is limited to %llu"
         " elements by its index type %s.",
-        ull(nInput), ullMaxSize(), indexName());
+        this->ull(nInput), ullMaxSize(), indexName());
 
     const size_type n = size_type(nInput);
     setSize(n);
@@ -2876,14 +2876,14 @@ T* insertIteratorDispatch(T* p, const ForwardIterator& first,
     // iterDistance() is constant time for random access iterators, but 
     // O(last1-first) for forward and bidirectional since it has to increment 
     // to count how far apart they are.
-    const difference_type nInput = iterDistance(first,last1);
+    const difference_type nInput = this->iterDistance(first,last1);
 
     SimTK_ERRCHK(nInput >= 0, methodName, "Iterators were out of order.");
 
     SimTK_ERRCHK3(isGrowthOK(nInput), methodName,
         "Source has %llu elements which would make this array exceed the %llu"
         " elements allowed by its index type %s.",
-        ull(nInput), ullMaxSize(), indexName());
+        this->ull(nInput), ullMaxSize(), indexName());
 
     const size_type n = size_type(nInput);
     p = insertGapAt(p, n, methodName);
@@ -2958,14 +2958,14 @@ void assignIteratorDispatch(const ForwardIterator& first,
     // iterDistance() is constant time for random access iterators, but 
     // O(last1-first) for forward and bidirectional since it has to increment 
     // to count how far apart they are.
-    const IterDiffType nInput = iterDistance(first,last1);
+    const IterDiffType nInput = this->iterDistance(first,last1);
 
     SimTK_ERRCHK(nInput >= 0, methodName, "Iterators were out of order.");
 
-    SimTK_ERRCHK3(isSizeOK(nInput), methodName,
+    SimTK_ERRCHK3(this->isSizeOK(nInput), methodName,
         "Source has %llu elements but this Array is limited to %llu"
         " elements by its index type %s.",
-        ull(nInput), ullMaxSize(), indexName());
+        this->ull(nInput), ullMaxSize(), indexName());
 
     const size_type n = size_type(nInput);
     if (isOwner()) {
@@ -2984,7 +2984,7 @@ void assignIteratorDispatch(const ForwardIterator& first,
         SimTK_ERRCHK2(n == size(), methodName,
             "Source has %llu elements which does not match the size %llu"
             " of the non-owner array it is being assigned into.",
-            ull(n), ullSize());
+            this->ull(n), ullSize());
 
         T* p = begin();
         ForwardIterator src = first;
@@ -3111,7 +3111,7 @@ static void destruct(T* b, const T* e)
 // its allowable maximum size.
 template <class S>
 bool isGrowthOK(S n) const
-{   return isSizeOK(ullCapacity() + ull(n)); }
+{   return this->isSizeOK(ullCapacity() + this->ull(n)); }
 
 // The following private methods are protected methods in the ArrayView base 
 // class, so they should not need repeating here. Howevr, we explicitly 

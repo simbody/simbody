@@ -2038,8 +2038,8 @@ public:
 
     VectorView_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     VectorView_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
-    VectorView_& operator+=(const ELT& b) { elementwiseAddScalarInPlace(b); return *this; } 
-    VectorView_& operator-=(const ELT& b) { elementwiseSubtractScalarInPlace(b); return *this; } 
+    VectorView_& operator+=(const ELT& b) { this->elementwiseAddScalarInPlace(b); return *this; }
+    VectorView_& operator-=(const ELT& b) { this->elementwiseSubtractScalarInPlace(b); return *this; }
 
 private:
     // NO DATA MEMBERS ALLOWED
@@ -2113,8 +2113,8 @@ public:
 
     Vector_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     Vector_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
-    Vector_& operator+=(const ELT& b) { elementwiseAddScalarInPlace(b); return *this; } 
-    Vector_& operator-=(const ELT& b) { elementwiseSubtractScalarInPlace(b); return *this; } 
+    Vector_& operator+=(const ELT& b) { this->elementwiseAddScalarInPlace(b); return *this; }
+    Vector_& operator-=(const ELT& b) { this->elementwiseSubtractScalarInPlace(b); return *this; }
  
 private:
     // NO DATA MEMBERS ALLOWED
@@ -2172,8 +2172,8 @@ public:
 
     RowVectorView_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     RowVectorView_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
-    RowVectorView_& operator+=(const ELT& b) { elementwiseAddScalarInPlace(b); return *this; } 
-    RowVectorView_& operator-=(const ELT& b) { elementwiseSubtractScalarInPlace(b); return *this; } 
+    RowVectorView_& operator+=(const ELT& b) { this->elementwiseAddScalarInPlace(b); return *this; }
+    RowVectorView_& operator-=(const ELT& b) { this->elementwiseSubtractScalarInPlace(b); return *this; }
 
 private:
     // NO DATA MEMBERS ALLOWED
@@ -2249,8 +2249,8 @@ public:
 
     RowVector_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     RowVector_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
-    RowVector_& operator+=(const ELT& b) { elementwiseAddScalarInPlace(b); return *this; } 
-    RowVector_& operator-=(const ELT& b) { elementwiseSubtractScalarInPlace(b); return *this; } 
+    RowVector_& operator+=(const ELT& b) { this->elementwiseAddScalarInPlace(b); return *this; }
+    RowVector_& operator-=(const ELT& b) { this->elementwiseSubtractScalarInPlace(b); return *this; }
 
 private:
     // NO DATA MEMBERS ALLOWED

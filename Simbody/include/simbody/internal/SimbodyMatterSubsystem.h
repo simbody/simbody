@@ -281,9 +281,9 @@ SimbodyMatterSubsystem& operator=(const SimbodyMatterSubsystem& ss)
 
 Methods in this section involve setting and getting various modeling options
 that may be selected. This includes whether to use quaternions or Euler angles
-to represent rotations, and enabling/disabling constraints.
-/**@{**/
+to represent rotations, and enabling/disabling constraints. **/
 
+/**@{**/
 /** For all mobilizers offering unrestricted orientation, decide what
 method we should use to model their orientations. Choices are: 
 quaternions (best for dynamics), or rotation angles (1-2-3 Euler 

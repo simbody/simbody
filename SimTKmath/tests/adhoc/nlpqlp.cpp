@@ -453,7 +453,7 @@ bool run_test(int j ) {
     if( fabs(f - expect->fex) < 1.0e-4 ) {
          printf("\n");
     } else {    
-       printf(" *** \n",j+1);
+       printf(" *** %d \n",j+1);
     }
   } else {
     printf("#### Failed to converge #### \n" );

@@ -72,9 +72,11 @@ int SimTK_gcvspl_(const SimTK_Real *x, const SimTK_Real *y, int *ny,
 
 
     *ier = 0;
-    if (abs(*md) > 4 || *md == 0 || abs(*md) == 1 && *val < 0. || abs(*md) == 
-	    3 && *val < 0. || abs(*md) == 4 && (*val < 0. || *val > (
-	    SimTK_Real) (*n - *m))) {
+    if (abs(*md) > 4 ||
+        *md == 0 ||
+        ( abs(*md) == 1 && *val < 0. ) ||
+        ( abs(*md) == 3 && *val < 0. ) ||
+        ( abs(*md) == 4 && (*val < 0. || *val > (SimTK_Real) (*n - *m)))) {
 	*ier = 3;
 	return 0;
     }

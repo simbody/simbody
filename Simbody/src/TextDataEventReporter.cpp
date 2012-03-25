@@ -44,6 +44,7 @@ class TextDataEventReporter::TextDataEventReporterRep {
 public:
     TextDataEventReporterRep(const System& system) : system(system) {
     }
+    virtual ~TextDataEventReporterRep() { }
     virtual void printValues(const State& state) const = 0;
     void handleEvent(const State& state) const {
         cout << state.getTime();

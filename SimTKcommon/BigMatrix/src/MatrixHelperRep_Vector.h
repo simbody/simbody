@@ -168,10 +168,10 @@ public:
         else {  // Here the elements are not scalars.
             if (this->nrow() == 1) // a row vector
                 for (int j=0; j<this->ncol(); ++j)
-                    copyElt(this->updElt_(j), source.getElt(0,j));
+                    this->copyElt(this->updElt_(j), source.getElt(0,j));
             else // a column vector
                 for (int i=0; i<this->nrow(); ++i)
-                    copyElt(this->updElt_(i), source.getElt(i,0));
+                	this->copyElt(this->updElt_(i), source.getElt(i,0));
         }
     }
 };
@@ -281,7 +281,7 @@ public:
 
     // Every element is stored so this just forwards to getElt(i).
     void getAnyElt_(int i, S* value) const 
-    {   copyElt(value, getElt_(i)); }
+    {   this->copyElt(value, getElt_(i)); }
 
     // OK for any size elements that are packed contiguously.
     This* createDeepCopy_() const {
@@ -484,7 +484,7 @@ public:
 
     // Every element is stored so this just forwards to getElt(i).
     void getAnyElt_(int i, S* value) const 
-    {   copyElt(value, getElt_(i)); }
+    {   this->copyElt(value, getElt_(i)); }
 
     /// A deep copy of a strided vector produces a contiguous (stride==1)
     /// vector containing the same number of elements.
@@ -493,7 +493,7 @@ public:
             new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
                                           this->length(), this->m_row);
         for (int i=0; i < this->length(); ++i)
-            copyElt(p->updData() + i*this->m_eltSize, this->getData() + i*m_spacing);
+        	this->copyElt(p->updData() + i*this->m_eltSize, this->getData() + i*m_spacing);
         return p;
     }
 
@@ -687,7 +687,7 @@ public:
 
     // Every element is stored so this just forwards to getElt(i).
     void getAnyElt_(int i, S* value) const 
-    {   copyElt(value, getElt_(i)); }
+    {   this->copyElt(value, getElt_(i)); }
 
     // A deep copy of an indexed vector produces a contiguous, non-indexed vector.
     ContiguousVectorHelper<S>* createDeepCopy_() const {
@@ -695,7 +695,7 @@ public:
             new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
                                           this->length(), this->m_row);
         for (int i=0; i<this->length(); ++i)
-            copyElt(p->updElt_(i), getElt_(i));
+        	this->copyElt(p->updElt_(i), getElt_(i));
         return p;
     }
 
