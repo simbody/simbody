@@ -240,13 +240,18 @@ extern "C" {
 
 /* Transition macros for C++11 support. VC10 and VC11 have partial support for
 C++11, early VC's do not. Currently we're assuming no support from gcc. */
-#if _MSC_VER>=1700 /* VC11 or higher */
-    #define OVERRIDE_11  override
-    #define FINAL_11     final
-#elif _MSC_VER==1600 /* VC10 */
-    #define OVERRIDE_11  override
-    #define FINAL_11     sealed
-#else /* gcc or earlier VC */
+#ifndef SWIG
+    #if _MSC_VER>=1700 /* VC11 or higher */
+        #define OVERRIDE_11  override
+        #define FINAL_11     final
+    #elif _MSC_VER==1600 /* VC10 */
+        #define OVERRIDE_11  override
+        #define FINAL_11     sealed
+    #else /* gcc or earlier VC */
+        #define OVERRIDE_11
+        #define FINAL_11
+    #endif
+#else /* Swigging */
     #define OVERRIDE_11
     #define FINAL_11
 #endif
