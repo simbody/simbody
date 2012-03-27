@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2009 Stanford University and the Authors.           *
+ * Portions copyright (c) 2009-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -35,12 +35,103 @@
  */
 
 #include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/String.h"
+#include "SimTKcommon/internal/NTraits.h"
 
 #include <string>
 #include <cctype>
 
 using SimTK::String;
+
+String::String(float r, const char* fmt) {
+    if (!isFinite(r)) {
+        if (isNaN(r)) {(*this)="NaN"; return;}
+        if (isInf(r)) {(*this)=(r<0?"-Infinity":"Infinity"); return;}
+        SimTK_ERRCHK2_ALWAYS(false, "SimTK::String(float)",
+            "Unrecognized non-finite value %g (0x%x).", 
+            (double)r, *reinterpret_cast<const unsigned*>(&r));
+        return;
+    }
+    char buf[64]; sprintf(buf,fmt,r); (*this)=buf; 
+}
+
+String::String(double r, const char* fmt) {
+    if (!isFinite(r)) {
+        if (isNaN(r)) {(*this)="NaN"; return;}
+        if (isInf(r)) {(*this)=(r<0?"-Infinity":"Infinity"); return;}
+        SimTK_ERRCHK2_ALWAYS(false, "SimTK::String(double)",
+            "Unrecognized non-finite value %g (0x%llx).", 
+            r, *reinterpret_cast<const unsigned long long*>(&r));
+        return;
+    }
+    char buf[64]; sprintf(buf,fmt,r); (*this)=buf; 
+}
+
+String::String(long double r, const char* fmt) {
+    if (!isFinite(r)) {
+        if (isNaN(r)) {(*this)="NaN"; return;}
+        if (isInf(r)) {(*this)=(r<0?"-Infinity":"Infinity"); return;}
+        SimTK_ERRCHK1_ALWAYS(false, "SimTK::String(long double)",
+            "Unrecognized non-finite value %lg.", r);
+        return;
+    }
+    char buf[128]; sprintf(buf,fmt,r); (*this)=buf; 
+}
+
+static String cleanUp(const String& in) {
+    return String(in).trimWhiteSpace().toLower();
+}
+
+bool String::tryConvertToBool(bool& out) const {
+    const String adjusted = cleanUp(*this);
+    if (adjusted=="true")  {out=true;  return true;}
+    if (adjusted=="false") {out=false; return true;}
+	std::istringstream sstream(adjusted);
+	sstream >> out;
+    return !sstream.fail();
+}
+
+bool String::tryConvertToFloat(float& out) const {
+    const String adjusted = cleanUp(*this);
+    if (adjusted=="nan")  {out=NTraits<float>::getNaN();  return true;}
+    if (   adjusted=="inf" || adjusted=="infinity"
+        || adjusted=="+inf" || adjusted=="+infinity") 
+    {   out = NTraits<float>::getInfinity(); return true;}
+    if (adjusted=="-inf" || adjusted=="-infinity") 
+    {   out = -NTraits<float>::getInfinity(); return true;}
+	std::istringstream sstream(adjusted);
+	sstream >> out;
+    return !sstream.fail();
+}
+
+bool String::tryConvertToDouble(double& out) const {
+    const String adjusted = cleanUp(*this);
+    if (adjusted=="nan")  {out=NTraits<double>::getNaN();  return true;}
+    if (   adjusted=="inf" || adjusted=="infinity"
+        || adjusted=="+inf" || adjusted=="+infinity") 
+    {   out = NTraits<double>::getInfinity(); return true;}
+    if (adjusted=="-inf" || adjusted=="-infinity") 
+    {   out = -NTraits<double>::getInfinity(); return true;}
+	std::istringstream sstream(adjusted);
+	sstream >> out;
+    return !sstream.fail();
+}
+
+bool String::tryConvertToLongDouble(long double& out) const {
+    const String adjusted = cleanUp(*this);
+    if (adjusted=="nan")  {out=NTraits<long double>::getNaN();  return true;}
+    if (   adjusted=="inf" || adjusted=="infinity"
+        || adjusted=="+inf" || adjusted=="+infinity") 
+    {   out = NTraits<long double>::getInfinity(); return true;}
+    if (adjusted=="-inf" || adjusted=="-infinity") 
+    {   out = -NTraits<long double>::getInfinity(); return true;}
+	std::istringstream sstream(adjusted);
+	sstream >> out;
+    return !sstream.fail();
+}
+
+
 
 String& String::toUpper() {
     for (int i=0; i < size(); ++i)

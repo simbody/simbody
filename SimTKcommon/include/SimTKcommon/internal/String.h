@@ -2,14 +2,14 @@
 #define SimTK_SimTKCOMMON_STRING_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Simbody: SimTKcommon                            *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -39,6 +39,7 @@
 
 
 #include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/internal/ExceptionMacros.h"
 
 #include <cstdio>
 #include <string>
@@ -114,40 +115,67 @@ inconvenient unsigned type size_type. **/
 int length() const {return (int)std::string::length();}
 
 /** @name             Formatted output constructors
-These contructors format the supplied argument into a human-readable String. **/
+These contructors format the supplied argument into a human-readable %String,
+using a default or caller-supplied printf-like format. By default, maximum 
+precision is used for floating point values, and user-friendly strings are 
+used for bool (true or false) and non-finite floating point values (NaN, 
+Inf, -Inf). **/
 /*@{*/
-/** Format an int as a printable String. **/
-explicit String(int i) { char buf[32]; sprintf(buf,"%d",i); (*this)=buf; }
-/** Format a long as a printable String. **/
-explicit String(long i) { char buf[32]; sprintf(buf,"%ld",i); (*this)=buf; }
-/** Format a long long as a printable String. **/
-explicit String(long long i) { char buf[64]; sprintf(buf,"%lld",i); (*this)=buf; }
-/** Format an unsigned int as a printable String. **/
-explicit String(unsigned int s)  { char buf[32]; sprintf(buf,"%u",s); (*this)=buf; }
-/** Format an unsigned long as a printable String. **/
-explicit String(unsigned long s) { char buf[32]; sprintf(buf,"%lu",s); (*this)=buf; }
-/** Format an unsigned long long as a printable String. **/
-explicit String(unsigned long long s) { char buf[64]; sprintf(buf,"%llu",s); (*this)=buf; }
-/** Format a float as a printable String. **/
-explicit String(float r)	{ char buf[64]; sprintf(buf,"%.8g",r); (*this)=buf; }
-/** Format a double as a printable String. **/
-explicit String(double r)	{ char buf[64]; sprintf(buf,"%.16g",r); (*this)=buf; }
-/** Format a long double as a printable String. **/
-explicit String(long double r)	{ char buf[64]; sprintf(buf,"%.20Lg",r); (*this)=buf; }
-/** Format a complex<float> as a printable String (real,imag). **/
-explicit String(std::complex<float> r)	
-	{ char buf[128]; sprintf(buf,"(%.8g,%.8g)",r.real(),r.imag()); (*this)=buf; }
-/** Format a complex<double> as a printable String (real,imag). **/
-explicit String(std::complex<double> r)	
-	{ char buf[128]; sprintf(buf,"(%.16g,%.16g)",r.real(),r.imag()); (*this)=buf; }
-/** Format a complex<long double> as a printable String (real,imag). **/
-explicit String(std::complex<long double> r)	
-	{ char buf[128]; sprintf(buf,"(%.20Lg,%.20Lg)",r.real(),r.imag()); (*this)=buf; }
-/** Format a bool as a printable String "true" or "false"; if you want "1"
+/** Format an int as a printable %String. **/
+explicit String(int i, const char* fmt="%d") 
+{   char buf[32]; sprintf(buf,fmt,i); (*this)=buf; }
+/** Format a long as a printable %String. **/
+explicit String(long i, const char* fmt="%ld") 
+{   char buf[64]; sprintf(buf,fmt,i); (*this)=buf; }
+/** Format a long long as a printable %String. **/
+explicit String(long long i, const char* fmt="%lld") 
+{   char buf[64]; sprintf(buf,fmt,i); (*this)=buf; }
+/** Format an unsigned int as a printable %String. **/
+explicit String(unsigned int s, const char* fmt="%u")  
+{   char buf[32]; sprintf(buf,fmt,s); (*this)=buf; }
+/** Format an unsigned long as a printable %String. **/
+explicit String(unsigned long s, const char* fmt="%lu") 
+{   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
+/** Format an unsigned long long as a printable %String. **/
+explicit String(unsigned long long s, const char* fmt="%llu") 
+{   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
+
+/** Format a float as a printable %String. Nonfinite values are formatted as
+NaN, Inf, or -Inf as appropriate. **/
+SimTK_SimTKCOMMON_EXPORT explicit String(float r, const char* fmt="%.8g");
+
+/** Format a double as a printable %String. Nonfinite values are formatted as
+NaN, Inf, or -Inf as appropriate. **/
+SimTK_SimTKCOMMON_EXPORT explicit String(double r, const char* fmt="%.16g");
+
+/** Format a double as a printable %String. Nonfinite values are formatted as
+NaN, Inf, or -Inf as appropriate. **/
+SimTK_SimTKCOMMON_EXPORT explicit String(long double r, 
+                                         const char* fmt="%.20Lg");
+
+/** Format a complex<float> as a printable %String (real,imag) with parentheses
+and a comma as shown. The format string should be for a single float and will 
+be used twice; the default format is the same as for float. **/
+explicit String(std::complex<float> r, const char* fmt="%.8g")
+{   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
+/** Format a complex<double> as a printable %String (real,imag) with parentheses
+and a comma as shown. The format string should be for a single double and will 
+be used twice; the default format is the same as for double. **/
+explicit String(std::complex<double> r, const char* fmt="%.16g")	
+{   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
+/** Format a complex<long double> as a printable %String (real,imag) with 
+parentheses and a comma as shown. The format string should be for a single long
+double and will be used twice; the default format is the same as for long
+double. **/
+explicit String(std::complex<long double> r, const char* fmt="%.20Lg")	
+{   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
+
+/** Format a bool as a printable %String "true" or "false"; if you want "1"
 or "0" cast the bool to an int first. **/
 explicit String(bool b) : std::string(b?"true":"false") { }
+
 /** For any type T for which there is no matching constructor, this templatized
-constructor will format an object of type T into a String provided that there
+constructor will format an object of type T into a %String provided that there
 is a stream insertion operator<<() available for type T. **/
 template <class T> inline explicit String(const T& t); // see below
 /*@}*/
@@ -201,6 +229,29 @@ to an already-constructed object you provide.
 template <class T> T convertTo() const 
 {   T temp; convertTo<T>(temp); return temp; }
 
+/** Special-purpose method for interpreting this %String as a bool. Recognizes
+"true" and "false" (in any case) as well as whatever operator>>() accepts.
+Returns false if the contents of this %String, ignoring leading and trailing
+whitespace, can't be interpreted as a bool. **/
+SimTK_SimTKCOMMON_EXPORT bool tryConvertToBool(bool& out) const;
+
+/** Special-purpose method for interpreting this %String as a float. Recognizes
+NaN, [-]Inf, [-]Infinity (in any case) as well as whatever operator>>() accepts.
+Returns false if the contents of this %String, ignoring leading and trailing
+whitespace, can't be interpreted as a float. **/
+SimTK_SimTKCOMMON_EXPORT bool tryConvertToFloat(float& out) const;
+
+/** Special-purpose method for interpreting this %String as a double. Recognizes
+NaN, [-]Inf, [-]Infinity (in any case) as well as whatever operator>>() accepts.
+Returns false if the contents of this %String, ignoring leading and trailing
+whitespace, can't be interpreted as a double. **/
+SimTK_SimTKCOMMON_EXPORT bool tryConvertToDouble(double& out) const;
+
+/** Special-purpose method for interpreting this %String as a long double. 
+Recognizes NaN, [-]Inf, [-]Infinity (in any case) as well as whatever 
+operator>>() accepts. Returns false if the contents of this %String, ignoring 
+leading and trailing whitespace, can't be interpreted as a long double. **/
+SimTK_SimTKCOMMON_EXPORT bool tryConvertToLongDouble(long double& out) const;
 /*@}*/
 
 /** @name In-place modifications
@@ -229,18 +280,8 @@ SimTK_SimTKCOMMON_EXPORT String& replaceAllChar(char oldChar, char newChar);
 
 /** @name Utility methods
 These static methods operate on SimTK::String or std::string objects and return
-SimTK::String objects (which are also std::string objects). **/
+SimTK::String objects. **/
 /*@{*/
-/** Cast an std::string to a SimTK::String without copying; subsequent changes
-to the std::string will affect the SimTK::String too since it is just a 
-reference to the original std::string. **/
-static const String& getAs(const std::string& s) 
-{   return reinterpret_cast<const String&>(s); }
-/** Cast a non-const std::string to a non-const SimTK::String without copying;
-changes made to the SimTK::String will affect the original std::string and
-vice versa. **/
-static String& updAs(std::string& s) 
-{   return reinterpret_cast<String&>(s); }
 /** Upshift the given std::string returning a new SimTK::String in which all
 the letters have been made upper case with toupper(). **/
 static String toUpper(const std::string& in)
@@ -263,7 +304,7 @@ String& replaceAllChar(const std::string& in, char oldChar, char newChar)
 };	
 
 // All std::stream activity should be dealt with inline so that we don't have
-// to worry about binary compatibiliy issues that can arise when passing 
+// to worry about binary compatibility issues that can arise when passing 
 // streams through the API.
 
 // Templatized String constructor definition.
@@ -288,6 +329,27 @@ bool tryConvertStringTo(const String& value, T& out) {
     std::ws(sstream);       // Skip trailing whitespace if any.
     return sstream.eof();   // We must have used up the whole string now.
 }
+
+// This specialization ensures that "true" and "false" are recognized as 
+// values for bools (with any case).
+template <> inline 
+bool tryConvertStringTo(const String& value, bool& out)
+{   return value.tryConvertToBool(out); }
+
+// Specialization to ensure recognition of non-finite values NaN, Inf, etc.
+template <> inline 
+bool tryConvertStringTo(const String& value, float& out)
+{   return value.tryConvertToFloat(out); }
+
+// Specialization to ensure recognition of non-finite values NaN, Inf, etc.
+template <> inline 
+bool tryConvertStringTo(const String& value, double& out)
+{   return value.tryConvertToDouble(out); }
+
+// Specialization to ensure recognition of non-finite values NaN, Inf, etc.
+template <> inline 
+bool tryConvertStringTo(const String& value, long double& out)
+{   return value.tryConvertToLongDouble(out); }
 
 // This specialization ensures that we get the whole String including
 // leading and trailing white space. Of course this is not useful for 
@@ -326,13 +388,13 @@ String::convertTo(T& out) const {
     // the bad string in the error message.
     String shorter = this->substr(0, MaxStr);
     if (shorter.size() < this->size()) shorter += " ...";
-    SimTK_ERRCHK2_ALWAYS(convertOK, "Xml::getAs()",
+    SimTK_ERRCHK2_ALWAYS(convertOK, "String::convertTo()",
         "Couldn't interpret string '%s' as type T=%s.",
         shorter.c_str(), NiceTypeName<T>::name());
 }
 
 /** This method converts its String argument to type T and returns it into
-the variables supplied as its second argument; this is particularly convenient
+the variable supplied as its second argument; this is particularly convenient
 when you have a string literal or std::string since the conversion to String 
 happens automatically. For example the two lines shown are equivalent:
 @code

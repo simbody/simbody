@@ -55,6 +55,9 @@
  * @endverbatim
  */
 
+#include "SimTKcommon/Constants.h"
+#include "SimTKcommon/internal/CompositeNumericalTypes.h"
+
 #include <cstddef>
 #include <cassert>
 #include <complex>

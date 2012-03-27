@@ -80,7 +80,9 @@ string Pathname::getPathSeparator() {
 }
 
 static void makeNativeSlashesInPlace(string& inout) {
-    String::updAs(inout).replaceAllChar(OtherPathSeparator, MyPathSeparator);
+    for (unsigned i=0; i < inout.size(); ++i)
+        if (inout[i] == OtherPathSeparator)
+            inout[i] = MyPathSeparator;
 }
 
 static void addFinalSeparatorInPlace(string& inout) {
