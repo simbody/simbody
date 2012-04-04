@@ -777,7 +777,7 @@ The cost of a call to this method is 42 + 108*nb + 66*nu flops. If we assume
 that nb ~= nu >> 1, we can approximate this as 180*nu flops. Once the 
 Frame Jacobian JF has been formed, the JF*u matrix-vector product costs
 12*nu flops. See multiplyByFrameJacobian() for a performance comparison,
-concluding that there is a breakeven at around 16 reuses of JS.
+concluding that there is a breakeven at around 16 reuses of JF.
 
 @see multiplyByFrameJacobian(), multiplyByFrameJacobianTranspose() **/
 void calcFrameJacobian(const State&             state,
