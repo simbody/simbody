@@ -141,15 +141,15 @@ explicit String(unsigned long long s, const char* fmt="%llu")
 {   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
 
 /** Format a float as a printable %String. Nonfinite values are formatted as
-NaN, Inf, or -Inf as appropriate. **/
+NaN, Infinity, or -Infinity as appropriate. **/
 SimTK_SimTKCOMMON_EXPORT explicit String(float r, const char* fmt="%.8g");
 
 /** Format a double as a printable %String. Nonfinite values are formatted as
-NaN, Inf, or -Inf as appropriate. **/
+NaN, Infinity, or -Infinity as appropriate. **/
 SimTK_SimTKCOMMON_EXPORT explicit String(double r, const char* fmt="%.16g");
 
 /** Format a double as a printable %String. Nonfinite values are formatted as
-NaN, Inf, or -Inf as appropriate. **/
+NaN, Infinity, or -Infinity as appropriate. **/
 SimTK_SimTKCOMMON_EXPORT explicit String(long double r, 
                                          const char* fmt="%.20Lg");
 
