@@ -86,7 +86,7 @@ int main() {
     const negator< conjugate<long double> >& njlnan = reinterpret_cast<const negator<conjugate<long double> >&>(jlnan);
 
     writeUnformatted(std::cout, fcinf);
-    Array_<negator<Complex>> arrc;
+    Array_< negator<Complex> > arrc;
     arrc.push_back(oneTwo); 
     arrc.push_back(threeFour);
     arrc.push_back(fcinf);
