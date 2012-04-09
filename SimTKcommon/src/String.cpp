@@ -38,6 +38,7 @@
 #include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/NTraits.h"
+#include "SimTKcommon/internal/Serialize.h"
 
 #include <string>
 #include <cctype>
@@ -47,7 +48,7 @@ using SimTK::String;
 String::String(float r, const char* fmt) {
     if (!isFinite(r)) {
         if (isNaN(r)) {(*this)="NaN"; return;}
-        if (isInf(r)) {(*this)=(r<0?"-Infinity":"Infinity"); return;}
+        if (isInf(r)) {(*this)=(r<0?"-Inf":"Inf"); return;}
         SimTK_ERRCHK2_ALWAYS(false, "SimTK::String(float)",
             "Unrecognized non-finite value %g (0x%x).", 
             (double)r, *reinterpret_cast<const unsigned*>(&r));
@@ -59,7 +60,7 @@ String::String(float r, const char* fmt) {
 String::String(double r, const char* fmt) {
     if (!isFinite(r)) {
         if (isNaN(r)) {(*this)="NaN"; return;}
-        if (isInf(r)) {(*this)=(r<0?"-Infinity":"Infinity"); return;}
+        if (isInf(r)) {(*this)=(r<0?"-Inf":"Inf"); return;}
         SimTK_ERRCHK2_ALWAYS(false, "SimTK::String(double)",
             "Unrecognized non-finite value %g (0x%llx).", 
             r, *reinterpret_cast<const unsigned long long*>(&r));
@@ -71,7 +72,7 @@ String::String(double r, const char* fmt) {
 String::String(long double r, const char* fmt) {
     if (!isFinite(r)) {
         if (isNaN(r)) {(*this)="NaN"; return;}
-        if (isInf(r)) {(*this)=(r<0?"-Infinity":"Infinity"); return;}
+        if (isInf(r)) {(*this)=(r<0?"-Inf":"Inf"); return;}
         SimTK_ERRCHK1_ALWAYS(false, "SimTK::String(long double)",
             "Unrecognized non-finite value %lg.", r);
         return;

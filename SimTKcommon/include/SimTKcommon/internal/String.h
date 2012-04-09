@@ -48,6 +48,9 @@
 #include <sstream>
 
 namespace SimTK {
+
+template <class N> class negator;
+template <class R> class conjugate;
 	
 /** SimTK::String is a plug-compatible std::string replacement (plus some
 additional functionality) intended to be suitable for passing through the 
@@ -141,29 +144,29 @@ explicit String(unsigned long long s, const char* fmt="%llu")
 {   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
 
 /** Format a float as a printable %String. Nonfinite values are formatted as
-NaN, Infinity, or -Infinity as appropriate. **/
-SimTK_SimTKCOMMON_EXPORT explicit String(float r, const char* fmt="%.8g");
+NaN, Inf, or -Inf as appropriate (Matlab compatible). **/
+SimTK_SimTKCOMMON_EXPORT explicit String(float r, const char* fmt="%.7g");
 
 /** Format a double as a printable %String. Nonfinite values are formatted as
-NaN, Infinity, or -Infinity as appropriate. **/
-SimTK_SimTKCOMMON_EXPORT explicit String(double r, const char* fmt="%.16g");
+NaN, Inf, or -Inf as appropriate (Matlab compatible). **/
+SimTK_SimTKCOMMON_EXPORT explicit String(double r, const char* fmt="%.15g");
 
-/** Format a double as a printable %String. Nonfinite values are formatted as
-NaN, Infinity, or -Infinity as appropriate. **/
+/** Format a long double as a printable %String. Nonfinite values are 
+formatted as NaN, Inf, or -Inf as appropriate (Matlab compatible). **/
 SimTK_SimTKCOMMON_EXPORT explicit String(long double r, 
                                          const char* fmt="%.20Lg");
 
-/** Format a complex<float> as a printable %String (real,imag) with parentheses
+/** Format a complex\<float> as a printable %String (real,imag) with parentheses
 and a comma as shown. The format string should be for a single float and will 
 be used twice; the default format is the same as for float. **/
-explicit String(std::complex<float> r, const char* fmt="%.8g")
+explicit String(std::complex<float> r, const char* fmt="%.7g")
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
-/** Format a complex<double> as a printable %String (real,imag) with parentheses
-and a comma as shown. The format string should be for a single double and will 
-be used twice; the default format is the same as for double. **/
-explicit String(std::complex<double> r, const char* fmt="%.16g")	
+/** Format a complex\<double> as a printable %String (real,imag) with 
+parentheses and a comma as shown. The format string should be for a single 
+double and will be used twice; the default format is the same as for double. **/
+explicit String(std::complex<double> r, const char* fmt="%.15g")	
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
-/** Format a complex<long double> as a printable %String (real,imag) with 
+/** Format a complex\<long double> as a printable %String (real,imag) with 
 parentheses and a comma as shown. The format string should be for a single long
 double and will be used twice; the default format is the same as for long
 double. **/
@@ -176,8 +179,35 @@ explicit String(bool b) : std::string(b?"true":"false") { }
 
 /** For any type T for which there is no matching constructor, this templatized
 constructor will format an object of type T into a %String provided that there
-is a stream insertion operator<<() available for type T. **/
+is either an available specialization or (as a last resort) a stream insertion
+operator<<() available for type T. **/
 template <class T> inline explicit String(const T& t); // see below
+
+/** Constructing a %String from a negated value converts to the underlying
+native type and then uses one of the native-type constructors. **/ 
+template <class T> explicit
+String(const negator<T>& nt) {
+    new (this) String(T(nt));
+}
+/** Same, but allows for format specification. **/
+template <class T>
+String(const negator<T>& nt, const char* fmt) {
+    new (this) String(T(nt), fmt);
+}
+
+/** Constructing a %String from a conjugate value converts to the underlying
+complex type and then uses one of the native-type constructors. **/ 
+template <class T> explicit
+String(const conjugate<T>& ct) {
+    new (this) String(std::complex<T>(ct));
+}
+/** Same, but allows for format specification. **/
+template <class T>
+String(const conjugate<T>& ct, const char* fmt) {
+    new (this) String(std::complex<T>(ct), fmt);
+}
+
+
 /*@}*/
 
 /** @name             Formatted input from String
@@ -307,13 +337,15 @@ String& replaceAllChar(const std::string& in, char oldChar, char newChar)
 // to worry about binary compatibility issues that can arise when passing 
 // streams through the API.
 
-// Templatized String constructor definition.
+/** Generic templatized %String constructor uses T::operator<<() to generate
+the %String when no specialization is available. **/ 
 template <class T> inline
 String::String(const T& t) {
     std::ostringstream stream;
     stream << t;
     *this = stream.str();
 }
+
 
 // This namespace-level static method should not be necessary but gcc 4.1
 // still has trouble with template specialization for template member
@@ -363,6 +395,25 @@ bool tryConvertStringTo(const String& value, String& out)
 template<> inline
 bool tryConvertStringTo(const String& value, std::string& out)
 {   out = value; return true; }
+
+/** Partial specialization to read negator<T> as a T. **/
+template <class T> inline
+bool tryConvertStringTo(const String& value, negator<T>& out) {
+    T nonnegated; 
+    if (!tryConvertStringTo(value, nonnegated)) return false;
+    out = nonnegated;
+    return true;
+}
+
+/** Partial specialization to read conjugate<T> as a std::complex<T>. **/
+template <class T> inline
+bool tryConvertStringTo(const String& value, conjugate<T>& out) {
+    std::complex<T> cmplx; 
+    if (!tryConvertStringTo(value, cmplx)) return false;
+    out = cmplx;
+    return true;
+}
+
 
 // This partial specialization ensures that you can't interpret
 // a String as a pointer.

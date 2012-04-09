@@ -33,7 +33,7 @@
 //#define SimTK_DEFAULT_PRECISION 2
 //#define SimTK_DEFAULT_PRECISION 4
 
-#include "SimTKcommon/Scalar.h"
+#include "SimTKcommon.h"
 
 #include <iostream>
 #include <iomanip>
@@ -84,6 +84,58 @@ int main() {
     const negator<float>& nfnan = reinterpret_cast<const negator<float>&>(fnan);
     const negator< std::complex<float> >& ncfnan = reinterpret_cast<const negator<std::complex<float> >&>(cfnan);
     const negator< conjugate<long double> >& njlnan = reinterpret_cast<const negator<conjugate<long double> >&>(jlnan);
+
+    writeUnformatted(std::cout, fcinf);
+    Array_<negator<Complex>> arrc;
+    arrc.push_back(oneTwo); 
+    arrc.push_back(threeFour);
+    arrc.push_back(fcinf);
+    writeUnformatted(cout, arrc); cout << endl;
+    writeUnformatted(cout, Vec3(1,2,3)); cout << endl;
+    Vector vxxx(Vec3(4,NaN,-3));
+    writeUnformatted(cout, vxxx); cout << endl;
+    cout << vxxx << "\n";
+    writeUnformatted(cout, Mat34( 1, 2, 3, 4,
+                              5, NaN, 7, 8,
+                              Infinity, 10, -Infinity, 12 ));
+    cout << endl;
+    writeUnformatted(cout, SymMat33( 1, 
+                                 2, 3,
+                                 NaN, 5, 6 )); cout << endl;
+
+    Matrix mxxx(Mat34( 1, 2, 3, 4,
+                       5, NaN, 7, 8,
+                       Infinity, 10, -Infinity, 12 ));
+    writeUnformatted(cout, mxxx); cout << endl;
+    cout << mxxx;
+
+    double inval;
+    std::stringstream ss("1.3  nan 4  6 -3 -inf");
+    while (readUnformatted(ss, inval))
+        cout << "'" << String(inval) << "'\n";
+
+    std::stringstream ss2("1 2 3 nan 4 inf");
+    readUnformatted(ss2, arrc);
+    cout << "arrc=" << arrc << endl;
+    writeUnformatted(cout, arrc);
+
+    ss2.clear(); ss2.seekg(0, std::ios::beg);
+    Vec6 myv6;
+    readUnformatted(ss2, myv6);
+    writeUnformatted(cout << "myv6=", myv6);
+    ss2.clear(); ss2.seekg(0, std::ios::beg);
+    Matrix mym23(2,3);
+    fillUnformatted(ss2, mym23);
+    writeUnformatted(cout << "\nmym23=", mym23);
+    ss2.clear(); ss2.seekg(0, std::ios::beg);
+    Array_<float> axx(2), ayy(4);
+    ArrayView_<float> avxx(axx), avyy(ayy);
+    readUnformatted(ss2, avxx);
+    readUnformatted(ss2, avyy);
+    writeUnformatted(cout << "u axx=",axx); cout<<endl;
+    writeUnformatted(cout << "u ayy=",ayy); cout<<endl;
+    writeFormatted(cout << "f axx=",axx); cout<<endl;
+    writeFormatted(cout << "f ayy=",ayy); cout<<endl;
 
     ASSERT(isNaN(nan));
     ASSERT(isNaN(-nan));

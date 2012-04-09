@@ -96,15 +96,6 @@
 #include "SimTKcommon/Scalar.h"
 #include "SimTKcommon/TemplatizedLapack.h"
 
-// Forward declarations.
-namespace SimTK {
-
-template <int M, class E=Real, int STRIDE=1>              class Vec;
-template <int N, class E=Real, int STRIDE=1>              class Row; 
-template <int M, int N, class E=Real, int CS=M, int RS=1> class Mat; // col & row spacing
-template <int M, class E=Real, int RS=1>                  class SymMat;
-
-} // namespace SimTK
 
 #include "SimTKcommon/internal/ResultType.h"
 #include "SimTKcommon/internal/Vec.h"

@@ -3334,6 +3334,31 @@ must support the same operation you are trying to do on the Array as a
 whole. **/
 /*@{*/
 
+/** Specialize writeUnformatted() for Array_<E,X> to delegate to element type
+E, with spaces separating the elements. 
+@relates SimTK::Array_ **/
+template <class E, class X> inline void
+writeUnformatted(std::ostream& o, const Array_<E,X>& v) {
+    for (X i(0); i < v.size(); ++i) {
+        if (i != 0) o << " ";
+        writeUnformatted(o, v[i]);
+    }
+}
+
+
+/** Specialize writeFormatted() for Array_<E,X> to delegate to element type
+E, with surrounding parentheses and commas separating the elements. 
+@relates SimTK::Array_ **/
+template <class E, class X> inline void
+writeFormatted(std::ostream& o, const Array_<E,X>& v) {
+    o << '(';
+    for (X i(0); i < v.size(); ++i) {
+        if (i != 0) o << ',';
+        writeFormatted(o, v[i]);
+    }
+    o << ')';
+}
+
 /** Output a human readable representation of an array to an std::ostream
 (like std::cout). The format is ( \e elements ) where \e elements is a 
 comma-separated list of the Array's contents output by invoking the "<<" 
@@ -3354,6 +3379,50 @@ operator<<(std::ostream& o,
     return o << ')';
 } 
 
+
+/** Specialization of readUnformatted() for variable-length Array_<T,X>; 
+continues reading whitespace-separated tokens until error or eof. 
+@relates Array_ **/
+template <class T, class X> inline bool 
+readUnformatted(std::istream& in, Array_<T,X>& v) {
+    v.clear();
+    T element;
+    while (!in.eof() && readUnformatted(in, element))
+        v.push_back(element);
+    return !in.fail(); // eof is expected and ok
+}
+
+/** Specialization of readUnformatted() for fixed-length ArrayView_<T,X>; reads
+whitespace-separated tokens until the expected number have been read. If fewer 
+are available we fail. 
+@relates ArrayView_ **/
+template <class T, class X> inline bool 
+readUnformatted(std::istream& in, ArrayView_<T,X>& v) {
+    for (X i(0); i < v.size(); ++i)
+        if (!readUnformatted(in, v[i])) return false;
+    return true;
+}
+
+
+/** Specialization of readFormatted() for variable-length Array_<T,X>; 
+uses readArrayFromStream() to consume an appropriately-formatted array
+until error, closing parenthesis or bracket, or eof.
+@see readArrayFromStream() for details
+@relates Array_ **/
+template <class T, class X> inline bool 
+readFormatted(std::istream& in, Array_<T,X>& v) {
+    return !readArrayFromStream(in,v).fail();
+}
+
+/** Specialization of readFormatted() for fixed-length ArrayView_<T,X>; uses
+fillArrayViewFromStream() to consume an appropriately-formatted fixed-size
+array.
+@see fillArrayViewFromStream() for details
+@relates ArrayView_ **/
+template <class T, class X> inline bool 
+readFormatted(std::istream& in, ArrayView_<T,X>& v) {
+    return !fillArrayViewFromStream(in,v).fail();
+}
 
 /** Read in an Array_<T> from a stream, as a sequence of space-separated or
 comma-separated values optionally surrounded by parentheses (), square 

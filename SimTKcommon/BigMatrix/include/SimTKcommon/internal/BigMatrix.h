@@ -3238,6 +3238,140 @@ must support the same operation you are trying to do on the Vector as a
 whole. **/
 /*@{*/
 
+/** Specialize for VectorBase<E> to delegate to element type E, with spaces
+separating the elements. 
+@relates SimTK::VectorBase **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const VectorBase<E>& v) {
+    const int sz = v.size();
+    for (int i=0; i < sz; ++i) {
+        if (i != 0) o << " ";
+        writeUnformatted(o, v[i]);
+    }
+} 
+/** Raw serialization of VectorView_<E>; same as VectorBase<E>.
+@relates SimTK::VectorView_ **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const VectorView_<E>& v) 
+{   writeUnformatted(o, static_cast< const VectorBase<E> >(v)); }
+
+/** Raw serialization of Vector_<E>; same as VectorBase<E>.
+@relates SimTK::Vector_ **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const Vector_<E>& v) 
+{   writeUnformatted(o, static_cast< const VectorBase<E> >(v)); }
+
+/** Specialize for RowVectorBase<E> to delegate to element type E, with spaces
+separating the elements; raw output is same as VectorBase. 
+@relates SimTK::RowVectorBase **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const RowVectorBase<E>& v) 
+{   writeUnformatted(o, ~v); }
+
+/** Raw serialization of RowVectorView_<E>; same as VectorView_<E>.
+@relates SimTK::RowVectorView_ **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const RowVectorView_<E>& v) 
+{   writeUnformatted(o, static_cast< const RowVectorBase<E> >(v)); }
+
+/** Raw serialization of RowVector_<E>; same as Vector_<E>.
+@relates SimTK::RowVector_ **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const RowVector_<E>& v) 
+{   writeUnformatted(o, static_cast< const RowVectorBase<E> >(v)); }
+
+/** Specialize for MatrixBase<E> delegating to RowVectorBase<E> with newlines
+separating the rows, but no final newline.
+@relates SimTK::MatrixBase **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const MatrixBase<E>& v) {
+    const int nr = v.nrow();
+    for (int i=0; i < nr; ++i) {
+        if (i != 0) o << std::endl;
+        writeUnformatted(o, v[i]);
+    }
+}
+/** Raw serialization of MatrixView_<E>; same as MatrixBase<E>.
+@relates SimTK::MatrixView_ **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const MatrixView_<E>& v) 
+{   writeUnformatted(o, static_cast< const MatrixBase<E> >(v)); }
+
+/** Raw serialization of Vector_<E>; same as VectorBase<E>.
+@relates SimTK::Matrix_ **/
+template <class E> inline void
+writeUnformatted(std::ostream& o, const Matrix_<E>& v) 
+{   writeUnformatted(o, static_cast< const MatrixBase<E> >(v)); }
+
+/** Read fixed-size VectorView from input stream. It is an error if there
+aren't enough elements. **/
+template <class E> inline bool
+readUnformatted(std::istream& in, VectorView_<E>& v) {
+    for (int i=0; i < v.size(); ++i)
+        if (!readUnformatted(in, v[i])) return false;
+    return true;
+}
+
+/** Read variable-size Vector from input stream. Reads until error or eof. **/
+template <class E> inline bool
+readUnformatted(std::istream& in, Vector_<E>& v) {
+    if (!v.isResizeable())
+        return readUnformatted(in, v.updAsVectorView());
+
+    Array_<E,int> a;
+    if (!readUnformatted(in,a)) return false;
+    v.resize(a.size());
+    for (int i=0; i<a.size(); ++i)
+        v[i] = a[i];
+    return true;
+}
+
+/** Read fixed-size RowVectorView from input stream. It is an error if there
+aren't enough elements. **/
+template <class E> inline bool
+readUnformatted(std::istream& in, RowVectorView_<E>& v) 
+{   VectorView_<E> vt(~v);
+    return readUnformatted<E>(in, vt); }
+
+/** Read variable-size RowVector from unformatted (whitespace-separated) 
+input stream. Reads until error or eof. **/
+template <class E> inline bool
+readUnformatted(std::istream& in, RowVector_<E>& v) 
+{   Vector_<E> vt(~v);
+    return readUnformatted<E>(in, vt); }
+
+/** Read fixed-size MatrixView in row order from unformatted (whitespace-
+separated) input stream. Newlines in the input have no special meaning --
+we'll read them as whitespace. It is an error if there aren't enough 
+elements. **/
+template <class E> inline bool
+readUnformatted(std::istream& in, MatrixView_<E>& v) { 
+    for (int row=0; row < v.nrow(); ++row) {
+        RowVectorView_<E> oneRow(v[row]);
+        if (!readUnformatted<E>(in, oneRow)) return false;
+    }
+    return true;
+}
+
+/** Read in new values for a Matrix without changing its size, from a stream
+of whitespace-separated tokens with no other formatting recognized. Newlines in 
+the input have no special meaning -- we'll read them as whitespace. It is an 
+error if there aren't enough elements. **/
+template <class E> inline bool
+fillUnformatted(std::istream& in, Matrix_<E>& v) {
+    return readUnformatted<E>(in, v.updAsMatrixView());
+}
+
+/** NOT IMPLEMENTED: read variable-size Matrix recognizing newlines as end
+of row; use fillUnformatted() instead. **/
+template <class E> inline bool
+readUnformatted(std::istream& in, Matrix_<E>& v) {
+    SimTK_ASSERT_ALWAYS(!"implemented", 
+        "SimTK::readUnformatted(istream, Matrix) is not implemented; try"
+        " SimTK::fillUnformatted(istream, Matrix) instead.");
+    return false;
+}
+  
 /** Output a human readable representation of a Vector to an std::ostream
 (like std::cout). The format is ~[ \e elements ] where \e elements is a 
 space-separated list of the Vector's contents output by invoking the "<<" 
@@ -3246,8 +3380,7 @@ does not support the "<<" operator. No newline is issued before
 or after the output. @relates Vector_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const VectorBase<T>& v)
-{ o << "~["; for(int i=0;i<v.size();++i) o<<(i>0?" ":"")<<v[i]; 
-    return o << "]"; }
+{   o << "~["; writeUnformatted(o, v); return o << "]"; }
 
 /** Output a human readable representation of a RowVector to an std::ostream
 (like std::cout). The format is [ \e elements ] where \e elements is a 
@@ -3257,8 +3390,7 @@ does not support the "<<" operator. No newline is issued before
 or after the output. @relates RowVector_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const RowVectorBase<T>& v)
-{ o << "["; for(int i=0;i<v.size();++i) o<<(i>0?" ":"")<<v[i]; 
-    return o << "]"; }
+{   o << "["; writeUnformatted(o, v); return o << "]"; }
 
 /** Output a human readable representation of a Matrix to an std::ostream
 (like std::cout). The format is one row per line, with each row output as

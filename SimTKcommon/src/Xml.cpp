@@ -821,7 +821,7 @@ void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node node) 
     SimTK_ERRCHK1_ALWAYS(node.isValid(), method,
         "The supplied Node handle was invalid so can't be inserted into"
         " Element <%s>.", tag);
-    SimTK_ERRCHK1_ALWAYS(!hasParentElement(), method,
+    SimTK_ERRCHK1_ALWAYS(!node.hasParentElement(), method,
         "The supplied Node already had a parent so can't be inserted into"
         " Element <%s>.", tag);
 

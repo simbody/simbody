@@ -73,6 +73,11 @@ These functions perform highly optimized bit-twiddling operations on
 the built-in integral types, and sometimes on the representations of
 floating point types as well. **/
 
+/**@defgroup Serialization  Utilities for De/serializing
+   @ingroup GlobalFunctions
+These namespace-scope templatized utilities provide uniform serialization
+and deserialization behavior for built-in and SimTK-defined types. See
+SimTK::Xml for support of serialization to/from Xml files. **/
     
 /**@defgroup UniqueIndexTypes    Type-Safe Integer Indices
 
@@ -558,6 +563,15 @@ typedef std::complex<Real>      Complex;
 typedef std::complex<float>     fComplex;
 /** An abbreviation for std::complex<double> for consistency with others. **/
 typedef std::complex<float>     dComplex;
+
+
+// Forward declaration giving template defaults must come before any
+// other declarations.
+template <int M, class E=Real, int STRIDE=1>              class Vec;
+template <int N, class E=Real, int STRIDE=1>              class Row; 
+template <int M, int N, class E=Real, int CS=M, int RS=1> class Mat; // col & row spacing
+template <int M, class E=Real, int RS=1>                  class SymMat;
+
 
 /** A convenient struct for anything requiring an offset and length to specify
 a segment of some larger sequence. **/

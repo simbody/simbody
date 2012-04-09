@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTKCOMMON_CONCRETIZE_H_
-#define SimTK_SimTKCOMMON_CONCRETIZE_H_
+#ifndef SimTK_SimTKCOMMON_CLONE_PTR_H_
+#define SimTK_SimTKCOMMON_CLONE_PTR_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Simbody: SimTKcommon                            *
@@ -36,77 +36,90 @@ namespace SimTK {
 
 /** Wrap a pointer to an abstract base class in a way that makes it behave like
 a concrete class. This is similar to std::unique_ptr in that it does not permit
-shared ownership of the object. However, unlike std::unique_ptr, %Concretize
+shared ownership of the object. However, unlike std::unique_ptr, %ClonePtr
 supports copy and assigment operations, by insisting that the contained object
-have a clone() method which returns a pointer to a heap-allocated deep copy of 
-the <em>concrete</em> object. This is sometimes called a "clone pointer".
+have a clone() method that returns a pointer to a heap-allocated deep copy of 
+the <em>concrete</em> object.
 
-We define operator==() here that delegates to the contained object; if you
-want to use that feature the contained type must support operator==(). If two
-%Concretize containers are both empty, they compare equal.
+We define operator==() and operator<() here that delegate to the contained 
+object; if you want to use those the contained type must support that
+operator.
 
-The %Concretize object normally makes a copy of the object passed to its 
-constructor. However, if you pass it a non-const pointer% Concretize will 
-steal it and (if possible) return your pointer null just to be tidy. **/ 
-template <class T> class Concretize {
+This class is entirely inline and has no computational or space overhead; it
+contains just a single pointer and does no reference counting. **/ 
+template <class T> class ClonePtr {
 public:
-    typedef T element_type;
+    typedef T  element_type;
+    typedef T* pointer;
+    typedef T& reference;
 
     /** Default constructor creates an empty object. **/
-	Concretize() : p(0) { }
+	ClonePtr() : p(0) { }
     /** Given a pointer to a writable heap-allocated object, take over 
     ownership of that object. **/
-    explicit Concretize(T*  obj) : p(obj) { }
+    explicit ClonePtr(T*  obj) : p(obj) { }
     /** Given a pointer to a writable heap-allocated object, take over 
     ownership of that object and set the original pointer to null. **/
-    explicit Concretize(T** obj) : p(*obj) { *obj=0; }
+    explicit ClonePtr(T** obj) : p(*obj) { *obj=0; }
     /** Given a pointer to a read-only object, create a new heap-allocated 
-    copy of that object via its clone() method and make this %Concretize
+    copy of that object via its clone() method and make this %ClonePtr
     object the owner of the copy. Ownership of the original object is not
-    affected. If the supplied pointer is null, the resulting %Concretize
+    affected. If the supplied pointer is null, the resulting %ClonePtr
     object is empty. **/
-	explicit Concretize(const T* obj) : p(obj?obj->clone():0) { }
+	explicit ClonePtr(const T* obj) : p(obj?obj->clone():0) { }
     /** Given a read-only reference to an object, create a new heap-allocated 
-    copy of that object via its clone() method and make this %Concretize
+    copy of that object via its clone() method and make this %ClonePtr
     object the owner of the copy. Ownership of the original object is not
     affected. **/
-    explicit Concretize(const T& obj) : p(&obj?obj.clone():0) { }
-    /** Copy constructor is deep; the new %Concretize object contains a new
+    explicit ClonePtr(const T& obj) : p(&obj?obj.clone():0) { }
+    /** Copy constructor is deep; the new %ClonePtr object contains a new
     copy of the object in the source, created via the source object's clone()
     method. If the source container is empty this one will be empty also. **/
-	Concretize(const Concretize& c) : p(c.p?c.p->clone():0) { }
+	ClonePtr(const ClonePtr& c) : p(c.p?c.p->clone():0) { }
     /** Copy assignment replaces the currently-held object by a heap-allocated
     copy of the object held in the source container. The copy is created using 
     the source object's clone() method. The currently-held object is deleted. 
     If the source container is empty this one will be empty after the 
     assignment. **/
-	Concretize& operator=(const Concretize& c) 
+	ClonePtr& operator=(const ClonePtr& c) 
     {   reset(c.p?c.p->clone():0); return *this; }
     /** This form of assignment replaces the currently-held object by a 
     heap-allocated copy of the source object. The copy is created using the 
     source object's clone() method. The currently-held object is deleted. **/	
-    Concretize& operator=(const T& t)          
+    ClonePtr& operator=(const T& t)          
     {   reset(&t ? t.clone()  :0); return *this; }
     /** This form of assignment replaces the currently-held object by the given
     source object and takes over ownership of the source object. The 
     currently-held object is deleted. **/ 
-    Concretize& operator=(T* tp)               
+    ClonePtr& operator=(T* tp)               
     {   reset(tp); return *this; }
     
     /** Destructor deletes the referenced object. **/
-    ~Concretize() { delete p; }
+    ~ClonePtr() { delete p; }
 
     /** Compare the contained objects for equality using the contained 
     objects' operator==() operator. If both containers are empty or both
     refer to the same object they will test equal; if only one is empty they 
     will test not equal. Otherwise the objects are compared. **/
-    bool operator==(const Concretize& c) const {
-        if (p == c.p) return true; // same object or both empty
-        if (empty() || c.empty()) return false;
-        return getRef()==c.getRef();
+    bool operator==(const ClonePtr& other) const {
+        if (p == other.p) return true; // same object or both empty
+        if (empty() || other.empty()) return false;
+        return getRef()==other.getRef();
     }
     /** Compare the contained objects for inequality using operator==(). **/
-    bool operator!=(const Concretize& c) const {return !((*this)==c);}
+    bool operator!=(const ClonePtr& other) const {return !((*this)==other);}
+
+    /** Provide an ordering for use in sorted containers using the contained 
+    objects' operator<(). If both containers are empty or both
+    refer to the same object they will test equal; if only one is empty that 
+    one is considered less than the other one. Otherwise the objects are 
+    compared using T::operator<(). **/
+    bool operator<(const ClonePtr& other) const {
+        if (p == other.p)  return false;    // same object or both empty
+        if (empty())       return true;     //  empty < !empty
+        if (other.empty()) return false;    // !empty > empty
+        return getRef() < other.getRef();
+    }
     
     /** Dereference a const pointer to the contained object. This will fail if 
     the container is empty. **/
@@ -129,11 +142,11 @@ public:
     object (or null if none). **/
     T*       operator&()       { return p; }
     
-    /** This is an implicit conversion from %Concretize\<T> to a const 
+    /** This is an implicit conversion from %ClonePtr\<T> to a const 
     reference to the contained object. This will fail if the container is
     empty. **/
     operator const T&() const { return getRef(); }
-    /** This is an implicit conversion from %Concretize\<T> to a writable 
+    /** This is an implicit conversion from %ClonePtr\<T> to a writable 
     reference to the contained object. **/
     operator T&()             { return updRef(); } 
 
@@ -146,17 +159,17 @@ public:
 
     /** Return a writable reference to the contained object. Don't call this
     this container is empty. There is also an implicit conversion to reference
-    that allows %Concretize\<T> to be used as though it were a T\&. **/
+    that allows %ClonePtr\<T> to be used as though it were a T\&. **/
 	T& updRef() { 
-        SimTK_ERRCHK(p!=0, "Concretize::updRef()", 
+        SimTK_ERRCHK(p!=0, "ClonePtr::updRef()", 
                     "An attempt was made to dereference a null pointer."); 
         return *p; 
     }
     /** Return a const reference to the contained object. Don't call this if
     this container is empty. There is also an implicit conversion to reference
-    that allows %Concretize\<T> to be used as though it were a T\&. **/
+    that allows %ClonePtr\<T> to be used as though it were a T\&. **/
 	const T& getRef() const { 
-        SimTK_ERRCHK(p!=0, "Concretize::getRef()", 
+        SimTK_ERRCHK(p!=0, "ClonePtr::getRef()", 
                     "An attempt was made to dereference a null pointer."); 
         return *p; 
     }	
@@ -184,12 +197,31 @@ public:
         if (*tpp!=p) {delete p; p=*tpp;} 
         *tpp=0; 
     }
+    /** Swap the contents of this %ClonePtr with another one, with ownership
+    changing hands but no copying performed. **/
+    void swap(ClonePtr& other) {
+        T* otherp = other.release();
+        other.reset(p);
+        reset(otherp);
+    }
 	 
 private:
-    // Warning: Concretize must be exactly the same size as type T*. That way
-    // one can reinterpret_cast a T* to a Concretize<T> when needed.
+    // Warning: ClonePtr must be exactly the same size as type T*. That way
+    // one can reinterpret_cast a T* to a ClonePtr<T> when needed.
     T*	p;  
 };	
 	
 } // namespace SimTK
+
+namespace std {
+/** This is a specialization of the STL std::swap() algorithm which uses the
+cheap built-in swap() member of the ClonePtr class. 
+@relates SimTK::ClonePtr **/
+template <class T> inline void
+swap(SimTK::ClonePtr<T>& p1, SimTK::ClonePtr<T>& p2) {
+    p1.swap(p2);
+}
+
+} // namespace std
+
 #endif // SimTK_SimTKCOMMON_CONCRETIZE_H_
