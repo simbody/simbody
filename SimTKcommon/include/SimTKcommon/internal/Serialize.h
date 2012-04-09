@@ -85,6 +85,20 @@ writeUnformatted(std::ostream& o, const T& v) {
     o << String(v);
 }
 
+/** Specialize for float to help some compilers with template matching. **/
+template <class T> inline void
+writeUnformatted(std::ostream& o, const float& v)  
+{   writeUnformatted<float>(o,v); }
+/** Specialize for double to help some compilers with template matching. **/
+template <class T> inline void
+writeUnformatted(std::ostream& o, const double& v) 
+{   writeUnformatted<double>(o,v); }
+/** Specialize for long double to help some compilers with template 
+matching. **/
+template <class T> inline void
+writeUnformatted(std::ostream& o, const long double& v) 
+{   writeUnformatted<long double>(o,v); }
+
 /** Specialize for SimTK::negator\<T>: convert to T and write. **/
 template <class T> inline void
 writeUnformatted(std::ostream& o, const negator<T>& v) 
@@ -187,6 +201,20 @@ readUnformatted(std::istream& in, T& v) {
     {   in.setstate(std::ios::failbit); return false; }
     return true;
 }
+
+/** Specialize for float to help some compilers with template matching. **/
+template <class T> inline bool
+readUnformatted(std::istream& in, float& v) 
+{   return readUnformatted<float>(in,v); }
+/** Specialize for double to help some compilers with template matching. **/
+template <class T> inline bool
+readUnformatted(std::istream& in, double& v) 
+{   return readUnformatted<double>(in,v); }
+/** Specialize for long double to help some compilers with template 
+matching. **/
+template <class T> inline bool
+readUnformatted(std::istream& in, long double& v) 
+{   return readUnformatted<long double>(in,v); }
 
 /** Specialization for negator<T>: read as type T and convert. **/
 template <class T> inline bool
