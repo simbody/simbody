@@ -3337,8 +3337,8 @@ whole. **/
 /** Specialize writeUnformatted() for Array_<E,X> to delegate to element type
 E, with spaces separating the elements. 
 @relates SimTK::Array_ **/
-template <class E, class X> inline void
-writeUnformatted(std::ostream& o, const Array_<E,X>& v) {
+template <class T, class X> inline void
+writeUnformatted(std::ostream& o, const Array_<T,X>& v) {
     for (X i(0); i < v.size(); ++i) {
         if (i != 0) o << " ";
         writeUnformatted(o, v[i]);
@@ -3349,8 +3349,8 @@ writeUnformatted(std::ostream& o, const Array_<E,X>& v) {
 /** Specialize writeFormatted() for Array_<E,X> to delegate to element type
 E, with surrounding parentheses and commas separating the elements. 
 @relates SimTK::Array_ **/
-template <class E, class X> inline void
-writeFormatted(std::ostream& o, const Array_<E,X>& v) {
+template <class T, class X> inline void
+writeFormatted(std::ostream& o, const Array_<T,X>& v) {
     o << '(';
     for (X i(0); i < v.size(); ++i) {
         if (i != 0) o << ',';
