@@ -49,7 +49,6 @@ appropriate.
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/String.h"
-#include "SimTKcommon/internal/Array.h"
 
 #include <iostream>
 

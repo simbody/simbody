@@ -40,6 +40,7 @@
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
+#include "SimTKcommon/internal/Serialize.h"
 
 #include <algorithm>
 #include <iterator>
