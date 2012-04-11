@@ -3388,6 +3388,7 @@ template <class T, class X> inline bool
 readUnformatted(std::istream& in, Array_<T,X>& v) {
     v.clear();
     T element;
+    std::ws(in); // Make sure we're at eof if stream is all whitespace.
     while (!in.eof() && readUnformatted(in, element))
         v.push_back(element);
     return !in.fail(); // eof is expected and ok

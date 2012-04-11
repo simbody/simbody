@@ -750,6 +750,7 @@ SimTK_NICETYPENAME_LITERAL(unsigned long long);
 SimTK_NICETYPENAME_LITERAL(float);           
 SimTK_NICETYPENAME_LITERAL(double); 
 SimTK_NICETYPENAME_LITERAL(long double);
+SimTK_NICETYPENAME_LITERAL(std::string);
 SimTK_NICETYPENAME_LITERAL(std::complex<float>);
 SimTK_NICETYPENAME_LITERAL(std::complex<double>); 
 SimTK_NICETYPENAME_LITERAL(std::complex<long double>); 
