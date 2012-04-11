@@ -59,7 +59,7 @@ class SysConstraintFunc : public Differentiator::JacobianFunction {
 };
 
 
-class Optimizer::OptimizerRep {
+class SimTK_SIMMATH_EXPORT Optimizer::OptimizerRep {
 public:
     virtual ~OptimizerRep();
     OptimizerRep(const OptimizerSystem& sys) 
