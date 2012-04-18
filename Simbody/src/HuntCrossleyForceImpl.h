@@ -52,6 +52,7 @@ public:
     Parameters& updParameters(ContactSurfaceIndex bodyIndex);
     Real getTransitionVelocity() const;
     void setTransitionVelocity(Real v);
+    ContactSetIndex getContactSetIndex() const {return set;}
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
     Real calcPotentialEnergy(const State& state) const;
     void realizeTopology(State& state) const;

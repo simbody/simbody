@@ -60,6 +60,11 @@ void HuntCrossleyForce::setTransitionVelocity(Real v) {
     updImpl().setTransitionVelocity(v);
 }
 
+ContactSetIndex HuntCrossleyForce::getContactSetIndex() const {
+    return getImpl().getContactSetIndex();
+}
+
+
 HuntCrossleyForceImpl::HuntCrossleyForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
         subsystem(subsystem), set(set), transitionVelocity(0.01) {
 }

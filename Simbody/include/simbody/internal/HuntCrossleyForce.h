@@ -137,7 +137,9 @@ public:
      * @param contacts       the subsystem to which this contact model should be applied
      * @param contactSet     the index of the contact set to which this contact model will be applied
      */
-    HuntCrossleyForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex contactSet);
+    HuntCrossleyForce(GeneralForceSubsystem& forces, 
+                      GeneralContactSubsystem& contacts, 
+                      ContactSetIndex contactSet);
     /**
      * Set the material parameters for a surface in the contact set.
      *
@@ -159,6 +161,12 @@ public:
      * Set the transition velocity (vt) of the friction model.
      */
     void setTransitionVelocity(Real v);
+    /**
+     * Retrieve the ContactSetIndex that was associated with this 
+     * %HuntCrossleyForce on construction. 
+     */
+    ContactSetIndex getContactSetIndex() const;
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(HuntCrossleyForce, HuntCrossleyForceImpl, Force);
 };
 
