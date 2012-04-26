@@ -178,7 +178,7 @@ public:
 	bool     empty() const    { return p==0; }
     /** Make this container empty, deleting the currently contained object if
     there is one. **/
-    void     clear()          { reset(0); }
+    void     clear()          { delete p; p=0; }
     /** Extract the object from this container, leaving the container empty
     and transferring ownership to the caller. A pointer to the object is
     returned. **/
