@@ -46,7 +46,9 @@ object; if you want to use those the contained type must support that
 operator.
 
 This class is entirely inline and has no computational or space overhead; it
-contains just a single pointer and does no reference counting. **/ 
+contains just a single pointer and does no reference counting. 
+
+@see ReferencePtr **/ 
 template <class T> class ClonePtr {
 public:
     typedef T  element_type;
@@ -150,12 +152,16 @@ public:
     reference to the contained object. **/
     operator T&()             { return updRef(); } 
 
+    /** This is an implicit conversion to type bool that returns true if
+    the container is non-null (that is, not empty). **/
+    operator bool() const { return !empty(); }
+
     /** Return a writable pointer to the contained object if any, or null. 
     You can use the "address of" operator\&() instead if you prefer. **/
-	T* updPtr() { return *p; }
+	T* updPtr() { return p; }
     /** Return a const pointer to the contained object if any, or null.  
     You can use the "address of" operator\&() instead if you prefer. **/
-	const T* getPtr()  const  { return *p; }
+	const T* getPtr()  const  { return p; }
 
     /** Return a writable reference to the contained object. Don't call this
     this container is empty. There is also an implicit conversion to reference
@@ -181,7 +187,7 @@ public:
     void     clear()          { delete p; p=0; }
     /** Extract the object from this container, leaving the container empty
     and transferring ownership to the caller. A pointer to the object is
-    returned. **/
+    returned. No destruction occurs. **/
     T*       release()        { T* x=p; p=0; return x; }
     /** Replace the contents of this container with the supplied heap-allocated
     object, taking over ownership of that object and deleting the current one
@@ -224,4 +230,4 @@ swap(SimTK::ClonePtr<T>& p1, SimTK::ClonePtr<T>& p2) {
 
 } // namespace std
 
-#endif // SimTK_SimTKCOMMON_CONCRETIZE_H_
+#endif // SimTK_SimTKCOMMON_CLONE_PTR_H_

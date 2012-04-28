@@ -50,6 +50,7 @@
 #include "SimTKcommon/internal/Exception.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/ClonePtr.h"
+#include "SimTKcommon/internal/ReferencePtr.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Serialize.h"
 #include "SimTKcommon/internal/Fortran.h"
