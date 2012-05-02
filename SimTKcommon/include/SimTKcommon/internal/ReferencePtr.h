@@ -96,11 +96,9 @@ public:
     /** The "dereference" operator returns a reference to the target object. 
     This will fail if the container is empty. **/
     T& operator*() const { return getRef(); }
-    
-    /** This is an implicit conversion from %ReferencePtr\<T> to a  
-    reference to the contained object. This will fail if the container is 
-    empty. **/
-    operator T&() const { return getRef(); } 
+
+    /** This is an implicit conversion from %ReferencePtr\<T> to T*. **/
+    operator T*() const { return p; }
 
     /** This is an implicit conversion to type bool that returns true if
     the container is non-null (that is, not empty). **/
