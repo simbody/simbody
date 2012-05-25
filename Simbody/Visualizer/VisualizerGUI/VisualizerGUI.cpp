@@ -810,9 +810,17 @@ static void zoomCameraToShowWholeScene() {
     float radius;
     fVec3 center;
     computeSceneBounds(scene, radius, center);
-    float viewDistance = radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
+    float viewDistance = 
+        radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
     // Back up 1 unit more to make sure we don't clip at this position.
-    X_GC.updP() = center+X_GC.R()*fVec3(0, 0, viewDistance+1);
+    // Also add a modest offset in the (x,y) direction to avoid edge-on views.
+    const float offset = std::max(1.f, viewDistance/10);
+    X_GC.updP() = center+X_GC.R()*fVec3(offset, offset, viewDistance+1);
+    // Now fix the aim to point at the center.
+    fVec3 zdir = X_GC.p() - center;
+    if (zdir.normSqr() >= square(1e-6))
+        X_GC.updR().setRotationFromTwoAxes(fUnitVec3(zdir), ZAxis, 
+                                           X_GC.y(),        YAxis);
 }
 
 class PendingCameraZoom : public PendingCommand {
@@ -2229,7 +2237,11 @@ void* listenForInput(void* args) {
             fVec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             fVec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            X_GC.updR().setRotationFromTwoAxes(fUnitVec3(X_GC.p()-point), ZAxis, updir, YAxis);
+            fVec3 pt2camera = X_GC.p()-point;
+            if (pt2camera.normSqr() < square(1e-6))
+                pt2camera = fVec3(X_GC.z()); // leave unchanged
+            X_GC.updR().setRotationFromTwoAxes(fUnitVec3(pt2camera), ZAxis, 
+                                               updir, YAxis);
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
@@ -2364,7 +2376,7 @@ static void dumpAboutMessageToConsole() {
     printf(  "GLSL version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     printf(  "GL renderer:  %s\n", glGetString(GL_RENDERER));
     printf(  "GL vendor:    %s\n", glGetString(GL_VENDOR));
-    printf("\nAuthors: Peter Eastman, Michael Sherman\n");
+    printf("\nVisualizer authors: Peter Eastman, Michael Sherman\n");
     printf(  "Support: Simbios, Stanford Bioengineering, NIH U54 GM072970\n");
     printf(  "https://simtk.org/home/simbody\n");
     printf("================================================================\n\n");
