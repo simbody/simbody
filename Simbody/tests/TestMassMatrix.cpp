@@ -803,6 +803,20 @@ void testConstrainedSystem() {
     // Residual should be zero since we accounted for everything.
     SimTK_TEST_EQ_TOL(residual, 0*randMobFrc, Slop);
 
+    Vector abias, mgbias;
+    // These are the acceleration error bias terms.
+    matter.calcBiasForAccelerationConstraints(state, abias);
+    // These use pverr (velocity-level errors) for holonomic constraints.
+    matter.calcBiasForMultiplyByG(state, mgbias);
+
+    Vector mgGudot; matter.multiplyByG(state, udot, mgbias, mgGudot);
+    Matrix G; matter.calcG(state, G);
+    Vector Gudot = G*udot;
+    SimTK_TEST_EQ_TOL(mgGudot, Gudot, Slop);
+    Vector aerr = state.getUDotErr(); // won't be zero because bad constraints
+    Vector GudotPlusBias = Gudot + abias;
+    SimTK_TEST_EQ_TOL(GudotPlusBias, aerr, Slop);
+
     // Add in some body forces
     state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
     frcp->setBodyForces(randBodyFrc);

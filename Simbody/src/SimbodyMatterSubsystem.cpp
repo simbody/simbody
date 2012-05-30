@@ -705,6 +705,40 @@ calcBiasForMultiplyByG(const State& state,
 
 
 
+
+//==============================================================================
+//                    CALC BIAS FOR ACCELERATION CONSTRAINTS
+//==============================================================================
+// Here we just make sure that we have a contiguous array for the result and
+// then call the implementation method.
+void SimbodyMatterSubsystem::
+calcBiasForAccelerationConstraints(const State& state,
+                                   Vector&      bias) const
+{
+    const SBInstanceCache& ic = getRep().getInstanceCache(state);
+
+    // Global problem dimensions.
+    const int mHolo    = ic.totalNHolonomicConstraintEquationsInUse;
+    const int mNonholo = ic.totalNNonholonomicConstraintEquationsInUse;
+    const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
+    const int m        = mHolo+mNonholo+mAccOnly;
+
+    bias.resize(m);
+    if (m==0) return;
+
+    if (bias.hasContiguousData()) {
+        getRep().calcBiasForAccelerationConstraints(state,true,true,true,bias);
+    } else {
+        Vector tmpbias(m); // contiguous
+        getRep().calcBiasForAccelerationConstraints(state,true,true,true,tmpbias);
+        bias = tmpbias;
+    }
+}
+
+
+
+
+
 //==============================================================================
 //                            MULTIPLY BY Pq
 //==============================================================================

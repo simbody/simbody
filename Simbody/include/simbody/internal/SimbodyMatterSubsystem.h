@@ -996,14 +996,16 @@ information.
 @pre \a state realized to Velocity stage
 @par Implementation
 This is accomplished by treating the input vector \a ulike as though it were
-a set of generalized accelerations. These are mapped to body accelerations
-A in O(n) time; see calcBodyAccelerationFromUdot() for more information.
-Then the body accelerations and generalized accelerations are supplied to each 
-of the m active constraints' (constant time) acceleration error methods to get 
-aerr(t,q,u;ulike)=G*ulike - b(t,q,u) in O(m) time. A second call is made to
+a set of generalized accelerations (for nonholonomic and acceleration-only
+constraints) or generalized speeds (for holonomic constraints). These are 
+mapped to body accelerations (or velocities) in O(n) time. See
+calcBodyAccelerationFromUDot() for more information (converting from 
+generalized speeds to velocities is just multiplying by the System Jacobian).
+The method calcBiasForMultiplyByG() is used to determine the state-dependent
+term of the constraint error equations. Then a second call is made to
 evaluate the bias term aerr(t,q,u;0)=-b(t,q,u). We then calculate 
 Gulike = aerr(t,q,u;ulike)-aerr(t,q,u;0) in O(m) time.
-**/
+@see calcBiasForMultiplyByG() **/
 void multiplyByG(const State&  state,
                  const Vector& ulike,
                  Vector&       Gulike) const {
@@ -1034,16 +1036,18 @@ the multiplyByG() method above.
 
 @pre \a state realized to Velocity stage
 @par Implementation
-We have constant-time constraint acceleration error methods 
-<pre>   aerr(t,q,u;udot)=G*udot - b(t,q,u)    </pre>
-for each %Constraint. This method sets \c udot = 0 and invokes each of those 
-methods to obtain bias = aerr(t,q,u;0) = -b(t,q,u). The actual methods
-require both udot and body accelerations for the constrained bodies; even
-with udot==0 body accelerations may have a non-zero velocity-dependent
-component (the coriolis accelerations). Those are already available in 
-the state, but only as accelerations in Ground. For constraints that have
-a non-Ground Ancestor, we have to convert the accelerations to A at a cost
-of 105 flops/constrained body. **/
+This method uses either velocity- or acceleration- level constraint error
+functions with zero input to determine the bias term for use in 
+multiplyByG(). Body quantities and generalized quantities are supplied to each 
+of the m active constraints' (constant time) error methods to calculate
+<pre>
+   pverr(t,q,u;ulike)=G*ulike - c(t,q)    (holonomic) 
+or aerr(t,q,u;ulike)=G*ulike - b(t,q,u)   (nonholonomic or acceleration-only)
+</pre>
+with ulike=0, giving the bias term in O(m) time. 
+
+If you want the acceleration-level bias terms b for all the constraints, even
+if they are holonomic, use calcBiasForAccelerationConstraints(). **/
 void calcBiasForMultiplyByG(const State& state,
                             Vector&      bias) const;
 
@@ -1061,6 +1065,44 @@ this should be identical to the transpose of the matrix returned by calcGt()
 which uses the constraint force methods instead. 
 @see multiplyByG(), calcGt(), calcPq() **/
 void calcG(const State& state, Matrix& G) const;
+
+
+/** Calculate the acceleration constraint bias vector, that is, the terms in
+the acceleration constraints that are independent of the accelerations.
+
+@param[in]      state
+    Provides time t, positions q, and speeds u; must be realized through
+    Velocity stage so that all body spatial velocities are known.
+@param[out]     bias
+    This is the bias vector for all the acceleration constraint equations
+    together. It will be resized if necessary to length m=mp+mv+ma, the total 
+    number of active acceleration-level constraint equations. 
+
+@pre \a state realized to Velocity stage
+@par Implementation
+We have constant-time constraint acceleration error methods 
+<pre>   
+paerr(t,q,u;udot)=P*udot - b_p(t,q,u) 
+vaerr(t,q,u;udot)=V*udot - b_v(t,q,u) 
+ aerr(t,q,u;udot)=A*udot - b_a(t,q,u)   
+</pre>
+that together define the acceleration constraint equation G*udot-b=0
+where G=[P;V;A] and b=[b_p b_v b_a]. There is one of these error functions 
+for each %Constraint, with paerr() the twice-differentiated position (holonomic)
+constraints, vaerr() the once-differentiated velocity (nonholonomic)
+constraints, and aerr() the acceleration-only constraints. This method 
+sets \c udot = 0 and invokes each of those methods to obtain 
+bias = -[b_p b_v b_a].
+
+<h3>Performance note</h3>
+The actual acceleration constraint functions require both udot and body 
+accelerations for the constrained bodies; even with udot==0 body accelerations 
+may have a non-zero velocity-dependent component (the coriolis accelerations). 
+Those are already available in the state, but only as accelerations in Ground. 
+For constraints that have a non-Ground Ancestor, we have to convert the 
+accelerations to A at a cost of 105 flops/constrained body. **/
+void calcBiasForAccelerationConstraints(const State& state,
+                                        Vector&      bias) const;
 
 
 /** Returns f = ~G*lambda, the product of the n X m transpose of the 

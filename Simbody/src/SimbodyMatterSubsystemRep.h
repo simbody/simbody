@@ -773,6 +773,18 @@ public:
                                   bool         includeA,
                                   Vector&      bias) const;
 
+    // Calculate the bias vector from the acceleration constraint error
+    // equations used. Here bias is what you would get from paerr, vaerr,
+    // and aerr when udot==0. This is different than calcBiasForMultiplyByPVA()
+    // because that method uses pverr for holonomic constraints rather than
+    // paerr. The output Vector must use contiguous storage. It will 
+    // be resized if necessary to length m=mp+mv+ma.
+    void calcBiasForAccelerationConstraints(const State& state,
+                                            bool         includeP,
+                                            bool         includeV,
+                                            bool         includeA,
+                                            Vector&      bias) const;
+
     void calcBiasForMultiplyByPq(const State& state,
                                  Vector&      bias) const
     {   calcBiasForMultiplyByPVA(state,true,false,false,bias); }
