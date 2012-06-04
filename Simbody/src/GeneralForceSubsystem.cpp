@@ -234,13 +234,14 @@ public:
         // Allow forces to do their own realization.
         // TODO: sherm 100313: shouldn't this come before calcForce() calls?
         for (int i = 0; i < (int) forces.size(); ++i)
-            forces[i]->getImpl().realizeDynamics(s);
+            if (forceEnabled[i]) forces[i]->getImpl().realizeDynamics(s);
 
         return 0;
     }
     
     Real calcPotentialEnergy(const State& state) const {
-        const Array_<bool>& forceEnabled = Value<Array_<bool> >::downcast(state.getDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).get();
+        const Array_<bool>& forceEnabled = Value<Array_<bool> >::downcast
+           (getDiscreteVariable(state, forceEnabledIndex)).get();
         Real energy = 0;
         for (int i = 0; i < (int) forces.size(); ++i) {
             if (forceEnabled[i]) {
