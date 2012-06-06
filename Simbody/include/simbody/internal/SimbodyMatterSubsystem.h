@@ -686,6 +686,7 @@ acceleration of the station in Ground.
 @param[in]      stationPInB
     The point P of interest on body B, given as a vector from body B's origin Bo
     to the point P, expressed in frame B.
+@returns JSDot*u, where JS is the station Jacobian.
 
 <h3>Theory</h3>
 The velocity v_GP of point P can be obtained from the generalized
@@ -801,6 +802,7 @@ acceleration of the frame in Ground.
 @param[in]      originAoInB
     The origin of frame A on body B, given as a vector from body B's origin Bo
     to A's origin Ao, expressed in frame B.
+@returns JFDot*u, where JF is the frame Jacobian.
 
 <h3>Theory</h3>
 The spatial velocity V_GA of frame A can be obtained from the generalized
