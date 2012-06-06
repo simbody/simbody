@@ -69,7 +69,7 @@
     class Implementation;                                           \
     explicit MH(Implementation* imp) : PH(imp) {}                   \
     MH(SimTK::Subsystem& sub, Implementation* imp,                  \
-       const AbstractMeasure::SetHandle& sh)                        \
+       const SimTK::AbstractMeasure::SetHandle& sh)                        \
     :   PH(sub,imp,sh) {}                                           \
     MH& operator=(const MH& src) {PH::operator=(src); return *this;}\
     MH& shallowAssign(const MH& src) {PH::shallowAssign(src); return *this;}\
@@ -112,17 +112,18 @@
  * builds.
  */
 #define SimTK_MEASURE_HANDLE_POSTSCRIPT(MH,PH) \
-    static bool isA(const AbstractMeasure& m)                               \
+    static bool isA(const SimTK::AbstractMeasure& m)                               \
     {   return dynamic_cast<const Implementation*>(&m.getImpl()) != 0; }    \
-    static const MH& getAs(const AbstractMeasure& m)                        \
+    static const MH& getAs(const SimTK::AbstractMeasure& m)                 \
     {   assert(isA(m)); return static_cast<const MH&>(m); }                 \
-    static MH& updAs(AbstractMeasure& m)                                    \
+    static MH& updAs(SimTK::AbstractMeasure& m)                             \
     {   assert(isA(m)); return static_cast<MH&>(m); }                       \
     const Implementation& getImpl() const                                   \
     {   return dynamic_cast<const Implementation&>                          \
-                    (AbstractMeasure::getImpl());}                          \
+                    (SimTK::AbstractMeasure::getImpl());}                   \
     Implementation& updImpl()                                               \
-    {   return dynamic_cast<Implementation&>(AbstractMeasure::updImpl());} 
+    {   return dynamic_cast<Implementation&>                                \
+                    (SimTK::AbstractMeasure::updImpl());} 
 
 namespace SimTK {
 
