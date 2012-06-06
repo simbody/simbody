@@ -440,16 +440,16 @@ from the old one.
     which the translational component of the relative spatial velocity is 
     measured.
 @return V_A_BQ, the relative velocity of frame B in frame A, but measured at
-    the point Q=OB+r rather than at B's origin OB.
+    the point Q=Bo+r rather than at B's origin Bo.
 
 Given the spatial velocity V_AB of frame B in A, measured at a point
-coincident with B's origin OB, change it to the spatial velocity V_A_BQ 
+coincident with B's origin Bo, change it to the spatial velocity V_A_BQ 
 representing the same relationship but with the velocity measured at a new 
-point Q=OB+r for some position vector r. All vectors are measured and expressed
+point Q=Bo+r for some position vector r. All vectors are measured and expressed
 in frame A, including the vector r. Example:
 @code
     SpatialVec V_AB;     // assume these are known from somewhere
-    Vec3       offset_A; // Q = OB + offset
+    Vec3       offset_A; // Q = Bo + offset
 
     SpatialVec V_A_BQ = shiftVelocityBy(V_AB, offset_A);
 @endcode
@@ -502,6 +502,99 @@ inline SpatialVec shiftVelocityFromTo(const SpatialVec& V_A_BP,
                                       const Vec3&       fromP_A,
                                       const Vec3&       toQ_A)
 {   return shiftVelocityBy(V_A_BP, toQ_A - fromP_A); }
+
+
+
+//==============================================================================
+//                         SHIFT ACCELERATION BY
+//==============================================================================
+/** @brief Shift a relative spatial acceleration measured at some point to that
+same relative spatial quantity but measured at a new point given by an offset
+from the old one.
+
+@param[in]      A_AB
+    The relative spatial acceleration of frame B in frame A, measured and 
+    expressed in frame A.
+@param[in]      w_AB
+    The relative angular velocity of frame B in frame A, expressed in frame A.
+@param[in]      r_A
+    The vector offset, expressed in frame A, by which to change the point at 
+    which the translational component of the relative spatial acceleration is 
+    measured.
+@return A_A_BQ, the relative acceleration of frame B in frame A, but measured at
+    the point Q=Bo+r rather than at B's origin Bo.
+
+Given the spatial acceleration A_AB and angular velocity w_AB of frame B in A, 
+measured at a point coincident with B's origin Bo, change it to the spatial 
+acceleration A_A_BQ representing the same relationship but with the acceleration
+measured at a new point Q=Bo+r for some position vector r. All vectors are 
+measured and expressed in frame A, including the vector r. Example:
+@code
+    SpatialVec A_AB;     // assume these are known from somewhere
+    Vec3       w_AB;
+    Vec3       offset_A; // Q = Bo + offset
+
+    SpatialVec A_A_BQ = shiftAccelerationBy(A_AB, w_AB, offset_A);
+@endcode
+
+@note The shift in location leaves the relative angular acceleration b the same
+but results in the linear acceleration changing by b X r + w X (w X r).
+
+Cost is 33 flops. @see shiftAccelerationFromTo() **/
+inline SpatialVec shiftAccelerationBy(const SpatialVec& A_AB, 
+                                      const Vec3&       w_AB, 
+                                      const Vec3&       r_A)
+{   return SpatialVec( A_AB[0],   
+                       A_AB[1] + A_AB[0] % r_A  + w_AB % (w_AB % r_A) ); } 
+
+
+
+//==============================================================================
+//                        SHIFT ACCELERATION FROM TO
+//==============================================================================
+/** @brief Shift a relative spatial acceleration measured at some point P to 
+that same relative spatial quantity but measured at a new point Q given the 
+points P and Q.
+
+@param[in]      A_A_BP
+    The relative spatial acceleration of frame B in frame A, measured and 
+    expressed in frame A, with the linear component measured at a point P.
+@param[in]      w_AB
+    The relative angular velocity of frame B in frame A, expressed in frame A.
+@param[in]      fromP_A
+    The "from" point P at which the input linear acceleration was
+    measured, given as a vector from A's origin Ao to the point P, 
+    expressed in A.
+@param[in]      toQ_A
+    The "to" point Q at which we want to re-measure the linear acceleration, 
+    given as a vector from A's origin Ao to the point Q, expressed 
+    in A.
+@return A_A_BQ, the relative acceleration of frame B in frame A, but measured at
+    the point Q rather than at point P.
+
+Given the spatial acceleration A_A_BP of frame B in A, measured at a point P,
+change it to the spatial acceleration A_A_BQ representing the same relationship 
+but with the acceleration measured at a new point Q. Example:
+@code
+    // assume these are known from somewhere
+    Transform  X_AB;    // contains the vector from Ao to Bo  
+    SpatialVec A_AB;    // linear acceleration is measured at origin Bo of B
+    Vec3       w_AB;
+    Vec3       p_AQ;    // vector from Ao to some other point Q, in A
+
+    SpatialVec A_A_BQ = shiftAccelerationFromTo(A_AB, w_AB, X_AB.p(), p_AQ);
+@endcode
+
+@note There is no way to know whether the supplied acceleration was
+actually measured at P; this method really just shifts the relative 
+acceleration by the vector r=(to-from). Use it carefully.
+
+Cost is 36 flops. @see shiftAccelerationBy() **/
+inline SpatialVec shiftAccelerationFromTo(const SpatialVec& A_A_BP, 
+                                          const Vec3&       w_AB,
+                                          const Vec3&       fromP_A,
+                                          const Vec3&       toQ_A)
+{   return shiftAccelerationBy(A_A_BP, w_AB, toQ_A - fromP_A); }
 
 
 

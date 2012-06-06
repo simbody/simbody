@@ -1067,9 +1067,22 @@ void SimbodyMatterSubsystem::calcSystemJacobian
     }
 }
 
+// This is just a synonym for getTotalCoriolisAcceleration().
+void SimbodyMatterSubsystem::calcBiasForSystemJacobian
+   (const State&         state,
+    Vector_<SpatialVec>& JDotu) const 
+{
+    // Just return the coriolis acceleration.
+    const SBTreeVelocityCache& vc = getRep().getTreeVelocityCache(state);
+    const Array_<SpatialVec>& tca = vc.totalCoriolisAcceleration;
+    const Vector_<SpatialVec> 
+        AC_GB(tca.size(), (const Real*)tca.begin(), true); // shallow ref
+    JDotu = AC_GB;
+}
+
 // We want v_GS = J_GS*u, the linear velocity of station S in Ground induced
 // by the given generalized speeds. Station S is on body B and is given by
-// the vector B-frame vector p_BoS. We can easily calculate V_GBo = J_GB*u,
+// the B-frame vector p_BoS. We can easily calculate V_GBo = J_GB*u,
 // the spatial velocity of body B's origin Bo. Then 
 //      v_GS = v_GBo + w_GB X p_BS_G
 // where p_BS_G is p_BS re-expressed in Ground.
@@ -1102,6 +1115,27 @@ Vec3 SimbodyMatterSubsystem::multiplyByStationJacobian
     const SpatialVec  V_GS = shiftVelocityBy(V_GB, p_BS_G); // 12 flops
 
     return V_GS[1]; // return linear velocity only
+}
+
+
+// Just get the total Coriolis acceleration for this body and shift it to
+// the station S.
+Vec3 SimbodyMatterSubsystem::calcBiasForStationJacobian
+   (const State&         state,
+    MobilizedBodyIndex   onBodyB,
+    const Vec3&          p_BS) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+
+    const SBTreeVelocityCache& vc = rep.getTreeVelocityCache(state);
+    const SpatialVec& A0_GB = vc.totalCoriolisAcceleration[onBodyB];
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 w_GB = mobod.getBodyAngularAcceleration(state);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS); //15flops
+
+    const SpatialVec A0_GS = shiftAccelerationBy(A0_GB, w_GB, p_BS_G); //33flops 
+    return A0_GS[1]; // linear acceleration
 }
 
 // We want f = ~J_GS*f_GS, the generalized forces produced by applying a
@@ -1230,6 +1264,26 @@ SpatialVec SimbodyMatterSubsystem::multiplyByFrameJacobian
     const SpatialVec  V_GA = shiftVelocityBy(V_GB, p_BA_G); // 12 flops
 
     return V_GA;
+}
+
+// Just get the total Coriolis acceleration for this body and shift it to
+// the A frame origin Ao.
+SpatialVec SimbodyMatterSubsystem::calcBiasForFrameJacobian
+   (const State&         state,
+    MobilizedBodyIndex   onBodyB,
+    const Vec3&          p_BA) const
+{
+    const SimbodyMatterSubsystemRep& rep = getRep();
+
+    const SBTreeVelocityCache& vc = rep.getTreeVelocityCache(state);
+    const SpatialVec& A0_GB = vc.totalCoriolisAcceleration[onBodyB];
+
+    const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
+    const Vec3 w_GB = mobod.getBodyAngularAcceleration(state);
+    const Vec3 p_BA_G = mobod.expressVectorInGroundFrame(state, p_BA); //15flops
+
+    const SpatialVec A0_GA = shiftAccelerationBy(A0_GB, w_GB, p_BA_G); //33flops 
+    return A0_GA; // spatial acceleration
 }
 
 // We want f = ~J_GA*F_GA, the generalized forces produced by applying a spatial

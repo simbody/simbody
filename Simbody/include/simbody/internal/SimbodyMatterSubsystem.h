@@ -516,7 +516,35 @@ void multiplyBySystemJacobian( const State&         state,
                                const Vector&        u,
                                Vector_<SpatialVec>& Ju) const;
 
+/** (EXPERIMENTAL)
+Calculate the acceleration bias term for the system Jacobian, that is, the
+part of the acceleration that is due only to velocities. This term is also
+known as the Coriolis acceleration, and it is returned here as a spatial
+acceleration of each body frame in Ground.
 
+@param[in]      state
+    A State that has already been realized through Velocity stage.
+@param[out]     JDotu
+    The product JDot*u where JDot = d/dt J, and u is the vector of generalized
+    speeds taken from \a state. This is a Vector of nb SpatialVec elements.
+
+<h3>Theory</h3>
+The spatial velocity V_GBi of each body i can be obtained from the generalized
+speeds u by V = {V_GBi} = J*u. Taking the time derivative in G gives
+<pre>
+    A = d/dt V = {A_GBi} = J*udot + JDot*u
+</pre>
+This method returns JDot*u, which depends only on velocities. Note that the
+same u is used to calculate JDot, so this term is quadratic in u.
+
+<h3>Implementation</h3>
+This method simply extracts the total Coriolis acceleration for each body that
+is already available in the \a state cache so there is no computation done
+here.
+@see getTotalCoriolisAcceleration()
+**/
+void calcBiasForSystemJacobian(const State&         state,
+                               Vector_<SpatialVec>& JDotu) const;
 
 /** Calculate the product of the transposed kinematic Jacobian ~J (==J^T) and
 a vector F_G of spatial force-like elements, one per body, in O(n) time to 
@@ -616,6 +644,7 @@ considerations. **/
 void calcSystemJacobian(const State&            state,
                         Matrix&                 J_G) const; // 6 nb X nu
 
+
 /** Calculate the Cartesian ground-frame velocity of a station (point fixed 
 to a body) that results from a particular set of generalized speeds u. The 
 result is the station's velocity measured and expressed in Ground. 
@@ -642,6 +671,40 @@ Vec3 multiplyByStationJacobian(const State&         state,
                                MobilizedBodyIndex   onBodyB,
                                const Vec3&          stationPInB,
                                const Vector&        u) const;
+
+
+/** (EXPERIMENTAL) 
+Calculate the acceleration bias term for a station Jacobian, that is, the
+part of the station's acceleration that is due only to velocities. This term 
+is also known as the Coriolis acceleration, and it is returned here as a linear
+acceleration of the station in Ground.
+
+@param[in]      state
+    A State that has already been realized through Velocity stage.
+@param[in]      onBodyB
+    The mobilized body to which the station of interest is fixed.
+@param[in]      stationPInB
+    The point P of interest on body B, given as a vector from body B's origin Bo
+    to the point P, expressed in frame B.
+
+<h3>Theory</h3>
+The velocity v_GP of point P can be obtained from the generalized
+speeds u using the station Jacobian for P, as v_GP = JS_P*u. Taking the time 
+derivative in G gives
+<pre>
+    a_GP = JS_P*udot + JSDot_P*u
+</pre>
+This method returns JSDot_P*u, which depends only on velocities. Note that the
+same u is used to calculate JSDot_P, so this term is quadratic in u.
+
+<h3>Implementation</h3>
+This method just obtains body B's total Coriolis acceleration already available
+in the \a state cache and shifts it to station point P. Cost is 48 flops.
+@see getTotalCoriolisAcceleration(), shiftAccelerationBy()
+**/
+Vec3 calcBiasForStationJacobian(const State&         state,
+                                MobilizedBodyIndex   onBodyB,
+                                const Vec3&          stationPInB) const;
 
 /** Calculate the generalized forces resulting from a single force applied
 to a station (point fixed to a body) P. The applied force f_GP should be 
@@ -723,6 +786,42 @@ SpatialVec multiplyByFrameJacobian( const State&         state,
                                     MobilizedBodyIndex   onBodyB,
                                     const Vec3&          originAoInB,
                                     const Vector&        u) const;
+
+
+/** (EXPERIMENTAL) 
+Calculate the acceleration bias term for a frame Jacobian, that is, the
+part of the frame's acceleration that is due only to velocities. This term 
+is also known as the Coriolis acceleration, and it is returned here as a spatial
+acceleration of the frame in Ground.
+
+@param[in]      state
+    A State that has already been realized through Velocity stage.
+@param[in]      onBodyB
+    The mobilized body to which the frame of interest A is fixed.
+@param[in]      originAoInB
+    The origin of frame A on body B, given as a vector from body B's origin Bo
+    to A's origin Ao, expressed in frame B.
+
+<h3>Theory</h3>
+The spatial velocity V_GA of frame A can be obtained from the generalized
+speeds u using the frame Jacobian for A, as V_GA = JF_A*u. Taking the time 
+derivative in G gives
+<pre>
+    A_GA = JF_A*udot + JFDot_A*u
+</pre>
+This method returns JFDot_A*u, which depends only on velocities. Note that the
+same u is used to calculate JFDot_A, so this term is quadratic in u.
+
+<h3>Implementation</h3>
+This method just obtains body B's total Coriolis acceleration already available
+in the \a state cache and shifts it to the A frame's origin Ao.
+Cost is 48 flops.
+@see getTotalCoriolisAcceleration(), shiftAccelerationBy()
+**/
+SpatialVec calcBiasForFrameJacobian(const State&         state,
+                                    MobilizedBodyIndex   onBodyB,
+                                    const Vec3&          originAoInB) const;
+
 
 /** Calculate the nu generalized forces f resulting from a single spatial force 
 (force and torque) F applied at a frame A fixed to a body B. The applied force 
