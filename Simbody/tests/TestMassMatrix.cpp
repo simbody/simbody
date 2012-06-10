@@ -581,6 +581,16 @@ void testUnconstrainedSystem() {
     matter.multiplyByM(state, randVec, result1);
     SimTK_TEST_EQ(result1.size(), nu);
 
+    // Just checking that these are callable at Velocity stage.
+    // TODO: need real test of the results!
+    system.realize(state, Stage::Velocity);
+    Vec3 sbias =
+    matter.calcBiasForStationJacobian(state, MobilizedBodyIndex(2), Vec3(1,2,3));
+    SpatialVec fbias = 
+    matter.calcBiasForFrameJacobian(state, MobilizedBodyIndex(2), Vec3(1,2,3));
+    Vector_<SpatialVec> sysbias;
+    matter.calcBiasForSystemJacobian(state, sysbias);
+
     // result2 = M^-1 * result1 == M^-1 * M * v == v
     system.realize(state, Stage::Dynamics);
     matter.multiplyByMInv(state, result1, result2);

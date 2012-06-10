@@ -1131,7 +1131,7 @@ Vec3 SimbodyMatterSubsystem::calcBiasForStationJacobian
     const SpatialVec& A0_GB = vc.totalCoriolisAcceleration[onBodyB];
 
     const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
-    const Vec3 w_GB = mobod.getBodyAngularAcceleration(state);
+    const Vec3 w_GB = mobod.getBodyAngularVelocity(state);
     const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS); //15flops
 
     const SpatialVec A0_GS = shiftAccelerationBy(A0_GB, w_GB, p_BS_G); //33flops 
@@ -1279,7 +1279,7 @@ SpatialVec SimbodyMatterSubsystem::calcBiasForFrameJacobian
     const SpatialVec& A0_GB = vc.totalCoriolisAcceleration[onBodyB];
 
     const MobilizedBody& mobod = rep.getMobilizedBody(onBodyB);
-    const Vec3 w_GB = mobod.getBodyAngularAcceleration(state);
+    const Vec3 w_GB = mobod.getBodyAngularVelocity(state);
     const Vec3 p_BA_G = mobod.expressVectorInGroundFrame(state, p_BA); //15flops
 
     const SpatialVec A0_GA = shiftAccelerationBy(A0_GB, w_GB, p_BA_G); //33flops 
