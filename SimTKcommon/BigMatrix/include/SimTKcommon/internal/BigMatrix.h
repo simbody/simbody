@@ -3380,7 +3380,13 @@ does not support the "<<" operator. No newline is issued before
 or after the output. @relates Vector_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const VectorBase<T>& v)
-{   o << "~["; writeUnformatted(o, v); return o << "]"; }
+{   o << "~["; 
+    if (v.size()) {
+        o << v[0];
+        for (int i=1; i < v.size(); ++i) o << " " << v[i];
+    }
+    return o << "]"; 
+}
 
 /** Output a human readable representation of a RowVector to an std::ostream
 (like std::cout). The format is [ \e elements ] where \e elements is a 
@@ -3390,7 +3396,13 @@ does not support the "<<" operator. No newline is issued before
 or after the output. @relates RowVector_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const RowVectorBase<T>& v)
-{   o << "["; writeUnformatted(o, v); return o << "]"; }
+{   o << "["; 
+    if (v.size()) {
+        o << v[0];
+        for (int i=1; i < v.size(); ++i) o << " " << v[i];
+    }
+    return o << "]"; 
+}
 
 /** Output a human readable representation of a Matrix to an std::ostream
 (like std::cout). The format is one row per line, with each row output as
