@@ -493,6 +493,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             if (tret > scheduledEventTime) {              
                 // Back up the advanced state to the event time.               
                 savedY = getAdvancedState().getY();
+                createInterpolatedState(scheduledEventTime);
                 setAdvancedStateAndRealizeDerivatives(scheduledEventTime,
                                               getInterpolatedState().getY());
             }
