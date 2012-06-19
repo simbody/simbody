@@ -516,8 +516,7 @@ void multiplyBySystemJacobian( const State&         state,
                                const Vector&        u,
                                Vector_<SpatialVec>& Ju) const;
 
-/** (EXPERIMENTAL)
-Calculate the acceleration bias term for the system Jacobian, that is, the
+/** Calculate the acceleration bias term for the system Jacobian, that is, the
 part of the acceleration that is due only to velocities. This term is also
 known as the Coriolis acceleration, and it is returned here as a spatial
 acceleration of each body frame in Ground.
@@ -673,8 +672,7 @@ Vec3 multiplyByStationJacobian(const State&         state,
                                const Vector&        u) const;
 
 
-/** (EXPERIMENTAL) 
-Calculate the acceleration bias term for a station Jacobian, that is, the
+/** Calculate the acceleration bias term for a station Jacobian, that is, the
 part of the station's acceleration that is due only to velocities. This term 
 is also known as the Coriolis acceleration, and it is returned here as a linear
 acceleration of the station in Ground.
@@ -789,8 +787,7 @@ SpatialVec multiplyByFrameJacobian( const State&         state,
                                     const Vector&        u) const;
 
 
-/** (EXPERIMENTAL) 
-Calculate the acceleration bias term for a frame Jacobian, that is, the
+/** Calculate the acceleration bias term for a frame Jacobian, that is, the
 part of the frame's acceleration that is due only to velocities. This term 
 is also known as the Coriolis acceleration, and it is returned here as a spatial
 acceleration of the frame in Ground.
