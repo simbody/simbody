@@ -554,6 +554,72 @@ void makeSystem(bool constrained, MultibodySystem& mbs, MyForceImpl*& frcp) {
 }
 
 
+// Test calculations of Jacobian "bias" terms, where bias=JDot*u.
+// We can estimate JDot using a numerical directional derivative
+// since JDot = (DJ/Dq)*qdot ~= (J(q+h*qdot)-J(q-h*qdot))/2h.
+void testJacobianBiasTerms() {
+    MultibodySystem system;
+    MyForceImpl* frcp;
+    makeSystem(false, system, frcp);
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+
+    State state = system.realizeTopology();
+    const int nq = state.getNQ();
+    const int nu = state.getNU();
+    const int nb = matter.getNumBodies();
+
+    system.realizeModel(state);
+    // Randomize state.
+    state.updQ() = Test::randVector(nq);
+    state.updU() = Test::randVector(nu);
+
+
+    const MobilizedBodyIndex whichBod(8);
+    const Vec3 whichPt(1,2,3);
+    system.realize(state, Stage::Velocity);
+    // sbias, fbias, sysbias are the JDot*u quantities we want to check.
+    const Vec3 sbias =
+        matter.calcBiasForStationJacobian(state, whichBod, whichPt);
+    const SpatialVec fbias = 
+        matter.calcBiasForFrameJacobian(state, whichBod, whichPt);
+    Vector_<SpatialVec> sysbias;
+    matter.calcBiasForSystemJacobian(state, sysbias);
+
+    RowVector_<Vec3> JS_P, JS1_P, JS2_P, JSDot_P;
+    RowVector_<SpatialVec> JF_P, JF1_P, JF2_P, JFDot_P;
+    Matrix_<SpatialVec> J, J1, J2, JDot;
+    // Unperturbed:
+    matter.calcStationJacobian(state,whichBod,whichPt, JS_P);
+    matter.calcFrameJacobian(state,whichBod,whichPt, JF_P);
+    matter.calcSystemJacobian(state, J);
+
+    const Real Delta = 5e-6; // we'll use central difference
+    State perturbq = state;
+    // Perturbed +:
+    perturbq.updQ() = state.getQ() + Delta*state.getQDot();
+    system.realize(perturbq, Stage::Position);
+    matter.calcStationJacobian(perturbq,whichBod,whichPt, JS2_P);
+    matter.calcFrameJacobian(perturbq,whichBod,whichPt, JF2_P);
+    matter.calcSystemJacobian(perturbq, J2);
+    // Perturbed -:
+    perturbq.updQ() = state.getQ() - Delta*state.getQDot();
+    system.realize(perturbq, Stage::Position);
+    matter.calcStationJacobian(perturbq,whichBod,whichPt, JS1_P);
+    matter.calcFrameJacobian(perturbq,whichBod,whichPt, JF1_P);
+    matter.calcSystemJacobian(perturbq, J1);
+
+    // Estimate JDots:
+    JSDot_P = (JS2_P-JS1_P)/Delta/2;
+    JFDot_P = (JF2_P-JF1_P)/Delta/2;
+    JDot    = (J2-J1)/Delta/2;
+
+    // Calculate errors in JDot*u:
+    SimTK_TEST_EQ_TOL((JSDot_P*state.getU()-sbias).norm(), 0, SqrtEps);
+    SimTK_TEST_EQ_TOL((JFDot_P*state.getU()-fbias).norm(), 0, SqrtEps);
+    SimTK_TEST_EQ_TOL((JDot*state.getU()-sysbias).norm(), 0, SqrtEps);
+}
+
+
 void testUnconstrainedSystem() {
     MultibodySystem system;
     MyForceImpl* frcp;
@@ -580,16 +646,6 @@ void testUnconstrainedSystem() {
     system.realize(state, Stage::Position);
     matter.multiplyByM(state, randVec, result1);
     SimTK_TEST_EQ(result1.size(), nu);
-
-    // Just checking that these are callable at Velocity stage.
-    // TODO: need real test of the results!
-    system.realize(state, Stage::Velocity);
-    Vec3 sbias =
-    matter.calcBiasForStationJacobian(state, MobilizedBodyIndex(2), Vec3(1,2,3));
-    SpatialVec fbias = 
-    matter.calcBiasForFrameJacobian(state, MobilizedBodyIndex(2), Vec3(1,2,3));
-    Vector_<SpatialVec> sysbias;
-    matter.calcBiasForSystemJacobian(state, sysbias);
 
     // result2 = M^-1 * result1 == M^-1 * M * v == v
     system.realize(state, Stage::Dynamics);
@@ -925,6 +981,7 @@ void testCompositeInertia() {
 int main() {
     SimTK_START_TEST("TestMassMatrix");
         SimTK_SUBTEST(testRel2Cart);
+        SimTK_SUBTEST(testJacobianBiasTerms);
         SimTK_SUBTEST(testCompositeInertia);
         SimTK_SUBTEST(testUnconstrainedSystem);
         SimTK_SUBTEST(testConstrainedSystem);
