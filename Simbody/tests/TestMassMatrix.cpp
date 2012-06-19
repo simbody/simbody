@@ -557,6 +557,11 @@ void makeSystem(bool constrained, MultibodySystem& mbs, MyForceImpl*& frcp) {
 // Test calculations of Jacobian "bias" terms, where bias=JDot*u.
 // We can estimate JDot using a numerical directional derivative
 // since JDot = (DJ/Dq)*qdot ~= (J(q+h*qdot)-J(q-h*qdot))/2h.
+// Then we multiply JDot*u and compare with the bias calculations.
+// Or, we can estimate JDot*u directly with
+//       JDotu ~= (J(q+h*qdot)*u - J(q-h*qdot)*u)/2h
+// using the fast "multiply by Jacobian" methods.
+// We use both methods below.
 void testJacobianBiasTerms() {
     MultibodySystem system;
     MyForceImpl* frcp;
@@ -577,6 +582,10 @@ void testJacobianBiasTerms() {
     const MobilizedBodyIndex whichBod(8);
     const Vec3 whichPt(1,2,3);
     system.realize(state, Stage::Velocity);
+    const Vector& q = state.getQ();
+    const Vector& u = state.getU();
+    const Vector& qdot = state.getQDot();
+
     // sbias, fbias, sysbias are the JDot*u quantities we want to check.
     const Vec3 sbias =
         matter.calcBiasForStationJacobian(state, whichBod, whichPt);
@@ -585,40 +594,67 @@ void testJacobianBiasTerms() {
     Vector_<SpatialVec> sysbias;
     matter.calcBiasForSystemJacobian(state, sysbias);
 
+    // These are for computing JDot first.
     RowVector_<Vec3> JS_P, JS1_P, JS2_P, JSDot_P;
     RowVector_<SpatialVec> JF_P, JF1_P, JF2_P, JFDot_P;
     Matrix_<SpatialVec> J, J1, J2, JDot;
+
+    // These are for computing JDot*u directly.
+    Vec3 JS_Pu, JS1_Pu, JS2_Pu, JSDot_Pu;
+    SpatialVec JF_Pu, JF1_Pu, JF2_Pu, JFDot_Pu;
+    Vector_<SpatialVec> Ju, J1u, J2u, JDotu;
+
     // Unperturbed:
     matter.calcStationJacobian(state,whichBod,whichPt, JS_P);
     matter.calcFrameJacobian(state,whichBod,whichPt, JF_P);
     matter.calcSystemJacobian(state, J);
 
+    JS_Pu = matter.multiplyByStationJacobian(state,whichBod,whichPt,u);
+    JF_Pu = matter.multiplyByFrameJacobian(state,whichBod,whichPt,u);
+    matter.multiplyBySystemJacobian(state, u, Ju);
+
     const Real Delta = 5e-6; // we'll use central difference
     State perturbq = state;
     // Perturbed +:
-    perturbq.updQ() = state.getQ() + Delta*state.getQDot();
+    perturbq.updQ() = q + Delta*qdot;
     system.realize(perturbq, Stage::Position);
     matter.calcStationJacobian(perturbq,whichBod,whichPt, JS2_P);
     matter.calcFrameJacobian(perturbq,whichBod,whichPt, JF2_P);
     matter.calcSystemJacobian(perturbq, J2);
+    JS2_Pu = matter.multiplyByStationJacobian(perturbq,whichBod,whichPt,u);
+    JF2_Pu = matter.multiplyByFrameJacobian(perturbq,whichBod,whichPt,u);
+    matter.multiplyBySystemJacobian(perturbq,u, J2u);
+
     // Perturbed -:
-    perturbq.updQ() = state.getQ() - Delta*state.getQDot();
+    perturbq.updQ() = q - Delta*qdot;
     system.realize(perturbq, Stage::Position);
     matter.calcStationJacobian(perturbq,whichBod,whichPt, JS1_P);
     matter.calcFrameJacobian(perturbq,whichBod,whichPt, JF1_P);
     matter.calcSystemJacobian(perturbq, J1);
+    JS1_Pu = matter.multiplyByStationJacobian(perturbq,whichBod,whichPt,u);
+    JF1_Pu = matter.multiplyByFrameJacobian(perturbq,whichBod,whichPt,u);
+    matter.multiplyBySystemJacobian(perturbq,u, J1u);
 
     // Estimate JDots:
     JSDot_P = (JS2_P-JS1_P)/Delta/2;
     JFDot_P = (JF2_P-JF1_P)/Delta/2;
     JDot    = (J2-J1)/Delta/2;
 
-    // Calculate errors in JDot*u:
-    SimTK_TEST_EQ_TOL((JSDot_P*state.getU()-sbias).norm(), 0, SqrtEps);
-    SimTK_TEST_EQ_TOL((JFDot_P*state.getU()-fbias).norm(), 0, SqrtEps);
-    SimTK_TEST_EQ_TOL((JDot*state.getU()-sysbias).norm(), 0, SqrtEps);
-}
+    // Estimate JDotus:
+    JSDot_Pu = (JS2_Pu-JS1_Pu)/Delta/2;
+    JFDot_Pu = (JF2_Pu-JF1_Pu)/Delta/2;
+    JDotu    = (J2u-J1u)/Delta/2;
 
+    // Calculate errors in JDot*u:
+    SimTK_TEST_EQ_TOL((JSDot_P*u-sbias).norm(), 0, SqrtEps);
+    SimTK_TEST_EQ_TOL((JFDot_P*u-fbias).norm(), 0, SqrtEps);
+    SimTK_TEST_EQ_TOL((JDot*u-sysbias).norm(), 0, SqrtEps);
+
+    // Calculate errors in JDotu:
+    SimTK_TEST_EQ_TOL((JSDot_Pu-sbias).norm(), 0, SqrtEps);
+    SimTK_TEST_EQ_TOL((JFDot_Pu-fbias).norm(), 0, SqrtEps);
+    SimTK_TEST_EQ_TOL((JDotu-sysbias).norm(), 0, SqrtEps);
+}
 
 void testUnconstrainedSystem() {
     MultibodySystem system;
