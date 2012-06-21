@@ -83,7 +83,7 @@ values for which it is useful to have a precision-independent representation
 useful to have a referenceable memory location that contains those values.
 These include small integers and common small fractions like 1/2 and 1/3.
 
-Note that the %SimTK convention for typed constants is to name them like 
+Note that the Simbody convention for typed constants is to name them like 
 ordinary variables except with an initial capital letter (like a class name). 
 Typed constants are processed by the compiler rather than the preprocessor and 
 do not require any special treatment when used; they behave just like variables 
@@ -147,7 +147,8 @@ file if you want to be able to get exactly the same bit pattern back when you
 read it back in and convert the text to a Real value. Typically, this is about
 log10(1/tiny), which is about 20 digits when Real==double and 9 digits when
 Real==float. **/
-extern SimTK_SimTKCOMMON_EXPORT const int LosslessNumDigitsReal; // double ~20, float ~9
+extern SimTK_SimTKCOMMON_EXPORT const int LosslessNumDigitsReal; // double ~20, 
+                                                                 // float ~9
 
     // Carefully calculated constants, with convenient memory addresses.
 
@@ -207,17 +208,17 @@ extern SimTK_SimTKCOMMON_EXPORT const Complex I;
 //@{
 // We use the trick that v & v-1 returns the value that is v with its
 // rightmost bit cleared (if it has a rightmost bit set).
-inline bool atMostOneBitIsSet(unsigned char v)      {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(unsigned short v)     {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(unsigned int v)       {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(unsigned long v)      {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(unsigned long long v) {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(signed char v)        {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(char v)               {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(short v)              {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(int v)                {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(long v)               {return (v&v-1)==0;}
-inline bool atMostOneBitIsSet(long long v)          {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(unsigned char v)      {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(unsigned short v)     {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(unsigned int v)       {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(unsigned long v)      {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(unsigned long long v) {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(signed char v)        {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(char v)               {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(short v)              {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(int v)                {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(long v)               {return (v&(v-1))==0;}
+inline bool atMostOneBitIsSet(long long v)          {return (v&(v-1))==0;}
 //@}
 
 /**
