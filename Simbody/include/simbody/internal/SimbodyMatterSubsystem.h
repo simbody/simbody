@@ -372,8 +372,8 @@ documented with the method. **/
   \c Stage::Instance **/
 Real calcSystemMass(const State& s) const;
 
-/** Return the location r_OG_C of the system mass center C, measured from the 
-Ground origin, and expressed in Ground. 
+/** Return the position vector p_GC of the system mass center C, measured from 
+the Ground origin, and expressed in Ground. 
 @par Required stage
   \c Stage::Position **/
 Vec3 calcSystemMassCenterLocationInGround(const State& s) const;
@@ -390,29 +390,31 @@ expressed in Ground.
   \c Stage::Position **/
 Inertia calcSystemCentralInertiaInGround(const State& s) const;
 
-/** Return the velocity V_G_C = d/dt r_OG_C of the system mass center C in the 
-Ground frame G, expressed in G.
+/** Return the velocity v_GC = d/dt p_GC of the system mass center C in the
+Ground frame G, measured from Ground origin and expressed in G.
 @par Required stage
   \c Stage::Velocity **/
 Vec3 calcSystemMassCenterVelocityInGround(const State& s) const;
 
-/** Return the acceleration A_G_C = d^2/dt^2 r_OG_C of the system mass center 
-C in the Ground frame G, expressed in G.
+/** Return the acceleration a_GC = d/dt p_GC of the system mass center C in the
+Ground frame G, measured from Ground origin and expressed in G.
 @par Required stage
   \c Stage::Acceleration **/
 Vec3 calcSystemMassCenterAccelerationInGround(const State& s) const;
 
 /** Return the momentum of the system as a whole (angular, linear) measured
-in the ground frame, taken about the ground origin and expressed in ground.
+in the Ground frame, taken about the Ground origin and expressed in Ground.
 (The linear component is independent of the "about" point.)
+@see calcSystemCentralMomentum()
 @par Required stage
   \c Stage::Velocity **/
 SpatialVec calcSystemMomentumAboutGroundOrigin(const State& s) const;
 
 /** Return the momentum of the system as a whole (angular, linear) measured
-in the ground frame, taken about the current system center of mass
-location and expressed in ground.
-(The linear component is independent of the "about" point.)
+in the Ground frame, taken about the current system center of mass
+location C and expressed in Ground. (The linear component is independent of the
+"about" point.)
+@see calcSystemMomentumAboutGroundOrigin()
 @par Required stage
   \c Stage::Velocity **/
 SpatialVec calcSystemCentralMomentum(const State& s) const;
