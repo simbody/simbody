@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2012 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
- * Contributors: Michael Sherman                                              *
+ * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -79,6 +79,8 @@ public:
     // Implement the Implementation virtuals required for a holonomic
     // (position level) constraint.
 
+    // Simbody supplies position information in argument list; we calculate
+    // the constraint error that represents here.
     void calcPositionErrors     
        (const State&                                    state,
         const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
@@ -91,6 +93,8 @@ public:
         perr[0] = (dot(r,r)-distance*distance)/2;
     }
 
+    // Simbody supplies velocity information in argument list; position info
+    // is in the state. Return time derivative of position constraint error.
     void calcPositionDotErrors   
        (const State&                                    state,
         const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
@@ -106,6 +110,9 @@ public:
         pverr[0] = dot(v, r);
     }
 
+    // Simbody supplies acceleration information in argument list; position and
+    // velocity info is in the state. Return second time derivative of position
+    // constraint error.
     void calcPositionDotDotErrors
        (const State&                                    state,
         const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
@@ -124,6 +131,9 @@ public:
         paerr[0] = dot(a, r) + dot(v, v);
     }
 
+    // Simbody provides calculated constraint multiplier in argument list; we 
+    // turn that into forces here and apply them to the two bodies as point
+    // forces at the origins.
     void addInPositionConstraintForces
        (const State&                                state, 
         const Array_<Real>&                         multipliers,
@@ -137,16 +147,19 @@ public:
         addInStationForce(state, body2, Vec3(0),  force, bodyForcesInA);
         addInStationForce(state, body1, Vec3(0), -force, bodyForcesInA);
     }
+
 private:
     ConstrainedBodyIndex    body1, body2;
     Real                    distance;
 };
 
-class MyTextDataUserFunction 
-:   public TextDataEventReporter::UserFunction<Real> {
+// This will be used to report energy periodically. See TextDataEventReporter
+// for more information.
+class MyEvaluateEnergy : public TextDataEventReporter::UserFunction<Real> {
 public:
     Real evaluate(const System& system, const State& state) {
         const MultibodySystem& mbs = MultibodySystem::downcast(system);
+        mbs.realize(state, Stage::Dynamics);
         return mbs.calcEnergy(state);
     }
 };
@@ -155,12 +168,15 @@ int main() {
   try {   
     // Create the system, with subsystems for the bodies and some forces.
     MultibodySystem system;
-    system.setUseUniformBackground(true); // don't show ground in visualizer
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
 
+    // Hint to Visualizer: don't show ground plane.
+    system.setUseUniformBackground(true);
+
     // Add gravity as a force element.
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.81, 0));
+
     // Create the body and some artwork for it.
     const Vec3 halfLengths(.5, .1, .25); // half-size of brick (m)
     const Real mass = 2; // total mass of brick (kg)
@@ -170,24 +186,20 @@ int main() {
         DecorativeBrick(halfLengths).setColor(Red));
 
     // Add an instance of the body to the multibody system by connecting
-    // it to Ground via a pin mobilizer.
-    MobilizedBody::Ball pendulum1(matter.updGround(), 
-                                Transform(Vec3(-1,-1,0)), 
-                                pendulumBody, 
-                                Transform(Vec3(0, 1, 0)));
+    // it to Ground via a Ball mobilizer.
+    MobilizedBody::Ball pendulum1(matter.updGround(), Transform(Vec3(-1,-1, 0)), 
+                                  pendulumBody,       Transform(Vec3( 0, 1, 0)));
 
-    // Add an instance of the body to the multibody system by connecting
-    // it to Ground via a pin mobilizer.
-    MobilizedBody::Ball pendulum2(matter.updGround(), 
-                                Transform(Vec3(1,-1,0)), 
-                                pendulumBody, 
-                                Transform(Vec3(0, 1, 0)));
+    // Add a second instance of the pendulum nearby.
+    MobilizedBody::Ball pendulum2(matter.updGround(), Transform(Vec3(1,-1, 0)), 
+                                  pendulumBody,       Transform(Vec3(0, 1, 0)));
 
+    // Connect the origins of the two pendulum bodies together with our
+    // rod-like custom constraint.
     const Real d = 1.5; // desired separation distance
     Constraint::Custom rod(new ExampleConstraint(pendulum1, pendulum2, d));
 
-    // Visualize with default options; ask for a report every 1/30 of a second
-    // to match the Visualizer's default 30 frames per second rate.
+    // Visualize with default options.
     Visualizer viz(system);
 
     // Add a rubber band line connecting the origins of the two bodies to
@@ -195,28 +207,33 @@ int main() {
     viz.addRubberBandLine(pendulum1, Vec3(0), pendulum2, Vec3(0),
         DecorativeLine().setColor(Blue).setLineThickness(3));
 
+    // Ask for a report every 1/30 of a second to match the Visualizer's 
+    // default rate of 30 frames per second.
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    system.addEventReporter(new TextDataEventReporter(system,
-                                                new MyTextDataUserFunction(),
-                                                .1));
+    // Output total energy to the console once per second.
+    system.addEventReporter(new TextDataEventReporter
+                                   (system, new MyEvaluateEnergy(), 1.0));
     
-    // Initialize the system and state.
-    
+    // Initialize the system and state.   
     State state = system.realizeTopology();
 
+    // Orient the two pendulums asymmetrically so they'll do something more 
+    // interesting than just hang there.
     pendulum1.setQToFitRotation(state, Rotation(Pi/4, ZAxis));
     pendulum2.setQToFitRotation(state, Rotation(BodyRotationSequence,
                                                 Pi/4, ZAxis, Pi/4, YAxis));
 
+    // Evaluate the system at the new state and draw one frame manually.
     system.realize(state);
-
     viz.report(state);
+
     // Simulate it.
-    cout << "Hit ENTER to run a short simulation ...";
+    cout << "Hit ENTER to run a short simulation.\n";
+    cout << "(Energy should be conserved to about four decimal places.)\n";
     getchar();
 
     RungeKuttaMersonIntegrator integ(system);
-    integ.setAccuracy(1e-4);
+    integ.setAccuracy(1e-4); // ask for about 4 decimal places (default is 3)
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(10.0);
