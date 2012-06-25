@@ -19,6 +19,8 @@ added
 - Integrator::successfulStepStatusString() now getSuccessfulStepStatusString()
 - removed ill-conceived String::getAs() and updAs() methods
 - Concretize<T> renamed more conventional ClonePtr<T>
+- The UserFunction<T> class used by TextDataEventReporter has been made local to that class; rename it TextDataEventReporter::UserFunction.
+
 
 Changes
 -------
@@ -98,3 +100,5 @@ not being used any more. If anyone was using them, let me know.
 12/3/2011
 - Added missing rowSum() methods to Matrix, Mat and SymMat; fixed a bug in SymMat's existing sum() method for complex matrices.
 - Added missing elementwiseMultiply()/Divide()/Assign() ops
+
+6/24/2012 Made UserFunction a local class of TextDataEventReporter since it isn't used anywhere else.

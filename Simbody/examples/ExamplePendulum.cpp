@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
  * Authors: Ajay Seth                                                         *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -29,7 +29,12 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/* A one-body pendulum. Doesn't get much easier than this! */
+// Define two identical double pendulums, one modeled the easy way using
+// to pin mobilizers, the other modeled with free mobilizers plus a ball
+// constraint, plus two "constant angle" constraints to get rid of the extra 
+// rotational degrees of freedom.
+// We're going to show that the resulting reaction forces are identical.
+
 
 #include "Simbody.h"
 
@@ -63,7 +68,8 @@ int main() {
                                 pendulumBody, 
                                 Transform(Vec3(0, 1, 0)));
 
-
+    // Now make an identical system with pin joints faked up using a
+    // free mobilizer + ball constraint + two angle constraints.
     MobilizedBody::Free pendulum2(matter.updGround(), 
                                   Transform(/*x45,*/Vec3(2,-1,0)),
                                   pendulumBody, 
@@ -127,6 +133,16 @@ int main() {
     Vector_<SpatialVec> forcesAtMInG;
     matter.calcMobilizerReactionForces(state, forcesAtMInG);
 
+    // The above method returns reactions *on the child body* at the outboard
+    // mobilizer frame M (that is, the frame fixed on the child body). 
+    // Calculate the same reactions, but *on the parent body* and at the 
+    // inboard mobilizer frame F (that is, the frame fixed on the parent body). 
+    // This is done by shifting the reaction forces across the mobilizer from 
+    // M to F, and negating.
+    // Note that for the example here the mobilizers aren't translating so
+    // the origins Mo and Fo are identical. Nevertheless we're using the
+    // generic code here that should work for any system.
+
     Vector_<SpatialVec> forcesAtFInG(nb); // to hold the result
     forcesAtFInG[0] = -forcesAtMInG[0]; // Ground is "welded" at origin
     for (MobilizedBodyIndex i(1); i < matter.getNumBodies(); ++i) {
@@ -139,29 +155,37 @@ int main() {
         const Rotation& R_PF = body.getInboardFrame(state).R(); // In parent.
         const Rotation& R_GP = parent.getBodyTransform(state).R();
         Rotation R_GF   =   R_GP*R_PF;  // F frame orientation in Ground.
-        Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector. 
+        Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector.
         forcesAtFInG[i] = -shiftForceBy(forcesAtMInG[i], p_MF_G);
     }
 
     std::cout << "Reactions @M: " << forcesAtMInG << "\n";
     std::cout << "Reactions @F: " << forcesAtFInG << "\n";
+    std::cout << "norm of difference: " << (forcesAtMInG+forcesAtFInG).norm() 
+              << "\n";
 
     const MobodIndex p1x = pendulum1.getMobilizedBodyIndex();
     const MobodIndex p1bx = pendulum1b.getMobilizedBodyIndex();
     const Rotation& R_G1 = pendulum1.getBodyTransform(state).R();
     const Rotation& R_G1b = pendulum1b.getBodyTransform(state).R();
 
+    // This time shift the child reactions from the mobilizer frames M to the
+    // child body frames B so we can compare with the constraint forces that
+    // are returned at the child body frame.
+    Vector_<SpatialVec> forcesAtBInG(nb);
     for (MobodIndex i(0); i < nb; ++i) {
         const Mobod& body = matter.getMobilizedBody(i);
         const Vec3&  p_BM = body.getOutboardFrame(state).p();
         const Rotation& R_GB = body.getBodyTransform(state).R();
-        forcesAtMInG[i] = shiftForceFromTo(forcesAtMInG[i],
+        forcesAtBInG[i] = shiftForceFromTo(forcesAtMInG[i],
                                            R_GB*p_BM, Vec3(0));
     }
 
+    std::cout << "Pin mobilizer reaction forces:\n";
+    std::cout << "FB_G=" << forcesAtBInG[p1x] 
+              << " " << forcesAtBInG[p1bx] << "\n";
 
-    std::cout << "FB_G=" << forcesAtMInG[p1x] << " " << forcesAtMInG[p1bx] << "\n";
-
+    std::cout << "Constraint reaction forces (should be the same):\n";
     cout << "FC_G=" << -(ballcons2.getConstrainedBodyForcesAsVector(state)
         + angx2.getConstrainedBodyForcesAsVector(state)
         + angy2.getConstrainedBodyForcesAsVector(state))[1] << " ";
@@ -171,6 +195,7 @@ int main() {
 
     viz.report(state);
     // Simulate it.
+    cout << "Hit ENTER to run a short simulation ...";
     getchar();
 
     RungeKuttaMersonIntegrator integ(system);
