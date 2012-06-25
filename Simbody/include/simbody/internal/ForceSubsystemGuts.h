@@ -33,7 +33,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * Define the extendible library-side implementation of the ForceSubsystem.
+ * Define the extendable library-side implementation of the ForceSubsystem.
  */
 
 #include "SimTKcommon.h"

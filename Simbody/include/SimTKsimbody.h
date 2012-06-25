@@ -57,6 +57,7 @@ will include this one). **/
 #include "simbody/internal/Force_LinearBushing.h"
 #include "simbody/internal/Force_Thermostat.h"
 #include "simbody/internal/ForceSubsystem.h"
+#include "simbody/internal/ForceSubsystemGuts.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubtree.h"
 #include "simbody/internal/GeneralContactSubsystem.h"
