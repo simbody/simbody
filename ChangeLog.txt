@@ -3,6 +3,9 @@ Changes in Simbody 3.0 since Simbody 2.2 release (July, 2011)
 20 June 2012
 --------------------------------------------------------------------------------
 
+License changed from MIT to Apache 2.0 (still unrestricted open source but
+with less ambiguity).
+
 Converting from 2.X to 3.0
 --------------------------
 - project(): drop most arguments; always does q and u and prescribed now. If
