@@ -110,6 +110,57 @@ void ContactGeometry::calcCurvature(const Vec3& point, Vec2& curvature,
 const Function& ContactGeometry::getImplicitFunction() const 
 {   return getImpl().getImplicitFunction(); }
 
+Real ContactGeometry::
+calcSurfaceValue(const Vector& point) const {
+    return getImpl().getImplicitFunction().calcValue(point);
+}
+
+Vec3 ContactGeometry::
+calcSurfaceGradient(const Vector& point) const {
+    const Function& f = getImpl().getImplicitFunction();
+
+    // arguments to get first derivative from the calcDerivative interface
+    Array_<int> fx(1, 0);
+    Array_<int> fy(1, 1);
+    Array_<int> fz(1, 2);
+
+    Vec3 grad_transpose(3);
+    grad_transpose[0] = f.calcDerivative(fx,point);
+    grad_transpose[1] = f.calcDerivative(fy,point);
+    grad_transpose[2] = f.calcDerivative(fz,point);
+    return grad_transpose;
+}
+
+Mat33 ContactGeometry::
+calcSurfaceHessian(const Vector& point) const {
+    const Function& f = getImpl().getImplicitFunction();
+
+    // arguments to get second derivatives from the calcDerivative interface
+    const int xx[] = {0,0}; Array_<int> fxx(xx,xx+2);
+    const int xy[] = {0,1}; Array_<int> fxy(xy,xy+2);
+    const int xz[] = {0,2}; Array_<int> fxz(xz,xz+2);
+    const int yx[] = {1,0}; Array_<int> fyx(yx,yx+2);
+    const int yy[] = {1,1}; Array_<int> fyy(yy,yy+2);
+    const int yz[] = {1,2}; Array_<int> fyz(yz,yz+2);
+    const int zx[] = {2,0}; Array_<int> fzx(zx,zx+2);
+    const int zy[] = {2,1}; Array_<int> fzy(zy,zy+2);
+    const int zz[] = {2,2}; Array_<int> fzz(zz,zz+2);
+
+    Mat33 hess;
+
+    hess(0,0) = f.calcDerivative(fxx,point);
+    hess(0,1) = f.calcDerivative(fxy,point);
+    hess(0,2) = f.calcDerivative(fxz,point);
+    hess(1,0) = f.calcDerivative(fyx,point);
+    hess(1,1) = f.calcDerivative(fyy,point);
+    hess(1,2) = f.calcDerivative(fyz,point);
+    hess(2,0) = f.calcDerivative(fzx,point);
+    hess(2,1) = f.calcDerivative(fzy,point);
+    hess(2,2) = f.calcDerivative(fzz,point);
+
+    return hess;
+}
+
 Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const 
 {   return getImpl().calcSupportPoint(direction); }
 

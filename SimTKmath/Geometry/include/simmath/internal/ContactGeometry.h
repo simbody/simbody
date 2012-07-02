@@ -190,6 +190,27 @@ Non-smooth surfaces will not implement this method and will throw an exception
 if you call it. **/
 const Function& getImplicitFunction() const;
 
+/** Calculate the value of the implicit surface function, at a given point.
+@param[in]      point
+    A point at which to compute the surface value.
+@return
+    The value of the implicit surface function at the point. **/
+Real calcSurfaceValue(const Vector& point) const;
+
+/** Calculate the gradient of the implicit surface function, at a given point.
+@param[in]      point
+    A point at which to compute the surface gradient.
+@return
+    The gradient of the implicit surface function at the point. **/
+Vec3 calcSurfaceGradient(const Vector& point) const;
+
+/** Calculate the hessian of the implicit surface function, at a given point.
+@param[in]      point
+    A point at which to compute the surface hessian.
+@return
+    The hessian of the implicit surface function at the point. **/
+Mat33 calcSurfaceHessian(const Vector& point) const;
+
 /** Returns \c true if this surface is known to be convex. This can be true
 for smooth or polygonal surfaces. **/
 bool isConvex() const;
