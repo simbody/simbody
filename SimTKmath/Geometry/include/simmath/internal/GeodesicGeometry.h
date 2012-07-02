@@ -145,7 +145,8 @@ class SimTK_SIMMATH_EXPORT GeodesicGeometry {
 public:
     GeodesicGeometry(const ContactGeometry& geom) :
             geom(geom), ptOnSurfSys(geom, alpha, beta), splitGeodErr(0) {
-        ptOnSurfSys.addEventHandler(&geodHitPlaneEvent);
+        geodHitPlaneEvent = new GeodHitPlaneEvent();
+        ptOnSurfSys.addEventHandler(geodHitPlaneEvent); // takes ownership
         ptOnSurfSys.realizeTopology();
 
     }
@@ -258,7 +259,7 @@ public:
     /** Get the plane associated with the
         geodesic hit plane event handler  **/
     const Plane& getPlane() const {
-        return *(geodHitPlaneEvent.getPlane());
+        return *(geodHitPlaneEvent->getPlane());
     }
 
     /** Get the ContactGeometry object associated with this
@@ -280,7 +281,7 @@ public:
 private:
     ContactGeometry geom;
     ParticleOnSurfaceSystem ptOnSurfSys;
-    GeodHitPlaneEvent geodHitPlaneEvent;
+    GeodHitPlaneEvent* geodHitPlaneEvent; // don't delete this
 
     class SplitGeodesicError; // local class
     mutable SplitGeodesicError* splitGeodErr;

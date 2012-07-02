@@ -96,7 +96,6 @@ int main() {
 
     cout << "num geod pts = " << geod.getPoints().size() << endl;
 
-
   } catch (const std::exception& e) {
     std::printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);

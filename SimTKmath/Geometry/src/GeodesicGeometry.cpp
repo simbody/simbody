@@ -164,7 +164,7 @@ calcGeodesicInDirectionUntilPlaneHit(const Vec3& P, const Vec3& tP,
         Geodesic& geod) const {
 
     // Initialize state
-    geodHitPlaneEvent.setPlane(terminatingPlane);
+    geodHitPlaneEvent->setPlane(terminatingPlane);
     State sysState = ptOnSurfSys.getDefaultState();
     sysState.setTime(startTime);
     Vector& q = sysState.updQ();
@@ -212,7 +212,7 @@ void GeodesicGeometry::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     // calculate plane bisecting P and Q, and use as termination condition for integrator
     UnitVec3 normal(xQ - xP);
     Real offset = (~(xP+xQ)*normal)/2 ;
-    geodHitPlaneEvent.setPlane(new Plane(normal, offset));
+    geodHitPlaneEvent->setPlane(new Plane(normal, offset));
 
     Vector x(2), dx(2), Fx(2), xold(2);
     Matrix J(2,2);
@@ -275,9 +275,9 @@ void GeodesicGeometry::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 
     GeodesicOptions opts;
     gg.calcGeodesicInDirectionUntilPlaneHit(P, tP,
-            gg.geodHitPlaneEvent.getPlane(), opts, gg.geodP);
+            gg.geodHitPlaneEvent->getPlane(), opts, gg.geodP);
     gg.calcGeodesicInDirectionUntilPlaneHit(Q, tQ,
-            gg.geodHitPlaneEvent.getPlane(), opts, gg.geodQ);
+            gg.geodHitPlaneEvent->getPlane(), opts, gg.geodQ);
 
     int numP = gg.geodP.getPoints().size();
     int numQ = gg.geodQ.getPoints().size();
