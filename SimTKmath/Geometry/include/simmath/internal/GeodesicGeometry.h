@@ -140,7 +140,7 @@ private:
 
 
 
-class GeodesicGeometry {
+class SimTK_SIMMATH_EXPORT GeodesicGeometry {
 
 public:
     GeodesicGeometry(const ContactGeometry& geom) :

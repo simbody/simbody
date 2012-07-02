@@ -94,7 +94,7 @@ CablePath(CableTrackerSubsystem&    cables,
           const MobilizedBody&      terminationBody);
 
 /** Copy constructor is shallow and reference counted. **/
-CablePath::CablePath(const CablePath& source);
+CablePath(const CablePath& source);
 
 /** Copy assignment is shallow and reference counted. **/
 CablePath& CablePath::operator=(const CablePath& source);

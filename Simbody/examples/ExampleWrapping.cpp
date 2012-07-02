@@ -131,7 +131,8 @@ int main() {
     SimbodyMatterSubsystem matter(dummySystem);
     matter.updGround().addBodyDecoration(Transform(), DecorativeSphere(r)
             .setColor(Gray)
-            .setOpacity(0.5));
+            .setOpacity(0.5)
+            .setResolution(5));
 
     // Visualize with default options; ask for a report every 1/30 of a second
     // to match the Visualizer's default 30 frames per second rate.
@@ -159,7 +160,7 @@ int main() {
 
     pathErrorFnc.f(x, Fx);
     viz.report(dummyState);
-    sleep(pauseDurationBetweenIterations);
+    usleep((useconds_t)(pauseDurationBetweenIterations*1000000));
 
     Real f = 0.5*~Fx*Fx;
     Real fold, lam = 1;
@@ -195,7 +196,7 @@ int main() {
         }
 
         viz.report(dummyState);
-        sleep(pauseDurationBetweenIterations);
+        usleep((useconds_t)(pauseDurationBetweenIterations*1000000));
 
     }
     cout << "obstacle error = " << Fx << endl;
