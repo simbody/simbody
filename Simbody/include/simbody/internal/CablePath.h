@@ -97,7 +97,7 @@ CablePath(CableTrackerSubsystem&    cables,
 CablePath(const CablePath& source);
 
 /** Copy assignment is shallow and reference counted. **/
-CablePath& CablePath::operator=(const CablePath& source);
+CablePath& operator=(const CablePath& source);
 
 /** Delete the cable path if this handle was the last reference to it. **/
 ~CablePath() {clear();}
