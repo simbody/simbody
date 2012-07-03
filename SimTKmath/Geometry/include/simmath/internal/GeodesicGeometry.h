@@ -62,11 +62,8 @@ class SplitGeodesicError;
 class Plane {
 public:
     Plane() : m_normal(1,0,0), m_offset(0) { }
-    Plane(const Vec3& normal, const Real& offset) : m_normal(normal), m_offset(offset) { }
-    Plane(const Plane& plane) {
-        m_normal = plane.getNormal();
-        m_offset = plane.getOffset();
-    }
+    Plane(const Vec3& normal, const Real& offset) 
+    :   m_normal(normal), m_offset(offset) { }
 
     Real getDistance(const Vec3& pt) const {
         return ~m_normal*pt - m_offset;
@@ -94,11 +91,9 @@ private:
 class GeodHitPlaneEvent : public TriggeredEventHandler {
 public:
     GeodHitPlaneEvent()
-    :   TriggeredEventHandler(Stage::Position) {
-        m_plane = new Plane();
-    }
+    :   TriggeredEventHandler(Stage::Position) { }
 
-    GeodHitPlaneEvent(Plane* plane)
+    explicit GeodHitPlaneEvent(const Plane& plane)
     :   TriggeredEventHandler(Stage::Position) {
         m_plane = plane;
     }
@@ -106,7 +101,7 @@ public:
     // event is triggered if distance of geodesic endpoint to plane is zero
     Real getValue(const State& state) const {
         Vec3 endpt(&state.getQ()[0]);
-        Real dist =  m_plane->getDistance(endpt);
+        Real dist =  m_plane.getDistance(endpt);
 //        std::cout << "dist = " << dist << std::endl;
         return dist;
     }
@@ -114,27 +109,27 @@ public:
     // This method is called whenever this event occurs.
     void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
 
-        // This should be triggered when eodesic endpoint to plane is zero.
+        // This should be triggered when geodesic endpoint to plane is zero.
         Vec3 endpt;
         const Vector& q = state.getQ();
         endpt[0] = q[0]; endpt[1] = q[1]; endpt[2] = q[2];
-        Real dist = m_plane->getDistance(endpt);
+        Real dist = m_plane.getDistance(endpt);
 
         ASSERT(std::abs(dist) < 0.01 );
         shouldTerminate = true;
 //        std::cout << "hit plane!" << std::endl;
     }
 
-    void setPlane(const Plane* plane) const {
-        *m_plane = *plane;
+    void setPlane(const Plane& plane) const {
+        m_plane = plane;
     }
 
-    const Plane* getPlane() const {
+    const Plane& getPlane() const {
         return m_plane;
     }
 
 private:
-    mutable Plane* m_plane;
+    mutable Plane m_plane;
 
 }; // class GeodHitPlaneEvent
 
@@ -191,7 +186,7 @@ public:
     **/
     void calcGeodesicInDirectionUntilLengthReached(const Vec3& xP, const Vec3& tP,
             const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
-    /** XXX what to do if tP is not in the tangent plane at P -- project it? **/
+    // XXX what to do if tP is not in the tangent plane at P -- project it?
 
 
     /** Compute a geodesic curve starting at the given point, starting in the given
@@ -206,7 +201,7 @@ public:
     // XXX what to do if tP is not in the tangent plane at P -- project it?
     // XXX what to do if we don't hit the plane
    void calcGeodesicInDirectionUntilPlaneHit(const Vec3& P, const Vec3& tP,
-            const Plane* terminatingPlane, const GeodesicOptions& options,
+            const Plane& terminatingPlane, const GeodesicOptions& options,
             Geodesic& geod) const;
 
 
@@ -259,7 +254,7 @@ public:
     /** Get the plane associated with the
         geodesic hit plane event handler  **/
     const Plane& getPlane() const {
-        return *(geodHitPlaneEvent->getPlane());
+        return geodHitPlaneEvent->getPlane();
     }
 
     /** Get the ContactGeometry object associated with this
@@ -267,6 +262,9 @@ public:
     const ContactGeometry& getGeom() const {
         return geom;
     }
+
+    /** @name Advanced/Obscure/Debugging **/
+    /**@{**/
 
     /** Get the geodesic for access by visualizer **/
     const Geodesic& getGeodP() {
@@ -277,6 +275,7 @@ public:
     const Geodesic& getGeodQ() {
         return geodQ;
     }
+    /**@}**/
 
 private:
     ContactGeometry geom;

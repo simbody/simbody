@@ -160,7 +160,7 @@ calcGeodesicInDirectionUntilLengthReached(const Vec3& P, const Vec3& tP,
 // XXX what to do if we don't hit the plane
 void GeodesicGeometry::
 calcGeodesicInDirectionUntilPlaneHit(const Vec3& P, const Vec3& tP,
-        const Plane* terminatingPlane, const GeodesicOptions& options,
+        const Plane& terminatingPlane, const GeodesicOptions& options,
         Geodesic& geod) const {
 
     // Initialize state
@@ -212,7 +212,7 @@ void GeodesicGeometry::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     // calculate plane bisecting P and Q, and use as termination condition for integrator
     UnitVec3 normal(xQ - xP);
     Real offset = (~(xP+xQ)*normal)/2 ;
-    geodHitPlaneEvent->setPlane(new Plane(normal, offset));
+    geodHitPlaneEvent->setPlane(Plane(normal, offset));
 
     Vector x(2), dx(2), Fx(2), xold(2);
     Matrix J(2,2);
