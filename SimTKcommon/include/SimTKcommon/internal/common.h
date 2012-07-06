@@ -475,6 +475,8 @@ public:                                     \
     NAME operator++(int)     {assert(isValid()); ++ix; return NAME(ix-1);}  /*postfix*/   \
     const NAME& operator--() {assert(isValid()); --ix; return *this;}       /*prefix */   \
     NAME operator--(int)     {assert(isValid()); --ix; return NAME(ix+1);}  /*postfix*/   \
+    NAME next() const {assert(isValid()); return NAME(ix+1);}                             \
+    NAME prev() const {assert(isValid()); return NAME(ix-1);} /*might return -1*/         \
     \
     NAME& operator+=(int i)  {assert(isValid() && isValidExtended(ix+i)); ix+=i; return *this;}     \
     NAME& operator-=(int i)  {assert(isValid() && isValidExtended(ix-i)); ix-=i; return *this;}     \
