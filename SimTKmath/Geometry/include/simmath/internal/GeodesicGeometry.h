@@ -29,6 +29,7 @@
  * additions to ContactGeometry
  **/
 
+#include "SimTKcommon.h"
 #include "simmath/Differentiator.h"
 #include "simmath/RungeKutta3Integrator.h"
 #include "simmath/TimeStepper.h"
@@ -36,7 +37,6 @@
 #include "simmath/internal/ParticleOnSurfaceSystem.h"
 #include "simmath/internal/BicubicSurface.h" // XXX compiler needed this
 #include "simmath/internal/ContactGeometry.h"
-#include "SimTKcommon.h"
 #include <cassert>
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
@@ -158,7 +158,7 @@ public:
     @param[out] geod         On exit, this contains a geodesic between P and Q.
     **/
     void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
-            const GeodesicOptions& options, Geodesic& geod);
+            const GeodesicOptions& options, Geodesic& geod) const;
 
 
     /** Given two points and previous geodesic curve close to the points, find

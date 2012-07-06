@@ -33,6 +33,10 @@ using std::cout;
 using std::endl;
 
 
+//==============================================================================
+//                          GEODESIC GEOMETRY
+//==============================================================================
+
 // This local class is used to Calcualte the split geodesic error
 //  given scalar angles at P and Q
 class GeodesicGeometry::SplitGeodesicError: public Differentiator::JacobianFunction {
@@ -65,8 +69,7 @@ public:
             const ContactGeometry& geom) {
         UnitVec3 n(geom.calcSurfaceGradient((Vector)R));
         Rotation R_GS;
-        R_GS.setRotationFromTwoAxes(n, CoordinateAxis::ZCoordinateAxis(), dir,
-                CoordinateAxis::XCoordinateAxis());
+        R_GS.setRotationFromTwoAxes(n, ZAxis, dir, XAxis);
         return R_GS;
     }
 
@@ -90,7 +93,8 @@ private:
 
 
 void GeodesicGeometry::initGeodesic(const Vec3& xP, const Vec3& xQ,
-        const Vec3& xSP, const GeodesicOptions& options, Geodesic& geod) {
+        const Vec3& xSP, const GeodesicOptions& options, Geodesic& geod) const
+{
     // TODO
 }
 
@@ -295,6 +299,120 @@ void GeodesicGeometry::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     Vec2 geodErr(~bPhat * (Phat - Qhat), ~bPhat * tQhat);
     return geodErr;
 }
+
+//==============================================================================
+//                      PARTICLE ON SURFACE SYSTEM GUTS
+//==============================================================================
+
+
+
+/*
+ * This system is a 3d particle mass constrained to move along a surface
+ * with no applied force (other than the constraint reaction force normal
+ * to the surface). With no applied for the particle traces a geodesic along
+ * the surface.
+ *
+ *
+ * The DAE for a generic multibody system is:
+ *       qdot = Qu
+ *       M udot = f - ~A lambda
+ *       A udot = b
+ *       perr(t,q) = 0
+ *       verr(t,q,u) = 0
+ *
+ * Let   r be the 3d coordinates of the particle
+ *       g(r) be the implicit surface function
+ *       G be the gradient of the implicit surface function
+ *       H be the hessian of the implicit surface function
+ *
+ * We will express implicit surface constraint as
+ *                g(r) = 0    (perr)
+ *                 Gr' = 0    (verr)
+ *        Gr'' = -G'r' = - ~r'Hr' (aerr)
+ *
+ * So the matrix A = G and b = -r'Hr', and the
+ * equations of motion are:
+ *     [ M  ~G ] [ r'' ]   [     0    ]
+ *     [ G   0 ] [  L  ] = [ - ~r'Hr' ]
+ * where L (the Lagrange multiplier) is proportional to
+ * the constraint force.
+ *
+ * solving for L,
+ *        L = (GM\~G)\~r'Hr'
+ *      r'' = - M\~G(GM\~G)\~r'Hr'
+ *
+ *      where ~A = transpose of A
+ *        and A\ = inverse of A
+ */
+int ParticleOnSurfaceSystemGuts::realizeTopologyImpl(State& s) const {
+
+    const Vector init(3, Real(0));
+    q0 = s.allocateQ(subsysIndex, init);
+    u0 = s.allocateU(subsysIndex, init);
+
+    System::Guts::realizeTopologyImpl(s);
+    return 0;
+}
+int ParticleOnSurfaceSystemGuts::realizeModelImpl(State& s) const {
+    System::Guts::realizeModelImpl(s);
+    return 0;
+}
+int ParticleOnSurfaceSystemGuts::realizeInstanceImpl(const State& s) const {
+
+    System::Guts::realizeInstanceImpl(s);
+    return 0;
+}
+int ParticleOnSurfaceSystemGuts::realizePositionImpl(const State& s) const {
+
+    System::Guts::realizePositionImpl(s);
+    return 0;
+}
+
+int ParticleOnSurfaceSystemGuts::realizeVelocityImpl(const State& s) const {
+    const Vector& q    = s.getQ(subsysIndex);
+    const Vector& u    = s.getU(subsysIndex);
+    Vector&       qdot = s.updQDot(subsysIndex);
+
+    qdot[0] = u[0]; // qdot=u
+    qdot[1] = u[1];
+    qdot[2] = u[2];
+
+    System::Guts::realizeVelocityImpl(s);
+    return 0;
+}
+
+int ParticleOnSurfaceSystemGuts::realizeDynamicsImpl(const State& s) const {
+
+    System::Guts::realizeDynamicsImpl(s);
+    return 0;
+}
+
+int ParticleOnSurfaceSystemGuts::realizeAccelerationImpl(const State& s) const {
+
+    // XXX assume unit mass
+
+    const Vector& q    = s.getQ(subsysIndex);
+    const Vector& u    = s.getU(subsysIndex);
+    Vector&       udot = s.updUDot(subsysIndex);
+
+    Vec3 v(u[0], u[1], u[2]);
+    Vec3 a(0);
+
+    Real g = geom.calcSurfaceValue(q);
+    Vec3 GT = geom.calcSurfaceGradient(q);
+    Mat33 H = geom.calcSurfaceHessian(q);
+    Real Gdotu = ~v*(H*v);
+    Real L = (Gdotu + beta*~GT*v + alpha*g)/(~GT*GT);
+    a = GT*-L;
+
+    udot[0] = a[0]; udot[1] = a[1]; udot[2] = a[2];
+    s.updQDotDot() = udot;
+
+    System::Guts::realizeAccelerationImpl(s);
+    return 0;
+}
+
+
 
 
 
