@@ -35,8 +35,10 @@
 #include "simmath/TimeStepper.h"
 #include "simmath/internal/Geodesic.h"
 #include "simmath/internal/ParticleOnSurfaceSystem.h"
+#include "simmath/internal/ParticleConSurfaceSystem.h"
 #include "simmath/internal/BicubicSurface.h" // XXX compiler needed this
 #include "simmath/internal/ContactGeometry.h"
+
 #include <cassert>
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
@@ -45,13 +47,22 @@
 namespace SimTK {
 
 
-//XXX these magic constants need to be integrated into the class properly...
+//XXX these constants need to be integrated into the class properly...
+// integrator
 const Real startTime = 0;
-const Real finalTime = Pi;
+const Real finalTime = 2*Pi;
 const Real integratorAccuracy = 1e-6;
-const Real gamma = 0.01; // Baumgarte stabilization; params from Ascher1993
-const Real alpha = gamma*gamma; // position stabilization
-const Real beta = 2*gamma; // velocity stabilization
+const Real integratorConstraintTol = 1e-6;
+
+// newton solver
+const Real ftol = 1e-9;
+const Real xtol = 1e-9;
+const Real minlam = 1e-9;
+const int maxNewtonIterations = 25;
+const Real estimatedGeodesicAccuracy = 1e-12; // used in numerical differentiation
+
+// visualization
+const Real pauseBetweenGeodIterations = 0; // sec
 
 
 class SplitGeodesicError;
@@ -93,43 +104,58 @@ public:
     GeodHitPlaneEvent()
     :   TriggeredEventHandler(Stage::Position) { }
 
-    explicit GeodHitPlaneEvent(const Plane& plane)
+    explicit GeodHitPlaneEvent(const Plane& aplane)
     :   TriggeredEventHandler(Stage::Position) {
-        m_plane = plane;
+        plane = aplane;
     }
 
     // event is triggered if distance of geodesic endpoint to plane is zero
     Real getValue(const State& state) const {
+        if (!enabled) {
+            return 1;
+        }
         Vec3 endpt(&state.getQ()[0]);
-        Real dist =  m_plane.getDistance(endpt);
+        Real dist =  plane.getDistance(endpt);
 //        std::cout << "dist = " << dist << std::endl;
         return dist;
     }
 
     // This method is called whenever this event occurs.
     void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+        if (!enabled) {
+            return;
+        }
 
         // This should be triggered when geodesic endpoint to plane is zero.
         Vec3 endpt;
         const Vector& q = state.getQ();
         endpt[0] = q[0]; endpt[1] = q[1]; endpt[2] = q[2];
-        Real dist = m_plane.getDistance(endpt);
+        Real dist = plane.getDistance(endpt);
 
         ASSERT(std::abs(dist) < 0.01 );
         shouldTerminate = true;
 //        std::cout << "hit plane!" << std::endl;
     }
 
-    void setPlane(const Plane& plane) const {
-        m_plane = plane;
+    void setPlane(const Plane& aplane) const {
+        plane = aplane;
     }
 
     const Plane& getPlane() const {
-        return m_plane;
+        return plane;
+    }
+
+    const void setEnabled(bool enabledFlag) {
+        enabled = enabledFlag;
+    }
+
+    const bool isEnabled() {
+        return enabled;
     }
 
 private:
-    mutable Plane m_plane;
+    mutable Plane plane;
+    bool enabled;
 
 }; // class GeodHitPlaneEvent
 
@@ -139,7 +165,7 @@ class SimTK_SIMMATH_EXPORT GeodesicGeometry {
 
 public:
     GeodesicGeometry(const ContactGeometry& geom) :
-            geom(geom), ptOnSurfSys(geom, alpha, beta), splitGeodErr(0) {
+            geom(geom), ptOnSurfSys(geom), splitGeodErr(0) {
         geodHitPlaneEvent = new GeodHitPlaneEvent();
         ptOnSurfSys.addEventHandler(geodHitPlaneEvent); // takes ownership
         ptOnSurfSys.realizeTopology();
@@ -163,7 +189,6 @@ public:
 
     /** Given two points and previous geodesic curve close to the points, find
     a geodesic curve connecting the points that is close to the previous geodesic.
-    XXX if xP and xQ are the exact end-points of prevGeod; then geod = prevGeod;
 
     @param[in] xP            Coordinates of the first point.
     @param[in] xQ            Coordinates of the second point.
@@ -171,12 +196,13 @@ public:
     @param[in] options       Parameters related to geodesic calculation
     @param[out] geod         On exit, this contains a geodesic between P and Q.
     **/
+    // XXX if xP and xQ are the exact end-points of prevGeod; then geod = prevGeod;
     void continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
             const GeodesicOptions& options, Geodesic& geod);
 
 
-    /** Compute a geodesic curve of the given length, starting at the given point and
-     in the given direction.
+    /** Compute a geodesic curve starting at the given point, starting in the
+     * given direction, and terminating at the given length.
 
     @param[in] xP            Coordinates of the starting point for the geodesic.
     @param[in] tP            The starting tangent direction for the geodesic.
@@ -184,13 +210,13 @@ public:
     @param[in] options       Parameters related to geodesic calculation
     @param[out] geod         On exit, this contains the calculated geodesic
     **/
-    void calcGeodesicInDirectionUntilLengthReached(const Vec3& xP, const Vec3& tP,
-            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
     // XXX what to do if tP is not in the tangent plane at P -- project it?
+    void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
 
 
-    /** Compute a geodesic curve starting at the given point, starting in the given
-     direction, and terminating at the given plane.
+    /** Compute a geodesic curve starting at the given point, starting in the
+     * given direction, and terminating when it hits the given plane.
 
     @param[in] xP            Coordinates of the starting point for the geodesic.
     @param[in] tP            The starting tangent direction for the geodesic.
@@ -200,9 +226,20 @@ public:
     **/
     // XXX what to do if tP is not in the tangent plane at P -- project it?
     // XXX what to do if we don't hit the plane
-   void calcGeodesicInDirectionUntilPlaneHit(const Vec3& P, const Vec3& tP,
+   void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
             const Plane& terminatingPlane, const GeodesicOptions& options,
             Geodesic& geod) const;
+
+
+   /** Get the ContactGeometry object associated with this
+       GeodesicGeometry object **/
+   const ContactGeometry& getGeom() const {
+       return geom;
+   }
+
+
+   /** @name Public Utility methods **/
+   /**@{**/
 
 
     /** Utility method to find geodesic between P and Q with initial shooting
@@ -211,16 +248,33 @@ public:
     void calcGeodesic(const Vec3& xP, const Vec3& xQ,
             const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
 
-
-
     /**
      * Utility method to calculate the "geodesic error" between one geodesic
      * shot from P in the direction tP and another geodesic shot from Q in the
      * direction tQ
      **/
-    static Vec2 calcGeodError(const GeodesicGeometry& gg,
-            const Vec3& P, const Vec3& Q, const Vec3& tP, const Vec3& tQ);
+    Vec2 calcGeodError(const Vec3& P, const Vec3& Q, const UnitVec3& tP, const UnitVec3& tQ) const;
 
+    /**@}**/
+
+    /**
+     * Utility method to calculate the "geodesic error" between the end-points
+     * of two geodesics.
+     **/
+    static Vec2 calcError(const ContactGeometry& geom, const Geodesic& geodP, const Geodesic& geodQ);
+
+    /**
+     * Compute rotation matrix using the normal at the given point and the
+     * given direction.
+     **/
+    static Rotation calcTangentBasis(const Vec3& point, const Vec3& dir,
+            const ContactGeometry& geom);
+
+    /**
+     * Calculate a unit tangent vector based on angle theta measured from the
+     * binormal axis of the given rotation matrix
+     **/
+    static UnitVec3 calcUnitTangentVec(const Real& theta, const Rotation& R_GS);
 
     /** Temporary utility method for creating a continuous geodesic object
      *  from the two "split geodesics"
@@ -233,6 +287,9 @@ public:
         // TODO also merge other data, including arcLengths, etc.
     }
 
+    /**
+     * Temporary utility method for joining geodP and the reverse of geodQ
+     **/
     static void mergeGeodLists(const Array_<Vec3>& geodP,
         const Array_<Vec3>& geodQ, Array_<Vec3>& geod) {
 //        std::cout << "merge lists" << std::endl;
@@ -251,20 +308,49 @@ public:
     }
 
 
+    /** @name Internal Utility methods **/
+    /**@{**/
+
+    /** Utility method to used by calcGeodesicInDirectionUntilPlaneHit
+     *  and calcGeodesicInDirectionUntilLengthReached
+     **/
+    void shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
+            const Real& finalTime, const GeodesicOptions& options,
+            Geodesic& geod) const;
+
+    /**
+     * Utility method to calculate the "geodesic error" between one geodesic
+     * shot from P in the direction thetaP and another geodesic shot from Q in the
+     * direction thetaQ given the pre-calculated member basis R_SP, R_SQ
+     **/
+    Vec2 calcGeodError(const Vec3& xP, const Vec3& xQ, const Real thetaP, const Real thetaQ) const;
+
+    /**
+     * Utility method to calculate the "geodesic error jacobian" between one geodesic
+     * shot from P in the direction thetaP and another geodesic shot from Q in the
+     * direction thetaQ given the pre-calculated member basis R_SP, R_SQ
+     **/
+    Mat22 calcGeodErrorJacobian(const Vec3& P, const Vec3& Q,
+            const Real& thetaP, const Real& thetaQ, Differentiator::Method method) const;
+
+    /**@}**/
+
+
+    /** @name Advanced/Obscure/Debugging **/
+    /**@{**/
+
     /** Get the plane associated with the
         geodesic hit plane event handler  **/
     const Plane& getPlane() const {
         return geodHitPlaneEvent->getPlane();
     }
 
-    /** Get the ContactGeometry object associated with this
-        GeodesicGeometry object **/
-    const ContactGeometry& getGeom() const {
-        return geom;
+    /** Set the plane associated with the
+        geodesic hit plane event handler  **/
+    void setPlane(const Plane& plane) const {
+        return geodHitPlaneEvent->setPlane(plane);
     }
 
-    /** @name Advanced/Obscure/Debugging **/
-    /**@{**/
 
     /** Get the geodesic for access by visualizer **/
     const Geodesic& getGeodP() {
@@ -275,21 +361,38 @@ public:
     const Geodesic& getGeodQ() {
         return geodQ;
     }
+
+    const int getNumGeodesicsShot() {
+        return numGeodesicsShot;
+    }
+
+    void addVizReporter(ScheduledEventReporter* reporter) {
+//        std::cout << "added viz reporter..."  << std::endl;
+        vizReporter = reporter;
+        ptOnSurfSys.addEventReporter(vizReporter); // takes ownership
+        ptOnSurfSys.realizeTopology();
+
+    }
     /**@}**/
+
+    class SplitGeodesicError; // local class
+    friend class SplitGeodesicError;
 
 private:
     ContactGeometry geom;
     ParticleOnSurfaceSystem ptOnSurfSys;
     GeodHitPlaneEvent* geodHitPlaneEvent; // don't delete this
+    ScheduledEventReporter* vizReporter; // don't delete this
 
-    class SplitGeodesicError; // local class
     mutable SplitGeodesicError* splitGeodErr;
 
     // temporary objects
-    mutable Geodesic geodQ;
     mutable Geodesic geodP;
+    mutable Geodesic geodQ;
+    mutable Rotation R_SP;
+    mutable Rotation R_SQ;
+    mutable int numGeodesicsShot;
 
-    friend class SplitGeodesicError;
 }; // class GeodesicGeometry
 
 

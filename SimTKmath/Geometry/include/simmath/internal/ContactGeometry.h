@@ -202,7 +202,7 @@ Real calcSurfaceValue(const Vector& point) const;
     A point at which to compute the surface gradient.
 @return
     The gradient of the implicit surface function at the point. **/
-Vec3 calcSurfaceGradient(const Vector& point) const;
+Vec3 calcSurfaceNormal(const Vector& point) const;
 
 /** Calculate the hessian of the implicit surface function, at a given point.
 @param[in]      point

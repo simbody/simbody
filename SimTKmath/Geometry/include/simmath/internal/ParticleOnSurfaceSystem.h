@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_PARTICLEONGSURFACESYSTEM_H_
-#define SimTK_SIMBODY_PARTICLEONGSURFACESYSTEM_H_
+#ifndef SimTK_SIMBODY_PARTICLEONSURFACESYSTEM_H_
+#define SimTK_SIMBODY_PARTICLEONSURFACESYSTEM_H_
 
 /* -------------------------------------------------------------------------- *
  *                       Simbody(tm): SimTKmath                               *
@@ -39,6 +39,10 @@
 
 namespace SimTK {
 
+const Real gamma = 0.01; // Baumgarte stabilization; params from Ascher1993
+const Real alpha = gamma*gamma; // position stabilization
+const Real beta = 2*gamma; // velocity stabilization
+
 class ParticleOnSurfaceSystem;
 class ParticleOnSurfaceSystemGuts: public System::Guts {
     friend class ParticleOnSurfaceSystem;
@@ -57,8 +61,8 @@ class ParticleOnSurfaceSystemGuts: public System::Guts {
 //    mutable EventTriggerByStageIndex event0;
 //    mutable CacheEntryIndex mgForceIndex; // a cache entry m*g calculated at Dynamics stage
 public:
-    ParticleOnSurfaceSystemGuts(const ContactGeometry& geom, double alpha, double beta)
-    : Guts(), geom(geom), alpha(alpha), beta(beta) {
+    ParticleOnSurfaceSystemGuts(const ContactGeometry& geom)
+    : Guts(), geom(geom) {
         // Index types set themselves invalid on construction.
     }
 
@@ -105,17 +109,16 @@ public:
 //             const ProjectOptions& options, ProjectResults& results) const {return;}
 private:
     ContactGeometry geom;
-    Real alpha;
-    Real beta;
+
 }; // class ParticleOnSurfaceSystemGuts
 
 
 
 class ParticleOnSurfaceSystem: public System {
 public:
-    ParticleOnSurfaceSystem(const ContactGeometry& geom, double alpha, double beta) : System()
+    ParticleOnSurfaceSystem(const ContactGeometry& geom) : System()
     { 
-        adoptSystemGuts(new ParticleOnSurfaceSystemGuts(geom, alpha, beta));
+        adoptSystemGuts(new ParticleOnSurfaceSystemGuts(geom));
         DefaultSystemSubsystem defsub(*this);
         updGuts().subsysIndex = defsub.getMySubsystemIndex();
 
@@ -144,4 +147,4 @@ public:
 
 } // namespace SimTK
 
-#endif /*SimTK_SIMBODY_PARTICLEONGSURFACESYSTEM_H_*/
+#endif /*SimTK_SIMBODY_PARTICLEONSURFACESYSTEM_H_*/
