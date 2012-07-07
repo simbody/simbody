@@ -32,6 +32,8 @@
 #include "SimTKcommon.h"
 #include "simmath/Differentiator.h"
 #include "simmath/RungeKutta3Integrator.h"
+#include "simmath/RungeKuttaMersonIntegrator.h"
+#include "simmath/RungeKuttaFeldbergIntegrator.h"
 #include "simmath/TimeStepper.h"
 #include "simmath/internal/Geodesic.h"
 #include "simmath/internal/ParticleOnSurfaceSystem.h"
@@ -164,12 +166,13 @@ private:
 class SimTK_SIMMATH_EXPORT GeodesicGeometry {
 
 public:
-    GeodesicGeometry(const ContactGeometry& geom) :
-            geom(geom), ptOnSurfSys(geom), splitGeodErr(0) {
+    GeodesicGeometry(const ContactGeometry& geom) 
+    :   geom(geom), ptOnSurfSys(geom), 
+        geodHitPlaneEvent(0), vizReporter(0), splitGeodErr(0) 
+    {
         geodHitPlaneEvent = new GeodHitPlaneEvent();
         ptOnSurfSys.addEventHandler(geodHitPlaneEvent); // takes ownership
         ptOnSurfSys.realizeTopology();
-
     }
 
 
