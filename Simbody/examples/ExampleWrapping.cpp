@@ -260,7 +260,7 @@ int main() {
 
     pathErrorFnc.f(x, Fx);
     viz.report(dummyState);
-    usleep((useconds_t)(pauseBetweenPathIterations*1000000));
+    sleepInSec(pauseBetweenPathIterations);
 
     f = std::sqrt(~Fx*Fx);
     for (int i = 0; i < maxNewtonIterations; ++i) {
@@ -294,7 +294,7 @@ int main() {
             break;
         }
         viz.report(dummyState);
-        usleep((useconds_t)(pauseBetweenPathIterations*1000000));
+        sleepInSec(pauseBetweenPathIterations);
 
     }
     cout << "obstacle error = " << Fx << endl;
