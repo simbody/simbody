@@ -614,7 +614,7 @@ void ParticleConSurfaceSystemGuts::projectQImpl(State& s, Vector& qerrest,
 //        std::cout << cnt << ": AFTER q-=dq wperr=" << ep << " wqchg=" << qchg << std::endl;
         cnt++;
 
-        sleep(0.5);
+        sleepInSec(0.5);
         if (cnt > 10) {
             results.setExitStatus(ProjectResults::FailedToConverge);
             return;
