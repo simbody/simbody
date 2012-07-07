@@ -116,7 +116,7 @@ calcSurfaceValue(const Vector& point) const {
 }
 
 Vec3 ContactGeometry::
-calcSurfaceGradient(const Vector& point) const {
+calcSurfaceNormal(const Vector& point) const {
     const Function& f = getImpl().getImplicitFunction();
 
     // arguments to get first derivative from the calcDerivative interface
@@ -124,11 +124,13 @@ calcSurfaceGradient(const Vector& point) const {
     Array_<int> fy(1, 1);
     Array_<int> fz(1, 2);
 
-    Vec3 grad_transpose(3);
-    grad_transpose[0] = f.calcDerivative(fx,point);
-    grad_transpose[1] = f.calcDerivative(fy,point);
-    grad_transpose[2] = f.calcDerivative(fz,point);
-    return grad_transpose;
+    Vec3 normal(3);
+    // implicit surfaces are defined as positive inside and negative outside
+    // therefore normal is the negative of the gradient
+    normal[0] = -f.calcDerivative(fx,point);
+    normal[1] = -f.calcDerivative(fy,point);
+    normal[2] = -f.calcDerivative(fz,point);
+    return normal;
 }
 
 Mat33 ContactGeometry::
@@ -479,9 +481,9 @@ calcValue(const Vector& x) const {
 Real SphereImplicitFunction::
 calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
     if (derivComponents.size() == 1)
-        return 2*x[derivComponents[0]]/square(ownerp->getRadius());
+        return -2*x[derivComponents[0]]/square(ownerp->getRadius());
     if (derivComponents[0] == derivComponents[1])
-        return 2/square(ownerp->getRadius());
+        return -2/square(ownerp->getRadius());
     return 0;
 }
 
@@ -825,11 +827,11 @@ calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
     const Vec3& radii = ownerp->getRadii();
     if (derivComponents.size() == 1) {
         int c = derivComponents[0];
-        return 2*x[c]/(radii[c]*radii[c]);
+        return -2*x[c]/(radii[c]*radii[c]);
     }
     if (derivComponents[0] == derivComponents[1]) {
         int c = derivComponents[0];
-        return 2/(radii[c]*radii[c]);
+        return -2/(radii[c]*radii[c]);
     }
     return 0;
 }

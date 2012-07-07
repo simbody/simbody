@@ -36,10 +36,26 @@ using std::sin;
 using std::cout;
 using std::endl;
 
-Real pauseDurationBetweenIterations = 1; // sec
+Real pauseBetweenPathIterations = 1; // sec
 Real estimatedPathErrorAccuracy = 1e-12;
-Real ftol = 1e-12;
-Real xtol = 1e-6;
+
+const Real vizInterval = Infinity; // set to 1/30. to vizualize shooting
+
+
+class VizPeriodicReporter : public PeriodicEventReporter {
+public:
+    VizPeriodicReporter(const Visualizer& viz, const State& dummyState, Real interval) :
+        PeriodicEventReporter(interval), viz(viz), dummyState(dummyState) {
+    }
+
+    void handleEvent(const State& state) const {
+        viz.report(dummyState);
+    }
+
+private:
+    const Visualizer& viz;
+    const State& dummyState;
+};
 
 /*
  * This class is used to calculate the path error for a single obstacle
@@ -66,8 +82,8 @@ public:
 
         Vec3 tP = geod.getTangents()[0];
         Vec3 tQ = geod.getTangents()[geod.getTangents().size()-1];
-        Vec3 nP = gg.getGeom().calcSurfaceGradient((Vector)P);
-        Vec3 nQ = gg.getGeom().calcSurfaceGradient((Vector)Q);
+        Vec3 nP = gg.getGeom().calcSurfaceNormal((Vector)P);
+        Vec3 nQ = gg.getGeom().calcSurfaceNormal((Vector)Q);
         Vec3 bP = cross(nP, tP);
         Vec3 bQ = cross(nQ, tQ);
 
@@ -89,14 +105,86 @@ private:
     GeodesicGeometry& gg;
     const Vec3& O;
     const Vec3& I;
-    const Rotation R_SP;
-    const Rotation R_SQ;
 
     // temporary variables
     Geodesic& geod;
 
 }; // class PathError
 
+/*
+ * This class is used to calculate the path error for a single obstacle
+ * using the split geodesic error
+ */
+class PathErrorSplit: public Differentiator::JacobianFunction {
+
+public:
+    PathErrorSplit(int nf, int ny, GeodesicGeometry& geodgeom, Geodesic& geod,
+            const Vec3& O, const Vec3& I) :
+            Differentiator::JacobianFunction(nf, ny),
+                    gg(geodgeom), geod(geod),
+                    O(O), I(I) { }
+
+    // x = ~[P, Q]
+    int f(const Vector& x, Vector& fx) const  {
+        Vec3 P(&x[0]);
+        Vec3 Q(&x[3]);
+
+        // calculate plane bisecting P and Q, and use as termination condition for integrator
+        UnitVec3 normal(Q-P);
+        Real offset = (~(P+Q)*normal)/2 ;
+        gg.setPlane(Plane(normal, offset));
+
+        UnitVec3 r_OP(P-O);
+        UnitVec3 r_QI(I-Q);
+
+        geod.clear();
+        Vec2 geodErr = gg.calcGeodError(P, Q, r_OP, -r_QI);
+
+        Vec3 nP = gg.getGeom().calcSurfaceNormal((Vector)P);
+        Vec3 nQ = gg.getGeom().calcSurfaceNormal((Vector)Q);
+
+        fx[0] = ~r_OP*nP;
+        fx[1] = ~r_QI*nQ;
+        fx[2] = geodErr[0];
+        fx[3] = geodErr[1];
+        fx[4] = gg.getGeom().calcSurfaceValue((Vector)P);
+        fx[5] = gg.getGeom().calcSurfaceValue((Vector)Q);
+
+        return 0;
+    }
+
+    const Geodesic& getGeod() {
+        return geod;
+    }
+
+private:
+    GeodesicGeometry& gg;
+    const Vec3& O;
+    const Vec3& I;
+
+    // temporary variables
+    Geodesic& geod;
+
+}; // class PathErrorSplit
+
+static Real maxabs(Vector x) {
+    Real maxVal = 0;
+    for (int i = 0; i < x.size(); ++i) {
+        if (std::abs(x[i]) > maxVal)
+            maxVal = std::abs(x[i]);
+    }
+    return maxVal;
+}
+
+static Real maxabsdiff(Vector x, Vector xold) {
+    ASSERT(x.size()==xold.size());
+    Real maxVal = 0;
+    for (int i = 0; i < x.size(); ++i) {
+        if (std::abs(x[i]-xold[i])/std::max(x[i],1.0) > maxVal)
+            maxVal = std::abs(x[i]-xold[i])/std::max(x[i],1.0);
+    }
+    return maxVal;
+}
 
 
 int main() {
@@ -122,13 +210,17 @@ int main() {
     Vector x(n), dx(n), Fx(n), xold(n);
     Matrix J(n,n);
 
-    ContactGeometry::Sphere sphere(r);
-    GeodesicGeometry geodgeom(sphere);
+    ContactGeometry::Sphere geom(r);
+//    r = 2;
+//    Vec3 radii(1,2,3);
+//    ContactGeometry::Ellipsoid geom(radii);
+    GeodesicGeometry geodgeom(geom);
     Geodesic geod;
 
     // Create a dummy MultibodySystem for visualization purposes
     MultibodySystem dummySystem;
     SimbodyMatterSubsystem matter(dummySystem);
+//    matter.updGround().addBodyDecoration(Transform(), DecorativeEllipsoid(radii)
     matter.updGround().addBodyDecoration(Transform(), DecorativeSphere(r)
             .setColor(Gray)
             .setOpacity(0.5)
@@ -143,14 +235,20 @@ int main() {
     // add vizualization callbacks for geodesics, contact points, etc.
     viz.addDecorationGenerator(new GeodesicDecorator(geodgeom.getGeodP(), Red));
     viz.addDecorationGenerator(new GeodesicDecorator(geodgeom.getGeodQ(), Blue));
-    //    viz.addDecorationGenerator(new GeodesicDecorator(geod, Orange));
+    viz.addDecorationGenerator(new GeodesicDecorator(geod, Orange));
     viz.addDecorationGenerator(new PlaneDecorator(geodgeom.getPlane(), Gray));
     viz.addDecorationGenerator(new PathDecorator(x, O, I, Green));
     dummySystem.realizeTopology();
     State dummyState = dummySystem.getDefaultState();
 
+
+    // calculate the geodesic
+    geodgeom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
+    viz.report(dummyState);
+
     // creat path error function
-    PathError pathErrorFnc(n, n, geodgeom, geod, O, I);
+//    PathError pathErrorFnc(n, n, geodgeom, geod, O, I);
+    PathErrorSplit pathErrorFnc(n, n, geodgeom, geod, O, I);
     pathErrorFnc.setEstimatedAccuracy(estimatedPathErrorAccuracy);
     Differentiator diff(pathErrorFnc);
 
@@ -158,50 +256,50 @@ int main() {
     x[0]=P[0]; x[1]=P[1]; x[2]=P[2];
     x[3]=Q[0]; x[4]=Q[1]; x[5]=Q[2];
 
+    Real f, fold, lam;
+
     pathErrorFnc.f(x, Fx);
     viz.report(dummyState);
-    usleep((useconds_t)(pauseDurationBetweenIterations*1000000));
+    usleep((useconds_t)(pauseBetweenPathIterations*1000000));
 
-    Real f = 0.5*~Fx*Fx;
-    Real fold, lam = 1;
-
-
-    int maxIter = 40;
-    for (int i = 0; i < maxIter; ++i) {
-        if (std::sqrt(f) < ftol) {
+    f = std::sqrt(~Fx*Fx);
+    for (int i = 0; i < maxNewtonIterations; ++i) {
+        if (f < ftol) {
             std::cout << "path converged in " << i << " iterations" << std::endl;
+//            cout << "obstacle err = " << Fx << ", x = " << x << endl;
             break;
         }
-//        cout << "obstacle err = " << Fx << ", x = " << x << endl;
 
         diff.calcJacobian(x, Fx, J, Differentiator::ForwardDifference);
+        dx = J.invert()*Fx;
+
         fold = f;
         xold = x;
-//        cout << "J = " << J << endl;
-        dx = J.invert()*Fx;
 
         // backtracking
         lam = 1;
-//        x = xold - lam*dx;
-//        obstacleError.f(x, Fx);
         while (true) {
             x = xold - lam*dx;
             pathErrorFnc.f(x, Fx);
-            f = 0.5*~Fx*Fx;
-            if (f > fold) {
+            f = std::sqrt(~Fx*Fx);
+            if (f > fold && lam > minlam) {
                 lam = lam / 2;
             } else {
                 break;
             }
         }
-
+        if (maxabsdiff(x,xold) < xtol) {
+            std::cout << "converged on step size after " << i << " iterations" << std::endl;
+            std::cout << "error = " << Fx << std::endl;
+            break;
+        }
         viz.report(dummyState);
-        usleep((useconds_t)(pauseDurationBetweenIterations*1000000));
+        usleep((useconds_t)(pauseBetweenPathIterations*1000000));
 
     }
     cout << "obstacle error = " << Fx << endl;
 
-    cout << "num geod pts = " << geod.getPoints().size() << endl;
+    cout << "num geodP pts = " << geodgeom.getGeodP().getPoints().size() << endl;
 
 
   } catch (const std::exception& e) {
@@ -213,5 +311,5 @@ int main() {
     exit(1);
   }
 
-    return 0;
+  return 0;
 }

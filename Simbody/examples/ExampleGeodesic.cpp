@@ -38,6 +38,23 @@ using std::sin;
 using std::cout;
 using std::endl;
 
+const Real vizInterval = 1/30.; // set to 1/30. to vizualize shooting
+
+
+class VizPeriodicReporter : public PeriodicEventReporter {
+public:
+    VizPeriodicReporter(const Visualizer& viz, const State& dummyState, Real interval) :
+        PeriodicEventReporter(interval), viz(viz), dummyState(dummyState) {
+    }
+
+    void handleEvent(const State& state) const {
+        viz.report(dummyState);
+    }
+
+private:
+    const Visualizer& viz;
+    const State& dummyState;
+};
 
 int main() {
   try {
@@ -58,17 +75,26 @@ int main() {
     Vec3 tP = r_OP.normalize();
     Vec3 tQ = r_IQ.normalize();
 
+    Vec3 r_PQ = Q - P;
+
     int n = 2; // problem size
     Vector x(n), dx(n), Fx(n), xold(n);
     Matrix J(n, n);
 
-    ContactGeometry::Sphere sphere(r);
-    GeodesicGeometry geodgeom(sphere);
+    ContactGeometry::Sphere geom(r);
+//        r = 2;
+//        Vec3 radii(1,2,3);
+//        ContactGeometry::Ellipsoid geom(radii);
+
+    GeodesicGeometry geodgeom(geom);
     Geodesic geod;
 
     // Create a dummy mb system for visualization
     MultibodySystem dummySystem;
     SimbodyMatterSubsystem matter(dummySystem);
+
+
+//    matter.updGround().addBodyDecoration(Transform(), DecorativeEllipsoid(radii)
     matter.updGround().addBodyDecoration(Transform(), DecorativeSphere(r)
             .setColor(Gray)
             .setOpacity(0.5)
@@ -78,7 +104,7 @@ int main() {
     // to match the Visualizer's default 30 frames per second rate.
     Visualizer viz(dummySystem);
     viz.setBackgroundType(Visualizer::SolidColor);
-    dummySystem.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+
 
     // add vizualization callbacks for geodesics, contact points, etc.
     Vector tmp(6); // tmp = ~[P Q]
@@ -87,15 +113,27 @@ int main() {
     viz.addDecorationGenerator(new PlaneDecorator(geodgeom.getPlane(), Gray));
     viz.addDecorationGenerator(new GeodesicDecorator(geodgeom.getGeodP(), Red));
     viz.addDecorationGenerator(new GeodesicDecorator(geodgeom.getGeodQ(), Blue));
-//    viz.addDecorationGenerator(new GeodesicDecorator(geod, Orange));
+    viz.addDecorationGenerator(new GeodesicDecorator(geod, Orange));
     dummySystem.realizeTopology();
     State dummyState = dummySystem.getDefaultState();
 
-    // calculate the geodesic
-    geodgeom.calcGeodesic(P, Q, tP, tQ, geod);
-    viz.report(dummyState);
 
+    // calculate the geodesic
+    geodgeom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
+    viz.report(dummyState);
+//    geodgeom.calcGeodesic(P, Q, r_PQ, -r_PQ, geod);
+    geodgeom.calcGeodesic(P, Q, tP, tQ, geod);
+
+//    geodgeom.addVizReporter(new VizPeriodicReporter(viz, dummyState, 1/30.));
+//    viz.report(dummyState);
+//    GeodesicOptions opts;
+//    geodgeom.shootGeodesicInDirectionUntilLengthReached(P, UnitVec3(tP), 20, opts, geod);
+//    geodgeom.shootGeodesicInDirectionUntilPlaneHit(P, UnitVec3(tP), geodgeom.getPlane(), opts, geod);
+
+    viz.report(dummyState);
+    cout << "geod shooting count = " << geodgeom.getNumGeodesicsShot() << endl;
     cout << "num geod pts = " << geod.getPoints().size() << endl;
+
 
   } catch (const std::exception& e) {
     std::printf("EXCEPTION THROWN: %s\n", e.what());
