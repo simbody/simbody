@@ -24,6 +24,9 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+// This file declares the private implementation classes for CablePath and
+// CableObstacle classes. This is internal source, not part of the Simbody API.
+
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
@@ -31,41 +34,132 @@
 #include "simbody/internal/CableTrackerSubsystem.h"
 #include "simbody/internal/CablePath.h"
 
+#include "simmath/internal/Geodesic.h"
+#include "simmath/internal/GeodesicGeometry.h"
+
 #include <cassert>
 #include <iostream>
 using std::cout; using std::endl;
 
-namespace SimTK {
+using namespace SimTK;
+
+// This is a unique integer type for identifying active obstacles in a
+// particular path, including both via points and surfaces.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ActiveObstacleIndex);
+// These are indices assigned to the subset of active obstacles that are 
+// surfaces and thus have geodesics and contribute unknowns to the path
+// finding problem.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ActiveSurfaceIndex);
+
 
 // This is a discrete state variable for holding a path's instance-level 
 // information, including placement of points and surfaces on their bodies
 // and obstacle enable/disable settings.
 class PathInstanceInfo {
 public:
-    PathInstanceInfo() {}
+    // Initialize instance info from the defaults built into the obstacles.
+    explicit PathInstanceInfo
+       (const Array_<CableObstacle,CableObstacleIndex>& obstacles);
+
     // One entry per obstacle but you can't disable the origin or termination
     // points.
     Array_<bool,CableObstacleIndex>         obstacleDisabled;
-    Array_<Transform,CableObstacleIndex>    obstaclePose;
+    Array_<Transform,CableObstacleIndex>    obstaclePose; // X_BS[i]
 };
 
 
 // This is a cache entry for holding a path's calculated position-level 
-// information.
+// information. At the time it is created we know the total number of
+// obstacles n (including the end points), but not which ones are active. We 
+// don't know how many 
+// unknowns there are until we find out later based on the subset of active
+// obstacles that have unknown P's and Q's.
+// Note that disabled obstacles still get slots here but we never look at 
+// them. And disabled != inactive.
+//
+// Individual obstacles can only know their CableObstacleIndex because all
+// possible obstacles for a cable are provided during construction (i.e., that
+// is topological information). Then when we determine the set of active 
+// obstacles, we assign ActiveObstacleIndex and ActiveSurfaceIndex indices
+// which must be maintained in the state here. An obstacle can use its
+// CableObstacleIndex to obtain the other indices for access to related
+// quantities.
 class PathPosEntry {
 public:
     PathPosEntry() : length(NaN) {}
-    Vector x; // unknowns
 
-    // This is the total length of the path.
+    // Set the number of obstacles to n. If there is any information already
+    // in this object, it is lost.
+    void setNumObstacles(int n) {
+        mapToActive.clear();        mapToActive.resize(n);
+        mapToActiveSurface.clear(); mapToActiveSurface.resize(n);
+        mapToCoords.clear();        mapToCoords.resize(n);
+        initialize(0,0,0); // not yet
+    }
+
+    // mapToActive, mapToActiveSurface and mapToCoords are filled in. Allocate
+    // needed arrays.
+    void initialize(int na, int nas, int nx) {
+        length = NaN;
+        // Active obstacles
+        eIn_G.clear(); eIn_G.resize(na); // all NaN
+        Fu_GB.clear(); Fu_GB.resize(na, SpatialVec(Vec3(NaN)));
+        // Active surfaces
+        geodesics.clear(); geodesics.resize(nas);
+        x.clear(); x.resize(nx);
+        err.clear(); err.resize(nx);
+        J.clear(); J.resize(nx,nx);
+    }
+
+    // This is the total length of the path corresponding to the current
+    // configuration and values for contact point coordinates x stored here.
     Real length;
 
-    // These are unit vectors along the straight segments following the Q
-    // point of each obstacle except the termination point.
-    Array_<UnitVec3,CableObstacleIndex> straightDirections;
+    //                         ALL OBSTACLES
 
-    // Multiply these by tension to get body forces in Ground.
-    Array_<SpatialVec,CableObstacleIndex> obstacleUnitForces;
+    // Map each cable obstacle to its ActiveObstacleIndex if it is currently
+    // active, otherwise the entry tests !isValid(). Disabled obstacles are
+    // always inactive, enabled via points are always active. The origin and 
+    // termination points are always active, so activeIndex[0]=0 and 
+    // activeIndex[n-1]=nActive-1.
+    Array_<ActiveObstacleIndex,CableObstacleIndex>  mapToActive;
+
+    // Each active, surface obstacle gets one of these. Points and inactive
+    // surfaces will have indices that test !isValid().
+    Array_<ActiveSurfaceIndex,CableObstacleIndex>   mapToActiveSurface;
+
+    // Each active, surface obstacle is assigned a slot in the vector of 
+    // unknowns x. The first index of that slot is saved here, with a -1
+    // for any obstacle that is not a surface or is inactive.
+    Array_<int,CableObstacleIndex>                  mapToCoords;
+
+    //                       ACTIVE OBSTACLES
+
+    // These are unit vectors along the straight segments following the Q
+    // point of each active obstacle except the termination point.
+    Array_<UnitVec3,ActiveObstacleIndex>            eIn_G;
+
+    // Multiply these unit spatial forces by tension to get body spatial
+    // forces in Ground.
+    Array_<SpatialVec,ActiveObstacleIndex>          Fu_GB;
+
+    //                       ACTIVE SURFACES
+
+    // We calculate a geodesic for each active surface obstacle.
+    Array_<Geodesic,ActiveSurfaceIndex>             geodesics;
+
+    // This is a dense vector with all the active surface obstacle's unknowns 
+    // packed together.
+    Vector      x;      // nx unknowns
+
+    // This is the patherr corresponding to x and is always the same length.
+    Vector      err;    // patherr (nx of these)
+
+    // This is J(x) where J=partial(patherr)/partial(x), and its LU 
+    // factorization for use in solving for length dot at Velocity stage.
+    // TODO: this is banded but we're treating it as full.
+    Matrix      J;      // nx X nx
+    FactorLU    JInv;
 };
 
 
@@ -74,14 +168,30 @@ public:
 class PathVelEntry {
 public:
     PathVelEntry() : lengthDot(NaN), unitPower(NaN) {}
+
+    // Set the number of obstacles n (including end points). We don't yet know
+    // the number of active obstacles. Any information previously here is
+    // lost.
+    void setNumObstacles(int n) {
+        initialize(0,0,0); // not yet
+    }
+
+    void initialize(int na, int nas, int nx) {
+        xdot.clear(); xdot.resize(nx);
+        lengthDot = NaN;
+        unitPower = NaN;
+    }
+
     Vector xdot;    // calculated time derivatives of x
     Real lengthDot;
     Real unitPower; // unitForces*body velocities
 };
 
-std::ostream& operator<<(std::ostream& o, const SimTK::PathInstanceInfo& info);
-std::ostream& operator<<(std::ostream& o, const SimTK::PathPosEntry& entry);
-std::ostream& operator<<(std::ostream& o, const SimTK::PathVelEntry& entry);
+std::ostream& operator<<(std::ostream& o, const PathInstanceInfo& info);
+std::ostream& operator<<(std::ostream& o, const PathPosEntry& entry);
+std::ostream& operator<<(std::ostream& o, const PathVelEntry& entry);
+
+
 
 //==============================================================================
 //                         CABLE OBSTACLE :: IMPL
@@ -98,40 +208,60 @@ public:
 
     virtual ~Impl() {assert(referenceCount == 0);}
 
+    // Return the number of scalar coordinates needed to represent the 
+    // location of one of this obstacle's contact points. This will be zero for
+    // via points, 2 for parametric surfaces, and 3 for
+    // implicit surfaces. This is also necessarily half the number of 
+    // coordinates, their time derivatives, and the number of path error terms 
+    // associated with this obstacle.
+    virtual int getNumCoordsPerContactPoint() const = 0;
+
     // Concrete CableObstacle classes must implement these.
+
+    // Given coordinates xi=(xP,xQ) for this obstacle (taken from the supplied
+    // PathPosEntry), return the Cartesian positions of P and Q measured and
+    // expressed in the obstacle's S frame. For via points these are always
+    // at (0,0,0)_S.
     virtual void getContactPointsOnObstacle(const State&, 
                                         const PathInstanceInfo&,
                                         const PathPosEntry&,
                                         Vec3& P_S, Vec3& Q_S) const = 0;
+    // After geodesics have been calculated, this will return the length
+    // of the geodesic from P to Q for this obstacle, or zero for a via 
+    // points (since we consider P and Q to be in the same place).
     virtual Real getSegmentLength(const State&, 
                                   const PathInstanceInfo&,
                                   const PathPosEntry&) const = 0;
+    // Once xdots have been calculated, this will return the rate of length
+    // change for the geodesic on this obstacle, or zero for via points.
     virtual Real getSegmentLengthDot(const State&, 
                                      const PathInstanceInfo&,
                                      const PathPosEntry&,
                                      const PathVelEntry&) const = 0;
+
+
     // Return the contact point stations in the body frame, that is, vectors
-    // from body origin Bo to point P and Q, expressed in B.
-    void getContactStations(const State&            state, 
-                            const PathInstanceInfo& instInfo,
-                            const PathPosEntry&     posEntry,
-                            Vec3& P_B, Vec3& Q_B) const 
+    // from body origin Bo to point P and Q, expressed in B. Cost is 36 flops.
+    void getContactStationsOnBody(const State&            state, 
+                                  const PathInstanceInfo& instInfo,
+                                  const PathPosEntry&     ppe,
+                                  Vec3& P_B, Vec3& Q_B) const 
     {   Vec3 P_S, Q_S;
-        getContactPointsOnObstacle(state, instInfo, posEntry, P_S, Q_S);
+        getContactPointsOnObstacle(state, instInfo, ppe, P_S, Q_S);
         const Transform& X_BS = getObstaclePoseOnBody(state, instInfo);
         P_B = X_BS*P_S; Q_B = X_BS*Q_S; // 36 flops
     }
 
-    // Return the contact point stations in the body frame, but re-expressed
-    // in Ground. This is still the vector from the body origin Bo to the
-    // contact points P and G; it is not measured from the ground origin.
-    // 66 flops.
+    // Return the contact point stations measured in the body frame, but 
+    // re-expressed in Ground. This is still the vector from the body origin 
+    // Bo to the contact points P and G; it is not measured from the ground 
+    // origin. Cost is 66 flops.
     void expressContactStationsInGround(const State&            state, 
                                 const PathInstanceInfo& instInfo,
-                                const PathPosEntry&     posEntry,
+                                const PathPosEntry&     ppe,
                                 Vec3& PB_G, Vec3& QB_G) const 
     {   Vec3 P_B, Q_B;
-        getContactStations(state, instInfo, posEntry, P_B, Q_B);
+        getContactStationsOnBody(state, instInfo, ppe, P_B, Q_B); // 36 flops
         const Rotation& R_GB = getBodyTransform(state).R();
         PB_G = R_GB*P_B; QB_G = R_GB*Q_B;   // 30 flops
     }
@@ -158,9 +288,12 @@ friend class CableObstacle;
 
     // MobilizedBody to which this obstacle is fixed.
     const MobilizedBody     mobod;
+    // Pose of surface frame (or point) on its body.
     Transform               defaultX_BS;
+    // How to draw this obstacle in the visualizer.
     DecorativeGeometry      decoration;
 
+    // The number of handles that reference this implementation object.
     mutable int             referenceCount;
 };
 
@@ -211,18 +344,7 @@ public:
     }
 
     void applyBodyForces(const State& state, Real tension, 
-                         Vector_<SpatialVec>& bodyForcesInG) const
-    {
-        if (tension <= 0) return;
-
-        const PathPosEntry& posEntry = getPosEntry(state);
-        for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
-            const CableObstacle::Impl& obs = obstacles[ox].getImpl();
-            const MobilizedBody& B = obs.getMobilizedBody();
-            const SpatialVec& F_GB = posEntry.obstacleUnitForces[ox];
-            B.applyBodyForce(state, tension*F_GB, bodyForcesInG);
-        }
-    }
+                         Vector_<SpatialVec>& bodyForcesInG) const;
 
     Real calcCablePower(const State& state, Real tension) const {
         if (tension <= 0) return 0;
@@ -230,25 +352,11 @@ public:
         return tension * velEntry.unitPower;
     }
 
-    void realizeTopology(State& state) {
-        // Initialize instance info from defaults.
-        PathInstanceInfo init;
-        for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
-            const CableObstacle::Impl& obs = obstacles[ox].getImpl();
-            init.obstacleDisabled.push_back(false);
-            init.obstaclePose.push_back(obs.getDefaultPoseOnBody());
-        }
-        cout << init << endl;
-        // Allocate and initialize instance state variable.
-        instanceInfoIx = cables->allocateDiscreteVariable(state,
-            Stage::Instance, new Value<PathInstanceInfo>(init));
+    // Allocate state variables and cache entries.
+    void realizeTopology(State& state);
 
-        // Allocate cache entries for position and velocity calculations.
-        posEntryIx = cables->allocateLazyCacheEntry(state, Stage::Position,
-            new Value<PathPosEntry>());
-        velEntryIx = cables->allocateLazyCacheEntry(state, Stage::Velocity,
-            new Value<PathVelEntry>());
-    }
+    // We know which obstacles are disabled. Assume the rest are active
+    void realizeInstance(const State& state) const;
 
     void realizePosition(const State& state) const {
         ensurePositionKinematicsCalculated(state);
@@ -258,86 +366,19 @@ public:
         ensureVelocityKinematicsCalculated(state);
     }
 
-    void ensurePositionKinematicsCalculated(const State& state) const {
-        if (cables->isCacheValueRealized(state, posEntryIx))
-            return;
+    // Update the cable path and its length in the state cache. This is the 
+    // expensive part of the cable path computation. State must already have
+    // been realized to position stage. This is invoked automatically when
+    // you request access to the position cache entry.
+    void ensurePositionKinematicsCalculated(const State& state) const;
 
-        const PathInstanceInfo& instInfo = getInstanceInfo(state);
-        PathPosEntry&           posEntry = updPosEntry(state);
+    // Calculate the cable's rate of length change and put the result in
+    // the state cache. State must already have been realized to Velocity stage.
+    // This is invoked automatically when you request access to the velocity
+    // cache entry.
+    void ensureVelocityKinematicsCalculated(const State& state) const;
 
-        posEntry.length = 0;
-        posEntry.straightDirections.clear();
-        posEntry.obstacleUnitForces.clear();
-
-        Vec3 prevQB_G, prevQ_G;
-        for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
-            const CableObstacle::Impl& obs = obstacles[ox].getImpl();
-            Vec3 PB_G, QB_G;
-            obs.expressContactStationsInGround(state,instInfo,posEntry,
-                                               PB_G, QB_G);
-            const Vec3& Bo_G = obs.getBodyTransform(state).p();
-            const Vec3 P_G = Bo_G + PB_G;
-            if (ox == 0) {
-                prevQB_G = QB_G;
-                prevQ_G  = Bo_G + QB_G;
-                posEntry.obstacleUnitForces.push_back(SpatialVec(Vec3(0)));
-                continue;
-            }
-
-            const Vec3 lineSeg(P_G - prevQ_G);
-            const Real lineSegLen = lineSeg.norm();
-            const UnitVec3 lineDir(lineSeg/lineSegLen, true);
-            posEntry.straightDirections.push_back(lineDir);
-            posEntry.length += lineSegLen;
-            const SpatialVec unitForcePrevQ(prevQB_G % lineDir, lineDir);
-            const SpatialVec unitForceP(lineDir % PB_G, -lineDir);
-            posEntry.obstacleUnitForces.back() += unitForcePrevQ;
-            posEntry.obstacleUnitForces.push_back(unitForceP);
-
-            const Real segLen = obs.getSegmentLength(state, instInfo, posEntry);
-            posEntry.length += segLen;
-            prevQB_G = QB_G;
-            prevQ_G  = Bo_G + QB_G;
-        }
-
-        cables->markCacheValueRealized(state, posEntryIx);
-    }
-
-    void ensureVelocityKinematicsCalculated(const State& state) const {
-        if (cables->isCacheValueRealized(state, velEntryIx))
-            return;
-
-        const PathInstanceInfo& instInfo = getInstanceInfo(state);
-        const PathPosEntry& posEntry = getPosEntry(state);
-        PathVelEntry&       velEntry = updVelEntry(state);
-
-        velEntry.lengthDot = 0;
-        velEntry.unitPower = 0;
-
-        //TODO: calc length dot
-        Vec3 vprev_GQ;
-        for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
-            const CableObstacle::Impl& obs = obstacles[ox].getImpl();
-            const MobilizedBody& B = obs.getMobilizedBody();
-            Vec3 P_B, Q_B, v_GP, v_GQ;
-            obs.getContactStations(state, instInfo, posEntry, P_B, Q_B);
-            v_GP = B.findStationVelocityInGround(state, P_B);
-            v_GQ = B.findStationVelocityInGround(state, Q_B);
-
-            if (ox > 0) {
-                CableObstacleIndex prevx(ox-1);
-                velEntry.lengthDot += dot(v_GP - vprev_GQ,
-                                          posEntry.straightDirections[prevx]);
-            }
-            vprev_GQ = v_GQ;
-
-            const SpatialVec& V_GB = obs.getBodyVelocity(state);
-            velEntry.unitPower += 
-                ~posEntry.obstacleUnitForces[ox] * V_GB;
-        }
-
-        cables->markCacheValueRealized(state, velEntryIx);
-    }
+    // Methods for convenient access to state variables and cache entries.
 
     const PathInstanceInfo& getInstanceInfo(const State& state) const 
     {   return Value<PathInstanceInfo>::downcast
@@ -366,10 +407,26 @@ public:
     {   return Value<PathVelEntry>::updDowncast
            (cables->updCacheEntry(state, velEntryIx)); }
 
+    // Be sure to call this whenever you make a topology-level change to
+    // the cable definition, like adding an obstacle or modifying one in
+    // a significant way.
     void invalidateTopology()
     {   if (cables) cables->invalidateSubsystemTopologyCache(); }
+
+    // Given kinematics and a set of contact point coordinates x (already in
+    // PathPosEntry), calculate the resulting path errors and related 
+    // quantities with the result going back into PathPosEntry.
+    void calcPathError
+       (const State&, const PathInstanceInfo&, PathPosEntry&) const;
 private:
 friend class CablePath;
+
+    // Starting with an initial guess for the contact coordinates x, make
+    // repeated calls to calcPathError to drive the path errors to zero by
+    // modifying x in PathPosEntry.
+    void solveForPathPoints
+       (const State&, const PathInstanceInfo&, PathPosEntry&) const;
+
 
     // Subsystem to which this path belongs, and the index within that
     // subsystem.
@@ -379,7 +436,7 @@ friend class CablePath;
     // The list of via points and surfaces, ordered by expected path 
     // coordinate. The first obstacle is the origin point; the last is the
     // termination point.
-    Array_<CableObstacle>   obstacles;
+    Array_<CableObstacle,CableObstacleIndex>   obstacles;
 
     // TOPOLOGY CACHE (set during realizeTopology())
     DiscreteVariableIndex   instanceInfoIx;
@@ -402,13 +459,14 @@ public:
     :   Super(path, viaMobod, station) 
     {   decoration = DecorativePoint().setColor(Red); }
 
+    int getNumCoordsPerContactPoint() const {return 0;}
+
     void getContactPointsOnObstacle(const State& state, 
                                     const PathInstanceInfo& instInfo,
                                     const PathPosEntry& posEntry,
                                     Vec3& P_S, Vec3& Q_S) const OVERRIDE_11
     {
-        const Transform& X_BS = getObstaclePoseOnBody(state, instInfo);
-        P_S = Q_S = X_BS.p();
+        P_S = Q_S = Vec3(0);
     }
 
     Real getSegmentLength(const State& state,
@@ -429,40 +487,101 @@ public:
 class CableObstacle::Surface::Impl : public CableObstacle::Impl {
     typedef CableObstacle::Impl Super;
 public:
-    Impl(CablePath& path, const MobilizedBody& viaMobod,
-         const Transform& pose) 
-    :   Super(path, viaMobod, pose) {}
+    Impl(CablePath& path, const MobilizedBody& mobod,
+         const Transform& pose, const ContactGeometry& geom) 
+    :   Super(path, mobod, pose), surface(geom), 
+        nearPointInS(NaN), xPhint(NaN), xQhint(NaN) {}
+
+    // Hardcoded for implicit surfaces -- would be 2 for parametric.
+    int getNumCoordsPerContactPoint() const {return 3;}
 
     void getContactPointsOnObstacle(const State& state, 
                                     const PathInstanceInfo& instInfo,
-                                    const PathPosEntry& posEntry,
+                                    const PathPosEntry& ppe,
                                     Vec3& P_S, Vec3& Q_S) const OVERRIDE_11
     {
-        // TODO: get real points from posEntry
-        const Transform& X_BS = getObstaclePoseOnBody(state, instInfo);
-        P_S = Q_S = X_BS.p();
+        const ActiveSurfaceIndex asx   = ppe.mapToActiveSurface[index];
+        const int                xSlot = ppe.mapToCoords[index];
+        assert(asx.isValid() && xSlot >= 0);
+        P_S = Vec3::getAs(&ppe.x[xSlot]);  // implicit coords are point in S
+        Q_S = Vec3::getAs(&ppe.x[xSlot+3]);
     }
 
     Real getSegmentLength(const State& state,
                           const PathInstanceInfo& instInfo,
-                          const PathPosEntry& posInfo) const OVERRIDE_11
-    {   return 0; } // TODO
+                          const PathPosEntry& ppe) const OVERRIDE_11
+    {   const ActiveSurfaceIndex asx = ppe.mapToActiveSurface[index];
+        assert(asx.isValid());
+        const Geodesic& geod = ppe.geodesics[asx];
+        return geod.getLength();
+    }
+
 
     Real getSegmentLengthDot( const State& state,
                               const PathInstanceInfo& instInfo,
-                              const PathPosEntry& posInfo,
-                              const PathVelEntry& velInfo) const OVERRIDE_11
-    {   return 0; } // TODO
+                              const PathPosEntry& ppe,
+                              const PathVelEntry& pve) const OVERRIDE_11
+    {   const ActiveSurfaceIndex asx   = ppe.mapToActiveSurface[index];
+        const int                xSlot = ppe.mapToCoords[index];
+        assert(asx.isValid() && xSlot >= 0);
+        // contact point velocities
+        const Vec3 xdotP = Vec3::getAs(&pve.xdot[xSlot]); 
+        const Vec3 xdotQ = Vec3::getAs(&pve.xdot[xSlot+3]);
+        const Geodesic& geod = ppe.geodesics[asx];
+        return geod.calcLengthDot(xdotP,xdotQ);
+    }
+
+    // During initialization, call this to calculate an appropriate geodesic
+    // connecting points P and Q whose surface coordinates are supplied.
+    // There may be multiple geodesics between P and Q. If a near point
+    // N has been provided, we'll return the geodesic that passes closest to it,
+    // otherwise we'll return the shortest one. If entry and exit hints are 
+    // provided they may be used to bias the algorithm. 
+    void initSurfacePath(const Vec3&        xP, 
+                         const Vec3&        xQ,
+                         const UnitVec3&    entryHint_S, // optional (use NaN)
+                         const UnitVec3&    exitHint_S,  // optional (use NaN)
+                         Geodesic&          path) const;
+
+    // Calculate the surface-local path error due to the given entry/exit
+    // points and directions being inconsistent with a geodesic connecting
+    // those points.
+    Vec6 calcSurfacePathError(  const Geodesic& previous,
+                                const UnitVec3& entryDir_S,
+                                const Vec3&     xP,
+                                const Vec3&     xQ,
+                                const UnitVec3& exitDir_S,
+                                Geodesic&       next) const;
+
+    // Calculate partial derivatives of the surface path error with respect to
+    // each of its four arguments.
+    void calcSurfacePathErrorJacobian
+       (const Geodesic& previous,
+        const UnitVec3& entryDir_S,
+        const Vec3&     xP,
+        const Vec3&     xQ,
+        const UnitVec3& exitDir_S,
+        Mat63&          DerrDentry, // 4x3 for parametric
+        Mat63&          DerrDxP,    // 4x2       "
+        Mat63&          DerrDxQ,    // 4x2       "
+        Mat63&          DerrDexit)  // 4x3       "
+        const;
+
+    bool hasNearPoint() const {return !nearPointInS.isNaN(); }
+    const Vec3& getNearPoint() const {return nearPointInS;}
+
+    bool hasContactPointHints() const 
+    {   return !(xPhint.isNaN() || xQhint.isNaN()); }
+    void getContactPointHints(Vec3& xPhint, Vec3& xQhint) const
+    {   xPhint = this->xPhint; xQhint = this->xQhint; }
  
 private:
 friend class CableObstacle::Surface;
 
-    ContactGeometry     surface;
-    Vec3                pathPreferencePointInS; 
+    GeodesicGeometry    surface;
+    Vec3                nearPointInS; // Cartesian location of N, in S frame
+    Vec3                xPhint, xQhint;
 };
-
-
-} // namespace SimTK
 
 
 #endif // SimTK_SIMBODY_CABLE_PATH_IMPL_H_

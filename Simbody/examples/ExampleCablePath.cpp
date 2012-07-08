@@ -61,9 +61,10 @@ public:
 
     // Must be at stage Velocity.
     Real getPowerDissipation(const State& state) const {
-        if (calcStretch(state) == 0) return 0;
+        const Real stretch = calcStretch(state);
+        if (stretch == 0) return 0;
         const Real rate = path.getCableLengthDot(state);
-        return rate > 0 ? c*square(rate) : 0;
+        return k*stretch*std::max(c*rate, -1.)*rate;
     }
 
     // This integral is always available.
@@ -116,7 +117,9 @@ private:
         const Real stretch = calcStretch(state);
         if (stretch == 0) return 0;
         const Real rate = path.getCableLengthDot(state);
-        const Real tension = k*stretch + std::max(c*rate,0.);
+        if (c*rate < -1)
+            cout << "c*rate=" << c*rate << "; limited to -1\n";
+        const Real tension = k*stretch*(1+std::max(c*rate,-1.));
         return tension;
     }
 
@@ -162,7 +165,7 @@ private:
     {   return dynamic_cast<const MyCableSpringImpl&>(getImplementation()); }
 };
 
-
+static Array_<State> saveStates;
 // This gets called periodically to dump out interesting things about
 // the cables and the system as a whole.
 class ShowStuff : public PeriodicEventReporter {
@@ -205,6 +208,7 @@ public:
             mbs.calcEnergy(state)
                 + cable1.getDissipatedEnergy(state)
                 + cable2.getDissipatedEnergy(state));
+        saveStates.push_back(state);
     }
 private:
     const MultibodySystem&  mbs;
@@ -226,7 +230,8 @@ int main() {
 
     Body::Rigid someBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     const Real Rad = .25;
-    someBody.addDecoration(Transform(), DecorativeSphere(Rad).setOpacity(.3));
+    someBody.addDecoration(Transform(), 
+        DecorativeSphere(Rad).setOpacity(.3).setResolution(4));
 
     MobilizedBody Ground = matter.Ground();
 
@@ -245,26 +250,31 @@ int main() {
                             body5, Vec3(0,0,Rad));  // termination
 
     CableObstacle::ViaPoint p1(path1, body2, Rad*UnitVec3(1,1,0));
-    CableObstacle::ViaPoint p2(path1, body3, Rad*UnitVec3(0,1,1));
-    CableObstacle::ViaPoint p3(path1, body3, Rad*UnitVec3(1,0,1));
+    //CableObstacle::ViaPoint p2(path1, body3, Rad*UnitVec3(0,1,1));
+    //CableObstacle::ViaPoint p3(path1, body3, Rad*UnitVec3(1,0,1));
+    CableObstacle::Surface obs4(path1, body3, Transform(), 
+        ContactGeometry::Sphere(.25));
+    obs4.setContactPointHints(Rad*UnitVec3(-1,1,0),Rad*UnitVec3(-1,0,1));
+
     CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
     CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
 
-    MyCableSpring cable1(forces, path1, 100., 3.5, 100.); 
+    // NOTE: velocity-based force is disabled.
+    MyCableSpring cable1(forces, path1, 100., 3.5, 0*0.1); 
 
     CablePath path2(cables, Ground, Vec3(-3,0,0),   // origin
                             Ground, Vec3(-2,1,0)); // termination
     CableObstacle::ViaPoint(path2, body3, 2*Rad*UnitVec3(1,1,1));
     CableObstacle::ViaPoint(path2, Ground, Vec3(-2.5,1,0));
-    MyCableSpring cable2(forces, path2, 100., 8, 100.); 
+    MyCableSpring cable2(forces, path2, 100., 8, 0.1); 
 
-    //CableObstacle::Surface obs1(path2, body2);
-    //obs1.setContactSurface(Transform(), ContactGeometry::Sphere(.25));
+
     //obs1.setPathPreferencePoint(Vec3(2,3,4));
     //obs1.setDecorativeGeometry(DecorativeSphere(0.25).setOpacity(.5));
 
-    system.addEventReporter(new Visualizer::Reporter(system, 1./30));
-    system.addEventReporter(new ShowStuff(system, cable1, cable2, 0.1));    
+    Visualizer viz(system);
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.1*1./30));
+    system.addEventReporter(new ShowStuff(system, cable1, cable2, 0.1*0.1));    
     // Initialize the system and state.
     
     system.realizeTopology();
@@ -273,17 +283,32 @@ int main() {
     for (int i = 0; i < state.getNQ(); ++i)
         state.updQ()[i] = random.getValue();
     for (int i = 0; i < state.getNU(); ++i)
-        state.updU()[i] = 0.1*random.getValue();    
+        state.updU()[i] = 0.1*random.getValue(); 
+
+    system.realize(state, Stage::Position);
+    viz.report(state);
+    cout << "Hit ENTER ...";
+    getchar();
+
 
     // Simulate it.
+    saveStates.clear(); saveStates.reserve(2000);
 
     RungeKuttaMersonIntegrator integ(system);
     //CPodesIntegrator integ(system);
-    integ.setAccuracy(1e-4);
+    integ.setAccuracy(1e-3);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ShowStuff::showHeading(cout);
-    ts.stepTo(100.0);
+    ts.stepTo(1.);
+
+    while (true) {
+        cout << "Hit ENTER FOR REPLAY, Q to quit ...";
+        const char ch = getchar();
+        if (ch=='q' || ch=='Q') break;
+        for (unsigned i=0; i < saveStates.size(); ++i)
+            viz.report(saveStates[i]);
+    }
 
   } catch (const std::exception& e) {
     cout << "EXCEPTION: " << e.what() << "\n";

@@ -96,6 +96,14 @@ int realizeSubsystemTopologyImpl(State& state) const OVERRIDE_11 {
     return 0;
 }
 
+int realizeSubsystemInstanceImpl(const State& state) const OVERRIDE_11 {
+    for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
+        const CablePath& path = getCablePath(ix);
+        path.getImpl().realizeInstance(state);
+    }
+    return 0;
+}
+
 int realizeSubsystemPositionImpl(const State& state) const OVERRIDE_11 {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath& path = getCablePath(ix);
@@ -120,22 +128,48 @@ int calcDecorativeGeometryAndAppendImpl
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath::Impl&  path     = getCablePath(ix).getImpl();
         const PathInstanceInfo& instInfo = path.getInstanceInfo(state);
+        const PathPosEntry&     ppe      = path.getPosEntry(state);
 
         Vec3 prevPoint;
         for (CableObstacleIndex ox(0); ox < path.getNumObstacles(); ++ox) {
             const CableObstacle::Impl& obs = path.getObstacleImpl(ox);
-            const Transform& X_BS = obs.getObstaclePoseOnBody(state,instInfo);
-            const MobilizedBody& bodyB = obs.getMobilizedBody();
-            const Vec3 So_G = bodyB.findStationLocationInGround(state,
-                                                                X_BS.p());
+            Vec3 P_B, Q_B;
+            obs.getContactStationsOnBody(state, instInfo, ppe, P_B, Q_B);
+            const Transform& X_GB = obs.getBodyTransform(state);
+            Vec3 P_G = X_GB*P_B, Q_G = X_GB*Q_B;
+
             const Vec3 color = ox==0 ? Green 
                              : ox==path.getNumObstacles()-1 ? Red : Purple;
-            decorations.push_back(DecorativePoint(So_G).setColor(color));
+            // Draw point at Pi.
+            decorations.push_back(DecorativePoint(P_G).setColor(color));
 
-            if (ox!=0)
-                decorations.push_back(DecorativeLine(prevPoint,So_G)
+            if (ox!=0) // draw straight line from Qi-1 to Pi
+                decorations.push_back(DecorativeLine(prevPoint,P_G)
                     .setColor(Purple).setLineThickness(3));
-            prevPoint = So_G;
+
+            // If there are two distinct points, draw the second one and a
+            // red curve connecting them.
+            if ((Q_G-P_G).normSqr() >= square(SignificantReal)) {
+                decorations.push_back(DecorativePoint(Q_G).setColor(color));
+
+                ActiveSurfaceIndex asx = ppe.mapToActiveSurface[ox];
+                assert(asx.isValid());
+                const Geodesic& g = ppe.geodesics[asx];
+                const Transform& X_BS = obs.getObstaclePoseOnBody(state,instInfo);
+                const Transform X_GS = X_GB*X_BS;
+                Vec3 prevP_G = X_GS*g.getPoints().front();
+                for (unsigned i=0; i < g.getPoints().size(); ++i) {
+                    Vec3 Q_G = X_GS*g.getPoints()[i];
+                    decorations.push_back(DecorativeLine(prevP_G, Q_G)
+                        .setColor(Red).setLineThickness(2));
+                    if (i < g.getPoints().size()-1)
+                        decorations.push_back(DecorativePoint(Q_G)
+                            .setColor(Blue).setScale(.5));
+
+                    prevP_G = Q_G;
+                }
+            }
+            prevPoint = Q_G;
         }
     }
     return 0;

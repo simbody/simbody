@@ -51,16 +51,16 @@ point, and takes the shortest allowable path over the surfaces of obstacles.
 
 During initialization, if there is more than one possible geodesic over the
 surface, or if a straight line path would miss the surface altogether, we'll
-take the shortest route unless the user has provided a "preference point" on the
-surface. In that case whichever path segment runs closer to the preferred point
+take the shortest route unless the user has provided a "near point" on the
+surface. In that case whichever path segment runs closer to the near point
 is chosen. During continuation, only local path movement is allowed so the
 path segment will not flip from one side to the other once it has been
-initialized. The preferred point is ignored during continuation.
+initialized. The near point is ignored during continuation.
 
 <h3>Notation</h3>
 
 For convenience, we include the origin and termination points as obstacles,
-with the origin being obstacle 0, followed by m via point and surface 
+with the origin being obstacle zero, followed by m via point and surface 
 obstacles numbered 1 to m, followed by the termination point as obstacle t=m+1.
 Every obstacle is represented by two "contact points", P and Q, which we'll
 number Pi and Qi for obstacle i. The obstacles are
@@ -73,7 +73,6 @@ points P and Q are in the same location but there are two different tangents
 associated with them in the incoming and outgoing straight-line directions.
 For the origin obstacle, only point Q is relevant and for the termination
 obstacle only point P is relevant.
-
 **/
 class SimTK_SIMBODY_EXPORT CablePath {
 public:
@@ -252,19 +251,19 @@ public:
 /** Default constructor creates an empty handle. **/
 Surface() : CableObstacle() {}
 
-Surface(CablePath& path, const MobilizedBody& body);
-Surface& setContactSurface(const Transform& X_BS, 
-                           const ContactGeometry& surface);
+Surface(CablePath& path, const MobilizedBody& mobod,
+        const Transform& X_BS, const ContactGeometry& surface);
+
 Surface& setDecorativeGeometry(const DecorativeGeometry& viz)
 {   CableObstacle::setDecorativeGeometry(viz); return *this; }
-/** Optionally provide a "preference point" that can be used during
+/** Optionally provide a "near point" that can be used during
 path initialization to disambiguate when there is more than one geodesic
-that can connect the contact points. The geodesic that passes nearest
-the preference point will be selected. Without this point the shortest
+that can connect the contact points. The geodesic that passes closest to
+the near point will be selected. Without this point the shortest
 geodesic will be selected. This point is ignored during path continuation
 calculations. The point location is given in the local frame S of the
 contact surface. **/
-Surface& setPathPreferencePoint(const Vec3& point);
+Surface& setNearPoint(const Vec3& point);
     
 /** Optionally provide some hints for the initialization algorithm to
 use as starting guesses for the contact point locations. These are
