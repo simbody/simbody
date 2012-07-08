@@ -118,7 +118,8 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     u[0] = tP[0]; u[1] = tP[1]; u[2] = tP[2];
 
     // Setup integrator to integrate until terminatingLength
-    RungeKutta3Integrator integ(ptOnSurfSys);
+    //RungeKutta3Integrator integ(ptOnSurfSys);
+    RungeKuttaMersonIntegrator integ(ptOnSurfSys);
     integ.setAccuracy(integratorAccuracy);
     integ.setConstraintTolerance(integratorConstraintTol);
     integ.setFinalTime(finalTime);
@@ -135,17 +136,24 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     Integrator::SuccessfulStepStatus status;
     int stepcnt = 0;
     while (true) {
-        status = ts.stepTo(Infinity);
-        const Real T = integ.getTime();
+        // Final time is already reported by the time we see end of simulation;
+        // don't duplicate the last step.
+        if ((status=ts.stepTo(Infinity)) == Integrator::EndOfSimulation)
+            break;
+
+        const Real s = state.getTime();
         geod.addPoint(Vec3(&state.getQ()[0]));
         geod.addTangent(Vec3(&state.getU()[0]));
-        geod.addArcLength(T);
+        geod.addArcLength(s);
 
-        if (status == Integrator::EndOfSimulation) {
-            break;
-        }
         ++stepcnt;
     }
+    geod.setIsConvex(false); // TODO
+    geod.setIsShortest(false); // TODO
+    geod.setAchievedAccuracy(integratorAccuracy); // TODO: accuracy of length?
+    // TODO: better to use something like the second-to-last step, or average
+    // excluding initial and last steps, so that we don't have to start small.
+    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken());
 }
 
 
@@ -231,7 +239,7 @@ void GeodesicGeometry::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     Fx = calcGeodError(xP, xQ, x[0], x[1]);
     if (vizReporter != NULL) {
         vizReporter->handleEvent(ptOnSurfSys.getDefaultState());
-        usleep((useconds_t)(pauseBetweenGeodIterations*1000000));
+        sleepInSec(pauseBetweenGeodIterations);
     }
 
     f = std::sqrt(~Fx*Fx);
@@ -271,7 +279,7 @@ void GeodesicGeometry::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 
         if (vizReporter != NULL) {
             vizReporter->handleEvent(ptOnSurfSys.getDefaultState());
-            usleep((useconds_t)(pauseBetweenGeodIterations*1000000));
+            sleepInSec(pauseBetweenGeodIterations);
         }
 
     }

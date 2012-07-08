@@ -39,18 +39,9 @@ This file defines the Geodesic class. **/
 namespace SimTK {
 
 class Geodesic {
-
 public:
-
     /** Construct an empty geodesic. **/
-    Geodesic() { }
-
-    /** Clear the data in this geodesic **/
-    void clear() {
-        points.clear();
-        tangents.clear();
-        arcLengths.clear();
-    }
+    Geodesic() {clear();}
 
     Array_<Vec3>& updPoints() {
         return points;
@@ -89,22 +80,47 @@ public:
         arcLengths.push_back(s);
     }
 
+    Real getLength() const {return arcLengths.empty() ? 0 : arcLengths.back();}
 
-    //XXX other methods:
-    Real getLength();
-    Vec3 getPoint(double s);
-    Vec3 getTangent(double s);
-    Vec3 getNormal(double s);
-    Vec3 getBinormal(double s);
+    /** TODO: Given the time derivatives of the surface coordinates of P and Q,
+    calculate the rate of change of length of this geodesic. **/
+    Real calcLengthDot(const Vec3& xdotP, const Vec3& xdotQ) const 
+    {   return 0; }
+
+    // ARC LENGTH METHODS
+
+    /** Given arc length coordinate return the corresponding geodesic point. **/
+    Vec3 findPoint(Real s) const;
+    Vec3 findTangent(Real s) const;
+    Vec3 findNormal(Real s) const;
+    Vec3 findBinormal(Real s) const; // tangent X normal
+
+    /** Clear the data in this geodesic, returning it to its default-constructed
+    state, although memory remains allocated. **/
+    void clear() {
+        points.clear(); 
+        tangents.clear();
+        arcLengths.clear();
+        convexFlag = shortestFlag = false;
+        initialStepSizeHint = achievedAccuracy = NaN;
+    }
+
+    void setIsConvex(bool isConvex) {convexFlag = isConvex;}
+    void setIsShortest(bool isShortest) {shortestFlag = isShortest;}
+    void setInitialStepSizeHint(Real sz) {initialStepSizeHint=sz;} 
+    void setAchievedAccuracy(Real acc) {achievedAccuracy=acc;} 
+
+    bool isConvex() const {return convexFlag;}
+    bool isShortest() const {return shortestFlag;}
+    Real getInitialStepSizeHint() const {return initialStepSizeHint;}
+    Real getAchievedAccuracy() const {return achievedAccuracy;}
 
 private:
-    Array_<Vec3> points;
-    Array_<Vec3> tangents;
-    Array_<Real> arcLengths;
+    Array_<Vec3> points;        // point at each knot
+    Array_<Vec3> tangents;      // tangent at that point
+    Array_<Real> arcLengths;    // arc length coord corresponding to that point
 
     // XXX other members:
-    Vec3 xPdot; // coordinate velocities of start point xdot (s=0)
-    Vec3 xQdot; // coordinate velocities of start point xdot (s=1)
     bool convexFlag; // is this geodesic over a convex surface?
     bool shortestFlag; // is this geodesic the shortest one of the surface?
     Real initialStepSizeHint; // the initial step size to be tried when integrating this geodesic

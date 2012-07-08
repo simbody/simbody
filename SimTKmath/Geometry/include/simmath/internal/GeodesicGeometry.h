@@ -285,29 +285,67 @@ public:
      **/
     static void mergeGeodesics(const Geodesic& geodP, const Geodesic& geodQ,
             Geodesic& geod) {
-        mergeGeodLists(geodP.getPoints(), geodQ.getPoints(), geod.updPoints());
-        mergeGeodLists(geodP.getTangents(), geodQ.getTangents(), geod.updTangents());
-        // TODO also merge other data, including arcLengths, etc.
+        mergeGeodLists(geodP.getPoints(), geodQ.getPoints(), 
+                       geod.updPoints(), false);  // don't negate Q
+        mergeGeodLists(geodP.getTangents(), geodQ.getTangents(), 
+                       geod.updTangents(), true); // negate tQ
+        mergeArcLengths(geodP.getArcLengths(), geodQ.getArcLengths(),
+                        geod.updArcLengths());
+        geod.setIsConvex(geodP.isConvex() && geodQ.isConvex());
+        // TODO: what to do with "is shortest"?
+        // Take the smaller of the two suggested step sizes.
+        geod.setInitialStepSizeHint(std::min(geodP.getInitialStepSizeHint(),
+                                             geodQ.getInitialStepSizeHint()));
+        // Take the larger (sloppier) of the two accuracies.
+        geod.setAchievedAccuracy(std::max(geodP.getAchievedAccuracy(),
+                                          geodQ.getAchievedAccuracy()));
     }
 
     /**
-     * Temporary utility method for joining geodP and the reverse of geodQ
+     * Temporary utility method for joining geodP and the reverse of geodQ.
+     * Optionally negate the Q vector (used for tangents). The last entries
+     * for both geodesics are supposed to represent the same point on the
+     * combined geodesic so we'll average them. The final geodesic will 
+     * thus have one fewer point than the sum of the two half-geodesics.
      **/
     static void mergeGeodLists(const Array_<Vec3>& geodP,
-        const Array_<Vec3>& geodQ, Array_<Vec3>& geod) {
-//        std::cout << "merge lists" << std::endl;
-
-        int sizeP = geodP.size();
-        int sizeQ = geodQ.size();
+                               const Array_<Vec3>& geodQ, 
+                               Array_<Vec3>&       geod,
+                               bool                negateQ) 
+    {
+        const int sizeP = geodP.size(), sizeQ = geodQ.size();
+        assert(sizeP > 0 && sizeQ > 0);
+        geod.clear();
         geod.reserve(sizeP+sizeQ-1);
+        geod = geodP; // the first part is the same as P
 
-        for (int i = 0; i < sizeP-1; ++i) {
-            geod.push_back(Vec3(geodP[i]));
-        }
-        geod.push_back(Vec3((geodP[sizeP-1]+geodQ[sizeQ-1])/2)); //midpt
-        for (int i = sizeQ-2; i >= 0; --i) {
-            geod.push_back(Vec3(geodQ[i]));
-        }
+        if (negateQ) {
+            geod.back() = (geodP.back() - geodQ.back())/2; // fix midpoint
+            for (int i = sizeQ-2; i >= 0; --i)
+                geod.push_back(-geodQ[i]);
+        } else {
+            geod.back() = (geodP.back() + geodQ.back())/2; // fix midpoint
+            for (int i = sizeQ-2; i >= 0; --i)
+                geod.push_back(geodQ[i]);
+        }   
+    }
+
+    /** Temporary utility for merging the arc lengths (knot coordinates) for
+    two half-geodesics. The last entry in each list is supposed to be the
+    same point. **/
+    static void mergeArcLengths(const Array_<Real>& knotsP,
+                                const Array_<Real>& knotsQ,
+                                Array_<Real>&       knots)
+    {
+        const int sizeP = knotsP.size(), sizeQ = knotsQ.size();
+        assert(sizeP > 0 && sizeQ > 0);
+        knots.clear();
+        knots.reserve(sizeP+sizeQ-1);
+        knots = knotsP; // the first part is the same as P
+
+        const Real lengthP = knotsP.back(), lengthQ = knotsQ.back();
+        for (int i = sizeQ-2; i >= 0; --i)
+            knots.push_back(lengthP + (lengthQ-knotsQ[i]));
     }
 
 
