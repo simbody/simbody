@@ -379,16 +379,16 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
     Vector dx, xold;
 
-    Real f = ppe.err.normSqr()/2;
+    Real f = ppe.err.norm();
     Real fold, lam = 1;
 
     int maxIter = 40;
     for (int i = 0; i < maxIter; ++i) {
-        if (std::sqrt(f) < ftol) {
+        if (f < ftol) {
             std::cout << "path converged in " << i << " iterations" << std::endl;
             break;
         }
-        cout << "obstacle err = " << std::sqrt(f) << ", x = " << ppe.x << endl;
+        cout << "obstacle err = " << f << ", x = " << ppe.x << endl;
 
         diff.calcJacobian(ppe.x, ppe.err, ppe.J, 
                           Differentiator::ForwardDifference);
@@ -402,7 +402,9 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         while (true) {
             ppe.x = xold - lam*dx;
             calcPathError(state,instInfo,ppe);
-            f = ppe.err.normSqr()/2;
+            f = ppe.err.norm();
+            //cout << "step=" << lam << " obstacle err = " << f 
+            //     << ", x = " << ppe.x << endl;
             if (f <= fold)
                 break;
             lam = lam / 2;
@@ -639,26 +641,42 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     //surface.continueGeodesic(xP, xQ, previous,
     //    GeodesicOptions(), next);
 
-    surface.calcGeodesic(xP, xQ, eIn, -eOut, next);
-    //cout << "  geodesic had length " << next.getLength() << endl;
 
-    Vec3 tP = next.getTangents().front();
-    Vec3 tQ = next.getTangents().back();
-    Vec3 nP = surface.getGeom().calcSurfaceNormal((Vector)xP);
-    Vec3 nQ = surface.getGeom().calcSurfaceNormal((Vector)xQ);
-    Vec3 bP = tP % nP;
-    Vec3 bQ = tQ % nQ;
+    bool useSplitGeodesicError = true;
+
+    UnitVec3 nP(surface.getGeom().calcSurfaceNormal((Vector)xP));
+    UnitVec3 nQ(surface.getGeom().calcSurfaceNormal((Vector)xQ));
 
     Vec6 err;
-
     err[0] = ~eIn*nP;   // tangent error in normal direction
     err[1] = ~eOut*nQ;
-    err[2] = ~eIn*bP;   // tangent errors in geodesic direction
-    err[3] = ~eOut*bQ;
     // These are the implicit surface errors forcing P and Q to lie on the
     // surface.
     err[4] = surface.getGeom().calcSurfaceValue((Vector)xP);
     err[5] = surface.getGeom().calcSurfaceValue((Vector)xQ);
+
+    // Put tangents in tangent plane at contact points ("covariant").
+    UnitVec3 ceIn( eIn - (~eIn*nP)*nP );
+    UnitVec3 ceOut( eOut - (~eOut*nQ)*nQ );
+
+    if (useSplitGeodesicError) {
+        UnitVec3 planeNormal(xQ - xP);
+        Real     planeHeight = (~(xP+xQ) * planeNormal)/2; 
+        //TODO: should pass this as an argument instead
+        surface.setPlane(Plane(planeNormal, planeHeight));
+        Vec2 geodErr = surface.calcGeodError(xP, xQ, ceIn, -ceOut, &next);
+        err[2] = geodErr[0]; 
+        err[3] = geodErr[1];
+    } else {
+        surface.calcGeodesic(xP, xQ, ceIn, -ceOut, next);
+        //cout << "  geodesic had length " << next.getLength() << endl;
+        Vec3 tP = next.getTangents().front();
+        Vec3 tQ = next.getTangents().back();
+        Vec3 bP = tP % nP;
+        Vec3 bQ = tQ % nQ;
+        err[2] = ~eIn*bP;   // tangent errors in geodesic direction
+        err[3] = ~eOut*bQ;
+    }
 
     //cout << "  surfErr=" << err << endl;
     return err;

@@ -254,9 +254,13 @@ public:
     /**
      * Utility method to calculate the "geodesic error" between one geodesic
      * shot from P in the direction tP and another geodesic shot from Q in the
-     * direction tQ
+     * direction tQ. We optionally return the resulting "kinked" geodesic in 
+     * case anyone wants it; if the returned error is below tolerance then that
+     * geodesic is the good one.
      **/
-    Vec2 calcGeodError(const Vec3& P, const Vec3& Q, const UnitVec3& tP, const UnitVec3& tQ) const;
+    Vec2 calcGeodError(const Vec3& P, const Vec3& Q, 
+                       const UnitVec3& tP, const UnitVec3& tQ,
+                       Geodesic* geod=0) const;
 
     /**@}**/
 
@@ -264,7 +268,8 @@ public:
      * Utility method to calculate the "geodesic error" between the end-points
      * of two geodesics.
      **/
-    static Vec2 calcError(const ContactGeometry& geom, const Geodesic& geodP, const Geodesic& geodQ);
+    static Vec2 calcError(const ContactGeometry& geom, 
+                          const Geodesic& geodP, const Geodesic& geodQ);
 
     /**
      * Compute rotation matrix using the normal at the given point and the
@@ -362,9 +367,13 @@ public:
     /**
      * Utility method to calculate the "geodesic error" between one geodesic
      * shot from P in the direction thetaP and another geodesic shot from Q in the
-     * direction thetaQ given the pre-calculated member basis R_SP, R_SQ
+     * direction thetaQ given the pre-calculated member basis R_SP, R_SQ.
+     * We optionally return the resulting "kinked" geodesic, which is the real
+     * one if the returned errors are below tolerance.
      **/
-    Vec2 calcGeodError(const Vec3& xP, const Vec3& xQ, const Real thetaP, const Real thetaQ) const;
+    Vec2 calcGeodError(const Vec3& xP, const Vec3& xQ, 
+                       const Real thetaP, const Real thetaQ,
+                       Geodesic* geodesic=0) const;
 
     /**
      * Utility method to calculate the "geodesic error jacobian" between one geodesic

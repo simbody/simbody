@@ -167,7 +167,9 @@ shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
         Geodesic& geod) const {
     geodHitPlaneEvent->setEnabled(true);
     geodHitPlaneEvent->setPlane(terminatingPlane);
-    shootGeodesicInDirection(xP, tP, Infinity, options, geod);
+    // TODO: need a reasonable max length
+    const Real MaxLength = /*Infinity*/100;
+    shootGeodesicInDirection(xP, tP, MaxLength, options, geod);
 }
 
 
@@ -289,19 +291,24 @@ void GeodesicGeometry::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 }
 
 
-// Calculate the "geodesic error" for thetaP and thetaQ
+// Calculate the "geodesic error" for thetaP and thetaQ, and return the
+// resulting (kinked) geodesic if the supplied pointer is non-null.
 Vec2 GeodesicGeometry::
-calcGeodError(const Vec3& xP, const Vec3& xQ, const Real thetaP, const Real thetaQ) const {
-
+calcGeodError(const Vec3& xP, const Vec3& xQ, 
+              const Real thetaP, const Real thetaQ,
+              Geodesic* geodesic) const 
+{
     UnitVec3 tP = calcUnitTangentVec(thetaP, R_SP);
     UnitVec3 tQ = calcUnitTangentVec(thetaQ, R_SQ);
-    return calcGeodError(xP, xQ, tP, tQ);
+    return calcGeodError(xP, xQ, tP, tQ, geodesic);
 }
 
 // Calculate the "geodesic error" for tP and tQ
 Vec2 GeodesicGeometry::
-calcGeodError(const Vec3& xP, const Vec3& xQ, const UnitVec3& tP, const UnitVec3& tQ) const {
-
+calcGeodError(const Vec3& xP, const Vec3& xQ, 
+              const UnitVec3& tP, const UnitVec3& tQ,
+              Geodesic* geodesic) const
+{
     geodP.clear();
     geodQ.clear();
 
@@ -310,6 +317,9 @@ calcGeodError(const Vec3& xP, const Vec3& xQ, const UnitVec3& tP, const UnitVec3
             geodHitPlaneEvent->getPlane(), opts, geodP);
     shootGeodesicInDirectionUntilPlaneHit(xQ, tQ,
             geodHitPlaneEvent->getPlane(), opts, geodQ);
+
+    if (geodesic)
+        mergeGeodesics(geodP, geodQ, *geodesic);
 
     return calcError(geom, geodP, geodQ);
 }
@@ -405,22 +415,18 @@ calcGeodErrorJacobian(const Vec3& xP, const Vec3& xQ,
 
 /*static*/Vec2  GeodesicGeometry::
 calcError(const ContactGeometry& geom, const Geodesic& geodP, const Geodesic& geodQ) {
-    int numP = geodP.getPoints().size();
-    int numQ = geodQ.getPoints().size();
-
-    Vec3 Phat = geodP.getPoints()[numP - 1];
-    Vec3 Qhat = geodQ.getPoints()[numQ - 1];
-    UnitVec3 tPhat(geodP.getTangents()[numP - 1]);
-    UnitVec3 tQhat(geodQ.getTangents()[numQ - 1]);
+    Vec3 Phat = geodP.getPoints().back();
+    Vec3 Qhat = geodQ.getPoints().back();
+    UnitVec3 tPhat(geodP.getTangents().back());
+    UnitVec3 tQhat(geodQ.getTangents().back());
 
     UnitVec3 nPhat(geom.calcSurfaceNormal((Vector) Phat));
     UnitVec3 nQhat(geom.calcSurfaceNormal((Vector) Qhat));
-    UnitVec3 bPhat(nPhat % tPhat);
-    UnitVec3 bQhat(nQhat % tQhat);
+    UnitVec3 bPhat(tPhat % nPhat);
+    UnitVec3 bQhat(tQhat % nQhat);
 
-    //    cout << "bP = " << ~bPhat << endl;
-    //    cout << "tQ = " << ~tQhat << endl;
-
+    // Error is separation distance along mutual b direction, and angle by
+    // which the curves fail to connect smoothly.
     Vec2 geodErr(~(bPhat - bQhat) * (Phat - Qhat), ~bPhat * tQhat);
     return geodErr;
 }

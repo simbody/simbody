@@ -231,7 +231,14 @@ int main() {
     Body::Rigid someBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     const Real Rad = .25;
     someBody.addDecoration(Transform(), 
-        DecorativeSphere(Rad).setOpacity(.3).setResolution(4));
+        DecorativeSphere(Rad).setOpacity(.5).setResolution(4));
+
+    const Vec3 radii(1, .5, .5);;
+    Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
+        1.*UnitInertia::ellipsoid(radii)));
+    ellipsoidBody.addDecoration(Transform(), 
+        DecorativeEllipsoid(radii).setOpacity(.5).setResolution(4));
+    ellipsoidBody = someBody;
 
     MobilizedBody Ground = matter.Ground();
 
@@ -242,7 +249,7 @@ int main() {
     MobilizedBody::Ball body3(body2,            Transform(Vec3(0)), 
                               someBody,         Transform(Vec3(0, 1, 0)));
     MobilizedBody::Ball body4(body3,            Transform(Vec3(0)), 
-                              someBody,         Transform(Vec3(0, 1, 0)));
+                              ellipsoidBody,    Transform(Vec3(0, 1, 0)));
     MobilizedBody::Ball body5(body4,            Transform(Vec3(0)), 
                               someBody,         Transform(Vec3(0, 1, 0)));
 
@@ -253,11 +260,15 @@ int main() {
     //CableObstacle::ViaPoint p2(path1, body3, Rad*UnitVec3(0,1,1));
     //CableObstacle::ViaPoint p3(path1, body3, Rad*UnitVec3(1,0,1));
     CableObstacle::Surface obs4(path1, body3, Transform(), 
-        ContactGeometry::Sphere(.25));
+        ContactGeometry::Sphere(Rad));
     obs4.setContactPointHints(Rad*UnitVec3(-1,1,0),Rad*UnitVec3(-1,0,1));
 
-    CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
-    CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
+    //CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
+    //CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
+    CableObstacle::Surface obs5(path1, body4, Transform(), 
+        //ContactGeometry::Ellipsoid(radii));
+        ContactGeometry::Sphere(Rad));
+    obs5.setContactPointHints(Rad*UnitVec3(0,-1,-1),Rad*UnitVec3(0.1,-1,-1));
 
     // NOTE: velocity-based force is disabled.
     MyCableSpring cable1(forces, path1, 100., 3.5, 0*0.1); 
@@ -300,7 +311,14 @@ int main() {
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ShowStuff::showHeading(cout);
-    ts.stepTo(1.);
+
+    const Real finalTime = 2;
+    const double startTime = realTime();
+    ts.stepTo(finalTime);
+    cout << "DONE with " << finalTime 
+         << "s simulated in " << realTime()-startTime
+         << "s elapsed.\n";
+
 
     while (true) {
         cout << "Hit ENTER FOR REPLAY, Q to quit ...";

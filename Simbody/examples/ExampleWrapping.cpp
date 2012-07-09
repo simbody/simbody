@@ -84,8 +84,8 @@ public:
         Vec3 tQ = geod.getTangents()[geod.getTangents().size()-1];
         Vec3 nP = gg.getGeom().calcSurfaceNormal((Vector)P);
         Vec3 nQ = gg.getGeom().calcSurfaceNormal((Vector)Q);
-        Vec3 bP = cross(nP, tP);
-        Vec3 bQ = cross(nQ, tQ);
+        Vec3 bP = tP % nP;
+        Vec3 bQ = tQ % nQ;
 
         fx[0] = ~r_OP*nP;
         fx[1] = ~r_QI*nQ;
@@ -247,7 +247,7 @@ int main() {
     viz.report(dummyState);
 
     // creat path error function
-//    PathError pathErrorFnc(n, n, geodgeom, geod, O, I);
+    //PathError pathErrorFnc(n, n, geodgeom, geod, O, I);
     PathErrorSplit pathErrorFnc(n, n, geodgeom, geod, O, I);
     pathErrorFnc.setEstimatedAccuracy(estimatedPathErrorAccuracy);
     Differentiator diff(pathErrorFnc);
@@ -280,6 +280,7 @@ int main() {
         lam = 1;
         while (true) {
             x = xold - lam*dx;
+            cout << "TRY stepsz=" << lam << " sz*dx=" << lam*dx << endl;
             pathErrorFnc.f(x, Fx);
             f = std::sqrt(~Fx*Fx);
             if (f > fold && lam > minlam) {
