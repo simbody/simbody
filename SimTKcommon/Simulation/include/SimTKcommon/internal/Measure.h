@@ -664,8 +664,8 @@ class Measure_<T>::Integrate : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Integrate, Measure_<T>);
 
-    Integrate(Subsystem& sub, const Measure_<T>& deriv, const Measure_<T>& ic)
-    :   Measure_<T>(sub, new Implementation(deriv,ic), 
+    Integrate(Subsystem& sub, const Measure_<T>& deriv, const Measure_<T>& ic, int numStates=1)
+    :   Measure_<T>(sub, new Implementation(deriv,ic, numStates), 
                     AbstractMeasure::SetHandle()) {}
 
     void setValue(State& s, const T& value) const 

@@ -1007,19 +1007,20 @@ public:
 
     // The derivative and initialConditions Measures will be
     // empty handles if this is default constructed.
-    Implementation() : Measure_<T>::Implementation(0) {}
+    Implementation() : Measure_<T>::Implementation(0), numStates(1) {}
 
     // Here we're shallow-copying the Measure handles so we'll
     // be referring to the original Measures.
-    Implementation(const Measure_<T>& deriv, const Measure_<T>& ic)
+    Implementation(const Measure_<T>& deriv, const Measure_<T>& ic, int numStates)
     :   Measure_<T>::Implementation(0), 
-        derivMeasure(deriv), icMeasure(ic) {}
+        derivMeasure(deriv), icMeasure(ic), numStates(numStates) {}
 
     // Copy constructor shallow-copies the referenced measures, but
     // we don't want to share our state variable.
     Implementation(const Implementation& source)
     :   Measure_<T>::Implementation(0), 
-        derivMeasure(source.derivMeasure), icMeasure(source.icMeasure) {}
+        derivMeasure(source.derivMeasure), icMeasure(source.icMeasure), 
+        numStates(numStates) {}
 
     void setValue(State& s, const T& value) const
     {   assert(zIndex >= 0); 
@@ -1058,7 +1059,7 @@ public:
             return getDerivativeMeasure().getValue(s);
         else { 
             assert(zIndex.isValid()); 
-            return this->getSubsystem().getZ(s)[zIndex];
+            return this->getSubsystem().getZ(s)(zIndex, numStates);
         }
     }
     Stage getDependsOnStageVirtual(int derivOrder) const 
@@ -1067,20 +1068,20 @@ public:
 
     void initializeVirtual(State& s) const {
         assert(zIndex.isValid());
-        Real& z = this->getSubsystem().updZ(s)[zIndex];
+        T& z = this->getSubsystem().updZ(s)(zIndex, numStates);
         if (!icMeasure.isEmptyHandle()) 
              z = icMeasure.getValue(s);
         else z = 0;
     }
 
     void realizeMeasureTopologyVirtual(State& s) const {
-        static const Vector zero(1, Real(0));
+        static const Vector zero(numStates, Real(0));
         zIndex = this->getSubsystem().allocateZ(s, zero);
     }
 
     void realizeMeasureAccelerationVirtual(const State& s) const {
         assert(zIndex.isValid());
-        Real& zdot = this->getSubsystem().updZDot(s)[zIndex];
+        T& zdot = this->getSubsystem().updZDot(s)(zIndex, numStates);
         if (!derivMeasure.isEmptyHandle()) 
              zdot = derivMeasure.getValue(s);
         else zdot = 0;
@@ -1090,10 +1091,43 @@ private:
     // TOPOLOGY STATE
     const Measure_<T> derivMeasure; // just handles
     const Measure_<T> icMeasure;
+    int numStates;
 
     // TOPOLOGY CACHE
     mutable ZIndex zIndex;
 };
+
+template <>
+const Real& Measure_<Real>::Integrate::Implementation::
+getUncachedValueVirtual(const State& s, int derivOrder) const
+{   if (derivOrder>0) 
+        return getDerivativeMeasure().getValue(s);
+    else { 
+        assert(zIndex.isValid()); 
+        return this->getSubsystem().getZ(s)[zIndex];
+    }
+}
+
+template <>
+void Measure_<Real>::Integrate::Implementation::
+initializeVirtual(State& s) const {
+    assert(zIndex.isValid());
+    Real z = this->getSubsystem().updZ(s)[zIndex];
+    if (!icMeasure.isEmptyHandle()) 
+            z = icMeasure.getValue(s);
+    else z = 0;
+}
+
+template <>
+void Measure_<Real>::Integrate::Implementation::
+realizeMeasureAccelerationVirtual(const State& s) const {
+    assert(zIndex.isValid());
+    Real& zdot = this->getSubsystem().updZDot(s)[zIndex];
+    if (!derivMeasure.isEmptyHandle()) 
+            zdot = derivMeasure.getValue(s);
+    else zdot = 0;
+}
+
 
     ///////////////////////////////////
     // DIFFERENTIATE::IMPLEMENTATION //
