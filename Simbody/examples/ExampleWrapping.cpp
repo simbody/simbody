@@ -27,7 +27,6 @@
 
 #include "Simbody.h"
 #include "simmath/internal/Geodesic.h"
-#include "simmath/internal/GeodesicGeometry.h"
 #include "simmath/internal/ContactGeometry.h"
 
 using namespace SimTK;
@@ -35,6 +34,12 @@ using std::cos;
 using std::sin;
 using std::cout;
 using std::endl;
+
+// Newton solver settings
+const Real ftol = 1e-9;
+const Real xtol = 1e-9;
+const Real minlam = 1e-9;
+const int maxNewtonIterations = 25;
 
 Real pauseBetweenPathIterations = 1; // sec
 Real estimatedPathErrorAccuracy = 1e-12;
@@ -63,10 +68,10 @@ private:
 class PathError: public Differentiator::JacobianFunction {
 
 public:
-    PathError(int nf, int ny, GeodesicGeometry& geodgeom, Geodesic& geod,
+    PathError(int nf, int ny, ContactGeometry& geom, Geodesic& geod,
             const Vec3& O, const Vec3& I) :
             Differentiator::JacobianFunction(nf, ny),
-                    gg(geodgeom), geod(geod),
+                    geom(geom), geod(geod),
                     O(O), I(I) { }
 
     // x = ~[P, Q]
@@ -78,12 +83,12 @@ public:
         UnitVec3 r_QI(I-Q);
 
         geod.clear();
-        gg.calcGeodesic(P, Q, r_OP, -r_QI, geod);
+        geom.calcGeodesic(P, Q, r_OP, -r_QI, geod);
 
         Vec3 tP = geod.getTangents()[0];
         Vec3 tQ = geod.getTangents()[geod.getTangents().size()-1];
-        Vec3 nP = gg.getGeom().calcSurfaceNormal((Vector)P);
-        Vec3 nQ = gg.getGeom().calcSurfaceNormal((Vector)Q);
+        Vec3 nP = geom.calcSurfaceNormal((Vector)P);
+        Vec3 nQ = geom.calcSurfaceNormal((Vector)Q);
         Vec3 bP = tP % nP;
         Vec3 bQ = tQ % nQ;
 
@@ -91,8 +96,8 @@ public:
         fx[1] = ~r_QI*nQ;
         fx[2] = ~r_OP*bP;
         fx[3] = ~r_QI*bQ;
-        fx[4] = gg.getGeom().calcSurfaceValue((Vector)P);
-        fx[5] = gg.getGeom().calcSurfaceValue((Vector)Q);
+        fx[4] = geom.calcSurfaceValue((Vector)P);
+        fx[5] = geom.calcSurfaceValue((Vector)Q);
 
         return 0;
     }
@@ -102,7 +107,7 @@ public:
     }
 
 private:
-    GeodesicGeometry& gg;
+    ContactGeometry& geom;
     const Vec3& O;
     const Vec3& I;
 
@@ -118,10 +123,10 @@ private:
 class PathErrorSplit: public Differentiator::JacobianFunction {
 
 public:
-    PathErrorSplit(int nf, int ny, GeodesicGeometry& geodgeom, Geodesic& geod,
+    PathErrorSplit(int nf, int ny, ContactGeometry& geom, Geodesic& geod,
             const Vec3& O, const Vec3& I) :
             Differentiator::JacobianFunction(nf, ny),
-                    gg(geodgeom), geod(geod),
+                    geom(geom), geod(geod),
                     O(O), I(I) { }
 
     // x = ~[P, Q]
@@ -132,23 +137,23 @@ public:
         // calculate plane bisecting P and Q, and use as termination condition for integrator
         UnitVec3 normal(Q-P);
         Real offset = (~(P+Q)*normal)/2 ;
-        gg.setPlane(Plane(normal, offset));
+        geom.setPlane(Plane(normal, offset));
 
         UnitVec3 r_OP(P-O);
         UnitVec3 r_QI(I-Q);
 
         geod.clear();
-        Vec2 geodErr = gg.calcGeodError(P, Q, r_OP, -r_QI);
+        Vec2 geodErr = geom.calcGeodError(P, Q, r_OP, -r_QI);
 
-        Vec3 nP = gg.getGeom().calcSurfaceNormal((Vector)P);
-        Vec3 nQ = gg.getGeom().calcSurfaceNormal((Vector)Q);
+        Vec3 nP = geom.calcSurfaceNormal((Vector)P);
+        Vec3 nQ = geom.calcSurfaceNormal((Vector)Q);
 
         fx[0] = ~r_OP*nP;
         fx[1] = ~r_QI*nQ;
         fx[2] = geodErr[0];
         fx[3] = geodErr[1];
-        fx[4] = gg.getGeom().calcSurfaceValue((Vector)P);
-        fx[5] = gg.getGeom().calcSurfaceValue((Vector)Q);
+        fx[4] = geom.calcSurfaceValue((Vector)P);
+        fx[5] = geom.calcSurfaceValue((Vector)Q);
 
         return 0;
     }
@@ -158,7 +163,7 @@ public:
     }
 
 private:
-    GeodesicGeometry& gg;
+    ContactGeometry& geom;
     const Vec3& O;
     const Vec3& I;
 
@@ -177,7 +182,7 @@ static Real maxabs(Vector x) {
 }
 
 static Real maxabsdiff(Vector x, Vector xold) {
-    ASSERT(x.size()==xold.size());
+//    ASSERT(x.size()==xold.size());
     Real maxVal = 0;
     for (int i = 0; i < x.size(); ++i) {
         if (std::abs(x[i]-xold[i])/std::max(x[i],1.0) > maxVal)
@@ -214,7 +219,6 @@ int main() {
 //    r = 2;
 //    Vec3 radii(1,2,3);
 //    ContactGeometry::Ellipsoid geom(radii);
-    GeodesicGeometry geodgeom(geom);
     Geodesic geod;
 
     // Create a dummy MultibodySystem for visualization purposes
@@ -233,22 +237,22 @@ int main() {
     dummySystem.addEventReporter(new Visualizer::Reporter(viz, 1./30));
 
     // add vizualization callbacks for geodesics, contact points, etc.
-    viz.addDecorationGenerator(new GeodesicDecorator(geodgeom.getGeodP(), Red));
-    viz.addDecorationGenerator(new GeodesicDecorator(geodgeom.getGeodQ(), Blue));
+    viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodP(), Red));
+    viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodQ(), Blue));
     viz.addDecorationGenerator(new GeodesicDecorator(geod, Orange));
-    viz.addDecorationGenerator(new PlaneDecorator(geodgeom.getPlane(), Gray));
+    viz.addDecorationGenerator(new PlaneDecorator(geom.getPlane(), Gray));
     viz.addDecorationGenerator(new PathDecorator(x, O, I, Green));
     dummySystem.realizeTopology();
     State dummyState = dummySystem.getDefaultState();
 
 
     // calculate the geodesic
-    geodgeom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
+    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
     viz.report(dummyState);
 
     // creat path error function
-    //PathError pathErrorFnc(n, n, geodgeom, geod, O, I);
-    PathErrorSplit pathErrorFnc(n, n, geodgeom, geod, O, I);
+    //PathError pathErrorFnc(n, n, geom, geod, O, I);
+    PathErrorSplit pathErrorFnc(n, n, geom, geod, O, I);
     pathErrorFnc.setEstimatedAccuracy(estimatedPathErrorAccuracy);
     Differentiator diff(pathErrorFnc);
 
@@ -300,7 +304,7 @@ int main() {
     }
     cout << "obstacle error = " << Fx << endl;
 
-    cout << "num geodP pts = " << geodgeom.getGeodP().getPoints().size() << endl;
+    cout << "num geodP pts = " << geom.getGeodP().getPoints().size() << endl;
 
 
   } catch (const std::exception& e) {

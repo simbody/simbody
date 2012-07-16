@@ -58,7 +58,7 @@ class ParticleConSurfaceSystemGuts: public System::Guts {
     mutable EventTriggerByStageIndex event0;
 
 public:
-    ParticleConSurfaceSystemGuts(const ContactGeometry& geom)
+    ParticleConSurfaceSystemGuts(const ContactGeometryImpl& geom)
     : Guts(), geom(geom) {
         // Index types set themselves invalid on construction.
     }
@@ -105,14 +105,14 @@ public:
     /*virtual*/void projectUImpl(State&, Vector& uErrEst,
              const ProjectOptions& options, ProjectResults& results) const;
 private:
-    ContactGeometry geom;
+    const ContactGeometryImpl& geom;
 }; // class ParticleConSurfaceSystemGuts
 
 
 
 class ParticleConSurfaceSystem: public System {
 public:
-    ParticleConSurfaceSystem(const ContactGeometry& geom) : System()
+    ParticleConSurfaceSystem(const ContactGeometryImpl& geom) : System()
     { 
         adoptSystemGuts(new ParticleConSurfaceSystemGuts(geom));
         DefaultSystemSubsystem defsub(*this);

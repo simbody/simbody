@@ -35,7 +35,7 @@
 #include "simbody/internal/CablePath.h"
 
 #include "simmath/internal/Geodesic.h"
-#include "simmath/internal/GeodesicGeometry.h"
+#include "simmath/internal/ContactGeometry.h"
 
 #include <cassert>
 #include <iostream>
@@ -578,7 +578,7 @@ public:
 private:
 friend class CableObstacle::Surface;
 
-    GeodesicGeometry    surface;
+    ContactGeometry  	surface;
     Vec3                nearPointInS; // Cartesian location of N, in S frame
     Vec3                xPhint, xQhint;
 };

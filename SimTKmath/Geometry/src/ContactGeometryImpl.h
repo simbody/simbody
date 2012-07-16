@@ -28,20 +28,30 @@
 #include "simmath/internal/Geo.h"
 #include "simmath/internal/Geo_Sphere.h"
 #include "simmath/internal/OBBTree.h"
+#include "simmath/internal/ParticleConSurfaceSystem.h"
+#include "simmath/internal/ParticleOnSurfaceSystem.h"
+#include "simmath/Differentiator.h"
 #include "simmath/internal/ContactGeometry.h"
 
 #include <limits>
 
 namespace SimTK {
 
+class SplitGeodesicError;
+
+
 //==============================================================================
 //                             CONTACT GEOMETRY IMPL
 //==============================================================================
 class SimTK_SIMMATH_EXPORT ContactGeometryImpl {
 public:
-    ContactGeometryImpl() : myHandle(0) {}
+
+    ContactGeometryImpl() : myHandle(0), ptOnSurfSys(0) {
+        createParticleOnSurfaceSystem();
+    }
     virtual ~ContactGeometryImpl() {
         clearMyHandle();
+        clearParticleOnSurfaceSystem();
     }
 
     /* Create a new ContactGeometryTypeId and return this unique integer 
@@ -84,12 +94,212 @@ public:
 
     const OBBTree& getOBBTree() const {return obbTree;}
 
+
+    Real calcSurfaceValue(const Vector& point) const;
+    Vec3 calcSurfaceNormal(const Vector& point) const;
+    Mat33 calcSurfaceHessian(const Vector& point) const;
+
+    // Geodesic evaluators
+
+
+    // Given two points, find a geodesic curve connecting them.
+    void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
+            const GeodesicOptions& options, Geodesic& geod) const;
+
+
+    // Given two points and previous geodesic curve close to the points, find
+    // a geodesic curve connecting the points that is close to the previous geodesic.
+    void continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
+            const GeodesicOptions& options, Geodesic& geod) const;
+
+
+    // Compute a geodesic curve starting at the given point, starting in the
+    // given direction, and terminating at the given length.
+    void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
+
+    // Compute a geodesic curve starting at the given point, starting in the
+    // given direction, and terminating when it hits the given plane.
+   void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
+            const Plane& terminatingPlane, const GeodesicOptions& options,
+            Geodesic& geod) const;
+
+    // Utility method to find geodesic between P and Q with initial shooting
+    // directions tPhint and tQhint
+    void calcGeodesic(const Vec3& xP, const Vec3& xQ,
+            const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+
+    // Utility method to calculate the "geodesic error" between one geodesic
+    // shot from P in the direction tP and another geodesic shot from Q in the
+    // direction tQ.
+    Vec2 calcGeodError(const Vec3& xP, const Vec3& xQ,
+                       const UnitVec3& tP, const UnitVec3& tQ,
+                       Geodesic* geod=0) const;
+
+    // Utility method to calculate the "geodesic error" between the end-points
+    // of two geodesics.
+    Vec2 calcError(const Geodesic& geodP, const Geodesic& geodQ) const;
+
+
+    // Calculate a unit tangent vector based on angle theta measured from the
+    // binormal axis of the given rotation matrix
+    static UnitVec3 calcUnitTangentVec(const Real& theta, const Rotation& R_GS) {
+        UnitVec3 tR_S(std::sin(theta), std::cos(theta), 0);
+        return R_GS*tR_S;
+    }
+
+    // Temporary utility method for creating a continuous geodesic object
+    //  from the two "split geodesics"
+    //  XXX to be replaced by actual copy / append functionalily in Geodesic.h
+    static void mergeGeodesics(const Geodesic& geodP, const Geodesic& geodQ,
+            Geodesic& geod) {
+        mergeGeodLists(geodP.getPoints(), geodQ.getPoints(),
+                       geod.updPoints(), false);  // don't negate Q
+        mergeGeodLists(geodP.getTangents(), geodQ.getTangents(),
+                       geod.updTangents(), true); // negate tQ
+        mergeArcLengths(geodP.getArcLengths(), geodQ.getArcLengths(),
+                        geod.updArcLengths());
+        geod.setIsConvex(geodP.isConvex() && geodQ.isConvex());
+        // TODO: what to do with "is shortest"?
+        // Take the smaller of the two suggested step sizes.
+        geod.setInitialStepSizeHint(std::min(geodP.getInitialStepSizeHint(),
+                                             geodQ.getInitialStepSizeHint()));
+        // Take the larger (sloppier) of the two accuracies.
+        geod.setAchievedAccuracy(std::max(geodP.getAchievedAccuracy(),
+                                          geodQ.getAchievedAccuracy()));
+    }
+
+    // Temporary utility method for joining geodP and the reverse of geodQ.
+    // Optionally negate the Q vector (used for tangents). The last entries
+    // for both geodesics are supposed to represent the same point on the
+    // combined geodesic so we'll average them. The final geodesic will
+    // thus have one fewer point than the sum of the two half-geodesics.
+    static void mergeGeodLists(const Array_<Vec3>& geodP,
+                               const Array_<Vec3>& geodQ,
+                               Array_<Vec3>&       geod,
+                               bool                negateQ)
+    {
+        const int sizeP = geodP.size(), sizeQ = geodQ.size();
+        assert(sizeP > 0 && sizeQ > 0);
+        geod.clear();
+        geod.reserve(sizeP+sizeQ-1);
+        geod = geodP; // the first part is the same as P
+
+        if (negateQ) {
+            geod.back() = (geodP.back() - geodQ.back())/2; // fix midpoint
+            for (int i = sizeQ-2; i >= 0; --i)
+                geod.push_back(-geodQ[i]);
+        } else {
+            geod.back() = (geodP.back() + geodQ.back())/2; // fix midpoint
+            for (int i = sizeQ-2; i >= 0; --i)
+                geod.push_back(geodQ[i]);
+        }
+    }
+
+    // Temporary utility for merging the arc lengths (knot coordinates) for
+    // two half-geodesics. The last entry in each list is supposed to be the
+    // same point.
+    static void mergeArcLengths(const Array_<Real>& knotsP,
+                                const Array_<Real>& knotsQ,
+                                Array_<Real>&       knots)
+    {
+        const int sizeP = knotsP.size(), sizeQ = knotsQ.size();
+        assert(sizeP > 0 && sizeQ > 0);
+        knots.clear();
+        knots.reserve(sizeP+sizeQ-1);
+        knots = knotsP; // the first part is the same as P
+
+        const Real lengthP = knotsP.back(), lengthQ = knotsQ.back();
+        for (int i = sizeQ-2; i >= 0; --i)
+            knots.push_back(lengthP + (lengthQ-knotsQ[i]));
+    }
+
+
+    // Utility method to used by calcGeodesicInDirectionUntilPlaneHit
+    //  and calcGeodesicInDirectionUntilLengthReached
+    void shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
+            const Real& finalTime, const GeodesicOptions& options,
+            Geodesic& geod) const;
+
+    // Utility method to calculate the "geodesic error" between one geodesic
+    // shot from P in the direction thetaP and another geodesic shot from Q in the
+    // direction thetaQ given the pre-calculated member basis R_SP, R_SQ.
+    // We optionally return the resulting "kinked" geodesic, which is the real
+    // one if the returned errors are below tolerance.
+    Vec2 calcGeodError(const Vec3& xP, const Vec3& xQ,
+                       const Real thetaP, const Real thetaQ,
+                       Geodesic* geodesic=0) const;
+
+    // Utility method to calculate the "geodesic error jacobian" between one geodesic
+    // shot from P in the direction thetaP and another geodesic shot from Q in the
+    // direction thetaQ given the pre-calculated member basis R_SP, R_SQ
+    Mat22 calcGeodErrorJacobian(const Vec3& P, const Vec3& Q,
+            const Real& thetaP, const Real& thetaQ, Differentiator::Method method) const;
+
+    // Get the plane associated with the geodesic hit plane event handler
+    const Plane& getPlane() const {
+        return geodHitPlaneEvent->getPlane();
+    }
+
+    // Set the plane associated with the geodesic hit plane event handler
+    void setPlane(const Plane& plane) const {
+        return geodHitPlaneEvent->setPlane(plane);
+    }
+
+
+    // Get the geodesic for access by visualizer
+    const Geodesic& getGeodP() const {
+        return geodP;
+    }
+
+    // Get the geodesic for access by visualizer
+    const Geodesic& getGeodQ() const {
+        return geodQ;
+    }
+
+    const int getNumGeodesicsShot() const {
+        return numGeodesicsShot;
+    }
+
+    void addVizReporter(ScheduledEventReporter* reporter) const {
+        vizReporter = reporter;
+        ptOnSurfSys->addEventReporter(vizReporter); // takes ownership
+        ptOnSurfSys->realizeTopology();
+    }
+
+    class SplitGeodesicError; // local class
+    friend class SplitGeodesicError;
+
+    void createParticleOnSurfaceSystem() {
+        ptOnSurfSys = new ParticleOnSurfaceSystem(*this);
+        geodHitPlaneEvent = new GeodHitPlaneEvent();
+        ptOnSurfSys->addEventHandler(geodHitPlaneEvent); // takes ownership
+        ptOnSurfSys->realizeTopology();
+    }
+
+    void clearParticleOnSurfaceSystem() {
+        delete ptOnSurfSys;
+        ptOnSurfSys = 0;
+    }
+
     ContactGeometry* getMyHandle() {return myHandle;}
     void setMyHandle(ContactGeometry& h) {myHandle = &h;}
     void clearMyHandle() {myHandle = 0;}
 protected:
     ContactGeometry*        myHandle;
     OBBTree                 obbTree;
+
+    ParticleOnSurfaceSystem* ptOnSurfSys;
+    GeodHitPlaneEvent* geodHitPlaneEvent; // don't delete this
+    mutable ScheduledEventReporter* vizReporter; // don't delete this
+    mutable SplitGeodesicError* splitGeodErr;
+
+    // temporary objects
+    mutable Geodesic geodP;
+    mutable Geodesic geodQ;
+    mutable Rotation R_SP;
+    mutable Rotation R_SQ;
+    mutable int numGeodesicsShot;
 
 };
 

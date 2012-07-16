@@ -31,6 +31,7 @@ individual contact shapes. **/
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
 #include "simmath/internal/OrientedBoundingBox.h"
+#include "simmath/internal/Geodesic.h"
 
 #include <cassert>
 
@@ -44,6 +45,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactGeometryTypeId);
 class ContactGeometryImpl;
 class OBBTreeNodeImpl;
 class OBBTree;
+class Plane;
 
 
 
@@ -366,6 +368,119 @@ this method for details. **/
 static void combineParaboloids(const Rotation& R_SP1, const Vec2& k1,
                                const UnitVec3& x2, const Vec2& k2,
                                Vec2& k);
+
+
+/** @name Geodesic Evaluators **/
+/**@{**/
+
+/** Given two points, find a geodesic curve connecting them.
+If a preferred starting point is provided, find the geodesic curve that
+is closest to that point. Otherwise, find the shortest length geodesic.
+
+@param[in] xP            Coordinates of the first point.
+@param[in] xQ            Coordinates of the second point.
+@param[in] xSP           (Optional) Coordinates of a preferred point for the geodesic to be near
+@param[in] options       Parameters related to geodesic calculation
+@param[out] geod         On exit, this contains a geodesic between P and Q.
+**/
+void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
+        const GeodesicOptions& options, Geodesic& geod) const;
+
+
+/** Given two points and previous geodesic curve close to the points, find
+a geodesic curve connecting the points that is close to the previous geodesic.
+
+@param[in] xP            Coordinates of the first point.
+@param[in] xQ            Coordinates of the second point.
+@param[in] prevGeod      A previous geodesic that should be near the new one.
+@param[in] options       Parameters related to geodesic calculation
+@param[out] geod         On exit, this contains a geodesic between P and Q.
+**/
+// XXX if xP and xQ are the exact end-points of prevGeod; then geod = prevGeod;
+void continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
+        const GeodesicOptions& options, Geodesic& geod);
+
+
+/** Compute a geodesic curve starting at the given point, starting in the
+ * given direction, and terminating at the given length.
+
+@param[in] xP            Coordinates of the starting point for the geodesic.
+@param[in] tP            The starting tangent direction for the geodesic.
+@param[in] terminatingLength   The length that the resulting geodesic should have.
+@param[in] options       Parameters related to geodesic calculation
+@param[out] geod         On exit, this contains the calculated geodesic
+**/
+// XXX what to do if tP is not in the tangent plane at P -- project it?
+void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+        const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
+
+
+/** Compute a geodesic curve starting at the given point, starting in the
+ * given direction, and terminating when it hits the given plane.
+
+@param[in] xP            Coordinates of the starting point for the geodesic.
+@param[in] tP            The starting tangent direction for the geodesic.
+@param[in] terminatingPlane   The plane in which the end point of the resulting geodesic should lie.
+@param[in] options       Parameters related to geodesic calculation
+@param[out] geod         On exit, this contains the calculated geodesic
+**/
+// XXX what to do if tP is not in the tangent plane at P -- project it?
+// XXX what to do if we don't hit the plane
+void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
+        const Plane& terminatingPlane, const GeodesicOptions& options,
+        Geodesic& geod) const;
+
+
+/** Utility method to find geodesic between P and Q with initial shooting
+ directions tPhint and tQhint
+ **/
+void calcGeodesic(const Vec3& xP, const Vec3& xQ,
+        const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+
+/**
+ * Utility method to calculate the "geodesic error" between one geodesic
+ * shot from P in the direction tP and another geodesic shot from Q in the
+ * direction tQ. We optionally return the resulting "kinked" geodesic in
+ * case anyone wants it; if the returned error is below tolerance then that
+ * geodesic is the good one.
+ **/
+Vec2 calcGeodError(const Vec3& P, const Vec3& Q,
+                   const UnitVec3& tP, const UnitVec3& tQ,
+                   Geodesic* geod=0) const;
+
+
+/**@}**/
+
+
+/** @name Geodesic-related Debugging **/
+/**@{**/
+
+
+/**
+ * Compute rotation matrix using the normal at the given point and the
+ * given direction.
+ **/
+Rotation calcTangentBasis(const Vec3& point, const Vec3& dir) {
+    UnitVec3 n(calcSurfaceNormal((Vector)point));
+    Rotation R_GS;
+    R_GS.setRotationFromTwoAxes(n, ZAxis, dir, XAxis);
+    return R_GS;
+}
+
+/** Get the plane associated with the
+    geodesic hit plane event handler  **/
+const Plane& getPlane() const;
+/** Set the plane associated with the
+    geodesic hit plane event handler  **/
+void setPlane(const Plane& plane) const;
+/** Get the geodesic for access by visualizer **/
+const Geodesic& getGeodP() const;
+/** Get the geodesic for access by visualizer **/
+const Geodesic& getGeodQ() const;
+const int getNumGeodesicsShot() const;
+void addVizReporter(ScheduledEventReporter* reporter) const;
+/**@}**/
+
 
 
 explicit ContactGeometry(ContactGeometryImpl* impl); /**< Internal use only. **/
@@ -852,6 +967,175 @@ int getNumTriangles() const;
 private:
 const OBBTreeNodeImpl* impl;
 };
+
+
+//==============================================================================
+//                     GEODESIC EVALUATOR helper classes
+//==============================================================================
+
+
+/**
+ * A simple plane class
+ **/
+class Plane {
+public:
+    Plane() : m_normal(1,0,0), m_offset(0) { }
+    Plane(const Vec3& normal, const Real& offset)
+    :   m_normal(normal), m_offset(offset) { }
+
+    Real getDistance(const Vec3& pt) const {
+        return ~m_normal*pt - m_offset;
+    }
+
+    Vec3 getNormal() const {
+        return m_normal;
+    }
+
+    Real getOffset() const {
+        return m_offset;
+    }
+
+private:
+    Vec3 m_normal;
+    Real m_offset;
+}; // class Plane
+
+
+/**
+ * A event handler to terminate integration when geodesic hits the plane.
+ * For use with a ParticleOnSurfaceSystem
+ **/
+class GeodHitPlaneEvent : public TriggeredEventHandler {
+public:
+    GeodHitPlaneEvent()
+    :   TriggeredEventHandler(Stage::Position) { }
+
+    explicit GeodHitPlaneEvent(const Plane& aplane)
+    :   TriggeredEventHandler(Stage::Position) {
+        plane = aplane;
+    }
+
+    // event is triggered if distance of geodesic endpoint to plane is zero
+    Real getValue(const State& state) const {
+        if (!enabled) {
+            return 1;
+        }
+        Vec3 endpt(&state.getQ()[0]);
+        Real dist =  plane.getDistance(endpt);
+//        std::cout << "dist = " << dist << std::endl;
+        return dist;
+    }
+
+    // This method is called whenever this event occurs.
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+        if (!enabled) {
+            return;
+        }
+
+        // This should be triggered when geodesic endpoint to plane is zero.
+        Vec3 endpt;
+        const Vector& q = state.getQ();
+        endpt[0] = q[0]; endpt[1] = q[1]; endpt[2] = q[2];
+        Real dist = plane.getDistance(endpt);
+
+//        ASSERT(std::abs(dist) < 0.01 );
+        shouldTerminate = true;
+//        std::cout << "hit plane!" << std::endl;
+    }
+
+    void setPlane(const Plane& aplane) const {
+        plane = aplane;
+    }
+
+    const Plane& getPlane() const {
+        return plane;
+    }
+
+    const void setEnabled(bool enabledFlag) {
+        enabled = enabledFlag;
+    }
+
+    const bool isEnabled() {
+        return enabled;
+    }
+
+private:
+    mutable Plane plane;
+    bool enabled;
+
+}; // class GeodHitPlaneEvent
+
+/**
+ * This class generates decoration for contact points and straight line path segments
+ **/
+class PathDecorator : public DecorationGenerator {
+public:
+    PathDecorator(const Vector& x, const Vec3& O, const Vec3& I, const Vec3& color) :
+            m_x(x), m_O(O), m_I(I), m_color(color) { }
+
+    virtual void generateDecorations(const State& state,
+            Array_<DecorativeGeometry>& geometry) {
+//        m_system.realize(state, Stage::Position);
+
+        Vec3 P, Q;
+        P[0] = m_x[0]; P[1] = m_x[1]; P[2] = m_x[2];
+        Q[0] = m_x[3]; Q[1] = m_x[4]; Q[2] = m_x[5];
+
+        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(m_O));
+        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(P));
+        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(Q));
+        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(m_I));
+
+        geometry.push_back(DecorativeLine(m_O,P)
+                .setColor(m_color)
+                .setLineThickness(2));
+        geometry.push_back(DecorativeLine(Q,m_I)
+                .setColor(m_color)
+                .setLineThickness(2));
+
+    }
+
+private:
+    const Vector& m_x; // x = ~[P Q]
+    const Vec3& m_O;
+    const Vec3& m_I;
+    const Vec3& m_color;
+    Rotation R_plane;
+    Vec3 offset;
+}; // class DecorationGenerator
+
+
+/**
+ * This class generates decoration for a plane
+ **/
+class PlaneDecorator : public DecorationGenerator {
+public:
+    PlaneDecorator(const Plane& plane, const Vec3& color) :
+            m_plane(plane), m_color(color) { }
+
+    virtual void generateDecorations(const State& state,
+            Array_<DecorativeGeometry>& geometry) {
+//        m_system.realize(state, Stage::Position);
+
+        // draw plane
+        R_plane.setRotationFromOneAxis(UnitVec3(m_plane.getNormal()),
+                CoordinateAxis::XCoordinateAxis());
+        offset = 0;
+        offset[0] = m_plane.getOffset();
+        geometry.push_back(
+                DecorativeBrick(Vec3(0.01,1,1))
+                .setTransform(Transform(R_plane, R_plane*offset))
+                .setColor(m_color)
+                .setOpacity(.2));
+    }
+
+private:
+    const Plane& m_plane;
+    const Vec3& m_color;
+    Rotation R_plane;
+    Vec3 offset;
+}; // class DecorationGenerator
+
 
 } // namespace SimTK
 

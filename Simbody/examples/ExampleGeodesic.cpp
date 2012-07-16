@@ -29,7 +29,6 @@
 
 #include "Simbody.h"
 #include "simmath/internal/Geodesic.h"
-#include "simmath/internal/GeodesicGeometry.h"
 #include "simmath/internal/ContactGeometry.h"
 
 using namespace SimTK;
@@ -86,7 +85,6 @@ int main() {
 //        Vec3 radii(1,2,3);
 //        ContactGeometry::Ellipsoid geom(radii);
 
-    GeodesicGeometry geodgeom(geom);
     Geodesic geod;
 
     // Create a dummy mb system for visualization
@@ -110,28 +108,28 @@ int main() {
     Vector tmp(6); // tmp = ~[P Q]
     tmp[0]=P[0]; tmp[1]=P[1]; tmp[2]=P[2]; tmp[3]=Q[0]; tmp[4]=Q[1]; tmp[5]=Q[2];
     viz.addDecorationGenerator(new PathDecorator(tmp, P, Q, Green));
-    viz.addDecorationGenerator(new PlaneDecorator(geodgeom.getPlane(), Gray));
-    viz.addDecorationGenerator(new GeodesicDecorator(geodgeom.getGeodP(), Red));
-    viz.addDecorationGenerator(new GeodesicDecorator(geodgeom.getGeodQ(), Blue));
+    viz.addDecorationGenerator(new PlaneDecorator(geom.getPlane(), Gray));
+    viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodP(), Red));
+    viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodQ(), Blue));
     viz.addDecorationGenerator(new GeodesicDecorator(geod, Orange));
     dummySystem.realizeTopology();
     State dummyState = dummySystem.getDefaultState();
 
 
     // calculate the geodesic
-    geodgeom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
+    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
     viz.report(dummyState);
-//    geodgeom.calcGeodesic(P, Q, r_PQ, -r_PQ, geod);
-    geodgeom.calcGeodesic(P, Q, tP, tQ, geod);
+//    geom.calcGeodesic(P, Q, r_PQ, -r_PQ, geod);
+    geom.calcGeodesic(P, Q, tP, tQ, geod);
 
-//    geodgeom.addVizReporter(new VizPeriodicReporter(viz, dummyState, 1/30.));
+//    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, 1/30.));
 //    viz.report(dummyState);
 //    GeodesicOptions opts;
-//    geodgeom.shootGeodesicInDirectionUntilLengthReached(P, UnitVec3(tP), 20, opts, geod);
-//    geodgeom.shootGeodesicInDirectionUntilPlaneHit(P, UnitVec3(tP), geodgeom.getPlane(), opts, geod);
+//    geom.shootGeodesicInDirectionUntilLengthReached(P, UnitVec3(tP), 20, opts, geod);
+//    geom.shootGeodesicInDirectionUntilPlaneHit(P, UnitVec3(tP), geom.getPlane(), opts, geod);
 
     viz.report(dummyState);
-    cout << "geod shooting count = " << geodgeom.getNumGeodesicsShot() << endl;
+    cout << "geod shooting count = " << geom.getNumGeodesicsShot() << endl;
     cout << "num geod pts = " << geod.getPoints().size() << endl;
 
 

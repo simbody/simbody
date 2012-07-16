@@ -644,16 +644,16 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
 
     bool useSplitGeodesicError = true;
 
-    UnitVec3 nP(surface.getGeom().calcSurfaceNormal((Vector)xP));
-    UnitVec3 nQ(surface.getGeom().calcSurfaceNormal((Vector)xQ));
+    UnitVec3 nP(surface.calcSurfaceNormal((Vector)xP));
+    UnitVec3 nQ(surface.calcSurfaceNormal((Vector)xQ));
 
     Vec6 err;
     err[0] = ~eIn*nP;   // tangent error in normal direction
     err[1] = ~eOut*nQ;
     // These are the implicit surface errors forcing P and Q to lie on the
     // surface.
-    err[4] = surface.getGeom().calcSurfaceValue((Vector)xP);
-    err[5] = surface.getGeom().calcSurfaceValue((Vector)xQ);
+    err[4] = surface.calcSurfaceValue((Vector)xP);
+    err[5] = surface.calcSurfaceValue((Vector)xQ);
 
     // Put tangents in tangent plane at contact points ("covariant").
     UnitVec3 ceIn( eIn - (~eIn*nP)*nP );

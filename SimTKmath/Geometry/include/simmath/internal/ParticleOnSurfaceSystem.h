@@ -61,7 +61,7 @@ class ParticleOnSurfaceSystemGuts: public System::Guts {
 //    mutable EventTriggerByStageIndex event0;
 //    mutable CacheEntryIndex mgForceIndex; // a cache entry m*g calculated at Dynamics stage
 public:
-    ParticleOnSurfaceSystemGuts(const ContactGeometry& geom)
+    ParticleOnSurfaceSystemGuts(const ContactGeometryImpl& geom)
     : Guts(), geom(geom) {
         // Index types set themselves invalid on construction.
     }
@@ -108,7 +108,7 @@ public:
 //    /*virtual*/void projectUImpl(State&, Vector& uErrEst,
 //             const ProjectOptions& options, ProjectResults& results) const {return;}
 private:
-    ContactGeometry geom;
+    const ContactGeometryImpl& geom;
 
 }; // class ParticleOnSurfaceSystemGuts
 
@@ -116,7 +116,7 @@ private:
 
 class ParticleOnSurfaceSystem: public System {
 public:
-    ParticleOnSurfaceSystem(const ContactGeometry& geom) : System()
+    ParticleOnSurfaceSystem(const ContactGeometryImpl& geom) : System()
     { 
         adoptSystemGuts(new ParticleOnSurfaceSystemGuts(geom));
         DefaultSystemSubsystem defsub(*this);
