@@ -38,7 +38,7 @@ using namespace SimTK;
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 29;
+static const unsigned ProtocolVersion   = 30;
 
 // The VisualizerGUI has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -83,7 +83,9 @@ static const unsigned char SetMaxFrameRate       = 23;
 static const unsigned char SetBackgroundColor    = 24;
 static const unsigned char SetShowShadows        = 25;
 static const unsigned char SetBackgroundType     = 26;
-
+static const unsigned char SetShowFrameRate      = 27;
+static const unsigned char SetShowSimTime        = 28;
+static const unsigned char SetShowFrameNumber    = 29;
 
 
 // Events sent from the GUI back to the application.
@@ -136,6 +138,9 @@ public:
     void setMaxFrameRate(Real rateInFPS) const;
     void setBackgroundColor(const Vec3& color) const;
     void setShowShadows(bool showShadows) const;
+    void setShowFrameRate(bool showFrameRate) const;
+    void setShowSimTime(bool showSimTime) const;
+    void setShowFrameNumber(bool showFrameNumber) const;
     void setBackgroundType(Visualizer::BackgroundType type) const;
     void setCameraTransform(const Transform& transform) const;
     void zoomCamera() const;

@@ -886,6 +886,15 @@ const Visualizer& Visualizer::setBackgroundColor(const Vec3& color) const
 const Visualizer& Visualizer::setShowShadows(bool showShadows) const 
 {   getImpl().m_protocol.setShowShadows(showShadows); return *this; }
 
+const Visualizer& Visualizer::setShowFrameRate(bool showFrameRate) const 
+{   getImpl().m_protocol.setShowFrameRate(showFrameRate); return *this; }
+
+const Visualizer& Visualizer::setShowSimTime(bool showSimTime) const 
+{   getImpl().m_protocol.setShowSimTime(showSimTime); return *this; }
+
+const Visualizer& Visualizer::setShowFrameNumber(bool showFrameNumber) const 
+{   getImpl().m_protocol.setShowFrameNumber(showFrameNumber); return *this; }
+
 const Visualizer& Visualizer::setWindowTitle(const String& title) const 
 {   getImpl().m_protocol.setWindowTitle(title); return *this; }
 

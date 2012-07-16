@@ -613,6 +613,30 @@ void VisualizerProtocol::setShowShadows(bool shouldShow) const {
     pthread_mutex_unlock(&sceneLock);
 }
 
+void VisualizerProtocol::setShowFrameRate(bool shouldShow) const {
+    const short show = (short)shouldShow; // 0 or 1
+    pthread_mutex_lock(&sceneLock);
+    WRITE(outPipe, &SetShowFrameRate, 1);
+    WRITE(outPipe, &show, sizeof(short));
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizerProtocol::setShowSimTime(bool shouldShow) const {
+    const short show = (short)shouldShow; // 0 or 1
+    pthread_mutex_lock(&sceneLock);
+    WRITE(outPipe, &SetShowSimTime, 1);
+    WRITE(outPipe, &show, sizeof(short));
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizerProtocol::setShowFrameNumber(bool shouldShow) const {
+    const short show = (short)shouldShow; // 0 or 1
+    pthread_mutex_lock(&sceneLock);
+    WRITE(outPipe, &SetShowFrameNumber, 1);
+    WRITE(outPipe, &show, sizeof(short));
+    pthread_mutex_unlock(&sceneLock);
+}
+
 void VisualizerProtocol::setBackgroundType(Visualizer::BackgroundType type) const {
     const short backgroundType = (short)type;
     pthread_mutex_lock(&sceneLock);

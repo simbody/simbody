@@ -2312,6 +2312,30 @@ void* listenForInput(void* args) {
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
+        case SetShowFrameRate: {
+            readData(buffer, sizeof(short));
+            const bool shouldShow = (shortBuffer[0] != 0);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            showFPS = shouldShow;
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetShowSimTime: {
+            readData(buffer, sizeof(short));
+            const bool shouldShow = (shortBuffer[0] != 0);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            showSimTime = shouldShow;
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
+        case SetShowFrameNumber: {
+            readData(buffer, sizeof(short));
+            const bool shouldShow = (shortBuffer[0] != 0);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            showFrameNum = shouldShow;
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            break;
+        }
         case StartOfScene: {
             Scene* newScene = readNewScene();
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
@@ -2337,7 +2361,7 @@ void* listenForInput(void* args) {
         }
 
         default:
-            SimTK_ERRCHK1_ALWAYS(false, "listenForInput()",
+            SimTK_ERRCHK1_ALWAYS(!"unrecognized command", "listenForInput()",
                 "Unexpected command %u received from VisualizerGUI. Can't continue.",
                 (unsigned)buffer[0]);
         }

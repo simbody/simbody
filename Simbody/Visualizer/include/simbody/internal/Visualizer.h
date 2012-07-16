@@ -273,6 +273,27 @@ so you can call it from within a FrameController.
 calls, provided subsequent ones are also const. **/
 const Visualizer& setShowShadows(bool showShadows) const;
 
+/** Control whether frame rate is shown in the Visualizer.\ This is a const
+method so you can call it from within a FrameController.
+@param  showFrameRate     Set true to show the frame rate; false for none.
+@return A const reference to this Visualizer so that you can chain "set" 
+calls, provided subsequent ones are also const. **/
+const Visualizer& setShowFrameRate(bool showFrameRate) const;
+
+/** Control whether simulation time is shown in the Visualizer.\ This is a const
+method so you can call it from within a FrameController.
+@param  showSimTime     Set true to show the simulation time; false for none.
+@return A const reference to this Visualizer so that you can chain "set" 
+calls, provided subsequent ones are also const. **/
+const Visualizer& setShowSimTime(bool showSimTime) const;
+
+/** Control whether frame number is shown in the Visualizer.\ This is a const
+method so you can call it from within a FrameController.
+@param  showFrameNumber     Set true to show the frame number; false for none.
+@return A const reference to this Visualizer so that you can chain "set" 
+calls, provided subsequent ones are also const. **/
+const Visualizer& setShowFrameNumber(bool showFrameNumber) const;
+
 /** Change the title on the main VisualizerGUI window.\ The default title
 is Simbody \e version : \e exename, where \e version is the current Simbody
 version number in major.minor.patch format and \e exename is the name of the 
