@@ -1112,7 +1112,7 @@ template <>
 void Measure_<Real>::Integrate::Implementation::
 initializeVirtual(State& s) const {
     assert(zIndex.isValid());
-    Real z = this->getSubsystem().updZ(s)[zIndex];
+    Real& z = this->getSubsystem().updZ(s)[zIndex];
     if (!icMeasure.isEmptyHandle()) 
             z = icMeasure.getValue(s);
     else z = 0;
