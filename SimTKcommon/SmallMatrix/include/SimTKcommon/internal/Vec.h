@@ -260,11 +260,11 @@ public:
 
     /** The number of elements in this Vec (note that stride does not 
     affect this number.) **/
-    int size()   const  { return M; }
+    static int size() { return M; }
     /** The number of rows in a Vec is the number of elements. **/
-    int nrow()   const  { return M; }
+    static int nrow() { return M; }
     /** The number of columns in a Vec is always 1. **/
-    int ncol()   const  { return 1; }
+    static int ncol() { return 1; }
 
 
     /** Scalar norm square is sum( conjugate squares of all underlying scalars ), 

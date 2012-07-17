@@ -146,13 +146,13 @@ public:
     typedef THerm                           TransposeType; // TODO
 
     /** Return the total number of elements M*N contained in this Mat. **/
-    int size() const { return M*N; }
+    static int size() { return M*N; }
     /** Return the number of rows in this Mat, echoing the value supplied
     for the template paramter \a M. **/
-    int nrow() const { return M; }
+    static int nrow() { return M; }
     /** Return the number of columns in this Mat, echoing the value supplied
     for the template paramter \a N. **/
-    int ncol() const { return N; }
+    static int ncol() { return N; }
 
     /** Scalar norm square is the sum of squares of all the scalars that 
     comprise the value of this Mat. For Mat objects with composite element

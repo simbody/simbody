@@ -199,9 +199,9 @@ public:
     typedef EPrecision                      Precision;
     typedef EScalarNormSq                   ScalarNormSq;
 
-    int size()   const  { return N; }
-    int nrow()   const  { return 1; }
-    int ncol()   const  { return N; }
+    static int size() { return N; }
+    static int nrow() { return 1; }
+    static int ncol() { return N; }
 
 
     // Scalar norm square is sum( conjugate squares of all scalars )
