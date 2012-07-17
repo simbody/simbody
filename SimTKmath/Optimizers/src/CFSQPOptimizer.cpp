@@ -43,10 +43,13 @@ const char *LoadLibraryErrorMessage() { return dlerror(); }
 const char *LoadLibraryErrorMessage() { return 0; }
 #endif
 
-#ifndef _WIN32
-static const char *CFSQP_LIBRARY_NAME = "libosimCFSQP.so";
+
+#if defined(_WIN32)
+    static const char *CFSQP_LIBRARY_NAME = "osimCFSQP.dll";
+#elif defined(__APPLE__)
+    static const char *CFSQP_LIBRARY_NAME = "libosimCFSQP.dylib";
 #else
-static const char *CFSQP_LIBRARY_NAME = "osimCFSQP.dll";
+    static const char *CFSQP_LIBRARY_NAME = "libosimCFSQP.so";
 #endif
 
 typedef void* (*CFSQP_FUNCTION)(int,int,int,int,int,int,int,int,int,int *,int,int,
