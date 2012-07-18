@@ -276,6 +276,74 @@ convertQForceToUForce(  const State&                        state,
     node.multiplyByN(digest, true, fq.cbegin(), fu.begin());
 }
 
+SpatialVec MobilizedBody::
+findMobilizerReactionOnBodyAtMInGround(const State& s) const {
+    const SpatialVec FB_G = findMobilizerReactionOnBodyAtOriginInGround(s);
+    // Shift to M
+    const Rotation&  R_GB   = getBodyRotation(s);
+    const Vec3&      p_BM   = getOutboardFrame(s).p();
+    const Vec3       p_BM_G = R_GB*p_BM; // p_BM in G, 15 flops
+    const SpatialVec FM_G = shiftForceBy(FB_G, p_BM_G);  // 12 flop
+    return FM_G;
+}
+
+
+SpatialVec MobilizedBody::
+findMobilizerReactionOnBodyAtOriginInGround(const State& s) const {
+    const MobilizedBodyImpl& impl = getImpl();
+    const SimbodyMatterSubsystemRep& matter = impl.getMyMatterSubsystemRep();
+
+    // This will initiate computation if necessary.
+    const Array_<ArticulatedInertia,MobilizedBodyIndex>& PPlus = 
+                                        matter.getArticulatedBodyInertiasPlus(s);
+    const Array_<SpatialVec,MobilizedBodyIndex>& zPlus =
+                                        matter.getArticulatedBodyForcesPlus(s);
+
+    const Transform& X_GB = impl.getBodyTransform(s);
+    const MobilizedBodyIndex mbx = impl.getMyMobilizedBodyIndex();
+     
+    SpatialVec FB_G = zPlus[mbx];
+    if (mbx != GroundIndex) {
+        const MobilizedBody& parent = getParentMobilizedBody();
+        const Transform&  X_GP = parent.getBodyTransform(s);
+        const SpatialVec& A_GP = parent.getBodyAcceleration(s);
+        const Vec3& p_PB_G = X_GB.p() - X_GP.p(); // 3 flops
+        SpatialVec APlus( A_GP[0],
+                          A_GP[1] + A_GP[0] % p_PB_G ); // 12 flops
+        FB_G += PPlus[mbx]*APlus; // 72 flops
+    }
+    return FB_G;
+}
+
+
+SpatialVec MobilizedBody::
+findMobilizerReactionOnParentAtFInGround(const State& s) const {
+    const SpatialVec FP_G = findMobilizerReactionOnParentAtOriginInGround(s);
+    // Shift from P to F
+    const Vec3&      p_PF   = getInboardFrame(s).p();
+    if (isGround()) 
+        return shiftForceBy(FP_G, p_PF); // P==G (12 flops)
+    const Rotation&  R_GP   = getParentMobilizedBody().getBodyRotation(s);
+    const Vec3       p_PF_G = R_GP*p_PF; // p_PF in G, 15 flops
+    return shiftForceBy(FP_G, p_PF_G);  // 12 flops
+}
+
+SpatialVec MobilizedBody::
+findMobilizerReactionOnParentAtOriginInGround(const State& s) const {
+    const SpatialVec FB_G = // negate this
+        -findMobilizerReactionOnBodyAtOriginInGround(s); // 6 flops
+    if (isGround())
+        return FB_G; // Ground is welded to the universe at its origin
+
+    const MobilizedBody& parent = getParentMobilizedBody();
+    const Vec3& p_GB = getBodyTransform(s).p();
+    const Vec3& p_GP = parent.getBodyTransform(s).p();
+    const Vec3 p_BP_G = p_GP - p_GB; // 3 flops
+    const SpatialVec FP_G = shiftForceBy(FB_G, p_BP_G); // 12 flops
+
+    return FP_G;
+}
+
 
 void MobilizedBody::applyBodyForce(const State& s, const SpatialVec& spatialForceInG, 
                                    Vector_<SpatialVec>& bodyForces) const 

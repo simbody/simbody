@@ -156,24 +156,33 @@ void testByComparingToConstraints() {
     
     // Calculate the mobility reaction forces.
 
-    Vector_<SpatialVec> reactionForce(matter.getNumBodies());
-    matter.calcMobilizerReactionForces(state, reactionForce);
+    Vector_<SpatialVec> forcesAtMInG(matter.getNumBodies());
+    matter.calcMobilizerReactionForces(state, forcesAtMInG);
+
+
+
+    // Check that the bulk calculation matches the body-by-body calculation.
+    for (MobilizedBodyIndex bx(0); bx < matter.getNumBodies(); ++bx) {
+        assertEqual(forcesAtMInG[bx], 
+            matter.getMobilizedBody(bx)
+               .findMobilizerReactionOnBodyAtMInGround(state));
+    }
 
     // Make sure all free bodies have no reaction force on them.
     
-    assertEqual((reactionForce[f1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
-    assertEqual((reactionForce[f2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
-    assertEqual((reactionForce[fb1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
-    assertEqual((reactionForce[fb2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
-    assertEqual((reactionForce[ft1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
-    assertEqual((reactionForce[ft2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
+    assertEqual((forcesAtMInG[f1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
+    assertEqual((forcesAtMInG[f2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
+    assertEqual((forcesAtMInG[fb1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
+    assertEqual((forcesAtMInG[fb2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
+    assertEqual((forcesAtMInG[ft1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
+    assertEqual((forcesAtMInG[ft2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
     
     // The reaction forces should match the corresponding constraint forces.
     
-    compareReactionToConstraint(reactionForce[b1.getMobilizedBodyIndex()], fb1constraint, state);
-    compareReactionToConstraint(reactionForce[b2.getMobilizedBodyIndex()], fb2constraint, state);
-    compareReactionToConstraint(reactionForce[t1.getMobilizedBodyIndex()], ft1constraint, state);
-    compareReactionToConstraint(reactionForce[t2.getMobilizedBodyIndex()], ft2constraint, state);
+    compareReactionToConstraint(forcesAtMInG[b1.getMobilizedBodyIndex()], fb1constraint, state);
+    compareReactionToConstraint(forcesAtMInG[b2.getMobilizedBodyIndex()], fb2constraint, state);
+    compareReactionToConstraint(forcesAtMInG[t1.getMobilizedBodyIndex()], ft1constraint, state);
+    compareReactionToConstraint(forcesAtMInG[t2.getMobilizedBodyIndex()], ft2constraint, state);
 }
 
 /*
@@ -253,18 +262,61 @@ void testByComparingToConstraints2() {
     const MobodIndex p2x = pendulum2.getMobilizedBodyIndex();
     const MobodIndex p2bx = pendulum2b.getMobilizedBodyIndex();
 
+
+    Vector_<SpatialVec> forcesAtMInG, forcesAtBInG, forcesAtFInG;
+    matter.calcMobilizerReactionForces(state, forcesAtMInG);
+
+    // Check that the bulk results match the individual ones, and fill
+    // up the Vector of reaction on the parent bodies.
+    forcesAtFInG.resize(forcesAtMInG.size());
+    for (MobilizedBodyIndex mbx(0); mbx < matter.getNumBodies(); ++mbx) {
+        SimTK_TEST_EQ(forcesAtMInG[mbx], matter.getMobilizedBody(mbx)
+            .findMobilizerReactionOnBodyAtMInGround(state));
+
+        forcesAtFInG[mbx] = matter.getMobilizedBody(mbx)
+            .findMobilizerReactionOnParentAtFInGround(state);
+    }
+
+    // Now we'll convert forces on B at M to forces on P at F manually, and
+    // compare with the ones we got by asking the mobilized body.
+    Vector_<SpatialVec> forcesAtFInG_byhand(forcesAtMInG.size());
+    forcesAtFInG_byhand[0] = -forcesAtMInG[0]; // Ground is "welded" at origin
+    for (MobilizedBodyIndex i(1); i < matter.getNumBodies(); ++i) {
+        const MobilizedBody& body   = matter.getMobilizedBody(i);
+        const MobilizedBody& parent = body.getParentMobilizedBody();
+        // Want to shift reaction by p_MF, the vector from M to F across the
+        // mobilizer, and negate. Can get p_FM; must reexpress in G.
+        const Vec3& p_FM = body.getMobilizerTransform(state).p();
+        const Rotation& R_PF = body.getInboardFrame(state).R(); // In parent.
+        const Rotation& R_GP = parent.getBodyTransform(state).R();
+        Rotation R_GF   =   R_GP*R_PF;  // F frame orientation in Ground.
+        Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector. 
+        forcesAtFInG_byhand[i] = -shiftForceBy(forcesAtMInG[i], p_MF_G);
+    }
+
+    SimTK_TEST_EQ(forcesAtFInG, forcesAtFInG_byhand);
+
     // Shift the reaction forces to body origins for easy comparison with
     // the reported constraint forces.
-    Vector_<SpatialVec> reactionForcesInG;
-    matter.calcMobilizerReactionForces(state, reactionForcesInG);
+    forcesAtBInG.resize(forcesAtMInG.size());
     const MobodIndex p1x = pendulum1.getMobilizedBodyIndex();
     const MobodIndex p1bx = pendulum1b.getMobilizedBodyIndex();
     const Rotation& R_G1 = pendulum1.getBodyTransform(state).R();
     const Rotation& R_G1b = pendulum1b.getBodyTransform(state).R();
-    reactionForcesInG[p1x] = shiftForceFromTo(reactionForcesInG[p1x],
+    forcesAtBInG[p1x] = shiftForceFromTo(forcesAtMInG[p1x],
                                          R_G1*Vec3(0,1,0), Vec3(0));
-    reactionForcesInG[p1bx] = shiftForceFromTo(reactionForcesInG[p1bx],
+    forcesAtBInG[p1bx] = shiftForceFromTo(forcesAtMInG[p1bx],
                                          R_G1b*Vec3(0,1,0), Vec3(0));
+
+    // Compare those manually-shifted quantities to the ones we can get 
+    // direction from the MobilizedBody.
+    SpatialVec forcesAtBInG_p1 = 
+        pendulum1.findMobilizerReactionOnBodyAtOriginInGround(state);
+    SpatialVec forcesAtBInG_p1b = 
+        pendulum1b.findMobilizerReactionOnBodyAtOriginInGround(state);
+
+    SimTK_TEST_EQ(forcesAtBInG[p1x], forcesAtBInG_p1);
+    SimTK_TEST_EQ(forcesAtBInG[p1bx], forcesAtBInG_p1b);
 
     // The constraints apply forces to parent and body; we want to compare
     // forces on the body, which will be the second entry here. We're assuming
@@ -282,8 +334,8 @@ void testByComparingToConstraints2() {
 
     // Couldn't quite make default tolerance on some platforms. This uses
     // 10X default.
-    SimTK_TEST_EQ_SIZE(cons2Forces[1], reactionForcesInG[p1x], 10);
-    SimTK_TEST_EQ_SIZE(cons2bForces[1], reactionForcesInG[p1bx], 10);
+    SimTK_TEST_EQ_SIZE(cons2Forces[1], forcesAtBInG[p1x], 10);
+    SimTK_TEST_EQ_SIZE(cons2bForces[1], forcesAtBInG[p1bx], 10);
 }
 
 /**
