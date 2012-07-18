@@ -45,9 +45,11 @@ class SplitGeodesicError;
 //==============================================================================
 class SimTK_SIMMATH_EXPORT ContactGeometryImpl {
 public:
-
     ContactGeometryImpl() : myHandle(0), ptOnSurfSys(0) {
         createParticleOnSurfaceSystem();
+    }
+    ContactGeometryImpl(const ContactGeometryImpl& source)
+    : myHandle(0), ptOnSurfSys(0) {
     }
     virtual ~ContactGeometryImpl() {
         clearMyHandle();
