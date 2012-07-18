@@ -1885,7 +1885,8 @@ use it.
     
 @par Required stage
   \c Stage::Acceleration 
-  
+ 
+@see SimTK::MobilizedBody::findMobilizerReactionOnBodyAtMInGround()
 @see calcMobilizerReactionForcesUsingFreebodyMethod() **/
 void calcMobilizerReactionForces
    (const State&         state, 

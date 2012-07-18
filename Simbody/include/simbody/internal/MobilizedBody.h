@@ -116,12 +116,12 @@ body is abbreviated "G".
 
 We use Fo to mean "the origin of frame F", Bc is "the mass center of body 
 B". R_AF is the rotation matrix giving frame F's orientation in frame A, 
-such that a vector v expressed in F is reexpressed in A by v_A = R_AFv_F.
+such that a vector v expressed in F is reexpressed in A by v_A = R_AF*v_F.
 X_AF is the spatial transform giving frame F's origin location and 
 orientation in frame A, such that a point P whose location is measured 
 from F's origin Fo and expressed in F by position vector p_FP (or more 
 explicitly p_FoP) is remeasured from frame A's origin Ao and reexpressed 
-in A via p_AP = X_AFp_FP, where p_AP==p_AoP. **/
+in A via p_AP = X_AF*p_FP, where p_AP==p_AoP. **/
 
 class SimTK_SIMBODY_EXPORT MobilizedBody 
 :   public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {
@@ -559,7 +559,11 @@ public:
     ///   as p_GP or v_G.
     /// - AnotherBodyStation, AnotherBodyVector, etc.: a Station S or Vector
     ///   v on AnotherBody A. These are measured and expressed in the A 
-    ///   frame, as p_AS or v_A. 
+    ///   frame, as p_AS or v_A.
+    /// - Mobilizer frame M: the mobilizer's outboard "moving" frame, fixed
+    ///   to ThisBody B.
+    /// - Mobilizer frame F: the mobilizer's inboard "fixed" frame, fixed to
+    ///   the parent body P.
 
     //@{
 
@@ -713,6 +717,42 @@ public:
         // is the most expensive to calculate.
         return findBodyAccelerationInAnotherBody(s,inBodyA)[1];
     }
+
+    /// Return the spatial reaction force (moment and force) applied by the 
+    /// mobilizer to body B at the location of the mobilizer frame M (fixed to 
+    /// body B, but not necessarily at the body frame origin), expressed in
+    /// Ground. Cost is about 120 flops.
+    /// @see findMobilizerReactionOnParentAtFInGround()
+    /// @see findMobilizerReactionOnBodyAtOriginInGround()
+    /// @see SimTK::SimbodyMatterSubsystem::calcMobilizerReactionForces()
+    SpatialVec findMobilizerReactionOnBodyAtMInGround(const State& s) const;
+
+    /// Return the spatial reaction force (moment and force) applied by the 
+    /// mobilizer to body B but shifted to the B frame origin, and expressed 
+    /// in Ground. Cost is about 90 flops.
+    /// @see findMobilizerReactionOnParentAtOriginInGround()
+    /// @see findMobilizerReactionOnBodyAtMInGround()
+    /// @see SimTK::SimbodyMatterSubsystem::calcMobilizerReactionForces()
+    SpatialVec findMobilizerReactionOnBodyAtOriginInGround(const State& s)
+                                                                        const;
+
+    /// Return the spatial reaction force (moment and force) applied by the 
+    /// mobilizer to the parent (inboard) body P at the location of the 
+    /// inboard "fixed" mobilizer frame F (fixed to body P, but not necessarily 
+    /// at the P frame origin), expressed in Ground. Cost is about 140 flops.
+    /// @see findMobilizerReactionOnBodyAtMInGround()
+    /// @see findMobilizerReactionOnParentAtOriginInGround()
+    /// @see SimTK::SimbodyMatterSubsystem::calcMobilizerReactionForces()
+    SpatialVec findMobilizerReactionOnParentAtFInGround(const State& s) const;
+
+    /// Return the spatial reaction force (moment and force) applied by the 
+    /// mobilizer to the parent (inboard) body P at the location of the P frame 
+    /// origin, and expressed in Ground. Cost is about 110 flops.
+    /// @see findMobilizerReactionOnBodyAtOriginInGround()
+    /// @see findMobilizerReactionOnParentAtFInGround()
+    /// @see SimTK::SimbodyMatterSubsystem::calcMobilizerReactionForces()
+    SpatialVec findMobilizerReactionOnParentAtOriginInGround(const State& s)
+                                                                        const;
 
     /// Return the Cartesian (ground) location that is currently coincident with
     /// a station (point) S fixed on body B. That is, we return locationInG=
