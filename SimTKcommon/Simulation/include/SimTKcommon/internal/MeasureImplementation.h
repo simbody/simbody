@@ -1097,7 +1097,7 @@ private:
     mutable ZIndex zIndex;
 };
 
-template <>
+template <> inline
 const Real& Measure_<Real>::Integrate::Implementation::
 getUncachedValueVirtual(const State& s, int derivOrder) const
 {   if (derivOrder>0) 
@@ -1108,7 +1108,7 @@ getUncachedValueVirtual(const State& s, int derivOrder) const
     }
 }
 
-template <>
+template <> inline
 void Measure_<Real>::Integrate::Implementation::
 initializeVirtual(State& s) const {
     assert(zIndex.isValid());
@@ -1118,7 +1118,7 @@ initializeVirtual(State& s) const {
     else z = 0;
 }
 
-template <>
+template <> inline
 void Measure_<Real>::Integrate::Implementation::
 realizeMeasureAccelerationVirtual(const State& s) const {
     assert(zIndex.isValid());
