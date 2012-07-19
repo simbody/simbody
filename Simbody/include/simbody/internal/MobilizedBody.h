@@ -708,7 +708,7 @@ public:
     /// expressed in body A. Cost is 105 flops. If you know that inBodyA is 
     /// Ground, don't use this operator; instead, use the response method 
     /// getBodyOriginAcceleration() which is free. This operator is available 
-    /// in Acceleration stage.
+    /// at Acceleration stage.
     /// @see getBodyOriginAcceleration()
     Vec3 findBodyOriginAccelerationInAnotherBody(const State& s, 
                                           const MobilizedBody& inBodyA) const
@@ -721,7 +721,8 @@ public:
     /// Return the spatial reaction force (moment and force) applied by the 
     /// mobilizer to body B at the location of the mobilizer frame M (fixed to 
     /// body B, but not necessarily at the body frame origin), expressed in
-    /// Ground. Cost is about 120 flops.
+    /// Ground. This operator is available at Acceleration stage. Cost is 
+    /// about 120 flops.
     /// @see findMobilizerReactionOnParentAtFInGround()
     /// @see findMobilizerReactionOnBodyAtOriginInGround()
     /// @see SimTK::SimbodyMatterSubsystem::calcMobilizerReactionForces()
@@ -729,7 +730,8 @@ public:
 
     /// Return the spatial reaction force (moment and force) applied by the 
     /// mobilizer to body B but shifted to the B frame origin, and expressed 
-    /// in Ground. Cost is about 90 flops.
+    /// in Ground. This operator is available at Acceleration stage. Cost is 
+    /// about 90 flops.
     /// @see findMobilizerReactionOnParentAtOriginInGround()
     /// @see findMobilizerReactionOnBodyAtMInGround()
     /// @see SimTK::SimbodyMatterSubsystem::calcMobilizerReactionForces()
@@ -739,7 +741,8 @@ public:
     /// Return the spatial reaction force (moment and force) applied by the 
     /// mobilizer to the parent (inboard) body P at the location of the 
     /// inboard "fixed" mobilizer frame F (fixed to body P, but not necessarily 
-    /// at the P frame origin), expressed in Ground. Cost is about 140 flops.
+    /// at the P frame origin), expressed in Ground. This operator is available
+    /// at Acceleration stage. Cost is about 140 flops.
     /// @see findMobilizerReactionOnBodyAtMInGround()
     /// @see findMobilizerReactionOnParentAtOriginInGround()
     /// @see SimTK::SimbodyMatterSubsystem::calcMobilizerReactionForces()
@@ -747,7 +750,8 @@ public:
 
     /// Return the spatial reaction force (moment and force) applied by the 
     /// mobilizer to the parent (inboard) body P at the location of the P frame 
-    /// origin, and expressed in Ground. Cost is about 110 flops.
+    /// origin, and expressed in Ground. This operator is available at 
+    /// Acceleration stage. Cost is about 110 flops.
     /// @see findMobilizerReactionOnBodyAtOriginInGround()
     /// @see findMobilizerReactionOnParentAtFInGround()
     /// @see SimTK::SimbodyMatterSubsystem::calcMobilizerReactionForces()
