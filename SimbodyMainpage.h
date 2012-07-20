@@ -106,7 +106,7 @@ terms under which we offer Simbody.
  * Please cite:                                                               *
  *   Michael A. Sherman, Ajay Seth, Scott L. Delp, Simbody: multibody         *
  *   dynamics for biomedical research, Procedia IUTAM 2:241-261 (2011)        *
- *   http://dx.doi.org/10.1016/j.piutam.2011.04.023.                          *
+ *   http://dx.doi.org/10.1016/j.piutam.2011.04.023                          *
  *                                                                            *
  * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
@@ -147,7 +147,7 @@ https://simtk.org/home/simbody. Where appropriate, please cite this paper:
 \par
 Michael A. Sherman, Ajay Seth, Scott L. Delp, Simbody: multibody
 dynamics for biomedical research, <i>Procedia IUTAM</i> 2:241-261 (2011)
-http://dx.doi.org/10.1016/j.piutam.2011.04.023.
+http://dx.doi.org/10.1016/j.piutam.2011.04.023
 
 We would be particularly grateful if you mention that Simbody is primarily
 funded by NIH Roadmap grant U54 GM072970. We appreciate that support very
