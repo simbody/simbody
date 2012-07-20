@@ -84,48 +84,45 @@ Related Pages to see other general topics.
 
 <h2>License</h2>
 We encourage the broadest possible use of Simbody for any purpose by using
-the extremely permissive MIT License. We would appreciate some acknowledgement 
-if our work has been helpful in yours, but our license does not require that.
-For more information see our \ref simbody_license_page "license page".
-**/
+the extremely permissive Apache 2.0 License. We would appreciate some 
+acknowledgement if our work has been helpful in yours, but our license does not
+require that. For more information see our 
+\ref simbody_license_page "license page". **/
 
 
 /** @page simbody_license_page  Simbody&tm; Copyright and License
 <h2>Copyright and license</h2>
-This license, based on the maximally-permissive MIT License, defines the 
+This license, based on the maximally-permissive Apache 2.0 License, defines the 
 terms under which we offer Simbody.
 @verbatim
  * -------------------------------------------------------------------------- *
- *                             SimTK Simbody(tm)                              *
+ *                                 Simbody(tm)                                *
  * -------------------------------------------------------------------------- *
- * Simbody is part of the SimTK biosimulation toolkit originating from        *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
- * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-11 Stanford University and the Authors.        *
+ * Please cite:                                                               *
+ *   Michael A. Sherman, Ajay Seth, Scott L. Delp, Simbody: multibody         *
+ *   dynamics for biomedical research, Procedia IUTAM 2:241-261 (2011)        *
+ *   http://dx.doi.org/10.1016/j.piutam.2011.04.023.                          *
+ *                                                                            *
+ * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
- * Contributors: Jack Middleton, Christopher Bruns, Paul Mitiguy              *
+ * Contributors: Jack Middleton, Christopher Bruns, Paul Mitiguy, Matthew     *
+ *   Millard, Charles Schwieters, Abhinandan Jain, Isaac Newton               *
  *                                                                            *
- * Permission is hereby granted, free of charge, to any person obtaining a    *
- * copy of this software and associated documentation files (the "Software"), *
- * to deal in the Software without restriction, including without limitation  *
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
- * and/or sell copies of the Software, and to permit persons to whom the      *
- * Software is furnished to do so, subject to the following conditions:       *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
+ * not use this file except in compliance with the License. You may obtain a  *
+ * copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         *
  *                                                                            *
- * This sentence, the above copyright and permission notices, and the         *
- * following disclaimer shall be included in all copies or substantial        *
- * portions of the Software.                                                  *
- *                                                                            *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
- * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
- * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
- * -------------------------------------------------------------------------- * 
+ * Unless required by applicable law or agreed to in writing, software        *
+ * distributed under the License is distributed on an "AS IS" BASIS,          *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   *
+ * See the License for the specific language governing permissions and        *
+ * limitations under the License.                                             *
+ * -------------------------------------------------------------------------- *
 @endverbatim
 
 <h2>What's with that "TM" in Simbody&tm;?</h2>
@@ -148,9 +145,9 @@ your documentation that you are using Simbody from
 https://simtk.org/home/simbody. Where appropriate, please cite this paper:
 
 \par
-Schmidt, J.P.; Delp, S.L.; Sherman, M.A.; Taylor, C.A.; Pande, V.S.; 
-Altman, R.B. "The Simbios National Center: Systems Biology in Motion" 
-<i>Proceedings of the IEEE</i> 96(8):1266-1280, 2008.
+Michael A. Sherman, Ajay Seth, Scott L. Delp, Simbody: multibody
+dynamics for biomedical research, <i>Procedia IUTAM</i> 2:241-261 (2011)
+http://dx.doi.org/10.1016/j.piutam.2011.04.023.
 
 We would be particularly grateful if you mention that Simbody is primarily
 funded by NIH Roadmap grant U54 GM072970. We appreciate that support very
