@@ -866,15 +866,20 @@ template <>
 double LapackInterface::lange<float>( const char& norm, const int& m, const int& n, const float* a, const int& lda){
 /*
  TODO JACKM because g77 returns FORTRAN REAL's as doubles and gfortran returns them as floats
- changes this once everyone has changed to new libraires and SimTKlapak.h has been updated
+ changes this once everyone has changed to new libraries and SimTKlapack.h has been updated
      TypedWorkSpace<float> work(m);
      return( slange_( norm, m, n, a, lda, work.data, 1 ) ); 
 */
 
      TypedWorkSpace<double> work(m);
      TypedWorkSpace<double> da(m*n);
-     for(int i=0;i<m*n;i++)  da.data[i] = a[i];
-     return( dlange_( norm, m, n, da.data, lda, work.data, 1 ) );
+     // Copy float matrix in Lapack full storage format into temporary
+     // dense double matrix.
+     for (int j=0; j<n; j++)
+         for (int i=0; i<m; i++)
+             da.data[j*m + i] = a[j*lda + i];
+     // leading dimension of da.data is m now, not lda
+     return( dlange_( norm, m, n, da.data, m, work.data, 1 ) );
 }
  
 template <> 
@@ -893,10 +898,14 @@ double LapackInterface::lange<std::complex<float> >( const char& norm, const int
 */
      TypedWorkSpace<double> work(m);
      TypedWorkSpace<std::complex<double> > za(m*n);
-     for(int i=0;i<m*n;i++)  za.data[i] = a[i];
-     return( zlange_( norm, m, n, za.data, lda, work.data, 1 ) );
 
-     
+     // Copy float matrix in Lapack full storage format into temporary
+     // dense double matrix.
+     for (int j=0; j<n; j++)
+         for (int i=0; i<m; i++)
+             za.data[j*m + i] = a[j*lda + i];
+     // leading dimension of za.data is m now, not lda
+     return zlange_( norm, m, n, za.data, m, work.data, 1 );    
 }
  
 template <> 

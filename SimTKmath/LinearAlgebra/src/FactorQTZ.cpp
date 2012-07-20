@@ -203,7 +203,7 @@ void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
 
 template <typename T >
 void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
-    SimTK_APIARGCHECK_ALWAYS(0 == nRow,"FactorQTZ","solve",
+    SimTK_APIARGCHECK_ALWAYS(isFactored ,"FactorQTZ","solve",
        "No matrix was passed to FactorQTZ. \n"  );
 
     SimTK_APIARGCHECK2_ALWAYS(b.nrow()==nRow,"FactorQTZ","solve",
