@@ -141,22 +141,39 @@ int main () {
         Vector xu_right(4, Xu);
         Vector xu; // should get sized automatically to 4 by solve()
 
+        Matrix bu2(3,2);
+        bu2(0) = bu;
+        bu2(1) = 2*bu;
+        Matrix xu2; // should get sized 4x2 by solve
+
         FactorQTZ qtzu(au);  // perform QTZ factorization
 
         qtzu.solve( bu, xu );  // solve for x given a right hand side
 
         cout << " Underdetermined Double SOLUTION: " << xu << "  errnorm=" << (xu-xu_right).norm() << endl;
   
+        qtzu.solve( bu2, xu2 );
+        cout << " multiple rhs solution, double " << xu2 << endl;
+
         Matrix_<float> afu(3,4); for (int i=0; i<3; ++i) for (int j=0; j<4; ++j) afu(i,j)=(float)au(i,j);
         Vector_<float> bfu(3); for (int i=0; i<3; ++i) bfu[i] = (float)bu[i];
         Vector_<float> xfu_right(4); for (int i=0; i<4; ++i) xfu_right[i] = (float)xu_right[i];
         Vector_<float> xfu; // should get sized automatically to 4 by solve()
+
+        Matrix_<float> bfu2(3,2);
+        bfu2(0) = bfu;
+        bfu2(1) = 2*bfu;
+        Matrix_<float> xfu2; // should get sized 4x2 by solve
 
         FactorQTZ qtzfu(afu);  // perform QTZ factorization
 
         qtzfu.solve( bfu, xfu );  // solve for x given a right hand side
  
         cout << " Underdetermined Float SOLUTION: " << xfu << "  errnorm=" << (xfu-xfu_right).norm() << endl;
+
+        qtzfu.solve( bfu2, xfu2 );
+        cout << " multiple rhs solution, float " << xfu2 << endl;
+
 
        Real C[4] = { 1.0,   2.0,
               1.0,   3.0  };
