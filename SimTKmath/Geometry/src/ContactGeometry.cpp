@@ -2689,7 +2689,7 @@ void ParticleConSurfaceSystemGuts::projectQImpl(State& s, Vector& qerrest,
 //        std::cout << cnt << ": AFTER q-=dq wperr=" << ep << " wqchg=" << qchg << std::endl;
         cnt++;
 
-        sleepInSec(0.5);
+        //sleepInSec(0.5);
         if (cnt > 10) {
             results.setExitStatus(ProjectResults::FailedToConverge);
             return;
@@ -2836,7 +2836,7 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
  *
  *
  * The DAE for a generic multibody system is:
- *       qdot = Qu
+ *       qdot = Nu
  *       M udot = f - ~A lambda
  *       A udot = b
  *       perr(t,q) = 0
