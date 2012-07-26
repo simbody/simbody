@@ -299,7 +299,7 @@ class Measure_Num< Mat<M,N,E> > {
 public:
     typedef E Element;
     static int size(const T&) {return N;} // number of columns
-    static const typename T::TCol& get(const T& m, int j) {return v.col(i);}
+    static const typename T::TCol& get(const T& m, int j) {return m.col(j);}
     static typename T::TCol& upd(T& m, int j) {return m.col(j);}
     static void makeNaNLike (const T&, T& nanValue)  {nanValue.setToNaN();}
     static void makeZeroLike(const T&, T& zeroValue) {zeroValue.setToZero();}
@@ -1135,7 +1135,7 @@ public:
     \a value must be the same length as the default value of this %Measure. **/
     void setValue(State& s, const T& value) const
     {   assert(zIndex >= 0);
-        for (int i=0; i < size(); ++i)
+        for (int i=0; i < this->size(); ++i)
             this->getSubsystem().updZ(s)[zIndex+i] = 
                 Measure_Num<T>::get(value, i); }
     
