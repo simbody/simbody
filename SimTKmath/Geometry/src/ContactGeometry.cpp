@@ -2526,7 +2526,7 @@ int ContactGeometry::TriangleMesh::OBBTreeNode::getNumTriangles() const {
  *
  *
  * The DAE for a generic multibody system is:
- *       qdot = Qu
+ *       qdot = Nu
  *       M udot = f - ~A lambda
  *       A udot = b
  *       perr(t,q) = 0
