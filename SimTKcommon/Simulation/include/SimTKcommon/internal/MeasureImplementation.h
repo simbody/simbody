@@ -1174,7 +1174,7 @@ public:
     void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
         OVERRIDE_11
     {   assert(derivOrder == 0); // only one cache entry
-        assert(Measure_Num<T>::size(value) == size());
+        assert(Measure_Num<T>::size(value) == this->size());
         assert(zIndex.isValid());
         const Vector& allZ = this->getSubsystem().getZ(s);
         for (int i=0; i < size(); ++i)
@@ -1199,7 +1199,7 @@ public:
         Vector& allZ = this->getSubsystem().updZ(s);
         if (!icMeasure.isEmptyHandle()) {
              const T& ic = icMeasure.getValue(s);
-             for (int i=0; i < size(); ++i)
+             for (int i=0; i < this->size(); ++i)
                  allZ[zIndex+i] = Measure_Num<T>::get(ic,i);
         } else {
              for (int i=0; i < size(); ++i)
@@ -1212,8 +1212,8 @@ public:
     how many are needed (if that's not part of the type T), and initialize them
     to the corresponding element from the default value. **/
     void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
-        Vector init(size());
-        for (int i=0; i < size(); ++i) 
+        Vector init(this->size());
+        for (int i=0; i < this->size(); ++i) 
             init[i] = Measure_Num<T>::get(getDefaultValue(),i);
         zIndex = this->getSubsystem().allocateZ(s, init);
     }
