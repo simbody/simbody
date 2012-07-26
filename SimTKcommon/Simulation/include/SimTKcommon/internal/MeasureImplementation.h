@@ -38,39 +38,36 @@
 namespace SimTK {
 
 
-    /////////////////////////////
-    // MEASURE::IMPLEMENTATION //
-    /////////////////////////////
+//==============================================================================
+//                    ABSTRACT MEASURE :: IMPLEMENTATION
+//==============================================================================
 
 /**
  * The abstract parent of all Measure Implementation classes.
  */
 class SimTK_SimTKCOMMON_EXPORT AbstractMeasure::Implementation {
 protected:
-    // This constructor is for use by concrete Measure::Implementations. Note 
-    // that this serves as a default constructor since the argument has a 
-    // default.
-    explicit Implementation(const String& name="<NONAME>")
-    :   measureName(name), copyNumber(0), mySubsystem(0), refCount(0) {}
+    /** This default constructor is for use by concrete measure implementation
+    classes. **/
+    Implementation() : copyNumber(0), mySubsystem(0), refCount(0) {}
 
-    // Base class copy constructor copies the name, removes the Subsystem
-    // and sets the reference count to zero. This gets used by the clone()
-    // methods in the concrete classes.
+    /** Base class copy constructor removes the Subsystem
+    and sets the reference count to zero. This gets used by the clone()
+    methods in the concrete classes. **/
     Implementation(const Implementation& src)
-    :   measureName(src.measureName), copyNumber(src.copyNumber+1),
-        mySubsystem(0), refCount(0) {}
+    :   copyNumber(src.copyNumber+1), mySubsystem(0), refCount(0) {}
     
-    // Base class copy assignment operator copies the name, removes the
-    // Subsystem, and sets the reference count to zero. This is probably
-    // not used.
+    /** Base class copy assignment operator removes the
+    Subsystem, and sets the reference count to zero. This is probably
+    not used. **/
     Implementation& operator=(const Implementation& src) {
         if (&src != this)
-        {   measureName=src.measureName; copyNumber=src.copyNumber+1;
+        {   copyNumber=src.copyNumber+1;
             refCount=0; mySubsystem=0; }
         return *this; 
     }
 
-    // destructor is virtual
+    // destructor is virtual; below
 
     // Increment the reference count and return its new value.
     int incrRefCount() const {return ++refCount;}
@@ -81,12 +78,11 @@ protected:
     // Get the current value of the reference counter.
     int getRefCount() const {return refCount;}
 
-    const String& getName()        const {return measureName;}
     int           getCopyNumber()  const {return copyNumber;}
 
-    // This is a deep copy of the concrete Implementation object, except the
-    // Subsystem will have been removed. The reference count on the new object
-    // will be zero; be sure to increment it if you put it in a handle.
+    /** This is a deep copy of the concrete Implementation object, except the
+    Subsystem will have been removed. The reference count on the new object
+    will be zero; be sure to increment it if you put it in a handle. **/
     Implementation* clone() const {return cloneVirtual();}
 
     // realizeTopology() is pure virtual below for Measure_<T> to supply.
@@ -99,9 +95,9 @@ protected:
     void realizeAcceleration(const State& s) const {realizeMeasureAccelerationVirtual(s);}
     void realizeReport      (const State& s) const {realizeMeasureReportVirtual(s);}
 
-    // This should be called at the start of a numerical integration study to
-    // cause initial conditions to get set for any Measures that have integrated
-    // state variables.
+    /** This should be called at the start of a time stepping study to
+    cause this %Measure to set its state variables (if any) in the supplied
+    state to their initial conditions. **/
     void initialize(State& s) const {initializeVirtual(s);}
 
     int getNumTimeDerivatives() const {return getNumTimeDerivativesVirtual();}
@@ -156,7 +152,6 @@ protected:
           getDependsOnStageVirtual(int order) const = 0;
 
 private:
-    String          measureName;
     int             copyNumber; // bumped each time we do a deep copy
 
     // These are set when this Measure is adopted by a Subsystem.
@@ -172,11 +167,10 @@ friend class Subsystem::Guts;
 friend class Subsystem::Guts::GutsRep;
 };
 
-    //////////////////////////////////
-    // ABSTRACT MEASURE DEFINITIONS //
-    //////////////////////////////////
-
-// These had to wait for Implementation to be defined.
+//==============================================================================
+//                      ABSTRACT MEASURE DEFINITIONS
+//==============================================================================
+// These had to wait for AbstractMeasure::Implementation to be defined.
 
 inline AbstractMeasure::
 AbstractMeasure(Implementation* g) 
@@ -186,7 +180,7 @@ AbstractMeasure(Implementation* g)
 inline AbstractMeasure::
 AbstractMeasure(Subsystem& sub, Implementation* g, const SetHandle&) 
 :   impl(g) {
-    SimTK_ERRCHK(hasImpl(), "AbstractMeasure::ctor()",
+    SimTK_ERRCHK(hasImpl(), "AbstractMeasure::AbstractMeasure()",
         "An empty Measure handle can't be put in a Subsystem.");
     impl->incrRefCount();
     sub.adoptMeasure(*this);
@@ -257,19 +251,87 @@ getRefCount() const
 {   return getImpl().getRefCount(); }
 
 
-    /////////////////////////////////
-    // MEASURE_<T>::IMPLEMENTATION //
-    /////////////////////////////////
+/** @cond **/ // Hide from Doxygen.
+// This is a helper class that makes it possible to treat Real, Vec, and 
+// Vector objects uniformly.
+template <class T> class Measure_Num {
+};
 
-/**
- * This is the base Implementation class for all Measures whose value type 
- * is known. This class is still abstract but provides many services 
- * related to the values of the derived Measure and its derivatives, 
- * all of which require cache entries of type T.
- *
- * The constructor needs to be told how many type-T cache entries
- * to allocate. 
- */
+template <> class Measure_Num<float> {
+public:
+    typedef float Element;
+    static int size(const float&) {return 1;}
+    static const float& get(const float& v, int i) {assert(i==0); return v;}
+    static float& upd(float& v, int i) {assert(i==0); return v;}
+    static void makeNaNLike(const float&, float& nanValue) 
+    {   nanValue = CNT<float>::getNaN();}
+    static void makeZeroLike(const float&, float& zeroValue) {zeroValue=0.f;}
+};
+
+template <> class Measure_Num<double> {
+public:
+    typedef double Element;
+    static int size(const double&) {return 1;}
+    static const double& get(const double& v, int i) {assert(i==0); return v;}
+    static double& upd(double& v, int i) {assert(i==0); return v;}
+    static void makeNaNLike(const double&, double& nanValue) 
+    {  nanValue = CNT<double>::getNaN(); }
+    static void makeZeroLike(const double&, double& zeroValue) {zeroValue=0.;}
+};
+
+// We only support stride 1 (densely packed) Vec types.
+template <int M, class E>
+class Measure_Num< Vec<M,E,1> > {
+    typedef Vec<M,E,1> T;
+public:
+    typedef E Element;
+    static int size(const T&) {return M;}
+    static const E& get(const T& v, int i) {return v[i];}
+    static E& upd(T& v, int i) {return v[i];}
+    static void makeNaNLike (const T&, T& nanValue)  {nanValue.setToNaN();}
+    static void makeZeroLike(const T&, T& zeroValue) {zeroValue.setToZero();}
+};
+
+// We only support column major (densely packed) Mat types.
+template <int M, int N, class E>
+class Measure_Num< Mat<M,N,E> > {
+    typedef Mat<M,N,E> T;
+public:
+    typedef E Element;
+    static int size(const T&) {return N;} // number of columns
+    static const typename T::TCol& get(const T& m, int j) {return v.col(i);}
+    static typename T::TCol& upd(T& m, int j) {return m.col(j);}
+    static void makeNaNLike (const T&, T& nanValue)  {nanValue.setToNaN();}
+    static void makeZeroLike(const T&, T& zeroValue) {zeroValue.setToZero();}
+};
+
+
+template <class E>
+class Measure_Num< Vector_<E> > {
+    typedef Vector_<E> T;
+public:
+    typedef E Element;
+    static int size(const T& v) {return v.size();}
+    static const E& get(const T& v, int i) {return v[i];}
+    static E& upd(T& v, int i) {return v[i];}
+    static void makeNaNLike(const T& v, T& nanValue) 
+    {   nanValue.resize(v.size()); nanValue.setToNaN(); }
+    static void makeZeroLike(const T& v, T& zeroValue)
+    {   zeroValue.resize(v.size()); zeroValue.setToZero(); }
+
+};
+
+/** @endcond **/
+
+//==============================================================================
+//                       MEASURE_<T> :: IMPLEMENTATION
+//==============================================================================
+/** This is the base Implementation class for all Measures whose value type is 
+known. This class is still abstract but provides many services related to the 
+values of the derived Measure and its derivatives, all of which require cache 
+entries of type T.
+
+The constructor needs to be told how many type-T cache entries to allocate. **/ 
 template <class T>
 class Measure_<T>::Implementation : public AbstractMeasure::Implementation {
 public:
@@ -311,6 +373,19 @@ public:
         return getUncachedValueVirtual(s,derivOrder); 
     }
 
+    /** Set a new default value for this %Measure. This is a topological 
+    change. **/
+    void setDefaultValue(const T& defaultValue) {
+        this->defaultValue = defaultValue;
+        Measure_Num<T>::makeZeroLike(defaultValue, zeroValue);
+        this->invalidateTopologyCache(); 
+    }
+
+    /** Return a reference to the value that this %Measure will use to 
+    initialize its value-level state resource (state variable or cache entry) 
+    during the next call to realizeTopology(). **/
+    const T& getDefaultValue() const {return defaultValue;}
+
     void setIsPresumedValidAtDependsOnStage(bool presume) 
     {   presumeValidAtDependsOnStage = presume;
         this->invalidateTopologyCache(); }
@@ -319,48 +394,48 @@ public:
     {   return presumeValidAtDependsOnStage; }
 
 protected:
-    // numValues is one greater than the number of derivatives; i.e., there
-    // is room for the value ("0th" derivative) also. The default is to
-    // allocate just room for the value.
-    explicit Implementation(int numValues=1) 
-    :   presumeValidAtDependsOnStage(false), 
-        derivIx(numValues) {}
-
-    // Copy constructor copies the *number* of cache entries from the
-    // source, but not the cache indices themselves as those must be
-    // allocated uniquely for the copy.
-    Implementation(const Implementation& source) 
-    :   presumeValidAtDependsOnStage(source.presumeValidAtDependsOnStage),
-        derivIx(source.derivIx.size()) {}
-
-
-    // Satisfy the realizeTopology() pure virtual here now that we know
-    // the data type T. Allocate lazy- or auto-validated- cache entries
-    // depending on the setting of presumeValidAtDependsOnStage.
-    void realizeTopology(State& s) const {
-        Implementation* mutableThis = const_cast<Implementation*>(this);
-        // Allocate cache entries.
-        for (int i=0; i < getNumCacheEntries(); ++i) {
-            const Stage dependsOn = getDependsOnStage(i);
-            if (presumeValidAtDependsOnStage) {
-                // Allocate auto-validated cache entries.
-                mutableThis->derivIx[i] =
-                   this->getSubsystem().allocateCacheEntry
-                        (s, dependsOn, new Value<T>());
-            } else {
-                // Allocate lazy cache entries.
-                mutableThis->derivIx[i] =
-                   this->getSubsystem().allocateLazyCacheEntry
-                        (s, dependsOn, new Value<T>());
-            }
-        }
-
-        // Call the concrete class virtual if any.
-        realizeMeasureTopologyVirtual(s);
+    explicit Implementation(const T& defaultValue, int numCacheEntries=1)
+    :   presumeValidAtDependsOnStage(false),
+        defaultValue(defaultValue),
+        derivIx(numCacheEntries) 
+    {
+        Measure_Num<T>::makeZeroLike(defaultValue, zeroValue);
     }
 
+    /** Argument \a numCacheEntries should be one greater than the number of 
+    derivatives; that is, there is room for the value ("0th" derivative) also. 
+    The default is to allocate just room for the value. **/
+    explicit Implementation(int numCacheEntries=1) 
+    :   presumeValidAtDependsOnStage(false),
+        defaultValue(),
+        derivIx(numCacheEntries) 
+    {
+        Measure_Num<T>::makeZeroLike(defaultValue, zeroValue);
+    }
+
+    /** Copy constructor copies the \e number of cache entries from the source,
+    but not the cache indices themselves as those must be allocated uniquely 
+    for the copy. **/
+    Implementation(const Implementation& source) 
+    :   presumeValidAtDependsOnStage(source.presumeValidAtDependsOnStage),
+        defaultValue(source.defaultValue),
+        derivIx(source.derivIx.size()) 
+    {
+        Measure_Num<T>::makeZeroLike(defaultValue, zeroValue);
+    }
+
+
+    /** Return the number of elements in the data type of this %Measure; for
+    Vector measures this is determined by the size of the default value. **/
+    int size() const {return Measure_Num<T>::size(defaultValue);}
+
+    /** Return the number of cache entries allocated for the value and
+    derivatives of this %Measure. **/
     int getNumCacheEntries() const {return (int)derivIx.size();}
 
+    /** Get a const reference to the value stored in one of this %Measure's
+    cache entries, indexed by the derivative order (with the value treated as
+    the 0th derivative). **/
     const T& getCacheEntry(const State& s, int derivOrder) const {
         SimTK_ERRCHK2(0 <= derivOrder && derivOrder < getNumCacheEntries(),
             "Measure_<T>::Implementation::getCacheEntry()",
@@ -371,6 +446,9 @@ protected:
             this->getSubsystem().getCacheEntry(s, derivIx[derivOrder]));
     }
 
+    /** Get a writable reference to the value stored in one of this %Measure's
+    cache entries, indexed by the derivative order (with the value treated as
+    the 0th derivative). **/
     T& updCacheEntry(const State& s, int derivOrder) const {
         SimTK_ERRCHK2(0 <= derivOrder && derivOrder < getNumCacheEntries(),
             "Measure_<T>::Implementation::updCacheEntry()",
@@ -381,6 +459,8 @@ protected:
             this->getSubsystem().updCacheEntry(s, derivIx[derivOrder]));
     }
 
+    /** Determine whether a particular one of this %Measure's cache entries has
+    already been realized since the given state was modified. **/
     bool isCacheValueRealized(const State& s, int derivOrder) const {
         SimTK_ERRCHK2(0 <= derivOrder && derivOrder < getNumCacheEntries(),
             "Measure_<T>::Implementation::isCacheValueRealized()",
@@ -390,6 +470,9 @@ protected:
         return this->getSubsystem().isCacheValueRealized(s, derivIx[derivOrder]);
     }
 
+    /** Mark one of this %Measure's cache entries up to date; call this after
+    you have calculated a value or derivative and stored it in the
+    corresponding cache entry. **/
     void markCacheValueRealized(const State& s, int derivOrder) const {
         SimTK_ERRCHK2(0 <= derivOrder && derivOrder < getNumCacheEntries(),
             "Measure_<T>::Implementation::markCacheValueRealized()",
@@ -399,6 +482,10 @@ protected:
         this->getSubsystem().markCacheValueRealized(s, derivIx[derivOrder]);
     }
 
+    /** Invalidate one of this %Measure's cache entries. This is not normally
+    necessary since the cache entries will be invalidated automatically when
+    state variables they depend on change. However, this can be useful in
+    some cases, particularly during debugging and testing. **/
     void markCacheValueNotRealized(const State& s, int derivOrder) const {
         SimTK_ERRCHK2(0 <= derivOrder && derivOrder < getNumCacheEntries(),
             "Measure_<T>::Implementation::markCacheValueNotRealized()",
@@ -412,7 +499,12 @@ protected:
     // Ordinals must retain the same meaning from release to release
     // to preserve binary compatibility.
 
+    /** Concrete measures can override this to allocate Topology-stage
+    resources. **/
     /* 0*/virtual void realizeMeasureTopologyVirtual(State&) const {}
+
+    /** Concrete measures must override this if the state cache is used for
+    precalculated values or derivatives. **/
     /* 1*/virtual void 
     calcCachedValueVirtual(const State&, int derivOrder, T& value) const
     {   SimTK_ERRCHK1_ALWAYS(!"implemented", 
@@ -421,9 +513,11 @@ protected:
         " Measure but was not. It is needed to calculate the"
         " cached value for derivOrder=%d.", derivOrder); }
 
-    // This is only called when derivOrder >= the number of cache 
-    // entries we have, but still <= the number of derivatives the
-    // Measure says it can deliver.
+    /** This is only called when derivOrder >= the number of cache 
+    entries we have, but still <= the number of derivatives the
+    %Measure says it can deliver. You don't need to override this if that
+    condition can't occur. This is commonly used for functions whose derivatives
+    above a certain order are zero. **/
     /* 2*/virtual const T& 
     getUncachedValueVirtual(const State&, int derivOrder) const
     {   SimTK_ERRCHK1_ALWAYS(!"implemented", 
@@ -434,28 +528,57 @@ protected:
         return *reinterpret_cast<T*>(0);
     }
 
-    // STATICS //
-    static const T& getValueZero() {
-        static T zero(0);
-        return zero;
-    }
-
-    static const T& getValueOne() {
-        static T one(1);
-        return one;
-    }
+    /** Return a reference to a zero of the same type and size as this 
+    %Measure's value. **/
+    const T& getValueZero() const {return zeroValue;}
 
 private:
-    bool presumeValidAtDependsOnStage;
-    Array_<CacheEntryIndex> derivIx;
+    // Satisfy the realizeTopology() pure virtual here now that we know the 
+    // data type T. Allocate lazy- or auto-validated- cache entries depending 
+    // on the setting of presumeValidAtDependsOnStage.
+    void realizeTopology(State& s) const FINAL_11 {
+        // Allocate cache entries. Initialize the value cache entry to
+        // the given defaultValue; all the derivative cache entries should be
+        // initialized to a NaN of the same size.
+        if (getNumCacheEntries()) {
+            derivIx[0] = presumeValidAtDependsOnStage 
+                ? this->getSubsystem().allocateCacheEntry
+                        (s, getDependsOnStage(0), new Value<T>(defaultValue))
+                : this->getSubsystem().allocateLazyCacheEntry
+                        (s, getDependsOnStage(0), new Value<T>(defaultValue));
+
+            if (getNumCacheEntries() > 1) {
+                T nanValue; Measure_Num<T>::makeNaNLike(defaultValue, nanValue);
+                for (int i=1; i < getNumCacheEntries(); ++i) {
+                    derivIx[i] = presumeValidAtDependsOnStage 
+                        ? this->getSubsystem().allocateCacheEntry
+                            (s, getDependsOnStage(i), new Value<T>(nanValue))
+                        : this->getSubsystem().allocateLazyCacheEntry
+                            (s, getDependsOnStage(i), new Value<T>(nanValue));
+                }
+            }
+        }
+
+        // Call the concrete class virtual if any.
+        realizeMeasureTopologyVirtual(s);
+    }
+
+//------------------------------------------------------------------------------
+private:
+    // TOPOLOGY STATE
+    bool    presumeValidAtDependsOnStage;
+    T       defaultValue;
+    T       zeroValue;
+
+    // TOPOLOGY CACHE
+    mutable Array_<CacheEntryIndex> derivIx;
 };
 
 
 
-    //////////////////////////////
-    // CONSTANT::IMPLEMENTATION //
-    //////////////////////////////
-
+//==============================================================================
+//                       CONSTANT :: IMPLEMENTATION
+//==============================================================================
 template <class T>
 class Measure_<T>::Constant::Implementation 
 :   public Measure_<T>::Implementation 
@@ -464,86 +587,61 @@ public:
     // We don't want the base class to allocate *any* cache entries.
     Implementation() : Measure_<T>::Implementation(0) {}
     explicit Implementation(const T& value) 
-    :   Measure_<T>::Implementation(0), value(value) {}
+    :   Measure_<T>::Implementation(value,0) {}
 
-    // Allow this to be overridden by derived classes so they can
-    // refuse to allow their values to change.
-    virtual void setValue(const T& v) {
-        value = v;
-        this->invalidateTopologyCache();
-    }
+    /** Changing the value of a %Constant measure is a topological change;
+    if this is a Vector measure you can change the size here too. **/
+    void setValue(const T& v) {this->setDefaultValue(v);}
 
     // Implementations of virtual methods.
     // Measure_<T> virtuals:
     // No cached values.
 
     const T& getUncachedValueVirtual(const State&, int derivOrder) const 
-    {   return derivOrder>0 ? this->getValueZero() : value; }
+        OVERRIDE_11
+    {   return derivOrder>0 ? this->getValueZero() : this->getDefaultValue(); }
 
     // AbstractMeasure virtuals:
-    Implementation* cloneVirtual() const {return new Implementation(*this);}
-    Stage getDependsOnStageVirtual(int derivOrder) const 
+    Implementation* cloneVirtual() const OVERRIDE_11
+    {   return new Implementation(*this); }
+    Stage getDependsOnStageVirtual(int derivOrder) const OVERRIDE_11 
     {   return derivOrder>0 ? Stage::Empty : Stage::Topology; }
-    int getNumTimeDerivativesVirtual() const 
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 
     {   return std::numeric_limits<int>::max(); }
-
-private:
-    T value;
-};
-
-    //////////////////////////
-    // ZERO::IMPLEMENTATION //
-    //////////////////////////
-
-template <class T>
-class Measure_<T>::Zero::Implementation 
-:   public Constant::Implementation 
-{
-public:
-    Implementation() : Constant::Implementation(T(0)) {} 
-
-    // VIRTUALS
-    // From Constant::Implementation:
-    void setValue(const T&) {
-        SimTK_ERRCHK_ALWAYS(!"invalid", "Measure_<T>::Zero::setValue()",
-            "You can't change the value of Zero!");
-    }
-
-    // From AbstractMeasure:
-    Implementation* cloneVirtual() const {return new Implementation(*this);}
-    Stage getDependsOnStageVirtual(int) const 
-    {   return Stage::Empty; }
-};
-
-    /////////////////////////
-    // ONE::IMPLEMENTATION //
-    /////////////////////////
-
-
-template <class T>
-class Measure_<T>::One::Implementation 
-:   public Constant::Implementation 
-{
-public:
-    Implementation() : Constant::Implementation(T(1)) {} 
-
-    // VIRTUALS
-    // From Constant::Implementation:
-    void setValue(const T&) {
-        SimTK_ERRCHK_ALWAYS(!"invalid", "Measure_<T>::One::setValue()",
-            "You can't change the value of One!");
-    }
-    // From AbstractMeasure:
-    Implementation* cloneVirtual() const {return new Implementation(*this);}
-    Stage getDependsOnStageVirtual(int) const 
-    {   return Stage::Empty; }
 };
 
 
-    //////////////////////////
-    // TIME::IMPLEMENTATION //
-    //////////////////////////
 
+//==============================================================================
+//                        MEASURE ZERO and ONE
+//==============================================================================
+// These had to wait for Constant::Implementation to be declared.
+
+template <class T> inline
+Measure_<T>::Zero::Zero() : Constant(T(0)) {}
+template <class T> inline
+Measure_<T>::Zero::Zero(Subsystem& sub) : Constant(sub, T(0)) {}
+
+inline Measure_< Vector >::Zero::Zero(int size) 
+:   Constant(Vector(size, Real(0))) {}
+inline Measure_< Vector >::Zero::Zero(Subsystem& sub, int size) 
+:  Constant(sub, Vector(size, Real(0))) {}
+
+template <class T> inline
+Measure_<T>::One::One() : Constant(T(1)) {}
+template <class T> inline
+Measure_<T>::One::One(Subsystem& sub) : Constant(sub, T(1)) {}
+
+inline Measure_< Vector >::One::One(int size) 
+:   Constant(Vector(size, Real(1))) {}
+inline Measure_< Vector >::One::One(Subsystem& sub, int size) 
+:  Constant(sub, Vector(size, Real(1))) {}
+
+
+
+//==============================================================================
+//                         TIME :: IMPLEMENTATION
+//==============================================================================
 template <class T>
 class Measure_<T>::Time::Implementation {};
 
@@ -559,25 +657,28 @@ public:
     // Measure_<Real> virtuals:
     // No cached values.
 
-    const Real& getUncachedValueVirtual(const State& s, int derivOrder) const 
+    const Real& getUncachedValueVirtual(const State& s, int derivOrder) const
+        OVERRIDE_11
     {   return derivOrder==0 ? s.getTime()
-            : (derivOrder==1 ? this->getValueOne() 
-                             : this->getValueZero()); }
+            : (derivOrder==1 ? SimTK::One 
+                             : SimTK::Zero); } 
 
     // AbstractMeasure virtuals:
-    Implementation* cloneVirtual() const {return new Implementation(*this);}
-    Stage getDependsOnStageVirtual(int derivOrder) const 
+    Implementation* cloneVirtual() const OVERRIDE_11
+    {   return new Implementation(*this); }
+    Stage getDependsOnStageVirtual(int derivOrder) const OVERRIDE_11
     {   return derivOrder>0 ? Stage::Empty : Stage::Time; }
 
     // Value is t, 1st derivative is 1, the rest are 0.
-    int getNumTimeDerivativesVirtual() const 
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 
     {   return std::numeric_limits<int>::max(); }
 };
 
-    //////////////////////////////
-    // VARIABLE::IMPLEMENTATION //
-    //////////////////////////////
 
+
+//==============================================================================
+//                        VARIABLE :: IMPLEMENTATION
+//==============================================================================
 template <class T>
 class Measure_<T>::Variable::Implementation 
 :   public Measure_<T>::Implementation 
@@ -588,53 +689,51 @@ public:
     // the derivatives.
     Implementation() 
     :   Measure_<T>::Implementation(0),
-        invalidatedStage(Stage::Empty), defaultValue() {}
+        invalidatedStage(Stage::Empty) {}
 
     Implementation(Stage invalidated, const T& defaultValue) 
-    :   Measure_<T>::Implementation(0),
-        invalidatedStage(invalidated), defaultValue(defaultValue) {}
+    :   Measure_<T>::Implementation(defaultValue, 0),
+        invalidatedStage(invalidated) {}
 
     // Copy constructor should not copy the variable.
     Implementation(const Implementation& source)
-    :   Measure_<T>::Implementation(0),
-        invalidatedStage(source.invalidatedStage), 
-        defaultValue(source.defaultValue) {}
-
-    void setDefaultValue(const T& v) {
-        defaultValue = v;
-        this->invalidateTopologyCache();
-    }
+    :   Measure_<T>::Implementation(source.getDefaultValue(), 0),
+        invalidatedStage(source.invalidatedStage) {}
 
     void setInvalidatedStage(Stage invalidates) {
         invalidatedStage = invalidates;
         this->invalidateTopologyCache();
     }
 
-    const T& getDefaultValue()     const {return defaultValue;}
-    Stage    getInvalidatedStage() const {return invalidatedStage;}
+    Stage getInvalidatedStage() const {return invalidatedStage;}
 
+    /** Change the value of this %Measure in the given \a state. Invalidates
+    cache entries in that \a state for any stage at or above the "invalidates" 
+    stage that was set when this %Measure was constructed. **/
     void setValue(State& state, const T& value) const 
     {   updVarValue(state) = value; }
 
     // Implementations of virtual methods.
-    Implementation* cloneVirtual() const {return new Implementation(*this);}
+    Implementation* cloneVirtual() const OVERRIDE_11
+    {   return new Implementation(*this); }
 
-    int getNumTimeDerivativesVirtual() const 
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 
     {   return std::numeric_limits<int>::max(); }
 
     // Discrete variable is available after Model stage; but all its 
     // derivatives are zero so are always available.
-    Stage getDependsOnStageVirtual(int derivOrder) const 
+    Stage getDependsOnStageVirtual(int derivOrder) const OVERRIDE_11 
     {   return derivOrder>0 ? Stage::Empty : Stage::Model;}
 
-    const T& getUncachedValueVirtual(const State& s, int derivOrder) const 
+    const T& getUncachedValueVirtual(const State& s, int derivOrder) const
+        OVERRIDE_11
     {   return derivOrder>0 ? this->getValueZero() : getVarValue(s); }
 
     // No cached values.
 
-    void realizeMeasureTopologyVirtual(State& s) const {
+    void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
         discreteVarIndex = this->getSubsystem().allocateDiscreteVariable
-            (s, invalidatedStage, new Value<T>(defaultValue));
+            (s, invalidatedStage, new Value<T>(getDefaultValue()));
     }
 private:
     const T& getVarValue(const State& s) const {
@@ -650,17 +749,16 @@ private:
 
     // TOPOLOGY STATE
     Stage   invalidatedStage; // TODO this shouldn't be needed
-    T       defaultValue;
 
     // TOPOLOGY CACHE
     mutable DiscreteVariableIndex discreteVarIndex;
 };
 
 
-    ////////////////////////////
-    // RESULT::IMPLEMENTATION //
-    ////////////////////////////
 
+//==============================================================================
+//                         RESULT :: IMPLEMENTATION
+//==============================================================================
 template <class T>
 class Measure_<T>::Result::Implementation 
 :   public Measure_<T>::Implementation 
@@ -747,18 +845,18 @@ public:
 
 
     // Implementations of virtual methods.
-    virtual Implementation* cloneVirtual() const 
+    Implementation* cloneVirtual() const OVERRIDE_11
     {   return new Implementation(*this); }
 
-    virtual int getNumTimeDerivativesVirtual() const {return 0;} 
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 {return 0;} 
 
-    // Discrete variable is available after Model stage; but all its 
-    // derivatives are zero so are always available.
-    virtual Stage getDependsOnStageVirtual(int derivOrder) const 
+    /** Cache value is available after its "depends on" stage has been 
+    realized; but all its derivatives are zero so are always available. **/
+    Stage getDependsOnStageVirtual(int derivOrder) const OVERRIDE_11 
     {   return derivOrder>0 ? Stage::Empty : dependsOnStage;}
 
-    virtual void 
-    calcCachedValueVirtual(const State&, int derivOrder, T& value) const
+    void calcCachedValueVirtual(const State&, int derivOrder, T& value) const
+        OVERRIDE_11
     {   SimTK_ERRCHK_ALWAYS(!"calcCachedValueVirtual() implemented",
         "Measure_<T>::Result::getValue()",
         "Measure_<T>::Result::getValue() was called when the value was not "
@@ -773,10 +871,10 @@ private:
 };
 
 
-    //////////////////////////////
-    // SINUSOID::IMPLEMENTATION //
-    //////////////////////////////
 
+//==============================================================================
+//                        SINUSOID :: IMPLEMENTATION
+//==============================================================================
 template <class T>
 class Measure_<T>::Sinusoid::Implementation
 :   public Measure_<T>::Implementation 
@@ -796,14 +894,17 @@ public:
     // Default copy constructor is fine.
 
     // Implementations of virtual methods.
-    Implementation* cloneVirtual() const {return new Implementation(*this);}
+    Implementation* cloneVirtual() const OVERRIDE_11
+    {   return new Implementation(*this); }
 
-    int getNumTimeDerivativesVirtual() const {return NumDerivs;}
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 {return NumDerivs;}
 
-    Stage getDependsOnStageVirtual(int order) const 
+    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11 
     {   return Stage::Time; }
 
-    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const {
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+        OVERRIDE_11
+    {
         // We need to allow the compiler to select std::sin or SimTK::sin
         // based on the argument type.
         using std::sin; using std::cos;
@@ -833,14 +934,13 @@ private:
     // nothing
 };
 
-    //////////////////////////
-    // PLUS::IMPLEMENTATION //
-    //////////////////////////
 
+
+//==============================================================================
+//                          PLUS :: IMPLEMENTATION
+//==============================================================================
 template <class T>
-class Measure_<T>::Plus::Implementation
-:   public Measure_<T>::Implementation 
-{
+class Measure_<T>::Plus::Implementation : public Measure_<T>::Implementation {
 public:
     // TODO: Currently allocates just one cache entry.
     // left and right will be empty handles.
@@ -856,21 +956,23 @@ public:
     // Implementations of virtual methods.
 
     // This uses the default copy constructor.
-    Implementation* cloneVirtual() const 
+    Implementation* cloneVirtual() const OVERRIDE_11 
     {   return new Implementation(*this); }
 
     // TODO: Let this be settable up to the min number of derivatives 
     // provided by the arguments.
-    int getNumTimeDerivativesVirtual() const {return 0;} 
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 {return 0;} 
     //{   return std::min(left.getNumTimeDerivatives(), 
     //                    right.getNumTimeDerivatives()); }
 
-    Stage getDependsOnStageVirtual(int order) const 
+    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11 
     {   return Stage(std::max(left.getDependsOnStage(order),
                               right.getDependsOnStage(order))); }
 
 
-    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const {
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+        OVERRIDE_11
+    {
         value = left.getValue(s,derivOrder) + right.getValue(s,derivOrder);
     }
 
@@ -878,21 +980,20 @@ public:
 
 private:
     // TOPOLOGY STATE
-    const Measure_<T> left;
-    const Measure_<T> right;
+    Measure_<T> left;
+    Measure_<T> right;
 
     // TOPOLOGY CACHE
     // nothing
 };
 
-    ///////////////////////////
-    // MINUS::IMPLEMENTATION //
-    ///////////////////////////
 
+
+//==============================================================================
+//                          MINUS :: IMPLEMENTATION
+//==============================================================================
 template <class T>
-class Measure_<T>::Minus::Implementation
-:   public Measure_<T>::Implementation 
-{
+class Measure_<T>::Minus::Implementation : public Measure_<T>::Implementation {
 public:
     // TODO: Currently allocates just one cache entry.
     // left and right will be empty handles.
@@ -908,21 +1009,23 @@ public:
     // Implementations of virtual methods.
 
     // This uses the default copy constructor.
-    Implementation* cloneVirtual() const 
+    Implementation* cloneVirtual() const OVERRIDE_11 
     {   return new Implementation(*this); }
 
     // TODO: Let this be settable up to the min number of derivatives 
     // provided by the arguments.
-    int getNumTimeDerivativesVirtual() const {return 0;} 
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 {return 0;} 
     //{   return std::min(left.getNumTimeDerivatives(), 
     //                    right.getNumTimeDerivatives()); }
 
-    Stage getDependsOnStageVirtual(int order) const 
+    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11 
     {   return Stage(std::max(left.getDependsOnStage(order),
                               right.getDependsOnStage(order))); }
 
 
-    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const {
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+        OVERRIDE_11
+    {
         value = left.getValue(s,derivOrder) - right.getValue(s,derivOrder);
     }
 
@@ -930,18 +1033,18 @@ public:
 
 private:
     // TOPOLOGY STATE
-    const Measure_<T> left;
-    const Measure_<T> right;
+    Measure_<T> left;
+    Measure_<T> right;
 
     // TOPOLOGY CACHE
     // nothing
 };
 
 
-    ///////////////////////////
-    // SCALE::IMPLEMENTATION //
-    ///////////////////////////
 
+//==============================================================================
+//                          SCALE :: IMPLEMENTATION
+//==============================================================================
 template <class T>
 class Measure_<T>::Scale::Implementation
 :   public Measure_<T>::Implementation 
@@ -965,20 +1068,22 @@ public:
     // Implementations of virtual methods.
 
     // This uses the default copy constructor.
-    Implementation* cloneVirtual() const 
+    Implementation* cloneVirtual() const OVERRIDE_11 
     {   return new Implementation(*this); }
 
     // TODO: Let this be settable up to the min number of derivatives 
     // provided by the arguments.
-    int getNumTimeDerivativesVirtual() const {return 0;} 
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 {return 0;} 
     //{   return std::min(left.getNumTimeDerivatives(), 
     //                    right.getNumTimeDerivatives()); }
 
-    Stage getDependsOnStageVirtual(int order) const 
+    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11
     {   return operand.getDependsOnStage(order); }
 
 
-    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const {
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+        OVERRIDE_11
+    {
         value = factor * operand.getValue(s,derivOrder);
     }
 
@@ -986,45 +1091,53 @@ public:
 
 private:
     // TOPOLOGY STATE
-    const Real        factor;
-    const Measure_<T> operand;
+    Real        factor;
+    Measure_<T> operand;
 
     // TOPOLOGY CACHE
     // nothing
 };
 
-    ///////////////////////////////
-    // INTEGRATE::IMPLEMENTATION //
-    ///////////////////////////////
 
+
+//==============================================================================
+//                        INTEGRATE :: IMPLEMENTATION
+//==============================================================================
+/** The implementation for %Integrate measures allocates a continuous state
+variable or variables from the State's z pool and generates zdot values to be 
+integrated into those z variables. The z's are then copied into a type T,
+Time-stage cache entry so that we can return the value as a type T reference.
+Derivative requests are passed through to the integrand so only one cache
+entry is required here. **/
 template <class T>
 class Measure_<T>::Integrate::Implementation 
 :   public Measure_<T>::Implementation {
 public:
-    // We don't want any cache entries allocated -- we'll use the
-    // State z variable as its own value and let the derivative 
-    // Measure supply its value.
+    /** The derivative and initialConditions Measures will be empty handles if
+    this is default constructed. **/
+    Implementation() : Measure_<T>::Implementation(1) {}
 
-    // The derivative and initialConditions Measures will be
-    // empty handles if this is default constructed.
-    Implementation() : Measure_<T>::Implementation(0), numStates(1) {}
+    /** Here we're shallow-copying the Measure handles so we'll be referring to
+    the original Measures. **/
+    Implementation(const Measure_<T>& deriv, const Measure_<T>& ic,
+                   const T& defaultValue)
+    :   Measure_<T>::Implementation(defaultValue, 1), 
+        derivMeasure(deriv), icMeasure(ic) {}
 
-    // Here we're shallow-copying the Measure handles so we'll
-    // be referring to the original Measures.
-    Implementation(const Measure_<T>& deriv, const Measure_<T>& ic, int numStates)
-    :   Measure_<T>::Implementation(0), 
-        derivMeasure(deriv), icMeasure(ic), numStates(numStates) {}
-
-    // Copy constructor shallow-copies the referenced measures, but
-    // we don't want to share our state variable.
+    /** Copy constructor shallow-copies the referenced measures, but we don't 
+    want to share our state variables. **/
     Implementation(const Implementation& source)
-    :   Measure_<T>::Implementation(0), 
-        derivMeasure(source.derivMeasure), icMeasure(source.icMeasure), 
-        numStates(numStates) {}
+    :   Measure_<T>::Implementation(source.getDefaultValue(), 1), 
+        derivMeasure(source.derivMeasure), icMeasure(source.icMeasure) {}
 
+    /** Set the value of the state variables(s) that hold the integral. This
+    cannot be used to change the size if the type T is a Vector; the supplied
+    \a value must be the same length as the default value of this %Measure. **/
     void setValue(State& s, const T& value) const
-    {   assert(zIndex >= 0); 
-        this->getSubsystem().updZ(s)[zIndex] = value; }
+    {   assert(zIndex >= 0);
+        for (int i=0; i < size(); ++i)
+            this->getSubsystem().updZ(s)[zIndex+i] = 
+                Measure_Num<T>::get(value, i); }
     
     const Measure_<T>& getDerivativeMeasure() const
     {   SimTK_ERRCHK(!derivMeasure.isEmptyHandle(), 
@@ -1047,96 +1160,98 @@ public:
     // Implementations of virtuals.
 
     // This uses the copy constructor defined above.
-    Implementation* cloneVirtual() const 
+    Implementation* cloneVirtual() const OVERRIDE_11 
     {   return new Implementation(*this); }
 
-    int getNumTimeDerivativesVirtual() const {return 1;}
+    /** This measure has one more time derivative than the integrand. **/
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 
+    {   int integralDerivs = getDerivativeMeasure().getNumTimeDerivatives();
+        // Careful - can't add 1 to max int and stay an int.
+        if (integralDerivs < std::numeric_limits<int>::max())
+            ++integralDerivs;        
+        return integralDerivs; }
 
-    // There are no cached values.
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+        OVERRIDE_11
+    {   assert(derivOrder == 0); // only one cache entry
+        assert(Measure_Num<T>::size(value) == size());
+        assert(zIndex.isValid());
+        const Vector& allZ = this->getSubsystem().getZ(s);
+        for (int i=0; i < size(); ++i)
+            Measure_Num<T>::upd(value,i) = allZ[i];
+    }
 
     const T& getUncachedValueVirtual(const State& s, int derivOrder) const
-    {   if (derivOrder>0) 
-            return getDerivativeMeasure().getValue(s);
-        else { 
-            assert(zIndex.isValid()); 
-            return this->getSubsystem().getZ(s)(zIndex, numStates);
+        OVERRIDE_11
+    {   assert(derivOrder > 0); // 0th entry is cached
+        return getDerivativeMeasure().getValue(s, derivOrder-1);
+    }
+
+    Stage getDependsOnStageVirtual(int derivOrder) const OVERRIDE_11 
+    {   return derivOrder>0 
+            ? getDerivativeMeasure().getDependsOnStage(derivOrder-1)
+            : Stage::Time; }
+
+    /** Initialize the state to the current value of the initial condition
+    measure, if there is one, otherwise to the default value. **/
+    void initializeVirtual(State& s) const OVERRIDE_11 {
+        assert(zIndex.isValid());
+        Vector& allZ = this->getSubsystem().updZ(s);
+        if (!icMeasure.isEmptyHandle()) {
+             const T& ic = icMeasure.getValue(s);
+             for (int i=0; i < size(); ++i)
+                 allZ[zIndex+i] = Measure_Num<T>::get(ic,i);
+        } else {
+             for (int i=0; i < size(); ++i)
+                 allZ[zIndex+i] = Measure_Num<T>::get(getDefaultValue(),i);
         }
     }
-    Stage getDependsOnStageVirtual(int derivOrder) const 
-    {   return derivOrder>0 ? getDerivativeMeasure().getDependsOnStage(0)
-                            : Stage::Time; }
 
-    void initializeVirtual(State& s) const {
-        assert(zIndex.isValid());
-        T& z = this->getSubsystem().updZ(s)(zIndex, numStates);
-        if (!icMeasure.isEmptyHandle()) 
-             z = icMeasure.getValue(s);
-        else z = 0;
+    /** Allocate one Real continuous state variable z per element of this 
+    %Measure's data type T, using the default value to determine 
+    how many are needed (if that's not part of the type T), and initialize them
+    to the corresponding element from the default value. **/
+    void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
+        Vector init(size());
+        for (int i=0; i < size(); ++i) 
+            init[i] = Measure_Num<T>::get(getDefaultValue(),i);
+        zIndex = this->getSubsystem().allocateZ(s, init);
     }
 
-    void realizeMeasureTopologyVirtual(State& s) const {
-        static const Vector zero(numStates, Real(0));
-        zIndex = this->getSubsystem().allocateZ(s, zero);
-    }
-
-    void realizeMeasureAccelerationVirtual(const State& s) const {
+    /** Set the zdots to the integrand (derivative measure) value. If no
+    integrand was provided it is treated as though it were zero. **/
+    void realizeMeasureAccelerationVirtual(const State& s) const OVERRIDE_11 {
         assert(zIndex.isValid());
-        T& zdot = this->getSubsystem().updZDot(s)(zIndex, numStates);
-        if (!derivMeasure.isEmptyHandle()) 
-             zdot = derivMeasure.getValue(s);
-        else zdot = 0;
+        Vector& allZDot = this->getSubsystem().updZDot(s);
+        if (!derivMeasure.isEmptyHandle()) {
+            const T& deriv = derivMeasure.getValue(s);
+             for (int i=0; i < size(); ++i)
+                 allZDot[zIndex+i] = Measure_Num<T>::get(deriv,i);
+        } else {
+            allZDot(zIndex,size()) = 0; // derivative is zero
+        }
     }
 
 private:
     // TOPOLOGY STATE
-    const Measure_<T> derivMeasure; // just handles
-    const Measure_<T> icMeasure;
-    int numStates;
+    Measure_<T> derivMeasure; // just handles
+    Measure_<T> icMeasure;
 
     // TOPOLOGY CACHE
-    mutable ZIndex zIndex;
+    mutable ZIndex zIndex;  // This is the first index if more than one z.
 };
 
-template <> inline
-const Real& Measure_<Real>::Integrate::Implementation::
-getUncachedValueVirtual(const State& s, int derivOrder) const
-{   if (derivOrder>0) 
-        return getDerivativeMeasure().getValue(s);
-    else { 
-        assert(zIndex.isValid()); 
-        return this->getSubsystem().getZ(s)[zIndex];
-    }
-}
-
-template <> inline
-void Measure_<Real>::Integrate::Implementation::
-initializeVirtual(State& s) const {
-    assert(zIndex.isValid());
-    Real& z = this->getSubsystem().updZ(s)[zIndex];
-    if (!icMeasure.isEmptyHandle()) 
-            z = icMeasure.getValue(s);
-    else z = 0;
-}
-
-template <> inline
-void Measure_<Real>::Integrate::Implementation::
-realizeMeasureAccelerationVirtual(const State& s) const {
-    assert(zIndex.isValid());
-    Real& zdot = this->getSubsystem().updZDot(s)[zIndex];
-    if (!derivMeasure.isEmptyHandle()) 
-            zdot = derivMeasure.getValue(s);
-    else zdot = 0;
-}
 
 
-    ///////////////////////////////////
-    // DIFFERENTIATE::IMPLEMENTATION //
-    ///////////////////////////////////
+//==============================================================================
+//                      DIFFERENTIATE :: IMPLEMENTATION
+//==============================================================================
 
-// This helper class is the contents of the discrete state variable and corresponding
-// cache entry maintained by this measure. The variable is auto-update,
-// meaning the value of the cache entry replaces the state variable at the
-// start of each step.
+/** @cond **/ // Hide from Doxygen.
+// This helper class is the contents of the discrete state variable and 
+// corresponding cache entry maintained by this measure. The variable is 
+// auto-update, meaning the value of the cache entry replaces the state 
+// variable at the start of each step.
 // TODO: This was a local class in Measure_<T>::Differentiate::Implementation
 // but VC++ 8 (2005) failed to properly instantiate the templatized operator<<()
 // in that case; doing it this way is a workaround.
@@ -1148,6 +1263,7 @@ public:
     T       operandDot; // previous value of derivative
     bool    derivIsGood; // do we think the deriv is a good one?
 };
+/** @endcond **/
 
 
 // Dummy for Value<Measure_Differentiate_Result>.
@@ -1249,7 +1365,7 @@ public:
            (subsys.getDiscreteVariable(s,resultIx));
         const T&   f0         = prevResult.operand;
         const T&   fdot0      = prevResult.operandDot;   // may be invalid
-        const bool good0     = prevResult.derivIsGood;
+        const bool good0      = prevResult.derivIsGood;
 
         const Real t  = s.getTime();
         Result& result = Value<Result>::updDowncast
@@ -1281,6 +1397,231 @@ private:
     // TOPOLOGY CACHE
     mutable bool                    isApproxInUse;
     mutable DiscreteVariableIndex   resultIx;    // auto-update
+};
+
+
+
+//==============================================================================
+//                         EXTREME :: IMPLEMENTATION
+//==============================================================================
+template <class T>
+class Measure_<T>::Extreme::Implementation : public Measure_<T>::Implementation 
+{
+    typedef typename Measure_<T>::Extreme Extreme;
+    typedef typename Extreme::Operation   Operation;
+public:
+    /** Default constructor leaves the operand measure unspecified; no base
+    class cache entries are allocated. **/
+    Implementation() 
+    :   Measure_<T>::Implementation(0), operation(Extreme::MaxAbs) {}
+
+    /** Construct a measure that returns the extreme value taken on by the
+    operand measure during a time stepping study. **/
+    Implementation(const Measure_<T>& operand, Operation op)
+    :   Measure_<T>::Implementation(0), operand(operand), operation(op) {}
+
+    // Default copy constructor gives us a new Implementation object,
+    // but with reference to the *same* operand measure.
+
+    /** Set the operand measure for this %Extreme measure; this is a Topology
+    stage change so you'll have to call realizeTopology() again if you call
+    this. **/
+    void setOperandMeasure(const Measure_<T>& operand) {
+        this->operand = operand;
+        this->invalidateTopologyCache();
+    }
+
+    /** Set the particular operation to be performed by this %Extreme measure;
+    this is a Topology stage change so you'll have to call realizeTopology() 
+    again if you call this. **/
+    void setOperation(Operation op) {
+        this->operation = op;
+        this->invalidateTopologyCache();
+    }
+
+    /** Return a reference to the operand measure for this %Extreme measure. **/
+    const Measure_<T>& getOperandMeasure() const {return operand;}
+
+    /** Return the particular operation being performed by this %Extreme
+    measure. **/
+    Operation getOperation() const {return operation;}
+
+    /** Set the current extreme value stored in this %Extreme measure's state
+    variable. **/
+    void setValue(State& s, const T& value) const {
+        assert(extremeIx.isValid());
+        const Subsystem& subsys = this->getSubsystem();
+        T& prevMin = Value<T>::updDowncast
+                            (subsys.updDiscreteVariable(s,extremeIx));
+        prevMin = value;
+    }
+
+    /** Return the time at which the extreme was last updated. This will be
+    the current time if the operand is currently at its lowest value, otherwise
+    it will be sometime in the past. **/
+    Real getTimeOfExtremeValue(const State& s) const {
+        const Subsystem& subsys = this->getSubsystem();
+        const bool hasNewExtreme = ensureExtremeHasBeenUpdated(s);
+        Real tUpdate;
+        if (hasNewExtreme)
+            tUpdate = s.getTime(); // i.e., now
+        else
+            tUpdate = subsys.getDiscreteVarLastUpdateTime(s,extremeIx);
+        return tUpdate;
+    }
+
+    // Implementations of virtual methods.
+
+    // This uses the default copy constructor.
+    Implementation* cloneVirtual() const OVERRIDE_11 
+    {   return new Implementation(*this); }
+
+    /** Extreme(f(t)) has the same number of derivatives as f except that
+    they are all zero unless f(t) is a new extreme. **/
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11
+    {   return operand.getNumTimeDerivatives(); }
+
+    /** The depends-on stage for this measure is the same as for its 
+    operand. **/
+    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11
+    {   return operand.getDependsOnStage(order); }
+
+
+    /** We're not using the Measure_<T> base class cache services, but
+    we do have one of our own. It looks uncached from the base class
+    point of view which is why we're implementing it here. **/
+    const T& getUncachedValueVirtual(const State& s, int derivOrder) const
+        OVERRIDE_11
+    {   
+        const Subsystem& subsys = this->getSubsystem();
+        const bool hasNewExtreme = ensureExtremeHasBeenUpdated(s);
+        if (derivOrder > 0) {
+            // TODO: should be handled elementwise and zero unless the
+            // derivative is acting in the direction that changes the 
+            // extreme.
+            return hasNewExtreme ? operand.getValue(s, derivOrder)
+                                 : getValueZero();
+        }
+        if (hasNewExtreme) {
+            const T& newExt = Value<T>::downcast
+                                (subsys.getDiscreteVarUpdateValue(s,extremeIx));
+            return newExt;
+        } else {
+            const T& currentExt = Value<T>::downcast
+                                (subsys.getDiscreteVariable(s,extremeIx));
+            return currentExt;
+        }
+    }
+
+    /** At start of a time stepping study, this should be called to set the
+    current extreme value to the current value of the operand. **/
+    void initializeVirtual(State& s) const OVERRIDE_11 {
+        setValue(s, operand.getValue(s));
+    }
+
+    /** Allocate the auto-updated state variable that holds the extreme seen
+    so far. We'll assume that changes to this variable invalidate Dynamics
+    (force) stage so that any forces that depend on it will be recomputed if
+    it changes. **/
+    void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
+        // TODO: this should be NaN once initialization is working properly.
+        T initVal = getDefaultValue();
+        switch(operation) {
+        case Minimum: initVal = Infinity; break;
+        case Maximum: initVal = -Infinity; break;
+        case MinAbs:  initVal = Infinity; break;
+        case MaxAbs:  initVal = 0; break;
+        };
+        extremeIx = this->getSubsystem()
+            .allocateAutoUpdateDiscreteVariable(s, Stage::Dynamics,
+                new Value<T>(initVal), operand.getDependsOnStage(0));
+    }
+
+    /** Here we make sure that the cache entry is updated if the current value
+    of the operand is less than the previous one, and return a bool indicating
+    whether we have a new minimum. We don't want to create an update entry
+    unless the minimum has changed, because we would like the state 
+    variable's last update value to reflect the last actual change. **/
+    bool ensureExtremeHasBeenUpdated(const State& s) const {
+        assert(extremeIx.isValid());
+        const Subsystem& subsys = this->getSubsystem();
+        if (subsys.isDiscreteVarUpdateValueRealized(s,extremeIx))
+            return true; // already updated to new minimum
+
+        const T& prevExtreme = Value<T>::downcast
+                                    (subsys.getDiscreteVariable(s,extremeIx));
+        const T& f = operand.getValue(s);
+        // Search to see if any element has reached a new extreme.
+        bool foundNewExt = false;
+        for (int i=0; i < size() && !foundNewExt; ++i) 
+            foundNewExt = isNewExtreme(Measure_Num<T>::get(f,i), 
+                                       Measure_Num<T>::get(prevExtreme,i));
+        if (!foundNewExt)
+            return false; // no change to output
+
+        // We have encountered a new record holder for minimum.
+        T& newExtreme = Value<T>::updDowncast
+                                (subsys.updDiscreteVarUpdateValue(s,extremeIx));
+
+        for (int i=0; i < size(); ++i)
+            Measure_Num<T>::upd(newExtreme,i) =
+                extremeOf(Measure_Num<T>::get(f,i),
+                          Measure_Num<T>::get(prevExtreme,i));
+
+        subsys.markDiscreteVarUpdateValueRealized(s,extremeIx);
+        return true;
+    }
+private:
+    // Return true if newVal is "more extreme" than oldExtreme, according
+    // to the operation we're performing.
+    bool isNewExtreme(const typename Measure_Num<T>::Element& newVal,
+                      const typename Measure_Num<T>::Element& oldExtreme) const
+    {
+        switch (operation) {
+        case Extreme::Maximum: return newVal > oldExtreme;
+        case Extreme::Minimum: return newVal < oldExtreme;
+        case Extreme::MaxAbs: return std::abs(newVal) > std::abs(oldExtreme);
+        case Extreme::MinAbs: return std::abs(newVal) < std::abs(oldExtreme);
+        };
+        SimTK_ASSERT1_ALWAYS(!"recognized", 
+            "Measure::Extreme::Implementation::isNewExtreme(): "
+            "unrecognized operation %d", (int)operation);
+        return false; /*NOTREACHED*/
+    }
+
+    // Given the value of one element of the operand, and that value's time
+    // derivative, determine whether the derivative is moving the element
+    // into the "more extreme" direction, according to the operation.
+    bool isExtremeDir(const typename Measure_Num<T>::Element& value,
+                      const typename Measure_Num<T>::Element& deriv) const 
+    {
+        const int sv = sign(value), sd = sign(deriv);
+        if (sd == 0) return false; // derivative is zero; not changing
+        switch (operation) {
+        case Extreme::Maximum: return sd ==  1; // getting larger
+        case Extreme::Minimum: return sd == -1; // getting smaller
+        case Extreme::MaxAbs: return sv==0 || sd==sv; // abs is growing
+        case Extreme::MinAbs: return sd == -sv;
+        };
+        SimTK_ASSERT1_ALWAYS(!"recognized", 
+            "Measure::Extreme::Implementation::isExtremeDir(): "
+            "unrecognized operation %d", (int)operation);
+        return false; /*NOTREACHED*/
+    }
+
+    typename Measure_Num<T>::Element 
+    extremeOf(const typename Measure_Num<T>::Element& newVal,
+              const typename Measure_Num<T>::Element& oldExtreme) const
+    {
+        return isNewExtreme(newVal,oldExtreme) ? newVal : oldExtreme;
+    }
+
+    // TOPOLOGY STATE
+    Measure_<T>                     operand;
+    Operation                       operation;
+
+    // TOPOLOGY CACHE
+    mutable DiscreteVariableIndex   extremeIx;    // min so far; auto-update
 };
 
 

@@ -39,9 +39,30 @@ namespace SimTK {
 // These are here just to make sure they compile.
 template class Measure_<Real>::Constant;
 template class Measure_<Real>::Zero;
+template class Measure_<Real>::One;
 template class Measure_<Real>::Differentiate;
+template class Measure_<Real>::Integrate;
 template class Measure_<Real>::Result;
 template class Measure_<Real>::Variable;
+template class Measure_<Real>::Extreme;
+
+template class Measure_<Vec3>::Constant;
+template class Measure_<Vec3>::Zero;
+template class Measure_<Vec3>::One;
+template class Measure_<Vec3>::Differentiate;
+template class Measure_<Vec3>::Integrate;
+template class Measure_<Vec3>::Result;
+template class Measure_<Vec3>::Variable;
+template class Measure_<Vec3>::Extreme;
+
+template class Measure_<Vector>::Constant;
+template class Measure_<Vector>::Zero;
+template class Measure_<Vector>::One;
+template class Measure_<Vector>::Differentiate;
+template class Measure_<Vector>::Integrate;
+template class Measure_<Vector>::Result;
+template class Measure_<Vector>::Variable;
+template class Measure_<Vector>::Extreme;
 
 } // namespace SimTK
 

@@ -472,6 +472,61 @@ static bool handleEvents(const System& sys, State& state, Stage g,
     return shouldTerminate;
 }
 
+template <class T>
+class MySinCos : public Measure_<T> {
+public:
+    SimTK_MEASURE_HANDLE_PREAMBLE(MySinCos, Measure_<T>);
+
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(MySinCos, Measure_<T>);
+};
+
+
+template <class T>
+class MySinCos<T>::Implementation : public Measure_<T>::Implementation {
+public:
+    Implementation() 
+    :   Measure_<T>::Implementation(T(Vec2(0)), 1) {}
+
+    // Default copy constructor, destructor, copy assignment are fine.
+
+    // Implementations of virtual methods.
+    Implementation* cloneVirtual() const {return new Implementation(*this);}
+    int getNumTimeDerivativesVirtual() const {return 0;}
+    Stage getDependsOnStageVirtual(int order) const 
+    {   return Stage::Time; }
+
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+    {
+        SimTK_ASSERT1_ALWAYS(derivOrder==0,
+            "MySinCos::Implementation::calcCachedValueVirtual():"
+            " derivOrder %d seen but only 0 allowed.", derivOrder);
+
+        value[0] = std::sin(s.getTime());
+        value[1] = std::cos(s.getTime());
+    }
+};
+
+template <class T>
+class MyRealMeasure : public Measure_<T> {
+public:
+    SimTK_MEASURE_HANDLE_PREAMBLE(MyRealMeasure, Measure);
+
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(MyRealMeasure, Measure);
+};
+
+template <class T>
+class MyRealMeasure<T>::Implementation : public Measure_<T>::Implementation {
+public:
+    Implementation* cloneVirtual() const OVERRIDE_11
+    {   return new Implementation(*this); }
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11 
+    {   return 0; }
+    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11 
+    {   return Stage::Time; }
+
+};
+
+
 void testOne() {
     TestSystem sys;
     TestSubsystem subsys(sys);
@@ -502,6 +557,17 @@ void testOne() {
     // Integrate the cos(2pi*t) measure with IC=0; should give sin(2pi*t)/2pi.
     Measure::Integrate sin2pitOver2pi(subsys, cos2pit, zero);
 
+    Measure_<Vec2>::Constant cossinInit(subsys, Vec2(1,0));
+    MySinCos<Vec2> mysincos(subsys);
+    Measure_<Vec2>::Integrate cossin(subsys, mysincos, cossinInit);
+
+    Measure_<Vector>::Constant vcossinInit(subsys, Vector(Vec2(1,0)));
+    MySinCos<Vector> vmysincos(subsys);
+    Measure_<Vector>::Integrate vcossin(subsys, vmysincos, vcossinInit,
+                                        Vector(2,Zero));
+
+    Measure_<Real>::Minimum minCos2pit(subsys, cos2pit);
+
     Measure::Differentiate dInteg(subsys, sin2pitOver2pi);
     dInteg.setForceUseApproximation(true);
 
@@ -527,8 +593,6 @@ void testOne() {
     Measure m;
     m = cos2pit;
 
-    m = zero;
-    cout << "m=" << m.getValue(State()) << endl;
 
 
     cout << "vplus ref count=" << vplus.getRefCount() << endl;
@@ -544,6 +608,10 @@ void testOne() {
     // Use sneaky loophole since we know state is still good.
     state.setSystemTopologyStageVersion(sys.getSystemTopologyCacheVersion());
     sys.realizeModel(state);
+
+    m = zero;
+    cout << "m=" << m.getValue(state) << endl;
+
 
     cout << "uWeights=" << state.getUWeights() << "\n";
     cout << "zWeights=" << state.getZWeights() << "\n";
@@ -584,6 +652,9 @@ void testOne() {
     cout << "Measure_<Mat22>::One=" << m22Ident.getValue(state) << endl;
 
     cout << "mv after realizeTopo=" << mv.getValue(state) << endl;
+
+    cout << "cossinInit=" << cossinInit.getValue(state) << endl;
+
 
     State s2,s3;
     s2 = state; // new copies of variables
@@ -637,6 +708,7 @@ void testOne() {
 
     sys.realize(state, Stage::Acceleration);
     state.autoUpdateDiscreteVariables(); // ??
+
     for (int i=0; i <= nSteps; ++i) {
 
         if (i % outputInterval == 0) {
@@ -651,12 +723,15 @@ void testOne() {
             cout << "three=" << three.getValue(state) << " v3const=" << v3const.getValue(state) << endl;
             cout << "cos2pit=" << cos2pit.getValue(state) 
                  << " cos(2pi*t)=" << std::cos(2*Pi*state.getTime()) << endl;
+            cout << "Min(cos2pit)=" << minCos2pit.getValue(state) 
+                 << " @t=" << minCos2pit.getTimeOfExtremeValue(state) << endl;
             cout << "sin2pitOver2pi=" << sin2pitOver2pi.getValue(state) 
                  << " sin(2pi*t)/2pi=" << std::sin(2*Pi*state.getTime())/(2*Pi) << endl;
             cout << "d/dt sin2pitOver2pi=" 
                  << sin2pitOver2pi.getValue(state,1) << endl;
             cout << "dInteg=" 
                  << dInteg.getValue(state) << endl;
+            cout << "cossin=" << cossin.getValue(state) << "\n";
         }
 
         if (i == nSteps)

@@ -61,11 +61,12 @@
     class Implementation;                                           \
     explicit MH(Implementation* imp) : PH(imp) {}                   \
     MH(SimTK::Subsystem& sub, Implementation* imp,                  \
-       const SimTK::AbstractMeasure::SetHandle& sh)                        \
+       const SimTK::AbstractMeasure::SetHandle& sh)                 \
     :   PH(sub,imp,sh) {}                                           \
     MH& operator=(const MH& src) {PH::operator=(src); return *this;}\
     MH& shallowAssign(const MH& src) {PH::shallowAssign(src); return *this;}\
     MH& deepAssign(const MH& src) {PH::deepAssign(src); return *this;}
+
 
 // The default constructor for concrete classes should instantiate
 // a default-constructed Implementation object if no Implementation
@@ -75,6 +76,8 @@
     MH() : PH(new Implementation()) {}          \
     explicit MH(SimTK::Subsystem& sub)          \
     : PH(sub,new Implementation(), typename PH::SetHandle()) {}
+
+
 
 // The default constructor for a still-abstract derived class can't
 // instantiate an Implementation.
@@ -95,10 +98,8 @@
  *   MH::getAs(const AbstractMeasure&)  generic handle to const MH (static)
  *   MH::updAs(AbstractMeasure&)        generic handle to writable MH (static)
  *   MH::isA(AbstractMeasure&)          test if generic handle is of type MH
- *   getImpl(const AbstractMeasure::Implementation&)  
- *      generic implementation to const MH::Implementation
- *   updImpl(AbstractMeasure::Implementation&)
- *      generic implementation to writable MH::Implementation
+ *   getImpl()  generic implementation to const MH::Implementation
+ *   updImpl()  generic implementation to writable MH::Implementation
  * </pre>
  * Type checking for the handle class conversions is done only in Debug
  * builds.
@@ -254,25 +255,38 @@ friend class Implementation;
     // MEASURE_<T> //
     /////////////////
 
-/**
- * This is the base handle class for all Measures whose value type is known.
- */
+/** This is the base handle class for all Measures whose value type is known,
+including all the Simbody built-in %Measure types. **/
 template <class T>
 class Measure_ : public AbstractMeasure {
 public:
-    /// This class is still abstract so we don't want it to allocate an
-    /// Implementation object in its default constructor.
+    /** This class is still abstract so we don't want it to allocate an
+    Implementation object in its default constructor. **/
     SimTK_MEASURE_HANDLE_PREAMBLE_ABSTRACT(Measure_, AbstractMeasure);
 
-    /// Retrieve the Value of this Measure or one of its time
-    /// derivatives, assuming the State has been realized to at least the
-    /// required stage for the desired value, as reported by
-    /// getValueDependence(). If the stage is sufficient but the corresponding 
-    /// value has not yet been computed, it will be computed first with its 
-    /// value going into this State's cache so that subsequent calls do not 
-    /// require further computation.
-    inline const T& getValue(const State& s, int derivOrder=0) const 
+    /** Retrieve the Value of this Measure or one of its time derivatives, 
+    assuming the supplied State has been realized to at least the required 
+    stage for the selected value or derivative, as reported by
+    getDependsOnStage(). If the stage is sufficient but the corresponding 
+    value has not yet been computed, it will be computed first with its 
+    value going into this State's cache so that subsequent calls do not 
+    require further computation. **/
+    const T& getValue(const State& s, int derivOrder=0) const 
     {   return getImpl().getValue(s,derivOrder); }
+
+    /** Change the default value associated with this %Measure. How this is
+    used varies with the %Measure type but generally it is the value that
+    the %Measure will have before any calculations are performed. Note 
+    that this does not require a State since it is a Topology-stage 
+    change; you have to call realizeTopology() again if you call this
+    method. **/
+    Measure_& setDefaultValue(const T& defaultValue) 
+    {   updImpl().setDefaultValue(defaultValue); return *this; }
+
+    /** Obtain a reference to the default value associated with 
+    this %Measure. **/
+    const T& getDefaultValue() const
+    {   return getImpl().getDefaultValue(); }
 
     // These are built-in Measures with local class names. 
 
@@ -292,10 +306,13 @@ public:
     class Scale;
     class Differentiate;
 
-    // These accept any type that supports operator<, elementwise for 
-    // vectors and matrices. TODO
-    class Minimum;
-    class Maximum;
+    // These find extreme values *in time*, not among inputs at the same
+    // time. They perform elementwise on aggregate types.
+    class Extreme;  // base class for min/max/minabs/maxabs
+    class Minimum;  // most positive value
+    class Maximum;  // most negative value
+    class MinAbs;   // the signed quantity whose absolute value was min
+    class MaxAbs;   // the signed quantity whose absolute value was max
 
     // These accept floating point numerical template arguments only.
     class Integrate;
@@ -304,8 +321,9 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Measure_, AbstractMeasure);
 };
 
-/// A convenient abbreviation for the most common kind of Measure --
-/// one which returns a single Real result.
+/** This typedef is a convenient abbreviation for the most common kind of 
+%Measure -- one that returns a single Real result; the underlying class is
+Measure_; look there for documentation. **/
 typedef Measure_<Real> Measure;
 
 
@@ -313,26 +331,28 @@ typedef Measure_<Real> Measure;
     // CONSTANT //
     //////////////
 
-/**
- * This creates a Measure whose value is a Topology-stage constant of any
- * type T. This does not have to be part of a Subsystem, but if it is then
- * changing the constant's value invalidates the containing Subsystem's 
- * Topology.
- */
+/** This creates a Measure whose value is a Topology-stage constant of any
+type T. This does not have to be part of a Subsystem, but if it is then changing
+the constant's value invalidates the containing Subsystem's Topology. 
+@tparam T   This can be any type that supports copy construction. **/
 template <class T>
 class Measure_<T>::Constant : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Constant, Measure_<T>);
 
+    /** Create a constant measure that is not part of any Subsystem, and 
+    provide the constant value. **/
     explicit Constant(const T& value)
     :   Measure_<T>(new Implementation(value)) {}
 
+    /** Create a constant measure with the given \a value and install it into 
+    the given Subsystem. **/
     Constant(Subsystem& sub, const T& value)
     :   Measure_<T>(sub, new Implementation(value), 
                     AbstractMeasure::SetHandle()) {}
 
-    /// Note that this does not require a State since it is a Topology-stage 
-    /// change.
+    /** Change the value returned by this %Measure. Note that this does not 
+    require a State since it is a Topology-stage change. **/
     Constant& setValue(const T& value) 
     {   updImpl().setValue(value); return *this; }
 
@@ -343,38 +363,42 @@ public:
     // ZERO //
     //////////
 
-/**
- * This creates a Measure::Constant whose value is always T(0) and can't
- * be changed.
- */
+/** This creates a Measure::Constant whose value is always T(0) and can't be 
+changed. This class is specialized for Vector so that you must provide a
+size at construction. **/
 template <class T>
 class Measure_<T>::Zero : public Measure_<T>::Constant {
 public:
-    SimTK_MEASURE_HANDLE_PREAMBLE(Zero, Measure_<T>::Constant);
+    Zero();
+    explicit Zero(Subsystem& sub);
+};
 
-    SimTK_MEASURE_HANDLE_POSTSCRIPT(Zero, Measure_<T>::Constant);
-private:
-    Zero& setValue(const T&) 
-    {   return *reinterpret_cast<Zero*>(0);} // suppressed!
+template <>
+class Measure_< Vector >::Zero : public Measure_< Vector >::Constant {
+public:
+    explicit Zero(int size);
+    Zero(Subsystem& sub, int size);
 };
 
     /////////
     // ONE //
     /////////
 
-/**
- * This creates a Measure::Constant whose value is always T(1) and can't
- * be changed.
- */
+/** This creates a Measure::Constant whose value is always T(1) and can't be 
+changed. This class is specialized for Vector so that you must provide a
+size at construction. **/
 template <class T>
 class Measure_<T>::One : public Measure_<T>::Constant {
 public:
-    SimTK_MEASURE_HANDLE_PREAMBLE(One, Measure_<T>::Constant);
+    One();
+    explicit One(Subsystem& sub);
+};
 
-    SimTK_MEASURE_HANDLE_POSTSCRIPT(One, Measure_<T>::Constant);
-private:
-    One& setValue(const T&)     
-    {   return *reinterpret_cast<One*>(0);} // suppressed!
+template <>
+class Measure_< Vector >::One : public Measure_< Vector >::Constant {
+public:
+    explicit One(int size);
+    One(Subsystem& sub, int size);
 };
 
     //////////
@@ -412,13 +436,6 @@ public:
     :   Measure_<T>(sub, new Implementation(invalidates, defaultValue), 
                     AbstractMeasure::SetHandle()) {}
 
-    /// Note that this does not require a State since it is a Topology-stage 
-    /// change.
-    Variable& setDefaultValue(const T& defaultValue) 
-    {   updImpl().setDefaultValue(defaultValue); return *this; }
-
-    const T& getDefaultValue() const
-    {   return getImpl().getDefaultValue(); }
 
     void setValue(State& state, const T& value) const
     {   getImpl().setValue(state, value); }
@@ -587,6 +604,9 @@ public:
 
 /**
  * This Measure is the sum of two Measures of the same type T.
+ * @tparam T    Any type that supports a plus operator that returns a sum
+ *              as another object of type T. In particular, Real, Vec<N>,
+ *              and Vector will work.
  */
 template <class T>
 class Measure_<T>::Plus : public Measure_<T> {
@@ -612,6 +632,9 @@ public:
 
 /**
  * This Measure is the difference of two Measures of the same type T.
+ * @tparam T    Any type that supports a subtract operator that returns the
+ *              difference as another object of type T. In particular, Real, 
+ *              Vec<N>, and Vector will work.
  */
 template <class T>
 class Measure_<T>::Minus : public Measure_<T> {
@@ -637,6 +660,9 @@ public:
 
 /**
  * This Measure multiplies some other Measure by a Real scale factor.
+ * @tparam T    Any type that supports a scalar multiply, with the scalar on
+ *              the left, that returns the product as another object of type T. 
+ *              In particular, Real, Vec<N>, and Vector will work.
  */
 template <class T>
 class Measure_<T>::Scale : public Measure_<T> {
@@ -659,19 +685,41 @@ public:
     // INTEGRATE //
     ///////////////
 
+/** This measure yields the time integral of a given derivative measure, 
+initializing with an initial condition measure of the same type T. The type
+T can be Real or a fixed size Vec type like Vec<3>, or a variable-size
+Vector. But in the case of a Vector you must say at construction what size
+the Vector will be during the simulation, so that an appropriate number
+of state variables can be allocated. **/
 template <class T>
 class Measure_<T>::Integrate : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Integrate, Measure_<T>);
 
-    Integrate(Subsystem& sub, const Measure_<T>& deriv, const Measure_<T>& ic, int numStates=1)
-    :   Measure_<T>(sub, new Implementation(deriv,ic, numStates), 
+    /** Create a new measure that will use %Measure \a ic's value for initial
+    conditions, and then integrate the \a deriv %Measure. If type T is a
+    variable-length Vector you must also provide a const Vector to be used
+    to size and initialized the number of state variables at allocation. In
+    that case both the \a ic and \a deriv measures must return Vector values
+    of the same size as the allocation constant. **/
+    Integrate(Subsystem&            subsystem, 
+              const Measure_<T>&    deriv, 
+              const Measure_<T>&    ic,
+              const T&              initAlloc=T(0))
+    :   Measure_<T>(subsystem, new Implementation(deriv,ic,initAlloc), 
                     AbstractMeasure::SetHandle()) {}
 
+    /** Set the current value of this measure by modifying the state variables
+    that hold the integral. **/
     void setValue(State& s, const T& value) const 
     {   return getImpl().setValue(s, value); }
+
+    /** Get the integrand (derivative) measure for this integral. **/
     const Measure_<T>& getDerivativeMeasure() const 
+
     {   return getImpl().getDerivativeMeasure(); }
+    /** Get the measure whose value is used as an initial condition for the
+    integral at the start of an integration. **/
     const Measure_<T>& getInitialConditionMeasure() const 
     {   return getImpl().getInitialConditionMeasure(); }
 
@@ -758,66 +806,134 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Differentiate, Measure_<T>);
 };
 
-    /////////////
-    // MINIMUM //
-    /////////////
+//==============================================================================
+//                                  EXTREME
+//==============================================================================
 
-/** NOT IMPLEMENTED YET --
- * This Measure tracks the minimum value attained by its source operand
- * since the last initialize() call. If the time derivative of the 
- * source operand is available, the measure will arrange to ensure
- * precise isolation of the minimum values by defining a triggered 
- * event that watches for negative-to-positive sign changes of the derivative.
- * Then if you output reporting data upon the occurrence of triggered
- * events (as well as your regularly scheduled output) your data will
- * include the precise minimum (to within a specifiable isolation time window).
- *
- * Information available from this Measure:
- *  - the current value (at the source's stage)
- *  - the value at the start of the current step (Time stage)
- *  - time of last change
- *  - the DiscreteVariableIndex holding the previous value
- *  - the CacheEntryIndex designated for the current/next value
- *  - a reference to the source Measure
- *
- * And if a source derivative is available
- *  - the EventId of the minimum-trapping event if there is one
- *  - the time derivative of the Minimum measure
- *  - a reference to the source derivative Measure
- *
- * The time derivative fdot of f(t)=min_t0_t(s(t')) where s is the
- * source measure and t0 <= t' <= t is
- * <pre>
- *      fdot(t) = s(t) < f(ti) && sdot(t) < 0 ? sdot(t) : 0
- * </pre>
- * where ti is the time at the start of the current step.
- *
- * At the start of a continuous interval, the updated value (if any)
- * replaces the stored value.
- */
+/** This Measure tracks extreme values attained by the
+elements of its source operand since the last initialize() call or explicit
+call to setValue(). The extreme is either minimum or maximum and may be
+determined by the actual or absolute value of the operand. In any case the
+value of the %Extreme measure is the actual extreme value of the operand, not
+its absolute value.
 
+The template type T must be the same as the
+template type of the operand measure. If T is a Vec or Vector type, each
+element is treated separately.
+
+Normally %Extreme is not used directly; it is the common implementation 
+underlying the Minimum, Maximum, MinAbs, and MaxAbs measures.
+
+Information available from this Measure:
+    - the current extreme value (at the source's stage)
+    - the value at the start of the current step (Time stage)
+    - time of last change
+    - the DiscreteVariableIndex holding the previous value
+    - the CacheEntryIndex designated for the current/next value
+    - a reference to the source Measure
+
+The time derivative fdot of f(t)=min_t0_t(s(t')) where s is the
+source measure and t0 <= t' <= t is
+<pre>
+     fdot(t) = s(t) < f(ti) && sdot(t) < 0 ? sdot(t) : 0
+</pre>
+where ti is the time at the start of the current step.
+
+At the start of a continuous interval, the updated value (if any)
+replaces the stored value.
+
+<h3>Extreme isolation (not implemented yet)</h3>
+If the time derivative of the 
+source operand is available, the measure will arrange to ensure
+precise isolation of the minimum values by defining a triggered 
+event that watches for negative-to-positive sign changes of the derivative.
+Then if you output reporting data upon the occurrence of triggered
+events (as well as your regularly scheduled output) your data will
+include the precise minimum (to within a specifiable isolation time window).
+
+Additional information available in this case:
+    - the EventId of the extreme-trapping event if there is one
+    - the time derivative of the Extreme measure
+**/
 template <class T>
-class Measure_<T>::Minimum : public Measure_<T> {
+class Measure_<T>::Extreme : public Measure_<T> {
 public:
-    SimTK_MEASURE_HANDLE_PREAMBLE(Minimum, Measure_<T>);
+    SimTK_MEASURE_HANDLE_PREAMBLE(Extreme, Measure_<T>);
 
-    Minimum(Subsystem& sub, const Measure_<T>& source, const Measure_<T>& sourceDot)
-    :   Measure_<T>(sub, new Implementation(source, sourceDot), 
+    enum Operation {
+        MaxAbs, // default
+        Maximum,
+        MinAbs,
+        Minimum
+    };
+
+    /** Default behavior for the %Extreme measure is to find the operand's
+    value that is of maximum absolute value. You can change that to minimum
+    and/or actual value. **/
+    Extreme(Subsystem& sub, const Measure_<T>& operand, Operation op=MaxAbs)
+    :   Measure_<T>(sub, new Implementation(operand, op), 
                     AbstractMeasure::SetHandle()) {}
+
+    /** Set the operation to be performed. The default operation is MaxAbs. **/
+    Extreme& setOperation(Operation op)
+    {   updImpl().setOperation(op); return *this; }
+
+    /** Return the operation currently being performed by this measure. **/
+    Operation getOperation() const {return getImpl().getOperation();}
+
+    /** Return the time at which the reported extreme value first occurred.
+    This is the current time if the operand is at its extreme value now, 
+    otherwise it is the time that the extreme value first occurred during a 
+    time stepping study. The \a state must be realized to the level required 
+    to evaluate the operand measure. **/
+    Real getTimeOfExtremeValue(const State& state) const
+    {   return getImpl().getTimeOfExtremeValue(state); }
 
     void setValue(State& s, const T& value) const 
     {   return getImpl().setValue(s, value); }
-    const Measure_<T>& getSourceMeasure() const 
-    {   return getImpl().getSourceMeasure(); }
-    const Measure_<T>& getSourceDerivativeMeasure() const 
-    {   return getImpl().getSourceDerivativeMeasure(); }
 
-    Minimum& setSourceMeasure(const Measure_<T>& s)
-    {   updImpl().setSourceMeasure(s); return *this; }
-    Minimum& setSourceDerivativeMeasure(const Measure_<T>& sdot)
-    {   updImpl().setSourceDerivativeMeasure(sdot); return *this; }
+    const Measure_<T>& getOperandMeasure() const 
+    {   return getImpl().getOperandMeasure(); }
 
-    SimTK_MEASURE_HANDLE_POSTSCRIPT(Minimum, Measure_<T>);
+    Extreme& setOperandMeasure(const Measure_<T>& s)
+    {   updImpl().setOperandMeasure(s); return *this; }
+
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(Extreme, Measure_<T>);
+};
+
+template <class T>
+class Measure_<T>::Minimum : public Measure_<T>::Extreme {
+    typedef typename Measure_<T>::Extreme Super;
+public:
+    Minimum(Subsystem& sub, const Measure_<T>& operand)
+    :   Super(sub, operand, Super::Minimum) {}
+};
+
+
+template <class T>
+class Measure_<T>::Maximum : public Measure_<T>::Extreme {
+    typedef typename Measure_<T>::Extreme Super;
+public:
+    Maximum(Subsystem& sub, const Measure_<T>& operand)
+    :   Super(sub, operand, Super::Maximum) {}
+};
+
+
+template <class T>
+class Measure_<T>::MinAbs : public Measure_<T>::Extreme {
+    typedef typename Measure_<T>::Extreme Super;
+public:
+    MinAbs(Subsystem& sub, const Measure_<T>& operand)
+    :   Super(sub, operand, Super::MinAbs) {}
+};
+
+
+template <class T>
+class Measure_<T>::MaxAbs : public Measure_<T>::Extreme {
+    typedef typename Measure_<T>::Extreme Super;
+public:
+    MaxAbs(Subsystem& sub, const Measure_<T>& operand)
+    :   Super(sub, operand, Super::MaxAbs) {}
 };
 
 /** NOT IMPLEMENTED YET --
