@@ -155,10 +155,8 @@ public:
     //  XXX to be replaced by actual copy / append functionalily in Geodesic.h
     static void mergeGeodesics(const Geodesic& geodP, const Geodesic& geodQ,
             Geodesic& geod) {
-        mergeGeodLists(geodP.getPoints(), geodQ.getPoints(),
-                       geod.updPoints(), false);  // don't negate Q
-        mergeGeodLists(geodP.getTangents(), geodQ.getTangents(),
-                       geod.updTangents(), true); // negate tQ
+        mergeGeodFrames(geodP.getFrenetFrames(), geodQ.getFrenetFrames(),
+                        geod.updFrenetFrames());
         mergeArcLengths(geodP.getArcLengths(), geodQ.getArcLengths(),
                         geod.updArcLengths());
         geod.setIsConvex(geodP.isConvex() && geodQ.isConvex());
@@ -176,10 +174,9 @@ public:
     // for both geodesics are supposed to represent the same point on the
     // combined geodesic so we'll average them. The final geodesic will
     // thus have one fewer point than the sum of the two half-geodesics.
-    static void mergeGeodLists(const Array_<Vec3>& geodP,
-                               const Array_<Vec3>& geodQ,
-                               Array_<Vec3>&       geod,
-                               bool                negateQ)
+    static void mergeGeodFrames(const Array_<Transform>& geodP,
+                                const Array_<Transform>& geodQ,
+                                Array_<Transform>&       geod)
     {
         const int sizeP = geodP.size(), sizeQ = geodQ.size();
         assert(sizeP > 0 && sizeQ > 0);
@@ -187,14 +184,32 @@ public:
         geod.reserve(sizeP+sizeQ-1);
         geod = geodP; // the first part is the same as P
 
-        if (negateQ) {
-            geod.back() = (geodP.back() - geodQ.back())/2; // fix midpoint
-            for (int i = sizeQ-2; i >= 0; --i)
-                geod.push_back(-geodQ[i]);
-        } else {
-            geod.back() = (geodP.back() + geodQ.back())/2; // fix midpoint
-            for (int i = sizeQ-2; i >= 0; --i)
-                geod.push_back(geodQ[i]);
+        const Transform& Pf = geodP.back();
+        const Transform& Qf = geodQ.back();
+        // Recalculate the midpoint by averaging the ends.
+        Vec3     midpoint = (Pf.p() + Qf.p())/2;
+        // TODO: get exact normal at midpoint from surface
+        UnitVec3 midnormal = UnitVec3((Pf.z() + Qf.z())/2); 
+        Vec3     midtangent = (Pf.x() - Qf.x())/2; // approx
+
+        // Replace the midpoint Frenet frame with one at the average of
+        // the P and Q endpoints, using the calculated normal as the z axis,
+        // and the average tangent as x axis. We'll let Rotation 
+        // perpendicularize this, so the actual x axis may deviate slightly
+        // from the calculated average normal. Then b=z X x is the y axis.
+        geod.back() = Transform(Rotation(midnormal, ZAxis, midtangent, XAxis),
+                                midpoint);
+
+        // Now run through the Q-side geodesic backwards reversing its
+        // tangent (x) and binormal (y) vectors while preserving the point
+        // and surface normal. That's a 180 degree rotation about z so it
+        // is still right handed!
+        for (int i = sizeQ-2; i >= 0; --i) {
+            const Transform& F = geodQ[i]; // old Frenet frame
+            Transform Frev; // Same, but with x,y directions negated
+            Frev.updR().setRotationFromUnitVecsTrustMe(-F.x(), -F.y(), F.z());
+            Frev.updP() = F.p();
+            geod.push_back(Frev);
         }
     }
 

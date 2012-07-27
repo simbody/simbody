@@ -213,6 +213,30 @@ Vec3 calcSurfaceNormal(const Vector& point) const;
     The hessian of the implicit surface function at the point. **/
 Mat33 calcSurfaceHessian(const Vector& point) const;
 
+/** For an implicit surface, return the Gaussian curvature at the given
+point (which might not be on the surface). Here is the formula:
+<pre>
+        ~grad(f) * Adjoint(H) * grad(f)
+   Kg = --------------------------------
+                |grad(f)|^4
+</pre>
+where grad(f) is Df/Dx, Hessian H is D grad(f)/Dx and Adjoint is a 3x3
+matrix A where A(i,j)=determinant(H with row i and column j removed). 
+Ref: Goldman, R. "Curvature formulas for implicit curves and surfaces",
+Comp. Aided Geometric Design 22 632-658 (2005).
+
+Gaussian curvature is the product of the two principal curvatures, Kg=k1*k2.
+So for example, the Gaussian curvature anywhere on a sphere is 1/r^2.
+
+Here is what the adjoint matrix looks like:
+<pre>
+adjH  =  [ fyy*fzz - fyz^2, fxz*fyz - fxy*fzz, fxy*fyz - fxz*fyy  ]
+         [      (1,2),      fxx*fzz - fxz^2,   fxy*fxz - fxx*fyz  ]
+         [      (1,3),           (2,3),        fxx*fyy - fxy^2    ]
+</pre>
+**/
+Real calcGaussianCurvature(const Vec3& point) const;
+
 /** Returns \c true if this surface is known to be convex. This can be true
 for smooth or polygonal surfaces. **/
 bool isConvex() const;

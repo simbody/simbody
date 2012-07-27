@@ -157,12 +157,13 @@ int calcDecorativeGeometryAndAppendImpl
                 const Geodesic& g = ppe.geodesics[asx];
                 const Transform& X_BS = obs.getObstaclePoseOnBody(state,instInfo);
                 const Transform X_GS = X_GB*X_BS;
-                Vec3 prevP_G = X_GS*g.getPoints().front();
-                for (unsigned i=0; i < g.getPoints().size(); ++i) {
-                    Vec3 Q_G = X_GS*g.getPoints()[i];
+                const Array_<Transform>& Kf = g.getFrenetFrames();
+                Vec3 prevP_G = X_GS*Kf.front().p();
+                for (unsigned i=0; i < Kf.size(); ++i) {
+                    Vec3 Q_G = X_GS*Kf[i].p();
                     decorations.push_back(DecorativeLine(prevP_G, Q_G)
                         .setColor(Red).setLineThickness(2));
-                    if (i < g.getPoints().size()-1)
+                    if (i < Kf.size()-1)
                         decorations.push_back(DecorativePoint(Q_G)
                             .setColor(Blue).setScale(.5));
 

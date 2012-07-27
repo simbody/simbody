@@ -43,29 +43,11 @@ public:
     /** Construct an empty geodesic. **/
     Geodesic() {clear();}
 
-    Array_<Vec3>& updPoints() {
-        return points;
-    }
+    Array_<Transform>&       updFrenetFrames() {return frenetFrames;}
+    const Array_<Transform>& getFrenetFrames() const {return frenetFrames;}
 
-    const Array_<Vec3>& getPoints() const {
-        return points;
-    }
-
-    void addPoint(const Vec3& P) {
-        points.push_back(P);
-    }
-
-
-    Array_<Vec3>& updTangents() {
-        return tangents;
-    }
-
-    const Array_<Vec3>& getTangents() const {
-        return tangents;
-    }
-
-    void addTangent(const Vec3& tP) {
-        tangents.push_back(tP);
+    void addFrenetFrame(const Transform& Kf) {
+        frenetFrames.push_back(Kf);
     }
 
     Array_<Real>& updArcLengths() {
@@ -98,8 +80,7 @@ public:
     /** Clear the data in this geodesic, returning it to its default-constructed
     state, although memory remains allocated. **/
     void clear() {
-        points.clear(); 
-        tangents.clear();
+        frenetFrames.clear(); 
         arcLengths.clear();
         convexFlag = shortestFlag = false;
         initialStepSizeHint = achievedAccuracy = NaN;
@@ -116,9 +97,13 @@ public:
     Real getAchievedAccuracy() const {return achievedAccuracy;}
 
 private:
-    Array_<Vec3> points;        // point at each knot
-    Array_<Vec3> tangents;      // tangent at that point
-    Array_<Real> arcLengths;    // arc length coord corresponding to that point
+    // Frenet frame of geodesic at arc length s:
+    //    origin: point on geodesic at s
+    //    z axis: outward surface (unit) normal n at s
+    //    x axis: unit tangent t at s in direction of increasing arc length
+    //    y axis: unit binormal at s: b=n X t (y=z X x) 
+    Array_<Transform> frenetFrames;
+    Array_<Real>      arcLengths; // arc length coord corresponding to that point
 
     // XXX other members:
     bool convexFlag; // is this geodesic over a convex surface?
@@ -144,10 +129,10 @@ public:
 //        m_system.realize(state, Stage::Position);
 
         // draw connected line segments from pts
-        const Array_<Vec3>& pts = m_geod.getPoints();
+        const Array_<Transform>& Kfs = m_geod.getFrenetFrames();
         Vec3 prevPt;
-        for (int i = 0; i < (int) pts.size(); ++i) {
-            Vec3 cur = pts[i];
+        for (int i = 0; i < (int) Kfs.size(); ++i) {
+            Vec3 cur = Kfs[i].p();
             if (i > 0) {
                 geometry.push_back(
                         DecorativeLine(prevPt, cur)

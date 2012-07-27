@@ -670,10 +670,12 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     } else {
         surface.calcGeodesic(xP, xQ, ceIn, -ceOut, next);
         //cout << "  geodesic had length " << next.getLength() << endl;
-        Vec3 tP = next.getTangents().front();
-        Vec3 tQ = next.getTangents().back();
-        Vec3 bP = tP % nP;
-        Vec3 bQ = tQ % nQ;
+        const Transform& Fp = next.getFrenetFrames().front();
+        const Transform& Fq = next.getFrenetFrames().back();
+        const UnitVec3& tP = Fp.x();
+        const UnitVec3& tQ = Fq.x();
+        const UnitVec3& bP = Fp.y();
+        const UnitVec3& bQ = Fq.y();
         err[2] = ~eIn*bP;   // tangent errors in geodesic direction
         err[3] = ~eOut*bQ;
     }

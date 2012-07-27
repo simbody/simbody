@@ -85,6 +85,10 @@ int main() {
 //        Vec3 radii(1,2,3);
 //        ContactGeometry::Ellipsoid geom(radii);
 
+    cout << "Gaussian curvature P,Q="
+         << geom.calcGaussianCurvature(P) << ","
+         << geom.calcGaussianCurvature(Q) << endl;
+
     Geodesic geod;
 
     // Create a dummy mb system for visualization
@@ -130,7 +134,7 @@ int main() {
 
     viz.report(dummyState);
     cout << "geod shooting count = " << geom.getNumGeodesicsShot() << endl;
-    cout << "num geod pts = " << geod.getPoints().size() << endl;
+    cout << "num geod pts = " << geod.getFrenetFrames().size() << endl;
 
 
   } catch (const std::exception& e) {

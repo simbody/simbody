@@ -85,12 +85,12 @@ public:
         geod.clear();
         geom.calcGeodesic(P, Q, r_OP, -r_QI, geod);
 
-        Vec3 tP = geod.getTangents()[0];
-        Vec3 tQ = geod.getTangents()[geod.getTangents().size()-1];
-        Vec3 nP = geom.calcSurfaceNormal((Vector)P);
-        Vec3 nQ = geom.calcSurfaceNormal((Vector)Q);
-        Vec3 bP = tP % nP;
-        Vec3 bQ = tQ % nQ;
+        const Transform& Fp = geod.getFrenetFrames().front();
+        const Transform& Fq = geod.getFrenetFrames().back();
+        const UnitVec3& nP = Fp.z();
+        const UnitVec3& nQ = Fq.z();
+        const UnitVec3& bP = Fp.y();
+        const UnitVec3& bQ = Fq.y();
 
         fx[0] = ~r_OP*nP;
         fx[1] = ~r_QI*nQ;
@@ -304,7 +304,7 @@ int main() {
     }
     cout << "obstacle error = " << Fx << endl;
 
-    cout << "num geodP pts = " << geom.getGeodP().getPoints().size() << endl;
+    cout << "num geodP pts = " << geom.getGeodP().getFrenetFrames().size() << endl;
 
 
   } catch (const std::exception& e) {

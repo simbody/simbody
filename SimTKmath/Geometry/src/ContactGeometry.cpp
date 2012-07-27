@@ -139,6 +139,8 @@ calcSurfaceNormal(const Vector& point) const {
     return normal;
 }
 
+// Note: Hessian is symmetric, although we're filling in all 9 elements here.
+// TODO: use a SymMat33.
 Mat33 ContactGeometry::
 calcSurfaceHessian(const Vector& point) const {
     const Function& f = getImpl().getImplicitFunction();
@@ -147,11 +149,11 @@ calcSurfaceHessian(const Vector& point) const {
     const int xx[] = {0,0}; Array_<int> fxx(xx,xx+2);
     const int xy[] = {0,1}; Array_<int> fxy(xy,xy+2);
     const int xz[] = {0,2}; Array_<int> fxz(xz,xz+2);
-    const int yx[] = {1,0}; Array_<int> fyx(yx,yx+2);
+    //const int yx[] = {1,0}; Array_<int> fyx(yx,yx+2);
     const int yy[] = {1,1}; Array_<int> fyy(yy,yy+2);
     const int yz[] = {1,2}; Array_<int> fyz(yz,yz+2);
-    const int zx[] = {2,0}; Array_<int> fzx(zx,zx+2);
-    const int zy[] = {2,1}; Array_<int> fzy(zy,zy+2);
+    //const int zx[] = {2,0}; Array_<int> fzx(zx,zx+2);
+    //const int zy[] = {2,1}; Array_<int> fzy(zy,zy+2);
     const int zz[] = {2,2}; Array_<int> fzz(zz,zz+2);
 
     Mat33 hess;
@@ -159,14 +161,35 @@ calcSurfaceHessian(const Vector& point) const {
     hess(0,0) = f.calcDerivative(fxx,point);
     hess(0,1) = f.calcDerivative(fxy,point);
     hess(0,2) = f.calcDerivative(fxz,point);
-    hess(1,0) = f.calcDerivative(fyx,point);
+    hess(1,0) = hess(0,1);
     hess(1,1) = f.calcDerivative(fyy,point);
     hess(1,2) = f.calcDerivative(fyz,point);
-    hess(2,0) = f.calcDerivative(fzx,point);
-    hess(2,1) = f.calcDerivative(fzy,point);
+    hess(2,0) = hess(0,2);
+    hess(2,1) = hess(1,2);
     hess(2,2) = f.calcDerivative(fzz,point);
 
     return hess;
+}
+
+Real ContactGeometry::
+calcGaussianCurvature(const Vec3& point) const {
+    const Vec3  g = calcSurfaceNormal(Vector(point));
+    const Mat33 H = calcSurfaceHessian(Vector(point));
+    // Calculate the adjoint. TODO: this is symmetric; don't calculate
+    // the 3 symmetric terms.
+    Mat33 A;
+    A(0,0) = det(H.dropRowCol(0,0));
+    A(0,1) = det(H.dropRowCol(0,1));
+    A(0,2) = det(H.dropRowCol(0,2));
+    A(1,0) = A(0,1);
+    A(1,1) = det(H.dropRowCol(1,1));
+    A(1,2) = det(H.dropRowCol(1,2));
+    A(2,0) = A(0,2);
+    A(2,1) = A(1,2);
+    A(2,2) = det(H.dropRowCol(2,2));
+
+    Real Kg = ~g * (A*g) / square(g.normSqr());
+    return Kg;
 }
 
 Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const 
@@ -480,9 +503,9 @@ void ContactGeometryImpl::continueGeodesic(const Vec3& xP, const Vec3& xQ, const
 
     // XXX could also estimate P and Q based on prevGeod's contact point velocities
 
-    // set tP and tQ hints based on previous geodesic's endpoint tangents
-    Vec3 tPhint = prevGeod.getTangents()[0]; // prevGeod.getTangent(0);
-    Vec3 tQhint = prevGeod.getTangents()[prevGeod.getTangents().size()-1]; // prevGeod.getTangent(1);
+    // Set tP and tQ hints based on previous geodesic's endpoint tangents
+    Vec3 tPhint = prevGeod.getFrenetFrames().front().x();
+    Vec3 tQhint = prevGeod.getFrenetFrames().back().x();
 
     calcGeodesic(xP, xQ, tPhint, tQhint, geod);
 }
@@ -536,8 +559,12 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
             break;
 
         const Real s = state.getTime();
-        geod.addPoint(Vec3(&state.getQ()[0]));
-        geod.addTangent(Vec3(&state.getU()[0]));
+        const Vec3 pt = Vec3::getAs(&state.getQ()[0]);
+        const UnitVec3 n(calcSurfaceNormal(Vector(pt)));
+        const Vec3 tangent = Vec3::getAs(&state.getU()[0]);
+        // Rotation will orthogonalize so x direction we get may not be
+        // exactly the same as what we supply here.
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, XAxis), pt));
         geod.addArcLength(s);
 
         ++stepcnt;
@@ -815,15 +842,12 @@ calcGeodErrorJacobian(const Vec3& xP, const Vec3& xQ,
 
 Vec2  ContactGeometryImpl::
 calcError(const Geodesic& geodP, const Geodesic& geodQ) const {
-    Vec3 Phat = geodP.getPoints().back();
-    Vec3 Qhat = geodQ.getPoints().back();
-    UnitVec3 tPhat(geodP.getTangents().back());
-    UnitVec3 tQhat(geodQ.getTangents().back());
-
-    UnitVec3 nPhat(calcSurfaceNormal((Vector) Phat));
-    UnitVec3 nQhat(calcSurfaceNormal((Vector) Qhat));
-    UnitVec3 bPhat(tPhat % nPhat);
-    UnitVec3 bQhat(tQhat % nQhat);
+    const Transform& Fphat = geodP.getFrenetFrames().back();
+    const Transform& Fqhat = geodQ.getFrenetFrames().back();
+    const Vec3&      Phat = Fphat.p(); const Vec3&      Qhat = Fqhat.p();
+    const UnitVec3& tPhat = Fphat.x(); const UnitVec3& tQhat = Fqhat.x();
+    const UnitVec3& bPhat = Fphat.y(); const UnitVec3& bQhat = Fqhat.y();
+    const UnitVec3& nPhat = Fphat.z(); const UnitVec3& nQhat = Fqhat.z();
 
     // Error is separation distance along mutual b direction, and angle by
     // which the curves fail to connect smoothly.
