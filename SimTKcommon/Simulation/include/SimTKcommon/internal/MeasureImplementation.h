@@ -1177,7 +1177,7 @@ public:
         assert(Measure_Num<T>::size(value) == this->size());
         assert(zIndex.isValid());
         const Vector& allZ = this->getSubsystem().getZ(s);
-        for (int i=0; i < size(); ++i)
+        for (int i=0; i < this->size(); ++i)
             Measure_Num<T>::upd(value,i) = allZ[i];
     }
 
@@ -1202,7 +1202,7 @@ public:
              for (int i=0; i < this->size(); ++i)
                  allZ[zIndex+i] = Measure_Num<T>::get(ic,i);
         } else {
-             for (int i=0; i < size(); ++i)
+             for (int i=0; i < this->size(); ++i)
                  allZ[zIndex+i] = Measure_Num<T>::get(getDefaultValue(),i);
         }
     }
@@ -1225,10 +1225,10 @@ public:
         Vector& allZDot = this->getSubsystem().updZDot(s);
         if (!derivMeasure.isEmptyHandle()) {
             const T& deriv = derivMeasure.getValue(s);
-             for (int i=0; i < size(); ++i)
+             for (int i=0; i < this->size(); ++i)
                  allZDot[zIndex+i] = Measure_Num<T>::get(deriv,i);
         } else {
-            allZDot(zIndex,size()) = 0; // derivative is zero
+            allZDot(zIndex,this->size()) = 0; // derivative is zero
         }
     }
 
@@ -1500,7 +1500,7 @@ public:
             // derivative is acting in the direction that changes the 
             // extreme.
             return hasNewExtreme ? operand.getValue(s, derivOrder)
-                                 : getValueZero();
+                                 : this->getValueZero();
         }
         if (hasNewExtreme) {
             const T& newExt = Value<T>::downcast
@@ -1553,7 +1553,7 @@ public:
         const T& f = operand.getValue(s);
         // Search to see if any element has reached a new extreme.
         bool foundNewExt = false;
-        for (int i=0; i < size() && !foundNewExt; ++i) 
+        for (int i=0; i < this->size() && !foundNewExt; ++i) 
             foundNewExt = isNewExtreme(Measure_Num<T>::get(f,i), 
                                        Measure_Num<T>::get(prevExtreme,i));
         if (!foundNewExt)
@@ -1563,7 +1563,7 @@ public:
         T& newExtreme = Value<T>::updDowncast
                                 (subsys.updDiscreteVarUpdateValue(s,extremeIx));
 
-        for (int i=0; i < size(); ++i)
+        for (int i=0; i < this->size(); ++i)
             Measure_Num<T>::upd(newExtreme,i) =
                 extremeOf(Measure_Num<T>::get(f,i),
                           Measure_Num<T>::get(prevExtreme,i));
