@@ -28,14 +28,15 @@
 // CableObstacle classes. This is internal source, not part of the Simbody API.
 
 #include "SimTKmath.h"
+#include "simmath/internal/Geodesic.h"
+#include "simmath/internal/ContactGeometry.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/CableTrackerSubsystem.h"
 #include "simbody/internal/CablePath.h"
 
-#include "simmath/internal/Geodesic.h"
-#include "simmath/internal/ContactGeometry.h"
 
 #include <cassert>
 #include <iostream>

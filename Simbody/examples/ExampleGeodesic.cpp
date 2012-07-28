@@ -107,7 +107,6 @@ int main() {
     Visualizer viz(dummySystem);
     viz.setBackgroundType(Visualizer::SolidColor);
 
-
     // add vizualization callbacks for geodesics, contact points, etc.
     Vector tmp(6); // tmp = ~[P Q]
     tmp[0]=P[0]; tmp[1]=P[1]; tmp[2]=P[2]; tmp[3]=Q[0]; tmp[4]=Q[1]; tmp[5]=Q[2];
@@ -121,10 +120,21 @@ int main() {
 
 
     // calculate the geodesic
-    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
+    //geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
     viz.report(dummyState);
-//    geom.calcGeodesic(P, Q, r_PQ, -r_PQ, geod);
+
+    const Real startReal = realTime(), startCpu = cpuTime();
     geom.calcGeodesic(P, Q, tP, tQ, geod);
+    cout << "realTime=" << realTime()-startReal
+         << " cpuTime=" << cpuTime()-startCpu << endl;
+
+    const Array_<Real>& arcLength = geod.getArcLengths();
+    const Array_<Vec2>& dirPtoQ = geod.getDirectionalSensitivityPtoQ();
+    const Array_<Vec2>& dirQtoP = geod.getDirectionalSensitivityQtoP();
+    for (int i=0; i < (int)dirPtoQ.size(); ++i) {
+        cout << arcLength[i] << ": " << dirPtoQ[i] << " " 
+                                     << dirQtoP[i] << endl;
+    }
 
 //    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, 1/30.));
 //    viz.report(dummyState);

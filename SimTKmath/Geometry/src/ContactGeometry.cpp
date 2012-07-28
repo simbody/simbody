@@ -38,6 +38,7 @@
 
 #include "ContactGeometryImpl.h"
 
+#include <iostream>
 #include <cmath>
 #include <map>
 #include <set>
@@ -47,6 +48,7 @@ using std::map;
 using std::pair;
 using std::set;
 using std::string;
+using std::cout; using std::endl;
 
 //==============================================================================
 //                            CONTACT GEOMETRY
@@ -366,7 +368,6 @@ static void combineParaboloidsHelper
 //==============================================================================
 
 
-
 void ContactGeometry::initGeodesic(const Vec3& xP, const Vec3& xQ,
         const Vec3& xSP, const GeodesicOptions& options, Geodesic& geod) const
 {
@@ -414,6 +415,13 @@ shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
     getImpl().shootGeodesicInDirection(xP, tP, terminatingLength, options, geod);
 }
 
+void ContactGeometry::
+calcGeodesicReverseSensitivity(Geodesic& geodesic, const Vec2& initSensitivity)
+    const
+{
+    getImpl().calcGeodesicReverseSensitivity(geodesic, initSensitivity);
+}
+
 
 Vec2 ContactGeometry::calcGeodError(const Vec3& xP, const Vec3& xQ,
         const UnitVec3& tP, const UnitVec3& tQ,
@@ -447,6 +455,11 @@ Vec3 ContactGeometryImpl::calcSurfaceNormal(const Vector& point) const {
 Mat33 ContactGeometryImpl::calcSurfaceHessian(const Vector& point) const {
     return myHandle->calcSurfaceHessian(point);
 }
+
+Real ContactGeometryImpl::calcGaussianCurvature(const Vec3& point) const {
+    return myHandle->calcGaussianCurvature(point);
+}
+
 
 const Real estimatedGeodesicAccuracy = 1e-12; // used in numerical differentiation
 const Real pauseBetweenGeodIterations = 0; // sec, used in newton solver
@@ -534,6 +547,10 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     q[0] = P[0]; q[1] = P[1]; q[2] = P[2];
     u[0] = tP[0]; u[1] = tP[1]; u[2] = tP[2];
 
+    // Jacobi field states
+    q[3] = 0; 
+    u[3] = 1;
+
     // Setup integrator to integrate until terminatingLength
     //RungeKutta3Integrator integ(ptOnSurfSys);
     RungeKuttaMersonIntegrator integ(*ptOnSurfSys);
@@ -546,7 +563,6 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     TimeStepper ts(*ptOnSurfSys, integ);
     ts.setReportAllSignificantStates(true);
     ts.initialize(sysState);
-    const State& state = integ.getState(); // integrator state
 
     // Simulate it, and record geodesic knot points after each step
     // Terminate when geodesic hits the plane
@@ -558,7 +574,15 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         if ((status=ts.stepTo(Infinity)) == Integrator::EndOfSimulation)
             break;
 
+        // If we stopped just for a report, don't add that to the geodesic;
+        // that may happen if a visualization reporter has been hung on this
+        // system for watching the geodesic grow.
+        if (status == Integrator::ReachedReportTime)
+            continue;
+
+        const State& state = integ.getState();
         const Real s = state.getTime();
+
         const Vec3 pt = Vec3::getAs(&state.getQ()[0]);
         const UnitVec3 n(calcSurfaceNormal(Vector(pt)));
         const Vec3 tangent = Vec3::getAs(&state.getU()[0]);
@@ -566,6 +590,8 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         // exactly the same as what we supply here.
         geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, XAxis), pt));
         geod.addArcLength(s);
+        geod.addDirectionalSensitivityPtoQ(Vec2(state.getQ()[3],
+                                                state.getU()[3]));
 
         ++stepcnt;
     }
@@ -575,6 +601,72 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     // TODO: better to use something like the second-to-last step, or average
     // excluding initial and last steps, so that we don't have to start small.
     geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken());
+}
+
+
+// Utility method to used by calcGeodesicInDirectionUntilPlaneHit
+// and calcGeodesicInDirectionUntilLengthReached
+void ContactGeometryImpl::
+calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
+
+    // integrator settings
+    const Real integratorAccuracy = 1e-6;
+    const Real integratorConstraintTol = 1e-6;
+
+    //RungeKutta3Integrator integ(ptOnSurfSys);
+    RungeKuttaMersonIntegrator integ(*ptOnSurfSys);
+    integ.setAccuracy(integratorAccuracy);
+    integ.setConstraintTolerance(integratorConstraintTol);
+    State sysState = ptOnSurfSys->getDefaultState();
+    Vector& q = sysState.updQ();
+    Vector& u = sysState.updU();
+
+    // Initial Jacobi field states.
+    q[3] = initJacobi[0]; 
+    u[3] = initJacobi[1];
+
+    Array_<Vec2>& jQ = geod.updDirectionalSensitivityQtoP();
+    jQ.resize(geod.getNumPoints());
+    jQ.back() = initJacobi;
+
+    for (int step=geod.getNumPoints()-1; step >= 1; --step) {
+        // Curve goes from P to Q. We have to integrate backwards from Q to P.
+        const Transform& QFrenet = geod.getFrenetFrames()[step];
+        const Transform& PFrenet = geod.getFrenetFrames()[step-1];
+        const Real sQ = geod.getArcLengths()[step];
+        const Real sP = geod.getArcLengths()[step-1];
+        const Vec3&      Q = QFrenet.p();
+        const UnitVec3&  tQ = QFrenet.x(); // we'll reverse this
+        const Vec3&      P = PFrenet.p();
+        const UnitVec3&  tP = PFrenet.x();
+
+        // Initialize state
+        sysState.setTime(0);
+        q[0] = Q[0]; q[1] = Q[1]; q[2] = Q[2];
+        u[0] = -tQ[0]; u[1] = -tQ[1]; u[2] = -tQ[2];
+        q[3] = jQ[step][0]; 
+        u[3] = jQ[step][1];
+
+        const Real arcLength = sQ-sP; // how far to integrate
+
+        integ.initialize(sysState);
+
+        Integrator::SuccessfulStepStatus status;
+        do {
+            status = integ.stepTo(arcLength);
+            if (status == Integrator::StartOfContinuousInterval)
+                continue;
+            if (integ.getTime() < arcLength) {
+                printf("integ to %g returned early at %g with status=%s\n",
+                    arcLength, integ.getTime(),
+                    Integrator::getSuccessfulStepStatusString(status).c_str());
+            }
+        } while (integ.getTime() < arcLength);
+
+        // Save Jacobi field value.
+        const State& state = integ.getState();
+        jQ[step-1] = Vec2(state.getQ()[3],state.getU()[3]);
+    }
 }
 
 
@@ -668,7 +760,8 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     Fx = calcGeodError(xP, xQ, x[0], x[1]);
     if (vizReporter != NULL) {
         vizReporter->handleEvent(ptOnSurfSys->getDefaultState());
-        sleepInSec(pauseBetweenGeodIterations);
+        if (pauseBetweenGeodIterations > 0)
+            sleepInSec(pauseBetweenGeodIterations);
     }
 
     f = std::sqrt(~Fx*Fx);
@@ -681,7 +774,7 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
         }
 //        diff.calcJacobian(x,  Fx, J, Differentiator::ForwardDifference);
         J = calcGeodErrorJacobian(xP, xQ, x[0], x[1],
-                Differentiator::CentralDifference);
+                Differentiator::ForwardDifference);
         dx = J.invert()*Fx;
 
         fold = f;
@@ -708,11 +801,17 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 
         if (vizReporter != NULL) {
             vizReporter->handleEvent(ptOnSurfSys->getDefaultState());
-            sleepInSec(pauseBetweenGeodIterations);
+            if (pauseBetweenGeodIterations > 0)
+                sleepInSec(pauseBetweenGeodIterations);
         }
 
     }
-//    std::cout << "err = " << Fx << std::endl;
+
+    // Finish each geodesic with reverse Jacobi field.
+    calcGeodesicReverseSensitivity(geodP,
+        geodQ.getDirectionalSensitivityPtoQ().back());
+    calcGeodesicReverseSensitivity(geodQ,
+        geodP.getDirectionalSensitivityPtoQ().back());
 
     mergeGeodesics(geodP, geodQ, geod);
 }
@@ -744,6 +843,12 @@ calcGeodError(const Vec3& xP, const Vec3& xQ,
             geodHitPlaneEvent->getPlane(), opts, geodP);
     shootGeodesicInDirectionUntilPlaneHit(xQ, tQ,
             geodHitPlaneEvent->getPlane(), opts, geodQ);
+
+    // Finish each geodesic with reverse Jacobi field.
+    calcGeodesicReverseSensitivity(geodP,
+        geodQ.getDirectionalSensitivityPtoQ().back());
+    calcGeodesicReverseSensitivity(geodQ,
+        geodP.getDirectionalSensitivityPtoQ().back());
 
     if (geodesic)
         mergeGeodesics(geodP, geodQ, *geodesic);
@@ -2858,6 +2963,19 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
  * to the surface). With no applied for the particle traces a geodesic along
  * the surface.
  *
+ * We also integrate to find the directional sensitivity of the geodesic
+ * endpoint with respect to an angular perturbation in the starting direction.
+ * This is the amplitude of a particular Jacobi field along the curve defined
+ * by this equation:
+ *      j'' + Kg*j = 0,   with j(0)=0, j'(0)=1
+ * where j=j(s), Kg=Kg(s) is the Gaussian curvature of the surface evaluated at
+ * s along the curve.
+ *
+ * NOTE: these equations are only valid if the independent variable s is
+ * arc length along the geodesic curve; don't mess with the parameterization!
+ * Ref: Do Carmo, M.P. 1976 Differential Geometry of Curves and Surfaces,
+ * Chapter 5-5 Jacobi Fields and Conjugate Points.
+ * For real understanding, see Andreas Scholz' master's thesis (2012).
  *
  * The DAE for a generic multibody system is:
  *       qdot = Nu
@@ -2891,8 +3009,10 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
  *        and A\ = inverse of A
  */
 int ParticleOnSurfaceSystemGuts::realizeTopologyImpl(State& s) const {
-
-    const Vector init(3, Real(0));
+    // Generalized coordinates:
+    //     q0, q1, q2, q3 = x,  y,  z,  j
+    //     u0, u1, u2, u3 = x', y', z', j'        
+    const Vector init(4, Real(0));
     q0 = s.allocateQ(subsysIndex, init);
     u0 = s.allocateU(subsysIndex, init);
 
@@ -2922,6 +3042,7 @@ int ParticleOnSurfaceSystemGuts::realizeVelocityImpl(const State& s) const {
     qdot[0] = u[0]; // qdot=u
     qdot[1] = u[1];
     qdot[2] = u[2];
+    qdot[3] = u[3];
 
     System::Guts::realizeVelocityImpl(s);
     return 0;
@@ -2941,17 +3062,25 @@ int ParticleOnSurfaceSystemGuts::realizeAccelerationImpl(const State& s) const {
     const Vector& u    = s.getU(subsysIndex);
     Vector&       udot = s.updUDot(subsysIndex);
 
-    Vec3 v(u[0], u[1], u[2]);
-    Vec3 a(0);
+    const Vec3 r(q[0], q[1], q[2]);
+    const Vec3 v(u[0], u[1], u[2]);
+    const Real j = q[3];
+    Vec3 a(0); // accelerations
+    Real jdotdot;
 
-    Real g = geom.calcSurfaceValue(q);
-    Vec3 GT = -geom.calcSurfaceNormal(q);
-    Mat33 H = geom.calcSurfaceHessian(q);
-    Real Gdotu = ~v*(H*v);
-    Real L = (Gdotu + beta*~GT*v + alpha*g)/(~GT*GT);
+    const Real  g  =  geom.calcSurfaceValue((Vector)r);
+    const Vec3  GT = -geom.calcSurfaceNormal((Vector)r);
+    const Mat33 H  =  geom.calcSurfaceHessian((Vector)r);
+    const Real Gdotu = ~v*(H*v);
+    const Real L = (Gdotu + beta*~GT*v + alpha*g)/(~GT*GT);
     a = GT*-L;
 
+    // Now evaluate the Jacobi field.
+    const Real Kg = geom.calcGaussianCurvature(r);
+    jdotdot = -Kg*j;
+
     udot[0] = a[0]; udot[1] = a[1]; udot[2] = a[2];
+    udot[3] = jdotdot;
     s.updQDotDot() = udot;
 
     System::Guts::realizeAccelerationImpl(s);

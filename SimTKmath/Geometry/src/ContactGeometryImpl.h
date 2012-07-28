@@ -45,12 +45,17 @@ class SplitGeodesicError;
 //==============================================================================
 class SimTK_SIMMATH_EXPORT ContactGeometryImpl {
 public:
-    ContactGeometryImpl() : myHandle(0), ptOnSurfSys(0) {
+    ContactGeometryImpl() 
+    :   myHandle(0), ptOnSurfSys(0), geodHitPlaneEvent(0), vizReporter(0),
+        splitGeodErr(0), numGeodesicsShot(0)
+    {
         createParticleOnSurfaceSystem();
     }
     ContactGeometryImpl(const ContactGeometryImpl& source)
-    : myHandle(0), ptOnSurfSys(0) {
-    }
+    :   myHandle(0), ptOnSurfSys(0), geodHitPlaneEvent(0), vizReporter(0),
+        splitGeodErr(0), numGeodesicsShot(0) 
+    {}
+
     virtual ~ContactGeometryImpl() {
         clearMyHandle();
         clearParticleOnSurfaceSystem();
@@ -100,6 +105,7 @@ public:
     Real calcSurfaceValue(const Vector& point) const;
     Vec3 calcSurfaceNormal(const Vector& point) const;
     Mat33 calcSurfaceHessian(const Vector& point) const;
+    Real calcGaussianCurvature(const Vec3& point) const;
 
     // Geodesic evaluators
 
@@ -155,10 +161,18 @@ public:
     //  XXX to be replaced by actual copy / append functionalily in Geodesic.h
     static void mergeGeodesics(const Geodesic& geodP, const Geodesic& geodQ,
             Geodesic& geod) {
+
         mergeGeodFrames(geodP.getFrenetFrames(), geodQ.getFrenetFrames(),
                         geod.updFrenetFrames());
         mergeArcLengths(geodP.getArcLengths(), geodQ.getArcLengths(),
                         geod.updArcLengths());
+        mergeJacobiField(geodP.getDirectionalSensitivityPtoQ(), 
+                         geodQ.getDirectionalSensitivityQtoP(),
+                         geod.updDirectionalSensitivityPtoQ());
+        mergeJacobiField(geodP.getDirectionalSensitivityQtoP(), 
+                         geodQ.getDirectionalSensitivityPtoQ(),
+                         geod.updDirectionalSensitivityQtoP());
+        // TODO: calculate QtoP
         geod.setIsConvex(geodP.isConvex() && geodQ.isConvex());
         // TODO: what to do with "is shortest"?
         // Take the smaller of the two suggested step sizes.
@@ -167,6 +181,7 @@ public:
         // Take the larger (sloppier) of the two accuracies.
         geod.setAchievedAccuracy(std::max(geodP.getAchievedAccuracy(),
                                           geodQ.getAchievedAccuracy()));
+
     }
 
     // Temporary utility method for joining geodP and the reverse of geodQ.
@@ -231,12 +246,31 @@ public:
             knots.push_back(lengthP + (lengthQ-knotsQ[i]));
     }
 
+    static void mergeJacobiField(const Array_<Vec2>& jP,
+                                 const Array_<Vec2>& jQ,
+                                 Array_<Vec2>&       j)
+    {
+        const int sizeP = jP.size(), sizeQ = jQ.size();
+        assert(sizeP > 0 && sizeQ > 0);
+        j.clear();
+        j.reserve(sizeP+sizeQ-1);
+        j = jP; // the first part is the same as P
+        //TODO: this is the wrong-direction field!
+        for (int i = sizeQ-2; i >= 0; --i)
+            j.push_back(jQ[i]);
+    }
+
 
     // Utility method to used by calcGeodesicInDirectionUntilPlaneHit
     //  and calcGeodesicInDirectionUntilLengthReached
     void shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
             const Real& finalTime, const GeodesicOptions& options,
             Geodesic& geod) const;
+
+    // Utility method to integrate geodesic backwards to fill in the Q to P
+    // directional sensitivity.
+    void calcGeodesicReverseSensitivity
+       (Geodesic& geod, const Vec2& initJacobi) const;
 
     // Utility method to calculate the "geodesic error" between one geodesic
     // shot from P in the direction thetaP and another geodesic shot from Q in the
@@ -297,6 +331,7 @@ public:
     void clearParticleOnSurfaceSystem() {
         delete ptOnSurfSys;
         ptOnSurfSys = 0;
+        geodHitPlaneEvent = 0; // was deleted by the system
     }
 
     ContactGeometry* getMyHandle() {return myHandle;}

@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
- * Contributors:                                                              *
+ * Contributors: Ian Stavness, Andreas Scholz                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -435,8 +435,26 @@ void continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
 @param[out] geod         On exit, this contains the calculated geodesic
 **/
 // XXX what to do if tP is not in the tangent plane at P -- project it?
-void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
-        const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
+void shootGeodesicInDirectionUntilLengthReached
+   (const Vec3& xP, const UnitVec3& tP, const Real& terminatingLength, 
+    const GeodesicOptions& options, Geodesic& geod) const;
+
+/** Given an already-calculated geodesic on this surface connecting points
+P and Q, fill in the sensitivity of point P with respect to a change of
+tangent direction at Q. If there are interior points stored with the geodesic,
+then we'll calculate the interior sensitivities also.
+
+@param[in,out]  geodesic        An already-calculated geodesic.
+@param[in]      initSensitivity
+    Initial conditions for the Jacobi field calculation. If this is the whole
+    geodesic then the initial conditions are (0,1) for the sensitivity and
+    its arc length derivative. However, if we are continuing from another
+    geodesic, then the end sensitivity for that geodesic is the initial 
+    conditions for this one. 
+**/
+void calcGeodesicReverseSensitivity
+   (Geodesic& geodesic,
+    const Vec2& initSensitivity = Vec2(0,1)) const; // j, jdot at end point
 
 
 /** Compute a geodesic curve starting at the given point, starting in the

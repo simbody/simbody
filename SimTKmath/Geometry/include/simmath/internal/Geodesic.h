@@ -30,36 +30,62 @@ This file defines the Geodesic class. **/
 //==============================================================================
 //                           GEODESIC CLASS
 //==============================================================================
-/**
- * This class stores quantities related to geodesic curves
- */
+
 
 #include "SimTKcommon.h"
+#include "simmath/internal/common.h"
 
 namespace SimTK {
 
+/**
+ * This class stores a geodesic curve after it has been determined. The curve
+ * is represented by a discrete set of Frenet frames along its arc length, with
+ * each frame providing a point on the curve, the tangent along the curve
+ * there, surface normal, and binormal. The number of points is determined by
+ * the accuracy to which the geodesic was calculated and the complexity of
+ * the surface. The first point is at arclength s=0, the last is at the
+ * actual length of the geodesic. We call the first point P and the last
+ * point Q, and the geodesic arc length increases from P to Q, with the
+ * tangent always pointing in the direction of increasing arc length.
+ */
 class Geodesic {
 public:
     /** Construct an empty geodesic. **/
     Geodesic() {clear();}
 
-    Array_<Transform>&       updFrenetFrames() {return frenetFrames;}
+    int getNumPoints() const {return (int)frenetFrames.size(); }
+
+    /** Frenet frame of geodesic at arc length s:
+        - origin: point on geodesic at s
+        - z axis: outward surface (unit) normal n at s
+        - x axis: unit tangent t at s in direction of increasing arc length
+        - y axis: unit binormal at s: b=n X t (y=z X x) 
+    **/
     const Array_<Transform>& getFrenetFrames() const {return frenetFrames;}
+    Array_<Transform>&       updFrenetFrames() {return frenetFrames;}
 
-    void addFrenetFrame(const Transform& Kf) {
-        frenetFrames.push_back(Kf);
+    void addFrenetFrame(const Transform& Kf) {frenetFrames.push_back(Kf);}
+
+    Array_<Real>& updArcLengths() {return arcLengths;}
+    const Array_<Real>& getArcLengths() const {return arcLengths;}
+
+    void addArcLength(Real s) {arcLengths.push_back(s);}
+
+    Array_<Vec2>& updDirectionalSensitivityPtoQ() 
+    {   return directionalSensitivityPtoQ; }
+    const Array_<Vec2>& getDirectionalSensitivityPtoQ() const 
+    {   return directionalSensitivityPtoQ; }
+
+    void addDirectionalSensitivityPtoQ(const Vec2& jP) {
+        directionalSensitivityPtoQ.push_back(jP);
     }
 
-    Array_<Real>& updArcLengths() {
-        return arcLengths;
-    }
-
-    const Array_<Real>& getArcLengths() const {
-        return arcLengths;
-    }
-
-    void addArcLength(Real s) {
-        arcLengths.push_back(s);
+    Array_<Vec2>& updDirectionalSensitivityQtoP() 
+    {   return directionalSensitivityQtoP; }
+    const Array_<Vec2>& getDirectionalSensitivityQtoP() const 
+    {   return directionalSensitivityQtoP; }
+    void addDirectionalSensitivityQtoP(const Vec2& jQ) {
+        directionalSensitivityQtoP.push_back(jQ);
     }
 
     Real getLength() const {return arcLengths.empty() ? 0 : arcLengths.back();}
@@ -80,8 +106,10 @@ public:
     /** Clear the data in this geodesic, returning it to its default-constructed
     state, although memory remains allocated. **/
     void clear() {
-        frenetFrames.clear(); 
         arcLengths.clear();
+        frenetFrames.clear(); 
+        directionalSensitivityPtoQ.clear(); 
+        directionalSensitivityQtoP.clear(); 
         convexFlag = shortestFlag = false;
         initialStepSizeHint = achievedAccuracy = NaN;
     }
@@ -96,14 +124,14 @@ public:
     Real getInitialStepSizeHint() const {return initialStepSizeHint;}
     Real getAchievedAccuracy() const {return achievedAccuracy;}
 
+    void dump(std::ostream& o) const;
+
 private:
-    // Frenet frame of geodesic at arc length s:
-    //    origin: point on geodesic at s
-    //    z axis: outward surface (unit) normal n at s
-    //    x axis: unit tangent t at s in direction of increasing arc length
-    //    y axis: unit binormal at s: b=n X t (y=z X x) 
-    Array_<Transform> frenetFrames;
     Array_<Real>      arcLengths; // arc length coord corresponding to that point
+    Array_<Transform> frenetFrames;
+    Array_<Vec2>      directionalSensitivityPtoQ; // j and jdot
+    Array_<Vec2>      directionalSensitivityQtoP;
+
 
     // XXX other members:
     bool convexFlag; // is this geodesic over a convex surface?
@@ -114,7 +142,22 @@ private:
 };
 
 
-
+inline void Geodesic::dump(std::ostream& o) const {
+    o << "Geodesic: " << getNumPoints() << " points, length=" 
+                      << getLength() << "\n";
+    bool hasQtoP = !directionalSensitivityQtoP.empty();
+    if (!hasQtoP)
+        o << "  QtoP Jacobian not available\n";
+    for (int i=0; i < getNumPoints(); ++i) {
+        o << "  Point at s=" << arcLengths[i] << ":\n";
+        o << "    p=" << frenetFrames[i].p() 
+          << " t=" << frenetFrames[i].x() << "\n";
+        o << "    jP=" << directionalSensitivityPtoQ[i][0];
+        if (hasQtoP)
+          o << " jQ=" << directionalSensitivityQtoP[i][0];
+        o << std::endl;
+    }
+}
 
 /**
  * This class generates decoration (line segments) for a geodesic curve
