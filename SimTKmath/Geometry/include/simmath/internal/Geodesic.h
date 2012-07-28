@@ -48,7 +48,7 @@ namespace SimTK {
  * point Q, and the geodesic arc length increases from P to Q, with the
  * tangent always pointing in the direction of increasing arc length.
  */
-class Geodesic {
+class SimTK_SIMMATH_EXPORT Geodesic {
 public:
     /** Construct an empty geodesic. **/
     Geodesic() {clear();}
@@ -142,23 +142,6 @@ private:
 };
 
 
-inline void Geodesic::dump(std::ostream& o) const {
-    o << "Geodesic: " << getNumPoints() << " points, length=" 
-                      << getLength() << "\n";
-    bool hasQtoP = !directionalSensitivityQtoP.empty();
-    if (!hasQtoP)
-        o << "  QtoP Jacobian not available\n";
-    for (int i=0; i < getNumPoints(); ++i) {
-        o << "  Point at s=" << arcLengths[i] << ":\n";
-        o << "    p=" << frenetFrames[i].p() 
-          << " t=" << frenetFrames[i].x() << "\n";
-        o << "    jP=" << directionalSensitivityPtoQ[i][0];
-        if (hasQtoP)
-          o << " jQ=" << directionalSensitivityQtoP[i][0];
-        o << std::endl;
-    }
-}
-
 /**
  * This class generates decoration (line segments) for a geodesic curve
  */
@@ -204,4 +187,4 @@ class GeodesicOptions {
 
 } // namespace SimTK
 
-#endif /*SimTK_SIMMATH_GEODESIC_H_*/
+#endif // SimTK_SIMMATH_GEODESIC_H_

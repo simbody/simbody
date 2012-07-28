@@ -26,8 +26,6 @@
  */
 
 #include "Simbody.h"
-#include "simmath/internal/Geodesic.h"
-#include "simmath/internal/ContactGeometry.h"
 
 using namespace SimTK;
 using std::cos;

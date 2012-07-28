@@ -284,6 +284,7 @@ int main() {
     //obs1.setDecorativeGeometry(DecorativeSphere(0.25).setOpacity(.5));
 
     Visualizer viz(system);
+    viz.setShowFrameNumber(true);
     system.addEventReporter(new Visualizer::Reporter(viz, 0.1*1./30));
     system.addEventReporter(new ShowStuff(system, cable1, cable2, 0.1*0.1));    
     // Initialize the system and state.

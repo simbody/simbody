@@ -608,6 +608,9 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
 // and calcGeodesicInDirectionUntilLengthReached
 void ContactGeometryImpl::
 calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
+    
+    // Don't look for a plane.
+    geodHitPlaneEvent->setEnabled(false);
 
     // integrator settings
     const Real integratorAccuracy = 1e-6;
@@ -2641,6 +2644,27 @@ int ContactGeometry::TriangleMesh::OBBTreeNode::getNumTriangles() const {
 }
 
 
+
+//==============================================================================
+//                                 GEODESIC
+//==============================================================================
+
+void Geodesic::dump(std::ostream& o) const {
+    o << "Geodesic: " << getNumPoints() << " points, length=" 
+                      << getLength() << "\n";
+    bool hasQtoP = !directionalSensitivityQtoP.empty();
+    if (!hasQtoP)
+        o << "  QtoP Jacobian not available\n";
+    for (int i=0; i < getNumPoints(); ++i) {
+        o << "  Point at s=" << arcLengths[i] << ":\n";
+        o << "    p=" << frenetFrames[i].p() 
+          << " t=" << frenetFrames[i].x() << "\n";
+        o << "    jP=" << directionalSensitivityPtoQ[i][0];
+        if (hasQtoP)
+          o << " jQ=" << directionalSensitivityQtoP[i][0];
+        o << std::endl;
+    }
+}
 
 //==============================================================================
 //                      PARTICLE CON SURFACE SYSTEM GUTS

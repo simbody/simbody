@@ -28,8 +28,6 @@
 
 
 #include "Simbody.h"
-#include "simmath/internal/Geodesic.h"
-#include "simmath/internal/ContactGeometry.h"
 
 using namespace SimTK;
 using std::cos;
@@ -120,7 +118,7 @@ int main() {
 
 
     // calculate the geodesic
-    //geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
+    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
     viz.report(dummyState);
 
     const Real startReal = realTime(), startCpu = cpuTime();

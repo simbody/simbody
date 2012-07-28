@@ -371,24 +371,26 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         return; // only via points; no iteration to do
 
     const Real ftol = 1e-12;
-    const Real xtol = 1e-6;
+    const Real xtol = 1e-12;
+
     const Real estimatedPathErrorAccuracy = ftol;
     PathError pathErrorFnc(ppe.x.size(), *this, state, instInfo, ppe, 
                            estimatedPathErrorAccuracy);
     Differentiator diff(pathErrorFnc);
 
-    Vector dx, xold;
+    Vector dx, xold, xchg;
 
     Real f = ppe.err.norm();
-    Real fold, lam = 1;
+    Real fold, lam = 1, nextlam = 1;
 
-    int maxIter = 40;
+    int maxIter = 20;
     for (int i = 0; i < maxIter; ++i) {
-        if (f < ftol) {
-            std::cout << "path converged in " << i << " iterations" << std::endl;
+        if (f <= ftol) {
+            std::cout << "\nPATH converged in " << i << " iterations\n\n";
             break;
         }
         cout << "obstacle err = " << f << ", x = " << ppe.x << endl;
+
 
         diff.calcJacobian(ppe.x, ppe.err, ppe.J, 
                           Differentiator::ForwardDifference);
@@ -396,11 +398,15 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         xold = ppe.x;
 //        cout << "J = " << J << endl;
         dx = ppe.J.invert()*ppe.err;
+        const Real dxnorm = dx.norm();
+        cout << "|dx| = " << dxnorm << endl;
 
         // backtracking
-        lam = 1;
+        lam = nextlam;
+        int teenyChangeCount = 0;
         while (true) {
-            ppe.x = xold - lam*dx;
+            xchg = lam*dx;
+            ppe.x = xold - xchg;
             calcPathError(state,instInfo,ppe);
             f = ppe.err.norm();
             //cout << "step=" << lam << " obstacle err = " << f 
@@ -410,6 +416,9 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
             lam = lam / 2;
         }
         cout << "step size=" << lam << endl;
+
+        if (lam == nextlam)
+            nextlam = std::min(2*lam, 1.);
     }
     cout << "obstacle error = " << ppe.err << endl;
 }

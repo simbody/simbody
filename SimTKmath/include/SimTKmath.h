@@ -39,6 +39,7 @@
 #include "simmath/internal/Spline.h"
 #include "simmath/internal/SplineFitter.h"
 #include "simmath/internal/BicubicSurface.h"
+#include "simmath/internal/Geodesic.h"
 #include "simmath/internal/ContactGeometry.h"
 #include "simmath/internal/OrientedBoundingBox.h"
 #include "simmath/internal/Contact.h"
