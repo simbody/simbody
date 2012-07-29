@@ -733,7 +733,7 @@ public:
 
     void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
         discreteVarIndex = this->getSubsystem().allocateDiscreteVariable
-            (s, invalidatedStage, new Value<T>(getDefaultValue()));
+            (s, invalidatedStage, new Value<T>(this->getDefaultValue()));
     }
 private:
     const T& getVarValue(const State& s) const {
@@ -1203,7 +1203,7 @@ public:
                  allZ[zIndex+i] = Measure_Num<T>::get(ic,i);
         } else {
              for (int i=0; i < this->size(); ++i)
-                 allZ[zIndex+i] = Measure_Num<T>::get(getDefaultValue(),i);
+                 allZ[zIndex+i] = Measure_Num<T>::get(this->getDefaultValue(),i);
         }
     }
 
@@ -1214,7 +1214,7 @@ public:
     void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
         Vector init(this->size());
         for (int i=0; i < this->size(); ++i) 
-            init[i] = Measure_Num<T>::get(getDefaultValue(),i);
+            init[i] = Measure_Num<T>::get(this->getDefaultValue(),i);
         zIndex = this->getSubsystem().allocateZ(s, init);
     }
 
@@ -1525,7 +1525,7 @@ public:
     it changes. **/
     void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
         // TODO: this should be NaN once initialization is working properly.
-        T initVal = getDefaultValue();
+        T initVal = this->getDefaultValue();
         switch(operation) {
         case Minimum: initVal = Infinity; break;
         case Maximum: initVal = -Infinity; break;
