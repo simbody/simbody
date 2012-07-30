@@ -295,6 +295,10 @@ ensureVelocityKinematicsCalculated(const State& state) const {
     pve.lengthDot = 0;
     pve.unitPower = 0;
 
+    // Solve for xdot:
+    //   Calc RHS in J xdot = Kdot.
+    //   Solve xdot = J\ Kdot. 
+
     //TODO: calc length dot
     Vec3 vprev_GQ;
     for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {

@@ -46,8 +46,9 @@ class CableObstacle;
 //==============================================================================
 /** This class represents the path of one cable from its origin point, through
 via points, around obstacles, to its termination point. The cable ends are
-fixed to the origin and termination points. The cable passes through each via
-point, and takes the shortest allowable path over the surfaces of obstacles. 
+fixed to the origin and termination points. The cable passes frictionlessly
+through each via point, and takes the shortest allowable path over the surfaces
+of obstacles. 
 
 During initialization, if there is more than one possible geodesic over the
 surface, or if a straight line path would miss the surface altogether, we'll
@@ -77,8 +78,9 @@ obstacle only point P is relevant.
 class SimTK_SIMBODY_EXPORT CablePath {
 public:
 
-/** Create a straight-line cable path connected a point fixed on one body with
-one fixed on another body. You can add additional obstacles later. **/
+/** Create a straight-line cable path connecting a point fixed on one body with
+one fixed on another body. You can add additional obstacles and move the
+end points later. **/
 CablePath(CableTrackerSubsystem&    cables,
           const MobilizedBody&      originBody,
           const Vec3&               defaultOriginPoint,
@@ -133,8 +135,8 @@ void applyBodyForces(const State& state, Real tension,
 \a tension (>0) value, using the velocities provided in the given \a state,
 which must already have been realized to Velocity stage. Power is positive if
 the cable is adding energy to the system; negative when dissipating. If the 
-supplied \a tension is <= 0, signifying a slack cable, this method returns 
-zero. **/
+supplied \a tension is <= 0, power may still be dissipated while the cable
+shortens even though it can't apply forces to the system. **/
 Real calcCablePower(const State& state, Real tension) const;
 
 
@@ -182,7 +184,7 @@ point, the point is located at the S frame origin whose position vector in B
 is X_BS.p(). **/
 const Transform& getDefaultTransform() const;
 /** Get a reference to the Mobilized body to which this obstacle is fixed.
-There can be multiple objects on a singe body, so this is not necessarily 
+There can be multiple objects on a single body, so this is not necessarily 
 unique within a path. **/
 const MobilizedBody& getMobilizedBody() const;
 /** Return a reference to the CablePath in which this obstacle resides. **/
@@ -251,15 +253,26 @@ public:
 /** Default constructor creates an empty handle. **/
 Surface() : CableObstacle() {}
 
+/** Create a new wrapping surface obstacle and insert it into the given
+CablePath. The surface is fixed to mobilized body \a mobod and the surface
+frame S is positioned relative to that body's frame B according to the given 
+transform \a X_BS. **/
 Surface(CablePath& path, const MobilizedBody& mobod,
         const Transform& X_BS, const ContactGeometry& surface);
 
+/** Provide visualization geometry to be used to display this obstacle. The
+frame of the decorative geometry is made coincident with the surface's S
+frame. **/
 Surface& setDecorativeGeometry(const DecorativeGeometry& viz)
 {   CableObstacle::setDecorativeGeometry(viz); return *this; }
+
 /** Optionally provide a "near point" that can be used during
 path initialization to disambiguate when there is more than one geodesic
-that can connect the contact points. The geodesic that passes closest to
-the near point will be selected. Without this point the shortest
+that can connect the contact points, or when a straight line from the
+preceding to the following obstacle would miss the obstacle altogether. The 
+geodesic or straight line segment that passes closest to
+the near point will be selected. Without this point the obstacle will be
+skipped if possible, otherwise the shortest
 geodesic will be selected. This point is ignored during path continuation
 calculations. The point location is given in the local frame S of the
 contact surface. **/
@@ -275,10 +288,10 @@ Surface& setContactPointHints(const Vec3& startHint,
 /** Return true if the given CableObstacle is a Surface. **/
 static bool isInstance(const CableObstacle&);
 /** Cast the given CableObstacle to a const Surface; will throw an exception
-if the obstacle is not a via point. **/
+if the obstacle is not a surface. **/
 static const Surface& downcast(const CableObstacle&);
 /** Cast the given CableObstacle to a writable Surface; will throw an 
-exception if the obstacle is not a via point. **/
+exception if the obstacle is not a surface. **/
 static Surface& updDowncast(CableObstacle&);
 class Impl;
 };

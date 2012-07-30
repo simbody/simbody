@@ -119,8 +119,8 @@ public:
     // Map each cable obstacle to its ActiveObstacleIndex if it is currently
     // active, otherwise the entry tests !isValid(). Disabled obstacles are
     // always inactive, enabled via points are always active. The origin and 
-    // termination points are always active, so activeIndex[0]=0 and 
-    // activeIndex[n-1]=nActive-1.
+    // termination points are always active, so mapToActive[0]=0 and 
+    // mapToActive[n-1]=nActive-1.
     Array_<ActiveObstacleIndex,CableObstacleIndex>  mapToActive;
 
     // Each active, surface obstacle gets one of these. Points and inactive
@@ -147,7 +147,7 @@ public:
     // We calculate a geodesic for each active surface obstacle.
     Array_<Geodesic,ActiveSurfaceIndex>             geodesics;
 
-    // This is a dense vector with all the active surface obstacle's unknowns 
+    // This is a dense vector with all the active surface obstacles' unknowns 
     // packed together.
     Vector      x;      // nx unknowns
 
@@ -220,27 +220,35 @@ public:
     // Given coordinates xi=(xP,xQ) for this obstacle (taken from the supplied
     // PathPosEntry), return the Cartesian positions of P and Q measured and
     // expressed in the obstacle's S frame. For via points these are always
-    // at (0,0,0)_S.
+    // at (0,0,0)_S. For implicit surfaces, the returned points will *not*
+    // necessarily be on the surface; that is, we are not doing any projection
+    // of xP and xQ here.
     virtual void getContactPointsOnObstacle(const State&, 
                                         const PathInstanceInfo&,
                                         const PathPosEntry&,
                                         Vec3& P_S, Vec3& Q_S) const = 0;
     // After geodesics have been calculated, this will return the length
-    // of the geodesic from P to Q for this obstacle, or zero for a via 
-    // points (since we consider P and Q to be in the same place).
+    // of the geodesic from P' to Q' for this obstacle, where P' and Q' are
+    // the nearest points on the surface corresponding to given points P and
+    // Q which for an implicit surface may be off the surface. For via points
+    // the length will be returned zero since we consider P and Q to be in the 
+    // same place.
     virtual Real getSegmentLength(const State&, 
                                   const PathInstanceInfo&,
                                   const PathPosEntry&) const = 0;
+
     // Once xdots have been calculated, this will return the rate of length
-    // change for the geodesic on this obstacle, or zero for via points.
+    // change for the geodesic on this obstacle, or zero for via points. Note
+    // that the geodesic connects P' to Q'; see above for what that means.
     virtual Real getSegmentLengthDot(const State&, 
                                      const PathInstanceInfo&,
                                      const PathPosEntry&,
                                      const PathVelEntry&) const = 0;
 
-
     // Return the contact point stations in the body frame, that is, vectors
-    // from body origin Bo to point P and Q, expressed in B. Cost is 36 flops.
+    // from body origin Bo to point P and Q, expressed in B. 
+    // Cost is 36 flops.
+    // TODO: should this be projected onto the surface? 
     void getContactStationsOnBody(const State&            state, 
                                   const PathInstanceInfo& instInfo,
                                   const PathPosEntry&     ppe,
@@ -255,6 +263,7 @@ public:
     // re-expressed in Ground. This is still the vector from the body origin 
     // Bo to the contact points P and G; it is not measured from the ground 
     // origin. Cost is 66 flops.
+    // TODO: should this be projected onto the surface? 
     void expressContactStationsInGround(const State&            state, 
                                 const PathInstanceInfo& instInfo,
                                 const PathPosEntry&     ppe,
@@ -345,6 +354,8 @@ public:
     void applyBodyForces(const State& state, Real tension, 
                          Vector_<SpatialVec>& bodyForcesInG) const;
 
+    // TODO: this isn't right when the tension goes to zero during rapid
+    // shrinking due to dissipation cancelling stiffness.
     Real calcCablePower(const State& state, Real tension) const {
         if (tension <= 0) return 0;
         const PathVelEntry& velEntry = getVelEntry(state);
