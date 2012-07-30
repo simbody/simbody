@@ -542,8 +542,9 @@ public:
     }
 
     // During initialization, call this to calculate an appropriate geodesic
-    // connecting points P and Q whose surface coordinates are supplied.
-    // There may be multiple geodesics between P and Q. If a near point
+    // connecting points P' and Q', the nearest surface points to points P and
+    // Q whose surface coordinates are supplied.
+    // There may be multiple geodesics between P' and Q'. If a near point
     // N has been provided, we'll return the geodesic that passes closest to it,
     // otherwise we'll return the shortest one. If entry and exit hints are 
     // provided they may be used to bias the algorithm. 
