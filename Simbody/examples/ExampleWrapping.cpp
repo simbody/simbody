@@ -94,8 +94,8 @@ public:
         fx[1] = ~r_QI*nQ;
         fx[2] = ~r_OP*bP;
         fx[3] = ~r_QI*bQ;
-        fx[4] = geom.calcSurfaceValue((Vector)P);
-        fx[5] = geom.calcSurfaceValue((Vector)Q);
+        fx[4] = geom.calcSurfaceValue(P);
+        fx[5] = geom.calcSurfaceValue(Q);
 
         return 0;
     }
@@ -137,21 +137,21 @@ public:
         Real offset = (~(P+Q)*normal)/2 ;
         geom.setPlane(Plane(normal, offset));
 
-        UnitVec3 r_OP(P-O);
-        UnitVec3 r_QI(I-Q);
+        UnitVec3 e_OP(P-O);
+        UnitVec3 e_QI(I-Q);
 
         geod.clear();
-        Vec2 geodErr = geom.calcGeodError(P, Q, r_OP, -r_QI);
+        Vec2 geodErr = geom.calcGeodError(P, Q, e_OP, -e_QI);
 
-        Vec3 nP = geom.calcSurfaceNormal((Vector)P);
-        Vec3 nQ = geom.calcSurfaceNormal((Vector)Q);
+        Vec3 nP = geom.calcSurfaceUnitNormal(P);
+        Vec3 nQ = geom.calcSurfaceUnitNormal(Q);
 
-        fx[0] = ~r_OP*nP;
-        fx[1] = ~r_QI*nQ;
+        fx[0] = ~e_OP*nP;
+        fx[1] = ~e_QI*nQ;
         fx[2] = geodErr[0];
         fx[3] = geodErr[1];
-        fx[4] = geom.calcSurfaceValue((Vector)P);
-        fx[5] = geom.calcSurfaceValue((Vector)Q);
+        fx[4] = geom.calcSurfaceValue(P);
+        fx[5] = geom.calcSurfaceValue(Q);
 
         return 0;
     }

@@ -56,9 +56,11 @@ class Plane;
 of a solid object, for the purpose of modeling with Simbody physical 
 effects that occur at the surface of that object, such as contact and 
 wrapping forces. Surfaces may be finite or infinite (e.g. a halfspace). 
-Surfaces may be smooth or discrete (polyhedral). Smooth surfaces may be defined implicitly 
-as f(p)=0 or parametrically as p=f(u,v) or both (p=[px,py,pz] is a point 
-expressed in the surface's local frame). 
+Surfaces may be smooth or discrete (polyhedral). Smooth surfaces are defined
+implicitly as f(P)=0 (P=[px,py,pz]), and optionally may provide a surface
+parameterization P=f(u,v). An implicit representation is valid for any P;
+parametric representations may have limited validity, singular points, or may
+be defined only in a local neighborhood.
 
 A variety of operators are implemented by each specific surface type. Some of
 these are designed to support efficient implementation of higher-level 
@@ -75,6 +77,8 @@ All surfaces provide these operations:
   - find most extreme point in a given direction
   - return the outward-facing surface normal at a point
   - generate a polygonal mesh that approximates the surface
+  - return a unique integer id that may be used to quickly determine the 
+    concrete type of a generic surface
 
 Finite surfaces provide
   - a bounding sphere that encloses the entire surface
@@ -82,11 +86,9 @@ Finite surfaces provide
     only simple primitives
 
 Smooth surfaces provide
-  - Min/max curvatures and directions, and outward normal at a point
-
-Additionally
-  - Each surface type has a unique integer id that may be used for to 
-    quickly determine the concrete type of a generic surface
+  - Min/max curvatures and directions
+  - Calculate a geodesic between two points on the surface, or 
+    starting at a point for a given direction and length
 
 Individual surface types generally support additional operations that may
 be used by specialized algorithms that know they are working with that 
@@ -111,6 +113,11 @@ class Sphere;
 class Ellipsoid;
 class SmoothHeightMap;
 class TriangleMesh;
+
+// TODO
+class Cylinder;
+class Cone;
+class Torus;
 
 /** Base class default constructor creates an empty handle. **/
 ContactGeometry() : impl(0) {}
@@ -197,21 +204,27 @@ const Function& getImplicitFunction() const;
     A point at which to compute the surface value.
 @return
     The value of the implicit surface function at the point. **/
-Real calcSurfaceValue(const Vector& point) const;
+Real calcSurfaceValue(const Vec3& point) const;
+
+/** Calculate the implicit surface outward facing unit normal at the given
+point. This is determined using the implicit surface function gradient
+so is undefined if the point is at a flat spot on the surface where the
+gradient is zero. **/
+UnitVec3 calcSurfaceUnitNormal(const Vec3& point) const;
 
 /** Calculate the gradient of the implicit surface function, at a given point.
 @param[in]      point
     A point at which to compute the surface gradient.
 @return
     The gradient of the implicit surface function at the point. **/
-Vec3 calcSurfaceNormal(const Vector& point) const;
+Vec3 calcSurfaceGradient(const Vec3& point) const;
 
 /** Calculate the hessian of the implicit surface function, at a given point.
 @param[in]      point
     A point at which to compute the surface hessian.
 @return
     The hessian of the implicit surface function at the point. **/
-Mat33 calcSurfaceHessian(const Vector& point) const;
+Mat33 calcSurfaceHessian(const Vec3& point) const;
 
 /** For an implicit surface, return the Gaussian curvature at the given
 point (which might not be on the surface). Here is the formula:
@@ -503,7 +516,7 @@ Vec2 calcGeodError(const Vec3& P, const Vec3& Q,
  * given direction.
  **/
 Rotation calcTangentBasis(const Vec3& point, const Vec3& dir) {
-    UnitVec3 n(calcSurfaceNormal((Vector)point));
+    const UnitVec3 n = calcSurfaceUnitNormal(point);
     Rotation R_GS;
     R_GS.setRotationFromTwoAxes(n, ZAxis, dir, XAxis);
     return R_GS;

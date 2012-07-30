@@ -119,12 +119,14 @@ const Function& ContactGeometry::getImplicitFunction() const
 {   return getImpl().getImplicitFunction(); }
 
 Real ContactGeometry::
-calcSurfaceValue(const Vector& point) const {
+calcSurfaceValue(const Vec3& p) const {
+    const Vector point(p); // required by Function
     return getImpl().getImplicitFunction().calcValue(point);
 }
 
 Vec3 ContactGeometry::
-calcSurfaceNormal(const Vector& point) const {
+calcSurfaceGradient(const Vec3& p) const {
+    const Vector point(p); // required by Function
     const Function& f = getImpl().getImplicitFunction();
 
     // arguments to get first derivative from the calcDerivative interface
@@ -132,19 +134,30 @@ calcSurfaceNormal(const Vector& point) const {
     Array_<int> fy(1, 1);
     Array_<int> fz(1, 2);
 
-    Vec3 normal(3);
-    // implicit surfaces are defined as positive inside and negative outside
-    // therefore normal is the negative of the gradient
-    normal[0] = -f.calcDerivative(fx,point);
-    normal[1] = -f.calcDerivative(fy,point);
-    normal[2] = -f.calcDerivative(fz,point);
-    return normal;
+    Vec3 grad;
+    // Note that the gradient may point inward or outward depending on the
+    // sign convention used by the implicit surface function.
+    grad[0] = f.calcDerivative(fx,point);
+    grad[1] = f.calcDerivative(fy,point);
+    grad[2] = f.calcDerivative(fz,point);
+    return grad;
+}
+
+
+UnitVec3 ContactGeometry::
+calcSurfaceUnitNormal(const Vec3& p) const {
+    const Vec3 grad = calcSurfaceGradient(p);
+    // Implicit surfaces are defined as positive inside and negative outside
+    // therefore normal is the negative of the gradient.
+    // TODO: this should be changed to the opposite convention.
+    return UnitVec3(-grad);
 }
 
 // Note: Hessian is symmetric, although we're filling in all 9 elements here.
 // TODO: use a SymMat33.
 Mat33 ContactGeometry::
-calcSurfaceHessian(const Vector& point) const {
+calcSurfaceHessian(const Vec3& p) const {
+    const Vector point(p); // required by Function
     const Function& f = getImpl().getImplicitFunction();
 
     // arguments to get second derivatives from the calcDerivative interface
@@ -175,10 +188,9 @@ calcSurfaceHessian(const Vector& point) const {
 
 Real ContactGeometry::
 calcGaussianCurvature(const Vec3& point) const {
-    const Vec3  g = calcSurfaceNormal(Vector(point));
-    const Mat33 H = calcSurfaceHessian(Vector(point));
-    // Calculate the adjoint. TODO: this is symmetric; don't calculate
-    // the 3 symmetric terms.
+    const Vec3  g = calcSurfaceGradient(point);
+    const Mat33 H = calcSurfaceHessian(point);
+    // Calculate the adjoint. TODO: use SymMat33
     Mat33 A;
     A(0,0) = det(H.dropRowCol(0,0));
     A(0,1) = det(H.dropRowCol(0,1));
@@ -190,7 +202,7 @@ calcGaussianCurvature(const Vec3& point) const {
     A(2,1) = A(1,2);
     A(2,2) = det(H.dropRowCol(2,2));
 
-    Real Kg = ~g * (A*g) / square(g.normSqr());
+    Real Kg = ~g * (A*g) / square(g.normSqr()); // |g|^4
     return Kg;
 }
 
@@ -444,15 +456,19 @@ void ContactGeometry::addVizReporter(ScheduledEventReporter* reporter) const {
 //             GEODESIC EVALUATORS in CONTACT GEOMETRY IMPL
 //==============================================================================
 
-Real ContactGeometryImpl::calcSurfaceValue(const Vector& point) const {
+Real ContactGeometryImpl::calcSurfaceValue(const Vec3& point) const {
     return myHandle->calcSurfaceValue(point);
 }
 
-Vec3 ContactGeometryImpl::calcSurfaceNormal(const Vector& point) const {
-    return myHandle->calcSurfaceNormal(point);
+UnitVec3 ContactGeometryImpl::calcSurfaceUnitNormal(const Vec3& point) const {
+    return myHandle->calcSurfaceUnitNormal(point);
 }
 
-Mat33 ContactGeometryImpl::calcSurfaceHessian(const Vector& point) const {
+Vec3 ContactGeometryImpl::calcSurfaceGradient(const Vec3& point) const {
+    return myHandle->calcSurfaceGradient(point);
+}
+
+Mat33 ContactGeometryImpl::calcSurfaceHessian(const Vec3& point) const {
     return myHandle->calcSurfaceHessian(point);
 }
 
@@ -525,8 +541,8 @@ void ContactGeometryImpl::continueGeodesic(const Vec3& xP, const Vec3& xQ, const
 
 
 
-// Utility method to used by calcGeodesicInDirectionUntilPlaneHit
-// and calcGeodesicInDirectionUntilLengthReached
+// Utility method used by shootGeodesicInDirectionUntilPlaneHit
+// and shootGeodesicInDirectionUntilLengthReached
 void ContactGeometryImpl::
 shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         const Real& finalTime, const GeodesicOptions& options,
@@ -583,9 +599,9 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         const State& state = integ.getState();
         const Real s = state.getTime();
 
-        const Vec3 pt = Vec3::getAs(&state.getQ()[0]);
-        const UnitVec3 n(calcSurfaceNormal(Vector(pt)));
-        const Vec3 tangent = Vec3::getAs(&state.getU()[0]);
+        const Vec3& pt = Vec3::getAs(&state.getQ()[0]);
+        const UnitVec3 n = calcSurfaceUnitNormal(pt);
+        const Vec3& tangent = Vec3::getAs(&state.getU()[0]);
         // Rotation will orthogonalize so x direction we get may not be
         // exactly the same as what we supply here.
         geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, XAxis), pt));
@@ -604,8 +620,8 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
 }
 
 
-// Utility method to used by calcGeodesicInDirectionUntilPlaneHit
-// and calcGeodesicInDirectionUntilLengthReached
+// After a geodesic has been calculated, this method integrates backwards
+// to fill in the missing reverse Jacobi term.
 void ContactGeometryImpl::
 calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
     
@@ -1645,8 +1661,9 @@ calcValue(const Vector& p) const {
     return z - p[2]; // negative outside, positive inside
 }
 
-// First deriv with respect to z (component 2) is -1, all higher derivs are 0.
-// Higher partials involving z are zero.
+// First deriv with respect to p[2] (z component) is -1 to match the above
+// implicit function definition, all higher derivs are
+// with respect to that component are 0.
 Real SmoothHeightMapImplicitFunction::
 calcDerivative(const Array_<int>& derivComponents, const Vector& p) const {
     if (derivComponents.empty()) return calcValue(p);
@@ -2710,16 +2727,12 @@ void Geodesic::dump(std::ostream& o) const {
  *        and A\ = inverse of A
  */
 int ParticleConSurfaceSystemGuts::realizeTopologyImpl(State& s) const {
-
     const Vector init(3, Real(0));
     q0 = s.allocateQ(subsysIndex, init);
     u0 = s.allocateU(subsysIndex, init);
-
-    System::Guts::realizeTopologyImpl(s);
     return 0;
 }
 int ParticleConSurfaceSystemGuts::realizeModelImpl(State& s) const {
-    System::Guts::realizeModelImpl(s);
     return 0;
 }
 int ParticleConSurfaceSystemGuts::realizeInstanceImpl(const State& s) const {
@@ -2727,39 +2740,38 @@ int ParticleConSurfaceSystemGuts::realizeInstanceImpl(const State& s) const {
     uerr0 = s.allocateUErr(subsysIndex, 2);
     udoterr0 = s.allocateUDotErr(subsysIndex, 2); // and multiplier
 //    event0 = s.allocateEvent(subsysIndex, Stage::Position, 3);
-
-    System::Guts::realizeInstanceImpl(s);
     return 0;
 }
 int ParticleConSurfaceSystemGuts::realizePositionImpl(const State& s) const {
     const Vector& q = s.getQ(subsysIndex);
-    // This is the perr() equation.
-    s.updQErr(subsysIndex)[0] = geom.calcSurfaceValue(q);
+    const Vec3&   point = Vec3::getAs(&q[0]);
 
-    System::Guts::realizePositionImpl(s);
+    // This is the perr() equation that says the point must be on the surface.
+    s.updQErr(subsysIndex)[0] = geom.calcSurfaceValue(point);
     return 0;
 }
 
 int ParticleConSurfaceSystemGuts::realizeVelocityImpl(const State& s) const {
     const Vector& q    = s.getQ(subsysIndex);
-    const Vec3&   u    = Vec3::getAs(&s.getU(subsysIndex)[0]);
+    const Vector& u    = s.getU(subsysIndex);
+    const Vec3&   p    = Vec3::getAs(&q[0]); // point
+    const Vec3&   dpdt = Vec3::getAs(&u[0]); // point's velocity on surface
+
     Vector&       qdot = s.updQDot(subsysIndex);
 
-    qdot[0] = u[0]; // qdot=u
-    qdot[1] = u[1];
-    qdot[2] = u[2];
+    // Calculate qdots. They are just generalized speeds here.
+    qdot = u;
 
-    // This is the verr() equation.
-    s.updUErr(subsysIndex)[0]  = -(~geom.calcSurfaceNormal(q)*u);
-    s.updUErr(subsysIndex)[1]  = u.norm() - 1;
-
-    System::Guts::realizeVelocityImpl(s);
+    // These are the two verr() equations. The first is the derivative of
+    // the point-on-surface holonomic constraint defined in realizePositionImpl
+    // above. The second is a nonholonomic velocity constraint restricting
+    // the velocity along the curve to be 1.
+    s.updUErr(subsysIndex)[0]  = ~geom.calcSurfaceGradient(p)*dpdt;
+    s.updUErr(subsysIndex)[1]  = dpdt.norm() - 1;
     return 0;
 }
 
 int ParticleConSurfaceSystemGuts::realizeDynamicsImpl(const State& s) const {
-
-    System::Guts::realizeDynamicsImpl(s);
     return 0;
 }
 
@@ -2768,31 +2780,29 @@ int ParticleConSurfaceSystemGuts::realizeAccelerationImpl(const State& s) const 
     // XXX assume unit mass
 
     const Vector& q    = s.getQ(subsysIndex);
-    const Vec3&   u    = Vec3::getAs(&s.getU(subsysIndex)[0]);
+    const Vector& u    = s.getU(subsysIndex);
+    const Vec3&   p    = Vec3::getAs(&q[0]); // point
+    const Vec3&   v    = Vec3::getAs(&u[0]); // point's velocity on surface
+
     Vector&       udot = s.updUDot(subsysIndex);
-    Vec3 a(0);
+    Vec3&         a    = Vec3::updAs(&udot[0]);
 
-    Real g = geom.calcSurfaceValue(q);
-    Vec3 GT = geom.calcSurfaceNormal(q);
-    Mat33 H = geom.calcSurfaceHessian(q);
-    Real Gdotu = ~u*(H*u);
-//    Real L = (Gdotu + beta*~GT*v + alpha*g)/(~GT*GT); // Baumgarte stabilization
-    Real L = Gdotu;
-    a = GT*-L;
+    Real  g  = geom.calcSurfaceValue(p);
+    Vec3  GT = geom.calcSurfaceGradient(p);
+    Mat33 H  = geom.calcSurfaceHessian(p);
+    Real  Gdotv = ~v*(H*v);
+//    Real L = (Gdotv + beta*~GT*v + alpha*g)/(~GT*GT); // Baumgarte stabilization
+    Real  L = Gdotv/(~GT*GT);
+    a = GT*-L; // fills in udot
 
-    udot[0] = a[0];
-    udot[1] = a[1];
-    udot[2] = a[2];
-
+    // Qdotdots are just udots here.
     s.updQDotDot() = udot;
 
     s.updMultipliers(subsysIndex)[0] = L;
 
     // This is the aerr() equation.
-    s.updUDotErr(subsysIndex)[0] = ~GT*a + Gdotu;
-    s.updUDotErr(subsysIndex)[1] = (~u*a)/u.norm();
-
-    System::Guts::realizeAccelerationImpl(s);
+    s.updUDotErr(subsysIndex)[0] = ~GT*a + Gdotv;
+    s.updUDotErr(subsysIndex)[1] = (~v*a)/u.norm();
     return 0;
 }
 
@@ -2816,26 +2826,29 @@ void ParticleConSurfaceSystemGuts::projectQImpl(State& s, Vector& qerrest,
 
 {
     const Real consAccuracy = opts.getRequiredAccuracy();
-    const Vec3& q = Vec3::getAs(&s.getQ(subsysIndex)[0]); // set up aliases
-    Real& ep = s.updQErr(subsysIndex)[0];
+
+    // These are convenient aliases for state entries. Note that they are
+    // "live" since they refer directly into the state we are changing.
+    Vector&       q    = s.updQ(subsysIndex);
+    const Vector& qerr = s.getQErr(subsysIndex);
+    Vec3&         p    = Vec3::updAs(&q[0]);
+    const Real&   ep   = qerr[0];
 
     realize(s, Stage::Position); // recalc QErr (ep)
 //    std::cout << "BEFORE wperr=" << ep << std::endl;
 
     Real qchg;
-    Vec3 dq(0);
+    Vec3 dp(0);
     int cnt = 0;
     do {
-        Vec3 n = geom.calcSurfaceNormal((Vector)q);
+        Vec3 g = geom.calcSurfaceGradient(p);
 
-        // dq = Pinv*ep, where Pinv = ~P/(P*~P) and P=-(~n)
-        dq = -(n/(~n*n))*ep;
+        // dp = Pinv*ep, where Pinv = ~P/(P*~P) and P=~g
+        dp = (g/(~g*g))*ep;
 
-        qchg = std::sqrt(dq.normSqr()/q.size()); // wrms norm
+        qchg = std::sqrt(dp.normSqr()/3); // rms norm
 
-        s.updQ(subsysIndex)[0] -= dq[0];
-        s.updQ(subsysIndex)[1] -= dq[1];
-        s.updQ(subsysIndex)[2] -= dq[2];
+        p -= dp; // updates the state
 
         realize(s, Stage::Position); // recalc QErr (ep)
 
@@ -2855,20 +2868,20 @@ void ParticleConSurfaceSystemGuts::projectQImpl(State& s, Vector& qerrest,
     if (qerrest.size()) {
         Vec3& eq = Vec3::updAs(&qerrest[0]);
 
-        Vec3 n = geom.calcSurfaceNormal((Vector)q);
+        Vec3 g = geom.calcSurfaceGradient(p);
 
-        // qperp = Pinv*P*eq, where Pinv = ~P/(P*~P) and P=-(~n)
-        Vec3 qperp = -(n/(~n*n))*(~n*eq);
+        // qperp = Pinv*P*eq, where Pinv = ~P/(P*~P) and P=~g
+        Vec3 qperp = (g/(~g*g))*(~g*eq);
 
 //        std::cout << "ERREST before=" << qerrest
 //             << " wrms=" << std::sqrt(qerrest.normSqr()/q.size()) << std::endl;
-//        std::cout << "P*eq=" << ~n*eq << std::endl;
+//        std::cout << "P*eq=" << ~g*eq << std::endl;
 
         eq -= qperp;
 
 //        std::cout << "ERREST after=" << qerrest
 //                << " wrms=" << std::sqrt(qerrest.normSqr()/q.size()) << std::endl;
-//        std::cout << "P*eq=" << ~n*eq << std::endl;
+//        std::cout << "P*eq=" << ~g*eq << std::endl;
     }
 
     results.setExitStatus(ProjectResults::Succeeded);
@@ -2881,10 +2894,13 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
     const Real consAccuracy = opts.getRequiredAccuracy();
 
     const Vector& q = s.getQ(subsysIndex); // set up aliases
-    const Vec3& u = Vec3::getAs(&s.getU(subsysIndex)[0]);
-    Vec2& ev = Vec2::updAs(&s.updUErr(subsysIndex)[0]);
+    const Vec3&   p = Vec3::getAs(&q[0]);
 
-//    const Real& ep = s.getQErr(subsysIndex)[0];
+    Vector&       u = s.updU(subsysIndex);
+    Vec3&         v = Vec3::updAs(&u[0]);
+
+    const Vector& uerr = s.updUErr(subsysIndex);
+    const Vec2&   ev   = Vec2::getAs(&uerr[0]);
 
     realize(s, Stage::Velocity); // calculate UErr (ev)
 //    std::cout << "vBEFORE wperr=" << ep << std::endl;
@@ -2892,22 +2908,20 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
 
     // Do velocity projection at current values of q, which should have
     // been projected already.
-    Vec3 n = geom.calcSurfaceNormal((Vector)q);
+    Vec3 g = geom.calcSurfaceGradient(p);
 
-    // du = Pinv*ev, where Pinv = ~P/(P*~P) and P=-(~n)
-//    Vec3 du = -(n/(~n*n))*ev[0];
-    Row3 P = -(~n);
-    Vec3 du = ~P/(P*~P)*ev[0];
+    // dv = Pinv*ev, where Pinv = ~P/(P*~P) and P=~g
+//    Vec3 dv = (g/(~g*g))*ev[0];
+    Row3 P = ~g;
+    Vec3 dv = ~P/(P*~P)*ev[0];
 
 //    s.updU(subsysIndex)[0] -= du[0];
 //    s.updU(subsysIndex)[1] -= du[1];
 //    s.updU(subsysIndex)[2] -= du[2];
 //
 //    // force unit speed
-    UnitVec3 newu(u - du);
-    s.updU(subsysIndex)[0] = newu[0];
-    s.updU(subsysIndex)[1] = newu[1];
-    s.updU(subsysIndex)[2] = newu[2];
+    const UnitVec3 newv(v - dv);
+    v = Vec3(newv);
 
     realize(s, Stage::Velocity); // recalc UErr
 //    std::cout << "vAFTER wverr=" << ev << std::endl;
@@ -2954,8 +2968,8 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
     if (uerrest.size()) {
         Vec3& eu = Vec3::updAs(&uerrest[0]);
 
-        // uperp = Vinv*(V*eu), where V=P, Pinv = ~P/(P*~P) and P=-(~n)
-        Vec3 uperp = -(n/(~n*n))*(~n*eu);
+        // uperp = Vinv*(V*eu), where V=P, Pinv = ~P/(P*~P) and P=~n
+        Vec3 uperp = (g/(~g*g))*(~g*eu);
 
 //        std::cout << "ERREST before=" << uerrest
 //             << " wrms=" << std::sqrt(uerrest.normSqr()/u.size())  << std::endl;
@@ -2978,9 +2992,6 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
 //==============================================================================
 //                      PARTICLE ON SURFACE SYSTEM GUTS
 //==============================================================================
-
-
-
 /*
  * This system is a 3d particle mass constrained to move along a surface
  * with no applied force (other than the constraint reaction force normal
@@ -3039,22 +3050,15 @@ int ParticleOnSurfaceSystemGuts::realizeTopologyImpl(State& s) const {
     const Vector init(4, Real(0));
     q0 = s.allocateQ(subsysIndex, init);
     u0 = s.allocateU(subsysIndex, init);
-
-    System::Guts::realizeTopologyImpl(s);
     return 0;
 }
 int ParticleOnSurfaceSystemGuts::realizeModelImpl(State& s) const {
-    System::Guts::realizeModelImpl(s);
     return 0;
 }
 int ParticleOnSurfaceSystemGuts::realizeInstanceImpl(const State& s) const {
-
-    System::Guts::realizeInstanceImpl(s);
     return 0;
 }
 int ParticleOnSurfaceSystemGuts::realizePositionImpl(const State& s) const {
-
-    System::Guts::realizePositionImpl(s);
     return 0;
 }
 
@@ -3063,18 +3067,11 @@ int ParticleOnSurfaceSystemGuts::realizeVelocityImpl(const State& s) const {
     const Vector& u    = s.getU(subsysIndex);
     Vector&       qdot = s.updQDot(subsysIndex);
 
-    qdot[0] = u[0]; // qdot=u
-    qdot[1] = u[1];
-    qdot[2] = u[2];
-    qdot[3] = u[3];
-
-    System::Guts::realizeVelocityImpl(s);
+    qdot = u;
     return 0;
 }
 
 int ParticleOnSurfaceSystemGuts::realizeDynamicsImpl(const State& s) const {
-
-    System::Guts::realizeDynamicsImpl(s);
     return 0;
 }
 
@@ -3083,31 +3080,30 @@ int ParticleOnSurfaceSystemGuts::realizeAccelerationImpl(const State& s) const {
     // XXX assume unit mass
 
     const Vector& q    = s.getQ(subsysIndex);
+    const Vec3&   p    = Vec3::getAs(&q[0]);    // point
+    const Real&   j    = q[3];                  // Jacobi field value
+
     const Vector& u    = s.getU(subsysIndex);
+    const Vec3&   v    = Vec3::getAs(&u[0]);    // point velocity in S
+
     Vector&       udot = s.updUDot(subsysIndex);
+    Vec3&         a    = Vec3::updAs(&udot[0]); // point acceleration in S
+    Real&         jdotdot = udot[3];            // Jacobi field 2nd derivative
 
-    const Vec3 r(q[0], q[1], q[2]);
-    const Vec3 v(u[0], u[1], u[2]);
-    const Real j = q[3];
-    Vec3 a(0); // accelerations
-    Real jdotdot;
-
-    const Real  g  =  geom.calcSurfaceValue((Vector)r);
-    const Vec3  GT = -geom.calcSurfaceNormal((Vector)r);
-    const Mat33 H  =  geom.calcSurfaceHessian((Vector)r);
-    const Real Gdotu = ~v*(H*v);
-    const Real L = (Gdotu + beta*~GT*v + alpha*g)/(~GT*GT);
-    a = GT*-L;
+    const Real  ep =  geom.calcSurfaceValue(p); // position constraint error
+    const Vec3  GT =  geom.calcSurfaceGradient(p);
+    const Real  ev =  ~GT*v;                    // d/dt ep
+    const Mat33 H  =  geom.calcSurfaceHessian(p);
+    const Real Gdotv = ~v*(H*v);
+    const Real L = (Gdotv + beta*ev + alpha*ep)/(~GT*GT);
+    a = GT*-L;          // sets udot[0..2]
 
     // Now evaluate the Jacobi field.
-    const Real Kg = geom.calcGaussianCurvature(r);
-    jdotdot = -Kg*j;
+    const Real Kg = geom.calcGaussianCurvature(p);
+    jdotdot = -Kg*j;    // sets udot[3]
 
-    udot[0] = a[0]; udot[1] = a[1]; udot[2] = a[2];
-    udot[3] = jdotdot;
+    // qdotdot is just udot.
     s.updQDotDot() = udot;
-
-    System::Guts::realizeAccelerationImpl(s);
     return 0;
 }
 

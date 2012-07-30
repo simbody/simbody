@@ -403,7 +403,6 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
         // backtracking
         lam = nextlam;
-        int teenyChangeCount = 0;
         while (true) {
             xchg = lam*dx;
             ppe.x = xold - xchg;
@@ -653,16 +652,16 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
 
     bool useSplitGeodesicError = true;
 
-    UnitVec3 nP(surface.calcSurfaceNormal((Vector)xP));
-    UnitVec3 nQ(surface.calcSurfaceNormal((Vector)xQ));
+    UnitVec3 nP = surface.calcSurfaceUnitNormal(xP);
+    UnitVec3 nQ = surface.calcSurfaceUnitNormal(xQ);
 
     Vec6 err;
     err[0] = ~eIn*nP;   // tangent error in normal direction
     err[1] = ~eOut*nQ;
     // These are the implicit surface errors forcing P and Q to lie on the
     // surface.
-    err[4] = surface.calcSurfaceValue((Vector)xP);
-    err[5] = surface.calcSurfaceValue((Vector)xQ);
+    err[4] = surface.calcSurfaceValue(xP);
+    err[5] = surface.calcSurfaceValue(xQ);
 
     // Put tangents in tangent plane at contact points ("covariant").
     UnitVec3 ceIn( eIn - (~eIn*nP)*nP );

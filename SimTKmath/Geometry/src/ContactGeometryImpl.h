@@ -102,10 +102,11 @@ public:
     const OBBTree& getOBBTree() const {return obbTree;}
 
 
-    Real calcSurfaceValue(const Vector& point) const;
-    Vec3 calcSurfaceNormal(const Vector& point) const;
-    Mat33 calcSurfaceHessian(const Vector& point) const;
-    Real calcGaussianCurvature(const Vec3& point) const;
+    Real  calcSurfaceValue(const Vec3& point) const;
+    UnitVec3 calcSurfaceUnitNormal(const Vec3& point) const;
+    Vec3  calcSurfaceGradient(const Vec3& point) const;
+    Mat33 calcSurfaceHessian(const Vec3& point) const;
+    Real  calcGaussianCurvature(const Vec3& point) const;
 
     // Geodesic evaluators
 
