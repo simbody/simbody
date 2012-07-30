@@ -124,18 +124,18 @@ public:
 
     // Compute a geodesic curve starting at the given point, starting in the
     // given direction, and terminating at the given length.
-    void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+    virtual void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
             const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
 
     // Compute a geodesic curve starting at the given point, starting in the
     // given direction, and terminating when it hits the given plane.
-   void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
+    virtual void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
             const Plane& terminatingPlane, const GeodesicOptions& options,
             Geodesic& geod) const;
 
     // Utility method to find geodesic between P and Q with initial shooting
     // directions tPhint and tQhint
-    void calcGeodesic(const Vec3& xP, const Vec3& xQ,
+    virtual void calcGeodesic(const Vec3& xP, const Vec3& xQ,
             const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
 
     // Utility method to calculate the "geodesic error" between one geodesic
@@ -481,6 +481,17 @@ public:
     }
     void calcCurvature(const Vec3& point, Vec2& curvature, 
                        Rotation& orientation) const;
+
+    virtual void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
+
+    virtual void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
+            const Plane& terminatingPlane, const GeodesicOptions& options,
+            Geodesic& geod) const;
+
+    virtual void calcGeodesic(const Vec3& xP, const Vec3& xQ,
+                const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+
     const Function& getImplicitFunction() const {
         return function;
     }

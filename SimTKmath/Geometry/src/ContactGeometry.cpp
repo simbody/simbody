@@ -766,7 +766,7 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 
     // initial conditions
     x[0] = Pi/2; // thetaP
-    x[1] = Pi/2; // thetaQ
+    x[1] = -Pi/2; // thetaQ: shoot toward P, i.e. in the opposite direction of tQ
 
     Real f, fold, lam = 1;
 
@@ -1121,6 +1121,88 @@ void ContactGeometry::Sphere::Impl::createOBBTree() {
     root.centerUW = Vec2(0,0);
     root.dims = Vec2(Pi, Pi/2); // u in [-Pi,Pi], v in [-Pi/2,Pi/2]
 }
+
+
+// explicit calculation of geodesic for sphere
+
+// the circular arc is parameterized as pt = eU*r*cos(t) + eV*r*sin(t), where ~eU*eV=0
+static void setGeodesicToArc(const UnitVec3& eU, const UnitVec3& eV,
+        double radius, double angle, Geodesic& geod) {
+
+    const int numGeodesicSamples = 20;
+
+    for (int i = 0; i < numGeodesicSamples; ++i) {
+        double t = i*angle/(numGeodesicSamples-1);
+        Vec3 pt = radius*eU*std::cos(t) + radius*eV*std::sin(t);
+        UnitVec3 n(pt);
+        Vec3 tangent = radius*eU*std::sin(t) - radius*eV*std::cos(t);
+
+        // Rotation will orthogonalize so x direction we get may not be
+        // exactly the same as what we supply here.
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, XAxis), pt));
+        geod.addArcLength( radius*t );
+
+        geod.addDirectionalSensitivityPtoQ(Vec2(0)); // TODO
+        geod.addDirectionalSensitivityQtoP(Vec2(0)); // TODO
+
+    }
+
+    geod.setIsConvex(false); // TODO
+    geod.setIsShortest(false); // TODO
+    geod.setAchievedAccuracy(1e-15); // TODO: accuracy of length?
+//    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken()); // TODO
+}
+
+void ContactGeometry::Sphere::Impl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
+        const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const {
+
+    Vec3 nvec = xP % xQ;
+    UnitVec3 n(nvec);
+    UnitVec3 e_OP(xP);
+    UnitVec3 e_OQ(xQ);
+    UnitVec3 tP(n % e_OP); // tP for short geodesic
+    UnitVec3 tQ(n % e_OQ); // tQ for short geodesic
+
+    Real angle = std::atan2(nvec.norm(),~e_OP*e_OQ); // angle between OP and OQ
+    Real aPhint = ~tPhint*tP; // angle between tP and tPhint
+    Real aQhint = ~tQhint*tQ;
+
+    if ((aPhint < 0 && aQhint < 0) ||
+        (aPhint < 0 && std::abs(aPhint) > std::abs(aQhint)) ||
+        (aQhint < 0 && std::abs(aQhint) > std::abs(aPhint)) )
+        angle -= 2*Pi; // take longer geodesic, otherwise stick with short one
+
+//    std::cout << "theta = " << angle << std::endl;
+
+    setGeodesicToArc(e_OP, tP, radius, angle, geod);
+}
+
+void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+        const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const {
+
+    UnitVec3 e_OP(xP);
+    Real angle = terminatingLength/radius;
+
+    setGeodesicToArc(e_OP, tP, radius, angle, geod);
+}
+
+void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
+        const Plane& terminatingPlane, const GeodesicOptions& options,
+        Geodesic& geod) const {
+
+    UnitVec3 e_OP(xP);
+
+    // solve ~( e_OP * cos(t) + tP * sin(t) - pt_on_plane )*plane_normal = 0
+    // for sphere plane offset is zero, therefore pt_on_plane = 0
+    Real a = ~e_OP*terminatingPlane.getNormal();
+    Real b = ~tP*terminatingPlane.getNormal();
+    Real alpha = std::atan2(a,b);
+    Real angle = (alpha > 0 ? Pi-alpha : -alpha);
+//    std::cout << "a=" << a << ", b=" << b << ", alpha = " << alpha << std::endl;
+
+    setGeodesicToArc(e_OP, tP, radius, angle, geod);
+}
+
 
 Real SphereImplicitFunction::
 calcValue(const Vector& x) const {

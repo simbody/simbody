@@ -137,14 +137,17 @@ public:
         Real offset = (~(P+Q)*normal)/2 ;
         geom.setPlane(Plane(normal, offset));
 
+        UnitVec3 nP = geom.calcSurfaceUnitNormal(P);
+        UnitVec3 nQ = geom.calcSurfaceUnitNormal(Q);
+
         UnitVec3 e_OP(P-O);
         UnitVec3 e_QI(I-Q);
 
-        geod.clear();
-        Vec2 geodErr = geom.calcGeodError(P, Q, e_OP, -e_QI);
+        UnitVec3 tP(e_OP-nP*(~nP*e_OP));
+        UnitVec3 tQ(e_QI-nQ*(~nQ*e_QI));
 
-        Vec3 nP = geom.calcSurfaceUnitNormal(P);
-        Vec3 nQ = geom.calcSurfaceUnitNormal(Q);
+        geod.clear();
+        Vec2 geodErr = geom.calcGeodError(P, Q, tP, -tQ);
 
         fx[0] = ~e_OP*nP;
         fx[1] = ~e_QI*nQ;

@@ -69,8 +69,8 @@ int main() {
 
     Vec3 r_OP = P - O;
     Vec3 r_IQ = Q - I;
-    Vec3 tP = r_OP.normalize();
-    Vec3 tQ = r_IQ.normalize();
+    UnitVec3 e_OP(r_OP);
+    UnitVec3 e_IQ(r_IQ);
 
     Vec3 r_PQ = Q - P;
 
@@ -108,7 +108,7 @@ int main() {
     // add vizualization callbacks for geodesics, contact points, etc.
     Vector tmp(6); // tmp = ~[P Q]
     tmp[0]=P[0]; tmp[1]=P[1]; tmp[2]=P[2]; tmp[3]=Q[0]; tmp[4]=Q[1]; tmp[5]=Q[2];
-    viz.addDecorationGenerator(new PathDecorator(tmp, P, Q, Green));
+    viz.addDecorationGenerator(new PathDecorator(tmp, O, I, Green));
     viz.addDecorationGenerator(new PlaneDecorator(geom.getPlane(), Gray));
     viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodP(), Red));
     viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodQ(), Blue));
@@ -122,7 +122,7 @@ int main() {
     viz.report(dummyState);
 
     const Real startReal = realTime(), startCpu = cpuTime();
-    geom.calcGeodesic(P, Q, tP, tQ, geod);
+    geom.calcGeodesic(P, Q, e_OP, -e_IQ, geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
 
