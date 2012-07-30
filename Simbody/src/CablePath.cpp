@@ -676,7 +676,7 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
         Real     planeHeight = (~(xP+xQ) * planeNormal)/2; 
         //TODO: should pass this as an argument instead
         surface.setPlane(Plane(planeNormal, planeHeight));
-        Vec2 geodErr = surface.calcGeodError(xP, xQ, ceIn, -ceOut, &next);
+        Vec2 geodErr = surface.calcSplitGeodError(xP, xQ, ceIn, -ceOut, &next);
         err[2] = geodErr[0]; 
         err[3] = geodErr[1];
     } else {

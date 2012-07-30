@@ -499,10 +499,63 @@ void calcGeodesic(const Vec3& xP, const Vec3& xQ,
  * case anyone wants it; if the returned error is below tolerance then that
  * geodesic is the good one.
  **/
-Vec2 calcGeodError(const Vec3& P, const Vec3& Q,
+Vec2 calcSplitGeodError(const Vec3& P, const Vec3& Q,
                    const UnitVec3& tP, const UnitVec3& tQ,
                    Geodesic* geod=0) const;
 
+
+
+/** Analytically compute a geodesic curve starting at the given point, starting in the
+ * given direction, and terminating at the given length. Only possible for a few simple
+ * shapes, such as spheres and cylinders.
+
+@param[in] xP            Coordinates of the starting point for the geodesic.
+@param[in] tP            The starting tangent direction for the geodesic.
+@param[in] terminatingLength   The length that the resulting geodesic should have.
+@param[in] options       Parameters related to geodesic calculation
+@param[out] geod         On exit, this contains the calculated geodesic
+**/
+// XXX what to do if tP is not in the tangent plane at P -- project it?
+void shootGeodesicInDirectionUntilLengthReachedAnalytical
+   (const Vec3& xP, const UnitVec3& tP, const Real& terminatingLength,
+    const GeodesicOptions& options, Geodesic& geod) const;
+
+
+/** Analytically compute a geodesic curve starting at the given point, starting in the
+ * given direction, and terminating when it hits the given plane. Only possible
+ * for a few simple shapes, such as spheres and cylinders.
+
+@param[in] xP            Coordinates of the starting point for the geodesic.
+@param[in] tP            The starting tangent direction for the geodesic.
+@param[in] terminatingPlane   The plane in which the end point of the resulting geodesic should lie.
+@param[in] options       Parameters related to geodesic calculation
+@param[out] geod         On exit, this contains the calculated geodesic
+**/
+// XXX what to do if tP is not in the tangent plane at P -- project it?
+// XXX what to do if we don't hit the plane
+void shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
+        const Plane& terminatingPlane, const GeodesicOptions& options,
+        Geodesic& geod) const;
+
+
+/** Utility method to analytically find geodesic between P and Q with initial shooting
+ directions tPhint and tQhint. Only possible for a few simple shapes, such as spheres
+ and cylinders.
+ **/
+void calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
+        const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+
+/**
+ * Utility method to analytically calculate the "geodesic error" between one geodesic
+ * shot from P in the direction tP and another geodesic shot from Q in the
+ * direction tQ. We optionally return the resulting "kinked" geodesic in
+ * case anyone wants it; if the returned error is below tolerance then that
+ * geodesic is the good one. Only possible for a few simple shapes, such as spheres
+ and cylinders.
+ **/
+Vec2 calcSplitGeodErrorAnalytical(const Vec3& P, const Vec3& Q,
+                   const UnitVec3& tP, const UnitVec3& tQ,
+                   Geodesic* geod=0) const;
 
 /**@}**/
 

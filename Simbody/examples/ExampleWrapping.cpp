@@ -147,7 +147,7 @@ public:
         UnitVec3 tQ(e_QI-nQ*(~nQ*e_QI));
 
         geod.clear();
-        Vec2 geodErr = geom.calcGeodError(P, Q, tP, -tQ);
+        Vec2 geodErr = geom.calcSplitGeodErrorAnalytical(P, Q, tP, -tQ);
 
         fx[0] = ~e_OP*nP;
         fx[1] = ~e_QI*nQ;

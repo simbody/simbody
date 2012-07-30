@@ -435,10 +435,38 @@ calcGeodesicReverseSensitivity(Geodesic& geodesic, const Vec2& initSensitivity)
 }
 
 
-Vec2 ContactGeometry::calcGeodError(const Vec3& xP, const Vec3& xQ,
+void ContactGeometry::
+shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
+        const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const {
+    getImpl().shootGeodesicInDirectionUntilLengthReachedAnalytical(xP, tP,
+            terminatingLength, options, geod);
+}
+
+void ContactGeometry::
+shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
+        const Plane& terminatingPlane, const GeodesicOptions& options,
+        Geodesic& geod) const {
+    getImpl().shootGeodesicInDirectionUntilPlaneHitAnalytical(xP, tP,
+            terminatingPlane, options, geod);
+}
+
+void ContactGeometry::
+calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
+            const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const {
+    getImpl().calcGeodesicAnalytical(xP, xQ, tPhint, tQhint, geod);
+}
+
+
+Vec2 ContactGeometry::calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
         const UnitVec3& tP, const UnitVec3& tQ,
         Geodesic* geod) const {
-    return getImpl().calcGeodError(xP, xQ, tP, tQ, geod);
+    return getImpl().calcSplitGeodError(xP, xQ, tP, tQ, geod);
+}
+
+Vec2 ContactGeometry::calcSplitGeodErrorAnalytical(const Vec3& xP, const Vec3& xQ,
+        const UnitVec3& tP, const UnitVec3& tQ,
+        Geodesic* geod) const {
+    return getImpl().calcSplitGeodErrorAnalytical(xP, xQ, tP, tQ, geod);
 }
 
 const Plane& ContactGeometry::getPlane() const  { return getImpl().getPlane(); }
@@ -499,7 +527,7 @@ public:
         UnitVec3 tP = calcUnitTangentVec(x[0], R_SP);
         UnitVec3 tQ = calcUnitTangentVec(x[1], R_SQ);
 
-        Vec2 geodErr = geom.calcGeodError(P, Q, tP, tQ);
+        Vec2 geodErr = geom.calcSplitGeodError(P, Q, tP, tQ);
 
         // error between geodesic end points at plane
         fx[0] = geodErr[0];
@@ -776,7 +804,7 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 //    Differentiator diff( *const_cast<SplitGeodesicError*>(splitGeodErr));
 
 //    splitGeodErr->f(x, Fx);
-    Fx = calcGeodError(xP, xQ, x[0], x[1]);
+    Fx = calcSplitGeodError(xP, xQ, x[0], x[1]);
     if (vizReporter != NULL) {
         vizReporter->handleEvent(ptOnSurfSys->getDefaultState());
         if (pauseBetweenGeodIterations > 0)
@@ -792,7 +820,7 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
             break;
         }
 //        diff.calcJacobian(x,  Fx, J, Differentiator::ForwardDifference);
-        J = calcGeodErrorJacobian(xP, xQ, x[0], x[1],
+        J = calcSplitGeodErrorJacobian(xP, xQ, x[0], x[1],
                 Differentiator::ForwardDifference);
         dx = J.invert()*Fx;
 
@@ -804,7 +832,7 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
         while (true) {
             x = xold - lam*dx;
 //            splitGeodErr->f(x, Fx);
-            Fx = calcGeodError(xP, xQ, x[0], x[1]);
+            Fx = calcSplitGeodError(xP, xQ, x[0], x[1]);
             f = std::sqrt(~Fx*Fx);
             if (f > fold && lam > minlam) {
                 lam = lam / 2;
@@ -836,21 +864,40 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 }
 
 
+void ContactGeometryImpl::shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
+        const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const {
+    std::cout << "warning: no analytical shootGeodesic for ContactGeometry base class, computing numerically." << std::endl;
+    shootGeodesicInDirectionUntilLengthReached(xP, tP, terminatingLength, options, geod);
+}
+
+void ContactGeometryImpl::shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
+        const Plane& terminatingPlane, const GeodesicOptions& options,
+        Geodesic& geod) const {
+    std::cout << "warning: no analytical shootGeodesic for ContactGeometry base class, computing numerically." << std::endl;
+    shootGeodesicInDirectionUntilPlaneHit(xP, tP, terminatingPlane, options, geod);
+}
+
+void ContactGeometryImpl::calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
+            const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const {
+    std::cout << "warning: no analytical calcGeodesic for ContactGeometry base class, computing numerically." << std::endl;
+    calcGeodesic(xP, xQ, tPhint, tQhint, geod);
+}
+
 // Calculate the "geodesic error" for thetaP and thetaQ, and return the
 // resulting (kinked) geodesic if the supplied pointer is non-null.
 Vec2 ContactGeometryImpl::
-calcGeodError(const Vec3& xP, const Vec3& xQ,
+calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
               const Real thetaP, const Real thetaQ,
               Geodesic* geodesic) const
 {
     UnitVec3 tP = calcUnitTangentVec(thetaP, R_SP);
     UnitVec3 tQ = calcUnitTangentVec(thetaQ, R_SQ);
-    return calcGeodError(xP, xQ, tP, tQ, geodesic);
+    return calcSplitGeodError(xP, xQ, tP, tQ, geodesic);
 }
 
 // Calculate the "geodesic error" for tP and tQ
 Vec2 ContactGeometryImpl::
-calcGeodError(const Vec3& xP, const Vec3& xQ,
+calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
               const UnitVec3& tP, const UnitVec3& tQ,
               Geodesic* geodesic) const
 {
@@ -875,10 +922,38 @@ calcGeodError(const Vec3& xP, const Vec3& xQ,
     return calcError(geodP, geodQ);
 }
 
+// Calculate the "geodesic error" for tP and tQ
+Vec2 ContactGeometryImpl::
+calcSplitGeodErrorAnalytical(const Vec3& xP, const Vec3& xQ,
+              const UnitVec3& tP, const UnitVec3& tQ,
+              Geodesic* geodesic) const
+{
+    geodP.clear();
+    geodQ.clear();
+
+    GeodesicOptions opts;
+    shootGeodesicInDirectionUntilPlaneHitAnalytical(xP, tP,
+            geodHitPlaneEvent->getPlane(), opts, geodP);
+    shootGeodesicInDirectionUntilPlaneHitAnalytical(xQ, tQ,
+            geodHitPlaneEvent->getPlane(), opts, geodQ);
+
+    // Finish each geodesic with reverse Jacobi field.
+    calcGeodesicReverseSensitivity(geodP,
+        geodQ.getDirectionalSensitivityPtoQ().back());
+    calcGeodesicReverseSensitivity(geodQ,
+        geodP.getDirectionalSensitivityPtoQ().back());
+
+    if (geodesic)
+        mergeGeodesics(geodP, geodQ, *geodesic);
+
+    return calcError(geodP, geodQ);
+}
+
+
 
 // Calculate the "geodesic jacobian" by numerical perturbation
 Mat22 ContactGeometryImpl::
-calcGeodErrorJacobian(const Vec3& xP, const Vec3& xQ,
+calcSplitGeodErrorJacobian(const Vec3& xP, const Vec3& xQ,
         const Real& thetaP, const Real& thetaQ, Differentiator::Method order) const {
 
 //    UnitVec3 tP = calcUnitTangentVecGG(thetaP, R_SP);
@@ -1153,7 +1228,7 @@ static void setGeodesicToArc(const UnitVec3& eU, const UnitVec3& eV,
 //    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken()); // TODO
 }
 
-void ContactGeometry::Sphere::Impl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
+void ContactGeometry::Sphere::Impl::calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
         const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const {
 
     Vec3 nvec = xP % xQ;
@@ -1177,7 +1252,7 @@ void ContactGeometry::Sphere::Impl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     setGeodesicToArc(e_OP, tP, radius, angle, geod);
 }
 
-void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
         const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const {
 
     UnitVec3 e_OP(xP);
@@ -1186,7 +1261,7 @@ void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilLengthReached(c
     setGeodesicToArc(e_OP, tP, radius, angle, geod);
 }
 
-void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
+void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
         const Plane& terminatingPlane, const GeodesicOptions& options,
         Geodesic& geod) const {
 

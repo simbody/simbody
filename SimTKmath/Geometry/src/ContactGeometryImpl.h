@@ -124,26 +124,44 @@ public:
 
     // Compute a geodesic curve starting at the given point, starting in the
     // given direction, and terminating at the given length.
-    virtual void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+    void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
             const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
 
     // Compute a geodesic curve starting at the given point, starting in the
     // given direction, and terminating when it hits the given plane.
-    virtual void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
+    void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
             const Plane& terminatingPlane, const GeodesicOptions& options,
             Geodesic& geod) const;
 
     // Utility method to find geodesic between P and Q with initial shooting
     // directions tPhint and tQhint
-    virtual void calcGeodesic(const Vec3& xP, const Vec3& xQ,
+    void calcGeodesic(const Vec3& xP, const Vec3& xQ,
             const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+
 
     // Utility method to calculate the "geodesic error" between one geodesic
     // shot from P in the direction tP and another geodesic shot from Q in the
     // direction tQ.
-    Vec2 calcGeodError(const Vec3& xP, const Vec3& xQ,
+    Vec2 calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
                        const UnitVec3& tP, const UnitVec3& tQ,
                        Geodesic* geod=0) const;
+
+    // analytical versions of the geodesic API methods
+
+    virtual void shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
+            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
+
+    virtual void shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
+            const Plane& terminatingPlane, const GeodesicOptions& options,
+            Geodesic& geod) const;
+
+    virtual void calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
+            const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+
+    Vec2 calcSplitGeodErrorAnalytical(const Vec3& P, const Vec3& Q,
+                       const UnitVec3& tP, const UnitVec3& tQ,
+                       Geodesic* geod=0) const;
+
 
     // Utility method to calculate the "geodesic error" between the end-points
     // of two geodesics.
@@ -278,14 +296,14 @@ public:
     // direction thetaQ given the pre-calculated member basis R_SP, R_SQ.
     // We optionally return the resulting "kinked" geodesic, which is the real
     // one if the returned errors are below tolerance.
-    Vec2 calcGeodError(const Vec3& xP, const Vec3& xQ,
+    Vec2 calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
                        const Real thetaP, const Real thetaQ,
                        Geodesic* geodesic=0) const;
 
     // Utility method to calculate the "geodesic error jacobian" between one geodesic
     // shot from P in the direction thetaP and another geodesic shot from Q in the
     // direction thetaQ given the pre-calculated member basis R_SP, R_SQ
-    Mat22 calcGeodErrorJacobian(const Vec3& P, const Vec3& Q,
+    Mat22 calcSplitGeodErrorJacobian(const Vec3& P, const Vec3& Q,
             const Real& thetaP, const Real& thetaQ, Differentiator::Method method) const;
 
     // Get the plane associated with the geodesic hit plane event handler
@@ -482,14 +500,14 @@ public:
     void calcCurvature(const Vec3& point, Vec2& curvature, 
                        Rotation& orientation) const;
 
-    virtual void shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
+    virtual void shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
             const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
 
-    virtual void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
+    virtual void shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
             const Plane& terminatingPlane, const GeodesicOptions& options,
             Geodesic& geod) const;
 
-    virtual void calcGeodesic(const Vec3& xP, const Vec3& xQ,
+    virtual void calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
                 const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
 
     const Function& getImplicitFunction() const {

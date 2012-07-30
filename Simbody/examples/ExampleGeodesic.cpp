@@ -122,7 +122,7 @@ int main() {
     viz.report(dummyState);
 
     const Real startReal = realTime(), startCpu = cpuTime();
-    geom.calcGeodesic(P, Q, e_OP, -e_IQ, geod);
+    geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
 
