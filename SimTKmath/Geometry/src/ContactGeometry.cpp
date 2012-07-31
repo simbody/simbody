@@ -1198,27 +1198,68 @@ void ContactGeometry::Sphere::Impl::createOBBTree() {
 }
 
 
-// explicit calculation of geodesic for sphere
+// Compute geodesic between two points P and Q on a sphere analytically. Since a geodesic on a
+// sphere is a great circle it is parameterized by
+//
+//        p(phi) = R * (e1*cos(phi) + e2*sin(phi)) ,
+// 
+// where R is the radius of the sphere and the angle phi parameterizes the great circle with 
+// respect to an orthonormal basis (e1, e2). By definition P = p(0) and the geodesic goes from
+// P to Q, where Q = p(angle). Make sure e1 . e2 = 0 and |e1| = |e2| = 1. 
+static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
+        double R, double angle, Geodesic& geod) {
 
-// the circular arc is parameterized as pt = eU*r*cos(t) + eV*r*sin(t), where ~eU*eV=0
-static void setGeodesicToArc(const UnitVec3& eU, const UnitVec3& eV,
-        double radius, double angle, Geodesic& geod) {
+    // Make sure that e1 and e2 are orthogonal.
+    assert(std::abs(~e1*e2) <= SignificantReal);
 
-    const int numGeodesicSamples = 20;
+	// Clear current geodesic.
+	geod.clear();
 
-    for (int i = 0; i < numGeodesicSamples; ++i) {
-        double t = i*angle/(numGeodesicSamples-1);
-        Vec3 pt = radius*eU*std::cos(t) + radius*eV*std::sin(t);
-        UnitVec3 n(pt);
-        Vec3 tangent = radius*eU*std::sin(t) - radius*eV*std::cos(t);
+	// TODO: Make this generic, so long geodesics are sampled more than short ones.
+    const int numGeodesicSamples = 12;
 
-        // Rotation will orthogonalize so x direction we get may not be
-        // exactly the same as what we supply here.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, XAxis), pt));
-        geod.addArcLength( radius*t );
+	// Total arc length.
+	const Real L = R*angle;
 
-        geod.addDirectionalSensitivityPtoQ(Vec2(0)); // TODO
-        geod.addDirectionalSensitivityQtoP(Vec2(0)); // TODO
+    for (int i = 0; i < numGeodesicSamples; ++i){
+        Real phi = i*angle/(numGeodesicSamples-1);
+
+		// Trust me, this is already normalized by definition of the input.
+		UnitVec3 normal(e1*std::cos(phi) + e2*std::sin(phi), true); 
+
+        Vec3 p = R*normal;
+
+		// Tangent defined by dp/dphi, hence tangent is pointing into direction of increasing phi.
+        Vec3 tangent = -e1*std::sin(phi) + e2*std::cos(phi);
+
+        // Though not needed, we use an orthogonalizing constructor for the rotation.
+        geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, XAxis), p));
+
+		// Current arc length s.
+		Real s = R*phi;
+        geod.addArcLength(s);
+
+		// Solve the scalar Jacobi equation
+		//
+		//        j''(s) + K(s)*j(s) = 0 ,                                     (1)
+		// 
+		// where K is the Gaussian curvature and (.)' := d(.)/ds denotes differentiation
+		// with respect to the arc length s. Then, j is the directional sensitivity and
+		// we obtain the corresponding variational vector field by multiplying b*j. For 
+		// a sphere, K = R^(-2) and the solution of equation (1) becomes
+		// 
+		//        j  = R   * sin(R*s)                                          (2)
+		//		  j' = R^2 * cos(R*s) ,                                        (3)
+		//
+		// where equation (2) is the standard solution of a non-damped oscillator.
+
+		// Forward directional sensitivity from P to Q
+		Vec2 jPQ(R*sin(R*s), R*R*cos(R*s));
+		geod.addDirectionalSensitivityPtoQ(jPQ);
+
+		// Backwards directional sensitivity from Q to P
+		Vec2 jQP(R*sin(R*(L-s)), R*R*cos(R*(L-s)));
+		geod.addDirectionalSensitivityQtoP(jQP);
 
     }
 
@@ -1228,13 +1269,16 @@ static void setGeodesicToArc(const UnitVec3& eU, const UnitVec3& eV,
 //    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken()); // TODO
 }
 
+
 void ContactGeometry::Sphere::Impl::calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
         const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const {
 
-    Vec3 nvec = xP % xQ;
-    UnitVec3 n(nvec);
     UnitVec3 e_OP(xP);
     UnitVec3 e_OQ(xQ);
+
+    Vec3 nvec = e_OP % e_OQ;
+    UnitVec3 n(nvec);
+    
     UnitVec3 tP(n % e_OP); // tP for short geodesic
     UnitVec3 tQ(n % e_OQ); // tQ for short geodesic
 

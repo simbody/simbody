@@ -57,7 +57,7 @@ int main() {
   try {
 
     // setup test problem
-    double r = 1;
+    double r = 0.5;
     double uP = -Pi / 2;
     double vP = Pi / 3;
     double uQ = 0;
@@ -156,4 +156,5 @@ int main() {
 
     return 0;
 }
+
 
