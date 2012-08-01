@@ -1248,17 +1248,18 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 		// we obtain the corresponding variational vector field by multiplying b*j. For 
 		// a sphere, K = R^(-2) and the solution of equation (1) becomes
 		// 
-		//        j  = R   * sin(R*s)                                          (2)
-		//		  j' = R^2 * cos(R*s) ,                                        (3)
+		//        j  = R * sin(1/R * s)                                        (2)
+		//		  j' =     cos(1/R * s) ,                                      (3)
 		//
-		// where equation (2) is the standard solution of a non-damped oscillator.
+		// where equation (2) is the standard solution of a non-damped oscillator. Its 
+		// period is 2*pi*R and its amplitude is R.
 
 		// Forward directional sensitivity from P to Q
-		Vec2 jPQ(R*sin(R*s), R*R*cos(R*s));
+		Vec2 jPQ(R*sin(1/R * s), cos(1/R * s));
 		geod.addDirectionalSensitivityPtoQ(jPQ);
 
 		// Backwards directional sensitivity from Q to P
-		Vec2 jQP(R*sin(R*(L-s)), R*R*cos(R*(L-s)));
+		Vec2 jQP(R*sin(1/R * (L-s)), cos(1/R * (L-s)));
 		geod.addDirectionalSensitivityQtoP(jQP);
 
     }
