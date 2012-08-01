@@ -110,6 +110,15 @@ public:
         J.clear(); J.resize(nx,nx);
     }
 
+    // Return the obstacle index of the first active obstacle following the
+    // given obstacle. Returns an invalid index if there are no more.
+    CableObstacleIndex findNextActiveObstacle(CableObstacleIndex thisOx) const {
+        for (CableObstacleIndex ox(thisOx+1); ox < mapToActive.size(); ++ox)
+            if (mapToActive[ox].isValid())
+                return ox;
+        return CableObstacleIndex();
+    }
+
     // This is the total length of the path corresponding to the current
     // configuration and values for contact point coordinates x stored here.
     Real length;
@@ -177,11 +186,13 @@ public:
 
     void initialize(int na, int nas, int nx) {
         xdot.clear(); xdot.resize(nx);
+        errdotK.clear(); errdotK.resize(nx);
         lengthDot = NaN;
         unitPower = NaN;
     }
 
-    Vector xdot;    // calculated time derivatives of x
+    Vector errdotK; // frozen-contact point portion of patherrdot
+    Vector xdot;    // calculated time derivatives of x; xdot=-J\errdotK
     Real lengthDot;
     Real unitPower; // unitForces*body velocities
 };
@@ -437,6 +448,15 @@ friend class CablePath;
     void solveForPathPoints
        (const State&, const PathInstanceInfo&, PathPosEntry&) const;
 
+    // Given a solved path, compute the term of the path error time derivative
+    // due only to kinematics, with path points frozen on their surfaces.
+    // Results go into the errdotK member of the velocity cache entry. This
+    // is used to solve the for xdot such that the total path error time
+    // derivative is zero.
+    void findKinematicVelocityErrors
+        (const State&, const PathInstanceInfo&, const PathPosEntry&,
+         PathVelEntry&) const;
+
 
     // Subsystem to which this path belongs, and the index within that
     // subsystem.
@@ -564,6 +584,7 @@ public:
                                 const UnitVec3& exitDir_S,
                                 Geodesic&       next) const;
 
+
     // Calculate partial derivatives of the surface path error with respect to
     // each of its four arguments.
     void calcSurfacePathErrorJacobian
@@ -577,6 +598,18 @@ public:
         Mat63&          DerrDxQ,    // 4x2       "
         Mat63&          DerrDexit)  // 4x3       "
         const;
+
+    // Calculate the surface-local contribution to the path error time 
+    // derivative due only to material point velocities, with the surface
+    // coordinates xP and xQ held constant at the given values.
+    Vec6 calcSurfaceKinematicVelocityError
+       (  const Geodesic& geodesic,
+          const UnitVec3& entryDir_S,
+          const Vec3&     entryDirDot_S,    // time derivative in S
+          const Vec3&     xP,
+          const Vec3&     xQ,
+          const UnitVec3& exitDir_S,
+          const Vec3&     exitDirDot_S) const;
 
     bool hasNearPoint() const {return !nearPointInS.isNaN(); }
     const Vec3& getNearPoint() const {return nearPointInS;}

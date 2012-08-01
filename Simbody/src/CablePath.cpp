@@ -299,6 +299,12 @@ ensureVelocityKinematicsCalculated(const State& state) const {
     //   Calc RHS in J xdot = Kdot.
     //   Solve xdot = J\ Kdot. 
 
+    if (ppe.x.size()) {
+        findKinematicVelocityErrors(state, instInfo, ppe, pve);
+        ppe.JInv.solve(pve.errdotK, pve.xdot);
+        cout << "*** xdot=" << pve.xdot << endl;
+    }
+
     //TODO: calc length dot
     Vec3 vprev_GQ;
     for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
@@ -389,19 +395,24 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
     int maxIter = 20;
     for (int i = 0; i < maxIter; ++i) {
-        if (f <= ftol) {
+        // We always need a Jacobian even if the path is already good enough
+        // because we use it to solve for xdot. So we might as well do one
+        // iteration.
+        if (i > 0 && f <= ftol) {
             std::cout << "\nPATH converged in " << i << " iterations\n\n";
             break;
         }
-        cout << "obstacle err = " << f << ", x = " << ppe.x << endl;
-
+        //cout << "obstacle err = " << f << ", x = " << ppe.x << endl;
 
         diff.calcJacobian(ppe.x, ppe.err, ppe.J, 
                           Differentiator::ForwardDifference);
+        ppe.JInv.factor(ppe.J);
+
         fold = f;
         xold = ppe.x;
-//        cout << "J = " << J << endl;
-        dx = ppe.J.invert()*ppe.err;
+
+        ppe.JInv.solve(ppe.err, dx);
+
         const Real dxnorm = dx.norm();
         cout << "|dx| = " << dxnorm << endl;
 
@@ -418,12 +429,132 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
                 break;
             lam = lam / 2;
         }
-        cout << "step size=" << lam << endl;
+        //cout << "step size=" << lam << endl;
 
         if (lam == nextlam)
             nextlam = std::min(2*lam, 1.);
     }
-    cout << "obstacle error = " << ppe.err << endl;
+    //cout << "obstacle error = " << ppe.err << endl;
+}
+
+
+
+//------------------------------------------------------------------------------
+//                      FIND KINEMATIC VELOCITY ERRORS
+//------------------------------------------------------------------------------
+// Given a patherr function err(K;x), the time derivative at x=x0 is 
+//    errdot(K,Kdot,x0; xdot) = Derr/Dx xdot + errdotK
+//            where   errdotK = Derr/DK Kdot
+// Here we calculate errdotK, which is the errdot we would get if
+// xdot==0, i.e., with the contact points frozen on their surfaces. This term
+// depends only on the ordinary material point kinematics. We will later use
+// this to solve for the value of xdot that makes errdot==0.
+void CablePath::Impl::
+findKinematicVelocityErrors
+   (const State& state, const PathInstanceInfo& instInfo, 
+    const PathPosEntry& ppe, PathVelEntry& pve) const
+{
+    if (ppe.x.size() == 0)
+        return; // only via points; no xdots to worry about
+
+    // Run through all the active surface obstacles calculating time 
+    // derivatives of the input unit vectors eIn and eOut and passing those 
+    // to the obstacles to obtain the kinematic velocity errors.
+
+    // The origin point is always active. Start off with that as the "previous"
+    // active obstacle.
+    CableObstacleIndex prevActiveOx = CableObstacleIndex(0);
+
+    // Now go through the active obstacles and stop to process whenever one
+    // of those is a surface obstacle.
+    CableObstacleIndex thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);
+
+    // Stop when we reach the termination point -- that's not a surface.
+    while (thisActiveOx < obstacles.size()-1) {
+        // Is this active obstacle a surface? If not keep going.
+        const ActiveSurfaceIndex asx = ppe.mapToActiveSurface[thisActiveOx];
+        if (!asx.isValid()) {
+            prevActiveOx = thisActiveOx;
+            thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);
+            continue; // skip via points and inactive surfaces
+        }
+
+        // This active obstacle is a surface. Find the next active obstacle.
+        const CableObstacleIndex nextActiveOx = 
+            ppe.findNextActiveObstacle(thisActiveOx);
+
+        // Now we have prev, this, and next with prev and next active and
+        // this an active surface. We want all the points in the S frame
+        // and the velocities of Qprev and Pnext in the S frame (P and Q
+        // velocities are zero in S).
+        const CableObstacle::Impl& prevObs = getObstacleImpl(prevActiveOx);
+        const CableObstacle::Surface::Impl& thisObs = 
+            dynamic_cast<const CableObstacle::Surface::Impl&>
+                (getObstacleImpl(thisActiveOx));
+        const CableObstacle::Impl& nextObs = getObstacleImpl(nextActiveOx);
+
+        // We're going to work in the body frames Bprev, Bthis, Bnext and
+        // then reexpress in S when we get to the "in" and "out" vectors.
+        const Rotation& R_BS = thisObs.getObstaclePoseOnBody(state,instInfo).R();
+        const Rotation R_SB = ~R_BS;
+
+        // Abbreviate Bp=Bprev, Bn=Bnext, B=Bthis.
+        const MobilizedBody& Bp = prevObs.getMobilizedBody();
+        const MobilizedBody& B = thisObs.getMobilizedBody();
+        const MobilizedBody& Bn = nextObs.getMobilizedBody();
+        Vec3 Pp, Qp, P, Q, Pn, Qn; // points in local body frames
+        prevObs.getContactStationsOnBody(state, instInfo, ppe, Pp, Qp);
+        thisObs.getContactStationsOnBody(state, instInfo, ppe, P, Q);
+        nextObs.getContactStationsOnBody(state, instInfo, ppe, Pn, Qn);
+
+        // Find prev and next points measured from & expressed in Bthis.
+        const Vec3 r_BQp = Bp.findStationLocationInAnotherBody(state, Qp, B);
+        const Vec3 r_BPn = Bn.findStationLocationInAnotherBody(state, Pn, B);
+
+        // Find prev and next point velocities measured & expressed in Bthis.
+        const Vec3 v_BQp = Bp.findStationVelocityInAnotherBody(state, Qp, B);
+        const Vec3 v_BPn = Bn.findStationVelocityInAnotherBody(state, Pn, B);
+
+        // Get relative position vectors in B and re-express in S.
+        const Vec3 rIn  = R_SB*(P - r_BQp);
+        const Vec3 rOut = R_SB*(r_BPn - Q);
+
+        // These are the time derivatives in S of rIn and rOut. P, Q, and R_SB
+        // are all constants so P and Q drop out.
+        const Vec3 vIn  = -(R_SB*v_BQp);
+        const Vec3 vOut =   R_SB*v_BPn;
+
+        // Now create unit vectors along rIn and rOut and their time 
+        // derivatives in S.
+        const Real ooNormIn  = 1/rIn.norm();    // oo == "one over"
+        const Real ooNormOut = 1/rOut.norm(); 
+
+        // Create unit vectors in S; "true" here means no need to normalize.
+        const UnitVec3 eIn (ooNormIn *rIn,  true);
+        const UnitVec3 eOut(ooNormOut*rOut, true); 
+
+        const Vec3 eInDot  = ooNormIn* (vIn  - (~eIn *vIn )*eIn);
+        const Vec3 eOutDot = ooNormOut*(vOut - (~eOut*vOut)*eOut);
+
+        // Now ask the obstacle to calculate the kinematic velocity errors
+        // given the in/out direction time derivatives.
+        
+        const int xSlot = ppe.mapToCoords[thisActiveOx];
+        assert(xSlot >= 0); // Should have had coordinates assigned
+
+        Vec6::updAs(&pve.errdotK[xSlot]) =
+            thisObs.calcSurfaceKinematicVelocityError
+               (ppe.geodesics[asx],             // solved geodesic
+                eIn,                            // in S frame
+                eInDot,
+                Vec3::getAs(&ppe.x[xSlot]),     // xP
+                Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
+                eOut,                           // in S frame
+                eOutDot);
+        
+        prevActiveOx = thisActiveOx;
+        thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);       
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -623,9 +754,9 @@ setContactPointHints(const Vec3& Phint_S, const Vec3& Qhint_S) {
     return *this; 
 }
 
-//------------------------------------------------------------------------------
+//==============================================================================
 //                   CABLE OBSTACLE :: SURFACE :: IMPL
-//------------------------------------------------------------------------------
+//==============================================================================
 void CableObstacle::Surface::Impl::initSurfacePath
    (const Vec3&        xP, 
     const Vec3&        xQ,
@@ -638,6 +769,9 @@ void CableObstacle::Surface::Impl::initSurfacePath
         GeodesicOptions(), path);
 }
 
+//------------------------------------------------------------------------------
+//                       CALC SURFACE PATH ERROR
+//------------------------------------------------------------------------------
 Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
    (const Geodesic& previous,
     const UnitVec3& eIn,    // from Qi-1 to Pi, in S
@@ -653,9 +787,6 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     //surface.continueGeodesic(xP, xQ, previous,
     //    GeodesicOptions(), next);
 
-
-    bool useSplitGeodesicError = true;
-
     UnitVec3 nP = surface.calcSurfaceUnitNormal(xP);
     UnitVec3 nQ = surface.calcSurfaceUnitNormal(xQ);
 
@@ -667,33 +798,56 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     err[4] = surface.calcSurfaceValue(xP);
     err[5] = surface.calcSurfaceValue(xQ);
 
-    // Put tangents in tangent plane at contact points ("covariant").
-    UnitVec3 ceIn( eIn - (~eIn*nP)*nP );
-    UnitVec3 ceOut( eOut - (~eOut*nQ)*nQ );
-
-    if (useSplitGeodesicError) {
-        UnitVec3 planeNormal(xQ - xP);
-        Real     planeHeight = (~(xP+xQ) * planeNormal)/2; 
-        //TODO: should pass this as an argument instead
-        surface.setPlane(Plane(planeNormal, planeHeight));
-        Vec2 geodErr = surface.calcSplitGeodError(xP, xQ, ceIn, -ceOut, &next);
-        err[2] = geodErr[0]; 
-        err[3] = geodErr[1];
-    } else {
-        surface.calcGeodesic(xP, xQ, ceIn, -ceOut, next);
-        //cout << "  geodesic had length " << next.getLength() << endl;
-        const Transform& Fp = next.getFrenetFrames().front();
-        const Transform& Fq = next.getFrenetFrames().back();
-        const UnitVec3& tP = Fp.x();
-        const UnitVec3& tQ = Fq.x();
-        const UnitVec3& bP = Fp.y();
-        const UnitVec3& bQ = Fq.y();
-        err[2] = ~eIn*bP;   // tangent errors in geodesic direction
-        err[3] = ~eOut*bQ;
-    }
+    //surface.calcGeodesic(xP, xQ, ceIn, ceOut, next);
+    surface.calcGeodesicAnalytical(xP, xQ, eIn, eOut, next);
+    //cout << "  geodesic had length " << next.getLength() << endl;
+    const Transform& Fp = next.getFrenetFrames().front();
+    const Transform& Fq = next.getFrenetFrames().back();
+    const UnitVec3& tP = Fp.x();
+    const UnitVec3& tQ = Fq.x();
+    const UnitVec3& bP = Fp.y();
+    const UnitVec3& bQ = Fq.y();
+    err[2] = ~eIn*bP;   // tangent errors in geodesic direction
+    err[3] = ~eOut*bQ;
 
     //cout << "  surfErr=" << err << endl;
     return err;
+}
+
+//------------------------------------------------------------------------------
+//                  CALC SURFACE KINEMATIC VELOCITY ERROR
+//------------------------------------------------------------------------------
+Vec6 CableObstacle::Surface::Impl::calcSurfaceKinematicVelocityError
+   (const Geodesic& geodesic,
+    const UnitVec3& eIn,        // from Qi-1 to Pi, in S
+    const Vec3&     eInDot,     // time derivative of eIn, taken in S
+    const Vec3&     xP,         // coordinates of Pi
+    const Vec3&     xQ,         // coordinates of Qi
+    const UnitVec3& eOut,       // from Qi to Pi+1, in S
+    const Vec3&     eOutDot)    // time derivative of eOut, taken in S
+    const
+{
+    Vec6 errdotK;
+
+    const Transform& Fp = geodesic.getFrenetFrames().front();
+    const Transform& Fq = geodesic.getFrenetFrames().back();
+    const UnitVec3& nP = Fp.z();
+    const UnitVec3& nQ = Fq.z();
+    const UnitVec3& bP = Fp.y();
+    const UnitVec3& bQ = Fq.y();
+
+    // These must be the kinematic part of the time derivatives of the
+    // error conditions that were reported for this obstacle during path
+    // error calculation.
+    errdotK[0] = ~eInDot*nP; 
+    errdotK[1] = ~eOutDot*nQ;
+    errdotK[2] = ~eInDot*bP;
+    errdotK[3] = ~eOutDot*bQ;
+    // Implicit surface error is frozen since xP and xQ are.
+    errdotK[4] = 0;
+    errdotK[5] = 0;
+
+    return errdotK;
 }
 
 // Numerical Jacobian calculation.

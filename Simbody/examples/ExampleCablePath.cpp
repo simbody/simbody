@@ -231,14 +231,15 @@ int main() {
     Body::Rigid someBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     const Real Rad = .25;
     someBody.addDecoration(Transform(), 
-        DecorativeSphere(Rad).setOpacity(.5).setResolution(4));
+        DecorativeSphere(Rad).setOpacity(.75).setResolution(4));
 
-    const Vec3 radii(1, .5, .5);;
+    const Vec3 radii(.4, .25, .15);;
     Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
         1.*UnitInertia::ellipsoid(radii)));
     ellipsoidBody.addDecoration(Transform(), 
-        DecorativeEllipsoid(radii).setOpacity(.5).setResolution(4));
-    ellipsoidBody = someBody;
+        DecorativeEllipsoid(radii).setOpacity(.75).setResolution(4)
+                                  .setColor(Orange));
+    ellipsoidBody = someBody; // NOT USING ELLIPSOID
 
     MobilizedBody Ground = matter.Ground();
 
@@ -261,14 +262,18 @@ int main() {
     //CableObstacle::ViaPoint p3(path1, body3, Rad*UnitVec3(1,0,1));
     CableObstacle::Surface obs4(path1, body3, Transform(), 
         ContactGeometry::Sphere(Rad));
-    obs4.setContactPointHints(Rad*UnitVec3(-1,1,0),Rad*UnitVec3(-1,0,1));
+    //obs4.setContactPointHints(Rad*UnitVec3(-1,1,0),Rad*UnitVec3(-1,0,1));
+    obs4.setContactPointHints(Rad*UnitVec3(-.25,.04,0.08),
+                              Rad*UnitVec3(-.05,-.25,-.04));
 
     //CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
     //CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
     CableObstacle::Surface obs5(path1, body4, Transform(), 
         //ContactGeometry::Ellipsoid(radii));
         ContactGeometry::Sphere(Rad));
-    obs5.setContactPointHints(Rad*UnitVec3(0,-1,-1),Rad*UnitVec3(0.1,-1,-1));
+    //obs5.setContactPointHints(Rad*UnitVec3(0,-1,-1),Rad*UnitVec3(0.1,-1,-1));
+    obs5.setContactPointHints(Rad*UnitVec3(.1,.125,-.2),
+                              Rad*UnitVec3(0.1,-.1,-.2));
 
     // NOTE: velocity-based force is disabled.
     MyCableSpring cable1(forces, path1, 100., 3.5, 0*0.1); 
