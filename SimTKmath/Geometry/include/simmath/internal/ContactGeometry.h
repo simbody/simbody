@@ -239,9 +239,11 @@ Ref: Goldman, R. "Curvature formulas for implicit curves and surfaces",
 Comp. Aided Geometric Design 22 632-658 (2005).
 
 Gaussian curvature is the product of the two principal curvatures, Kg=k1*k2.
-So for example, the Gaussian curvature anywhere on a sphere is 1/r^2.
+So for example, the Gaussian curvature anywhere on a sphere is 1/r^2. Note
+that despite the name, Gaussian curvature has units of 1/length^2 rather than
+curvature units of 1/length.
 
-Here is what the adjoint matrix looks like:
+Here is what the (symmetric) adjoint matrix looks like:
 <pre>
 adjH  =  [ fyy*fzz - fyz^2, fxz*fyz - fxy*fzz, fxy*fyz - fxz*fyy  ]
          [      (1,2),      fxx*fzz - fxz^2,   fxy*fxz - fxx*fyz  ]
@@ -407,7 +409,7 @@ static void combineParaboloids(const Rotation& R_SP1, const Vec2& k1,
                                Vec2& k);
 
 
-/** @name Geodesic Evaluators **/
+/** @name                  Geodesic Evaluators **/
 /**@{**/
 
 /** Given two points, find a geodesic curve connecting them.
