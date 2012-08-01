@@ -123,15 +123,21 @@ int main() {
 
     const Real startReal = realTime(), startCpu = cpuTime();
     geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
+    //geom.calcGeodesic(P, Q, e_OP, -e_IQ, geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
 
+    const Array_<Transform>& frenet = geod.getFrenetFrames();
     const Array_<Real>& arcLength = geod.getArcLengths();
     const Array_<Vec2>& dirPtoQ = geod.getDirectionalSensitivityPtoQ();
     const Array_<Vec2>& dirQtoP = geod.getDirectionalSensitivityQtoP();
     for (int i=0; i < (int)dirPtoQ.size(); ++i) {
-        cout << arcLength[i] << ": " << dirPtoQ[i] << " " 
+        cout << "\n" << arcLength[i] << ": " << dirPtoQ[i] << " " 
                                      << dirQtoP[i] << endl;
+        cout << "p=" << frenet[i].p() << "\n";
+        cout << "t=" << frenet[i].x() << "\n";
+        cout << "b=" << frenet[i].y() << "\n";
+        cout << "n=" << frenet[i].z() << "\n";
     }
 
 //    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, 1/30.));
