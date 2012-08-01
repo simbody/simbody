@@ -1354,6 +1354,12 @@ public:
                 new Value<Result>(), operand.getDependsOnStage(0));
     }
 
+    /** In case no one has updated the value of this measure yet, we have
+    to make sure it gets updated before the integration moves ahead. **/
+    void realizeMeasureAccelerationVirtual(const State& s) const OVERRIDE_11 {
+        ensureDerivativeIsRealized(s);
+    }
+
     void ensureDerivativeIsRealized(const State& s) const {
         assert(resultIx.isValid());
         const Subsystem& subsys = this->getSubsystem();
@@ -1535,6 +1541,12 @@ public:
         extremeIx = this->getSubsystem()
             .allocateAutoUpdateDiscreteVariable(s, Stage::Dynamics,
                 new Value<T>(initVal), operand.getDependsOnStage(0));
+    }
+
+    /** In case no one has updated the value of this measure yet, we have
+    to make sure it gets updated before the integration moves ahead. **/
+    void realizeMeasureAccelerationVirtual(const State& s) const OVERRIDE_11 {
+        ensureExtremeHasBeenUpdated(s);
     }
 
     /** Here we make sure that the cache entry is updated if the current value
