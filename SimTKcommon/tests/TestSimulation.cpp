@@ -567,6 +567,9 @@ void testOne() {
                                         Vector(2,Zero));
 
     Measure_<Real>::Minimum minCos2pit(subsys, cos2pit);
+    Measure_<Real>::Maximum maxCos2pit(subsys, cos2pit);
+    Measure_<Real>::MinAbs minAbsCos2pit(subsys, cos2pit);
+    Measure_<Real>::MaxAbs maxAbsCos2pit(subsys, cos2pit);
 
     Measure::Differentiate dInteg(subsys, sin2pitOver2pi);
     dInteg.setForceUseApproximation(true);
@@ -725,6 +728,12 @@ void testOne() {
                  << " cos(2pi*t)=" << std::cos(2*Pi*state.getTime()) << endl;
             cout << "Min(cos2pit)=" << minCos2pit.getValue(state) 
                  << " @t=" << minCos2pit.getTimeOfExtremeValue(state) << endl;
+            cout << "Max(cos2pit)=" << maxCos2pit.getValue(state) 
+                 << " @t=" << maxCos2pit.getTimeOfExtremeValue(state) << endl;
+            cout << "MinAbs(cos2pit)=" << minAbsCos2pit.getValue(state) 
+                 << " @t=" << minAbsCos2pit.getTimeOfExtremeValue(state) << endl;
+            cout << "MaxAbs(cos2pit)=" << maxAbsCos2pit.getValue(state) 
+                 << " @t=" << maxAbsCos2pit.getTimeOfExtremeValue(state) << endl;
             cout << "sin2pitOver2pi=" << sin2pitOver2pi.getValue(state) 
                  << " sin(2pi*t)/2pi=" << std::sin(2*Pi*state.getTime())/(2*Pi) << endl;
             cout << "d/dt sin2pitOver2pi=" 
