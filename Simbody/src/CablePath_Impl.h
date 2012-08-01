@@ -186,12 +186,12 @@ public:
 
     void initialize(int na, int nas, int nx) {
         xdot.clear(); xdot.resize(nx);
-        errdotK.clear(); errdotK.resize(nx);
+        nerrdotK.clear(); nerrdotK.resize(nx);
         lengthDot = NaN;
         unitPower = NaN;
     }
 
-    Vector errdotK; // frozen-contact point portion of patherrdot
+    Vector nerrdotK; // negative of frozen-contact point portion of patherrdot
     Vector xdot;    // calculated time derivatives of x; xdot=-J\errdotK
     Real lengthDot;
     Real unitPower; // unitForces*body velocities
@@ -599,10 +599,11 @@ public:
         Mat63&          DerrDexit)  // 4x3       "
         const;
 
-    // Calculate the surface-local contribution to the path error time 
+    // Calculate the *negated* surface-local contribution to the path error time 
     // derivative due only to material point velocities, with the surface
     // coordinates xP and xQ held constant at the given values.
-    Vec6 calcSurfaceKinematicVelocityError
+    // This is nerrdotK = -(Dpatherr(K;x)/DK)*(dK/dt).
+    Vec6 calcSurfaceNegKinematicVelocityError
        (  const Geodesic& geodesic,
           const UnitVec3& entryDir_S,
           const Vec3&     entryDirDot_S,    // time derivative in S

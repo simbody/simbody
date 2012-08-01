@@ -301,7 +301,7 @@ ensureVelocityKinematicsCalculated(const State& state) const {
 
     if (ppe.x.size()) {
         findKinematicVelocityErrors(state, instInfo, ppe, pve);
-        ppe.JInv.solve(pve.errdotK, pve.xdot);
+        ppe.JInv.solve(pve.nerrdotK, pve.xdot);
         cout << "*** xdot=" << pve.xdot << endl;
     }
 
@@ -449,6 +449,9 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 // xdot==0, i.e., with the contact points frozen on their surfaces. This term
 // depends only on the ordinary material point kinematics. We will later use
 // this to solve for the value of xdot that makes errdot==0.
+//
+// We actually calculate nerrdotK = -errdotK here so we don't have to negate
+// it later.
 void CablePath::Impl::
 findKinematicVelocityErrors
    (const State& state, const PathInstanceInfo& instInfo, 
@@ -542,8 +545,8 @@ findKinematicVelocityErrors
         const int xSlot = ppe.mapToCoords[thisActiveOx];
         assert(xSlot >= 0); // Should have had coordinates assigned
 
-        Vec6::updAs(&pve.errdotK[xSlot]) =
-            thisObs.calcSurfaceKinematicVelocityError
+        Vec6::updAs(&pve.nerrdotK[xSlot]) =
+            thisObs.calcSurfaceNegKinematicVelocityError
                (ppe.geodesics[asx],             // solved geodesic
                 eIn,                            // in S frame
                 eInDot,
@@ -817,7 +820,8 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
 //------------------------------------------------------------------------------
 //                  CALC SURFACE KINEMATIC VELOCITY ERROR
 //------------------------------------------------------------------------------
-Vec6 CableObstacle::Surface::Impl::calcSurfaceKinematicVelocityError
+// Note: this must calculate the *negative* of the kinematic velocity term.
+Vec6 CableObstacle::Surface::Impl::calcSurfaceNegKinematicVelocityError
    (const Geodesic& geodesic,
     const UnitVec3& eIn,        // from Qi-1 to Pi, in S
     const Vec3&     eInDot,     // time derivative of eIn, taken in S
@@ -838,11 +842,11 @@ Vec6 CableObstacle::Surface::Impl::calcSurfaceKinematicVelocityError
 
     // These must be the kinematic part of the time derivatives of the
     // error conditions that were reported for this obstacle during path
-    // error calculation.
-    errdotK[0] = ~eInDot*nP; 
-    errdotK[1] = ~eOutDot*nQ;
-    errdotK[2] = ~eInDot*bP;
-    errdotK[3] = ~eOutDot*bQ;
+    // error calculation, but negated.
+    errdotK[0] = - ~eInDot*nP; 
+    errdotK[1] = - ~eOutDot*nQ;
+    errdotK[2] = - ~eInDot*bP;
+    errdotK[3] = - ~eOutDot*bQ;
     // Implicit surface error is frozen since xP and xQ are.
     errdotK[4] = 0;
     errdotK[5] = 0;
