@@ -570,7 +570,12 @@ void ContactGeometryImpl::continueGeodesic(const Vec3& xP, const Vec3& xQ, const
 
 
 // Utility method used by shootGeodesicInDirectionUntilPlaneHit
-// and shootGeodesicInDirectionUntilLengthReached
+// and shootGeodesicInDirectionUntilLengthReached.
+// P is not necessarily on the surface and tP is not necessarily tangent
+// to the surface, so the first thing we do is project P to the nearest
+// surface point P', calculate the outward unit normal n' at P', then
+// project tP to tP' by removing any component it has in the n' direction,
+// then renormalizing.
 void ContactGeometryImpl::
 shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         const Real& finalTime, const GeodesicOptions& options,
@@ -624,6 +629,9 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         if (status == Integrator::ReachedReportTime)
             continue;
 
+        // Careful -- integrator has its own internal copies of the state and
+        // the one returned won't always be the same one so you need to get a
+        // fresh reference each time.
         const State& state = integ.getState();
         const Real s = state.getTime();
 
@@ -795,7 +803,6 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     // initial conditions
     x[0] = Pi/2; // thetaP
     x[1] = -Pi/2; // thetaQ: shoot toward P, i.e. in the opposite direction of tQ
-
     Real f, fold, lam = 1;
 
 //    splitGeodErr = new SplitGeodesicError(2, 2, *const_cast<ContactGeometry*>(this),
@@ -1207,8 +1214,8 @@ void ContactGeometry::Sphere::Impl::createOBBTree() {
 // respect to an orthonormal basis (e1, e2). By definition P = p(0) and the geodesic goes from
 // P to Q, where Q = p(angle). Make sure e1 . e2 = 0 and |e1| = |e2| = 1. 
 static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
-        double R, double angle, Geodesic& geod) {
-
+                             double R, double angle, Geodesic& geod) 
+{
     // Make sure that e1 and e2 are orthogonal.
     assert(std::abs(~e1*e2) <= SignificantReal);
 
@@ -1223,14 +1230,15 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 
     for (int i = 0; i < numGeodesicSamples; ++i){
         Real phi = i*angle/(numGeodesicSamples-1);
+        const Real sphi = std::sin(phi), cphi = std::cos(phi);
 
 		// Trust me, this is already normalized by definition of the input.
-		UnitVec3 normal(e1*std::cos(phi) + e2*std::sin(phi), true); 
+		UnitVec3 normal(e1*cphi + e2*sphi, true); 
 
         Vec3 p = R*normal;
 
 		// Tangent defined by dp/dphi, hence tangent is pointing into direction of increasing phi.
-        Vec3 tangent = -e1*std::sin(phi) + e2*std::cos(phi);
+        Vec3 tangent = -e1*sphi + e2*cphi;
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
         geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, XAxis), p));
@@ -1271,19 +1279,21 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 }
 
 
-void ContactGeometry::Sphere::Impl::calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
-        const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const {
-
-    UnitVec3 e_OP(xP);
-    UnitVec3 e_OQ(xQ);
-
-    Vec3 nvec = e_OP % e_OQ;
-    UnitVec3 n(nvec);
+void ContactGeometry::Sphere::Impl::
+calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
+                       const Vec3& tPhint, const Vec3& tQhint, 
+                       Geodesic& geod) const 
+{
+    const UnitVec3 e_OP(xP), e_OQ(xQ);
+    const Vec3 nvec = e_OP % e_OQ;
+    const Real sinAngle = nvec.norm();
+    const Real cosAngle = ~e_OP*e_OQ;
+    UnitVec3 n(nvec/sinAngle, true); // don't renormalize
     
     UnitVec3 tP(n % e_OP); // tP for short geodesic
     UnitVec3 tQ(n % e_OQ); // tQ for short geodesic
 
-    Real angle = std::atan2(nvec.norm(),~e_OP*e_OQ); // angle between OP and OQ
+    Real angle = std::atan2(sinAngle, cosAngle); // angle between OP and OQ
     Real aPhint = ~tPhint*tP; // angle between tP and tPhint
     Real aQhint = ~tQhint*tQ;
 
