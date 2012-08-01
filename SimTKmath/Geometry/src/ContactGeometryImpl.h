@@ -341,7 +341,7 @@ public:
     friend class SplitGeodesicError;
 
     void createParticleOnSurfaceSystem() {
-        ptOnSurfSys = new ParticleOnSurfaceSystem(*this);
+        ptOnSurfSys = new ParticleConSurfaceSystem(*this);
         geodHitPlaneEvent = new GeodHitPlaneEvent();
         ptOnSurfSys->addEventHandler(geodHitPlaneEvent); // takes ownership
         ptOnSurfSys->realizeTopology();
@@ -360,7 +360,7 @@ protected:
     ContactGeometry*        myHandle;
     OBBTree                 obbTree;
 
-    ParticleOnSurfaceSystem* ptOnSurfSys;
+    ParticleConSurfaceSystem* ptOnSurfSys;
     GeodHitPlaneEvent* geodHitPlaneEvent; // don't delete this
     mutable ScheduledEventReporter* vizReporter; // don't delete this
     mutable SplitGeodesicError* splitGeodErr;

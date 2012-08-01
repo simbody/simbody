@@ -2939,7 +2939,10 @@ void Geodesic::dump(std::ostream& o) const {
  *        and A\ = inverse of A
  */
 int ParticleConSurfaceSystemGuts::realizeTopologyImpl(State& s) const {
-    const Vector init(3, Real(0));
+    // Generalized coordinates:
+    //     q0, q1, q2, q3 = x,  y,  z,  j
+    //     u0, u1, u2, u3 = x', y', z', j'
+    const Vector init(4, Real(0));
     q0 = s.allocateQ(subsysIndex, init);
     u0 = s.allocateU(subsysIndex, init);
     return 0;
@@ -2992,20 +2995,27 @@ int ParticleConSurfaceSystemGuts::realizeAccelerationImpl(const State& s) const 
     // XXX assume unit mass
 
     const Vector& q    = s.getQ(subsysIndex);
-    const Vector& u    = s.getU(subsysIndex);
     const Vec3&   p    = Vec3::getAs(&q[0]); // point
+    const Real&   j    = q[3];                  // Jacobi field value
+
+    const Vector& u    = s.getU(subsysIndex);
     const Vec3&   v    = Vec3::getAs(&u[0]); // point's velocity on surface
 
     Vector&       udot = s.updUDot(subsysIndex);
     Vec3&         a    = Vec3::updAs(&udot[0]);
+    Real&         jdotdot = udot[3];            // Jacobi field 2nd derivative
 
-    Real  g  = geom.calcSurfaceValue(p);
-    Vec3  GT = geom.calcSurfaceGradient(p);
-    Mat33 H  = geom.calcSurfaceHessian(p);
-    Real  Gdotv = ~v*(H*v);
-//    Real L = (Gdotv + beta*~GT*v + alpha*g)/(~GT*GT); // Baumgarte stabilization
-    Real  L = Gdotv/(~GT*GT);
+    const Real  ep =  geom.calcSurfaceValue(p); // position constraint error
+    const Vec3  GT =  geom.calcSurfaceGradient(p);
+    const Real  ev =  ~GT*v;                    // d/dt ep
+    const Mat33 H  =  geom.calcSurfaceHessian(p);
+    const Real Gdotv = ~v*(H*v);
+    const Real  L = Gdotv/(~GT*GT);
     a = GT*-L; // fills in udot
+
+    // Now evaluate the Jacobi field.
+    const Real Kg = geom.calcGaussianCurvature(p);
+    jdotdot = -Kg*j;    // sets udot[3]
 
     // Qdotdots are just udots here.
     s.updQDotDot() = udot;
@@ -3041,10 +3051,12 @@ void ParticleConSurfaceSystemGuts::projectQImpl(State& s, Vector& qerrest,
 
     // These are convenient aliases for state entries. Note that they are
     // "live" since they refer directly into the state we are changing.
-    Vector&       q    = s.updQ(subsysIndex);
+
     const Vector& qerr = s.getQErr(subsysIndex);
-    Vec3&         p    = Vec3::updAs(&q[0]);
     const Real&   ep   = qerr[0];
+
+    Vector&       q    = s.updQ(subsysIndex);
+    Vec3&         p    = Vec3::updAs(&q[0]);
 
     realize(s, Stage::Position); // recalc QErr (ep)
 //    std::cout << "BEFORE wperr=" << ep << std::endl;
@@ -3056,15 +3068,18 @@ void ParticleConSurfaceSystemGuts::projectQImpl(State& s, Vector& qerrest,
         Vec3 g = geom.calcSurfaceGradient(p);
 
         // dp = Pinv*ep, where Pinv = ~P/(P*~P) and P=~g
-        dp = (g/(~g*g))*ep;
+        Row3 P = ~g;
+        dp = ~P/(P*~P)*ep;
+//        dp = (g/(~g*g))*ep;
 
         qchg = std::sqrt(dp.normSqr()/3); // rms norm
 
         p -= dp; // updates the state
 
+        s.invalidateAll(Stage::Position); // force realize position
         realize(s, Stage::Position); // recalc QErr (ep)
 
-//        std::cout << cnt << ": AFTER q-=dq wperr=" << ep << " wqchg=" << qchg << std::endl;
+//        std::cout << cnt << ": AFTER q-=dq, q=" << q << ", wperr=" << ep << ", wqchg=" << qchg << std::endl;
         cnt++;
 
         //sleepInSec(0.5);
@@ -3105,65 +3120,72 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
 {
     const Real consAccuracy = opts.getRequiredAccuracy();
 
-    const Vector& q = s.getQ(subsysIndex); // set up aliases
+    const Vector& uerr = s.getUErr(subsysIndex); // set up aliases
+    const Vec2&   ev   = Vec2::getAs(&uerr[0]);
+
+    const Vector& q = s.getQ(subsysIndex);
     const Vec3&   p = Vec3::getAs(&q[0]);
 
     Vector&       u = s.updU(subsysIndex);
     Vec3&         v = Vec3::updAs(&u[0]);
 
-    const Vector& uerr = s.updUErr(subsysIndex);
-    const Vec2&   ev   = Vec2::getAs(&uerr[0]);
-
     realize(s, Stage::Velocity); // calculate UErr (ev)
 //    std::cout << "vBEFORE wperr=" << ep << std::endl;
 //    std::cout << "vBEFORE wverr=" << ev << std::endl;
 
-    // Do velocity projection at current values of q, which should have
-    // been projected already.
+//    // Do velocity projection at current values of q, which should have
+//    // been projected already.
     Vec3 g = geom.calcSurfaceGradient(p);
 
     // dv = Pinv*ev, where Pinv = ~P/(P*~P) and P=~g
 //    Vec3 dv = (g/(~g*g))*ev[0];
     Row3 P = ~g;
     Vec3 dv = ~P/(P*~P)*ev[0];
-
-//    s.updU(subsysIndex)[0] -= du[0];
-//    s.updU(subsysIndex)[1] -= du[1];
-//    s.updU(subsysIndex)[2] -= du[2];
 //
 //    // force unit speed
     const UnitVec3 newv(v - dv);
     v = Vec3(newv);
+//    v -= dv;
 
+    s.invalidateAll(Stage::Velocity); // force realize velocity
     realize(s, Stage::Velocity); // recalc UErr
 //    std::cout << "vAFTER wverr=" << ev << std::endl;
 
 // XXX combined u projection not working...
 
-//    Real uchg;
-//    Vec3 du(0);
+//    Real vchg;
+//    Vec3 dv(0);
 //    Mat23 V;
 //    int cnt = 0;
-//    V[0] = -(~n);
+//    V[0] = ~g; // Pnonholo = ~g;
 //    do {
-//        V[1] = ~u/u.norm();
+//        V[1] = ~v/v.norm(); // Vholo
+//
 //
 //        // du = Vinv*ev, where Vinv = ~V/(V*~V) and V = ~[Pnonholo Vholo]
 //        Mat22 VVT = V*~V;
 //        VVT.invert();
-//        du = (~V)*VVT*ev;
+//        dv = (~V)*VVT*ev;
 //
-////        Vec3 du = ~V/(V*~V)*ev;
+////        std::cout << "V = " << V << std::endl;
+////        std::cout << "v = " << v << ", dv = " << dv << std::endl;
 //
-//        uchg = std::sqrt(du.normSqr()/u.size()); // wrms norm
+////        dv = ~V/(V*~V)*ev;
 //
-//        s.updU(subsysIndex)[0] -= du[0];
-//        s.updU(subsysIndex)[1] -= du[1];
-//        s.updU(subsysIndex)[2] -= du[2];
+//        vchg = std::sqrt(dv.normSqr()/3); // wrms norm
 //
+////        s.updU(subsysIndex)[0] -= du[0];
+////        s.updU(subsysIndex)[1] -= du[1];
+////        s.updU(subsysIndex)[2] -= du[2];
+//
+//        v -= dv;
+//
+//        s.invalidateAll(Stage::Velocity); // force realize velocity
 //        realize(s, Stage::Velocity); // recalc UErr (ev)
 //
-//        std::cout << cnt << ": AFTER u-=uq verr=" << ev << " uchg=" << uchg << std::endl;
+//        std::cout << cnt << ": AFTER v-=dv verr=" << ev << " vchg=" << vchg << std::endl;
+////        std::cout << "v = " << v << ", dv = " << dv << std::endl;
+//
 //        cnt++;
 //
 //        sleep(0.5);
@@ -3174,7 +3196,7 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
 //
 //
 //    } while (std::max(std::abs(ev[0]), std::abs(ev[1])) > consAccuracy &&
-//             uchg >= 0.01*consAccuracy);
+//             vchg >= 0.01*consAccuracy);
 
     // Now do error estimates.
     if (uerrest.size()) {

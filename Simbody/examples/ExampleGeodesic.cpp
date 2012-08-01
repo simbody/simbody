@@ -67,6 +67,10 @@ int main() {
     Vec3 P(r * cos(uP) * sin(vP), r * sin(uP) * sin(vP), r * cos(vP));
     Vec3 Q(r * cos(uQ) * sin(vQ), r * sin(uQ) * sin(vQ), r * cos(vQ));
 
+    // move points off surface for testing
+    Q(0) -= r*0.2;
+    P(1) -= r*0.2;
+
     Vec3 r_OP = P - O;
     Vec3 r_IQ = Q - I;
     UnitVec3 e_OP(r_OP);
@@ -122,7 +126,7 @@ int main() {
     viz.report(dummyState);
 
     const Real startReal = realTime(), startCpu = cpuTime();
-    geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
+    geom.calcGeodesic(P, Q, e_OP, -e_IQ, geod);
     //geom.calcGeodesic(P, Q, e_OP, -e_IQ, geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
