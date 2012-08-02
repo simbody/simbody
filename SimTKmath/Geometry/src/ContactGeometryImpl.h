@@ -137,7 +137,12 @@ public:
     // directions tPhint and tQhint
     void calcGeodesic(const Vec3& xP, const Vec3& xQ,
             const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
-
+    
+    // Use a method that generates orthogonal error conditions in the tangent
+    // and binormal directions.
+    void calcGeodesicUsingOrthogonalMethod
+       (const Vec3& xP, const Vec3& xQ,
+        const Vec3& tPhint, Real lengthHint, Geodesic& geod) const; 
 
     // Utility method to calculate the "geodesic error" between one geodesic
     // shot from P in the direction tP and another geodesic shot from Q in the
@@ -297,8 +302,18 @@ public:
     // We optionally return the resulting "kinked" geodesic, which is the real
     // one if the returned errors are below tolerance.
     Vec2 calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
-                       const Real thetaP, const Real thetaQ,
+                       Real thetaP, Real thetaQ,
                        Geodesic* geodesic=0) const;
+
+    // Utility method to calculate the "orthogonal error" between a geodesic
+    // shot from P in the direction thetaP with given length and a point Q.
+    // We are actually shooting the geodesic here and we'll return it in
+    // the indicated variable. Note that we *do not* do the backwards 
+    // integration for the reverse directional sensitivity; if you want to
+    // return this as the final geodesic be sure to fill in that term.
+    Vec2 calcOrthogonalGeodError(const Vec3& xP, const Vec3& xQ,
+                       Real thetaP, Real length,
+                       Geodesic& geodesic) const;
 
     // Utility method to calculate the "geodesic error jacobian" between one geodesic
     // shot from P in the direction thetaP and another geodesic shot from Q in the
@@ -339,6 +354,8 @@ public:
 
     class SplitGeodesicError; // local class
     friend class SplitGeodesicError;
+    class OrthoGeodesicError; // local class
+    friend class OrthoGeodesicError;
 
     void createParticleOnSurfaceSystem() {
         ptOnSurfSys = new ParticleConSurfaceSystem(*this);

@@ -387,6 +387,8 @@ public:
         ensureVelocityKinematicsCalculated(state);
     }
 
+    void realizeAcceleration(const State& state) const;
+
     // Update the cable path and its length in the state cache. This is the 
     // expensive part of the cable path computation. State must already have
     // been realized to position stage. This is invoked automatically when
@@ -407,6 +409,12 @@ public:
     PathInstanceInfo& updInstanceInfo(State& state) const 
     {   return Value<PathInstanceInfo>::updDowncast
            (cables->updDiscreteVariable(state, instanceInfoIx)); }
+
+    Real getIntegratedLengthDot(const State& state) const
+    {   return cables->getZ(state)[integratedLengthDotIx]; }
+
+    void setIntegratedLengthDot(State& state, Real value) const 
+    {   cables->updZ(state)[integratedLengthDotIx] = value; }
 
     // Lazy-evaluate position kinematics and return the result.
     const PathPosEntry& getPosEntry(const State& state) const 
@@ -470,6 +478,7 @@ friend class CablePath;
 
     // TOPOLOGY CACHE (set during realizeTopology())
     DiscreteVariableIndex   instanceInfoIx;
+    ZIndex                  integratedLengthDotIx;
     CacheEntryIndex         posEntryIx;
     CacheEntryIndex         velEntryIx;
 

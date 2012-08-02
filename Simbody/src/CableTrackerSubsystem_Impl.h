@@ -120,6 +120,15 @@ int realizeSubsystemVelocityImpl(const State& state) const OVERRIDE_11 {
     return 0;
 }
 
+
+int realizeSubsystemAccelerationImpl(const State& state) const OVERRIDE_11 {
+    for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
+        const CablePath& path = getCablePath(ix);
+        path.getImpl().realizeAcceleration(state);
+    }
+    return 0;
+}
+
 int calcDecorativeGeometryAndAppendImpl
    (const State&                state, 
     Stage                       stage, 

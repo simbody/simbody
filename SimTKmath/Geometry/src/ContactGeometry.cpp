@@ -33,6 +33,8 @@
 #include "simmath/RungeKutta3Integrator.h"
 #include "simmath/RungeKuttaMersonIntegrator.h"
 #include "simmath/RungeKuttaFeldbergIntegrator.h"
+#include "simmath/VerletIntegrator.h"
+#include "simmath/CPodesIntegrator.h"
 #include "simmath/TimeStepper.h"
 #include "simmath/internal/ContactGeometry.h"
 
@@ -403,6 +405,12 @@ void ContactGeometry::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     getImpl().calcGeodesic(xP, xQ, tPhint, tQhint, geod);
 }
 
+void ContactGeometry::calcGeodesicUsingOrthogonalMethod
+   (const Vec3& xP, const Vec3& xQ,
+    const Vec3& tPhint, Real lengthHint, Geodesic& geod) const {
+    getImpl().calcGeodesicUsingOrthogonalMethod
+       (xP, xQ, tPhint, lengthHint, geod);
+}
 
 // Compute a geodesic curve starting at the given point, starting in the given
 // direction, and terminating at the given plane.
@@ -545,6 +553,35 @@ private:
 
 }; // class SplitGeodesicError
 
+// This local class is used to calculate the orthogonal geodesic error
+// Jacobian given angle theta and length.
+class ContactGeometryImpl::OrthoGeodesicError: public Differentiator::JacobianFunction {
+
+public:
+    OrthoGeodesicError(ContactGeometry& geom,
+            const Vec3& xP, const Vec3& xQ) :
+            Differentiator::JacobianFunction(2, 2),
+                    geom(geom), P(xP), Q(xQ) { }
+
+    // x = ~[thetaP, length]
+    int f(const Vector& x, Vector& fx) const  {
+        Geodesic geod;
+        Vec2 geodErr = geom.getImpl().calcOrthogonalGeodError(P, Q, x[0], x[1], geod);
+
+        // error between geodesic end points at plane
+        fx[0] = geodErr[0];
+        fx[1] = geodErr[1];
+        return 0;
+    }
+
+
+private:
+    ContactGeometry& geom;
+    const Vec3 P;
+    const Vec3 Q;
+}; // class OrthoGeodesicError
+
+
 
 void ContactGeometryImpl::initGeodesic(const Vec3& xP, const Vec3& xQ,
         const Vec3& xSP, const GeodesicOptions& options, Geodesic& geod) const
@@ -601,8 +638,9 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     u[3] = 1;
 
     // Setup integrator to integrate until terminatingLength
-    //RungeKutta3Integrator integ(ptOnSurfSys);
+    //RungeKutta3Integrator integ(*ptOnSurfSys);
     RungeKuttaMersonIntegrator integ(*ptOnSurfSys);
+    //RungeKuttaFeldbergIntegrator integ(*ptOnSurfSys);
     integ.setAccuracy(integratorAccuracy);
     integ.setConstraintTolerance(integratorConstraintTol);
     integ.setFinalTime(finalTime);
@@ -796,10 +834,6 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     Mat22 J;
     Vec2 x, xold, dx, Fx;
 
-//    Matrix J(2,2);
-//    Vector x(2), xold(2), dx(2), Fx(2);
-
-
     // initial conditions
     x[0] = Pi/2; // thetaP
     x[1] = -Pi/2; // thetaQ: shoot toward P, i.e. in the opposite direction of tQ
@@ -814,15 +848,14 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     Fx = calcSplitGeodError(xP, xQ, x[0], x[1]);
     if (vizReporter != NULL) {
         vizReporter->handleEvent(ptOnSurfSys->getDefaultState());
-        if (pauseBetweenGeodIterations > 0)
-            sleepInSec(pauseBetweenGeodIterations);
+        sleepInSec(pauseBetweenGeodIterations);
     }
 
     f = std::sqrt(~Fx*Fx);
 
     for (int i = 0; i < maxNewtonIterations; ++i) {
         if (maxabs(Fx) < ftol) {
-            std::cout << "geodesic converged in " << i << " iterations" << std::endl;
+            //std::cout << "geodesic converged in " << i << " iterations" << std::endl;
 //            std::cout << "err = " << Fx << std::endl;
             break;
         }
@@ -855,8 +888,7 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 
         if (vizReporter != NULL) {
             vizReporter->handleEvent(ptOnSurfSys->getDefaultState());
-            if (pauseBetweenGeodIterations > 0)
-                sleepInSec(pauseBetweenGeodIterations);
+            sleepInSec(pauseBetweenGeodIterations);
         }
 
     }
@@ -868,6 +900,104 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
         geodP.getDirectionalSensitivityPtoQ().back());
 
     mergeGeodesics(geodP, geodQ, geod);
+}
+
+
+//------------------------------------------------------------------------------
+//                  CALC GEODESIC USING ORTHOGONAL METHOD
+//------------------------------------------------------------------------------
+void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
+   (const Vec3& xP, const Vec3& xQ,
+    const Vec3& tPhint, Real lengthHint, Geodesic& geod) const {
+
+    // Newton solver settings
+    const Real ftol = 1e-9;
+    const Real xtol = 1e-9;
+    const Real minlam = 1e-9;
+    const int maxIterations = 25;
+
+    bool useNewtonIteration = false;
+
+    // reset counter
+    numGeodesicsShot = 0;
+
+    // Define basis. This will not change during the solution.
+    R_SP = myHandle->calcTangentBasis(xP, tPhint);
+
+    Mat22 J;
+    Vec2 x, xold, dx, Fx;
+    Matrix JMat;
+    // initial conditions
+    x[0] = Pi/2; // thetaP
+    x[1] = lengthHint;
+    Real f, fold, dist, lam = 1;
+
+    Fx = calcOrthogonalGeodError(xP, xQ, x[0], x[1], geod);
+    if (vizReporter != NULL) {
+        vizReporter->handleEvent(ptOnSurfSys->getDefaultState());
+        sleepInSec(pauseBetweenGeodIterations);
+    }
+
+    OrthoGeodesicError orthoErr(*myHandle, xP, xQ);
+    orthoErr.setEstimatedAccuracy(1e-10);
+    Differentiator diff(orthoErr);
+
+    //cout << "Using " << (useNewtonIteration ? "NEWTON" : "FIXED POINT")
+    //     << " iteration\n";
+
+    for (int i = 0; i < maxIterations; ++i) {
+        f = std::sqrt(~Fx*Fx);
+        dist = (geod.getPointQ()-xQ).norm();
+        //std::cout << "ORTHO err = " << Fx << " |Fx|=" << f << " dist=" << dist
+        //          << std::endl;
+        if (f < ftol) {
+            //std::cout << "ORTHO geodesic converged in " 
+            //          << i << " iterations" << std::endl;
+            break;
+        }
+
+        if (useNewtonIteration) {
+            diff.calcJacobian(Vector(x),  Vector(Fx), JMat, 
+                              Differentiator::ForwardDifference);
+            J = Mat22::getAs(&JMat(0,0));
+            dx = J.invert()*Fx; // Newton
+        } else {
+            // fixed point -- feed error back to variables
+            dx = Fx; 
+        }
+
+        fold = f;
+        xold = x;
+
+        // backtracking
+        lam = 1;
+        while (true) {
+            x = xold - lam*dx;
+            Fx = calcOrthogonalGeodError(xP, xQ, x[0], x[1],geod);
+            f = std::sqrt(~Fx*Fx);
+            dist = (geod.getPointQ()-xQ).norm();
+            if (f > fold && lam > minlam) {
+                lam = lam / 2;
+            } else {
+                break;
+            }
+        }
+        //cout << "step size=" << lam << " errNorm=" << f << " dist=" << dist << endl;
+        if (maxabsdiff(x,xold) < xtol) {
+            std::cout << "converged on step size after " << i << " iterations" << std::endl;
+            std::cout << "err = " << Fx << std::endl;
+            break;
+        }
+
+        if (vizReporter != NULL) {
+            vizReporter->handleEvent(ptOnSurfSys->getDefaultState());
+            sleepInSec(pauseBetweenGeodIterations);
+        }
+
+    }
+
+    // Finish each geodesic with reverse Jacobi field.
+    calcGeodesicReverseSensitivity(geod, Vec2(0,1));
 }
 
 
@@ -894,7 +1024,7 @@ void ContactGeometryImpl::calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
 // resulting (kinked) geodesic if the supplied pointer is non-null.
 Vec2 ContactGeometryImpl::
 calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
-              const Real thetaP, const Real thetaQ,
+              Real thetaP, Real thetaQ,
               Geodesic* geodesic) const
 {
     UnitVec3 tP = calcUnitTangentVec(thetaP, R_SP);
@@ -927,6 +1057,33 @@ calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
         mergeGeodesics(geodP, geodQ, *geodesic);
 
     return calcError(geodP, geodQ);
+}
+
+//------------------------------------------------------------------------------
+//                      CALC ORTHOGONAL GEOD ERROR
+//------------------------------------------------------------------------------
+// Calculate the "orthogonal error" for tP with given arc length.
+Vec2 ContactGeometryImpl::
+calcOrthogonalGeodError(const Vec3& xP, const Vec3& xQ,
+                        Real thetaP, Real length,
+                        Geodesic& geod) const
+{
+    const UnitVec3 tP = calcUnitTangentVec(thetaP, R_SP);
+
+    geod.clear();
+
+    GeodesicOptions opts;
+    shootGeodesicInDirectionUntilLengthReached(xP, tP, length, opts, geod);
+
+    const Vec3& Qstar = geod.getPointQ();
+    const Vec3 r_QstarQ = xQ - Qstar;
+
+    const Real tau  = ~r_QstarQ * geod.getTangentQ(); // length error
+    const Real beta = ~r_QstarQ * geod.getBinormalQ();
+    // Translate b-direction length at Q* to rotation at P using directional
+    // sensitivity (Jacobi field) value at P.
+    const Real dtheta = beta / geod.getSensitivityP();
+    return Vec2(dtheta, -tau);
 }
 
 // Calculate the "geodesic error" for tP and tQ

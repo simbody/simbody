@@ -488,11 +488,33 @@ void shootGeodesicInDirectionUntilPlaneHit(const Vec3& xP, const UnitVec3& tP,
         Geodesic& geod) const;
 
 
-/** Utility method to find geodesic between P and Q with initial shooting
- directions tPhint and tQhint
- **/
+/** Utility method to find geodesic between P and Q using split geodesic 
+method with initial shooting directions tPhint and -tQhint. **/
 void calcGeodesic(const Vec3& xP, const Vec3& xQ,
         const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+
+/** Utility method to find geodesic between P and Q using the orthogonal
+method, with initial direction tPhint and initial length lengthHint. **/
+void calcGeodesicUsingOrthogonalMethod(const Vec3& xP, const Vec3& xQ,
+        const Vec3& tPhint, Real lengthHint, Geodesic& geod) const;
+
+/** This signature makes a guess at the initial direction and length
+and then calls the other signature. **/
+void calcGeodesicUsingOrthogonalMethod(const Vec3& xP, const Vec3& xQ,
+        Geodesic& geod) const
+{
+    const Vec3 r_PQ = xQ - xP;
+    const Real lengthHint = r_PQ.norm();
+    const UnitVec3 n = calcSurfaceUnitNormal(xP);
+    // Project r_PQ into the tangent plane.
+    const Vec3 t_PQ = r_PQ - (~r_PQ*n)*n;
+    const Real tLength = t_PQ.norm();
+    const UnitVec3 tPhint =
+        tLength != 0 ? UnitVec3(t_PQ/tLength, true)
+                     : n.perp(); // some arbitrary perpendicular to n
+    calcGeodesicUsingOrthogonalMethod(xP, xQ, Vec3(tPhint), lengthHint, geod);           
+}
+
 
 /**
  * Utility method to calculate the "geodesic error" between one geodesic

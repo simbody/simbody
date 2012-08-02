@@ -154,6 +154,13 @@ void CablePath::applyBodyForces(const State& state, Real tension,
 Real CablePath::calcCablePower(const State& state, Real tension) const
 {   return getImpl().calcCablePower(state,tension); }
 
+Real CablePath::getIntegratedCableLengthDot(const State& state) const 
+{   return getImpl().getIntegratedLengthDot(state); }
+
+void CablePath::setIntegratedCableLengthDot(State& state, Real value) const
+{   getImpl().setIntegratedLengthDot(state, value); }
+
+
 //==============================================================================
 //                           CABLE PATH :: IMPL
 //==============================================================================
@@ -193,6 +200,9 @@ realizeTopology(State& state) {
     // Allocate and initialize instance state variable.
     instanceInfoIx = cables->allocateDiscreteVariable(state,
         Stage::Instance, new Value<PathInstanceInfo>(init));
+
+    Vector initz(1, Real(0));
+    integratedLengthDotIx = cables->allocateZ(state, initz);
 
     // Allocate cache entries for position and velocity calculations.
     Value<PathPosEntry>* posEntry = new Value<PathPosEntry>();
@@ -261,6 +271,17 @@ realizeInstance(const State& state) const {
 
     cout << "INIT PE=" << pe << endl;
     cout << "INIT VE=" << ve << endl;
+}
+
+
+//------------------------------------------------------------------------------
+//                            REALIZE ACCELERATION
+//------------------------------------------------------------------------------
+void CablePath::Impl::
+realizeAcceleration(const State& state) const {
+    PathVelEntry& pve = updVelEntry(state);
+
+    cables->updZDot(state)[integratedLengthDotIx] = pve.lengthDot;
 }
 
 //------------------------------------------------------------------------------
@@ -392,7 +413,7 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
     Real f = ppe.err.norm();
     Real fold, lam = 1, nextlam = 1;
-
+    Real dxnormPrev = Infinity;
     int maxIter = 20;
     for (int i = 0; i < maxIter; ++i) {
         // We always need a Jacobian even if the path is already good enough
@@ -415,6 +436,10 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
         const Real dxnorm = dx.norm();
         cout << "|dx| = " << dxnorm << endl;
+        if (dxnorm > .9*dxnormPrev) {
+            std::cout << "\nPATH diverged in " << i << " iterations\n\n";
+            break;
+        }
 
         // backtracking
         lam = nextlam;
@@ -433,6 +458,8 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
         if (lam == nextlam)
             nextlam = std::min(2*lam, 1.);
+
+        dxnormPrev = dxnorm;
     }
     //cout << "obstacle error = " << ppe.err << endl;
 }
@@ -462,7 +489,9 @@ findKinematicVelocityErrors
 
     // Run through all the active surface obstacles calculating time 
     // derivatives of the input unit vectors eIn and eOut and passing those 
-    // to the obstacles to obtain the kinematic velocity errors.
+    // to the obstacles to obtain the kinematic velocity errors. We'll 
+    // also accumulate the length changes of the straight-line segments
+    // here.
 
     // The origin point is always active. Start off with that as the "previous"
     // active obstacle.
@@ -801,8 +830,9 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     err[4] = surface.calcSurfaceValue(xP);
     err[5] = surface.calcSurfaceValue(xQ);
 
-    //surface.calcGeodesic(xP, xQ, ceIn, ceOut, next);
-    surface.calcGeodesicAnalytical(xP, xQ, eIn, eOut, next);
+    //surface.calcGeodesic(xP, xQ, eIn, eOut, next);
+    //surface.calcGeodesicAnalytical(xP, xQ, eIn, eOut, next);
+    surface.calcGeodesicUsingOrthogonalMethod(xP, xQ, eIn, (xQ-xP).norm(), next);
     //cout << "  geodesic had length " << next.getLength() << endl;
     const Transform& Fp = next.getFrenetFrames().front();
     const Transform& Fq = next.getFrenetFrames().back();

@@ -37,17 +37,17 @@ This file defines the Geodesic class. **/
 
 namespace SimTK {
 
-/**
- * This class stores a geodesic curve after it has been determined. The curve
- * is represented by a discrete set of Frenet frames along its arc length, with
- * each frame providing a point on the curve, the tangent along the curve
- * there, surface normal, and binormal. The number of points is determined by
- * the accuracy to which the geodesic was calculated and the complexity of
- * the surface. The first point is at arclength s=0, the last is at the
- * actual length of the geodesic. We call the first point P and the last
- * point Q, and the geodesic arc length increases from P to Q, with the
- * tangent always pointing in the direction of increasing arc length.
- */
+/** This class stores a geodesic curve after it has been determined. The curve
+is represented by a discrete set of Frenet frames along its arc length, with
+each frame providing a point on the curve, the tangent along the curve
+there, surface normal, and binormal. The number of points is determined by
+the accuracy to which the geodesic was calculated and the complexity of
+the surface. For analytical geodesics, we'll sample the curve to generate
+enough points for visualization but the accuracy will be machine precision.
+The first point is at arclength s=0, the last is at the
+actual length of the geodesic. We call the first point P and the last
+point Q, and the geodesic arc length increases from P to Q, with the
+tangent always pointing in the direction of increasing arc length. **/
 class SimTK_SIMMATH_EXPORT Geodesic {
 public:
     /** Construct an empty geodesic. **/
@@ -88,7 +88,21 @@ public:
         directionalSensitivityQtoP.push_back(jQ);
     }
 
+    /** Return the total arc length of this geodesic curve. Will return zero
+    if no curve has been calculated. **/
     Real getLength() const {return arcLengths.empty() ? 0 : arcLengths.back();}
+
+    const Vec3& getPointP() const {return frenetFrames.front().p();}
+    const Vec3& getPointQ() const {return frenetFrames.back().p();}
+    const UnitVec3& getNormalP() const {return frenetFrames.front().z();}
+    const UnitVec3& getNormalQ() const {return frenetFrames.back().z();}
+    const UnitVec3& getTangentP() const {return frenetFrames.front().x();}
+    const UnitVec3& getTangentQ() const {return frenetFrames.back().x();}
+    const UnitVec3& getBinormalP() const {return frenetFrames.front().y();}
+    const UnitVec3& getBinormalQ() const {return frenetFrames.back().y();}
+    Real getSensitivityP() const {return directionalSensitivityPtoQ.back()[0];}
+    Real getSensitivityQ() const {return directionalSensitivityQtoP.front()[0];}
+
 
     /** TODO: Given the time derivatives of the surface coordinates of P and Q,
     calculate the rate of change of length of this geodesic. **/

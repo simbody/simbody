@@ -177,8 +177,8 @@ public:
         mbs(mbs), cable1(cable1), cable2(cable2) {}
 
     static void showHeading(std::ostream& o) {
-        printf("%8s %10s %10s %10s %10s %10s %10s %10s %12s\n",
-            "time", "length", "rate", "unitpow", "tension", "disswork",
+        printf("%8s %10s %10s %10s %10s %10s %10s %10s %10s %12s\n",
+            "time", "length", "rate", "integ-rate", "unitpow", "tension", "disswork",
             "KE", "PE", "KE+PE-W");
     }
 
@@ -186,20 +186,20 @@ public:
     void handleEvent(const State& state) const OVERRIDE_11 {
         const CablePath& path1 = cable1.getCablePath();
         const CablePath& path2 = cable2.getCablePath();
-        printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g\n",
+        printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g CPU=%g\n",
             state.getTime(),
             path1.getCableLength(state),
             path1.getCableLengthDot(state),
+            path1.getIntegratedCableLengthDot(state),
             path1.calcCablePower(state, 1), // unit power
             cable1.getTension(state),
-            cable1.getDissipatedEnergy(state),
-            mbs.calcKineticEnergy(state),
-            mbs.calcPotentialEnergy(state),
-            mbs.calcEnergy(state)+cable1.getDissipatedEnergy(state));
-        printf("%8s %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g\n",
+            cable1.getDissipatedEnergy(state), 
+            cpuTime());
+        printf("%8s %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g\n",
             "",
             path2.getCableLength(state),
             path2.getCableLengthDot(state),
+            path2.getIntegratedCableLengthDot(state),
             path2.calcCablePower(state, 1), // unit power
             cable2.getTension(state),
             cable2.getDissipatedEnergy(state),
@@ -232,6 +232,11 @@ int main() {
     const Real Rad = .25;
     someBody.addDecoration(Transform(), 
         DecorativeSphere(Rad).setOpacity(.75).setResolution(4));
+
+    Body::Rigid biggerBody(MassProperties(1.0, Vec3(0), Inertia(1)));
+    const Real BiggerRad = .5;
+    biggerBody.addDecoration(Transform(), 
+        DecorativeSphere(BiggerRad).setOpacity(.75).setResolution(4));
 
     const Vec3 radii(.4, .25, .15);;
     Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
@@ -304,8 +309,13 @@ int main() {
 
     system.realize(state, Stage::Position);
     viz.report(state);
+    cout << "path1 init length=" << path1.getCableLength(state) << endl;
+    cout << "path2 init length=" << path2.getCableLength(state) << endl;
     cout << "Hit ENTER ...";
     getchar();
+
+    path1.setIntegratedCableLengthDot(state, path1.getCableLength(state));
+    path2.setIntegratedCableLengthDot(state, path2.getCableLength(state));
 
 
     // Simulate it.

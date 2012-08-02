@@ -139,6 +139,13 @@ supplied \a tension is <= 0, power may still be dissipated while the cable
 shortens even though it can't apply forces to the system. **/
 Real calcCablePower(const State& state, Real tension) const;
 
+/** Get the time integral of cable length dot. This should be the total
+change in cable length since start of a simulation. **/
+Real getIntegratedCableLengthDot(const State& state) const;
+
+/** Initialize the integrated cable length dot. **/
+void setIntegratedCableLengthDot(State& state, Real value) const;
+
 
 /** Default constructor creates an empty cable path not associated with any
 subsystem; don't use this. **/
