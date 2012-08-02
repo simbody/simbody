@@ -109,13 +109,13 @@ reference one of the local classes it defines instead for specific shapes. **/
 class SimTK_SIMMATH_EXPORT ContactGeometry {
 public:
 class HalfSpace;
+class Cylinder;
 class Sphere;
 class Ellipsoid;
 class SmoothHeightMap;
 class TriangleMesh;
 
 // TODO
-class Cylinder;
 class Cone;
 class Torus;
 
@@ -650,6 +650,37 @@ static HalfSpace& updAs(ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<HalfSpace&>(geo); }
 
 /** Obtain the unique id for HalfSpace contact geometry. **/
+static ContactGeometryTypeId classTypeId();
+
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
+};
+
+
+
+//==============================================================================
+//                                CYLINDER
+//==============================================================================
+/** This ContactGeometry subclass represents a cylinder centered at the
+origin. **/
+class SimTK_SIMMATH_EXPORT ContactGeometry::Cylinder : public ContactGeometry {
+public:
+explicit Cylinder(Real radius);
+Real getRadius() const;
+void setRadius(Real radius);
+
+/** Return true if the supplied ContactGeometry object is a sphere. **/
+static bool isInstance(const ContactGeometry& geo)
+{   return geo.getTypeId()==classTypeId(); }
+/** Cast the supplied ContactGeometry object to a const sphere. **/
+static const Cylinder& getAs(const ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<const Cylinder&>(geo); }
+/** Cast the supplied ContactGeometry object to a writable sphere. **/
+static Cylinder& updAs(ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<Cylinder&>(geo); }
+
+/** Obtain the unique id for Cylinder contact geometry. **/
 static ContactGeometryTypeId classTypeId();
 
 class Impl; /**< Internal use only. **/

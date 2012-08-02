@@ -464,6 +464,88 @@ private:
 
 
 //==============================================================================
+//                              CYLINDER IMPL
+//==============================================================================
+class CylinderImplicitFunction : public Function {
+public:
+    CylinderImplicitFunction() : ownerp(0) {}
+    CylinderImplicitFunction(const ContactGeometry::Cylinder::Impl& owner)
+    :   ownerp(&owner) {}
+    void setOwner(const ContactGeometry::Cylinder::Impl& owner) {ownerp=&owner;}
+    Real calcValue(const Vector& x) const;
+    Real calcDerivative(const Array_<int>& derivComponents,
+                        const Vector& x) const;
+    int getArgumentSize() const {return 3;}
+    int getMaxDerivativeOrder() const
+    {   return std::numeric_limits<int>::max(); }
+private:
+    const ContactGeometry::Cylinder::Impl* ownerp; // just a reference; don't delete
+};
+
+class ContactGeometry::Cylinder::Impl : public ContactGeometryImpl {
+public:
+    explicit Impl(Real radius) : radius(radius) {
+        function.setOwner(*this);
+    }
+
+    ContactGeometryImpl* clone() const {
+        return new Impl(radius);
+    }
+    Real getRadius() const {
+        return radius;
+    }
+    void setRadius(Real r) {
+        radius = r;
+    }
+
+    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
+                          UnitVec3& normal) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
+                       Real& distance, UnitVec3& normal) const;
+    void getBoundingSphere(Vec3& center, Real& radius) const;
+
+    bool isSmooth() const {return true;}
+    bool isConvex() const {return true;}
+    bool isFinite() const {return false;}
+
+    Vec3 calcSupportPoint(UnitVec3 direction) const {
+        assert(false);
+        return Vec3(NaN);
+    }
+
+    void calcCurvature(const Vec3& point, Vec2& curvature,
+                       Rotation& orientation) const;
+
+    // TODO
+//    virtual void shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
+//            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
+
+//    virtual void shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
+//            const Plane& terminatingPlane, const GeodesicOptions& options,
+//            Geodesic& geod) const;
+
+//    virtual void calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
+//                const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+
+    const Function& getImplicitFunction() const {
+        return function;
+    }
+
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id =
+            createNewContactGeometryTypeId();
+        return id;
+    }
+private:
+    Real                    radius;
+    CylinderImplicitFunction  function;
+};
+
+
+
+//==============================================================================
 //                                SPHERE IMPL
 //==============================================================================
 class SphereImplicitFunction : public Function {

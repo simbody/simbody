@@ -1273,13 +1273,124 @@ updImpl() {
 
 
 //==============================================================================
+//                            CYLINDER & IMPL
+//==============================================================================
+
+ContactGeometry::Cylinder::Cylinder(Real radius)
+:   ContactGeometry(new Cylinder::Impl(radius)) {}
+
+/*static*/ ContactGeometryTypeId ContactGeometry::Cylinder::classTypeId()
+{   return ContactGeometry::Cylinder::Impl::classTypeId(); }
+
+Real ContactGeometry::Cylinder::getRadius() const {
+    return getImpl().getRadius();
+}
+
+void ContactGeometry::Cylinder::setRadius(Real radius) {
+    updImpl().setRadius(radius);
+}
+
+const ContactGeometry::Cylinder::Impl& ContactGeometry::Cylinder::getImpl() const {
+    assert(impl);
+    return static_cast<const Cylinder::Impl&>(*impl);
+}
+
+ContactGeometry::Cylinder::Impl& ContactGeometry::Cylinder::updImpl() {
+    assert(impl);
+    return static_cast<Cylinder::Impl&>(*impl);
+}
+
+Vec3 ContactGeometry::Cylinder::Impl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+
+    normal = calcSurfaceUnitNormal(position);
+
+    // long axis is z-axis, project to x-y plane
+    Vec2 xy_position(position(0), position(1));
+    inside = (xy_position.normSqr() <= radius*radius);
+
+    // nearestPoint = point_on_surface_in_xy_plane + height_in_z
+    Vec3 nearestPoint = normal*radius + Vec3(0,0,position(2));
+
+    return nearestPoint;
+}
+
+bool ContactGeometry::Cylinder::Impl::intersectsRay
+   (const Vec3& origin, const UnitVec3& direction,
+    Real& distance, UnitVec3& normal) const
+{
+    // cylinder axis is z-axis, project to x-y plane
+    const Vec3 xy_vec(direction(0),direction(1),0);
+    const Real xy_vec_norm = xy_vec.norm();
+    const UnitVec3 xy_direction(xy_vec/xy_vec_norm, true); // don't renormalize
+    const Vec3 xy_origin(origin(0),origin(1),0);
+    Real xy_distance;
+    Real b = -~xy_direction*xy_origin;
+    Real c = xy_origin.normSqr() - radius*radius;
+    if (c > 0) {
+        // Ray origin is outside cylinder.
+
+        if (b <= 0)
+          return false;  // Ray points away from axis of cylinder.
+        Real d = b*b - c;
+        if (d < 0)
+          return false;
+        Real root = std::sqrt(d);
+        xy_distance = b - root;
+      }
+    else {
+        // Ray origin is inside cylinder.
+
+        Real d = b*b - c;
+        if (d < 0)
+          return false;
+        xy_distance = b + std::sqrt(d);
+      }
+    distance = xy_distance/xy_vec_norm;
+    normal = UnitVec3(xy_origin+xy_distance*xy_direction);
+    return true;
+}
+
+void ContactGeometry::Cylinder::Impl::getBoundingSphere
+    (Vec3& center, Real& radius) const {
+    center = Vec3(0);
+    radius = Infinity;
+}
+
+void ContactGeometry::Cylinder::Impl::
+calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
+
+    // long axis (direction of min curvature) points in <0,0,1>
+    orientation = Rotation(calcSurfaceUnitNormal(point), ZAxis, Vec3(0, 0, 1), YAxis);
+    curvature[0] = 1/radius;
+    curvature[1] = 0;
+
+}
+
+Real CylinderImplicitFunction::
+calcValue(const Vector& x) const {
+    return 1-(x[0]*x[0]+x[1]*x[1])/square(ownerp->getRadius());
+}
+
+Real CylinderImplicitFunction::
+calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    if (derivComponents.size() == 1 && derivComponents[0] < 2)
+        return -2*x[derivComponents[0]]/square(ownerp->getRadius());
+    if (derivComponents.size() == 2 &&
+        derivComponents[0] == derivComponents[1] &&
+        derivComponents[0] < 2 )
+        return -2/square(ownerp->getRadius());
+    return 0;
+}
+
+
+//==============================================================================
 //                               SPHERE & IMPL
 //==============================================================================
 
-ContactGeometry::Sphere::Sphere(Real radius) 
+ContactGeometry::Sphere::Sphere(Real radius)
 :   ContactGeometry(new Sphere::Impl(radius)) {}
 
-/*static*/ ContactGeometryTypeId ContactGeometry::Sphere::classTypeId() 
+/*static*/ ContactGeometryTypeId ContactGeometry::Sphere::classTypeId()
 {   return ContactGeometry::Sphere::Impl::classTypeId(); }
 
 Real ContactGeometry::Sphere::getRadius() const {
@@ -1307,8 +1418,8 @@ Vec3 ContactGeometry::Sphere::Impl::findNearestPoint(const Vec3& position, bool&
 }
 
 bool ContactGeometry::Sphere::Impl::intersectsRay
-   (const Vec3& origin, const UnitVec3& direction, 
-    Real& distance, UnitVec3& normal) const 
+   (const Vec3& origin, const UnitVec3& direction,
+    Real& distance, UnitVec3& normal) const
 {
     Real b = -~direction*origin;;
     Real c = origin.normSqr() - radius*radius;
@@ -1366,12 +1477,12 @@ void ContactGeometry::Sphere::Impl::createOBBTree() {
 // sphere is a great circle it is parameterized by
 //
 //        p(phi) = R * (e1*cos(phi) + e2*sin(phi)) ,
-// 
-// where R is the radius of the sphere and the angle phi parameterizes the great circle with 
+//
+// where R is the radius of the sphere and the angle phi parameterizes the great circle with
 // respect to an orthonormal basis (e1, e2). By definition P = p(0) and the geodesic goes from
-// P to Q, where Q = p(angle). Make sure e1 . e2 = 0 and |e1| = |e2| = 1. 
+// P to Q, where Q = p(angle). Make sure e1 . e2 = 0 and |e1| = |e2| = 1.
 static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
-                             double R, double angle, Geodesic& geod) 
+                             double R, double angle, Geodesic& geod)
 {
     // Make sure that e1 and e2 are orthogonal.
     assert(std::abs(~e1*e2) <= SignificantReal);
@@ -1390,7 +1501,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
         const Real sphi = std::sin(phi), cphi = std::cos(phi);
 
 		// Trust me, this is already normalized by definition of the input.
-		UnitVec3 normal(e1*cphi + e2*sphi, true); 
+		UnitVec3 normal(e1*cphi + e2*sphi, true);
 
         Vec3 p = R*normal;
 
@@ -1407,16 +1518,16 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 		// Solve the scalar Jacobi equation
 		//
 		//        j''(s) + K(s)*j(s) = 0 ,                                     (1)
-		// 
+		//
 		// where K is the Gaussian curvature and (.)' := d(.)/ds denotes differentiation
 		// with respect to the arc length s. Then, j is the directional sensitivity and
-		// we obtain the corresponding variational vector field by multiplying b*j. For 
+		// we obtain the corresponding variational vector field by multiplying b*j. For
 		// a sphere, K = R^(-2) and the solution of equation (1) becomes
-		// 
+		//
 		//        j  = R * sin(1/R * s)                                        (2)
 		//		  j' =     cos(1/R * s) ,                                      (3)
 		//
-		// where equation (2) is the standard solution of a non-damped oscillator. Its 
+		// where equation (2) is the standard solution of a non-damped oscillator. Its
 		// period is 2*pi*R and its amplitude is R.
 
 		// Forward directional sensitivity from P to Q
@@ -1438,15 +1549,15 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 
 void ContactGeometry::Sphere::Impl::
 calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
-                       const Vec3& tPhint, const Vec3& tQhint, 
-                       Geodesic& geod) const 
+                       const Vec3& tPhint, const Vec3& tQhint,
+                       Geodesic& geod) const
 {
     const UnitVec3 e_OP(xP), e_OQ(xQ);
     const Vec3 nvec = e_OP % e_OQ;
     const Real sinAngle = nvec.norm();
     const Real cosAngle = ~e_OP*e_OQ;
     UnitVec3 n(nvec/sinAngle, true); // don't renormalize
-    
+
     UnitVec3 tP(n % e_OP); // tP for short geodesic
     UnitVec3 tQ(n % e_OQ); // tQ for short geodesic
 
