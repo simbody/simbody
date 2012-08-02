@@ -98,6 +98,10 @@ ContactGeometry& ContactGeometry::operator=(const ContactGeometry& src) {
 ContactGeometryTypeId ContactGeometry::
 getTypeId() const {return getImpl().getTypeId();}
 
+DecorativeGeometry ContactGeometry::createDecorativeGeometry() const {
+    return getImpl().createDecorativeGeometry();
+}
+
 bool ContactGeometry::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
     return getImpl().intersectsRay(origin, direction, distance, normal);
 }
@@ -1229,6 +1233,10 @@ ContactGeometry::HalfSpace::HalfSpace()
 /*static*/ ContactGeometryTypeId ContactGeometry::HalfSpace::classTypeId() 
 {   return ContactGeometry::HalfSpace::Impl::classTypeId(); }
 
+DecorativeGeometry ContactGeometry::HalfSpace::Impl::createDecorativeGeometry() const {
+    return DecorativeBrick(Vec3(0.01,1,1));
+}
+
 // Point position is given in the half space frame.
 Vec3 ContactGeometry::HalfSpace::Impl::findNearestPoint
    (const Vec3& position, bool& inside, UnitVec3& normal) const {
@@ -1298,6 +1306,14 @@ const ContactGeometry::Cylinder::Impl& ContactGeometry::Cylinder::getImpl() cons
 ContactGeometry::Cylinder::Impl& ContactGeometry::Cylinder::updImpl() {
     assert(impl);
     return static_cast<Cylinder::Impl&>(*impl);
+}
+
+DecorativeGeometry ContactGeometry::Cylinder::Impl::createDecorativeGeometry() const {
+    DecorativeCylinder cyl(radius, radius*2);
+    // DecorativeCylinder's axis is defined as the y-axis,
+    // whereas ContactGeometry::Cylinder axis is defined as the z-axis
+    cyl.setTransform(Rotation(UnitVec3(0, 1, 0), ZAxis, Vec3(0, 0, 1), YAxis));
+    return cyl;
 }
 
 Vec3 ContactGeometry::Cylinder::Impl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
@@ -1409,6 +1425,10 @@ const ContactGeometry::Sphere::Impl& ContactGeometry::Sphere::getImpl() const {
 ContactGeometry::Sphere::Impl& ContactGeometry::Sphere::updImpl() {
     assert(impl);
     return static_cast<Sphere::Impl&>(*impl);
+}
+
+DecorativeGeometry ContactGeometry::Sphere::Impl::createDecorativeGeometry() const {
+    return DecorativeSphere(radius);
 }
 
 Vec3 ContactGeometry::Sphere::Impl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
@@ -1669,6 +1689,10 @@ ContactGeometry::Ellipsoid::Impl& ContactGeometry::Ellipsoid::
 updImpl() {
     assert(impl);
     return static_cast<Ellipsoid::Impl&>(*impl);
+}
+
+DecorativeGeometry ContactGeometry::Ellipsoid::Impl::createDecorativeGeometry() const {
+    return DecorativeEllipsoid(radii);
 }
 
 // Given a point Q on an ellipsoid, with outward unit normal nn at Q: find the 
@@ -2118,6 +2142,10 @@ createBoundingVolumes() {
     boundingSphere.updRadius() *= 1.1;
 }
 
+DecorativeGeometry ContactGeometry::SmoothHeightMap::Impl::createDecorativeGeometry() const {
+    return DecorativeMesh(surface.createPolygonalMesh());
+}
+
 Vec3 ContactGeometry::SmoothHeightMap::Impl::
 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     assert(false);
@@ -2331,6 +2359,12 @@ ContactGeometry::TriangleMesh::updImpl() {
 //==============================================================================
 //                            TRIANGLE MESH IMPL
 //==============================================================================
+
+DecorativeGeometry ContactGeometry::TriangleMesh::Impl::createDecorativeGeometry() const {
+    PolygonalMesh mesh;
+    createPolygonalMesh(mesh);
+    return DecorativeMesh(mesh);
+}
 
 Vec3 ContactGeometry::TriangleMesh::Impl::findPoint
    (int face, const Vec2& uv) const {

@@ -83,9 +83,9 @@ int main() {
     Matrix J(n, n);
 
     ContactGeometry::Sphere geom(r);
-//        r = 2;
-//        Vec3 radii(1,2,3);
-//        ContactGeometry::Ellipsoid geom(radii);
+
+//    Vec3 radii(0.2,0.4,0.6);
+//    ContactGeometry::Ellipsoid geom(radii);
 
     cout << "Gaussian curvature P,Q="
          << geom.calcGaussianCurvature(P) << ","
@@ -99,7 +99,7 @@ int main() {
 
 
 //    matter.updGround().addBodyDecoration(Transform(), DecorativeEllipsoid(radii)
-    matter.updGround().addBodyDecoration(Transform(), DecorativeSphere(r)
+    matter.updGround().addBodyDecoration(Transform(), geom.createDecorativeGeometry()
             .setColor(Gray)
             .setOpacity(0.5)
             .setResolution(5));

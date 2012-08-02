@@ -130,6 +130,9 @@ is not virtual; handles should consist of just a pointer to the
 implementation. **/
 ~ContactGeometry();
 
+/** Generate a DecorativeGeometry that matches the shape of this ContactGeometry **/
+DecorativeGeometry createDecorativeGeometry() const;
+
 /** Given a point, find the nearest point on the surface of this object. If 
 multiple points on the surface are equally close to the specified point, this 
 may return any of them.

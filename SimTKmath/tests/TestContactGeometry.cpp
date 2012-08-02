@@ -80,6 +80,49 @@ void testHalfSpace() {
     }
 }
 
+void testCylinder() {
+    Real radius = 3.5;
+    ContactGeometry::Cylinder cyl(radius);
+    assert(cyl.getRadius() == radius);
+
+    // Check intersections with various rays.
+
+    Real distance;
+    UnitVec3 normal;
+    ASSERT(!cyl.intersectsRay(Vec3(radius*1.1, 0, 0), UnitVec3(1, 0, 0), distance, normal));
+    ASSERT(!cyl.intersectsRay(Vec3(-radius*1.1, 0, 0), UnitVec3(-1, 1, 0), distance, normal));
+    ASSERT(!cyl.intersectsRay(Vec3(-radius*1.1, 0, 0), UnitVec3(0, 1, 0), distance, normal));
+    ASSERT(!cyl.intersectsRay(Vec3(-radius, -radius, 0), UnitVec3(1, -Eps, 0), distance, normal));
+    ASSERT(cyl.intersectsRay(Vec3(-radius, -radius, 0), UnitVec3(1, Eps, 0), distance, normal));
+
+    ASSERT(cyl.intersectsRay(Vec3(-(radius+1.0), 0, 0), UnitVec3(1, 0, 0), distance, normal));
+    assertEqual(1.0, distance);
+    assertEqual(Vec3(-1, 0, 0), normal);
+
+    ASSERT(cyl.intersectsRay(Vec3(-radius*2, radius*2, 37), UnitVec3(1, -1, 0), distance, normal));
+    assertEqual(radius*(2*Sqrt2-1), distance);
+    assertEqual(UnitVec3(-1, 1, 0), normal);
+
+    ASSERT(cyl.intersectsRay(Vec3(-radius*2, 0, -radius*2), UnitVec3(1, 0, 1), distance, normal));
+    assertEqual(radius*Sqrt2, distance);
+    assertEqual(UnitVec3(-1, 0, 0), normal);
+
+    // Test finding the nearest point.
+
+    Random::Gaussian random(0, 3);
+    for (int i = 0; i < 100; i++) {
+        Vec3 pos(random.getValue(), random.getValue(), random.getValue());
+        Vec3 projpos(pos);
+        projpos(2)=0; // cyl axis is z-axis, project pos to x-y plane
+        bool inside;
+        UnitVec3 normal;
+        Vec3 nearest = cyl.findNearestPoint(pos, inside, normal);
+        assertEqual(nearest, projpos.normalize()*radius+Vec3(0,0,pos(2)));
+        ASSERT(inside == (projpos.norm() <= radius));
+        assertEqual(normal, projpos.normalize());
+    }
+}
+
 void testSphere() {
     // Create a sphere.
     
@@ -108,7 +151,7 @@ void testSphere() {
     // Test finding the nearest point.
     
     Random::Gaussian random(0, 3);
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 1; i++) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());
         bool inside;
         UnitVec3 normal;
@@ -166,6 +209,7 @@ int main() {
         testHalfSpace();
         testSphere();
         testEllipsoid();
+	    testCylinder();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

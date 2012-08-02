@@ -225,8 +225,7 @@ int main() {
     // Create a dummy MultibodySystem for visualization purposes
     MultibodySystem dummySystem;
     SimbodyMatterSubsystem matter(dummySystem);
-//    matter.updGround().addBodyDecoration(Transform(), DecorativeEllipsoid(radii)
-    matter.updGround().addBodyDecoration(Transform(), DecorativeSphere(r)
+    matter.updGround().addBodyDecoration(Transform(), geom.createDecorativeGeometry()
             .setColor(Gray)
             .setOpacity(0.5)
             .setResolution(5));

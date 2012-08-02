@@ -71,6 +71,11 @@ public:
     virtual ContactGeometryImpl*  clone() const = 0;
     virtual ContactGeometryTypeId getTypeId() const = 0;
 
+    virtual DecorativeGeometry createDecorativeGeometry() const {
+        SimTK_THROW2(Exception::UnimplementedVirtualMethod,
+                "ContactGeometryImpl", "createDecorativeGeometry()");
+    }
+
     virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                                   UnitVec3& normal) const = 0;
     virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
@@ -430,6 +435,7 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
+    DecorativeGeometry createDecorativeGeometry() const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                           UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
@@ -500,6 +506,7 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
+    DecorativeGeometry createDecorativeGeometry() const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside,
                           UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
@@ -583,6 +590,7 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
+    DecorativeGeometry createDecorativeGeometry() const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                           UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
@@ -675,7 +683,7 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
-
+    DecorativeGeometry createDecorativeGeometry() const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                           UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
@@ -807,6 +815,7 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
+    DecorativeGeometry createDecorativeGeometry() const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
                           UnitVec3& normal) const;
 
@@ -912,6 +921,7 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
+    DecorativeGeometry createDecorativeGeometry() const;
     Vec3     findPoint(int face, const Vec2& uv) const;
     Vec3     findCentroid(int face) const;
     UnitVec3 findNormalAtPoint(int face, const Vec2& uv) const;
