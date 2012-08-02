@@ -525,16 +525,15 @@ public:
     void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const;
 
-    // TODO
-//    virtual void shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
-//            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
+    virtual void shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
+            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
 
-//    virtual void shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
-//            const Plane& terminatingPlane, const GeodesicOptions& options,
-//            Geodesic& geod) const;
+    virtual void shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
+            const Plane& terminatingPlane, const GeodesicOptions& options,
+            Geodesic& geod) const;
 
-//    virtual void calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
-//                const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
+    virtual void calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
+                const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
 
     const Function& getImplicitFunction() const {
         return function;

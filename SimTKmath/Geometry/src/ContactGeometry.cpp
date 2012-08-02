@@ -1382,6 +1382,27 @@ calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
 
 }
 
+void ContactGeometry::Cylinder::Impl::
+calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
+                       const Vec3& tPhint, const Vec3& tQhint,
+                       Geodesic& geod) const
+{
+    //TODO for Andreas :)
+}
+
+void ContactGeometry::Cylinder::Impl::shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
+        const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const {
+
+    //TODO for Andreas :)
+}
+
+void ContactGeometry::Cylinder::Impl::shootGeodesicInDirectionUntilPlaneHitAnalytical(const Vec3& xP, const UnitVec3& tP,
+        const Plane& terminatingPlane, const GeodesicOptions& options,
+        Geodesic& geod) const {
+
+    //TODO for Andreas :)
+}
+
 Real CylinderImplicitFunction::
 calcValue(const Vector& x) const {
     return 1-(x[0]*x[0]+x[1]*x[1])/square(ownerp->getRadius());

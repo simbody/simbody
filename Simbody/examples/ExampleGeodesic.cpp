@@ -82,7 +82,8 @@ int main() {
     Vector x(n), dx(n), Fx(n), xold(n);
     Matrix J(n, n);
 
-    ContactGeometry::Sphere geom(r);
+//    ContactGeometry::Sphere geom(r);
+    ContactGeometry::Cylinder geom(r);
 
 //    Vec3 radii(0.2,0.4,0.6);
 //    ContactGeometry::Ellipsoid geom(radii);
