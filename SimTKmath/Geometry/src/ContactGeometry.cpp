@@ -215,6 +215,16 @@ calcGaussianCurvature(const Vec3& point) const {
 Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const 
 {   return getImpl().calcSupportPoint(direction); }
 
+Real ContactGeometry::
+	calcSurfaceCurvatureInDirection(const Vec3& point, 
+									const UnitVec3& direction) const 
+{
+	const Mat33 H = calcSurfaceHessian(point);
+	const Real  k = ~direction*H*direction;
+
+	return k;
+}
+
 /*static*/Vec2 ContactGeometry::
 evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
                         const Vec3& dPdu, const Vec3& dPdv,
@@ -514,6 +524,10 @@ Mat33 ContactGeometryImpl::calcSurfaceHessian(const Vec3& point) const {
 
 Real ContactGeometryImpl::calcGaussianCurvature(const Vec3& point) const {
     return myHandle->calcGaussianCurvature(point);
+}
+
+Real ContactGeometryImpl::calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const {
+	return myHandle->calcSurfaceCurvatureInDirection(point, direction);
 }
 
 

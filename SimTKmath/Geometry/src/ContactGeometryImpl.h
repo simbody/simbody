@@ -112,6 +112,7 @@ public:
     Vec3  calcSurfaceGradient(const Vec3& point) const;
     Mat33 calcSurfaceHessian(const Vec3& point) const;
     Real  calcGaussianCurvature(const Vec3& point) const;
+	Real  calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
 
     // Geodesic evaluators
 
