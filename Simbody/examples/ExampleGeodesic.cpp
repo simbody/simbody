@@ -82,15 +82,31 @@ int main() {
     Vector x(n), dx(n), Fx(n), xold(n);
     Matrix J(n, n);
 
-//    ContactGeometry::Sphere geom(r);
+    //ContactGeometry::Sphere geom(r);
     ContactGeometry::Cylinder geom(r);
+
+    bool inside; UnitVec3 normal;
+    cout << "before P,Q=" << P << ", " << Q << " -- " 
+         << geom.calcSurfaceValue(P) << " " << geom.calcSurfaceValue(Q) << endl;
+    Vec3 newP = geom.findNearestPoint(P,inside,normal);
+    UnitVec3 tP = normal.perp();
+    Vec3 newQ = geom.findNearestPoint(Q,inside,normal);
+    UnitVec3 tQ = normal.perp();
+    cout << "after newP,Q=" << newP << ", " << newQ << " -- " 
+         << geom.calcSurfaceValue(newP) 
+         << " " << geom.calcSurfaceValue(newQ) << endl;
+
+    cout << "curvature at newP along " << tP << ": " 
+        << geom.calcSurfaceCurvatureInDirection(newP,tP) << "\n";
+    cout << "curvature at newQ along " << tQ << ": " 
+        << geom.calcSurfaceCurvatureInDirection(newQ,tQ) << "\n";
 
 //    Vec3 radii(0.2,0.4,0.6);
 //    ContactGeometry::Ellipsoid geom(radii);
 
     cout << "Gaussian curvature P,Q="
-         << geom.calcGaussianCurvature(P) << ","
-         << geom.calcGaussianCurvature(Q) << endl;
+         << geom.calcGaussianCurvature(newP) << ","
+         << geom.calcGaussianCurvature(newQ) << endl;
 
     Geodesic geod;
 

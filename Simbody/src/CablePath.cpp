@@ -425,8 +425,14 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         }
         //cout << "obstacle err = " << f << ", x = " << ppe.x << endl;
 
-        diff.calcJacobian(ppe.x, ppe.err, ppe.J, 
-                          Differentiator::ForwardDifference);
+        //diff.calcJacobian(ppe.x, ppe.err, ppe.J, 
+        //                  Differentiator::ForwardDifference);
+        //Matrix Jnum = ppe.J;
+        calcPathErrorJacobian(state, instInfo, ppe);
+
+        //cout << "DIFF J=" << Jnum-ppe.J;
+        //cout << "DIFF NORM=" << (Jnum-ppe.J).norm() << "\n";
+
         ppe.JInv.factor(ppe.J);
 
         fold = f;
@@ -489,8 +495,8 @@ findKinematicVelocityErrors
 
     // Run through all the active surface obstacles calculating time 
     // derivatives of the input unit vectors eIn and eOut and passing those 
-    // to the obstacles to obtain the kinematic velocity errors. We'll 
-    // also accumulate the length changes of the straight-line segments
+    // to the obstacles to obtain the kinematic velocity errors. 
+    // TODO: accumulate the length changes of the straight-line segments
     // here.
 
     // The origin point is always active. Start off with that as the "previous"
@@ -686,6 +692,138 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
 
         ppe.length += ppe.geodesics[asx].getLength();
     }
+}
+
+//------------------------------------------------------------------------------
+//                          CALC PATH ERROR JACOBIAN
+//------------------------------------------------------------------------------
+// Assemble the nx X nx banded Jacobian J=D patherr / Dx from per-obstacle 
+// blocks. The obstacles compute the Jacobian of their own path error 
+// functions, which are eHat(eIn_S, xP, xQ, eOut_S), with all arguments in the
+// obstacle frame S. The blocks we need are instead the Jacobian of
+//    e(xQ-1, xP, xQ, xP+1) = eHat(eIn_S(xQ-1,xP), xP, xQ, eOut_S(xQ,xP+1))
+// so we need to apply the chain rule terms
+//          D eIn_S    D eIn_S     D eOut_S    D eOut_S
+//          --------   --------    --------    --------
+//           D xQ-1      D xP        D xQ       D xP+1
+// to produce the block we need for the patherr Jacobian.
+void CablePath::Impl::
+calcPathErrorJacobian(const State&            state, 
+                      const PathInstanceInfo& instInfo, 
+                      PathPosEntry&           ppe) // in/out
+                      const
+{
+    const int nx = ppe.x.size();
+    ppe.J.resize(nx, nx);
+    ppe.J.setToZero();
+    if (nx == 0)
+        return; // only via points; nothing to do
+
+    // Run through all the active surface obstacles calculating partial 
+    // derivatives of the input unit vectors eIn and eOut and applying those
+    // to the Jacobian blocks returned by the obstacles.
+
+    // The origin point is always active. Start off with that as the "previous"
+    // active obstacle.
+    CableObstacleIndex prevActiveOx = CableObstacleIndex(0);
+
+    // Now go through the active obstacles and stop to process whenever one
+    // of those is a surface obstacle.
+    CableObstacleIndex thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);
+
+    // Stop when we reach the termination point -- that's not a surface.
+    while (thisActiveOx < obstacles.size()-1) {
+        // Is this active obstacle a surface? If not keep going.
+        const ActiveSurfaceIndex asx = ppe.mapToActiveSurface[thisActiveOx];
+        if (!asx.isValid()) {
+            prevActiveOx = thisActiveOx;
+            thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);
+            continue; // skip via points and inactive surfaces
+        }
+
+        // This active obstacle is a surface. Find the next active obstacle.
+        const CableObstacleIndex nextActiveOx = 
+            ppe.findNextActiveObstacle(thisActiveOx);
+
+        // Now we have prev, this, and next with prev and next active and
+        // this an active surface. We want all the points in the S frame
+        // and the velocities of Qprev and Pnext in the S frame (P and Q
+        // velocities are zero in S).
+        const CableObstacle::Impl& prevObs = getObstacleImpl(prevActiveOx);
+        const CableObstacle::Surface::Impl& thisObs = 
+            dynamic_cast<const CableObstacle::Surface::Impl&>
+                (getObstacleImpl(thisActiveOx));
+        const CableObstacle::Impl& nextObs = getObstacleImpl(nextActiveOx);
+
+        // We're going to work in the body frames Bprev, Bthis, Bnext and
+        // then reexpress in S when we get to the "in" and "out" vectors.
+
+        // Abbreviate Bp=Bprev, Bn=Bnext, B=Bthis.
+        const MobilizedBody& Bp = prevObs.getMobilizedBody();
+        const MobilizedBody& B  = thisObs.getMobilizedBody();
+        const MobilizedBody& Bn = nextObs.getMobilizedBody();
+
+        const Rotation R_BBp = Bp.findBodyRotationInAnotherBody(state, B);
+        const Rotation R_BBn = Bn.findBodyRotationInAnotherBody(state, B);
+
+        const Rotation& R_BpSp = prevObs.getObstaclePoseOnBody(state,instInfo).R();
+        const Rotation& R_BS   = thisObs.getObstaclePoseOnBody(state,instInfo).R();
+        const Rotation& R_BnSn = nextObs.getObstaclePoseOnBody(state,instInfo).R();
+        const Rotation R_SB = ~R_BS;
+        const Rotation R_SSp = R_SB*R_BBp*R_BpSp;
+        const Rotation R_SSn = R_SB*R_BBn*R_BnSn;
+
+        Vec3 Pp, Qp, P, Q, Pn, Qn; // points in local body frames
+        prevObs.getContactStationsOnBody(state, instInfo, ppe, Pp, Qp);
+        thisObs.getContactStationsOnBody(state, instInfo, ppe, P, Q);
+        nextObs.getContactStationsOnBody(state, instInfo, ppe, Pn, Qn);
+
+        // Find prev and next points measured from & expressed in Bthis.
+        const Vec3 r_BQp = Bp.findStationLocationInAnotherBody(state, Qp, B);
+        const Vec3 r_BPn = Bn.findStationLocationInAnotherBody(state, Pn, B);
+
+        // Get relative position vectors in B and re-express in S.
+        const Vec3 rIn  = R_SB*(P - r_BQp);
+        const Vec3 rOut = R_SB*(r_BPn - Q);
+
+        // Now create unit vectors along rIn and rOut, in S.
+        const Real ooNormIn  = 1/rIn.norm();    // oo == "one over"
+        const Real ooNormOut = 1/rOut.norm(); 
+
+        // Create unit vectors in S; "true" here means no need to normalize.
+        const UnitVec3 eIn (ooNormIn *rIn,  true);
+        const UnitVec3 eOut(ooNormOut*rOut, true); 
+
+        Mat33 DeinDP   =  ooNormIn *(Mat33(1) - eIn*~eIn);
+        Mat33 DeoutDQ  = -ooNormOut*(Mat33(1) - eOut*~eOut);
+        Mat33 DeinDQp  = -DeinDP  * R_SSp;
+        Mat33 DeoutDPn = -DeoutDQ * R_SSn;
+
+        // Now ask the obstacle to calculate the Jacobian Jhat of its error
+        // function ehat(e_In, xP, xQ, e_Out).
+        
+        const int xSlot = ppe.mapToCoords[thisActiveOx];
+        assert(xSlot >= 0); // Should have had coordinates assigned
+ 
+        Mat63 DehatDein, DehatDxP, DehatDxQ, DehatDeout;
+        thisObs.calcSurfacePathErrorJacobian
+           (ppe.geodesics[asx],             // solved geodesic
+            eIn,                            // in S frame
+            Vec3::getAs(&ppe.x[xSlot]),     // xP
+            Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
+            eOut,
+            DehatDein, DehatDxP, DehatDxQ, DehatDeout);
+        if (xSlot >= 3)
+            ppe.J(xSlot,xSlot-3,6,3) = Matrix(DehatDein*DeinDQp);
+        ppe.J(xSlot,xSlot,  6,3) = Matrix(DehatDxP + DehatDein *DeinDP);
+        ppe.J(xSlot,xSlot+3,6,3) = Matrix(DehatDxQ + DehatDeout*DeoutDQ);
+        if (xSlot+9 < nx)
+            ppe.J(xSlot,xSlot+6,6,3) = Matrix(DehatDeout*DeoutDPn);
+
+        prevActiveOx = thisActiveOx;
+        thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);       
+    }
+
 }
 
 //==============================================================================
@@ -913,9 +1051,11 @@ public:
     {
         assert(x.size()==12);
         eIn = UnitVec3(Vec3::getAs(&x[0]), true); // no need to normalize
+        //eIn = UnitVec3(Vec3::getAs(&x[0]));
         xP = Vec3::getAs(&x[3]);
         xQ = Vec3::getAs(&x[6]);
         eOut = UnitVec3(Vec3::getAs(&x[9]), true);
+        //eOut = UnitVec3(Vec3::getAs(&x[9]));
     }
 
     void mapVecsToX(const UnitVec3& eIn, const Vec3& xP, 
@@ -961,7 +1101,7 @@ void CableObstacle::Surface::Impl::calcSurfacePathErrorJacobian
 {
     SurfaceError jacFunction(*this, previous, 1e-12);
     Differentiator diff(jacFunction);
-    Vector x(12), err0(12);
+    Vector x(12), err0(6);
     jacFunction.mapVecsToX(eIn_S,xP,xQ,eOut_S, x);
     jacFunction.f(x,err0);
     Matrix J(6,12);

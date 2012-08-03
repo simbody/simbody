@@ -447,6 +447,14 @@ public:
     // quantities with the result going back into PathPosEntry.
     void calcPathError
        (const State&, const PathInstanceInfo&, PathPosEntry&) const;
+
+    // Given kinematics K and a set of contact point coordinates x (already in
+    // PathPosEntry), calculate the Jacobian D patherr(K;x)/Dx, with the
+    // result going back into PathPosEntry. This is a banded matrix assembled
+    // from individual blocks provided by the active surface obstacles.
+    void calcPathErrorJacobian
+       (const State&, const PathInstanceInfo&, PathPosEntry&) const;
+
 private:
 friend class CablePath;
 

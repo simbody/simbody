@@ -967,7 +967,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         f = std::sqrt(~Fx*Fx);
         dist = (geod.getPointQ()-xQ).norm();
         //std::cout << "ORTHO err = " << Fx << " |Fx|=" << f << " dist=" << dist
-        //          << std::endl;
+         //         << std::endl;
         if (f < ftol) {
             //std::cout << "ORTHO geodesic converged in " 
             //          << i << " iterations" << std::endl;
