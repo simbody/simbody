@@ -7,7 +7,7 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
- * Authors: Peter Eastman, Michael Sherman, Ian Stavness                      *
+ * Authors: Peter Eastman, Michael Sherman, Ian Stavness, Andreas Scholz      *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
@@ -1396,12 +1396,121 @@ calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
 
 }
 
+// Sample geodesic between two points P and Q on a cylinder analytically.
+static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real c, Geodesic& geod)
+{
+   	// Clear current geodesic.
+	geod.clear();
+
+	// TODO: Make this generic, so long geodesics are sampled more than short ones.
+    const int numGeodesicSamples = 12;
+
+    // Arc length of the helix
+	const Real L = R * std::sqrt(1+m*m) * angle;
+
+    for (int i = 0; i < numGeodesicSamples; ++i)
+	{
+		// Watch out: Angle phi has an offset phiP
+        Real phi = i*angle/(numGeodesicSamples-1) + phiP;
+        const Real sphi = std::sin(phi), cphi = std::cos(phi);
+
+		// Evaluate helix.
+        Vec3     p( R*cphi, R*sphi, R*m*(phi - phiP) + c);
+		UnitVec3 t(  -sphi,   cphi, m);
+		UnitVec3 n(   cphi,   sphi, 0);
+
+        // Though not needed, we use an orthogonalizing constructor for the rotation.
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, XAxis), p));
+
+		// Current arc length s.
+		Real s = R * std::sqrt(1+m*m) * (phi - phiP);
+        geod.addArcLength(s);
+
+		// Solve the scalar Jacobi equation
+		//
+		//        j''(s) + K(s)*j(s) = 0 ,                                     (1)
+		//
+		// where K is the Gaussian curvature and (.)' := d(.)/ds denotes differentiation
+		// with respect to the arc length s. Then, j is the directional sensitivity and
+		// we obtain the corresponding variational vector field by multiplying b*j. For
+		// a cylinder, K = 0 and the solution of equation (1) becomes
+		//
+		//        j  = s				                                       (2)
+		//		  j' = 1 ,							                           (3)
+		//
+		// so the Jacobi field increases linearly in s.
+
+		// Forward directional sensitivity from P to Q
+		Vec2 jPQ(s, 1);
+		geod.addDirectionalSensitivityPtoQ(jPQ);
+
+		// Backwards directional sensitivity from Q to P
+		Vec2 jQP(L-s, 1);
+		geod.addDirectionalSensitivityQtoP(jQP);
+    }
+
+    geod.setIsConvex(false); // TODO
+    geod.setIsShortest(false); // TODO
+    geod.setAchievedAccuracy(1e-15); // TODO: accuracy of length?
+//    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken()); // TODO
+}
+
+// Compute geodesic between two points P and Q on a cylinder analytically. Since a geodesic on a
+// cylinder is a helix it is parameterized by
+//
+//			       [ R * cos(phi)    ]
+//        p(phi) = [ R * sin(phi)    ]
+//				   [ R * m * phi + c ]
+//
+// where R is the radius of the cylinder, phi parameterizes the opening angle of the helix, m is  
+// the slope and c is an offset. We define the geodesic from P to Q, hence c = Pz.
 void ContactGeometry::Cylinder::Impl::
 calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
                        const Vec3& tPhint, const Vec3& tQhint,
                        Geodesic& geod) const
 {
-    //TODO for Andreas :)
+	// Compute angle between P and Q. Save both the positive (right handed) and the negative
+	// (left handed) angle.
+	Real phiP = std::atan2(xP[1], xP[0]);
+	Real phiQ = std::atan2(xQ[1], xQ[0]);
+
+	Real temp = phiQ - phiP;
+	Real angleRightHanded, angleLeftHanded;
+
+	if (temp >= 0) {
+		angleRightHanded = temp;
+		angleLeftHanded  = temp - 2*Pi;
+	}
+
+	else {
+		angleLeftHanded  = temp;
+		angleRightHanded = temp + 2*Pi;
+	}
+
+	// Compute "moment" of tPhint at P and tQhint at Q around z-Axis.
+	// Make sure tPhint and tQhint are unit vectors, otherwise moments are scaled.
+	Real MP = xP[0]*tPhint[1] - xP[1]*tPhint[0];
+	Real MQ = xQ[0]*tQhint[1] - xQ[1]*tQhint[0];
+
+	// Average moment.
+	Real M = (MP - MQ) / 2;
+
+	// Decide whether helix is right oder left handed.
+	Real angle;
+
+	if (M >= 0)	{
+		angle = angleRightHanded;
+	}
+
+	else {
+		angle = angleLeftHanded;
+	}
+
+	// Offset and slope.
+	Real c =  xP[2];
+	Real m = (xQ[2] - xP[2]) / (angle * radius);
+
+	setGeodesicToHelicalArc(radius, phiP, angle, m, c, geod);
 }
 
 void ContactGeometry::Cylinder::Impl::shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,

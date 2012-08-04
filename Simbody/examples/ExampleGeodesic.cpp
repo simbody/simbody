@@ -7,7 +7,7 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
- * Authors: Ian Stavness, Michael Sherman                                     *
+ * Authors: Ian Stavness, Michael Sherman, Andreas Scholz                     *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
@@ -56,20 +56,22 @@ private:
 int main() {
   try {
 
-    // setup test problem
-    double r = 0.5;
-    double uP = -Pi / 2;
-    double vP = Pi / 3;
-    double uQ = 0;
-    double vQ = 2;
-    Vec3 O(-r, -r, 0.2);
-    Vec3 I(r, r, -r);
-    Vec3 P(r * cos(uP) * sin(vP), r * sin(uP) * sin(vP), r * cos(vP));
-    Vec3 Q(r * cos(uQ) * sin(vQ), r * sin(uQ) * sin(vQ), r * cos(vQ));
+    // Test cylinder
+    Real r			=  0.5;
+    Real phiP		= -Pi;
+    Real phiQ		=  Pi / 4;
+	Real heightP	=  0.5;
+	Real heightQ	= -0.5;
+
+    Vec3 P(r*cos(phiP), r*sin(phiP), heightP);
+    Vec3 Q(r*cos(phiQ), r*sin(phiQ), heightQ);
+
+	Vec3 O(-r, -2, heightP);
+    Vec3 I( r, -2, heightQ);
 
     // move points off surface for testing
-    Q(0) -= r*0.2;
-    P(1) -= r*0.2;
+    // Q(0) -= r*0.2;
+    // P(1) -= r*0.2;
 
     Vec3 r_OP = P - O;
     Vec3 r_IQ = Q - I;
@@ -144,9 +146,9 @@ int main() {
 
     const Real startReal = realTime(), startCpu = cpuTime();
     //geom.calcGeodesic(P, Q, e_OP, -e_IQ, geod);
-    //geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
-    //geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
-    geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
+    geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
+    // geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
+    // geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
 
