@@ -180,6 +180,8 @@ public:
                         .setLineThickness(3));
             }
             prevPt = cur;
+
+            geometry.push_back(DecorativeFrame(.2).setTransform(Kfs[i]));
         }
     }
 
