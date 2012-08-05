@@ -219,6 +219,8 @@ public:
     // for both geodesics are supposed to represent the same point on the
     // combined geodesic so we'll average them. The final geodesic will
     // thus have one fewer point than the sum of the two half-geodesics.
+    // Note convention for Transform<->Frenet Frame mapping:
+    //    z = normal, y = tangent, x = binormal (tXn)
     static void mergeGeodFrames(const Array_<Transform>& geodP,
                                 const Array_<Transform>& geodQ,
                                 Array_<Transform>&       geod)
@@ -235,18 +237,18 @@ public:
         Vec3     midpoint = (Pf.p() + Qf.p())/2;
         // TODO: get exact normal at midpoint from surface
         UnitVec3 midnormal = UnitVec3((Pf.z() + Qf.z())/2); 
-        Vec3     midtangent = (Pf.x() - Qf.x())/2; // approx
+        Vec3     midtangent = (Pf.y() - Qf.y())/2; // approx
 
         // Replace the midpoint Frenet frame with one at the average of
         // the P and Q endpoints, using the calculated normal as the z axis,
-        // and the average tangent as x axis. We'll let Rotation 
-        // perpendicularize this, so the actual x axis may deviate slightly
-        // from the calculated average normal. Then b=z X x is the y axis.
-        geod.back() = Transform(Rotation(midnormal, ZAxis, midtangent, XAxis),
+        // and the average tangent as y axis. We'll let Rotation 
+        // perpendicularize this, so the actual y axis may deviate slightly
+        // from the calculated average normal. Then b=y X z is the x axis.
+        geod.back() = Transform(Rotation(midnormal, ZAxis, midtangent, YAxis),
                                 midpoint);
 
         // Now run through the Q-side geodesic backwards reversing its
-        // tangent (x) and binormal (y) vectors while preserving the point
+        // tangent (y) and binormal (x) vectors while preserving the point
         // and surface normal. That's a 180 degree rotation about z so it
         // is still right handed!
         for (int i = sizeQ-2; i >= 0; --i) {

@@ -969,15 +969,14 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     err[5] = surface.calcSurfaceValue(xQ);
 
     //surface.calcGeodesic(xP, xQ, eIn, eOut, next);
-    //surface.calcGeodesicAnalytical(xP, xQ, eIn, eOut, next);
-    surface.calcGeodesicUsingOrthogonalMethod(xP, xQ, eIn, (xQ-xP).norm(), next);
+    surface.calcGeodesicAnalytical(xP, xQ, eIn, eOut, next);
+    //surface.calcGeodesicUsingOrthogonalMethod(xP, xQ, eIn, (xQ-xP).norm(), next);
     //cout << "  geodesic had length " << next.getLength() << endl;
-    const Transform& Fp = next.getFrenetFrames().front();
-    const Transform& Fq = next.getFrenetFrames().back();
-    const UnitVec3& tP = Fp.x();
-    const UnitVec3& tQ = Fq.x();
-    const UnitVec3& bP = Fp.y();
-    const UnitVec3& bQ = Fq.y();
+
+    const UnitVec3& tP = next.getTangentP();
+    const UnitVec3& tQ = next.getTangentQ();
+    const UnitVec3& bP = next.getBinormalP();
+    const UnitVec3& bQ = next.getBinormalQ();
     err[2] = ~eIn*bP;   // tangent errors in geodesic direction
     err[3] = ~eOut*bQ;
 
@@ -1001,12 +1000,10 @@ Vec6 CableObstacle::Surface::Impl::calcSurfaceNegKinematicVelocityError
 {
     Vec6 errdotK;
 
-    const Transform& Fp = geodesic.getFrenetFrames().front();
-    const Transform& Fq = geodesic.getFrenetFrames().back();
-    const UnitVec3& nP = Fp.z();
-    const UnitVec3& nQ = Fq.z();
-    const UnitVec3& bP = Fp.y();
-    const UnitVec3& bQ = Fq.y();
+    const UnitVec3& nP = geodesic.getNormalP();
+    const UnitVec3& nQ = geodesic.getNormalQ();
+    const UnitVec3& bP = geodesic.getBinormalP();
+    const UnitVec3& bQ = geodesic.getBinormalQ();
 
     // These must be the kinematic part of the time derivatives of the
     // error conditions that were reported for this obstacle during path

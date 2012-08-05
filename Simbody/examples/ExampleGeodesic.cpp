@@ -160,8 +160,8 @@ int main() {
         cout << "\n" << arcLength[i] << ": " << dirPtoQ[i] << " " 
                                      << dirQtoP[i] << endl;
         cout << "p=" << frenet[i].p() << "\n";
-        cout << "t=" << frenet[i].x() << "\n";
-        cout << "b=" << frenet[i].y() << "\n";
+        cout << "t=" << frenet[i].y() << "\n";
+        cout << "b=" << frenet[i].x() << "\n";
         cout << "n=" << frenet[i].z() << "\n";
     }
 

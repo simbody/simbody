@@ -58,8 +58,8 @@ public:
     /** Frenet frame of geodesic at arc length s:
         - origin: point on geodesic at s
         - z axis: outward surface (unit) normal n at s
-        - x axis: unit tangent t at s in direction of increasing arc length
-        - y axis: unit binormal at s: b=n X t (y=z X x) 
+        - y axis: unit tangent t at s in direction of increasing arc length
+        - x axis: unit binormal at s: b=t X n (x=y X z) 
     **/
     const Array_<Transform>& getFrenetFrames() const {return frenetFrames;}
     Array_<Transform>&       updFrenetFrames() {return frenetFrames;}
@@ -96,10 +96,10 @@ public:
     const Vec3& getPointQ() const {return frenetFrames.back().p();}
     const UnitVec3& getNormalP() const {return frenetFrames.front().z();}
     const UnitVec3& getNormalQ() const {return frenetFrames.back().z();}
-    const UnitVec3& getTangentP() const {return frenetFrames.front().x();}
-    const UnitVec3& getTangentQ() const {return frenetFrames.back().x();}
-    const UnitVec3& getBinormalP() const {return frenetFrames.front().y();}
-    const UnitVec3& getBinormalQ() const {return frenetFrames.back().y();}
+    const UnitVec3& getTangentP() const {return frenetFrames.front().y();}
+    const UnitVec3& getTangentQ() const {return frenetFrames.back().y();}
+    const UnitVec3& getBinormalP() const {return frenetFrames.front().x();}
+    const UnitVec3& getBinormalQ() const {return frenetFrames.back().x();}
     Real getSensitivityP() const {return directionalSensitivityPtoQ.back()[0];}
     Real getSensitivityQ() const {return directionalSensitivityQtoP.front()[0];}
 
@@ -142,7 +142,7 @@ public:
 
 private:
     Array_<Real>      arcLengths; // arc length coord corresponding to that point
-    Array_<Transform> frenetFrames;
+    Array_<Transform> frenetFrames; // see above for more info
     Array_<Vec2>      directionalSensitivityPtoQ; // j and jdot
     Array_<Vec2>      directionalSensitivityQtoP;
 
@@ -152,7 +152,6 @@ private:
     bool shortestFlag; // is this geodesic the shortest one of the surface?
     Real initialStepSizeHint; // the initial step size to be tried when integrating this geodesic
     Real achievedAccuracy; // the accuracy to which this geodesic curve has been calculated
-//    Array_<JacobiFieldInfo> partials;
 };
 
 

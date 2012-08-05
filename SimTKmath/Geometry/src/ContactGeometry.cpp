@@ -616,8 +616,8 @@ void ContactGeometryImpl::continueGeodesic(const Vec3& xP, const Vec3& xQ, const
     // XXX could also estimate P and Q based on prevGeod's contact point velocities
 
     // Set tP and tQ hints based on previous geodesic's endpoint tangents
-    Vec3 tPhint = prevGeod.getFrenetFrames().front().x();
-    Vec3 tQhint = prevGeod.getFrenetFrames().back().x();
+    Vec3 tPhint = prevGeod.getTangentP();
+    Vec3 tQhint = prevGeod.getTangentQ();
 
     calcGeodesic(xP, xQ, tPhint, tQhint, geod);
 }
@@ -694,9 +694,9 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         const Vec3& pt = Vec3::getAs(&state.getQ()[0]);
         const UnitVec3 n = calcSurfaceUnitNormal(pt);
         const Vec3& tangent = Vec3::getAs(&state.getU()[0]);
-        // Rotation will orthogonalize so x direction we get may not be
+        // Rotation will orthogonalize so y direction we get may not be
         // exactly the same as what we supply here.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, XAxis), pt));
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, YAxis), pt));
         geod.addArcLength(s);
         geod.addDirectionalSensitivityPtoQ(Vec2(state.getQ()[3],
                                                 state.getU()[3]));
@@ -747,9 +747,9 @@ calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
         const Real sQ = geod.getArcLengths()[step];
         const Real sP = geod.getArcLengths()[step-1];
         const Vec3&      Q = QFrenet.p();
-        const UnitVec3&  tQ = QFrenet.x(); // we'll reverse this
+        const UnitVec3&  tQ = QFrenet.y(); // we'll reverse this
         const Vec3&      P = PFrenet.p();
-        const UnitVec3&  tP = PFrenet.x();
+        const UnitVec3&  tP = PFrenet.y();
 
         // Initialize state
         sysState.setTime(0);
@@ -1226,8 +1226,8 @@ calcError(const Geodesic& geodP, const Geodesic& geodQ) const {
     const Transform& Fphat = geodP.getFrenetFrames().back();
     const Transform& Fqhat = geodQ.getFrenetFrames().back();
     const Vec3&      Phat = Fphat.p(); const Vec3&      Qhat = Fqhat.p();
-    const UnitVec3& tPhat = Fphat.x(); const UnitVec3& tQhat = Fqhat.x();
-    const UnitVec3& bPhat = Fphat.y(); const UnitVec3& bQhat = Fqhat.y();
+    const UnitVec3& tPhat = Fphat.y(); const UnitVec3& tQhat = Fqhat.y();
+    const UnitVec3& bPhat = Fphat.x(); const UnitVec3& bQhat = Fqhat.x();
     const UnitVec3& nPhat = Fphat.z(); const UnitVec3& nQhat = Fqhat.z();
 
     // Error is separation distance along mutual b direction, and angle by
@@ -1420,7 +1420,7 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 		UnitVec3 n(   cphi,   sphi, 0);
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, XAxis), p));
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, YAxis), p));
 
 		// Current arc length s.
 		Real s = R * std::sqrt(1+m*m) * (phi - phiP);
@@ -1673,7 +1673,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
         Vec3 tangent = -e1*sphi + e2*cphi;
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
-        geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, XAxis), p));
+        geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, YAxis), p));
 
 		// Current arc length s.
 		Real s = R*phi;

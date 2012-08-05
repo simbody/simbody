@@ -238,13 +238,21 @@ int main() {
     biggerBody.addDecoration(Transform(), 
         DecorativeSphere(BiggerRad).setOpacity(.75).setResolution(4));
 
-    const Vec3 radii(.4, .25, .15);;
+    const Vec3 radii(.4, .25, .15);
     Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
         1.*UnitInertia::ellipsoid(radii)));
     ellipsoidBody.addDecoration(Transform(), 
         DecorativeEllipsoid(radii).setOpacity(.75).setResolution(4)
                                   .setColor(Orange));
-    ellipsoidBody = someBody; // NOT USING ELLIPSOID
+
+    const Real CylRad = .3, HalfLen = .5;
+    Body::Rigid cylinderBody(MassProperties(1.0, Vec3(0), 
+        1.*UnitInertia::cylinderAlongX(Rad,HalfLen)));
+    cylinderBody.addDecoration(Rotation(-Pi/2,ZAxis), 
+        DecorativeCylinder(CylRad,HalfLen).setOpacity(.75)
+           .setResolution(4).setColor(Orange));
+
+    Body::Rigid fancyBody = cylinderBody; // NOT USING ELLIPSOID
 
     MobilizedBody Ground = matter.Ground();
 
@@ -255,7 +263,7 @@ int main() {
     MobilizedBody::Ball body3(body2,            Transform(Vec3(0)), 
                               someBody,         Transform(Vec3(0, 1, 0)));
     MobilizedBody::Ball body4(body3,            Transform(Vec3(0)), 
-                              ellipsoidBody,    Transform(Vec3(0, 1, 0)));
+                              fancyBody,    Transform(Vec3(0, 1, 0)));
     MobilizedBody::Ball body5(body4,            Transform(Vec3(0)), 
                               someBody,         Transform(Vec3(0, 1, 0)));
 
@@ -273,9 +281,10 @@ int main() {
 
     //CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
     //CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
-    CableObstacle::Surface obs5(path1, body4, Transform(), 
-        //ContactGeometry::Ellipsoid(radii));
-        ContactGeometry::Sphere(Rad));
+    CableObstacle::Surface obs5(path1, body4, 
+        // Transform(), ContactGeometry::Ellipsoid(radii));
+        Rotation(Pi/2, YAxis), ContactGeometry::Cylinder(CylRad)); // along y
+        //ContactGeometry::Sphere(Rad));
     //obs5.setContactPointHints(Rad*UnitVec3(0,-1,-1),Rad*UnitVec3(0.1,-1,-1));
     obs5.setContactPointHints(Rad*UnitVec3(.1,.125,-.2),
                               Rad*UnitVec3(0.1,-.1,-.2));
