@@ -676,7 +676,8 @@ Impl& updImpl(); /**< Internal use only. **/
 //                                CYLINDER
 //==============================================================================
 /** This ContactGeometry subclass represents a cylinder centered at the
-origin. **/
+origin, with radius r in the x-y plane, and infinite length along z.
+TODO: should allow finite length to be specified. **/
 class SimTK_SIMMATH_EXPORT ContactGeometry::Cylinder : public ContactGeometry {
 public:
 explicit Cylinder(Real radius);
