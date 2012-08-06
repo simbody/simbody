@@ -1678,7 +1678,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
         Vec3 tangent = -e1*sphi + e2*cphi;
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
-        geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, XAxis), p));
+        geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, YAxis), p));
 
 		// Current arc length s.
 		Real s = R*phi;
