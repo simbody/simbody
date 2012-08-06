@@ -58,16 +58,16 @@ int main() {
 
     // Test cylinder
     Real r			=  0.5;
-    Real phiP		= -Pi;
-    Real phiQ		=  Pi / 4;
-	Real heightP	=  0.5;
-	Real heightQ	= -0.5;
+    Real phiP		=  0.0*Pi;
+    Real phiQ		=  1.0*Pi;
+	Real heightP	= -0.5;
+	Real heightQ	=  0.5;
 
     Vec3 P(r*cos(phiP), r*sin(phiP), heightP);
     Vec3 Q(r*cos(phiQ), r*sin(phiQ), heightQ);
 
-	Vec3 O(-r, -2, heightP);
-    Vec3 I( r, -2, heightQ);
+	Vec3 O( r, -2,  heightP);
+    Vec3 I(-r, -2,  heightQ);
 
     // move points off surface for testing
     // Q(0) -= r*0.2;

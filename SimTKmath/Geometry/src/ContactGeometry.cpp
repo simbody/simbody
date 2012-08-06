@@ -616,8 +616,8 @@ void ContactGeometryImpl::continueGeodesic(const Vec3& xP, const Vec3& xQ, const
     // XXX could also estimate P and Q based on prevGeod's contact point velocities
 
     // Set tP and tQ hints based on previous geodesic's endpoint tangents
-    Vec3 tPhint = prevGeod.getTangentP();
-    Vec3 tQhint = prevGeod.getTangentQ();
+    Vec3 tPhint = prevGeod.getFrenetFrames().front().x();
+    Vec3 tQhint = prevGeod.getFrenetFrames().back().x();
 
     calcGeodesic(xP, xQ, tPhint, tQhint, geod);
 }
@@ -694,9 +694,9 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         const Vec3& pt = Vec3::getAs(&state.getQ()[0]);
         const UnitVec3 n = calcSurfaceUnitNormal(pt);
         const Vec3& tangent = Vec3::getAs(&state.getU()[0]);
-        // Rotation will orthogonalize so y direction we get may not be
+        // Rotation will orthogonalize so x direction we get may not be
         // exactly the same as what we supply here.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, YAxis), pt));
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, XAxis), pt));
         geod.addArcLength(s);
         geod.addDirectionalSensitivityPtoQ(Vec2(state.getQ()[3],
                                                 state.getU()[3]));
@@ -747,9 +747,9 @@ calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
         const Real sQ = geod.getArcLengths()[step];
         const Real sP = geod.getArcLengths()[step-1];
         const Vec3&      Q = QFrenet.p();
-        const UnitVec3&  tQ = QFrenet.y(); // we'll reverse this
+        const UnitVec3&  tQ = QFrenet.x(); // we'll reverse this
         const Vec3&      P = PFrenet.p();
-        const UnitVec3&  tP = PFrenet.y();
+        const UnitVec3&  tP = PFrenet.x();
 
         // Initialize state
         sysState.setTime(0);
@@ -1226,8 +1226,8 @@ calcError(const Geodesic& geodP, const Geodesic& geodQ) const {
     const Transform& Fphat = geodP.getFrenetFrames().back();
     const Transform& Fqhat = geodQ.getFrenetFrames().back();
     const Vec3&      Phat = Fphat.p(); const Vec3&      Qhat = Fqhat.p();
-    const UnitVec3& tPhat = Fphat.y(); const UnitVec3& tQhat = Fqhat.y();
-    const UnitVec3& bPhat = Fphat.x(); const UnitVec3& bQhat = Fqhat.x();
+    const UnitVec3& tPhat = Fphat.x(); const UnitVec3& tQhat = Fqhat.x();
+    const UnitVec3& bPhat = Fphat.y(); const UnitVec3& bQhat = Fqhat.y();
     const UnitVec3& nPhat = Fphat.z(); const UnitVec3& nQhat = Fqhat.z();
 
     // Error is separation distance along mutual b direction, and angle by
@@ -1402,11 +1402,15 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
    	// Clear current geodesic.
 	geod.clear();
 
+	// Arc length of the helix. Always
+	const Real L = R * std::sqrt(1+m*m) * std::abs(angle);
+
+	// Orientation of helix. 
+	Real orientation = SimTK::sign(angle);
+
 	// TODO: Make this generic, so long geodesics are sampled more than short ones.
     const int numGeodesicSamples = 12;
-
-    // Arc length of the helix
-	const Real L = R * std::sqrt(1+m*m) * angle;
+	const Real deltaPhi = abs(angle / numGeodesicSamples);
 
     for (int i = 0; i < numGeodesicSamples; ++i)
 	{
@@ -1415,15 +1419,15 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
         const Real sphi = std::sin(phi), cphi = std::cos(phi);
 
 		// Evaluate helix.
-        Vec3     p( R*cphi, R*sphi, R*m*(phi - phiP) + c);
+        Vec3	 p( R*cphi, R*sphi, R*m*(phi - phiP) + c);
 		UnitVec3 t(  -sphi,   cphi, m);
 		UnitVec3 n(   cphi,   sphi, 0);
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, YAxis), p));
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t*orientation, XAxis), p));
 
 		// Current arc length s.
-		Real s = R * std::sqrt(1+m*m) * (phi - phiP);
+		Real s = R * std::sqrt(1+m*m) * (i*deltaPhi);
         geod.addArcLength(s);
 
 		// Solve the scalar Jacobi equation
@@ -1477,6 +1481,7 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
 	Real temp = phiQ - phiP;
 	Real angleRightHanded, angleLeftHanded;
 
+	// Left-handed angle will always be negative, right-handed angle will be positive.
 	if (temp >= 0) {
 		angleRightHanded = temp;
 		angleLeftHanded  = temp - 2*Pi;
@@ -1493,11 +1498,11 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
 	Real MQ = xQ[0]*tQhint[1] - xQ[1]*tQhint[0];
 
 	// Average moment.
-	Real M = (MP - MQ) / 2;
+	Real M = (MP + MQ) / 2;
 
-	// Decide whether helix is right oder left handed.
+	// Decide whether helix is right or left handed. The sign of angle stores the 
+	// information about the orientation (right handed, if positive)
 	Real angle;
-
 	if (M >= 0)	{
 		angle = angleRightHanded;
 	}
@@ -1673,7 +1678,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
         Vec3 tangent = -e1*sphi + e2*cphi;
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
-        geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, YAxis), p));
+        geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, XAxis), p));
 
 		// Current arc length s.
 		Real s = R*phi;
