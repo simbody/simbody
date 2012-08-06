@@ -219,8 +219,10 @@ Real ContactGeometry::
 	calcSurfaceCurvatureInDirection(const Vec3& point, 
 									const UnitVec3& direction) const 
 {
+    const UnitVec3 n = calcSurfaceUnitNormal(point);
+    const Vec3     g = calcSurfaceGradient(point);
 	const Mat33 H = calcSurfaceHessian(point);
-	const Real  k = ~direction*H*direction;
+	const Real  k = ~direction*H*direction/(~g*n);
 
 	return k;
 }

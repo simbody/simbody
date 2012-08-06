@@ -87,13 +87,13 @@ int main() {
     //ContactGeometry::Sphere geom(r);
     ContactGeometry::Cylinder geom(r);
 
-    bool inside; UnitVec3 normal;
+    bool inside; UnitVec3 nP, nQ;
     cout << "before P,Q=" << P << ", " << Q << " -- " 
          << geom.calcSurfaceValue(P) << " " << geom.calcSurfaceValue(Q) << endl;
-    Vec3 newP = geom.findNearestPoint(P,inside,normal);
-    UnitVec3 tP = normal.perp();
-    Vec3 newQ = geom.findNearestPoint(Q,inside,normal);
-    UnitVec3 tQ = normal.perp();
+    Vec3 newP = geom.findNearestPoint(P,inside,nP);
+    UnitVec3 tP = nP.perp();
+    Vec3 newQ = geom.findNearestPoint(Q,inside,nQ);
+    UnitVec3 tQ = nQ.perp();
     cout << "after newP,Q=" << newP << ", " << newQ << " -- " 
          << geom.calcSurfaceValue(newP) 
          << " " << geom.calcSurfaceValue(newQ) << endl;
@@ -102,6 +102,21 @@ int main() {
         << geom.calcSurfaceCurvatureInDirection(newP,tP) << "\n";
     cout << "curvature at newQ along " << tQ << ": " 
         << geom.calcSurfaceCurvatureInDirection(newQ,tQ) << "\n";
+    cout << "gradient at newP " << ": " 
+        << geom.calcSurfaceGradient(newP) << " |gP|=" << 
+        geom.calcSurfaceGradient(newP).norm() << "\n";
+    cout << "gradient at newQ " << ": " 
+        << geom.calcSurfaceGradient(newQ) << " |gQ|=" << 
+        geom.calcSurfaceGradient(newQ).norm() << "\n";
+
+    Rotation R_GP(nP, ZAxis, tP, XAxis);
+    for (int i=0; i <=10; ++i) {
+        Real a = i*(Pi/2)/10;
+        UnitVec3 u_P(-sin(a), cos(a), 0);
+        UnitVec3 dir = R_GP*u_P;
+        cout << a << ": " << geom.calcSurfaceCurvatureInDirection(newP,dir)
+            << " 2*sin^2(a)=" << 2*square(sin(a)) << "\n";
+    }
 
 //    Vec3 radii(0.2,0.4,0.6);
 //    ContactGeometry::Ellipsoid geom(radii);
@@ -122,6 +137,11 @@ int main() {
             .setColor(Gray)
             .setOpacity(0.5)
             .setResolution(5));
+
+    matter.updGround().addBodyDecoration(Transform(),
+        DecorativeLine(Vec3(newP), Vec3(newP)+.5*tP).setColor(Red));
+    matter.updGround().addBodyDecoration(Transform(),
+        DecorativeLine(Vec3(newQ), Vec3(newQ)+.5*tQ).setColor(Red));
 
     // Visualize with default options; ask for a report every 1/30 of a second
     // to match the Visualizer's default 30 frames per second rate.
