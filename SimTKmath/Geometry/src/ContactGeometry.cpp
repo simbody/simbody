@@ -1403,20 +1403,20 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 	geod.clear();
 
 	// Arc length of the helix. Always
-	const Real L = R * std::sqrt(1+m*m) * std::abs(angle);
+	const Real L = R * std::sqrt(1+m*m) * abs(angle);
 
 	// Orientation of helix. 
-	Real orientation = SimTK::sign(angle);
+	Real orientation = sign(angle);
 
 	// TODO: Make this generic, so long geodesics are sampled more than short ones.
     const int numGeodesicSamples = 12;
-	const Real deltaPhi = abs(angle / numGeodesicSamples);
+	const Real deltaPhi = abs(angle / Real(numGeodesicSamples));
 
     for (int i = 0; i < numGeodesicSamples; ++i)
 	{
 		// Watch out: Angle phi has an offset phiP
-        Real phi = i*angle/(numGeodesicSamples-1) + phiP;
-        const Real sphi = std::sin(phi), cphi = std::cos(phi);
+        Real phi = Real(i)*angle/Real(numGeodesicSamples-1) + phiP;
+        const Real sphi = sin(phi), cphi = cos(phi);
 
 		// Evaluate helix.
         Vec3	 p( R*cphi, R*sphi, R*m*(phi - phiP) + c);
@@ -1424,10 +1424,10 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 		UnitVec3 n(   cphi,   sphi, 0);
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t*orientation, XAxis), p));
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t*orientation, YAxis), p));
 
 		// Current arc length s.
-		Real s = R * std::sqrt(1+m*m) * (i*deltaPhi);
+		Real s = R * sqrt(1+m*m) * (Real(i)*deltaPhi);
         geod.addArcLength(s);
 
 		// Solve the scalar Jacobi equation
@@ -1475,8 +1475,8 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
 {
 	// Compute angle between P and Q. Save both the positive (right handed) and the negative
 	// (left handed) angle.
-	Real phiP = std::atan2(xP[1], xP[0]);
-	Real phiQ = std::atan2(xQ[1], xQ[0]);
+	Real phiP = atan2(xP[1], xP[0]);
+	Real phiQ = atan2(xQ[1], xQ[0]);
 
 	Real temp = phiQ - phiP;
 	Real angleRightHanded, angleLeftHanded;
