@@ -1405,7 +1405,7 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 	geod.clear();
 
 	// Arc length of the helix. Always
-	const Real L = R * std::sqrt(1+m*m) * abs(angle);
+	const Real L = R * sqrt(1+m*m) * abs(angle);
 
 	// Orientation of helix. 
 	Real orientation = sign(angle);
@@ -1668,6 +1668,9 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 	const Real orientation = sign(angle);
 	const Real L = R*angle*orientation;
 
+	// Increment of phi in loop.
+	const Real deltaPhi = abs(angle / Real(numGeodesicSamples));
+
     for (int i = 0; i < numGeodesicSamples; ++i){
         Real phi = Real(i)*angle / Real(numGeodesicSamples-1);
         const Real sphi = sin(phi), cphi = cos(phi);
@@ -1684,7 +1687,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
         geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, YAxis), p));
 
 		// Current arc length s.
-		Real s = R*phi*orientation;
+		Real s = R*Real(i)*deltaPhi;
         geod.addArcLength(s);
 
 		// Solve the scalar Jacobi equation
