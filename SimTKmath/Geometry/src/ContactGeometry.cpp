@@ -698,7 +698,7 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         const Vec3& tangent = Vec3::getAs(&state.getU()[0]);
         // Rotation will orthogonalize so x direction we get may not be
         // exactly the same as what we supply here.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, XAxis), pt));
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, YAxis), pt));
         geod.addArcLength(s);
         geod.addDirectionalSensitivityPtoQ(Vec2(state.getQ()[3],
                                                 state.getU()[3]));
@@ -1412,7 +1412,7 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 
 	// TODO: Make this generic, so long geodesics are sampled more than short ones.
     const int numGeodesicSamples = 12;
-	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples));
+	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples-1));
 
     for (int i = 0; i < numGeodesicSamples; ++i)
 	{
@@ -1669,7 +1669,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 	const Real L = R*angle*orientation;
 
 	// Increment of phi in loop.
-	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples));
+	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples-1));
 
     for (int i = 0; i < numGeodesicSamples; ++i){
         Real phi = Real(i)*angle / Real(numGeodesicSamples-1);
