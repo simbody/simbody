@@ -1405,14 +1405,14 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 	geod.clear();
 
 	// Arc length of the helix. Always
-	const Real L = R * sqrt(1+m*m) * abs(angle);
+	const Real L = R * sqrt(1+m*m) * std::abs(angle);
 
 	// Orientation of helix. 
 	Real orientation = sign(angle);
 
 	// TODO: Make this generic, so long geodesics are sampled more than short ones.
     const int numGeodesicSamples = 12;
-	const Real deltaPhi = abs(angle / Real(numGeodesicSamples));
+	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples));
 
     for (int i = 0; i < numGeodesicSamples; ++i)
 	{
@@ -1656,7 +1656,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
                              double R, double angle, Geodesic& geod)
 {
     // Check if e1 and e2 are orthogonal.
-    assert(abs(~e1*e2) <= SignificantReal);
+    assert(std::abs(~e1*e2) <= SignificantReal);
 
 	// Clear current geodesic.
 	geod.clear();
@@ -1669,7 +1669,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 	const Real L = R*angle*orientation;
 
 	// Increment of phi in loop.
-	const Real deltaPhi = abs(angle / Real(numGeodesicSamples));
+	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples));
 
     for (int i = 0; i < numGeodesicSamples; ++i){
         Real phi = Real(i)*angle / Real(numGeodesicSamples-1);
