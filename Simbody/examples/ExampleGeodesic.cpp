@@ -57,17 +57,21 @@ int main() {
   try {
 
     // Test cylinder
-    Real r			=  0.5;
-    Real phiP		=  0.0*Pi;
-    Real phiQ		=  1.0*Pi;
-	Real heightP	= -0.5;
-	Real heightQ	=  0.5;
+    Real r			=    0.5;
+    Real phiP		=    0.0*Pi;
+	Real thetaP		=    0.0*Pi;
 
-    Vec3 P(r*cos(phiP), r*sin(phiP), heightP);
-    Vec3 Q(r*cos(phiQ), r*sin(phiQ), heightQ);
+    Real phiQ		=   0.0*Pi;
+    Real thetaQ		=   1.2*Pi;
 
-	Vec3 O( r, -2,  heightP);
-    Vec3 I(-r, -2,  heightQ);
+	Real heightP	=   0.5;
+	Real heightQ	=  -0.5;
+
+    Vec3 P(r*sin(thetaP)*cos(phiP), r*sin(thetaP)*sin(phiP), r*cos(thetaP));
+    Vec3 Q(r*sin(thetaQ)*cos(phiQ), r*sin(thetaQ)*sin(phiQ), r*cos(thetaQ));
+
+	Vec3 O(-2, 0,  heightP);
+    Vec3 I(-2, 0,  heightQ);
 
     // move points off surface for testing
     // Q(0) -= r*0.2;
@@ -84,8 +88,8 @@ int main() {
     Vector x(n), dx(n), Fx(n), xold(n);
     Matrix J(n, n);
 
-    //ContactGeometry::Sphere geom(r);
-    ContactGeometry::Cylinder geom(r);
+    ContactGeometry::Sphere geom(r);
+    // ContactGeometry::Cylinder geom(r);
 
     bool inside; UnitVec3 nP, nQ;
     cout << "before P,Q=" << P << ", " << Q << " -- " 
@@ -139,7 +143,7 @@ int main() {
             .setResolution(5));
 
     matter.updGround().addBodyDecoration(Transform(),
-        DecorativeLine(Vec3(newP), Vec3(newP)+.5*tP).setColor(Red));
+        DecorativeLine(Vec3(newP), Vec3(newP)+.5*tP).setColor(Green));
     matter.updGround().addBodyDecoration(Transform(),
         DecorativeLine(Vec3(newQ), Vec3(newQ)+.5*tQ).setColor(Red));
 

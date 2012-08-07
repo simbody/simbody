@@ -1650,13 +1650,13 @@ void ContactGeometry::Sphere::Impl::createOBBTree() {
 //        p(phi) = R * (e1*cos(phi) + e2*sin(phi)) ,
 //
 // where R is the radius of the sphere and the angle phi parameterizes the great circle with
-// respect to an orthonormal basis (e1, e2). By definition P = p(0) and the geodesic goes from
+// respect to an orthonormal basis {e1, e2}. By definition P = p(0) and the geodesic goes from
 // P to Q, where Q = p(angle). Make sure e1 . e2 = 0 and |e1| = |e2| = 1.
 static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
                              double R, double angle, Geodesic& geod)
 {
-    // Make sure that e1 and e2 are orthogonal.
-    assert(std::abs(~e1*e2) <= SignificantReal);
+    // Check if e1 and e2 are orthogonal.
+    assert(abs(~e1*e2) <= SignificantReal);
 
 	// Clear current geodesic.
 	geod.clear();
@@ -1664,26 +1664,27 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 	// TODO: Make this generic, so long geodesics are sampled more than short ones.
     const int numGeodesicSamples = 12;
 
-	// Total arc length.
-	const Real L = R*angle;
+	// Total arc length and orientation.
+	const Real orientation = sign(angle);
+	const Real L = R*angle*orientation;
 
     for (int i = 0; i < numGeodesicSamples; ++i){
-        Real phi = i*angle/(numGeodesicSamples-1);
-        const Real sphi = std::sin(phi), cphi = std::cos(phi);
+        Real phi = Real(i)*angle / Real(numGeodesicSamples-1);
+        const Real sphi = sin(phi), cphi = cos(phi);
 
 		// Trust me, this is already normalized by definition of the input.
-		UnitVec3 normal(e1*cphi + e2*sphi, true);
+		UnitVec3 n(e1*cphi + e2*sphi, true);
 
-        Vec3 p = R*normal;
+        Vec3 p = R*n;
 
-		// Tangent defined by dp/dphi, hence tangent is pointing into direction of increasing phi.
-        Vec3 tangent = -e1*sphi + e2*cphi;
+		// t = dp/dphi, hence pointing into direction of increasing phi. 
+        Vec3 t = (-e1*sphi + e2*cphi)*orientation;
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
-        geod.addFrenetFrame(Transform(Rotation(normal, ZAxis, tangent, YAxis), p));
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, YAxis), p));
 
 		// Current arc length s.
-		Real s = R*phi;
+		Real s = R*phi*orientation;
         geod.addArcLength(s);
 
 		// Solve the scalar Jacobi equation
@@ -1723,27 +1724,54 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
                        const Vec3& tPhint, const Vec3& tQhint,
                        Geodesic& geod) const
 {
-    const UnitVec3 e_OP(xP), e_OQ(xQ);
-    const Vec3 nvec = e_OP % e_OQ;
-    const Real sinAngle = nvec.norm();
-    const Real cosAngle = ~e_OP*e_OQ;
-    UnitVec3 n(nvec/sinAngle, true); // don't renormalize
+	// Build an orthonormal basis {e1, e2, e3}.
+    const UnitVec3 e1(xP), e_OQ(xQ);
+    const Vec3 arcAxis = e1 % e_OQ;
 
-    UnitVec3 tP(n % e_OP); // tP for short geodesic
-    UnitVec3 tQ(n % e_OQ); // tQ for short geodesic
+    const Real sinAngle = arcAxis.norm();
+    const Real cosAngle = ~e1*e_OQ;
 
-    Real angle = std::atan2(sinAngle, cosAngle); // angle between OP and OQ
-    Real aPhint = ~tPhint*tP; // angle between tP and tPhint
-    Real aQhint = ~tQhint*tQ;
+    UnitVec3 e3(arcAxis/sinAngle, true);
 
-    if ((aPhint < 0 && aQhint < 0) ||
-        (aPhint < 0 && std::abs(aPhint) > std::abs(aQhint)) ||
-        (aQhint < 0 && std::abs(aQhint) > std::abs(aPhint)) )
-        angle -= 2*Pi; // take longer geodesic, otherwise stick with short one
+	// Tangent vectors tP and tQ at P and Q corresponding to a positive rotation
+	// of the arc around e3.
+    UnitVec3 tP(e3 % e1,   true);
+    UnitVec3 tQ(e3 % e_OQ, true);
 
-//    std::cout << "theta = " << angle << std::endl;
+	// Average moment of of hint vectors applied e3.
+	Real MP = ~(e1   % tPhint)*e3;
+	Real MQ = ~(e_OQ % tQhint)*e3;
+	Real M  =  (MP + MQ) / 2;
 
-    setGeodesicToArc(e_OP, tP, radius, angle, geod);
+	// Small angle between e_OP and e_OQ corresponding to a short geodesic.
+    Real temp = atan2(sinAngle, cosAngle);
+	Real angleRightHanded, angleLeftHanded;
+
+	// Left-handed angle will always be negative, right-handed angle will be positive.
+	if (temp >= 0) {
+		angleRightHanded = temp;
+		angleLeftHanded  = temp - 2*Pi;
+	}
+
+	else {
+		angleLeftHanded  = temp;
+		angleRightHanded = temp + 2*Pi;
+	}
+
+	// Orientation of arc. A negative angle means a left-handed rotation around e3. 
+	Real angle;
+	if (M >= 0)	{
+		angle = angleRightHanded;
+	}
+
+	else {
+		angle = angleLeftHanded;
+	}
+
+	// Create the last unit vector to form the orthonormal basis to describe the arc.
+	UnitVec3 e2(e3 % e1, true);
+
+    setGeodesicToArc(e1, e2, radius, angle, geod);
 }
 
 void ContactGeometry::Sphere::Impl::shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
