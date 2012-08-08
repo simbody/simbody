@@ -3359,6 +3359,149 @@ int ContactGeometry::TriangleMesh::OBBTreeNode::getNumTriangles() const {
 
 
 //==============================================================================
+//                            TORUS & IMPL
+//==============================================================================
+
+ContactGeometry::Torus::Torus(Real torusRadius, Real tubeRadius)
+:   ContactGeometry(new Torus::Impl(torusRadius, tubeRadius)) {}
+
+/*static*/ ContactGeometryTypeId ContactGeometry::Torus::classTypeId()
+{   return ContactGeometry::Torus::Impl::classTypeId(); }
+
+Real ContactGeometry::Torus::getTorusRadius() const {
+    return getImpl().getTorusRadius();
+}
+
+void ContactGeometry::Torus::setTorusRadius(Real radius) {
+    updImpl().setTorusRadius(radius);
+}
+
+Real ContactGeometry::Torus::getTubeRadius() const {
+    return getImpl().getTubeRadius();
+}
+
+void ContactGeometry::Torus::setTubeRadius(Real radius) {
+    updImpl().setTubeRadius(radius);
+}
+
+const ContactGeometry::Torus::Impl& ContactGeometry::Torus::getImpl() const {
+    assert(impl);
+    return static_cast<const Torus::Impl&>(*impl);
+}
+
+ContactGeometry::Torus::Impl& ContactGeometry::Torus::updImpl() {
+    assert(impl);
+    return static_cast<Torus::Impl&>(*impl);
+}
+
+// TODO
+DecorativeGeometry ContactGeometry::Torus::Impl::createDecorativeGeometry() const {
+//    return DecorativeTorus torus(torusRadius, tubeRadius);
+    return DecorativeSphere(torusRadius+tubeRadius);
+}
+
+//TODO
+Vec3 ContactGeometry::Torus::Impl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+//
+//    normal = calcSurfaceUnitNormal(position);
+//
+//    // long axis is z-axis, project to x-y plane
+//    Vec2 xy_position(position(0), position(1));
+//    inside = (xy_position.normSqr() <= radius*radius);
+//
+//    // nearestPoint = point_on_surface_in_xy_plane + height_in_z
+//    Vec3 nearestPoint = normal*radius + Vec3(0,0,position(2));
+//
+//    return nearestPoint;
+
+    std::cout << "ContactGeometry::Torus::Impl::findNearestPoint unimplemented" << std::endl;
+    return Vec3(0);
+}
+
+//TODO
+bool ContactGeometry::Torus::Impl::intersectsRay
+   (const Vec3& origin, const UnitVec3& direction,
+    Real& distance, UnitVec3& normal) const
+{
+    std::cout << "ContactGeometry::Torus::Impl::intersectsRay unimplemented" << std::endl;
+    return false;
+}
+
+void ContactGeometry::Torus::Impl::getBoundingSphere
+    (Vec3& center, Real& radius) const {
+    center = Vec3(0);
+    radius = tubeRadius + torusRadius;
+}
+
+//TODO
+void ContactGeometry::Torus::Impl::
+calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
+    std::cout << "ContactGeometry::Torus::Impl::calcCurvature unimplemented" << std::endl;
+}
+
+//TODO
+Vec3  ContactGeometry::Torus::Impl::
+calcSupportPoint(UnitVec3 direction) const {
+    std::cout << "ContactGeometry::Torus::Impl::calcSupportPoint unimplemented" << std::endl;
+    return Vec3(0);
+}
+
+Real TorusImplicitFunction::
+calcValue(const Vector& x) const {
+    return 1-(square(ownerp->getTorusRadius()-std::sqrt(x[0]*x[0]+x[1]*x[1]))+x[2]*x[2])/
+            square(ownerp->getTubeRadius());
+}
+
+Real TorusImplicitFunction::
+calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    Real tmp;
+
+    // first derivatives
+    if (derivComponents.size() == 1) {
+        if (derivComponents[0]<2) {
+            Real sqrt_xy = std::sqrt(x[0]*x[0] + x[1]*x[1]);
+            return 2*x[derivComponents[0]]*(ownerp->getTorusRadius() - sqrt_xy)/
+                    (square(ownerp->getTubeRadius())*sqrt_xy);
+        }
+        else
+            return -2*x[2]/square(ownerp->getTubeRadius());
+    }
+
+    // second derivatives
+    if (derivComponents.size() == 2) {
+        if (derivComponents[0] < 2) { // fx_ fy_
+            if (derivComponents[1] < 2) {
+                Real tubeRadiusSq = square(ownerp->getTubeRadius());
+                Real xy = x[0]*x[0] + x[1]*x[1];
+                Real sqrt_xy = std::sqrt(xy);
+                Real den = tubeRadiusSq*xy*sqrt_xy;
+                if (derivComponents[0]==derivComponents[1]) { // fxx or fyy
+                    int idx = derivComponents[1]==0; // if 0 then idx=1, if 1 then idx=0
+                    Real num = 2*ownerp->getTorusRadius()*x[idx]*x[idx];
+                    return num/den - 2/tubeRadiusSq;
+                }
+                else { // fxy or fyx
+                    return - 2*ownerp->getTorusRadius()*x[0]*x[1]/den;
+                }
+            }
+            else // fxz = fyz = 0
+                return 0;
+        }
+        else { // fz_
+            if (derivComponents[1] == 2) // fzz
+                return -2/square(ownerp->getTubeRadius());
+            else // fzx = fzy = 0
+                return 0;
+        }
+    }
+
+    //TODO higher order derivatives
+    return 0;
+}
+
+
+
+//==============================================================================
 //                                 GEODESIC
 //==============================================================================
 

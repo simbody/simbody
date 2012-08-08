@@ -114,10 +114,10 @@ class Sphere;
 class Ellipsoid;
 class SmoothHeightMap;
 class TriangleMesh;
+class Torus;
 
 // TODO
 class Cone;
-class Torus;
 
 /** Base class default constructor creates an empty handle. **/
 ContactGeometry() : impl(0) {}
@@ -1144,6 +1144,42 @@ int getNumTriangles() const;
 private:
 const OBBTreeNodeImpl* impl;
 };
+
+//==============================================================================
+//                                TORUS
+//==============================================================================
+/** This ContactGeometry subclass represents a torus centered at the
+origin with the axial direction aligned to the z-axis. It is defined by
+a torusRadius (radius of the circular centerline of the torus, measured
+from the origin), and a tubeRadius (radius of the torus cross-section:
+perpenducular distance from the circular centerline to the surface). **/
+class SimTK_SIMMATH_EXPORT ContactGeometry::Torus : public ContactGeometry {
+public:
+explicit Torus(Real torusRadius, Real tubeRadius);
+Real getTorusRadius() const;
+void setTorusRadius(Real radius);
+Real getTubeRadius() const;
+void setTubeRadius(Real radius);
+
+/** Return true if the supplied ContactGeometry object is a sphere. **/
+static bool isInstance(const ContactGeometry& geo)
+{   return geo.getTypeId()==classTypeId(); }
+/** Cast the supplied ContactGeometry object to a const sphere. **/
+static const Torus& getAs(const ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<const Torus&>(geo); }
+/** Cast the supplied ContactGeometry object to a writable sphere. **/
+static Torus& updAs(ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<Torus&>(geo); }
+
+/** Obtain the unique id for Torus contact geometry. **/
+static ContactGeometryTypeId classTypeId();
+
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
+};
+
+
 
 
 //==============================================================================

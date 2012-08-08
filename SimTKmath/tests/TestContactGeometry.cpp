@@ -31,6 +31,9 @@ using namespace std;
 //TODO - had to reduced tol for geodesic tests, should be 1e-10
 const Real TOL = 1e-4;
 
+const Real r = 3.5; // radius used for geodesic tests
+
+
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
 template <class T>
@@ -43,6 +46,11 @@ void assertEqual(Vec<N> val1, Vec<N> val2) {
     for (int i = 0; i < N; ++i)
         ASSERT(abs(val1[i]-val2[i]) < TOL);
 }
+
+void testSurfaceGradient(const ContactGeometry& );
+void testSurfaceHessian(const ContactGeometry& );
+void compareAnalyticalAndNumericGradient(const ContactGeometry&, const Vec3& );
+void compareAnalyticalAndNumericHessian(const ContactGeometry&, const Vec3& );
 
 void testHalfSpace() {
     ContactGeometry::HalfSpace hs;
@@ -122,6 +130,10 @@ void testCylinder() {
         ASSERT(inside == (projpos.norm() <= radius));
         assertEqual(normal, projpos.normalize());
     }
+
+    // Test derivatives
+    testSurfaceGradient(cyl);
+    testSurfaceHessian(cyl);
 }
 
 void testSphere() {
@@ -205,8 +217,148 @@ void testEllipsoid() {
     }
 }
 
+void testTorus() {
+    Real radius = r;
+    Real tubeRadius = 0.75;
+    ContactGeometry::Torus torus(radius, tubeRadius);
+    assert(torus.getTorusRadius() == radius);
+    assert(torus.getTubeRadius() == tubeRadius);
 
-const Real r = 3.5;
+    // Check intersections with various rays.
+
+//    Real distance;
+//    UnitVec3 normal;
+//    ASSERT(!torus.intersectsRay(Vec3(radius*1.1, 0, 0), UnitVec3(1, 0, 0), distance, normal));
+//    ASSERT(!torus.intersectsRay(Vec3(-radius*1.1, 0, 0), UnitVec3(-1, 1, 0), distance, normal));
+//    ASSERT(!torus.intersectsRay(Vec3(-radius*1.1, 0, 0), UnitVec3(0, 1, 0), distance, normal));
+//    ASSERT(!torus.intersectsRay(Vec3(-radius, -radius, 0), UnitVec3(1, -Eps, 0), distance, normal));
+//    ASSERT(torus.intersectsRay(Vec3(-radius, -radius, 0), UnitVec3(1, Eps, 0), distance, normal));
+//
+//    ASSERT(torus.intersectsRay(Vec3(-(radius+1.0), 0, 0), UnitVec3(1, 0, 0), distance, normal));
+//    assertEqual(1.0, distance);
+//    assertEqual(Vec3(-1, 0, 0), normal);
+//
+//    ASSERT(torus.intersectsRay(Vec3(-radius*2, radius*2, 37), UnitVec3(1, -1, 0), distance, normal));
+//    assertEqual(radius*(2*Sqrt2-1), distance);
+//    assertEqual(UnitVec3(-1, 1, 0), normal);
+//
+//    ASSERT(torus.intersectsRay(Vec3(-radius*2, 0, -radius*2), UnitVec3(1, 0, 1), distance, normal));
+//    assertEqual(radius*Sqrt2, distance);
+//    assertEqual(UnitVec3(-1, 0, 0), normal);
+//
+//    // Test finding the nearest point.
+//
+//    Random::Gaussian random(0, 3);
+//    for (int i = 0; i < 100; i++) {
+//        Vec3 pos(random.getValue(), random.getValue(), random.getValue());
+//        Vec3 projpos(pos);
+//        projpos(2)=0; // cyl axis is z-axis, project pos to x-y plane
+//        bool inside;
+//        UnitVec3 normal;
+//        Vec3 nearest = torus.findNearestPoint(pos, inside, normal);
+//        assertEqual(nearest, projpos.normalize()*radius+Vec3(0,0,pos(2)));
+//        ASSERT(inside == (projpos.norm() <= radius));
+//        assertEqual(normal, projpos.normalize());
+//    }
+
+    // Test derivatives
+//    Vec3 pt(2*(radius+tubeRadius), 0,0);
+//    Vec3 pt(3,4,5);
+//    cout << "surfaceValue( " << pt << " ) = " << torus.calcSurfaceValue(pt) << endl;
+//    compareAnalyticalAndNumericGradient(torus, pt);
+//    compareAnalyticalAndNumericHessian(torus, pt);
+    testSurfaceGradient(torus);
+    testSurfaceHessian(torus);
+
+}
+
+
+//==============================================================================
+//                      SURFACE EVALUATORS
+//==============================================================================
+
+class ImplicitSurfaceFunction : public Differentiator::GradientFunction {
+public:
+    ImplicitSurfaceFunction(const ContactGeometry& geom)
+        : Differentiator::GradientFunction(3), geom(geom) { }
+
+    int f(const Vector& y, Real& fy) const {
+        fy = geom.calcSurfaceValue(Vec3::getAs(&y[0]));
+        return 0;
+    }
+
+    const ContactGeometry& geom;
+};
+
+class ImplicitSurfaceGradient : public Differentiator::JacobianFunction {
+public:
+    ImplicitSurfaceGradient(const ContactGeometry& geom)
+        : Differentiator::JacobianFunction(3,3), geom(geom) { }
+
+    int f(const Vector& y, Vector& fy) const {
+        fy = (Vector)geom.calcSurfaceGradient(Vec3::getAs(&y(0)));
+        return 0;
+    }
+
+    const ContactGeometry& geom;
+};
+
+void testSurfaceGradient(const ContactGeometry& geom) {
+
+    // setup random test points
+    Random::Gaussian random(0, r);
+    for (int i = 0; i < 100; i++) {
+        Vec3 pt(random.getValue(), random.getValue(), random.getValue());
+        compareAnalyticalAndNumericGradient(geom, pt);
+    }
+}
+
+void compareAnalyticalAndNumericGradient(const ContactGeometry& geom, const Vec3& pt) {
+
+    ImplicitSurfaceFunction surf(geom);
+    Differentiator diff(surf);
+
+    Vector tmp = diff.calcGradient((Vector)pt);
+    Vec3 gradNumeric = Vec3::getAs(&tmp(0));
+    Vec3 gradAnalytic = geom.calcSurfaceGradient(pt);
+
+//    cout << "ana gradient = " << gradAnalytic << endl;
+//    cout << "num gradient = " << gradNumeric << endl;
+    assertEqual(gradNumeric, gradAnalytic);
+}
+
+void testSurfaceHessian(const ContactGeometry& geom) {
+
+    // setup random test points
+    Random::Gaussian random(0, r);
+    for (int i = 0; i < 100; i++) {
+        Vec3 pt(random.getValue(), random.getValue(), random.getValue());
+        compareAnalyticalAndNumericHessian(geom, pt);
+    }
+}
+
+void compareAnalyticalAndNumericHessian(const ContactGeometry& geom, const Vec3& pt) {
+
+    ImplicitSurfaceGradient grad(geom);
+    Differentiator diff(grad);
+
+    Matrix tmp = diff.calcJacobian((Vector)pt);
+    Mat33 hessNumeric = Mat33::getAs(&tmp(0,0));
+    Mat33 hessAnalytic = geom.calcSurfaceHessian(pt);
+
+//    cout << "ana hessian = " << hessAnalytic << endl;
+//    cout << "num hessian = " << hessNumeric << endl;
+    assertEqual(hessNumeric(0), hessAnalytic(0));
+    assertEqual(hessNumeric(1), hessAnalytic(1));
+    assertEqual(hessNumeric(2), hessAnalytic(2));
+}
+
+
+
+//==============================================================================
+//                            GEODESIC EVALUTORS
+//==============================================================================
+
 
 void compareAnalyticalAndNumericGeodesic(const ContactGeometry& geom, const Vec3& P, const Vec3& Q) {
 
@@ -279,16 +431,15 @@ void testAnalyticalCylinderGeodesic() {
 }
 
 
-
-
 int main() {
     try {
         testHalfSpace();
         testSphere();
         testEllipsoid();
 	    testCylinder();
+	    testTorus();
 	    testAnalyticalSphereGeodesic();
-//	    testAnalyticalCylinderGeodesic();
+	    testAnalyticalCylinderGeodesic();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
