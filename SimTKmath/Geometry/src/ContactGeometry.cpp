@@ -618,8 +618,8 @@ void ContactGeometryImpl::continueGeodesic(const Vec3& xP, const Vec3& xQ, const
     // XXX could also estimate P and Q based on prevGeod's contact point velocities
 
     // Set tP and tQ hints based on previous geodesic's endpoint tangents
-    Vec3 tPhint = prevGeod.getFrenetFrames().front().x();
-    Vec3 tQhint = prevGeod.getFrenetFrames().back().x();
+    Vec3 tPhint = prevGeod.getTangentP();
+    Vec3 tQhint = prevGeod.getTangentQ();
 
     calcGeodesic(xP, xQ, tPhint, tQhint, geod);
 }
@@ -675,6 +675,7 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     // Terminate when geodesic hits the plane
     Integrator::SuccessfulStepStatus status;
     int stepcnt = 0;
+    geod.setIsConvex(true); // Set false if we see negative curvature anywhere.
     while (true) {
         // Final time is already reported by the time we see end of simulation;
         // don't duplicate the last step.
@@ -692,20 +693,24 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         // fresh reference each time.
         const State& state = integ.getState();
         const Real s = state.getTime();
+        geod.addArcLength(s);
 
         const Vec3& pt = Vec3::getAs(&state.getQ()[0]);
         const UnitVec3 n = calcSurfaceUnitNormal(pt);
         const Vec3& tangent = Vec3::getAs(&state.getU()[0]);
         // Rotation will orthogonalize so x direction we get may not be
         // exactly the same as what we supply here.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, tangent, YAxis), pt));
-        geod.addArcLength(s);
+        const Transform frenetFrame(Rotation(n, ZAxis, tangent, YAxis), pt);
+        geod.addFrenetFrame(frenetFrame);
         geod.addDirectionalSensitivityPtoQ(Vec2(state.getQ()[3],
                                                 state.getU()[3]));
+        const Real kappa = calcSurfaceCurvatureInDirection(pt, frenetFrame.y());
+        geod.addCurvature(kappa);
+        if (kappa < 0) 
+            geod.setIsConvex(false);
 
         ++stepcnt;
     }
-    geod.setIsConvex(false); // TODO
     geod.setIsShortest(false); // TODO
     geod.setAchievedAccuracy(integratorAccuracy); // TODO: accuracy of length?
     // TODO: better to use something like the second-to-last step, or average
@@ -1101,8 +1106,8 @@ calcOrthogonalGeodError(const Vec3& xP, const Vec3& xQ,
     const Real tau  = ~r_QstarQ * geod.getTangentQ(); // length error
     const Real beta = ~r_QstarQ * geod.getBinormalQ();
     // Translate b-direction length at Q* to rotation at P using directional
-    // sensitivity (Jacobi field) value at P.
-    const Real dtheta = beta / geod.getSensitivityP();
+    // sensitivity (Jacobi field) value at Q.
+    const Real dtheta = beta / geod.getJacobiQ();
     return Vec2(dtheta, -tau);
 }
 
@@ -1404,11 +1409,14 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
    	// Clear current geodesic.
 	geod.clear();
 
+    const Real sqrt1m2 = sqrt(1+m*m); // Avoid repeated calculation
+    const Real k = 1 / (R*(1+m*m)); // curvature TODO: is this right? 
+
 	// Arc length of the helix. Always
-	const Real L = R * sqrt(1+m*m) * std::abs(angle);
+	const Real L = R * sqrt1m2 * std::abs(angle);
 
 	// Orientation of helix. 
-	Real orientation = sign(angle);
+	const Real orientation = angle < 0 ? Real(-1) : Real(1);
 
 	// TODO: Make this generic, so long geodesics are sampled more than short ones.
     const int numGeodesicSamples = 12;
@@ -1422,14 +1430,16 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 
 		// Evaluate helix.
         Vec3	 p( R*cphi, R*sphi, R*m*(phi - phiP) + c);
-		UnitVec3 t(  -sphi,   cphi, m);
-		UnitVec3 n(   cphi,   sphi, 0);
+
+        // We'll normalize so UnitVec3 doesn't have to do it.
+		UnitVec3 t((orientation/sqrt1m2)*Vec3(-sphi, cphi, m), true);
+		UnitVec3 n(Vec3(cphi, sphi, 0), true);
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
-        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t*orientation, YAxis), p));
+        geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, YAxis), p));
 
 		// Current arc length s.
-		Real s = R * sqrt(1+m*m) * (Real(i)*deltaPhi);
+		Real s = R * sqrt1m2 * (Real(i)*deltaPhi);
         geod.addArcLength(s);
 
 		// Solve the scalar Jacobi equation
@@ -1453,9 +1463,12 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 		// Backwards directional sensitivity from Q to P
 		Vec2 jQP(L-s, 1);
 		geod.addDirectionalSensitivityQtoP(jQP);
+
+        geod.addCurvature(k);
     }
 
-    geod.setIsConvex(false); // TODO
+    geod.setIsConvex(true); // Curve on cylinder is always convex.
+
     geod.setIsShortest(false); // TODO
     geod.setAchievedAccuracy(1e-15); // TODO: accuracy of length?
 //    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken()); // TODO
@@ -1671,6 +1684,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 	// Increment of phi in loop.
 	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples-1));
 
+    const Real k = 1/R; // curvature
     for (int i = 0; i < numGeodesicSamples; ++i){
         Real phi = Real(i)*angle / Real(numGeodesicSamples-1);
         const Real sphi = sin(phi), cphi = cos(phi);
@@ -1706,16 +1720,19 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 		// period is 2*pi*R and its amplitude is R.
 
 		// Forward directional sensitivity from P to Q
-		Vec2 jPQ(R*sin(1/R * s), cos(1/R * s));
+		Vec2 jPQ(R*sin(k * s), cos(k * s));
 		geod.addDirectionalSensitivityPtoQ(jPQ);
 
 		// Backwards directional sensitivity from Q to P
-		Vec2 jQP(R*sin(1/R * (L-s)), cos(1/R * (L-s)));
+		Vec2 jQP(R*sin(k * (L-s)), cos(k * (L-s)));
 		geod.addDirectionalSensitivityQtoP(jQP);
 
+        geod.addCurvature(k);
     }
+    geod.setTorsionAtP(0); geod.setTorsionAtQ(0);
+    geod.setBinormalCurvatureAtP(k); geod.setBinormalCurvatureAtQ(k);
 
-    geod.setIsConvex(false); // TODO
+    geod.setIsConvex(true); // Curve on sphere is always convex.
     geod.setIsShortest(false); // TODO
     geod.setAchievedAccuracy(1e-15); // TODO: accuracy of length?
 //    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken()); // TODO
@@ -3454,8 +3471,6 @@ calcValue(const Vector& x) const {
 
 Real TorusImplicitFunction::
 calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
-    Real tmp;
-
     // first derivatives
     if (derivComponents.size() == 1) {
         if (derivComponents[0]<2) {

@@ -88,8 +88,8 @@ int main() {
     Vector x(n), dx(n), Fx(n), xold(n);
     Matrix J(n, n);
 
-    ContactGeometry::Sphere geom(r);
-    // ContactGeometry::Cylinder geom(r);
+    //ContactGeometry::Sphere geom(r);
+    ContactGeometry::Cylinder geom(r);
 
     bool inside; UnitVec3 nP, nQ;
     cout << "before P,Q=" << P << ", " << Q << " -- " 
@@ -176,18 +176,24 @@ int main() {
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
 
-    const Array_<Transform>& frenet = geod.getFrenetFrames();
     const Array_<Real>& arcLength = geod.getArcLengths();
+    const Array_<Transform>& frenet = geod.getFrenetFrames();
     const Array_<Vec2>& dirPtoQ = geod.getDirectionalSensitivityPtoQ();
     const Array_<Vec2>& dirQtoP = geod.getDirectionalSensitivityQtoP();
-    for (int i=0; i < (int)dirPtoQ.size(); ++i) {
-        cout << "\n" << arcLength[i] << ": " << dirPtoQ[i] << " " 
-                                     << dirQtoP[i] << endl;
+    const Array_<Real>& curvature = geod.getCurvatures();
+    cout << "torsion at P=" << geod.getTorsionP() 
+         << " binormal curvature kb at P=" << geod.getBinormalCurvatureP() << endl;
+    for (int i=0; i < geod.getNumPoints(); ++i) {
+        cout << "\ns=" << arcLength[i] << "  kt=" << curvature[i] << ":\n";
         cout << "p=" << frenet[i].p() << "\n";
         cout << "t=" << frenet[i].y() << "\n";
         cout << "b=" << frenet[i].x() << "\n";
         cout << "n=" << frenet[i].z() << "\n";
+        cout << "jQ=" << dirPtoQ[i] << " jP=" << dirQtoP[i] << endl;
     }
+    cout << "torsion at Q=" << geod.getTorsionQ() 
+         << " binormal curvature kb at Q=" << geod.getBinormalCurvatureQ() << endl;
+
 
 //    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, 1/30.));
 //    viz.report(dummyState);
