@@ -77,7 +77,8 @@ public:
     }
 
     virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, 
-                                  UnitVec3& normal) const = 0;
+                                  UnitVec3& normal) const;
+
     virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
                                Real& distance, UnitVec3& normal) const = 0;
 
@@ -1067,8 +1068,6 @@ public:
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside,
-                          UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
@@ -1083,6 +1082,9 @@ public:
                        Rotation& orientation) const;
 
     // TODO
+    //    Vec3 findNearestPoint(const Vec3& position, bool& inside,
+    //                          UnitVec3& normal) const;
+
 //    virtual void shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
 //            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
 //

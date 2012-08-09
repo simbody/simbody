@@ -164,7 +164,7 @@ void testSphere() {
     // Test finding the nearest point.
     
     Random::Gaussian random(0, 3);
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 100; i++) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());
         bool inside;
         UnitVec3 normal;
@@ -430,6 +430,26 @@ void testAnalyticalCylinderGeodesic() {
     testAnalyticalGeodesicRandom(cylinder);
 }
 
+void testFindNearestPointWithNewtonsMethod(const ContactGeometry& geom, Real r) {
+
+    Random::Gaussian random(0, r);
+    for (int i = 0; i < 100; i++) {
+        Vec3 pos(random.getValue(), random.getValue(), random.getValue());
+//        cout << i << ": pos=" << pos << endl;
+
+        bool inside;
+        UnitVec3 normal;
+        Vec3 nearest = geom.findNearestPoint(pos, inside, normal);
+        Vec3 nearest2 = geom.findNearestPointUsingNewtonsMethod(pos, inside, normal);
+
+//        cout << "near pt analytical = " << nearest << "norm = " << nearest.norm() << endl;
+//        cout << "near pt newton mth = " << nearest2 << "norm = " << nearest2.norm() << endl;
+
+        assertEqual(nearest, nearest2);
+
+    }
+}
+
 
 int main() {
     try {
@@ -440,6 +460,7 @@ int main() {
 	    testTorus();
 	    testAnalyticalSphereGeodesic();
 	    testAnalyticalCylinderGeodesic();
+//	    testFindNearestPointWithNewtonsMethod(ContactGeometry::Sphere(r), r);
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

@@ -602,6 +602,11 @@ Vec2 calcSplitGeodErrorAnalytical(const Vec3& P, const Vec3& Q,
 
 
 /**
+ * Debugging
+ **/
+Vec3 findNearestPointUsingNewtonsMethod(const Vec3& position, bool& inside, UnitVec3& normal) const;
+
+/**
  * Compute rotation matrix using the normal at the given point and the
  * given direction.
  **/
