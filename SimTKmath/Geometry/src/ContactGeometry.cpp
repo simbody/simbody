@@ -1776,7 +1776,8 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 	geod.clear();
 
     const Real sqrt1m2 = sqrt(1+m*m); // Avoid repeated calculation
-    const Real k = 1 / (R*(1+m*m)); // curvature TODO: is this right? 
+    const Real kappa = 1 / (R*(1+m*m)); // curvature TODO: is this right?
+	const Real tau   = m*kappa;
 
 	// Arc length of the helix. Always
 	const Real L = R * sqrt1m2 * std::abs(angle);
@@ -1807,6 +1808,7 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 		// Current arc length s.
 		Real s = R * sqrt1m2 * (Real(i)*deltaPhi);
         geod.addArcLength(s);
+		geod.addCurvature(kappa);		
 
 		// Solve the scalar Jacobi equation
 		//
@@ -1829,9 +1831,11 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 		// Backwards directional sensitivity from Q to P
 		Vec2 jQP(L-s, 1);
 		geod.addDirectionalSensitivityQtoP(jQP);
-
-        geod.addCurvature(k);
     }
+
+	// Only compute torsion at the end points
+	geod.setTorsionAtP(tau);
+	geod.setTorsionAtQ(tau);
 
     geod.setIsConvex(true); // Curve on cylinder is always convex.
 
