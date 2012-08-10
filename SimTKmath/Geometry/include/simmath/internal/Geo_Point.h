@@ -96,6 +96,27 @@ static RealP findDistanceSqr(const Vec3P& p1, const Vec3P& p2)
 static Vec3P findMidpoint(const Vec3P& p1, const Vec3P& p2)
 {   return (p1+p2)/2; }
 
+/** Determine whether two points whose locations are known to an accuracy
+\a tol are numerically indistinguishable. We define this to mean that they
+are so close that a perturbation of their measure numbers by no more than tol
+could make them coincident. If a measure number has value x, we define a
+tol-sized perturbation to be max(tol, |x|*tol). We use the default
+tolerance if none is supplied. Cost is about 20 flops. 
+@see Geo::getDefaultTol() **/
+static bool pointsAreNumericallyCoincident(const Vec3P& p1, const Vec3P& p2)
+{
+    return pointsAreNumericallyCoincident(p1,p2,Geo::getDefaultTol<RealP>());
+}
+/** Alternate signature with explicitly-supplied tolerance. **/
+static bool pointsAreNumericallyCoincident
+   (const Vec3P& p1, const Vec3P& p2, RealP tol)
+{
+    const RealP maxcoord = std::max(max(p1.abs()),max(p2.abs())); // ~7 flops
+    const RealP scale = std::max(tol, maxcoord*tol); // 2 flops
+    return findDistanceSqr(p1,p2) < square(scale); // 10 flops
+}
+
+
 /** Given a set of points, find the one that is the furthest in a given
 direction, and return its index and location along that direction. There must 
 be at least one point in the set. **/

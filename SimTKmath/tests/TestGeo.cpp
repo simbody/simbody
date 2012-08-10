@@ -355,8 +355,36 @@ void testBox() {
 
 }
 
+void testMiscGeo() {
+
+    // TEST     GEO::POINT::POINTS ARE NUMERICALLY COINCIDENT
+    Vec3 p1, p2, p3;
+    p1 = Vec3(1,2,3);
+    p2 = Vec3(2,3,4);
+    p3 = p1;
+    SimTK_TEST(!Geo::Point::pointsAreNumericallyCoincident(p1,p2));
+    SimTK_TEST(Geo::Point::pointsAreNumericallyCoincident(p1,p3));
+    p3 = p1 + Eps*p2;
+    // Default tolerance is larger than Eps.
+    SimTK_TEST(Geo::Point::pointsAreNumericallyCoincident(p1,p3));
+    // This should be enough to separate them if they are near the origin.
+    p3 = p1 + 10*Geo::getDefaultTol<Real>()*p2;
+    SimTK_TEST(!Geo::Point::pointsAreNumericallyCoincident(p1,p3));
+    // Shifting by 100 should mean that they are indistinguishable when
+    // perturbed by 10*tol.
+    p3 = 100.*p1 + 10*Geo::getDefaultTol<Real>()*p2;
+    SimTK_TEST(Geo::Point::pointsAreNumericallyCoincident(100.*p1,p3));
+    // But they should be distinguishable at 1000*tol.
+    p3 = 100.*p1 + 1000*Geo::getDefaultTol<Real>()*p2;
+    SimTK_TEST(!Geo::Point::pointsAreNumericallyCoincident(100.*p1,p3));
+    // And again indistinguishable at a looser tolerance.
+    SimTK_TEST(Geo::Point::pointsAreNumericallyCoincident(100.*p1,p3,
+        10000.*Geo::getDefaultTol<Real>()));
+}
+
 int main() {
     SimTK_START_TEST("TestGeo");
+        SimTK_SUBTEST(testMiscGeo);
         SimTK_SUBTEST(testBox);
         SimTK_SUBTEST(testTriMeshBoundingSphere);
         SimTK_SUBTEST(testRandomPoints);
