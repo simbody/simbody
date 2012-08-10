@@ -252,7 +252,7 @@ int main() {
         DecorativeCylinder(CylRad,HalfLen).setOpacity(.75)
            .setResolution(4).setColor(Orange));
 
-    Body::Rigid fancyBody = cylinderBody; // NOT USING ELLIPSOID
+    Body::Rigid fancyBody = biggerBody; // NOT USING ELLIPSOID
 
     MobilizedBody Ground = matter.Ground();
 
@@ -283,8 +283,9 @@ int main() {
     //CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
     CableObstacle::Surface obs5(path1, body4, 
         // Transform(), ContactGeometry::Ellipsoid(radii));
-        Rotation(Pi/2, YAxis), ContactGeometry::Cylinder(CylRad)); // along y
-        //ContactGeometry::Sphere(Rad));
+        //Rotation(Pi/2, YAxis), ContactGeometry::Cylinder(CylRad)); // along y
+        //Transform(), ContactGeometry::Sphere(Rad));
+        Transform(), ContactGeometry::Sphere(BiggerRad));
     //obs5.setContactPointHints(Rad*UnitVec3(0,-1,-1),Rad*UnitVec3(0.1,-1,-1));
     obs5.setContactPointHints(Rad*UnitVec3(.1,.125,-.2),
                               Rad*UnitVec3(0.1,-.1,-.2));

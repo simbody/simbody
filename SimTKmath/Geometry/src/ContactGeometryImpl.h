@@ -128,6 +128,11 @@ public:
     void continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
             const GeodesicOptions& options, Geodesic& geod) const;
 
+    // Given two points (which should be close together) create a two-point
+    // geodesic that is a straight line between the points.
+    void makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
+            const UnitVec3& defaultDirectionIfNeeded,
+            const GeodesicOptions& options, Geodesic& geod) const;
 
     // Compute a geodesic curve starting at the given point, starting in the
     // given direction, and terminating at the given length.

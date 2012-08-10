@@ -416,25 +416,34 @@ public:
     void setIntegratedLengthDot(State& state, Real value) const 
     {   cables->updZ(state)[integratedLengthDotIx] = value; }
 
+    // Return the *previous* path pos entry.
+    const PathPosEntry& getPrevPosEntry(const State& state) const 
+    {   return Value<PathPosEntry>::downcast
+           (cables->getDiscreteVariable(state, posEntryIx)); }
+    // Return the *previous* path vel entry.
+    const PathVelEntry& getPrevVelEntry(const State& state) const 
+    {   return Value<PathVelEntry>::downcast
+           (cables->getDiscreteVariable(state, velEntryIx)); }
+
     // Lazy-evaluate position kinematics and return the result.
     const PathPosEntry& getPosEntry(const State& state) const 
     {   ensurePositionKinematicsCalculated(state);
         return Value<PathPosEntry>::downcast
-           (cables->getCacheEntry(state, posEntryIx)); }
+           (cables->getDiscreteVarUpdateValue(state, posEntryIx)); }
 
     PathPosEntry& updPosEntry(const State& state) const 
     {   return Value<PathPosEntry>::updDowncast
-           (cables->updCacheEntry(state, posEntryIx)); }
+           (cables->updDiscreteVarUpdateValue(state, posEntryIx)); }
 
     // Lazy-evaluate velocity kinematics and return the result.
     const PathVelEntry& getVelEntry(const State& state) const 
     {   ensureVelocityKinematicsCalculated(state);
         return Value<PathVelEntry>::downcast
-           (cables->getCacheEntry(state, velEntryIx)); }
+           (cables->getDiscreteVarUpdateValue(state, velEntryIx)); }
 
     PathVelEntry& updVelEntry(const State& state) const 
     {   return Value<PathVelEntry>::updDowncast
-           (cables->updCacheEntry(state, velEntryIx)); }
+           (cables->updDiscreteVarUpdateValue(state, velEntryIx)); }
 
     // Be sure to call this whenever you make a topology-level change to
     // the cable definition, like adding an obstacle or modifying one in
@@ -487,8 +496,8 @@ friend class CablePath;
     // TOPOLOGY CACHE (set during realizeTopology())
     DiscreteVariableIndex   instanceInfoIx;
     ZIndex                  integratedLengthDotIx;
-    CacheEntryIndex         posEntryIx;
-    CacheEntryIndex         velEntryIx;
+    DiscreteVariableIndex   posEntryIx; // these are auto-update
+    DiscreteVariableIndex   velEntryIx;
 
     mutable int             referenceCount;
 };

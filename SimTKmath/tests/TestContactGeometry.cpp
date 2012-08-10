@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Ian Stavness                                                 *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -38,13 +38,22 @@ const Real r = 3.5; // radius used for geodesic tests
 
 template <class T>
 void assertEqual(T val1, T val2) {
-    ASSERT(abs(val1-val2) < TOL);
+    const T sz = std::max(std::abs(val1),std::abs(val2));
+    const Real tol = std::max(TOL, sz*TOL);
+    ASSERT(abs(val1-val2) < tol);
 }
 
 template <int N>
 void assertEqual(Vec<N> val1, Vec<N> val2) {
-    for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < TOL);
+    for (int i = 0; i < N; ++i) {
+        const Real sz = std::max(std::abs(val1[i]),std::abs(val2[i]));
+        const Real tol = std::max(TOL, sz*TOL);
+        ASSERT(abs(val1[i]-val2[i]) < tol);
+    }
+}
+
+void assertEqual(UnitVec3 v1, UnitVec3 v2) {
+    return assertEqual(v1.asVec3(), v2.asVec3());
 }
 
 void testSurfaceGradient(const ContactGeometry& );
@@ -318,7 +327,7 @@ void compareAnalyticalAndNumericGradient(const ContactGeometry& geom, const Vec3
     ImplicitSurfaceFunction surf(geom);
     Differentiator diff(surf);
 
-    Vector tmp = diff.calcGradient((Vector)pt);
+    Vector tmp = diff.calcGradient((Vector)pt, Differentiator::CentralDifference);
     Vec3 gradNumeric = Vec3::getAs(&tmp(0));
     Vec3 gradAnalytic = geom.calcSurfaceGradient(pt);
 

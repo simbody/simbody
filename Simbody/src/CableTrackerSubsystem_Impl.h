@@ -134,6 +134,9 @@ int calcDecorativeGeometryAndAppendImpl
     Stage                       stage, 
     Array_<DecorativeGeometry>& decorations) const OVERRIDE_11 
 {
+    if (stage != Stage::Position)
+        return 0;
+
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath::Impl&  path     = getCablePath(ix).getImpl();
         const PathInstanceInfo& instInfo = path.getInstanceInfo(state);

@@ -211,8 +211,14 @@ Real calcSurfaceValue(const Vec3& point) const;
 
 /** Calculate the implicit surface outward facing unit normal at the given
 point. This is determined using the implicit surface function gradient
-so is undefined if the point is at a flat spot on the surface where the
-gradient is zero. **/
+so is undefined if the point is at a singular point of the implicit function
+or a flat spot on the surface. An example is a point along the center line of
+a cylinder. Rather than return a NaN unit normal in these cases, which
+would break many algorithms that are searching around for valid points, we'll
+return the normal from a nearby, hopefully non-singular point. If that doesn't
+work, we'll return an arbitrary direction. If you want to know whether you're
+at a singular point, obtain the gradient directly with calcSurfaceGradient()
+and check its length. **/
 UnitVec3 calcSurfaceUnitNormal(const Vec3& point) const;
 
 /** Calculate the gradient of the implicit surface function, at a given point.
@@ -429,8 +435,8 @@ static void combineParaboloids(const Rotation& R_SP1, const Vec2& k1,
 If a preferred starting point is provided, find the geodesic curve that
 is closest to that point. Otherwise, find the shortest length geodesic.
 
-@param[in] xP            Coordinates of the first point.
-@param[in] xQ            Coordinates of the second point.
+@param[in]  xP          Coordinates of starting point P, in S.
+@param[in]  xQ          Coordinates of ending point Q, in S.
 @param[in] xSP           (Optional) Coordinates of a preferred point for the geodesic to be near
 @param[in] options       Parameters related to geodesic calculation
 @param[out] geod         On exit, this contains a geodesic between P and Q.
@@ -439,18 +445,81 @@ void initGeodesic(const Vec3& xP, const Vec3& xQ, const Vec3& xSP,
         const GeodesicOptions& options, Geodesic& geod) const;
 
 
-/** Given two points and previous geodesic curve close to the points, find
-a geodesic curve connecting the points that is close to the previous geodesic.
+/** Given the current positions of two points P and Q moving on this surface, 
+and the previous geodesic curve G' connecting prior locations P' and Q' of
+those same two points, return the geodesic G between P and Q that is closest in
+length to the previous one. If multiple equal-length geodesics are possible
+(rare; between poles of a sphere, for example) then the one best matching the 
+direction of the previous geodesic is selected.
 
-@param[in] xP            Coordinates of the first point.
-@param[in] xQ            Coordinates of the second point.
-@param[in] prevGeod      A previous geodesic that should be near the new one.
-@param[in] options       Parameters related to geodesic calculation
-@param[out] geod         On exit, this contains a geodesic between P and Q.
+@param[in]  xP          Coordinates of starting point P, in S.
+@param[in]  xQ          Coordinates of ending point Q, in S.
+@param[in]  prevGeod    The previous geodesic to which the new one should be
+                            similar.
+@param[in]  options     Parameters controlling the computation of the
+                            new geodesic.
+@param[out] geod        On exit, this contains a geodesic between P and Q.
+
+<h3>Algorithm</h3>
+The handling of continuity here enforces our desire to have the length of a 
+geodesic change smoothly as its end points move over the surface. This also
+permits us to accelerate geodesic finding by using starting guesses that are
+extrapolated from the previous result. If we find that the new geodesic has
+changed length substantially from the previous one, we will flag the result
+as uncertain and the caller should reduce the integration step size.
+
+First, classify the previous geodesic G' as "direct" or "indirect". Direct 
+means that both tangents tP' and tQ' are approximately aligned with the vector
+r_PQ'. Note that as points P and Q get close together, as occurs prior to 
+a cable liftoff, the geodesic between them always becomes direct and in fact 
+just prior to liftoff it is the straight line from P to Q.
+
+If G' was indirect, then G is the geodesic connecting P and Q that has tP 
+closest to tP' and about the same length as G'. We use G' data to initialize
+our computation of G and perform a local search to find the closest match.
+
+If G' was direct, then we look at the direction of r_PQ. If it is still aligned
+with the previous tP', then we calculate G from P to Q starting in direction
+tP', with roughly length s'. If it is anti-aligned, P and Q have swapped
+positions, presumably because they should have lifted off. In that case
+we calculate G from P to Q in direction -tP', and report that the geodesic
+has flipped. In that case you can consider the length s to be negative and
+use the value of s as an event witness for liftoff events.
+
 **/
 // XXX if xP and xQ are the exact end-points of prevGeod; then geod = prevGeod;
 void continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
-        const GeodesicOptions& options, Geodesic& geod);
+        const GeodesicOptions& options, Geodesic& geod) const;
+
+/** Produce a straight-line approximation to the (presumably short) geodesic 
+between two points on this implicit surface. We do not check here whether it
+is reasonable to treat this geodesic as a straight line; we assume the caller
+has made that determination.
+
+We are given points P and Q and choose
+P' and Q' as the nearest downhill points on the surface to the given points. Then the
+returned geodesic line runs from P' to Q'. The Geodesic object will contain only
+the start and end points of the geodesic, with all the necessary information
+filled in. The normals nP and nQ are calculated from the surface points P' and
+Q'. The binormal direction is calculated using a preferred direction vector d
+(see below) as bP=normalize(d X nP) and bQ=normalize(d X nQ). Then the tangents
+are tP=nP X bP and tQ=nQ X bQ.
+
+The preferred direction d is calculated as follows: if P' and Q' are 
+numerically indistinguishable (as defined by 
+Geo::Point::pointsAreNumericallyCoincident()), we'll use the given 
+\a defaultDirection if there is one, otherwise d is an arbitrary 
+perpendicular to nP. If P' and Q' are numerically distinguishable, we 
+instead set d = normalize(Q-P). 
+
+When P' and Q' are \e numerically coincident, we will shift both of them to
+the midpoint (P'+Q')/2 so that the geodesic end points become \e exactly
+coincident and the resulting geodesic has exactly zero length. There will
+still be two points returned in the Geodesic object but they will be 
+identical. **/
+void makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
+        const UnitVec3& defaultDirectionIfNeeded,
+        const GeodesicOptions& options, Geodesic& geod) const;
 
 
 /** Compute a geodesic curve starting at the given point, starting in the

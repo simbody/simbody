@@ -141,10 +141,11 @@ calcSurfaceGradient(const Vec3& p) const {
     const Vector point(p); // required by Function
     const Function& f = getImpl().getImplicitFunction();
 
-    // arguments to get first derivative from the calcDerivative interface
-    Array_<int> fx(1, 0);
-    Array_<int> fy(1, 1);
-    Array_<int> fz(1, 2);
+    // Arguments to get first derivative from the calcDerivative interface.
+    // Avoid heap allocation by making ArrayViews of stack data.
+    const int x = 0; const ArrayViewConst_<int> fx(&x, &x+1);
+    const int y = 1; const ArrayViewConst_<int> fy(&y, &y+1);
+    const int z = 2; const ArrayViewConst_<int> fz(&z, &z+1);
 
     Vec3 grad;
     // Note that the gradient may point inward or outward depending on the
@@ -158,11 +159,32 @@ calcSurfaceGradient(const Vec3& p) const {
 
 UnitVec3 ContactGeometry::
 calcSurfaceUnitNormal(const Vec3& p) const {
-    const Vec3 grad = calcSurfaceGradient(p);
+    // Implicit surface functions may have flat spots away from the surface,
+    // such as a point along the central axis of a cylinder. This would 
+    // produce a NaN unit normal; we'll instead move the point slightly to
+    // return a valid nearby normal. This helps algorithms that are looking
+    // for the surface to get there rather than blow up.
+    Vec3 grad = calcSurfaceGradient(p);
+    Real curvature = grad.norm();
+
+    if (curvature < TinyReal) {
+        for (int i=0; i < 3; ++i) {
+            Vec3 phat(p); phat[i] += SqrtEps;
+            grad=calcSurfaceGradient(phat); 
+            curvature = grad.norm();
+            if (curvature >= TinyReal)
+                break;
+        }
+        if (curvature < TinyReal) {
+            // We're desperate now.
+            grad=Vec3(1,1,1); curvature=grad.norm(); // i.e., sqrt(3)
+        }
+    }
+
     // Implicit surfaces are defined as positive inside and negative outside
     // therefore normal is the negative of the gradient.
     // TODO: this should be changed to the opposite convention.
-    return UnitVec3(-grad);
+    return UnitVec3(-grad/curvature, true);
 }
 
 // Note: Hessian is symmetric, although we're filling in all 9 elements here.
@@ -172,16 +194,17 @@ calcSurfaceHessian(const Vec3& p) const {
     const Vector point(p); // required by Function
     const Function& f = getImpl().getImplicitFunction();
 
-    // arguments to get second derivatives from the calcDerivative interface
-    const int xx[] = {0,0}; Array_<int> fxx(xx,xx+2);
-    const int xy[] = {0,1}; Array_<int> fxy(xy,xy+2);
-    const int xz[] = {0,2}; Array_<int> fxz(xz,xz+2);
-    //const int yx[] = {1,0}; Array_<int> fyx(yx,yx+2);
-    const int yy[] = {1,1}; Array_<int> fyy(yy,yy+2);
-    const int yz[] = {1,2}; Array_<int> fyz(yz,yz+2);
-    //const int zx[] = {2,0}; Array_<int> fzx(zx,zx+2);
-    //const int zy[] = {2,1}; Array_<int> fzy(zy,zy+2);
-    const int zz[] = {2,2}; Array_<int> fzz(zz,zz+2);
+    // Arguments to get second derivatives from the calcDerivative interface.
+    // No heap allocation here.
+    const int xx[] = {0,0}; ArrayViewConst_<int> fxx(xx,xx+2);
+    const int xy[] = {0,1}; ArrayViewConst_<int> fxy(xy,xy+2);
+    const int xz[] = {0,2}; ArrayViewConst_<int> fxz(xz,xz+2);
+    //const int yx[] = {1,0}; ArrayViewConst_<int> fyx(yx,yx+2);
+    const int yy[] = {1,1}; ArrayViewConst_<int> fyy(yy,yy+2);
+    const int yz[] = {1,2}; ArrayViewConst_<int> fyz(yz,yz+2);
+    //const int zx[] = {2,0}; ArrayViewConst_<int> fzx(zx,zx+2);
+    //const int zy[] = {2,1}; ArrayViewConst_<int> fzy(zy,zy+2);
+    const int zz[] = {2,2}; ArrayViewConst_<int> fzz(zz,zz+2);
 
     Mat33 hess;
 
@@ -228,7 +251,11 @@ Real ContactGeometry::
     const UnitVec3 n = calcSurfaceUnitNormal(point);
     const Vec3     g = calcSurfaceGradient(point);
 	const Mat33 H = calcSurfaceHessian(point);
-	const Real  k = ~direction*H*direction/(~g*n);
+	const Real  knum = ~direction*H*direction; // numerator
+    if (knum < TinyReal)
+        return 0; // don't want to return 0/0.
+        
+    const Real k = knum/(~g*n);
 
 	return k;
 }
@@ -550,9 +577,18 @@ void ContactGeometry::initGeodesic(const Vec3& xP, const Vec3& xQ,
 
 // Given two points and previous geodesic curve close to the points, find
 // a geodesic curve connecting the points that is close to the previous geodesic.
-void ContactGeometry::continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
-        const GeodesicOptions& options, Geodesic& geod) {
+void ContactGeometry::
+continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
+                 const GeodesicOptions& options, Geodesic& geod) const {
     getImpl().continueGeodesic(xP, xQ, prevGeod, options, geod);
+}
+
+void ContactGeometry::
+makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
+        const UnitVec3& defaultDirectionIfNeeded,
+        const GeodesicOptions& options, Geodesic& geod) const {
+    getImpl().makeStraightLineGeodesic(xP, xQ, defaultDirectionIfNeeded, 
+                                       options, geod);
 }
 
 
@@ -754,20 +790,138 @@ void ContactGeometryImpl::initGeodesic(const Vec3& xP, const Vec3& xQ,
 
 
 // Given two points and previous geodesic curve close to the points, find
-// a geodesic curve connecting the points that is close to the previous geodesic.
-void ContactGeometryImpl::continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
-        const GeodesicOptions& options, Geodesic& geod) const {
+// a geodesic curve connecting the points that is close to the previous 
+// geodesic. See header or doxygen for algorithmic details.
+void ContactGeometryImpl::
+continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
+                 const GeodesicOptions& options, Geodesic& geod) const 
+{
+    // TODO: If no previous geodesic just make a wild attempt.
+    if (!prevGeod.getNumPoints()) {
+        const Vec3 PQ = xQ-xP;
+        const Real length = PQ.norm();
+        if (length < SqrtEps) { // TODO: should depend on curvature
+            const UnitVec3 d = length<TinyReal ? UnitVec3(XAxis)
+                : UnitVec3(PQ/length, true);
+            makeStraightLineGeodesic(xP, xQ, d, options, geod);
+            return;
+        }
+        //myHandle->calcGeodesicUsingOrthogonalMethod(xP, xQ, geod);
+        calcGeodesicAnalytical(xP, xQ, PQ, PQ, geod);
+        return;
+    }
 
-    // XXX could also estimate P and Q based on prevGeod's contact point velocities
 
-    // Set tP and tQ hints based on previous geodesic's endpoint tangents
-    Vec3 tPhint = prevGeod.getTangentP();
-    Vec3 tQhint = prevGeod.getTangentQ();
+    // First classify the previous geodesic as direct or indirect. Direct is
+    // a strict classification; only if the end tangents are aligned with the
+    // PQ line to within an allowed cone angle is it direct.
+    const Real CosMaxDirectAngle = 0.9; // about 25 degrees
 
-    calcGeodesic(xP, xQ, tPhint, tQhint, geod);
+    // Find maximum curvature of previous geodesic to use as a length scale.
+    // TODO: should store this with the geodesic so we can use any intermediate
+    // points also. TODO: use binormal curvature also?
+    const Real maxK = std::max(std::abs(prevGeod.getCurvatureP()),
+                               std::abs(prevGeod.getCurvatureQ()));
+
+    // We consider a geodesic straight when the separation of its end points
+    // is a small fraction of the radius of curvature because then the chord
+    // and the arc are the same length to a MUCH smaller tolerance than that.
+    const Vec3 prevPQ = prevGeod.getPointQ() - prevGeod.getPointP();
+    const Real prevPQlen = prevPQ.norm();
+    const bool isPrevStraightLine = prevPQlen*maxK <= SqrtEps;
+
+    const UnitVec3 eprevPQ = isPrevStraightLine
+                                ? prevGeod.getTangentP()
+                                : UnitVec3(prevPQ/prevPQlen, true);
+
+    const Real cosConetP = dot(prevGeod.getTangentP(), eprevPQ);
+    const Real cosConetQ = dot(prevGeod.getTangentQ(), eprevPQ);
+    const bool isDirect = std::min(cosConetP,cosConetQ) >= CosMaxDirectAngle;
+
+    UnitVec3 tPhint = prevGeod.getTangentP(); // might flip
+    UnitVec3 tQhint = prevGeod.getTangentQ();
+    Real     sHint  = prevGeod.getLength();
+
+    const Vec3 newPQ = xQ - xP;
+    const Real newPQlen = newPQ.norm();
+    if (isDirect) {
+        const UnitVec3 enewPQ = newPQlen > 0 
+            ? UnitVec3(newPQ/newPQlen, true)
+            : UnitVec3(prevGeod.getTangentP()+prevGeod.getTangentQ());
+
+        if (~tPhint*enewPQ < 0 && ~tQhint*enewPQ < 0) {
+            tPhint = -tPhint;
+            tQhint = -tQhint;
+            cout << "GEODESIC FLIPPED. Prev len was " << sHint << endl;
+        }
+    }
+
+
+    //calcGeodesicUsingOrthogonalMethod(xP, xQ, tPhint, sHint, geod);
+    //calcGeodesic(xP, xQ, tPhint, tQhint, geod);
+    if (newPQlen < SqrtEps) 
+        makeStraightLineGeodesic(xP, xQ, tPhint, options, geod);
+    else 
+        calcGeodesicAnalytical(xP, xQ, tPhint, tQhint, geod);
 }
 
+void ContactGeometryImpl::
+makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
+        const UnitVec3& defaultDirectionIfNeeded,
+        const GeodesicOptions& options, Geodesic& geod) const
+{
+    geod.clear();
+    //TODO:
+    Vec3 Pprime = xP;
+        // projectToNearestDownhillPointOnSurface(xP);
+    Vec3 Qprime = xQ;
+        // projectToNearestDownhillPointOnSurface(xQ);
 
+    const bool isZeroLength = 
+        Geo::Point::pointsAreNumericallyCoincident(Pprime,Qprime);
+
+    UnitVec3 d;
+    Real     length;
+    if (isZeroLength) {
+        Pprime = Qprime = Geo::Point::findMidpoint(Pprime, Qprime);
+        d = defaultDirectionIfNeeded;
+        length = 0;
+    } else {
+        const Vec3 PQ = Qprime - Pprime;
+        length = PQ.norm();
+        d = UnitVec3(PQ/length, true);
+    }
+
+    const UnitVec3 nP = calcSurfaceUnitNormal(Pprime);
+    const UnitVec3 nQ = calcSurfaceUnitNormal(Qprime);
+    const Rotation RP(nP, ZAxis, d, YAxis);
+    const Rotation RQ(nQ, ZAxis, d, YAxis);
+    geod.addFrenetFrame(Transform(RP, Pprime));
+    geod.addFrenetFrame(Transform(RQ, Qprime));
+    geod.addArcLength(0);
+    geod.addArcLength(length);
+    geod.addCurvature(calcSurfaceCurvatureInDirection(Pprime, RP.y()));
+    geod.addCurvature(calcSurfaceCurvatureInDirection(Qprime, RQ.y()));
+    geod.addDirectionalSensitivityPtoQ(Vec2(0,1));
+    geod.addDirectionalSensitivityPtoQ(Vec2(length,1));
+    geod.addDirectionalSensitivityQtoP(Vec2(length,1));
+    geod.addDirectionalSensitivityQtoP(Vec2(0,1));
+    geod.setBinormalCurvatureAtP(calcSurfaceCurvatureInDirection(Pprime, RP.x()));
+    geod.setBinormalCurvatureAtQ(calcSurfaceCurvatureInDirection(Qprime, RQ.x()));
+
+    //TODO: We're estimating torsion here as the change in binormal per unit
+    // of arc length, in the -n direction. If length is zero we'll just say
+    // the torsion is zero although that is wrong.
+    const Real ooLength = isZeroLength ? Real(0) : 1/length;
+    const Vec3 bChg = geod.getBinormalQ()-geod.getBinormalP();
+    geod.setTorsionAtP( (~nP * bChg) * ooLength );
+    geod.setTorsionAtQ( (~nQ * bChg) * ooLength );
+
+    geod.setIsConvex(geod.getCurvatureP() >= 0 && geod.getCurvatureQ() >= 0);
+    geod.setIsShortest(true);
+    geod.setInitialStepSizeHint(NaN); // no clue
+    geod.setAchievedAccuracy(Geo::getDefaultTol<Real>());
+}
 
 // Utility method used by shootGeodesicInDirectionUntilPlaneHit
 // and shootGeodesicInDirectionUntilLengthReached.
@@ -1141,6 +1295,8 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         lam = 1;
         while (true) {
             x = xold - lam*dx;
+            // Negative length means flip direction.
+            if (x[1] < 0) x[0] += Pi, x[1] = -x[1];
             Fx = calcOrthogonalGeodError(xP, xQ, x[0], x[1],geod);
             f = std::sqrt(~Fx*Fx);
             dist = (geod.getPointQ()-xQ).norm();

@@ -1,371 +1,344 @@
-#include "SimTKsimbody.h"
-#include "SimTKcommon/Testing.h"
+/* -------------------------------------------------------------------------- *
+ *                       Simbody(tm) Example: Cable Path                      *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK biosimulation toolkit originating from           *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
+ *                                                                            *
+ * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Authors: Michael Sherman                                                   *
+ * Contributors:                                                              *
+ *                                                                            *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
+ * not use this file except in compliance with the License. You may obtain a  *
+ * copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         *
+ *                                                                            *
+ * Unless required by applicable law or agreed to in writing, software        *
+ * distributed under the License is distributed on an "AS IS" BASIS,          *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   *
+ * See the License for the specific language governing permissions and        *
+ * limitations under the License.                                             *
+ * -------------------------------------------------------------------------- */
 
-#include <cstdio>
+/*                      Simbody ExampleCablePath
+This example shows how to use a CableTrackerSubsystem to follow the motion of
+a cable that connects two bodies and passes around obstacles. We'll then
+create a force element that generates spring forces that result from the
+stretching and stretching rate of the cable. */
+
+#include "Simbody.h"
+#include "simbody/internal/CableTrackerSubsystem.h"
+#include "simbody/internal/CablePath.h"
+
+#include <cassert>
 #include <iostream>
-#include <exception>
+using std::cout; using std::endl;
 
 using namespace SimTK;
-using std::cout;using std::endl;
 
-
-static const Real smallRad = 5*1.25/100;
-static const Real largeRad = 10.5/100;
-static const MobodIndex smallBodx = MobodIndex(1);
-static const MobodIndex largeBodx = MobodIndex(0);
-static const Vec3 smallPos(-.28,0,0);
-static const Vec3 largePos(-.28,0,0);
-static const Real hSmall = .03; // 6cm=100% strain
-static const Real hLarge = .03;
-
-class ForceReporter : public PeriodicEventReporter {
+// This force element implements an elastic cable of a given nominal length,
+// and a stiffness k that generates a k*x force opposing stretch beyond
+// nominal. There is also a damping term c*xdot that applies only when the
+// cable is stretched and is being extended (x>0 && xdot>0). We keep track
+// of dissipated power here so we can use conservation of energy to check that
+// the cable and force element aren't obviously broken.
+class MyCableSpringImpl : public Force::Custom::Implementation {
 public:
-    ForceReporter(const MultibodySystem& system, 
-                  const CompliantContactSubsystem& complCont,
-                  Real reportInterval)
-    :   PeriodicEventReporter(reportInterval), m_system(system),
-        m_compliant(complCont)
-    {}
+    MyCableSpringImpl(const GeneralForceSubsystem& forces, 
+                      const CablePath& path, 
+                      Real stiffness, Real nominal, Real damping) 
+    :   forces(forces), path(path), k(stiffness), x0(nominal), c(damping)
+    {   assert(stiffness >= 0 && nominal >= 0 && damping >= 0); }
 
-    ~ForceReporter() {}
+    const CablePath& getCablePath() const {return path;}
 
-    void handleEvent(const State& state) const {
-        m_system.realize(state, Stage::Dynamics);
-        //cout << state.getTime() << ": E = " << m_system.calcEnergy(state)
-        //     << " Ediss=" << m_compliant.getDissipatedEnergy(state)
-        //     << " E+Ediss=" << m_system.calcEnergy(state)
-        //                       +m_compliant.getDissipatedEnergy(state)
-        //     << endl;
-        const int ncont = m_compliant.getNumContactForces(state);
-        //cout << "Num contacts: " << m_compliant.getNumContactForces(state) << endl;
-        if (ncont==0)
-            printf("%g 0.0 0.0 0.0\n", state.getTime());
-
-        const SimbodyMatterSubsystem& matter = m_system.getMatterSubsystem();
-        const MobilizedBody& smallBod=matter.getMobilizedBody(smallBodx);
-        const MobilizedBody& largeBod=matter.getMobilizedBody(largeBodx);
-        const Vec3 smallCtr = smallBod.findStationLocationInGround(state, smallPos);
-        const Vec3 largeCtr = largeBod.findStationLocationInGround(state, largePos);
-        const Real d = (smallRad+largeRad)-(smallCtr-largeCtr).norm();
-        
-        for (int i=0; i < ncont; ++i) {
-            const ContactForce& force = m_compliant.getContactForce(state,i);
-            const ContactId     id    = force.getContactId();
-            cout << state.getTime() 
-                 << " " << force.getForceOnSurface2()[1][1] // Normal
-                 << " " << force.getForceOnSurface2()[1][0] // Tangential
-                 << " " << d << "\n"; // penetration distance
-
-            //ContactPatch patch;
-            //const bool found = m_compliant.calcContactPatchDetailsById(state,id,patch);
-            //cout << "patch for id" << id << " found=" << found << endl;
-            //cout << "resultant=" << patch.getContactForce() << endl;
-            //cout << "num details=" << patch.getNumDetails() << endl;
-            //Real patchArea=0, maxDepth=0, maxf=0;
-            //Vec3 ftot(0);
-            //for (int i=0; i < patch.getNumDetails(); ++i) {
-            //    const ContactDetail& detail = patch.getContactDetail(i);
-            //    patchArea += detail.getPatchArea();
-            //    maxDepth = std::max(maxDepth, detail.getDeformation());
-            //    ftot += detail.getForceOnSurface2();
-            //    maxf = std::max(maxf, detail.getForceOnSurface2().norm());
-            //}
-            //cout << "patchArea=" << patchArea 
-            //     << " ftot=" << ftot << " maxDepth=" << maxDepth << "\n";
-            //cout << "maxf=" << maxf << "\n";
-        }
+    // Must be at stage Velocity. Evalutes tension if necessary.
+    Real getTension(const State& state) const {
+        ensureTensionCalculated(state);
+        return Value<Real>::downcast(forces.getCacheEntry(state, tensionx));
     }
+
+    // Must be at stage Velocity.
+    Real getPowerDissipation(const State& state) const {
+        const Real stretch = calcStretch(state);
+        if (stretch == 0) return 0;
+        const Real rate = path.getCableLengthDot(state);
+        return k*stretch*std::max(c*rate, -1.)*rate;
+    }
+
+    // This integral is always available.
+    Real getDissipatedEnergy(const State& state) const {
+        return forces.getZ(state)[workx];
+    }
+
+    //--------------------------------------------------------------------------
+    //                       Custom force virtuals
+
+    // Ask the cable to apply body forces given the tension calculated here.
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const
+                   OVERRIDE_11
+    {   path.applyBodyForces(state, getTension(state), bodyForces); }
+
+    // Return the potential energy currently stored by the stretch of the cable.
+    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {
+        const Real stretch = calcStretch(state);
+        if (stretch == 0) return 0;
+        return k*square(stretch)/2;
+    }
+
+    // Allocate the state variable for tracking dissipated energy, and a
+    // cache entry to hold the calculated tension.
+    void realizeTopology(State& state) const OVERRIDE_11 {
+        Vector initWork(1, 0.);
+        workx = forces.allocateZ(state, initWork);
+        tensionx = forces.allocateLazyCacheEntry(state, Stage::Velocity,
+                                             new Value<Real>(NaN));
+    }
+
+    // Report power dissipation as the derivative for the work variable.
+    void realizeAcceleration(const State& state) const OVERRIDE_11 {
+        Real& workDot = forces.updZDot(state)[workx];
+        workDot = getPowerDissipation(state);
+    }
+    //--------------------------------------------------------------------------
+
 private:
-    const MultibodySystem&           m_system;
-    const CompliantContactSubsystem& m_compliant;
+    // Return the amount by which the cable is stretched beyond its nominal
+    // length or zero if the cable is slack. Must be at stage Position.
+    Real calcStretch(const State& state) const {
+        const Real stretch = path.getCableLength(state) - x0;
+        return std::max(stretch, 0.);
+    }
+
+    // Must be at stage Velocity to calculate tension.
+    Real calcTension(const State& state) const {
+        const Real stretch = calcStretch(state);
+        if (stretch == 0) return 0;
+        const Real rate = path.getCableLengthDot(state);
+        if (c*rate < -1)
+            cout << "c*rate=" << c*rate << "; limited to -1\n";
+        const Real tension = k*stretch*(1+std::max(c*rate,-1.));
+        return tension;
+    }
+
+    // If state is at stage Velocity, we can calculate and store tension
+    // in the cache if it hasn't already been calculated.
+    void ensureTensionCalculated(const State& state) const {
+        if (forces.isCacheValueRealized(state, tensionx))
+            return;
+        Value<Real>::updDowncast(forces.updCacheEntry(state, tensionx)) 
+            = calcTension(state);
+        forces.markCacheValueRealized(state, tensionx);
+    }
+
+    const GeneralForceSubsystem&    forces;
+    CablePath                       path;
+    Real                            k, x0, c;
+    mutable ZIndex                  workx;
+    mutable CacheEntryIndex         tensionx;
 };
 
-// Nylon
-static const Real nylon_density = 1100.;  // kg/m^3
-static const Real nylon_young   = .05*2.5e9;  // pascals (N/m)
-static const Real nylon_poisson = 0.4;    // ratio
-static const Real nylon_planestrain = 
-    ContactMaterial::calcPlaneStrainStiffness(nylon_young, nylon_poisson);
-static const Real nylon_confined =
-    ContactMaterial::calcConfinedCompressionStiffness(nylon_young, nylon_poisson);
-static const Real nylon_dissipation = 10*0.005;
+// A nice handle to hide most of the cable spring implementation. This defines
+// a user's API.
+class MyCableSpring : public Force::Custom {
+public:
+    MyCableSpring(GeneralForceSubsystem& forces, const CablePath& path, 
+                  Real stiffness, Real nominal, Real damping) 
+    :   Force::Custom(forces, new MyCableSpringImpl(forces,path,
+                                                    stiffness,nominal,damping)) 
+    {}
+    
+    // Expose some useful methods.
+    const CablePath& getCablePath() const 
+    {   return getImpl().getCablePath(); }
+    Real getTension(const State& state) const
+    {   return getImpl().getTension(state); }
+    Real getPowerDissipation(const State& state) const
+    {   return getImpl().getPowerDissipation(state); }
+    Real getDissipatedEnergy(const State& state) const
+    {   return getImpl().getDissipatedEnergy(state); }
 
-static void makeSphere(Real radius, int level, PolygonalMesh& sphere);
+private:
+    const MyCableSpringImpl& getImpl() const
+    {   return dynamic_cast<const MyCableSpringImpl&>(getImplementation()); }
+};
+
+static Array_<State> saveStates;
+// This gets called periodically to dump out interesting things about
+// the cables and the system as a whole.
+class ShowStuff : public PeriodicEventReporter {
+public:
+    ShowStuff(const MultibodySystem& mbs, 
+              const MyCableSpring& cable1, Real interval) 
+    :   PeriodicEventReporter(interval), 
+        mbs(mbs), cable1(cable1) {}
+
+    static void showHeading(std::ostream& o) {
+        printf("%8s %10s %10s %10s %10s %10s %10s %10s %10s %12s\n",
+            "time", "length", "rate", "integ-rate", "unitpow", "tension", "disswork",
+            "KE", "PE", "KE+PE-W");
+    }
+
+    /** This is the implementation of the EventReporter virtual. **/ 
+    void handleEvent(const State& state) const OVERRIDE_11 {
+        const CablePath& path1 = cable1.getCablePath();
+        printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g CPU=%g\n",
+            state.getTime(),
+            path1.getCableLength(state),
+            path1.getCableLengthDot(state),
+            path1.getIntegratedCableLengthDot(state),
+            path1.calcCablePower(state, 1), // unit power
+            cable1.getTension(state),
+            cable1.getDissipatedEnergy(state),
+            mbs.calcKineticEnergy(state),
+            mbs.calcPotentialEnergy(state),
+            mbs.calcEnergy(state)
+                + cable1.getDissipatedEnergy(state),
+            cpuTime());
+        saveStates.push_back(state);
+    }
+private:
+    const MultibodySystem&  mbs;
+    MyCableSpring           cable1;
+};
 
 int main() {
-  try
-  { // Create the system.
-    
-    MultibodySystem         system; system.setUseUniformBackground(true);
-    SimbodyMatterSubsystem  matter(system);
-    GeneralForceSubsystem   forces(system);
-    Force::Gravity          gravity(forces, matter, -YAxis, 10);
-    //Force::GlobalDamper     damper(forces, matter, 1.0);
+  try {    
+    // Create the system.   
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    CableTrackerSubsystem cables(system);
+    GeneralForceSubsystem forces(system);
 
-    ContactTrackerSubsystem  tracker(system);
-    CompliantContactSubsystem contactForces(system, tracker);
-    contactForces.setTransitionVelocity(1e-3);
+    system.setUseUniformBackground(true); // no ground plane in display
 
-    // g=10, mass==.5 => weight = .5*10=5N.
-    // body origin at the hinge on the right
-    Real mass = 0.5;
-    Vec3 com = Vec3(-.14,0,0);
-    Vec3 halfDims(.14, .01, .01); // a rectangular solid
-    Inertia inertia = mass*
-        UnitInertia::brick(halfDims).shiftFromCentroid(Vec3(.14,0,0));
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
+    //Force::GlobalDamper(forces, matter, 5);
 
-    Body::Rigid lidBody(MassProperties(mass,com,inertia));
-    lidBody.addDecoration(Vec3(-.14,0,0), 
-        DecorativeBrick(halfDims).setColor(Cyan).setOpacity(.1));
+    Body::Rigid someBody(MassProperties(1.0, Vec3(0), Inertia(1)));
+    const Real Rad = .25;
+    someBody.addDecoration(Transform(), 
+        DecorativeSphere(Rad).setOpacity(.75).setResolution(4));
 
-    PolygonalMesh smallMesh, largeMesh;
+    Body::Rigid biggerBody(MassProperties(1.0, Vec3(0), Inertia(1)));
+    const Real BiggerRad = .5;
+    biggerBody.addDecoration(Transform(), 
+        DecorativeSphere(BiggerRad).setOpacity(.75).setResolution(4));
 
-#define USE_VIZ
-//#define SHOW_NORMALS
-Array_<DecorativeLine> smallNormals;
-Array_<DecorativeLine> largeNormals;
-const Real NormalLength = .001;
+    const Vec3 radii(.4, .25, .15);
+    Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
+        1.*UnitInertia::ellipsoid(radii)));
+    ellipsoidBody.addDecoration(Transform(), 
+        DecorativeEllipsoid(radii).setOpacity(.75).setResolution(4)
+                                  .setColor(Orange));
 
-#define USE_MESH_SMALL
-#define USE_MESH_BIG
-#ifdef USE_MESH_SMALL
-    makeSphere(smallRad, 5, smallMesh);
-    std::cerr << "small mesh faces: " << smallMesh.getNumFaces() << "\n";
-    ContactGeometry::TriangleMesh smallContact(smallMesh);
-    DecorativeMesh smallArtwork(smallContact.createPolygonalMesh());
-    smallArtwork.setColor(Red);
-    #ifdef SHOW_NORMALS
-    for (int fx=0; fx < smallContact.getNumFaces(); ++fx) {
-        smallNormals.push_back(
-        DecorativeLine(smallContact.findCentroid(fx),
-                       smallContact.findCentroid(fx)
-                           + NormalLength*smallContact.getFaceNormal(fx))
-                           .setColor(Black).setLineThickness(2));
-    }
-    #endif
-#else
-    DecorativeSphere smallArtwork(smallRad);
-    smallArtwork.setResolution(2).setRepresentation(DecorativeGeometry::DrawWireframe);
-    ContactGeometry::Sphere smallContact(smallRad);
-#endif
-#ifdef USE_MESH_BIG
-    makeSphere(largeRad, 6, largeMesh);
-    std::cerr << "large mesh faces: " << largeMesh.getNumFaces() << "\n";
-    ContactGeometry::TriangleMesh largeContact(largeMesh);
-    DecorativeMesh largeArtwork(largeContact.createPolygonalMesh());
-    //DecorativeSphere largeArtwork(largeRad);
-    largeArtwork.setColor(Green);
-    #ifdef SHOW_NORMALS
+    const Real CylRad = .25, HalfLen = .5;
+    Body::Rigid cylinderBody(MassProperties(1.0, Vec3(0), 
+        1.*UnitInertia::cylinderAlongX(Rad,HalfLen)));
+    cylinderBody.addDecoration(Rotation(-Pi/2,ZAxis), 
+        DecorativeCylinder(CylRad,HalfLen).setOpacity(.75)
+           .setResolution(4).setColor(Orange));
 
-    for (int fx=0; fx < largeContact.getNumFaces(); ++fx) {
-        largeNormals.push_back(
-        DecorativeLine(largeContact.findCentroid(fx),
-                       largeContact.findCentroid(fx)
-                           + NormalLength*largeContact.getFaceNormal(fx))
-                           .setColor(Black).setLineThickness(2));
-    }
-    #endif
-#else
-    DecorativeSphere largeArtwork(largeRad);
-    largeArtwork.setResolution(4).setRepresentation(DecorativeGeometry::DrawWireframe);
-    ContactGeometry::Sphere largeContact(largeRad);
-#endif
+    Body::Rigid fancyBody = biggerBody; // NOT USING ELLIPSOID
 
+    MobilizedBody Ground = matter.Ground();
 
-    ContactMaterial nylon(
-        //nylon_planestrain, 
-        nylon_confined, 
-        nylon_dissipation, 
-        .1*.9,.1*.8,.1*.6); // static, dynamic, viscous friction
+    MobilizedBody::Free body1(Ground,           Transform(Vec3(0)), 
+                              someBody,         Transform(Vec3(0, 1, 0)));
+    //MobilizedBody::Ball body2(body1,            Transform(Vec3(0)), 
+    //                          someBody,         Transform(Vec3(0, 1, 0)));
+    //MobilizedBody::Ball body3(body2,            Transform(Vec3(0)), 
+    //                          someBody,         Transform(Vec3(0, 1, 0)));
+    //MobilizedBody::Ball body4(body3,            Transform(Vec3(0)), 
+    //                          fancyBody,    Transform(Vec3(0, 1, 0)));
+    //MobilizedBody::Ball body5(body4,            Transform(Vec3(0)), 
+    //                          someBody,         Transform(Vec3(0, 1, 0)));
 
-    lidBody.addDecoration(smallPos, 
-        smallArtwork.setOpacity(0.5));
-    lidBody.addDecoration(smallPos, 
-        smallArtwork.setRepresentation(DecorativeGeometry::DrawWireframe));
+    CablePath path1(cables, Ground, Vec3(0,0,0),   // origin
+                            body1, Vec3(0,Rad,0));  // termination
 
-    for (unsigned i=0; i < smallNormals.size(); ++i)
-        lidBody.addDecoration(smallPos, smallNormals[i]);
+    //CableObstacle::Surface obstacle(path1, Ground, Vec3(1,-1,0), 
+    //    ContactGeometry::Sphere(Rad));
+    //Ground.addBodyDecoration(Vec3(1,-1,0), DecorativeSphere(Rad));
+    //obstacle.setContactPointHints(Rad*UnitVec3(1,1,0),Rad*UnitVec3(1,.5,0));
+    //
+    CableObstacle::Surface obstacle2(path1, Ground, Vec3(0,-1,0), 
+        ContactGeometry::Cylinder(CylRad));
+    Ground.addBodyDecoration(Transform(Rotation(Pi/2,XAxis),Vec3(0,-1,0)), 
+        DecorativeCylinder(CylRad,HalfLen).setOpacity(.75)
+           .setResolution(4).setColor(Orange));
+    obstacle2.setContactPointHints(CylRad*UnitVec3(1,1,0),CylRad*UnitVec3(1,.5,0));
 
-    lidBody.addContactSurface(smallPos, 
-        ContactSurface(smallContact, nylon, hSmall));
+    ////CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
+    ////CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
+    //CableObstacle::Surface obs5(path1, body4, 
+    //    // Transform(), ContactGeometry::Ellipsoid(radii));
+    //    //Rotation(Pi/2, YAxis), ContactGeometry::Cylinder(CylRad)); // along y
+    //    //Transform(), ContactGeometry::Sphere(Rad));
+    //    Transform(), ContactGeometry::Sphere(BiggerRad));
+    ////obs5.setContactPointHints(Rad*UnitVec3(0,-1,-1),Rad*UnitVec3(0.1,-1,-1));
+    //obs5.setContactPointHints(Rad*UnitVec3(.1,.125,-.2),
+    //                          Rad*UnitVec3(0.1,-.1,-.2));
 
-    matter.Ground().updBody().addDecoration(largePos, 
-        largeArtwork.setOpacity(0.5));
-    matter.Ground().updBody().addDecoration(largePos, 
-        largeArtwork.setRepresentation(DecorativeGeometry::DrawWireframe));
+    // NOTE: velocity-based force is disabled.
+    MyCableSpring cable1(forces, path1, .5*100., 2, 0*0.1); 
 
-    for (unsigned i=0; i < largeNormals.size(); ++i)
-        matter.Ground().updBody().addDecoration(largePos, 
-        largeNormals[i]);
-    matter.Ground().updBody().addContactSurface(largePos, 
-        ContactSurface(largeContact, nylon, hLarge));
+    //obs1.setPathPreferencePoint(Vec3(2,3,4));
+    //obs1.setDecorativeGeometry(DecorativeSphere(0.25).setOpacity(.5));
 
-    MobilizedBody::Pin lid(matter.Ground(), Vec3(0.05,smallRad+largeRad,0), 
-                           lidBody,         Vec3(0,0,0));
-
-#ifdef USE_VIZ
     Visualizer viz(system);
-    viz.setCameraClippingPlanes(.01,100);
-#endif
+    viz.setShowFrameNumber(true);
+    system.addEventReporter(new Visualizer::Reporter(viz, 0.1*1./30));
+    system.addEventReporter(new ShowStuff(system, cable1, 0.1*0.1));    
+    // Initialize the system and state.
+    
+    system.realizeTopology();
+    State state = system.getDefaultState();
+    //Random::Gaussian random;
+    //for (int i = 0; i < state.getNQ(); ++i)
+    //    state.updQ()[i] = random.getValue();
+    //for (int i = 0; i < state.getNU(); ++i)
+    //    state.updU()[i] = 0.1*random.getValue(); 
+    body1.setQToFitTranslation(state, Vec3(-.75,-1.5,.5));
 
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./1000));
-    ForceReporter* frcReporter = 
-        new ForceReporter(system, contactForces, 1./100000);
-    system.addEventReporter(frcReporter);
+    system.realize(state, Stage::Position);
+    viz.report(state);
+    cout << "path1 init length=" << path1.getCableLength(state) << endl;
+    cout << "Hit ENTER ...";
+    getchar();
+
+    path1.setIntegratedCableLengthDot(state, path1.getCableLength(state));
+
+
+    // Simulate it.
+    saveStates.clear(); saveStates.reserve(2000);
 
     RungeKuttaMersonIntegrator integ(system);
     //CPodesIntegrator integ(system);
-    //integ.setMaximumStepSize(.01);
-    integ.setAccuracy(1e-5);
+    integ.setAccuracy(1e-3);
     TimeStepper ts(system, integ);
+    ts.initialize(state);
+    ShowStuff::showHeading(cout);
 
-    system.realizeTopology();
-    State startState = system.getDefaultState();
-    lid.setOneQ(startState, 0, -Pi/10);
-    //lid.setOneQ(startState, 0, 0.0610351);
-    system.realize(startState, Stage::Position);
-#ifdef USE_VIZ
-    viz.report(startState);
-#endif
-    system.realize(startState);
-    //frcReporter->handleEvent(startState);
-    //printf("type to go ...\n");
-   // getchar();
-    ts.initialize(startState);
-    ts.stepTo(0.5);
+    const Real finalTime = 2;
+    const double startTime = realTime();
+    ts.stepTo(finalTime);
+    cout << "DONE with " << finalTime 
+         << "s simulated in " << realTime()-startTime
+         << "s elapsed.\n";
+
+
+    while (true) {
+        cout << "Hit ENTER FOR REPLAY, Q to quit ...";
+        const char ch = getchar();
+        if (ch=='q' || ch=='Q') break;
+        for (unsigned i=0; i < saveStates.size(); ++i)
+            viz.report(saveStates[i]);
+    }
 
   } catch (const std::exception& e) {
-    std::printf("EXCEPTION THROWN: %s\n", e.what());
-    exit(1);
-
-  } catch (...) {
-    std::printf("UNKNOWN EXCEPTION THROWN\n");
-    exit(1);
+    cout << "EXCEPTION: " << e.what() << "\n";
   }
-
-    return 0;
-}
-
-
-
-static void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
-                               Array_<int>&  faceIndices) {
-    vertices.push_back(Vec3( r[0],  0,  0));   //0
-    vertices.push_back(Vec3(-r[0],  0,  0));   //1
-    vertices.push_back(Vec3( 0,  r[1],  0));   //2
-    vertices.push_back(Vec3( 0, -r[1],  0));   //3
-    vertices.push_back(Vec3( 0,  0,  r[2]));   //4
-    vertices.push_back(Vec3( 0,  0, -r[2]));   //5
-    int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0}, 
-                       {4, 3, 0}, {1, 3, 4}, {5, 3, 1}, {0, 3, 5}};
-    for (int i = 0; i < 8; i++)
-        for (int j = 0; j < 3; j++)
-            faceIndices.push_back(faces[i][j]);
-}
-
-// Create a triangle mesh in the shape of an octahedron (like two 
-// pyramids stacked base-to-base, with the square base in the x-z plane 
-// centered at 0,0,0 of given "radius" r. 
-// The apexes will be at (0,+/-r,0).
-static void makeOctahedron(Real r, PolygonalMesh& mesh) {
-    Array_<Vec3> vertices;
-    Array_<int> faceIndices;
-    makeOctahedralMesh(Vec3(r), vertices, faceIndices);
-
-    for (unsigned i=0; i < vertices.size(); ++i)
-        mesh.addVertex(vertices[i]);
-    for (unsigned i=0; i < faceIndices.size(); i += 3) {
-        const Array_<int> verts(&faceIndices[i], &faceIndices[i]+3);
-        mesh.addFace(verts);
-    }
-}
-
-struct VertKey {
-    VertKey(const Vec3& v) : v(v) {}
-    Vec3 v;
-    bool operator<(const VertKey& other) const {
-        const Real tol = SignificantReal;
-        const Vec3 diff = v - other.v;
-        if (diff[0] < -tol) return true;
-        if (diff[0] >  tol) return false;
-        if (diff[1] < -tol) return true;
-        if (diff[1] >  tol) return false;
-        if (diff[2] < -tol) return true;
-        if (diff[2] >  tol) return false;
-        return false; // they are numerically equal
-    }
-};
-typedef std::map<VertKey,int> VertMap;
-
-/* Search a list of vertices for one close enough to this one and
-return its index if found, otherwise add to the end. */
-static int getVertex(const Vec3& v, VertMap& vmap, Array_<Vec3>& verts) {
-    VertMap::const_iterator p = vmap.find(VertKey(v));
-    if (p != vmap.end()) return p->second;
-    const int ix = (int)verts.size();
-    verts.push_back(v);
-    vmap.insert(std::make_pair(VertKey(v),ix));
-    return ix;
-}
-
-/* Each face comes in as below, with vertices 0,1,2 on the surface
-of a sphere or radius r centered at the origin. We bisect the edges to get
-points a',b',c', then move out from the center to make points a,b,c
-on the sphere.
-         1
-        /\        
-       /  \
-    c /____\ b      Then construct new triangles
-     /\    /\            [0,b,a]
-    /  \  /  \           [a,b,c]
-   /____\/____\          [c,2,a]
-  2      a     0         [b,1,c]
-*/
-static void refineSphere(Real r, VertMap& vmap, 
-                         Array_<Vec3>& verts, Array_<int>&  faces) {
-    assert(faces.size() % 3 == 0);
-    const int nVerts = faces.size(); // # face vertices on entry
-    for (int i=0; i < nVerts; i+=3) {
-        const int v0=faces[i], v1=faces[i+1], v2=faces[i+2];
-        const Vec3 a = r*UnitVec3(verts[v0]+verts[v2]);
-        const Vec3 b = r*UnitVec3(verts[v0]+verts[v1]);
-        const Vec3 c = r*UnitVec3(verts[v1]+verts[v2]);
-        const int va=getVertex(a,vmap,verts), 
-                  vb=getVertex(b,vmap,verts), 
-                  vc=getVertex(c,vmap,verts);
-        // Replace the existing face with the 0ba triangle, then add the rest.
-        // Refer to the above picture.
-        faces[i+1] = vb; faces[i+2] = va;
-        faces.push_back(va); faces.push_back(vb); faces.push_back(vc);//abc
-        faces.push_back(vc); faces.push_back(v2); faces.push_back(va);//c2a
-        faces.push_back(vb); faces.push_back(v1); faces.push_back(vc);//b1c
-    }
-}
-
-// level  numfaces
-//   0       8   <-- octahedron
-//   1       32
-//   2       128 <-- still lumpy
-//   3       512 <-- very spherelike
-//   n       2*4^(n+1)
-static void makeSphere(Real radius, int level, PolygonalMesh& sphere) {
-    Array_<Vec3> vertices;
-    Array_<int> faceIndices;
-    makeOctahedralMesh(Vec3(radius), vertices, faceIndices);
-
-    VertMap vmap;
-    for (unsigned i=0; i < vertices.size(); ++i)
-        vmap[vertices[i]] = i;
-
-    while (level > 0) {
-        refineSphere(radius, vmap, vertices, faceIndices);
-        --level;
-    }
-
-    for (unsigned i=0; i < vertices.size(); ++i)
-        sphere.addVertex(vertices[i]);
-    for (unsigned i=0; i < faceIndices.size(); i += 3) {
-        const Array_<int> verts(&faceIndices[i], &faceIndices[i]+3);
-        sphere.addFace(verts);
-    }
 }

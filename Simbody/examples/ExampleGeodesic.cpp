@@ -173,6 +173,7 @@ int main() {
     geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
     // geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
     // geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
+    //geom.makeStraightLineGeodesic(P, Q, e_OP, GeodesicOptions(), geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
 
