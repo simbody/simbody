@@ -371,6 +371,17 @@ void IntegratorRep::initialize(const State& initState) {
     // the initial state derivatives.
     realizeStateDerivatives(getAdvancedState());
 
+    // Now that we have valid update values for auto-update discrete variables,
+    // use them to reinitialize the discrete state variables. This one time
+    // only, the value swapped in from the discrete variable here is not yet
+    // suitable for use as an update value, during time integration since it
+    // has never been realized to Instance stage. So we'll force a 
+    // re-evaluation.
+    updAdvancedState().autoUpdateDiscreteVariables();
+    getAdvancedState().invalidateAllCacheAtOrAbove(Stage::Instance);
+    // Re-realize to fill in the swapped-in update values.
+    realizeStateDerivatives(getAdvancedState());
+
     // Record the continuous parts of this now-realized initial state as the 
     // previous state as well (previous state is used when we have to back up
     // from a failed step attempt).
