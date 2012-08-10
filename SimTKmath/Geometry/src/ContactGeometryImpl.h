@@ -335,6 +335,15 @@ public:
     Mat22 calcSplitGeodErrorJacobian(const Vec3& P, const Vec3& Q,
             const Real& thetaP, const Real& thetaQ, Differentiator::Method method) const;
 
+    // Compute rotation matrix using the normal at the given point and the
+    // given direction.
+    Rotation calcTangentBasis(const Vec3& point, const Vec3& dir) const {
+        const UnitVec3 n = calcSurfaceUnitNormal(point);
+        Rotation R_GS;
+        R_GS.setRotationFromTwoAxes(n, ZAxis, dir, XAxis);
+        return R_GS;
+    }
+
     // Get the plane associated with the geodesic hit plane event handler
     const Plane& getPlane() const {
         return geodHitPlaneEvent->getPlane();

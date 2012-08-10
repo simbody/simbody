@@ -130,136 +130,38 @@ void ContactGeometry::calcCurvature(const Vec3& point, Vec2& curvature,
 const Function& ContactGeometry::getImplicitFunction() const 
 {   return getImpl().getImplicitFunction(); }
 
-Real ContactGeometry::
-calcSurfaceValue(const Vec3& p) const {
-    const Vector point(p); // required by Function
-    return getImpl().getImplicitFunction().calcValue(point);
+
+Real ContactGeometry::calcSurfaceValue(const Vec3& point) const {
+    return getImpl().calcSurfaceValue(point);
 }
 
-Vec3 ContactGeometry::
-calcSurfaceGradient(const Vec3& p) const {
-    const Vector point(p); // required by Function
-    const Function& f = getImpl().getImplicitFunction();
-
-    // Arguments to get first derivative from the calcDerivative interface.
-    // Avoid heap allocation by making ArrayViews of stack data.
-    const int x = 0; const ArrayViewConst_<int> fx(&x, &x+1);
-    const int y = 1; const ArrayViewConst_<int> fy(&y, &y+1);
-    const int z = 2; const ArrayViewConst_<int> fz(&z, &z+1);
-
-    Vec3 grad;
-    // Note that the gradient may point inward or outward depending on the
-    // sign convention used by the implicit surface function.
-    grad[0] = f.calcDerivative(fx,point);
-    grad[1] = f.calcDerivative(fy,point);
-    grad[2] = f.calcDerivative(fz,point);
-    return grad;
+UnitVec3 ContactGeometry::calcSurfaceUnitNormal(const Vec3& point) const {
+    return getImpl().calcSurfaceUnitNormal(point);
 }
 
-
-UnitVec3 ContactGeometry::
-calcSurfaceUnitNormal(const Vec3& p) const {
-    // Implicit surface functions may have flat spots away from the surface,
-    // such as a point along the central axis of a cylinder. This would 
-    // produce a NaN unit normal; we'll instead move the point slightly to
-    // return a valid nearby normal. This helps algorithms that are looking
-    // for the surface to get there rather than blow up.
-    Vec3 grad = calcSurfaceGradient(p);
-    Real curvature = grad.norm();
-
-    if (curvature < TinyReal) {
-        for (int i=0; i < 3; ++i) {
-            Vec3 phat(p); phat[i] += SqrtEps;
-            grad=calcSurfaceGradient(phat); 
-            curvature = grad.norm();
-            if (curvature >= TinyReal)
-                break;
-        }
-        if (curvature < TinyReal) {
-            // We're desperate now.
-            grad=Vec3(1,1,1); curvature=grad.norm(); // i.e., sqrt(3)
-        }
-    }
-
-    // Implicit surfaces are defined as positive inside and negative outside
-    // therefore normal is the negative of the gradient.
-    // TODO: this should be changed to the opposite convention.
-    return UnitVec3(-grad/curvature, true);
+Vec3 ContactGeometry::calcSurfaceGradient(const Vec3& point) const {
+    return getImpl().calcSurfaceGradient(point);
 }
 
-// Note: Hessian is symmetric, although we're filling in all 9 elements here.
-// TODO: use a SymMat33.
-Mat33 ContactGeometry::
-calcSurfaceHessian(const Vec3& p) const {
-    const Vector point(p); // required by Function
-    const Function& f = getImpl().getImplicitFunction();
-
-    // Arguments to get second derivatives from the calcDerivative interface.
-    // No heap allocation here.
-    const int xx[] = {0,0}; ArrayViewConst_<int> fxx(xx,xx+2);
-    const int xy[] = {0,1}; ArrayViewConst_<int> fxy(xy,xy+2);
-    const int xz[] = {0,2}; ArrayViewConst_<int> fxz(xz,xz+2);
-    //const int yx[] = {1,0}; ArrayViewConst_<int> fyx(yx,yx+2);
-    const int yy[] = {1,1}; ArrayViewConst_<int> fyy(yy,yy+2);
-    const int yz[] = {1,2}; ArrayViewConst_<int> fyz(yz,yz+2);
-    //const int zx[] = {2,0}; ArrayViewConst_<int> fzx(zx,zx+2);
-    //const int zy[] = {2,1}; ArrayViewConst_<int> fzy(zy,zy+2);
-    const int zz[] = {2,2}; ArrayViewConst_<int> fzz(zz,zz+2);
-
-    Mat33 hess;
-
-    hess(0,0) = f.calcDerivative(fxx,point);
-    hess(0,1) = f.calcDerivative(fxy,point);
-    hess(0,2) = f.calcDerivative(fxz,point);
-    hess(1,0) = hess(0,1);
-    hess(1,1) = f.calcDerivative(fyy,point);
-    hess(1,2) = f.calcDerivative(fyz,point);
-    hess(2,0) = hess(0,2);
-    hess(2,1) = hess(1,2);
-    hess(2,2) = f.calcDerivative(fzz,point);
-
-    return hess;
+Mat33 ContactGeometry::calcSurfaceHessian(const Vec3& point) const {
+    return getImpl().calcSurfaceHessian(point);
 }
 
-Real ContactGeometry::
-calcGaussianCurvature(const Vec3& point) const {
-    const Vec3  g = calcSurfaceGradient(point);
-    const Mat33 H = calcSurfaceHessian(point);
-    // Calculate the adjoint. TODO: use SymMat33
-    Mat33 A;
-    A(0,0) = det(H.dropRowCol(0,0));
-    A(0,1) = det(H.dropRowCol(0,1));
-    A(0,2) = det(H.dropRowCol(0,2));
-    A(1,0) = A(0,1);
-    A(1,1) = det(H.dropRowCol(1,1));
-    A(1,2) = det(H.dropRowCol(1,2));
-    A(2,0) = A(0,2);
-    A(2,1) = A(1,2);
-    A(2,2) = det(H.dropRowCol(2,2));
+Real ContactGeometry::calcGaussianCurvature(const Vec3& point) const {
+    return getImpl().calcGaussianCurvature(point);
+}
 
-    Real Kg = ~g * (A*g) / square(g.normSqr()); // |g|^4
-    return Kg;
+Real ContactGeometry::calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const {
+	return getImpl().calcSurfaceCurvatureInDirection(point, direction);
 }
 
 Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const 
 {   return getImpl().calcSupportPoint(direction); }
 
-Real ContactGeometry::
-	calcSurfaceCurvatureInDirection(const Vec3& point, 
-									const UnitVec3& direction) const 
-{
-    const UnitVec3 n = calcSurfaceUnitNormal(point);
-    const Vec3     g = calcSurfaceGradient(point);
-	const Mat33 H = calcSurfaceHessian(point);
-	const Real  knum = ~direction*H*direction; // numerator
-    if (knum < TinyReal)
-        return 0; // don't want to return 0/0.
-        
-    const Real k = knum/(~g*n);
 
-	return k;
-}
-
+//------------------------------------------------------------------------------
+//                        EVAL PARAMETRIC CURVATURE
+//------------------------------------------------------------------------------
 /*static*/Vec2 ContactGeometry::
 evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
                         const Vec3& dPdu, const Vec3& dPdv,
@@ -313,6 +215,10 @@ evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
     return Vec2(kmax, kmin);
 }
 
+
+//------------------------------------------------------------------------------
+//                          COMBINE PARABOLOIDS
+//------------------------------------------------------------------------------
 // See the documentation in the header file for a complete description of
 // what's being calculated here. This comment adds implementation information
 // that isn't relevant to the API user. 
@@ -454,7 +360,7 @@ static void combineParaboloidsHelper
 // J(3) = ~b*Rx + ~r*( [t]*Nx - [n]*Tx )
 //
 // Rx  := dr/dx = -I
-// Nx  := dn/dx = dn/dg*dg/dx H*(I- n*(~n))/norm(g)
+// Nx  := dn/dx = dn/dg*dg/dx = H*(I- n*(~n))/norm(g)
 // Tx  := dt/dx = -Nx*(~tvec*n) -n*(~tvec*Nx)
 // H   := dg/dx (the Hessian of the surface at x)
 // n   := g/norm(g) (unit normal vector)
@@ -684,36 +590,171 @@ void ContactGeometry::addVizReporter(ScheduledEventReporter* reporter) const {
 
 
 //==============================================================================
-//             GEODESIC EVALUATORS in CONTACT GEOMETRY IMPL
+//                          CONTACT GEOMETRY IMPL
 //==============================================================================
 
-Real ContactGeometryImpl::calcSurfaceValue(const Vec3& point) const {
-    return myHandle->calcSurfaceValue(point);
-}
 
-UnitVec3 ContactGeometryImpl::calcSurfaceUnitNormal(const Vec3& point) const {
-    return myHandle->calcSurfaceUnitNormal(point);
-}
 
-Vec3 ContactGeometryImpl::calcSurfaceGradient(const Vec3& point) const {
-    return myHandle->calcSurfaceGradient(point);
-}
-
-Mat33 ContactGeometryImpl::calcSurfaceHessian(const Vec3& point) const {
-    return myHandle->calcSurfaceHessian(point);
-}
-
-Real ContactGeometryImpl::calcGaussianCurvature(const Vec3& point) const {
-    return myHandle->calcGaussianCurvature(point);
-}
-
-Real ContactGeometryImpl::calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const {
-	return myHandle->calcSurfaceCurvatureInDirection(point, direction);
+//------------------------------------------------------------------------------
+//                           CALC SURFACE VALUE
+//------------------------------------------------------------------------------
+Real ContactGeometryImpl::
+calcSurfaceValue(const Vec3& p) const {
+    const Vector point(p); // required by Function
+    return getImplicitFunction().calcValue(point);
 }
 
 
-const Real estimatedGeodesicAccuracy = 1e-12; // used in numerical differentiation
-const Real pauseBetweenGeodIterations = 0; // sec, used in newton solver
+
+//------------------------------------------------------------------------------
+//                          CALC SURFACE GRADIENT
+//------------------------------------------------------------------------------
+Vec3 ContactGeometryImpl::
+calcSurfaceGradient(const Vec3& p) const {
+    const Vector point(p); // required by Function
+    const Function& f = getImplicitFunction();
+
+    // Arguments to get first derivative from the calcDerivative interface.
+    // Avoid heap allocation by making ArrayViews of stack data.
+    const int x = 0; const ArrayViewConst_<int> fx(&x, &x+1);
+    const int y = 1; const ArrayViewConst_<int> fy(&y, &y+1);
+    const int z = 2; const ArrayViewConst_<int> fz(&z, &z+1);
+
+    Vec3 grad;
+    // Note that the gradient may point inward or outward depending on the
+    // sign convention used by the implicit surface function.
+    grad[0] = f.calcDerivative(fx,point);
+    grad[1] = f.calcDerivative(fy,point);
+    grad[2] = f.calcDerivative(fz,point);
+    return grad;
+}
+
+
+
+//------------------------------------------------------------------------------
+//                         CALC SURFACE UNIT NORMAL
+//------------------------------------------------------------------------------
+UnitVec3 ContactGeometryImpl::
+calcSurfaceUnitNormal(const Vec3& p) const {
+    // Implicit surface functions may have singularities away from the surface,
+    // such as a point along the central axis of a cylinder. This would 
+    // produce a NaN unit normal; we'll instead move the point slightly to
+    // return a valid nearby normal. This helps algorithms that are looking
+    // for the surface to get there rather than blow up.
+    Vec3 grad = calcSurfaceGradient(p);
+    Real gradMag = grad.norm();
+
+    if (gradMag < TinyReal) {
+        // Try perturbing in x, y, or z and take the first one that has a 
+        // non-zero gradient.
+        for (int i=0; i < 3; ++i) {
+            Vec3 phat(p); phat[i] += SqrtEps;
+            grad=calcSurfaceGradient(phat); 
+            gradMag = grad.norm();
+            if (gradMag >= TinyReal)
+                break;
+        }
+        if (gradMag < TinyReal) {
+            // We're desperate now. Pull a normal out of our hat.
+            grad=Vec3(1,1.1,1.2); gradMag=grad.norm();
+        }
+    }
+
+    // Implicit surfaces are defined as positive inside and negative outside
+    // therefore normal is the negative of the gradient.
+    // TODO: this should be changed to the opposite convention.
+    return UnitVec3(-grad/gradMag, true);
+}
+
+
+
+//------------------------------------------------------------------------------
+//                          CALC SURFACE HESSIAN
+//------------------------------------------------------------------------------
+// Note: Hessian is symmetric, although we're filling in all 9 elements here.
+// TODO: use a SymMat33.
+Mat33 ContactGeometryImpl::
+calcSurfaceHessian(const Vec3& p) const {
+    const Vector point(p); // required by Function
+    const Function& f = getImplicitFunction();
+
+    // Arguments to get second derivatives from the calcDerivative interface.
+    // No heap allocation here.
+    const int xx[] = {0,0}; ArrayViewConst_<int> fxx(xx,xx+2);
+    const int xy[] = {0,1}; ArrayViewConst_<int> fxy(xy,xy+2);
+    const int xz[] = {0,2}; ArrayViewConst_<int> fxz(xz,xz+2);
+    //const int yx[] = {1,0}; ArrayViewConst_<int> fyx(yx,yx+2);
+    const int yy[] = {1,1}; ArrayViewConst_<int> fyy(yy,yy+2);
+    const int yz[] = {1,2}; ArrayViewConst_<int> fyz(yz,yz+2);
+    //const int zx[] = {2,0}; ArrayViewConst_<int> fzx(zx,zx+2);
+    //const int zy[] = {2,1}; ArrayViewConst_<int> fzy(zy,zy+2);
+    const int zz[] = {2,2}; ArrayViewConst_<int> fzz(zz,zz+2);
+
+    Mat33 hess;
+
+    hess(0,0) = f.calcDerivative(fxx,point);
+    hess(0,1) = f.calcDerivative(fxy,point);
+    hess(0,2) = f.calcDerivative(fxz,point);
+    hess(1,0) = hess(0,1);
+    hess(1,1) = f.calcDerivative(fyy,point);
+    hess(1,2) = f.calcDerivative(fyz,point);
+    hess(2,0) = hess(0,2);
+    hess(2,1) = hess(1,2);
+    hess(2,2) = f.calcDerivative(fzz,point);
+
+    return hess;
+}
+
+//------------------------------------------------------------------------------
+//                        CALC GAUSSIAN CURVATURE
+//------------------------------------------------------------------------------
+Real ContactGeometryImpl::
+calcGaussianCurvature(const Vec3& point) const {
+    const Vec3  g = calcSurfaceGradient(point);
+    const Mat33 H = calcSurfaceHessian(point);
+    // Calculate the adjoint. TODO: use SymMat33
+    Mat33 A;
+    A(0,0) = det(H.dropRowCol(0,0));
+    A(0,1) = det(H.dropRowCol(0,1));
+    A(0,2) = det(H.dropRowCol(0,2));
+    A(1,0) = A(0,1);
+    A(1,1) = det(H.dropRowCol(1,1));
+    A(1,2) = det(H.dropRowCol(1,2));
+    A(2,0) = A(0,2);
+    A(2,1) = A(1,2);
+    A(2,2) = det(H.dropRowCol(2,2));
+
+    Real Kg = ~g * (A*g) / square(g.normSqr()); // |g|^4
+    return Kg;
+}
+
+
+
+//------------------------------------------------------------------------------
+//                       CALC CURVATURE IN A DIRECTION
+//------------------------------------------------------------------------------
+Real ContactGeometryImpl::
+calcSurfaceCurvatureInDirection(const Vec3& point, 
+								const UnitVec3& direction) const 
+{
+    const UnitVec3 n = calcSurfaceUnitNormal(point);
+    const Vec3     g = calcSurfaceGradient(point);
+	const Mat33 H = calcSurfaceHessian(point);
+	const Real  knum = ~direction*H*direction; // numerator
+    if (knum < TinyReal)
+        return 0; // don't want to return 0/0.
+        
+    const Real k = knum/(~g*n);
+
+	return k;
+}
+
+
+
+
+
+static const Real estimatedGeodesicAccuracy = 1e-12; // used in numerical differentiation
+static const Real pauseBetweenGeodIterations = 0; // sec, used in newton solver
 
 
 // This local class is used to Calcualte the split geodesic error
@@ -721,9 +762,10 @@ const Real pauseBetweenGeodIterations = 0; // sec, used in newton solver
 class ContactGeometryImpl::SplitGeodesicError: public Differentiator::JacobianFunction {
 
 public:
-    SplitGeodesicError(int nf, int ny, ContactGeometry& geom,
-            const Vec3& xP, const Vec3& xQ, const Vec3& tPhint, const Vec3& tQhint) :
-            Differentiator::JacobianFunction(nf, ny),
+    SplitGeodesicError(int nf, int ny, const ContactGeometryImpl& geom,
+            const Vec3& xP, const Vec3& xQ, 
+            const Vec3& tPhint, const Vec3& tQhint) 
+    :   Differentiator::JacobianFunction(nf, ny),
                     geom(geom),
                     P(xP), Q(xQ),
                     R_SP(geom.calcTangentBasis(P, tPhint)),
@@ -744,7 +786,7 @@ public:
 
 
 private:
-    ContactGeometry& geom;
+    const ContactGeometryImpl& geom;
     const Vec3& P;
     const Vec3& Q;
     const Rotation R_SP;
@@ -757,7 +799,7 @@ private:
 class ContactGeometryImpl::OrthoGeodesicError: public Differentiator::JacobianFunction {
 
 public:
-    OrthoGeodesicError(ContactGeometry& geom,
+    OrthoGeodesicError(const ContactGeometryImpl& geom,
             const Vec3& xP, const Vec3& xQ) :
             Differentiator::JacobianFunction(2, 2),
                     geom(geom), P(xP), Q(xQ) { }
@@ -765,7 +807,7 @@ public:
     // x = ~[thetaP, length]
     int f(const Vector& x, Vector& fx) const  {
         Geodesic geod;
-        Vec2 geodErr = geom.getImpl().calcOrthogonalGeodError(P, Q, x[0], x[1], geod);
+        Vec2 geodErr = geom.calcOrthogonalGeodError(P, Q, x[0], x[1], geod);
 
         // error between geodesic end points at plane
         fx[0] = geodErr[0];
@@ -775,12 +817,15 @@ public:
 
 
 private:
-    ContactGeometry& geom;
+    const ContactGeometryImpl& geom;
     const Vec3 P;
     const Vec3 Q;
 }; // class OrthoGeodesicError
 
 
+//------------------------------------------------------------------------------
+//                              INIT GEODESIC
+//------------------------------------------------------------------------------
 
 void ContactGeometryImpl::initGeodesic(const Vec3& xP, const Vec3& xQ,
         const Vec3& xSP, const GeodesicOptions& options, Geodesic& geod) const
@@ -789,6 +834,10 @@ void ContactGeometryImpl::initGeodesic(const Vec3& xP, const Vec3& xQ,
 }
 
 
+
+//------------------------------------------------------------------------------
+//                            CONTINUE GEODESIC
+//------------------------------------------------------------------------------
 // Given two points and previous geodesic curve close to the points, find
 // a geodesic curve connecting the points that is close to the previous 
 // geodesic. See header or doxygen for algorithmic details.
@@ -806,7 +855,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
             makeStraightLineGeodesic(xP, xQ, d, options, geod);
             return;
         }
-        //myHandle->calcGeodesicUsingOrthogonalMethod(xP, xQ, geod);
+        // calcGeodesicUsingOrthogonalMethod(xP, xQ, geod);
         calcGeodesicAnalytical(xP, xQ, PQ, PQ, geod);
         return;
     }
@@ -865,6 +914,11 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
         calcGeodesicAnalytical(xP, xQ, tPhint, tQhint, geod);
 }
 
+
+
+//------------------------------------------------------------------------------
+//                        MAKE STRAIGHT LINE GEODESIC
+//------------------------------------------------------------------------------
 void ContactGeometryImpl::
 makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
         const UnitVec3& defaultDirectionIfNeeded,
@@ -923,6 +977,11 @@ makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
     geod.setAchievedAccuracy(Geo::getDefaultTol<Real>());
 }
 
+
+
+//------------------------------------------------------------------------------
+//                        SHOOT GEODESIC IN DIRECTION
+//------------------------------------------------------------------------------
 // Utility method used by shootGeodesicInDirectionUntilPlaneHit
 // and shootGeodesicInDirectionUntilLengthReached.
 // P is not necessarily on the surface and tP is not necessarily tangent
@@ -1016,6 +1075,10 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
 }
 
 
+
+//------------------------------------------------------------------------------
+//                      CALC GEODESIC REVERSE SENSITIVITY
+//------------------------------------------------------------------------------
 // After a geodesic has been calculated, this method integrates backwards
 // to fill in the missing reverse Jacobi term.
 void ContactGeometryImpl::
@@ -1129,6 +1192,10 @@ static Real maxabsdiff(Vec2 x, Vec2 xold) {
 }
 
 
+
+//------------------------------------------------------------------------------
+//                              CALC GEODESIC
+//------------------------------------------------------------------------------
 // Utility method to find geodesic between P and Q
 // with starting directions tPhint and tQhint
 // XXX tangent basis should be formed from previous geodesic
@@ -1145,8 +1212,8 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
     numGeodesicsShot = 0;
 
     // define basis
-    R_SP = myHandle->calcTangentBasis(xP, tPhint);
-    R_SQ = myHandle->calcTangentBasis(xQ, tQhint);
+    R_SP = calcTangentBasis(xP, tPhint);
+    R_SQ = calcTangentBasis(xQ, tQhint);
 
     // calculate plane bisecting P and Q, and use as termination condition for integrator
     UnitVec3 normal(xQ - xP);
@@ -1244,7 +1311,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     numGeodesicsShot = 0;
 
     // Define basis. This will not change during the solution.
-    R_SP = myHandle->calcTangentBasis(xP, tPhint);
+    R_SP = calcTangentBasis(xP, tPhint);
 
     Mat22 J;
     Vec2 x, xold, dx, Fx;
@@ -1260,7 +1327,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         sleepInSec(pauseBetweenGeodIterations);
     }
 
-    OrthoGeodesicError orthoErr(*myHandle, xP, xQ);
+    OrthoGeodesicError orthoErr(*this, xP, xQ);
     orthoErr.setEstimatedAccuracy(1e-10);
     Differentiator diff(orthoErr);
 
