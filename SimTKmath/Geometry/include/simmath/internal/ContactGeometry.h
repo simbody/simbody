@@ -145,17 +145,21 @@ may return any of them.
 specified point. **/
 Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
 
-/** Given a point, find the nearest point on the surface of this object by
- projecting down to the surface along the gradient direction.
+/** Given a query point Q, find the nearest point P on the surface of this 
+object, looking only down the local gradient. Thus we cannot guarantee that P
+is the globally nearest point; if you need that use the findNearestPoint()
+method. However, this method is extremely fast since it only needs to find the
+locally nearest point. It is best suited for use when you know P is not too
+far from the surface.
 
-@param[in]  position    The point in question.
-@param[out] inside      On exit, this is set to true if the specified point is
-                        inside this object, false otherwise.
-@param[out] normal      On exit, this contains the surface normal at the
-                        returned point.
-@return A point on the surface of the object whose normal is points toward the
-specified point. **/
-Vec3 projectDownhillToNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
+@param[in]  pointQ      The query point Q, assumed to be somewhere not too far
+                            from the surface.
+@return A point P on the surface, at which the surface normal is aligned with
+the line from P to Q. 
+
+This method is very cheap if query point Q is already on the surface to within
+a very tight tolerance; in that case it will simply return P=Q. **/
+Vec3 projectDownhillToNearestPoint(const Vec3& pointQ) const;
 
 
 /** Determine whether this object intersects a ray, and if so, find the 

@@ -110,8 +110,8 @@ Vec3 ContactGeometry::findNearestPoint(const Vec3& position, bool& inside, UnitV
     return getImpl().findNearestPoint(position, inside, normal);
 }
 
-Vec3 ContactGeometry::projectDownhillToNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
-    return getImpl().projectDownhillToNearestPoint(position, inside, normal);
+Vec3 ContactGeometry::projectDownhillToNearestPoint(const Vec3& Q) const {
+    return getImpl().projectDownhillToNearestPoint(Q);
 }
 
 void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
@@ -369,7 +369,7 @@ static void combineParaboloidsHelper
 
 class ProjToNearestPointJacobianAnalytical {
 public:
-    ProjToNearestPointJacobianAnalytical(const ContactGeometry& geom, const Vec3& p,
+    ProjToNearestPointJacobianAnalytical(const ContactGeometryImpl& geom, const Vec3& p,
             const Vec3& tP, const Vec3& bP) :  geom(geom), p(p), tP(tP), bP(bP) { }
     void f (const Vec3& x, Vec3& f) {
         UnitVec3 n = geom.calcSurfaceUnitNormal(x);
@@ -428,7 +428,7 @@ public:
 
     }
 
-    const ContactGeometry& geom;
+    const ContactGeometryImpl& geom;
     const Vec3& p;
     const Vec3& tP;
     const Vec3& bP;
@@ -436,7 +436,7 @@ public:
 
 class ProjToNearestPointJacobian : public Differentiator::JacobianFunction {
 public:
-    ProjToNearestPointJacobian(const ContactGeometry& geom, const Vec3& p, const Vec3& tP, const Vec3& bP)
+    ProjToNearestPointJacobian(const ContactGeometryImpl& geom, const Vec3& p, const Vec3& tP, const Vec3& bP)
         : Differentiator::JacobianFunction(3,3), geom(geom), p(p), tP(tP), bP(bP) { }
 
     int f(const Vector& xvec, Vector& f) const {
@@ -460,27 +460,42 @@ public:
         return 0;
     }
 
-    const ContactGeometry& geom;
+    const ContactGeometryImpl& geom;
     const Vec3& p;
     const Vec3& tP;
     const Vec3& bP;
 };
 
-Vec3 ContactGeometryImpl::projectDownhillToNearestPoint(const Vec3& p,
-        bool& inside, UnitVec3& normal) const {
+Vec3 ContactGeometryImpl::
+projectDownhillToNearestPoint(const Vec3& Q) const {
 
     // Newton solver settings
-    const Real ftol = 1e-9;
-    const Real xtol = 1e-9;
-    const Real minlam = 1e-9;
-    const int maxNewtonIterations = 30;
+    const Real ftol = 1e-14;
+
+    // Check for immediate return.
+    if (std::abs(calcSurfaceValue(Q)) <= ftol)
+        return Q;
 
     // construct arbitrary frame at p
-    UnitVec3 nP = calcSurfaceUnitNormal(p);
+    UnitVec3 nP = calcSurfaceUnitNormal(Q);
     UnitVec3 tP = nP.perp();
     UnitVec3 bP(tP%nP);
 
-    Vec3 x(p); // initialize to query point
+    // Estimate a scale for the local neighborhood of this surface by 
+    // using the larger curvature in the t or b direction. We want to take
+    // conservative steps that never move by more than a fraction of the
+    // scale to avoid jumping out of the local minimum.
+    const Real kt = calcSurfaceCurvatureInDirection(Q, tP);
+    const Real kb = calcSurfaceCurvatureInDirection(Q, bP);
+    const Real maxK = std::max(std::abs(kt),std::abs(kb));
+    const Real scale = std::min(1/maxK, 1000.); // keep scale reasonable
+    const Real MaxMove = .25; // Limit one move to 25% of smaller radius.
+
+    const Real xtol = 1e-12;
+    const Real minlam = 1e-9;
+    const int maxNewtonIterations = 30;
+
+    Vec3 x(Q); // initialize to query point
     Vec3 f, dx, xold;
     Mat33 J, Jp;
     Vector ftmp(3);
@@ -491,35 +506,22 @@ Vec3 ContactGeometryImpl::projectDownhillToNearestPoint(const Vec3& p,
 
     Real rmsError, rmsErrorOld, xchg, lam;
 
-//    ProjToNearestPointJacobianAnalytical nearestPointJacAn(*(this->myHandle), p, tP, bP);
+//    ProjToNearestPointJacobianAnalytical nearestPointJacAn(*this), p, tP, bP);
 
-    ProjToNearestPointJacobian nearestPointJac(*(this->myHandle), p, tP, bP);
+    ProjToNearestPointJacobian nearestPointJac(*this, Q, tP, bP);
     Differentiator diff(nearestPointJac);
 
     nearestPointJac.f((Vector)x, ftmp);
     f = Vec3::getAs(&ftmp[0]);
     rmsError = std::sqrt(f.normSqr()/3);
+    std::cout << "BEFORE Q=" << Q << ", f=" << f << ", frms=" << rmsError << std::endl;
 
     int cnt = 0;
     do {
-
-        if (cnt==0) {
-            std::cout << "BEFORE   x=" << x << ", f=" << f << ", frms=" << rmsError << std::endl;
-        } else {
-            std::cout << cnt << ": AFTER x-=dx, x=" << x << ", f=" << f << ", frms=" << rmsError << std::endl;
-        }
-
-        if (rmsError < ftol) { // found solution
+        if (rmsError <= ftol) { // found solution
             std::cout << "CONVERGED in " << cnt << " steps, frms=" << rmsError << std::endl;
             break;
         }
-
-        // backtrack instead of quitting on uphill step
-//        if (cnt > 0 && rmsError > rmsErrorOld) { // only go downhill
-////            SimTK_ASSERT_ALWAYS(false, "Newton solve did not converge, uphill step detected");
-//            std::cout << "UPHILL step detected, frms=" << rmsError << std::endl;
-//            break;
-//        }
 
         Matrix Jnum = diff.calcJacobian((Vector)x);
         J = Mat33::getAs(&Jnum(0,0));
@@ -527,12 +529,16 @@ Vec3 ContactGeometryImpl::projectDownhillToNearestPoint(const Vec3& p,
 //        nearestPointJacAn.J(x, J);
 
         dx = J.invert()*f;
+        const Real dxrms = std::sqrt(dx.normSqr()/3);
 
         rmsErrorOld = rmsError;
         xold = x;
 
-        // backtracking
-        lam = 1;
+        // Backtracking. Limit the starting step size if dx is too big.
+        lam = std::min(1., MaxMove*(scale/dxrms));
+        if (lam < 1) 
+            std::cout << "LIMITED STEP IN PROJECT POINT: iter=" << cnt 
+                      << " lam=" << lam << endl;
         while (true) {
             x = xold - lam*dx;
             nearestPointJac.f((Vector)x, ftmp);
@@ -546,26 +552,30 @@ Vec3 ContactGeometryImpl::projectDownhillToNearestPoint(const Vec3& p,
             }
         }
 
-        xchg = std::sqrt(dx.normSqr()/3); // rms norm
-        if (xchg < xtol) { // check step size
-            std::cout << "STALLED on step size, frms" << rmsError << std::endl;
-            break;
+        std::cout << cnt << ": AFTER x-=" << lam << "*dx, x=" << x 
+                  << ", f=" << f 
+                  << ", frms=" << rmsError << std::endl;
+
+        if (rmsError > ftol) {
+            xchg = dxrms*lam; // roughly, how much we changed x
+            if (xchg < xtol) { // check step size
+                std::cout << "STALLED on step size, xchg=" << xchg 
+                          << " frms=" << rmsError << std::endl;
+                break;
+            }
         }
 
         cnt++;
         if (cnt > maxNewtonIterations) {
 //            SimTK_ASSERT_ALWAYS(false,"Newton solve did not converge, max iterations taken");
             std::cout << "MAX iterations taken" << std::endl;
-            return Vec3(0);
+            break; // Return whatever we got.
         }
 
         rmsErrorOld = rmsError;
 
-
     } while (true);
 
-    normal = calcSurfaceUnitNormal(x);
-    inside = calcSurfaceValue(p) > 0;
     return x;
 }
 
@@ -3919,9 +3929,14 @@ DecorativeGeometry ContactGeometry::Torus::Impl::createDecorativeGeometry() cons
 }
 
 //TODO change to analytical solution
-Vec3 ContactGeometry::Torus::Impl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
-    // for now use local projection
-    return projectDownhillToNearestPoint(position, inside, normal);
+Vec3 ContactGeometry::Torus::Impl::
+findNearestPoint(const Vec3& Q, bool& inside, UnitVec3& normal) const {
+    // for now use local projection (TODO: not guaranteed to return the nearest
+    // point)
+    const Vec3 P = projectDownhillToNearestPoint(Q);
+    inside = calcSurfaceValue(Q) > 0; // TODO: wrong sign convention
+    normal = calcSurfaceUnitNormal(P);
+    return P;
 }
 
 //TODO

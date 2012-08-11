@@ -115,7 +115,7 @@ public:
     Real  calcGaussianCurvature(const Vec3& point) const;
 	Real  calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
 
-    Vec3 projectDownhillToNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
+    Vec3 projectDownhillToNearestPoint(const Vec3& Q) const;
 
     // Geodesic evaluators
 
