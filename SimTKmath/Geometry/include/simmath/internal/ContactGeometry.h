@@ -145,6 +145,19 @@ may return any of them.
 specified point. **/
 Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
 
+/** Given a point, find the nearest point on the surface of this object by
+ projecting down to the surface along the gradient direction.
+
+@param[in]  position    The point in question.
+@param[out] inside      On exit, this is set to true if the specified point is
+                        inside this object, false otherwise.
+@param[out] normal      On exit, this contains the surface normal at the
+                        returned point.
+@return A point on the surface of the object whose normal is points toward the
+specified point. **/
+Vec3 projectDownhillToNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
+
+
 /** Determine whether this object intersects a ray, and if so, find the 
 intersection point.
 @param[in]  origin      The position at which the ray begins.
@@ -669,11 +682,6 @@ Vec2 calcSplitGeodErrorAnalytical(const Vec3& P, const Vec3& Q,
 /** @name Geodesic-related Debugging **/
 /**@{**/
 
-
-/**
- * Debugging
- **/
-Vec3 findNearestPointUsingNewtonsMethod(const Vec3& position, bool& inside, UnitVec3& normal) const;
 
 
 /** Get the plane associated with the

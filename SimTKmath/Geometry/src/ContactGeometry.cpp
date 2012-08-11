@@ -110,11 +110,9 @@ Vec3 ContactGeometry::findNearestPoint(const Vec3& position, bool& inside, UnitV
     return getImpl().findNearestPoint(position, inside, normal);
 }
 
-Vec3 ContactGeometry::
-findNearestPointUsingNewtonsMethod(const Vec3& position, bool& inside, UnitVec3& normal) const {
-    return getImpl().ContactGeometryImpl::findNearestPoint(position, inside, normal);
+Vec3 ContactGeometry::projectDownhillToNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    return getImpl().projectDownhillToNearestPoint(position, inside, normal);
 }
-
 
 void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
     getImpl().getBoundingSphere(center, radius);
@@ -331,8 +329,8 @@ static void combineParaboloidsHelper
 }
 
 
-// Find the nearest point to p on this surface. The algorithm assumes that p is
-// close to the surface and uses Newton's method to proceed downhill until a
+// Find the "local" nearest point to p on this surface. The algorithm assumes that
+// p is close to the surface and uses Newton's method to proceed downhill until a
 // feasible surface point is found.
 //
 // The nearest point, x, is a point on the surface whose normal points toward the
@@ -347,8 +345,11 @@ static void combineParaboloidsHelper
 // ensure that the line between p and x is perpendicular to the surface
 // tangent plane at x.
 //
-// We pick t somewhat arbitrarily as  t = tvec-n*(~tvec*n), where tvec is a given
-// unit vector and n is the unit normal vector of the surface at x. Then b = t x n.
+// At point p, we choose arbitrary basis vectors tP and bP that are perpendicular
+// to the gradient at p. The tangent plane at x is spanned by t and b as:
+// t := tP - n*(~tP*n)
+// b := bP - n*(~bP*n)
+// where n is the unit normal vector at x
 //
 // Newton's method solves err(x) = 0 iteratively as
 //
@@ -357,111 +358,212 @@ static void combineParaboloidsHelper
 // The jacobian J has the following rows:
 // J(1) = dsurf/dx = ~g
 // J(2) = ~t*Rx + ~r*Tx
-// J(3) = ~b*Rx + ~r*( [t]*Nx - [n]*Tx )
+// J(3) = ~b*Rx + ~r*Bx
 //
+// n   := g/norm(g) (unit normal vector)
+// H   := dg/dx (the Hessian of the surface at x)
 // Rx  := dr/dx = -I
 // Nx  := dn/dx = dn/dg*dg/dx = H*(I- n*(~n))/norm(g)
-// Tx  := dt/dx = -Nx*(~tvec*n) -n*(~tvec*Nx)
-// H   := dg/dx (the Hessian of the surface at x)
-// n   := g/norm(g) (unit normal vector)
-// [a] := skew symmetric matrix composed from vector a
+// Tx  := dt/dx = -Nx*(~tP*n) -n*(~tP*Nx)
+// Bx  := db/dx = -Nx*(~bP*n) -n*(~bP*Nx)
 
-static void setSkew (const Vec3& x, Mat33& skewX) {
-    skewX(0,0) = 0; skewX(1,1) = 0; skewX(2,2) = 0; // zero diagonal
-    skewX(0,1) = -x(2); skewX(1,0) = x(2);
-    skewX(0,2) = x(1); skewX(2,0) = -x(1);
-    skewX(1,2) = -x(0); skewX(2,1) = x(0);
-}
+class ProjToNearestPointJacobianAnalytical {
+public:
+    ProjToNearestPointJacobianAnalytical(const ContactGeometry& geom, const Vec3& p,
+            const Vec3& tP, const Vec3& bP) :  geom(geom), p(p), tP(tP), bP(bP) { }
+    void f (const Vec3& x, Vec3& f) {
+        UnitVec3 n = geom.calcSurfaceUnitNormal(x);
 
-Vec3 ContactGeometryImpl::findNearestPoint(const Vec3& p, bool& inside,
-                              UnitVec3& normal) const {
+        // calculate frame at x
+        Vec3 r = p-x;
+        Vec3 t = tP-n*(~tP*n); // project tP to tangent plane at x
+        Vec3 b = bP-n*(~bP*n); // project bP to tangent plane at x
 
-    // Newton solver settings
-    const Real ftol = 1e-6;
-    const Real xtol = 1e-6;
-    const int maxNewtonIterations = 30;
+        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "t is aligned with the normal vector at the current point.");
+        SimTK_ASSERT_ALWAYS(b.norm() > 1e-6, "b is aligned with the with normal vector at the current point.");
+        // Note that t and b are not perpendicular in this scheme, but do span the tangent space at x
+//        SimTK_ASSERT_ALWAYS(~t*b < 1e-6, "t and b are not perpendicular.");
 
-    // TODO pass this arbitrary direction as an argument?
-    UnitVec3 tvec(1,0,0);
+        // calculate error
+        f[0] = geom.calcSurfaceValue(x);
+        f[1] = ~r*t;
+        f[2] = ~r*b;
+    }
 
-    Vec3 x(p); // initialize to point
-    Vec3 f; // error function
-    Mat33 J; // jacobian
-    Vec3 dx; // temporary
-
-    // TODO should make r, t, b unit vectors
-    Vec3 r, t, b; // temporary
-    Mat33 Tx, Nx, SkewT, SkewN; // temporary
-    Mat33 I(1);
-
-    Real fval, fvalold;
-    Real xchg;
-    Vec3 dp(0);
-
-    int cnt = 0;
-    do {
-        Vec3 g = calcSurfaceGradient(x); // non-normalized outward facing "normal" vector
-        Mat33 H = calcSurfaceHessian(x);
+    void J (const Vec3& x, Mat33& J) {
+        Vec3 g = geom.calcSurfaceGradient(x); // non-normalized outward facing "normal" vector
+        Mat33 H = geom.calcSurfaceHessian(x);
         Real gNorm = g.norm();
         UnitVec3 n(-g/gNorm, true);
 
         // calculate frame at x
-        //TODO make t, b unit vectors
-        r = p-x;
-        t = tvec-n*(~tvec*n); // project v to tangent plane defined by normal n
-        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "The arbitrary direction aligns with normal vector at the current point.");
-        b = t%n;
+        Vec3 r = p-x;
+        Vec3 t = tP-n*(~tP*n); // project tP to tangent plane at x
+        Vec3 b = bP-n*(~bP*n); // project bP to tangent plane at x
+
+        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "t is aligned with the normal vector at the current point.");
+        SimTK_ASSERT_ALWAYS(b.norm() > 1e-6, "b is aligned with the with normal vector at the current point.");
+        // Note that t and b are not perpendicular in this scheme, but do span the tangent space at x
+//        SimTK_ASSERT_ALWAYS(~t*b < 1e-6, "t and b are not perpendicular.");
 
         // calculate derivatives
-        Nx = (1/gNorm)*H*(I - n*(~n));
-        Tx = -Nx*(~tvec*n) - n*(~tvec*Nx);
+        // TODO fix analytical jacobian
+        Mat33 I(1);
+        Mat33 Nx = (1/gNorm)*H*(I - n*(~n));
+        Mat33 Tx = -Nx*(~tP*n) - n*(~tP*Nx);
+        Mat33 Bx = -Nx*(~bP*n) - n*(~bP*Nx);
 
-        setSkew(t,SkewT);
-        setSkew(n,SkewN);
+//        cout << "n=" << n  << endl;
+//        cout << "r=" << r << endl;
+//        cout << "t=" << t << endl;
+//        cout << "b=" << b << endl;
+//        cout << "H=" << H << endl;
+//        cout << "Nx=" << Nx << endl;
+//        cout << "Tx=" << Tx << endl;
+//        cout << "Bx=" << Tx << endl;
+//
+        J[0] = ~g;
+        J[1] = -(~t) + ~r*Tx;
+        J[2] = -(~b) + ~r*Bx;
+
+    }
+
+    const ContactGeometry& geom;
+    const Vec3& p;
+    const Vec3& tP;
+    const Vec3& bP;
+};
+
+class ProjToNearestPointJacobian : public Differentiator::JacobianFunction {
+public:
+    ProjToNearestPointJacobian(const ContactGeometry& geom, const Vec3& p, const Vec3& tP, const Vec3& bP)
+        : Differentiator::JacobianFunction(3,3), geom(geom), p(p), tP(tP), bP(bP) { }
+
+    int f(const Vector& xvec, Vector& f) const {
+        const Vec3& x = Vec3::getAs(&xvec[0]);
+        UnitVec3 n = geom.calcSurfaceUnitNormal(x);
+        Vec3 r = p-x;
+        Vec3 t = tP-n*(~tP*n); // project tP to tangent plane at x
+        Vec3 b = bP-n*(~bP*n); // project bP to tangent plane at x
+
+        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "t is aligned with the normal vector at the current point.");
+        SimTK_ASSERT_ALWAYS(b.norm() > 1e-6, "b is aligned with the with normal vector at the current point.");
+        // Note that t and b are not perpendicular in this scheme, but do span the tangent space at x
+//        SimTK_ASSERT_ALWAYS(~t*b < 1e-6, "t and b are not perpendicular.");
+
 
         // calculate error
-        f[0] = calcSurfaceValue(x);
+        f[0] = geom.calcSurfaceValue(x);
         f[1] = ~r*t;
         f[2] = ~r*b;
 
-        fval = std::sqrt(f.normSqr()/3); // rms norm
+        return 0;
+    }
 
-        if (fval < ftol) // found solution
-            break;
+    const ContactGeometry& geom;
+    const Vec3& p;
+    const Vec3& tP;
+    const Vec3& bP;
+};
 
-        if (cnt > 0 && fval > fvalold) { // only go downhill
-//            SimTK_ASSERT_ALWAYS(false, "Newton solve did not converge, uphill step detected");
-            std::cout << "ContactGeometryImpl::findNearestPoint() - Newton solve did not converge, uphill step detected" << std::endl;
-            return Vec3(0);
+Vec3 ContactGeometryImpl::projectDownhillToNearestPoint(const Vec3& p,
+        bool& inside, UnitVec3& normal) const {
+
+    // Newton solver settings
+    const Real ftol = 1e-9;
+    const Real xtol = 1e-9;
+    const Real minlam = 1e-9;
+    const int maxNewtonIterations = 30;
+
+    // construct arbitrary frame at p
+    UnitVec3 nP = calcSurfaceUnitNormal(p);
+    UnitVec3 tP = nP.perp();
+    UnitVec3 bP(tP%nP);
+
+    Vec3 x(p); // initialize to query point
+    Vec3 f, dx, xold;
+    Mat33 J, Jp;
+    Vector ftmp(3);
+
+//    Vec3 r, t, b; // temporary
+//    Mat33 Nx, Tx, Bx; // temporary
+//    Mat33 I(1);
+
+    Real rmsError, rmsErrorOld, xchg, lam;
+
+//    ProjToNearestPointJacobianAnalytical nearestPointJacAn(*(this->myHandle), p, tP, bP);
+
+    ProjToNearestPointJacobian nearestPointJac(*(this->myHandle), p, tP, bP);
+    Differentiator diff(nearestPointJac);
+
+    nearestPointJac.f((Vector)x, ftmp);
+    f = Vec3::getAs(&ftmp[0]);
+    rmsError = std::sqrt(f.normSqr()/3);
+
+    int cnt = 0;
+    do {
+
+        if (cnt==0) {
+            std::cout << "BEFORE   x=" << x << ", f=" << f << ", frms=" << rmsError << std::endl;
+        } else {
+            std::cout << cnt << ": AFTER x-=dx, x=" << x << ", f=" << f << ", frms=" << rmsError << std::endl;
         }
 
-        J[0] = ~g;
-        J[1] = -(~t) + ~r*Tx;
-        J[2] = -(~b) + ~r*(SkewT*Nx) - ~r*(SkewN*Tx);
+        if (rmsError < ftol) { // found solution
+            std::cout << "CONVERGED in " << cnt << " steps, frms=" << rmsError << std::endl;
+            break;
+        }
 
-//        std::cout << "J=" << J << std::endl;
+        // backtrack instead of quitting on uphill step
+//        if (cnt > 0 && rmsError > rmsErrorOld) { // only go downhill
+////            SimTK_ASSERT_ALWAYS(false, "Newton solve did not converge, uphill step detected");
+//            std::cout << "UPHILL step detected, frms=" << rmsError << std::endl;
+//            break;
+//        }
+
+        Matrix Jnum = diff.calcJacobian((Vector)x);
+        J = Mat33::getAs(&Jnum(0,0));
+
+//        nearestPointJacAn.J(x, J);
 
         dx = J.invert()*f;
 
+        rmsErrorOld = rmsError;
+        xold = x;
+
+        // backtracking
+        lam = 1;
+        while (true) {
+            x = xold - lam*dx;
+            nearestPointJac.f((Vector)x, ftmp);
+            f = Vec3::getAs(&ftmp[0]);
+
+            rmsError = std::sqrt(f.normSqr()/3);
+            if (rmsError > rmsErrorOld && lam > minlam) {
+                lam = lam / 2;
+            } else {
+                break;
+            }
+        }
+
         xchg = std::sqrt(dx.normSqr()/3); // rms norm
+        if (xchg < xtol) { // check step size
+            std::cout << "STALLED on step size, frms" << rmsError << std::endl;
+            break;
+        }
 
-//        if (cnt==0) {
-//            std::cout << "BEFORE   x=" << x << ", f=" << f << std::endl;
-//        }
-
-        x -= dx;
-
-//        std::cout << cnt << ": AFTER x-=dx, x=" << x << ", f=" << f << std::endl;
         cnt++;
-        fvalold = fval;
-
         if (cnt > maxNewtonIterations) {
 //            SimTK_ASSERT_ALWAYS(false,"Newton solve did not converge, max iterations taken");
-            std::cout << "ContactGeometryImpl::findNearestPoint() - Newton solve did not converge, max iterations taken" << std::endl;
+            std::cout << "MAX iterations taken" << std::endl;
             return Vec3(0);
         }
 
-    } while (xchg >= xtol); // check step size
+        rmsErrorOld = rmsError;
+
+
+    } while (true);
+
     normal = calcSurfaceUnitNormal(x);
     inside = calcSurfaceValue(p) > 0;
     return x;
@@ -3816,23 +3918,11 @@ DecorativeGeometry ContactGeometry::Torus::Impl::createDecorativeGeometry() cons
     return DecorativeSphere(torusRadius+tubeRadius);
 }
 
-//TODO
-//Vec3 ContactGeometry::Torus::Impl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
-////
-////    normal = calcSurfaceUnitNormal(position);
-////
-////    // long axis is z-axis, project to x-y plane
-////    Vec2 xy_position(position(0), position(1));
-////    inside = (xy_position.normSqr() <= radius*radius);
-////
-////    // nearestPoint = point_on_surface_in_xy_plane + height_in_z
-////    Vec3 nearestPoint = normal*radius + Vec3(0,0,position(2));
-////
-////    return nearestPoint;
-//
-//    std::cout << "ContactGeometry::Torus::Impl::findNearestPoint unimplemented" << std::endl;
-//    return Vec3(0);
-//}
+//TODO change to analytical solution
+Vec3 ContactGeometry::Torus::Impl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    // for now use local projection
+    return projectDownhillToNearestPoint(position, inside, normal);
+}
 
 //TODO
 bool ContactGeometry::Torus::Impl::intersectsRay

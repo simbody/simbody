@@ -77,7 +77,7 @@ public:
     }
 
     virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, 
-                                  UnitVec3& normal) const;
+                                  UnitVec3& normal) const = 0;
 
     virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
                                Real& distance, UnitVec3& normal) const = 0;
@@ -114,6 +114,8 @@ public:
     Mat33 calcSurfaceHessian(const Vec3& point) const;
     Real  calcGaussianCurvature(const Vec3& point) const;
 	Real  calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
+
+    Vec3 projectDownhillToNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
 
     // Geodesic evaluators
 
@@ -1095,10 +1097,10 @@ public:
     void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const;
 
-    // TODO
-    //    Vec3 findNearestPoint(const Vec3& position, bool& inside,
-    //                          UnitVec3& normal) const;
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
+            UnitVec3& normal) const;
 
+//    TODO
 //    virtual void shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
 //            const Real& terminatingLength, const GeodesicOptions& options, Geodesic& geod) const;
 //

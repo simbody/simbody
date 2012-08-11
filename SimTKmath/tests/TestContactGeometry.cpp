@@ -439,22 +439,24 @@ void testAnalyticalCylinderGeodesic() {
     testAnalyticalGeodesicRandom(cylinder);
 }
 
-void testFindNearestPointWithNewtonsMethod(const ContactGeometry& geom, Real r) {
+void testProjectDownhillToNearestPoint(const ContactGeometry& geom, Real r) {
+
+    bool inside;
+    UnitVec3 normal;
+    Vec3 pt(1,1,1);
 
     Random::Gaussian random(0, r);
     for (int i = 0; i < 100; i++) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());
 //        cout << i << ": pos=" << pos << endl;
 
-        bool inside;
-        UnitVec3 normal;
-        Vec3 nearest = geom.findNearestPoint(pos, inside, normal);
-        Vec3 nearest2 = geom.findNearestPointUsingNewtonsMethod(pos, inside, normal);
+        Vec3 nearestAnalytical = geom.findNearestPoint(pos, inside, normal);
+        Vec3 nearestProjected = geom.projectDownhillToNearestPoint(pos, inside, normal);
 
-//        cout << "near pt analytical = " << nearest << "norm = " << nearest.norm() << endl;
-//        cout << "near pt newton mth = " << nearest2 << "norm = " << nearest2.norm() << endl;
-
-        assertEqual(nearest, nearest2);
+//        cout << "near pt analytical = " << nearestAnalytical << "norm = " << nearestAnalytical.norm() << endl;
+//        cout << "near pt projected  = " << nearestProjected << "norm = " << nearestProjected.norm() << endl;
+//        cout << endl;
+        assertEqual(nearestAnalytical, nearestProjected);
 
     }
 }
@@ -467,9 +469,12 @@ int main() {
         testEllipsoid();
 	    testCylinder();
 	    testTorus();
-	    testAnalyticalSphereGeodesic();
-	    testAnalyticalCylinderGeodesic();
-//	    testFindNearestPointWithNewtonsMethod(ContactGeometry::Sphere(r), r);
+
+	    // TODO clean up these tests and use them
+//	    testAnalyticalSphereGeodesic();
+//	    testAnalyticalCylinderGeodesic();
+//	    testProjectDownhillToNearestPoint(ContactGeometry::Sphere(r), r);
+//      testProjectDownhillToNearestPoint(ContactGeometry::Ellipsoid(Vec3(1.5, 2.2, 3.1)), r);
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
