@@ -705,6 +705,8 @@ calcSurfaceHessian(const Vec3& p) const {
     return hess;
 }
 
+
+
 //------------------------------------------------------------------------------
 //                        CALC GAUSSIAN CURVATURE
 //------------------------------------------------------------------------------
@@ -731,7 +733,7 @@ calcGaussianCurvature(const Vec3& point) const {
 
 
 //------------------------------------------------------------------------------
-//                       CALC CURVATURE IN A DIRECTION
+//                    CALC SURFACE CURVATURE IN A DIRECTION
 //------------------------------------------------------------------------------
 Real ContactGeometryImpl::
 calcSurfaceCurvatureInDirection(const Vec3& point, 
@@ -741,7 +743,7 @@ calcSurfaceCurvatureInDirection(const Vec3& point,
     const Vec3     g = calcSurfaceGradient(point);
 	const Mat33 H = calcSurfaceHessian(point);
 	const Real  knum = ~direction*H*direction; // numerator
-    if (knum < TinyReal)
+    if (std::abs(knum) < TinyReal)
         return 0; // don't want to return 0/0.
         
     const Real k = knum/(~g*n);
@@ -855,7 +857,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
             makeStraightLineGeodesic(xP, xQ, d, options, geod);
             return;
         }
-        // calcGeodesicUsingOrthogonalMethod(xP, xQ, geod);
+        //calcGeodesicUsingOrthogonalMethod(xP, xQ, PQ/length, length, geod);
         calcGeodesicAnalytical(xP, xQ, PQ, PQ, geod);
         return;
     }
@@ -912,6 +914,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
         makeStraightLineGeodesic(xP, xQ, tPhint, options, geod);
     else 
         calcGeodesicAnalytical(xP, xQ, tPhint, tQhint, geod);
+        //calcGeodesicUsingOrthogonalMethod(xP, xQ, tPhint, sHint, geod);
 }
 
 
@@ -1292,6 +1295,7 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 }
 
 
+
 //------------------------------------------------------------------------------
 //                  CALC GEODESIC USING ORTHOGONAL METHOD
 //------------------------------------------------------------------------------
@@ -1301,11 +1305,11 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
 
     // Newton solver settings
     const Real ftol = 1e-9;
-    const Real xtol = 1e-9;
+    const Real xtol = 1e-12;
     const Real minlam = 1e-9;
-    const int maxIterations = 25;
+    const int MaxIterations = 25;
 
-    bool useNewtonIteration = false;
+    bool useNewtonIteration = true;
 
     // reset counter
     numGeodesicsShot = 0;
@@ -1331,17 +1335,17 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     orthoErr.setEstimatedAccuracy(1e-10);
     Differentiator diff(orthoErr);
 
-    //cout << "Using " << (useNewtonIteration ? "NEWTON" : "FIXED POINT")
-    //     << " iteration\n";
+    cout << "Using " << (useNewtonIteration ? "NEWTON" : "FIXED POINT")
+         << " iteration\n";
 
-    for (int i = 0; i < maxIterations; ++i) {
+    for (int i = 0; i < MaxIterations; ++i) {
         f = std::sqrt(~Fx*Fx);
         dist = (geod.getPointQ()-xQ).norm();
         //std::cout << "ORTHO err = " << Fx << " |Fx|=" << f << " dist=" << dist
          //         << std::endl;
-        if (f < ftol) {
-            //std::cout << "ORTHO geodesic converged in " 
-            //          << i << " iterations" << std::endl;
+        if (f <= ftol) {
+            std::cout << "ORTHO geodesic converged in " 
+                      << i << " iterations with err=" << f << std::endl;
             break;
         }
 
@@ -1363,7 +1367,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         while (true) {
             x = xold - lam*dx;
             // Negative length means flip direction.
-            if (x[1] < 0) x[0] += Pi, x[1] = -x[1];
+            if (x[1] < 0) x = -x; // both angle and length negated
             Fx = calcOrthogonalGeodError(xP, xQ, x[0], x[1],geod);
             f = std::sqrt(~Fx*Fx);
             dist = (geod.getPointQ()-xQ).norm();
@@ -1386,9 +1390,32 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         }
 
     }
+    if (f > ftol)
+        std::cout << "### ORTHO geodesic DIVERGED in " 
+                    << MaxIterations << " iterations with err=" << f << std::endl;
 
     // Finish each geodesic with reverse Jacobi field.
     calcGeodesicReverseSensitivity(geod, Vec2(0,1));
+
+    geod.setBinormalCurvatureAtP(
+        calcSurfaceCurvatureInDirection(geod.getPointP(),geod.getBinormalP()));
+    geod.setBinormalCurvatureAtQ(
+        calcSurfaceCurvatureInDirection(geod.getPointQ(),geod.getBinormalQ()));
+
+    //TODO: numerical torsion estimate for now
+    const Array_<Transform>& frenet = geod.getFrenetFrames();
+    const Array_<Real>& arcLen = geod.getArcLengths();
+    const int last = geod.getNumPoints()-1;
+    const Real lFirst = arcLen[1];
+    const Real lLast  = arcLen[last] - arcLen[last-1];
+    const Real tauP = lFirst==0 ? Real(0)
+        : -dot(frenet[0].z(), 
+              (frenet[1].x()-frenet[0].x())) / lFirst; // dbP/ds
+    const Real tauQ = lLast==0 ? Real(0)
+        : -dot(frenet[last].z(), 
+              (frenet[last].x()-frenet[last-1].x())) / lLast;
+
+    geod.setTorsionAtP(tauP); geod.setTorsionAtQ(tauQ);
 }
 
 
@@ -1775,9 +1802,11 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
    	// Clear current geodesic.
 	geod.clear();
 
-    const Real sqrt1m2 = sqrt(1+m*m); // Avoid repeated calculation
-    const Real kappa = 1 / (R*(1+m*m)); // curvature TODO: is this right?
-	const Real tau   = m*kappa;
+    const Real sqrt1m2 = sqrt(1+m*m);   // Avoid repeated calculation.
+    const Real kappa = 1 / (R*(1+m*m)); // Curvature in tangent direction.
+    const Real kb = 1 / (R*(1+1/(m*m))); // Curvature in binormal direction
+                                         //   (slope is 1/m).
+	const Real tau   = m*kappa;         // Torsion (signed).
 
 	// Arc length of the helix. Always
 	const Real L = R * sqrt1m2 * std::abs(angle);
@@ -1833,9 +1862,9 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 		geod.addDirectionalSensitivityQtoP(jQP);
     }
 
-	// Only compute torsion at the end points
-	geod.setTorsionAtP(tau);
-	geod.setTorsionAtQ(tau);
+	// Only compute torsion and binormal curvature at the end points.
+	geod.setTorsionAtP(tau); geod.setTorsionAtQ(tau);
+    geod.setBinormalCurvatureAtP(kb); geod.setBinormalCurvatureAtQ(kb);
 
     geod.setIsConvex(true); // Curve on cylinder is always convex.
 

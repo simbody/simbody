@@ -74,8 +74,8 @@ int main() {
     Vec3 I(-2, 0,  heightQ);
 
     // move points off surface for testing
-    // Q(0) -= r*0.2;
-    // P(1) -= r*0.2;
+     Q(0) -= r*0.2;
+     P(1) -= r*0.2;
 
     Vec3 r_OP = P - O;
     Vec3 r_IQ = Q - I;
@@ -170,9 +170,10 @@ int main() {
 
     const Real startReal = realTime(), startCpu = cpuTime();
     //geom.calcGeodesic(P, Q, e_OP, -e_IQ, geod);
-    geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
-    // geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
-    // geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
+    //geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
+    //geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
+    //geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
+    geom.calcGeodesicUsingOrthogonalMethod(P, Q, Vec3(0.9,0,-.3), 2, geod);
     //geom.makeStraightLineGeodesic(P, Q, e_OP, GeodesicOptions(), geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
