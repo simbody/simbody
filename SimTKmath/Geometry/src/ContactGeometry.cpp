@@ -514,12 +514,12 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
     nearestPointJac.f((Vector)x, ftmp);
     f = Vec3::getAs(&ftmp[0]);
     rmsError = std::sqrt(f.normSqr()/3);
-    std::cout << "BEFORE Q=" << Q << ", f=" << f << ", frms=" << rmsError << std::endl;
+    //std::cout << "BEFORE Q=" << Q << ", f=" << f << ", frms=" << rmsError << std::endl;
 
     int cnt = 0;
     do {
         if (rmsError <= ftol) { // found solution
-            std::cout << "CONVERGED in " << cnt << " steps, frms=" << rmsError << std::endl;
+            //std::cout << "CONVERGED in " << cnt << " steps, frms=" << rmsError << std::endl;
             break;
         }
 
@@ -537,7 +537,7 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
         // Backtracking. Limit the starting step size if dx is too big.
         lam = std::min(1., MaxMove*(scale/dxrms));
         if (lam < 1) 
-            std::cout << "LIMITED STEP IN PROJECT POINT: iter=" << cnt 
+            std::cout << "PROJECT: LIMITED STEP: iter=" << cnt 
                       << " lam=" << lam << endl;
         while (true) {
             x = xold - lam*dx;
@@ -552,14 +552,13 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
             }
         }
 
-        std::cout << cnt << ": AFTER x-=" << lam << "*dx, x=" << x 
-                  << ", f=" << f 
-                  << ", frms=" << rmsError << std::endl;
+        //std::cout << cnt << ": AFTER x-=" << lam << "*dx, x=" << x 
+        //          << ", f=" << f  << ", frms=" << rmsError << std::endl;
 
         if (rmsError > ftol) {
             xchg = dxrms*lam; // roughly, how much we changed x
             if (xchg < xtol) { // check step size
-                std::cout << "STALLED on step size, xchg=" << xchg 
+                std::cout << "PROJECT: STALLED on step size, xchg=" << xchg 
                           << " frms=" << rmsError << std::endl;
                 break;
             }
@@ -568,7 +567,7 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
         cnt++;
         if (cnt > maxNewtonIterations) {
 //            SimTK_ASSERT_ALWAYS(false,"Newton solve did not converge, max iterations taken");
-            std::cout << "MAX iterations taken" << std::endl;
+            std::cout << "PROJECT: MAX iterations taken" << std::endl;
             break; // Return whatever we got.
         }
 
@@ -952,25 +951,30 @@ void ContactGeometryImpl::initGeodesic(const Vec3& xP, const Vec3& xQ,
 //------------------------------------------------------------------------------
 //                            CONTINUE GEODESIC
 //------------------------------------------------------------------------------
-// Given two points and previous geodesic curve close to the points, find
+// Given two points and a previous geodesic curve close to the points, find
 // a geodesic curve connecting the points that is close to the previous 
 // geodesic. See header or doxygen for algorithmic details.
+// Note that the geodesic runs from P' to Q', which are closest-point
+// projections of the initial points which might not be on the surface.
 void ContactGeometryImpl::
 continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
                  const GeodesicOptions& options, Geodesic& geod) const 
 {
+    const Vec3 P = projectDownhillToNearestPoint(xP);
+    const Vec3 Q = projectDownhillToNearestPoint(xQ);
+
     // TODO: If no previous geodesic just make a wild attempt.
     if (!prevGeod.getNumPoints()) {
-        const Vec3 PQ = xQ-xP;
+        const Vec3 PQ = Q-P;
         const Real length = PQ.norm();
         if (length < SqrtEps) { // TODO: should depend on curvature
             const UnitVec3 d = length<TinyReal ? UnitVec3(XAxis)
                 : UnitVec3(PQ/length, true);
-            makeStraightLineGeodesic(xP, xQ, d, options, geod);
+            makeStraightLineGeodesic(P, Q, d, options, geod);
             return;
         }
-        //calcGeodesicUsingOrthogonalMethod(xP, xQ, PQ/length, length, geod);
-        calcGeodesicAnalytical(xP, xQ, PQ, PQ, geod);
+        calcGeodesicUsingOrthogonalMethod(P, Q, PQ/length, length, geod);
+        //calcGeodesicAnalytical(P, Q, PQ, PQ, geod);
         return;
     }
 
@@ -1005,7 +1009,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     UnitVec3 tQhint = prevGeod.getTangentQ();
     Real     sHint  = prevGeod.getLength();
 
-    const Vec3 newPQ = xQ - xP;
+    const Vec3 newPQ = Q - P;
     const Real newPQlen = newPQ.norm();
     if (isDirect) {
         const UnitVec3 enewPQ = newPQlen > 0 
@@ -1020,13 +1024,13 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     }
 
 
-    //calcGeodesicUsingOrthogonalMethod(xP, xQ, tPhint, sHint, geod);
-    //calcGeodesic(xP, xQ, tPhint, tQhint, geod);
+    //calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
+    //calcGeodesic(P, Q, tPhint, tQhint, geod);
     if (newPQlen < SqrtEps) 
-        makeStraightLineGeodesic(xP, xQ, tPhint, options, geod);
+        makeStraightLineGeodesic(P, Q, tPhint, options, geod);
     else 
-        calcGeodesicAnalytical(xP, xQ, tPhint, tQhint, geod);
-        //calcGeodesicUsingOrthogonalMethod(xP, xQ, tPhint, sHint, geod);
+        //calcGeodesicAnalytical(P, Q, tPhint, tQhint, geod);
+        calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
 }
 
 
@@ -1111,7 +1115,7 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
 
     // integrator settings
     const Real startTime = 0;
-    const Real integratorAccuracy = 1e-6;
+    const Real integratorAccuracy = 1e-6; // << TODO
     const Real integratorConstraintTol = 1e-6;
 
     ++numGeodesicsShot;
@@ -1182,6 +1186,27 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
 
         ++stepcnt;
     }
+
+    geod.setBinormalCurvatureAtP(
+        calcSurfaceCurvatureInDirection(geod.getPointP(),geod.getBinormalP()));
+    geod.setBinormalCurvatureAtQ(
+        calcSurfaceCurvatureInDirection(geod.getPointQ(),geod.getBinormalQ()));
+
+    //TODO: numerical torsion estimate for now
+    const Array_<Transform>& frenet = geod.getFrenetFrames();
+    const Array_<Real>& arcLen = geod.getArcLengths();
+    const int last = geod.getNumPoints()-1;
+    const Real lFirst = arcLen[1];
+    const Real lLast  = arcLen[last] - arcLen[last-1];
+    const Real tauP = lFirst==0 ? Real(0)
+        : -dot(frenet[0].z(), 
+              (frenet[1].x()-frenet[0].x())) / lFirst; // dbP/ds
+    const Real tauQ = lLast==0 ? Real(0)
+        : -dot(frenet[last].z(), 
+              (frenet[last].x()-frenet[last-1].x())) / lLast;
+
+    geod.setTorsionAtP(tauP); geod.setTorsionAtQ(tauQ);
+
     geod.setIsShortest(false); // TODO
     geod.setAchievedAccuracy(integratorAccuracy); // TODO: accuracy of length?
     // TODO: better to use something like the second-to-last step, or average
@@ -1413,7 +1438,10 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 //------------------------------------------------------------------------------
 void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
    (const Vec3& xP, const Vec3& xQ,
-    const Vec3& tPhint, Real lengthHint, Geodesic& geod) const {
+    const Vec3& tPhint, Real lengthHint, Geodesic& geod) const 
+{
+    const Vec3 P = projectDownhillToNearestPoint(xP);
+    const Vec3 Q = projectDownhillToNearestPoint(xQ);
 
     // Newton solver settings
     const Real ftol = 1e-9;
@@ -1427,7 +1455,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     numGeodesicsShot = 0;
 
     // Define basis. This will not change during the solution.
-    R_SP = calcTangentBasis(xP, tPhint);
+    R_SP = calcTangentBasis(P, tPhint);
 
     Mat22 J;
     Vec2 x, xold, dx, Fx;
@@ -1437,39 +1465,68 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     x[1] = lengthHint;
     Real f, fold, dist, lam = 1;
 
-    Fx = calcOrthogonalGeodError(xP, xQ, x[0], x[1], geod);
+    Fx = calcOrthogonalGeodError(P, Q, x[0], x[1], geod);
     if (vizReporter != NULL) {
         vizReporter->handleEvent(ptOnSurfSys->getDefaultState());
         sleepInSec(pauseBetweenGeodIterations);
     }
 
-    OrthoGeodesicError orthoErr(*this, xP, xQ);
-    orthoErr.setEstimatedAccuracy(1e-10);
-    Differentiator diff(orthoErr);
+    //OrthoGeodesicError orthoErr(*this, P, Q);
+    //orthoErr.setEstimatedAccuracy(1e-9);
+    //Differentiator diff(orthoErr);
 
-    cout << "Using " << (useNewtonIteration ? "NEWTON" : "FIXED POINT")
-         << " iteration\n";
+    //cout << "Using " << (useNewtonIteration ? "NEWTON" : "FIXED POINT")
+    //     << " iteration\n";
 
     for (int i = 0; i < MaxIterations; ++i) {
         f = std::sqrt(~Fx*Fx);
-        dist = (geod.getPointQ()-xQ).norm();
-        //std::cout << "ORTHO err = " << Fx << " |Fx|=" << f << " dist=" << dist
-         //         << std::endl;
+        const Vec3 r_QQhat = geod.getPointQ()-Q;
+        dist = r_QQhat.norm();
+        //std::cout << "ORTHO x= " << x << " err = " << Fx << " |err|=" << f 
+        //          << " dist=" << dist << std::endl;
         if (f <= ftol) {
-            std::cout << "ORTHO geodesic converged in " 
-                      << i << " iterations with err=" << f << std::endl;
+            //std::cout << "ORTHO geodesic converged in " 
+            //          << i << " iterations with err=" << f << std::endl;
             break;
         }
 
         if (useNewtonIteration) {
-            diff.calcJacobian(Vector(x),  Vector(Fx), JMat, 
-                              Differentiator::ForwardDifference);
-            J = Mat22::getAs(&JMat(0,0));
-            dx = J.invert()*Fx; // Newton
+            // This numerical Jacobian is very bad; CentralDifference is 
+            // required in order to produce a reasonable one.
+            //diff.calcJacobian(Vector(x),  Vector(Fx), JMat, 
+            //                  Differentiator::ForwardDifference);
+            //J = Mat22::getAs(&JMat(0,0));
+
+            const Real eh = ~r_QQhat*geod.getNormalQ();
+            const Real es = ~r_QQhat*geod.getTangentQ();
+            const Real eb = ~r_QQhat*geod.getBinormalQ();
+            const Real j = geod.getJacobiQ();
+            const Real jd = geod.getJacobiQDot();
+            const Real tau = geod.getTorsionQ();
+            const Real kappa = geod.getCurvatureQ();
+            const Real mu = geod.getBinormalCurvatureQ();
+
+            Real j10noh = -(j*tau*eh-jd*eb);
+            //Real j10h   = -(  (j*mu*tau-jd)*eb 
+            //                + (j*tau+jd*mu)*eh 
+            //                + (j*mu*kappa)*es);
+            //TODO: I don't think the (1,0) term is right when far from
+            // a solution. The others are better but I'm still not sure they
+            // are right. (sherm 120812)
+            Mat22 newJ( 1-(-mu*eh+jd*es/j),  -(jd*eb/j+tau*eh)/j,
+                         j10noh,      1-kappa*eh );
+
+            //cout << "   J=" << J;
+            //cout << "newJ=" << newJ;
+
+            //dx = J.invert()*Fx; // Newton
+            dx = newJ.invert()*Fx;
         } else {
             // fixed point -- feed error back to variables
             dx = Fx; 
         }
+
+        //cout << "f=" << f << "-> dx=" << dx << endl;
 
         fold = f;
         xold = x;
@@ -1478,20 +1535,25 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         lam = 1;
         while (true) {
             x = xold - lam*dx;
+            //cout << "at lam=" << lam << " x-lam*dx=" << x << endl;
             // Negative length means flip direction.
-            if (x[1] < 0) x = -x; // both angle and length negated
-            Fx = calcOrthogonalGeodError(xP, xQ, x[0], x[1],geod);
+            if (x[1] < 0) {
+                //cout << "NEGATIVE LENGTH; flipping\n";
+                x = -x; // both angle and length negated
+            }
+            Fx = calcOrthogonalGeodError(P, Q, x[0], x[1],geod);
             f = std::sqrt(~Fx*Fx);
-            dist = (geod.getPointQ()-xQ).norm();
+            dist = (geod.getPointQ()-Q).norm();
+            //cout << "step size=" << lam << " errNorm=" << f << " dist=" << dist << endl;
             if (f > fold && lam > minlam) {
                 lam = lam / 2;
             } else {
                 break;
             }
         }
-        //cout << "step size=" << lam << " errNorm=" << f << " dist=" << dist << endl;
-        if (maxabsdiff(x,xold) < xtol) {
-            std::cout << "converged on step size after " << i << " iterations" << std::endl;
+        if (f > ftol && maxabsdiff(x,xold) < xtol) {
+            std::cout << "ORTHO converged on step size after " 
+                      << i << " iterations" << std::endl;
             std::cout << "err = " << Fx << std::endl;
             break;
         }
@@ -1509,25 +1571,6 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     // Finish each geodesic with reverse Jacobi field.
     calcGeodesicReverseSensitivity(geod, Vec2(0,1));
 
-    geod.setBinormalCurvatureAtP(
-        calcSurfaceCurvatureInDirection(geod.getPointP(),geod.getBinormalP()));
-    geod.setBinormalCurvatureAtQ(
-        calcSurfaceCurvatureInDirection(geod.getPointQ(),geod.getBinormalQ()));
-
-    //TODO: numerical torsion estimate for now
-    const Array_<Transform>& frenet = geod.getFrenetFrames();
-    const Array_<Real>& arcLen = geod.getArcLengths();
-    const int last = geod.getNumPoints()-1;
-    const Real lFirst = arcLen[1];
-    const Real lLast  = arcLen[last] - arcLen[last-1];
-    const Real tauP = lFirst==0 ? Real(0)
-        : -dot(frenet[0].z(), 
-              (frenet[1].x()-frenet[0].x())) / lFirst; // dbP/ds
-    const Real tauQ = lLast==0 ? Real(0)
-        : -dot(frenet[last].z(), 
-              (frenet[last].x()-frenet[last-1].x())) / lLast;
-
-    geod.setTorsionAtP(tauP); geod.setTorsionAtQ(tauQ);
 }
 
 
@@ -1605,15 +1648,16 @@ calcOrthogonalGeodError(const Vec3& xP, const Vec3& xQ,
     GeodesicOptions opts;
     shootGeodesicInDirectionUntilLengthReached(xP, tP, length, opts, geod);
 
-    const Vec3& Qstar = geod.getPointQ();
-    const Vec3 r_QstarQ = xQ - Qstar;
+    const Vec3& Qhat = geod.getPointQ();
+    const Vec3 r_QQhat = Qhat - xQ;
 
-    const Real tau  = ~r_QstarQ * geod.getTangentQ(); // length error
-    const Real beta = ~r_QstarQ * geod.getBinormalQ();
-    // Translate b-direction length at Q* to rotation at P using directional
-    // sensitivity (Jacobi field) value at Q.
-    const Real dtheta = beta / geod.getJacobiQ();
-    return Vec2(dtheta, -tau);
+    const Real es = ~r_QQhat * geod.getTangentQ(); // length errors
+    const Real eb = ~r_QQhat * geod.getBinormalQ();
+    // Translate b-direction error at Qhat to rotation at P using directional
+    // sensitivity (Jacobi field) value at Qhat. Jacobi at Q has opposite sign
+    // from b error, so b too large (>0) means angle too small.
+    const Real dtheta = eb / geod.getJacobiQ();
+    return Vec2(dtheta, es);
 }
 
 // Calculate the "geodesic error" for tP and tQ
