@@ -3966,10 +3966,10 @@ ContactGeometry::Torus::Impl& ContactGeometry::Torus::updImpl() {
     return static_cast<Torus::Impl&>(*impl);
 }
 
-// TODO
 DecorativeGeometry ContactGeometry::Torus::Impl::createDecorativeGeometry() const {
-//    return DecorativeTorus torus(torusRadius, tubeRadius);
-    return DecorativeSphere(torusRadius+tubeRadius);
+    PolygonalMesh mesh;
+    createPolygonalMesh(mesh);
+    return DecorativeMesh(mesh);
 }
 
 //TODO change to analytical solution
@@ -3996,6 +3996,47 @@ void ContactGeometry::Torus::Impl::getBoundingSphere
     (Vec3& center, Real& radius) const {
     center = Vec3(0);
     radius = tubeRadius + torusRadius;
+}
+
+// Create a polygonal mesh for this torus using parameterization as follows:
+// u = [0, 2*Pi] traces a circle in the x-y plane with radius torusRadius,
+// which is the centroid of the torus. A point P on this circle is
+// given by P = torusRadius*~[cos(u) sin(u) 0].
+// v = [0, 2*Pi] traces a circle arond the cross-section (or tube) of the
+// torus with radius tubeRadius, at a given u. A point Q on this circle
+// is given by Q = (torusRadius + tubeRadius*cos(v))*e1 + tubeRadius*(~[0 0 1]*sin(v))
+// where e1 = ~[sin(u) cos(u) 0]. The tube circle is in a plane spanned
+// by e1 and the z-axis.
+void ContactGeometry::Torus::Impl::createPolygonalMesh(PolygonalMesh& mesh) const {
+    // TODO add resolution argument
+    const int numSides = 12; //*resolution;
+    const int numSlices = 36; //*resolution;   
+
+    // add vertices 
+    for (int i = 0; i < numSlices; ++i) {
+      Real u = ((i*2*SimTK_PI)/numSlices);
+      UnitVec3 e1(std::sin(u), std::cos(u), 0); // torus circle aligned with z-axis (z-axis through hole)
+      for (int j = 0; j < numSides; ++j) {
+        Real v = ((j*2*SimTK_PI)/numSides);
+        Vec3 vtx = (torusRadius + tubeRadius*std::cos(v))*e1 + tubeRadius*std::sin(v)*Vec3(0,0,1); // use ZAXIS? 
+        mesh.addVertex(vtx);  
+      }
+    }
+
+    // add faces, be careful to wrap indices for the last slice
+    int numVertices = mesh.getNumVertices();
+    cout << "num verts = " << numVertices << endl;
+    for (int i = 0; i < numVertices; ++i) {
+//      cout << "v" << i << ": " << mesh.getVertexPosition(i) << endl;
+      // define counter-clockwise quad faces
+      Array_<int> faceIndices;
+      faceIndices.push_back(i); // u_i,v_i
+      faceIndices.push_back((i+1)%numVertices); // u_i, v_i+1
+      faceIndices.push_back((i+1+numSides)%numVertices); // u_i+1, v_i+1
+      faceIndices.push_back((i+numSides)%numVertices); // u_i+1, v_i
+      mesh.addFace(faceIndices);	
+    }
+
 }
 
 //TODO

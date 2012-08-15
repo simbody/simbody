@@ -1088,6 +1088,8 @@ public:
                        Real& distance, UnitVec3& normal) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
 
+    void createPolygonalMesh(PolygonalMesh& mesh) const;
+
     bool isSmooth() const {return true;}
     bool isConvex() const {return false;}
     bool isFinite() const {return true;}
