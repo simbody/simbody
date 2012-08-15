@@ -358,7 +358,7 @@ void testBox() {
 void testMiscGeo() {
 
     // TEST     GEO::POINT::POINTS ARE NUMERICALLY COINCIDENT
-    Vec3 p1, p2, p3;
+    Vec3 p0, p1, p2, p3;
     p1 = Vec3(1,2,3);
     p2 = Vec3(2,3,4);
     p3 = p1;
@@ -380,6 +380,40 @@ void testMiscGeo() {
     // And again indistinguishable at a looser tolerance.
     SimTK_TEST(Geo::Point::pointsAreNumericallyCoincident(100.*p1,p3,
         10000.*Geo::getDefaultTol<Real>()));
+
+    Vec3 q0, q1, x0, x1; UnitVec3 u0, u1;
+    Vec2 closest; bool parallel; 
+    p0 = Vec3(-1.1,0,0); q0 = Vec3(2.1,0,0); u0 = UnitVec3(q0-p0);
+    p1 = Vec3(1.1,-1.2,0); q1 = Vec3(1.1,1.3,0); u1 = UnitVec3(q1-p1);
+    Geo::findClosestPointsOfTwoLines(p0, u0, p1, u1, x0, x1, parallel);
+    SimTK_TEST_EQ(x0, Vec3(1.1,0,0)); SimTK_TEST_EQ(x1, Vec3(1.1,0,0));
+    SimTK_TEST(!parallel);
+
+    // Lift line 1 up 3 units in z.
+    p1 = Vec3(1.1,-1,3); q1 = Vec3(1.1,1,3); u1 = UnitVec3(q1-p1);
+    Geo::findClosestPointsOfTwoLines(p0, u0, p1, u1, x0, x1, parallel);
+    SimTK_TEST_EQ(x0, Vec3(1.1,0,0)); SimTK_TEST_EQ(x1, Vec3(1.1,0,3));
+    SimTK_TEST(!parallel);
+
+    // Make p1 exactly parallel to p0 but offset in y and z
+    p1 = 3*p0+Vec3(0,1,2); q1 = 2*q0+Vec3(0,1,2); u1 = UnitVec3(q1-p1);
+    Geo::findClosestPointsOfTwoLines(p0, u0, p1, u1, x0, x1, parallel);
+    SimTK_TEST_EQ(x0, Vec3(-2.2,0,0)); SimTK_TEST_EQ(x1, Vec3(-2.2,1,2));
+    SimTK_TEST(parallel);
+
+    // Bend p1 a little but still effectively parallel.
+    q1 += 0.1*SignificantReal*Vec3(0,0,1); u1 = UnitVec3(q1-p1);
+    Geo::findClosestPointsOfTwoLines(p0, u0, p1, u1, x0, x1, parallel);
+    SimTK_TEST_EQ(x0, Vec3(-2.2,0,0)); SimTK_TEST_EQ(x1, Vec3(-2.2,1,2));
+    SimTK_TEST(parallel);
+
+    // Now bend it a lot.
+    q1 += 1000*SignificantReal*Vec3(0,0,1); u1 = UnitVec3(q1-p1);
+    Geo::findClosestPointsOfTwoLines(p0, u0, p1, u1, x0, x1, parallel);
+    SimTK_TEST(!parallel);
+    // Nearest points will be very far away from the origin, but
+    // should still be close to each other.
+    SimTK_TEST((x1-x0).norm() < 3);
 }
 
 int main() {

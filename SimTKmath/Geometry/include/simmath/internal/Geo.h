@@ -314,7 +314,57 @@ calcTorsion(const Vec<3,RealP,S>& Pu, const Vec<3,RealP,S>& Puu,
 }
 /**@}**/
 
-/**@name        Miscellaneous utilities **/
+/**@name                 Lines **/
+
+/** Find the points of closest approach on two lines L0 and L1, each 
+represented by an origin point and a direction. Points and vectors must be in 
+a common frame. We return point x0 on L0 and x1 on L1 such that the distance
+|x1-x0| is the smallest for any points on the two lines. If the lines are 
+parallel or nearly so (all points same distance) we'll pick the point
+on each line closest to midway between the origins as the closest points and 
+return and indication that the returned points weren't unique. 
+
+@param[in]      p0      The origin point of line L0, that is, any point
+                            through which line L0 passes.
+@param[in]      d0      A unit vector giving the direction of L0.
+@param[in]      p1      The origin point of line L1.
+@param[in]      d1      A unit vector giving the direction of L1.
+@param[out]     x0      The point of L0 that is closest to L1.
+@param[out]     x1      The point of L1 that is closest to L2.
+@param[out]     linesAreParallel 
+                        True if the lines were treated as effectively parallel.
+
+Cost is about 65 flops. **/
+template <class RealP> static void
+findClosestPointsOfTwoLines
+   (const Vec<3,RealP>& p0, const UnitVec<RealP,1>& d0,
+    const Vec<3,RealP>& p1, const UnitVec<RealP,1>& d1,
+    Vec<3,RealP>& x0, Vec<3,RealP>& x1, bool& linesAreParallel)
+{
+    const Vec<3,RealP> w = p1-p0; // vector from p0 to p1; 3 flops
+    const RealP s2Theta = (d0 % d1).normSqr(); // sin^2(angle); 14 flops
+    const RealP d =  dot(w,d0);     // 5 flops
+    const RealP e = -dot(w,d1);     // 6 flops
+
+    RealP t0, t1; // line parameters of closest points
+    if (s2Theta < square(NTraits<RealP>::getSignificant())) { // 3 flops
+        // Lines are parallel. Return a point on each line midway between
+        // the origin points.
+        linesAreParallel = true; // parallel
+        t0 = d/2; t1 = e/2;      // 2 flops
+    } else {
+        linesAreParallel = false;
+        const RealP cTheta = dot(d0,d1); // cos(angle between lines); 5 flops
+        const RealP oos2Theta = 1/s2Theta; // about 10 flops
+        t0 = (e*cTheta + d) * oos2Theta;   // 3 flops
+        t1 = (d*cTheta + e) * oos2Theta;   // 3 flops
+    }
+
+    x0 = p0 + t0*d0;    // 6 flops
+    x1 = p1 + t1*d1;    // 6 flops
+}
+
+/**@name                 Miscellaneous utilities **/
 /**@{**/
 
 /** Return the default tolerance to use for degeneracy tests and other tests
