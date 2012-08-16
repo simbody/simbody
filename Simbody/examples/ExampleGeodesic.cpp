@@ -122,8 +122,16 @@ private:
 int main() {
   try {
 
-    // Test cylinder
+    // Create geometry
     Real r			=    0.5;
+    //ContactGeometry::Sphere geom(r);
+//    ContactGeometry::Cylinder geom(r);
+    ContactGeometry::Torus geom(2*r, r);
+
+    //Vec3 radii(0.2,0.4,0.6);
+    //ContactGeometry::Ellipsoid geom(radii);
+
+
     Real phiP		=    0.0*Pi;
 	Real thetaP		=    0.0*Pi;
 
@@ -133,6 +141,7 @@ int main() {
 	Real heightP	=   0.5;
 	Real heightQ	=  -0.5;
 
+
     Vec3 P(r*sin(thetaP)*cos(phiP), r*sin(thetaP)*sin(phiP), r*cos(thetaP));
     Vec3 Q(r*sin(thetaQ)*cos(phiQ), r*sin(thetaQ)*sin(phiQ), r*cos(thetaQ));
 
@@ -140,8 +149,18 @@ int main() {
     Vec3 I(-2, 0,  heightQ);
 
     // move points off surface for testing
-     Q(0) -= r*0.2;
-     P(1) -= r*0.2;
+     Q(0) -= r/2;
+     Q(1) -= -r*0.5;
+     P(1) -= r*0.5;
+     P(0) -= r/2;
+
+     // project back to surface for testing
+     Vec3 tmpPt;
+     tmpPt = geom.projectDownhillToNearestPoint(P);
+     P = tmpPt;
+     tmpPt = geom.projectDownhillToNearestPoint(Q);
+     Q = tmpPt;
+
 
     Vec3 r_OP = P - O;
     Vec3 r_IQ = Q - I;
@@ -154,11 +173,6 @@ int main() {
     Vector x(n), dx(n), Fx(n), xold(n);
     Matrix J(n, n);
 
-    //ContactGeometry::Sphere geom(r);
-    ContactGeometry::Cylinder geom(r);
-
-    //Vec3 radii(0.2,0.4,0.6);
-    //ContactGeometry::Ellipsoid geom(radii);
 
     bool inside; UnitVec3 nP, nQ;
     cout << "before P,Q=" << P << ", " << Q << " -- " 
@@ -277,7 +291,7 @@ int main() {
     //geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
     //geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
     Rotation R(-Pi/8*0, YAxis); // TODO: 2.7 vs. 2.78
-    geom.calcGeodesicUsingOrthogonalMethod(P, Q, R*Vec3(0.9,0,-.3), 2, geod);
+    geom.calcGeodesicUsingOrthogonalMethod(P, Q, R*Vec3(0.9,0,-.3), 0.5, geod);
     //geom.makeStraightLineGeodesic(P, Q, e_OP, GeodesicOptions(), geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
