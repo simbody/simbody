@@ -37,6 +37,7 @@
 
 
 #include <cassert>
+#include <map>
 #include <iostream>
 using std::cout; using std::endl;
 
@@ -45,9 +46,15 @@ using namespace SimTK;
 // This is a unique integer type for identifying active obstacles in a
 // particular path, including both via points and surfaces.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ActiveObstacleIndex);
+
+// This is a unique integer type for identifying those obstacles that 
+// are surfaces rather than via points, regardless of whether they are 
+// enabled or active.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SurfaceObstacleIndex);
+
 // These are indices assigned to the subset of active obstacles that are 
 // surfaces and thus have geodesics and contribute unknowns to the path
-// finding problem.
+// finding problem. This set is the intersection of active & surface.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ActiveSurfaceIndex);
 
 
@@ -59,6 +66,17 @@ public:
     // Initialize instance info from the defaults built into the obstacles.
     explicit PathInstanceInfo
        (const Array_<CableObstacle,CableObstacleIndex>& obstacles);
+
+    int getNumObstacles()        const {return mapObstacleToSurface.size();}
+    int getNumSurfaceObstacles() const {return mapSurfaceToObstacle.size();}
+
+    // Each surface obstacle gets one of these. Via point obstacles will
+    // have a surface obstacle index that tests !isValid(). This is filled
+    // in by the constructor.
+    Array_<SurfaceObstacleIndex,CableObstacleIndex>  mapObstacleToSurface;
+    // This is indexed by surface obstacle index to give back the corresponding
+    // obstacle index.
+    Array_<CableObstacleIndex,SurfaceObstacleIndex>  mapSurfaceToObstacle;
 
     // One entry per obstacle but you can't disable the origin or termination
     // points.
@@ -89,15 +107,15 @@ public:
 
     // Set the number of obstacles to n. If there is any information already
     // in this object, it is lost.
-    void setNumObstacles(int n) {
+    void setNumObstacles(int n, int nSurfaces) {
         mapToActive.clear();        mapToActive.resize(n);
         mapToActiveSurface.clear(); mapToActiveSurface.resize(n);
         mapToCoords.clear();        mapToCoords.resize(n);
+        witnesses.clear(); witnesses.resize(nSurfaces, Real(NaN));
         initialize(0,0,0); // not yet
     }
 
-    // mapToActive, mapToActiveSurface and mapToCoords are filled in. Allocate
-    // needed arrays.
+    // mapToActive, mapToActiveSurface and mapToCoords are already allocated.
     void initialize(int na, int nas, int nx) {
         length = NaN;
         // Active obstacles
@@ -151,6 +169,14 @@ public:
     // forces in Ground.
     Array_<SpatialVec,ActiveObstacleIndex>          Fu_GB;
 
+
+    //                       SURFACE OBSTACLES
+    // Each surface obstacle has an event witness (trigger) function that
+    // passes through zero when the cable lifts off or touches down on this
+    // obstacle.
+    Array_<Real,SurfaceObstacleIndex>               witnesses;
+
+
     //                       ACTIVE SURFACES
 
     // We calculate a geodesic for each active surface obstacle.
@@ -180,7 +206,7 @@ public:
     // Set the number of obstacles n (including end points). We don't yet know
     // the number of active obstacles. Any information previously here is
     // lost.
-    void setNumObstacles(int n) {
+    void setNumObstacles(int n, int nSurfaces) {
         initialize(0,0,0); // not yet
     }
 
@@ -379,15 +405,21 @@ public:
     // We know which obstacles are disabled. Assume the rest are active
     void realizeInstance(const State& state) const;
 
-    void realizePosition(const State& state) const {
-        ensurePositionKinematicsCalculated(state);
-    }
+    // Solve for the new path and its length L, evaluate event witnesses to
+    // monitor for liftoff or touchdown.
+    void realizePosition(const State& state) const;
 
-    void realizeVelocity(const State& state) const {
-        ensureVelocityKinematicsCalculated(state);
-    }
+    // Evaluate the path length rate of change (Ldot).
+    void realizeVelocity(const State& state) const;
 
     void realizeAcceleration(const State& state) const;
+
+    void calcEventTriggerInfo
+       (const State&, Array_<EventTriggerInfo>&) const;
+
+    void handleEvents
+       (State&, Event::Cause, const Array_<EventId>& eventIds,
+        const HandleEventsOptions& options, HandleEventsResults& results) const;
 
     // Update the cable path and its length in the state cache. This is the 
     // expensive part of the cable path computation. State must already have
@@ -420,10 +452,16 @@ public:
     const PathPosEntry& getPrevPosEntry(const State& state) const 
     {   return Value<PathPosEntry>::downcast
            (cables->getDiscreteVariable(state, posEntryIx)); }
+    PathPosEntry& updPrevPosEntry(State& state) const 
+    {   return Value<PathPosEntry>::updDowncast
+           (cables->updDiscreteVariable(state, posEntryIx)); }
     // Return the *previous* path vel entry.
     const PathVelEntry& getPrevVelEntry(const State& state) const 
     {   return Value<PathVelEntry>::downcast
            (cables->getDiscreteVariable(state, velEntryIx)); }
+    PathVelEntry& updPrevVelEntry(State& state) const 
+    {   return Value<PathVelEntry>::updDowncast
+           (cables->updDiscreteVariable(state, velEntryIx)); }
 
     // Lazy-evaluate position kinematics and return the result.
     const PathPosEntry& getPosEntry(const State& state) const 
@@ -494,12 +532,14 @@ friend class CablePath;
     Array_<CableObstacle,CableObstacleIndex>   obstacles;
 
     // TOPOLOGY CACHE (set during realizeTopology())
-    DiscreteVariableIndex   instanceInfoIx;
-    ZIndex                  integratedLengthDotIx;
-    DiscreteVariableIndex   posEntryIx; // these are auto-update
-    DiscreteVariableIndex   velEntryIx;
+    DiscreteVariableIndex       instanceInfoIx;
+    ZIndex                      integratedLengthDotIx;
+    DiscreteVariableIndex       posEntryIx; // these are auto-update
+    DiscreteVariableIndex       velEntryIx;
+    EventTriggerByStageIndex    eventIx; // 1st index; one for each surface
+    std::map<EventId, CableObstacleIndex> mapEventIdToObstacle;
 
-    mutable int             referenceCount;
+    mutable int                 referenceCount;
 };
 
 

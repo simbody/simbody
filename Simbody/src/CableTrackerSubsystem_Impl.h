@@ -79,8 +79,27 @@ const SimbodyMatterSubsystem& getMatterSubsystem() const
 {   return getMultibodySystem().getMatterSubsystem(); }
 
 // Get access to state variables and cache entries.
-
 // TODO
+
+void calcEventTriggerInfo
+   (const State& state, Array_<EventTriggerInfo>& info) const OVERRIDE_11
+{
+    for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
+        const CablePath& path = getCablePath(ix);
+        path.getImpl().calcEventTriggerInfo(state,info);
+    }
+}
+
+void handleEvents
+   (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
+    const HandleEventsOptions& options, 
+    HandleEventsResults& results) const OVERRIDE_11
+{
+    for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
+        const CablePath& path = getCablePath(ix);
+        path.getImpl().handleEvents(state,cause,eventIds,options,results);
+    }
+}
 
 // Allocate state variables.
 int realizeSubsystemTopologyImpl(State& state) const OVERRIDE_11 {
@@ -144,6 +163,9 @@ int calcDecorativeGeometryAndAppendImpl
 
         Vec3 prevPoint;
         for (CableObstacleIndex ox(0); ox < path.getNumObstacles(); ++ox) {
+            if (instInfo.obstacleDisabled[ox])
+                continue; 
+
             const CableObstacle::Impl& obs = path.getObstacleImpl(ox);
             Vec3 P_B, Q_B;
             obs.getContactStationsOnBody(state, instInfo, ppe, P_B, Q_B);

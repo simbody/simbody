@@ -117,6 +117,13 @@ public:
 
     Vec3 projectDownhillToNearestPoint(const Vec3& Q) const;
 
+    bool trackSeparationFromLine(const Vec3& pointOnLine,
+                        const UnitVec3& directionOfLine,
+                        const Vec3& startingGuessForClosestPoint,
+                        Vec3& newClosestPointOnSurface,
+                        Vec3& closestPointOnLine,
+                        Real& height) const;
+
     // Geodesic evaluators
 
 

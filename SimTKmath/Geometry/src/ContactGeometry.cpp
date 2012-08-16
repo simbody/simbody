@@ -114,6 +114,19 @@ Vec3 ContactGeometry::projectDownhillToNearestPoint(const Vec3& Q) const {
     return getImpl().projectDownhillToNearestPoint(Q);
 }
 
+bool ContactGeometry::
+trackSeparationFromLine(const Vec3& pointOnLine,
+                        const UnitVec3& directionOfLine,
+                        const Vec3& startingGuessForClosestPoint,
+                        Vec3& newClosestPointOnSurface,
+                        Vec3& closestPointOnLine,
+                        Real& height) const {
+     return getImpl().trackSeparationFromLine(pointOnLine,directionOfLine,
+                startingGuessForClosestPoint,newClosestPointOnSurface,
+                closestPointOnLine,height); 
+}
+
+
 void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
     getImpl().getBoundingSphere(center, radius);
 }
@@ -328,6 +341,9 @@ static void combineParaboloidsHelper
                              cos2w, sin2w, kdiff1, kdiff2, k);     
 }
 
+//------------------------------------------------------------------------------
+//                   PROJECT DOWNHILL TO NEAREST POINT
+//------------------------------------------------------------------------------
 
 // Find the "local" nearest point to p on this surface. The algorithm assumes that
 // p is close to the surface and uses Newton's method to proceed downhill until a
@@ -579,6 +595,223 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
 }
 
 
+
+//------------------------------------------------------------------------------
+//                        TRACK SEPARATION FROM LINE
+//------------------------------------------------------------------------------
+
+class TrackLineSeparationJacobian : public Differentiator::JacobianFunction {
+public:
+    TrackLineSeparationJacobian(const ContactGeometryImpl& geom, 
+                                const Vec3& p, const UnitVec3& e)
+    :   Differentiator::JacobianFunction(3,3), geom(geom), p(p), e(e) { }
+
+    int f(const Vector& xvec, Vector& f) const OVERRIDE_11 {
+        const Vec3& x = Vec3::getAs(&xvec[0]);
+        UnitVec3 n; Vec3 closestPointOnLine; // not used
+        const Vec3 eps = calcExtremePointError(x, n, closestPointOnLine);
+
+        f[0] = eps[0]; f[1] = eps[1]; f[2] = eps[2];
+        return 0;
+    }
+
+    // Given a point x, return the value of the "closest point" error of x.
+    // We return the outward unit normal n at x, and the line's closest point R
+    // as side effects in case you are interested.
+    Vec3 calcExtremePointError(const Vec3& x, UnitVec3& n, Vec3& R) const {
+        n = geom.calcSurfaceUnitNormal(x);
+
+        Vec3 Q; // Q is the point of the normal line closest to L
+        bool linesAreParallel;
+        Geo::findClosestPointsOfTwoLines(x, n, p, e, 
+            Q, R, linesAreParallel);
+
+        if (linesAreParallel)           
+            cout << "findClosest: PARALLEL!!!" << endl;
+
+        Vec3 errf( ~n * e,   // normal and line should be perpendicular
+                   ~(R-Q) * (n % e), // no separation along common perpendicular
+                   geom.calcSurfaceValue(x) ); // x should be on the surface
+
+        return errf;
+    }
+
+private:
+    const ContactGeometryImpl& geom;
+    const Vec3      p;  // a point on the line
+    const UnitVec3  e;  // a unit vector along the line
+};
+
+// This method is required to search downhill only from the starting guess.
+// The Newton iteration is throttled back accordingly if it gets too
+// agressive.
+bool ContactGeometryImpl::
+trackSeparationFromLine(const Vec3& pointOnLine,
+                        const UnitVec3& directionOfLine,
+                        const Vec3& startingGuessForClosestPoint,
+                        Vec3& x, // the new extreme point
+                        Vec3& closestPointOnLine,
+                        Real& height) const
+{
+    // Newton solver settings.
+
+    // RMS error must reach sqrt of this value (squared for speed).
+    const Real Ftol2 = square(1e-14);
+
+    // Limit the number of Newton steps. We don't
+    // count steps that we limited because we were nervous about the size of
+    // the change, so this value is *very* generous. It should never take 
+    // more than 7 full Newton iterations to solve to machine precision.
+    const int MaxNewtonIterations = 20;
+    // Make sure there is at least some limit on the total number of steps
+    // including ones we throttled back on purpose, just as a sanity check.
+    const int MaxTotalIterations = 50;
+    // We won't take a step unless it reduces the error and we'll take a
+    // fractional step if necessary. If we have to use a fraction smaller than
+    // this we're probably at a local minimum and it's time to give up.
+    const Real MinStepFrac = 1e-6;
+    // If the norm of a change to X during a step isn't at least this fraction
+    // of a full-scale change (see scaling below), we'll treat that as an
+    // independent reason to give up (squared for speed).
+    const Real Xtol2 = square(1e-12);
+    // We'll calculate a length scale for the local patch of this object and
+    // then limit any moves we make to this fraction of that scale to avoid
+    // jumping out of one local minimum into another. This can cause a series
+    // of slowly-converging steps to be taken at the beginning.
+    const Real MaxMove2 = square(.25); // Limit one move to 25% of smaller radius.
+
+    // Create an object that can calculate the error function for this
+    // surface against the given line.
+    TrackLineSeparationJacobian extremePointJac
+       (*this, pointOnLine, directionOfLine);
+
+    // Initialize the extreme point to the given value.
+    x = startingGuessForClosestPoint;
+    UnitVec3 nX; // normal at x
+    Vec3 f = extremePointJac.calcExtremePointError(x, 
+                nX, closestPointOnLine);
+    Real frms2 = f.normSqr(); // initial error
+
+    if (frms2 <= Ftol2) {
+        cout << "TRACK: already at extreme point with frms=" 
+             << std::sqrt(frms2) << endl;
+        height = ~(closestPointOnLine - x) * nX;
+        return true; // Success
+    }
+
+    // We are going to have to move the starting point to find the new
+    // extreme point.
+
+    // Estimate a scale for the local neighborhood of this surface by
+    // sampling the curvature around x, taking the largest curvature we find.
+    // We want to take conservative steps that never move by more than a 
+    // fraction of the scale to avoid jumping out of the local minimum.
+    // TODO: could calculate the actual max curvature here but it is 
+    // more expensive.
+    const UnitVec3 tX = nX.perp(); // any perpendicular to the normal at x
+    const UnitVec3 bX(tX % nX, true);    // another tangent vector
+    // using the larger curvature in the t or b direction. 
+    const Real kt = calcSurfaceCurvatureInDirection(x, tX);
+    const Real kb = calcSurfaceCurvatureInDirection(x, bX);
+    const Real maxK = std::max(std::abs(kt),std::abs(kb));
+    const Real scale2 = square(clamp(0.1, 1/maxK, 1000.)); // keep scale reasonable
+
+    cout << "TRACK starting x=" << x << ", f=" << f << ", frms=" 
+         << std::sqrt(frms2) << " scale est=" << std::sqrt(scale2) << "\n";
+
+    Differentiator diff(extremePointJac);
+
+    int stepCount = 0, limitedStepCount = 0;
+    bool succeeded = false;
+    do {
+        ++stepCount; // we're going to take a step now
+        const Matrix Jnum = diff.calcJacobian((Vector)x,
+                                        Differentiator::ForwardDifference);
+        const Mat33& J = Mat33::getAs(&Jnum(0,0));
+
+        // This is the full step that the Newton would like us to take. We
+        // might not use all of it.
+        const Vec3 dx = J.invert()*f;
+        const Real dxrms2 = dx.normSqr()/3;
+
+        cout << "det(J)=" << det(J)
+             << "full dxrms=" << std::sqrt(dxrms2) << " dx=" << dx << endl;
+
+        const Vec3 xOld     = x;        // Save previous solution & its norm.
+        const Real frms2Old = frms2;
+
+        // Backtracking. Limit the starting step size if dx is too big.
+        // Calculate the square of the step fraction.
+        const Real stepFrac2 = std::min(1., MaxMove2*(scale2/dxrms2));
+        Real stepFrac = 1;
+        if (stepFrac2 < 1) {
+            stepFrac = std::sqrt(stepFrac2); // not done often
+            cout << "TRACK: LIMITED STEP: iter=" << stepCount 
+                      << " stepFrac=" << stepFrac << endl;
+            ++limitedStepCount;
+        }
+        Real xchgrms2; // norm^2 of the actual change we make to X
+        while (true) {
+            x = xOld - stepFrac*dx;
+            xchgrms2 = stepFrac2*dxrms2; // = |stepFrac*dx|^2 / 3
+
+            f = extremePointJac.calcExtremePointError(x, nX, closestPointOnLine);
+            frms2 = f.normSqr()/3;
+            if (frms2 < frms2Old || stepFrac <= MinStepFrac)
+                break;
+
+            stepFrac /= 2;
+        }
+
+        cout << stepCount << ": TRACK lam=" << stepFrac << " |lam*dx|=" << (stepFrac*dx).norm() 
+                    << " lam*dx=" << stepFrac*dx << "-> new x=" << x << "\n"; 
+        cout << "     |f|=" << std::sqrt(frms2) << " f=" << f  << "\n";
+
+        if (frms2 <= Ftol2) { // found solution
+            cout << "TRACK CONVERGED in " << stepCount << " steps, frms=" 
+                 << std::sqrt(frms2) << endl;
+            succeeded = true;
+            break;
+        }
+
+        // This method is supposed to converge quickly -- if we're not making
+        // substantial progress in each step, give it up.
+        if (frms2 >= 0.999*frms2Old) {
+            if (frms2 > frms2Old) { // Oops -- made it worse.
+                x = xOld; // Repair the damage.
+                f = extremePointJac.calcExtremePointError(x, nX, closestPointOnLine);
+                frms2 = f.normSqr()/3;
+            }
+            cout << "TRACK FAILED at " << stepCount << " steps, frms=" 
+                 << std::sqrt(frms2) << endl;
+            break;
+        }
+
+        // We took a step and made an improvement but haven't converged yet.
+
+        if (xchgrms2 < Xtol2) { // check step size
+            std::cout << "TRACK: STALLED on step size, xchg=" << std::sqrt(xchgrms2) 
+                        << " frms=" << std::sqrt(frms2) << std::endl;
+            break;
+        }
+
+        if (stepCount-limitedStepCount > MaxNewtonIterations
+            || stepCount > MaxTotalIterations) {
+            cout << "TRACK: MAX iterations taken" << endl;
+            break; // Return whatever we got.
+        }
+
+    } while (true);
+
+    if (!succeeded) {
+        cout << "!!! TRACK -- failed with ftol=" << std::sqrt(frms2) << "\n\n";
+        x = projectDownhillToNearestPoint(x); // push to surface
+    } else 
+        cout << "TRACK -- succeeded with ftol=" << std::sqrt(frms2) << "\n\n";
+
+    height = ~(closestPointOnLine - x) * nX;
+    return succeeded;
+}
 
 //==============================================================================
 //                  GEODESIC EVALUATORS in CONTACT GEOMETRY
@@ -973,8 +1206,8 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
             makeStraightLineGeodesic(P, Q, d, options, geod);
             return;
         }
-        calcGeodesicUsingOrthogonalMethod(P, Q, PQ/length, length, geod);
-        //calcGeodesicAnalytical(P, Q, PQ, PQ, geod);
+        //calcGeodesicUsingOrthogonalMethod(P, Q, PQ/length, length, geod);
+        calcGeodesicAnalytical(P, Q, PQ, PQ, geod);
         return;
     }
 
@@ -1029,8 +1262,8 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     if (newPQlen < SqrtEps) 
         makeStraightLineGeodesic(P, Q, tPhint, options, geod);
     else 
-        //calcGeodesicAnalytical(P, Q, tPhint, tQhint, geod);
-        calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
+        calcGeodesicAnalytical(P, Q, tPhint, tQhint, geod);
+        //calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
 }
 
 
@@ -1472,7 +1705,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     }
 
     //OrthoGeodesicError orthoErr(*this, P, Q);
-    //orthoErr.setEstimatedAccuracy(1e-9);
+    //orthoErr.setEstimatedAccuracy(1e-16); // TODO
     //Differentiator diff(orthoErr);
 
     //cout << "Using " << (useNewtonIteration ? "NEWTON" : "FIXED POINT")
@@ -1485,8 +1718,8 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         //std::cout << "ORTHO x= " << x << " err = " << Fx << " |err|=" << f 
         //          << " dist=" << dist << std::endl;
         if (f <= ftol) {
-            //std::cout << "ORTHO geodesic converged in " 
-            //          << i << " iterations with err=" << f << std::endl;
+            std::cout << "ORTHO geodesic converged in " 
+                      << i << " iterations with err=" << f << std::endl;
             break;
         }
 
@@ -1494,7 +1727,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             // This numerical Jacobian is very bad; CentralDifference is 
             // required in order to produce a reasonable one.
             //diff.calcJacobian(Vector(x),  Vector(Fx), JMat, 
-            //                  Differentiator::ForwardDifference);
+            //                  Differentiator::CentralDifference);
             //J = Mat22::getAs(&JMat(0,0));
 
             const Real eh = ~r_QQhat*geod.getNormalQ();
@@ -1506,15 +1739,11 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             const Real kappa = geod.getCurvatureQ();
             const Real mu = geod.getBinormalCurvatureQ();
 
-            Real j10noh = -(j*tau*eh-jd*eb);
-            //Real j10h   = -(  (j*mu*tau-jd)*eb 
-            //                + (j*tau+jd*mu)*eh 
-            //                + (j*mu*kappa)*es);
-            //TODO: I don't think the (1,0) term is right when far from
-            // a solution. The others are better but I'm still not sure they
-            // are right. (sherm 120812)
-            Mat22 newJ( 1-(-mu*eh+jd*es/j),  -(jd*eb/j+tau*eh)/j,
-                         j10noh,      1-kappa*eh );
+           // printf("eh=%g es=%g, eb=%g, j=%g, tau=%g, kappa=%g, mu=%g\n",
+             //   eh,es,eb,j,tau,kappa,mu);
+
+            Mat22 newJ( -(jd*es+j*(mu*eh-1)),      -tau*eh,
+                         -(j*tau*eh-jd*eb),      1-kappa*eh );
 
             //cout << "   J=" << J;
             //cout << "newJ=" << newJ;
@@ -1523,7 +1752,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             dx = newJ.invert()*Fx;
         } else {
             // fixed point -- feed error back to variables
-            dx = Fx; 
+            dx = Vec2(Fx[0]/geod.getJacobiQ(), Fx[1]); 
         }
 
         //cout << "f=" << f << "-> dx=" << dx << endl;
@@ -1538,7 +1767,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             //cout << "at lam=" << lam << " x-lam*dx=" << x << endl;
             // Negative length means flip direction.
             if (x[1] < 0) {
-                //cout << "NEGATIVE LENGTH; flipping\n";
+                cout << "NEGATIVE LENGTH; flipping\n";
                 x = -x; // both angle and length negated
             }
             Fx = calcOrthogonalGeodError(P, Q, x[0], x[1],geod);
@@ -1635,7 +1864,10 @@ calcSplitGeodError(const Vec3& xP, const Vec3& xQ,
 //------------------------------------------------------------------------------
 //                      CALC ORTHOGONAL GEOD ERROR
 //------------------------------------------------------------------------------
-// Calculate the "orthogonal error" for tP with given arc length.
+// Calculate the "orthogonal error" for thetaP with given arc length.
+// The error is
+//           err(theta,s) = [ dot(Qhat-Q, bQhat) ]
+//                          [ dot(Qhat-Q, tQhat) ]
 Vec2 ContactGeometryImpl::
 calcOrthogonalGeodError(const Vec3& xP, const Vec3& xQ,
                         Real thetaP, Real length,
@@ -1651,13 +1883,10 @@ calcOrthogonalGeodError(const Vec3& xP, const Vec3& xQ,
     const Vec3& Qhat = geod.getPointQ();
     const Vec3 r_QQhat = Qhat - xQ;
 
-    const Real es = ~r_QQhat * geod.getTangentQ(); // length errors
-    const Real eb = ~r_QQhat * geod.getBinormalQ();
-    // Translate b-direction error at Qhat to rotation at P using directional
-    // sensitivity (Jacobi field) value at Qhat. Jacobi at Q has opposite sign
-    // from b error, so b too large (>0) means angle too small.
-    const Real dtheta = eb / geod.getJacobiQ();
-    return Vec2(dtheta, es);
+    const Real eb = ~r_QQhat * geod.getBinormalQ(); // length errors
+    const Real es = ~r_QQhat * geod.getTangentQ();
+
+    return Vec2(eb, es);
 }
 
 // Calculate the "geodesic error" for tP and tQ

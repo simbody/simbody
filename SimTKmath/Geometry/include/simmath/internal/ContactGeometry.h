@@ -161,6 +161,78 @@ This method is very cheap if query point Q is already on the surface to within
 a very tight tolerance; in that case it will simply return P=Q. **/
 Vec3 projectDownhillToNearestPoint(const Vec3& pointQ) const;
 
+/** Track the closest point between this implicit surface and a given line, or
+the point of deepest penetration if the line intersects the surface.
+We are given a guess at the closest point, and search only downhill from that
+guess so we can't guarantee we actually are returning the globally closest.
+However, the method does run very fast and is well suited to continuous 
+tracking where nothing dramatic happens from call to call. 
+
+If the line intersects the surface, we return the closest perpendicular point,
+\e not one of the intersection points. The perpendicular point will be the
+point of \e most separation rather than least. This behavior makes the 
+signed separation distance a smooth function that passes through zero as the
+line approaches, contacts, and penetrates the surface. We return that signed
+distance as the \a height argument.
+
+@param[in]  pointOnLine     Any point through which the line passes.
+@param[in]  directionOfLine A unit vector giving the direction of the line.
+@param[in]  startingGuessForClosestPoint
+    A point on the implicit surface that is a good guess for the closest
+    (or most deeply penetrated) point. 
+@param[out] newClosestPointOnSurface
+    This is the point of least distance to the line if the surface and line are
+    separated; the point of most distance to the line if the line intersects
+    the surface.
+@param[out] closestPointOnLine
+    The is the corresponding point on the line that is the closest (furthest)
+    from \a newClosestPointOnSurface.
+@param[out] height
+    This is the signed height of the closest point on the line over the 
+    surface tangent plane at \a newClosestPointOnSurface. This is positive 
+    when \a closestPointOnLine is in the direction of the outward normal, 
+    negative if it is in the opposite direction. If we successfully found the
+    point we sought, a negative height means the extreme point on the line
+    is inside the object bounded by this surface.
+
+@returns \c true if it succeeds in finding a point that meets the criteria to
+a strict tolerance. Otherwise the method has gotten stuck in a local minimum
+meaning the initial guess wasn't good enough.
+
+In case we fail to find a good point, we'll still return \e some points on the
+surface and the line that reduced the error function. Sometimes those are
+useful for visualizing what went wrong.
+
+<h3>Theory</h3>
+We are looking for a point P on the surface where a line N passing through P
+parallel to the normal at P intersects the given line L and is perpendicular to
+L there. Thus there are two degrees of freedom (location of P on the
+surface), and there are two equations to solve. Let Q and R be the closest
+approach points of the lines N and L respectively. We require that the following
+two conditions hold:
+  - lines N and L are perpendicular 
+  - points Q and R are coincident
+
+To be precise we solve the following nonlinear system of three equations:
+<pre>
+err(P) = 0
+where
+err(P) = [     n . l       ]
+         [ (R-Q) . (n X l) ]
+         [      f(P)       ]
+In the above n is the unit normal vector at P, l is a unit vector aligned with
+the query line L, and f(P) is the implicit surface function that keeps P on the
+surface.
+</pre>
+**/
+bool trackSeparationFromLine(const Vec3& pointOnLine,
+                             const UnitVec3& directionOfLine,
+                             const Vec3& startingGuessForClosestPoint,
+                             Vec3& newClosestPointOnSurface,
+                             Vec3& closestPointOnLine,
+                             Real& height) const;
+
+
 
 /** Determine whether this object intersects a ray, and if so, find the 
 intersection point.

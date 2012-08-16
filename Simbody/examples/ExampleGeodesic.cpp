@@ -53,6 +53,72 @@ private:
     const State& dummyState;
 };
 
+class ExtremePointDecorator : public DecorationGenerator {
+public:
+    ExtremePointDecorator(const ContactGeometry& geom,
+                          const Vec3& startPoint)
+    : geom(geom), closestPoint(startPoint), startFrameOnly(false) {}
+
+    void setStartPoint(const Vec3& pt) {closestPoint=pt;}
+    const Vec3& getStartPoint() const {return closestPoint;}
+
+    void setShowStartFrameOnly(bool showStart) {startFrameOnly=showStart;}
+
+    void generateDecorations(const State& state,
+        Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+    {
+        geometry.push_back(DecorativeLine(P,Q));
+        geometry.push_back(
+            DecorativePoint(closestPoint).setColor(Purple)
+                .setScale(2).setLineThickness(2));
+        const UnitVec3 startN = geom.calcSurfaceUnitNormal(closestPoint);
+        geometry.push_back(DecorativeLine(closestPoint,closestPoint+startN)
+            .setColor(Purple));
+
+        if (startFrameOnly) {
+            startFrameOnly = false;
+            return;
+        }
+
+        Vec3 newClosestPoint, closestPointOnLine;
+        Real height;
+        if (!geom.trackSeparationFromLine(P, d, closestPoint,
+                    newClosestPoint, closestPointOnLine, height))
+        {
+            std::cout << "\n---TRACKER REPORTED FAILURE---\n\n";
+        }
+
+        std::cout << "HEIGHT=" << height << "\n";
+
+        const UnitVec3 n = geom.calcSurfaceUnitNormal(newClosestPoint);
+        geometry.push_back(DecorativeLine(newClosestPoint,closestPointOnLine)
+                            .setColor(height>0?Blue:Red));
+       
+        geometry.push_back(
+            DecorativePoint(newClosestPoint).setColor(Green));
+        geometry.push_back(DecorativeLine(newClosestPoint,newClosestPoint+n)
+            .setColor(Green));
+
+
+        geometry.push_back(
+            DecorativePoint(closestPointOnLine).setColor(Red));
+
+        closestPoint = newClosestPoint;
+    }
+
+    void moveLine(const Vec3& P, const Vec3& Q) {
+        cout << "...moveLine P=" << P << " Q=" << Q << "\n";
+        this->P = P; this->Q = Q; d = UnitVec3(Q-P);
+    }
+
+private:
+    const ContactGeometry& geom;
+    Vec3 closestPoint;
+    Vec3 P, Q; // points on line
+    UnitVec3 d; // direction of line
+    bool startFrameOnly; // don't solve just show initial conditions
+};
+
 int main() {
   try {
 
@@ -91,6 +157,9 @@ int main() {
     //ContactGeometry::Sphere geom(r);
     ContactGeometry::Cylinder geom(r);
 
+    //Vec3 radii(0.2,0.4,0.6);
+    //ContactGeometry::Ellipsoid geom(radii);
+
     bool inside; UnitVec3 nP, nQ;
     cout << "before P,Q=" << P << ", " << Q << " -- " 
          << geom.calcSurfaceValue(P) << " " << geom.calcSurfaceValue(Q) << endl;
@@ -122,8 +191,6 @@ int main() {
             << " 2*sin^2(a)=" << 2*square(sin(a)) << "\n";
     }
 
-//    Vec3 radii(0.2,0.4,0.6);
-//    ContactGeometry::Ellipsoid geom(radii);
 
     cout << "Gaussian curvature P,Q="
          << geom.calcGaussianCurvature(newP) << ","
@@ -156,13 +223,49 @@ int main() {
     Vector tmp(6); // tmp = ~[P Q]
     tmp[0]=P[0]; tmp[1]=P[1]; tmp[2]=P[2]; tmp[3]=Q[0]; tmp[4]=Q[1]; tmp[5]=Q[2];
     viz.addDecorationGenerator(new PathDecorator(tmp, O, I, Green));
-    viz.addDecorationGenerator(new PlaneDecorator(geom.getPlane(), Gray));
+    //viz.addDecorationGenerator(new PlaneDecorator(geom.getPlane(), Gray));
     viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodP(), Red));
     viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodQ(), Blue));
     viz.addDecorationGenerator(new GeodesicDecorator(geod, Orange));
+    //ExtremePointDecorator* expd = new ExtremePointDecorator(geom, P);
+    //viz.addDecorationGenerator(expd);
     dummySystem.realizeTopology();
     State dummyState = dummySystem.getDefaultState();
 
+    /* Sherm playing with separation tracking ...
+    expd->setStartPoint(Vec3(1,0,0));
+    for (int outer=0; ; ++outer) {
+    for (int i=0; i <10; ++i) {
+        Real x = i*.2;
+        expd->moveLine(Vec3(x,-3,-2), Vec3(0,3,1));
+        if (outer) expd->setStartPoint(expd->getStartPoint()-Vec3(.1,0,0));
+        expd->setShowStartFrameOnly(true);
+        viz.report(dummyState);
+        if (outer) getchar();
+        viz.report(dummyState);
+        if (outer) getchar(); else sleepInSec(.25);
+        //sleepInSec(.5);
+    }
+    for (int i=0; i <10; ++i) {
+        Real z = 1+i*.2;
+        Real x = 2-i*.2;
+        expd->moveLine(Vec3(x,-3,-2), Vec3(0,3,z));
+        expd->setShowStartFrameOnly(true);
+        viz.report(dummyState);
+        viz.report(dummyState); sleepInSec(.25);
+        //sleepInSec(.5);
+    }
+    for (int i=0; i <10; ++i) {
+        Real z = 3-i*.5;
+        expd->moveLine(Vec3(0,-3,-2), Vec3(0,3,z));
+        expd->setShowStartFrameOnly(true);
+        viz.report(dummyState);
+        viz.report(dummyState); sleepInSec(.25);
+        //sleepInSec(.5);
+    }
+    }
+    exit(0);
+    */
 
     // calculate the geodesic
     geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
@@ -173,7 +276,8 @@ int main() {
     //geom.calcGeodesicAnalytical(P, Q, e_OP, -e_IQ, geod);
     //geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
     //geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
-    geom.calcGeodesicUsingOrthogonalMethod(P, Q, Vec3(0.9,0,-.3), 2, geod);
+    Rotation R(-Pi/8*0, YAxis); // TODO: 2.7 vs. 2.78
+    geom.calcGeodesicUsingOrthogonalMethod(P, Q, R*Vec3(0.9,0,-.3), 2, geod);
     //geom.makeStraightLineGeodesic(P, Q, e_OP, GeodesicOptions(), geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;

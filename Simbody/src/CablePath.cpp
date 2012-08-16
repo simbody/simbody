@@ -42,16 +42,28 @@ using namespace SimTK;
 
 PathInstanceInfo::PathInstanceInfo
     (const Array_<CableObstacle,CableObstacleIndex>& obstacles)
-:   obstacleDisabled(obstacles.size(),false), 
+:   mapObstacleToSurface(obstacles.size()),
+    mapSurfaceToObstacle(0),
+    obstacleDisabled(obstacles.size(),false), 
     obstaclePose(obstacles.size()) 
 {
+    SurfaceObstacleIndex next(0);
     for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
         const CableObstacle::Impl& obs = obstacles[ox].getImpl();
+        if (obs.getNumCoordsPerContactPoint() > 0) { // a surface
+            mapObstacleToSurface[ox] = next++;
+            mapSurfaceToObstacle.push_back(ox);
+            assert(mapSurfaceToObstacle.size() == next);
+        }
         obstaclePose[ox]=obs.getDefaultPoseOnBody();
     }
 }
 
 std::ostream& operator<<(std::ostream& o, const PathInstanceInfo& info) {
+    o << "PathInstanceInfo nObs=" << info.getNumObstacles()
+        << " nSurf=" << info.getNumSurfaceObstacles() << endl;
+    o << "  obs2surf: " << info.mapObstacleToSurface << endl;
+    o << "  surf2obs: " << info.mapSurfaceToObstacle << endl;
     o << "  disabled="; 
     for (CableObstacleIndex ox(0); ox < info.obstacleDisabled.size(); ++ox)
         o << " " << String(info.obstacleDisabled[ox]);
@@ -68,6 +80,8 @@ std::ostream& operator<<(std::ostream& o, const PathPosEntry& ppe) {
     cout << "mapToCoords: " << ppe.mapToCoords << endl;
     cout << "eIn_G: " << ppe.eIn_G << endl;
     cout << "Fu_GB: " << ppe.Fu_GB << endl;
+    cout << "witnesses=" << ppe.witnesses << endl;
+
     cout << "geodesics lengths=";
     for (ActiveSurfaceIndex asx(0); asx < ppe.geodesics.size(); ++asx)
         cout << ppe.geodesics[asx].getLength();
@@ -193,41 +207,64 @@ applyBodyForces(const State& state, Real tension,
 void CablePath::Impl::
 realizeTopology(State& state) {
     // Initialize instance info from defaults.
-    PathInstanceInfo init(obstacles);
+    PathInstanceInfo instInfo(obstacles);
 
-    cout << "In realizeTopology(): " << init << endl;
+    cout << "In realizeTopology(): " << instInfo << endl;
 
     // Allocate and initialize instance state variable.
     instanceInfoIx = cables->allocateDiscreteVariable(state,
-        Stage::Instance, new Value<PathInstanceInfo>(init));
+        Stage::Instance, new Value<PathInstanceInfo>(instInfo));
 
+    // Allocate continuous variable in which to integrate Ldot; this is
+    // useful as a sanity check since we should have L0+integ(Ldot)=L(t) where
+    // L0 is the initial length of the cable.
     Vector initz(1, Real(0));
     integratedLengthDotIx = cables->allocateZ(state, initz);
 
     // Allocate cache entries for position and velocity calculations.
     Value<PathPosEntry>* posEntry = new Value<PathPosEntry>();
-    posEntry->upd().setNumObstacles(obstacles.size());
+    posEntry->upd().setNumObstacles(instInfo.getNumObstacles(),
+                                    instInfo.getNumSurfaceObstacles());
     posEntryIx = cables->allocateAutoUpdateDiscreteVariable(state,
         Stage::Velocity,    // invalidates Velocity
         posEntry,           // takes over ownership of this Value
         Stage::Position);   // update depends on positions
         
     Value<PathVelEntry>* velEntry = new Value<PathVelEntry>();
-    velEntry->upd().setNumObstacles(obstacles.size());        
+    velEntry->upd().setNumObstacles(instInfo.getNumObstacles(),
+                                    instInfo.getNumSurfaceObstacles());        
     velEntryIx = cables->allocateAutoUpdateDiscreteVariable(state,
         Stage::Dynamics,    // invalidates Dynamics (forces)
         velEntry,           // takes over ownership of this Value
         Stage::Velocity);   // update depends on velocities
+
+    // Ask the System to give us some EventIds, and ask the State for some
+    // slots for the witness functions.
+    const int nSurfaces = instInfo.getNumSurfaceObstacles();
+    mapEventIdToObstacle.clear(); // this is an std::map, not an array
+    for (SurfaceObstacleIndex sox(0); sox < nSurfaces; ++sox) {
+        const EventId id = cables->getSystem().getDefaultSubsystem()
+                           .createEventId(cables->getMySubsystemIndex(), state);
+        mapEventIdToObstacle[id] = instInfo.mapSurfaceToObstacle[sox];
+    }
+
+    // Every surface obstacle gets an event witness function that we can use
+    // to watch the cable lift off of or drop down onto the obstacle.
+    eventIx.invalidate();
+    if (nSurfaces) eventIx = cables->allocateEventTriggersByStage
+                                        (state, Stage::Position, nSurfaces);
 }
 
 //------------------------------------------------------------------------------
 //                            REALIZE INSTANCE
 //------------------------------------------------------------------------------
+// We now know which of the obstacles are enabled. Initialize the state
+// variables assuming all enabled obstacles are active.
 void CablePath::Impl::
 realizeInstance(const State& state) const {
     const PathInstanceInfo& instInfo = getInstanceInfo(state);
-    PathPosEntry& pe = updPosEntry(state);
-    PathVelEntry& ve = updVelEntry(state);
+    PathPosEntry& ppe = updPosEntry(state);
+    PathVelEntry& pve = updVelEntry(state);
 
     assert(!instInfo.obstacleDisabled.front()); // origin
     assert(!instInfo.obstacleDisabled.back());  // termination
@@ -238,26 +275,32 @@ realizeInstance(const State& state) const {
 
     Array_<Real> xInit;
     for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
-        if (instInfo.obstacleDisabled[ox]) {
-            pe.mapToActive[ox].invalidate();
-            continue;
-        }
-        // Assuming here that any non-disabled obstacle is active.
-        pe.mapToActive[ox] = nActive++;
+        ppe.mapToActive[ox].invalidate();
+        ppe.mapToActiveSurface[ox].invalidate();
+        ppe.mapToCoords[ox] = -1;
+
+        if (instInfo.obstacleDisabled[ox])
+            continue; // skip disabled object
+
+        // This obstacle is enabled.
+
+        ppe.mapToActive[ox] = nActive++;
         const CableObstacle::Impl& obs = obstacles[ox].getImpl();
         const int d = obs.getNumCoordsPerContactPoint();
         if (d == 0) {
-            pe.mapToActiveSurface[ox].invalidate();
-            pe.mapToCoords[ox] = -1;
+            // This obstacle is a via point (or an end point).
             continue; // skip via points
         }
-        
-        pe.mapToActiveSurface[ox] = nActiveSurface++; 
+
+        // This obstacle is a surface obstacle.
+
+        // Assuming here that any enabled surface is active.
+        ppe.mapToActiveSurface[ox] = nActiveSurface++; 
 
         const CableObstacle::Surface::Impl& surf =
             dynamic_cast<const CableObstacle::Surface::Impl&>(obs);
 
-        pe.mapToCoords[ox] = nx; // first index in x slot
+        ppe.mapToCoords[ox] = nx; // first index in x slot
         nx += 2*d; // points P and Q need coords xP and xQ
 
         Vec3 xPhint(0), xQhint(0);
@@ -267,15 +310,37 @@ realizeInstance(const State& state) const {
         xInit.insert(xInit.end(), &xQhint[0], &xQhint[0]+d);
     }
 
-    pe.initialize(nActive, nActiveSurface, nx);
-    ve.initialize(nActive, nActiveSurface, nx);
+    ppe.initialize(nActive, nActiveSurface, nx);
+    pve.initialize(nActive, nActiveSurface, nx);
 
     for (int i=0; i<nx; ++i)
-        pe.x[i] = xInit[i];
+        ppe.x[i] = xInit[i];
 
-    cout << "INIT PE=" << pe << endl;
-    cout << "INIT VE=" << ve << endl;
+
+    cout << "INIT PE=" << ppe << endl;
+    cout << "INIT VE=" << pve << endl;
 }
+
+
+
+//------------------------------------------------------------------------------
+//                            REALIZE POSITION
+//------------------------------------------------------------------------------
+void CablePath::Impl::
+realizePosition(const State& state) const {
+    ensurePositionKinematicsCalculated(state);
+}
+
+
+
+//------------------------------------------------------------------------------
+//                            REALIZE VELOCITY
+//------------------------------------------------------------------------------
+void CablePath::Impl::
+realizeVelocity(const State& state) const {
+    ensureVelocityKinematicsCalculated(state);
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -283,10 +348,85 @@ realizeInstance(const State& state) const {
 //------------------------------------------------------------------------------
 void CablePath::Impl::
 realizeAcceleration(const State& state) const {
-    PathVelEntry& pve = updVelEntry(state);
+    const PathVelEntry& pve = getVelEntry(state);
 
     cables->updZDot(state)[integratedLengthDotIx] = pve.lengthDot;
 }
+
+
+
+//------------------------------------------------------------------------------
+//                         CALC EVENT TRIGGER INFO
+//------------------------------------------------------------------------------
+// The integrators call this during initialization, *after* realize(Instance).
+void CablePath::Impl::
+calcEventTriggerInfo(const State& state, Array_<EventTriggerInfo>& info) const
+{
+    std::cout << "In CablePath::Impl::calcEventTriggerInfo()\n";
+
+    for (std::map<EventId,CableObstacleIndex>::const_iterator p =
+                                        mapEventIdToObstacle.begin();
+         p != mapEventIdToObstacle.end(); ++p)
+    {
+        EventTriggerInfo einfo;
+        einfo.setEventId(p->first);
+        einfo.setTriggerOnFallingSignTransition(true); // OK active->inactive
+        einfo.setTriggerOnRisingSignTransition(false); // TODO: debugging
+        einfo.setRequiredLocalizationTimeWindow(0.1); //10% of time scale
+        info.push_back(einfo);
+    }
+}
+
+
+
+//------------------------------------------------------------------------------
+//                               HANDLE EVENTS
+//------------------------------------------------------------------------------
+void CablePath::Impl::handleEvents
+    (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
+    const HandleEventsOptions& options, HandleEventsResults& results) const
+{
+    std::cout << "In CablePath::Impl::handleEvents() cause="
+              << Event::getCauseName(cause) << std::endl;
+    std::cout << "EventIds: " << eventIds << std::endl;
+
+    // We're going to modify the *State* variable here. The state is the
+    // one used as "previous" when evaluating the current path, which is what
+    // triggered the event. We'll modify the cache entry to change the 
+    // obstacle activation, then write the modified entry onto the state.
+    PathPosEntry& prevPPE = updPrevPosEntry(state);
+    std::cout << "PrevPPE in handler=\n" << prevPPE << std::endl;
+    PathPosEntry& currPPE = updPosEntry(state);
+    std::cout << "CurrPPE in handler=\n" << currPPE << std::endl;
+
+    // Look through the triggered events to see if any of the event ids 
+    // belong to this cable path. If so, activate or deactive the corresponding
+    // surface obstacle.
+    const PathInstanceInfo& instInfo = getInstanceInfo(state);
+    for (unsigned i=0; i < eventIds.size(); ++i) {
+        std::map<EventId,CableObstacleIndex>::const_iterator p =
+            mapEventIdToObstacle.find(eventIds[i]);
+        if (p==mapEventIdToObstacle.end())
+            continue;
+        const CableObstacleIndex   ox  = p->second;
+        const SurfaceObstacleIndex sox = instInfo.mapObstacleToSurface[ox];
+        if (instInfo.obstacleDisabled[ox]) {
+            std::cout << "ENABLE OBSTACLE " << ox << std::endl;
+            updInstanceInfo(state).obstacleDisabled[ox] = false;
+        } else {
+            std::cout << "DISABLE OBSTACLE " << ox << std::endl;
+            updInstanceInfo(state).obstacleDisabled[ox] = true;
+        }
+        currPPE.witnesses[sox] = 0;
+        realizeInstance(state);
+        prevPPE = currPPE; // TODO
+        updPrevVelEntry(state) = updVelEntry(state); // don't force computation
+    }
+
+    results.setExitStatus(HandleEventsResults::Succeeded);
+}
+
+
 
 //------------------------------------------------------------------------------
 //                  ENSURE POSITION KINEMATICS CALCULATED
@@ -301,8 +441,23 @@ ensurePositionKinematicsCalculated(const State& state) const {
 
     solveForPathPoints(state, instInfo, ppe);
 
+    Vector& eventTriggers = 
+        cables->updEventTriggersByStage(state,Stage::Position); 
+
+    for (SurfaceObstacleIndex i(0); i < instInfo.getNumSurfaceObstacles(); ++i)
+    {
+        const bool disabled = 
+            instInfo.obstacleDisabled[instInfo.mapSurfaceToObstacle[i]];
+        eventTriggers[eventIx+i] = disabled ? Real(0) : ppe.witnesses[i];
+
+        // FAKE touchdown; TODO
+        //if (disabled)
+        //    eventTriggers[eventIx+i] = 1.4-state.getTime();
+    }
+
     cables->markDiscreteVarUpdateValueRealized(state, posEntryIx);
 }
+
 
 
 //------------------------------------------------------------------------------
@@ -675,6 +830,7 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
 
     // Pass 2 : use above info to calculate errors from active surfaces.
 
+
     // Skip origin and termination "obstacles" at beginning and end.
     for (CableObstacleIndex ox(1); ox < obstacles.size()-1; ++ox) {
         const ActiveSurfaceIndex asx = ppe.mapToActiveSurface[ox];
@@ -694,16 +850,32 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
 
         const ActiveObstacleIndex ax = ppe.mapToActive[ox];
         const ActiveSurfaceIndex prevASX = prevPPE.mapToActiveSurface[ox];
+        const UnitVec3 eIn_S  = ~R_GS * ppe.eIn_G[ax];
+        const UnitVec3 eOut_S = ~R_GS * ppe.eIn_G[ax.next()];
         Vec6::updAs(&ppe.err[xSlot]) =
             obs.calcSurfacePathError(   
                 prevASX.isValid() ? prevPPE.geodesics[prevASX] : Geodesic(),
-                ~R_GS * ppe.eIn_G[ax],       // eIn_S
+                eIn_S,
                 Vec3::getAs(&ppe.x[xSlot]),  // xP
                 Vec3::getAs(&ppe.x[xSlot+3]),// xQ
-                ~R_GS *ppe.eIn_G[ax.next()], // eOut_S
+                eOut_S,
                 ppe.geodesics[asx] );
 
-        ppe.length += ppe.geodesics[asx].getLength();
+        const Geodesic& geod = ppe.geodesics[asx];
+        const Real signP = sign(dot(eIn_S,geod.getTangentP()));
+        const Real signQ = sign(dot(eOut_S,geod.getTangentQ()));
+        const bool isFlipped = (signP<0 && signQ<0);
+        const Real geoLength = isFlipped ? -geod.getLength() : geod.getLength();
+
+        ppe.length += geoLength;
+
+        const SurfaceObstacleIndex sox = instInfo.mapObstacleToSurface[ox];
+        assert(sox.isValid());
+
+        ppe.witnesses[sox] = geoLength;
+
+        std::cout << "WITNESS=" << ppe.witnesses[sox] << std::endl;
+
     }
 }
 
@@ -804,8 +976,8 @@ calcPathErrorJacobian(const State&            state,
         const Real ooNormOut = 1/rOut.norm(); 
 
         // Create unit vectors in S; "true" here means no need to normalize.
-        const UnitVec3 eIn (ooNormIn *rIn,  true);
-        const UnitVec3 eOut(ooNormOut*rOut, true); 
+        UnitVec3 eIn (ooNormIn *rIn,  true);
+        UnitVec3 eOut(ooNormOut*rOut, true); 
 
         Mat33 DeinDP   =  ooNormIn *(Mat33(1) - eIn*~eIn);
         Mat33 DeoutDQ  = -ooNormOut*(Mat33(1) - eOut*~eOut);
@@ -826,6 +998,7 @@ calcPathErrorJacobian(const State&            state,
             Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
             eOut,
             DehatDein, DehatDxP, DehatDxQ, DehatDeout);
+
         if (xSlot >= 3)
             ppe.J(xSlot,xSlot-3,6,3) = Matrix(DehatDein*DeinDQp);
         ppe.J(xSlot,xSlot,  6,3) = Matrix(DehatDxP + DehatDein *DeinDP);
@@ -994,6 +1167,10 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     err[2] = ~eIn*bP;   // tangent errors in geodesic direction
     err[3] = ~eOut*bQ;
 
+    // Watch for backwards geodesic and flip tangent error conditions.
+    if (~eIn*tP < 0 && ~eOut*tQ < 0)
+        err[2] = -err[2], err[3] = -err[3];
+
     //cout << "  surfErr=" << err << endl;
     return err;
 }
@@ -1024,7 +1201,7 @@ Vec6 CableObstacle::Surface::Impl::calcSurfaceNegKinematicVelocityError
     // error calculation, but negated.
     errdotK[0] = - ~eInDot*nP; 
     errdotK[1] = - ~eOutDot*nQ;
-    errdotK[2] = - ~eInDot*bP;
+    errdotK[2] = - ~eInDot*bP;  // TODO: flip?
     errdotK[3] = - ~eOutDot*bQ;
     // Implicit surface error is frozen since xP and xQ are.
     errdotK[4] = 0;
