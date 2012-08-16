@@ -206,6 +206,35 @@ int calcDecorativeGeometryAndAppendImpl
             }
             prevPoint = Q_G;
         }
+
+        // TODO: deal with inactive surfaces
+        for (SurfaceObstacleIndex sox(0); sox < instInfo.getNumSurfaceObstacles();
+             ++sox)
+        {
+            const CableObstacleIndex ox = instInfo.mapSurfaceToObstacle[sox];
+            if (ppe.mapToActiveSurface[ox].isValid())
+                continue; // skip active surface obstacles
+
+            const CableObstacle::Surface::Impl& obs = 
+                dynamic_cast<const CableObstacle::Surface::Impl&>
+                    (path.getObstacleImpl(ox));
+
+            const Vec3 P_S = ppe.closestSurfacePoint[sox];
+            const Vec3 L_S = ppe.closestPathPoint[sox];
+
+            const Transform& X_BS   = obs.getObstaclePoseOnBody(state,instInfo);
+            const MobilizedBody& B  = obs.getMobilizedBody();
+            const Transform& X_GB = B.getBodyTransform(state);
+            const Transform X_GS = X_GB*X_BS;
+
+            const Vec3 P_G = X_GS*P_S, L_G = X_GS*L_S;
+            decorations.push_back(
+                DecorativePoint(P_G).setColor(Purple).setLineThickness(2));
+            decorations.push_back(
+                DecorativePoint(L_G).setColor(Purple).setLineThickness(2));
+            decorations.push_back(
+                DecorativeLine(P_G,L_G).setColor(Purple));
+        }
     }
     return 0;
 }

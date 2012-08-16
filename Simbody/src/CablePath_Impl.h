@@ -112,6 +112,8 @@ public:
         mapToActiveSurface.clear(); mapToActiveSurface.resize(n);
         mapToCoords.clear();        mapToCoords.resize(n);
         witnesses.clear(); witnesses.resize(nSurfaces, Real(NaN));
+        closestSurfacePoint.clear(); closestSurfacePoint.resize(nSurfaces, Vec3(NaN));
+        closestPathPoint.clear(); closestPathPoint.resize(nSurfaces, Vec3(NaN));
         initialize(0,0,0); // not yet
     }
 
@@ -134,6 +136,16 @@ public:
         for (CableObstacleIndex ox(thisOx+1); ox < mapToActive.size(); ++ox)
             if (mapToActive[ox].isValid())
                 return ox;
+        return CableObstacleIndex();
+    }
+
+    // Return the obstacle index of the first active obstacle preceding the
+    // given obstacle. Returns an invalid index if there are no more in that
+    // direction.
+    CableObstacleIndex findPrevActiveObstacle(CableObstacleIndex thisOx) const {
+        for (CableObstacleIndex ox(thisOx); ox > 0; --ox)
+            if (mapToActive[ox.prev()].isValid())
+                return ox.prev();
         return CableObstacleIndex();
     }
 
@@ -175,6 +187,13 @@ public:
     // passes through zero when the cable lifts off or touches down on this
     // obstacle.
     Array_<Real,SurfaceObstacleIndex>               witnesses;
+    // Each inactive surface tracks the closest point on the surface to the
+    // path line segment that it would contact if it were active. We also
+    // keep the closest point on the path for display purposes. Both points
+    // are in the surface's local frame S. Only the
+    // slots for inactive surfaces have meaningful content here.
+    Array_<Vec3,SurfaceObstacleIndex>               closestSurfacePoint;
+    Array_<Vec3,SurfaceObstacleIndex>               closestPathPoint;
 
 
     //                       ACTIVE SURFACES
@@ -587,6 +606,8 @@ public:
          const Transform& pose, const ContactGeometry& geom) 
     :   Super(path, mobod, pose), surface(geom), 
         nearPointInS(NaN), xPhint(NaN), xQhint(NaN) {}
+
+    const ContactGeometry& getContactGeometry() const {return surface;}
 
     // Hardcoded for implicit surfaces -- would be 2 for parametric.
     int getNumCoordsPerContactPoint() const {return 3;}

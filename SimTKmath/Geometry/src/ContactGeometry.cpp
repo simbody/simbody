@@ -552,9 +552,10 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
 
         // Backtracking. Limit the starting step size if dx is too big.
         lam = std::min(1., MaxMove*(scale/dxrms));
-        if (lam < 1) 
-            std::cout << "PROJECT: LIMITED STEP: iter=" << cnt 
-                      << " lam=" << lam << endl;
+        if (lam < 1) {
+            //std::cout << "PROJECT: LIMITED STEP: iter=" << cnt 
+            //          << " lam=" << lam << endl;
+        }
         while (true) {
             x = xold - lam*dx;
             nearestPointJac.f((Vector)x, ftmp);
@@ -693,8 +694,8 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     Real frms2 = f.normSqr(); // initial error
 
     if (frms2 <= Ftol2) {
-        cout << "TRACK: already at extreme point with frms=" 
-             << std::sqrt(frms2) << endl;
+        //cout << "TRACK: already at extreme point with frms=" 
+        //     << std::sqrt(frms2) << endl;
         height = ~(closestPointOnLine - x) * nX;
         return true; // Success
     }
@@ -716,8 +717,11 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     const Real maxK = std::max(std::abs(kt),std::abs(kb));
     const Real scale2 = square(clamp(0.1, 1/maxK, 1000.)); // keep scale reasonable
 
-    cout << "TRACK starting x=" << x << ", f=" << f << ", frms=" 
-         << std::sqrt(frms2) << " scale est=" << std::sqrt(scale2) << "\n";
+    //cout << "TRACK START: line p0=" << pointOnLine << " d=" << directionOfLine << "\n";
+    //cout << "  starting x=" << x << " nX=" << nX << " scale est=" << std::sqrt(scale2) << "\n";
+    //cout << "  err=" << f << " rms=" << std::sqrt(frms2) 
+    //     << " closest line pt=" << closestPointOnLine
+    //     << " height=" << ~(closestPointOnLine - x) * nX << "\n";
 
     Differentiator diff(extremePointJac);
 
@@ -734,8 +738,8 @@ trackSeparationFromLine(const Vec3& pointOnLine,
         const Vec3 dx = J.invert()*f;
         const Real dxrms2 = dx.normSqr()/3;
 
-        cout << "det(J)=" << det(J)
-             << "full dxrms=" << std::sqrt(dxrms2) << " dx=" << dx << endl;
+        //cout << "det(J)=" << det(J)
+        //     << "full dxrms=" << std::sqrt(dxrms2) << " dx=" << dx << endl;
 
         const Vec3 xOld     = x;        // Save previous solution & its norm.
         const Real frms2Old = frms2;
@@ -746,8 +750,8 @@ trackSeparationFromLine(const Vec3& pointOnLine,
         Real stepFrac = 1;
         if (stepFrac2 < 1) {
             stepFrac = std::sqrt(stepFrac2); // not done often
-            cout << "TRACK: LIMITED STEP: iter=" << stepCount 
-                      << " stepFrac=" << stepFrac << endl;
+            //cout << "TRACK: LIMITED STEP: iter=" << stepCount 
+            //          << " stepFrac=" << stepFrac << endl;
             ++limitedStepCount;
         }
         Real xchgrms2; // norm^2 of the actual change we make to X
@@ -763,13 +767,13 @@ trackSeparationFromLine(const Vec3& pointOnLine,
             stepFrac /= 2;
         }
 
-        cout << stepCount << ": TRACK lam=" << stepFrac << " |lam*dx|=" << (stepFrac*dx).norm() 
-                    << " lam*dx=" << stepFrac*dx << "-> new x=" << x << "\n"; 
-        cout << "     |f|=" << std::sqrt(frms2) << " f=" << f  << "\n";
+        //cout << stepCount << ": TRACK lam=" << stepFrac << " |lam*dx|=" << (stepFrac*dx).norm() 
+        //            << " lam*dx=" << stepFrac*dx << "-> new x=" << x << "\n"; 
+        //cout << "     |f|=" << std::sqrt(frms2) << " f=" << f  << "\n";
 
         if (frms2 <= Ftol2) { // found solution
-            cout << "TRACK CONVERGED in " << stepCount << " steps, frms=" 
-                 << std::sqrt(frms2) << endl;
+            //cout << "TRACK CONVERGED in " << stepCount << " steps, frms=" 
+            //     << std::sqrt(frms2) << endl;
             succeeded = true;
             break;
         }
@@ -782,34 +786,36 @@ trackSeparationFromLine(const Vec3& pointOnLine,
                 f = extremePointJac.calcExtremePointError(x, nX, closestPointOnLine);
                 frms2 = f.normSqr()/3;
             }
-            cout << "TRACK FAILED at " << stepCount << " steps, frms=" 
-                 << std::sqrt(frms2) << endl;
+            //cout << "TRACK FAILED at " << stepCount << " steps, frms=" 
+            //     << std::sqrt(frms2) << endl;
             break;
         }
 
         // We took a step and made an improvement but haven't converged yet.
 
         if (xchgrms2 < Xtol2) { // check step size
-            std::cout << "TRACK: STALLED on step size, xchg=" << std::sqrt(xchgrms2) 
-                        << " frms=" << std::sqrt(frms2) << std::endl;
+            //std::cout << "TRACK: STALLED on step size, xchg=" << std::sqrt(xchgrms2) 
+            //            << " frms=" << std::sqrt(frms2) << std::endl;
             break;
         }
 
         if (stepCount-limitedStepCount > MaxNewtonIterations
             || stepCount > MaxTotalIterations) {
-            cout << "TRACK: MAX iterations taken" << endl;
+            //cout << "TRACK: MAX iterations taken" << endl;
             break; // Return whatever we got.
         }
 
     } while (true);
 
-    if (!succeeded) {
-        cout << "!!! TRACK -- failed with ftol=" << std::sqrt(frms2) << "\n\n";
+    if (!succeeded)
         x = projectDownhillToNearestPoint(x); // push to surface
-    } else 
-        cout << "TRACK -- succeeded with ftol=" << std::sqrt(frms2) << "\n\n";
-
+    
     height = ~(closestPointOnLine - x) * nX;
+    
+    //cout << "TRACK END:  x=" << x << " nX=" << nX << "\n";
+    //cout << "  err=" << f << " rms=" << std::sqrt(frms2) 
+    //     << " closest line pt=" << closestPointOnLine 
+    //     << " height=" << height << "\n";
     return succeeded;
 }
 

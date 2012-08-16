@@ -414,6 +414,15 @@ void CablePath::Impl::handleEvents
             std::cout << "ENABLE OBSTACLE " << ox << std::endl;
             updInstanceInfo(state).obstacleDisabled[ox] = false;
         } else {
+            // Save the point of last contact as the initial guess for 
+            // closest point tracking.
+            const CableObstacle::Surface::Impl& obs = 
+                dynamic_cast<const CableObstacle::Surface::Impl&>
+                    (getObstacleImpl(ox));
+            Vec3 P_S, Q_S; // these will be almost the same point
+            obs.getContactPointsOnObstacle(state,instInfo,currPPE,P_S,Q_S);
+            currPPE.closestSurfacePoint[sox] = (P_S+Q_S)/2;
+            currPPE.closestPathPoint[sox] = (P_S+Q_S)/2;
             std::cout << "DISABLE OBSTACLE " << ox << std::endl;
             updInstanceInfo(state).obstacleDisabled[ox] = true;
         }
@@ -437,22 +446,81 @@ ensurePositionKinematicsCalculated(const State& state) const {
         return;
 
     const PathInstanceInfo& instInfo = getInstanceInfo(state);
+    const PathPosEntry&     prevPPE  = getPrevPosEntry(state);
     PathPosEntry&           ppe      = updPosEntry(state);
 
     solveForPathPoints(state, instInfo, ppe);
+
+
+    //TODO: combine with earlier loop
+    for (SurfaceObstacleIndex sox(0); sox < instInfo.getNumSurfaceObstacles();
+         ++sox)
+    {
+        const CableObstacleIndex ox = instInfo.mapSurfaceToObstacle[sox];
+        if (ppe.mapToActiveSurface[ox].isValid())
+            continue; // skip active surface obstacles
+        const CableObstacleIndex prevOx = ppe.findPrevActiveObstacle(ox);
+        const CableObstacleIndex nextOx = ppe.findNextActiveObstacle(ox);
+        assert(prevOx.isValid() && nextOx.isValid());
+
+        const CableObstacle::Surface::Impl& thisObs = 
+            dynamic_cast<const CableObstacle::Surface::Impl&>
+                (getObstacleImpl(ox));
+        const CableObstacle::Impl& prevObs = getObstacleImpl(prevOx);
+        const CableObstacle::Impl& nextObs = getObstacleImpl(nextOx);
+
+        // We're going to work in the body frames Bprev, Bthis, Bnext and
+        // then reexpress in S when we get to the "in" and "out" vectors.
+
+        // Abbreviate Bp=Bprev, Bn=Bnext, B=Bthis.
+        const MobilizedBody& Bp = prevObs.getMobilizedBody();
+        const MobilizedBody& B  = thisObs.getMobilizedBody();
+        const MobilizedBody& Bn = nextObs.getMobilizedBody();
+
+        const Rotation R_BBp = Bp.findBodyRotationInAnotherBody(state, B);
+        const Rotation R_BBn = Bn.findBodyRotationInAnotherBody(state, B);
+
+        const Rotation& R_BpSp = prevObs.getObstaclePoseOnBody(state,instInfo).R();
+        const Transform& X_BS  = thisObs.getObstaclePoseOnBody(state,instInfo);
+        const Rotation& R_BS   = X_BS.R();
+        const Rotation& R_BnSn = nextObs.getObstaclePoseOnBody(state,instInfo).R();
+        const Rotation R_SB = ~R_BS;
+        const Rotation R_SSp = R_SB*R_BBp*R_BpSp;
+        const Rotation R_SSn = R_SB*R_BBn*R_BnSn;
+
+        Vec3 Pp, Qp, Pn, Qn; // points in local body frames
+        prevObs.getContactStationsOnBody(state, instInfo, ppe, Pp, Qp);
+        nextObs.getContactStationsOnBody(state, instInfo, ppe, Pn, Qn);
+
+        // Find prev and next points measured from & expressed in Bthis.
+        const Vec3 r_BQp = Bp.findStationLocationInAnotherBody(state, Qp, B);
+        const Vec3 r_BPn = Bn.findStationLocationInAnotherBody(state, Pn, B);
+
+        // Now shift into S frame.
+        const Vec3 r_SQp = ~X_BS*r_BQp;
+        const Vec3 r_SPn = ~X_BS*r_BPn;
+        const Vec3 r_QpPn = (r_SPn - r_SQp);
+        const UnitVec3 d_QpPn(r_QpPn); // direction of line
+
+        const ContactGeometry& geo = thisObs.getContactGeometry();
+        const Vec3 prevClosestPt = prevPPE.closestSurfacePoint[sox];
+        Vec3 closestPointOnSurface, closestPointOnLine; Real height;
+        bool succeeded = geo.trackSeparationFromLine
+            ((r_SPn+r_SQp)/2, d_QpPn,
+            prevClosestPt, closestPointOnSurface, closestPointOnLine, height);
+
+        ppe.witnesses[sox] = height;
+        ppe.closestSurfacePoint[sox] = closestPointOnSurface;
+        ppe.closestPathPoint[sox] = closestPointOnLine;
+        //std::cout << "HEIGHT=" << ppe.witnesses[sox] << std::endl;
+    }
 
     Vector& eventTriggers = 
         cables->updEventTriggersByStage(state,Stage::Position); 
 
     for (SurfaceObstacleIndex i(0); i < instInfo.getNumSurfaceObstacles(); ++i)
     {
-        const bool disabled = 
-            instInfo.obstacleDisabled[instInfo.mapSurfaceToObstacle[i]];
-        eventTriggers[eventIx+i] = disabled ? Real(0) : ppe.witnesses[i];
-
-        // FAKE touchdown; TODO
-        //if (disabled)
-        //    eventTriggers[eventIx+i] = 1.4-state.getTime();
+        eventTriggers[eventIx+i] = ppe.witnesses[i];
     }
 
     cables->markDiscreteVarUpdateValueRealized(state, posEntryIx);
@@ -874,9 +942,9 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
 
         ppe.witnesses[sox] = geoLength;
 
-        std::cout << "WITNESS=" << ppe.witnesses[sox] << std::endl;
-
+        //std::cout << "WITNESS=" << ppe.witnesses[sox] << std::endl;
     }
+
 }
 
 //------------------------------------------------------------------------------
