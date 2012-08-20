@@ -539,6 +539,14 @@ friend class CablePath;
         (const State&, const PathInstanceInfo&, const PathPosEntry&,
          PathVelEntry&) const;
 
+    // Call this for any obstacle except the end points to obtain the 
+    // segment between the previous and next active obstacles which is the
+    // part with which this obstacle may interact. The points are returned
+    // in the local frame S of the given obstacle.
+    void findPathSegmentForObstacle
+       (const State&, const PathInstanceInfo&, const PathPosEntry&,
+        CableObstacleIndex ox, Vec3& Qprev_S, Vec3& Pnext_S) const;
+
 
     // Subsystem to which this path belongs, and the index within that
     // subsystem.
@@ -670,6 +678,23 @@ public:
                                 const Vec3&     xQ,
                                 const UnitVec3& exitDir_S,
                                 Geodesic&       next) const;
+
+    // Calculate the 6-vector surface-local path error due to the given 
+    // entry/exit points and directions being inconsistent with a geodesic 
+    // connecting those points, and the 6x12 Jacobian of the errors with respect 
+    // to each of the 12 measure numbers of the 4 input vectors.
+    Vec6 calcSurfacePathErrorAndJacobian
+       (const Geodesic& previous,
+        const UnitVec3& entryDir_S,
+        const Vec3&     xP_S,
+        const Vec3&     xQ_S,
+        const UnitVec3& exitDir_S,
+        Geodesic&       next,
+        Mat63&          DerrDentry, // 4x3 for parametric
+        Mat63&          DerrDxP,    // 4x2       "
+        Mat63&          DerrDxQ,    // 4x2       "
+        Mat63&          DerrDexit)  // 4x3       "
+        const;
 
 
     // Calculate partial derivatives of the surface path error with respect to

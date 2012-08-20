@@ -269,7 +269,7 @@ int main() {
     Ground.addBodyDecoration(Transform(Rotation(Pi/2,XAxis),Vec3(0,-1,0)), 
         DecorativeCylinder(CylRad,HalfLen).setOpacity(.75)
            .setResolution(4).setColor(Orange));
-    obstacle2.setContactPointHints(CylRad*UnitVec3(1,1,0),CylRad*UnitVec3(1,.5,0));
+    obstacle2.setContactPointHints(1.2*CylRad*UnitVec3(1,1,0),1.2*CylRad*UnitVec3(1,.5,0));
 
     ////CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
     ////CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));

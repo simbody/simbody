@@ -98,6 +98,7 @@ void handleEvents
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath& path = getCablePath(ix);
         path.getImpl().handleEvents(state,cause,eventIds,options,results);
+        getSystem().realize(state, Stage::Position); // TODO
     }
 }
 

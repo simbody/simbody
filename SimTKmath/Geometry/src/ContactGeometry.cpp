@@ -1206,14 +1206,14 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     if (!prevGeod.getNumPoints()) {
         const Vec3 PQ = Q-P;
         const Real length = PQ.norm();
-        if (length < SqrtEps) { // TODO: should depend on curvature
+        if (length < /*SqrtEps*/1e-3) { // TODO: should depend on curvature
             const UnitVec3 d = length<TinyReal ? UnitVec3(XAxis)
                 : UnitVec3(PQ/length, true);
             makeStraightLineGeodesic(P, Q, d, options, geod);
             return;
         }
-        //calcGeodesicUsingOrthogonalMethod(P, Q, PQ/length, length, geod);
-        calcGeodesicAnalytical(P, Q, PQ, PQ, geod);
+        calcGeodesicUsingOrthogonalMethod(P, Q, PQ/length, length, geod);
+        //calcGeodesicAnalytical(P, Q, PQ, PQ, geod);
         return;
     }
 
@@ -1265,11 +1265,11 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
 
     //calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
     //calcGeodesic(P, Q, tPhint, tQhint, geod);
-    if (newPQlen < SqrtEps) 
+    if (newPQlen < /*SqrtEps*/1e-3) //TODO
         makeStraightLineGeodesic(P, Q, tPhint, options, geod);
     else 
-        calcGeodesicAnalytical(P, Q, tPhint, tQhint, geod);
-        //calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
+        //calcGeodesicAnalytical(P, Q, tPhint, tQhint, geod);
+        calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
 }
 
 
@@ -1685,7 +1685,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     // Newton solver settings
     const Real ftol = 1e-9;
     const Real xtol = 1e-12;
-    const Real minlam = 1e-9;
+    const Real minlam = 1e-3;
     const int MaxIterations = 25;
 
     bool useNewtonIteration = true;
@@ -1724,8 +1724,8 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         //std::cout << "ORTHO x= " << x << " err = " << Fx << " |err|=" << f 
         //          << " dist=" << dist << std::endl;
         if (f <= ftol) {
-            std::cout << "ORTHO geodesic converged in " 
-                      << i << " iterations with err=" << f << std::endl;
+            //std::cout << "ORTHO geodesic converged in " 
+             //         << i << " iterations with err=" << f << std::endl;
             break;
         }
 
@@ -1746,7 +1746,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             const Real mu = geod.getBinormalCurvatureQ();
 
            // printf("eh=%g es=%g, eb=%g, j=%g, tau=%g, kappa=%g, mu=%g\n",
-             //   eh,es,eb,j,tau,kappa,mu);
+            //  eh,es,eb,j,tau,kappa,mu);
 
             Mat22 newJ( -(jd*es+j*(mu*eh-1)),      -tau*eh,
                          -(j*tau*eh-jd*eb),      1-kappa*eh );
@@ -1766,17 +1766,33 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         fold = f;
         xold = x;
 
-        // backtracking
+        // backtracking. Limit angle changes to around 22 degrees.
+        const Real dtheta = std::abs(dx[0]);
         lam = 1;
+        if (dtheta > Pi/8) {
+            lam = (Pi/8)/dtheta; 
+            cout << "ORTHO: lam reduced to " << lam << "\n";
+        }
+
         while (true) {
             x = xold - lam*dx;
             //cout << "at lam=" << lam << " x-lam*dx=" << x << endl;
             // Negative length means flip direction.
+            Vec2 xadj = x;
+            bool flipped = false;
             if (x[1] < 0) {
-                cout << "NEGATIVE LENGTH; flipping\n";
-                x = -x; // both angle and length negated
+                cout << "NEGATIVE LENGTH; x=" << x << "; flipping\n";
+                cout << "P=" << P << " Q=" << Q << " Q-P=" << Q-P
+                     << "d=" << (Q-P).norm() << "\n";
+                cout << "tP=" << R_SP.x() <<
+                     "(Q-P).tP=" << ~(Q-P)*R_SP.x() << "\n";
+                if (x[1] < -SqrtEps) {
+                    xadj[0] -= Pi; xadj[1] = -xadj[1];  // flip
+                    flipped = true;
+                } else xadj[1]=0; // ignore
             }
-            Fx = calcOrthogonalGeodError(P, Q, x[0], x[1],geod);
+            Fx = calcOrthogonalGeodError(P, Q, xadj[0], xadj[1],geod);
+            if (flipped) Fx[1] = -Fx[1];
             f = std::sqrt(~Fx*Fx);
             dist = (geod.getPointQ()-Q).norm();
             //cout << "step size=" << lam << " errNorm=" << f << " dist=" << dist << endl;
@@ -1787,7 +1803,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             }
         }
         if (f > ftol && maxabsdiff(x,xold) < xtol) {
-            std::cout << "ORTHO converged on step size after " 
+            std::cout << "ORTHO terminated on too-small step size after " 
                       << i << " iterations" << std::endl;
             std::cout << "err = " << Fx << std::endl;
             break;
@@ -1884,9 +1900,15 @@ calcOrthogonalGeodError(const Vec3& xP, const Vec3& xQ,
     geod.clear();
 
     GeodesicOptions opts;
-    shootGeodesicInDirectionUntilLengthReached(xP, tP, length, opts, geod);
 
-    const Vec3& Qhat = geod.getPointQ();
+    Vec3 Qhat;
+    if (length < 1e-3) { // TODO
+        Qhat = xP + length*tP;
+        this->makeStraightLineGeodesic(xP, Qhat, tP, opts, geod);
+    } else {
+        shootGeodesicInDirectionUntilLengthReached(xP, tP, length, opts, geod);
+        Qhat = geod.getPointQ();
+    }
     const Vec3 r_QQhat = Qhat - xQ;
 
     const Real eb = ~r_QQhat * geod.getBinormalQ(); // length errors

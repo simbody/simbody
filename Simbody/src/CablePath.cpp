@@ -390,19 +390,42 @@ void CablePath::Impl::handleEvents
               << Event::getCauseName(cause) << std::endl;
     std::cout << "EventIds: " << eventIds << std::endl;
 
+
+    const PathInstanceInfo& instInfo = getInstanceInfo(state);
+    PathPosEntry& currPPE = updPosEntry(state);
+
+    // Capture the current path segments before we invalidate the state.
+    // TODO: won't be a problem when we're doing this in PPE rather than
+    // by disabling.
+    std::map<CableObstacleIndex, Vec3> r_SQp;
+    std::map<CableObstacleIndex, Vec3> r_SPn;
+    for (unsigned i=0; i < eventIds.size(); ++i) {
+        std::map<EventId,CableObstacleIndex>::const_iterator p =
+            mapEventIdToObstacle.find(eventIds[i]);
+        if (p==mapEventIdToObstacle.end())
+            continue;
+        const CableObstacleIndex   ox  = p->second;
+        if (instInfo.obstacleDisabled[ox]) {
+            Vec3 rSQp, rSPn;
+            findPathSegmentForObstacle(state, instInfo, currPPE, ox, 
+                                       rSQp, rSPn);
+            r_SQp[ox] = rSQp;
+            r_SPn[ox] = rSPn;
+        }
+    }
+
+
     // We're going to modify the *State* variable here. The state is the
     // one used as "previous" when evaluating the current path, which is what
     // triggered the event. We'll modify the cache entry to change the 
     // obstacle activation, then write the modified entry onto the state.
     PathPosEntry& prevPPE = updPrevPosEntry(state);
     std::cout << "PrevPPE in handler=\n" << prevPPE << std::endl;
-    PathPosEntry& currPPE = updPosEntry(state);
     std::cout << "CurrPPE in handler=\n" << currPPE << std::endl;
 
     // Look through the triggered events to see if any of the event ids 
     // belong to this cable path. If so, activate or deactive the corresponding
     // surface obstacle.
-    const PathInstanceInfo& instInfo = getInstanceInfo(state);
     for (unsigned i=0; i < eventIds.size(); ++i) {
         std::map<EventId,CableObstacleIndex>::const_iterator p =
             mapEventIdToObstacle.find(eventIds[i]);
@@ -410,24 +433,39 @@ void CablePath::Impl::handleEvents
             continue;
         const CableObstacleIndex   ox  = p->second;
         const SurfaceObstacleIndex sox = instInfo.mapObstacleToSurface[ox];
+        const CableObstacle::Surface::Impl& obs = 
+            dynamic_cast<const CableObstacle::Surface::Impl&>
+                (getObstacleImpl(ox));
         if (instInfo.obstacleDisabled[ox]) {
             std::cout << "ENABLE OBSTACLE " << ox << std::endl;
+            // Grab points before we invalidate the state.
+            Vec3 rSQp = r_SQp[ox], rSPn = r_SPn[ox];
             updInstanceInfo(state).obstacleDisabled[ox] = false;
+            realizeInstance(state);
+            // now it's active
+            const ActiveSurfaceIndex asx = currPPE.mapToActiveSurface[ox];
+            const int xSlot = currPPE.mapToCoords[ox];
+            assert(xSlot >= 0); // Should have had coordinates assigned
+            const Vec3 P = currPPE.closestSurfacePoint[sox];
+            Vec3::updAs(&currPPE.x[xSlot+0]) = P;
+            Vec3::updAs(&currPPE.x[xSlot+3]) = P;
+            const ContactGeometry& geom = obs.getContactGeometry();
+            Geodesic zeroLength;
+            geom.makeStraightLineGeodesic(P,P,UnitVec3(rSPn-rSQp),
+                GeodesicOptions(),zeroLength);
+            currPPE.geodesics[asx] = zeroLength;
         } else {
             // Save the point of last contact as the initial guess for 
             // closest point tracking.
-            const CableObstacle::Surface::Impl& obs = 
-                dynamic_cast<const CableObstacle::Surface::Impl&>
-                    (getObstacleImpl(ox));
             Vec3 P_S, Q_S; // these will be almost the same point
             obs.getContactPointsOnObstacle(state,instInfo,currPPE,P_S,Q_S);
             currPPE.closestSurfacePoint[sox] = (P_S+Q_S)/2;
             currPPE.closestPathPoint[sox] = (P_S+Q_S)/2;
             std::cout << "DISABLE OBSTACLE " << ox << std::endl;
             updInstanceInfo(state).obstacleDisabled[ox] = true;
+            realizeInstance(state);
         }
         currPPE.witnesses[sox] = 0;
-        realizeInstance(state);
         prevPPE = currPPE; // TODO
         updPrevVelEntry(state) = updVelEntry(state); // don't force computation
     }
@@ -435,7 +473,58 @@ void CablePath::Impl::handleEvents
     results.setExitStatus(HandleEventsResults::Succeeded);
 }
 
+//------------------------------------------------------------------------------
+//                    FIND PATH SEGMENT FOR OBSTACLE
+//------------------------------------------------------------------------------
+// Private helper method for finding this object's path segment (the segment
+// between the previous and next obstacles).
+void CablePath::Impl::
+findPathSegmentForObstacle
+    (const State& state, const PathInstanceInfo& instInfo, 
+     const PathPosEntry& ppe, CableObstacleIndex ox, 
+     Vec3& Qprev_S, Vec3& Pnext_S) const
+{
+    const CableObstacleIndex prevOx = ppe.findPrevActiveObstacle(ox);
+    const CableObstacleIndex nextOx = ppe.findNextActiveObstacle(ox);
+    assert(prevOx.isValid() && nextOx.isValid());
 
+    const CableObstacle::Surface::Impl& thisObs = 
+        dynamic_cast<const CableObstacle::Surface::Impl&>
+            (getObstacleImpl(ox));
+    const CableObstacle::Impl& prevObs = getObstacleImpl(prevOx);
+    const CableObstacle::Impl& nextObs = getObstacleImpl(nextOx);
+
+    // We're going to work in the body frames Bprev, Bthis, Bnext and
+    // then reexpress in S when we get to the "in" and "out" vectors.
+
+    // Abbreviate Bp=Bprev, Bn=Bnext, B=Bthis.
+    const MobilizedBody& Bp = prevObs.getMobilizedBody();
+    const MobilizedBody& B  = thisObs.getMobilizedBody();
+    const MobilizedBody& Bn = nextObs.getMobilizedBody();
+
+    const Rotation R_BBp = Bp.findBodyRotationInAnotherBody(state, B);
+    const Rotation R_BBn = Bn.findBodyRotationInAnotherBody(state, B);
+
+    const Rotation& R_BpSp = prevObs.getObstaclePoseOnBody(state,instInfo).R();
+    const Transform& X_BS  = thisObs.getObstaclePoseOnBody(state,instInfo);
+    const Rotation& R_BS   = X_BS.R();
+    const Rotation& R_BnSn = nextObs.getObstaclePoseOnBody(state,instInfo).R();
+    const Rotation R_SB = ~R_BS;
+    const Rotation R_SSp = R_SB*R_BBp*R_BpSp;
+    const Rotation R_SSn = R_SB*R_BBn*R_BnSn;
+
+    Vec3 Pp, Qp, Pn, Qn; // points in local body frames
+    prevObs.getContactStationsOnBody(state, instInfo, ppe, Pp, Qp);
+    nextObs.getContactStationsOnBody(state, instInfo, ppe, Pn, Qn);
+
+    // Find prev and next points measured from & expressed in Bthis.
+    const Vec3 r_BQp = Bp.findStationLocationInAnotherBody(state, Qp, B);
+    const Vec3 r_BPn = Bn.findStationLocationInAnotherBody(state, Pn, B);
+
+    // Now shift into S frame.
+    Qprev_S = ~X_BS*r_BQp;
+    Pnext_S = ~X_BS*r_BPn;
+}
 
 //------------------------------------------------------------------------------
 //                  ENSURE POSITION KINEMATICS CALCULATED
@@ -459,50 +548,18 @@ ensurePositionKinematicsCalculated(const State& state) const {
         const CableObstacleIndex ox = instInfo.mapSurfaceToObstacle[sox];
         if (ppe.mapToActiveSurface[ox].isValid())
             continue; // skip active surface obstacles
-        const CableObstacleIndex prevOx = ppe.findPrevActiveObstacle(ox);
-        const CableObstacleIndex nextOx = ppe.findNextActiveObstacle(ox);
-        assert(prevOx.isValid() && nextOx.isValid());
 
-        const CableObstacle::Surface::Impl& thisObs = 
-            dynamic_cast<const CableObstacle::Surface::Impl&>
-                (getObstacleImpl(ox));
-        const CableObstacle::Impl& prevObs = getObstacleImpl(prevOx);
-        const CableObstacle::Impl& nextObs = getObstacleImpl(nextOx);
+        Vec3 r_SQp, r_SPn;
+        findPathSegmentForObstacle(state, instInfo, ppe, ox, r_SQp, r_SPn);
 
-        // We're going to work in the body frames Bprev, Bthis, Bnext and
-        // then reexpress in S when we get to the "in" and "out" vectors.
-
-        // Abbreviate Bp=Bprev, Bn=Bnext, B=Bthis.
-        const MobilizedBody& Bp = prevObs.getMobilizedBody();
-        const MobilizedBody& B  = thisObs.getMobilizedBody();
-        const MobilizedBody& Bn = nextObs.getMobilizedBody();
-
-        const Rotation R_BBp = Bp.findBodyRotationInAnotherBody(state, B);
-        const Rotation R_BBn = Bn.findBodyRotationInAnotherBody(state, B);
-
-        const Rotation& R_BpSp = prevObs.getObstaclePoseOnBody(state,instInfo).R();
-        const Transform& X_BS  = thisObs.getObstaclePoseOnBody(state,instInfo);
-        const Rotation& R_BS   = X_BS.R();
-        const Rotation& R_BnSn = nextObs.getObstaclePoseOnBody(state,instInfo).R();
-        const Rotation R_SB = ~R_BS;
-        const Rotation R_SSp = R_SB*R_BBp*R_BpSp;
-        const Rotation R_SSn = R_SB*R_BBn*R_BnSn;
-
-        Vec3 Pp, Qp, Pn, Qn; // points in local body frames
-        prevObs.getContactStationsOnBody(state, instInfo, ppe, Pp, Qp);
-        nextObs.getContactStationsOnBody(state, instInfo, ppe, Pn, Qn);
-
-        // Find prev and next points measured from & expressed in Bthis.
-        const Vec3 r_BQp = Bp.findStationLocationInAnotherBody(state, Qp, B);
-        const Vec3 r_BPn = Bn.findStationLocationInAnotherBody(state, Pn, B);
-
-        // Now shift into S frame.
-        const Vec3 r_SQp = ~X_BS*r_BQp;
-        const Vec3 r_SPn = ~X_BS*r_BPn;
         const Vec3 r_QpPn = (r_SPn - r_SQp);
         const UnitVec3 d_QpPn(r_QpPn); // direction of line
 
+        const CableObstacle::Surface::Impl& thisObs = 
+        dynamic_cast<const CableObstacle::Surface::Impl&>
+            (getObstacleImpl(ox));
         const ContactGeometry& geo = thisObs.getContactGeometry();
+
         const Vec3 prevClosestPt = prevPPE.closestSurfacePoint[sox];
         Vec3 closestPointOnSurface, closestPointOnLine; Real height;
         bool succeeded = geo.trackSeparationFromLine
@@ -672,12 +729,11 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
         ppe.JInv.solve(ppe.err, dx);
 
-        const Real dxnorm = dx.norm();
+        const Real dxnorm = std::sqrt(dx.normSqr()/ppe.x.size()); // rms
         cout << "|dx| = " << dxnorm << endl;
         if (dxnorm > .99*dxnormPrev) {
-           std::cout << "\nPATH diverged in " 
-                << i << " iterations err=" << f << "\n\n";
-
+           std::cout << "\nPATH stalled in " 
+                << i << " iterations err=" << f << " |dx|=" << dxnorm << "\n\n";
             break;
         }
 
@@ -966,6 +1022,8 @@ calcPathErrorJacobian(const State&            state,
                       PathPosEntry&           ppe) // in/out
                       const
 {
+    const PathPosEntry& prevPPE = getPrevPosEntry(state);
+
     const int nx = ppe.x.size();
     ppe.J.resize(nx, nx);
     ppe.J.setToZero();
@@ -1058,14 +1116,38 @@ calcPathErrorJacobian(const State&            state,
         const int xSlot = ppe.mapToCoords[thisActiveOx];
         assert(xSlot >= 0); // Should have had coordinates assigned
  
-        Mat63 DehatDein, DehatDxP, DehatDxQ, DehatDeout;
+        Mat63 DehatDein1, DehatDxP1, DehatDxQ1, DehatDeout1;
         thisObs.calcSurfacePathErrorJacobian
            (ppe.geodesics[asx],             // solved geodesic
             eIn,                            // in S frame
             Vec3::getAs(&ppe.x[xSlot]),     // xP
             Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
             eOut,
+            DehatDein1, DehatDxP1, DehatDxQ1, DehatDeout1);
+
+        const ActiveSurfaceIndex prevASX = 
+            prevPPE.mapToActiveSurface[thisActiveOx];
+
+        Geodesic nextGeo;
+        Mat63 DehatDein, DehatDxP, DehatDxQ, DehatDeout;
+        Vec6 err2 = thisObs.calcSurfacePathErrorAndJacobian
+           (prevASX.isValid() ? prevPPE.geodesics[prevASX] : Geodesic(),
+            eIn,                            // in S frame
+            Vec3::getAs(&ppe.x[xSlot]),     // xP
+            Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
+            eOut,
+            nextGeo,
             DehatDein, DehatDxP, DehatDxQ, DehatDeout);
+
+        cout << "err2=" << err2 << endl;
+
+        cout << "DehatDxP =" << DehatDxP;
+        cout << "DehatDxP1=" << DehatDxP1;
+        cout << "diff=" << (DehatDxP-DehatDxP1).norm() << ": " << (DehatDxP-DehatDxP1);
+
+        cout << "DehatDxQ =" << DehatDxQ;
+        cout << "DehatDxQ1=" << DehatDxQ1;
+        cout << "diff=" << (DehatDxQ-DehatDxQ1).norm() << ": " << (DehatDxQ-DehatDxQ1);
 
         if (xSlot >= 3)
             ppe.J(xSlot,xSlot-3,6,3) = Matrix(DehatDein*DeinDQp);
@@ -1243,6 +1325,100 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     return err;
 }
 
+
+
+//------------------------------------------------------------------------------
+//                       CALC SURFACE PATH ERROR AND JACOBIAN
+//------------------------------------------------------------------------------
+Vec6 CableObstacle::Surface::Impl::calcSurfacePathErrorAndJacobian
+   (const Geodesic& previous,
+    const UnitVec3& eIn,        // from Qi-1 to Pi, in S
+    const Vec3&     xP,         // coordinates of Pi, in S
+    const Vec3&     xQ,         // coordinates of Qi, in S
+    const UnitVec3& eOut,       // from Qi to Pi+1, in S
+    Geodesic&       next,
+    Mat63&          DerrDentry, // 4x3 for parametric
+    Mat63&          DerrDxP,    // 4x2       "
+    Mat63&          DerrDxQ,    // 4x2       "
+    Mat63&          DerrDexit)  // 4x3       "
+    const
+{
+    //cout << "calcSurfacePathError(): xP=" << xP << " xQ=" << xQ << endl;
+    //cout << "  eIn=" << eIn << " eOut=" << eOut << endl;
+
+    UnitVec3 nP = surface.calcSurfaceUnitNormal(xP);
+    UnitVec3 nQ = surface.calcSurfaceUnitNormal(xQ);
+
+    Vec6 err;
+    err[0] = ~eIn*nP;   // tangent error in normal direction
+    err[1] = ~eOut*nQ;
+    // These are the implicit surface errors forcing P and Q to lie on the
+    // surface.
+    err[4] = surface.calcSurfaceValue(xP);
+    err[5] = surface.calcSurfaceValue(xQ);
+
+    //surface.calcGeodesic(xP, xQ, eIn, eOut, next);
+    //surface.calcGeodesicAnalytical(xP, xQ, eIn, eOut, next);
+
+    const Real sHint = previous.getNumPoints() ? previous.getLength()
+                                               : (xQ-xP).norm();
+    //surface.calcGeodesicUsingOrthogonalMethod(xP, xQ, eIn, sHint, next);
+    
+    surface.continueGeodesic(xP, xQ, previous, GeodesicOptions(), next);
+    //cout << "  geodesic had length " << next.getLength() << endl;
+
+    const UnitVec3& tP = next.getTangentP();
+    const UnitVec3& tQ = next.getTangentQ();
+    const UnitVec3& bP = next.getBinormalP();
+    const UnitVec3& bQ = next.getBinormalQ();
+    // Watch for backwards geodesic and flip tangent error conditions.
+    const Real signP = ~eIn *tP < 0 ? -1. : 1.;
+    const Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    err[2] = signP*(~eIn*bP);   // tangent errors in geodesic direction
+    err[3] = signQ*(~eOut*bQ);
+
+    const Real jP = next.getJacobiP(), 
+               jQ = next.getJacobiQ();
+    const Real jdP = next.getJacobiPDot(), 
+               jdQ = next.getJacobiQDot();
+    const Real tauP = next.getTorsionP(), 
+               tauQ = next.getTorsionQ();
+    const Real kappaP = next.getCurvatureP(), 
+               kappaQ = next.getCurvatureQ();
+    const Real muP = next.getBinormalCurvatureP(),
+               muQ = next.getBinormalCurvatureQ();
+
+    DerrDentry = Mat63( ~nP,    Row3(0), ~bP,   Row3(0), Row3(0), Row3(0) );
+    DerrDexit  = Mat63( Row3(0), ~nQ,   Row3(0), ~bQ,    Row3(0), Row3(0) );
+    const Vec3 gP = surface.calcSurfaceGradient(xP),
+               gQ = surface.calcSurfaceGradient(xQ);
+    const Mat33 HP = surface.calcSurfaceHessian(xP),
+                HQ = surface.calcSurfaceHessian(xQ);
+    const Real oojP = std::abs(jP) < SqrtEps ? 0. : 1/jP, 
+               oojQ = std::abs(jQ) < SqrtEps ? 0. : 1/jQ;
+    const Mat33 DnPDxP = (Mat33(1) - nP*~nP)*HP / (~gP*nP),
+                DnQDxQ = (Mat33(1) - nQ*~nQ)*HQ / (~gQ*nQ);
+    const Mat33 DbPDxP = -tauP*nP*~tP - (oojP*jdP*tP + muP*nP)*~bP,
+                DbQDxQ = -tauQ*nQ*~tQ - (oojQ*jdQ*tQ + muQ*nQ)*~bQ;
+    const Mat33 DbPDxQ = -oojQ*tP*~bQ,
+                DbQDxP =  oojP*tQ*~bP;
+
+    DerrDxP = Mat63( ~eIn  * DnPDxP,
+                         Row3(0),
+                     signP*(~eIn  * DbPDxP),
+                     signQ*(~eOut * DbQDxP),
+                          ~gP,
+                         Row3(0)    );
+
+    DerrDxQ = Mat63(     Row3(0),
+                     ~eOut * DnQDxQ,
+                     signP*(~eIn  * DbPDxQ),
+                     signQ*(~eOut * DbQDxQ),
+                         Row3(0),
+                          ~gQ       );
+    return err;
+}
+
 //------------------------------------------------------------------------------
 //                  CALC SURFACE KINEMATIC VELOCITY ERROR
 //------------------------------------------------------------------------------
@@ -1306,12 +1482,12 @@ public:
                     UnitVec3& eIn, Vec3& xP, Vec3& xQ, UnitVec3& eOut) const
     {
         assert(x.size()==12);
-        eIn = UnitVec3(Vec3::getAs(&x[0]), true); // no need to normalize
-        //eIn = UnitVec3(Vec3::getAs(&x[0]));
+        //eIn = UnitVec3(Vec3::getAs(&x[0]), true); // no need to normalize
+        eIn = UnitVec3(Vec3::getAs(&x[0]));
         xP = Vec3::getAs(&x[3]);
         xQ = Vec3::getAs(&x[6]);
-        eOut = UnitVec3(Vec3::getAs(&x[9]), true);
-        //eOut = UnitVec3(Vec3::getAs(&x[9]));
+        //eOut = UnitVec3(Vec3::getAs(&x[9]), true);
+        eOut = UnitVec3(Vec3::getAs(&x[9]));
     }
 
     void mapVecsToX(const UnitVec3& eIn, const Vec3& xP, 
@@ -1355,12 +1531,12 @@ void CableObstacle::Surface::Impl::calcSurfacePathErrorJacobian
     Mat63&          DerrDexit)  // 4x3       "
     const
 {
-    SurfaceError jacFunction(*this, previous, 1e-8);
+    SurfaceError jacFunction(*this, previous, 1e-14); // TODO
     Differentiator diff(jacFunction);
     Vector x(12), err0(6);
     jacFunction.mapVecsToX(eIn_S,xP,xQ,eOut_S, x);
     jacFunction.f(x,err0);
     Matrix J(6,12);
-    diff.calcJacobian(x, err0, J, Differentiator::ForwardDifference);
+    diff.calcJacobian(x, err0, J, Differentiator::CentralDifference);
     jacFunction.mapMatrixToMats(J, DerrDentry, DerrDxP, DerrDxQ, DerrDexit);
 }
