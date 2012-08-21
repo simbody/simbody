@@ -1178,7 +1178,7 @@ public:
         assert(zIndex.isValid());
         const Vector& allZ = this->getSubsystem().getZ(s);
         for (int i=0; i < this->size(); ++i)
-            Measure_Num<T>::upd(value,i) = allZ[i];
+            Measure_Num<T>::upd(value,i) = allZ[zIndex+i];
     }
 
     const T& getUncachedValueVirtual(const State& s, int derivOrder) const

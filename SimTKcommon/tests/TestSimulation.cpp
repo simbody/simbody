@@ -557,11 +557,13 @@ void testOne() {
     // Integrate the cos(2pi*t) measure with IC=0; should give sin(2pi*t)/2pi.
     Measure::Integrate sin2pitOver2pi(subsys, cos2pit, zero);
 
-    Measure_<Vec2>::Constant cossinInit(subsys, Vec2(1,0));
+    // These two compute -cos(t), sin(t) by integrating sin(t), cos(t) with
+    // initial conditions -1,0.
+    Measure_<Vec2>::Constant cossinInit(subsys, Vec2(-1,0));
     MySinCos<Vec2> mysincos(subsys);
     Measure_<Vec2>::Integrate cossin(subsys, mysincos, cossinInit);
 
-    Measure_<Vector>::Constant vcossinInit(subsys, Vector(Vec2(1,0)));
+    Measure_<Vector>::Constant vcossinInit(subsys, Vector(Vec2(-1,0)));
     MySinCos<Vector> vmysincos(subsys);
     Measure_<Vector>::Integrate vcossin(subsys, vmysincos, vcossinInit,
                                         Vector(2,Zero));
@@ -709,6 +711,9 @@ void testOne() {
          << vectorResult.getValue(state) << endl;
     cout << "... but stage=" << state.getSystemStage() << endl;
 
+    cossin.setValue(state, cossinInit.getValue(state));
+    vcossin.setValue(state, vcossinInit.getValue(state));
+
     sys.realize(state, Stage::Acceleration);
     state.autoUpdateDiscreteVariables(); // ??
 
@@ -741,6 +746,7 @@ void testOne() {
             cout << "dInteg=" 
                  << dInteg.getValue(state) << endl;
             cout << "cossin=" << cossin.getValue(state) << "\n";
+            cout << "vcossin=" << vcossin.getValue(state) << "\n";
         }
 
         if (i == nSteps)
