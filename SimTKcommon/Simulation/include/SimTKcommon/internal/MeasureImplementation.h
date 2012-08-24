@@ -1065,6 +1065,11 @@ public:
         this->invalidateTopologyCache();
     }
 
+    const Measure_<T>& getOperandMeasure() const
+    {
+        return operand;
+    }
+
     // Implementations of virtual methods.
 
     // This uses the default copy constructor.

@@ -678,6 +678,10 @@ public:
             "Argument must be in the same Subsystem as this Measure.");
     }
 
+    /** Get the operand (thing being scaled) measure for this measure. **/
+    const Measure_<T>& getOperandMeasure() const 
+    { return getImpl().getOperandMeasure(); }
+
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Scale, Measure_<T>);
 };
 
