@@ -1532,7 +1532,7 @@ public:
     /// of a torque vector, and a force vector to be applied at the current body's
     /// origin) to the appropriate slot of the supplied \p bodyForcesInG Vector. 
     /// Note that we are <em>adding</em> this not <em>setting</em> it so it
-    /// important that \p mobilityForces be initialized to zero before making a set
+    /// important that \p bodyForcesInG be initialized to zero before making a set
     /// of calls to applyBodyForce().
     void applyBodyForce(const State& s, const SpatialVec& spatialForceInG, 
                         Vector_<SpatialVec>& bodyForcesInG) const;
