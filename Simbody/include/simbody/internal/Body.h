@@ -95,8 +95,10 @@ was added to this Body, with 0 <= n < getNumDecorations(). **/
 const DecorativeGeometry& getDecoration(int n) const;
 
 /** Get a writable reference to the n'th piece of DecorativeGeometry that 
-was added to this Body, with 0 <= n < getNumDecorations().  **/
-DecorativeGeometry& updDecoration(int n);
+was added to this Body, with 0 <= n < getNumDecorations(). Note that we allow
+writable access to decorations even on a const Body -- these are after all
+just decorations. **/
+DecorativeGeometry& updDecoration(int n) const;
 
 /** Create a new contact surface on a body and place it using the indicated
 Transform. **/

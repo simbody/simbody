@@ -78,8 +78,9 @@ int Body::getNumDecorations() const
 {   return (int)getRep().decorations.size(); }
 const DecorativeGeometry& Body::getDecoration(int n) const
 {   return getRep().decorations[n]; }
-DecorativeGeometry& Body::updDecoration(int n)
-{   return updRep().decorations[n]; }
+// Allow writable access on const Body since just a decoration.
+DecorativeGeometry& Body::updDecoration(int n) const
+{   return const_cast<DecorativeGeometry&>(getDecoration(n)); }
 
 
 Body& Body::addContactSurface(const Transform&      X_BS, 
