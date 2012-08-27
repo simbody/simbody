@@ -3200,7 +3200,29 @@ calcGMInvGt(const State&   s,
             GMInvGt(j) = GMInvGt_j;
         }
     }
-}  
+} 
+
+
+
+// =============================================================================
+//                     SOLVE FOR CONSTRAINT IMPULSES
+// =============================================================================
+// Current implementation computes G*M^-1*~G, factors it, and does a single
+// solve all at great expense.
+// TODO: should realize factored matrix if needed and reuse if possible.
+void SimbodyMatterSubsystemRep::
+solveForConstraintImpulses(const State&     state,
+                           const Vector&    deltaV,
+                           Vector&          impulse) const
+{
+    Matrix GMInvGt;
+    calcGMInvGt(state, GMInvGt);
+    // MUST DUPLICATE SIMBODY'S METHOD HERE:
+    const Real conditioningTol = GMInvGt.nrow() 
+                                    * SqrtEps*std::sqrt(SqrtEps); // Eps^(3/4)
+    FactorQTZ qtz(GMInvGt, conditioningTol); 
+    qtz.solve(deltaV, impulse);
+}
 
 
 

@@ -31,7 +31,6 @@
 #include <string>
 #include <iostream>
 #include <exception>
-#include <ctime>
 
 using std::cout;
 using std::endl;
@@ -40,6 +39,32 @@ using namespace SimTK;
 
 const Real ReportInterval=0.033;
 const Real RunTime=20;
+
+class ShowLocking : public DecorationGenerator {
+public:
+    ShowLocking(const MobilizedBody& mobod, 
+        const Constraint::ConstantSpeed& lock)
+        : m_mobod(mobod), m_lock(lock)
+    {
+    }
+    void generateDecorations(const State& state, 
+                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+    {
+        if (!m_lock.isDisabled(state)) {
+            const Transform& X_BM = m_mobod.getDefaultOutboardFrame();
+            geometry.push_back(DecorativeSphere(.5)
+                .setTransform(X_BM)
+                .setColor(Red).setOpacity(.25)
+                .setBodyId(m_mobod.getMobilizedBodyIndex()));
+            geometry.push_back(DecorativeText("LOCKED")
+                .setTransform(X_BM+Vec3(.5,0,0))
+                .setBodyId(m_mobod.getMobilizedBodyIndex()));
+        }
+    }
+private:
+    const MobilizedBody&                    m_mobod;
+    const Constraint::ConstantSpeed&        m_lock;
+};
 
 class StateSaver : public PeriodicEventReporter {
 public:
@@ -86,13 +111,12 @@ private:
 class LockOn: public TriggeredEventHandler {
 public:
     LockOn(const MultibodySystem& system,
-        MobilizedBody& mobod, Real lockangle, // must be 1dof
-        Constraint::ConstantSpeed& lock,
-        Real low, Real high, 
-        Constraint::ConstantAcceleration& dlock) 
+        const MobilizedBody& mobod, Real lockangle, // must be 1dof
+        const Constraint::ConstantSpeed& lock,
+        Real low, Real high) 
     :   TriggeredEventHandler(Stage::Position), 
         m_mbs(system), m_mobod(mobod), m_lockangle(lockangle),
-        m_lock(lock), m_low(low), m_high(high), m_dlock(dlock) 
+        m_lock(lock), m_low(low), m_high(high)
     { 
         //getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
@@ -111,84 +135,124 @@ public:
     {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         assert(m_lock.isDisabled(s));
-        assert(m_dlock.isDisabled(s));
 
         const Vector uin = s.getU();
         cout << "BEFORE u=" << uin << endl;
+        cout << "before uerr=" << s.getUErr() << endl;
 
         // This is a ground-connected system -- system "center of mass" doesn't
         // really mean anything since ground's mass is infinite.
         SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
         SpatialVec PC = matter.calcSystemCentralMomentum(s);
 
-        printf("Locking: BEFORE q=%.15g\n",
-            m_mobod.getOneQ(s,0));
+        printf("Locking: BEFORE q=%.15g u=%.15g\n",
+            m_mobod.getOneQ(s,0), m_mobod.getOneU(s,0));
         printf("  %5g G mom=%g,%g C mom=%g,%g E=%g\n", s.getTime(),
             PG[0].norm(), PG[1].norm(), PC[0].norm(), PC[1].norm(), m_mbs.calcEnergy(s));
 
-        Vector& mobilityForces = 
-            m_mbs.updMobilityForces(s,Stage::Dynamics);
-        Vector_<SpatialVec>& bodyForces = 
-            m_mbs.updRigidBodyForces(s,Stage::Dynamics);
+        const Real CoefRest = 0.0, MinVel=.05;
 
-        // Kill off coriolis effects.
-        s.updU() = 0;
+        const UIndex ux = m_mobod.getFirstUIndex(s);
+        const Real saveQ = m_mobod.getOneQ(s,0);
 
-        // Enable impact constraint
-        m_dlock.enable(s);
-
-        const Real coefRest = 0;
-        m_dlock.setAcceleration(s, -(1+coefRest)*uin[1]);
-
-        cout << "ConstAcc=" << m_dlock.getAcceleration(s)
-             << " (def=" << m_dlock.getDefaultAcceleration() << ")\n";
-
+        m_lock.enable(s);
         m_mbs.realize(s, Stage::Dynamics);
-        cout << "non-impulsive mobForces=" <<  mobilityForces << endl;
-        cout << "non-impulsive bodyForces=" <<  bodyForces << endl;
 
-        // Cancel applied force "impulses"
-        mobilityForces = 0;
-        bodyForces = SpatialVec(Vec3(0));
+        // We're using Poisson's definition of the coefficient of 
+        // restitution, relating impulses, rather than Newton's, 
+        // relating velocities, since Newton's can produce non-physical 
+        // results for a multibody system. For Poisson, calculate the impulse
+        // that would bring the velocity to zero, multiply by the coefficient
+        // of restitution to calculate the rest of the impulse, then apply
+        // both impulses to produce changes in velocity. In most cases this
+        // will produce the same rebound velocity as Newton, but not always.
 
-        //// Cancel coriolis "impulse"
-        //for (MobilizedBodyIndex bx(1); bx < matter.getNumBodies(); ++bx)
-        //    bodyForces[bx] += matter.getTotalCentrifugalForces(s, bx);
+        Vector desiredDeltaV; // in constraint space
+        Vector myDeltaV(1); // just one scalar for this constraint
+        myDeltaV[0] = -uin[ux]; // dump the current velocity first
+        m_lock.setMyPartInConstraintSpaceVector(s, myDeltaV, desiredDeltaV);
 
-        m_mbs.realize(s, Stage::Acceleration);
-        const Vector deltaU = s.getUDot();
-        cout << "deltaU=" << deltaU << endl;
+        Vector lambda, f, deltaU;
 
+
+        cout << "USING POISSON COEF " << CoefRest << endl;
+
+        Vector lambda0; // impulse that gets this velocity to zero
+        matter.solveForConstraintImpulses(s, desiredDeltaV, lambda0);
+
+        // This is the total impulse we want, in constraint space.
+        lambda = (1+CoefRest)*lambda0;
+        // Convert constraint impulse to generalized impulse.
+        matter.multiplyByGTranspose(s,lambda,f);
+        // Convert generalized impulse to generalized speed change.
+        matter.multiplyByMInv(s,f,deltaU);
+        // If the new speed is slow enough, we'll declare that it "stuck" and
+        // drive it to exactly zero instead (using lambda0 instead of lambda).
+        Real achievedU = uin[ux]+deltaU[ux];
+        if (CoefRest > 0 && std::abs(achievedU) < MinVel) {
+            cout << "  rebound " << achievedU 
+                 << " too slow; drive to zero instead\n";
+            cout << "  deltaU was=" << deltaU << endl;
+            lambda = lambda0; f /= 1+CoefRest; deltaU /= 1+CoefRest;
+            cout << "  new deltaU=" << deltaU << endl;
+        }
+
+        // Now update all the generalized speeds.
         s.updU() = uin + deltaU;
+        cout << "lambda=" << lambda << endl;
+        cout << "f=" << f << endl;
+        cout << "du=" << deltaU << endl;       
+
         cout << "AFTER u=" << s.getU() << endl;
 
-        m_dlock.disable(s); // not needed anymore
+        // If this leaves us rebounding then don't turn on the constraint.
+        if (std::abs(s.getU()[ux]) > SignificantReal) {
+            printf("REBOUND vel=%g -- not locking.\n", s.getU()[1]);
+            m_lock.disable(s);
+            // Move q a small distance in the direction of u so that the
+            // witness function will be non-zero and we'll consider an 
+            // immediate reverse as a new event (transitions away from zero
+            // are not events).
+            m_mobod.setOneQ(s,0,m_lockangle+sign(s.getU()[ux])*SignificantReal); 
 
-        // Try locking.
-        m_lock.enable(s);
-        m_mbs.realize(s, Stage::Acceleration);
-        const Real f = m_lock.getMultiplier(s);
-
-        if (f < m_low || f > m_high) {
-            m_lock.disable(s); // oops can't lock
-            s.updU() = uin;
-            printf("CAN'T LOCK: force would have been %g\n", f);
+            m_mbs.realize(s, Stage::Acceleration);
+            PG = matter.calcSystemMomentumAboutGroundOrigin(s);
+            PC = matter.calcSystemCentralMomentum(s);
+            printf("  %5g G mom=%g,%g C mom=%g,%g E=%g\n", s.getTime(),
+                PG[0].norm(), PG[1].norm(), PC[0].norm(), PC[1].norm(), 
+                m_mbs.calcEnergy(s));
+            cout << "  uerr=" << s.getUErr() << endl;
             return;
         }
 
+        // Tidy up the q to be exactly zero when we lock to avoid
+        // accidental retriggering fo this event. We'll put this back
+        // if we decide below not to hold the lock.
+        m_mobod.setOneQ(s,0,m_lockangle);
 
-        printf("LOCKED: reaction force is now %g\n", f);
+        // Can we really hold the lock?
+        m_mbs.realize(s, Stage::Acceleration);
+        const Real lockForce = m_lock.getMultiplier(s);
+
+        if (lockForce < m_low || lockForce > m_high) {
+            m_lock.disable(s); // oops can't lock
+            s.updU() = uin;
+            m_mobod.setOneQ(s,0, saveQ); 
+            printf("CAN'T LOCK: force would have been %g\n", lockForce);
+            return;
+        }
+
+        printf("LOCKED: reaction force is now %g\n", lockForce);
 
         m_onTimes.push_back(s.getTime());
 
-        printf("  after q=%.15g\n",
-            m_mobod.getOneQ(s,0));
+        printf("  after q=%.15g\n", m_mobod.getOneQ(s,0));
 
         PG = matter.calcSystemMomentumAboutGroundOrigin(s);
         PC = matter.calcSystemCentralMomentum(s);
         printf("  %5g G mom=%g,%g C mom=%g,%g E=%g\n", s.getTime(),
             PG[0].norm(), PG[1].norm(), PC[0].norm(), PC[1].norm(), m_mbs.calcEnergy(s));
-        cout << "  uerr=" << s.getUErr() << endl;
+        cout << "  after uerr=" << s.getUErr() << endl;
     }
 
 private:
@@ -197,7 +261,6 @@ private:
     const Real                              m_lockangle;
     const Constraint::ConstantSpeed&        m_lock;
     const Real                              m_low, m_high;
-    const Constraint::ConstantAcceleration& m_dlock;
 
     mutable Array_<Real> m_onTimes;
 };
@@ -205,10 +268,11 @@ private:
 class LockOff: public TriggeredEventHandler {
 public:
     LockOff(const MultibodySystem& system,
+        MobilizedBody& mobod, Real lockangle, 
         Constraint::ConstantSpeed& lock,
         Real low, Real high) 
     :   TriggeredEventHandler(Stage::Acceleration), 
-        m_system(system), m_lock(lock), 
+        m_system(system), m_mobod(mobod), m_lockangle(lockangle), m_lock(lock), 
         m_low(low), m_high(high)
     { 
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
@@ -229,16 +293,21 @@ public:
         assert(!m_lock.isDisabled(s));
 
         m_system.realize(s, Stage::Acceleration);
-        printf("LockOff disabling at t=%g lambda=%g",
-            s.getTime(), m_lock.getMultiplier(s));
-        cout << " Triggers=" << s.getEventTriggers() << endl;
+        printf("\nUNLOCK: disabling at t=%g q=%g lambda=%g",
+            s.getTime(), s.getQ()[1], m_lock.getMultiplier(s));
+        cout << " Triggers=" << s.getEventTriggers() << "\n\n";
+
+        m_mobod.setOneQ(s, 0, m_lockangle); // avoid retriggering lock
 
         m_lock.disable(s);
+
         m_offTimes.push_back(s.getTime());
     }
 
 private:
     const MultibodySystem&                  m_system; 
+    const MobilizedBody&                    m_mobod;
+    const Real                              m_lockangle;
     const Constraint::ConstantSpeed&        m_lock;
     const Real                              m_low;
     const Real                              m_high;
@@ -295,16 +364,16 @@ int main(int argc, char** argv) {
                              calfBody, Vec3(0,calfHDim[1],0));
     MobilizedBody::Pin foot(calf, Vec3(0,-calfHDim[1],0),
                              footBody, Vec3(0,calfHDim[1],0));
-    //Constraint::PrescribedMotion(matter, 
+    //Constraint::PrescribedMotion pres(matter, 
     //    new Function::Constant(Pi/4,1), foot, MobilizerQIndex(0));
+    Constraint::PrescribedMotion pres(matter, 
+       new Function::Sinusoid(Pi/4,2*Pi,-Pi/4), foot, MobilizerQIndex(0));
 
     Constraint::ConstantSpeed lock(calf,0);
     lock.setDisabledByDefault(true);
 
-    Constraint::ConstantAcceleration dlock(calf,0);
-    dlock.setDisabledByDefault(true);
-
     Visualizer viz(mbs);
+    viz.addDecorationGenerator(new ShowLocking(calf,lock));
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
@@ -314,16 +383,18 @@ int main(int argc, char** argv) {
     RungeKutta3Integrator integ(mbs);
     //VerletIntegrator integ(mbs);
     integ.setAccuracy(1e-3);
+    //integ.setAllowInterpolation(false);
 
-    StateSaver& stateSaver = *new StateSaver(mbs,lock,integ,ReportInterval);
-    mbs.addEventReporter(&stateSaver);
+    StateSaver* stateSaver = new StateSaver(mbs,lock,integ,ReportInterval);
+    mbs.addEventReporter(stateSaver);
 
-    const Real low=-110000, high=110000;
-    LockOn& lockOn = *new LockOn(mbs,calf,0,lock,low,high,dlock);
-    mbs.addEventHandler(&lockOn);
+    const Real low=-110000*4, high=110000*4;
+    const Real lockAngle = 0;
+    LockOn* lockOn = new LockOn(mbs,calf,lockAngle,lock,low,high);
+    mbs.addEventHandler(lockOn);
 
-    LockOff& lockOff = *new LockOff(mbs,lock,low,high);
-    mbs.addEventHandler(&lockOff);
+    LockOff* lockOff = new LockOff(mbs,calf,lockAngle,lock,low,high);
+    mbs.addEventHandler(lockOff);
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
@@ -350,14 +421,16 @@ int main(int argc, char** argv) {
     cout << "qdotdot=" << s.getQDotDot() << endl;
     viz.report(s);
 
-    cout << "Initialized configuration shown. Ready? ";
+    cout << "Initial configuration shown. Next? ";
     getchar();
 
+    Assembler(mbs).assemble(s);
+    viz.report(s);
+    cout << "Assembled configuration shown. Ready? ";
+    getchar();
     
     // Simulate it.
-    const clock_t start = clock();
-
-
+    const double start = realTime();
 
     // TODO: misses some transitions if interpolating
     //integ.setAllowInterpolation(false);
@@ -365,14 +438,14 @@ int main(int argc, char** argv) {
     ts.initialize(s);
     ts.stepTo(RunTime);
 
-    const double timeInSec = (double)(clock()-start)/CLOCKS_PER_SEC;
+    const double timeInSec = realTime()-start;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
         timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
         << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
         << (1000*ts.getTime())/evals << "ms/eval\n";
-    cout << "On times: " << lockOn.getOnTimes() << endl;
-    cout << "Off times: " << lockOff.getOffTimes() << endl;
+    cout << "On times: " << lockOn->getOnTimes() << endl;
+    cout << "Off times: " << lockOff->getOffTimes() << endl;
 
     printf("Used Integrator %s at accuracy %g:\n", 
         integ.getMethodName(), integ.getAccuracyInUse());
@@ -381,8 +454,8 @@ int main(int argc, char** argv) {
     printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
 
     while(true) {
-        for (int i=0; i < stateSaver.getNumSavedStates(); ++i) {
-            viz.report(stateSaver.getState(i));
+        for (int i=0; i < stateSaver->getNumSavedStates(); ++i) {
+            viz.report(stateSaver->getState(i));
         }
         getchar();
     }

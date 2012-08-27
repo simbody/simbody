@@ -841,6 +841,13 @@ public:
     void calcGMInvGt(const State&   state,
                      Matrix&        GMInvGt) const;
 
+    // Use factored GMInvGt to solve GMinvGt*impulse=deltaV. The main benefit
+    // of this method is that it promises to use the same method Simbody does
+    // to deal with constraint redundancies.
+    void solveForConstraintImpulses(const State&     state,
+                                    const Vector&    deltaV,
+                                    Vector&          impulse) const;
+
     // Given an array of nu udots, return nb body accelerations in G (including
     // Ground as the 0th body with A_GB[0]=0). The returned accelerations are
     // A = J*udot + Jdot*u, with the Jdot*u (coriolis acceleration) term

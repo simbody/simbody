@@ -1074,6 +1074,52 @@ it in O(m*n) time with O(n) intermediate storage, which is a \e lot better.
 void calcProjectedMInv(const State&   s,
                        Matrix&        GMInvGt) const;
 
+/** Given a set of desired constraint-space speed changes, calculate
+the corresponding constraint-space impulses that would cause those changes.
+Here we are solving the equation
+<pre>
+    W * impulse = deltaV
+</pre>
+for \e impulse, where W=G*M^-1*~G is the "projected inverse mass matrix" as 
+described for calcProjectedMInv(). In general W is singular due to constraint
+redundancies, so the solution for \e impulse is not unique. Simbody handles 
+redundant constraints by finding least squares solutions, and this operator 
+method duplicates the method Simbody uses for determining the rank and 
+performing the factorization of W. 
+
+@param[in]      state
+    The State whose generalized coordinates and speeds define the matrix W.
+    Must already be realized to Dynamics stage.
+@param[in]      deltaV
+    The set of desired velocity changes. Typically these will be zero except
+    for a single constraint that is being enabled.
+@param[out]     impulse
+    The set of constraint multiplier-space impulses that will produce the
+    desired velocity changes without violating the constraints.
+
+To convert these constraint-space impulses into updates to the mobility-space
+generalized speeds u, use code like this:
+@code
+    const SimbodyMatterSubsystem& matter=...;
+    Vector deltaV=...;  // constraint space speed change desired; length m
+    Vector impulse;     // constraint space impulses; length m
+    solveForConstraintImpulses(state, deltaV, impulse);
+    Vector f;           // mobility space impulses; length n
+    Vector du;          // change to generalized speeds u; length n
+    matter.multiplyByGTranspose(s,impulse,f);
+    matter.multiplyByMInv(s,f,du);
+    state.updU() += du; // update generalized speeds
+@endcode 
+
+Note that the length of the constraint-space vectors is m=mp+mv+ma, the total 
+number of acceleration-level constraints including the second time derivatives
+of the position (holonomic) constraints, the first time derivatives of the 
+velocity (nonholonomic) constraints, and the acceleration-only constraints. 
+@see calcProjectedMInv(), multiplyByGTranspose(), multiplyByMInv() **/
+void solveForConstraintImpulses(const State&     state,
+                                const Vector&    deltaV,
+                                Vector&          impulse) const;
+
 
 /** Returns Gulike = G*ulike, the product of the mXn acceleration 
 constraint Jacobian G and a "u-like" (mobility space) vector of length n. 

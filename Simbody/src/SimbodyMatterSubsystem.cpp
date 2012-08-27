@@ -460,6 +460,14 @@ void SimbodyMatterSubsystem::calcMInv(const State& s, Matrix& MInv) const
 void SimbodyMatterSubsystem::calcProjectedMInv(const State&   s,
                                                Matrix&        GMInvGt) const
 {   getRep().calcGMInvGt(s, GMInvGt); }
+
+void SimbodyMatterSubsystem::
+solveForConstraintImpulses(const State&     state,
+                           const Vector&    deltaV,
+                           Vector&          impulse) const
+{   getRep().solveForConstraintImpulses(state,deltaV,impulse); }
+
+
 void SimbodyMatterSubsystem::calcG(const State& s, Matrix& G) const 
 {   getRep().calcPVA(s, true, true, true, G); }
 void SimbodyMatterSubsystem::calcGTranspose(const State& s, Matrix& Gt) const 

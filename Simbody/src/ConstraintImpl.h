@@ -1004,16 +1004,28 @@ bool isAncestorDifferentFromGround() const {
 void getNumConstraintEquationsInUse
    (const State&, int& mHolo, int& mNonholo, int& mAccOnly) const;
 
-// Find the first assigned slots for these constraint equations in the 
-// containing SimbodyMatterSubsystem's QErr, UErr, and UDotErr/Multiplier 
-// arrays. There will be (offset,length) slots at:
-//    (holo0,                                   mHolo)
-//    (totalNumHolo+nonholo0,                   mNonholo)
-//    (totalNumHolo+totalNumNonholo + accOnly0, mAccOnly)
-// Returns -1 if the Constraint has no constraint equations in the indicated 
-// category. State must be realized to Stage::Model.
-void getConstraintEquationSlots
-   (const State&, int& holo0, int& nonholo0, int& accOnly0) const;
+// Return the starting index within the multiplier or udot error arrays
+// for each of the acceleration-level constraints produced by this Constraint.
+// Let holo0, nonholo0, accOnly0 be the first index of the slots assigned to
+// this Constraint's holonomic, nonholonomic, and acceleration-only constraints
+// within each block for that category. Then the returns here are:
+//     px = holo0
+//     vx = totalNumHolo + nonholo0
+//     ax = totalNumHolo+totalNumNonholo + accOnly0
+// These are returned invalid if there are no constraint equations in that
+// category.
+void getIndexOfMultipliersInUse(const State& state,
+                                MultiplierIndex& px0, 
+                                MultiplierIndex& vx0, 
+                                MultiplierIndex& ax0) const;
+
+void setMyPartInConstraintSpaceVector(const State& state,
+                                 const Vector& myPart,
+                                 Vector& constraintSpace) const;
+
+void getMyPartFromConstraintSpaceVector(const State& state,
+                                   const Vector& constraintSpace,
+                                   Vector& myPart) const;
 
 int getNumConstrainedQ(const State&) const;
 int getNumConstrainedU(const State&) const;
