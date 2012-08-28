@@ -395,6 +395,7 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
 
     // construct arbitrary frame at p
     UnitVec3 nP = calcSurfaceUnitNormal(Q);
+    SimTK_ASSERT_ALWAYS(!nP.isNaN(), "gradient is undefined at the query point.");
     UnitVec3 tP = nP.perp();
     UnitVec3 bP(tP%nP);
 
@@ -4151,15 +4152,31 @@ DecorativeGeometry ContactGeometry::Torus::Impl::createDecorativeGeometry() cons
     return DecorativeMesh(mesh);
 }
 
-//TODO change to analytical solution
+
 Vec3 ContactGeometry::Torus::Impl::
 findNearestPoint(const Vec3& Q, bool& inside, UnitVec3& normal) const {
-    // for now use local projection (TODO: not guaranteed to return the nearest
-    // point)
-    const Vec3 P = projectDownhillToNearestPoint(Q);
-    inside = calcSurfaceValue(Q) > 0; // TODO: wrong sign convention
-    normal = calcSurfaceUnitNormal(P);
-    return P;
+
+    UnitVec3 Zdir(0,0,1);
+
+    // find point P on circle in x-y plane that traces the centroid of the torus
+    Vec3 P;
+    Vec3 Qproj = Q - Zdir*(~Q*Zdir);
+    Real normQproj = Qproj.norm();
+
+    if (std::abs(normQproj) < SimTK::Eps) {
+        // Q is along z-axis, therefore there is a locus of closest points,
+        // we arbitrarily choose the one in the x-z plane
+        P = Vec3(torusRadius,0,0);
+    }
+    else {
+        P = Qproj/normQproj*torusRadius;
+    }
+
+    // find direction from centroid of tube to query point, and find near point Qhat
+    UnitVec3 Qdir(Q-P);
+    Vec3 Qhat = P + Qdir*tubeRadius;
+
+    return Qhat;
 }
 
 //TODO
@@ -4167,7 +4184,7 @@ bool ContactGeometry::Torus::Impl::intersectsRay
    (const Vec3& origin, const UnitVec3& direction,
     Real& distance, UnitVec3& normal) const
 {
-    std::cout << "ContactGeometry::Torus::Impl::intersectsRay unimplemented" << std::endl;
+    SimTK_ASSERT_ALWAYS(false, "ContactGeometry::Torus::Impl::intersectsRay unimplemented");
     return false;
 }
 
@@ -4221,13 +4238,13 @@ void ContactGeometry::Torus::Impl::createPolygonalMesh(PolygonalMesh& mesh) cons
 //TODO
 void ContactGeometry::Torus::Impl::
 calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
-    std::cout << "ContactGeometry::Torus::Impl::calcCurvature unimplemented" << std::endl;
+    SimTK_ASSERT_ALWAYS(false, "ContactGeometry::Torus::Impl::calcCurvature unimplemented");
 }
 
 //TODO
 Vec3  ContactGeometry::Torus::Impl::
 calcSupportPoint(UnitVec3 direction) const {
-    std::cout << "ContactGeometry::Torus::Impl::calcSupportPoint unimplemented" << std::endl;
+    SimTK_ASSERT_ALWAYS(false, "ContactGeometry::Torus::Impl::calcSupportPoint unimplemented");
     return Vec3(0);
 }
 
