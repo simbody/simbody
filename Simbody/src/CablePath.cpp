@@ -793,8 +793,8 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         dxnormPrev = dxnorm;
     }
     //cout << "obstacle error = " << ppe.err << endl;
-    SimTK_ERRCHK2_ALWAYS(f <= ftol, "CablePath::solveForPathPoints()", 
-        "Achieved err=%g but tol=%g.", f, ftol);
+    //SimTK_ERRCHK3_ALWAYS(f <= ftol, "CablePath::solveForPathPoints()", 
+    //    "At t=%g, achieved patherr=%g but tol=%g.", state.getTime(), f, ftol);
 }
 
 
