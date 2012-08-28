@@ -379,108 +379,9 @@ static void combineParaboloidsHelper
 // n   := g/norm(g) (unit normal vector)
 // H   := dg/dx (the Hessian of the surface at x)
 // Rx  := dr/dx = -I
-// Nx  := dn/dx = dn/dg*dg/dx = H*(I- n*(~n))/norm(g)
+// Nx  := dn/dx = dn/dg*dg/dx = -(I - n*(~n))*H/norm(g) // negative due to sign convention of gradient
 // Tx  := dt/dx = -Nx*(~tP*n) -n*(~tP*Nx)
 // Bx  := db/dx = -Nx*(~bP*n) -n*(~bP*Nx)
-
-class ProjToNearestPointJacobianAnalytical {
-public:
-    ProjToNearestPointJacobianAnalytical(const ContactGeometryImpl& geom, const Vec3& p,
-            const Vec3& tP, const Vec3& bP) :  geom(geom), p(p), tP(tP), bP(bP) { }
-    void f (const Vec3& x, Vec3& f) {
-        UnitVec3 n = geom.calcSurfaceUnitNormal(x);
-
-        // calculate frame at x
-        Vec3 r = p-x;
-        Vec3 t = tP-n*(~tP*n); // project tP to tangent plane at x
-        Vec3 b = bP-n*(~bP*n); // project bP to tangent plane at x
-
-        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "t is aligned with the normal vector at the current point.");
-        SimTK_ASSERT_ALWAYS(b.norm() > 1e-6, "b is aligned with the with normal vector at the current point.");
-        // Note that t and b are not perpendicular in this scheme, but do span the tangent space at x
-//        SimTK_ASSERT_ALWAYS(~t*b < 1e-6, "t and b are not perpendicular.");
-
-        // calculate error
-        f[0] = geom.calcSurfaceValue(x);
-        f[1] = ~r*t;
-        f[2] = ~r*b;
-    }
-
-    void J (const Vec3& x, Mat33& J) {
-        Vec3 g = geom.calcSurfaceGradient(x); // non-normalized outward facing "normal" vector
-        Mat33 H = geom.calcSurfaceHessian(x);
-        Real gNorm = g.norm();
-        UnitVec3 n(-g/gNorm, true);
-
-        // calculate frame at x
-        Vec3 r = p-x;
-        Vec3 t = tP-n*(~tP*n); // project tP to tangent plane at x
-        Vec3 b = bP-n*(~bP*n); // project bP to tangent plane at x
-
-        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "t is aligned with the normal vector at the current point.");
-        SimTK_ASSERT_ALWAYS(b.norm() > 1e-6, "b is aligned with the with normal vector at the current point.");
-        // Note that t and b are not perpendicular in this scheme, but do span the tangent space at x
-//        SimTK_ASSERT_ALWAYS(~t*b < 1e-6, "t and b are not perpendicular.");
-
-        // calculate derivatives
-        // TODO fix analytical jacobian
-        Mat33 I(1);
-        Mat33 Nx = (1/gNorm)*H*(I - n*(~n));
-        Mat33 Tx = -Nx*(~tP*n) - n*(~tP*Nx);
-        Mat33 Bx = -Nx*(~bP*n) - n*(~bP*Nx);
-
-//        cout << "n=" << n  << endl;
-//        cout << "r=" << r << endl;
-//        cout << "t=" << t << endl;
-//        cout << "b=" << b << endl;
-//        cout << "H=" << H << endl;
-//        cout << "Nx=" << Nx << endl;
-//        cout << "Tx=" << Tx << endl;
-//        cout << "Bx=" << Tx << endl;
-//
-        J[0] = ~g;
-        J[1] = -(~t) + ~r*Tx;
-        J[2] = -(~b) + ~r*Bx;
-
-    }
-
-    const ContactGeometryImpl& geom;
-    const Vec3& p;
-    const Vec3& tP;
-    const Vec3& bP;
-};
-
-class ProjToNearestPointJacobian : public Differentiator::JacobianFunction {
-public:
-    ProjToNearestPointJacobian(const ContactGeometryImpl& geom, const Vec3& p, const Vec3& tP, const Vec3& bP)
-        : Differentiator::JacobianFunction(3,3), geom(geom), p(p), tP(tP), bP(bP) { }
-
-    int f(const Vector& xvec, Vector& f) const {
-        const Vec3& x = Vec3::getAs(&xvec[0]);
-        UnitVec3 n = geom.calcSurfaceUnitNormal(x);
-        Vec3 r = p-x;
-        Vec3 t = tP-n*(~tP*n); // project tP to tangent plane at x
-        Vec3 b = bP-n*(~bP*n); // project bP to tangent plane at x
-
-        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "t is aligned with the normal vector at the current point.");
-        SimTK_ASSERT_ALWAYS(b.norm() > 1e-6, "b is aligned with the with normal vector at the current point.");
-        // Note that t and b are not perpendicular in this scheme, but do span the tangent space at x
-//        SimTK_ASSERT_ALWAYS(~t*b < 1e-6, "t and b are not perpendicular.");
-
-
-        // calculate error
-        f[0] = geom.calcSurfaceValue(x);
-        f[1] = ~r*t;
-        f[2] = ~r*b;
-
-        return 0;
-    }
-
-    const ContactGeometryImpl& geom;
-    const Vec3& p;
-    const Vec3& tP;
-    const Vec3& bP;
-};
 
 Vec3 ContactGeometryImpl::
 projectDownhillToNearestPoint(const Vec3& Q) const {
@@ -512,23 +413,15 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
     const int maxNewtonIterations = 30;
 
     Vec3 x(Q); // initialize to query point
-    Vec3 f, dx, xold;
-    Mat33 J, Jp;
-    Vector ftmp(3);
+    Vec3 f, dx, xold, g, r, t, b;
+    Mat33 J, H, Nx, Tx, Bx;
+    Real gNorm, rmsError, rmsErrorOld, xchg, lam;
 
-//    Vec3 r, t, b; // temporary
-//    Mat33 Nx, Tx, Bx; // temporary
-//    Mat33 I(1);
+    // initialized to query point, therefore first step is in gradient direction
+    f[0] = calcSurfaceValue(x);
+    f[1] = 0;
+    f[2] = 0;
 
-    Real rmsError, rmsErrorOld, xchg, lam;
-
-//    ProjToNearestPointJacobianAnalytical nearestPointJacAn(*this), p, tP, bP);
-
-    ProjToNearestPointJacobian nearestPointJac(*this, Q, tP, bP);
-    Differentiator diff(nearestPointJac);
-
-    nearestPointJac.f((Vector)x, ftmp);
-    f = Vec3::getAs(&ftmp[0]);
     rmsError = std::sqrt(f.normSqr()/3);
     //std::cout << "BEFORE Q=" << Q << ", f=" << f << ", frms=" << rmsError << std::endl;
 
@@ -539,10 +432,32 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
             break;
         }
 
-        Matrix Jnum = diff.calcJacobian((Vector)x);
-        J = Mat33::getAs(&Jnum(0,0));
+        g = calcSurfaceGradient(x); // non-normalized gradient vector
+        H = calcSurfaceHessian(x);
+        gNorm = g.norm();
+        UnitVec3 n(-g/gNorm, true);
 
-//        nearestPointJacAn.J(x, J);
+        // calculate frame at x
+        r = Q-x;
+        t = tP-n*(~tP*n); // project tP to tangent plane at x
+        b = bP-n*(~bP*n); // project bP to tangent plane at x
+
+        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "t is aligned with the normal vector at the current point.");
+        SimTK_ASSERT_ALWAYS(b.norm() > 1e-6, "b is aligned with the with normal vector at the current point.");
+
+        // calculate error
+        f[0] = calcSurfaceValue(x);
+        f[1] = ~r*t;
+        f[2] = ~r*b;
+
+        // calculate derivatives
+        Nx = -((Mat33(1) - n*(~n))/(gNorm))*H; // negative due to sign convention of gradient
+        Tx = -Nx*(~tP*n) - n*(~tP*Nx);
+        Bx = -Nx*(~bP*n) - n*(~bP*Nx);
+
+        J[0] = ~g;
+        J[1] = -(~t) + ~r*Tx;
+        J[2] = -(~b) + ~r*Bx;
 
         dx = J.invert()*f;
         const Real dxrms = std::sqrt(dx.normSqr()/3);
@@ -558,8 +473,15 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
         }
         while (true) {
             x = xold - lam*dx;
-            nearestPointJac.f((Vector)x, ftmp);
-            f = Vec3::getAs(&ftmp[0]);
+
+            n = calcSurfaceUnitNormal(x);
+            r = Q-x;
+            t = tP-n*(~tP*n); // project tP to tangent plane at x
+            b = bP-n*(~bP*n); // project bP to tangent plane at x
+
+            f[0] = calcSurfaceValue(x);
+            f[1] = ~r*t;
+            f[2] = ~r*b;
 
             rmsError = std::sqrt(f.normSqr()/3);
             if (rmsError > rmsErrorOld && lam > minlam) {

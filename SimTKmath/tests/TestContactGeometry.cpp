@@ -443,12 +443,12 @@ void testProjectDownhillToNearestPoint(const ContactGeometry& geom, Real r) {
 
     bool inside;
     UnitVec3 normal;
-    Vec3 pt(1,1,1);
+    Vec3 pos(1,1,1);
 
     Random::Gaussian random(0, r);
     for (int i = 0; i < 100; i++) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());
-        cout << i << ": pos=" << pos << endl;
+//        cout << i << ": pos=" << pos << endl;
 
         Vec3 nearestAnalytical = geom.findNearestPoint(pos, inside, normal);
         Vec3 nearestProjected = geom.projectDownhillToNearestPoint(pos);
@@ -473,8 +473,9 @@ int main() {
 	    // TODO clean up these tests and use them
 //	    testAnalyticalSphereGeodesic();
 //	    testAnalyticalCylinderGeodesic();
-//	    testProjectDownhillToNearestPoint(ContactGeometry::Sphere(r), r);
-      testProjectDownhillToNearestPoint(ContactGeometry::Ellipsoid(Vec3(1.5, 2.2, 3.1)), r);
+	    testProjectDownhillToNearestPoint(ContactGeometry::Sphere(r), r);
+	    testProjectDownhillToNearestPoint(ContactGeometry::Ellipsoid(Vec3(1.5, 2.2, 3.1)), r);
+//	    testProjectDownhillToNearestPoint(ContactGeometry::Torus(3*r, r), 3*r);
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
