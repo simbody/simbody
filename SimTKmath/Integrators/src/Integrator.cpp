@@ -385,7 +385,7 @@ void IntegratorRep::initialize(const State& initState) {
     // Record the continuous parts of this now-realized initial state as the 
     // previous state as well (previous state is used when we have to back up
     // from a failed step attempt).
-    saveStateAsPrevious(getAdvancedState());
+    saveStateAndDerivsAsPrevious(getAdvancedState());
 
     // The initial state is set so it looks like we just *completed* a step to 
     // get here. That way if the first reportTime is zero, this will get 

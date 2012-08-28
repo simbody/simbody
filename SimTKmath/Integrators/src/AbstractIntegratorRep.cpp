@@ -246,7 +246,7 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
             case FinalTimeHasBeenReturned:
               // Copy advanced state to previous just so the error message
               // in the catch() below will show the right time.
-              saveStateAsPrevious(getAdvancedState()); 
+              saveStateAndDerivsAsPrevious(getAdvancedState()); 
               SimTK_ERRCHK2_ALWAYS(!"EndOfSimulation already returned",
                   "Integrator::stepTo()",
                   "Attempted stepTo(t=%g) but final time %g had already been "
@@ -377,15 +377,17 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
           // make irreversible progress. Otherwise we'll use the saved ones to 
           // put things back the way we found them after any failures.
 
+          // Record the current time and state as the previous values.
+          saveTimeAndStateAsPrevious(getAdvancedState());
           // Ensure that all derivatives and other derived quantities are known,
           // including discrete state updates.
           realizeStateDerivatives(getAdvancedState());
           // Swap the discrete state update cache entries with the state 
           // variables.
           updAdvancedState().autoUpdateDiscreteVariables();
-          // Record continuous state and derivative information for step 
+          // Record derivative information and witness function values for step 
           // restarts.
-          saveStateAsPrevious(getAdvancedState());
+          saveStateDerivsAsPrevious(getAdvancedState());
           
           //---------------- TAKE ONE STEP --------------------
           // Now take a step and see whether an event occurred.

@@ -655,11 +655,11 @@ protected:
     }
 
 
-    // State must already have been evaluated through Stage::Acceleration
-    // or this will throw a stage violation. We calculate the scaling for
+    // We're about to take a step. Record the current time and state as 
+    // the previous ones. We calculate the scaling for
     // u and z here which may include relative scaling based on their current
     // values. This scaling is frozen during a step attempt.
-    void saveStateAsPrevious(const State& s) {
+    void saveTimeAndStateAsPrevious(const State& s) {
         const int nq = s.getNQ(), nu = s.getNU(), nz = s.getNZ();
 
         tPrev        = s.getTime();
@@ -671,6 +671,15 @@ protected:
 
         calcRelativeScaling(s.getU(), s.getUWeights(), uScalePrev); 
         calcRelativeScaling(s.getZ(), s.getZWeights(), zScalePrev);
+    }
+
+    // We have evaluated state derivatives and event witness function values
+    // at the start of a new step; record
+    // as previous values to make restarts easy. Must have called 
+    // saveTimeAndStateAsPrevious() on this same state already. State must
+    // be realized through Acceleration stage.
+    void saveStateDerivsAsPrevious(const State& s) {
+        const int nq = s.getNQ(), nu = s.getNU(), nz = s.getNZ();
 
         ydotPrev     = s.getYDot();
         qdotPrev.viewAssign(ydotPrev(0,     nq));
@@ -679,6 +688,13 @@ protected:
 
         qdotdotPrev  = s.getQDotDot();
         triggersPrev = s.getEventTriggers();
+    }
+
+    // State must already have been evaluated through Stage::Acceleration
+    // or this will throw a stage violation.
+    void saveStateAndDerivsAsPrevious(const State& s) {
+        saveTimeAndStateAsPrevious(s);
+        saveStateDerivsAsPrevious(s);
     }
 
     // collect user requests
