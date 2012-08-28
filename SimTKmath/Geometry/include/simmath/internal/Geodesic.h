@@ -168,11 +168,11 @@ public:
     /** Return the \e surface curvature in the binormal direction at P; don't
     confuse this with the geodesic torsion at P. Surface curvature in a 
     direction is a property of the surface independent of any curve. **/
-    Real getBinormalCurvatureP() {return binormalCurvatureAtP;}
+    Real getBinormalCurvatureP() const {return binormalCurvatureAtP;}
     /** Return the \e surface curvature in the binormal direction at Q; don't
     confuse this with the geodesic torsion at Q. Surface curvature in a 
     direction is a property of the surface independent of any curve. **/
-    Real getBinormalCurvatureQ() {return binormalCurvatureAtQ;}
+    Real getBinormalCurvatureQ() const {return binormalCurvatureAtQ;}
 
     /** Return jP, the Jacobi field term giving the sensitivity of the P end
     of the geodesic to changes in tangent direction at the Q end, assuming
