@@ -524,6 +524,10 @@ public:
 private:
 friend class CablePath;
 
+    // Starting with the current guess in PathPosEntry, project each contact
+    // point to the nearest point on the surface.
+    void projectOntoSurface(const PathInstanceInfo&, PathPosEntry&) const;
+
     // Starting with an initial guess for the contact coordinates x, make
     // repeated calls to calcPathError to drive the path errors to zero by
     // modifying x in PathPosEntry.
@@ -683,13 +687,12 @@ public:
     // entry/exit points and directions being inconsistent with a geodesic 
     // connecting those points, and the 6x12 Jacobian of the errors with respect 
     // to each of the 12 measure numbers of the 4 input vectors.
-    Vec6 calcSurfacePathErrorAndJacobian
-       (const Geodesic& previous,
-        const UnitVec3& entryDir_S,
+    void calcSurfacePathErrorJacobianAnalytically
+       (const UnitVec3& entryDir_S,
         const Vec3&     xP_S,
         const Vec3&     xQ_S,
         const UnitVec3& exitDir_S,
-        Geodesic&       next,
+        const Geodesic& current,    // Must have used above parameters.
         Mat63&          DerrDentry, // 4x3 for parametric
         Mat63&          DerrDxP,    // 4x2       "
         Mat63&          DerrDxQ,    // 4x2       "
@@ -699,12 +702,13 @@ public:
 
     // Calculate partial derivatives of the surface path error with respect to
     // each of its four arguments.
-    void calcSurfacePathErrorJacobian
+    void calcSurfacePathErrorJacobianNumerically
        (const Geodesic& previous,
         const UnitVec3& entryDir_S,
         const Vec3&     xP,
         const Vec3&     xQ,
         const UnitVec3& exitDir_S,
+        const Geodesic& current,    // Must have used above parameters.
         Mat63&          DerrDentry, // 4x3 for parametric
         Mat63&          DerrDxP,    // 4x2       "
         Mat63&          DerrDxQ,    // 4x2       "

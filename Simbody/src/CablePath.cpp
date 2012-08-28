@@ -668,6 +668,36 @@ private:
     mutable PathPosEntry    localPpe;
 };
 
+//------------------------------------------------------------------------------
+//                         PROJECT ONTO SURFACE
+//------------------------------------------------------------------------------
+// Take whatever is in ppe.x and move any implicit surface points that are not
+// on the surface downhill to the nearest surface point.
+void CablePath::Impl::
+projectOntoSurface(const PathInstanceInfo& instInfo, 
+                   PathPosEntry& ppe) const
+{
+    // Skip origin and termination "obstacles" at beginning and end.
+    for (CableObstacleIndex ox(1); ox < obstacles.size()-1; ++ox) {
+        const ActiveSurfaceIndex asx = ppe.mapToActiveSurface[ox];
+        if (!asx.isValid())
+            continue; // skip via points and inactive surfaces
+
+        const int xSlot = ppe.mapToCoords[ox];
+        assert(xSlot >= 0); // Should have had coordinates assigned
+
+        Vec3& P = Vec3::updAs(&ppe.x[xSlot]);
+        Vec3& Q = Vec3::updAs(&ppe.x[xSlot+3]);
+
+        const CableObstacle::Surface::Impl& obs = 
+            dynamic_cast<const CableObstacle::Surface::Impl&>
+                (getObstacleImpl(ox));
+
+        const ContactGeometry& geom = obs.getContactGeometry();
+        P = geom.projectDownhillToNearestPoint(P);
+        Q = geom.projectDownhillToNearestPoint(Q);
+    }
+}
 
 //------------------------------------------------------------------------------
 //                         SOLVE FOR PATH POINTS
@@ -683,6 +713,8 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
     const PathPosEntry& prevPPE = getPrevPosEntry(state);
     if (prevPPE.x.size())
         ppe.x = prevPPE.x; // start with previous solution if there is one
+
+    projectOntoSurface(instInfo,ppe); // clean up first
 
     calcPathError(state,instInfo,ppe);
 
@@ -715,14 +747,15 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         //cout << "obstacle err = " << f << ", x = " << ppe.x << endl;
 
         //diff.calcJacobian(ppe.x, ppe.err, ppe.J, 
-         //                 Differentiator::ForwardDifference);
-        //Matrix Jnum = ppe.J;
+        //                  Differentiator::ForwardDifference);
+       // Matrix Jnum = ppe.J;
         calcPathErrorJacobian(state, instInfo, ppe);
 
         //cout << "DIFF J=" << Jnum-ppe.J;
         //cout << "DIFF NORM=" << (Jnum-ppe.J).norm() << "\n";
 
         ppe.JInv.factor(ppe.J);
+        //ppe.JInv.factor(Jnum);
 
         fold = f;
         xold = ppe.x;
@@ -742,6 +775,8 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         while (true) {
             xchg = lam*dx;
             ppe.x = xold - xchg;
+            projectOntoSurface(instInfo,ppe); // clean up first
+
             calcPathError(state,instInfo,ppe);
             f = ppe.err.norm();
             //cout << "step=" << lam << " obstacle err = " << f 
@@ -758,6 +793,8 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         dxnormPrev = dxnorm;
     }
     //cout << "obstacle error = " << ppe.err << endl;
+    SimTK_ERRCHK2_ALWAYS(f <= ftol, "CablePath::solveForPathPoints()", 
+        "Achieved err=%g but tol=%g.", f, ftol);
 }
 
 
@@ -1115,39 +1152,37 @@ calcPathErrorJacobian(const State&            state,
         
         const int xSlot = ppe.mapToCoords[thisActiveOx];
         assert(xSlot >= 0); // Should have had coordinates assigned
- 
-        Mat63 DehatDein1, DehatDxP1, DehatDxQ1, DehatDeout1;
-        thisObs.calcSurfacePathErrorJacobian
-           (ppe.geodesics[asx],             // solved geodesic
-            eIn,                            // in S frame
-            Vec3::getAs(&ppe.x[xSlot]),     // xP
-            Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
-            eOut,
-            DehatDein1, DehatDxP1, DehatDxQ1, DehatDeout1);
-
         const ActiveSurfaceIndex prevASX = 
             prevPPE.mapToActiveSurface[thisActiveOx];
+ 
+        //Mat63 DehatDein1, DehatDxP1, DehatDxQ1, DehatDeout1;
+        //thisObs.calcSurfacePathErrorJacobianNumerically
+        //   (prevASX.isValid() ? prevPPE.geodesics[prevASX] : Geodesic(),
+        //    eIn,                            // in S frame
+        //    Vec3::getAs(&ppe.x[xSlot]),     // xP
+        //    Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
+        //    eOut,
+        //    ppe.geodesics[asx],             // solved geodesic
+        //    DehatDein1, DehatDxP1, DehatDxQ1, DehatDeout1);
 
-        Geodesic nextGeo;
         Mat63 DehatDein, DehatDxP, DehatDxQ, DehatDeout;
-        Vec6 err2 = thisObs.calcSurfacePathErrorAndJacobian
-           (prevASX.isValid() ? prevPPE.geodesics[prevASX] : Geodesic(),
-            eIn,                            // in S frame
+        thisObs.calcSurfacePathErrorJacobianAnalytically
+           (eIn,                            // in S frame
             Vec3::getAs(&ppe.x[xSlot]),     // xP
             Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
             eOut,
-            nextGeo,
+            ppe.geodesics[asx],             // solved geodesic
             DehatDein, DehatDxP, DehatDxQ, DehatDeout);
 
-        cout << "err2=" << err2 << endl;
+        //cout << "err=" << ppe.err << "\n";
 
-        cout << "DehatDxP =" << DehatDxP;
-        cout << "DehatDxP1=" << DehatDxP1;
-        cout << "diff=" << (DehatDxP-DehatDxP1).norm() << ": " << (DehatDxP-DehatDxP1);
+        //cout << "DehatDxP =" << DehatDxP;
+        //cout << "DehatDxP1=" << DehatDxP1;
+        //cout << "diff=" << (DehatDxP-DehatDxP1).norm() << ": " << (DehatDxP-DehatDxP1);
 
-        cout << "DehatDxQ =" << DehatDxQ;
-        cout << "DehatDxQ1=" << DehatDxQ1;
-        cout << "diff=" << (DehatDxQ-DehatDxQ1).norm() << ": " << (DehatDxQ-DehatDxQ1);
+        //cout << "DehatDxQ =" << DehatDxQ;
+        //cout << "DehatDxQ1=" << DehatDxQ1;
+        //cout << "diff=" << (DehatDxQ-DehatDxQ1).norm() << ": " << (DehatDxQ-DehatDxQ1);
 
         if (xSlot >= 3)
             ppe.J(xSlot,xSlot-3,6,3) = Matrix(DehatDein*DeinDQp);
@@ -1284,42 +1319,31 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     const Vec3&     xP,     // coordinates of Pi
     const Vec3&     xQ,     // coordinates of Qi
     const UnitVec3& eOut,   // from Qi to Pi+1, in S
-    Geodesic&       next) const
+    Geodesic&       current) const
 {
-    //cout << "calcSurfacePathError(): xP=" << xP << " xQ=" << xQ << endl;
-    //cout << "  eIn=" << eIn << " eOut=" << eOut << endl;
+    surface.continueGeodesic(xP, xQ, previous, GeodesicOptions(), current);
 
-    UnitVec3 nP = surface.calcSurfaceUnitNormal(xP);
-    UnitVec3 nQ = surface.calcSurfaceUnitNormal(xQ);
+    const UnitVec3& nP = current.getNormalP();
+    const UnitVec3& nQ = current.getNormalQ();
+    const UnitVec3& tP = current.getTangentP();
+    const UnitVec3& tQ = current.getTangentQ();
+    const UnitVec3& bP = current.getBinormalP();
+    const UnitVec3& bQ = current.getBinormalQ();
+    // Watch for backwards geodesic and flip tangent error conditions.
+    const Real signP = ~eIn *tP < 0 ? -1. : 1.;
+    const Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
 
     Vec6 err;
     err[0] = ~eIn*nP;   // tangent error in normal direction
     err[1] = ~eOut*nQ;
+    
+    err[2] = signP*(~eIn*bP);   // tangent errors in geodesic direction
+    err[3] = signQ*(~eOut*bQ);
+
     // These are the implicit surface errors forcing P and Q to lie on the
     // surface.
     err[4] = surface.calcSurfaceValue(xP);
     err[5] = surface.calcSurfaceValue(xQ);
-
-    //surface.calcGeodesic(xP, xQ, eIn, eOut, next);
-    //surface.calcGeodesicAnalytical(xP, xQ, eIn, eOut, next);
-
-    const Real sHint = previous.getNumPoints() ? previous.getLength()
-                                               : (xQ-xP).norm();
-    //surface.calcGeodesicUsingOrthogonalMethod(xP, xQ, eIn, sHint, next);
-    
-    surface.continueGeodesic(xP, xQ, previous, GeodesicOptions(), next);
-    //cout << "  geodesic had length " << next.getLength() << endl;
-
-    const UnitVec3& tP = next.getTangentP();
-    const UnitVec3& tQ = next.getTangentQ();
-    const UnitVec3& bP = next.getBinormalP();
-    const UnitVec3& bQ = next.getBinormalQ();
-    err[2] = ~eIn*bP;   // tangent errors in geodesic direction
-    err[3] = ~eOut*bQ;
-
-    // Watch for backwards geodesic and flip tangent error conditions.
-    if (~eIn*tP < 0 && ~eOut*tQ < 0)
-        err[2] = -err[2], err[3] = -err[3];
 
     //cout << "  surfErr=" << err << endl;
     return err;
@@ -1328,65 +1352,41 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
 
 
 //------------------------------------------------------------------------------
-//                       CALC SURFACE PATH ERROR AND JACOBIAN
+//                CALC SURFACE PATH ERROR JACOBIAN ANALYTICALLY
 //------------------------------------------------------------------------------
-Vec6 CableObstacle::Surface::Impl::calcSurfacePathErrorAndJacobian
-   (const Geodesic& previous,
-    const UnitVec3& eIn,        // from Qi-1 to Pi, in S
+void CableObstacle::Surface::Impl::
+calcSurfacePathErrorJacobianAnalytically
+   (const UnitVec3& eIn,        // from Qi-1 to Pi, in S
     const Vec3&     xP,         // coordinates of Pi, in S
     const Vec3&     xQ,         // coordinates of Qi, in S
     const UnitVec3& eOut,       // from Qi to Pi+1, in S
-    Geodesic&       next,
+    const Geodesic& current,    // Must have been computed from above params.
     Mat63&          DerrDentry, // 4x3 for parametric
     Mat63&          DerrDxP,    // 4x2       "
     Mat63&          DerrDxQ,    // 4x2       "
     Mat63&          DerrDexit)  // 4x3       "
     const
 {
-    //cout << "calcSurfacePathError(): xP=" << xP << " xQ=" << xQ << endl;
-    //cout << "  eIn=" << eIn << " eOut=" << eOut << endl;
-
-    UnitVec3 nP = surface.calcSurfaceUnitNormal(xP);
-    UnitVec3 nQ = surface.calcSurfaceUnitNormal(xQ);
-
-    Vec6 err;
-    err[0] = ~eIn*nP;   // tangent error in normal direction
-    err[1] = ~eOut*nQ;
-    // These are the implicit surface errors forcing P and Q to lie on the
-    // surface.
-    err[4] = surface.calcSurfaceValue(xP);
-    err[5] = surface.calcSurfaceValue(xQ);
-
-    //surface.calcGeodesic(xP, xQ, eIn, eOut, next);
-    //surface.calcGeodesicAnalytical(xP, xQ, eIn, eOut, next);
-
-    const Real sHint = previous.getNumPoints() ? previous.getLength()
-                                               : (xQ-xP).norm();
-    //surface.calcGeodesicUsingOrthogonalMethod(xP, xQ, eIn, sHint, next);
-    
-    surface.continueGeodesic(xP, xQ, previous, GeodesicOptions(), next);
-    //cout << "  geodesic had length " << next.getLength() << endl;
-
-    const UnitVec3& tP = next.getTangentP();
-    const UnitVec3& tQ = next.getTangentQ();
-    const UnitVec3& bP = next.getBinormalP();
-    const UnitVec3& bQ = next.getBinormalQ();
+    const UnitVec3 nP = current.getNormalP();
+    const UnitVec3 nQ = current.getNormalQ();
+    const UnitVec3& tP = current.getTangentP();
+    const UnitVec3& tQ = current.getTangentQ();
+    const UnitVec3& bP = current.getBinormalP();
+    const UnitVec3& bQ = current.getBinormalQ();
     // Watch for backwards geodesic and flip tangent error conditions.
     const Real signP = ~eIn *tP < 0 ? -1. : 1.;
     const Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
-    err[2] = signP*(~eIn*bP);   // tangent errors in geodesic direction
-    err[3] = signQ*(~eOut*bQ);
 
-    const Real jP = next.getJacobiP(), 
-               jQ = next.getJacobiQ();
-    const Real jdP = next.getJacobiPDot(), 
-               jdQ = next.getJacobiQDot();
-    const Real tauP = next.getTorsionP(), 
-               tauQ = next.getTorsionQ();
-    const Real kappaP = next.getCurvatureP(), 
-               kappaQ = next.getCurvatureQ();
-    const Real muP = next.getBinormalCurvatureP(),
-               muQ = next.getBinormalCurvatureQ();
+    const Real jP = current.getJacobiP(), 
+               jQ = current.getJacobiQ();
+    const Real jdP = current.getJacobiPDot(), 
+               jdQ = current.getJacobiQDot();
+    const Real tauP = current.getTorsionP(), 
+               tauQ = current.getTorsionQ();
+    const Real kappaP = current.getCurvatureP(), 
+               kappaQ = current.getCurvatureQ();
+    const Real muP = current.getBinormalCurvatureP(),
+               muQ = current.getBinormalCurvatureQ();
 
     DerrDentry = Mat63( ~nP,    Row3(0), ~bP,   Row3(0), Row3(0), Row3(0) );
     DerrDexit  = Mat63( Row3(0), ~nQ,   Row3(0), ~bQ,    Row3(0), Row3(0) );
@@ -1416,7 +1416,6 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathErrorAndJacobian
                      signQ*(~eOut * DbQDxQ),
                          Row3(0),
                           ~gQ       );
-    return err;
 }
 
 //------------------------------------------------------------------------------
@@ -1437,16 +1436,22 @@ Vec6 CableObstacle::Surface::Impl::calcSurfaceNegKinematicVelocityError
 
     const UnitVec3& nP = geodesic.getNormalP();
     const UnitVec3& nQ = geodesic.getNormalQ();
+    const UnitVec3& tP = geodesic.getTangentP();
+    const UnitVec3& tQ = geodesic.getTangentQ();
     const UnitVec3& bP = geodesic.getBinormalP();
     const UnitVec3& bQ = geodesic.getBinormalQ();
+
+    // Watch for backwards geodesic and flip tangent error conditions.
+    const Real signP = ~eIn *tP < 0 ? -1. : 1.;
+    const Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
 
     // These must be the kinematic part of the time derivatives of the
     // error conditions that were reported for this obstacle during path
     // error calculation, but negated.
     errdotK[0] = - ~eInDot*nP; 
     errdotK[1] = - ~eOutDot*nQ;
-    errdotK[2] = - ~eInDot*bP;  // TODO: flip?
-    errdotK[3] = - ~eOutDot*bQ;
+    errdotK[2] = -signP*(~eInDot*bP);
+    errdotK[3] = -signQ*(~eOutDot*bQ);
     // Implicit surface error is frozen since xP and xQ are.
     errdotK[4] = 0;
     errdotK[5] = 0;
@@ -1519,19 +1524,21 @@ private:
     const Geodesic&                     prevGeodesic;
 };
 
-void CableObstacle::Surface::Impl::calcSurfacePathErrorJacobian
+void CableObstacle::Surface::Impl::
+calcSurfacePathErrorJacobianNumerically
    (const Geodesic& previous,
     const UnitVec3& eIn_S,
     const Vec3&     xP,
     const Vec3&     xQ,
     const UnitVec3& eOut_S,
+    const Geodesic& current,    // Must have been computed from above params.
     Mat63&          DerrDentry, // 4x3 for parametric
     Mat63&          DerrDxP,    // 4x2       "
     Mat63&          DerrDxQ,    // 4x2       "
     Mat63&          DerrDexit)  // 4x3       "
     const
 {
-    SurfaceError jacFunction(*this, previous, 1e-14); // TODO
+    SurfaceError jacFunction(*this, previous, 1e-8); // TODO
     Differentiator diff(jacFunction);
     Vector x(12), err0(6);
     jacFunction.mapVecsToX(eIn_S,xP,xQ,eOut_S, x);
