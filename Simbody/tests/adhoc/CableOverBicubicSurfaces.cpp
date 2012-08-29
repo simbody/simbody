@@ -269,7 +269,9 @@ int main() {
     PolygonalMesh smoothMesh = smooth.createPolygonalMesh(resolution);
 
     const Vec3 SmoothOrigin(-3,-3,-3);
-    Ground.addBodyDecoration(SmoothOrigin,
+    // Shift the drawing slightly in the -z direction so that the path
+    // shows better.
+    Ground.addBodyDecoration(SmoothOrigin - Vec3(0,0,.01),
         DecorativeMesh(smoothMesh).setColor(Cyan).setOpacity(.75));
 
     // Not using these yet:
@@ -283,11 +285,9 @@ int main() {
         DecorativeMesh(tibia).setColor(Vec3(.8,.8,.8)));
 
 
-    Body::Rigid someBody(MassProperties(10.0, Vec3(0,-4,0), 
-        UnitInertia::cylinderAlongY(1,4)));
-    const Real Rad = 1.5;
-    //someBody.addDecoration(Transform(), 
-    //    DecorativeSphere(Rad).setOpacity(.75).setResolution(4));
+    Body::Rigid someBody(MassProperties(2.0, Vec3(0,-4,0), 
+        UnitInertia::cylinderAlongY(1,4).shiftFromCentroid(Vec3(0,4,0))));
+
     someBody.addDecoration(Transform(Rotation(Pi,ZAxis),Vec3(0,-4,0)), 
         DecorativeCylinder(1,4).setColor(Yellow)
                             .setOpacity(.5).setResolution(4));
@@ -297,8 +297,8 @@ int main() {
     MobilizedBody::Free body1(Ground,    Transform(Vec3(0)), 
                               someBody,  Transform(Vec3(0,0,0)));
 
-    CablePath path1(cables, Ground, Vec3(0,0,0),   // origin
-                            body1, Vec3(0,-4,0));  // termination
+    CablePath path1(cables, Ground, Vec3(.5,-.5,0),   // origin
+                            body1, Vec3(0,0,0));  // termination
 
     CableObstacle::Surface obstacle1(path1, Ground, SmoothOrigin, 
                                      ContactGeometry::SmoothHeightMap(smooth));
@@ -310,8 +310,7 @@ int main() {
     Ground.addBodyDecoration(SmoothOrigin,
         DecorativePoint(Q1).setColor(Red).setScale(2));
 
-    // NOTE: velocity-based force is disabled.
-    MyCableSpring cable1(forces, path1, 30., 16., 0*0.1); 
+    MyCableSpring cable1(forces, path1, 50., 8., 0.1); 
 
     //Force::TwoPointLinearSpring spring1(forces, body1, Vec3(0,-8,0),
     //    Ground, Vec3(0,0,0), 30., 12.);
@@ -329,7 +328,8 @@ int main() {
     //    state.updQ()[i] = random.getValue();
     //for (int i = 0; i < state.getNU(); ++i)
     //    state.updU()[i] = 0.1*random.getValue(); 
-    body1.setQToFitTranslation(state, Vec3(3,-12,-3));
+    body1.setQToFitTranslation(state, Vec3(4,-10,-3));
+    body1.setQToFitRotation(state, Rotation(-Pi, ZAxis));
 
     system.realize(state, Stage::Position);
     viz.report(state);
