@@ -57,8 +57,8 @@ ENDFOREACH()
 # Copy extra files associated with these examples
 # to the binary directory that will be the working
 # directory when the tests are run; and include them in
-# the examples installation. ".obj" files contain geometry.
-FILE(GLOB EXTRA_FILES "*.obj")
+# the examples installation. ".obj" and ".vtp" files contain geometry.
+FILE(GLOB EXTRA_FILES "*.obj" "*.vtp")
 FOREACH(XTRA ${EXTRA_FILES})
     GET_FILENAME_COMPONENT(XTRA_ROOT ${XTRA} NAME)
     CONFIGURE_FILE(${XTRA} 
