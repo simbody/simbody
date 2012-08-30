@@ -261,24 +261,14 @@ int main() {
 
     //CableObstacle::Surface obstacle(path1, Ground, Vec3(1,-1,0), 
     //    ContactGeometry::Sphere(Rad));
-    //Ground.addBodyDecoration(Vec3(1,-1,0), DecorativeSphere(Rad));
     //obstacle.setContactPointHints(Rad*UnitVec3(1,1,0),Rad*UnitVec3(1,.5,0));
     //
     CableObstacle::Surface obstacle2(path1, Ground, Vec3(0,-1,0), 
         //ContactGeometry::Sphere(CylRad));
-        ContactGeometry::Ellipsoid(radii));
+        //ContactGeometry::Ellipsoid(radii));
         //ContactGeometry::Torus(CylRad,.1));
-        //ContactGeometry::Cylinder(CylRad));
-    Ground.addBodyDecoration(
-        Transform(Rotation(),Vec3(0,-1,0)), 
-        //DecorativeSphere(CylRad)
-        //Transform(Rotation(),Vec3(0,-1,0)), 
-        //ContactGeometry::Torus(CylRad,.1).createDecorativeGeometry()
-        DecorativeEllipsoid(radii)
-        //Transform(Rotation(Pi/2,XAxis),Vec3(0,-1,0)), 
-        //DecorativeCylinder(CylRad,HalfLen)
-        .setOpacity(.75)
-           .setResolution(4).setColor(Orange));
+        ContactGeometry::Cylinder(CylRad));
+
     obstacle2.setContactPointHints(1.5*CylRad*UnitVec3(1,1,0),1.5*CylRad*UnitVec3(1,.5,0));
     obstacle2.setDisabledByDefault(true);
     

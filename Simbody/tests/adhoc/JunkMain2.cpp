@@ -230,9 +230,9 @@ int main() {
     const Vec3 radii(2,1.5,1.7);
     Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
         UnitInertia::ellipsoid(radii)));
-    ellipsoidBody.addDecoration(Transform(), 
-        DecorativeEllipsoid(radii).setOpacity(.9).setResolution(4)
-                                  .setColor(Orange));
+    //ellipsoidBody.addDecoration(Transform(), 
+    //    DecorativeEllipsoid(radii).setOpacity(.9).setResolution(4)
+    //                              .setColor(Orange));
 
     const Real CylRad = .25, HalfLen = .5;
     Body::Rigid cylinderBody(MassProperties(1.0, Vec3(0), 

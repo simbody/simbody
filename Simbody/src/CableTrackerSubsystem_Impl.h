@@ -164,13 +164,29 @@ int calcDecorativeGeometryAndAppendImpl
 
         Vec3 prevPoint;
         for (CableObstacleIndex ox(0); ox < path.getNumObstacles(); ++ox) {
-            if (instInfo.obstacleDisabled[ox])
-                continue; 
-
             const CableObstacle::Impl& obs = path.getObstacleImpl(ox);
+            const Transform& X_GB = obs.getBodyTransform(state);
+            const Transform& X_BS = obs.getObstaclePoseOnBody(state,instInfo);
+            const Transform X_GS = X_GB*X_BS;
+
+            // Disabled obstacle is dimmed.
+            if (instInfo.obstacleDisabled[ox]) {
+                DecorativeGeometry geo = obs.getDecoration();
+                const Transform& X_SD = geo.getTransform();
+                decorations.push_back(
+                    geo.setTransform(X_GS*X_SD).setColor(0.75*geo.getColor()));
+                continue; 
+            }
+
+            // If this is a surface, draw it.
+            if (obs.getNumCoordsPerContactPoint() > 0) {
+                DecorativeGeometry geo = obs.getDecoration();
+                const Transform& X_SD = geo.getTransform();
+                decorations.push_back(geo.setTransform(X_GS*X_SD));
+            }
+
             Vec3 P_B, Q_B;
             obs.getContactStationsOnBody(state, instInfo, ppe, P_B, Q_B);
-            const Transform& X_GB = obs.getBodyTransform(state);
             Vec3 P_G = X_GB*P_B, Q_G = X_GB*Q_B;
 
             const Vec3 color = ox==0 ? Green 
@@ -190,8 +206,6 @@ int calcDecorativeGeometryAndAppendImpl
                 ActiveSurfaceIndex asx = ppe.mapToActiveSurface[ox];
                 assert(asx.isValid());
                 const Geodesic& g = ppe.geodesics[asx];
-                const Transform& X_BS = obs.getObstaclePoseOnBody(state,instInfo);
-                const Transform X_GS = X_GB*X_BS;
                 const Array_<Transform>& Kf = g.getFrenetFrames();
                 Vec3 prevP_G = X_GS*Kf.front().p();
                 for (unsigned i=0; i < Kf.size(); ++i) {
@@ -208,7 +222,7 @@ int calcDecorativeGeometryAndAppendImpl
             prevPoint = Q_G;
         }
 
-        // TODO: deal with inactive surfaces
+        // Draw "closest point" lines for inactive surfaces.
         for (SurfaceObstacleIndex sox(0); sox < instInfo.getNumSurfaceObstacles();
              ++sox)
         {

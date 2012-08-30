@@ -344,7 +344,12 @@ public:
     void setDisabledByDefault(bool shouldBeDisabled) 
     {   defaultDisabled=shouldBeDisabled; }
     bool isDisabledByDefault() const {return defaultDisabled;}
-    void invalidateTopology(); // see below   
+    void invalidateTopology(); // see below 
+
+    const DecorativeGeometry& getDecoration() const {return decoration;}
+    DecorativeGeometry& updDecoration() {return decoration;}
+    void setDecoration(const DecorativeGeometry& newGeo)
+    {   decoration = newGeo; }
 
 protected:
 friend class CableObstacle;
@@ -626,7 +631,8 @@ public:
          const Transform& pose, const ContactGeometry& geom) 
     :   Super(path, mobod, pose), surface(geom), 
         nearPointInS(NaN), xPhint(NaN), xQhint(NaN) 
-    {   decoration = geom.createDecorativeGeometry(); }
+    {   decoration = geom.createDecorativeGeometry()
+            .setColor(Orange).setOpacity(.75).setResolution(3); }
 
     const ContactGeometry& getContactGeometry() const {return surface;}
 

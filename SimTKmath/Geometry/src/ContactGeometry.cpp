@@ -2062,7 +2062,7 @@ DecorativeGeometry ContactGeometry::Cylinder::Impl::createDecorativeGeometry() c
     DecorativeCylinder cyl(radius, radius*2);
     // DecorativeCylinder's axis is defined as the y-axis,
     // whereas ContactGeometry::Cylinder axis is defined as the z-axis
-    cyl.setTransform(Rotation(UnitVec3(0, 1, 0), ZAxis, Vec3(0, 0, 1), YAxis));
+    cyl.setTransform(Rotation(Pi/2, XAxis));
     return cyl;
 }
 

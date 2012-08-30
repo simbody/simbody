@@ -230,27 +230,17 @@ int main() {
 
     Body::Rigid someBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     const Real Rad = .25;
-    someBody.addDecoration(Transform(), 
-        DecorativeSphere(Rad).setOpacity(.75).setResolution(4));
 
     Body::Rigid biggerBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     const Real BiggerRad = .5;
-    biggerBody.addDecoration(Transform(), 
-        DecorativeSphere(BiggerRad).setOpacity(.75).setResolution(4));
 
     const Vec3 radii(.4, .25, .15);
     Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
         1.*UnitInertia::ellipsoid(radii)));
-    ellipsoidBody.addDecoration(Transform(), 
-        DecorativeEllipsoid(radii).setOpacity(.75).setResolution(4)
-                                  .setColor(Orange));
 
     const Real CylRad = .3, HalfLen = .5;
     Body::Rigid cylinderBody(MassProperties(1.0, Vec3(0), 
         1.*UnitInertia::cylinderAlongX(Rad,HalfLen)));
-    cylinderBody.addDecoration(Rotation(-Pi/2,ZAxis), 
-        DecorativeCylinder(CylRad,HalfLen).setOpacity(.75)
-           .setResolution(4).setColor(Orange));
 
     Body::Rigid fancyBody = biggerBody; // NOT USING ELLIPSOID
 

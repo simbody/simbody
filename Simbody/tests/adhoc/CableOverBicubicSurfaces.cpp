@@ -273,6 +273,9 @@ int main() {
     // shows better.
     Ground.addBodyDecoration(SmoothOrigin - Vec3(0,0,.01),
         DecorativeMesh(smoothMesh).setColor(Cyan).setOpacity(.75));
+    Ground.addBodyDecoration(SmoothOrigin - Vec3(0,0,.01),
+        DecorativeMesh(smooth.createPolygonalMesh(0))
+            .setRepresentation(DecorativeGeometry::DrawWireframe));
 
     // Not using these yet:
     Ground.addBodyDecoration(Vec3(5,-5,0),
@@ -305,6 +308,7 @@ int main() {
     // Provide an initial guess for P and Q (in frame of "smooth").
     Vec3 P1(1.5,1,3.75), Q1(1.5,-1,3.75);
     obstacle1.setContactPointHints(P1, Q1);
+
     Ground.addBodyDecoration(SmoothOrigin,
         DecorativePoint(P1).setColor(Green).setScale(2));
     Ground.addBodyDecoration(SmoothOrigin,

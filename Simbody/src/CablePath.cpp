@@ -1271,21 +1271,21 @@ getCablePath() const {assert(impl->cablePath); return *impl->cablePath;}
 CableObstacleIndex CableObstacle::
 getObstacleIndex() const {return impl->index;}
 const DecorativeGeometry& CableObstacle::
-getDecorativeGeometry() const {return impl->decoration;}
+getDecorativeGeometry() const {return impl->getDecoration();}
 DecorativeGeometry& CableObstacle::
-updDecorativeGeometry() {return impl->decoration;}
+updDecorativeGeometry() {return impl->updDecoration();}
 bool CableObstacle::
-isDisabledByDefault() const {return impl->defaultDisabled;}
+isDisabledByDefault() const {return impl->isDisabledByDefault();}
 
 CableObstacle& CableObstacle::
 setDisabledByDefault(bool shouldBeDisabled) 
-{   impl->defaultDisabled=shouldBeDisabled; return *this;}
+{   impl->setDisabledByDefault(shouldBeDisabled); return *this;}
 CableObstacle& CableObstacle::
 setDefaultTransform(const Transform& X_BS) 
 {   impl->defaultX_BS=X_BS; return *this;}
 CableObstacle& CableObstacle::
 setDecorativeGeometry(const DecorativeGeometry& viz)
-{   impl->decoration = viz; return *this; }
+{   impl->setDecoration(viz); return *this; }
 
 inline void CableObstacle::Impl::invalidateTopology() 
 {   if (cablePath) cablePath->updImpl().invalidateTopology(); }   
