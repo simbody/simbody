@@ -202,8 +202,29 @@ CableObstacleIndex getObstacleIndex() const;
 decorative geometry's coordinate frame is coincident with the obstacle's 
 coordinate frame S. **/
 const DecorativeGeometry& getDecorativeGeometry() const;
+/** Obtain writable access to the decorative geometry stored with this obstacle
+so you can modify it. If you want to replace the decorative geometry 
+altogether use setDecorativeGeometry(). **/
+DecorativeGeometry& updDecorativeGeometry();
 
+/** Is this obstacle disabled by default? Note that this does not tell you
+whether it is currently disabled, just the setting that determines how it is
+treated when the system is first constructed. **/
+bool isDisabledByDefault() const;
+
+/** Set the "disabled by default" flag. This controls whether the obstacle is
+included for consideration in the cable path when the system is first
+constructed; it does not affect the current setting. **/
+CableObstacle& setDisabledByDefault(bool shouldBeDisabled);
+
+/** Replace the default transform for this obstacle; this is usually set in
+the constructor. **/
 CableObstacle& setDefaultTransform(const Transform& X_BS);
+
+/** Replace the decorative geometry used for automatically-generated 
+visualization of this obstacle when visualizing the cable path. It is up to
+you to make sure the geometry is actually representative of the obstacle --
+no one is going to check. **/
 CableObstacle& setDecorativeGeometry(const DecorativeGeometry& viz);
 
 /** Clear this handle, deleting the referenced object if this

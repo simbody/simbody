@@ -259,7 +259,7 @@ public:
     explicit Impl(CablePath& cablePath, const MobilizedBody& mobod,
                   const Transform& defaultPose)
     :   referenceCount(0), cablePath(&cablePath), mobod(mobod),
-        defaultX_BS(defaultPose) {}
+        defaultX_BS(defaultPose), defaultDisabled(false) {}
 
     virtual ~Impl() {assert(referenceCount == 0);}
 
@@ -341,6 +341,9 @@ public:
     {   return mobod.getBodyVelocity(state); }
     void setCablePath(CablePath& path) { cablePath = &path; }
     void setCableObstacleIndex(int ix) { index = CableObstacleIndex(ix); }
+    void setDisabledByDefault(bool shouldBeDisabled) 
+    {   defaultDisabled=shouldBeDisabled; }
+    bool isDisabledByDefault() const {return defaultDisabled;}
     void invalidateTopology(); // see below   
 
 protected:
@@ -356,6 +359,9 @@ friend class CableObstacle;
     Transform               defaultX_BS;
     // How to draw this obstacle in the visualizer.
     DecorativeGeometry      decoration;
+
+    // Whether this obstacle should start out disabled.
+    bool                    defaultDisabled;
 
     // The number of handles that reference this implementation object.
     mutable int             referenceCount;
@@ -608,6 +614,8 @@ public:
     {   return 0; } // via point has no segment
 };
 
+
+
 //==============================================================================
 //                     CABLE OBSTACLE :: SURFACE :: IMPL
 //==============================================================================
@@ -617,7 +625,8 @@ public:
     Impl(CablePath& path, const MobilizedBody& mobod,
          const Transform& pose, const ContactGeometry& geom) 
     :   Super(path, mobod, pose), surface(geom), 
-        nearPointInS(NaN), xPhint(NaN), xQhint(NaN) {}
+        nearPointInS(NaN), xPhint(NaN), xQhint(NaN) 
+    {   decoration = geom.createDecorativeGeometry(); }
 
     const ContactGeometry& getContactGeometry() const {return surface;}
 

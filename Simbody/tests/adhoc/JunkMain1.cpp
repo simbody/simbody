@@ -227,9 +227,9 @@ int main() {
     biggerBody.addDecoration(Transform(), 
         DecorativeSphere(BiggerRad).setOpacity(.75).setResolution(4));
 
-    const Vec3 radii(.4, .25, .15);
+    const Vec3 radii(.3, .25, .25);
     Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
-        1.*UnitInertia::ellipsoid(radii)));
+        UnitInertia::ellipsoid(radii)));
     ellipsoidBody.addDecoration(Transform(), 
         DecorativeEllipsoid(radii).setOpacity(.75).setResolution(4)
                                   .setColor(Orange));
@@ -265,12 +265,23 @@ int main() {
     //obstacle.setContactPointHints(Rad*UnitVec3(1,1,0),Rad*UnitVec3(1,.5,0));
     //
     CableObstacle::Surface obstacle2(path1, Ground, Vec3(0,-1,0), 
-        ContactGeometry::Cylinder(CylRad));
-    Ground.addBodyDecoration(Transform(Rotation(Pi/2,XAxis),Vec3(0,-1,0)), 
-        DecorativeCylinder(CylRad,HalfLen).setOpacity(.75)
+        //ContactGeometry::Sphere(CylRad));
+        ContactGeometry::Ellipsoid(radii));
+        //ContactGeometry::Torus(CylRad,.1));
+        //ContactGeometry::Cylinder(CylRad));
+    Ground.addBodyDecoration(
+        Transform(Rotation(),Vec3(0,-1,0)), 
+        //DecorativeSphere(CylRad)
+        //Transform(Rotation(),Vec3(0,-1,0)), 
+        //ContactGeometry::Torus(CylRad,.1).createDecorativeGeometry()
+        DecorativeEllipsoid(radii)
+        //Transform(Rotation(Pi/2,XAxis),Vec3(0,-1,0)), 
+        //DecorativeCylinder(CylRad,HalfLen)
+        .setOpacity(.75)
            .setResolution(4).setColor(Orange));
-    obstacle2.setContactPointHints(1.2*CylRad*UnitVec3(1,1,0),1.2*CylRad*UnitVec3(1,.5,0));
-
+    obstacle2.setContactPointHints(1.5*CylRad*UnitVec3(1,1,0),1.5*CylRad*UnitVec3(1,.5,0));
+    obstacle2.setDisabledByDefault(true);
+    
     ////CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
     ////CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
     //CableObstacle::Surface obs5(path1, body4, 
@@ -301,7 +312,7 @@ int main() {
     //    state.updQ()[i] = random.getValue();
     //for (int i = 0; i < state.getNU(); ++i)
     //    state.updU()[i] = 0.1*random.getValue(); 
-    body1.setQToFitTranslation(state, Vec3(-.75,-1.5,.5));
+    body1.setQToFitTranslation(state, Vec3(2,-1,.5));
 
     system.realize(state, Stage::Position);
     viz.report(state);
@@ -315,8 +326,10 @@ int main() {
     // Simulate it.
     saveStates.clear(); saveStates.reserve(2000);
 
+    //RungeKutta3Integrator integ(system);
     RungeKuttaMersonIntegrator integ(system);
     //CPodesIntegrator integ(system);
+    //integ.setAllowInterpolation(false);
     integ.setAccuracy(1e-3);
     TimeStepper ts(system, integ);
     ts.initialize(state);

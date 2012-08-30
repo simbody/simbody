@@ -50,6 +50,9 @@ PathInstanceInfo::PathInstanceInfo
     SurfaceObstacleIndex next(0);
     for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
         const CableObstacle::Impl& obs = obstacles[ox].getImpl();
+        if (obs.isDisabledByDefault())
+            obstacleDisabled[ox] = true;
+
         if (obs.getNumCoordsPerContactPoint() > 0) { // a surface
             mapObstacleToSurface[ox] = next++;
             mapSurfaceToObstacle.push_back(ox);
@@ -279,8 +282,9 @@ realizeInstance(const State& state) const {
         ppe.mapToActiveSurface[ox].invalidate();
         ppe.mapToCoords[ox] = -1;
 
-        if (instInfo.obstacleDisabled[ox])
-            continue; // skip disabled object
+        if (instInfo.obstacleDisabled[ox]) {
+            continue; // skip disabled obstacles
+        }
 
         // This obstacle is enabled.
 
@@ -316,7 +320,26 @@ realizeInstance(const State& state) const {
     for (int i=0; i<nx; ++i)
         ppe.x[i] = xInit[i];
 
+    // For disabled (TODO: inactive) obstacles, fill in the initial guess
+    // at the closest-point-to-path.
+    for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
+        if (!instInfo.obstacleDisabled[ox])
+            continue; // skip enabled obstacles
 
+        //TODO: for now disabled surface is treated as inactive surface
+        //and needs its closest point initialized somehow.
+        const CableObstacle::Impl& obs = obstacles[ox].getImpl();
+        const int d = obs.getNumCoordsPerContactPoint();
+        if (d == 0) continue; // just a via point
+        // Obstacle is a surface.
+        const SurfaceObstacleIndex sox = instInfo.mapObstacleToSurface[ox];
+        const CableObstacle::Surface::Impl& surf =
+            dynamic_cast<const CableObstacle::Surface::Impl&>(obs);
+        Vec3 xPhint(0), xQhint(0);
+        if (surf.hasContactPointHints())
+            surf.getContactPointHints(xPhint,xQhint);
+        ppe.closestSurfacePoint[sox] = xPhint;
+    }
     cout << "INIT PE=" << ppe << endl;
     cout << "INIT VE=" << pve << endl;
 }
@@ -560,7 +583,15 @@ ensurePositionKinematicsCalculated(const State& state) const {
             (getObstacleImpl(ox));
         const ContactGeometry& geo = thisObs.getContactGeometry();
 
-        const Vec3 prevClosestPt = prevPPE.closestSurfacePoint[sox];
+        Vec3 prevClosestPt = prevPPE.closestSurfacePoint[sox];
+        if (prevClosestPt.isNaN()) {
+            Vec3 xPhint, xQhint;
+            if (thisObs.hasContactPointHints()) {
+                thisObs.getContactPointHints(xPhint, xQhint);
+                prevClosestPt = xPhint;
+            } else
+                prevClosestPt = (r_SPn+r_SQp)/2;
+        }
         Vec3 closestPointOnSurface, closestPointOnLine; Real height;
         bool succeeded = geo.trackSeparationFromLine
             ((r_SPn+r_SQp)/2, d_QpPn,
@@ -1241,7 +1272,14 @@ CableObstacleIndex CableObstacle::
 getObstacleIndex() const {return impl->index;}
 const DecorativeGeometry& CableObstacle::
 getDecorativeGeometry() const {return impl->decoration;}
+DecorativeGeometry& CableObstacle::
+updDecorativeGeometry() {return impl->decoration;}
+bool CableObstacle::
+isDisabledByDefault() const {return impl->defaultDisabled;}
 
+CableObstacle& CableObstacle::
+setDisabledByDefault(bool shouldBeDisabled) 
+{   impl->defaultDisabled=shouldBeDisabled; return *this;}
 CableObstacle& CableObstacle::
 setDefaultTransform(const Transform& X_BS) 
 {   impl->defaultX_BS=X_BS; return *this;}
