@@ -1533,7 +1533,10 @@ public:
     /** Allocate the auto-updated state variable that holds the extreme seen
     so far. We'll assume that changes to this variable invalidate Dynamics
     (force) stage so that any forces that depend on it will be recomputed if
-    it changes. **/
+    it changes. Also allocate an auxiliary boolean variable that is used to hold
+    whether the current value is a new extreme; that is private to the 
+    implementation and not user-accessible since you can instead check the
+    time of last update. **/
     void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
         // TODO: this should be NaN once initialization is working properly.
         T initVal = this->getDefaultValue();
@@ -1543,9 +1546,14 @@ public:
         case MinAbs:  initVal = Infinity; break;
         case MaxAbs:  initVal = 0; break;
         };
+
         extremeIx = this->getSubsystem()
             .allocateAutoUpdateDiscreteVariable(s, Stage::Dynamics,
                 new Value<T>(initVal), operand.getDependsOnStage(0));
+
+        isNewExtremeIx = this->getSubsystem()
+            .allocateAutoUpdateDiscreteVariable(s, Stage::Dynamics,              
+                new Value<bool>(false), operand.getDependsOnStage(0));
     }
 
     /** In case no one has updated the value of this measure yet, we have
@@ -1555,36 +1563,63 @@ public:
     }
 
     /** Here we make sure that the cache entry is updated if the current value
-    of the operand is less than the previous one, and return a bool indicating
-    whether we have a new minimum. We don't want to create an update entry
-    unless the minimum has changed, because we would like the state 
+    of the operand is more extreme than the previous one, and return a bool 
+    indicating whether we have a new extreme. We don't want to create an update
+    entry unless the extreme value has changed, because we would like the state 
     variable's last update value to reflect the last actual change. **/
     bool ensureExtremeHasBeenUpdated(const State& s) const {
-        assert(extremeIx.isValid());
+        assert(extremeIx.isValid() && isNewExtremeIx.isValid());
         const Subsystem& subsys = this->getSubsystem();
-        if (subsys.isDiscreteVarUpdateValueRealized(s,extremeIx))
-            return true; // already updated to new minimum
 
+        // We may have already determined whether we're at a new extreme in 
+        // which case we don't need to do it again.
+        if (subsys.isDiscreteVarUpdateValueRealized(s, isNewExtremeIx))
+            return Value<bool>::downcast
+               (subsys.getDiscreteVarUpdateValue(s,isNewExtremeIx));
+
+        // We're going to have to decide if we're at a new extreme, and if
+        // so record the new extreme value in the auto-update cache entry of
+        // the extreme value state variable.
+
+        // Get the previous extreme value and the current operand value.
         const T& prevExtreme = Value<T>::downcast
                                     (subsys.getDiscreteVariable(s,extremeIx));
-        const T& f = operand.getValue(s);
+        const T& currentVal = operand.getValue(s);
+
         // Search to see if any element has reached a new extreme.
         bool foundNewExt = false;
         for (int i=0; i < this->size() && !foundNewExt; ++i) 
-            foundNewExt = isNewExtreme(Measure_Num<T>::get(f,i), 
+            foundNewExt = isNewExtreme(Measure_Num<T>::get(currentVal,i), 
                                        Measure_Num<T>::get(prevExtreme,i));
-        if (!foundNewExt)
-            return false; // no change to output
 
-        // We have encountered a new record holder for minimum.
+        // Record the result and mark it the auto-update cache entry valid
+        // so we won't have to recalculate. When the integrator advances to the
+        // next step this cache entry will be swapped with the corresponding 
+        // state and marked invalid so we'll be sure to recalculate each step. 
+        Value<bool>::updDowncast
+           (subsys.updDiscreteVarUpdateValue(s,isNewExtremeIx)) = foundNewExt;
+        subsys.markDiscreteVarUpdateValueRealized(s,isNewExtremeIx);
+
+        // Don't update the auto-update cache entry if we didn't see a new
+        // extreme. That way no auto-update will occur and the state variable
+        // will remain unchanged with the existing update time preserved.
+        if (!foundNewExt)
+            return false;
+
+        // We have encountered a new extreme. We'll record the new extreme
+        // in the auto-update cache entry which will be used as the current
+        // result until the integrator advances to the next step at which time
+        // this will be swapped with the state variable to serve as the previous
+        // extreme value until a further extreme is encountered.
         T& newExtreme = Value<T>::updDowncast
                                 (subsys.updDiscreteVarUpdateValue(s,extremeIx));
 
         for (int i=0; i < this->size(); ++i)
             Measure_Num<T>::upd(newExtreme,i) =
-                extremeOf(Measure_Num<T>::get(f,i),
+                extremeOf(Measure_Num<T>::get(currentVal,i),
                           Measure_Num<T>::get(prevExtreme,i));
 
+        // Marking this valid is what ensures that an auto-update occurs later.
         subsys.markDiscreteVarUpdateValueRealized(s,extremeIx);
         return true;
     }
@@ -1638,7 +1673,13 @@ private:
     Operation                       operation;
 
     // TOPOLOGY CACHE
-    mutable DiscreteVariableIndex   extremeIx;    // min so far; auto-update
+    mutable DiscreteVariableIndex   extremeIx; // extreme so far; auto-update
+
+    // This auto-update flag records whether the current value is a new
+    // extreme. We don't really need to save it as a state variable since you
+    // can figure this out from the timestamp, but we need to to get invalidated
+    // by the auto-update swap so that we'll figure it out anew each step.
+    mutable DiscreteVariableIndex   isNewExtremeIx;
 };
 
 
