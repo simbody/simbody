@@ -90,8 +90,9 @@ public:
         *this = downcast(v);
     }
     String getTypeName() const { return NiceTypeName<T>::name(); }
+    // TODO: should have some general way to serialize these.
     String getValueAsString() const 
-    { std::ostringstream s; s << thing; return s.str(); }
+    { return "Value<" + getTypeName() + ">"; }
     
     AbstractValue* clone() const { return new Value(*this); }
     SimTK_DOWNCAST(Value,AbstractValue);
