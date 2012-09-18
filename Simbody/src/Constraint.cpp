@@ -1299,6 +1299,26 @@ Real Constraint::Ball::getDefaultRadius() const {
     return getImpl().getDefaultRadius();
 }
 
+void Constraint::Ball::
+setPointOnBody1(State& state, const Vec3& point_B1) const {
+    getImpl().updBodyStations(state).first = point_B1;
+}
+
+void Constraint::Ball::
+setPointOnBody2(State& state, const Vec3& point_B2) const {
+    getImpl().updBodyStations(state).second = point_B2;
+}
+
+const Vec3& Constraint::Ball::
+getPointOnBody1(const State& state) const {
+    return getImpl().getBodyStations(state).first;
+}
+const Vec3& Constraint::Ball::
+getPointOnBody2(const State& state) const {
+    return getImpl().getBodyStations(state).second;
+}
+
+
 Vec3 Constraint::Ball::getPositionErrors(const State& s) const {
     Vec3 perr;
     getImpl().getPositionErrors(s, 3, &perr[0]);
@@ -1323,59 +1343,121 @@ Vec3 Constraint::Ball::getMultipliers(const State& s) const {
     return mult;
 }
 
+// The multipliers are the A-frame force vector as applied to body 2 at
+// the user-defined station point on body 2. We want to return the
+// force applied to body 1, expressed in body 1's frame. Note that this
+// is the force applied to body 1 at the point coincident with body 2's
+// station point -- if instead we returned the force at body 1's station
+// point there would also be a small moment since that point in general
+// differs from the contact point.
+Vec3 Constraint::Ball::
+getBallReactionForceOnBody1(const State& s) const {
+    const BallImpl& impl = getImpl();
+    Vec3 force2_A;
+    impl.getMultipliers(s, 3, &force2_A[0]);
+    const Rotation& R_AB1 = impl.getBodyRotationFromState(s, impl.B1);
+    return -(~R_AB1*force2_A);
+}
+
+Vec3 Constraint::Ball::
+getBallReactionForceOnBody2(const State& s) const{
+    const BallImpl& impl = getImpl();
+    Vec3 force2_A;
+    impl.getMultipliers(s, 3, &force2_A[0]);
+    const Rotation& R_AB2 = impl.getBodyRotationFromState(s, impl.B2);
+    return ~R_AB2*force2_A;
+}
+
     // BallImpl
+
+// The default body stations may be overridden by setting instance variables
+// in the state. We allocate the state resources here.
+void Constraint::Ball::BallImpl::
+realizeTopologyVirtual(State& state) const {
+    stationsIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Instance, 
+            new Value< std::pair<Vec3,Vec3> >
+               (std::make_pair(defaultPoint1,defaultPoint2)));
+}
+
+// Return the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Note that although
+// these are used to define the position error, only the station on body 2
+// is used to generate constraint forces; the point of body 1 that is 
+// coincident with the body 2 point receives the equal and opposite force.
+const std::pair<Vec3,Vec3>& Constraint::Ball::BallImpl::
+getBodyStations(const State& state) const {
+    return Value< std::pair<Vec3,Vec3> >::downcast
+       (getMyMatterSubsystemRep().getDiscreteVariable(state,stationsIx));
+}
+
+// Return a writable reference into the Instance-stage state variable 
+// containing the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Calling this
+// method invalidates the Instance stage and above in the given state.
+std::pair<Vec3,Vec3>& Constraint::Ball::BallImpl::
+updBodyStations(State& state) const {
+    return Value< std::pair<Vec3,Vec3> >::updDowncast
+       (getMyMatterSubsystemRep().updDiscreteVariable(state,stationsIx));
+}
 
 void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
+    const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+
     // We can't generate the ball until we know the radius, and we can't place
     // the geometry on the body until we know the body1 and body2 point
     // placements on the bodies, which might not be until Instance stage.
-    if (stage == Stage::Instance && getDefaultRadius() > 0 && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
-        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-        const Transform X_B1(Rotation(), defaultPoint1); // should be point from State
-        const Transform X_B2(Rotation(), defaultPoint2);
+    if (   stage == Stage::Instance 
+        && getDefaultRadius() > 0 
+        && matterRep.getShowDefaultGeometry()) 
+    {
+        const std::pair<Vec3,Vec3>& pts = getBodyStations(s);
+
+        const Transform X_B1(Rotation(), pts.first); // should be point from State
+        const Transform X_B2(Rotation(), pts.second);
 
         // On the inboard body, draw a solid sphere and a wireframe one attached to it for
         // easier visualization of its rotation. These are at about 90% of the radius.
         geom.push_back(DecorativeSphere(0.92*getDefaultRadius())
-                                            .setColor(Gray)
-                                            .setRepresentation(DecorativeGeometry::DrawSurface)
-                                            .setOpacity(0.5)
-                                            .setResolution(0.75)
-                                            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
-                                            .setTransform(X_B1));
+                        .setColor(Gray)
+                        .setRepresentation(DecorativeGeometry::DrawSurface)
+                        .setOpacity(0.5)
+                        .setResolution(0.75)
+                        .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
+                        .setTransform(X_B1));
         geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
-            .setColor(White)
-            .setRepresentation(DecorativeGeometry::DrawWireframe)
-            .setResolution(0.75)
-            .setLineThickness(3)
-            .setOpacity(0.1)
-            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
-            .setTransform(X_B1));
+                        .setColor(White)
+                        .setRepresentation(DecorativeGeometry::DrawWireframe)
+                        .setResolution(0.75)
+                        .setLineThickness(3)
+                        .setOpacity(0.1)
+                        .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
+                        .setTransform(X_B1));
 
         // Draw connector line back to body origin.
-        if (defaultPoint1.norm() >= SignificantReal)
-            geom.push_back(DecorativeLine(Vec3(0), defaultPoint1)
-                             .setColor(Gray)
-                             .setLineThickness(2)
-                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1)));
+        if (pts.first.norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), pts.first)
+                        .setColor(Gray)
+                        .setLineThickness(2)
+                        .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1)));
 
         // On the outboard body draw an orange mesh sphere at the ball radius.
         geom.push_back(DecorativeSphere(getDefaultRadius())
-                                            .setColor(Orange)
-                                            .setRepresentation(DecorativeGeometry::DrawWireframe)
-                                            .setOpacity(0.5)
-                                            .setResolution(0.5)
-                                            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B2))
-                                            .setTransform(X_B2));
+                        .setColor(Orange)
+                        .setRepresentation(DecorativeGeometry::DrawWireframe)
+                        .setOpacity(0.5)
+                        .setResolution(0.5)
+                        .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B2))
+                        .setTransform(X_B2));
 
         // Draw connector line back to body origin.
-        if (defaultPoint2.norm() >= SignificantReal)
-            geom.push_back(DecorativeLine(Vec3(0), defaultPoint2)
-                             .setColor(Gray)
-                             .setLineThickness(2)
-                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B2)));
+        if (pts.second.norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), pts.second)
+                        .setColor(Gray)
+                        .setLineThickness(2)
+                        .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B2)));
     }
 }
 

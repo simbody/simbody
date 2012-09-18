@@ -1868,6 +1868,23 @@ void setDefaultRadius(Real r) {
 }
 Real getDefaultRadius() const {return defaultRadius;}
 
+// The default body stations may be overridden by setting instance variables
+// in the state. We allocate the state resources here.
+void realizeTopologyVirtual(State& state) const;
+
+// Return the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Note that although
+// these are used to define the position error, only the station on body 2
+// is used to generate constraint forces; the point of body 1 that is 
+// coincident with the body 2 point receives the equal and opposite force.
+const std::pair<Vec3,Vec3>& getBodyStations(const State& state) const;
+
+// Return a writable reference into the Instance-stage state variable 
+// containing the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Calling this
+// method invalidates the Instance stage and above in the given state.
+std::pair<Vec3,Vec3>& updBodyStations(State& state) const;
+
 // Implementation of virtuals required for holonomic constraints.
 
 // We have a ball joint between base body B and follower body F, located at a 
@@ -1905,8 +1922,10 @@ void calcPositionErrorsVirtual
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 3);
 
-    const Vec3 p_AP = findStationLocation(allX_AB, B1, defaultPoint1);
-    const Vec3 p_AS = findStationLocation(allX_AB, B2, defaultPoint2);
+    const std::pair<Vec3,Vec3>& pts = getBodyStations(s);
+
+    const Vec3 p_AP = findStationLocation(allX_AB, B1, pts.first);
+    const Vec3 p_AS = findStationLocation(allX_AB, B2, pts.second);
 
     // See above comments -- this is just the constant of integration; there is a missing (p_AS-p_AC)
     // term (always 0) here which is what we differentiate to get the verr equation.
@@ -1921,13 +1940,17 @@ void calcPositionDotErrorsVirtual
     const 
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==3);
+
+    // Note that we're not using point1.
+    const Vec3& point2 = getBodyStations(s).second;
+
     //TODO: should be able to get p info from State
     const Transform&  X_AB   = getBodyTransformFromState(s, B1);
-    const Vec3        p_AS   = findStationLocationFromState(s, B2, defaultPoint2);
+    const Vec3        p_AS   = findStationLocationFromState(s, B2, point2);
     const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
     const Vec3        v_AS    = findStationVelocity(s, allV_AB, B2, 
-                                                    defaultPoint2);
+                                                    point2);
     const Vec3        v_AC    = findStationVelocity(s, allV_AB, B1, p_BC);
     Vec3::updAs(&pverr[0]) = v_AS - v_AC;
 }
@@ -1940,14 +1963,18 @@ void calcPositionDotDotErrorsVirtual
     const
 {
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==3);
+
+    // Note that we're not using point1.
+    const Vec3& point2 = getBodyStations(s).second;
+
     //TODO: should be able to get p and v info from State
 
     const Transform&  X_AB   = getBodyTransformFromState(s, B1);
-    const Vec3        p_AS   = findStationLocationFromState(s, B2, defaultPoint2);
+    const Vec3        p_AS   = findStationLocationFromState(s, B2, point2);
     const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
     const Vec3        a_AS    = findStationAcceleration(s, allA_AB, B2, 
-                                                        defaultPoint2);
+                                                        point2);
     const Vec3        a_AC    = findStationAcceleration(s, allA_AB, B1, p_BC);
     Vec3::updAs(&paerr[0]) = a_AS - a_AC;
 }
@@ -1962,9 +1989,12 @@ void addInPositionConstraintForcesVirtual
     assert(multipliers.size()==3 && bodyForcesInA.size()==2 
            && qForces.size()==0);
 
+    // Note that we're not using point1.
+    const Vec3& point2 = getBodyStations(s).second;
+
     //TODO: should be able to get p info from State
     const Transform& X_AB  = getBodyTransformFromState(s,B1);
-    const Vec3&      p_FS  = defaultPoint2;
+    const Vec3&      p_FS  = point2;
     const Vec3       p_AS  = findStationLocationFromState(s, B2, p_FS);
     const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
                                   // C is material point of B coincident with S
@@ -1991,6 +2021,9 @@ ConstrainedBodyIndex    B2;
 Vec3                    defaultPoint1; // on body 1, exp. in B1 frame
 Vec3                    defaultPoint2; // on body 2, exp. in B2 frame
 Real                    defaultRadius; // used for visualization only
+
+// This Instance-stage variable holds the actual stations on B1 & B2.
+mutable DiscreteVariableIndex   stationsIx;
 };
 
 
