@@ -1739,6 +1739,26 @@ Real Constraint::NoSlip1D::getPointDisplayRadius() const {
     return getImpl().getPointDisplayRadius();
 }
 
+void Constraint::NoSlip1D::
+setContactPoint(State& state, const Vec3& point_C) const {
+    getImpl().updContactInfo(state).first = point_C;
+}
+
+void Constraint::NoSlip1D::
+setDirection(State& state, const UnitVec3& direction_C) const {
+    getImpl().updContactInfo(state).second = direction_C;
+}
+
+const Vec3& Constraint::NoSlip1D::
+getContactPoint(const State& state) const {
+    return getImpl().getContactInfo(state).first;
+}
+const UnitVec3& Constraint::NoSlip1D::
+getDirection(const State& state) const {
+    return getImpl().getContactInfo(state).second;
+}
+
+
 Real Constraint::NoSlip1D::getVelocityError(const State& s) const {
     Real pverr;
     getImpl().getVelocityErrors(s, 1, &pverr);
@@ -1757,7 +1777,43 @@ Real Constraint::NoSlip1D::getMultiplier(const State& s) const {
     return mult;
 }
 
+Real Constraint::NoSlip1D::getForceAtContactPoint(const State& s) const {
+    return -getMultiplier(s); // applied forces have opposite sign from lambda
+}
+
     // NoSlip1DImpl
+
+
+// The default contact point and no-slip direction may be overridden by setting
+// an instance variable in the state. We allocate the state resources here.
+void Constraint::NoSlip1D::NoSlip1DImpl::
+realizeTopologyVirtual(State& state) const {
+    contactInfoIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Instance, 
+            new Value< std::pair<Vec3,UnitVec3> >
+               (std::make_pair(defaultContactPoint,defaultNoSlipDirection)));
+}
+
+// Return the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Note that although
+// these are used to define the position error, only the station on body 2
+// is used to generate constraint forces; the point of body 1 that is 
+// coincident with the body 2 point receives the equal and opposite force.
+const std::pair<Vec3,UnitVec3>& Constraint::NoSlip1D::NoSlip1DImpl::
+getContactInfo(const State& state) const {
+    return Value< std::pair<Vec3,UnitVec3> >::downcast
+       (getMyMatterSubsystemRep().getDiscreteVariable(state,contactInfoIx));
+}
+
+// Return a writable reference into the Instance-stage state variable 
+// containing the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Calling this
+// method invalidates the Instance stage and above in the given state.
+std::pair<Vec3,UnitVec3>& Constraint::NoSlip1D::NoSlip1DImpl::
+updContactInfo(State& state) const {
+    return Value< std::pair<Vec3,UnitVec3> >::updDowncast
+       (getMyMatterSubsystemRep().updDiscreteVariable(state,contactInfoIx));
+}
 
 void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
@@ -1766,9 +1822,13 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
     // point location, which might not be until Instance stage.
     if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-        // TODO: should be instance-stage data from State rather than topological data
+
+        const std::pair<Vec3,UnitVec3>& info = getContactInfo(s);
+        const Vec3&     P_C = info.first;
+        const UnitVec3& n_C = info.second;
+
         // This makes x axis point along no-slip direction, origin at contact point
-        const Transform X_CP(Rotation(defaultNoSlipDirection,XAxis), defaultContactPoint);
+        const Transform X_CP(Rotation(n_C,XAxis), P_C);
 
         const MobilizedBodyIndex caseMBId = getMobilizedBodyIndexOfConstrainedBody(caseBody);
 

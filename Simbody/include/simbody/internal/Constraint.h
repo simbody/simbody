@@ -1027,40 +1027,107 @@ public:
 class SimTK_SIMBODY_EXPORT Constraint::NoSlip1D : public Constraint {
 public:
     // no default constructor
+
+    /** Define the up to three bodies involved in this constraint: the two
+    "moving" bodies and a Case body, and a default contact point and no-slip
+    direction in the Case body frame C. (If you are modeling gears then the
+    Case is the gearbox.) The case serves to define the 
+    contact geometry but no forces are applied to it. It is OK for the Case
+    body to be the same body as one of the moving bodies. **/
     NoSlip1D(MobilizedBody& caseBodyC, const Vec3& P_C, const UnitVec3& n_C,
              MobilizedBody& movingBody0, MobilizedBody& movingBody1);
+
+    /** Change the contact point at which this %Constraint acts.
+    Provide the station location in the Case body local frame.
+    This overrides the default point that was supplied on construction. This
+    is an Instance-stage change. **/
+    void setContactPoint(State& state, const Vec3& point_C) const;
+    /** Change the no-slip direction along which this %Constraint acts.
+    Provide the direction unit vector in the Case body local frame.
+    This overrides the default direction that was supplied on construction. This
+    is an Instance-stage change. **/
+    void setDirection(State& state, const UnitVec3& direction_C) const;
+
+    /** Return from the given \a state the contact point, in the Case body 
+    frame. **/
+    const Vec3& getContactPoint(const State& state) const;
+    /** Return from the given \a state the no-slip direction, in  the Case 
+    body frame. **/
+    const UnitVec3& getDirection(const State& state) const;
 
     // These affect only generated decorative geometry for visualization;
     // the plane is really infinite in extent with zero depth and the
     // point is really of zero radius.
+
+    /** For visualization only, set the length of the line used to show the
+    no-slip direction. **/
     NoSlip1D& setDirectionDisplayLength(Real);
+    /** For visualization only, set the radius of the sphere used to show
+    the contact point location. **/
     NoSlip1D& setPointDisplayRadius(Real);
+    /** Return the current value of the visualization line length for the 
+    no-slip direction. **/
     Real getDirectionDisplayLength() const;
+    /** Return the current value of the radius for visualization of the
+    contact point. **/
     Real getPointDisplayRadius() const;
 
     // Defaults for Instance variables.
+
+    /** Change the default contact point; this is the initial value for
+    for the actual contact point and is a topological change. **/
+    NoSlip1D& setDefaultContactPoint(const Vec3&); 
+    /** Change the default no-slip direction; this is the initial value for
+    for the actual direction and is a topological change. **/
     NoSlip1D& setDefaultDirection(const UnitVec3&);
-    NoSlip1D& setDefaultContactPoint(const Vec3&);
+
 
     // Stage::Topology
+
+    /** Get the mobilized body index of the Case body that was set during
+    construction. **/
     MobilizedBodyIndex getCaseMobilizedBodyIndex() const;
+    /** Get the mobilized body index of moving body 0 or moving body 1 that 
+    was set during construction. Set \a which to 0 or 1 accordingly. **/
     MobilizedBodyIndex getMovingBodyMobilizedBodyIndex(int which) const;
 
+    /** Obtain the default value for the no-slip direction, expressed in the
+    Case body frame. **/
     const UnitVec3& getDefaultDirection() const;
+    /** Obtain the default value for the contact point, in the Case body
+    frame. **/
     const Vec3&     getDefaultContactPoint() const;
 
-    // Stage::Instance
-    const UnitVec3& getDirection(const State&) const;
-    const Vec3&     getContactPoint(const State&) const;
 
     // Stage::Position, Velocity
         // no position error
-    Real getVelocityError(const State&) const;
+
+    /** Get the velocity error for this constraint equation, using configuration
+    and velocity information from the given \a state, which must already have
+    been realized through Velocity stage. **/
+    Real getVelocityError(const State& state) const;
 
     // Stage::Acceleration
+
+    /** Get the acceleration error for this constraint equation, using 
+    configuration, velocity, and acceleration information from the given 
+    \a state, which must already have been realized through Acceleration 
+    stage. **/
     Real getAccelerationError(const State&) const;
+
+    /** Get the Lagrange multiplier for this constraint equation, using 
+    configuration, velocity, and acceleration information from the given 
+    \a state, which must already have been realized through Acceleration 
+    stage. While this is linearly related to the constraint force it may have 
+    arbitrary sign and scaling; if you want an actual force use 
+    getForceAtContactPoint() instead. **/
     Real getMultiplier(const State&) const;
-    Real getForceAtContactPoint(const State&) const; // in normal direction, no body 2
+
+    /** Determine the constraint force currently being generated by this 
+    constraint. The force is as applied to the second moving body, that is,
+    moving body 1, and is applied along the no-slip direction vector. **/
+    Real getForceAtContactPoint(const State&) const;
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(NoSlip1D, NoSlip1DImpl, Constraint);
 };
 

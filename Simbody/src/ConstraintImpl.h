@@ -2441,10 +2441,25 @@ Vec3                    frameFColor;
 class Constraint::NoSlip1DImpl : public ConstraintImpl {
 public:
 NoSlip1DImpl()
-    : ConstraintImpl(0,1,0), defaultNoSlipDirection(), defaultContactPoint(0),
+:   ConstraintImpl(0,1,0), defaultContactPoint(0), defaultNoSlipDirection(),
     directionLength(1), pointRadius(0.05) 
 { }
 NoSlip1DImpl* clone() const { return new NoSlip1DImpl(*this); }
+
+// The default contact point and no-slip direction may be overridden by 
+// setting an instance variable in the state. We allocate the state 
+// resources here.
+void realizeTopologyVirtual(State& state) const;
+
+// Return the contact point and no-slip direction, both expressed 
+// in the Case body frame C.
+const std::pair<Vec3,UnitVec3>& getContactInfo(const State& state) const;
+
+// Return a writable reference into the Instance-stage state variable 
+// containing the contact point and no-slip direction, both expressed 
+// in the Case body frame C. Calling this
+// method invalidates the Instance stage and above in the given state.
+std::pair<Vec3,UnitVec3>& updContactInfo(State& state) const;
 
 void calcDecorativeGeometryAndAppendVirtual
     (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
@@ -2495,14 +2510,19 @@ void calcVelocityErrorsVirtual
     // There ought to be at least 2 distinct bodies, up to 3.
     assert((allV_AB.size()==2 || allV_AB.size() == 3)
            && constrainedU.size()==0 && verr.size()==1);
+
+    const std::pair<Vec3,UnitVec3>& info = getContactInfo(s);
+    const Vec3&     P_C = info.first;
+    const UnitVec3& n_C = info.second;
+
     //TODO: should be able to get p info from State
     const Transform& X_AC  = getBodyTransformFromState(s, caseBody);
     const Transform& X_AB0 = getBodyTransformFromState(s, movingBody0);
     const Transform& X_AB1 = getBodyTransformFromState(s, movingBody1);
-    const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
-    const Vec3       p_P0  = ~X_AB0 * p_AP;              // P0's station in B0
-    const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
-    const UnitVec3   n_A   = X_AC.R() * defaultNoSlipDirection;
+    const Vec3       p_AP  =  X_AC * P_C;       // P's location in A
+    const Vec3       p_P0  = ~X_AB0 * p_AP;     // P0's station in B0
+    const Vec3       p_P1  = ~X_AB1 * p_AP;     // P1's station in B1
+    const UnitVec3   n_A   = X_AC.R() * n_C;
 
     const Vec3       v_AP0 = findStationVelocity(s, allV_AB, movingBody0, p_P0);
     const Vec3       v_AP1 = findStationVelocity(s, allV_AB, movingBody1, p_P1);
@@ -2521,14 +2541,18 @@ void calcVelocityDotErrorsVirtual
     assert((allA_AB.size()==2 || allA_AB.size() == 3)
            && constrainedUDot.size()==0 && vaerr.size()==1);
 
+    const std::pair<Vec3,UnitVec3>& info = getContactInfo(s);
+    const Vec3&     P_C = info.first;
+    const UnitVec3& n_C = info.second;
+
     //TODO: should be able to get p and v info from State
     const Transform& X_AC  = getBodyTransformFromState(s, caseBody);
     const Transform& X_AB0 = getBodyTransformFromState(s, movingBody0);
     const Transform& X_AB1 = getBodyTransformFromState(s, movingBody1);
-    const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
-    const Vec3       p_P0  = ~X_AB0 * p_AP;              // P0's station in B0
-    const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
-    const UnitVec3   n_A   = X_AC.R() * defaultNoSlipDirection;
+    const Vec3       p_AP  =  X_AC * P_C;       // P's location in A
+    const Vec3       p_P0  = ~X_AB0 * p_AP;     // P0's station in B0
+    const Vec3       p_P1  = ~X_AB1 * p_AP;     // P1's station in B1
+    const UnitVec3   n_A   = X_AC.R() * n_C;
 
     const Vec3  v_AP0 = findStationVelocityFromState(s, movingBody0, p_P0);
     const Vec3  v_AP1 = findStationVelocityFromState(s, movingBody1, p_P1);
@@ -2551,17 +2575,22 @@ void addInVelocityConstraintForcesVirtual
 {
     assert(multipliers.size()==1 && mobilityForces.size()==0 
            && (bodyForcesInA.size()==2 || bodyForcesInA.size()==3));
+
+    const std::pair<Vec3,UnitVec3>& info = getContactInfo(s);
+    const Vec3&     P_C = info.first;
+    const UnitVec3& n_C = info.second;
+
     const Real lambda = multipliers[0];
 
     //TODO: should be able to get p info from State
     const Transform& X_AC  = getBodyTransformFromState(s, caseBody);
     const Transform& X_AB0 = getBodyTransformFromState(s, movingBody0);
     const Transform& X_AB1 = getBodyTransformFromState(s, movingBody1);
-    const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
+    const Vec3       p_AP  = X_AC * P_C; // P's location in A
     const Vec3       p_P0  = ~X_AB0 * p_AP;              // P0's station in B0
     const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
 
-    const Vec3       force_A = X_AC.R()*(lambda*defaultNoSlipDirection);
+    const Vec3       force_A = X_AC.R()*(lambda*n_C);
 
     addInStationForce(s, movingBody1, p_P1,  force_A, bodyForcesInA);
     addInStationForce(s, movingBody0, p_P0, -force_A, bodyForcesInA);
@@ -2576,12 +2605,16 @@ ConstrainedBodyIndex    caseBody;     // C
 ConstrainedBodyIndex    movingBody0;  // B0
 ConstrainedBodyIndex    movingBody1;  // B1
 
-UnitVec3                defaultNoSlipDirection;   // on body C, exp. in C frame
 Vec3                    defaultContactPoint;      // on body C, exp. in C frame
+UnitVec3                defaultNoSlipDirection;   // on body C, exp. in C frame
 
 // These are just for visualization
 Real                    directionLength;
 Real                    pointRadius;
+
+// This Instance-stage variable holds the actual contact point and no-slip
+// direction on the Case body.
+mutable DiscreteVariableIndex   contactInfoIx;
 };
 
 
