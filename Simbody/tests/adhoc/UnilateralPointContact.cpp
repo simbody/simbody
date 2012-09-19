@@ -276,11 +276,13 @@ public:
               const Array_<Real>&                       coefRest,
               const Array_<Real>&                       coefFric,
               const Array_<Constraint::NoSlip1D>&       stictionX, 
-              const Array_<Constraint::NoSlip1D>&       stictionZ) 
-    :   TriggeredEventHandler(Stage::Position), 
+              const Array_<Constraint::NoSlip1D>&       stictionZ,
+              Stage                                     stage) 
+    :   TriggeredEventHandler(stage), 
         m_mbs(system), m_contact(contact), m_which(which),
         m_coefRest(coefRest), m_coefFric(coefFric),
-        m_stictionX(stictionX), m_stictionZ(stictionZ)
+        m_stictionX(stictionX), m_stictionZ(stictionZ),
+        m_stage(stage)
     { 
         // Trigger only as height goes from positive to negative.
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
@@ -296,8 +298,27 @@ public:
         const Vec3 pt2 = contact.getDefaultFollowerPoint();
         const Vec3 p_G = b2.findStationLocationInGround(state, pt2);
         const Real height = p_G[YAxis];
-        //printf("    Witness@%.16g: %.16g\n", state.getTime(), height);
-        return height;
+
+        if (m_stage == Stage::Position)
+            return height;
+
+        // Velocity and acceleration triggers are not needed if we're
+        // above ground.
+        if (height > 0) return 0;
+
+        const Vec3 v_G = b2.findStationVelocityInGround(state, pt2);
+        const Real dheight = v_G[YAxis];
+
+        if (m_stage == Stage::Velocity)
+            return dheight;
+
+        // Accceleration trigger is not needed if velocity is positive.
+        if (dheight > 0) return 0;
+
+        const Vec3 a_G = b2.findStationAccelerationInGround(state, pt2);
+        const Real ddheight = a_G[YAxis];
+
+        return ddheight;
     }
 
     // We're using Poisson's definition of the coefficient of 
@@ -398,6 +419,7 @@ private:
     const Array_<Real>&                     m_coefFric; // mu_d
     const Array_<Constraint::NoSlip1D>&     m_stictionX;
     const Array_<Constraint::NoSlip1D>&     m_stictionZ;
+    const Stage                             m_stage;
 };
 
 
@@ -406,11 +428,14 @@ private:
 //==============================================================================
 class ContactOff: public TriggeredEventHandler {
 public:
-    ContactOff(const MultibodySystem&           system,
-        const Array_<Constraint::PointInPlane>& contact,
-        unsigned                                which) 
+    ContactOff(const MultibodySystem&               system,
+        const Array_<Constraint::PointInPlane>&     contact,
+        unsigned                                    which,
+        const Array_<Constraint::NoSlip1D>&         stictionX, 
+        const Array_<Constraint::NoSlip1D>&         stictionZ) 
     :   TriggeredEventHandler(Stage::Acceleration), 
-        m_system(system), m_contact(contact), m_which(which)
+        m_system(system), m_contact(contact), m_which(which),
+        m_stictionX(stictionX), m_stictionZ(stictionZ)
     { 
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
@@ -432,21 +457,24 @@ public:
         cout << " triggers=" << s.getEventTriggers() << "\n";
         const Vector& mults = s.getMultipliers();
         Array_<int> toBeDisabled;
-        Vector myMults(3);
+        Vector myMults(1);
         for (unsigned i=0; i < m_contact.size(); ++i) {
             const Constraint::PointInPlane& contact = m_contact[i];
             if (contact.isDisabled(s)) continue;
             contact.getMyPartFromConstraintSpaceVector(s,mults,myMults);
-            if (-myMults[YAxis]<0) { // watch sign
-                printf("  disabling %d because force=%g", i, -myMults[YAxis]);
+            const Real f = -myMults[0]; // watch sign
+            if (f<0) { // watch sign
+                printf("  disabling %d because force=%g", i, f);
                 toBeDisabled.push_back(i);
             }
         }
         printf("\n");
 
         for (unsigned tbd=0; tbd < toBeDisabled.size(); ++tbd) {
-            const Constraint::PointInPlane& contact = m_contact[toBeDisabled[tbd]];
-            contact.disable(s);
+            const int i = toBeDisabled[tbd];
+            m_contact[i].disable(s);
+            m_stictionX[i].disable(s);
+            m_stictionZ[i].disable(s);
         }
         m_system.realize(s, Stage::Instance);
 
@@ -460,6 +488,8 @@ private:
     const MultibodySystem&                  m_system; 
     const Array_<Constraint::PointInPlane>& m_contact;
     const unsigned                          m_which; // one of the contacts
+    const Array_<Constraint::NoSlip1D>&     m_stictionX;
+    const Array_<Constraint::NoSlip1D>&     m_stictionZ;
 };
 
 static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
@@ -532,10 +562,10 @@ int main(int argc, char** argv) {
         stictionZ.back().setDisabledByDefault(true);
     }
 
+    const Vec3 WeightEdge(-CubeHalfDims[0],-CubeHalfDims[1],0);
 //#ifdef NOTDEF
     // Second body: weight
     const Vec3 ConnectEdge1(CubeHalfDims[0],0,CubeHalfDims[2]);
-    const Vec3 WeightEdge(-CubeHalfDims[0],-CubeHalfDims[1],0);
     MobilizedBody::Pin weight(cube, 
         Transform(Rotation(Pi/2,XAxis), ConnectEdge1),
         cubeBody, Vec3(WeightEdge));
@@ -549,7 +579,7 @@ int main(int argc, char** argv) {
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
         contacts.push_back
             (Constraint::PointInPlane(Ground, YAxis, Zero, weight, pt));
-        coefRest.push_back(0*CoefRest);
+        coefRest.push_back(0.1);
         coefFric.push_back(CoefFric);
         stictionX.push_back
             (Constraint::NoSlip1D(Ground, Vec3(0), XAxis, Ground, weight));
@@ -560,8 +590,9 @@ int main(int argc, char** argv) {
         stictionX.back().setDisabledByDefault(true);
         stictionZ.back().setDisabledByDefault(true);
     }
-
-    // Third body: weight2
+//#endif
+//#ifdef NOTDEF
+   // Third body: weight2
     const Vec3 ConnectEdge2(CubeHalfDims[0],CubeHalfDims[1],0);
     MobilizedBody::Pin weight2(cube, 
         Transform(Rotation(), ConnectEdge2),
@@ -576,7 +607,7 @@ int main(int argc, char** argv) {
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
         contacts.push_back
             (Constraint::PointInPlane(Ground, YAxis, Zero, weight2, pt));
-        coefRest.push_back(0*CoefRest);
+        coefRest.push_back(0.1);
         coefFric.push_back(CoefFric);
         stictionX.push_back
             (Constraint::NoSlip1D(Ground, Vec3(0), XAxis, Ground, weight2));
@@ -590,6 +621,7 @@ int main(int argc, char** argv) {
 //#endif
 
     Visualizer viz(mbs);
+    viz.setShowSimTime(true);
     viz.addDecorationGenerator(new ShowContact(contacts));
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
@@ -607,12 +639,17 @@ int main(int argc, char** argv) {
     StateSaver* stateSaver = new StateSaver(mbs,contacts,integ,ReportInterval);
     mbs.addEventReporter(stateSaver);
 
-    for (unsigned i=0; i < contacts.size(); ++i)
+    for (unsigned i=0; i < contacts.size(); ++i) {
         mbs.addEventHandler(new ContactOn(mbs, contacts,i, coefRest,coefFric,
-                                          stictionX, stictionZ));
+                                          stictionX, stictionZ, Stage::Position));
+        mbs.addEventHandler(new ContactOn(mbs, contacts,i, coefRest,coefFric,
+                                          stictionX, stictionZ, Stage::Velocity));
+        mbs.addEventHandler(new ContactOn(mbs, contacts,i, coefRest,coefFric,
+                                          stictionX, stictionZ, Stage::Acceleration));
+    }
 
     for (unsigned i=0; i < contacts.size(); ++i)
-        mbs.addEventHandler(new ContactOff(mbs,contacts,i));
+        mbs.addEventHandler(new ContactOff(mbs, contacts,i, stictionX,stictionZ));
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
@@ -813,8 +850,8 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     Array_<CInfo,int> proximal;
     findProximalConstraints(s, accuracy, proximal);
 
-    printf("\nIMPACT for constraint %d at t=%.16g; %d proximal\n", 
-        m_which, s.getTime(), proximal.size());
+    printf("\nIMPACT (%s) for constraint %d at t=%.16g; %d proximal\n", 
+        m_stage.getName().c_str(), m_which, s.getTime(), proximal.size());
 
     bool needMoreCompression = true;
     while (needMoreCompression) {
