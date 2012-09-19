@@ -164,36 +164,44 @@ const Real RunTime=20;
 // during this frame, based on the current State.
 class ShowContact : public DecorationGenerator {
 public:
-    ShowContact(const Array_<Constraint::Ball>& contact) : m_contact(contact)
+    ShowContact(const Array_<Constraint::PointInPlane>& contact) 
+    :   m_contact(contact)
     {
     }
     void generateDecorations(const State& state, 
                              Array_<DecorativeGeometry>& geometry) OVERRIDE_11
     {
         for (unsigned i=0; i < m_contact.size(); ++i) {
-            const MobodIndex mx1 = m_contact[i].getBody1MobilizedBodyIndex();
-            const MobodIndex mx2 = m_contact[i].getBody2MobilizedBodyIndex();
-            const Vec3 pt1 = m_contact[i].getPointOnBody1(state);
-            const Vec3 pt2 = m_contact[i].getPointOnBody2(state);
-            if (!m_contact[i].isDisabled(state)) {
+            const Constraint::PointInPlane& contact = m_contact[i];
+            const MobodIndex mxP = contact.getPlaneMobilizedBodyIndex();
+            const MobodIndex mxF = contact.getFollowerMobilizedBodyIndex();
+            const Mobod& P = contact.getMatterSubsystem().getMobilizedBody(mxP);
+            const Mobod& F = contact.getMatterSubsystem().getMobilizedBody(mxF);
+            const UnitVec3& n_P  = contact.getDefaultPlaneNormal(); // +y
+            const Real      h    = contact.getDefaultPlaneHeight(); // 0
+            const Vec3      pt_F = contact.getDefaultFollowerPoint();
+            const Vec3      pt_F_P = F.findStationLocationInAnotherBody(state, pt_F, P);
+            const Real      fh = dot(pt_F_P, n_P); // follower height
+            const Vec3      pt_P = pt_F_P - (fh-h)*n_P; 
+            if (!contact.isDisabled(state)) {
                 geometry.push_back(DecorativeSphere(.5)
-                    .setTransform(pt2)
+                    .setTransform(pt_F)
                     .setColor(Red).setOpacity(.25)
-                    .setBodyId(mx2));
+                    .setBodyId(mxF));
                 geometry.push_back(DecorativeText("LOCKED")
                     .setColor(White).setScale(.5)
-                    .setTransform(pt1+Vec3(0,.1,0))
-                    .setBodyId(mx1));
+                    .setTransform(pt_P+Vec3(0,.1,0))
+                    .setBodyId(mxP));
             } else {
                 geometry.push_back(DecorativeText(String(i))
                     .setColor(White).setScale(.5)
-                    .setTransform(pt2+Vec3(0,.1,0))
-                    .setBodyId(mx2));
+                    .setTransform(pt_F+Vec3(0,.1,0))
+                    .setBodyId(mxF));
             }
         }
     }
 private:
-    const Array_<Constraint::Ball>& m_contact;
+    const Array_<Constraint::PointInPlane>& m_contact;
 };
 
 
@@ -205,10 +213,10 @@ private:
 // play back a movie at the end.
 class StateSaver : public PeriodicEventReporter {
 public:
-    StateSaver(const MultibodySystem&           system,
-               const Array_<Constraint::Ball>&  contact,
-               const Integrator&                integ,
-               Real                             reportInterval)
+    StateSaver(const MultibodySystem&                   system,
+               const Array_<Constraint::PointInPlane>&  contact,
+               const Integrator&                        integ,
+               Real                                     reportInterval)
     :   PeriodicEventReporter(reportInterval), 
         m_system(system), m_contact(contact), m_integ(integ) 
     {   m_states.reserve(2000); }
@@ -228,27 +236,29 @@ public:
             PG[0].norm(), PG[1].norm(), m_system.calcEnergy(s));
         cout << " Triggers=" << s.getEventTriggers() << endl;
         for (unsigned i=0; i < m_contact.size(); ++i) {
+            const Constraint::PointInPlane& contact = m_contact[i];
+
             const MobilizedBody& b2 = 
-                matter.getMobilizedBody(m_contact[i].getBody2MobilizedBodyIndex());
+                matter.getMobilizedBody(contact.getFollowerMobilizedBodyIndex());
             Vec3 p2_G, v2_G;
             b2.findStationLocationAndVelocityInGround
-                (s, m_contact[i].getPointOnBody2(s), p2_G, v2_G);
-            const bool isLocked = !m_contact[i].isDisabled(s);
+                (s, contact.getDefaultFollowerPoint(), p2_G, v2_G);
+            const bool isLocked = !contact.isDisabled(s);
             printf("  Constraint %d is %s, h=%g dh=%g\n", i, 
                    isLocked?"LOCKED":"unlocked", p2_G[YAxis], v2_G[YAxis]);
             if (isLocked) {
                 m_system.realize(s, Stage::Acceleration);
-                cout << "    lambda=" << m_contact[i].getMultipliers(s) << endl;
+                cout << "    lambda=" << contact.getMultiplier(s) << endl;
             } 
         }
 
         m_states.push_back(s);
     }
 private:
-    const MultibodySystem&              m_system;
-    const Array_<Constraint::Ball>&     m_contact;
-    const Integrator&                   m_integ;
-    mutable Array_<State,int>           m_states;
+    const MultibodySystem&                  m_system;
+    const Array_<Constraint::PointInPlane>& m_contact;
+    const Integrator&                       m_integ;
+    mutable Array_<State,int>               m_states;
 };
 
 
@@ -260,27 +270,30 @@ private:
 class CInfo;
 class ContactOn: public TriggeredEventHandler {
 public:
-    ContactOn(const MultibodySystem&        system,
-        const Array_<Constraint::Ball>&     contact,
-        const Array_<Real>&                 coefRest,
-        unsigned                            which) 
+    ContactOn(const MultibodySystem&                    system,
+              const Array_<Constraint::PointInPlane>&   contact,
+              unsigned                                  which,
+              const Array_<Real>&                       coefRest,
+              const Array_<Real>&                       coefFric,
+              const Array_<Constraint::NoSlip1D>&       stictionX, 
+              const Array_<Constraint::NoSlip1D>&       stictionZ) 
     :   TriggeredEventHandler(Stage::Position), 
-        m_mbs(system), m_contact(contact), m_coefRest(coefRest), m_which(which)
+        m_mbs(system), m_contact(contact), m_which(which),
+        m_coefRest(coefRest), m_coefFric(coefFric),
+        m_stictionX(stictionX), m_stictionZ(stictionZ)
     { 
         // Trigger only as height goes from positive to negative.
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
-    const Array_<Real>& getOnTimes() const {return m_onTimes;}
-
     Real getValue(const State& state) const {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
-        const Constraint::Ball& contact = m_contact[m_which];
+        const Constraint::PointInPlane& contact = m_contact[m_which];
         if (!contact.isDisabled(state)) 
             return 0; // already locked
         const MobilizedBody& b2 = 
-            matter.getMobilizedBody(contact.getBody2MobilizedBodyIndex());
-        const Vec3 pt2 = contact.getPointOnBody2(state);
+            matter.getMobilizedBody(contact.getFollowerMobilizedBodyIndex());
+        const Vec3 pt2 = contact.getDefaultFollowerPoint();
         const Vec3 p_G = b2.findStationLocationInGround(state, pt2);
         const Real height = p_G[YAxis];
         //printf("    Witness@%.16g: %.16g\n", state.getTime(), height);
@@ -378,12 +391,13 @@ public:
 
 
 private:
-    const MultibodySystem&          m_mbs; 
-    const Array_<Constraint::Ball>& m_contact;
-    const Array_<Real>&             m_coefRest; // one per contact
-    const unsigned                  m_which;
-
-    mutable Array_<Real> m_onTimes;
+    const MultibodySystem&                  m_mbs; 
+    const Array_<Constraint::PointInPlane>& m_contact;  // no penetration in Y
+    const unsigned                          m_which;
+    const Array_<Real>&                     m_coefRest; // one per contact
+    const Array_<Real>&                     m_coefFric; // mu_d
+    const Array_<Constraint::NoSlip1D>&     m_stictionX;
+    const Array_<Constraint::NoSlip1D>&     m_stictionZ;
 };
 
 
@@ -392,21 +406,19 @@ private:
 //==============================================================================
 class ContactOff: public TriggeredEventHandler {
 public:
-    ContactOff(const MultibodySystem& system,
-        const Array_<Constraint::Ball>& contact,
-        unsigned which) 
+    ContactOff(const MultibodySystem&           system,
+        const Array_<Constraint::PointInPlane>& contact,
+        unsigned                                which) 
     :   TriggeredEventHandler(Stage::Acceleration), 
         m_system(system), m_contact(contact), m_which(which)
     { 
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
-    const Array_<Real>& getOffTimes() const {return m_offTimes;}
-
     Real getValue(const State& state) const {
-        const Constraint::Ball& contact = m_contact[m_which];
+        const Constraint::PointInPlane& contact = m_contact[m_which];
         if (contact.isDisabled(state)) return 0;
-        const Real f = -contact.getMultipliers(state)[YAxis]; // watch sign
+        const Real f = -contact.getMultiplier(state); // watch sign
         return f;
     }
 
@@ -422,7 +434,7 @@ public:
         Array_<int> toBeDisabled;
         Vector myMults(3);
         for (unsigned i=0; i < m_contact.size(); ++i) {
-            const Constraint::Ball& contact = m_contact[i];
+            const Constraint::PointInPlane& contact = m_contact[i];
             if (contact.isDisabled(s)) continue;
             contact.getMyPartFromConstraintSpaceVector(s,mults,myMults);
             if (-myMults[YAxis]<0) { // watch sign
@@ -433,7 +445,7 @@ public:
         printf("\n");
 
         for (unsigned tbd=0; tbd < toBeDisabled.size(); ++tbd) {
-            const Constraint::Ball& contact = m_contact[toBeDisabled[tbd]];
+            const Constraint::PointInPlane& contact = m_contact[toBeDisabled[tbd]];
             contact.disable(s);
         }
         m_system.realize(s, Stage::Instance);
@@ -446,10 +458,8 @@ public:
 
 private:
     const MultibodySystem&                  m_system; 
-    const Array_<Constraint::Ball>&         m_contact;
+    const Array_<Constraint::PointInPlane>& m_contact;
     const unsigned                          m_which; // one of the contacts
-
-    mutable Array_<Real> m_offTimes;
 };
 
 static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
@@ -484,10 +494,14 @@ int main(int argc, char** argv) {
     const Rotation Z90(Pi/2, ZAxis); // rotate +90 deg about z
 
 
-        // ADD BODIES AND THEIR MOBILIZERS
+        // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
     const Real CoefRest = 0.8;
-    Array_<Constraint::Ball> constraints;
-    Array_<Real>             coefRest;
+    const Real CoefFric = 0.9;
+    Array_<Constraint::PointInPlane> contacts;
+    Array_<Real>                     coefRest; // e (Poisson's restitution)
+    Array_<Real>                     coefFric; // mu_d
+    Array_<Constraint::NoSlip1D>     stictionX;
+    Array_<Constraint::NoSlip1D>     stictionZ;
 
     const Vec3 CubeHalfDims(3,2,1);
     const Real CubeMass = 1;
@@ -503,11 +517,19 @@ int main(int argc, char** argv) {
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
-        constraints.push_back
-            (Constraint::Ball(Ground, Vec3(0), cube, 
-             Vec3(i,j,k).elementwiseMultiply(CubeHalfDims)));
-        constraints.back().setDisabledByDefault(true);
+        const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
+        contacts.push_back
+            (Constraint::PointInPlane(Ground, YAxis, Zero, cube, pt));
         coefRest.push_back(CoefRest);
+        coefFric.push_back(CoefFric);
+        stictionX.push_back
+            (Constraint::NoSlip1D(Ground, Vec3(0), XAxis, Ground, cube));
+        stictionZ.push_back
+            (Constraint::NoSlip1D(Ground, Vec3(0), ZAxis, Ground, cube));
+
+        contacts.back().setDisabledByDefault(true);
+        stictionX.back().setDisabledByDefault(true);
+        stictionZ.back().setDisabledByDefault(true);
     }
 
 #ifdef NOTDEF
@@ -552,7 +574,7 @@ int main(int argc, char** argv) {
 #endif
 
     Visualizer viz(mbs);
-    viz.addDecorationGenerator(new ShowContact(constraints));
+    viz.addDecorationGenerator(new ShowContact(contacts));
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
@@ -566,14 +588,15 @@ int main(int argc, char** argv) {
     //integ.setAllowInterpolation(false);
     integ.setMaximumStepSize(0.1);
 
-    StateSaver* stateSaver = new StateSaver(mbs,constraints,integ,ReportInterval);
+    StateSaver* stateSaver = new StateSaver(mbs,contacts,integ,ReportInterval);
     mbs.addEventReporter(stateSaver);
 
-    for (unsigned i=0; i < constraints.size(); ++i)
-        mbs.addEventHandler(new ContactOn(mbs,constraints,coefRest,i));
+    for (unsigned i=0; i < contacts.size(); ++i)
+        mbs.addEventHandler(new ContactOn(mbs, contacts,i, coefRest,coefFric,
+                                          stictionX, stictionZ));
 
-    for (unsigned i=0; i < constraints.size(); ++i)
-        mbs.addEventHandler(new ContactOff(mbs,constraints,i));
+    for (unsigned i=0; i < contacts.size(); ++i)
+        mbs.addEventHandler(new ContactOff(mbs,contacts,i));
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
@@ -666,29 +689,88 @@ int main(int argc, char** argv) {
 
 class CInfo {
 public:
-    CInfo(const SimbodyMatterSubsystem& matter,
-          const State&                  state,
-          const Constraint::Ball&       ball,
-          Real                          coefRest,
-          int                           which)
-    :   contact(&ball), which(which),
-        body1(&matter.getMobilizedBody(contact->getBody1MobilizedBodyIndex())), 
-        body2(&matter.getMobilizedBody(contact->getBody2MobilizedBodyIndex())), 
-        point2(contact->getPointOnBody2(state)),
+    CInfo(const SimbodyMatterSubsystem&   matter,
+          const State&                    state,
+          const Constraint::PointInPlane& noPenetrationY,
+          int                             which,
+          Real                            coefRest,
+          Real                            coefFric,
+          const Constraint::NoSlip1D&     stictionX,
+          const Constraint::NoSlip1D&     stictionZ)
+    :   contact(&noPenetrationY), which(which),
+        stickX(&stictionX), stickZ(&stictionZ),
+        body1(&matter.getMobilizedBody(contact->getPlaneMobilizedBodyIndex())), 
+        body2(&matter.getMobilizedBody(contact->getFollowerMobilizedBodyIndex())), 
+        point2(contact->getDefaultFollowerPoint()),
         initp2_G(body2->findStationLocationInGround(state, point2)),
         initv2_G(body2->findStationVelocityInGround(state, point2)),
         e(coefRest), Ic(0), Ie(0), I(0), V(initv2_G), P(initp2_G)
     {
     }
 
+    Vec3 getMyPartFromConstraintSpaceVector(const State& s, 
+                                            const Vector& lambda) const {
+        Vector myMults; Vec3 res(0);
+        if (isActive(s)) {
+            contact->getMyPartFromConstraintSpaceVector(s,lambda,myMults);
+            res[YAxis] = myMults[0];
+            if (isSticking(s)) {
+                stickX->getMyPartFromConstraintSpaceVector(s,lambda,myMults);
+                res[XAxis] = myMults[0];
+                stickZ->getMyPartFromConstraintSpaceVector(s,lambda,myMults);
+                res[ZAxis] = myMults[0];
+            }
+        }
+        return res;
+    }
+
+    void setMyPartInConstraintSpaceVector(const State& s, const Vec3& myPart,
+                                          Vector& lambda) const {
+        Vector myMults(1);
+        if (!isActive(s)) return;
+
+        myMults[0] = myPart[YAxis];
+        contact->setMyPartInConstraintSpaceVector(s,myMults,lambda);
+        if (isSticking(s)) {
+            myMults[0] = myPart[XAxis];
+            stickX->setMyPartInConstraintSpaceVector(s,myMults,lambda);
+            myMults[0] = myPart[ZAxis];
+            stickZ->setMyPartInConstraintSpaceVector(s,myMults,lambda);
+        }
+    }
+
+
     void updateFromState(const State& state) {
         body2->findStationLocationAndVelocityInGround(state,point2,P,V);
     }
 
+    void enableAll(State& state) const {
+        contact->enable(state); stickX->enable(state); stickZ->enable(state);
+    }
+
+    void disableAll(State& state) const {
+        contact->disable(state); stickX->disable(state); stickZ->disable(state);
+    }
+
+    void enableStiction(State& state) const {
+        stickX->enable(state); stickZ->enable(state);
+    }
+
+    void disableStiction(State& state) const {
+        stickX->disable(state); stickZ->disable(state);
+    }
+    bool isActive(const State& state) const 
+    {   return !contact->isDisabled(state); }
+    bool isSticking(const State& state) const 
+    {   return !stickX->isDisabled(state); } // both are if one is
+        
     Real getHeight()  const {return P[YAxis];}
     Real getDHeight() const {return V[YAxis];}
-    const Constraint::Ball* contact;
-    const int               which;
+    const Constraint::PointInPlane* contact;
+    const int                       which;
+    const Constraint::NoSlip1D*     stickX;
+    const Constraint::NoSlip1D*     stickZ;
+
     const MobilizedBody*    body1;
     const MobilizedBody*    body2;
     const Vec3              point2;   // contact point on body2, in B2 frame
@@ -696,7 +778,6 @@ public:
     const Vec3              initv2_G; // initial velocity of point2 in G
 
     // These fields change during impact processing.
-    Vec3 point1; // constrained point on body1, in B1 frame
     Real e; // effective coefficient of restitution (changes)
     Vec3 Ic; // most recent compression impulse
     Vec3 Ie; // most recent expansion impulse
@@ -758,16 +839,13 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 
     printf("END OF IMPACT for %d proximal constraints:\n",proximal.size());
     const Vector& mults = s.getMultipliers();
-    Vector myMults(3);
     for (int i=0; i < proximal.size(); ++i) {
         const CInfo& ci = proximal[i];
         printf("  %d %3s: I=%g, V=%g",
-            ci.which, ci.contact->isDisabled(s) ? "off" : "ON", 
+            ci.which, ci.isActive(s) ? "ON" : "off", 
             ci.I[YAxis], ci.V[YAxis]);
 
-        if (ci.contact->isDisabled(s)) myMults = 0;
-        else ci.contact->getMyPartFromConstraintSpaceVector(s, mults, myMults);
-
+        Vec3 myMults = ci.getMyPartFromConstraintSpaceVector(s, mults);
         const Vec3 A = ci.body2->findStationAccelerationInGround(s,ci.point2);
         printf(" F=%g, A=%g\n", -myMults[YAxis], A[YAxis]);          
     }
@@ -787,8 +865,9 @@ findProximalConstraints(const State&       s,
 
     proximal.clear();
     for (unsigned i=0; i<m_contact.size(); ++i) {
-        CInfo ci(matter, s, m_contact[i], m_coefRest[i], i);
-        if (ci.getHeight() <= posTol  || !ci.contact->isDisabled(s)) 
+        CInfo ci(matter, s, m_contact[i], i, m_coefRest[i], m_coefFric[i],
+                 m_stictionX[i], m_stictionZ[i]);
+        if (ci.isActive(s) || ci.getHeight() <= posTol) 
         {
             proximal.push_back(ci);
         }
@@ -807,7 +886,7 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
                         State&              s) const
 {
     printf("Entering processCompressionPhase() ...\n");
-    Vector myMults, lambda0, lambdaTry;
+    Vector lambda0, lambdaTry;
     Array_<int> maybeDisabled, recapturing;
 
     const Vector u0 = s.getU(); // save presenting velocity
@@ -826,9 +905,9 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
         maybeDisabled.clear();
         for (int i=0; i < proximal.size(); ++i) {
             const CInfo& ci = proximal[i];
-            if (ci.contact->isDisabled(s))
+            if (!ci.isActive(s))
                 continue;
-            ci.contact->getMyPartFromConstraintSpaceVector(s, lambda0, myMults);
+            Vec3 myMults = ci.getMyPartFromConstraintSpaceVector(s, lambda0);
             if (myMults[YAxis] > 0)
                 continue;
             maybeDisabled.push_back(i);
@@ -840,7 +919,7 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
 
         // Disable the candidates, then see if they rebound.
         for (unsigned d=0; d < maybeDisabled.size(); ++d)
-            proximal[maybeDisabled[d]].contact->disable(s);
+            proximal[maybeDisabled[d]].disableAll(s);
         m_mbs.realize(s, Stage::Instance);
         calcStoppingImpulse(proximal, s, lambdaTry);
         updateVelocities(u0, lambdaTry, s);
@@ -862,7 +941,7 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
         // Re-enable the recaptured candidates.
         if (!recapturing.empty()) {
             for (unsigned c=0; c < recapturing.size(); ++c)
-                proximal[recapturing[c]].contact->enable(s);
+                proximal[recapturing[c]].enableAll(s);
             m_mbs.realize(s, Stage::Instance);
         }
 
@@ -886,15 +965,10 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
     for (int i=0; i < proximal.size(); ++i) {
         CInfo& ci = proximal[i];
         ci.updateFromState(s); // set current velocity V
-        if (ci.contact->isDisabled(s))
-            ci.Ic = 0;
-        else {    
-            ci.contact->getMyPartFromConstraintSpaceVector(s, lambda0, myMults);
-            ci.Ic = Vec3::getAs(&myMults[0]);
-        }
+        ci.Ic = ci.getMyPartFromConstraintSpaceVector(s, lambda0);
         ci.I += ci.Ic; // accumulate impulse
         printf("  %d %3s: Ic=%g, V=%g\n",
-            ci.which, ci.contact->isDisabled(s) ? "off" : "ON", 
+            ci.which, ci.isActive(s) ? "ON" : "off", 
             ci.Ic[YAxis], ci.V[YAxis]);
     }
 
@@ -912,21 +986,21 @@ processExpansionPhase(Array_<CInfo,int>&  proximal,
 
     // Generate an expansion impulse if there were any active contacts that
     // still have some restitution remaining.
-    Vector expansionImpulse, myLambda(3);
+    Vector expansionImpulse;
 
     bool anyChange = false;
     for (int i=0; i<proximal.size(); ++i) {
         CInfo& ci = proximal[i];
-        if (ci.contact->isDisabled(s)) continue;
-        myLambda = Vector(ci.Ic); // compression impulse
+        if (!ci.isActive(s)) continue;
+        Vec3 myLambda = ci.Ic; // compression impulse
         if (myLambda[YAxis] > 0 && ci.e != 0) {
             // NOTE: THIS IS NON-PHYSICAL and can gain energy
             myLambda[XAxis]=myLambda[ZAxis]=0; // no friction rebound
             myLambda[YAxis] *= ci.e;
             // With friction rebound energy is conserved.
             //myLambda *= ci.e;
-            ci.contact->setMyPartInConstraintSpaceVector(s, myLambda, 
-                                                         expansionImpulse);
+            ci.setMyPartInConstraintSpaceVector(s, myLambda, 
+                                                expansionImpulse);
             ci.e = 0; // we have now used up the material restitution
             anyChange = true;
         }
@@ -945,13 +1019,7 @@ processExpansionPhase(Array_<CInfo,int>&  proximal,
     for (int i=0; i < proximal.size(); ++i) {
         CInfo& ci = proximal[i];
         ci.updateFromState(s); // set current velocity V
-        if (ci.contact->isDisabled(s))
-            ci.Ie = 0;
-        else {
-            ci.contact->getMyPartFromConstraintSpaceVector(s, expansionImpulse,
-                                                           myLambda);
-            ci.Ie = Vec3::getAs(&myLambda[0]); 
-        } 
+        ci.Ie = ci.getMyPartFromConstraintSpaceVector(s, expansionImpulse);
         ci.I += ci.Ie; // accumulate impulse
 
     }
@@ -961,12 +1029,12 @@ processExpansionPhase(Array_<CInfo,int>&  proximal,
     bool anyDisabled = false;
     for (int i=0; i < proximal.size(); ++i) {
         const CInfo& ci = proximal[i];
-        if (!ci.contact->isDisabled(s) && ci.getDHeight() > 0) {
-            ci.contact->disable(s);
+        if (ci.isActive(s) && ci.getDHeight() > 0) {
+            ci.disableAll(s);
             anyDisabled = true;
         }
         printf("  %d %3s: Ie=%g, V=%g\n",
-            ci.which, ci.contact->isDisabled(s) ? "off" : "ON", 
+            ci.which, ci.isActive(s) ? "ON" : "off", 
             ci.Ie[YAxis], ci.V[YAxis]);
     }
 
@@ -995,8 +1063,8 @@ captureSlowRebounders(Real                vCapture,
         bool anyToCapture = false;
         for (int i=0; i < proximal.size(); ++i) {
             const CInfo& ci = proximal[i];
-            if (ci.contact->isDisabled(s) && ci.getDHeight() <= vCapture) {
-                ci.contact->enable(s);
+            if (!ci.isActive(s) && ci.getDHeight() <= vCapture) {
+                ci.enableAll(s);
                 anyToCapture = true;
                 ++nCaptured;
                 printf("  capturing constraint %d with v=%g\n",
@@ -1012,7 +1080,7 @@ captureSlowRebounders(Real                vCapture,
         }
 
         m_mbs.realize(s, Stage::Velocity);
-        Vector captureImpulse, myLambda(3);
+        Vector captureImpulse;
         calcStoppingImpulse(proximal, s, captureImpulse);
         updateVelocities(Vector(), captureImpulse, s);
 
@@ -1021,11 +1089,7 @@ captureSlowRebounders(Real                vCapture,
         for (int i=0; i < proximal.size(); ++i) {
             CInfo& ci = proximal[i];
             ci.updateFromState(s); // set current velocity V
-            if (!ci.contact->isDisabled(s)) {
-                ci.contact->getMyPartFromConstraintSpaceVector
-                   (s, captureImpulse, myLambda);
-                ci.I += Vec3::getAs(&myLambda[0]); // accumulate impulse
-            } 
+            ci.I += ci.getMyPartFromConstraintSpaceVector(s, captureImpulse);
         }
     }
 }
@@ -1037,25 +1101,14 @@ void ContactOn::
 enableAllProximalConstraints(Array_<CInfo,int>&  proximal,
                              State&              state) const
 {
-    // Collect contact point information before enabling because state
-    // has to be realized to Position.
-    for (int i=0; i < proximal.size(); ++i) {
-        CInfo& ci = proximal[i]; 
-        if (!ci.contact->isDisabled(state)) continue;
-
-        // Find ground point nearest point2, and use that for point1.
-        const Vec3 pt1_G(ci.P[0], 0, ci.P[2]);
-        const Transform& X_GB1 = ci.body1->getBodyTransform(state);
-        const Vec3 pt1 = ~X_GB1*pt1_G;
-        ci.point1 = pt1;
-    }
-    // Now set the contact point and enable the constraints.
+    // Set the contact point and enable the constraints.
     for (int i=0; i < proximal.size(); ++i) {
         const CInfo& ci = proximal[i];
-        if (!ci.contact->isDisabled(state)) continue;
+        if (ci.isActive(state)) continue;
 
-        ci.contact->setPointOnBody1(state, ci.point1);
-        ci.contact->enable(state);
+        ci.stickX->setContactPoint(state, ci.P);
+        ci.stickZ->setContactPoint(state, ci.P);
+        ci.enableAll(state);
     }
     m_mbs.realize(state, Stage::Instance);
 }
@@ -1077,12 +1130,11 @@ calcStoppingImpulse(const Array_<CInfo,int>&    proximal,
     bool gotOne = false;
     for (int i=0; i < proximal.size(); ++i) {
         const CInfo& ci = proximal[i];
-        if (ci.contact->isDisabled(s))
+        if (!ci.isActive(s))
             continue;
         cout << "    constraint " << ci.contact->getConstraintIndex()
              << " enabled, v=" << ci.V << endl;
-        const Vector myDeltaV(Vec3(-ci.V));
-        ci.contact->setMyPartInConstraintSpaceVector(s, myDeltaV, desiredDeltaV);
+        ci.setMyPartInConstraintSpaceVector(s, -ci.V, desiredDeltaV);
         gotOne = true;
     }
     if (gotOne) matter.solveForConstraintImpulses(s, desiredDeltaV, lambda0);
@@ -1127,7 +1179,7 @@ satisfyPositionConditions
     Real maxDt = 0;
     for (int e=0; e < proximal.size(); ++e) {
         const CInfo& ci = proximal[e];
-        if (!ci.contact->isDisabled(state))
+        if (ci.isActive(state))
             continue;
 
         Vec3 rp2_G, rv2_G;
@@ -1158,12 +1210,11 @@ disablePullingContacts(Array_<CInfo,int>& proximal,
     m_mbs.realize(state, Stage::Acceleration);
     const Vector& lambda = state.getMultipliers();
 
-    Vector myLambda(3);
     Array_<int> pulling;
     for (int i=0; i < proximal.size(); ++i) {
         const CInfo& ci = proximal[i];
-        if (ci.contact->isDisabled(state)) continue;
-        ci.contact->getMyPartFromConstraintSpaceVector(state, lambda, myLambda);
+        if (!ci.isActive(state)) continue;
+        const Vec3 myLambda = ci.getMyPartFromConstraintSpaceVector(state, lambda);
         if (-myLambda[YAxis] < 0) { // multipliers are negative forces
             if (pulling.empty())
                 printf("disablePullingContacts(): disabling");
