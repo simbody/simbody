@@ -532,7 +532,7 @@ int main(int argc, char** argv) {
         stictionZ.back().setDisabledByDefault(true);
     }
 
-#ifdef NOTDEF
+//#ifdef NOTDEF
     // Second body: weight
     const Vec3 ConnectEdge1(CubeHalfDims[0],0,CubeHalfDims[2]);
     const Vec3 WeightEdge(-CubeHalfDims[0],-CubeHalfDims[1],0);
@@ -546,11 +546,19 @@ int main(int argc, char** argv) {
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
         if (i==-1 && j==-1) continue;
-        constraints.push_back
-            (Constraint::Ball(Ground, Vec3(0), weight, 
-             Vec3(i,j,k).elementwiseMultiply(CubeHalfDims)));
-        constraints.back().setDisabledByDefault(true);
-        coefRest.push_back(0);
+        const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
+        contacts.push_back
+            (Constraint::PointInPlane(Ground, YAxis, Zero, weight, pt));
+        coefRest.push_back(0*CoefRest);
+        coefFric.push_back(CoefFric);
+        stictionX.push_back
+            (Constraint::NoSlip1D(Ground, Vec3(0), XAxis, Ground, weight));
+        stictionZ.push_back
+            (Constraint::NoSlip1D(Ground, Vec3(0), ZAxis, Ground, weight));
+
+        contacts.back().setDisabledByDefault(true);
+        stictionX.back().setDisabledByDefault(true);
+        stictionZ.back().setDisabledByDefault(true);
     }
 
     // Third body: weight2
@@ -565,13 +573,21 @@ int main(int argc, char** argv) {
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
         if (i==-1 && j==-1) continue;
-        constraints.push_back
-            (Constraint::Ball(Ground, Vec3(0), weight2, 
-             Vec3(i,j,k).elementwiseMultiply(CubeHalfDims)));
-        constraints.back().setDisabledByDefault(true);
-        coefRest.push_back(0);
+        const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
+        contacts.push_back
+            (Constraint::PointInPlane(Ground, YAxis, Zero, weight2, pt));
+        coefRest.push_back(0*CoefRest);
+        coefFric.push_back(CoefFric);
+        stictionX.push_back
+            (Constraint::NoSlip1D(Ground, Vec3(0), XAxis, Ground, weight2));
+        stictionZ.push_back
+            (Constraint::NoSlip1D(Ground, Vec3(0), ZAxis, Ground, weight2));
+
+        contacts.back().setDisabledByDefault(true);
+        stictionX.back().setDisabledByDefault(true);
+        stictionZ.back().setDisabledByDefault(true);
     }
-#endif
+//#endif
 
     Visualizer viz(mbs);
     viz.addDecorationGenerator(new ShowContact(contacts));
