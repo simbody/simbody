@@ -965,7 +965,7 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
                 continue;
             maybeDisabled.push_back(i);
             printf("  constraint %d is candidate, because lambda_y=%g\n",
-                ci.contact->getConstraintIndex(), myMults[YAxis]);
+                (int)ci.contact->getConstraintIndex(), myMults[YAxis]);
         }
         if (maybeDisabled.empty())
             break;
@@ -983,11 +983,11 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
             const Vec3 newv2_G = 
                 ci.body2->findStationVelocityInGround(s,ci.point2);
             printf("  candidate constraint %d would have v_y=%g\n",
-                ci.contact->getConstraintIndex(), newv2_G[YAxis]);
+                (int)ci.contact->getConstraintIndex(), newv2_G[YAxis]);
             if (newv2_G[YAxis] <= 0) {
                 recapturing.push_back(maybeDisabled[i]);
                 printf("  RECAPTURING constraint %d with v_y=%g\n", 
-                    ci.contact->getConstraintIndex(), newv2_G[YAxis]);
+                    (int)ci.contact->getConstraintIndex(), newv2_G[YAxis]);
             }
         }
 
@@ -1240,7 +1240,7 @@ satisfyPositionConditions
            (state, ci.point2, rp2_G, rv2_G);
         const Real h=rp2_G[YAxis], dh=rv2_G[YAxis];
         printf("  rebounder %d has h=%g, dh=%g\n", 
-            ci.contact->getConstraintIndex(), h, dh); 
+            (int)ci.contact->getConstraintIndex(), h, dh);
         if (h <= 0 && dh > 0) {
             const Real dt = -h/dh;
             printf("  -- needs dt=%g.\n", dt); 
