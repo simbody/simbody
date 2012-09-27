@@ -24,12 +24,15 @@
 /*
 This example shows a manual approach to simple unilateral contact between
 designated points on moving bodies and a ground plane. We'll use Simbody
-bilateral constraints with manual switching conditions.
+bilateral constraints turned on and off with manual switching conditions that
+are set by discrete event handlers.
 
-For each designated contact point, we'll track the height over the ground
-plane and use that as a switching ("witness") function to trigger an event
-that enables the constraint. Then, we'll track the sign of the normal
-reaction force and use it as a witness to disable the constraint.
+For each designated contact point that is not in contact, we'll track the 
+vertical height over the ground plane and its first and second time derivatives
+and use those to construct switching ("witness") functions to trigger an event 
+that may enable the constraint. For each enabled contact constraint, we'll 
+track the sign of the normal reaction force and use it as a witness to disable 
+the constraint.
 
 Note that there are two separate conditions involving these constraints:
 impact (collision) and contact. Impact occurs during an infinitesimal 
@@ -44,14 +47,16 @@ justifying it physically even more so.
 
 How we handle contact
 ---------------------
-In this example each contact consists of a constraint that prevents translation
-of a point on a moving body with respect to a point on the ground plane. We
-implement that here with Simbody's "Ball" constraint, so called because it
-acts as though there were a ball joint between the bodies acting at the
-contact point. We enable this constraint when a contact begins, defined so 
-that its multipliers are the x,y,z components of the reaction force, with +y
+In this example each contact consists of a constraint that prevents penetration
+of a point on a moving body normal to the ground plane, and constraints
+that prevent slipping tangent to the plane. We
+implement non-penetration with Simbody's "PointInPlane" constraint. We enable this 
+constraint when a contact begins, defined so 
+that its multiplier is the y component of the reaction force, with +y
 being the ground plane normal. We monitor the reaction force y component, and
-declare the contact broken if that component is negative.
+declare the contact broken if that component is negative. The no-slip condition
+is enforced with two of Simbody's "NoSlip1D" constraints, one in the x 
+direction and one in the z direction.
 
 How we handle impacts
 ---------------------
@@ -127,19 +132,9 @@ other contacts. Apply that impulse to get new velocities V. If that causes
 any V(k)<0 or new V(k)<=vc, declare that a contact too and recalculate dI; 
 repeat until all inactive (rebounding) V(k)>vc. Then set the final I+=dI.
 
-5) We are done with the impact. We now have inactive proximal contacts where
-all are rebounding with velocities greater than capture velocity vc. However,
-some of those may have heights that are slightly negative; this might cause
-us to miss an impact if this contact reverses fast. So we calculate how much
-time it would take for the rebound velocity to pull the worst-case rebounder
-out of the ground, and take an explicit Euler step of that length so that
-the heights of all rebounders are > 0.
-
-6) Now calculate accelerations. If any of the active proximal contacts 
+5) Now calculate accelerations. If any of the active proximal contacts 
 generate a zero or negative vertical reaction force they should be disabled;
-otherwise we would miss the next break-free event. TODO: this can cause a 
-problem if height<=0 since we'll miss the next impact if it doesn't go up
-first.
+otherwise we would miss the next break-free event. 
 */
 
 #include "Simbody.h"
@@ -156,6 +151,77 @@ using namespace SimTK;
 const Real ReportInterval=1./30;
 const Real RunTime=20;
 
+//==============================================================================
+//                           MY UNILATERAL CONSTRAINT
+//==============================================================================
+// This abstract class hides the details about which kind of constraint
+// we're dealing with, while giving us enough to work with for deciding what's
+// on and off and generating impulses.
+//
+// There is always a scalar associated with the constraint for making 
+// decisions, although contact constraints may also have some additional
+// constraint equations for stiction.
+class MyUnilateralConstraint {
+public:
+    enum ImpulseType {Compression,Expansion,Capture};
+
+    MyUnilateralConstraint(Real coefRest) 
+    :   m_coefRest(coefRest), m_restitutionDone(false) {}
+
+    virtual ~MyUnilateralConstraint() {}
+
+    // These must be constructed so that a negative value means the 
+    // unilateral constraint condition is violated.
+    virtual Real getPerr(const State& state) const = 0;
+    virtual Real getVerr(const State& state) const = 0;
+    virtual Real getAerr(const State& state) const = 0;
+    // Returns zero if the constraint is not currently enabled.
+    virtual Real getForce(const State& state) const = 0;
+
+    // Impulse is accumulated internally.
+    virtual Real getImpulse() const = 0;
+    virtual Real getCompressionImpulse() const = 0;
+    virtual Real getExpansionImpulse() const = 0;
+    virtual void recordImpulse(ImpulseType type, const State& state,
+                               const Vector& lambda) = 0;
+    virtual Real getMyValueFromConstraintSpaceVector(const State& state,
+                                                     const Vector& lambda)
+                                                     const = 0;
+    virtual void setMyExpansionImpulse(const State& state,
+                                       Real coefRest,
+                                       Vector& lambda) const = 0;
+    virtual void setMyDesiredDeltaV(const State& state,
+                                    Vector& desiredDeltaV) const = 0;
+
+    virtual void enable(State& state) const = 0;
+    virtual void disable(State& state) const = 0;
+    virtual bool isDisabled(const State& state) const = 0;
+
+    // This returns a point in the ground frame at which you might want to
+    // say the constraint is "located", for purposes of display. This should
+    // return something useful even if the constraint is currently off.
+    virtual Vec3 whereToDisplay(const State& state) const = 0;
+
+    // This is used by some constraints to collect position information that
+    // may be used later to set instance variables when enabling the underlying
+    // Simbody constraint. All constraints zero impulses here.
+    virtual void initializeForImpactVirtual(const State& state) = 0;
+
+    void initializeForImpact(const State& state) {
+        setRestitutionDone(false);
+        initializeForImpactVirtual(state);
+    }
+
+    Real getCoefRest() const {return m_coefRest;}
+    void setRestitutionDone(bool isDone) {m_restitutionDone=isDone;}
+    bool isRestitutionDone() const {return m_restitutionDone;}
+
+protected:
+    const Real m_coefRest;
+
+    // Runtime
+    bool m_restitutionDone;
+};
 
 //==============================================================================
 //                            SHOW CONTACT
@@ -164,44 +230,31 @@ const Real RunTime=20;
 // during this frame, based on the current State.
 class ShowContact : public DecorationGenerator {
 public:
-    ShowContact(const Array_<Constraint::PointInPlane>& contact) 
-    :   m_contact(contact)
-    {
-    }
-    void generateDecorations(const State& state, 
+    ShowContact(const Array_<MyUnilateralConstraint*>& unis) 
+    :   m_unis(unis) {}
+
+    void generateDecorations(const State&                state, 
                              Array_<DecorativeGeometry>& geometry) OVERRIDE_11
     {
-        for (unsigned i=0; i < m_contact.size(); ++i) {
-            const Constraint::PointInPlane& contact = m_contact[i];
-            const MobodIndex mxP = contact.getPlaneMobilizedBodyIndex();
-            const MobodIndex mxF = contact.getFollowerMobilizedBodyIndex();
-            const Mobod& P = contact.getMatterSubsystem().getMobilizedBody(mxP);
-            const Mobod& F = contact.getMatterSubsystem().getMobilizedBody(mxF);
-            const UnitVec3& n_P  = contact.getDefaultPlaneNormal(); // +y
-            const Real      h    = contact.getDefaultPlaneHeight(); // 0
-            const Vec3      pt_F = contact.getDefaultFollowerPoint();
-            const Vec3      pt_F_P = F.findStationLocationInAnotherBody(state, pt_F, P);
-            const Real      fh = dot(pt_F_P, n_P); // follower height
-            const Vec3      pt_P = pt_F_P - (fh-h)*n_P; 
-            if (!contact.isDisabled(state)) {
+        for (unsigned i=0; i < m_unis.size(); ++i) {
+            const MyUnilateralConstraint& uni = *m_unis[i];
+            const Vec3 loc = uni.whereToDisplay(state);
+            if (!uni.isDisabled(state)) {
                 geometry.push_back(DecorativeSphere(.5)
-                    .setTransform(pt_F)
-                    .setColor(Red).setOpacity(.25)
-                    .setBodyId(mxF));
+                    .setTransform(loc)
+                    .setColor(Red).setOpacity(.25));
                 geometry.push_back(DecorativeText("LOCKED")
                     .setColor(White).setScale(.5)
-                    .setTransform(pt_P+Vec3(0,.1,0))
-                    .setBodyId(mxP));
+                    .setTransform(loc+Vec3(0,.2,0)));
             } else {
                 geometry.push_back(DecorativeText(String(i))
                     .setColor(White).setScale(.5)
-                    .setTransform(pt_F+Vec3(0,.1,0))
-                    .setBodyId(mxF));
+                    .setTransform(loc+Vec3(0,.1,0)));
             }
         }
     }
 private:
-    const Array_<Constraint::PointInPlane>& m_contact;
+    const Array_<MyUnilateralConstraint*>& m_unis;
 };
 
 
@@ -214,51 +267,47 @@ private:
 class StateSaver : public PeriodicEventReporter {
 public:
     StateSaver(const MultibodySystem&                   system,
-               const Array_<Constraint::PointInPlane>&  contact,
+               const Array_<MyUnilateralConstraint*>&   unis,
                const Integrator&                        integ,
                Real                                     reportInterval)
     :   PeriodicEventReporter(reportInterval), 
-        m_system(system), m_contact(contact), m_integ(integ) 
+        m_system(system), m_unis(unis), m_integ(integ) 
     {   m_states.reserve(2000); }
 
     ~StateSaver() {}
 
     void clear() {m_states.clear();}
-    int getNumSavedStates() const {return m_states.size();}
+    int getNumSavedStates() const {return (int)m_states.size();}
     const State& getState(int n) const {return m_states[n];}
 
     void handleEvent(const State& s) const {
         const SimbodyMatterSubsystem& matter=m_system.getMatterSubsystem();
         const SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
 
+#ifndef NDEBUG
         printf("%3d: %5g mom=%g,%g E=%g", m_integ.getNumStepsTaken(),
             s.getTime(),
             PG[0].norm(), PG[1].norm(), m_system.calcEnergy(s));
         cout << " Triggers=" << s.getEventTriggers() << endl;
-        for (unsigned i=0; i < m_contact.size(); ++i) {
-            const Constraint::PointInPlane& contact = m_contact[i];
-
-            const MobilizedBody& b2 = 
-                matter.getMobilizedBody(contact.getFollowerMobilizedBodyIndex());
-            Vec3 p2_G, v2_G;
-            b2.findStationLocationAndVelocityInGround
-                (s, contact.getDefaultFollowerPoint(), p2_G, v2_G);
-            const bool isLocked = !contact.isDisabled(s);
-            printf("  Constraint %d is %s, h=%g dh=%g\n", i, 
-                   isLocked?"LOCKED":"unlocked", p2_G[YAxis], v2_G[YAxis]);
+        for (unsigned i=0; i < m_unis.size(); ++i) {
+            const MyUnilateralConstraint& uni = *m_unis[i];
+            const bool isLocked = !uni.isDisabled(s);
+            printf("  Uni constraint %d is %s, h=%g dh=%g\n", i, 
+                   isLocked?"LOCKED":"unlocked", uni.getPerr(s),uni.getVerr(s));
             if (isLocked) {
                 m_system.realize(s, Stage::Acceleration);
-                cout << "    lambda=" << contact.getMultiplier(s) << endl;
+                cout << "    force=" << uni.getForce(s) << endl;
             } 
         }
+#endif
 
         m_states.push_back(s);
     }
 private:
     const MultibodySystem&                  m_system;
-    const Array_<Constraint::PointInPlane>& m_contact;
+    const Array_<MyUnilateralConstraint*>&  m_unis;
     const Integrator&                       m_integ;
-    mutable Array_<State,int>               m_states;
+    mutable Array_<State>                   m_states;
 };
 
 
@@ -271,17 +320,11 @@ class CInfo;
 class ContactOn: public TriggeredEventHandler {
 public:
     ContactOn(const MultibodySystem&                    system,
-              const Array_<Constraint::PointInPlane>&   contact,
+              const Array_<MyUnilateralConstraint*>&    unis,
               unsigned                                  which,
-              const Array_<Real>&                       coefRest,
-              const Array_<Real>&                       coefFric,
-              const Array_<Constraint::NoSlip1D>&       stictionX, 
-              const Array_<Constraint::NoSlip1D>&       stictionZ,
               Stage                                     stage) 
     :   TriggeredEventHandler(stage), 
-        m_mbs(system), m_contact(contact), m_which(which),
-        m_coefRest(coefRest), m_coefFric(coefFric),
-        m_stictionX(stictionX), m_stictionZ(stictionZ),
+        m_mbs(system), m_unis(unis), m_which(which),
         m_stage(stage)
     { 
         // Trigger only as height goes from positive to negative.
@@ -290,14 +333,11 @@ public:
 
     Real getValue(const State& state) const {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
-        const Constraint::PointInPlane& contact = m_contact[m_which];
-        if (!contact.isDisabled(state)) 
+        const MyUnilateralConstraint& uni = *m_unis[m_which];
+        if (!uni.isDisabled(state)) 
             return 0; // already locked
-        const MobilizedBody& b2 = 
-            matter.getMobilizedBody(contact.getFollowerMobilizedBodyIndex());
-        const Vec3 pt2 = contact.getDefaultFollowerPoint();
-        const Vec3 p_G = b2.findStationLocationInGround(state, pt2);
-        const Real height = p_G[YAxis];
+
+        const Real height = uni.getPerr(state);
 
         if (m_stage == Stage::Position)
             return height;
@@ -306,17 +346,15 @@ public:
         // above ground.
         if (height > 0) return 0;
 
-        const Vec3 v_G = b2.findStationVelocityInGround(state, pt2);
-        const Real dheight = v_G[YAxis];
+        const Real dheight = uni.getVerr(state);
 
         if (m_stage == Stage::Velocity)
             return dheight;
 
-        // Accceleration trigger is not needed if velocity is positive.
+        // Acceleration trigger is not needed if velocity is positive.
         if (dheight > 0) return 0;
 
-        const Vec3 a_G = b2.findStationAccelerationInGround(state, pt2);
-        const Real ddheight = a_G[YAxis];
+        const Real ddheight = uni.getAerr(state);
 
         return ddheight;
     }
@@ -338,7 +376,7 @@ public:
     // included.
     void findProximalConstraints(const State&       state,
                                  Real               posTol,
-                                 Array_<CInfo,int>& proximal) const;
+                                 Array_<int>&       proximal) const;
 
 
 
@@ -348,8 +386,8 @@ public:
     // in proximal, and state is updated to the new velocities and realized
     // through Velocity stage. Constraints that were stopped are enabled, those
     // that rebounded are disabled.
-    void processCompressionPhase(Array_<CInfo,int>& proximal,
-                                 State&             state) const;
+    void processCompressionPhase(Array_<int>&   proximal,
+                                 State&         state) const;
 
     // Given a solution to the compression phase, including the compression
     // impulse, the set of impacters (enabled) and rebounders (disabled and
@@ -360,8 +398,8 @@ public:
     // true if any expansion was done; otherwise nothing has changed.
     // Expansion may result in some negative velocities, in which case it has
     // induced further compression so another compression phase is required.
-    bool processExpansionPhase(Array_<CInfo,int>& proximal,
-                               State&             state) const;
+    bool processExpansionPhase(Array_<int>&     proximal,
+                               State&           state) const;
 
     // Examine the rebounders to see if any are rebounding with a speed at or
     // below the capture velocity. If so, enable those constraints and apply a
@@ -369,21 +407,21 @@ public:
     // Repeat if that induces any negative velocities or any further slow
     // rebounders. This terminates will all rebounders leaving with velocities
     // greater than vCapture, or else all constraints are enabled.
-    void captureSlowRebounders(Real               vCapture,
-                               Array_<CInfo,int>& proximal,
-                               State&             state) const;
+    void captureSlowRebounders(Real             vCapture,
+                               Array_<int>&     proximal,
+                               State&           state) const;
 
     // All proximal, inactive constraints should have significant rebound
     // velocities. Take a small explicit Euler step to advance until all
     // such constraints have perr>0 so we won't miss the next collision.
-    void satisfyPositionConditions
-       (const Array_<CInfo,int>& proximal, State& state) const;
+    void satisfyPositionConditions(const Array_<int>&   proximal, 
+                                   State&               state) const;
 
     // This is the final pass. We realize accelerations, and see if any of the
     // contact forces are negative. If so we disable those constraints.
     // TODO: need to search for a consistent set of active contraints.
-    void disablePullingContacts(Array_<CInfo,int>& proximal,
-                                State&             state) const;
+    void disablePullingContacts(Array_<int>&    proximal,
+                                State&          state) const;
 
 
     // This method is used at the start of compression phase to modify any
@@ -391,34 +429,29 @@ public:
     // constraints. Some or all of these will be disabled during the impact
     // analysis in compression or expansion phases. On return the state has
     // been updated and realized through Instance stage.
-    void enableAllProximalConstraints(Array_<CInfo,int>& proximal,
-                                      State&             state) const;
+    void enableAllProximalConstraints(Array_<int>&  proximal,
+                                      State&        state) const;
 
     // Given only the subset of proximal constraints that are active, calculate
     // the impulse that would eliminate all their velocity errors. No change is
     // made to the set of active constraints. Some of the resulting impulses
     // may be negative.
-    void calcStoppingImpulse
-       (const Array_<CInfo,int>&    proximal,
-        const State&                state,
-        Vector&                     lambda0) const;
+    void calcStoppingImpulse(const Array_<int>&     proximal,
+                             const State&           state,
+                             Vector&                lambda0) const;
 
     // Given the initial generalized speeds u0, and a constraint-space impulse
     // lambda, calculate the resulting step velocity change du, modify the
     // generalized speeds in state to u0+du, and realize Velocity stage.
-    void updateVelocities(const Vector& u0, const Vector& lambda, 
-                          State& state) const;
-
+    void updateVelocities(const Vector& u0, 
+                          const Vector& lambda, 
+                          State&        state) const;
 
 
 private:
     const MultibodySystem&                  m_mbs; 
-    const Array_<Constraint::PointInPlane>& m_contact;  // no penetration in Y
+    const Array_<MyUnilateralConstraint*>&  m_unis;
     const unsigned                          m_which;
-    const Array_<Real>&                     m_coefRest; // one per contact
-    const Array_<Real>&                     m_coefFric; // mu_d
-    const Array_<Constraint::NoSlip1D>&     m_stictionX;
-    const Array_<Constraint::NoSlip1D>&     m_stictionZ;
     const Stage                             m_stage;
 };
 
@@ -429,21 +462,18 @@ private:
 class ContactOff: public TriggeredEventHandler {
 public:
     ContactOff(const MultibodySystem&               system,
-        const Array_<Constraint::PointInPlane>&     contact,
-        unsigned                                    which,
-        const Array_<Constraint::NoSlip1D>&         stictionX, 
-        const Array_<Constraint::NoSlip1D>&         stictionZ) 
+        const Array_<MyUnilateralConstraint*>&      unis,
+        unsigned                                    which) 
     :   TriggeredEventHandler(Stage::Acceleration), 
-        m_system(system), m_contact(contact), m_which(which),
-        m_stictionX(stictionX), m_stictionZ(stictionZ)
+        m_mbs(system), m_unis(unis), m_which(which)
     { 
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     Real getValue(const State& state) const {
-        const Constraint::PointInPlane& contact = m_contact[m_which];
-        if (contact.isDisabled(state)) return 0;
-        const Real f = -contact.getMultiplier(state); // watch sign
+        const MyUnilateralConstraint& uni = *m_unis[m_which];
+        if (uni.isDisabled(state)) return 0;
+        const Real f = uni.getForce(state);
         return f;
     }
 
@@ -451,20 +481,17 @@ public:
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
         printf("\n------------------------------------------------------\n");
-        printf("LIFTOFF trigged by constraint %d @t=%.15g\n", 
+        printf("LIFTOFF triggered by constraint %d @t=%.15g\n", 
             m_which, s.getTime());
-        m_system.realize(s, Stage::Acceleration);
+        m_mbs.realize(s, Stage::Acceleration);
         cout << " triggers=" << s.getEventTriggers() << "\n";
-        const Vector& mults = s.getMultipliers();
         Array_<int> toBeDisabled;
-        Vector myMults(1);
-        for (unsigned i=0; i < m_contact.size(); ++i) {
-            const Constraint::PointInPlane& contact = m_contact[i];
-            if (contact.isDisabled(s)) continue;
-            contact.getMyPartFromConstraintSpaceVector(s,mults,myMults);
-            const Real f = -myMults[0]; // watch sign
-            if (f<0) { // watch sign
-                printf("  disabling %d because force=%g", i, f);
+        for (unsigned i=0; i < m_unis.size(); ++i) {
+            const MyUnilateralConstraint& uni = *m_unis[i];
+            if (uni.isDisabled(s)) continue;
+            const Real f = uni.getForce(s);
+            if (f<0) {
+                printf("  consider disabling uni %d because force=%g", i, f);
                 toBeDisabled.push_back(i);
             }
         }
@@ -472,24 +499,45 @@ public:
 
         for (unsigned tbd=0; tbd < toBeDisabled.size(); ++tbd) {
             const int i = toBeDisabled[tbd];
-            m_contact[i].disable(s);
-            m_stictionX[i].disable(s);
-            m_stictionZ[i].disable(s);
+            const MyUnilateralConstraint& uni = *m_unis[i];
+            uni.disable(s);
         }
-        m_system.realize(s, Stage::Instance);
+        m_mbs.realize(s, Stage::Instance);
+        m_mbs.realize(s, Stage::Acceleration);
 
-        // Leave at acceleration stage.
-        m_system.realize(s, Stage::Acceleration);
-        printf("LIFTOFF DONE; %d contacts broken.\n\n", toBeDisabled.size());
+
+        // Now see which of the disabled constraints is violated.
+        m_mbs.realize(s, Stage::Acceleration);
+        Array_<int> violated;
+        for (unsigned p=0; p < toBeDisabled.size(); ++p) {
+            const int which = toBeDisabled[p];
+            const MyUnilateralConstraint& uni = *m_unis[which];
+            const Real aerr = uni.getAerr(s);
+            if (aerr < 0) {
+                violated.push_back(which);
+                printf("  RE-ENABLE constraint %d cuz aerr=%g\n", which, aerr);
+            }
+        }
+
+        for (unsigned v=0; v < violated.size(); ++v) {
+            const int which = violated[v];
+            const MyUnilateralConstraint& uni = *m_unis[which];
+            uni.enable(s);
+        }
+        m_mbs.realize(s, Stage::Instance);
+
+        // Always leave at acceleration stage.
+        m_mbs.realize(s, Stage::Acceleration);
+
+        printf("LIFTOFF DONE; %d contacts broken.\n\n", 
+            toBeDisabled.size()-violated.size());
         printf("\n------------------------------------------------------\n");
     }
 
 private:
-    const MultibodySystem&                  m_system; 
-    const Array_<Constraint::PointInPlane>& m_contact;
-    const unsigned                          m_which; // one of the contacts
-    const Array_<Constraint::NoSlip1D>&     m_stictionX;
-    const Array_<Constraint::NoSlip1D>&     m_stictionZ;
+    const MultibodySystem&                  m_mbs; 
+    const Array_<MyUnilateralConstraint*>&  m_unis;
+    const unsigned                          m_which; // one of the unis
 };
 
 static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
@@ -499,6 +547,337 @@ static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
 
 static Real g = 9.8;
 
+
+
+//==============================================================================
+//                             MY POINT CONTACT
+//==============================================================================
+// Define a unilateral constraint to represent contact of a point on a moving
+// body with the ground plane. The ground normal is assumed to be +y. This
+// contact constraint has "super friction" that always sticks if it contacts
+// at all. Note: that can generate non-physical effects.
+class MyPointContact : public MyUnilateralConstraint {
+public:
+    MyPointContact(MobilizedBody& body, const Vec3& point,
+                 Real coefRest)
+    :   MyUnilateralConstraint(coefRest),
+        m_body(body), m_point(point), m_groundPoint(0),
+        m_contact(updGround(body), Vec3(0), body, point)
+    {
+        m_contact.setDisabledByDefault(true);
+    }
+
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+        return m_body.findStationLocationInGround(state,m_point);
+    }
+
+    Real getPerr(const State& s) const OVERRIDE_11 {
+        const Vec3 p = m_body.findStationLocationInGround(s, m_point);
+        return p[YAxis] - m_groundPoint[YAxis];
+    }
+    Real getVerr(const State& s) const OVERRIDE_11 {
+        const Vec3 v = m_body.findStationVelocityInGround(s, m_point);
+        return v[YAxis];
+    }
+    Real getAerr(const State& s) const OVERRIDE_11 {
+        const Vec3 a = m_body.findStationAccelerationInGround(s, m_point);
+        return a[YAxis];
+    }
+
+    Real getForce(const State& s) const OVERRIDE_11 {
+        if (isDisabled(s)) return 0;
+        const Vec3 mults = m_contact.getMultipliers(s);
+        return -mults[YAxis]; // watch sign
+    }
+
+    Real getImpulse() const OVERRIDE_11 {return m_I[YAxis];}
+    Real getCompressionImpulse() const OVERRIDE_11 {return m_Ic[YAxis];}
+    Real getExpansionImpulse() const OVERRIDE_11 {return m_Ie[YAxis];}
+
+    void recordImpulse(ImpulseType type, const State& state,
+                      const Vector& lambda) OVERRIDE_11
+    {
+        Vector myImpulse(3);
+        m_contact.getMyPartFromConstraintSpaceVector(state, lambda, myImpulse);
+        const Vec3 I = Vec3::getAs(&myImpulse[0]);
+        if (type==Compression) m_Ic = I;
+        else if (type==Expansion) m_Ie = I;
+        m_I += I;
+    }
+    void setMyExpansionImpulse(const State& state,
+                               Real coefRest,
+                               Vector& lambda) const OVERRIDE_11
+    {
+        // No expansion phase for friction. This can cause nonphysical 
+        // behavior. 
+        const Vec3 I = Vec3(0, coefRest * m_Ic[YAxis], 0);
+        Vector myImp(I);
+        m_contact.setMyPartInConstraintSpaceVector(state, myImp, lambda);
+    }
+
+    void setMyDesiredDeltaV(const State& s,
+                            Vector& desiredDeltaV) const OVERRIDE_11
+    {
+        const Vec3 v = m_body.findStationVelocityInGround(s, m_point);
+        Vector myDesiredDV(Vec3(-v)); // nuke translations too
+        m_contact.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
+                                                   desiredDeltaV);
+    }
+
+
+    Real getMyValueFromConstraintSpaceVector(const State& state,
+                                             const Vector& lambda) 
+                                             const OVERRIDE_11
+    {   Vector myValue(3);
+        m_contact.getMyPartFromConstraintSpaceVector(state, lambda, myValue);
+        return myValue[YAxis]; }
+
+
+    // Note that recordStartingLocation() must have been called first.
+    void enable(State& state) const OVERRIDE_11 {
+        m_contact.setPointOnBody1(state, m_groundPoint);
+        m_contact.enable(state);
+    }
+    void disable(State& state) const OVERRIDE_11 {m_contact.disable(state);}
+    bool isDisabled(const State& state) const OVERRIDE_11
+    {   return m_contact.isDisabled(state); }
+
+    // Set the ground point to be the projection of the follower point
+    // onto the ground plane. This will be used the next time this constraint
+    // is enabled.
+    void initializeForImpactVirtual(const State& s) OVERRIDE_11 {
+        const Vec3 p = m_body.findStationLocationInGround(s, m_point);
+        m_groundPoint = Vec3(p[XAxis], 0, p[ZAxis]);
+        m_I = m_Ie = m_Ic = Vec3(0);
+    }
+private:
+    MobilizedBody& updGround(MobilizedBody& body) const {
+        SimbodyMatterSubsystem& matter = body.updMatterSubsystem();
+        return matter.updGround();
+    }
+
+    const MobilizedBody&    m_body;
+    const Vec3              m_point;
+    Constraint::Ball        m_contact;
+
+    // Runtime
+    Vec3 m_groundPoint;
+    Vec3 m_Ic; // most recent compression impulse
+    Vec3 m_Ie; // most recent expansion impulse
+    Vec3 m_I;  // accumulated impulse
+};
+
+
+//==============================================================================
+//                                  MY STOP
+//==============================================================================
+// Define a unilateral constraint to represent a joint stop that limits
+// the allowable motion of a single generalized coordinate. You can specify
+// a coefficient of restitution and whether the given limit is the upper or
+// lower limit.
+class MyStop : public MyUnilateralConstraint {
+public:
+    enum Side {Lower,Upper};
+    MyStop(Side side, MobilizedBody& body, int whichQ,
+         Real limit, Real coefRest)
+    :   MyUnilateralConstraint(coefRest),
+        m_body(body), m_whichq(whichQ), m_whichu(whichQ),
+        m_sign(side==Lower?1:-1), m_limit(limit),
+        m_stop(body, m_whichu, Real(0))
+    {
+        m_stop.setDisabledByDefault(true);
+    }
+
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+        const Vec3& p_B = m_body.getOutboardFrame(state).p();
+        return m_body.findStationLocationInGround(state,p_B);
+    }
+
+    Real getPerr(const State& state) const OVERRIDE_11 {
+        const Real q = m_body.getOneQ(state, m_whichq);
+        return m_sign*(q-m_limit);
+    }
+    Real getVerr(const State& state) const OVERRIDE_11 {
+        const Real u = m_body.getOneU(state, m_whichu);
+        return m_sign*u;
+    }
+    Real getAerr(const State& state) const OVERRIDE_11 {
+        const Real udot = m_body.getOneUDot(state, m_whichu);
+        return m_sign*udot;
+    }
+
+    Real getForce(const State& s) const OVERRIDE_11 {
+        if (isDisabled(s)) return 0;
+        const Real mult = m_stop.getMultiplier(s);
+        return -m_sign*mult; // watch sign
+    }
+    Real getImpulse() const OVERRIDE_11 {return m_sign*m_I;}
+    Real getCompressionImpulse() const OVERRIDE_11 {return m_sign*m_Ic;}
+    Real getExpansionImpulse() const OVERRIDE_11 {return m_sign*m_Ie;}
+
+    void recordImpulse(ImpulseType type, const State& state,
+                       const Vector& lambda) OVERRIDE_11
+    {
+        Vector myImpulse(1);
+        m_stop.getMyPartFromConstraintSpaceVector(state, lambda, myImpulse);
+        const Real I = myImpulse[0];
+        if (type==Compression) m_Ic = I;
+        else if (type==Expansion) m_Ie = I;
+        m_I += I;
+    }
+
+    void setMyExpansionImpulse(const State& state,
+                               Real coefRest,
+                               Vector& lambda) const OVERRIDE_11
+    {
+        const Real I = coefRest * m_Ic;
+        Vector myImp(1); myImp[0] = I;
+        m_stop.setMyPartInConstraintSpaceVector(state, myImp, lambda);
+    }
+
+    void setMyDesiredDeltaV(const State& s,
+                            Vector& desiredDeltaV) const OVERRIDE_11
+    {
+        Vector myDesiredDV(1); myDesiredDV[0] = -m_sign*getVerr(s);
+        m_stop.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
+                                                   desiredDeltaV);
+    }
+
+    Real getMyValueFromConstraintSpaceVector(const State& state,
+                                             const Vector& lambda) 
+                                             const OVERRIDE_11
+    {   Vector myValue(1);
+        m_stop.getMyPartFromConstraintSpaceVector(state, lambda, myValue);
+        return m_sign*myValue[0]; }
+
+    void enable(State& state) const OVERRIDE_11 {m_stop.enable(state);}
+    void disable(State& state) const OVERRIDE_11 {m_stop.disable(state);}
+    bool isDisabled(const State& state) const OVERRIDE_11
+    {   return m_stop.isDisabled(state); }
+
+    void initializeForImpactVirtual(const State& state) OVERRIDE_11 
+    {   m_Ic = m_Ie = m_I = 0; }
+
+private:
+    const MobilizedBody&        m_body;
+    const MobilizerQIndex       m_whichq;
+    const MobilizerUIndex       m_whichu;
+    Real                        m_sign; // +1: lower, -1: upper
+    Real                        m_limit;
+    Constraint::ConstantSpeed   m_stop;
+
+    // Runtime
+    Real m_Ic, m_Ie, m_I; // impulses
+};
+
+//==============================================================================
+//                                  MY ROPE
+//==============================================================================
+// Define a unilateral constraint to represent a "rope" that keeps the
+// distance between two points at or smaller than some limit.
+class MyRope : public MyUnilateralConstraint {
+public:
+    MyRope(MobilizedBody& body1, const Vec3& pt1,
+           MobilizedBody& body2, const Vec3& pt2, Real d,
+           Real coefRest)
+    :   MyUnilateralConstraint(coefRest),
+        m_body1(body1), m_point1(pt1), m_body2(body2), m_point2(pt2), m_dist(d),
+        m_rope(body1, pt1, body2, pt2, d)
+    {
+        m_rope.setDisabledByDefault(true);
+    }
+
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+        return m_body2.findStationLocationInGround(state,m_point2);
+    }
+
+    Real getPerr(const State& s) const OVERRIDE_11 {
+        const Vec3 p1 = m_body1.findStationLocationInGround(s,m_point1);
+        const Vec3 p2 = m_body2.findStationLocationInGround(s,m_point2);
+        const Vec3 p = p2-p1;
+        return (square(m_dist) - dot(p,p))/2;
+    }
+    Real getVerr(const State& s) const OVERRIDE_11 {
+        Vec3 p1, v1, p2, v2;
+        m_body1.findStationLocationAndVelocityInGround(s,m_point1,p1,v1);
+        m_body2.findStationLocationAndVelocityInGround(s,m_point2,p2,v2);
+        const Vec3 p = p2 - p1, v = v2 - v1;
+        return -dot(v, p);
+    }
+    Real getAerr(const State& s) const OVERRIDE_11 {
+        Vec3 p1, v1, a1, p2, v2, a2;
+        m_body1.findStationLocationVelocityAndAccelerationInGround
+           (s,m_point1,p1,v1,a1);
+        m_body2.findStationLocationVelocityAndAccelerationInGround
+           (s,m_point2,p2,v2,a2);
+        const Vec3 p = p2 - p1, v = v2 - v1, a = a2 - a1;
+        return -(dot(a, p) + dot(v, v));
+    }
+
+    Real getForce(const State& s) const OVERRIDE_11 {
+        if (isDisabled(s)) return 0;
+        const Real mult = m_rope.getMultiplier(s);
+        return mult; // watch sign
+    }
+
+    Real getImpulse() const OVERRIDE_11 {return -m_I;}
+    Real getCompressionImpulse() const OVERRIDE_11 {return -m_Ic;}
+    Real getExpansionImpulse() const OVERRIDE_11 {return -m_Ie;}
+
+    void recordImpulse(ImpulseType type, const State& state,
+                       const Vector& lambda) OVERRIDE_11
+    {
+        Vector myImpulse(1);
+        m_rope.getMyPartFromConstraintSpaceVector(state, lambda, myImpulse);
+        const Real I = myImpulse[0];
+        if (type==Compression) m_Ic = I;
+        else if (type==Expansion) m_Ie = I;
+        m_I += I;
+    }
+
+    void setMyExpansionImpulse(const State& state,
+                               Real coefRest,
+                               Vector& lambda) const OVERRIDE_11
+    {
+        const Real I = coefRest * m_Ic;
+        Vector myImp(1); myImp[0] = I;
+        m_rope.setMyPartInConstraintSpaceVector(state, myImp, lambda);
+    }
+
+    void setMyDesiredDeltaV(const State& s,
+                            Vector& desiredDeltaV) const OVERRIDE_11
+    {
+        Vector myDesiredDV(1); myDesiredDV[0] = getVerr(s);
+        m_rope.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
+                                                   desiredDeltaV);
+    }
+
+    Real getMyValueFromConstraintSpaceVector(const State& state,
+                                             const Vector& lambda) 
+                                             const OVERRIDE_11
+    {   Vector myValue(1);
+        m_rope.getMyPartFromConstraintSpaceVector(state, lambda, myValue);
+        return -myValue[0]; }
+
+    void enable(State& state) const OVERRIDE_11 {m_rope.enable(state);}
+    void disable(State& state) const OVERRIDE_11 {m_rope.disable(state);}
+    bool isDisabled(const State& state) const OVERRIDE_11
+    {   return m_rope.isDisabled(state); }
+
+    void initializeForImpactVirtual(const State& state) OVERRIDE_11 
+    {   m_Ic = m_Ie = m_I = 0; }
+
+private:
+    const MobilizedBody&    m_body1;
+    const Vec3              m_point1;
+    const MobilizedBody&    m_body2;
+    const Vec3              m_point2;
+    const Real              m_dist;
+    Constraint::Rod         m_rope;
+
+    // Runtime
+    Real m_Ic, m_Ie, m_I; // impulses
+};
 
 
 //==============================================================================
@@ -526,21 +905,17 @@ int main(int argc, char** argv) {
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
     const Real CoefRest = 0.8;
-    const Real CoefFric = 0.9;
-    Array_<Constraint::PointInPlane> contacts;
-    Array_<Real>                     coefRest; // e (Poisson's restitution)
-    Array_<Real>                     coefFric; // mu_d
-    Array_<Constraint::NoSlip1D>     stictionX;
-    Array_<Constraint::NoSlip1D>     stictionZ;
+    Array_<MyUnilateralConstraint*>     unis;
 
     const Vec3 CubeHalfDims(3,2,1);
     const Real CubeMass = 1;
     Body::Rigid cubeBody = 
         Body::Rigid(MassProperties(CubeMass, Vec3(0), 
-                        UnitInertia::brick(CubeHalfDims)));
+                    UnitInertia::brick(CubeHalfDims)));
 
     // First body: cube
-    MobilizedBody::Free cube(Ground, Vec3(0),
+    MobilizedBody::Cartesian loc(Ground, MassProperties(0,Vec3(0),Inertia(0)));
+    MobilizedBody::Ball cube(loc, Vec3(0),
                              cubeBody, Vec3(0));
     cube.addBodyDecoration(Transform(), DecorativeBrick(CubeHalfDims)
                                         .setColor(Red).setOpacity(.3));
@@ -548,19 +923,12 @@ int main(int argc, char** argv) {
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
-        contacts.push_back
-            (Constraint::PointInPlane(Ground, YAxis, Zero, cube, pt));
-        coefRest.push_back(CoefRest);
-        coefFric.push_back(CoefFric);
-        stictionX.push_back
-            (Constraint::NoSlip1D(Ground, Vec3(0), XAxis, Ground, cube));
-        stictionZ.push_back
-            (Constraint::NoSlip1D(Ground, Vec3(0), ZAxis, Ground, cube));
-
-        contacts.back().setDisabledByDefault(true);
-        stictionX.back().setDisabledByDefault(true);
-        stictionZ.back().setDisabledByDefault(true);
+        unis.push_back(new MyPointContact(cube, pt, CoefRest));
     }
+
+    unis.push_back(new MyRope(Ground, Vec3(-5,10,0),
+                              cube, -CubeHalfDims, 5., .5*CoefRest));
+    //unis.push_back(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
 
     const Vec3 WeightEdge(-CubeHalfDims[0],-CubeHalfDims[1],0);
 //#ifdef NOTDEF
@@ -571,27 +939,19 @@ int main(int argc, char** argv) {
         cubeBody, Vec3(WeightEdge));
     weight.addBodyDecoration(Transform(), DecorativeBrick(CubeHalfDims)
                                         .setColor(Gray).setOpacity(.6));
-    Force::MobilityLinearSpring(forces, weight, 0, 1000, Pi/4);
+    //Force::MobilityLinearSpring(forces, weight, 0, 100, -Pi/4);
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
         if (i==-1 && j==-1) continue;
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
-        contacts.push_back
-            (Constraint::PointInPlane(Ground, YAxis, Zero, weight, pt));
-        coefRest.push_back(0.1);
-        coefFric.push_back(CoefFric);
-        stictionX.push_back
-            (Constraint::NoSlip1D(Ground, Vec3(0), XAxis, Ground, weight));
-        stictionZ.push_back
-            (Constraint::NoSlip1D(Ground, Vec3(0), ZAxis, Ground, weight));
-
-        contacts.back().setDisabledByDefault(true);
-        stictionX.back().setDisabledByDefault(true);
-        stictionZ.back().setDisabledByDefault(true);
+        unis.push_back(new MyPointContact(weight, pt, CoefRest));
     }
+    unis.push_back(new MyStop(MyStop::Upper,weight,0, Pi/9,CoefRest));
+    unis.push_back(new MyStop(MyStop::Lower,weight,0, -Pi/9,CoefRest));
+
 //#endif
-//#ifdef NOTDEF
+#ifdef NOTDEF
    // Third body: weight2
     const Vec3 ConnectEdge2(CubeHalfDims[0],CubeHalfDims[1],0);
     MobilizedBody::Pin weight2(cube, 
@@ -605,24 +965,13 @@ int main(int argc, char** argv) {
     for (int k=-1; k<=1; k+=2) {
         if (i==-1 && j==-1) continue;
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
-        contacts.push_back
-            (Constraint::PointInPlane(Ground, YAxis, Zero, weight2, pt));
-        coefRest.push_back(0.1);
-        coefFric.push_back(CoefFric);
-        stictionX.push_back
-            (Constraint::NoSlip1D(Ground, Vec3(0), XAxis, Ground, weight2));
-        stictionZ.push_back
-            (Constraint::NoSlip1D(Ground, Vec3(0), ZAxis, Ground, weight2));
-
-        contacts.back().setDisabledByDefault(true);
-        stictionX.back().setDisabledByDefault(true);
-        stictionZ.back().setDisabledByDefault(true);
+        unis.push_back(new MyPointContact(weight2, pt, 0.1));
     }
-//#endif
+#endif
 
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
-    viz.addDecorationGenerator(new ShowContact(contacts));
+    viz.addDecorationGenerator(new ShowContact(unis));
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
@@ -636,20 +985,17 @@ int main(int argc, char** argv) {
     //integ.setAllowInterpolation(false);
     integ.setMaximumStepSize(0.1);
 
-    StateSaver* stateSaver = new StateSaver(mbs,contacts,integ,ReportInterval);
+    StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
     mbs.addEventReporter(stateSaver);
 
-    for (unsigned i=0; i < contacts.size(); ++i) {
-        mbs.addEventHandler(new ContactOn(mbs, contacts,i, coefRest,coefFric,
-                                          stictionX, stictionZ, Stage::Position));
-        mbs.addEventHandler(new ContactOn(mbs, contacts,i, coefRest,coefFric,
-                                          stictionX, stictionZ, Stage::Velocity));
-        mbs.addEventHandler(new ContactOn(mbs, contacts,i, coefRest,coefFric,
-                                          stictionX, stictionZ, Stage::Acceleration));
+    for (unsigned i=0; i < unis.size(); ++i) {
+        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Position));
+        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Velocity));
+        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Acceleration));
     }
 
-    for (unsigned i=0; i < contacts.size(); ++i)
-        mbs.addEventHandler(new ContactOff(mbs, contacts,i, stictionX,stictionZ));
+    for (unsigned i=0; i < unis.size(); ++i)
+        mbs.addEventHandler(new ContactOff(mbs, unis,i));
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
@@ -658,7 +1004,8 @@ int main(int argc, char** argv) {
 
     // Set initial conditions so the -,-,- vertex is in the -y direction.
     const Rotation R_BC(UnitVec3(CubeHalfDims+1e-7*Vec3(1,0,0)), YAxis, Vec3(1,0,0),XAxis);
-    cube.setQToFitTransform(s, Transform(~R_BC, Vec3(0,10,0)));
+    loc.setQToFitTranslation(s, Vec3(0,10,0));
+    cube.setQToFitTransform(s, Transform(~R_BC, Vec3(0)));
     cube.setUToFitAngularVelocity(s, Vec3(0,1,0));
     cube.setUToFitLinearVelocity(s, Vec3(1,0,0));
 
@@ -681,8 +1028,20 @@ int main(int argc, char** argv) {
     cout << "qdotdot=" << s.getQDotDot() << endl;
     viz.report(s);
 
+    Array_<int> enableThese;
+    for (unsigned i=0; i < unis.size(); ++i) {
+        const Real perr = unis[i]->getPerr(s);
+        printf("uni constraint %d has perr=%g%s\n", i, perr,
+            perr<=0?" (ENABLING)":"");
+        if (perr <= 0)
+            enableThese.push_back(i);
+    }
+
     cout << "Initial configuration shown. Next? ";
     getchar();
+
+    for (unsigned i=0; i < enableThese.size(); ++i)
+        unis[enableThese[i]]->enable(s);
 
     Assembler(mbs).assemble(s);
     viz.report(s);
@@ -740,117 +1099,16 @@ int main(int argc, char** argv) {
 //                        IMPACT HANDLING (CONTACT ON)
 //==============================================================================
 
-class CInfo {
-public:
-    CInfo(const SimbodyMatterSubsystem&   matter,
-          const State&                    state,
-          const Constraint::PointInPlane& noPenetrationY,
-          int                             which,
-          Real                            coefRest,
-          Real                            coefFric,
-          const Constraint::NoSlip1D&     stictionX,
-          const Constraint::NoSlip1D&     stictionZ)
-    :   contact(&noPenetrationY), which(which),
-        stickX(&stictionX), stickZ(&stictionZ),
-        body1(&matter.getMobilizedBody(contact->getPlaneMobilizedBodyIndex())), 
-        body2(&matter.getMobilizedBody(contact->getFollowerMobilizedBodyIndex())), 
-        point2(contact->getDefaultFollowerPoint()),
-        initp2_G(body2->findStationLocationInGround(state, point2)),
-        initv2_G(body2->findStationVelocityInGround(state, point2)),
-        e(coefRest), Ic(0), Ie(0), I(0), V(initv2_G), P(initp2_G)
-    {
-    }
-
-    Vec3 getMyPartFromConstraintSpaceVector(const State& s, 
-                                            const Vector& lambda) const {
-        Vector myMults; Vec3 res(0);
-        if (isActive(s)) {
-            contact->getMyPartFromConstraintSpaceVector(s,lambda,myMults);
-            res[YAxis] = myMults[0];
-            if (isSticking(s)) {
-                stickX->getMyPartFromConstraintSpaceVector(s,lambda,myMults);
-                res[XAxis] = myMults[0];
-                stickZ->getMyPartFromConstraintSpaceVector(s,lambda,myMults);
-                res[ZAxis] = myMults[0];
-            }
-        }
-        return res;
-    }
-
-    void setMyPartInConstraintSpaceVector(const State& s, const Vec3& myPart,
-                                          Vector& lambda) const {
-        Vector myMults(1);
-        if (!isActive(s)) return;
-
-        myMults[0] = myPart[YAxis];
-        contact->setMyPartInConstraintSpaceVector(s,myMults,lambda);
-        if (isSticking(s)) {
-            myMults[0] = myPart[XAxis];
-            stickX->setMyPartInConstraintSpaceVector(s,myMults,lambda);
-            myMults[0] = myPart[ZAxis];
-            stickZ->setMyPartInConstraintSpaceVector(s,myMults,lambda);
-        }
-    }
-
-
-    void updateFromState(const State& state) {
-        body2->findStationLocationAndVelocityInGround(state,point2,P,V);
-    }
-
-    void enableAll(State& state) const {
-        contact->enable(state); stickX->enable(state); stickZ->enable(state);
-    }
-
-    void disableAll(State& state) const {
-        contact->disable(state); stickX->disable(state); stickZ->disable(state);
-    }
-
-    void enableStiction(State& state) const {
-        stickX->enable(state); stickZ->enable(state);
-    }
-
-    void disableStiction(State& state) const {
-        stickX->disable(state); stickZ->disable(state);
-    }
-    bool isActive(const State& state) const 
-    {   return !contact->isDisabled(state); }
-    bool isSticking(const State& state) const 
-    {   return !stickX->isDisabled(state); } // both are if one is
-        
-    Real getHeight()  const {return P[YAxis];}
-    Real getDHeight() const {return V[YAxis];}
-    const Constraint::PointInPlane* contact;
-    const int                       which;
-    const Constraint::NoSlip1D*     stickX;
-    const Constraint::NoSlip1D*     stickZ;
-
-    const MobilizedBody*    body1;
-    const MobilizedBody*    body2;
-    const Vec3              point2;   // contact point on body2, in B2 frame
-    const Vec3              initp2_G; // location of point2 in ground
-    const Vec3              initv2_G; // initial velocity of point2 in G
-
-    // These fields change during impact processing.
-    Real e; // effective coefficient of restitution (changes)
-    Vec3 Ic; // most recent compression impulse
-    Vec3 Ie; // most recent expansion impulse
-    Vec3 I; // accumulated impulse at this contact
-    Vec3 V; // current velocity (of point2 in G)
-    Vec3 P; // current location of point2 in G
-};
-
-
-
 //------------------------------ HANDLE EVENT ----------------------------------
 void ContactOn::
 handleEvent(State& s, Real accuracy, bool& shouldTerminate) const 
 {
     const Real VCapture=1e-2;
 
-    Array_<CInfo,int> proximal;
+    Array_<int> proximal;
     findProximalConstraints(s, accuracy, proximal);
 
-    printf("\nIMPACT (%s) for constraint %d at t=%.16g; %d proximal\n", 
+    SimTK_DEBUG4("\nIMPACT (%s) for uni constraint %d at t=%.16g; %d proximal\n", 
         m_stage.getName().c_str(), m_which, s.getTime(), proximal.size());
 
     bool needMoreCompression = true;
@@ -859,11 +1117,13 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
         needMoreCompression = false;
 
         if (processExpansionPhase(proximal, s)) {
-            for (int i=0; i<proximal.size(); ++i)
-                if (proximal[i].getDHeight() < 0) {
+            for (unsigned i=0; i<proximal.size(); ++i) {
+                const MyUnilateralConstraint& uni = *m_unis[proximal[i]];
+                if (uni.getVerr(s) < 0) {
                     needMoreCompression = true;
                     break;
                 }
+            }
         }
     }
 
@@ -875,7 +1135,7 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 
     // Advance state until all remaining rebounders have perr>0.
     // TODO: shouldn't need to do this.
-    satisfyPositionConditions(proximal, s);
+    //satisfyPositionConditions(proximal, s);
 
     // Make sure all enabled position and velocity constraints 
     // are satisfied.
@@ -884,25 +1144,21 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     // Finally, evaluate accelerations and reaction forces and check if 
     // any of the active contacts are generating negative ("pulling") 
     // forces; if so, inactivate them.
-    // TODO: this causes trouble because it is ignoring the forces being
-    // produced to maintain stiction, which can also induce downward 
-    // acceleration.
-    //disablePullingContacts(proximal, s);
+    disablePullingContacts(proximal, s);
     m_mbs.realize(s, Stage::Acceleration);
 
+#ifndef NDEBUG
     printf("END OF IMPACT for %d proximal constraints:\n",proximal.size());
-    const Vector& mults = s.getMultipliers();
-    for (int i=0; i < proximal.size(); ++i) {
-        const CInfo& ci = proximal[i];
-        printf("  %d %3s: I=%g, V=%g",
-            ci.which, ci.isActive(s) ? "ON" : "off", 
-            ci.I[YAxis], ci.V[YAxis]);
-
-        Vec3 myMults = ci.getMyPartFromConstraintSpaceVector(s, mults);
-        const Vec3 A = ci.body2->findStationAccelerationInGround(s,ci.point2);
-        printf(" F=%g, A=%g\n", -myMults[YAxis], A[YAxis]);          
+    for (unsigned i=0; i < proximal.size(); ++i) {
+        const int which = proximal[i];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        printf("  %d %3s: I=%g H=%g V=%g A=%g F=%g\n",
+            which, uni.isDisabled(s) ? "off" : "ON", 
+            uni.getImpulse(), uni.getPerr(s), uni.getVerr(s), 
+            uni.getAerr(s), uni.getForce(s));       
     }
     printf("DONE WITH IMPACT.\n\n");
+#endif
 }
 
 
@@ -911,36 +1167,38 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 void ContactOn::
 findProximalConstraints(const State&       s,
                         Real               posTol,
-                        Array_<CInfo,int>& proximal) const
+                        Array_<int>&       proximal) const
 {
-    const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
-    m_mbs.realize(s, Stage::Velocity);
+    m_mbs.realize(s, Stage::Position);
 
     proximal.clear();
-    for (unsigned i=0; i<m_contact.size(); ++i) {
-        CInfo ci(matter, s, m_contact[i], i, m_coefRest[i], m_coefFric[i],
-                 m_stictionX[i], m_stictionZ[i]);
-        if (ci.isActive(s) || ci.getHeight() <= posTol) 
+    for (unsigned i=0; i<m_unis.size(); ++i) {
+        MyUnilateralConstraint& uni = *m_unis[i];
+        if (!uni.isDisabled(s) || uni.getPerr(s) <= posTol) 
         {
-            proximal.push_back(ci);
+            uni.initializeForImpact(s);
+            proximal.push_back(i);
         }
-
-        //SimTK_ASSERT3_ALWAYS(height >= -posTol,
-        //    "ContactOn::processImpact(): constraint %d had height %g but tol=%g\n",
-        //    i, height, posTol);
     }
 }
 
 
 
 //------------------------ PROCESS COMPRESSION PHASE ---------------------------
+//
+// Strategy:
+// (1) assume all normal & tangential constraints are on; calculate stopping
+//     impulse
+// (2) look for negative normal impulses; try disabling those
+// (3) recapture any constraints that would be violated after disabling
+// 
 void ContactOn::
-processCompressionPhase(Array_<CInfo,int>&  proximal,
-                        State&              s) const
+processCompressionPhase(Array_<int>&    proximal,
+                        State&          s) const
 {
-    printf("Entering processCompressionPhase() ...\n");
+    SimTK_DEBUG("Entering processCompressionPhase() ...\n");
     Vector lambda0, lambdaTry;
-    Array_<int> maybeDisabled, recapturing;
+    Array_<int> maybeDisabled, recapturing, turnOffStiction;
 
     const Vector u0 = s.getU(); // save presenting velocity
 
@@ -952,55 +1210,57 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
     // First try drives all constraints to zero velocity; if that took some
     // negative impulses we'll have to remove some participants and try again.
     calcStoppingImpulse(proximal, s, lambda0);
+
     while (true) {
         // See if negative impulse was required to satisfy an active constraint.
         // If so, that is a candidate to be inactivated.
         maybeDisabled.clear();
-        for (int i=0; i < proximal.size(); ++i) {
-            const CInfo& ci = proximal[i];
-            if (!ci.isActive(s))
+        for (unsigned i=0; i < proximal.size(); ++i) {
+            const int which = proximal[i];
+            const MyUnilateralConstraint& uni = *m_unis[which];
+            if (uni.isDisabled(s))
                 continue;
-            Vec3 myMults = ci.getMyPartFromConstraintSpaceVector(s, lambda0);
-            if (myMults[YAxis] > 0)
+            Real imp = uni.getMyValueFromConstraintSpaceVector(s, lambda0);
+            if (imp > 0)
                 continue;
-            maybeDisabled.push_back(i);
-            printf("  constraint %d is candidate, because lambda_y=%g\n",
-                (int)ci.contact->getConstraintIndex(), myMults[YAxis]);
+            maybeDisabled.push_back(which);
+            SimTK_DEBUG2("  uni constraint %d has negative compression impulse=%g\n",
+                which, imp);
         }
         if (maybeDisabled.empty())
             break;
 
         // Disable the candidates, then see if they rebound.
         for (unsigned d=0; d < maybeDisabled.size(); ++d)
-            proximal[maybeDisabled[d]].disableAll(s);
+            m_unis[maybeDisabled[d]]->disable(s);
         m_mbs.realize(s, Stage::Instance);
         calcStoppingImpulse(proximal, s, lambdaTry);
         updateVelocities(u0, lambdaTry, s);
 
         recapturing.clear();
         for (unsigned i=0; i<maybeDisabled.size(); ++i) {
-            const CInfo& ci = proximal[maybeDisabled[i]];
-            const Vec3 newv2_G = 
-                ci.body2->findStationVelocityInGround(s,ci.point2);
-            printf("  candidate constraint %d would have v_y=%g\n",
-                (int)ci.contact->getConstraintIndex(), newv2_G[YAxis]);
-            if (newv2_G[YAxis] <= 0) {
-                recapturing.push_back(maybeDisabled[i]);
-                printf("  RECAPTURING constraint %d with v_y=%g\n", 
-                    (int)ci.contact->getConstraintIndex(), newv2_G[YAxis]);
+            const int which = maybeDisabled[i];
+            const MyUnilateralConstraint& uni = *m_unis[which];
+            const Real newV = uni.getVerr(s);           
+            SimTK_DEBUG2("  candidate uni constraint %d would have v%g\n",
+                   which, newV);
+            if (newV <= 0) {
+                recapturing.push_back(which);
+                SimTK_DEBUG2("  RECAPTURING uni constraint %d with v=%g\n", 
+                    which, newV);
             }
         }
 
         // Re-enable the recaptured candidates.
         if (!recapturing.empty()) {
             for (unsigned c=0; c < recapturing.size(); ++c)
-                proximal[recapturing[c]].enableAll(s);
+                m_unis[recapturing[c]]->enable(s);
             m_mbs.realize(s, Stage::Instance);
         }
 
         const int numDisabled = maybeDisabled.size()-recapturing.size();
         if (numDisabled == 0) {
-            printf("  None of the candidates was actually disabled.\n");
+            SimTK_DEBUG("  None of the candidates was actually disabled.\n");
             // lambda0 is still correct
             break;
         }
@@ -1008,93 +1268,88 @@ processCompressionPhase(Array_<CInfo,int>&  proximal,
         if (recapturing.empty()) lambda0 = lambdaTry;
         else calcStoppingImpulse(proximal, s, lambda0);
 
-        printf("  RETRY with %d constraints disabled\n", numDisabled);
+        SimTK_DEBUG1("  RETRY with %d constraints disabled\n", numDisabled);
     }
     updateVelocities(u0, lambda0, s);
 
     // Now update the entries for each proximal constraint to reflect the
     // compression impulse and post-compression velocity.
-    printf("  Compression results:\n");
-    for (int i=0; i < proximal.size(); ++i) {
-        CInfo& ci = proximal[i];
-        ci.updateFromState(s); // set current velocity V
-        ci.Ic = ci.getMyPartFromConstraintSpaceVector(s, lambda0);
-        ci.I += ci.Ic; // accumulate impulse
-        printf("  %d %3s: Ic=%g, V=%g\n",
-            ci.which, ci.isActive(s) ? "ON" : "off", 
-            ci.Ic[YAxis], ci.V[YAxis]);
+    SimTK_DEBUG("  Compression results:\n");
+    for (unsigned i=0; i < proximal.size(); ++i) {
+        const int which = proximal[i];
+        MyUnilateralConstraint& uni = *m_unis[which];
+        if (!uni.isDisabled(s))
+            uni.recordImpulse(MyUnilateralConstraint::Compression, s, lambda0);
+        SimTK_DEBUG4("  %d %3s: Ic=%g, V=%g\n",
+            which, uni.isDisabled(s) ? "off" : "ON", 
+            uni.getCompressionImpulse(), uni.getVerr(s));
     }
 
-    cout << "... compression phase done.\n";
+    SimTK_DEBUG("... compression phase done.\n");
 }
 
 
 
 //------------------------- PROCESS EXPANSION PHASE ----------------------------
 bool ContactOn::
-processExpansionPhase(Array_<CInfo,int>&  proximal,
-                      State&              s) const
+processExpansionPhase(Array_<int>&  proximal,
+                      State&        s) const
 {
-    printf("Entering processExpansionPhase() ...\n");
+    SimTK_DEBUG("Entering processExpansionPhase() ...\n");
 
     // Generate an expansion impulse if there were any active contacts that
     // still have some restitution remaining.
     Vector expansionImpulse;
 
     bool anyChange = false;
-    for (int i=0; i<proximal.size(); ++i) {
-        CInfo& ci = proximal[i];
-        if (!ci.isActive(s)) continue;
-        Vec3 myLambda = ci.Ic; // compression impulse
-        if (myLambda[YAxis] > 0 && ci.e != 0) {
-            // NOTE: THIS IS NON-PHYSICAL and can gain energy
-            myLambda[XAxis]=myLambda[ZAxis]=0; // no friction rebound
-            myLambda[YAxis] *= ci.e;
-            // With friction rebound energy is conserved.
-            //myLambda *= ci.e;
-            ci.setMyPartInConstraintSpaceVector(s, myLambda, 
-                                                expansionImpulse);
-            ci.e = 0; // we have now used up the material restitution
-            anyChange = true;
-        }
+    for (unsigned i=0; i<proximal.size(); ++i) {
+        const int which = proximal[i];
+        MyUnilateralConstraint& uni = *m_unis[which];
+        if (uni.isDisabled(s)||uni.isRestitutionDone()||uni.getCoefRest()==0
+            ||uni.getCompressionImpulse()<=0)
+            continue;
+        uni.setMyExpansionImpulse(s, uni.getCoefRest(), expansionImpulse);
+        uni.recordImpulse(MyUnilateralConstraint::Expansion,s,expansionImpulse);
+        uni.setRestitutionDone(true);
+        anyChange = true;
     }
 
     if (!anyChange) {
-        printf("... no expansion impulse -- done.\n");
+        SimTK_DEBUG("... no expansion impulse -- done.\n");
         return false;
     }
 
     // We generated an expansion impulse. Apply it and update velocities.
     updateVelocities(Vector(), expansionImpulse, s);
 
-    // Now update the entries for each proximal constraint to reflect the
-    // expansion impulse and post-expansion velocity.
-    for (int i=0; i < proximal.size(); ++i) {
-        CInfo& ci = proximal[i];
-        ci.updateFromState(s); // set current velocity V
-        ci.Ie = ci.getMyPartFromConstraintSpaceVector(s, expansionImpulse);
-        ci.I += ci.Ie; // accumulate impulse
-
-    }
-
     // Release any constraint that now has a positive velocity.
-    printf("  Expansion results:\n");
-    bool anyDisabled = false;
-    for (int i=0; i < proximal.size(); ++i) {
-        const CInfo& ci = proximal[i];
-        if (ci.isActive(s) && ci.getDHeight() > 0) {
-            ci.disableAll(s);
-            anyDisabled = true;
-        }
-        printf("  %d %3s: Ie=%g, V=%g\n",
-            ci.which, ci.isActive(s) ? "ON" : "off", 
-            ci.Ie[YAxis], ci.V[YAxis]);
+    Array_<int> toDisable;
+    for (unsigned i=0; i < proximal.size(); ++i) {
+        const int which = proximal[i];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        if (!uni.isDisabled(s) && uni.getVerr(s) > 0)
+            toDisable.push_back(which);
     }
 
-    if (anyDisabled)
-        m_mbs.realize(s, Stage::Velocity);
+    // Now do the actual disabling (can't mix this with checking velocities)
+    // because disabling invalidates Instance stage.
+    for (unsigned i=0; i < toDisable.size(); ++i) {
+        const int which = toDisable[i];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        uni.disable(s);
+    }
 
-    cout << "... expansion phase done.\n";
+    SimTK_DEBUG("  Expansion results:\n");
+    m_mbs.realize(s, Stage::Velocity);
+    for (unsigned i=0; i < proximal.size(); ++i) {
+        const int which = proximal[i];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        SimTK_DEBUG4("  %d %3s: Ie=%g, V=%g\n",
+            which, uni.isDisabled(s) ? "off" : "ON", 
+            uni.getExpansionImpulse(), uni.getVerr(s));
+    }
+
+    SimTK_DEBUG("... expansion phase done.\n");
 
     return true;
 }
@@ -1102,34 +1357,41 @@ processExpansionPhase(Array_<CInfo,int>&  proximal,
 
 //------------------------- CAPTURE SLOW REBOUNDERS ----------------------------
 void ContactOn::
-captureSlowRebounders(Real                vCapture,
-                      Array_<CInfo,int>&  proximal,
-                      State&              s) const
+captureSlowRebounders(Real          vCapture,
+                      Array_<int>&  proximal,
+                      State&        s) const
 {
     // Capture any rebounder whose velocity is too slow.
-    printf("Entering captureSlowRebounders() ...\n");
+    SimTK_DEBUG("Entering captureSlowRebounders() ...\n");
 
     int nCaptured=0, nPasses=0;
     while (true) {
         ++nPasses;
-        printf("  start capture pass %d:\n", nPasses);
-        bool anyToCapture = false;
-        for (int i=0; i < proximal.size(); ++i) {
-            const CInfo& ci = proximal[i];
-            if (!ci.isActive(s) && ci.getDHeight() <= vCapture) {
-                ci.enableAll(s);
-                anyToCapture = true;
+        SimTK_DEBUG1("  start capture pass %d:\n", nPasses);
+        Array_<int> toCapture;
+        for (unsigned i=0; i < proximal.size(); ++i) {
+            const int which = proximal[i];
+            MyUnilateralConstraint& uni = *m_unis[which];
+            if (uni.isDisabled(s) && uni.getVerr(s) <= vCapture) {
+                toCapture.push_back(which);
                 ++nCaptured;
-                printf("  capturing constraint %d with v=%g\n",
-                    ci.which, ci.getDHeight());
+                SimTK_DEBUG2("  capturing constraint %d with v=%g\n",
+                    which, uni.getVerr(s));
             }
         }
 
-        if (!anyToCapture) {
-            if (nCaptured==0) printf("... done -- nothing captured.\n");
-            else printf("... done -- captured %d rebounders in %d passes.\n",
+        if (toCapture.empty()) {
+            if (nCaptured==0) SimTK_DEBUG("... done -- nothing captured.\n");
+            else SimTK_DEBUG2("... done -- captured %d rebounders in %d passes.\n",
                 nCaptured, nPasses);
             return;
+        }
+
+        // Now do the actual capturing by enabling constraints.
+        for (unsigned i=0; i < toCapture.size(); ++i) {
+            const int which = toCapture[i];
+            MyUnilateralConstraint& uni = *m_unis[which];
+            uni.enable(s);
         }
 
         m_mbs.realize(s, Stage::Velocity);
@@ -1139,10 +1401,12 @@ captureSlowRebounders(Real                vCapture,
 
         // Now update the entries for each proximal constraint to reflect the
         // capture impulse and post-capture velocity.
-        for (int i=0; i < proximal.size(); ++i) {
-            CInfo& ci = proximal[i];
-            ci.updateFromState(s); // set current velocity V
-            ci.I += ci.getMyPartFromConstraintSpaceVector(s, captureImpulse);
+        for (unsigned i=0; i < proximal.size(); ++i) {
+            const int which = proximal[i];
+            MyUnilateralConstraint& uni = *m_unis[which];
+            if (!uni.isDisabled(s))
+                uni.recordImpulse(MyUnilateralConstraint::Capture, 
+                                  s, captureImpulse);
         }
     }
 }
@@ -1151,17 +1415,15 @@ captureSlowRebounders(Real                vCapture,
 
 //---------------------- ENABLE ALL PROXIMAL CONSTRAINTS -----------------------
 void ContactOn::
-enableAllProximalConstraints(Array_<CInfo,int>&  proximal,
-                             State&              state) const
+enableAllProximalConstraints(Array_<int>&  proximal,
+                             State&        state) const
 {
     // Set the contact point and enable the constraints.
-    for (int i=0; i < proximal.size(); ++i) {
-        const CInfo& ci = proximal[i];
-        if (ci.isActive(state)) continue;
-
-        ci.stickX->setContactPoint(state, ci.P);
-        ci.stickZ->setContactPoint(state, ci.P);
-        ci.enableAll(state);
+    for (unsigned i=0; i < proximal.size(); ++i) {
+        const int which = proximal[i];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        if (uni.isDisabled(state))
+            uni.enable(state);
     }
     m_mbs.realize(state, Stage::Instance);
 }
@@ -1172,28 +1434,30 @@ enableAllProximalConstraints(Array_<CInfo,int>&  proximal,
 // Calculate the impulse that eliminates all residual velocity for the
 // current set of enabled constraints.
 void ContactOn::
-calcStoppingImpulse(const Array_<CInfo,int>&    proximal,
-                    const State&                s,
-                    Vector&                     lambda0) const
+calcStoppingImpulse(const Array_<int>&    proximal,
+                    const State&          s,
+                    Vector&               lambda0) const
 {
     const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
     m_mbs.realize(s, Stage::Dynamics); // TODO: should only need Position
     Vector desiredDeltaV;  // in constraint space
-    printf("  Entering calcStoppingImpulse() ...\n");
+    SimTK_DEBUG("  Entering calcStoppingImpulse() ...\n");
     bool gotOne = false;
-    for (int i=0; i < proximal.size(); ++i) {
-        const CInfo& ci = proximal[i];
-        if (!ci.isActive(s))
+    for (unsigned i=0; i < proximal.size(); ++i) {
+        const int which = proximal[i];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        if (uni.isDisabled(s))
             continue;
-        cout << "    constraint " << ci.contact->getConstraintIndex()
-             << " enabled, v=" << ci.V << endl;
-        ci.setMyPartInConstraintSpaceVector(s, -ci.V, desiredDeltaV);
+        SimTK_DEBUG2("    uni constraint %d enabled, v=%g\n",
+            which, uni.getVerr(s));
+        uni.setMyDesiredDeltaV(s, desiredDeltaV);
         gotOne = true;
     }
     if (gotOne) matter.solveForConstraintImpulses(s, desiredDeltaV, lambda0);
     else lambda0.clear();
-
+#ifndef NDEBUG
     cout << "  ... done. Stopping impulse=" << lambda0 << endl;
+#endif
 }
 
 
@@ -1218,75 +1482,95 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
 //------------------------ SATISFY POSITION CONDITIONS -------------------------
 void ContactOn::
 satisfyPositionConditions
-    (const Array_<CInfo,int>& proximal, State& state) const
+    (const Array_<int>& proximal, State& state) const
 {
     const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
     m_mbs.realize(state, Stage::Velocity);
     const Vector& qdot = state.getQDot(); // grab before invalidated
 
-    printf("satisfyPositionConditions(): examine %d proximals ...\n",
+    SimTK_DEBUG1("satisfyPositionConditions(): examine %d proximals ...\n",
         proximal.size());
 
     // Push rebounders into positive territory so we can detect a
     // quick transition back to contact.
     Real maxDt = 0;
-    for (int e=0; e < proximal.size(); ++e) {
-        const CInfo& ci = proximal[e];
-        if (ci.isActive(state))
+    for (unsigned i=0; i < proximal.size(); ++i) {
+        const int which = proximal[i];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        if (!uni.isDisabled(state))
             continue;
 
-        Vec3 rp2_G, rv2_G;
-        ci.body2->findStationLocationAndVelocityInGround
-           (state, ci.point2, rp2_G, rv2_G);
-        const Real h=rp2_G[YAxis], dh=rv2_G[YAxis];
-        printf("  rebounder %d has h=%g, dh=%g\n", 
-            (int)ci.contact->getConstraintIndex(), h, dh);
+        const Real h=uni.getPerr(state), dh=uni.getVerr(state);
+        SimTK_DEBUG3("  rebounder %d has h=%g, dh=%g\n",  which, h, dh); 
         if (h <= 0 && dh > 0) {
             const Real dt = -h/dh;
-            printf("  -- needs dt=%g.\n", dt); 
+            SimTK_DEBUG1("  -- needs dt=%g.\n", dt); 
             maxDt = std::max(maxDt, dt);
-        } else printf("  -- no adjustment needed.\n");
+        } else SimTK_DEBUG("  -- no adjustment needed.\n");
     }
 
     state.updQ() += 2*maxDt*qdot;
     m_mbs.realize(state, Stage::Position);
-    printf("... done with satisfyPositionConditions().\n");
+    SimTK_DEBUG("... done with satisfyPositionConditions().\n");
 }
 
 
 
 //-------------------------- DISABLE PULLING CONTACTS --------------------------
 void ContactOn::
-disablePullingContacts(Array_<CInfo,int>& proximal,
-                       State&             state) const
+disablePullingContacts(Array_<int>& proximal,
+                       State&       state) const
 {
     m_mbs.realize(state, Stage::Acceleration);
-    const Vector& lambda = state.getMultipliers();
 
     Array_<int> pulling;
-    for (int i=0; i < proximal.size(); ++i) {
-        const CInfo& ci = proximal[i];
-        if (!ci.isActive(state)) continue;
-        const Vec3 myLambda = ci.getMyPartFromConstraintSpaceVector(state, lambda);
-        if (-myLambda[YAxis] < 0) { // multipliers are negative forces
-            if (pulling.empty())
-                printf("disablePullingContacts(): disabling");
-            printf(" %d cuz f=%g %g %g", ci.which, 
-                -myLambda[XAxis],-myLambda[YAxis],-myLambda[ZAxis]);
-            pulling.push_back(i);
+    for (unsigned i=0; i < proximal.size(); ++i) {
+        const int which = proximal[i];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        if (uni.isDisabled(state)) continue;
+        const Real f = uni.getForce(state);
+        if (f < 0) { 
+            if (pulling.empty()) {
+                SimTK_DEBUG("disablePullingContacts(): consider disabling");
+            }
+            SimTK_DEBUG2(" %d cuz f=%g", which, f);
+            pulling.push_back(which);
         }
     }
 
     if (pulling.empty()) {
-        printf("disablePullingContacts(): nobody is pulling.\n");
+        SimTK_DEBUG("disablePullingContacts(): nobody is pulling.\n");
         return;
     }
+    SimTK_DEBUG(".\n");
 
     for (unsigned p=0; p < pulling.size(); ++p) {
-        const CInfo& ci = proximal[pulling[p]];
-        ci.contact->disable(state);
+        const int which = pulling[p];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        uni.disable(state);
     }
-    printf(".\n");
+    m_mbs.realize(state, Stage::Instance);
+
+
+    // Now see which of the disabled constraints is violated.
+    m_mbs.realize(state, Stage::Acceleration);
+    Array_<int> violated;
+    for (unsigned p=0; p < pulling.size(); ++p) {
+        const int which = pulling[p];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        const Real aerr = uni.getAerr(state);
+        if (aerr < 0) {
+            violated.push_back(which);
+            SimTK_DEBUG2("  RE-ENABLE constraint %d cuz aerr=%g\n", which, aerr);
+        }
+    }
+
+    for (unsigned v=0; v < violated.size(); ++v) {
+        const int which = violated[v];
+        const MyUnilateralConstraint& uni = *m_unis[which];
+        uni.enable(state);
+    }
+
     m_mbs.realize(state, Stage::Instance);
 
     // Always leave at acceleration stage.
