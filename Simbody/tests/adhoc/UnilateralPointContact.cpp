@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- *
- *                               Simbody(tm)                                  *
+ *                Simbody(tm) - UnilateralPointContact Example                *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
@@ -22,10 +22,12 @@
  * -------------------------------------------------------------------------- */
 
 /*
-This example shows a manual approach to simple unilateral contact between
-designated points on moving bodies and a ground plane. We'll use Simbody
-bilateral constraints turned on and off with manual switching conditions that
-are set by discrete event handlers.
+This example shows a manual approach to dealing with unilateral constraints in
+Simbody, which does not currently have built-in support but has sufficiently
+general facilities. In this example we'll implement non-slipping point
+contact, joint limit constraints, and a rope-like one-sided distance 
+constraint. We'll use Simbody bilateral constraints turned on and off with 
+manual switching conditions that are set by discrete event handlers.
 
 For each designated contact point that is not in contact, we'll track the 
 vertical height over the ground plane and its first and second time derivatives
@@ -49,8 +51,8 @@ How we handle contact
 ---------------------
 In this example each contact consists of a constraint that prevents penetration
 of a point on a moving body normal to the ground plane, and constraints
-that prevent slipping tangent to the plane. We
-implement non-penetration with Simbody's "PointInPlane" constraint. We enable this 
+that prevent slipping tangent to the plane. We implement non-penetration with 
+Simbody's "PointInPlane" constraint. We enable this 
 constraint when a contact begins, defined so 
 that its multiplier is the y component of the reaction force, with +y
 being the ground plane normal. We monitor the reaction force y component, and
@@ -58,12 +60,17 @@ declare the contact broken if that component is negative. The no-slip condition
 is enforced with two of Simbody's "NoSlip1D" constraints, one in the x 
 direction and one in the z direction.
 
+A rope is implemented similarly using Simbody's "Rod" (distance) constraint,
+and joint stops are implemented (somewhat inadequately) using the existing
+ConstantSpeed constraint, with the speed set to zero.
+
 How we handle impacts
 ---------------------
 In this example, an impact is signaled by a contact point that reaches the 
-ground plane with a negative vertical speed vy. This requires a step change to
-the system velocities to avoid penetration. We achieve this step change by
-applying a constraint-space
+ground plane with a negative vertical speed vy, with similar conditions for
+the other constraints. This requires a step change to
+the system velocities to avoid penetration or constraint violation. We achieve
+this step change by applying a constraint-space
 impulse to the system, representing constraint-space contact 
 forces integrated over the assumed-infinitesimal impact interval. The system
 equations of motion are used to ensure that the velocity changes produced by
@@ -411,18 +418,12 @@ public:
                                Array_<int>&     proximal,
                                State&           state) const;
 
-    // All proximal, inactive constraints should have significant rebound
-    // velocities. Take a small explicit Euler step to advance until all
-    // such constraints have perr>0 so we won't miss the next collision.
-    void satisfyPositionConditions(const Array_<int>&   proximal, 
-                                   State&               state) const;
-
     // This is the final pass. We realize accelerations, and see if any of the
-    // contact forces are negative. If so we disable those constraints.
+    // contact forces are negative. If so we disable those constraints,
+    // unless that would leave a constraint violated.
     // TODO: need to search for a consistent set of active contraints.
     void disablePullingContacts(Array_<int>&    proximal,
                                 State&          state) const;
-
 
     // This method is used at the start of compression phase to modify any
     // constraint parameters as necessary, and then enable all the proximal
@@ -456,9 +457,13 @@ private:
 };
 
 
+
 //==============================================================================
 //                          CONTACT OFF HANDLER
 //==============================================================================
+// Allocate one of these for each unilateral constraint. This handler takes
+// care of disabling an active constraint when its contact force crosses zero
+// from positive to negative.
 class ContactOff: public TriggeredEventHandler {
 public:
     ContactOff(const MultibodySystem&               system,
@@ -470,6 +475,7 @@ public:
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
+    // This is the witness function.
     Real getValue(const State& state) const {
         const MyUnilateralConstraint& uni = *m_unis[m_which];
         if (uni.isDisabled(state)) return 0;
@@ -880,6 +886,7 @@ private:
 };
 
 
+
 //==============================================================================
 //                                   MAIN
 //==============================================================================
@@ -927,7 +934,8 @@ int main(int argc, char** argv) {
     }
 
     unis.push_back(new MyRope(Ground, Vec3(-5,10,0),
-                              cube, -CubeHalfDims, 5., .5*CoefRest));
+                              cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
+                              5., .5*CoefRest));
     //unis.push_back(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
 
     const Vec3 WeightEdge(-CubeHalfDims[0],-CubeHalfDims[1],0);
@@ -947,8 +955,8 @@ int main(int argc, char** argv) {
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
         unis.push_back(new MyPointContact(weight, pt, CoefRest));
     }
-    unis.push_back(new MyStop(MyStop::Upper,weight,0, Pi/9,CoefRest));
-    unis.push_back(new MyStop(MyStop::Lower,weight,0, -Pi/9,CoefRest));
+    unis.push_back(new MyStop(MyStop::Upper,weight,0, Pi/6,CoefRest));
+    unis.push_back(new MyStop(MyStop::Lower,weight,0, -Pi/6,CoefRest));
 
 //#endif
 #ifdef NOTDEF
@@ -1132,10 +1140,6 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     // (negative) impulses necessary to stop them; enable their contact
     // constraints.
     captureSlowRebounders(VCapture, proximal, s);
-
-    // Advance state until all remaining rebounders have perr>0.
-    // TODO: shouldn't need to do this.
-    //satisfyPositionConditions(proximal, s);
 
     // Make sure all enabled position and velocity constraints 
     // are satisfied.
@@ -1475,43 +1479,6 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
     if (u0.size()) state.updU() = u0 + deltaU;
     else state.updU() += deltaU;
     m_mbs.realize(state, Stage::Velocity);
-}
-
-
-
-//------------------------ SATISFY POSITION CONDITIONS -------------------------
-void ContactOn::
-satisfyPositionConditions
-    (const Array_<int>& proximal, State& state) const
-{
-    const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
-    m_mbs.realize(state, Stage::Velocity);
-    const Vector& qdot = state.getQDot(); // grab before invalidated
-
-    SimTK_DEBUG1("satisfyPositionConditions(): examine %d proximals ...\n",
-        proximal.size());
-
-    // Push rebounders into positive territory so we can detect a
-    // quick transition back to contact.
-    Real maxDt = 0;
-    for (unsigned i=0; i < proximal.size(); ++i) {
-        const int which = proximal[i];
-        const MyUnilateralConstraint& uni = *m_unis[which];
-        if (!uni.isDisabled(state))
-            continue;
-
-        const Real h=uni.getPerr(state), dh=uni.getVerr(state);
-        SimTK_DEBUG3("  rebounder %d has h=%g, dh=%g\n",  which, h, dh); 
-        if (h <= 0 && dh > 0) {
-            const Real dt = -h/dh;
-            SimTK_DEBUG1("  -- needs dt=%g.\n", dt); 
-            maxDt = std::max(maxDt, dt);
-        } else SimTK_DEBUG("  -- no adjustment needed.\n");
-    }
-
-    state.updQ() += 2*maxDt*qdot;
-    m_mbs.realize(state, Stage::Position);
-    SimTK_DEBUG("... done with satisfyPositionConditions().\n");
 }
 
 
