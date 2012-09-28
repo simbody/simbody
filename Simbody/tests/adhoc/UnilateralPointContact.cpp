@@ -172,8 +172,10 @@ class MyUnilateralConstraint {
 public:
     enum ImpulseType {Compression,Expansion,Capture};
 
-    MyUnilateralConstraint(Real coefRest) 
-    :   m_coefRest(coefRest), m_restitutionDone(false) {}
+    MyUnilateralConstraint(Constraint& uni, Real multSign, Real coefRest) 
+    :   m_uni(uni), m_multSign(multSign), m_coefRest(coefRest), 
+        m_restitutionDone(false) 
+    {   m_uni.setDisabledByDefault(true); }
 
     virtual ~MyUnilateralConstraint() {}
 
@@ -182,52 +184,81 @@ public:
     virtual Real getPerr(const State& state) const = 0;
     virtual Real getVerr(const State& state) const = 0;
     virtual Real getAerr(const State& state) const = 0;
-    // Returns zero if the constraint is not currently enabled.
-    virtual Real getForce(const State& state) const = 0;
-
-    // Impulse is accumulated internally.
-    virtual Real getImpulse() const = 0;
-    virtual Real getCompressionImpulse() const = 0;
-    virtual Real getExpansionImpulse() const = 0;
-    virtual void recordImpulse(ImpulseType type, const State& state,
-                               const Vector& lambda) = 0;
-    virtual Real getMyValueFromConstraintSpaceVector(const State& state,
-                                                     const Vector& lambda)
-                                                     const = 0;
-    virtual void setMyExpansionImpulse(const State& state,
-                                       Real coefRest,
-                                       Vector& lambda) const = 0;
-    virtual void setMyDesiredDeltaV(const State& state,
-                                    Vector& desiredDeltaV) const = 0;
-
-    virtual void enable(State& state) const = 0;
-    virtual void disable(State& state) const = 0;
-    virtual bool isDisabled(const State& state) const = 0;
 
     // This returns a point in the ground frame at which you might want to
     // say the constraint is "located", for purposes of display. This should
     // return something useful even if the constraint is currently off.
     virtual Vec3 whereToDisplay(const State& state) const = 0;
 
+    // Returns zero if the constraint is not currently enabled.
+    Real getForce(const State& s) const {
+        if (isDisabled(s)) return 0;
+        const Vector mult = m_uni.getMultipliersAsVector(s);
+        assert(mult.size() == 1);
+        return m_multSign*mult[0];
+    }
+
+    // Override these if you have auxiliary constraints but be sure to 
+    // invoke superclass method too.
+
+    virtual void enable(State& state) const {m_uni.enable(state);}
+    virtual void disable(State& state) const {m_uni.disable(state);}
+
+    virtual void setMyDesiredDeltaV(const State&    s,
+                                    Vector&         desiredDeltaV) const
+    {   Vector myDesiredDV(1); myDesiredDV[0] = m_multSign*getVerr(s);
+        m_uni.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
+                                                   desiredDeltaV); }
+
+    virtual void recordImpulse(ImpulseType type, const State& state,
+                               const Vector& lambda) {
+        Vector myImpulse(1);
+        m_uni.getMyPartFromConstraintSpaceVector(state, lambda, myImpulse);
+        const Real I = myImpulse[0];
+        if (type==Compression) m_Ic = I;
+        else if (type==Expansion) m_Ie = I;
+        m_I += I;
+    }
+
     // This is used by some constraints to collect position information that
     // may be used later to set instance variables when enabling the underlying
     // Simbody constraint. All constraints zero impulses here.
-    virtual void initializeForImpactVirtual(const State& state) = 0;
+    virtual void initializeForImpact(const State& state) 
+    {   setRestitutionDone(false); m_Ic = m_Ie = m_I = 0; }
 
-    void initializeForImpact(const State& state) {
-        setRestitutionDone(false);
-        initializeForImpactVirtual(state);
-    }
+    // Impulse is accumulated internally.
+    Real getImpulse()            const {return -m_multSign*m_I;}
+    Real getCompressionImpulse() const {return -m_multSign*m_Ic;}
+    Real getExpansionImpulse()   const {return -m_multSign*m_Ie;}
+
+    Real getMyValueFromConstraintSpaceVector(const State& state,
+                                             const Vector& lambda) const
+    {   Vector myValue(1);
+        m_uni.getMyPartFromConstraintSpaceVector(state, lambda, myValue);
+        return -m_multSign*myValue[0]; }
+
+    void setMyExpansionImpulse(const State& state,
+                               Real         coefRest,
+                               Vector&      lambda) const
+    {   const Real I = coefRest * m_Ic;
+        Vector myImp(1); myImp[0] = I;
+        m_uni.setMyPartInConstraintSpaceVector(state, myImp, lambda); }
+
+    bool isDisabled(const State& state) const 
+    {   return m_uni.isDisabled(state); }
 
     Real getCoefRest() const {return m_coefRest;}
     void setRestitutionDone(bool isDone) {m_restitutionDone=isDone;}
     bool isRestitutionDone() const {return m_restitutionDone;}
 
 protected:
-    const Real m_coefRest;
+    Constraint      m_uni;
+    const Real      m_multSign; // 1 or -1
+    const Real      m_coefRest;
 
     // Runtime
     bool m_restitutionDone;
+    Real m_Ic, m_Ie, m_I; // impulses
 };
 
 //==============================================================================
@@ -515,23 +546,29 @@ private:
 // contact constraint has "super friction" that always sticks if it contacts
 // at all. Note: that can generate non-physical effects.
 class MyPointContact : public MyUnilateralConstraint {
+    typedef MyUnilateralConstraint Super;
 public:
     MyPointContact(MobilizedBody& body, const Vec3& point,
                  Real coefRest)
-    :   MyUnilateralConstraint(coefRest),
+    :   MyUnilateralConstraint
+           (Constraint::PointInPlane(updGround(body), UnitVec3(YAxis), Zero,
+                                     body, point),
+             -1, // multiplier sign
+             coefRest),
         m_body(body), m_point(point), m_groundPoint(0),
-        m_contact(updGround(body), Vec3(0), body, point)
+        m_noslipX(updGround(body), Vec3(0), UnitVec3(XAxis), 
+                  updGround(body), body),
+        m_noslipZ(updGround(body), Vec3(0), UnitVec3(ZAxis), 
+                  updGround(body), body)
     {
-        m_contact.setDisabledByDefault(true);
+        m_noslipX.setDisabledByDefault(true);
+        m_noslipZ.setDisabledByDefault(true);
     }
 
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
-        return m_body.findStationLocationInGround(state,m_point);
-    }
 
     Real getPerr(const State& s) const OVERRIDE_11 {
         const Vec3 p = m_body.findStationLocationInGround(s, m_point);
-        return p[YAxis] - m_groundPoint[YAxis];
+        return p[YAxis];
     }
     Real getVerr(const State& s) const OVERRIDE_11 {
         const Vec3 v = m_body.findStationVelocityInGround(s, m_point);
@@ -542,71 +579,58 @@ public:
         return a[YAxis];
     }
 
-    Real getForce(const State& s) const OVERRIDE_11 {
-        if (isDisabled(s)) return 0;
-        const Vec3 mults = m_contact.getMultipliers(s);
-        return -mults[YAxis]; // watch sign
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+        return m_body.findStationLocationInGround(state,m_point);
     }
-
-    Real getImpulse() const OVERRIDE_11 {return m_I[YAxis];}
-    Real getCompressionImpulse() const OVERRIDE_11 {return m_Ic[YAxis];}
-    Real getExpansionImpulse() const OVERRIDE_11 {return m_Ie[YAxis];}
 
     void recordImpulse(ImpulseType type, const State& state,
                       const Vector& lambda) OVERRIDE_11
     {
-        Vector myImpulse(3);
-        m_contact.getMyPartFromConstraintSpaceVector(state, lambda, myImpulse);
-        const Vec3 I = Vec3::getAs(&myImpulse[0]);
-        if (type==Compression) m_Ic = I;
-        else if (type==Expansion) m_Ie = I;
-        m_I += I;
-    }
-    void setMyExpansionImpulse(const State& state,
-                               Real coefRest,
-                               Vector& lambda) const OVERRIDE_11
-    {
-        // No expansion phase for friction. This can cause nonphysical 
-        // behavior. 
-        const Vec3 I = Vec3(0, coefRest * m_Ic[YAxis], 0);
-        Vector myImp(I);
-        m_contact.setMyPartInConstraintSpaceVector(state, myImp, lambda);
+        Super::recordImpulse(type, state, lambda);
+
+        // Record translational impulse.
+        Vector myImpulseX(1), myImpulseZ(1);
+        m_noslipX.getMyPartFromConstraintSpaceVector(state, lambda, myImpulseX);
+        m_noslipZ.getMyPartFromConstraintSpaceVector(state, lambda, myImpulseZ);
+        const Vec2 tI(myImpulseX[0], myImpulseZ[0]);
+        if (type==Compression) m_tIc = tI;
+        else if (type==Expansion) m_tIe = tI;
+        m_tI += tI;
     }
 
     void setMyDesiredDeltaV(const State& s,
                             Vector& desiredDeltaV) const OVERRIDE_11
     {
-        const Vec3 v = m_body.findStationVelocityInGround(s, m_point);
-        Vector myDesiredDV(Vec3(-v)); // nuke translations too
-        m_contact.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
-                                                   desiredDeltaV);
+        Super::setMyDesiredDeltaV(s, desiredDeltaV);
+        const Vec3 dv = 
+            m_multSign*m_body.findStationVelocityInGround(s, m_point);
+        Vector myDesiredDV(1); // Nuke translational velocity also.
+        myDesiredDV[0] = dv[XAxis];
+        m_noslipX.setMyPartInConstraintSpaceVector(s, myDesiredDV, desiredDeltaV);
+        myDesiredDV[0] = dv[ZAxis];
+        m_noslipZ.setMyPartInConstraintSpaceVector(s, myDesiredDV, desiredDeltaV);
     }
-
-
-    Real getMyValueFromConstraintSpaceVector(const State& state,
-                                             const Vector& lambda) 
-                                             const OVERRIDE_11
-    {   Vector myValue(3);
-        m_contact.getMyPartFromConstraintSpaceVector(state, lambda, myValue);
-        return myValue[YAxis]; }
-
 
     // Note that recordStartingLocation() must have been called first.
     void enable(State& state) const OVERRIDE_11 {
-        m_contact.setPointOnBody1(state, m_groundPoint);
-        m_contact.enable(state);
+        Super::enable(state);
+        m_noslipX.setContactPoint(state, m_groundPoint);
+        m_noslipZ.setContactPoint(state, m_groundPoint);
+        m_noslipX.enable(state); m_noslipZ.enable(state);
     }
-    void disable(State& state) const OVERRIDE_11 {m_contact.disable(state);}
-    bool isDisabled(const State& state) const OVERRIDE_11
-    {   return m_contact.isDisabled(state); }
+    void disable(State& state) const OVERRIDE_11 {
+        Super::disable(state);
+        m_noslipX.disable(state); m_noslipZ.disable(state);
+    }
 
     // Set the ground point to be the projection of the follower point
     // onto the ground plane. This will be used the next time this constraint
     // is enabled.
-    void initializeForImpactVirtual(const State& s) OVERRIDE_11 {
+    void initializeForImpact(const State& s) OVERRIDE_11 {
+        Super::initializeForImpact(s);
         const Vec3 p = m_body.findStationLocationInGround(s, m_point);
-        m_groundPoint = Vec3(p[XAxis], 0, p[ZAxis]);
-        m_I = m_Ie = m_Ic = Vec3(0);
+        m_groundPoint = p;
+        m_tI = m_tIe = m_tIc = Vec2(0);
     }
 private:
     MobilizedBody& updGround(MobilizedBody& body) const {
@@ -616,13 +640,13 @@ private:
 
     const MobilizedBody&    m_body;
     const Vec3              m_point;
-    Constraint::Ball        m_contact;
+    Constraint::NoSlip1D    m_noslipX, m_noslipZ;
 
     // Runtime
     Vec3 m_groundPoint;
-    Vec3 m_Ic; // most recent compression impulse
-    Vec3 m_Ie; // most recent expansion impulse
-    Vec3 m_I;  // accumulated impulse
+    Vec2 m_tIc; // most recent tangential compression impulse
+    Vec2 m_tIe; // most recent tangential expansion impulse
+    Vec2 m_tI;  // accumulated tangential impulse
 };
 
 
@@ -638,18 +662,12 @@ public:
     enum Side {Lower,Upper};
     MyStop(Side side, MobilizedBody& body, int whichQ,
          Real limit, Real coefRest)
-    :   MyUnilateralConstraint(coefRest),
+    :   MyUnilateralConstraint
+           (Constraint::ConstantSpeed(body, MobilizerUIndex(whichQ), Real(0)), 
+            side==Lower?-1:1, coefRest),
         m_body(body), m_whichq(whichQ), m_whichu(whichQ),
-        m_sign(side==Lower?1:-1), m_limit(limit),
-        m_stop(body, m_whichu, Real(0))
-    {
-        m_stop.setDisabledByDefault(true);
-    }
-
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
-        const Vec3& p_B = m_body.getOutboardFrame(state).p();
-        return m_body.findStationLocationInGround(state,p_B);
-    }
+        m_sign(side==Lower?1:-1), m_limit(limit)
+    {}
 
     Real getPerr(const State& state) const OVERRIDE_11 {
         const Real q = m_body.getOneQ(state, m_whichq);
@@ -664,57 +682,10 @@ public:
         return m_sign*udot;
     }
 
-    Real getForce(const State& s) const OVERRIDE_11 {
-        if (isDisabled(s)) return 0;
-        const Real mult = m_stop.getMultiplier(s);
-        return -m_sign*mult; // watch sign
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+        const Vec3& p_B = m_body.getOutboardFrame(state).p();
+        return m_body.findStationLocationInGround(state,p_B);
     }
-    Real getImpulse() const OVERRIDE_11 {return m_sign*m_I;}
-    Real getCompressionImpulse() const OVERRIDE_11 {return m_sign*m_Ic;}
-    Real getExpansionImpulse() const OVERRIDE_11 {return m_sign*m_Ie;}
-
-    void recordImpulse(ImpulseType type, const State& state,
-                       const Vector& lambda) OVERRIDE_11
-    {
-        Vector myImpulse(1);
-        m_stop.getMyPartFromConstraintSpaceVector(state, lambda, myImpulse);
-        const Real I = myImpulse[0];
-        if (type==Compression) m_Ic = I;
-        else if (type==Expansion) m_Ie = I;
-        m_I += I;
-    }
-
-    void setMyExpansionImpulse(const State& state,
-                               Real coefRest,
-                               Vector& lambda) const OVERRIDE_11
-    {
-        const Real I = coefRest * m_Ic;
-        Vector myImp(1); myImp[0] = I;
-        m_stop.setMyPartInConstraintSpaceVector(state, myImp, lambda);
-    }
-
-    void setMyDesiredDeltaV(const State& s,
-                            Vector& desiredDeltaV) const OVERRIDE_11
-    {
-        Vector myDesiredDV(1); myDesiredDV[0] = -m_sign*getVerr(s);
-        m_stop.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
-                                                   desiredDeltaV);
-    }
-
-    Real getMyValueFromConstraintSpaceVector(const State& state,
-                                             const Vector& lambda) 
-                                             const OVERRIDE_11
-    {   Vector myValue(1);
-        m_stop.getMyPartFromConstraintSpaceVector(state, lambda, myValue);
-        return m_sign*myValue[0]; }
-
-    void enable(State& state) const OVERRIDE_11 {m_stop.enable(state);}
-    void disable(State& state) const OVERRIDE_11 {m_stop.disable(state);}
-    bool isDisabled(const State& state) const OVERRIDE_11
-    {   return m_stop.isDisabled(state); }
-
-    void initializeForImpactVirtual(const State& state) OVERRIDE_11 
-    {   m_Ic = m_Ie = m_I = 0; }
 
 private:
     const MobilizedBody&        m_body;
@@ -722,10 +693,6 @@ private:
     const MobilizerUIndex       m_whichu;
     Real                        m_sign; // +1: lower, -1: upper
     Real                        m_limit;
-    Constraint::ConstantSpeed   m_stop;
-
-    // Runtime
-    Real m_Ic, m_Ie, m_I; // impulses
 };
 
 //==============================================================================
@@ -738,16 +705,11 @@ public:
     MyRope(MobilizedBody& body1, const Vec3& pt1,
            MobilizedBody& body2, const Vec3& pt2, Real d,
            Real coefRest)
-    :   MyUnilateralConstraint(coefRest),
-        m_body1(body1), m_point1(pt1), m_body2(body2), m_point2(pt2), m_dist(d),
-        m_rope(body1, pt1, body2, pt2, d)
-    {
-        m_rope.setDisabledByDefault(true);
-    }
+    :   MyUnilateralConstraint
+           (Constraint::Rod(body1, pt1, body2, pt2, d), 1, coefRest),
+        m_body1(body1), m_point1(pt1), m_body2(body2), m_point2(pt2), m_dist(d)
+    {}
 
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
-        return m_body2.findStationLocationInGround(state,m_point2);
-    }
 
     Real getPerr(const State& s) const OVERRIDE_11 {
         const Vec3 p1 = m_body1.findStationLocationInGround(s,m_point1);
@@ -772,58 +734,9 @@ public:
         return -(dot(a, p) + dot(v, v));
     }
 
-    Real getForce(const State& s) const OVERRIDE_11 {
-        if (isDisabled(s)) return 0;
-        const Real mult = m_rope.getMultiplier(s);
-        return mult; // watch sign
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+        return m_body2.findStationLocationInGround(state,m_point2);
     }
-
-    Real getImpulse() const OVERRIDE_11 {return -m_I;}
-    Real getCompressionImpulse() const OVERRIDE_11 {return -m_Ic;}
-    Real getExpansionImpulse() const OVERRIDE_11 {return -m_Ie;}
-
-    void recordImpulse(ImpulseType type, const State& state,
-                       const Vector& lambda) OVERRIDE_11
-    {
-        Vector myImpulse(1);
-        m_rope.getMyPartFromConstraintSpaceVector(state, lambda, myImpulse);
-        const Real I = myImpulse[0];
-        if (type==Compression) m_Ic = I;
-        else if (type==Expansion) m_Ie = I;
-        m_I += I;
-    }
-
-    void setMyExpansionImpulse(const State& state,
-                               Real coefRest,
-                               Vector& lambda) const OVERRIDE_11
-    {
-        const Real I = coefRest * m_Ic;
-        Vector myImp(1); myImp[0] = I;
-        m_rope.setMyPartInConstraintSpaceVector(state, myImp, lambda);
-    }
-
-    void setMyDesiredDeltaV(const State& s,
-                            Vector& desiredDeltaV) const OVERRIDE_11
-    {
-        Vector myDesiredDV(1); myDesiredDV[0] = getVerr(s);
-        m_rope.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
-                                                   desiredDeltaV);
-    }
-
-    Real getMyValueFromConstraintSpaceVector(const State& state,
-                                             const Vector& lambda) 
-                                             const OVERRIDE_11
-    {   Vector myValue(1);
-        m_rope.getMyPartFromConstraintSpaceVector(state, lambda, myValue);
-        return -myValue[0]; }
-
-    void enable(State& state) const OVERRIDE_11 {m_rope.enable(state);}
-    void disable(State& state) const OVERRIDE_11 {m_rope.disable(state);}
-    bool isDisabled(const State& state) const OVERRIDE_11
-    {   return m_rope.isDisabled(state); }
-
-    void initializeForImpactVirtual(const State& state) OVERRIDE_11 
-    {   m_Ic = m_Ie = m_I = 0; }
 
 private:
     const MobilizedBody&    m_body1;
@@ -831,10 +744,6 @@ private:
     const MobilizedBody&    m_body2;
     const Vec3              m_point2;
     const Real              m_dist;
-    Constraint::Rod         m_rope;
-
-    // Runtime
-    Real m_Ic, m_Ie, m_I; // impulses
 };
 
 
@@ -843,10 +752,6 @@ private:
 //                                   MAIN
 //==============================================================================
 int main(int argc, char** argv) {
-    static const Transform GroundFrame;
-    static const Rotation ZUp(UnitVec3(XAxis), XAxis, UnitVec3(YAxis), ZAxis);
-    static const Vec3 TestLoc(1,0,0);
-
   try { // If anything goes wrong, an exception will be thrown.
 
         // CREATE MULTIBODY SYSTEM AND ITS SUBSYSTEMS
