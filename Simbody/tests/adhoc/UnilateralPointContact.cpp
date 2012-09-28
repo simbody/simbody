@@ -323,7 +323,6 @@ private:
 //                          CONTACT ON HANDLER
 //==============================================================================
 
-class CInfo;
 class ContactOn: public TriggeredEventHandler {
 public:
     ContactOn(const MultibodySystem&                    system,
@@ -505,13 +504,6 @@ private:
     const Array_<MyUnilateralConstraint*>&  m_unis;
     const unsigned                          m_which; // one of the unis
 };
-
-static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
-                  Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
-
-
-
-static Real g = 9.8;
 
 
 
@@ -862,7 +854,7 @@ int main(int argc, char** argv) {
 
     SimbodyMatterSubsystem      matter(mbs);
     GeneralForceSubsystem       forces(mbs);
-    Force::Gravity              gravity(forces, matter, Vec3(0, -g, 0));
+    Force::Gravity              gravity(forces, matter, -YAxis, 9.81);
 
     MobilizedBody& Ground = matter.updGround();
 
@@ -893,7 +885,7 @@ int main(int argc, char** argv) {
         unis.push_back(new MyPointContact(cube, pt, CoefRest));
     }
 
-    unis.push_back(new MyRope(Ground, Vec3(-5,8,0),
+    unis.push_back(new MyRope(Ground, Vec3(-5,10,0),
                               cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
                               5., .5*CoefRest));
     //unis.push_back(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
@@ -913,13 +905,13 @@ int main(int argc, char** argv) {
     for (int k=-1; k<=1; k+=2) {
         if (i==-1 && j==-1) continue;
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
-        unis.push_back(new MyPointContact(weight, pt, CoefRest));
+        unis.push_back(new MyPointContact(weight, pt, 0.5*CoefRest));
     }
-    unis.push_back(new MyStop(MyStop::Upper,weight,0, Pi/9,CoefRest));
-    unis.push_back(new MyStop(MyStop::Lower,weight,0, -Pi/9,CoefRest));
+    unis.push_back(new MyStop(MyStop::Upper,weight,0, Pi/9,0.1*CoefRest));
+    unis.push_back(new MyStop(MyStop::Lower,weight,0, -Pi/9,0.1*CoefRest));
 
 //#endif
-#ifdef NOTDEF
+//#ifdef NOTDEF
    // Third body: weight2
     const Vec3 ConnectEdge2(CubeHalfDims[0],CubeHalfDims[1],0);
     MobilizedBody::Pin weight2(cube, 
@@ -933,9 +925,9 @@ int main(int argc, char** argv) {
     for (int k=-1; k<=1; k+=2) {
         if (i==-1 && j==-1) continue;
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
-        unis.push_back(new MyPointContact(weight2, pt, 0.1));
+        unis.push_back(new MyPointContact(weight2, pt, CoefRest));
     }
-#endif
+//#endif
 
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
@@ -980,22 +972,6 @@ int main(int argc, char** argv) {
     mbs.realize(s, Stage::Velocity);
     viz.report(s);
 
-    cout << "cube X_FM=" << cube.getMobilizerTransform(s) << endl;
-    cout << "cube X_GB=" << cube.getBodyTransform(s) << endl;
-
-    mbs.realize(s, Stage::Acceleration);
-
-    cout << "q=" << s.getQ() << endl;
-    cout << "u=" << s.getU() << endl;
-    cout << "qerr=" << s.getQErr() << endl;
-    cout << "uerr=" << s.getUErr() << endl;
-    cout << "udoterr=" << s.getUDotErr() << endl;
-    cout << "mults=" << s.getMultipliers() << endl;
-    cout << "qdot=" << s.getQDot() << endl;
-    cout << "udot=" << s.getUDot() << endl;
-    cout << "qdotdot=" << s.getQDotDot() << endl;
-    viz.report(s);
-
     Array_<int> enableThese;
     for (unsigned i=0; i < unis.size(); ++i) {
         const Real perr = unis[i]->getPerr(s);
@@ -1034,8 +1010,6 @@ int main(int argc, char** argv) {
         << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
         << (1000*ts.getTime())/evals << "ms/eval\n";
     cout << "CPUtime " << cpuInSec << endl;
-    //cout << "On times: " << contactOn->getOnTimes() << endl;
-    //cout << "Off times: " << contactOff->getOffTimes() << endl;
 
     printf("Used Integrator %s at accuracy %g:\n", 
         integ.getMethodName(), integ.getAccuracyInUse());
@@ -1043,6 +1017,7 @@ int main(int argc, char** argv) {
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
 
+    // Instant replay.
     while(true) {
         for (int i=0; i < stateSaver->getNumSavedStates(); ++i) {
             viz.report(stateSaver->getState(i));
