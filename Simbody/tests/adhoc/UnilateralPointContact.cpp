@@ -553,7 +553,7 @@ public:
     :   MyUnilateralConstraint
            (Constraint::PointInPlane(updGround(body), UnitVec3(YAxis), Zero,
                                      body, point),
-             -1, // multiplier sign
+             -1., // multiplier sign
              coefRest),
         m_body(body), m_point(point), m_groundPoint(0),
         m_noslipX(updGround(body), Vec3(0), UnitVec3(XAxis), 
@@ -664,9 +664,9 @@ public:
          Real limit, Real coefRest)
     :   MyUnilateralConstraint
            (Constraint::ConstantSpeed(body, MobilizerUIndex(whichQ), Real(0)), 
-            side==Lower?-1:1, coefRest),
+            side==Lower?-1.:1., coefRest),
         m_body(body), m_whichq(whichQ), m_whichu(whichQ),
-        m_sign(side==Lower?1:-1), m_limit(limit)
+        m_sign(side==Lower?1.:-1.), m_limit(limit)
     {}
 
     Real getPerr(const State& state) const OVERRIDE_11 {
@@ -706,7 +706,7 @@ public:
            MobilizedBody& body2, const Vec3& pt2, Real d,
            Real coefRest)
     :   MyUnilateralConstraint
-           (Constraint::Rod(body1, pt1, body2, pt2, d), 1, coefRest),
+           (Constraint::Rod(body1, pt1, body2, pt2, d), 1., coefRest),
         m_body1(body1), m_point1(pt1), m_body2(body2), m_point2(pt2), m_dist(d)
     {}
 
