@@ -126,15 +126,15 @@ public:
     typedef SymMat<N,ESqHermT>              TSqHermT;   // ~Mat*Mat
     typedef SymMat<M,ESqTHerm>              TSqTHerm;   // Mat*~Mat
 
-    // Here the elements are passed through unchanged but the result matrix
+    // Here the elements are copied unchanged but the result matrix
     // is an ordinary packed, column order matrix.
     typedef Mat<M,N,E,M,1>                  TPacked;
-    typedef Mat<M-1,N,E,M,1>                TDropRow;
+    typedef Mat<M-1,N,E,M-1,1>              TDropRow;
     typedef Mat<M,N-1,E,M,1>                TDropCol;
-    typedef Mat<M-1,N-1,E,M,1>              TDropRowCol;
-    typedef Mat<M+1,N,E,M,1>                TAppendRow;
+    typedef Mat<M-1,N-1,E,M-1,1>            TDropRowCol;
+    typedef Mat<M+1,N,E,M+1,1>              TAppendRow;
     typedef Mat<M,N+1,E,M,1>                TAppendCol;
-    typedef Mat<M+1,N+1,E,M,1>              TAppendRowCol;
+    typedef Mat<M+1,N+1,E,M+1,1>            TAppendRowCol;
 
     typedef EScalar                         Scalar;
     typedef EULessScalar                    ULessScalar;
@@ -936,7 +936,7 @@ public:
     template <class EE, int SS> 
     TAppendRow appendRow(const Row<N,EE,SS>& row) const {
         TAppendRow out;
-        out.updSubMat<M,N>(0,0) = (*this);
+        out.template updSubMat<M,N>(0,0) = (*this);
         out[M] = row;
         return out;
     }
@@ -947,7 +947,7 @@ public:
     template <class EE, int SS> 
     TAppendCol appendCol(const Vec<M,EE,SS>& col) const {
         TAppendCol out;
-        out.updSubMat<M,N>(0,0) = (*this);
+        out.template updSubMat<M,N>(0,0) = (*this);
         out(N) = col;
         return out;
     }
@@ -963,8 +963,9 @@ public:
                                const Vec<M+1,EC,SC>& col) const 
     {
         TAppendRowCol out;
-        out.updSubMat<M,N>(0,0) = (*this);
-        out[M].updSubRow<N>(0) = row.updSubRow<N>(0); // ignore last element
+        out.template updSubMat<M,N>(0,0) = (*this);
+        out[M].template updSubRow<N>(0) = 
+            row.template getSubRow<N>(0); // ignore last element
         out(N) = col;
         return out;
     }
@@ -1017,7 +1018,7 @@ public:
         assert(0 <= j && j <= N);
         TAppendRowCol out;
         for (int c=0, nxtc=0; c<N; ++c, ++nxtc) { 
-            if (nxtc==i) ++nxtc;   // leave room
+            if (nxtc==j) ++nxtc;   // leave room
             for (int r=0, nxtr=0; r<M; ++r, ++nxtr) {
                 if (nxtr==i) ++nxtr;
                 out(nxtr,nxtc) = (*this)(r,c);
