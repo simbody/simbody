@@ -172,7 +172,7 @@ class MyUnilateralConstraint {
 public:
     enum ImpulseType {Compression,Expansion,Capture};
 
-    MyUnilateralConstraint(Constraint& uni, Real multSign, Real coefRest) 
+    MyUnilateralConstraint(Constraint uni, Real multSign, Real coefRest) 
     :   m_uni(uni), m_multSign(multSign), m_coefRest(coefRest), 
         m_restitutionDone(false) 
     {   m_uni.setDisabledByDefault(true); }
