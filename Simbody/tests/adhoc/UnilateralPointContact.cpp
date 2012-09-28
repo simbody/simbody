@@ -338,6 +338,7 @@ public:
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
+    // This is the witness function.
     Real getValue(const State& state) const {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         const MyUnilateralConstraint& uni = *m_unis[m_which];
@@ -418,13 +419,6 @@ public:
                                Array_<int>&     proximal,
                                State&           state) const;
 
-    // This is the final pass. We realize accelerations, and see if any of the
-    // contact forces are negative. If so we disable those constraints,
-    // unless that would leave a constraint violated.
-    // TODO: need to search for a consistent set of active contraints.
-    void disablePullingContacts(Array_<int>&    proximal,
-                                State&          state) const;
-
     // This method is used at the start of compression phase to modify any
     // constraint parameters as necessary, and then enable all the proximal
     // constraints. Some or all of these will be disabled during the impact
@@ -486,59 +480,25 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
-        printf("\n------------------------------------------------------\n");
-        printf("LIFTOFF triggered by constraint %d @t=%.15g\n", 
+        SimTK_DEBUG("\n----------------------------------------------------\n");
+        SimTK_DEBUG2("LIFTOFF triggered by constraint %d @t=%.15g\n", 
             m_which, s.getTime());
         m_mbs.realize(s, Stage::Acceleration);
+
+        #ifndef NDEBUG
         cout << " triggers=" << s.getEventTriggers() << "\n";
-        Array_<int> toBeDisabled;
-        for (unsigned i=0; i < m_unis.size(); ++i) {
-            const MyUnilateralConstraint& uni = *m_unis[i];
-            if (uni.isDisabled(s)) continue;
-            const Real f = uni.getForce(s);
-            if (f<0) {
-                printf("  consider disabling uni %d because force=%g", i, f);
-                toBeDisabled.push_back(i);
-            }
-        }
-        printf("\n");
+        #endif
 
-        for (unsigned tbd=0; tbd < toBeDisabled.size(); ++tbd) {
-            const int i = toBeDisabled[tbd];
-            const MyUnilateralConstraint& uni = *m_unis[i];
-            uni.disable(s);
-        }
-        m_mbs.realize(s, Stage::Instance);
-        m_mbs.realize(s, Stage::Acceleration);
+        disablePullingContacts(m_mbs,s,m_unis);
 
-
-        // Now see which of the disabled constraints is violated.
-        m_mbs.realize(s, Stage::Acceleration);
-        Array_<int> violated;
-        for (unsigned p=0; p < toBeDisabled.size(); ++p) {
-            const int which = toBeDisabled[p];
-            const MyUnilateralConstraint& uni = *m_unis[which];
-            const Real aerr = uni.getAerr(s);
-            if (aerr < 0) {
-                violated.push_back(which);
-                printf("  RE-ENABLE constraint %d cuz aerr=%g\n", which, aerr);
-            }
-        }
-
-        for (unsigned v=0; v < violated.size(); ++v) {
-            const int which = violated[v];
-            const MyUnilateralConstraint& uni = *m_unis[which];
-            uni.enable(s);
-        }
-        m_mbs.realize(s, Stage::Instance);
-
-        // Always leave at acceleration stage.
-        m_mbs.realize(s, Stage::Acceleration);
-
-        printf("LIFTOFF DONE; %d contacts broken.\n\n", 
-            toBeDisabled.size()-violated.size());
-        printf("\n------------------------------------------------------\n");
+        SimTK_DEBUG("LIFTOFF DONE.\n");
+        SimTK_DEBUG("----------------------------------------------------\n");
     }
+
+    // This is also used by ContactOn at the end.
+    static void disablePullingContacts
+       (const MultibodySystem& mbs, State& s, 
+        const Array_<MyUnilateralConstraint*>& unis); 
 
 private:
     const MultibodySystem&                  m_mbs; 
@@ -933,7 +893,7 @@ int main(int argc, char** argv) {
         unis.push_back(new MyPointContact(cube, pt, CoefRest));
     }
 
-    unis.push_back(new MyRope(Ground, Vec3(-5,10,0),
+    unis.push_back(new MyRope(Ground, Vec3(-5,8,0),
                               cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
                               5., .5*CoefRest));
     //unis.push_back(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
@@ -955,8 +915,8 @@ int main(int argc, char** argv) {
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
         unis.push_back(new MyPointContact(weight, pt, CoefRest));
     }
-    unis.push_back(new MyStop(MyStop::Upper,weight,0, Pi/6,CoefRest));
-    unis.push_back(new MyStop(MyStop::Lower,weight,0, -Pi/6,CoefRest));
+    unis.push_back(new MyStop(MyStop::Upper,weight,0, Pi/9,CoefRest));
+    unis.push_back(new MyStop(MyStop::Lower,weight,0, -Pi/9,CoefRest));
 
 //#endif
 #ifdef NOTDEF
@@ -1148,8 +1108,7 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     // Finally, evaluate accelerations and reaction forces and check if 
     // any of the active contacts are generating negative ("pulling") 
     // forces; if so, inactivate them.
-    disablePullingContacts(proximal, s);
-    m_mbs.realize(s, Stage::Acceleration);
+    ContactOff::disablePullingContacts(m_mbs, s, m_unis);
 
 #ifndef NDEBUG
     printf("END OF IMPACT for %d proximal constraints:\n",proximal.size());
@@ -1246,7 +1205,7 @@ processCompressionPhase(Array_<int>&    proximal,
             const int which = maybeDisabled[i];
             const MyUnilateralConstraint& uni = *m_unis[which];
             const Real newV = uni.getVerr(s);           
-            SimTK_DEBUG2("  candidate uni constraint %d would have v%g\n",
+            SimTK_DEBUG2("  candidate uni constraint %d would have v=%g\n",
                    which, newV);
             if (newV <= 0) {
                 recapturing.push_back(which);
@@ -1483,63 +1442,70 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
 
 
 
-//-------------------------- DISABLE PULLING CONTACTS --------------------------
-void ContactOn::
-disablePullingContacts(Array_<int>& proximal,
-                       State&       state) const
-{
-    m_mbs.realize(state, Stage::Acceleration);
+//==============================================================================
+//                               CONTACT OFF
+//==============================================================================
 
-    Array_<int> pulling;
-    for (unsigned i=0; i < proximal.size(); ++i) {
-        const int which = proximal[i];
-        const MyUnilateralConstraint& uni = *m_unis[which];
-        if (uni.isDisabled(state)) continue;
-        const Real f = uni.getForce(state);
-        if (f < 0) { 
-            if (pulling.empty()) {
-                SimTK_DEBUG("disablePullingContacts(): consider disabling");
-            }
-            SimTK_DEBUG2(" %d cuz f=%g", which, f);
-            pulling.push_back(which);
+//-------------------------- DISABLE PULLING CONTACTS --------------------------
+// This method checks the active contacts to see if any of them are generating
+// "pulling" forces. In that case the contact is disabled unless that would
+// lead to a negative acceleration.
+// This is invoked by the ContactOff handler, and as the last step of the
+// ContactOn (impact) handler.
+// TODO: need to search for a consistent set of active contraints.
+
+/*static*/ void ContactOff::disablePullingContacts
+   (const MultibodySystem& mbs, State& s, 
+    const Array_<MyUnilateralConstraint*>& unis) 
+{
+    SimTK_DEBUG("Entering disablePullingContacts() ...\n");
+
+    mbs.realize(s, Stage::Acceleration);
+    // Check first, disable later because we don't want to invalidate
+    // the reaction forces in the state yet.
+    Array_<int> toBeDisabled;
+    for (unsigned i=0; i < unis.size(); ++i) {
+        const MyUnilateralConstraint& uni = *unis[i];
+        if (uni.isDisabled(s)) continue;
+        const Real f = uni.getForce(s);
+        if (f<0) {
+            SimTK_DEBUG2("  consider disabling uni %d because force=%g\n", 
+                            i, f);
+            toBeDisabled.push_back(i);
         }
     }
 
-    if (pulling.empty()) {
-        SimTK_DEBUG("disablePullingContacts(): nobody is pulling.\n");
-        return;
+    // OK, now tentatively disable the pulling contacts.
+    for (unsigned tbd=0; tbd < toBeDisabled.size(); ++tbd) {
+        const int i = toBeDisabled[tbd];
+        const MyUnilateralConstraint& uni = *unis[i];
+        uni.disable(s);
     }
-    SimTK_DEBUG(".\n");
-
-    for (unsigned p=0; p < pulling.size(); ++p) {
-        const int which = pulling[p];
-        const MyUnilateralConstraint& uni = *m_unis[which];
-        uni.disable(state);
-    }
-    m_mbs.realize(state, Stage::Instance);
-
 
     // Now see which of the disabled constraints is violated.
-    m_mbs.realize(state, Stage::Acceleration);
+    mbs.realize(s, Stage::Acceleration);
     Array_<int> violated;
-    for (unsigned p=0; p < pulling.size(); ++p) {
-        const int which = pulling[p];
-        const MyUnilateralConstraint& uni = *m_unis[which];
-        const Real aerr = uni.getAerr(state);
+    for (unsigned p=0; p < toBeDisabled.size(); ++p) {
+        const int which = toBeDisabled[p];
+        const MyUnilateralConstraint& uni = *unis[which];
+        const Real aerr = uni.getAerr(s);
         if (aerr < 0) {
             violated.push_back(which);
-            SimTK_DEBUG2("  RE-ENABLE constraint %d cuz aerr=%g\n", which, aerr);
+            SimTK_DEBUG2("  RE-ENABLE constraint %d cuz aerr=%g\n", 
+                            which, aerr);
         }
     }
 
+    // Re-enable now.
     for (unsigned v=0; v < violated.size(); ++v) {
         const int which = violated[v];
-        const MyUnilateralConstraint& uni = *m_unis[which];
-        uni.enable(state);
+        const MyUnilateralConstraint& uni = *unis[which];
+        uni.enable(s);
     }
 
-    m_mbs.realize(state, Stage::Instance);
-
     // Always leave at acceleration stage.
-    m_mbs.realize(state, Stage::Acceleration);
+    mbs.realize(s, Stage::Acceleration);
+
+    SimTK_DEBUG1("... Done; %d contacts broken.\n", 
+        toBeDisabled.size()-violated.size());
 }
