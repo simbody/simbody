@@ -1122,24 +1122,50 @@ void ContactGeometryImpl::
 continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
                  const GeodesicOptions& options, Geodesic& geod) const 
 {
+    const Real StraightLineGeoFrac = 1e-5; // a straight line
+
     const Vec3 P = projectDownhillToNearestPoint(xP);
     const Vec3 Q = projectDownhillToNearestPoint(xQ);
 
-    // TODO: If no previous geodesic just make a wild attempt.
-    if (!prevGeod.getNumPoints()) {
-        const Vec3 PQ = Q-P;
-        const Real length = PQ.norm();
-        if (length < /*SqrtEps*/1e-3) { // TODO: should depend on curvature
-            const UnitVec3 d = length<TinyReal ? UnitVec3(XAxis)
-                : UnitVec3(PQ/length, true);
-            makeStraightLineGeodesic(P, Q, d, options, geod);
+    cout << "continueGeo(P=" << P << ",Q=" << Q << ")\n";
+
+    // If P and Q are bit-identical to P and Q from the previous geodesic,
+    // then the new one is just a copy of the previous one. This is especially
+    // likely when doing numerical Jacobians since many value remain unchanged.
+    if (prevGeod.getNumPoints() 
+        && prevGeod.getPointP()==P && prevGeod.getPointQ()==Q) {
+            geod = prevGeod;
+            cout << "REUSING OLD GEODESIC of length=" 
+                << prevGeod.getLength() << "\n";
             return;
-        }
-        calcGeodesicUsingOrthogonalMethod(P, Q, PQ/length, length, geod);
-        //calcGeodesicAnalytical(P, Q, PQ, PQ, geod);
+    }
+   
+    const Vec3 PQ = Q-P;
+    const Real PQlength = PQ.norm();
+    const UnitVec3 PQdir =
+        PQlength == 0 ? UnitVec3(XAxis) : UnitVec3(PQ/PQlength, true);
+    cout << "  PQlen=" << PQlength << " PQdir=" << PQdir << "\n";
+
+    // If the length is less than this fraction of the maximum radius of
+    // curvature (1/kdP) then the geodesic is indistinguishable from a 
+    // straight line.
+    // TODO: if the previous geodesic was very long and came all the way
+    // around this will incorrectly switch to a very short geodesic. Does
+    // that matter?
+    const Real kdP = std::abs(calcSurfaceCurvatureInDirection(P,PQdir));
+    if (PQlength*kdP <= StraightLineGeoFrac) {
+        cout << "STRAIGHT LINE GEO length=" << PQlength << "\n";
+        makeStraightLineGeodesic(P, Q, PQdir, options, geod);
         return;
     }
 
+    // If there is no previous geodesic the best we can do is to start in
+    // direction PQdir, and guess length |PQ|.
+    if (!prevGeod.getNumPoints()) {
+        calcGeodesicUsingOrthogonalMethod(P, Q, PQdir, PQlength, geod);
+        //calcGeodesicAnalytical(P, Q, PQ, PQ, geod);
+        return;
+    }
 
     // First classify the previous geodesic as direct or indirect. Direct is
     // a strict classification; only if the end tangents are aligned with the
@@ -1157,7 +1183,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     // and the arc are the same length to a MUCH smaller tolerance than that.
     const Vec3 prevPQ = prevGeod.getPointQ() - prevGeod.getPointP();
     const Real prevPQlen = prevPQ.norm();
-    const bool isPrevStraightLine = prevPQlen*maxK <= SqrtEps;
+    const bool isPrevStraightLine = prevPQlen*maxK <= StraightLineGeoFrac;
 
     const UnitVec3 eprevPQ = isPrevStraightLine
                                 ? prevGeod.getTangentP()
@@ -1169,30 +1195,20 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
 
     UnitVec3 tPhint = prevGeod.getTangentP(); // might flip
     UnitVec3 tQhint = prevGeod.getTangentQ();
-    Real     sHint  = prevGeod.getLength();
+    Real     sHint  = std::max(prevGeod.getLength(), PQlength);
 
-    const Vec3 newPQ = Q - P;
-    const Real newPQlen = newPQ.norm();
     if (isDirect) {
-        const UnitVec3 enewPQ = newPQlen > 0 
-            ? UnitVec3(newPQ/newPQlen, true)
-            : UnitVec3(prevGeod.getTangentP()+prevGeod.getTangentQ());
-
-        if (~tPhint*enewPQ < 0 && ~tQhint*enewPQ < 0) {
-            tPhint = -tPhint;
-            tQhint = -tQhint;
-            cout << "GEODESIC FLIPPED. Prev len was " << sHint << endl;
+        if (~tPhint*PQdir < 0 && ~tQhint*PQdir < 0) {
+            tPhint = PQdir;
+            tQhint = PQdir;
+            sHint = PQlength;
+            cout << "GEODESIC FLIPPED. Prev len was " 
+                 << prevGeod.getLength() << endl;
         }
     }
 
-
-    //calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
-    //calcGeodesic(P, Q, tPhint, tQhint, geod);
-    if (newPQlen < /*SqrtEps*/1e-3) //TODO
-        makeStraightLineGeodesic(P, Q, tPhint, options, geod);
-    else 
-        //calcGeodesicAnalytical(P, Q, tPhint, tQhint, geod);
-        calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
+    calcGeodesicUsingOrthogonalMethod(P, Q, tPhint, sHint, geod);
+    //calcGeodesicAnalytical(P, Q, tPhint, tQhint, geod);
 }
 
 
@@ -2565,11 +2581,12 @@ Real SphereImplicitFunction::
 calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
     if (derivComponents.size() == 1)
         return -2*x[derivComponents[0]]/square(ownerp->getRadius());
-    if (derivComponents[0] == derivComponents[1])
+    if (   derivComponents.size() == 2 
+        && derivComponents[0] == derivComponents[1])
         return -2/square(ownerp->getRadius());
+    // A mixed second derivative, or any higher derivative is zero.
     return 0;
 }
-
 
 
 //==============================================================================
@@ -2916,10 +2933,12 @@ calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
         int c = derivComponents[0];
         return -2*x[c]/(radii[c]*radii[c]);
     }
-    if (derivComponents[0] == derivComponents[1]) {
+    if (   derivComponents.size() == 2 
+        && derivComponents[0] == derivComponents[1]) {
         int c = derivComponents[0];
         return -2/(radii[c]*radii[c]);
     }
+    // A mixed second derivative, or any higher derivative is zero.
     return 0;
 }
 
