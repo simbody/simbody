@@ -269,11 +269,7 @@ int main() {
     PolygonalMesh smoothMesh = smooth.createPolygonalMesh(resolution);
 
     const Vec3 SmoothOrigin(-3,-3,-3);
-    // Shift the drawing slightly in the -z direction so that the path
-    // shows better.
-    Ground.addBodyDecoration(SmoothOrigin - Vec3(0,0,.01),
-        DecorativeMesh(smoothMesh).setColor(Cyan).setOpacity(.75));
-    Ground.addBodyDecoration(SmoothOrigin - Vec3(0,0,.01),
+    Ground.addBodyDecoration(SmoothOrigin,
         DecorativeMesh(smooth.createPolygonalMesh(0))
             .setRepresentation(DecorativeGeometry::DrawWireframe));
 
