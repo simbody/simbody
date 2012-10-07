@@ -987,17 +987,17 @@ Real ContactGeometryImpl::
 calcGaussianCurvature(const Vec3& point) const {
     const Vec3  g = calcSurfaceGradient(point);
     const Mat33 H = calcSurfaceHessian(point);
-    // Calculate the adjoint. TODO: use SymMat33
+    // Calculate the adjoint.
     Mat33 A;
-    A(0,0) = det(H.dropRowCol(0,0));
-    A(0,1) = det(H.dropRowCol(0,1));
-    A(0,2) = det(H.dropRowCol(0,2));
-    A(1,0) = A(0,1);
-    A(1,1) = det(H.dropRowCol(1,1));
-    A(1,2) = det(H.dropRowCol(1,2));
-    A(2,0) = A(0,2);
-    A(2,1) = A(1,2);
-    A(2,2) = det(H.dropRowCol(2,2));
+    A(0,0) =  det(H.dropRowCol(0,0));
+    A(0,1) = -det(H.dropRowCol(0,1));
+    A(0,2) =  det(H.dropRowCol(0,2));
+    A(1,0) =  A(0,1);
+    A(1,1) =  det(H.dropRowCol(1,1));
+    A(1,2) = -det(H.dropRowCol(1,2));
+    A(2,0) =  A(0,2);
+    A(2,1) =  A(1,2);
+    A(2,2) =  det(H.dropRowCol(2,2));
 
     Real Kg = ~g * (A*g) / square(g.normSqr()); // |g|^4
     return Kg;
