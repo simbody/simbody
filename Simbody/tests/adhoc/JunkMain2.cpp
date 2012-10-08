@@ -299,11 +299,11 @@ int main() {
     ShowStuff::showHeading(cout);
 
     const Real finalTime = 5;
-    const double startTime = realTime();
+    const double startTime = realTime(), startCPU = cpuTime();
     ts.stepTo(finalTime);
     cout << "DONE with " << finalTime 
          << "s simulated in " << realTime()-startTime
-         << "s elapsed.\n";
+         << "s elapsed, " << cpuTime()-startCPU << "s CPU.\n";
 
 
     while (true) {
