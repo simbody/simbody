@@ -265,9 +265,9 @@ int main() {
     //
     CableObstacle::Surface obstacle2(path1, Ground, Vec3(0,-1,0), 
         //ContactGeometry::Sphere(CylRad));
-        //ContactGeometry::Ellipsoid(radii));
+        ContactGeometry::Ellipsoid(radii));
         //ContactGeometry::Torus(CylRad,.1));
-        ContactGeometry::Cylinder(CylRad));
+        //ContactGeometry::Cylinder(CylRad));
 
     obstacle2.setContactPointHints(1.5*CylRad*UnitVec3(1,1,0),1.5*CylRad*UnitVec3(1,.5,0));
     obstacle2.setDisabledByDefault(true);
