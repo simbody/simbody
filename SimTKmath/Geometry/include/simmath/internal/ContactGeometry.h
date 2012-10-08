@@ -1378,7 +1378,7 @@ private:
 
 /**
  * A event handler to terminate integration when geodesic hits the plane.
- * For use with a ParticleOnSurfaceSystem
+ * For use with a ParticleConSurfaceSystem
  **/
 class GeodHitPlaneEvent : public TriggeredEventHandler {
 public:

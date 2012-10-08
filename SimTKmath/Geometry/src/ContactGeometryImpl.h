@@ -29,7 +29,6 @@
 #include "simmath/internal/Geo_Sphere.h"
 #include "simmath/internal/OBBTree.h"
 #include "simmath/internal/ParticleConSurfaceSystem.h"
-#include "simmath/internal/ParticleOnSurfaceSystem.h"
 #include "simmath/Differentiator.h"
 #include "simmath/internal/ContactGeometry.h"
 
