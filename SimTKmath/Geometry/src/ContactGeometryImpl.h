@@ -112,7 +112,8 @@ public:
     UnitVec3 calcSurfaceUnitNormal(const Vec3& point) const;
     Vec3  calcSurfaceGradient(const Vec3& point) const;
     Mat33 calcSurfaceHessian(const Vec3& point) const;
-    Real  calcGaussianCurvature(const Vec3& point) const;
+    Real  calcGaussianCurvature(const Vec3& gradient,
+                                const Mat33& Hessian) const;
 	Real  calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
 
     Vec3 projectDownhillToNearestPoint(const Vec3& Q) const;
@@ -313,11 +314,16 @@ public:
     void shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
             const Real& finalTime, const GeodesicOptions& options,
             Geodesic& geod) const;
+    void shootGeodesicInDirection2(const Vec3& P, const UnitVec3& tP,
+            const Real& finalTime, const GeodesicOptions& options,
+            Geodesic& geod) const;
 
     // Utility method to integrate geodesic backwards to fill in the Q to P
     // directional sensitivity.
     void calcGeodesicReverseSensitivity
        (Geodesic& geod, const Vec2& initJacobi) const;
+    void calcGeodesicReverseSensitivity2
+       (Geodesic& geod, const Vec2& initJRot, const Vec2& initJTrans) const;
 
     // Utility method to calculate the "geodesic error" between one geodesic
     // shot from P in the direction thetaP and another geodesic shot from Q in the

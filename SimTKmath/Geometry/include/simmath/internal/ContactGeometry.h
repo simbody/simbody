@@ -32,6 +32,7 @@ individual contact shapes. **/
 #include "simmath/internal/common.h"
 #include "simmath/internal/OrientedBoundingBox.h"
 #include "simmath/internal/Geodesic.h"
+#include "simmath/internal/BicubicSurface.h"
 
 #include <cassert>
 
@@ -319,13 +320,17 @@ Vec3 calcSurfaceGradient(const Vec3& point) const;
 
 /** Calculate the hessian of the implicit surface function, at a given point.
 @param[in]      point
-    A point at which to compute the surface hessian.
+    A point at which to compute the surface Hessian.
 @return
-    The hessian of the implicit surface function at the point. **/
+    The Hessian of the implicit surface function at the point. **/
 Mat33 calcSurfaceHessian(const Vec3& point) const;
 
-/** For an implicit surface, return the Gaussian curvature at the given
-point (which might not be on the surface). Here is the formula:
+/** For an implicit surface, return the Gaussian curvature at the point p whose
+implicit surface function gradient g(p) and Hessian H(p) are supplied. It is
+not required that p is on the surface but the results will be meaningless if
+the gradient and Hessian were not calculated at the same point.
+
+Here is the formula:
 <pre>
         ~grad(f) * Adjoint(H) * grad(f)
    Kg = --------------------------------
@@ -348,7 +353,16 @@ adjH  =  [ fyy*fzz - fyz^2, fxz*fyz - fxy*fzz, fxy*fyz - fxz*fyy  ]
          [      (1,3),           (2,3),        fxx*fyy - fxy^2    ]
 </pre>
 **/
-Real calcGaussianCurvature(const Vec3& point) const;
+Real calcGaussianCurvature(const Vec3&  gradient,
+                           const Mat33& Hessian) const;
+
+/** This signature is for convenience; use the other one to save time if you
+already have the gradient and Hessian available for this point. See the other
+signature for documentation. **/
+Real calcGaussianCurvature(const Vec3& point) const {
+    return calcGaussianCurvature(calcSurfaceGradient(point),
+                                 calcSurfaceHessian(point)); 
+}
 
 /** For an implicit surface, return the curvature k of the surface at a given
 point p in a given direction tp. Make sure the point is on the surface and the 

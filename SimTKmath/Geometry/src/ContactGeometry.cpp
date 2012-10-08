@@ -37,8 +37,10 @@
 #include "simmath/CPodesIntegrator.h"
 #include "simmath/TimeStepper.h"
 #include "simmath/internal/ContactGeometry.h"
+#include "simmath/internal/GeodesicIntegrator.h"
 
 #include "ContactGeometryImpl.h"
+#include "GeodesicEquations.h"
 
 #include <iostream>
 #include <cmath>
@@ -51,6 +53,8 @@ using std::pair;
 using std::set;
 using std::string;
 using std::cout; using std::endl;
+
+#define USE_NEW_INTEGRATOR
 
 //==============================================================================
 //                            CONTACT GEOMETRY
@@ -158,8 +162,9 @@ Mat33 ContactGeometry::calcSurfaceHessian(const Vec3& point) const {
     return getImpl().calcSurfaceHessian(point);
 }
 
-Real ContactGeometry::calcGaussianCurvature(const Vec3& point) const {
-    return getImpl().calcGaussianCurvature(point);
+Real ContactGeometry::calcGaussianCurvature(const Vec3& gradient,
+                                            const Mat33& Hessian) const {
+    return getImpl().calcGaussianCurvature(gradient,Hessian);
 }
 
 Real ContactGeometry::calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const {
@@ -984,20 +989,18 @@ calcSurfaceHessian(const Vec3& p) const {
 //                        CALC GAUSSIAN CURVATURE
 //------------------------------------------------------------------------------
 Real ContactGeometryImpl::
-calcGaussianCurvature(const Vec3& point) const {
-    const Vec3  g = calcSurfaceGradient(point);
-    const Mat33 H = calcSurfaceHessian(point);
-    // Calculate the adjoint.
+calcGaussianCurvature(const Vec3&  g, const Mat33& H) const {
+    // Calculate the adjoint matrix. Watch the signs!
     Mat33 A;
-    A(0,0) =  det(H.dropRowCol(0,0));
-    A(0,1) = -det(H.dropRowCol(0,1));
-    A(0,2) =  det(H.dropRowCol(0,2));
-    A(1,0) =  A(0,1);
-    A(1,1) =  det(H.dropRowCol(1,1));
-    A(1,2) = -det(H.dropRowCol(1,2));
-    A(2,0) =  A(0,2);
-    A(2,1) =  A(1,2);
-    A(2,2) =  det(H.dropRowCol(2,2));
+    A(0,0) = H(1,1)*H(2,2) - square(H(1,2)); // fyy*fzz - fyz^2
+    A(0,1) = H(0,2)*H(1,2) - H(0,1)*H(2,2);  // fxz*fyz - fxy*fzz
+    A(0,2) = H(0,1)*H(1,2) - H(0,2)*H(1,1);  // fxy*fyz - fxz*fyy
+    A(1,0) = A(0,1);
+    A(1,1) = H(0,0)*H(2,2) - square(H(0,2)); // fxx*fzz - fxz^2
+    A(1,2) = H(0,1)*H(0,2) - H(0,0)*H(1,2);  // fxy*fxz - fxx*fyz
+    A(2,0) = A(0,2);
+    A(2,1) = A(1,2);
+    A(2,2) = H(0,0)*H(1,1) - square(H(0,1)); // fxx*fyy - fxy^2
 
     Real Kg = ~g * (A*g) / square(g.normSqr()); // |g|^4
     return Kg;
@@ -1127,7 +1130,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     const Vec3 P = projectDownhillToNearestPoint(xP);
     const Vec3 Q = projectDownhillToNearestPoint(xQ);
 
-    cout << "continueGeo(P=" << P << ",Q=" << Q << ")\n";
+    //cout << "continueGeo(P=" << P << ",Q=" << Q << ")\n";
 
     // If P and Q are bit-identical to P and Q from the previous geodesic,
     // then the new one is just a copy of the previous one. This is especially
@@ -1222,11 +1225,9 @@ makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
         const GeodesicOptions& options, Geodesic& geod) const
 {
     geod.clear();
-    //TODO:
-    Vec3 Pprime = xP;
-        // projectToNearestDownhillPointOnSurface(xP);
-    Vec3 Qprime = xQ;
-        // projectToNearestDownhillPointOnSurface(xQ);
+
+    Vec3 Pprime = projectDownhillToNearestPoint(xP);
+    Vec3 Qprime = projectDownhillToNearestPoint(xQ);
 
     const bool isZeroLength = 
         Geo::Point::pointsAreNumericallyCoincident(Pprime,Qprime);
@@ -1234,7 +1235,8 @@ makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
     UnitVec3 d;
     Real     length;
     if (isZeroLength) {
-        Pprime = Qprime = Geo::Point::findMidpoint(Pprime, Qprime);
+        const Vec3 mid = Geo::Point::findMidpoint(Pprime, Qprime);
+        Pprime = Qprime = projectDownhillToNearestPoint(mid);
         d = defaultDirectionIfNeeded;
         length = 0;
     } else {
@@ -1257,6 +1259,10 @@ makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
     geod.addDirectionalSensitivityPtoQ(Vec2(length,1));
     geod.addDirectionalSensitivityQtoP(Vec2(length,1));
     geod.addDirectionalSensitivityQtoP(Vec2(0,1));
+    geod.addPositionalSensitivityPtoQ(Vec2(1,0));
+    geod.addPositionalSensitivityPtoQ(Vec2(1,0));
+    geod.addPositionalSensitivityQtoP(Vec2(1,0));
+    geod.addPositionalSensitivityQtoP(Vec2(1,0));
     geod.setBinormalCurvatureAtP(calcSurfaceCurvatureInDirection(Pprime, RP.x()));
     geod.setBinormalCurvatureAtQ(calcSurfaceCurvatureInDirection(Qprime, RQ.x()));
 
@@ -1286,6 +1292,8 @@ makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
 // surface point P', calculate the outward unit normal n' at P', then
 // project tP to tP' by removing any component it has in the n' direction,
 // then renormalizing.
+static const Real IntegratorAccuracy = 1e-6; // TODO: how to choose?
+static const Real IntegratorConstraintTol = 1e-10;
 void ContactGeometryImpl::
 shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         const Real& finalTime, const GeodesicOptions& options,
@@ -1293,8 +1301,6 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
 
     // integrator settings
     const Real startTime = 0;
-    const Real integratorAccuracy = 1e-6; // << TODO
-    const Real integratorConstraintTol = 1e-6;
 
     ++numGeodesicsShot;
 
@@ -1314,8 +1320,8 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     //RungeKutta3Integrator integ(*ptOnSurfSys);
     RungeKuttaMersonIntegrator integ(*ptOnSurfSys);
     //RungeKuttaFeldbergIntegrator integ(*ptOnSurfSys);
-    integ.setAccuracy(integratorAccuracy);
-    integ.setConstraintTolerance(integratorConstraintTol);
+    integ.setAccuracy(IntegratorAccuracy);
+    integ.setConstraintTolerance(IntegratorConstraintTol);
     integ.setFinalTime(finalTime);
     integ.setReturnEveryInternalStep(true); // save geodesic knot points
 
@@ -1357,6 +1363,7 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         geod.addFrenetFrame(frenetFrame);
         geod.addDirectionalSensitivityPtoQ(Vec2(state.getQ()[3],
                                                 state.getU()[3]));
+        geod.addPositionalSensitivityPtoQ(Vec2(NaN,NaN)); // XXX
         const Real kappa = calcSurfaceCurvatureInDirection(pt, frenetFrame.y());
         geod.addCurvature(kappa);
         if (kappa < 0) 
@@ -1386,12 +1393,91 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     geod.setTorsionAtP(tauP); geod.setTorsionAtQ(tauQ);
 
     geod.setIsShortest(false); // TODO
-    geod.setAchievedAccuracy(integratorAccuracy); // TODO: accuracy of length?
+    geod.setAchievedAccuracy(IntegratorAccuracy); // TODO: accuracy of length?
     // TODO: better to use something like the second-to-last step, or average
     // excluding initial and last steps, so that we don't have to start small.
     geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken());
 }
 
+void ContactGeometryImpl::
+shootGeodesicInDirection2(const Vec3& P, const UnitVec3& tP,
+        const Real& finalArcLength, const GeodesicOptions& options,
+        Geodesic& geod) const {
+
+    // integrator settings
+    const Real startArcLength = 0;
+
+    GeodesicOnImplicitSurface eqns(*this);
+    GeodesicIntegrator<GeodesicOnImplicitSurface> 
+        integ(eqns,IntegratorAccuracy,IntegratorConstraintTol);
+    static const int N = GeodesicOnImplicitSurface::N;
+
+    ++numGeodesicsShot;
+
+    integ.initialize(startArcLength, eqns.getInitialState(P,tP));
+    // Aliases for the integrators internal time and state variables.
+    const Vec<N>& y = integ.getY();
+    const Real&   s = integ.getTime();  // arc length
+
+    // Simulate it, and record geodesic knot points after each step
+    int stepcnt = 0;
+    geod.setIsConvex(true); // Set false if we see negative curvature anywhere.
+    while (true) {
+        // Record a knot point.
+        geod.addArcLength(s);
+        const Vec3& pt = eqns.getP(y);
+        const UnitVec3 n = calcSurfaceUnitNormal(pt);
+        const Vec3& tangent = eqns.getV(y);
+        // Rotation will orthogonalize so x direction we get may not be
+        // exactly the same as what we supply here.
+        const Transform frenetFrame(Rotation(n, ZAxis, tangent, YAxis), pt);
+        geod.addFrenetFrame(frenetFrame);
+        geod.addDirectionalSensitivityPtoQ(Vec2(eqns.getJRot(y),
+                                                eqns.getJRotDot(y)));
+        geod.addPositionalSensitivityPtoQ(Vec2(eqns.getJTrans(y),
+                                               eqns.getJTransDot(y)));
+        const Real kappa = calcSurfaceCurvatureInDirection(pt, frenetFrame.y());
+        geod.addCurvature(kappa);
+        if (kappa < 0) geod.setIsConvex(false);
+
+        if (s == finalArcLength)
+            break;
+
+        integ.takeOneStep(finalArcLength);
+        ++stepcnt;
+    }
+
+    //printf("RKM acc=%g tol=%g: %d/%d steps, errtest=%d projfail=%d\n",
+    //    integ.getRequiredAccuracy(), integ.getConstraintTolerance(),
+    //    integ.getNumStepsTaken(), integ.getNumStepsAttempted(),
+    //    integ.getNumErrorTestFailures(), integ.getNumProjectionFailures());
+
+    geod.setBinormalCurvatureAtP(
+        calcSurfaceCurvatureInDirection(geod.getPointP(),geod.getBinormalP()));
+    geod.setBinormalCurvatureAtQ(
+        calcSurfaceCurvatureInDirection(geod.getPointQ(),geod.getBinormalQ()));
+
+    //TODO: numerical torsion estimate for now
+    const Array_<Transform>& frenet = geod.getFrenetFrames();
+    const Array_<Real>& arcLen = geod.getArcLengths();
+    const int last = geod.getNumPoints()-1;
+    const Real lFirst = arcLen[1];
+    const Real lLast  = arcLen[last] - arcLen[last-1];
+    const Real tauP = lFirst==0 ? Real(0)
+        : -dot(frenet[0].z(), 
+              (frenet[1].x()-frenet[0].x())) / lFirst; // dbP/ds
+    const Real tauQ = lLast==0 ? Real(0)
+        : -dot(frenet[last].z(), 
+              (frenet[last].x()-frenet[last-1].x())) / lLast;
+
+    geod.setTorsionAtP(tauP); geod.setTorsionAtQ(tauQ);
+
+    geod.setIsShortest(false); // TODO
+    geod.setAchievedAccuracy(IntegratorAccuracy); // TODO: accuracy of length?
+    // TODO: better to use something like the second-to-last step, or average
+    // excluding initial and last steps, so that we don't have to start small.
+    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken());
+}
 
 
 //------------------------------------------------------------------------------
@@ -1406,13 +1492,11 @@ calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
     geodHitPlaneEvent->setEnabled(false);
 
     // integrator settings
-    const Real integratorAccuracy = 1e-6;
-    const Real integratorConstraintTol = 1e-6;
 
     //RungeKutta3Integrator integ(ptOnSurfSys);
     RungeKuttaMersonIntegrator integ(*ptOnSurfSys);
-    integ.setAccuracy(integratorAccuracy);
-    integ.setConstraintTolerance(integratorConstraintTol);
+    integ.setAccuracy(IntegratorAccuracy);
+    integ.setConstraintTolerance(IntegratorConstraintTol);
     State sysState = ptOnSurfSys->getDefaultState();
     Vector& q = sysState.updQ();
     Vector& u = sysState.updU();
@@ -1465,6 +1549,71 @@ calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
     }
 }
 
+void ContactGeometryImpl::
+calcGeodesicReverseSensitivity2
+   (Geodesic& geod, const Vec2& initJRot, const Vec2& initJTrans) const {
+
+    GeodesicOnImplicitSurface eqns(*this);
+    GeodesicIntegrator<GeodesicOnImplicitSurface> 
+        integ(eqns,IntegratorAccuracy,IntegratorConstraintTol);
+    static const int N = GeodesicOnImplicitSurface::N;
+
+    integ.initialize(0, 
+        eqns.getInitialState(geod.getPointQ(),-geod.getTangentQ()));
+    // Aliases for the integrators internal time and state variables.
+    const Vec<N>& y = integ.getY();
+    const Real&   s = integ.getTime();  // arc length
+
+    // These two arrays need to be filled in to complete the geodesic.
+    Array_<Vec2>& jrP = geod.updDirectionalSensitivityQtoP();
+    jrP.resize(geod.getNumPoints());
+    jrP.back() = initJRot;
+
+    Array_<Vec2>& jtP = geod.updPositionalSensitivityQtoP();
+    jtP.resize(geod.getNumPoints());
+    jtP.back() = initJTrans;
+
+    for (int step=geod.getNumPoints()-1; step >= 1; --step) {
+        // Curve goes from P to Q. We have to integrate backwards from Q to P.
+        const Transform& QFrenet = geod.getFrenetFrames()[step];
+        const Transform& PFrenet = geod.getFrenetFrames()[step-1];
+        const Real sQ = geod.getArcLengths()[step];
+        const Real sP = geod.getArcLengths()[step-1];
+        const Vec3&      Q = QFrenet.p();
+        const UnitVec3&  tQ = QFrenet.x(); // we'll reverse this
+        const Vec3&      P = PFrenet.p();
+        const UnitVec3&  tP = PFrenet.x();
+
+        // Initialize state
+        Vec<N> yInit;
+        eqns.updP(yInit) = Q;
+        eqns.updV(yInit) = -tQ.asVec3();
+        eqns.updJRot(yInit) = jrP[step][0];
+        eqns.updJRotDot(yInit) = jrP[step][1];
+        eqns.updJTrans(yInit) = jtP[step][0];
+        eqns.updJTransDot(yInit) = jtP[step][1];
+
+        const Real arcLength = sQ-sP; // how far to integrate
+
+        integ.setTimeAndState(0, yInit);
+        integ.setNextStepSizeToTry(arcLength);
+
+        do { // usually we'll be able to do this in one step
+            integ.takeOneStep(arcLength);
+            //if (s < arcLength) printf("integ to %g returned early at %g\n", arcLength, s);
+        } while (s < arcLength);
+
+        // Save Jacobi field values.
+        jrP[step-1] = Vec2(eqns.getJRot(y), eqns.getJRotDot(y));
+        jtP[step-1] = Vec2(eqns.getJTrans(y), eqns.getJTransDot(y));
+    }
+
+    //printf("REVERSE acc=%g tol=%g: %d/%d steps, errtest=%d projfail=%d\n",
+    //    integ.getRequiredAccuracy(), integ.getConstraintTolerance(),
+    //    integ.getNumStepsTaken(), integ.getNumStepsAttempted(),
+    //    integ.getNumErrorTestFailures(), integ.getNumProjectionFailures());
+}
+
 
 // Compute a geodesic curve starting at the given point, starting in the given
 // direction, and terminating at the given plane.
@@ -1490,7 +1639,11 @@ shootGeodesicInDirectionUntilLengthReached(const Vec3& xP, const UnitVec3& tP,
         const Real& terminatingLength, const GeodesicOptions& options,
         Geodesic& geod) const {
     geodHitPlaneEvent->setEnabled(false);
+#ifdef USE_NEW_INTEGRATOR
+    shootGeodesicInDirection2(xP, tP, terminatingLength, options, geod);
+#else
     shootGeodesicInDirection(xP, tP, terminatingLength, options, geod);
+#endif
 }
 
 
@@ -1650,7 +1803,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     }
 
     //OrthoGeodesicError orthoErr(*this, P, Q);
-    //orthoErr.setEstimatedAccuracy(1e-16); // TODO
+    //orthoErr.setEstimatedAccuracy(1e-12); // TODO
     //Differentiator diff(orthoErr);
 
     //cout << "Using " << (useNewtonIteration ? "NEWTON" : "FIXED POINT")
@@ -1663,8 +1816,8 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         //std::cout << "ORTHO x= " << x << " err = " << Fx << " |err|=" << f 
         //          << " dist=" << dist << std::endl;
         if (f <= ftol) {
-            //std::cout << "ORTHO geodesic converged in " 
-             //         << i << " iterations with err=" << f << std::endl;
+           // std::cout << "ORTHO geodesic converged in " 
+            //          << i << " iterations with err=" << f << std::endl;
             break;
         }
 
@@ -1674,6 +1827,45 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             //diff.calcJacobian(Vector(x),  Vector(Fx), JMat, 
             //                  Differentiator::CentralDifference);
             //J = Mat22::getAs(&JMat(0,0));
+
+            //XXX: numerical calculation of j and jdot
+            //Geodesic geod0, geod1;
+            //calcOrthogonalGeodError(P, Q, x[0]-1e-5, x[1], geod0);
+            //calcOrthogonalGeodError(P, Q, x[0]+1e-5, x[1], geod1);
+            //Vec3 qdiff = geod1.getPointQ() - geod0.getPointQ();
+            //Real num_j = dot(qdiff,geod0.getBinormalQ())/2e-5;
+            //printf("Jacobi Q num=%g, analytic=%g\n", 
+            //    num_j, geod0.getJacobiQ());
+
+            //calcOrthogonalGeodError(P, Q, x[0]-1e-5, x[1]+1e-5, geod0);
+            //calcOrthogonalGeodError(P, Q, x[0]+1e-5, x[1]+1e-5, geod1);
+            //Vec3 qdiff2 = geod1.getPointQ() - geod0.getPointQ();
+            //Real num_j2 = dot(qdiff2,geod0.getBinormalQ())/2e-5;
+
+            //Real num_jd = (num_j2-num_j)/1e-5;
+            //printf("Jacobi dot Q num=%g, analytic=%g\n",
+            //    num_jd, geod0.getJacobiQDot());
+
+            //XXX: numerical calculation of jt and jtdot
+            //Geodesic geod0, geod1;
+            //calcOrthogonalGeodError(P-1e-5*geod.getBinormalP(), Q, x[0], x[1], geod0);
+            //calcOrthogonalGeodError(P+1e-5*geod.getBinormalP(), Q, x[0], x[1], geod1);
+            //Vec3 qdiff = geod1.getPointQ() - geod0.getPointQ();
+            //Real num_jt = dot(qdiff,geod0.getBinormalQ())/2e-5;
+            //printf("Jacobi Trans Q num=%g, analytic=%g\n", 
+            //    num_jt, geod0.getJacobiTransQ());
+
+            //calcOrthogonalGeodError(P-1e-5*geod.getBinormalP(), Q, x[0], x[1]+1e-5, geod0);
+            //calcOrthogonalGeodError(P+1e-5*geod.getBinormalP(), Q, x[0], x[1]+1e-5, geod1);
+            //Vec3 qdiff2 = geod1.getPointQ() - geod0.getPointQ();
+            //Real num_jt2 = dot(qdiff2,geod0.getBinormalQ())/2e-5;
+
+            //Real num_jtd = (num_jt2-num_jt)/1e-5;
+            //printf("Jacobi dot Q num=%g, analytic=%g\n",
+            //    num_jtd, geod0.getJacobiTransQDot());
+
+            const Real jt = geod.getJacobiTransQ();
+            const Real jtd = geod.getJacobiTransQDot();
 
             const Real eh = ~r_QQhat*geod.getNormalQ();
             const Real es = ~r_QQhat*geod.getTangentQ();
@@ -1710,7 +1902,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         lam = 1;
         if (dtheta > Pi/8) {
             lam = (Pi/8)/dtheta; 
-            cout << "ORTHO: lam reduced to " << lam << "\n";
+            //cout << "ORTHO: lam reduced to " << lam << "\n";
         }
 
         while (true) {
@@ -1759,7 +1951,11 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
                     << MaxIterations << " iterations with err=" << f << std::endl;
 
     // Finish each geodesic with reverse Jacobi field.
+#ifdef USE_NEW_INTEGRATOR
+    calcGeodesicReverseSensitivity2(geod, Vec2(0,1), Vec2(1,0));
+#else
     calcGeodesicReverseSensitivity(geod, Vec2(0,1));
+#endif
 
 }
 
@@ -2212,6 +2408,11 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 		// Backwards directional sensitivity from Q to P
 		Vec2 jQP(L-s, 1);
 		geod.addDirectionalSensitivityQtoP(jQP);
+
+
+        // TODO: positional sensitivity
+        geod.addPositionalSensitivityPtoQ(Vec2(NaN));
+        geod.addPositionalSensitivityQtoP(Vec2(NaN));
     }
 
 	// Only compute torsion and binormal curvature at the end points.
@@ -2477,6 +2678,11 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 		// Backwards directional sensitivity from Q to P
 		Vec2 jQP(R*sin(k * (L-s)), cos(k * (L-s)));
 		geod.addDirectionalSensitivityQtoP(jQP);
+
+
+        // TODO: positional sensitivity
+        geod.addPositionalSensitivityPtoQ(Vec2(NaN));
+        geod.addPositionalSensitivityQtoP(Vec2(NaN));
 
         geod.addCurvature(k);
     }
@@ -4240,7 +4446,7 @@ void ContactGeometry::Torus::Impl::createPolygonalMesh(PolygonalMesh& mesh) cons
 
     // add faces, be careful to wrap indices for the last slice
     int numVertices = mesh.getNumVertices();
-    cout << "num verts = " << numVertices << endl;
+//    cout << "num verts = " << numVertices << endl;
     for (int i = 0; i < numVertices; ++i) {
 //      cout << "v" << i << ": " << mesh.getVertexPosition(i) << endl;
       // define counter-clockwise quad faces
@@ -4315,6 +4521,9 @@ calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
     }
 
     //TODO higher order derivatives
+    SimTK_ASSERT1_ALWAYS(!"derivative not implemented",
+        "Implicit Torus implements 1st&2nd derivs only but %d deriv requested.",
+        derivComponents.size());
     return 0;
 }
 
@@ -4460,7 +4669,7 @@ int ParticleConSurfaceSystemGuts::realizeAccelerationImpl(const State& s) const 
     a = GT*-L; // fills in udot
 
     // Now evaluate the Jacobi field.
-    const Real Kg = geom.calcGaussianCurvature(p);
+    const Real Kg = geom.calcGaussianCurvature(GT,H);
     jdotdot = -Kg*j;    // sets udot[3]
 
     // Qdotdots are just udots here.
@@ -4536,7 +4745,7 @@ void ParticleConSurfaceSystemGuts::projectQImpl(State& s, Vector& qerrest,
 
     } while (std::abs(ep) > consAccuracy && qchg >= 0.01*consAccuracy);
 
-
+/*
     // Now do error estimates.
     if (qerrest.size()) {
         Vec3& eq = Vec3::updAs(&qerrest[0]);
@@ -4556,7 +4765,7 @@ void ParticleConSurfaceSystemGuts::projectQImpl(State& s, Vector& qerrest,
 //                << " wrms=" << std::sqrt(qerrest.normSqr()/q.size()) << std::endl;
 //        std::cout << "P*eq=" << ~g*eq << std::endl;
     }
-
+*/
     results.setExitStatus(ProjectResults::Succeeded);
 }
 
@@ -4644,6 +4853,7 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
 //    } while (std::max(std::abs(ev[0]), std::abs(ev[1])) > consAccuracy &&
 //             vchg >= 0.01*consAccuracy);
 
+/*
     // Now do error estimates.
     if (uerrest.size()) {
         Vec3& eu = Vec3::updAs(&uerrest[0]);
@@ -4661,7 +4871,7 @@ void ParticleConSurfaceSystemGuts::projectUImpl(State& s, Vector& uerrest,
 //             << " wrms=" << std::sqrt(uerrest.normSqr()/u.size())  << std::endl;
 //        std::cout << " VW*eu=" << ~n*eu << std::endl;
     }
-
+*/
     results.setExitStatus(ProjectResults::Succeeded);
 //    std::cout << "norm(u) = " << s.getU(subsysIndex).norm() << std::endl;
 }
@@ -4779,7 +4989,7 @@ int ParticleOnSurfaceSystemGuts::realizeAccelerationImpl(const State& s) const {
     a = GT*-L;          // sets udot[0..2]
 
     // Now evaluate the Jacobi field.
-    const Real Kg = geom.calcGaussianCurvature(p);
+    const Real Kg = geom.calcGaussianCurvature(GT,H);
     jdotdot = -Kg*j;    // sets udot[3]
 
     // qdotdot is just udot.

@@ -128,8 +128,11 @@ int main() {
 //    ContactGeometry::Cylinder geom(r);
     ContactGeometry::Torus geom(2*r, r);
 
-    //Vec3 radii(0.2,0.4,0.6);
+    Vec3 radii(0.2,0.4,0.6);
     //ContactGeometry::Ellipsoid geom(radii);
+
+    Real startLength = 0.5;
+    //startLength=5;
 
 
     Real phiP		=    0.0*Pi;
@@ -153,6 +156,9 @@ int main() {
      Q(1) -= -r*0.5;
      P(1) -= r*0.5;
      P(0) -= r/2;
+
+     //Q=P+Vec3(1.25,-1,0); P+=Vec3(-1,-.9,0);
+     //Q=P+Vec3(1,-1,-1.5); P+=Vec3(-1,-.9,0);
 
      // project back to surface for testing
      Vec3 tmpPt;
@@ -282,7 +288,7 @@ int main() {
     */
 
     // calculate the geodesic
-    geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
+    //geom.addVizReporter(new VizPeriodicReporter(viz, dummyState, vizInterval));
     viz.report(dummyState);
 
     const Real startReal = realTime(), startCpu = cpuTime();
@@ -291,16 +297,23 @@ int main() {
     //geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
     //geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
     Rotation R(-Pi/8*0, YAxis); // TODO: 2.7 vs. 2.78
-    geom.calcGeodesicUsingOrthogonalMethod(P, Q, R*Vec3(0.9,0,-.3), 0.5, geod);
+    geom.calcGeodesicUsingOrthogonalMethod(P, Q, R*Vec3(0.9,0,-.3), 
+                                           startLength, geod);
     //geom.makeStraightLineGeodesic(P, Q, e_OP, GeodesicOptions(), geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
+    viz.report(dummyState);
+    printf("Geodesic has %d points; %d geodesics shot\n", 
+        geod.getNumPoints(), geom.getNumGeodesicsShot());
 
     const Array_<Real>& arcLength = geod.getArcLengths();
     const Array_<Transform>& frenet = geod.getFrenetFrames();
-    const Array_<Vec2>& dirPtoQ = geod.getDirectionalSensitivityPtoQ();
-    const Array_<Vec2>& dirQtoP = geod.getDirectionalSensitivityQtoP();
+    const Array_<Vec2>& rotPtoQ = geod.getDirectionalSensitivityPtoQ();
+    const Array_<Vec2>& rotQtoP = geod.getDirectionalSensitivityQtoP();
+    const Array_<Vec2>& transPtoQ = geod.getPositionalSensitivityPtoQ();
+    const Array_<Vec2>& transQtoP = geod.getPositionalSensitivityQtoP();
     const Array_<Real>& curvature = geod.getCurvatures();
+    bool showTrans = !transPtoQ.empty();
     cout << "torsion at P=" << geod.getTorsionP() 
          << " binormal curvature kb at P=" << geod.getBinormalCurvatureP() << endl;
     for (int i=0; i < geod.getNumPoints(); ++i) {
@@ -309,7 +322,8 @@ int main() {
         cout << "t=" << frenet[i].y() << "\n";
         cout << "b=" << frenet[i].x() << "\n";
         cout << "n=" << frenet[i].z() << "\n";
-        cout << "jQ=" << dirPtoQ[i] << " jP=" << dirQtoP[i] << endl;
+        cout << "jrQ=" << rotPtoQ[i] << " jrP=" << rotQtoP[i] << "\n"; 
+        if (showTrans) cout << "jtQ=" << transPtoQ[i] << " jtP=" << transQtoP[i] << "\n"; 
     }
     cout << "torsion at Q=" << geod.getTorsionQ() 
          << " binormal curvature kb at Q=" << geod.getBinormalCurvatureQ() << endl;

@@ -79,7 +79,6 @@ public:
     {   return directionalSensitivityPtoQ; }
     const Array_<Vec2>& getDirectionalSensitivityPtoQ() const 
     {   return directionalSensitivityPtoQ; }
-
     void addDirectionalSensitivityPtoQ(const Vec2& jP) {
         directionalSensitivityPtoQ.push_back(jP);
     }
@@ -90,6 +89,22 @@ public:
     {   return directionalSensitivityQtoP; }
     void addDirectionalSensitivityQtoP(const Vec2& jQ) {
         directionalSensitivityQtoP.push_back(jQ);
+    }
+
+    Array_<Vec2>& updPositionalSensitivityPtoQ() 
+    {   return positionalSensitivityPtoQ; }
+    const Array_<Vec2>& getPositionalSensitivityPtoQ() const 
+    {   return positionalSensitivityPtoQ; }
+    void addPositionalSensitivityPtoQ(const Vec2& jtP) {
+        positionalSensitivityPtoQ.push_back(jtP);
+    }
+
+    Array_<Vec2>& updPositionalSensitivityQtoP() 
+    {   return positionalSensitivityQtoP; }
+    const Array_<Vec2>& getPositionalSensitivityQtoP() const 
+    {   return positionalSensitivityQtoP; }
+    void addPositionalSensitivityQtoP(const Vec2& jtQ) {
+        positionalSensitivityQtoP.push_back(jtQ);
     }
 
     void setTorsionAtP(Real tauP) {torsionAtP = tauP;}
@@ -197,6 +212,12 @@ public:
     geodesic. That is, jQDot = d/ds jQ. **/
     Real getJacobiQDot() const {return directionalSensitivityPtoQ.back()[1];}
 
+    // XXX testing
+    Real getJacobiTransP() const {return positionalSensitivityQtoP.front()[0];}
+    Real getJacobiTransQ() const {return positionalSensitivityPtoQ.back()[0];}
+    Real getJacobiTransPDot() const {return -positionalSensitivityQtoP.front()[1];}
+    Real getJacobiTransQDot() const {return positionalSensitivityPtoQ.back()[1];}
+
     /** Clear the data in this geodesic, returning it to its default-constructed
     state, although memory remains allocated. **/
     void clear() {
@@ -204,6 +225,8 @@ public:
         frenetFrames.clear(); 
         directionalSensitivityPtoQ.clear(); 
         directionalSensitivityQtoP.clear(); 
+        positionalSensitivityPtoQ.clear(); 
+        positionalSensitivityQtoP.clear(); 
         curvature.clear();
         torsionAtP = torsionAtQ = NaN;
         binormalCurvatureAtP = binormalCurvatureAtQ = NaN;
@@ -229,6 +252,8 @@ private:
     Array_<Transform> frenetFrames; // see above for more info
     Array_<Vec2>      directionalSensitivityPtoQ; // jQ and jQdot
     Array_<Vec2>      directionalSensitivityQtoP; // jP and -jPdot
+    Array_<Vec2>      positionalSensitivityPtoQ; // jtQ and jtQdot
+    Array_<Vec2>      positionalSensitivityQtoP; // jtP and -jtPdot
     Array_<Real>      curvature; // normal curvature kappa in tangent direction
     // These are only calculated at the end points.
     Real              torsionAtP, torsionAtQ; // torsion tau (only at ends) 
