@@ -104,6 +104,16 @@ void testXmlFromString() {
     fromString.readFromString(xmlPlainTextFile);
     cout << "Plain text file: '" << fromString << "'\n";
 
+    // Note that the "condense white space" setting is global, not 
+    // document-specific.
+    Xml::Document preserveWhite;
+    Xml::setXmlCondenseWhiteSpace(false);
+    SimTK_TEST(!Xml::isXmlWhiteSpaceCondensed());
+    preserveWhite.readFromString(xmlPlainTextFile);
+    cout << "Plain text file with white space preserved: " 
+         << preserveWhite.getRootElement().getValue() << "\n";
+    Xml::setXmlCondenseWhiteSpace(true);
+
     SimTK_TEST_MUST_THROW(fromString.readFromString(xmlEmpty));
     SimTK_TEST_MUST_THROW(fromString.readFromString(xmlUnclosedComment));
 

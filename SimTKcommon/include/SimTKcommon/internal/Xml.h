@@ -388,6 +388,14 @@ void setIndentString(const String& indent);
 /** Return the current value of the indent string.\ The default is
 four spaces. @see setIndentString() **/
 const String& getIndentString() const;
+
+/** Set global mode to control whether white space is preserved or condensed 
+down to a single space (affects all subsequent document reads; not document
+specific). The default is to condense. **/
+static void setXmlCondenseWhiteSpace(bool shouldCondense);
+/** Return the current setting of the global "condense white space" option. 
+Note that this option affects all Xml reads; it is not document specific. **/
+static bool isXmlWhiteSpaceCondensed();
 /*@}*/
 
 

@@ -316,6 +316,11 @@ void Xml::setIndentString(const String& indent)
 const String& Xml::getIndentString() const
 {   return getImpl().getIndentString(); }
 
+/*static*/void Xml::setXmlCondenseWhiteSpace(bool shouldCondense)
+{   TiXmlBase::SetCondenseWhiteSpace(shouldCondense); }
+/*static*/bool Xml::isXmlWhiteSpaceCondensed()
+{   return TiXmlBase::IsWhiteSpaceCondensed(); }
+
 Xml::Element Xml::getRootElement() 
 {   assert(getImpl().m_rootElement.isValid());
     return updImpl().m_rootElement; }
