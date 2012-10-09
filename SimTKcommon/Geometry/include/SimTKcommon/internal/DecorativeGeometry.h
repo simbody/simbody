@@ -386,6 +386,11 @@ public:
     void setText(const std::string& label);
     const std::string& getText() const;
 
+    /** By default the text is part of the scene; set this flag if you want
+    it to just show up in a fixed spot on the screen instead. **/
+    void setIsScreenText(bool isScreen);
+    bool getIsScreenText() const;
+
     SimTK_PIMPL_DOWNCAST(DecorativeText, DecorativeGeometry);
 private:
     class DecorativeTextRep& updRep();

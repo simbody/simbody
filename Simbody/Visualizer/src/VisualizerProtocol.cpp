@@ -478,7 +478,7 @@ drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness)
 
 void VisualizerProtocol::
 drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
-         const string& string, bool faceCamera) {
+         const string& string, bool faceCamera, bool isScreenText) {
     SimTK_ERRCHK1_ALWAYS(string.size() <= 256,
         "VisualizerProtocol::drawText()",
         "Can't display DecorativeText longer than 256 characters;"
@@ -497,6 +497,8 @@ drawText(const Vec3& position, const Vec3& scale, const Vec4& color,
     WRITE(outPipe, buffer, 9*sizeof(float));
     short face = (short)faceCamera;
     WRITE(outPipe, &face, sizeof(short));
+    short screen = (short)isScreenText;
+    WRITE(outPipe, &screen, sizeof(short));
     short length = (short)string.size();
     WRITE(outPipe, &length, sizeof(short));
     WRITE(outPipe, &string[0], length);

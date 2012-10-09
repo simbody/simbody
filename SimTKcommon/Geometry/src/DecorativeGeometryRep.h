@@ -477,8 +477,8 @@ class DecorativeTextRep : public DecorativeGeometryRep {
 static const int DefaultResolution = 15;
 public:
 // no default constructor
-explicit DecorativeTextRep(const std::string& label) : text(label) {
-}
+explicit DecorativeTextRep(const std::string& label) 
+: text(label), isScreenText(false) {}
 
 void setText(const std::string& label) {
     text = label;
@@ -486,6 +486,9 @@ void setText(const std::string& label) {
 const std::string& getText() const {
     return text;
 }
+
+void setIsScreenText(bool isScreen) {isScreenText=isScreen;}
+bool getIsScreenText() const {return isScreenText;}
 
 // virtuals
 DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
@@ -500,6 +503,7 @@ void implementGeometry(DecorativeGeometryImplementation& geometry) const {
 SimTK_DOWNCAST(DecorativeTextRep, DecorativeGeometryRep);
 private:
 std::string text;
+bool        isScreenText; // in screen coordinates
 
 // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
 const DecorativeText& getMyTextHandle() const {

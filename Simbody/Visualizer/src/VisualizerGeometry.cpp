@@ -123,8 +123,9 @@ void VisualizerGeometry::implementTextGeometry(const SimTK::DecorativeText& geom
     const Transform X_GD = calcX_GD(geom);
     // The default is to face the camera.
     bool faceCamera = geom.getFaceCamera()<0 ? true : (geom.getFaceCamera()!=0);
+    bool isScreenText = geom.getIsScreenText();
     protocol.drawText(X_GD.p(), getScaleFactors(geom), getColor(geom), 
-                      geom.getText(), faceCamera);
+                      geom.getText(), faceCamera, isScreenText);
 }
 
 void VisualizerGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& geom) {

@@ -38,7 +38,7 @@ using namespace SimTK;
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 30;
+static const unsigned ProtocolVersion   = 31;
 
 // The VisualizerGUI has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -122,7 +122,7 @@ public:
     void drawLine(const Vec3& end1, const Vec3& end2, const 
                   Vec4& color, Real thickness);
     void drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
-                  const std::string& string, bool faceCamera=true);
+                  const std::string& string, bool faceCamera, bool isScreenText);
     void drawCoords(const Transform& transform, const Vec3& axisLengths, 
                     const Vec4& color);
     

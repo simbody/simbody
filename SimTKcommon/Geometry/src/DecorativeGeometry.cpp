@@ -332,6 +332,13 @@ const std::string& DecorativeText::getText() const {
 return DecorativeTextRep::downcast(*rep).getText();
 }
 
+void DecorativeText::setIsScreenText(bool isScreen) {
+    DecorativeTextRep::downcast(*rep).setIsScreenText(isScreen);
+}
+bool DecorativeText::getIsScreenText() const {
+return DecorativeTextRep::downcast(*rep).getIsScreenText();
+}
+
     /////////////////////
     // DECORATIVE MESH //
     /////////////////////
