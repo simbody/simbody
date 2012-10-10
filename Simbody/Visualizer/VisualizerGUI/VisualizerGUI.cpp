@@ -2015,13 +2015,14 @@ static Scene* readNewScene() {
         }
 
         case AddText: {
-            readData(buffer, 9*sizeof(float)+2*sizeof(short));
+            readData(buffer, 9*sizeof(float)+3*sizeof(short));
             fVec3 position = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             fVec3 scale = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             fVec3 color = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
             unsigned short* shortp = &shortBuffer[9*sizeof(float)/sizeof(short)];
             bool faceCamera = (shortp[0] != 0);
-            short length = shortp[1];
+            bool isScreenText = (shortp[1] != 0);
+            short length = shortp[2];
             readData(buffer, length);
             newScene->strings.push_back
                (RenderedText(position, scale, color, 
