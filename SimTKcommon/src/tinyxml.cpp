@@ -142,7 +142,9 @@ void TiXmlBase::EncodeString
 			outString->append( entity[4].str, entity[4].strLength );
 			++i;
 		}
-		else if ( c < 32 )
+        //sherm 20121009: if we preserved white space on the way in, preserve
+        //it on the way out also.
+		else if ( c < 32 && (condenseWhiteSpace || !IsWhiteSpace(c)))
 		{
 			// Easy pass at non-alpha/numeric/symbol
 			// Below 32 is symbolic.
