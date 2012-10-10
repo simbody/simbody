@@ -41,6 +41,7 @@ using namespace SimTK;
 const char* xmlPainting = 
 "<?xml version='1.0' encoding='UTF-8'?>\n"
 "<!-- a top-level comment -->\n"
+"<!-- a multiline\n comment\n third line -->\n"
 "     \n" // line should be ignored
 "but something like this is top level text and will need to get \n"
 "moved into a new '_Root' element\n"
@@ -110,9 +111,13 @@ void testXmlFromString() {
     Xml::setXmlCondenseWhiteSpace(false);
     SimTK_TEST(!Xml::isXmlWhiteSpaceCondensed());
     preserveWhite.readFromString(xmlPlainTextFile);
-    cout << "Plain text file with white space preserved: " 
+    cout << "Plain text file with white space preserved (raw): " 
          << preserveWhite.getRootElement().getValue() << "\n";
+    cout << "... (formatted with condense=false): " 
+         << preserveWhite << "\n";    
     Xml::setXmlCondenseWhiteSpace(true);
+    cout << "... (formatted with condense=true): " 
+         << preserveWhite << "\n";    
 
     SimTK_TEST_MUST_THROW(fromString.readFromString(xmlEmpty));
     SimTK_TEST_MUST_THROW(fromString.readFromString(xmlUnclosedComment));
