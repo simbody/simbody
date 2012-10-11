@@ -3719,9 +3719,10 @@ void ConstraintImpl::getMultipliers(const State& s, int mpva, Real* lambda) cons
                    + cInfo.nonholoErrSegment.length
                    + cInfo.accOnlyErrSegment.length);
 
-    // Get reference to all multipliers for the subsystem. Use "upd" here
-    // because we might still be realizing this state.
-    const Vector& multipliers = getMyMatterSubsystemRep().updMultipliers(s);
+    // Get reference to all multipliers for the subsystem. This will throw
+    // an error if the matter subsystem hasn't already been realized through
+    // acceleration stage.
+    const Vector& multipliers = getMyMatterSubsystemRep().getMultipliers(s);
 
     // Find the offset to our first multiplier in the ModelCache.
     const int firstHoloErr = cInfo.holoErrSegment.offset;
