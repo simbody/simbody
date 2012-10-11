@@ -270,10 +270,17 @@ int MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
 }
 int MultibodySystemRep::realizeAccelerationImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemAcceleration(s);
-    // note order: forces first (TODO: does that matter?)
+
+    // Realize matter subsystem's accelerations and multipliers next; they
+    // can depend only on force calculations at Dynamics stage.
+    getMatterSubsystem().getRep().realizeSubsystemAcceleration(s);
+
+    // Force elements' realizeAcceleration() methods might depend on 
+    // accelerations or multipliers we just calculated. For example, a friction
+    // force might record normal forces to use as an initial guess in the
+    // next time step.
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemAcceleration(s);
-    getMatterSubsystem().getRep().realizeSubsystemAcceleration(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemAcceleration(s);
@@ -282,10 +289,10 @@ int MultibodySystemRep::realizeAccelerationImpl(const State& s) const {
 }
 int MultibodySystemRep::realizeReportImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemReport(s);
-    // note order: forces first (TODO: does that matter?)
+
+    getMatterSubsystem().getRep().realizeSubsystemReport(s);
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemReport(s);
-    getMatterSubsystem().getRep().realizeSubsystemReport(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemReport(s);
