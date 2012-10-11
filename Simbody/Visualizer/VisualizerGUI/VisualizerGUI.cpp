@@ -309,6 +309,23 @@ private:
     bool faceCamera;
 };
 
+class ScreenText {
+public:
+    ScreenText(const string& txt) 
+    :   text(txt)  {
+        //this->color[0] = color[0];
+        //this->color[1] = color[1];
+        //this->color[2] = color[2];
+    }
+
+    const char* getText() {return text.c_str();}
+
+private:
+    //GLfloat color[3];
+    string text;
+};
+
+
 
 /*==============================================================================
                                 SCENE DATA
@@ -340,7 +357,8 @@ public:
     vector<RenderedMesh> solidMeshes;
     vector<RenderedMesh> transparentMeshes;
     vector<RenderedLine> lines;
-    vector<RenderedText> strings;
+    vector<RenderedText> sceneText;
+    vector<ScreenText>   screenText;
 
     bool sceneHasBeenDrawn;
 };
@@ -768,10 +786,10 @@ static void computeSceneBounds(const Scene* scene, float& radius, fVec3& center)
         centers.push_back(center);
         radii.push_back(radius);
     }
-    for (int i = 0; i < (int) scene->strings.size(); i++) {
+    for (int i = 0; i < (int) scene->sceneText.size(); i++) {
         fVec3 center;
         float radius;
-        scene->strings[i].computeBoundingSphere(radius, center);
+        scene->sceneText[i].computeBoundingSphere(radius, center);
         centers.push_back(center);
         radii.push_back(radius);
     }
@@ -1421,8 +1439,8 @@ static void renderScene() {
         for (int i = 0; i < (int) scene->lines.size(); i++)
             scene->lines[i].draw();
         glLineWidth(2);
-        for (int i = 0; i < (int) scene->strings.size(); i++)
-            scene->strings[i].draw();
+        for (int i = 0; i < (int) scene->sceneText.size(); i++)
+            scene->sceneText[i].draw();
         glLineWidth(1);
         glEnableClientState(GL_NORMAL_ARRAY);
         for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
@@ -1469,7 +1487,7 @@ static void renderScene() {
 // numbers to be higher than the number of scenes sent by the simulator.
 static void redrawDisplay() {
     // If a movie is being generated, save frames.
-
+    // ------------------------------------------------------------
     if (saveNextFrameToMovie) {
         saveNextFrameToMovie = false;
         stringstream filename;
@@ -1481,11 +1499,11 @@ static void redrawDisplay() {
     }
 
     // Render the scene.
-
+    // ------------------------------------------------------------
     renderScene();
 
     // Draw menus.
-
+    // ------------------------------------------------------------
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
     glMatrixMode(GL_PROJECTION);
@@ -1503,42 +1521,61 @@ static void redrawDisplay() {
         menux += menus[i].draw(menux, viewHeight-10);
 
     // Draw sliders.
-
+    // ------------------------------------------------------------
     int slidery = viewHeight-35;
     for (int i = 0; i < (int) sliders.size(); i++)
         slidery = sliders[i].draw(slidery);
 
     // Draw the "heads-up" display.
+    // ------------------------------------------------------------
+    glColor3f(1.0f, 0.5f, 0.0f);
+    void* font = (void*)GLUT_BITMAP_HELVETICA_18;
+    GLfloat nextLine = 25, lineHeight = 18;
 
-    if (showFPS || showFrameNum || showSimTime) {
-        glColor3f(1.0f, 0.5f, 0.0f);
-        void* font = (void*)GLUT_BITMAP_HELVETICA_18;
-        GLfloat nextLine = 25, lineHeight = 18;
-        if (showFPS) {
-        char fpstxt[64]; sprintf(fpstxt, "FPS:   %.1f", fps); // 1 decimal place
+    // Frames per second
+    if (showFPS) {
+    char fpstxt[64]; sprintf(fpstxt, "FPS:   %.1f", fps); // 1 decimal place
+        glRasterPos2f(10, nextLine);
+        for (const char* p = fpstxt; *p; ++p)
+            glutBitmapCharacter(font, *p);
+        nextLine += lineHeight;
+    }
+
+    // Simulation time
+    if (showSimTime) {
+        char timetxt[64]; sprintf(timetxt, "Time:  %.1f", lastSceneSimTime);
+        glRasterPos2f(10, nextLine);
+        for (const char* p = timetxt; *p; ++p)
+            glutBitmapCharacter(font, *p);
+        nextLine += lineHeight;
+    }
+
+    // Frame number
+    if (showFrameNum) {
+        char cnttxt[64]; sprintf(cnttxt, "Frame: %d", frameCounter);
+        glRasterPos2f(10, nextLine);
+        for (const char* p = cnttxt; *p; ++p)
+            glutBitmapCharacter(font, *p);
+        nextLine += lineHeight;
+    }
+
+    // User input screen text
+    if (scene != NULL) {
+        for (int i=0; i<(int)scene->screenText.size(); ++i)
+        {
             glRasterPos2f(10, nextLine);
-            for (const char* p = fpstxt; *p; ++p)
-                glutBitmapCharacter(font, *p);
-            nextLine += lineHeight;
-        }
-        if (showSimTime) {
-            char timetxt[64]; sprintf(timetxt, "Time:  %.1f", lastSceneSimTime);
-            glRasterPos2f(10, nextLine);
-            for (const char* p = timetxt; *p; ++p)
-                glutBitmapCharacter(font, *p);
-            nextLine += lineHeight;
-        }
-        if (showFrameNum) {
-            char cnttxt[64]; sprintf(cnttxt, "Frame: %d", frameCounter);
-            glRasterPos2f(10, nextLine);
-            for (const char* p = cnttxt; *p; ++p)
+            for (const char* p = scene->screenText[i].getText(); *p; ++p)
                 glutBitmapCharacter(font, *p);
             nextLine += lineHeight;
         }
     }
 
-    // Draw a message overlay (center box, with text left justified in box).
 
+
+
+    // Draw a message overlay 
+    // (center box, with text left justified in box).
+    // ------------------------------------------------------------
     if (displayOverlayMessage) {
         void* font = (void*)GLUT_BITMAP_HELVETICA_18;
         const int lineSpacing = 25;
@@ -2024,9 +2061,13 @@ static Scene* readNewScene() {
             bool isScreenText = (shortp[1] != 0);
             short length = shortp[2];
             readData(buffer, length);
-            newScene->strings.push_back
-               (RenderedText(position, scale, color, 
-                             string((char*)buffer, length), faceCamera));
+
+            if (isScreenText)
+                newScene->screenText.push_back(
+                    ScreenText(string((char*)buffer, length)));
+            else
+                newScene->sceneText.push_back(
+                    RenderedText(position, scale, color, string((char*)buffer, length), faceCamera));
             break;
         }
 
@@ -2059,7 +2100,7 @@ static Scene* readNewScene() {
             line.push_back(end[0]);
             line.push_back(end[1]);
             line.push_back(end[2]);
-            newScene->strings.push_back(RenderedText(end, textScale, color, "X"));
+            newScene->sceneText.push_back(RenderedText(end, textScale, color, "X"));
             end = position+rotation*fVec3(0, axisLengths[1], 0);
             line.push_back(position[0]);
             line.push_back(position[1]);
@@ -2067,7 +2108,7 @@ static Scene* readNewScene() {
             line.push_back(end[0]);
             line.push_back(end[1]);
             line.push_back(end[2]);
-            newScene->strings.push_back(RenderedText(end, textScale, color, "Y"));
+            newScene->sceneText.push_back(RenderedText(end, textScale, color, "Y"));
             end = position+rotation*fVec3(0, 0, axisLengths[2]);
             line.push_back(position[0]);
             line.push_back(position[1]);
@@ -2075,7 +2116,7 @@ static Scene* readNewScene() {
             line.push_back(end[0]);
             line.push_back(end[1]);
             line.push_back(end[2]);
-            newScene->strings.push_back(RenderedText(end, textScale, color, "Z"));
+            newScene->sceneText.push_back(RenderedText(end, textScale, color, "Z"));
             break;
         }
 
@@ -2668,6 +2709,8 @@ int main(int argc, char** argv) {
     glutPassiveMotionFunc(mouseMoved);
     glutKeyboardFunc(ordinaryKeyPressed);
     glutSpecialFunc(specialKeyPressed);
+
+    //dumpAboutMessageToConsole();
 
     // On some systems (Windows at least), some of the gl functions may
     // need to be loaded dynamically.
