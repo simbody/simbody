@@ -629,29 +629,26 @@ public:
     virtual bool dependsOnlyOnPositions() const {
         return false;
     }
-    /**
-     * The following methods may optionally be overridden to do specialized realization for a Force.
-     */
+    /** The following methods may optionally be overridden to do specialized 
+    realization for a Force. **/
     //@{
-    virtual void realizeTopology(State& state) const {
-    }
-    virtual void realizeModel(State& state) const {
-    }
-    virtual void realizeInstance(const State& state) const {
-    }
-    virtual void realizeTime(const State& state) const {
-    }
-    virtual void realizePosition(const State& state) const {
-    }
-    virtual void realizeVelocity(const State& state) const {
-    }
-    virtual void realizeDynamics(const State& state) const {
-    }
-    virtual void realizeAcceleration(const State& state) const {
-    }
-    virtual void realizeReport(const State& state) const {
-    }
+    virtual void realizeTopology(State& state) const {}
+    virtual void realizeModel(State& state) const {}
+    virtual void realizeInstance(const State& state) const {}
+    virtual void realizeTime(const State& state) const {}
+    virtual void realizePosition(const State& state) const {}
+    virtual void realizeVelocity(const State& state) const {}
+    virtual void realizeDynamics(const State& state) const {}
+    virtual void realizeAcceleration(const State& state) const {}
+    virtual void realizeReport(const State& state) const {}
     //@}
+
+    /** Override this if you want to generate some geometry for the visualizer
+    to display. Be sure to \e append the geometry to the list. **/
+    virtual void calcDecorativeGeometryAndAppend
+       (const State& state, Stage stage, 
+        Array_<DecorativeGeometry>& geometry) const {}
+
 };
 
 } // namespace SimTK

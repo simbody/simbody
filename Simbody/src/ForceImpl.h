@@ -76,6 +76,10 @@ public:
     virtual void realizeDynamics    (const State& state) const {}
     virtual void realizeAcceleration(const State& state) const {}
     virtual void realizeReport      (const State& state) const {}
+
+    virtual void calcDecorativeGeometryAndAppend
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const {}
+
 private:
         // CONSTRUCTION
     GeneralForceSubsystem* forces;  // just a reference; no delete on destruction
@@ -335,8 +339,10 @@ public:
     bool dependsOnlyOnPositions() const {
         return implementation->dependsOnlyOnPositions();
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
-    Real calcPotentialEnergy(const State& state) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+                   Vector_<Vec3>& particleForces, Vector& mobilityForces) 
+                   const OVERRIDE_11;
+    Real calcPotentialEnergy(const State& state) const OVERRIDE_11;
     ~CustomImpl() {
         delete implementation;
     }
@@ -347,32 +353,37 @@ public:
         return *implementation;
     }
 protected:
-    void realizeTopology(State& state) const {
+    void realizeTopology(State& state) const OVERRIDE_11 {
         implementation->realizeTopology(state);
     }
-    void realizeModel(State& state) const {
+    void realizeModel(State& state) const OVERRIDE_11 {
         implementation->realizeModel(state);
     }
-    void realizeInstance(const State& state) const {
+    void realizeInstance(const State& state) const OVERRIDE_11 {
         implementation->realizeInstance(state);
     }
-    void realizeTime(const State& state) const {
+    void realizeTime(const State& state) const OVERRIDE_11 {
         implementation->realizeTime(state);
     }
-    void realizePosition(const State& state) const {
+    void realizePosition(const State& state) const OVERRIDE_11 {
         implementation->realizePosition(state);
     }
-    void realizeVelocity(const State& state) const {
+    void realizeVelocity(const State& state) const OVERRIDE_11 {
         implementation->realizeVelocity(state);
     }
-    void realizeDynamics(const State& state) const {
+    void realizeDynamics(const State& state) const OVERRIDE_11 {
         implementation->realizeDynamics(state);
     }
-    void realizeAcceleration(const State& state) const {
+    void realizeAcceleration(const State& state) const OVERRIDE_11 {
         implementation->realizeAcceleration(state);
     }
-    void realizeReport(const State& state) const {
+    void realizeReport(const State& state) const OVERRIDE_11 {
         implementation->realizeReport(state);
+    }
+    void calcDecorativeGeometryAndAppend(const State& state, Stage stage, 
+        Array_<DecorativeGeometry>& geom) const OVERRIDE_11 
+    {
+        implementation->calcDecorativeGeometryAndAppend(state,stage,geom);
     }
 private:
     Force::Custom::Implementation* implementation;
