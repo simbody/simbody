@@ -39,7 +39,9 @@ public:
     Impl(const String& pathname) {
         readFromFile(pathname.c_str());
     }
-    ~Impl() {}
+    ~Impl() {
+        clear();
+    }
 
     // Note that the copy must be canonicalized before use -- that's so we
     // get our root element pointing correctly into the copy rather than
