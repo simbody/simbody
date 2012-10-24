@@ -2015,9 +2015,11 @@ public:
         markCacheValueRealized(subsys, cx);
     }
 
-    // You can update at any time a variable that was allocated during realizeTopology(), 
-    // but later variables must wait until you have done realizeModel(). This always 
-    // backs the stage up to one earlier than the variable's stage.
+    // You can update at any time a variable that was allocated during 
+    // realizeTopology(), but later variables must wait until you have done 
+    // realizeModel(). This always backs the stage up to one earlier than the 
+    // variable's "invalidates" stage, and if there is an auto-update cache 
+    // entry it is also invalidated, regardless of its "depends on" stage.
     AbstractValue& 
     updDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) {
         PerSubsystemInfo& ss = subsystems[subsys];
@@ -2031,6 +2033,13 @@ public:
         }
     
         invalidateAll(dv.getInvalidatedStage());
+
+        // Invalidate the auto-update entry, if any.
+        const CacheEntryIndex cx = dv.getAutoUpdateEntry();
+        if (cx.isValid()) {
+            CacheEntryInfo& ce = ss.cacheInfo[cx];
+            ce.invalidate();
+        }
     
         // We're now marking this variable as having been updated at the current time.
         return dv.updValue(t);
