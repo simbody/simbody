@@ -514,7 +514,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     do {
         // If we lose more than a small fraction of the step size we wanted
         // to take due to a need to stop at tMax, make a note of that so the
-        // step size adjuster won't try to grow the current step.
+        // step size adjuster won't try to grow from the current step.
         bool hWasArtificiallyLimited = (tMax < t0 + 0.95*currentStepSize);
         t1 = std::min(tMax, t0+currentStepSize);
         SimTK_ERRCHK1_ALWAYS(t1 > t0, "AbstractIntegrator::takeOneStep()",
@@ -541,11 +541,11 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
                                          : true);
         if (!stepSucceeded)
             statsErrorTestFailures++;
-	else { // step succeeded
-	    lastStepSize = t1-t0;
-	    if (isNaN(actualInitialStepSizeTaken))
-                actualInitialStepSizeTaken = lastStepSize;
-	}
+	    else { // step succeeded
+	        lastStepSize = t1-t0;
+	        if (isNaN(actualInitialStepSizeTaken))
+                    actualInitialStepSizeTaken = lastStepSize;
+	    }
     } while (!stepSucceeded);
     
     // The step succeeded. Check for event triggers. If there aren't any, we're
