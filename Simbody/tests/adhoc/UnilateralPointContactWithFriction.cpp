@@ -157,7 +157,7 @@ using namespace SimTK;
 
 const Real ReportInterval=1./30;
 const Real RunTime=10;
-//const Real EventIsolationTol = 1e-6;
+
 
 //==============================================================================
 //                           MY CONTACT ELEMENT
@@ -686,7 +686,6 @@ public:
     { 
         // Trigger only as height goes from positive to negative.
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
-        //getTriggerInfo().setRequiredLocalizationTimeWindow(EventIsolationTol);
     }
 
     // This is the witness function.
@@ -759,14 +758,6 @@ public:
                                MyElementSubset& proximal,
                                State&           state) const;
 
-    // This method is used at the start of compression phase to modify any
-    // constraint parameters as necessary, and then enable all the proximal
-    // constraints. Some or all of these will be disabled during the impact
-    // analysis in compression or expansion phases. On return the state has
-    // been updated and realized through Instance stage.
-    void enableAllProximalConstraints(MyElementSubset&  proximal,
-                                      State&            state) const;
-
     // Given only the subset of proximal constraints that are active, calculate
     // the impulse that would eliminate all their velocity errors. No change is
     // made to the set of active constraints. Some of the resulting impulses
@@ -809,7 +800,6 @@ public:
         m_mbs(system), m_unis(unis), m_which(which)
     { 
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
-        //getTriggerInfo().setRequiredLocalizationTimeWindow(EventIsolationTol);
     }
 
     // This is the witness function.
@@ -1230,7 +1220,6 @@ public:
         m_mbs(system), m_unis(unis), m_which(which)
     { 
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
-        //getTriggerInfo().setRequiredLocalizationTimeWindow(EventIsolationTol);
     }
 
     // This is the witness function.
@@ -1283,7 +1272,6 @@ public:
         m_mbs(system), m_unis(unis), m_which(which)
     {
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
-        //getTriggerInfo().setRequiredLocalizationTimeWindow(EventIsolationTol);
     }
 
     // This is the witness function. It is positive as long as mu_s*N is greater
@@ -1583,12 +1571,13 @@ int main(int argc, char** argv) {
 
     //ExplicitEulerIntegrator integ(mbs);
     //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
+    Real accuracy = 1e-2;
     //RungeKuttaFeldbergIntegrator integ(mbs);
-    Real accuracy = 1e-3;
     RungeKuttaMersonIntegrator integ(mbs);
     //RungeKutta3Integrator integ(mbs);
     //VerletIntegrator integ(mbs);
     integ.setAccuracy(accuracy);
+    //integ.setConstraintTolerance(1e-3);
     //integ.setAllowInterpolation(false);
     integ.setMaximumStepSize(0.5);
 
@@ -1841,7 +1830,8 @@ processCompressionPhase(MyElementSubset&    proximal,
     // Assume at first that everyone will participate. This is necessary to
     // ensure that we get a least squares solution for the impulse involving
     // as many constraints as possible sharing the impulse.
-    enableAllProximalConstraints(proximal, s);
+    // TODO: don't enable stiction for now
+    m_unis.enableConstraintSubset(proximal, false, s); 
 
     // First try drives all constraints to zero velocity; if that took some
     // negative impulses we'll have to remove some participants and try again.
@@ -2054,17 +2044,6 @@ captureSlowRebounders(Real              vCapture,
                                   s, captureImpulse);
         }
     }
-}
-
-
-
-//---------------------- ENABLE ALL PROXIMAL CONSTRAINTS -----------------------
-void ContactOn::
-enableAllProximalConstraints(MyElementSubset&   proximal,
-                             State&             state) const
-{
-    // TODO: don't enable stiction for now
-    m_unis.enableConstraintSubset(proximal, false, state); 
 }
 
 
@@ -2426,10 +2405,12 @@ showConstraintStatus(const State& s, const String& place) const
 // d_eff ... the effective slip direction, a unit length 2-vector
 // v_eff ... slip speed in d_eff direction, for viscous friction
 //
-// There are two sliding-to-stiction event witness functions
+// There is a sliding-to-stiction event witness functions
 //              e1(v)=dot(v, d_prev)    velocity reversal
-//              e2(v)=|v|-vtol          slowdown TODO ???
-// OR: e(v) = dot(v, d_prev) - vtol ?? [signed]
+//
+// TODO: other possible witness functions:
+//              e2(v)=|v|-vtol          slowdown (would often be missed)
+//              e(v) = dot(v, d_prev) - vtol ?? [signed]
 //
 // N_prev is an auto-update variable whose update value is set at Acceleration
 // stage from the actual normal force magnitude N of this friction element's 
