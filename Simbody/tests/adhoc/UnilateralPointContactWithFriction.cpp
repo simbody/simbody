@@ -1498,9 +1498,9 @@ int main(int argc, char** argv) {
 
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
-    const Real CoefRest = 0.3;      // TODO: per-contact
+    const Real CoefRest = 0.1;      // TODO: per-contact
     const Real mu_d = .2;
-    const Real mu_s = .5;
+    const Real mu_s = .75;
     const Real mu_v = 0.0;
 
     MyUnilateralConstraintSet unis(mbs);
@@ -1518,7 +1518,7 @@ int main(int argc, char** argv) {
     cube.addBodyDecoration(Transform(), DecorativeBrick(CubeHalfDims)
                                         .setColor(Red).setOpacity(.3));
     Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),Vec3(0,0,10),
-                                               4., 5.));
+                                               4., 6.));
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
@@ -1772,6 +1772,25 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     // (negative) impulses necessary to stop them; enable their contact
     // constraints.
     captureSlowRebounders(VCapture, proximal, s);
+
+    // Record new previous slip velocities for all the sliding friction
+    // since velocities have changed. First loop collects the velocities.
+    m_mbs.realize(s, Stage::Velocity);
+    for (unsigned i=0; i < proximal.m_friction.size(); ++i) {
+        const int which = proximal.m_friction[i];
+        MyFrictionElement& fric = m_unis.updFrictionElement(which);
+        if (!fric.isMasterActive(s) || fric.isSticking(s)) continue;
+        fric.recordSlipDir(s);
+    }
+
+    // Now update all the previous slip direction state variables from the
+    // recorded values.
+    for (unsigned i=0; i < proximal.m_friction.size(); ++i) {
+        const int which = proximal.m_friction[i];
+        const MyFrictionElement& fric = m_unis.getFrictionElement(which);
+        if (!fric.isMasterActive(s) || fric.isSticking(s)) continue;
+        fric.updatePreviousSlipDirFromRecorded(s);
+    }
 
     m_unis.selectActiveConstraints(s, accuracy);
 
@@ -2309,7 +2328,8 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
     // Reset all the slip directions so that all slip->stick event witnesses 
     // will be positive when integration resumes.
     for (unsigned i=0; i < candidates.m_sliding.size(); ++i) {
-        const MyFrictionElement& fric = getFrictionElement(i);
+        const int which = candidates.m_sliding[i];
+        const MyFrictionElement& fric = getFrictionElement(which);
         if (!fric.isMasterActive(s)) continue;
         fric.updatePreviousSlipDirFromRecorded(s);
     }
@@ -2493,6 +2513,8 @@ public:
         Vec2& prevSlipDir = Value<Vec2>::updDowncast
            (m_forces.updDiscreteVariable(state, m_prevSlipDirIx));
         prevSlipDir = slipDir;
+        SimTK_DEBUG3("STATE CHG %d: prevDir to %g %g\n",
+            m_friction.getFrictionIndex(), slipDir[0], slipDir[1]);
     }
     //--------------------------------------------------------------------------
     //                       Custom force virtuals
