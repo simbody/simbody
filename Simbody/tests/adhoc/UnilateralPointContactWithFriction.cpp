@@ -2409,8 +2409,8 @@ showConstraintStatus(const State& s, const String& place) const
 //              e1(v)=dot(v, d_prev)    velocity reversal
 //
 // TODO: other possible witness functions:
-//              e2(v)=|v|-vtol          slowdown (would often be missed)
-//              e(v) = dot(v, d_prev) - vtol ?? [signed]
+//              e2(v)=|v|-vtol                slowdown (would often be missed)
+//              e(v) = dot(v, d_prev) - vtol  [signed]
 //
 // N_prev is an auto-update variable whose update value is set at Acceleration
 // stage from the actual normal force magnitude N of this friction element's 
