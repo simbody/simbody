@@ -1498,10 +1498,10 @@ int main(int argc, char** argv) {
 
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
-    const Real CoefRest = 0.1;      // TODO: per-contact
-    const Real mu_d = .2;
-    const Real mu_s = .75;
-    const Real mu_v = 0.0;
+    const Real CoefRest = 0.2;      // TODO: per-contact
+    const Real mu_d = .4;
+    const Real mu_s = .8;
+    const Real mu_v = 0.05;
 
     MyUnilateralConstraintSet unis(mbs);
 
@@ -1517,7 +1517,7 @@ int main(int argc, char** argv) {
                              cubeBody, Vec3(0));
     cube.addBodyDecoration(Transform(), DecorativeBrick(CubeHalfDims)
                                         .setColor(Red).setOpacity(.3));
-    Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),Vec3(0,0,10),
+    Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),2*Vec3(0,0,10),
                                                4., 6.));
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
@@ -1584,7 +1584,7 @@ int main(int argc, char** argv) {
     //ExplicitEulerIntegrator integ(mbs);
     //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
     //RungeKuttaFeldbergIntegrator integ(mbs);
-    Real accuracy = 1e-2;
+    Real accuracy = 1e-3;
     RungeKuttaMersonIntegrator integ(mbs);
     //RungeKutta3Integrator integ(mbs);
     //VerletIntegrator integ(mbs);
@@ -1722,10 +1722,30 @@ int main(int argc, char** argv) {
 //==============================================================================
 
 //------------------------------ HANDLE EVENT ----------------------------------
+// There are three different witness functions that cause this handler to get
+// invoked. The position- and velocity-level ones require an impulse. The
+// acceleration-level one just requires recalculating the active set, in the
+// same manner as liftoff or friction transition events.
+
 void ContactOn::
 handleEvent(State& s, Real accuracy, bool& shouldTerminate) const 
 {
     const Real VCapture=1e-2;
+
+    if (m_stage == Stage::Acceleration) {
+        SimTK_DEBUG("\n---------------CONTACT ON (ACCEL)--------------\n");
+        SimTK_DEBUG2("CONTACT triggered by element %d @t=%.15g\n", 
+            m_which, s.getTime());
+        m_mbs.realize(s, Stage::Acceleration);
+
+        #ifndef NDEBUG
+        cout << " triggers=" << s.getEventTriggers() << "\n";
+        #endif
+
+        m_unis.selectActiveConstraints(s, accuracy);
+        SimTK_DEBUG("---------------CONTACT ON (ACCEL) done.--------------\n");
+        return;
+    }
 
     MyElementSubset proximal;
     m_unis.findProximalElements(s, accuracy, proximal);
