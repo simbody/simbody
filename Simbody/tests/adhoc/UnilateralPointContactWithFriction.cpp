@@ -1474,7 +1474,10 @@ int main(int argc, char** argv) {
     for (int k=-1; k<=1; k+=2) {
         if (i==-1 && j==-1) continue;
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(CubeHalfDims);
-        unis.push_back(new MyPointContact(weight2, pt, CoefRest, forces));
+        MyPointContact* contact = new MyPointContact(weight2, pt, CoefRest);
+        unis.addContactElement(contact);
+        unis.addFrictionElement(
+            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, forces));
     }
 #endif
 
