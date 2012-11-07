@@ -1,0 +1,12 @@
+# Template for a Simbody pkgconfig file for use in Gazebo builds.
+# This is probably only useful on Linux.
+prefix=@SimTK_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: simbody
+Description: Simbody libraries
+Version: @SIMBODY_VERSION_FULL@
+Requires: lapack >= 3.0
+Libs: -Wl,-rpath,${libdir} -L${libdir} -lSimTKsimbody -lSimTKmath -lSimTKcommon -llapack -lblas -lpthread -lrt -ldl
+CFlags: -I${includedir}

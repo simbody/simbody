@@ -28,15 +28,25 @@ SET(SIMBODY_COPYRIGHT_YEARS "2005-12")
 # underbar separated list of dotted authors, no spaces or commas
 SET(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
 
-# Report the version number to the CMake UI. Don't include the 
-# build version if it is zero.
+# This is the x.y version number, excluding the patch version.
+SET(SIMBODY_VERSION_NOPATCH
+    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}")
+
+# This is the full x.y.z version number, including the patch version even
+# if it is zero.
+SET(SIMBODY_VERSION_FULL
+    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}.${SIMBODY_PATCH_VERSION}")
+
+# Report a cleaned-up version number to the CMake UI. This always includes the
+# major and minor version, but excludes the patch version if it is zero. This
+# is also built in to the binaries. 
 SET(PATCH_VERSION_STRING)
 IF(SIMBODY_PATCH_VERSION)
     SET(PATCH_VERSION_STRING ".${SIMBODY_PATCH_VERSION}")
 ENDIF()
 
 SET(SIMBODY_VERSION 
-    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}${PATCH_VERSION_STRING}" 
+    "${SIMBODY_VERSION_NOPATCH}${PATCH_VERSION_STRING}" 
     CACHE STRING 
     "This is the version that will be built (can't be changed here)." 
     FORCE)
@@ -517,6 +527,17 @@ ADD_SUBDIRECTORY( SimTKmath )
 ADD_SUBDIRECTORY( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set (but not used)
 
+# Install documentation.
 FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION doc)
+
+#######################################################################
+# Make the package config "simbody.pc" file for use on Linux. Requested by
+# John Hsu at Open Source Robotics Foundation for use in Gazebo build.
+#if (UNIX)
+    configure_file(${CMAKE_SOURCE_DIR}/pkgconfig.in 
+                   ${CMAKE_CURRENT_BINARY_DIR}/simbody.pc @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/simbody.pc 
+            DESTINATION ${SimTK_INSTALL_PREFIX}/pkgconfig COMPONENT pkgconfig)
+#endif (UNIX)
 
