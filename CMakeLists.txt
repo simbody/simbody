@@ -534,10 +534,10 @@ INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION doc)
 #######################################################################
 # Make the package config "simbody.pc" file for use on Linux. Requested by
 # John Hsu at Open Source Robotics Foundation for use in Gazebo build.
-#if (UNIX)
+if (UNIX)
     configure_file(${CMAKE_SOURCE_DIR}/pkgconfig.in 
                    ${CMAKE_CURRENT_BINARY_DIR}/simbody.pc @ONLY)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/simbody.pc 
             DESTINATION ${SimTK_INSTALL_PREFIX}/pkgconfig COMPONENT pkgconfig)
-#endif (UNIX)
+endif (UNIX)
 
