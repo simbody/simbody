@@ -222,16 +222,10 @@ class FactorLURep : public FactorLURepBase {
 
 // factored matrix stored in LAPACK LU format
    template < class ELT> int getType(ELT*);   
-   bool isLUinitialized;
-   bool positiveDefinite;
    int nRow;
    int nCol;
    int mn;        // min(m,n)
-   int LUtype;
    int singularIndex;
-   int elementSize;
-   int imagOffset;
-   MatrixCharacter character;
 
    TypedWorkSpace<int>  pivots;
    TypedWorkSpace<T>    lu;

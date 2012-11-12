@@ -150,11 +150,10 @@ FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat )
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
         mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
-        positiveDefinite( false ),
-        lu( mat.nrow()*mat.ncol() ),
-        character( mat.getMatrixCharacter() ),
-        pivots(mat.ncol())              { 
-
+        singularIndex(0),
+        pivots(mat.ncol()),             
+        lu( mat.nrow()*mat.ncol() )
+{ 
 	FactorLURep<T>::factor( mat );
 }
 template <typename T >
@@ -162,9 +161,10 @@ FactorLURep<T>::FactorLURep()
       : nRow(0),
         nCol(0),
         mn(0),
-        lu(0),
-        pivots(0)             { 
-        
+        singularIndex(0),
+        pivots(0),             
+        lu(0)
+{
 }
 template <typename T >
 FactorLURep<T>::~FactorLURep() {}
@@ -295,9 +295,6 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
        "Can't factor a matrix that has a zero dimension -- got %d X %d.",
        (int)mat.nrow(), (int)mat.ncol());
     
-    elementSize = sizeof( T );
-    imagOffset = CNT<ELT>::ImagOffset;  // real/complex (usefull for debugging)
-   
     // initialize the matrix we pass to LAPACK
     // converts (negated,conjugated etc.) to LAPACK format 
     LapackConvert::convertMatrixToLapack( lu.data, mat );
