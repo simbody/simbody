@@ -180,13 +180,13 @@ SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
 # set them to sensible local values.
 # If SimTK_INSTALL_PREFIX is set then
 # it is a sandbox installation area, otherwise we want to install
-# in /usr/local/SimTK or %ProgramFiles%\SimTK. 
+# in /usr/local/simbody or %ProgramFiles%\Simbody. 
 #
 SET(LIB64) # suffix will be set only for 64 bit gcc builds
 IF(${CMAKE_C_COMPILER} MATCHES "gcc") # Linux, Mac, Cygwin
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK" 
+        SET(SimTK_INSTALL_PREFIX "/usr/local/simbody" 
             CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
@@ -212,7 +212,7 @@ ELSE() # Windows
     ENDIF()
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "${PROGFILEDIR}/SimTK" 
+        SET(SimTK_INSTALL_PREFIX "${PROGFILEDIR}/Simbody" 
             CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
@@ -530,6 +530,10 @@ ADD_SUBDIRECTORY( Simbody )
 # Install documentation.
 FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION doc)
+
+# Install cmake utilities for end users to use to find Simbody.
+FILE(GLOB INSTALLED_CMAKE_STUFF cmake/*)
+INSTALL(FILES ${INSTALLED_CMAKE_STUFF} DESTINATION cmake)
 
 #######################################################################
 # Make the package config "simbody.pc" file for use on Linux. Requested by
