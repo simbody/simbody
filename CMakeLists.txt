@@ -532,7 +532,7 @@ FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION doc)
 
 # Install cmake utilities for end users to use to find Simbody.
-FILE(GLOB INSTALLED_CMAKE_STUFF cmake/*)
+FILE(GLOB INSTALLED_CMAKE_STUFF cmake/*.cmake cmake/*.txt)
 INSTALL(FILES ${INSTALLED_CMAKE_STUFF} DESTINATION cmake)
 
 #######################################################################
