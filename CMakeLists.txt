@@ -190,9 +190,9 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc") # Linux, Mac, Cygwin
             CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
-    IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-        SET( LIB64 64 )
-    ENDIF()
+    # IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+    #     SET( LIB64 64 )
+    # ENDIF()
 
 ELSE() # Windows
     # On Win64, there are two environment variables, ProgramFiles(x86) for
