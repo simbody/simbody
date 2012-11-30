@@ -840,6 +840,20 @@ public:
     }
 };
 
+class PendingSetCameraTransform : public PendingCommand {
+public:
+    PendingSetCameraTransform(fVec3 R, fVec3 p) : Rxyz(R), p(p) { }
+
+    void execute() {
+        X_GC.updR().setRotationToBodyFixedXYZ(Rxyz);
+        X_GC.updP() = p;
+    }
+
+private:
+    fVec3 Rxyz;
+    fVec3 p;
+};
+
 class PendingWindowTitleChange : public PendingCommand {
 public:
     PendingWindowTitleChange(const string& title) : title(title) {}
@@ -2254,9 +2268,10 @@ void* listenForInput(void* args) {
         }
         case SetCamera: {
             readData(buffer, 6*sizeof(float));
+            fVec3 R(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+            fVec3 p(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
-            X_GC.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-            X_GC.updP() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            pendingCommands.push_back(new PendingSetCameraTransform(R, p));
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
         }
