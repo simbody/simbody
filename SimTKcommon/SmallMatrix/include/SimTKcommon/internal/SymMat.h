@@ -156,9 +156,9 @@ public:
     typedef EPrecision                  Precision;
     typedef EScalarNormSq               ScalarNormSq;
 
-    int size() const { return (M*(M+1))/2; }
-    int nrow() const { return M; }
-    int ncol() const { return M; }
+    static int size() { return (M*(M+1))/2; }
+    static int nrow() { return M; }
+    static int ncol() { return M; }
 
     // Scalar norm square is sum( squares of all scalars ). The off-diagonals
     // come up twice.

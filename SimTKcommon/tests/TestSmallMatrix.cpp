@@ -382,6 +382,109 @@ void testUnitVec() {
 
 }
 
+// Test append/drop/insert rows and columns.
+void testAppendRowCol() {
+    Mat34 m34( 1,  2,  3,  4,
+               5,  6,  7,  8,
+               9, 10, 11, 12);
+
+    Mat44 m44 = m34.appendRow(Row4(-1, -2, -3, -4));
+    SimTK_TEST(m44==Mat44(  1,  2,  3,  4,
+                            5,  6,  7,  8,
+                            9, 10, 11, 12,
+                           -1, -2, -3, -4));
+    m44 = m34.insertRow(0, Row4(-1, -2, -3, -4));
+    SimTK_TEST(m44==Mat44( -1, -2, -3, -4,
+                            1,  2,  3,  4,
+                            5,  6,  7,  8,
+                            9, 10, 11, 12));
+
+    m44 = m34.insertRow(1, Row4(-1, -2, -3, -4));
+    SimTK_TEST(m44==Mat44(  1,  2,  3,  4,
+                           -1, -2, -3, -4,
+                            5,  6,  7,  8,
+                            9, 10, 11, 12));
+
+    m44 = m34.insertRow(3, Row4(-1, -2, -3, -4));
+    SimTK_TEST(m44==m34.appendRow(Row4(-1, -2, -3, -4)));
+
+    Mat35 m35 = m34.appendCol(Vec3(-6, -7, -8));
+    SimTK_TEST(m35==Mat35( 1,  2,  3,  4, -6,
+                           5,  6,  7,  8, -7,
+                           9, 10, 11, 12, -8));
+
+    m35 = m34.insertCol(0, Vec3(-6, -7, -8));
+    SimTK_TEST(m35==Mat35( -6, 1,  2,  3,  4, 
+                           -7, 5,  6,  7,  8, 
+                           -8, 9, 10, 11, 12));
+
+    m35 = m34.insertCol(2, Vec3(-6, -7, -8));
+    SimTK_TEST(m35==Mat35( 1,  2, -6,  3,  4, 
+                           5,  6, -7,  7,  8, 
+                           9, 10, -8, 11, 12));
+
+    m35 = m34.insertCol(4, Vec3(-6, -7, -8));
+    SimTK_TEST(m35==m34.appendCol(Vec3(-6, -7, -8)));
+
+    Mat45 m45 = m34.appendRowCol(Row5(-1, -2, -3, -4, -5),
+                                 Vec4(-6, -7, -8, -9));
+    SimTK_TEST(m45==Mat45( Row5(1,  2,  3,  4, -6),
+                           Row5(5,  6,  7,  8, -7),
+                           Row5(9, 10, 11, 12, -8),
+                           Row5(-1, -2, -3, -4, -9)));
+
+    m45 = m34.insertRowCol(0,0, Row5(-1, -2, -3, -4, -5),
+                                Vec4(-6, -7, -8, -9));
+    SimTK_TEST(m45==Mat45( Row5(-6, -2, -3, -4, -5),
+                           Row5(-7,  1,  2,  3,  4),
+                           Row5(-8,  5,  6,  7,  8),
+                           Row5(-9,  9, 10, 11, 12)));
+
+
+
+    m45 = m34.insertRowCol(1,2, Row5(-1, -2, -3, -4, -5),
+                                Vec4(-6, -7, -8, -9));
+    SimTK_TEST(m45==Mat45( Row5( 1,  2, -6,  3,  4),
+                           Row5(-1, -2, -7, -4, -5),
+                           Row5( 5,  6, -8,  7,  8),
+                           Row5( 9, 10, -9, 11, 12)));
+
+    m45 = m34.insertRowCol(3,4, Row5(-1, -2, -3, -4, -5),
+                                Vec4(-6, -7, -8, -9));
+    SimTK_TEST(m45== m34.appendRowCol(Row5(-1, -2, -3, -4, -5),
+                                      Vec4(-6, -7, -8, -9)));
+
+    Mat24 m24_0 = m34.dropRow(0);
+    Mat24 m24_1 = m34.dropRow(1);
+    Mat24 m24_2 = m34.dropRow(2);
+
+    SimTK_TEST(m24_0==Mat24(5,  6,  7,  8,
+                            9, 10, 11, 12));
+    SimTK_TEST(m24_1==Mat24(1,  2,  3,  4,
+                            9, 10, 11, 12));
+    SimTK_TEST(m24_2==Mat24(1,  2,  3,  4,
+                            5,  6,  7,  8));
+
+    Mat33 m33_0 = m34.dropCol(0);
+    Mat33 m33_1 = m34.dropCol(1);
+    Mat33 m33_2 = m34.dropCol(2);
+    Mat33 m33_3 = m34.dropCol(3);
+
+    SimTK_TEST(m33_0==Mat33( 2,  3,  4,
+                             6,  7,  8,
+                            10, 11, 12));
+    SimTK_TEST(m33_1==Mat33( 1,  3,  4,
+                             5,  7,  8,
+                             9, 11, 12));
+    SimTK_TEST(m33_2==Mat33( 1,  2,  4,
+                             5,  6,  8,
+                             9, 10, 12));
+    SimTK_TEST(m33_3==Mat33( 1,  2,  3,
+                             5,  6,  7,
+                             9, 10, 11));
+
+}
+
 int main() {
     SimTK_START_TEST("TestSmallMatrix");
         SimTK_SUBTEST(testSymMat);
@@ -394,5 +497,6 @@ int main() {
         SimTK_SUBTEST(testCrossProducts);
         SimTK_SUBTEST(testNumericallyEqual);
         SimTK_SUBTEST(testUnitVec);
+        SimTK_SUBTEST(testAppendRowCol);
     SimTK_END_TEST();
 }
