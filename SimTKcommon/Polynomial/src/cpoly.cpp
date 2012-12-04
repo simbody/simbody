@@ -288,11 +288,12 @@ void CPoly<T>::fxshft( const int l2, T *zr, T *zi, int *conv )
       // Test for convergence unless stage 3 has failed once or this
       // is the last H Polynomial
       if( !( bol || !test || j == 12 ) )
+         {
          if( cmod( tr - otr, ti - oti ) < 0.5 * cmod( *zr, *zi ) )
             {
             if( pasd )
                {
-               // The weak convergence test has been passwed twice, start the third stage
+               // The weak convergence test has been passed twice, start the third stage
                // Iteration, after saving the current H polynomial and shift
                for( i = 0; i < n; i++ )
                   {
@@ -321,6 +322,7 @@ void CPoly<T>::fxshft( const int l2, T *zr, T *zi, int *conv )
             }
          else
             pasd = 0;
+         }
       }
 
    // Attempt an iteration with final H polynomial from second stage
