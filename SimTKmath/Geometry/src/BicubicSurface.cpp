@@ -497,11 +497,12 @@ Real BicubicSurface::Guts::calcDerivative
     if (aDerivComponents.size() == 1)
         return aDerivComponents[0]==0 ? h.fx : h.fy;            // fx : fy
 
-    if (aDerivComponents.size() == 2)
+    if (aDerivComponents.size() == 2) {
         if (aDerivComponents[0]==0) //x
             return aDerivComponents[1]==0 ? h.fxx : h.fxy;      // fxx:fxy
         else //y (fyx==fxy)
             return aDerivComponents[1]==0 ? h.fxy : h.fyy;      // fyx:fyy
+    }
 
     // Third derivative.
     if (aDerivComponents[0]==0) { //x
