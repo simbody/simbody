@@ -180,9 +180,10 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc") # Linux, Mac, Cygwin
             CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
-    IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-        SET( LIB64 64 )
-    ENDIF()
+    # As of Ubuntu 12, 64 bit libraries are in lib, not lib64
+    #IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+    #    SET( LIB64 64 )
+    #ENDIF()
 
 ELSE() # Windows
     # On Win64, there are two environment variables, ProgramFiles(x86) for
@@ -225,7 +226,6 @@ IF(APPLE)
 	#SET(CMAKE_OSX_ARCHITECTURES "i386;x86_64" CACHE STRING "The processor architectures to build for" FORCE)
         SET(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "The processor architectures to build for" FORCE)
         SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.5" CACHE STRING "The minimum version of OS X to support" FORCE)
-        SET(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.5.sdk" CACHE STRING "The SDK to build against" FORCE)
     ENDIF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     SET(LIB64 )
 ENDIF(APPLE)
@@ -462,7 +462,7 @@ IF(BUILD_USING_OTHER_LAPACK)
 "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
 ENDIF(BUILD_USING_OTHER_LAPACK)
 
-IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+IF(${CMAKE_C_COMPILER} MATCHES "g?cc")
     IF(APPLE)
 	    SET(REALTIME_LIB)
     ELSE()
@@ -470,11 +470,11 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ENDIF()
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl)
     SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl)
-ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
+ELSE(${CMAKE_C_COMPILER} MATCHES "g?cc")
     ## Assume Microsoft Visual Studio
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthreadVC2)
     SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthreadVC2)
-ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+ENDIF(${CMAKE_C_COMPILER} MATCHES "g?cc")
 
 #
 # Allow automated build and dashboard.
