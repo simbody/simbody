@@ -695,7 +695,8 @@ private:
 
 class MobilizedBody::GimbalImpl : public MobilizedBodyImpl {
 public:
-    explicit GimbalImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
+    explicit GimbalImpl(Direction d) 
+    :   MobilizedBodyImpl(d), defaultRadius(0.1), defaultQ(0) { }
     GimbalImpl* clone() const { return new GimbalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
