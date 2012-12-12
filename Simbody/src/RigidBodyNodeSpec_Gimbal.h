@@ -37,12 +37,10 @@
 
 // Gimbal joint. This provides three degrees of rotational freedom,  i.e.,
 // unrestricted orientation of the body's M frame in the parent's F frame.
-// The generalized coordinates are:
+// The generalized coordinates q are:
 //   * 3 X-Y-Z (1-2-3) body fixed Euler angles (that is, fixed in M)
-// and generalized speeds are:
-//   * angular velocity w_FM as a vector expressed in the F (parent) frame.
-// Thus rotational qdots have to be derived from the generalized speeds to
-// be turned into 3 Euler angle derivatives.
+// and generalized speeds u are:
+//   * u = qdot, that is, the 1-2-3 body fixed Euler angle derivatives
 //
 // NOTE: This joint has a singularity when the middle angle is near 90 degrees.
 // In most cases you should use a Ball joint instead, which by default uses
@@ -64,8 +62,12 @@ RBNodeGimbal( const MassProperties& mProps_B,
               UIndex&               nextUSlot,
               USquaredIndex&        nextUSqSlot,
               QIndex&               nextQSlot)
-  : RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         RigidBodyNode::QDotMayDifferFromU, RigidBodyNode::QuaternionIsNeverUsed, isReversed)
+:   RigidBodyNodeSpec<3, false, noX_MB, noR_PF>
+       (mProps_B,X_PF,X_BM,
+        nextUSlot,nextUSqSlot,nextQSlot,
+        RigidBodyNode::QDotIsAlwaysTheSameAsU, 
+        RigidBodyNode::QuaternionIsNeverUsed, 
+        isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
@@ -82,11 +84,19 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
     // translation we can represent is 0.
 }
 
+// Given the angular velocity of M in F, expressed in F, compute the Euler
+// angle derivatives qdot that would produce that angular velocity, and 
+// return u=qdot.
 void setUToFitAngularVelocityImpl
-   (const SBStateDigest& sbs, const Vector&, const Vec3& w_FM,
+   (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
     Vector& u) const 
 {
-    this->toU(u) = w_FM; // relative ang. vel. always used as generalized speeds
+    const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
+    const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
+    const Real oocosy = 1 / cosxy[1];
+    const Vec3 qdot = 
+        Rotation::convertAngVelInParentToBodyXYZDot(cosxy,sinxy,oocosy,w_FM);
+    this->toU(u) = qdot;
 }
 
 void setUToFitLinearVelocityImpl
@@ -121,7 +131,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
         Vec3(std::cos(q[0]), cy, std::cos(q[2]));
     Vec3::updAs(&qCache[SinQ]) =
         Vec3(std::sin(q[0]), std::sin(q[1]), std::sin(q[2]));
-    qCache[OOCosQy] = 1/cy; // trouble at 90 or 270 degrees
+    qCache[OOCosQy] = 1/cy; // trouble at 90 or 270 (-90) degrees
 }
 
 // Because of the precalculations we can calculate the cross-mobilizer
@@ -138,160 +148,59 @@ void calcX_FM(const SBStateDigest& sbs,
     X_F0M0.updP() = 0.; // This joint can't translate.
 }
 
-// Generalized speeds are the angular velocity expressed in F (the parent), 
-// so they cause rotations around F x,y,z axes respectively.
+// Generalized speeds are the Euler angle derivatives. The H_FM matrix maps
+// those into the angular velocity of M in F, expressed in F, so
+//  [w_FM]   [Hw_FM]
+//  [    ] = [     ] * qdot      (where v_FM is always zero)
+//  [v_FM]   [  0  ]
+// Using the precalculations this requires only 3 flops, although there is
+// a fair bit of poking around in memory required.
 void calcAcrossJointVelocityJacobian(
     const SBStateDigest& sbs,
     HType&               H_FM) const
 {
-    H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(0) );
-    H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3(0) );
-    H_FM(2) = SpatialVec( Vec3(0,0,1), Vec3(0) );
+    const SBModelCache&        mc = sbs.getModelCache();
+    // Use "upd" here because we're realizing positions now.
+    const SBTreePositionCache& pc = sbs.updTreePositionCache();
+    const Real*                pool = this->getQPool(mc, pc);
+
+    const Real c0 = pool[CosQ], c1 = pool[CosQ+1];
+    const Real s0 = pool[SinQ], s1 = pool[SinQ+1];
+
+    // Fill in columns of H_FM. See Rotation::calcNInvForBodyXYZInParentFrame().
+    H_FM(0) = SpatialVec( Vec3(1,     0,    0),    Vec3(0) );
+    H_FM(1) = SpatialVec( Vec3(0,    c0,    s0),   Vec3(0) );
+    H_FM(2) = SpatialVec( Vec3(s1, -s0*c1, c0*c1), Vec3(0) );
 }
 
-// The derivative of constant matrix H_FM is not too interesting.
+// Differentiate H_FM to get HDot_FM. Note that this depends on qdot:
+//    d/dt cos(q0) = -sin(q0)*qdot0, etc.
 void calcAcrossJointVelocityJacobianDot(
     const SBStateDigest& sbs,
     HType&               HDot_FM) const
 {
-    HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
-    HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
-    HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
+    const SBModelCache&        mc = sbs.getModelCache();
+    const SBTreePositionCache& pc = sbs.getTreePositionCache();
+
+    const Real* pool = this->getQPool(mc, pc);
+    const Real c0 = pool[CosQ], c1 = pool[CosQ+1];
+    const Real s0 = pool[SinQ], s1 = pool[SinQ+1];
+
+    // Use "upd" here because we're realizing velocities now.
+    const Vec3& qdot = this->fromQ(sbs.updQDot());
+    const Real qd0 = qdot[0], qd1 = qdot[1];
+
+    const Real dc0 = -s0*qd0, dc1 = -s1*qd1; // derivatives of c0,c1,s0,s1
+    const Real ds0 =  c0*qd0, ds1 =  c1*qd1;
+
+    // Compare with H_FM above.
+    HDot_FM(0) = SpatialVec(Vec3(0,         0,              0),       Vec3(0));
+    HDot_FM(1) = SpatialVec(Vec3(0,        dc0,            ds0),      Vec3(0));
+    HDot_FM(2) = SpatialVec(Vec3(ds1, -ds0*c1-s0*dc1, dc0*c1+c0*dc1), Vec3(0));
 }
 
-
-// Here we again use the pooled trig evaluations to calculate qdot=N(q)*u
-// on the cheap (10 flops).
-void calcQDot(const SBStateDigest& sbs, const Real* u, 
-                             Real* qdot) const {
-    assert(sbs.getStage() >= Stage::Position);
-    assert(u && qdot);
-
-    const SBModelCache&        mc   = sbs.getModelCache();
-    const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = this->getQPool(mc, pc);
-
-    const Vec3& w_FM = Vec3::getAs(u);
-    Vec3::updAs(qdot) = Rotation::convertAngVelInParentToBodyXYZDot(
-         Vec2::getAs(&pool[CosQ]), Vec2::getAs(&pool[SinQ]), // only x,y
-         pool[OOCosQy], w_FM);
-}
-
-
-// Compute out_q = N * in_u
-//   or    out_u = in_q * N
-// About 10 flops.
-void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight, 
-                 const Real* in, Real* out) const
-{
-    assert(sbs.getStage() > Stage::Position);
-    assert(in && out);
-
-    const SBModelCache&        mc   = sbs.getModelCache();
-    const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = this->getQPool(mc, pc);
-
-    // Aliases.
-    const Vec2& cosxy  = Vec2::getAs(&pool[CosQ]); // only need x,y angles
-    const Vec2& sinxy  = Vec2::getAs(&pool[SinQ]);
-    const Real& oocosy = pool[OOCosQy];
-    const Vec3& in_v   = Vec3::getAs(in);
-    Vec3&       out_v  = Vec3::updAs(out);
-
-    if (matrixOnRight) { // out_u = in_q * N = ~N * in_q (9 flops)
-        // Transpose on left is same as untransposed on right.
-        out_v = Rotation::multiplyByBodyXYZ_NT_P(cosxy, sinxy, oocosy, in_v);
-    } else {             // out_q = N*in_u (10 flops)
-        out_v = Rotation::multiplyByBodyXYZ_N_P(cosxy, sinxy, oocosy, in_v);
-    }
-}
-
-// Compute out_u = inv(N) * in_q
-//   or    out_q = in_u * inv(N)
-// About 10 flops.
-void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight, 
-                    const Real* in, Real* out) const
-{
-    assert(sbs.getStage() > Stage::Position);
-    assert(in && out);
-
-    const SBModelCache&        mc   = sbs.getModelCache();
-    const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = this->getQPool(mc, pc);
-
-    // Aliases.
-    const Vec2& cosxy  = Vec2::getAs(&pool[CosQ]); // only need x,y angles
-    const Vec2& sinxy  = Vec2::getAs(&pool[SinQ]);
-    const Vec3& in_v   = Vec3::getAs(in);
-    Vec3&       out_v  = Vec3::updAs(out);
-
-    if (matrixOnRight) { // out_q = in_u * inv(N) = ~inv(N) * in_u  (10 flops)
-        // transpose on left is same as untransposed on right
-        out_v = Rotation::multiplyByBodyXYZ_NInvT_P(cosxy, sinxy, in_v);
-    } else {             // out_u = inv(N) * in_q                   (9 flops)
-        out_v = Rotation::multiplyByBodyXYZ_NInv_P(cosxy, sinxy, in_v);
-    }
-}
-
-
-// Compute out_q = NDot * in_u
-//   or    out_u = in_q * NDot
-// Either way, 36 flops. Note that it is much cheaper to calculate
-// qdotdot directly than to do it using N and NDot; see below.
-void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight, 
-                    const Real* in, Real* out) const
-{
-    assert(sbs.getStage() > Stage::Velocity);
-    assert(in && out);
-
-    const SBModelCache&        mc   = sbs.getModelCache();
-    const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = this->getQPool(mc, pc);
-
-    // Aliases.
-    const Vec2& cosxy  = Vec2::getAs(&pool[CosQ]); // only need x,y angles
-    const Vec2& sinxy  = Vec2::getAs(&pool[SinQ]);
-    const Real& oocosy = pool[OOCosQy];
-    const Vec3& qdot   = this->fromQ(sbs.getQDot());
-
-    // We don't have a nice multiply-by routine here so just get the NDot
-    // matrix and use it (21 flops).
-    const Mat33 NDot_F = 
-        Rotation::calcNDotForBodyXYZInParentFrame(cosxy, sinxy, oocosy, qdot);
-
-    if (matrixOnRight) {    // out_u = in_q * NDot (15 flops)
-        Row3::updAs(out) = Row3::getAs(in) * NDot_F;
-    } else {                // out_q = NDot * in_u (15 flops)
-        Vec3::updAs(out) = NDot_F * Vec3::getAs(in);
-    }
-}
-
-// Calculate qdotdot from udot as qdotdot = N(q)*udot + NDot(q,qdot)*u, but
-// faster. Here we assume that qdot=N*u has already been calculated and this 
-// allows us to calculate qdotdot in only 22 flops, which is faster than
-// calculating NDot*v alone using the multiplyByNDot operator.
-void calcQDotDot(const SBStateDigest& sbs, 
-                                   const Real* udot, Real* qdotdot) const {
-    assert(sbs.getStage() > Stage::Velocity);
-    assert(udot && qdotdot);
-
-    const SBModelCache&        mc   = sbs.getModelCache();
-    const SBTreePositionCache& pc   = sbs.getTreePositionCache();
-    const Real*                pool = this->getQPool(mc, pc);
-
-    // Aliases.
-    const Vec2& cosxy  = Vec2::getAs(&pool[CosQ]); // only need x,y angles
-    const Vec2& sinxy  = Vec2::getAs(&pool[SinQ]);
-    const Real& oocosy = pool[OOCosQy];
-    const Vec3& qdot = this->fromQ(sbs.getQDot());
-
-    const Vec3& b_FM      = Vec3::getAs(udot); // = w_FM_dot (angular accel.)
-    Vec3&       qdotdot_v = Vec3::updAs(qdotdot);
-
-    // 22 flops.
-    qdotdot_v = Rotation::convertAngAccInParentToBodyXYZDotDot
-                                        (cosxy, sinxy, oocosy, qdot, b_FM);
-}
+// Can use default for calcQDot, multiplyByN, etc., since qdot==u for Gimbal
+// mobilizer.
 
 };
 

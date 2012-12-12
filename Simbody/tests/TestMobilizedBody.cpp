@@ -21,38 +21,10 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKsimbody.h"
-#include "../src/MobilizedBodyImpl.h"
+#include "Simbody.h"
 
 using namespace SimTK;
 using namespace std;
-
-const Real TOL = 1e-10;
-
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
-
-template <class T>
-void assertEqual(T val1, T val2) {
-    ASSERT(abs(val1-val2) < TOL);
-}
-
-template <int N>
-void assertEqual(Vec<N> val1, Vec<N> val2) {
-    for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < TOL);
-}
-
-template<>
-void assertEqual(SpatialVec val1, SpatialVec val2) {
-    assertEqual(val1[0], val2[0]);
-    assertEqual(val1[1], val2[1]);
-}
-
-template<>
-void assertEqual(Transform val1, Transform val2) {
-    assertEqual(val1.p(), val2.p());
-    assertEqual(val1.R().convertRotationToBodyFixedXYZ(), val2.R().convertRotationToBodyFixedXYZ());
-}
 
 void testCalculationMethods() {
     
@@ -79,31 +51,31 @@ void testCalculationMethods() {
     // Test the low level methods for transforming points and vectors.
     
     const Vec3 point(0.5, 1, -1.5);
-    assertEqual(b1.findStationLocationInGround(state, Vec3(0)), b1.getBodyOriginLocation(state));
-    assertEqual(b1.findStationAtGroundPoint(state, b1.findStationLocationInGround(state, point)), point);
-    assertEqual(b2.findStationAtGroundPoint(state, b1.findStationLocationInGround(state, point)), b1.findStationLocationInAnotherBody(state, point, b2));
-    assertEqual(b2.findStationAtGroundPoint(state, b1.findStationLocationInGround(state, Vec3(0))).norm(), (b1.getBodyOriginLocation(state)-b2.getBodyOriginLocation(state)).norm());
-    assertEqual(b2.findMassCenterLocationInGround(state), b2.findStationLocationInGround(state, b2.getBodyMassCenterStation(state)));
-    assertEqual(b1.expressVectorInGroundFrame(state, Vec3(0)), Vec3(0));
-    assertEqual(b1.expressVectorInGroundFrame(state, point), b1.getBodyRotation(state)*point);
-    assertEqual(b1.expressGroundVectorInBodyFrame(state, b1.expressVectorInGroundFrame(state, point)), point);
-    assertEqual(b2.expressGroundVectorInBodyFrame(state, b1.expressVectorInGroundFrame(state, point)), b1.expressVectorInAnotherBodyFrame(state, point, b2));
+    SimTK_TEST_EQ(b1.findStationLocationInGround(state, Vec3(0)), b1.getBodyOriginLocation(state));
+    SimTK_TEST_EQ(b1.findStationAtGroundPoint(state, b1.findStationLocationInGround(state, point)), point);
+    SimTK_TEST_EQ(b2.findStationAtGroundPoint(state, b1.findStationLocationInGround(state, point)), b1.findStationLocationInAnotherBody(state, point, b2));
+    SimTK_TEST_EQ(b2.findStationAtGroundPoint(state, b1.findStationLocationInGround(state, Vec3(0))).norm(), (b1.getBodyOriginLocation(state)-b2.getBodyOriginLocation(state)).norm());
+    SimTK_TEST_EQ(b2.findMassCenterLocationInGround(state), b2.findStationLocationInGround(state, b2.getBodyMassCenterStation(state)));
+    SimTK_TEST_EQ(b1.expressVectorInGroundFrame(state, Vec3(0)), Vec3(0));
+    SimTK_TEST_EQ(b1.expressVectorInGroundFrame(state, point), b1.getBodyRotation(state)*point);
+    SimTK_TEST_EQ(b1.expressGroundVectorInBodyFrame(state, b1.expressVectorInGroundFrame(state, point)), point);
+    SimTK_TEST_EQ(b2.expressGroundVectorInBodyFrame(state, b1.expressVectorInGroundFrame(state, point)), b1.expressVectorInAnotherBodyFrame(state, point, b2));
     
     // Test the routines for mapping locations, velocities, and accelerations.
     
     Vec3 r, v, a;
     b1.findStationLocationVelocityAndAccelerationInGround(state, point, r, v, a);
-    assertEqual(v, b1.findStationVelocityInGround(state, point));
-    assertEqual(a, b1.findStationAccelerationInGround(state, point));
+    SimTK_TEST_EQ(v, b1.findStationVelocityInGround(state, point));
+    SimTK_TEST_EQ(a, b1.findStationAccelerationInGround(state, point));
     {
         Vec3 r2, v2;
         b1.findStationLocationAndVelocityInGround(state, point, r2, v2);
-        assertEqual(r, r2);
-        assertEqual(v, v2);
+        SimTK_TEST_EQ(r, r2);
+        SimTK_TEST_EQ(v, v2);
     }
-    assertEqual(b1.findStationVelocityInGround(state, Vec3(0)), b1.getBodyOriginVelocity(state));
-    assertEqual(b1.findStationAccelerationInGround(state, Vec3(0)), b1.getBodyOriginAcceleration(state));
-    assertEqual(b1.findStationVelocityInGround(state, point), b1.findStationVelocityInAnotherBody(state, point, matter.Ground()));
+    SimTK_TEST_EQ(b1.findStationVelocityInGround(state, Vec3(0)), b1.getBodyOriginVelocity(state));
+    SimTK_TEST_EQ(b1.findStationAccelerationInGround(state, Vec3(0)), b1.getBodyOriginAcceleration(state));
+    SimTK_TEST_EQ(b1.findStationVelocityInGround(state, point), b1.findStationVelocityInAnotherBody(state, point, matter.Ground()));
 }
 
 void testWeld() {
@@ -136,8 +108,8 @@ void testWeld() {
     system.realize(state, Stage::Velocity);
     system.project(state, 1e-10);
 
-    assertEqual(c1.getBodyTransform(state), c2.getBodyTransform(state));
-    assertEqual(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
+    SimTK_TEST_EQ(c1.getBodyTransform(state), c2.getBodyTransform(state));
+    SimTK_TEST_EQ(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
     
     // Simulate it and see if both pendulums behave identically.
     
@@ -146,20 +118,87 @@ void testWeld() {
     ts.initialize(state);
     ts.stepTo(5);
     system.realize(integ.getState(), Stage::Velocity);
-    assertEqual(c1.getBodyTransform(integ.getState()), c2.getBodyTransform(integ.getState()));
-    assertEqual(c1.getBodyVelocity(integ.getState()), c2.getBodyVelocity(integ.getState()));
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()), 
+                      c2.getBodyTransform(integ.getState()), 1e-10);
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()), 
+                      c2.getBodyVelocity(integ.getState()), 1e-10);
+}
+
+
+// Create two pendulums with gimbal joints, one where the gimbals are faked
+// with a series of pin joints that should provide identical generalized
+// coordinates and speeds (we're expecting the new gimbal definition in which
+// the generalized speeds are the Euler angle derivatives).
+
+void testGimbal() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -9.81, 0));
+    Body::Rigid lumpy(MassProperties(3.1, Vec3(.1, .2, .3), 
+                      UnitInertia(1.2,1.1,1.3,.01,.02,.03)));
+    Body::Rigid massless(MassProperties(0,Vec3(0),UnitInertia(0)));
+    
+    Vec3 inboard(0.1, 0.5, -1);
+    Vec3 outboard(0.2, -0.2, 0);
+    MobilizedBody::Gimbal p1(matter.updGround(), inboard, lumpy, outboard);
+
+    Rotation axisX(Pi/2, YAxis); // rotate z into x
+    Rotation axisY(-Pi/2, XAxis); // rotate z into y
+    Rotation axisZ; // leave z where it is
+    MobilizedBody::Pin dummy1(matter.updGround(), Transform(axisX,inboard),
+        massless, Transform(axisX, Vec3(0)));
+    MobilizedBody::Pin dummy2(dummy1, Transform(axisY, Vec3(0)),
+        massless, Transform(axisY, Vec3(0)));
+    MobilizedBody::Pin p2(dummy2, Transform(axisZ, Vec3(0)),
+        lumpy, Transform(axisZ, outboard));
+
+    MobilizedBody::Weld c1(p1, inboard, lumpy, outboard);
+    MobilizedBody::Weld c2(p2, inboard, lumpy, outboard);
+
+    c1.addBodyDecoration(Transform(), DecorativeBrick(.1*Vec3(1,2,3))
+        .setColor(Cyan).setOpacity(0.2));
+    c2.addBodyDecoration(Transform(), DecorativeBrick(.1*Vec3(1,2,3))
+        .setColor(Red).setRepresentation(DecorativeGeometry::DrawWireframe));
+
+    //Visualizer viz(system); viz.setBackgroundType(Visualizer::SolidColor);
+    //system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+
+    State state = system.realizeTopology();
+    p1.setQ(state, Vec3(.1,.2,.3));
+    dummy1.setAngle(state, .1);
+    dummy2.setAngle(state, .2);
+    p2.setAngle(state, .3);
+
+    p1.setU(state, Vec3(1, 2, 3));
+    dummy1.setRate(state, 1);
+    dummy2.setRate(state, 2);
+    p2.setRate(state, 3);
+
+    system.realize(state, Stage::Velocity);
+    system.project(state, 1e-10);
+
+    SimTK_TEST_EQ(c1.getBodyTransform(state), c2.getBodyTransform(state));
+    SimTK_TEST_EQ(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
+    
+    // Simulate it and see if both pendulums behave identically.
+    
+    RungeKuttaMersonIntegrator integ(system);
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+    ts.stepTo(5);
+    system.realize(integ.getState(), Stage::Velocity);
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()), 
+                  c2.getBodyTransform(integ.getState()), 1e-10);
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()), 
+                      c2.getBodyVelocity(integ.getState()), 1e-10);
 }
 
 int main() {
-    try {
-        testCalculationMethods();
-        testWeld();
-    }
-    catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    cout << "Done" << endl;
-    return 0;
+    SimTK_START_TEST("TestMobilizedBody");
+        SimTK_SUBTEST(testCalculationMethods);
+        SimTK_SUBTEST(testWeld);
+        SimTK_SUBTEST(testGimbal);
+    SimTK_END_TEST();
 }
 
