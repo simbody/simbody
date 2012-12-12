@@ -80,12 +80,12 @@ are derived from MobilizedBody.
 
 There are three sets of methods used for obtaining MobilizedBody-specific 
 data from the containing System's State. These are:
-   - State Access
+   - %State Access
    - Basic Operators
    - High Level Operators
 
-<em>State Access</em> methods simply extract already-calculated data from the 
-State or State Cache, or set State values. They involve no additional 
+<em>%State Access</em> methods simply extract already-calculated data from the 
+State or %State Cache, or set state values. They involve no additional 
 computation, have names beginning with "get" and "upd" (update) and return 
 references to the requested quantities rather than calculated values. We 
 divide these into routines which deal with bodies and routines which deal 
@@ -108,6 +108,27 @@ There is also a set of methods used for construction, and miscellaneous
 utilities. These methods are primarly intended for use by concrete 
 MobilizedBody classes and are not generally used by end users.
 
+<h3>Mobilizer Terminology and Notation</h3>
+
+Refer to the figure below for the terminology we use when discussing 
+mobilizers and mobilized bodies. 
+
+@image html MobilizerTerminology.png "Terminology and notation for mobilized bodies"
+
+The figure shows the coordinate frames used in describing the mobility of 
+%MobilizedBody B with respect to its inboard parent body P. Everything blue 
+in the figure is associated with B. The origin point O of each frame is labeled.
+A new %MobilizedBody with body frame B is added to the multibody tree by 
+choosing a parent body P that is already present in the tree. There are two 
+frames associated with the mobilizer: the "fixed" frame F that is attached to 
+the parent, and the "moving" frame M that is attached to the new body B. Frame 
+F is specified by giving its transform X_PF relative to the P frame. Frame M is 
+specified by giving its transform X_BM relative to the B frame. At run time
+the transform X_FM between the two mobilizer frames represents translation and
+rotation of the mobilizer. That motion is parameterized via generalized 
+coordinates q and generalized speeds u, the specific meaning of which is a
+unique property of each type of mobilizer.
+
 In the API below, we'll refer to the current ("this") MobilizedBody as "body
 B". It is the "object" or "main" body with which we are concerned. Often 
 there will be another body mentioned in the argument list as a target for 
@@ -121,7 +142,15 @@ X_AF is the spatial transform giving frame F's origin location and
 orientation in frame A, such that a point P whose location is measured 
 from F's origin Fo and expressed in F by position vector p_FP (or more 
 explicitly p_FoP) is remeasured from frame A's origin Ao and reexpressed 
-in A via p_AP = X_AF*p_FP, where p_AP==p_AoP. **/
+in A via p_AP = X_AF*p_FP, where p_AP==p_AoP. 
+
+<h3>Theory</h3>
+For the mathematical and computational theory behind Simbody's mobilizers, see
+  - the <a href="https://simtk.org/docman/view.php/47/1536/Seth-2010-ShermanEastmanDelp-MinimalJointFormulationForBiomechanisms-NonlinearDyn-v62-p291.pdf">
+    paper</a> Seth, A.; Sherman, M.A.; Eastman, P.; Delp, S.L. "Minimal formulation 
+    of joint motion for biomechanisms" Nonlinear Dynamics 62:291-303 (2010), or
+  - the Simbody Theory Manual.
+**/
 
 class SimTK_SIMBODY_EXPORT MobilizedBody 
 :   public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {
