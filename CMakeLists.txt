@@ -498,6 +498,21 @@ IF (BUILD_TESTING)
     #
     ENABLE_TESTING()
 
+    # Make a RUN_TESTS_PARALLEL target (thanks, Kevin!)
+    # Specify number of cores to run for testing
+    SET(TESTING_PROCESSOR_COUNT 4 CACHE STRING 
+        "Number of CPUs to be used by the RUN_TESTS_PARALLEL target.")
+    MARK_AS_ADVANCED(TESTING_PROCESSOR_COUNT)
+    SET (cmd ${CMAKE_CTEST_COMMAND} -j${TESTING_PROCESSOR_COUNT})
+    IF (MSVC)
+        SET (cmd ${cmd} -C ${CMAKE_CFG_INTDIR})
+    ELSE (MSVC)
+        SET (cmd ${cmd} -C ${CMAKE_BUILD_TYPE})
+    ENDIF (MSVC)
+    ADD_CUSTOM_TARGET (RUN_TESTS_PARALLEL
+        COMMAND ${cmd}
+    )
+
 ENDIF (BUILD_TESTING)
 
 INCLUDE(ApiDoxygen.cmake)
