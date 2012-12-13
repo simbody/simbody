@@ -140,15 +140,15 @@ template <class R1, class R2> struct Widest< R1,complex<R2> > {
 /// Narrowest<R1,R2>::Type is complex< float > and Narrowest<R1,R2>::Precision
 /// is float.
 template <class R1, class R2> struct Narrowest {/* Only defined for built-ins. */};
-template <> struct Narrowest<float,float>              {typedef float  Type;};
-template <> struct Narrowest<float,double>             {typedef float  Type;};
-template <> struct Narrowest<float,long double>        {typedef float  Type;};
-template <> struct Narrowest<double,float>             {typedef float  Type;};
-template <> struct Narrowest<double,double>            {typedef double Type;};
-template <> struct Narrowest<double,long double>       {typedef double Type;};
-template <> struct Narrowest<long double,float>        {typedef float  Type;};
-template <> struct Narrowest<long double,double>       {typedef double Type;};
-template <> struct Narrowest<long double,long double>  {typedef long double Type;};
+template <> struct Narrowest<float,float>              {typedef float  Type; typedef float Precision;};
+template <> struct Narrowest<float,double>             {typedef float  Type; typedef float Precision;};
+template <> struct Narrowest<float,long double>        {typedef float  Type; typedef float Precision;};
+template <> struct Narrowest<double,float>             {typedef float  Type; typedef float Precision;};
+template <> struct Narrowest<double,double>            {typedef double Type; typedef double Precision;};
+template <> struct Narrowest<double,long double>       {typedef double Type; typedef double Precision;};
+template <> struct Narrowest<long double,float>        {typedef float  Type; typedef float Precision;};
+template <> struct Narrowest<long double,double>       {typedef double Type; typedef double Precision;};
+template <> struct Narrowest<long double,long double>  {typedef long double Type; typedef long double Precision;};
 template <class R1, class R2> struct Narrowest< complex<R1>,complex<R2> > { 
     typedef complex< typename Narrowest<R1,R2>::Type >  Type; 
     typedef typename Narrowest<R1,R2>::Precision        Precision;
