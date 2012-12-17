@@ -613,7 +613,6 @@ void System::Guts::reportEvents
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, // TODO: is this the right stage?
         "System::Guts::reportEvents()");
-    const Real savedTime = s.getTime();
     reportEventsImpl(s,cause,eventIds);
 
     getRep().nReportEventsCalls++; // mutable counter
