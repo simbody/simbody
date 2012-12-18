@@ -23,6 +23,8 @@
 
 #include "SimTKmath.h"
 #include "simbody/internal/MobilizedBody.h"
+#include "simbody/internal/MobilizedBody_Ground.h"
+#include "simbody/internal/MobilizedBody_Free.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/ObservedPointFitter.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"

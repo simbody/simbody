@@ -31,6 +31,7 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubtree.h"
 #include "simbody/internal/MobilizedBody.h"
+#include "simbody/internal/MobilizedBody_Ground.h"
 
 #include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"

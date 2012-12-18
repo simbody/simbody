@@ -1,0 +1,102 @@
+#ifndef SimTK_SIMBODY_MOBILIZED_BODY_SCREW_H_
+#define SimTK_SIMBODY_MOBILIZED_BODY_SCREW_H_
+
+/* -------------------------------------------------------------------------- *
+ *                               Simbody(tm)                                  *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK biosimulation toolkit originating from           *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
+ *                                                                            *
+ * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Authors: Michael Sherman                                                   *
+ * Contributors: Paul Mitiguy, Peter Eastman                                  *
+ *                                                                            *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
+ * not use this file except in compliance with the License. You may obtain a  *
+ * copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         *
+ *                                                                            *
+ * Unless required by applicable law or agreed to in writing, software        *
+ * distributed under the License is distributed on an "AS IS" BASIS,          *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   *
+ * See the License for the specific language governing permissions and        *
+ * limitations under the License.                                             *
+ * -------------------------------------------------------------------------- */
+
+/** @file
+Declares the MobilizedBody::Screw class. **/
+
+#include "simbody/internal/MobilizedBody.h"
+
+namespace SimTK {
+
+/// One mobility -- coordinated rotation and translation along the
+/// common z axis of the inboard and outboard mobilizer frames. A
+/// "pitch" is specified relating the two. The generalized coordinate
+/// q is the rotation angle in radians, the translation is always
+/// pitch*q.
+class SimTK_SIMBODY_EXPORT MobilizedBody::Screw : public MobilizedBody {
+public:
+    explicit Screw(Real pitch, Direction=Forward);
+
+    /// By default the parent body frame and the body's own frame are
+    /// used as the inboard and outboard mobilizer frames, resp.
+    Screw(MobilizedBody& parent, const Body&, Real pitch, Direction=Forward);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames.
+    Screw(MobilizedBody& parent, const Transform& inbFrame,
+         const Body&,           const Transform& outbFrame,
+         Real pitch, Direction=Forward);
+
+    Screw& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Screw& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Screw& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
+    }
+
+    Screw& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
+    }
+
+    Screw& setDefaultOutboardFrame(const Transform& X_BM) {
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
+    }
+
+    Screw& setDefaultPitch(Real pitch);
+    Real   getDefaultPitch() const;
+
+    Screw& setDefaultQ(Real);
+    Real   getDefaultQ() const;
+
+    Real getQ(const State&) const;
+    Real getQDot(const State&) const;
+    Real getQDotDot(const State&) const;
+    Real getU(const State&) const;
+    Real getUDot(const State&) const;
+
+    void setQ(State&, Real) const;
+    void setU(State&, Real) const;
+
+    Real getMyPartQ(const State&, const Vector& qlike) const;
+    Real getMyPartU(const State&, const Vector& ulike) const;
+   
+    Real& updMyPartQ(const State&, Vector& qlike) const;
+    Real& updMyPartU(const State&, Vector& ulike) const;
+
+    /** @cond **/ // Don't let doxygen see this
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Screw, ScrewImpl, MobilizedBody);
+    /** @endcond **/
+};
+
+} // namespace SimTK
+
+#endif // SimTK_SIMBODY_MOBILIZED_BODY_SCREW_H_
+
+
+

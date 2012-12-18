@@ -30,6 +30,7 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/MobilizedBody.h"
+#include "simbody/internal/MobilizedBody_BuiltIns.h"
 
 #include "MobilizedBodyImpl.h"
 #include "SimbodyMatterSubsystemRep.h"

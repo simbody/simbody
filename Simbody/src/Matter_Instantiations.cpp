@@ -35,6 +35,7 @@
 // we can instantiate them for real here.
 #define SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
 #include "simbody/internal/MobilizedBody.h"
+#include "simbody/internal/MobilizedBody_Custom.h"
 #include "MobilizedBodyImpl.h"
 
 // This suppresses the 'extern template' instantiations in Constraint.h so that
