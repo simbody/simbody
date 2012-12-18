@@ -44,21 +44,21 @@ of it and pass it to the MobilizedBody::Custom constructor:
 @code
 MobilizedBody::Custom myMobilizedBody(new MyMobilizedBodyImplementation(args));
 @endcode
+("args" here and below stands for whatever arguments are needed for your
+particular mobilizer; it isn't meant literally.)
 
 Alternatively, you can also create a new Handle class which is a subclass of 
 MobilizedBody::Custom and which creates the Implementation itself in its 
 constructors.
-
 @code
 class MyMobilizedBody : public MobilizedBody::Custom {
 public:
-  MyMobilizedBody(args) : MobilizedBody::Custom(new MyForceImplementation(args)) 
-  { }
+  MyMobilizedBody(args) 
+  :   MobilizedBody::Custom(new MyMobilizedBodyImplementation(args)) {}
 };
 @endcode
 
 This allows an end user to simply write
-
 @code
 MyMobilizedBody(args);
 @endcode
