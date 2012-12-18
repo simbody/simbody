@@ -367,9 +367,9 @@ Real calcGaussianCurvature(const Vec3& point) const {
 /** For an implicit surface, return the curvature k of the surface at a given
 point p in a given direction tp. Make sure the point is on the surface and the 
 direction vector lies in the tangent plane and has unit length |tp| = 1. Then
-</pre>
-k = ~tp * H * tp ,
 <pre>
+k = ~tp * H * tp ,
+</pre>
 where H is the Hessian matrix evaluated at p. 
 **/
 Real calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
