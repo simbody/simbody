@@ -534,7 +534,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
-            "MobilizedBody::Pin::PinImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::PinImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
     }
 
@@ -557,7 +557,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
-            "MobilizedBody::Slider::SliderImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::SliderImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
     }
 
@@ -579,7 +579,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
-            "MobilizedBody::Universal::UniversalImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::UniversalImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
     }
 
@@ -601,7 +601,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
-            "MobilizedBody::Cylinder::CylinderImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::CylinderImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
     }
 
@@ -623,7 +623,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
-            "MobilizedBody::BendStretch::BendStretchImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::BendStretchImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
     }
 
@@ -645,7 +645,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
-            "MobilizedBody::Planar::PlanarImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::PlanarImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
 
@@ -679,7 +679,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
-            "MobilizedBody::SphericalCoords::SphericalCoordsImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::SphericalCoordsImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
 
@@ -707,7 +707,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
-            "MobilizedBody::Gimbal::GimbalImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::GimbalImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
 
@@ -728,6 +728,29 @@ private:
     Vec3 defaultQ;  // the three angles in radians
 };
 
+class MobilizedBody::BushingImpl : public MobilizedBodyImpl {
+public:
+    explicit BushingImpl(Direction d) 
+    :   MobilizedBodyImpl(d), defaultQ(0) { }
+    BushingImpl* clone() const { return new BushingImpl(*this); }
+
+    RigidBodyNode* createRigidBodyNode(
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==6, 
+            "MobilizedBody::BushingImpl::copyOutDefaultQImpl(): wrong number of q's");
+        Vec6::updAs(q) = defaultQ;
+    }
+
+    SimTK_DOWNCAST(BushingImpl, MobilizedBodyImpl);
+private:
+    friend class MobilizedBody::Bushing;
+    Vec6 defaultQ;  // 3 angles in radians, then p_FM
+};
+
 class MobilizedBody::BallImpl : public MobilizedBodyImpl {
 public:
     explicit BallImpl(Direction d) 
@@ -741,7 +764,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
-            "MobilizedBody::Ball::BallImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::BallImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
@@ -778,7 +801,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
-            "MobilizedBody::Ellipsoid::EllipsoidImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::EllipsoidImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
@@ -814,7 +837,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
-            "MobilizedBody::Translation::TranslationImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::TranslationImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
 
@@ -836,7 +859,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==7||nq==6, 
-            "MobilizedBody::Free::FreeImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::FreeImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==7) {
             Vec4::updAs(q)   = defaultQOrientation.asVec4();
             Vec3::updAs(q+4) = defaultQTranslation;
@@ -865,7 +888,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
-            "MobilizedBody::LineOrientation::LineOrientationImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::LineOrientationImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
@@ -890,7 +913,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==7||nq==6, 
-            "MobilizedBody::FreeLine::FreeLineImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::FreeLineImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==7) {
             Vec4::updAs(q)   = defaultQOrientation.asVec4();
             Vec3::updAs(q+4) = defaultQTranslation;
@@ -919,7 +942,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==0, 
-            "MobilizedBody::Weld::WeldImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::WeldImpl::copyOutDefaultQImpl(): wrong number of q's");
     }
 
     SimTK_DOWNCAST(WeldImpl, MobilizedBodyImpl);
@@ -940,7 +963,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==0, 
-            "MobilizedBody::Ground::GroundImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::GroundImpl::copyOutDefaultQImpl(): wrong number of q's");
     }
 
     SimTK_DOWNCAST(GroundImpl, MobilizedBodyImpl);
@@ -968,7 +991,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
-            "MobilizedBody::Screw::ScrewImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::ScrewImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
     }
 
@@ -1096,7 +1119,7 @@ public:
     
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==getImplementation().getImpl().getNQ() || nq==getImplementation().getImpl().getNQ()-1, 
-            "MobilizedBody::Custom::CustomImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::CustomImpl::copyOutDefaultQImpl(): wrong number of q's");
         for (int i = 0; i < nq; ++i)
             q[i] = 0.0;
         if (implementation->getImpl().getNumAngles() == 4)

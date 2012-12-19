@@ -38,6 +38,7 @@
 #include "RigidBodyNodeSpec_PolarCoords.h"
 #include "RigidBodyNodeSpec_Planar.h"
 #include "RigidBodyNodeSpec_Gimbal.h"
+#include "RigidBodyNodeSpec_Bushing.h"
 #include "RigidBodyNodeSpec_FreeLine.h"
 #include "RigidBodyNodeSpec_LineOrientation.h"
 #include "RigidBodyNodeSpec_Custom.h"
@@ -198,6 +199,17 @@ RigidBodyNode* MobilizedBody::GimbalImpl::createRigidBodyNode(
     QIndex&        nextQSlot) const
 {
     INSTANTIATE(RBNodeGimbal, getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
+        nextUSlot,nextUSqSlot,nextQSlot)
+}
+
+RigidBodyNode* MobilizedBody::BushingImpl::createRigidBodyNode(
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
+{
+    INSTANTIATE(RBNodeBushing, getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
         isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot)

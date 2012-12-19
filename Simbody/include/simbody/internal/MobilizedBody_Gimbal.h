@@ -37,13 +37,14 @@ degrees. Use MobilizedBody::Ball for a similar joint that is free of
 singularities.
 
 This mobilizer does not provide any translation, so the parent's F frame and
-child's M frame origins will always be coincident. When q0=q1=q2=0, the F and M 
+child's M frame origins will always be coincident. (MobilizedBody::Bushing is
+defined like Gimbal but adds translation.) When q0=q1=q2=0, the F and M 
 frames are aligned. Then the generalized coordinates q should be interpreted
 as a series of rotation angles in radians: q0 is a rotation about the x axis, 
 then q1 is a rotation about the now-rotated y axis, and then q2 is a rotation 
 about the now twice-rotated z axis. The generalized speeds u for the %Gimbal
 mobilizer are the time derivatives of
-the generalized coordinates, that is, qdot=u. Note that this is different than
+the generalized coordinates, that is, u=qdot. Note that this is different than
 the choice of generalized speeds used for MobilizedBody::Ball, where the
 angular velocity vector is used as the three generalized speeds. (Euler angle 
 derivatives are \e not the same as angular velocity, except when q=0.)
@@ -64,7 +65,7 @@ and Mz axes. Other than performance (which is somewhat better if you use the
 %Gimbal), the pins-and-intermediate bodies system generates exactly the same
 generalized coordinates and generalized speeds as the %Gimbal. 
  
-@see MobilizedBody::Ball **/
+@see MobilizedBody::Ball, MobilizedBody::Gimbal **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public MobilizedBody {
 public:
     /** Create a %Gimbal mobilizer between an existing parent (inboard) body P 
@@ -150,7 +151,7 @@ public:
     const Vec3& getDefaultQ() const; // X,Y,Z body-fixed Euler angles
     /** Set the default value for the generalized coordinates q for this 
     mobilizer. The value is given as a 3-vector but note
-    that the returned quantity is \e not a vector; it is a body fixed 1-2-3
+    that the supplied quantity is \e not a vector; it is a body fixed 1-2-3
     Euler angle sequence in radians. The default is q=0 unless overridden.  
     @see getDefaultRotation() **/
     Gimbal& setDefaultQ(const Vec3& q);
@@ -187,7 +188,7 @@ public:
     value is given as a 3-vector, but is interpreted as a body fixed 1-2-3
     Euler angle sequence in radians. **/
     void setQ(State& state, const Vec3& q) const;
-    /** Set new values for this mobilizer's generalized sppeds u in the
+    /** Set new values for this mobilizer's generalized speeds u in the
     given \a state. This invalidates Stage::Velocity and above. The new
     value is given as a 3-vector, but is interpreted as the time derivatives
     of a body fixed 1-2-3 Euler angle sequence in radians/time. **/

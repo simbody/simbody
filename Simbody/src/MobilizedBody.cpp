@@ -1452,6 +1452,106 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
     }
 }
 
+    /////////////////////////////
+    // MOBILIZED BODY::BUSHING //
+    /////////////////////////////
+
+MobilizedBody::Bushing::Bushing(Direction d) 
+:   MobilizedBody(new BushingImpl(d)) {}
+
+
+MobilizedBody::Bushing::Bushing(MobilizedBody& parent, const Body& body, 
+                                Direction d) 
+:   MobilizedBody(new BushingImpl(d)) {
+    // inb & outb frames are just the parent body's frame and new body's frame
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                   *this);
+}
+
+MobilizedBody::Bushing::Bushing(MobilizedBody& parent, const Transform& inbFrame,
+                                const Body& bodyInfo, const Transform& outbFrame,
+                                Direction d) 
+:   MobilizedBody(new BushingImpl(d)) {
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(bodyInfo);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                   *this);
+}
+
+const Vec6& MobilizedBody::Bushing::getDefaultQ() const 
+{   return getImpl().defaultQ; }
+
+MobilizedBody::Bushing& MobilizedBody::Bushing::setDefaultQ(const Vec6& q) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultQ = q;
+    return *this;
+}
+
+const Vec6& MobilizedBody::Bushing::getQ(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 6);
+    return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
+}
+void MobilizedBody::Bushing::setQ(State& s, const Vec6& q) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 6);
+    Vec6::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
+}
+const Vec6& MobilizedBody::Bushing::getQDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 6);
+    return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
+}
+const Vec6& MobilizedBody::Bushing::getQDotDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 6);
+    return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
+}
+
+
+const Vec6& MobilizedBody::Bushing::getU(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
+}
+void MobilizedBody::Bushing::setU(State& s, const Vec6& u) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    Vec6::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
+}
+const Vec6& MobilizedBody::Bushing::getUDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
+}
+
+const Vec6& MobilizedBody::Bushing::getMyPartQ(const State& s, const Vector& qlike) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 6);
+    return Vec6::getAs(&qlike[qStart]);
+}
+
+const Vec6& MobilizedBody::Bushing::getMyPartU(const State& s, const Vector& ulike) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    return Vec6::getAs(&ulike[uStart]);
+}
+
+Vec6& MobilizedBody::Bushing::updMyPartQ(const State& s, Vector& qlike) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 6);
+    return Vec6::updAs(&qlike[qStart]);
+}
+
+Vec6& MobilizedBody::Bushing::updMyPartU(const State& s, Vector& ulike) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    return Vec6::updAs(&ulike[uStart]);
+}
+
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Bushing, MobilizedBody::BushingImpl, MobilizedBody);
+
+
     ///////////////////////////////////////////////////
     // MOBILIZED BODY::BALL (ORIENTATION, SPHERICAL) //
     ///////////////////////////////////////////////////

@@ -1646,6 +1646,7 @@ public:
 
     class Planar;
     class Gimbal;
+    class Bushing;
 
     class Ball;             
     typedef Ball Orientation;   ///< Synonym for Ball mobilizer.
@@ -1667,6 +1668,7 @@ public:
     class BendStretchImpl;
     class PlanarImpl;
     class GimbalImpl;
+    class BushingImpl;
     class BallImpl;
     class TranslationImpl;
     class SphericalCoordsImpl;
