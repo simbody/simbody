@@ -31,7 +31,7 @@ a pointer data member of some object is intended to refer to some target
 object in a larger data structure. Judicious use of this container will allow
 you to use compiler-generated copy constructors and copy assignment operators
 for classes which would otherwise have to implement their own in order to
-property initialize these pointer data members, which must not be copied.
+properly initialize these pointer data members, which must not be copied.
 
 The contained pointer is initialized to null (0) on construction, and it is 
 reinitialized to null upon copy construction or copy assignment. That's 
