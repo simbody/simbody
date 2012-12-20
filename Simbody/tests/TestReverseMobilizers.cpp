@@ -506,7 +506,7 @@ void testEllipsoid() {
 // The system is Ground (6dof) A (free) B (6dof) Ground.
 //   The forward system is Ground (6dof)-> A (free)-> B.
 //   The reverse system2 is A <-(rfree) B <-(6dof) Ground.
-// Reverse system2's planar joint q's and u's should have the
+// Reverse system2's free joint q's and u's should have the
 // same meaning as the forward system's.
 // NOTE: 6dof and free are the same thing above, but the one named
 // "free" and "rfree" is the mobilizer under test.
@@ -639,7 +639,7 @@ void testFree() {
     fwdMatter.calcMobilizerReactionForces(fwdState, fwdReac);
     rev2Matter.calcMobilizerReactionForces(rev2State, rev2Reac);
 
-    // Reaction AB != -BA for a planar joint unless the translation is 0.
+    // Reaction AB != -BA for a free joint unless the translation is 0.
     // Instead, we have to shift the reaction F_AB at B's mobilizer frame
     // over to A's mobilizer frame, then negate. So
     //    F_BA = -(F_AB + [f_AB x p_BA_G; 0])
@@ -652,6 +652,9 @@ void testFree() {
     cout << "  Fwd:   " << reacBA << endl;
     cout << "  Rev2:  " << reacBA2 << endl;
     cout << "  Fwd-Rev2:" << reacBA-reacBA2 << endl;
+
+    cout << "  Fwd: " << fwdB.findMobilizerReactionOnParentAtFInGround(fwdState) << endl;
+    cout << "  Rev: " << rev2A.findMobilizerReactionOnBodyAtMInGround(rev2State) << endl;
 
     assertEqual(reacBA, reacBA2, reacBA.norm()*1e-5);
 }
