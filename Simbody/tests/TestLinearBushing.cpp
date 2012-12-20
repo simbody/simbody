@@ -741,9 +741,9 @@ void testForcesUsingReverseBushingMobilizer() {
 
 int main() {
     SimTK_START_TEST("TestLinearBushing");
-        //SimTK_SUBTEST(testParameterSetting);
-        //SimTK_SUBTEST(testKinematicsAndEnergyConservation);
-        //SimTK_SUBTEST(testKinematicsAndEnergyConservationUsingBushingMobilizer);
+        SimTK_SUBTEST(testParameterSetting);
+        SimTK_SUBTEST(testKinematicsAndEnergyConservation);
+        SimTK_SUBTEST(testKinematicsAndEnergyConservationUsingBushingMobilizer);
         SimTK_SUBTEST(testForces);
         SimTK_SUBTEST(testForcesUsingReverseBushingMobilizer);
     SimTK_END_TEST();
