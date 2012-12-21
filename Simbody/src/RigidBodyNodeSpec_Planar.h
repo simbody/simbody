@@ -62,6 +62,16 @@ RBNodePlanar(const MassProperties&    mProps_B,
 
     // Implementations of virtual methods.
 
+// This has a default implementation but it rotates first then translates,
+// which works fine for the normal Planar joint but produces wrong behavior
+// when the mobilizer is reversed.
+void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM, 
+                            Vector& q) const OVERRIDE_11 
+{
+    setQToFitTranslationImpl(sbs, X_FM.p(), q); // see below
+    setQToFitRotationImpl(sbs, X_FM.R(), q);
+}
+
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
     // The only rotation our planar joint can handle is about z.
     // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;

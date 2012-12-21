@@ -77,13 +77,23 @@ RBNodeBushing(const MassProperties& mProps_B,
 
     // Implementations of virtual methods.
 
+// This has a default implementation but it rotates first then translates,
+// which works fine for the normal bushing but produces wrong behavior when
+// the mobilizer is reversed.
+void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM, 
+                            Vector& q) const OVERRIDE_11 
+{
+    setQToFitTranslationImpl(sbs, X_FM.p(), q); // see below
+    setQToFitRotationImpl(sbs, X_FM.R(), q);
+}
+
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
-                           Vector& q) const {
+                           Vector& q) const OVERRIDE_11 {
     this->toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
 }
 
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
-                              Vector& q) const {
+                              Vector& q) const OVERRIDE_11 {
     this->toQVec3(q,3) = p_FM; // skip the 3 Euler angles
 }
 
@@ -92,7 +102,7 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
 // return u=qdot.
 void setUToFitAngularVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
-    Vector& u) const 
+    Vector& u) const OVERRIDE_11 
 {
     const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
     const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
@@ -104,7 +114,7 @@ void setUToFitAngularVelocityImpl
 
 void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, 
-    Vector& u) const
+    Vector& u) const OVERRIDE_11 
 {
     this->toUVec3(u,3) = v_FM;
 }
@@ -114,7 +124,7 @@ void setUToFitLinearVelocityImpl
 enum {PoolSize=7};
 // cos x,y,z sin x,y,z 1/cos(y)
 enum {CosQ=0, SinQ=3, OOCosQy=6};
-int calcQPoolSize(const SBModelVars& mv) const
+int calcQPoolSize(const SBModelVars& mv) const OVERRIDE_11 
 {   return PoolSize; }
 
 // This is expensive since we have three sin/cos computations and a divide
@@ -123,7 +133,7 @@ int calcQPoolSize(const SBModelVars& mv) const
 void performQPrecalculations(const SBStateDigest& sbs,
                              const Real* q,      int nq,
                              Real*       qCache, int nQCache,
-                             Real*       qErr,   int nQErr) const
+                             Real*       qErr,   int nQErr) const OVERRIDE_11 
 {
     assert(q && nq==6 && qCache && nQCache==PoolSize && nQErr==0);
 
@@ -140,7 +150,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
 void calcX_FM(const SBStateDigest& sbs,
               const Real* q,      int nq,
               const Real* qCache, int nQCache,
-              Transform&  X_F0M0) const
+              Transform&  X_F0M0) const OVERRIDE_11 
 {
     assert(q && nq==6 && qCache && nQCache==PoolSize);
 
@@ -159,7 +169,7 @@ void calcX_FM(const SBStateDigest& sbs,
 // a fair bit of poking around in memory required.
 void calcAcrossJointVelocityJacobian(
     const SBStateDigest& sbs,
-    HType&               H_FM) const
+    HType&               H_FM) const OVERRIDE_11 
 {
     const SBModelCache&        mc = sbs.getModelCache();
     // Use "upd" here because we're realizing positions now.
@@ -182,7 +192,7 @@ void calcAcrossJointVelocityJacobian(
 //    d/dt cos(q0) = -sin(q0)*qdot0, etc.
 void calcAcrossJointVelocityJacobianDot(
     const SBStateDigest& sbs,
-    HType&               HDot_FM) const
+    HType&               HDot_FM) const OVERRIDE_11 
 {
     const SBModelCache&        mc = sbs.getModelCache();
     const SBTreePositionCache& pc = sbs.getTreePositionCache();

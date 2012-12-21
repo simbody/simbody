@@ -33,7 +33,7 @@
 #include <iostream>
 using std::cout; using std::endl;
 
-#define VISUALIZE
+//#define VISUALIZE
 #ifdef VISUALIZE
     #define WAIT_FOR_INPUT(str) \
         do {printf(str); getchar();} while(false)
@@ -633,6 +633,9 @@ void testForcesUsingReverseBushingMobilizer() {
     GeneralForceSubsystem   forces(system);
     Force::UniformGravity   gravity(forces, matter, 0*Vec3(0, -9.8, 0));
 
+    matter.Ground().addBodyDecoration(Transform(),
+        DecorativeFrame(.25).setColor(Purple));
+
     const Real Mass = 1;
     const Vec3 HalfShape = Vec3(1,.5,.25)/2;
     const Transform BodyAttach(Rotation(), Vec3(HalfShape[0],0,0));
@@ -646,11 +649,13 @@ void testForcesUsingReverseBushingMobilizer() {
 
     MobilizedBody::Free brick1(matter.Ground(), Transform(), 
                                brickBody,       BodyAttach);
+    brick1.addBodyDecoration(Transform(), DecorativeText("1").setScale(.25));
 
     // This mobilizer is used to match the kinematics of a "reverse" direction
     // bushing where Ground is body 2.
     MobilizedBody::Bushing brick2(matter.Ground(), Vec3(1,1,1)+Vec3(2,0,0),
                                   brickBody, BodyAttach, MobilizedBody::Reverse);
+    brick2.addBodyDecoration(Transform(), DecorativeText("2").setScale(.25));
 
     const Vec6 k = Test::randVec<6>().abs(); // must be > 0
     const Vec6 c =  Test::randVec<6>().abs(); // "
@@ -665,8 +670,8 @@ void testForcesUsingReverseBushingMobilizer() {
     // for the bushing; Ground is second. This is a hard test because
     // the F frame is moving.
     Force::LinearBushing bushing
-        (forces, brick1, BodyAttach, 
-         matter.Ground(), GroundAttach,
+        (forces, brick1, BodyAttach,    // .5,0,0
+         matter.Ground(), GroundAttach, // 1,1,1
          k1, c1);
 
     Force::LinearBushing bushing2
@@ -709,16 +714,14 @@ void testForcesUsingReverseBushingMobilizer() {
 
     Rotation RR = Test::randRotation();
     brick1.setQToFitTransform(state, RR); 
+    system.realize(state, Stage::Position);
 
-    Vec3 qRRinv;
-    qRRinv = Rotation(~RR).convertRotationToBodyFixedXYZ();
+    cout << "\nbrick1 .q=" << brick1.getQ(state) << endl;
+    cout <<   "bushing.q=" << bushing.getQ(state) << endl;
 
-    //brick2.setQToFitTransform(state, 
-    //    Transform(~RR, ~RR*Vec3(-1,-1,-1)));
-    brick2.setQToFitTransform(state, ~RR*Vec3(-1,-1,-1));
-    brick2.setOneQ(state, 0, qRRinv[0]);
-    brick2.setOneQ(state, 1, qRRinv[1]);
-    brick2.setOneQ(state, 2, qRRinv[2]);
+    brick2.setQToFitTransform(state, Transform(RR, -Vec3(1,1,1)));
+
+    cout << "brick2 .q=" << brick2.getQ(state) << endl;
 
 
     REPORT(state);
