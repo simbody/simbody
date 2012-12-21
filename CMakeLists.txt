@@ -532,7 +532,7 @@ INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION doc)
 
 # Install cmake utilities for end users to use to find Simbody.
 FILE(GLOB INSTALLED_CMAKE_STUFF cmake/*.cmake cmake/*.txt)
-INSTALL(FILES ${INSTALLED_CMAKE_STUFF} DESTINATION cmake)
+INSTALL(FILES ${INSTALLED_CMAKE_STUFF} DESTINATION share/cmake)
 
 #######################################################################
 # Make the package config "simbody.pc" file for use on Linux. Requested by
