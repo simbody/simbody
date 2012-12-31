@@ -3592,9 +3592,9 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
             // This factorization acts like a pseudoinverse.
             Pqwr_qtz.factor<Real>(~Pqwrt, conditioningTol); 
 
-            //std::cout << "POSITION PROJECTION TOL=" << conditioningTol
-            //          << " RANK=" << Pqwr_qtz.getRank() 
-            //          << " RCOND=" << Pqwr_qtz.getRCondEstimate() << std::endl;
+            //printf("enforcePositionConstraints %d: condTol=%g rank=%d rcond=%g\n",
+            //    nItsUsed, conditioningTol, Pqwr_qtz.getRank(),
+            //    Pqwr_qtz.getRCondEstimate());
 
             Pqwr_qtz.solve(scaledPerrs, dfq_WLS); // this is weighted dq_WLS=Wq*dq
             lastChangeMadeWRMS = dfq_WLS.normRMS(); // change in weighted norm
@@ -3920,9 +3920,9 @@ int SimbodyMatterSubsystemRep::projectQ
         // This factorization acts like a pseudoinverse.
         Pqwr_qtz.factor<Real>(~Pqwrt, conditioningTol); 
 
-        //std::cout << "POSITION PROJECTION TOL=" << conditioningTol
-        //          << " RANK=" << Pqwr_qtz.getRank() 
-        //          << " RCOND=" << Pqwr_qtz.getRCondEstimate() << std::endl;
+        //printf("projectQ %d: m=%d condTol=%g rank=%d rcond=%g\n",
+        //    nItsUsed, Pqwrt.ncol(), conditioningTol, Pqwr_qtz.getRank(),
+        //    Pqwr_qtz.getRCondEstimate());
 
         Pqwr_qtz.solve(scaledPerrs, dfq_WLS); // this is weighted dq_WLS=Wq*dq
         lastChangeMadeWRMS = dfq_WLS.normRMS(); // change in weighted norm
@@ -3971,6 +3971,8 @@ int SimbodyMatterSubsystemRep::projectQ
                 && nItsUsed < MaxIterations);
 
     results.setNumIterations(nItsUsed);
+
+    //printf("        perrNormAchieved=%g in %d its\n",perrNormAchieved, nItsUsed);
 
     // Make sure we achieved at least the required constraint accuracy. If not 
     // we'll return with an error. If we see that the norm has been made worse
@@ -4454,6 +4456,10 @@ int SimbodyMatterSubsystemRep::projectU
     FactorQTZ PVwr_qtz;
     PVwr_qtz.factor<Real>(~PVwrt, conditioningTol);
 
+    //printf("projectU m=%d condTol=%g rank=%d rcond=%g\n",
+    //    PVwrt.ncol(), conditioningTol, PVwr_qtz.getRank(),
+    //    PVwr_qtz.getRCondEstimate());
+
     Real prevPVerrNormAchieved = pverrNormAchieved; // watch for divergence
     bool diverged = false;
     const int MaxIterations  = 7;
@@ -4768,6 +4774,11 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     
     // specify 1/cond at which we declare rank deficiency
     FactorQTZ qtz(GMInvGt, conditioningTol); 
+
+    //printf("fwdDynamics: m=%d condTol=%g rank=%d rcond=%g\n",
+    //    GMInvGt.nrow(), conditioningTol, qtz.getRank(),
+    //    qtz.getRCondEstimate());
+
     qtz.solve(udotErr, multipliers);
 
     // We have the multipliers, now turn them into forces.
