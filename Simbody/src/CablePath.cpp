@@ -7,8 +7,8 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2012 Stanford University and the Authors.           *
- * Authors: Michael Sherman, Ian Stavness, Andreas Scholz                     *
- * Contributors:                                                              *
+ * Authors: Michael Sherman, Ian Stavness                                     *
+ * Contributors: Andreas Scholz                                               *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -87,7 +87,7 @@ std::ostream& operator<<(std::ostream& o, const PathPosEntry& ppe) {
 
     cout << "geodesics lengths=";
     for (ActiveSurfaceIndex asx(0); asx < ppe.geodesics.size(); ++asx)
-        cout << ppe.geodesics[asx].getLength();
+        cout << ppe.geodesics[asx].getLength() << " ";
     cout << endl;
     cout << "x=" << ppe.x << endl;
     cout << "err=" << ppe.err << endl;
@@ -151,6 +151,9 @@ void CablePath::clear() {
     }
 }
 
+void CablePath::solveForInitialCablePath(State& state) const
+{   getImpl().solveForInitialCablePath(state); }
+
 int CablePath::getNumObstacles() const 
 {   return getImpl().obstacles.size(); }
 
@@ -203,6 +206,20 @@ applyBodyForces(const State& state, Real tension,
     }
 }
 
+
+
+//------------------------------------------------------------------------------
+//                      SOLVE FOR INITIAL CABLE PATH
+//------------------------------------------------------------------------------
+// TODO -- this is a stub that does nothing.
+void CablePath::Impl::
+solveForInitialCablePath(State& state) const {
+    const PathInstanceInfo& instInfo = getInstanceInfo(state);
+
+    // These state variables are presumed to be uninitialized here.
+    PathPosEntry& ppe = updPrevPosEntry(state);
+    PathVelEntry& pve = updPrevVelEntry(state);
+}
 
 //------------------------------------------------------------------------------
 //                           REALIZE TOPOLOGY
@@ -415,6 +432,7 @@ void CablePath::Impl::handleEvents
 
 
     const PathInstanceInfo& instInfo = getInstanceInfo(state);
+    const int nObs = instInfo.getNumObstacles();
     PathPosEntry& currPPE = updPosEntry(state);
 
     // Capture the current path segments before we invalidate the state.
@@ -435,6 +453,23 @@ void CablePath::Impl::handleEvents
             r_SQp[ox] = rSQp;
             r_SPn[ox] = rSPn;
         }
+    }
+
+    // Also capture the xP and xQ locations for currently active objects
+    // so we can restore those for the objects that don't change status.
+    // And save previous geodesics.
+    Array_<Vec3,CableObstacleIndex> xP(nObs,Vec3(NaN));
+    Array_<Vec3,CableObstacleIndex> xQ(nObs,Vec3(NaN));
+    Array_<Geodesic,CableObstacleIndex> geodesics(nObs);
+    for (CableObstacleIndex ox(0); ox < nObs; ++ox) {
+        const int xSlot = currPPE.mapToCoords[ox];
+        if (xSlot < 0) continue;
+        xP[ox] = Vec3::getAs(&currPPE.x[xSlot]);
+        xQ[ox] = Vec3::getAs(&currPPE.x[xSlot+3]);
+
+        const ActiveSurfaceIndex asx = currPPE.mapToActiveSurface[ox];
+        if (!asx.isValid()) continue;
+        geodesics[ox] = currPPE.geodesics[asx];
     }
 
 
@@ -464,19 +499,20 @@ void CablePath::Impl::handleEvents
             // Grab points before we invalidate the state.
             Vec3 rSQp = r_SQp[ox], rSPn = r_SPn[ox];
             updInstanceInfo(state).obstacleDisabled[ox] = false;
-            realizeInstance(state);
+            cables->getSystem().realize(state, Stage::Instance);
             // now it's active
             const ActiveSurfaceIndex asx = currPPE.mapToActiveSurface[ox];
             const int xSlot = currPPE.mapToCoords[ox];
             assert(xSlot >= 0); // Should have had coordinates assigned
-            const Vec3 P = currPPE.closestSurfacePoint[sox];
-            Vec3::updAs(&currPPE.x[xSlot+0]) = P;
-            Vec3::updAs(&currPPE.x[xSlot+3]) = P;
+            const UnitVec3 d(rSPn-rSQp);
+            const Vec3 P = currPPE.closestSurfacePoint[sox] /*- 1e-3*d*/;
+            const Vec3 Q = currPPE.closestSurfacePoint[sox] /*+ 1e-3*d*/;
+            xP[ox] = P;
+            xQ[ox] = Q;
             const ContactGeometry& geom = obs.getContactGeometry();
             Geodesic zeroLength;
-            geom.makeStraightLineGeodesic(P,P,UnitVec3(rSPn-rSQp),
-                GeodesicOptions(),zeroLength);
-            currPPE.geodesics[asx] = zeroLength;
+            geom.makeStraightLineGeodesic(P,Q,d, GeodesicOptions(),zeroLength);
+            geodesics[ox] = zeroLength;
         } else {
             // Save the point of last contact as the initial guess for 
             // closest point tracking.
@@ -486,12 +522,32 @@ void CablePath::Impl::handleEvents
             currPPE.closestPathPoint[sox] = (P_S+Q_S)/2;
             std::cout << "DISABLE OBSTACLE " << ox << std::endl;
             updInstanceInfo(state).obstacleDisabled[ox] = true;
-            realizeInstance(state);
+            cables->getSystem().realize(state, Stage::Instance);
+        }
+
+        // Set coordinates xP and xQ to their former values or to their
+        // initial value if a surface was enabled.
+        for (CableObstacleIndex ox(0); ox < nObs; ++ox) {
+            const int xSlot = currPPE.mapToCoords[ox];
+            if (xSlot < 0) continue;
+            const Vec3& P = xP[ox];
+            const Vec3& Q = xQ[ox];
+            SimTK_ASSERT1_ALWAYS(!P.isNaN() && !Q.isNaN(),
+                "CablePath::Impl::handleEvents(): "
+                "saved point for obstacle %d was NaN.", (int)ox); 
+            Vec3::updAs(&currPPE.x[xSlot])   = P;
+            Vec3::updAs(&currPPE.x[xSlot+3]) = Q;;
+
+            const ActiveSurfaceIndex asx = currPPE.mapToActiveSurface[ox];
+            if (!asx.isValid()) continue;
+            currPPE.geodesics[asx] = geodesics[ox];
         }
         currPPE.witnesses[sox] = 0;
         prevPPE = currPPE; // TODO
         updPrevVelEntry(state) = updVelEntry(state); // don't force computation
     }
+
+    std::cout << "Final CurrPPE in handler=\n" << currPPE << std::endl;
 
     results.setExitStatus(HandleEventsResults::Succeeded);
 }
@@ -763,6 +819,9 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
     Vector dx, xold, xchg;
 
     Real f = ppe.err.norm();
+    cout << "\n***PATH solveForPathPoints@t=" << state.getTime() 
+         << " err=" << f << "\n"; 
+
     Real fold, lam = 1, nextlam = 1;
     Real dxnormPrev = Infinity;
     int maxIter = 20;
@@ -771,7 +830,7 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         // because we use it to solve for xdot. So we might as well do one
         // iteration.
         if (i > 0 && f <= ftol) {
-            std::cout << "\nPATH converged in " 
+            std::cout << "\n***PATH converged in " 
                 << i << " iterations err=" << f << "\n\n";
             break;
         }
@@ -1205,6 +1264,8 @@ calcPathErrorJacobian(const State&            state,
             ppe.geodesics[asx],             // solved geodesic
             DehatDein, DehatDxP, DehatDxQ, DehatDeout);
 
+        //DehatDein=DehatDein1;DehatDxP=DehatDxP1;DehatDxQ=DehatDxQ1;DehatDeout=DehatDeout1;
+
         //cout << "err=" << ppe.err << "\n";
 
         //cout << "DehatDxP =" << DehatDxP;
@@ -1367,16 +1428,37 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     const UnitVec3& tQ = current.getTangentQ();
     const UnitVec3& bP = current.getBinormalP();
     const UnitVec3& bQ = current.getBinormalQ();
+    const Real      length = current.getLength();
+
     // Watch for backwards geodesic and flip tangent error conditions.
-    const Real signP = ~eIn *tP < 0 ? -1. : 1.;
-    const Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    Real signP = ~eIn *tP < 0 ? -1. : 1.;
+    Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    //XXX 
+    //signP = signQ = 1;
+
+    // If length is very short, or geodesic is backwards, use path binormals
+    // rather than geodesic binormals.
+    const Real ShortLength = 1e-3;
+    if (length <= ShortLength)
+        cout << "==> Using short formulation for length=" << length << endl;
+    if (signP < 0 || signQ < 0) { 
+        cout << "==> Backwards geodesic with length=" << length 
+             << " eIn*tP=" << ~eIn*tP << " eOut*tQ=" << ~eOut*tQ << endl;
+        if (signP != signQ) {
+            cout <<"    Mismatch eIn="<<eIn << " eOut="<<eOut<<endl;
+            cout <<"             tP=" <<tP << " tQ="<<tQ<<endl;
+        }
+    }
+
+    const Vec3 bbarP = length<=ShortLength ? eOut % nP : bP;
+    const Vec3 bbarQ = length<=ShortLength ? eIn  % nQ : bQ;
 
     Vec6 err;
     err[0] = ~eIn*nP;   // tangent error in normal direction
     err[1] = ~eOut*nQ;
     
-    err[2] = signP*(~eIn*bP);   // tangent errors in geodesic direction
-    err[3] = signQ*(~eOut*bQ);
+    err[2] = ~eIn*bbarP;   // tangent errors in geodesic direction
+    err[3] = ~eOut*bbarQ;
 
     // These are the implicit surface errors forcing P and Q to lie on the
     // surface.
@@ -1412,8 +1494,10 @@ calcSurfacePathErrorJacobianAnalytically
     const UnitVec3& bP = current.getBinormalP();
     const UnitVec3& bQ = current.getBinormalQ();
     // Watch for backwards geodesic and flip tangent error conditions.
-    const Real signP = ~eIn *tP < 0 ? -1. : 1.;
-    const Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    Real signP = ~eIn *tP < 0 ? -1. : 1.;
+    Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    // XXX
+    //signP = signQ = 1;
 
     const Real jP = current.getJacobiP(), 
                jQ = current.getJacobiQ();
@@ -1426,8 +1510,8 @@ calcSurfacePathErrorJacobianAnalytically
     const Real muP = current.getBinormalCurvatureP(),
                muQ = current.getBinormalCurvatureQ();
 
-    DerrDentry = Mat63( ~nP,    Row3(0), ~bP,   Row3(0), Row3(0), Row3(0) );
-    DerrDexit  = Mat63( Row3(0), ~nQ,   Row3(0), ~bQ,    Row3(0), Row3(0) );
+    DerrDentry = Mat63( ~nP,    Row3(0), signP*~bP,   Row3(0), Row3(0), Row3(0) );
+    DerrDexit  = Mat63( Row3(0), ~nQ,   Row3(0), signP*~bQ,    Row3(0), Row3(0) );
     const Vec3 gP = surface.calcSurfaceGradient(xP),
                gQ = surface.calcSurfaceGradient(xQ);
     const Mat33 HP = surface.calcSurfaceHessian(xP),
@@ -1480,8 +1564,10 @@ Vec6 CableObstacle::Surface::Impl::calcSurfaceNegKinematicVelocityError
     const UnitVec3& bQ = geodesic.getBinormalQ();
 
     // Watch for backwards geodesic and flip tangent error conditions.
-    const Real signP = ~eIn *tP < 0 ? -1. : 1.;
-    const Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    Real signP = ~eIn *tP < 0 ? -1. : 1.;
+    Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    //XXX
+    //signP = signQ = 1;
 
     // These must be the kinematic part of the time derivatives of the
     // error conditions that were reported for this obstacle during path

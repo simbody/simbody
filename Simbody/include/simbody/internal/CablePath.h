@@ -10,8 +10,8 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2012 Stanford University and the Authors.           *
- * Authors: Michael Sherman, Ian Stavness, Andreas Scholz                     *
- * Contributors:                                                              *
+ * Authors: Michael Sherman, Ian Stavness                                     *
+ * Contributors: Andreas Scholz                                               *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -103,6 +103,29 @@ CablePath& operator=(const CablePath& source);
 /** Delete the cable path if this handle was the last reference to it. **/
 ~CablePath() {clear();}
 
+/** TODO: Calculate the initial cable path, without using any prior solution.
+The result is saved in the supplied State which may then be used as the 
+initial condition for a time simulation. This method will work hard to find
+a good starting solution, making use of any hints that have been 
+supplied with the obstacles. This is substantially different (and much more
+time consuming) than the method used during a simulation, which always starts
+with the previous solution and is intentionally limited to finding a nearby
+solution. 
+
+The initial solution consists of both (a) which of the surface obstacles are 
+active, and (b) the intersection of the cable with the active obstacles and
+the path taken by the cable over those obstacles (a geodesic curve). For 
+inactive surface obstacles we determine the closest point between the obstacles
+and the path; that point will be tracked continuously during a simulation. The
+user-supplied ordering and near points are respected. The
+cable length and length rate of change are available immediately after this
+call; \a state will have been realized through Velocity stage. 
+
+An exception is thrown if no acceptable cable path can be found. In that
+case the \a state is still initialized and can be examined to see where
+the algorithm got stuck. **/
+void solveForInitialCablePath(State& state) const;
+
 /** Return the total number of obstacles (origin point, surfaces and via 
 points, and termination point) that were provided for this cable path, 
 regardless of whether they are currently in use. **/
@@ -139,11 +162,15 @@ supplied \a tension is <= 0, power may still be dissipated while the cable
 shortens even though it can't apply forces to the system. **/
 Real calcCablePower(const State& state, Real tension) const;
 
-/** Get the time integral of cable length dot. This should be the total
-change in cable length since start of a simulation. **/
+/** (Advanced) Get the time integral of cable length dot. This should be the 
+total change in cable length since start of a simulation. This is mostly 
+useful for debugging and testing of cables. **/
 Real getIntegratedCableLengthDot(const State& state) const;
 
-/** Initialize the integrated cable length dot. **/
+/** (Advanced) Initialize the integral of the cable length rate. This is 
+used at the start of a simulation to initilize the integral to the value 
+returned by getCableLength() so that getIntegratedCableLengthDot() will return
+the same values as getCableLength() during the simulations. **/
 void setIntegratedCableLengthDot(State& state, Real value) const;
 
 

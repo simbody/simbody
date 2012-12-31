@@ -10,8 +10,8 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2012 Stanford University and the Authors.           *
- * Authors: Michael Sherman, Ian Stavness, Andreas Scholz                     *
- * Contributors:                                                              *
+ * Authors: Michael Sherman, Ian Stavness                                     *
+ * Contributors: Andreas Scholz                                               *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -377,8 +377,6 @@ friend class CableObstacle;
 //==============================================================================
 //                         CABLE PATH :: IMPL
 //==============================================================================
-
-
 // This is the internal implementation class for CablePath. It is reference
 // counted so that CablePath objects can be multiply referenced.
 class CablePath::Impl {
@@ -407,6 +405,8 @@ public:
         obstacles.back().updImpl().setCableObstacleIndex(obstacles.size()-1);
         return CableObstacleIndex(obstacles.size()-2); 
     }
+
+    void solveForInitialCablePath(State& state) const;
 
     Real getCableLength(const State& state) const {
         const PathPosEntry& posEntry = getPosEntry(state);
