@@ -42,6 +42,8 @@
 #include "RigidBodyNodeSpec_FreeLine.h"
 #include "RigidBodyNodeSpec_LineOrientation.h"
 #include "RigidBodyNodeSpec_Custom.h"
+// Note: _Translation is handled separately so we can special case
+// a lone particle for speed if we find one.
 
 // A macro for instantiating rigid body nodes.
 #define INSTANTIATE(CLASS, ...) \
