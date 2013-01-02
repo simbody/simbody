@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors: Derived from IVM code written by Charles Schwieters          *
+ * Contributors: Peter Eastman, Charles Schwieters                            *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
