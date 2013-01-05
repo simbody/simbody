@@ -21,15 +21,10 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/*                     Simbody CableOverBicubicSurfaces
-This example shows how to use a CableTrackerSubsystem to follow the motion of
-a cable that crosses bicubic surfaces. We'll then
-create a force element that generates spring forces that result from the
-stretching and stretching rate of the cable. */
+/*                     Simbody OpenSimPartyDemoCable
+THIS DOESN'T WORK YET */
 
 #include "Simbody.h"
-#include "simbody/internal/CableTrackerSubsystem.h"
-#include "simbody/internal/CablePath.h"
 
 #include <cassert>
 #include <iostream>
@@ -37,141 +32,14 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
-// This force element implements an elastic cable of a given nominal length,
-// and a stiffness k that generates a k*x force opposing stretch beyond
-// nominal. There is also a damping term c*xdot that applies only when the
-// cable is stretched and is being extended (x>0 && xdot>0). We keep track
-// of dissipated power here so we can use conservation of energy to check that
-// the cable and force element aren't obviously broken.
-class MyCableSpringImpl : public Force::Custom::Implementation {
-public:
-    MyCableSpringImpl(const GeneralForceSubsystem& forces, 
-                      const CablePath& path, 
-                      Real stiffness, Real nominal, Real damping) 
-    :   forces(forces), path(path), k(stiffness), x0(nominal), c(damping)
-    {   assert(stiffness >= 0 && nominal >= 0 && damping >= 0); }
-
-    const CablePath& getCablePath() const {return path;}
-
-    // Must be at stage Velocity. Evalutes tension if necessary.
-    Real getTension(const State& state) const {
-        ensureTensionCalculated(state);
-        return Value<Real>::downcast(forces.getCacheEntry(state, tensionx));
-    }
-
-    // Must be at stage Velocity.
-    Real getPowerDissipation(const State& state) const {
-        const Real stretch = calcStretch(state);
-        if (stretch == 0) return 0;
-        const Real rate = path.getCableLengthDot(state);
-        return k*stretch*std::max(c*rate, -1.)*rate;
-    }
-
-    // This integral is always available.
-    Real getDissipatedEnergy(const State& state) const {
-        return forces.getZ(state)[workx];
-    }
-
-    //--------------------------------------------------------------------------
-    //                       Custom force virtuals
-
-    // Ask the cable to apply body forces given the tension calculated here.
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
-                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
-    {   path.applyBodyForces(state, getTension(state), bodyForces); }
-
-    // Return the potential energy currently stored by the stretch of the cable.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {
-        const Real stretch = calcStretch(state);
-        if (stretch == 0) return 0;
-        return k*square(stretch)/2;
-    }
-
-    // Allocate the state variable for tracking dissipated energy, and a
-    // cache entry to hold the calculated tension.
-    void realizeTopology(State& state) const OVERRIDE_11 {
-        Vector initWork(1, 0.);
-        workx = forces.allocateZ(state, initWork);
-        tensionx = forces.allocateLazyCacheEntry(state, Stage::Velocity,
-                                             new Value<Real>(NaN));
-    }
-
-    // Report power dissipation as the derivative for the work variable.
-    void realizeAcceleration(const State& state) const OVERRIDE_11 {
-        Real& workDot = forces.updZDot(state)[workx];
-        workDot = getPowerDissipation(state);
-    }
-    //--------------------------------------------------------------------------
-
-private:
-    // Return the amount by which the cable is stretched beyond its nominal
-    // length or zero if the cable is slack. Must be at stage Position.
-    Real calcStretch(const State& state) const {
-        const Real stretch = path.getCableLength(state) - x0;
-        return std::max(stretch, 0.);
-    }
-
-    // Must be at stage Velocity to calculate tension.
-    Real calcTension(const State& state) const {
-        const Real stretch = calcStretch(state);
-        if (stretch == 0) return 0;
-        const Real rate = path.getCableLengthDot(state);
-        if (c*rate < -1)
-            cout << "c*rate=" << c*rate << "; limited to -1\n";
-        const Real tension = k*stretch*(1+std::max(c*rate,-1.));
-        return tension;
-    }
-
-    // If state is at stage Velocity, we can calculate and store tension
-    // in the cache if it hasn't already been calculated.
-    void ensureTensionCalculated(const State& state) const {
-        if (forces.isCacheValueRealized(state, tensionx))
-            return;
-        Value<Real>::updDowncast(forces.updCacheEntry(state, tensionx)) 
-            = calcTension(state);
-        forces.markCacheValueRealized(state, tensionx);
-    }
-
-    const GeneralForceSubsystem&    forces;
-    CablePath                       path;
-    Real                            k, x0, c;
-    mutable ZIndex                  workx;
-    mutable CacheEntryIndex         tensionx;
-};
-
-// A nice handle to hide most of the cable spring implementation. This defines
-// a user's API.
-class MyCableSpring : public Force::Custom {
-public:
-    MyCableSpring(GeneralForceSubsystem& forces, const CablePath& path, 
-                  Real stiffness, Real nominal, Real damping) 
-    :   Force::Custom(forces, new MyCableSpringImpl(forces,path,
-                                                    stiffness,nominal,damping)) 
-    {}
-    
-    // Expose some useful methods.
-    const CablePath& getCablePath() const 
-    {   return getImpl().getCablePath(); }
-    Real getTension(const State& state) const
-    {   return getImpl().getTension(state); }
-    Real getPowerDissipation(const State& state) const
-    {   return getImpl().getPowerDissipation(state); }
-    Real getDissipatedEnergy(const State& state) const
-    {   return getImpl().getDissipatedEnergy(state); }
-
-private:
-    const MyCableSpringImpl& getImpl() const
-    {   return dynamic_cast<const MyCableSpringImpl&>(getImplementation()); }
-};
-
-static Array_<State> saveStates;
 // This gets called periodically to dump out interesting things about
-// the cables and the system as a whole.
+// the cables and the system as a whole. It also saves states so that we
+// can play back at the end.
+static Array_<State> saveStates;
 class ShowStuff : public PeriodicEventReporter {
 public:
     ShowStuff(const MultibodySystem& mbs, 
-              const MyCableSpring& cable1, Real interval) 
+              const CableSpring& cable1, Real interval) 
     :   PeriodicEventReporter(interval), 
         mbs(mbs), cable1(cable1) {}
 
@@ -201,7 +69,7 @@ public:
     }
 private:
     const MultibodySystem&  mbs;
-    MyCableSpring           cable1;
+    CableSpring             cable1;
 };
 
 int main() {
@@ -309,7 +177,7 @@ int main() {
 	pendulumFemur.addBodyDecoration(patchTransform,
 		 DecorativeMesh(lowResPatchMesh).setRepresentation(DecorativeGeometry::DrawWireframe));
 
-    Vec3 patchP(-0.5,-1,2.0), patchQ(-0.5,1,2.0);
+    Vec3 patchP(-0.5,-1,2), patchQ(-0.5,1,2);
 
 	pendulumFemur.addBodyDecoration(patchTransform,
         DecorativePoint(patchP).setColor(Green).setScale(2));
@@ -341,7 +209,7 @@ int main() {
         DecorativeSphere(sphRadius).setColor(Red).setOpacity(0.5));
 
 	// Make cable a spring
-	MyCableSpring cable2(forces, path2, 50., 23., 0.1); 
+	CableSpring cable2(forces, path2, 50., 18., 0.1); 
 
     Visualizer viz(system);
     viz.setShowFrameNumber(true);
@@ -367,7 +235,7 @@ int main() {
     RungeKuttaMersonIntegrator integ(system);
     // CPodesIntegrator integ(system);
     // integ.setAllowInterpolation(false);
-    integ.setAccuracy(1e-8);
+    integ.setAccuracy(1e-5);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ShowStuff::showHeading(cout);

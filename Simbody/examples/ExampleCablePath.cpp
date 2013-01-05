@@ -25,11 +25,11 @@
 This example shows how to use a CableTrackerSubsystem to follow the motion of
 a cable that connects two bodies and passes around obstacles. We'll then
 create a force element that generates spring forces that result from the
-stretching and stretching rate of the cable. */
+stretching and stretching rate of the cable. The custom force element defined
+here duplicates the Simbody built-in CableSpring force element, and you can
+choose to use either one by changing a #define. */
 
 #include "Simbody.h"
-#include "simbody/internal/CableTrackerSubsystem.h"
-#include "simbody/internal/CablePath.h"
 
 #include <cassert>
 #include <iostream>
@@ -37,12 +37,19 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
+//#define USE_MY_CABLE_SPRING
+#ifdef USE_MY_CABLE_SPRING
+#define CABLE_SPRING MyCableSpring      // defined below
+#else
+#define CABLE_SPRING CableSpring        // Simbody built-in
+#endif
+
+#ifdef USE_MY_CABLE_SPRING
 // This force element implements an elastic cable of a given nominal length,
 // and a stiffness k that generates a k*x force opposing stretch beyond
-// nominal. There is also a damping term c*xdot that applies only when the
-// cable is stretched and is being extended (x>0 && xdot>0). We keep track
-// of dissipated power here so we can use conservation of energy to check that
-// the cable and force element aren't obviously broken.
+// the slack length. There is also a dissipation term (k*x)*c*xdot. We keep 
+// track of dissipated power here so we can use conservation of energy to check
+// that the cable and force element aren't obviously broken.
 class MyCableSpringImpl : public Force::Custom::Implementation {
 public:
     MyCableSpringImpl(const GeneralForceSubsystem& forces, 
@@ -164,15 +171,17 @@ private:
     const MyCableSpringImpl& getImpl() const
     {   return dynamic_cast<const MyCableSpringImpl&>(getImplementation()); }
 };
+#endif
 
-static Array_<State> saveStates;
 // This gets called periodically to dump out interesting things about
-// the cables and the system as a whole.
+// the cables and the system as a whole. It also saves states so that we
+// can play back at the end.
+static Array_<State> saveStates;
 class ShowStuff : public PeriodicEventReporter {
 public:
     ShowStuff(const MultibodySystem& mbs, 
-              const MyCableSpring& cable1, 
-              const MyCableSpring& cable2, Real interval) 
+              const CABLE_SPRING& cable1, 
+              const CABLE_SPRING& cable2, Real interval) 
     :   PeriodicEventReporter(interval), 
         mbs(mbs), cable1(cable1), cable2(cable2) {}
 
@@ -212,7 +221,7 @@ public:
     }
 private:
     const MultibodySystem&  mbs;
-    MyCableSpring           cable1, cable2;
+    CABLE_SPRING            cable1, cable2;
 };
 
 int main() {
@@ -253,7 +262,7 @@ int main() {
     MobilizedBody::Ball body3(body2,            Transform(Vec3(0)), 
                               someBody,         Transform(Vec3(0, 1, 0)));
     MobilizedBody::Ball body4(body3,            Transform(Vec3(0)), 
-                              fancyBody,    Transform(Vec3(0, 1, 0)));
+                              fancyBody,        Transform(Vec3(0, 1, 0)));
     MobilizedBody::Ball body5(body4,            Transform(Vec3(0)), 
                               someBody,         Transform(Vec3(0, 1, 0)));
 
@@ -280,14 +289,13 @@ int main() {
     obs5.setContactPointHints(Rad*UnitVec3(.1,.125,-.2),
                               Rad*UnitVec3(0.1,-.1,-.2));
 
-    // NOTE: velocity-based force is disabled.
-    MyCableSpring cable1(forces, path1, 100., 3.5, 0*0.1); 
+    CABLE_SPRING cable1(forces, path1, 100., 3.5, 0.1); 
 
     CablePath path2(cables, Ground, Vec3(-3,0,0),   // origin
                             Ground, Vec3(-2,1,0)); // termination
     CableObstacle::ViaPoint(path2, body3, 2*Rad*UnitVec3(1,1,1));
     CableObstacle::ViaPoint(path2, Ground, Vec3(-2.5,1,0));
-    MyCableSpring cable2(forces, path2, 100., 8, 0.1); 
+    CABLE_SPRING cable2(forces, path2, 100., 2, 0.1); 
 
 
     //obs1.setPathPreferencePoint(Vec3(2,3,4));
@@ -324,6 +332,7 @@ int main() {
     RungeKuttaMersonIntegrator integ(system);
     //CPodesIntegrator integ(system);
     integ.setAccuracy(1e-3);
+    //integ.setAccuracy(1e-6);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ShowStuff::showHeading(cout);

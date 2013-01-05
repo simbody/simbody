@@ -480,7 +480,7 @@ public:
     ///
     /// These methods return the forces being applied by this Bushing in the
     /// configuration and velocities contained in the supplied State. These are
-    /// evaluated during force calculation and available at no computatinal cost
+    /// evaluated during force calculation and available at no computational cost
     /// afterwards, although the first call after a velocity change may initiate 
     /// computation if forces haven't already been computed.
     ///

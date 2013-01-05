@@ -44,19 +44,31 @@ class CableObstacle;
 //==============================================================================
 //                                CABLE PATH
 //==============================================================================
-/** This class represents the path of one cable from its origin point, through
-via points, around obstacles, to its termination point. The cable ends are
-fixed to the origin and termination points. The cable passes frictionlessly
-through each via point, and takes the shortest allowable path over the surfaces
-of obstacles. 
+/** This class represents the path of a frictionless cable from an origin point
+fixed to a body, through via points and over geometric obstacles fixed to other
+bodies, to a final termination point. The cable ends are attached at the origin 
+and termination points while the cable is free to slide through the via points
+and along the obstacle surfaces. The cable follows a geodesic curve (usually
+the shortest path) over each surface.
 
-During initialization, if there is more than one possible geodesic over the
+During initialization, if there is more than one possible geodesic over a
 surface, or if a straight line path would miss the surface altogether, we'll
 take the shortest route unless the user has provided a "near point" on the
-surface. In that case whichever path segment runs closer to the near point
-is chosen. During continuation, only local path movement is allowed so the
-path segment will not flip from one side to the other once it has been
-initialized. The near point is ignored during continuation.
+surface. In that case whichever of the possible path segments runs closest to 
+the near point is chosen. During continuation, only local path movement is 
+allowed so the path segment will not flip from one side to the other once it 
+has been initialized, even if that means it does not follow the shortest 
+possible geodesic. The near point is ignored during continuation.
+
+Note that a %CablePath is a geometric object, not a force or constraint 
+element. That is, a %CablePath alone will not influence the behavior of a
+simulation. However, forces and constraint elements can be constructed that make
+use of a %CablePath to generate forces. For an example, see CableSpring.
+
+The auxiliary class CableObstacle and its subclasses are used to specify the
+via points and obstacles that affect a particular %CablePath. %CablePath
+objects must be registered with a CablePathSubsystem which manages their 
+runtime evaluation.
 
 <h3>Notation</h3>
 
@@ -74,6 +86,8 @@ points P and Q are in the same location but there are two different tangents
 associated with them in the incoming and outgoing straight-line directions.
 For the origin obstacle, only point Q is relevant and for the termination
 obstacle only point P is relevant.
+
+@see CableObstacle, CableSpring, CableTrackerSubsystem
 **/
 class SimTK_SIMBODY_EXPORT CablePath {
 public:
