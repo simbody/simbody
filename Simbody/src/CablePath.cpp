@@ -1450,8 +1450,8 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
         }
     }
 
-    const Vec3 bbarP = length<=ShortLength ? eOut % nP : bP;
-    const Vec3 bbarQ = length<=ShortLength ? eIn  % nQ : bQ;
+    const Vec3 bbarP = length<=ShortLength ? eOut % nP : Vec3(bP);
+    const Vec3 bbarQ = length<=ShortLength ? eIn  % nQ : Vec3(bQ);
 
     Vec6 err;
     err[0] = ~eIn*nP;   // tangent error in normal direction
