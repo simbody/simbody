@@ -63,7 +63,7 @@ Integrator::stepTo(Real reportTime, Real advanceLimit) {
 
 Integrator::SuccessfulStepStatus 
 Integrator::stepBy(Real interval, Real advanceIntervalLimit) {
-    const Real t = getRep().getAdvancedState().getTime();
+    const Real t = getRep().getState().getTime();
     return updRep().stepTo(t + interval, t + advanceIntervalLimit);
 }
 
