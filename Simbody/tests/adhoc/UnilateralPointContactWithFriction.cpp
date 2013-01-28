@@ -62,6 +62,7 @@ input. Those may get disabled if they would otherwise cause negative normal
 impulses, but no new ones will get enabled.
 
 */
+#define NDEBUG 1
 
 #include "Simbody.h"
 
@@ -76,7 +77,6 @@ using namespace SimTK;
 
 const Real ReportInterval=1./30;
 const Real RunTime=10;
-
 
 //==============================================================================
 //                           MY CONTACT ELEMENT
@@ -98,6 +98,12 @@ public:
     {   m_uni.setDisabledByDefault(true); }
 
     virtual ~MyContactElement() {}
+    
+    // (Re)initialize base & concrete class. If overridden, be sure to
+    // invoke base class first.
+    virtual void initialize() {
+        setRestitutionDone(false); m_Ic = m_Ie = m_I = 0;
+    }
 
     // Provide a human-readable string identifying the type of contact
     // constraint.
@@ -254,6 +260,11 @@ public:
 
     virtual ~MyFrictionElement() {}
 
+    // (Re)initialize base & concrete class. If overridden, be sure to
+    // invoke base class first.
+    virtual void initialize() {
+    }
+
     Real getDynamicFrictionCoef() const {return mu_d;}
     Real getStaticFrictionCoef()  const {return mu_s;}
     Real getViscousFrictionCoef() const {return mu_v;}
@@ -396,6 +407,15 @@ public:
     // runtime results (e.g. impulses).
     MyContactElement&  updContactElement(int ix) const {return *m_contact[ix];}
     MyFrictionElement& updFrictionElement(int ix) const {return *m_friction[ix];}
+
+    // Initialize all runtime fields in the contact & friction elements.
+    void initialize()
+    {
+        for (unsigned i=0; i < m_contact.size(); ++i)
+            m_contact[i]->initialize();
+        for (unsigned i=0; i < m_friction.size(); ++i)
+            m_friction[i]->initialize();
+    }
 
     // Return the contact and friction elements that might be involved in an
     // impact occurring in this configuration. They are the contact elements 
@@ -611,6 +631,7 @@ public:
             return 0; // already locked
 
         const Real height = uni.getPerr(state);
+        //printf("getValue %d(%.17g) perr=%g\n", m_which, state.getTime(), height);
 
         if (m_stage == Stage::Position)
             return height;
@@ -620,6 +641,7 @@ public:
         if (height > 0) return 0;
 
         const Real dheight = uni.getVerr(state);
+        //printf("... verr=%g\n", dheight);
 
         if (m_stage == Stage::Velocity)
             return dheight;
@@ -628,6 +650,7 @@ public:
         if (dheight > 0) return 0;
 
         const Real ddheight = uni.getAerr(state);
+        //printf("... aerr=%g\n", ddheight);
 
         return ddheight;
     }
@@ -728,6 +751,7 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
+        printf("liftoff@%.17g\n", s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("LIFTOFF triggered by constraint %d @t=%.15g\n", 
             m_which, s.getTime());
@@ -864,6 +888,7 @@ private:
 // in the plane, based on the normal force being applied by the point contact 
 // constraint.
 class MyPointContactFriction : public MyFrictionElement {
+    typedef MyFrictionElement Super;
 public:
     // The constructor allocates two NoSlip1D constraints and a sliding
     // friction force element.
@@ -873,18 +898,22 @@ public:
         m_noslipX(contact.updPlaneBody(), Vec3(0), UnitVec3(XAxis), 
                   contact.updPlaneBody(), contact.updBody()),
         m_noslipZ(contact.updPlaneBody(), Vec3(0), UnitVec3(ZAxis), 
-                  contact.updPlaneBody(), contact.updBody()),
-        m_contactPointInPlane(0), m_tIc(NaN), m_tIe(NaN), m_tI(NaN),
-        m_prevN(0), m_prevSlipDir(Vec2(NaN))
+                  contact.updPlaneBody(), contact.updBody())
     {
         assert((0 <= mu_d && mu_d <= mu_s) && (0 <= mu_v));
         contact.setFrictionElement(*this);
         m_noslipX.setDisabledByDefault(true);
         m_noslipZ.setDisabledByDefault(true);
         m_sliding = new MySlidingFrictionForce(forces, *this);
+        initializeRuntimeFields();
     }
 
     ~MyPointContactFriction() {delete m_sliding;}
+
+    void initialize() OVERRIDE_11 {
+        Super::initialize();
+        initializeRuntimeFields();
+    }
 
     // The way we constructed the NoSlip1D constraints makes the multipliers be
     // the force on Ground; we negate here so we'll get the force on the sliding
@@ -1062,6 +1091,12 @@ public:
     const MySlidingFrictionForce& getMySlidingFrictionForce() const
     {   return *m_sliding; }
 private:
+    void initializeRuntimeFields() {
+        m_contactPointInPlane = Vec3(0); 
+        m_tIc = m_tIe = m_tI = Vec2(NaN);
+        m_prevN = 0;
+        m_prevSlipDir = Vec2(NaN);
+    }
     const MyPointContact&   m_contact;
 
     Constraint::NoSlip1D    m_noslipX, m_noslipZ; // stiction
@@ -1147,6 +1182,7 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
+        printf("slide->stick@%.17g\n", s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("STICTION ON triggered by friction element %d @t=%.15g\n", 
             m_which, s.getTime());
@@ -1200,6 +1236,7 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
+        printf("stick->slide@%.17g\n", s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("STICTION OFF triggered by friction element %d @t=%.15g\n", 
             m_which, s.getTime());
@@ -1421,6 +1458,8 @@ int main(int argc, char** argv) {
                                         .setColor(Red).setOpacity(.3));
     Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),2*Vec3(0,0,10),
                                                4., 6.));
+    //Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),2*Vec3(0,0,10),
+    //                                           3., 4.));
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
@@ -1456,11 +1495,12 @@ int main(int argc, char** argv) {
         unis.addFrictionElement(
             new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, forces));
     }
-    unis.addContactElement(new MyStop(MyStop::Upper,weight,0, Pi/6,CoefRest/2));
-    unis.addContactElement(new MyStop(MyStop::Lower,weight,0, -Pi/6,CoefRest/2));
+    const Real StopAngle = Pi/6;
+    unis.addContactElement(new MyStop(MyStop::Upper,weight,0, StopAngle,CoefRest/2));
+    unis.addContactElement(new MyStop(MyStop::Lower,weight,0, -StopAngle,CoefRest/2));
 
 //#endif
-#ifdef NOTDEF
+//#ifdef NOTDEF
    // Third body: weight2
     const Vec3 ConnectEdge2(CubeHalfDims[0],CubeHalfDims[1],0);
     MobilizedBody::Pin weight2(cube, 
@@ -1468,7 +1508,7 @@ int main(int argc, char** argv) {
         cubeBody, Vec3(WeightEdge));
     weight2.addBodyDecoration(Transform(), DecorativeBrick(CubeHalfDims)
                                         .setColor(Cyan).setOpacity(.6));
-    Force::MobilityLinearSpring(forces, weight2, 0, 1000, Pi/4);
+    Force::MobilityLinearSpring(forces, weight2, 0, 500, Pi/4);
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
@@ -1479,7 +1519,7 @@ int main(int argc, char** argv) {
         unis.addFrictionElement(
             new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, forces));
     }
-#endif
+//#endif
 
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
@@ -1494,7 +1534,7 @@ int main(int argc, char** argv) {
     //RungeKutta3Integrator integ(mbs);
     //VerletIntegrator integ(mbs);
     integ.setAccuracy(accuracy);
-    //integ.setConstraintTolerance(1e-3);
+    //integ.setConstraintTolerance(1.);
     //integ.setAllowInterpolation(false);
     integ.setMaximumStepSize(0.5);
 
@@ -1543,7 +1583,7 @@ int main(int argc, char** argv) {
     for (unsigned i=0; i < enableTheseContacts.size(); ++i)
         unis.getContactElement(enableTheseContacts[i]).enable(s);
 
-    Assembler(mbs).assemble(s);
+    Assembler(mbs).setErrorTolerance(1e-6).assemble(s);
     viz.report(s);
     cout << "Assembled configuration shown. Ready? ";
     getchar();
@@ -1564,42 +1604,96 @@ int main(int argc, char** argv) {
     for (unsigned i=0; i < enableTheseStictions.size(); ++i)
         unis.getFrictionElement(enableTheseStictions[i]).enableStiction(s);
     
+    //State copyS = s;
+    //unis.getContactElement(0).enable(copyS);
+    //mbs.realize(copyS, Stage::Instance);
+    //mbs.realize(copyS, Stage::Dynamics);
+    //mbs.realize(copyS, Stage::Acceleration);
+
+    Matrix M(1,1); M(0,0)=1.23;
+    FactorLU Mlu(M);
+    //FactorQTZ Mqtz(M);
+
+    
     // Simulate it.
 
     integ.setReturnEveryInternalStep(true);
    //integ.setAllowInterpolation(false);
     TimeStepper ts(mbs, integ);
     ts.setReportAllSignificantStates(true);
-    ts.initialize(s);
 
-    const double startReal = realTime();
-    const double startCPU = cpuTime();
+    const int NTries=1;
+    Array_< Array_<State> > states(NTries);
+    Array_< Array_<Real> > timeDiff(NTries-1);
+    Array_< Array_<Vector> > yDiff(NTries-1);
+    cout.precision(18);
+    for (int ntry=0; ntry < NTries; ++ntry) {
+        //RungeKuttaMersonIntegrator integ(mbs);
+        //ExplicitEulerIntegrator integ(mbs);
+        //integ.setAccuracy(accuracy);
+        //integ.setMaximumStepSize(0.5);
+        //integ.setReturnEveryInternalStep(true);
+        //TimeStepper ts(mbs, integ);
+        //ts.setReportAllSignificantStates(true);
 
-    Integrator::SuccessfulStepStatus status;
-    do {
-        status=ts.stepTo(RunTime);
-        //printf("Returned at t=%g with status=%s\n", ts.getTime(),
-        //    Integrator::getSuccessfulStepStatusString(status).c_str());
-        if (status != Integrator::ReachedReportTime) {
-            //viz.report(ts.getState());
-            //stateSaver->handleEvent(ts.getState());
-        }
-    } while (ts.getTime() < RunTime);
+        unis.initialize();
+        ts.updIntegrator().resetAllStatistics();
+        ts.initialize(s);
 
-    const double timeInSec = realTime()-startReal;
-    const double cpuInSec = cpuTime()-startCPU;
-    const int evals = integ.getNumRealizations();
-    cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
-        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
-        << (1000*ts.getTime())/evals << "ms/eval\n";
-    cout << "CPUtime " << cpuInSec << endl;
+        const double startReal = realTime();
+        const double startCPU = cpuTime();
 
-    printf("Used Integrator %s at accuracy %g:\n", 
-        integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
-    printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
+        Integrator::SuccessfulStepStatus status;
+        do {
+            status=ts.stepTo(RunTime);
+            states[ntry].push_back(ts.getState());
+            const int j = states[ntry].size()-1;
+            if (ntry>0) {
+                int prev = ntry-1;
+                //prev=0;
+                Real dt = states[ntry][j].getTime() 
+                          - states[prev][j].getTime();
+                volatile double vd;
+                const int ny = states[ntry][j].getNY();
+                Vector d(ny);
+                for (int i=0; i<ny; ++i) {
+                    vd = states[ntry][j].getY()[i] 
+                           - states[prev][j].getY()[i];
+                    d[i] = vd;
+                }
+                timeDiff[prev].push_back(dt);
+                yDiff[prev].push_back(d);
+                cout << "\n" << states[prev][j].getTime() 
+                     << "+" << dt << ":" << d << endl;
+            }
+
+            //printf("Returned at t=%.17g with status=%s\n", ts.getTime(),
+            //    Integrator::getSuccessfulStepStatusString(status).c_str());
+            if (status != Integrator::ReachedReportTime) {
+                //viz.report(ts.getState());
+                //stateSaver->handleEvent(ts.getState());
+            }
+        } while (ts.getTime() < RunTime);
+
+
+        const double timeInSec = realTime()-startReal;
+        const double cpuInSec = cpuTime()-startCPU;
+        const int evals = integ.getNumRealizations();
+        cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
+            timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
+            << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+            << (1000*ts.getTime())/evals << "ms/eval\n";
+        cout << "CPUtime " << cpuInSec << endl;
+
+        printf("Used Integrator %s at accuracy %g:\n", 
+            integ.getMethodName(), integ.getAccuracyInUse());
+        printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
+        printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
+        printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
+    }
+
+    for (int i=0; i<NTries; ++i)
+        cout << "nstates " << i << " " << states[i].size() << endl;
 
     // Instant replay.
     while(true) {
@@ -1637,6 +1731,8 @@ void ContactOn::
 handleEvent(State& s, Real accuracy, bool& shouldTerminate) const 
 {
     const Real VCapture=1e-2;
+
+    printf("impact@%.17g\n", s.getTime());
 
     if (m_stage == Stage::Acceleration) {
         SimTK_DEBUG("\n---------------CONTACT ON (ACCEL)--------------\n");
@@ -1679,7 +1775,6 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     while (needMoreCompression) {
         processCompressionPhase(proximal, s);
         needMoreCompression = false;
-
         if (processExpansionPhase(proximal, s)) {
             for (unsigned i=0; i < proximal.m_contact.size(); ++i) {
                 const int which = proximal.m_contact[i];
@@ -1752,7 +1847,6 @@ processCompressionPhase(MyElementSubset&    proximal,
     // TODO: should we disable any active stiction constraints?
     // TODO: don't enable stiction constraints for now
     m_unis.enableConstraintSubset(proximal, false, s); 
-
     // First try drives all constraints to zero velocity; if that took some
     // negative impulses we'll have to remove some participants and try again.
     calcStoppingImpulse(proximal, s, lambda0);
@@ -2005,6 +2099,7 @@ calcStoppingImpulse(const MyElementSubset&  proximal,
         fric.setMyDesiredDeltaV(s, desiredDeltaV);
         gotOne = true;
     }
+
     if (gotOne) matter.solveForConstraintImpulses(s, desiredDeltaV, lambda0);
     else lambda0.clear();
 #ifndef NDEBUG
@@ -2043,19 +2138,60 @@ selectActiveConstraints(State& state, Real accuracy) const {
     // Find all the contacts and stiction elements that might be active based
     // on kinematics.
     MyElementSubset candidates;
-    findCandidateElements(state, accuracy, accuracy, candidates);
 
-    // Evaluate accelerations and reaction forces and check if 
-    // any of the active contacts are generating negative ("pulling") 
-    // forces; if so, inactivate them.
-    findActiveCandidates(state, candidates);
+    bool needRestart;
+    do {
+        findCandidateElements(state, accuracy, accuracy, candidates);
 
-    // Finally, project active constraints to the constraint manifolds.
-    m_mbs.project(state, accuracy);
+        // Evaluate accelerations and reaction forces and check if 
+        // any of the active contacts are generating negative ("pulling") 
+        // forces; if so, inactivate them.
+        findActiveCandidates(state, candidates);
 
-    // It is possible that the projection above took some marginally-sliding
-    // friction and slowed it down enough to make it a stiction candidate.
-    // TODO: check and restart if so.
+        Array_<Real> slipVels(candidates.m_friction.size());
+        for (unsigned i=0; i < candidates.m_friction.size(); ++i) {
+            const int which = candidates.m_friction[i];
+            const MyFrictionElement& fric = getFrictionElement(which);
+            slipVels[i] = fric.getActualSlipSpeed(state);
+        }
+
+        // Finally, project active constraints to the constraint manifolds.
+        m_mbs.project(state, accuracy);
+
+        // It is possible that the projection above took some marginally-sliding
+        // friction and slowed it down enough to make it a stiction candidate.
+        needRestart = false;
+        for (unsigned i=0; i < candidates.m_sliding.size(); ++i) {
+            const int which = candidates.m_sliding[i];
+            const MyFrictionElement& fric = getFrictionElement(which);
+            if (   fric.getActualSlipSpeed(state) <= accuracy
+                || fric.calcSlipSpeedWitness(state) <= 0) 
+            {
+                SimTK_DEBUG3("***RESTART1** selectActiveConstraints() because "
+                    "sliding velocity of friction %d is |v|=%g or witness=%g\n",
+                    which, fric.getActualSlipSpeed(state),
+                    fric.calcSlipSpeedWitness(state));
+                needRestart = true;
+                break;
+            }
+        }
+        if (needRestart) continue;
+        for (unsigned i=0; i < candidates.m_friction.size(); ++i) {
+            const int which = candidates.m_friction[i];
+            const MyFrictionElement& fric = getFrictionElement(which);
+            if (fric.isSticking(state)) continue;
+            if (slipVels[i] > accuracy
+                && fric.getActualSlipSpeed(state) <= accuracy)
+            {
+                SimTK_DEBUG3("***RESTART2** selectActiveConstraints() because "
+                    "sliding velocity of friction %d went from |v|=%g to |v|=%g\n",
+                    which, slipVels[i], fric.getActualSlipSpeed(state));
+                needRestart = true;
+                break;
+            }
+        }
+
+    } while (needRestart);
 }
 
 
@@ -2110,6 +2246,7 @@ selectActiveConstraints(State& state, Real accuracy) const {
 void MyUnilateralConstraintSet::
 findActiveCandidates(State& s, const MyElementSubset& candidates) const
 {
+    const int ReviseNormalNIters = 6;
     showConstraintStatus(s, "ENTER findActiveCandidates()");
     if (candidates.m_contact.empty()) {
         // Can't be any friction either, if there are no contacts.
@@ -2137,6 +2274,12 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
     while (true) {
         ++pass; disabled.clear();
         m_mbs.realize(s, Stage::Acceleration);
+        SimTK_DEBUG("REVISE NORMAL #1\n");
+        for (int i=0; i < ReviseNormalNIters; ++i) {
+            s.autoUpdateDiscreteVariables();
+            s.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+            m_mbs.realize(s, Stage::Acceleration);
+        }
         for (unsigned i=0; i < candidates.m_friction.size(); ++i) {
             const int which = candidates.m_friction[i];
             MyFrictionElement& fric = updFrictionElement(which);
@@ -2166,9 +2309,8 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
     if (!stictionDisabled.empty()) {
         // Recalculate sliding friction from normal we just obtained.
         // TODO: this should be a Newton iteration.
-        SimTK_DEBUG("REVISE NORMAL\n");
-        const int NIters = 6;
-        for (int i=0; i < NIters; ++i) {
+        SimTK_DEBUG("REVISE NORMAL #2\n");
+        for (int i=0; i < ReviseNormalNIters; ++i) {
             s.autoUpdateDiscreteVariables();
             s.invalidateAllCacheAtOrAbove(Stage::Dynamics);
             m_mbs.realize(s, Stage::Acceleration);
