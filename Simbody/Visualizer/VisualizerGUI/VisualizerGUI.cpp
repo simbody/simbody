@@ -1557,7 +1557,7 @@ static void redrawDisplay() {
 
     // Simulation time
     if (showSimTime) {
-        char timetxt[64]; sprintf(timetxt, "Time:  %.1f", lastSceneSimTime);
+        char timetxt[64]; sprintf(timetxt, "Time:  %.3f", lastSceneSimTime);
         glRasterPos2f(10, nextLine);
         for (const char* p = timetxt; *p; ++p)
             glutBitmapCharacter(font, *p);
