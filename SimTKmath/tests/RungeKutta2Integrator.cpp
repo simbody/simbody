@@ -1,6 +1,3 @@
-#ifndef SimTK_SIMMATH_H_
-#define SimTK_SIMMATH_H_
-
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
  * -------------------------------------------------------------------------- *
@@ -9,8 +6,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
- * Authors: Jack Middleton, Michael Sherman, Peter Eastman                    *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
+ * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
@@ -24,40 +21,42 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
-#include "simmath/internal/common.h"
-#include "simmath/internal/Geo.h"
-#include "simmath/internal/Geo_Point.h"
-#include "simmath/internal/Geo_Sphere.h"
-#include "simmath/internal/Geo_LineSeg.h"
-#include "simmath/internal/Geo_Box.h"
-#include "simmath/internal/Geo_Triangle.h"
-#include "simmath/internal/Geo_CubicHermiteCurve.h"
-#include "simmath/internal/Geo_BicubicHermitePatch.h"
-#include "simmath/internal/Geo_CubicBezierCurve.h"
-#include "simmath/internal/Geo_BicubicBezierPatch.h"
-#include "simmath/internal/Spline.h"
-#include "simmath/internal/SplineFitter.h"
-#include "simmath/internal/BicubicSurface.h"
-#include "simmath/internal/Geodesic.h"
-#include "simmath/internal/GeodesicIntegrator.h"
-#include "simmath/internal/ContactGeometry.h"
-#include "simmath/internal/OrientedBoundingBox.h"
-#include "simmath/internal/Contact.h"
-#include "simmath/internal/ContactTracker.h"
-#include "simmath/internal/CollisionDetectionAlgorithm.h"
-
-#include "simmath/LinearAlgebra.h"
-#include "simmath/Differentiator.h"
-#include "simmath/Optimizer.h"
-#include "simmath/Integrator.h"
-#include "simmath/TimeStepper.h"
-#include "simmath/CPodesIntegrator.h"
-#include "simmath/RungeKuttaMersonIntegrator.h"
-#include "simmath/RungeKuttaFeldbergIntegrator.h"
-#include "simmath/RungeKutta3Integrator.h"
+#include "IntegratorTestFramework.h"
 #include "simmath/RungeKutta2Integrator.h"
-#include "simmath/ExplicitEulerIntegrator.h"
-#include "simmath/VerletIntegrator.h"
 
-#endif // SimTK_SIMMATH_H_
+int main () {
+  try {
+    PendulumSystem sys;
+    sys.addEventHandler(new ZeroVelocityHandler(sys));
+    sys.addEventHandler(PeriodicHandler::handler = new PeriodicHandler());
+    sys.addEventHandler(new ZeroPositionHandler(sys));
+    sys.addEventReporter(PeriodicReporter::reporter = new PeriodicReporter(sys));
+    sys.addEventReporter(new OnceOnlyEventReporter());
+    sys.addEventReporter(new DiscontinuousReporter());
+    sys.realizeTopology();
+
+    // Test with various intervals for the event handler and event reporter, 
+    // ones that are either large or small compared to the expected internal 
+    // step size of the integrator.
+
+    for (int i = 0; i < 4; ++i) {
+        PeriodicHandler::handler->setEventInterval
+           (i == 0 || i == 1 ? 0.01 : 2.0);
+        PeriodicReporter::reporter->setEventInterval
+           (i == 0 || i == 2 ? 0.015 : 1.5);
+        
+        // Test the integrator in both normal and single step modes.
+        
+        RungeKutta2Integrator integ(sys);
+        testIntegrator(integ, sys);
+        integ.setReturnEveryInternalStep(true);
+        testIntegrator(integ, sys);
+    }
+    cout << "Done" << endl;
+    return 0;
+  }
+  catch (std::exception& e) {
+    std::printf("FAILED: %s\n", e.what());
+    return 1;
+  }
+}

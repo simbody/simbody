@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMMATH_H_
-#define SimTK_SIMMATH_H_
+#ifndef SimTK_SIMMATH_RUNGE_KUTTA_2_INTEGRATOR_H_
+#define SimTK_SIMMATH_RUNGE_KUTTA_2_INTEGRATOR_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -9,8 +9,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
- * Authors: Jack Middleton, Michael Sherman, Peter Eastman                    *
+ * Portions copyright (c) 2013 Stanford University and the Authors.           *
+ * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
@@ -26,38 +26,25 @@
 
 #include "SimTKcommon.h"
 #include "simmath/internal/common.h"
-#include "simmath/internal/Geo.h"
-#include "simmath/internal/Geo_Point.h"
-#include "simmath/internal/Geo_Sphere.h"
-#include "simmath/internal/Geo_LineSeg.h"
-#include "simmath/internal/Geo_Box.h"
-#include "simmath/internal/Geo_Triangle.h"
-#include "simmath/internal/Geo_CubicHermiteCurve.h"
-#include "simmath/internal/Geo_BicubicHermitePatch.h"
-#include "simmath/internal/Geo_CubicBezierCurve.h"
-#include "simmath/internal/Geo_BicubicBezierPatch.h"
-#include "simmath/internal/Spline.h"
-#include "simmath/internal/SplineFitter.h"
-#include "simmath/internal/BicubicSurface.h"
-#include "simmath/internal/Geodesic.h"
-#include "simmath/internal/GeodesicIntegrator.h"
-#include "simmath/internal/ContactGeometry.h"
-#include "simmath/internal/OrientedBoundingBox.h"
-#include "simmath/internal/Contact.h"
-#include "simmath/internal/ContactTracker.h"
-#include "simmath/internal/CollisionDetectionAlgorithm.h"
-
-#include "simmath/LinearAlgebra.h"
-#include "simmath/Differentiator.h"
-#include "simmath/Optimizer.h"
 #include "simmath/Integrator.h"
-#include "simmath/TimeStepper.h"
-#include "simmath/CPodesIntegrator.h"
-#include "simmath/RungeKuttaMersonIntegrator.h"
-#include "simmath/RungeKuttaFeldbergIntegrator.h"
-#include "simmath/RungeKutta3Integrator.h"
-#include "simmath/RungeKutta2Integrator.h"
-#include "simmath/ExplicitEulerIntegrator.h"
-#include "simmath/VerletIntegrator.h"
 
-#endif // SimTK_SIMMATH_H_
+namespace SimTK {
+class RungeKutta2IntegratorRep;
+
+/**
+ * This is a 2nd order Runge-Kutta Integrator using coefficients that are
+ * also known as the explicit trapezoid rule. It is an error controlled, 
+ * second order, two stage explicit integrator with an embedded 1st order 
+ * error estimate.
+ */
+class SimTK_SIMMATH_EXPORT RungeKutta2Integrator : public Integrator {
+public:
+    explicit RungeKutta2Integrator(const System& sys);
+    ~RungeKutta2Integrator();
+};
+
+} // namespace SimTK
+
+#endif // SimTK_SIMMATH_RUNGE_KUTTA_2_INTEGRATOR_H_
+
+
