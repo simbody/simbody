@@ -4,6 +4,7 @@
 # available.
 
 INCLUDE (FindOpenGL)
+
 IF(WIN32)
     SET(glut32dir "${CMAKE_CURRENT_SOURCE_DIR}/glut32")
     SET(GLUT32_HEADERS "${glut32dir}/glut.h" "${glut32dir}/glext.h")
@@ -18,7 +19,82 @@ ELSE()
     INCLUDE(FindGLUT) # sets GLUT_LIBRARIES
 ENDIF()
 
-ADD_EXECUTABLE(${GUI_NAME} 
+SET(VISUALIZER_BASE_SOURCES VisualizerBase.h VisualizerBase.cpp)
+
+#Ogre
+
+if(UNIX)
+	if(EXISTS "/usr/local/lib/OGRE/cmake")
+
+	  set(CMAKE_MODULE_PATH "/usr/local/lib/OGRE/cmake/;${CMAKE_MODULE_PATH}")
+	  set(OGRE_SAMPLES_INCLUDEPATH "/usr/local/share/OGRE/samples/Common/include/") # We could just *assume* that developers uses this basepath : /usr/local
+
+    elseif(EXISTS "/usr/share/OGRE/cmake")
+
+	  set(CMAKE_MODULE_PATH "/usr/share/OGRE/cmake/;${CMAKE_MODULE_PATH}")
+	  set(OGRE_SAMPLES_INCLUDEPATH "/usr/share/OGRE-1.7.4/Samples/Common/include/")
+
+	elseif(EXISTS "/usr/lib/OGRE/cmake")
+
+	  set(CMAKE_MODULE_PATH "/usr/lib/OGRE/cmake/;${CMAKE_MODULE_PATH}")
+	  set(OGRE_SAMPLES_INCLUDEPATH "/usr/share/OGRE/samples/Common/include/") # Otherwise, this one
+
+	else ()
+	  message(SEND_ERROR "Failed to find module path.")
+	endif()
+endif(UNIX)
+FIND_PACKAGE(OGRE REQUIRED)
+FIND_PACKAGE(OIS REQUIRED)
+
+if(NOT OIS_FOUND)
+	message(SEND_ERROR "Failed to find OIS.")
+endif()
+
+INCLUDE_DIRECTORIES(${OIS_INCLUDE_DIRS} ${OGRE_INCLUDE_DIRS})
+ADD_EXECUTABLE(OgreVisualizer ${VISUALIZER_BASE_SOURCES} OgreVisualizerBase.h OgreVisualizer.h OgreVisualizerBase.cpp OgreVisualizer.cpp)
+SET_TARGET_PROPERTIES(OgreVisualizer PROPERTIES DEBUG_POSTFIX _d)
+TARGET_LINK_LIBRARIES(OgreVisualizer
+   	${OGRE_LIBRARIES} 
+	${OIS_LIBRARIES} 
+	${OPENGL_LIBRARIES} 
+	)
+
+INSTALL(TARGETS OgreVisualizer
+         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                             GROUP_READ GROUP_WRITE GROUP_EXECUTE
+                             WORLD_READ WORLD_EXECUTE
+         DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
+##############################End of Ogre######################################
+
+#OpenSceneGraph
+
+SET(CMAKE_MODULE_PATH
+	"/home/kevinux/projects/Visualizer/tools/OpenSceneGraph/OpenSceneGraph-3.0.1/CMakeModules/;${CMAKE_MODULE_PATH}")
+
+FIND_PACKAGE(osg)
+#FIND_PACKAGE(osgDB)
+#FIND_PACKAGE(osgViewer)
+
+INCLUDE_DIRECTORIES("/home/kevinux/projects/Visualizer/install/openscenegraph/include")
+LINK_DIRECTORIES(${OSG_LIB_DIR})
+ADD_EXECUTABLE(OSGVisualizer ${VISUALIZER_BASE_SOURCES} OSGVisualizer.h OSGVisualizer.cpp)
+SET_TARGET_PROPERTIES(OSGVisualizer PROPERTIES DEBUG_POSTFIX _d)
+TARGET_LINK_LIBRARIES(OSGVisualizer 
+	${OSG_LIBRARY} 
+	${OSGVIEWER_LIBRARY} 
+	${OSGGA_LIBRARY}
+	${OSGDB_LIBRARY} 
+	${OPENGL_LIBRARIES} 
+	)
+
+INSTALL(TARGETS OSGVisualizer
+         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                             GROUP_READ GROUP_WRITE GROUP_EXECUTE
+                             WORLD_READ WORLD_EXECUTE
+         DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
+##############################End of OSG#######################################
+
+ADD_EXECUTABLE(${GUI_NAME} ${VISUALIZER_BASE_SOURCES}
 	VisualizerGUI.cpp lodepng.cpp lodepng.h
 	${GLUT32_HEADERS}) # only on Windows
 
