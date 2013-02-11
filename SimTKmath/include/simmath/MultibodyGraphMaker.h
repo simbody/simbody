@@ -81,10 +81,10 @@ original bodies and joints; they are not stored here.
 joint constraints as indicated.
 
 <h3>Inputs</h3>
-  - Ground body: name (so we can recognize it in joints)
-  - Bodies: name, mass, mustBeBaseBody flag
-  - Joints: name, type, parent body, child body, mustBeLoopJoint flag
-  - Joint type: name, # dofs, haveGoodLoopJoint flag
+  - ground body: name (so we can recognize it in joints)
+  - bodies: name, mass, mustBeBaseBody flag
+  - joints: name, type, parent body, child body, mustBeLoopJoint flag
+  - joint type: name, # dofs, haveGoodLoopJoint flag
 
 <h3>Loop joints</h3>
 Normally every joint produces a corresponding mobilizer. A joint that would

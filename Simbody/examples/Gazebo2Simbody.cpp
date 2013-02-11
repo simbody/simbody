@@ -331,20 +331,22 @@ public:
 //==============================================================================
 //                                   MAIN
 //==============================================================================
-int main(int argc, const char* argv[]) {
-  try {
-    const std::string dir = "/Users/Sherm/Desktop/";
+// Hacks for sherm's testing.
 //#define DPEND
-//#define RAGDOLL
-#define RAGDOLL2
-#ifdef DPEND
-    Xml::Document sdf(dir + "double_pendulum.sdf");
-    //Xml::Document sdf(dir + "double_pendulum2.sdf");
-#elif defined(RAGDOLL)
-    Xml::Document sdf(dir + "ragdoll.sdf");
-#elif defined(RAGDOLL2)
-    Xml::Document sdf(dir + "ragdoll2.sdf");
-#endif
+#define RAGDOLL // turns Ground display and joint springs on
+//#define RAGDOLL2
+int main(int argc, const char* argv[]) {
+    if (argc < 2) {
+        std::cout << "Usage: " << argv[0] << " filename.sdf\n";
+        exit(1);
+    }
+    const std::string sdfFileName = argv[1];
+
+    try {
+    std::cout << "Working directory: " 
+              << Pathname::getCurrentWorkingDirectory() << std::endl;
+    std::cout << "Reading file: " << sdfFileName << std::endl;
+    Xml::Document sdf(sdfFileName);
 
     if (sdf.getRootTag() != "sdf" && sdf.getRootTag() != "gazebo")
         throw std::runtime_error
@@ -714,11 +716,12 @@ int main(int argc, const char* argv[]) {
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
 
-  } catch (const std::exception& e) {
-    cout << "EXCEPTION: " << e.what() << "\n";
-    cout << "Working directory: " << Pathname::getCurrentWorkingDirectory() 
-         << endl;
-  }
+    } catch (const std::exception& e) {
+        cout << "EXCEPTION: " << e.what() << "\n";
+        cout << "Working directory: " << Pathname::getCurrentWorkingDirectory() 
+             << endl;
+    }
+
     printf("DONE.\n");
     return 0;
 }
