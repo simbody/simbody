@@ -50,6 +50,7 @@
 #include "simmath/LinearAlgebra.h"
 #include "simmath/Differentiator.h"
 #include "simmath/Optimizer.h"
+#include "simmath/MultibodyGraphMaker.h"
 #include "simmath/Integrator.h"
 #include "simmath/TimeStepper.h"
 #include "simmath/CPodesIntegrator.h"
