@@ -3,6 +3,8 @@
  * Taken from Ogre Wiki
 */
 #include "OgreVisualizer.h"
+#include "DynamicLines.h"
+#include <OgreSceneNode.h>
 #include <pthread.h>
 #include <sstream>
 
@@ -16,14 +18,10 @@ OgreVisualizer::~OgreVisualizer(void)
 {
 }
 
-void OgreVisualizer::preRender()
-{
-	this->mRoot->_fireFrameStarted();
-}
 //-------------------------------------------------------------------------------------
 void OgreVisualizer::createScene(void)
 {
-
+	//
 //	mSceneMgr->setSkyDome(true, "Examples/CloudySky", 5, 8);	
 	Ogre::Plane skyPlane;
 	skyPlane.d = 1000;
@@ -78,21 +76,79 @@ void OgreVisualizer::createScene(void)
  
     spotLight->setSpotlightRange(Ogre::Degree(35), Ogre::Degree(50));
 }
-void OgreVisualizer::drawGroundAndSky()
+
+void OgreVisualizer::renderScene()
 {
-	std::cout << "Drawing ground and sky\n";
-//	createScene();
-	std::cout << "Drawing ground and sky finished\n";
-}
-void OgreVisualizer::startRendering()
-{
-//	mRoot->_fireFrameStarted();
-//	mRoot->renderOneFrame();
+
+	Ogre::ResourcePtr lineMat = Ogre::MaterialManager::getSingleton().create("line", "General");
+	Ogre::MaterialPtr mat = Ogre::MaterialPtr(lineMat);
+
+    if (scene != NULL) {
+
+        for (int i = 0; i < (int) scene->lines.size(); i++)
+		{
+			DynamicLines *line = new DynamicLines(Ogre::RenderOperation::OT_LINE_LIST);
+
+			for (int j = 0; j < scene->lines[i].getLines().size(); j+=3 )
+			{
+//				std::cout << "Lines points: " << scene->lines[i].getLines().at(j) << std::endl;
+				Ogre::Vector3 vec(scene->lines[i].getLines().at(j),
+						scene->lines[i].getLines().at(j+1),
+						scene->lines[i].getLines().at(j+2));
+				line->addPoint(vec);
+			}
+			
+			mat.get()->setAmbient(scene->lines[i].getColor()[0], 
+			scene->lines[i].getColor()[1], 
+			scene->lines[i].getColor()[2]);
+
+			line->setMaterial("line");
+			
+			line->update();
+			Ogre::SceneNode *linesNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+			linesNode->attachObject(line);
+
+//        glLineWidth(2);
+        }
+        for (int i = 0; i < (int) scene->sceneText.size(); i++)
+            scene->sceneText[i].draw();
+//        glLineWidth(1);
+//        glEnableClientState(GL_NORMAL_ARRAY);
+        for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
+            scene->drawnMeshes[i].draw();
+//        glEnable(GL_LIGHTING);
+        for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
+            scene->solidMeshes[i].draw();
+
+//        vector<pair<float, int> > order(scene->transparentMeshes.size());
+//        for (int i = 0; i < (int) order.size(); i++)
+//            order[i] = make_pair((float)(~X_GC.R()*scene->transparentMeshes[i].getTransform().p())[2], i);
+//        sort(order.begin(), order.end());
+//        for (int i = 0; i < (int) order.size(); i++)
+//            scene->transparentMeshes[order[i].second].draw();
+
+
+        scene->sceneHasBeenDrawn = true;
+    }
+
 }
 
-void OgreVisualizer::finishRendering()
+void OgreVisualizer::go()
 {
-//	destroyScene();
+
+	if(!setup())
+	{
+		return;
+	}
+
+	createScene();
+
+	while(true)
+	{
+		renderScene();
+		// Do stuff
+		mRoot->renderOneFrame();
+	}
 }
 
 int main(int argc, char *argv[])

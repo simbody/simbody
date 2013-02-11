@@ -130,8 +130,6 @@ void OgreVisualizerBase::createFrameListener(void)
     Ogre::WindowEventUtilities::addWindowEventListener(mWindow, this);
 
     mTrayMgr = new OgreBites::SdkTrayManager("InterfaceName", mWindow, mMouse, this);
-    mTrayMgr->showFrameStats(OgreBites::TL_BOTTOMLEFT);
-    mTrayMgr->showLogo(OgreBites::TL_BOTTOMRIGHT);
     mTrayMgr->hideCursor();
 
     // create a params panel for displaying sample details
@@ -247,18 +245,6 @@ ogrePaths.push_back("/usr/lib/OGRE");
 }
 
 //-------------------------------------------------------------------------------------
-void OgreVisualizerBase::go(void)
-{
-    if (!setup())
-        return;
-
-    mRoot->startRendering();
-//	mRoot->renderOneFrame();
-
-    // clean up
-    destroyScene();
-}
-//-------------------------------------------------------------------------------------
 bool OgreVisualizerBase::setup(void)
 {
 
@@ -286,8 +272,6 @@ bool OgreVisualizerBase::setup(void)
     loadResources();
 
 	mWindow->setFullscreen(false, 800, 600);
-    // Create the scene
-//    createScene();
 
     createFrameListener();
 

@@ -19,7 +19,11 @@ ELSE()
     INCLUDE(FindGLUT) # sets GLUT_LIBRARIES
 ENDIF()
 
-SET(VISUALIZER_BASE_SOURCES VisualizerBase.h VisualizerBase.cpp)
+SET(VISUALIZER_BASE_SOURCES 
+	Scene.h 
+	VisualizerBase.h 
+	VisualizerBase.cpp
+	)
 
 #Ogre
 
@@ -51,12 +55,22 @@ if(NOT OIS_FOUND)
 endif()
 
 INCLUDE_DIRECTORIES(${OIS_INCLUDE_DIRS} ${OGRE_INCLUDE_DIRS})
-ADD_EXECUTABLE(OgreVisualizer ${VISUALIZER_BASE_SOURCES} OgreVisualizerBase.h OgreVisualizer.h OgreVisualizerBase.cpp OgreVisualizer.cpp)
+ADD_EXECUTABLE(OgreVisualizer ${VISUALIZER_BASE_SOURCES} 
+	DynamicRenderable.h 
+	DynamicRenderable.cpp 
+	DynamicLines.h
+	DynamicLines.cpp
+	OgreVisualizerBase.h 
+	OgreVisualizer.h 
+	OgreVisualizerBase.cpp 
+	OgreVisualizer.cpp
+	)
+
 SET_TARGET_PROPERTIES(OgreVisualizer PROPERTIES DEBUG_POSTFIX _d)
 TARGET_LINK_LIBRARIES(OgreVisualizer
    	${OGRE_LIBRARIES} 
 	${OIS_LIBRARIES} 
-	${OPENGL_LIBRARIES} 
+	${TEST_SHARED_TARGET}
 	)
 
 INSTALL(TARGETS OgreVisualizer
@@ -72,8 +86,9 @@ SET(CMAKE_MODULE_PATH
 	"/home/kevinux/projects/Visualizer/tools/OpenSceneGraph/OpenSceneGraph-3.0.1/CMakeModules/;${CMAKE_MODULE_PATH}")
 
 FIND_PACKAGE(osg)
-#FIND_PACKAGE(osgDB)
-#FIND_PACKAGE(osgViewer)
+FIND_PACKAGE(osgDB)
+FIND_PACKAGE(osgViewer)
+FIND_PACKAGE(osgGA)
 
 INCLUDE_DIRECTORIES("/home/kevinux/projects/Visualizer/install/openscenegraph/include")
 LINK_DIRECTORIES(${OSG_LIB_DIR})
@@ -84,7 +99,7 @@ TARGET_LINK_LIBRARIES(OSGVisualizer
 	${OSGVIEWER_LIBRARY} 
 	${OSGGA_LIBRARY}
 	${OSGDB_LIBRARY} 
-	${OPENGL_LIBRARIES} 
+	${TEST_SHARED_TARGET}
 	)
 
 INSTALL(TARGETS OSGVisualizer

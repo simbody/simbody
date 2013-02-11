@@ -36,11 +36,8 @@ protected:
 	virtual void drawCylinder() {}
 	virtual void drawSphere() {}
 	virtual void drawCircle() {}
-	virtual void drawGroundAndSky();
 
-	virtual void preRender();
-	virtual void startRendering();
-	virtual void finishRendering();
+	void renderScene();
 
 };
 

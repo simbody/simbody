@@ -28,8 +28,6 @@ public:
     OgreVisualizerBase(void);
     virtual ~OgreVisualizerBase(void);
 
-    virtual void go(void);
-
 protected:
     virtual bool setup();
     virtual bool configure(void);

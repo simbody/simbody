@@ -121,21 +121,7 @@ OSGVisualizer::OSGVisualizer()
     viewer.setCameraManipulator(new osgGA::TrackballManipulator());
 }
 
-void OSGVisualizer::preRender()
-{
-}
-
-void OSGVisualizer::drawGroundAndSky()
-{
-	root->addChild(makeSky());
-}
-
-void OSGVisualizer::startRendering()
-{
-
-}
-
-void OSGVisualizer::finishRendering()
+void OSGVisualizer::renderScene()
 {
 
 }
