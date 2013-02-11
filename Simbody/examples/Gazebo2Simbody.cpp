@@ -379,16 +379,20 @@ int main(int argc, const char* argv[]) {
     //----------------------- GENERATE MULTIBODY GRAPH -------------------------
     MultibodyGraphMaker mbgraph;
     try {
-        // Note: "weld" and "free" are always predefined.
-        mbgraph.addJointType("revolute", 1);    // Pin
+        // Step 1: Tell MultibodyGraphMaker about joints it should know about.
+        // Note: "weld" and "free" are always predefined at 0 and 6 dofs, resp.
+        //                  Gazebo name  #dofs     Simbody equivalent
+        mbgraph.addJointType("revolute",  1);   // Pin
         mbgraph.addJointType("revolute2", 2);   // ?
         mbgraph.addJointType("prismatic", 1);   // Slider
         mbgraph.addJointType("universal", 2);   // Universal
-        mbgraph.addJointType("piston", 2);      // Cylinder
+        mbgraph.addJointType("piston",    2);   // Cylinder
         // Simbody has a Ball constraint that is a good choice if you need to
         // break a loop at a ball joint.
         mbgraph.addJointType("ball", 3, true);  // Ball
 
+        // Step 2: Tell it about all the links we read from the input file, 
+        // starting with world.
         for (int lx=0; lx < model.links.size(); ++lx) {
             const GazeboLinkInfo& link = model.links.getLink(lx);
             int graphBodyNum = mbgraph.addBody
@@ -396,6 +400,7 @@ int main(int argc, const char* argv[]) {
             assert(graphBodyNum == lx);
         }
 
+        // Step 3: Tell it about all the joints we read from the input file.
         for (int jx=0; jx < model.joints.size(); ++jx) {
             const GazeboJointInfo& joint = model.joints.getJoint(jx);
             int graphJointNum = mbgraph.addJoint
@@ -404,13 +409,14 @@ int main(int argc, const char* argv[]) {
             assert(graphJointNum == jx);
         }
 
+        // Setp 4. Generate the multibody graph.
         mbgraph.generateGraph();
     } catch (const std::exception& e) {
         cout << "FAILED TO GENERATE MULTIBODY GRAPH: " << e.what() << endl;
         exit(1);
     }
 
-    // Dump out the graph for debugging or curiosity.
+    // Optional: dump the graph to stdout for debugging or curiosity.
     mbgraph.dumpGraph(std::cout);
     //--------------------------------------------------------------------------
 
@@ -479,7 +485,6 @@ int main(int argc, const char* argv[]) {
                 mobod = freeJoint;
             }
         } else {
-
             // This mobilizer does correspond to one of the input joints.
             GazeboJointInfo& gzJoint = model.joints.updJoint(mob.joint);
 
@@ -512,10 +517,10 @@ int main(int argc, const char* argv[]) {
                     direction);
                 mobod = pinJoint;
 
-    #ifdef RAGDOLL
+                #ifdef RAGDOLL
                 //TODO: KLUDGE add spring
                 Force::MobilityLinearSpring(forces,mobod,0,10*massProps.getMass(),0);
-    #endif
+                #endif
             } else if (type == "ball") {
                 MobilizedBody::Ball ballJoint(
                     gzInb.masterMobod,  X_IF0,
@@ -619,6 +624,7 @@ int main(int argc, const char* argv[]) {
         }
     }
 
+    // Add the loop joints if any.
     for (int lcx=0; lcx < mbgraph.getNumLoopConstraints(); ++lcx) {
         const MultibodyGraphMaker::LoopConstraint& loop =
             mbgraph.getLoopConstraint(lcx);
@@ -645,8 +651,8 @@ int main(int argc, const char* argv[]) {
                 "Unrecognized loop constraint type '" + joint.type + "'.");
     }
 
-    //Force::GlobalDamper(forces, matter, .1);
-    //Force::Thermostat(forces, matter, SimTK_BOLTZMANN_CONSTANT_MD, 300, .1, 0);
+    // The Simbody System has been built successfully. Now lets run it for
+    // a while to see what it looks like.
 
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
@@ -661,6 +667,13 @@ int main(int argc, const char* argv[]) {
     model.joints.getJoint("torso_joint").mobod.setOneQ(state,0,.3);
 #endif
     viz.report(state);
+
+    // If there are any constraints due to topological loops in the graph
+    // then the system might not be assembled yet. Use Simbody's Assembler
+    // to find a state that assembles the system.
+    // Note: assembly mail fail if the system starts out too far from
+    // assembled.
+
     printf("INITIAL STATE err=%g -- ENTER to assemble\n",
         state.getQErr().norm());
     getchar();
@@ -670,6 +683,8 @@ int main(int argc, const char* argv[]) {
     printf("ASSEMBLED to err=%g -- ENTER to simulate\n", 
         state.getQErr().norm());
     getchar();
+
+    // Assembled. Now simulate.
 
     const Real RunTime = 20;
     const Real ReportTime = 1./30.;
@@ -701,6 +716,9 @@ int main(int argc, const char* argv[]) {
         } while (integ.getTime() < nextReport);
         viz.report(integ.getState());
     }
+
+    // Finished simulating; dump out some stats. On Windows CPUtime is not
+    // reliable if very little time is spent in this thread.
     const double timeInSec = realTime()-startReal;
     const double cpuInSec = cpuTime()-startCPU;
     const int evals = integ.getNumRealizations();
@@ -740,6 +758,8 @@ int GazeboLinks::addLink(const GazeboLinkInfo& info) {
     name2index[info.name] = lx;
     return lx;
 }
+
+
 int GazeboJoints::addJoint(const GazeboJointInfo& info) {
     if(name2index.find(info.name) != name2index.end())
         throw std::runtime_error(
@@ -751,6 +771,8 @@ int GazeboJoints::addJoint(const GazeboJointInfo& info) {
     name2index[info.name] = jx;
     return jx;
 }
+
+
 void GazeboModel::readModel(Xml::Element modelElt) {
     name = modelElt.getRequiredAttributeValue("name");
     X_WM = getPose(modelElt);
@@ -884,7 +906,7 @@ static MassProperties getMassProperties(Xml::Element link) {
     Xml::Element inertia = inertial.getOptionalElement("inertia");
     if (mass==0 || !inertia.isValid())
         return MassProperties(mass,com_L,UnitInertia(1,1,1));
-    // Get central inertia, expressed in I frame.
+    // Get mass-weighted central inertia, expressed in I frame.
     Inertia Ic_I(inertia.getOptionalElementValueAs<Real>("ixx", 1.),
                  inertia.getOptionalElementValueAs<Real>("iyy", 1.),
                  inertia.getOptionalElementValueAs<Real>("izz", 1.),
