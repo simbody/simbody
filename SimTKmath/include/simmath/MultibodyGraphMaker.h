@@ -156,34 +156,15 @@ public:
     names for weld and free joints to "weld" and "free". **/
     MultibodyGraphMaker();
 
-    /** Change the name to be used to identify the weld joint type (0 dof) and 
-    weld loop constraint type (6 constraints). The default is "weld".  Changing 
-    this name clears and reinitializes this %MultibodyGraphMaker object. **/
-    void setWeldJointTypeName(const std::string& name) 
-    {   weldTypeName=name; initialize(); }
-    /** Return the name currently being used to identify the weld joint type
-    and weld loop constraint type. **/
-    const std::string& getWeldJointTypeName() const {return weldTypeName;}
-
-    /** Change the name to be used to identify the free (6 dof) joint type and 
-    free (0 constraints) loop constraint type. The default is "free". Changing 
-    this name clears and reinitializes this %MultibodyGraphMaker object. **/
-    void setFreeJointTypeName(const std::string& name) 
-    {   freeTypeName=name; initialize(); }
-    /** Return the name currently being used to identify the free joint type
-    and free loop constraint type. **/
-    const std::string& getFreeJointTypeName() const {return freeTypeName;}
-
-    /** Return the name we recognize as that Ground (or World) body. This is
-    the name that was provided in the first addBody() call. **/
-    const std::string& getGroundBodyName() const;
 
     /** Specify relevant properties of a joint type. Type name must be unique.
-    Weld and free types are predefined and their names are reserved.
+    Weld and free types are predefined and their names are reserved (though you
+    can change the names to be used).
     @returns Small integer joint type number used for referencing. **/
-    int addJointType(const std::string& type,
-                     int numMobilities,
-                     bool haveGoodLoopJointAvailable=false);
+    int addJointType(const std::string& name,
+                     int                numMobilities,
+                     bool               haveGoodLoopJointAvailable = false,
+                     void*              userRef                    = 0);
 
 
     /** Add a new body (link) to the set of input bodies. 
@@ -202,10 +183,11 @@ public:
         to Ground by a free joint before attempting to build the rest of the
         tree. Alternatively, provide a joint that connects this body directly
         to Ground, in which case you should \e not set this flag.  
-    @returns the body number assigned to this body. **/
+    @returns The body number assigned to this body. **/
     int addBody(const std::string&  name, 
-                double              mass=1, 
-                bool                mustBeBaseBody=false);
+                double              mass, 
+                bool                mustBeBaseBody,
+                void*               userRef = 0);
 
 
     /** Add a new joint to the set of input joints.
@@ -235,12 +217,13 @@ public:
         body into master and slave otherwise. In the latter case this joint 
         \e will be made into a mobilizer but a loop weld joint will be added
         to attach the child slave body to its master.   
-    @returns the joint number assigned to this joint. **/
+    @returns The joint number assigned to this joint. **/
     int addJoint(const std::string& name,
                  const std::string& type,
                  const std::string& parentBodyName,
                  const std::string& childBodyName,
-                 bool               mustBeLoopJoint=false);
+                 bool               mustBeLoopJoint,
+                 void*              userRef = 0);
 
     /** Generate a new multibody graph from the input data. Clears the existing
     graph first if there is one. Throws an std::exception if it fails, with a
@@ -249,6 +232,31 @@ public:
 
     /** Output a text representation of the multibody graph for debugging. **/
     void dumpGraph(std::ostream& out) const;
+
+    /** Returns the number of mobilizers (tree joints) in the spanning tree.
+    These are numbered in order of level. The 0th mobilizer has level 0 and
+    is just a placeholder for Ground's immobile connection to the universe.
+    After that come the base mobilizers at level 1, then mobilizers that 
+    connect children to base bodies at level 2, and so on. This is also the 
+    number of mobilized bodies, including Ground and slave bodies. **/
+    int getNumMobilizers() const {return (int)mobilizers.size();}
+    /** Get a Mobilizer object by its mobilizer number, ordered outwards by
+    topological distance from Ground. **/
+    const Mobilizer& getMobilizer(int mobilizerNum) const
+    {   return mobilizers[mobilizerNum]; }
+
+    /** Return the number of loop joint constraints that were used to close 
+    loops in the graph topology. These do not include loops that were broken
+    by cutting a body to make a slave body, just those where the joint itself 
+    was implemented using a constraint rather than a mobilizer plus a slave. 
+    The latter occurs only if were told there is a perfectly good loop joint
+    constraint available; typically that applies for ball joints and not much
+    else. **/
+    int getNumLoopConstraints() const {return (int)constraints.size();}
+    /** Get a loop constraint by its assigned number. These are assigned in
+    an arbitrary order. **/
+    const LoopConstraint& getLoopConstraint(int loopConstraintNum) const
+    {   return constraints[loopConstraintNum]; }
 
     /** Return the number of bodies, including all input bodies, a ground body,
     and any slave bodies. **/
@@ -293,32 +301,27 @@ public:
         return p==jointTypeName2Num.end() ? -1 : p->second;
     }
 
-    /** Returns the number of mobilizers (tree joints) in the spanning tree.
-    These are numbered in order of level. The 0th mobilizer has level 0 and
-    is just a placeholder for Ground's immobile connection to the universe.
-    After that come the base mobilizers at level 1, then mobilizers that 
-    connect children to base bodies at level 2, and so on. This is also the 
-    number of mobilized bodies, including Ground and slave bodies. **/
-    int getNumMobilizers() const {return (int)mobilizers.size();}
-    /** Get a Mobilizer object by its mobilizer number, ordered outwards by
-    topological distance from Ground. **/
-    const Mobilizer& getMobilizer(int mobilizerNum) const
-    {   return mobilizers[mobilizerNum]; }
+    /** Change the name to be used to identify the weld joint type (0 dof) and 
+    weld loop constraint type (6 constraints). The default is "weld".  Changing 
+    this name clears and reinitializes this %MultibodyGraphMaker object. **/
+    void setWeldJointTypeName(const std::string& name) 
+    {   weldTypeName=name; initialize(); }
+    /** Return the name currently being used to identify the weld joint type
+    and weld loop constraint type. **/
+    const std::string& getWeldJointTypeName() const {return weldTypeName;}
 
-    /** Return the number of loop joint constraints that were used to close 
-    loops in the graph topology. These do not include loops that were broken
-    by cutting a body to make a slave body, just those where the joint itself 
-    was implemented using a constraint rather than a mobilizer plus a slave. 
-    The latter occurs only if were told there is a perfectly good loop joint
-    constraint available; typically that applies for ball joints and not much
-    else. **/
-    int getNumLoopConstraints() const {return (int)constraints.size();}
-    /** Get a loop constraint by its assigned number. These are assigned in
-    an arbitrary order. **/
-    const LoopConstraint& getLoopConstraint(int loopConstraintNum) const
-    {   return constraints[loopConstraintNum]; }
+    /** Change the name to be used to identify the free (6 dof) joint type and 
+    free (0 constraints) loop constraint type. The default is "free". Changing 
+    this name clears and reinitializes this %MultibodyGraphMaker object. **/
+    void setFreeJointTypeName(const std::string& name) 
+    {   freeTypeName=name; initialize(); }
+    /** Return the name currently being used to identify the free joint type
+    and free loop constraint type. **/
+    const std::string& getFreeJointTypeName() const {return freeTypeName;}
 
-
+    /** Return the name we recognize as that Ground (or World) body. This is
+    the name that was provided in the first addBody() call. **/
+    const std::string& getGroundBodyName() const;
 private:
     // Get writable access to bodies and joints.
     Body& updBody(int bodyNum) {return bodies[bodyNum];}
@@ -340,7 +343,6 @@ private:
         bodies.clear(); joints.clear(); jointTypes.clear();
         bodyName2Num.clear(); jointName2Num.clear(); jointTypeName2Num.clear();
         mobilizers.clear(); constraints.clear();
-        graphHasBeenGenerated = false;
     }
 
     std::string                 weldTypeName, freeTypeName;
@@ -354,7 +356,6 @@ private:
     // Calculated by generateGraph()
     std::vector<Mobilizer>      mobilizers; // mobilized bodies
     std::vector<LoopConstraint> constraints;
-    bool graphHasBeenGenerated; // set false any time something changes
 };
 
 //------------------------------------------------------------------------------
@@ -363,11 +364,12 @@ private:
 /** Local class that collects information about bodies. **/
 class MultibodyGraphMaker::Body {
 public:
-    explicit Body(const std::string& name, 
-                    double        mass=1, 
-                    bool          mustBeBaseBody=false) 
-    :   name(name), mass(mass), mustBeBaseBody(mustBeBaseBody),
-        level(-1), mobilizer(-1), master(-1) {}
+    explicit Body(const std::string&    name, 
+                    double              mass, 
+                    bool                mustBeBaseBody,
+                    void*               userRef) 
+    :   name(name), mass(mass), mustBeBaseBody(mustBeBaseBody), 
+        userRef(userRef), level(-1), mobilizer(-1), master(-1) {}
 
     int getNumFragments() const {return 1 + getNumSlaves();}
     int getNumSlaves() const {return (int)slaves.size();}
@@ -379,6 +381,7 @@ public:
     std::string name;
     double      mass;
     bool        mustBeBaseBody;
+    void*       userRef;
 
     // How this body appears in joints (input and added).
     std::vector<int>    jointsAsChild;  // where this body is the child
@@ -401,11 +404,11 @@ class MultibodyGraphMaker::Joint {
 public:
     Joint(const std::string& name, int jointTypeNum, 
           int parentBodyNum, int childBodyNum,
-          bool mustBeLoopJoint=false)
+          bool mustBeLoopJoint, void* userRef)
     :   name(name), jointTypeNum(jointTypeNum), 
         parentBodyNum(parentBodyNum), childBodyNum(childBodyNum),
-        mustBeLoopJoint(mustBeLoopJoint), isAddedBaseJoint(false),
-        mobilizer(-1), loopConstraint(-1) {}
+        mustBeLoopJoint(mustBeLoopJoint), userRef(userRef),
+        isAddedBaseJoint(false), mobilizer(-1), loopConstraint(-1) {}
 
     // Only one of these will be true -- we don't consider it a LoopConstraint
     // if we split a body and weld it back.
@@ -415,6 +418,7 @@ public:
     // Inputs
     std::string name;
     bool        mustBeLoopJoint;
+    void*       userRef;
 
     // Mapping of strings to indices for fast lookup.
     int parentBodyNum, childBodyNum;
@@ -434,12 +438,14 @@ public:
 class MultibodyGraphMaker::JointType {
 public:
     JointType(const std::string& name, int numMobilities, 
-                bool haveGoodLoopJointAvailable)
+              bool haveGoodLoopJointAvailable, void* userRef)
     :   name(name), numMobilities(numMobilities), 
-        haveGoodLoopJointAvailable(haveGoodLoopJointAvailable) {}
+        haveGoodLoopJointAvailable(haveGoodLoopJointAvailable),
+        userRef(userRef) {}
     std::string name;
     int         numMobilities;
     bool        haveGoodLoopJointAvailable;
+    void*       userRef;
 };
 
 //------------------------------------------------------------------------------
@@ -459,8 +465,19 @@ public:
         outboardBody(outboardBodyNum), isReversed(isReversed),
         mgm(graphMaker) {}
 
+    void* getJointRef() const
+    {   return mgm->getJoint(joint).userRef; } 
+    void* getInboardBodyRef() const
+    {   return mgm->getBody(inboardBody).userRef; }   
+    void* getOutboardBodyRef() const
+    {   return mgm->getBody(outboardBody).userRef; }
+    void* getOutboardMasterBodyRef() const
+    {   return mgm->getBody(getOutboardMasterBodyNum()).userRef; }
+
     const std::string& getJointTypeName() const
     {   return mgm->getJointType(mgm->getJoint(joint).jointTypeNum).name; }
+    void* getJointTypeRef() const
+    {   return mgm->getJointType(mgm->getJoint(joint).jointTypeNum).userRef; }
 
     bool isSlaveMobilizer() const
     {   return mgm->getBody(outboardBody).isSlave(); }
@@ -492,16 +509,27 @@ public:
 topological loops that were cut to form the spanning tree. **/
 class MultibodyGraphMaker::LoopConstraint {
 public:
-    LoopConstraint() : joint(-1), parentBody(-1), childBody(-1) {}
+    LoopConstraint() : joint(-1), parentBody(-1), childBody(-1), mgm(0) {}
     LoopConstraint(const std::string& type, int jointNum, 
-                   int parentBodyNum, int childBodyNum) 
+                   int parentBodyNum, int childBodyNum,
+                   MultibodyGraphMaker* graphMaker) 
     :   type(type), joint(jointNum), 
-        parentBody(parentBodyNum), childBody(childBodyNum) {}
+        parentBody(parentBodyNum), childBody(childBodyNum), 
+        mgm(graphMaker) {}
+
+    void* getJointRef() const
+    {   return mgm->getJoint(joint).userRef; } 
+    void* getParentBodyRef() const
+    {   return mgm->getBody(parentBody).userRef; }   
+    void* getChildBodyRef() const
+    {   return mgm->getBody(childBody).userRef; }
 
     std::string type;        // e.g., ball
     int         joint;       // always one of the input joints
     int         parentBody;  // parent from the joint
     int         childBody;   // child from the joint
+
+    MultibodyGraphMaker*    mgm; // just a reference to container
 };
 
 

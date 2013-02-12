@@ -42,7 +42,7 @@ namespace SimTK {
 //                              CONSTRUCTOR
 //------------------------------------------------------------------------------
 MultibodyGraphMaker::MultibodyGraphMaker()
-:   weldTypeName("weld"), freeTypeName("free"), graphHasBeenGenerated(false) 
+:   weldTypeName("weld"), freeTypeName("free")
 {   initialize(); }
  
 
@@ -61,9 +61,11 @@ const std::string& MultibodyGraphMaker::getGroundBodyName() const {
 //------------------------------------------------------------------------------
 //                             ADD JOINT TYPE
 //------------------------------------------------------------------------------
-int MultibodyGraphMaker::addJointType(const std::string& name,
-                                      int numMobilities,
-                                      bool haveGoodLoopJointAvailable)
+int MultibodyGraphMaker::
+addJointType(const std::string&     name,
+             int                    numMobilities,
+             bool                   haveGoodLoopJointAvailable,
+             void*                  userRef)
 {
     if (!(0 <= numMobilities && numMobilities <= 6)) throw std::runtime_error
        ("addJointType(): Illegal number of mobilities for joint type '" 
@@ -81,7 +83,7 @@ int MultibodyGraphMaker::addJointType(const std::string& name,
     jointTypeName2Num[name] = jointTypeNum; // provide fast name lookup
 
     jointTypes.push_back(JointType(name, numMobilities, 
-                                   haveGoodLoopJointAvailable));
+                                   haveGoodLoopJointAvailable, userRef));
 
     return jointTypeNum;
 }
@@ -90,9 +92,10 @@ int MultibodyGraphMaker::addJointType(const std::string& name,
 //------------------------------------------------------------------------------
 //                                 ADD BODY
 //------------------------------------------------------------------------------
-int MultibodyGraphMaker::addBody(const std::string&   name, 
-                                 double          mass, 
-                                 bool            mustBeBaseBody)
+int MultibodyGraphMaker::addBody(const std::string& name, 
+                                 double             mass, 
+                                 bool               mustBeBaseBody,
+                                 void*              userRef)
 {
     if (mass < 0) throw std::invalid_argument
         ("addBody(): Body '" + name + "' specified negative mass");
@@ -105,12 +108,12 @@ int MultibodyGraphMaker::addBody(const std::string&   name,
     const int bodyNum = (int)bodies.size(); // next available slot
     bodyName2Num[name] = bodyNum; // provide fast name lookup
 
-    if (bodyNum == 0) { // First body is Ground; use only the name.
-        Body ground(name, Infinity, false);
+    if (bodyNum == 0) { // First body is Ground; use only the name and ref.
+        Body ground(name, Infinity, false, userRef);
         ground.level = 0; // already in tree
         bodies.push_back(ground);
     } else { // This is a real body.
-        bodies.push_back(Body(name, mass, mustBeBaseBody));
+        bodies.push_back(Body(name, mass, mustBeBaseBody, userRef));
     }
 
     return bodyNum;
@@ -124,7 +127,8 @@ int MultibodyGraphMaker::addJoint(const std::string&  name,
                                   const std::string&  type,
                                   const std::string&  parentBodyName,
                                   const std::string&  childBodyName,
-                                  bool                mustBeLoopJoint)
+                                  bool                mustBeLoopJoint,
+                                  void*               userRef)
 {
     // Reject duplicate joint name, unrecognized type or body names.
     std::map<std::string,int>::const_iterator p = jointName2Num.find(name);
@@ -150,7 +154,7 @@ int MultibodyGraphMaker::addJoint(const std::string&  name,
     jointName2Num[name] = jointNum; // provide fast name lookup
   
     joints.push_back(Joint(name, typeNum, parentBodyNum, childBodyNum,
-                           mustBeLoopJoint));
+                           mustBeLoopJoint, userRef));
 
     updBody(parentBodyNum).jointsAsParent.push_back(jointNum);
     updBody(childBodyNum).jointsAsChild.push_back(jointNum);
@@ -205,8 +209,6 @@ void MultibodyGraphMaker::generateGraph() {
    // the loop-forming joints. Then each slave is welded back to its master
    // body (the original child).
    breakLoops();
-
-   graphHasBeenGenerated = true;
 }
 
 
@@ -285,8 +287,8 @@ void MultibodyGraphMaker::dumpGraph(std::ostream& o) const {
 // Clear all data and prime with free and weld joint types.
 void MultibodyGraphMaker::initialize() {
     clear();
-    jointTypes.push_back(JointType(weldTypeName,0,true));
-    jointTypes.push_back(JointType(freeTypeName,6,true));
+    jointTypes.push_back(JointType(weldTypeName, 0, true, NULL));
+    jointTypes.push_back(JointType(freeTypeName, 6, true, NULL));
     jointTypeName2Num[weldTypeName] = 0;
     jointTypeName2Num[freeTypeName] = 1;
 }
@@ -304,7 +306,7 @@ int MultibodyGraphMaker::splitBody(int masterBodyNum) {
     // First slave is number 1, slave 0 is the master.
     std::stringstream ss;
     ss << "#" << master.name << "_slave_" << master.getNumSlaves()+1;
-    Body slave(ss.str());
+    Body slave(ss.str(), NaN, false, NULL);
     slave.master = masterBodyNum;
     master.slaves.push_back(slaveBodyNum);
     bodies.push_back(slave);
@@ -360,7 +362,7 @@ int MultibodyGraphMaker::connectBodyToGround(int bodyNum) {
     assert(!body.isInTree());
     const std::string jointName = "#" + getGroundBodyName() + "_" + body.name;
     const int jx = addJoint(jointName, getFreeJointTypeName(), 
-                            getGroundBodyName(), body.name);
+                            getGroundBodyName(), body.name, false, NULL);
     updJoint(jx).isAddedBaseJoint = true;
     return jx;
 }
@@ -578,7 +580,7 @@ void MultibodyGraphMaker::breakLoops() {
         const JointType& jtype = getJointType(jinfo.jointTypeNum);
         if (jtype.haveGoodLoopJointAvailable) {
             const int loopNum = constraints.size();
-            constraints.push_back(LoopConstraint(jtype.name, jx, px, cx));
+            constraints.push_back(LoopConstraint(jtype.name,jx,px,cx,this));
             jinfo.loopConstraint = loopNum;
             continue;
         }

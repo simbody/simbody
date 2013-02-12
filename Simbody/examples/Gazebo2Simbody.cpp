@@ -404,21 +404,19 @@ int main(int argc, const char* argv[]) {
         mbgraph.addJointType("ball", 3, true);  // Ball
 
         // Step 2: Tell it about all the links we read from the input file, 
-        // starting with world.
+        // starting with world, and provide a reference pointer.
         for (int lx=0; lx < model.links.size(); ++lx) {
-            const GazeboLinkInfo& link = model.links.getLink(lx);
-            int graphBodyNum = mbgraph.addBody
-               (link.name, link.massProps.getMass(), link.mustBeBaseLink);
-            assert(graphBodyNum == lx);
+            GazeboLinkInfo& link = model.links.updLink(lx);
+            mbgraph.addBody(link.name, link.massProps.getMass(), 
+                            link.mustBeBaseLink, &link);
         }
 
-        // Step 3: Tell it about all the joints we read from the input file.
+        // Step 3: Tell it about all the joints we read from the input file,
+        // and provide a reference pointer.
         for (int jx=0; jx < model.joints.size(); ++jx) {
-            const GazeboJointInfo& joint = model.joints.getJoint(jx);
-            int graphJointNum = mbgraph.addJoint
-               (joint.name, joint.type, joint.parent, joint.child, 
-                joint.mustBreakLoopHere);
-            assert(graphJointNum == jx);
+            GazeboJointInfo& joint = model.joints.updJoint(jx);
+            mbgraph.addJoint(joint.name, joint.type, joint.parent, joint.child, 
+                             joint.mustBreakLoopHere, &joint);
         }
 
         // Setp 4. Generate the multibody graph.
@@ -476,6 +474,9 @@ int main(int argc, const char* argv[]) {
     // Record the MobilizedBody for the World link.
     model.links.updLink(0).masterMobod = matter.Ground();
 
+    // Run through all the mobilizers in the multibody graph, adding a Simbody
+    // MobilizedBody for each one. Also add visual and collision geometry to the
+    // bodies when they are mobilized.
     for (int mobNum=0; mobNum < mbgraph.getNumMobilizers(); ++mobNum) {
         // Get a mobilizer from the graph, then extract its corresponding
         // joint and bodies. Note that these don't necessarily have equivalents
@@ -488,9 +489,9 @@ int main(int argc, const char* argv[]) {
         // The outboard body may be slave, but its master body is one of the
         // Gazebo input links.
         const bool isSlave = mob.isSlaveMobilizer();
-        GazeboLinkInfo& gzInb = model.links.updLink(mob.inboardBody);
-        GazeboLinkInfo& gzOutb = 
-            model.links.updLink(mob.getOutboardMasterBodyNum());
+        GazeboLinkInfo& gzInb  = *(GazeboLinkInfo*)mob.getInboardBodyRef();
+        GazeboLinkInfo& gzOutb = *(GazeboLinkInfo*)mob.getOutboardMasterBodyRef();
+
         const MassProperties massProps = 
             gzOutb.getEffectiveMassProps(mob.getNumFragments());
 
@@ -513,7 +514,7 @@ int main(int argc, const char* argv[]) {
             }
         } else {
             // This mobilizer does correspond to one of the input joints.
-            GazeboJointInfo& gzJoint = model.joints.updJoint(mob.joint);
+            GazeboJointInfo& gzJoint = *(GazeboJointInfo*)mob.getJointRef();
 
             // Find inboard and outboard frames for the mobilizer; these are
             // parent and child frames or the reverse.
@@ -683,9 +684,9 @@ int main(int argc, const char* argv[]) {
         const MultibodyGraphMaker::LoopConstraint& loop =
             mbgraph.getLoopConstraint(lcx);
 
-        GazeboJointInfo& joint = model.joints.updJoint(loop.joint);
-        GazeboLinkInfo& parent = model.links.updLink(loop.parentBody);
-        GazeboLinkInfo& child = model.links.updLink(loop.childBody);
+        GazeboJointInfo& joint  = *(GazeboJointInfo*)loop.getJointRef();
+        GazeboLinkInfo&  parent = *(GazeboLinkInfo*) loop.getParentBodyRef();
+        GazeboLinkInfo&  child  = *(GazeboLinkInfo*) loop.getChildBodyRef();
 
         if (joint.type == "weld") {
             Constraint::Weld weld(parent.masterMobod, joint.X_PA, 
