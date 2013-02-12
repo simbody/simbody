@@ -163,7 +163,7 @@ static MassProperties getMassProperties(Xml::Element link);
 class GazeboLinkInfo {
 public:
     explicit GazeboLinkInfo(const std::string& name)
-    :   name(name), mustBeBaseLink(false) {}
+    :   name(name), mustBeBaseLink(false), selfCollide(false) {}
 
     // When a link is broken into several fragments (master and slaves), they
     // share the mass equally. Given the number of fragments, this returns the
@@ -180,6 +180,9 @@ public:
     Xml::Element    element;        // if this was in the Xml file
     std::string     name;
     bool            mustBeBaseLink;
+
+    bool            selfCollide; // if true can collide with other links in
+                                 // the same Gazebo model.
 
     // Mass properties converted to Simbody terms: com & inertia expressed in
     // body frame; inertia taken about body origin *not* body COM. This is the
@@ -198,6 +201,7 @@ public:
     // And these are the Weld constraints used to attach slaves to master.
     std::vector<Constraint::Weld>   slaveWelds;
 };
+
 
 //==============================================================================
 //                            GAZEBO JOINT INFO
@@ -269,7 +273,7 @@ private:
     int getLinkIndex(const std::string& name) const
     {   assert(hasLink(name)); return name2index.find(name)->second; }
     std::vector<GazeboLinkInfo>     linkByIndex;
-    std::map<std::string,int>            name2index;
+    std::map<std::string,int>       name2index;
 };
 
 
@@ -308,7 +312,7 @@ private:
     {   assert(hasJoint(name)); return name2index.find(name)->second; }
 
     std::vector<GazeboJointInfo>    jointByIndex;
-    std::map<std::string,int>            name2index;
+    std::map<std::string,int>       name2index;
 };
 
 
@@ -322,19 +326,27 @@ public:
     GazeboModel() {}
     void readModel(Xml::Element modelElt);
 
-    std::string          name;
+    std::string     name;
     Transform       X_WM;   // model frame in the World frame
     GazeboLinks     links;
     GazeboJoints    joints;
+
+    // This is a grouping of contact surfaces that are invisible to one
+    // another. Gazebo's convention is that surfaces in the same model don't
+    // collide unless they have been explicitly marked <self_collide>. The
+    // Simbody equivalent is to put the unmarked ones into the same clique.
+    ContactCliqueId modelClique;
 };
 
 //==============================================================================
 //                                   MAIN
 //==============================================================================
 // Hacks for sherm's testing.
-//#define DPEND
-#define RAGDOLL // turns Ground display and joint springs on
-//#define RAGDOLL2
+
+#define ANIMATE             // turn this off for timing tests
+#define ADD_JOINT_SPRINGS   // makes all the joints stiff
+//#define RAGDOLL2_ICS      // set initial conditions for ragdoll2 model
+
 int main(int argc, const char* argv[]) {
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " filename.sdf\n";
@@ -420,33 +432,48 @@ int main(int argc, const char* argv[]) {
     mbgraph.dumpGraph(std::cout);
     //--------------------------------------------------------------------------
 
-    MultibodySystem mbs; mbs.setUpDirection(ZAxis);
+
+    // Create a Simbody System and populate it with Subsystems we'll need.
+    MultibodySystem mbs; 
     SimbodyMatterSubsystem matter(mbs);
     GeneralForceSubsystem forces(mbs);
     ContactTrackerSubsystem tracker(mbs);
     CompliantContactSubsystem contact(mbs, tracker);
-    Force::UniformGravity(forces, matter, gravity);
 
+    // Tweak visualization to get Z up and to prevent Simbody from generating
+    // its own sketchy visuals.
+    mbs.setUpDirection(ZAxis);
+    matter.setShowDefaultGeometry(false);
+    // Set stiction max slip velocity to make it less stiff.
     contact.setTransitionVelocity(.1);
 
-    ContactMaterial material(1e6, // stiffness
-                             0.2,     // dissipation
-                             0.7,     // mu_static
-                             0.5,     // mu_dynamic
-                             1); // mu_viscous
+    // Specify gravity (read in above from world).
+    Force::UniformGravity(forces, matter, gravity);
 
+    // Define a material to use for contact. This is not very stiff.
+    ContactMaterial material(1e6,   // stiffness
+                             0.2,   // dissipation
+                             0.7,   // mu_static
+                             0.5,   // mu_dynamic
+                             1);    // mu_viscous
+
+    // Add a contact surface to represent the ground.
     // Half space normal is -x; must rotate about y to make it +z.
     matter.Ground().updBody().addContactSurface(Rotation(Pi/2,YAxis),
        ContactSurface(ContactGeometry::HalfSpace(), material));
 
-    matter.setShowDefaultGeometry(false);
 
+    // Draw world frame and model frame.
     matter.Ground().addBodyDecoration(Vec3(0), 
         DecorativeFrame(1).setColor(Green).setLineThickness(3)); // World
     matter.Ground().addBodyDecoration(model.X_WM, 
         DecorativeFrame(.75).setColor(Orange).setLineThickness(3));  // Model
 
-    // Set the MobilizedBody for the World link.
+    // Generate a contact clique we can put collision geometry in to prevent
+    // self-collisions.
+    model.modelClique = ContactSurface::createNewContactClique();
+
+    // Record the MobilizedBody for the World link.
     model.links.updLink(0).masterMobod = matter.Ground();
 
     for (int mobNum=0; mobNum < mbgraph.getNumMobilizers(); ++mobNum) {
@@ -517,9 +544,10 @@ int main(int argc, const char* argv[]) {
                     direction);
                 mobod = pinJoint;
 
-                #ifdef RAGDOLL
-                //TODO: KLUDGE add spring
-                Force::MobilityLinearSpring(forces,mobod,0,10*massProps.getMass(),0);
+                #ifdef ADD_JOINT_SPRINGS
+                // KLUDGE add spring (stiffness proportional to mass)
+                Force::MobilityLinearSpring(forces,mobod,0,
+                                            20*massProps.getMass(),0);
                 #endif
             } else if (type == "ball") {
                 MobilizedBody::Ball ballJoint(
@@ -549,6 +577,7 @@ int main(int argc, const char* argv[]) {
         Vec3 color = isSlave ? Red : Cyan;
         Real scale = isSlave ? 0.9 : 1.;
         if (master.isValid()) {
+            // VISUAL
             Array_<Xml::Element> visuals = master.getAllElements("visual");
             for (unsigned i=0; i < visuals.size(); ++i)  {
                 Transform X_LV = getPose(visuals[i]);
@@ -581,10 +610,13 @@ int main(int argc, const char* argv[]) {
 
             } 
 
+            // COLLISION
             Array_<Xml::Element> coll = master.getAllElements("collision");
             for (unsigned i=0; i < coll.size(); ++i) {
                 Transform X_LC = getPose(coll[i]);
                 Xml::Element geo = coll[i].getRequiredElement("geometry");
+
+                // Model sphere collision surface.
                 Xml::Element sphere = geo.getOptionalElement("sphere");
                 if (sphere.isValid()) {
                     Real r = sphere.getRequiredElementValueAs<Real>("radius");
@@ -592,23 +624,45 @@ int main(int argc, const char* argv[]) {
                         X_LC, DecorativeSphere(r)
                                 .setRepresentation(DecorativeGeometry::DrawWireframe)
                                 .setColor(Gray));
-                    mobod.updBody().addContactSurface(
-                        X_LC, ContactSurface(ContactGeometry::Sphere(r),
-                                                material));
+                    ContactSurface surface(ContactGeometry::Sphere(r),
+                                           material);
+                    if (!gzOutb.selfCollide)
+                        surface.joinClique(model.modelClique);
+                    mobod.updBody().addContactSurface(X_LC, surface);
                 }
+
+                // Model cylinder collision surface (must fake with ellipsoid).
                 Xml::Element cyl = geo.getOptionalElement("cylinder");
                 if (cyl.isValid()) {
-                    Real r = cyl.getRequiredElementValueAs<Real>("radius");
-                    Real l = cyl.getRequiredElementValueAs<Real>("length");
+                    Real r   = cyl.getRequiredElementValueAs<Real>("radius");
+                    Real len = cyl.getRequiredElementValueAs<Real>("length");
                     // Cylinder is along Z in Gazebo
-                    Vec3 esz = Vec3(r,r,.6*l/2); // Use ellipsoid instead
-                    mobod.addBodyDecoration(
-                        X_LC, DecorativeEllipsoid(esz)
-                                .setRepresentation(DecorativeGeometry::DrawWireframe)
-                                .setColor(Gray));
-                    mobod.updBody().addContactSurface(
-                        X_LC, ContactSurface(ContactGeometry::Ellipsoid(esz),
-                                                material));
+                    Vec3 esz = Vec3(r,r,len/2); // Use ellipsoid instead
+                    mobod.addBodyDecoration(X_LC, 
+                        DecorativeEllipsoid(esz)
+                            .setRepresentation(DecorativeGeometry::DrawWireframe)
+                            .setColor(Gray));
+                    ContactSurface surface(ContactGeometry::Ellipsoid(esz),
+                                           material);
+                    if (!gzOutb.selfCollide)
+                        surface.joinClique(model.modelClique);
+                    mobod.updBody().addContactSurface(X_LC, surface);
+                }
+
+
+                // Model box collision surface (must fake with ellipsoid).
+                Xml::Element box = geo.getOptionalElement("box");
+                if (box.isValid()) {
+                    Vec3 hsz = box.getRequiredElementValueAs<Vec3>("size")/2;
+                    mobod.addBodyDecoration(X_LC, 
+                        DecorativeEllipsoid(hsz) // use half dimensions
+                            .setRepresentation(DecorativeGeometry::DrawWireframe)
+                            .setColor(Gray));
+                    ContactSurface surface(ContactGeometry::Ellipsoid(hsz),
+                                           material);
+                    if (!gzOutb.selfCollide)
+                        surface.joinClique(model.modelClique);
+                    mobod.updBody().addContactSurface(X_LC, surface);
                 }
             }
         }
@@ -654,19 +708,22 @@ int main(int argc, const char* argv[]) {
     // The Simbody System has been built successfully. Now lets run it for
     // a while to see what it looks like.
 
+    // Create a Visualizer so we can see what's what.
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
-#ifndef RAGDOLL
-    viz.setBackgroundType(Visualizer::SolidColor);
-#endif
+
+    // Initialize the system and obtain the default state.
     State state = mbs.realizeTopology();
 
-#ifdef RAGDOLL2
+// The ragdoll2 model needs some reasonable initial conditions in order to
+// assemble its loop joints properly.
+#ifdef RAGDOLL2_ICS
     model.joints.getJoint("l_upper_arm_joint").mobod.setOneQ(state,0,-.4);
     model.joints.getJoint("r_upper_arm_joint").mobod.setOneQ(state,0,-.4);
     model.joints.getJoint("torso_joint").mobod.setOneQ(state,0,.3);
 #endif
-    viz.report(state);
+
+    viz.report(state);  // Show the initial state.
 
     // If there are any constraints due to topological loops in the graph
     // then the system might not be assembled yet. Use Simbody's Assembler
@@ -714,8 +771,12 @@ int main(int argc, const char* argv[]) {
         do {
             integ.stepTo(nextReport, integ.getTime()+MaxStepSize);
         } while (integ.getTime() < nextReport);
-        viz.report(integ.getState());
+
+        #ifdef ANIMATE
+            viz.report(integ.getState());
+        #endif
     }
+    viz.report(integ.getState()); // show final state
 
     // Finished simulating; dump out some stats. On Windows CPUtime is not
     // reliable if very little time is spent in this thread.
@@ -726,7 +787,7 @@ int main(int argc, const char* argv[]) {
         timeInSec << "s for " << integ.getTime() << "s sim (avg step=" 
         << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) " 
         << (1000*integ.getTime())/evals << "ms/eval\n";
-    cout << "CPUtime (not reliable) " << cpuInSec << endl;
+    cout << "CPUtime (not reliable when visualizing) " << cpuInSec << endl;
 
     printf("Used Integrator %s at accuracy %g:\n", 
         integ.getMethodName(), integ.getAccuracyInUse());
@@ -793,6 +854,8 @@ void GazeboModel::readModel(Xml::Element modelElt) {
         GazeboLinkInfo linfo(elt.getRequiredAttributeValue("name"));
         linfo.mustBeBaseLink = elt.getOptionalElementValueAs<bool>
                                                 ("must_be_base_link", false);
+        linfo.selfCollide = elt.getOptionalElementValueAs<bool>
+                                                ("self_collide", false);
         linfo.element = elt;
         linfo.defX_ML = getPose(elt); // default link pose in Model frame
         linfo.massProps = getMassProperties(elt);
