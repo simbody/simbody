@@ -23,7 +23,8 @@
 
 /* This example reads input in the form of a Gazebo ".sdf" file and generates
 a roughly-equivalent Simbody model. Gazebo is a robot simulator from the Open 
-Source Robotics Foundation (http://osrfoundation.org).
+Source Robotics Foundation (http://osrfoundation.org). This is not intended to
+be comprehensive -- it is just a proof of concept.
 
 We will construct the Simbody model here and maintain a mapping between the
 Gazebo objects and the Simbody implementation of them to demonstrate how this
@@ -116,8 +117,7 @@ An alternative is used if you tell MultibodyGraphMaker that there is a good
 constraint that can be used directly to replace a loop joint. Since Simbody's
 Ball constraint (-3 dofs) is mostly indistinguishable from a Ball mobilizer
 (+3 dofs), we'll substitute a Ball constraint when breaking a loop at a
-ball joint.
-*/
+ball joint, resulting in a smaller system overall. */
 #include "Simbody.h"
 
 #include <utility>
@@ -129,29 +129,6 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
-// Auxiliary functions for convenient reading of data from the Gazebo XML file
-// and translating into Simbody terms. (Implemented at the end of this file.)
-
-// Convert the given pose in x,y,z,thetax,thetay,thetaz format to a Simbody
-// Transform. The rotation angles are interpreted as a body-fixed sequence,
-// meaning we rotation about x, then about the new y, then about the now twice-
-// rotated z.
-static Transform pose2Transform(const Vec6& pose);
-
-// Convert a Simbody transform to a pose in x,y,z,thetax,thetay,thetaz format.
-static Vec6 transform2Pose(const Transform& X_AB);
-
-// If the given element contains a <pose> element, return it as a Transform.
-// Otherwise return the identity Transform. If there is more than one <pose>
-// element, only the first one is processed.
-static Transform getPose(Xml::Element element);
-
-// Look for an <inertial> element within the given element (which is probably
-// a link but we don't care). If found, parse and transform to link (body)
-// frame. Otherwise return unit mass and inertia. Result is returned as a
-// Simbody MassProperties element containing mass, center of mass location,
-// and unit inertia about body origin.
-static MassProperties getMassProperties(Xml::Element link);
 
 
 //==============================================================================
@@ -344,8 +321,23 @@ public:
 // Hacks for sherm's testing.
 
 #define ANIMATE             // turn this off for timing tests
-#define ADD_JOINT_SPRINGS   // makes all the joints stiff
+#define ADD_JOINT_SPRINGS   // makes all the revolute & prismatic joints stiff
 //#define RAGDOLL2_ICS      // set initial conditions for ragdoll2 model
+
+
+static void createMultibodyGraph(GazeboModel&           model,
+                                 MultibodyGraphMaker&   mbgraph);
+
+static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
+                               const Vec3&                gravity,
+                               GazeboModel&               model,
+                               MultibodySystem&           mbs,
+                               SimbodyMatterSubsystem&    matter,
+                               GeneralForceSubsystem&     forces,
+                               CompliantContactSubsystem& contact);
+
+static void runSimulation(const MultibodySystem&    mbs,
+                          const GazeboModel&        model);
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {
@@ -355,6 +347,9 @@ int main(int argc, const char* argv[]) {
     const std::string sdfFileName = argv[1];
 
     try {
+    //---------------------------- OPEN INPUT FILE -----------------------------
+    // Attempt to identify this as a Gazebo input file, find the World
+    // to get gravity and locate the Models.
     std::cout << "Working directory: " 
               << Pathname::getCurrentWorkingDirectory() << std::endl;
     std::cout << "Reading file: " << sdfFileName << std::endl;
@@ -365,7 +360,7 @@ int main(int argc, const char* argv[]) {
            ("Expected to see document tag <sdf> or <gazebo> but saw <"
             + sdf.getRootTag() + "> instead.");
 
-    // This is a Gazebo sdf document.
+    // This is a Gazebo document.
     Xml::Element root = sdf.getRootElement();
     cout << "sdf version=" 
          << root.getOptionalAttributeValue("version", "unspecified") << endl;
@@ -384,53 +379,17 @@ int main(int argc, const char* argv[]) {
         return 0;
     }
 
+    //------------------------- READ IN GAZEBO MODEL ---------------------------
     GazeboModel model;
     model.readModel(models[0]); // TODO: ignore other models for now
 
-
     //----------------------- GENERATE MULTIBODY GRAPH -------------------------
     MultibodyGraphMaker mbgraph;
-    try {
-        // Step 1: Tell MultibodyGraphMaker about joints it should know about.
-        // Note: "weld" and "free" are always predefined at 0 and 6 dofs, resp.
-        //                  Gazebo name  #dofs     Simbody equivalent
-        mbgraph.addJointType("revolute",  1);   // Pin
-        mbgraph.addJointType("revolute2", 2);   // ?
-        mbgraph.addJointType("prismatic", 1);   // Slider
-        mbgraph.addJointType("universal", 2);   // Universal
-        mbgraph.addJointType("piston",    2);   // Cylinder
-        // Simbody has a Ball constraint that is a good choice if you need to
-        // break a loop at a ball joint.
-        mbgraph.addJointType("ball", 3, true);  // Ball
-
-        // Step 2: Tell it about all the links we read from the input file, 
-        // starting with world, and provide a reference pointer.
-        for (int lx=0; lx < model.links.size(); ++lx) {
-            GazeboLinkInfo& link = model.links.updLink(lx);
-            mbgraph.addBody(link.name, link.massProps.getMass(), 
-                            link.mustBeBaseLink, &link);
-        }
-
-        // Step 3: Tell it about all the joints we read from the input file,
-        // and provide a reference pointer.
-        for (int jx=0; jx < model.joints.size(); ++jx) {
-            GazeboJointInfo& joint = model.joints.updJoint(jx);
-            mbgraph.addJoint(joint.name, joint.type, joint.parent, joint.child, 
-                             joint.mustBreakLoopHere, &joint);
-        }
-
-        // Setp 4. Generate the multibody graph.
-        mbgraph.generateGraph();
-    } catch (const std::exception& e) {
-        cout << "FAILED TO GENERATE MULTIBODY GRAPH: " << e.what() << endl;
-        exit(1);
-    }
-
+    createMultibodyGraph(model, mbgraph);
     // Optional: dump the graph to stdout for debugging or curiosity.
     mbgraph.dumpGraph(std::cout);
-    //--------------------------------------------------------------------------
 
-
+    //------------------------ CREATE SIMBODY SYSTEM ---------------------------
     // Create a Simbody System and populate it with Subsystems we'll need.
     MultibodySystem mbs; 
     SimbodyMatterSubsystem matter(mbs);
@@ -438,6 +397,147 @@ int main(int argc, const char* argv[]) {
     ContactTrackerSubsystem tracker(mbs);
     CompliantContactSubsystem contact(mbs, tracker);
 
+    buildSimbodySystem(mbgraph, gravity, model, 
+                       mbs, matter, forces, contact);
+
+    //--------------------------- RUN A SIMULATION -----------------------------
+    // The Simbody System has been built successfully. Now lets run it for
+    // a while to see what it looks like.
+    runSimulation(mbs, model);
+
+    } catch (const std::exception& e) {
+        cout << "EXCEPTION: " << e.what() << "\n";
+        return 1;
+    }
+
+    printf("DONE.\n");
+    return 0;
+}
+
+
+//==============================================================================
+//                           CREATE MULTIBODY GRAPH
+//==============================================================================
+// Define Gazebo joint types, then use links and joints in the given model
+// to construct a reasonable spanning-tree-plus-constraints multibody graph
+// to represent that model. An exception will be thrown if this fails.
+// Note that this step is not Simbody dependent.
+static void createMultibodyGraph(GazeboModel&           model,
+                                 MultibodyGraphMaker&   mbgraph) {
+    // Step 1: Tell MultibodyGraphMaker about joints it should know about.
+    // Note: "weld" and "free" are always predefined at 0 and 6 dofs, resp.
+    //                  Gazebo name  #dofs     Simbody equivalent
+    mbgraph.addJointType("revolute",  1);   // Pin
+    mbgraph.addJointType("revolute2", 2);   // ?
+    mbgraph.addJointType("prismatic", 1);   // Slider
+    mbgraph.addJointType("universal", 2);   // Universal
+    mbgraph.addJointType("piston",    2);   // Cylinder
+    // Simbody has a Ball constraint that is a good choice if you need to
+    // break a loop at a ball joint.
+    mbgraph.addJointType("ball", 3, true);  // Ball
+
+    // Step 2: Tell it about all the links we read from the input file, 
+    // starting with world, and provide a reference pointer.
+    for (int lx=0; lx < model.links.size(); ++lx) {
+        GazeboLinkInfo& link = model.links.updLink(lx);
+        mbgraph.addBody(link.name, link.massProps.getMass(), 
+                        link.mustBeBaseLink, &link);
+    }
+
+    // Step 3: Tell it about all the joints we read from the input file,
+    // and provide a reference pointer.
+    for (int jx=0; jx < model.joints.size(); ++jx) {
+        GazeboJointInfo& joint = model.joints.updJoint(jx);
+        mbgraph.addJoint(joint.name, joint.type, joint.parent, joint.child, 
+                            joint.mustBreakLoopHere, &joint);
+    }
+
+    // Setp 4. Generate the multibody graph.
+    mbgraph.generateGraph();
+}
+
+
+
+//==============================================================================
+//                    AUXILIARY FUNCTIONS FOR XML READING
+//==============================================================================
+
+// Convert the given pose in x,y,z,thetax,thetay,thetaz format to a Simbody
+// Transform. The rotation angles are interpreted as a body-fixed sequence,
+// meaning we rotation about x, then about the new y, then about the now twice-
+// rotated z.
+static Transform pose2Transform(const Vec6& pose) {
+    Transform frame(Rotation(SimTK::BodyRotationSequence,
+                             pose[3], XAxis, pose[4], YAxis, pose[5], ZAxis),
+                    pose.getSubVec<3>(0)); 
+    return frame;
+}
+
+// Convert a Simbody transform to a pose in x,y,z,thetax,thetay,thetaz format.
+static Vec6 transform2Pose(const Transform& X_AB) {
+    Vec6 pose;
+    pose.updSubVec<3>(0) = X_AB.p(); // position vector
+    pose.updSubVec<3>(3) = X_AB.R().convertRotationToBodyFixedXYZ();
+    return pose;
+}
+
+// If the given element contains a <pose> element, return it as a Transform.
+// Otherwise return the identity Transform. If there is more than one <pose>
+// element, only the first one is processed.
+static Transform getPose(Xml::Element element) {
+    const Vec6 pose = element.getOptionalElementValueAs<Vec6>("pose",Vec6(0));
+    return pose2Transform(pose);
+}
+
+// Look for an <inertial> element within the given element (which is probably
+// a link but we don't care). If found, parse and transform to link (body)
+// frame. Otherwise return unit mass and inertia. Result is returned as a
+// Simbody MassProperties element containing mass, center of mass location,
+// and unit inertia about body origin.
+static MassProperties getMassProperties(Xml::Element link) {
+    Xml::Element inertial = link.getOptionalElement("inertial");
+    if (!inertial.isValid())
+        return MassProperties(1,Vec3(0),UnitInertia(1,1,1));
+    const Real mass = inertial.getOptionalElementValueAs<Real>("mass", 1.);
+    Transform X_LI = getPose(inertial); // identity if not provided
+    const Vec3 com_L = X_LI.p(); // vector from Lo to com, exp. in L
+    Xml::Element inertia = inertial.getOptionalElement("inertia");
+    if (mass==0 || !inertia.isValid())
+        return MassProperties(mass,com_L,UnitInertia(1,1,1));
+    // Get mass-weighted central inertia, expressed in I frame.
+    Inertia Ic_I(inertia.getOptionalElementValueAs<Real>("ixx", 1.),
+                 inertia.getOptionalElementValueAs<Real>("iyy", 1.),
+                 inertia.getOptionalElementValueAs<Real>("izz", 1.),
+                 inertia.getOptionalElementValueAs<Real>("ixy", 0.),
+                 inertia.getOptionalElementValueAs<Real>("ixz", 0.),
+                 inertia.getOptionalElementValueAs<Real>("iyz", 0.));
+    // Re-express the central inertia from the I frame to the L frame.
+    Inertia Ic_L = Ic_I.reexpress(~X_LI.R()); // Ic_L=R_LI*Ic_I*R_IL
+    // Shift to L frame origin.
+    Inertia Io_L = Ic_L.shiftFromMassCenter(-com_L, mass);
+    return MassProperties(mass, com_L, Io_L); // converts to unit inertia
+}
+
+
+//==============================================================================
+//                            BUILD SIMBODY SYSTEM
+//==============================================================================
+// Given a desired multibody graph, gravity, and the Gazebo model that was
+// used to generate the graph, create a Simbody System for it. There are many
+// limitations here, especially in the handling of contact. Any Gazebo features
+// that we haven't modeled are just ignored.
+// The GazeboModel is updated so that its links and joints have references to
+// their corresponding Simbyody elements.
+// We set up some visualization here so we can see what's happening but this
+// would not be needed in Gazebo since it does its own visualization.
+static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
+                               const Vec3&                gravity,
+                               GazeboModel&               model,
+                               MultibodySystem&           mbs,
+                               SimbodyMatterSubsystem&    matter,
+                               GeneralForceSubsystem&     forces,
+                               CompliantContactSubsystem& contact) 
+{
     // Tweak visualization to get Z up and to prevent Simbody from generating
     // its own sketchy visuals.
     mbs.setUpDirection(ZAxis);
@@ -459,7 +559,6 @@ int main(int argc, const char* argv[]) {
     // Half space normal is -x; must rotate about y to make it +z.
     matter.Ground().updBody().addContactSurface(Rotation(Pi/2,YAxis),
        ContactSurface(ContactGeometry::HalfSpace(), material));
-
 
     // Draw world frame and model frame.
     matter.Ground().addBodyDecoration(Vec3(0), 
@@ -535,8 +634,9 @@ int main(int argc, const char* argv[]) {
                 mobod = freeJoint;
             } else if (type == "revolute") {
                 Xml::Element axisElt = gzJoint.element.getRequiredElement("axis");
-                UnitVec3 axis = UnitVec3(axisElt.getRequiredElementValueAs<Vec3>("xyz")); 
-                Rotation R_JZ(axis, ZAxis);
+                UnitVec3 axis = 
+                    UnitVec3(axisElt.getRequiredElementValueAs<Vec3>("xyz")); 
+                Rotation R_JZ(axis, ZAxis); // Simbody's pin is along Z
                 Transform X_IF(X_IF0.R()*R_JZ, X_IF0.p());
                 Transform X_OM(X_OM0.R()*R_JZ, X_OM0.p());
                 MobilizedBody::Pin pinJoint(
@@ -544,6 +644,24 @@ int main(int argc, const char* argv[]) {
                     massProps,              X_OM, 
                     direction);
                 mobod = pinJoint;
+
+                #ifdef ADD_JOINT_SPRINGS
+                // KLUDGE add spring (stiffness proportional to mass)
+                Force::MobilityLinearSpring(forces,mobod,0,
+                                            30*massProps.getMass(),0);
+                #endif
+            } else if (type == "prismatic") {
+                Xml::Element axisElt = gzJoint.element.getRequiredElement("axis");
+                UnitVec3 axis = 
+                    UnitVec3(axisElt.getRequiredElementValueAs<Vec3>("xyz")); 
+                Rotation R_JX(axis, XAxis); // Simbody's slider is along X
+                Transform X_IF(X_IF0.R()*R_JX, X_IF0.p());
+                Transform X_OM(X_OM0.R()*R_JX, X_OM0.p());
+                MobilizedBody::Slider sliderJoint(
+                    gzInb.masterMobod,      X_IF,
+                    massProps,              X_OM, 
+                    direction);
+                mobod = sliderJoint;
 
                 #ifdef ADD_JOINT_SPRINGS
                 // KLUDGE add spring (stiffness proportional to mass)
@@ -705,10 +823,15 @@ int main(int argc, const char* argv[]) {
             throw std::runtime_error(
                 "Unrecognized loop constraint type '" + joint.type + "'.");
     }
+}
 
-    // The Simbody System has been built successfully. Now lets run it for
-    // a while to see what it looks like.
 
+//==============================================================================
+//                            RUN SIMULATION
+//==============================================================================
+// Run a simulation and extract some data from it to show how that can be done.
+static void runSimulation(const MultibodySystem&    mbs,
+                          const GazeboModel&        model) {
     // Create a Visualizer so we can see what's what.
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
@@ -817,22 +940,16 @@ int main(int argc, const char* argv[]) {
 
     printf("Used Integrator %s at accuracy %g:\n", 
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), 
+        integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
-
-    } catch (const std::exception& e) {
-        cout << "EXCEPTION: " << e.what() << "\n";
-        cout << "Working directory: " << Pathname::getCurrentWorkingDirectory() 
-             << endl;
-    }
-
-    printf("DONE.\n");
-    return 0;
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+        integ.getNumProjections());
 }
 
+
 //==============================================================================
-//                    IMPLEMENTATIONS OF ABOVE CLASSES
+//                    IMPLEMENTATIONS OF GAZEBO CLASSES
 //==============================================================================
 
 int GazeboLinks::addLink(const GazeboLinkInfo& info) {
@@ -948,64 +1065,4 @@ void GazeboModel::readModel(Xml::Element modelElt) {
     }
 }
 
-
-//==============================================================================
-//                    AUXILIARY FUNCTIONS FOR XML READING
-//==============================================================================
-
-// Convert the given pose in x,y,z,thetax,thetay,thetaz format to a Simbody
-// Transform. The rotation angles are interpreted as a body-fixed sequence,
-// meaning we rotation about x, then about the new y, then about the now twice-
-// rotated z.
-static Transform pose2Transform(const Vec6& pose) {
-    Transform frame(Rotation(SimTK::BodyRotationSequence,
-                             pose[3], XAxis, pose[4], YAxis, pose[5], ZAxis),
-                    pose.getSubVec<3>(0)); 
-    return frame;
-}
-
-// Convert a Simbody transform to a pose in x,y,z,thetax,thetay,thetaz format.
-static Vec6 transform2Pose(const Transform& X_AB) {
-    Vec6 pose;
-    pose.updSubVec<3>(0) = X_AB.p(); // position vector
-    pose.updSubVec<3>(3) = X_AB.R().convertRotationToBodyFixedXYZ();
-    return pose;
-}
-
-// If the given element contains a <pose> element, return it as a Transform.
-// Otherwise return the identity Transform. If there is more than one <pose>
-// element, only the first one is processed.
-static Transform getPose(Xml::Element element) {
-    const Vec6 pose = element.getOptionalElementValueAs<Vec6>("pose",Vec6(0));
-    return pose2Transform(pose);
-}
-
-// Look for an <inertial> element within the given element (which is probably
-// a link but we don't care). If found, parse and transform to link (body)
-// frame. Otherwise return unit mass and inertia. Result is returned as a
-// Simbody MassProperties element containing mass, center of mass location,
-// and unit inertia about body origin.
-static MassProperties getMassProperties(Xml::Element link) {
-    Xml::Element inertial = link.getOptionalElement("inertial");
-    if (!inertial.isValid())
-        return MassProperties(1,Vec3(0),UnitInertia(1,1,1));
-    const Real mass = inertial.getOptionalElementValueAs<Real>("mass", 1.);
-    Transform X_LI = getPose(inertial); // identity if not provided
-    const Vec3 com_L = X_LI.p(); // vector from Lo to com, exp. in L
-    Xml::Element inertia = inertial.getOptionalElement("inertia");
-    if (mass==0 || !inertia.isValid())
-        return MassProperties(mass,com_L,UnitInertia(1,1,1));
-    // Get mass-weighted central inertia, expressed in I frame.
-    Inertia Ic_I(inertia.getOptionalElementValueAs<Real>("ixx", 1.),
-                 inertia.getOptionalElementValueAs<Real>("iyy", 1.),
-                 inertia.getOptionalElementValueAs<Real>("izz", 1.),
-                 inertia.getOptionalElementValueAs<Real>("ixy", 0.),
-                 inertia.getOptionalElementValueAs<Real>("ixz", 0.),
-                 inertia.getOptionalElementValueAs<Real>("iyz", 0.));
-    // Re-express the central inertia from the I frame to the L frame.
-    Inertia Ic_L = Ic_I.reexpress(~X_LI.R()); // Ic_L=R_LI*Ic_I*R_IL
-    // Shift to L frame origin.
-    Inertia Io_L = Ic_L.shiftFromMassCenter(-com_L, mass);
-    return MassProperties(mass, com_L, Io_L); // converts to unit inertia
-}
 
