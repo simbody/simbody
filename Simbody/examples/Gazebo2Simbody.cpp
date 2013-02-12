@@ -445,17 +445,17 @@ int main(int argc, const char* argv[]) {
     mbs.setUpDirection(ZAxis);
     matter.setShowDefaultGeometry(false);
     // Set stiction max slip velocity to make it less stiff.
-    contact.setTransitionVelocity(.1);
+    contact.setTransitionVelocity(0.1);
 
     // Specify gravity (read in above from world).
     Force::UniformGravity(forces, matter, gravity);
 
     // Define a material to use for contact. This is not very stiff.
     ContactMaterial material(1e6,   // stiffness
-                             0.2,   // dissipation
+                             0.1,  // dissipation
                              0.7,   // mu_static
                              0.5,   // mu_dynamic
-                             1);    // mu_viscous
+                             0.5);  // mu_viscous
 
     // Add a contact surface to represent the ground.
     // Half space normal is -x; must rotate about y to make it +z.
@@ -547,7 +547,7 @@ int main(int argc, const char* argv[]) {
                 #ifdef ADD_JOINT_SPRINGS
                 // KLUDGE add spring (stiffness proportional to mass)
                 Force::MobilityLinearSpring(forces,mobod,0,
-                                            20*massProps.getMass(),0);
+                                            30*massProps.getMass(),0);
                 #endif
             } else if (type == "ball") {
                 MobilizedBody::Ball ballJoint(
@@ -750,14 +750,14 @@ int main(int argc, const char* argv[]) {
     const Real Accuracy = 0.10; // 10%
     //const Real Accuracy = 0.20; // 20%
 
+    // Use a low order integrator if you force the max step size to be small.
     //const Real MaxStepSize = .001;
-    const Real MaxStepSize = Infinity;
-    //ExplicitEulerIntegrator integ(mbs);
     //RungeKutta2Integrator integ(mbs);
+    const Real MaxStepSize = Infinity;
     RungeKutta3Integrator integ(mbs);
-    //VerletIntegrator integ(mbs);
-    //CPodesIntegrator integ(mbs);
-    //RungeKuttaMersonIntegrator integ(mbs);
+    //RungeKuttaMersonIntegrator integ(mbs);    // 4th order
+    //CPodesIntegrator integ(mbs); // implicit integrator
+
     integ.setAccuracy(Accuracy);
     integ.setConstraintTolerance(std::min(1e-3, Accuracy/10)); 
 
@@ -772,9 +772,34 @@ int main(int argc, const char* argv[]) {
             integ.stepTo(nextReport, integ.getTime()+MaxStepSize);
         } while (integ.getTime() < nextReport);
 
-        #ifdef ANIMATE
-            viz.report(integ.getState());
+        const State& state = integ.getState();
+        const Real t = state.getTime();
+
+        #ifdef ANIMATE // suppress for more accurate CPU time measurement
+        viz.report(state);
         #endif
+
+        // Show body origin locations and joint angles and rates at integer 
+        // times to demo data extraction.
+        if (std::abs(std::floor(t+ReportTime/2)-t) > ReportTime/2) 
+            continue;
+
+        printf("\nLINKS t=%g\n", t);
+        for (int i=0; i < model.links.size(); ++i) {
+            const GazeboLinkInfo& link = model.links.getLink(i);
+            const Vec3& loc = link.masterMobod.getBodyOriginLocation(state);
+            printf("%20s %10.3g %10.3g %10.3g\n", 
+                link.name.c_str(), loc[0], loc[1], loc[2]); 
+        }
+        printf("\nJOINTS t=%g\n", t);
+        for (int i=0; i < model.joints.size(); ++i) {
+            const GazeboJointInfo& joint = model.joints.getJoint(i);
+            const Real q0 = joint.mobod.getOneQ(state, 0);
+            const Real u0 = joint.mobod.getOneU(state, 0);
+            printf("%20s %10.3g %10.3g\n", 
+                joint.name.c_str(), q0, u0); 
+        }
+
     }
     viz.report(integ.getState()); // show final state
 
