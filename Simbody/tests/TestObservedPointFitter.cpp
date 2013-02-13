@@ -35,7 +35,7 @@ using namespace std;
 static const int NUM_BODIES = 10;
 static const Real BOND_LENGTH = 0.5;
 static const int ITERATIONS = 4;
-static const Real TOL = /*1e-4*/ 1e-3;
+static const Real TOL = 1e-4;
 
 bool testFitting
    (const MultibodySystem& mbs, State& state, 
@@ -173,7 +173,7 @@ static void testObservedPointFitter(bool useConstraint) {
 
         // Now add random noise to the target locations, and see if it can still fit decently.
 
-        Random::Gaussian gaussian(0.0, 0.2);
+        Random::Gaussian gaussian(0.0, 0.15);
         for (int i = 0; i < (int) targetLocations.size(); ++i) {
             for (int j = 0; j < (int) targetLocations[i].size(); ++j) {
                 targetLocations[i][j] += Vec3(gaussian.getValue(), gaussian.getValue(), gaussian.getValue());
