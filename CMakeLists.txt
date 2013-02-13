@@ -23,7 +23,7 @@ SET(SIMBODY_MAJOR_VERSION 3)
 SET(SIMBODY_MINOR_VERSION 1)
 SET(SIMBODY_PATCH_VERSION 0)
 
-SET(SIMBODY_COPYRIGHT_YEARS "2005-11")
+SET(SIMBODY_COPYRIGHT_YEARS "2005-13")
 
 # underbar separated list of dotted authors, no spaces or commas
 SET(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
@@ -172,9 +172,16 @@ SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
 # it is a sandbox installation area, otherwise we want to install
 # in /usr/local/simbody or %ProgramFiles%\Simbody. 
 #
-SET(LIB64) # suffix will be set only for 64 bit gcc builds
-IF(${CMAKE_C_COMPILER} MATCHES "gcc") # Linux, Mac, Cygwin
 
+# As of Ubuntu 12, 64 bit libraries are in lib, not lib64, so we are 
+# not setting this on any platform now. If you are building on an
+# older system you might have to set it manually.
+SET(LIB64)
+
+# C compiler is gcc on Linux, gcc or cc on Mac where command line tools
+# are installed from XCode. May be clang in Mac 10.8 or later.
+
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
     IF(NOT SimTK_INSTALL_PREFIX)
         SET(SimTK_INSTALL_PREFIX "/usr/local/simbody" 
             CACHE PATH "Install directory")
@@ -207,7 +214,7 @@ ELSE() # Windows
             CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
-ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+ENDIF()
 
 # CMake installs go into CMAKE_INSTALL_PREFIX, which is always
 # set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
@@ -217,17 +224,14 @@ SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING
 # User should set SimTK_INSTALL_PREFIX, so suppress cmake's
 mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
-# On Mac, build universal binaries that work on OS X 10.5 (Leopard) or later.
-# TODO: we had problems using the OSX lapack for the 64-bit (x86_64) 
-# architecture so we're only building the 32-bit (i386) architecture by
-# default for now.
+# On Mac, we'll use the defaults for the architecture and deployment target.
+# This works OK on OSX 10.8. For older systems, or if you want to build for
+# an older deployment target, or 32 bit or univeral binaries, you may have 
+# to set CMAKE_OSX_ARCHIECTURES and/or CMAKE_OSX_DEPLOYMENT_TARGET. 
+# Architectures are "i386", "x86_64", or "i386;x86_64" for universal.
+# Deployment targets are "10.6" or whatever.
 IF(APPLE)
-    IF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-	#SET(CMAKE_OSX_ARCHITECTURES "i386;x86_64" CACHE STRING "The processor architectures to build for" FORCE)
-        SET(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "The processor architectures to build for" FORCE)
-        SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.5" CACHE STRING "The minimum version of OS X to support" FORCE)
-    ENDIF(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-    SET(LIB64 )
+    SET(LIB64 ) # never use lib64 on Mac
 ENDIF(APPLE)
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
@@ -236,7 +240,7 @@ ENDIF (UNIX AND NOT CMAKE_BUILD_TYPE)
 
 ## Choose the maximum level of x86 instruction set that the compiler is 
 ## allowed to use. SSE2 is ubiquitous enough now that we don't mind
-## abandoning machines that can't handle those instructions. SSE3 migh
+## abandoning machines that can't handle those instructions. SSE3 might
 ## also be reasonable by now (April 2009) so this default should be
 ## revisited soon. This can be set to a different value by the person
 ## running CMake.
@@ -249,7 +253,7 @@ MARK_AS_ADVANCED( BUILD_INST_SET )
 ## Release flags, overriding CMake's defaults.
 ## Watch out for optimizer bugs in particular gcc versions!
 
-IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
     string(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
 
     # Get the gcc version number in major.minor.build format
@@ -314,12 +318,14 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     SET(CMAKE_C_FLAGS_MINSIZEREL ${BUILD_C_FLAGS_MINSIZEREL}
         CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
 
-ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+ENDIF()
 
-## When building in any of the Release modes, tell VC++ cl compiler to use intrinsics 
-## (i.e. sqrt instruction rather than sqrt subroutine) with flag /Oi.
+## When building in any of the Release modes, tell VC++ cl compiler to use 
+## intrinsics (i.e. sqrt instruction rather than sqrt subroutine) with 
+## flag /Oi.
 
-IF(${CMAKE_C_COMPILER} MATCHES "cl")
+## Careful -- "cl" would match "clang" also. Only check on Windows.
+IF(WIN32 AND ${CMAKE_C_COMPILER} MATCHES "cl")
     STRING(TOUPPER ${BUILD_INST_SET} CL_INST_SET)
 
     ## C++
@@ -370,7 +376,7 @@ IF(${CMAKE_C_COMPILER} MATCHES "cl")
     SET(CMAKE_C_FLAGS_MINSIZEREL "/MP ${BUILD_C_FLAGS_MINSIZEREL}"
         CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
 
-ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
+ENDIF()
 
 MARK_AS_ADVANCED(
     BUILD_CXX_FLAGS_DEBUG
@@ -462,7 +468,7 @@ IF(BUILD_USING_OTHER_LAPACK)
 "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
 ENDIF(BUILD_USING_OTHER_LAPACK)
 
-IF(${CMAKE_C_COMPILER} MATCHES "g?cc")
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
     IF(APPLE)
 	    SET(REALTIME_LIB)
     ELSE()
@@ -470,11 +476,11 @@ IF(${CMAKE_C_COMPILER} MATCHES "g?cc")
     ENDIF()
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl)
     SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl)
-ELSE(${CMAKE_C_COMPILER} MATCHES "g?cc")
+ELSE()
     ## Assume Microsoft Visual Studio
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthreadVC2)
     SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthreadVC2)
-ENDIF(${CMAKE_C_COMPILER} MATCHES "g?cc")
+ENDIF()
 
 #
 # Allow automated build and dashboard.
