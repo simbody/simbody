@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "IntegratorTestFramework.h"
-#include "simmath/RungeKutta3Integrator.h"
+#include "simmath/RungeKutta2Integrator.h"
 
 int main () {
   try {
@@ -47,7 +47,7 @@ int main () {
         
         // Test the integrator in both normal and single step modes.
         
-        RungeKutta3Integrator integ(sys);
+        RungeKutta2Integrator integ(sys);
         testIntegrator(integ, sys);
         integ.setReturnEveryInternalStep(true);
         testIntegrator(integ, sys);

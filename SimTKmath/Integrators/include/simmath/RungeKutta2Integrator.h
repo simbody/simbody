@@ -1,3 +1,6 @@
+#ifndef SimTK_SIMMATH_RUNGE_KUTTA_2_INTEGRATOR_H_
+#define SimTK_SIMMATH_RUNGE_KUTTA_2_INTEGRATOR_H_
+
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
  * -------------------------------------------------------------------------- *
@@ -6,8 +9,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
- * Authors: Michael Sherman, Peter Eastman                                    *
+ * Portions copyright (c) 2013 Stanford University and the Authors.           *
+ * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
@@ -21,42 +24,27 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "IntegratorTestFramework.h"
-#include "simmath/RungeKutta3Integrator.h"
+#include "SimTKcommon.h"
+#include "simmath/internal/common.h"
+#include "simmath/Integrator.h"
 
-int main () {
-  try {
-    PendulumSystem sys;
-    sys.addEventHandler(new ZeroVelocityHandler(sys));
-    sys.addEventHandler(PeriodicHandler::handler = new PeriodicHandler());
-    sys.addEventHandler(new ZeroPositionHandler(sys));
-    sys.addEventReporter(PeriodicReporter::reporter = new PeriodicReporter(sys));
-    sys.addEventReporter(new OnceOnlyEventReporter());
-    sys.addEventReporter(new DiscontinuousReporter());
-    sys.realizeTopology();
+namespace SimTK {
+class RungeKutta2IntegratorRep;
 
-    // Test with various intervals for the event handler and event reporter, 
-    // ones that are either large or small compared to the expected internal 
-    // step size of the integrator.
+/**
+ * This is a 2nd order Runge-Kutta Integrator using coefficients that are
+ * also known as the explicit trapezoid rule. It is an error controlled, 
+ * second order, two stage explicit integrator with an embedded 1st order 
+ * error estimate.
+ */
+class SimTK_SIMMATH_EXPORT RungeKutta2Integrator : public Integrator {
+public:
+    explicit RungeKutta2Integrator(const System& sys);
+    ~RungeKutta2Integrator();
+};
 
-    for (int i = 0; i < 4; ++i) {
-        PeriodicHandler::handler->setEventInterval
-           (i == 0 || i == 1 ? 0.01 : 2.0);
-        PeriodicReporter::reporter->setEventInterval
-           (i == 0 || i == 2 ? 0.015 : 1.5);
-        
-        // Test the integrator in both normal and single step modes.
-        
-        RungeKutta3Integrator integ(sys);
-        testIntegrator(integ, sys);
-        integ.setReturnEveryInternalStep(true);
-        testIntegrator(integ, sys);
-    }
-    cout << "Done" << endl;
-    return 0;
-  }
-  catch (std::exception& e) {
-    std::printf("FAILED: %s\n", e.what());
-    return 1;
-  }
-}
+} // namespace SimTK
+
+#endif // SimTK_SIMMATH_RUNGE_KUTTA_2_INTEGRATOR_H_
+
+

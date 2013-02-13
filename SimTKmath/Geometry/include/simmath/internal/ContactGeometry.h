@@ -61,7 +61,7 @@ expressed in the surface's local frame).
 A variety of operators are implemented by each specific surface type. Some of
 these are designed to support efficient implementation of higher-level 
 algorithms that deal in pairs of interacting objects, such as broad- and
-narrow-phase contact and minimimum-distance calculations.
+narrow-phase contact and minimum-distance calculations.
 
 The idea here is to collect all the important knowledge about a particular
 kind of geometric shape in one place, adding operators as needed to support
@@ -250,10 +250,10 @@ form a right-handed coordinate frame.
 
 Cost: given a point P, normalized normal nn, unnormalized u,v tangents and 
 second derivatives <pre>
-    curvatures: ~115
-    directions:  ~50
+    curvatures: ~115 flops
+    directions:  ~50 flops
                 ----
-                ~165
+                ~165 flops
 </pre>  **/
 static Vec2 evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
                                     const Vec3& dPdu, const Vec3& dPdv,
