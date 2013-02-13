@@ -129,7 +129,8 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
-
+// Skip down to main() first -- these are just some helper classes to keep
+// track of the Gazebo model and connect it to its Simbody implementation.
 
 //==============================================================================
 //                            GAZEBO LINK INFO
@@ -527,7 +528,7 @@ static MassProperties getMassProperties(Xml::Element link) {
 // limitations here, especially in the handling of contact. Any Gazebo features
 // that we haven't modeled are just ignored.
 // The GazeboModel is updated so that its links and joints have references to
-// their corresponding Simbyody elements.
+// their corresponding Simbody elements.
 // We set up some visualization here so we can see what's happening but this
 // would not be needed in Gazebo since it does its own visualization.
 static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
@@ -601,8 +602,6 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
             // There is no corresponding Gazebo joint for this mobilizer.
             // Create the joint and set its default position to be the default
             // pose of the base link relative to the Ground frame.
-            assert(mob.inboardBody == 0); // must be world
-            assert(!mob.isReversed);      // can't be reversed
             assert(type=="free"); // May add more types later
             if (type == "free") {
                 MobilizedBody::Free freeJoint(
@@ -614,22 +613,24 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
         } else {
             // This mobilizer does correspond to one of the input joints.
             GazeboJointInfo& gzJoint = *(GazeboJointInfo*)mob.getJointRef();
+            const bool isReversed = mob.isReversedFromJoint();
 
             // Find inboard and outboard frames for the mobilizer; these are
             // parent and child frames or the reverse.
-            const Transform& X_IF0 = mob.isReversed ? gzJoint.X_CB : gzJoint.X_PA;
-            const Transform& X_OM0 = mob.isReversed ? gzJoint.X_PA : gzJoint.X_CB;
+
+            const Transform& X_IF0 = isReversed ? gzJoint.X_CB : gzJoint.X_PA;
+            const Transform& X_OM0 = isReversed ? gzJoint.X_PA : gzJoint.X_CB;
 
             const MobilizedBody::Direction direction =
-                mob.isReversed ? MobilizedBody::Reverse : MobilizedBody::Forward;
+                isReversed ? MobilizedBody::Reverse : MobilizedBody::Forward;
 
             if (type == "free") {
                 MobilizedBody::Free freeJoint(
                     gzInb.masterMobod,  X_IF0,
                     massProps,          X_OM0, 
                     direction);
-                Transform defX_FM = mob.isReversed ? Transform(~gzJoint.defX_AB)
-                                                   : gzJoint.defX_AB;
+                Transform defX_FM = isReversed ? Transform(~gzJoint.defX_AB)
+                                               : gzJoint.defX_AB;
                 freeJoint.setDefaultTransform(defX_FM);
                 mobod = freeJoint;
             } else if (type == "revolute") {
@@ -673,7 +674,7 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     gzInb.masterMobod,  X_IF0,
                     massProps,          X_OM0, 
                     direction);
-                Rotation defR_FM = mob.isReversed 
+                Rotation defR_FM = isReversed 
                     ? Rotation(~gzJoint.defX_AB.R())
                     : gzJoint.defX_AB.R();
                 ballJoint.setDefaultRotation(defR_FM);
@@ -682,7 +683,7 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
 
             // Created a mobilizer that corresponds to gzJoint. Keep track.
             gzJoint.mobod = mobod;
-            gzJoint.isReversed = mob.isReversed;
+            gzJoint.isReversed = isReversed;
         }
 
         // Link gzOutb has been mobilized; keep track for later.

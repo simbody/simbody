@@ -182,7 +182,11 @@ public:
         respect to Ground, set this flag so that the algorithm will connect it
         to Ground by a free joint before attempting to build the rest of the
         tree. Alternatively, provide a joint that connects this body directly
-        to Ground, in which case you should \e not set this flag.  
+        to Ground, in which case you should \e not set this flag. 
+    @param[in]      userRef
+        This is a generic user reference pointer that is kept with the body
+        and can be used by the caller to map back to his or her own data 
+        structure containing body information.
     @returns The body number assigned to this body. **/
     int addBody(const std::string&  name, 
                 double              mass, 
@@ -216,7 +220,11 @@ public:
         a loop joint equivalent if one is available, or by splitting the child
         body into master and slave otherwise. In the latter case this joint 
         \e will be made into a mobilizer but a loop weld joint will be added
-        to attach the child slave body to its master.   
+        to attach the child slave body to its master.  
+    @param[in]      userRef
+        This is a generic user reference pointer that is kept with the joint
+        and can be used by the caller to map back to his or her own data 
+        structure containing joint information.
     @returns The joint number assigned to this joint. **/
     int addJoint(const std::string& name,
                  const std::string& type,
@@ -465,32 +473,68 @@ public:
         outboardBody(outboardBodyNum), isReversed(isReversed),
         mgm(graphMaker) {}
 
+    /** Return true if this mobilizer does not represent one of the input
+    joints, but is instead a joint we added connecting a base body to ground. 
+    If this returns true then there will be no user reference pointer returned
+    from getJointRef(). Also, the inboard body is always ground. When you 
+    create this mobilizer, the joint frames should be identity, that is, the
+    joint should connect the ground frame to the outboard body frame. **/
+    bool isAddedBaseMobilizer() const
+    {   return mgm->getJoint(joint).isAddedBaseJoint; }
+    /** Get the user reference pointer for the joint associated with this
+    mobilizer, if there is such a joint. If this mobilizer doesn't correspond
+    to one of the input joints then a null pointer is returned. **/
     void* getJointRef() const
     {   return mgm->getJoint(joint).userRef; } 
+    /** Get the user reference pointer for the inboard body of this mobilizer. 
+    The inboard body is always one of the input bodies so this will not be
+    returned null unless no reference pointer was supplied in the addBody()
+    call that defined this body. **/
     void* getInboardBodyRef() const
     {   return mgm->getBody(inboardBody).userRef; }   
+    /** Get the user reference pointer for the outboard body of this mobilizer. 
+    The outboard body may be one of the input bodies, but could also be a 
+    slave body, in which case a null pointer will be returned. You can use
+    getOutboardMasterBodyRef() instead to ensure that you will get a reference
+    to one of the input bodies. **/
     void* getOutboardBodyRef() const
     {   return mgm->getBody(outboardBody).userRef; }
+    /** Get the user reference pointer for the outboard body of this mobilizer,
+    if it is one of the input bodes, or to the master body for the outboard
+    body if the outboard body is a slave body. This ensures that you will get a 
+    reference to one of the input bodies. **/
     void* getOutboardMasterBodyRef() const
     {   return mgm->getBody(getOutboardMasterBodyNum()).userRef; }
-
+    /** Get the joint type name of the joint that this mobilizer represents. **/
     const std::string& getJointTypeName() const
     {   return mgm->getJointType(mgm->getJoint(joint).jointTypeNum).name; }
+    /** Get the reference pointer (if any) that was provided when this 
+    mobilizer's joint type was defined in an addJointType() call. **/
     void* getJointTypeRef() const
     {   return mgm->getJointType(mgm->getJoint(joint).jointTypeNum).userRef; }
-
+    /** Return true if the outboard body of this mobilizer is a slave we 
+    created in order to cut a loop, rather than one of the input bodies. **/
     bool isSlaveMobilizer() const
     {   return mgm->getBody(outboardBody).isSlave(); }
+    /** Return the number of fragments into which we chopped the outboard body
+    of this mobilizer. There is one fragment for the master body plus however
+    many slaves of that body were created. Thus you should divide the master
+    body's mass by this number to obtain the mass to be assigned to each of
+    the body fragments. **/
+    int getNumFragments() const 
+    {   return mgm->getBody(getOutboardMasterBodyNum()).getNumFragments(); }
+    /** Return true if this mobilizer represents one of the input joints but
+    the sense of inboard->outboard is reversed from the parent->child sense
+    defined in the input joint. In that case you should use a reverse joint
+    when you build the system. **/
+    bool isReversedFromJoint() const {return isReversed;}
+
+private:
+friend class MultibodyGraphMaker;
 
     int getOutboardMasterBodyNum() const
     {   const Body& outb = mgm->getBody(outboardBody);
         return outb.isSlave() ? outb.master : outboardBody; }
-
-    int getNumFragments() const 
-    {   return mgm->getBody(getOutboardMasterBodyNum()).getNumFragments(); }
-
-    bool isAddedBaseMobilizer() const
-    {   return mgm->getJoint(joint).isAddedBaseJoint; }
 
     int  joint;         ///< corresponding joint (not necessarily from the input)
     int  level;         ///< level of the outboard body; distance from ground
@@ -517,12 +561,25 @@ public:
         parentBody(parentBodyNum), childBody(childBodyNum), 
         mgm(graphMaker) {}
 
+    /** Get the user reference pointer for the joint associated with this
+    loop constraint. **/
     void* getJointRef() const
     {   return mgm->getJoint(joint).userRef; } 
+    /** Get the loop constraint type name of the constraint that should be
+    used here. **/
+    const std::string& getJointTypeName() const
+    {   return type; }
+    /** Get the user reference pointer for the parent body defined by the
+    joint associated with this loop constraint. **/
     void* getParentBodyRef() const
     {   return mgm->getBody(parentBody).userRef; }   
+    /** Get the user reference pointer for the child body defined by the
+    joint associated with this loop constraint. **/
     void* getChildBodyRef() const
     {   return mgm->getBody(childBody).userRef; }
+
+private:
+friend class MultibodyGraphMaker;
 
     std::string type;        // e.g., ball
     int         joint;       // always one of the input joints
