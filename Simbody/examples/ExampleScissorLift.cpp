@@ -31,14 +31,66 @@ using std::cout; using std::endl;
 // This is a planar mechanism. It is rather a worst case for an internal
 // coordinate multibody system since it has lots of tree degrees of freedom,
 // all but one of which is removed by constraints. Execution time will grow
-// as O(n^3) once the number of constraints is large enough so that factoring
+// as O(m^3) once the number of constraints m is large enough so that factoring
 // the constraint matrix dominates the execution time.
+//
+// You can instead use stiff springs instead of constraints to model the 
+// cross-connections. That results in considerable savings in per-evaluation
+// CPU time (I measured almost 10X at 10 levels), but it makes the system stiff 
+// and requires *much* smaller time steps.
 //
 // The mechanism is built to operate in the X-Y plane, with Y vertical and
 // X to the right. Joints are all pins in the Z direction.
 
 static const int NumLevels = 10;
 static const bool PrescribeRotor = true;
+static const bool UseSpringsInsteadOfConstraints = false;
+
+// This Force element holds a point on one body (the "follower") onto a plane 
+// on another via a spring that acts always along the plane normal.
+class DirectionalSpringDamper : public Force::Custom::Implementation {
+public:
+    DirectionalSpringDamper
+       (const MobilizedBody& plane, const UnitVec3& normal, Real h,
+        const MobilizedBody& follower, const Vec3& point,
+        Real k, Real c) // stiffness and damping
+    :   plane(plane), normal(normal), h(h), 
+        follower(follower), point(point), k(k), c(c)
+    {   assert(k >= 0 && c >= 0); }
+
+    virtual void calcForce(const State&         state, 
+                           Vector_<SpatialVec>& bodyForces, 
+                           Vector_<Vec3>&       particleForces, 
+                           Vector&              mobilityForces) const
+    {
+        const Vec3 p = follower.findStationLocationInAnotherBody
+                                                        (state, point, plane);
+        const Vec3 v = follower.findStationVelocityInAnotherBody
+                                                        (state, point, plane);
+        const Real x = dot(p,normal) - h; // height of point over plane
+        const Real s = dot(v,normal);     // speed along normal
+        const Vec3 forceOnPlane = plane.expressVectorInGroundFrame
+                                                    (state, k*x*normal + s*c);
+        // Apply equal and opposite forces at the same point in space.
+        plane.applyForceToBodyPoint(state, p, forceOnPlane, bodyForces);
+        follower.applyForceToBodyPoint(state, point, -forceOnPlane, bodyForces);
+   }
+
+    virtual Real calcPotentialEnergy(const State& state) const {
+        const Vec3 p = follower.findStationLocationInAnotherBody
+                                                        (state, point, plane);
+        const Real x = dot(p,normal) - h; // height of point over plane
+        return k*x*x/2;
+    }
+
+private:
+    MobilizedBody plane;
+    UnitVec3      normal;
+    Real          h;
+    MobilizedBody follower;
+    Vec3          point;
+    Real          k, c;
+};
 
 int main() {
     try { // catch errors if any
@@ -47,7 +99,7 @@ int main() {
     MultibodySystem system; 
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
-    Force::Gravity(forces, matter, -YAxis, 9.8);
+    Force::Gravity gravity(forces, matter, -YAxis, 9.8);
 
     // Turn off automatically-generated geometry so we just see what we
     // draw here.
@@ -77,8 +129,15 @@ int main() {
                              rotorInfo,       Vec3(rotorSz[0],0, rotorSz[2]));
 
     // Can let the rotor flop or prescribe it to go at a constant velocity.
-    if (PrescribeRotor) 
-        Constraint::ConstantSpeed(rotor, 1);
+    if (PrescribeRotor) {
+        //Vector coef(2); coef[0]=1; coef[1]=0;
+        //Constraint::PrescribedMotion(matter, new Function::Linear(coef), 
+        //                             rotor, MobilizerQIndex(0));
+
+        // Using a Motion rather than a constraint is faster, especially if
+        // there are no other constraints.
+        Motion::Steady(rotor, 1.); 
+    }
 
     // Create the two trees of mobilized bodies, reusing the above link 
     // description.
@@ -96,10 +155,20 @@ int main() {
     for (int i=1; i <= NumLevels; ++i) {
         // Add cross connections between the tree ends using two 1-dof 
         // constraints (that's enough since this is planar).
-        Constraint::PointInPlane(lastLeft, YAxis, 0.,  // the plane
-                                 lastRight, Vec3(0));  // the point
-        Constraint::PointInPlane(lastRight, YAxis, 0., // the plane
-                                 lastLeft,  Vec3(0));  // the point
+        if (UseSpringsInsteadOfConstraints) {
+            const Real k = 3000000, c = 1000;
+            Force::Custom(forces, 
+                new DirectionalSpringDamper(lastLeft,YAxis, 0.,
+                                            lastRight, Vec3(0), k, c));
+            Force::Custom(forces, 
+                new DirectionalSpringDamper(lastRight,YAxis, 0.,
+                                            lastLeft, Vec3(0), k, c));
+        } else {
+            Constraint::PointInPlane(lastLeft, YAxis, 0.,  // the plane
+                                     lastRight, Vec3(0));  // the point
+            Constraint::PointInPlane(lastRight, YAxis, 0., // the plane
+                                     lastLeft,  Vec3(0));  // the point
+        }
         if (i==NumLevels) break;
 
         // Add generic link pair.
@@ -127,23 +196,42 @@ int main() {
 
     Assembler(system).assemble(state);
 
-    cout << "Scissors after assembly ... ENTER to run.\n";
+    cout << "Scissors after assembly ... ENTER to "
+         << (UseSpringsInsteadOfConstraints?"minimize energy":"run simulation")
+         << "\n";
     viz.report(state);
     getchar();
+
+    if (UseSpringsInsteadOfConstraints) {
+        try {
+        LocalEnergyMinimizer::minimizeEnergy(system,state,10.);
+        } catch(const std::exception& e) {
+            cout << "Minimizer failed with " << e.what() << ". Continuing\n";
+        }
+        cout << "Scissors after static ... ENTER to run simulation.\n";
+        viz.report(state);
+        getchar();
+    }
+
 
     // Run a simulation. There are a variety of integration settings you
     // can play with here. If you put a cap on the max step size, you should
     // use a low order integrator to avoid wasting cycles.
 
-    const Real Accuracy = 0.01; // i.e., 1%. Default is 0.1%.
+    const Real Accuracy = 0.1; // i.e., 10%. Default is 0.1%.
+    //const Real Accuracy = 0.01; // 1%
+    //const Real Accuracy = 0.2; // 20%
+    //const Real Accuracy = 0.5; // 50%
 
     const Real MaxStepSize = Infinity;
     //RungeKuttaMersonIntegrator integ(system); // 4th order 
 
-    //const Real MaxStepSize = 1./30;
+    //const Real MaxStepSize = 0.05; // 50 ms
     RungeKutta3Integrator integ(system);        // 3rd order
 
     //const Real MaxStepSize = .001;
+    //const Real MaxStepSize = .0005;
+    //RungeKutta2Integrator integ(system);      // 2nd order
     //ExplicitEulerIntegrator integ(system);    // 1st order
 
     integ.setMaximumStepSize(MaxStepSize);
@@ -167,7 +255,7 @@ int main() {
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
         timeInSec << "s for " << integ.getTime() << "s sim (avg step=" 
         << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) " 
-        << (1000*integ.getTime())/evals << "ms/eval\n";
+        << (1000*integ.getTime())/evals << "sim ms/eval\n";
     cout << "CPUtime (not reliable when visualizing) " << cpuInSec << endl;
 
     printf("Used Integrator %s at accuracy %g:\n", 
