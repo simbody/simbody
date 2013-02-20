@@ -9,9 +9,8 @@
 #include <sstream>
 
 //-------------------------------------------------------------------------------------
-OgreVisualizer::OgreVisualizer()
+OgreVisualizer::OgreVisualizer() : lineCount(0)
 {
-//	CreateContext();
 }
 //-------------------------------------------------------------------------------------
 OgreVisualizer::~OgreVisualizer(void)
@@ -66,6 +65,7 @@ void OgreVisualizer::createScene(void)
  
     directionalLight->setDirection(Ogre::Vector3( 0, -1, 1 )); 
  
+	/*
     Ogre::Light* spotLight = mSceneMgr->createLight("spotLight");
     spotLight->setType(Ogre::Light::LT_SPOTLIGHT);
     spotLight->setDiffuseColour(0, 0, 1.0);
@@ -75,48 +75,79 @@ void OgreVisualizer::createScene(void)
     spotLight->setPosition(Ogre::Vector3(300, 300, 0));
  
     spotLight->setSpotlightRange(Ogre::Degree(35), Ogre::Degree(50));
+	*/
+	linesNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+}
+
+void OgreVisualizer::drawLine(RenderedLine& line, std::string name)
+{
+	Ogre::SceneNode *sceneNode = NULL;
+  	Ogre::ManualObject *obj = NULL;
+  	bool attached = false;
+
+	float r,g,b;
+	r = line.getColor()[0];
+	g = line.getColor()[1];
+	b = line.getColor()[2];
+
+	Ogre::MaterialPtr matPtr = Ogre::MaterialManager::getSingleton().create(name, "General");
+	matPtr->setReceiveShadows(false);
+	matPtr->getTechnique(0)->setLightingEnabled(true);
+//	matPtr->getTechnique(0)->getPass(0)->setDiffuse(r,g,b,0);
+	matPtr->getTechnique(0)->getPass(0)->setAmbient(r,g,b);
+//	matPtr->getTechnique(0)->getPass(0)->setSelfIllumination(0,0,1);
+
+  	if (this->mSceneMgr->hasManualObject(name))
+  	{
+    	sceneNode = this->mSceneMgr->getSceneNode(name);
+   		obj = this->mSceneMgr->getManualObject(name);
+    	attached = true;
+  	}
+  	else
+  	{
+    	sceneNode = this->mSceneMgr->getRootSceneNode()->createChildSceneNode(name);
+    	obj = this->mSceneMgr->createManualObject(name);
+  	}
+
+  	sceneNode->setVisible(true);
+  	obj->setVisible(true);
+
+  	obj->begin(name, Ogre::RenderOperation::OT_LINE_LIST);
+	
+	for (int j = 0; j < line.getLines().size(); j+=3 )
+	{
+		obj->position(line.getLines().at(j),
+						line.getLines().at(j+1),
+						line.getLines().at(j+2));
+	}
+
+  	obj->end();
+
+  	if (!attached)
+	{
+    	sceneNode->attachObject(obj);
+	}
 }
 
 void OgreVisualizer::renderScene()
 {
 
-	Ogre::ResourcePtr lineMat = Ogre::MaterialManager::getSingleton().create("line", "General");
-	Ogre::MaterialPtr mat = Ogre::MaterialPtr(lineMat);
-
     if (scene != NULL) {
+
+		std::string str;
+		ostringstream convert;
+		convert << "line" << lineCount;
+		str = convert.str();
 
         for (int i = 0; i < (int) scene->lines.size(); i++)
 		{
-			DynamicLines *line = new DynamicLines(Ogre::RenderOperation::OT_LINE_LIST);
-
-			for (int j = 0; j < scene->lines[i].getLines().size(); j+=3 )
-			{
-//				std::cout << "Lines points: " << scene->lines[i].getLines().at(j) << std::endl;
-				Ogre::Vector3 vec(scene->lines[i].getLines().at(j),
-						scene->lines[i].getLines().at(j+1),
-						scene->lines[i].getLines().at(j+2));
-				line->addPoint(vec);
-			}
-			
-			mat.get()->setAmbient(scene->lines[i].getColor()[0], 
-			scene->lines[i].getColor()[1], 
-			scene->lines[i].getColor()[2]);
-
-			line->setMaterial("line");
-			
-			line->update();
-			Ogre::SceneNode *linesNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-			linesNode->attachObject(line);
-
-//        glLineWidth(2);
+			drawLine(scene->lines[i], str);
+			lineCount++;
         }
         for (int i = 0; i < (int) scene->sceneText.size(); i++)
             scene->sceneText[i].draw();
-//        glLineWidth(1);
-//        glEnableClientState(GL_NORMAL_ARRAY);
         for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
             scene->drawnMeshes[i].draw();
-//        glEnable(GL_LIGHTING);
         for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
             scene->solidMeshes[i].draw();
 
@@ -126,7 +157,6 @@ void OgreVisualizer::renderScene()
 //        sort(order.begin(), order.end());
 //        for (int i = 0; i < (int) order.size(); i++)
 //            scene->transparentMeshes[order[i].second].draw();
-
 
         scene->sceneHasBeenDrawn = true;
     }

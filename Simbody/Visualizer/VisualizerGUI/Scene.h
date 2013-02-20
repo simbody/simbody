@@ -12,16 +12,6 @@ public:
     RenderedLine(const fVec3& color, float thickness)
     :   color(color), thickness(thickness) {}
 
-    void draw(bool setColor = true) {
-		/*
-        if (setColor)
-            glColor3d(color[0], color[1], color[2]);
-        glLineWidth(thickness);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glVertexPointer(3, GL_FLOAT, 0, &lines[0]);
-        glDrawArrays(GL_LINES, 0, (GLsizei)(lines.size()/3));
-		*/
-    }
     vector<float>& getLines() {
         return lines;
     }

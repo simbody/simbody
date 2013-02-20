@@ -112,8 +112,14 @@ osg::Node* OSGVisualizer::makeSky()
 OSGVisualizer::OSGVisualizer()
 {
     root = new osg::Group();
-    pyramidGeode = new osg::Geode();
-    pyramidGeometry = new osg::Geometry();
+
+	geode = new Geode();
+	lineGeom = new osg::Geometry();
+	vertices = new osg::Vec3Array();
+	geode->addDrawable( lineGeom );
+	root->addChild(geode);
+
+	root->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
 
 	viewer.setUpViewInWindow(100, 100, 800, 600);
     viewer.setSceneData( root );
@@ -124,8 +130,59 @@ OSGVisualizer::OSGVisualizer()
 void OSGVisualizer::renderScene()
 {
 
+	vertices = new osg::Vec3Array();
+
+	if( scene != NULL) 
+	{
+		for (int i = 0; i < (int) scene->lines.size(); i++)
+		{
+			
+			for(int j = 0; j < scene->lines[i].getLines().size(); j+=3)
+			{
+				vertices->push_back( osg::Vec3(scene->lines[i].getLines().at(j),
+												scene->lines[i].getLines().at(j+1),
+												scene->lines[i].getLines().at(j+2)
+												)
+												);
+			}
+
+			lineGeom->setVertexArray(vertices);
+			
+			osg::Vec4Array * colours = new osg::Vec4Array;
+			colours->push_back(osg::Vec4(scene->lines[i].getColor()[0], 
+						scene->lines[i].getColor()[1],
+						scene->lines[i].getColor()[2],
+						0.0f
+						)
+						);
+	        lineGeom->setColorArray(colours);
+
+			lineGeom->setColorBinding(osg::Geometry::BIND_PER_PRIMITIVE);
+
+			// set the normal in the same way color.
+			osg::Vec3Array* normals = new osg::Vec3Array;
+			normals->push_back(osg::Vec3(0.0f,-1.0f,0.0f));
+			lineGeom->setNormalArray(normals);
+			lineGeom->setNormalBinding(osg::Geometry::BIND_PER_PRIMITIVE);
+
+			lineGeom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES,0,
+											scene->lines[i].getLines().size()));
+
+		}
+	}
 }
 
+void OSGVisualizer::go()
+{
+	this->viewer.realize();
+//	this->root->addChild(makeSky());
+	while( !viewer.done() )
+	{
+		renderScene();
+		viewer.frame();
+	}
+
+}
 int main( int argc, char** argv) 
 {
 
@@ -161,10 +218,6 @@ int main( int argc, char** argv)
 		//int rc = pthread_create(&thread, NULL, VisualizerBase::listenForInputHelper, &app);
 	}
 
-	app.viewer.realize();
+	app.go();
 
-	while( !app.viewer.done() )
-	{
-		app.viewer.frame();
-	}
 }

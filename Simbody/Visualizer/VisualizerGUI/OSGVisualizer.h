@@ -27,8 +27,9 @@ public:
 
 	osgViewer::Viewer viewer;
 	osg::Group* root;
-	osg::Geode* pyramidGeode;
-	osg::Geometry* pyramidGeometry;
+	osg::Geode* geode;
+	osg::Geometry* lineGeom;
+	osg::Vec3Array* vertices;
 
 protected:
 	//	Draw functions

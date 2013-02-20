@@ -106,6 +106,7 @@ Scene* VisualizerBase::readNewScene(int inPipe) {
         switch (command) {
 
         case EndOfScene:
+			std::cout << "=============EndOfScene was called===============\n";
             finished = true;
             break;
 
