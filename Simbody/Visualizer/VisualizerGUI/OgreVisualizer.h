@@ -21,6 +21,7 @@ protected:
 
 //	Draw functions
 	virtual void drawLine(RenderedLine& line, std::string name="" );
+	virtual void drawText(RenderedText& text, const std::string& name);
 	virtual void drawBox() {}
 	virtual void drawCylinder() {}
 	virtual void drawSphere() {}

@@ -9,6 +9,9 @@ VisualizerBase::VisualizerBase()
 {
 	dummyDisplay = NULL;
 	scene = NULL;
+
+	pthread_mutex_init(&sceneLock, NULL);
+    pthread_cond_init(&sceneHasBeenDrawn, NULL);
 }
 
 VisualizerBase::~VisualizerBase()
@@ -58,8 +61,9 @@ void VisualizerBase::readDataFromPipe(int srcPipe, unsigned char* buffer, int by
 {
     int totalRead = 0;
     while (totalRead < bytes)
+	{
         totalRead += READ(srcPipe, buffer+totalRead, bytes-totalRead);
-
+	}
 }
 
 void VisualizerBase::setName(std::string appName)
@@ -418,13 +422,13 @@ void VisualizerBase::listenForInput(int inPipe, int outPipe)
 			printf( "===========StartOfScene was called===========\n");
 
             Scene* newScene = readNewScene(inPipe);
-//            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
             if (scene != NULL) {
                 while (!scene->sceneHasBeenDrawn) {
                     // -------- WAIT FOR CONDITION --------
                     // Give up the lock and wait for notice.
-//                    pthread_cond_wait(&sceneHasBeenDrawn,
-//                                        &sceneLock);
+                    pthread_cond_wait(&sceneHasBeenDrawn,
+                                        &sceneLock);
                     // Now we hold the lock again, but this might
                     // be a spurious wakeup so check again.
                 }
@@ -434,7 +438,7 @@ void VisualizerBase::listenForInput(int inPipe, int outPipe)
             // Swap in the new scene.
             scene = newScene;
 //            saveNextFrameToMovie = savingMovie;
-//            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
 //            forceActiveRedisplay();             //------- ACTIVE REDISPLAY ---
 //            issuedActiveRedisplay = true;
             break;

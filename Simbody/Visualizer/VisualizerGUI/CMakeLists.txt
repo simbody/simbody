@@ -60,6 +60,8 @@ ADD_EXECUTABLE(OgreVisualizer ${VISUALIZER_BASE_SOURCES}
 	DynamicRenderable.cpp 
 	DynamicLines.h
 	DynamicLines.cpp
+	MovableText.h
+	MovableText.cpp
 	OgreVisualizerBase.h 
 	OgreVisualizer.h 
 	OgreVisualizerBase.cpp 

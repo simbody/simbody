@@ -1451,7 +1451,10 @@ static void renderScene() {
         if (showGround)
             drawGroundAndSky(farClipDistance);
         for (int i = 0; i < (int) scene->lines.size(); i++)
+		{	
+			std::cout << "DRAWING!!!" << std::endl;
             scene->lines[i].draw();
+		}
         glLineWidth(2);
         for (int i = 0; i < (int) scene->sceneText.size(); i++)
             scene->sceneText[i].draw();

@@ -22,6 +22,8 @@
 #include <SdkTrays.h>
 #include <SdkCameraMan.h>
 
+#include <OgreFontManager.h>
+
 class OgreVisualizerBase : public Ogre::FrameListener, public Ogre::WindowEventListener, public OIS::KeyListener, public OIS::MouseListener, OgreBites::SdkTrayListener
 {
 public:

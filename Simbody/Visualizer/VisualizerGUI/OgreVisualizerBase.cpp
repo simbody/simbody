@@ -178,7 +178,9 @@ void OgreVisualizerBase::setupResources(void)
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/materials/scripts", "FileSystem");
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/materials/textures", "FileSystem");
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/materials/programs", "FileSystem");
+	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/fonts", "FileSystem");
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/packs/SdkTrays.zip", "Zip", "General" );
+
 }
 //-------------------------------------------------------------------------------------
 void OgreVisualizerBase::createResourceListener(void)
@@ -189,6 +191,21 @@ void OgreVisualizerBase::createResourceListener(void)
 void OgreVisualizerBase::loadResources(void)
 {
     Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
+	//
+ // get the font manager
+	  Ogre::FontManager &fontMgr = Ogre::FontManager::getSingleton();
+ // create a font resource
+	  Ogre::ResourcePtr font = fontMgr.create("MyFont", "General");
+ // set as truetype
+ font->setParameter("type","truetype");
+ // set the .ttf file name
+ font->setParameter("source", "solo5.ttf");
+ // set the size
+ font->setParameter("size","10");
+ // set the dpi
+ font->setParameter("resolution","96");
+ // load the ttf
+ font->load();
 }
 
 void OgreVisualizerBase::loadPlugins()

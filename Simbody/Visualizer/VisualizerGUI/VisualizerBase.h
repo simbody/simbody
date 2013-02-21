@@ -78,10 +78,14 @@ protected:
 	unsigned long long dummyWindowId;
 	void * dummyContext;
 
+	pthread_mutex_t sceneLock;
+	pthread_cond_t  sceneHasBeenDrawn;
+
 private:
 	std::string name;
 	std::string simbodyVersionStr;
 	std::string simulatorExecutableName;
+
 
 }; // VisualizerBase
 

@@ -8,6 +8,8 @@
 #include <pthread.h>
 #include <sstream>
 
+#include "MovableText.h"
+
 //-------------------------------------------------------------------------------------
 OgreVisualizer::OgreVisualizer() : lineCount(0)
 {
@@ -22,12 +24,13 @@ void OgreVisualizer::createScene(void)
 {
 	//
 //	mSceneMgr->setSkyDome(true, "Examples/CloudySky", 5, 8);	
+	/*
 	Ogre::Plane skyPlane;
 	skyPlane.d = 1000;
 	skyPlane.normal = Ogre::Vector3::NEGATIVE_UNIT_Y;
 
 	mSceneMgr->setSkyPlane(true, skyPlane, "Examples/CloudySky", 1500, 40, true, 1.5f, 150, 150);
-
+	*/
 //   mSceneMgr->setAmbientLight(Ogre::ColourValue(0, 0, 0));
     mSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_STENCIL_ADDITIVE);
 
@@ -129,28 +132,52 @@ void OgreVisualizer::drawLine(RenderedLine& line, std::string name)
 	}
 }
 
+void OgreVisualizer::drawText(RenderedText& text, const std::string& name)
+{
+	Ogre::MovableText* msg = new Ogre::MovableText(name, text.getText());
+//	msg->setGlobalTranslation(Ogre::Vector3(text.getPosition()[0], text.getPosition()[1], text.getPosition()[2]));
+	msg->setLocalTranslation(Ogre::Vector3(text.getPosition()[0], text.getPosition()[1], text.getPosition()[2]));
+	msg->setColor(Ogre::ColourValue(text.getColor()[0], text.getColor()[1], text.getColor()[2]));
+	msg->setCharacterHeight(0.1);
+	msg->setSpaceWidth(0.1);
+
+	Ogre::SceneNode *sceneNode = this->mSceneMgr->getRootSceneNode()->createChildSceneNode("txt" + name);
+
+	sceneNode->setVisible(true);
+	sceneNode->attachObject(msg);
+}
+
 void OgreVisualizer::renderScene()
 {
+
+	pthread_mutex_lock(&sceneLock);
 
     if (scene != NULL) {
 
 		std::string str;
 		ostringstream convert;
-		convert << "line" << lineCount;
-		str = convert.str();
 
         for (int i = 0; i < (int) scene->lines.size(); i++)
 		{
+		convert << "line" << lineCount;
+		str = convert.str();
 			drawLine(scene->lines[i], str);
 			lineCount++;
         }
         for (int i = 0; i < (int) scene->sceneText.size(); i++)
-            scene->sceneText[i].draw();
+		{
+		convert << "line" << lineCount;
+		str = convert.str();
+
+            drawText(scene->sceneText[i], str);
+			lineCount++;
+		}
         for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
             scene->drawnMeshes[i].draw();
         for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
+		{
             scene->solidMeshes[i].draw();
-
+		}
 //        vector<pair<float, int> > order(scene->transparentMeshes.size());
 //        for (int i = 0; i < (int) order.size(); i++)
 //            order[i] = make_pair((float)(~X_GC.R()*scene->transparentMeshes[i].getTransform().p())[2], i);
@@ -160,6 +187,9 @@ void OgreVisualizer::renderScene()
 
         scene->sceneHasBeenDrawn = true;
     }
+
+	pthread_cond_signal(&sceneHasBeenDrawn);  
+	pthread_mutex_unlock(&sceneLock);
 
 }
 

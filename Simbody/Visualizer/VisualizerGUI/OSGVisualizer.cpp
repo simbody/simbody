@@ -130,6 +130,7 @@ OSGVisualizer::OSGVisualizer()
 void OSGVisualizer::renderScene()
 {
 
+	pthread_mutex_lock(&sceneLock);
 	vertices = new osg::Vec3Array();
 
 	if( scene != NULL) 
@@ -147,7 +148,7 @@ void OSGVisualizer::renderScene()
 			}
 
 			lineGeom->setVertexArray(vertices);
-			
+		/*	
 			osg::Vec4Array * colours = new osg::Vec4Array;
 			colours->push_back(osg::Vec4(scene->lines[i].getColor()[0], 
 						scene->lines[i].getColor()[1],
@@ -164,12 +165,15 @@ void OSGVisualizer::renderScene()
 			normals->push_back(osg::Vec3(0.0f,-1.0f,0.0f));
 			lineGeom->setNormalArray(normals);
 			lineGeom->setNormalBinding(osg::Geometry::BIND_PER_PRIMITIVE);
-
+*/
 			lineGeom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES,0,
 											scene->lines[i].getLines().size()));
 
 		}
 	}
+
+	pthread_cond_signal(&sceneHasBeenDrawn);
+	pthread_mutex_unlock(&sceneLock);
 }
 
 void OSGVisualizer::go()

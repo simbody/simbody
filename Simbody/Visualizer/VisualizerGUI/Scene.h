@@ -59,10 +59,19 @@ public:
 //        radius = glutStrokeLength(GLUT_STROKE_ROMAN, 
 //                                  (unsigned char*)text.c_str())*scale[0];
     }
+
+	const std::string& getText() const { return text; }
+
+	const fVec3& getPosition() const { return position; }
+
+	const fVec3& getScale() const { return scale; }
+
+	const fVec3& getColor() const { return color; }
+
 private:
     fVec3 position;
     fVec3 scale;
-    float color[3];
+    fVec3 color;
     string text;
     bool faceCamera;
 };
