@@ -510,6 +510,7 @@ public:                                     \
 /** Add public static method declaration in class derived from an abstract
 parent to assist in downcasting objects of the parent type to the derived 
 type. **/
+#ifndef NDEBUG
 #define SimTK_DOWNCAST(Derived,Parent) \
     static bool isA(const Parent& p)                        \
         { return dynamic_cast<const Derived*>(&p) != 0; }   \
@@ -519,6 +520,17 @@ type. **/
         { return dynamic_cast<Derived&>(p); }				\
 	static Derived& downcast(Parent& p)                     \
         { return dynamic_cast<Derived&>(p); }
+#else
+#define SimTK_DOWNCAST(Derived,Parent) \
+    static bool isA(const Parent& p)                        \
+        { return dynamic_cast<const Derived*>(&p) != 0; }   \
+    static const Derived& downcast(const Parent& p)         \
+        { return reinterpret_cast<const Derived&>(p); }     \
+    static Derived& updDowncast(Parent& p)                  \
+        { return reinterpret_cast<Derived&>(p); }		    \
+	static Derived& downcast(Parent& p)                     \
+        { return reinterpret_cast<Derived&>(p); }
+#endif
 
 /** This is like SimTK_DOWNCAST except it allows for an intermediate "helper" 
 class between Derived and Parent. **/

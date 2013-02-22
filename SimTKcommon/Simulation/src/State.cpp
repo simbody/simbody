@@ -2054,6 +2054,7 @@ public:
     } 
 
     // Stage >= ce.stage
+    // This method gets called a lot, so make it fast in Release mode.
     const AbstractValue& 
     getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
         const PerSubsystemInfo& ss = subsystems[subsys];
@@ -2061,19 +2062,22 @@ public:
         SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateImpl::getCacheEntry()");
         const CacheEntryInfo& ce = ss.cacheInfo[index];
     
-        const Stage stageNow = getSubsystemStage(subsys);
-        SimTK_STAGECHECK_GE_ALWAYS(stageNow, 
+        // These two unconditional checks are somewhat expensive; I'm leaving
+        // them in though because they catch so many user errors.
+        // (sherm 20130222).
+        SimTK_STAGECHECK_GE_ALWAYS(ss.currentStage, 
             ce.getDependsOnStage(), "StateImpl::getCacheEntry()");
 
-        if (stageNow < ce.getComputedByStage()) {
+        if (ss.currentStage < ce.getComputedByStage()) {
             const StageVersion currentDependsOnVersion = 
-                getSubsystemStageVersions(subsys)[ce.getDependsOnStage()];
+                ss.stageVersions[ce.getDependsOnStage()];
             const StageVersion lastCacheVersion = 
                 ce.getVersionWhenLastComputed();
 
             if (lastCacheVersion != currentDependsOnVersion) {
                 SimTK_THROW4(Exception::CacheEntryOutOfDate,
-                    stageNow, ce.getDependsOnStage(), currentDependsOnVersion, lastCacheVersion);
+                    ss.currentStage, ce.getDependsOnStage(), 
+                    currentDependsOnVersion, lastCacheVersion);
             }
         }
 
