@@ -451,6 +451,7 @@ IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 
 # Determine which math libraries to use for this platform.
+# Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
 SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
  "If you have your own Lapack and Blas, put library basenames here, separated by semicolons. See LAPACK_BEING_USED to see what's actually being used.")
 
