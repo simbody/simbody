@@ -48,21 +48,21 @@ SimbodyMatterSubsystem::isInstanceOf(const Subsystem& s) {
 /*static*/ const SimbodyMatterSubsystem&
 SimbodyMatterSubsystem::downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const SimbodyMatterSubsystem&>(s);
+    return static_cast<const SimbodyMatterSubsystem&>(s);
 }
 /*static*/ SimbodyMatterSubsystem&
 SimbodyMatterSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<SimbodyMatterSubsystem&>(s);
+    return static_cast<SimbodyMatterSubsystem&>(s);
 }
 
 const SimbodyMatterSubsystemRep& 
 SimbodyMatterSubsystem::getRep() const {
-    return dynamic_cast<const SimbodyMatterSubsystemRep&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const SimbodyMatterSubsystemRep&>(getSubsystemGuts());
 }
 SimbodyMatterSubsystemRep&       
 SimbodyMatterSubsystem::updRep() {
-    return dynamic_cast<SimbodyMatterSubsystemRep&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<SimbodyMatterSubsystemRep&>(updSubsystemGuts());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much 

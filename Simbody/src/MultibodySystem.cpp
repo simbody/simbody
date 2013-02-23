@@ -46,21 +46,21 @@ MultibodySystem::isInstanceOf(const System& s) {
 /*static*/ const MultibodySystem&
 MultibodySystem::downcast(const System& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const MultibodySystem&>(s);
+    return static_cast<const MultibodySystem&>(s);
 }
 /*static*/ MultibodySystem&
 MultibodySystem::updDowncast(System& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<MultibodySystem&>(s);
+    return static_cast<MultibodySystem&>(s);
 }
 
 const MultibodySystemRep& 
 MultibodySystem::getRep() const {
-    return dynamic_cast<const MultibodySystemRep&>(getSystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const MultibodySystemRep&>(getSystemGuts());
 }
 MultibodySystemRep&       
 MultibodySystem::updRep() {
-    return dynamic_cast<MultibodySystemRep&>(updSystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<MultibodySystemRep&>(updSystemGuts());
 }
 
 // Create generic multibody system by default.
@@ -313,21 +313,21 @@ MultibodySystemGlobalSubsystem::isInstanceOf(const Subsystem& s) {
 /*static*/ const MultibodySystemGlobalSubsystem&
 MultibodySystemGlobalSubsystem::downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const MultibodySystemGlobalSubsystem&>(s);
+    return static_cast<const MultibodySystemGlobalSubsystem&>(s);
 }
 /*static*/ MultibodySystemGlobalSubsystem&
 MultibodySystemGlobalSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<MultibodySystemGlobalSubsystem&>(s);
+    return static_cast<MultibodySystemGlobalSubsystem&>(s);
 }
 
 const MultibodySystemGlobalSubsystemRep& 
 MultibodySystemGlobalSubsystem::getRep() const {
-    return dynamic_cast<const MultibodySystemGlobalSubsystemRep&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const MultibodySystemGlobalSubsystemRep&>(getSubsystemGuts());
 }
 MultibodySystemGlobalSubsystemRep&       
 MultibodySystemGlobalSubsystem::updRep() {
-    return dynamic_cast<MultibodySystemGlobalSubsystemRep&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<MultibodySystemGlobalSubsystemRep&>(updSubsystemGuts());
 }
 
 

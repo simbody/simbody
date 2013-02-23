@@ -319,7 +319,7 @@ realizeInstance(const State& state) const {
         ppe.mapToActiveSurface[ox] = nActiveSurface++; 
 
         const CableObstacle::Surface::Impl& surf =
-            dynamic_cast<const CableObstacle::Surface::Impl&>(obs);
+            SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>(obs);
 
         ppe.mapToCoords[ox] = nx; // first index in x slot
         nx += 2*d; // points P and Q need coords xP and xQ
@@ -351,7 +351,7 @@ realizeInstance(const State& state) const {
         // Obstacle is a surface.
         const SurfaceObstacleIndex sox = instInfo.mapObstacleToSurface[ox];
         const CableObstacle::Surface::Impl& surf =
-            dynamic_cast<const CableObstacle::Surface::Impl&>(obs);
+            SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>(obs);
         Vec3 xPhint(0), xQhint(0);
         if (surf.hasContactPointHints())
             surf.getContactPointHints(xPhint,xQhint);
@@ -492,8 +492,8 @@ void CablePath::Impl::handleEvents
         const CableObstacleIndex   ox  = p->second;
         const SurfaceObstacleIndex sox = instInfo.mapObstacleToSurface[ox];
         const CableObstacle::Surface::Impl& obs = 
-            dynamic_cast<const CableObstacle::Surface::Impl&>
-                (getObstacleImpl(ox));
+            SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
+                                                        (getObstacleImpl(ox));
         if (instInfo.obstacleDisabled[ox]) {
             std::cout << "ENABLE OBSTACLE " << ox << std::endl;
             // Grab points before we invalidate the state.
@@ -568,8 +568,8 @@ findPathSegmentForObstacle
     assert(prevOx.isValid() && nextOx.isValid());
 
     const CableObstacle::Surface::Impl& thisObs = 
-        dynamic_cast<const CableObstacle::Surface::Impl&>
-            (getObstacleImpl(ox));
+        SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
+                                                        (getObstacleImpl(ox));
     const CableObstacle::Impl& prevObs = getObstacleImpl(prevOx);
     const CableObstacle::Impl& nextObs = getObstacleImpl(nextOx);
 
@@ -635,8 +635,8 @@ ensurePositionKinematicsCalculated(const State& state) const {
         const UnitVec3 d_QpPn(r_QpPn); // direction of line
 
         const CableObstacle::Surface::Impl& thisObs = 
-        dynamic_cast<const CableObstacle::Surface::Impl&>
-            (getObstacleImpl(ox));
+        SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
+                                                        (getObstacleImpl(ox));
         const ContactGeometry& geo = thisObs.getContactGeometry();
 
         Vec3 prevClosestPt = prevPPE.closestSurfacePoint[sox];
@@ -777,8 +777,8 @@ projectOntoSurface(const PathInstanceInfo& instInfo,
         Vec3& Q = Vec3::updAs(&ppe.x[xSlot+3]);
 
         const CableObstacle::Surface::Impl& obs = 
-            dynamic_cast<const CableObstacle::Surface::Impl&>
-                (getObstacleImpl(ox));
+            SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
+                                                        (getObstacleImpl(ox));
 
         const ContactGeometry& geom = obs.getContactGeometry();
         P = geom.projectDownhillToNearestPoint(P);
@@ -944,8 +944,8 @@ findKinematicVelocityErrors
         // velocities are zero in S).
         const CableObstacle::Impl& prevObs = getObstacleImpl(prevActiveOx);
         const CableObstacle::Surface::Impl& thisObs = 
-            dynamic_cast<const CableObstacle::Surface::Impl&>
-                (getObstacleImpl(thisActiveOx));
+            SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
+                                                (getObstacleImpl(thisActiveOx));
         const CableObstacle::Impl& nextObs = getObstacleImpl(nextActiveOx);
 
         // We're going to work in the body frames Bprev, Bthis, Bnext and
@@ -1092,8 +1092,8 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
         assert(xSlot >= 0); // Should have had coordinates assigned
 
         const CableObstacle::Surface::Impl& obs = 
-            dynamic_cast<const CableObstacle::Surface::Impl&>
-                (getObstacleImpl(ox));
+            SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
+                                                        (getObstacleImpl(ox));
 
         const Rotation& R_BS = obs.getObstaclePoseOnBody(state, instInfo).R();
         const Rotation& R_GB = obs.getBodyTransform(state).R();
@@ -1189,8 +1189,8 @@ calcPathErrorJacobian(const State&            state,
         // velocities are zero in S).
         const CableObstacle::Impl& prevObs = getObstacleImpl(prevActiveOx);
         const CableObstacle::Surface::Impl& thisObs = 
-            dynamic_cast<const CableObstacle::Surface::Impl&>
-                (getObstacleImpl(thisActiveOx));
+            SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
+                                                (getObstacleImpl(thisActiveOx));
         const CableObstacle::Impl& nextObs = getObstacleImpl(nextActiveOx);
 
         // We're going to work in the body frames Bprev, Bthis, Bnext and
@@ -1380,7 +1380,7 @@ Surface(CablePath& path, const MobilizedBody& mobod,
 
 CableObstacle::Surface& CableObstacle::Surface::
 setNearPoint(const Vec3& stationInS) { 
-    Impl& surfImpl = dynamic_cast<Impl&>(*impl);
+    Impl& surfImpl = SimTK_DYNAMIC_CAST_DEBUG<Impl&>(*impl);
     surfImpl.nearPointInS = stationInS; 
     return *this; 
 }
@@ -1388,7 +1388,7 @@ setNearPoint(const Vec3& stationInS) {
 // Points are provided in S frame but converted to coordinates.
 CableObstacle::Surface& CableObstacle::Surface::
 setContactPointHints(const Vec3& Phint_S, const Vec3& Qhint_S) { 
-    Impl& surfImpl = dynamic_cast<Impl&>(*impl);
+    Impl& surfImpl = SimTK_DYNAMIC_CAST_DEBUG<Impl&>(*impl);
     surfImpl.xPhint = Phint_S; // TODO: only works for implicit surfaces
     surfImpl.xQhint = Qhint_S; 
     return *this; 

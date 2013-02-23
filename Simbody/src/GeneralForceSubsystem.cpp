@@ -296,21 +296,21 @@ GeneralForceSubsystem::isInstanceOf(const ForceSubsystem& s) {
 /*static*/ const GeneralForceSubsystem&
 GeneralForceSubsystem::downcast(const ForceSubsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const GeneralForceSubsystem&>(s);
+    return static_cast<const GeneralForceSubsystem&>(s);
 }
 /*static*/ GeneralForceSubsystem&
 GeneralForceSubsystem::updDowncast(ForceSubsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<GeneralForceSubsystem&>(s);
+    return static_cast<GeneralForceSubsystem&>(s);
 }
 
 const GeneralForceSubsystemRep& 
 GeneralForceSubsystem::getRep() const {
-    return dynamic_cast<const GeneralForceSubsystemRep&>(ForceSubsystem::getRep());
+    return SimTK_DYNAMIC_CAST_DEBUG<const GeneralForceSubsystemRep&>(ForceSubsystem::getRep());
 }
 GeneralForceSubsystemRep&       
 GeneralForceSubsystem::updRep() {
-    return dynamic_cast<GeneralForceSubsystemRep&>(ForceSubsystem::updRep());
+    return SimTK_DYNAMIC_CAST_DEBUG<GeneralForceSubsystemRep&>(ForceSubsystem::updRep());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except

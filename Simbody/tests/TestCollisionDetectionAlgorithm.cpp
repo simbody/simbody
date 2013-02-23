@@ -267,8 +267,8 @@ void testEllipsoidEllipsoid() {
     for (int i = 0; i < (int) contact.size(); i++) {
         ASSERT(PointContact::isInstance(contact[i]));
         const PointContact& c = static_cast<const PointContact&>(contact[i]);
-        const ContactGeometry::Ellipsoid& ellipsoid1 = reinterpret_cast<const ContactGeometry::Ellipsoid&>(contacts2.getBodyGeometry(setIndex2, c.getSurface1()));
-        const ContactGeometry::Ellipsoid& ellipsoid2 = reinterpret_cast<const ContactGeometry::Ellipsoid&>(contacts2.getBodyGeometry(setIndex2, c.getSurface2()));
+        const ContactGeometry::Ellipsoid& ellipsoid1 = static_cast<const ContactGeometry::Ellipsoid&>(contacts2.getBodyGeometry(setIndex2, c.getSurface1()));
+        const ContactGeometry::Ellipsoid& ellipsoid2 = static_cast<const ContactGeometry::Ellipsoid&>(contacts2.getBodyGeometry(setIndex2, c.getSurface2()));
         const MobilizedBody& body1 = contacts2.getBody(setIndex2, c.getSurface1());
         const MobilizedBody& body2 = contacts2.getBody(setIndex2, c.getSurface2());
         if (!verifyEllipsoidContact(c, ellipsoid1.getRadii(), ellipsoid2.getRadii(), Vec3(0), Vec3(0), body1.getBodyTransform(state2), body2.getBodyTransform(state2)))

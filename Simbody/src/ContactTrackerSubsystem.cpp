@@ -567,21 +567,23 @@ bool ContactTrackerSubsystem::isInstanceOf(const Subsystem& s) {
 const ContactTrackerSubsystem& ContactTrackerSubsystem::
 downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const ContactTrackerSubsystem&>(s);
+    return static_cast<const ContactTrackerSubsystem&>(s);
 }
 ContactTrackerSubsystem& ContactTrackerSubsystem::
 updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<ContactTrackerSubsystem&>(s);
+    return static_cast<ContactTrackerSubsystem&>(s);
 }
 
 const ContactTrackerSubsystemImpl& ContactTrackerSubsystem::
 getImpl() const {
-    return dynamic_cast<const ContactTrackerSubsystemImpl&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const ContactTrackerSubsystemImpl&>
+                                                        (getSubsystemGuts());
 }
 ContactTrackerSubsystemImpl& ContactTrackerSubsystem::
 updImpl() {
-    return dynamic_cast<ContactTrackerSubsystemImpl&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<ContactTrackerSubsystemImpl&>
+                                                        (updSubsystemGuts());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use

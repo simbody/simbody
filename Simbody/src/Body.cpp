@@ -128,17 +128,17 @@ bool Body::Rigid::isInstanceOf(const Body& b) {
 }
 const Body::Rigid& Body::Rigid::downcast(const Body& b) {
     assert(isInstanceOf(b));
-    return reinterpret_cast<const Rigid&>(b);
+    return static_cast<const Rigid&>(b);
 }
 Body::Rigid& Body::Rigid::updDowncast(Body& b) {
     assert(isInstanceOf(b));
-    return reinterpret_cast<Rigid&>(b);
+    return static_cast<Rigid&>(b);
 }
 const Body::Rigid::RigidRep& Body::Rigid::getRep() const {
-    return dynamic_cast<const RigidRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const RigidRep&>(*rep);
 }
 Body::Rigid::RigidRep& Body::Rigid::updRep() {
-    return dynamic_cast<RigidRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<RigidRep&>(*rep);
 }
 
 
@@ -156,17 +156,17 @@ bool Body::Ground::isInstanceOf(const Body& b) {
 }
 const Body::Ground& Body::Ground::downcast(const Body& b) {
     assert(isInstanceOf(b));
-    return reinterpret_cast<const Ground&>(b);
+    return static_cast<const Ground&>(b);
 }
 Body::Ground& Body::Ground::updDowncast(Body& b) {
     assert(isInstanceOf(b));
-    return reinterpret_cast<Ground&>(b);
+    return static_cast<Ground&>(b);
 }
 const Body::Ground::GroundRep& Body::Ground::getRep() const {
-    return dynamic_cast<const GroundRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const GroundRep&>(*rep);
 }
 Body::Ground::GroundRep& Body::Ground::updRep() {
-    return dynamic_cast<GroundRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<GroundRep&>(*rep);
 }
 
 
@@ -184,17 +184,17 @@ bool Body::Massless::isInstanceOf(const Body& b) {
 }
 const Body::Massless& Body::Massless::downcast(const Body& b) {
     assert(isInstanceOf(b));
-    return reinterpret_cast<const Massless&>(b);
+    return static_cast<const Massless&>(b);
 }
 Body::Massless& Body::Massless::updDowncast(Body& b) {
     assert(isInstanceOf(b));
-    return reinterpret_cast<Massless&>(b);
+    return static_cast<Massless&>(b);
 }
 const Body::Massless::MasslessRep& Body::Massless::getRep() const {
-    return dynamic_cast<const MasslessRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const MasslessRep&>(*rep);
 }
 Body::Massless::MasslessRep& Body::Massless::updRep() {
-    return dynamic_cast<MasslessRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<MasslessRep&>(*rep);
 }
 
 } // namespace SimTK

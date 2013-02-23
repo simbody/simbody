@@ -234,21 +234,21 @@ HuntCrossleyContact::isInstanceOf(const ForceSubsystem& s) {
 /*static*/ const HuntCrossleyContact&
 HuntCrossleyContact::downcast(const ForceSubsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const HuntCrossleyContact&>(s);
+    return static_cast<const HuntCrossleyContact&>(s);
 }
 /*static*/ HuntCrossleyContact&
 HuntCrossleyContact::updDowncast(ForceSubsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<HuntCrossleyContact&>(s);
+    return static_cast<HuntCrossleyContact&>(s);
 }
 
 const HuntCrossleyContactRep& 
 HuntCrossleyContact::getRep() const {
-    return dynamic_cast<const HuntCrossleyContactRep&>(ForceSubsystem::getRep());
+    return SimTK_DYNAMIC_CAST_DEBUG<const HuntCrossleyContactRep&>(ForceSubsystem::getRep());
 }
 HuntCrossleyContactRep&       
 HuntCrossleyContact::updRep() {
-    return dynamic_cast<HuntCrossleyContactRep&>(ForceSubsystem::updRep());
+    return SimTK_DYNAMIC_CAST_DEBUG<HuntCrossleyContactRep&>(ForceSubsystem::updRep());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except

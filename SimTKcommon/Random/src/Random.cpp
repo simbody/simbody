@@ -217,12 +217,12 @@ Random::Uniform::Uniform(Real min, Real max) {
 
 Random::Uniform::UniformImpl& Random::Uniform::getImpl() {
     assert(impl);
-    return dynamic_cast<Random::Uniform::UniformImpl&>(*impl);
+    return SimTK_DYNAMIC_CAST_DEBUG<Random::Uniform::UniformImpl&>(*impl);
 }
 
 const Random::Uniform::UniformImpl& Random::Uniform::getConstImpl() const {
     assert(impl);
-    return dynamic_cast<Random::Uniform::UniformImpl&>(*impl);
+    return SimTK_DYNAMIC_CAST_DEBUG<Random::Uniform::UniformImpl&>(*impl);
 }
 
 int Random::Uniform::getIntValue() {
@@ -255,12 +255,12 @@ Random::Gaussian::Gaussian(Real mean, Real stddev) {
 
 Random::Gaussian::GaussianImpl& Random::Gaussian::getImpl() {
     assert(impl);
-    return dynamic_cast<Random::Gaussian::GaussianImpl&>(*impl);
+    return SimTK_DYNAMIC_CAST_DEBUG<Random::Gaussian::GaussianImpl&>(*impl);
 }
 
 const Random::Gaussian::GaussianImpl& Random::Gaussian::getConstImpl() const {
     assert(impl);
-    return dynamic_cast<Random::Gaussian::GaussianImpl&>(*impl);
+    return SimTK_DYNAMIC_CAST_DEBUG<Random::Gaussian::GaussianImpl&>(*impl);
 }
 
 Real Random::Gaussian::getMean() const {

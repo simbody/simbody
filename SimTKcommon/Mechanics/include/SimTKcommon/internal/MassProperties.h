@@ -515,9 +515,9 @@ protected:
 // methods of the UnitInertia class in terms of Inertia methods. Be sure you
 // know that this is a unit-mass inertia!
 const UnitInertia_<P>& getAsUnitInertia() const
-{   return *reinterpret_cast<const UnitInertia_<P>*>(this); }
+{   return *static_cast<const UnitInertia_<P>*>(this); }
 UnitInertia_<P>& updAsUnitInertia()
-{   return *reinterpret_cast<UnitInertia_<P>*>(this); }
+{   return *static_cast<UnitInertia_<P>*>(this); }
 
 // If error checking is enabled (only in Debug mode), this 
 // method will run some tests on the current contents of this Inertia 

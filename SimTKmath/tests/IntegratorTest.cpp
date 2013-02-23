@@ -66,9 +66,7 @@ public:
         // Index types set themselves invalid on construction.
     }
 
-    const MyPendulum& getMyPendulum() const {
-        return reinterpret_cast<const MyPendulum&>(getSystem());
-    }
+    inline const MyPendulum& getMyPendulum() const;
 
     /*virtual*/MyPendulumGuts* cloneImpl() const {return new MyPendulumGuts(*this);}
 
@@ -238,6 +236,10 @@ public:
     }
 
 };
+
+inline const MyPendulum& MyPendulumGuts::getMyPendulum() const {
+    return static_cast<const MyPendulum&>(getSystem());
+}
 
 static void printFinalStats(const Integrator& integ);
 

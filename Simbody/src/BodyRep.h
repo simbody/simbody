@@ -109,7 +109,7 @@ public:
         return new RigidRep(*this);
     }
     const Body::Rigid& getMyRigidBodyHandle() const {
-        return reinterpret_cast<const Body::Rigid&>(getMyBodyHandle());
+        return static_cast<const Body::Rigid&>(getMyBodyHandle());
     }
 
     SimTK_DOWNCAST(RigidRep, BodyRep);
@@ -140,7 +140,7 @@ public:
     }
 
     const Body::Ground& getMyGroundBodyHandle() const {
-        return reinterpret_cast<const Body::Ground&>(getMyBodyHandle());
+        return static_cast<const Body::Ground&>(getMyBodyHandle());
     }
 
     SimTK_DOWNCAST(GroundRep, BodyRep);
@@ -171,7 +171,7 @@ public:
     }
 
     const Body::Massless& getMyMasslessBodyHandle() const {
-        return reinterpret_cast<const Body::Massless&>(getMyBodyHandle());
+        return static_cast<const Body::Massless&>(getMyBodyHandle());
     }
 
     SimTK_DOWNCAST(MasslessRep, BodyRep);

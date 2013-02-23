@@ -203,7 +203,7 @@ private:
     // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativePoint& getMyPointHandle() const {
-        return *reinterpret_cast<const DecorativePoint*>(myHandle);
+        return *static_cast<const DecorativePoint*>(myHandle);
     }
 };
 
@@ -240,7 +240,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeLine& getMyLineHandle() const {
-        return *reinterpret_cast<const DecorativeLine*>(myHandle);
+        return *static_cast<const DecorativeLine*>(myHandle);
     }
 };
 
@@ -277,7 +277,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeCircle& getMyCircleHandle() const {
-        return *reinterpret_cast<const DecorativeCircle*>(myHandle);
+        return *static_cast<const DecorativeCircle*>(myHandle);
     }
 };
 
@@ -315,7 +315,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeSphere& getMySphereHandle() const {
-        return *reinterpret_cast<const DecorativeSphere*>(myHandle);
+        return *static_cast<const DecorativeSphere*>(myHandle);
     }
 };
 
@@ -353,7 +353,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeEllipsoid& getMyEllipsoidHandle() const {
-        return *reinterpret_cast<const DecorativeEllipsoid*>(myHandle);
+        return *static_cast<const DecorativeEllipsoid*>(myHandle);
     }
 };
 
@@ -391,7 +391,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeBrick& getMyBrickHandle() const {
-        return *reinterpret_cast<const DecorativeBrick*>(myHandle);
+        return *static_cast<const DecorativeBrick*>(myHandle);
     }
 };
 
@@ -432,7 +432,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeCylinder& getMyCylinderHandle() const {
-        return *reinterpret_cast<const DecorativeCylinder*>(myHandle);
+        return *static_cast<const DecorativeCylinder*>(myHandle);
     }
 };
 
@@ -465,7 +465,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeFrame& getMyFrameHandle() const {
-        return *reinterpret_cast<const DecorativeFrame*>(myHandle);
+        return *static_cast<const DecorativeFrame*>(myHandle);
     }
 };
 
@@ -507,7 +507,7 @@ bool        isScreenText; // in screen coordinates
 
 // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
 const DecorativeText& getMyTextHandle() const {
-    return *reinterpret_cast<const DecorativeText*>(myHandle);
+    return *static_cast<const DecorativeText*>(myHandle);
 }
 };
 
@@ -541,7 +541,7 @@ PolygonalMesh mesh;
 
 // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
 const DecorativeMesh& getMyMeshHandle() const {
-    return *reinterpret_cast<const DecorativeMesh*>(myHandle);
+    return *static_cast<const DecorativeMesh*>(myHandle);
 }
 };
 
@@ -594,7 +594,7 @@ private:
     // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const Decorations& getMyHandle() const {
-        return *reinterpret_cast<const Decorations*>(myHandle);
+        return *static_cast<const Decorations*>(myHandle);
     }
 };
 

@@ -112,10 +112,10 @@
     static MH& updAs(SimTK::AbstractMeasure& m)                             \
     {   assert(isA(m)); return static_cast<MH&>(m); }                       \
     const Implementation& getImpl() const                                   \
-    {   return dynamic_cast<const Implementation&>                          \
+    {   return SimTK_DYNAMIC_CAST_DEBUG<const Implementation&>              \
                     (SimTK::AbstractMeasure::getImpl());}                   \
     Implementation& updImpl()                                               \
-    {   return dynamic_cast<Implementation&>                                \
+    {   return SimTK_DYNAMIC_CAST_DEBUG<Implementation&>                    \
                     (SimTK::AbstractMeasure::updImpl());} 
 
 namespace SimTK {

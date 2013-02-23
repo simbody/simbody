@@ -134,21 +134,21 @@ DecorativePoint::isInstanceOf(const DecorativeGeometry& s) {
 /*static*/ const DecorativePoint&
 DecorativePoint::downcast(const DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const DecorativePoint&>(s);
+    return static_cast<const DecorativePoint&>(s);
 }
 /*static*/ DecorativePoint&
 DecorativePoint::updDowncast(DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<DecorativePoint&>(s);
+    return static_cast<DecorativePoint&>(s);
 }
 
 const DecorativePointRep& 
 DecorativePoint::getRep() const {
-    return dynamic_cast<const DecorativePointRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const DecorativePointRep&>(*rep);
 }
 DecorativePointRep&       
 DecorativePoint::updRep() {
-    return dynamic_cast<DecorativePointRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<DecorativePointRep&>(*rep);
 }
 
 DecorativePoint::DecorativePoint(const Vec3& p) {
@@ -174,21 +174,21 @@ DecorativeLine::isInstanceOf(const DecorativeGeometry& s) {
 /*static*/ const DecorativeLine&
 DecorativeLine::downcast(const DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const DecorativeLine&>(s);
+    return static_cast<const DecorativeLine&>(s);
 }
 /*static*/ DecorativeLine&
 DecorativeLine::updDowncast(DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<DecorativeLine&>(s);
+    return static_cast<DecorativeLine&>(s);
 }
 
 const DecorativeLineRep& 
 DecorativeLine::getRep() const {
-    return dynamic_cast<const DecorativeLineRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const DecorativeLineRep&>(*rep);
 }
 DecorativeLineRep&       
 DecorativeLine::updRep() {
-    return dynamic_cast<DecorativeLineRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<DecorativeLineRep&>(*rep);
 }
 
 DecorativeLine::DecorativeLine(const Vec3& p1, const Vec3& p2) {
@@ -363,21 +363,21 @@ Decorations::isInstanceOf(const DecorativeGeometry& s) {
 /*static*/ const Decorations&
 Decorations::downcast(const DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const Decorations&>(s);
+    return static_cast<const Decorations&>(s);
 }
 /*static*/ Decorations&
 Decorations::updDowncast(DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<Decorations&>(s);
+    return static_cast<Decorations&>(s);
 }
 
 const DecorationsRep& 
 Decorations::getRep() const {
-    return dynamic_cast<const DecorationsRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const DecorationsRep&>(*rep);
 }
 DecorationsRep&       
 Decorations::updRep() {
-    return dynamic_cast<DecorationsRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<DecorationsRep&>(*rep);
 }
 
 Decorations::Decorations() {

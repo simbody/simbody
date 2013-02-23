@@ -50,22 +50,22 @@ ForceSubsystem::isInstanceOf(const Subsystem& s) {
 /*static*/ const ForceSubsystem&
 ForceSubsystem::downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const ForceSubsystem&>(s);
+    return static_cast<const ForceSubsystem&>(s);
 }
 /*static*/ ForceSubsystem&
 ForceSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<ForceSubsystem&>(s);
+    return static_cast<ForceSubsystem&>(s);
 }
 
 
 const ForceSubsystemRep& 
 ForceSubsystem::getRep() const {
-    return dynamic_cast<const ForceSubsystemRep&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const ForceSubsystemRep&>(getSubsystemGuts());
 }
 ForceSubsystemRep&       
 ForceSubsystem::updRep() {
-    return dynamic_cast<ForceSubsystemRep&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<ForceSubsystemRep&>(updSubsystemGuts());
 }
 
 } // namespace SimTK

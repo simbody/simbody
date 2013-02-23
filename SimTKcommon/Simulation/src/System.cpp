@@ -1208,11 +1208,13 @@ DefaultSystemSubsystem::DefaultSystemSubsystem(System& sys) {
 }
 
 const DefaultSystemSubsystem::Guts& DefaultSystemSubsystem::getGuts() const {
-    return dynamic_cast<const DefaultSystemSubsystem::Guts&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const DefaultSystemSubsystem::Guts&>
+                                                        (getSubsystemGuts());
 }
 
 DefaultSystemSubsystem::Guts& DefaultSystemSubsystem::updGuts() {
-    return dynamic_cast<DefaultSystemSubsystem::Guts&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<DefaultSystemSubsystem::Guts&>
+                                                        (updSubsystemGuts());
 }
 
 /**

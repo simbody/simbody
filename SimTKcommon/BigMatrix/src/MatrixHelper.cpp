@@ -344,7 +344,8 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
 template <class S>
 MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
                               int n, const int* ix) : rep(0) {
-    const VectorHelper<S>& vh = *dynamic_cast<const VectorHelper<S>*>(h.rep);
+    const VectorHelper<S>& vh = 
+        SimTK_DYNAMIC_CAST_DEBUG<const VectorHelper<S>&>(*h.rep);
     rep = new IndexedVectorHelper<S>(vh.getEltSize(), vh.getCppEltSize(), n,
                                      vh.preferRowOrder_(), ix, n ? vh.getElt_(0) : 0, false);
 
@@ -361,7 +362,7 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
 template <class S>
 MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, 
                               int n, const int* ix) : rep(0) {
-    VectorHelper<S>& vh = *dynamic_cast<VectorHelper<S>*>(h.rep);
+    VectorHelper<S>& vh = SimTK_DYNAMIC_CAST_DEBUG<VectorHelper<S>&>(*h.rep);
     rep = new IndexedVectorHelper<S>(vh.getEltSize(), vh.getCppEltSize(), n,
                                      vh.preferRowOrder_(), ix, n ? vh.updElt_(0) : 0, true);
 

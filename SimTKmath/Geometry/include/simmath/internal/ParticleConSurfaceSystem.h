@@ -63,9 +63,7 @@ public:
         // Index types set themselves invalid on construction.
     }
 
-    const ParticleConSurfaceSystem& getParticleConSurfaceSystem() const {
-        return reinterpret_cast<const ParticleConSurfaceSystem&>(getSystem());
-    }
+    inline const ParticleConSurfaceSystem& getParticleConSurfaceSystem() const;
     
     SubsystemIndex getSubsysIndex() const {
         return subsysIndex;
@@ -122,11 +120,13 @@ public:
     }
 
     const ParticleConSurfaceSystemGuts& getGuts() const {
-        return dynamic_cast<const ParticleConSurfaceSystemGuts&>(getSystemGuts());
+        return SimTK_DYNAMIC_CAST_DEBUG<const ParticleConSurfaceSystemGuts&>
+                                                            (getSystemGuts());
     }
 
     ParticleConSurfaceSystemGuts& updGuts() {
-        return dynamic_cast<ParticleConSurfaceSystemGuts&>(updSystemGuts());
+        return SimTK_DYNAMIC_CAST_DEBUG<ParticleConSurfaceSystemGuts&>
+                                                            (updSystemGuts());
     }
 
     void setDefaultTimeAndState(Real t, const Vector& q, const Vector& u) {
@@ -140,7 +140,10 @@ public:
 }; // class ParticleConSurfaceSystem
 
 
-
+inline const ParticleConSurfaceSystem& ParticleConSurfaceSystemGuts::
+getParticleConSurfaceSystem() const {
+    return static_cast<const ParticleConSurfaceSystem&>(getSystem());
+}
 
 
 } // namespace SimTK

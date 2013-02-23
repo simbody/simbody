@@ -482,19 +482,19 @@ CompliantContactSubsystem::isInstanceOf(const ForceSubsystem& s)
 /*static*/ const CompliantContactSubsystem&
 CompliantContactSubsystem::downcast(const ForceSubsystem& s) 
 {   assert(isInstanceOf(s));
-    return reinterpret_cast<const CompliantContactSubsystem&>(s); }
+    return static_cast<const CompliantContactSubsystem&>(s); }
 /*static*/ CompliantContactSubsystem&
 CompliantContactSubsystem::updDowncast(ForceSubsystem& s) 
 {   assert(isInstanceOf(s));
-    return reinterpret_cast<CompliantContactSubsystem&>(s); }
+    return static_cast<CompliantContactSubsystem&>(s); }
 
 const CompliantContactSubsystemImpl& 
 CompliantContactSubsystem::getImpl() const 
-{   return dynamic_cast<const CompliantContactSubsystemImpl&>
+{   return SimTK_DYNAMIC_CAST_DEBUG<const CompliantContactSubsystemImpl&>
                                             (ForceSubsystem::getRep()); }
 CompliantContactSubsystemImpl&       
 CompliantContactSubsystem::updImpl() 
-{   return dynamic_cast<CompliantContactSubsystemImpl&>
+{   return SimTK_DYNAMIC_CAST_DEBUG<CompliantContactSubsystemImpl&>
                                             (ForceSubsystem::updRep()); }
 
 CompliantContactSubsystem::CompliantContactSubsystem

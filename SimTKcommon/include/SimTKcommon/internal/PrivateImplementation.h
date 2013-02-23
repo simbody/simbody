@@ -350,10 +350,10 @@ static DERIVED& updDowncast(PARENT& p);
 
 #define SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(DERIVED, DERIVED_IMPL, PARENT) \
 const DERIVED_IMPL& DERIVED::getImpl() const {\
-    return dynamic_cast<const DERIVED_IMPL&>(PARENT::getImpl());\
+    return SimTK_DYNAMIC_CAST_DEBUG<const DERIVED_IMPL&>(PARENT::getImpl());\
 }\
 DERIVED_IMPL& DERIVED::updImpl() {\
-    return dynamic_cast<DERIVED_IMPL&>(PARENT::updImpl());\
+    return SimTK_DYNAMIC_CAST_DEBUG<DERIVED_IMPL&>(PARENT::updImpl());\
 }\
 const PARENT& DERIVED::upcast() const {\
     return static_cast<const PARENT&>(*this);\
