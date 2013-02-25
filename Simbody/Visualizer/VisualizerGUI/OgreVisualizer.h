@@ -20,8 +20,9 @@ protected:
     virtual void createScene();
 
 //	Draw functions
-	virtual void drawLine(RenderedLine& line, std::string name="" );
+	virtual void drawLine(RenderedLine& line, const std::string& name);
 	virtual void drawText(RenderedText& text, const std::string& name);
+	virtual void drawMesh(RenderedMesh& mesh, const std::string& name);
 	virtual void drawBox() {}
 	virtual void drawCylinder() {}
 	virtual void drawSphere() {}
@@ -29,8 +30,8 @@ protected:
 
 	virtual void renderScene();
 	
-	Ogre::SceneNode * linesNode;
-	Ogre::MaterialPtr myManualObjectMaterial;
+	Ogre::SceneNode * backgroundNode;
+	Ogre::SceneNode * mainNode;
 
 	int lineCount;
 

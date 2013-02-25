@@ -14,6 +14,8 @@
 #include <osg/PositionAttitudeTransform>
 #include <osgGA/TrackballManipulator>
 
+#include <osg/MatrixTransform>
+
 #include "VisualizerBase.h"
 
 using namespace osg;
@@ -23,16 +25,16 @@ class OSGVisualizer : public VisualizerBase
 public:
 	OSGVisualizer();
 	void go();
-	osg::Node * makeSky();
+
+	void createScene();
 
 	osgViewer::Viewer viewer;
 	osg::Group* root;
-	osg::Geode* geode;
-	osg::Geometry* lineGeom;
-	osg::Vec3Array* vertices;
+	osg::Geode* sceneGeode;
 
 protected:
 	//	Draw functions
+	virtual void drawLine(RenderedLine& line);
 	virtual void drawBox() {}
 	virtual void drawCylinder() {}
 	virtual void drawSphere() {}

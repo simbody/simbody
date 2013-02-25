@@ -134,7 +134,6 @@ private:
     unsigned short meshIndex, resolution;
 };
 
-
 class Scene {
 
 public:

@@ -22,6 +22,7 @@ OgreVisualizer::~OgreVisualizer(void)
 //-------------------------------------------------------------------------------------
 void OgreVisualizer::createScene(void)
 {
+	backgroundNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("background");
 	//
 //	mSceneMgr->setSkyDome(true, "Examples/CloudySky", 5, 8);	
 	/*
@@ -45,7 +46,7 @@ void OgreVisualizer::createScene(void)
  
     Ogre::Entity* entGround = mSceneMgr->createEntity("GroundEntity", "ground");
 
-    mSceneMgr->getRootSceneNode()->createChildSceneNode()->attachObject(entGround);
+    backgroundNode->attachObject(entGround);
 
 	Ogre::ResourcePtr groundMat = Ogre::MaterialManager::getSingleton().create("ground", "General");
 	Ogre::MaterialPtr mat = Ogre::MaterialPtr(groundMat);
@@ -79,10 +80,10 @@ void OgreVisualizer::createScene(void)
  
     spotLight->setSpotlightRange(Ogre::Degree(35), Ogre::Degree(50));
 	*/
-	linesNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+	mainNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("main");
 }
 
-void OgreVisualizer::drawLine(RenderedLine& line, std::string name)
+void OgreVisualizer::drawLine(RenderedLine& line, const std::string& name)
 {
 	Ogre::SceneNode *sceneNode = NULL;
   	Ogre::ManualObject *obj = NULL;
@@ -96,9 +97,9 @@ void OgreVisualizer::drawLine(RenderedLine& line, std::string name)
 	Ogre::MaterialPtr matPtr = Ogre::MaterialManager::getSingleton().create(name, "General");
 	matPtr->setReceiveShadows(false);
 	matPtr->getTechnique(0)->setLightingEnabled(true);
-//	matPtr->getTechnique(0)->getPass(0)->setDiffuse(r,g,b,0);
+	matPtr->getTechnique(0)->getPass(0)->setDiffuse(r,g,b,0);
 	matPtr->getTechnique(0)->getPass(0)->setAmbient(r,g,b);
-//	matPtr->getTechnique(0)->getPass(0)->setSelfIllumination(0,0,1);
+	matPtr->getTechnique(0)->getPass(0)->setSelfIllumination(0,0,1);
 
   	if (this->mSceneMgr->hasManualObject(name))
   	{
@@ -108,7 +109,7 @@ void OgreVisualizer::drawLine(RenderedLine& line, std::string name)
   	}
   	else
   	{
-    	sceneNode = this->mSceneMgr->getRootSceneNode()->createChildSceneNode(name);
+    	sceneNode = this->mainNode->createChildSceneNode(name);
     	obj = this->mSceneMgr->createManualObject(name);
   	}
 
@@ -141,14 +142,23 @@ void OgreVisualizer::drawText(RenderedText& text, const std::string& name)
 	msg->setCharacterHeight(0.1);
 	msg->setSpaceWidth(0.1);
 
-	Ogre::SceneNode *sceneNode = this->mSceneMgr->getRootSceneNode()->createChildSceneNode("txt" + name);
+	Ogre::SceneNode *sceneNode = this->mainNode->createChildSceneNode("txt" + name);
 
 	sceneNode->setVisible(true);
 	sceneNode->attachObject(msg);
 }
 
+void OgreVisualizer::drawMesh(RenderedMesh& mesh, const std::string& name)
+{
+	
+
+
+}
+
 void OgreVisualizer::renderScene()
 {
+
+	mainNode->removeAndDestroyAllChildren();
 
 	pthread_mutex_lock(&sceneLock);
 
@@ -173,7 +183,12 @@ void OgreVisualizer::renderScene()
 			lineCount++;
 		}
         for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
-            scene->drawnMeshes[i].draw();
+		{
+		convert << "line" << lineCount;
+		str = convert.str();
+
+            drawMesh(scene->drawnMeshes[i], str);
+		}
         for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
 		{
             scene->solidMeshes[i].draw();
@@ -202,7 +217,6 @@ void OgreVisualizer::go()
 	}
 
 	createScene();
-
 	while(true)
 	{
 		renderScene();

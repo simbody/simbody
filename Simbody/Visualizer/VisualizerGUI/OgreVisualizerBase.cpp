@@ -289,6 +289,7 @@ bool OgreVisualizerBase::setup(void)
     loadResources();
 
 	mWindow->setFullscreen(false, 800, 600);
+	mWindow->setVSyncEnabled(true);
 
     createFrameListener();
 
