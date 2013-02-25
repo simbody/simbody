@@ -1870,6 +1870,7 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 
 
 
+
 //------------------------ PROCESS COMPRESSION PHASE ---------------------------
 // Given a list of proximal unilateral constraints (contact and stiction),
 // determine which ones are active in the least squares solution for the
@@ -1878,6 +1879,10 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 // tolerance; for stiction, master contact is proximal. Also, any
 // constraint that is currently active is a candidate, regardless of its
 // kinematics.
+//
+// TODO: NOT ENABLING STICTION AT ALL; assuming stiction on initially leads
+// to a lot of wasted time and solution difficulty. Must start with sliding.
+// TODO: sliding friction impulses
 //
 // Algorithm
 // ---------
@@ -1904,7 +1909,6 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 //     (if stiction, record impending slip direction & N for stick->slide)
 // end loop 
 //
-// TODO: sliding friction impulses
 void ContactOn::
 processCompressionPhase(MyElementSubset&    proximal,
                         State&              s) const
@@ -1927,7 +1931,8 @@ processCompressionPhase(MyElementSubset&    proximal,
     // Assume at first that all proximal contacts will participate. This is 
     // necessary to ensure that we get a least squares solution for the impulse 
     // involving as many constraints as possible sharing the impulse. 
-    m_unis.enableConstraintSubset(proximal, true, s); 
+    // TODO: note stiction is unconditionally disabled
+    m_unis.enableConstraintSubset(proximal, false, s); 
 
     int pass=0, nContactsDisabled=0, nStictionDisabled=0, nContactsReenabled=0;
     while (true) {
@@ -2090,7 +2095,6 @@ processCompressionPhase(MyElementSubset&    proximal,
 
     SimTK_DEBUG("... compression phase done.\n");
 }
-
 
 //------------------------- PROCESS EXPANSION PHASE ----------------------------
 bool ContactOn::
