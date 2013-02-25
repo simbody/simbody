@@ -846,13 +846,13 @@ explicit Cylinder(Real radius);
 Real getRadius() const;
 void setRadius(Real radius);
 
-/** Return true if the supplied ContactGeometry object is a sphere. **/
+/** Return true if the supplied ContactGeometry object is a cylinder. **/
 static bool isInstance(const ContactGeometry& geo)
 {   return geo.getTypeId()==classTypeId(); }
-/** Cast the supplied ContactGeometry object to a const sphere. **/
+/** Cast the supplied ContactGeometry object to a const cylinder. **/
 static const Cylinder& getAs(const ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<const Cylinder&>(geo); }
-/** Cast the supplied ContactGeometry object to a writable sphere. **/
+/** Cast the supplied ContactGeometry object to a writable cylinder. **/
 static Cylinder& updAs(ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<Cylinder&>(geo); }
 
@@ -1314,22 +1314,22 @@ const OBBTreeNodeImpl* impl;
 origin with the axial direction aligned to the z-axis. It is defined by
 a torusRadius (radius of the circular centerline of the torus, measured
 from the origin), and a tubeRadius (radius of the torus cross-section:
-perpenducular distance from the circular centerline to the surface). **/
+perpendicular distance from the circular centerline to the surface). **/
 class SimTK_SIMMATH_EXPORT ContactGeometry::Torus : public ContactGeometry {
 public:
-explicit Torus(Real torusRadius, Real tubeRadius);
+Torus(Real torusRadius, Real tubeRadius);
 Real getTorusRadius() const;
 void setTorusRadius(Real radius);
 Real getTubeRadius() const;
 void setTubeRadius(Real radius);
 
-/** Return true if the supplied ContactGeometry object is a sphere. **/
+/** Return true if the supplied ContactGeometry object is a torus. **/
 static bool isInstance(const ContactGeometry& geo)
 {   return geo.getTypeId()==classTypeId(); }
-/** Cast the supplied ContactGeometry object to a const sphere. **/
+/** Cast the supplied ContactGeometry object to a const torus. **/
 static const Torus& getAs(const ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<const Torus&>(geo); }
-/** Cast the supplied ContactGeometry object to a writable sphere. **/
+/** Cast the supplied ContactGeometry object to a writable torus. **/
 static Torus& updAs(ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<Torus&>(geo); }
 
