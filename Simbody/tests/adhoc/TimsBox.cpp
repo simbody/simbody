@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2012-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -38,10 +38,10 @@ using std::endl;
 using namespace SimTK;
 
 //#define USE_TIMS_PARAMS
+#define USE_COMPLIANT_CONTACT
+#define ANIMATE // off to get more accurate CPU time (you can still playback)
 
-//const Real ReportInterval=1./10;
 const Real ReportInterval=1./30;
-//const Real ReportInterval=1./100;
 #ifdef USE_TIMS_PARAMS
     const Real RunTime=16;  // Tim's time
 #else
@@ -1462,14 +1462,14 @@ int main(int argc, char** argv) {
 
     MobilizedBody& Ground = matter.updGround();
 
+
     // Predefine some handy rotations.
     const Rotation Z90(Pi/2, ZAxis); // rotate +90 deg about z
 
     const Vec3 BrickHalfDims(.1, .25, .5);
     const Real BrickMass = 10;
-
-        // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
     #ifdef USE_TIMS_PARAMS
+        const Real Stiffness = 1e7;
         const Real CoefRest = 0.2; 
         const Real mu_d = .8;
         const Real mu_s = .8;
@@ -1477,6 +1477,7 @@ int main(int argc, char** argv) {
         const Real CaptureVelocity = 0.01;
         const Inertia brickInertia(.1,.1,.1);
     #else
+        const Real Stiffness = 1e6;
         const Real CoefRest = 0.5; 
         const Real mu_d = .5;
         const Real mu_s = .7;
@@ -1484,6 +1485,32 @@ int main(int argc, char** argv) {
         const Real CaptureVelocity = 0.01;
         const Inertia brickInertia(BrickMass*UnitInertia::brick(BrickHalfDims));
     #endif
+
+    #ifdef USE_COMPLIANT_CONTACT
+    ContactTrackerSubsystem tracker(mbs);
+    CompliantContactSubsystem contact(mbs, tracker);
+    // Set stiction max slip velocity to make it less stiff.
+    contact.setTransitionVelocity(0.05);
+
+    const Real Radius = BrickHalfDims[0]/3;
+    const Real TargetVelocity = 3; // speed at which to match coef rest
+
+    // Define a material to use for contact. This is not very stiff.
+    ContactMaterial material(Stiffness,
+                             (1-CoefRest)/TargetVelocity,   // dissipation
+                             mu_s,  // mu_static
+                             mu_d,  // mu_dynamic
+                             mu_v); // mu_viscous
+
+    // Add a contact surface to represent the ground.
+    // Half space normal is -x; must rotate about z to make it +y.
+    Ground.updBody().addContactSurface(Rotation(-Pi/2,ZAxis),
+       ContactSurface(ContactGeometry::HalfSpace(), material));
+    #endif
+
+
+        // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
+
 
     MyUnilateralConstraintSet unis(mbs, CaptureVelocity);
 
@@ -1527,12 +1554,20 @@ int main(int argc, char** argv) {
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(BrickHalfDims);
+        #ifdef USE_COMPLIANT_CONTACT
+        const Vec3 shrink = 
+            (abs(pt)-Radius).elementwiseDivide(abs(pt)).elementwiseMultiply(pt);
+        brick.updBody().addContactSurface(shrink,
+            ContactSurface(ContactGeometry::Sphere(Radius), material));
+        brick.addBodyDecoration(shrink, DecorativeSphere(Radius));
+        #else
         MyPointContact* contact = new MyPointContact(brick, pt, CoefRest);
         unis.addContactElement(contact);
         unis.addFrictionElement(
             new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, 
                                        CaptureVelocity, // TODO: vtol?
                                        forces));
+        #endif
     }
 
     //unis.addContactElement(new MyRope(Ground, Vec3(-5,10,0),
@@ -1547,7 +1582,12 @@ int main(int argc, char** argv) {
     viz.setShowFrameNumber(true);
     viz.setShowFrameRate(true);
     viz.addDecorationGenerator(new ShowContact(unis));
+#ifdef ANIMATE
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+#else
+    // This does nothing but interrupt the simulation.
+    mbs.addEventReporter(new Nada(ReportInterval));
+#endif
 
     viz.addFrameController(new BodyWatcher(brick));
 
@@ -1571,9 +1611,7 @@ int main(int argc, char** argv) {
     StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
     mbs.addEventReporter(stateSaver);
 
-    // This does nothing but interrupt the simulation.
-    //mbs.addEventReporter(new Nada(ReportInterval));
-    
+    #ifndef USE_COMPLIANT_CONTACT    
     for (int i=0; i < unis.getNumContactElements(); ++i) {
         mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Position));
         mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Velocity));
@@ -1585,7 +1623,8 @@ int main(int argc, char** argv) {
         mbs.addEventHandler(new StictionOn(mbs, unis, i));
         mbs.addEventHandler(new StictionOff(mbs, unis, i));
     }
-  
+    #endif
+
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     
     //matter.setUseEulerAngles(s, true);
