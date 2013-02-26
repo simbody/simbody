@@ -442,21 +442,25 @@ public:
     // Return the contact and friction elements that might be involved in an
     // impact occurring in this configuration. They are the contact elements 
     // for which perr <= posTol, and friction elements whose normal force 
-    // masters can be involved in the impact. State must be realized through 
-    // Position stage.
-    void findProximalElements(const State&      state,
+    // masters can be involved in the impact and whose slip velocities are
+    // below tolerance. State must be realized through Velocity stage.
+    void findProximalElements(const State&      s,
                               Real              posTol,
+                              Real              velTol,
                               MyElementSubset&  proximals) const
     {
         proximals.clear();
         for (unsigned i=0; i < m_contact.size(); ++i)
-            if (m_contact[i]->isProximal(state,posTol)) 
+            if (m_contact[i]->isProximal(s,posTol)) 
                 proximals.m_contact.push_back(i);
-        for (unsigned i=0; i < m_friction.size(); ++i)
-            if (m_friction[i]->isMasterProximal(state,posTol))
-                proximals.m_friction.push_back(i);
-        // Any friction elements might stick if they are proximal since
-        // we'll be changing velocities, so no m_sliding entries in proximals.
+        for (unsigned i=0; i < m_friction.size(); ++i) {
+            MyFrictionElement& fric = updFrictionElement(i);
+            if (!fric.isMasterProximal(s,posTol))
+                continue;
+            if (fric.isSticking(s) || fric.getActualSlipSpeed(s) <= velTol)
+                    proximals.m_friction.push_back(i);
+            else    proximals.m_sliding.push_back(i); 
+        }
     }
 
     // Return the contact and friction elements that might be involved in 
@@ -1559,9 +1563,6 @@ int main(int argc, char** argv) {
                                        CaptureVelocity, // TODO: vtol?
                                        forces));
     }
-    const Real StopAngle = Pi/6;
-    unis.addContactElement(new MyStop(MyStop::Upper,weight,0, StopAngle,CoefRest/2));
-    unis.addContactElement(new MyStop(MyStop::Lower,weight,0, -StopAngle,CoefRest/2));
 
 //#endif
 //#ifdef NOTDEF
@@ -1587,10 +1588,15 @@ int main(int argc, char** argv) {
     }
 //#endif
 
+    // Add joint stops.
+    const Real StopAngle = Pi/6;
+    unis.addContactElement(new MyStop(MyStop::Upper,weight,0, StopAngle,CoefRest/2));
+    unis.addContactElement(new MyStop(MyStop::Lower,weight,0, -StopAngle,CoefRest/2));
+
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
     viz.addDecorationGenerator(new ShowContact(unis));
-    mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    //mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
     //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
@@ -1706,7 +1712,7 @@ int main(int argc, char** argv) {
         Integrator::SuccessfulStepStatus status;
         do {
             status=ts.stepTo(RunTime);
-            states[ntry].push_back(ts.getState());
+            //states[ntry].push_back(ts.getState());
             const int j = states[ntry].size()-1;
             if (ntry>0) {
                 int prev = ntry-1;
@@ -1738,7 +1744,7 @@ int main(int argc, char** argv) {
                     ts.getTime(),
                     Integrator::getSuccessfulStepStatusString(status).c_str());
             }
-            //viz.report(ts.getState());
+            viz.report(ts.getState());
             //stateSaver->handleEvent(ts.getState());
         } while (ts.getTime() < RunTime);
 
@@ -1818,7 +1824,7 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     }
 
     MyElementSubset proximal;
-    m_unis.findProximalElements(s, accuracy, proximal);
+    m_unis.findProximalElements(s, accuracy, accuracy, proximal);
 
     // Zero out accumulated impulses and perform any other necessary 
     // initialization of contact and friction elements.
@@ -1854,6 +1860,11 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
                     break;
                 }
             }
+        }
+        if (needMoreCompression) {
+            SimTK_DEBUG("EXPANSION CAUSED SECONDARY IMPACT: compressing again\n");
+        } else {
+            SimTK_DEBUG("All constraints satisfied after expansion: done.\n");
         }
     }
 
@@ -1892,8 +1903,8 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 // constraint that is currently active is a candidate, regardless of its
 // kinematics.
 //
-// TODO: NOT ENABLING STICTION AT ALL; assuming stiction on initially leads
-// to a lot of wasted time and solution difficulty. Must start with sliding.
+// TODO: stiction only enabled for contacts that aren't sliding; no other 
+// stiction will be enabled after the impact starts.
 // TODO: sliding friction impulses
 //
 // Algorithm
@@ -1931,10 +1942,39 @@ processCompressionPhase(MyElementSubset&    proximal,
         "%d/%d impact/stick candidates ...\n", proximal.m_contact.size(),
         proximal.m_friction.size());
 
+    if (!proximal.m_friction.empty()) {
+        SimTK_DEBUG("**** STICTION IMPACT (possibly)\n");
+    }
+
     if (proximal.m_contact.empty()) {
         // Can't be any friction either, if there are no contacts.
         SimTK_DEBUG("EXIT processCompressionPhase: no proximal candidates.\n");
         return;
+    }
+
+    // If all the proximal contacts have positive normal
+    // velocities already then we won't need to generate any impulses.
+    // TODO: this needs to be reconsidered for handling Painleve situations
+    // in which the impact is caused by a sliding friction inconsistency.
+    SimTK_DEBUG("preliminary analysis of contact constraints ...\n");
+    bool anyUnsatisfiedContactConstraints = false;
+    for (unsigned i=0; i < proximal.m_contact.size(); ++i) {
+        const int which = proximal.m_contact[i];
+        SimTK_DEBUG1("  %d: ", which);
+        const MyContactElement& cont = m_unis.getContactElement(which);
+        const Real verr = cont.getVerr(s);
+        SimTK_DEBUG1("off verr=%g\n", verr);
+        if (verr < 0) {
+            anyUnsatisfiedContactConstraints = true;
+            break;
+        }
+    }
+
+    if (!anyUnsatisfiedContactConstraints) {
+        SimTK_DEBUG("... nothing to do -- all contact constraints satisfied.\n");
+        return;
+    } else {
+        SimTK_DEBUG("... an impulse is needed. Continuing.\n");
     }
 
     Vector lambda;
@@ -1943,8 +1983,7 @@ processCompressionPhase(MyElementSubset&    proximal,
     // Assume at first that all proximal contacts will participate. This is 
     // necessary to ensure that we get a least squares solution for the impulse 
     // involving as many constraints as possible sharing the impulse. 
-    // TODO: note stiction is unconditionally disabled
-    m_unis.enableConstraintSubset(proximal, false, s); 
+    m_unis.enableConstraintSubset(proximal, true, s); 
 
     int pass=0, nContactsDisabled=0, nStictionDisabled=0, nContactsReenabled=0;
     while (true) {
@@ -1954,7 +1993,7 @@ processCompressionPhase(MyElementSubset&    proximal,
         // Given an active set, evaluate impulse multipliers & forces, and
         // evaluate resulting constraint velocity errors.
         calcStoppingImpulse(proximal, s, lambda);
-        // TODO: ignoring sliding impacts; should converge here.
+        // TODO: ignoring sliding impacts; should converge them here.
         updateVelocities(u0, lambda, s);
 
         // Scan all proximal contacts to find the active one that has the
