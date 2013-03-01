@@ -71,7 +71,7 @@ void OgreVisualizer::createScene(void)
     directionalLight->setSpecularColour(Ogre::ColourValue(.25, .25, 0));
  
     directionalLight->setDirection(Ogre::Vector3( 0, -1, 1 )); 
-*/
+	*/
 	mainNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("main");
 }
 
@@ -134,18 +134,8 @@ void OgreVisualizer::drawText(RenderedText& text, const std::string& name)
 	sceneNode->attachObject(msg);
 }
 
-void OgreVisualizer::drawMeshHelper(RenderedMesh& renderedMesh, Ogre::ManualObject * obj)
+bool OgreVisualizer::drawManualObject(RenderedMesh& renderedMesh, Ogre::ManualObject * obj, const std::string& materialName)
 {
-
-
-}
-
-void OgreVisualizer::drawMesh(RenderedMesh& renderedMesh, const std::string& name)
-{
-	Ogre::ManualObject * obj = NULL;
-	Ogre::SceneNode * sceneNode = NULL;
-  	bool attached = false;
-
 	Mesh * mesh = meshes[renderedMesh.getMeshIndex()][renderedMesh.getResolution()];
 
 	float r,g,b;
@@ -153,37 +143,11 @@ void OgreVisualizer::drawMesh(RenderedMesh& renderedMesh, const std::string& nam
 	g = renderedMesh.getColor()[1];
 	b = renderedMesh.getColor()[2];
 
-  	if (this->mSceneMgr->hasManualObject(name))
-  	{
-    	sceneNode = this->mSceneMgr->getSceneNode(name);
-   		obj = this->mSceneMgr->getManualObject(name);
-    	attached = true;
-  	}
-  	else
-  	{
-    	sceneNode = this->mainNode->createChildSceneNode(name);
-    	obj = this->mSceneMgr->createManualObject(name);
-  	}
-
-	sceneNode->setVisible(true);
-  	obj->setVisible(true);
-
-	sceneNode->translate(Ogre::Vector3(renderedMesh.getTransform().p()[0],
-										renderedMesh.getTransform().p()[1],
-										renderedMesh.getTransform().p()[2]));
-
-	fVec4 rot = renderedMesh.getTransform().R().convertRotationToAngleAxis();
-
-	sceneNode->rotate(Ogre::Vector3(rot[1], rot[2], rot[3]), Ogre::Radian(rot[0]));
-	sceneNode->scale(Ogre::Vector3(renderedMesh.getScale()[0],
-						renderedMesh.getScale()[1],
-						renderedMesh.getScale()[2]));
-
 //	Let's draw this
 	unsigned short representation = renderedMesh.getRepresentation();
 	if(representation == DecorativeGeometry::DrawSurface)
 	{
-	  	obj->begin(name, Ogre::RenderOperation::OT_TRIANGLE_LIST);
+	  	obj->begin(materialName, Ogre::RenderOperation::OT_TRIANGLE_LIST);
 		vector<unsigned short> faces = mesh->getFaces();
 		vector<float> vertices = mesh->getVertices();
 		vector<float> normals = mesh->getNormals();
@@ -208,7 +172,7 @@ void OgreVisualizer::drawMesh(RenderedMesh& renderedMesh, const std::string& nam
 	}
 	else if (representation == DecorativeGeometry::DrawPoints)
 	{
-	  	obj->begin(name, Ogre::RenderOperation::OT_POINT_LIST);
+	  	obj->begin(materialName, Ogre::RenderOperation::OT_POINT_LIST);
 		vector<float> vertices = mesh->getVertices();
 		for (int j = 0; j < vertices.size(); j+=3 )
 		{
@@ -220,7 +184,7 @@ void OgreVisualizer::drawMesh(RenderedMesh& renderedMesh, const std::string& nam
 	}
 	else if (representation == DecorativeGeometry::DrawWireframe)
 	{
-	  	obj->begin(name, Ogre::RenderOperation::OT_LINE_LIST);
+	  	obj->begin(materialName, Ogre::RenderOperation::OT_LINE_LIST);
 		vector<unsigned short> edges = mesh->getEdges();
 		vector<float> vertices = mesh->getVertices();
 		vector<float> normals = mesh->getNormals();
@@ -246,9 +210,46 @@ void OgreVisualizer::drawMesh(RenderedMesh& renderedMesh, const std::string& nam
 	else
 	{
 		std::cout << "YOU SHOULDN'T BE HERE\n";
+		return false;
 	}
 
-  	if (!attached)
+	return true;
+
+}
+
+void OgreVisualizer::drawMesh(RenderedMesh& renderedMesh, const std::string& name)
+{
+	Ogre::SceneNode * sceneNode = NULL;
+  	bool attached = false;
+	Ogre::ManualObject * obj = NULL;
+
+	if (this->mSceneMgr->hasManualObject(name))
+	{
+		sceneNode = this->mSceneMgr->getSceneNode(name);
+		obj = this->mSceneMgr->getManualObject(name);
+		attached = true;
+	}
+	else
+	{
+		sceneNode = this->mainNode->createChildSceneNode(name);
+		obj = this->mSceneMgr->createManualObject(name);
+	}
+
+	sceneNode->setVisible(true);
+  	obj->setVisible(true);
+
+	sceneNode->translate(Ogre::Vector3(renderedMesh.getTransform().p()[0],
+										renderedMesh.getTransform().p()[1],
+										renderedMesh.getTransform().p()[2]));
+
+	fVec4 rot = renderedMesh.getTransform().R().convertRotationToAngleAxis();
+
+	sceneNode->rotate(Ogre::Vector3(rot[1], rot[2], rot[3]), Ogre::Radian(rot[0]));
+	sceneNode->scale(Ogre::Vector3(renderedMesh.getScale()[0],
+						renderedMesh.getScale()[1],
+						renderedMesh.getScale()[2]));
+
+  	if (!attached && drawManualObject(renderedMesh, obj, "" ))
 	{
     	sceneNode->attachObject(obj);
 	}
@@ -263,6 +264,51 @@ void OgreVisualizer::drawTransparentMesh(RenderedMesh& renderedMesh, const std::
 	matPtr->getTechnique(0)->getPass(0)->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
 	matPtr->getTechnique(0)->getPass(0)->setDepthWriteEnabled(false);
 //	matPtr->getTechnique(0)->getPass(0)->setSelfIllumination(0,0,1);
+
+	float r,g,b;
+	r = renderedMesh.getColor()[0];
+	g = renderedMesh.getColor()[1];
+	b = renderedMesh.getColor()[2];
+
+	matPtr->getTechnique(0)->getPass(0)->setAmbient(r, g, b);
+	matPtr->getTechnique(0)->getPass(0)->setDiffuse(r, g, b, 0.5);
+
+	Ogre::SceneNode * sceneNode = NULL;
+  	bool attached = false;
+	Ogre::ManualObject * obj = NULL;
+
+	if (this->mSceneMgr->hasManualObject(name))
+	{
+		sceneNode = this->mSceneMgr->getSceneNode(name);
+		obj = this->mSceneMgr->getManualObject(name);
+		attached = true;
+	}
+	else
+	{
+		sceneNode = this->mainNode->createChildSceneNode(name);
+		obj = this->mSceneMgr->createManualObject(name);
+	}
+
+	sceneNode->setVisible(true);
+  	obj->setVisible(true);
+
+	sceneNode->translate(Ogre::Vector3(renderedMesh.getTransform().p()[0],
+										renderedMesh.getTransform().p()[1],
+										renderedMesh.getTransform().p()[2]));
+
+	fVec4 rot = renderedMesh.getTransform().R().convertRotationToAngleAxis();
+
+	sceneNode->rotate(Ogre::Vector3(rot[1], rot[2], rot[3]), Ogre::Radian(rot[0]));
+	sceneNode->scale(Ogre::Vector3(renderedMesh.getScale()[0],
+						renderedMesh.getScale()[1],
+						renderedMesh.getScale()[2]));
+
+  	if (!attached && drawManualObject(renderedMesh, obj, name ))
+	{
+    	sceneNode->attachObject(obj);
+	}
+
+	
 
 }
 

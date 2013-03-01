@@ -40,7 +40,7 @@ protected:
 
 private:
 
-	void drawMeshHelper(RenderedMesh& renderedMesh, Ogre::ManualObject * obj);
+	bool drawManualObject(RenderedMesh& renderedMesh, Ogre::ManualObject * obj, const std::string& materialName);
 	void destroyAllAttachedMovableObjects( Ogre::SceneNode * node);
 };
 
