@@ -28,6 +28,8 @@
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}
 
+using namespace Visualizer;
+
 class VisualizerBase 
 {
 
@@ -81,6 +83,12 @@ protected:
 	pthread_mutex_t sceneLock;
 	pthread_cond_t  sceneHasBeenDrawn;
 
+	vector<PendingCommand*> pendingCommands;
+	vector<vector<Mesh*> > meshes;
+
+	fTransform X_GC;
+
+	CoordinateDirection groundNormal;
 private:
 	std::string name;
 	std::string simbodyVersionStr;

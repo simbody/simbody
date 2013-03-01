@@ -26,7 +26,7 @@ public:
 	OSGVisualizer();
 	void go();
 
-	void createScene();
+	osg::Node* createScene();
 
 	osgViewer::Viewer viewer;
 	osg::Group* root;

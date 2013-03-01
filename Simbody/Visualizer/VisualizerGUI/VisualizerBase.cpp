@@ -4,14 +4,17 @@
 
 using namespace std;
 using namespace SimTK;
+using namespace Visualizer;
 
-VisualizerBase::VisualizerBase()
+VisualizerBase::VisualizerBase() : groundNormal(YAxis)
 {
 	dummyDisplay = NULL;
 	scene = NULL;
 
 	pthread_mutex_init(&sceneLock, NULL);
     pthread_cond_init(&sceneHasBeenDrawn, NULL);
+
+    meshes.resize(NumPredefinedMeshes);
 }
 
 VisualizerBase::~VisualizerBase()
@@ -134,13 +137,13 @@ Scene* VisualizerBase::readNewScene(int inPipe) {
                 newScene->solidMeshes.push_back(mesh);
             else
                 newScene->transparentMeshes.push_back(mesh);
-//            if (meshIndex < NumPredefinedMeshes && (meshes[meshIndex].size() <= resolution || meshes[meshIndex][resolution] == NULL)) {
+            if (meshIndex < NumPredefinedMeshes && (meshes[meshIndex].size() <= resolution || meshes[meshIndex][resolution] == NULL)) {
                 // A real mesh will be generated from this the next
                 // time the scene is redrawn.
-//                pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE --------
-//                pendingCommands.insert(pendingCommands.begin(), new PendingStandardMesh(meshIndex, resolution));
-//                pthread_mutex_unlock(&sceneLock);   //------ UNLOCK SCENE --------
-//            }
+                pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE --------
+                pendingCommands.insert(pendingCommands.begin(), new PendingStandardMesh(meshIndex, resolution));
+                pthread_mutex_unlock(&sceneLock);   //------ UNLOCK SCENE --------
+            }
             break;
         }
 
@@ -239,15 +242,15 @@ Scene* VisualizerBase::readNewScene(int inPipe) {
         case DefineMesh: {
 			printf("=-=-=-=-= DefineMesh: =-=-=-=");
             readDataFromPipe(inPipe, buffer, 2*sizeof(short));
-							 /*
+			
             PendingMesh* mesh = new PendingMesh(); // assigns next mesh index
             int numVertices = shortBuffer[0];
             int numFaces = shortBuffer[1];
             mesh->vertices.resize(3*numVertices, 0);
             mesh->normals.resize(3*numVertices);
             mesh->faces.resize(3*numFaces);
-            readData((unsigned char*)&mesh->vertices[0], (int)(mesh->vertices.size()*sizeof(float)));
-            readData((unsigned char*)&mesh->faces[0], (int)(mesh->faces.size()*sizeof(short)));
+            readDataFromPipe(inPipe, (unsigned char*)&mesh->vertices[0], (int)(mesh->vertices.size()*sizeof(float)));
+            readDataFromPipe(inPipe, (unsigned char*)&mesh->faces[0], (int)(mesh->faces.size()*sizeof(short)));
 
             // Compute normal vectors for the mesh.
 
@@ -277,10 +280,10 @@ Scene* VisualizerBase::readNewScene(int inPipe) {
 
             // A real mesh will be generated from this the next
             // time the scene is redrawn.
-//            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE --------
-//            pendingCommands.insert(pendingCommands.begin(), mesh);
-//            pthread_mutex_unlock(&sceneLock);   //------ UNLOCK SCENE --------
-            */
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE --------
+            pendingCommands.insert(pendingCommands.begin(), mesh);
+            pthread_mutex_unlock(&sceneLock);   //------ UNLOCK SCENE --------
+            
             break;
         }
 
@@ -352,6 +355,13 @@ void VisualizerBase::listenForInput(int inPipe, int outPipe)
         }
         case SetCamera: {
 			std::cout << "===========SetCamera was called================\n";
+			readDataFromPipe(inPipe, buffer, 6*sizeof(float));
+            fVec3 R(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+            fVec3 p(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+//            pendingCommands.push_back(new PendingSetCameraTransform(R, p));
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
+
 			break;
         }
         case ZoomCamera: {
@@ -371,8 +381,14 @@ void VisualizerBase::listenForInput(int inPipe, int outPipe)
 			break;
         }
         case SetSystemUpDirection: {
-			readDataFromPipe(inPipe, buffer, 2);
 			std::cout << "===========SetSystemUpDirection was called============\n";
+			readDataFromPipe(inPipe, buffer, 2);
+            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            groundNormal = CoordinateDirection( CoordinateAxis((int)buffer[0]),
+                                                (int)(signed char)buffer[1] );
+            X_GC.updR().setRotationFromTwoAxes
+               (groundNormal, YAxis, X_GC.z(), ZAxis); // attempt to keep z
+            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
 			break;
         }
         case SetGroundHeight: {

@@ -4,23 +4,15 @@ using namespace osg;
 
 OSGVisualizer::OSGVisualizer()
 {
+    root = new osg::Group();
 }
 
-void OSGVisualizer::createScene()
+osg::Node* OSGVisualizer::createScene()
 {
-    root = new osg::Group();
-
-	root->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-
-	viewer.setUpViewInWindow(100, 100, 800, 600);
-    viewer.setSceneData( root );
-
-    viewer.setCameraManipulator(new osgGA::TrackballManipulator());
-
 	sceneGeode = new Geode();
 
-//	this->root->addChild(createBackground());
-	this->root->addChild(sceneGeode);
+	return sceneGeode;
+
 }
 
 void OSGVisualizer::drawLine(RenderedLine& line)
@@ -84,7 +76,16 @@ void OSGVisualizer::renderScene()
 
 void OSGVisualizer::go()
 {
-	this->viewer.realize();
+	root->addChild(createScene());
+
+	root->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+
+	viewer.setUpViewInWindow(100, 100, 800, 600);
+    viewer.setSceneData( root );
+
+    viewer.setCameraManipulator(new osgGA::TrackballManipulator());
+
+	viewer.realize();
 	while( !viewer.done() )
 	{
 		renderScene();
