@@ -47,7 +47,7 @@ static void* drawingThreadMain(void* visualizerAsVoidp);
 static const long long UsToNs = 1000LL;          // ns = us * UsToNs
 static const long long MsToNs = 1000LL * UsToNs; // ns = ms * MsToNs
 
-static const Real      DefaultFrameRateFPS             = 30;
+static const Real      DefaultFrameRateFPS             = 60;
 static const Real      DefaultDesiredBufferLengthInSec = Real(0.15); // 150ms
 
 // These are not currently overrideable.

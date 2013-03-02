@@ -26,52 +26,37 @@ void OgreVisualizer::createScene(void)
 {
 	backgroundNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("background");
 	//
-//	mSceneMgr->setSkyDome(true, "Examples/CloudySky", 5, 8);	
+	mSceneMgr->setSkyDome(true, "Examples/CloudySky", 5, 8);	
 	/*
 	Ogre::Plane skyPlane;
-	skyPlane.d = 1000;
+	skyPlane.d = 100;
 	skyPlane.normal = Ogre::Vector3::NEGATIVE_UNIT_Y;
 
-	mSceneMgr->setSkyPlane(true, skyPlane, "Examples/CloudySky", 1500, 40, true, 1.5f, 150, 150);
+	mSceneMgr->setSkyPlane(true, skyPlane, "Examples/CloudySky", 500, 20, true, 0.5f, 150, 150);
 	*/
-//	mSceneMgr->setAmbientLight(Ogre::ColourValue(0, 0, 0));
     mSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_TEXTURE_MODULATIVE);
-
-//    Ogre::Entity* entNinja = mSceneMgr->createEntity("Ninja", "ninja.mesh");
-//    entNinja->setCastShadows(true);
-//    mSceneMgr->getRootSceneNode()->createChildSceneNode()->attachObject(entNinja);
 
     Ogre::Plane plane(Ogre::Vector3::UNIT_Y, 0);
  
     Ogre::MeshManager::getSingleton().createPlane("ground", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
-        plane, 90000, 90000, 20, 20, true, 1, 2, 2, Ogre::Vector3::UNIT_Z);
+        plane, 20, 20, 20, 20, true, 1, 5, 5, Ogre::Vector3::UNIT_Z);
  
     Ogre::Entity* entGround = mSceneMgr->createEntity("GroundEntity", "ground");
 
     backgroundNode->attachObject(entGround);
-
-	Ogre::ResourcePtr groundMat = Ogre::MaterialManager::getSingleton().create("ground", "General");
-	Ogre::MaterialPtr mat = Ogre::MaterialPtr(groundMat);
-	mat.get()->setAmbient(0.95, 0.64, 0.23);
-	entGround->setMaterialName("ground");
-
+	entGround->setMaterialName("Viz/Brick");
     entGround->setCastShadows(false);
- 
-    Ogre::Light* pointLight = mSceneMgr->createLight("pointLight");
-    pointLight->setType(Ogre::Light::LT_POINT);
-    pointLight->setPosition(Ogre::Vector3(0, 150, 250));
- 
-    pointLight->setDiffuseColour(1.0, 0.0, 0.0);
-    pointLight->setSpecularColour(1.0, 0.0, 0.0);
 
-	/*
     Ogre::Light* directionalLight = mSceneMgr->createLight("directionalLight");
     directionalLight->setType(Ogre::Light::LT_DIRECTIONAL);
-    directionalLight->setDiffuseColour(Ogre::ColourValue(.25, .25, 0));
-    directionalLight->setSpecularColour(Ogre::ColourValue(.25, .25, 0));
+    directionalLight->setDiffuseColour(Ogre::ColourValue::White);
+    directionalLight->setSpecularColour(Ogre::ColourValue(0.4, 0.4, 0.4));
  
-    directionalLight->setDirection(Ogre::Vector3( 0, -1, 1 )); 
-	*/
+    directionalLight->setDirection(Ogre::Vector3( 0.55, -0.3, -0.75 )); 
+    //directionalLight->setPosition(Ogre::Vector3( 100, 100, 0 )); 
+
+	mSceneMgr->setAmbientLight(Ogre::ColourValue(0.2, 0.2, 0.2));
+
 	mainNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("main");
 }
 
@@ -112,6 +97,9 @@ void OgreVisualizer::drawLine(RenderedLine& line, const std::string& name)
 	}
 
   	obj->end();
+
+	// Lines don't cast shadows
+	obj->setCastShadows(false);
 
   	if (!attached)
 	{
@@ -271,7 +259,7 @@ void OgreVisualizer::drawTransparentMesh(RenderedMesh& renderedMesh, const std::
 	b = renderedMesh.getColor()[2];
 
 	matPtr->getTechnique(0)->getPass(0)->setAmbient(r, g, b);
-	matPtr->getTechnique(0)->getPass(0)->setDiffuse(r, g, b, 0.5);
+	matPtr->getTechnique(0)->getPass(0)->setDiffuse(r, g, b, 0.2);
 
 	Ogre::SceneNode * sceneNode = NULL;
   	bool attached = false;
@@ -432,8 +420,13 @@ void OgreVisualizer::go()
 	}
 
 	createScene();
+
+
 	while(true)
 	{
+
+		std::cout << "FPS: " << mWindow->getLastFPS() << std::endl;
+
 		renderScene();
 		// Do stuff
 		mRoot->renderOneFrame();
@@ -452,10 +445,10 @@ int main(int argc, char *argv[])
         talkingToSimulator = true; // presumably those were the pipes
   	} else {
         printf("\n**** VISUALIZER HAS NO SIMULATOR TO TALK TO ****\n");
-        printf("The Simbody VisualizerGUI was invoked directly with no simulator\n");
+        printf("The Visualizer  was invoked directly with no simulator\n");
         printf("process to talk to. Will attempt to bring up the display anyway\n");
         printf("in case you want to look at the About message.\n");
-        printf("The VisualizerGUI is intended to be invoked programmatically.\n");
+        printf("The Visualizer is intended to be invoked programmatically.\n");
     }
 
 	// Create application object

@@ -87,10 +87,11 @@ void OgreVisualizerBase::createCamera(void)
     mCamera = mSceneMgr->createCamera("PlayerCam");
 
     // Position it at 500 in Z direction
-    mCamera->setPosition(Ogre::Vector3(0,10,100));
+    mCamera->setPosition(Ogre::Vector3(10,10,10));
 	mCamera->lookAt(Ogre::Vector3(0,0,0));
     // Look back along -Z
-    mCamera->setNearClipDistance(5);
+    mCamera->setNearClipDistance(0.1);
+    mCamera->setFarClipDistance(0);
 
     mCameraMan = new OgreBites::SdkCameraMan(mCamera);   // create a default camera controller
 
@@ -166,6 +167,8 @@ void OgreVisualizerBase::setupResources(void)
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media", "FileSystem");
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/models", "FileSystem");
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/materials/scripts", "FileSystem");
+	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/experiment/simbody-trunk/Simbody/Visualizer/VisualizerGUI/materials/scripts", "FileSystem");
+	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/experiment/simbody-trunk/Simbody/Visualizer/VisualizerGUI/materials/textures", "FileSystem");
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/materials/textures", "FileSystem");
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/materials/programs", "FileSystem");
 	  resgroup.addResourceLocation("/home/kevinux/projects/Visualizer/tools/Ogre/ogre_src_v1-8-1/Samples/Media/fonts", "FileSystem");

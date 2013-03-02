@@ -1,0 +1,57 @@
+material Viz/Brick
+{
+	technique
+	{
+		pass
+		{
+			texture_unit
+			{
+				texture brick1.ppm
+			}
+		}
+	}
+}
+
+
+material Viz/Ground_Wood
+{
+	technique
+	{
+		pass
+		{
+			texture_unit
+			{
+				texture ground.ppm
+				scale 0.1 0.1
+			}
+		}
+	}
+}
+
+material Viz/Ground_Block
+{
+	technique
+	{
+		pass
+		{
+			texture_unit
+			{
+				texture ground_old.ppm
+			}
+		}
+	}
+}
+
+material Viz/Wall
+{
+	technique
+	{
+		pass
+		{
+			texture_unit
+			{
+				texture wall.ppm
+			}
+		}
+	}
+}
