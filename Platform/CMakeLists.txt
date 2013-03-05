@@ -1,5 +1,5 @@
 #---------------------------------------------------
-# Simbody/Prerequisites
+# Simbody/Platform
 #
 # Simbody has dependencies on several low-level packages
 # for which the details differ on different platforms.
@@ -8,11 +8,8 @@
 #    - Lapack
 # Pthreads is standard on Linux platforms, and close enough
 # on Macs. On Windows we have to supply our own.
-# We provide our own high-performance Lapack libraries
-# on all platforms, but you can provide your own if you
-# prefer by giving the library names. However, the 
-# signatures must match our include file SimTKlapack.h.
-#
+# We provide our own high-performance Lapack library 
+# for Windows; Linux and Macs are expected to have one.
 #----------------------------------------------------
 
 SET(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${PLATFORM_NAME})
