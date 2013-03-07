@@ -110,15 +110,29 @@ void OgreVisualizer::drawLine(RenderedLine& line, const std::string& name)
 void OgreVisualizer::drawText(RenderedText& text, const std::string& name)
 {
 	Ogre::MovableText* msg = new Ogre::MovableText(name, text.getText());
-//	msg->setGlobalTranslation(Ogre::Vector3(text.getPosition()[0], text.getPosition()[1], text.getPosition()[2]));
-	msg->setLocalTranslation(Ogre::Vector3(text.getPosition()[0], text.getPosition()[1], text.getPosition()[2]));
 	msg->setColor(Ogre::ColourValue(text.getColor()[0], text.getColor()[1], text.getColor()[2]));
 	msg->setCharacterHeight(0.1);
-	msg->setSpaceWidth(0.1);
+	msg->setSpaceWidth(0.5);
 
 	Ogre::SceneNode *sceneNode = this->mainNode->createChildSceneNode(name);
 
 	sceneNode->setVisible(true);
+
+	sceneNode->translate(Ogre::Vector3(text.getPosition()[0],
+										text.getPosition()[1],
+										text.getPosition()[2]));
+
+	fVec4 rot = X_GC.R().convertRotationToAngleAxis();
+
+	sceneNode->rotate(Ogre::Vector3(rot[1], rot[2], rot[3]), Ogre::Radian(rot[0]));
+
+//	msg->setGlobalTranslation(Ogre::Vector3(text.getPosition()[0], text.getPosition()[1], text.getPosition()[2]));
+//	msg->setLocalTranslation(Ogre::Vector3(text.getPosition()[0], text.getPosition()[1], text.getPosition()[2]));
+/*
+	sceneNode->scale(Ogre::Vector3(text.getScale()[0],
+						text.getScale()[1],
+						text.getScale()[2]));
+*/
 	sceneNode->attachObject(msg);
 }
 
@@ -190,7 +204,7 @@ bool OgreVisualizer::drawManualObject(RenderedMesh& renderedMesh, Ogre::ManualOb
 
 		for (int j = 0; j < edges.size(); j+=3 )
 		{
-			obj->position(edges.at(j), edges.at(j+1), edges.at(j+2));
+//			obj->position(edges.at(j), edges.at(j+1), edges.at(j+2));
 		}
 
   		obj->end();
@@ -360,7 +374,7 @@ void OgreVisualizer::renderScene()
 		convert << "text" << lineCount;
 		str = convert.str();
 
-           // drawText(scene->sceneText[i], str);
+          	drawText(scene->sceneText[i], str);
 			lineCount++;
 		}
         for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
@@ -425,7 +439,7 @@ void OgreVisualizer::go()
 	while(true)
 	{
 
-		std::cout << "FPS: " << mWindow->getLastFPS() << std::endl;
+//		std::cout << "FPS: " << mWindow->getLastFPS() << std::endl;
 
 		renderScene();
 		// Do stuff
