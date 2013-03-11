@@ -132,6 +132,12 @@ using namespace SimTK;
 // Skip down to main() first -- these are just some helper classes to keep
 // track of the Gazebo model and connect it to its Simbody implementation.
 
+// Hacks for sherm's testing.
+#define ANIMATE             // turn this off for timing tests
+//#define ADD_JOINT_SPRINGS // makes all the revolute & prismatic joints stiff
+//#define RAGDOLL2_ICS      // set initial conditions for ragdoll2 model
+//#define USE_CONTACT_MESH  // use elastic foundation model for cylinder
+
 //==============================================================================
 //                            GAZEBO LINK INFO
 //==============================================================================
@@ -301,11 +307,12 @@ private:
 // were found in the input file for this model.
 class GazeboModel {
 public:
-    GazeboModel() {}
+    GazeboModel() : isStatic(false) {}
     void readModel(Xml::Element modelElt);
 
     std::string     name;
-    Transform       X_WM;   // model frame in the World frame
+    Transform       X_WM;     // model frame in the World frame
+    bool            isStatic; // means all bodies are attached to Ground
     GazeboLinks     links;
     GazeboJoints    joints;
 
@@ -319,26 +326,21 @@ public:
 //==============================================================================
 //                                   MAIN
 //==============================================================================
-// Hacks for sherm's testing.
 
-#define ANIMATE             // turn this off for timing tests
-#define ADD_JOINT_SPRINGS   // makes all the revolute & prismatic joints stiff
-//#define RAGDOLL2_ICS      // set initial conditions for ragdoll2 model
 
 
 static void createMultibodyGraph(GazeboModel&           model,
                                  MultibodyGraphMaker&   mbgraph);
 
-static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
-                               const Vec3&                gravity,
-                               GazeboModel&               model,
-                               MultibodySystem&           mbs,
-                               SimbodyMatterSubsystem&    matter,
-                               GeneralForceSubsystem&     forces,
-                               CompliantContactSubsystem& contact);
+static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
+                                    GazeboModel&               model,
+                                    MultibodySystem&           mbs,
+                                    SimbodyMatterSubsystem&    matter,
+                                    GeneralForceSubsystem&     forces,
+                                    CompliantContactSubsystem& contact);
 
-static void runSimulation(const MultibodySystem&    mbs,
-                          const GazeboModel&        model);
+static void runSimulation(const MultibodySystem&          mbs,
+                          const std::vector<GazeboModel>& gzModels);
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {
@@ -367,8 +369,12 @@ int main(int argc, const char* argv[]) {
          << root.getOptionalAttributeValue("version", "unspecified") << endl;
 
     Xml::Element world = root.getRequiredElement("world");
+    Xml::Element physics = world.getOptionalElement("physics");
     const Vec3 gravity = // default is std gravity at Earth's surface, m/s^2
-        world.getOptionalElementValueAs<Vec3>("gravity", Vec3(0,0,-9.80665));
+        world.hasElement("gravity") 
+        ? world.getRequiredElementValueAs<Vec3>("gravity")
+        : (physics.hasElement("gravity") ? physics.getRequiredElementValueAs<Vec3>("gravity")
+                                         : Vec3(0,0,-9.80665));
 
     Array_<Xml::Element> models = world.getAllElements("model");
     cout << "World '" << world.getOptionalAttributeValue("name","NONAME")
@@ -379,17 +385,7 @@ int main(int argc, const char* argv[]) {
         cout << "File contained no model -- nothing to do. Goodbye.\n";
         return 0;
     }
-
-    //------------------------- READ IN GAZEBO MODEL ---------------------------
-    GazeboModel model;
-    model.readModel(models[0]); // TODO: ignore other models for now
-
-    //----------------------- GENERATE MULTIBODY GRAPH -------------------------
-    MultibodyGraphMaker mbgraph;
-    createMultibodyGraph(model, mbgraph);
-    // Optional: dump the graph to stdout for debugging or curiosity.
-    mbgraph.dumpGraph(std::cout);
-
+   
     //------------------------ CREATE SIMBODY SYSTEM ---------------------------
     // Create a Simbody System and populate it with Subsystems we'll need.
     MultibodySystem mbs; 
@@ -397,14 +393,47 @@ int main(int argc, const char* argv[]) {
     GeneralForceSubsystem forces(mbs);
     ContactTrackerSubsystem tracker(mbs);
     CompliantContactSubsystem contact(mbs, tracker);
+    // Tweak visualization to get Z up and to prevent Simbody from generating
+    // its own sketchy visuals.
+    mbs.setUpDirection(ZAxis);
+    matter.setShowDefaultGeometry(false);
+    // Set stiction max slip velocity to make it less stiff.
+    contact.setTransitionVelocity(0.05);
+    // Specify gravity (read in above from world).
+    Force::UniformGravity(forces, matter, gravity);
+    // Define a material to use for ground contact. This is not very stiff.
+    ContactMaterial groundMaterial(1e6,   // stiffness
+                             0.1,  // dissipation
+                             0.7,   // mu_static
+                             0.5,   // mu_dynamic
+                             0.5);  // mu_viscous
+    // Add a contact surface to represent the ground.
+    // Half space normal is -x; must rotate about y to make it +z.
+    matter.Ground().updBody().addContactSurface(Rotation(Pi/2,YAxis),
+       ContactSurface(ContactGeometry::HalfSpace(), groundMaterial));
+    // Draw world frame and model frame.
+    matter.Ground().addBodyDecoration(Vec3(0), 
+        DecorativeFrame(1).setColor(Green).setLineThickness(3)); // World
 
-    buildSimbodySystem(mbgraph, gravity, model, 
-                       mbs, matter, forces, contact);
+    std::vector<GazeboModel> gzModels(models.size());
+    //------------------------ READ IN GAZEBO MODELS ---------------------------
+    for (unsigned m=0; m < models.size(); ++m) {
+        gzModels[m].readModel(models[m]); // TODO: ignore other models for now
+
+        //----------------------- GENERATE MULTIBODY GRAPH -------------------------
+        MultibodyGraphMaker mbgraph;
+        createMultibodyGraph(gzModels[m], mbgraph);
+        // Optional: dump the graph to stdout for debugging or curiosity.
+        mbgraph.dumpGraph(std::cout);
+
+        addModelToSimbodySystem(mbgraph, gzModels[m], 
+                                mbs, matter, forces, contact);
+    }
 
     //--------------------------- RUN A SIMULATION -----------------------------
     // The Simbody System has been built successfully. Now lets run it for
     // a while to see what it looks like.
-    runSimulation(mbs, model);
+    runSimulation(mbs, gzModels);
 
     } catch (const std::exception& e) {
         cout << "EXCEPTION: " << e.what() << "\n";
@@ -521,34 +550,23 @@ static MassProperties getMassProperties(Xml::Element link) {
 
 
 //==============================================================================
-//                            BUILD SIMBODY SYSTEM
+//                       ADD MODEL TO SIMBODY SYSTEM
 //==============================================================================
 // Given a desired multibody graph, gravity, and the Gazebo model that was
-// used to generate the graph, create a Simbody System for it. There are many
-// limitations here, especially in the handling of contact. Any Gazebo features
-// that we haven't modeled are just ignored.
+// used to generate the graph, add elements to the Simbody System to represent
+// it. There are many limitations here, especially in the handling of contact. 
+// Any Gazebo features that we haven't modeled are just ignored.
 // The GazeboModel is updated so that its links and joints have references to
 // their corresponding Simbody elements.
 // We set up some visualization here so we can see what's happening but this
 // would not be needed in Gazebo since it does its own visualization.
-static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
-                               const Vec3&                gravity,
-                               GazeboModel&               model,
-                               MultibodySystem&           mbs,
-                               SimbodyMatterSubsystem&    matter,
-                               GeneralForceSubsystem&     forces,
-                               CompliantContactSubsystem& contact) 
+static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
+                                    GazeboModel&               model,
+                                    MultibodySystem&           mbs,
+                                    SimbodyMatterSubsystem&    matter,
+                                    GeneralForceSubsystem&     forces,
+                                    CompliantContactSubsystem& contact) 
 {
-    // Tweak visualization to get Z up and to prevent Simbody from generating
-    // its own sketchy visuals.
-    mbs.setUpDirection(ZAxis);
-    matter.setShowDefaultGeometry(false);
-    // Set stiction max slip velocity to make it less stiff.
-    contact.setTransitionVelocity(0.1);
-
-    // Specify gravity (read in above from world).
-    Force::UniformGravity(forces, matter, gravity);
-
     // Define a material to use for contact. This is not very stiff.
     ContactMaterial material(1e6,   // stiffness
                              0.1,  // dissipation
@@ -556,16 +574,12 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
                              0.5,   // mu_dynamic
                              0.5);  // mu_viscous
 
-    // Add a contact surface to represent the ground.
-    // Half space normal is -x; must rotate about y to make it +z.
-    matter.Ground().updBody().addContactSurface(Rotation(Pi/2,YAxis),
-       ContactSurface(ContactGeometry::HalfSpace(), material));
-
-    // Draw world frame and model frame.
-    matter.Ground().addBodyDecoration(Vec3(0), 
-        DecorativeFrame(1).setColor(Green).setLineThickness(3)); // World
+    // Draw the model frame.
     matter.Ground().addBodyDecoration(model.X_WM, 
         DecorativeFrame(.75).setColor(Orange).setLineThickness(3));  // Model
+    matter.Ground().addBodyDecoration(model.X_WM.p()+Vec3(0,0,.1),
+        DecorativeText(model.name).setScale(.2)
+        .setColor(model.isStatic?Green:Cyan));
 
     // Generate a contact clique we can put collision geometry in to prevent
     // self-collisions.
@@ -598,7 +612,9 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
         // This will reference the new mobilized body once we create it.
         MobilizedBody mobod; 
 
-        if (mob.isAddedBaseMobilizer()) {
+        if (model.isStatic) {
+            mobod = matter.updGround();
+        } else if (mob.isAddedBaseMobilizer()) {
             // There is no corresponding Gazebo joint for this mobilizer.
             // Create the joint and set its default position to be the default
             // pose of the base link relative to the Ground frame.
@@ -732,6 +748,7 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
 
             // COLLISION
             Array_<Xml::Element> coll = master.getAllElements("collision");
+            const Vec3 collColor = model.isStatic ? Green : Gray;
             for (unsigned i=0; i < coll.size(); ++i) {
                 Transform X_LC = getPose(coll[i]);
                 Xml::Element geo = coll[i].getRequiredElement("geometry");
@@ -743,7 +760,7 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     mobod.addBodyDecoration(
                         X_LC, DecorativeSphere(r)
                                 .setRepresentation(DecorativeGeometry::DrawWireframe)
-                                .setColor(Gray));
+                                .setColor(collColor));
                     ContactSurface surface(ContactGeometry::Sphere(r),
                                            material);
                     if (!gzOutb.selfCollide)
@@ -757,13 +774,26 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     Real r   = cyl.getRequiredElementValueAs<Real>("radius");
                     Real len = cyl.getRequiredElementValueAs<Real>("length");
                     // Cylinder is along Z in Gazebo
+#ifndef USE_CONTACT_MESH
                     Vec3 esz = Vec3(r,r,len/2); // Use ellipsoid instead
                     mobod.addBodyDecoration(X_LC, 
                         DecorativeEllipsoid(esz)
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
-                            .setColor(Gray));
+                            .setColor(collColor));
                     ContactSurface surface(ContactGeometry::Ellipsoid(esz),
                                            material);
+#else
+                    const int resolution = 0; // chunky hexagonal shape
+                    const PolygonalMesh mesh = PolygonalMesh::
+                        createCylinderMesh(ZAxis,r,len/2,resolution);
+                    const ContactGeometry::TriangleMesh triMesh(mesh);
+    
+                    mobod.addBodyDecoration(X_LC, 
+                        DecorativeMesh(triMesh.createPolygonalMesh())
+                        .setRepresentation(DecorativeGeometry::DrawWireframe)
+                        .setColor(collColor));
+                    ContactSurface surface(triMesh, material,1 /*Thickness*/);
+#endif
                     if (!gzOutb.selfCollide)
                         surface.joinClique(model.modelClique);
                     mobod.updBody().addContactSurface(X_LC, surface);
@@ -777,7 +807,7 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     mobod.addBodyDecoration(X_LC, 
                         DecorativeEllipsoid(hsz) // use half dimensions
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
-                            .setColor(Gray));
+                            .setColor(collColor));
                     ContactSurface surface(ContactGeometry::Ellipsoid(hsz),
                                            material);
                     if (!gzOutb.selfCollide)
@@ -831,8 +861,8 @@ static void buildSimbodySystem(const MultibodyGraphMaker& mbgraph,
 //                            RUN SIMULATION
 //==============================================================================
 // Run a simulation and extract some data from it to show how that can be done.
-static void runSimulation(const MultibodySystem&    mbs,
-                          const GazeboModel&        model) {
+static void runSimulation(const MultibodySystem&          mbs,
+                          const std::vector<GazeboModel>& gzModels) {
     // Create a Visualizer so we can see what's what.
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
@@ -843,9 +873,9 @@ static void runSimulation(const MultibodySystem&    mbs,
 // The ragdoll2 model needs some reasonable initial conditions in order to
 // assemble its loop joints properly.
 #ifdef RAGDOLL2_ICS
-    model.joints.getJoint("l_upper_arm_joint").mobod.setOneQ(state,0,-.4);
-    model.joints.getJoint("r_upper_arm_joint").mobod.setOneQ(state,0,-.4);
-    model.joints.getJoint("torso_joint").mobod.setOneQ(state,0,.3);
+    gzModels[0].joints.getJoint("l_upper_arm_joint").mobod.setOneQ(state,0,-.4);
+    gzModels[0].joints.getJoint("r_upper_arm_joint").mobod.setOneQ(state,0,-.4);
+    gzModels[0].joints.getJoint("torso_joint").mobod.setOneQ(state,0,.3);
 #endif
 
     viz.report(state);  // Show the initial state.
@@ -872,7 +902,8 @@ static void runSimulation(const MultibodySystem&    mbs,
     const Real ReportTime = 1./30.;
     //const Real Accuracy = 0.001; // 0.1% is Simbody default
     //const Real Accuracy = 0.05; // 5%
-    const Real Accuracy = 0.10; // 10%
+    const Real Accuracy = 0.1; // 1%
+    //const Real Accuracy = 0.10; // 10%
     //const Real Accuracy = 0.20; // 20%
 
     // Use a low order integrator if you force the max step size to be small.
@@ -909,20 +940,24 @@ static void runSimulation(const MultibodySystem&    mbs,
         if (std::abs(std::floor(t+ReportTime/2)-t) > ReportTime/2) 
             continue;
 
-        printf("\nLINKS t=%g\n", t);
-        for (int i=0; i < model.links.size(); ++i) {
-            const GazeboLinkInfo& link = model.links.getLink(i);
-            const Vec3& loc = link.masterMobod.getBodyOriginLocation(state);
-            printf("%20s %10.3g %10.3g %10.3g\n", 
-                link.name.c_str(), loc[0], loc[1], loc[2]); 
-        }
-        printf("\nJOINTS t=%g\n", t);
-        for (int i=0; i < model.joints.size(); ++i) {
-            const GazeboJointInfo& joint = model.joints.getJoint(i);
-            const Real q0 = joint.mobod.getOneQ(state, 0);
-            const Real u0 = joint.mobod.getOneU(state, 0);
-            printf("%20s %10.3g %10.3g\n", 
-                joint.name.c_str(), q0, u0); 
+        for (unsigned m=0; m < gzModels.size(); ++m) {
+            const GazeboModel& model = gzModels[m];
+            printf("\nMODEL %s --------------------\n", model.name.c_str());
+            printf("\n  LINKS t=%g\n", t);
+            for (int i=0; i < model.links.size(); ++i) {
+                const GazeboLinkInfo& link = model.links.getLink(i);
+                const Vec3& loc = link.masterMobod.getBodyOriginLocation(state);
+                printf("  %20s %10.3g %10.3g %10.3g\n", 
+                    link.name.c_str(), loc[0], loc[1], loc[2]); 
+            }
+            printf("\n  JOINTS t=%g\n", t);
+            for (int i=0; i < model.joints.size(); ++i) {
+                const GazeboJointInfo& joint = model.joints.getJoint(i);
+                const Real q0 = joint.mobod.getOneQ(state, 0);
+                const Real u0 = joint.mobod.getOneU(state, 0);
+                printf("  %20s %10.3g %10.3g\n", 
+                    joint.name.c_str(), q0, u0); 
+            }
         }
 
     }
@@ -936,7 +971,7 @@ static void runSimulation(const MultibodySystem&    mbs,
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
         timeInSec << "s for " << integ.getTime() << "s sim (avg step=" 
         << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) " 
-        << (1000*integ.getTime())/evals << "ms/eval\n";
+        << (1000*integ.getTime())/evals << "sim ms/eval\n";
     cout << "CPUtime (not reliable when visualizing) " << cpuInSec << endl;
 
     printf("Used Integrator %s at accuracy %g:\n", 
@@ -981,11 +1016,13 @@ int GazeboJoints::addJoint(const GazeboJointInfo& info) {
 void GazeboModel::readModel(Xml::Element modelElt) {
     name = modelElt.getRequiredAttributeValue("name");
     X_WM = getPose(modelElt);
+    isStatic = modelElt.getOptionalElementValueAs<bool>("static", false);
 
     Array_<Xml::Element> linkElts = modelElt.getAllElements("link");
     Array_<Xml::Element> jointElts = modelElt.getAllElements("joint");
-    printf("Reading model '%s' with ground + %d links, %d joints.\n",
-        name.c_str(), linkElts.size(), jointElts.size());
+    printf("Reading %s model '%s' with ground + %d links, %d joints.\n",
+        isStatic ? "STATIC" : "DYNAMIC", name.c_str(), 
+        linkElts.size(), jointElts.size());
     cout << "  Model frame X_WM as pose=" << transform2Pose(X_WM) << endl;
 
     // Create a World link, then read in the real links.
