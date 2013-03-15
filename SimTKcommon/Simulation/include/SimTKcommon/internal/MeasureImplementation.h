@@ -1727,10 +1727,12 @@ public:
     const T& getEntryValue(int i) const
     {   assert(i < size()); return m_values[getArrayIndex(i)];}
 
-    static const int InitialAllocation  = 8;  // smallest allocation 
-    static const int GrowthFactor       = 2;  // how fast to grow (double)
-    static const int MaxShrinkProofSize = 16; // won't shrink unless bigger
-    static const int TooBigFactor       = 5;  // 5X too much->maybe shrink
+    enum {  
+        InitialAllocation  = 8,  // smallest allocation 
+        GrowthFactor       = 2,  // how fast to grow (double)
+        MaxShrinkProofSize = 16, // won't shrink unless bigger
+        TooBigFactor       = 5   // 5X too much->maybe shrink
+    };
 
     // Add a new entry to the end of the list, throwing out old entries that
     // aren't needed to answer requests at tEarliest or later.
@@ -1739,8 +1741,8 @@ public:
         removeEntriesLaterOrEq(tNow);
         if (full()) 
             makeMoreRoom();
-        else if (capacity() > std::max(MaxShrinkProofSize, 
-                                       TooBigFactor * (size()+1)))
+        else if (capacity() > std::max((int)MaxShrinkProofSize, 
+                                       (int)TooBigFactor * (size()+1)))
             makeLessRoom(); // less than 1/TooBigFactor full
         const int nextFree = getArrayIndex(m_size++);
         m_times[nextFree] = tNow;
@@ -1767,13 +1769,13 @@ public:
 
         int newSizeRequest = -1;
         if (capacity() < newSize) {
-            newSizeRequest = std::max(InitialAllocation, 
-                                      GrowthFactor * newSize);
+            newSizeRequest = std::max((int)InitialAllocation, 
+                                      (int)GrowthFactor * newSize);
             ++m_nGrows;
-        } else if (capacity() > std::max(MaxShrinkProofSize, 
-                                         TooBigFactor * newSize)) {
-            newSizeRequest = std::max(MaxShrinkProofSize, 
-                                      GrowthFactor * newSize);
+        } else if (capacity() > std::max((int)MaxShrinkProofSize, 
+                                         (int)TooBigFactor * newSize)) {
+            newSizeRequest = std::max((int)MaxShrinkProofSize, 
+                                      (int)GrowthFactor * newSize);
             ++m_nShrinks;
         }
 
@@ -1915,8 +1917,8 @@ private:
     // We don't have enough space. This is either the initial allocation or
     // we need to double the current space.
     void makeMoreRoom() {
-        const int newSizeRequest = std::max(InitialAllocation, 
-                                            GrowthFactor * size());
+        const int newSizeRequest = std::max((int)InitialAllocation, 
+                                            (int)GrowthFactor * size());
         resize(newSizeRequest);
         ++m_nGrows;
         m_maxCapacity = std::max(m_maxCapacity, capacity());
@@ -1925,8 +1927,8 @@ private:
     // We are wasting a lot of space, reduce the heap allocation to just 
     // double what we're using now.
     void makeLessRoom() {
-        const int targetMaxSize = std::max(MaxShrinkProofSize, 
-                                           GrowthFactor * size());
+        const int targetMaxSize = std::max((int)MaxShrinkProofSize, 
+                                           (int)GrowthFactor * size());
         if (capacity() > targetMaxSize) {
             resize(targetMaxSize);
             ++m_nShrinks;
