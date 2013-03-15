@@ -501,7 +501,8 @@ protected:
 
     /** Concrete measures can override this to allocate Topology-stage
     resources. **/
-    /* 0*/virtual void realizeMeasureTopologyVirtual(State&) const {}
+    /* 0*/virtual void realizeMeasureTopologyVirtual(State&) const
+    {}
 
     /** Concrete measures must override this if the state cache is used for
     precalculated values or derivatives. **/
@@ -1270,13 +1271,6 @@ public:
 };
 /** @endcond **/
 
-
-// Dummy for Value<Measure_Differentiate_Result>.
-template <class T> inline std::ostream& 
-operator<<(std::ostream& o, 
-           const Measure_Differentiate_Result<T>&)
-{   assert(!"not implemented"); return o; }
-
 template <class T>
 class Measure_<T>::Differentiate::Implementation
 :   public Measure_<T>::Implementation 
@@ -1310,15 +1304,15 @@ public:
     // Implementations of virtual methods.
 
     // This uses the default copy constructor.
-    Implementation* cloneVirtual() const 
+    Implementation* cloneVirtual() const OVERRIDE_11
     {   return new Implementation(*this); }
 
     // This has one fewer than the operand.
-    int getNumTimeDerivativesVirtual() const
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11
     {   if (!isApproxInUse) return operand.getNumTimeDerivatives()-1;
         else return 0; }
 
-    Stage getDependsOnStageVirtual(int order) const 
+    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11 
     {   if (!isApproxInUse) return operand.getDependsOnStage(order+1);
         else return operand.getDependsOnStage(order); }
 
@@ -1327,6 +1321,7 @@ public:
     // we do have one of our own. It looks uncached from the base class
     // point of view which is why we're implementing it here.
     const T& getUncachedValueVirtual(const State& s, int derivOrder) const
+        OVERRIDE_11
     {   if (!isApproxInUse) 
             return operand.getValue(s, derivOrder+1);
 
@@ -1337,7 +1332,7 @@ public:
         return result.operandDot; // has a value but might not be a good one
     }
 
-    void initializeVirtual(State& s) const {
+    void initializeVirtual(State& s) const OVERRIDE_11 {
         if (!isApproxInUse) return;
 
         assert(resultIx.isValid());
@@ -1349,7 +1344,7 @@ public:
         result.derivIsGood = false;
     }
 
-    void realizeMeasureTopologyVirtual(State& s) const {
+    void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
         isApproxInUse = (forceUseApprox || operand.getNumTimeDerivatives()==0);
         if (!isApproxInUse)
             return;
@@ -1468,8 +1463,8 @@ public:
     }
 
     /** Return the time at which the extreme was last updated. This will be
-    the current time if the operand is currently at its lowest value, otherwise
-    it will be sometime in the past. **/
+    the current time if the operand is currently at its most extreme value, 
+    otherwise it will be sometime in the past. **/
     Real getTimeOfExtremeValue(const State& s) const {
         const Subsystem& subsys = this->getSubsystem();
         const bool hasNewExtreme = ensureExtremeHasBeenUpdated(s);
@@ -1592,7 +1587,7 @@ public:
             foundNewExt = isNewExtreme(Measure_Num<T>::get(currentVal,i), 
                                        Measure_Num<T>::get(prevExtreme,i));
 
-        // Record the result and mark it the auto-update cache entry valid
+        // Record the result and mark the auto-update cache entry valid
         // so we won't have to recalculate. When the integrator advances to the
         // next step this cache entry will be swapped with the corresponding 
         // state and marked invalid so we'll be sure to recalculate each step. 
@@ -1680,6 +1675,438 @@ private:
     // can figure this out from the timestamp, but we need to to get invalidated
     // by the auto-update swap so that we'll figure it out anew each step.
     mutable DiscreteVariableIndex   isNewExtremeIx;
+};
+
+
+
+//==============================================================================
+//                         DELAY :: IMPLEMENTATION
+//==============================================================================
+/** @cond **/ // Hide from Doxygen.
+// This helper class is the contents of the discrete state variable and 
+// corresponding cache entry maintained by this measure. The variable is 
+// auto-update, meaning the value of the cache entry replaces the state 
+// variable at the start of each step.
+//
+// Circular buffers look like this:
+//
+//             oldest=0, n=0
+//                  v
+// Empty buffer:   |    available    |
+//
+// By convention, oldest=0 whenever the buffer is empty. 
+//
+//
+//           oldest            next=(oldest+n)%size
+//                 v           v
+//    | available | | | | | | | available |
+//     ^                n=6                ^
+//     0                                   size()
+//     v                                   v
+// or | | | | | | available | | | | | | | |    n=12
+//               ^           ^
+//               next        oldest
+//                 = (oldest+n)%size
+//
+// Number of entries = n
+// Empty = n==0
+// Full = n==size()
+// Next available = (oldest+n)%size()
+template <class T>
+class Measure_Delay_Buffer {
+public:
+    explicit Measure_Delay_Buffer() {initDataMembers();}
+    void clear() {initDataMembers();}
+    int  size() const {return m_size;} // # saved entries, *not* size of arrays
+    int  capacity() const {return m_times.size();}
+    bool empty() const {return size()==0;}
+    bool full()  const {return size()==capacity();}
+
+    Real getEntryTime(int i) const
+    {   assert(i < size()); return m_times[getArrayIndex(i)];}
+    const T& getEntryValue(int i) const
+    {   assert(i < size()); return m_values[getArrayIndex(i)];}
+
+    static const int InitialAllocation  = 8;  // smallest allocation 
+    static const int GrowthFactor       = 2;  // how fast to grow (double)
+    static const int MaxShrinkProofSize = 16; // won't shrink unless bigger
+    static const int TooBigFactor       = 5;  // 5X too much->maybe shrink
+
+    // Add a new entry to the end of the list, throwing out old entries that
+    // aren't needed to answer requests at tEarliest or later.
+    void append(double tEarliest, double tNow, const T& valueNow) {
+        forgetEntriesMuchOlderThan(tEarliest);
+        removeEntriesLaterOrEq(tNow);
+        if (full()) 
+            makeMoreRoom();
+        else if (capacity() > std::max(MaxShrinkProofSize, 
+                                       TooBigFactor * (size()+1)))
+            makeLessRoom(); // less than 1/TooBigFactor full
+        const int nextFree = getArrayIndex(m_size++);
+        m_times[nextFree] = tNow;
+        m_values[nextFree] = valueNow;
+        m_maxSize = std::max(m_maxSize, size());
+    }
+
+    // This is a specialized copy assignment for copying an old buffer
+    // to a new one with updated contents. We are told the earliest time we'll
+    // be asked about from now on, and won't copy any entries older than those
+    // needed to answer that earliest request. We won't copy anything at or
+    // newer than tNow, and finally we'll push (tNow,valueNow) as the newest
+    // entry.
+    void copyInAndUpdate(const Measure_Delay_Buffer& oldBuf, double tEarliest,
+                         double tNow, const T& valueNow) {
+        // clear all current entries (no heap activity)
+        m_oldest = m_size = 0;
+
+        // determine how may old entries we have to keep
+        int firstNeeded = oldBuf.countNumUnneededOldEntries(tEarliest);
+        int lastNeeded  = oldBuf.findLastEarlier(tNow); // might be -1
+        int numOldEntriesToKeep = lastNeeded-firstNeeded+1;
+        int newSize = numOldEntriesToKeep+1; // includes the new one
+
+        int newSizeRequest = -1;
+        if (capacity() < newSize) {
+            newSizeRequest = std::max(InitialAllocation, 
+                                      GrowthFactor * newSize);
+            ++m_nGrows;
+        } else if (capacity() > std::max(MaxShrinkProofSize, 
+                                         TooBigFactor * newSize)) {
+            newSizeRequest = std::max(MaxShrinkProofSize, 
+                                      GrowthFactor * newSize);
+            ++m_nShrinks;
+        }
+
+        // Reallocate space if advisable.
+        if (newSizeRequest != -1) {
+            const double dNaN = NTraits<double>::getNaN();
+            m_values.resize(newSizeRequest); 
+            if (m_values.capacity() > m_values.size())
+                m_values.resize(m_values.capacity()); // don't waste any     
+            m_times.resize(m_values.size(), dNaN); 
+        }
+
+        m_maxCapacity = std::max(m_maxCapacity, capacity());
+        
+        // Copy the entries we need to keep.
+        int nxt = 0;
+        for (int i=firstNeeded; i<=lastNeeded; ++i, ++nxt) {
+            m_times[nxt]  = oldBuf.getEntryTime(i);
+            m_values[nxt] = oldBuf.getEntryValue(i);
+        }
+        // Now add the newest entry and set the size.
+        m_times[nxt]  = tNow;
+        m_values[nxt] = valueNow;
+        assert(nxt+1==newSize);
+        m_size = nxt+1;
+        m_maxSize = std::max(m_maxSize, size());
+    }
+
+    // Given the current time and value and the earlier time at which the
+    // value is needed, use the buffer and (if necessary) the current value
+    // to estimate the delayed value.
+    T calcValueAtTime(double tDelay, double tNow, const T& valueNow) const;
+
+    // Given the current time but *not* the current value of the source measure,
+    // provide an estimate for the value at tDelay=tNow-delay using only the 
+    // buffer contents and linear interpolation or extrapolation.
+    void calcValueAtTimeLinearOnly(double tDelay, T& delayedValue) const {
+        if (empty()) {
+            // Nothing in the buffer?? Shouldn't happen. Return empty Vector
+            // or NaN for fixed-size types.
+            Measure_Num<T>::makeNaNLike(T(), delayedValue);
+            return;
+        }
+
+        int firstLater = findFirstLaterOrEq(tDelay);
+
+        if (firstLater > 0) {
+            // Normal case: tDelay is between two buffer entries.
+            int firstEarlier = firstLater-1;
+            double t0=getEntryTime(firstEarlier), t1=getEntryTime(firstLater);
+            const T& v0=getEntryValue(firstEarlier);
+            const T& v1=getEntryValue(firstLater);
+            double fraction = (tDelay-t0)/(t1-t0);
+            delayedValue = v0 + fraction*(v1-v0);
+            return;
+        }
+
+        if (firstLater==0) {
+            // Startup case: tDelay is at or before the oldest buffer entry.
+            // Assume the value was flat before that.
+            delayedValue = getEntryValue(firstLater);
+            return;
+        }
+
+        // tDelay is later than the latest entry in the buffer. We are going
+        // to have to extrapolate (yuck).
+
+        if (size() == 1) {
+            // Just one entry; we'll have to assume the value is flat.
+            delayedValue = getEntryValue(0);
+            return;
+        }
+
+        // Extrapolate using the last two entries.
+        double t0=getEntryTime(size()-2), t1=getEntryTime(size()-1);
+        const T& v0=getEntryValue(size()-2);
+        const T& v1=getEntryValue(size()-1);
+        double fraction = (tDelay-t0)/(t1-t0);  // > 1
+        assert(fraction > 1.0);
+        delayedValue = v0 + fraction*(v1-v0);   // Extrapolate.
+    }
+
+    // Return the number of times we had to grow the buffer.
+    int getNumGrows() const {return m_nGrows;}
+    // Return the number of times we decided the buffer was so overallocated
+    // that we had to shrink it.
+    int getNumShrinks() const {return m_nShrinks;}
+    // Return the largest number of values we ever had in the buffer.
+    int getMaxSize() const {return m_maxSize;}
+    // Return the largest capacity the buffer ever had.
+    int getMaxCapacity() const {return m_maxCapacity;}
+
+private:
+    // Return the i'th oldest entry (0->oldest, n-1->newest, n->next free)
+    int getArrayIndex(int i) const 
+    {   assert(0<=i && i<=size()); return (m_oldest+i) % capacity(); }
+
+    // Remove all but two entries older than the given time.
+    void forgetEntriesMuchOlderThan(double tEarliest) {
+        const int numToRemove = countNumUnneededOldEntries(tEarliest);
+        if (numToRemove) {
+            m_oldest = getArrayIndex(numToRemove);
+            m_size -= numToRemove;
+        }
+    }
+
+    // Count up how many old entries at the beginning of the buffer are so old
+    // that they wouldn't be needed to respond to a request at time tEarliest or
+    // later. We'll keep no more than two entries earlier than tEarliest.
+    int countNumUnneededOldEntries(double tEarliest) const {
+        const int firstLater = findFirstLaterOrEq(tEarliest);
+        return std::max(0, firstLater-2);
+    }
+
+    // Given the time now, delete anything at the end of the queue that is
+    // at that same time or later.
+    void removeEntriesLaterOrEq(double t) {
+        int lastEarlier = findLastEarlier(t);
+        m_size = lastEarlier+1;
+        if (m_size==0) m_oldest=0; // restart at beginning of array
+    }
+
+    // Return the entry number (0..n-1) of the first entry whose time is >= the
+    // given time, or n if there is none such.
+    int findFirstLaterOrEq(double tDelay) const {
+        for (int i=0; i < size(); ++i)
+            if (getEntryTime(i) >= tDelay)
+                return i;
+        return -1;
+    }
+
+    int findLastEarlier(double t) const {
+        for (int i=size()-1; i>=0; ++i)
+            if (getEntryTime(i) < t)
+                return i;
+        return -1;
+    }
+
+    // We don't have enough space. This is either the initial allocation or
+    // we need to double the current space.
+    void makeMoreRoom() {
+        const int newSizeRequest = std::max(InitialAllocation, 
+                                            GrowthFactor * size());
+        resize(newSizeRequest);
+        ++m_nGrows;
+        m_maxCapacity = std::max(m_maxCapacity, capacity());
+    }
+
+    // We are wasting a lot of space, reduce the heap allocation to just 
+    // double what we're using now.
+    void makeLessRoom() {
+        const int targetMaxSize = std::max(MaxShrinkProofSize, 
+                                           GrowthFactor * size());
+        if (capacity() > targetMaxSize) {
+            resize(targetMaxSize);
+            ++m_nShrinks;
+        }
+    }
+
+    // Reallocate memory to get more space or stop wasting space. The new
+    // size request must be big enough to hold all the current contents. The
+    // amount we actually get may be somewhat larger than the request. On 
+    // return, the times and values arrays will have been resized and the 
+    // oldest entry will now be entry 0.
+    void resize(int newSizeRequest) {
+        assert(newSizeRequest >= size());
+        const double dNaN = NTraits<double>::getNaN();
+        Array_<T,int> newValues(newSizeRequest); 
+        if (newValues.capacity() > newValues.size())
+            newValues.resize(newValues.capacity()); // don't waste any     
+        Array_<double,int> newTimes(newValues.size(), dNaN); 
+
+        // Pack existing values into start of new arrays.
+        for (int i=0; i < size(); ++i) {
+            const int ix = getArrayIndex(i);
+            newTimes[i]  = m_times[ix];
+            newValues[i] = m_values[ix];
+        }
+        m_times.swap(newTimes); // switch heap space
+        m_values.swap(newValues);
+        m_oldest = 0; // starts at the beginning now; n unchanged
+    }
+
+    // Initialize everything to its default-constructed state.
+    void initDataMembers() {
+        m_times.clear(); m_values.clear();
+        m_oldest=m_size=0;
+        m_nGrows=m_nShrinks=m_maxSize=m_maxCapacity=0;
+    }
+
+    // These are circular buffers of the same size.
+    Array_<double,int>  m_times;
+    Array_<T,int>       m_values;
+    int                 m_oldest; // Array index of oldest (time,value)
+    int                 m_size;   // number of entries in use
+
+    // Statistics.
+    int m_nGrows, m_nShrinks, m_maxSize, m_maxCapacity;
+};
+/** @endcond **/
+
+template <class T>
+class Measure_<T>::Delay::Implementation: public Measure_<T>::Implementation {
+    typedef Measure_Delay_Buffer<T> Buffer;
+public:
+    // Don't allocate any cache entries in the base class.
+    Implementation() 
+    :   Measure_<T>::Implementation(1), m_delay(NaN),
+        m_canUseCurrentValue(false), m_useLinearInterpolationOnly(false) {}
+
+    Implementation(const Measure_<T>& source, Real delay)
+    :   Measure_<T>::Implementation(1), m_source(source), m_delay(delay),
+        m_canUseCurrentValue(false), m_useLinearInterpolationOnly(false) {}
+
+    // Default copy constructor gives us a new Implementation object,
+    // but with reference to the *same* source measure.
+
+    void setSourceMeasure(const Measure_<T>& source) {
+        if (!source.isSameMeasure(this->m_source)) {
+            this->m_source = source;
+            this->invalidateTopologyCache();
+        }
+    }
+
+    void setDelay(Real delay) {
+        if (delay != this->m_delay) {
+            this->m_delay = delay;
+            this->invalidateTopologyCache();
+        }
+    }
+
+    void setUseLinearInterpolationOnly(bool linearOnly) {
+        if (linearOnly != this->m_useLinearInterpolationOnly) {
+            this->m_useLinearInterpolationOnly = linearOnly;
+            this->invalidateTopologyCache();
+        }
+    }
+
+    void setCanUseCurrentValue(bool canUseCurrentValue) {
+        if (canUseCurrentValue != this->m_canUseCurrentValue) {
+            this->m_canUseCurrentValue = canUseCurrentValue;
+            this->invalidateTopologyCache();
+        }
+    }
+
+    const Measure_<T>& getSourceMeasure() const {return this->m_source;}
+    Real getDelay() const {return this->m_delay;}
+    bool getUseLinearInterpolationOnly() const
+    {   return this->m_useLinearInterpolationOnly; }
+    bool getCanUseCurrentValue() const
+    {   return this->m_canUseCurrentValue; }
+
+
+    // Implementations of virtual methods.
+
+    // This uses the default copy constructor.
+    Implementation* cloneVirtual() const OVERRIDE_11
+    {   return new Implementation(*this); }
+
+    // Currently no derivative supported.
+    int getNumTimeDerivativesVirtual() const OVERRIDE_11
+    {   return 0; }
+
+    // If we are allowed to use the current value of the source measure to
+    // determine the delayed value, the depends-on stage here is the same as
+    // for the source; otherwise it is Stage::Time.
+    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11 
+    {   return this->m_canUseCurrentValue ? m_source.getDependsOnStage(order)
+                                          : Stage::Time; }
+
+    // Calculate the delayed value and return it to the Measure base class to
+    // be put in a cache entry.
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+        OVERRIDE_11
+    {   const Subsystem& subsys = this->getSubsystem();
+        const Buffer& buffer = Value<Buffer>::downcast
+                                (subsys.getDiscreteVariable(s,m_bufferIx));
+        //TODO: use cubic interpolation if allowed
+        buffer.calcValueAtTimeLinearOnly(s.getTime()-m_delay, value);
+    }
+
+    void initializeVirtual(State& s) const OVERRIDE_11 {
+        assert(m_bufferIx.isValid());
+        const Subsystem& subsys = this->getSubsystem();
+        Buffer& buffer = Value<Buffer>::updDowncast
+                            (subsys.updDiscreteVariable(s,m_bufferIx));
+        buffer.clear();
+        buffer.append(s.getTime()-m_delay, s.getTime(), m_source.getValue(s));
+    }
+
+    void realizeMeasureTopologyVirtual(State& s) const OVERRIDE_11 {
+        m_bufferIx = this->getSubsystem()
+            .allocateAutoUpdateDiscreteVariable(s, Stage::Report,
+                new Value<Buffer>(), getDependsOnStageVirtual(0));
+    }
+
+    /** In case no one has updated the value of this measure yet, we have
+    to make sure it gets updated before the integration moves ahead. **/
+    //TODO: currently wasting time copying this into the cache so that it
+    //can be auto-updated. Better just to update the state variable in an
+    //end-of-step Handler.
+    void realizeMeasureAccelerationVirtual(const State& s) const OVERRIDE_11 {
+        updateBuffer(s);
+    }
+
+    // This copies the buffer from the state into an updated copy in the
+    // corresponding cache entry. The update adds the current value of the
+    // source to the end of the buffer and tosses out unneeded old entries.
+    void updateBuffer(const State& s) const {
+        assert(m_bufferIx.isValid());
+        const Subsystem& subsys = this->getSubsystem();
+
+        const Buffer& prevBuffer = Value<Buffer>::downcast
+           (subsys.getDiscreteVariable(s,m_bufferIx));
+
+        Buffer& nextBuffer = Value<Buffer>::updDowncast
+           (subsys.updDiscreteVarUpdateValue(s,m_bufferIx));
+
+        const Real t = s.getTime();
+        nextBuffer.copyInAndUpdate(prevBuffer, t-m_delay, 
+                                   t, m_source.getValue(s));
+
+        subsys.markDiscreteVarUpdateValueRealized(s,m_bufferIx);
+    }
+private:
+    // TOPOLOGY STATE
+    Measure_<T>     m_source;
+    Real            m_delay;
+    bool            m_canUseCurrentValue;
+    bool            m_useLinearInterpolationOnly;
+
+    // TOPOLOGY CACHE
+    mutable DiscreteVariableIndex   m_bufferIx;    // auto-update
 };
 
 

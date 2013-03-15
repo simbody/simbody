@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2009-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2009-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -33,6 +33,7 @@
 #include "SimTKcommon/internal/MeasureImplementation.h"
 
 #include <cassert>
+#include <algorithm>
 
 namespace SimTK {
 
@@ -45,6 +46,7 @@ template class Measure_<Real>::Integrate;
 template class Measure_<Real>::Result;
 template class Measure_<Real>::Variable;
 template class Measure_<Real>::Extreme;
+template class Measure_<Real>::Delay;
 
 template class Measure_<Vec3>::Constant;
 template class Measure_<Vec3>::Zero;
@@ -54,6 +56,7 @@ template class Measure_<Vec3>::Integrate;
 template class Measure_<Vec3>::Result;
 template class Measure_<Vec3>::Variable;
 template class Measure_<Vec3>::Extreme;
+template class Measure_<Vec3>::Delay;
 
 template class Measure_<Vector>::Constant;
 template class Measure_<Vector>::Zero;
@@ -63,6 +66,7 @@ template class Measure_<Vector>::Integrate;
 template class Measure_<Vector>::Result;
 template class Measure_<Vector>::Variable;
 template class Measure_<Vector>::Extreme;
+template class Measure_<Vector>::Delay;
 
 } // namespace SimTK
 

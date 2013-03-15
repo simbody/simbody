@@ -567,6 +567,7 @@ void testOne() {
     MySinCos<Vector> vmysincos(subsys);
     Measure_<Vector>::Integrate vcossin(subsys, vmysincos, vcossinInit,
                                         Vector(2,Zero));
+    Measure_<Vector>::Delay vcossin_delaypt1(subsys, vcossin, .1);
 
     Measure_<Real>::Minimum minCos2pit(subsys, cos2pit);
     Measure_<Real>::Maximum maxCos2pit(subsys, cos2pit);
@@ -578,6 +579,8 @@ void testOne() {
 
     Measure::Time tMeasure;
     Measure::Time tSubMeas(subsys);
+
+    Measure::Delay tDelayed(subsys, tSubMeas, 0.01);
 
     Measure::Scale t1000(subsys, 1000, tSubMeas);
 
@@ -726,6 +729,7 @@ void testOne() {
                  << " d3/dt3 tMeasure=" << tMeasure.getValue(state,3)
                  << " 1000*tSubMeas=" << t1000.getValue(state)
                  << " t=" << state.getTime() << endl;
+            cout << " tDelayed=" << tDelayed.getValue(state) << endl;
             cout << "q=" << state.getQ() << " u=" << state.getU() << endl;
             cout << "qSum=" << subsys.getQSum(state) << " uSum=" << subsys.getUSum(state) << endl;
             cout << "three=" << three.getValue(state) << " v3const=" << v3const.getValue(state) << endl;
@@ -747,6 +751,7 @@ void testOne() {
                  << dInteg.getValue(state) << endl;
             cout << "cossin=" << cossin.getValue(state) << "\n";
             cout << "vcossin=" << vcossin.getValue(state) << "\n";
+            cout << "vcossin delay .1=" << vcossin_delaypt1.getValue(state) << "\n";
         }
 
         if (i == nSteps)
