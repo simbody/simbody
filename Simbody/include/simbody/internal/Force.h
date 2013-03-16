@@ -487,7 +487,8 @@ public:
 
     /** Change the value of the discrete spatial force (force and torque) to
     be applied to a body in the given \a state. Set this to zero if you don't
-    want any force applied to the body. 
+    want any force applied to the body. You can call this method any time after
+    realizeTopology() since the force just needs to be saved in the \a state.
 
     @param      state   
         The state in which the force is to be saved.
@@ -497,7 +498,7 @@ public:
         The (torque,force) pair as a SpatialVec. These are expressed in the 
         Ground frame and the force is applied to the body origin.
 
-    @see getOneBodyForce() **/
+    @see getOneBodyForce(), addForceToBodyPoint() **/
     void setOneBodyForce(State& state, const MobilizedBody& mobod,
                          const SpatialVec& spatialForceInG) const;
 
@@ -508,13 +509,17 @@ public:
     realized to Stage::Position because we need to know the body orientation
     in order to shift the applied force to the body origin.
 
-    @param  state   The state in which the force are saved. Must already have
+    Be sure to call setOneBodyForce() to initialize this force to zero before
+    you start accumulating point forces using this method.
+
+    @param  state   The state in which the force is saved. Must already have
                     been realized to at least Stage::Position.
     @param  mobod   The mobilized body to which the force will be applied.
     @param  pointInB The body station at which the force will be applied, 
                      measured and expressed in the body frame.
-    @param  forceInG The force vector to be applied, expressed in Ground.   
-    **/
+    @param  forceInG The force vector to be applied, expressed in Ground. 
+
+    @see setOneBodyForce() **/
     void addForceToBodyPoint(State& state, const MobilizedBody& mobod, 
                              const Vec3& pointInB,
                              const Vec3& forceInG) const;
@@ -537,7 +542,7 @@ public:
         Ground frame, with the forces applied at each body frame origin. This 
         Vector must be either empty (in which case it is treated as though it 
         were all zero) or the same length as the number of mobilized bodies in
-        the system.
+        the system (and don't forget that Ground is mobilized body 0).
     @see clearAllBodyForces() **/
     void setAllBodyForces(State& state, 
                           const Vector_<SpatialVec>& bodyForcesInG) const;
