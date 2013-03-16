@@ -233,6 +233,57 @@ private:
 
 
 //------------------------------------------------------------------------------
+//                    MOBILITY DISCRETE FORCE IMPL
+//------------------------------------------------------------------------------
+// This Force element allocates a scalar discrete variable and applies its
+// value as a generalized force at a particular mobility. The value can be
+// set externally in an event handler or between steps.
+class Force::MobilityDiscreteForceImpl : public ForceImpl {
+public:
+    MobilityDiscreteForceImpl(const MobilizedBody&  mobod, 
+                              MobilizerUIndex       whichU, 
+                              Real                  defaultForce);
+    // This force depends only on the contents of the state; this really is
+    // saying "does not depend on velocities".
+    bool dependsOnlyOnPositions() const {return true;}
+
+    // Change the force value to be applied. The force will remain at this
+    // value until changed again.
+    void setGeneralizedForce(State& state, Real f) const;
+
+    // Get the value of the generalized force to be applied.
+    Real getGeneralizedForce(const State& state) const;
+
+    // Override four virtuals from base class:
+
+    // This is called at Simbody's realize(Dynamics) stage.
+    void calcForce( const State&         state, 
+                    Vector_<SpatialVec>& /*bodyForces*/, 
+                    Vector_<Vec3>&       /*particleForces*/, 
+                    Vector&              mobilityForces) const OVERRIDE_11;
+
+    // This force element does not store potential energy.
+    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+
+    // Allocate the needed state variable and record its index.
+    void realizeTopology(State& state) const OVERRIDE_11;
+
+    MobilityDiscreteForceImpl* clone() const OVERRIDE_11 {
+        return new MobilityDiscreteForceImpl(*this);
+    }
+
+private:
+friend class Force::MobilityDiscreteForce;
+
+    const SimbodyMatterSubsystem&   m_matter;
+    const MobilizedBodyIndex        m_mobodIx;
+    const MobilizerUIndex           m_whichU;
+    Real                            m_defaultVal;
+
+    mutable DiscreteVariableIndex   m_forceIx;
+};
+
+//------------------------------------------------------------------------------
 //                           CONSTANT FORCE IMPL
 //------------------------------------------------------------------------------
 class Force::ConstantForceImpl : public ForceImpl {

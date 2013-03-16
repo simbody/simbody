@@ -297,7 +297,6 @@ Force::MobilityConstantForceImpl::MobilityConstantForceImpl(const MobilizedBody&
 
 void Force::MobilityConstantForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const MobilizedBody& mb = matter.getMobilizedBody(body);
-    const Real q = mb.getOneQ(state, coordinate);
     mb.applyOneMobilityForce(state, coordinate, force, mobilityForces);
 }
 
@@ -305,6 +304,87 @@ Real Force::MobilityConstantForceImpl::calcPotentialEnergy(const State& state) c
     return 0;
 }
 
+
+
+//-------------------------- MobilityDiscreteForce -----------------------------
+//------------------------------------------------------------------------------
+
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityDiscreteForce, 
+                                        Force::MobilityDiscreteForceImpl, 
+                                        Force);
+
+Force::MobilityDiscreteForce::MobilityDiscreteForce
+   (GeneralForceSubsystem& forces, const MobilizedBody& mobod, 
+    MobilizerUIndex whichU, Real defaultForce) 
+:   Force(new MobilityDiscreteForceImpl(mobod, whichU, defaultForce)) {
+    updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
+}
+
+Force::MobilityDiscreteForce& Force::MobilityDiscreteForce::
+setDefaultGeneralizedForce(Real defaultForce) {
+    updImpl().m_defaultVal = defaultForce;
+    getImpl().invalidateTopologyCache();
+    return *this;
+}
+
+Real Force::MobilityDiscreteForce::
+getDefaultGeneralizedForce() const {
+    return getImpl().m_defaultVal;
+}
+
+void Force::MobilityDiscreteForce::
+setGeneralizedForce(State& state, Real f) const {
+    getImpl().setGeneralizedForce(state, f);
+}
+
+Real Force::MobilityDiscreteForce::
+getGeneralizedForce(const State& state) const {
+    return getImpl().getGeneralizedForce(state);
+}
+
+Force::MobilityDiscreteForceImpl::MobilityDiscreteForceImpl
+   (const MobilizedBody& mobod, MobilizerUIndex whichU, Real defaultForce) 
+:   m_matter(mobod.getMatterSubsystem()), 
+    m_mobodIx(mobod.getMobilizedBodyIndex()), 
+    m_whichU(whichU), m_defaultVal(defaultForce) {
+}
+
+void Force::MobilityDiscreteForceImpl::
+setGeneralizedForce(State& state, Real f) const {
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    Real& fInState = Value<Real>::updDowncast
+                            (forces.updDiscreteVariable(state, m_forceIx));
+    fInState = f;
+}
+
+// Get the value of the generalized force to be applied.
+Real Force::MobilityDiscreteForceImpl::
+getGeneralizedForce(const State& state) const {
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    const Real& fInState = Value<Real>::downcast
+                            (forces.getDiscreteVariable(state, m_forceIx));
+    return fInState;
+}
+
+void Force::MobilityDiscreteForceImpl::
+calcForce(  const State&         state, 
+            Vector_<SpatialVec>& /*bodyForces*/, 
+            Vector_<Vec3>&       /*particleForces*/, 
+            Vector&              mobilityForces) const
+{
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    const Real f = Value<Real>::downcast
+                            (forces.getDiscreteVariable(state, m_forceIx));
+    const MobilizedBody& mobod = m_matter.getMobilizedBody(m_mobodIx);
+    mobod.applyOneMobilityForce(state, m_whichU, f, mobilityForces);
+}
+
+void Force::MobilityDiscreteForceImpl::
+realizeTopology(State& state) const {
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    m_forceIx = forces.allocateDiscreteVariable
+        (state, Stage::Dynamics, new Value<Real>(m_defaultVal));
+}
 
 //------------------------------ ConstantForce ---------------------------------
 //------------------------------------------------------------------------------
