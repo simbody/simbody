@@ -243,18 +243,15 @@ public:
     MobilityDiscreteForceImpl(const MobilizedBody&  mobod, 
                               MobilizerUIndex       whichU, 
                               Real                  defaultForce);
-    // This force depends only on the contents of the state; this really is
-    // saying "does not depend on velocities".
-    bool dependsOnlyOnPositions() const {return true;}
 
     // Change the force value to be applied. The force will remain at this
     // value until changed again.
-    void setGeneralizedForce(State& state, Real f) const;
+    void setMobilityForce(State& state, Real f) const;
 
     // Get the value of the generalized force to be applied.
-    Real getGeneralizedForce(const State& state) const;
+    Real getMobilityForce(const State& state) const;
 
-    // Override four virtuals from base class:
+    // Override five virtuals from base class:
 
     // This is called at Simbody's realize(Dynamics) stage.
     void calcForce( const State&         state, 
@@ -268,9 +265,12 @@ public:
     // Allocate the needed state variable and record its index.
     void realizeTopology(State& state) const OVERRIDE_11;
 
-    MobilityDiscreteForceImpl* clone() const OVERRIDE_11 {
-        return new MobilityDiscreteForceImpl(*this);
-    }
+    MobilityDiscreteForceImpl* clone() const OVERRIDE_11 
+    {   return new MobilityDiscreteForceImpl(*this); }
+
+    // This force depends only on the contents of the state; this really is
+    // saying "does not depend on velocities".
+    bool dependsOnlyOnPositions() const {return true;}
 
 private:
 friend class Force::MobilityDiscreteForce;
@@ -282,6 +282,56 @@ friend class Force::MobilityDiscreteForce;
 
     mutable DiscreteVariableIndex   m_forceIx;
 };
+
+
+
+//------------------------------------------------------------------------------
+//                         DISCRETE FORCES IMPL
+//------------------------------------------------------------------------------
+// This Force element allocates a Vector discrete variables and applies their
+// values as generalized and body spatial forces. The values can be
+// set externally in an event handler or between steps.
+class Force::DiscreteForcesImpl : public ForceImpl {
+public:
+    DiscreteForcesImpl(const SimbodyMatterSubsystem& matter);
+
+    const Vector& getAllMobilityForces(const State& state) const;
+    Vector& updAllMobilityForces(State& state) const;
+
+    const Vector_<SpatialVec>& getAllBodyForces(const State& state) const;
+    Vector_<SpatialVec>& updAllBodyForces(State& state) const;
+
+    // Override five virtuals from base class:
+
+    // This is called at Simbody's realize(Dynamics) stage.
+    void calcForce( const State&         state, 
+                    Vector_<SpatialVec>& bodyForces, 
+                    Vector_<Vec3>&       particleForces, 
+                    Vector&              mobilityForces) const OVERRIDE_11;
+
+    // This force element does not store potential energy.
+    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+
+    // Allocate the needed state variable and record its index.
+    void realizeTopology(State& state) const OVERRIDE_11;
+
+    DiscreteForcesImpl* clone() const OVERRIDE_11 
+    {   return new DiscreteForcesImpl(*this); }
+
+    // This force depends only on the contents of the state; this really is
+    // saying "does not depend on velocities".
+    bool dependsOnlyOnPositions() const OVERRIDE_11 {return true;}
+
+private:
+friend class Force::DiscreteForces;
+
+    const SimbodyMatterSubsystem&   m_matter;
+
+    mutable DiscreteVariableIndex   m_mobForcesIx;  // Vector(n)
+    mutable DiscreteVariableIndex   m_bodyForcesIx; // Vector_<SpatialVec>(nb)
+};
+
+
 
 //------------------------------------------------------------------------------
 //                           CONSTANT FORCE IMPL

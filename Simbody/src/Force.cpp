@@ -321,25 +321,25 @@ Force::MobilityDiscreteForce::MobilityDiscreteForce
 }
 
 Force::MobilityDiscreteForce& Force::MobilityDiscreteForce::
-setDefaultGeneralizedForce(Real defaultForce) {
+setDefaultMobilityForce(Real defaultForce) {
     updImpl().m_defaultVal = defaultForce;
     getImpl().invalidateTopologyCache();
     return *this;
 }
 
 Real Force::MobilityDiscreteForce::
-getDefaultGeneralizedForce() const {
+getDefaultMobilityForce() const {
     return getImpl().m_defaultVal;
 }
 
 void Force::MobilityDiscreteForce::
-setGeneralizedForce(State& state, Real f) const {
-    getImpl().setGeneralizedForce(state, f);
+setMobilityForce(State& state, Real f) const {
+    getImpl().setMobilityForce(state, f);
 }
 
 Real Force::MobilityDiscreteForce::
-getGeneralizedForce(const State& state) const {
-    return getImpl().getGeneralizedForce(state);
+getMobilityForce(const State& state) const {
+    return getImpl().getMobilityForce(state);
 }
 
 Force::MobilityDiscreteForceImpl::MobilityDiscreteForceImpl
@@ -350,7 +350,7 @@ Force::MobilityDiscreteForceImpl::MobilityDiscreteForceImpl
 }
 
 void Force::MobilityDiscreteForceImpl::
-setGeneralizedForce(State& state, Real f) const {
+setMobilityForce(State& state, Real f) const {
     const GeneralForceSubsystem& forces = getForceSubsystem();
     Real& fInState = Value<Real>::updDowncast
                             (forces.updDiscreteVariable(state, m_forceIx));
@@ -359,7 +359,7 @@ setGeneralizedForce(State& state, Real f) const {
 
 // Get the value of the generalized force to be applied.
 Real Force::MobilityDiscreteForceImpl::
-getGeneralizedForce(const State& state) const {
+getMobilityForce(const State& state) const {
     const GeneralForceSubsystem& forces = getForceSubsystem();
     const Real& fInState = Value<Real>::downcast
                             (forces.getDiscreteVariable(state, m_forceIx));
@@ -385,6 +385,179 @@ realizeTopology(State& state) const {
     m_forceIx = forces.allocateDiscreteVariable
         (state, Stage::Dynamics, new Value<Real>(m_defaultVal));
 }
+
+
+
+
+//------------------------------ DiscreteForces --------------------------------
+//------------------------------------------------------------------------------
+
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::DiscreteForces, 
+                                        Force::DiscreteForcesImpl, 
+                                        Force);
+
+Force::DiscreteForces::DiscreteForces
+   (GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter) 
+:   Force(new DiscreteForcesImpl(matter)) {
+    updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
+}
+
+void Force::DiscreteForces::
+clearAllMobilityForces(State& state) const {
+    getImpl().updAllMobilityForces(state).clear(); // set size to zero
+}
+
+
+void Force::DiscreteForces::
+clearAllBodyForces(State& state) const {
+    getImpl().updAllBodyForces(state).clear(); // set size to zero
+}
+
+void Force::DiscreteForces::
+setOneMobilityForce(State& state, const MobilizedBody& mobod,
+                    MobilizerUIndex whichU, Real f) const {
+    Vector& mobForces = getImpl().updAllMobilityForces(state);
+    if (mobForces.size() == 0) {
+        mobForces.resize(state.getNU());
+        mobForces.setToZero();
+    }
+    // Don't use "apply" here because that would add in the force.
+    mobod.updOneFromUPartition(state, whichU, mobForces) = f;
+}
+
+Real Force::DiscreteForces::
+getOneMobilityForce(const State& state, const MobilizedBody& mobod,
+                    MobilizerUIndex whichU) const {
+    const Vector& mobForces = getImpl().getAllMobilityForces(state);
+    if (mobForces.size() == 0) {return 0;}
+
+    return mobod.getOneFromUPartition(state, whichU, mobForces);
+}
+
+
+void Force::DiscreteForces::
+setAllMobilityForces(State& state, const Vector& f) const {
+    if (f.size()==0) {clearAllMobilityForces(state); return;}
+    SimTK_ERRCHK2_ALWAYS(f.size() == state.getNU(),
+        "Force::DiscreteForces::setAllMobilityForces()",
+        "Mobility force vector f had wrong size %d; should have been %d.",
+        f.size(), state.getNU());
+     
+    getImpl().updAllMobilityForces(state) = f;
+}
+
+const Vector& Force::DiscreteForces::
+getAllMobilityForces(const State& state) const
+{   return getImpl().getAllMobilityForces(state); }
+
+void Force::DiscreteForces::
+setOneBodyForce(State& state, const MobilizedBody& mobod,
+                const SpatialVec& spatialForceInG) const {
+    Vector_<SpatialVec>& bodyForces = getImpl().updAllBodyForces(state);
+    if (bodyForces.size() == 0) {
+        bodyForces.resize(getImpl().m_matter.getNumBodies());
+        bodyForces.setToZero();
+    }
+    bodyForces[mobod.getMobilizedBodyIndex()] = spatialForceInG;
+}
+
+
+SpatialVec Force::DiscreteForces::
+getOneBodyForce(const State& state, const MobilizedBody& mobod) const {
+    const Vector_<SpatialVec>& bodyForces = getImpl().getAllBodyForces(state);
+    if (bodyForces.size() == 0) {return SpatialVec(Vec3(0),Vec3(0));}
+
+    return bodyForces[mobod.getMobilizedBodyIndex()];
+}
+
+const Vector_<SpatialVec>& Force::DiscreteForces::
+getAllBodyForces(const State& state) const
+{   return getImpl().getAllBodyForces(state); }
+
+void Force::DiscreteForces::
+setAllBodyForces(State& state, const Vector_<SpatialVec>& bodyForcesInG) const {
+    if (bodyForcesInG.size()==0) {clearAllBodyForces(state); return;}
+    const int numBodies = getImpl().m_matter.getNumBodies();
+    SimTK_ERRCHK2_ALWAYS(bodyForcesInG.size() == numBodies,
+      "Force::DiscreteForces::setAllBodyForces()",
+      "Body force vector bodyForcesInG had wrong size %d; "
+      "should have been %d (0th entry is for Ground).",
+      bodyForcesInG.size(), numBodies);
+
+    getImpl().updAllBodyForces(state) = bodyForcesInG;
+}
+
+
+void Force::DiscreteForces::
+addForceToBodyPoint(State& state, const MobilizedBody& mobod,
+                    const Vec3& pointInB, const Vec3& forceInG) const {
+    Vector_<SpatialVec>& bodyForces = getImpl().updAllBodyForces(state);
+    if (bodyForces.size() == 0) {
+        bodyForces.resize(getImpl().m_matter.getNumBodies());
+        bodyForces.setToZero();
+    }
+    mobod.applyForceToBodyPoint(state, pointInB, forceInG, bodyForces);
+}
+
+Force::DiscreteForcesImpl::DiscreteForcesImpl
+   (const SimbodyMatterSubsystem& matter) : m_matter(matter) {}
+
+const Vector& Force::DiscreteForcesImpl::
+getAllMobilityForces(const State& state) const {
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    const Vector& fInState = Value<Vector>::downcast
+                            (forces.getDiscreteVariable(state, m_mobForcesIx));
+    return fInState;
+}
+
+Vector& Force::DiscreteForcesImpl::
+updAllMobilityForces(State& state) const  {
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    Vector& fInState = Value<Vector>::updDowncast
+                            (forces.updDiscreteVariable(state, m_mobForcesIx));
+    return fInState;
+}
+
+const Vector_<SpatialVec>& Force::DiscreteForcesImpl::
+getAllBodyForces(const State& state) const {
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    const Vector_<SpatialVec>& FInState = Value< Vector_<SpatialVec> >::downcast
+                            (forces.getDiscreteVariable(state, m_bodyForcesIx));
+    return FInState;
+}
+Vector_<SpatialVec>& Force::DiscreteForcesImpl::
+updAllBodyForces(State& state) const {
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    Vector_<SpatialVec>& FInState = Value< Vector_<SpatialVec> >::updDowncast
+                            (forces.updDiscreteVariable(state, m_bodyForcesIx));
+    return FInState;
+}
+
+void Force::DiscreteForcesImpl::
+calcForce(  const State&         state, 
+            Vector_<SpatialVec>& bodyForces, 
+            Vector_<Vec3>&       /*particleForces*/, 
+            Vector&              mobilityForces) const
+{
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    const Vector& f = Value<Vector>::downcast
+                            (forces.getDiscreteVariable(state, m_mobForcesIx));
+    const Vector_<SpatialVec>& F = Value< Vector_<SpatialVec> >::downcast
+                            (forces.getDiscreteVariable(state, m_bodyForcesIx));
+    if (f.size()) mobilityForces += f;
+    if (F.size()) bodyForces += F;
+}
+
+void Force::DiscreteForcesImpl::
+realizeTopology(State& state) const {
+    const GeneralForceSubsystem& forces = getForceSubsystem();
+    m_mobForcesIx = forces.allocateDiscreteVariable
+        (state, Stage::Dynamics, new Value<Vector>());
+    m_bodyForcesIx = forces.allocateDiscreteVariable
+        (state, Stage::Dynamics, new Value< Vector_<SpatialVec> >());
+}
+
+
 
 //------------------------------ ConstantForce ---------------------------------
 //------------------------------------------------------------------------------
