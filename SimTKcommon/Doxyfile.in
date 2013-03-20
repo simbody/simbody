@@ -1251,7 +1251,10 @@ INCLUDE_FILE_PATTERNS  =
 # undefined via #undef or recursively expanded use the := operator 
 # instead of the = operator.
 
-PREDEFINED             = "SimTK_SimTKCOMMON_EXPORT=" __cplusplus
+PREDEFINED             = SimTK_SimTKCOMMON_EXPORT= \
+                         __cplusplus \
+                         OVERRIDE_11=override \
+                         FINAL_11=final
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then 
 # this tag can be used to specify a list of macro names that should be expanded. 
