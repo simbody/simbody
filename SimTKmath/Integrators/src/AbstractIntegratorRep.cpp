@@ -382,13 +382,23 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
           // Ensure that all derivatives and other derived quantities are known,
           // including discrete state updates.
           realizeStateDerivatives(getAdvancedState());
-          // Swap the discrete state update cache entries with the state 
-          // variables.
-          updAdvancedState().autoUpdateDiscreteVariables();
           // Record derivative information and witness function values for step 
           // restarts.
           saveStateDerivsAsPrevious(getAdvancedState());
-          
+
+          // Derivatives at start of step have now been saved. We can update
+          // discrete state variables whose update is not permitted to cause a
+          // discontinuous change in the trajectory. These are implemented via
+          // auto-update state variables for which we just swap the cache
+          // entry (used to calculate most recent derivatives) with the
+          // corresponding state variable. Examples: record new min or max 
+          // value; updated memory for delay measures.
+
+          // Swap the discrete state update cache entries with their state 
+          // variables. Other than those cache entries, no other calculations 
+          // are invalidated.
+          updAdvancedState().autoUpdateDiscreteVariables();
+         
           //---------------- TAKE ONE STEP --------------------
           // Now take a step and see whether an event occurred.
           bool eventOccurred = takeOneStep(tMax, reportTime);

@@ -63,7 +63,8 @@ public:
     // zdot is also allocated in the cache
     ZIndex allocateZ(State& s, const Vector& zInit) const;
 
-    DiscreteVariableIndex allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
+    DiscreteVariableIndex allocateDiscreteVariable
+       (State& s, Stage g, AbstractValue* v) const;
     DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
        (State&, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const; 
 
@@ -82,8 +83,8 @@ public:
     QErrIndex allocateQErr(const State& s, int nqerr) const;
     UErrIndex allocateUErr(const State& s, int nuerr) const;
     UDotErrIndex allocateUDotErr(const State& s, int nudoterr) const;
-    EventTriggerByStageIndex allocateEventTriggersByStage(const State&, Stage, int ntriggers) const;
-
+    EventTriggerByStageIndex allocateEventTriggersByStage
+       (const State&, Stage, int ntriggers) const;
 
     // These return views on State shared global resources. The views
     // are private to this subsystem, but the global resources themselves
@@ -195,7 +196,8 @@ public:
     int getNUDotErr    (const State&) const;
     SystemMultiplierIndex getMultipliersStart(const State&) const;
     int getNMultipliers(const State&) const;
-    SystemEventTriggerByStageIndex   getEventTriggerStartByStage(const State&, Stage) const;
+    SystemEventTriggerByStageIndex 
+        getEventTriggerStartByStage(const State&, Stage) const;
     int getNEventTriggersByStage(const State&, Stage) const;
 
     MeasureIndex adoptMeasure(AbstractMeasure& m);
@@ -230,7 +232,9 @@ public:
     void invalidateSubsystemTopologyCache() const;
 
     // These are wrappers for the virtual methods defined below. They
-    // are used to ensure good behavior.
+    // are used to ensure good behavior. Most of them deal automatically with
+    // the Subsystem's Measures, as well as invoking the corresponding virtual
+    // for the Subsystem's own processing.
 
     Subsystem::Guts* clone() const;
 
@@ -267,18 +271,18 @@ public:
     // Each subsystem is responsible for defining its own events, and
     // System then combines the information from them, and dispatches events
     // to the appropriate subsystems for handling when they occur.
-    virtual void calcEventTriggerInfo
+    void calcEventTriggerInfo
        (const State&, Array_<EventTriggerInfo>&) const;
-    virtual void calcTimeOfNextScheduledEvent
+    void calcTimeOfNextScheduledEvent
        (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
         bool includeCurrentTime) const;
-    virtual void calcTimeOfNextScheduledReport
+    void calcTimeOfNextScheduledReport
        (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
         bool includeCurrentTime) const;
-    virtual void handleEvents
+    void handleEvents
        (State&, Event::Cause, const Array_<EventId>& eventIds,
         const HandleEventsOptions& options, HandleEventsResults& results) const;
-    virtual void reportEvents
+    void reportEvents
        (const State&, Event::Cause, const Array_<EventId>& eventIds) const;
 
 protected:
@@ -301,19 +305,35 @@ protected:
 
     virtual Subsystem::Guts* cloneImpl() const = 0;
 
-    virtual int realizeSubsystemTopologyImpl(State& s) const;
-    virtual int realizeSubsystemModelImpl(State& s) const;
-    virtual int realizeSubsystemInstanceImpl(const State& s) const;
-    virtual int realizeSubsystemTimeImpl(const State& s) const;
-    virtual int realizeSubsystemPositionImpl(const State& s) const;
-    virtual int realizeSubsystemVelocityImpl(const State& s) const;
-    virtual int realizeSubsystemDynamicsImpl(const State& s) const;
-    virtual int realizeSubsystemAccelerationImpl(const State& s) const;
-    virtual int realizeSubsystemReportImpl(const State& s) const;
+    virtual int realizeSubsystemTopologyImpl(State& s)       const {return 0;}
+    virtual int realizeSubsystemModelImpl   (State& s)       const {return 0;}
+    virtual int realizeSubsystemInstanceImpl(const State& s) const {return 0;}
+    virtual int realizeSubsystemTimeImpl    (const State& s) const {return 0;}
+    virtual int realizeSubsystemPositionImpl(const State& s) const {return 0;}
+    virtual int realizeSubsystemVelocityImpl(const State& s) const {return 0;}
+    virtual int realizeSubsystemDynamicsImpl(const State& s) const {return 0;}
+    virtual int realizeSubsystemAccelerationImpl(const State& s)const{return 0;}
+    virtual int realizeSubsystemReportImpl  (const State& s) const {return 0;}
 
     virtual int calcDecorativeGeometryAndAppendImpl
-       (const State&, Stage, Array_<DecorativeGeometry>&) const;
+       (const State&, Stage, Array_<DecorativeGeometry>&) const {return 0;}
 
+    virtual void calcEventTriggerInfoImpl
+       (const State&, Array_<EventTriggerInfo>&) const {}
+    virtual void calcTimeOfNextScheduledEventImpl
+       (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
+        bool includeCurrentTime) const {}
+    virtual void calcTimeOfNextScheduledReportImpl
+       (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
+        bool includeCurrentTime) const {}
+    virtual void handleEventsImpl
+       (State&, Event::Cause, const Array_<EventId>& eventIds,
+        const HandleEventsOptions& options, 
+        HandleEventsResults& results) const {}
+    virtual void reportEventsImpl
+       (const State&, Event::Cause, const Array_<EventId>& eventIds) const {}
+
+protected:
     void advanceToStage(const State& s, Stage g) const;
 
 private:

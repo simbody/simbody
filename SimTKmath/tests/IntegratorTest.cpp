@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -74,39 +74,41 @@ public:
         // Implementation of continuous DynamicSystem virtuals //
         /////////////////////////////////////////////////////////
 
-    /*virtual*/int realizeTopologyImpl(State&) const;
-    /*virtual*/int realizeModelImpl(State&) const;
-    /*virtual*/int realizeInstanceImpl(const State&) const;
-    /*virtual*/int realizePositionImpl(const State&) const;
-    /*virtual*/int realizeVelocityImpl(const State&) const;
-    /*virtual*/int realizeDynamicsImpl(const State&) const;
-    /*virtual*/int realizeAccelerationImpl(const State&) const;
+    int realizeTopologyImpl(State&) const OVERRIDE_11;
+    int realizeModelImpl(State&) const OVERRIDE_11;
+    int realizeInstanceImpl(const State&) const OVERRIDE_11;
+    int realizePositionImpl(const State&) const OVERRIDE_11;
+    int realizeVelocityImpl(const State&) const OVERRIDE_11;
+    int realizeDynamicsImpl(const State&) const OVERRIDE_11;
+    int realizeAccelerationImpl(const State&) const OVERRIDE_11;
 
     // qdot==u here so these are just copies
-    /*virtual*/void multiplyByNImpl(const State& state, const Vector& u, 
-                                 Vector& dq) const {dq=u;}
-    /*virtual*/void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
-                                          Vector& fu) const {fu=fq;}
-    /*virtual*/void multiplyByNPInvImpl(const State& state, const Vector& dq, 
-                                     Vector& u) const {u=dq;}
-    /*virtual*/void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
-                                              Vector& fq) const {fq=fu;}
+    void multiplyByNImpl(const State& state, const Vector& u, 
+                         Vector& dq) const OVERRIDE_11 {dq=u;}
+    void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
+                                  Vector& fu) const OVERRIDE_11 {fu=fq;}
+    void multiplyByNPInvImpl(const State& state, const Vector& dq, 
+                             Vector& u) const OVERRIDE_11 {u=dq;}
+    void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
+                                      Vector& fq) const OVERRIDE_11 {fq=fu;}
 
     // No prescribed motion.
-    /*virtual*/bool prescribeQImpl(State&) const {return false;}
-    /*virtual*/bool prescribeUImpl(State&) const {return false;}
+    bool prescribeQImpl(State&) const OVERRIDE_11 {return false;}
+    bool prescribeUImpl(State&) const OVERRIDE_11 {return false;}
 
-    /*virtual*/void projectQImpl(State&, Vector& qErrEst, 
-             const ProjectOptions& options, ProjectResults& results) const;
-    /*virtual*/void projectUImpl(State&, Vector& uErrEst, 
-             const ProjectOptions& options, ProjectResults& results) const;
+    void projectQImpl(State&, Vector& qErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const OVERRIDE_11;
+    void projectUImpl(State&, Vector& uErrEst, 
+             const ProjectOptions& options, ProjectResults& results) const OVERRIDE_11;
 
 
         ////////////////////////////////////////////////
         // Implementation of discrete System virtuals //
         ////////////////////////////////////////////////
 
-    /*virtual*/int calcEventTriggerInfoImpl(const State& s, Array_<EventTriggerInfo>& eti) const {
+    int calcEventTriggerInfoImpl
+       (const State& s, Array_<EventTriggerInfo>& eti) const OVERRIDE_11 
+    {
         eti.clear();
         eti.push_back(EventTriggerInfo(eventId0)
                       .setRequiredLocalizationTimeWindow(1)
@@ -117,9 +119,9 @@ public:
         return 0;
     }
 
-    /*virtual*/int calcTimeOfNextScheduledEventImpl
-                    (const State& s, Real& tNextEvent, 
-                     Array_<EventId>& eventIds, bool includeCurrentTime) const
+    int calcTimeOfNextScheduledEventImpl
+       (const State& s, Real& tNextEvent, 
+        Array_<EventId>& eventIds, bool includeCurrentTime) const OVERRIDE_11
     {
         // Generate an event every 5.123 seconds.
         int nFives = (int)(s.getTime() / 5.123); // rounded down
@@ -138,9 +140,10 @@ public:
     // state is inconsistent in some way and we expect the event handlers
     // to correct that. Time will be the same before and after, but the
     // state may have changed discontinuously.
-    /*virtual*/void handleEventsImpl
+    void handleEventsImpl
        (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
-        const HandleEventsOptions& options, HandleEventsResults& results) const
+        const HandleEventsOptions& options, HandleEventsResults& results) const 
+        OVERRIDE_11
     {
         cout << "===> t=" << s.getTime() << ": HANDLING " 
              << Event::getCauseName(cause) << " EVENT!!!" << endl;
