@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -1908,7 +1908,7 @@ private:
     }
 
     int findLastEarlier(double t) const {
-        for (int i=size()-1; i>=0; ++i)
+        for (int i=size()-1; i>=0; --i)
             if (getEntryTime(i) < t)
                 return i;
         return -1;
