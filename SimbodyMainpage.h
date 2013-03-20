@@ -19,11 +19,11 @@ system providing a great deal of functionality. It is, however, very easy to
 use if you know where to begin -- and this reference documentation is most
 definitely \e not the place to start if you want to learn how to use 
 Simbody. Instead, start with the tutorials in the Simbody User's Guide that 
-you can find at the Simbody project site https://simtk.org/home/simbody, 
+you can find at the Simbody project site https://simtk.org/home/simbody 
 "Documents" tab. There is also a collection of working example programs that
 come with the Simbody installation (in the examples directory). Both source
 and ready-to-execute binaries of the examples are installed. If you have 
-specific questions, use the Simbody help forum under the "Advanced" tab. 
+specific questions, use the Simbody help forum under the "Public Forums" tab. 
 You can also file bug reports and make feature requests using the tools 
 provided there.
 
@@ -108,7 +108,7 @@ terms under which we offer Simbody.
  *   dynamics for biomedical research, Procedia IUTAM 2:241-261 (2011)        *
  *   http://dx.doi.org/10.1016/j.piutam.2011.04.023                          *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors: Jack Middleton, Christopher Bruns, Paul Mitiguy, Matthew     *
  *   Millard, Charles Schwieters, Abhinandan Jain, Isaac Newton               *
