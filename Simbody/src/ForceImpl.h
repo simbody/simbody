@@ -230,6 +230,73 @@ private:
     Real force;
 };
 
+//------------------------------------------------------------------------------
+//                       MOBILITY LINEAR STOP IMPL
+//------------------------------------------------------------------------------
+// Hidden implementation class for a MobilityLinearStop force element.
+class Force::MobilityLinearStopImpl : public ForceImpl {
+friend class MobilityLinearStop;
+
+    // Type of the discrete state variable that holds values for this
+    // stop's changeable parameters in a State. Since these affect only forces
+    // the variable invalidates Dynamics stage and later when it changes.
+    struct Parameters {
+        Parameters(Real defStiffness, Real defDissipation,
+                     Real defQLow, Real defQHigh)
+        :   k(defStiffness), d(defDissipation), 
+            qLow(defQLow), qHigh(defQHigh) {}
+
+        Real    k, d, qLow, qHigh;
+    };
+
+    MobilityLinearStopImpl(const MobilizedBody&      mobod, 
+                           MobilizerQIndex           whichQ, 
+                           Real                      defaultStiffness,
+                           Real                      defaultDissipation,
+                           Real                      defaultQLow,
+                           Real                      defaultQHigh);
+
+    // Implementation of virtual methods from ForceImpl:
+    MobilityLinearStopImpl* clone() const OVERRIDE_11 
+    {   return new MobilityLinearStopImpl(*this); }
+    bool dependsOnlyOnPositions() const OVERRIDE_11 {return false;}
+
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const
+                   OVERRIDE_11; 
+
+    // We're not bothering to cache P.E. -- just recalculate it when asked.
+    Real calcPotentialEnergy(const State& state) const OVERRIDE_11; 
+
+    // Allocate the state variables and cache entry. 
+    void realizeTopology(State& s) const OVERRIDE_11 {
+        // Allocate the discrete variable for dynamics parameters.
+        const Parameters dv(m_defStiffness, m_defDissipation, 
+                            m_defQLow, m_defQHigh);
+        m_parametersIx = getForceSubsystem()
+            .allocateDiscreteVariable(s, Stage::Dynamics, 
+                                      new Value<Parameters>(dv));
+    }
+
+    const Parameters& getParameters(const State& s) const
+    {   return Value<Parameters>::downcast
+           (getForceSubsystem().getDiscreteVariable(s,m_parametersIx)); }
+    Parameters& updParameters(State& s) const
+    {   return Value<Parameters>::updDowncast
+           (getForceSubsystem().updDiscreteVariable(s,m_parametersIx)); }
+
+//------------------------------------------------------------------------------
+    // TOPOLOGY STATE
+    const SimbodyMatterSubsystem&   m_matter;
+    const MobilizedBodyIndex        m_mobodIx;
+    const MobilizerQIndex           m_whichQ;
+
+    Real m_defStiffness, m_defDissipation, m_defQLow, m_defQHigh;
+
+    // TOPOLOGY CACHE (Set only once in realizeTopology(); const thereafter.)
+    mutable DiscreteVariableIndex   m_parametersIx; // k, d, qLow, qHigh
+};
+
 
 
 //------------------------------------------------------------------------------

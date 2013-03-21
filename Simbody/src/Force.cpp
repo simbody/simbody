@@ -304,7 +304,176 @@ Real Force::MobilityConstantForceImpl::calcPotentialEnergy(const State& state) c
     return 0;
 }
 
+//---------------------------- MobilityLinearStop ------------------------------
+//------------------------------------------------------------------------------
 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearStop, 
+                                        Force::MobilityLinearStopImpl, 
+                                        Force);
+
+Force::MobilityLinearStop::MobilityLinearStop
+   (GeneralForceSubsystem&    forces, 
+    const MobilizedBody&      mobod, 
+    MobilizerQIndex           whichQ, 
+    Real                      defaultStiffness,
+    Real                      defaultDissipation,
+    Real                      defaultQLow,
+    Real                      defaultQHigh)
+    : Force(new MobilityLinearStopImpl(mobod,whichQ,
+                                       defaultStiffness, defaultDissipation,
+                                       defaultQLow, defaultQHigh))
+{
+    SimTK_ERRCHK2_ALWAYS(defaultStiffness >= 0 && defaultDissipation >= 0, 
+        "Force::MobilityLinearStop::MobilityLinearStop()",
+        "Stiffness and dissipation coefficient must be nonnegative "
+        "(defaultStiffness=%g, defaultDissipation=%g).",
+        defaultStiffness, defaultDissipation);
+    SimTK_ERRCHK2_ALWAYS(defaultQLow <= defaultQHigh, 
+        "Force::MobilityLinearStop::MobilityLinearStop()",
+        "Lower bound can't be larger than upper bound "
+        "(defaultQLow=%g, defaultQHigh=%g).",
+        defaultQLow, defaultQHigh);
+
+    updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
+}
+
+Force::MobilityLinearStop& Force::MobilityLinearStop::
+setDefaultBounds(Real defaultQLow, Real defaultQHigh) {
+    SimTK_ERRCHK2_ALWAYS(defaultQLow <= defaultQHigh, 
+        "Force::MobilityLinearStop::setDefaultBounds()",
+        "Lower bound can't be larger than upper bound "
+        "(defaultQLow=%g, defaultQHigh=%g).",
+        defaultQLow, defaultQHigh);
+
+    MobilityLinearStopImpl& impl = updImpl();
+    if (impl.m_defQLow != defaultQLow || impl.m_defQHigh != defaultQHigh) {
+        impl.m_defQLow = defaultQLow;
+        impl.m_defQHigh = defaultQHigh;
+        impl.invalidateTopologyCache();
+    }
+    return *this;
+}
+
+Force::MobilityLinearStop& Force::MobilityLinearStop::
+setDefaultMaterialProperties(Real defaultStiffness, Real defaultDissipation) {
+    SimTK_ERRCHK2_ALWAYS(defaultStiffness >= 0 && defaultDissipation >= 0, 
+        "Force::MobilityLinearStop::setDefaultMaterialProperties()",
+        "Stiffness and dissipation coefficient must be nonnegative "
+        "(defaultStiffness=%g, defaultDissipation=%g).",
+        defaultStiffness, defaultDissipation);
+
+    MobilityLinearStopImpl& impl = updImpl();
+    if (   impl.m_defStiffness   != defaultStiffness 
+        || impl.m_defDissipation != defaultDissipation) {
+        impl.m_defStiffness = defaultStiffness;
+        impl.m_defDissipation = defaultDissipation;
+        impl.invalidateTopologyCache();
+    }
+    return *this;
+}
+
+Real Force::MobilityLinearStop::getDefaultLowerBound() const 
+{   return getImpl().m_defQLow; }
+Real Force::MobilityLinearStop::getDefaultUpperBound() const 
+{   return getImpl().m_defQHigh; }
+Real Force::MobilityLinearStop::getDefaultStiffness() const 
+{   return getImpl().m_defStiffness; }
+Real Force::MobilityLinearStop::getDefaultDissipation() const 
+{   return getImpl().m_defDissipation; }
+
+
+void Force::MobilityLinearStop::
+setBounds(State& state, Real qLow, Real qHigh) const {
+    SimTK_ERRCHK2_ALWAYS(qLow <= qHigh, 
+        "Force::MobilityLinearStop::setBounds()",
+        "Lower bound can't be larger than upper bound (qLow=%g, qHigh=%g).",
+        qLow, qHigh);
+
+    MobilityLinearStopImpl::Parameters& params =
+        getImpl().updParameters(state); // invalidates Dynamics stage
+    params.qLow = qLow; params.qHigh = qHigh;
+}
+void Force::MobilityLinearStop::
+setMaterialProperties(State& state, Real stiffness, Real dissipation) const {
+    SimTK_ERRCHK2_ALWAYS(stiffness >= 0 && dissipation >= 0, 
+        "Force::MobilityLinearStop::setMaterialProperties()",
+        "Stiffness and dissipation coefficient must be nonnegative "
+        "(stiffness=%g, dissipation=%g).",
+        stiffness, dissipation);
+
+    MobilityLinearStopImpl::Parameters& params =
+        getImpl().updParameters(state); // invalidates Dynamics stage
+    params.k = stiffness; params.d = dissipation;
+}
+
+Real Force::MobilityLinearStop::getLowerBound(const State& state) const 
+{   return getImpl().getParameters(state).qLow; }
+Real Force::MobilityLinearStop::getUpperBound(const State& state) const 
+{   return getImpl().getParameters(state).qHigh; }
+Real Force::MobilityLinearStop::getStiffness(const State& state) const 
+{   return getImpl().getParameters(state).k; }
+Real Force::MobilityLinearStop::getDissipation(const State& state) const 
+{   return getImpl().getParameters(state).d; }
+
+
+Force::MobilityLinearStopImpl::MobilityLinearStopImpl
+   (const MobilizedBody&      mobod, 
+    MobilizerQIndex           whichQ, 
+    Real                      defaultStiffness,
+    Real                      defaultDissipation,
+    Real                      defaultQLow,
+    Real                      defaultQHigh) 
+:   m_matter(mobod.getMatterSubsystem()), 
+    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichQ(whichQ), 
+    m_defStiffness(defaultStiffness), m_defDissipation(defaultDissipation),
+    m_defQLow(defaultQLow), m_defQHigh(defaultQHigh)
+{
+}
+
+
+void Force::MobilityLinearStopImpl::
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+{
+    const Parameters& param = getParameters(state);
+    if (param.k == 0) return; // no stiffness, no force
+
+    const MobilizedBody& mb = m_matter.getMobilizedBody(m_mobodIx);
+    const Real q = mb.getOneQ(state, m_whichQ);
+
+    // Don't ask for velocity-dependent qdot if there is no dissipation.
+    const Real qdot = param.d != 0 ? mb.getOneQDot(state, m_whichQ) 
+                                   : Real(0);
+
+    if (q > param.qHigh) {
+        const Real x = q-param.qHigh;  // x > 0
+        const Real fraw = param.k*x*(1+param.d*qdot); // should be >= 0
+        mb.applyOneMobilityForce(state, 
+            MobilizerUIndex(m_whichQ), // TODO: only works qdot & u match
+            std::min(Real(0), -fraw), mobilityForces);
+    } else if (q < param.qLow) {
+        const Real x = q-param.qLow;    // x < 0
+        const Real fraw = param.k*x*(1-param.d*qdot); // should be <= 0
+        mb.applyOneMobilityForce(state, 
+            MobilizerUIndex(m_whichQ), // TODO: only works qdot & u match
+            std::max(Real(0), -fraw), mobilityForces);
+    }
+}
+
+Real Force::MobilityLinearStopImpl::
+calcPotentialEnergy(const State& state) const {
+    const Parameters& param = getParameters(state);
+    if (param.k == 0) return 0; // no stiffness, no energy stored
+
+    const MobilizedBody& mb = m_matter.getMobilizedBody(m_mobodIx);
+    const Real q = mb.getOneQ(state, m_whichQ);
+    Real x = 0;
+    if      (q > param.qHigh) x = q-param.qHigh;
+    else if (q < param.qLow)  x = q-param.qLow;
+    else return 0; // neither stop is engaged
+
+    return param.k*x*x/2;  // 1/2 k x^2
+}
 
 //-------------------------- MobilityDiscreteForce -----------------------------
 //------------------------------------------------------------------------------
