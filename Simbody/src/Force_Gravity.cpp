@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,13 +32,23 @@
 
 namespace SimTK {
 
+//==============================================================================
+//                          FORCE :: GRAVITY IMPL
+//==============================================================================
+// This is the hidden implementation class for Force::Gravity.
 class Force::GravityImpl : public ForceImpl {
+
+    // These are settable parameters including gravity vector, zero height,
+    // and which if any mobilized bodies are immune to gravity.
     struct InstanceVars {
-        InstanceVars(const UnitVec3& defDirection, Real defMagnitude,
-                     Real defZeroHeight)
-        :   d(defDirection), g(defMagnitude), z(defZeroHeight) {}
-        UnitVec3  d;
-        Real      g, z;
+        InstanceVars(const UnitVec3& defDirection, 
+                     Real defMagnitude, Real defZeroHeight, 
+                     const Array_<bool,MobilizedBodyIndex>& defMobodIsImmune)
+        :   d(defDirection), g(defMagnitude), z(defZeroHeight),
+            mobodIsImmune(defMobodIsImmune) {}
+        UnitVec3    d;
+        Real        g, z;
+        Array_<bool,MobilizedBodyIndex> mobodIsImmune; // [nb]
     };
 
     // The cache has a SpatialVec for each mobilized body and a Vec3 for each
@@ -63,27 +73,63 @@ public:
                 Real                            magnitude,
                 Real                            zeroHeight)
     :   matter(matter), defDirection(direction), defMagnitude(magnitude), 
-        defZeroHeight(zeroHeight) {}
+        defZeroHeight(zeroHeight), 
+        defMobodIsImmune(matter.getNumBodies(), false)
+    {   defMobodIsImmune.front() = true; } // Ground is always immune
 
-    GravityImpl* clone() const {
+    void setMobodIsImmuneByDefault(MobilizedBodyIndex mbx, bool isImmune) {
+        if (mbx == 0) return; // can't change Ground's innate immunity
+        if (defMobodIsImmune.size() < mbx+1)
+            defMobodIsImmune.resize(mbx+1, false);
+        defMobodIsImmune[mbx] = isImmune;
+    }
+
+    bool getMobodIsImmuneByDefault(MobilizedBodyIndex mbx) const {
+        if (defMobodIsImmune.size() < mbx+1)
+            return false;
+        return defMobodIsImmune[mbx];
+    }
+
+    void setMobodIsImmune(State& state, MobilizedBodyIndex mbx,
+                          bool isImmune) const {
+        if (mbx == 0) return; // no messing with Ground
+        InstanceVars& iv = updInstanceVars(state);
+        iv.mobodIsImmune[mbx] = isImmune;
+    }
+
+    bool getMobodIsImmune(const State& state, MobilizedBodyIndex mbx) const {
+        const InstanceVars& iv = getInstanceVars(state);
+        return iv.mobodIsImmune[mbx];
+    }
+
+    GravityImpl* clone() const OVERRIDE_11 {
         return new GravityImpl(*this);
     }
-    bool dependsOnlyOnPositions() const {
+    bool dependsOnlyOnPositions() const OVERRIDE_11 {
         return true;
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
-                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
-    Real calcPotentialEnergy(const State& state) const;
+                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const
+                   OVERRIDE_11;
+    Real calcPotentialEnergy(const State& state) const OVERRIDE_11;
 
     // Allocate the state variables and cache entries. The cached values are
     // lazy-evaluation entries - be sure to check whether they have already
     // been calculated; calculate them if not; and then mark them done.
     // They will be invalidated when the indicated stage has changed and
     // can be recalculated any time after that stage is realized.
-    void realizeTopology(State& s) const {
+    void realizeTopology(State& s) const OVERRIDE_11 {
         GravityImpl* mThis = const_cast<GravityImpl*>(this);
+        const int nb = matter.getNumBodies();
 
-        const InstanceVars iv(defDirection,defMagnitude,defZeroHeight);
+        // In case more mobilized bodies were added after this Gravity element
+        // was constructed, make room for the rest now. Earlier immunity
+        // settings are preserved.
+        if (defMobodIsImmune.size() != nb)
+            mThis->defMobodIsImmune.resize(nb, false);
+
+        const InstanceVars iv(defDirection,defMagnitude,defZeroHeight,
+                              defMobodIsImmune);
         mThis->instanceVarsIx = getForceSubsystem()
             .allocateDiscreteVariable(s, Stage::Instance, 
                                       new Value<InstanceVars>(iv));
@@ -95,16 +141,23 @@ public:
 
         // Now allocate the appropriate amount of space.
         ForceCache& fc = updForceCache(s);
-        fc.allocate(matter.getNumBodies(), matter.getNumParticles());
+        fc.allocate(nb, matter.getNumParticles());
     }
 
     // If the magnitude of gravity was set to zero then we can calculate all
     // the forces on the affected bodies now -- they are zero!
-    void realizeInstance(const State& s) const {
+    void realizeInstance(const State& s) const OVERRIDE_11 {
         const InstanceVars& iv = getInstanceVars(s);
         ForceCache&         fc = updForceCache(s);
         if (iv.g == 0) fc.setToZero();
         else           fc.setToNaN();
+
+        // Set gravity force for unaffected bodies to zero now so we won't
+        // have to keep doing it later.
+        for (MobilizedBodyIndex mbx(0); mbx < iv.mobodIsImmune.size(); ++mbx)
+            if (iv.mobodIsImmune[mbx])
+                fc.F_GB[mbx] = SpatialVec(Vec3(0),Vec3(0));
+
         // This doesn't mean the ForceCache is valid yet.
     }
 
@@ -131,31 +184,22 @@ private:
 
     // TOPOLOGY STATE
     const SimbodyMatterSubsystem&   matter;
-    std::set<MobilizedBodyIndex>    affectedBodySet; // no dups or Ground
     UnitVec3                        defDirection;
     Real                            defMagnitude;
     Real                            defZeroHeight;
+    Array_<bool,MobilizedBodyIndex> defMobodIsImmune;
 
     // TOPOLOGY CACHE
     DiscreteVariableIndex           instanceVarsIx;
     CacheEntryIndex                 forceCacheIx;
 
 friend class Force::Gravity;
-friend std::ostream& operator<<(std::ostream&,const InstanceVars&);
-friend std::ostream& operator<<(std::ostream&,const ForceCache&);
 };
 
-// These are required by Value<T>.
-inline std::ostream& operator<<
-   (std::ostream& o, const Force::GravityImpl::InstanceVars& iv)
-{   assert(!"implemented"); return o; }
-inline std::ostream& operator<<
-   (std::ostream& o, const Force::GravityImpl::ForceCache& fc)
-{   assert(!"implemented"); return o; }
 
-
-//--------------------------------- Gravity ------------------------------------
-//------------------------------------------------------------------------------
+//==============================================================================
+//                             FORCE :: GRAVITY
+//==============================================================================
 
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Gravity, 
                                         Force::GravityImpl, Force);
@@ -193,6 +237,12 @@ Force::Gravity::Gravity
         " strength is zero, use the other constructor that allows strength"
         " and direction to be supplied separately.");
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
+}
+
+Force::Gravity& Force::Gravity::
+setDefaultBodyIsExcluded(MobilizedBodyIndex mobod, bool isExcluded) {
+    updImpl().setMobodIsImmuneByDefault(mobod, isExcluded);
+    return *this;
 }
 
 Force::Gravity& Force::Gravity::
@@ -239,6 +289,9 @@ setDefaultZeroHeight(Real zeroHeight) {
     return *this;
 }
 
+bool Force::Gravity::
+getDefaultBodyIsExcluded(MobilizedBodyIndex mobod) const
+{   return getImpl().getMobodIsImmuneByDefault(mobod); }
 Vec3 Force::Gravity::
 getDefaultGravityVector() const 
 {   return getImpl().defDirection * getImpl().defMagnitude;}
@@ -248,6 +301,14 @@ Real Force::Gravity::
 getDefaultMagnitude() const {return getImpl().defMagnitude;}
 Real Force::Gravity::
 getDefaultZeroHeight() const {return getImpl().defZeroHeight;}
+
+
+const Force::Gravity& Force::Gravity::
+setBodyIsExcluded(State& state, MobilizedBodyIndex mobod, 
+                  bool isExcluded) const
+{   getImpl().setMobodIsImmune(state, mobod, isExcluded); 
+    return *this;
+}
 
 const Force::Gravity& Force::Gravity::
 setGravityVector(State& state, const Vec3& gravity) const {
@@ -292,6 +353,10 @@ setMagnitude(State& state, Real g) const {
     return *this;
 }
 
+bool Force::Gravity::
+getBodyIsExcluded(const State& state, MobilizedBodyIndex mobod) const
+{   return getImpl().getMobodIsImmune(state, mobod); }
+
 Real Force::Gravity::getMagnitude(const State& state) const
 {   return getImpl().getInstanceVars(state).g; }
 
@@ -321,14 +386,15 @@ getParticleForce(const State& s, ParticleIndex px) const
     return fc.f_GP[px]; }
 
 
-//------------------------------- GravityImpl ----------------------------------
-//------------------------------------------------------------------------------
-
-// This will also calculate potential energy since we can do it on the
-// cheap simultaneously with the force. Note that if the strength of gravity
-// was set to zero then we already zeroed out the forces and pe during
-// realizeInstance() so all we have to do in that case is mark the cache valid
-// now.
+//==============================================================================
+//                            FORCE :: GRAVITY IMPL
+//==============================================================================
+// This will also calculate potential energy since we can do it on the cheap 
+// simultaneously with the force. Note that if the strength of gravity was set 
+// to zero then we already zeroed out the forces and pe during realizeInstance()
+// so all we have to do in that case is mark the cache valid now. Also, any
+// immune bodies have their force set to zero in realizeInstance() so we don't
+// have to do it again here.
 void Force::GravityImpl::
 ensureForceCacheValid(const State& state) const {
     if (isForceCacheValid(state)) return;
@@ -345,7 +411,11 @@ ensureForceCacheValid(const State& state) const {
     fc.pe = 0;
 
     const int nb = matter.getNumBodies();
+    // Skip Ground since we know it is immune.
     for (MobilizedBodyIndex mbx(1); mbx < nb; ++mbx) {
+        if (iv.mobodIsImmune[mbx])
+            continue; // don't apply gravity to this body; F already zero
+
         const MobilizedBody&     mobod  = matter.getMobilizedBody(mbx);
         const MassProperties&    mprops = mobod.getBodyMassProperties(state);
         const Transform&         X_GB   = mobod.getBodyTransform(state);

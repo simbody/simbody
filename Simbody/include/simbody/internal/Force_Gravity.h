@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -43,20 +43,24 @@ direction (unit vector) d, expressed in the Ground frame. For example, in SI
 units "standard gravity" g at the Earth's surface is defined to be exactly 
 g=9.80665 m/s^2. If gravity acts in Ground's -Y direction, then its direction 
 vector is d=[0,-1,0]; together this yields a gravity vector 
-v=g*d=[0,-9.80665,0]. Gravity affects all the bodies and particles in the given 
-SimbodyMatterSubsystem (except for Ground).
+v=g*d=[0,-9.80665,0]. By default gravity will be applied to each MobilizedBody
+in the given SimbodyMatterSubsystem (except for Ground). You can specify that
+some bodies are excluded; those will not have a gravity force applied. You can
+include multiple Force::Gravity elements with different exclusion lists in the
+same System if you want different bodies to feel different effects.
 
 \par Force
-Each body b experiences a force fb = mb*g*d, applied to its center 
-of mass, where mb is the mass of body b. Although this is a pure force, note
-that when it is measured in the body frame there will also be a moment unless
-the body frame is located at the body's mass center.
+Each body B that has not been explicitly excluded will experiences a force 
+fb = mb*g*d, applied to its center of mass, where mb is the mass of body B. 
+Although this is a pure force, note that when it is measured in the body frame 
+there will also be a moment unless the body frame origin Bo is located at the 
+body's mass center.
 
 \par Potential Energy
-Gravitational potential energy for a body b is mb*g*hb where 
-hb is the height of body b's mass center over an arbitrary "zero"
+Gravitational potential energy for a body B is mb*g*hb where 
+hb is the height of body B's mass center over an arbitrary "zero"
 height hz (default is hz=0), measured along the "up" direction -d. If pb is 
-the Ground frame vector giving the position of body b's mass center, its
+the Ground frame vector giving the position of body B's mass center, its
 height over or under hz is hb=pb*(-d) - hz. Note that this is a signed
 quantity so the potential energy is also signed. **/
 class SimTK_SIMBODY_EXPORT Force::Gravity : public Force {
@@ -77,33 +81,14 @@ state variables. Note:
     expression. **/
 /*@{*/
 
-/** Create a Gravity force element within a particular force subsystem and
-affecting all the bodies of a particular matter subsystem, by specifying only a 
-gravity vector, that is, the product of the gravity magnitude and the "down"
-direction vector.
-
-@param[in,out]      forces       
-    The subsystem to which this force should be added.
-@param[in]          matter        
-    The subsystem containing the bodies that will be affected.
-@param[in]          gravity
-    The default gravity vector v, interpreted as v=g*d where g=|\a gravity| is 
-    a positive scalar and d is the "down" direction unit vector d=\a gravity/g. 
-    This value is used to calculate g and d separately so must not be zero 
-    length. If you want to create a Gravity force element with default 
-    magnitude zero, use the other constructor which allows magnitude and 
-    direction to be provided separately.
-
-This constructor sets the default zero height hz to zero (for use in calculating 
-gravitational potential energy). If you want a different default value, use
-the more general constructor or the setDefaultZeroHeight() method. **/
-Gravity(GeneralForceSubsystem&          forces, 
-        const SimbodyMatterSubsystem&   matter,
-        const Vec3&                     gravity);
 
 /** Create a Gravity force element within a particular force subsystem and
 affecting all the bodies of a particular matter subsystem, providing gravity
-magnitude and direction separately.
+magnitude and direction separately. 
+
+If you want to permanently exclude some bodies from the effects of this force 
+element, call setBodyIsExcludedByDefault(). You can also make changes on the 
+fly with setBodyIsExcluded().
 
 @param[in,out]      forces       
     The subsystem to which this force should be added.
@@ -137,6 +122,52 @@ Gravity(GeneralForceSubsystem&          forces,
         const UnitVec3&                 down,
         Real                            g,
         Real                            zeroHeight = 0);
+
+/** Convenience constructor to create a Gravity force element by specifying only
+a gravity vector, that is, the product of the gravity magnitude and the "down"
+direction vector. We have to extract the magnitude and direction from this so
+it can't be zero. For that reason the other constructor is preferable if you
+want to start with zero gravity. 
+
+If you want to permanently exclude some bodies from the effects of this force 
+element, call setBodyIsExcludedByDefault(). You can also make changes on the 
+fly with setBodyIsExcluded().
+
+@param[in,out]      forces       
+    The subsystem to which this force should be added.
+@param[in]          matter        
+    The subsystem containing the bodies that will be affected.
+@param[in]          gravity
+    The default gravity vector v, interpreted as v=g*d where g=|\a gravity| is 
+    a positive scalar and d is the "down" direction unit vector d=\a gravity/g. 
+    This value is used to calculate g and d separately so must not be zero 
+    length. If you want to create a Gravity force element with default 
+    magnitude zero, use the other constructor which allows magnitude and 
+    direction to be provided separately.
+
+This constructor sets the default zero height hz to zero (for use in calculating 
+gravitational potential energy). If you want a different default value, use
+the more general constructor or the setDefaultZeroHeight() method. **/
+Gravity(GeneralForceSubsystem&          forces, 
+        const SimbodyMatterSubsystem&   matter,
+        const Vec3&                     gravity);
+
+/** Set how the indicated body is to be treated by default. Normally all bodies
+except Ground are affected by this force element so you only need to call this
+if you want to exclude a body. This is a topological change since the flag will 
+be stored with the System; for on-the-fly changes you should call
+setBodyIsExcluded() instead. Ground is always excluded; you can call this 
+method on Ground but the call will be ignored.  
+
+@param[in]      mobod
+    This is a MobilizedBody or MobilizedBodyIndex for the body whose 
+    default exclusion status you want to change.
+@param[in]      isExcluded
+    Set to true if the default should be that this body is \e not to be affected
+    by this %Gravity force element.
+
+@see setBodyIsExcluded() **/
+Gravity& setDefaultBodyIsExcluded(MobilizedBodyIndex mobod, bool isExcluded);
 
 /** Set the default value for the gravity vector, that is, the direction and
 magnitude with which gravity will act (must not be zero). From the given
@@ -190,6 +221,16 @@ calculation. See the Gravity class comments for how this is used.
     the new default \a zeroHeight. **/
 Gravity& setDefaultZeroHeight(Real zeroHeight);
 
+/** Return the current setting of the "is excluded by default" flag for the 
+given body. This is the status that the flag will have in the default State
+returned by System::realizeTopology().
+@param[in]      mobod
+    This is a MobilizedBody or MobilizedBodyIndex for the body whose 
+    exclusion status you want to obtain.
+@return The current value of the "is excluded by default" flag for this body; 
+    this will always be \c true for Ground.    
+@see getBodyIsExcluded() **/
+bool getDefaultBodyIsExcluded(MobilizedBodyIndex mobod) const;
 /** Return the default gravity vector being used for this Gravity force 
 element, calculated from the default magnitude and direction. **/
 Vec3 getDefaultGravityVector() const;
@@ -211,9 +252,9 @@ Real getDefaultZeroHeight() const;
 
 These refer to the Instance-stage state variables that determine the actual
 values to be used to calculate gravitational forces and energy from a given
-State object. If these are not set explicitly, the default values are set to 
-those provided in the constructor or via the correponding setDefault...() 
-methods. Note:
+State object, and which bodies are to be excluded from that calculation. If 
+these are not set explicitly, the values are set to those provided in the 
+constructor or via the correponding setDefault...() methods. Note:
   - Changing one of these parameters invalidates the given State's 
     Instance stage, meaning that realize(Instance) will have to be called 
     (explicitly or implicitly by realizing a higher stage) before 
@@ -222,6 +263,25 @@ methods. Note:
     element (in the manner of an assignment operator, except read-only) so they
     can be chained in a single expression. **/
 /*@{*/
+
+/** Within a given State, selectively exclude (or include) a body from the 
+effects of this Gravity force. The default State will inherit the "is excluded
+by default" values set during construction, but then you can change them. Ground 
+is always excluded; you can call this method on Ground but the call will
+be ignored. 
+@param[in,out]      state
+    The State object that is modified by this method.
+@param[in]          mobod
+    This is a MobilizedBody or MobilizedBodyIndex for the body whose 
+    exclusion status you want to change.
+@param[in]          isExcluded
+    Set to true if this body should \e not be affected by this force element.
+@return A const reference to "this" Gravity force element for convenient 
+    chaining of  set...() methods in a single expression.
+@pre \a state must already be realized to Stage::Topology. 
+@see setDefaultBodyIsExcluded(), getBodyIsExcluded() **/
+const Gravity& setBodyIsExcluded(State& state, MobilizedBodyIndex mobod, 
+                                bool isExcluded) const;
 
 /** Set the gravity vector v, that is, the magnitude and direction with which 
 gravitational forces will act, overriding the default magnitude and direction 
@@ -280,6 +340,18 @@ element.
 @pre \a state must already be realized to Stage::Topology. **/
 const Gravity& setZeroHeight(State& state, Real hz) const;
 
+/** Return the current setting of the "is excluded" flag for a given body in a 
+given State. This is not necessarily the same as the default value for this 
+body's exclusion status.
+@param[in]      state
+    The state containing the "is excluded" flag to be obtained.
+@param[in]      mobod
+    A MobilizedBody or MobilizedBodyIndex for the body whose exclusion status 
+    you want to obtain.
+@return The current value of the "is excluded" flag for this body in this 
+    \a state; this will always be \c true for Ground. 
+@see getDefaultBodyIsExcluded(), setBodyIsExcluded() **/
+bool getBodyIsExcluded(const State& state, MobilizedBodyIndex mobod) const;
 /** Get the gravity vector v that will be used for computations done with this
 \a state. This is calculated as v=g*d from the current values of the magnitude
 g and direction d Instance variables in the \a state.
@@ -337,11 +409,12 @@ origin but that can be changed arbitrarily.
 @param[in]          state    
     The State from whose cache the potential energy is retrieved.
 @return The gravitational potential energy of this Gravity force element in the 
-    configuration contained in \a state (a nonnegative scalar).
+    configuration contained in \a state (a signed scalar).
 @pre \a state must be realized to Stage::Position **/
 Real getPotentialEnergy(const State& state) const;
 /** Obtain the gravitational force currently being applied by this Gravity
-force element to the given mobilized body.
+force element to the given mobilized body. This is zero for Ground or any
+body that was explicitly excluded.
 @param[in]  state   The State from whose cache the force is retrieved.
 @param[in]  mobod   The index of the mobilized body whose force is wanted.
 @return The spatial force (meaning the gravitational force and moment about
