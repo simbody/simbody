@@ -393,7 +393,7 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
             vertices.push_back((float) center[0]);
             vertices.push_back((float) center[1]);
             vertices.push_back((float) center[2]);
-            const unsigned newIndex = vertices.size()/3-1;
+            const unsigned newIndex = (unsigned)(vertices.size()/3-1);
             for (int j = 0; j < numVert-1; j++) {
                 faces.push_back((unsigned short) mesh.getFaceVertex(i, j));
                 faces.push_back((unsigned short) mesh.getFaceVertex(i, j+1));

@@ -1196,7 +1196,7 @@ public:
         if (!CNT<ELT>::IsScalar)
             SimTK_THROW1(Exception::Cant, 
                 "Vector::normRMS() only defined for scalar elements.");
-        const int n = nelt();
+        const int n = nrow();
         if (n == 0) {
             if (worstOne) *worstOne = -1;
             return typename CNT<ScalarNormSq>::TSqrt(0);
@@ -1233,8 +1233,8 @@ public:
             SimTK_THROW1(Exception::Cant, 
             "Vector::weightedNormRMS() only defined for scalar elements"
             " and weights.");
-        const int n = nelt();
-        assert(w.nelt()==n);
+        const int n = nrow();
+        assert(w.nrow()==n);
         if (n == 0) {
             if (worstOne) *worstOne = -1;
             return typename CNT<ScalarNormSq>::TSqrt(0);
@@ -1267,7 +1267,7 @@ public:
         if (!CNT<ELT>::IsScalar)
             SimTK_THROW1(Exception::Cant, 
                 "Vector::normInf() only defined for scalar elements.");
-        const int n = nelt();
+        const int n = nrow();
         if (n == 0) {
             if (worstOne) *worstOne = -1;
             return EAbs(0);
@@ -1301,8 +1301,8 @@ public:
             SimTK_THROW1(Exception::Cant, 
             "Vector::weightedNormInf() only defined for scalar elements"
             " and weights.");
-        const int n = nelt();
-        assert(w.nelt()==n);
+        const int n = nrow();
+        assert(w.nrow()==n);
         if (n == 0) {
             if (worstOne) *worstOne = -1;
             return EAbs(0);
@@ -3565,11 +3565,11 @@ template <class ELT, class VECTOR_CLASS>
 class VectorIterator {
 public:
     typedef ELT value_type;
-    typedef int difference_type;
+    typedef ptrdiff_t difference_type;
     typedef ELT& reference;
     typedef ELT* pointer;
     typedef std::random_access_iterator_tag iterator_category;
-    VectorIterator(VECTOR_CLASS& vector, int index) : vector(vector), index(index) {
+    VectorIterator(VECTOR_CLASS& vector, ptrdiff_t index) : vector(vector), index(index) {
     }
     VectorIterator(const VectorIterator& iter) : vector(iter.vector), index(iter.index) {
     }
@@ -3580,11 +3580,11 @@ public:
     }
     ELT& operator*() {
         assert (index >= 0 && index < vector.size());
-        return vector[index];
+        return vector[(int)index];
     }
-    ELT& operator[](int i) {
+    ELT& operator[](ptrdiff_t i) {
         assert (i >= 0 && i < vector.size());
-        return vector[i];
+        return vector[(int)i];
     }
     VectorIterator operator++() {
         assert (index < vector.size());
@@ -3620,13 +3620,13 @@ public:
     bool operator>=(VectorIterator iter) const {
         return (index >= iter.index);
     }
-    int operator-(VectorIterator iter) const {
+    ptrdiff_t operator-(VectorIterator iter) const {
         return (index - iter.index);
     }
-    VectorIterator operator-(int n) const {
+    VectorIterator operator-(ptrdiff_t n) const {
         return VectorIterator(vector, index-n);
     }
-    VectorIterator operator+(int n) const {
+    VectorIterator operator+(ptrdiff_t n) const {
         return VectorIterator(vector, index+n);
     }
     bool operator==(VectorIterator iter) const {
@@ -3637,7 +3637,7 @@ public:
     }
 private:
     VECTOR_CLASS& vector;
-    int index;
+    ptrdiff_t index;
 };
 
 } //namespace SimTK

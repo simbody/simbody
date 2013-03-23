@@ -181,7 +181,7 @@ void MultibodyGraphMaker::generateGraph() {
     for (int bn=1; bn < getNumBodies(); ++bn) { // skip Ground
         const Body& body = getBody(bn);
         const int nJoints = // how many joints connect to this body?
-            body.jointsAsChild.size()+body.jointsAsParent.size();
+            (int)(body.jointsAsChild.size()+body.jointsAsParent.size());
         if (body.mass == 0 && nJoints < 2)
                 throw std::runtime_error(
                     "generateGraph(): body " + body.name + 
@@ -301,7 +301,7 @@ void MultibodyGraphMaker::initialize() {
 // bodies. Does not create the related loop constraint. The body
 // number assigned to the slave is returned.
 int MultibodyGraphMaker::splitBody(int masterBodyNum) {
-    const int slaveBodyNum = bodies.size(); // next available
+    const int slaveBodyNum = (int)bodies.size(); // next available
     Body& master = updBody(masterBodyNum);
     // First slave is number 1, slave 0 is the master.
     std::stringstream ss;
@@ -339,11 +339,11 @@ int MultibodyGraphMaker::chooseNewBaseBody() const {
             // This is our first parent-only body; it is automatically the
             // best candidate now.
             parentOnlyBodySeen = true;
-            bestBody = bx; nChildren = body.jointsAsParent.size();
+            bestBody = bx; nChildren = (int)body.jointsAsParent.size();
         } else { // Keep the body that has the most children.
             if ((int)body.jointsAsParent.size() > nChildren) {
                 bestBody  = bx; 
-                nChildren = body.jointsAsParent.size();
+                nChildren = (int)body.jointsAsParent.size();
             }
         }
     }
@@ -579,7 +579,7 @@ void MultibodyGraphMaker::breakLoops() {
 
         const JointType& jtype = getJointType(jinfo.jointTypeNum);
         if (jtype.haveGoodLoopJointAvailable) {
-            const int loopNum = constraints.size();
+            const int loopNum = (int)constraints.size();
             constraints.push_back(LoopConstraint(jtype.name,jx,px,cx,this));
             jinfo.loopConstraint = loopNum;
             continue;
