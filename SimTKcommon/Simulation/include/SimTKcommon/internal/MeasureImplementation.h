@@ -1204,12 +1204,14 @@ public:
         assert(zIndex.isValid());
         Vector& allZ = this->getSubsystem().updZ(s);
         if (!icMeasure.isEmptyHandle()) {
-             const T& ic = icMeasure.getValue(s);
-             for (int i=0; i < this->size(); ++i)
-                 allZ[zIndex+i] = Measure_Num<T>::get(ic,i);
+            this->getSubsystem().getSystem()
+                .realize(s, icMeasure.getDependsOnStage());
+            const T& ic = icMeasure.getValue(s);
+            for (int i=0; i < this->size(); ++i)
+                allZ[zIndex+i] = Measure_Num<T>::get(ic,i);
         } else {
-             for (int i=0; i < this->size(); ++i)
-                 allZ[zIndex+i] = Measure_Num<T>::get(this->getDefaultValue(),i);
+            for (int i=0; i < this->size(); ++i)
+                allZ[zIndex+i] = Measure_Num<T>::get(this->getDefaultValue(),i);
         }
     }
 
@@ -1339,6 +1341,7 @@ public:
         const Subsystem& subsys = this->getSubsystem();
         Result& result = Value<Result>::updDowncast
                             (subsys.updDiscreteVariable(s,resultIx));
+        this->getSubsystem().getSystem().realize(s,operand.getDependsOnStage());
         result.operand = operand.getValue(s);
         result.operandDot = this->getValueZero();
         result.derivIsGood = false;
@@ -1522,6 +1525,7 @@ public:
     /** At start of a time stepping study, this should be called to set the
     current extreme value to the current value of the operand. **/
     void initializeVirtual(State& s) const OVERRIDE_11 {
+        this->getSubsystem().getSystem().realize(s,operand.getDependsOnStage()); 
         setValue(s, operand.getValue(s));
     }
 
@@ -1697,21 +1701,21 @@ private:
 // By convention, oldest=0 whenever the buffer is empty. 
 //
 //
-//           oldest            next=(oldest+n)%size
+//           oldest            next=(oldest+n)%capacity
 //                 v           v
 //    | available | | | | | | | available |
 //     ^                n=6                ^
-//     0                                   size()
+//     0                                   capacity
 //     v                                   v
 // or | | | | | | available | | | | | | | |    n=12
 //               ^           ^
 //               next        oldest
-//                 = (oldest+n)%size
+//                 = (oldest+n)%capacity
 //
-// Number of entries = n
+// Number of entries = n (called size() below)
 // Empty = n==0
-// Full = n==size()
-// Next available = (oldest+n)%size()
+// Full = n==capacity()
+// Next available = (oldest+n)%capacity()
 template <class T>
 class Measure_Delay_Buffer {
 public:
@@ -1747,6 +1751,17 @@ public:
         const int nextFree = getArrayIndex(m_size++);
         m_times[nextFree] = tNow;
         m_values[nextFree] = valueNow;
+        m_maxSize = std::max(m_maxSize, size());
+    }
+
+    // Prepend an older entry to the beginning of the list. No cleanup is done.
+    void prepend(double tNewOldest, const T& value) {
+        assert(empty() || tNewOldest < m_times[m_oldest]);
+        if (full()) makeMoreRoom();
+        m_oldest = empty() ? 0 : getArrayIndex(-1);
+        m_times[m_oldest] = tNewOldest;
+        m_values[m_oldest] = value;
+        ++m_size;
         m_maxSize = std::max(m_maxSize, size());
     }
 
@@ -1869,9 +1884,13 @@ public:
     int getMaxCapacity() const {return m_maxCapacity;}
 
 private:
-    // Return the i'th oldest entry (0->oldest, n-1->newest, n->next free)
+    // Return the i'th oldest entry 
+    // (0 -> oldest, size-1 -> newest, size -> first free, -1 -> last free)
     int getArrayIndex(int i) const 
-    {   assert(0<=i && i<=size()); return (m_oldest+i) % capacity(); }
+    {   assert(-1<=i && i<=size()); 
+        const int rawIndex = m_oldest + i;
+        if (rawIndex < 0) return rawIndex + capacity();
+        else return rawIndex % capacity(); }
 
     // Remove all but two entries older than the given time.
     void forgetEntriesMuchOlderThan(double tEarliest) {
@@ -1981,7 +2000,8 @@ template <class T>
 class Measure_<T>::Delay::Implementation: public Measure_<T>::Implementation {
     typedef Measure_Delay_Buffer<T> Buffer;
 public:
-    // Don't allocate any cache entries in the base class.
+    // Allocate one cache entry in the base class for the value; we allocate
+    // a specialized one for the buffer.
     Implementation() 
     :   Measure_<T>::Implementation(1), m_delay(NaN),
         m_canUseCurrentValue(false), m_useLinearInterpolationOnly(false) {}
@@ -2063,6 +2083,7 @@ public:
         Buffer& buffer = Value<Buffer>::updDowncast
                             (subsys.updDiscreteVariable(s,m_bufferIx));
         buffer.clear();
+        this->getSubsystem().getSystem().realize(s,m_source.getDependsOnStage());
         buffer.append(s.getTime()-m_delay, s.getTime(), m_source.getValue(s));
     }
 
@@ -2074,14 +2095,11 @@ public:
 
     /** In case no one has updated the value of this measure yet, we have
     to make sure it gets updated before the integration moves ahead. **/
-    //TODO: currently wasting time copying this into the cache so that it
-    //can be auto-updated. Better just to update the state variable in an
-    //end-of-step Handler.
     void realizeMeasureAccelerationVirtual(const State& s) const OVERRIDE_11 {
         updateBuffer(s);
     }
 
-    // This copies the buffer from the state into an updated copy in the
+    // This uses the buffer from the state to update the one in the
     // corresponding cache entry. The update adds the current value of the
     // source to the end of the buffer and tosses out unneeded old entries.
     void updateBuffer(const State& s) const {
