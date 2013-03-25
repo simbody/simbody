@@ -50,7 +50,7 @@ include multiple Force::Gravity elements with different exclusion lists in the
 same System if you want different bodies to feel different effects.
 
 \par Force
-Each body B that has not been explicitly excluded will experiences a force 
+Each body B that has not been explicitly excluded will experience a force 
 fb = mb*g*d, applied to its center of mass, where mb is the mass of body B. 
 Although this is a pure force, note that when it is measured in the body frame 
 there will also be a moment unless the body frame origin Bo is located at the 

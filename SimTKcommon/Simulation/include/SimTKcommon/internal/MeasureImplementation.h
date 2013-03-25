@@ -1917,8 +1917,8 @@ private:
         if (m_size==0) m_oldest=0; // restart at beginning of array
     }
 
-    // Return the entry number (0..n-1) of the first entry whose time is >= the
-    // given time, or n if there is none such.
+    // Return the entry number (0..size-1) of the first entry whose time 
+    // is >= the given time, or -1 if there is none such.
     int findFirstLaterOrEq(double tDelay) const {
         for (int i=0; i < size(); ++i)
             if (getEntryTime(i) >= tDelay)
@@ -1926,6 +1926,8 @@ private:
         return -1;
     }
 
+    // Return the entry number(size-1..0) of the last entry whose time 
+    // is < the given time, or -1 if there is none such.
     int findLastEarlier(double t) const {
         for (int i=size()-1; i>=0; --i)
             if (getEntryTime(i) < t)
@@ -1975,7 +1977,7 @@ private:
         }
         m_times.swap(newTimes); // switch heap space
         m_values.swap(newValues);
-        m_oldest = 0; // starts at the beginning now; n unchanged
+        m_oldest = 0; // starts at the beginning now; size unchanged
     }
 
     // Initialize everything to its default-constructed state.
