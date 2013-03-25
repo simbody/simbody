@@ -373,10 +373,122 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 //------------------------------------------------------------------------------
 //                            CREATE SPHERE MESH
 //------------------------------------------------------------------------------
-///*static*/ PolygonalMesh PolygonalMesh::
-//createSphereMesh(Real radius, int resolution) {
-//
-//}
+
+// Use unnamed namespace to keep VertKey class and VertMap type private to 
+// this file, as well as a few helper functions.
+namespace {
+
+    struct VertKey {
+        VertKey(const Vec3& v) : v(v) {}
+        Vec3 v;
+        bool operator<(const VertKey& other) const {
+            const Real tol = SignificantReal;
+            const Vec3 diff = v - other.v;
+            if (diff[0] < -tol) return true;
+            if (diff[0] >  tol) return false;
+            if (diff[1] < -tol) return true;
+            if (diff[1] >  tol) return false;
+            if (diff[2] < -tol) return true;
+            if (diff[2] >  tol) return false;
+            return false; // they are numerically equal
+        }
+    };
+    typedef std::map<VertKey,int> VertMap;
+
+    /* Search a list of vertices for one close enough to this one and
+    return its index if found, otherwise add to the end. */
+    int getVertex(const Vec3& v, VertMap& vmap, Array_<Vec3>& verts) {
+        VertMap::const_iterator p = vmap.find(VertKey(v));
+        if (p != vmap.end()) return p->second;
+        const int ix = (int)verts.size();
+        verts.push_back(v);
+        vmap.insert(std::make_pair(VertKey(v),ix));
+        return ix;
+    }
+
+    /* Each face comes in as below, with vertices 0,1,2 on the surface
+    of a sphere or radius r centered at the origin. We bisect the edges to get
+    points a',b',c', then move out from the center to make points a,b,c
+    on the sphere.
+             1
+            /\        
+           /  \
+        c /____\ b      Then construct new triangles
+         /\    /\            [0,b,a]
+        /  \  /  \           [a,b,c]
+       /____\/____\          [c,2,a]
+      2      a     0         [b,1,c]
+    */
+    void refineSphere(Real r, VertMap& vmap, 
+                             Array_<Vec3>& verts, Array_<int>&  faces) {
+        assert(faces.size() % 3 == 0);
+        const int nVerts = faces.size(); // # face vertices on entry
+        for (int i=0; i < nVerts; i+=3) {
+            const int v0=faces[i], v1=faces[i+1], v2=faces[i+2];
+            const Vec3 a = r*UnitVec3(verts[v0]+verts[v2]);
+            const Vec3 b = r*UnitVec3(verts[v0]+verts[v1]);
+            const Vec3 c = r*UnitVec3(verts[v1]+verts[v2]);
+            const int va=getVertex(a,vmap,verts), 
+                      vb=getVertex(b,vmap,verts), 
+                      vc=getVertex(c,vmap,verts);
+            // Replace the existing face with the 0ba triangle, then add the
+            // rest. Refer to the above picture.
+            faces[i+1] = vb; faces[i+2] = va;
+            faces.push_back(va); faces.push_back(vb); faces.push_back(vc);//abc
+            faces.push_back(vc); faces.push_back(v2); faces.push_back(va);//c2a
+            faces.push_back(vb); faces.push_back(v1); faces.push_back(vc);//b1c
+        }
+    }
+
+
+    void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
+                                   Array_<int>&  faceIndices) {
+        vertices.push_back(Vec3( r[0],  0,  0));   //0
+        vertices.push_back(Vec3(-r[0],  0,  0));   //1
+        vertices.push_back(Vec3( 0,  r[1],  0));   //2
+        vertices.push_back(Vec3( 0, -r[1],  0));   //3
+        vertices.push_back(Vec3( 0,  0,  r[2]));   //4
+        vertices.push_back(Vec3( 0,  0, -r[2]));   //5
+        int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0}, 
+                           {4, 3, 0}, {1, 3, 4}, {5, 3, 1}, {0, 3, 5}};
+        for (int i = 0; i < 8; i++)
+            for (int j = 0; j < 3; j++)
+                faceIndices.push_back(faces[i][j]);
+    }
+
+} // end unnamed namespace
+
+/*static*/ PolygonalMesh PolygonalMesh::
+createSphereMesh(Real radius, int resolution) {
+    SimTK_ERRCHK1_ALWAYS(radius > 0, "PolygonalMesh::createSphereMesh()",
+        "Radius %g illegal.", radius);
+    SimTK_ERRCHK1_ALWAYS(resolution >= 0, "PolygonalMesh::createSphereMesh()",
+        "Resolution %d illegal.", resolution);
+
+    Array_<Vec3> vertices;
+    Array_<int> faceIndices;
+    makeOctahedralMesh(Vec3(radius), vertices, faceIndices);
+
+    VertMap vmap;
+    for (unsigned i=0; i < vertices.size(); ++i)
+        vmap[vertices[i]] = i;
+
+    int level = resolution;
+    while (level > 0) {
+        refineSphere(radius, vmap, vertices, faceIndices);
+        --level;
+    }
+
+    PolygonalMesh sphere;
+    for (unsigned i=0; i < vertices.size(); ++i)
+        sphere.addVertex(vertices[i]);
+    for (unsigned i=0; i < faceIndices.size(); i += 3) {
+        const Array_<int> verts(&faceIndices[i], &faceIndices[i]+3);
+        sphere.addFace(verts);
+    }
+
+    return sphere; // just a shallow copy
+}
 
 
 //------------------------------------------------------------------------------
@@ -386,12 +498,17 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 // Resolution n means divide longest edge with n extra vertices; then make the
 // other faces about the same size.
 
-// Given the number of vertices along the x,y,z edges and the three 
-// (i,j,k) coordinates of a particular vertex, return a packed representation
-// of the (i,j,k) location that we can use as an index. Using a long long here
-// just to avoid trouble, an int probably would have been fine.
-static long long locCode(int nv[3], int i, int j, int k)
-{   return (long long)i*nv[1]*nv[2] + (long long)j*nv[2] + (long long)k; }
+// Extend the unnamed namespace with another local function.
+namespace {
+
+    // Given the number of vertices along the x,y,z edges and the three (i,j,k) 
+    // coordinates of a particular vertex, return a packed representation of the
+    // (i,j,k) location that we can use as an index. Using a long long here
+    // just to avoid trouble, an int probably would have been fine.
+    long long locCode(int nv[3], int i, int j, int k)
+    {   return (long long)i*nv[1]*nv[2] + (long long)j*nv[2] + (long long)k; }
+
+} // end of unnamed namespace
 
 /*static*/ PolygonalMesh PolygonalMesh::
 createBrickMesh(const Vec3& halfDims, int resolution) {

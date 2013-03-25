@@ -74,8 +74,19 @@ public:
     /** Create an empty %PolygonalMesh, with no vertices or faces. **/
     PolygonalMesh() {}
 
-    /** TODO: Create a sphere-shaped mesh. **/
-    static PolygonalMesh createSphereMesh(Real radius, int resolution);
+    /** Create a sphere-shaped mesh, with roughly uniform mesh elements.
+
+    @param[in]  radius
+        The radius of the underlying sphere. Vertices of the mesh will be on
+        the sphere, with mesh elements somewhat inside.
+    @param[in]  resolution  
+        Control for how dense a mesh to produce. Resolution 0 will produce an
+        octahedron (8 triangular faces). Resolution 1 (the default) gives 
+        32 faces, resolution 2 gives 128. In general for resolution n there 
+        will be 2*4^(n+1) faces.
+    @return A %PolygonalMesh representing a sphere of the specified radius. **/
+    static PolygonalMesh createSphereMesh(Real  radius, 
+                                          int   resolution = 1);
 
     /** Create a brick-shaped mesh. A brick is a rectangular solid (a box)
     centered at and aligned with the mesh local frame. Note that its size is 
@@ -83,11 +94,11 @@ public:
     along the longest edge of the brick, with all other edges roughly the same
     size. You can control the mesh density with the \a resolution parameter.
 
-    @param      halfDims    
+    @param[in]  halfDims    
         The half-dimensions of the brick. The extreme vertices are at 
         -halfDims and +halfDims, so the brick is centered around the mesh 
         local frame.
-    @param      resolution  
+    @param[in]  resolution  
         Control for how dense a mesh to produce. For this shape, \a resolution
         is interpreted as the number of extra vertices to insert in the 
         \e longest edge of the brick. Extra vertices are inserted into the
@@ -117,17 +128,17 @@ public:
     elements of roughly similar dimension along the edges. You can control the
     mesh density with the \a resolution parameter.
     
-    @param      axis
+    @param[in]  axis
         The central axis direction of the cylinder, in the mesh local frame.
         This can be provided using the constants XAxis, YAxis, or ZAxis, or
         you can provide a unit vector in any direction.
-    @param      radius
+    @param[in]  radius
         The cylinder radius.
-    @param      halfLength    
+    @param[in]  halfLength    
         Half the length of the cylinder along its axis. The bases are at 
         -halfLength and +halfLength along the \a axis, so the cylinder is 
         centered around the mesh local frame origin.
-    @param      resolution  
+    @param[in]  resolution  
         Control for how dense a mesh to produce (see below for details). 
     @return A %PolygonalMesh representing a cylinder of the requested dimensions
         and orientation.     
@@ -155,24 +166,24 @@ public:
     int getNumVertices() const;
 
     /** Get the position of a vertex in the mesh.
-    @param  vertex  The index of the vertex (as returned by addVertex()).
+    @param[in]  vertex  The index of the vertex (as returned by addVertex()).
     @return The position of the specified vertex, measured and expressed in
     the mesh local frame. **/
     const Vec3& getVertexPosition(int vertex) const;
     /** Get the number of vertices that make up a particular face.
-    @param  face    The index of the face (as returned by addFace()). **/
+    @param[in]  face    The index of the face (as returned by addFace()). **/
     int getNumVerticesForFace(int face) const;
     /** Get the index of one of the vertices of a face.
-    @param  face    The index of the face (as returned by addFace()).
-    @param  vertex  The index of the vertex within the face (from 0, 1, or 2 
-                    for a triangular face, etc.) These are ordered the same
-                    way as when the face was defined.
+    @param[in]  face    The index of the face (as returned by addFace()).
+    @param[in]  vertex  The index of the vertex within the face (from 0, 1, or 2 
+                        for a triangular face, etc.) These are ordered the same
+                        way as when the face was defined.
     @return The index of the specified vertex. **/
     int getFaceVertex(int face, int vertex) const;
 
     /** Add a vertex to the mesh.
-    @param   position   The position of the vertex to add, measured and 
-                        expressed in the mesh local frame.
+    @param[in]  position   The position of the vertex to add, measured and 
+                           expressed in the mesh local frame.
     @return The index of the newly added vertex. **/
     int addVertex(const Vec3& position);
 
@@ -180,8 +191,9 @@ public:
     the outward normal for the face; they must be counterclockwise around the
     desired normal.
 
-    @param  vertices    Indices of the vertices which make up the new face, in
-                        counterclockwise order with respect to the face normal.
+    @param[in]  vertices    Indices of the vertices which make up the new face, 
+                            in counterclockwise order with respect to the face 
+                            normal.
     @return The index of the newly added face. **/
     int addFace(const Array_<int>& vertices);
 
@@ -190,26 +202,27 @@ public:
     vertices are measured in the mesh local frame, scaling will appear to 
     occur around the mesh origin (that is, the origin will remain where it
     was while everything else changes. 
-    @param  scale   The scale factor. Can be any value except zero. 
+    @param[in]  scale   The scale factor. Can be any value except zero. 
     @return A reference to this now-scaled mesh object. **/
     PolygonalMesh& scaleMesh(Real scale);
 
     /** %Transform a mesh by applying the given Transform to every vertex, 
     leaving the mesh permanently changed. This has the effect of replacing the
     mesh local frame M with a new frame A.
-    @param  X_AM   The transform giving the pose of the mesh local frame in
-                   the new frame A. Every vertex v_M becomes v_A=X_AM*v_M.
+    @param[in]  X_AM   The transform giving the pose of the mesh local frame in
+                       the new frame A. Every vertex v_M becomes v_A=X_AM*v_M.
     @return A reference to this now-transformed mesh object. **/
     PolygonalMesh&  transformMesh(const Transform& X_AM);
 
     /** Load a Wavefront OBJ file, adding the vertices and faces it contains
     to this mesh.
-    @param  file    An input stream from which to load the file contents. **/
+    @param[in,out]  file    An input stream from which to load the file 
+                            contents. **/
     void loadObjFile(std::istream& file);
 
     /** Load a VTK PolyData (.vtp) file, adding the vertices and faces it 
     contains to this mesh.
-    @param  pathname    The name of a .vtp file. **/
+    @param[in]  pathname    The name of a .vtp file. **/
     void loadVtpFile(const String& pathname);
 
 private:

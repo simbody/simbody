@@ -90,8 +90,6 @@ static const Real nylon_confined =
     ContactMaterial::calcConfinedCompressionStiffness(nylon_young, nylon_poisson);
 static const Real nylon_dissipation = 10*0.005;
 
-static void makeSphere(Real radius, int level, PolygonalMesh& sphere);
-
 int main() {
   try
   { // Create the system.
@@ -129,7 +127,7 @@ const Real NormalLength = .001;
 #define USE_MESH_SMALL
 #define USE_MESH_BIG
 #ifdef USE_MESH_SMALL
-    makeSphere(smallRad, 5, smallMesh);
+    smallMesh = PolygonalMesh::createSphereMesh(smallRad, 5);
     std::cerr << "small mesh faces: " << smallMesh.getNumFaces() << "\n";
     ContactGeometry::TriangleMesh smallContact(smallMesh);
     DecorativeMesh smallArtwork(smallContact.createPolygonalMesh());
@@ -149,7 +147,7 @@ const Real NormalLength = .001;
     ContactGeometry::Sphere smallContact(smallRad);
 #endif
 #ifdef USE_MESH_BIG
-    makeSphere(largeRad, 6, largeMesh);
+    largeMesh = PolygonalMesh::createSphereMesh(largeRad, 6);
     std::cerr << "large mesh faces: " << largeMesh.getNumFaces() << "\n";
     ContactGeometry::TriangleMesh largeContact(largeMesh);
     DecorativeMesh largeArtwork(largeContact.createPolygonalMesh());
@@ -246,126 +244,3 @@ const Real NormalLength = .001;
     return 0;
 }
 
-
-
-static void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
-                               Array_<int>&  faceIndices) {
-    vertices.push_back(Vec3( r[0],  0,  0));   //0
-    vertices.push_back(Vec3(-r[0],  0,  0));   //1
-    vertices.push_back(Vec3( 0,  r[1],  0));   //2
-    vertices.push_back(Vec3( 0, -r[1],  0));   //3
-    vertices.push_back(Vec3( 0,  0,  r[2]));   //4
-    vertices.push_back(Vec3( 0,  0, -r[2]));   //5
-    int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0}, 
-                       {4, 3, 0}, {1, 3, 4}, {5, 3, 1}, {0, 3, 5}};
-    for (int i = 0; i < 8; i++)
-        for (int j = 0; j < 3; j++)
-            faceIndices.push_back(faces[i][j]);
-}
-
-// Create a triangle mesh in the shape of an octahedron (like two 
-// pyramids stacked base-to-base, with the square base in the x-z plane 
-// centered at 0,0,0 of given "radius" r. 
-// The apexes will be at (0,+/-r,0).
-static void makeOctahedron(Real r, PolygonalMesh& mesh) {
-    Array_<Vec3> vertices;
-    Array_<int> faceIndices;
-    makeOctahedralMesh(Vec3(r), vertices, faceIndices);
-
-    for (unsigned i=0; i < vertices.size(); ++i)
-        mesh.addVertex(vertices[i]);
-    for (unsigned i=0; i < faceIndices.size(); i += 3) {
-        const Array_<int> verts(&faceIndices[i], &faceIndices[i]+3);
-        mesh.addFace(verts);
-    }
-}
-
-struct VertKey {
-    VertKey(const Vec3& v) : v(v) {}
-    Vec3 v;
-    bool operator<(const VertKey& other) const {
-        const Real tol = SignificantReal;
-        const Vec3 diff = v - other.v;
-        if (diff[0] < -tol) return true;
-        if (diff[0] >  tol) return false;
-        if (diff[1] < -tol) return true;
-        if (diff[1] >  tol) return false;
-        if (diff[2] < -tol) return true;
-        if (diff[2] >  tol) return false;
-        return false; // they are numerically equal
-    }
-};
-typedef std::map<VertKey,int> VertMap;
-
-/* Search a list of vertices for one close enough to this one and
-return its index if found, otherwise add to the end. */
-static int getVertex(const Vec3& v, VertMap& vmap, Array_<Vec3>& verts) {
-    VertMap::const_iterator p = vmap.find(VertKey(v));
-    if (p != vmap.end()) return p->second;
-    const int ix = (int)verts.size();
-    verts.push_back(v);
-    vmap.insert(std::make_pair(VertKey(v),ix));
-    return ix;
-}
-
-/* Each face comes in as below, with vertices 0,1,2 on the surface
-of a sphere or radius r centered at the origin. We bisect the edges to get
-points a',b',c', then move out from the center to make points a,b,c
-on the sphere.
-         1
-        /\        
-       /  \
-    c /____\ b      Then construct new triangles
-     /\    /\            [0,b,a]
-    /  \  /  \           [a,b,c]
-   /____\/____\          [c,2,a]
-  2      a     0         [b,1,c]
-*/
-static void refineSphere(Real r, VertMap& vmap, 
-                         Array_<Vec3>& verts, Array_<int>&  faces) {
-    assert(faces.size() % 3 == 0);
-    const int nVerts = faces.size(); // # face vertices on entry
-    for (int i=0; i < nVerts; i+=3) {
-        const int v0=faces[i], v1=faces[i+1], v2=faces[i+2];
-        const Vec3 a = r*UnitVec3(verts[v0]+verts[v2]);
-        const Vec3 b = r*UnitVec3(verts[v0]+verts[v1]);
-        const Vec3 c = r*UnitVec3(verts[v1]+verts[v2]);
-        const int va=getVertex(a,vmap,verts), 
-                  vb=getVertex(b,vmap,verts), 
-                  vc=getVertex(c,vmap,verts);
-        // Replace the existing face with the 0ba triangle, then add the rest.
-        // Refer to the above picture.
-        faces[i+1] = vb; faces[i+2] = va;
-        faces.push_back(va); faces.push_back(vb); faces.push_back(vc);//abc
-        faces.push_back(vc); faces.push_back(v2); faces.push_back(va);//c2a
-        faces.push_back(vb); faces.push_back(v1); faces.push_back(vc);//b1c
-    }
-}
-
-// level  numfaces
-//   0       8   <-- octahedron
-//   1       32
-//   2       128 <-- still lumpy
-//   3       512 <-- very spherelike
-//   n       2*4^(n+1)
-static void makeSphere(Real radius, int level, PolygonalMesh& sphere) {
-    Array_<Vec3> vertices;
-    Array_<int> faceIndices;
-    makeOctahedralMesh(Vec3(radius), vertices, faceIndices);
-
-    VertMap vmap;
-    for (unsigned i=0; i < vertices.size(); ++i)
-        vmap[vertices[i]] = i;
-
-    while (level > 0) {
-        refineSphere(radius, vmap, vertices, faceIndices);
-        --level;
-    }
-
-    for (unsigned i=0; i < vertices.size(); ++i)
-        sphere.addVertex(vertices[i]);
-    for (unsigned i=0; i < faceIndices.size(); i += 3) {
-        const Array_<int> verts(&faceIndices[i], &faceIndices[i]+3);
-        sphere.addFace(verts);
-    }
-}
