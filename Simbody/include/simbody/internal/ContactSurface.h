@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -379,8 +379,10 @@ ContactGeometry& updShape()    {return m_shape;}
 /** Get writable access to the material of this contact surface. **/
 ContactMaterial& updMaterial() {return m_material;}
 
-/** Join a contact clique if not already a member. **/
+/** Join a contact clique if not already a member. It is OK to pass an invalid
+clique id here, in which case it will be quietly ignored. **/
 ContactSurface& joinClique(ContactCliqueId clique) {
+    if (!clique.isValid()) return *this;
     // Although this is a sorted list, we expect it to be very short so 
     // are using linear search to find where this new clique goes.
     Array_<ContactCliqueId,short>::iterator p;
@@ -393,8 +395,10 @@ ContactSurface& joinClique(ContactCliqueId clique) {
     return *this;
 }
 
-/** Remove this surface from a contact clique if it is a member. **/
+/** Remove this surface from a contact clique if it is a member. It is OK to 
+pass an invalid clique id here, in which case it will be quietly ignored. **/
 void leaveClique(ContactCliqueId clique) {   
+    if (!clique.isValid()) return;
     // We expect this to be a very short list so are using linear search.
     Array_<ContactCliqueId,short>::iterator p =
         std::find(m_cliques.begin(), m_cliques.end(), clique);
