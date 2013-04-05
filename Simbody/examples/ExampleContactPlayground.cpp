@@ -209,6 +209,7 @@ int main() {
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
+    contactForces.setTrackDissipatedEnergy(true);
     contactForces.setTransitionVelocity(1e-3);
 
     GeneralContactSubsystem OLDcontact(system);

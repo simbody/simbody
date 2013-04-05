@@ -102,6 +102,7 @@ int main() {
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
+    contactForces.setTrackDissipatedEnergy(true);
     contactForces.setTransitionVelocity(1e-3);
 
     // g=10, mass==.5 => weight = .5*10=5N.

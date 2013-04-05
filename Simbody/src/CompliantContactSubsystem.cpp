@@ -50,7 +50,7 @@ CompliantContactSubsystemImpl(const ContactTrackerSubsystem& tracker)
 :   ForceSubsystemRep("CompliantContactSubsystem", "0.0.1"),
     m_tracker(tracker), m_transitionVelocity(0.01), 
     m_ooTransitionVelocity(1/m_transitionVelocity), 
-    m_defaultGenerator(0) 
+    m_trackDissipatedEnergy(false), m_defaultGenerator(0) 
 {   
 }
 
@@ -59,6 +59,13 @@ Real getOOTransitionVelocity() const  {return m_ooTransitionVelocity;}
 void setTransitionVelocity(Real vt) 
 {   m_transitionVelocity=vt; m_ooTransitionVelocity=1/vt;}
 
+void setTrackDissipatedEnergy(bool shouldTrack) {
+    if (m_trackDissipatedEnergy != shouldTrack) {
+        m_trackDissipatedEnergy = shouldTrack;
+        invalidateSubsystemTopologyCache();
+    }
+}
+bool getTrackDissipatedEnergy() const {return m_trackDissipatedEnergy;}
 
 int getNumContactForces(const State& s) const {
     ensureForceCacheValid(s);
@@ -225,9 +232,11 @@ int realizeSubsystemTopologyImpl(State& s) const {
         Stage::Position, new Value<Real>(NaN));
 
     // This state variable is used to integrate power to get dissipated
-    // energy.
-    Vector einit(1, Real(0));
-    wThis->m_dissipatedEnergyIx = allocateZ(s,einit);
+    // energy. Allocate only if requested.
+    if (m_trackDissipatedEnergy) {
+        Vector einit(1, Real(0));
+        wThis->m_dissipatedEnergyIx = allocateZ(s,einit);
+    }
 
     return 0;
 }
@@ -295,6 +304,9 @@ Real calcPotentialEnergy(const State& state) const {
 }
 
 int realizeSubsystemAccelerationImpl(const State& state) const {
+    if (!m_trackDissipatedEnergy)
+        return 0; // nothing to do here in that case
+
     ensureForceCacheValid(state);
     Real powerLoss = 0;
     const Array_<ContactForce>& forces = getForceCache(state);
@@ -359,6 +371,10 @@ const ContactTrackerSubsystem&      m_tracker;
 Real                                m_transitionVelocity;
 Real                                m_ooTransitionVelocity; // 1/vt
 
+// This flag determines whether we allocate a Z variable to integrate 
+// dissipated power to track dissipated energy.
+bool                                m_trackDissipatedEnergy;
+
 // This map owns the generator objects; be sure to clean up on destruction or
 // when a generator is replaced.
 GeneratorMap                        m_generators;
@@ -370,6 +386,8 @@ ContactForceGenerator*              m_defaultGenerator;
     // TOPOLOGY "CACHE"
 
 // These must be set during realizeTopology and treated as const thereafter.
+// Note that we don't allocate the dissipated energy variable unless the 
+// flag above is set true (prior to realizeTopology()).
 ZIndex                              m_dissipatedEnergyIx;
 CacheEntryIndex                     m_potEnergyCacheIx;
 CacheEntryIndex                     m_forceCacheIx;
@@ -521,6 +539,11 @@ void CompliantContactSubsystem::setTransitionVelocity(Real vt) {
     updImpl().setTransitionVelocity(vt);
 }
 
+void CompliantContactSubsystem::setTrackDissipatedEnergy(bool shouldTrack) 
+{   updImpl().setTrackDissipatedEnergy(shouldTrack); }
+bool CompliantContactSubsystem::getTrackDissipatedEnergy() const
+{   return getImpl().getTrackDissipatedEnergy(); }
+
 int CompliantContactSubsystem::getNumContactForces(const State& s) const
 {   return getImpl().getNumContactForces(s); }
 
@@ -540,15 +563,27 @@ calcContactPatchDetailsById(const State&   state,
 {   return getImpl().calcContactPatchDetailsById(state,id,patch_G); }
 
 Real CompliantContactSubsystem::
-getDissipatedEnergy(const State& s) const
-{   return getImpl().getDissipatedEnergyVar(s); }
+getDissipatedEnergy(const State& s) const {
+    SimTK_ERRCHK_ALWAYS(getTrackDissipatedEnergy(),
+        "CompliantContactSubsystem::getDissipatedEnergy()",
+        "You can't call getDissipatedEnergy() unless you have previously "
+        "enabled tracking of dissipated energy with a call to "
+        "setTrackDissipatedEnergy().");
+    
+    return getImpl().getDissipatedEnergyVar(s); }
 
 void CompliantContactSubsystem::
 setDissipatedEnergy(State& s, Real energy) const {
+    SimTK_ERRCHK_ALWAYS(getTrackDissipatedEnergy(),
+        "CompliantContactSubsystem::setDissipatedEnergy()",
+        "You can't call setDissipatedEnergy() unless you have previously "
+        "enabled tracking of dissipated energy with a call to "
+        "setTrackDissipatedEnergy().");
     SimTK_ERRCHK1_ALWAYS(energy >= 0,
         "CompliantContactSubsystem::setDissipatedEnergy()",
         "The initial value for the dissipated energy must be nonnegative"
         " but an attempt was made to set it to %g.", energy);
+
     getImpl().updDissipatedEnergyVar(s) = energy; 
 }
 

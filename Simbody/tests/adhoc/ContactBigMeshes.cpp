@@ -132,6 +132,7 @@ int main() {
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
+    contactForces.setTrackDissipatedEnergy(true);
 
     GeneralContactSubsystem OLDcontact(system);
     const ContactSetIndex OLDcontactSet = OLDcontact.createContactSet();

@@ -175,6 +175,7 @@ int main() {
         ContactTrackerSubsystem  tracker(system);
         //GeneralContactSubsystem contactsys(system);
         CompliantContactSubsystem contactForces(system, tracker);
+        contactForces.setTrackDissipatedEnergy(true);
 
         for(SubsystemIndex i(0); i<system.getNumSubsystems(); ++i)
         {
