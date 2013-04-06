@@ -38,16 +38,17 @@ using std::endl;
 using namespace SimTK;
 
 //#define USE_TIMS_PARAMS
-//#define ANIMATE // off to get more accurate CPU time (you can still playback)
+#define ANIMATE // off to get more accurate CPU time (you can still playback)
 
-const Real ReportInterval=1./30;
-#ifdef USE_TIMS_PARAMS
-    const Real RunTime=16;  // Tim's time
-#else
-    const Real RunTime=20;
-#endif
+// Set to revert to the no-constraint stiction model for performance comparison
+// with the new constraint-based one.
+//#define USE_CONTINUOUS_STICTION
 
 
+// This is the continuous stiction model used in Simbody's compliant contact
+// system for comparison with the new hybrid model. See end of this file for 
+// implementation.
+static Real stribeck(Real us, Real ud, Real uv, Real v);
 
 //==============================================================================
 //                     MY HYBRID VERTEX CONTACT ELEMENT
@@ -117,14 +118,14 @@ public:
     MyHybridVertexContactElementImpl(const GeneralForceSubsystem& forces,
         MobilizedBody& hsmobod, const UnitVec3& hsn, Real hsh,
         MobilizedBody& vmobod, const Vec3& vertex,
-        const ContactMaterial& material, Real vtol)
+        const ContactMaterial& material)
     :   m_matter(hsmobod.getMatterSubsystem()), m_forces(forces), 
         m_hsmobodx(hsmobod), m_X_PH(Rotation(hsn, ZAxis), hsh*hsn), 
         m_vmobodx(vmobod), m_vertex_B(vertex),
-        m_material(material), m_vtol(vtol),
+        m_material(material),
         m_noslipX(hsmobod, Vec3(NaN), m_X_PH.x(), hsmobod, vmobod),
         m_noslipY(hsmobod, Vec3(NaN), m_X_PH.y(), hsmobod, vmobod), 
-        m_index(-1), // assign later
+        m_index(-1), m_vtrans(NaN), // assign later
         m_contactPointInP(NaN), m_recordedSlipDir(NaN)
     {
         m_noslipX.setDisabledByDefault(true);
@@ -132,6 +133,7 @@ public:
     }
 
     void setContactIndex(int index) {m_index=index;}
+    void setTransitionVelocity(Real vtrans) {m_vtrans=vtrans;}
 
     void initialize() { // TODO
         m_contactPointInP = NaN;
@@ -385,7 +387,8 @@ public:
         const Real k    = m_material.getStiffness(), 
                    c    = m_material.getDissipation(),
                    mu_d = m_material.getDynamicFriction(),
-                   mu_v = m_material.getDynamicFriction();
+                   mu_s = m_material.getStaticFriction(),
+                   mu_v = m_material.getViscousFriction();
 
         info.f_HCb = Vec3(0);
         if (info.h >= 0)
@@ -398,12 +401,22 @@ public:
 
         // N is the Hz component of the force on Cb.
         Vec2 fT_HCb(0); // This will be the (Hx,Hy) components of force on Cb.
+        #ifdef USE_CONTINUOUS_STICTION
+        {
+            // Make v unitless velocity and scale viscous coefficient to match.
+            const Real v = info.vSlipMag / m_vtrans;
+            const Real mu=stribeck(mu_s,mu_d,mu_v*m_vtrans,v);
+            const Real T = mu*N;
+            fT_HCb = (-T/info.vSlipMag)*vSlip_HC;
+        }
+        #else
         if (!isSticking(state)) {
             // Apply sliding force 
             const Real T = (mu_d + mu_v*info.vSlipMag)*N;
             fT_HCb = -T*getEffectiveSlipDir(state, vSlip_HC, // in Hxy
                                             info.vSlipMag); 
         }
+        #endif
 
         info.f_HCb = Vec3(fT_HCb[0], fT_HCb[1], N); // force on Cb, in H
     }
@@ -412,6 +425,7 @@ public:
     // to the opposite of the stiction force direction.
     // If we're sliding, set the update value for the previous slip direction
     // if the current slip velocity is usable.
+    #ifndef USE_CONTINUOUS_STICTION
     void realizeAcceleration(const State& state) const OVERRIDE_11 {
         const MyHybridContactInfo& info = getContactInfo(state);
         const Vec2& prevSlipDir = getPrevSlipDir(state);
@@ -466,6 +480,7 @@ public:
             #endif
         }
     }
+    #endif
 
     std::ostream& writeFrictionInfo(const State& s, const String& indent, 
                                     std::ostream& o) const 
@@ -489,10 +504,16 @@ public:
         const
     {
         const Real Scale = 0.01;
-
         const Real NH = getNormalForce(s);
-        const Vec2 fH = isSticking(s) ? getStictionForce(s)
-                                      : getSlidingForce(s);
+
+        #ifdef USE_CONTINUOUS_STICTION
+        const bool isInStiction = getActualSlipSpeed(s) <= m_vtrans;
+        const Vec2 fH = getSlidingForce(s);
+        #else
+        const bool isInStiction = isSticking(s);
+        const Vec2 fH = isSticking(s) ? getStictionForce(s) : getSlidingForce(s);
+        #endif
+
         if (fH.normSqr() < square(SignificantReal) && NH < SignificantReal)
             return;
 
@@ -507,7 +528,7 @@ public:
         const Vec3 endNG = stationG + Scale*NG;
         geometry.push_back(DecorativeLine(endfG    + Vec3(0,.05,0),
                                           stationG + Vec3(0,.05,0))
-                            .setColor(isSticking(s)?Green:Orange));
+                            .setColor(isInStiction?Green:Orange));
         geometry.push_back(DecorativeLine(endNG    + Vec3(0,.05,0),
                                           stationG + Vec3(0,.05,0))
                             .setColor(Red));
@@ -565,7 +586,10 @@ private:
     const MobilizedBodyIndex        m_vmobodx;  // body B with vertex
     Vec3                            m_vertex_B; // vertex location in B
     ContactMaterial                 m_material; // composite material props
+
     Real                            m_vtol;     // velocity tolerance
+    Real                            m_vtrans;   // transition velocity for
+                                                //   Stribeck stiction
 
     Constraint::NoSlip1D            m_noslipX;
     Constraint::NoSlip1D            m_noslipY;
@@ -604,10 +628,10 @@ struct MyElementSubset {
 
 class MyUnilateralConstraintSet {
 public:
-    // Capture velocity: if a slip velocity is smaller than this the
+    // Transition velocity: if a slip velocity is smaller than this the
     // contact is a candidate for stiction.
-    MyUnilateralConstraintSet(const MultibodySystem& mbs, Real captureVelocity)
-    :   m_mbs(mbs), m_captureVelocity(captureVelocity) {}
+    MyUnilateralConstraintSet(const MultibodySystem& mbs, Real transitionVelocity)
+    :   m_mbs(mbs), m_transitionVelocity(transitionVelocity) {}
 
     // Ownership of this force element belongs to the System; we're just keeping
     // a reference to it here.
@@ -615,11 +639,12 @@ public:
         const int index = (int)m_hybrid.size();
         m_hybrid.push_back(vertex);
         vertex->setContactIndex(index);
+        vertex->setTransitionVelocity(m_transitionVelocity);
         return index;
     }
 
-    Real getCaptureVelocity() const {return m_captureVelocity;}
-    void setCaptureVelocity(Real v) {m_captureVelocity=v;}
+    Real getTransitionVelocity() const {return m_transitionVelocity;}
+    void setTransitionVelocity(Real v) {m_transitionVelocity=v;}
 
     int getNumContactElements() const {return (int)m_hybrid.size();}
     const MyHybridVertexContactElementImpl& getContactElement(int ix) const 
@@ -737,7 +762,7 @@ public:
     const MultibodySystem& getMultibodySystem() const {return m_mbs;}
 private:
     const MultibodySystem&                      m_mbs;
-    Real                                        m_captureVelocity;
+    Real                                        m_transitionVelocity;
     Array_<MyHybridVertexContactElementImpl*>   m_hybrid; // unowned ref
 };
 
@@ -1049,6 +1074,52 @@ private:
 //==============================================================================
 int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
+    const Real ReportInterval=1./30;
+    const Vec3 BrickHalfDims(.1, .25, .5);
+    const Real Radius = BrickHalfDims[0]/3;
+    const Real BrickMass = 10;
+    #ifdef USE_TIMS_PARAMS
+        const Real RunTime=16;  // Tim's time
+        const Real Stiffness = 2e7;
+        const Real Dissipation = 0.1;
+        const Real CoefRest = 0; 
+        const Real mu_d = 1; /* compliant: .7*/
+        const Real mu_s = 1; /* compliant: .7*/
+        const Real mu_v = /*0.05*/0;
+        const Real TransitionVelocity = 0.01;
+        const Inertia brickInertia(.1,.1,.1);
+    #else
+        const Real RunTime=20;
+        const Real Stiffness = 1e6;
+        const Real CoefRest = 0; 
+        const Real TargetVelocity = 3; // speed at which to match coef rest
+//        const Real Dissipation = (1-CoefRest)/TargetVelocity;
+        const Real Dissipation = 1;
+        const Real mu_d = .5;
+        const Real mu_s = .8;
+        const Real mu_v = 0*0.05;
+        const Real TransitionVelocity = 0.01;
+        const Inertia brickInertia(BrickMass*UnitInertia::brick(BrickHalfDims));
+    #endif
+
+    printf("\n******************** Tim's Box Hybrid ********************\n");
+    #ifdef USE_CONTINUOUS_STICTION
+    printf("USING OLD MODEL: Continuous Stiction (Stribeck)\n");
+    #else
+    printf("USING NEW MODEL: Hybrid Compliant material/rigid stiction\n");
+    #endif
+    #ifdef USE_TIMS_PARAMS
+    printf("Using Tim's parameters:\n");
+    #else
+    printf("Using Sherm's parameters:\n");
+    #endif
+    printf("  stiffness=%g dissipation=%g\n", Stiffness, Dissipation);
+    printf("  mu_d=%g mu_s=%g mu_v=%g\n", mu_d, mu_s, mu_v);
+    printf("  transition velocity=%g\n", TransitionVelocity);
+    printf("  brick inertia=%g %g %g\n",
+        brickInertia.getMoments()[0], brickInertia.getMoments()[1], 
+        brickInertia.getMoments()[2]); 
+    printf("******************** Tim's Box Hybrid ********************\n\n");
 
         // CREATE MULTIBODY SYSTEM AND ITS SUBSYSTEMS
     MultibodySystem             mbs;
@@ -1057,48 +1128,16 @@ int main(int argc, char** argv) {
     Force::Gravity              gravity(forces, matter, -YAxis, 9.81);
 
     MobilizedBody& Ground = matter.updGround();
-
-
-    // Predefine some handy rotations.
-    const Rotation Z90(Pi/2, ZAxis); // rotate +90 deg about z
-
-    const Vec3 BrickHalfDims(.1, .25, .5);
-    const Real Radius = BrickHalfDims[0]/3;
-    const Real BrickMass = 10;
-    #ifdef USE_TIMS_PARAMS
-        const Real Stiffness = 2e7;
-        const Real Dissipation = 0.1;
-        const Real CoefRest = 0; 
-        const Real mu_d = 1; /* compliant: .7*/
-        const Real mu_s = 1; /* compliant: .7*/
-        const Real mu_v = /*0.05*/0;
-        //const Real CaptureVelocity = 0.01; //TODO: fails
-        const Real CaptureVelocity = 0.001;
-        const Inertia brickInertia(.1,.1,.1);
-    #else
-        const Real Stiffness = 1e6;
-        const Real CoefRest = 0; 
-        const Real TargetVelocity = 3; // speed at which to match coef rest
-//        const Real Dissipation = (1-CoefRest)/TargetVelocity;
-        const Real Dissipation = 1;
-        const Real mu_d = /*.5*/0.4;
-        const Real mu_s = /*.7*/0.7;
-        const Real mu_v = 0*0.05;
-        const Real CaptureVelocity = 0.001;
-        const Inertia brickInertia(BrickMass*UnitInertia::brick(BrickHalfDims));
-    #endif
-
-
     // Define a material to use for contact. This is not very stiff.
     ContactMaterial material(std::sqrt(Radius)*Stiffness,
-                             Dissipation,   // dissipation
+                             Dissipation,
                              mu_s,  // mu_static
                              mu_d,  // mu_dynamic
                              mu_v); // mu_viscous
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
 
-    MyUnilateralConstraintSet unis(mbs, CaptureVelocity);
+    MyUnilateralConstraintSet unis(mbs, TransitionVelocity);
 
     Body::Rigid brickBody = 
         Body::Rigid(MassProperties(BrickMass, Vec3(0), brickInertia));
@@ -1143,11 +1182,13 @@ int main(int argc, char** argv) {
         MyHybridVertexContactElementImpl* vertex =
             new MyHybridVertexContactElementImpl(forces,
                 Ground, YAxis, 0, // halfplane
-                brick, pt, material, CaptureVelocity);
+                brick, pt, material);
         Force::Custom(forces, vertex); // add force element to system
-        unis.addHybridElement(vertex); // assign index
+        unis.addHybridElement(vertex); // assign index, transition velocity
+        #ifndef USE_CONTINUOUS_STICTION
         mbs.addEventHandler(new StictionOn(mbs, unis, vertex->getIndex()));
         mbs.addEventHandler(new StictionOff(mbs, unis, vertex->getIndex()));
+        #endif
     }
 
     matter.setShowDefaultGeometry(false);
@@ -1157,28 +1198,32 @@ int main(int argc, char** argv) {
     viz.setShowFrameNumber(true);
     viz.setShowFrameRate(true);
     viz.addDecorationGenerator(new ShowContact(unis));
-#ifdef ANIMATE
+
+    #ifdef ANIMATE
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
-#else
+    #else
     // This does nothing but interrupt the simulation.
     mbs.addEventReporter(new Nada(ReportInterval));
-#endif
+    #endif
 
     viz.addFrameController(new BodyWatcher(brick));
 
     Vec3 cameraPos(0, 1, 2);
     UnitVec3 cameraZ(0,0,1);
-    viz.setCameraTransform(Transform(Rotation(cameraZ, ZAxis, UnitVec3(YAxis), YAxis), cameraPos));
+    viz.setCameraTransform(Transform(Rotation(cameraZ, ZAxis, 
+                                              UnitVec3(YAxis), YAxis), 
+                                     cameraPos));
     viz.pointCameraAt(Vec3(0,0,0), Vec3(0,1,0));
 
-#ifdef USE_TIMS_PARAMS
+    #ifdef USE_TIMS_PARAMS
     Real accuracy = 1e-4;
     RungeKuttaMersonIntegrator integ(mbs);
-#else
+    #else
     Real accuracy = 1e-2;
     RungeKutta3Integrator integ(mbs);
     //RungeKuttaMersonIntegrator integ(mbs);
-#endif
+    #endif
+
     integ.setAccuracy(accuracy);
     //integ.setMaximumStepSize(0.25);
     integ.setMaximumStepSize(0.1);
@@ -1215,20 +1260,17 @@ tZ_q = 0.0 m
 tZ_u = 0.0 m/s
 */
 
-#ifdef USE_TIMS_PARAMS
+    #ifdef USE_TIMS_PARAMS
     loc.setQToFitTranslation(s, Vec3(0,10,0));
     loc.setUToFitLinearVelocity(s, Vec3(0,0,0));
-#else
+    #else
     loc.setQToFitTranslation(s, Vec3(0,1.4,0));
     loc.setUToFitLinearVelocity(s, Vec3(10,0,0));
-#endif
-
-#ifndef USE_TIMS_PARAMS
     const Rotation R_BC(SimTK::BodyRotationSequence,
                                 0.7, XAxis, 0.6, YAxis, 0.5, ZAxis);
     brick.setQToFitRotation(s, R_BC);
     brick.setUToFitAngularVelocity(s, Vec3(1,0,.2));
-#endif
+    #endif
 
     mbs.realize(s, Stage::Velocity);
     viz.report(s);
@@ -1591,3 +1633,58 @@ showConstraintStatus(const State& s, const String& place) const
 #endif
 }
 
+//------------------------ STRIBECK FRICTION STATICS ---------------------------
+// This is extracted from Simbody's continuous friction model so that we can
+// compare it with the new implementation.
+
+// Input x goes from 0 to 1; output goes 0 to 1 but smoothed with an S-shaped 
+// quintic with two zero derivatives at either end. Cost is 7 flops.
+inline static Real step5(Real x) {
+    assert(0 <= x && x <= 1);
+    const Real x3=x*x*x;
+    return x3*(10+x*(6*x-15)); //10x^3-15x^4+6x^5
+}
+
+// This is the sum of two curves:
+// (1) a wet friction term mu_wet which is a linear function of velocity: 
+//     mu_wet = uv*v
+// (2) a dry friction term mu_dry which is a quintic spline with 4 segments:
+//     mu_dry = 
+//      (a) v=0..1: smooth interpolation from 0 to us
+//      (b) v=1..3: smooth interp from us down to ud (Stribeck)
+//      (c) v=3..Inf ud
+// CAUTION: uv and v must be dimensionless in multiples of transition velocity.
+// The function mu = mu_wet + mu_dry is zero at v=0 with 1st deriv (slope) uv
+// and 2nd deriv (curvature) 0. At large velocities v>>0 the value is 
+// ud+uv*v, again with slope uv and zero curvature. We want mu(v) to be c2
+// continuous, so mu_wet(v) must have zero slope and curvature at v==0 and
+// at v==3 where it takes on a constant value ud.
+//
+// Cost: stiction 12 flops
+//       stribeck 14 flops
+//       sliding 3 flops
+// Curve looks like this:
+//
+//  us+uv     ***
+//           *    *                     *
+//           *     *               *____| slope = uv at Inf
+//           *      *         *
+// ud+3uv    *        *  *      
+//          *          
+//          *        
+//         *
+//  0  *____| slope = uv at 0
+//
+//     |    |           |
+//   v=0    1           3 
+//
+// This calculates a composite coefficient of friction that you should use
+// to scale the normal force to produce the friction force.
+static Real stribeck(Real us, Real ud, Real uv, Real v) {
+    const Real mu_wet = uv*v;
+    Real mu_dry;
+    if      (v >= 3) mu_dry = ud; // sliding
+    else if (v >= 1) mu_dry = us - (us-ud)*step5((v-1)/2); // Stribeck
+    else             mu_dry = us*step5(v); // 0 <= v < 1 (stiction)
+    return mu_dry + mu_wet;
+}
