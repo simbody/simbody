@@ -1982,9 +1982,9 @@ public:
 		return stream.str(); 
     }
     /** Variant of indexing operator that's scripting friendly to get entry (i, j) **/
-    const ELT& get(int i,int j) const { return getElt(i,j); }
+    const ELT& get(int i,int j) const { return this->getElt(i,j); }
     /** Variant of indexing operator that's scripting friendly to set entry (i, j) **/
-    void       set(int i,int j, const ELT& value)       { updElt(i,j)=value; }
+    void       set(int i,int j, const ELT& value)       { this->updElt(i,j)=value; }
 
 private:
     // NO DATA MEMBERS ALLOWED
