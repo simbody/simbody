@@ -1974,6 +1974,18 @@ public:
     const TNeg& operator-() const {return negate();}
     TNeg&       operator-()       {return updNegate();}
    
+    // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
+    /** toString() returns a string representation of the Matrix_. Please refer to operator<< for details. **/
+    std::string toString() const {
+		std::stringstream stream;
+	    stream <<  (*this) ;
+		return stream.str(); 
+    }
+    /** Variant of indexing operator that's scripting friendly to get entry (i, j) **/
+    const ELT& get(int i,int j) const { return getElt(i,j); }
+    /** Variant of indexing operator that's scripting friendly to set entry (i, j) **/
+    void       set(int i,int j, const ELT& value)       { updElt(i,j)=value; }
+
 private:
     // NO DATA MEMBERS ALLOWED
 };
@@ -2108,6 +2120,18 @@ public:
     Vector_& operator+=(const ELT& b) { this->elementwiseAddScalarInPlace(b); return *this; }
     Vector_& operator-=(const ELT& b) { this->elementwiseSubtractScalarInPlace(b); return *this; }
  
+    // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
+    /** toString() returns a string representation of the Vector_. Please refer to operator<< for details. **/
+    std::string toString() const {
+		std::stringstream stream;
+	    stream <<  (*this) ;
+		return stream.str(); 
+    }
+    /** Variant of operator[] that's scripting friendly to get ith entry **/
+    const ELT& get(int i) const { return (*this)[i]; }
+    /** Variant of operator[] that's scripting friendly to set ith entry **/
+    void  set (int i, const ELT& value)  { (*this)[i]=value; }
+   
 private:
     // NO DATA MEMBERS ALLOWED
 };

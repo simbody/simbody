@@ -1166,6 +1166,18 @@ public:
         return temp;
     }
 
+    // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
+    /** toString() returns a string representation of the Mat. Please refer to operator<< for details. **/
+    std::string toString() const {
+		std::stringstream stream;
+	    stream <<  (*this) ;
+		return stream.str(); 
+    }
+    /** Variant of indexing operator that's scripting friendly to get entry (i, j) **/
+    const ELT& get(int i,int j) const { return elt(i,j); }
+    /** Variant of indexing operator that's scripting friendly to set entry (i, j) **/
+    void       set(int i,int j, const ELT& value)       { elt(i,j)=value; }
+
 private:
     E d[NActualElements];
 

@@ -915,6 +915,23 @@ public:
                 return false;
         return true;
     }
+
+    // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
+    /** Print Vec into a string and return it.  Please refer to operator<< for details. **/
+    std::string toString() const {
+		std::stringstream stream;
+		stream <<  (*this);
+		return stream.str(); 
+    }
+
+    /** Variant of operator[] that's scripting friendly to set ith entry **/
+    void set(int i, const E& value)  
+    {   (*this)[i] = value; }
+
+    /** Variant of operator[] that's scripting friendly to get const reference to ith entry **/
+    const E& get(int i) const 
+    {   return operator[](i); }
+
 private:
     // TODO: should be an array of scalars rather than elements to control
     // packing more carefully.
