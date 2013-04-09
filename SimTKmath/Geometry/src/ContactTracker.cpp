@@ -193,10 +193,17 @@ refineImplicitPair
     const Transform& X_AB, Real accuracyRequested,
     Real& accuracyAchieved, int& numIterations)
 { 
-    const int MaxIterations = 8;
-    numIterations = 0;
+    // If the initial guess is very bad, or the ellipsoids pathological we
+    // may have to crawl along for a while at the beginning.
+    const int MaxSlowIterations = 8;
+    const int MaxIterations = MaxSlowIterations + 8;
+    const Real MinStepFrac = 1e-6; // if we can't take at least this fraction
+                                   // of the Newton step, give it up
+
     Vec6 err = findImplicitPairError(shapeA, pointP, shapeB, pointQ, X_AB);
     accuracyAchieved = err.norm();
+
+    numIterations = 0;
     while (   accuracyAchieved > accuracyRequested 
            && numIterations < MaxIterations) 
     {
@@ -205,6 +212,7 @@ refineImplicitPair
                                            X_AB, err);
         FactorQTZ qtz;
         qtz.factor(Matrix(J), SqrtEps); // TODO: Peter had 1e-6
+
         Vector deltaVec(6);
         qtz.solve(Vector(err), deltaVec);
         Vec6 delta(&deltaVec[0]);
@@ -220,12 +228,20 @@ refineImplicitPair
             pointQ = oldQ - f*delta.getSubVec<3>(3);
             err = findImplicitPairError(shapeA, pointP, shapeB, pointQ, X_AB);
             accuracyAchieved = err.norm();
-        } while (accuracyAchieved > oldAccuracyAchieved);
+        } while (accuracyAchieved > oldAccuracyAchieved && f > MinStepFrac);
 
-        if (f < Real(0.1)) {
-            // We're clearly outside the region where Newton iteration is going
-            // to work properly. Just project the points onto the surfaces and 
-            // then exit.         
+        const bool noProgressMade = (accuracyAchieved > oldAccuracyAchieved);
+
+        if (noProgressMade) { // Restore best points and fall through.
+            pointP = oldP;
+            pointQ = oldQ;
+        }
+
+        if (    noProgressMade 
+            || (f < 1 && numIterations >= MaxSlowIterations)) // Too slow. 
+        {
+            // We don't appear to be getting anywhere. Just project the 
+            // points onto the surfaces and then exit.         
             bool inside;
             UnitVec3 normal;
             pointP = shapeA.findNearestPoint(pointP, inside, normal);
@@ -310,6 +326,23 @@ findImplicitPairError
     Vec6 err6 = findImplicitPairError(shapeA, pointP, shapeB, pointQ+d3, X_AB)
                 - err0;
     return Mat66(err1, err2, err3, err4, err5, err6) / dt;
+
+    // This is a Central Difference derivative (you should use a somewhat 
+    // larger dt in this case). However, I haven't seen any evidence that this
+    // helps, even for some very eccentric ellipsoids. (sherm 20130408)
+    //Vec6 err1 = findImplicitPairError(shapeA, pointP+d1, shapeB, pointQ, X_AB)
+    //            - findImplicitPairError(shapeA, pointP-d1, shapeB, pointQ, X_AB);
+    //Vec6 err2 = findImplicitPairError(shapeA, pointP+d2, shapeB, pointQ, X_AB)
+    //            - findImplicitPairError(shapeA, pointP-d2, shapeB, pointQ, X_AB);
+    //Vec6 err3 = findImplicitPairError(shapeA, pointP+d3, shapeB, pointQ, X_AB)
+    //            - findImplicitPairError(shapeA, pointP-d3, shapeB, pointQ, X_AB);
+    //Vec6 err4 = findImplicitPairError(shapeA, pointP, shapeB, pointQ+d1, X_AB)
+    //            - findImplicitPairError(shapeA, pointP, shapeB, pointQ-d1, X_AB);
+    //Vec6 err5 = findImplicitPairError(shapeA, pointP, shapeB, pointQ+d2, X_AB)
+    //            - findImplicitPairError(shapeA, pointP, shapeB, pointQ-d2, X_AB);
+    //Vec6 err6 = findImplicitPairError(shapeA, pointP, shapeB, pointQ+d3, X_AB)
+    //            - findImplicitPairError(shapeA, pointP, shapeB, pointQ-d3, X_AB);
+    //return Mat66(err1, err2, err3, err4, err5, err6) / (2*dt);
 }
 
 
