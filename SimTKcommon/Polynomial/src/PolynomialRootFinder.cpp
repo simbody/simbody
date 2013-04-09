@@ -126,9 +126,17 @@ void PolynomialRootFinder::findRoots(const Vector_<T>& coefficients, Vector_<com
     try {
         for (int i = 0; i < n+1; ++i)
             coeff[i] = coefficients[i];
-        RPoly<T>().findRoots(coeff, n, rootr, rooti);
+        for (int i = 0; i < n; ++i) // in case these don't get filled in
+            rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
+        const int nrootsFound = RPoly<T>().findRoots(coeff, n, rootr, rooti);
         for (int i = 0; i < n; ++i)
             roots[i] = Complex(rootr[i], rooti[i]);
+        SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
+            "PolynomialRootFinder::findRoots()",
+            "Leading coefficient is zero; can't solve.");
+        SimTK_ERRCHK1_ALWAYS(nrootsFound > 0,
+            "PolynomialRootFinder::findRoots()",
+            "Failure to find any roots for polynomial of order %d.", n);
     }
     catch (...) {
         delete[] coeff;
