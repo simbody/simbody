@@ -28,6 +28,7 @@
  */
 
 #include <cmath>
+#include <limits>
 #include "rpoly.h"
 
 namespace SimTK {
@@ -42,9 +43,9 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     int cnt,nz,i,j,jj,l,nm1,zerok;
 /*  The following statements set machine constants. */
     base = 2.0;
-    eta = (T) 2.22e-16;
-    infin = (T) 3.4e38;
-    smalno = (T) 1.2e-38;
+    eta = std::numeric_limits<T>::epsilon();
+    infin = std::numeric_limits<T>::max();
+    smalno = std::numeric_limits<T>::min();
 
     are = eta;
     mre = eta;
@@ -385,8 +386,14 @@ _10:
 /*  Return if roots of the quadratic are real and not
  *  close to multiple or nearly equal and of opposite
  *  sign.
+ *
+ *  sherm 20130408: this early return caused premature termination and 
+ *  then failure to find any roots in rare circumstances with 6th order
+ *  ellipsoid nearest point equations. I modified it to take a few steps
+ *  before making this test, by adding the j>=2 condition.
  */
-    if (fabs(fabs(szr)-fabs(lzr)) > 0.01 * fabs(lzr)) return;
+    if (j >= 2)
+        if (fabs(fabs(szr)-fabs(lzr)) > 0.01 * fabs(lzr)) return;
 /*  Evaluate polynomial by quadratic synthetic division. */
     quadsd(n,&u,&v,p,qp,&a,&b);
     mp = fabs(a-szr*b) + fabs(szi*b);
