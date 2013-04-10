@@ -73,7 +73,7 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     }
 
     // sherm 20130410: If all coefficients but the leading one were zero, then
-    // all solutions are zero; should be a successful (if boring) return. **/
+    // all solutions are zero; should be a successful (if boring) return.
     if (n == 0) 
         return degree;
 

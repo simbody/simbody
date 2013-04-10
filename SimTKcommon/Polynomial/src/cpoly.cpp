@@ -57,8 +57,9 @@
  *
  * Version  Author/Date     Description of changes
  * -------  -----------     ----------------------
- * 01.01    HVE/021101      Initial release
- * 01.02    PE/8Aug07       Converted to a class, templatized  
+ * 01.01    HVE/20021101      Initial release
+ * 01.02    PE/20070808       Converted to a class, templatized  
+ * 01.03    MAS/20130410      Minor changes to match RPoly changes  
  *
  * End of Change Record
  * --------------------------------------------------------------------------
@@ -72,7 +73,7 @@ namespace SimTK {
 
 /* define version string */
 template<class T>
-char CPoly<T>::_V_[] = "@(#)cpoly.h 01.02 -- Copyright (C) Henrik Vestermark";
+char CPoly<T>::_V_[] = "@(#)cpoly.h 01.03 -- Copyright (C) Henrik Vestermark";
 
 template<class T>
 int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *zeroi ) 
@@ -89,9 +90,24 @@ int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *ze
    sinr = (T) -0.99756405;
    nn = degree;  
 
-   // Algorithm fails if the leading coefficient is zero
-   if( opr[ 0 ] == 0 && opi[ 0 ] == 0 )
+   // Algorithm fails if the leading coefficient is zero, or degree is zero.
+   if( nn < 1 || (opr[ 0 ] == 0 && opi[ 0 ] == 0) )
       return -1;
+
+
+   // Remove the zeros at the origin if any
+   while( opr[ nn ] == 0 && opi[ nn ] == 0 )
+      {
+      idnn2 = degree - nn;
+      zeror[ idnn2 ] = 0;
+      zeroi[ idnn2 ] = 0;
+      nn--;
+      }
+
+   // sherm 20130410: If all coefficients but the leading one were zero, then
+   // all solutions are zero; should be a successful (if boring) return.
+   if (nn == 0) 
+      return degree;
 
    // Allocate arrays
    pr = new T [ degree+1 ];
@@ -104,15 +120,6 @@ int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *ze
    qhi= new T [ degree+1 ];
    shr= new T [ degree+1 ];
    shi= new T [ degree+1 ];
-
-   // Remove the zeros at the origin if any
-   while( opr[ nn ] == 0 && opi[ nn ] == 0 )
-      {
-      idnn2 = degree - nn;
-      zeror[ idnn2 ] = 0;
-      zeroi[ idnn2 ] = 0;
-      nn--;
-      }
 
    // Make a copy of the coefficients
    for( i = 0; i <= nn; i++ )
