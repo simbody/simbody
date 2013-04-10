@@ -94,10 +94,19 @@ void PolynomialRootFinder::findRoots(const Vec<4,T>& coefficients, Vec<3,complex
     T coeff[4] = {coefficients[0], coefficients[1], coefficients[2], coefficients[3]};
     T rootr[3];
     T rooti[3];
-    RPoly<T>().findRoots(coeff, 3, rootr, rooti);
+    for (int i = 0; i < 3; ++i) // in case these don't get filled in
+        rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
+    const int nrootsFound = RPoly<T>().findRoots(coeff, 3, rootr, rooti);
     roots[0] = Complex(rootr[0], rooti[0]);
     roots[1] = Complex(rootr[1], rooti[1]);
     roots[2] = Complex(rootr[2], rooti[2]);
+
+    SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
+        "PolynomialRootFinder::findRoots()",
+        "Leading coefficient is zero; can't solve.");
+    SimTK_ERRCHK_ALWAYS(nrootsFound > 0,
+        "PolynomialRootFinder::findRoots()",
+        "Failure to find any roots for polynomial of order 3.");
 }
 
 template <class T>
@@ -108,10 +117,19 @@ void PolynomialRootFinder::findRoots(const Vec<4,complex<T> >& coefficients, Vec
     T coeffi[4] = {coefficients[0].imag(), coefficients[1].imag(), coefficients[2].imag(), coefficients[3].imag()};
     T rootr[3];
     T rooti[3];
-    CPoly<T>().findRoots(coeffr, coeffi, 3, rootr, rooti);
+    for (int i = 0; i < 3; ++i) // in case these don't get filled in
+        rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
+    const int nrootsFound = CPoly<T>().findRoots(coeffr, coeffi, 3, rootr, rooti);
     roots[0] = Complex(rootr[0], rooti[0]);
     roots[1] = Complex(rootr[1], rooti[1]);
     roots[2] = Complex(rootr[2], rooti[2]);
+
+    SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
+        "PolynomialRootFinder::findRoots()",
+        "Leading coefficient is zero; can't solve.");
+    SimTK_ERRCHK_ALWAYS(nrootsFound > 0,
+        "PolynomialRootFinder::findRoots()",
+        "Failure to find any roots for polynomial of order 3.");
 }
 
 template <class T>
@@ -131,6 +149,7 @@ void PolynomialRootFinder::findRoots(const Vector_<T>& coefficients, Vector_<com
         const int nrootsFound = RPoly<T>().findRoots(coeff, n, rootr, rooti);
         for (int i = 0; i < n; ++i)
             roots[i] = Complex(rootr[i], rooti[i]);
+
         SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
             "PolynomialRootFinder::findRoots()",
             "Leading coefficient is zero; can't solve.");
@@ -164,10 +183,18 @@ void PolynomialRootFinder::findRoots(const Vector_<complex<T> >& coefficients, V
             coeffr[i] = coefficients[i].real();
             coeffi[i] = coefficients[i].imag();
         }
-        CPoly<T>().findRoots(coeffr, coeffi, n, rootr, rooti);
+        for (int i = 0; i < n; ++i) // in case these don't get filled in
+            rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
+        const int nrootsFound = CPoly<T>().findRoots(coeffr, coeffi, n, rootr, rooti);
         for (int i = 0; i < n; ++i)
             roots[i] = Complex(rootr[i], rooti[i]);
-    }
+
+        SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
+            "PolynomialRootFinder::findRoots()",
+            "Leading coefficient is zero; can't solve.");
+        SimTK_ERRCHK1_ALWAYS(nrootsFound > 0,
+            "PolynomialRootFinder::findRoots()",
+            "Failure to find any roots for polynomial of order %d.", n);    }
     catch (...) {
         delete[] coeffr;
         delete[] coeffi;
