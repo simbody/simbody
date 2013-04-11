@@ -596,7 +596,7 @@ private:
 
     int                             m_index;    // unique id for this contact
 
-    // This is recorded an Position stage prior to turning on stiction
+    // This is recorded at Position stage prior to turning on stiction
     // constraints; then we use it to set the contact point in noslipX,Y.
     Vec3                            m_contactPointInP;
 
@@ -630,7 +630,8 @@ class MyUnilateralConstraintSet {
 public:
     // Transition velocity: if a slip velocity is smaller than this the
     // contact is a candidate for stiction.
-    MyUnilateralConstraintSet(const MultibodySystem& mbs, Real transitionVelocity)
+    MyUnilateralConstraintSet(const MultibodySystem& mbs, 
+                              Real transitionVelocity)
     :   m_mbs(mbs), m_transitionVelocity(transitionVelocity) {}
 
     // Ownership of this force element belongs to the System; we're just keeping
@@ -1085,7 +1086,7 @@ int main(int argc, char** argv) {
         const Real CoefRest = 0; 
         const Real mu_d = 1; /* compliant: .7*/
         const Real mu_s = 1; /* compliant: .7*/
-        const Real mu_v = /*0.05*/0;
+        const Real mu_v = /*0.05*/0; //TODO: fails with mu_v=1, vtrans=.01
         const Real TransitionVelocity = 0.01;
         const Inertia brickInertia(.1,.1,.1);
     #else
@@ -1098,7 +1099,7 @@ int main(int argc, char** argv) {
         const Real mu_d = .5;
         const Real mu_s = .8;
         const Real mu_v = 0*0.05;
-        const Real TransitionVelocity = 0.01;
+        const Real TransitionVelocity = 0.001;
         const Inertia brickInertia(BrickMass*UnitInertia::brick(BrickHalfDims));
     #endif
 
@@ -1126,8 +1127,8 @@ int main(int argc, char** argv) {
     SimbodyMatterSubsystem      matter(mbs);
     GeneralForceSubsystem       forces(mbs);
     Force::Gravity              gravity(forces, matter, -YAxis, 9.81);
-
     MobilizedBody& Ground = matter.updGround();
+
     // Define a material to use for contact. This is not very stiff.
     ContactMaterial material(std::sqrt(Radius)*Stiffness,
                              Dissipation,
@@ -1220,8 +1221,14 @@ int main(int argc, char** argv) {
     RungeKuttaMersonIntegrator integ(mbs);
     #else
     Real accuracy = 1e-2;
+    //Real accuracy = 1e-3;
+    //ExplicitEulerIntegrator integ(mbs);
+    //RungeKutta2Integrator integ(mbs);
     RungeKutta3Integrator integ(mbs);
+    //RungeKuttaFeldbergIntegrator integ(mbs);
     //RungeKuttaMersonIntegrator integ(mbs);
+    //VerletIntegrator integ(mbs);
+    //CPodesIntegrator integ(mbs);
     #endif
 
     integ.setAccuracy(accuracy);
@@ -1330,6 +1337,7 @@ tZ_u = 0.0 m/s
         Integrator::SuccessfulStepStatus status;
         do {
             status=ts.stepTo(RunTime);
+            //TODO: uncomment for repeatability studies
             //states[ntry].push_back(ts.getState());
             const int j = states[ntry].size()-1;
             if (ntry>0) {
@@ -1358,8 +1366,8 @@ tZ_u = 0.0 m/s
                     nStepsWithEvent, ts.getTime(),
                     Integrator::getSuccessfulStepStatusString(status).c_str());
             } else {
-                SimTK_DEBUG3("step  %3d @%.17g status=%s\n", integ.getNumStepsTaken(),
-                    ts.getTime(),
+                SimTK_DEBUG3("step  %3d @%.17g status=%s\n",
+                    integ.getNumStepsTaken(), ts.getTime(),
                     Integrator::getSuccessfulStepStatusString(status).c_str());
             }
             #ifndef NDEBUG
