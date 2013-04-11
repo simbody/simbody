@@ -423,9 +423,9 @@ _10:
 //  -3.0900602527225053e-019
 //
 // Original code:
-    //if (fabs(fabs(szr)-fabs(lzr)) > (T)0.01 * fabs(lzr)) return;
+    //if (fabs(fabs(szr)-fabs(lzr)) > 0.01 * fabs(lzr)) return;
 // Fixed version:
-    if (fabs(fabs(szr)-fabs(lzr)) > (T)0.01 * std::max(fabs(lzr),(T)0.1)) 
+    if ((T)fabs(fabs(szr)-fabs(lzr)) > (T)0.01 * std::max((T)fabs(lzr),(T)0.1)) 
         return;
 
 /*  Evaluate polynomial by quadratic synthetic division. */
