@@ -125,7 +125,7 @@ int MultibodyGraphMaker::addBody(const std::string& name,
 void MultibodyGraphMaker::deleteBody(const std::string& name)
 {
 	// Reject non-existing body name.
-	std::map<std::string,int>::const_iterator p = bodyName2Num.find(name);
+	std::map<std::string,int>::iterator p = bodyName2Num.find(name);
 	if (p == bodyName2Num.end()) throw std::runtime_error
 		("deleteBody(): Non-existing body name '" + name + "'");
 	const int bodyNum = p->second;
