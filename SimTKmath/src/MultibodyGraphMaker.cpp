@@ -119,6 +119,28 @@ int MultibodyGraphMaker::addBody(const std::string& name,
     return bodyNum;
 }
 
+//------------------------------------------------------------------------------
+//                                 DELETE BODY
+//------------------------------------------------------------------------------
+void MultibodyGraphMaker::deleteBody(const std::string& name)
+{
+	// Reject non-existing body name.
+	std::map<std::string,int>::const_iterator p = bodyName2Num.find(name);
+	if (p == bodyName2Num.end()) throw std::runtime_error
+		("deleteBody(): Non-existing body name '" + name + "'");
+	const int bodyNum = p->second;
+	bodyName2Num.erase(p);
+		
+	std::vector<int>& jointAsParent = updBody(bodyNum).jointsAsParent;
+	while (jointAsParent.size() > 0)
+		deleteJoint(joints[jointAsParent[0]].name);
+
+	std::vector<int>& jointAsChild = updBody(bodyNum).jointsAsChild;
+	while (jointAsChild.size() > 0)
+		deleteJoint(joints[jointAsChild[0]].name);
+
+	bodies.erase(bodies.begin() + bodyNum);
+}
 
 //------------------------------------------------------------------------------
 //                                ADD JOINT
@@ -162,6 +184,33 @@ int MultibodyGraphMaker::addJoint(const std::string&  name,
     return jointNum;
 }
 
+//------------------------------------------------------------------------------
+//                                DELETE JOINT
+//------------------------------------------------------------------------------
+void MultibodyGraphMaker::deleteJoint(const std::string&  name)
+{
+	// Reject duplicate joint name, unrecognized type or body names.
+	std::map<std::string,int>::iterator p = jointName2Num.find(name);
+	if (p == jointName2Num.end()) throw std::runtime_error
+		("deleteJoint(): Non-existing joint name '" + name + "'");
+
+	const int jointNum = p->second;
+	jointName2Num.erase(p);
+
+	std::vector<int>& jointsAsParent = updBody(joints[jointNum].parentBodyNum).jointsAsParent;
+	std::vector<int>::iterator it = std::find(jointsAsParent.begin(), jointsAsParent.end(), jointNum);
+	if (it == jointsAsParent.end()) throw std::runtime_error
+		("deleteJoint(): Joint " + name + " doesn't exist in jointsAsParent of parent body ");
+	jointsAsParent.erase(it);
+
+	std::vector<int>& jointsAsChild = updBody(joints[jointNum].childBodyNum).jointsAsChild;
+	it = std::find(jointsAsChild.begin(), jointsAsChild.end(), jointNum);
+	if (it == jointsAsChild.end()) throw std::runtime_error
+		("deleteJoint(): Joint " + name + " doesn't exist in jointsAsChild of child body ");
+	jointsAsChild.erase(it);
+
+	joints.erase(joints.begin() + jointNum);
+}
 
 //------------------------------------------------------------------------------
 //                              GENERATE GRAPH

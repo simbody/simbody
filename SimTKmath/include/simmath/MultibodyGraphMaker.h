@@ -193,6 +193,13 @@ public:
                 bool                mustBeBaseBody,
                 void*               userRef = 0);
 
+    /** Delete a body (link) from the set of input bodies. All the joints that
+	reference this body will be deleted too.
+    @param[in]      name     
+        A unique string identifying this body. There are no other restrictions
+        on the contents of \a name. Note that the Ground body is predefined and
+        its name is reserved. **/
+    void deleteBody(const std::string&  name);
 
     /** Add a new joint to the set of input joints.
     @param[in]      name
@@ -232,6 +239,14 @@ public:
                  const std::string& childBodyName,
                  bool               mustBeLoopJoint,
                  void*              userRef = 0);
+
+    /** Delete an existing joint from the set of input joints. The bodies(links)
+	referenced by the joint are expected to exist and their references to this
+	joint will be removed as well.
+    @param[in]      name
+        A string uniquely identifying this joint. There are no other 
+        restrictions on the contents of \a name. **/
+    void deleteJoint(const std::string& name);
 
     /** Generate a new multibody graph from the input data. Clears the existing
     graph first if there is one. Throws an std::exception if it fails, with a
