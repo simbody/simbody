@@ -7,7 +7,7 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2010-13 Stanford University and the Authors.        *
- * Authors: Michael Sherman, Kevin He                                         *
+ * Authors: Kevin He, Michael Sherman                                         *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
@@ -21,34 +21,13 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* This example is for experimenting with the new Simbody contact implementation,
-which was in beta test in the Simbody 2.1 release, with first official release 
-in Simbody 2.2. The previous contact implementation is still present and 
-functional but will be removed soon.
-
-The example shows how the new system tracks contact events and how you can 
-extract contact forces. It also shows off a number of features of the new
-Simbody Visualizer, new in release 2.2. also. Here we display the forces and 
-torques as colored lines which remain the same color as long as a particular 
-contact event continues. We also track the energy dissipated by the contacts 
-and use it to display an energy quantity that should be conserved throughout
-the simulation (that is, the current energy plus the dissipated energy
-should be a constant).
- 
-The simulation uses very expensive, detailed contact surfaces using dense
-meshes and the elastic foundation model. Consequently it runs with highly
-variable step sizes, and fails to keep up with real time for some short
-periods. We use the Visualizer's RealTime mode to buffer up some frames and
-smooth out these rough spots so the simulation appears to run at an almost
-steady real time rate, displayed at 30fps (depending on how fast your 
-computer is). Then at the end you can watch the action replay.
-
-You can use this example to see how the different integrators behave when 
-confronted with a very stiff problem; depending on material properties CPodes 
-can be *much* faster than the explicit integrators, and it also exhibits very 
-high stability after the motion damps out. However, by changing material 
-properties and accuracy setting you can get reasonably good performance out
-of the explicit integrators here, which will scale better to large systems.
+/* Kevin He at Roblox created this example starting with 
+ExampleContactPlayground. It basically demonstrates why an Elastic Foundation
+(EF) contact model is not a good way to handle coarsely-meshed simple objects, 
+like a box. EF uses the centroid of each face to generate an area-weighted
+force, which can be a good physical representation with a dense mesh but
+since the vertices and edges don't participate there is a lot of visible
+penetration for a coarse mesh like the ones here.
 */
 
 #include "Simbody.h"
@@ -127,7 +106,7 @@ int main() {
 	Body::Rigid boxBody2(MassProperties(boxMass2, Vec3(0), 
 						boxMass2 * UnitInertia::brick(halfSize2)));
     boxBody.addDecoration(Transform(), 
-							showBox.setColor(Cyan).setOpacity(.2));
+							showBox.setColor(Red).setOpacity(1));
     boxBody.addDecoration(Transform(), 
 							showBox.setColor(Gray).setRepresentation(DecorativeGeometry::DrawWireframe));
 	boxBody2.addDecoration(Transform(), 
