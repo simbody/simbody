@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2013 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Kevin He                                                     *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -118,9 +118,9 @@ A body in the spanning tree that is directly connected to Ground is called a
 "base" body. If its mobilizer is a free joint then it can be given an arbitrary
 pose with respect to Ground and everything outboard of it moves together. This
 is a nice property and you can influence this choice by providing an explicit
-joint to Ground or designating some bodies as base bodies. Note that although you
-will then have a set of generalized coordinates permitting you to place these
-bodies arbitrarily, there is no guarantee that such placement will satisfy
+joint to Ground or designating some bodies as base bodies. Note that although 
+you will then have a set of generalized coordinates permitting you to place 
+these bodies arbitrarily, there is no guarantee that such placement will satisfy
 constraints. If you don't designate base bodies, the algorithm will pick
 them heuristically, which often leads to a good choice. The heuristic is to
 pick the body that has the most children but does not itself appear as a child.
@@ -187,7 +187,8 @@ public:
         This is a generic user reference pointer that is kept with the body
         and can be used by the caller to map back to his or her own data 
         structure containing body information.
-    @returns The body number assigned to this body. **/
+    @returns The body number assigned to this body. 
+    @see deleteBody() **/
     int addBody(const std::string&  name, 
                 double              mass, 
                 bool                mustBeBaseBody,
@@ -232,7 +233,8 @@ public:
         This is a generic user reference pointer that is kept with the joint
         and can be used by the caller to map back to his or her own data 
         structure containing joint information.
-    @returns The joint number assigned to this joint. **/
+    @returns The joint number assigned to this joint. 
+    @see deleteJoint() **/
     int addJoint(const std::string& name,
                  const std::string& type,
                  const std::string& parentBodyName,
@@ -292,7 +294,8 @@ public:
     Returns -1 if the body name is not recognized. You can't look up by name
     slave bodies that were added by the graph-making algorithm. **/
     int getBodyNum(const std::string& bodyName) const {
-        std::map<std::string,int>::const_iterator p = bodyName2Num.find(bodyName);
+        std::map<std::string,int>::const_iterator p = 
+            bodyName2Num.find(bodyName);
         return p==bodyName2Num.end() ? -1 : p->second;
     }
 
@@ -308,7 +311,8 @@ public:
     Returns -1 if the joint name is not recognized. You can't look up by name
     extra joints that were added by the graph-making algorithm. **/
     int getJointNum(const std::string& jointName) const {
-        std::map<std::string,int>::const_iterator p = jointName2Num.find(jointName);
+        std::map<std::string,int>::const_iterator p = 
+            jointName2Num.find(jointName);
         return p==jointName2Num.end() ? -1 : p->second;
     }
 
@@ -551,7 +555,7 @@ friend class MultibodyGraphMaker;
     {   const Body& outb = mgm->getBody(outboardBody);
         return outb.isSlave() ? outb.master : outboardBody; }
 
-    int  joint;         ///< corresponding joint (not necessarily from the input)
+    int  joint;         ///< corresponding joint (not necessarily from input)
     int  level;         ///< level of the outboard body; distance from ground
     int  inboardBody;   ///< might be ground
     int  outboardBody;  ///< might be a slave body; can't be ground

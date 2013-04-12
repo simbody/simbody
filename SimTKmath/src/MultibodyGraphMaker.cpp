@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2013 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Kevin He                                                     *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -197,16 +197,21 @@ void MultibodyGraphMaker::deleteJoint(const std::string&  name)
 	const int jointNum = p->second;
 	jointName2Num.erase(p);
 
-	std::vector<int>& jointsAsParent = updBody(joints[jointNum].parentBodyNum).jointsAsParent;
-	std::vector<int>::iterator it = std::find(jointsAsParent.begin(), jointsAsParent.end(), jointNum);
+	std::vector<int>& jointsAsParent = 
+        updBody(joints[jointNum].parentBodyNum).jointsAsParent;
+	std::vector<int>::iterator it = 
+        std::find(jointsAsParent.begin(), jointsAsParent.end(), jointNum);
 	if (it == jointsAsParent.end()) throw std::runtime_error
-		("deleteJoint(): Joint " + name + " doesn't exist in jointsAsParent of parent body ");
+		("deleteJoint(): Joint " + name + 
+         " doesn't exist in jointsAsParent of parent body ");
 	jointsAsParent.erase(it);
 
-	std::vector<int>& jointsAsChild = updBody(joints[jointNum].childBodyNum).jointsAsChild;
+	std::vector<int>& jointsAsChild = 
+        updBody(joints[jointNum].childBodyNum).jointsAsChild;
 	it = std::find(jointsAsChild.begin(), jointsAsChild.end(), jointNum);
 	if (it == jointsAsChild.end()) throw std::runtime_error
-		("deleteJoint(): Joint " + name + " doesn't exist in jointsAsChild of child body ");
+		("deleteJoint(): Joint " + name + 
+         " doesn't exist in jointsAsChild of child body ");
 	jointsAsChild.erase(it);
 
 	joints.erase(joints.begin() + jointNum);
