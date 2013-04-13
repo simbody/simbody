@@ -199,8 +199,9 @@ public:
     @param[in]      name     
         A unique string identifying this body. There are no other restrictions
         on the contents of \a name. Note that the Ground body is predefined and
-        its name is reserved. **/
-    void deleteBody(const std::string&  name);
+        its name is reserved.
+	@returns if the body if succesfully deleted. **/
+    bool deleteBody(const std::string&  name);
 
     /** Add a new joint to the set of input joints.
     @param[in]      name
@@ -247,8 +248,9 @@ public:
 	joint will be removed as well.
     @param[in]      name
         A string uniquely identifying this joint. There are no other 
-        restrictions on the contents of \a name. **/
-    void deleteJoint(const std::string& name);
+        restrictions on the contents of \a name. 
+	@returns if the joint is succesfully deleted. **/
+    bool deleteJoint(const std::string& name);
 
     /** Generate a new multibody graph from the input data. Clears the existing
     graph first if there is one. Throws an std::exception if it fails, with a
