@@ -75,6 +75,8 @@ using std::endl;
 
 using namespace SimTK;
 
+#define ANIMATE // off to get more accurate CPU time (you can still playback)
+
 const Real ReportInterval=1./30;
 const Real RunTime=15;
 
@@ -1596,7 +1598,13 @@ int main(int argc, char** argv) {
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
     viz.addDecorationGenerator(new ShowContact(unis));
-    //mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+
+    #ifdef ANIMATE
+    mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    #else
+    // This does nothing but interrupt the simulation.
+    mbs.addEventReporter(new Nada(ReportInterval));
+    #endif
 
     //ExplicitEulerIntegrator integ(mbs);
     //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
@@ -1744,7 +1752,9 @@ int main(int argc, char** argv) {
                     ts.getTime(),
                     Integrator::getSuccessfulStepStatusString(status).c_str());
             }
-            viz.report(ts.getState());
+            #ifndef NDEBUG
+                viz.report(ts.getState());
+            #endif
             //stateSaver->handleEvent(ts.getState());
         } while (ts.getTime() < RunTime);
 
