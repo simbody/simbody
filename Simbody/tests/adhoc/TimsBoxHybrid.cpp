@@ -44,6 +44,13 @@ using namespace SimTK;
 // with the new constraint-based one.
 //#define USE_CONTINUOUS_STICTION
 
+// Define this to run the simulation NTries times, saving the states and
+// comparing them bitwise to see if the simulations are perfectly repeatable
+// as they should be. You should see nothing but exact zeroes print out for
+// second and subsequent runs.
+//#define TEST_REPEATABILITY
+static const int NTries=2;
+
 
 // This is the continuous stiction model used in Simbody's compliant contact
 // system for comparison with the new hybrid model. See end of this file for 
@@ -1319,12 +1326,17 @@ tZ_u = 0.0 m/s
     TimeStepper ts(mbs, integ);
     ts.setReportAllSignificantStates(true);
 
-    const int NTries=1;
-    Array_< Array_<State> > states(NTries);
-    Array_< Array_<Real> > timeDiff(NTries-1);
-    Array_< Array_<Vector> > yDiff(NTries-1);
+    #ifdef TEST_REPEATABILITY
+        const int tries = NTries;
+    #else
+        const int tries = 1;
+    #endif
+
+    Array_< Array_<State> > states(tries);
+    Array_< Array_<Real> > timeDiff(tries-1);
+    Array_< Array_<Vector> > yDiff(tries-1);
     cout.precision(18);
-    for (int ntry=0; ntry < NTries; ++ntry) {
+    for (int ntry=0; ntry < tries; ++ntry) {
         mbs.resetAllCountersToZero();
         unis.initialize(); // reinitialize
         ts.updIntegrator().resetAllStatistics();
@@ -1337,8 +1349,9 @@ tZ_u = 0.0 m/s
         Integrator::SuccessfulStepStatus status;
         do {
             status=ts.stepTo(RunTime);
-            //TODO: uncomment for repeatability studies
-            //states[ntry].push_back(ts.getState());
+            #ifdef TEST_REPEATABILITY
+                states[ntry].push_back(ts.getState());
+            #endif          
             const int j = states[ntry].size()-1;
             if (ntry>0) {
                 int prev = ntry-1;
@@ -1373,7 +1386,6 @@ tZ_u = 0.0 m/s
             #ifndef NDEBUG
                 viz.report(ts.getState());
             #endif
-            //stateSaver->handleEvent(ts.getState());
         } while (ts.getTime() < RunTime);
 
 
@@ -1395,7 +1407,7 @@ tZ_u = 0.0 m/s
             nStepsWithEvent, mbs.getNumHandleEventCalls());
     }
 
-    for (int i=0; i<NTries; ++i)
+    for (int i=0; i<tries; ++i)
         cout << "nstates " << i << " " << states[i].size() << endl;
 
     // Instant replay.
