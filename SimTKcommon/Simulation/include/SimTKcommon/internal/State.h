@@ -615,7 +615,7 @@ evaluation of a cache entry CE of type CEType and CacheEntryIndex CEIndex
 Then access CE \e only through your getCE() method. There
 should be only one place in your code where isCacheValueRealized() and
 markCacheValueRealized() are called for a particular cache entry. If
-you do this from multiple locations there is a high probabily of a bug
+you do this from multiple locations there is a high probability of a bug
 being introduced, especially due to later modification of the code.
 
 Prior to the Subsystem advancing to \a earliest stage, and prior to \a latest 
