@@ -104,7 +104,8 @@ ENDFOREACH(EX_PROG ${EXAMPLES})
 # If there are any .obj (geometry) or .pdb (protein data bank)
 # files, copy those to the binary directory which will likely be
 # the current working directory for the examples when run.
-FILE(GLOB EXAMPLE_OBJS "*.obj" "*.pdb")
+# Also copy Gazebo .sdf files.
+FILE(GLOB EXAMPLE_OBJS "*.obj" "*.pdb" "*.sdf")
 FOREACH(EX_OBJ ${EXAMPLE_OBJS})
     GET_FILENAME_COMPONENT(OBJ_ROOT ${EX_OBJ} NAME)
     CONFIGURE_FILE(${EX_OBJ} 
