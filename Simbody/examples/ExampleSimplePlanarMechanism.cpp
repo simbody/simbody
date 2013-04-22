@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2012-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Andreas Scholz                                               *
  *                                                                            *
@@ -42,6 +42,8 @@ using namespace SimTK;
 // pin joints rotating about the Z axes. Each body's mass is concentrated into
 // point masses shown by *'s above. Gravity is in the -Y direction.
 //
+// We'll add a joint stop on the left arm to limit its range of motion.
+//
 // This is the Simbody equivalent of a mechanism Andreas Scholz used to
 // demonstrate features of the MOBILE code from Andrés Kecskeméthy's lab.
 
@@ -52,7 +54,7 @@ int main() {
     MultibodySystem system; 
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
-    Force::Gravity(forces, matter, -YAxis, 9.8);
+    Force::Gravity gravity(forces, matter, -YAxis, 9.8);
 
     // Describe a body with a point mass at (0, -3, 0) and draw a sphere there.
     Real mass = 3; Vec3 pos(0,-3,0);
@@ -64,13 +66,20 @@ int main() {
     MobilizedBody::Pin leftArm(bodyT, Vec3(-2, 0, 0),    bodyInfo, Vec3(0));
     MobilizedBody::Pin rtArm  (bodyT, Vec3(2, 0, 0),     bodyInfo, Vec3(0));
 
+    // Add a joint stop to the left arm restricting it to q in [0,Pi/5].
+    Force::MobilityLinearStop stop(forces, leftArm, MobilizerQIndex(0), 
+        10000,  // stiffness
+        0.5,    // dissipation coefficient
+        0*Pi,   // lower stop
+        Pi/5);  // upper stop
+
     // Ask for visualization every 1/30 second.
     system.setUseUniformBackground(true); // turn off floor    
     system.addEventReporter(new Visualizer::Reporter(system, 1./30));
     
     // Initialize the system and state.    
     State state = system.realizeTopology();
-    leftArm.setAngle(state, .2*Pi);
+    leftArm.setAngle(state, Pi/5);
 
     // Simulate for 10 seconds.
     RungeKuttaMersonIntegrator integ(system);
