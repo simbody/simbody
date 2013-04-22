@@ -1,4 +1,4 @@
-                   Simbody 3.1: Copyright and License
+                   Simbody 3.2: Copyright and License
                    ----------------------------------
 
 Simbody uses the extremely permissive open source Apache 2.0 license as
