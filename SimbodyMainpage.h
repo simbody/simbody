@@ -98,8 +98,8 @@ an abbreviated list of important classes:
     components.
   - SimTK::Integrator, SimTK::TimeStepper, SimTK::Assembler, SimTK::Optimizer: solvers.
   - Many utility classes (see tutorials, example programs, Doxygen Modules tab),
-    including SimTK::Rotation, SimTK::Transform, SimTK::Quaternion, SimTK::Vec,
-    SimTK::SpatialVec, SimTK::Vector_, SimTK::Xml, and many more.
+    including SimTK::Rotation_, SimTK::Transform_, SimTK::Quaternion_, 
+    SimTK::Vector_, SimTK::Vec, SimTK::SpatialVec, SimTK::Xml, and many more.
 
 For an overview of Simbody, read this paper: 
 <a href="https://simtk.org/docman/view.php/47/1589/Sherman-2011-SethDelp-Simbody-ProcediaIUTAM-v2-p241.pdf">
