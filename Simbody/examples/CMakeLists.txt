@@ -58,7 +58,8 @@ ENDFOREACH()
 # to the binary directory that will be the working
 # directory when the tests are run; and include them in
 # the examples installation. ".obj" and ".vtp" files contain geometry.
-FILE(GLOB EXTRA_FILES "*.obj" "*.vtp")
+# ".sdf" are Gazebo input files.
+FILE(GLOB EXTRA_FILES "*.obj" "*.vtp" "*.sdf")
 FOREACH(XTRA ${EXTRA_FILES})
     GET_FILENAME_COMPONENT(XTRA_ROOT ${XTRA} NAME)
     CONFIGURE_FILE(${XTRA} 

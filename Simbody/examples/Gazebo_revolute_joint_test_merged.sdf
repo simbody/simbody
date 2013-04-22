@@ -1,0 +1,2675 @@
+<?xml version="1.0" ?>
+<sdf version='1.3'>
+  <world name='default'>
+    <physics type='simbody'>
+      <gravity>0.000000 0.000000 -9.800000</gravity>
+      <update_rate>1000.000000</update_rate>
+      <ode>
+        <solver>
+          <dt>0.005000</dt>
+          <type>quick</type>
+          <iters>50</iters>
+          <sor>1.300000</sor>
+        </solver>
+        <constraints>
+          <cfm>0.000000</cfm>
+          <erp>0.200000</erp>
+          <contact_max_correcting_vel>100.000000</contact_max_correcting_vel>
+          <contact_surface_layer>0.001000</contact_surface_layer>
+        </constraints>
+      </ode>
+      <simbody>
+        <dt>0.005000</dt>
+      </simbody>
+    </physics>
+
+    <light name='sun' type='directional'>
+      <cast_shadows>1</cast_shadows>
+      <pose>0.000000 0.000000 10.000000 0.000000 0.000000 0.000000</pose>
+      <diffuse>0.800000 0.800000 0.800000 1.000000</diffuse>
+      <specular>0.100000 0.100000 0.100000 1.000000</specular>
+      <attenuation>
+        <range>1000.000000</range>
+        <constant>0.900000</constant>
+        <linear>0.010000</linear>
+        <quadratic>0.001000</quadratic>
+      </attenuation>
+      <direction>-0.500000 0.500000 -1.000000</direction>
+    </light>
+    <model name='ground_plane'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='collision'>
+          <pose>0 0 1.75 0 0 0</pose>
+          <geometry>
+            <sphere>
+              <radius>1.5</radius>
+            </sphere>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>100.000000</mu>
+                <mu2>50.000000</mu2>
+              </ode>
+            </friction>
+            <bounce/>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='collision'>
+          <geometry>
+            <plane>
+              <normal>0.000000 0.000000 1.000000</normal>
+              <size>100.000000 100.000000</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>100.000000</mu>
+                <mu2>50.000000</mu2>
+              </ode>
+            </friction>
+            <bounce/>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <cast_shadows>0</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0.000000 0.000000 1.000000</normal>
+              <size>100.000000 100.000000</size>
+            </plane>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+    </model>
+    <model name='pendulum_0deg'>
+      <link name='base'>
+        <inertial>
+          <mass>100.000000</mass>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+        </inertial>
+        <visual name='vis_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='upper_link'>
+        <pose>0.000000 0.000000 2.100000 -1.570800 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='lower_link'>
+        <pose>0.250000 1.000000 2.100000 -2.000000 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <joint name='upper_joint' type='revolute'>
+        <parent>base</parent>
+        <child>upper_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <joint name='lower_joint' type='revolute'>
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <pose>0.000000 2.100000 0.000000 0.000000 0.000000 0.000000</pose>
+      <static>0</static>
+    </model>
+    <model name='pendulum_180deg'>
+      <link name='base'>
+        <inertial>
+          <mass>100.000000</mass>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+        </inertial>
+        <visual name='vis_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='upper_link'>
+        <pose>0.000000 0.000000 2.100000 -1.570800 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='lower_link'>
+        <pose>0.250000 1.000000 2.100000 -2.000000 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <joint name='upper_joint' type='revolute'>
+        <parent>base</parent>
+        <child>upper_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <joint name='lower_joint' type='revolute'>
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <pose>0.000000 -2.100000 0.000000 0.000000 0.000000 -3.141585</pose>
+      <static>0</static>
+    </model>
+    <model name='pendulum_90deg'>
+      <link name='base'>
+        <inertial>
+          <mass>100.000000</mass>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+        </inertial>
+        <visual name='vis_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='upper_link'>
+        <pose>0.000000 0.000000 2.100000 -1.570800 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='lower_link'>
+        <pose>0.250000 1.000000 2.100000 -2.000000 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <joint name='upper_joint' type='revolute'>
+        <parent>base</parent>
+        <child>upper_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <joint name='lower_joint' type='revolute'>
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <pose>-2.100000 0.000000 0.000000 0.000000 0.000000 1.570800</pose>
+      <static>0</static>
+    </model>
+    <model name='pendulum_270deg'>
+      <link name='base'>
+        <inertial>
+          <mass>100.000000</mass>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+        </inertial>
+        <visual name='vis_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='upper_link'>
+        <pose>0.000000 0.000000 2.100000 -1.570800 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='lower_link'>
+        <pose>0.250000 1.000000 2.100000 -2.000000 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <joint name='upper_joint' type='revolute'>
+        <parent>base</parent>
+        <child>upper_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <joint name='lower_joint' type='revolute'>
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <pose>2.100000 0.000000 0.000000 0.000000 0.000000 -1.570800</pose>
+      <static>0</static>
+    </model>
+    <model name='pendulum_315deg'>
+      <link name='base'>
+        <inertial>
+          <mass>100.000000</mass>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+        </inertial>
+        <visual name='vis_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='upper_link'>
+        <pose>0.000000 0.000000 2.100000 -1.570800 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='lower_link'>
+        <pose>0.250000 1.000000 2.100000 -2.000000 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <joint name='upper_joint' type='revolute'>
+        <parent>base</parent>
+        <child>upper_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <joint name='lower_joint' type='revolute'>
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <pose>1.480000 1.480000 0.000000 0.000000 0.000000 -0.785400</pose>
+      <static>0</static>
+    </model>
+    <model name='pendulum_225deg'>
+      <link name='base'>
+        <inertial>
+          <mass>100.000000</mass>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+        </inertial>
+        <visual name='vis_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='upper_link'>
+        <pose>0.000000 0.000000 2.100000 -1.570800 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='lower_link'>
+        <pose>0.250000 1.000000 2.100000 -2.000000 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <joint name='upper_joint' type='revolute'>
+        <parent>base</parent>
+        <child>upper_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <joint name='lower_joint' type='revolute'>
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <pose>1.480000 -1.480000 0.000000 0.000000 0.000000 -2.356200</pose>
+      <static>0</static>
+    </model>
+    <model name='pendulum_135deg'>
+      <link name='base'>
+        <inertial>
+          <mass>100.000000</mass>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+        </inertial>
+        <visual name='vis_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='upper_link'>
+        <pose>0.000000 0.000000 2.100000 -1.570800 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='lower_link'>
+        <pose>0.250000 1.000000 2.100000 -2.000000 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <joint name='upper_joint' type='revolute'>
+        <parent>base</parent>
+        <child>upper_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <joint name='lower_joint' type='revolute'>
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <pose>-1.480000 -1.480000 0.000000 0.000000 0.000000 2.356200</pose>
+      <static>0</static>
+    </model>
+    <model name='pendulum_45deg'>
+      <link name='base'>
+        <inertial>
+          <mass>100.000000</mass>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+        </inertial>
+        <visual name='vis_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_plate_on_ground'>
+          <pose>0.000000 0.000000 0.050000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.800000</radius>
+              <length>0.100000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_pole'>
+          <pose>-0.275000 0.000000 1.100000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <box>
+              <size>0.200000 0.200000 2.200000</size>
+            </box>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='upper_link'>
+        <pose>0.000000 0.000000 2.100000 -1.570800 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_upper_joint'>
+          <pose>-0.050000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 1.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.200000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <link name='lower_link'>
+        <pose>0.250000 1.000000 2.100000 -2.000000 0.000000 0.000000</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <inertia>
+            <ixx>1.000000</ixx>
+            <ixy>0.000000</ixy>
+            <ixz>0.000000</ixz>
+            <iyy>1.000000</iyy>
+            <iyz>0.000000</iyz>
+            <izz>1.000000</izz>
+          </inertia>
+          <mass>1.000000</mass>
+        </inertial>
+        <visual name='vis_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <visual name='vis_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='col_lower_joint'>
+          <pose>0.000000 0.000000 0.000000 -3.141592 1.570793 -3.141592</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.080000</radius>
+              <length>0.300000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <collision name='col_cylinder'>
+          <pose>0.000000 0.000000 0.500000 0.000000 0.000000 0.000000</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.100000</radius>
+              <length>0.900000</length>
+            </cylinder>
+          </geometry>
+          <surface>
+            <bounce/>
+            <friction>
+              <ode/>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.000000</linear>
+          <angular>0.000000</angular>
+        </velocity_decay>
+        <kinematic>0</kinematic>
+        <gravity>1</gravity>
+      </link>
+      <joint name='upper_joint' type='revolute'>
+        <parent>base</parent>
+        <child>upper_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <joint name='lower_joint' type='revolute'>
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <axis>
+          <xyz>1.000000 0.000000 0.000000</xyz>
+          <limit>
+            <lower>-10000000000000000.000000</lower>
+            <upper>10000000000000000.000000</upper>
+          </limit>
+        </axis>
+      </joint>
+      <pose>-1.480000 1.480000 0.000000 0.000000 0.000000 0.785400</pose>
+      <static>0</static>
+    </model>
+    <scene>
+      <ambient>0.200000 0.200000 0.200000 1.000000</ambient>
+      <background>0.700000 0.700000 0.700000 1.000000</background>
+      <shadows>1</shadows>
+    </scene>
+    <state world_name='default'>
+      <sim_time>0 0</sim_time>
+      <real_time>0 0</real_time>
+      <wall_time>1362959995 635676850</wall_time>
+    </state>
+    <gui fullscreen='0'>
+      <camera name='user_camera'>
+        <pose>5.000000 -5.000000 2.000000 0.000000 0.275643 2.356190</pose>
+        <view_controller>orbit</view_controller>
+      </camera>
+    </gui>
+  </world>
+</sdf>

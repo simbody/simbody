@@ -343,11 +343,13 @@ static void runSimulation(const MultibodySystem&          mbs,
                           const std::vector<GazeboModel>& gzModels);
 
 int main(int argc, const char* argv[]) {
+    std::string sdfFileName;
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " filename.sdf\n";
-        exit(1);
-    }
-    const std::string sdfFileName = argv[1];
+        std::cout << "Usage: " << argv[0] << " Gazebo_filename.sdf\n";
+        std::cout << "Trying Gazebo_ragdoll.sdf by default.\n";
+        sdfFileName = "Gazebo_ragdoll.sdf";
+    } else
+        sdfFileName = argv[1];
 
     try {
     //---------------------------- OPEN INPUT FILE -----------------------------
@@ -1013,6 +1015,7 @@ int GazeboJoints::addJoint(const GazeboJointInfo& info) {
 }
 
 
+
 void GazeboModel::readModel(Xml::Element modelElt) {
     name = modelElt.getRequiredAttributeValue("name");
     X_WM = getPose(modelElt);
@@ -1058,17 +1061,19 @@ void GazeboModel::readModel(Xml::Element modelElt) {
         //    <child>childName</child>
         //    <parent>parentName</parent>
         // or new style
-        //    <child link="childName">
+        //    <child>
+        //      <link_name>childName</linkName>
         //      <pose>childPose</pose>
         //    </child>
-        //    <parent link="parentName">
+        //    <parent>
+        //      <link_name>parentName</linkName>
         //      <pose>parentPose</pose>
         //    </parent>
         std::string child, parent;
         jinfo.X_CB = getPose(elt); // default joint frame on child body
         Xml::Element cElt = elt.getRequiredElement("child");
-        if (cElt.hasAttribute("link")) {
-            child = cElt.getRequiredAttributeValue("link");
+        if (cElt.hasElement("link_name")) {
+            child = cElt.getRequiredElementValue("link_name");
             if (cElt.hasElement("pose")) 
                 jinfo.X_CB = getPose(cElt);
             // else leave it as it was
@@ -1077,8 +1082,8 @@ void GazeboModel::readModel(Xml::Element modelElt) {
 
         Xml::Element pElt = elt.getRequiredElement("parent");
         bool gotParentPose = false;
-        if (pElt.hasAttribute("link")) {
-            parent = pElt.getRequiredAttributeValue("link");
+        if (pElt.hasElement("link_name")) {
+            parent = pElt.getRequiredElementValue("link_name");
             if (pElt.hasElement("pose")) {
                 jinfo.X_PA = getPose(pElt);
                 gotParentPose = true;
@@ -1102,5 +1107,4 @@ void GazeboModel::readModel(Xml::Element modelElt) {
         joints.addJoint(jinfo);
     }
 }
-
 
