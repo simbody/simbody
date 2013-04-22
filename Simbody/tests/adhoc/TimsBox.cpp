@@ -38,15 +38,228 @@ using std::endl;
 using namespace SimTK;
 
 //#define USE_TIMS_PARAMS
-#define USE_COMPLIANT_CONTACT
+//#define USE_COMPLIANT_CONTACT
+//#define USE_ELASTIC_FOUNDATION // if compliant
 #define ANIMATE // off to get more accurate CPU time (you can still playback)
 
+// Define this to run the simulation NTries times, saving the states and
+// comparing them bitwise to see if the simulations are perfectly repeatable
+// as they should be. You should see nothing but exact zeroes print out for
+// second and subsequent runs.
+//#define TEST_REPEATABILITY
+static const int NTries=2;
+
 const Real ReportInterval=1./30;
-#ifdef USE_TIMS_PARAMS
-    const Real RunTime=16;  // Tim's time
-#else
-    const Real RunTime=20;
-#endif
+   
+
+//==============================================================================
+//                           UNI POINT IN PLANE IMPL
+//==============================================================================
+// This is Simbody's PointInPlane Constraint with sliding friction added.
+// TODO: not using sliding forces here yet -- still using separate force
+// element MySlidingFrictionForce (below).
+class UniPointInPlaneImpl : public Constraint::Custom::Implementation {
+public:
+UniPointInPlaneImpl
+   (MobilizedBody& plane,    const UnitVec3& defPlaneNormal, Real defPlaneHeight,
+    MobilizedBody& follower, const Vec3&     defFollowerPoint)
+:   Implementation(plane.updMatterSubsystem(),1,0,0) 
+{
+    planeBody    = addConstrainedBody(plane);
+    followerBody = addConstrainedBody(follower);
+    defaultPlaneNormal   = defPlaneNormal;
+    defaultPlaneHeight   = defPlaneHeight;
+    defaultFollowerPoint = defFollowerPoint;
+}
+
+
+void setPlaneDisplayHalfWidth(Real h) {
+    // h <= 0 means don't display plane
+    invalidateTopologyCache();
+    planeHalfWidth = h > 0 ? h : 0;
+}
+Real getPlaneDisplayHalfWidth() const {return planeHalfWidth;}
+
+void setPointDisplayRadius(Real r) {
+    // r <= 0 means don't display point
+    invalidateTopologyCache();
+    pointRadius= r > 0 ? r : 0;
+}
+Real getPointDisplayRadius() const {return pointRadius;}
+
+// Allocate state variables:
+//  - s, the expected sign of the normal multiplier (-1,0,1)
+//  - e, the "previous slip direction" (a 2d unit vector or NaN if none)
+//
+// The auto update for s is s=sign(|lambda|>=SignificantReal ? lambda : 0) so 
+// that there is a dead zone in which we consider lambda to be zero.
+//
+// The auto update for e is v/|v| if slip speed |v| is large enough to be 
+// considered "reliable", and dot(e,v)>0. Otherwise stick with the current e.
+// A stiction->sliding transition causes e to be set to the impending slip
+// direction (opposite the last known stiction force direction).
+//
+// Let d=s for bilateral constraint, d=max(s,0) for unilateral. Then
+// sliding force multiplier sigma=d*mu_d*lambda, which will be >= 0 if d was
+// correct. The sliding friction force will be -sigma*e.
+//
+
+
+void realizeTopology(State& state) const OVERRIDE_11 {
+    isSlidingIx = getMatterSubsystem().allocateDiscreteVariable
+       (state, Stage::Acceleration, new Value<bool>(false));
+    prevSignIx = getMatterSubsystem().allocateAutoUpdateDiscreteVariable
+       (state, Stage::Acceleration, new Value<Real>(1), 
+        Stage::Acceleration); // cache update depends on lambda
+    prevSlipDirIx = getMatterSubsystem().allocateAutoUpdateDiscreteVariable
+       (state, Stage::Acceleration, new Value<Vec2>(Vec2(NaN)), 
+        Stage::Velocity);     // cache update depends only on slip velocity
+}
+
+bool isSliding(const State& state) const {
+    const bool& sliding = Value<bool>::downcast
+        (getMatterSubsystem().getDiscreteVariable(state, isSlidingIx));
+    return sliding;
+}
+Real getPrevSign(const State& state) const {
+    const Real& prevSign = Value<Real>::downcast
+        (getMatterSubsystem().getDiscreteVariable(state, prevSignIx));
+    return prevSign;
+}
+Vec2 getPrevSlipDir(const State& state) const {
+    const Vec2& prevSlipDir = Value<Vec2>::downcast
+        (getMatterSubsystem().getDiscreteVariable(state, prevSlipDirIx));
+    return prevSlipDir;
+}
+/*
+// If we're sliding, set the update value for the previous slip direction
+// if the current slip velocity is usable.
+void realizeVelocity(const State& state) const OVERRIDE_11 {
+    if (!hasSlidingForce(state))
+        return; // nothing to do 
+    const Vec2 Vslip = m_contact.getSlipVelocity(state);
+    const Vec2 prevVslipDir = getPrevSlipDir(state);
+
+    if (shouldUpdate(Vslip, prevVslipDir, m_vtol)) {
+        Vec2& prevSlipUpdate = Value<Vec2>::updDowncast
+            (m_forces.updDiscreteVarUpdateValue(state, m_prevSlipDirIx));
+        const Real v = Vslip.norm();
+        const Vec2 slipDir = Vslip / v;
+        prevSlipUpdate = slipDir;
+        m_forces.markDiscreteVarUpdateValueRealized(state, m_prevSlipDirIx);
+
+        #ifndef NDEBUG
+        //printf("UPDATE %d: prevSlipDir=%g %g; now=%g %g; |v|=%g dot=%g vdot=%g\n",
+        //    m_friction.getFrictionIndex(),
+        //    prevVslipDir[0],prevVslipDir[1],slipDir[0],slipDir[1],
+        //    v, ~slipDir*prevVslipDir, ~Vslip*prevVslipDir);
+        #endif
+    } else {
+        #ifndef NDEBUG
+        printf("NO UPDATE %d: prevSlipDir=%g %g; Vnow=%g %g; |v|=%g vdot=%g\n",
+            m_friction.getFrictionIndex(),
+            prevVslipDir[0],prevVslipDir[1],Vslip[0],Vslip[1],
+            Vslip.norm(), ~Vslip*prevVslipDir);
+        #endif
+    }
+}
+
+// Regardless of whether we're sticking or sliding, as long as the master
+// contact is active use its normal force scalar as the update for our
+// saved normal force.
+void realizeAcceleration(const State& state) const OVERRIDE_11 {
+    if (!m_friction.isMasterActive(state))
+        return; // nothing to save
+    const Real N = m_contact.getForce(state); // normal force
+    const Real prevN = getPrevN(state);
+    if (N==prevN) return; // no need for an update
+
+    Real& prevNupdate = Value<Real>::updDowncast
+        (m_forces.updDiscreteVarUpdateValue(state, m_prevNix));
+
+    #ifndef NDEBUG
+    printf("UPDATE %d: N changing from %g -> %g (%.3g)\n",
+        m_friction.getFrictionIndex(), 
+        prevN, N, std::abs(N-prevN)/std::max(N,prevN));
+    #endif
+    prevNupdate = N;
+    m_forces.markDiscreteVarUpdateValueRealized(state, m_prevNix); 
+}
+*/
+
+// Implementation of virtuals required for holonomic constraints.
+UniPointInPlaneImpl* clone() const OVERRIDE_11
+{   return new UniPointInPlaneImpl(*this); }
+
+void calcDecorativeGeometryAndAppend
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+    OVERRIDE_11 {}
+
+void calcPositionErrors      
+   (const State&                                    s,      // Stage::Time
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr)   // mp of these
+    const OVERRIDE_11;
+
+void calcPositionDotErrors      
+   (const State&                                    s,      // Stage::Position
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr)  // mp of these
+    const OVERRIDE_11;
+
+void calcPositionDotDotErrors      
+   (const State&                                    s,      // Stage::Velocity
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr)  // mp of these
+    const OVERRIDE_11;
+
+// apply f=lambda*n to the follower point S of body F,
+//       -f         to point C (coincident point) of body B
+void addInPositionConstraintForces
+   (const State&                                    s,      // Stage::Position
+    const Array_<Real>&                             multipliers, // mp of these
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
+    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    const OVERRIDE_11
+{
+    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
+           && qForces.size()==0);
+    const Real lambda = multipliers[0];
+
+    //TODO: should be able to get p info from State
+    const Vec3&      p_FS    = defaultFollowerPoint; // measured & expressed in F
+    const Vec3       p_AS    = findStationLocationFromState(s, followerBody, 
+                                                            defaultFollowerPoint);
+    const Transform& X_AB    = getBodyTransformFromState(s, planeBody);
+    const Vec3       p_BC    = ~X_AB * p_AS;         // measured & expressed in B
+    const Vec3       force_A = X_AB.R()*(lambda*defaultPlaneNormal);
+
+    addInStationForce(s, followerBody, p_FS,  force_A, bodyForcesInA);
+    addInStationForce(s, planeBody,    p_BC, -force_A, bodyForcesInA);
+}
+
+//------------------------------------------------------------------------------
+                                    private:
+
+ConstrainedBodyIndex    planeBody;    // B1
+ConstrainedBodyIndex    followerBody; // B2
+
+UnitVec3                defaultPlaneNormal;   // on body 1, exp. in B1 frame
+Real                    defaultPlaneHeight;
+Vec3                    defaultFollowerPoint; // on body 2, exp. in B2 frame
+
+// These are just for visualization
+Real                    planeHalfWidth;
+Real                    pointRadius;
+
+mutable DiscreteVariableIndex   isSlidingIx;   // should generate sliding force?
+mutable DiscreteVariableIndex   prevSignIx;    // last sign of lambda 
+mutable DiscreteVariableIndex   prevSlipDirIx; // previous slip direction e
+};
+
 
 //==============================================================================
 //                           MY CONTACT ELEMENT
@@ -296,6 +509,13 @@ public:
     // unilateral constraint whose "no-stick" condition is violated. 
     virtual Real getMasterNormalForce(const State&) const = 0;
 
+    // If the sliding force element uses an estimated normal forces to generate
+    // an approximate sliding force, return the estimate it is using here.
+    virtual Real getEstimatedNormalForce(const State&) const = 0;
+
+    // Modify the estimated normal force in the state.
+    virtual void setEstimatedNormalForce(State&, Real N) const = 0;
+
     // Return true if the normal force master *could* be involved in an 
     // impact event (because it is touching).
     virtual bool isMasterProximal(const State&, Real posTol) const = 0;
@@ -520,6 +740,10 @@ public:
     // constraints.
     void findActiveCandidates(State&                 state, 
                               const MyElementSubset& candidates) const;
+
+    // If there are sliding contacts, adjust normal force estimates and then
+    // recalculate actual normal forces until they agree to a tolerance.
+    void convergeNormalForcesForSlidingContacts(State& state, Real rtol) const;
 
     // In Debug mode, produce a useful summary of the current state of the
     // contact and friction elements.
@@ -782,8 +1006,11 @@ public:
     MyPointContact(MobilizedBody& body, const Vec3& point, 
                    Real coefRest)
     :   MyContactElement( 
-            Constraint::PointInPlane(updGround(body), UnitVec3(YAxis), Zero,
-                                     body, point),
+            //Constraint::PointInPlane(updGround(body), UnitVec3(YAxis), Zero,
+            //                         body, point),
+            Constraint::Custom(new UniPointInPlaneImpl(
+                                     updGround(body), UnitVec3(YAxis), Zero,
+                                     body, point)),
              Real(-1), // multiplier sign
              coefRest),
         m_body(body), m_point(point)
@@ -999,6 +1226,14 @@ public:
     Real getMasterNormalForce(const State& s) const OVERRIDE_11 {
         const Real N = m_contact.getForce(s); // might be negative
         return N;
+    }
+
+    Real getEstimatedNormalForce(const State& s) const OVERRIDE_11 {
+        return m_sliding->getPrevN(s);
+    }
+
+    void setEstimatedNormalForce(State& s, Real N) const OVERRIDE_11 {
+        m_sliding->setPrevN(s, N);
     }
 
 
@@ -1292,105 +1527,6 @@ private:
 
 
 //==============================================================================
-//                                  MY STOP
-//==============================================================================
-// Define a unilateral constraint to represent a joint stop that limits
-// the allowable motion of a single generalized coordinate. You can specify
-// a coefficient of restitution and whether the given limit is the upper or
-// lower limit.
-class MyStop : public MyContactElement {
-public:
-    enum Side {Lower,Upper};
-    MyStop(Side side, MobilizedBody& body, int whichQ,
-         Real limit, Real coefRest)
-    :   MyContactElement
-           (Constraint::ConstantSpeed(body, MobilizerUIndex(whichQ), Real(0)), 
-            Real(side==Lower?-1:1), coefRest),
-        m_body(body), m_whichq(whichQ), m_whichu(whichQ),
-        m_sign(side==Lower?1.:-1.), m_limit(limit)
-    {}
-
-    String getContactType() const OVERRIDE_11 {return "Stop";}
-
-    Real getPerr(const State& state) const OVERRIDE_11 {
-        const Real q = m_body.getOneQ(state, m_whichq);
-        return m_sign*(q-m_limit);
-    }
-    Real getVerr(const State& state) const OVERRIDE_11 {
-        const Real u = m_body.getOneU(state, m_whichu);
-        return m_sign*u;
-    }
-    Real getAerr(const State& state) const OVERRIDE_11 {
-        const Real udot = m_body.getOneUDot(state, m_whichu);
-        return m_sign*udot;
-    }
-
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
-        const Vec3& p_B = m_body.getOutboardFrame(state).p();
-        return m_body.findStationLocationInGround(state,p_B);
-    }
-
-private:
-    const MobilizedBody&        m_body;
-    const MobilizerQIndex       m_whichq;
-    const MobilizerUIndex       m_whichu;
-    Real                        m_sign; // +1: lower, -1: upper
-    Real                        m_limit;
-};
-
-//==============================================================================
-//                                  MY ROPE
-//==============================================================================
-// Define a unilateral constraint to represent a "rope" that keeps the
-// distance between two points at or smaller than some limit.
-class MyRope : public MyContactElement {
-public:
-    MyRope(MobilizedBody& body1, const Vec3& pt1,
-           MobilizedBody& body2, const Vec3& pt2, Real d,
-           Real coefRest)
-    :   MyContactElement
-           (Constraint::Rod(body1, pt1, body2, pt2, d), Real(1), coefRest),
-        m_body1(body1), m_point1(pt1), m_body2(body2), m_point2(pt2), m_dist(d)
-    {}
-
-    String getContactType() const OVERRIDE_11 {return "Rope";}
-
-    Real getPerr(const State& s) const OVERRIDE_11 {
-        const Vec3 p1 = m_body1.findStationLocationInGround(s,m_point1);
-        const Vec3 p2 = m_body2.findStationLocationInGround(s,m_point2);
-        const Vec3 p = p2-p1;
-        return (square(m_dist) - dot(p,p))/2;
-    }
-    Real getVerr(const State& s) const OVERRIDE_11 {
-        Vec3 p1, v1, p2, v2;
-        m_body1.findStationLocationAndVelocityInGround(s,m_point1,p1,v1);
-        m_body2.findStationLocationAndVelocityInGround(s,m_point2,p2,v2);
-        const Vec3 p = p2 - p1, v = v2 - v1;
-        return -dot(v, p);
-    }
-    Real getAerr(const State& s) const OVERRIDE_11 {
-        Vec3 p1, v1, a1, p2, v2, a2;
-        m_body1.findStationLocationVelocityAndAccelerationInGround
-           (s,m_point1,p1,v1,a1);
-        m_body2.findStationLocationVelocityAndAccelerationInGround
-           (s,m_point2,p2,v2,a2);
-        const Vec3 p = p2 - p1, v = v2 - v1, a = a2 - a1;
-        return -(dot(a, p) + dot(v, v));
-    }
-
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
-        return m_body2.findStationLocationInGround(state,m_point2);
-    }
-
-private:
-    const MobilizedBody&    m_body1;
-    const Vec3              m_point1;
-    const MobilizedBody&    m_body2;
-    const Vec3              m_point2;
-    const Real              m_dist;
-};
-
-//==============================================================================
 //                            MY PUSH FORCE
 //==============================================================================
 // This is a force element that generates a constant force on a body for a
@@ -1469,22 +1605,61 @@ int main(int argc, char** argv) {
     const Vec3 BrickHalfDims(.1, .25, .5);
     const Real BrickMass = 10;
     #ifdef USE_TIMS_PARAMS
-        const Real Stiffness = 1e7;
-        const Real CoefRest = 0.2; 
-        const Real mu_d = .8;
-        const Real mu_s = .8;
-        const Real mu_v = 0.05;
+        const Real RunTime=16;  // Tim's time
+        const Real Stiffness = 2e7;
+        const Real Dissipation = 0.1;
+        const Real CoefRest = 0; 
+        // Painleve problem with these friction coefficients.
+        //const Real mu_d = 1; /* compliant: .7*/
+        //const Real mu_s = 1; /* compliant: .7*/
+        const Real mu_d = .7;
+        const Real mu_s = .7;
+        const Real mu_v = /*0.05*/0;
         const Real CaptureVelocity = 0.01;
+        const Real TransitionVelocity = 0.05;
         const Inertia brickInertia(.1,.1,.1);
     #else
+        const Real RunTime=20;
         const Real Stiffness = 1e6;
         const Real CoefRest = 0.5; 
+        const Real TargetVelocity = 3; // speed at which to match coef rest
+//        const Real Dissipation = (1-CoefRest)/TargetVelocity;
+        const Real Dissipation = 0.1;
         const Real mu_d = .5;
         const Real mu_s = .7;
         const Real mu_v = 0.05;
         const Real CaptureVelocity = 0.01;
+        const Real TransitionVelocity = 0.05;
         const Inertia brickInertia(BrickMass*UnitInertia::brick(BrickHalfDims));
     #endif
+
+    printf("\n******************** Tim's Box ********************\n");
+    #ifdef USE_COMPLIANT_CONTACT
+    printf("USING COMPLIANT CONTACT (with %s)\n",
+        #ifdef USE_ELASTIC_FOUNDATION
+        "elastic foundation mesh");
+        #else
+        "Hertz spheres at corners");
+        #endif
+    #else
+    printf("USING RIGID CONTACT\n");
+    #endif
+    #ifdef USE_TIMS_PARAMS
+    printf("Using Tim's parameters:\n");
+    #else
+    printf("Using Sherm's parameters:\n");
+    #endif
+    #ifdef USE_COMPLIANT_CONTACT
+        printf("  stiffness=%g dissipation=%g\n", Stiffness, Dissipation);
+    #else
+        printf("  coef restitution=%g\n", CoefRest);
+    #endif
+    printf("  mu_d=%g mu_s=%g mu_v=%g\n", mu_d, mu_s, mu_v);
+    printf("  transition velocity=%g\n", TransitionVelocity);
+    printf("  brick inertia=%g %g %g\n",
+        brickInertia.getMoments()[0], brickInertia.getMoments()[1], 
+        brickInertia.getMoments()[2]); 
+    printf("******************** Tim's Box ********************\n\n");
 
     #ifdef USE_COMPLIANT_CONTACT
     ContactTrackerSubsystem tracker(mbs);
@@ -1493,21 +1668,23 @@ int main(int argc, char** argv) {
     contact.setTransitionVelocity(0.05);
 
     const Real Radius = BrickHalfDims[0]/3;
-    const Real TargetVelocity = 3; // speed at which to match coef rest
 
     // Define a material to use for contact. This is not very stiff.
     ContactMaterial material(Stiffness,
-                             (1-CoefRest)/TargetVelocity,   // dissipation
+                             Dissipation,
                              mu_s,  // mu_static
                              mu_d,  // mu_dynamic
                              mu_v); // mu_viscous
+
+    // Make up an assumed thickness for the elastic layer in case we use
+    // an ElasticFoundation-based compliant contact.
+    const Real Thickness = min(BrickHalfDims);
 
     // Add a contact surface to represent the ground.
     // Half space normal is -x; must rotate about z to make it +y.
     Ground.updBody().addContactSurface(Rotation(-Pi/2,ZAxis),
        ContactSurface(ContactGeometry::HalfSpace(), material));
     #endif
-
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
 
@@ -1550,30 +1727,60 @@ int main(int argc, char** argv) {
                                                     15, Infinity));
     #endif
 
+    #ifdef USE_COMPLIANT_CONTACT
+    #ifndef USE_ELASTIC_FOUNDATION
+    // Using spheres at the corners:
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(BrickHalfDims);
-        #ifdef USE_COMPLIANT_CONTACT
         const Vec3 shrink = 
             (abs(pt)-Radius).elementwiseDivide(abs(pt)).elementwiseMultiply(pt);
         brick.updBody().addContactSurface(shrink,
             ContactSurface(ContactGeometry::Sphere(Radius), material));
         brick.addBodyDecoration(shrink, DecorativeSphere(Radius));
-        #else
+    }
+    #else
+    // Using a brick mesh.
+    //const PolygonalMesh mesh = 
+    //    PolygonalMesh::createCylinderMesh(UnitVec3(1,1,1),BrickHalfDims[0],BrickHalfDims[2],1);
+    //DecorativeMesh cylDec(cylMesh);
+    //matter.updGround().addBodyDecoration(Vec3(-2,3,0), 
+    //    cylDec
+    //    );
+    //matter.updGround().addBodyDecoration(Vec3(-2,3,0), 
+    //    DecorativeMesh(cylMesh).setScale(1.02)
+    //    .setRepresentation(DecorativeGeometry::DrawWireframe).setColor(Red)
+    //    );
+
+    const int rez = 2*(int)(max(BrickHalfDims)/min(BrickHalfDims) + 0.5);
+    const PolygonalMesh mesh = 
+        PolygonalMesh::createBrickMesh(BrickHalfDims,rez);
+
+    const ContactGeometry::TriangleMesh triMesh(mesh);
+    DecorativeMesh decMesh(triMesh.createPolygonalMesh());
+
+    decMesh.setLineThickness(3)
+           .setRepresentation(DecorativeGeometry::DrawWireframe)
+           ;
+    brick.updBody().addContactSurface(Vec3(0), 
+        ContactSurface(triMesh,material,Thickness));
+    brick.addBodyDecoration(Vec3(0), decMesh);
+    #endif  
+    #else
+    for (int i=-1; i<=1; i+=2)
+    for (int j=-1; j<=1; j+=2)
+    for (int k=-1; k<=1; k+=2) {
+        const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(BrickHalfDims);
         MyPointContact* contact = new MyPointContact(brick, pt, CoefRest);
         unis.addContactElement(contact);
         unis.addFrictionElement(
             new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, 
                                        CaptureVelocity, // TODO: vtol?
                                        forces));
-        #endif
-    }
 
-    //unis.addContactElement(new MyRope(Ground, Vec3(-5,10,0),
-    //                       cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
-    //                       5., .5*CoefRest));
-    //unis.push_back(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
+    }
+    #endif
 
     matter.setShowDefaultGeometry(false);
     Visualizer viz(mbs);
@@ -1653,13 +1860,17 @@ tZ_q = 0.0 m
 tZ_u = 0.0 m/s
 */
 
+#ifdef USE_TIMS_PARAMS
+    loc.setQToFitTranslation(s, Vec3(0,10,0));
+    loc.setUToFitLinearVelocity(s, Vec3(0,0,0));
+#else
     loc.setQToFitTranslation(s, Vec3(0,1.4,0));
     loc.setUToFitLinearVelocity(s, Vec3(10,0,0));
-
     const Rotation R_BC(SimTK::BodyRotationSequence,
                                 0.7, XAxis, 0.6, YAxis, 0.5, ZAxis);
     brick.setQToFitRotation(s, R_BC);
     brick.setUToFitAngularVelocity(s, Vec3(1,0,.2));
+#endif
 
     mbs.realize(s, Stage::Velocity);
     viz.report(s);
@@ -1689,6 +1900,7 @@ tZ_u = 0.0 m/s
     mbs.realize(s, Stage::Velocity);
     Array_<int> enableTheseStictions;
     for (int i=0; i < unis.getNumFrictionElements(); ++i) {
+        break; //TODO
         MyFrictionElement& fric = unis.updFrictionElement(i);
         const Real vSlip = fric.getActualSlipSpeed(s);
         fric.initializeForStiction(s); // just in case
@@ -1712,12 +1924,17 @@ tZ_u = 0.0 m/s
     TimeStepper ts(mbs, integ);
     ts.setReportAllSignificantStates(true);
 
-    const int NTries=1;
-    Array_< Array_<State> > states(NTries);
-    Array_< Array_<Real> > timeDiff(NTries-1);
-    Array_< Array_<Vector> > yDiff(NTries-1);
+    #ifdef TEST_REPEATABILITY
+        const int tries = NTries;
+    #else
+        const int tries = 1;
+    #endif
+        
+    Array_< Array_<State> > states(tries);
+    Array_< Array_<Real> > timeDiff(tries-1);
+    Array_< Array_<Vector> > yDiff(tries-1);
     cout.precision(18);
-    for (int ntry=0; ntry < NTries; ++ntry) {
+    for (int ntry=0; ntry < tries; ++ntry) {
         mbs.resetAllCountersToZero();
         unis.initialize(); // reinitialize
         ts.updIntegrator().resetAllStatistics();
@@ -1730,7 +1947,9 @@ tZ_u = 0.0 m/s
         Integrator::SuccessfulStepStatus status;
         do {
             status=ts.stepTo(RunTime);
-            //states[ntry].push_back(ts.getState());
+            #ifdef TEST_REPEATABILITY
+                states[ntry].push_back(ts.getState());
+            #endif 
             const int j = states[ntry].size()-1;
             if (ntry>0) {
                 int prev = ntry-1;
@@ -1762,8 +1981,9 @@ tZ_u = 0.0 m/s
                     ts.getTime(),
                     Integrator::getSuccessfulStepStatusString(status).c_str());
             }
-            //viz.report(ts.getState());
-            //stateSaver->handleEvent(ts.getState());
+            #ifndef NDEBUG
+                viz.report(ts.getState());
+            #endif
         } while (ts.getTime() < RunTime);
 
 
@@ -1785,7 +2005,7 @@ tZ_u = 0.0 m/s
             nStepsWithEvent, mbs.getNumHandleEventCalls());
     }
 
-    for (int i=0; i<NTries; ++i)
+    for (int i=0; i<tries; ++i)
         cout << "nstates " << i << " " << states[i].size() << endl;
 
     // Instant replay.
@@ -2408,12 +2628,15 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
         // Given an active set, evaluate multipliers and accelerations, and
         // converge sliding forces.
         m_mbs.realize(s, Stage::Acceleration);
-        SimTK_DEBUG("REVISE NORMAL #1\n");
-        for (int i=0; i < ReviseNormalNIters; ++i) {
+        SimTK_DEBUG("findActiveCandidates(): CONVERGE NORMALS\n");
+        convergeNormalForcesForSlidingContacts(s, SqrtEps);
+ /*       for (int i=0; i < ReviseNormalNIters; ++i) {
             s.autoUpdateDiscreteVariables();
             s.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+            convergeNormalForcesForSlidingContacts(s, SqrtEps);
             m_mbs.realize(s, Stage::Acceleration);
-        }
+        }*/
+        m_mbs.realize(s, Stage::Acceleration);
 
         // Scan all candidate contacts to find the active one that has the
         // most negative normal force, and the inactive one that has the 
@@ -2552,6 +2775,150 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
     showConstraintStatus(s, "EXIT findActiveCandidates()");
 }
 
+//---------------- CONVERGE NORMAL FORCES FOR SLIDING CONTACTS -----------------
+namespace {
+class NormalErrors : public Differentiator::JacobianFunction {
+public:
+    NormalErrors(const MyUnilateralConstraintSet& unis,
+                 const Array_<int>&               sliders,
+                 State&                           state) 
+        : Differentiator::JacobianFunction(sliders.size(), sliders.size()), 
+          m_unis(unis), m_state(state), m_sliders(sliders) { }
+
+    void getEstimates(const State& s, Vector& estN) const {
+        estN.resize(m_sliders.size());
+        for (int i=0; i < (int)m_sliders.size(); ++i) {
+            const MyFrictionElement& friction = 
+                m_unis.getFrictionElement(m_sliders[i]);
+            estN[i] = friction.getEstimatedNormalForce(s);
+        }
+    }
+
+    // Alternate signature for convenience (extra copy).
+    Vector getEstimates(const State& s) {
+        Vector estN(m_sliders.size());
+        getEstimates(s,estN);
+        return estN;
+    }
+
+    void setEstimates(State& s, const Vector& estN) const {
+        for (int i=0; i < (int)m_sliders.size(); ++i) {
+            const MyFrictionElement& friction = 
+                m_unis.getFrictionElement(m_sliders[i]);
+            friction.setEstimatedNormalForce(m_state, estN[i]);
+        }
+    }
+
+    void calcErrors(const State& s, Vector& errs) const {
+        errs.resize(m_sliders.size());
+        m_unis.getMultibodySystem().realize(s, Stage::Acceleration);
+        for (int i=0; i < (int)m_sliders.size(); ++i) {
+            const MyFrictionElement& friction = 
+                m_unis.getFrictionElement(m_sliders[i]);
+            const Real estN = friction.getEstimatedNormalForce(s);
+            const Real N = friction.getMasterNormalForce(s);
+            errs[i] = estN - N;
+        }
+    }
+
+    // Alternate signature for convenience (extra copy).
+    Vector calcErrors(const State& s) const {
+        Vector errs(m_sliders.size()); calcErrors(s, errs);
+        return errs;
+    }
+
+    // Must provide this pure virtual function.
+    int f(const Vector& y, Vector& fy) const OVERRIDE_11 {
+        assert(y.size() == m_sliders.size() && fy.size() == m_sliders.size());
+        Vector prevEst(m_sliders.size());
+        getEstimates(m_state, prevEst);
+        setEstimates(m_state, y);
+        calcErrors(m_state, fy);
+        setEstimates(m_state, prevEst); // restore
+        return 0;
+    }
+private:
+    const MyUnilateralConstraintSet& m_unis;
+    const Array_<int>&               m_sliders;
+    State&                           m_state;
+};
+}
+
+
+void MyUnilateralConstraintSet::
+convergeNormalForcesForSlidingContacts(State& s, Real rtol) const {
+    Array_<int> sliders;
+    for (int i=0; i < getNumFrictionElements(); ++i) {
+        const MyFrictionElement& friction = getFrictionElement(i);
+        if (friction.isMasterActive(s) && !friction.isSticking(s))
+            sliders.push_back(i);
+    }
+    SimTK_DEBUG1("convergeNormalForces: %d sliding contacts\n", sliders.size());
+    if (sliders.empty()) return;
+
+    NormalErrors normErrs(*this,sliders,s);
+    Differentiator dnormErrs(normErrs);
+
+    Vector estN(sliders.size()), err(sliders.size()), destN(sliders.size()),
+           newEstN(sliders.size());
+    normErrs.getEstimates(s, estN);
+    normErrs.calcErrors(s, err);
+
+    Real prevNorm = err.normInf();
+
+    #ifndef NDEBUG
+    cout << "====> Initial estN=" << estN << "-> err=" << err
+         << " norm=" << prevNorm << endl;
+    #endif
+
+    if (prevNorm <= rtol)
+        return;
+
+    #ifndef NDEBUG
+    cout << "\nNeed to converge sliding force and normal:\n";
+    #endif
+
+    Matrix J(sliders.size(), sliders.size());
+    bool improved;
+    const int MaxIters = 7;
+    int iter = 0;
+    do {
+        ++iter;
+        improved = false;
+        dnormErrs.calcJacobian(estN, err, J, Differentiator::CentralDifference);
+        FactorQTZ Jinv(J);
+        #ifndef NDEBUG
+        cout << "====> iter " << iter << " rank " << Jinv.getRank() 
+             << " Jacobian\n" << J << endl;
+        #endif  
+        Jinv.solve(err, destN);
+        Real fac = 2, norm;
+        Real worseningAllowance = iter == 1 ? 1.2 : 1.01;
+        do {
+            fac /= 2;
+            newEstN = estN - fac*destN;
+            normErrs.setEstimates(s, newEstN);
+            normErrs.calcErrors(s, err);
+            norm = err.normInf();
+            #ifndef NDEBUG
+            printf("fac=%g new norm=%g", fac, norm);
+            cout << " est=" << newEstN << endl;
+            #endif  
+        } while (norm > worseningAllowance*prevNorm);
+        if (iter==1 || norm < prevNorm) {
+            prevNorm = norm;
+            estN = newEstN;
+            improved = true;
+        }
+        #ifndef NDEBUG
+        cout << "====> revised estN=" << estN << "-> err=" << err 
+             << " norm=" << prevNorm << endl;
+        #endif  
+    } while (iter < MaxIters && improved && err.normInf() > rtol);
+}
+
+
+//-------------------------- SHOW CONSTRAINT STATUS ----------------------------
 void MyUnilateralConstraintSet::
 showConstraintStatus(const State& s, const String& place) const
 {
@@ -2702,7 +3069,10 @@ public:
            (m_forces.updDiscreteVariable(state, m_prevNix));
         if (isNaN(N))
             printf("*** setPrevN(): N is NaN\n");
+        //SimTK_DEBUG3("STATE CHG %d: N from %g->%g\n",
+        //    m_friction.getFrictionIndex(), prevN, N);
         prevN = N;
+
     }
     Vec2 getPrevSlipDir(const State& state) const {
         const Vec2& prevSlipDir = Value<Vec2>::downcast
@@ -2801,9 +3171,9 @@ public:
            (m_forces.updDiscreteVarUpdateValue(state, m_prevNix));
 
         #ifndef NDEBUG
-        printf("UPDATE %d: N changing from %g -> %g (%.3g)\n",
-            m_friction.getFrictionIndex(), 
-            prevN, N, std::abs(N-prevN)/std::max(N,prevN));
+        //printf("realize(Acc) CACHE UPDATE %d: N changing from %g -> %g (%.3g)\n",
+        //    m_friction.getFrictionIndex(), 
+        //    prevN, N, std::abs(N-prevN)/std::max(N,prevN));
         #endif
         prevNupdate = N;
         m_forces.markDiscreteVarUpdateValueRealized(state, m_prevNix);
@@ -2879,3 +3249,88 @@ const MySlidingFrictionForceImpl& MySlidingFrictionForce::
 getImpl() const {
     return dynamic_cast<const MySlidingFrictionForceImpl&>(getImplementation()); 
 }
+
+
+//    --------------------------------
+//    perr = ~p_BS*n - h
+//    --------------------------------
+void UniPointInPlaneImpl::calcPositionErrors      
+   (const State&                                    s,      // Stage::Time
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr)   // mp of these
+    const 
+{
+    assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
+
+    const Vec3       p_AS = findStationLocation(allX_AB, followerBody, 
+                                                defaultFollowerPoint);
+    const Transform& X_AB = getBodyTransform(allX_AB, planeBody);
+    const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
+                                     // C is material pt of B coincident with S
+
+    // We'll calculate this scalar using B-frame vectors, but any frame would 
+    // have done.
+    perr[0] = dot(p_BC, defaultPlaneNormal) - defaultPlaneHeight;
+}
+
+//    --------------------------------
+//    verr = ~v_CS_A*n
+//    --------------------------------
+void UniPointInPlaneImpl::calcPositionDotErrors      
+   (const State&                                    s,      // Stage::Position
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr)  // mp of these
+    const
+{
+    assert(V_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
+    //TODO: should be able to get p info from State
+
+    const Vec3       p_AS = findStationLocationFromState(s, followerBody, 
+                                                         defaultFollowerPoint);
+    const Transform& X_AB = getBodyTransformFromState(s, planeBody);
+    const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
+                                   // C is material point of B coincident with S
+    const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
+
+    const Vec3       v_AS = findStationVelocity(s, V_AB, followerBody, 
+                                                defaultFollowerPoint);
+    const Vec3       v_AC = findStationVelocity(s, V_AB, planeBody, p_BC);
+
+    // Calculate this scalar using A-frame vectors.
+    pverr[0] = dot( v_AS-v_AC, n_A );
+}
+
+//    -------------------------------------
+//    aerr = ~(a_CS_A - 2 w_AB X v_CS_A) * n
+//    -------------------------------------
+void UniPointInPlaneImpl::calcPositionDotDotErrors      
+   (const State&                                    s,      // Stage::Velocity
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr)  // mp of these
+    const
+{
+    assert(A_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size() == 1);
+    //TODO: should be able to get p and v info from State
+    const Vec3       p_AS = findStationLocationFromState(s, followerBody, 
+                                                         defaultFollowerPoint);
+    const Transform& X_AB = getBodyTransformFromState(s, planeBody);
+    const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
+                                   // C is material point of B coincident with S
+    const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
+
+    const Vec3&      w_AB = getBodyAngularVelocityFromState(s, planeBody);
+    const Vec3       v_AS = findStationVelocityFromState(s, followerBody, 
+                                                         defaultFollowerPoint);
+    const Vec3       v_AC = findStationVelocityFromState(s, planeBody, p_BC);
+
+    const Vec3       a_AS = findStationAcceleration(s, A_AB, followerBody, 
+                                                    defaultFollowerPoint);;
+    const Vec3       a_AC = findStationAcceleration(s, A_AB, planeBody, p_BC);
+
+    paerr[0] = dot( (a_AS-a_AC) - 2.*w_AB % (v_AS-v_AC), n_A );
+}
+
+
