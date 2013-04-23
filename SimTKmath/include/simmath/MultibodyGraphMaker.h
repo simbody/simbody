@@ -187,12 +187,11 @@ public:
         This is a generic user reference pointer that is kept with the body
         and can be used by the caller to map back to his or her own data 
         structure containing body information.
-    @returns The body number assigned to this body. 
     @see deleteBody() **/
-    int addBody(const std::string&  name, 
-                double              mass, 
-                bool                mustBeBaseBody,
-                void*               userRef = 0);
+    void addBody(const std::string&  name, 
+				 double              mass, 
+				 bool                mustBeBaseBody,
+				 void*               userRef = 0);
 
     /** Delete a body (link) from the set of input bodies. All the joints that
 	reference this body will be deleted too.
@@ -234,14 +233,13 @@ public:
         This is a generic user reference pointer that is kept with the joint
         and can be used by the caller to map back to his or her own data 
         structure containing joint information.
-    @returns The joint number assigned to this joint. 
     @see deleteJoint() **/
-    int addJoint(const std::string& name,
-                 const std::string& type,
-                 const std::string& parentBodyName,
-                 const std::string& childBodyName,
-                 bool               mustBeLoopJoint,
-                 void*              userRef = 0);
+    void addJoint(const std::string& name,
+				  const std::string& type,
+				  const std::string& parentBodyName,
+				  const std::string& childBodyName,
+				  bool               mustBeLoopJoint,
+				  void*              userRef = 0);
 
     /** Delete an existing joint from the set of input joints. The bodies(links)
 	referenced by the joint are expected to exist and their references to this
@@ -355,11 +353,12 @@ private:
     // Get writable access to bodies and joints.
     Body& updBody(int bodyNum) {return bodies[bodyNum];}
     Joint& updJoint(int jointNum) {return joints[jointNum];}
+	Joint& updJoint(const std::string& name) {return joints[jointName2Num[name]];}
 
     void initialize();
     int splitBody(int bodyNum);
     int chooseNewBaseBody() const;
-    int connectBodyToGround(int bodyNum);
+    void connectBodyToGround(int bodyNum);
     int addMobilizerForJoint(int jointNum);
     int findHeaviestUnassignedForwardJoint(int inboardBody) const;
     int findHeaviestUnassignedReverseJoint(int inboardBody) const;

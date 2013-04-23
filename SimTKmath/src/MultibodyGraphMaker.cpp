@@ -92,10 +92,10 @@ addJointType(const std::string&     name,
 //------------------------------------------------------------------------------
 //                                 ADD BODY
 //------------------------------------------------------------------------------
-int MultibodyGraphMaker::addBody(const std::string& name, 
-                                 double             mass, 
-                                 bool               mustBeBaseBody,
-                                 void*              userRef)
+void MultibodyGraphMaker::addBody(const std::string& name, 
+                                  double             mass, 
+                                  bool               mustBeBaseBody,
+                                  void*              userRef)
 {
     if (mass < 0) throw std::invalid_argument
         ("addBody(): Body '" + name + "' specified negative mass");
@@ -115,8 +115,6 @@ int MultibodyGraphMaker::addBody(const std::string& name,
     } else { // This is a real body.
         bodies.push_back(Body(name, mass, mustBeBaseBody, userRef));
     }
-
-    return bodyNum;
 }
 
 //------------------------------------------------------------------------------
@@ -130,8 +128,7 @@ bool MultibodyGraphMaker::deleteBody(const std::string& name)
 		return true;
 
 	const int bodyNum = p->second;
-	bodyName2Num.erase(p);
-		
+
 	std::vector<int>& jointAsParent = updBody(bodyNum).jointsAsParent;
 	while (jointAsParent.size() > 0)
 		deleteJoint(joints[jointAsParent[0]].name);
@@ -141,26 +138,31 @@ bool MultibodyGraphMaker::deleteBody(const std::string& name)
 		deleteJoint(joints[jointAsChild[0]].name);
 
 	bodies.erase(bodies.begin() + bodyNum);
+	bodyName2Num.erase(p);
 
 	// Update body indices due to the deletion of this body
 	for (unsigned int i = 0; i < joints.size(); ++i) {
 		if (joints[i].parentBodyNum > bodyNum)
-			--(joints[i].parentBodyNum);
+			--(updJoint(i).parentBodyNum);
 		if (joints[i].childBodyNum > bodyNum)
-			--(joints[i].childBodyNum);
+			--(updJoint(i).childBodyNum);
 	}
+
+	for (unsigned int i = bodyNum; i < bodies.size(); ++i)
+		bodyName2Num[bodies[i].name] = i;
+
 	return false;
 }
 
 //------------------------------------------------------------------------------
 //                                ADD JOINT
 //------------------------------------------------------------------------------
-int MultibodyGraphMaker::addJoint(const std::string&  name,
-                                  const std::string&  type,
-                                  const std::string&  parentBodyName,
-                                  const std::string&  childBodyName,
-                                  bool                mustBeLoopJoint,
-                                  void*               userRef)
+void MultibodyGraphMaker::addJoint(const std::string&  name,
+                                   const std::string&  type,
+                                   const std::string&  parentBodyName,
+                                   const std::string&  childBodyName,
+                                   bool                mustBeLoopJoint,
+                                   void*               userRef)
 {
     // Reject duplicate joint name, unrecognized type or body names.
     std::map<std::string,int>::const_iterator p = jointName2Num.find(name);
@@ -190,8 +192,6 @@ int MultibodyGraphMaker::addJoint(const std::string&  name,
 
     updBody(parentBodyNum).jointsAsParent.push_back(jointNum);
     updBody(childBodyNum).jointsAsChild.push_back(jointNum);
-
-    return jointNum;
 }
 
 //------------------------------------------------------------------------------
@@ -211,7 +211,7 @@ bool MultibodyGraphMaker::deleteJoint(const std::string&  name)
         updBody(joints[jointNum].parentBodyNum).jointsAsParent;
 	std::vector<int>::iterator it = 
         std::find(jointsAsParent.begin(), jointsAsParent.end(), jointNum);
-	if (it != jointsAsParent.end()) throw std::runtime_error
+	if (it == jointsAsParent.end()) throw std::runtime_error
 		("deleteJoint(): Joint " + name + 
          " doesn't exist in jointsAsParent of parent body ");
 	jointsAsParent.erase(it);
@@ -225,22 +225,22 @@ bool MultibodyGraphMaker::deleteJoint(const std::string&  name)
 	jointsAsChild.erase(it);
 
 	joints.erase(joints.begin() + jointNum);
+
 	// Update indices due to the deletion of this joint
 	for (unsigned int i = 0; i < bodies.size(); ++i) {
-		jointsAsParent = updBody(joints[jointNum].parentBodyNum).jointsAsParent;
-		for (unsigned int j = 0; j < jointsAsParent.size(); ++j)
-			if (jointsAsParent[j] > jointNum) {
-				--(jointsAsParent[j]);
-				jointName2Num[joints[jointsAsParent[j]].name] = jointsAsParent[j];
+
+		for (it = updBody(i).jointsAsParent.begin(); it != updBody(i).jointsAsParent.end(); ++it)
+			if (*it > jointNum) {
+				--(*it);
+				jointName2Num[joints[*it].name] = *it;
 			}
-	}
-	for (unsigned int i = 0; i < bodies.size(); ++i) {
-		jointsAsChild = updBody(joints[jointNum].parentBodyNum).jointsAsChild;
-		for (unsigned int j = 0; j < jointsAsChild.size(); ++j)
-			if (jointsAsChild[j] > jointNum) {
-				--(jointsAsChild[j]);
-				jointName2Num[joints[jointsAsChild[j]].name] = jointsAsChild[j];
+
+		for (it = updBody(i).jointsAsChild.begin(); it != updBody(i).jointsAsChild.end(); ++it)
+			if (*it > jointNum) {
+				--(*it);
+				// no need to adjust jointName2Num here since the first loops has done it already
 			}
+
 	}
 	return true;
 }
@@ -439,14 +439,13 @@ int MultibodyGraphMaker::chooseNewBaseBody() const {
 // Connect the given body to Ground by a free joint with parent Ground and
 // child the given body. This makes the body a base body (level 1 body)
 // for some subtree of the multibody graph.
-int MultibodyGraphMaker::connectBodyToGround(int bodyNum) {
-    const Body& body = getBody(bodyNum);
-    assert(!body.isInTree());
-    const std::string jointName = "#" + getGroundBodyName() + "_" + body.name;
-    const int jx = addJoint(jointName, getFreeJointTypeName(), 
-                            getGroundBodyName(), body.name, false, NULL);
-    updJoint(jx).isAddedBaseJoint = true;
-    return jx;
+void MultibodyGraphMaker::connectBodyToGround(int bodyNum) {
+	const Body& body = getBody(bodyNum);
+	assert(!body.isInTree());
+	const std::string jointName = "#" + getGroundBodyName() + "_" + body.name;
+	addJoint(jointName, getFreeJointTypeName(), 
+					getGroundBodyName(), body.name, false, NULL);
+	updJoint(jointName).isAddedBaseJoint = true;
 }
 
 
