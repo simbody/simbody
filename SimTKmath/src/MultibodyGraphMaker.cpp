@@ -122,36 +122,36 @@ void MultibodyGraphMaker::addBody(const std::string& name,
 //------------------------------------------------------------------------------
 bool MultibodyGraphMaker::deleteBody(const std::string& name)
 {
-	// Reject non-existing body name.
-	std::map<std::string,int>::iterator p = bodyName2Num.find(name);
-	if (p == bodyName2Num.end())
-		return true;
+    // Reject non-existing body name.
+    std::map<std::string,int>::iterator p = bodyName2Num.find(name);
+    if (p == bodyName2Num.end())
+        return false;
 
-	const int bodyNum = p->second;
+    const int bodyNum = p->second;
 
-	std::vector<int>& jointAsParent = updBody(bodyNum).jointsAsParent;
-	while (jointAsParent.size() > 0)
-		deleteJoint(joints[jointAsParent[0]].name);
+    std::vector<int>& jointAsParent = updBody(bodyNum).jointsAsParent;
+    while (jointAsParent.size() > 0)
+        deleteJoint(joints[jointAsParent[0]].name);
 
-	std::vector<int>& jointAsChild = updBody(bodyNum).jointsAsChild;
-	while (jointAsChild.size() > 0)
-		deleteJoint(joints[jointAsChild[0]].name);
+    std::vector<int>& jointAsChild = updBody(bodyNum).jointsAsChild;
+    while (jointAsChild.size() > 0)
+        deleteJoint(joints[jointAsChild[0]].name);
 
-	bodies.erase(bodies.begin() + bodyNum);
-	bodyName2Num.erase(p);
+    bodies.erase(bodies.begin() + bodyNum);
+    bodyName2Num.erase(p);
 
-	// Update body indices due to the deletion of this body
-	for (unsigned int i = 0; i < joints.size(); ++i) {
-		if (joints[i].parentBodyNum > bodyNum)
-			--(updJoint(i).parentBodyNum);
-		if (joints[i].childBodyNum > bodyNum)
-			--(updJoint(i).childBodyNum);
-	}
+    // Update body indices due to the deletion of this body
+    for (unsigned int i = 0; i < joints.size(); ++i) {
+        if (joints[i].parentBodyNum > bodyNum)
+            --(updJoint(i).parentBodyNum);
+        if (joints[i].childBodyNum > bodyNum)
+            --(updJoint(i).childBodyNum);
+    }
 
-	for (unsigned int i = bodyNum; i < bodies.size(); ++i)
-		bodyName2Num[bodies[i].name] = i;
+    for (unsigned int i = bodyNum; i < bodies.size(); ++i)
+        bodyName2Num[bodies[i].name] = i;
 
-	return false;
+    return true;
 }
 
 //------------------------------------------------------------------------------
@@ -199,50 +199,50 @@ void MultibodyGraphMaker::addJoint(const std::string&  name,
 //------------------------------------------------------------------------------
 bool MultibodyGraphMaker::deleteJoint(const std::string&  name)
 {
-	// Reject duplicate joint name, unrecognized type or body names.
-	std::map<std::string,int>::iterator p = jointName2Num.find(name);
-	if (p == jointName2Num.end())
-		return false;
+    // Reject duplicate joint name, unrecognized type or body names.
+    std::map<std::string,int>::iterator p = jointName2Num.find(name);
+    if (p == jointName2Num.end())
+        return false;
 
-	const int jointNum = p->second;
-	jointName2Num.erase(p);
+    const int jointNum = p->second;
+    jointName2Num.erase(p);
 
-	std::vector<int>& jointsAsParent = 
+    std::vector<int>& jointsAsParent = 
         updBody(joints[jointNum].parentBodyNum).jointsAsParent;
-	std::vector<int>::iterator it = 
+    std::vector<int>::iterator it = 
         std::find(jointsAsParent.begin(), jointsAsParent.end(), jointNum);
-	if (it == jointsAsParent.end()) throw std::runtime_error
-		("deleteJoint(): Joint " + name + 
+    if (it == jointsAsParent.end()) throw std::runtime_error
+        ("deleteJoint(): Joint " + name + 
          " doesn't exist in jointsAsParent of parent body ");
-	jointsAsParent.erase(it);
+    jointsAsParent.erase(it);
 
-	std::vector<int>& jointsAsChild = 
+    std::vector<int>& jointsAsChild = 
         updBody(joints[jointNum].childBodyNum).jointsAsChild;
-	it = std::find(jointsAsChild.begin(), jointsAsChild.end(), jointNum);
-	if (it == jointsAsChild.end()) throw std::runtime_error
-		("deleteJoint(): Joint " + name + 
+    it = std::find(jointsAsChild.begin(), jointsAsChild.end(), jointNum);
+    if (it == jointsAsChild.end()) throw std::runtime_error
+        ("deleteJoint(): Joint " + name + 
          " doesn't exist in jointsAsChild of child body ");
-	jointsAsChild.erase(it);
+    jointsAsChild.erase(it);
 
-	joints.erase(joints.begin() + jointNum);
+    joints.erase(joints.begin() + jointNum);
 
-	// Update indices due to the deletion of this joint
-	for (unsigned int i = 0; i < bodies.size(); ++i) {
+    // Update indices due to the deletion of this joint
+    for (unsigned int i = 0; i < bodies.size(); ++i) {
 
-		for (it = updBody(i).jointsAsParent.begin(); it != updBody(i).jointsAsParent.end(); ++it)
-			if (*it > jointNum) {
-				--(*it);
-				jointName2Num[joints[*it].name] = *it;
-			}
+        for (it = updBody(i).jointsAsParent.begin(); it != updBody(i).jointsAsParent.end(); ++it)
+            if (*it > jointNum) {
+                --(*it);
+                jointName2Num[joints[*it].name] = *it;
+            }
 
-		for (it = updBody(i).jointsAsChild.begin(); it != updBody(i).jointsAsChild.end(); ++it)
-			if (*it > jointNum) {
-				--(*it);
-				// no need to adjust jointName2Num here since the first loops has done it already
-			}
+        for (it = updBody(i).jointsAsChild.begin(); it != updBody(i).jointsAsChild.end(); ++it)
+            if (*it > jointNum) {
+                --(*it);
+                // no need to adjust jointName2Num here since the first loops has done it already
+            }
 
-	}
-	return true;
+    }
+    return true;
 }
 
 //------------------------------------------------------------------------------
