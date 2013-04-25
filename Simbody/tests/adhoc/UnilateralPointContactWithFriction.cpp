@@ -1738,9 +1738,8 @@ int main(int argc, char** argv) {
                 states[ntry].push_back(ts.getState());
             #endif 
             const int j = states[ntry].size()-1;
-            if (ntry>0) {
+            if (ntry>0 && j < (int)states[ntry-1].size()) {
                 int prev = ntry-1;
-                //prev=0;
                 Real dt = states[ntry][j].getTime() 
                           - states[prev][j].getTime();
                 volatile double vd;
