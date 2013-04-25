@@ -77,8 +77,14 @@ using namespace SimTK;
 
 #define ANIMATE // off to get more accurate CPU time (you can still playback)
 
+// Define this to run the simulation NTries times, saving the states and
+// comparing them bitwise to see if the simulations are perfectly repeatable
+// as they should be. You should see nothing but exact zeroes print out for
+// second and subsequent runs.
+//#define TEST_REPEATABILITY
+static const int NTries=3;
+
 const Real ReportInterval=1./30;
-const Real RunTime=15;
 
 //==============================================================================
 //                           MY CONTACT ELEMENT
@@ -1500,9 +1506,10 @@ int main(int argc, char** argv) {
     // Predefine some handy rotations.
     const Rotation Z90(Pi/2, ZAxis); // rotate +90 deg about z
 
+    const Real RunTime=16;
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
-    const Real CoefRest = 0.3;      // TODO: per-contact
+    const Real CoefRest = 0.4;      // TODO: per-contact
     const Real mu_d = .5;
     const Real mu_s = .7;
     const Real mu_v = 0.05;
@@ -1524,8 +1531,8 @@ int main(int argc, char** argv) {
                                         .setColor(Red).setOpacity(.3));
     Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),2*Vec3(0,0,10),
                                                4., 6.));
-    //Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),2*Vec3(0,0,10),
-    //                                           3., 4.));
+    Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),Vec3(7,8,10),
+                                               11., 13.));
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
@@ -1538,10 +1545,6 @@ int main(int argc, char** argv) {
                                        forces));
     }
 
-    //unis.addContactElement(new MyRope(Ground, Vec3(-5,10,0),
-    //                       cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
-    //                       5., .5*CoefRest));
-    //unis.push_back(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
 
     const Vec3 WeightEdge(-CubeHalfDims[0],-CubeHalfDims[1],0);
 //#ifdef NOTDEF
@@ -1595,6 +1598,12 @@ int main(int argc, char** argv) {
     unis.addContactElement(new MyStop(MyStop::Upper,weight,0, StopAngle,CoefRest/2));
     unis.addContactElement(new MyStop(MyStop::Lower,weight,0, -StopAngle,CoefRest/2));
 
+    // Add a rope.
+    unis.addContactElement(new MyRope(Ground, Vec3(-5,10,0),
+                           cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
+                           5., .5*CoefRest));
+    //unis.addContactElement(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
+
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
     viz.addDecorationGenerator(new ShowContact(unis));
@@ -1610,8 +1619,8 @@ int main(int argc, char** argv) {
     //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
     Real accuracy = 1e-2;
     //RungeKuttaFeldbergIntegrator integ(mbs);
-    RungeKuttaMersonIntegrator integ(mbs);
-    //RungeKutta3Integrator integ(mbs);
+    //RungeKuttaMersonIntegrator integ(mbs);
+    RungeKutta3Integrator integ(mbs);
     //VerletIntegrator integ(mbs);
     integ.setAccuracy(accuracy);
     //integ.setConstraintTolerance(1.);
@@ -1702,12 +1711,17 @@ int main(int argc, char** argv) {
     TimeStepper ts(mbs, integ);
     ts.setReportAllSignificantStates(true);
 
-    const int NTries=1;
+    #ifdef TEST_REPEATABILITY
+        const int tries = NTries;
+    #else
+        const int tries = 1;
+    #endif
+        
     Array_< Array_<State> > states(NTries);
     Array_< Array_<Real> > timeDiff(NTries-1);
     Array_< Array_<Vector> > yDiff(NTries-1);
     cout.precision(18);
-    for (int ntry=0; ntry < NTries; ++ntry) {
+    for (int ntry=0; ntry < tries; ++ntry) {
         mbs.resetAllCountersToZero();
         unis.initialize(); // reinitialize
         ts.updIntegrator().resetAllStatistics();
@@ -1720,7 +1734,9 @@ int main(int argc, char** argv) {
         Integrator::SuccessfulStepStatus status;
         do {
             status=ts.stepTo(RunTime);
-            //states[ntry].push_back(ts.getState());
+            #ifdef TEST_REPEATABILITY
+                states[ntry].push_back(ts.getState());
+            #endif 
             const int j = states[ntry].size()-1;
             if (ntry>0) {
                 int prev = ntry-1;
@@ -1776,16 +1792,18 @@ int main(int argc, char** argv) {
         printf("# EVENT STEPS/HANDLER CALLS = %d/%d\n", 
             nStepsWithEvent, mbs.getNumHandleEventCalls());    }
 
-    for (int i=0; i<NTries; ++i)
+    for (int i=0; i<tries; ++i)
         cout << "nstates " << i << " " << states[i].size() << endl;
 
     // Instant replay.
     while(true) {
+        printf("Hit ENTER for replay (%d states) ...", 
+                stateSaver->getNumSavedStates());
+        getchar();
         for (int i=0; i < stateSaver->getNumSavedStates(); ++i) {
             mbs.realize(stateSaver->getState(i), Stage::Velocity);
             viz.report(stateSaver->getState(i));
         }
-        getchar();
     }
 
   } 
