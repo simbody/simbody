@@ -227,7 +227,7 @@ mark_as_advanced(CMAKE_INSTALL_PREFIX)
 # On Mac, we'll use the defaults for the architecture and deployment target.
 # This works OK on OSX 10.8. For older systems, or if you want to build for
 # an older deployment target, or 32 bit or univeral binaries, you may have 
-# to set CMAKE_OSX_ARCHIECTURES and/or CMAKE_OSX_DEPLOYMENT_TARGET. 
+# to set CMAKE_OSX_ARCHITECTURES and/or CMAKE_OSX_DEPLOYMENT_TARGET. 
 # Architectures are "i386", "x86_64", or "i386;x86_64" for universal.
 # Deployment targets are "10.6" or whatever.
 IF(APPLE)
