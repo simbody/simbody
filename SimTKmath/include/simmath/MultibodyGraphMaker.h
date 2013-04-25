@@ -189,17 +189,18 @@ public:
         structure containing body information.
     @see deleteBody() **/
     void addBody(const std::string&  name, 
-				 double              mass, 
-				 bool                mustBeBaseBody,
-				 void*               userRef = 0);
+                 double              mass, 
+                 bool                mustBeBaseBody,
+                 void*               userRef = 0);
 
     /** Delete a body (link) from the set of input bodies. All the joints that
-	reference this body will be deleted too.
+    reference this body will be deleted too.
     @param[in]      name     
         A unique string identifying this body. There are no other restrictions
         on the contents of \a name. Note that the Ground body is predefined and
         its name is reserved.
-	@returns if the body if succesfully deleted. **/
+    @returns \c true if the body is succesfully deleted, \c false if it
+        didn't exist. **/
     bool deleteBody(const std::string&  name);
 
     /** Add a new joint to the set of input joints.
@@ -235,19 +236,20 @@ public:
         structure containing joint information.
     @see deleteJoint() **/
     void addJoint(const std::string& name,
-				  const std::string& type,
-				  const std::string& parentBodyName,
-				  const std::string& childBodyName,
-				  bool               mustBeLoopJoint,
-				  void*              userRef = 0);
+                  const std::string& type,
+                  const std::string& parentBodyName,
+                  const std::string& childBodyName,
+                  bool               mustBeLoopJoint,
+                  void*              userRef = 0);
 
     /** Delete an existing joint from the set of input joints. The bodies(links)
-	referenced by the joint are expected to exist and their references to this
-	joint will be removed as well.
+    referenced by the joint are expected to exist and their references to this
+    joint will be removed as well.
     @param[in]      name
         A string uniquely identifying this joint. There are no other 
         restrictions on the contents of \a name. 
-	@returns if the joint is succesfully deleted. **/
+    @returns \c true if the joint is succesfully deleted, \c false if it
+        didn't exist. **/
     bool deleteJoint(const std::string& name);
 
     /** Generate a new multibody graph from the input data. Clears the existing
@@ -353,7 +355,7 @@ private:
     // Get writable access to bodies and joints.
     Body& updBody(int bodyNum) {return bodies[bodyNum];}
     Joint& updJoint(int jointNum) {return joints[jointNum];}
-	Joint& updJoint(const std::string& name) {return joints[jointName2Num[name]];}
+    Joint& updJoint(const std::string& name) {return joints[jointName2Num[name]];}
 
     void initialize();
     int splitBody(int bodyNum);
