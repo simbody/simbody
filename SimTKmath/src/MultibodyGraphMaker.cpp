@@ -440,12 +440,12 @@ int MultibodyGraphMaker::chooseNewBaseBody() const {
 // child the given body. This makes the body a base body (level 1 body)
 // for some subtree of the multibody graph.
 void MultibodyGraphMaker::connectBodyToGround(int bodyNum) {
-	const Body& body = getBody(bodyNum);
-	assert(!body.isInTree());
-	const std::string jointName = "#" + getGroundBodyName() + "_" + body.name;
-	addJoint(jointName, getFreeJointTypeName(), 
-					getGroundBodyName(), body.name, false, NULL);
-	updJoint(jointName).isAddedBaseJoint = true;
+    const Body& body = getBody(bodyNum);
+    assert(!body.isInTree());
+    const std::string jointName = "#" + getGroundBodyName() + "_" + body.name;
+    addJoint(jointName, getFreeJointTypeName(), 
+                    getGroundBodyName(), body.name, false, NULL);
+    updJoint(jointName).isAddedBaseJoint = true;
 }
 
 
