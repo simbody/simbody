@@ -460,11 +460,7 @@ SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
  "If you have your own Lapack and Blas, put library basenames here, separated by semicolons. See LAPACK_BEING_USED to see what's actually being used.")
 
 if(WIN32)
-    if (${PLATFORM_ABI} MATCHES "x64")
-        SET(LAPACK_PLATFORM_DEFAULT liblapack;libblas)
-    else()
-        SET(LAPACK_PLATFORM_DEFAULT SimTKlapack)
-    endif()
+    SET(LAPACK_PLATFORM_DEFAULT liblapack;libblas)
 else()
     SET(LAPACK_PLATFORM_DEFAULT lapack;blas)
 endif()

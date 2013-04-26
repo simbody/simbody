@@ -47,7 +47,7 @@ SET(SimTK_STATIC_LIBS_D
 
 # These extra libraries are only available as a shared, optimized.
 IF(WIN32)
-	SET(SimTK_GENERAL_LIBS SimTKlapack pthreadVC2)
+	SET(SimTK_GENERAL_LIBS liblapack libblas pthreadVC2)
 ELSEIF(APPLE)
 ELSE() #Linux
 	SET(SimTK_GENERAL_LIBS dl rt)
