@@ -929,7 +929,7 @@ public:
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
     ++m_counter;
-    printf("StictionOn #%d\n", m_counter);
+    //printf("StictionOn #%d\n", m_counter);
         SimTK_DEBUG2("\nhandle %d slide->stick@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("STICTION ON triggered by friction element %d @t=%.15g\n", 
@@ -993,7 +993,7 @@ public:
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
     ++m_counter;
-    printf("StictionOff #%d\n", m_counter);
+    //printf("StictionOff #%d\n", m_counter);
         SimTK_DEBUG2("\nhandle %d stick->slide@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("STICTION OFF triggered by friction element %d @t=%.15g\n", 
