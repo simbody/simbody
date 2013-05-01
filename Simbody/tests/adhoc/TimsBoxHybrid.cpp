@@ -49,7 +49,7 @@ using namespace SimTK;
 // as they should be. You should see nothing but exact zeroes print out for
 // second and subsequent runs.
 //#define TEST_REPEATABILITY
-static const int NTries=2;
+static const int NTries=3;
 
 
 // This is the continuous stiction model used in Simbody's compliant contact
@@ -280,7 +280,7 @@ public:
     // Calculate v_eff, the direction to be opposed by the sliding force.
     Vec2 getEffectiveSlipDir(const State& s, const Vec2& vSlip, Real vSlipMag) const {
         const Vec2 prevVslipDir = getPrevSlipDir(s);
-        if (shouldUpdate(vSlip, vSlipMag, prevVslipDir, m_vtol))
+        if (shouldUpdate(vSlip, vSlipMag, prevVslipDir, m_vtrans))
             return vSlip/vSlipMag;
         else return prevVslipDir;
     }
@@ -467,7 +467,7 @@ public:
         // Sliding.
         const Vec2& vSlip_HCb = info.v_HCb.getSubVec<2>(0); // x,y
 
-        if (shouldUpdate(vSlip_HCb, info.vSlipMag, prevSlipDir, m_vtol)) {
+        if (shouldUpdate(vSlip_HCb, info.vSlipMag, prevSlipDir, m_vtrans)) {
             Vec2& prevSlipUpdate = updPrevSlipDirAutoUpdateValue(state);
             prevSlipUpdate = vSlip_HCb / info.vSlipMag;
             markPrevSlipDirAutoUpdateValueValid(state);
@@ -594,7 +594,6 @@ private:
     Vec3                            m_vertex_B; // vertex location in B
     ContactMaterial                 m_material; // composite material props
 
-    Real                            m_vtol;     // velocity tolerance
     Real                            m_vtrans;   // transition velocity for
                                                 //   Stribeck stiction
 
@@ -929,6 +928,8 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
+    ++m_counter;
+    printf("StictionOn #%d\n", m_counter);
         SimTK_DEBUG2("\nhandle %d slide->stick@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("STICTION ON triggered by friction element %d @t=%.15g\n", 
@@ -955,7 +956,9 @@ private:
     const MultibodySystem&              m_mbs; 
     const MyUnilateralConstraintSet&    m_unis;
     const int                           m_which; // one of the contact elements
+    static int                          m_counter;
 };
+int StictionOn::m_counter = 0;
 
 
 
@@ -989,6 +992,8 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
+    ++m_counter;
+    printf("StictionOff #%d\n", m_counter);
         SimTK_DEBUG2("\nhandle %d stick->slide@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("STICTION OFF triggered by friction element %d @t=%.15g\n", 
@@ -1015,7 +1020,9 @@ private:
     const MultibodySystem&              m_mbs; 
     const MyUnilateralConstraintSet&    m_unis;
     const int                           m_which; // one of the friction elements
+    static int                          m_counter;
 };
+int StictionOff::m_counter = 0;
 
 
 
@@ -1084,18 +1091,19 @@ int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
     const Real ReportInterval=1./30;
     const Vec3 BrickHalfDims(.1, .25, .5);
-    const Real Radius = BrickHalfDims[0]/3;
     const Real BrickMass = 10;
     #ifdef USE_TIMS_PARAMS
         const Real RunTime=16;  // Tim's time
         const Real Stiffness = 2e7;
-        const Real Dissipation = 0.1;
+        const Real Dissipation = 1;
         const Real CoefRest = 0; 
-        const Real mu_d = 1; /* compliant: .7*/
-        const Real mu_s = 1; /* compliant: .7*/
+        const Real mu_d = .5; /* compliant: .7*/
+        const Real mu_s = .8; /* compliant: .7*/
         const Real mu_v = /*0.05*/0; //TODO: fails with mu_v=1, vtrans=.01
         const Real TransitionVelocity = 0.01;
         const Inertia brickInertia(.1,.1,.1);
+        //const Real Radius = .02;
+        const Real Radius = 1;
     #else
         const Real RunTime=20;
         const Real Stiffness = 1e6;
@@ -1108,6 +1116,7 @@ int main(int argc, char** argv) {
         const Real mu_v = 0*0.05;
         const Real TransitionVelocity = 0.001;
         const Inertia brickInertia(BrickMass*UnitInertia::brick(BrickHalfDims));
+        const Real Radius = BrickHalfDims[0]/3;
     #endif
 
     printf("\n******************** Tim's Box Hybrid ********************\n");
@@ -1150,10 +1159,8 @@ int main(int argc, char** argv) {
     Body::Rigid brickBody = 
         Body::Rigid(MassProperties(BrickMass, Vec3(0), brickInertia));
 
-    // First body: cube
-    MobilizedBody::Cartesian loc(Ground, MassProperties(0,Vec3(0),Inertia(0)));
-    MobilizedBody::Ball brick(loc, Vec3(0),
-                             brickBody, Vec3(0));
+    MobilizedBody::Free brick(Ground, Vec3(0),
+                              brickBody, Vec3(0));
     brick.addBodyDecoration(Transform(), DecorativeBrick(BrickHalfDims)
                                                 .setColor(Red).setOpacity(.3));
 /*
@@ -1170,8 +1177,8 @@ int main(int argc, char** argv) {
                                                     //300 * Vec3(0.2,0.8,0),
                                                     4, 4+0.5));
     Force::Custom(forces, new MyPushForceImpl(brick, Vec3(0),
-                                                    49.333 * Vec3(0,1,0),
-                                                    0.9, 0.9+2));
+                                                    49.033 * Vec3(0,1,0),
+                                                    9, 9+2));
     Force::Custom(forces, new MyPushForceImpl(brick, Vec3(0),
                                                     200 * Vec3(-1,0,0),
                                                     13, 13+1));
@@ -1201,7 +1208,6 @@ int main(int argc, char** argv) {
 
     matter.setShowDefaultGeometry(false);
     Visualizer viz(mbs);
-    //viz.setDesiredFrameRate(1000);
     viz.setShowSimTime(true);
     viz.setShowFrameNumber(true);
     viz.setShowFrameRate(true);
@@ -1210,7 +1216,8 @@ int main(int argc, char** argv) {
     #ifdef ANIMATE
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
     #else
-    // This does nothing but interrupt the simulation.
+    // This does nothing but interrupt the simulation so that exact step
+    // sequence will be maintained with animation off.
     mbs.addEventReporter(new Nada(ReportInterval));
     #endif
 
@@ -1240,7 +1247,7 @@ int main(int argc, char** argv) {
 
     integ.setAccuracy(accuracy);
     //integ.setMaximumStepSize(0.25);
-    integ.setMaximumStepSize(0.1);
+    integ.setMaximumStepSize(0.05);
     //integ.setMaximumStepSize(0.001);
 
     StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
@@ -1275,11 +1282,11 @@ tZ_u = 0.0 m/s
 */
 
     #ifdef USE_TIMS_PARAMS
-    loc.setQToFitTranslation(s, Vec3(0,10,0));
-    loc.setUToFitLinearVelocity(s, Vec3(0,0,0));
+    brick.setQToFitTranslation(s, Vec3(0,10,0));
+    brick.setUToFitLinearVelocity(s, Vec3(0,0,0));
     #else
-    loc.setQToFitTranslation(s, Vec3(0,1.4,0));
-    loc.setUToFitLinearVelocity(s, Vec3(10,0,0));
+    brick.setQToFitTranslation(s, Vec3(0,1.4,0));
+    brick.setUToFitLinearVelocity(s, Vec3(10,0,0));
     const Rotation R_BC(SimTK::BodyRotationSequence,
                                 0.7, XAxis, 0.6, YAxis, 0.5, ZAxis);
     brick.setQToFitRotation(s, R_BC);
