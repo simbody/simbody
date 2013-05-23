@@ -166,18 +166,6 @@ public:
         Reverse = 1
     };
 
-    /// The default behavior of this mobilizer will normally be determined
-    /// by whether you provide a Motion object for it. However, you can override
-    /// that afterwards.
-    MobilizedBody& setDefaultMotionType(Motion::Level, Motion::Method=Motion::Prescribed);
-
-    /// This is an Instance stage setting.
-    void setMotionType(State&, Motion::Level, Motion::Method=Motion::Prescribed) const;
-
-    bool isAccelerationAlwaysZero(const State&) const;
-    bool isVelocityAlwaysZero(const State&) const;
-
-
         //////////////////////////
         // STATE ACCESS METHODS //
         //////////////////////////
