@@ -645,7 +645,7 @@ void MultibodyGraphMaker::growTree() {
 //------------------------------------------------------------------------------
 // Find any remaining unused joints, which will have both parent and
 // child bodies already in the tree. This includes joints that the user
-// told us must be loop joints, and ones picked by the algorithm. For each
+// told us must be loop joints, and ones picked by the algorithm. 
 // For each of those, implement the joint with a loop constraint if one
 // is provided, otherwise implement it with a mobilizer and split off a 
 // slave body from the child body, use that slave as the outboard body
