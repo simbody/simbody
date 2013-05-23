@@ -1,0 +1,53 @@
+#include <gazebo/transport/transport.hh>
+#include <gazebo/msgs/msgs.hh>
+#include <gazebo/Master.hh>
+#include <gazebo/Server.hh>
+
+#include <iostream>
+
+class FakeServer : public gazebo::Server
+{
+public:
+	FakeServer()
+	{
+
+		/*
+		std::string host = "";
+		unsigned int port = 0;
+
+		gazebo::transport::get_master_uri(host, port);
+		this->master = new gazebo::Master();
+		this->master->Init(port);
+		this->master->RunThread();
+
+    	gazebo::common::Console::Instance()->Init("fakeserver.log");
+		gazebo::transport::init();
+		node = gazebo::transport::NodePtr(new gazebo::transport::Node());
+		node->Init("/opensim");
+		// Advertise
+		visPub = node->Advertise<gazebo::msgs::Visual>("~/visual");
+
+		gazebo::transport::run();
+		*/
+	}
+
+private:
+	// Create transport node
+	gazebo::transport::NodePtr node;
+	// Create publisher for world_stats
+	gazebo::transport::PublisherPtr visPub;
+	gazebo::Master * master;
+
+};
+
+int main(int argc, char** argv)
+{
+
+	gazebo::common::Console::Instance()->Init("opensimserver.log");
+	FakeServer s;
+	if(!s.ParseArgs(argc, argv))
+		return -1;
+
+	s.Run();
+	s.Fini();
+}
