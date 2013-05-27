@@ -419,69 +419,94 @@ Real calcKineticEnergy(const State& state) const;
 /**@}**/
 
 //==============================================================================
-/** @name               Kinematic Jacobian Operators 
+/** @name         System and Task Space Kinematic Jacobian Operators 
 
-The full kinematic Jacobian J(q) maps nu generalized speeds u to spatial 
-velocities V of each of the nb bodies, measured at the body frame origin and 
-expressed in the Ground frame. The transpose ~J of this matrix maps nb spatial 
-forces to nu generalized forces, where the spatial forces are applied at the body 
-frame origin and expressed in Ground. The operators in this section provide the
-ability to work with the full matrix, or just portions of it corresponding to a
-single body, or just a single point on a body. We provide fast O(n) methods 
-("operators") that can form the matrix-vector products J*u or ~J*F without 
-forming J. Alternatively, we provide methods that will return all or part of J 
-explicitly; in general it is \e much more efficient computationally to work 
-with the O(n) matrix-vector multiply methods rather than to form explicit 
-matrices and then perform O(n^2) matrix-vector products. Performance estimates 
-are given with each method so that you can determine which methods to use. If 
-you can, you should use the O(n) methods -- it is a good habit to get into when
-using an O(n) multibody code like Simbody!
+The system kinematic Jacobian maps between mobility space (generalized speeds 
+and generalized forces) and Cartesian body space (mobilized body frame spatial 
+velocities and spatial forces). A task space Jacobian maps between mobility 
+space and a specified set of task points or frames fixed to a subset of the 
+bodies, and generally located away from the body frame. A task space Jacobian
+J can be used to construct various task space matrices such as the task space 
+compliance matrix J M^-1 ~J or its inverse, the task space (or operational
+space) inertia matrix. 
+
+The system Jacobian J(q) maps n generalized speeds u to spatial velocities V of 
+each of the nb mobilized bodies (including Ground), measured at the body frame 
+origin relative to Ground, and expressed in the Ground frame. The transpose ~J 
+of this matrix maps nb spatial forces to n generalized forces, where the spatial
+forces are applied at the body frame origin and expressed in Ground. Similarly, 
+task space Jacobians map from n generalized speeds to nt task frame spatial 
+velocities (expressed in Ground), and transposed task space Jacobians map 
+between task frame spatial forces (or impulses), expressed in Ground, and 
+generalized forces (or generalized impulses).
+
+Simbody provides fast O(n) methods ("operators") that can form matrix-vector
+products like J*u or ~J*F without forming J. The "bias" term Jdot*u (also known
+as the Coriolis acceleration) is also available; this arises when working at
+the acceleration level because d/dt J*u = J*udot+Jdot*u (where dot means time
+derivative). The computational cost of these operators is O(n+nt) so it is 
+\e much more efficient to work with a group of tasks simultaneously than to 
+process one at a time, which would have complexity O(n*nt). Alternatively, we 
+provide methods that will return all or part of J explicitly; in general it 
+is \e much more efficient computationally to work with the O(n) matrix-vector 
+multiply operators rather than to form explicit matrices and then perform O(n^2) 
+matrix-vector products. Performance estimates are given with each method so that
+you can determine which methods to use. If you can, you should use the O(n) 
+methods -- it is a good habit to get into when using an O(n) multibody code like
+Simbody!
 
 Note that the Jacobian is associated with an expressed-in frame for the
-velocity or force vector and a designated point on each body. We always use 
-the Ground frame for Jacobians. For the full Jacobian, the body origin
-is always the designated point; for single-body Jacobians we allow a station
-(point) on that body to be specified (in the body's frame). We provide three 
-different sets of methods for working with
-    - the full %System Jacobian: J, nb X nu 6-vectors (or 6*nb X nu scalars)
-    - the Station Jacobian for a single station (point): JS, a row of
-      nu 3-vectors (or a 3 X nu matrix of scalars)
-    - the Frame Jacobian for a single frame fixed to a body: JF, a row of 
-      nu 6-vectors (or a 6 X nu matrix of scalars)
+velocity or force vector and a designated station (point) on each body. We 
+always use the Ground frame for Jacobians. For the system Jacobian, the body 
+origin is always the designated station; for task Jacobians different stations
+may be specified. We provide three different sets of methods for working with
+    - the full %System Jacobian: J, nb X n 6-vectors (or 6*nb X n scalars)
+    - the Station Jacobian for a set of nt task stations (points): JS, nt rows 
+      of n 3-vectors (or a 3*nt X n Matrix of scalars)
+    - the Frame Jacobian for a set of nt task frames fixed to a body: JF, nt 
+      rows of n 6-vectors (or a 6*nt X n Matrix of scalars)
 
-Note that for Frame Jacobians you still need specify only a station on the
-body (the frame's origin point); the rotational part of the Jacobian is the 
-same for any frame fixed to the same body. **/
+The rotational part of a Jacobian is the same for any frame fixed to the same 
+body. So for Frame Jacobians you need specify only a station on the body (the 
+frame's origin point). That means if you want a 3*nt X n Orientation Jacobian, 
+you can obtain it from alternate rows of a Frame Jacobian. Using the above 
+terminology, the complete %System Jacobian is a Frame Jacobian for which the 
+task frames are the body frames, with each MobilizedBody appearing only once 
+and in order of MobilizedBodyIndex (starting with Ground). 
+
+It is acceptable for the same body to appear more than once in a list of tasks;
+these are likely to conflict but that can be dealt with elsewhere. **/
 
 /**@{**/
 
-/** Calculate the product of the kinematic Jacobian J (also known as the 
-partial velocity matrix) and a mobility-space vector u in O(n) time. If
-the vector u is a set of generalized speeds, then this produces the
-body spatial velocities that result from those generalized speeds.
-That is, the result is V_GB = J*u where V_GB[i] is the spatial velocity
-of the i'th body's body frame origin (in Ground) that results from the
-given set of generalized speeds. 
+/** Calculate the product of the %System kinematic Jacobian J (also known as the 
+partial velocity matrix) and a mobility-space vector u in O(n) time. If the 
+vector u is a set of generalized speeds, then this produces the body spatial 
+velocities that result from those generalized speeds. That is, the result is 
+V_GB = J*u where V_GB[i] is the spatial velocity of the i'th body's body frame 
+origin (in Ground) that results from the given set of generalized speeds. 
 
 @param[in]      state
     A State compatible with this System that has already been realized to
     Stage::Position.
 @param[in]      u
     A mobility-space Vector, such as a set of generalized speeds. The length
-    and order must match the mobilities of this system (that is nu, the number
-    of generalized speeds u \e not the number of generalized coordinates q).
+    and order must match the mobilities of this system (that is n, the number
+    of generalized speeds u, \e not nq, the number of generalized 
+    coordinates q).
 @param[out]     Ju
     This is the product V=J*u as described above. Each element is a spatial
     vector, one per mobilized body, to be indexed by MobilizedBodyIndex.
     If the input vector is a set of generalized speeds u, then the results
-    are spatial velocities V_GB. Note that Ground is body 0 so the 0th element 
-    V_GB[0] is always zero on return.
+    are nb spatial velocities V_GBi (that is, a pair of vectors w_GBi and v_GBi 
+    giving angular and linear velocity). Note that Ground is body 0 so the 0th 
+    element V_GB0=V_GG=Ju[0] is always zero on return.
 
 The kinematic Jacobian (partial velocity matrix) J is defined as follows:
 <pre>
-        partial(V)                        T                  T
-    J = ----------, V = [V_GB0 V_GB1 ... ] ,  u = [u0 u1 ...]
-        partial(u)
+      partial(V)                                 T                        T
+  J = ----------, V = [V_GB0 V_GB1 ... V_GB nb-1] ,  u = [u0 u1 ... u n-1]
+      partial(u)
 </pre>
 Thus the element J(i,j)=partial(V_GBi)/partial(uj) (each element of J is a
 spatial vector). The transpose of this matrix maps spatial forces to 
@@ -496,10 +521,10 @@ the spatial velocity of body i's body frame Bi (at its origin), measured and
 expressed in the Ground frame G.
 
 <h3>Performance discussion</h3>
-This is a very fast operator, costing about 12*(nb+nu) flops, where nb is the
-number of bodies and nu the number of mobilities (degrees of freedom) u. In 
-contrast, even if you have already calculated the entire nbXnuX6 matrix J, the 
-multiplication J*u would cost 12*nb*nu flops. As an example, for a 20 body 
+This is a very fast operator, costing about 12*(nb+n) flops, where nb is the
+number of bodies and n the number of mobilities (degrees of freedom) u. In 
+contrast, even if you have already calculated the entire nbXnX6 matrix J, the 
+multiplication J*u would cost 12*nb*n flops. As an example, for a 20 body 
 system with a free flying base and 19 pin joints (25 dofs altogether), this 
 method takes 12*(20+25)=540 flops while the explicit matrix-vector multiply 
 would take 12*20*25=6000 flops. So this method is already >10X faster for 
@@ -510,7 +535,7 @@ void multiplyBySystemJacobian( const State&         state,
                                const Vector&        u,
                                Vector_<SpatialVec>& Ju) const;
 
-/** Calculate the acceleration bias term for the system Jacobian, that is, the
+/** Calculate the acceleration bias term for the %System Jacobian, that is, the
 part of the acceleration that is due only to velocities. This term is also
 known as the Coriolis acceleration, and it is returned here as a spatial
 acceleration of each body frame in Ground.
@@ -527,8 +552,9 @@ speeds u by V = {V_GBi} = J*u. Taking the time derivative in G gives
 <pre>
     A = d/dt V = {A_GBi} = J*udot + JDot*u
 </pre>
-This method returns JDot*u, which depends only on velocities. Note that the
-same u is used to calculate JDot, so this term is quadratic in u.
+where JDot=JDot(q,u). This method returns JDot*u, which depends only on 
+configuration q and speeds u. Note that the same u is used to calculate JDot, 
+which is linear in u, so this term is quadratic in u.
 
 <h3>Implementation</h3>
 This method simply extracts the total Coriolis acceleration for each body that
@@ -538,6 +564,13 @@ here.
 **/
 void calcBiasForSystemJacobian(const State&         state,
                                Vector_<SpatialVec>& JDotu) const;
+
+
+/** Alternate signature that returns the bias as a 6*nb-vector of scalars 
+rather than as an nb-vector of 2x3 spatial vectors. See the other signature for
+documentation. **/
+void calcBiasForSystemJacobian(const State&         state,
+                               Vector&              JDotu) const;
 
 /** Calculate the product of the transposed kinematic Jacobian ~J (==J^T) and
 a vector F_G of spatial force-like elements, one per body, in O(n) time to 
@@ -553,18 +586,18 @@ forces f that would produce the same accelerations as F_G.
     This is a vector of SpatialVec elements, one per mobilized body and in
     order of MobilizedBodyIndex (with the 0th entry a force on Ground; hence
     ignored). Each SpatialVec is a spatial force-like pair of 3-vectors 
-    (moment,force) with the force applied at the body origin and the vectors
+    (torque,force) with the force applied at the body origin and the vectors
     expressed in Ground.
 @param[out]     f
     This is the product f=~J*F_G as described above. This result is in the
-    generalized force space, that is, it has one scalar entry per system
-    mobility (velocity degree of freedom).
+    generalized force space, that is, it has one scalar entry for each of the
+    n system mobilities (velocity degrees of freedom). Resized if necessary.
 
 The kinematic Jacobian (partial velocity matrix) J is defined as follows:
 <pre>
-        partial(V)                        T                  T
-    J = ----------, V = [V_GB0 V_GB1 ... ] ,  u = [u0 u1 ...]
-        partial(u)
+      partial(V)                                 T                        T
+  J = ----------, V = [V_GB0 V_GB1 ... V_GB nb-1] ,  u = [u0 u1 ... u n-1]
+      partial(u)
 </pre>
 Thus the element J(i,j)=partial(V_GBi)/partial(uj) (each element of J is a
 spatial vector). J maps generalized speeds to spatial velocities (see
@@ -580,29 +613,29 @@ the spatial velocity of body i's body frame Bi (at its origin), measured and
 expressed in the Ground frame G.
 
 <h3>Performance discussion</h3>
-This is a very fast operator, costing about 18*nb+11*nu flops, where nb is the
-number of bodies and nu the number of mobilities (degrees of freedom) u. In 
-contrast, even if you have already calculated the entire nbXnuX6 matrix J, the
-multiplication ~J*F would cost 12*nb*nu flops. As an example, for a 20 body 
+This is a very fast operator, costing about 18*nb+11*n flops, where nb is the
+number of bodies and n the number of mobilities (degrees of freedom) u. In 
+contrast, even if you have already calculated the entire 6*nbXnu matrix J, the
+multiplication ~J*F would cost 12*nb*n flops. As an example, for a 20 body 
 system with a free flying base and 19 pin joints (25 dofs altogether), this 
 method takes 18*20+11*25=635 flops while the explicit matrix-vector multiply 
 would take 12*20*25=6000 flops. So this method is already >9X faster for 
 that small system; for larger systems the difference grows rapidly. 
 
-@see multiplyBySystemJacobian(), calcSystemJacobianTranspose() **/
+@see multiplyBySystemJacobian(), calcSystemJacobian() **/
 void multiplyBySystemJacobianTranspose( const State&                state,
                                         const Vector_<SpatialVec>&  F_G,
                                         Vector&                     f) const;
 
 
 /** Explicitly calculate and return the nb x nu whole-system kinematic 
-Jacobian J_G, with each element a 2x3 spatial vector. This matrix maps 
-generalized speeds to the spatial velocities of all the bodies, which 
+Jacobian J_G, with each element a 2x3 spatial vector (SpatialVec). This matrix 
+maps generalized speeds to the spatial velocities of all the bodies, which 
 will be at the body origins, measured and expressed 
-in Ground. That is, if you have a set of nu generalized speeds u, you can 
+in Ground. That is, if you have a set of n generalized speeds u, you can 
 find the spatial velocities of all nb bodies as V_G = J_G*u. The transpose of 
 this matrix maps a set of spatial forces F_G, applied at the body frame 
-origins and expressed in Ground, to the equivalent set of nu generalized 
+origins and expressed in Ground, to the equivalent set of n generalized 
 forces f: f = ~J_G*F_G. 
 
 @note The 0th row of the returned Jacobian is always zero since it represents
@@ -616,10 +649,10 @@ that directly calculate the matrix-vector product in O(n) time without explictly
 forming the matrix. Here are the details:
 
 As currently implemented, forming the full Jacobian J costs about
-12*nu*(nb+nu) flops. Assuming nb ~= nu, this is about 24*nu^2 flops. Then
+12*n*(nb+n) flops. Assuming nb ~= n, this is about 24*n^2 flops. Then
 if you want to form a product J*u explicitly, the matrix-vector multiply will 
-cost about 12*nu^2 flops each time you do it. In constrast the J*u product is 
-calculated using multiplyBySystemJacobian() in about 24*nu flops. Even for
+cost about 12*n^2 flops each time you do it. In contrast the J*u product is 
+calculated using multiplyBySystemJacobian() in about 24*n flops. Even for
 very small systems it is cheaper to make repeated calls to 
 multiplyBySystemJacobian() than to form J explicitly and multiply by it.
 See the Performance section for multiplyBySystemJacobian() for more
@@ -630,40 +663,187 @@ comparisons.
 void calcSystemJacobian(const State&            state,
                         Matrix_<SpatialVec>&    J_G) const; // nb X nu
 
-/** Alternate signature that returns a system Jacobian as a 6*nb X nu Matrix 
-of scalars rather than as an nb X nu matrix of 2x3 spatial vectors. See
+/** Alternate signature that returns a system Jacobian as a 6*nb X n Matrix 
+of scalars rather than as an nb X n matrix of 2x3 spatial vectors. See
 the other signature for documentation and important performance 
 considerations. **/
 void calcSystemJacobian(const State&            state,
                         Matrix&                 J_G) const; // 6 nb X nu
 
 
-/** Calculate the Cartesian ground-frame velocity of a station (point fixed 
-to a body) that results from a particular set of generalized speeds u. The 
-result is the station's velocity measured and expressed in Ground. 
+/** Calculate the Cartesian ground-frame velocities of a set of task stations 
+(points fixed on bodies) that results from a particular set of generalized 
+speeds u. The result is the station velocities measured and expressed in Ground.
+
+@param[in]      state
+    A State that has already been realized through Position stage.
+@param[in]      onBodyB
+    An array of nt mobilized bodies (one per task) to which the stations of 
+    interest are fixed.
+@param[in]      stationPInB
+    The array of nt station points P of interest (one per task), each
+    corresponding to one of the bodies B from \a onBodyB, given as vectors 
+    from each body B's origin Bo to its station P, expressed in frame B.
+@param[in]      u
+    A mobility-space Vector, such as a set of generalized speeds. The length
+    and order must match the mobilities of this system (that is n, the number
+    of generalized speeds u, \e not nq, the number of generalized 
+    coordinates q).
+@param[out]     JSu
+    The resulting product JS*u, where JS is the station task Jacobian. Resized
+    to nt if needed.
 
 <h3>Performance discussion</h3>
-It is about 4X cheaper to use this method than to form the Station Jacobian JS
-explicitly and use it once. However, because this is such a skinny matrix
-(3 x nu) explicit multiplication is cheap so if you will re-use this same
-Jacobian repeatedly before recalculating (at least 6 times) then it may
-be worth calculating and saving it. Here are the details:
+It is almost always better to use this method than to form an explicit 3*nt X n 
+station task Jacobian explicitly and then multiply by it. If you have only one 
+or two tasks, so that the matrix is only 3xn or 6xn, and then perform many 
+multiplies with that matrix, it might be slightly cheaper to form it. For 
+example, it is about 4X cheaper to use this method than to form a one-task 
+Station Jacobian JS explicitly and use it once. However, because this would be 
+such a skinny matrix (3 X n) explicit multiplication is cheap so if you will 
+re-use this same Jacobian repeatedly before recalculating (at least 6 times) 
+then it may be worth calculating and saving it. Here are the details:
 
-A call to this method costs 27 + 12*(nb+nu) flops. If you 
-assume that nb ~= nu >> 1, you could say this is about 24*nu flops. In
-contrast, assuming you already have the 3 x nu station Jacobian JS available,
-you can compute the JS*u product in about 6*nu flops, 3X faster.
-However forming JS costs about 90*nu flops (see calcStationJacobian()).
-So to form the Jacobian and use it once is 4X more expensive (96*nu vs
-24*nu), but if you use it more than 5 times it is cheaper to do it
-explicitly. Forming JS and using it 100 times costs 690*nu flops while calling
-this method 100 times would cost about 2400*nu flops.
+A call to this method costs 27*nt + 12*(nb+n) flops. If you assume that 
+nb ~= n >> 1, you could say this is about 27*nt + 24*n flops. In
+contrast, assuming you already have the 3*nt X n station Jacobian JS available,
+you can compute the JS*u product in about 6*nt*n flops, 3X faster for one task,
+about even for three tasks, and slower for more than three tasks.
+However forming JS costs about 40*nt+90*n flops (see calcStationJacobian()).
+So to form a one-task Jacobian and use it once is 4X more expensive (96*n vs
+24*n), but if you use it more than 5 times it is cheaper to do it
+explicitly. Forming a one-task JS and using it 100 times costs about 690*n 
+flops while calling this method 100 times would cost about 2400*n flops.
 
 @see multiplyByStationJacobianTranspose(), calcStationJacobian() **/
+void multiplyByStationJacobian(const State&                      state,
+                               const Array_<MobilizedBodyIndex>& onBodyB,
+                               const Array_<Vec3>&               stationPInB,
+                               const Vector&                     u,
+                               Vector_<Vec3>&                    JSu) const;
+
+/** Alternate signature for when you just have a single station task. 
+@returns JS*u, where JS is the station task Jacobian. **/
 Vec3 multiplyByStationJacobian(const State&         state,
                                MobilizedBodyIndex   onBodyB,
                                const Vec3&          stationPInB,
-                               const Vector&        u) const;
+                               const Vector&        u) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&stationPInB, &stationPInB+1);
+    Vector_<Vec3>                       JSu(1);
+    multiplyByStationJacobian(state, bodies, stations, u, JSu);
+    return JSu[0];
+}
+
+
+/** Calculate the generalized forces resulting from a single force applied
+to a set of nt station tasks (points fixed to bodies) P. The applied forces 
+f_GP should be 3-vectors expressed in Ground. This is considerably faster than 
+forming the Jacobian explicitly and then performing the matrix-vector multiply.
+
+<h3>Performance discussion</h3>
+Cost is about 30*nt + 18*nb + 11*n. Assuming nb ~= n, this is roughly
+30*(n+nt). In contrast, forming the complete 3*nt X n matrix would cost about
+90*(n+nt/2), and subsequent explicit matrix-vector multiplies would cost
+about 6*nt*n each.
+
+@see multiplyByStationJacobian(), calcStationJacobian() **/
+void multiplyByStationJacobianTranspose
+   (const State&                        state,
+    const Array_<MobilizedBodyIndex>&   onBodyB,
+    const Array_<Vec3>&                 stationPInB,
+    const Vector_<Vec3>&                f_GP,
+    Vector&                             f) const;
+
+/** Alternate signature for when you just have a single station task. **/
+void multiplyByStationJacobianTranspose
+   (const State&                        state,
+    MobilizedBodyIndex                  onBodyB,
+    const Vec3&                         stationPInB,
+    const Vec3&                         f_GP,
+    Vector&                             f) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&stationPInB, &stationPInB+1);
+    Vector_<Vec3>                       forces(1, f_GP);
+    multiplyByStationJacobianTranspose(state, bodies, stations, forces, f);
+}
+
+/** Explicitly calculate and return the 3*nt x n kinematic Jacobian JS for a 
+set of nt station tasks P (a station is a point fixed on a particular mobilized 
+body). This matrix maps generalized speeds to the Cartesian velocity of each
+station, measured and expressed in Ground. That is, if you have a set of n 
+generalized speeds u, you can find the Cartesian velocities of stations P as 
+v_GP = JS*u, where v_GP is a 3*nt column vector. The transpose of this 
+matrix maps a 3*nt vector of forces f_GP (expressed in Ground and applied 
+to P) to the equivalent set of n generalized forces f: f = ~JS*f_GP.
+
+@note It is almost always far more efficient to use multiplyByStationJacobian()
+or multiplyByStationJacobianTranspose() to form matrix-vector products rather 
+than to use this method to form the Jacobian explicitly. See the performance 
+discussions there.
+
+Overloaded signatures of this method are available to allow you to obtain the
+Jacobian either as an nt X n Matrix with Vec3 elements, or as 3*nt X n Matrix
+with scalar elements.
+
+@param[in]      state
+    A State that has already been realized through Position stage.
+@param[in]      onBodyB
+    An array of nt mobilized bodies (one per task) to which the stations of 
+    interest are fixed.
+@param[in]      stationPInB
+    The array of nt station points P of interest (one per task), each
+    corresponding to one of the bodies B from \a onBodyB, given as vectors 
+    from each body B's origin Bo to its station P, expressed in frame B.
+@param[out]     JS
+    The resulting nt X n station task Jacobian. Resized if necessary.
+
+<h3>Performance discussion</h3>
+The cost of a call to this method is about 42*nt + 54*nb + 33*n flops. If we 
+assume that nb ~= n >> 1, this is roughly 90*(n+nt/2) flops. Then once the 
+Station Jacobian JS has been formed, each JS*u matrix-vector product costs
+6*nt*n flops to form. When nt is small enough (say one or two tasks), and you
+plan to re-use it a lot, this can be computationally efficient; but for single
+use or more than a few tasks you can do much better with 
+multiplyByStationJacobian() or multiplyByStationJacobianTranspose().
+
+@see multiplyByStationJacobian(), multiplyByStationJacobianTranspose() **/
+void calcStationJacobian(const State&                        state,
+                         const Array_<MobilizedBodyIndex>&   onBodyB,
+                         const Array_<Vec3>&                 stationPInB,
+                         Matrix_<Vec3>&                      JS) const;
+
+/** Alternate signature for when you just have a single station task. **/
+void calcStationJacobian(const State&       state,
+                         MobilizedBodyIndex onBodyB,
+                         const Vec3&        stationPInB,
+                         RowVector_<Vec3>&  JS) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&stationPInB, &stationPInB+1);
+    calcStationJacobian(state, bodies, stations, JS);
+}
+
+/** Alternate signature that returns a station Jacobian as a 3*nt x n Matrix 
+rather than as a Matrix of Vec3 elements. See the other signature for 
+documentation and important performance considerations. **/
+void calcStationJacobian(const State&                        state,
+                         const Array_<MobilizedBodyIndex>&   onBodyB,
+                         const Array_<Vec3>&                 stationPInB,
+                         Matrix&                             JS) const;
+
+/** Alternate signature for when you just have a single station task. **/
+void calcStationJacobian(const State&       state,
+                         MobilizedBodyIndex onBodyB,
+                         const Vec3&        stationPInB,
+                         Matrix&            JS) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&stationPInB, &stationPInB+1);
+    calcStationJacobian(state, bodies, stations, JS);
+}
 
 
 /** Calculate the acceleration bias term for a station Jacobian, that is, the
@@ -674,216 +854,356 @@ acceleration of the station in Ground.
 @param[in]      state
     A State that has already been realized through Velocity stage.
 @param[in]      onBodyB
-    The mobilized body to which the station of interest is fixed.
+    An array of nt mobilized bodies (one per task) to which the stations of 
+    interest are fixed.
 @param[in]      stationPInB
-    The point P of interest on body B, given as a vector from body B's origin Bo
-    to the point P, expressed in frame B.
-@returns JSDot*u, where JS is the station Jacobian.
+    The array of nt station points P of interest (one per task), each
+    corresponding to one of the bodies B from \a onBodyB, given as vectors 
+    from each body B's origin Bo to its station P, expressed in frame B.
+@param[out]     JSDotu
+    The resulting product JSDot*u, where JSDot is the time derivative of JS,
+    the station task Jacobian. Resized to nt if needed.
 
 <h3>Theory</h3>
-The velocity v_GP of point P can be obtained from the generalized
-speeds u using the station Jacobian for P, as v_GP = JS_P*u. Taking the time 
-derivative in G gives
-<pre>
+The velocity v_GP of a station point P in the Ground frame G can be obtained 
+from the generalized speeds u using the station Jacobian for P, as <pre>
+    v_GP = JS_P*u
+</pre> Taking the time derivative in G gives <pre>
     a_GP = JS_P*udot + JSDot_P*u
 </pre>
-This method returns JSDot_P*u, which depends only on velocities. Note that the
-same u is used to calculate JSDot_P, so this term is quadratic in u.
+This method returns JSDot_P*u, which depends only on configuration and 
+velocities. We allow for a set of task points P so that all their bias terms
+can be calculated in a single sweep of the multibody tree. Note that u is taken
+from the \a state and that the same u shown above is also used to calculate 
+JSDot_P, which is linear in u, so the bias term is quadratic in u.
 
 <h3>Implementation</h3>
 This method just obtains body B's total Coriolis acceleration already available
-in the \a state cache and shifts it to station point P. Cost is 48 flops.
+in the \a state cache and shifts it to station point P. Cost is 48*nt flops.
 @see getTotalCoriolisAcceleration(), shiftAccelerationBy()
 **/
+void calcBiasForStationJacobian(const State&                      state,
+                                const Array_<MobilizedBodyIndex>& onBodyB,
+                                const Array_<Vec3>&               stationPInB,
+                                Vector_<Vec3>&                    JSDotu) const;
+
+/** Alternate signature that returns the bias as a 3*nt-vector of scalars 
+rather than as an nt-vector of Vec3s. See the other signature for
+documentation. **/
+void calcBiasForStationJacobian(const State&                      state,
+                                const Array_<MobilizedBodyIndex>& onBodyB,
+                                const Array_<Vec3>&               stationPInB,
+                                Vector&                           JSDotu) const;
+
+/** Alternate signature for when you just have a single station task. 
+@returns JSDot*u, where JSDot is the station Jacobian time derivative. **/
 Vec3 calcBiasForStationJacobian(const State&         state,
                                 MobilizedBodyIndex   onBodyB,
-                                const Vec3&          stationPInB) const;
+                                const Vec3&          stationPInB) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&stationPInB, &stationPInB+1);
+    Vector_<Vec3>                       JSDotu(1);
+    calcBiasForStationJacobian(state, bodies, stations, JSDotu);
+    return JSDotu[0];
+}
 
-/** Calculate the generalized forces resulting from a single force applied
-to a station (point fixed to a body) P. The applied force f_GP should be 
-a 3-vector expressed in Ground. This is considerably faster than forming the
-Jacobian explicitly and then performing the matrix-vector multiply.
-@see multiplyByStationJacobian(), calcStationJacobian() **/
-void multiplyByStationJacobianTranspose(const State&         state,
-                                        MobilizedBodyIndex   onBodyB,
-                                        const Vec3&          stationPInB,
-                                        const Vec3&          f_GP,
-                                        Vector&              f) const;
 
-/** Explicitly calculate and return the 3 x nu kinematic Jacobian JS_P for 
-a station P (a station is a point fixed on a particular mobilized body). This
-matrix maps generalized speeds to the Cartesian velocity of the station, 
-measured and expressed in Ground. That is, if you have a set of nu 
-generalized speeds u, you can find the Cartesian velocity of station P as 
-v_GP = JS_P*u. The transpose of this matrix maps a force vector F_GP
-expressed in Ground and applied to P to the equivalent set of nu generalized 
-forces f: f = ~JS_P*F_GP.
+/** Calculate the spatial velocities of a set of nt task frames A={Ai} fixed to 
+nt bodies B={Bi}, that result from a particular set of n generalized speeds u.
 
-<h3>Performance discussion</h3>
-If you are only forming this to use it once or a few times, 
-consider using multiplyByStationJacobian() instead; it is considerably
-cheaper. However if you plan to reuse this matrix many times it may be
-worth calculating it explicitly; in that case read on.
+The result is each task frame's angular and linear velocity measured and 
+expressed in Ground. Using this method is considerably faster than forming the 
+6*nt X n Frame Jacobian explicitly and then performing the matrix-vector 
+multiply. See the performance analysis below for details.
 
-The cost of a call to this method is 42 + 54*nb + 33*nu flops. If we assume
-that nb ~= nu >> 1, we can approximate this as 90*nu flops. Once the 
-Station Jacobian JS has been formed, the JS*u matrix-vector product costs
-6*nu flops. See multiplyByStationJacobian() for a performance comparison,
-concluding that there is a breakeven at around 5 reuses of JS.
+There is a simplified signature of this method available if you have only a
+single frame task.
 
-@see multiplyByStationJacobian(), multiplyByStationJacobianTranspose() **/
-void calcStationJacobian(const State&       state,
-                         MobilizedBodyIndex onBodyB,
-                         const Vec3&        stationPInB,
-                         RowVector_<Vec3>&  JS_P) const;
-
-/** Alternate signature that returns a station Jacobian as a 3 x nu Matrix 
-rather than as a row vector of Vec3s. See the other signature for documentation
-and important performance considerations. **/
-void calcStationJacobian(const State&       state,
-                         MobilizedBodyIndex onBodyB,
-                         const Vec3&        stationPInB,
-                         Matrix&            JS_P) const;
-
-/** Calculate the spatial velocity of a frame A fixed to a body, that results 
-from a particular set of generalized speeds. The result is the frame's angular 
-and linear velocity measured and expressed in Ground. Using this method is 
-considerably faster than forming the 6 x nu Frame Jacobian explicitly and then 
-performing the matrix-vector multiply.
+@param[in]      state
+    A State that has already been realized through Position stage.
+@param[in]      onBodyB
+    An array of nt mobilized bodies (one per task) to which the task frames of 
+    interest are fixed. These may be in any order and the same body may appear
+    more than once if there are multiple task frames on it.
+@param[in]      originAoInB
+    An array of nt frame origin points Ao for the task frames interest (one 
+    per task), each corresponding to one of the bodies B from \a onBodyB, given
+    as vectors from each body B's origin Bo to its task frame origin Ao, 
+    expressed in frame B.
+@param[in]      u
+    A mobility-space Vector, such as a set of generalized speeds. The length
+    and order must match the mobilities of this system (that is n, the number
+    of generalized speeds u, \e not nq, the number of generalized 
+    coordinates q).
+@param[out]     JFu
+    The resulting product JF*u, where JF is the frame task Jacobian. Resized
+    if needed to a Vector of nt SpatialVec entries.
 
 @note All frames A fixed to a given body B have the same angular velocity so 
-we do not actually need to know the frame's orientation here, just the location
-on B of its origin point Ao. If you have a Transform X_BA giving the pose of
-frame A in the body frame B, you can extract the position vector for the origin
-point Ao using X_BF.p() and pass that as the \a originAoInB parameter here.
+we do not actually need to know the task frames' orientations here, just the
+location on B of their origin points Ao. If you have a Transform X_BA giving 
+the pose of frame A in the body frame B, you can extract the position vector 
+for the origin point Ao using X_BA.p() and pass that as the \a originAoInB 
+parameter here.
 
 <h3>Performance discussion</h3>
-It is about 8X cheaper to use this method than to form the Frame Jacobian JF
-explicitly and use it once. However, because this is a skinny matrix
-(6 x nu) explicit multiplication is cheap so if you will re-use this same
-Jacobian repeatedly before recalculating (at least 20 times) then it may
-be worth calculating and saving it. Here are the details:
+A call to this method costs 27*nt + 12*(nb+n) flops. If you assume that 
+nb ~= n >> 1, you could say this is about 25*(nt+n) flops. In contrast, assuming 
+you already have the 6*nt X n Frame Jacobian JF available, you can compute the
+JF*u product in about 12*nt*n flops. If you have just one task (nt==1) this
+explicit multiplication is about twice as fast; at two tasks it is about even
+and for more than two it is more expensive. However forming JF costs about 
+180*(n+nt/4) flops (see calcFrameJacobian()). So to form a one-task Jacobian 
+and use it once is almost 8X more expensive (192*n vs 25*n), but if you use it 
+more than 16 times it is (marginally) cheaper to do it explicitly (for one
+task). For example, forming a one-task JF and using it 100 times costs 1392*n 
+flops while calling this method 100 times would cost about 2500*n flops.
 
-A call to this method costs 27 + 12*(nb+nu) flops. If you assume that 
-nb ~= nu >> 1, you could say this is about 24*nu flops. In contrast, assuming 
-you already have the 6 x nu station Jacobian JF available, you can compute the
-JF*u product in about 12*nu flops, twice as fast. However forming JF costs 
-about 180*nu flops (see calcFrameJacobian()). So to form the Jacobian and use 
-it once is 8X more expensive (192*nu vs 24*nu), but if you use it more than 
-16 times it is (marginally) cheaper to do it explicitly. For example, forming
-JF and using it 100 times costs 1392*nu flops while calling this method 100 
-times would cost about 2400*nu flops.
+Conclusion: in almost all practical cases you are better off using this operator
+rather than forming JF, even if you have only a single frame task and certainly 
+if you have more than two tasks.
 
 @see multiplyByFrameJacobianTranspose(), calcFrameJacobian() **/
+void multiplyByFrameJacobian
+   (const State&                        state,
+    const Array_<MobilizedBodyIndex>&   onBodyB,
+    const Array_<Vec3>&                 originAoInB,
+    const Vector&                       u,
+    Vector_<SpatialVec>&                JFu) const;
+
+/** Simplified signature for when you just have a single frame task; see the
+main signature for documentation.
+@returns JF*u, where JF is the single frame task Jacobian. **/
 SpatialVec multiplyByFrameJacobian( const State&         state,
                                     MobilizedBodyIndex   onBodyB,
                                     const Vec3&          originAoInB,
-                                    const Vector&        u) const;
+                                    const Vector&        u) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&originAoInB, &originAoInB+1);
+    Vector_<SpatialVec>                 JFu(1);
+    multiplyByFrameJacobian(state, bodies, stations, u, JFu);
+    return JFu[0];
+}
 
 
-/** Calculate the acceleration bias term for a frame Jacobian, that is, the
-part of the frame's acceleration that is due only to velocities. This term 
-is also known as the Coriolis acceleration, and it is returned here as a spatial
-acceleration of the frame in Ground.
+/** Calculate the n generalized forces f resulting from a set of spatial forces 
+(torque,force pairs) F applied at nt task frames Ai fixed to nt bodies Bi. The 
+applied forces are spatial vectors (pairs of 3-vectors) expressed in Ground. Use
+of this O(n) method is considerably faster than forming the 6*nt X n Jacobian 
+explicitly and then performing an O(n^2) matrix-vector multiply.
 
 @param[in]      state
-    A State that has already been realized through Velocity stage.
+    A State that has already been realized through Position stage.
 @param[in]      onBodyB
-    The mobilized body to which the frame of interest A is fixed.
+    An array of nt mobilized bodies (one per task) to which the task frames of 
+    interest are fixed. These may be in any order and the same body may appear
+    more than once if there are multiple task frames on it.
 @param[in]      originAoInB
-    The origin of frame A on body B, given as a vector from body B's origin Bo
-    to A's origin Ao, expressed in frame B.
-@returns JFDot*u, where JF is the frame Jacobian.
-
-<h3>Theory</h3>
-The spatial velocity V_GA of frame A can be obtained from the generalized
-speeds u using the frame Jacobian for A, as V_GA = JF_A*u. Taking the time 
-derivative in G gives
-<pre>
-    A_GA = JF_A*udot + JFDot_A*u
-</pre>
-This method returns JFDot_A*u, which depends only on velocities. Note that the
-same u is used to calculate JFDot_A, so this term is quadratic in u.
-
-<h3>Implementation</h3>
-This method just obtains body B's total Coriolis acceleration already available
-in the \a state cache and shifts it to the A frame's origin Ao.
-Cost is 48 flops.
-@see getTotalCoriolisAcceleration(), shiftAccelerationBy()
-**/
-SpatialVec calcBiasForFrameJacobian(const State&         state,
-                                    MobilizedBodyIndex   onBodyB,
-                                    const Vec3&          originAoInB) const;
-
-
-/** Calculate the nu generalized forces f resulting from a single spatial force 
-(force and torque) F applied at a frame A fixed to a body B. The applied force 
-should be a spatial vector (pair of 3-vectors) expressed in Ground. Use of this 
-method is considerably faster than forming the Jacobian explicitly and then 
-performing the matrix-vector multiply.
+    An array of nt frame origin points Ao for the task frames interest (one 
+    per task), each corresponding to one of the bodies B from \a onBodyB, given
+    as vectors from each body B's origin Bo to its task frame origin Ao, 
+    expressed in frame B.
+@param[in]      F_GAo
+    A Vector of nt spatial forces, each applied one of the task frames. These
+    are expressed in Ground.
+@param[out]     f
+    The Vector of n generalized forces that results from applying the forces
+    \a F_GAo to the task frames. Resized if necessary.
 
 <h3>Performance discussion</h3>
-It is about 6X cheaper to use this method than to form the Frame Jacobian JF
-explicitly and use its transpose once. However, because this is a skinny matrix
-(nu X 6) explicit multiplication is cheap so if you will re-use this same
-Jacobian repeatedly before recalculating (at least 15 times) then it may
-be worth calculating and saving it. Here are the details:
+A call to this method costs 33*nt + 18*nb + 11*n flops. If you assume that 
+nb ~= n >> 1, you could say this is about 30*(n+nt) flops. In contrast, assuming 
+you already have the 6*nt X n Frame Jacobian JF available, you can compute the
+~JF*F product in about 12*nt*n flops. For one or two tasks that would be faster
+than applying the operator. However forming JF costs about 180*(n+nt/4) flops 
+(see calcFrameJacobian()). So to form even a one-task Frame Jacobian and use 
+it once is about 6X more expensive than using the operator (192*n vs 30*n), 
+but if you use it more than 10 times it is (marginally) cheaper to do it 
+explicitly. For example, forming a one-task JF and using it 100 times costs 
+around 1392*n flops while calling this method 100 times would cost about 
+3000*n flops.
 
-A call to this method costs 27 + 18*nb + 11*nu flops. If you assume that 
-nb ~= nu >> 1, you could say this is about 30*nu flops. In contrast, assuming 
-you already have the 6 x nu station Jacobian JF available, you can compute the
-~JF*F product in about 12*nu flops, 2.5X faster. However forming JF costs 
-about 180*nu flops (see calcFrameJacobian()). So to form the Jacobian and use 
-it once is about 6X more expensive (192*nu vs 30*nu), but if you use it more 
-than 10 times it is (marginally) cheaper to do it explicitly. For example, 
-forming JF and using it 100 times costs 1392*nu flops while calling this method
-100 times would cost about 3000*nu flops.
+Conclusion: in almost all practical cases you are better off using this operator
+rather than forming JF, even if you have only a single frame task and certainly 
+if you have more than two tasks.
 
 @see multiplyByFrameJacobian(), calcFrameJacobian() **/
+void multiplyByFrameJacobianTranspose
+   (const State&                        state,
+    const Array_<MobilizedBodyIndex>&   onBodyB,
+    const Array_<Vec3>&                 originAoInB,
+    const Vector_<SpatialVec>&          F_GAo,
+    Vector&                             f) const;
+
+/** Simplified signature for when you just have a single frame task. See the
+other signature for documentation. **/
 void multiplyByFrameJacobianTranspose(  const State&        state,
                                         MobilizedBodyIndex  onBodyB,
                                         const Vec3&         originAoInB,
                                         const SpatialVec&   F_GAo,
-                                        Vector&             f) const;
+                                        Vector&             f) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&originAoInB, &originAoInB+1);
+    const Vector_<SpatialVec>           forces(1, F_GAo);
+    multiplyByFrameJacobianTranspose(state, bodies, stations, forces, f);
+}
 
-/** Explicitly calculate and return the 6 x nu Frame Jacobian JF_A for 
-a frame A fixed to a particular mobilized body B. This
-matrix maps generalized speeds to the spatial velocity of the 
-frame, measured and expressed in Ground. That is, if you have a set of nu 
-generalized speeds u, you can find the spatial velocity of frame A as 
-V_GA = JF_A*u, where V_GA=~[w_GB, v_GAo] the angular velocity of the body and
-the linear velocity of A's origin point Ao. The transpose of this matrix 
-maps a spatial force vector F_GA=[m_GB, f_GAo] expressed in Ground and 
-applied at Ao to the equivalent set of nu generalized 
-forces f: f = ~JF_A*F_GA. If you are only forming this to use it once, 
-consider using the methods that directly calculate the matrix-vector
-product without explictly forming the matrix.
+
+
+/** Explicitly calculate and return the 6*nt x n frame task Jacobian JF for a 
+set of nt frame tasks A={Ai} fixed to nt bodies B={Bi}. This matrix maps 
+generalized speeds to the Cartesian spatial velocity (angular and linear
+velocity) of each frame, measured and expressed in Ground. That is, if you have
+a set of n generalized speeds u, you can find the Cartesian spatial velocities 
+of task frames A as V_GA = JF*u, where V_GA is a 6*nt column vector. The 
+transpose of this matrix maps a 6*nt vector of spatial forces F_GA (expressed 
+in Ground and applied to the origins of frames A) to the equivalent set of n 
+generalized forces f: f = ~JF*F_GA.
+
+@note It is almost always far more efficient to use multiplyByFrameJacobian() or
+multiplyByFrameJacobianTranspose() to form matrix-vector products rather than to
+use this method to form the Jacobian explicitly. See the performance discussion 
+there.
+
+Overloaded signatures of this method are available to allow you to obtain the
+Jacobian either as an nt X n Matrix with SpatialVec elements, or as 6*nt X n 
+Matrix with scalar elements.
+
+@param[in]      state
+    A State that has already been realized through Position stage.
+@param[in]      onBodyB
+    An array of nt mobilized bodies (one per task) to which the task frames of 
+    interest are fixed. These may be in any order and the same body may appear
+    more than once if there are multiple task frames on it.
+@param[in]      originAoInB
+    An array of nt frame origin points Ao for the task frames of interest (one 
+    per task), each corresponding to one of the bodies B from \a onBodyB, given
+    as vectors from each body B's origin Bo to its task frame origin Ao, 
+    expressed in frame B.
+@param[out]     JF
+    The resulting nt X n frame task Jacobian, with each element a SpatialVec. 
+    Resized if necessary.
 
 <h3>Performance discussion</h3>
-If you are only forming this to use it once or a few times, 
-consider using multiplyByFrameJacobian() instead; it is considerably
-cheaper. However if you plan to reuse this matrix many times it may be
-worth calculating it explicitly; in that case read on.
-
-The cost of a call to this method is 42 + 108*nb + 66*nu flops. If we assume
-that nb ~= nu >> 1, we can approximate this as 180*nu flops. Once the 
-Frame Jacobian JF has been formed, the JF*u matrix-vector product costs
-12*nu flops. See multiplyByFrameJacobian() for a performance comparison,
-concluding that there is a breakeven at around 16 reuses of JF.
+The cost of a call to this method is about 42*nt + 108*nb + 66*n flops. If we 
+assume that nb ~= n >> 1, this is roughly 180*(n+nt/4) flops. Then once the 
+Frame Jacobian JF has been formed, each JF*u matrix-vector product costs about
+12*nt*n flops to form. When nt is small enough (say one or two tasks), and you
+plan to re-use it a lot, this can be computationally efficient; but for single
+use or more than a few tasks you can do much better with 
+multiplyByFrameJacobian() or multiplyByFrameJacobianTranspose().
 
 @see multiplyByFrameJacobian(), multiplyByFrameJacobianTranspose() **/
-void calcFrameJacobian(const State&             state,
-                       MobilizedBodyIndex       onBodyB,
-                       const Vec3&              originAoInB,
-                       RowVector_<SpatialVec>&  JF_A) const;
+void calcFrameJacobian(const State&                         state,
+                       const Array_<MobilizedBodyIndex>&    onBodyB,
+                       const Array_<Vec3>&                  originAoInB,
+                       Matrix_<SpatialVec>&                 JF) const;
 
-/** Alternate signature that returns a frame Jacobian as a 6 x nu Matrix 
-rather than as a row vector of SpatialVecs. See the other signature for
-documentation and important performance considerations.**/
+/** Simplified signature for when you just have a single frame task. See the
+other signature for documentation. **/
 void calcFrameJacobian(const State&             state,
                        MobilizedBodyIndex       onBodyB,
                        const Vec3&              originAoInB,
-                       Matrix&                  JF_A) const;
+                       RowVector_<SpatialVec>&  JF) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&originAoInB, &originAoInB+1);
+    calcFrameJacobian(state, bodies, stations, JF);
+}
+
+/** Alternate signature that returns a frame Jacobian as a 6*nt X n Matrix 
+rather than as an nt X n Matrix of SpatialVecs. See the other signature for
+documentation and important performance considerations.**/
+void calcFrameJacobian(const State&                         state,
+                       const Array_<MobilizedBodyIndex>&    onBodyB,
+                       const Array_<Vec3>&                  originAoInB,
+                       Matrix&                              JF) const;
+
+/** Simplified signature for when you just have a single frame task. See the
+other signature for documentation. **/
+void calcFrameJacobian(const State&             state,
+                       MobilizedBodyIndex       onBodyB,
+                       const Vec3&              originAoInB,
+                       Matrix&                  JF) const 
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&originAoInB, &originAoInB+1);
+    calcFrameJacobian(state, bodies, stations, JF);
+}
+
+/** Calculate the acceleration bias term for a task frame Jacobian, that is, the
+parts of the frames' accelerations that are due only to velocities. This term 
+is also known as the Coriolis acceleration, and it is returned here as spatial
+accelerations of the frames in Ground.
+
+There is a simplified signature of this method available if you have only a
+single frame task.
+
+@param[in]      state
+    A State that has already been realized through Velocity stage.
+@param[in]      onBodyB
+    An array of nt mobilized bodies (one per task) to which the task frames of 
+    interest are fixed. These may be in any order and the same body may appear
+    more than once if there are multiple task frames on it.
+@param[in]      originAoInB
+    An array of nt frame origin points Ao for the task frames interest (one 
+    per task), each corresponding to one of the bodies B from \a onBodyB, given
+    as vectors from each body B's origin Bo to its task frame origin Ao, 
+    expressed in frame B.
+@param[out]     JFDotu
+    The result JFDot*u, where JF is the task frame Jacobian and JFDot its
+    time derivative, and u is the set of generalized speeds taken from the
+    the supplied \a state.
+
+<h3>Theory</h3>
+The spatial velocity V_GA of frame A can be obtained from the generalized
+speeds u using the frame Jacobian for A, as V_GA = JF*u. Taking the time 
+derivative in G gives
+<pre>
+    A_GA = JF*udot + JFDot*u
+</pre>
+This method returns JFDot*u, which depends only on configuration and 
+velocities. Note that the same u is used to calculate JFDot, which is linear
+in u, so the term JFDot*u is quadratic in u.
+
+<h3>Implementation</h3>
+This method just obtains body B's total Coriolis acceleration already available
+in the \a state cache and shifts it to the A frame's origin Ao, for each of the
+nt task frames. Cost is 48*nt flops.
+
+@see getTotalCoriolisAcceleration(), shiftAccelerationBy()
+**/
+void calcBiasForFrameJacobian
+   (const State&                        state,
+    const Array_<MobilizedBodyIndex>&   onBodyB,
+    const Array_<Vec3>&                 originAoInB,
+    Vector_<SpatialVec>&                JFDotu) const;
+
+/** Alternate signature that returns the bias as a 6*nt-vector of scalars 
+rather than as an nt-vector of SpatialVec elements. See the other signature for
+documentation. **/
+void calcBiasForFrameJacobian(const State&                      state,
+                              const Array_<MobilizedBodyIndex>& onBodyB,
+                              const Array_<Vec3>&               originAoInB,
+                              Vector&                           JFDotu) const;
+
+/** Simplified signature for when you just have a single frame task. 
+@returns JFDot*u, where JFDot is the frame task Jacobian time derivative and
+u the generalized speeds taken from \a state. **/
+SpatialVec calcBiasForFrameJacobian(const State&         state,
+                                    MobilizedBodyIndex   onBodyB,
+                                    const Vec3&          originAoInB) const
+{
+    ArrayViewConst_<MobilizedBodyIndex> bodies(&onBodyB, &onBodyB+1);
+    ArrayViewConst_<Vec3>               stations(&originAoInB, &originAoInB+1);
+    Vector_<SpatialVec>                 JFDotu(1);
+    calcBiasForFrameJacobian(state, bodies, stations, JFDotu);
+    return JFDotu[0];
+}
+
 /**@}**/
 
 //==============================================================================
@@ -907,17 +1227,16 @@ in generalized coordinate q space, Pq, can also be accessed. (In terms of
 the other matrices, Pq=P*N^-1.) **/
 /**@{**/
 
-/** This operator calculates in O(N) time the product M*v where M is the 
-system mass matrix and v is a supplied vector with one entry per 
-mobility. If v is a set of mobility accelerations (generalized 
-accelerations), then the result is a generalized force (f=M*a). 
-Only the supplied vector is used, and M depends only on position 
+/** This operator calculates in O(n) time the product M*v where M is the 
+system mass matrix and v is a supplied mobility-space vector (that is, it has
+one entry for each of the n mobilities). If v is a set of mobility accelerations
+(generalized accelerations udot), then the result is a generalized force 
+(f=M*udot). Only the supplied vector is used, and M depends only on position 
 states, so the result here is not affected by velocities in the State.
 Constraints and prescribed motions are ignored.
 
-The current implementation requires about 120*n flops and does
-not require realization of composite-body or articulated-body
-inertias. 
+The current implementation requires about 120*n flops and does not require 
+realization of composite-body or articulated-body inertias. 
 @par Required stage
   \c Stage::Position **/
 void multiplyByM(const State& state, const Vector& a, Vector& Ma) const;
@@ -950,32 +1269,32 @@ put them in f if you want them included.
 If you specify the motion of one or more mobilizers using a Motion object,
 the behavior of this method is altered. (This does \e not apply if you use
 Constraint objects to specify the motion.) In the Motion case, this method 
-works only with the "regular" (non-prescribed) mobilities. Only the entries in
-\a v corresponding to regular mobilities are examined, and only the entries in 
+works only with the free (non-prescribed) mobilities. Only the entries in
+\a v corresponding to free mobilities are examined, and only the entries in 
 the result \a MinvV corresponding to free mobilities are calculated; the 
 others are set to zero.
 
 <h3>Theory</h3>
 View the unconstrained, prescribed zero-velocity equations of motion 
-M a + tau = f as partitioned into "regular" and "prescribed" variables like 
+M a + tau = f as partitioned into "free" and "prescribed" variables like 
 this:
 <pre>
-    [M_rr ~M_rp] [a_r]   [ 0 ]   [f_r]
+    [M_ff ~M_fp] [a_f]   [ 0 ]   [f_f]
     [          ] [   ] + [   ] = [   ]
-    [M_rp  M_pp] [a_p]   [tau]   [f_p]
+    [M_fp  M_pp] [a_p]   [tau]   [f_p]
 </pre>
-The regular and prescribed variables have been grouped here for clarity but
+The free and prescribed variables have been grouped here for clarity but
 in general they are interspersed among the columns and rows of M.
 
 Given that decomposition, this method returns
 <pre>
-    [a_r]   [a_r]   [M_rr^-1  0  ][f_r]
+    [a_f]   [a_f]   [M_ff^-1  0  ][f_f]
     [   ] = [   ] = [            ][   ]
     [a_p]   [ 0 ]   [   0     0  ][f_p]
 </pre>
-When there is no prescribed motion M_rr is the entire mass matrix, and the 
-result is a_r=a=M^-1*f. When there is prescribed motion M_rr is a submatrix of
-M, and the result is the r elements of a_r and a_p=0.
+When there is no prescribed motion M_ff is the entire mass matrix, and the 
+result is a_f=a=M^-1*f. When there is prescribed motion, M_ff is a submatrix of
+M, and the result is the nf elements of a_f and a_p=0.
 
 <h3>Implementation</h3>
 This is a stripped-down version of forward dynamics. It requires the hybrid
@@ -1015,7 +1334,7 @@ M^-1. Instead, call the method calcMInv() which can produce M^-1 directly.
 void calcM(const State&, Matrix& M) const;
 
 /** This operator explicitly calculates the inverse of the part of the system
-mobility-space mass matrix corresponding to "regular" (non-prescribed)
+mobility-space mass matrix corresponding to free (non-prescribed)
 mobilities. The returned matrix is always n X n, but rows and columns 
 corresponding to prescribed mobilities are zero. This is an O(n^2) operation, 
 which is of course within a constant factor of optimal for returning a matrix 
@@ -1031,11 +1350,12 @@ void calcMInv(const State&, Matrix& MInv) const;
 
 /** This operator calculates in O(m*n) time the m X m "projected inverse mass 
 matrix" or "constraint compliance matrix" W=G*M^-1*~G, where G (mXn) is the 
-acceleration-level constraint Jacobian and M (nXn) is the unconstrained system
-mass matrix. In case there is prescribed motion specified with Motion objects,
-M^-1 here is really Mrr^-1, that is, it is restricted to the non-prescribed 
-mobilities, but scattered into a full n X n matrix (conceptually). See 
-multiplyByMInv() and calcMInv() for more information.
+acceleration-level constraint Jacobian mapped to generalized coordinates,
+and M (nXn) is the unconstrained system mass matrix. In case there is prescribed
+motion specified with Motion objects, M^-1 here is really Mff^-1, that is, it 
+is restricted to the free (non-prescribed) mobilities, but scattered into a 
+full n X n matrix (conceptually). See multiplyByMInv() and calcMInv() for more 
+information.
 
 W is the projection of the inverse mass matrix onto the constraint
 manifold. It can be used to solve for the constraint forces that will eliminate
