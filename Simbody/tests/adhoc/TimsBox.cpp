@@ -47,7 +47,7 @@ using namespace SimTK;
 // as they should be. You should see nothing but exact zeroes print out for
 // second and subsequent runs.
 //#define TEST_REPEATABILITY
-static const int NTries=2;
+static const int NTries=3;
 
 const Real ReportInterval=1./30;
    
@@ -1594,7 +1594,7 @@ int main(int argc, char** argv) {
     MultibodySystem             mbs;
     SimbodyMatterSubsystem      matter(mbs);
     GeneralForceSubsystem       forces(mbs);
-    Force::Gravity              gravity(forces, matter, -YAxis, 9.81);
+    Force::Gravity              gravity(forces, matter, -YAxis, 9.8066);
 
     MobilizedBody& Ground = matter.updGround();
 
@@ -1607,17 +1607,18 @@ int main(int argc, char** argv) {
     #ifdef USE_TIMS_PARAMS
         const Real RunTime=16;  // Tim's time
         const Real Stiffness = 2e7;
-        const Real Dissipation = 0.1;
+        const Real Dissipation = 1;
         const Real CoefRest = 0; 
         // Painleve problem with these friction coefficients.
         //const Real mu_d = 1; /* compliant: .7*/
         //const Real mu_s = 1; /* compliant: .7*/
-        const Real mu_d = .7;
-        const Real mu_s = .7;
+        const Real mu_d = .5;
+        const Real mu_s = .8;
         const Real mu_v = /*0.05*/0;
         const Real CaptureVelocity = 0.01;
-        const Real TransitionVelocity = 0.05;
+        const Real TransitionVelocity = 0.01;
         const Inertia brickInertia(.1,.1,.1);
+        const Real Radius = .02;
     #else
         const Real RunTime=20;
         const Real Stiffness = 1e6;
@@ -1631,6 +1632,7 @@ int main(int argc, char** argv) {
         const Real CaptureVelocity = 0.01;
         const Real TransitionVelocity = 0.05;
         const Inertia brickInertia(BrickMass*UnitInertia::brick(BrickHalfDims));
+        const Real Radius = BrickHalfDims[0]/3;
     #endif
 
     printf("\n******************** Tim's Box ********************\n");
@@ -1656,6 +1658,7 @@ int main(int argc, char** argv) {
     #endif
     printf("  mu_d=%g mu_s=%g mu_v=%g\n", mu_d, mu_s, mu_v);
     printf("  transition velocity=%g\n", TransitionVelocity);
+    printf("  radius=%g\n", Radius);
     printf("  brick inertia=%g %g %g\n",
         brickInertia.getMoments()[0], brickInertia.getMoments()[1], 
         brickInertia.getMoments()[2]); 
@@ -1667,7 +1670,6 @@ int main(int argc, char** argv) {
     // Set stiction max slip velocity to make it less stiff.
     contact.setTransitionVelocity(0.05);
 
-    const Real Radius = BrickHalfDims[0]/3;
 
     // Define a material to use for contact. This is not very stiff.
     ContactMaterial material(Stiffness,
@@ -1695,9 +1697,11 @@ int main(int argc, char** argv) {
         Body::Rigid(MassProperties(BrickMass, Vec3(0), brickInertia));
 
     // First body: cube
-    MobilizedBody::Cartesian loc(Ground, MassProperties(0,Vec3(0),Inertia(0)));
-    MobilizedBody::Ball brick(loc, Vec3(0),
-                             brickBody, Vec3(0));
+    //MobilizedBody::Cartesian loc(Ground, MassProperties(0,Vec3(0),Inertia(0)));
+    //MobilizedBody::Ball brick(loc, Vec3(0),
+    //                          brickBody, Vec3(0));
+    MobilizedBody::Free brick(Ground, Vec3(0),
+                              brickBody, Vec3(0));
     brick.addBodyDecoration(Transform(), DecorativeBrick(BrickHalfDims)
                                                 .setColor(Red).setOpacity(.3));
 /*
@@ -1714,8 +1718,8 @@ int main(int argc, char** argv) {
                                                     //300 * Vec3(0.2,0.8,0),
                                                     4, 4+0.5));
     Force::Custom(forces, new MyPushForceImpl(brick, Vec3(0),
-                                                    49.333 * Vec3(0,1,0),
-                                                    0.9, 0.9+2));
+                                                    49.033 * Vec3(0,1,0),
+                                                    9., 9.+2));
     Force::Custom(forces, new MyPushForceImpl(brick, Vec3(0),
                                                     200 * Vec3(-1,0,0),
                                                     13, 13+1));
@@ -1812,7 +1816,7 @@ int main(int argc, char** argv) {
 #endif
     integ.setAccuracy(accuracy);
     //integ.setMaximumStepSize(0.25);
-    integ.setMaximumStepSize(0.1);
+    integ.setMaximumStepSize(0.05);
     //integ.setMaximumStepSize(0.001);
 
     StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
@@ -1861,11 +1865,11 @@ tZ_u = 0.0 m/s
 */
 
 #ifdef USE_TIMS_PARAMS
-    loc.setQToFitTranslation(s, Vec3(0,10,0));
-    loc.setUToFitLinearVelocity(s, Vec3(0,0,0));
+    brick.setQToFitTranslation(s, Vec3(0,10,0));
+    brick.setUToFitLinearVelocity(s, Vec3(0,0,0));
 #else
-    loc.setQToFitTranslation(s, Vec3(0,1.4,0));
-    loc.setUToFitLinearVelocity(s, Vec3(10,0,0));
+    brick.setQToFitTranslation(s, Vec3(0,1.4,0));
+    brick.setUToFitLinearVelocity(s, Vec3(10,0,0));
     const Rotation R_BC(SimTK::BodyRotationSequence,
                                 0.7, XAxis, 0.6, YAxis, 0.5, ZAxis);
     brick.setQToFitRotation(s, R_BC);
