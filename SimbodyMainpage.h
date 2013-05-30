@@ -8,7 +8,7 @@ Mainpage, the first page that a user sees when entering the Doxygen-
 generated API documentation. This is not actually included as part of the
 Simbody source and it is not installed with Simbody. **/
 
-/** @mainpage  Simbody&tm; API Reference Documentation, version 3.2
+/** @mainpage  Simbody&tm; API Reference Documentation
 
 <h2>What is this page?</h2>
 You are looking at the main page for the reference documentation of the Simbody
