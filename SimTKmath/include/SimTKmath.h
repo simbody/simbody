@@ -60,5 +60,6 @@
 #include "simmath/RungeKutta2Integrator.h"
 #include "simmath/ExplicitEulerIntegrator.h"
 #include "simmath/VerletIntegrator.h"
+#include "simmath/SemiExplicitEulerIntegrator.h"
 
 #endif // SimTK_SIMMATH_H_

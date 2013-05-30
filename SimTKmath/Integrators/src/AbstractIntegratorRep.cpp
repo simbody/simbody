@@ -536,7 +536,8 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         //--------------------------------------------------------------------
         Real errNorm=NaN; int worstY=-1;
         if (converged) {
-            errNorm = calcErrorNorm(advanced, yErrEst, worstY);
+            errNorm = (hasErrorControl ? calcErrorNorm(advanced,yErrEst,worstY)
+                                       : Real(0));
             statsConvergentIterations += numIterations;
         } else {
             errNorm = Infinity; // step didn't converge so error is *very* bad!
