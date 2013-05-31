@@ -21,35 +21,34 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "simmath/SemiExplicitEulerIntegrator.h"
+#include "simmath/SemiExplicitEuler2Integrator.h"
 
 #include "IntegratorRep.h"
-#include "SemiExplicitEulerIntegratorRep.h"
+#include "SemiExplicitEuler2IntegratorRep.h"
 
 using namespace SimTK;
 
 //==============================================================================
-//                     SEMI EXPLICIT EULER INTEGRATOR
+//                   SEMI EXPLICIT EULER 2 INTEGRATOR
 //==============================================================================
 
-SemiExplicitEulerIntegrator::SemiExplicitEulerIntegrator
-   (const System& sys, Real stepSize) {
-    rep = new SemiExplicitEulerIntegratorRep(this, sys);
-    setFixedStepSize(stepSize);
+SemiExplicitEuler2Integrator::SemiExplicitEuler2Integrator
+   (const System& sys) {
+    rep = new SemiExplicitEuler2IntegratorRep(this, sys);
 }
 
-SemiExplicitEulerIntegrator::~SemiExplicitEulerIntegrator() {
+SemiExplicitEuler2Integrator::~SemiExplicitEuler2Integrator() {
     delete rep;
 }
 
 
 
 //==============================================================================
-//                   SEMI EXPLICIT EULER INTEGRATOR REP
+//                   SEMI EXPLICIT EULER 2 INTEGRATOR REP
 //==============================================================================
-SemiExplicitEulerIntegratorRep::SemiExplicitEulerIntegratorRep
+SemiExplicitEuler2IntegratorRep::SemiExplicitEuler2IntegratorRep
    (Integrator* handle, const System& sys)
-:   AbstractIntegratorRep(handle, sys, 1, 1, "SemiExplicitEuler",  false) 
+:   AbstractIntegratorRep(handle, sys, 2, 2, "SemiExplicitEuler2",  true) 
 {
 }
 
@@ -59,7 +58,9 @@ SemiExplicitEulerIntegratorRep::SemiExplicitEulerIntegratorRep
 // Create an interpolated state at time t, which is between tPrev and tCurrent.
 // If we haven't yet delivered an interpolated state in this interval, we have
 // to initialize its discrete part from the advanced state.
-void SemiExplicitEulerIntegratorRep::createInterpolatedState(Real t) {
+
+//TODO: need to make this 2nd order
+void SemiExplicitEuler2IntegratorRep::createInterpolatedState(Real t) {
     const System& system   = getSystem();
     const State&  advanced = getAdvancedState();
     State&        interp   = updInterpolatedState();
@@ -92,7 +93,9 @@ void SemiExplicitEulerIntegratorRep::createInterpolatedState(Real t) {
 // forgetting about the rest of the interval. This is necessary, for
 // example after we have localized an event trigger to an interval tLow:tHigh
 // where tHigh < tAdvanced.
-void SemiExplicitEulerIntegratorRep::
+
+//TODO: need to make this 2nd order
+void SemiExplicitEuler2IntegratorRep::
 backUpAdvancedStateByInterpolation(Real t) {
     const System& system   = getSystem();
     State& advanced = updAdvancedState();
@@ -129,14 +132,24 @@ backUpAdvancedStateByInterpolation(Real t) {
 // Note that SemiExplicitEuler overrides the entire DAE step because it can't 
 // use the default ODE-then-DAE structure. Instead the constraint projections 
 // are interwoven here.
-bool SemiExplicitEulerIntegratorRep::attemptDAEStep
+bool SemiExplicitEuler2IntegratorRep::attemptDAEStep
    (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
 {
     const System& system   = getSystem();
     State& advanced = updAdvancedState();
     Vector dummyErrEst; // for when we don't want the error estimate projected
-    
+ 
+    const int nq = advanced.getNQ();
+    const int nu = advanced.getNU();
+    const int nz = advanced.getNZ();
+
+    // We'll need to work with these variable separately.
+    VectorView qErrEst  = yErrEst(    0, nq);
+    VectorView uErrEst  = yErrEst(   nq, nu);
+    VectorView zErrEst  = yErrEst(nq+nu, nz);
+
     statsStepsAttempted++;
+    errOrder = 2;
 
     const Real    t0        = getPreviousTime();       // nicer names
     const Vector& q0        = getPreviousQ();
@@ -147,12 +160,11 @@ bool SemiExplicitEulerIntegratorRep::attemptDAEStep
     const Vector& zdot0     = getPreviousZDot();
     const Vector& qdotdot0  = getPreviousQDotDot();
 
-    const Real h = t1-t0;
+    const Real h = t1-t0, hHalf = h/2, tHalf = t0 + hHalf;
 
-    // Advance the first order variables.
-    // TODO: this part should be implicit in u and z to make this symplectic
-    // Euler.
-    advanced.updZ() = getPreviousZ() + h * getPreviousZDot();
+    // -------------------------------------------------------------------------
+    // First calculate the big step, borrowing advanced for the calculations.
+    advanced.updZ() = m_zBig = getPreviousZ() + h * getPreviousZDot();
     advanced.updU() = getPreviousU() + h * getPreviousUDot();
 
     //TODO: need to be able to do this without invalidating q's.
@@ -161,14 +173,66 @@ bool SemiExplicitEulerIntegratorRep::attemptDAEStep
     system.realize(advanced, Stage::Position); // old q, new t
     system.prescribeU(advanced);
 
-    // Update qdot_t1 = N(q_t0)*u_t1 from now-advanced u.
-    const int nq = advanced.getNQ();
-    Vector qdot_t1(nq);
-    system.multiplyByN(advanced, advanced.getU(), qdot_t1);
-    advanced.updQ() = getPreviousQ() + h * qdot_t1;
+    // Update qdotBig = N(q_t0)*u_t1 from now-advanced u.
+    system.multiplyByN(advanced, advanced.getU(), m_qdotTmp);
+    advanced.updQ() = m_qBig = getPreviousQ() + h * m_qdotTmp;
+    system.realize(advanced, Stage::Position); // new q, new t
+    system.prescribeU(advanced); // update prescribed u in case q-dependent
+    m_uBig = advanced.getU();
+    // -------------------------------------------------------------------------
+
+    // At this point yBig=(qBig,uBig,zBig) has been calculated.
+
+    // -------------------------------------------------------------------------
+    // Now take two half steps, working directly in advanced.
+    advanced.updZ() = getPreviousZ() + hHalf * getPreviousZDot();
+    advanced.updU() = getPreviousU() + hHalf * getPreviousUDot();
+
+    advanced.updTime() = tHalf;
+    system.realize(advanced, Stage::Position); // old q, new t
+    system.prescribeU(advanced);
+
+    // Update qdot_tHalf = N(q_t0)*u_tHalf from now-advanced u.
+    system.multiplyByN(advanced, advanced.getU(), m_qdotTmp);
+    advanced.updQ() = getPreviousQ() + hHalf * m_qdotTmp;
+    system.prescribeQ(advanced);
+    system.realize(advanced, Stage::Position); // new q, new t
+    system.prescribeU(advanced); // update prescribed u if q-dependent
+    system.realize(advanced, Stage::Velocity);
+
+    realizeStateDerivatives(advanced); // get udot,zdot at tHalf
+    // Get these references now -- as soon as we change u or z they
+    // will be invalid.
+    const Vector& zdotHalf = advanced.getZDot();
+    const Vector& udotHalf = advanced.getUDot();
+
+    // Second half-step.
+    advanced.updZ() += hHalf * zdotHalf;
+    advanced.updU() += hHalf * udotHalf;
+
+    advanced.updTime() = t1;
+    system.realize(advanced, Stage::Position); // old q, new t
+    system.prescribeU(advanced);
+
+    // Update qdot_t1 = N(q_tHalf)*u_t1 from now-advanced u.
+    system.multiplyByN(advanced, advanced.getU(), m_qdotTmp);
+    advanced.updQ() += hHalf * m_qdotTmp;
     system.prescribeQ(advanced);
     system.realize(advanced, Stage::Position); // new q, new t
     system.prescribeU(advanced); // update prescribed u in case q-dependent
+    // -------------------------------------------------------------------------
+    // Now estimate the error and use local extrapolation to improve the
+    // final solution.
+    qErrEst = advanced.getQ() - m_qBig;
+    uErrEst = advanced.getU() - m_uBig;
+    zErrEst = advanced.getZ() - m_zBig;
+
+    // Local extrapolation. CAUSES STABILITY PROBLEMS! Don't do it!
+    //advanced.updZ() += zErrEst; // Solution is now second-order.
+    //advanced.updU() += uErrEst;
+    //advanced.updQ() += qErrEst;
+    //system.realize(advanced, Stage::Position);
+    //system.prescribeU(advanced); // update prescribed u in case q-dependent
 
     // Consider position constraint projection. Note that we have to do this
     // projection prior to calculating prescribed u's since the prescription
