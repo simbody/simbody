@@ -295,6 +295,23 @@ void MultibodyGraphMaker::generateGraph() {
 
 
 //------------------------------------------------------------------------------
+//                              CLEAR GRAPH
+//------------------------------------------------------------------------------
+void MultibodyGraphMaker::clearGraph() {
+    for (int bn=1; bn < getNumBodies(); ++bn)   // skip Ground
+        updBody(bn).forgetGraph(*this);
+
+    for (int jn=0; jn < getNumJoints(); ++jn)
+        if (updJoint(jn).forgetGraph(*this)) {
+            --jn;
+            continue;
+        }
+
+    mobilizers.clear();
+    constraints.clear();
+}
+
+//------------------------------------------------------------------------------
 //                               DUMP GRAPH
 //------------------------------------------------------------------------------
 void MultibodyGraphMaker::dumpGraph(std::ostream& o) const {
@@ -701,6 +718,37 @@ bool MultibodyGraphMaker::bodiesAreConnected(int b1, int b2) const {
     return false;
 }
 
+//------------------------------------------------------------------------------
+//                         FORGET GRAPH
+//------------------------------------------------------------------------------
+// Restore the Body to its state prior to generateGraph()
+void MultibodyGraphMaker::Body::forgetGraph(MultibodyGraphMaker& graph)
+{
+    level = -1;
+    mobilizer = -1;
+    master = -1;
+    // Assumption: all slave bodies are appended after the user added
+    // bodies. So the removal of slave bodies won't affect the indices of 
+    // user added bodies.
+    for (unsigned int sn=0; sn < slaves.size(); ++sn) {
+        graph.deleteBody(graph.getBody(slaves[sn]).name);
+    }
+    slaves.clear();
+}
 
+//------------------------------------------------------------------------------
+//                         FORGET GRAPH
+//------------------------------------------------------------------------------
+// Restore the Joint to its state prior to generateGraph()
+bool MultibodyGraphMaker::Joint::forgetGraph(MultibodyGraphMaker& graph)
+{
+    if (isAddedBaseJoint) {
+        graph.deleteJoint(name);
+        return true;
+    }
+    mobilizer = -1;
+    loopConstraint = -1;
+    return false;
+}
 } // namespace SimTK
 

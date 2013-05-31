@@ -252,10 +252,10 @@ public:
         didn't exist. **/
     bool deleteJoint(const std::string& name);
 
-    /** Generate a new multibody graph from the input data. Clears the existing
-    graph first if there is one. Throws an std::exception if it fails, with a
-    message in the what() string. **/
+    /** Generate a new multibody graph from the input data. Throws an std::exception
+    if it fails, with a message in the what() string. **/
     void generateGraph();
+    void clearGraph();
 
     /** Output a text representation of the multibody graph for debugging. **/
     void dumpGraph(std::ostream& out) const;
@@ -401,6 +401,7 @@ public:
     :   name(name), mass(mass), mustBeBaseBody(mustBeBaseBody), 
         userRef(userRef), level(-1), mobilizer(-1), master(-1) {}
 
+    void forgetGraph(MultibodyGraphMaker& graph);
     int getNumFragments() const {return 1 + getNumSlaves();}
     int getNumSlaves() const {return (int)slaves.size();}
 	int getNumJoints() const {return jointsAsChild.size() + jointsAsParent.size();}
@@ -440,6 +441,10 @@ public:
         parentBodyNum(parentBodyNum), childBodyNum(childBodyNum),
         mustBeLoopJoint(mustBeLoopJoint), userRef(userRef),
         isAddedBaseJoint(false), mobilizer(-1), loopConstraint(-1) {}
+
+    /** Return true if the joint is deleted as a result of restoring it
+        to the state prior to generateGraph(). **/
+    bool forgetGraph(MultibodyGraphMaker& graph);
 
     // Only one of these will be true -- we don't consider it a LoopConstraint
     // if we split a body and weld it back.
