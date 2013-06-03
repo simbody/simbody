@@ -212,22 +212,51 @@ private:
 //------------------------------------------------------------------------------
 //                       MOBILITY CONSTANT FORCE IMPL
 //------------------------------------------------------------------------------
+// Hidden implementation class for a MobilityConstantForce force element.
 class Force::MobilityConstantForceImpl : public ForceImpl {
-public:
-    MobilityConstantForceImpl(const MobilizedBody& body, int coordinate, Real force);
-    MobilityConstantForceImpl* clone() const {
-        return new MobilityConstantForceImpl(*this);
+friend class MobilityConstantForce;
+
+    MobilityConstantForceImpl(const MobilizedBody&  mobod, 
+                              MobilizerUIndex       whichU, 
+                              Real                  defaultForce);
+
+    Real getForce(const State& state) const {
+        return Value<Real>::downcast
+           (getForceSubsystem().getDiscreteVariable(state, m_forceIx));
     }
-    bool dependsOnlyOnPositions() const {
-        return true;
+    Real& updForce(State& state) const {
+        return Value<Real>::updDowncast
+           (getForceSubsystem().updDiscreteVariable(state, m_forceIx));
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
-    Real calcPotentialEnergy(const State& state) const;
-private:
-    const SimbodyMatterSubsystem& matter;
-    const MobilizedBodyIndex body;
-    int coordinate;
-    Real force;
+
+    // Implementation of virtual methods from ForceImpl:
+
+    MobilityConstantForceImpl* clone() const OVERRIDE_11 
+    {   return new MobilityConstantForceImpl(*this); }
+    bool dependsOnlyOnPositions() const OVERRIDE_11 {return true;}
+
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const
+                   OVERRIDE_11;
+
+    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+
+    // Allocate the discrete state variable for the force. 
+    void realizeTopology(State& s) const OVERRIDE_11 {
+        m_forceIx = getForceSubsystem()
+            .allocateDiscreteVariable(s, Stage::Dynamics, 
+                                      new Value<Real>(m_defaultForce));
+    }
+
+//------------------------------------------------------------------------------
+    // TOPOLOGY STATE
+    const SimbodyMatterSubsystem&   m_matter;
+    const MobilizedBodyIndex        m_mobodIx;
+    const MobilizerUIndex           m_whichU;
+    Real                            m_defaultForce;
+
+    // TOPOLOGY CACHE (Set only once in realizeTopology(); const thereafter.)
+    mutable DiscreteVariableIndex   m_forceIx;
 };
 
 //------------------------------------------------------------------------------
