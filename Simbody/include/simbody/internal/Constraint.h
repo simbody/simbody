@@ -1233,36 +1233,71 @@ public:
     // CONSTANT SPEED //
     ////////////////////
 
-/**
- * One non-holonomic constraint equation. Some mobility u is required to be at a
- * particular value s.
- * 
- * The assembly condition is the same as the run-time constraint: u must be set to s.
- */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint
-{
+/** Constrain a single mobility to have a particular speed.
+
+One non-holonomic constraint equation. Some mobility u is required to be at a
+particular value s.
+ 
+The assembly condition is the same as the run-time constraint: u must be set
+to s. **/
+class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint {
 public:
     // no default constructor
     /** Construct a constant speed constraint on a particular mobility
     of the given mobilizer. **/
-    ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex, Real speed);
+    ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
+                  Real defaultSpeed);
     /** Construct a constant speed constraint on the mobility
     of the given mobilizer, assuming there is only one mobility. **/
-    ConstantSpeed(MobilizedBody& mobilizer, Real speed); 
+    ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed); 
 
-    // Stage::Topology
+    /** Return the index of the mobilized body to which this constant speed
+    constraint is being applied (to \e one of its mobilities). This is set on
+    construction of the %ConstantSpeed constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+    /** Return the particular mobility whose generalized speed is controlled by
+    this %ConstantSpeed constraint. This is set on construction. **/
     MobilizerUIndex    getWhichU() const;
+    /** Return the default value for the speed to be enforced. This is set on
+    construction or via setDefaultSpeed(). This is used to initialize the speed
+    when a default State is created, but it can be overriden by changing the
+    value in the State using setSpeed(). **/
     Real               getDefaultSpeed() const;
+    /** Change the default value for the speed to be enforced by this 
+    constraint. This is a topological change, meaning you'll have to call
+    realizeTopology() on the containing System and obtain a new State before
+    you can use it. If you just want to make a runtime change in the State,
+    see setSpeed(). **/
+    ConstantSpeed&     setDefaultSpeed(Real speed);
 
-    // Stage::Position, Velocity
-        // no position error
-    Real getVelocityError(const State&) const;
+    /** Override the default speed with this one whose value is stored in the
+    given State. This invalidates the Velocity stage in the state. Don't 
+    confuse this with setDefaultSpeed() -- the value set here overrides that
+    one. **/
+    void setSpeed(State& state, Real speed) const;
+    /** Get the current value of the speed set point from the indicated State.
+    This is the value currently in effect, either from the default or from a
+    previous call to setSpeed(). **/
+    Real getSpeed(const State& state) const;
+
+    // no position error
+
+    /** Return the amount by which the given State fails to satisfy this
+    %ConstantSpeed constraint. The \a state must already be realized through 
+    Stage::Velocity. **/
+    Real getVelocityError(const State& state) const;
 
     // Stage::Acceleration
-    Real getAccelerationError(const State&) const;
+    /** Return the amount by which the accelerations in the given State fail
+    to satify the time derivative of this constraint (which must be zero). 
+    The \a state must already be realized through Stage::Acceleration. **/
+    Real getAccelerationError(const State& state) const;
+    /** Get the value of the Lagrange multipler generated to satisfy this
+    constraint. For a %ConstantSpeed constraint, that is the same as the
+    generalized force although by convention constraint multipliers have the
+    opposite sign from applied forces. The \a state must already be realized 
+    through Stage::Acceleration.**/
     Real getMultiplier(const State&) const;
-    Real getGeneralizedForce(const State&) const;
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
@@ -1274,44 +1309,69 @@ public:
     // CONSTANT ACCELERATION //
     ///////////////////////////
 
-/**
- * One acceleration-only constraint equation. Some generalized acceleration
- * udot is required to be at a particular value a.
- * 
- * There is no assembly condition because this does not involve state
- * variables q or u, just u's time derivative udot.
- */
+/** Constrain a single mobility to have a particular acceleration.
+
+One acceleration-only constraint equation. Some generalized acceleration
+udot is required to be at a particular value a.
+
+There is no assembly condition because this does not involve state
+variables q or u, just u's time derivative udot. **/
 class SimTK_SIMBODY_EXPORT Constraint::ConstantAcceleration : public Constraint
 {
 public:
     // no default constructor
     /** Construct a constant acceleration constraint on a particular mobility
     of the given mobilizer. **/
-    ConstantAcceleration(MobilizedBody& mobilizer, MobilizerUIndex, 
+    ConstantAcceleration(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
                          Real defaultAcceleration);
     /** Construct a constant acceleration constraint on the mobility
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantAcceleration(MobilizedBody& mobilizer, 
                          Real defaultAcceleration);
 
-    // Stage::Topology
+    /** Return the index of the mobilized body to which this constant 
+    acceleration constraint is being applied (to \e one of its mobilities). 
+    This is set on construction of the %ConstantAcceleration constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+    /** Return the particular mobility whose generalized acceleration is 
+    controlled by this %ConstantAcceleration constraint. This is set on 
+    construction. **/
     MobilizerUIndex    getWhichU() const;
+    /** Return the default value for the acceleration to be enforced. This is 
+    set on construction or via setDefaultAcceleration(). This is used to 
+    initialize the acceleration when a default State is created, but it can be 
+    overriden by changing the value in the State using setAcceleration(). **/
     Real               getDefaultAcceleration() const;
+    /** Change the default value for the acceleration to be enforced by this 
+    constraint. This is a topological change, meaning you'll have to call
+    realizeTopology() on the containing System and obtain a new State before
+    you can use it. If you just want to make a runtime change in the State,
+    see setAcceleration(). **/
     ConstantAcceleration& setDefaultAcceleration(Real accel);
 
-    /** Override the default acceleration with this one. This invalidates
-    the Acceleration stage in the state. **/
+    /** Override the default acceleration with this one whose value is stored 
+    in the given State. This invalidates the Acceleration stage in the state. 
+    Don't confuse this with setDefaultAcceleration() -- the value set here 
+    overrides that one. **/
     void setAcceleration(State& state, Real accel) const;
+    /** Get the current value of the acceleration set point from the indicated 
+    State. This is the value currently in effect, either from the default or 
+    from a previous call to setAcceleration(). **/
     Real getAcceleration(const State& state) const;
 
-    // Stage::Position, Velocity
-        // no position or velocity error
+    // no position or velocity error
 
     // Stage::Acceleration
+    /** Return the amount by which the accelerations in the given State fail
+    to satify this constraint. The \a state must already be realized through 
+    Stage::Acceleration. **/
     Real getAccelerationError(const State&) const;
+    /** Get the value of the Lagrange multipler generated to satisfy this
+    constraint. For a %ConstantAcceleration constraint, that is the same as the
+    generalized force although by convention constraint multipliers have the
+    opposite sign from applied forces. The \a state must already be realized 
+    through Stage::Acceleration.**/
     Real getMultiplier(const State&) const;
-    Real getGeneralizedForce(const State&) const;
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS

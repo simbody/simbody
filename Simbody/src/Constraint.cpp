@@ -1856,7 +1856,8 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
 //==============================================================================
 //                         CONSTRAINT::CONSTANT SPEED
 //==============================================================================
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS
+   (Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint);
 
 // This picks one of the mobilities from a multiple-mobility mobilizer.
 Constraint::ConstantSpeed::ConstantSpeed
@@ -1864,37 +1865,59 @@ Constraint::ConstantSpeed::ConstantSpeed
   : Constraint(new ConstantSpeedImpl())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
-        "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
+        "Constraint::ConstantSpeed(): the mobilizer must already be"
+        " in a SimbodyMatterSubsystem.");
 
     mobilizer.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
     updImpl().whichMobility = whichU;
-    updImpl().prescribedSpeed = defaultSpeed;
+    updImpl().defaultSpeed = defaultSpeed;
 }
 
 // This is for mobilizers with only 1 mobility.
-Constraint::ConstantSpeed::ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed)
-  : Constraint(new ConstantSpeedImpl())
+Constraint::ConstantSpeed::ConstantSpeed
+   (MobilizedBody& mobilizer, Real defaultSpeed)
+:   Constraint(new ConstantSpeedImpl())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
-        "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
+        "Constraint::ConstantSpeed(): the mobilizer must already be"
+        " in a SimbodyMatterSubsystem.");
 
     mobilizer.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
     updImpl().whichMobility = MobilizerUIndex(0);
-    updImpl().prescribedSpeed = defaultSpeed;
+    updImpl().defaultSpeed = defaultSpeed;
 }
 
 MobilizedBodyIndex Constraint::ConstantSpeed::getMobilizedBodyIndex() const {
-    return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer(getImpl().theMobilizer);
+    return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer
+                                                    (getImpl().theMobilizer);
 }
 MobilizerUIndex Constraint::ConstantSpeed::getWhichU() const {
     return getImpl().whichMobility;
 }
+
 Real Constraint::ConstantSpeed::getDefaultSpeed() const {
-    return getImpl().prescribedSpeed;
+    return getImpl().defaultSpeed;
+}
+
+Constraint::ConstantSpeed& Constraint::ConstantSpeed::
+setDefaultSpeed(Real u) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultSpeed = u;
+    return *this;
+}
+
+void Constraint::ConstantSpeed::
+setSpeed(State& state, Real speed) const {
+    getImpl().updSpeed(state) = speed;
+}
+
+Real Constraint::ConstantSpeed::
+getSpeed(const State& state) const {
+    return getImpl().getSpeed(state);
 }
 
 Real Constraint::ConstantSpeed::getVelocityError(const State& s) const {
@@ -1917,8 +1940,28 @@ Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {
 
 
     // ConstantSpeedImpl
-    // nothing yet
 
+// Allocate a state variable to hold the desired speed.
+void Constraint::ConstantSpeedImpl::
+realizeTopologyVirtual(State& state) const {
+    ConstantSpeedImpl* mThis = // mutable momentarily
+        const_cast<ConstantSpeedImpl*>(this);
+    mThis->speedIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Velocity, 
+            new Value<Real>(defaultSpeed));
+}
+
+Real Constraint::ConstantSpeedImpl::
+getSpeed(const State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::downcast(matter.getDiscreteVariable(state,speedIx));
+}
+
+Real& Constraint::ConstantSpeedImpl::
+updSpeed(State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::updDowncast(matter.updDiscreteVariable(state,speedIx));
+}
 
 
 //==============================================================================
@@ -1963,7 +2006,7 @@ Constraint::ConstantAcceleration::ConstantAcceleration
 MobilizedBodyIndex Constraint::ConstantAcceleration::
 getMobilizedBodyIndex() const {
     return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer
-                                            (getImpl().theMobilizer);
+                                                    (getImpl().theMobilizer);
 }
 MobilizerUIndex Constraint::ConstantAcceleration::getWhichU() const {
     return getImpl().whichMobility;

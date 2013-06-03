@@ -2692,10 +2692,18 @@ class Constraint::ConstantSpeedImpl : public ConstraintImpl {
 public:
 ConstantSpeedImpl()
 :   ConstraintImpl(0,1,0), theMobilizer(), whichMobility(), 
-    prescribedSpeed(NaN){}
+    defaultSpeed(NaN){}
 
 ConstantSpeedImpl* clone() const 
 {   return new ConstantSpeedImpl(*this); }
+
+// Allocate a state variable to hold the desired speed.
+void realizeTopologyVirtual(State& state) const;
+// Obtain the currently-set desired speed from the state.
+Real getSpeed(const State& state) const;
+// Get a reference to the desired speed in the state; this 
+// invalidates Velocity stage in the supplied state.
+Real& updSpeed(State& state) const;
 
 // Implementation of virtuals required for nonholonomic constraints.
 
@@ -2714,7 +2722,7 @@ void calcVelocityErrorsVirtual
     // constrainedU's, but we're just going to grab one of them.
     assert(allV_AB.size()==0 && constrainedU.size()>=1 && verr.size()==1);
     const Real u = getOneU(s, constrainedU, theMobilizer, whichMobility);
-    verr[0] = u - prescribedSpeed;
+    verr[0] = u - getSpeed(s);
 }
 
 void calcVelocityDotErrorsVirtual      
@@ -2754,9 +2762,13 @@ SimTK_DOWNCAST(ConstantSpeedImpl, ConstraintImpl);
                                     private:
 friend class Constraint::ConstantSpeed;
 
+// TOPOLOGY STATE
 ConstrainedMobilizerIndex   theMobilizer;
 MobilizerUIndex             whichMobility;
-Real                        prescribedSpeed;
+Real                        defaultSpeed;
+
+// TOPOLOGY CACHE
+DiscreteVariableIndex       speedIx;
 };
 
 
