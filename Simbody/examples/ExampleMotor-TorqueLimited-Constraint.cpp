@@ -295,7 +295,7 @@ void MyMechanism::switchToSpeedControl(State& state) const {
     assert(!isSpeedControlEnabled(state));
     torqueController.disable(state);
     speedController.enable(state);
-    changeSpeed(state, speedController.getSpeed(state));
+    changeSpeed(state, getDesiredSpeed(state));
 }
 
 //------------------------------- CHANGE SPEED ---------------------------------
