@@ -31,7 +31,7 @@ using namespace SimTK;
 // 1. Implementing a rate-controlled but torque-limited motor using
 //    a pair of elements: a ConstantSpeed constraint when operating below the
 //    torque limit, and a MobilityConstantForce when operating at the limit.
-// 2. Changing desired motor speed externally from user input.
+// 2. Changing desired motor speed and torque limit externally from user input.
 // 3. Performing a momentum balance analysis so that discontinuous speed changes
 //    are made consistent with Newton's laws.
 // 4. Integrating with a small maximum step size, using just an Integrator
@@ -45,8 +45,9 @@ namespace {
 
 // Motor parameters.
 const Real MaxMotorSpeed      = 10; // rad/s
-const Real MaxMotorTorque     = 100; // N-m
+const Real MaxTorqueLimit     = 500; // N-m
 const Real InitialMotorSpeed  = 1;
+const Real InitialTorqueLimit = 100;
 
 // Joint stop material parameters.
 const Real StopStiffness = 10000; // stiffness in left joint stop
@@ -54,7 +55,8 @@ const Real StopDissipation = 0.5; // dissipation rate
 
 // Constants for the user interaction widgets.
 // Ids for the sliders.
-const int SliderIdMotorSpeed = 1, SliderIdTach = 2, SliderIdTorque = 3;
+const int SliderIdMotorSpeed = 1, SliderIdTorqueLimit = 2, 
+          SliderIdTach = 3, SliderIdTorque = 4; // these two are used for output
 // Ids for things on the Run Menu.
 const int MenuIdRun = 1;
 const int ResetItem=1, QuitItem=2;
@@ -81,6 +83,9 @@ public:
 
     Real getDesiredSpeed(const State& state) const 
     {   return speedController.getSpeed(state); }
+
+    Real getTorqueLimit(const State& state) const
+    {   return std::abs(torqueController.getForce(state)); }
 
     Real getActualSpeed(const State& state) const 
     {   return rtArm.getOneU(state, MobilizerUIndex(0)); }
@@ -111,6 +116,10 @@ public:
     // we'll generate an impulse to perform a discontinuous speed change while
     // conserving momentum.
     void changeSpeed(State& state, Real newSpeed) const;
+
+    // Change the maximum torque limit. If we're already running torque limited
+    // this will cause an immediate change to the torque being applied.
+    void changeTorqueLimit(State& state, Real newTorqueLimit) const;
 
     // Update the Visualizer, including the sliders.
     void draw(const State& state) const;
@@ -174,7 +183,7 @@ int main() {
 
     // Calculate the initial torque and disable constraint if too big.
     Real errPrev = -sign(mech.getMotorTorque(state)); // impending error
-    if (std::abs(mech.getMotorTorque(state)) > MaxMotorTorque)
+    if (std::abs(mech.getMotorTorque(state)) > mech.getTorqueLimit(state))
         mech.switchToTorqueControl(state);
 
     int stepsSinceViz = DrawEveryN-1;
@@ -193,7 +202,7 @@ int main() {
            // We're controlling speed with the constraint.
            const Real speedTrq = mech.getMotorTorque(state);
            errPrev = -sign(speedTrq); // impending error
-           if (std::abs(speedTrq) > MaxMotorTorque) {
+           if (std::abs(speedTrq) > mech.getTorqueLimit(state)) {
                 printf("SWITCH TO TORQUE CONTROL cuz speedTrq=%g\n", speedTrq);
                 mech.switchToTorqueControl(state);
            } 
@@ -225,9 +234,11 @@ int main() {
 
     printf("Used Integrator %s at accuracy %g:\n", 
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
-    printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+                                          integ.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+                                          integ.getNumProjections());
 
     } catch (const std::exception& e) {
         std::cout << "ERROR: " << e.what() << std::endl;
@@ -272,7 +283,8 @@ void MyMechanism::constructSystem() {
     speedController = Constraint::ConstantSpeed(rtArm, InitialMotorSpeed);
 
     // This is used when we're at the maximum torque.
-    torqueController = Force::MobilityConstantForce(forces, rtArm, MaxMotorTorque);
+    torqueController = Force::MobilityConstantForce(forces, rtArm, 
+                                                    InitialTorqueLimit);
     torqueController.setDisabledByDefault(true);
 
     // We're done with the System; finalize it.
@@ -285,7 +297,7 @@ void MyMechanism::switchToTorqueControl(State& state) const {
     const Real speedTrq = getMotorTorque(state);
     speedController.disable(state);
     torqueController.enable(state);
-    const Real maxTrq = sign(speedTrq)*MaxMotorTorque;
+    const Real maxTrq = sign(speedTrq)*getTorqueLimit(state);
     torqueController.setForce(state, maxTrq);
     system.realize(state, Stage::Velocity);
 }
@@ -330,6 +342,14 @@ void MyMechanism::changeSpeed(State& state, Real newSpeed) const {
 }
 
 
+//--------------------------- CHANGE TORQUE LIMIT ------------------------------
+void MyMechanism::changeTorqueLimit(State& state, Real newTorqueLimit) const {
+    const Real oldTorqueLimit = getTorqueLimit(state);
+    printf("Torque limit change: %g -> %g\n", oldTorqueLimit, newTorqueLimit);
+    torqueController.setForce(state, newTorqueLimit);
+}
+
+
 //---------------------------- PROCESS USER INPUT ------------------------------
 // Return true if it is time to quit.
 bool MyMechanism::processUserInput(State& state) const {
@@ -341,6 +361,9 @@ bool MyMechanism::processUserInput(State& state) const {
         case SliderIdMotorSpeed:
             // This will momentum balance if necessary.
             changeSpeed(state, newValue);
+            break;
+        case SliderIdTorqueLimit:
+            changeTorqueLimit(state, newValue);
             break;
         }
     }
@@ -356,6 +379,9 @@ bool MyMechanism::processUserInput(State& state) const {
             // Don't momentum balance here!
             speedController.setSpeed(state, 0);
             viz.setSliderValue(SliderIdMotorSpeed, 0);
+
+            torqueController.setForce(state, InitialTorqueLimit);
+            viz.setSliderValue(SliderIdTorqueLimit, InitialTorqueLimit);
 
             state.updQ() = 0; // all positions to zero
             state.updU() = 0; // all velocities to zero
@@ -400,8 +426,10 @@ void MyMechanism::setUpVisualizer() {
     // Add sliders.
     viz.addSlider("Motor speed", SliderIdMotorSpeed, 
                   -MaxMotorSpeed, MaxMotorSpeed, InitialMotorSpeed);
+    viz.addSlider("Torque limit", SliderIdTorqueLimit, 
+                  0, MaxTorqueLimit, InitialTorqueLimit);
     viz.addSlider("Tach",   SliderIdTach,   -MaxMotorSpeed,  MaxMotorSpeed,  0);
-    viz.addSlider("Torque", SliderIdTorque, -MaxMotorTorque, MaxMotorTorque, 0);
+    viz.addSlider("Torque", SliderIdTorque, -MaxTorqueLimit, MaxTorqueLimit, 0);
 
     // Add Run menu.
     Array_<std::pair<String,int> > runMenuItems;
