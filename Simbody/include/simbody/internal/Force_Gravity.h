@@ -152,6 +152,10 @@ Gravity(GeneralForceSubsystem&          forces,
         const SimbodyMatterSubsystem&   matter,
         const Vec3&                     gravity);
 
+    
+/** Default constructor creates an empty handle. **/
+Gravity() {}
+
 /** Set how the indicated body is to be treated by default. Normally all bodies
 except Ground are affected by this force element so you only need to call this
 if you want to exclude a body. This is a topological change since the flag will 

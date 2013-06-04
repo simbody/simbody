@@ -140,6 +140,10 @@ public:
                Real                          relaxationTime,
                int                           numExcludedDofs = 6);
 
+    
+    /// Default constructor creates an empty handle.
+    Thermostat() {}
+
     /// TODO: not implemented yet. Remove a body from consideration in
     /// the thermostat. Typically this would be the system base body so
     /// that overall rigid body translation and orientation is not counted

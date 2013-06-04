@@ -502,6 +502,9 @@ public:
     Rod(MobilizedBody& body1, const Vec3& defaultPoint1,
         MobilizedBody& body2, const Vec3& defaultPoint2,
         Real defaultLength=1);
+    
+    /** Default constructor creates an empty handle. **/
+    Rod() {}
 
     // Defaults for Instance variables.
     Rod& setDefaultPointOnBody1(const Vec3&);
@@ -550,6 +553,9 @@ public:
     // no default constructor
     PointInPlane(MobilizedBody& planeBody_B, const UnitVec3& defaultPlaneNormal_B, Real defaultHeight,
                  MobilizedBody& followerBody_F, const Vec3& defaultFollowerPoint_F);
+    
+    /** Default constructor creates an empty handle. **/
+    PointInPlane() {}
 
     // These affect only generated decorative geometry for visualization;
     // the plane is really infinite in extent with zero depth and the
@@ -607,6 +613,9 @@ public:
     // no default constructor
     PointOnLine(MobilizedBody& lineBody_B, const UnitVec3& defaultLineDirection_B, const Vec3& defaultPointOnLine_B,
                 MobilizedBody& followerBody_F, const Vec3& defaultFollowerPoint_F);
+    
+    /** Default constructor creates an empty handle. **/
+    PointOnLine() {}
 
     // These affect only generated decorative geometry for visualization;
     // the line is really infinite in extent and the
@@ -683,6 +692,9 @@ public:
     ConstantAngle(MobilizedBody& baseBody_B,     const UnitVec3& defaultAxis_B,
                   MobilizedBody& followerBody_F, const UnitVec3& defaultAxis_F, 
                   Real angle = Pi/2);
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantAngle() {}
 
     // These affect only generated decorative geometry for visualization.
     ConstantAngle& setAxisDisplayLength(Real);
@@ -753,6 +765,9 @@ public:
     those later in the State using setPointOnBody1() and setPointOnBody2(). **/
     Ball(MobilizedBody& body1, const Vec3& defaultPoint1,
          MobilizedBody& body2, const Vec3& defaultPoint2);
+
+    /** Default constructor creates an empty handle. **/
+    Ball() {}
 
     /** Change the station point on body 1 at which this %Constraint acts.
     Provide the station location in the body 1 local frame.
@@ -880,6 +895,9 @@ public:
     // no default constructor
     ConstantOrientation(MobilizedBody& baseBody_B,     const Rotation& defaultRB,
                         MobilizedBody& followerBody_F, const Rotation& defaultRF); 
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantOrientation() {}
 
     //TODO: default visualization geometry?
 
@@ -950,6 +968,9 @@ public:
     /// position and orientation of frame F relative to the body frame B.
     Weld(MobilizedBody& body1, const Transform& frame1,
          MobilizedBody& body2, const Transform& frame2);
+    
+    /** Default constructor creates an empty handle. **/
+    Weld() {}
 
         // Control over generated decorative geometry.
 
@@ -1036,6 +1057,9 @@ public:
     body to be the same body as one of the moving bodies. **/
     NoSlip1D(MobilizedBody& caseBodyC, const Vec3& P_C, const UnitVec3& n_C,
              MobilizedBody& movingBody0, MobilizedBody& movingBody1);
+    
+    /** Default constructor creates an empty handle. **/
+    NoSlip1D() {}
 
     /** Change the contact point at which this %Constraint acts.
     Provide the station location in the Case body local frame.
@@ -1180,6 +1204,9 @@ public:
                 MobilizedBody&  ballBody_B, 
                 const Vec3&     defaultBallCenter_B,
                 Real            defaultBallRadius);
+    
+    /** Default constructor creates an empty handle. **/
+    BallRollingOnPlane() {}
 
     // These affect only generated decorative geometry for visualization;
     // the plane is really infinite in extent with zero depth.
@@ -1250,6 +1277,9 @@ public:
     /** Construct a constant speed constraint on the mobility
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed); 
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantSpeed() {}
 
     /** Return the index of the mobilized body to which this constant speed
     constraint is being applied (to \e one of its mobilities). This is set on
@@ -1328,6 +1358,9 @@ public:
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantAcceleration(MobilizedBody& mobilizer, 
                          Real defaultAcceleration);
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantAcceleration() {}
 
     /** Return the index of the mobilized body to which this constant 
     acceleration constraint is being applied (to \e one of its mobilities). 
@@ -1427,12 +1460,15 @@ public:
      *      object, and deletes it when the Constraint itself is deleted.
      */
     explicit Custom(Implementation* implementation);
+
+    
+    /** Default constructor creates an empty handle. **/
+    Custom() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Constraint);
 protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();
-
-    Custom() {}
 };
 
 //==============================================================================
@@ -2310,7 +2346,9 @@ public:
             ArrayViewConst_<MobilizedBodyIndex>(coordBody),
             ArrayViewConst_<MobilizerQIndex>(coordIndex));
     }
-
+    
+    /** Default constructor creates an empty handle. **/
+    CoordinateCoupler() {}
 };
 
 
@@ -2413,6 +2451,9 @@ public:
                                 ArrayViewConst_<MobilizedBodyIndex>(coordBody),
                                 ArrayViewConst_<MobilizerQIndex>(coordIndex));
     }
+
+    /** Default constructor creates an empty handle. **/
+    SpeedCoupler() {}
 };
 
 
@@ -2447,6 +2488,10 @@ public:
                      const Function*            function, 
                      MobilizedBodyIndex         coordBody, 
                      MobilizerQIndex            coordIndex);
+
+    
+    /** Default constructor creates an empty handle. **/
+    PrescribedMotion() {}
 };
 
 

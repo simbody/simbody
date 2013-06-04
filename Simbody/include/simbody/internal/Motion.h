@@ -191,6 +191,9 @@ public:
      */
     Sinusoid(MobilizedBody& mobod, Motion::Level level,
              Real amplitude, Real rate, Real phase);
+  
+    /** Default constructor creates an empty handle. **/
+    Sinusoid() {}
 
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Sinusoid, SinusoidImpl, Motion);
 };
@@ -217,6 +220,9 @@ public:
      */
     template <int N> SimTK_SIMBODY_EXPORT 
     Steady(MobilizedBody& mobod, const Vec<N>& u); // instantiated in library
+    
+    /** Default constructor creates an empty handle. **/
+    Steady() {}
 
     Steady& setDefaultRate(Real u);
     Steady& setOneDefaultRate(UIndex, Real u);
@@ -277,6 +283,10 @@ public:
      *                       itself is deleted.
      */
     Custom(MobilizedBody& mobod, Implementation* implementation);
+
+    /** Default constructor creates an empty handle. **/
+    Custom() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Motion);
 protected:
     const Implementation& getImplementation() const;

@@ -232,6 +232,10 @@ public:
      * @param x0         the distance at which the force is 0
      */
     TwoPointLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real k, Real x0);
+    
+    /** Default constructor creates an empty handle. **/
+    TwoPointLinearSpring() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearSpring, TwoPointLinearSpringImpl, Force);
 };
 
@@ -260,6 +264,10 @@ public:
      * @param damping    the damping constant
      */
     TwoPointLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real damping);
+    
+    /** Default constructor creates an empty handle. **/
+    TwoPointLinearDamper() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearDamper, TwoPointLinearDamperImpl, Force);
 };
 
@@ -287,6 +295,10 @@ public:
      * @param force      the magnitude of the force to apply
      */
     TwoPointConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real force);
+    
+    /** Default constructor creates an empty handle. **/
+    TwoPointConstantForce() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointConstantForce, TwoPointConstantForceImpl, Force);
 };
 
@@ -313,6 +325,10 @@ public:
      * @param q0         the value of the coordinate at which the force is 0
      */
     MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real k, Real q0);
+    
+    /** Default constructor creates an empty handle. **/
+    MobilityLinearSpring() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearSpring, MobilityLinearSpringImpl, Force);
 };
 
@@ -337,6 +353,10 @@ public:
      * @param damping    the damping constant
      */
     MobilityLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real damping);
+    
+    /** Default constructor creates an empty handle. **/
+    MobilityLinearDamper() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearDamper, MobilityLinearDamperImpl, Force);
 };
 
@@ -371,6 +391,9 @@ public:
         new(this) MobilityConstantForce(forces, mobod, MobilizerUIndex(0),
                                         defaultForce);
     }
+
+    /** Default constructor creates an empty handle. **/
+    MobilityConstantForce() {}
 
     /** Provide a new value for the default generalied force to be applied by
     this force element. This is a topological change because it affects the 
@@ -489,6 +512,9 @@ public:
                        Real                      defaultDissipation,
                        Real                      defaultQLow =-Infinity,
                        Real                      defaultQHigh= Infinity);
+    
+    /** Default constructor creates an empty handle. **/
+    MobilityLinearStop() {}
 
     /** Provide new values for the default lower and upper bounds of this stop. 
     This is a topological change because it affects the value that the 
@@ -662,6 +688,9 @@ public:
         new(this) MobilityDiscreteForce(forces, mobod, MobilizerUIndex(0),
                                         defaultForce);
     }
+    
+    /** Default constructor creates an empty handle. **/
+    MobilityDiscreteForce() {}
 
     /** Provide a new value for the \a defaultForce, overriding the one 
     provided in the constructor. This is a topological change because it
@@ -715,6 +744,10 @@ public:
     **/
     DiscreteForces(GeneralForceSubsystem&           forces, 
                    const SimbodyMatterSubsystem&    matter);
+
+    
+    /** Default constructor creates an empty handle. **/
+    DiscreteForces() {}
 
     /** Set to zero all forces stored by this force element in the given 
     \a state, including both generalized forces and body spatial forces. **/
@@ -850,6 +883,10 @@ public:
 class SimTK_SIMBODY_EXPORT Force::ConstantForce: public Force {
 public:
     ConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& station, const Vec3& force);
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantForce() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantForce, ConstantForceImpl, Force);
 };
 
@@ -863,6 +900,10 @@ public:
 class SimTK_SIMBODY_EXPORT Force::ConstantTorque: public Force {
 public:
     ConstantTorque(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& torque);
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantTorque() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantTorque, ConstantTorqueImpl, Force);
 };
 
@@ -883,6 +924,10 @@ public:
 class SimTK_SIMBODY_EXPORT Force::GlobalDamper : public Force {
 public:
     GlobalDamper(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, Real damping);
+    
+    /** Default constructor creates an empty handle. **/
+    GlobalDamper() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(GlobalDamper, GlobalDamperImpl, Force);
 };
 
@@ -895,6 +940,10 @@ public:
 class SimTK_SIMBODY_EXPORT Force::UniformGravity : public Force {
 public:
     UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight=0);
+    
+    /** Default constructor creates an empty handle. **/
+    UniformGravity() {}
+
     Vec3 getGravity() const;
     void setGravity(const Vec3& g);
     Real getZeroHeight() const;
@@ -1069,6 +1118,9 @@ public:
      *                       is deleted.
      */
     Custom(GeneralForceSubsystem& forces, Implementation* implementation);
+    
+    /** Default constructor creates an empty handle. **/
+    Custom() {}
 
     /** @cond **/ // don't let Doxygen see this
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Force);
