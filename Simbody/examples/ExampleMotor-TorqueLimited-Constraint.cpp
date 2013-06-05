@@ -377,9 +377,13 @@ bool MyMechanism::processUserInput(State& state) const {
             // Don't momentum balance here!
             speedController.setSpeed(state, 0);
             viz.setSliderValue(SliderIdMotorSpeed, 0);
+            viz.setSliderValue(SliderIdTach, 0);
 
             torqueController.setForce(state, InitialTorqueLimit);
             viz.setSliderValue(SliderIdTorqueLimit, InitialTorqueLimit);
+            viz.setSliderRange(SliderIdTorque, -InitialTorqueLimit, 
+                                                InitialTorqueLimit); 
+            viz.setSliderValue(SliderIdTorque, 0);
 
             state.updQ() = 0; // all positions to zero
             state.updU() = 0; // all velocities to zero
