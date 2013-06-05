@@ -182,7 +182,6 @@ int main() {
     State& state = integ.updAdvancedState();
 
     // Calculate the initial torque and disable constraint if too big.
-    Real errPrev = -sign(mech.getMotorTorque(state)); // impending error
     if (std::abs(mech.getMotorTorque(state)) > mech.getTorqueLimit(state))
         mech.switchToTorqueControl(state);
 
@@ -198,24 +197,22 @@ int main() {
         // state at the end of each step.
         integ.stepBy(MaxStepSize);
 
+        const Real trqNow = mech.getMotorTorque(state);
         if (mech.isSpeedControlEnabled(state)) {
            // We're controlling speed with the constraint.
-           const Real speedTrq = mech.getMotorTorque(state);
-           errPrev = -sign(speedTrq); // impending error
-           if (std::abs(speedTrq) > mech.getTorqueLimit(state)) {
-                printf("SWITCH TO TORQUE CONTROL cuz speedTrq=%g\n", speedTrq);
+           if (std::abs(trqNow) > mech.getTorqueLimit(state)) {
+                printf("SWITCH TO TORQUE CONTROL cuz speedTrq=%g\n", trqNow);
                 mech.switchToTorqueControl(state);
            } 
         } else { 
-            // We're at the torque limit.
+            // We're at the torque limit. When there is no more slip, or if
+            // the slip direction has reversed and is now the same as the 
+            // applied torque direction, switch back to speed control.
             const Real errNow = mech.getSpeedError(state);
-            if (std::abs(errNow) <= 1e-6 || errNow * errPrev < 0) {
-                printf("SWITCH TO SPEED CONTROL cuz errNow=%g, errPrev=%g\n",
-                    errNow, errPrev);
+            if (std::abs(errNow) <= 1e-6 || errNow * trqNow > 0) {
+                printf("SWITCH TO SPEED CONTROL cuz errNow=%g, trqNow=%g\n",
+                    errNow, trqNow);
                 mech.switchToSpeedControl(state);
-                errPrev = -sign(mech.getMotorTorque(state));
-            } else {
-                errPrev = errNow;
             }
         }
 
@@ -364,6 +361,7 @@ bool MyMechanism::processUserInput(State& state) const {
             break;
         case SliderIdTorqueLimit:
             changeTorqueLimit(state, newValue);
+            viz.setSliderRange(SliderIdTorque, -newValue, newValue); 
             break;
         }
     }
