@@ -312,16 +312,11 @@ private:
 class ScreenText {
 public:
     ScreenText(const string& txt) 
-    :   text(txt)  {
-        //this->color[0] = color[0];
-        //this->color[1] = color[1];
-        //this->color[2] = color[2];
-    }
+    :   text(txt) {}
 
-    const char* getText() {return text.c_str();}
+    const string& getString() const {return text;}
 
 private:
-    //GLfloat color[3];
     string text;
 };
 
@@ -1377,7 +1372,7 @@ static void drawGroundAndSky(float farClipDistance) {
 /*==============================================================================
                                RENDER SCENE
 ==============================================================================*/
-static void renderScene() {
+static void renderScene(std::vector<std::string>* screenText = NULL) {
     static bool firstTime = true;
     static GLfloat prevNearClip; // initialize to near & farClip
     static GLfloat prevFarClip;
@@ -1481,6 +1476,13 @@ static void renderScene() {
             fpsCounter = 0;
         }
 
+        // Extract the scene text if requested. This will get displayed
+        // later but must be copied out now since the scene will get
+        // overwritten once we say it has been drawn.
+        if (screenText != NULL)
+            for (int i = 0; i < (int)scene->screenText.size(); ++i)
+                screenText->push_back(scene->screenText[i].getString());
+
         scene->sceneHasBeenDrawn = true;
     }
 
@@ -1512,9 +1514,10 @@ static void redrawDisplay() {
         writeImage(filename.str());
     }
 
-    // Render the scene.
+    // Render the scene and extract the screen text.
     // ------------------------------------------------------------
-    renderScene();
+    std::vector<string> screenText;
+    renderScene(&screenText);
 
     // Draw menus.
     // ------------------------------------------------------------
@@ -1573,19 +1576,13 @@ static void redrawDisplay() {
         nextLine += lineHeight;
     }
 
-    // User input screen text
-    if (scene != NULL) {
-        for (int i=0; i<(int)scene->screenText.size(); ++i)
-        {
-            glRasterPos2f(10, nextLine);
-            for (const char* p = scene->screenText[i].getText(); *p; ++p)
-                glutBitmapCharacter(font, *p);
-            nextLine += lineHeight;
-        }
+    // User specified screen text
+    for (int i=0; i<(int)screenText.size(); ++i) {
+        glRasterPos2f(10, nextLine);
+        for (const char* p = screenText[i].c_str(); *p; ++p)
+            glutBitmapCharacter(font, *p);
+        nextLine += lineHeight;
     }
-
-
-
 
     // Draw a message overlay 
     // (center box, with text left justified in box).
