@@ -430,8 +430,10 @@ void MyMechanism::setUpVisualizer() {
                   -MaxMotorSpeed, MaxMotorSpeed, InitialMotorSpeed);
     viz.addSlider("Torque limit", SliderIdTorqueLimit, 
                   0, MaxTorqueLimit, InitialTorqueLimit);
-    viz.addSlider("Tach",   SliderIdTach,   -MaxMotorSpeed,  MaxMotorSpeed,  0);
-    viz.addSlider("Torque", SliderIdTorque, -MaxTorqueLimit, MaxTorqueLimit, 0);
+    viz.addSlider("Tach",   SliderIdTach,   
+                  -MaxMotorSpeed,  MaxMotorSpeed,  0);
+    viz.addSlider("Torque", SliderIdTorque, 
+                  -InitialTorqueLimit, InitialTorqueLimit, 0);
 
     // Add Run menu.
     Array_<std::pair<String,int> > runMenuItems;
