@@ -200,6 +200,27 @@ Visualizer& operator=(const Visualizer& src);
 destroyed here when the last reference is deleted. **/
 ~Visualizer();
 
+/** Ask the VisualizerGUI to shut itself down immediately. This will cause the
+display window to close and the associated process to die. This method returns
+immediately but it may be some time later when the VisualizerGUI acts on the
+instruction; there is no way to wait for it to die. Normally the VisualizerGUI
+will persist even after the death of the simulator connection unless you have
+called setShutdownWhenDestructed() to make shutdown() get called automatically.
+@see setShutdownWhenDestructed() **/
+void shutdown();
+
+/** Set the flag that determines whether we will automatically send a Shutdown
+message to the VisualizerGUI when this %Visualizer object is destructed. 
+Normally we allow the GUI to persist even after death of the simulator
+connection, unless an explicit call to shutdown() is made. 
+@see getShutdownWhenDestructed(), shutdown() **/
+Visualizer& setShutdownWhenDestructed(bool shouldShutdown);
+
+/** Return the current setting of the "shutdown when destructed" flag. By 
+default this is false.
+@see setShutdownWhenDestructed(), shutdown() **/
+bool getShutdownWhenDestructed() const;
+
 /** These are the operating modes for the Visualizer, with PassThrough the 
 default mode. See the documentation for the Visualizer class for more
 information about the modes. **/

@@ -100,7 +100,7 @@ public:
     Impl(Visualizer* owner, const MultibodySystem& system,
          const Array_<String>& searchPath) 
     :   m_system(system), m_protocol(*owner, searchPath),
-        m_upDirection(YAxis), m_groundHeight(0),
+        m_shutdownWhenDestructed(false), m_upDirection(YAxis), m_groundHeight(0),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
         m_simTimeUnitsPerSec(1), 
         m_desiredBufferLengthInSec(DefaultDesiredBufferLengthInSec), 
@@ -143,7 +143,16 @@ public:
         pthread_cond_destroy(&m_queueNotEmpty);
         pthread_cond_destroy(&m_queueNotFull);
         pthread_mutex_destroy(&m_queueLock);
+
+        if (m_shutdownWhenDestructed)
+            m_protocol.shutdownGUI();
     }
+
+    void setShutdownWhenDestructed(bool shouldShutdown)
+    {   m_shutdownWhenDestructed = shouldShutdown; }
+
+    bool getShutdownWhenDestructed() const
+    {   return m_shutdownWhenDestructed; }
 
     // Call from simulation thread.
     void startDrawThread() {
@@ -456,6 +465,7 @@ public:
 
     const MultibodySystem&                  m_system;
     VisualizerProtocol                      m_protocol;
+    bool                                    m_shutdownWhenDestructed;
 
     Array_<DecorativeGeometry>              m_addedGeometry;
     Array_<RubberBandLine>                  m_lines;
@@ -799,6 +809,15 @@ Visualizer::~Visualizer() {
     if (impl && impl->decrRefCount()==0)
         delete impl;
 }
+
+void Visualizer::shutdown() 
+{   updImpl().m_protocol.shutdownGUI(); }
+
+Visualizer& Visualizer::setShutdownWhenDestructed(bool shouldShutdown)
+{   updImpl().setShutdownWhenDestructed(shouldShutdown); return *this; }
+
+bool Visualizer::getShutdownWhenDestructed() const
+{   return getImpl().getShutdownWhenDestructed(); }
 
 int Visualizer::getRefCount() const
 {   return impl ? impl->getRefCount() : 0; }

@@ -38,7 +38,7 @@ using namespace SimTK;
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 31;
+static const unsigned ProtocolVersion   = 32;
 
 // The VisualizerGUI has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -86,6 +86,7 @@ static const unsigned char SetBackgroundType     = 26;
 static const unsigned char SetShowFrameRate      = 27;
 static const unsigned char SetShowSimTime        = 28;
 static const unsigned char SetShowFrameNumber    = 29;
+static const unsigned char Shutdown              = 30;
 
 
 // Events sent from the GUI back to the application.
@@ -103,6 +104,7 @@ public:
     VisualizerProtocol(Visualizer& visualizer,
                        const Array_<String>& searchPath);
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
+    void shutdownGUI();
     void beginScene(Real simTime);
     void finishScene();
     void drawBox(const Transform& transform, const Vec3& scale, 

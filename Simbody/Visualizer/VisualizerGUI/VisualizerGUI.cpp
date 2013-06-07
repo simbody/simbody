@@ -90,6 +90,7 @@ static bool initGlextFuncPointersIfNeeded(bool& canSaveImages);
 static void redrawDisplay();
 static void setKeepAlive(bool enable);
 static void setVsync(bool enable);
+static void shutdown();
 
 // Next, get the functions necessary for reading from and writing to pipes.
 #ifdef _WIN32
@@ -2008,6 +2009,10 @@ static Scene* readNewScene() {
 
         switch (command) {
 
+        case Shutdown:
+            shutdown(); // doesn't return
+            break;
+
         case EndOfScene:
             finished = true;
             break;
@@ -2414,6 +2419,10 @@ void* listenForInput(void* args) {
             break;
         }
 
+        case Shutdown:
+            shutdown(); // doesn't return
+            break;
+
         default:
             SimTK_ERRCHK1_ALWAYS(!"unrecognized command", "listenForInput()",
                 "Unexpected command %u received from VisualizerGUI. Can't continue.",
@@ -2632,6 +2641,7 @@ static void setVsync(bool enable) {
 #endif
 }
 
+
 // This is executed from the main thread at startup.
 static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
     unsigned char handshakeCommand;
@@ -2667,6 +2677,12 @@ static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
 
     WRITE(outPipe, &ReturnHandshake, 1);
     WRITE(outPipe, &ProtocolVersion, sizeof(unsigned));
+}
+
+// Received Shutdown message from simulator. Die immediately.
+static void shutdown() {
+    printf("\nVisualizerGUI: received Shutdown message. Goodbye.\n");
+    exit(0);
 }
 
 int main(int argc, char** argv) {

@@ -310,6 +310,11 @@ void VisualizerProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
     // Handshake was successful.
 }
 
+void VisualizerProtocol::shutdownGUI() {
+    // Don't wait for scene completion; kill GUI now.
+    char command = Shutdown;
+    WRITE(outPipe, &command, 1);
+}
 
 void VisualizerProtocol::beginScene(Real time) {
     pthread_mutex_lock(&sceneLock);
