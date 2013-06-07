@@ -533,7 +533,7 @@ void errChk(const char* methodName) const {
     const Real Ixx = d[0], Iyy = d[1], Izz = d[2];
     const Real Ixy = p[0], Ixz = p[1], Iyz = p[2];
 
-    SimTK_ERRCHK3(d >= 0, methodName,
+    SimTK_ERRCHK3(d >= -SignificantReal, methodName,
         "Diagonals of an Inertia matrix must be nonnegative; got %g,%g,%g.",
         (double)Ixx,(double)Iyy,(double)Izz);
 
