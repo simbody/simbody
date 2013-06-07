@@ -749,6 +749,7 @@ public:
     unsigned short meshIndex, resolution;
 };
 
+// Caution -- make sure scene is locked before you call this function.
 static void computeSceneBounds(const Scene* scene, float& radius, fVec3& center) {
     // Record the bounding sphere of every object in the scene.
 
@@ -812,11 +813,15 @@ static void computeSceneBounds(const Scene* scene, float& radius, fVec3& center)
     }
 }
 
-static void zoomCameraToShowWholeScene() {
+static void zoomCameraToShowWholeScene(bool sceneAlreadyLocked=false) {
     float radius;
     fVec3 center;
+    if (!sceneAlreadyLocked)
+        pthread_mutex_lock(&sceneLock);         //-------- LOCK SCENE --------
     computeSceneBounds(scene, radius, center);
-    float viewDistance = 
+    if (!sceneAlreadyLocked)
+        pthread_mutex_unlock(&sceneLock);       //----- UNLOCK SCENE ---------
+   float viewDistance = 
         radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
     // Back up 1 unit more to make sure we don't clip at this position.
     // Also add a modest offset in the (x,y) direction to avoid edge-on views.
@@ -832,7 +837,7 @@ static void zoomCameraToShowWholeScene() {
 class PendingCameraZoom : public PendingCommand {
 public:
     void execute() {
-        zoomCameraToShowWholeScene();
+        zoomCameraToShowWholeScene(true); // scene already locked
     }
 };
 
@@ -1415,6 +1420,7 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
         glViewport(0, 0, viewWidth, viewHeight);
         float sceneRadius;
         fVec3 sceneCenter;
+        // Scene is already locked so OK to call this.
         computeSceneBounds(scene, sceneRadius, sceneCenter);
         float sceneScale = std::max(0.1f, sceneRadius);
 
@@ -1655,7 +1661,9 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 
     float radius;
     fVec3 sceneCenter;
+    pthread_mutex_lock(&sceneLock);         //-------- LOCK SCENE --------
     computeSceneBounds(scene, radius, sceneCenter);
+    pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
     sceneScale = std::max(radius, 0.1f);
 
     // "state" (pressed/released) is irrelevant for mouse wheel. However, if
