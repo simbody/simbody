@@ -423,8 +423,9 @@ private:
 
 //----------------------------- SET UP VISUALIZER ------------------------------
 void MyMechanism::setUpVisualizer() {
-    viz.setBackgroundType(Visualizer::SolidColor); // turn off Ground & Sky
-    
+    viz.setShutdownWhenDestructed(true) // make sure display window dies
+       .setBackgroundType(Visualizer::SolidColor); // turn off Ground & Sky
+
     // Add sliders.
     viz.addSlider("Motor speed", SliderIdMotorSpeed, 
                   -MaxMotorSpeed, MaxMotorSpeed, InitialMotorSpeed);
