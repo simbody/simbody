@@ -43,6 +43,10 @@ What this example demonstrates
    those events by making state changes before resuming integration.
 6. Creating sliders, menus, and screen text in the Visualizer.
 
+Compare this with ExampleMotor-TorqueLimited-Controller to see the same 
+system implemented with simpler logic, using a Custom force element with a 
+controller rather than a Constraint.
+
 The advantages of using an intermittent constraint to implement this motor are: 
 (1) fast execution time and (2) perfect speed tracking while the constraint is 
 enabled. The primary disadvantage is coding the logic needed for making the 
@@ -69,15 +73,23 @@ to each small integration step:
    change to the desired speed always changes us to torque control until the
    speed change has been achieved.
 
-Alternative strategy
---------------------
-Because we're checking for events only between steps, our choice of step size
+Alternative strategies
+----------------------
+1. Because we're checking for events only between steps, our choice of step size
 here limits how accurately we can isolate the transition events between speed- 
 and torque-control modes, requiring a small maximum step size for good event
 isolation. An alternative strategy is to let the integrator take whatever steps 
 it wants but use a TimeStepper and event witness functions to automatically
 isolate events when they occur. That would allow much larger steps and better
 event isolation.
+2. A simpler implementation is to use only a force element to implement the 
+motor, with a controller to generate the appropriate output torque to track a
+desired speed, with a limit set. This method is illustrated in the companion
+Simbody example ExampleMotor-TorqueLimited-Controller. This eliminates the need 
+for any constraint-switching logic so makes for a simpler flow of control. 
+However, depending on the control gains it may fail to track the desired speed 
+well, or may make the problem stiff causing the integrator to require smaller 
+time steps.
 */
 
 namespace {     // Use anonymous namespace to keep global symbols private.
@@ -459,14 +471,14 @@ bool MyMechanism::processUserInput(State& state) const {
         if (whichItem == ResetItem) {
             // Don't momentum balance here!
             m_speedController.setSpeed(state, 0);
-            m_viz.setSliderValue(SliderIdMotorSpeed, 0);
-            m_viz.setSliderValue(SliderIdTach, 0);
+            m_viz.setSliderValue(SliderIdMotorSpeed, 0)
+                 .setSliderValue(SliderIdTach, 0);
 
             m_torqueController.setForce(state, InitialTorqueLimit);
-            m_viz.setSliderValue(SliderIdTorqueLimit, InitialTorqueLimit);
-            m_viz.setSliderRange(SliderIdTorque, -InitialTorqueLimit, 
-                                                  InitialTorqueLimit); 
-            m_viz.setSliderValue(SliderIdTorque, 0);
+            m_viz.setSliderValue(SliderIdTorqueLimit, InitialTorqueLimit)
+                 .setSliderRange(SliderIdTorque, -InitialTorqueLimit, 
+                                                  InitialTorqueLimit) 
+                 .setSliderValue(SliderIdTorque, 0);
 
             state.updQ() = 0; // all positions to zero
             state.updU() = 0; // all velocities to zero
@@ -548,7 +560,7 @@ void MyMechanism::draw(const State& state) const {
 namespace {
 void dumpIntegratorStats(const Integrator& integ) {
     const int evals = integ.getNumRealizations();
-    std::cout << "Done -- simulated " << integ.getTime() << "s with " 
+    std::cout << "\nDone -- simulated " << integ.getTime() << "s with " 
             << integ.getNumStepsTaken() << " steps, avg step=" 
         << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
         << (1000*integ.getTime())/evals << "ms/eval\n";
@@ -562,3 +574,4 @@ void dumpIntegratorStats(const Integrator& integ) {
                                           integ.getNumProjections());
 }
 }
+
