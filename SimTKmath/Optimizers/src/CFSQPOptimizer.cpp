@@ -21,8 +21,6 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-
-
 #include "CFSQPOptimizer.h"
 #include <string>
 
@@ -195,26 +193,19 @@ optimize(Vector &results)
 
     int nx = sys.getNumParameters();
 
-	double *bl = new double[nx];
-	double *bu = new double[nx];
-	double *x  = new double[nx];
+	double *bl, *bu;
 	if(sys.getHasLimits()) {
-        Real *rbl, *rbu;
-		sys.getParameterLimits(&rbl,&rbu);
-		for(int i=0; i<nx; i++) {
-			bl[i] = (double)rbl[i];
-			bu[i] = (double)rbu[i];
-		}
+		sys.getParameterLimits(&bl,&bu);
 	} else {
+		bl = new double[nx];
+		bu = new double[nx];
 		for(int i=0; i<nx; i++) {
 			bl[i] = -_infinity;
 			bu[i] =  _infinity;
 		}
 	}
 
-	for(int i=0; i<nx; i++)
-		x[i] = (double)results[i];
-
+    double *x = &results[0];
     int numObjectiveFunctions = 1;
 
 	// Clear cache before starting optimization (used to speed up constraint computations)
@@ -228,12 +219,10 @@ optimize(Vector &results)
 		_mode,diagnosticsLevel,maxIterations,&_inform,_infinity,convergenceTolerance,_epseqn,_udelta,
 		bl,bu,x,_p,_c,_lambda,pFunc,cFunc,dpdxFunc,dcdxFunc,(void *)this);
 
-	for(int i=0; i<nx; i++)
-		results[i] = Real(x[i]);
-
-    delete[] x;
-	delete[] bu;
-	delete[] bl;
+	if(!getOptimizerSystem().getHasLimits()) {
+		delete[] bl;
+		delete[] bu;
+	}
 
     if(diagnosticsLevel > 0) PrintInform(_inform,std::cout);
     
@@ -243,7 +232,7 @@ optimize(Vector &results)
         SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf));
     }
 
-    return Real(*_p);
+    return *_p;
 }
 
 //=============================================================================
@@ -258,7 +247,7 @@ pFunc(int nparam,int j,double *x,double *p,void *cd)
 {
     CFSQPOptimizer *cfsqp = (CFSQPOptimizer *)cd;
     int nx=cfsqp->getOptimizerSystem().getNumParameters();
-    cfsqp->getOptimizerSystem().objectiveFunc(Vector(nx,x,true),true,Real(*p));
+    cfsqp->getOptimizerSystem().objectiveFunc(Vector(nx,x,true),true,*p);
 }
 //______________________________________________________________________________
 /**
@@ -445,3 +434,4 @@ computeConstraintGradient(const SimTK::Vector &x, const bool new_coefficients, S
 }
 
 #endif
+
