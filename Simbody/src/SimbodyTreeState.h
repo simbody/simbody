@@ -733,7 +733,7 @@ public:
         bodySpatialInertiaInGround[GroundIndex].setUnitInertia(UnitInertia(Infinity));
 
         bodyCOMInGround.resize(nBodies);             
-        bodyCOMInGround[GroundIndex] = 0.;
+        bodyCOMInGround[GroundIndex] = Vec3(0);
 
         constrainedBodyConfigInAncestor.resize(nacb);
     }

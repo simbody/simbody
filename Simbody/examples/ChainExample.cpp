@@ -180,7 +180,7 @@ public:
                     continue;
                 }
                 Vec3 gdir = m_gravity.getDownDirection(state);
-                Real remaining = std::sqrt(std::max(0., 1-square(sliderValue)));
+                Real remaining = std::sqrt(std::max(Real(0), 1-square(sliderValue)));
                 CoordinateAxis axis = CoordinateAxis(whichSlider-GravityX);
                 CoordinateAxis prev = axis.getPreviousAxis();
                 CoordinateAxis next = axis.getNextAxis();
@@ -217,9 +217,9 @@ int main() {
     Force::GlobalDamper(forces, matter, 7);
     Body::Rigid pendulumBody[2]; // solid, translucent
     pendulumBody[0].setDefaultRigidBodyMassProperties(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody[0].addDecoration(Transform(), DecorativeSphere(0.49).setOpacity(1));
+    pendulumBody[0].addDecoration(Transform(), DecorativeSphere(Real(0.49)).setOpacity(1));
     pendulumBody[1].setDefaultRigidBodyMassProperties(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody[1].addDecoration(Transform(), DecorativeSphere(0.49).setOpacity(.5));
+    pendulumBody[1].addDecoration(Transform(), DecorativeSphere(Real(0.49)).setOpacity(.5));
     MobilizedBody lastBody = matter.Ground();
     for (int i = 0; i < NBodies; ++i) {
         MobilizedBody::Ball pendulum(lastBody, Transform(Vec3(0)), 
@@ -268,7 +268,7 @@ int main() {
     viz.setCameraTransform(Vec3(0,NBodies/4,2*NBodies)); 
 
     system.addEventHandler
-       (new UserInputHandler(viz,*silo, gravity, 0.1)); // check input every 100ms
+       (new UserInputHandler(viz,*silo, gravity, Real(0.1))); // check input every 100ms
 
     // Report visualization frames.
     Visualizer::Reporter* vr = new Visualizer::Reporter(viz, TimeScale/FrameRate);
@@ -312,7 +312,7 @@ int main() {
     RungeKuttaMersonIntegrator integ(system);
     //RungeKuttaFeldbergIntegrator integ(system);
     //CPodesIntegrator integ(system);
-    integ.setAccuracy(1e-2);
+    integ.setAccuracy(Real(1e-2));
     TimeStepper ts(system, integ);
     ts.initialize(state);
 

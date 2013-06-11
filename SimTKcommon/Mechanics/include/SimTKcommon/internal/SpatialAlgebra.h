@@ -689,7 +689,7 @@ public:
     PhiMatrix() { setToNaN(); }
     PhiMatrix(const Vec3& l) : l_(l) {}
 
-    void setToZero() { l_ = 0.; }
+    void setToZero() { l_ = 0; }
     void setToNaN()  { l_.setToNaN(); }
 
     SpatialMat toSpatialMat() const {

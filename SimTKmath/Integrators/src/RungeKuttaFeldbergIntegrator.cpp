@@ -57,47 +57,53 @@ RungeKuttaFeldbergIntegrator::~RungeKuttaFeldbergIntegrator() {
 //                   RUNGE KUTTA FELDBERG INTEGRATOR REP
 //------------------------------------------------------------------------------
 
-RungeKuttaFeldbergIntegratorRep::RungeKuttaFeldbergIntegratorRep(Integrator* handle, const System& sys) : AbstractIntegratorRep(handle, sys, 5, 5, "RungeKuttaFeldberg",  true) {
-}
+RungeKuttaFeldbergIntegratorRep::RungeKuttaFeldbergIntegratorRep
+   (Integrator* handle, const System& sys) 
+:   AbstractIntegratorRep(handle, sys, 5, 5, "RungeKuttaFeldberg",  true) {}
 
 bool RungeKuttaFeldbergIntegratorRep::attemptODEStep
    (Real t1, Vector& y1err, int& errOrder, int& numIterations)
 {
-    const double C21	=  1.0/4.0;
-    const double C22	=  1.0/4.0;
+    const Real C21	= Real( 1.0/4.0);
+    const Real C22	= Real( 1.0/4.0);
 
-    const double C31	=  3.0/8.0;
-    const double C32	=  3.0/32.0;
-    const double C33	=  9.0/32.0;
+    const Real C31	= Real( 3.0/8.0);
+    const Real C32	= Real( 3.0/32.0);
+    const Real C33	= Real( 9.0/32.0);
 
-    const double C41	=  12.0/13.0;
-    const double C42	=  1932.0/2197.0;
-    const double C43	= -7200.0/2197.0;
-    const double C44	=  7296.0/2197.0;
+    const Real C41	= Real( 12.0/13.0);
+    const Real C42	= Real( 1932.0/2197.0);
+    const Real C43	= Real(-7200.0/2197.0);
+    const Real C44	= Real( 7296.0/2197.0);
 
-    const double C51	=  1.0;
-    const double C52	=  439.0/216.0;
-    const double C53	= -8.0;
-    const double C54	=  3680.0/513.0;
-    const double C55	= -845.0/4104.0;
+    const Real C51	= Real( 1.0);
+    const Real C52	= Real( 439.0/216.0);
+    const Real C53	= Real(-8.0);
+    const Real C54	= Real( 3680.0/513.0);
+    const Real C55	= Real(-845.0/4104.0);
 
-    const double C61	=  1.0/2.0;
-    const double C62	= -8.0/27.0;
-    const double C63	=  2.0;
-    const double C64	= -3544.0/2565.0;
-    const double C65	=  1859.0/4104.0;
-    const double C66	= -11.0/40.0;
+    const Real C61	= Real( 1.0/2.0);
+    const Real C62	= Real(-8.0/27.0);
+    const Real C63	= Real( 2.0);
+    const Real C64	= Real(-3544.0/2565.0);
+    const Real C65	= Real( 1859.0/4104.0);
+    const Real C66	= Real(-11.0/40.0);
 
-    const double CY1	=  25.0/216.0;;
-    const double CY2	=  1408.0/2565.0;
-    const double CY3	=  2197.0/4104.0;
-    const double CY4	= -1.0/5.0;
+    const double dCY1 =  25.0/216.0;
+    const double dCY2 =  1408.0/2565.0;
+    const double dCY3 =  2197.0/4104.0;
+    const double dCY4 = -1.0/5.0;
 
-    const double CE1	=  16.0/135.0-CY1;
-    const double CE2	=  6656.0/12825.0-CY2;
-    const double CE3	=  28561.0/56430.0-CY3;;
-    const double CE4	=  -9.0/50.0-CY4;
-    const double CE5	=  2.0/55.0;
+    const Real CY1	= Real(dCY1);
+    const Real CY2	= Real(dCY2);
+    const Real CY3	= Real(dCY3);
+    const Real CY4	= Real(dCY4);
+
+    const Real CE1	= Real( 16.0/135.0-dCY1);
+    const Real CE2	= Real( 6656.0/12825.0-dCY2);
+    const Real CE3	= Real( 28561.0/56430.0-dCY3);
+    const Real CE4	= Real(-9.0/50.0-dCY4);
+    const Real CE5	= Real( 2.0/55.0);
 
     const Real t0 = getPreviousTime();
     assert(t1 > t0);

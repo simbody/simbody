@@ -412,7 +412,7 @@ calcEventTriggerInfo(const State& state, Array_<EventTriggerInfo>& info) const
         einfo.setEventId(p->first);
         einfo.setTriggerOnFallingSignTransition(true); // OK active->inactive
         einfo.setTriggerOnRisingSignTransition(false); // TODO: debugging
-        einfo.setRequiredLocalizationTimeWindow(0.1); //10% of time scale
+        einfo.setRequiredLocalizationTimeWindow(Real(0.1)); //10% of time scale
         info.push_back(einfo);
     }
 }
@@ -808,8 +808,8 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
     if (ppe.x.size() == 0)
         return; // only via points; no iteration to do
 
-    const Real ftol = 1e-12*1000; // TODO
-    const Real xtol = 1e-12*1000;
+    const Real ftol = Real(1e-12)*1000; // TODO
+    const Real xtol = Real(1e-12)*1000;
 
     const Real estimatedPathErrorAccuracy = ftol;
     PathError pathErrorFnc(ppe.x.size(), *this, state, instInfo, ppe, 
@@ -854,7 +854,7 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
         const Real dxnorm = std::sqrt(dx.normSqr()/ppe.x.size()); // rms
         cout << "|dx| = " << dxnorm << endl;
-        if (dxnorm > .99*dxnormPrev) {
+        if (dxnorm > Real(.99)*dxnormPrev) {
            std::cout << "\nPATH stalled in " 
                 << i << " iterations err=" << f << " |dx|=" << dxnorm << "\n\n";
             break;
@@ -878,7 +878,7 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         //cout << "step size=" << lam << endl;
 
         if (lam == nextlam)
-            nextlam = std::min(2*lam, 1.);
+            nextlam = std::min(2*lam, Real(1));
 
         dxnormPrev = dxnorm;
     }
@@ -1113,8 +1113,8 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
                 ppe.geodesics[asx] );
 
         const Geodesic& geod = ppe.geodesics[asx];
-        const Real signP = sign(dot(eIn_S,geod.getTangentP()));
-        const Real signQ = sign(dot(eOut_S,geod.getTangentQ()));
+        const Real signP = (Real)sign(dot(eIn_S,geod.getTangentP()));
+        const Real signQ = (Real)sign(dot(eOut_S,geod.getTangentQ()));
         const bool isFlipped = (signP<0 && signQ<0);
         const Real geoLength = isFlipped ? -geod.getLength() : geod.getLength();
 
@@ -1431,14 +1431,14 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     const Real      length = current.getLength();
 
     // Watch for backwards geodesic and flip tangent error conditions.
-    Real signP = ~eIn *tP < 0 ? -1. : 1.;
-    Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    Real signP = Real(~eIn *tP < 0 ? -1 : 1);
+    Real signQ = Real(~eOut*tQ < 0 ? -1 : 1);
     //XXX 
     //signP = signQ = 1;
 
     // If length is very short, or geodesic is backwards, use path binormals
     // rather than geodesic binormals.
-    const Real ShortLength = 1e-3;
+    const Real ShortLength = Real(1e-3);
     if (length <= ShortLength)
         cout << "==> Using short formulation for length=" << length << endl;
     if (signP < 0 || signQ < 0) { 
@@ -1494,8 +1494,8 @@ calcSurfacePathErrorJacobianAnalytically
     const UnitVec3& bP = current.getBinormalP();
     const UnitVec3& bQ = current.getBinormalQ();
     // Watch for backwards geodesic and flip tangent error conditions.
-    Real signP = ~eIn *tP < 0 ? -1. : 1.;
-    Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    Real signP = Real(~eIn *tP < 0 ? -1 : 1);
+    Real signQ = Real(~eOut*tQ < 0 ? -1 : 1);
     // XXX
     //signP = signQ = 1;
 
@@ -1516,8 +1516,8 @@ calcSurfacePathErrorJacobianAnalytically
                gQ = surface.calcSurfaceGradient(xQ);
     const Mat33 HP = surface.calcSurfaceHessian(xP),
                 HQ = surface.calcSurfaceHessian(xQ);
-    const Real oojP = std::abs(jP) < SqrtEps ? 0. : 1/jP, 
-               oojQ = std::abs(jQ) < SqrtEps ? 0. : 1/jQ;
+    const Real oojP = std::abs(jP) < SqrtEps ? Real(0) : 1/jP, 
+               oojQ = std::abs(jQ) < SqrtEps ? Real(0) : 1/jQ;
     const Mat33 DnPDxP = (Mat33(1) - nP*~nP)*HP / (~gP*nP),
                 DnQDxQ = (Mat33(1) - nQ*~nQ)*HQ / (~gQ*nQ);
     const Mat33 DbPDxP = -tauP*nP*~tP - (oojP*jdP*tP + muP*nP)*~bP,
@@ -1564,8 +1564,8 @@ Vec6 CableObstacle::Surface::Impl::calcSurfaceNegKinematicVelocityError
     const UnitVec3& bQ = geodesic.getBinormalQ();
 
     // Watch for backwards geodesic and flip tangent error conditions.
-    Real signP = ~eIn *tP < 0 ? -1. : 1.;
-    Real signQ = ~eOut*tQ < 0 ? -1. : 1.;
+    Real signP = Real(~eIn *tP < 0 ? -1 : 1);
+    Real signQ = Real(~eOut*tQ < 0 ? -1 : 1);
     //XXX
     //signP = signQ = 1;
 
@@ -1662,7 +1662,7 @@ calcSurfacePathErrorJacobianNumerically
     Mat63&          DerrDexit)  // 4x3       "
     const
 {
-    SurfaceError jacFunction(*this, previous, 1e-8); // TODO
+    SurfaceError jacFunction(*this, previous, Real(1e-8)); // TODO
     Differentiator diff(jacFunction);
     Vector x(12), err0(6);
     jacFunction.mapVecsToX(eIn_S,xP,xQ,eOut_S, x);

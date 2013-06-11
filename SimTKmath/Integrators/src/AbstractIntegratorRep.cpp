@@ -42,7 +42,7 @@ void AbstractIntegratorRep::methodInitialize(const State& state) {
     if (userInitStepSize != -1)
         currentStepSize = userInitStepSize;
     else
-        currentStepSize = 0.1*getDynamicSystemTimescale();
+        currentStepSize = getDynamicSystemTimescale()/10;
     if (userMinStepSize != -1)
         currentStepSize = std::max(currentStepSize, userMinStepSize);
     if (userMaxStepSize != -1)
@@ -439,8 +439,8 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
 bool AbstractIntegratorRep::adjustStepSize
    (Real err, int errOrder, bool hWasArtificiallyLimited) 
 {
-    const Real Safety = 0.9, MinShrink = 0.1, MaxGrow = 5;
-    const Real HysteresisLow = 0.9, HysteresisHigh = 1.2;
+    const Real Safety = Real(0.9), MinShrink = Real(0.1), MaxGrow = 5;
+    const Real HysteresisLow = Real(0.9), HysteresisHigh = Real(1.2);
     
     Real newStepSize;
 
@@ -452,7 +452,7 @@ bool AbstractIntegratorRep::adjustStepSize
         newStepSize = MaxGrow * currentStepSize;
     else // choose best step for skating just below the desired accuracy
         newStepSize = Safety * currentStepSize
-                             * std::pow(getAccuracyInUse()/err, 1.0/errOrder);
+                             * std::pow(getAccuracyInUse()/err, 1/Real(errOrder));
 
     // If the new step is bigger than the old, don't make the change if the
     // old one was small for some unimportant reason (like reached a reporting

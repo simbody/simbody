@@ -41,17 +41,17 @@ namespace Ipopt
      */
     virtual ESymSolverStatus Solve(
       const SymMatrix* W,
-      double W_factor,
+      Number W_factor,
       const Vector* D_x,
-      double delta_x,
+      Number delta_x,
       const Vector* D_s,
-      double delta_s,
+      Number delta_s,
       const Matrix* J_c,
       const Vector* D_c,
-      double delta_c,
+      Number delta_c,
       const Matrix* J_d,
       const Vector* D_d,
-      double delta_d,
+      Number delta_d,
       const Vector& rhs_x,
       const Vector& rhs_s,
       const Vector& rhs_c,
@@ -184,17 +184,17 @@ namespace Ipopt
      *  Vtilde1_, Utilde2, Wdiag_, compound_sol_vecspace_ */
     ESymSolverStatus UpdateFactorization(
       const SymMatrix* W,
-      double W_factor,
+      Number W_factor,
       const Vector* D_x,
-      double delta_x,
+      Number delta_x,
       const Vector* D_s,
-      double delta_s,
+      Number delta_s,
       const Matrix& J_c,
       const Vector* D_c,
-      double delta_c,
+      Number delta_c,
       const Matrix& J_d,
       const Vector* D_d,
-      double delta_d,
+      Number delta_d,
       const Vector& proto_rhs_x,
       const Vector& proto_rhs_s,
       const Vector& proto_rhs_c,
@@ -209,15 +209,15 @@ namespace Ipopt
      *  Vtilde1 in the x-space. */
     ESymSolverStatus SolveMultiVector(
       const Vector* D_x,
-      double delta_x,
+      Number delta_x,
       const Vector* D_s,
-      double delta_s,
+      Number delta_s,
       const Matrix& J_c,
       const Vector* D_c,
-      double delta_c,
+      Number delta_c,
       const Matrix& J_d,
       const Vector* D_d,
-      double delta_d,
+      Number delta_d,
       const Vector& proto_rhs_x,
       const Vector& proto_rhs_s,
       const Vector& proto_rhs_c,
@@ -235,17 +235,17 @@ namespace Ipopt
      *  change and the factorization has to be updated. */
     bool AugmentedSystemRequiresChange(
       const SymMatrix* W,
-      double W_factor,
+      Number W_factor,
       const Vector* D_x,
-      double delta_x,
+      Number delta_x,
       const Vector* D_s,
-      double delta_s,
+      Number delta_s,
       const Matrix& J_c,
       const Vector* D_c,
-      double delta_c,
+      Number delta_c,
       const Matrix& J_d,
       const Vector* D_d,
-      double delta_d);
+      Number delta_d);
     //@}
 
   };

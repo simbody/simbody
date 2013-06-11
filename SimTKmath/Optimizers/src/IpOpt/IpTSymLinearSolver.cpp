@@ -173,7 +173,7 @@ namespace Ipopt
 
     // Retrieve the right hand sides and scale if required
     Index nrhs = (Index)rhsV.size();
-    double* rhs_vals = new double[dim_*nrhs];
+    Number* rhs_vals = new Number[dim_*nrhs];
     for (Index irhs=0; irhs<nrhs; irhs++) {
       TripletHelper::FillValuesFromVector(dim_, *rhsV[irhs],
                                           &rhs_vals[irhs*(dim_)]);
@@ -305,7 +305,7 @@ namespace Ipopt
       delete [] scaling_factors_;
       if (IsValid(scaling_method_)) {
         IpData().TimingStats().LinearSystemScaling().Start();
-        scaling_factors_ = new double[dim_];
+        scaling_factors_ = new Number[dim_];
         IpData().TimingStats().LinearSystemScaling().End();
       }
 
@@ -376,11 +376,11 @@ namespace Ipopt
     DBG_START_METH("TSymLinearSolver::GiveMatrixToSolver",dbg_verbosity);
     DBG_PRINT((1,"new_matrix = %d\n",new_matrix));
 
-    double* pa = solver_interface_->GetValuesArrayPtr();
-    double* atriplet;
+    Number* pa = solver_interface_->GetValuesArrayPtr();
+    Number* atriplet;
 
     if (matrix_format_!=SparseSymLinearSolverInterface::Triplet_Format) {
-      atriplet = new double[nonzeros_triplet_];
+      atriplet = new Number[nonzeros_triplet_];
     }
     else {
       atriplet = pa;

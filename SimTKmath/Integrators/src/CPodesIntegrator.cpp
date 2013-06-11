@@ -184,7 +184,7 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     int retval;
     //TODO: change this to do abstol only for q, reltol for u&z
     Real relTol = getAccuracyInUse();
-    Real absTol = 0.1*relTol; //TODO: base on weights
+    Real absTol = relTol/10; //TODO: base on weights
     if ((retval=cpodes->init(*cps, state.getTime(), 
                              Vector(state.getY()), ydot, 
                              CPodes::ScalarScalar, relTol, &absTol)) 
@@ -194,7 +194,7 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
         SimTK_THROW1(Integrator::InitializationFailed, "init() failed");
     }
     cpodes->lapackDense(ny);
-    cpodes->setNonlinConvCoef(0.01); // TODO (default is 0.1)
+    cpodes->setNonlinConvCoef(Real(0.01)); // TODO (default is 0.1)
     if (useCpodesProjection) {
         const int nqerr = state.getNQErr(), nuerr = state.getNUErr();
         const Real tol = getConstraintToleranceInUse();
@@ -235,7 +235,7 @@ void CPodesIntegratorRep::methodReinitialize
         getSystem().realize(state, Stage::Acceleration);
         //TODO: change this to do abstol only for q, reltol for u&z
         Real relTol = getAccuracyInUse();
-        Real absTol = 0.1*relTol; //TODO: base on weights
+        Real absTol = relTol/10; //TODO: base on weights
         cpodes->reInit(*cps, state.getTime(), 
                        Vector(state.getY()), Vector(state.getYDot()), 
                        CPodes::ScalarScalar, relTol, &absTol);

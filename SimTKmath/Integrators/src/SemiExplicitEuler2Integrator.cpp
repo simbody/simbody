@@ -67,7 +67,7 @@ void SemiExplicitEuler2IntegratorRep::createInterpolatedState(Real t) {
     interp = advanced; // pick up discrete stuff.
     const Real weight1 = (getAdvancedTime()-t) /
                          (getAdvancedTime()-getPreviousTime());
-    const Real weight2 = 1.0-weight1;
+    const Real weight2 = 1-weight1;
     interp.updY() = weight1*getPreviousY()+weight2*getAdvancedState().getY();
     interp.updTime() = t;
 

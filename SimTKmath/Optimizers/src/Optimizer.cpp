@@ -40,7 +40,9 @@ bool Optimizer::isAlgorithmAvailable(OptimizerAlgorithm algorithm) {
         case InteriorPoint: return InteriorPointOptimizer::isAvailable();
         case LBFGS:         return LBFGSOptimizer::isAvailable();
         case LBFGSB:        return LBFGSBOptimizer::isAvailable();
+#if SimTK_DEFAULT_PRECISION==2 // double only
         case CFSQP:         return CFSQPOptimizer::isAvailable();
+#endif
         default:            return false;
     }
 }
@@ -98,7 +100,9 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
         newRep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
     } else if( algorithm == LBFGS ) {
         newRep = (OptimizerRep *) new LBFGSOptimizer( sys  );
-    } else if( algorithm == CFSQP ) {
+    } 
+#if SimTK_DEFAULT_PRECISION==2 // double only   
+    else if( algorithm == CFSQP ) {
         try {
             newRep = (OptimizerRep *) new CFSQPOptimizer( sys  );
         } catch (const SimTK::Exception::Base &ex) {
@@ -107,6 +111,7 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
             newRep = 0;
         }
     }
+#endif
 
     if(!newRep) { 
         if( sys.getNumConstraints() > 0)   {

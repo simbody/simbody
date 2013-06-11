@@ -55,7 +55,7 @@ void ElasticFoundationForce::setTransitionVelocity(Real v) {
 
 ElasticFoundationForceImpl::ElasticFoundationForceImpl
    (GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
-        subsystem(subsystem), set(set), transitionVelocity(0.01) {
+        subsystem(subsystem), set(set), transitionVelocity(Real(0.01)) {
 }
 
 void ElasticFoundationForceImpl::setBodyParameters
@@ -77,9 +77,12 @@ void ElasticFoundationForceImpl::setBodyParameters
     param.springPosition.resize(mesh.getNumFaces());
     param.springNormal.resize(mesh.getNumFaces());
     param.springArea.resize(mesh.getNumFaces());
-    Vec2 uv(1.0/3.0, 1.0/3.0);
+    Vec2 uv(Real(1./3.), Real(1./3.));
     for (int i = 0; i < (int) param.springPosition.size(); i++) {
-        param.springPosition[i] = (mesh.getVertexPosition(mesh.getFaceVertex(i, 0))+mesh.getVertexPosition(mesh.getFaceVertex(i, 1))+mesh.getVertexPosition(mesh.getFaceVertex(i, 2)))/3.0;
+        param.springPosition[i] = 
+           (mesh.getVertexPosition(mesh.getFaceVertex(i, 0))
+            +mesh.getVertexPosition(mesh.getFaceVertex(i, 1))
+            +mesh.getVertexPosition(mesh.getFaceVertex(i, 2)))/3;
         param.springNormal[i] = -mesh.findNormalAtPoint(i, uv);
         param.springArea[i] = mesh.getFaceArea(i);
     }
@@ -177,13 +180,16 @@ void ElasticFoundationForceImpl::processContact
         const Real vslip = vtangent.norm();
         if (f > 0 && vslip != 0) {
             const Real vrel = vslip/transitionVelocity;
-            const Real ffriction = f*(std::min(vrel, 1.0)*(param.dynamicFriction+2*(param.staticFriction-param.dynamicFriction)/(1+vrel*vrel))+param.viscousFriction*vslip);
+            const Real ffriction = 
+                f*(std::min(vrel, Real(1))
+                 *(param.dynamicFriction+2*(param.staticFriction-param.dynamicFriction)
+                 /(1+vrel*vrel))+param.viscousFriction*vslip);
             force += ffriction*vtangent/vslip;
         }
 
         body1.applyForceToBodyPoint(state, station1, force, bodyForces);
         body2.applyForceToBodyPoint(state, station2, -force, bodyForces);
-        pe += 0.5*param.stiffness*area*displacement.normSqr();
+        pe += param.stiffness*area*displacement.normSqr()/2;
     }
 }
 

@@ -121,7 +121,7 @@ void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects
 
         Vec3 normal = transform1.R()*Vec3(-1, 0, 0);
         Vec3 contactLocation = 
-            transform1*Vec3(0.5*depth, location[1], location[2]);
+            transform1*Vec3(depth/2, location[1], location[2]);
         contacts.push_back(PointContact(index1, index2, contactLocation, 
                                         normal, r, depth));
     }
@@ -155,7 +155,7 @@ void CollisionDetectionAlgorithm::SphereSphere::processObjects
         
         Real radius = r1*r2/(r1+r2);
         Vec3 normal = delta/dist;
-        Vec3 location = transform1.p()+(r1-0.5*depth)*normal;
+        Vec3 location = transform1.p()+(r1-depth/2)*normal;
         contacts.push_back(PointContact(index1, index2, location, normal, radius, depth));
     }
 }
@@ -199,7 +199,7 @@ void CollisionDetectionAlgorithm::HalfSpaceEllipsoid::processObjects
         PolynomialRootFinder::findRoots(Vec3(1, -dxx-dyy, dxx*dyy-dxy*dxy), 
                                         eigenvalues);
         Vec3 contactNormal = transform2.R()*normal;
-        Vec3 contactPoint = transform2*(location+(0.5*depth)*normal);
+        Vec3 contactPoint = transform2*(location+(depth/2)*normal);
         contacts.push_back(PointContact(index1, index2, contactPoint, 
                                         contactNormal, 
                                         1/std::sqrt(eigenvalues[0].real()), 
@@ -241,7 +241,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox
 {   // First check against the node's bounding box.
     
     OrientedBoundingBox bounds = node.getBounds();
-    const Vec3 b = 0.5*bounds.getSize();
+    const Vec3 b = bounds.getSize() / 2;
     Vec3 boxCenter = bounds.getTransform()*b;
     Real radius = ~b*(~bounds.getTransform().R()*axisDir).abs();
     Real dist = ~axisDir*boxCenter-xoffset;
@@ -621,7 +621,7 @@ void CollisionDetectionAlgorithm::ConvexConvex::processObjects
             Real area2 = ~portalDir*((v3-origin)%(v1-origin));
             Real u = area1/totalArea;
             Real v = area2/totalArea;
-            Real w = 1.0-u-v;
+            Real w = 1-u-v;
 
             // Compute the contact properties.
 
@@ -673,10 +673,10 @@ void CollisionDetectionAlgorithm::ConvexConvex::addContact
     // refine them.
 
     Vec6 err = computeErrorVector(object1, object2, point1, point2, transform12);
-    while (err.norm() > 1e-12) {
+    while (err.norm() > Real(1e-12)) {
         Mat66 J = computeJacobian(object1, object2, point1, point2, transform12);
         FactorQTZ qtz;
-        qtz.factor(Matrix(J), 1e-6);
+        qtz.factor(Matrix(J), Real(1e-6));
         Vector deltaVec(6);
         qtz.solve(Vector(err), deltaVec);
         Vec6 delta(&deltaVec[0]);
@@ -774,7 +774,7 @@ Mat66 CollisionDetectionAlgorithm::ConvexConvex::computeJacobian
    (const ContactGeometry& object1, 
     const ContactGeometry& object2, 
     Vec3 pos1, Vec3 pos2, const Transform& transform12) {
-    Real dt = 1e-7;
+    Real dt = Real(1e-7);
     Vec6 err0 = computeErrorVector(object1, object2, pos1, pos2, transform12);
     Vec3 d1 = dt*Vec3(1, 0, 0);
     Vec3 d2 = dt*Vec3(0, 1, 0);

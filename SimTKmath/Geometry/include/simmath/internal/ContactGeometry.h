@@ -1456,10 +1456,10 @@ public:
         P[0] = m_x[0]; P[1] = m_x[1]; P[2] = m_x[2];
         Q[0] = m_x[3]; Q[1] = m_x[4]; Q[2] = m_x[5];
 
-        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(m_O));
-        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(P));
-        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(Q));
-        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(m_I));
+        geometry.push_back(DecorativeSphere(Real(.05)).setColor(Black).setTransform(m_O));
+        geometry.push_back(DecorativeSphere(Real(.05)).setColor(Black).setTransform(P));
+        geometry.push_back(DecorativeSphere(Real(.05)).setColor(Black).setTransform(Q));
+        geometry.push_back(DecorativeSphere(Real(.05)).setColor(Black).setTransform(m_I));
 
         geometry.push_back(DecorativeLine(m_O,P)
                 .setColor(m_color)
@@ -1498,10 +1498,10 @@ public:
         offset = 0;
         offset[0] = m_plane.getOffset();
         geometry.push_back(
-                DecorativeBrick(Vec3(0.01,1,1))
+                DecorativeBrick(Vec3(Real(.01),1,1))
                 .setTransform(Transform(R_plane, R_plane*offset))
                 .setColor(m_color)
-                .setOpacity(.2));
+                .setOpacity(Real(.2)));
     }
 
 private:

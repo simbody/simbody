@@ -92,7 +92,7 @@ Real LBFGSBOptimizer::optimize(  Vector &results ) {
     iwa = new int[3*n];
     wa = new Real[((2*m + 4)*n + 12*m*m + 12*m)];
  
-    double factor;
+    Real factor;
     if( getAdvancedRealOption("factr", factor ) ) {
         SimTK_APIARGCHECK_ALWAYS(factor > 0,"LBFGSBOptimizer","optimize",
                                  "factr must be positive \n");

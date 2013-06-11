@@ -9,23 +9,49 @@
 #include "IpoptConfig.h"
 #include "IpLapack.hpp"
 
+#if SimTK_DEFAULT_PRECISION==1 // float
+#define DPOTRS  spotrs_
+#define DPOTRF  spotrf_
+#define DSYEV   ssyev_
+#else // double
+#define DPOTRS  dpotrs_
+#define DPOTRF  dpotrf_
+#define DSYEV   dsyev_
+#endif
+
 // Prototypes for the LAPACK routines
 extern "C"
 {
   /** LAPACK Fortran subroutine DPOTRS. */
-  void F77_FUNC(dpotrs,DPOTRS)(char *uplo, ipfint *n,
+  void dpotrs_(char *uplo, ipfint *n,
                                ipfint *nrhs, const double *A, ipfint *ldA,
                                double *B, ipfint *ldB, ipfint *info,
                                int uplo_len);
   /** LAPACK Fortran subroutine DPOTRF. */
-  void F77_FUNC(dpotrf,DPOTRF)(char *uplo, ipfint *n,
+  void dpotrf_(char *uplo, ipfint *n,
                                double *A, ipfint *ldA,
                                ipfint *info, int uplo_len);
 
   /** LAPACK Fortran subroutine DSYEV */
-  void F77_FUNC(dsyev,DSYEV)(char *jobz, char *uplo, ipfint *n,
+  void dsyev_(char *jobz, char *uplo, ipfint *n,
                              double *A, ipfint *ldA, double *W,
                              double *WORK, ipfint *LWORK, ipfint *info,
+                             int jobz_len, int uplo_len);
+
+  /** LAPACK Fortran subroutine DPOTRS. */
+  void spotrs_(char *uplo, ipfint *n,
+                               ipfint *nrhs, const float *A, ipfint *ldA,
+                               float *B, ipfint *ldB, ipfint *info,
+                               int uplo_len);
+  /** LAPACK Fortran subroutine DPOTRF. */
+  void spotrf_(char *uplo, ipfint *n,
+                               float *A, ipfint *ldA,
+                               ipfint *info, int uplo_len);
+
+  /** LAPACK Fortran subroutine DSYEV */
+  void ssyev_(char *jobz, char *uplo, ipfint *n,
+                             float *A, ipfint *ldA, float *W,
+                             float *WORK, ipfint *LWORK, ipfint *info,
                              int jobz_len, int uplo_len);
 }
 
@@ -39,7 +65,7 @@ namespace Ipopt
     ipfint N=ndim, NRHS=nrhs, LDA=lda, LDB=ldb, INFO;
     char uplo = 'L';
 
-    F77_FUNC(dpotrs,DPOTRS)(&uplo, &N, &NRHS, a, &LDA, b, &LDB, &INFO, 1);
+    DPOTRS(&uplo, &N, &NRHS, a, &LDA, b, &LDB, &INFO, 1);
     DBG_ASSERT(INFO==0);
 #else
 
@@ -56,7 +82,7 @@ namespace Ipopt
 
     char UPLO = 'L';
 
-    F77_FUNC(dpotrf,DPOTRF)(&UPLO, &N, a, &LDA, &INFO, 1);
+    DPOTRF(&UPLO, &N, a, &LDA, &INFO, 1);
 
     info = INFO;
 #else
@@ -84,20 +110,20 @@ namespace Ipopt
 
     // First we find out how large LWORK should be
     ipfint LWORK = -1;
-    double WORK_PROBE;
-    F77_FUNC(dsyev,DSYEV)(&JOBZ, &UPLO, &N, a, &LDA, w,
-                          &WORK_PROBE, &LWORK, &INFO, 1, 1);
+    Number WORK_PROBE;
+    DSYEV(&JOBZ, &UPLO, &N, a, &LDA, w,
+          &WORK_PROBE, &LWORK, &INFO, 1, 1);
     DBG_ASSERT(INFO==0);
 
     LWORK = (ipfint) WORK_PROBE;
     DBG_ASSERT(LWORK>0);
 
-    double* WORK = new double[LWORK];
+    Number* WORK = new Number[LWORK];
     for (Index i=0; i<LWORK; i++) {
-      WORK[i] = i;
+      WORK[i] = Number(i);
     }
-    F77_FUNC(dsyev,DSYEV)(&JOBZ, &UPLO, &N, a, &LDA, w,
-                          WORK, &LWORK, &INFO, 1, 1);
+    DSYEV(&JOBZ, &UPLO, &N, a, &LDA, w,
+          WORK, &LWORK, &INFO, 1, 1);
 
     DBG_ASSERT(INFO>=0);
     info = INFO;

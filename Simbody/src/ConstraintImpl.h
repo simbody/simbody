@@ -1279,7 +1279,7 @@ class Constraint::PointInPlaneImpl : public ConstraintImpl {
 public:
 PointInPlaneImpl()
     : ConstraintImpl(1,0,0), defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
-    planeHalfWidth(1), pointRadius(0.05) 
+    planeHalfWidth(1), pointRadius(Real(0.05)) 
 { }
 PointInPlaneImpl* clone() const { return new PointInPlaneImpl(*this); }
 
@@ -1474,7 +1474,7 @@ class Constraint::PointOnLineImpl : public ConstraintImpl {
 public:
 PointOnLineImpl()
     : ConstraintImpl(2,0,0), defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
-    lineHalfLength(1), pointRadius(0.05) 
+    lineHalfLength(1), pointRadius(Real(0.05)) 
 { }
 PointOnLineImpl* clone() const { return new PointOnLineImpl(*this); }
 
@@ -1855,7 +1855,8 @@ mutable Real            cosineOfDefaultAngle;
 //==============================================================================
 class Constraint::BallImpl : public ConstraintImpl {
 public:
-BallImpl() : ConstraintImpl(3,0,0), defaultPoint1(0), defaultPoint2(0), defaultRadius(0.1) { }
+BallImpl() : ConstraintImpl(3,0,0), defaultPoint1(0), defaultPoint2(0), 
+             defaultRadius(Real(0.1)) { }
 BallImpl* clone() const { return new BallImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
@@ -2442,7 +2443,7 @@ class Constraint::NoSlip1DImpl : public ConstraintImpl {
 public:
 NoSlip1DImpl()
 :   ConstraintImpl(0,1,0), defaultContactPoint(0), defaultNoSlipDirection(),
-    directionLength(1), pointRadius(0.05) 
+    directionLength(1), pointRadius(Real(0.05)) 
 { }
 NoSlip1DImpl* clone() const { return new NoSlip1DImpl(*this); }
 

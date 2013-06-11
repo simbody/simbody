@@ -58,7 +58,7 @@ ContactSetIndex HuntCrossleyForce::getContactSetIndex() const {
 
 
 HuntCrossleyForceImpl::HuntCrossleyForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
-        subsystem(subsystem), set(set), transitionVelocity(0.01) {
+        subsystem(subsystem), set(set), transitionVelocity(Real(0.01)) {
 }
 
 void HuntCrossleyForceImpl::setBodyParameters
@@ -116,15 +116,15 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         const Real s2 = 1-s1;
         const Real depth = contact.getDepth();
         const Vec3& normal = contact.getNormal();
-        const Vec3 location = contact.getLocation()+(depth*(0.5-s1))*normal;
+        const Vec3 location = contact.getLocation()+(depth*(Real(0.5)-s1))*normal;
         
         // Calculate the Hertz force.
 
         const Real k = param1.stiffness*s1;
         const Real c = param1.dissipation*s1 + param2.dissipation*s2;
         const Real radius = contact.getEffectiveRadiusOfCurvature();
-        const Real fH = (4.0/3.0)*k*depth*std::sqrt(radius*k*depth);
-        pe += 2.0/5.0*fH*depth;
+        const Real fH = Real(4./3.)*k*depth*std::sqrt(radius*k*depth);
+        pe += Real(2./5.)*fH*depth;
         
         // Calculate the relative velocity of the two bodies at the contact point.
         
@@ -140,7 +140,7 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         
         // Calculate the Hunt-Crossley force.
         
-        const Real f = fH*(1+1.5*c*vnormal);
+        const Real f = fH*(1+Real(1.5)*c*vnormal);
         Vec3 force = (f > 0 ? f*normal : Vec3(0));
         
         // Calculate the friction force.
@@ -154,7 +154,7 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
             const Real ud = hasDynamic ? 2*param1.dynamicFriction*param2.dynamicFriction/(param1.dynamicFriction+param2.dynamicFriction) : 0;
             const Real uv = hasViscous ? 2*param1.viscousFriction*param2.viscousFriction/(param1.viscousFriction+param2.viscousFriction) : 0;
             const Real vrel = vslip/getTransitionVelocity();
-            const Real ffriction = f*(std::min(vrel, 1.0)*(ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
+            const Real ffriction = f*(std::min(vrel, Real(1))*(ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
             force += ffriction*vtangent/vslip;
         }
         

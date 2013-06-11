@@ -42,8 +42,8 @@ namespace Ipopt
                                            Index nnz,
                                            const Index* airn,
                                            const Index* ajcn,
-                                           const double* a,
-                                           double* scaling_factors) = 0;
+                                           const Number* a,
+                                           Number* scaling_factors) = 0;
   private:
     /**@name Default Compiler Generated Methods (Hidden to avoid
      * implicit creation/calling).  These methods are not implemented

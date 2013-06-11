@@ -222,7 +222,7 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
     geod.setIsConvex(true); // Curve on cylinder is always convex.
 
     geod.setIsShortest(false); // TODO
-    geod.setAchievedAccuracy(1e-15); // TODO: accuracy of length?
+    geod.setAchievedAccuracy(SignificantReal); // TODO: accuracy of length?
 //    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken()); // TODO
 }
 

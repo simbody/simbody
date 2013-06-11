@@ -106,11 +106,11 @@ Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, c
     int interval = (int) ceil(n*(t-x[0])/(x[n-1]-x[0]));
 
     const int MaxCheapM = 32;
-    double qbuf[2*MaxCheapM];
+    Real qbuf[2*MaxCheapM];
 
-    double *q = qbuf; // tentatively
+    Real *q = qbuf; // tentatively
     if (m > MaxCheapM)
-        q = new double[2*m]; // use heap instead; don't forget to delete
+        q = new Real[2*m]; // use heap instead; don't forget to delete
     
     int offset = (int) (&coeff[1][0]-&coeff[0][0]);
 

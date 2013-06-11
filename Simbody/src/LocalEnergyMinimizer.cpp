@@ -62,7 +62,7 @@ public:
         // Convert spatial forces dEdR to generalized forces dEdU.
         matter.multiplyBySystemJacobianTranspose(state, dEdR, dEdU);
         dEdU -= system.getMobilityForces(state, Stage::Dynamics);
-        matter.multiplyByNInv(state, true, -1.0*dEdU, gradient);
+        matter.multiplyByNInv(state, true, -1*dEdU, gradient);
         return 0;
     }
     int constraintFunc(const Vector& parameters, bool new_parameters, Vector& constraints) const {

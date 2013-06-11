@@ -91,7 +91,8 @@ std::string Event::eventTriggerString(Trigger e) {
 class EventTriggerInfo::EventTriggerInfoRep {
 public:
     explicit EventTriggerInfoRep(EventTriggerInfo* h)
-      : myHandle(h), eventId(EventId(InvalidIndex)), triggerOnRising(true), triggerOnFalling(true), localizationWindow(0.1)
+    :   myHandle(h), eventId(EventId(InvalidIndex)), triggerOnRising(true), 
+        triggerOnFalling(true), localizationWindow(Real(0.1))
     {
         assert(h);
     }

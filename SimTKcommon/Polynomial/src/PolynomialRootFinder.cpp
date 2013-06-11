@@ -55,8 +55,8 @@ void PolynomialRootFinder::findRoots(const Vec<3,T>& coefficients, Vec<2,complex
         }
         else {
             T root = std::sqrt(-discriminant)/(T) 2.0*a;
-            roots[0] = Complex(0.0, root);
-            roots[1] = Complex(0.0, -root);
+            roots[0] = complex<T>(0, root);
+            roots[1] = complex<T>(0, -root);
         }
         return;
     }
@@ -97,9 +97,9 @@ void PolynomialRootFinder::findRoots(const Vec<4,T>& coefficients, Vec<3,complex
     for (int i = 0; i < 3; ++i) // in case these don't get filled in
         rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
     const int nrootsFound = RPoly<T>().findRoots(coeff, 3, rootr, rooti);
-    roots[0] = Complex(rootr[0], rooti[0]);
-    roots[1] = Complex(rootr[1], rooti[1]);
-    roots[2] = Complex(rootr[2], rooti[2]);
+    roots[0] = complex<T>(rootr[0], rooti[0]);
+    roots[1] = complex<T>(rootr[1], rooti[1]);
+    roots[2] = complex<T>(rootr[2], rooti[2]);
 
     SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
         "PolynomialRootFinder::findRoots()",
@@ -120,9 +120,9 @@ void PolynomialRootFinder::findRoots(const Vec<4,complex<T> >& coefficients, Vec
     for (int i = 0; i < 3; ++i) // in case these don't get filled in
         rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
     const int nrootsFound = CPoly<T>().findRoots(coeffr, coeffi, 3, rootr, rooti);
-    roots[0] = Complex(rootr[0], rooti[0]);
-    roots[1] = Complex(rootr[1], rooti[1]);
-    roots[2] = Complex(rootr[2], rooti[2]);
+    roots[0] = complex<T>(rootr[0], rooti[0]);
+    roots[1] = complex<T>(rootr[1], rooti[1]);
+    roots[2] = complex<T>(rootr[2], rooti[2]);
 
     SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
         "PolynomialRootFinder::findRoots()",
@@ -148,7 +148,7 @@ void PolynomialRootFinder::findRoots(const Vector_<T>& coefficients, Vector_<com
             rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
         const int nrootsFound = RPoly<T>().findRoots(coeff, n, rootr, rooti);
         for (int i = 0; i < n; ++i)
-            roots[i] = Complex(rootr[i], rooti[i]);
+            roots[i] = complex<T>(rootr[i], rooti[i]);
 
         SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
             "PolynomialRootFinder::findRoots()",
@@ -187,7 +187,7 @@ void PolynomialRootFinder::findRoots(const Vector_<complex<T> >& coefficients, V
             rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
         const int nrootsFound = CPoly<T>().findRoots(coeffr, coeffi, n, rootr, rooti);
         for (int i = 0; i < n; ++i)
-            roots[i] = Complex(rootr[i], rooti[i]);
+            roots[i] = complex<T>(rootr[i], rooti[i]);
 
         SimTK_ERRCHK_ALWAYS(nrootsFound != -1,
             "PolynomialRootFinder::findRoots()",

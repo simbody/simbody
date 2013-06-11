@@ -59,17 +59,17 @@ namespace Ipopt
 
   ESymSolverStatus LowRankAugSystemSolver::Solve(
     const SymMatrix* W,
-    double W_factor,
+    Number W_factor,
     const Vector* D_x,
-    double delta_x,
+    Number delta_x,
     const Vector* D_s,
-    double delta_s,
+    Number delta_s,
     const Matrix* J_c,
     const Vector* D_c,
-    double delta_c,
+    Number delta_c,
     const Matrix* J_d,
     const Vector* D_d,
-    double delta_d,
+    Number delta_d,
     const Vector& rhs_x,
     const Vector& rhs_s,
     const Vector& rhs_c,
@@ -211,17 +211,17 @@ namespace Ipopt
 
   ESymSolverStatus LowRankAugSystemSolver::UpdateFactorization(
     const SymMatrix* W,
-    double W_factor,
+    Number W_factor,
     const Vector* D_x,
-    double delta_x,
+    Number delta_x,
     const Vector* D_s,
-    double delta_s,
+    Number delta_s,
     const Matrix& J_c,
     const Vector* D_c,
-    double delta_c,
+    Number delta_c,
     const Matrix& J_d,
     const Vector* D_d,
-    double delta_d,
+    Number delta_d,
     const Vector& proto_rhs_x,
     const Vector& proto_rhs_s,
     const Vector& proto_rhs_c,
@@ -380,15 +380,15 @@ namespace Ipopt
 
   ESymSolverStatus LowRankAugSystemSolver::SolveMultiVector(
     const Vector* D_x,
-    double delta_x,
+    Number delta_x,
     const Vector* D_s,
-    double delta_s,
+    Number delta_s,
     const Matrix& J_c,
     const Vector* D_c,
-    double delta_c,
+    Number delta_c,
     const Matrix& J_d,
     const Vector* D_d,
-    double delta_d,
+    Number delta_d,
     const Vector& proto_rhs_x,
     const Vector& proto_rhs_s,
     const Vector& proto_rhs_c,
@@ -455,7 +455,7 @@ namespace Ipopt
     }
 
     // Call the actual augmented system solver to obtain Vtilde
-    retval = aug_system_solver_->MultiSolve(GetRawPtr(Wdiag_), 1.0, D_x, delta_x, D_s, delta_s,
+    retval = aug_system_solver_->MultiSolve(GetRawPtr(Wdiag_), Number(1), D_x, delta_x, D_s, delta_s,
                                             &J_c, D_c, delta_c, &J_d, D_d, delta_d,
                                             rhs_xV, rhs_sV, rhs_cV, rhs_dV,
                                             sol_xV, sol_sV, sol_cV, sol_dV,
@@ -503,17 +503,17 @@ namespace Ipopt
 
   bool LowRankAugSystemSolver::AugmentedSystemRequiresChange(
     const SymMatrix* W,
-    double W_factor,
+    Number W_factor,
     const Vector* D_x,
-    double delta_x,
+    Number delta_x,
     const Vector* D_s,
-    double delta_s,
+    Number delta_s,
     const Matrix& J_c,
     const Vector* D_c,
-    double delta_c,
+    Number delta_c,
     const Matrix& J_d,
     const Vector* D_d,
-    double delta_d)
+    Number delta_d)
   {
     DBG_START_METH("LowRankAugSystemSolver::AugmentedSystemRequiresChange",
                    dbg_verbosity);

@@ -48,7 +48,7 @@ public:
 
 CompliantContactSubsystemImpl(const ContactTrackerSubsystem& tracker)
 :   ForceSubsystemRep("CompliantContactSubsystem", "0.0.1"),
-    m_tracker(tracker), m_transitionVelocity(0.01), 
+    m_tracker(tracker), m_transitionVelocity(Real(0.01)), 
     m_ooTransitionVelocity(1/m_transitionVelocity), 
     m_trackDissipatedEnergy(false), m_defaultGenerator(0) 
 {   
@@ -695,7 +695,7 @@ inline static Real stribeck(Real us, Real ud, Real uv, Real v) {
 // Curve is similar to Stribeck above but more violent with a discontinuous
 // derivative at v==1.
 inline static Real hollars(Real us, Real ud, Real uv, Real v) {
-    const Real mu =   std::min(v, 1.0)*(ud + 2*(us-ud)/(1+v*v))
+    const Real mu =   std::min(v, Real(1))*(ud + 2*(us-ud)/(1+v*v))
                     + uv*v;
     return mu;
 }
@@ -756,13 +756,13 @@ static void calcHertzContactForce
     const Real x  = depth;
 
     // Actual contact point moves closer to stiffer surface.
-    const Vec3 contactPt_S1 = origin_S1 + (x*(0.5-s1))*normal_S1;
+    const Vec3 contactPt_S1 = origin_S1 + (x*(Real(0.5)-s1))*normal_S1;
     
     // Calculate the Hertz force fH, which is conservative.
     const Real k = k1*s1; // (==k2*s2) == E^(2/3)
     const Real c = c1*s1 + c2*s2;
     // fH = 4/3 e R^1/2 k^3/2 x^3/2
-    const Real fH = e*(4./3.)*k*x*std::sqrt(R*k*x); // always >= 0
+    const Real fH = e*Real(4./3.)*k*x*std::sqrt(R*k*x); // always >= 0
     
     // Calculate the relative velocity of the two bodies at the contact point.
     // We're considering S1 fixed, so we just need the velocity in S1 of
@@ -781,7 +781,7 @@ static void calcHertzContactForce
     
     // Calculate the Hunt-Crossley force, which is dissipative, and the 
     // total normal force including elasticity and dissipation.
-    const Real fHC      = fH*1.5*c*xdot; // same sign as xdot
+    const Real fHC      = fH*Real(1.5)*c*xdot; // same sign as xdot
     const Real fNormal  = fH + fHC;      // < 0 means "sticking"; see below
 
     // Start filling out the contact force.
@@ -802,7 +802,7 @@ static void calcHertzContactForce
 
     const Vec3 forceH          = fH *normal_S1; // as applied to surf2
     const Vec3 forceHC         = fHC*normal_S1;
-    const Real potentialEnergy = (2./5.)*fH*x;
+    const Real potentialEnergy = Real(2./5.)*fH*x;
     const Real powerHC         = fHC*xdot; // rate of energy loss, >= 0
 
     // Calculate the friction force.

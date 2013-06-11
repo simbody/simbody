@@ -49,17 +49,17 @@ namespace Ipopt
      */
     virtual ESymSolverStatus MultiSolve(
       const SymMatrix* W,
-      double W_factor,
+      Number W_factor,
       const Vector* D_x,
-      double delta_x,
+      Number delta_x,
       const Vector* D_s,
-      double delta_s,
+      Number delta_s,
       const Matrix* J_c,
       const Vector* D_c,
-      double delta_c,
+      Number delta_c,
       const Matrix* J_d,
       const Vector* D_d,
-      double delta_d,
+      Number delta_d,
       std::vector<SmartPtr<const Vector> >& rhs_xV,
       std::vector<SmartPtr<const Vector> >& rhs_sV,
       std::vector<SmartPtr<const Vector> >& rhs_cV,
@@ -127,17 +127,17 @@ namespace Ipopt
      *  augmented system. This is done EVERY time Solve is called
      *  with ANY different information */
     void CreateAugmentedSystem(const SymMatrix* W,
-                               double W_factor,
+                               Number W_factor,
                                const Vector* D_x,
-                               double delta_x,
+                               Number delta_x,
                                const Vector* D_s,
-                               double delta_s,
+                               Number delta_s,
                                const Matrix& J_c,
                                const Vector* D_c,
-                               double delta_c,
+                               Number delta_c,
                                const Matrix& J_d,
                                const Vector* D_d,
-                               double delta_d,
+                               Number delta_d,
                                const Vector& proto_x,
                                const Vector& proto_s,
                                const Vector& proto_c,
@@ -146,17 +146,17 @@ namespace Ipopt
     /** Check the internal tags and decide if the passed variables are
      *  different from what is in the augmented_system_ */
     bool AugmentedSystemRequiresChange(const SymMatrix* W,
-                                       double W_factor,
+                                       Number W_factor,
                                        const Vector* D_x,
-                                       double delta_x,
+                                       Number delta_x,
                                        const Vector* D_s,
-                                       double delta_s,
+                                       Number delta_s,
                                        const Matrix& J_c,
                                        const Vector* D_c,
-                                       double delta_c,
+                                       Number delta_c,
                                        const Matrix& J_d,
                                        const Vector* D_d,
-                                       double delta_d);
+                                       Number delta_d);
 
     /** The linear solver object that is to be used to solve the
      *  linear systems.

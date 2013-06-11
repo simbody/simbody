@@ -2,6 +2,17 @@
 #include "IpLapackSolverInterface.hpp"
 #include "SimTKlapack.h"
 
+#if SimTK_DEFAULT_PRECISION==1 // float
+#define DGELSD   sgelsd_
+#define DSYEV    ssyev_
+#define DGETRF   sgetrf_
+#define DGETRS   sgetrs_
+#else // double
+#define DGELSD   dgelsd_
+#define DSYEV    dsyev_
+#define DGETRF   dgetrf_
+#define DGETRS   dgetrs_
+#endif
 
 namespace Ipopt
 {
@@ -43,11 +54,11 @@ double *afact;
   }
 
   ESymSolverStatus LapackSolverInterface::MultiSolve(bool new_matrix, const Index* ia, const Index* ja,
-      Index nrhs, double* rhs_vals, bool check_NegEVals,
+      Index nrhs, Number* rhs_vals, bool check_NegEVals,
       Index numberOfNegEVals)
   {
     int i;
-    double *atmp;
+    Number *atmp;
     DBG_START_METH("LapackSolverInterface::MultiSolve", dbg_verbosity);
     DBG_ASSERT(!check_NegEVals || ProvidesInertia());
     //DBG_ASSERT(initialized_);
@@ -58,7 +69,7 @@ double *afact;
     // check if a factorization has to be done
     // perform the factorization
 
-    atmp = new double[n*n];
+    atmp = new Number[n*n];
     for(i=0;i<n*n;i++) atmp[i] = a[i];
     if (new_matrix) {
       retval = Factorization(ia, ja, check_NegEVals, numberOfNegEVals);
@@ -73,14 +84,14 @@ double *afact;
       if (isFactored)  {
         retval =  Solve(ia, ja, nrhs, rhs_vals);
       } else {
-         double rcond = -1.0;
-         double *s,*work,workSize[2];
+         Number rcond = -1.0;
+         Number *s,*work,workSize[2];
          int ispec = 1;
          int info;
          int *iwork,rank,nlvl,smlsiz,lwork,liwork,nosmlsiz;
          const char *name = "DGELSD";
          const char opts = ' ';
-         s = new double[n];
+         s = new Number[n];
 
          smlsiz = 25;
          nosmlsiz = n/(smlsiz+1);
@@ -94,11 +105,11 @@ double *afact;
 /* 
 **       compute optimal size of workspace 
 */
-         dgelsd_( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, workSize, 
+         DGELSD( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, workSize, 
                   -1, iwork, info );
          lwork = (int)workSize[0];
-         work = new double[lwork];
-         dgelsd_( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, work, 
+         work = new Number[lwork];
+         DGELSD( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, work, 
                   lwork, iwork, info );
          
          delete [] work;
@@ -118,7 +129,7 @@ double *afact;
   }
 
 
-  double* LapackSolverInterface::GetValuesArrayPtr()
+  Number* LapackSolverInterface::GetValuesArrayPtr()
   {
     return a;
   }
@@ -135,7 +146,7 @@ double *afact;
     delete [] a;
     delete [] irn_;
     delete [] jcn_;
-    a = new double[dim*dim];
+    a = new Number[dim*dim];
     irn_ = new int[nz];
     jcn_ = new int[nz];
     for (Index i=0; i<nz; i++) {
@@ -153,7 +164,7 @@ double *afact;
       DBG_START_METH("LapackSolverInterface::Factorization", dbg_verbosity);
       ESymSolverStatus retval = SYMSOLVER_SUCCESS;
       int info,lwork;
-      double *w, *work,*atmp;
+      Number *w, *work,*atmp;
       char jobz = 'N';
       char uplo = 'L';
       int i;
@@ -164,12 +175,12 @@ double *afact;
       /* compute negative eigenvalues */
 
       negevals_ = 0;
-      w = new double[n];
+      w = new Number[n];
       lwork = 3*n;   // TODO get optimial value 
-      work = new double[lwork];
-      atmp = new double[n*n];
+      work = new Number[lwork];
+      atmp = new Number[n*n];
       for(i=0;i<n*n;i++) atmp[i] = a[i];
-      dsyev_(jobz, uplo, n, atmp, n, w, work, lwork, info,  1, 1);
+      DSYEV(jobz, uplo, n, atmp, n, w, work, lwork, info,  1, 1);
       if( info != 0 ) {
           delete [] w;
           delete [] work;
@@ -187,7 +198,7 @@ double *afact;
       }
 
 
-      dgetrf_( n, n, a, n, ipiv, info); 
+      DGETRF( n, n, a, n, ipiv, info); 
       delete [] atmp;
 
       if( info > 0  ) {
@@ -197,14 +208,14 @@ double *afact;
       return retval;
   }
 
-  ESymSolverStatus LapackSolverInterface::Solve(const Index* ia, const Index* ja, Index nrhs, double *b)
+  ESymSolverStatus LapackSolverInterface::Solve(const Index* ia, const Index* ja, Index nrhs, Number *b)
   {
     DBG_START_METH("LapackSolverInterface::Solve", dbg_verbosity);
     ESymSolverStatus retval = SYMSOLVER_SUCCESS;
     int info;
     char transpose = 'N';
 
-    dgetrs_( transpose, n, nrhs, a, n, ipiv, b, n, info, 1); 
+    DGETRS( transpose, n, nrhs, a, n, ipiv, b, n, info, 1); 
     if( info != 0 ) {
         if( info > 0 && info <= n  ) {
             retval = SYMSOLVER_SINGULAR;

@@ -9,50 +9,122 @@
 #include "IpoptConfig.h"
 #include "IpBlas.hpp"
 
+#if SimTK_DEFAULT_PRECISION==1 // float
+#define DCOPY   scopy_
+#define DSCAL   sscal_
+#define DAXPY   saxpy_
+#define DDOT    sdot_
+#define DNRM2   snrm2_
+#define DASUM   sasum_
+#define DGEMV   sgemv_
+#define DSYMV   ssymv_
+#define DGEMM   sgemm_
+#define DSYRK   ssyrk_
+#define DTRSM   strsm_
+#define IDAMAX  isamax_
+#else // double
+#define DCOPY   dcopy_
+#define DSCAL   dscal_
+#define DAXPY   daxpy_
+#define DDOT    ddot_
+#define DNRM2   dnrm2_
+#define DASUM   dasum_
+#define DGEMV   dgemv_
+#define DSYMV   dsymv_
+#define DGEMM   dgemm_
+#define DSYRK   dsyrk_
+#define DTRSM   dtrsm_
+#define IDAMAX  idamax_
+#endif
+
 // Prototypes for the BLAS routines
 extern "C"
 {
   /** BLAS Fortran function DDOT */
-  double F77_FUNC(ddot,DDOT)(ipfint *n, const double *x, ipfint *incX,
+  double ddot_(ipfint *n, const double *x, ipfint *incX,
                              const double *y, ipfint *incY);
   /** BLAS Fortran function DNRM2 */
-  double F77_FUNC(dnrm2,DNRM2)(ipfint *n, const double *x, ipfint *incX);
+  double dnrm2_(ipfint *n, const double *x, ipfint *incX);
   /** BLAS Fortran function DASUM */
-  double F77_FUNC(dasum,DASUM)(ipfint *n, const double *x, ipfint *incX);
+  double dasum_(ipfint *n, const double *x, ipfint *incX);
   /** BLAS Fortran function IDAMAX */
-  ipfint F77_FUNC(idamax,IDAMAX)(ipfint *n, const double *x, ipfint *incX);
+  ipfint idamax_(ipfint *n, const double *x, ipfint *incX);
   /** BLAS Fortran subroutine DCOPY */
-  void F77_FUNC(dcopy,DCOPY)(ipfint *n, const double *x, ipfint *incX,
+  void dcopy_(ipfint *n, const double *x, ipfint *incX,
                              double *y, ipfint *incY);
   /** BLAS Fortran subroutine DAXPY */
-  void F77_FUNC(daxpy,DAXPY)(ipfint *n, const double *alpha, const double *x,
+  void daxpy_(ipfint *n, const double *alpha, const double *x,
                              ipfint *incX, double *y, ipfint *incY);
   /** BLAS Fortran subroutine DSCAL */
-  void F77_FUNC(dscal,DSCAL)(ipfint *n, const double *alpha, const double *x,
+  void dscal_(ipfint *n, const double *alpha, const double *x,
                              ipfint *incX);
 
-  void F77_FUNC(dgemv,DGEMV)(char* trans, ipfint *m, ipfint *n,
+  void dgemv_(char* trans, ipfint *m, ipfint *n,
                              const double *alpha, const double *a, ipfint *lda,
                              const double *x, ipfint *incX, const double *beta,
                              double *y, ipfint *incY, int trans_len);
-  void F77_FUNC(dsymv,DSYMV)(char* uplo, ipfint *n,
+  void dsymv_(char* uplo, ipfint *n,
                              const double *alpha, const double *a, ipfint *lda,
                              const double *x, ipfint *incX, const double *beta,
                              double *y, ipfint *incY, int uplo_len);
-  void F77_FUNC(dgemm,DGEMM)(char* transa, char* transb,
+  void dgemm_(char* transa, char* transb,
                              ipfint *m, ipfint *n, ipfint *k,
                              const double *alpha, const double *a, ipfint *lda,
                              const double *b, ipfint *ldb, const double *beta,
                              double *c, ipfint *ldc,
                              int transa_len, int transb_len);
-  void F77_FUNC(dsyrk,DSYRK)(char* uplo, char* trans, ipfint *n, ipfint *k,
+  void dsyrk_(char* uplo, char* trans, ipfint *n, ipfint *k,
                              const double *alpha, const double *a, ipfint *lda,
                              const double *beta, double *c, ipfint *ldc,
                              int uplo_len, int trans_len);
-  void F77_FUNC(dtrsm,DTRSM)(char* side, char* uplo, char* transa, char* diag,
+  void dtrsm_(char* side, char* uplo, char* transa, char* diag,
                              ipfint *m, ipfint *n,
                              const double *alpha, const double *a, ipfint *lda,
                              const double *b, ipfint *ldb,
+                             int side_len, int uplo_len,
+                             int transa_len, int diag_len);
+
+    /** BLAS Fortran function DDOT */
+  float sdot_(ipfint *n, const float *x, ipfint *incX,
+                             const float *y, ipfint *incY);
+  /** BLAS Fortran function DNRM2 */
+  float snrm2_(ipfint *n, const float *x, ipfint *incX);
+  /** BLAS Fortran function DASUM */
+  float sasum_(ipfint *n, const float *x, ipfint *incX);
+  /** BLAS Fortran function IDAMAX */
+  ipfint isamax_(ipfint *n, const float *x, ipfint *incX);
+  /** BLAS Fortran subroutine DCOPY */
+  void scopy_(ipfint *n, const float *x, ipfint *incX,
+                             float *y, ipfint *incY);
+  /** BLAS Fortran subroutine DAXPY */
+  void saxpy_(ipfint *n, const float *alpha, const float *x,
+                             ipfint *incX, float *y, ipfint *incY);
+  /** BLAS Fortran subroutine DSCAL */
+  void sscal_(ipfint *n, const float *alpha, const float *x,
+                             ipfint *incX);
+
+  void sgemv_(char* trans, ipfint *m, ipfint *n,
+                             const float *alpha, const float *a, ipfint *lda,
+                             const float *x, ipfint *incX, const float *beta,
+                             float *y, ipfint *incY, int trans_len);
+  void ssymv_(char* uplo, ipfint *n,
+                             const float *alpha, const float *a, ipfint *lda,
+                             const float *x, ipfint *incX, const float *beta,
+                             float *y, ipfint *incY, int uplo_len);
+  void sgemm_(char* transa, char* transb,
+                             ipfint *m, ipfint *n, ipfint *k,
+                             const float *alpha, const float *a, ipfint *lda,
+                             const float *b, ipfint *ldb, const float *beta,
+                             float *c, ipfint *ldc,
+                             int transa_len, int transb_len);
+  void ssyrk_(char* uplo, char* trans, ipfint *n, ipfint *k,
+                             const float *alpha, const float *a, ipfint *lda,
+                             const float *beta, float *c, ipfint *ldc,
+                             int uplo_len, int trans_len);
+  void strsm_(char* side, char* uplo, char* transa, char* diag,
+                             ipfint *m, ipfint *n,
+                             const float *alpha, const float *a, ipfint *lda,
+                             const float *b, ipfint *ldb,
                              int side_len, int uplo_len,
                              int transa_len, int diag_len);
 }
@@ -66,7 +138,7 @@ namespace Ipopt
   {
     ipfint n=size, INCX=incX, INCY=incY;
 
-    return F77_FUNC(ddot,DDOT)(&n, x, &INCX, y, &INCY);
+    return DDOT(&n, x, &INCX, y, &INCY);
   }
 
   /* Interface to FORTRAN routine DNRM2. */
@@ -74,7 +146,7 @@ namespace Ipopt
   {
     ipfint n=size, INCX=incX;
 
-    return F77_FUNC(dnrm2,DNRM2)(&n, x, &INCX);
+    return DNRM2(&n, x, &INCX);
   }
 
   /* Interface to FORTRAN routine DASUM. */
@@ -82,7 +154,7 @@ namespace Ipopt
   {
     ipfint n=size, INCX=incX;
 
-    return F77_FUNC(dasum,DASUM)(&n, x, &INCX);
+    return DASUM(&n, x, &INCX);
   }
 
   /* Interface to FORTRAN routine DASUM. */
@@ -90,7 +162,7 @@ namespace Ipopt
   {
     ipfint n=size, INCX=incX;
 
-    return (Index) F77_FUNC(idamax,IDAMAX)(&n, x, &INCX);
+    return (Index) IDAMAX(&n, x, &INCX);
   }
 
   /* Interface to FORTRAN routine DCOPY. */
@@ -98,7 +170,7 @@ namespace Ipopt
   {
     ipfint N=size, INCX=incX, INCY=incY;
 
-    F77_FUNC(dcopy,DCOPY)(&N, x, &INCX, y, &INCY);
+    DCOPY(&N, x, &INCX, y, &INCY);
   }
 
   /* Interface to FORTRAN routine DAXPY. */
@@ -107,7 +179,7 @@ namespace Ipopt
   {
     ipfint N=size, INCX=incX, INCY=incY;
 
-    F77_FUNC(daxpy,DAXPY)(&N, &alpha, x, &INCX, y, &INCY);
+    DAXPY(&N, &alpha, x, &INCX, y, &INCY);
   }
 
   /* Interface to FORTRAN routine DSCAL. */
@@ -115,7 +187,7 @@ namespace Ipopt
   {
     ipfint N=size, INCX=incX;
 
-    F77_FUNC(dscal,DSCAL)(&N, &alpha, x, &INCX);
+    DSCAL(&N, &alpha, x, &INCX);
   }
 
   void IpBlasDgemv(bool trans, Index nRows, Index nCols, Number alpha,
@@ -132,8 +204,8 @@ namespace Ipopt
       TRANS = 'N';
     }
 
-    F77_FUNC(dgemv,DGEMV)(&TRANS, &M, &N, &alpha, A, &LDA, x,
-                          &INCX, &beta, y, &INCY, 1);
+    DGEMV(&TRANS, &M, &N, &alpha, A, &LDA, x,
+          &INCX, &beta, y, &INCY, 1);
   }
 
   void IpBlasDsymv(Index n, Number alpha, const Number* A, Index ldA,
@@ -144,8 +216,8 @@ namespace Ipopt
 
     char UPLO='L';
 
-    F77_FUNC(dsymv,DSYMV)(&UPLO, &N, &alpha, A, &LDA, x,
-                          &INCX, &beta, y, &INCY, 1);
+    DSYMV(&UPLO, &N, &alpha, A, &LDA, x,
+          &INCX, &beta, y, &INCY, 1);
   }
 
   void IpBlasDgemm(bool transa, bool transb, Index m, Index n, Index k,
@@ -169,8 +241,8 @@ namespace Ipopt
       TRANSB = 'N';
     }
 
-    F77_FUNC(dgemm,DGEMM)(&TRANSA, &TRANSB, &M, &N, &K, &alpha, A, &LDA,
-                          B, &LDB, &beta, C, &LDC, 1, 1);
+    DGEMM(&TRANSA, &TRANSB, &M, &N, &K, &alpha, A, &LDA,
+          B, &LDB, &beta, C, &LDC, 1, 1);
   }
 
   void IpBlasDsyrk(bool trans, Index ndim, Index nrank,
@@ -188,8 +260,8 @@ namespace Ipopt
       TRANS = 'N';
     }
 
-    F77_FUNC(dsyrk,DSYRK)(&UPLO, &TRANS, &N, &K, &alpha, A, &LDA,
-                          &beta, C, &LDC, 1, 1);
+    DSYRK(&UPLO, &TRANS, &N, &K, &alpha, A, &LDA,
+          &beta, C, &LDC, 1, 1);
   }
 
   void IpBlasDtrsm(bool trans, Index ndim, Index nrhs, Number alpha,
@@ -208,8 +280,8 @@ namespace Ipopt
     }
     char DIAG = 'N';
 
-    F77_FUNC(dtrsm,DTRSM)(&SIDE, &UPLO, &TRANSA, &DIAG, &M, &N,
-                          &alpha, A, &LDA, B, &LDB, 1, 1, 1, 1);
+    DTRSM(&SIDE, &UPLO, &TRANSA, &DIAG, &M, &N,
+          &alpha, A, &LDA, B, &LDB, 1, 1, 1, 1);
   }
 
 #else

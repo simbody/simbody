@@ -316,7 +316,8 @@ the local frame axes. The default constructor creates an ellipsoid with radii
 (1/2, 1/3, 1/4) in x,y,z resp. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeEllipsoid : public DecorativeGeometry {
 public:
-    explicit DecorativeEllipsoid(const Vec3& radii = Vec3(0.5,1/3.,0.25));
+    explicit DecorativeEllipsoid(const Vec3& radii = 
+        Vec3(Real(0.5),Real(1/3.),Real(0.25)));
 
     void setRadii(const Vec3&);
     const Vec3& getRadii() const;
@@ -332,7 +333,7 @@ the local frame axes. The default constructor creates a cube of length 1 on
 each side. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeBrick : public DecorativeGeometry {
 public:
-    explicit DecorativeBrick(const Vec3& halfLengths = Vec3(0.5));
+    explicit DecorativeBrick(const Vec3& halfLengths = Vec3(Real(0.5)));
 
     void setHalfLengths(const Vec3&);
     const Vec3& getHalfLengths() const;

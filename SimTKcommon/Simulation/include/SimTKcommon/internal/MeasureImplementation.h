@@ -1726,7 +1726,7 @@ public:
     bool empty() const {return size()==0;}
     bool full()  const {return size()==capacity();}
 
-    Real getEntryTime(int i) const
+    double getEntryTime(int i) const
     {   assert(i < size()); return m_times[getArrayIndex(i)];}
     const T& getEntryValue(int i) const
     {   assert(i < size()); return m_values[getArrayIndex(i)];}
@@ -1843,8 +1843,8 @@ public:
             double t0=getEntryTime(firstEarlier), t1=getEntryTime(firstLater);
             const T& v0=getEntryValue(firstEarlier);
             const T& v1=getEntryValue(firstLater);
-            double fraction = (tDelay-t0)/(t1-t0);
-            delayedValue = v0 + fraction*(v1-v0);
+            Real fraction = Real((tDelay-t0)/(t1-t0));
+            delayedValue = T(v0 + fraction*(v1-v0));
             return;
         }
 
@@ -1868,9 +1868,9 @@ public:
         double t0=getEntryTime(size()-2), t1=getEntryTime(size()-1);
         const T& v0=getEntryValue(size()-2);
         const T& v1=getEntryValue(size()-1);
-        double fraction = (tDelay-t0)/(t1-t0);  // > 1
+        Real fraction = Real((tDelay-t0)/(t1-t0));  // > 1
         assert(fraction > 1.0);
-        delayedValue = v0 + fraction*(v1-v0);   // Extrapolate.
+        delayedValue = T(v0 + fraction*(v1-v0));   // Extrapolate.
     }
 
     // Return the number of times we had to grow the buffer.

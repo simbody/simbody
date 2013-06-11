@@ -32,6 +32,14 @@
 
 #define NUMBER_OF_CORRECTIONS 5   
 
+#if SimTK_DEFAULT_PRECISION==1 // float
+#define DAXPY   saxpy_
+#define DDOT    sdot_
+#else // double
+#define DAXPY   daxpy_
+#define DDOT    ddot_
+#endif
+
 using SimTK::Real;
 
 struct lb3_1_ {
@@ -64,7 +72,7 @@ using std::cout;
 using std::endl;
 
 /* Initialized data */
-const struct lb3_1_ lb3_1 = { 0, 0, .9, 1e-20, 1e20, 1. };
+const struct lb3_1_ lb3_1 = {0, 0, Real(.9), Real(1e-20), Real(1e20), Real(1)};
 
 /* Table of constant values */
 static const integer c__1 = 1;
@@ -274,7 +282,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
     bool converged = false;
     ispt = n + (m << 1);
     iypt = ispt + n * m;
-    ftol = 1e-4;
+    ftol = Real(1e-4);
     maxfev = 20;
 
     iter = 0;
@@ -300,7 +308,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
     // came with this LBFGS implementation.
     // This is a scaled infinity-norm.
 
-    Real fscale = 1 / std::max(0.1, std::abs(*f));
+    Real fscale = 1 / std::max(Real(0.1), std::abs(*f));
 
     // Make a quick attempt to quit if we're already converged. No need
     // to calculate the whole norm here; we'll stop as soon as we find
@@ -321,9 +329,9 @@ void SimTK::LBFGSOptimizer::lbfgs_
     }
 
     // This is the unscaled 2-norm of the gradient.
-    gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
+    gnorm = std::sqrt(DDOT(n, gradient, c__1, gradient, c__1));
 
-    stp1 = 1. / gnorm;
+    stp1 = Real(1) / gnorm;
 
     for (int i = 0; i < n; ++i) {
         diag[i] = 1.;
@@ -368,8 +376,8 @@ void SimTK::LBFGSOptimizer::lbfgs_
               bound = m;
           }
 
-          ys = ddot_(n, &w[iypt + npt], c__1, &w[ispt + npt], c__1);
-          yy = ddot_(n, &w[iypt + npt], c__1, &w[iypt + npt], c__1);
+          ys = DDOT(n, &w[iypt + npt], c__1, &w[ispt + npt], c__1);
+          yy = DDOT(n, &w[iypt + npt], c__1, &w[iypt + npt], c__1);
           for (int i = 0; i < n; ++i) {
                diag[i] = ys / yy;
           }
@@ -383,7 +391,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
           if (point == 0) {
            cp = m;
           }
-          w[n + cp-1] = 1. / ys;
+          w[n + cp-1] = Real(1) / ys;
           for (int i = 0; i < n; ++i) {
               w[i] = -gradient[i];
           }
@@ -393,12 +401,12 @@ void SimTK::LBFGSOptimizer::lbfgs_
               if (cp == -1) {
                   cp = m - 1;
               }
-              sq = ddot_(n, &w[ispt + cp * n], c__1, w, c__1);
+              sq = DDOT(n, &w[ispt + cp * n], c__1, w, c__1);
               inmc = n + m + cp;
               iycn = iypt + cp * n;
               w[inmc] = w[n + cp] * sq;
               d__1 = -w[inmc];
-              daxpy_(n, d__1, &w[iycn], c__1, w, c__1);
+              DAXPY(n, d__1, &w[iycn], c__1, w, c__1);
           }
 
           for (int i = 0; i < n; ++i) {
@@ -406,12 +414,12 @@ void SimTK::LBFGSOptimizer::lbfgs_
           }
 
           for (int i = 0; i < bound; ++i) {
-              yr = ddot_(n, &w[iypt + cp * n], c__1, w, c__1);
+              yr = DDOT(n, &w[iypt + cp * n], c__1, w, c__1);
               beta = w[n + cp] * yr;
               inmc = n + m + cp;
               beta = w[inmc] - beta;
               iscn = ispt + cp * n;
-              daxpy_(n, beta, &w[iscn], c__1, w, c__1);
+              DAXPY(n, beta, &w[iscn], c__1, w, c__1);
               ++cp;
               if (cp == m) {
                   cp = 0;
@@ -503,8 +511,8 @@ void SimTK::LBFGSOptimizer::lbfgs_
 /*     TERMINATION TEST */
 /*     ---------------- */
 
-        //gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
-        //xnorm = std::sqrt(ddot_(n, x, c__1, x, c__1));
+        //gnorm = std::sqrt(DDOT(n, gradient, c__1, gradient, c__1));
+        //xnorm = std::sqrt(DDOT(n, x, c__1, x, c__1));
         //   xnorm = std::max(1.,xnorm);
         //   if (gnorm / xnorm <= *eps) {
         //       converged = true;
@@ -512,7 +520,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
 
 
         // sherm 100303: use scaled infinity norm instead
-        fscale = 1 / std::max(0.1, std::abs(*f));
+        fscale = 1 / std::max(Real(0.1), std::abs(*f));
         gnorm = 0;
         for (int i=0; i<n; ++i) {
             const Real xscale = std::max(Real(1), std::abs(x[i]));
@@ -800,7 +808,7 @@ void SimTK::LBFGSOptimizer::mcsrch_
     finit = *f;
     dgtest = *ftol * dginit;
     width = lb3_1.stpmax - lb3_1.stpmin;
-    width1 = width / .5;
+    width1 = 2*width;
     for (j = 0; j < *n; ++j) {
         wa[j] = x[j];
     }
@@ -946,7 +954,7 @@ L30:
 
     if (brackt) {
         if (std::abs(sty - stx) >= .66 * width1) {
-            *stp = stx + .5 * (sty - stx);
+            *stp = stx + (sty - stx)/2;
         }
         width1 = width;
         width = std::abs(sty - stx);
@@ -1117,7 +1125,7 @@ static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy
 
         d__1 = theta / s;
         d__1 = d__1 * d__1 - *dx / s * (*dp / s);
-        gamma = s * std::sqrt((std::max(0.,d__1)));
+        gamma = s * std::sqrt((std::max(Real(0),d__1)));
         if (*stp > *stx) {
             gamma = -gamma;
         }
@@ -1232,10 +1240,10 @@ static void write50(Real* v, int n)
   int i;
   Real vmaxscale;
   for (i = 0; i < n; ++i)
-    if (fabs(v[i]) > vmax)
+    if (std::abs(v[i]) > vmax)
       vmax = v[i];
-  vmaxscale = log(fabs(vmax)) / log(10.0);
-  vmaxscale = pow(10.0, ceil(vmaxscale) - 1);
+  vmaxscale = std::log(std::abs(vmax)) / std::log(Real(10));
+  vmaxscale = std::pow(Real(10), ceil(vmaxscale) - 1);
   if (vmaxscale != 1.0)
     printf("  %e x\n", vmaxscale);
 

@@ -119,8 +119,8 @@ public:
     {
         if (stage != Stage::Instance || !getMyMatterSubsystemRep().getShowDefaultGeometry())
             return;
-        const Real scale = 1.0;
-        DecorativeFrame axes(scale*0.5);
+        const Real scale = 1;
+        DecorativeFrame axes(scale/2);
         axes.setLineThickness(2);
         axes.setBodyId(myMobilizedBodyIndex);
         geom.push_back(axes); // the body frame
@@ -129,10 +129,10 @@ public:
         // same as the body frame. Then find the corresponding frame on the
         // parent and display that in this body's color.
         if (myMobilizedBodyIndex != 0) {
-            const Real pscale = 1.0;
+            const Real pscale = 1;
             const Transform& X_BM = getDefaultOutboardFrame(); // TODO: get from state
             if (X_BM.p() != Vec3(0) || X_BM.R() != Mat33(1)) {
-                DecorativeFrame frameOnChild(scale*0.25);
+                DecorativeFrame frameOnChild(scale/4);
                 frameOnChild.setBodyId(myMobilizedBodyIndex);
                 frameOnChild.setColor(Red);
                 frameOnChild.setTransform(X_BM);
@@ -141,7 +141,7 @@ public:
                     geom.push_back(DecorativeLine(Vec3(0), X_BM.p()).setBodyId(myMobilizedBodyIndex));
             }
             const Transform& X_PF = getDefaultInboardFrame(); // TODO: from state
-            DecorativeFrame frameOnParent(pscale*0.3); // slightly larger than child
+            DecorativeFrame frameOnParent(pscale*Real(0.3)); // slightly larger than child
             frameOnParent.setBodyId(myParentIndex);
             frameOnParent.setColor(Blue);
             frameOnParent.setTransform(X_PF);
@@ -153,7 +153,7 @@ public:
         // Put a little purple wireframe sphere at the COM, and add a line from 
         // body origin to the com.
 
-        DecorativeSphere com(scale*.05);
+        DecorativeSphere com(scale*Real(.05));
         com.setBodyId(myMobilizedBodyIndex);
         com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
         const Vec3& comPos_B = theBody.getDefaultRigidBodyMassProperties().getMassCenter(); // TODO: from state
@@ -697,7 +697,7 @@ private:
 class MobilizedBody::GimbalImpl : public MobilizedBodyImpl {
 public:
     explicit GimbalImpl(Direction d) 
-    :   MobilizedBodyImpl(d), defaultRadius(0.1), defaultQ(0) { }
+    :   MobilizedBodyImpl(d), defaultRadius(Real(0.1)), defaultQ(0) { }
     GimbalImpl* clone() const { return new GimbalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -754,7 +754,7 @@ private:
 class MobilizedBody::BallImpl : public MobilizedBodyImpl {
 public:
     explicit BallImpl(Direction d) 
-    :   MobilizedBodyImpl(d), defaultRadius(0.1), defaultQ() {} // (1,0,0,0), the identity rotation
+    :   MobilizedBodyImpl(d), defaultRadius(Real(0.1)), defaultQ() {} // (1,0,0,0), the identity rotation
     BallImpl* clone() const { return new BallImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -791,7 +791,8 @@ private:
 class MobilizedBody::EllipsoidImpl : public MobilizedBodyImpl {
 public:
     explicit EllipsoidImpl(Direction d) 
-    :   MobilizedBodyImpl(d), defaultRadii(0.5,1/3.,0.25), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    :   MobilizedBodyImpl(d), defaultRadii(Real(0.5),Real(1./3.),Real(0.25)), 
+        defaultQ() { } // default is (1,0,0,0), the identity rotation
     EllipsoidImpl* clone() const { return new EllipsoidImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(

@@ -772,13 +772,13 @@ void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
         const MobilizedBodyIndex body2 = getMobilizedBodyIndexOfConstrainedBody(B2);
 
         const Real useRadius = pointRadius > 0 ? pointRadius 
-            : std::max(defaultRodLength, .1) * 0.02; // 2% of the length by default
+            : std::max(defaultRodLength, Real(.1)) * Real(0.02); // 2% of the length by default
 
         // Draw a blue mesh sphere at the first point.
         geom.push_back(DecorativeSphere(useRadius)
                             .setColor(Blue)
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
-                            .setResolution(0.5)
+                            .setResolution(Real(0.5))
                             .setBodyId(body1)
                             .setTransform(defaultPoint1));
 
@@ -786,7 +786,7 @@ void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
         geom.push_back(DecorativeSphere(useRadius)
                             .setColor(Purple)
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
-                            .setResolution(0.5)
+                            .setResolution(Real(0.5))
                             .setBodyId(body2)
                             .setTransform(defaultPoint2));
     }
@@ -940,7 +940,7 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
             geom.push_back(DecorativeBrick(Vec3(planeHalfWidth,planeHalfWidth,pointRadius/2))
                                                 .setColor(Gray)
                                                 .setRepresentation(DecorativeGeometry::DrawSurface)
-                                                .setOpacity(0.3)
+                                                .setOpacity(Real(0.3))
                                                 .setBodyId(planeMBId)
                                                 .setTransform(X_B1));
             geom.push_back(DecorativeBrick(Vec3(planeHalfWidth,planeHalfWidth,pointRadius/2))
@@ -953,7 +953,7 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
             geom.push_back(DecorativeSphere(pointRadius)
                                                 .setColor(Orange)
                                                 .setRepresentation(DecorativeGeometry::DrawWireframe)
-                                                .setResolution(0.5)
+                                                .setResolution(Real(0.5))
                                                 .setBodyId(followerMBId)
                                                 .setTransform(X_B2));
         }
@@ -1420,19 +1420,19 @@ void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
 
         // On the inboard body, draw a solid sphere and a wireframe one attached to it for
         // easier visualization of its rotation. These are at about 90% of the radius.
-        geom.push_back(DecorativeSphere(0.92*getDefaultRadius())
+        geom.push_back(DecorativeSphere(Real(0.92)*getDefaultRadius())
                         .setColor(Gray)
                         .setRepresentation(DecorativeGeometry::DrawSurface)
-                        .setOpacity(0.5)
-                        .setResolution(0.75)
+                        .setOpacity(Real(0.5))
+                        .setResolution(Real(0.75))
                         .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
                         .setTransform(X_B1));
-        geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
+        geom.push_back(DecorativeSphere(Real(0.90)*getDefaultRadius())
                         .setColor(White)
                         .setRepresentation(DecorativeGeometry::DrawWireframe)
-                        .setResolution(0.75)
+                        .setResolution(Real(0.75))
                         .setLineThickness(3)
-                        .setOpacity(0.1)
+                        .setOpacity(Real(0.1))
                         .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
                         .setTransform(X_B1));
 
@@ -1447,8 +1447,8 @@ void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
         geom.push_back(DecorativeSphere(getDefaultRadius())
                         .setColor(Orange)
                         .setRepresentation(DecorativeGeometry::DrawWireframe)
-                        .setOpacity(0.5)
-                        .setResolution(0.5)
+                        .setOpacity(Real(0.5))
+                        .setResolution(Real(0.5))
                         .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B2))
                         .setTransform(X_B2));
 
@@ -1654,7 +1654,7 @@ void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
                              .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B)));
            
 
-        geom.push_back(DecorativeFrame(0.67*getAxisDisplayLength())
+        geom.push_back(DecorativeFrame(Real(0.67)*getAxisDisplayLength())
                                             .setColor(getFrameColor(1))
                                             .setLineThickness(4)
                                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F))

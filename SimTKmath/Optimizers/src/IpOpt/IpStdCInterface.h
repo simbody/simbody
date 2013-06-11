@@ -11,6 +11,7 @@
 #ifndef __IPSTDCINTERFACE_H__
 #define __IPSTDCINTERFACE_H__
 
+#include "SimTKcommon/internal/common.h"
 #ifdef __cplusplus
 extern "C"
 {
@@ -18,7 +19,7 @@ extern "C"
 
   /** Type for all number.  We need to make sure that this is
       identical with what is defined in Common/IpTypes.hpp */
-  typedef double Number;
+  typedef SimTK::Real Number;
 
   /** Type for all incides.  We need to make sure that this is
       identical with what is defined in Common/IpTypes.hpp */

@@ -450,7 +450,7 @@ nvcompare_SimTK(realtype c, N_Vector nvx, N_Vector nvz) {
     Real*       zp = z.updContiguousScalarData();
 
     for (int i=0; i<sz; ++i)
-        zp[i] = (std::abs(xp[i]) >= c ? 1 : 0);
+        zp[i] = Real(std::abs(xp[i]) >= c ? 1 : 0);
 }
 
 // N_VInvTest

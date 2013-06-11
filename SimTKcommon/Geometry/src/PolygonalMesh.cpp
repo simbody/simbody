@@ -517,7 +517,7 @@ createBrickMesh(const Vec3& halfDims, int resolution) {
     SimTK_ERRCHK1_ALWAYS(resolution >= 0, "PolygonalMesh::createBrickMesh()",
         "Resolution %d illegal.", resolution);
 
-    const Vec3 dims(2.*halfDims);
+    const Vec3 dims(2*halfDims);
 
     PolygonalMesh brick;
     const Real longest = max(dims);

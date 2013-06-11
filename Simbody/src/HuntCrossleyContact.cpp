@@ -53,7 +53,7 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
 
         SphereParameters(MobilizedBodyIndex b, const Vec3& ctr,
                          const Real& r, const Real& k, const Real& c) 
-          : body(b), center(ctr), radius(r), stiffness(std::pow(k,2./3.)), dissipation(c) { 
+          : body(b), center(ctr), radius(r), stiffness(std::pow(k,Real(2./3.))), dissipation(c) { 
             assert(b.isValid());
             assert(radius > 0 && stiffness >= 0 && dissipation >= 0);
         }
@@ -70,7 +70,7 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
 
         HalfspaceParameters(MobilizedBodyIndex b, const UnitVec3& n,
                             const Real& h, const Real& k, const Real& c) 
-          : body(b), normal(n), height(h), stiffness(std::pow(k,2./3.)), dissipation(c) { 
+          : body(b), normal(n), height(h), stiffness(std::pow(k,Real(2./3.))), dissipation(c) { 
             assert(b.isValid());
             assert(stiffness >= 0 && dissipation >= 0);
         }
@@ -458,8 +458,8 @@ void HuntCrossleyContactRep::processContact
     const Real k=k1*squish1; // = k2*squish2   1 flop
     const Real c=c1*squish1 + c2*squish2;   // 3 flops
 
-    const Real fH = (4./3.) * k * x * std::sqrt(R*k*x); // ~35 flops
-    const Real f  = fH * (1 + 1.5*c*v);                 // 4 flops
+    const Real fH = Real(4./3.) * k * x * std::sqrt(R*k*x); // ~35 flops
+    const Real f  = fH * (1 + Real(1.5)*c*v);               // 4 flops
 
     // If the resulting force is negative, the multibody system is "yanking"
     // the objects apart so fast that the material can't undeform fast enough
@@ -467,7 +467,7 @@ void HuntCrossleyContactRep::processContact
     // potential energy will now be wasted. (I suppose it would be dissipated
     // internally as the body's surface oscillated around its undeformed shape.)
     if (f > 0) {    // 1 flop
-        pe += (2./5.) * fH * x;                             // 3 flops
+        pe += Real(2./5.) * fH * x;                         // 3 flops
         const Vec3 fvec = f * contactNormal_G; // points towards body1 (3 flops)
         force1 += SpatialVec( contactPt1_G % fvec, fvec);   // 15 flops
         force2 -= SpatialVec( contactPt2_G % fvec, fvec);   // 15 flops

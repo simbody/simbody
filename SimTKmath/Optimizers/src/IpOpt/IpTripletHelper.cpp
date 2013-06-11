@@ -702,7 +702,7 @@ namespace Ipopt
     delete [] jCol;
   }
 
-  void TripletHelper::PutValuesInVector(Index dim, const double* values, Vector& vector)
+  void TripletHelper::PutValuesInVector(Index dim, const Number* values, Vector& vector)
   {
     DBG_ASSERT(dim == vector.Dim());
     DenseVector* dv = dynamic_cast<DenseVector*>(&vector);

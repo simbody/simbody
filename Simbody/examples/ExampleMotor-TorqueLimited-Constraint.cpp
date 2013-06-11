@@ -104,9 +104,9 @@ const Real StopStiffness = 10000; // stiffness in left joint stop
 const Real StopDissipation = 0.5; // dissipation rate
 
 // Integration step size, display update, user polling rates.
-const Real MaxStepSize    = 1/240.; //  4 1/6 ms (240 Hz)
-const int  DrawEveryN     = 8;      // 33 1/3 ms frame update (30 Hz)
-const int  PollUserEveryN = 16;     // 66 2/3 ms user response lag (15 Hz)
+const Real MaxStepSize    = Real(1/240.); //  4 1/6 ms (240 Hz)
+const int  DrawEveryN     = 8;            // 33 1/3 ms frame update (30 Hz)
+const int  PollUserEveryN = 16;           // 66 2/3 ms user response lag (15 Hz)
 
 
 //==============================================================================
@@ -202,7 +202,7 @@ int main() {
     // state returned after each step is the integrator's "advanced state", 
     // which is modifiable, in case we need to make a state change.
     SemiExplicitEuler2Integrator integ(mech.getSystem());
-    integ.setAccuracy(1e-1); // 10%
+    integ.setAccuracy(Real(1e-1)); // 10%
     integ.setAllowInterpolation(false);
 
     integ.initialize(mech.getDefaultState());
@@ -273,12 +273,12 @@ MyMechanism::MyMechanism()
 
 //----------------------------- CONSTRUCT SYSTEM -------------------------------
 void MyMechanism::constructSystem() {
-    Force::Gravity(m_forces, m_matter, -YAxis, 9.80665);
+    Force::Gravity(m_forces, m_matter, -YAxis, Real(9.80665));
 
     // Describe a body with a point mass at (0, -3, 0) and draw a sphere there.
     Real mass = 3; Vec3 pos(0,-3,0);
     Body::Rigid bodyInfo(MassProperties(mass, pos, UnitInertia::pointMassAt(pos)));
-    bodyInfo.addDecoration(pos, DecorativeSphere(.2).setOpacity(.5));
+    bodyInfo.addDecoration(pos, DecorativeSphere(Real(.2)).setOpacity(.5));
 
     // Create the tree of mobilized bodies, reusing the above body description.
     m_bodyT   = MobilizedBody::Pin(m_matter.Ground(),Vec3(0), bodyInfo,Vec3(0));
@@ -396,7 +396,7 @@ void MyMechanism::tryToSwitchToSpeedControl(State& state) const {
 // the current actual speed.
 void MyMechanism::changeDesiredSpeed(State& state, Real newDesiredSpeed) const {
     const Real actualSpeed = getActualSpeed(state);
-    const Real changeDirection = sign(newDesiredSpeed - actualSpeed);
+    const Real changeDirection = (Real)sign(newDesiredSpeed - actualSpeed);
     if (changeDirection == 0)
         return; // nothing to do
 
@@ -428,7 +428,7 @@ void MyMechanism::changeTorqueLimit(State& state, Real newTorqueLimit) const {
     // Put torque in same direction as current torque (might not be using the
     // torque controller though).
     const Real trq = getMotorTorque(state);
-    Real dir = sign(trq); if (dir==0) dir=1;
+    Real dir = (Real)sign(trq); if (dir==0) dir=1;
     m_torqueController.setForce(state, dir*newTorqueLimit);
 }
 

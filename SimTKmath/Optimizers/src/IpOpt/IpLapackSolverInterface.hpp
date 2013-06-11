@@ -36,14 +36,14 @@ namespace Ipopt
 
     /** Method returing an internal array into which the nonzero
      *  elements are to be stored. */
-    virtual double* GetValuesArrayPtr();
+    virtual Number* GetValuesArrayPtr();
 
     /** Solve operation for multiple right hand sides. */
     virtual ESymSolverStatus MultiSolve(bool new_matrix,
                                         const Index* ia,
                                         const Index* ja,
                                         Index nrhs,
-                                        double* rhs_vals,
+                                        Number* rhs_vals,
                                         bool check_NegEVals,
                                         Index numberOfNegEVals);
 
@@ -107,10 +107,10 @@ namespace Ipopt
     Index nz;
 
     /** Array for storing the values of the matrix. */
-    double* a;
+    Number* a;
 
     /** Array for storing the values of the factored matrix. */
-    double* afact;
+    Number* afact;
 
     /** Array for storing the row indices of the matrix */
     int* irn_;
@@ -156,7 +156,7 @@ namespace Ipopt
     ESymSolverStatus Solve(const Index* ia,
                            const Index* ja,
                            Index nrhs,
-                           double *rhs_vals);
+                           Number *rhs_vals);
     //@}
     //MUMPS data structure
 //    DMUMPS_STRUC_C mumps_data;

@@ -125,7 +125,7 @@ namespace Ipopt
       cpu_temp += 1.0e-6*((double) usage.ru_utime.tv_usec);
 #endif
 
-      return cpu_temp;
+      return Number(cpu_temp);
     }
 
   private:

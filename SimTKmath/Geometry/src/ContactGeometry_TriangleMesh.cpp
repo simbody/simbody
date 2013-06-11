@@ -424,11 +424,11 @@ void ContactGeometry::TriangleMesh::Impl::init
         Vec3 cross =   (vertexPositions[v2]-vertexPositions[v1])
                      % (vertexPositions[v3]-vertexPositions[v1]);
         Real norm = cross.norm();
-        cross *= 1.0/norm;
+        cross *= Real(1)/norm;
         SimTK_APIARGCHECK1_ALWAYS(norm > 0, 
             "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Face %d is degenerate.", i);
-        faces.push_back(Face(v1, v2, v3, cross, 0.5*norm));
+        faces.push_back(Face(v1, v2, v3, cross, norm/2));
         int edges[3][2] = {{v1, v2}, {v2, v3}, {v3, v1}};
         for (int j = 0; j < 3; j++) {
             SimTK_APIARGCHECK1_ALWAYS(edges[j][0] != edges[j][1], 
@@ -639,7 +639,7 @@ void ContactGeometry::TriangleMesh::Impl::splitObbAxis
     // Select a split point that tries to put as many faces as possible 
     // entirely on one side or the other.
     
-    Real split = 0.5*(median(minExtent)+median(maxExtent));
+    Real split = (median(minExtent)+median(maxExtent)) / 2;
     
     // Choose a side for each face.
     
@@ -707,7 +707,7 @@ Vec3 ContactGeometry::TriangleMesh::Impl::findNearestPointToFace
         else {
             // Region 0
 
-            const Real invDet = 1.0/det;
+            const Real invDet = Real(1)/det;
             s *= invDet;
             t *= invDet;
         }
@@ -918,13 +918,13 @@ intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
     bool foundIntersection = false;
     for (int i = 0; i < (int) triangles.size(); i++) {
         const UnitVec3& faceNormal = mesh.faces[triangles[i]].normal;
-        double vd = ~faceNormal*direction;
+        Real vd = ~faceNormal*direction;
         if (vd == 0.0)
             continue; // The ray is parallel to the plane.
         const Vec3& vert1 = mesh.vertices[mesh.faces[triangles[i]].vertices[0]].pos;
-        double v0 = ~faceNormal*(vert1-origin);
-        double t = v0/vd;
-        if (t < 0.0)
+        Real v0 = ~faceNormal*(vert1-origin);
+        Real t = v0/vd;
+        if (t < 0)
             continue; // Ray points away from plane of triangle.
         if (foundIntersection && t >= distance)
             continue; // We already have a closer intersection.
@@ -959,17 +959,17 @@ intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
         Vec2 pos(ri[axis1]-vert1[axis1], ri[axis2]-vert1[axis2]);
         Vec2 edge1(vert1[axis1]-vert2[axis1], vert1[axis2]-vert2[axis2]);
         Vec2 edge2(vert1[axis1]-vert3[axis1], vert1[axis2]-vert3[axis2]);
-        double denom = 1.0/(edge1%edge2);
+        Real denom = Real(1)/(edge1%edge2);
         edge2 *= denom;
-        double v = edge2%pos;
-        if (v < 0.0 || v > 1.0)
+        Real v = edge2%pos;
+        if (v < 0 || v > 1)
             continue;
         edge1 *= denom;
-        double w = pos%edge1;
-        if (w < 0.0 || w > 1.0)
+        Real w = pos%edge1;
+        if (w < 0 || w > 1)
             continue;
-        double u = 1.0-v-w;
-        if (u < 0.0 || u > 1.0)
+        Real u = 1-v-w;
+        if (u < 0 || u > 1)
             continue;
         
         // It intersects.

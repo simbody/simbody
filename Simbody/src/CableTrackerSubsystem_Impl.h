@@ -174,7 +174,7 @@ int calcDecorativeGeometryAndAppendImpl
                 DecorativeGeometry geo = obs.getDecoration();
                 const Transform& X_SD = geo.getTransform();
                 decorations.push_back(
-                    geo.setTransform(X_GS*X_SD).setColor(0.75*geo.getColor()));
+                    geo.setTransform(X_GS*X_SD).setColor(Real(0.75)*geo.getColor()));
                 continue; 
             }
 

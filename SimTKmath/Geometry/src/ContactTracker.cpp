@@ -144,7 +144,7 @@ estimateImplicitPairContactUsingMPR
             Real area2 = ~portalDir*((v3-origin)%(v1-origin));
             Real u = area1/totalArea;
             Real v = area2/totalArea;
-            Real w = 1.0-u-v;
+            Real w = 1-u-v;
 
             // Compute the contact points in their own shape's frame.
 
@@ -197,8 +197,8 @@ refineImplicitPair
     // may have to crawl along for a while at the beginning.
     const int MaxSlowIterations = 8;
     const int MaxIterations = MaxSlowIterations + 8;
-    const Real MinStepFrac = 1e-6; // if we can't take at least this fraction
-                                   // of the Newton step, give it up
+    const Real MinStepFrac = Real(1e-6); // if we can't take at least this 
+                                         // fraction of Newton step, give it up
 
     Vec6 err = findImplicitPairError(shapeA, pointP, shapeB, pointQ, X_AB);
     accuracyAchieved = err.norm();

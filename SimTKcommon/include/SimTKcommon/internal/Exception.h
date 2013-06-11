@@ -204,7 +204,7 @@ public:
 class ValueOutOfRange : public Base {
 public:
     ValueOutOfRange(const char* fn, int ln, const char* valueName,
-                    Real lowerBound, Real value, Real upperBound, 
+                    double lowerBound, double value, double upperBound, 
                     const char* where)
       : Base(fn,ln)
     {
@@ -220,7 +220,7 @@ public:
 class ValueWasNegative : public Base {
 public:
     ValueWasNegative(const char* fn, int ln, const char* valueName,
-                     Real value, const char* where)
+                     double value, const char* where)
       : Base(fn,ln)
     {
         char buf[1024];

@@ -54,6 +54,20 @@
 
 #define  imin(X, Y)  ((X) < (Y) ? (X) : (Y))
 
+#if SimTK_DEFAULT_PRECISION==1 // float
+#define DCOPY   scopy_
+#define DSCAL   sscal_
+#define DAXPY   saxpy_
+#define DDOT    sdot_
+#define DPOTRF  spotrf_
+#else // double
+#define DCOPY   dcopy_
+#define DSCAL   dscal_
+#define DAXPY   daxpy_
+#define DDOT    ddot_
+#define DPOTRF  dpotrf_
+#endif
+
 using SimTK::Real;
 
 /* Table of constant values */
@@ -63,9 +77,9 @@ const static int c__1 = 1;
 /* static int c__9 = 9; */
 const static int c__11 = 11;
 /* static int c__3 = 3; */
-const static Real c_b275 = .001;
-const static Real c_b276 = .9;
-const static Real c_b277 = .1;
+const static Real c_b275 = Real(.001);
+const static Real c_b276 = Real(.9);
+const static Real c_b277 = Real(.1);
 /* static int c__5 = 5; */
 //Reordering function calls could prevent the need for defining these statics before use.
 static int dtrsl_( Real *t, int *ldt, int *n, Real *b, const int *job, int *info);
@@ -78,7 +92,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
     bool *brackt, Real *stpmin, Real *stpmax);
 
 static Real timer() {
-    return( (double)(std::clock())/CLOCKS_PER_SEC );
+    return( (Real)(std::clock())/CLOCKS_PER_SEC );
 }
 
 /* Subroutine */
@@ -646,7 +660,7 @@ oint \002,1p,2(1x,d11.4))";
         e_wsle();
 */
     }
-    dcopy_(*n, &x[1], (const int&)c__1, &xcp[1], (const int&)c__1);
+    DCOPY(*n, &x[1], (const int&)c__1, &xcp[1], (const int&)c__1);
     return 0;
     }
     bnded = TRUE_;
@@ -751,10 +765,10 @@ oint \002,1p,2(1x,d11.4))";
 /*       The smallest of the nbreak breakpoints is in t(ibkmin)=bkmin. */
     if (*theta != 1.) {
 /*                   complete the initialization of p for theta not= one. */
-    dscal_(*col, *theta, &p[*col + 1], (const int&)c__1);
+    DSCAL(*col, *theta, &p[*col + 1], (const int&)c__1);
     }
 /*     Initialize GCP xcp = x. */
-    dcopy_(*n, &x[1], (const int&)c__1, &xcp[1], (const int&)c__1);
+    DCOPY(*n, &x[1], (const int&)c__1, &xcp[1], (const int&)c__1);
     if (nbreak == 0 && nfree == *n + 1) {
 /*                  is a zero vector, return with the initial xcp as GCP. */
     if (*iprint > 100) {
@@ -783,7 +797,7 @@ oint \002,1p,2(1x,d11.4))";
     if (*info != 0) {
         return 0;
     }
-    f2 -= ddot_((const int&)col2, &v[1], (const int&)c__1, &p[1], (const int&)c__1);
+    f2 -= DDOT((const int&)col2, &v[1], (const int&)c__1, &p[1], (const int&)c__1);
     }
     dtm = -f1 / f2;
     tsum = 0.;
@@ -893,7 +907,7 @@ L777:
     f2 -= *theta * dibp2;
     if (*col > 0) {
 /*                          update c = c + dt*p. */
-    daxpy_((const int&)col2, (const Real&)dt, &p[1], (const int&)c__1, &c__[1], (const int&)c__1);
+    DAXPY((const int&)col2, (const Real&)dt, &p[1], (const int&)c__1, &c__[1], (const int&)c__1);
 /*           choose wbp, */
 /*           the row of W corresponding to the breakpoint encountered. */
     pointr = *head;
@@ -909,15 +923,15 @@ L777:
     if (*info != 0) {
         return 0;
     }
-    wmc = ddot_((const int&)col2, &c__[1], (const int&)c__1, &v[1], (const int&)c__1);
-    wmp = ddot_((const int&)col2, &p[1], (const int&)c__1, &v[1], (const int&)c__1);
-    wmw = ddot_((const int&)col2, &wbp[1], (const int&)c__1, &v[1], (const int&)c__1);
+    wmc = DDOT((const int&)col2, &c__[1], (const int&)c__1, &v[1], (const int&)c__1);
+    wmp = DDOT((const int&)col2, &p[1], (const int&)c__1, &v[1], (const int&)c__1);
+    wmw = DDOT((const int&)col2, &wbp[1], (const int&)c__1, &v[1], (const int&)c__1);
 /*           update p = p - dibp*wbp. */
     d__1 = -dibp;
-    daxpy_((const int&)col2, (const Real&)d__1, &wbp[1], (const int&)c__1, &p[1], (const int&)c__1);
+    DAXPY((const int&)col2, (const Real&)d__1, &wbp[1], (const int&)c__1, &p[1], (const int&)c__1);
 /*           complete updating f1 and f2 while col > 0. */
     f1 += dibp * wmc;
-    f2 = f2 + dibp * 2. * wmp - dibp2 * wmw;
+    f2 = f2 + dibp * Real(2) * wmp - dibp2 * wmw;
     }
 /* Computing MAX */
     d__1 = *epsmch * f2_org__;
@@ -958,12 +972,12 @@ L888:
     tsum += dtm;
 /*     Move free variables (i.e., the ones w/o breakpoints) and */
 /*       the variables whose breakpoints haven't been reached. */
-    daxpy_(*n, (const Real&)tsum, &d__[1], (const int&)c__1, &xcp[1], (const int&)c__1);
+    DAXPY(*n, (const Real&)tsum, &d__[1], (const int&)c__1, &xcp[1], (const int&)c__1);
 L999:
 /*     Update c = c + dtm*p = W'(x^c - x) */
 /*       which will be used in computing r = Z'(B(x^c - x) + g). */
     if (*col > 0) {
-    daxpy_((const int&)col2, (const Real&)dtm, &p[1], (const int&)c__1, &c__[1], (const int&)c__1);
+    DAXPY((const int&)col2, (const Real&)dtm, &p[1], (const int&)c__1, &c__[1], (const int&)c__1);
     }
     if (*iprint > 100) {
 /*
@@ -1327,13 +1341,13 @@ static int formk_(
         for (jy = 1; jy <= i__1; ++jy) {
         js = *m + jy;
         i__2 = *m - jy;
-        dcopy_((const int&)i__2, &wn1[jy + 1 + (jy + 1) * wn1_dim1], (const int&)c__1, &wn1[
+        DCOPY((const int&)i__2, &wn1[jy + 1 + (jy + 1) * wn1_dim1], (const int&)c__1, &wn1[
             jy + jy * wn1_dim1], (const int&)c__1);
         i__2 = *m - jy;
-        dcopy_((const int&)i__2, &wn1[js + 1 + (js + 1) * wn1_dim1], (const int&)c__1, &wn1[
+        DCOPY((const int&)i__2, &wn1[js + 1 + (js + 1) * wn1_dim1], (const int&)c__1, &wn1[
             js + js * wn1_dim1], (const int&)c__1);
         i__2 = *m - 1;
-        dcopy_((const int&)i__2, &wn1[*m + 2 + (jy + 1) * wn1_dim1], (const int&)c__1, &wn1[
+        DCOPY((const int&)i__2, &wn1[*m + 2 + (jy + 1) * wn1_dim1], (const int&)c__1, &wn1[
             *m + 1 + jy * wn1_dim1], (const int&)c__1);
 /* L10: */
         }
@@ -1505,7 +1519,7 @@ static int formk_(
 /*                                    [(-L_a +R_z)L'^-1   S'AA'S*theta  ] */
 /*        first Cholesky factor (1,1) block of wn to get LL' */
 /*                          with L' stored in the upper triangle of wn. */
-    dpotrf_((const char &)'U', *col, &wn[wn_offset], (const int &)m2, *info, 1);
+    DPOTRF((const char &)'U', *col, &wn[wn_offset], (const int &)m2, *info, 1);
 /*    dpofa_(&wn[wn_offset], &m2, col, info);     LINPACK
     if (*info != 0) {
     *info = -1;
@@ -1525,14 +1539,14 @@ static int formk_(
     for (is = *col + 1; is <= i__1; ++is) {
     i__2 = col2;
     for (js = is; js <= i__2; ++js) {
-        wn[is + js * wn_dim1] += ddot_(*col, &wn[is * wn_dim1 + 1], (const int&)c__1,
+        wn[is + js * wn_dim1] += DDOT(*col, &wn[is * wn_dim1 + 1], (const int&)c__1,
             &wn[js * wn_dim1 + 1], (const int&)c__1);
 /* L74: */
     }
 /* L72: */
     }
 /*     Cholesky factorization of (2,2) block of wn. */
-    dpotrf_((const char&)'U', *col, &wn[*col + 1 + (*col + 1) * wn_dim1], (const int&)m2, *info, 1);
+    DPOTRF((const char&)'U', *col, &wn[*col + 1 + (*col + 1) * wn_dim1], (const int&)m2, *info, 1);
 /*    dpofa_(&wn[*col + 1 + (*col + 1) * wn_dim1], &m2, col, info);
     if (*info != 0) {
     *info = -2;
@@ -1620,7 +1634,7 @@ int *col, Real *theta, int *info)
     }
 /*     Cholesky factorize T to J*J' with */
 /*        J' stored in the upper triangle of wt. */
-    dpotrf_((const char&)'U', *col, &wt[wt_offset], *m, *info, 1);
+    DPOTRF((const char&)'U', *col, &wt[wt_offset], *m, *info, 1);
 /*    dpofa_(&wt[wt_offset], m, col, info);         LINPACK
     if (*info != 0) {
     *info = -3;
@@ -1952,7 +1966,7 @@ Real *dsave, ftnlen task_len, ftnlen csave_len)
     if (strncmp(task, "FG_LN", 5) == 0) {
     goto L556;
     }
-    *dtd = ddot_(nr, &d__[1], (const int&)c__1, &d__[1], (const int&)c__1);
+    *dtd = DDOT(nr, &d__[1], (const int&)c__1, &d__[1], (const int&)c__1);
     *dnorm = std::sqrt(*dtd);
 /*     Determine the maximum step length. */
     *stpmx = 1e10;
@@ -1986,19 +2000,19 @@ Real *dsave, ftnlen task_len, ftnlen csave_len)
     }
     if (*iter == 0 && ! (*boxed)) {
 /* Computing MIN */
-    d__1 = 1. / *dnorm;
+    d__1 = Real(1) / *dnorm;
     *stp = std::min(d__1,*stpmx);
     } else {
     *stp = 1.;
     }
-    dcopy_(nr, &x[1], (const int&)c__1, &t[1], (const int&)c__1);
-    dcopy_(nr, &g[1], (const int&)c__1, &r__[1], (const int&)c__1);
+    DCOPY(nr, &x[1], (const int&)c__1, &t[1], (const int&)c__1);
+    DCOPY(nr, &g[1], (const int&)c__1, &r__[1], (const int&)c__1);
     *fold = *f;
     *ifun = 0;
     *iback = 0;
     strcpy(csave, "START");
 L556:
-    *gd = ddot_(nr, &g[1], (const int&)c__1, &d__[1], (const int&)c__1);
+    *gd = DDOT(nr, &g[1], (const int&)c__1, &d__[1], (const int&)c__1);
     if (*ifun == 0) {
     *gdold = *gd;
     if (*gd >= 0.) {
@@ -2017,7 +2031,7 @@ L556:
     ++(*nfgv);
     *iback = *ifun - 1;
     if (*stp == 1.) {
-        dcopy_(nr, &z__[1], (const int&)c__1, &x[1], (const int&)c__1);
+        DCOPY(nr, &z__[1], (const int&)c__1, &x[1], (const int&)c__1);
     } else {
         i__1 = *n;
         for (i__ = 1; i__ <= i__1; ++i__) {
@@ -2097,8 +2111,8 @@ Real *theta, Real *rr, Real *dr, Real *stp, Real *dtd)
     *head = *head % *m + 1;
     }
 /*     Update matrices WS and WY. */
-    dcopy_(*n, &d__[1], (const int&)c__1, &ws[*itail * ws_dim1 + 1], (const int&)c__1);
-    dcopy_(*n, &r__[1], (const int&)c__1, &wy[*itail * wy_dim1 + 1], (const int&)c__1);
+    DCOPY(*n, &d__[1], (const int&)c__1, &ws[*itail * ws_dim1 + 1], (const int&)c__1);
+    DCOPY(*n, &r__[1], (const int&)c__1, &wy[*itail * wy_dim1 + 1], (const int&)c__1);
 /*     Set theta=yy/ys. */
     *theta = *rr / *dr;
 /*     Form the middle matrix in B. */
@@ -2108,10 +2122,10 @@ Real *theta, Real *rr, Real *dr, Real *stp, Real *dtd)
 /*                              move old information */
     i__1 = *col - 1;
     for (j = 1; j <= i__1; ++j) {
-        dcopy_((const int &)j, &ss[(j + 1) * ss_dim1 + 2], (const int&)c__1, &ss[j * ss_dim1 + 1]
+        DCOPY((const int &)j, &ss[(j + 1) * ss_dim1 + 2], (const int&)c__1, &ss[j * ss_dim1 + 1]
             , (const int&)c__1);
         i__2 = *col - j;
-        dcopy_((const int&)i__2, &sy[j + 1 + (j + 1) * sy_dim1], (const int&)c__1, &sy[j + j *
+        DCOPY((const int&)i__2, &sy[j + 1 + (j + 1) * sy_dim1], (const int&)c__1, &sy[j + j *
             sy_dim1], (const int&)c__1);
 /* L50: */
     }
@@ -2121,9 +2135,9 @@ Real *theta, Real *rr, Real *dr, Real *stp, Real *dtd)
     pointr = *head;
     i__1 = *col - 1;
     for (j = 1; j <= i__1; ++j) {
-    sy[*col + j * sy_dim1] = ddot_(*n, &d__[1], (const int&)c__1, &wy[pointr *
+    sy[*col + j * sy_dim1] = DDOT(*n, &d__[1], (const int&)c__1, &wy[pointr *
         wy_dim1 + 1], (const int&)c__1);
-    ss[j + *col * ss_dim1] = ddot_(*n, &ws[pointr * ws_dim1 + 1], (const int&)c__1, &
+    ss[j + *col * ss_dim1] = DDOT(*n, &ws[pointr * ws_dim1 + 1], (const int&)c__1, &
         d__[1], (const int&)c__1);
     pointr = pointr % *m + 1;
 /* L51: */
@@ -2766,7 +2780,7 @@ static int projgr_( int *n, Real *l, Real *u, int *nbd,
     --l;
 
     /* Function Body */
-    const Real fscale = 1 / std::max(0.1, std::abs(f));
+    const Real fscale = 1 / std::max(Real(0.1), std::abs(f));
     *sbgnrm = 0.;
     for (int i = 1; i <= *n; ++i) {
         Real gi = g[i];
@@ -3343,7 +3357,7 @@ char *task, int *isave, Real *dsave, ftnlen task_len)
     ginit = *g;
     gtest = *ftol * ginit;
     width = *stpmax - *stpmin;
-    width1 = width / .5;
+    width1 = 2*width;
 /*        The variables stx, fx, gx contain the values of the step, */
 /*        function, and derivative at the best step. */
 /*        The variables sty, fy, gy contain the value of the step, */
@@ -3357,7 +3371,7 @@ char *task, int *isave, Real *dsave, ftnlen task_len)
     fy = finit;
     gy = ginit;
     stmin = 0.;
-    stmax = *stp + *stp * 4.;
+    stmax = *stp + *stp * 4;
     strcpy(task, "FG");
     goto L1000;
     } else {
@@ -3436,7 +3450,7 @@ char *task, int *isave, Real *dsave, ftnlen task_len)
 /*     Decide if a bisection step is needed. */
     if (brackt) {
     if ((d__1 = sty - stx, fabs(d__1)) >= width1 * .66) {
-        *stp = stx + (sty - stx) * .5;
+        *stp = stx + (sty - stx)/2;
     }
     width1 = width;
     width = (d__1 = sty - stx, fabs(d__1));
@@ -3446,8 +3460,8 @@ char *task, int *isave, Real *dsave, ftnlen task_len)
     stmin = std::min(stx,sty);
     stmax = std::max(stx,sty);
     } else {
-    stmin = *stp + (*stp - stx) * 1.1;
-    stmax = *stp + (*stp - stx) * 4.;
+    stmin = *stp + (*stp - stx) * Real(1.1);
+    stmax = *stp + (*stp - stx) * 4;
     }
 /*     Force the step to be within the bounds stpmax and stpmin. */
     *stp = std::max(*stp,*stpmin);
@@ -3596,7 +3610,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
 /*     cubic step is taken, otherwise the average of the cubic and */
 /*     quadratic steps is taken. */
     if (*fp > *fx) {
-    theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
+    theta = (*fx - *fp) * Real(3) / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
     d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = std::max(d__1,d__2), d__2 = fabs(
         *dp);
@@ -3611,13 +3625,13 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
     q = gamma - *dx + gamma + *dp;
     r__ = p / q;
     stpc = *stx + r__ * (*stp - *stx);
-    stpq = *stx + *dx / ((*fx - *fp) / (*stp - *stx) + *dx) / 2. * (*stp
+    stpq = *stx + *dx / ((*fx - *fp) / (*stp - *stx) + *dx) / Real(2) * (*stp
         - *stx);
     if ((d__1 = stpc - *stx, fabs(d__1)) < (d__2 = stpq - *stx, fabs(d__2)))
          {
         stpf = stpc;
     } else {
-        stpf = stpc + (stpq - stpc) / 2.;
+        stpf = stpc + (stpq - stpc) / 2;
     }
     *brackt = TRUE_;
 /*     Second case: A lower function value and derivatives of opposite */
@@ -3625,7 +3639,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
 /*     stp than the secant step, the cubic step is taken, otherwise the */
 /*     secant step is taken. */
     } else if (sgnd < 0.) {
-    theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
+    theta = (*fx - *fp) * Real(3) / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
     d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = std::max(d__1,d__2), d__2 = fabs(
         *dp);
@@ -3655,7 +3669,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
 /*        in the direction of the step or if the minimum of the cubic */
 /*        is beyond stp. Otherwise the cubic step is defined to be the */
 /*        secant step. */
-    theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
+    theta = (*fx - *fp) * Real(3) / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
     d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = std::max(d__1,d__2), d__2 = fabs(
         *dp);
@@ -3693,11 +3707,11 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
         }
         if (*stp > *stx) {
 /* Computing MIN */
-        d__1 = *stp + (*sty - *stp) * .66;
+        d__1 = *stp + (*sty - *stp) * Real(.66);
         stpf = std::min(d__1,stpf);
         } else {
 /* Computing MAX */
-        d__1 = *stp + (*sty - *stp) * .66;
+        d__1 = *stp + (*sty - *stp) * Real(.66);
         stpf = std::max(d__1,stpf);
         }
     } else {
@@ -3719,7 +3733,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
 /*     otherwise the cubic step is taken. */
     } else {
     if (*brackt) {
-        theta = (*fp - *fy) * 3. / (*sty - *stp) + *dy + *dp;
+        theta = (*fp - *fy) * Real(3) / (*sty - *stp) + *dy + *dp;
 /* Computing MAX */
         d__1 = fabs(theta), d__2 = fabs(*dy), d__1 = std::max(d__1,d__2), d__2 =
             fabs(*dp);
@@ -4010,7 +4024,7 @@ L20:
     for (j = 2; j <= i__1; ++j) {
     temp = -b[j - 1];
     i__2 = *n - j + 1;
-    daxpy_((const int&)i__2, (const Real &)temp, &t[j + (j - 1) * t_dim1], (const int&)c__1, &b[j], (const int&)c__1);
+    DAXPY((const int&)i__2, (const Real &)temp, &t[j + (j - 1) * t_dim1], (const int&)c__1, &b[j], (const int&)c__1);
     b[j] /= t[j + j * t_dim1];
 /* L30: */
     }
@@ -4028,7 +4042,7 @@ L50:
     for (jj = 2; jj <= i__1; ++jj) {
     j = *n - jj + 1;
     temp = -b[j + 1];
-    daxpy_((const int&)j, (const Real &)temp, &t[(j + 1) * t_dim1 + 1], (const int&)c__1, &b[1], (const int&)c__1);
+    DAXPY((const int&)j, (const Real &)temp, &t[(j + 1) * t_dim1 + 1], (const int&)c__1, &b[1], (const int&)c__1);
     b[j] /= t[j + j * t_dim1];
 /* L60: */
     }
@@ -4046,7 +4060,7 @@ L80:
     for (jj = 2; jj <= i__1; ++jj) {
     j = *n - jj + 1;
     i__2 = jj - 1;
-    b[j] -= ddot_((const int&)i__2, &t[j + 1 + j * t_dim1], (const int&)c__1, &b[j + 1], (const int&)c__1);
+    b[j] -= DDOT((const int&)i__2, &t[j + 1 + j * t_dim1], (const int&)c__1, &b[j + 1], (const int&)c__1);
     b[j] /= t[j + j * t_dim1];
 /* L90: */
     }
@@ -4063,7 +4077,7 @@ L110:
     i__1 = *n;
     for (j = 2; j <= i__1; ++j) {
     i__2 = j - 1;
-    b[j] -= ddot_((const int&)i__2, &t[j * t_dim1 + 1], (const int&)c__1, &b[1], (const int&)c__1);
+    b[j] -= DDOT((const int&)i__2, &t[j * t_dim1 + 1], (const int&)c__1, &b[1], (const int&)c__1);
     b[j] /= t[j + j * t_dim1];
 /* L120: */
     }
@@ -4505,8 +4519,8 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
     if (strncmp(task, "STOP", 4) == 0) {
         if (strncmp(task + 6, "CPU", 3) == 0) {
 /*                                          restore the previous iterate. */
-        dcopy_(*n, &t[1], (const int&)c__1, &x[1], (const int&)c__1);
-        dcopy_(*n, &r__[1], (const int&)c__1, &g[1], (const int&)c__1);
+        DCOPY(*n, &t[1], (const int&)c__1, &x[1], (const int&)c__1);
+        DCOPY(*n, &r__[1], (const int&)c__1, &g[1], (const int&)c__1);
         *f = fold;
         }
         goto L999;
@@ -4555,7 +4569,7 @@ L222:
 
     if (! cnstnd && col > 0) {
 /*                                            skip the search for GCP. */
-    dcopy_(*n, &x[1], (const int&)c__1, &z__[1], (const int&)c__1);
+    DCOPY(*n, &x[1], (const int&)c__1, &z__[1], (const int&)c__1);
     wrk = updatd;
     nint = 0;
     goto L333;
@@ -4689,8 +4703,8 @@ L666:
         csave, &isave[22], &dsave[17], (ftnlen)60, (ftnlen)60);
     if (info != 0 || iback >= 20) {
 /*          restore the previous iterate. */
-    dcopy_(*n, &t[1], (const int&)c__1, &x[1], (const int&)c__1);
-    dcopy_(*n, &r__[1], (const int&)c__1, &g[1], (const int&)c__1);
+    DCOPY(*n, &t[1], (const int&)c__1, &x[1], (const int&)c__1);
+    DCOPY(*n, &r__[1], (const int&)c__1, &g[1], (const int&)c__1);
     *f = fold;
     if (col == 0) {
 /*             abnormal termination. */
@@ -4750,7 +4764,7 @@ L777:
     }
 /* Computing MAX */
     d__1 = fabs(fold), d__2 = fabs(*f), d__1 = std::max(d__1,d__2);
-    ddum = std::max(d__1,1.);
+    ddum = std::max(d__1,Real(1));
     if (fold - *f <= tol * ddum) {
 /*                                        terminate the algorithm. */
     strcpy(task, "CONVERGENCE: REL_REDUCTION_OF_F <= FACTR*EPSMCH");
@@ -4766,13 +4780,13 @@ L777:
     r__[i__] = g[i__] - r__[i__];
 /* L42: */
     }
-    rr = ddot_(*n, &r__[1], (const int&)c__1, &r__[1], (const int&)c__1);
+    rr = DDOT(*n, &r__[1], (const int&)c__1, &r__[1], (const int&)c__1);
     if (stp == 1.) {
     dr = gd - gdold;
     ddum = -gdold;
     } else {
     dr = (gd - gdold) * stp;
-    dscal_(*n, (const Real &)stp, &d__[1], (const int&)c__1);
+    DSCAL(*n, (const Real &)stp, &d__[1], (const int&)c__1);
     ddum = -gdold * stp;
     }
     if (dr <= epsmch * ddum) {

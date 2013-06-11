@@ -1425,19 +1425,19 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
 
         // On the inboard body, draw a solid sphere and a wireframe one attached to it for
         // easier visualization of its rotation. These are at about 90% of the radius.
-        geom.push_back(DecorativeSphere(0.92*getDefaultRadius())
+        geom.push_back(DecorativeSphere(Real(0.92)*getDefaultRadius())
                                             .setColor(Gray)
                                             .setRepresentation(DecorativeGeometry::DrawSurface)
-                                            .setOpacity(0.5)
-                                            .setResolution(0.75)
+                                            .setOpacity(Real(0.5))
+                                            .setResolution(Real(0.75))
                                             .setBodyId(getMyParentMobilizedBodyIndex())
                                             .setTransform(X_PMb));
-        geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
+        geom.push_back(DecorativeSphere(Real(0.90)*getDefaultRadius())
             .setColor(White)
             .setRepresentation(DecorativeGeometry::DrawWireframe)
-            .setResolution(0.75)
+            .setResolution(Real(0.75))
             .setLineThickness(3)
-            .setOpacity(0.1)
+            .setOpacity(Real(0.1))
             .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
 
@@ -1676,19 +1676,19 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
 
         // On the inboard body, draw a solid sphere and a wireframe one attached to it for
         // easier visualization of its rotation. These are at about 90% of the radius.
-        geom.push_back(DecorativeSphere(0.92*getDefaultRadius())
+        geom.push_back(DecorativeSphere(Real(0.92)*getDefaultRadius())
                                             .setColor(Gray)
                                             .setRepresentation(DecorativeGeometry::DrawSurface)
-                                            .setOpacity(0.5)
-                                            .setResolution(0.75)
+                                            .setOpacity(Real(0.5))
+                                            .setResolution(Real(0.75))
                                             .setBodyId(getMyParentMobilizedBodyIndex())
                                             .setTransform(X_PMb));
-        geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
+        geom.push_back(DecorativeSphere(Real(0.90)*getDefaultRadius())
             .setColor(White)
             .setRepresentation(DecorativeGeometry::DrawWireframe)
-            .setResolution(0.75)
+            .setResolution(Real(0.75))
             .setLineThickness(3)
-            .setOpacity(0.1)
+            .setOpacity(Real(0.1))
             .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
 
@@ -1696,8 +1696,8 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
         geom.push_back(DecorativeSphere(getDefaultRadius())
                                             .setColor(Orange)
                                             .setRepresentation(DecorativeGeometry::DrawWireframe)
-                                            .setOpacity(0.5)
-                                            .setResolution(0.5)
+                                            .setOpacity(Real(0.5))
+                                            .setResolution(Real(0.5))
                                             .setBodyId(getMyMobilizedBodyIndex())
                                             .setTransform(X_BM));
     }
@@ -1838,16 +1838,16 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
         geom.push_back(DecorativeEllipsoid(radii)
             .setColor(Gray)
             .setRepresentation(DecorativeGeometry::DrawSurface)
-            .setOpacity(0.5)
-            .setResolution(1.25)
+            .setOpacity(Real(0.5))
+            .setResolution(Real(1.25))
             .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
-        geom.push_back(DecorativeEllipsoid(radii*.99)
+        geom.push_back(DecorativeEllipsoid(radii*Real(.99))
             .setColor(White)
             .setRepresentation(DecorativeGeometry::DrawWireframe)
-            .setResolution(0.75)
+            .setResolution(Real(0.75))
             .setLineThickness(3)
-            .setOpacity(0.1)
+            .setOpacity(Real(0.1))
             .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
 
@@ -1871,7 +1871,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
 
         // raise up so bottom is on xy plane
         const Transform X_BFollower(X_BM.R(), X_BM.p() + Vec3(0,0,hh));
-        geom.push_back(DecorativeBrick(Vec3(hw,2*hw/3.,hh))
+        geom.push_back(DecorativeBrick(Vec3(hw,Real(2*hw/3.),hh))
             .setColor(Orange)
             .setBodyId(getMyMobilizedBodyIndex())
             .setTransform(X_BFollower));
@@ -2613,11 +2613,11 @@ void MobilizedBody::Custom::Implementation::setQToFitTransform(const State& stat
     opt.setLimitedMemoryHistory(100);
     Vector qvec(nq);
     
-    // Pick initiial values which are 1) deterministic and 2) unlikely to correspond to a local
+    // Pick initial values which are 1) deterministic and 2) unlikely to correspond to a local
     // maximum or inflection point, which could cause the optimizer to fail.
     
     for (int i = 0; i < nq; i++)
-        qvec[i] = i+0.12354;
+        qvec[i] = i+Real(0.12354);
     opt.optimize(qvec);
     for (int i = 0; i < nq; i++)
         q[i] = qvec[i];
@@ -2651,7 +2651,7 @@ void MobilizedBody::Custom::Implementation::setUToFitVelocity(const State& state
     // maximum or inflection point, which could cause the optimizer to fail.
     
     for (int i = 0; i < nu; i++)
-        uvec[i] = i+0.12354;
+        uvec[i] = i+Real(0.12354);
     opt.optimize(uvec);
     for (int i = 0; i < nu; i++)
         u[i] = uvec[i];

@@ -45,10 +45,11 @@ int main() {
     Rotation x45(Pi/4, XAxis);
     Rotation y45(Pi/4, YAxis);
     Rotation z45(Pi/4, ZAxis);
-    Force::UniformGravity gravity(forces, matter, Vec3(10, -9.8, 3));
+    Force::UniformGravity gravity(forces, matter, Vec3(10, Real(-9.8), 3));
     // Create the body and some artwork for it.
     Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody.addDecoration(Transform(), DecorativeSphere(0.1).setColor(Red));
+    pendulumBody.addDecoration(Transform(), 
+                               DecorativeSphere(Real(0.1)).setColor(Red));
 
     // Add an instance of the body to the multibody system by connecting
     // it to Ground via a pin mobilizer.
@@ -93,7 +94,7 @@ int main() {
     // Visualize with default options; ask for a report every 1/30 of a second
     // to match the Visualizer's default 30 frames per second rate.
     Visualizer viz(system);
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.addEventReporter(new Visualizer::Reporter(viz, Real(1./30)));
     
     // Initialize the system and state.
     
@@ -201,7 +202,7 @@ int main() {
     const Transform& X_GP = pendulum1.getBodyTransform(state);
     //forcesAtMInG[1][1] = X_GP.R()*forcesAtMInG[1][1];
     std::cout << "FM_G=" << forcesAtMInG << "\n";
-    ts.stepTo(1.2);
+    ts.stepTo(Real(1.2));
     state = integ.getState();
     system.realize(state);
     matter.calcMobilizerReactionForces(state, forcesAtMInG);

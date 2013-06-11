@@ -46,7 +46,7 @@ public:
 
     private:
     int         iprint[3];
-    double        xtol;
+    Real        xtol;
     void lbfgs_( int n, int m, Real *x, Real *f, int *iprint,  Real *eps, Real *xtol );
     void mcsrch_(int *n, Real *x, Real *f, Real *g, Real *s, Real *stp,
                  Real *ftol, Real *xtol, int *maxfev, int *info, int *nfev, Real *wa);

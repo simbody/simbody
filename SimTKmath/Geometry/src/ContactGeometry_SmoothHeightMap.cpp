@@ -193,7 +193,7 @@ createBoundingVolumes() {
         points[i] = &mesh.getVertexPosition(i);
     boundingSphere = Geo::Point::calcBoundingSphereIndirect(points);
     // Add 10% as a hack to make it less likely we'll miss part of the surface.
-    boundingSphere.updRadius() *= 1.1;
+    boundingSphere.updRadius() *= Real(1.1);
 }
 
 DecorativeGeometry ContactGeometry::SmoothHeightMap::Impl::createDecorativeGeometry() const {

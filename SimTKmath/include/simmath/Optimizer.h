@@ -201,7 +201,7 @@ public:
    /// Returns the limits on the allowed values of each parameter, as
    /// an array of lower bounds and an array of upper bounds, with
    /// assumed lengths matching the number of parameters.
-   void getParameterLimits( double **lower, double **upper ) const {
+   void getParameterLimits( Real **lower, Real **upper ) const {
         *lower = &(*lowerLimits)[0];
         *upper = &(*upperLimits)[0];
    }

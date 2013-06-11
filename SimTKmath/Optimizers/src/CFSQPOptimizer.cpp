@@ -21,8 +21,13 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+
+
 #include "CFSQPOptimizer.h"
 #include <string>
+
+//TODO only works in double precision without some mods
+#if SimTK_DEFAULT_PRECISION == 2
 
 // ----------------------------------------------------------------------
 // Code to manage the library loading
@@ -190,19 +195,26 @@ optimize(Vector &results)
 
     int nx = sys.getNumParameters();
 
-	double *bl, *bu;
+	double *bl = new double[nx];
+	double *bu = new double[nx];
+	double *x  = new double[nx];
 	if(sys.getHasLimits()) {
-		sys.getParameterLimits(&bl,&bu);
+        Real *rbl, *rbu;
+		sys.getParameterLimits(&rbl,&rbu);
+		for(int i=0; i<nx; i++) {
+			bl[i] = (double)rbl[i];
+			bu[i] = (double)rbu[i];
+		}
 	} else {
-		bl = new double[nx];
-		bu = new double[nx];
 		for(int i=0; i<nx; i++) {
 			bl[i] = -_infinity;
 			bu[i] =  _infinity;
 		}
 	}
 
-    double *x = &results[0];
+	for(int i=0; i<nx; i++)
+		x[i] = (double)results[i];
+
     int numObjectiveFunctions = 1;
 
 	// Clear cache before starting optimization (used to speed up constraint computations)
@@ -216,10 +228,12 @@ optimize(Vector &results)
 		_mode,diagnosticsLevel,maxIterations,&_inform,_infinity,convergenceTolerance,_epseqn,_udelta,
 		bl,bu,x,_p,_c,_lambda,pFunc,cFunc,dpdxFunc,dcdxFunc,(void *)this);
 
-	if(!getOptimizerSystem().getHasLimits()) {
-		delete[] bl;
-		delete[] bu;
-	}
+	for(int i=0; i<nx; i++)
+		results[i] = Real(x[i]);
+
+    delete[] x;
+	delete[] bu;
+	delete[] bl;
 
     if(diagnosticsLevel > 0) PrintInform(_inform,std::cout);
     
@@ -229,7 +243,7 @@ optimize(Vector &results)
         SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf));
     }
 
-    return *_p;
+    return Real(*_p);
 }
 
 //=============================================================================
@@ -244,7 +258,7 @@ pFunc(int nparam,int j,double *x,double *p,void *cd)
 {
     CFSQPOptimizer *cfsqp = (CFSQPOptimizer *)cd;
     int nx=cfsqp->getOptimizerSystem().getNumParameters();
-    cfsqp->getOptimizerSystem().objectiveFunc(Vector(nx,x,true),true,*p);
+    cfsqp->getOptimizerSystem().objectiveFunc(Vector(nx,x,true),true,Real(*p));
 }
 //______________________________________________________________________________
 /**
@@ -429,3 +443,5 @@ computeConstraintGradient(const SimTK::Vector &x, const bool new_coefficients, S
 #endif
 	return status;
 }
+
+#endif

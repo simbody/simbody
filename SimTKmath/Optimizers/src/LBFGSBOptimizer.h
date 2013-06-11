@@ -47,7 +47,7 @@ public:
         int *isave, Real *dsave, long task_len, long csave_len);
 
 private:
-    double      factr;
+    Real        factr;
     int         iprint[3];
     int         *nbd;
 };

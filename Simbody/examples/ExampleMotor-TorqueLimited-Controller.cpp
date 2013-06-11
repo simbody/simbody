@@ -87,9 +87,9 @@ const Real StopStiffness   = 10000; // stiffness in left joint stop
 const Real StopDissipation = 0.5;   // dissipation rate 
 
 // Integration step size, display update, user polling rates.
-const Real MaxStepSize    = 1/30.;  // 33 1/3 ms (30 Hz)
-const int  DrawEveryN     = 1;      // 33 1/3 ms frame update (30 Hz)
-const int  PollUserEveryN = 2;      // 66 2/3 ms user response lag (15 Hz)
+const Real MaxStepSize    = Real(1/30.); // 33 1/3 ms (30 Hz)
+const int  DrawEveryN     = 1;           // 33 1/3 ms frame update (30 Hz)
+const int  PollUserEveryN = 2;           // 66 2/3 ms user response lag (15 Hz)
 
 // Gains for the PI controller.
 const Real ProportionalGain = 1000;
@@ -184,7 +184,7 @@ public:
     void realizeAcceleration(const State& state) const OVERRIDE_11 {
         const Real integTrq = m_matter.getZ(state)[m_trqIx];
         const Real trqLimit  = getTorqueLimit(state);
-        const Real abstrq=std::abs(integTrq), trqsign = sign(integTrq);
+        const Real abstrq=std::abs(integTrq), trqsign = (Real)sign(integTrq);
 
         Real trqDot = -IntegralGain*getSpeedError(state);
         // Don't ask for more torque if we're already past the limit
@@ -281,7 +281,7 @@ int main() {
     // integrator's "advanced state", which is modifiable, so that we can update
     // it in response to user input.
     SemiExplicitEuler2Integrator integ(mech.getSystem());
-    integ.setAccuracy(1e-1); // 10%
+    integ.setAccuracy(Real(1e-1)); // 10%
     integ.setAllowInterpolation(false);
 
     integ.initialize(mech.getDefaultState());
@@ -333,12 +333,12 @@ MyMechanism::MyMechanism()
 
 //----------------------------- CONSTRUCT SYSTEM -------------------------------
 void MyMechanism::constructSystem() {
-    Force::Gravity(m_forces, m_matter, -YAxis, 9.80665);
+    Force::Gravity(m_forces, m_matter, -YAxis, Real(9.80665));
 
     // Describe a body with a point mass at (0, -3, 0) and draw a sphere there.
     Real mass = 3; Vec3 pos(0,-3,0);
     Body::Rigid bodyInfo(MassProperties(mass, pos, UnitInertia::pointMassAt(pos)));
-    bodyInfo.addDecoration(pos, DecorativeSphere(.2).setOpacity(.5));
+    bodyInfo.addDecoration(pos, DecorativeSphere(Real(.2)).setOpacity(.5));
 
     // Create the tree of mobilized bodies, reusing the above body description.
     m_bodyT   = MobilizedBody::Pin(m_matter.Ground(),Vec3(0), bodyInfo,Vec3(0));

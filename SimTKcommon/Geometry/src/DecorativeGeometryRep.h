@@ -60,7 +60,7 @@ public:
     // This sets resolution to some factor times the object-specific default.
     // Anything 0 or less becomes -1 and means "use default".
     void setResolution(Real r) {
-        resolution = r > 0 ? r : -1.;
+        resolution = r > 0 ? r : Real(-1);
     }
 
     Real getResolution() const {return resolution;}
@@ -70,7 +70,7 @@ public:
     // "use default".
     void setScaleFactors(const Vec3& s) {
         for (int i=0; i<3; ++i)
-            scaleFactors[i] = s[i] > 0 ? s[i] : -1;
+            scaleFactors[i] = s[i] > 0 ? s[i] : Real(-1);
     }
     const Vec3& getScaleFactors() const {return scaleFactors;}
 
@@ -87,12 +87,12 @@ public:
     // or equal to 1. The default will generally be 1, which is opaque,
     // but we use -1 to mean "use default" and let the client decide.
     void setOpacity(Real o) {
-        opacity = o > 0 ? o : -1.;
+        opacity = o > 0 ? o : Real(-1);
     }
     Real getOpacity() const {return opacity;}
 
     void setLineThickness(Real t) {
-        lineThickness = t > 0 ? t : -1.;
+        lineThickness = t > 0 ? t : Real(-1);
     }
     Real getLineThickness() const {return lineThickness;}
     

@@ -530,8 +530,8 @@ void errChk(const char* methodName) const {
 
     const Vec3P& d = I_OF_F.getDiag();  // moments
     const Vec3P& p = I_OF_F.getLower(); // products
-    const Real Ixx = d[0], Iyy = d[1], Izz = d[2];
-    const Real Ixy = p[0], Ixz = p[1], Iyz = p[2];
+    const RealP Ixx = d[0], Iyy = d[1], Izz = d[2];
+    const RealP Ixy = p[0], Ixz = p[1], Iyz = p[2];
 
     SimTK_ERRCHK3(d >= -SignificantReal, methodName,
         "Diagonals of an Inertia matrix must be nonnegative; got %g,%g,%g.",
