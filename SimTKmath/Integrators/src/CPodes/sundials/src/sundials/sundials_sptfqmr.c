@@ -360,7 +360,7 @@ int SptfqmrSolve(SptfqmrMem mem, void *A_data, N_Vector x, N_Vector b,
 
       /* Check for convergence... */
       /* NOTE: just use approximation to norm of residual, if possible */
-      *res_norm = r_curr_norm = tau*RSqrt(m+1);
+      *res_norm = r_curr_norm = tau*RSqrt((realtype)m+1);
 
       /* Exit inner loop if iteration has converged based upon approximation
 	 to norm of current residual */

@@ -461,10 +461,10 @@ void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const
 {
     if (this->getUseEulerAngles(mv)) {
         this->toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
-        this->toQ(q) = 0.;
+        this->toQ(q) = 0;
     } else {
-        this->toQuat(q) = Vec4(1.,0.,0.,0.);
-        this->toQVec3(q,4) = 0.;
+        this->toQuat(q) = Vec4(1,0,0,0);
+        this->toQVec3(q,4) = 0;
     }
 }
 

@@ -51,7 +51,7 @@ ContactGeometry::HalfSpace::HalfSpace()
 {   return ContactGeometry::HalfSpace::Impl::classTypeId(); }
 
 DecorativeGeometry ContactGeometry::HalfSpace::Impl::createDecorativeGeometry() const {
-    return DecorativeBrick(Vec3(0.01,1,1));
+    return DecorativeBrick(Vec3(Real(0.01),1,1));
 }
 
 // Point position is given in the half space frame.

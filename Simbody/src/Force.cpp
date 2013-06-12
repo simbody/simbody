@@ -133,7 +133,7 @@ Real Force::TwoPointLinearSpringImpl::calcPotentialEnergy(const State& state) co
     const Real d   = r_G.norm();  // distance between the points
     const Real stretch   = d - x0; // + -> tension, - -> compression
 
-    return 0.5*k*stretch*stretch; // 1/2 k (x-x0)^2
+    return k*stretch*stretch/2; // 1/2 k (x-x0)^2
 }
 
 
@@ -248,7 +248,7 @@ Real Force::MobilityLinearSpringImpl::calcPotentialEnergy(const State& state) co
     const MobilizedBody& mb = matter.getMobilizedBody(body);
     const Real q = mb.getOneQ(state, coordinate);
     const Real frc = -k*(q-x0);
-    return 0.5*k*(q-x0)*(q-x0);
+    return k*(q-x0)*(q-x0)/2;
 }
 
 

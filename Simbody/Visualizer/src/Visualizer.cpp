@@ -294,7 +294,8 @@ public:
 
     int getActualBufferLengthInFrames() const {return m_pool.size();}
     Real getActualBufferLengthInSec() const 
-    {   return nsToSec(getActualBufferLengthInFrames()*m_timeBetweenFramesInNs); }
+    {   return (Real)nsToSec(getActualBufferLengthInFrames()
+                             *m_timeBetweenFramesInNs); }
 
     // Generate this frame and send it immediately to the renderer without
     // thinking too hard about it.

@@ -510,9 +510,9 @@ void setMobilizerDefaultPositionValues(
     if (this->getUseEulerAngles(mv)) {
         //TODO: kludge
         this->toQuat(q) = Vec4(0); // clear unused element
-        this->toQ(q) = 0.;
+        this->toQ(q) = 0;
     }
-    else this->toQuat(q) = Vec4(1.,0.,0.,0.);
+    else this->toQuat(q) = Vec4(1,0,0,0);
 }
 
 bool enforceQuaternionConstraints(
