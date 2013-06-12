@@ -249,7 +249,7 @@ namespace Ipopt
     if (mu_min_default_) {
       mu_min_ = Min(IpData().tol(),
                     IpNLP().NLP_scaling()->apply_obj_scaling(compl_inf_tol_))/
-                (barrier_tol_factor_+1.);
+                (barrier_tol_factor_+1);
     }
 
     // if mu_max has not yet been computed, do so now, based on the
@@ -309,7 +309,7 @@ namespace Ipopt
                                pow(mu, mu_superlinear_decrease_power_) );
           DBG_PRINT((1,"new_mu = %e, compl_inf_tol = %e tol = %e\n", new_mu, compl_inf_tol, tol));
           new_mu = Max(new_mu,
-                       Min(compl_inf_tol, tol)/(barrier_tol_factor_+1.));
+                       Min(compl_inf_tol, tol)/(barrier_tol_factor_+1));
           if (tiny_step_flag && new_mu == mu) {
             THROW_EXCEPTION(TINY_STEP_DETECTED,
                             "Problem solved to best possible numerical accuracy");
@@ -370,7 +370,7 @@ namespace Ipopt
       // Choose the fraction-to-the-boundary parameter for the current
       // iteration
       // ToDo: Is curr_nlp_error really what we should use here?
-      Number tau = Max(tau_min_, 1.-IpCq().curr_nlp_error());
+      Number tau = Max(tau_min_, 1-IpCq().curr_nlp_error());
       IpData().Set_tau(tau);
 
       // Compute the new barrier parameter via the oracle
@@ -521,7 +521,7 @@ namespace Ipopt
   Number
   AdaptiveMuUpdate::Compute_tau_monotone(Number mu)
   {
-    return Max(tau_min_, 1.-mu);
+    return Max(tau_min_, 1-mu);
   }
 
   Number
@@ -592,7 +592,7 @@ namespace Ipopt
       new_mu = adaptive_mu_monotone_init_factor_*IpCq().curr_avrg_compl();
     }
     new_mu = Max(new_mu, lower_mu_safeguard());
-    new_mu = Min(new_mu, 0.1 * max_ref);
+    new_mu = Min(new_mu, Number(0.1) * max_ref);
 
     new_mu = Max(new_mu, mu_min_);
     new_mu = Min(new_mu, mu_max_);
