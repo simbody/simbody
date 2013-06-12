@@ -158,15 +158,23 @@ public:
     /// for the result regardless of what goes in. Cost is about 50 flops.
     inline UnitVec<P,1> perp() const;
 
-    /// This constructor is only for our friends whom we trust to
+    /// (Advanced) This constructor is only for our friends whom we trust to
     /// give us an already-normalized vector which we simply accept as
     /// normalized without checking.
     UnitVec(const BaseVec& v, bool) : BaseVec(v) {}
-    /// This constructor is only for our friends whom we trust to
+    /// (Advanced) This constructor is only for our friends whom we trust to
     /// give us an already-normalized vector which we simply accept as
     /// normalized without checking (this version accepts an input
     /// vector of any stride).
     template <int S2> UnitVec(const Vec<3,RealP,S2>& v, bool) : BaseVec(v) { }
+
+    /// (Advanced) Reinterpret a given memory location as a %UnitVec like
+    /// this one, without checking -- don't use this if you aren't absolutely 
+    /// certain that the memory location actually \e does contain a unit vector, 
+    /// with the correct stride! This overrides the base Vec class method of the
+    /// same name.
+    static const UnitVec& getAs(const RealP* p)  
+    {   return *reinterpret_cast<const UnitVec*>(p); }
 };
 
 
@@ -290,10 +298,23 @@ public:
     /// for the result regardless of what goes in. Cost is about 50 flops.
     inline UnitRow<P,1> perp() const;
 
-    // This constructor is only for our friends whom we trust to
-    // give us an already-normalized vector.
+    /// (Advanced) This constructor is only for our friends whom we trust to
+    /// give us an already-normalized vector which we simply accept as
+    /// normalized without checking.
     UnitRow( const BaseRow& v, bool ) : BaseRow(v) { }
+    /// (Advanced) This constructor is only for our friends whom we trust to
+    /// give us an already-normalized vector which we simply accept as
+    /// normalized without checking (this version accepts an input
+    /// vector of any stride).
     template <int S2> UnitRow( const Row<3,P,S2>& v, bool ) : BaseRow(v) { }
+
+    /// (Advanced) Reinterpret a given memory location as a %UnitRow like
+    /// this one, without checking -- don't use this if you aren't absolutely 
+    /// certain that the memory location actually \e does contain a unit vector,
+    /// with the correct stride! This overrides the base Row class method of the
+    /// same name.
+    static const UnitRow& getAs(const RealP* p)  
+    {   return *reinterpret_cast<const UnitRow*>(p); }
 };
 
 template <class P, int S>
