@@ -42,7 +42,7 @@ using namespace SimTK;
 
 // Set to revert to the no-constraint stiction model for performance comparison
 // with the new constraint-based one.
-//#define USE_CONTINUOUS_STICTION
+// #define USE_CONTINUOUS_STICTION
 
 // Define this to run the simulation NTries times, saving the states and
 // comparing them bitwise to see if the simulations are perfectly repeatable
@@ -157,7 +157,13 @@ public:
     {   return findH(s) < 0; }
 
     bool isSticking(const State& s) const
-    {   return !m_noslipX.isDisabled(s); } // X,Y always on or off together
+    { 
+        #ifdef USE_CONTINUOUS_STICTION
+        return getActualSlipSpeed(s) <= m_vtrans;
+        #else
+        return !m_noslipX.isDisabled(s); // X,Y always on or off together
+        #endif
+    }
     
     // Return a point in Ground coincident with the vertex.
     Vec3 whereToDisplay(const State& s) const {
@@ -1143,6 +1149,7 @@ int main(int argc, char** argv) {
     SimbodyMatterSubsystem      matter(mbs);
     GeneralForceSubsystem       forces(mbs);
     Force::Gravity              gravity(forces, matter, -YAxis, 9.81);
+    //Force::Gravity              gravity(forces, matter, -UnitVec3(.3,1,0), 9.81);
     MobilizedBody& Ground = matter.updGround();
 
     // Define a material to use for contact. This is not very stiff.
@@ -1234,11 +1241,14 @@ int main(int argc, char** argv) {
     Real accuracy = 1e-4;
     RungeKuttaMersonIntegrator integ(mbs);
     #else
+    //Real accuracy = 1e-1;
     Real accuracy = 1e-2;
-    //Real accuracy = 1e-3;
+    //Real accuracy = 1e-6;
     //ExplicitEulerIntegrator integ(mbs);
     //RungeKutta2Integrator integ(mbs);
-    RungeKutta3Integrator integ(mbs);
+    //RungeKutta3Integrator integ(mbs);
+    //SemiExplicitEulerIntegrator integ(mbs, .005);
+    SemiExplicitEuler2Integrator integ(mbs);
     //RungeKuttaFeldbergIntegrator integ(mbs);
     //RungeKuttaMersonIntegrator integ(mbs);
     //VerletIntegrator integ(mbs);
@@ -1248,7 +1258,8 @@ int main(int argc, char** argv) {
     integ.setAccuracy(accuracy);
     //integ.setMaximumStepSize(0.25);
     integ.setMaximumStepSize(0.05);
-    //integ.setMaximumStepSize(0.001);
+    //integ.setMaximumStepSize(0.002);
+    //integ.setAllowInterpolation(false);
 
     StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
     mbs.addEventReporter(stateSaver);
@@ -1329,7 +1340,6 @@ tZ_u = 0.0 m/s
     // Simulate it.
 
     integ.setReturnEveryInternalStep(true);
-    //integ.setAllowInterpolation(false);
     TimeStepper ts(mbs, integ);
     ts.setReportAllSignificantStates(true);
 
