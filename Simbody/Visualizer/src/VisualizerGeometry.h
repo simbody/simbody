@@ -32,11 +32,7 @@
 #include "simbody/internal/common.h"
 
 namespace SimTK {
-    class SimbodyMatterSubsystem;
-}
-
-using namespace SimTK;
-
+class SimbodyMatterSubsystem;
 class VisualizerProtocol;
 
 class VisualizerGeometry : public DecorativeGeometryImplementation {
@@ -65,6 +61,6 @@ private:
     const SimbodyMatterSubsystem& matter;
     const State& state;
 };
-
+}
 
 #endif // SimTK_SIMBODY_VISUALIZER_GEOMETRY_H_

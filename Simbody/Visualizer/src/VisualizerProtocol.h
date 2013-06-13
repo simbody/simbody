@@ -29,8 +29,6 @@
 #include <pthread.h>
 #include <utility>
 
-using namespace SimTK;
-
 /** @file
  * This file defines commands that are used for communication between the 
  * simulation application and the visualization GUI.
@@ -99,6 +97,7 @@ static const unsigned char KeyPressed            = 2;
 static const unsigned char MenuSelected          = 3;
 static const unsigned char SliderMoved           = 4;
 
+namespace SimTK {
 class VisualizerProtocol {
 public:
     VisualizerProtocol(Visualizer& visualizer,
@@ -160,6 +159,7 @@ private:
     mutable std::map<const void*, unsigned short> meshes;
     mutable pthread_mutex_t sceneLock;
 };
+}
 
 
 #endif // SimTK_SIMBODY_VISUALIZER_PROTOCOL_H_
