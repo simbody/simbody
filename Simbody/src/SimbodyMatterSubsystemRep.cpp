@@ -3566,7 +3566,7 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     // We only fail if we can't achieve consAccuracy, but while we're
     // solving we'll see if we can get consAccuracyToTryFor.
     const Real consAccuracyToTryFor = 
-        std::max(consAccuracy/10, SignificantReal);
+        std::max(Real(0.1)*consAccuracy, SignificantReal);
 
     // Conditioning tolerance. This determines when we'll drop a 
     // constraint. 
@@ -4192,7 +4192,7 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     // We only fail if we can't achieve consAccuracy, but while we're
     // solving we'll see if we can get consAccuracyToTryFor.
     const Real consAccuracyToTryFor = 
-        std::max(consAccuracy/10, SignificantReal);
+        std::max(Real(0.1)*consAccuracy, SignificantReal);
 
     // Conditioning tolerance. This determines when we'll drop a 
     // constraint. 

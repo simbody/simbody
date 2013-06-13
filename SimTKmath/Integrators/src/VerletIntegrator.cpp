@@ -147,7 +147,7 @@ bool VerletIntegratorRep::attemptDAEStep
     // this equation is acceptably satisfied. We're using functional iteration 
     // here which has a very limited radius of convergence.
     
-    const Real tol = std::min(Real(1e-4), getAccuracyInUse()/10);
+    const Real tol = std::min(Real(1e-4), Real(0.1)*getAccuracyInUse());
     Vector usave(nu), zsave(nz); // temporaries
     bool converged = false;
     Real prevChange = Infinity; // use this to quit early
