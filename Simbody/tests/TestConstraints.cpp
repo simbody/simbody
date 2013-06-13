@@ -385,8 +385,12 @@ void testDisablingConstraints() {
     createState(system, state);
     const int numQuaternionsInUse = matter.getNumQuaternionsInUse(state);
 
+    // This is slow if we do it at very tight tolerance.
+    const Real LooserConstraintTol = 1e-6;
+
     RungeKuttaMersonIntegrator integ(system);
-    integ.setConstraintTolerance(ConstraintTol);
+    integ.setAccuracy(10*LooserConstraintTol);
+    integ.setConstraintTolerance(LooserConstraintTol);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     for (int i = 0; i < 10; i++) {
@@ -399,7 +403,7 @@ void testDisablingConstraints() {
             Vec3 r2 = last.getBodyOriginLocation(ts.getState());
             Vec3 dr = r1-r2;
             // Verify that the constraint is enforced while enabled.
-            CONSTRAINT_TEST(dr.norm(), 3.0);
+            SimTK_TEST_EQ_TOL(dr.norm(), Real(3), LooserConstraintTol);
         }
         else {
             CONSTRAINT_TEST(ts.getState().getNQErr(), numQuaternionsInUse);
@@ -409,7 +413,7 @@ void testDisablingConstraints() {
             Vec3 r2 = last.getBodyOriginLocation(ts.getState());
             Vec3 dr = r1-r2;
             // Verify that the constraint is *not* being enforced any more.
-            SimTK_TEST_NOTEQ_TOL(dr.norm(), Real(3), ConstraintTol);
+            SimTK_TEST_NOTEQ_TOL(dr.norm(), Real(3), LooserConstraintTol);
         }
     }
     delete &system;
