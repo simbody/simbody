@@ -364,9 +364,9 @@ public:
     MobilityDiscreteForceImpl* clone() const OVERRIDE_11 
     {   return new MobilityDiscreteForceImpl(*this); }
 
-    // This force depends only on the contents of the state; this really is
-    // saying "does not depend on velocities".
-    bool dependsOnlyOnPositions() const {return true;}
+    // Force this to wait for Dynamics stage before calculating, because that's
+    // all that gets invalidated when a new forces is applied.
+    bool dependsOnlyOnPositions() const OVERRIDE_11 {return false;}
 
 private:
 friend class Force::MobilityDiscreteForce;
@@ -414,9 +414,9 @@ public:
     DiscreteForcesImpl* clone() const OVERRIDE_11 
     {   return new DiscreteForcesImpl(*this); }
 
-    // This force depends only on the contents of the state; this really is
-    // saying "does not depend on velocities".
-    bool dependsOnlyOnPositions() const OVERRIDE_11 {return true;}
+    // Force this to wait for Dynamics stage before calculating, because that's
+    // all that gets invalidated when a new forces is applied.
+    bool dependsOnlyOnPositions() const OVERRIDE_11 {return false;}
 
 private:
 friend class Force::DiscreteForces;
