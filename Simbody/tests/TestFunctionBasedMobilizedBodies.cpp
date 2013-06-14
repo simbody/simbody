@@ -616,6 +616,9 @@ void testFunctionBasedGimbalUserAxes() {
     
     assertEqual(com_bin, com_fb);
     assertEqual(b2.getBodyVelocity(result), fb2.getBodyVelocity(result));
+    
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(b2.getBodyAcceleration(result), fb2.getBodyAcceleration(result));
 }
 
@@ -690,6 +693,9 @@ void testFunctionBasedTranslation() {
     
     assertEqual(com_bin, com_fb);
     assertEqual(b2.getBodyVelocity(result), fb2.getBodyVelocity(result));
+
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(b2.getBodyAcceleration(result), fb2.getBodyAcceleration(result));
 }
 
@@ -781,6 +787,9 @@ void testFunctionBasedFree() {
     
     assertEqual(com_bin, com_fb);
     assertEqual(b1.getBodyVelocity(result), fb1.getBodyVelocity(result));
+
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(b1.getBodyAcceleration(result), fb1.getBodyAcceleration(result));
 }
 
@@ -869,6 +878,9 @@ void testFunctionBasedFreeVsTranslationGimbal() {
     
     assertEqual(Xfb1, Xb1);
     assertEqual(fb1.getBodyVelocity(result), b1.getBodyVelocity(result));
+
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(fb1.getBodyAcceleration(result), b1.getBodyAcceleration(result));
 }
 
@@ -966,6 +978,9 @@ void testFunctionBasedFreeVs2FunctionBased() {
     
     assertEqual(com_fb1, com_fb2);
     assertEqual(fb1.getBodyVelocity(result), fb2.getBodyVelocity(result));
+
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(fb1.getBodyAcceleration(result), fb2.getBodyAcceleration(result));
 }
 
