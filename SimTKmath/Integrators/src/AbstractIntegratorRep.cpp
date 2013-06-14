@@ -65,6 +65,11 @@ void AbstractIntegratorRep::createInterpolatedState(Real t) {
     const State&  advanced = getAdvancedState();
     State&        interp   = updInterpolatedState();
     interp = advanced; // pick up discrete stuff.
+
+    // Hermite interpolation requires state derivatives so we must realize
+    // end-of-step derivatives if they haven't already been realized.
+    realizeStateDerivatives(advanced);
+
     interpolateOrder3(getPreviousTime(),  getPreviousY(),  getPreviousYDot(),
                       advanced.getTime(), advanced.getY(), advanced.getYDot(),
                       t, interp.updY());
@@ -98,6 +103,10 @@ void AbstractIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
     Vector yinterp, dummy;
 
     assert(getPreviousTime() <= t && t <= advanced.getTime());
+
+    // Hermite interpolation requires state derivatives so we must realize
+    // end-of-step derivatives if they haven't already been realized.
+    realizeStateDerivatives(advanced);
     interpolateOrder3(getPreviousTime(),  getPreviousY(),  getPreviousYDot(),
                       advanced.getTime(), advanced.getY(), advanced.getYDot(),
                       t, yinterp);
@@ -585,8 +594,15 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     // the trajectory, since it is invalid until the event handler is called 
     // to fix it.
 
-    realizeStateDerivatives(getAdvancedState());
     const Vector& e0 = getPreviousEventTriggers();
+    if (e0.size() == 0) {
+        // There are no witness functions to worry about in this system.
+        return false;
+    }
+
+    // TODO: this is indiscriminately evaluating expensive accelerations
+    // that are only needed if there are acceleration-level witness functions.
+    realizeStateDerivatives(getAdvancedState());
     const Vector& e1 = getAdvancedState().getEventTriggers();
     assert(e0.size() == e1.size() && 
            e0.size() == getAdvancedState().getNEventTriggers());
