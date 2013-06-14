@@ -233,7 +233,10 @@ friend class MobilityConstantForce;
 
     MobilityConstantForceImpl* clone() const OVERRIDE_11 
     {   return new MobilityConstantForceImpl(*this); }
-    bool dependsOnlyOnPositions() const OVERRIDE_11 {return true;}
+
+    // Has to wait for Dynamics stage because that's all that gets invalidated
+    // if the constant force is changed.
+    bool dependsOnlyOnPositions() const OVERRIDE_11 {return false;}
 
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
