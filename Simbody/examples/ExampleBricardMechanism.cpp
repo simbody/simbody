@@ -72,23 +72,37 @@ int main()
 	GeneralForceSubsystem forces(system);
 	Force::Gravity gravity(forces, matter, UnitVec3(0, -1, 0), 9.8);
 
-    const Real MassFac = 1; // to mess with mass matrix conditioning
+    const Real Mass = 20;
+    const Vec3 EvenCOM(1.00000000, -0.16416667, -0.16416667);
+    const Vec3 OddCOM(1.00000000, 0.16416667, -0.16416667);
 
-	Body::Rigid EVEN_PART_1(MassProperties(20, Vec3(1.00000000, -0.16416667, -0.16416667), 
-							Inertia(3.33400000, 28.33366667, 28.33366667, -4.96666667, -1.60000000, -0.03333333)));
-	Body::Rigid EVEN_PART_2(
-        MassProperties(MassFac*20, Vec3(1.00000000, -0.16416667, -0.16416667), 
-	    MassFac*Inertia(3.33400000, 28.33366667, 28.33366667, -4.96666667, -1.60000000, -0.03333333)));
-	Body::Rigid EVEN_PART_3(MassProperties(20, Vec3(1.00000000, -0.16416667, -0.16416667), 
-							Inertia(3.33400000, 28.33366667, 28.33366667, -4.96666667, -1.60000000, -0.03333333)));
-	Body::Rigid ODD_PART_1(MassProperties(20, Vec3(1.00000000, 0.16416667, -0.16416667), 
-							Inertia(3.33400000, 28.33366667, 28.33366667, 4.96666667, -1.60000000, 0.03333333)));
-	Body::Rigid ODD_PART_2(MassProperties(20, Vec3(1.00000000, 0.16416667, -0.16416667), 
-							Inertia(3.33400000, 28.33366667, 28.33366667, 4.96666667, -1.60000000, 0.03333333)));
-	Body::Rigid ODD_PART_3_HALF1(MassProperties(0.5*20, Vec3(1.00000000, 0.16416667, -0.16416667), 
-							0.5*Inertia(3.33400000, 28.33366667, 28.33366667, 4.96666667, -1.60000000, 0.03333333)));
-	Body::Rigid ODD_PART_3_HALF2(MassProperties(0.5*20, Vec3(1.00000000, 0.16416667, -0.16416667), 
-							0.5*Inertia(3.33400000, 28.33366667, 28.33366667, 4.96666667, -1.60000000, 0.03333333)));
+    const Inertia EvenCentralInertia
+       ( 3.33400000, 28.33366667, 28.33366667,  // xx, yy, zz
+        -4.96666667, -1.60000000, -0.03333333); // xy, xz, yz
+
+    const Inertia OddCentralInertia
+       ( 3.33400000, 28.33366667, 28.33366667,  // xx, yy, zz 
+         4.96666667, -1.60000000, 0.03333333);  // xy, xz, yz
+
+    // Inertias must be given about the body origin.
+    const Inertia EvenBodyInertia = 
+        EvenCentralInertia.shiftFromMassCenter(-EvenCOM, Mass);
+    const Inertia OddBodyInertia = 
+        OddCentralInertia.shiftFromMassCenter(-OddCOM, Mass);
+
+	Body::Rigid EVEN_PART_1(MassProperties(Mass, EvenCOM, EvenBodyInertia));
+	Body::Rigid EVEN_PART_2(MassProperties(Mass, EvenCOM, EvenBodyInertia));
+	Body::Rigid EVEN_PART_3(MassProperties(Mass, EvenCOM, EvenBodyInertia));
+
+
+	Body::Rigid ODD_PART_1(MassProperties(Mass, OddCOM, OddBodyInertia));
+	Body::Rigid ODD_PART_2(MassProperties(Mass, OddCOM, OddBodyInertia));
+
+    // Split the last body and weld back together to close loop.
+	Body::Rigid ODD_PART_3_HALF1(MassProperties(Mass/2, OddCOM, 
+							                    OddBodyInertia/2));
+	Body::Rigid ODD_PART_3_HALF2(MassProperties(Mass/2, OddCOM, 
+							                    OddBodyInertia/2));
 
 	std::ifstream file1, file2;
 	PolygonalMesh Mesh1; file1.open("Bricard_EVEN_PART.obj"); 
