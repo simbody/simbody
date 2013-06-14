@@ -108,7 +108,7 @@ private:
 int main() {
   try {
     // Create the system, with subsystems for the bodies and some forces.
-    MultibodySystem system;
+    MultibodySystem system; system.setUseUniformBackground(true);
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
 
