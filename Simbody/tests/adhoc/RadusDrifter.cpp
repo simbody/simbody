@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
         // CREATE MULTIBODY SYSTEM AND ITS SUBSYSTEMS
-    MultibodySystem         mbs;
+    MultibodySystem         mbs; mbs.setUseUniformBackground(true);
 
     SimbodyMatterSubsystem  crankRocker(mbs);
     GeneralForceSubsystem   forces(mbs);
