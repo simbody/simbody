@@ -58,8 +58,14 @@ SemiExplicitEuler2IntegratorRep::SemiExplicitEuler2IntegratorRep
 // Create an interpolated state at time t, which is between tPrev and tCurrent.
 // If we haven't yet delivered an interpolated state in this interval, we have
 // to initialize its discrete part from the advanced state.
-
-//TODO: need to make this 2nd order
+//
+// TODO: Note that this is a first-order interpolation across the *whole* step, 
+// even though this integrator takes two smaller first-order substeps. It would
+// be better to record the midstep values and perform a piecewise-linear
+// interpolation across the half steps so that the interpolated values match
+// the underlying steps. Alternately, the midpoint value could be used to
+// perform a second-order interpolation here; I'm not sure whether that would
+// be better.
 void SemiExplicitEuler2IntegratorRep::createInterpolatedState(Real t) {
     const System& system   = getSystem();
     const State&  advanced = getAdvancedState();
@@ -93,8 +99,8 @@ void SemiExplicitEuler2IntegratorRep::createInterpolatedState(Real t) {
 // forgetting about the rest of the interval. This is necessary, for
 // example after we have localized an event trigger to an interval tLow:tHigh
 // where tHigh < tAdvanced.
-
-//TODO: need to make this 2nd order
+//
+// See comment above re this being a first-order *whole step* interpolation.
 void SemiExplicitEuler2IntegratorRep::
 backUpAdvancedStateByInterpolation(Real t) {
     const System& system   = getSystem();
