@@ -221,7 +221,7 @@ int main() {
     //makePyramid(1, pyramidMesh);
     //makeOctahedron(1, pyramidMesh);
     PolygonalMesh sphereMesh;
-    sphereMesh = PolygonalMesh::createSphereMesh(1,0/*, 4*/);
+    sphereMesh = PolygonalMesh::createSphereMesh(1,4);
 
     ContactGeometry::TriangleMesh sphere(sphereMesh);
     DecorativeMesh showSphere(sphere.createPolygonalMesh());
