@@ -56,8 +56,8 @@ int main() {
     GeneralForceSubsystem forces(system);
     Force::DiscreteForces discrete(forces, matter);
 
-    // Define an extremely lossy material.
-    const Real Stiffness = 1e7;
+    // Define an extremely stiff, lossy material.
+    const Real Stiffness = 1e8;
     const Real Dissipation = 1000;
     ContactMaterial lossyMaterial(Stiffness,
                                   Dissipation,
@@ -67,15 +67,17 @@ int main() {
 
     // no gravity
     const Real Radius = 0.5;
+    const Real Mass = 1;
     Body::Rigid sphereBody
-       (MassProperties(1.0, Vec3(0), UnitInertia::sphere(Radius)));
+       (MassProperties(Mass, Vec3(0), UnitInertia::sphere(Radius)));
     sphereBody.addDecoration(Transform(), DecorativeSphere(Radius));
     sphereBody.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(Radius),
                        lossyMaterial));
 
+    // TODO: using inscribed sphere as contact shape within the block.
     Body::Rigid cubeBody
-       (MassProperties(1.0, Vec3(0), UnitInertia::sphere(Radius)));
+       (MassProperties(Mass, Vec3(0), UnitInertia::sphere(Radius)));
     cubeBody.addDecoration(Transform(), DecorativeBrick(Vec3(Radius)));
     cubeBody.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(Radius), // TODO!
@@ -85,7 +87,7 @@ int main() {
 
     MobilizedBody::Slider cube(Ground,   Transform(Vec3(0,2,0)), 
                                cubeBody, Transform(Vec3(0)));
-    MobilizedBody::Slider sphere(Ground,   Transform(Vec3(2,2,0)), 
+    MobilizedBody::Slider sphere(Ground,   Transform(Vec3(2-.0005,2,0)), 
                                  sphereBody, Transform(Vec3(0)));
 
     system.realizeTopology();
@@ -108,13 +110,20 @@ int main() {
     const Real TotalImpulse   = 1; // Applied only on the first step
     const Real StepForce      = TotalImpulse/MaxStepSize;
 
-    //RungeKutta3Integrator integ(system);
-    //integ.setAccuracy(1e-4);
+    RungeKutta3Integrator integ(system);
+    //RungeKutta2Integrator integ(system);
+    integ.setAccuracy(1e-4);
     //SemiExplicitEulerIntegrator integ(system, MaxStepSize);
-    SemiExplicitEuler2Integrator integ(system);
-    integ.setAccuracy(Real(1e-1)); // 10%
+    //SemiExplicitEuler2Integrator integ(system);
+    //integ.setAccuracy(Real(1e-1)); // 10%
     integ.setAllowInterpolation(false);
     integ.initialize(state);
+
+    // These variables are the manually calculated values for the cube's
+    // x coordinate and x velocity in Ground. We'll calculate these assuming
+    // a perfect inelastic collision occurring at t=1 and then compare with
+    // the approximate solution produced by the integrator.
+    Real x=0, v=0;
 
     unsigned stepNum = 0;
     while (true) {
@@ -129,24 +138,41 @@ int main() {
         if (stepNum == NSteps)
             break;
 
+        ++stepNum;
+
         discrete.clearAllBodyForces(state);
-        if (stepNum == 0)
+        if (stepNum == 1)
             discrete.setOneBodyForce(state, cube, 
                 SpatialVec(Vec3(0), Vec3(StepForce,0,0)));
 
         // Advance time by MaxStepSize. Might take multiple internal steps to 
         // get there, depending on difficulty and required accuracy.
-        ++stepNum;
         const Real tNext = stepNum * MaxStepSize;
         do {integ.stepTo(tNext,tNext);} while (integ.getTime() < tNext);
 
-        //system.realize(state);
-        //printf("after step %d t=%g (h=%g): vx=%g,%g ax=%g,%g\n",
-        //    stepNum, state.getTime(),integ.getPreviousStepSizeTaken(),
-        //    cube.getBodyOriginVelocity(state)[0],
-        //    sphere.getBodyOriginVelocity(state)[0],
-        //    cube.getBodyOriginAcceleration(state)[0],
-        //    sphere.getBodyOriginAcceleration(state)[0]);
+        // From Gazebo test code in physics.cc: 
+        // integrate here to see when the collision should happen
+        if (stepNum == 1) {
+            const Real a = StepForce/Mass;      // a is acceleration
+            v += a * MaxStepSize;               // dv = a t
+            x += a * square(MaxStepSize)/2;     // dx = 1/2 a t^2
+        } else {
+            const Real impulse = StepForce*MaxStepSize;
+            if (stepNum > 1000)
+                v = impulse / (2*Mass);  //inelastic col. w/equal mass
+            x += v * MaxStepSize;
+        }
+
+        system.realize(state);
+        printf("after step %d t=%g (h=%g): px=%g,%g vx=%g,%g ax=%g,%g\n",
+            stepNum, state.getTime(),integ.getPreviousStepSizeTaken(),
+            cube.getBodyOriginLocation(state)[0],
+            sphere.getBodyOriginLocation(state)[0],
+            cube.getBodyOriginVelocity(state)[0],
+            sphere.getBodyOriginVelocity(state)[0],
+            cube.getBodyOriginAcceleration(state)[0],
+            sphere.getBodyOriginAcceleration(state)[0]);
+        printf("  x=%g v=%g\n", x, v);
     }
 
     dumpIntegratorStats(integ);
