@@ -534,10 +534,18 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         // If we lose more than a small fraction of the step size we wanted
         // to take due to a need to stop at tMax, make a note of that so the
         // step size adjuster won't try to grow from the current step.
-        bool hWasArtificiallyLimited = (tMax < t0 + 0.95*currentStepSize);
-        t1 = std::min(tMax, t0+currentStepSize);
+        bool hWasArtificiallyLimited = false;
+        if (tMax < t0 + 0.95*currentStepSize) {
+            hWasArtificiallyLimited = true;
+            t1 = tMax; // tMax much smaller than current step size
+        } else if (tMax > t0 + 1.001*currentStepSize)
+            t1 = t0 + currentStepSize;  // tMax too big to reach in one step
+        else
+            t1 = tMax; // tMax is roughly t0+currentStepSize; try for it
+
         SimTK_ERRCHK1_ALWAYS(t1 > t0, "AbstractIntegrator::takeOneStep()",
             "Unable to advance time past %g.", t0);
+
         int errOrder;
         int numIterations=1; // non-iterative methods can ignore this
         //--------------------------------------------------------------------
