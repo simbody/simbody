@@ -48,7 +48,7 @@ SemiExplicitEuler2Integrator::~SemiExplicitEuler2Integrator() {
 //==============================================================================
 SemiExplicitEuler2IntegratorRep::SemiExplicitEuler2IntegratorRep
    (Integrator* handle, const System& sys)
-:   AbstractIntegratorRep(handle, sys, 2, 2, "SemiExplicitEuler2",  true) 
+:   AbstractIntegratorRep(handle, sys, 1, 1, "SemiExplicitEuler2",  true) 
 {
 }
 
