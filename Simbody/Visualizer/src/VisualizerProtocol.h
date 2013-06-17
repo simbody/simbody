@@ -28,8 +28,7 @@
 #include "simbody/internal/Visualizer.h"
 #include <pthread.h>
 #include <utility>
-
-using namespace SimTK;
+#include "server.h"
 
 /** @file
  * This file defines commands that are used for communication between the 
@@ -98,10 +97,14 @@ static const unsigned char KeyPressed            = 2;
 static const unsigned char MenuSelected          = 3;
 static const unsigned char SliderMoved           = 4;
 
+namespace SimTK {
 class VisualizerProtocol {
 public:
     VisualizerProtocol(Visualizer& visualizer,
                        const Array_<String>& searchPath);
+
+	void connectToGazebo();
+
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void beginScene(Real simTime);
     void finishScene();
@@ -157,7 +160,9 @@ private:
     // assigned VisualizerGUI cache index.
     mutable std::map<const void*, unsigned short> meshes;
     mutable pthread_mutex_t sceneLock;
+	FakeServer server;
 };
+}
 
 
 #endif // SimTK_SIMBODY_VISUALIZER_PROTOCOL_H_

@@ -20,9 +20,9 @@ ELSE()
 ENDIF()
 
 SET(VISUALIZER_BASE_SOURCES 
-	Scene.h 
-	VisualizerBase.h 
-	VisualizerBase.cpp
+	#	Scene.h 
+	#	VisualizerBase.h 
+	#VisualizerBase.cpp
 	)
 
 #Ogre
@@ -47,69 +47,6 @@ if(UNIX)
 	  message(SEND_ERROR "Failed to find module path.")
 	endif()
 endif(UNIX)
-FIND_PACKAGE(OGRE REQUIRED)
-FIND_PACKAGE(OIS REQUIRED)
-
-if(NOT OIS_FOUND)
-	message(SEND_ERROR "Failed to find OIS.")
-endif()
-
-INCLUDE_DIRECTORIES(${OIS_INCLUDE_DIRS} ${OGRE_INCLUDE_DIRS})
-ADD_EXECUTABLE(OgreVisualizer ${VISUALIZER_BASE_SOURCES} 
-	DynamicRenderable.h 
-	DynamicRenderable.cpp 
-	DynamicLines.h
-	DynamicLines.cpp
-	MovableText.h
-	MovableText.cpp
-	OgreVisualizerBase.h 
-	OgreVisualizer.h 
-	OgreVisualizerBase.cpp 
-	OgreVisualizer.cpp
-	)
-
-SET_TARGET_PROPERTIES(OgreVisualizer PROPERTIES DEBUG_POSTFIX _d)
-TARGET_LINK_LIBRARIES(OgreVisualizer
-   	${OGRE_LIBRARIES} 
-	${OIS_LIBRARIES} 
-	${TEST_SHARED_TARGET}
-	)
-
-INSTALL(TARGETS OgreVisualizer
-         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                             GROUP_READ GROUP_WRITE GROUP_EXECUTE
-                             WORLD_READ WORLD_EXECUTE
-         DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
-##############################End of Ogre######################################
-
-#OpenSceneGraph
-
-SET(CMAKE_MODULE_PATH
-	"/home/kevinux/projects/Visualizer/tools/OpenSceneGraph/OpenSceneGraph-3.0.1/CMakeModules/;${CMAKE_MODULE_PATH}")
-
-FIND_PACKAGE(osg)
-FIND_PACKAGE(osgDB)
-FIND_PACKAGE(osgViewer)
-FIND_PACKAGE(osgGA)
-
-INCLUDE_DIRECTORIES("/home/kevinux/projects/Visualizer/install/openscenegraph/include")
-LINK_DIRECTORIES(${OSG_LIB_DIR})
-ADD_EXECUTABLE(OSGVisualizer ${VISUALIZER_BASE_SOURCES} OSGVisualizer.h OSGVisualizer.cpp)
-SET_TARGET_PROPERTIES(OSGVisualizer PROPERTIES DEBUG_POSTFIX _d)
-TARGET_LINK_LIBRARIES(OSGVisualizer 
-	${OSG_LIBRARY} 
-	${OSGVIEWER_LIBRARY} 
-	${OSGGA_LIBRARY}
-	${OSGDB_LIBRARY} 
-	${TEST_SHARED_TARGET}
-	)
-
-INSTALL(TARGETS OSGVisualizer
-         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                             GROUP_READ GROUP_WRITE GROUP_EXECUTE
-                             WORLD_READ WORLD_EXECUTE
-         DESTINATION ${SimTK_INSTALL_PREFIX}/bin)
-##############################End of OSG#######################################
 
 ADD_EXECUTABLE(${GUI_NAME} ${VISUALIZER_BASE_SOURCES}
 	VisualizerGUI.cpp lodepng.cpp lodepng.h
@@ -119,7 +56,7 @@ SET_TARGET_PROPERTIES(${GUI_NAME} PROPERTIES
         PROJECT_LABEL "Code - ${GUI_NAME}")
 
 TARGET_LINK_LIBRARIES(${GUI_NAME} 
-	${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
+	${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${Boost_LIBRARIES})
 
 INSTALL(TARGETS ${GUI_NAME}
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
