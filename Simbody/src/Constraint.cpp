@@ -763,9 +763,12 @@ Real Constraint::Rod::getMultiplier(const State& s) const {
 void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
+    if (!getMyMatterSubsystemRep().getShowDefaultGeometry())
+        return;
+
     // We can't generate the endpoint artwork until we know the end point stations,
     // which could be as late as Stage::Instance.
-    if (stage == Stage::Instance && pointRadius != 0 && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
+    if (stage == Stage::Instance && pointRadius != 0) {
         // TODO: point stations and rod length should be instance-stage data 
         // from State rather than topological data
         const MobilizedBodyIndex body1 = getMobilizedBodyIndexOfConstrainedBody(B1);
