@@ -541,8 +541,8 @@ void CollisionDetectionAlgorithm::ConvexConvex::processObjects
     // Compute a point that is known to be inside the Minkowski difference, and 
     // a ray directed from that point to the origin.
 
-    Vec3 v0 =   computeSupport(obj1, obj2, transform, UnitVec3(1, 0, 0))
-              + computeSupport(obj1, obj2, transform, UnitVec3(-1, 0, 0));
+    Vec3 v0 = (  computeSupport(obj1, obj2, transform, UnitVec3(1, 0, 0))
+               + computeSupport(obj1, obj2, transform, UnitVec3(-1, 0, 0))) / 2;
     if (v0 == 0.0) {
         // This is a pathological case: the two objects are directly on top of 
         // each other with their centers at exactly the same place. Just 
