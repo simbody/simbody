@@ -21,7 +21,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* Test compliant contact. Attempts to run at 3X real time. */
+/* Test compliant contact. Attempts to run at 3X faster than real time. */
 
 #include "Simbody.h"
 
@@ -36,12 +36,14 @@ using std::endl;
 using namespace SimTK;
 
 #define ANIMATE // off to get more accurate CPU time (you can still playback)
+#define USE_ELLIPSOIDS // otherwise use round balls
 
 namespace {
 
-const Real mu_s = 0*.2;
-const Real mu_d = 0*.1;
+const Real mu_s = .2;       // Friction coefficients.
+const Real mu_d = .1;
 const Real mu_v = 0.01;
+const Real transitionVelocity = 1e-2; // slide->stick velocity
 
 // material properties
 // Steel
@@ -100,8 +102,8 @@ const ContactMaterial wallMaterial = nylon;
 const ContactMaterial softMaterial = rubber;
 const ContactMaterial hardMaterial = nylon;
 
-const int  NRubberBalls = 20, NHardBalls = 40;
-const Real PendBallRadius = 3, RubberBallRadius = 2.5, HardBallRadius = 2;//m
+const int  NRubberBalls = 12, NHardBalls = 25;
+const Real PendBallRadius = 3, RubberBallRadius = 5, HardBallRadius = 4;//m
 
 const Real PendBallMass = rubber_density*(4./3.)*Pi*cube(PendBallRadius);
 const Real RubberBallMass = rubber_density*(4./3.)*Pi*cube(RubberBallRadius);
@@ -160,8 +162,7 @@ try
 
     ContactTrackerSubsystem  tracker(mbs);
     CompliantContactSubsystem contactForces(mbs, tracker);
-    //contactForces.setTransitionVelocity(1e-3);
-    contactForces.setTransitionVelocity(1e-2);
+    contactForces.setTransitionVelocity(transitionVelocity);
 
     //Force::Thermostat thermostat(forces, matter, 6000/*boltzmann??*/, 500, 1);
     //Force::Thermostat thermostat(forces, matter, 6000/*boltzmann??*/, 1000, 1, 0);
@@ -171,7 +172,7 @@ try
     // No, thank you.
     matter.setShowDefaultGeometry(false);
 
-    MobilizedBody& Ground = matter.Ground();
+    MobilizedBody& Ground = matter.Ground(); // nicer name for Ground
 
     // Add the Ground contact geometry. Contact half spaces have -XAxis normals
     // (right hand wall) so we'll have to rotate them.
@@ -235,22 +236,27 @@ try
 
     Body::Rigid hardBallInfo(MassProperties(HardBallMass, Vec3(0), 
                                 UnitInertia::sphere(HardBallRadius)));
-    hardBallInfo.addContactSurface(Vec3(0),
-        ContactSurface(ContactGeometry::Sphere(HardBallRadius),hardMaterial));
-        //ContactSurface(ContactGeometry::Ellipsoid(Vec3(4,HardBallRadius,.7)),hardMaterial));
-    DecorativeSphere hardSphere(HardBallRadius);
-    //DecorativeEllipsoid hardSphere(Vec3(4,HardBallRadius,.7));
-
     Body::Rigid rubberBallInfo(MassProperties(RubberBallMass, Vec3(0), 
                                   UnitInertia::sphere(RubberBallRadius)));
+
+#ifdef USE_ELLIPSOIDS
+    hardBallInfo.addContactSurface(Vec3(0),
+        ContactSurface(ContactGeometry::Ellipsoid(Vec3(3,HardBallRadius,5)),hardMaterial));
+    DecorativeEllipsoid hardSphere(Vec3(3,HardBallRadius,5));
+    rubberBallInfo.addContactSurface(Vec3(0),
+        ContactSurface(ContactGeometry::Ellipsoid(Vec3(7,RubberBallRadius,4)),softMaterial));
+    DecorativeEllipsoid rubberSphere(Vec3(7,RubberBallRadius,4));
+#else
+    hardBallInfo.addContactSurface(Vec3(0),
+        ContactSurface(ContactGeometry::Sphere(HardBallRadius),hardMaterial));
+    DecorativeSphere hardSphere(HardBallRadius);
     rubberBallInfo.addContactSurface(Vec3(0),
         ContactSurface(ContactGeometry::Sphere(RubberBallRadius),softMaterial));
-        //ContactSurface(ContactGeometry::Ellipsoid(Vec3(.7,RubberBallRadius,5)),softMaterial));
     DecorativeSphere rubberSphere(RubberBallRadius);
-    //DecorativeEllipsoid rubberSphere(Vec3(.7,RubberBallRadius,5));
+#endif
 
     const Vec3 firstHardBallPos   = Vec3(-6,30,  0), 
-               firstRubberBallPos = Vec3(18,30,-18);
+               firstRubberBallPos = Vec3(13,30,-15);
 
     for (int i=0; i<NRubberBalls; ++i) {
         //MobilizedBody::Cartesian 
@@ -299,13 +305,13 @@ try
     mbs.realizeModel(s);
     bool suppressProjection = false;
 
-    RungeKuttaMersonIntegrator ee(mbs); const Real Accuracy = .02;
+    //RungeKuttaMersonIntegrator ee(mbs); const Real Accuracy = .02;
 
     //RungeKutta3Integrator ee(mbs); const Real Accuracy = .05;
 
     //This runs the fastest:
-    //SemiExplicitEuler2Integrator ee(mbs); const Real Accuracy = .3;
-    //ee.setMaximumStepSize(.02); // 20ms
+    SemiExplicitEuler2Integrator ee(mbs); const Real Accuracy = .3;
+    ee.setMaximumStepSize(.02); // 20ms
 
     ee.setAccuracy(Accuracy);
     ee.setConstraintTolerance(std::min(.001, Accuracy/10));
