@@ -301,8 +301,8 @@ Real calcSurfaceValue(const Vec3& point) const;
 
 /** Calculate the implicit surface outward facing unit normal at the given
 point. This is determined using the implicit surface function gradient
-so is undefined if the point is at a singular point of the implicit function
-or a flat spot on the surface. An example is a point along the center line of
+so is undefined if the point is at a singular point of the implicit function.
+An example is a point along the center line of
 a cylinder. Rather than return a NaN unit normal in these cases, which
 would break many algorithms that are searching around for valid points, we'll
 return the normal from a nearby, hopefully non-singular point. If that doesn't
