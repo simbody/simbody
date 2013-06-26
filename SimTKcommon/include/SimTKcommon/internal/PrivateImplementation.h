@@ -183,10 +183,13 @@ public:
     int getImplHandleCount() const;
 
 protected:
-    /// This serves as the default constructor, which will construct the handle
-    /// with an empty implementation, and as a way to construct a handle referencing
-    /// an existing implementation object.
-    explicit PIMPLHandle(IMPL* p=0);
+    /// The default constructor makes this an empty handle.
+    PIMPLHandle() : impl(0) {}
+
+    /// This provides consruction of a handle referencing an existing 
+    /// implementation object. If the supplied pointer is null the result is
+    /// the same as the default constructor.
+    explicit PIMPLHandle(IMPL* p);
 
     /// Note that the destructor is non-virtual. This is a concrete class and so
     /// should be all the handle classes derived from it. If this handle is the 
