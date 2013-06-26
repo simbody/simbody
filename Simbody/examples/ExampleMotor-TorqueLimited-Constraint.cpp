@@ -177,7 +177,7 @@ private:
     Visualizer                      m_viz;
     Visualizer::InputSilo*          m_userInput; // just a ref; not owned here
 
-    MobilizedBody                   m_bodyT, m_leftArm, m_rtArm;
+    MobilizedBody::Pin              m_bodyT, m_leftArm, m_rtArm;
     Constraint::ConstantSpeed       m_speedController;
     Force::MobilityConstantForce    m_torqueController;
 };
