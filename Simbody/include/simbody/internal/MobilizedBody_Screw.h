@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -31,24 +31,31 @@ Declares the MobilizedBody::Screw class. **/
 
 namespace SimTK {
 
-/// One mobility -- coordinated rotation and translation along the
-/// common z axis of the inboard and outboard mobilizer frames. A
-/// "pitch" is specified relating the two. The generalized coordinate
-/// q is the rotation angle in radians, the translation is always
-/// pitch*q.
+/** One mobility -- coordinated rotation and translation along the
+common z axis of the inboard and outboard mobilizer frames. A
+"pitch" is specified relating the two. The generalized coordinate
+q is the rotation angle in radians, the translation is always
+pitch*q. **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Screw : public MobilizedBody {
 public:
-    explicit Screw(Real pitch, Direction=Forward);
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Screw. **/
+    Screw() {}
 
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    Screw(MobilizedBody& parent, const Body&, Real pitch, Direction=Forward);
+    /** Create a %Screw mobilizer between an existing parent (inboard) body P 
+    and a new child (outboard) body B created by copying the given \a bodyInfo 
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    Screw(MobilizedBody& parent, const Transform& X_PF,
+          const Body& bodyInfo,  const Transform& X_BM,
+          Real pitch, Direction=Forward);
 
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
-    Screw(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame,
-         Real pitch, Direction=Forward);
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Screw(MobilizedBody& parent, const Body& bodyInfo, Real pitch, 
+          Direction=Forward);
+
 
     Screw& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;

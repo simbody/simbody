@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -33,20 +33,24 @@ namespace SimTK {
 
 /** This is a special type of "mobilized" body generated automatically by
 Simbody as a placeholder for Ground in the 0th slot for a 
-SimbodyMatterSubsystem's mobilized bodies. The body type 
-will also be Ground. You can think of this as a Weld-like mobilizer that 
+SimbodyMatterSubsystem's mobilized bodies; don't create this yourself. The body 
+type will also be Ground. You can think of this as a Weld-like mobilizer that 
 connects the Ground body to the world, located at the Ground origin. The 
 reaction force in this mobilizer represents the total torque and force 
 applied by the System to Ground. This mobilizer is not available for
 users -- if you want to weld something to Ground use MobilizedBody::Weld
 instead. 
-@see MobilizedBody::Weld **/
+@see MobilizedBody::Weld, SimbodyMatterSubsystem::getGround(),
+     SimbodyMatterSubsystem::updGround() **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Ground : public MobilizedBody {
 public:
-    /// There is no "reverse" Ground.
     Ground();
-    Ground& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+
+    /** Add some artwork to Ground where the Visualizer can find it. **/
+    Ground& addBodyDecoration(const Transform& X_GD, 
+                              const DecorativeGeometry& artwork) 
+    {
+        (void)MobilizedBody::addBodyDecoration(X_GD,artwork); return *this;
     }
 
     /** @cond **/ // hide from Doxygen

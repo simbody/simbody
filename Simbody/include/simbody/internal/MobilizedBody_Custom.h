@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -74,30 +74,35 @@ public:
     class Implementation;
     class ImplementationImpl;
 
-    /* Create a Custom MobilizedBody.
-     * 
-     * @param parent         the MobilizedBody's parent body
-     * @param implementation the object which implements the custom mobilized body.  The MobilizedBody::Custom takes over
-     *                       ownership of the implementation object, and deletes it when the MobilizedBody itself
-     *                       is deleted.
-     * @param body           describes this MobilizedBody's physical properties
-     * @param direction      whether you want the coordinates defined as though parent & child were swapped
-     */
-    Custom(MobilizedBody& parent, Implementation* implementation, const Body& body, Direction direction=Forward);
-    /* Create a Custom MobilizedBody.
-     * 
-     * @param parent         the MobilizedBody's parent body
-     * @param implementation the object which implements the custom mobilized body.  The MobilizedBody::Custom takes over
-     *                       ownership of the implementation object, and deletes it when the MobilizedBody itself
-     *                       is deleted.
-     * @param inbFrame       the MobilizedBody's inboard reference frame
-     * @param body           describes this MobilizedBody's physical properties
-     * @param outbFrame      the MobilizedBody's outboard reference frame
-     * @param direction      whether you want the coordinates defined as though parent & child were swapped
-     */
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Custom. **/
+    Custom() {}
+
+    /** Create a %Custom mobilizer between an existing parent (inboard) body P 
+    and a new child (outboard) body B created by copying the given \a bodyInfo 
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology.
+    
+    @param parent         the %MobilizedBody's parent (inboard) body
+    @param implementation the object which implements the custom mobilized body.
+                          The %MobilizedBody::Custom takes over ownership of the
+                          implementation object, and deletes it when the 
+                          %MobilizedBody itself is deleted.
+    @param X_PF           the %MobilizedBody's F (inboard) frame
+    @param bodyInfo       describes this %MobilizedBody's physical properties
+    @param X_BM           the %MobilizedBody's M (outboard) frame
+    @param direction      whether you want the coordinates defined as though 
+                          parent & child were swapped
+    **/
     Custom(MobilizedBody& parent, Implementation* implementation, 
-           const Transform& inbFrame, const Body& body, const Transform& outbFrame,
+           const Transform& X_PF, const Body& bodyInfo, const Transform& X_BM,
            Direction direction=Forward);
+    
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Custom(MobilizedBody& parent, Implementation* implementation, 
+           const Body& bodyInfo, Direction direction=Forward);
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, MobilizedBody);
@@ -106,7 +111,6 @@ protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();
 
-    Custom() {}
 };
 
 // We only want the template instantiation to occur once. This symbol is 

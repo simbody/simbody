@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -32,22 +32,32 @@ Declares the MobilizedBody::Ball class. **/
 namespace SimTK {
 
 
-/// Three mobilities -- unrestricted orientation modeled with a
-/// quaternion which is never singular. A modeling option allows the
-/// joint to use a 1-2-3 Euler sequence (identical to a Gimbal) 
-/// instead.
+/** Three mobilities -- unrestricted orientation modeled with a
+quaternion which is never singular. A modeling option allows the
+joint to use a 1-2-3 Euler sequence (identical to a Gimbal) 
+instead. The three generalized speeds u for this mobilizer are always
+the three measure numbers of the angular velocity vector w_FM, the
+relative angular velocity of the outboard M frame in the inboard F frame,
+expressed in the F frame. That is unchanged by setting the "use Euler
+angles" modeling option, so the generalized speeds differ from those of
+a Gimbal joint. Note that qdot != u for this mobilizer. **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Ball : public MobilizedBody {
 public:
-    explicit Ball(Direction=Forward);
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Ball. **/
+    Ball() {}
 
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    Ball(MobilizedBody& parent, const Body&, Direction=Forward);
+    /** Create a %Ball mobilizer between an existing parent (inboard) body P 
+    and a new child (outboard) body B created by copying the given \a bodyInfo 
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    Ball(MobilizedBody& parent, const Transform& X_PF,
+         const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
-    Ball(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame, Direction=Forward);
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Ball(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
     Ball& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;

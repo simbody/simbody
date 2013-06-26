@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Christopher Bruns                                            *
  *                                                                            *
@@ -76,23 +76,31 @@ q1==n*Pi-s1*ze0). If your operating range steers clear of those singularities,
 you're fine. **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::SphericalCoords : public MobilizedBody {
 public:
-    explicit SphericalCoords(Direction=Forward);
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::SphericalCoords. **/
+    SphericalCoords() {}
 
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    SphericalCoords(MobilizedBody& parent, const Body&, Direction=Forward);
-
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames. This gives you a pure spherical
-    /// coordinate system in which q0=azimuth about Fz(==Mz), q1=zenith about My, 
-    /// and q2=radius along Mz.
-    SphericalCoords(MobilizedBody& parent, const Transform& inbFrame,
-                    const Body&,           const Transform& outbFrame,
+    /** Create a %SphericalCoords mobilizer between an existing parent (inboard)
+    body P and a new child (outboard) body B created by copying the given 
+    \a bodyInfo into a privately-owned Body within the constructed 
+    %MobilizedBody object. Specify the mobilizer frames F fixed to parent P 
+    and M fixed to child B. This constructor gives you a pure spherical
+    coordinate system in which q0=azimuth about Fz(==Mz), q1=zenith about My, 
+    and q2=radius along Mz. See the longer signature for more control.
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    SphericalCoords(MobilizedBody& parent, const Transform& X_PF,
+                    const Body& bodyInfo,  const Transform& X_BM, 
                     Direction=Forward);
 
-    /// Use this constructor to specify the general case described above.
-    SphericalCoords(MobilizedBody& parent,      const Transform& inbFrame,
-                    const Body&,                const Transform& outbFrame,
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    SphericalCoords(MobilizedBody& parent, const Body& bodyInfo, 
+                    Direction=Forward);
+
+
+    /** Use this constructor to specify the general case described above. **/
+    SphericalCoords(MobilizedBody& parent,      const Transform& X_PF,
+                    const Body& bodyInfo,       const Transform& X_BM,
                     Real azimuthOffset,         bool azimuthNegated,
                     Real zenithOffset,          bool zenithNegated,
                     CoordinateAxis radialAxis,  bool radialNegated,

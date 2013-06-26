@@ -1287,10 +1287,9 @@ public:
             // CONSTRUCTION METHODS //
             //////////////////////////
 
-    /// The default constructor initializes the base class so that it contains a null
-    /// implementation. This should be called only from concrete MobilizedBody 
-    /// constructors.
-    MobilizedBody();
+    /// The default constructor provides an empty %MobilizedBody handle that
+    /// can be assigned to reference any type of %MobilizedBody.
+    MobilizedBody() {}
 
     /// Internal use only
     explicit MobilizedBody(MobilizedBodyImpl* r);

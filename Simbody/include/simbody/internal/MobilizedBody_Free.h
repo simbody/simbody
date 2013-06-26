@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -31,25 +31,41 @@ Declares the MobilizedBody::Free class. **/
 
 namespace SimTK {
 
-/// Unrestricted motion for a rigid body (six mobilities). Orientation
-/// is modeled the same as for the Orientation mobilizer, that is, using
-/// quaternions to avoid singularities. A modeling option exists to 
-/// have the joint modeled with a 1-2-3 body fixed Euler sequence like
-/// a Gimbal mobilizer. Translational generalized coordinates are
-/// x,y,z translations along the F (inboard) axes.
+/** Unrestricted motion for a rigid body (six mobilities). 
+
+Orientation is modeled the same as for the Ball mobilizer, that is, using
+quaternions to avoid singularities. A modeling option exists to 
+have the joint modeled with an x-y-z body fixed Euler sequence like
+a Gimbal or Bushing mobilizer. Translational generalized coordinates are
+x,y,z translations along the F (inboard) axes. There are six generalized speeds
+u for this mobilizer. The first three are always the three measure numbers of 
+the angular velocity vector w_FM, the relative angular velocity of the outboard 
+M frame in the inboard F frame, expressed in the F frame. The second three
+are the measure numbers of v_FM, the relative linear velocity of the M frame's
+origin Mo in the F frame, expressed in the F frame. The meaning of the 
+generalized speeds is unchanged by setting the "use Euler
+angles" modeling option, so the rotational generalized speeds here differ from 
+those of a Bushing joint, and qdot != u for this mobilizer.
+
+@see MobilizedBody::Bushing for an alternative.
+**/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Free : public MobilizedBody {
 public:
-    explicit Free(Direction=Forward);
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Free. **/
+    Free() {}
 
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    Free(MobilizedBody& parent, const Body&, Direction=Forward);
+    /** Create a %Free mobilizer between an existing parent (inboard) body P 
+    and a new child (outboard) body B created by copying the given \a bodyInfo 
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    Free(MobilizedBody& parent, const Transform& X_PF,
+         const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
-    Free(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame,
-         Direction=Forward);
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Free(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
     Free& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;

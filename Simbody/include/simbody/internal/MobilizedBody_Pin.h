@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -31,41 +31,74 @@ Declares the MobilizedBody::Pin class. **/
 
 namespace SimTK {
 
-/// One mobility -- rotation about the common z axis of the inboard
-/// and outboard mobilizer frames.
-/// Synonym: Torsion
+/** Provides one rotational mobility about the common z axis of the F and M 
+frames of the mobilizer. 
+
+If you want rotation about a different direction, rotate the F and M frames
+when you define the mobilized body, so that the z axes are in the desired
+direction.
+
+The single generalized coordinate q is the rotation angle in radians, and the
+generalized speed u is the rotation rate in radians/time unit, with qdot=u.
+
+Synonyms: Torsion, Revolute.
+**/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Pin : public MobilizedBody {
 public:
-        // SPECIALIZED INTERFACE FOR PIN MOBILIZER
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Pin. **/
+    Pin() {}
 
-    // "Angle" is just a nicer name for a pin joint's lone generalized coordinate q.
-    Pin& setDefaultAngle(Real angleInRadians) {return setDefaultQ(angleInRadians);}
-    Real getDefaultAngle() const              {return getDefaultQ();}
+    /** Create a %Pin mobilizer between an existing parent (inboard) body P 
+    and a new child (outboard) body B created by copying the given \a bodyInfo 
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    Pin(MobilizedBody& parent, const Transform& X_PF,
+        const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-        // Friendly, mobilizer-specific access to generalized coordinates and speeds.
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Pin(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
+    
+    // SPECIALIZED INTERFACE FOR PIN MOBILIZER
 
-    void setAngle(State& s, Real angleInRadians) {setQ(s, angleInRadians);}
+    /** Set the value that the pin angle should have in the default state. If
+    unspecified the initial angle will be zero. **/
+    Pin& setDefaultAngle(Real angleInRad) {return setDefaultQ(angleInRad);}
+    /** Get the value that the pin angle will have in the default state. **/
+    Real getDefaultAngle() const          {return getDefaultQ();}
+
+        // Friendly, mobilizer-specific access to generalized coords and speeds.
+
+    /** Set the pin joint angle (generalized coordinate q) in the given state.
+    The angle is in radians. **/
+    void setAngle(State& s, Real angleInRad) {setQ(s, angleInRad);}
+    /** Get the value that this pin joint's angular coordinate has in the given
+    state. The result is in radians. **/
     Real getAngle(const State& s) const {return getQ(s);}
 
-    void setRate(State& s, Real rateInRadiansPerTime) {setU(s, rateInRadiansPerTime);}
+    /** Set the rotation rate (generalized speed u) for this pin joint in the
+    given state. The rate is in radians/time unit. **/
+    void setRate(State& s, Real rateInRadPerTime) {setU(s, rateInRadPerTime);}
+    /** Get the current rotation rate (generalized speed u) that this pin 
+    mobilizer has in the given state. The rate is in radians/time unit. **/
     Real getRate(const State& s) const {return getU(s);}
 
     // Mobility forces are "u-like", that is, one per dof.
+    /** Get the generalized force corresponding to this pin mobilizer in the
+    given array of mobility forces. **/
     Real getAppliedPinTorque(const State& s, const Vector& mobilityForces) const {
         return getMyPartU(s,mobilityForces);
     }
+    /** Add in a torque to the generalized force element corresponding to this
+    pin mobilizer in the given array of mobility forces. **/
     void applyPinTorque(const State& s, Real torque, Vector& mobilityForces) const {
         updMyPartU(s,mobilityForces) += torque;
     }
 
         // STANDARDIZED MOBILIZED BODY INTERFACE
 
-        // required constructors
-    explicit Pin(Direction=Forward);
-    Pin(MobilizedBody& parent, const Body&, Direction=Forward);
-    Pin(MobilizedBody& parent, const Transform& inbFrame,
-        const Body&,           const Transform& outbFrame,
-        Direction=Forward);
 
         // access to generalized coordinates q and generalized speeds u
     Pin& setDefaultQ(Real);

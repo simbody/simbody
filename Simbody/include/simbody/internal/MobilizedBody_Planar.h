@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -31,23 +31,27 @@ Declares the MobilizedBody::Planar class. **/
 
 namespace SimTK {
 
-/// Three mobilities -- z rotation and x,y translation. The generalized
-/// coordinates are rotation about the shared z axis of the F and M
-/// frame, translation along the F frame's x axis, and translation along
-/// its y axis, in that order.
+/** Three mobilities -- z rotation and x,y translation. The generalized
+coordinates are rotation about the shared z axis of the F and M
+frame, translation along the F frame's x axis, and translation along
+its y axis, in that order. **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Planar : public MobilizedBody {
 public:
-    explicit Planar(Direction=Forward);
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Planar. **/
+    Planar() {}
 
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    Planar(MobilizedBody& parent, const Body&, Direction=Forward);
+    /** Create a %Planar mobilizer between an existing parent (inboard) body P 
+    and a new child (outboard) body B created by copying the given \a bodyInfo 
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    Planar(MobilizedBody& parent, const Transform& X_PF,
+           const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
-    Planar(MobilizedBody& parent, const Transform& inbFrame,
-           const Body&,           const Transform& outbFrame,
-           Direction=Forward);
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Planar(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
     Planar& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;

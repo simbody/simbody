@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2012-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -85,11 +85,15 @@ ordering).
 @see Force::LinearBushing, MobilizedBody::Free, MobilizedBody::Gimbal **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Bushing : public MobilizedBody {
 public:
+    /** Construct an empty handle that can be assigned to reference any
+    %MobilizedBody::Bushing. **/
+    Bushing() {}
+
     /** Create a %Bushing mobilizer between an existing parent (inboard) body P 
     and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody::%Bushing 
-    object. Specify the mobilizer frames F fixed to parent P and M fixed to 
-    child B. **/
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
     Bushing(MobilizedBody& parent, const Transform& X_PF,
            const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
@@ -222,8 +226,6 @@ public:
     /** @name               Advanced/Obscure
     Most users won't use these methods. **/
     /**@{**/
-    /** Create a disembodied %Bushing mobilizer that is not part of any System. **/
-    explicit Bushing(Direction=Forward);
 
     /** Given a vector in the System's generalized coordinate basis, extract
     the six q's belonging to this mobilizer. **/

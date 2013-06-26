@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -31,20 +31,29 @@ Declares the MobilizedBody::Translation class. **/
 
 namespace SimTK {
 
-/// Three translational mobilities. The generalized coordinates are
-/// x,y,z translations along the parent (inboard) F frame axes.
+/** Three translational mobilities describing the Cartesian motion of a point. 
+The generalized coordinates q are x,y,z translations of the M (outboard) frame
+origin Mo along the parent (inboard) F frame axes. The generalized speeds u are
+the relative velocity v_FM of M's origin in F, so qdot=u for this mobilizer. **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Translation : public MobilizedBody {
 public:
-    explicit Translation(Direction=Forward);
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Translation. **/
+    Translation() {}
 
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    Translation(MobilizedBody& parent, const Body&, Direction=Forward);
+    /** Create a %Translation mobilizer between an existing parent (inboard) 
+    body P and a new child (outboard) body B created by copying the given 
+    \a bodyInfo into a privately-owned Body within the constructed 
+    %MobilizedBody object. Specify the mobilizer frames F fixed to parent P and
+    M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    Translation(MobilizedBody& parent, const Transform& X_PF,
+                const Body& bodyInfo,  const Transform& X_BM, 
+                Direction=Forward);
 
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
-    Translation(MobilizedBody& parent, const Transform& inbFrame,
-                const Body&,           const Transform& outbFrame, Direction=Forward);
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Translation(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
     Translation& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
