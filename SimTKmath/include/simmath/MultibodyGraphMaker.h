@@ -404,7 +404,8 @@ public:
     void forgetGraph(MultibodyGraphMaker& graph);
     int getNumFragments() const {return 1 + getNumSlaves();}
     int getNumSlaves() const {return (int)slaves.size();}
-	int getNumJoints() const {return jointsAsChild.size() + jointsAsParent.size();}
+	int getNumJoints() const 
+    {   return int(jointsAsChild.size() + jointsAsParent.size()); }
     bool isSlave() const {return master >= 0;}
     bool isMaster() const {return getNumSlaves()>0;}
     bool isInTree() const {return level>=0;}
