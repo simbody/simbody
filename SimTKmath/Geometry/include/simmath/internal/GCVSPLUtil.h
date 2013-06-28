@@ -98,18 +98,30 @@ Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, c
     assert(x.hasContiguousData());
     
     // Create various temporary variables.
+
     
     Vec<K> result;
     int m = (degree+1)/2;
     int n = x.size();
     int interval = (int) ceil(n*(t-x[0])/(x[n-1]-x[0]));
-    Vector_<double> q(2*m);
+
+    const int MaxCheapM = 32;
+    double qbuf[2*MaxCheapM];
+
+    double *q = qbuf; // tentatively
+    if (m > MaxCheapM)
+        q = new double[2*m]; // use heap instead; don't forget to delete
+    
     int offset = (int) (&coeff[1][0]-&coeff[0][0]);
 
     // Evaluate the spline one component at a time.
     
     for (int i = 0; i < K; ++i)
-        result[i] = SimTK_splder_(&derivOrder, &m, &n, &t, &x[0], &coeff[0][i], &interval, &q[0], offset);
+        result[i] = SimTK_splder_(&derivOrder, &m, &n, &t, &x[0], &coeff[0][i], &interval, q, offset);
+    
+    if (m > MaxCheapM)
+        delete[] q;
+    
     return result;
 }
 
