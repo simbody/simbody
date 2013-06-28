@@ -155,13 +155,13 @@ public:
     T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const
         OVERRIDE_11
     {   assert(x.size() == 1);
-        return calcDerivative(derivComponents.size(), x[0]); }
+        return calcDerivative((int)derivComponents.size(), x[0]); }
     /** For the Function_ style interface, this provides compatibility 
     with std::vector. No copying or heap allocation is required. **/
     T calcDerivative(const std::vector<int>& derivComponents, 
                      const Vector& x) const 
     {   assert(x.size() == 1);
-        return calcDerivative(derivComponents.size(), x[0]); }
+        return calcDerivative((int)derivComponents.size(), x[0]); }
 
     /** Required by the Function_ interface. **/
     int getArgumentSize() const OVERRIDE_11 {return 1;}
