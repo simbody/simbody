@@ -42,7 +42,7 @@ using namespace SimTK;
 
 // Set to revert to the no-constraint stiction model for performance comparison
 // with the new constraint-based one.
-// #define USE_CONTINUOUS_STICTION
+//#define USE_CONTINUOUS_STICTION
 
 // Define this to run the simulation NTries times, saving the states and
 // comparing them bitwise to see if the simulations are perfectly repeatable
@@ -217,7 +217,11 @@ public:
     // force on the vertex body B instead.
     Vec2 getStictionForce(const State& s) const {
         assert(isSticking(s));
+        #ifndef USE_CONTINUOUS_STICTION
         return Vec2(-m_noslipX.getMultiplier(s), -m_noslipY.getMultiplier(s));
+        #else
+        return getSlidingForce(s);
+        #endif
     }
 
     void recordImpendingSlipDir(const State& s) const {
@@ -1116,11 +1120,11 @@ int main(int argc, char** argv) {
         const Real CoefRest = 0; 
         const Real TargetVelocity = 3; // speed at which to match coef rest
 //        const Real Dissipation = (1-CoefRest)/TargetVelocity;
-        const Real Dissipation = 1;
+        const Real Dissipation = .1;
         const Real mu_d = .5;
         const Real mu_s = .8;
         const Real mu_v = 0*0.05;
-        const Real TransitionVelocity = 0.001;
+        const Real TransitionVelocity = 0.01;
         const Inertia brickInertia(BrickMass*UnitInertia::brick(BrickHalfDims));
         const Real Radius = BrickHalfDims[0]/3;
     #endif
@@ -1149,7 +1153,7 @@ int main(int argc, char** argv) {
     SimbodyMatterSubsystem      matter(mbs);
     GeneralForceSubsystem       forces(mbs);
     Force::Gravity              gravity(forces, matter, -YAxis, 9.81);
-    //Force::Gravity              gravity(forces, matter, -UnitVec3(.3,1,0), 9.81);
+    //Force::Gravity              gravity(forces, matter, -UnitVec3(.3,1,0), 3*9.81);
     MobilizedBody& Ground = matter.updGround();
 
     // Define a material to use for contact. This is not very stiff.
@@ -1242,8 +1246,8 @@ int main(int argc, char** argv) {
     RungeKuttaMersonIntegrator integ(mbs);
     #else
     //Real accuracy = 1e-1;
-    Real accuracy = 1e-2;
-    //Real accuracy = 1e-6;
+    Real accuracy = 1e-3;
+    //Real accuracy = 1e-5;
     //ExplicitEulerIntegrator integ(mbs);
     //RungeKutta2Integrator integ(mbs);
     //RungeKutta3Integrator integ(mbs);
