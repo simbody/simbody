@@ -1288,6 +1288,22 @@ ArticulatedInertia_& operator-=(const ArticulatedInertia_& src)
 SpatialVecP operator*(const SpatialVecP& v) const
 {   return SpatialVecP(J*v[0]+F*v[1], ~F*v[0]+M*v[1]); }
 
+/// Multiply an ArticulatedInertia by a row of SpatialVecs (66*N flops).
+template <int N>
+Mat<2,N,Vec3P> operator*(const Mat<2,N,Vec3P>& m) const {
+    Mat<2,N,Vec3P> res;
+    for (int j=0; j < N; ++j)
+        res.col(j) = (*this) * m.col(j); // above this*SpatialVec operator
+    return res;
+}
+
+/// Specialization for 1-element row of SpatialVecs in case compiler isn't
+/// smart enough to optimize for this common case (e.g. Pin, Slider).
+template<>
+Mat<2,1,Vec3P> operator*(const Mat<2,1,Vec3P>& m) const {
+    return Mat<2,1,Vec3P>((*this) * m.col(0)); // punt to this*SpatialVec op.
+}
+
 /// Rigid-shift the origin of this Articulated Body Inertia P by a 
 /// shift vector s to produce a new ABI P'. The calculation is 
 /// <pre>

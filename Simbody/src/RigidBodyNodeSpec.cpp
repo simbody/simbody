@@ -299,8 +299,8 @@ realizeArticulatedBodyInertiasInward(
     Mat<dof,dof>& D  = updD(abc);
     Mat<dof,dof>& DI = updDI(abc);
 
-    const HType PH = P.toSpatialMat() * H;  // 66*dof   flops
-    D  = ~H * PH;                           // 11*dof^2 flops (symmetric result)
+    const HType PH = P*H;   // 66*dof   flops
+    D  = ~H * PH;           // 11*dof^2 flops (symmetric result)
 
     // this will throw an exception if the matrix is ill conditioned
     DI = D.invert();                        // ~dof^3 flops (symmetric)
