@@ -1297,13 +1297,6 @@ Mat<2,N,Vec3P> operator*(const Mat<2,N,Vec3P>& m) const {
     return res;
 }
 
-/// Specialization for 1-element row of SpatialVecs in case compiler isn't
-/// smart enough to optimize for this common case (e.g. Pin, Slider).
-template<>
-Mat<2,1,Vec3P> operator*(const Mat<2,1,Vec3P>& m) const {
-    return Mat<2,1,Vec3P>((*this) * m.col(0)); // punt to this*SpatialVec op.
-}
-
 /// Rigid-shift the origin of this Articulated Body Inertia P by a 
 /// shift vector s to produce a new ABI P'. The calculation is 
 /// <pre>
