@@ -21,9 +21,8 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 #include "Simbody.h"
-using namespace SimTK;
-
 #include <iostream>
+using namespace SimTK;
 using std::cout; using std::endl; using std::cin;
 
 /* This is a walking mechanism due to Theo Jansen. See strandbeest.com and
@@ -31,10 +30,19 @@ many YouTube videos. This is a full 3D simulation although each leg moves
 only in 2D. The user controls the speed. I haven't yet figured out how to
 steer one of these things though so it's not a very exciting drive!
 
-TODO: the current model is about twice as big as it needs to be. It uses
-6 mobilities - 6 constraints for each leg, but only 3 mobilities - 3 constraints
-are actually needed.
+Two different ways of building this model are demonstrated here based on the
+compile-time flag below. One models all the links as they appear; the other
+treats some links as massless resulting in halving the model size and better
+than a 2X speedup.
 */
+
+// Define this to use a simplified model that replaces some of the links
+// with distance constraints. That reduces the model size by about half without
+// changing the functionality at all.
+//#define USE_MASSLESS_LINKS
+
+// Undefine this to get more accurate CPU times.
+#define ANIMATE
 
 // Put local classes and definitions in the file-scope anonymous namespace.
 namespace {
@@ -95,7 +103,7 @@ const ContactMaterial concrete(concrete_planestrain,concrete_dissipation,
                                mu_s,mu_d,mu_v);
 
 // Add one leg to the given torso T with the leg frame's pose in T given.
-void addOneLeg(MobilizedBody& torso, const Transform& X_TL,
+void addOneLeg(Visualizer& viz, MobilizedBody& torso, const Transform& X_TL,
                MobilizedBody& crank, const Vec3& crankConnect);
 
 const Rotation YtoX(-Pi/2,ZAxis); // some useful rotations
@@ -124,12 +132,13 @@ int main() {
     viz.addSlider("Speed", SpeedControlSlider, -10, 10, 0);
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
     viz.addInputListener(silo);   
+    #ifdef ANIMATE
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    #endif
     DecorativeText help("Any input to start; ESC to quit");
     help.setIsScreenText(true);
     viz.addDecoration(MobilizedBodyIndex(0),Vec3(0),help);
     matter.setShowDefaultGeometry(false);
-
 
     // Add the Ground contact geometry. Contact half space has -XAxis normal
     // (right hand wall) so we have to rotate.
@@ -144,7 +153,7 @@ int main() {
         Ground.updBody().addContactSurface(Vec3(x,0,0),
             ContactSurface(ContactGeometry::Ellipsoid(BumpShape), rubber));
         Ground.updBody().addDecoration(Vec3(x,0,0),
-            DecorativeEllipsoid(BumpShape).setColor(Green).setResolution(3));
+            DecorativeEllipsoid(BumpShape).setColor(Gray).setResolution(3));
     }
 
     // TORSO
@@ -173,8 +182,6 @@ int main() {
     MobilizedBody::Pin crank(torso,crankCenter, crankInfo, Vec3(0));
     
     // Add the legs.
-    const Vec3 LOffset = crankCenter+crankOffset+Vec3(0,0,2*LinkDepth);
-    const Vec3 ROffset = crankCenter-crankOffset-Vec3(0,0,2*LinkDepth);
     for (int i=-1; i<=1; ++i) {
         const Vec3 offset = crankCenter + i*crankOffset;
         const Vec3 linkSpace(0,0,2*LinkDepth);
@@ -183,10 +190,11 @@ int main() {
         crank.addBodyDecoration(
             Transform(R_CP, offset+1.25*MLen/2*R_CP.x()+(i==0?linkSpace:Vec3(0))),
             DecorativeBrick(Vec3(1.25*MLen/2,LinkWidth,LinkDepth))
-                        .setColor(Black));
-        addOneLeg(torso, offset + i*linkSpace, 
+                        .setColor(Yellow));
+
+        addOneLeg(viz, torso, offset + i*linkSpace, 
                   crank, R_CP*CrankConnect);
-        addOneLeg(torso, Transform(Rotation(Pi,YAxis), offset + i*linkSpace), 
+        addOneLeg(viz, torso, Transform(Rotation(Pi,YAxis), offset + i*linkSpace), 
                   crank, R_CP*CrankConnect);
     }
 
@@ -236,12 +244,14 @@ namespace {
 //==============================================================================
 //                               ADD ONE LEG
 //==============================================================================
-// TODO: this is a straightforward model where all links have mass, producing
-// 6 mobilities and requiring 6 constraints per leg. If only the shoulder and
-// foot bodies have mass, then this can be built with only 3 mobilities and
-// 3 distance constraints instead, for much improved performance.
-     
-void addOneLeg(MobilizedBody& torso, const Transform& X_TL,
+// This function can build a leg two different ways, depending on whether
+// USE_MASSLESS_LINKS is defined:
+// (1) A straightforward model where all links have mass, producing 6 mobilities
+//     and requiring 6 constraints per leg. 
+// (2) Only the shoulder and foot bodies have mass, so the model requires only 3
+//     mobilities and 3 distance constraints instead, for much improved 
+//     performance.    
+void addOneLeg(Visualizer& viz, MobilizedBody& torso, const Transform& X_TL,
                MobilizedBody& crank, const Vec3& crankConnect)
 {
     // Segment lettering is from TJ's drawing here: 
@@ -338,6 +348,17 @@ void addOneLeg(MobilizedBody& torso, const Transform& X_TL,
                              linkCInfo, Vec3(0,CLen/2,0));
     MobilizedBody::Pin foot( linkC,     Vec3(0,-CLen/2,0), 
                              footInfo,  footPivot);
+
+    #ifdef USE_MASSLESS_LINKS
+    Vec3 crankAttach(crankConnect[0],crankConnect[1],X_TL.p()[2]);
+    DecorativeLine line; line.setColor(Gray).setLineThickness(3);
+    Constraint::Rod linkF(shoulder, shoulderSide, foot, footSide, FLen);
+    viz.addRubberBandLine(shoulder, shoulderSide, foot, footSide, line);
+    Constraint::Rod linkJ(shoulder, shoulderUpper, crank, crankAttach, JLen);
+    viz.addRubberBandLine(shoulder, shoulderUpper, crank, crankAttach, line);
+    Constraint::Rod linkK(foot, footPivot, crank, crankAttach, KLen);
+    viz.addRubberBandLine(foot, footPivot, crank, crankAttach, line);
+    #else
     MobilizedBody::Pin linkJ(shoulder,  shoulderUpper,
                              linkJInfo, Vec3(-JLen/2,0,0));
     MobilizedBody::Pin linkF(shoulder,  shoulderSide,
@@ -346,6 +367,7 @@ void addOneLeg(MobilizedBody& torso, const Transform& X_TL,
                              linkKInfo, Vec3(-KLen/2,0,0));
     linkJ.setDefaultAngle(-Pi/6); // set default angles to guide assembly
     linkK.setDefaultAngle( Pi/4);
+
 
     // Add 2d pin joint constraints (each pair of point-in-planes is a pin).
     Constraint::PointInPlane f2footx(foot, XAxis, footSide[0],
@@ -362,6 +384,7 @@ void addOneLeg(MobilizedBody& torso, const Transform& X_TL,
                                       linkJ, Vec3(JLen/2,0,0));
     Constraint::PointInPlane j2cranky(crank, YAxis, crankConnect[1],
                                       linkJ, Vec3(JLen/2,0,0));
+    #endif
 }
 
 
@@ -438,6 +461,9 @@ void dumpIntegratorStats(double startCPU, double startTime,
                          const Integrator& integ) {
     std::cout << "DONE: Simulated " << integ.getTime() << " seconds in " <<
         realTime()-startTime << " elapsed s, CPU="<< cpuTime()-startCPU << "s\n";
+    #ifdef ANIMATE
+    printf("***CAUTION: CPU time not accurate when animation is enabled.\n");
+    #endif
 
     const int evals = integ.getNumRealizations();
     std::cout << "\nUsed "  << integ.getNumStepsTaken() << " steps, avg step=" 
