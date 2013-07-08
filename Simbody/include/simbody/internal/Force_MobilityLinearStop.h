@@ -94,7 +94,8 @@ public:
                        Real                      defaultQLow =-Infinity,
                        Real                      defaultQHigh= Infinity);
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle that can be assigned to
+    refer to any %MobilityLinearStop object. **/
     MobilityLinearStop() {}
 
     /** Provide new values for the default lower and upper bounds of this stop. 
