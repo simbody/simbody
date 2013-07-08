@@ -161,8 +161,9 @@ int main() {
     const Vec3 torsoHDims(1,.08,.8);
     const Real torsoVolume = 8*torsoHDims[0]*torsoHDims[1]*torsoHDims[2];
     const Real torsoMass = torsoVolume*rubber_density/10;
-    Body::Rigid torsoInfo(MassProperties(torsoMass,Vec3(0,-.75,0),
-        UnitInertia::brick(torsoHDims)));
+    const Vec3 torsoCOM(0,-.75,0); // put it low for stability
+    Body::Rigid torsoInfo(MassProperties(torsoMass,torsoCOM,
+        UnitInertia::brick(torsoHDims).shiftFromCentroidInPlace(-torsoCOM)));
     torsoInfo.addDecoration(Vec3(0),
         DecorativeBrick(torsoHDims).setColor(Cyan));
 
