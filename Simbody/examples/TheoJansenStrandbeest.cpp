@@ -188,8 +188,8 @@ int main() {
         const Rotation R_CP(i*2*Pi/3,ZAxis);
         // Add crank bars for looks.
         crank.addBodyDecoration(
-            Transform(R_CP, offset+1.25*MLen/2*R_CP.x()+(i==0?linkSpace:Vec3(0))),
-            DecorativeBrick(Vec3(1.25*MLen/2,LinkWidth,LinkDepth))
+            Transform(R_CP, offset+1.5*MLen/2*R_CP.x()+(i==0?linkSpace:Vec3(0))),
+            DecorativeBrick(Vec3(1.5*MLen/2,LinkWidth,LinkDepth))
                         .setColor(Yellow));
 
         addOneLeg(viz, torso, offset + i*linkSpace, 
