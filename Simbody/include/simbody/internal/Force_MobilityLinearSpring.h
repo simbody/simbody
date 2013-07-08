@@ -34,34 +34,151 @@ assumes that Force.h will have included all necessary declarations. **/
 
 namespace SimTK {
 
-/**
- * A linear spring along or around a mobility coordinate. The
- * stiffness k is provided, along with an arbitrary "zero" 
- * coordinate value q0 at which the spring generates no force.
- * The generated force is k*(q-q0), and potential energy is 
- * pe = 1/2 k (q-q0)^2.
- * This is not meaningful unless the mobility coordinate is such that qdot=u 
- * for that coordinate.  In particular, do not use this on a coordinate
- * which is part of a quaternion.
- */
+/** A linear spring that acts along or around a mobility coordinate to apply
+a generalized force there. 
 
+The stiffness k is provided, along with an arbitrary "zero" coordinate value 
+q0 at which the spring generates no force. The generated force is k*(q-q0), and 
+potential energy is pe = 1/2 k (q-q0)^2. 
+
+@bug This is not meaningful unless the mobilizer coordinates are defined such 
+that qdot=u. In particular, do not use this on coordinates for Ball or Free
+mobilizers. You can often replace those with Gimbal or Bushing mobilizers for
+which qdot=u holds, or split up the mobilizer into simpler components separated
+by massless bodies. **/
 class SimTK_SIMBODY_EXPORT Force::MobilityLinearSpring : public Force {
 public:
-    /**
-     * Create a %MobilityLinearSpring.
-     * 
-     * @param forces     the subsystem to which this force should be added
-     * @param body       the body to which the force should be applied
-     * @param coordinate the index of the coordinate in the body's u vector to which the force should be applied
-     * @param k          the spring constant
-     * @param q0         the value of the coordinate at which the force is 0
-     */
-    MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real k, Real q0);
+    /** Create a %MobilityLinearSpring force element on a particular generalized
+    coordinate.
     
-    /** Default constructor creates an empty handle. **/
+    @param[in,out]  forces  
+        The subsystem to which this force should be added.
+    @param[in]      mobod    
+        Mobilizer to which the force should be applied.
+    @param[in]      whichQ   
+        To which of the mobilizer's generalized coordinates q should this 
+        force be applied (first is 0)?
+    @param[in]      defaultStiffness     
+        The default value for the spring constant k.
+    @param[in]      defaultQZero         
+        The default for the value of the coordinate q0 at which the force is 0.
+    **/
+    MobilityLinearSpring(GeneralForceSubsystem& forces, 
+                         const MobilizedBody&   mobod, 
+                         MobilizerQIndex        whichQ, 
+                         Real                   defaultStiffness, 
+                         Real                   defaultQZero);
+    
+    /** Default constructor creates an empty handle that can be assigned to
+    refer to any %MobilityLinearSpring object. **/
     MobilityLinearSpring() {}
 
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearSpring, MobilityLinearSpringImpl, Force);
+    /** Provide a new value for the default stiffness k of this spring.     
+    This is a topological change because it affects the value that the 
+    containing System's default state will have when realizeTopology() is 
+    called. This is for use during construction, not for during a simulation 
+    where you should be using setStiffness() to set the stiffness in a State 
+    rather than in the System.
+    @param[in]      defaultStiffness     
+        The default value for the spring constant k.        
+    @return
+        A writable reference to this modified force element for convenience in
+        chaining set methods.
+    @see getDefaultStiffness(), setStiffness() **/
+    MobilityLinearSpring& setDefaultStiffness(Real defaultStiffness);
+
+
+    /** Provide a new value for the zero position q0 of this spring, at which
+    position the spring force will be zero.    
+    This is a topological change because it affects the value that the 
+    containing System's default state will have when realizeTopology() is 
+    called. This is for use during construction, not for during a simulation 
+    where you should be using setQZero() to set the zero position in a State 
+    rather than in the System.
+    @param[in]      defaultQZero    
+        The default for the value of the coordinate at which the force is 0.
+    @return
+        A writable reference to this modified force element for convenience in
+        chaining set methods.
+    @see getDefaultQZero(), setQZero() **/
+    MobilityLinearSpring& setDefaultQZero(Real defaultQZero);
+
+    /** Return the default value for the spring's stiffness k. This is 
+    normally set at construction but can be modified with setDefaultStiffness(). 
+    @see setDefaultStiffness(), getStiffness() **/ 
+    Real getDefaultStiffness() const;
+    /** Return the default value for the spring's zero position q0. This is 
+    normally set at construction but can be modified with setDefaultQZero(). 
+    @see setDefaultQZero(), getQZero() **/ 
+    Real getDefaultQZero() const;
+
+    /** Change the value of the spring stiffness in the given \a state; this may
+    differ from the default value supplied at construction.
+    @param[in,out]  state    
+        The State in which the stiffness is to be changed.
+    @param[in]      stiffness     
+        The new stiffness k (>= 0) that overrides the default.
+    @return 
+        A const reference to this %MobilityLinearSpring element for convenience
+        in chaining set methods together.
+
+    Changing the spring stiffness invalidates Stage::Dynamics and above in the 
+    \a state since it can affect force generation. 
+    @see setDefaultStiffness(), getStiffness() **/
+    const MobilityLinearSpring& setStiffness(State&     state, 
+                                             Real       stiffness) const;
+
+    /** Change the value of the spring zero length in the given \a state; this 
+    may differ from the default value supplied at construction.
+    @param[in,out]  state    
+        The State in which the zero length is to be changed.
+    @param[in]      qZero     
+        The value of the controlled coordinate q at which the generated spring
+        force should be zero. This overrides the default.
+    @return 
+        A const reference to this %MobilityLinearSpring element for convenience
+        in chaining set methods together.
+
+    Changing the spring stiffness invalidates Stage::Dynamics and above in the 
+    \a state since it can affect force generation. 
+    @see setDefaultStiffness(), getStiffness() **/
+    const MobilityLinearSpring& setQZero(State&     state, 
+                                         Real       qZero) const;
+
+    /** Return the value for the spring's stiffness k that is stored in 
+    the given \a state. Note that this is not the same thing as the default 
+    stiffness that was supplied on construction or in setDefaultStiffness(). 
+    @see setStiffness(), getDefaultStiffness() **/
+    Real getStiffness(const State& state) const;
+
+    /** Return the value for the spring zero position q0 that is stored in 
+    the given \a state. Note that this is not the same thing as the default 
+    q0 that was supplied on construction or in setDefaultQZero(). 
+    @see setQZero(), getDefaultQZero() **/
+    Real getQZero(const State& state) const;
+
+    /** @name                      Deprecated
+    Methods here are for backwards compatibility but have been replaced with
+    better ones that you should use. **/
+    /**@{**/
+    /** Deprecated: Alternate signature for backwards compatibilty -- for 
+    safety you should prefer using the other constructor signature that
+    takes a MobilizerQIndex rather than a plain int. **/
+    MobilityLinearSpring(GeneralForceSubsystem& forces, 
+                         const MobilizedBody&   mobod, 
+                         int                    whichQ, 
+                         Real                   defaultStiffness, 
+                         Real                   defaultQZero)
+    {   // Invoke the other constructor.
+        new(this) MobilityLinearSpring(forces, mobod, MobilizerQIndex(whichQ),
+                                       defaultStiffness, defaultQZero);
+    }
+    /**@}**/
+
+    /** @cond **/    
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearSpring, 
+                                             MobilityLinearSpringImpl, Force);
+    /** @endcond **/
 };
 
 } // namespace SimTK

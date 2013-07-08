@@ -28,6 +28,7 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/Force.h"
+#include "simbody/internal/Force_BuiltIns.h"
 
 #include "ForceImpl.h"
 
@@ -226,29 +227,117 @@ Real Force::TwoPointConstantForceImpl::calcPotentialEnergy(const State& state) c
 //--------------------------- MobilityLinearSpring -----------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearSpring, Force::MobilityLinearSpringImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearSpring, 
+                                        Force::MobilityLinearSpringImpl, 
+                                        Force);
 
-Force::MobilityLinearSpring::MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
-        Real k, Real x0) : Force(new MobilityLinearSpringImpl(body, coordinate, k, x0)) {
+Force::MobilityLinearSpring::
+MobilityLinearSpring(GeneralForceSubsystem&  forces, 
+                     const MobilizedBody&    mobod, 
+                     MobilizerQIndex         whichQ, 
+                     Real                    defaultStiffness, 
+                     Real                    defaultQZero) 
+:   Force(new MobilityLinearSpringImpl(mobod, whichQ, 
+                                       defaultStiffness, defaultQZero)) 
+{
+    SimTK_ERRCHK1_ALWAYS(defaultStiffness >= 0, 
+        "Force::MobilityLinearSpring::MobilityLinearSpring()",
+        "Stiffness coefficient must be nonnegative "
+        "(defaultStiffness=%g).", defaultStiffness);
+
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
-Force::MobilityLinearSpringImpl::MobilityLinearSpringImpl(const MobilizedBody& body, int coordinate,
-        Real k, Real x0) : matter(body.getMatterSubsystem()), body(body.getMobilizedBodyIndex()), coordinate(coordinate), k(k), x0(x0) {
+Force::MobilityLinearSpring& Force::MobilityLinearSpring::
+setDefaultStiffness(Real defaultStiffness) {
+    SimTK_ERRCHK1_ALWAYS(defaultStiffness >= 0, 
+        "Force::MobilityLinearSpring::setDefaultStiffness()",
+        "Stiffness coefficient must be nonnegative "
+        "(defaultStiffness=%g).", defaultStiffness);
+
+    MobilityLinearSpringImpl& impl = updImpl();
+    if (impl.m_defaultStiffness != defaultStiffness) {
+        impl.m_defaultStiffness = defaultStiffness;
+        impl.invalidateTopologyCache();
+    }
+    return *this;
 }
 
-void Force::MobilityLinearSpringImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
-    const MobilizedBody& mb = matter.getMobilizedBody(body);
-    const Real q = mb.getOneQ(state, coordinate);
-    const Real frc = -k*(q-x0);
-    mb.applyOneMobilityForce(state, coordinate, frc, mobilityForces);
+
+Force::MobilityLinearSpring& Force::MobilityLinearSpring::
+setDefaultQZero(Real defaultQZero) {
+    MobilityLinearSpringImpl& impl = updImpl();
+    if (impl.m_defaultQZero != defaultQZero) {
+        impl.m_defaultQZero = defaultQZero;
+        impl.invalidateTopologyCache();
+    }
+    return *this;
 }
 
-Real Force::MobilityLinearSpringImpl::calcPotentialEnergy(const State& state) const {
-    const MobilizedBody& mb = matter.getMobilizedBody(body);
-    const Real q = mb.getOneQ(state, coordinate);
-    const Real frc = -k*(q-x0);
-    return k*(q-x0)*(q-x0)/2;
+Real Force::MobilityLinearSpring::
+getDefaultStiffness() const 
+{   return getImpl().m_defaultStiffness; }
+
+Real Force::MobilityLinearSpring::
+getDefaultQZero() const 
+{   return getImpl().m_defaultQZero; }
+
+const Force::MobilityLinearSpring& Force::MobilityLinearSpring::
+setStiffness(State& state, Real stiffness) const {
+    SimTK_ERRCHK1_ALWAYS(stiffness >= 0, 
+        "Force::MobilityLinearSpring::setStiffness()",
+        "Stiffness coefficient must be nonnegative "
+        "(stiffness=%g).", stiffness);
+
+    getImpl().updParams(state).first = stiffness; 
+    return *this; 
+}
+
+const Force::MobilityLinearSpring& Force::MobilityLinearSpring::
+setQZero(State& state, Real qZero) const 
+{   getImpl().updParams(state).second = qZero; return *this; }
+
+Real Force::MobilityLinearSpring::
+getStiffness(const State& state) const 
+{   return getImpl().getParams(state).first; }
+
+Real Force::MobilityLinearSpring::
+getQZero(const State& state) const 
+{   return getImpl().getParams(state).second; }
+
+Force::MobilityLinearSpringImpl::
+MobilityLinearSpringImpl(const MobilizedBody&    mobod, 
+                         MobilizerQIndex         whichQ,
+                         Real                    defaultStiffness, 
+                         Real                    defaultQZero) 
+:   m_matter(mobod.getMatterSubsystem()), 
+    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichQ(whichQ), 
+    m_defaultStiffness(defaultStiffness), m_defaultQZero(defaultQZero)
+{
+}
+
+void Force::MobilityLinearSpringImpl::
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+{
+    const MobilizedBody& mb = m_matter.getMobilizedBody(m_mobodIx);
+    const Real q = mb.getOneQ(state, m_whichQ);
+    const std::pair<Real,Real>& params = getParams(state);
+    const Real k = params.first, q0 = params.second;
+    const Real frc = -k*(q-q0);
+    // bug: this is depending on qdot=u
+    mb.applyOneMobilityForce(state, MobilizerUIndex((int)m_whichQ), 
+                             frc, mobilityForces);
+}
+
+Real Force::MobilityLinearSpringImpl::
+calcPotentialEnergy(const State& state) const {
+    const MobilizedBody& mb = m_matter.getMobilizedBody(m_mobodIx);
+    const Real q = mb.getOneQ(state, m_whichQ);
+    const std::pair<Real,Real>& params = getParams(state);
+    const Real k = params.first, q0 = params.second;
+    const Real frc = -k*(q-q0);
+    return k*square(q-q0)/2;
 }
 
 
@@ -256,26 +345,85 @@ Real Force::MobilityLinearSpringImpl::calcPotentialEnergy(const State& state) co
 //--------------------------- MobilityLinearDamper -----------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearDamper, Force::MobilityLinearDamperImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearDamper, 
+                                        Force::MobilityLinearDamperImpl, 
+                                        Force);
 
-Force::MobilityLinearDamper::MobilityLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
-        Real damping) : Force(new MobilityLinearDamperImpl(body, coordinate, damping)) {
-    assert(damping >= 0);
+Force::MobilityLinearDamper::
+MobilityLinearDamper(GeneralForceSubsystem& forces, 
+                     const MobilizedBody&   mobod, 
+                     MobilizerUIndex        whichU,
+                     Real                   defaultDamping) 
+:   Force(new MobilityLinearDamperImpl(mobod, whichU, defaultDamping)) 
+{
+    SimTK_ERRCHK1_ALWAYS(defaultDamping >= 0, 
+        "Force::MobilityLinearDamper::MobilityLinearDamper()",
+        "Damping coefficient must be nonnegative "
+        "(defaultDamping=%g).", defaultDamping);
+
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
-Force::MobilityLinearDamperImpl::MobilityLinearDamperImpl(const MobilizedBody& body, int coordinate,
-        Real damping) : matter(body.getMatterSubsystem()), body(body.getMobilizedBodyIndex()), coordinate(coordinate), damping(damping) {
+
+Force::MobilityLinearDamper& Force::MobilityLinearDamper::
+setDefaultDamping(Real defaultDamping) {
+    SimTK_ERRCHK1_ALWAYS(defaultDamping >= 0, 
+        "Force::MobilityLinearDamper::setDefaultDamping()",
+        "Damping coefficient must be nonnegative "
+        "(defaultDamping=%g).", defaultDamping);
+
+    MobilityLinearDamperImpl& impl = updImpl();
+    if (impl.m_defaultDamping != defaultDamping) {
+        impl.m_defaultDamping = defaultDamping;
+        impl.invalidateTopologyCache();
+    }
+    return *this;
 }
 
-void Force::MobilityLinearDamperImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
-    const MobilizedBody& mb = matter.getMobilizedBody(body);
-    const Real u = mb.getOneU(state, coordinate);
+Real Force::MobilityLinearDamper::
+getDefaultDamping() const 
+{   return getImpl().m_defaultDamping; }
+
+const Force::MobilityLinearDamper& Force::MobilityLinearDamper::
+setDamping(State& state, Real damping) const 
+{
+    SimTK_ERRCHK1_ALWAYS(damping >= 0, 
+        "Force::MobilityLinearDamper::setDamping()",
+        "Damping coefficient must be nonnegative "
+        "(damping=%g).", damping);
+
+    getImpl().updDamping(state) = damping; 
+    return *this; 
+}
+
+Real Force::MobilityLinearDamper::
+getDamping(const State& state) const 
+{   return getImpl().getDamping(state); }
+
+
+Force::MobilityLinearDamperImpl::
+MobilityLinearDamperImpl(const MobilizedBody&   mobod, 
+                         MobilizerUIndex        whichU,
+                         Real                   defaultDamping) 
+:   m_matter(mobod.getMatterSubsystem()), 
+    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichU(whichU), 
+    m_defaultDamping(defaultDamping) 
+{
+}
+
+void Force::MobilityLinearDamperImpl::
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+{
+    const MobilizedBody& mb = m_matter.getMobilizedBody(m_mobodIx);
+    const Real u = mb.getOneU(state, m_whichU);
+    const Real damping = getDamping(state);
     const Real frc = -damping*u;
-    mb.applyOneMobilityForce(state, coordinate, frc, mobilityForces);
+    mb.applyOneMobilityForce(state, m_whichU, frc, mobilityForces);
 }
 
-Real Force::MobilityLinearDamperImpl::calcPotentialEnergy(const State& state) const {
+Real Force::MobilityLinearDamperImpl::
+calcPotentialEnergy(const State& state) const {
     return 0;
 }
 
