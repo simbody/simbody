@@ -86,8 +86,8 @@ static void testObservedPointFitter(bool useConstraint) {
 
         MultibodySystem mbs;
         SimbodyMatterSubsystem matter(mbs);
-        Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)))
-                                      .addDecoration(Transform(), DecorativeSphere(.1));
+        Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)));
+        body.addDecoration(Transform(), DecorativeSphere(.1));
         MobilizedBody* lastBody = &matter.Ground();
         MobilizedBody* lastMainChainBody = &matter.Ground();
         vector<MobilizedBody*> bodies;

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -57,10 +57,15 @@ public:
     // can't fill in the MobilizedBodyIndex yet, but we apply the transform 
     // now to the saved copy so that the geometry we return later will be 
     // relative to the body frame only.
-    void addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+    //
+    // Return an index that can be used to find this decoration later; the
+    // index must be the same in all copies of this Body.
+    int addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        const int nxt = (int)decorations.size();
         decorations.push_back(g); // make a new copy
         DecorativeGeometry& myg = decorations.back();
         myg.setTransform(X_BD*myg.getTransform());
+        return nxt;
     }
 
     void appendDecorativeGeometry(MobilizedBodyIndex id, 

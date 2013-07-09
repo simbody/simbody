@@ -184,17 +184,21 @@ public:
         calcDecorativeGeometryAndAppendImpl(s,stage,geom);
     }
 
-    void addOutboardDecoration(const Transform& X_MD, const DecorativeGeometry& g) {
+    int addOutboardDecoration(const Transform& X_MD, const DecorativeGeometry& g) {
+        const int nxt = (int)outboardGeometry.size();
         outboardGeometry.push_back(g); // make a new copy
         // Combine the placement frame and the transform already in the geometry
         // so we end up with geometry expressed directly in the M frame.
         outboardGeometry.back().setTransform(X_MD*g.getTransform());
+        return nxt;
     }
-    void addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g) {
+    int addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g) {
+        const int nxt = (int)inboardGeometry.size();
         inboardGeometry.push_back(g); // make a new copy
         // Combine the placement frame and the transform already in the geometry
         // so we end up with geometry expressed directly in the F frame.
         inboardGeometry.back().setTransform(X_FD*g.getTransform());
+        return nxt;
     }
 
 

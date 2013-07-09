@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -70,34 +70,35 @@ Body::Body(const MassProperties& m) : rep(0) {
 }
 
 
-Body& Body::addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-    updRep().addDecoration(X_BD, g);
-    return *this;
+int Body::addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+    return updRep().addDecoration(X_BD, g);
 }
 int Body::getNumDecorations() const 
 {   return (int)getRep().decorations.size(); }
-const DecorativeGeometry& Body::getDecoration(int n) const
-{   return getRep().decorations[n]; }
+const DecorativeGeometry& Body::getDecoration(int i) const
+{   return getRep().decorations[i]; }
 // Allow writable access on const Body since just a decoration.
-DecorativeGeometry& Body::updDecoration(int n) const
-{   return const_cast<DecorativeGeometry&>(getDecoration(n)); }
+DecorativeGeometry& Body::updDecoration(int i) const
+{   return const_cast<DecorativeGeometry&>(getDecoration(i)); }
 
 
-Body& Body::addContactSurface(const Transform&      X_BS, 
-                              const ContactSurface& shape) {
-    updRep().surfaces.push_back(std::make_pair(X_BS,shape));
-    return *this;
+int Body::addContactSurface(const Transform&      X_BS, 
+                            const ContactSurface& shape) {
+    BodyRep& rep = updRep();
+    const int nxt = (int)rep.surfaces.size();
+    rep.surfaces.push_back(std::make_pair(X_BS,shape));
+    return nxt;
 }
 int Body::getNumContactSurfaces() const 
 {   return (int)getRep().surfaces.size(); }
-const ContactSurface& Body::getContactSurface(int n) const
-{   return getRep().surfaces[n].second; }
-const Transform& Body::getContactSurfaceTransform(int n) const
-{   return getRep().surfaces[n].first; }
-ContactSurface& Body::updContactSurface(int n)
-{   return updRep().surfaces[n].second; }
-Transform& Body::updContactSurfaceTransform(int n)
-{   return updRep().surfaces[n].first; }
+const ContactSurface& Body::getContactSurface(int i) const
+{   return getRep().surfaces[i].second; }
+const Transform& Body::getContactSurfaceTransform(int i) const
+{   return getRep().surfaces[i].first; }
+ContactSurface& Body::updContactSurface(int i)
+{   return updRep().surfaces[i].second; }
+Transform& Body::updContactSurfaceTransform(int i)
+{   return updRep().surfaces[i].first; }
 
 const MassProperties& Body::getDefaultRigidBodyMassProperties() const {
     return getRep().getDefaultRigidBodyMassProperties();

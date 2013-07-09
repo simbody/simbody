@@ -44,16 +44,25 @@ namespace SimTK {
 MobilizedBody::MobilizedBody(MobilizedBodyImpl* r) : HandleBase(r) {
 }
 
-MobilizedBody& MobilizedBody::
-addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
-    updImpl().addOutboardDecoration(X_MD,g);
-    return *this;
-}
-MobilizedBody& MobilizedBody::
-addInboardDecoration(const Transform& X_MbD, const DecorativeGeometry& g) {
-    updImpl().addInboardDecoration(X_MbD,g);
-    return *this;
-}
+int MobilizedBody::
+addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) 
+{   return updImpl().addOutboardDecoration(X_MD,g); }
+int MobilizedBody::getNumOutboardDecorations() const
+{   return (int)getImpl().outboardGeometry.size(); }
+const DecorativeGeometry& MobilizedBody::getOutboardDecoration(int i) const
+{   return getImpl().outboardGeometry[i]; }
+DecorativeGeometry& MobilizedBody::updOutboardDecoration(int i)
+{   return updImpl().outboardGeometry[i]; }
+
+int MobilizedBody::
+addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g) 
+{   return updImpl().addInboardDecoration(X_FD,g); }
+int MobilizedBody::getNumInboardDecorations() const
+{   return (int)getImpl().inboardGeometry.size(); }
+const DecorativeGeometry& MobilizedBody::getInboardDecoration(int i) const
+{   return getImpl().inboardGeometry[i]; }
+DecorativeGeometry& MobilizedBody::updInboardDecoration(int i)
+{   return updImpl().inboardGeometry[i]; }
 
 const SimbodyMatterSubsystem& MobilizedBody::getMatterSubsystem() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),

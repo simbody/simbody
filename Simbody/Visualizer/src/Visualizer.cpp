@@ -41,7 +41,6 @@
 using namespace SimTK;
 using namespace std;
 
-
 static void* drawingThreadMain(void* visualizerAsVoidp);
 
 static const long long UsToNs = 1000LL;          // ns = us * UsToNs
@@ -54,8 +53,7 @@ static const Real      DefaultDesiredBufferLengthInSec = Real(0.15); // 150ms
 static const long long DefaultAllowableFrameJitterInNs      = 5 * MsToNs; //5ms
 static const Real      DefaultSlopAsFractionOfFrameInterval = Real(0.05); //5%
 
-
-
+namespace { // local classes
 //==============================================================================
 //                              VISUALIZER IMPL
 //==============================================================================
@@ -92,6 +90,7 @@ public:
     Vec3                station1, station2;
     DecorativeLine      line;
 };
+} // end local namespace
 
 // Implementation of the Visualizer.
 class Visualizer::Impl {
@@ -957,13 +956,31 @@ Real Visualizer::getActualBufferLengthInSec() const
 {   return getImpl().getActualBufferLengthInSec(); }
 
 
-Visualizer& Visualizer::addInputListener(Visualizer::InputListener* listener) 
-{   updImpl().m_listeners.push_back(listener); return *this; }
+int Visualizer::addInputListener(Visualizer::InputListener* listener) {
+    Impl& impl = updImpl();
+    const int nxt = (int)impl.m_listeners.size();
+    impl.m_listeners.push_back(listener); 
+    return nxt; 
+}
+int Visualizer::getNumInputListeners() const 
+{   return (int)getImpl().m_listeners.size(); }
+const Visualizer::InputListener& Visualizer::getInputListener(int i) const 
+{   return *getImpl().m_listeners[i]; }
+Visualizer::InputListener& Visualizer::updInputListener(int i) 
+{   return *updImpl().m_listeners[i]; }
 
-Visualizer& Visualizer::addFrameController(Visualizer::FrameController* fc) 
-{   updImpl().m_controllers.push_back(fc); return *this; }
-
-
+int Visualizer::addFrameController(Visualizer::FrameController* fc) {
+    Impl& impl = updImpl();
+    const int nxt = (int)impl.m_controllers.size();
+    impl.m_controllers.push_back(fc); 
+    return nxt; 
+}
+int Visualizer::getNumFrameControllers() const 
+{   return (int)getImpl().m_controllers.size(); }
+const Visualizer::FrameController& Visualizer::getFrameController(int i) const 
+{   return *getImpl().m_controllers[i]; }
+Visualizer::FrameController& Visualizer::updFrameController(int i) 
+{   return *updImpl().m_controllers[i]; }
 
 
         // Scene-building methods
@@ -995,29 +1012,59 @@ addSlider(const String& title, int sliderId,
     return *this;
 }
 
-Visualizer& Visualizer::
+int Visualizer::
 addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, 
               const DecorativeGeometry& geom) 
 {
     Array_<DecorativeGeometry>& addedGeometry = updImpl().m_addedGeometry;
+    const int nxt = (int)addedGeometry.size();
     addedGeometry.push_back(geom);
     DecorativeGeometry& geomCopy = addedGeometry.back();
     geomCopy.setBodyId((int)mobodIx);
     geomCopy.setTransform(X_BD * geomCopy.getTransform());
-    return *this;
+    return nxt;
 }
+int Visualizer::getNumDecorations() const 
+{   return (int)getImpl().m_addedGeometry.size(); }
+const DecorativeGeometry& Visualizer::getDecoration(int i) const 
+{   return getImpl().m_addedGeometry[i]; }
+DecorativeGeometry& Visualizer::updDecoration(int i) 
+{   return updImpl().m_addedGeometry[i]; }
 
-Visualizer& Visualizer::
+int Visualizer::
 addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
                   MobilizedBodyIndex b2, const Vec3& station2, 
                   const DecorativeLine& line) 
-{   updImpl().m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line)); 
-    return *this; }
+{   
+    Impl& impl = updImpl();
+    const int nxt = (int)impl.m_lines.size();
+    impl.m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line)); 
+    return nxt; 
+}
+int Visualizer::getNumRubberBandLines() const 
+{   return (int)getImpl().m_lines.size(); }
+const DecorativeLine& Visualizer::getRubberBandLine(int i) const 
+{   return getImpl().m_lines[i].line; }
+DecorativeLine& Visualizer::updRubberBandLine(int i) 
+{   return updImpl().m_lines[i].line; }
 
-Visualizer& Visualizer::
+int Visualizer::
 addDecorationGenerator(DecorationGenerator* generator) 
-{   updImpl().m_generators.push_back(generator); return *this; }
-
+{   
+    Impl& impl = updImpl();
+    const int nxt = (int)impl.m_generators.size();
+    impl.m_generators.push_back(generator); 
+    return nxt;
+}
+int Visualizer::
+getNumDecorationGenerators() const 
+{   return (int)getImpl().m_generators.size(); }
+const DecorationGenerator& Visualizer::
+getDecorationGenerator(int i) const 
+{   return *getImpl().m_generators[i]; }
+DecorationGenerator& Visualizer::
+updDecorationGenerator(int i) 
+{   return *updImpl().m_generators[i]; }
 
         // Frame control methods
 const Visualizer& Visualizer::

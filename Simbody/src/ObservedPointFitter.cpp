@@ -130,8 +130,8 @@ createClonedSystem(const MultibodySystem& original, MultibodySystem& copy,
 {
     const SimbodyMatterSubsystem& originalMatter = original.getMatterSubsystem();
     SimbodyMatterSubsystem copyMatter(copy);
-    Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)))
-                                  .addDecoration(Transform(), DecorativeSphere(Real(.1)));
+    Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)));
+    body.addDecoration(Transform(), DecorativeSphere(Real(.1)));
     std::map<MobilizedBodyIndex, MobilizedBodyIndex> idMap;
     hasArtificialBaseBody = false;
     for (int i = 0; i < (int)originalBodyIxs.size(); ++i) {

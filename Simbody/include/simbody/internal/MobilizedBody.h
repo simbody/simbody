@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -1294,45 +1294,78 @@ public:
     /// Internal use only
     explicit MobilizedBody(MobilizedBodyImpl* r);
 
-    /// @name Construction and Misc Methods
-    /// These methods are the base class services which are used while building a concrete
-    /// MobilizedBody, or to query a MobilizedBody to find out how it was built. These are
-    /// unlikely to be used by end users of MobilizedBodies.
+    /// @name                Construction and Misc Methods
+    /// These methods are the base class services which are used while building 
+    /// a concrete MobilizedBody, or to query a MobilizedBody to find out how 
+    /// it was built. These are unlikely to be used by end users of 
+    /// MobilizedBodies.
     //@{
 
-    /// Add decorative geometry specified relative to the new (outboard) body's reference
-    /// frame B, or to the outboard mobilizer frame M attached to body B, or
-    /// to the inboard mobilizer frame F attached to the parent body P. Note that
-    /// the body itself may already have had some decorative geometry on it when
-    /// it was first put into this MobilizedBody; in that case this just adds more.
-    MobilizedBody& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)updBody().addDecoration(X_BD,g);
-        return *this;
-    }
-
-    /// Add decorative geometry specified relative to the outboard mobilizer frame M
-    /// attached to body B. If body B already has decorative geometry on it,
-    /// this just adds some more.
-    MobilizedBody& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry&);
-
-    /// Add decorative geometry specified relative to the inboard mobilizer frame F
-    /// attached to the parent body P. If body P already has decorative geometry on it,
-    /// this just adds some more.
-    MobilizedBody& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry&);
-
-    /// Return a reference to the Body contained within this MobilizedBody.
+    /// Return a const reference to the Body contained within this 
+    /// %MobilizedBody. This refers to an internal copy of the Body that is
+    /// owned by the %MobilizedBody.
     const Body& getBody() const;
-    /// Return a writable reference to the Body contained within this MobilizedBody.
-    /// Calling this method invalidates the MobilizedBody's topology, so the containing
-    /// matter subsystem's realizeTopology() method must be called again.
+
+    /// Return a writable reference to the Body contained within this 
+    /// %MobilizedBody. This refers to an internal copy of the Body that is
+    /// owned by the %MobilizedBody. Calling this method invalidates the 
+    /// %MobilizedBody's topology, so the containing System's realizeTopology() 
+    /// method must be called again.
     Body& updBody();
 
-    /// Replace the Body contained within this MobilizedBody with a new one. 
-    /// Calling this method invalidates the MobilizedBody's topology, so the containing
-    /// matter subsystem's realizeTopology() method must be called again. A reference
-    /// to this MobilizedBody is returned so that this can be chained like an assignment
-    /// operator.
+    /// Replace the Body contained within this %MobilizedBody with a new one. 
+    /// Calling this method invalidates the %MobilizedBody's topology, so the
+    /// containing System's realizeTopology() method must be called again. A 
+    /// reference to this %MobilizedBody is returned so that this can be chained
+    /// like an assignment operator.
     MobilizedBody& setBody(const Body&);
+
+    /// Add decorative geometry specified relative to the new (outboard) body's 
+    /// reference frame B. Note that the body itself may already have had some 
+    /// decorative geometry on it when it was first put into this MobilizedBody; 
+    /// this just adds more and the returned index is larger. 
+    /// Use the underlying Body object's accessors to find this decorative
+    /// geometry again. The given \a geometry object is \e copied here; we do
+    /// not keep a reference to the supplied object.
+    int addBodyDecoration(const Transform&          X_BD, 
+                          const DecorativeGeometry& geometry) {
+        return updBody().addDecoration(X_BD, geometry);
+    }
+    /// Convenience method for use when the geometry is supplied in the body
+    /// frame. This is the same as addBodyDecoration(Transform(),geometry).
+    int addBodyDecoration(const DecorativeGeometry& geometry) {
+        return updBody().addDecoration(geometry);
+    }
+
+    /// Add decorative geometry specified relative to the outboard mobilizer 
+    /// frame M attached to body B. If body B already has decorative geometry on 
+    /// it, this just adds some more, but kept in a separate list from the body
+    /// decorations and inboard decorations. Returns a unique index that can be 
+    /// used to identify this outboard decoration later (numbered starting from 
+    /// zero for outboard decorations only).
+    int addOutboardDecoration(const Transform&          X_MD, 
+                              const DecorativeGeometry& geometry);
+    /// Return the count of decorations added with addOutboardDecoration().
+    int getNumOutboardDecorations() const;
+    /// Return a const reference to the i'th outboard decoration.
+    const DecorativeGeometry& getOutboardDecoration(int i) const;
+    /// Return a writable reference to the i'th outboard decoration.
+    DecorativeGeometry& updOutboardDecoration(int i);
+
+    /// Add decorative geometry specified relative to the inboard mobilizer 
+    /// frame F attached to the parent body P. If body P already has decorative 
+    /// geometry on it, this just adds some more, but kept in a separate list 
+    /// from the body decorations and outboard decorations. Returns a unique 
+    /// index that can be used to identify this inboard decoration later 
+    /// (numbered starting from zero for inboard decorations only).
+    int addInboardDecoration(const Transform&          X_FD, 
+                             const DecorativeGeometry& geometry);
+    /// Return the count of decorations added with addInboardDecoration().
+    int getNumInboardDecorations() const;
+    /// Return a const reference to the i'th inboard decoration.
+    const DecorativeGeometry& getInboardDecoration(int i) const;
+    /// Return a writable reference to the i'th inboard decoration.
+    DecorativeGeometry& updInboardDecoration(int i);
 
     /// If the contained Body can have its mass properties set to the supplied value \p m
     /// its mass properties are changed, otherwise the method fails. Calling this method

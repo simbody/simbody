@@ -62,12 +62,10 @@ int main(int argc, char** argv) {
     //Force::UniformGravity       gravity(forces, matter, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
-    Body::Rigid oxygen = Body::Rigid(MassProperties(m, Vec3(0), Inertia(0)))
-                                  .addDecoration(Transform(), 
-                                        DecorativeSphere(.1).setColor(Red).setOpacity(.3));
-    Body::Rigid hydrogen = Body::Rigid(MassProperties(m, Vec3(0), Inertia(0)))
-                                  .addDecoration(Transform(), 
-                                        DecorativeSphere(.05).setColor(Green).setOpacity(.3));
+    Body::Rigid oxygen = Body::Rigid(MassProperties(m, Vec3(0), Inertia(0)));
+    oxygen.addDecoration(DecorativeSphere(.1).setColor(Red).setOpacity(.3));
+    Body::Rigid hydrogen = Body::Rigid(MassProperties(m, Vec3(0), Inertia(0)));
+    hydrogen.addDecoration(DecorativeSphere(.05).setColor(Green).setOpacity(.3));
 
     MobilizedBody::Cartesian
         masslessFrame(matter.Ground(), Transform(ZalongY, Vec3(0)),

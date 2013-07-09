@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -76,52 +76,72 @@ properties defined at Topology stage (i.e., in the System rather than
 the State). This is thus a Topology-stage change which will require a new
 realizeTopology() before use. **/ 
 Body& setDefaultRigidBodyMassProperties(const MassProperties&);
+
 /** Get the default (that is, Topology stage) mass properties for this Body.
 This may be overridden in a State if this Body has variable mass 
 properties. **/
 const MassProperties& getDefaultRigidBodyMassProperties() const;
 
-/** Add a piece of decorative geometry fixed at some location on this Body. 
-This can be used for visualization of the Body's motion. Returns a reference 
-to the Body so these can be chained like assignment operators. **/
-Body& addDecoration(const Transform& X_BD, const DecorativeGeometry&);
+/** Add a piece of decorative geometry fixed at some pose on this Body. 
+This can be used for visualization of the Body's motion. Returns a small 
+integer that can be used to identify this decoration in any copy of this
+%Body. The supplied DecorativeGeometry object is copied and transformed by the
+given Transform so that the actual geometry is always stored relative to the
+body's frame. **/
+int addDecoration(const Transform& X_BD, const DecorativeGeometry& geometry);
 
-/** Obtain a count of how many pieces of DecorativeGeometry have been
-attached to this Body. **/
+/** Convenience method for when the decorative geometry is to be placed at the
+body frame. This is the same as addDecoration(Transform(),geometry). **/
+int addDecoration(const DecorativeGeometry& geometry)
+{   return addDecoration(Transform(), geometry); }
+
+/** Obtain a count nd of how many pieces of DecorativeGeometry have been
+attached to this Body. The indices i for individual decorations will be numbered
+0 <= i < nd. **/
 int getNumDecorations() const;
 
-/** Get a read-only reference to the n'th piece of DecorativeGeometry that 
-was added to this Body, with 0 <= n < getNumDecorations(). **/
-const DecorativeGeometry& getDecoration(int n) const;
+/** Get a read-only reference to the i'th piece of DecorativeGeometry that 
+was added to this Body, with 0 <= i < getNumDecorations(). The index i is
+the small integer that was returned by addDecoration(). **/
+const DecorativeGeometry& getDecoration(int i) const;
 
-/** Get a writable reference to the n'th piece of DecorativeGeometry that 
-was added to this Body, with 0 <= n < getNumDecorations(). Note that we allow
+/** Get a writable reference to the i'th piece of DecorativeGeometry that 
+was added to this Body, with 0 <= i < getNumDecorations().  The index i is
+the small integer that was returned by addDecoration(). Note that we allow
 writable access to decorations even on a const Body -- these are after all
 just decorations. **/
-DecorativeGeometry& updDecoration(int n) const;
+DecorativeGeometry& updDecoration(int i) const;
 
 /** Create a new contact surface on a body and place it using the indicated
-Transform. **/
-Body& addContactSurface(const Transform&          X_BS,
-                        const ContactSurface&     shape); 
+Transform. Returns a small integer that can be used to identify this contact 
+surface in any copy of this %Body. Unlike decorations, the transform is kept 
+separately rather than used to transform the copied surface. You can obtain it 
+later with getContactSurfaceTransform(). **/
+int addContactSurface(const Transform&          X_BS,
+                      const ContactSurface&     shape); 
 
-/** Obtain the number of contact surfaces n attached to this Body. The valid
-body-local BodyContactSurfaceIndex values will be from 0 to n-1. **/
+/** Convenience method for when the contact surface is to be placed at the
+body frame. This is the same as addContactSurface(Transform(),shape). **/
+int addContactSurface(const ContactSurface& shape)
+{   return addContactSurface(Transform(), shape); }
+
+/** Obtain the number of contact surfaces ns attached to this Body. The valid
+body-local index values i will be 0 <= i < ns. **/
 int getNumContactSurfaces() const;
-/** Get a reference to the n'th contact surface on this body; be sure to get
+/** Get a reference to the i'th contact surface on this body; be sure to get
 the Transform also. **/
-const ContactSurface& getContactSurface(int n) const;
-/** Get the transform specifying the placement of the n'th contact surface
+const ContactSurface& getContactSurface(int i) const;
+/** Get the transform specifying the placement of the i'th contact surface
 on this Body. **/
-const Transform&      getContactSurfaceTransform(int n) const;
-/** Get write access to the unique contact surface owned by this Body. This is 
-a Topology-stage change that will require a new realizeTopology() call if this 
-Body is part of a System. **/
-ContactSurface& updContactSurface(int n);
+const Transform& getContactSurfaceTransform(int i) const;
+/** Get write access to the i'th unique contact surface owned by this Body. This
+is a Topology-stage change that will require a new realizeTopology() call if 
+this Body is part of a System. **/
+ContactSurface& updContactSurface(int i);
 /** Get a writable reference to the transform specifying the placement of the 
-n'th contact surface on this Body.  This is a Topology-stage change that will 
+i'th contact surface on this Body.  This is a Topology-stage change that will 
 require a new realizeTopology() call if this Body is part of a System. **/
-Transform& updContactSurfaceTransform(int n);
+Transform& updContactSurfaceTransform(int i);
 
 // These are the built-in Body types.
 class Ground;     // infinitely massive
@@ -162,10 +182,6 @@ public:
     mass properties is allowed since this is a general rigid body. **/
     explicit Rigid(const MassProperties&);
 
-    Rigid& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)Body::addDecoration(X_BD,g);
-        return *this;
-    }
     Rigid& setDefaultRigidBodyMassProperties(const MassProperties& m) {
         (void)Body::setDefaultRigidBodyMassProperties(m);
         return *this;
@@ -192,10 +208,6 @@ public:
     Linear(); // default mass properties (1,Vec3(0),Inertia(1,1,0))
     explicit Linear(const MassProperties&);
 
-    Linear& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)Body::addDecoration(X_BD,g);
-        return *this;
-    }
     Linear& setDefaultRigidBodyMassProperties(const MassProperties& m) {
         (void)Body::setDefaultRigidBodyMassProperties(m);
         return *this;
@@ -221,10 +233,6 @@ public:
     Particle(); // default mass properties (1,Vec3(0),Inertia(0))
     explicit Particle(const Real& mass);
 
-    Particle& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)Body::addDecoration(X_BD,g);
-        return *this;
-    }
     Particle& setDefaultRigidBodyMassProperties(const MassProperties& m) {
         (void)Body::setDefaultRigidBodyMassProperties(m);
         return *this;
@@ -248,11 +256,6 @@ class SimTK_SIMBODY_EXPORT Body::Massless : public Body {
 public:
     Massless();
 
-    Massless& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)Body::addDecoration(X_BD,g);
-        return *this;
-    }
-
     class MasslessRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Massless, Body);
 private:
@@ -270,11 +273,6 @@ mass and inertia, that cannot be modified to be anything else. **/
 class SimTK_SIMBODY_EXPORT Body::Ground : public Body {
 public:
     Ground();
-
-    Ground& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)Body::addDecoration(X_BD,g);
-        return *this;
-    }
 
     class GroundRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Ground, Body);

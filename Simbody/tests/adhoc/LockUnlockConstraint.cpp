@@ -345,19 +345,19 @@ int main(int argc, char** argv) {
     const Real thighMass = density*thighVol, calfMass = density*calfVol;
     Body::Rigid thighBody = 
         Body::Rigid(MassProperties(10*thighMass, Vec3(0), 
-                        10*thighMass*UnitInertia::brick(thighHDim)))
-                    .addDecoration(Transform(), DecorativeBrick(thighHDim)
-                                                .setColor(Red).setOpacity(.3));
+                        10*thighMass*UnitInertia::brick(thighHDim)));
+    thighBody.addDecoration(Transform(), DecorativeBrick(thighHDim)
+                                             .setColor(Red).setOpacity(.3));
     Body::Rigid calfBody = 
         Body::Rigid(MassProperties(calfMass, Vec3(0), 
-                        calfMass*UnitInertia::brick(calfHDim)))
-                    .addDecoration(Transform(), DecorativeBrick(calfHDim)
-                                                .setColor(Blue).setOpacity(.3));
+                        calfMass*UnitInertia::brick(calfHDim)));
+    calfBody.addDecoration(Transform(), DecorativeBrick(calfHDim)
+                                            .setColor(Blue).setOpacity(.3));
     Body::Rigid footBody = 
         Body::Rigid(MassProperties(10*calfMass, Vec3(0), 
-                        10*calfMass*UnitInertia::brick(calfHDim)))
-                    .addDecoration(Transform(), DecorativeBrick(calfHDim)
-                                                .setColor(Black).setOpacity(.3));
+                        10*calfMass*UnitInertia::brick(calfHDim)));
+    footBody.addDecoration(Transform(), DecorativeBrick(calfHDim)
+                                            .setColor(Black).setOpacity(.3));
     MobilizedBody::Pin thigh(matter.Ground(), Vec3(0),
                              thighBody, Vec3(0,thighHDim[1],0));
     MobilizedBody::Pin calf(thigh, Vec3(0,-thighHDim[1],0),
