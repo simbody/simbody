@@ -595,8 +595,9 @@ int addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD,
 int getNumDecorations() const;
 /** Return a const reference to the i'th decoration. **/
 const DecorativeGeometry& getDecoration(int i) const;
-/** Return a writable reference to the i'th decoration. **/
-DecorativeGeometry& updDecoration(int i);
+/** Return a writable reference to the i'th decoration. This is allowed for
+a const %Visualizer since it is just a decoration. **/
+DecorativeGeometry& updDecoration(int i) const;
 
 /** Add an always-present rubber band line, modeled after the DecorativeLine 
 supplied here. The end points of the supplied line are ignored, however: at 
@@ -610,8 +611,9 @@ int addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
 int getNumRubberBandLines() const;
 /** Return a const reference to the i'th rubber band line. **/
 const DecorativeLine& getRubberBandLine(int i) const;
-/** Return a writable reference to the i'th rubber band line. **/
-DecorativeLine& updRubberBandLine(int i);
+/** Return a writable reference to the i'th rubber band line. This is allowed
+for a const %Visualizer since it is just a decoration. **/
+DecorativeLine& updRubberBandLine(int i) const;
 
 /** Add a DecorationGenerator that will be invoked to add dynamically generated
 geometry to each frame of the the scene. The Visualizer assumes ownership of the 

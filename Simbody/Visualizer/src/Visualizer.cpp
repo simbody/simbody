@@ -1028,8 +1028,8 @@ int Visualizer::getNumDecorations() const
 {   return (int)getImpl().m_addedGeometry.size(); }
 const DecorativeGeometry& Visualizer::getDecoration(int i) const 
 {   return getImpl().m_addedGeometry[i]; }
-DecorativeGeometry& Visualizer::updDecoration(int i) 
-{   return updImpl().m_addedGeometry[i]; }
+DecorativeGeometry& Visualizer::updDecoration(int i) const
+{   return const_cast<Visualizer*>(this)->updImpl().m_addedGeometry[i]; }
 
 int Visualizer::
 addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
@@ -1045,8 +1045,8 @@ int Visualizer::getNumRubberBandLines() const
 {   return (int)getImpl().m_lines.size(); }
 const DecorativeLine& Visualizer::getRubberBandLine(int i) const 
 {   return getImpl().m_lines[i].line; }
-DecorativeLine& Visualizer::updRubberBandLine(int i) 
-{   return updImpl().m_lines[i].line; }
+DecorativeLine& Visualizer::updRubberBandLine(int i) const
+{   return const_cast<Visualizer*>(this)->updImpl().m_lines[i].line; }
 
 int Visualizer::
 addDecorationGenerator(DecorationGenerator* generator) 
