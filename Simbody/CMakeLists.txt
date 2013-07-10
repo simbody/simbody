@@ -23,10 +23,31 @@
 
 PROJECT (SimTKsimbody)
 
+#---------------------Find gazebo--------------------
+include (FindPkgConfig)
+if (PKG_CONFIG_FOUND)
+  pkg_check_modules(GAZEBO gazebo)
+endif()
+
+include(FindBoost)
+find_package(Boost ${MIN_BOOST_VERSION} REQUIRED program_options system filesystem regex)
+
+find_package(Protobuf REQUIRED)
+
+#---------------------Find gazebo--------------------
+
+
 # SimTKsimbody depends on PlatformFiles, SimTKcommon, and SimTKmath only.
 INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
 	            ${SimTKCOMMON_INCLUDE_DIRECTORIES}
 	            ${SimTKMATH_INCLUDE_DIRECTORIES})
+
+message("Gazebo libraries ${GAZEBO_LIBRARIES}")
+
+include_directories(${GAZEBO_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
+link_directories(${GAZEBO_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
+
+link_libraries(${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.

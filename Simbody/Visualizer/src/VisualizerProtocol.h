@@ -100,10 +100,11 @@ static const unsigned char SliderMoved           = 4;
 namespace SimTK {
 class VisualizerProtocol {
 public:
+	VisualizerProtocol();
     VisualizerProtocol(Visualizer& visualizer,
                        const Array_<String>& searchPath);
 
-	void connectToGazebo();
+//	void connectToGazebo();
 
     void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
     void beginScene(Real simTime);
@@ -160,7 +161,7 @@ private:
     // assigned VisualizerGUI cache index.
     mutable std::map<const void*, unsigned short> meshes;
     mutable pthread_mutex_t sceneLock;
-	FakeServer server;
+//	FakeServer server;
 };
 }
 

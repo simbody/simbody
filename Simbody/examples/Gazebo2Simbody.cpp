@@ -96,6 +96,7 @@ Gazebo objects and the Simbody implementation of them.
 #include <utility>
 #include <map>
 #include <iostream>
+/*
 using std::cout; using std::endl; using std::string;
 using std::map; using std::vector;
 
@@ -262,11 +263,13 @@ public:
     // outwards.
     std::map<int,std::vector<int> > mobilizersByLevel;
 };
+*/
 
 //==============================================================================
 //                                  MAIN
 //==============================================================================
 int main(int argc, const char* argv[]) {
+/*
   try {
     const std::string dir = "/Users/Sherm/Desktop/";
     //Xml::Document sdf(dir + "double_pendulum.sdf");
@@ -418,10 +421,11 @@ int main(int argc, const char* argv[]) {
     cout << "Working directory: " << Pathname::getCurrentWorkingDirectory() 
          << endl;
   }
+*/
 
     return 0;
 }
-
+/*
 //------------------------------------------------------------------------------
 //                          LINKS IMPLEMENTATION
 //------------------------------------------------------------------------------
@@ -542,4 +546,4 @@ void Joints::breakLoops(Links& links) {
         mobilizersByLevel[jinfo.level].push_back(jx);
     }
 }
-
+*/

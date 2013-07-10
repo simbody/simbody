@@ -30,6 +30,8 @@
 #include "VisualizerGeometry.h"
 #include "VisualizerProtocol.h"
 
+#include "GazeboVisualizer.h"
+
 #include <cstdlib>
 #include <cstdio>
 #include <pthread.h>
@@ -99,7 +101,7 @@ public:
     // Create a Visualizer and put it in PassThrough mode.
     Impl(Visualizer* owner, const MultibodySystem& system,
          const Array_<String>& searchPath) 
-    :   m_system(system), m_protocol(*owner, searchPath),
+    :   m_system(system), m_protocol(), //m_protocol(*owner, searchPath),
         m_upDirection(YAxis), m_groundHeight(0),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
         m_simTimeUnitsPerSec(1), 
@@ -455,7 +457,8 @@ public:
     int getRefCount() const {return m_refCount;}
 
     const MultibodySystem&                  m_system;
-    VisualizerProtocol                      m_protocol;
+    //VisualizerProtocol                      m_protocol;
+    GazeboVisualizer                      m_protocol;
 
     Array_<DecorativeGeometry>              m_addedGeometry;
     Array_<RubberBandLine>                  m_lines;
@@ -611,6 +614,8 @@ public:
 // rendering thread; otherwise, this is just the main simulation thread.
 void Visualizer::Impl::drawFrameNow(const State& state) {
     m_system.realize(state, Stage::Position);
+
+	std::cout << "draw frame now\n";
 
     // Collect up the geometry that constitutes this scene.
     Array_<DecorativeGeometry> geometry;
