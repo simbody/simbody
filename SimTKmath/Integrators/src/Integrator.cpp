@@ -44,7 +44,7 @@ namespace SimTK {
     //////////////////////////////////
 
 Integrator::~Integrator() {
-    delete rep; rep=0;
+    /*delete rep; rep=0;*/
 }
 
 void Integrator::resetAllStatistics() {
