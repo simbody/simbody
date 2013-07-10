@@ -43,6 +43,10 @@ namespace SimTK {
     // IMPLEMENTATION OF INTEGRATOR //
     //////////////////////////////////
 
+Integrator::~Integrator() {
+    delete rep; rep=0;
+}
+
 void Integrator::resetAllStatistics() {
     updRep().resetIntegratorStatistics();
     updRep().resetMethodStatistics();
