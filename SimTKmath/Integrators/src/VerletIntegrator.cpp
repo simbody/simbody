@@ -41,11 +41,6 @@ VerletIntegrator::VerletIntegrator(const System& sys, Real stepSize) {
     setFixedStepSize(stepSize);
 }
 
-VerletIntegrator::~VerletIntegrator() {
-    delete rep;
-}
-
-
 
 //==============================================================================
 //                          VERLET INTEGRATOR REP

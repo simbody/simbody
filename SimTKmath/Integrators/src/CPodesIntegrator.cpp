@@ -41,10 +41,6 @@ CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMet
     rep = new CPodesIntegratorRep(this, sys, method, iterationType);
 }
 
-CPodesIntegrator::~CPodesIntegrator() {
-    delete rep;
-}
-
 void CPodesIntegrator::setUseCPodesProjection() {
     CPodesIntegratorRep& cprep = dynamic_cast<CPodesIntegratorRep&>(*rep);
     cprep.setUseCPodesProjection();

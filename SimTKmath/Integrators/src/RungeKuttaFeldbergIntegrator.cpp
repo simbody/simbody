@@ -47,11 +47,6 @@ RungeKuttaFeldbergIntegrator::RungeKuttaFeldbergIntegrator(const System& sys)
     rep = new RungeKuttaFeldbergIntegratorRep(this, sys);
 }
 
-RungeKuttaFeldbergIntegrator::~RungeKuttaFeldbergIntegrator() {
-    delete rep;
-}
-
-
 
 //------------------------------------------------------------------------------
 //                   RUNGE KUTTA FELDBERG INTEGRATOR REP

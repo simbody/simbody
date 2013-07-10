@@ -47,11 +47,6 @@ RungeKutta3Integrator::RungeKutta3Integrator(const System& sys)
     rep = new RungeKutta3IntegratorRep(this, sys);
 }
 
-RungeKutta3Integrator::~RungeKutta3Integrator() {
-    delete rep;
-}
-
-
 //------------------------------------------------------------------------------
 //                      RUNGE KUTTA 3 INTEGRATOR REP
 //------------------------------------------------------------------------------

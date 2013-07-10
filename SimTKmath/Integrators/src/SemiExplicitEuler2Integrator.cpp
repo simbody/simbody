@@ -37,11 +37,6 @@ SemiExplicitEuler2Integrator::SemiExplicitEuler2Integrator
     rep = new SemiExplicitEuler2IntegratorRep(this, sys);
 }
 
-SemiExplicitEuler2Integrator::~SemiExplicitEuler2Integrator() {
-    delete rep;
-}
-
-
 
 //==============================================================================
 //                   SEMI EXPLICIT EULER 2 INTEGRATOR REP

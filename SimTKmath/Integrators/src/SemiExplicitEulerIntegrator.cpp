@@ -38,11 +38,6 @@ SemiExplicitEulerIntegrator::SemiExplicitEulerIntegrator
     setFixedStepSize(stepSize);
 }
 
-SemiExplicitEulerIntegrator::~SemiExplicitEulerIntegrator() {
-    delete rep;
-}
-
-
 
 //==============================================================================
 //                   SEMI EXPLICIT EULER INTEGRATOR REP

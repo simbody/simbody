@@ -40,7 +40,6 @@ class RungeKuttaFeldbergIntegratorRep;
 class SimTK_SIMMATH_EXPORT RungeKuttaFeldbergIntegrator : public Integrator {
 public:
     explicit RungeKuttaFeldbergIntegrator(const System& sys);
-    ~RungeKuttaFeldbergIntegrator();
 };
 
 } // namespace SimTK

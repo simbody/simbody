@@ -91,7 +91,6 @@ public:
     /** Create a SemiExplicitEuler2Integrator for integrating a System with 
     variable size steps. **/
     SemiExplicitEuler2Integrator(const System& sys);
-    ~SemiExplicitEuler2Integrator();
 };
 
 } // namespace SimTK

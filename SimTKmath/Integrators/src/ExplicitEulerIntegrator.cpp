@@ -42,11 +42,6 @@ ExplicitEulerIntegrator::ExplicitEulerIntegrator(const System& sys, Real stepSiz
     setInitialStepSize(stepSize);
 }
 
-ExplicitEulerIntegrator::~ExplicitEulerIntegrator() {
-    delete rep;
-}
-
-
 
 //------------------------------------------------------------------------------
 //                      EXPLICIT EULER INTEGRATOR REP
