@@ -128,11 +128,15 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
     return newRep;
 }
 
-void Optimizer::useNumericalGradient( bool flag ) {
-    updRep().useNumericalGradient(flag);
+void Optimizer::useNumericalGradient(bool flag, Real objEstAccuracy) {
+    updRep().useNumericalGradient(flag, objEstAccuracy);
 }
-void Optimizer::useNumericalJacobian( bool flag ) {
-     updRep().useNumericalJacobian(flag);
+void Optimizer::useNumericalJacobian(bool flag, Real consEstAccuracy) {
+     updRep().useNumericalJacobian(flag, consEstAccuracy);
+}
+
+void Optimizer::setDifferentiatorMethod( Differentiator::Method method) {
+     updRep().setDifferentiatorMethod(method);
 }
 
 void Optimizer::setConvergenceTolerance( Real accuracy ) {
@@ -147,9 +151,6 @@ void Optimizer::setMaxIterations( int iter ) {
      updRep().setMaxIterations(iter);
 }
 
-void Optimizer::setDifferentiatorMethod( Differentiator::Method method) {
-     updRep().setDifferentiatorMethod(method);
-}
 
 void Optimizer::setLimitedMemoryHistory( int history ) {
      updRep().setLimitedMemoryHistory(history);
@@ -186,5 +187,16 @@ bool Optimizer::isUsingNumericalJacobian() const {
     return getRep().isUsingNumericalJacobian();
 }
 
+Differentiator::Method Optimizer::getDifferentiatorMethod() const {
+    return getRep().getDifferentiatorMethod();
+}
+
+Real Optimizer::getEstimatedAccuracyOfObjective() const {
+    return getRep().getEstimatedAccuracyOfObjective();
+}
+
+Real Optimizer::getEstimatedAccuracyOfConstraints() const {
+    return getRep().getEstimatedAccuracyOfConstraints();
+}
 
 } // namespace SimTK

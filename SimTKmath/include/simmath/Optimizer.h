@@ -264,8 +264,6 @@ public:
     void setLimitedMemoryHistory( int history );
     /// Set the level of debugging info displayed.
     void setDiagnosticsLevel( int level ); 
-    /// Set which numerical gradient algorithm is used.
-    void setDifferentiatorMethod( Differentiator::Method method);
 
     void setOptimizerSystem( const OptimizerSystem& sys  );
     void setOptimizerSystem( const OptimizerSystem& sys, OptimizerAlgorithm algorithm );
@@ -279,10 +277,30 @@ public:
     /// Set the value of an advanced option specified by an boolean value.
     bool setAdvancedBoolOption( const char *option, const bool value );
 
-    /// Enable numerical gradients.
-    void useNumericalGradient( bool flag );
-    /// Enable numerical Jacobian.
-    void useNumericalJacobian( bool flag );
+    /// Enable numerical calculation of gradient, with optional estimation of
+    /// the accuracy to which the objective function is calculated. For example,
+    /// if you are calculate about 6 significant digits, supply the estimated
+    /// accuracy as 1e-6. Providing the estimated accuracy improves the quality 
+    /// of the calculated derivative. If no accuracy is provided we'll assume 
+    /// the objective is calculated to near machine precision. See 
+    /// SimTK::Differentiator for more information.
+    void useNumericalGradient(bool flag, 
+        Real estimatedAccuracyOfObjective = SignificantReal);
+    /// Enable numerical calculation of the constraint Jacobian, with optional 
+    /// estimation of the accuracy to which the constraint functions are 
+    /// calculated.  For example, if you are calculating about 6 significant
+    /// digits, supply the estimated accuracy as 1e-6. Providing the estimated 
+    /// accuracy improves the quality of the calculated derivative. If no 
+    /// accuracy is provided we'll assume the constraints are calculated to near
+    /// machine precision. See SimTK::Differentiator for more information.
+    void useNumericalJacobian(bool flag, 
+        Real estimatedAccuracyOfConstraints = SignificantReal);
+
+    /// Set which numerical gradient algorithm is used when numerical gradient
+    /// or Jacobian is being used. Choices are Differentiator::ForwardDifference 
+    /// (first order) or Differentiator::CentralDifference (second order) with 
+    /// central the default.
+    void setDifferentiatorMethod(Differentiator::Method method);
 
     /// Compute optimization.
     Real optimize(Vector&);
@@ -294,6 +312,13 @@ public:
     bool isUsingNumericalGradient() const;
     /// Indicate whether the Optimizer is currently set to use a numerical Jacobian.
     bool isUsingNumericalJacobian() const;
+    /// Return the differentiation method that will be used if numerical
+    /// gradient or Jacobian are required.
+    Differentiator::Method getDifferentiatorMethod() const;
+    /// Return the estimated accuracy last specified in useNumericalGradient().
+    Real getEstimatedAccuracyOfObjective() const;
+    /// Return the estimated accuracy last specified in useNumericalJacobian().
+    Real getEstimatedAccuracyOfConstraints() const;
 
     // This is a local class.
     class OptimizerRep;
