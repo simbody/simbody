@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Jack Middleton                                                    *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -108,37 +108,37 @@ bool Optimizer::OptimizerRep::getAdvancedIntOption( const std::string &option, i
 bool Optimizer::OptimizerRep::getAdvancedBoolOption( const std::string &option, bool &value ) const {
     return getAdvancedOptionHelper(advancedBoolOptions, option, value);
 }
-void Optimizer::OptimizerRep::setDifferentiatorMethod( Differentiator::Method method) {
+
+void Optimizer::OptimizerRep::
+useNumericalGradient(bool flag, Real objEstAccuracy) {
+    objectiveEstimatedAccuracy = 
+        objEstAccuracy > 0 ? objEstAccuracy : SignificantReal;
+    delete gradDiff; gradDiff=0; delete of; of=0;
+    if (flag) {     // turn on numerical jacbobian
+        of = new SysObjectiveFunc(sysp->getNumParameters(), sysp);
+        of->setEstimatedAccuracy(objectiveEstimatedAccuracy);
+        gradDiff = new Differentiator(*of, diffMethod);
+    }
+    numericalGradient = flag;
+}
+void Optimizer::OptimizerRep::
+useNumericalJacobian(bool flag, Real consEstAccuracy) {
+    constraintsEstimatedAccuracy = 
+        consEstAccuracy > 0 ? consEstAccuracy : SignificantReal;
+    delete jacDiff; jacDiff=0; delete cf; cf=0;
+    if (flag) {     // turn on numerical gradients
+        cf = new SysConstraintFunc(sysp->getNumConstraints(), 
+                                   sysp->getNumParameters(), sysp);
+        cf->setEstimatedAccuracy(constraintsEstimatedAccuracy);
+        jacDiff = new Differentiator(*cf, diffMethod); 
+    }
+    numericalJacobian = flag;
+}
+
+void Optimizer::OptimizerRep::
+setDifferentiatorMethod(Differentiator::Method method) {
      diffMethod = method;
 }
-
-
-void Optimizer::OptimizerRep::useNumericalGradient( const bool flag ) {
-   if( flag ) {     // turn on numerical gradients
-       if( !numericalGradient ) initNumericalGrad();       
-       numericalGradient = true;
-   } else {        // turn off numerical graidents
-       numericalGradient = false;
-   }
-}
-void Optimizer::OptimizerRep::useNumericalJacobian( const bool flag ) {
-   if( flag ) {     // turn on numerical jacbobian
-       if( !numericalJacobian )  initNumericalJac();       
-       numericalJacobian = true;
-   } else {
-       numericalJacobian = false;
-   }
-}
-
-void Optimizer::OptimizerRep::initNumericalJac() {  // instaniates a jacobian Differentiator
-    cf      = new SysConstraintFunc(sysp->getNumConstraints(), sysp->getNumParameters(), sysp );
-    jacDiff = new Differentiator(*cf, diffMethod);  // construct Differentiator
-}
-void Optimizer::OptimizerRep::initNumericalGrad() {  // instaniates a gradient Differentiator
-    of       = new SysObjectiveFunc( sysp->getNumParameters(), sysp );
-    gradDiff = new Differentiator(*of, diffMethod);  // construct Differentiator
-}
-
 
 int Optimizer::OptimizerRep::objectiveFuncWrapper
    (int n, const Real* x, int newX, Real* f, void* vrep)
