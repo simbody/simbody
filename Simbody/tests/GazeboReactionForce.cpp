@@ -78,10 +78,12 @@ const Real Cd2 = 30;    // link2-3 joint damping
 const Real Target1 = 0;
 const Real Target2 = -Pi/4;
 
+const Vec3 Cube(.5,.5,.5); // half-dimensions of cube
 const Real Mass1=100, Mass2=5, Mass3=1;
 const Vec3 Centroid(.5,0,.5);
 const Vec3 COM1=Centroid, COM2=Centroid, COM3=Centroid+Vec3(0,.5,0);
 const UnitInertia Central(Vec3(.1), Vec3(.05));
+// Simbody requires inertias to be expressed about body origin rather than COM.
 const Inertia Inertia1=Mass1*Central.shiftFromCentroid(-COM1);
 const Inertia Inertia2=Mass2*Central.shiftFromCentroid(-COM2);
 const Inertia Inertia3=Mass3*Central.shiftFromCentroid(-COM3); // weird
@@ -159,24 +161,22 @@ MyMultibodySystem::MyMultibodySystem()
     , m_viz(m_system)
     #endif
 {
-
-
     #ifdef USE_VISUALIZER
     m_viz.setSystemUpDirection(ZAxis);
     m_viz.setCameraTransform(
         Transform(Rotation(BodyRotationSequence,Pi/2,XAxis,Pi/8,YAxis),
         Vec3(5,-8,2)));
+    m_viz.setShowFrameNumber(true);
+    m_viz.setShowSimTime(true);
     #endif
 
     Force::Gravity(m_forces, m_matter, -ZAxis, 50);
 
-    const Vec3 cube(.5,.5,.5); // half-dimensions of cube
-    DecorativeBrick drawCube(cube); drawCube.setOpacity(0.5).setColor(Gray);
+    DecorativeBrick drawCube(Cube); drawCube.setOpacity(0.5).setColor(Gray);
 
-    cout << "cube unit inertia=" << UnitInertia::brick(cube) << endl;
     Body::Rigid link1Info(MassProperties(Mass1, COM1, Inertia1));
     ContactGeometry::TriangleMesh cubeMesh
-        (PolygonalMesh::createBrickMesh(cube, 3));
+        (PolygonalMesh::createBrickMesh(Cube, 3));
     DecorativeMesh showMesh(cubeMesh.createPolygonalMesh());
     showMesh.setRepresentation(DecorativeGeometry::DrawWireframe);
     link1Info.addDecoration(Centroid, drawCube);
@@ -225,10 +225,6 @@ MyMultibodySystem::MyMultibodySystem()
 
     m_system.realizeTopology();
 
-    #ifdef USE_VISUALIZER
-    m_viz.setShowFrameNumber(true);
-    m_viz.setShowSimTime(true);
-    #endif
 }
 
 //==============================================================================
