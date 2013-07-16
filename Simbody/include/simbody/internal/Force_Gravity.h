@@ -71,8 +71,8 @@ public:
 /** @name                       Construction
 Methods in this section refer both to constructors, and to methods that can
 be used to set or change contruction (Topology-stage) parameters; these
-specify the values assigned by default to the corresponding Instance-stage 
-state variables. Note:
+specify the values assigned by default to the corresponding state variables. 
+Note:
   - Changing one of these default parameters invalidates the containing 
     System's topology, meaning that realizeTopology() will have to be called 
     before subsequent use. 
@@ -105,7 +105,7 @@ fly with setBodyIsExcluded().
     The default magnitude g to be used for gravity, given as a nonnegative
     scalar with units of acceleration. The gravity vector is calculated as 
     v=g*d where d is the current direction vector, typically the default 
-    direction as given by the \a direction argument to this constructor. 
+    direction as given by the \a down argument to this constructor. 
     Gravity will have the magnitude given here unless explicitly changed within
     a particular State.
 @param[in]          zeroHeight
