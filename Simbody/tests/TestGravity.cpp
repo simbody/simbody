@@ -291,6 +291,19 @@ static void testForces() {
     }
     SimTK_TEST_EQ(gravity.getPotentialEnergy(state), pe);
     SimTK_TEST_EQ(mbs.calcPotentialEnergy(state), pe);
+
+    // Test caching.
+    const long long nevals1=gravity.getNumEvaluations();
+    SimTK_TEST(gravity.isForceCacheValid(state));
+    // This should not require re-evaluation.
+    SimTK_TEST(gravity.getBodyForces(state)[0] == SpatialVec(Vec3(0)));
+    SimTK_TEST(gravity.getNumEvaluations()==nevals1);
+
+    gravity.invalidateForceCache(state);
+    // Force re-evaluation.
+    SimTK_TEST(gravity.getBodyForces(state)[0] == SpatialVec(Vec3(0)));
+    SimTK_TEST(gravity.getNumEvaluations()==nevals1+1);
+
 }
 
 

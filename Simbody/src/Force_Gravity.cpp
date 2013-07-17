@@ -210,6 +210,8 @@ private:
     {   return getForceSubsystem().isCacheValueRealized(s,forceCacheIx); }
     void markForceCacheValid(const State& s) const
     {   getForceSubsystem().markCacheValueRealized(s,forceCacheIx); }
+    void invalidateForceCache(const State& s) const
+    {   getForceSubsystem().markCacheValueNotRealized(s,forceCacheIx); }
 
     // This method calculates gravity forces if needed, and bumps the 
     // numEvaluations counter if it has to do any work.
@@ -412,21 +414,32 @@ getPotentialEnergy(const State& s) const
 {   getImpl().ensureForceCacheValid(s); 
     return getImpl().getForceCache(s).pe; }
 
-const SpatialVec& Force::Gravity::
-getBodyForce(const State& s, MobilizedBodyIndex mbx) const
+const Vector_<SpatialVec>& Force::Gravity::
+getBodyForces(const State& s) const
 {   getImpl().ensureForceCacheValid(s);
     const GravityImpl::ForceCache& fc = getImpl().getForceCache(s);
-    return fc.F_GB[mbx]; }
+    return fc.F_GB; }
 
-const Vec3& Force::Gravity::
-getParticleForce(const State& s, ParticleIndex px) const
+const Vector_<Vec3>& Force::Gravity::
+getParticleForces(const State& s) const
 {   getImpl().ensureForceCacheValid(s);
     const GravityImpl::ForceCache& fc = getImpl().getForceCache(s);
-    return fc.f_GP[px]; }
+    return fc.f_GP; }
 
 long long Force::Gravity::
 getNumEvaluations() const
 {   return getImpl().numEvaluations; }
+
+bool Force::Gravity::
+isForceCacheValid(const State& state) const
+{   return getImpl().isForceCacheValid(state); }
+
+/** Invalidate the stored gravitational forces if they have already been 
+calculated at this configuration. That will force a new evaluation the next
+time they are requested (unless the gravity magnitude is currently zero). **/
+void Force::Gravity::
+invalidateForceCache(const State& state) const 
+{   getImpl().invalidateForceCache(state); }
 
 
 //==============================================================================

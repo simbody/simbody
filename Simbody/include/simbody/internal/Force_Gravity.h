@@ -446,28 +446,54 @@ origin but that can be changed arbitrarily.
     configuration contained in \a state (a signed scalar).
 @pre \a state must be realized to Stage::Position **/
 Real getPotentialEnergy(const State& state) const;
-/** Obtain the gravitational force currently being applied by this Gravity
-force element to the given mobilized body. This is zero for Ground or any
-body that was explicitly excluded.
-@param[in]  state   The State from whose cache the force is retrieved.
-@param[in]  mobod   The index of the mobilized body whose force is wanted.
+
+/** Obtain a reference to the set of gravitational forces currently being 
+applied by this %Gravity force element, as a Vector of spatial forces indexed
+by MobilizedBodyIndex. The force on Ground or on any explicitly excluded body 
+is zero, but there is an entry for every mobilized body (starting with Ground) 
+in the returned result. The return vector of spatial vectors is in a form suitable for direct use with
+the SimbodyMatterSubsystem Jacobian operators, which can be used to transform
+these into generalized forces. This can be useful for gravity compensation.
+
+@param[in]  state   
+    The State from whose cache the force is retrieved.
+@return A reference to the Vector of spatial forces (meaning the gravitational 
+    force and moment about the body origin) currently being applied to each 
+    of the mobilized bodies, expressed in the Ground frame.
+@pre \a state must be realized to Stage::Position 
+
+Forces are returned as though applied at the body origin, which is
+\e not necessarily the same place as the body center of mass. That means that
+in general there will be both a force and a moment returned for each body.
+
+If gravity forces have not yet been calculated for the configuration given
+in \a state, the computation will be initiated here and cached for use later.
+**/
+const Vector_<SpatialVec>& getBodyForces(const State& state) const;
+
+/** Convenience method to extract the gravitational force on just one body;
+see getBodyForces() to get the whole set at once, and for more information.
+
+@param[in]  state   
+    The State from whose cache the force is retrieved.
+@param[in]  mobod   
+    The MobilizedBody or MobilizedBodyIndex whose force is wanted.
 @return The spatial force (meaning the gravitational force and moment about
     the body origin) currently being applied to the given mobilized body, 
     expressed in the Ground frame.
 @pre \a state must be realized to Stage::Position **/
 const SpatialVec& 
-    getBodyForce(const State& state, MobilizedBodyIndex mobod) const;
+getBodyForce(const State& state, MobilizedBodyIndex mobod) const
+{   return getBodyForces(state)[mobod]; }
 
 // Particles aren't supported yet so don't show this in Doxygen.
 /** @cond **/
-/** Obtain the gravitational force currently being applied by this Gravity
-force element to the indicated particle.
+/** Obtain the gravitational forces currently being applied by this Gravity
+force element to the particles.
 @param[in]  state       The State from whose cache the force is retrieved.
-@param[in]  particle    The index of the particle whose force is wanted.
-@return The current value of the force, expressed in the Ground frame.
+@return The current value of the forces, expressed in the Ground frame.
 @pre \a state must be realized to Stage::Position **/
-const Vec3& 
-    getParticleForce(const State& state, ParticleIndex particle) const;
+const Vector_<Vec3>& getParticleForces(const State& state) const;
 /** @endcond **/
 
 /*@}............................ Energy and Forces ...........................*/
@@ -485,6 +511,16 @@ valid. Also, we don't consider it a computation if the gravity magnitude is
 zero. This is intended for use in testing that caching and invalidation is being
 done properly. **/
 long long getNumEvaluations() const;
+
+/** Return true if the gravitational forces for this configuration have already
+been calculated and are up to date. That means they can be retrieved with no
+further evaluation. **/
+bool isForceCacheValid(const State& state) const;
+
+/** Invalidate the stored gravitational forces if they have already been 
+calculated at this configuration. That will force a new evaluation the next
+time they are requested (unless the gravity magnitude is currently zero). **/
+void invalidateForceCache(const State& state) const;
 /*@}*/
 
 // Don't show this in Doxygen.
