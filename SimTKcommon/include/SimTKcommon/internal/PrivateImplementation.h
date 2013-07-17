@@ -201,7 +201,7 @@ protected:
 
     /// The copy constructor makes either a deep (value) or shallow (reference) copy
     /// of the supplied source PIMPL object, based on whether this is a "pointer
-    /// sematics" (PTR=true) or "object (value) semantics" (PTR=false, default)
+    /// semantics" (PTR=true) or "object (value) semantics" (PTR=false, default)
     /// class.
     /// @see referenceAssign
     /// @see copyAssign
