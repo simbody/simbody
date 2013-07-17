@@ -442,6 +442,21 @@ const Vec3&
 
 /*@}............................ Energy and Forces ...........................*/
 
+//------------------------------------------------------------------------------
+/** @name                     Debugging/Testing
+This is information for use by developers of this class for debugging and
+testing -- please ignore. **/
+/*@{*/
+/** Return a count of the number of times the set of gravitational forces
+or potential energy was calculated since this force element was constructed. 
+Note that this is not a per-body count. This count is only incremented when an 
+actual computation is performed, not when forces are requested but are already 
+valid. Also, we don't consider it a computation if the gravity magnitude is 
+zero. This is intended for use in testing that caching and invalidation is being
+done properly. **/
+long long getNumEvaluations() const;
+/*@}*/
+
 // Don't show this in Doxygen.
 /** @cond **/
 SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Gravity, GravityImpl, Force);

@@ -74,7 +74,8 @@ public:
                 Real                            zeroHeight)
     :   matter(matter), defDirection(direction), defMagnitude(magnitude), 
         defZeroHeight(zeroHeight), 
-        defMobodIsImmune(matter.getNumBodies(), false)
+        defMobodIsImmune(matter.getNumBodies(), false),
+        numEvaluations(0)
     {   defMobodIsImmune.front() = true; } // Ground is always immune
 
     void setMobodIsImmuneByDefault(MobilizedBodyIndex mbx, bool isImmune) {
@@ -105,9 +106,11 @@ public:
     GravityImpl* clone() const OVERRIDE_11 {
         return new GravityImpl(*this);
     }
-    bool dependsOnlyOnPositions() const OVERRIDE_11 {
-        return true;
-    }
+
+    // We are doing our own caching here, so don't override the 
+    // dependsOnlyOnPositions() method which would cause the base class also
+    // to cache the results.
+
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
                    OVERRIDE_11;
@@ -180,6 +183,9 @@ private:
     {   return getForceSubsystem().isCacheValueRealized(s,forceCacheIx); }
     void markForceCacheValid(const State& s) const
     {   getForceSubsystem().markCacheValueRealized(s,forceCacheIx); }
+
+    // This method calculates gravity forces if needed, and bumps the 
+    // numEvaluations counter if it has to do any work.
     void ensureForceCacheValid(const State&) const;
 
     // TOPOLOGY STATE
@@ -192,6 +198,8 @@ private:
     // TOPOLOGY CACHE
     DiscreteVariableIndex           instanceVarsIx;
     CacheEntryIndex                 forceCacheIx;
+
+    mutable long long               numEvaluations;
 
 friend class Force::Gravity;
 };
@@ -306,7 +314,14 @@ getDefaultZeroHeight() const {return getImpl().defZeroHeight;}
 const Force::Gravity& Force::Gravity::
 setBodyIsExcluded(State& state, MobilizedBodyIndex mobod, 
                   bool isExcluded) const
-{   getImpl().setMobodIsImmune(state, mobod, isExcluded); 
+{   
+    SimTK_ERRCHK2_ALWAYS(mobod < getImpl().matter.getNumBodies(),
+        "Force::Gravity::setBodyIsExcluded()",
+        "Attemped to exclude mobilized body with index %d but only mobilized"
+        " bodies with indices between 0 and %d exist in this System.", 
+        (int)mobod, getImpl().matter.getNumBodies()-1);
+
+    getImpl().setMobodIsImmune(state, mobod, isExcluded); 
     return *this;
 }
 
@@ -385,6 +400,10 @@ getParticleForce(const State& s, ParticleIndex px) const
     const GravityImpl::ForceCache& fc = getImpl().getForceCache(s);
     return fc.f_GP[px]; }
 
+long long Force::Gravity::
+getNumEvaluations() const
+{   return getImpl().numEvaluations; }
+
 
 //==============================================================================
 //                            FORCE :: GRAVITY IMPL
@@ -404,6 +423,9 @@ ensureForceCacheValid(const State& state) const {
         markForceCacheValid(state);
         return;
     }
+
+    // Gravity is non-zero and not valid, so this counts as an evaluation.
+    ++numEvaluations;
 
     const Vec3 gravity      = iv.g * iv.d;
     const Real zeroPEOffset = iv.g * iv.z;
