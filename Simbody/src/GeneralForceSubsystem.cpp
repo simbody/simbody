@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -40,7 +40,12 @@
 
 namespace SimTK {
 
-
+// There is some tricky caching being done here for forces that have overridden
+// dependsOnlyOnPositions() (and returned "true"). This is probably only worth
+// doing for very expensive position-only forces like atomic force fields. We
+// try not to incur any overhead if there are no such forces in the System.
+// Note in particular that Force::Gravity does its own caching so doesn't make
+// use of this service.
 class GeneralForceSubsystemRep : public ForceSubsystem::Guts {
 public:
     GeneralForceSubsystemRep()
@@ -84,46 +89,70 @@ public:
     }
     
     void setForceIsDisabled
-       (State& state, ForceIndex index, bool disabled) const {
-        Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
-            (updDiscreteVariable(state, forceEnabledIndex));
-        bool& forceValid = Value<bool>::downcast
-            (updCacheEntry(state, forceValidCacheIndex));
-        forceEnabled[index] = !disabled;
-        forceValid = false;
+       (State& s, ForceIndex index, bool shouldDisable) const 
+    {
+        Array_<bool>& forceEnabled = Value< Array_<bool> >::updDowncast
+            (updDiscreteVariable(s, forceEnabledIndex));
+
+        const bool shouldEnable = !shouldDisable; // sorry
+        if (forceEnabled[index] != shouldEnable) {
+            forceEnabled[index] = shouldEnable;
+
+            // If we're caching position-dependent forces, make sure they are
+            // marked invalid here.
+            if (cachedForcesAreValidCacheIndex.isValid()) {
+                Value<bool>::updDowncast
+                   (updCacheEntry(s, cachedForcesAreValidCacheIndex)) = false;
+            }
+        }
     }
 
     
-    // These override default implementations of virtual methods in the Subsystem::Guts
-    // class.
+    // These override default implementations of virtual methods in the 
+    // Subsystem::Guts class.
 
     GeneralForceSubsystemRep* cloneImpl() const OVERRIDE_11
     {   return new GeneralForceSubsystemRep(*this); }
 
     int realizeSubsystemTopologyImpl(State& s) const  OVERRIDE_11 {
-        forceValidCacheIndex = allocateCacheEntry(s, Stage::Position, 
-            new Value<bool>());
-        rigidBodyForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
-            new Value<Vector_<SpatialVec> >());
-        mobilityForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
-            new Value<Vector>());
-        particleForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
-            new Value<Vector_<Vec3> >());
+        forceEnabledIndex.invalidate();
+        cachedForcesAreValidCacheIndex.invalidate();
+        rigidBodyForceCacheIndex.invalidate();
+        mobilityForceCacheIndex.invalidate();
+        particleForceCacheIndex.invalidate();
 
         // Some forces are disabled by default; initialize the enabled flags
-        // accordingly.
+        // accordingly. Also, see if we're going to need to do any caching
+        // on behalf of any forces that don't depend on velocities. 
         Array_<bool> forceEnabled(getNumForces());
-        for (int i = 0; i < (int) forces.size(); ++i)
+        bool someForceElementNeedsCaching = false;
+        for (int i = 0; i < (int)forces.size(); ++i) {
             forceEnabled[i] = !(forces[i]->isDisabledByDefault());
+            if (!someForceElementNeedsCaching)
+                someForceElementNeedsCaching = 
+                    forces[i]->getImpl().dependsOnlyOnPositions();
+        }
 
         forceEnabledIndex = allocateDiscreteVariable(s, Stage::Instance, 
             new Value<Array_<bool> >(forceEnabled));
 
-        // Note that we must realizeTopology() even if the force is disabled
-        // by default.
+        // Note that we'll allocate these even if all the needs-caching 
+        // elements are presently disabled. That way they'll be around when
+        // the force gets enabled.
+        if (someForceElementNeedsCaching) {
+            cachedForcesAreValidCacheIndex = 
+                allocateCacheEntry(s, Stage::Position, new Value<bool>());
+            rigidBodyForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
+                new Value<Vector_<SpatialVec> >());
+            mobilityForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
+                new Value<Vector>());
+            particleForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
+                new Value<Vector_<Vec3> >());
+        }
+
+        // We must realizeTopology() even if the force is disabled by default.
         for (int i = 0; i < (int) forces.size(); ++i)
             forces[i]->getImpl().realizeTopology(s);
-
         return 0;
     }
 
@@ -155,7 +184,12 @@ public:
     int realizeSubsystemPositionImpl(const State& s) const OVERRIDE_11 {
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));
-        Value<bool>::downcast(updCacheEntry(s, forceValidCacheIndex)) = false;
+        // If we're caching position-dependent forces, make sure they are
+        // marked invalid here.
+        if (cachedForcesAreValidCacheIndex.isValid()) {
+            Value<bool>::updDowncast
+               (updCacheEntry(s, cachedForcesAreValidCacheIndex)) = false;
+        }
         for (int i = 0; i < (int) forces.size(); ++i)
             if (enabled[i]) forces[i]->getImpl().realizePosition(s);
         return 0;
@@ -170,11 +204,47 @@ public:
     }
 
     int realizeSubsystemDynamicsImpl(const State& s) const OVERRIDE_11 {
-
         const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
+        // Get access to the discrete state variable that records whether each
+        // force element is enabled.
+        const Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
+                                    (getDiscreteVariable(s, forceEnabledIndex));
+
+        // Get access to System-global force cache arrays.
+        Vector_<SpatialVec>&   rigidBodyForces = 
+                                    mbs.updRigidBodyForces(s, Stage::Dynamics);
+        Vector_<Vec3>&         particleForces  = 
+                                    mbs.updParticleForces (s, Stage::Dynamics);
+        Vector&                mobilityForces  = 
+                                    mbs.updMobilityForces (s, Stage::Dynamics);
+
+        // Short circuit if we're not doing any caching here. Note that we're
+        // checking whether the *index* is valid (i.e. does the cache entry
+        // exist?), not the contents.
+        if (!cachedForcesAreValidCacheIndex.isValid()) {
+            for (int i = 0; i < (int)forces.size(); ++i) {
+                if (forceEnabled[i]) 
+                    forces[i]->getImpl().calcForce
+                       (s, rigidBodyForces, particleForces, mobilityForces);
+            }
+
+            // Allow forces to do their own realization, but wait until all
+            // forces have executed calcForce(). TODO: not sure if that is
+            // necessary (sherm 20130716).
+            for (int i = 0; i < (int)forces.size(); ++i)
+                if (forceEnabled[i]) 
+                    forces[i]->getImpl().realizeDynamics(s);     
+            return 0;
+        }
+
+        // OK, we're doing some caching. This is a little messier. 
+
         // Get access to subsystem force cache entries.
+        bool& cachedForcesAreValid = Value<bool>::downcast
+                          (updCacheEntry(s, cachedForcesAreValidCacheIndex));
+
         Vector_<SpatialVec>&    
             rigidBodyForceCache = Value<Vector_<SpatialVec> >::downcast
                                  (updCacheEntry(s, rigidBodyForceCacheIndex));
@@ -185,14 +255,8 @@ public:
             mobilityForceCache  = Value<Vector>::downcast
                                  (updCacheEntry(s, mobilityForceCacheIndex));
 
-        // Get access to subsystem discrete state and "is valid" cache.
-        const Array_<bool>& 
-            forceEnabled = Value<Array_<bool> >::downcast
-                          (getDiscreteVariable(s, forceEnabledIndex));
-        bool& forceValid = Value<bool>::downcast
-                          (updCacheEntry(s, forceValidCacheIndex));
 
-        if (!forceValid) {
+        if (!cachedForcesAreValid) {
             // We need to calculate the velocity independent forces.
             rigidBodyForceCache.resize(matter.getNumBodies());
             rigidBodyForceCache = SpatialVec(Vec3(0), Vec3(0));
@@ -200,19 +264,28 @@ public:
             particleForceCache = Vec3(0);
             mobilityForceCache.resize(matter.getNumMobilities());
             mobilityForceCache = 0;
-        }
 
-        // Get access to System-global force cache arrays.
-        Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s, Stage::Dynamics);
-        Vector_<Vec3>&         particleForces  = mbs.updParticleForces (s, Stage::Dynamics);
-        Vector&                mobilityForces  = mbs.updMobilityForces (s, Stage::Dynamics);
-        for (int i = 0; i < (int) forces.size(); ++i) {
-            if (forceEnabled[i]) {
-                const Force& f = *forces[i];
-                if (!f.getImpl().dependsOnlyOnPositions())
-                    f.getImpl().calcForce(s, rigidBodyForces, particleForces, mobilityForces);
-                else if (!forceValid)
-                    f.getImpl().calcForce(s, rigidBodyForceCache, particleForceCache, mobilityForceCache);
+            // Run through all the forces, accumulating directly into the
+            // force arrays or indirectly into the cache as appropriate.
+            for (int i = 0; i < (int) forces.size(); ++i) {
+                if (!forceEnabled[i]) continue;
+                const ForceImpl& impl = forces[i]->getImpl();
+                if (impl.dependsOnlyOnPositions())
+                    impl.calcForce(s, rigidBodyForceCache, particleForceCache, 
+                                      mobilityForceCache);
+                else // ordinary velocity dependent force
+                    impl.calcForce(s, rigidBodyForces, particleForces, 
+                                      mobilityForces);
+            }
+            cachedForcesAreValid = true;
+        } else {
+            // Cache already valid; just need to do the non-cached ones.
+            for (int i = 0; i < (int) forces.size(); ++i) {
+                if (!forceEnabled[i]) continue;
+                const ForceImpl& impl = forces[i]->getImpl();
+                if (!impl.dependsOnlyOnPositions())
+                    impl.calcForce(s, rigidBodyForces, particleForces, 
+                                      mobilityForces);
             }
         }
 
@@ -220,13 +293,11 @@ public:
         rigidBodyForces += rigidBodyForceCache;
         particleForces += particleForceCache;
         mobilityForces += mobilityForceCache;
-        forceValid = true;
         
-        // Allow forces to do their own realization.
-        // TODO: sherm 100313: shouldn't this come before calcForce() calls?
+        // Allow forces to do their own Dynamics-stage realization. Note that
+        // this *follows* all the calcForce() calls.
         for (int i = 0; i < (int) forces.size(); ++i)
             if (forceEnabled[i]) forces[i]->getImpl().realizeDynamics(s);
-
         return 0;
     }
     
@@ -275,13 +346,18 @@ private:
     Array_<Force*>                  forces;
     
         // TOPOLOGY "CACHE"
-    // This must be filled in during realizeTopology and treated
+    // These indices must be filled in during realizeTopology and treated
     // as const thereafter.
-    mutable CacheEntryIndex         forceValidCacheIndex;
+
+    // This instance-stage variable holds a bool for each force element.
+    mutable DiscreteVariableIndex   forceEnabledIndex;
+
+    // This set of cache entries is allocated only if some force element
+    // overrode dependsOnlyOnPositions().
+    mutable CacheEntryIndex         cachedForcesAreValidCacheIndex;
     mutable CacheEntryIndex         rigidBodyForceCacheIndex;
     mutable CacheEntryIndex         mobilityForceCacheIndex;
     mutable CacheEntryIndex         particleForceCacheIndex;
-    mutable DiscreteVariableIndex   forceEnabledIndex;
 };
 
     ///////////////////////////
