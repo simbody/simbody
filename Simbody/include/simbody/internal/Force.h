@@ -362,14 +362,20 @@ public:
 };
 
 /**
- * A uniform gravitational force applied to every body in the system.  The force
- * is specified by a vector in the Ground frame.  You can optionally specify
- * a height at which the gravitational potential energy is zero.
+ * A uniform gravitational force applied to every body in the system.\ See
+ * Force::Gravity for a more flexible option. 
+ *
+ * The %UniformGravity force is specified by a vector in the Ground frame. You 
+ * can optionally specify a height at which the gravitational potential energy 
+ * is zero.
+ * @see SimTK::Force::Gravity
  */
 
 class SimTK_SIMBODY_EXPORT Force::UniformGravity : public Force {
 public:
-    UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight=0);
+    UniformGravity(GeneralForceSubsystem& forces, 
+                   const SimbodyMatterSubsystem& matter, 
+                   const Vec3& g, Real zeroHeight=0);
     
     /** Default constructor creates an empty handle. **/
     UniformGravity() {}
