@@ -68,6 +68,7 @@ class Force::GravityImpl : public ForceImpl {
     };
 
 public:
+    // Constructor from a direction and magnitude.
     GravityImpl(const SimbodyMatterSubsystem&   matter,
                 const UnitVec3&                 direction,
                 Real                            magnitude,
@@ -77,6 +78,32 @@ public:
         defMobodIsImmune(matter.getNumBodies(), false),
         numEvaluations(0)
     {   defMobodIsImmune.front() = true; } // Ground is always immune
+
+    // Constructor from a gravity vector, which might have zero magnitude.
+    // In that case we'll negate the default up direction in the System as the
+    // default direction. That would only be noticeable if the magnitude were
+    // later increased without giving a new direction.
+    GravityImpl(const SimbodyMatterSubsystem&   matter,
+                const Vec3&                     gravityVec,
+                Real                            zeroHeight)
+    :   matter(matter)
+    {   // Invoke the general constructor using system up direction. 
+        new (this) GravityImpl(matter, -matter.getSystem().getUpDirection(),
+                               gravityVec.norm(), zeroHeight);
+        if (defMagnitude > 0) 
+            defDirection=UnitVec3(gravityVec/defMagnitude,true);
+    }
+
+    // Constructor from just gravity magnitude; use negative of System "up"
+    // direction as the down direction here.
+    GravityImpl(const SimbodyMatterSubsystem&   matter,
+                Real                            magnitude,
+                Real                            zeroHeight)
+    :   matter(matter)
+    {   // Invoke the general constructor using system up direction. 
+        new (this) GravityImpl(matter, -matter.getSystem().getUpDirection(),
+                               magnitude, zeroHeight);
+    }
 
     void setMobodIsImmuneByDefault(MobilizedBodyIndex mbx, bool isImmune) {
         if (mbx == 0) return; // can't change Ground's innate immunity
@@ -221,11 +248,11 @@ Force::Gravity::Gravity
 :   Force(new GravityImpl(matter,defDirection,defMagnitude,defZeroHeight))
 {
     SimTK_ERRCHK1_ALWAYS(defMagnitude >= 0,
-        "Force::Gravity::ctor(downDirection,magnitude)",
+        "Force::Gravity::Gravity(downDirection,magnitude)",
         "The gravity magnitude g must be nonnegative but was specified as %g.",
         defMagnitude);
     SimTK_ERRCHK_ALWAYS(defDirection.isFinite(),
-        "Force::Gravity::ctor(downDirection,magnitude)",
+        "Force::Gravity::Gravity(downDirection,magnitude)",
         "A non-finite 'down' direction was received; did you specify a zero-"
         "length Vec3? The direction must be non-zero.");
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
@@ -235,15 +262,21 @@ Force::Gravity::Gravity
    (GeneralForceSubsystem&          forces, 
     const SimbodyMatterSubsystem&   matter,
     const Vec3&                     defGravity)
-:   Force(new GravityImpl(matter,UnitVec3(defGravity),defGravity.norm(),0))
+:   Force(new GravityImpl(matter,defGravity,0))
 {
-    SimTK_ERRCHK_ALWAYS(defGravity.norm() > 0,
-        "Force::Gravity::ctor(Vec3)",
-        "This constructor requires a non-zero Vec3 as the gravity vector"
-        " because it has to extract the gravity direction. If you want to"
-        " create a Gravity force element for which the default gravity"
-        " strength is zero, use the other constructor that allows strength"
-        " and direction to be supplied separately.");
+    updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
+}
+
+Force::Gravity::Gravity
+   (GeneralForceSubsystem&          forces, 
+    const SimbodyMatterSubsystem&   matter,
+    Real                            defMagnitude)
+:   Force(new GravityImpl(matter,defMagnitude,0))
+{
+    SimTK_ERRCHK1_ALWAYS(defMagnitude >= 0,
+        "Force::Gravity::Gravity(magnitude)",
+        "The gravity magnitude g must be nonnegative but was specified as %g.",
+        defMagnitude);
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
@@ -256,15 +289,11 @@ setDefaultBodyIsExcluded(MobilizedBodyIndex mobod, bool isExcluded) {
 Force::Gravity& Force::Gravity::
 setDefaultGravityVector(const Vec3& gravity) {
     const Real g = gravity.norm();
-    SimTK_ERRCHK_ALWAYS(g > 0,
-        "Force::Gravity::setDefaultGravityVector()",
-        "This method requires a non-zero Vec3 as the gravity vector"
-        " because it has to determine the 'down' direction. If you want to"
-        " set the default gravity strength to zero, use setDefaultMagnitude(0)"
-        " instead of this method.");
     getImpl().invalidateTopologyCache();
     updImpl().defMagnitude = g;
-    updImpl().defDirection = UnitVec3(gravity/g, true);
+    // Don't change the direction if the magnitude is zero.
+    if (g > 0)
+        updImpl().defDirection = UnitVec3(gravity/g, true);
     return *this;
 }
 
@@ -328,15 +357,10 @@ setBodyIsExcluded(State& state, MobilizedBodyIndex mobod,
 const Force::Gravity& Force::Gravity::
 setGravityVector(State& state, const Vec3& gravity) const {
     const Real g = gravity.norm();
-    SimTK_ERRCHK_ALWAYS(g > 0,
-        "Force::Gravity::setGravityVector()",
-        "This method requires a non-zero Vec3 as the gravity vector"
-        " because it has to separate the gravity direction and magnitude."
-        " If you want to disable this Gravity force element in this State" 
-        " use setMagnitude(0) instead which leaves the direction unchanged but"
-        " sets the magnitude to zero.");
-    getImpl().updInstanceVars(state).d = UnitVec3(gravity/g, true); 
     getImpl().updInstanceVars(state).g = g; 
+    // Don't change the direction if the magnitude was zero.
+    if (g > 0)
+        getImpl().updInstanceVars(state).d = UnitVec3(gravity/g, true); 
     return *this;
 }
 
@@ -419,12 +443,13 @@ ensureForceCacheValid(const State& state) const {
     if (isForceCacheValid(state)) return;
 
     const InstanceVars& iv = getInstanceVars(state);
-    if (iv.g == 0) {
+    if (iv.g == 0) { // no gravity
         markForceCacheValid(state);
         return;
     }
 
-    // Gravity is non-zero and not valid, so this counts as an evaluation.
+    // Gravity is non-zero and gravity forces are not up to date, so this counts
+    // as an evaluation.
     ++numEvaluations;
 
     const Vec3 gravity      = iv.g * iv.d;

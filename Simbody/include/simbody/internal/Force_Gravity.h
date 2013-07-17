@@ -53,8 +53,9 @@ same System if you want different bodies to feel different effects.
 Each body B that has not been explicitly excluded will experience a force 
 fb = mb*g*d, applied to its center of mass, where mb is the mass of body B. 
 Although this is a pure force, note that when it is measured in the body frame 
-there will also be a moment unless the body frame origin Bo is located at the 
-body's mass center.
+B there will also be a moment unless the body frame origin Bo is located at the 
+body's mass center. You can obtain the applied forces if you need them, for
+example for gravity compensation; see getBodyForce().
 
 \par Potential Energy
 Gravitational potential energy for a body B is mb*g*hb where 
@@ -75,19 +76,19 @@ specify the values assigned by default to the corresponding state variables.
 Note:
   - Changing one of these default parameters invalidates the containing 
     System's topology, meaning that realizeTopology() will have to be called 
-    before subsequent use. 
+    and a new State obtained before subsequent use. 
   - The set...() methods return a reference to "this" Gravity element (in
     the manner of an assignment operator) so they can be chained in a single 
     expression. **/
 /*@{*/
 
 
-/** Create a Gravity force element within a particular force subsystem and
-affecting all the bodies of a particular matter subsystem, providing gravity
-magnitude and direction separately. 
+/** This is the most general constructor for creating a Gravity force element 
+within a particular force subsystem and affecting all the bodies of a particular
+matter subsystem, given gravity magnitude and direction separately. 
 
-If you want to permanently exclude some bodies from the effects of this force 
-element, call setBodyIsExcludedByDefault(). You can also make changes on the 
+If you want to exclude by default some bodies from the effects of this force 
+element, call setDefaultBodyIsExcluded(). You can also make changes on the 
 fly with setBodyIsExcluded().
 
 @param[in,out]      forces       
@@ -96,18 +97,19 @@ fly with setBodyIsExcluded().
     The subsystem containing the bodies that will be affected.
 @param[in]          down
     The default gravity direction vector d (i.e., the "down" direction),
-    expressed in the Ground frame. This is a unit vector; if you provide an 
-    ordinary Vec3 it will be normalized before use and its magnitude ignored. 
-    Gravity will be directed along this direction unless explicitly changed 
-    within a particular State via the setDirection() or setGravityVector()
-    methods.
+    expressed in the Ground frame. Gravity will be directed along this direction
+    unless explicitly changed within a particular State via the setDirection() 
+    or setGravityVector() methods. This is a unit vector; if you provide an 
+    ordinary Vec3 it will be normalized before use and its magnitude ignored.
+    It is an error to provide a zero vector here; provide a zero magnitude
+    instead or use the alternate constructor.
 @param[in]          g
     The default magnitude g to be used for gravity, given as a nonnegative
     scalar with units of acceleration. The gravity vector is calculated as 
     v=g*d where d is the current direction vector, typically the default 
     direction as given by the \a down argument to this constructor. 
     Gravity will have the magnitude given here unless explicitly changed within
-    a particular State.
+    a particular State via the setMagnitude() or setGravityVector() methods.
 @param[in]          zeroHeight
     This is an optional specification of the default value for the height
     up the gravity vector that is considered to be "zero" for purposes of
@@ -123,14 +125,16 @@ Gravity(GeneralForceSubsystem&          forces,
         Real                            g,
         Real                            zeroHeight = 0);
 
-/** Convenience constructor to create a Gravity force element by specifying only
-a gravity vector, that is, the product of the gravity magnitude and the "down"
-direction vector. We have to extract the magnitude and direction from this so
-it can't be zero. For that reason the other constructor is preferable if you
-want to start with zero gravity. 
+/** Convenience constructor to create a %Gravity force element by specifying 
+only a gravity vector, that is, the product of the gravity magnitude and the 
+"down" direction vector. We have to extract both a magnitude and direction from 
+this since they are maintained separately by this force element. If you provide 
+a zero vector here (exactly zero, that is), then the magnitude is zero but there
+is no direction. In that case we default to the negative of the containing 
+System's default "up" direction. 
 
-If you want to permanently exclude some bodies from the effects of this force 
-element, call setBodyIsExcludedByDefault(). You can also make changes on the 
+If you want to exclude by default some bodies from the effects of this force 
+element, call setDefaultBodyIsExcluded(). You can also make changes on the 
 fly with setBodyIsExcluded().
 
 @param[in,out]      forces       
@@ -139,20 +143,47 @@ fly with setBodyIsExcluded().
     The subsystem containing the bodies that will be affected.
 @param[in]          gravity
     The default gravity vector v, interpreted as v=g*d where g=|\a gravity| is 
-    a positive scalar and d is the "down" direction unit vector d=\a gravity/g. 
-    This value is used to calculate g and d separately so must not be zero 
-    length. If you want to create a Gravity force element with default 
-    magnitude zero, use the other constructor which allows magnitude and 
-    direction to be provided separately.
+    a positive scalar and d is the "down" direction unit vector d=\a gravity/g.
+    If the magnitude is exactly zero we'll set the "down" direction to the 
+    opposite of the containing System's "up" direction, otherwise the direction
+    is extracted from the given vector.
 
 This constructor sets the default zero height hz to zero (for use in calculating 
 gravitational potential energy). If you want a different default value, use
-the more general constructor or the setDefaultZeroHeight() method. **/
+the more general constructor or the setDefaultZeroHeight() method. 
+@see SimTK::System::setUpDirection() **/
 Gravity(GeneralForceSubsystem&          forces, 
         const SimbodyMatterSubsystem&   matter,
         const Vec3&                     gravity);
 
-    
+/** Convenience constructor to create a %Gravity force element by specifying 
+only gravity's magnitude, with the direction chosen to oppose the containing 
+System's "up" direction. Note that the direction is extracted from the System 
+and recorded when this %Gravity element is contructed; it will not be affected
+by subsequent changes to the System's up direction.
+
+If you want to exclude by default some bodies from the effects of this force 
+element, call setDefaultBodyIsExcluded(). You can also make changes on the 
+fly with setBodyIsExcluded().
+
+@param[in,out]      forces       
+    The subsystem to which this force should be added.
+@param[in]          matter        
+    The subsystem containing the bodies that will be affected.
+@param[in]          g
+    The default magnitude g to be used for gravity, given as a nonnegative
+    scalar with units of acceleration. %Gravity will have the magnitude given 
+    here unless explicitly changed within a particular State via the 
+    setMagnitude() or setGravityVector() methods.
+
+This constructor sets the default zero height hz to zero (for use in calculating 
+gravitational potential energy). If you want a different default value, use
+the more general constructor or the setDefaultZeroHeight() method.  
+@see SimTK::System::setUpDirection() **/
+Gravity(GeneralForceSubsystem&          forces, 
+        const SimbodyMatterSubsystem&   matter,
+        Real                            g);
+   
 /** Default constructor creates an empty handle. **/
 Gravity() {}
 
@@ -169,20 +200,19 @@ method on Ground but the call will be ignored.
 @param[in]      isExcluded
     Set to true if the default should be that this body is \e not to be affected
     by this %Gravity force element.
+@return A writable reference to "this" Gravity element which will now have
+    the indicated body excluded.
 
 @see setBodyIsExcluded() **/
 Gravity& setDefaultBodyIsExcluded(MobilizedBodyIndex mobod, bool isExcluded);
 
 /** Set the default value for the gravity vector, that is, the direction and
-magnitude with which gravity will act (must not be zero). From the given
-vector we extract separately the magnitude g and "down" direction d (a unit 
-vector) so the supplied vector cannot be zero. If you want the default 
-magnitude to be zero, use setDefaultMagnitude() and setDefaultDownDirection()
-methods to provide them separately instead of combining them as is required
-by this method.
+magnitude with which gravity will act. From the given vector we extract 
+separately the magnitude g and "down" direction d (a unit vector), unless the 
+magnitude is exactly zero in which case we'll leave the direction unchanged.
 @param[in]      gravity    
     A vector giving the magnitude and direction with which gravity will act
-    on the bodies. Must not be zero.
+    on the bodies. If exactly zero only the magnitude will be changed.
 @return A writable reference to "this" Gravity element which will now have
     the new default magnitude and direction. **/
 Gravity& setDefaultGravityVector(const Vec3& gravity);
@@ -289,13 +319,13 @@ const Gravity& setBodyIsExcluded(State& state, MobilizedBodyIndex mobod,
 
 /** Set the gravity vector v, that is, the magnitude and direction with which 
 gravitational forces will act, overriding the default magnitude and direction 
-that are stored in this Gravity force element. This is used to calculate the 
-magnitude and direction separately, so must not be zero.
+that are stored in this %Gravity force element. If the given vector is exactly
+zero, then only the magnitude will be changed here.
 @param[in,out]      state
     The State object that is modified by this method.
 @param[in]          gravity    
-    The gravity vector including both the magnitude and direction. Must not
-    be zero.
+    The gravity vector including both the magnitude and direction. If this is
+    exactly zero only the magnitude will be changed.
 @return A const reference to "this" Gravity element for convenient chaining of 
     set...() methods in a single expression.
 @pre \a state must already be realized to Stage::Topology. 

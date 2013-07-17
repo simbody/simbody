@@ -109,15 +109,17 @@ parameters so you don't need to set them unless the defaults are not
 satisfactory. **/
 /**@{**/
 
-/** This is a hint to visualization software as to which way this System's
-designer considers to be "up".\ This is the best direction to use as the 
-default up direction for the camera. The default up direction is  +YAxis, 
-which is the same as the OpenGL convention for the camera up direction. You 
-can set this to any of the coordinate axes in the positive or negative 
-direction. For example, use setUpDirection(ZAxis) for the "virtual world" 
-convention where ground is the x-y plane. A visualizer that 
-is showing a ground plane should make the ground plane normal be this up 
-direction.
+/** This is a hint to other software as to which way this System's designer 
+considers to be "up". For visualization, this is the best direction to use as 
+the default up direction for the camera, and the opposite direction is likely to
+be a good direction in which to apply gravitational forces. The default up 
+direction is +YAxis, which is the same as the OpenGL convention for the camera 
+up direction. You can set this to any of the coordinate axes in the positive or 
+negative direction. For example, use setUpDirection(ZAxis) for the "virtual 
+world" convention where ground is the x-y plane and setUpDirection(-ZAxis) 
+might be appropriate for an aviation convention in which Z is directed downward.
+A visualizer that is showing a ground plane should make the ground plane normal 
+be this up direction.
 @see setUseUniformBackground() **/
 System& setUpDirection(const CoordinateDirection& up);
 

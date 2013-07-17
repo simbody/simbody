@@ -202,9 +202,9 @@ static void testForces() {
     // Calculate body forces and torques and verify that they are correct.
     // (These are about the body origin, not the COM.)
     SimTK_TEST(bodyForces[0] == SpatialVec(Vec3(0))); // Ground
-    const Real g = gravity.getMagnitude(state);
-    const UnitVec3 d = gravity.getDownDirection(state);
-    const Real h0 = gravity.getZeroHeight(state);
+    Real g = gravity.getMagnitude(state);
+    UnitVec3 d = gravity.getDownDirection(state);
+    Real h0 = gravity.getZeroHeight(state);
     Real pe = 0;
     for (MobodIndex i(1); i < matter.getNumBodies(); ++i) {
         const Mobod& mobod = matter.getMobilizedBody(i);
@@ -213,7 +213,9 @@ static void testForces() {
         const Vec3 p_BC_G = mobod.expressVectorInGroundFrame(state,p_BC);
         const Vec3 F = m*g*d;
         const Vec3 M = p_BC_G % F;
-        SimTK_TEST(bodyForces[i] == SpatialVec(M,F));
+        SimTK_TEST_EQ(bodyForces[i], SpatialVec(M,F));
+
+        SimTK_TEST_EQ(gravity.getBodyForce(state, i), SpatialVec(M,F));
 
         const Real h = 
             -dot(mobod.findStationLocationInGround(state,p_BC),d)-h0;
@@ -224,7 +226,8 @@ static void testForces() {
     SimTK_TEST_EQ(mbs.calcPotentialEnergy(state), pe);
 
     // Change zero height and verify that the potential energy changes.
-    gravity.setZeroHeight(state, 10.3);
+    h0 = 10.3;
+    gravity.setZeroHeight(state, h0);
     mbs.realize(state, Stage::Dynamics);
     pe = 0;
     for (MobodIndex i(1); i < matter.getNumBodies(); ++i) {
@@ -232,12 +235,40 @@ static void testForces() {
         const Real m = mobod.getBodyMass(state);
         const Vec3 p_BC = mobod.getBodyMassCenterStation(state);
         const Real h = 
-            -dot(mobod.findStationLocationInGround(state,p_BC),d)-10.3;
+            -dot(mobod.findStationLocationInGround(state,p_BC),d)-h0;
         pe += m*g*h;
     }
     SimTK_TEST_EQ(gravity.getPotentialEnergy(state), pe);
     SimTK_TEST_EQ(mbs.calcPotentialEnergy(state), pe);
 
+    // Turn off a body and make sure it doesn't see gravity after that, and
+    // that the other bodies are unchanged.
+    gravity.setBodyIsExcluded(state, mobod2, true);
+    mbs.realize(state, Stage::Dynamics);
+
+    SimTK_TEST(bodyForces[0] == SpatialVec(Vec3(0))); // Ground
+    pe = 0;
+    for (MobodIndex i(1); i < matter.getNumBodies(); ++i) {
+        const Mobod& mobod = matter.getMobilizedBody(i);
+        const Real m = mobod.getBodyMass(state);
+        const Vec3 p_BC = mobod.getBodyMassCenterStation(state);
+        const Vec3 p_BC_G = mobod.expressVectorInGroundFrame(state,p_BC);
+        const Vec3 F = m*g*d;
+        const Vec3 M = p_BC_G % F;
+
+        if (i != mobod2.getMobilizedBodyIndex()) {
+            SimTK_TEST_EQ(bodyForces[i], SpatialVec(M,F));
+            SimTK_TEST_EQ(gravity.getBodyForce(state, i), SpatialVec(M,F));
+            const Real h = 
+                -dot(mobod.findStationLocationInGround(state,p_BC),d)-h0;
+            pe += m*g*h;
+        } else {
+            SimTK_TEST(bodyForces[i]==SpatialVec(Vec3(0)));
+            SimTK_TEST(gravity.getBodyForce(state, i)==SpatialVec(Vec3(0)));
+        }
+    }
+    SimTK_TEST_EQ(gravity.getPotentialEnergy(state), pe);
+    SimTK_TEST_EQ(mbs.calcPotentialEnergy(state), pe);
 }
 
 
