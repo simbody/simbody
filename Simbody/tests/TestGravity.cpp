@@ -69,6 +69,22 @@ static void testConstruction() {
     SimTK_TEST(gravity2.getDefaultZeroHeight()==0);
     SimTK_TEST(gravity2.getDefaultGravityVector()==grav2);
 
+    mbs.setUpDirection(XAxis); const Real mag = 16.75;
+    Force::Gravity gravity3(forces, matter, mag);
+
+    SimTK_TEST(gravity3.getDefaultMagnitude()==mag);
+    SimTK_TEST(gravity3.getDefaultDownDirection()==UnitVec3(-XAxis));
+    SimTK_TEST(gravity3.getDefaultZeroHeight()==0);
+    SimTK_TEST(gravity3.getDefaultGravityVector()==Vec3(-mag,0,0));
+
+    // Using the vector constructor with a zero vector should pluck the 
+    // direction out of the System.
+    Force::Gravity gravity4(forces, matter, Vec3(0));
+    SimTK_TEST(gravity4.getDefaultMagnitude()==0);
+    SimTK_TEST(gravity4.getDefaultDownDirection()==UnitVec3(-XAxis));
+    SimTK_TEST(gravity4.getDefaultZeroHeight()==0);
+    SimTK_TEST(gravity4.getDefaultGravityVector()==Vec3(0));
+
     // Make sure Ground can't be included.
     gravity1.setDefaultBodyIsExcluded(MobodIndex(0), false);
     SimTK_TEST(gravity1.getDefaultBodyIsExcluded(MobodIndex(0)));
@@ -150,6 +166,12 @@ void testParameters() {
     gravity.setMagnitude(s, 5);
     SimTK_TEST_EQ(gravity.getDownDirection(s), UnitVec3(9,10,11)); // no change
     SimTK_TEST(gravity.getMagnitude(s)==5);
+
+    // Changing gravity vector to zero should leave direction unchanged.
+    gravity.setGravityVector(s, Vec3(0));
+    SimTK_TEST(gravity.getGravityVector(s)==Vec3(0));
+    SimTK_TEST_EQ(gravity.getDownDirection(s), UnitVec3(9,10,11));
+    SimTK_TEST(gravity.getMagnitude(s)==0);
 
     gravity.setZeroHeight(s, 1.25);
     SimTK_TEST(gravity.getZeroHeight(s)==1.25);
