@@ -41,12 +41,22 @@ After that first step, all subsequent steps prior to the collision have
    deltaX = v t       = 1 1e-3       = .001 length units
    deltaV = 0 
 We would like the collision to occur exactly at 1s, that is, between steps 1000
-and 1001. The position x(1)=.0005 + 999*.001=.9995. So we'll place the sphere
-initially so that the block surface and sphere surface are separated by .9995.
+and 1001. The position x(1)=.0005 + 999*.001=.9995. So if we were going to apply
+the entire impulse during the first step we would place the sphere initially so 
+that the block surface and sphere surface are separated by .9995. But read on.
 
-Note that while any integrator can get the velocity correct in one step, no 
-first order integrator will be able to calculate x(.001) correctly in a single 
-step.
+NOTE: to avoid problems with first-order integrators (explanation below), we're 
+modifying the test here to apply 1/10th of the impulse over the first 10 steps 
+(.01 seconds) rather than all in the first step. Then
+   x(.01) = 1/2 a t^2 = 1/2 1e2 1e-4 = .005 length units
+   v(.01) = a t       = 1e2 1e-2     = 1 velocity unit
+At 1s we'll have x(1)=.005 + 990*.001=.995. So we'll set the initial separation
+to .995 to get a collision at 1s (between steps 1000 and 1001).
+
+Why first order integrators cause trouble
+-----------------------------------------
+While any integrator can get the velocity correct in one step, no first order 
+integrator will be able to calculate x(.001) correctly in a single step.
   Explicit Euler:           v(.001)=v(0) + h*a(0)=1
                             x(.001)=x(0) + h*v(0)=0                 <--
 
@@ -64,6 +74,13 @@ Explicit trapezoid rule:    v'(.001)=v(0)+h*a(0)=1
 
 Explicit midpoint rule:     v'(.0005)=v(0)+h/2*a(0)=1/2
                             x(.001)=x(0)+h*v'(.0005)=.0005          <--
+
+By spreading the impulse over several steps we substantially reduce the overall
+error. For example, after ten steps we get
+  ExplicitEuler:         x(.01)=.0045
+  Semi-explicit Euler:   x(.01)=.0055
+  Semi-explicit Euler 2: x(.01)=.00525
+any of which we'll deem close enough to the right answer of .005.
 */
 
 #include "Simbody.h"
@@ -132,7 +149,7 @@ struct MyMultibodySystem {
 
         m_cube   = MobilizedBody::Slider(Ground,   Transform(Vec3(0,2,0)), 
                                          cubeBody, Transform(Vec3(0)));
-        m_sphere = MobilizedBody::Slider(Ground,   Transform(Vec3(2-.0005,2,0)), 
+        m_sphere = MobilizedBody::Slider(Ground,   Transform(Vec3(2-.005,2,0)), 
                                          sphereBody, Transform(Vec3(0)));
 
         m_system.realizeTopology();
@@ -157,15 +174,18 @@ struct MyMultibodySystem {
     MobilizedBody                   m_sphere;
 };
 
-void runOnce(const MyMultibodySystem& mbs, Integrator& integ) 
+void runOnce(const MyMultibodySystem& mbs, Integrator& integ, int nsteps) 
 {
     integ.setAllowInterpolation(false);
     integ.setAccuracy(IntegAccuracy);
     integ.initialize(mbs.m_system.getDefaultState());
 
-    printf("Test with order %d integator %s, Accuracy=%g, MaxStepSize=%g\n",
+    printf(
+    "\n--------------------------------------------------------------------\n");
+    printf(
+    "Test with order %d integator %s, Accuracy=%g, MaxStepSize=%g #steps=%d\n",
         integ.getMethodMinOrder(), integ.getMethodName(), 
-        integ.getAccuracyInUse(), MaxStepSize); 
+        integ.getAccuracyInUse(), MaxStepSize, nsteps); 
 
     // These variables are the manually calculated values for the cube's
     // x coordinate and x velocity in Ground. We'll calculate these assuming
@@ -185,15 +205,15 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ)
             mbs.m_viz.report(state);
         #endif
 
-        if (stepNum == NSteps)
+        if (stepNum == nsteps)
             break;
 
         ++stepNum;
 
         mbs.m_discrete.clearAllBodyForces(state);
-        if (stepNum == 1)
+        if (stepNum <= 10)
             mbs.m_discrete.setOneBodyForce(state, mbs.m_cube, 
-                SpatialVec(Vec3(0), Vec3(StepForce,0,0)));
+                SpatialVec(Vec3(0), Vec3(StepForce/10,0,0)));
 
         // Advance time by MaxStepSize. Might take multiple internal steps to 
         // get there, depending on difficulty and required accuracy.
@@ -202,30 +222,18 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ)
 
         // From Gazebo test code in physics.cc: 
         // integrate here to see when the collision should happen
-        if (stepNum == 1) {
-            const Real a = StepForce/Mass;      // a is acceleration
-            v += a * MaxStepSize;               // dv = a t
-            x += a * square(MaxStepSize)/2;     // dx = 1/2 a t^2
-            if (integ.getMethodMinOrder() == 1) {
-                // 1st order method can't get this right
-                const Real prevPos = mbs.m_cube.getOneQ(state,MobilizerQIndex(0));
-                mbs.m_cube.setOneQ(state, MobilizerQIndex(0), x);
-                printf("-------- FIRST ORDER INTEGRATION METHOD --------\n");
-                printf("Cube position repaired: was=%g, now=%g\n", prevPos, x);
-                printf("------------------------------------------------\n");
-                mbs.m_system.realize(state, Stage::Velocity);
-            }
+        if (stepNum <= 10) {
+            const Real a = StepForce/10/Mass;  // a is acceleration
+            x += v*MaxStepSize + a * square(MaxStepSize)/2; // dx = 1/2 a t^2
+            v += a * MaxStepSize;                           // dv = a t
         } else {
             const Real impulse = StepForce*MaxStepSize;
-            if (stepNum > 1000)
+            if (stepNum >= 1000)
                 v = impulse / (2*Mass);  //inelastic col. w/equal mass
             x += v * MaxStepSize;
         }
 
-        SimTK_TEST_EQ_TOL(mbs.m_cube.getBodyOriginLocation(state)[0], x, CheckAccuracy);
-        SimTK_TEST_EQ_TOL(mbs.m_cube.getBodyOriginVelocity(state)[0], v, CheckAccuracy);
-
-        //mbs.m_system.realize(state);
+        mbs.m_system.realize(state);
         //printf("after step %d t=%g (h=%g): px=%g,%g vx=%g,%g ax=%g,%g\n",
         //    stepNum, state.getTime(),integ.getPreviousStepSizeTaken(),
         //    mbs.m_cube.getBodyOriginLocation(state)[0],
@@ -235,6 +243,16 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ)
         //    mbs.m_cube.getBodyOriginAcceleration(state)[0],
         //    mbs.m_sphere.getBodyOriginAcceleration(state)[0]);
         //printf("  x=%g v=%g\n", x, v);
+
+        // Allow some uncertainty between step 1000 and 1001.
+        if (stepNum != 1000) {
+        SimTK_TEST_EQ_TOL(mbs.m_cube.getBodyOriginLocation(state)[0], x, 
+                          CheckAccuracy);
+        SimTK_TEST_EQ_TOL(mbs.m_cube.getBodyOriginVelocity(state)[0], v, 
+                          CheckAccuracy);
+        }
+
+
     }
 
     dumpIntegratorStats(integ);
@@ -250,18 +268,32 @@ int main() {
         RungeKutta2Integrator rk2(mbs.m_system);
         SemiExplicitEuler2Integrator sexpeul2(mbs.m_system);
         ExplicitEulerIntegrator expeul(mbs.m_system);
-        RungeKuttaFeldbergIntegrator rkf(mbs.m_system);
-        VerletIntegrator verlet(mbs.m_system);
 
-        SimTK_SUBTEST2(runOnce, mbs, rkm);
-        SimTK_SUBTEST2(runOnce, mbs, rk3);
-        SimTK_SUBTEST2(runOnce, mbs, rk2);
-        SimTK_SUBTEST2(runOnce, mbs, sexpeul2);
-        SimTK_SUBTEST2(runOnce, mbs, expeul);
+        // Fixed step integrators can't adjust to the compliant impact needs.
+        SemiExplicitEulerIntegrator sexpeul1(mbs.m_system, MaxStepSize);
+        ExplicitEulerIntegrator expeulFixed(mbs.m_system, MaxStepSize);
 
-        //sherm 130617: these aren't accurate enough
-        //SimTK_SUBTEST2(runOnce, mbs, rkf);
+
+        SimTK_SUBTEST3(runOnce, mbs, rkm, NSteps);
+        SimTK_SUBTEST3(runOnce, mbs, rk3, NSteps);
+        SimTK_SUBTEST3(runOnce, mbs, rk2, NSteps);
+        SimTK_SUBTEST3(runOnce, mbs, sexpeul2, NSteps);
+        SimTK_SUBTEST3(runOnce, mbs, expeul, NSteps);
+
+        // These are fixed-step integrators so can't handle the
+        // compliant impact which demands a few smaller steps for stability
+        SimTK_SUBTEST3(runOnce, mbs, sexpeul1, 990); // stop before impact
+        SimTK_SUBTEST3(runOnce, mbs, expeulFixed, 990);
+
+        //sherm 130617: this isn't accurate enough; I think it has a serious
+        // bug in its error estimator
+        //VerletIntegrator verlet(mbs.m_system);
         //SimTK_SUBTEST2(runOnce, mbs, verlet);
+
+        //this has poor accuracy control also
+        //RungeKuttaFeldbergIntegrator rkf(mbs.m_system);
+        //SimTK_SUBTEST3(runOnce, mbs, rkf, NSteps);
+
 
     SimTK_END_TEST();
 }
