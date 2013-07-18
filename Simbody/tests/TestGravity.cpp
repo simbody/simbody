@@ -302,8 +302,48 @@ static void testForces() {
     gravity.invalidateForceCache(state);
     // Force re-evaluation.
     SimTK_TEST(gravity.getBodyForces(state)[0] == SpatialVec(Vec3(0)));
-    SimTK_TEST(gravity.getNumEvaluations()==nevals1+1);
+    const long long nevals2=gravity.getNumEvaluations();
+    SimTK_TEST(nevals2==nevals1+1);
 
+    state.invalidateAllCacheAtOrAbove(Stage::Velocity); // shouldn't invalidate
+    SimTK_TEST(gravity.getBodyForces(state)[0] == SpatialVec(Vec3(0)));
+    SimTK_TEST(gravity.getNumEvaluations()==nevals2);
+    mbs.realize(state, Stage::Dynamics); // shouldn't reevaluate
+    SimTK_TEST(gravity.getNumEvaluations()==nevals2);
+
+    // Bring mobod2 back in. This should only invalidate Dynamics stage, but
+    // should nevertheless force recomputation of gravity.
+    gravity.setBodyIsExcluded(state, mobod2, false); 
+    SimTK_TEST(state.getSystemStage() == Stage(Stage::Dynamics-1));
+    SimTK_TEST(gravity.getBodyForces(state)[0] == SpatialVec(Vec3(0)));
+    const long long nevals3=gravity.getNumEvaluations();
+    SimTK_TEST(nevals3==nevals2+1);
+
+    // Make sure that setting gravity to zero works properly -- it is a 
+    // special case since the zeroes are precalculated. This should not 
+    // require a gravity evaluation.
+    gravity.setMagnitude(state, 0);
+    SimTK_TEST(!gravity.isForceCacheValid(state));
+    for (int i=0; i < matter.getNumBodies(); ++i)
+        SimTK_TEST(gravity.getBodyForces(state)[i] == SpatialVec(Vec3(0)));
+    SimTK_TEST(gravity.getNumEvaluations()==nevals3);
+
+    // Setting to non-zero should invalidate, and then require just a single
+    // evaluation to respond to multiple calls.
+    gravity.setMagnitude(state, 9.8);
+    SimTK_TEST(!gravity.isForceCacheValid(state));
+    for (int i=1; i < matter.getNumBodies(); ++i)
+        SimTK_TEST(gravity.getBodyForces(state)[i] != SpatialVec(Vec3(0)));
+    const long long nevals4=gravity.getNumEvaluations();
+    SimTK_TEST(nevals4==nevals3+1);
+
+    // Sneaking a zero in by vector should behave just like setting the 
+    // magnitude to zero.
+    gravity.setGravityVector(state, Vec3(0));
+    SimTK_TEST(!gravity.isForceCacheValid(state));
+    for (int i=0; i < matter.getNumBodies(); ++i)
+        SimTK_TEST(gravity.getBodyForces(state)[i] == SpatialVec(Vec3(0)));
+    SimTK_TEST(gravity.getNumEvaluations()==nevals4); // no eval needed
 }
 
 
