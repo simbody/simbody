@@ -182,6 +182,7 @@ static void testForces() {
     MultibodySystem         mbs;
     SimbodyMatterSubsystem  matter(mbs);
     GeneralForceSubsystem   forces(mbs);
+    Force::DiscreteForces   discrete(forces, matter);
     #ifdef USE_VISUALIZER
     Visualizer              viz(mbs);
     viz.setSystemUpDirection(ZAxis);
@@ -205,6 +206,8 @@ static void testForces() {
                               body3Info, Transform(ZtoY,Vec3(0)));
 
     State state = mbs.realizeTopology();
+    state.updQ() = Test::randVector(state.getNQ());
+    state.updU() = Test::randVector(state.getNU());
 
     mbs.realize(state, Stage::Dynamics);
     #ifdef USE_VISUALIZER
@@ -336,6 +339,18 @@ static void testForces() {
         SimTK_TEST(gravity.getBodyForces(state)[i] != SpatialVec(Vec3(0)));
     const long long nevals4=gravity.getNumEvaluations();
     SimTK_TEST(nevals4==nevals3+1);
+
+    // Turn off velocities for gravity compensation test to eliminate Coriolis
+    // foces (shouldn't invalidate gravity forces).
+    state.updU() = 0;
+    mbs.realize(state, Stage::Acceleration);
+    const Vector_<SpatialVec>& gfrc = gravity.getBodyForces(state);
+    Vector f;
+    matter.multiplyBySystemJacobianTranspose(state, gfrc, f);
+    discrete.setAllMobilityForces(state, -f);
+    mbs.realize(state, Stage::Acceleration);
+    SimTK_TEST_EQ(state.getUDot(), Vector(state.getNU(), Real(0)));
+    SimTK_TEST(gravity.getNumEvaluations()==nevals4); // all for free?
 
     // Sneaking a zero in by vector should behave just like setting the 
     // magnitude to zero.
