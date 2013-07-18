@@ -287,7 +287,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
             MobilizerUIndex(0), -Kp2*a2err);
 
         // Advance time by MaxStepSize. Might take multiple internal steps to 
-        // get there, depending ony difficulty and required accuracy.
+        // get there, depending on difficulty and required accuracy.
         const Real tNext = stepNum * MaxStepSize;
         do {integ.stepTo(tNext,tNext);} while (integ.getTime() < tNext);
     }
