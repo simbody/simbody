@@ -1580,7 +1580,7 @@ public:
     /// This utility adds in the supplied spatial force \p spatialForceInG (consisting
     /// of a torque vector, and a force vector to be applied at the current body's
     /// origin) to the appropriate slot of the supplied \p bodyForcesInG Vector. 
-    /// Note that we are <em>adding</em> this not <em>setting</em> it so it
+    /// Note that we are <em>adding</em> this not <em>setting</em> it so it is
     /// important that \p bodyForcesInG be initialized to zero before making a set
     /// of calls to applyBodyForce().
     void applyBodyForce(const State& s, const SpatialVec& spatialForceInG, 
@@ -1588,7 +1588,7 @@ public:
 
     /// This utility adds in the supplied pure torque \p torqueInG to the appropriate
     /// slot of the supplied \p bodyForcesInG Vector. Note that we are <em>adding</em>
-    /// this not <em>setting</em> it so it
+    /// this not <em>setting</em> it so it is
     /// important that \p bodyForcesInG be initialized to zero before making a set
     /// of calls to applyBodyTorque().
     void applyBodyTorque(const State& s, const Vec3& torqueInG, 
@@ -1596,7 +1596,7 @@ public:
 
     /// This utility adds in the supplied force \p forceInG applied at a point \p pointInB
     /// to the appropriate slot of the supplied \p bodyForcesInG Vector. Notes: 
-    ///    - we are <em>adding</em> this not <em>setting</em> it so it
+    ///    - we are <em>adding</em> this not <em>setting</em> it so it is
     ///      important that \p bodyForcesInG be initialized to zero before making a set
     ///      of calls to applyForceToBodyPoint().
     ///    - \p pointInB represents a fixed station of B and is provided by giving the
