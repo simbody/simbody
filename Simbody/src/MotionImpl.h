@@ -256,7 +256,7 @@ public:
         invalidateTopologyCache();
         defaultU = u;
     }
-    void setOneDefaultRate(UIndex ux, Real u) {
+    void setOneDefaultRate(MobilizerUIndex ux, Real u) {
         invalidateTopologyCache();
         defaultU[ux] = u;
     }
@@ -266,7 +266,7 @@ public:
     void setRates(State& s, const Vec6& u) const {
         updVar<Vec6>(s, currentU) = u;
     }
-    void setOneRate(State& s, UIndex i, Real u) const {
+    void setOneRate(State& s, MobilizerUIndex i, Real u) const {
         updVar<Vec6>(s, currentU)[i] = u;
     }
 

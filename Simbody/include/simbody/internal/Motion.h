@@ -225,14 +225,14 @@ public:
     Steady() {}
 
     Steady& setDefaultRate(Real u);
-    Steady& setOneDefaultRate(UIndex, Real u);
+    Steady& setOneDefaultRate(MobilizerUIndex, Real u);
     template <int N> SimTK_SIMBODY_EXPORT 
     Steady& setDefaultRates(const Vec<N>& u); // instantiated in library
 
     Real getDefaultRate(UIndex=UIndex(0)) const;
 
     void setRate(State&, Real u) const; // all axes set to u
-    void setOneRate(State&, UIndex, Real u) const;
+    void setOneRate(State&, MobilizerUIndex, Real u) const;
 
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Steady, SteadyImpl, Motion);
 };
