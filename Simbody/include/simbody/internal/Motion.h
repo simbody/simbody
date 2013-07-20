@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2009-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2009-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -25,9 +25,8 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This defines the Motion class, which is used to specify how the mobilities
- * associated with a particular mobilizer are to be treated.
- */
+This defines the Motion class, which is used to specify how the mobilities
+associated with a particular mobilizer are to be treated. **/
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
@@ -70,36 +69,35 @@ by integration. This table shows the possibilities:
        "   Prescribed      d2p/dt2         dp/dt          p(t)
        "   Fast               0              0          relax(p)
 @endverbatim
-There are two duplicates in the above table: specifying acceleration as
-Zero is the same as specifying velocity as Discrete and specifying
-velocity as Zero is the same as specifying position as Discrete.
+There are two duplicates in the above table: specifying acceleration as Zero is 
+the same as specifying velocity as Discrete and specifying velocity as Zero is 
+the same as specifying position as Discrete.
 
-For mobilizers with more than one mobility, the associated Motion controls
-\e all the mobilities and moreover they are all driven at the same level and
-by the same method.
+For mobilizers with more than one mobility, the associated %Motion controls
+\e all the mobilities and moreover they are all driven at the same level and by 
+the same method.
 
-Motion is a PIMPL-style abstract base class, with concrete classes defined
-for each kind of Motion. There is a set of built-in Motions and a generic 
-"Custom" Motion (an abstract base class) from which advanced users may derive 
-their own Motion objects. **/
-class SimTK_SIMBODY_EXPORT Motion : public PIMPLHandle<Motion, MotionImpl, true> {
+%Motion is a PIMPL-style abstract base class, with concrete classes defined for 
+each kind of %Motion. There is a set of built-in Motions and a generic "Custom" 
+%Motion (an abstract base class) from which advanced users may derive their own 
+%Motion objects. **/
+class SimTK_SIMBODY_EXPORT Motion : public PIMPLHandle<Motion,MotionImpl,true> {
 public:
-    /// What is the highest level of motion that is driven? Lower levels are
-    /// also driven; higher levels are determined by integration.
+    /** What is the highest level of motion that is driven? Lower levels are
+    also driven; higher levels are determined by integration. **/
     enum Level {
         Acceleration = 0, ///< we know udot; integrate to get u, q
         Velocity     = 1, ///< we know u and udot; integrate to get q
         Position     = 2  ///< we know q, u, and udot
     };
-    /// Returns a human-readable name corresponding to the given Level; useful
-    /// for debugging. If the Level is unrecognized the method will return
-    /// some text to that effect rather than crashing.
+    /** Returns a human-readable name corresponding to the given Level; useful
+    for debugging. If the Level is unrecognized the method will return some text
+    to that effect rather than crashing. **/
     static const char* nameOfLevel(Level);
 
-    /// There are several ways to specify the motion at this Level, and the
-    /// selected method also determines lower-level motions. Free is only
-    /// permitted when Level==Acceleration, and Fast is not allowed for that
-    /// Level.
+    /** There are several ways to specify the motion at this Level, and the
+    selected method also determines lower-level motions. Free is only permitted 
+    when Level==Acceleration, and Fast is not allowed for that Level. **/
     enum Method {
         Zero        = 0,
         Discrete    = 1, ///< motion is "slow"; lower levels are zero
@@ -107,23 +105,30 @@ public:
         Free        = 3, ///< accel. calculated from forces, pos and vel integrated
         Fast        = 4  ///< motion is "fast"; lower levels are zero
     };
-    /// Returns a human-readable name corresponding to the given Method; useful
-    /// for debugging. If the Method is unrecognized the method will return
-    /// some text to that effect rather than crashing.
+    /** Returns a human-readable name corresponding to the given Method; useful
+    for debugging. If the Method is unrecognized the method will return
+    some text to that effect rather than crashing. **/
     static const char* nameOfMethod(Method);
 
-    Motion() { }
+    /** Default constructor creates an empty %Motion handle that can be assigned
+    to reference any kind of %Motion object. **/
+    Motion() {}
     explicit Motion(MotionImpl* r) : HandleBase(r) { }
 
-    /// Get the MobilizedBody to which this Motion belongs.
+    /** Get the MobilizedBody to which this %Motion belongs. **/
     const MobilizedBody& getMobilizedBody() const;
 
+    /** Get the highest level being driven by this %Motion. **/
     Level  getLevel(const State&) const;
+    /** Get the method being used to control the indicated Level. **/
     Method getLevelMethod(const State&) const;
 
-    // This implements the above table. Given the (level,method) Motion specification,
-    // it reports the actual method to be used for each of the three levels.
-    void calcAllMethods(const State& s, Method& qMethod, Method& uMethod, Method& udotMethod) const {
+    /** (Advanced) This implements the above table. Given the (level,method) 
+    Motion specification, it reports the actual method to be used for each of 
+    the three levels. **/
+    void calcAllMethods(const State& s, Method& qMethod, Method& uMethod, 
+                        Method& udotMethod) const 
+    {
         const Level  level       = getLevel(s);
         const Method levelMethod = getLevelMethod(s);
         Method method[3]; // acc, vel, pos
@@ -166,142 +171,149 @@ public:
     class CustomImpl;
 };
 
-/**
- * Prescribe position, velocity, or acceleration motion as a sinusoidal
- * function of time, m(t) = a * sin( w*t + p ).
- */
+/** Prescribe position, velocity, or acceleration motion as a sinusoidal
+function of time, m(t) = a * sin( w*t + p ). **/
 class SimTK_SIMBODY_EXPORT Motion::Sinusoid : public Motion {
 public:
-    /**
-     * Create a sinusoidal prescribed motion.
-     * 
-     * @param[in,out] mobod 
-     *      The MobilizedBody to which this Motion should be added.
-     * @param[in]     level
-     *      The Motion level that is being prescribed: Motion::Position,
-     *      Motion::Velocity, or Motion::Acceleration.
-     * @param[in]     amplitude
-     *      Scaling factor mapping the -1..1 sin() result to your desired
-     *      units; output values will range between -amplitude and +amplitude.
-     * @param[in]     rate 
-     *      Angular rate in radians/unit time; e.g. if time is in seconds
-     *      then rate=2*Pi would be 1 Hz (1 rotation per second).
-     * @param[in]     phase
-     *      Phase angle in radians.
-     */
+    /** Create a sinusoidal prescribed motion applied at position, velocity,
+    or acceleration level.
+    
+    @param[in,out] mobod 
+         The MobilizedBody to which this %Motion should be added.
+    @param[in]     level
+         The %Motion level that is being prescribed: Motion::Position,
+         Motion::Velocity, or Motion::Acceleration.
+    @param[in]     amplitude
+         Scaling factor mapping the -1..1 sin() result to your desired
+         units; output values will range between -amplitude and +amplitude.
+    @param[in]     rate 
+         Angular rate in radians/unit time; e.g. if time is in seconds
+         then rate=2*Pi would be 1 Hz (1 rotation per second).
+    @param[in]     phase
+         Phase angle in radians.
+    **/
     Sinusoid(MobilizedBody& mobod, Motion::Level level,
              Real amplitude, Real rate, Real phase);
   
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle that can be assigned to
+    reference any Motion::Sinusoid object. **/
     Sinusoid() {}
 
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Sinusoid, SinusoidImpl, Motion);
+    /** @endcond **/
 };
 
-/**
- * This non-holonomic Motion object imposes a constant rate on all mobilities.
- */
+/** This non-holonomic Motion object imposes a constant rate on all mobilities.
+**/
 class SimTK_SIMBODY_EXPORT Motion::Steady : public Motion {
 public:
-    /**
-     * Create a Motion::Steady where all mobilities have the same velocity.
-     * 
-     * @param[in,out] mobod the MobilizedBody to which this Motion should be added
-     * @param[in]     u     the rate to be applied to all mobilities
-     */
+    /** Create a Motion::Steady where all mobilities have the same velocity.   
+    @param[in,out] mobod the MobilizedBody to which this Motion should be added
+    @param[in]     u     the rate to be applied to all mobilities **/
     Steady(MobilizedBody& mobod, Real u);
-    /**
-     * Create a Motion::Steady with different velocities for each mobility
-     * specified. Any unspecified mobilities will get zero velocity.
-     * 
-     * @param[in,out] mobod the MobilizedBody to which this Motion should be added
-     * @param[in]     u     the rates to be applied to the first N mobilities; the
-     *                      rest are set to zero
-     */
+
+    /** Create a Motion::Steady with different velocities for each mobility
+    specified. Any unspecified mobilities will get zero velocity.    
+    @param[in,out] mobod the MobilizedBody to which this Motion should be added
+    @param[in]     u     the rates to be applied to the first N mobilities; the
+                         rest are set to zero **/
     template <int N> SimTK_SIMBODY_EXPORT 
     Steady(MobilizedBody& mobod, const Vec<N>& u); // instantiated in library
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle than can be assigned to
+    reference any Motion::Steady object. **/
     Steady() {}
 
+    /** Change the default rate this %Motion will prescribe unless overridden in
+    a particular State. All mobilities will use this same rate. **/
     Steady& setDefaultRate(Real u);
+    /** Change the default rate this %Motion will prescribe for one mobility, 
+    unless overridden in a particular State. Rates for the other mobilities (if
+    there is more than one) remain unchanged. **/
     Steady& setOneDefaultRate(MobilizerUIndex, Real u);
+    /** Change the default rates this %Motion will prescribe, supplying separate
+    rates for each mobility as a Vec<N>. **/
     template <int N> SimTK_SIMBODY_EXPORT 
     Steady& setDefaultRates(const Vec<N>& u); // instantiated in library
 
-    Real getDefaultRate(UIndex=UIndex(0)) const;
-
+    /** Change the rate to be prescribed by this %Motion when used with the
+    given State. All mobilities will use this same rate. **/
     void setRate(State&, Real u) const; // all axes set to u
+    /** Change the rate this %Motion will prescribe for one mobility when used
+    with the given State. Rates for the other mobilities (if there is more than
+    one) remain unchanged. **/
     void setOneRate(State&, MobilizerUIndex, Real u) const;
 
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Steady, SteadyImpl, Motion);
+    /** @endcond **/
 };
 
 
-/**
- * This class can be used to define new motions. To use it, create a class that 
- * extends Motion::Custom::Implementation. You can then create an instance of it 
- * and pass it to the Motion::Custom constructor:
- * 
- * <pre>
- * Motion::Custom myMotion(mobod, new MyMotionImplementation());
- * </pre>
- * 
- * Alternatively, you can create a subclass of Motion::Custom which creates the 
- * Implementation itself:
- * 
- * <pre>
- * class MyMotion : public Motion::Custom {
- * public:
- *   MyMotion(MobilizedBody& mobod) 
- *     : Motion::Custom(mobod, new MyMotionImplementation()) {}
- * };
- * </pre>
- * 
- * This allows a user to simply write
- * 
- * <pre>
- * MyMotion(mobod);
- * </pre>
- * 
- * and not worry about implementation classes or creating objects on the heap. If 
- * you do this, your Motion::Custom handle subclass must not have any data members 
- * or virtual methods.  If it does, it will not work correctly. Instead, store all 
- * data in the Implementation subclass.
- */
+/** This class can be used to define new motions. To use it, create a class that 
+extends Motion::Custom::Implementation. You can then create an instance of it 
+and pass it to the Motion::Custom constructor:
 
+<pre>
+Motion::Custom myMotion(mobod, new MyMotionImplementation());
+</pre>
+
+Alternatively, you can create a subclass of Motion::Custom which creates the 
+Implementation itself:
+
+<pre>
+class MyMotion : public Motion::Custom {
+public:
+  MyMotion(MobilizedBody& mobod) 
+    : Motion::Custom(mobod, new MyMotionImplementation()) {}
+};
+</pre>
+
+This allows a user to simply write
+
+<pre>
+MyMotion(mobod);
+</pre>
+
+and not worry about implementation classes or creating objects on the heap. If 
+you do this, your Motion::Custom handle subclass must not have any data members 
+or virtual methods.  If it does, it will not work correctly. Instead, store all 
+data in the Implementation subclass.
+@see SimTK::Motion::Custom::Implementation, SimTK::Motion **/
 class SimTK_SIMBODY_EXPORT Motion::Custom : public Motion {
 public:
     class Implementation;
-    /**
-     * Create a Custom motion.
-     * 
-     * @param mobod          the MobilizedBody to which this Motion should be added
-     * @param implementation the object which implements the custom Motion. The 
-     *                       Motion::Custom takes over ownership of the 
-     *                       implementation object, and deletes it when the Motion 
-     *                       itself is deleted.
-     */
+
+    /** Create a Custom %Motion.  
+    @param mobod          the MobilizedBody to which this Motion should be added
+    @param implementation the object which implements the custom Motion. The 
+                          Motion::Custom takes over ownership of the 
+                          implementation object, and deletes it when the Motion 
+                          itself is deleted. **/
     Custom(MobilizedBody& mobod, Implementation* implementation);
 
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle that can be assigned to
+    reference any Motion::Custom object. **/
     Custom() {}
 
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Motion);
+    /** @endcond **/
 protected:
     const Implementation& getImplementation() const;
     Implementation& updImplementation();
 };
 
-/**
- * This is the abstract base class for Custom Motion implementations.
- */
+/** This is the abstract base class for Custom Motion implementations. 
+@see SimTK::Motion::Custom **/
 class SimTK_SIMBODY_EXPORT Motion::Custom::Implementation {
 public:
-    /// Destructor is virtual.
+    /** Destructor is virtual; be sure to provide one in you concrete class if 
+    there is anything to destruct. **/
     virtual ~Implementation() { }
 
-    /// Override this if you want your Motion objects to be copyable.
+    /** Override this if you want your Motion objects to be copyable. **/
     virtual Implementation* clone() const {
         SimTK_ERRCHK_ALWAYS(!"unimplemented",
             "Motion::Custom::Implementation::clone()",
@@ -311,114 +323,117 @@ public:
         return 0;
     }
 
-    /// A Motion prescribes either position, velocity, or acceleration.
-    /// When velocity is prescribed, acceleration must also be 
-    /// prescribed as the time derivative of the velocity. And, when
-    /// position is prescribed, velocity must also be prescribed as
-    /// the time derivative of the position (and acceleration as above).
-    /// Thus acceleration is \e always prescribed.
-    /// Anything not prescribed will be determined by numerical
-    /// integration, by relaxation, or by discrete changes driven by
-    /// events, depending on whether the associated mobilizer is 
-    /// "free", "fast", or "slow", respectively.
+    /** A %Motion prescribes either position, velocity, or acceleration.
+    When velocity is prescribed, acceleration must also be prescribed as the 
+    time derivative of the velocity. And, when position is prescribed, velocity 
+    must also be prescribed as the time derivative of the position (and 
+    acceleration as above). Thus acceleration is \e always prescribed. Anything 
+    not prescribed will be determined by numerical integration, by relaxation, 
+    or by discrete changes driven by events, depending on whether the associated 
+    mobilizer is "free", "fast", or "slow", respectively. **/
     virtual Motion::Level getLevel(const State&) const = 0;
 
+    /** Override this if the method is not Motion::Prescribed. **/ 
     virtual Motion::Method getLevelMethod(const State&) const {
         return Motion::Prescribed;
     }
 
-    /// @name Position (Holonomic) prescribed motion virtuals
-    ///
-    /// These must be defined if the motion method is "Prescribed" and the 
-    /// motion level is "Position". In that case q=q(t), qdot, and qdotdot are 
-    /// all required. Note that Simbody passes in the number of q's being 
-    /// prescribed; make sure you are seeing what you expect.
+    /** @name     Position (Holonomic) prescribed motion virtuals
+    
+    These must be defined if the motion method is "Prescribed" and the 
+    motion level is "Position". In that case q=q(t), qdot, and qdotdot are 
+    all required. Note that Simbody passes in the number of q's being 
+    prescribed; make sure you are seeing what you expect. **/
     //@{
-    /// This operator is called during the MatterSubsystem's realize(Time) 
-    /// computation. This Motion's own realizeTime() method will already have
-    /// been called. The result must depend only on time and earlier-stage
-    /// state variables.
-    virtual void calcPrescribedPosition(const State& s, int nq, Real* q) const;
+    /** This operator is called during the MatterSubsystem's realize(Time) 
+    computation. This Motion's own realizeTime() method will already have
+    been called. The result must depend only on time and earlier-stage
+    state variables. **/
+    virtual void calcPrescribedPosition
+                   (const State& s, int nq, Real* q) const;
 
-    /// Calculate the time derivative of the prescribed positions. The qdots 
-    /// calculated here must be the exact time derivatives of the q's returned 
-    /// by calcPrescribedPosition(). So the calculation must be limited to 
-    /// the same dependencies, plus the current value of this mobilizer's q's
-    /// (or the cross-mobilizer transform X_FM because that depends only on 
-    /// those q's). Note that we are return qdots, not u's; they are not always
-    /// the same. Simbody knows how to map from qdots to u's when necessary. 
-    ///
-    /// This operator is called during the MatterSubsystem's realize(Position) 
-    /// computation. This Motion's own realizePosition() method will already 
-    /// have been called.  
-    virtual void calcPrescribedPositionDot(const State& s, int nq, Real* qdot) const;
+    /** Calculate the time derivative of the prescribed positions. The qdots 
+    calculated here must be the exact time derivatives of the q's returned 
+    by calcPrescribedPosition(). So the calculation must be limited to 
+    the same dependencies, plus the current value of this mobilizer's q's
+    (or the cross-mobilizer transform X_FM because that depends only on 
+    those q's). Note that we are return qdots, not u's; they are not always
+    the same. Simbody knows how to map from qdots to u's when necessary. 
+    
+    This operator is called during the MatterSubsystem's realize(Position) 
+    computation. This Motion's own realizePosition() method will already 
+    have been called.  **/ 
+    virtual void calcPrescribedPositionDot
+                   (const State& s, int nq, Real* qdot) const;
 
-    /// Calculate the 2nd time derivative of the prescribed positions. The 
-    /// qdotdots calculated here must be the exact time derivatives of the qdots 
-    /// returned by calcPrescribedPositionDot(). So the calculation must be 
-    /// limited to the same dependencies, plus the current value of this 
-    /// mobilizer's qdots (or the cross-mobilizer velocity V_FM because that 
-    /// depends only on those qdots). Note that we are return qdotdots, not 
-    /// udots; they are not always the same. Simbody knows how to map from 
-    /// qdotdots to udots when necessary. 
-    ///
-    /// This operator is called during the MatterSubsystem's realize(Dynamics) 
-    /// computation. This Motion's own realizeDynamics() method will already 
-    /// have been called.  
-    virtual void calcPrescribedPositionDotDot(const State& s, int nq, Real* qdotdot) const;
+    /** Calculate the 2nd time derivative of the prescribed positions. The 
+    qdotdots calculated here must be the exact time derivatives of the qdots 
+    returned by calcPrescribedPositionDot(). So the calculation must be 
+    limited to the same dependencies, plus the current value of this 
+    mobilizer's qdots (or the cross-mobilizer velocity V_FM because that 
+    depends only on those qdots). Note that we are return qdotdots, not 
+    udots; they are not always the same. Simbody knows how to map from 
+    qdotdots to udots when necessary. 
+    
+    This operator is called during the MatterSubsystem's realize(Dynamics) 
+    computation. This Motion's own realizeDynamics() method will already 
+    have been called. **/
+    virtual void calcPrescribedPositionDotDot
+                   (const State& s, int nq, Real* qdotdot) const;
     //@}
 
-    /// @name Velocity (Nonholonomic) prescribed motion virtuals
-    ///
-    /// These must be defined if the motion method is "Prescribed" and the 
-    /// motion level is "Velocity". In that case u=u(t,q), and udot are 
-    /// both required. Note that Simbody passes in the number of u's being 
-    /// prescribed; make sure you are seeing what you expect.
+    /** @name      Velocity (Nonholonomic) prescribed motion virtuals
+    
+    These must be defined if the motion method is "Prescribed" and the 
+    motion level is "Velocity". In that case u=u(t,q), and udot are 
+    both required. Note that Simbody passes in the number of u's being 
+    prescribed; make sure you are seeing what you expect. **/
     //@{
-    /// This operator is called during the MatterSubsystem's realize(Position) 
-    /// computation. The result must depend only on time and positions (of any
-    /// body or mobilizer), or earlier-stage state variables; it must not depend
-    /// on any velocities. This Motion's own realizePosition() method will 
-    /// already have been called. This will not be called if the u's are known 
-    /// to be zero.
-    virtual void calcPrescribedVelocity(const State& s, int nu, Real* u) const;
+    /** This operator is called during the MatterSubsystem's realize(Position) 
+    computation. The result must depend only on time and positions (of any
+    body or mobilizer), or earlier-stage state variables; it must not depend
+    on any velocities. This Motion's own realizePosition() method will 
+    already have been called. This will not be called if the u's are known 
+    to be zero. **/
+    virtual void calcPrescribedVelocity
+                   (const State& s, int nu, Real* u) const;
 
-    /// Calculate the time derivative of the prescribed velocity. The udots 
-    /// calculated here must be the exact time derivatives of the u's returned 
-    /// by calcPrescribedVelocity(). So the calculation must be limited to the 
-    /// same dependencies, plus the current value of this mobilizer's u's (or 
-    /// the cross-mobilizer velocity V_FM because that depends only on those u's).
-    ///
-    /// This operator is called during the MatterSubsystem's realize(Dynamics) 
-    /// computation. This Motion's own realizeDynamics() method will already 
-    /// have been called. This will not be called if the udots are known to be 
-    /// zero.
-    virtual void calcPrescribedVelocityDot(const State& s, int nu, Real* udot) const;
+    /** Calculate the time derivative of the prescribed velocity. The udots 
+    calculated here must be the exact time derivatives of the u's returned 
+    by calcPrescribedVelocity(). So the calculation must be limited to the 
+    same dependencies, plus the current value of this mobilizer's u's (or 
+    the cross-mobilizer velocity V_FM because that depends only on those u's).
+    
+    This operator is called during the MatterSubsystem's realize(Dynamics) 
+    computation. This Motion's own realizeDynamics() method will already 
+    have been called. This will not be called if the udots are known to be 
+    zero. **/
+    virtual void calcPrescribedVelocityDot
+                   (const State& s, int nu, Real* udot) const;
     //@}
 
-    /// @name Acceleration-only prescribed motion virtual
-    ///
-    /// This must be defined if the motion method is "Prescribed" and the 
-    /// motion level is "Acceleration". In that case udot=udot(t,q,u) is 
-    /// required. Note that Simbody passes in the number of u's (same as 
-    /// number of udots) being prescribed; make sure you are seeing what you 
-    /// expect.
+    /** @name       Acceleration-only prescribed motion virtual
+    
+    This must be defined if the motion method is "Prescribed" and the 
+    motion level is "Acceleration". In that case udot=udot(t,q,u) is 
+    required. Note that Simbody passes in the number of u's (same as 
+    number of udots) being prescribed; make sure you are seeing what you 
+    expect. **/
     //@{
-    /// This operator is called during the MatterSubsystem's realize(Dynamics) 
-    /// computation. The result can depend on time, any positions, and any 
-    /// velocities but must not depend on accelerations or reaction forces. This 
-    /// Motion's own realizeDynamics() method will already have been called. 
-    /// This will not be called if the udots are known to be zero.
-    virtual void calcPrescribedAcceleration(const State& s, int nu, Real* udot) const;
+    /** This operator is called during the MatterSubsystem's realize(Dynamics) 
+    computation. The result can depend on time, any positions, and any 
+    velocities but must not depend on accelerations or reaction forces. This 
+    Motion's own realizeDynamics() method will already have been called. 
+    This will not be called if the udots are known to be zero. **/
+    virtual void calcPrescribedAcceleration
+                   (const State& s, int nu, Real* udot) const;
     //@}
 
-    /** 
-     * @name Optional realize() virtual methods
-     *
-     * The following methods may optionally be overridden to do specialized 
-     * realization for a Motion. These are called during the corresponding
-     * realization stage of the containing MatterSubsystem.
-     */
+    /** @name           Optional realize() virtual methods
+    
+    The following methods may optionally be overridden to do specialized 
+    realization for a Motion. These are called during the corresponding
+    realization stage of the containing MatterSubsystem. **/
     //@{
     virtual void realizeTopology    (State&       state) const {}
     virtual void realizeModel       (State&       state) const {}
