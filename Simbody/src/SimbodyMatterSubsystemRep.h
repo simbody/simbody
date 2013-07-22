@@ -626,10 +626,8 @@ public:
     // Modeling info.
 
     void setUseEulerAngles(State& s, bool useAngles) const;
-    void setMobilizerIsPrescribed(State& s, MobilizedBodyIndex, bool prescribe) const;
     void setConstraintIsDisabled(State& s, ConstraintIndex constraint, bool disabled) const;
     bool getUseEulerAngles(const State& s) const;
-    bool isMobilizerPrescribed(const State& s, MobilizedBodyIndex) const;
     bool isConstraintDisabled(const State& s, ConstraintIndex constraint) const;
     void convertToEulerAngles(const State& inputState, State& outputState) const;
     void convertToQuaternions(const State& inputState, State& outputState) const;

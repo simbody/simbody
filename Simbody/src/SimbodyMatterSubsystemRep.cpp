@@ -1302,11 +1302,6 @@ void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& top
     // Tree-level defaults
     modelVars.useEulerAngles = false;
 
-    assert((int)modelVars.prescribed.size() == getNumMobilizedBodies());
-    modelVars.prescribed[0] = true; // Ground
-    for (MobilizedBodyIndex i(1); i < getNumMobilizedBodies(); ++i)
-        modelVars.prescribed[i] = false;
-
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
@@ -1398,11 +1393,7 @@ setUseEulerAngles(State& s, bool useAngles) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.useEulerAngles = useAngles;
 }
-void SimbodyMatterSubsystemRep::
-setMobilizerIsPrescribed(State& s, MobilizedBodyIndex body, bool prescribe) const {
-    SBModelVars& modelVars = updModelVars(s); // check/adjust stage
-    modelVars.prescribed[body] = prescribe;
-}
+
 void SimbodyMatterSubsystemRep::
 setConstraintIsDisabled(State& s, ConstraintIndex constraint, bool disable) const {
     SBInstanceVars& instanceVars = updInstanceVars(s); // check/adjust stage
@@ -1413,10 +1404,7 @@ bool SimbodyMatterSubsystemRep::getUseEulerAngles(const State& s) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.useEulerAngles;
 }
-bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, MobilizedBodyIndex body) const {
-    const SBModelVars& modelVars = getModelVars(s); // check stage
-    return modelVars.prescribed[body];
-}
+
 bool SimbodyMatterSubsystemRep::isConstraintDisabled(const State& s, ConstraintIndex constraint) const {
     const SBInstanceVars& instanceVars = getInstanceVars(s); // check stage
     return instanceVars.disabled[constraint];

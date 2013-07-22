@@ -141,10 +141,6 @@ public:
 
     const char* type() const { return "ground"; }
 
-    // Ground's motion is prescribed at zero.
-    void setMobilizerDefaultModelValues(const SBTopologyCache&, SBModelVars& mv) const
-    {   mv.prescribed[0] = true; }
-
     // TODO: should ground set the various cache entries here?
     void realizeModel   (SBStateDigest&) const {}
     void realizeInstance(const SBStateDigest& sbs) const {
@@ -375,12 +371,6 @@ public:
     :   ImmobileRigidBodyNode(mProps_B, X_PF, X_BM, uIx, usqIx, qIx) {}
 
     const char* type() { return "weld"; }
-
-
-    // If you want to think of the Weld mobilizer as being always prescribed,
-    // that's fine.
-    void setMobilizerDefaultModelValues(const SBTopologyCache&, SBModelVars& mv) const
-    {   mv.prescribed[getNodeNum()] = true; }
 
     void realizeModel(SBStateDigest& sbs) const {}
     void realizeInstance(const SBStateDigest& sbs) const {

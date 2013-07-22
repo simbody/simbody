@@ -323,12 +323,6 @@ given \a state.
 @see setConstraintIsDisabled() **/
 bool isConstraintDisabled(const State&, ConstraintIndex constraint) const;
 
-/** Experimental -- don't use. **/
-void setMobilizerIsPrescribed(State&, MobilizedBodyIndex, bool) const;
-/** Experimental -- don't use. **/
-bool isMobilizerPrescribed  (const State&, MobilizedBodyIndex) const;
-
-
 /** Given a State which may be modeled using quaternions, copy it to another
 State which represents the same configuration using Euler angles instead. If
 the \a inputState already uses Euler angles, the output will just be a

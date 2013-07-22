@@ -106,7 +106,7 @@ class SBAccelerationVars;
 //                               TOPOLOGY CACHE
 // =============================================================================
 // An object of this type is stored in the SimbodyMatterSubsystem after extended
-// construction in complete, then copied into a slot in the State upon
+// construction is complete, then copied into a slot in the State upon
 // realizeTopology(). It should contain enough information to size the Model
 // stage, and State resource index numbers for the Model-stage state variables
 // and Model-stage cache entry. This topology cache entry can also contain 
@@ -1220,7 +1220,6 @@ public:
 class SBModelVars {
 public:
     bool         useEulerAngles;
-    Array_<bool> prescribed;           // nb (# bodies & mobilizers, [0] always true)
 public:
 
     // We have to allocate these without looking at any other
@@ -1228,7 +1227,6 @@ public:
     // information.
     void allocate(const SBTopologyCache& tree) {
         useEulerAngles = false;
-        prescribed.resize(tree.nBodies, false); 
     }
 
 };

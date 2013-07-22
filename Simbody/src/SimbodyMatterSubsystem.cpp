@@ -1903,14 +1903,10 @@ int SimbodyMatterSubsystem::getTotalQAlloc()    const {return getRep().getTotalQ
 // Modeling info.
 void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
   { getRep().setUseEulerAngles(s,useAngles); }
-void SimbodyMatterSubsystem::setMobilizerIsPrescribed(State& s, MobilizedBodyIndex body, bool prescribed) const
-  { getRep().setMobilizerIsPrescribed(s,body,prescribed); }
 void SimbodyMatterSubsystem::setConstraintIsDisabled(State& s, ConstraintIndex constraint, bool disabled) const
   { getRep().setConstraintIsDisabled(s,constraint,disabled); }
 bool SimbodyMatterSubsystem::getUseEulerAngles(const State& s) const
   { return getRep().getUseEulerAngles(s); }
-bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, MobilizedBodyIndex body) const
-  { return getRep().isMobilizerPrescribed(s,body); }
 bool SimbodyMatterSubsystem::isConstraintDisabled(const State& s, ConstraintIndex constraint) const
   { return getRep().isConstraintDisabled(s,constraint); }
 void SimbodyMatterSubsystem::convertToEulerAngles(const State& inputState, State& outputState) const
