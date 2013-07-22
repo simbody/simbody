@@ -1043,25 +1043,22 @@ public:
 
     //@{
 
-    /**
-     * Return the mass properties of body B, measured from and about
-     * the B frame origin Bo, but expressed in Ground and then returned
-     * as a Spatial Inertia Matrix. The mass properties are arranged
-     * in the SpatialMat like this:
-     * <pre>
-     *       M=[      I_Bo      crossMat(m*Bc) ]
-     *         [ ~crossMat(m*Bc)   diag(m)     ]
-     * </pre>
-     * where I_Bo is the inertia taken about the B frame origin Bo,
-     * and Bc is the vector p_BoBc from B's origin to its mass center.
-     *
-     * The Spatial Inertia Matrix for Ground has infinite mass and
-     * inertia, with the cross terms set to zero. That is, it looks
-     * like a 6x6 diagonal matrix with Infinity on the diagonals.
-     * 
-     * @par Required stage
-     *   \c Stage::Position, unless \a objectBodyB == \c GroundIndex
-     */
+    /** Return the mass properties of body B, measured from and about the B 
+    origin Bo, but expressed in Ground and then returned as a Spatial Inertia 
+    Matrix. The mass properties are arranged in the SpatialMat like this:
+    <pre>
+          M=[      I_Bo      crossMat(m*Bc) ]
+            [ ~crossMat(m*Bc)   diag(m)     ]
+    </pre>
+    where I_Bo is the inertia taken about the B frame origin Bo, and Bc is the 
+    vector p_BoBc from B's origin to its mass center.
+    
+    The Spatial Inertia Matrix for Ground has infinite mass and inertia, with 
+    the cross terms set to zero. That is, it looks like a 6x6 diagonal matrix 
+    with Infinity on the diagonals.
+    
+    @par Required stage
+    \c Stage::Position, unless \a objectBodyB == \c GroundIndex **/
     SpatialMat calcBodySpatialInertiaMatrixInGround(const State& s) const
     {
         if (isGround())
