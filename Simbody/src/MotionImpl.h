@@ -42,21 +42,19 @@ class MobilizedBodyImpl;
 // abstract base class to which every Motion handle points.
 class MotionImpl : public PIMPLImplementation<Motion, MotionImpl> {
 public:
-    MotionImpl() : mobodImpl(0) {}
+    MotionImpl() 
+    :   m_isDisabledByDefault(false) {}
 
-    // Base class copy constructor just clears out the mobilized body
-    // reference because there can be only one Motion associated with a
-    // particular mobilized body. Presumably this one is being copied so
-    // it can be duplicated on another mobilized body.
-    MotionImpl(const MotionImpl& src) : mobodImpl(0) {}
+    // Default copy constructor, copy assignment, and destructor; note that the 
+    // pointer to the mobilized body is not copied or deleted.
 
-    bool hasMobilizedBody() const {return mobodImpl != 0;}
-    const MobilizedBodyImpl& 
-         getMobilizedBodyImpl() const {assert(mobodImpl); return *mobodImpl;}
+    bool hasMobilizedBody() const {return m_mobodImpl != 0;}
+    const MobilizedBodyImpl& getMobilizedBodyImpl() const 
+    {   assert(m_mobodImpl); return *m_mobodImpl; }
     MobilizedBodyIndex getMobilizedBodyIndex() const;
 
     void setMobilizedBodyImpl(MobilizedBodyImpl* mbi) 
-    {   assert(!mobodImpl); mobodImpl = mbi; }
+    {   assert(!m_mobodImpl); m_mobodImpl = mbi; }
     void invalidateTopologyCache() const;
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const; 
@@ -93,14 +91,24 @@ public:
 
     // This reports whether this Motion is holonomic (Level::Position), 
     // nonholonomic (Level::Velocity), or acceleration (Level::Acceleration).
-    Motion::Level getLevel(const State& s) const 
-    {   return getLevelVirtual(s); }
-    virtual Motion::Level getLevelVirtual(const State&) const = 0;
+    Motion::Level getLevel(const State& s) const {
+        if (isDisabled(s)) return Motion::NoLevel;
+        return getLevelVirtual(s); // ask concrete class
+    }
 
-    Motion::Method getLevelMethod(const State& s) const 
-    {   return getLevelMethodVirtual(s); }
-    virtual Motion::Method getLevelMethodVirtual(const State&) const 
-    {   return Motion::Prescribed; }
+    Motion::Method getLevelMethod(const State& s) const {   
+        if (isDisabled(s)) return Motion::NoMethod;
+        return getLevelMethodVirtual(s); 
+    }
+
+
+    void disable(State& s) const;
+    void enable(State& s) const;
+    bool isDisabled(const State&) const;
+
+    void setDisabledByDefault(bool shouldBeDisabled)
+    {   invalidateTopologyCache(); m_isDisabledByDefault=shouldBeDisabled; }
+    bool isDisabledByDefault() const {return m_isDisabledByDefault;}
 
     // These operators calculate prescribed positions, velocities, or 
     // accelerations given a State realized to the previous Stage.
@@ -136,6 +144,10 @@ public:
     void realizeReport(const State& state)          const 
     {   realizeReportVirtual(state); }
 
+    virtual Motion::Level getLevelVirtual(const State&) const = 0;
+    virtual Motion::Method getLevelMethodVirtual(const State&) const 
+    {   return Motion::Prescribed; }
+
     virtual void calcPrescribedPositionVirtual      
                    (const State&, int nq, Real* q)          const;
     virtual void calcPrescribedPositionDotVirtual   
@@ -159,7 +171,8 @@ public:
     virtual void realizeAccelerationVirtual(const State&)   const {}
     virtual void realizeReportVirtual      (const State&)   const {}
 private:
-    MobilizedBodyImpl* mobodImpl; // just a reference; don't destruct
+    ReferencePtr<MobilizedBodyImpl>     m_mobodImpl;
+    bool                                m_isDisabledByDefault;
 };
 
 
@@ -415,6 +428,7 @@ public:
 private:
     Motion::Custom::Implementation* implementation;
 };
+
 
 } // namespace SimTK
 

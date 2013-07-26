@@ -64,6 +64,23 @@ const DecorativeGeometry& MobilizedBody::getInboardDecoration(int i) const
 DecorativeGeometry& MobilizedBody::updInboardDecoration(int i)
 {   return updImpl().inboardGeometry[i]; }
 
+
+void MobilizedBody::lock(State& s, Motion::Level level) const
+{   getImpl().lock(s,level); }
+
+void MobilizedBody::unlock(State& s) const
+{   getImpl().unlock(s); }
+
+Motion::Level MobilizedBody::getLockLevel(const State& s) const
+{   return getImpl().getLockLevel(s); }
+
+MobilizedBody& MobilizedBody::lockByDefault(Motion::Level level)
+{   updImpl().lockByDefault(level); return *this; } 
+
+Motion::Level MobilizedBody::getLockByDefaultLevel() const
+{   return getImpl().getLockByDefaultLevel(); }
+
+
 const SimbodyMatterSubsystem& MobilizedBody::getMatterSubsystem() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getMatterSubsystem() called on a MobilizedBody that is not part of a subsystem.");
@@ -528,9 +545,11 @@ const Motion& MobilizedBody::getMotion() const {
     return getImpl().getMotion();
 }
 
-    /////////////////////////
-    // MOBILIZED BODY IMPL //
-    /////////////////////////
+
+
+//==============================================================================
+//                          MOBILIZED BODY IMPL
+//==============================================================================
 
 void MobilizedBodyImpl::findMobilizerQs
    (const State& s, QIndex& qStart, int& nq) const {
@@ -541,6 +560,49 @@ void MobilizedBodyImpl::findMobilizerUs
    (const State& s, UIndex& uStart, int& nu) const {
     getMyMatterSubsystemRep()
         .findMobilizerUs(s, myMobilizedBodyIndex, uStart, nu);
+}
+
+// Set the lock level and record the current q or u if needed so we can
+// ensure that the state is prescribed to the recorded value.
+// Can't do this until *after* realize(Model) because that's when the q's and
+// u's are sized and the lock-by-default coordinates are recorded, and this 
+// should override those.
+void MobilizedBodyImpl::lock(State& state, Motion::Level level) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state), 
+        Stage::Model, "MobilizedBody::lock()");
+
+    SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(state);
+    iv.mobilizerLockLevel[getMyMobilizedBodyIndex()] = level;
+    if (level == Motion::Position) {
+        const Vector& q = state.getQ();
+        assert(iv.lockedQs.size() == q.size());
+        QIndex qStart; int nq; findMobilizerQs(state, qStart, nq);
+        const QIndex qEnd(qStart+nq);
+        for (QIndex qx=qStart; qx != qEnd; ++qx) 
+            iv.lockedQs[qx] = q[qx];
+    } else if (level == Motion::Velocity) {
+        const Vector& u = state.getU();
+        assert(iv.lockedUs.size() == u.size());
+        UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
+        const UIndex uEnd(uStart+nu);
+        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+            iv.lockedUs[ux] = u[ux];
+    }
+}
+
+// OK to do this after realize(Topology) since we're not looking at q or u.
+// If this was a lock-by-default mobilizer, this will unlock it since the
+// lock-by-default flag is transferred to InstanceVars during realize(Topology).
+void MobilizedBodyImpl::unlock(State& state) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state), 
+        Stage::Topology, "MobilizedBody::unlock()");
+
+    SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(state);
+    iv.mobilizerLockLevel[getMyMobilizedBodyIndex()] = Motion::NoLevel;
+}
+Motion::Level MobilizedBodyImpl::getLockLevel(const State& state) const {
+    const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(state);
+    return iv.mobilizerLockLevel[getMyMobilizedBodyIndex()];
 }
 
 Motion::Method MobilizedBodyImpl::getQMotionMethod(const State& s) const 
@@ -556,7 +618,7 @@ copyOutDefaultQ(const State& s, Vector& qDefault) const {
         Stage::Topology, "MobilizedBody::copyOutDefaultQ()");
     QIndex qStart; int nq;
     findMobilizerQs(s, qStart, nq);
-    if (nq)
+    if (nq) // nq may vary due to modeling options, e.g. 3 or 4 for Ball
         copyOutDefaultQImpl(nq, &qDefault[qStart]);
 }
 
@@ -638,97 +700,132 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
     return *myRBnode;
 }
 
-    // REALIZE MODEL
+//------------------------------------------------------------------------------
+//                              REALIZE MODEL
+//------------------------------------------------------------------------------
 void MobilizedBodyImpl::realizeModel(State& s) const {
     if (hasMotion())
         getMotion().getImpl().realizeModel(s);
     realizeModelVirtual(s);
 }
 
-    // REALIZE INSTANCE
+//------------------------------------------------------------------------------
+//                             REALIZE INSTANCE
+//------------------------------------------------------------------------------
 void MobilizedBodyImpl::realizeInstance(const SBStateDigest& sbs) const {
     if (hasMotion())
         getMotion().getImpl().realizeInstance(sbs.getState());
     realizeInstanceVirtual(sbs.getState());
 }
 
-    // REALIZE TIME
+//------------------------------------------------------------------------------
+//                               REALIZE TIME
+//------------------------------------------------------------------------------
 void MobilizedBodyImpl::realizeTime(const SBStateDigest& sbs) const {
     const MobilizedBodyIndex      mbx       = getMyMobilizedBodyIndex();
+    const SBInstanceVars&         iv        = sbs.getInstanceVars();
     const SBInstanceCache&        ic        = sbs.getInstanceCache();
     const SBInstancePerMobodInfo& instInfo  = ic.getMobodInstanceInfo(mbx);
 
     // Note that we only need to deal with explicitly prescribed motion;
     // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
+    // A mobilizer can be prescribed either due to a locked position or to
+    // an explicit Motion.
     if (instInfo.qMethod==Motion::Prescribed) {
-        const SBModelCache& mc = sbs.getModelCache();
-        const SBModelPerMobodInfo& 
-            modelInfo = mc.getMobodModelInfo(mbx);
-        const int            nq  = modelInfo.nQInUse;
-        const PresQPoolIndex pqx = instInfo.firstPresQ;
-        SBTimeCache& tc = sbs.updTimeCache();
-        const MotionImpl& motion = getMotion().getImpl();
+        const SBModelCache&         mc        = sbs.getModelCache();
+        const SBModelPerMobodInfo&  modelInfo = mc.getMobodModelInfo(mbx);
+        const int                   nq        = modelInfo.nQInUse;
+        const QIndex                qStart    = modelInfo.firstQIndex;
+        const PresQPoolIndex        pqx       = instInfo.firstPresQ;
+        SBTimeCache&                tc        = sbs.updTimeCache();
 
-        motion.calcPrescribedPosition(sbs.getState(), nq, 
-                                      &tc.presQPool[pqx]);
+        if (iv.mobilizerLockLevel[mbx] != Motion::NoLevel) {
+            // Positions are prescribed because of a lock.
+            assert(iv.mobilizerLockLevel[mbx] == Motion::Position);
+            for (int i=0; i < nq; ++i)
+                tc.presQPool[pqx+i] = iv.lockedQs[QIndex(qStart+i)];
+        } else {
+            // Positions are prescribed because of a Motion.
+            assert(hasMotion() && !iv.prescribedMotionIsDisabled[mbx]);
+            const MotionImpl& motion = getMotion().getImpl();
+            motion.calcPrescribedPosition(sbs.getState(), nq, 
+                                          &tc.presQPool[pqx]);
+        }
     }
 
     realizeTimeVirtual(sbs.getState());
 }
 
-    // REALIZE POSITION
+//------------------------------------------------------------------------------
+//                             REALIZE POSITION
+//------------------------------------------------------------------------------
 void MobilizedBodyImpl::realizePosition(const SBStateDigest& sbs) const {
-    const MobilizedBodyIndex    mbx = getMyMobilizedBodyIndex();
-    const SBInstanceCache&      ic  = sbs.getInstanceCache();
-    const SBInstancePerMobodInfo& 
-        instInfo = ic.getMobodInstanceInfo(mbx);
+    const MobilizedBodyIndex      mbx = getMyMobilizedBodyIndex();
+    const SBInstanceVars&         iv  = sbs.getInstanceVars();
+    const SBInstanceCache&        ic  = sbs.getInstanceCache();
+    const SBInstancePerMobodInfo& instInfo = ic.getMobodInstanceInfo(mbx);
 
     // Note that we only need to deal with explicitly prescribed motion;
     // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
     // Prescribed u may be due to nonholonomic prescribed u, or to derivative
-    // of holonomic prescribed q.
+    // of holonomic prescribed q, or to a lock(Velocity).
     if (instInfo.uMethod==Motion::Prescribed) {
-        const SBModelCache& mc = sbs.getModelCache();
-        const SBModelPerMobodInfo& 
-            modelInfo = mc.getMobodModelInfo(mbx);
-        const int            nu  = modelInfo.nUInUse;
-        const PresUPoolIndex pux = instInfo.firstPresU;
-        SBConstrainedPositionCache& cpc = sbs.updConstrainedPositionCache();
-        const MotionImpl& motion = getMotion().getImpl();
+        const SBModelCache&         mc        = sbs.getModelCache();
+        const SBModelPerMobodInfo&  modelInfo = mc.getMobodModelInfo(mbx);
+        const int                   nu        = modelInfo.nUInUse;
+        const UIndex                uStart    = modelInfo.firstUIndex;
+        const PresUPoolIndex        pux       = instInfo.firstPresU;
+        SBConstrainedPositionCache& cpc       = sbs.updConstrainedPositionCache();
 
-        if (instInfo.qMethod==Motion::Prescribed) {
-            // Holonomic
-            const int nq = modelInfo.nUInUse;
-            const RigidBodyNode& rbn = getMyRigidBodyNode();
+        if (iv.mobilizerLockLevel[mbx] != Motion::NoLevel) {
+            // Velocities are prescribed because of a lock.
+            assert(iv.mobilizerLockLevel[mbx] == Motion::Velocity);
+            for (int i=0; i < nu; ++i)
+                cpc.presUPool[pux+i] = iv.lockedUs[UIndex(uStart+i)];
+        } else {
+            // Velocities are prescribed because of a Motion.
+            assert(hasMotion() && !iv.prescribedMotionIsDisabled[mbx]);
+            const MotionImpl& motion = getMotion().getImpl();
 
-            if (rbn.isQDotAlwaysTheSameAsU()) {
-                assert(nq==nu);
-                motion.calcPrescribedPositionDot(sbs.getState(), nu,
-                                                 &cpc.presUPool[pux]);
-            } else {
-                Real qdot[8]; // we won't use all of these -- max is 7
-                motion.calcPrescribedPositionDot(sbs.getState(), nq, qdot);
-                // u = N^-1 qdot
-                rbn.multiplyByNInv(sbs, false, qdot, &cpc.presUPool[pux]);
+            if (instInfo.qMethod==Motion::Prescribed) {
+                // Holonomic
+                const int nq = modelInfo.nQInUse;
+                const RigidBodyNode& rbn = getMyRigidBodyNode();
+
+                if (rbn.isQDotAlwaysTheSameAsU()) {
+                    assert(nq==nu);
+                    motion.calcPrescribedPositionDot(sbs.getState(), nu,
+                                                     &cpc.presUPool[pux]);
+                } else {
+                    Real qdot[8]; // we won't use all of these -- max is 7
+                    motion.calcPrescribedPositionDot(sbs.getState(), nq, qdot);
+                    // u = N^-1 qdot
+                    rbn.multiplyByNInv(sbs, false, qdot, &cpc.presUPool[pux]);
+                }
+            } else { // Non-holonomic
+                motion.calcPrescribedVelocity(sbs.getState(), nu,
+                                              &cpc.presUPool[pux]);
             }
-        } else { // Non-holonomic
-            motion.calcPrescribedVelocity(sbs.getState(), nu,
-                                          &cpc.presUPool[pux]);
         }
     }
 
     realizePositionVirtual(sbs.getState());
 }
 
-    // REALIZE VELOCITY
+//------------------------------------------------------------------------------
+//                             REALIZE VELOCITY
+//------------------------------------------------------------------------------
 void MobilizedBodyImpl::realizeVelocity(const SBStateDigest& sbs) const {
     // We don't deal with prescribed accelerations until Dynamics stage.
     realizeVelocityVirtual(sbs.getState());
 }
 
-    // REALIZE DYNAMICS
+//------------------------------------------------------------------------------
+//                             REALIZE DYNAMICS
+//------------------------------------------------------------------------------
 void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
     const MobilizedBodyIndex      mbx      = getMyMobilizedBodyIndex();
+    const SBInstanceVars&         iv       = sbs.getInstanceVars();
     const SBInstanceCache&        ic       = sbs.getInstanceCache();
     const SBInstancePerMobodInfo& instInfo = ic.getMobodInstanceInfo(mbx);
 
@@ -736,16 +833,20 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
     // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
     // Prescribed udot may be due to acceleration-only prescribed udot,
     // derivative of nonholonomic prescribed u, or to 2nd derivative
-    // of holonomic prescribed q.
+    // of holonomic prescribed q. (A lock always prescribes the udot to zero
+    // so isn't dealt with here.)
     if (instInfo.udotMethod==Motion::Prescribed) {
-        const SBModelCache&         mc = sbs.getModelCache();
+        // Accelerations are prescribed because of a Motion.
+        assert(hasMotion() && !iv.prescribedMotionIsDisabled[mbx]);
+
+        const SBModelCache&         mc        = sbs.getModelCache();
         const SBModelPerMobodInfo&  modelInfo = mc.getMobodModelInfo(mbx);
-        const int                   nu = modelInfo.nUInUse;
-        const UIndex                ux = modelInfo.firstUIndex;
-        const PresUDotPoolIndex     pudx = instInfo.firstPresUDot;
-        SBDynamicsCache& dc = sbs.updDynamicsCache();
-        const MotionImpl& motion = getMotion().getImpl();
-        Real* presUDotp = &dc.presUDotPool[pudx];
+        const int                   nu        = modelInfo.nUInUse;
+        const UIndex                ux        = modelInfo.firstUIndex;
+        const PresUDotPoolIndex     pudx      = instInfo.firstPresUDot;
+        SBDynamicsCache&            dc        = sbs.updDynamicsCache();
+        const MotionImpl&           motion    = getMotion().getImpl();
+        Real*                       presUDotp = &dc.presUDotPool[pudx];
 
         if (instInfo.qMethod==Motion::Prescribed) {
             // Holonomic
@@ -755,7 +856,7 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
             if (rbn.isQDotAlwaysTheSameAsU()) {
                 assert(nq==nu);
                 motion.calcPrescribedPositionDotDot(sbs.getState(), nu,
-                                                    &dc.presUDotPool[pudx]);
+                                                    presUDotp);
             } else {
                 Real ndotU[8]; // remainder term NDot*u (nq of these; max is 7)
                 const Vector& u = sbs.getU();
@@ -782,12 +883,16 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
     realizeDynamicsVirtual(sbs.getState());
 }
 
-    // REALIZE ACCELERATION
+//------------------------------------------------------------------------------
+//                           REALIZE ACCELERATION
+//------------------------------------------------------------------------------
 void MobilizedBodyImpl::realizeAcceleration(const SBStateDigest& sbs) const {
     realizeAccelerationVirtual(sbs.getState());
 }
 
-    // REALIZE REPORT
+//------------------------------------------------------------------------------
+//                             REALIZE REPORT
+//------------------------------------------------------------------------------
 void MobilizedBodyImpl::realizeReport(const SBStateDigest& sbs) const {
     realizeReportVirtual(sbs.getState());
 }

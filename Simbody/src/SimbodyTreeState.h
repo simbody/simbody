@@ -1250,38 +1250,52 @@ public:
 class SBInstanceVars {
 public:
     Array_<MassProperties,MobilizedBodyIndex>   bodyMassProperties;
-    Array_<Transform,MobilizedBodyIndex>        outboardMobilizerFrames;
-    Array_<Transform,MobilizedBodyIndex>        inboardMobilizerFrames;
-    Vector particleMasses;
+    Array_<Transform,     MobilizedBodyIndex>   outboardMobilizerFrames;
+    Array_<Transform,     MobilizedBodyIndex>   inboardMobilizerFrames;
 
-    Array_<bool,ConstraintIndex> disabled;             // nc (# constraints)
+    Array_<Motion::Level, MobilizedBodyIndex>   mobilizerLockLevel;
+    Vector                                      lockedQs;
+    Vector                                      lockedUs;
+
+    Array_<bool,          MobilizedBodyIndex>   prescribedMotionIsDisabled;
+
+    Vector                                      particleMasses;
+
+    Array_<bool,ConstraintIndex>                constraintIsDisabled;
 
 public:
 
-    // We can access the tree or state variable & cache up to Modeling stage.
-    void allocate(const SBTopologyCache& topology) const {
+    void allocate(const SBTopologyCache& topology) {
         const int nb = topology.nBodies;
         const int np = topology.nParticles;
         const int nc = topology.nConstraints;
 
-        SBInstanceVars& mutvars = *const_cast<SBInstanceVars*>(this);
-
         // Clear first to make sure all entries are reset to default values.
-        mutvars.bodyMassProperties.clear();
-        mutvars.bodyMassProperties.resize(nb, MassProperties(1,Vec3(0),Inertia(1)));
+        bodyMassProperties.clear();
+        bodyMassProperties.resize(nb, MassProperties(1,Vec3(0),Inertia(1)));
         
-        mutvars.outboardMobilizerFrames.clear();
-        mutvars.outboardMobilizerFrames.resize(nb, Transform());
+        outboardMobilizerFrames.clear();
+        outboardMobilizerFrames.resize(nb, Transform());
 
-        mutvars.inboardMobilizerFrames.clear();
-        mutvars.inboardMobilizerFrames.resize(nb, Transform());
+        inboardMobilizerFrames.clear();
+        inboardMobilizerFrames.resize(nb, Transform());
 
-        mutvars.particleMasses.resize(np);
-        mutvars.particleMasses = 1;
+        mobilizerLockLevel.clear();
+        mobilizerLockLevel.resize(nb, Motion::NoLevel);
 
-        mutvars.disabled.clear();
-        mutvars.disabled.resize(nc, false);
+        lockedQs.clear(); // must wait until realize(Model) to size these
+        lockedUs.clear();
+
+        prescribedMotionIsDisabled.clear();
+        prescribedMotionIsDisabled.resize(nb, false);
+
+        particleMasses.resize(np);
+        particleMasses = 1;
+
+        constraintIsDisabled.clear();
+        constraintIsDisabled.resize(nc, false);
     }
+
 };
 
 
@@ -1293,7 +1307,7 @@ class SBTimeVars {
 public:
     // none
 public:
-    void allocate(const SBTopologyCache&) const {
+    void allocate(const SBTopologyCache&) {
     }
 };
 
@@ -1305,7 +1319,7 @@ class SBPositionVars {
 public:
     // none here -- q is supplied directly by the State
 public:
-    void allocate(const SBTopologyCache& tree) const {
+    void allocate(const SBTopologyCache& tree) {
     }
 };
 
@@ -1317,7 +1331,7 @@ class SBVelocityVars  {
 public:
     // none here -- u is supplied directly by the State
 public:
-    void allocate(const SBTopologyCache&) const {
+    void allocate(const SBTopologyCache&) {
     }
 };
 
@@ -1330,7 +1344,7 @@ public:
     // none here -- z is supplied directly by the State, but not
     //              used by the SimbodyMatterSubsystem anyway
 public:
-    void allocate(const SBTopologyCache&) const {    
+    void allocate(const SBTopologyCache&) {    
     }
 }; 
 
@@ -1343,56 +1357,9 @@ class SBAccelerationVars {
 public:
     // none here
 public:
-    void allocate(const SBTopologyCache& topology) const {
+    void allocate(const SBTopologyCache& topology) {
     }
 };
-
-
-// These are here just so the AbstractValue's ValueHelper<> template
-// will compile.
-inline std::ostream& operator<<(std::ostream& o, const SBTopologyCache& c)
-  { return o << "TODO: SBTopologyCache"; }
-// SBModelCache output is implemented above
-
-inline std::ostream& operator<<(std::ostream& o, const SBInstanceCache& c)
-  { return o << "TODO: SBInstanceCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBTimeCache& c)
-  { return o << "TODO: SBTimeCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBTreePositionCache& c)
-  { return o << "TODO: SBTreePositionCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBConstrainedPositionCache& c)
-  { return o << "TODO: SBConstrainedPositionCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBCompositeBodyInertiaCache& c)
-  { return o << "TODO: SBCompositeBodyInertiaCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBArticulatedBodyInertiaCache& c)
-  { return o << "TODO: SBArticulatedBodyInertiaCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBTreeVelocityCache& c)
-  { return o << "TODO: SBTreeVelocityCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBConstrainedVelocityCache& c)
-  { return o << "TODO: SBConstrainedVelocityCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBDynamicsCache& c)
-  { return o << "TODO: SBDynamicsCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBTreeAccelerationCache& c)
-  { return o << "TODO: SBTreeAccelerationCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBConstrainedAccelerationCache& c)
-  { return o << "TODO: SBConstrainedAccelerationCache"; }
-
-inline std::ostream& operator<<(std::ostream& o, const SBModelVars& c)
-  { return o << "TODO: SBModelVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBInstanceVars& c)
-  { return o << "TODO: SBInstanceVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBTimeVars& c)
-  { return o << "TODO: SBTimeVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBPositionVars& c)
-  { return o << "TODO: SBPositionVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBVelocityVars& c)
-  { return o << "TODO: SBVelocityVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBDynamicsVars& c)
-  { return o << "TODO: SBDynamicsVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBAccelerationVars& c)
-  { return o << "TODO: SBAccelerationVars"; }
-
-
 
 
     /////////////////////

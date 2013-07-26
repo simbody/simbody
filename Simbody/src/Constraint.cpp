@@ -2980,7 +2980,7 @@ void ConstraintImpl::realizeInstance(const State& s) const {
 // =============================================================================
 void ConstraintImpl::realizeTime(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
 
     realizeTimeVirtual(sbs.getState()); // nothing to do in the base class
 }
@@ -2992,7 +2992,7 @@ void ConstraintImpl::realizeTime(const SBStateDigest& sbs) const {
 // =============================================================================
 void ConstraintImpl::realizePosition(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     realizePositionVirtual(sbs.getState()); // delegate to concrete constraint
 }
 
@@ -3003,7 +3003,7 @@ void ConstraintImpl::realizePosition(const SBStateDigest& sbs) const {
 // =============================================================================
 void ConstraintImpl::realizeVelocity(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     realizeVelocityVirtual(sbs.getState()); // delegate to concrete constraint
 }
 
@@ -3014,7 +3014,7 @@ void ConstraintImpl::realizeVelocity(const SBStateDigest& sbs) const {
 // =============================================================================
 void ConstraintImpl::realizeDynamics(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     realizeDynamicsVirtual(sbs.getState()); // delegate to concrete constraint
 }
 
@@ -3025,7 +3025,7 @@ void ConstraintImpl::realizeDynamics(const SBStateDigest& sbs) const {
 // =============================================================================
 void ConstraintImpl::realizeAcceleration(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return; 
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return; 
     realizeAccelerationVirtual(sbs.getState()); // delegate to concrete constraint
 }
 
@@ -3185,7 +3185,7 @@ void ConstraintImpl::calcConstrainedBodyTransformInAncestor      // X_AB
    (const SBStateDigest& sbs, SBTreePositionCache& tpc) const 
 {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     if (!myAncestorBodyIsNotGround) return;
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
 
@@ -3214,7 +3214,7 @@ void ConstraintImpl::calcConstrainedBodyVelocityInAncestor       // V_AB
    (const SBStateDigest& sbs, SBTreeVelocityCache& tvc) const 
 {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     if (!myAncestorBodyIsNotGround) return;
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
 

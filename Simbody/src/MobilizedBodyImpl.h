@@ -52,7 +52,10 @@ namespace SimTK {
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
     explicit MobilizedBodyImpl(MobilizedBody::Direction d) 
-    :   reversed(d==MobilizedBody::Reverse), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0), hasChildren(false) {
+    :   defaultLockLevel(Motion::NoLevel), 
+        reversed(d==MobilizedBody::Reverse), 
+        myMatterSubsystemRep(0), myLevel(-1), myRBnode(0), hasChildren(false) 
+    {
     }
 
     void setDirection(MobilizedBody::Direction d) {
@@ -67,6 +70,15 @@ public:
         *this = src;
         myRBnode = 0;
     }
+
+
+    void lock(State& state, Motion::Level level) const;
+    void unlock(State& state) const;
+    Motion::Level getLockLevel(const State& state) const;
+    void lockByDefault(Motion::Level level)
+    {   invalidateTopologyCache(); defaultLockLevel=level; }
+    Motion::Level getLockByDefaultLevel() const
+    {   return defaultLockLevel; }
 
     // The matter subsystem must issue these MobilizedBody realize() calls in base-to-tip
     // order, because these methods are allowed to assume that their parent (and 
@@ -479,9 +491,10 @@ private:
     // Body represents the mass structure, mass properties, and possibly some
     // decorative geometry for the body associated with this (body,mobilizer)
     // pair.
-    Body        theBody;
-    Transform   defaultInboardFrame;  // default for F (in Parent frame)
-    Transform   defaultOutboardFrame; // default for M (in Body frame)
+    Body            theBody;
+    Transform       defaultInboardFrame;  // default for F (in Parent frame)
+    Transform       defaultOutboardFrame; // default for M (in Body frame)
+    Motion::Level   defaultLockLevel;
 
     // A Motion object, if present, defines how this mobilizer's motion is
     // to be calculated. Otherwise, the motion is determined dynamically
@@ -490,7 +503,7 @@ private:
     // may also some of the prescribed generalized speeds u (index 2); and 
     // for speeds that are prescribed it may also prescribe the corresponding
     // generalized coordinates q (index 3).
-    Motion      motion;
+    Motion          motion;
 
     bool        reversed; // is the mobilizer defined from M to F?
 
