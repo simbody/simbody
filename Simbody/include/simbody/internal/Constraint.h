@@ -73,21 +73,22 @@ Constraint() { }
 particular implementation object. **/
 explicit Constraint(ConstraintImpl* r) : HandleBase(r) { }
 
-/** Disable this constraint, effectively removing it from the system. This
-is an Instance-stage change and affects the allocation of constraint-
-related cache variables in the supplied State. **/
+/** Disable this %Constraint, effectively removing it from the system. This
+is an Instance-stage change and affects the allocation of %Constraint-
+related resources in the supplied State. **/
 void disable(State&) const;
 
-/** Enable this constraint, without necessarily satisfying it. This is an 
-Instance-stage change and affects the allocation of constraint-related cache 
-variables in the supplied State. Note that merely enabling a constraint does 
+/** Enable this %Constraint, without necessarily satisfying it. This is an 
+Instance-stage change and affects the allocation of %Constraint-related  
+resources in the supplied State. Note that merely enabling a constraint does 
 not ensure that the State's positions and velocities satisfy that constraint; 
-initial satisfaction requires use of an appropriate solver. **/
+initial satisfaction requires use of an appropriate project() solver.
+@see SimTK::System::project() **/
 void enable(State&) const;
 /** Test whether this constraint is currently disabled in the supplied 
 State. **/
 bool isDisabled(const State&) const;
-/** Test whether this constraint is disabled by default in which case it must 
+/** Test whether this %Constraint is disabled by default in which case it must 
 be explicitly enabled before it will take effect.
 @see setDisabledByDefault(), enable() **/
 bool isDisabledByDefault() const;
@@ -443,7 +444,7 @@ Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
 // These are the built-in Constraint types. Types on the same line are
 // synonymous.
 class Rod;  typedef Rod  ConstantDistance;
-class Ball; typedef Ball CoincidentPoints;
+class Ball; typedef Ball CoincidentPoints; typedef Ball Spherical;
 class Weld; typedef Weld CoincidentFrames;
 class PointInPlane;  // translations perpendicular to plane normal only
 class PointOnLine;   // translations along a line only
@@ -494,7 +495,7 @@ class PrescribedMotionImpl;
  * direction. For a distance of zero (i.e., you want the points to be 
  * coincident) use a Ball constraint, a.k.a. CoincidentPoints constraint.
  */
- class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
 public:
     // no default constructor
     Rod(MobilizedBody& body1, MobilizedBody& body2,
@@ -531,7 +532,10 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getRodTension(const State&) const; // negative means compression
+    
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Rod, RodImpl, Constraint);
+    /** @endcond **/
 };
 
     ///////////////////////////////
@@ -591,7 +595,11 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getForceOnFollowerPoint(const State&) const; // in normal direction
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(PointInPlane, PointInPlaneImpl, Constraint);
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (PointInPlane, PointInPlaneImpl, Constraint);
+    /** @endcond **/
 };
 
     //////////////////////////////
@@ -651,7 +659,11 @@ public:
     Vec2 getAccelerationErrors(const State&) const;
     Vec2 getMultipliers(const State&) const;
     const Vec2& getForceOnFollowerPoint(const State&) const; // in normal direction
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(PointOnLine, PointOnLineImpl, Constraint);
+    
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (PointOnLine, PointOnLineImpl, Constraint);
+    /** @endcond **/
 };
 
     ///////////////////////////////
@@ -728,7 +740,10 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getTorqueOnFollowerBody(const State&) const; // about f X b
+    
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantAngle, ConstantAngleImpl, Constraint);
+    /** @endcond **/
 };
 
     /////////////////////////////////////////
@@ -866,7 +881,9 @@ public:
     The given \a state must be realized through Acceleration stage. **/
     Vec3 getMultipliers(const State& state) const;
 
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, Constraint);
+    /** @endcond **/
 };
 
     /////////////////////////////////////
@@ -924,7 +941,11 @@ public:
     Vec3 getAccelerationErrors(const State&) const;
     Vec3 getMultipliers(const State&) const;
     Vec3 getTorqueOnFollowerBody(const State&) const;
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantOrientation, ConstantOrientationImpl, Constraint);
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (ConstantOrientation, ConstantOrientationImpl, Constraint);
+    /** @endcond **/
 };
 
     /////////////////////////////////////////
@@ -1027,7 +1048,10 @@ public:
         // Forces are reported expressed in the body frame of the indicated body.
     const SpatialVec& getWeldReactionOnBody1(const State&) const;
     const SpatialVec& getWeldReactionOnBody2(const State&) const;
+
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, Constraint);
+    /** @endcond **/
 };
 
     ///////////////////////////
@@ -1152,7 +1176,9 @@ public:
     moving body 1, and is applied along the no-slip direction vector. **/
     Real getForceAtContactPoint(const State&) const;
 
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(NoSlip1D, NoSlip1DImpl, Constraint);
+    /** @endcond **/
 };
 
     //////////////////////////////////////
