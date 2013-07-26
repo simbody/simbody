@@ -1240,7 +1240,7 @@ system mass matrix and v is a supplied vector with one entry per u-space
 mobility. If v is a set of generalized forces f, the result is a generalized 
 acceleration (udot=M^-1*f). Only the supplied vector is used, and M depends 
 only on position states, so the result here is not affected by velocities in 
-\a state. In particular, you'll have to calculate your own inertial forces and 
+\a state. In particular, you'll have to obtain your own inertial forces and 
 put them in f if you want them included.
 
 @param[in]      state
@@ -1251,49 +1251,51 @@ put them in f if you want them included.
     \a state cache for speed.
 @param[in]      v
     This is a generalized-force like vector in mobility space (u-space). If 
-    there is any prescribed motion specified using Motion objects (see below),
-    then only the entries of v corresponding to non-prescribed mobilities are
-    examined by this method; the prescribed ones are not referenced at all. 
+    there is any prescribed motion specified using Motion objects or mobilizer
+    locking (see below), then only the entries of v corresponding to 
+    non-prescribed mobilities are examined by this method; the prescribed ones 
+    are not referenced at all. 
 @param[out]     MinvV
     This is the result M^-1*v. If there is any prescribed motion specified
-    using Motion objects (see below), then only the non-prescribed entries
-    in MinvV are calculated; the prescribed ones are set to zero.
+    using Motion objects or mobilizer locks (see below), then only the 
+    non-prescribed entries in MinvV are calculated; the prescribed ones are set 
+    to zero.
 
-<h3>Behavior with prescribed Motion</h3>
-If you specify the motion of one or more mobilizers using a Motion object,
-the behavior of this method is altered. (This does \e not apply if you use
-Constraint objects to specify the motion.) In the Motion case, this method 
-works only with the free (non-prescribed) mobilities. Only the entries in
-\a v corresponding to free mobilities are examined, and only the entries in 
-the result \a MinvV corresponding to free mobilities are calculated; the 
-others are set to zero.
+<h3>Behavior with prescribed motion</h3>
+If you prescribe the motion of one or more mobilizers using Motion objects or
+mobilizer locking, the behavior of this method is altered. (This does \e not 
+apply if you use Constraint objects to specify the motion.) With prescribed
+motion enabled, this method works only with the free (non-prescribed) 
+mobilities. Only the entries in \a v corresponding to free mobilities are 
+examined, and only the entries in the result \a MinvV corresponding to free 
+mobilities are calculated; the others are set to zero.
 
 <h3>Theory</h3>
 View the unconstrained, prescribed zero-velocity equations of motion 
-M a + tau = f as partitioned into "free" and "prescribed" variables like 
+M udot + tau = f as partitioned into "free" and "prescribed" variables like 
 this:
 <pre>
-    [M_ff ~M_fp] [a_f]   [ 0 ]   [f_f]
-    [          ] [   ] + [   ] = [   ]
-    [M_fp  M_pp] [a_p]   [tau]   [f_p]
+    [M_ff ~M_fp] [udot_f]   [ 0 ]   [f_f]
+    [          ] [      ] + [   ] = [   ]
+    [M_fp  M_pp] [udot_p]   [tau]   [f_p]
 </pre>
 The free and prescribed variables have been grouped here for clarity but
 in general they are interspersed among the columns and rows of M.
 
 Given that decomposition, this method returns
 <pre>
-    [a_f]   [a_f]   [M_ff^-1  0  ][f_f]
-    [   ] = [   ] = [            ][   ]
-    [a_p]   [ 0 ]   [   0     0  ][f_p]
+    [udot_f]   [udot_f]   [M_ff^-1  0  ][f_f]
+    [      ] = [      ] = [            ][   ]
+    [udot_p]   [  0   ]   [   0     0  ][f_p]
 </pre>
 When there is no prescribed motion M_ff is the entire mass matrix, and the 
-result is a_f=a=M^-1*f. When there is prescribed motion, M_ff is a submatrix of
-M, and the result is the nf elements of a_f and a_p=0.
+result is udot_f=udot=M^-1*f. When there is prescribed motion, M_ff is a 
+submatrix of M, and the result is the nf elements of udot_f, with udot_p=0.
 
 <h3>Implementation</h3>
 This is a stripped-down version of forward dynamics. It requires the hybrid
-articulated body inertias to have been realized and will initiate
-that calculation if necessary the first time it is called for a given 
+free/prescribed articulated body inertias to have been realized and will 
+initiate that calculation if necessary the first time it is called for a given 
 configuration q. The M^-1*f calculation requires two sweeps of the multibody 
 tree, an inward sweep to accumulate forces, followed by an outward sweep to 
 propagate accelerations.
@@ -1346,14 +1348,15 @@ void calcMInv(const State&, Matrix& MInv) const;
 matrix" or "constraint compliance matrix" W=G*M^-1*~G, where G (mXn) is the 
 acceleration-level constraint Jacobian mapped to generalized coordinates,
 and M (nXn) is the unconstrained system mass matrix. In case there is prescribed
-motion specified with Motion objects, M^-1 here is really Mff^-1, that is, it 
-is restricted to the free (non-prescribed) mobilities, but scattered into a 
-full n X n matrix (conceptually). See multiplyByMInv() and calcMInv() for more 
-information.
+motion specified with Motion objects or mobilizer locking, M^-1 here is really
+M_ff^-1, that is, it is restricted to the free (non-prescribed) mobilities, but 
+scattered into a full n X n matrix (conceptually). See multiplyByMInv() and 
+calcMInv() for more information.
 
-W is the projection of the inverse mass matrix onto the constraint
-manifold. It can be used to solve for the constraint forces that will eliminate
-a given constraint acceleration error:
+W is the projection of the inverse mass matrix into the constraint coordinate
+space (that is, the vector space of the multipliers lambda). It can be used to 
+solve for the constraint forces that will eliminate a given constraint 
+acceleration error:
 <pre>
     (1)     W * lambda = aerr
     (2)     aerr = G*udot - b(t,q,u)
@@ -1388,9 +1391,9 @@ it in O(m*n) time with O(n) intermediate storage, which is a \e lot better.
 void calcProjectedMInv(const State&   s,
                        Matrix&        GMInvGt) const;
 
-/** Given a set of desired constraint-space speed changes, calculate
-the corresponding constraint-space impulses that would cause those changes.
-Here we are solving the equation
+/** Given a set of desired constraint-space speed changes, calculate the
+corresponding constraint-space impulses that would cause those changes. Here we 
+are solving the equation
 <pre>
     W * impulse = deltaV
 </pre>
@@ -1882,11 +1885,11 @@ Given applied forces f_applied, this operator solves this set of equations:
 where udot={udot_f,udot_p}, tau={0,tau_p}. The unknowns are: the free 
 generalized accelerations udot_f, the constraint multipliers lambda, and the 
 prescribed motion generalized forces tau_p. A subset udot_p of udot may have 
-been prescribed as a known function of state via Motion objects associated 
-with the mobilized bodies. On return all the entries in udot will have been 
-set to their calculated or prescribed values, and body spatial accelerations
-A_GB (that is, measured and expressed in Ground) are also returned. Lambda and
-tau_p are necessarily calculated but are not returned here.
+been prescribed as a known function of state via Motion objects or locks 
+associated with the mobilized bodies. On return all the entries in udot will 
+have been set to their calculated or prescribed values, and body spatial 
+accelerations A_GB (that is, measured and expressed in Ground) are also 
+returned. Lambda and tau_p are necessarily calculated but are not returned here.
 
 f_applied is the set of generalized (mobility) forces equivalent to the 
 \a appliedMobilityForces and \a appliedBodyForces arguments supplied here. 
@@ -1899,17 +1902,17 @@ coordinates. Typically these forces will have been calculated as a function of
 state so we will have f_applied(t,q,u,z).
 
 M(t,q), G(t,q,u), and b(t,q,u) are defined by the mobilized bodies and 
-constraints, present in the system. f_inertial(q,u) includes the 
+constraints present in the system. f_inertial(q,u) includes the 
 velocity-dependent gyroscopic and coriolis forces due to rigid body 
 rotations and is extracted internally from the already-realized state. 
 
 Note that this method does not allow you to specify your own prescribed udots; 
 those are calculated from the mobilizers' state-dependent Motion specifications
-that are already part of the system.
+(or are zero due to mobilizer locks) that are already part of the system.
 
 This is an O(n*m + m^3) operator where n is the number of generalized speeds
-and m the number of constraint equations (prescribed motions are counted in n, 
-not m).
+and m the number of constraint equations (mobilities with prescribed motion are
+counted in n, not m).
 
 @par Required stage
   \c Stage::Dynamics **/ 
@@ -1987,7 +1990,8 @@ the system are ignored.
      to the body origin and a torque on the body, each expressed in the 
      Ground frame. Gravity, if present, is specified here as a body force.
      The supplied Vector must be either zero length (interpreted as all-zero)
-     or have exactly one entry per body in the matter subsystem.
+     or have exactly one entry per body in the matter subsystem, starting with
+     Ground as body zero.
 @param[in] knownUdot
      These are the desired generalized accelerations, one per mobility. 
      If this is zero length it will be treated as all-zero; otherwise 
@@ -2032,10 +2036,10 @@ values of the generalized accelerations and constraint multipliers, resp.
 Note that there is no requirement that the given udots satisfy the constraint
 equations; we simply solve the above equation for \c f_residual.
 
-The inertial forces depend on the velocities \c u already realized 
-in the State. Otherwise, only the explicitly-supplied forces affect the 
-results of this operator; any forces that may be defined elsewhere in 
-the system are ignored here.
+The inertial forces depend on the velocities \c u already realized in the State.
+Otherwise, only the explicitly-supplied forces affect the results of this 
+operator; any forces that may be defined elsewhere in the system are ignored 
+here.
 
 @param[in] state
      A State valid for the containing System, already realized to
@@ -2049,7 +2053,8 @@ the system are ignored here.
      to the body origin and a torque on the body, each expressed in the 
      Ground frame. Gravity, if present, is specified here as a body force.
      The supplied Vector must be either zero length (interpreted as all-zero)
-     or have exactly one entry per body in the matter subsystem.
+     or have exactly one entry per body in the matter subsystem, starting with
+     Ground as body zero.
 @param[in] knownUdot
      These are the specified generalized accelerations, one per mobility so
      the length should be nu. If this is zero length it will be treated as 
@@ -2258,7 +2263,8 @@ void calcMobilizerReactionForces
 already been calculated in the given \a state, which must have been realized 
 through Acceleration stage. The result contains entries only for prescribed 
 mobilities; if you want these unpacked into u-space mobility forces, use
-findMotionForces() instead. **/
+findMotionForces() instead. A mobilizer may follow prescribed motion either
+because of a Motion object or a call to MobilizedBody::lock(). **/
 const Vector& getMotionMultipliers(const State& state) const;
 
 /** Calculate the degree to which the supplied \a state does not satisfy the
@@ -2266,7 +2272,7 @@ prescribed motion requirements at a particular Stage. For Position and Velocity
 stage, a call to the prescribe() solver using the same stage will eliminate
 the error. Accelerations should have been calculated to satisfy all prescribed
 accelerations, so the returned value should be zero always. The returned 
-Vector has one element per known q, known u, or known udot. 
+Vector has one element per known (prescribed) q, known u, or known udot. 
 
 The \a state must be realized to Time stage to check Position errors,
 Position stage to check Velocity errors, and Acceleration stage to check
@@ -2279,7 +2285,7 @@ Vector calcMotionErrors(const State& state, const Stage& stage) const;
 /** Find the generalized mobility space forces produced by all the Motion 
 objects active in this system. These are the same values as returned by 
 getMotionMultipliers() but unpacked into u-space slots, with zeroes 
-corresponding to any "regular" mobilities, that is, those whose motion is not 
+corresponding to any "free" mobilities, that is, those whose motion is not 
 prescribed. **/
 void findMotionForces
    (const State&         state,
@@ -2308,10 +2314,14 @@ power means the Motion is adding energy to the system; negative means it is
 removing energy. The \a state must already have been realized through 
 Acceleration stage so that the prescribed motion forces are available.
 
+@param[in]      state
+    A State realized through Acceleration stage from which we obtain the
+    prescribed motion forces and the velocities needed to calculate power.
+
 <h3>Implementation</h3>
 We calculate power=-dot(tau, u) where tau is the set of mobility reaction 
-forces generated by Motion objects (zero for non-prescribed mobilities), and 
-u is the set of generalized speeds. 
+forces generated by Motion objects and mobilizer locks (tau[i]==0 if mobility
+i is free), and u is the set of all generalized speeds. 
 @see calcConstraintPower() **/
 Real calcMotionPower(const State& state) const;
 
@@ -2478,7 +2488,8 @@ center of mass.
 @par Required stage
   \c Stage::Position
 @see realizeCompositeBodyInertias() **/
-const SpatialInertia& getCompositeBodyInertia(const State&, MobilizedBodyIndex) const;
+const SpatialInertia& 
+getCompositeBodyInertia(const State& state, MobilizedBodyIndex mbx) const;
 
 /** Return the articulated body inertia for a particular mobilized body. You
 can call this any time after the State has been realized to Position stage, 
@@ -2490,7 +2501,8 @@ inertia, and zero center of mass.
 @par Required stage
   \c Stage::Position
 @see realizeArticulatedBodyInertias() **/
-const ArticulatedInertia& getArticulatedBodyInertia(const State&, MobilizedBodyIndex) const;
+const ArticulatedInertia& 
+getArticulatedBodyInertia(const State& state, MobilizedBodyIndex mbx) const;
 
 
     // VELOCITY STAGE responses //
@@ -2499,23 +2511,28 @@ const ArticulatedInertia& getArticulatedBodyInertia(const State&, MobilizedBodyI
 inertia.
 @par Required stage
   \c Stage::Velocity **/
-const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyIndex) const;
+const SpatialVec& 
+getGyroscopicForce(const State& state, MobilizedBodyIndex mbx) const;
 
-/** This is the cross-mobilizer incremental contribution to coriolis 
-(angular velocity dependent) acceleration; not too useful, see 
+/** This is the cross-mobilizer incremental contribution to coriolis (angular 
+velocity dependent) acceleration; not too useful, see 
 getTotalCoriolisAcceleration() instead.
 @par Required stage
   \c Stage::Velocity **/
-const SpatialVec& getMobilizerCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
+const SpatialVec& 
+getMobilizerCoriolisAcceleration(const State&       state, 
+                                 MobilizedBodyIndex mbx) const;
 
 /** This is the total coriolis acceleration including the effect of the parent's
 angular velocity as well as the joint's. This is Jdot*u where J is the system
 kinematic Jacobian and u is the current set of generalized speeds in the 
-supplied state. It is thus the remainder term in calculation of body accelerations
-from generalized accelerations udot: since V=J*u, A=J*udot + Jdot*u.
+supplied state. It is thus the remainder term in calculation of body 
+accelerations from generalized accelerations udot: since V=J*u, 
+A=J*udot + Jdot*u.
 @par Required stage
   \c Stage::Velocity **/
-const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
+const SpatialVec& 
+getTotalCoriolisAcceleration(const State& state, MobilizedBodyIndex mbx) const;
 
 
     // DYNAMICS STAGE responses //
@@ -2526,14 +2543,16 @@ ignores the parent's velocity and is not too useful -- see
 getTotalCentrifugalForces() instead.
 @par Required stage
   \c Stage::Dynamics **/
-const SpatialVec& getMobilizerCentrifugalForces(const State&, MobilizedBodyIndex) const;
+const SpatialVec& 
+getMobilizerCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
 
 /** This is the total angular velocity-dependent force acting on this body, 
 including forces due to coriolis acceleration and forces due to rotational
 inertia.
 @par Required stage
   \c Stage::Dynamics **/
-const SpatialVec& getTotalCentrifugalForces(const State&, MobilizedBodyIndex) const;
+const SpatialVec& 
+getTotalCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
 /**@}**/
 
 
@@ -2572,107 +2591,6 @@ calcMobilizerReactionForces().
 void calcMobilizerReactionForcesUsingFreebodyMethod
    (const State&         state, 
     Vector_<SpatialVec>& forcesAtMInG) const;
-/**@}**/
-
-
-
-//==============================================================================
-/** @name                     NOT IMPLEMENTED YET
-
-Methods in this section are just proposed APIs for new functionality. They
-may never be implemented or may change substantially before implementation.
-If you have comments or requests, please post to the Simbody forum. **/
-/**@{**/
-
-
-
-/** NOT IMPLEMENTED YET --
-Calculated constraintErr = G udot - b, the residual error in the 
-acceleration constraint equation given a generalized acceleration udot.
-Requires velocites to have been realized so that b(t,q,u) is 
-available.
-@par Required stage
-  \c Stage::Velocity **/
-void calcAccConstraintErr(const State&,
-    const Vector&   knownUdot,
-    Vector&         constraintErr) const;
-
-
-
-/** NOT IMPLEMENTED YET --
-Calculate the matrix-vector product ~P*v where P is the mp X nu Jacobian 
-of the holonomic velocity constraints, which are the time derivatives of the 
-holonomic constraints (not including quaternion normalization constraints).
-That is, perrdot = dperr/dt = P*u. Here mp is the number of enabled holonomic 
-constraint equations and nu is the number of generalized speeds. Note that this
-method multiplies by ~P (P transpose) so v must be of length mp and PtV is of
-length nu.
-
-@par Complexity:
-The product is formed in O(m+n) time; the matrix P is not formed and no actual
-matrix-vector product is done.
-
-@par Implementation:
-Every SimTK::Constraint implements a method that can calculate in O(m) time the
-spatial (body) and generalized (mobility) forces that result from a given set
-of m Lagrange multipliers lambda, where m is the number of constraint equations 
-generated by that Constraint. (In this case we are just interested in the 
-Constraint's holonomic (position) constraint equations.) We accumulate these 
-across all the Constraints and then a single O(n) pass converts all forces 
-to generalized forces, that is, f = ~P * lambda. This can be used to form an 
-arbitrary ~P*v product with v supplied in place of lambda.
-@par Required stage
-  \c Stage::Position **/
-void calcPtV(const State& s, const Vector& v, Vector& PtV) const;
-
-
-
-/** NOT IMPLEMENTED YET --
-This operator solves this set of equations:
-<pre>
-     M udot + G^T lambda = f_applied - f_bias    (1)
-     G udot              = b                     (2)
-</pre>
-for udot and lambda given udot_p and f_applied, where udot={udot_p, udot_r} 
-and lambda={lambda_p, lambda_r}, with suffix "_p" meaning "prescribed" and 
-"_r" meaning "regular".
-
-We're ignoring any forces and motions that are part of the System, except
-to determine which of the mobilizers are prescribed, in which case their
-accelerations must be supplied here.
-
-Notes:
- - the complete set of udots is returned (udot_p will
-   have been copied into the appropriate slots).
- - lambda is returned in separate lambda_p and lambda_r Vectors.
- - lambda_p's are mobility forces but have to be mapped to
-   the mobilities
- - lambda_p's are \e residual forces; they have the opposite sign from
-   \e applied mobility forces
- - lambda_r's must be mapped to residual mobility forces via G^T
-**/
-void calcDynamicsFromForcesAndMotions(const State&,
-    const Vector&              appliedMobilityForces,  // [nu] or [0]
-    const Vector_<SpatialVec>& appliedBodyForces,      // [nb] or [0]
-    const Vector&              udot_p,                 // [npres] or [0]
-    Vector&                    udot,                   // [nu]    (output only)
-    Vector&                    lambda_p,               // [npres] (output only)
-    Vector&                    lambda_r) const;        // [m]     (output only)
-
-/** NOT IMPLEMENTED YET --
-This is the same as calcDynamicsFromForcesAndMotions() except that the
-Motions are taken from those in the System rather than from arguments.
-All applied forces in the System are ignored; they are overridden by
-the arguments here. Otherwise everything in the discussion of 
-calcDynamicsFromForcesAndMotions() applies here too.
-@see calcDynamicsFromForcesAndMotions() **/
-void calcDynamicsFromForces(const State&,
-    const Vector&              appliedMobilityForces,  // [nu] or [0]
-    const Vector_<SpatialVec>& appliedBodyForces,      // [nb] or [0]
-    Vector&                    udot,                   // [nu]    (output only)
-    Vector&                    lambda_p,               // [npres] (output only)
-    Vector&                    lambda_r) const;        // [m]     (output only) 
-
 /**@}**/
 
 
