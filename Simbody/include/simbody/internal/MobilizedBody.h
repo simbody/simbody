@@ -124,8 +124,8 @@ utilities.
 
 <h3>Mobilizer Terminology and Notation</h3>
 
-Refer to the figure below for the terminology we use when discussing 
-mobilizers and mobilized bodies. 
+Refer to the figure below for the terminology we use when discussing mobilizers 
+and mobilized bodies. 
 
 @image html MobilizerTerminology.png "Terminology and notation for mobilized bodies"
 
@@ -143,20 +143,18 @@ rotation of the mobilizer. That motion is parameterized via generalized
 coordinates q and generalized speeds u, the specific meaning of which is a
 unique property of each type of mobilizer.
 
-In the API below, we'll refer to the current ("this") MobilizedBody as "body
-B". It is the "object" or "main" body with which we are concerned. Often 
-there will be another body mentioned in the argument list as a target for 
-some conversion. That "another" body will be called "body A". The Ground 
-body is abbreviated "G".
+In the API below, we'll refer to the current ("this") MobilizedBody as "body B". 
+It is the "object" or "main" body with which we are concerned. Often there will 
+be another body mentioned in the argument list as a target for some conversion. 
+That "another" body will be called "body A". The Ground body is abbreviated "G".
 
-We use Fo to mean "the origin of frame F", Bc is "the mass center of body 
-B". R_AF is the rotation matrix giving frame F's orientation in frame A, 
-such that a vector v expressed in F is reexpressed in A by v_A = R_AF*v_F.
-X_AF is the spatial transform giving frame F's origin location and 
-orientation in frame A, such that a point P whose location is measured 
-from F's origin Fo and expressed in F by position vector p_FP (or more 
-explicitly p_FoP) is remeasured from frame A's origin Ao and reexpressed 
-in A via p_AP = X_AF*p_FP, where p_AP==p_AoP. 
+We use Fo to mean "the origin of frame F", Bc is "the mass center of body B". 
+R_AF is the rotation matrix giving frame F's orientation in frame A, such that a 
+vector v expressed in F is reexpressed in A by v_A = R_AF*v_F. X_AF is the 
+spatial transform giving frame F's origin location and orientation in frame A, 
+such that a point P whose location is measured from F's origin Fo and expressed 
+in F by position vector p_FP (or more explicitly p_FoP) is remeasured from frame
+A's origin Ao and reexpressed in A via p_AP = X_AF*p_FP, where p_AP==p_AoP. 
 
 <h3>Theory</h3>
 For the mathematical and computational theory behind Simbody's mobilizers, see
@@ -170,14 +168,18 @@ class SimTK_SIMBODY_EXPORT MobilizedBody
 :   public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {
 public:
 
-/// Constructors can take an argument of this type to indicate that the 
-/// mobilizer is being defined in the reverse direction, meaning from 
-/// child to parent. That means that the mobilizer coordinates and speeds
-/// will be defined as though the tree had been built in the opposite
-/// direction. This is a topological setting and can't be changed dynamically.
+/** Constructors can take an argument of this type to indicate that the 
+mobilizer is being defined in the reverse direction, meaning from the outboard
+(child) body to the inboard (parent) body. That means that the mobilizer 
+coordinates and speeds will be defined as though the tree had been built in the 
+opposite direction. It does not actually affect which body is the inboard one
+and which is the outboard; it just affects the definitions of the generalized
+coordinates q and speeds u that parameterize the motion of the outboard body
+with respect to the inboard one. This is a topological setting and can't be 
+changed dynamically. **/
 enum Direction {
-    Forward = 0,
-    Reverse = 1
+    Forward = 0, ///< Use default definitions for q and u (inboard to outboard).
+    Reverse = 1  ///< Define q and u in the reverse order (outboard to inboard).
 };
 
 //------------------------------------------------------------------------------
@@ -241,9 +243,9 @@ Motion::Level getLockByDefaultLevel() const;
     //////////////////////////
 
 //------------------------------------------------------------------------------
-/// @name                    State Access - Bodies
-/// These methods extract already-computed information from the State or 
-/// State cache, or set values in the State.
+/** @name                    State Access - Bodies
+These methods extract already-computed information from the State or 
+State cache, or set values in the State. **/
 //@{
 
 /// Extract from the state cache the already-calculated spatial 
@@ -401,9 +403,11 @@ void setOutboardFrame(State&, const Transform& X_BM) const;
 // End of State Access - Bodies
 //@}
 
-/// @name State Access - Mobilizer generalized coordinates q and speeds u
-/// These methods extract q- or u-related information from the State or State cache, or set
-/// q or u values in the State.
+
+//------------------------------------------------------------------------------
+/** @name   State Access - Mobilizer generalized coordinates q and speeds u
+These methods extract q- or u-related information from the State or State cache, 
+or set q or u values in the State. **/
 //@{
 /// Return the number of generalized coordinates q currently in use by this mobilizer.
 /// State must have been realized to Stage::Model.
@@ -481,131 +485,134 @@ Vector getUDotAsVector(const State&) const;
 /// in the State cache.
 Vector getQDotDotAsVector(const State&) const;
 
-/// Return the tau forces resulting from known (prescribed) acceleration, 
-/// corresponding to each of this mobilizer's mobilities, as a Vector 
-/// of length getNumU().
-///
-/// If this mobilizer has known accelerations (UDots) due to an active
-/// Motion object, the set of generalized forces tau that must be added
-/// in order to produce those accelerations is calculated at Acceleration
-/// stage. There is one scalar tau per mobility and they can be returned
-/// individually or as a Vector. The return value is zero if the
-/// accelerations are free.
-Vector getTauAsVector(const State&) const;
-/// Return one of the tau forces resulting from known (prescribed) 
-/// acceleration, corresponding to one of this mobilizer's mobilities 
-/// as selected here using the \p which parameter, numbered from 
-/// zero to getNumU()-1.
-/// @see getTauAsVector() for more information
-Real getOneTau(const State&, MobilizerUIndex which) const;
+/** Return the generalized forces tau resulting from prescribed (known) 
+acceleration, corresponding to each of this mobilizer's mobilities, as a Vector 
+of length nu=getNumU().
 
+If this mobilizer has prescribed accelerations udot due to an active lock or
+Motion object, the set of generalized forces tau that must be added in order to 
+produce those accelerations is calculated at Acceleration stage. There is one 
+scalar tau per mobility and they can be returned individually or as a Vector. 
+The return value is zero if this mobilizer is currently free. **/
+Vector getTauAsVector(const State& state) const;
 
-/// Set one of the generalized coordinates q to value \p v, in this mobilizer's partition of the matter
-/// subsystem's full q vector in the State. The particular coordinate is selected using the \p which
-/// parameter, numbering from zero to getNumQ()-1.
+/** Return one of the tau forces resulting from prescribed (known) acceleration,
+corresponding to one of this mobilizer's mobilities as selected here using the 
+\a which parameter, numbered from zero to getNumU()-1.
+@see getTauAsVector() for more information **/
+Real getOneTau(const State& state, MobilizerUIndex which) const;
+
+/** Set one of the generalized coordinates q to value \a v, in this mobilizer's 
+partition of the matter subsystem's full q vector in the State. The particular 
+coordinate is selected using the \a which parameter, numbering from zero to 
+getNumQ()-1. **/
 void setOneQ(State&, int which, Real v) const;
-/// Set one of the generalized speeds u to value \p v, in this mobilizer's partition of the matter
-/// subsystem's full u vector in the State. The particular coordinate is selected using the \p which
-/// parameter, numbering from zero to getNumU()-1.
+/** Set one of the generalized speeds u to value \a v, in this mobilizer's 
+partition of the matter subsystem's full u vector in the State. The particular 
+coordinate is selected using the \a which parameter, numbering from zero to 
+getNumU()-1. **/
 void setOneU(State&, int which, Real v) const;
 
-/// Set all of the generalized coordinates q to value \p v (a Vector of length getNumQ()),
-/// in this mobilizer's partition of the matter subsystem's full q vector in the State.
+/** Set all of the generalized coordinates q to value \a v (a Vector of length 
+getNumQ()), in this mobilizer's partition of the matter subsystem's full q 
+vector in the State. **/
 void setQFromVector(State& s, const Vector& v) const;
-/// Set all of the generalized speeds u to value \p v (a Vector of length getNumU()),
-/// in this mobilizer's partition of the matter subsystem's full u vector in the State.
+/** Set all of the generalized speeds u to value \a v (a Vector of length 
+getNumU()), in this mobilizer's partition of the matter subsystem's full u 
+vector in the State. **/
 void setUFromVector(State& s, const Vector& v) const;
 
-/// Adjust this mobilizer's q's to best approximate the supplied Transform
-/// which requests a particular relative orientation and translation between
-/// the "fixed" and "moving" frames connected by this mobilizer.
-///
-/// This set of methods sets the generalized coordinates, or speeds (state
-/// variables) for just the mobilizer associated with this MobilizedBody
-/// (ignoring all other mobilizers and constraints), without requiring knowledge
-/// of the meanings of the individual state variables. The idea here
-/// is to provide a physically-meaningful quantity relating the 
-/// mobilizer's inboard and outboard frames, and then ask the mobilizer
-/// to set its state variables to reproduce that quantity to the
-/// extent it can.
-///
-/// These routines can be called in Stage::Model, however the routines
-/// may consult the current values of the state variables in some cases,
-/// so you must make sure they have been set to reasonable, or at least
-/// innocuous values (zero will work). In no circumstance will any of
-/// these routines look at any state variables which belong to another
-/// mobilizer; they are limited to working locally with one mobilizer.
-///
-/// Routines which specify only translation (linear velocity) may use
-/// rotational coordinates to help satisfy the translation requirement.
-/// An alternate "Only" method is available to forbid modification of 
-/// purely rotational coordinates in that case. When a mobilizer uses
-/// state variables which have combined rotational and translational
-/// character (e.g. a screw joint) consult the documentation for the
-/// mobilizer to find out how it responds to these routines.
-///
-/// There is no guarantee that the desired physical quantity will be
-/// achieved by these routines; you can check on return if you're
-/// worried. Individual mobilizers make specific promises about what
-/// they will do; consult the documentation. These routines do not
-/// throw exceptions even for absurd requests like specifying a
-/// rotation for a sliding mobilizer. Nothing happens if
-/// there are no mobilities here, i.e. Ground or a Weld mobilizer.
+/** Adjust this mobilizer's q's to best approximate the supplied Transform
+which requests a particular relative orientation and translation between the 
+F "fixed" frame and M "moving" frame connected by this mobilizer.
 
-void setQToFitTransform      (State&, const Transform& X_FM) const;
-/// Adjust this mobilizer's q's to best approximate the supplied Rotation matrix
-/// which requests a particular relative orientation between the "fixed"
-/// and "moving" frames connected by this mobilizer.
-/// @see setQToFitTransform()
-void setQToFitRotation       (State&, const Rotation&  R_FM) const;
-/// Adjust this mobilizer's q's to best approximate the supplied position vector
-/// which requests a particular offset between the origins of the "fixed"
-/// and "moving" frames connected by this mobilizer, with <em>any</em> q's (rotational
-/// or translational) being modified if doing so helps satisfy the request.
-/// @see setQToFitTransform()
-void setQToFitTranslation    (State&, const Vec3&      p_FM) const;
+This set of methods sets the generalized coordinates, or speeds (state
+variables) for just the mobilizer associated with this MobilizedBody (ignoring 
+all other mobilizers and constraints), without requiring knowledge of the 
+meanings of the individual state variables. The idea here is to provide a 
+physically-meaningful quantity relating the mobilizer's inboard and outboard 
+frames, and then ask the mobilizer to set its state variables to reproduce that 
+quantity to the extent it can.
 
-/// Adjust this mobilizer's u's (generalized speeds) to best approximate
-/// the supplied spatial velocity \p V_FM which requests the relative angular
-/// and linear velocity between the "fixed" and "moving" frames connected by
-/// this mobilizer. Routines which affect generalized speeds u depend on the generalized
-/// coordinates q already having been set; they never change these coordinates.
-/// @see setQToFitTransform()
-void setUToFitVelocity          (State&, const SpatialVec& V_FM) const;
-/// Adjust this mobilizer's u's (generalized speeds) to best approximate
-/// the supplied angular velocity \p w_FM which requests a particular relative angular
-/// between the "fixed" and "moving" frames connected by
-/// this mobilizer.
-/// @see setQToFitTransform()
-/// @see setUToFitVelocity()
-void setUToFitAngularVelocity   (State&, const Vec3&       w_FM) const;
-/// Adjust <em>any</em> of this mobilizer's u's (generalized speeds) to best approximate
-/// the supplied linear velocity \p v_FM which requests a particular velocity for
-/// the "moving" frame M origin in the "fixed" frame F on the parent where these
-/// are the frames connected by this mobilizer.
-/// @see setQToFitTransform()
-/// @see setUToFitVelocity()
-void setUToFitLinearVelocity    (State&, const Vec3&       v_FM) const;
+These methods can be called in Stage::Model, however the routines may consult 
+the current values of the state variables in some cases, so you must make sure 
+they have been set to reasonable, or at least innocuous values (zero will work). 
+In no circumstance will any of these methods look at any state variables that 
+belong to another mobilizer; they are limited to working locally with just the
+current mobilizer.
 
-/// Expert use only: obtain a column of the hinge matrix H corresponding to
-/// one of this mobilizer's mobilities (actually a column of H_PB_G; what
-/// Jain calls H* and Schwieters calls H^T). This is the matrix that maps
-/// generalized speeds u to the cross-body relative spatial velocity V_PB_G
-/// via V_PB_G=H*u. Note that although H relates child body B to parent
-/// body B, it is expressed in the ground frame G so the resulting cross-
-/// body velocity of B in P is also expressed in G. The supplied state must 
-/// have been realized through Position stage because H varies with this 
-/// mobilizer's generalized coordinates q.
-/// @see getH_FMCol()
+Routines which specify only translation (linear velocity) may use rotational 
+coordinates to help satisfy the translation requirement. An alternate "Only" 
+method is available to forbid modification of purely rotational coordinates in 
+that case. When a mobilizer uses state variables which have combined rotational 
+and translational character (e.g. a screw joint) consult the documentation for 
+the derived MobilizedBody class to find out how that mobilizer responds to these
+routines.
+
+There is no guarantee that the desired physical quantity will be achieved by 
+these routines; you can check on return if you're worried. Individual mobilizers 
+make specific promises about what they will do; consult the documentation. These
+routines do not throw exceptions even for absurd requests like specifying a
+rotation for a sliding mobilizer. Nothing happens if there are no mobilities 
+here, i.e. Ground or a Weld mobilizer. **/
+void setQToFitTransform(State& state, const Transform& X_FM) const;
+
+/** Adjust this mobilizer's q's to best approximate the supplied Rotation matrix
+which requests a particular relative orientation between the "fixed"
+and "moving" frames connected by this mobilizer.
+@see setQToFitTransform() **/
+void setQToFitRotation(State& state, const Rotation& R_FM) const;
+
+/** Adjust this mobilizer's q's to best approximate the supplied position vector
+which requests a particular offset between the origins of the F "fixed" frame
+and M "moving" frame connected by this mobilizer, with \e any q's (rotational
+or translational) being modified if doing so helps satisfy the request.
+@see setQToFitTransform() **/
+void setQToFitTranslation(State& state, const Vec3& p_FM) const;
+
+/** Adjust this mobilizer's u's (generalized speeds) to best approximate
+the supplied spatial velocity \p V_FM which requests the relative angular
+and linear velocity between the "fixed" and "moving" frames connected by
+this mobilizer. Routines which affect generalized speeds u depend on the generalized
+coordinates q already having been set; they never change these coordinates.
+@see setQToFitTransform() **/
+void setUToFitVelocity(State& state, const SpatialVec& V_FM) const;
+
+/** Adjust this mobilizer's u's (generalized speeds) to best approximate
+the supplied angular velocity \p w_FM which requests a particular relative angular
+between the "fixed" and "moving" frames connected by
+this mobilizer.
+@see setQToFitTransform()
+@see setUToFitVelocity() **/
+void setUToFitAngularVelocity(State& state, const Vec3& w_FM) const;
+
+/** Adjust <em>any</em> of this mobilizer's u's (generalized speeds) to best approximate
+the supplied linear velocity \p v_FM which requests a particular velocity for
+the "moving" frame M origin in the "fixed" frame F on the parent where these
+are the frames connected by this mobilizer.
+@see setQToFitTransform()
+@see setUToFitVelocity() **/
+void setUToFitLinearVelocity(State& state, const Vec3& v_FM) const;
+
+/** Expert use only: obtain a column of the hinge matrix H corresponding to
+one of this mobilizer's mobilities (actually a column of H_PB_G; what
+Jain calls H* and Schwieters calls H^T). This is the matrix that maps
+generalized speeds u to the cross-body relative spatial velocity V_PB_G
+via V_PB_G=H*u. Note that although H relates child body B to parent
+body B, it is expressed in the ground frame G so the resulting cross-
+body velocity of B in P is also expressed in G. The supplied state must 
+have been realized through Position stage because H varies with this 
+mobilizer's generalized coordinates q.
+@see getH_FMCol() **/
 SpatialVec getHCol(const State& s, MobilizerUIndex ux) const;
 
-/// Expert use only: obtain a column of the mobilizer-local hinge matrix
-/// H_FM which maps generalized speeds u to cross-mobilizer spatial
-/// velocity V_FM via V_FM=H_FM*u. Note that H and V here are expressed
-/// in the parent body's (inboard) frame F. The supplied state must have
-/// been realized through Position stage because H varies with this 
-/// mobilizer's generalized coordinates q.
-/// @see getHCol()
+/** Expert use only: obtain a column of the mobilizer-local hinge matrix
+H_FM which maps generalized speeds u to cross-mobilizer spatial
+velocity V_FM via V_FM=H_FM*u. Note that H and V here are expressed
+in the parent body's (inboard) frame F. The supplied state must have
+been realized through Position stage because H varies with this 
+mobilizer's generalized coordinates q.
+@see getHCol() **/
 SpatialVec getH_FMCol(const State& s, MobilizerUIndex ux) const;
 
 // End of State Access Methods.
@@ -616,43 +623,41 @@ SpatialVec getH_FMCol(const State& s, MobilizerUIndex ux) const;
     /////////////////////
 
 //------------------------------------------------------------------------------
-/// @name                        Basic Operators
-///
-/// These methods use state variables and Response methods to compute basic
-/// quantities which cannot be precomputed, but which can be implemented 
-/// with an inline combination of basic floating point operations which can
-/// be reliably determined at compile time. The method names and 
-/// descriptions use the following terms:
-/// - Body or ThisBody: the Body B associated with the current 
-///   MobilizedBody. ThisBody is implied when no other Body is mentioned.
-/// - Ground: the "MobilizedBody" G representing the Ground reference 
-///   frame which never moves.
-/// - AnotherBody: the Body A being referenced, which in general is 
-///   neither ThisBody nor Ground.
-/// - Station: a point S fixed on ThisBody B, located by a position 
-///   vector p_BS (or more explicitly, p_BoS) from the B-frame origin 
-///   Bo to the point S, expressed in the B-frame coordinate system.
-/// - Vector: a vector v fixed on ThisBody B, given by a vector v_B 
-///   expressed in the B-frame coordinate system.
-/// - Direction: a unit vector u fixed on ThisBody B, given by a unit
-///   vector u_B expressed in the B-frame coordinate system.
-/// - Frame: an origin and coordinate axes F fixed on ThisBody B, given
-///   by a transform X_BF that locates F's origin (a Station) in B and 
-///   expresses each of F's axes (Directions) in B.
-/// - Origin: the Station located at (0,0,0) in ThisBody frame B, that 
-///   is, body B's origin point.
-/// - MassCenter: the Station on ThisBody B which is the center of mass
-///   for B.
-/// - GroundPoint, GroundVector: a Point P or Vector v on the Ground 
-///   "Body" G. These are measured and expressed in the Ground frame, 
-///   as p_GP or v_G.
-/// - AnotherBodyStation, AnotherBodyVector, etc.: a Station S or Vector
-///   v on AnotherBody A. These are measured and expressed in the A 
-///   frame, as p_AS or v_A.
-/// - Mobilizer frame M: the mobilizer's outboard "moving" frame, fixed
-///   to ThisBody B.
-/// - Mobilizer frame F: the mobilizer's inboard "fixed" frame, fixed to
-///   the parent body P.
+/** @name                        Basic Operators
+
+These methods use state variables and Response methods to compute basic
+quantities which cannot be precomputed, but which can be implemented with an 
+inline combination of basic floating point operations which can be reliably 
+determined at compile time. The method names and descriptions use the following 
+terms:
+ - Body or ThisBody: the Body B associated with the current MobilizedBody. 
+   ThisBody is implied when no other Body is mentioned.
+ - Ground: the "MobilizedBody" G representing the Ground reference frame which 
+   never moves.
+ - AnotherBody: the Body A being referenced, which in general is neither 
+   ThisBody nor Ground.
+ - Station: a point S fixed on ThisBody B, located by a position vector p_BS (or
+   more explicitly, p_BoS) from the B-frame origin Bo to the point S, expressed 
+   in the B-frame coordinate system.
+ - Vector: a vector v fixed on ThisBody B, given by a vector v_B expressed in 
+   the B-frame coordinate system.
+ - Direction: a unit vector u fixed on ThisBody B, given by a unit vector u_B 
+   expressed in the B-frame coordinate system.
+ - Frame: an origin and coordinate axes F fixed on ThisBody B, given by a 
+   transform X_BF that locates F's origin (a Station) in B and expresses each of
+   F's axes (Directions) in B.
+ - Origin: the Station located at (0,0,0) in ThisBody frame B, that is, body B's
+   origin point.
+ - MassCenter: the Station on ThisBody B which is the center of mass for B.
+ - GroundPoint, GroundVector: a Point P or Vector v on the Ground "Body" G. 
+   These are measured and expressed in the Ground frame, as p_GP or v_G.
+ - AnotherBodyStation, AnotherBodyVector, etc.: a Station S or Vector v on 
+   AnotherBody A. These are measured and expressed in the A frame, as p_AS 
+   or v_A.
+ - Mobilizer frame M: the mobilizer's outboard "moving" frame, fixed to 
+   ThisBody B.
+ - Mobilizer frame F: the mobilizer's inboard "fixed" frame, fixed to the parent 
+   body P. **/
 
 //@{
 
@@ -1108,14 +1113,12 @@ MassProperties expressMassPropertiesInAnotherBodyFrame
 //@}
 
 //------------------------------------------------------------------------------
-/// @name                    High-Level Operators
-/// High level operators combine State Access and Basic Operators with run-time tests 
-/// to calculate more complex MoblizedBody-specific quantities, with more complicated
-/// implementations that can exploit special cases at run time.
+/** @name                    High-Level Operators
+High level operators combine State Access and Basic Operators with run-time 
+tests to calculate more complex %MobilizedBody-specific quantities, with more 
+complicated implementations that can exploit special cases at run time. **/
 
-
-//@{
-
+/**@{**/
 /** Return the mass properties of body B, measured from and about the B 
 origin Bo, but expressed in Ground and then returned as a Spatial Inertia 
 Matrix. The mass properties are arranged in the SpatialMat like this:
@@ -1350,7 +1353,7 @@ Real calcMovingPointToPointDistance2ndTimeDerivative(const State& s,
 
 
 // End of High Level Operators.
-//@}
+/**@}**/
 
 
         //////////////////////////
@@ -1365,11 +1368,10 @@ MobilizedBody() {}
 explicit MobilizedBody(MobilizedBodyImpl* r);
 
 //------------------------------------------------------------------------------
-/// @name                Construction and Misc Methods
-/// These methods are the base class services which are used while building 
-/// a concrete MobilizedBody, or to query a MobilizedBody to find out how 
-/// it was built. These are unlikely to be used by end users of 
-/// MobilizedBodies.
+/** @name                Construction and Misc Methods
+These methods are the base class services which are used while building a 
+concrete %MobilizedBody, or to query a %MobilizedBody to find out how it was 
+built. These are unlikely to be used by end users of MobilizedBodies. **/
 //@{
 
 /// Return a const reference to the Body contained within this 
@@ -1605,45 +1607,45 @@ void applyOneMobilityForce(const State& s, int which, Real f,
     updOneFromUPartition(s,which,mobilityForces) += f;
 }
 
-/// Given a generalized force in the q-space of this mobilizer, convert it
-/// to the equivalent generalized mobility force (u-space force). This uses
-/// the kinematic coupling matrix N that appears in equation (1) qdot=N*u.
-/// Here we compute (2) fu = ~N*fq (that's N transpose, not inverse).
-///
-/// Simbody deals with generalized forces in mobility (u) space, but sometimes
-/// these are more convenient to generate in generalized coordinate (q) space.
-/// In that case this utility method is useful to perform the conversion from
-/// q space to u space that is necessary for communicating the force to 
-/// Simbody.
-///
-/// @param[in]      state
-///     A State already realized through Position stage, from which this 
-///     mobilizer's kinematic coupling matrix N(q) is obtained.
-/// @param[in]      fq
-///     This is a generalized force in the space of the generalized
-///     coordinates q rather than the generalized speeds u. The length of
-///     fq must be nq, the number of q's currently being used by this
-///     mobilizer in the given \a state. (This can depend on a Model-stage
-///     state variable.)
-/// @param[out]     fu
-///     This is the generalized force in mobility space (the space of the
-///     generalized speeds u) that is equivalent to fq. \a fu will be 
-///     resized if necessary to length nu, the number of u's being used by
-///     this mobilizer.
-///
-/// <h3>Theory</h3>
-/// The physical quantity power (force times velocity) must not change as a 
-/// result of a change of coordinates. Hence we must have ~fq*qdot==~fu*u
-/// which follows from equations (1) and (2): multiply (1) by ~fq to get 
-/// <pre>
-///     ~fq*qdot= ~fq*N*u
-///             = ~(~N*fq)*u
-///             = ~fu*u           from equation (2).
-/// </pre>
-/// For any mobilizer where qdot==u this simply copies the input to the
-/// output. Otherwise a multiplication by ~N is done, but that is very fast
-/// since N has already been computed. Cost depends on type of mobilizer but
-/// is unlikely to exceed 25 flops.
+/** Given a generalized force in the q-space of this mobilizer, convert it
+to the equivalent generalized mobility force (u-space force). This uses
+the kinematic coupling matrix N that appears in equation (1) qdot=N*u.
+Here we compute (2) fu = ~N*fq (that's N transpose, not inverse).
+
+Simbody deals with generalized forces in mobility (u) space, but sometimes
+these are more convenient to generate in generalized coordinate (q) space.
+In that case this utility method is useful to perform the conversion from
+q space to u space that is necessary for communicating the force to 
+Simbody.
+
+@param[in]      state
+    A State already realized through Position stage, from which this 
+    mobilizer's kinematic coupling matrix N(q) is obtained.
+@param[in]      fq
+    This is a generalized force in the space of the generalized
+    coordinates q rather than the generalized speeds u. The length of
+    fq must be nq, the number of q's currently being used by this
+    mobilizer in the given \a state. (This can depend on a Model-stage
+    state variable.)
+@param[out]     fu
+    This is the generalized force in mobility space (the space of the
+    generalized speeds u) that is equivalent to fq. \a fu will be 
+    resized if necessary to length nu, the number of u's being used by
+    this mobilizer.
+
+<h3>Theory</h3>
+The physical quantity power (force times velocity) must not change as a 
+result of a change of coordinates. Hence we must have ~fq*qdot==~fu*u
+which follows from equations (1) and (2): multiply (1) by ~fq to get 
+<pre>
+    ~fq*qdot= ~fq*N*u
+            = ~(~N*fq)*u
+            = ~fu*u           from equation (2).
+</pre>
+For any mobilizer where qdot==u this simply copies the input to the
+output. Otherwise a multiplication by ~N is done, but that is very fast
+since N has already been computed. Cost depends on type of mobilizer but
+is unlikely to exceed 25 flops. **/
 void convertQForceToUForce(const State&                        state,
                             const Array_<Real,MobilizerQIndex>& fq,
                             Array_<Real,MobilizerUIndex>&       fu) const;
