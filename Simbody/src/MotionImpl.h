@@ -293,14 +293,21 @@ public:
         invalidateTopologyCache();
         defaultU[ux] = u;
     }
+    Real getOneDefaultRate(MobilizerUIndex ux) const {
+        return defaultU[ux];
+    }
 
     const Vec6& getDefaultRates() const {return defaultU;}
 
     void setRates(State& s, const Vec6& u) const {
         updVar<Vec6>(s, currentU) = u;
     }
-    void setOneRate(State& s, MobilizerUIndex i, Real u) const {
-        updVar<Vec6>(s, currentU)[i] = u;
+    void setOneRate(State& s, MobilizerUIndex ux, Real u) const {
+        updVar<Vec6>(s, currentU)[ux] = u;
+    }
+
+    Real getOneRate(const State& s, MobilizerUIndex ux) const {
+        return getVar<Vec6>(s, currentU)[ux];
     }
 
     Motion::Level  getLevelVirtual (const State&) const OVERRIDE_11 

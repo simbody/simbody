@@ -289,11 +289,15 @@ Motion::Steady::setDefaultRate(Real u)
 Motion::Steady& 
 Motion::Steady::setOneDefaultRate(MobilizerUIndex ux, Real u)
 {   updImpl().setOneDefaultRate(ux,u); return *this; }
+Real Motion::Steady::getOneDefaultRate(MobilizerUIndex ux) const
+{   return getImpl().getOneDefaultRate(ux); }
 
 void Motion::Steady::setRate(State& s, Real u) const
 {   getImpl().setRates(s, Vec6(u)); }
 void Motion::Steady::setOneRate(State& s, MobilizerUIndex ux, Real u) const
 {   getImpl().setOneRate(s,ux,u); }
+Real Motion::Steady::getOneRate(const State& s, MobilizerUIndex ux) const
+{   return getImpl().getOneRate(s,ux); }
 
 template <> SimTK_SIMBODY_EXPORT Motion::Steady&
 Motion::Steady::setDefaultRates(const Vec<1>& u)

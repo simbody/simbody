@@ -305,13 +305,19 @@ public:
     template <int N> SimTK_SIMBODY_EXPORT 
     Steady& setDefaultRates(const Vec<N>& u); // instantiated in library
 
+    /** Get the default rate setting for one mobility. **/
+    Real getOneDefaultRate(MobilizerUIndex ux) const;
+
     /** Change the rate to be prescribed by this %Motion when used with the
     given State. All mobilities will use this same rate. **/
-    void setRate(State&, Real u) const; // all axes set to u
+    void setRate(State& state, Real u) const; // all axes set to u
     /** Change the rate this %Motion will prescribe for one mobility when used
     with the given State. Rates for the other mobilities (if there is more than
     one) remain unchanged. **/
-    void setOneRate(State&, MobilizerUIndex, Real u) const;
+    void setOneRate(State& state, MobilizerUIndex ux, Real u) const;
+
+    /** Get the rate setting for one mobility. **/
+    Real getOneRate(const State& state, MobilizerUIndex ux) const;
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Steady, SteadyImpl, Motion);
