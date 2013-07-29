@@ -4681,7 +4681,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     Vector&              tau            = tac.presMotionForces;
 
     // Calculate accelerations produced by these forces in three forms:
-    // body accelerations A_GB, u-space generalized acceleratiosn udot,
+    // body accelerations A_GB, u-space generalized accelerations udot,
     // and q-space generalized accelerations qdotdot.
     calcTreeAccelerations
        (s, *mobilityForcesToUse, *bodyForcesToUse, dc.presUDotPool,
@@ -4689,7 +4689,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
         A_GB, udot, qdotdot, tau);
 
     // Feed the accelerations into the constraint error methods to determine
-    // the acceleratin constraint errors they generate.
+    // the acceleration constraint errors they generate.
     calcConstraintAccelerationErrors(s, A_GB, udot, qdotdot, udotErr);
 }
 //......................CALC TREE FORWARD DYNAMICS OPERATOR ....................
