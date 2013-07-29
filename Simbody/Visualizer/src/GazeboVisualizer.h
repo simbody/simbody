@@ -16,6 +16,9 @@ public:
 
 public:
 
+	virtual void shakeHandsWithGUI(int inPipe, int outPipe) {}
+	virtual void beginScene(Real simTime);
+	virtual void endScene();
     virtual void drawBox(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation);
     virtual void drawEllipsoid(const Transform& transform, const Vec3& scale, 
@@ -39,7 +42,7 @@ public:
 
 	virtual void drawMesh();
 
-private:
+public:
 	void initServer();
 	void initPub();
 private:

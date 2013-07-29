@@ -106,28 +106,28 @@ public:
 
 //	void connectToGazebo();
 
-    void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
-    void beginScene(Real simTime);
-    void finishScene();
-    void drawBox(const Transform& transform, const Vec3& scale, 
+    virtual void shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe);
+    virtual void beginScene(Real simTime);
+    virtual void finishScene();
+    virtual void drawBox(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation);
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, 
+    virtual void drawEllipsoid(const Transform& transform, const Vec3& scale, 
                        const Vec4& color, int representation, 
                        unsigned short resolution);
-    void drawCylinder(const Transform& transform, const Vec3& scale, 
+    virtual void drawCylinder(const Transform& transform, const Vec3& scale, 
                       const Vec4& color, int representation, 
                       unsigned short resolution);
-    void drawCircle(const Transform& transform, const Vec3& scale, 
+    virtual void drawCircle(const Transform& transform, const Vec3& scale, 
                     const Vec4& color, int representation, 
                     unsigned short resolution);
-    void drawPolygonalMesh(const PolygonalMesh& mesh, 
+    virtual void drawPolygonalMesh(const PolygonalMesh& mesh, 
                            const Transform& transform, const Vec3& scale, 
                            const Vec4& color, int representation);
-    void drawLine(const Vec3& end1, const Vec3& end2, const 
+    virtual void drawLine(const Vec3& end1, const Vec3& end2, const 
                   Vec4& color, Real thickness);
-    void drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
+    virtual void drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
                   const std::string& string, bool faceCamera, bool isScreenText);
-    void drawCoords(const Transform& transform, const Vec3& axisLengths, 
+    virtual void drawCoords(const Transform& transform, const Vec3& axisLengths, 
                     const Vec4& color);
     
     void addMenu(const String& title, int id, 

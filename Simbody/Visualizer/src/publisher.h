@@ -19,16 +19,6 @@ public:
 	void makeCylinder();
 	void makeCircle();
 	void makePolygonalMesh();
-
-	void Run();
-private:
-	std::string GetBoxSDF();
-
-private:
-	gazebo::transport::PublisherPtr pub;
-	gazebo::transport::PublisherPtr visPub;
-	gazebo::transport::PublisherPtr makerPub;
-
 };
 
 }

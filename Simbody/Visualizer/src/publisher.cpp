@@ -9,19 +9,16 @@ using namespace SimTK;
 
 Publisher::Publisher()
 {
+	gazebo::load();
 		// Create our node for communication
 		gazebo::transport::NodePtr node(new gazebo::transport::Node());
 		node->Init();
 	
 		// Start transport
-//		gazebo::transport::run();
+		std::cout << "Starting transport" << std::endl;
+		gazebo::transport::run();
+		std::cout << "Finishing transport" << std::endl;
 
-		// Publish to a Gazebo topic
-		pub = node->Advertise<gazebo::msgs::Pose>("~/pose_example");
-
-		visPub = node->Advertise<gazebo::msgs::Visual>("~/visual");
-
-		makerPub = node->Advertise<gazebo::msgs::Factory>("~/factory");
 }
 
 void Publisher::makeBox()
@@ -29,20 +26,6 @@ void Publisher::makeBox()
 	gazebo::gui::BoxMaker maker;
 	maker.CreateTheEntity();
 
-	/*
-		std::cout << "Drawing boxes \n";
-		gazebo::msgs::Visual* visualMsg = new gazebo::msgs::Visual();
-		visualMsg->mutable_geometry()->set_type(gazebo::msgs::Geometry::BOX);
-		visualMsg->mutable_material()->mutable_script()->set_name("Gazebo/TurquoiseGlowOutline");
-
-		gazebo::msgs::Factory msg;
-		gazebo::math::Vector3 p = gazebo::msgs::Convert(visualMsg->pose().position());
-		gazebo::math::Vector3 size = gazebo::msgs::Convert(visualMsg->geometry().box().size());
-
-		msg.set_sdf(this->GetBoxSDF());
-
-		this->makerPub->Publish(msg);
-		*/
 }
 
 void Publisher::makeEllipsoid() 
@@ -64,7 +47,8 @@ void Publisher::makePolygonalMesh()
 {
 
 }
-	/////////////////////////////////////////////////
+
+/*
 void Publisher::Run()
 {
 
@@ -90,3 +74,4 @@ void Publisher::Run()
 	  // Make sure to shut everything down.
 	  gazebo::transport::fini();
 }
+*/

@@ -78,7 +78,7 @@ public:
 			<< "<model name='unit_box_" << counter << "'>"
 			<< "<pose>0 0 0.5 0 0 0</pose>"
 			<< "<link name ='link'>"
-			<<   "<inertial><mass>1.0</mass></inertial>"
+//			<<   "<inertial><mass>1.0</mass></inertial>"
 //			<<   "<collision name ='collision'>"
 //			<<     "<geometry>"
 //			<<       "<box>"
@@ -100,6 +100,7 @@ public:
 			<<     "</material>"
 			<<   "</visual>"
 			<< "</link>"
+			<< "<static>true</static>"
 			<< "</model>"
 			<< "</sdf>";
 

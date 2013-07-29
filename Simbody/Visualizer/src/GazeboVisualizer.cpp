@@ -9,14 +9,28 @@ GazeboVisualizer::GazeboVisualizer()
 {
 //	gazebo::load();
 
-	initServer();
-//	initPub();
+//    pthread_t serverThread;
+//    pthread_create(&serverThread, NULL, initP, this);
+
+//	initServer();
+//	std::cout << "server init complete" << std::endl;
+
+	initPub();
+	std::cout << "publisher init complete" << std::endl;
 }
 
 GazeboVisualizer::~GazeboVisualizer()
 {
-//[	delete server;
-//=	delete publisher;
+	delete server;
+	delete publisher;
+}
+
+void GazeboVisualizer::beginScene(Real simTime)
+{
+}
+
+void GazeboVisualizer::endScene()
+{
 }
 
 void GazeboVisualizer::initServer()
@@ -31,30 +45,31 @@ void GazeboVisualizer::initServer()
  
 void GazeboVisualizer::initPub()
 {
-
+	std::cout << "initializing publisher" << std::endl;
 	publisher = new Publisher();
-
+//	publisher->makeBox();
 }
+
 void GazeboVisualizer::drawBox(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation)
 {
 	std::cout << "DrawBox being called" << std::endl;
-//	publisher->makeBox();
+	publisher->makeBox();
 }
 void GazeboVisualizer::drawEllipsoid(const Transform& transform, const Vec3& scale, 
 		const Vec4& color, int representation, unsigned short resolution)
 {
-//	publisher->makeEllipsoid();
+	publisher->makeEllipsoid();
 }
 void GazeboVisualizer::drawCylinder(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation, unsigned short resolution)
 {
-//	publisher->makeCylinder();
+	publisher->makeCylinder();
 }
 void GazeboVisualizer::drawCircle(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation, unsigned short resolution)
 {
-//	publisher->makeCircle();
+	publisher->makeCircle();
 }
 void GazeboVisualizer::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation)
@@ -77,6 +92,5 @@ void GazeboVisualizer::drawCoords(const Transform& transform, const Vec3& axisLe
 }
 void GazeboVisualizer::drawMesh()
 {
-
 }
 
