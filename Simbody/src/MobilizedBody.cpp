@@ -65,14 +65,59 @@ DecorativeGeometry& MobilizedBody::updInboardDecoration(int i)
 {   return updImpl().inboardGeometry[i]; }
 
 
-void MobilizedBody::lock(State& s, Motion::Level level) const
+void MobilizedBody::
+lock(State& s, Motion::Level level) const
 {   getImpl().lock(s,level); }
+
+void MobilizedBody::
+lockAt(State& s, Real value, Motion::Level level) const
+{   getImpl().lockAt(s,1,&value,level); }
+
+void MobilizedBody::
+lockAt(State& s, const Vector& value, Motion::Level level) const
+{   
+    const MobilizedBodyImpl& impl = getImpl();
+    if (value.hasContiguousData()) {
+        getImpl().lockAt(s,value.size(),&value[0],level); 
+        return;
+    }
+
+    Vector contig(value.size()); // contiguous
+    contig.viewAssign(value); // don't reallocate
+    // This will produce an error if value.size()>7.
+    getImpl().lockAt(s,value.size(),&contig[0],level); 
+}
+
+template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
+lockAt(State& s, const Vec<1>& value, Motion::Level level) const 
+{   getImpl().lockAt(s,1,&value[0],level); }
+template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
+lockAt(State& s, const Vec<2>& value, Motion::Level level) const 
+{   getImpl().lockAt(s,2,&value[0],level); }
+template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
+lockAt(State& s, const Vec<3>& value, Motion::Level level) const 
+{   getImpl().lockAt(s,3,&value[0],level); }
+template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
+lockAt(State& s, const Vec<4>& value, Motion::Level level) const 
+{   getImpl().lockAt(s,4,&value[0],level); }
+template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
+lockAt(State& s, const Vec<5>& value, Motion::Level level) const 
+{   getImpl().lockAt(s,5,&value[0],level); }
+template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
+lockAt(State& s, const Vec<6>& value, Motion::Level level) const 
+{   getImpl().lockAt(s,6,&value[0],level); }
+template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
+lockAt(State& s, const Vec<7>& value, Motion::Level level) const 
+{   getImpl().lockAt(s,7,&value[0],level); }
 
 void MobilizedBody::unlock(State& s) const
 {   getImpl().unlock(s); }
 
 Motion::Level MobilizedBody::getLockLevel(const State& s) const
 {   return getImpl().getLockLevel(s); }
+
+Vector MobilizedBody::getLockValueAsVector(const State& s) const
+{   return getImpl().getLockValueAsVector(s); }
 
 MobilizedBody& MobilizedBody::lockByDefault(Motion::Level level)
 {   updImpl().lockByDefault(level); return *this; } 
@@ -567,7 +612,8 @@ void MobilizedBodyImpl::findMobilizerUs
 // Can't do this until *after* realize(Model) because that's when the q's and
 // u's are sized and the lock-by-default coordinates are recorded, and this 
 // should override those.
-void MobilizedBodyImpl::lock(State& state, Motion::Level level) const {
+void MobilizedBodyImpl::
+lock(State& state, Motion::Level level) const {
     SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state), 
         Stage::Model, "MobilizedBody::lock()");
 
@@ -587,8 +633,61 @@ void MobilizedBodyImpl::lock(State& state, Motion::Level level) const {
         const UIndex uEnd(uStart+nu);
         for (UIndex ux=uStart; ux != uEnd; ++ux) 
             iv.lockedUs[ux] = u[ux];
+    } else if (level == Motion::Acceleration) {
+        UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
+        const UIndex uEnd(uStart+nu);
+        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+            iv.lockedUs[ux] = 0;
     }
 }
+
+void MobilizedBodyImpl::
+lockAt(State& state, int n, const Real* value, Motion::Level level) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state), 
+        Stage::Model, "MobilizedBody::lockAt()");
+
+    SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(state);
+    iv.mobilizerLockLevel[getMyMobilizedBodyIndex()] = level;
+
+    if (level == Motion::Position) {
+        QIndex qStart; int nq; findMobilizerQs(state, qStart, nq);
+        SimTK_ERRCHK3_ALWAYS(n==nq, "MobilizedBody::lockAt()",
+            "Supplied value had wrong length %d for locking at "
+            "%s level; should have been nq=%d.",
+            n, Motion::nameOfLevel(level), nq);
+        for (int i=0; i < nq; ++i) 
+            iv.lockedQs[QIndex(qStart+i)] = value[i];
+    } else if (level == Motion::Velocity || level == Motion::Acceleration) {
+        UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
+        SimTK_ERRCHK3_ALWAYS(n==nu, "MobilizedBody::lockAt()",
+            "Supplied value had wrong length %d for locking at "
+            "%s level; should have been nu=%d.",
+            n, Motion::nameOfLevel(level), nu);
+        for (int i=0; i < nu; ++i) 
+            iv.lockedUs[UIndex(uStart+i)] = value[i];
+    } 
+}
+
+Vector MobilizedBodyImpl::
+getLockValueAsVector(const State& state) const {
+    const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(state);
+    const Motion::Level level = 
+        iv.mobilizerLockLevel[getMyMobilizedBodyIndex()];
+    Vector value;
+    if (level == Motion::Position) {
+        QIndex qStart; int nq; findMobilizerQs(state, qStart, nq);
+        value.resize(nq);
+        for (int i=0; i < nq; ++i) 
+            value[i] = iv.lockedQs[QIndex(qStart+i)];
+    } else if (level == Motion::Velocity || level == Motion::Acceleration) {
+        UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
+        value.resize(nu);
+        for (int i=0; i < nu; ++i) 
+             value[i] = iv.lockedUs[UIndex(uStart+i)];
+    } 
+    return value;
+}
+
 
 // OK to do this after realize(Topology) since we're not looking at q or u.
 // If this was a lock-by-default mobilizer, this will unlock it since the
@@ -766,7 +865,7 @@ void MobilizedBodyImpl::realizePosition(const SBStateDigest& sbs) const {
     const SBInstancePerMobodInfo& instInfo = ic.getMobodInstanceInfo(mbx);
 
     // Note that we only need to deal with explicitly prescribed motion;
-    // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
+    // if the u is prescribed to zero it will be dealt with elsewhere.
     // Prescribed u may be due to nonholonomic prescribed u, or to derivative
     // of holonomic prescribed q, or to a lock(Velocity).
     if (instInfo.uMethod==Motion::Prescribed) {
@@ -830,53 +929,61 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
     const SBInstancePerMobodInfo& instInfo = ic.getMobodInstanceInfo(mbx);
 
     // Note that we only need to deal with explicitly prescribed motion;
-    // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
+    // if the udot is prescribed to zero it will be dealt with elsewhere.
     // Prescribed udot may be due to acceleration-only prescribed udot,
     // derivative of nonholonomic prescribed u, or to 2nd derivative
-    // of holonomic prescribed q. (A lock always prescribes the udot to zero
-    // so isn't dealt with here.)
+    // of holonomic prescribed q, or to a lock(Acceleration).
     if (instInfo.udotMethod==Motion::Prescribed) {
-        // Accelerations are prescribed because of a Motion.
-        assert(hasMotion() && !iv.prescribedMotionIsDisabled[mbx]);
 
         const SBModelCache&         mc        = sbs.getModelCache();
         const SBModelPerMobodInfo&  modelInfo = mc.getMobodModelInfo(mbx);
         const int                   nu        = modelInfo.nUInUse;
-        const UIndex                ux        = modelInfo.firstUIndex;
+        const UIndex                uStart    = modelInfo.firstUIndex;
         const PresUDotPoolIndex     pudx      = instInfo.firstPresUDot;
         SBDynamicsCache&            dc        = sbs.updDynamicsCache();
-        const MotionImpl&           motion    = getMotion().getImpl();
         Real*                       presUDotp = &dc.presUDotPool[pudx];
 
-        if (instInfo.qMethod==Motion::Prescribed) {
-            // Holonomic
-            const int nq = modelInfo.nQInUse;
-            const RigidBodyNode& rbn = getMyRigidBodyNode();
+        if (iv.mobilizerLockLevel[mbx] != Motion::NoLevel) {
+            // Accelerations are prescribed because of a lock.
+            assert(iv.mobilizerLockLevel[mbx] == Motion::Acceleration);
+            for (int i=0; i < nu; ++i)
+                presUDotp[i] = iv.lockedUs[UIndex(uStart+i)];
+        } else {
+            // Accelerations are prescribed because of a Motion.
+            assert(hasMotion() && !iv.prescribedMotionIsDisabled[mbx]);
+            const MotionImpl& motion = getMotion().getImpl();
 
-            if (rbn.isQDotAlwaysTheSameAsU()) {
-                assert(nq==nu);
-                motion.calcPrescribedPositionDotDot(sbs.getState(), nu,
-                                                    presUDotp);
-            } else {
-                Real ndotU[8]; // remainder term NDot*u (nq of these; max is 7)
-                const Vector& u = sbs.getU();
-                rbn.multiplyByNDot(sbs, false, &u[ux], ndotU);
+            if (instInfo.qMethod==Motion::Prescribed) {
+                // Holonomic
+                const int nq = modelInfo.nQInUse;
+                const RigidBodyNode& rbn = getMyRigidBodyNode();
 
-                Real qdotdot[8]; // nq of these -- max is 7
-                motion.calcPrescribedPositionDotDot(sbs.getState(), nq, qdotdot);
+                if (rbn.isQDotAlwaysTheSameAsU()) {
+                    assert(nq==nu);
+                    motion.calcPrescribedPositionDotDot(sbs.getState(), nu,
+                                                        presUDotp);
+                } else {
+                    Real ndotU[8]; // remainder term NDot*u (nq; max is 7)
+                    const Vector& u = sbs.getU();
+                    rbn.multiplyByNDot(sbs, false, &u[uStart], ndotU);
 
-                for (int i=0; i < nq; ++i)
-                    qdotdot[i] -= ndotU[i]; // velocity correction
+                    Real qdotdot[8]; // nq of these -- max is 7
+                    motion.calcPrescribedPositionDotDot(sbs.getState(), nq, 
+                                                        qdotdot);
 
-                // udot = N^-1 (qdotdot - NDot*u)
-                rbn.multiplyByNInv(sbs, false, qdotdot, presUDotp);
+                    for (int i=0; i < nq; ++i)
+                        qdotdot[i] -= ndotU[i]; // velocity correction
+
+                    // udot = N^-1 (qdotdot - NDot*u)
+                    rbn.multiplyByNInv(sbs, false, qdotdot, presUDotp);
+                }
+            } else if (instInfo.uMethod==Motion::Prescribed) { 
+                // Non-holonomic
+                motion.calcPrescribedVelocityDot(sbs.getState(), nu, presUDotp);
+            } else { 
+                // Acceleration-only
+                motion.calcPrescribedAcceleration(sbs.getState(), nu, presUDotp);
             }
-        } else if (instInfo.uMethod==Motion::Prescribed) { 
-            // Non-holonomic
-            motion.calcPrescribedVelocityDot(sbs.getState(), nu, presUDotp);
-        } else { 
-            // Acceleration-only
-            motion.calcPrescribedAcceleration(sbs.getState(), nu, presUDotp);
         }
     }
 

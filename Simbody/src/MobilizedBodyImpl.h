@@ -73,8 +73,10 @@ public:
 
 
     void lock(State& state, Motion::Level level) const;
+    void lockAt(State& state, int n, const Real* value, Motion::Level level) const;
     void unlock(State& state) const;
     Motion::Level getLockLevel(const State& state) const;
+    Vector getLockValueAsVector(const State& state) const;
     void lockByDefault(Motion::Level level)
     {   invalidateTopologyCache(); defaultLockLevel=level; }
     Motion::Level getLockByDefaultLevel() const

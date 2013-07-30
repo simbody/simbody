@@ -34,7 +34,7 @@ MobilizedBody is an abstract base class handle, with concrete classes
 defined for each kind of mobilizer. There are a set of built-in mobilizers
 and a generic "Custom" mobilizer (an actual abstract base class) from
 which advanced users may derive their own mobilizers.
- **/
+**/
 
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
@@ -188,51 +188,85 @@ enum Direction {
 Every %MobilizedBody object supports locking and unlocking of the mobilizer it
 contains. You can lock the mobilizer's position, velocity, or acceleration. In 
 all cases the generalized accelerations udot of a locked mobilizer are 
-prescribed to zero. If you lock just the accelerations, then velocity and 
-position remain free. If you lock velocity, then the generalized speeds u are 
-prescribed to their current values taken from the state, and positions will 
-remain free. If you lock position (the default locking level) then the 
-generalized coordinates q are prescribed to their current values taken from the
-state and the speeds u are prescribed to zero.
+prescribed. If you lock just the accelerations, then velocity and position 
+remain free. If you lock velocity, then the generalized speeds u are prescribed 
+to specified values, accelerations udot are prescribed to zero, and positions 
+will remain free. If you lock position (the default locking level) then the 
+generalized coordinates q are prescribed to specified values and the speeds u 
+and accelerations udot are prescribed to zero. Prescribed values may be obtained
+from the current state, or set explicitly.
 
 You can also specify that a mobilizer is locked by default (at acceleration,
 velocity, or position level). In that case the prescribed value is recorded
-when the state is realized to Stage::Model. 
+when the state is realized to Stage::Model, using values taken from the
+state at that time.
 
 If this mobilizer is driven by a Motion object, locking overrides that while
 the lock is active; when unlocked the Motion object resumes control. **/
 /**@{**/
 /** Lock the contained mobilizer's position or velocity, or lock the 
 acceleration to zero, depending on the \p level parameter. The prescribed 
-position or velocity is taken from the \p state and recorded. If the 
-mobilizer was already locked, the new lock specification overrides it.
-The \p state must already have been realized to at least Stage::Model and 
-will be lowered to Stage::Model on return since a lock is an instance-stage
-change. Note that if there is a Motion controlling this mobilizer, it is
-effectively disabled while the mobilizer is locked. **/ 
+position or velocity is taken from \p state and recorded. If the mobilizer was 
+already locked, the new lock specification overrides it. The \p state must 
+already have been realized to at least Stage::Model and will be lowered to 
+Stage::Model on return since a lock is an Instance-stage change. **/ 
 void lock(State& state, Motion::Level level=Motion::Position) const;
+
+/** Lock this mobilizer's q, u, or udot to the given scalar \p value, depending 
+on \p level. This is only permitted for mobilizers that have just a single
+q, u, or udot, such as a Pin or Slider mobilizer. **/
+void lockAt(State& state, Real value, 
+            Motion::Level level=Motion::Position) const;
+
+/** Lock this mobilizer's q, u, or udot to the given Vector \p value, depending 
+on \p level. The Vector must be the expected length, either nq=getNumQ() for
+the default Motion::Position level, or nu=getNumU() for Motion::Velocity or
+Motion::Acceleration levels. 
+@see getNumQ(), getNumU() **/
+void lockAt(State& state, const Vector& value, 
+            Motion::Level level=Motion::Position) const;
+
+/** Lock this mobilizer's q, u, or udot to the given Vec\<N\> \p value, 
+depending on the \p level. The size N of the given Vec must match the expected 
+length, either nq=getNumQ() for the default Motion::Position level, or 
+nu=getNumU() for Motion::Velocity or Motion::Acceleration levels.  
+@see getNumQ(), getNumU() **/
+template <int N> SimTK_SIMBODY_EXPORT // instantiated in library
+void lockAt(State& state, const Vec<N>& value,
+            Motion::Level level=Motion::Position) const;
+
 /** Unlock this mobilizer, returning it to its normal behavior which may be
 free motion or may be controlled by a Motion object. If the mobilizer is
 already unlocked nothing happens. **/
 void unlock(State& state) const;
+
 /** Check whether this mobilizer is currently locked in the given \p state. **/
 bool isLocked(const State& state) const 
 {   return getLockLevel(state)!=Motion::NoLevel; }
+
 /** Returns the lock level if the mobilizer is locked in the given \p state, 
 otherwise Motion::NoLevel. **/
 Motion::Level getLockLevel(const State& state) const;
 
+/** Return the q, u, or udot value at which this mobilizer is locked, depending
+on the lock level, as a Vector of the appropriate length. If the mobilizer is
+not currently locked, a zero-length Vector is returned. **/
+Vector getLockValueAsVector(const State& state) const;
+
 /** Change whether this mobilizer is initially locked. On construction the
-mobilizer is unlocked by default; you can change that here. To specify that the 
-motion is unlocked, use Motion::NoLevel as the \p level. This is a topological
-change; you'll have to call realizeTopology() again and get a new State if
-you call this method. If the default lock is at the position or velocity
-level, the required q or u value is recorded at the time a \p state is
-realized to Stage::Model. **/
+mobilizer is unlocked by default; you can change that here. To respecify that 
+the motion is unlocked, use Motion::NoLevel as the \p level. This is a 
+topological change; you'll have to call realizeTopology() again and get a new 
+State if you call this method. If the default lock is at the position or 
+velocity level, the required q or u value is recorded at the time a \p state is
+realized to Stage::Model. A default Motion::Acceleration lock always prescribes
+the accelerations udot to zero. **/
 MobilizedBody& lockByDefault(Motion::Level level=Motion::Position);
+
 /** Check whether this mobilizer is to be locked in the default state. **/
 bool isLockedByDefault() const 
 {   return getLockByDefaultLevel()!=Motion::NoLevel; }
+
 /** Returns the level at which the mobilizer is locked by default, if it is
 locked by default, otherwise Motion::NoLevel. **/
 Motion::Level getLockByDefaultLevel() const;

@@ -1255,7 +1255,7 @@ public:
 
     Array_<Motion::Level, MobilizedBodyIndex>   mobilizerLockLevel;
     Vector                                      lockedQs;
-    Vector                                      lockedUs;
+    Vector                                      lockedUs; // also used for udot
 
     Array_<bool,          MobilizedBodyIndex>   prescribedMotionIsDisabled;
 

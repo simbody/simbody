@@ -450,7 +450,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // SBInstanceVars were mostly allocated at topology stage but the lockedQs
     // and lockedUs values can't be initialized until now. We're setting all
     // of them although only the ones that are lock-by-default will actually
-    // get used. 
+    // get used. Note that lockedUs does double duty since it holds both u
+    // and udot values; the udot ones must be initialized to zero.
 
     iv.lockedQs.resize(maxNQTotal); 
     setDefaultPositionValues(mv, iv.lockedQs); // set locked q's to init values
@@ -466,8 +467,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // Velocity variables are just the generalized speeds u, which the State 
     // knows how to deal with. Zero is always a reasonable value for velocity,
     // so we'll initialize it here.
-    iv.lockedUs.resize(DOFTotal);
+    iv.lockedUs.resize(DOFTotal); // also holds locked udots
     setDefaultVelocityValues(mv, iv.lockedUs); // set locked Us to initial value
+    // We'll overwrite the locked udots to zero below after we've used the
+    // current setting to initialize the u's.
 
     mc.instanceCacheIndex = 
         allocateCacheEntry(s, Stage::Instance, new Value<SBInstanceCache>());
@@ -515,6 +518,20 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
     // Initialize state's u values to the same values we put into lockedUs.
     mc.uIndex = allocateU(s, iv.lockedUs); // set state to same initial value
+
+    // Done with the default u's stored in iv.lockedUs; now overwrite any
+    // that were locked by default at Motion::Acceleration; those must be zero.
+    for (MobilizedBodyIndex mbx(1); mbx < mobilizedBodies.size(); ++mbx) {
+        if (iv.mobilizerLockLevel[mbx] != Motion::Acceleration)
+            continue;
+
+        const SBModelPerMobodInfo& mbInfo = mc.updMobodModelInfo(mbx);
+        const int    nu     = mbInfo.nUInUse;
+        const UIndex uStart = mbInfo.firstUIndex;
+        for (int i=0; i < nu; ++i)
+            iv.lockedUs[UIndex(uStart+i)] = 0;
+    }
+
     mc.uVarsIndex.invalidate(); // no velocity-stage vars other than u
 
     // Basic tree velocity kinematics can be calculated any time after Position
@@ -695,12 +712,31 @@ realizeSubsystemInstanceImpl(const State& s) const {
 
         const Motion::Level lockLevel = iv.mobilizerLockLevel[mbx];
         if (lockLevel != Motion::NoLevel) { // locked
-            instanceInfo.udotMethod = Motion::Zero;
-            if (lockLevel == Motion::Velocity)
-                instanceInfo.uMethod = Motion::Prescribed;
-            else if (lockLevel == Motion::Position) {
-                instanceInfo.qMethod = Motion::Prescribed;
+            if (lockLevel == Motion::Acceleration) {
+                // If all the udots are zero, the method is Motion::Zero;
+                // otherwise, it is Motion::Prescribed.
+                instanceInfo.udotMethod = Motion::Zero;
+                for (int i=0; i<nu; ++i)
+                    if (iv.lockedUs[UIndex(ux+i)] != 0) {
+                        instanceInfo.udotMethod = Motion::Prescribed;
+                        break;
+                    }
+            } else if (lockLevel == Motion::Velocity) {
+                // If all the u's are zero, the method is Motion::Zero;
+                // otherwise, it is Motion::Prescribed.
                 instanceInfo.uMethod = Motion::Zero;
+                for (int i=0; i<nu; ++i)
+                    if (iv.lockedUs[UIndex(ux+i)] != 0) {
+                        instanceInfo.uMethod = Motion::Prescribed;
+                        break;
+                    }
+                instanceInfo.udotMethod = Motion::Zero;
+            } else if (lockLevel == Motion::Position) {
+                //TODO: Motion::Zero should mean identity transform; not the
+                //same as q==0. Always use Prescribed for positions for now.
+                instanceInfo.qMethod    = Motion::Prescribed;
+                instanceInfo.uMethod    = Motion::Zero;
+                instanceInfo.udotMethod = Motion::Zero;
             }
         } else if (mobod.hasMotion() && !iv.prescribedMotionIsDisabled[mbx]) {
             // Not locked, but has an active Motion.
