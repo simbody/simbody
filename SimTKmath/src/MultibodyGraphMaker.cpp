@@ -298,14 +298,18 @@ void MultibodyGraphMaker::generateGraph() {
 //                              CLEAR GRAPH
 //------------------------------------------------------------------------------
 void MultibodyGraphMaker::clearGraph() {
-    for (int bn=1; bn < getNumBodies(); ++bn)   // skip Ground
+    for (int bn=1; bn < getNumBodies(); ++bn) {  // skip Ground
+        if (bodies[bn].isSlave()) {
+            // Assumption: all slave bodies are clustered at the end of the body array
+            bodies.erase(bodies.begin() + bn, bodies.begin() + bodies.size());
+            break;
+        }
         updBody(bn).forgetGraph(*this);
+    }
 
     for (int jn=0; jn < getNumJoints(); ++jn)
-        if (updJoint(jn).forgetGraph(*this)) {
+        if (updJoint(jn).forgetGraph(*this))
             --jn;
-            continue;
-        }
 
     mobilizers.clear();
     constraints.clear();
@@ -723,16 +727,10 @@ bool MultibodyGraphMaker::bodiesAreConnected(int b1, int b2) const {
 //------------------------------------------------------------------------------
 // Restore the Body to its state prior to generateGraph()
 void MultibodyGraphMaker::Body::forgetGraph(MultibodyGraphMaker& graph)
-{
+{   
     level = -1;
     mobilizer = -1;
     master = -1;
-    // Assumption: all slave bodies are appended after the user added
-    // bodies. So the removal of slave bodies won't affect the indices of 
-    // user added bodies.
-    for (unsigned int sn=0; sn < slaves.size(); ++sn) {
-        graph.deleteBody(graph.getBody(slaves[sn]).name);
-    }
     slaves.clear();
 }
 
