@@ -29,7 +29,7 @@ void GazeboVisualizer::beginScene(Real simTime)
 {
 }
 
-void GazeboVisualizer::endScene()
+void GazeboVisualizer::finishScene()
 {
 }
 
@@ -53,8 +53,7 @@ void GazeboVisualizer::initPub()
 void GazeboVisualizer::drawBox(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation)
 {
-	std::cout << "DrawBox being called" << std::endl;
-	publisher->makeBox();
+	publisher->makeBox(transform, scale, color, representation);
 }
 void GazeboVisualizer::drawEllipsoid(const Transform& transform, const Vec3& scale, 
 		const Vec4& color, int representation, unsigned short resolution)
@@ -64,7 +63,7 @@ void GazeboVisualizer::drawEllipsoid(const Transform& transform, const Vec3& sca
 void GazeboVisualizer::drawCylinder(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation, unsigned short resolution)
 {
-	publisher->makeCylinder();
+	publisher->makeCylinder(transform, scale, color, representation, resolution);
 }
 void GazeboVisualizer::drawCircle(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation, unsigned short resolution)

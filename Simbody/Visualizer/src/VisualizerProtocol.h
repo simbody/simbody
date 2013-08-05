@@ -130,22 +130,22 @@ public:
     virtual void drawCoords(const Transform& transform, const Vec3& axisLengths, 
                     const Vec4& color);
     
-    void addMenu(const String& title, int id, 
+    virtual void addMenu(const String& title, int id, 
                  const Array_<std::pair<String, int> >& items);
     void addSlider(const String& title, int id, Real min, Real max, Real value);
     void setSliderValue(int id, Real newValue) const;
     void setSliderRange(int id, Real newMin, Real newMax) const;
     
-    void setSystemUpDirection(const CoordinateDirection& upDir);
-    void setGroundHeight(Real height);
-    void setWindowTitle(const String& title) const;
-    void setMaxFrameRate(Real rateInFPS) const;
-    void setBackgroundColor(const Vec3& color) const;
-    void setShowShadows(bool showShadows) const;
+    virtual void setSystemUpDirection(const CoordinateDirection& upDir);
+    virtual void setGroundHeight(Real height);
+    virtual void setWindowTitle(const String& title) const;
+    virtual void setMaxFrameRate(Real rateInFPS) const;
+    virtual void setBackgroundColor(const Vec3& color) const;
+    virtual void setShowShadows(bool showShadows) const;
     void setShowFrameRate(bool showFrameRate) const;
     void setShowSimTime(bool showSimTime) const;
     void setShowFrameNumber(bool showFrameNumber) const;
-    void setBackgroundType(Visualizer::BackgroundType type) const;
+    virtual void setBackgroundType(Visualizer::BackgroundType type) const;
     void setCameraTransform(const Transform& transform) const;
     void zoomCamera() const;
     void lookAt(const Vec3& point, const Vec3& upDirection) const;

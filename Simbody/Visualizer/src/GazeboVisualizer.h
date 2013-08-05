@@ -18,7 +18,7 @@ public:
 
 	virtual void shakeHandsWithGUI(int inPipe, int outPipe) {}
 	virtual void beginScene(Real simTime);
-	virtual void endScene();
+	virtual void finishScene();
     virtual void drawBox(const Transform& transform, const Vec3& scale, 
                  const Vec4& color, int representation);
     virtual void drawEllipsoid(const Transform& transform, const Vec3& scale, 
@@ -41,6 +41,13 @@ public:
                     const Vec4& color);
 
 	virtual void drawMesh();
+
+	virtual void setMaxFrameRate(Real rateInFPS) const {}
+    virtual void setBackgroundColor(const Vec3& color) const {}
+    virtual void setBackgroundType(Visualizer::BackgroundType type) const {}
+    virtual void setSystemUpDirection(const CoordinateDirection& upDir) {}
+    virtual void addMenu(const String& title, int id, 
+                 const Array_<std::pair<String, int> >& items) {}
 
 public:
 	void initServer();

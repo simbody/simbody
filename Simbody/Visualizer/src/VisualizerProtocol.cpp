@@ -205,9 +205,9 @@ VisualizerProtocol::VisualizerProtocol
     // Launch the GUI application. We'll first look for one in the same directory
     // as the running executable; then if that doesn't work we'll look in the
     // bin subdirectory of the SimTK installation.
-	const char* GuiAppName = "VisualizerGUI";
+//	const char* GuiAppName = "VisualizerGUI";
 //    const char* GuiAppName = "OSGVisualizer";
-//    const char* GuiAppName = "OgreVisualizer";
+    const char* GuiAppName = "OgreVisualizer";
 
 //	connectToGazebo();
 
