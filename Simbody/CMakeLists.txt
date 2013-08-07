@@ -42,7 +42,7 @@ INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
 	            ${SimTKCOMMON_INCLUDE_DIRECTORIES}
 	            ${SimTKMATH_INCLUDE_DIRECTORIES})
 
-message("Gazebo libraries ${GAZEBO_LIBRARIES}")
+			#message("Gazebo libraries ${GAZEBO_INCLUDE_DIRS}")
 
 include_directories(${GAZEBO_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 link_directories(${GAZEBO_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})

@@ -7,6 +7,7 @@
 
 using namespace SimTK;
 using namespace gazebo;
+using namespace std;
 
 Publisher::Publisher()
 {
@@ -17,7 +18,7 @@ Publisher::Publisher()
 	
 		gazebo::transport::run();
 
-		this->drawPub = this->node->Advertise<msgs::Drawing>("~/draw");
+		this->drawingPub = this->node->Advertise<msgs::Drawing>("~/draw");
 		this->visPub = this->node->Advertise<msgs::Visual>("~/visual");
 		this->makerPub = this->node->Advertise<msgs::Factory>("~/factory");
 		this->requestPub = this->node->Advertise<msgs::Request>("~/request");
@@ -58,8 +59,14 @@ void Publisher::makeBox(const Transform& transform, const Vec3& scale, const Vec
 	visPub->Publish(*visualMsg);
 }
 
-void Publisher::makeEllipsoid() 
+void Publisher::makeEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh * mesh) 
 {
+	msgs::Drawing* drawingMsg = new msgs::Drawing();	
+	
+	drawingMsg->set_name("ellipsoid");
+	drawingMsg->set_visible(true);
+	this->makeMesh(transform, scale, colour, representation, mesh, drawingMsg);
+	drawingPub->Publish(*drawingMsg);
 
 }
 
@@ -79,7 +86,7 @@ void Publisher::makeCylinder(const Transform& transform, const Vec3& scale, cons
 	// Setting scale
 	//math::Vector3 scale_g(scale[0], scale[1], scale[2]);
 	visualMsg->mutable_geometry()->mutable_cylinder()->set_radius(scale[0]);
-	visualMsg->mutable_geometry()->mutable_cylinder()->set_length(scale[1]);
+	visualMsg->mutable_geometry()->mutable_cylinder()->set_length(2*scale[1]); //half height?
 
 	// Setting colour
 	common::Color colour_g(colour[0], colour[1], colour[2]);
@@ -99,3 +106,78 @@ void Publisher::makePolygonalMesh()
 //	gazebo::gui::MeshMaker maker;
 //	maker.CreateTheEntity();
 }
+
+void Publisher::makeMesh(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const CustomMesh* mesh, msgs::Drawing* drawingMsg)
+{
+	common::Color colour_g(colour[0], colour[1], colour[2]);
+
+	if(representation == DecorativeGeometry::DrawSurface)
+	{
+		drawingMsg->set_mode(msgs::Drawing::TRIANGLE_LIST);
+
+		const vector<unsigned short> faces = mesh->getFaces();
+		const vector<float> vertices = mesh->getVertices();
+		const vector<float> normals = mesh->getNormals();
+
+		for(int i=0; i < vertices.size(); i+=3)
+		{	
+			msgs::Drawing::Point* p = drawingMsg->add_point();
+			msgs::Set(p->mutable_position(), math::Vector3(vertices.at(i), vertices.at(i+1), vertices.at(i+2)));
+			msgs::Set(p->mutable_color(), colour_g);
+		}
+
+		for(int i=0; i < normals.size(); i+=3)
+		{
+			msgs::Drawing::Normal* n = drawingMsg->add_normal();
+			msgs::Set(n->mutable_point(), math::Vector3(normals.at(i), normals.at(i+1), normals.at(i+2)));
+		}
+
+		for(int i=0; i < faces.size(); i+=3)
+		{
+			msgs::Drawing::Face* f = drawingMsg->add_edge();
+			msgs::Set(f->mutable_edge(), math::Vector3(faces.at(i), faces.at(i+1), faces.at(i+2)));
+		}
+
+	}
+	else if(representation == DecorativeGeometry::DrawPoints)
+	{
+		drawingMsg->set_mode(msgs::Drawing::POINT_LIST);
+
+		vector<float> vertices = mesh->getVertices();
+		for(int i=0; i < vertices.size(); i+=3)
+		{	
+			msgs::Drawing::Point* p = drawingMsg->add_point();
+			msgs::Set(p->mutable_position(), math::Vector3(vertices.at(i), vertices.at(i+1), vertices.at(i+2)));
+			msgs::Set(p->mutable_color(), colour_g);
+		}
+
+	}
+	else if(representation == DecorativeGeometry::DrawWireframe)
+	{
+		drawingMsg->set_mode(msgs::Drawing::LINE_LIST);
+
+		vector<float> vertices = mesh->getVertices();
+		vector<float> normals = mesh->getNormals();
+
+		for(int i=0; i < vertices.size(); i+=3)
+		{	
+			msgs::Drawing::Point* p = drawingMsg->add_point();
+			msgs::Set(p->mutable_position(), math::Vector3(vertices.at(i), vertices.at(i+1), vertices.at(i+2)));
+			msgs::Set(p->mutable_color(), colour_g);
+		}
+
+		for(int i=0; i < normals.size(); i+=3)
+		{
+			msgs::Drawing::Normal* n = drawingMsg->add_normal();
+			msgs::Set(n->mutable_point(), math::Vector3(normals.at(i), normals.at(i+1), normals.at(i+2)));
+		}
+
+	}
+	else
+	{
+		assert(false);
+		drawingMsg->set_visible(false);
+	}
+
+}
+

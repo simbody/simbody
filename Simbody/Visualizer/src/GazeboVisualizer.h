@@ -55,6 +55,11 @@ public:
 private:
 	FakeServer * server;
 	Publisher * publisher;
+
+	CustomMesh* makeSphere(unsigned short resolution);
+	void addVec(std::vector<float>& data, float x, float y, float z);
+	void addVec(std::vector<unsigned short>& data, float x, float y, float z);
+
 };
 
 }

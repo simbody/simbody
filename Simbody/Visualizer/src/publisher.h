@@ -6,7 +6,7 @@
 #include <math/gzmath.hh>
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/Visualizer.h"
+#include "SimbodyScene.h"
 
 namespace SimTK 
 {
@@ -18,15 +18,18 @@ public:
 	Publisher();
 
 	void makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation);
-	void makeEllipsoid();
+	void makeEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh * mesh);
 	void makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution);
 	void makeCircle();
 	void makePolygonalMesh();
 
 private:
+	void makeMesh(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const CustomMesh* mesh, gazebo::msgs::Drawing* drawingMsg);	
+
+private:
 	gazebo::transport::NodePtr node;
 
-	gazebo::transport::PublisherPtr drawPub;
+	gazebo::transport::PublisherPtr drawingPub;
 	gazebo::transport::PublisherPtr visPub;
 	gazebo::transport::PublisherPtr makerPub;
 	gazebo::transport::PublisherPtr requestPub;
