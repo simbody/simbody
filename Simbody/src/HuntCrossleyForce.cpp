@@ -141,7 +141,10 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         // Calculate the Hunt-Crossley force.
         
         const Real f = fH*(1+Real(1.5)*c*vnormal);
-        Vec3 force = (f > 0 ? f*normal : Vec3(0));
+        if (f <= 0) 
+            return;
+
+        Vec3 force = f*normal;
         
         // Calculate the friction force.
         
