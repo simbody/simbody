@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -196,7 +196,6 @@ static void makeCube(Real h, PolygonalMesh& cube);
 static void makeTetrahedron(Real r, PolygonalMesh& tet);
 static void makePyramid(Real baseSideLength, PolygonalMesh& pyramid);
 static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
-static void makeSphere(Real radius, int level, PolygonalMesh& sphere);
 
 
 int main() {
@@ -210,28 +209,29 @@ int main() {
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
+    contactForces.setTrackDissipatedEnergy(true);
     contactForces.setTransitionVelocity(1e-3);
 
     GeneralContactSubsystem OLDcontact(system);
     const ContactSetIndex OLDcontactSet = OLDcontact.createContactSet();
 
-    PolygonalMesh pyramidMesh;
     //makeCube(1, pyramidMesh);
     //makeTetrahedron(1, pyramidMesh);
     //pyramidMesh.transformMesh(Rotation(Pi/4, UnitVec3(-1,0,1)));
     //makePyramid(1, pyramidMesh);
     //makeOctahedron(1, pyramidMesh);
-    makeSphere(1, 4, pyramidMesh);
+    PolygonalMesh sphereMesh;
+    sphereMesh = PolygonalMesh::createSphereMesh(1,4);
 
-    ContactGeometry::TriangleMesh pyramid(pyramidMesh);
-    DecorativeMesh showPyramid(pyramid.createPolygonalMesh());
+    ContactGeometry::TriangleMesh sphere(sphereMesh);
+    DecorativeMesh showSphere(sphere.createPolygonalMesh());
     Array_<DecorativeLine> normals;
     const Real NormalLength = .02;
-    for (int fx=0; fx < pyramid.getNumFaces(); ++fx)
+    for (int fx=0; fx < sphere.getNumFaces(); ++fx)
         normals.push_back(
-        DecorativeLine(pyramid.findCentroid(fx),
-                       pyramid.findCentroid(fx)
-                           + NormalLength*pyramid.getFaceNormal(fx)));
+        DecorativeLine(sphere.findCentroid(fx),
+                       sphere.findCentroid(fx)
+                           + NormalLength*sphere.getFaceNormal(fx)));
     // not displaying mesh normals at the moment
 
     ContactCliqueId clique1 = ContactSurface::createNewContactClique();
@@ -299,8 +299,7 @@ int main() {
                                  pendulumBody2, Transform(Vec3(0, 1, 0)));
 
     Body::Rigid pendulumBody3(MassProperties(100.0, Vec3(0), 100*Inertia(1)));
-    PolygonalMesh body3contact;
-    makeSphere(rad, 2, body3contact);
+    PolygonalMesh body3contact = PolygonalMesh::createSphereMesh(rad,2);
     ContactGeometry::TriangleMesh geo3(body3contact);
     const DecorativeMesh mesh3(geo3.createPolygonalMesh());
     pendulumBody3.addDecoration(Transform(), 
@@ -331,9 +330,9 @@ int main() {
     //                   ContactMaterial(1e7,.05,fFac*.8,fFac*.7,fVis*10))
     //                   .joinClique(clique2));
     ballBody.addDecoration(Transform(), 
-        showPyramid.setColor(Cyan).setOpacity(.2));
+        showSphere.setColor(Cyan).setOpacity(.2));
     ballBody.addDecoration(Transform(), 
-        showPyramid.setColor(Gray)
+        showSphere.setColor(Gray)
                    .setRepresentation(DecorativeGeometry::DrawWireframe));
     //Use this to display surface normals if you want to see them.
     //for (unsigned i=0; i < normals.size(); ++i)
@@ -342,7 +341,7 @@ int main() {
     ballBody.addDecoration(Transform(), DecorativeSphere(1).setColor(Gray)
                                              .setOpacity(.1).setResolution(10));
     ballBody.addContactSurface(Transform(),
-        ContactSurface(pyramid,
+        ContactSurface(sphere,
                        ContactMaterial(fK*.1,fDis*.9,
                                        .1*fFac*.8,.1*fFac*.7,fVis*1),
                        .5 /*thickness*/)
@@ -543,7 +542,6 @@ static void makePyramid(Real s, PolygonalMesh& pyramidMesh) {
 }
 
 
-
 // Create a triangle mesh in the shape of a tetrahedron with the
 // points in the corners of a cube inscribed in a sphere of radius r.
 static void makeTetrahedron(Real r, PolygonalMesh& tet) {
@@ -599,97 +597,6 @@ static void makeOctahedron(Real r, PolygonalMesh& mesh) {
     }
 }
 
-struct VertKey {
-    VertKey(const Vec3& v) : v(v) {}
-    Vec3 v;
-    bool operator<(const VertKey& other) const {
-        const Real tol = SignificantReal;
-        const Vec3 diff = v - other.v;
-        if (diff[0] < -tol) return true;
-        if (diff[0] >  tol) return false;
-        if (diff[1] < -tol) return true;
-        if (diff[1] >  tol) return false;
-        if (diff[2] < -tol) return true;
-        if (diff[2] >  tol) return false;
-        return false; // they are numerically equal
-    }
-};
-typedef std::map<VertKey,int> VertMap;
-
-/* Search a list of vertices for one close enough to this one and
-return its index if found, otherwise add to the end. */
-static int getVertex(const Vec3& v, VertMap& vmap, Array_<Vec3>& verts) {
-    VertMap::const_iterator p = vmap.find(VertKey(v));
-    if (p != vmap.end()) return p->second;
-    const int ix = (int)verts.size();
-    verts.push_back(v);
-    vmap.insert(std::make_pair(VertKey(v),ix));
-    return ix;
-}
-
-/* Each face comes in as below, with vertices 0,1,2 on the surface
-of a sphere or radius r centered at the origin. We bisect the edges to get
-points a',b',c', then move out from the center to make points a,b,c
-on the sphere.
-         1
-        /\        
-       /  \
-    c /____\ b      Then construct new triangles
-     /\    /\            [0,b,a]
-    /  \  /  \           [a,b,c]
-   /____\/____\          [c,2,a]
-  2      a     0         [b,1,c]
-*/
-static void refineSphere(Real r, VertMap& vmap, 
-                         Array_<Vec3>& verts, Array_<int>&  faces) {
-    assert(faces.size() % 3 == 0);
-    const int nVerts = faces.size(); // # face vertices on entry
-    for (int i=0; i < nVerts; i+=3) {
-        const int v0=faces[i], v1=faces[i+1], v2=faces[i+2];
-        const Vec3 a = r*UnitVec3(verts[v0]+verts[v2]);
-        const Vec3 b = r*UnitVec3(verts[v0]+verts[v1]);
-        const Vec3 c = r*UnitVec3(verts[v1]+verts[v2]);
-        const int va=getVertex(a,vmap,verts), 
-                  vb=getVertex(b,vmap,verts), 
-                  vc=getVertex(c,vmap,verts);
-        // Replace the existing face with the 0ba triangle, then add the rest.
-        // Refer to the above picture.
-        faces[i+1] = vb; faces[i+2] = va;
-        faces.push_back(va); faces.push_back(vb); faces.push_back(vc);//abc
-        faces.push_back(vc); faces.push_back(v2); faces.push_back(va);//c2a
-        faces.push_back(vb); faces.push_back(v1); faces.push_back(vc);//b1c
-    }
-}
-
-// level  numfaces
-//   0       8   <-- octahedron
-//   1       32
-//   2       128 <-- still lumpy
-//   3       512 <-- very spherelike
-//   n       2*4^(n+1)
-static void makeSphere(Real radius, int level, PolygonalMesh& sphere) {
-    Array_<Vec3> vertices;
-    Array_<int> faceIndices;
-    makeOctahedralMesh(Vec3(radius), vertices, faceIndices);
-
-    VertMap vmap;
-    for (unsigned i=0; i < vertices.size(); ++i)
-        vmap[vertices[i]] = i;
-
-    while (level > 0) {
-        refineSphere(radius, vmap, vertices, faceIndices);
-        --level;
-    }
-
-    for (unsigned i=0; i < vertices.size(); ++i)
-        sphere.addVertex(vertices[i]);
-    for (unsigned i=0; i < faceIndices.size(); i += 3) {
-        const Array_<int> verts(&faceIndices[i], &faceIndices[i]+3);
-        sphere.addFace(verts);
-    }
-}
-
-
 static void makeCube(Real h, PolygonalMesh& cube) {
     Array_<Vec3> vertices;
     vertices.push_back(Vec3( h, h,  h)); 
@@ -715,3 +622,5 @@ static void makeCube(Real h, PolygonalMesh& cube) {
         cube.addFace(verts);
     }
 }
+
+

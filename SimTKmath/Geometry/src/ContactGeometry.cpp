@@ -392,7 +392,7 @@ Vec3 ContactGeometryImpl::
 projectDownhillToNearestPoint(const Vec3& Q) const {
 
     // Newton solver settings
-    const Real ftol = 1e-14;
+    const Real ftol = SignificantReal;
 
     // Check for immediate return.
     if (std::abs(calcSurfaceValue(Q)) <= ftol)
@@ -411,11 +411,11 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
     const Real kt = calcSurfaceCurvatureInDirection(Q, tP);
     const Real kb = calcSurfaceCurvatureInDirection(Q, bP);
     const Real maxK = std::max(std::abs(kt),std::abs(kb));
-    const Real scale = std::min(1/maxK, 1000.); // keep scale reasonable
-    const Real MaxMove = .25; // Limit one move to 25% of smaller radius.
+    const Real scale = std::min(1/maxK, Real(1000)); // keep scale reasonable
+    const Real MaxMove = Real(.25); // Limit one move to 25% of smaller radius.
 
-    const Real xtol = 1e-12;
-    const Real minlam = 1e-9;
+    const Real xtol = Real(1e-12);  // TODO: what should these be in single
+    const Real minlam = Real(1e-9); //      precision?
     const int maxNewtonIterations = 30;
 
     Vec3 x(Q); // initialize to query point
@@ -448,8 +448,10 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
         t = tP-n*(~tP*n); // project tP to tangent plane at x
         b = bP-n*(~bP*n); // project bP to tangent plane at x
 
-        SimTK_ASSERT_ALWAYS(t.norm() > 1e-6, "t is aligned with the normal vector at the current point.");
-        SimTK_ASSERT_ALWAYS(b.norm() > 1e-6, "b is aligned with the with normal vector at the current point.");
+        SimTK_ASSERT_ALWAYS(t.norm() > Real(1e-6), 
+            "t is aligned with the normal vector at the current point.");
+        SimTK_ASSERT_ALWAYS(b.norm() > Real(1e-6), 
+            "b is aligned with the with normal vector at the current point.");
 
         // calculate error
         f[0] = calcSurfaceValue(x);
@@ -472,7 +474,7 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
         xold = x;
 
         // Backtracking. Limit the starting step size if dx is too big.
-        lam = std::min(1., MaxMove*(scale/dxrms));
+        lam = std::min(Real(1), MaxMove*(scale/dxrms));
         if (lam < 1) {
             //std::cout << "PROJECT: LIMITED STEP: iter=" << cnt 
             //          << " lam=" << lam << endl;
@@ -585,7 +587,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     // Newton solver settings.
 
     // RMS error must reach sqrt of this value (squared for speed).
-    const Real Ftol2 = square(1e-14);
+    const Real Ftol2 = square(SignificantReal);
 
     // Limit the number of Newton steps. We don't
     // count steps that we limited because we were nervous about the size of
@@ -598,16 +600,16 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     // We won't take a step unless it reduces the error and we'll take a
     // fractional step if necessary. If we have to use a fraction smaller than
     // this we're probably at a local minimum and it's time to give up.
-    const Real MinStepFrac = 1e-6;
+    const Real MinStepFrac = Real(1e-6);
     // If the norm of a change to X during a step isn't at least this fraction
     // of a full-scale change (see scaling below), we'll treat that as an
     // independent reason to give up (squared for speed).
-    const Real Xtol2 = square(1e-12);
+    const Real Xtol2 = square(Real(1e-12)); // TODO: single precision?
     // We'll calculate a length scale for the local patch of this object and
     // then limit any moves we make to this fraction of that scale to avoid
     // jumping out of one local minimum into another. This can cause a series
     // of slowly-converging steps to be taken at the beginning.
-    const Real MaxMove2 = square(.25); // Limit one move to 25% of smaller radius.
+    const Real MaxMove2 = square(Real(.25)); // Limit one move to 25% of smaller radius.
 
     // Create an object that can calculate the error function for this
     // surface against the given line.
@@ -643,7 +645,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     const Real kt = calcSurfaceCurvatureInDirection(x, tX);
     const Real kb = calcSurfaceCurvatureInDirection(x, bX);
     const Real maxK = std::max(std::abs(kt),std::abs(kb));
-    const Real scale2 = square(clamp(0.1, 1/maxK, 1000.)); // keep scale reasonable
+    const Real scale2 = square(clamp(Real(0.1), 1/maxK, Real(1000))); // keep scale reasonable
 
     //cout << "TRACK START: line p0=" << pointOnLine << " d=" << directionOfLine << "\n";
     //cout << "  starting x=" << x << " nX=" << nX << " scale est=" << std::sqrt(scale2) << "\n";
@@ -674,7 +676,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
 
         // Backtracking. Limit the starting step size if dx is too big.
         // Calculate the square of the step fraction.
-        const Real stepFrac2 = std::min(1., MaxMove2*(scale2/dxrms2));
+        const Real stepFrac2 = std::min(Real(1), MaxMove2*(scale2/dxrms2));
         Real stepFrac = 1;
         if (stepFrac2 < 1) {
             stepFrac = std::sqrt(stepFrac2); // not done often
@@ -934,7 +936,7 @@ calcSurfaceUnitNormal(const Vec3& p) const {
         }
         if (gradMag < TinyReal) {
             // We're desperate now. Pull a normal out of our hat.
-            grad=Vec3(1,1.1,1.2); gradMag=grad.norm();
+            grad=Vec3(Real(1),Real(1.1),Real(1.2)); gradMag=grad.norm();
         }
     }
 
@@ -1031,7 +1033,8 @@ calcSurfaceCurvatureInDirection(const Vec3& point,
 
 
 
-static const Real estimatedGeodesicAccuracy = 1e-12; // used in numerical differentiation
+// used in numerical differentiation. TODO: what value for single precision?
+static const Real estimatedGeodesicAccuracy = Real(1e-12); 
 static const Real pauseBetweenGeodIterations = 0; // sec, used in newton solver
 
 
@@ -1125,7 +1128,7 @@ void ContactGeometryImpl::
 continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
                  const GeodesicOptions& options, Geodesic& geod) const 
 {
-    const Real StraightLineGeoFrac = 1e-5; // a straight line
+    const Real StraightLineGeoFrac = Real(1e-5); // a straight line
 
     const Vec3 P = projectDownhillToNearestPoint(xP);
     const Vec3 Q = projectDownhillToNearestPoint(xQ);
@@ -1173,7 +1176,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     // First classify the previous geodesic as direct or indirect. Direct is
     // a strict classification; only if the end tangents are aligned with the
     // PQ line to within an allowed cone angle is it direct.
-    const Real CosMaxDirectAngle = 0.9; // about 25 degrees
+    const Real CosMaxDirectAngle = Real(0.9); // about 25 degrees
 
     // Find maximum curvature of previous geodesic to use as a length scale.
     // TODO: should store this with the geodesic so we can use any intermediate
@@ -1292,8 +1295,8 @@ makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
 // surface point P', calculate the outward unit normal n' at P', then
 // project tP to tP' by removing any component it has in the n' direction,
 // then renormalizing.
-static const Real IntegratorAccuracy = 1e-6; // TODO: how to choose?
-static const Real IntegratorConstraintTol = 1e-10;
+static const Real IntegratorAccuracy = Real(1e-6); // TODO: how to choose?
+static const Real IntegratorConstraintTol = Real(1e-10);
 void ContactGeometryImpl::
 shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         const Real& finalTime, const GeodesicOptions& options,
@@ -1658,8 +1661,8 @@ static Real maxabs(Vec2 x) {
 }
 
 static Real maxabsdiff(Vec2 x, Vec2 xold) {
-    return std::max(std::abs(x[0]-xold[0])/std::max(x[0],1.0),
-                    std::abs(x[1]-xold[1])/std::max(x[1],1.0));
+    return std::max(std::abs(x[0]-xold[0])/std::max(x[0],Real(1)),
+                    std::abs(x[1]-xold[1])/std::max(x[1],Real(1)));
 }
 
 
@@ -1673,10 +1676,10 @@ static Real maxabsdiff(Vec2 x, Vec2 xold) {
 void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
         const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const {
 
-    // Newton solver settings
-    const Real ftol = 1e-9;
-    const Real xtol = 1e-9;
-    const Real minlam = 1e-9;
+    // Newton solver settings. TODO: single precision?
+    const Real ftol = Real(1e-9);
+    const Real xtol = Real(1e-9);
+    const Real minlam = Real(1e-9);
     const int maxNewtonIterations = 25;
 
     // reset counter
@@ -1774,10 +1777,10 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
     const Vec3 P = projectDownhillToNearestPoint(xP);
     const Vec3 Q = projectDownhillToNearestPoint(xQ);
 
-    // Newton solver settings
-    const Real ftol = 1e-9;
-    const Real xtol = 1e-12;
-    const Real minlam = 1e-3;
+    // Newton solver settings. TODO: single precision values?
+    const Real ftol = Real(1e-9);
+    const Real xtol = Real(1e-12);
+    const Real minlam = Real(1e-3);
     const int MaxIterations = 25;
 
     bool useNewtonIteration = true;

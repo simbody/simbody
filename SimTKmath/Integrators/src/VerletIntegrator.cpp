@@ -41,11 +41,6 @@ VerletIntegrator::VerletIntegrator(const System& sys, Real stepSize) {
     setFixedStepSize(stepSize);
 }
 
-VerletIntegrator::~VerletIntegrator() {
-    delete rep;
-}
-
-
 
 //==============================================================================
 //                          VERLET INTEGRATOR REP
@@ -147,7 +142,7 @@ bool VerletIntegratorRep::attemptDAEStep
     // this equation is acceptably satisfied. We're using functional iteration 
     // here which has a very limited radius of convergence.
     
-    const Real tol = std::min(1e-4, 0.1*getAccuracyInUse());
+    const Real tol = std::min(Real(1e-4), Real(0.1)*getAccuracyInUse());
     Vector usave(nu), zsave(nz); // temporaries
     bool converged = false;
     Real prevChange = Infinity; // use this to quit early

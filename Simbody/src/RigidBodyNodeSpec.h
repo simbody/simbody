@@ -369,11 +369,11 @@ virtual void setMobilizerDefaultTimeValues    (const SBModelVars&, SBTimeVars&) 
 
 virtual void setMobilizerDefaultPositionValues(const SBModelVars& s, Vector& q) const 
 {
-    toQ(q) = 0.;
+    toQ(q) = 0;
 }
 virtual void setMobilizerDefaultVelocityValues(const SBModelVars&, Vector& u) const 
 {
-    toU(u) = 0.;
+    toU(u) = 0;
 }
 virtual void setMobilizerDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const {}
 virtual void setMobilizerDefaultAccelerationValues(const SBModelVars&, 

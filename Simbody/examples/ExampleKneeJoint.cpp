@@ -211,10 +211,10 @@ try { // If anything goes wrong, an exception will be thrown.
 
 	// Construct the multibody system
 	const Real grav = 9.80665;
-    MultibodySystem system;
+    MultibodySystem system; system.setUseUniformBackground(true);
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
-    Force::Gravity gravity(forces, matter, UnitVec3(0, -1, 0), grav);
+    Force::Gravity gravity(forces, matter, -YAxis, grav);
 	matter.setShowDefaultGeometry(true);
 
     //--------------------------------------------------------------------------

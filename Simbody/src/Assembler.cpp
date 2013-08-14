@@ -71,6 +71,7 @@ public:
 // Constraints. Only Constraints that are currently enabled are included.
 // This class provides an efficient implementation for treating these
 // Constraints either as an assembly requirement or an assembly goal.
+namespace { // this class is local to this file
 class BuiltInConstraints : public AssemblyCondition {
 public:
     BuiltInConstraints() 
@@ -143,7 +144,7 @@ public:
 
 private:
 };
-
+} // end anonymous namespace
 
 
 //------------------------------------------------------------------------------

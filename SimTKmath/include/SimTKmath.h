@@ -50,6 +50,7 @@
 #include "simmath/LinearAlgebra.h"
 #include "simmath/Differentiator.h"
 #include "simmath/Optimizer.h"
+#include "simmath/MultibodyGraphMaker.h"
 #include "simmath/Integrator.h"
 #include "simmath/TimeStepper.h"
 #include "simmath/CPodesIntegrator.h"
@@ -59,5 +60,7 @@
 #include "simmath/RungeKutta2Integrator.h"
 #include "simmath/ExplicitEulerIntegrator.h"
 #include "simmath/VerletIntegrator.h"
+#include "simmath/SemiExplicitEulerIntegrator.h"
+#include "simmath/SemiExplicitEuler2Integrator.h"
 
 #endif // SimTK_SIMMATH_H_

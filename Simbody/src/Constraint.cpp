@@ -763,22 +763,25 @@ Real Constraint::Rod::getMultiplier(const State& s) const {
 void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
+    if (!getMyMatterSubsystemRep().getShowDefaultGeometry())
+        return;
+
     // We can't generate the endpoint artwork until we know the end point stations,
     // which could be as late as Stage::Instance.
-    if (stage == Stage::Instance && pointRadius != 0 && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
+    if (stage == Stage::Instance && pointRadius != 0) {
         // TODO: point stations and rod length should be instance-stage data 
         // from State rather than topological data
         const MobilizedBodyIndex body1 = getMobilizedBodyIndexOfConstrainedBody(B1);
         const MobilizedBodyIndex body2 = getMobilizedBodyIndexOfConstrainedBody(B2);
 
         const Real useRadius = pointRadius > 0 ? pointRadius 
-            : std::max(defaultRodLength, .1) * 0.02; // 2% of the length by default
+            : std::max(defaultRodLength, Real(.1)) * Real(0.02); // 2% of the length by default
 
         // Draw a blue mesh sphere at the first point.
         geom.push_back(DecorativeSphere(useRadius)
                             .setColor(Blue)
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
-                            .setResolution(0.5)
+                            .setResolution(Real(0.5))
                             .setBodyId(body1)
                             .setTransform(defaultPoint1));
 
@@ -786,7 +789,7 @@ void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
         geom.push_back(DecorativeSphere(useRadius)
                             .setColor(Purple)
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
-                            .setResolution(0.5)
+                            .setResolution(Real(0.5))
                             .setBodyId(body2)
                             .setTransform(defaultPoint2));
     }
@@ -940,7 +943,7 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
             geom.push_back(DecorativeBrick(Vec3(planeHalfWidth,planeHalfWidth,pointRadius/2))
                                                 .setColor(Gray)
                                                 .setRepresentation(DecorativeGeometry::DrawSurface)
-                                                .setOpacity(0.3)
+                                                .setOpacity(Real(0.3))
                                                 .setBodyId(planeMBId)
                                                 .setTransform(X_B1));
             geom.push_back(DecorativeBrick(Vec3(planeHalfWidth,planeHalfWidth,pointRadius/2))
@@ -953,7 +956,7 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
             geom.push_back(DecorativeSphere(pointRadius)
                                                 .setColor(Orange)
                                                 .setRepresentation(DecorativeGeometry::DrawWireframe)
-                                                .setResolution(0.5)
+                                                .setResolution(Real(0.5))
                                                 .setBodyId(followerMBId)
                                                 .setTransform(X_B2));
         }
@@ -1420,19 +1423,19 @@ void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
 
         // On the inboard body, draw a solid sphere and a wireframe one attached to it for
         // easier visualization of its rotation. These are at about 90% of the radius.
-        geom.push_back(DecorativeSphere(0.92*getDefaultRadius())
+        geom.push_back(DecorativeSphere(Real(0.92)*getDefaultRadius())
                         .setColor(Gray)
                         .setRepresentation(DecorativeGeometry::DrawSurface)
-                        .setOpacity(0.5)
-                        .setResolution(0.75)
+                        .setOpacity(Real(0.5))
+                        .setResolution(Real(0.75))
                         .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
                         .setTransform(X_B1));
-        geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
+        geom.push_back(DecorativeSphere(Real(0.90)*getDefaultRadius())
                         .setColor(White)
                         .setRepresentation(DecorativeGeometry::DrawWireframe)
-                        .setResolution(0.75)
+                        .setResolution(Real(0.75))
                         .setLineThickness(3)
-                        .setOpacity(0.1)
+                        .setOpacity(Real(0.1))
                         .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
                         .setTransform(X_B1));
 
@@ -1447,8 +1450,8 @@ void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
         geom.push_back(DecorativeSphere(getDefaultRadius())
                         .setColor(Orange)
                         .setRepresentation(DecorativeGeometry::DrawWireframe)
-                        .setOpacity(0.5)
-                        .setResolution(0.5)
+                        .setOpacity(Real(0.5))
+                        .setResolution(Real(0.5))
                         .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B2))
                         .setTransform(X_B2));
 
@@ -1654,7 +1657,7 @@ void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
                              .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B)));
            
 
-        geom.push_back(DecorativeFrame(0.67*getAxisDisplayLength())
+        geom.push_back(DecorativeFrame(Real(0.67)*getAxisDisplayLength())
                                             .setColor(getFrameColor(1))
                                             .setLineThickness(4)
                                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F))
@@ -1856,7 +1859,8 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
 //==============================================================================
 //                         CONSTRAINT::CONSTANT SPEED
 //==============================================================================
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS
+   (Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint);
 
 // This picks one of the mobilities from a multiple-mobility mobilizer.
 Constraint::ConstantSpeed::ConstantSpeed
@@ -1864,37 +1868,59 @@ Constraint::ConstantSpeed::ConstantSpeed
   : Constraint(new ConstantSpeedImpl())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
-        "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
+        "Constraint::ConstantSpeed(): the mobilizer must already be"
+        " in a SimbodyMatterSubsystem.");
 
     mobilizer.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
     updImpl().whichMobility = whichU;
-    updImpl().prescribedSpeed = defaultSpeed;
+    updImpl().defaultSpeed = defaultSpeed;
 }
 
 // This is for mobilizers with only 1 mobility.
-Constraint::ConstantSpeed::ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed)
-  : Constraint(new ConstantSpeedImpl())
+Constraint::ConstantSpeed::ConstantSpeed
+   (MobilizedBody& mobilizer, Real defaultSpeed)
+:   Constraint(new ConstantSpeedImpl())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
-        "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
+        "Constraint::ConstantSpeed(): the mobilizer must already be"
+        " in a SimbodyMatterSubsystem.");
 
     mobilizer.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
     updImpl().whichMobility = MobilizerUIndex(0);
-    updImpl().prescribedSpeed = defaultSpeed;
+    updImpl().defaultSpeed = defaultSpeed;
 }
 
 MobilizedBodyIndex Constraint::ConstantSpeed::getMobilizedBodyIndex() const {
-    return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer(getImpl().theMobilizer);
+    return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer
+                                                    (getImpl().theMobilizer);
 }
 MobilizerUIndex Constraint::ConstantSpeed::getWhichU() const {
     return getImpl().whichMobility;
 }
+
 Real Constraint::ConstantSpeed::getDefaultSpeed() const {
-    return getImpl().prescribedSpeed;
+    return getImpl().defaultSpeed;
+}
+
+Constraint::ConstantSpeed& Constraint::ConstantSpeed::
+setDefaultSpeed(Real u) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultSpeed = u;
+    return *this;
+}
+
+void Constraint::ConstantSpeed::
+setSpeed(State& state, Real speed) const {
+    getImpl().updSpeed(state) = speed;
+}
+
+Real Constraint::ConstantSpeed::
+getSpeed(const State& state) const {
+    return getImpl().getSpeed(state);
 }
 
 Real Constraint::ConstantSpeed::getVelocityError(const State& s) const {
@@ -1917,8 +1943,28 @@ Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {
 
 
     // ConstantSpeedImpl
-    // nothing yet
 
+// Allocate a state variable to hold the desired speed.
+void Constraint::ConstantSpeedImpl::
+realizeTopologyVirtual(State& state) const {
+    ConstantSpeedImpl* mThis = // mutable momentarily
+        const_cast<ConstantSpeedImpl*>(this);
+    mThis->speedIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Velocity, 
+            new Value<Real>(defaultSpeed));
+}
+
+Real Constraint::ConstantSpeedImpl::
+getSpeed(const State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::downcast(matter.getDiscreteVariable(state,speedIx));
+}
+
+Real& Constraint::ConstantSpeedImpl::
+updSpeed(State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::updDowncast(matter.updDiscreteVariable(state,speedIx));
+}
 
 
 //==============================================================================
@@ -1963,7 +2009,7 @@ Constraint::ConstantAcceleration::ConstantAcceleration
 MobilizedBodyIndex Constraint::ConstantAcceleration::
 getMobilizedBodyIndex() const {
     return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer
-                                            (getImpl().theMobilizer);
+                                                    (getImpl().theMobilizer);
 }
 MobilizerUIndex Constraint::ConstantAcceleration::getWhichU() const {
     return getImpl().whichMobility;
@@ -2934,7 +2980,7 @@ void ConstraintImpl::realizeInstance(const State& s) const {
 // =============================================================================
 void ConstraintImpl::realizeTime(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
 
     realizeTimeVirtual(sbs.getState()); // nothing to do in the base class
 }
@@ -2946,7 +2992,7 @@ void ConstraintImpl::realizeTime(const SBStateDigest& sbs) const {
 // =============================================================================
 void ConstraintImpl::realizePosition(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     realizePositionVirtual(sbs.getState()); // delegate to concrete constraint
 }
 
@@ -2957,7 +3003,7 @@ void ConstraintImpl::realizePosition(const SBStateDigest& sbs) const {
 // =============================================================================
 void ConstraintImpl::realizeVelocity(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     realizeVelocityVirtual(sbs.getState()); // delegate to concrete constraint
 }
 
@@ -2968,7 +3014,7 @@ void ConstraintImpl::realizeVelocity(const SBStateDigest& sbs) const {
 // =============================================================================
 void ConstraintImpl::realizeDynamics(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     realizeDynamicsVirtual(sbs.getState()); // delegate to concrete constraint
 }
 
@@ -2979,7 +3025,7 @@ void ConstraintImpl::realizeDynamics(const SBStateDigest& sbs) const {
 // =============================================================================
 void ConstraintImpl::realizeAcceleration(const SBStateDigest& sbs) const {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return; 
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return; 
     realizeAccelerationVirtual(sbs.getState()); // delegate to concrete constraint
 }
 
@@ -3139,7 +3185,7 @@ void ConstraintImpl::calcConstrainedBodyTransformInAncestor      // X_AB
    (const SBStateDigest& sbs, SBTreePositionCache& tpc) const 
 {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     if (!myAncestorBodyIsNotGround) return;
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
 
@@ -3168,7 +3214,7 @@ void ConstraintImpl::calcConstrainedBodyVelocityInAncestor       // V_AB
    (const SBStateDigest& sbs, SBTreeVelocityCache& tvc) const 
 {
     const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
-    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (instanceVars.constraintIsDisabled[myConstraintIndex]) return;
     if (!myAncestorBodyIsNotGround) return;
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
 

@@ -1,0 +1,1866 @@
+<?xml version="1.0" ?>
+<!-- this was initially generated from ragdoll.urdf,
+     but have sence been updated to turn off gravity for certain links
+     and various tweaks -->
+<gazebo version="1.2">
+<world>
+    <gravity>0 0 -9.8</gravity>
+    <model name="ragdoll">
+        <pose>0.000000 0.000000 1.4 0.000000 -0.000000 0.000000</pose>
+        <link name="hip">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.100000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.100000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.100000</izz>
+                </inertia>
+                <mass>10.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="hip_geom">
+                <pose>0.000000 0.000000 0.125000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.100000 0.500000 0.250000</size>
+                    </box>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="hip_geom_visual">
+                <pose>0.000000 0.000000 0.125000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.100000 0.500000 0.250000</size>
+                    </box>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_thigh_pan">
+            <pose>0.000000 0.220000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_thigh_pan_geom">
+                <pose>0.000000 0.000000 -0.030000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.060000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_thigh_pan_geom_visual">
+                <pose>0.000000 0.000000 -0.030000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.060000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_thigh_lift">
+            <pose>0.000000 0.220000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.050000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.050000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.050000</izz>
+                </inertia>
+                <mass>5.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_thigh_lift_geom">
+                <pose>0.000000 0.000000 -0.350000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.060000</radius>
+                        <length>0.700000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_thigh_lift_geom_visual">
+                <pose>0.000000 0.000000 -0.350000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.060000</radius>
+                        <length>0.700000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_calf">
+            <pose>0.000000 0.220000 -0.700000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.020000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.020000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.020000</izz>
+                </inertia>
+                <mass>2.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_calf_geom">
+                <pose>0.000000 0.000000 -0.300000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.050000</radius>
+                        <length>0.600000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_calf_geom_visual">
+                <pose>0.000000 0.000000 -0.300000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.050000</radius>
+                        <length>0.600000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_ankle">
+            <pose>0.000000 0.220000 -1.325000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_ankle_geom">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.050000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_ankle_geom_visual">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.050000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_foot">
+            <pose>0.000000 0.220000 -1.350000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.100000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_foot_geom">
+                <pose>0.100000 0.000000 -0.025000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.200000 0.030000 0.050000</size>
+                    </box>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_foot_geom_visual">
+                <pose>0.100000 0.000000 -0.025000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.200000 0.030000 0.050000</size>
+                    </box>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>1</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_thigh_pan">
+            <pose>0.000000 -0.220000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_thigh_pan_geom">
+                <pose>0.000000 0.000000 -0.030000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.060000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_thigh_pan_geom_visual">
+                <pose>0.000000 0.000000 -0.030000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.060000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_thigh_lift">
+            <pose>0.000000 -0.220000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.050000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.050000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.050000</izz>
+                </inertia>
+                <mass>5.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_thigh_lift_geom">
+                <pose>0.000000 0.000000 -0.350000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.060000</radius>
+                        <length>0.700000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_thigh_lift_geom_visual">
+                <pose>0.000000 0.000000 -0.350000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.060000</radius>
+                        <length>0.700000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_calf">
+            <pose>0.000000 -0.220000 -0.700000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.020000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.020000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.020000</izz>
+                </inertia>
+                <mass>2.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_calf_geom">
+                <pose>0.000000 0.000000 -0.300000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.050000</radius>
+                        <length>0.600000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_calf_geom_visual">
+                <pose>0.000000 0.000000 -0.300000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.050000</radius>
+                        <length>0.600000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_ankle">
+            <pose>0.000000 -0.220000 -1.325000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_ankle_geom">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.050000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_ankle_geom_visual">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.050000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_foot">
+            <pose>0.000000 -0.220000 -1.350000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.100000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_foot_geom">
+                <pose>0.100000 0.000000 -0.025000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.200000 0.030000 0.050000</size>
+                    </box>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_foot_geom_visual">
+                <pose>0.100000 0.000000 -0.025000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.200000 0.030000 0.050000</size>
+                    </box>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>1</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="torso">
+            <pose>0.000000 0.000000 0.250000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.300000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.300000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.300000</izz>
+                </inertia>
+                <mass>30.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="torso_geom">
+                <pose>0.000000 0.000000 0.350000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.100000 0.600000 0.700000</size>
+                    </box>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="torso_geom_visual">
+                <pose>0.000000 0.000000 0.350000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.100000 0.600000 0.700000</size>
+                    </box>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_shoulder">
+            <pose>0.000000 0.327500 0.922500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_shoulder_geom">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.055000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_shoulder_geom_visual">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.055000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_upper_arm">
+            <pose>0.000000 0.327500 0.922500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.020000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.020000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.020000</izz>
+                </inertia>
+                <mass>2.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_upper_arm_geom">
+                <pose>0.000000 0.000000 -0.300000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.055000</radius>
+                        <length>0.600000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_upper_arm_geom_visual">
+                <pose>0.000000 0.000000 -0.300000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.055000</radius>
+                        <length>0.600000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_forearm">
+            <pose>0.000000 0.327500 0.322500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_forearm_geom">
+                <pose>0.000000 0.000000 -0.225000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.050000</radius>
+                        <length>0.450000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_forearm_geom_visual">
+                <pose>0.000000 0.000000 -0.225000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.050000</radius>
+                        <length>0.450000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_wrist">
+            <pose>0.000000 0.327500 -0.142500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_wrist_geom">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.030000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_wrist_geom_visual">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.030000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="l_hand">
+            <pose>0.000000 0.327500 -0.157500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="l_hand_geom">
+                <pose>0.000000 0.000000 -0.100000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.030000 0.100000 0.200000</size>
+                    </box>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="l_hand_geom_visual">
+                <pose>0.000000 0.000000 -0.100000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.030000 0.100000 0.200000</size>
+                    </box>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="neck">
+            <pose>0.000000 0.000000 0.950000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="neck_geom">
+                <pose>0.000000 0.000000 0.100000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.075000</radius>
+                        <length>0.200000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="neck_geom_visual">
+                <pose>0.000000 0.000000 0.100000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.075000</radius>
+                        <length>0.200000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="head">
+            <pose>0.000000 0.000000 1.225000 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.100000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.100000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.100000</izz>
+                </inertia>
+                <mass>10.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="head_geom">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.150000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="head_geom_visual">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.150000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_shoulder">
+            <pose>0.000000 -0.327500 0.922500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_shoulder_geom">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.055000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_shoulder_geom_visual">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.055000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_upper_arm">
+            <pose>0.000000 -0.327500 0.922500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.020000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.020000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.020000</izz>
+                </inertia>
+                <mass>2.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_upper_arm_geom">
+                <pose>0.000000 0.000000 -0.300000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.055000</radius>
+                        <length>0.600000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_upper_arm_geom_visual">
+                <pose>0.000000 0.000000 -0.300000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.055000</radius>
+                        <length>0.600000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_forearm">
+            <pose>0.000000 -0.327500 0.322500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_forearm_geom">
+                <pose>0.000000 0.000000 -0.225000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.050000</radius>
+                        <length>0.450000</length>
+                    </cylinder>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_forearm_geom_visual">
+                <pose>0.000000 0.000000 -0.225000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.050000</radius>
+                        <length>0.450000</length>
+                    </cylinder>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_wrist">
+            <pose>0.000000 -0.327500 -0.142500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_wrist_geom">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.030000</radius>
+                    </sphere>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_wrist_geom_visual">
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <sphere>
+                        <radius>0.030000</radius>
+                    </sphere>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <link name="r_hand">
+            <pose>0.000000 -0.327500 -0.157500 0.000000 -0.000000 0.000000</pose>
+            <inertial>
+                <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+                <inertia>
+                    <ixx>0.010000</ixx>
+                    <ixy>0.000000</ixy>
+                    <ixz>0.000000</ixz>
+                    <iyy>0.010000</iyy>
+                    <iyz>0.000000</iyz>
+                    <izz>0.010000</izz>
+                </inertia>
+                <mass>1.000000</mass>
+                <density>1.000000</density>
+            </inertial>
+            <collision name="r_hand_geom">
+                <pose>0.000000 0.000000 -0.100000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.030000 0.100000 0.200000</size>
+                    </box>
+                </geometry>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>-1.000000</mu>
+                            <mu2>-1.000000</mu2>
+                            <fdir1>0.000000 0.000000 0.000000</fdir1>
+                            <slip1>0.000000</slip1>
+                            <slip2>0.000000</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.000000</restitution_coefficient>
+                        <threshold>100000.000000</threshold>
+                    </bounce>
+                    <contact>
+                        <ode>
+                            <soft_cfm>0.000000</soft_cfm>
+                            <soft_erp>0.200000</soft_erp>
+                            <kp>1000000000000.000000</kp>
+                            <kd>1.000000</kd>
+                            <max_vel>0.000000</max_vel>
+                            <min_depth>0.001000</min_depth>
+                        </ode>
+                    </contact>
+                </surface>
+                <laser_retro>0.000000</laser_retro>
+            </collision>
+            <visual name="r_hand_geom_visual">
+                <pose>0.000000 0.000000 -0.100000 0.000000 -0.000000 0.000000</pose>
+                <geometry>
+                    <box>
+                        <size>0.030000 0.100000 0.200000</size>
+                    </box>
+                </geometry>
+                <cast_shadows>1</cast_shadows>
+                <laser_retro>0.000000</laser_retro>
+                <transparency>0.000000</transparency>
+            </visual>
+            <gravity>0</gravity>
+            <self_collide>0</self_collide>
+            <kinematic>0</kinematic>
+        </link>
+        <joint name="l_thigh_pan_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>hip</parent>
+            <child>l_thigh_pan</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 0.000000 1.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_thigh_lift_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>l_thigh_pan</parent>
+            <child>l_thigh_lift</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_calf_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>l_thigh_lift</parent>
+            <child>l_calf</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_ankle_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>l_calf</parent>
+            <child>l_ankle</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_foot_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>l_ankle</parent>
+            <child>l_foot</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>1.000000 0.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_thigh_pan_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>hip</parent>
+            <child>r_thigh_pan</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 0.000000 1.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_thigh_lift_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>r_thigh_pan</parent>
+            <child>r_thigh_lift</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_calf_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>r_thigh_lift</parent>
+            <child>r_calf</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_ankle_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>r_calf</parent>
+            <child>r_ankle</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_foot_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>r_ankle</parent>
+            <child>r_foot</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>1.000000 0.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="torso_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>hip</parent>
+            <child>torso</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_shoulder_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>torso</parent>
+            <child>l_shoulder</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>1.000000 0.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_upper_arm_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>l_shoulder</parent>
+            <child>l_upper_arm</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_forearm_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>l_upper_arm</parent>
+            <child>l_forearm</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_wrist_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>l_forearm</parent>
+            <child>l_wrist</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="l_hand_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>l_wrist</parent>
+            <child>l_hand</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="neck_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>torso</parent>
+            <child>neck</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 0.000000 1.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="head_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>neck</parent>
+            <child>head</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_shoulder_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>torso</parent>
+            <child>r_shoulder</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>1.000000 0.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_upper_arm_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>r_shoulder</parent>
+            <child>r_upper_arm</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_forearm_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>r_upper_arm</parent>
+            <child>r_forearm</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_wrist_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>r_forearm</parent>
+            <child>r_wrist</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <joint name="r_hand_joint" type="revolute">
+            <pose>0.000000 0.000000 0.000000 0.000000 -0.000000 0.000000</pose>
+            <parent>r_wrist</parent>
+            <child>r_hand</child>
+            <axis>
+                <dynamics>
+                    <damping>0.000000</damping>
+                    <friction>0.000000</friction>
+                </dynamics>
+                <limit lower="-1.570800" upper="1.570800" effort="0.000000" velocity="0.000000" />
+                <xyz>0.000000 1.000000 0.000000</xyz>
+            </axis>
+        </joint>
+        <static>0</static>
+    </model>
+</world>
+</gazebo>

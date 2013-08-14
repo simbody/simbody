@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -28,14 +28,6 @@
  * Includes internal headers providing declarations for the basic SimTK
  * Core classes, including Simmatrix.
  */
-
-/**@page SimTKcommon    Fundamental SimTK objects and utilities
-SimTKcommon is the collection of low-level objects and utility functions that
-provide the fundamental capabilities needed by Simbody and useful in
-applications that use Simbody. 
-
-@todo Add links to various categories of tools here.
-**/
 
 #include "SimTKcommon/basics.h"
 

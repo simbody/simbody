@@ -92,9 +92,9 @@ int main(int argc, char** argv) {
     gravity.setDisabledByDefault(true);
 
         // ADD BODIES AND THEIR MOBILIZERS
-    Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)))
-                                  .addDecoration(Transform(), 
-                                        DecorativeBrick(Vec3(.1,.0667,.05)).setOpacity(.5));
+    Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)));
+    pendulumBody.addDecoration(Transform(), 
+                               DecorativeBrick(Vec3(.1,.0667,.05)).setOpacity(.5));
 
     MobilizedBody:: Ball /*Gimbal*/ /*FreeLine*/ /*LineOrientation*/ /*Free*/
         leftPendulum(twoPends.Ground(),

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -68,9 +68,13 @@ generalized coordinates and generalized speeds as the %Gimbal.
 @see MobilizedBody::Ball, MobilizedBody::Gimbal **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public MobilizedBody {
 public:
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Gimbal. **/
+    Gimbal() {}
+
     /** Create a %Gimbal mobilizer between an existing parent (inboard) body P 
     and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody::%Gimbal 
+    into a privately-owned Body within the constructed %MobilizedBody 
     object. Specify the mobilizer frames F fixed to parent P and M fixed to 
     child B. **/
     Gimbal(MobilizedBody& parent, const Transform& X_PF,
@@ -197,8 +201,6 @@ public:
     /** @name               Advanced/Obscure
     Most users won't use these methods. **/
     /**@{**/
-    /** Create a disembodied %Gimbal mobilizer that is not part of any System. **/
-    explicit Gimbal(Direction=Forward);
 
     /** Given a vector in the System's generalized coordinate basis, extract
     the three q's belonging to this mobilizer. **/

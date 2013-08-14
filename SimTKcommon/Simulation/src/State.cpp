@@ -896,19 +896,19 @@ public:
     }
 
 
-    // Back up the System stage just before g if it thinks
-    // it is already at g or beyond. Note that we may be backing up
+    // Back up the System stage just before stg if it thinks
+    // it is already at stg or beyond. Note that we may be backing up
     // over many stages here. Careful: invalidating the stage
     // for the system must also invalidate the same stage for all
     // the subsystems (because we trash the shared resource pool
     // here if we back up earlier than Stage::Model) but we don't
     // take care of that here. Also, you can't invalidate Stage::Empty.
-    void invalidateJustSystemStage(Stage g) {
-        assert(g > Stage::Empty);
-        if (currentSystemStage < g)
+    void invalidateJustSystemStage(Stage stg) {
+        assert(stg > Stage::Empty);
+        if (currentSystemStage < stg)
             return;
 
-        if (currentSystemStage >= Stage::Instance && Stage::Instance >= g) {
+        if (currentSystemStage >= Stage::Instance && Stage::Instance >= stg) {
             // We are "uninstancing" this State. Trash all the shared
             // cache entries that are allocated at Instance stage.
 
@@ -930,7 +930,7 @@ public:
             multipliers.unlockShape(); multipliers.clear();
             allTriggers.unlockShape(); allTriggers.clear();
         }
-        if (currentSystemStage >= Stage::Model && Stage::Model >= g) {
+        if (currentSystemStage >= Stage::Model && Stage::Model >= stg) {
             // We are "unmodeling" this State. Trash all the global
             // shared states & corresponding cache entries.
 
@@ -951,7 +951,7 @@ public:
             ydot.unlockShape();        ydot.clear();    // ydot data
             qdotdot.unlockShape();     qdotdot.clear(); // qdotdot data (no views)
         }
-        if (currentSystemStage >= Stage::Topology && Stage::Topology >= g) {
+        if (currentSystemStage >= Stage::Topology && Stage::Topology >= stg) {
             // We're invalidating the topology stage. Time is considered
             // a topology stage variable so needs to be invalidated here.
             t = NaN;
@@ -959,26 +959,26 @@ public:
 
         // Raise the version number for every stage that we're invalidating and
         // set the current System Stage one lower than the one being invalidated.
-        for (int i=currentSystemStage; i >= g; --i)
+        for (int i=currentSystemStage; i >= stg; --i)
             systemStageVersions[i]++;
-        currentSystemStage = g.prev();
+        currentSystemStage = stg.prev();
     }
 
-    // Advance the System stage from g-1 to g. It is a fatal error if
-    // we're not already at g-1, and you can't advance to Stage::Empty.
-    // Also, you can't advance the system to g unless ALL subsystems have
+    // Advance the System stage from stg-1 to stg. It is a fatal error if
+    // we're not already at stg-1, and you can't advance to Stage::Empty.
+    // Also, you can't advance the system to stg unless ALL subsystems have
     // already gotten there.
-    void advanceSystemToStage(Stage g) const {
-        assert(g > Stage::Empty);
-        assert(currentSystemStage == g.prev());
-        assert(allSubsystemsAtLeastAtStage(g));
+    void advanceSystemToStage(Stage stg) const {
+        assert(stg > Stage::Empty);
+        assert(currentSystemStage == stg.prev());
+        assert(allSubsystemsAtLeastAtStage(stg));
 
-        if (g == Stage::Topology) {
+        if (stg == Stage::Topology) {
             // As the final "Topology" step, initialize time to 0 (it's NaN 
             // before this).
             const_cast<StateImpl*>(this)->t = 0;
         }
-        else if (g == Stage::Model) {
+        else if (stg == Stage::Model) {
             // We know the shared state pool sizes now. Allocate the
             // states and matching shared cache pools.
             int nq=0, nu=0, nz=0; // total sizes
@@ -1072,7 +1072,7 @@ public:
                 nxtq += nq; nxtu += nu; nxtz += nz;
             }
         }
-        else if (g == Stage::Instance) {
+        else if (stg == Stage::Instance) {
             // We know the shared cache pool sizes now. Allocate them.
 
             // Global sizes.
@@ -1192,7 +1192,7 @@ public:
 
         // All cases fall through to here.
 
-        currentSystemStage = g;
+        currentSystemStage = stg;
     }
 
     
@@ -2054,6 +2054,7 @@ public:
     } 
 
     // Stage >= ce.stage
+    // This method gets called a lot, so make it fast in Release mode.
     const AbstractValue& 
     getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
         const PerSubsystemInfo& ss = subsystems[subsys];
@@ -2061,19 +2062,22 @@ public:
         SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateImpl::getCacheEntry()");
         const CacheEntryInfo& ce = ss.cacheInfo[index];
     
-        const Stage stageNow = getSubsystemStage(subsys);
-        SimTK_STAGECHECK_GE_ALWAYS(stageNow, 
+        // These two unconditional checks are somewhat expensive; I'm leaving
+        // them in though because they catch so many user errors.
+        // (sherm 20130222).
+        SimTK_STAGECHECK_GE_ALWAYS(ss.currentStage, 
             ce.getDependsOnStage(), "StateImpl::getCacheEntry()");
 
-        if (stageNow < ce.getComputedByStage()) {
+        if (ss.currentStage < ce.getComputedByStage()) {
             const StageVersion currentDependsOnVersion = 
-                getSubsystemStageVersions(subsys)[ce.getDependsOnStage()];
+                ss.stageVersions[ce.getDependsOnStage()];
             const StageVersion lastCacheVersion = 
                 ce.getVersionWhenLastComputed();
 
             if (lastCacheVersion != currentDependsOnVersion) {
                 SimTK_THROW4(Exception::CacheEntryOutOfDate,
-                    stageNow, ce.getDependsOnStage(), currentDependsOnVersion, lastCacheVersion);
+                    ss.currentStage, ce.getDependsOnStage(), 
+                    currentDependsOnVersion, lastCacheVersion);
             }
         }
 

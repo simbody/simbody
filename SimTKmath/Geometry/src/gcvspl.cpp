@@ -18,7 +18,7 @@ SimTK_Real SimTK_SIMMATH_EXPORT SimTK_splder_(int *, int *, int *, SimTK_Real *,
 
 /* Table of constant values */
 
-static SimTK_Real c_b6 = 1e-15;
+static SimTK_Real c_b6 = SimTK_Real(1e-15);
 
 int SimTK_gcvspl_(const SimTK_Real *x, const SimTK_Real *y, int *ny, 
 	const SimTK_Real *wx, const SimTK_Real *wy, int *m, int *n, int *k, 
@@ -137,9 +137,9 @@ L20:
     if (*md < -1) {
 	r1 = wk[4];
     } else {
-	r1 = 1. / el;
+	r1 = 1 / el;
     }
-    r2 = r1 * 2.;
+    r2 = r1 * 2;
     gf2 = splc_(m, n, k, &y[y_offset], ny, &wx[1], &wy[1], md, val, &r2, &
 	    c_b6, &c[c_offset], nc, &wk[1], &wk[ib], &wk[iwe], &el, &wk[7]);
 L40:
@@ -148,7 +148,7 @@ L40:
     if (gf1 > gf2) {
 	goto L50;
     }
-    if (wk[4] <= 0.) {
+    if (wk[4] <= 0) {
 	goto L100;
     }
     r2 = r1;
@@ -156,14 +156,14 @@ L40:
     r1 /= 2.;
     goto L40;
 L50:
-    r3 = r2 * 2.;
+    r3 = r2 * 2;
 L60:
     gf3 = splc_(m, n, k, &y[y_offset], ny, &wx[1], &wy[1], md, val, &r3, &
 	    c_b6, &c[c_offset], nc, &wk[1], &wk[ib], &wk[iwe], &el, &wk[7]);
     if (gf3 > gf2) {
 	goto L70;
     }
-    if (wk[4] >= 999999999999999.88) {
+    if (wk[4] >= SimTK_Real(999999999999999.88)) {
 	goto L100;
     }
     r2 = r3;
@@ -173,7 +173,7 @@ L60:
 L70:
     r2 = r3;
     gf2 = gf3;
-    alpha = (r2 - r1) / 1.618033983;
+    alpha = (r2 - r1) / SimTK_Real(1.618033983);
     r4 = r1 + alpha;
     r3 = r2 - alpha;
     gf3 = splc_(m, n, k, &y[y_offset], ny, &wx[1], &wy[1], md, val, &r3, &
@@ -185,12 +185,12 @@ L80:
 	r2 = r4;
 	gf2 = gf4;
 	err = (r2 - r1) / (r1 + r2);
-	if (err * err + 1. == 1. || err <= 1e-6) {
+	if (err * err + 1 == 1 || err <= SimTK_Real(1e-6)) {
 	    goto L90;
 	}
 	r4 = r3;
 	gf4 = gf3;
-	alpha /= 1.618033983;
+	alpha /= SimTK_Real(1.618033983);
 	r3 = r2 - alpha;
 	gf3 = splc_(m, n, k, &y[y_offset], ny, &wx[1], &wy[1], md, val, &r3, &
 		c_b6, &c[c_offset], nc, &wk[1], &wk[ib], &wk[iwe], &el, &wk[7]
@@ -199,12 +199,12 @@ L80:
 	r1 = r3;
 	gf1 = gf3;
 	err = (r2 - r1) / (r1 + r2);
-	if (err * err + 1. == 1. || err <= 1e-6) {
+	if (err * err + 1 == 1 || err <= SimTK_Real(1e-6)) {
 	    goto L90;
 	}
 	r3 = r4;
 	gf3 = gf4;
-	alpha /= 1.618033983;
+	alpha /= SimTK_Real(1.618033983);
 	r4 = r1 + alpha;
 	gf4 = splc_(m, n, k, &y[y_offset], ny, &wx[1], &wy[1], md, val, &r4, &
 		c_b6, &c[c_offset], nc, &wk[1], &wk[ib], &wk[iwe], &el, &wk[7]
@@ -212,7 +212,7 @@ L80:
     }
     goto L80;
 L90:
-    r1 = (r1 + r2) * .5;
+    r1 = (r1 + r2) / 2;
 
 
 L100:
@@ -272,7 +272,7 @@ int basis_(int *m, int *n, const SimTK_Real *x, SimTK_Real
 	}
 	q[mm1] = 1.;
 	if (l != 1 && l != *n) {
-	    q[mm1] = 1. / (x[l + 1] - x[l - 1]);
+	    q[mm1] = 1 / (x[l + 1] - x[l - 1]);
 	}
 	arg = x[l];
 	i__2 = m2;
@@ -558,7 +558,7 @@ SimTK_Real splc_(int *m, int *n, int *k, const SimTK_Real *y, int *
 	stat[4] = 0.;
     }
     if (pel * *eps > 1.) {
-	dp = 1. / (*el * *eps);
+	dp = 1 / (*el * *eps);
 	stat[4] = dp;
     }
 
@@ -618,7 +618,7 @@ SimTK_Real splc_(int *m, int *n, int *k, const SimTK_Real *y, int *
 	    ret_val = (d__1 = stat[3] - *val, abs(d__1));
 	}
     } else {
-	stat[5] = esn - *val * (trn * 2. - 1.);
+	stat[5] = esn - *val * (trn * 2 - 1);
 	ret_val = stat[5];
     }
 
@@ -825,11 +825,11 @@ SimTK_Real trinv_(SimTK_Real *b, SimTK_Real *e, int *m, int *n)
     b -= b_offset;
 
     /* Function Body */
-    e[*n * e_dim1] = 1. / e[*n * e_dim1];
+    e[*n * e_dim1] = 1 / e[*n * e_dim1];
     for (i = *n - 1; i >= 1; --i) {
 	i__1 = *m, i__2 = *n - i;
 	mi = min(i__1,i__2);
-	dd = 1. / e[i * e_dim1];
+	dd = 1 / e[i * e_dim1];
 	i__1 = mi;
 	for (k = 1; k <= i__1; ++k) {
 	    e[k + *n * e_dim1] = e[k + i * e_dim1] * dd;
@@ -848,7 +848,7 @@ SimTK_Real trinv_(SimTK_Real *b, SimTK_Real *e, int *m, int *n)
 	    e[-j + (j + i) * e_dim1] = dl;
 	    dd -= e[j + *n * e_dim1] * dl + e[-j + e_dim1] * du;
 	}
-	e[i * e_dim1] = dd * .5;
+	e[i * e_dim1] = dd / 2;
     }
 
     dd = 0.;

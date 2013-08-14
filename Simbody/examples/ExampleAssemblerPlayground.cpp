@@ -53,9 +53,8 @@ int main() {
     const Real mass = 0.1;
     const Vec3 hdims(2,4,1);
     Body::Rigid pendulumBody = Body::Rigid
-       (MassProperties(mass, Vec3(0), mass*UnitInertia::ellipsoid(hdims)))
-        .addDecoration(Transform(),DecorativeEllipsoid(hdims)
-                                    .setOpacity(.2));
+       (MassProperties(mass, Vec3(0), mass*UnitInertia::ellipsoid(hdims)));
+    pendulumBody.addDecoration(DecorativeEllipsoid(hdims).setOpacity(.2));
 
     MobilizedBody midBody, finalBody;
     MobilizedBody::Free baseBody(matter.Ground(), Transform(Vec3(0,-hdims[1],0)), 

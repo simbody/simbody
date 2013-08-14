@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -40,10 +40,11 @@
 #include <cassert>
 
 /**
- * Every measure handle class "MH" derived directly or indirectly from the
- * AbstractMeasure handle class should include this macro at
- * the beginning of the "public" section of its declaration. It performs
- * the following declarations:
+ * Every concrete measure handle class "MH" derived from a parent handle "PH" 
+ * that derives directly or indirectly from the AbstractMeasure handle class 
+ * should include the macro SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH) at the 
+ * beginning of the public section of its declaration. It performs the following 
+ * declarations:
  * <pre>
  *   MH::Implementation         the handle's local implementation class
  *   MH::MH()                   default constructor creates an empty handle
@@ -57,6 +58,9 @@
  * MH::Implementation must be defined elsewhere as a class derived 
  * from Measure::Implementation.
  */
+
+// Helper macro shared by SimTK_MEASURE_HANDLE_PREAMBLE and
+// SimTK_MEASURE_HANDLE_PREAMBLE_ABSTRACT.
 #define SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH) \
     class Implementation;                                           \
     explicit MH(Implementation* imp) : PH(imp) {}                   \
@@ -69,7 +73,7 @@
 
 
 // The default constructor for concrete classes should instantiate
-// a default-constructed Implementation object if no Implementation
+// a default-constructed Implementation object if no Implementation object
 // is provided.
 #define SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH)    \
     SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH)   \
@@ -105,17 +109,17 @@
  * builds.
  */
 #define SimTK_MEASURE_HANDLE_POSTSCRIPT(MH,PH) \
-    static bool isA(const SimTK::AbstractMeasure& m)                               \
+    static bool isA(const SimTK::AbstractMeasure& m)                        \
     {   return dynamic_cast<const Implementation*>(&m.getImpl()) != 0; }    \
     static const MH& getAs(const SimTK::AbstractMeasure& m)                 \
     {   assert(isA(m)); return static_cast<const MH&>(m); }                 \
     static MH& updAs(SimTK::AbstractMeasure& m)                             \
     {   assert(isA(m)); return static_cast<MH&>(m); }                       \
     const Implementation& getImpl() const                                   \
-    {   return dynamic_cast<const Implementation&>                          \
+    {   return SimTK_DYNAMIC_CAST_DEBUG<const Implementation&>              \
                     (SimTK::AbstractMeasure::getImpl());}                   \
     Implementation& updImpl()                                               \
-    {   return dynamic_cast<Implementation&>                                \
+    {   return SimTK_DYNAMIC_CAST_DEBUG<Implementation&>                    \
                     (SimTK::AbstractMeasure::updImpl());} 
 
 namespace SimTK {
@@ -128,25 +132,22 @@ class EventId;
 /// Define a unique integral type for safe indexing of Measures. 
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MeasureIndex);
 
-    //////////////////////
-    // ABSTRACT MEASURE //
-    //////////////////////
+//==============================================================================
+//                            ABSTRACT MEASURE
+//==============================================================================
+/** This is the base class for all Measure handle classes. This class is not
+templatized, and represents a Measure generically without knowledge of its
+value type. This is useful for most of the basic operations that are 
+performed on measures, such as realization, adoption by a Subsystem, and 
+other bookkeeping tasks. For most user purposes, the still-generic derived 
+class Measure_<T> is a more useful handle since its value, of known type T, 
+can be obtained. All the built-in concrete Measure types derive from 
+Measure_<T> rather than AbstractMeasure. The various concrete Measures, 
+built in or otherwise, may set restrictions on the kinds of types that 
+are allowable as the template argument.
 
-/**
- * This is the base class for all Measure handle classes. This class is not
- * templatized, and represents a Measure generically without knowledge of its
- * value type. This is useful for most of the basic operations that are 
- * performed on measures, such as realization, adoption by a Subsystem, and 
- * other bookkeeping tasks. For most user purposes, the still-generic derived 
- * class Measure_<T> is a more useful handle since its value, of known type T, 
- * can be obtained. All the built-in concrete Measure types derive from 
- * Measure_<T> rather than AbstractMeasure. The various concrete Measures, 
- * built in or otherwise, may set restrictions on the kinds of types that 
- * are allowable as the template argument.
- *
- * Note that handles always consist of exactly one pointer, and handle classes
- * are always concrete (meaning they have no virtual methods).
- */
+Note that handles always consist of exactly one pointer, and handle classes
+are always concrete (meaning they have no virtual methods). **/
 class SimTK_SimTKCOMMON_EXPORT AbstractMeasure {
 protected:
 	/// An object of this type is used as a dummy argument to make sure the 
@@ -251,10 +252,9 @@ friend class Implementation;
 };
 
 
-    /////////////////
-    // MEASURE_<T> //
-    /////////////////
-
+//==============================================================================
+//                               MEASURE <T>
+//==============================================================================
 /** This is the base handle class for all Measures whose value type is known,
 including all the Simbody built-in %Measure types. **/
 template <class T>
@@ -298,7 +298,8 @@ public:
     class Time;         // T is any type for which T(t) makes sense.
     class Variable;     // T is any assignable type (state)
     class Result;       // T is any assignable type (cache)
-    class SampleAndHold;//    "
+    class SampleAndHold;// T is any assignable type
+    class Delay;        // T is any assignable type
 
     // This requires any numerical type.
     class Plus;
@@ -327,10 +328,9 @@ Measure_; look there for documentation. **/
 typedef Measure_<Real> Measure;
 
 
-    //////////////
-    // CONSTANT //
-    //////////////
-
+//==============================================================================
+//                                CONSTANT
+//==============================================================================
 /** This creates a Measure whose value is a Topology-stage constant of any
 type T. This does not have to be part of a Subsystem, but if it is then changing
 the constant's value invalidates the containing Subsystem's Topology. 
@@ -359,10 +359,9 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Constant, Measure_<T>);
 };
 
-    //////////
-    // ZERO //
-    //////////
-
+//==============================================================================
+//                                   ZERO
+//==============================================================================
 /** This creates a Measure::Constant whose value is always T(0) and can't be 
 changed. This class is specialized for Vector so that you must provide a
 size at construction. **/
@@ -380,10 +379,9 @@ public:
     Zero(Subsystem& sub, int size);
 };
 
-    /////////
-    // ONE //
-    /////////
-
+//==============================================================================
+//                                    ONE
+//==============================================================================
 /** This creates a Measure::Constant whose value is always T(1) and can't be 
 changed. This class is specialized for Vector so that you must provide a
 size at construction. **/
@@ -401,13 +399,10 @@ public:
     One(Subsystem& sub, int size);
 };
 
-    //////////
-    // TIME //
-    //////////
-
-/**
- * This creates a Measure::Time whose value is always T(time).
- */
+//==============================================================================
+//                                   TIME
+//==============================================================================
+/** This creates a Measure::Time whose value is always T(time). **/
 template <class T>
 class Measure_<T>::Time : public Measure_<T> {
 public:
@@ -416,14 +411,11 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Time, Measure_<T>);
 };
 
-    //////////////
-    // VARIABLE //
-    //////////////
-
-/**
- * This creates a Measure whose value is a discrete State variable
- * of any type T.
- */
+//==============================================================================
+//                                 VARIABLE
+//==============================================================================
+/** This creates a Measure whose value is a discrete State variable of any 
+type T. **/
 template <class T>
 class Measure_<T>::Variable : public Measure_<T> {
 public:
@@ -443,25 +435,22 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Variable, Measure_<T>);
 };
 
-    ////////////
-    // RESULT //
-    ////////////
+//==============================================================================
+//                                 RESULT
+//==============================================================================
+/** This Measure holds the result of some externally-determined computation,
+and helps to coordinate the validity of that computation with respect
+to the state variables. The value must be set manually and explicitly
+marked valid when it is complete. The value will be automatically 
+invalidated after a state change at or below a specified Stage, and changing
+the value here will automatically invalidate a specified Stage and above.
 
-/**
- * This Measure holds the result of some externally-determined computation,
- * and helps to coordinate the validity of that computation with respect
- * to the state variables. The value must be set manually and explicitly
- * marked valid when it is complete. The value will be automatically 
- * invalidated after a state change at or below a specified Stage, and changing
- * the value here will automatically invalidate a specified Stage and above.
- *
- * In constrast to Measure::Variable, Measure::Result is not a state variable;
- * it is a cache variable meaning that it works with a const State. It is
- * expected that the result can be recalculated from the state variables when
- * needed, or contains ephemeral information that can be discarded.
- *
- * No provision for derivatives is made; there is only the one result.
- */
+In constrast to Measure::Variable, Measure::Result is not a state variable;
+it is a cache variable meaning that it works with a const State. It is
+expected that the result can be recalculated from the state variables when
+needed, or contains ephemeral information that can be discarded.
+
+No provision for derivatives is made; there is only the one result. **/
 template <class T>
 class Measure_<T>::Result : public Measure_<T> {
 public:
@@ -571,18 +560,15 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Result, Measure_<T>);
 };
 
-    //////////////
-    // SINUSOID //
-    //////////////
-
-/**
- * This measure produces a sinusoidal function of time:
- * <pre>
- *      m(t) = a*sin(w*t+p)
- * </pre>
- * where a=amplitude in arbitrary units, w=frequency in rad/unit time, 
- * p=phase in rad.
- */
+//==============================================================================
+//                                 SINUSOID
+//==============================================================================
+/** This measure produces a sinusoidal function of time:
+<pre>
+     m(t) = a*sin(w*t+p)
+</pre>
+where a=amplitude in arbitrary units, w=frequency in rad/unit time, p=phase 
+in radians. **/
 template <class T>
 class Measure_<T>::Sinusoid : public Measure_<T> {
 public:
@@ -598,16 +584,13 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Sinusoid, Measure_<T>);
 };
 
-    //////////
-    // PLUS //
-    //////////
-
-/**
- * This Measure is the sum of two Measures of the same type T.
- * @tparam T    Any type that supports a plus operator that returns a sum
- *              as another object of type T. In particular, Real, Vec<N>,
- *              and Vector will work.
- */
+//==============================================================================
+//                                   PLUS
+//==============================================================================
+/** This Measure is the sum of two Measures of the same type T.
+@tparam T    Any type that supports a plus operator that returns a sum
+             as another object of type T. In particular, Real, Vec<N>,
+             and Vector will work. **/
 template <class T>
 class Measure_<T>::Plus : public Measure_<T> {
 public:
@@ -626,16 +609,13 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Plus, Measure_<T>);
 };
 
-    ///////////
-    // MINUS //
-    ///////////
-
-/**
- * This Measure is the difference of two Measures of the same type T.
- * @tparam T    Any type that supports a subtract operator that returns the
- *              difference as another object of type T. In particular, Real, 
- *              Vec<N>, and Vector will work.
- */
+//==============================================================================
+//                                   MINUS
+//==============================================================================
+/** This Measure is the difference of two Measures of the same type T.
+@tparam T    Any type that supports a subtract operator that returns the
+             difference as another object of type T. In particular, Real, 
+             Vec<N>, and Vector will work. **/
 template <class T>
 class Measure_<T>::Minus : public Measure_<T> {
 public:
@@ -654,16 +634,13 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Minus, Measure_<T>);
 };
 
-    ///////////
-    // SCALE //
-    ///////////
-
-/**
- * This Measure multiplies some other Measure by a Real scale factor.
- * @tparam T    Any type that supports a scalar multiply, with the scalar on
- *              the left, that returns the product as another object of type T. 
- *              In particular, Real, Vec<N>, and Vector will work.
- */
+//==============================================================================
+//                                   SCALE
+//==============================================================================
+/** This Measure multiplies some other Measure by a Real scale factor.
+@tparam T    Any type that supports a scalar multiply, with the scalar on
+             the left, that returns the product as another object of type T. 
+             In particular, Real, Vec<N>, and Vector will work. **/
 template <class T>
 class Measure_<T>::Scale : public Measure_<T> {
 public:
@@ -685,10 +662,9 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Scale, Measure_<T>);
 };
 
-    ///////////////
-    // INTEGRATE //
-    ///////////////
-
+//==============================================================================
+//                                 INTEGRATE
+//==============================================================================
 /** This measure yields the time integral of a given derivative measure, 
 initializing with an initial condition measure of the same type T. The type
 T can be Real or a fixed size Vec type like Vec<3>, or a variable-size
@@ -735,10 +711,9 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Integrate, Measure_<T>);
 };
 
-    ///////////////////
-    // DIFFERENTIATE //
-    ///////////////////
-
+//==============================================================================
+//                               DIFFERENTIATE
+//==============================================================================
 /** This Measure operator returns the time derivative of its operand measure,
 or a numerical approximation of the time derivative if an analytic one is not
 available.
@@ -811,19 +786,16 @@ public:
 };
 
 //==============================================================================
-//                                  EXTREME
+//                 EXTREME, MINIMUM, MAXIMUM, MINABS, MAXABS
 //==============================================================================
+/** This Measure tracks extreme values attained by the elements of its source 
+operand since the last initialize() call or explicit call to setValue(). The 
+extreme is either minimum or maximum and may be determined by the actual or 
+absolute value of the operand. In any case the value of the %Extreme measure is 
+the actual extreme value of the operand, not its absolute value.
 
-/** This Measure tracks extreme values attained by the
-elements of its source operand since the last initialize() call or explicit
-call to setValue(). The extreme is either minimum or maximum and may be
-determined by the actual or absolute value of the operand. In any case the
-value of the %Extreme measure is the actual extreme value of the operand, not
-its absolute value.
-
-The template type T must be the same as the
-template type of the operand measure. If T is a Vec or Vector type, each
-element is treated separately.
+The template type T must be the same as the template type of the operand 
+measure. If T is a Vec or Vector type, each element is treated separately.
 
 Normally %Extreme is not used directly; it is the common implementation 
 underlying the Minimum, Maximum, MinAbs, and MaxAbs measures.
@@ -905,6 +877,8 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Extreme, Measure_<T>);
 };
 
+/** Track the minimum value of the operand (signed).
+@see Measure_::Extreme **/
 template <class T>
 class Measure_<T>::Minimum : public Measure_<T>::Extreme {
     typedef typename Measure_<T>::Extreme Super;
@@ -913,7 +887,8 @@ public:
     :   Super(sub, operand, Super::Minimum) {}
 };
 
-
+/** Track the maximum value of the operand (signed).
+@see Measure_::Extreme **/
 template <class T>
 class Measure_<T>::Maximum : public Measure_<T>::Extreme {
     typedef typename Measure_<T>::Extreme Super;
@@ -922,16 +897,8 @@ public:
     :   Super(sub, operand, Super::Maximum) {}
 };
 
-
-template <class T>
-class Measure_<T>::MinAbs : public Measure_<T>::Extreme {
-    typedef typename Measure_<T>::Extreme Super;
-public:
-    MinAbs(Subsystem& sub, const Measure_<T>& operand)
-    :   Super(sub, operand, Super::MinAbs) {}
-};
-
-
+/** Track the value of the operand that is of maximum absolute value.
+@see Measure_::Extreme **/
 template <class T>
 class Measure_<T>::MaxAbs : public Measure_<T>::Extreme {
     typedef typename Measure_<T>::Extreme Super;
@@ -940,21 +907,150 @@ public:
     :   Super(sub, operand, Super::MaxAbs) {}
 };
 
+/** Track the value of the operand that is of minimum absolute value (not very
+useful).
+@see Measure_::Extreme **/
+template <class T>
+class Measure_<T>::MinAbs : public Measure_<T>::Extreme {
+    typedef typename Measure_<T>::Extreme Super;
+public:
+    MinAbs(Subsystem& sub, const Measure_<T>& operand)
+    :   Super(sub, operand, Super::MinAbs) {}
+};
+
+//==============================================================================
+//                                 DELAY
+//==============================================================================
+/** (CAUTION: still under development) 
+This is a %Measure whose value at time t is the value that its 
+\a source operand had at time t-delay for a specified \a delay. For times prior 
+to the start of a simulation this %Measure behaves as though the source value 
+had been constant at its initial value. 
+
+When the \a source %Measure can provide a time derivative dvalue we use saved
+(t,value,dvalue) triples surrounding the required time to construct a cubic
+Hermite interpolant giving a third-order accurate estimate of the delayed
+value. Otherwise we use more data points to construct the cubic interpolant but
+the accuracy cannot be guaranteed. If there aren't enough data points, then 
+linear interpolation is used instead. There is an option to force use of linear 
+interpolation if you prefer.
+
+In the case where the delayed time is within the current step, we would need
+the current \a source value in order to interpolate. We assume that is not
+available (commonly the current value depends on the delayed value) so have to
+extrapolate beyond the last buffered value in that case. Extrapolation is 
+considerably less accurate than interpolation, so when step sizes are large 
+compared to delay times the accuracy of the delayed value is reduced. In cases 
+where the \a source does not depend on its delayed value, you can request that
+the current value be used if necessary, ensuring consistent accuracy. 
+Alternatively, you can set the maximum integrator step size to be just less 
+than the minimum delay time, guaranteeing that there will always be an entry
+already in the buffer that is later than any requested delayed time. That 
+could have a substantial performance penalty if steps much larger than the
+delay would otherwise have been taken.
+
+<h3>%Implementation</h3>
+This %Measure maintains a variable-sized buffer holding values that the 
+\a source measure and its time derivative (if available) had at each time step
+starting just prior to t-delay until just before the current time t. New values 
+are added to the end of the buffer as integrator steps are completed, and old
+values that are no longer needed are removed from the beginning. When a value is 
+requested at current time t, the %Measure interpolates using values from just 
+prior to t-delay and just afterwards to approximate the value at t-delay.
+
+@bug Only linear interpolation implemented so far.
+@bug There should be an option for the measure to specify a sampling interval
+that would force the integrator to provide interpolated states at least that
+often.
+@bug The current implementation involves a lot of unnecessary copying because
+it uses an auto-update state variable and cache entry. It should be using
+an end-of-step event handler to update the buffer directly in the state.
+
+@see Measure_::Integrate, Measure_::Differentiate **/
+template <class T>
+class Measure_<T>::Delay : public Measure_<T> {
+public:
+    /** @cond **/
+    SimTK_MEASURE_HANDLE_PREAMBLE(Delay, Measure_<T>);
+    /** @endcond **/
+
+    /** Create a %Measure whose output is the same as the given \a source
+    measure but delayed by a time \a delay. **/
+    Delay(Subsystem& sub, const Measure_<T>& source, Real delay)
+    :   Measure_<T>(sub, new Implementation(source, delay), 
+                    AbstractMeasure::SetHandle()) {}
+
+    /** (Advanced) Restrict the %Delay measure to use only linear interpolation
+    to estimate delayed values. By default it uses cubic interpolation whenever 
+    possible. Cubic interpolation will almost always be better but can be 
+    unstable in some circumstances. Despite its name this flag also applies
+    to extrapolation if we have to do any. This is a topological change. **/
+    Delay& setUseLinearInterpolationOnly(bool linearOnly)
+    {   updImpl().setUseLinearInterpolationOnly(linearOnly); return *this; }
+
+    /** (Advanced) Allow the %Delay measure to refer to the current
+    value when estimating the delayed value. Normally we expect that the current
+    value might depend on the delayed value so is not available at the time 
+    we ask for the delayed value. That means that if the delayed time is 
+    between the current time and the last saved time (that is, it is a time
+    during the current integration step), the measure will have to 
+    extrapolate from the last-saved values to avoid requiring the current
+    value to be available. With this approach the "depends on" time for a %Delay
+    measure is just Time stage since it does not depend on any current
+    calculations. However, \e extrapolation is much less accurate than 
+    \e interpolation so if you don't mind the "depends on" stage for a %Delay 
+    measure being the same stage as for its \a source measure, then you can get
+    nicer interpolated values. This is a topological change. **/
+    Delay& setCanUseCurrentValue(bool canUseCurrentValue)
+    {   updImpl().setCanUseCurrentValue(canUseCurrentValue); return *this; }
+
+    /** Replace the \a source measure. This is a topological change. **/
+    Delay& setSourceMeasure(const Measure_<T>& source)
+    {   updImpl().setSourceMeasure(source); return *this; }
+
+    /** Change the \a delay time. This is a topological change. **/
+    Delay& setDelay(Real delay)
+    {   updImpl().setDelay(delay); return *this; }
+
+    /** Return the value of the "use linear interpolation only" flag. **/
+    bool getUseLinearInterpolationOnly() const
+    {   return getImpl().getUseLinearInterpolationOnly(); }
+
+    /** Return the value of the "can use current value" flag. **/
+    bool getCanUseCurrentValue() const
+    {   return getImpl().getCanUseCurrentValue(); }
+
+    /** Obtain a reference to the \a source %Measure. **/
+    const Measure_<T>& getSourceMeasure() const
+    {   return getImpl().getSourceMeasure(); }
+
+    /** Get the amount of time by which this %Measure is delaying its
+    \a source %Measure. **/
+    Real getDelay() const
+    {   return getImpl().getDelay(); }
+
+    /** @cond **/
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(Delay, Measure_<T>);
+    /** @endcond **/
+};
+
+//==============================================================================
+//                              SAMPLE AND HOLD
+//==============================================================================
 /** NOT IMPLEMENTED YET --
- * This is a Measure operator which, upon occurrence of a designated event, 
- * samples its source Measure and then holds its value in a discrete state 
- * variable until the next occurrence of the event. Any type of data can be 
- * sampled this way.
- *
- * Information available from this Measure:
- *  - the held value (Time stage)
- *  - time of last sample
- *  - the DiscreteVariableIndex holding the sampled value
- *  - a reference to the operand Measure
- *
- * Study initialization is always considered a sampling event.
- * This measure has no time derivative.
- */
+This is a Measure operator which, upon occurrence of a designated event, 
+samples its source Measure and then holds its value in a discrete state 
+variable until the next occurrence of the event. Any type of data can be 
+sampled this way.
+
+Information available from this Measure:
+ - the held value (Time stage)
+ - time of last sample
+ - the DiscreteVariableIndex holding the sampled value
+ - a reference to the operand Measure
+
+Study initialization is always considered a sampling event.
+This measure has no time derivative. **/
 template <class T>
 class Measure_<T>::SampleAndHold : public Measure_<T> {
 public:

@@ -28,6 +28,7 @@
 #include "SFMT.h"
 
 #include <cassert>
+#include <cmath>
 
 using namespace SimTK_SFMT;
 
@@ -72,7 +73,7 @@ public:
             fill_array64(buffer, bufferSize, *sfmt);
             nextIndex = 0;
         }
-        return to_res53(buffer[nextIndex++]);
+        return Real(to_res53(buffer[nextIndex++]));
     }
 
     int getInt(int max) {
@@ -145,11 +146,11 @@ public:
         
         Real x, y, r2;
         do {
-            x = 2.0*getNextRandom()-1.0;
-            y = 2.0*getNextRandom()-1.0;
+            x = 2*getNextRandom()-1;
+            y = 2*getNextRandom()-1;
             r2 = x*x + y*y;
         } while (r2 >= 1.0 || r2 == 0.0);
-        Real multiplier = sqrt((-2.0*log(r2))/r2);
+        Real multiplier = std::sqrt((-2*std::log(r2))/r2);
         nextGaussian = y*multiplier;
         nextGaussianIsValid = true;
         return mean+stddev*x*multiplier;
@@ -217,12 +218,12 @@ Random::Uniform::Uniform(Real min, Real max) {
 
 Random::Uniform::UniformImpl& Random::Uniform::getImpl() {
     assert(impl);
-    return dynamic_cast<Random::Uniform::UniformImpl&>(*impl);
+    return SimTK_DYNAMIC_CAST_DEBUG<Random::Uniform::UniformImpl&>(*impl);
 }
 
 const Random::Uniform::UniformImpl& Random::Uniform::getConstImpl() const {
     assert(impl);
-    return dynamic_cast<Random::Uniform::UniformImpl&>(*impl);
+    return SimTK_DYNAMIC_CAST_DEBUG<Random::Uniform::UniformImpl&>(*impl);
 }
 
 int Random::Uniform::getIntValue() {
@@ -255,12 +256,12 @@ Random::Gaussian::Gaussian(Real mean, Real stddev) {
 
 Random::Gaussian::GaussianImpl& Random::Gaussian::getImpl() {
     assert(impl);
-    return dynamic_cast<Random::Gaussian::GaussianImpl&>(*impl);
+    return SimTK_DYNAMIC_CAST_DEBUG<Random::Gaussian::GaussianImpl&>(*impl);
 }
 
 const Random::Gaussian::GaussianImpl& Random::Gaussian::getConstImpl() const {
     assert(impl);
-    return dynamic_cast<Random::Gaussian::GaussianImpl&>(*impl);
+    return SimTK_DYNAMIC_CAST_DEBUG<Random::Gaussian::GaussianImpl&>(*impl);
 }
 
 Real Random::Gaussian::getMean() const {

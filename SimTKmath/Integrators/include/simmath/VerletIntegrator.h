@@ -72,7 +72,6 @@ public:
      * Create a VerletIntegrator for integrating a System with fixed size steps.
      */
     VerletIntegrator(const System& sys, Real stepSize);
-    ~VerletIntegrator();
 };
 
 } // namespace SimTK

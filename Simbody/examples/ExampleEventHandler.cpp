@@ -48,7 +48,7 @@ int main() {
     
     // Create the system.
     
-    MultibodySystem system;
+    MultibodySystem system; system.setUseUniformBackground(true);
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));

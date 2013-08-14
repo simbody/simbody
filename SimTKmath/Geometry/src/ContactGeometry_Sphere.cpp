@@ -146,7 +146,7 @@ void ContactGeometry::Sphere::Impl::createOBBTree() {
 // respect to an orthonormal basis {e1, e2}. By definition P = p(0) and the geodesic goes from
 // P to Q, where Q = p(angle). Make sure e1 . e2 = 0 and |e1| = |e2| = 1.
 static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
-                             double R, double angle, Geodesic& geod)
+                             Real R, Real angle, Geodesic& geod)
 {
     // Check if e1 and e2 are orthogonal.
     assert(std::abs(~e1*e2) <= SignificantReal);
@@ -158,7 +158,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
     const int numGeodesicSamples = 12;
 
 	// Total arc length and orientation.
-	const Real orientation = sign(angle);
+	const Real orientation = Real(sign(angle));
 	const Real L = R*angle*orientation;
 
 	// Increment of phi in loop.
@@ -219,7 +219,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 
     geod.setIsConvex(true); // Curve on sphere is always convex.
     geod.setIsShortest(false); // TODO
-    geod.setAchievedAccuracy(1e-15); // TODO: accuracy of length?
+    geod.setAchievedAccuracy(SignificantReal); // TODO: accuracy of length?
 //    geod.setInitialStepSizeHint(integ.getActualInitialStepSizeTaken()); // TODO
 }
 

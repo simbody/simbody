@@ -118,7 +118,7 @@ calcConstraintErrors(Real t, const Vec<N>& y, Vec<NC>& cerr) const {
 bool GeodesicOnImplicitSurface::
 projectIfNeeded(Real consTol, Real t, Vec<N>& y) const {
     const int MaxIter = 10;         // should take *far* fewer
-    const Real OvershootFac = 0.1;  // try to do better than consTol
+    const Real OvershootFac = Real(0.1);  // try to do better than consTol
         
     const Real tryTol = consTol * OvershootFac;
     Vec3& p = updP(y); // aliases for the state variables

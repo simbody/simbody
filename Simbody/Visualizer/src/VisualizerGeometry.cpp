@@ -61,7 +61,7 @@ implementPointGeometry(const SimTK::DecorativePoint& geom) {
     const Real thickness = 
         geom.getLineThickness() == -1 ? Real(1) : geom.getLineThickness();
 
-    const Real DefaultLength = 0.05; // 1/20 of a unit length
+    const Real DefaultLength = Real(0.05); // 1/20 of a unit length
     const Vec3 lengths = DefaultLength * getScaleFactors(geom);
     const Vec4 color = getColor(geom, DefaultPointColor);
 

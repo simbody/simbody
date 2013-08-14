@@ -90,6 +90,7 @@ static bool initGlextFuncPointersIfNeeded(bool& canSaveImages);
 static void redrawDisplay();
 static void setKeepAlive(bool enable);
 static void setVsync(bool enable);
+static void shutdown();
 
 // Next, get the functions necessary for reading from and writing to pipes.
 #ifdef _WIN32
@@ -312,16 +313,11 @@ private:
 class ScreenText {
 public:
     ScreenText(const string& txt) 
-    :   text(txt)  {
-        //this->color[0] = color[0];
-        //this->color[1] = color[1];
-        //this->color[2] = color[2];
-    }
+    :   text(txt) {}
 
-    const char* getText() {return text.c_str();}
+    const string& getString() const {return text;}
 
 private:
-    //GLfloat color[3];
     string text;
 };
 
@@ -753,6 +749,7 @@ public:
     unsigned short meshIndex, resolution;
 };
 
+// Caution -- make sure scene is locked before you call this function.
 static void computeSceneBounds(const Scene* scene, float& radius, fVec3& center) {
     // Record the bounding sphere of every object in the scene.
 
@@ -816,11 +813,15 @@ static void computeSceneBounds(const Scene* scene, float& radius, fVec3& center)
     }
 }
 
-static void zoomCameraToShowWholeScene() {
+static void zoomCameraToShowWholeScene(bool sceneAlreadyLocked=false) {
     float radius;
     fVec3 center;
+    if (!sceneAlreadyLocked)
+        pthread_mutex_lock(&sceneLock);         //-------- LOCK SCENE --------
     computeSceneBounds(scene, radius, center);
-    float viewDistance = 
+    if (!sceneAlreadyLocked)
+        pthread_mutex_unlock(&sceneLock);       //----- UNLOCK SCENE ---------
+   float viewDistance = 
         radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
     // Back up 1 unit more to make sure we don't clip at this position.
     // Also add a modest offset in the (x,y) direction to avoid edge-on views.
@@ -836,7 +837,7 @@ static void zoomCameraToShowWholeScene() {
 class PendingCameraZoom : public PendingCommand {
 public:
     void execute() {
-        zoomCameraToShowWholeScene();
+        zoomCameraToShowWholeScene(true); // scene already locked
     }
 };
 
@@ -1377,7 +1378,7 @@ static void drawGroundAndSky(float farClipDistance) {
 /*==============================================================================
                                RENDER SCENE
 ==============================================================================*/
-static void renderScene() {
+static void renderScene(std::vector<std::string>* screenText = NULL) {
     static bool firstTime = true;
     static GLfloat prevNearClip; // initialize to near & farClip
     static GLfloat prevFarClip;
@@ -1419,6 +1420,7 @@ static void renderScene() {
         glViewport(0, 0, viewWidth, viewHeight);
         float sceneRadius;
         fVec3 sceneCenter;
+        // Scene is already locked so OK to call this.
         computeSceneBounds(scene, sceneRadius, sceneCenter);
         float sceneScale = std::max(0.1f, sceneRadius);
 
@@ -1451,9 +1453,7 @@ static void renderScene() {
         if (showGround)
             drawGroundAndSky(farClipDistance);
         for (int i = 0; i < (int) scene->lines.size(); i++)
-		{	
             scene->lines[i].draw();
-		}
         glLineWidth(2);
         for (int i = 0; i < (int) scene->sceneText.size(); i++)
             scene->sceneText[i].draw();
@@ -1482,6 +1482,13 @@ static void renderScene() {
             fpsBaseTime = now;
             fpsCounter = 0;
         }
+
+        // Extract the scene text if requested. This will get displayed
+        // later but must be copied out now since the scene will get
+        // overwritten once we say it has been drawn.
+        if (screenText != NULL)
+            for (int i = 0; i < (int)scene->screenText.size(); ++i)
+                screenText->push_back(scene->screenText[i].getString());
 
         scene->sceneHasBeenDrawn = true;
     }
@@ -1514,9 +1521,10 @@ static void redrawDisplay() {
         writeImage(filename.str());
     }
 
-    // Render the scene.
+    // Render the scene and extract the screen text.
     // ------------------------------------------------------------
-    renderScene();
+    std::vector<string> screenText;
+    renderScene(&screenText);
 
     // Draw menus.
     // ------------------------------------------------------------
@@ -1575,19 +1583,13 @@ static void redrawDisplay() {
         nextLine += lineHeight;
     }
 
-    // User input screen text
-    if (scene != NULL) {
-        for (int i=0; i<(int)scene->screenText.size(); ++i)
-        {
-            glRasterPos2f(10, nextLine);
-            for (const char* p = scene->screenText[i].getText(); *p; ++p)
-                glutBitmapCharacter(font, *p);
-            nextLine += lineHeight;
-        }
+    // User specified screen text
+    for (int i=0; i<(int)screenText.size(); ++i) {
+        glRasterPos2f(10, nextLine);
+        for (const char* p = screenText[i].c_str(); *p; ++p)
+            glutBitmapCharacter(font, *p);
+        nextLine += lineHeight;
     }
-
-
-
 
     // Draw a message overlay 
     // (center box, with text left justified in box).
@@ -1659,7 +1661,9 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 
     float radius;
     fVec3 sceneCenter;
+    pthread_mutex_lock(&sceneLock);         //-------- LOCK SCENE --------
     computeSceneBounds(scene, radius, sceneCenter);
+    pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
     sceneScale = std::max(radius, 0.1f);
 
     // "state" (pressed/released) is irrelevant for mouse wheel. However, if
@@ -2012,6 +2016,10 @@ static Scene* readNewScene() {
         char command = buffer[0];
 
         switch (command) {
+
+        case Shutdown:
+            shutdown(); // doesn't return
+            break;
 
         case EndOfScene:
             finished = true;
@@ -2419,6 +2427,10 @@ void* listenForInput(void* args) {
             break;
         }
 
+        case Shutdown:
+            shutdown(); // doesn't return
+            break;
+
         default:
             SimTK_ERRCHK1_ALWAYS(!"unrecognized command", "listenForInput()",
                 "Unexpected command %u received from VisualizerGUI. Can't continue.",
@@ -2637,6 +2649,7 @@ static void setVsync(bool enable) {
 #endif
 }
 
+
 // This is executed from the main thread at startup.
 static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
     unsigned char handshakeCommand;
@@ -2672,6 +2685,12 @@ static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
 
     WRITE(outPipe, &ReturnHandshake, 1);
     WRITE(outPipe, &ProtocolVersion, sizeof(unsigned));
+}
+
+// Received Shutdown message from simulator. Die immediately.
+static void shutdown() {
+    printf("\nVisualizerGUI: received Shutdown message. Goodbye.\n");
+    exit(0);
 }
 
 int main(int argc, char** argv) {

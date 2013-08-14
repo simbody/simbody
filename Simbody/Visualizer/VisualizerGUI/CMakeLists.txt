@@ -8,7 +8,11 @@ INCLUDE (FindOpenGL)
 IF(WIN32)
     SET(glut32dir "${CMAKE_CURRENT_SOURCE_DIR}/glut32")
     SET(GLUT32_HEADERS "${glut32dir}/glut.h" "${glut32dir}/glext.h")
-    SET(glut32libdir "${glut32dir}/lib${LIB64}")
+    IF(${PLATFORM_ABI} MATCHES "x64")
+        SET(glut32libdir "${glut32dir}/lib64")
+    ELSE()
+        SET(glut32libdir "${glut32dir}/lib")
+    ENDIF()
     SET(GLUT_LIBRARIES "${glut32libdir}/glut32.lib")
     # Update the local copy of the dll; destination is Release or Debug.
     # Must fix slashes so that Windows "copy" command can work.

@@ -134,21 +134,21 @@ DecorativePoint::isInstanceOf(const DecorativeGeometry& s) {
 /*static*/ const DecorativePoint&
 DecorativePoint::downcast(const DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const DecorativePoint&>(s);
+    return static_cast<const DecorativePoint&>(s);
 }
 /*static*/ DecorativePoint&
 DecorativePoint::updDowncast(DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<DecorativePoint&>(s);
+    return static_cast<DecorativePoint&>(s);
 }
 
 const DecorativePointRep& 
 DecorativePoint::getRep() const {
-    return dynamic_cast<const DecorativePointRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const DecorativePointRep&>(*rep);
 }
 DecorativePointRep&       
 DecorativePoint::updRep() {
-    return dynamic_cast<DecorativePointRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<DecorativePointRep&>(*rep);
 }
 
 DecorativePoint::DecorativePoint(const Vec3& p) {
@@ -174,21 +174,21 @@ DecorativeLine::isInstanceOf(const DecorativeGeometry& s) {
 /*static*/ const DecorativeLine&
 DecorativeLine::downcast(const DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const DecorativeLine&>(s);
+    return static_cast<const DecorativeLine&>(s);
 }
 /*static*/ DecorativeLine&
 DecorativeLine::updDowncast(DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<DecorativeLine&>(s);
+    return static_cast<DecorativeLine&>(s);
 }
 
 const DecorativeLineRep& 
 DecorativeLine::getRep() const {
-    return dynamic_cast<const DecorativeLineRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const DecorativeLineRep&>(*rep);
 }
 DecorativeLineRep&       
 DecorativeLine::updRep() {
-    return dynamic_cast<DecorativeLineRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<DecorativeLineRep&>(*rep);
 }
 
 DecorativeLine::DecorativeLine(const Vec3& p1, const Vec3& p2) {
@@ -220,8 +220,8 @@ DecorativeCircle::DecorativeCircle(Real radius) {
     rep = new DecorativeCircleRep(radius);
     rep->setMyHandle(*this);
 }
-void DecorativeCircle::setRadius(Real r) {
-    DecorativeCircleRep::downcast(*rep).setRadius(r);
+DecorativeCircle& DecorativeCircle::setRadius(Real r) {
+    DecorativeCircleRep::downcast(*rep).setRadius(r); return *this;
 }
 Real DecorativeCircle::getRadius() const {
     return DecorativeCircleRep::downcast(*rep).getRadius();
@@ -237,8 +237,8 @@ DecorativeSphere::DecorativeSphere(Real radius) {
     rep->setMyHandle(*this);
 }
 
-void DecorativeSphere::setRadius(Real r) {
-    DecorativeSphereRep::downcast(*rep).setRadius(r);
+DecorativeSphere& DecorativeSphere::setRadius(Real r) {
+    DecorativeSphereRep::downcast(*rep).setRadius(r); return *this;
 }
 Real DecorativeSphere::getRadius() const {
     return DecorativeSphereRep::downcast(*rep).getRadius();
@@ -254,8 +254,8 @@ DecorativeEllipsoid::DecorativeEllipsoid(const Vec3& radii) {
     rep->setMyHandle(*this);
 }
 
-void DecorativeEllipsoid::setRadii(const Vec3& r) {
-    DecorativeEllipsoidRep::downcast(*rep).setRadii(r);
+DecorativeEllipsoid& DecorativeEllipsoid::setRadii(const Vec3& r) {
+    DecorativeEllipsoidRep::downcast(*rep).setRadii(r); return *this;
 }
 const Vec3& DecorativeEllipsoid::getRadii() const {
     return DecorativeEllipsoidRep::downcast(*rep).getRadii();
@@ -269,8 +269,9 @@ DecorativeBrick::DecorativeBrick(const Vec3& xyzHalfLengths) {
     rep->setMyHandle(*this);
 }
 
-void DecorativeBrick::setHalfLengths(const Vec3& xyzHalfLengths) {
+DecorativeBrick& DecorativeBrick::setHalfLengths(const Vec3& xyzHalfLengths) {
     DecorativeBrickRep::downcast(*rep).setHalfLengths(xyzHalfLengths);
+    return *this;
 }
 const Vec3& DecorativeBrick::getHalfLengths() const {
     return DecorativeBrickRep::downcast(*rep).getHalfLengths();
@@ -285,11 +286,11 @@ DecorativeCylinder::DecorativeCylinder(Real radius, Real halfHeight) {
     rep->setMyHandle(*this);
 }
 
-void DecorativeCylinder::setRadius(Real r) {
-    DecorativeCylinderRep::downcast(*rep).setRadius(r);
+DecorativeCylinder& DecorativeCylinder::setRadius(Real r) {
+    DecorativeCylinderRep::downcast(*rep).setRadius(r); return *this;
 }
-void DecorativeCylinder::setHalfHeight(Real r) {
-    DecorativeCylinderRep::downcast(*rep).setHalfHeight(r);
+DecorativeCylinder& DecorativeCylinder::setHalfHeight(Real r) {
+    DecorativeCylinderRep::downcast(*rep).setHalfHeight(r); return *this;
 }
 
 Real DecorativeCylinder::getRadius() const {
@@ -308,8 +309,8 @@ DecorativeFrame::DecorativeFrame(Real axisLength) {
     rep->setMyHandle(*this);
 }
 
-void DecorativeFrame::setAxisLength(Real l) {
-    DecorativeFrameRep::downcast(*rep).setAxisLength(l);
+DecorativeFrame& DecorativeFrame::setAxisLength(Real l) {
+    DecorativeFrameRep::downcast(*rep).setAxisLength(l); return *this;
 }
 Real DecorativeFrame::getAxisLength() const {
     return DecorativeFrameRep::downcast(*rep).getAxisLength();
@@ -325,15 +326,16 @@ DecorativeText::DecorativeText(const std::string& label) {
     rep->setMyHandle(*this);
 }
 
-void DecorativeText::setText(const std::string& label) {
-    DecorativeTextRep::downcast(*rep).setText(label);
+DecorativeText& DecorativeText::setText(const std::string& label) {
+    DecorativeTextRep::downcast(*rep).setText(label); return *this;
 }
 const std::string& DecorativeText::getText() const {
 return DecorativeTextRep::downcast(*rep).getText();
 }
 
-void DecorativeText::setIsScreenText(bool isScreen) {
+DecorativeText& DecorativeText::setIsScreenText(bool isScreen) {
     DecorativeTextRep::downcast(*rep).setIsScreenText(isScreen);
+    return *this;
 }
 bool DecorativeText::getIsScreenText() const {
 return DecorativeTextRep::downcast(*rep).getIsScreenText();
@@ -363,21 +365,21 @@ Decorations::isInstanceOf(const DecorativeGeometry& s) {
 /*static*/ const Decorations&
 Decorations::downcast(const DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const Decorations&>(s);
+    return static_cast<const Decorations&>(s);
 }
 /*static*/ Decorations&
 Decorations::updDowncast(DecorativeGeometry& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<Decorations&>(s);
+    return static_cast<Decorations&>(s);
 }
 
 const DecorationsRep& 
 Decorations::getRep() const {
-    return dynamic_cast<const DecorationsRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<const DecorationsRep&>(*rep);
 }
 DecorationsRep&       
 Decorations::updRep() {
-    return dynamic_cast<DecorationsRep&>(*rep);
+    return SimTK_DYNAMIC_CAST_DEBUG<DecorationsRep&>(*rep);
 }
 
 Decorations::Decorations() {

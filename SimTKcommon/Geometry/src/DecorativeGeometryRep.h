@@ -60,7 +60,7 @@ public:
     // This sets resolution to some factor times the object-specific default.
     // Anything 0 or less becomes -1 and means "use default".
     void setResolution(Real r) {
-        resolution = r > 0 ? r : -1.;
+        resolution = r > 0 ? r : Real(-1);
     }
 
     Real getResolution() const {return resolution;}
@@ -70,7 +70,7 @@ public:
     // "use default".
     void setScaleFactors(const Vec3& s) {
         for (int i=0; i<3; ++i)
-            scaleFactors[i] = s[i] > 0 ? s[i] : -1;
+            scaleFactors[i] = s[i] > 0 ? s[i] : Real(-1);
     }
     const Vec3& getScaleFactors() const {return scaleFactors;}
 
@@ -87,12 +87,12 @@ public:
     // or equal to 1. The default will generally be 1, which is opaque,
     // but we use -1 to mean "use default" and let the client decide.
     void setOpacity(Real o) {
-        opacity = o > 0 ? o : -1.;
+        opacity = o > 0 ? o : Real(-1);
     }
     Real getOpacity() const {return opacity;}
 
     void setLineThickness(Real t) {
-        lineThickness = t > 0 ? t : -1.;
+        lineThickness = t > 0 ? t : Real(-1);
     }
     Real getLineThickness() const {return lineThickness;}
     
@@ -203,7 +203,7 @@ private:
     // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativePoint& getMyPointHandle() const {
-        return *reinterpret_cast<const DecorativePoint*>(myHandle);
+        return *static_cast<const DecorativePoint*>(myHandle);
     }
 };
 
@@ -240,7 +240,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeLine& getMyLineHandle() const {
-        return *reinterpret_cast<const DecorativeLine*>(myHandle);
+        return *static_cast<const DecorativeLine*>(myHandle);
     }
 };
 
@@ -277,7 +277,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeCircle& getMyCircleHandle() const {
-        return *reinterpret_cast<const DecorativeCircle*>(myHandle);
+        return *static_cast<const DecorativeCircle*>(myHandle);
     }
 };
 
@@ -315,7 +315,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeSphere& getMySphereHandle() const {
-        return *reinterpret_cast<const DecorativeSphere*>(myHandle);
+        return *static_cast<const DecorativeSphere*>(myHandle);
     }
 };
 
@@ -353,7 +353,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeEllipsoid& getMyEllipsoidHandle() const {
-        return *reinterpret_cast<const DecorativeEllipsoid*>(myHandle);
+        return *static_cast<const DecorativeEllipsoid*>(myHandle);
     }
 };
 
@@ -391,7 +391,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeBrick& getMyBrickHandle() const {
-        return *reinterpret_cast<const DecorativeBrick*>(myHandle);
+        return *static_cast<const DecorativeBrick*>(myHandle);
     }
 };
 
@@ -432,7 +432,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeCylinder& getMyCylinderHandle() const {
-        return *reinterpret_cast<const DecorativeCylinder*>(myHandle);
+        return *static_cast<const DecorativeCylinder*>(myHandle);
     }
 };
 
@@ -465,7 +465,7 @@ private:
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
     const DecorativeFrame& getMyFrameHandle() const {
-        return *reinterpret_cast<const DecorativeFrame*>(myHandle);
+        return *static_cast<const DecorativeFrame*>(myHandle);
     }
 };
 
@@ -507,7 +507,7 @@ bool        isScreenText; // in screen coordinates
 
 // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
 const DecorativeText& getMyTextHandle() const {
-    return *reinterpret_cast<const DecorativeText*>(myHandle);
+    return *static_cast<const DecorativeText*>(myHandle);
 }
 };
 
@@ -541,7 +541,7 @@ PolygonalMesh mesh;
 
 // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
 const DecorativeMesh& getMyMeshHandle() const {
-    return *reinterpret_cast<const DecorativeMesh*>(myHandle);
+    return *static_cast<const DecorativeMesh*>(myHandle);
 }
 };
 
@@ -594,7 +594,7 @@ private:
     // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const Decorations& getMyHandle() const {
-        return *reinterpret_cast<const Decorations*>(myHandle);
+        return *static_cast<const Decorations*>(myHandle);
     }
 };
 

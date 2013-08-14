@@ -1,7 +1,7 @@
 /*      rpoly.cpp -- Jenkins-Traub real polynomial root finder.
  *
- *      Written by C. Bond, with minor changes by Peter Eastman.
- *      This file is in the public domain.
+ *      Written by C. Bond, with minor changes by Peter Eastman and Michael 
+ *      Sherman. This file is in the public domain.
  *
  *      Translation of TOMS493 from FORTRAN to C. This
  *      implementation of Jenkins-Traub partially adapts
@@ -28,6 +28,8 @@
  */
 
 #include <cmath>
+#include <limits>
+#include <algorithm>
 #include "rpoly.h"
 
 namespace SimTK {
@@ -42,9 +44,9 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     int cnt,nz,i,j,jj,l,nm1,zerok;
 /*  The following statements set machine constants. */
     base = 2.0;
-    eta = (T) 2.22e-16;
-    infin = (T) 3.4e38;
-    smalno = (T) 1.2e-38;
+    eta = std::numeric_limits<T>::epsilon();
+    infin = std::numeric_limits<T>::max();
+    smalno = std::numeric_limits<T>::min();
 
     are = eta;
     mre = eta;
@@ -57,8 +59,11 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     cosr = cos(rot);
     sinr = sin(rot);
     n = degree;
-/*  Algorithm fails of the leading coefficient is zero. */
-    if (op[0] == 0.0) return -1;
+
+/*  Algorithm fails if the leading coefficient is zero (or if degree==0). */
+    if (n < 1 || op[0] == 0.0) 
+        return -1;
+
 /*  Remove the zeros at the origin, if any. */
     while (op[n] == 0.0) {
         j = degree - n;
@@ -66,7 +71,12 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
         zeroi[j] = 0.0;
         n--;
     }
-    if (n < 1) return -1;
+
+    // sherm 20130410: If all coefficients but the leading one were zero, then
+    // all solutions are zero; should be a successful (if boring) return.
+    if (n == 0) 
+        return degree;
+
 /*
  *  Allocate memory here
  */
@@ -386,7 +396,38 @@ _10:
  *  close to multiple or nearly equal and of opposite
  *  sign.
  */
-    if (fabs(fabs(szr)-fabs(lzr)) > 0.01 * fabs(lzr)) return;
+
+// sherm 20130410: this early return caused premature termination and 
+// then failure to find any roots in rare circumstances with 6th order
+// ellipsoid nearest point equations. Previously (and in all implementations of
+// Jenkins-Traub that I could find) it was just a test on the
+// relative size of the difference with respect to the larger root lzr.
+// I added the std::max(...,0.1) so that if the roots are small then an
+// absolute difference below 0.001 will be considered "close enough" to 
+// continue iterating. In the case that failed, the roots were around .0001
+// and .0002, so their difference was considered large compared with 1% of 
+// the larger root, 2e-6. But in fact continuing the loop instead resulted in
+// six very high-quality roots instead of none.
+//
+// I'm sorry to say I don't know if I have correctly diagnosed the problem or
+// whether this is the right fix! It does pass the regression tests and 
+// apparently cured the ellipsoid problem. I added the particular bad
+// polynomial to the PolynomialTest regression if you want to see it fail.
+// These are the problematic coefficients:
+//   1.0000000000000000
+//   0.021700000000000004
+//   2.9889970904696875e-005
+//   1.0901272298136685e-008
+//  -4.4822782160985054e-012
+//  -2.6193432740351220e-015
+//  -3.0900602527225053e-019
+//
+// Original code:
+    //if (fabs(fabs(szr)-fabs(lzr)) > 0.01 * fabs(lzr)) return;
+// Fixed version:
+    if ((T)fabs(fabs(szr)-fabs(lzr)) > (T)0.01 * std::max((T)fabs(lzr),(T)0.1)) 
+        return;
+
 /*  Evaluate polynomial by quadratic synthetic division. */
     quadsd(n,&u,&v,p,qp,&a,&b);
     mp = fabs(a-szr*b) + fabs(szi*b);

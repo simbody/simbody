@@ -52,7 +52,10 @@ namespace SimTK {
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
     explicit MobilizedBodyImpl(MobilizedBody::Direction d) 
-    :   reversed(d==MobilizedBody::Reverse), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0), hasChildren(false) {
+    :   defaultLockLevel(Motion::NoLevel), 
+        reversed(d==MobilizedBody::Reverse), 
+        myMatterSubsystemRep(0), myLevel(-1), myRBnode(0), hasChildren(false) 
+    {
     }
 
     void setDirection(MobilizedBody::Direction d) {
@@ -67,6 +70,17 @@ public:
         *this = src;
         myRBnode = 0;
     }
+
+
+    void lock(State& state, Motion::Level level) const;
+    void lockAt(State& state, int n, const Real* value, Motion::Level level) const;
+    void unlock(State& state) const;
+    Motion::Level getLockLevel(const State& state) const;
+    Vector getLockValueAsVector(const State& state) const;
+    void lockByDefault(Motion::Level level)
+    {   invalidateTopologyCache(); defaultLockLevel=level; }
+    Motion::Level getLockByDefaultLevel() const
+    {   return defaultLockLevel; }
 
     // The matter subsystem must issue these MobilizedBody realize() calls in base-to-tip
     // order, because these methods are allowed to assume that their parent (and 
@@ -119,8 +133,8 @@ public:
     {
         if (stage != Stage::Instance || !getMyMatterSubsystemRep().getShowDefaultGeometry())
             return;
-        const Real scale = 1.0;
-        DecorativeFrame axes(scale*0.5);
+        const Real scale = 1;
+        DecorativeFrame axes(scale/2);
         axes.setLineThickness(2);
         axes.setBodyId(myMobilizedBodyIndex);
         geom.push_back(axes); // the body frame
@@ -129,10 +143,10 @@ public:
         // same as the body frame. Then find the corresponding frame on the
         // parent and display that in this body's color.
         if (myMobilizedBodyIndex != 0) {
-            const Real pscale = 1.0;
+            const Real pscale = 1;
             const Transform& X_BM = getDefaultOutboardFrame(); // TODO: get from state
             if (X_BM.p() != Vec3(0) || X_BM.R() != Mat33(1)) {
-                DecorativeFrame frameOnChild(scale*0.25);
+                DecorativeFrame frameOnChild(scale/4);
                 frameOnChild.setBodyId(myMobilizedBodyIndex);
                 frameOnChild.setColor(Red);
                 frameOnChild.setTransform(X_BM);
@@ -141,7 +155,7 @@ public:
                     geom.push_back(DecorativeLine(Vec3(0), X_BM.p()).setBodyId(myMobilizedBodyIndex));
             }
             const Transform& X_PF = getDefaultInboardFrame(); // TODO: from state
-            DecorativeFrame frameOnParent(pscale*0.3); // slightly larger than child
+            DecorativeFrame frameOnParent(pscale*Real(0.3)); // slightly larger than child
             frameOnParent.setBodyId(myParentIndex);
             frameOnParent.setColor(Blue);
             frameOnParent.setTransform(X_PF);
@@ -153,7 +167,7 @@ public:
         // Put a little purple wireframe sphere at the COM, and add a line from 
         // body origin to the com.
 
-        DecorativeSphere com(scale*.05);
+        DecorativeSphere com(scale*Real(.05));
         com.setBodyId(myMobilizedBodyIndex);
         com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
         const Vec3& comPos_B = theBody.getDefaultRigidBodyMassProperties().getMassCenter(); // TODO: from state
@@ -184,17 +198,21 @@ public:
         calcDecorativeGeometryAndAppendImpl(s,stage,geom);
     }
 
-    void addOutboardDecoration(const Transform& X_MD, const DecorativeGeometry& g) {
+    int addOutboardDecoration(const Transform& X_MD, const DecorativeGeometry& g) {
+        const int nxt = (int)outboardGeometry.size();
         outboardGeometry.push_back(g); // make a new copy
         // Combine the placement frame and the transform already in the geometry
         // so we end up with geometry expressed directly in the M frame.
         outboardGeometry.back().setTransform(X_MD*g.getTransform());
+        return nxt;
     }
-    void addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g) {
+    int addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g) {
+        const int nxt = (int)inboardGeometry.size();
         inboardGeometry.push_back(g); // make a new copy
         // Combine the placement frame and the transform already in the geometry
         // so we end up with geometry expressed directly in the F frame.
         inboardGeometry.back().setTransform(X_FD*g.getTransform());
+        return nxt;
     }
 
 
@@ -475,9 +493,10 @@ private:
     // Body represents the mass structure, mass properties, and possibly some
     // decorative geometry for the body associated with this (body,mobilizer)
     // pair.
-    Body        theBody;
-    Transform   defaultInboardFrame;  // default for F (in Parent frame)
-    Transform   defaultOutboardFrame; // default for M (in Body frame)
+    Body            theBody;
+    Transform       defaultInboardFrame;  // default for F (in Parent frame)
+    Transform       defaultOutboardFrame; // default for M (in Body frame)
+    Motion::Level   defaultLockLevel;
 
     // A Motion object, if present, defines how this mobilizer's motion is
     // to be calculated. Otherwise, the motion is determined dynamically
@@ -486,7 +505,7 @@ private:
     // may also some of the prescribed generalized speeds u (index 2); and 
     // for speeds that are prescribed it may also prescribe the corresponding
     // generalized coordinates q (index 3).
-    Motion      motion;
+    Motion          motion;
 
     bool        reversed; // is the mobilizer defined from M to F?
 
@@ -697,7 +716,7 @@ private:
 class MobilizedBody::GimbalImpl : public MobilizedBodyImpl {
 public:
     explicit GimbalImpl(Direction d) 
-    :   MobilizedBodyImpl(d), defaultRadius(0.1), defaultQ(0) { }
+    :   MobilizedBodyImpl(d), defaultRadius(Real(0.1)), defaultQ(0) { }
     GimbalImpl* clone() const { return new GimbalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -754,7 +773,7 @@ private:
 class MobilizedBody::BallImpl : public MobilizedBodyImpl {
 public:
     explicit BallImpl(Direction d) 
-    :   MobilizedBodyImpl(d), defaultRadius(0.1), defaultQ() {} // (1,0,0,0), the identity rotation
+    :   MobilizedBodyImpl(d), defaultRadius(Real(0.1)), defaultQ() {} // (1,0,0,0), the identity rotation
     BallImpl* clone() const { return new BallImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -791,7 +810,8 @@ private:
 class MobilizedBody::EllipsoidImpl : public MobilizedBodyImpl {
 public:
     explicit EllipsoidImpl(Direction d) 
-    :   MobilizedBodyImpl(d), defaultRadii(0.5,1/3.,0.25), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    :   MobilizedBodyImpl(d), defaultRadii(Real(0.5),Real(1./3.),Real(0.25)), 
+        defaultQ() { } // default is (1,0,0,0), the identity rotation
     EllipsoidImpl* clone() const { return new EllipsoidImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(

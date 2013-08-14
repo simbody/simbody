@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Jack Middleton                                                    *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -40,7 +40,9 @@ bool Optimizer::isAlgorithmAvailable(OptimizerAlgorithm algorithm) {
         case InteriorPoint: return InteriorPointOptimizer::isAvailable();
         case LBFGS:         return LBFGSOptimizer::isAvailable();
         case LBFGSB:        return LBFGSBOptimizer::isAvailable();
+#if SimTK_DEFAULT_PRECISION==2 // double only
         case CFSQP:         return CFSQPOptimizer::isAvailable();
+#endif
         default:            return false;
     }
 }
@@ -98,7 +100,9 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
         newRep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
     } else if( algorithm == LBFGS ) {
         newRep = (OptimizerRep *) new LBFGSOptimizer( sys  );
-    } else if( algorithm == CFSQP ) {
+    } 
+#if SimTK_DEFAULT_PRECISION==2 // double only   
+    else if( algorithm == CFSQP ) {
         try {
             newRep = (OptimizerRep *) new CFSQPOptimizer( sys  );
         } catch (const SimTK::Exception::Base &ex) {
@@ -107,6 +111,7 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
             newRep = 0;
         }
     }
+#endif
 
     if(!newRep) { 
         if( sys.getNumConstraints() > 0)   {
@@ -123,11 +128,15 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
     return newRep;
 }
 
-void Optimizer::useNumericalGradient( bool flag ) {
-    updRep().useNumericalGradient(flag);
+void Optimizer::useNumericalGradient(bool flag, Real objEstAccuracy) {
+    updRep().useNumericalGradient(flag, objEstAccuracy);
 }
-void Optimizer::useNumericalJacobian( bool flag ) {
-     updRep().useNumericalJacobian(flag);
+void Optimizer::useNumericalJacobian(bool flag, Real consEstAccuracy) {
+     updRep().useNumericalJacobian(flag, consEstAccuracy);
+}
+
+void Optimizer::setDifferentiatorMethod( Differentiator::Method method) {
+     updRep().setDifferentiatorMethod(method);
 }
 
 void Optimizer::setConvergenceTolerance( Real accuracy ) {
@@ -142,9 +151,6 @@ void Optimizer::setMaxIterations( int iter ) {
      updRep().setMaxIterations(iter);
 }
 
-void Optimizer::setDifferentiatorMethod( Differentiator::Method method) {
-     updRep().setDifferentiatorMethod(method);
-}
 
 void Optimizer::setLimitedMemoryHistory( int history ) {
      updRep().setLimitedMemoryHistory(history);
@@ -181,5 +187,16 @@ bool Optimizer::isUsingNumericalJacobian() const {
     return getRep().isUsingNumericalJacobian();
 }
 
+Differentiator::Method Optimizer::getDifferentiatorMethod() const {
+    return getRep().getDifferentiatorMethod();
+}
+
+Real Optimizer::getEstimatedAccuracyOfObjective() const {
+    return getRep().getEstimatedAccuracyOfObjective();
+}
+
+Real Optimizer::getEstimatedAccuracyOfConstraints() const {
+    return getRep().getEstimatedAccuracyOfConstraints();
+}
 
 } // namespace SimTK

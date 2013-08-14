@@ -423,7 +423,7 @@ namespace Ipopt
                                            *step_cen->v_L(),
                                            *step_cen->v_U());
 
-    Number sigma_1minus = 1.-Max(1e-4, quality_function_section_sigma_tol_);
+    Number sigma_1minus = 1-Max(Number(1e-4), quality_function_section_sigma_tol_);
     Number qf_1minus = CalculateQualityFunction(sigma_1minus,
                        *step_aff_x_L,
                        *step_aff_x_U,
@@ -716,10 +716,10 @@ namespace Ipopt
     IpData().TimingStats().Task5().Start();
     switch (quality_function_norm_) {
       case NM_NORM_1:
-      dual_inf = (1.-alpha_dual)*(curr_grad_lag_x_asum_ +
+      dual_inf = (1-alpha_dual)*(curr_grad_lag_x_asum_ +
                                   curr_grad_lag_s_asum_);
 
-      primal_inf = (1.-alpha_primal)*(curr_c_asum_ +
+      primal_inf = (1-alpha_primal)*(curr_c_asum_ +
                                       curr_d_minus_s_asum_);
 
       compl_inf = tmp_slack_x_L_->Asum() + tmp_slack_x_U_->Asum() +
@@ -734,10 +734,10 @@ namespace Ipopt
       break;
       case NM_NORM_2_SQUARED:
       dual_inf =
-        pow(1.-alpha_dual, 2)*(pow(curr_grad_lag_x_nrm2_, 2) +
+        pow(1-alpha_dual, 2)*(pow(curr_grad_lag_x_nrm2_, 2) +
                                pow(curr_grad_lag_s_nrm2_, 2));
       primal_inf =
-        pow(1.-alpha_primal, 2)*(pow(curr_c_nrm2_, 2) +
+        pow(1-alpha_primal, 2)*(pow(curr_c_nrm2_, 2) +
                                  pow(curr_d_minus_s_nrm2_, 2));
       compl_inf =
         pow(tmp_slack_x_L_->Nrm2(), 2) + pow(tmp_slack_x_U_->Nrm2(), 2) +
@@ -752,10 +752,10 @@ namespace Ipopt
       break;
       case NM_NORM_MAX:
       dual_inf =
-        (1.-alpha_dual)*Max(curr_grad_lag_x_amax_,
+        (1-alpha_dual)*Max(curr_grad_lag_x_amax_,
                             curr_grad_lag_s_amax_);
       primal_inf =
-        (1.-alpha_primal)*Max(curr_c_amax_,
+        (1-alpha_primal)*Max(curr_c_amax_,
                               curr_d_minus_s_amax_);
       compl_inf =
         Max(tmp_slack_x_L_->Amax(), tmp_slack_x_U_->Amax(),
@@ -763,10 +763,10 @@ namespace Ipopt
       break;
       case NM_NORM_2:
       dual_inf =
-        (1.-alpha_dual)*sqrt(pow(curr_grad_lag_x_nrm2_, 2) +
+        (1-alpha_dual)*sqrt(pow(curr_grad_lag_x_nrm2_, 2) +
                              pow(curr_grad_lag_s_nrm2_, 2));
       primal_inf =
-        (1.-alpha_primal)*sqrt(pow(curr_c_nrm2_, 2) +
+        (1-alpha_primal)*sqrt(pow(curr_c_nrm2_, 2) +
                                pow(curr_d_minus_s_nrm2_, 2));
       compl_inf =
         sqrt(pow(tmp_slack_x_L_->Nrm2(), 2) + pow(tmp_slack_x_U_->Nrm2(), 2) +
@@ -861,9 +861,9 @@ namespace Ipopt
     Number sigma_lo = ScaleSigma(sigma_lo_in);
 
     Number sigma;
-    Number gfac = (3.-sqrt(5.))/2.;
+    Number gfac = (3-std::sqrt(Number(5)))/2;
     Number sigma_mid1 = sigma_lo + gfac*(sigma_up-sigma_lo);
-    Number sigma_mid2 = sigma_lo + (1.-gfac)*(sigma_up-sigma_lo);
+    Number sigma_mid2 = sigma_lo + (1-gfac)*(sigma_up-sigma_lo);
 
     Number qmid1 = CalculateQualityFunction(UnscaleSigma(sigma_mid1),
                                             step_aff_x_L,
@@ -920,7 +920,7 @@ namespace Ipopt
         q_lo = qmid1;
         sigma_mid1 = sigma_mid2;
         qmid1 = qmid2;
-        sigma_mid2 = sigma_lo + (1.-gfac)*(sigma_up-sigma_lo);
+        sigma_mid2 = sigma_lo + (1-gfac)*(sigma_up-sigma_lo);
         qmid2 = CalculateQualityFunction(UnscaleSigma(sigma_mid2),
                                          step_aff_x_L,
                                          step_aff_x_U,

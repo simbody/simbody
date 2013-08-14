@@ -19,11 +19,11 @@ system providing a great deal of functionality. It is, however, very easy to
 use if you know where to begin -- and this reference documentation is most
 definitely \e not the place to start if you want to learn how to use 
 Simbody. Instead, start with the tutorials in the Simbody User's Guide that 
-you can find at the Simbody project site https://simtk.org/home/simbody, 
+you can find at the Simbody project site https://simtk.org/home/simbody 
 "Documents" tab. There is also a collection of working example programs that
 come with the Simbody installation (in the examples directory). Both source
 and ready-to-execute binaries of the examples are installed. If you have 
-specific questions, use the Simbody help forum under the "Advanced" tab. 
+specific questions, use the Simbody help forum under the "Public Forums" tab. 
 You can also file bug reports and make feature requests using the tools 
 provided there.
 
@@ -51,6 +51,11 @@ Simbody is part of the %SimTK biosimulation toolkit originating from Simbios,
 the NIH National Center for Physics-Based Simulation of Biological Structures 
 at Stanford, funded under the NIH Roadmap for Medical Research, grant 
 U54 GM072970. Related tools include 
+  - OpenSim (http://opensim.stanford.edu and https://simtk.org/home/opensim),
+    a freely available software system for building, exchanging, and analyzing
+    musuloskeletal models and dynamic simulations of movement. Includes both a
+    graphical user interface and an API; automatically constructs Simbody
+    models from high-level description.
   - Molmodel (https://simtk.org/home/molmodel), a C++ API for constructing 
     coarse-grained, Simbody-based internal coordinate models of macromolecules
     like proteins and RNA, and
@@ -67,7 +72,6 @@ with substantial contributions from Peter Eastman, both of the Simbios Center
 at Stanford. Many others have contributed to the software, support, and 
 documentation and we invite well-engineered community contributions.
 
-
 <h2>How to use this documentation</h2>
 If you know the name of the class, method, or other symbol for which you want
 information, you can enter it into the search box above and click directly to 
@@ -75,12 +79,32 @@ the documentation for that symbol. You can also enter words or partial symbols
 and get a list of names that include your search key. Unfortunately Doxygen
 does not currently provide a full-text search capability. Another approach is
 to select the Classes tab to get an alphabetical listing of all the class 
-names, and there is a tab below that providing a class hierarchy view.
+names, and there is a tab below that providing a class hierarchy view. Here is
+an abbreviated list of important classes:
+  - SimTK::MobilizedBody: combination of a SimTK::Body and the inboard joint 
+    connecting it to the multibody tree, which we call a "mobilizer". Base class
+    for specific mobilizer types of which there are many predefined; extensible.
+  - SimTK::Force: base class for a selection of built-in force types; easily
+    extensible to model your own force elements.
+  - SimTK::Constraint: base class for a selection of built-in constraint types;
+    extensible.
+  - SimTK::Motion: prescribed motions permitting mixed forward/inverse dynamics;
+    more efficient than the equivalent %Constraint. Built-ins plus 
+    extendability.
+  - SimTK::Measure: general state-dependent computational block.
+  - SimTK::System, SimTK::Subsystem, SimTK::State: basic infrastructure objects.
+  - SimTK::MultibodySystem, SimTK::SimbodyMatterSubsystem, SimTK::GeneralForceSubsystem,
+    SimTK::ContactTrackerSubsystem, SimTK::CompliantContactSubsystem: commonly used 
+    components.
+  - SimTK::Integrator, SimTK::TimeStepper, SimTK::Assembler, SimTK::Optimizer: solvers.
+  - Many utility classes (see tutorials, example programs, Doxygen Modules tab),
+    including SimTK::Rotation_, SimTK::Transform_, SimTK::Quaternion_, 
+    SimTK::Vector_, SimTK::Vec, SimTK::SpatialVec, SimTK::Xml, and many more.
 
-If you would like to see some more logical groupings of Simbody classes
-with some limited overview material, select the Modules tab to see 
-groupings that made sense to the authors. You can also look at the
-Related Pages to see other general topics.
+For an overview of Simbody, read this paper: 
+<a href="https://simtk.org/docman/view.php/47/1589/Sherman-2011-SethDelp-Simbody-ProcediaIUTAM-v2-p241.pdf">
+Michael A. Sherman, Ajay Seth, Scott L. Delp, "Simbody: multibody
+dynamics for biomedical research," <i>Procedia IUTAM</i> 2:241-261 (2011)</a>
 
 <h2>License</h2>
 We encourage the broadest possible use of Simbody for any purpose by using
@@ -108,7 +132,7 @@ terms under which we offer Simbody.
  *   dynamics for biomedical research, Procedia IUTAM 2:241-261 (2011)        *
  *   http://dx.doi.org/10.1016/j.piutam.2011.04.023                          *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors: Jack Middleton, Christopher Bruns, Paul Mitiguy, Matthew     *
  *   Millard, Charles Schwieters, Abhinandan Jain, Isaac Newton               *

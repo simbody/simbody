@@ -62,9 +62,8 @@ int main(int argc, char** argv) {
     //Force::UniformGravity       gravity(forces, matter, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
-    Body::Rigid particle = Body::Rigid(MassProperties(m, Vec3(0), Inertia(0)))
-                                  .addDecoration(Transform(), 
-                                        DecorativeSphere(.1).setColor(Red).setOpacity(.3));
+    Body::Rigid particle = Body::Rigid(MassProperties(m, Vec3(0), Inertia(0)));
+    particle.addDecoration(DecorativeSphere(.1).setColor(Red).setOpacity(.3));
 
     MobilizedBody::SphericalCoords
         anAtom(matter.Ground(), Transform(ZUp, TestLoc),

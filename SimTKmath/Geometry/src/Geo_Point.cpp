@@ -505,7 +505,7 @@ calcOrientedBoundingBoxIndirect(const Array_<const Vec3P*>& points_F,
         VolumeGradient<P> grad(points_F, R_FB);
         Differentiator diff(grad);
         Vector g;
-        diff.calcGradient(Vector(3, Real(0)), volume, g);
+        diff.calcGradient(Vector(3, Real(0)), (Real)volume, g);
         Vec3P dir; dir[0]=P(g[0]); dir[1]=P(g[1]); dir[2]=P(g[2]);
 
         // Gradient has units of volume/radian.

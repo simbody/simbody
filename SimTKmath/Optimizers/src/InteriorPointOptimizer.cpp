@@ -83,7 +83,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
         }
         /* set the bounds on the inequality constraint functions */
         for(int i=sys.getNumEqualityConstraints();i<m;i++){
-            g_U[i] = POSITIVE_INF;
+            g_U[i] = SimTK::Real(POSITIVE_INF);
             g_L[i] = 0.0;
         }
 
@@ -91,7 +91,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
     } 
 
 
-    double InteriorPointOptimizer::optimize(  Vector &results ) {
+    SimTK::Real InteriorPointOptimizer::optimize(  Vector &results ) {
 
         int n = getOptimizerSystem().getNumParameters();
         int m = getOptimizerSystem().getNumConstraints();
@@ -108,12 +108,12 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
            x_U = new Number[n];
            x_L = new Number[n];
            for(int i=0;i<n;i++) {
-              x_U[i] = POSITIVE_INF;
-              x_L[i] = NEGATIVE_INF;
+              x_U[i] = SimTK::Real(POSITIVE_INF);
+              x_L[i] = SimTK::Real(NEGATIVE_INF);
            }
         }
 
-        double *x = &results[0];
+        SimTK::Real *x = &results[0];
 
         IpoptProblem nlp = CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, nele_jac, 
                            nele_hess, index_style, objectiveFuncWrapper, constraintFuncWrapper, 
@@ -240,7 +240,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
             //AddIpoptStrOption(nlp, "warm_start_same_structure", "yes"); // couldn't get this one to work
         } 
 
-        double obj;
+        SimTK::Real obj;
 
         int status = IpoptSolve(nlp, x, NULL, &obj, mult_g, mult_x_L, mult_x_U, (void *)this );
 

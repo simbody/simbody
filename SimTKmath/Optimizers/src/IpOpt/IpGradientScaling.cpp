@@ -73,8 +73,8 @@ namespace Ipopt
     //
     SmartPtr<Vector> grad_f = x_space->MakeNew();
     if (nlp_->Eval_grad_f(*x, *grad_f)) {
-      double max_grad_f = grad_f->Amax();
-      df = 1.;
+      Number max_grad_f = grad_f->Amax();
+      df = 1;
       if (max_grad_f > scaling_max_gradient_) {
         df = scaling_max_gradient_ / max_grad_f;
       }
@@ -84,7 +84,7 @@ namespace Ipopt
     else {
       Jnlst().Printf(J_WARNING, J_INITIALIZATION,
                      "Error evaluating objective gradient at user provided starting point.\n  No scaling factor for objective function computed!\n");
-      df = 1.;
+      df = 1;
     }
     //
     // No x scaling

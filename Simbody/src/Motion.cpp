@@ -33,6 +33,9 @@
 
 namespace SimTK {
 
+//==============================================================================
+//                                MOTION
+//==============================================================================
 const MobilizedBody& Motion::getMobilizedBody() const 
 {   return getImpl().getMobilizedBodyImpl().getMyHandle(); }
 
@@ -42,13 +45,60 @@ Motion::Level Motion::getLevel(const State& s) const
 Motion::Method Motion::getLevelMethod(const State& s) const
 {   return getImpl().getLevelMethod(s); }
 
+
+void Motion::disable(State& s) const
+{   getImpl().disable(s); }
+
+void Motion::enable(State& s) const
+{   getImpl().enable(s); }
+
+bool Motion::isDisabled(const State& s) const
+{   return getImpl().isDisabled(s); }
+
+void Motion::setDisabledByDefault(bool shouldBeDisabled)
+{   updImpl().setDisabledByDefault(shouldBeDisabled); }
+
+bool Motion::isDisabledByDefault() const
+{   return getImpl().isDisabledByDefault(); }
+
+void Motion::calcAllMethods(const State& s, Method& qMethod, Method& uMethod, 
+                            Method& udotMethod) const 
+{
+    const Level  level       = getLevel(s);
+    const Method levelMethod = getLevelMethod(s);
+    Method method[3]; // acc, vel, pos
+    method[level] = levelMethod;
+
+    switch (level) {
+    case Position:
+        method[Velocity]=method[Acceleration]= 
+            (levelMethod==Prescribed ? Prescribed : Zero);
+        break;
+    case Velocity:
+        method[Acceleration] = (levelMethod==Prescribed ? Prescribed : Zero);
+        method[Position]     = (levelMethod==Zero       ? Discrete   : Free);
+        break;
+    case Acceleration:
+        method[Velocity] = (levelMethod==Zero ? Discrete : Free);
+        method[Position] = Free;
+        break;
+    default:
+        assert(!"unrecognized level");
+    }
+
+    qMethod    = method[Position];
+    uMethod    = method[Velocity];
+    udotMethod = method[Acceleration];
+}
+
 /*static*/ const char*
 Motion::nameOfLevel(Level l) {
     switch (l) {
-      case Acceleration: return "Acceleration";
-      case Velocity:     return "Velocity";
-      case Position:     return "Position";
-      default: 
+    case NoLevel:      return "NoLevel";
+    case Acceleration: return "Acceleration";
+    case Velocity:     return "Velocity";
+    case Position:     return "Position";
+    default: 
         return "*** UNRECOGNIZED Motion::Level ***";
     }
 }
@@ -56,16 +106,36 @@ Motion::nameOfLevel(Level l) {
 /*static*/ const char*
 Motion::nameOfMethod(Method m) {
     switch (m) {
-      case Zero:       return "Zero";
-      case Discrete:   return "Discrete";
-      case Prescribed: return "Prescribed";
-      case Free:       return "Free";
-      case Fast:       return "Fast";
-      default: 
+    case NoMethod:   return "NoMethod";
+    case Zero:       return "Zero";
+    case Discrete:   return "Discrete";
+    case Prescribed: return "Prescribed";
+    case Free:       return "Free";
+    case Fast:       return "Fast";
+    default: 
         return "*** UNRECOGNIZED Motion::Method ***";
     }
 }
 
+//==============================================================================
+//                                MOTION IMPL
+//==============================================================================
+
+void MotionImpl::disable(State& s) const {
+    const MobilizedBodyImpl& mbi = getMobilizedBodyImpl();
+    SBInstanceVars& iv = mbi.getMyMatterSubsystemRep().updInstanceVars(s);
+    iv.prescribedMotionIsDisabled[mbi.getMyMobilizedBodyIndex()] = true;
+}
+void MotionImpl::enable(State& s) const {
+    const MobilizedBodyImpl& mbi = getMobilizedBodyImpl();
+    SBInstanceVars& iv = mbi.getMyMatterSubsystemRep().updInstanceVars(s);
+    iv.prescribedMotionIsDisabled[mbi.getMyMobilizedBodyIndex()] = false;
+}
+bool MotionImpl::isDisabled(const State& s) const {
+    const MobilizedBodyImpl& mbi = getMobilizedBodyImpl();
+    const SBInstanceVars& iv = mbi.getMyMatterSubsystemRep().getInstanceVars(s);
+    return iv.prescribedMotionIsDisabled[mbi.getMyMobilizedBodyIndex()];
+}
 
 const SimbodyMatterSubsystem&  
 MotionImpl::getMatterSubsystem() const {
@@ -217,13 +287,17 @@ Motion::Steady&
 Motion::Steady::setDefaultRate(Real u)
 {   updImpl().setDefaultRates(Vec6(u)); return *this; }
 Motion::Steady& 
-Motion::Steady::setOneDefaultRate(UIndex ux, Real u)
+Motion::Steady::setOneDefaultRate(MobilizerUIndex ux, Real u)
 {   updImpl().setOneDefaultRate(ux,u); return *this; }
+Real Motion::Steady::getOneDefaultRate(MobilizerUIndex ux) const
+{   return getImpl().getOneDefaultRate(ux); }
 
 void Motion::Steady::setRate(State& s, Real u) const
 {   getImpl().setRates(s, Vec6(u)); }
-void Motion::Steady::setOneRate(State& s, UIndex ux, Real u) const
+void Motion::Steady::setOneRate(State& s, MobilizerUIndex ux, Real u) const
 {   getImpl().setOneRate(s,ux,u); }
+Real Motion::Steady::getOneRate(const State& s, MobilizerUIndex ux) const
+{   return getImpl().getOneRate(s,ux); }
 
 template <> SimTK_SIMBODY_EXPORT Motion::Steady&
 Motion::Steady::setDefaultRates(const Vec<1>& u)
@@ -324,6 +398,7 @@ calcPrescribedAcceleration(const State& s, int nu, Real* udot) const  {
         "but was apparently expected to do so.");
     /*NOTREACHED*/
 }
+
 
 } // namespace SimTK
 

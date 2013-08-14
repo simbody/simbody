@@ -16,6 +16,7 @@ public:
 
 public:
 
+	virtual void shutdownGUI() {};
 	virtual void shakeHandsWithGUI(int inPipe, int outPipe) {}
 	virtual void beginScene(Real simTime);
 	virtual void finishScene();
@@ -57,6 +58,11 @@ private:
 	Publisher * publisher;
 
 	CustomMesh* makeSphere(unsigned short resolution);
+	CustomMesh* makeBox();
+	CustomMesh* makeCylinder(unsigned short resolution);
+	CustomMesh* makeCircle(unsigned short resolution);
+	CustomMesh* makePolygonalMesh(const PolygonalMesh& mesh);
+
 	void addVec(std::vector<float>& data, float x, float y, float z);
 	void addVec(std::vector<unsigned short>& data, float x, float y, float z);
 

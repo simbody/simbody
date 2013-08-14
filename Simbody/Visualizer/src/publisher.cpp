@@ -9,107 +9,219 @@ using namespace SimTK;
 using namespace gazebo;
 using namespace std;
 
+string getRandomName() {
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+	std::string s;
+
+    for (int i = 0; i < 5; ++i) {
+        s.append(1, alphanum[rand() % (sizeof(alphanum) - 1)]);
+    }
+
+    return s;
+}
+
 Publisher::Publisher()
 {
-		gazebo::load();
-		// Create our node for communication
-		this->node = transport::NodePtr(new gazebo::transport::Node());
-		node->Init();
-	
-		gazebo::transport::run();
+	gazebo::load();
+	// Create our node for communication
+	this->node = transport::NodePtr(new gazebo::transport::Node());
+	node->Init();
 
-		this->drawingPub = this->node->Advertise<msgs::Drawing>("~/draw");
-		this->visPub = this->node->Advertise<msgs::Visual>("~/visual");
-		this->makerPub = this->node->Advertise<msgs::Factory>("~/factory");
-		this->requestPub = this->node->Advertise<msgs::Request>("~/request");
+	gazebo::transport::run();
+
+	this->drawingPub = this->node->Advertise<msgs::Drawing>("~/draw");
+	this->visPub = this->node->Advertise<msgs::Visual>("~/visual");
+	this->makerPub = this->node->Advertise<msgs::Factory>("~/factory");
+	this->requestPub = this->node->Advertise<msgs::Request>("~/request");
 
 }
 
-void Publisher::makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation)
+void Publisher::makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, int resolution)
 {
-//	gazebo::gui::BoxMaker maker;
-//	maker.CreateTheEntity();	
-	
-	// Simbody geometry to gazebo 
-	// Position
-//	Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
-
-//	position.updR().setRotationToBodyFixedXYZ(fVec3(rot[0], rot[1], rot[2]));
-	
 	msgs::Visual* visualMsg = new msgs::Visual();
-	visualMsg->set_name("visuals");
-	visualMsg->set_parent_name("default");
+	prepareMessage(transform, scale, colour, representation, geometry, resolution, visualMsg);
 
-	// Position is set by Pose-Vector3d
 	visualMsg->mutable_geometry()->set_type(msgs::Geometry::BOX);
-	math::Vector3 position(transform.p()[0], transform.p()[1], transform.p()[2]);
-
-	msgs::Set(visualMsg->mutable_pose()->mutable_position(), position);
-	msgs::Set(visualMsg->mutable_pose()->mutable_orientation(), math::Quaternion());
-	
 	// Setting scale
 	math::Vector3 scale_g(scale[0], scale[1], scale[2]);
 	msgs::Set(visualMsg->mutable_geometry()->mutable_box()->mutable_size(), scale_g);
 
-	// Setting colour
-	common::Color colour_g(colour[0], colour[1], colour[2]);
-	msgs::Set(visualMsg->mutable_material()->mutable_ambient(), colour_g);
-
-	std::cout << "Making box" << std::endl;
 	visPub->Publish(*visualMsg);
+}
+
+void Publisher::makeEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, int resolution)
+{
+	msgs::Visual* visualMsg = new msgs::Visual();
+	prepareMessage(transform, scale, colour, representation, geometry, resolution, visualMsg);
+
+	// Position is set by Pose-Vector3d
+	visualMsg->mutable_geometry()->set_type(msgs::Geometry::SPHERE);
+	// Setting scale
+	math::Vector3 scale_g(scale[0], scale[1], scale[2]);
+	visualMsg->mutable_geometry()->mutable_sphere()->set_radius(scale[0]);
+
+	visPub->Publish(*visualMsg);
+
+}
+void Publisher::makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, unsigned short resolution)
+{
+	msgs::Visual* visualMsg = new msgs::Visual();
+	prepareMessage(transform, scale, colour, representation, geometry, resolution, visualMsg);
+
+	// Position is set by Pose-Vector3d
+	visualMsg->mutable_geometry()->set_type(msgs::Geometry::CYLINDER);
+	visualMsg->mutable_geometry()->mutable_cylinder()->set_radius(scale[0]);
+	visualMsg->mutable_geometry()->mutable_cylinder()->set_length(2*scale[1]); //half height?
+
+	visPub->Publish(*visualMsg);
+
+}
+void Publisher::makeCircle(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, unsigned short resolution)
+{
+	msgs::Visual* visualMsg = new msgs::Visual();
+	prepareMessage(transform, scale, colour, representation, geometry, resolution, visualMsg);
+
+	// Position is set by Pose-Vector3d
+	visualMsg->mutable_geometry()->set_type(msgs::Geometry::PLANE);
+	msgs::Set(visualMsg->mutable_geometry()->mutable_plane()->mutable_normal(), math::Vector3(0,0,1));
+	msgs::Set(visualMsg->mutable_geometry()->mutable_plane()->mutable_size(), math::Vector2d(scale[0], scale[1]));
+
+	visPub->Publish(*visualMsg);
+
+}
+
+void Publisher::prepareMessage(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, unsigned short resolution, msgs::Visual* visualMsg)
+{	
+
+	std::string name = "visuals" + geometry;
+	ostringstream convert;
+	convert << name << resolution;
+	name = convert.str();
+
+	std::cout << "Sending visual: " + name << std::endl;
+
+	visualMsg->set_name(name);
+	visualMsg->set_parent_name("default");
+
+	// Simbody geometry to gazebo 
+	// Position is set by Pose-Vector3d
+	math::Vector3 position(transform.p()[0], transform.p()[1], transform.p()[2]);
+
+	Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
+	math::Vector3 rotation(rot[0], rot[1], rot[2]);
+
+	msgs::Set(visualMsg->mutable_pose()->mutable_position(), position);
+	msgs::Set(visualMsg->mutable_pose()->mutable_orientation(), rotation);
+
+	// Setting colour
+	std::cout << "transparency " << colour[3] << std::endl;
+//	common::Color colour_g(colour[0], colour[1], colour[2], colour[3]);
+//	msgs::Set(visualMsg->mutable_material()->mutable_ambient(), colour_g);
+//	visualMsg->set_transparency(colour[3]);
+
+}
+
+void Publisher::makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh* mesh)
+{
+
+	/*
+	sleep(1);
+	msgs::Request * requestMsg = msgs::CreateRequest("entity_delete", name);
+	requestPub->Publish(*requestMsg);
+*/
+
+/*	
+	msgs::Drawing* drawingMsg = new msgs::Drawing();
+	drawingMsg->set_name("box" + getRandomName());
+	drawingMsg->set_visible(true);
+	this->makeMesh(transform, scale, colour, representation, mesh, drawingMsg);
+	drawingPub->Publish(*drawingMsg);
+*/	
+	
 }
 
 void Publisher::makeEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh * mesh) 
 {
+
+	/*
+	sleep(1);
+	msgs::Request * requestMsg = msgs::CreateRequest("entity_delete", name);
+	requestPub->Publish(*requestMsg);
+*/
+	/*	
 	msgs::Drawing* drawingMsg = new msgs::Drawing();	
 	
-	drawingMsg->set_name("ellipsoid");
+	drawingMsg->set_name("ellipsoid" + getRandomName());
 	drawingMsg->set_visible(true);
 	this->makeMesh(transform, scale, colour, representation, mesh, drawingMsg);
 	drawingPub->Publish(*drawingMsg);
+*/	
 
 }
 
-void Publisher::makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution)
+void Publisher::makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution, CustomMesh * mesh)
 {
-	msgs::Visual* visualMsg = new msgs::Visual();
-	visualMsg->set_name("visuals");
-	visualMsg->set_parent_name("default");
-
-	// Position is set by Pose-Vector3d
-	visualMsg->mutable_geometry()->set_type(msgs::Geometry::CYLINDER);
-	math::Vector3 position(transform.p()[0], transform.p()[1], transform.p()[2]);
-
-	msgs::Set(visualMsg->mutable_pose()->mutable_position(), position);
-	msgs::Set(visualMsg->mutable_pose()->mutable_orientation(), math::Quaternion());
+	/*
+	sleep(1);
+	msgs::Request * requestMsg = msgs::CreateRequest("entity_delete", name);
+	requestPub->Publish(*requestMsg);
+*/	/*
+	msgs::Drawing* drawingMsg = new msgs::Drawing();
+	drawingMsg->set_name("cylinder" + getRandomName());
+	drawingMsg->set_visible(true);
+	this->makeMesh(transform, scale, colour, representation, mesh, drawingMsg);
+	drawingPub->Publish(*drawingMsg);
+	*/
 	
-	// Setting scale
-	//math::Vector3 scale_g(scale[0], scale[1], scale[2]);
-	visualMsg->mutable_geometry()->mutable_cylinder()->set_radius(scale[0]);
-	visualMsg->mutable_geometry()->mutable_cylinder()->set_length(2*scale[1]); //half height?
-
-	// Setting colour
-	common::Color colour_g(colour[0], colour[1], colour[2]);
-	msgs::Set(visualMsg->mutable_material()->mutable_ambient(), colour_g);
-
-	std::cout << "Making cylinder" << std::endl;
-	visPub->Publish(*visualMsg);
 }
 
-void Publisher::makeCircle()
+void Publisher::makeCircle(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution, CustomMesh * mesh)
 {
 
+	/*
+	sleep(1);
+	msgs::Request * requestMsg = msgs::CreateRequest("entity_delete", name);
+	requestPub->Publish(*requestMsg);
+*/
+	/*
+	msgs::Drawing* drawingMsg = new msgs::Drawing();
+	drawingMsg->set_name("circle" + getRandomName());
+	drawingMsg->set_visible(true);
+	this->makeMesh(transform, scale, colour, representation, mesh, drawingMsg);
+	drawingPub->Publish(*drawingMsg);
+*/
 }
-void Publisher::makePolygonalMesh()
+void Publisher::makePolygonalMesh(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh* mesh)
 {
 //	std::cout << "Making mesh" << std::endl;
 //	gazebo::gui::MeshMaker maker;
 //	maker.CreateTheEntity();
+	msgs::Drawing* drawingMsg = new msgs::Drawing();
+	drawingMsg->set_name("polygonMesh" + getRandomName());
+	drawingMsg->set_visible(true);
+	std::cout << "Making polygonal mesh" << std::endl;
+	this->makeMesh(transform, scale, colour, representation, mesh, drawingMsg);
+	drawingPub->Publish(*drawingMsg);
 }
 
 void Publisher::makeMesh(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const CustomMesh* mesh, msgs::Drawing* drawingMsg)
 {
-	common::Color colour_g(colour[0], colour[1], colour[2]);
+	
+	Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
+
+	msgs::Set(drawingMsg->mutable_transform()->mutable_translate(), math::Vector3(transform.p()[0],transform.p()[1],transform.p()[2]));
+	msgs::Set(drawingMsg->mutable_transform()->mutable_rotate(), math::Vector3(rot[0], rot[1], rot[2]));
+	msgs::Set(drawingMsg->mutable_transform()->mutable_scale(), math::Vector3(scale[0], scale[1], scale[2]));
+
+	//msgs::Set(drawingMsg->mutable_pose()->mutable_position(), math::Vector3(transform.p()[0], transform.p()[1], transform.p()[2]));
+
+	//msgs::Set(drawingMsg->mutable_pose()->mutable_orientation(), math::Quaternion());
+
+	common::Color colour_g(colour[0], colour[1], colour[2], colour[3]);
 
 	if(representation == DecorativeGeometry::DrawSurface)
 	{

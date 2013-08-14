@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -45,16 +45,15 @@
 
 namespace SimTK {
 
-    ///////////////
-    // SUBSYSTEM //
-    ///////////////
+//==============================================================================
+//                                 SUBSYSTEM
+//==============================================================================
 
 bool Subsystem::isEmptyHandle() const {return guts==0;}
-bool Subsystem::isOwnerHandle() const {return guts==0 || &guts->getOwnerSubsystemHandle()==this;}
-bool Subsystem::isSameSubsystem(const Subsystem& otherSubsystem) const {
-    return guts && (guts==otherSubsystem.guts);
-}
-
+bool Subsystem::isOwnerHandle() const 
+{   return guts==0 || &guts->getOwnerSubsystemHandle()==this; }
+bool Subsystem::isSameSubsystem(const Subsystem& otherSubsystem) const 
+{   return guts && (guts==otherSubsystem.guts); }
 
 Subsystem::Subsystem(const Subsystem& src) : guts(0) {
     if (src.guts) {
@@ -211,10 +210,11 @@ int Subsystem::getNMultipliers    (const State& s) const {return getSubsystemGut
 SystemEventTriggerByStageIndex Subsystem::getEventTriggerStartByStage(const State& s, Stage g) const {return getSubsystemGuts().getEventTriggerStartByStage(s,g);}
 int Subsystem::getNEventTriggersByStage   (const State& s, Stage g) const {return getSubsystemGuts().getNEventTriggersByStage(s,g);}
 
-    /////////////////////
-    // SUBSYSTEM::GUTS //
-    /////////////////////
 
+
+//==============================================================================
+//                           SUBSYSTEM :: GUTS
+//==============================================================================
 // This is also the default constructor.
 Subsystem::Guts::Guts(const String& name, const String& version) {
     rep = new GutsRep(name,version);
@@ -275,7 +275,8 @@ bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
 }
 const System& Subsystem::Guts::getSystem() const {return getRep().getSystem();}
 System&       Subsystem::Guts::updSystem()	     {return updRep().updSystem();}
-SubsystemIndex   Subsystem::Guts::getMySubsystemIndex() const {return getRep().getMySubsystemIndex();}
+SubsystemIndex Subsystem::Guts::getMySubsystemIndex() const 
+{   return getRep().getMySubsystemIndex(); }
 
 QIndex Subsystem::Guts::allocateQ(State& s, const Vector& qInit) const {
     return s.allocateQ(getRep().getMySubsystemIndex(), qInit);
@@ -294,11 +295,13 @@ DiscreteVariableIndex Subsystem::Guts::allocateDiscreteVariable
 {   return s.allocateDiscreteVariable(getRep().getMySubsystemIndex(), g, v); }
 DiscreteVariableIndex Subsystem::Guts::allocateAutoUpdateDiscreteVariable
    (State& s, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const
-{   return s.allocateAutoUpdateDiscreteVariable(getRep().getMySubsystemIndex(),invalidates,v,updateDependsOn); }
+{   return s.allocateAutoUpdateDiscreteVariable
+               (getRep().getMySubsystemIndex(),invalidates,v,updateDependsOn); }
 
 CacheEntryIndex Subsystem::Guts::allocateCacheEntry
    (const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const 
-{   return s.allocateCacheEntry(getRep().getMySubsystemIndex(), dependsOn, computedBy, v); }
+{   return s.allocateCacheEntry
+               (getRep().getMySubsystemIndex(), dependsOn, computedBy, v); }
 
 QErrIndex Subsystem::Guts::allocateQErr(const State& s, int nqerr) const {
     return s.allocateQErr(getRep().getMySubsystemIndex(), nqerr);
@@ -308,11 +311,13 @@ UErrIndex Subsystem::Guts::allocateUErr(const State& s, int nuerr) const {
     return s.allocateUErr(getRep().getMySubsystemIndex(), nuerr);
 }
 
-UDotErrIndex Subsystem::Guts::allocateUDotErr(const State& s, int nudoterr) const {
+UDotErrIndex Subsystem::Guts::
+allocateUDotErr(const State& s, int nudoterr) const {
     return s.allocateUDotErr(getRep().getMySubsystemIndex(), nudoterr);
 }
 
-EventTriggerByStageIndex Subsystem::Guts::allocateEventTriggersByStage(const State& s, Stage g, int ntriggers) const {
+EventTriggerByStageIndex Subsystem::Guts::
+allocateEventTriggersByStage(const State& s, Stage g, int ntriggers) const {
     return s.allocateEventTrigger(getRep().getMySubsystemIndex(),g,ntriggers);
 }
 
@@ -323,29 +328,36 @@ void Subsystem::Guts::advanceToStage(const State& s, Stage g) const {
 Stage Subsystem::Guts::getStage(const State& s) const {
     return s.getSubsystemStage(getRep().getMySubsystemIndex());
 }
-const AbstractValue& Subsystem::Guts::getDiscreteVariable(const State& s, DiscreteVariableIndex index) const {
+const AbstractValue& Subsystem::Guts::
+getDiscreteVariable(const State& s, DiscreteVariableIndex index) const {
     return s.getDiscreteVariable(getRep().getMySubsystemIndex(), index);
 }
 
-AbstractValue& Subsystem::Guts::updDiscreteVariable(State& s, DiscreteVariableIndex index) const {
+AbstractValue& Subsystem::Guts::
+updDiscreteVariable(State& s, DiscreteVariableIndex index) const {
     return s.updDiscreteVariable(getRep().getMySubsystemIndex(), index);
 }
 
-const AbstractValue& Subsystem::Guts::getCacheEntry(const State& s, CacheEntryIndex index) const {
+const AbstractValue& Subsystem::Guts::
+getCacheEntry(const State& s, CacheEntryIndex index) const {
     return s.getCacheEntry(getRep().getMySubsystemIndex(), index);
 }
 
-AbstractValue& Subsystem::Guts::updCacheEntry(const State& s, CacheEntryIndex index) const {
+AbstractValue& Subsystem::Guts::
+updCacheEntry(const State& s, CacheEntryIndex index) const {
     return s.updCacheEntry(getRep().getMySubsystemIndex(), index);
 }
 
-bool Subsystem::Guts::isCacheValueRealized(const State& s, CacheEntryIndex cx) const {
+bool Subsystem::Guts::
+isCacheValueRealized(const State& s, CacheEntryIndex cx) const {
     return s.isCacheValueRealized(getRep().getMySubsystemIndex(), cx);
 }
-void Subsystem::Guts::markCacheValueRealized(const State& s, CacheEntryIndex cx) const {
+void Subsystem::Guts::
+markCacheValueRealized(const State& s, CacheEntryIndex cx) const {
     s.markCacheValueRealized(getRep().getMySubsystemIndex(), cx);
 }
-void Subsystem::Guts::markCacheValueNotRealized(const State& s, CacheEntryIndex cx) const {
+void Subsystem::Guts::
+markCacheValueNotRealized(const State& s, CacheEntryIndex cx) const {
     s.markCacheValueNotRealized(getRep().getMySubsystemIndex(), cx);
 }
 
@@ -418,42 +430,66 @@ bool Subsystem::Guts::subsystemTopologyHasBeenRealized() const {
     return getRep().subsystemTopologyHasBeenRealized();
 }
 
-/**
- * A Subsystem should invoke this method during Instance stage for each scheduled event it defines.
- * It allocates a global event ID for the event, and registers that ID as belonging to this Subsystem.
+
+
+//------------------------------------------------------------------------------
+//                         CREATE SCHEDULED EVENT
+//------------------------------------------------------------------------------
+/*
+ * A Subsystem should invoke this method during Instance stage for each 
+ * scheduled event it defines.
+ * It allocates a global event ID for the event, and registers that ID as 
+ * belonging to this Subsystem.
  * 
  * @param state     the State which is being realized
  * @param eventId   on exit, the newly allocated event ID is stored here
  */
-
-void Subsystem::Guts::createScheduledEvent(const State& state, EventId& eventId) const {
-    eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
+void Subsystem::Guts::
+createScheduledEvent(const State& state, EventId& eventId) const {
+    eventId = getSystem().getDefaultSubsystem()
+                         .createEventId(getMySubsystemIndex(), state);
 }
 
-/**
- * A Subsystem should invoke this method during Instance stage for each triggered event it defines.
- * It allocates a global event ID for the event, registers that ID as belonging to this Subsystem,
- * and allocates space in the State for the event trigger function.
+//------------------------------------------------------------------------------
+//                         CREATE TRIGGERED EVENT
+//------------------------------------------------------------------------------
+/*
+ * A Subsystem should invoke this method during Instance stage for each 
+ * triggered event it defines. It allocates a global event ID for the event, 
+ * registers that ID as belonging to this Subsystem, and allocates space in the
+ * State for the event trigger function.
  * 
  * @param state     the State which is being realized
  * @param eventId   on exit, the newly allocated event ID is stored here
- * @param triggerFunctionIndex  on exit, the index corresponding to the event's trigger function
- *                              is stored here (this is a local, per-Subsystem, per-Stage index)
+ * @param triggerFunctionIndex  
+ *      on exit, the index corresponding to the event's trigger function
+ *      is stored here (this is a local, per-Subsystem, per-Stage index)
  * @param stage     the Stage at which the event will be evaluated
  */
-
-void Subsystem::Guts::createTriggeredEvent(const State& state, EventId& eventId, EventTriggerByStageIndex& triggerFunctionIndex, Stage stage) const {
-    eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
-    triggerFunctionIndex = state.allocateEventTrigger(getMySubsystemIndex(), stage, 1);
+void Subsystem::Guts::
+createTriggeredEvent(const State& state, EventId& eventId, 
+                     EventTriggerByStageIndex& triggerFunctionIndex, 
+                     Stage stage) const 
+{
+    eventId = getSystem().getDefaultSubsystem()
+                         .createEventId(getMySubsystemIndex(), state);
+    triggerFunctionIndex = 
+        state.allocateEventTrigger(getMySubsystemIndex(), stage, 1);
 }
+
 
     // wrappers for Subsystem::Guts virtuals
 
-
+//------------------------------------------------------------------------------
+//                                  CLONE
+//------------------------------------------------------------------------------
 Subsystem::Guts* Subsystem::Guts::clone() const {
     return cloneImpl();
 }
 
+//------------------------------------------------------------------------------
+//                     REALIZE SUBSYSTEM TOPOLOGY
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemTopology(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
         "Subsystem::Guts::realizeSubsystemTopology()");
@@ -463,9 +499,13 @@ void Subsystem::Guts::realizeSubsystemTopology(State& s) const {
     for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
         getRep().measures[mx]->realizeTopology(s);
 
-    getRep().subsystemTopologyRealized = true; // mark the subsystem itself (mutable)
+    getRep().subsystemTopologyRealized = true; // mark subsys itself (mutable)
     advanceToStage(s, Stage::Topology);  // mark the State as well
 }
+
+//------------------------------------------------------------------------------
+//                        REALIZE SUBSYSTEM MODEL
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemModel(State& s) const {
     SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(subsystemTopologyHasBeenRealized(),
         "Subsystem", getName(), "Subsystem::Guts::realizeSubsystemModel()");
@@ -482,6 +522,10 @@ void Subsystem::Guts::realizeSubsystemModel(State& s) const {
         advanceToStage(s, Stage::Model);
     }
 }
+
+//------------------------------------------------------------------------------
+//                     REALIZE SUBSYSTEM INSTANCE
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemInstance(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
         "Subsystem::Guts::realizeSubsystemInstance()");
@@ -495,6 +539,10 @@ void Subsystem::Guts::realizeSubsystemInstance(const State& s) const {
         advanceToStage(s, Stage::Instance);
     }
 }
+
+//------------------------------------------------------------------------------
+//                         REALIZE SUBSYSTEM TIME
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemTime(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
         "Subsystem::Guts::realizeTime()");
@@ -508,6 +556,10 @@ void Subsystem::Guts::realizeSubsystemTime(const State& s) const {
         advanceToStage(s, Stage::Time);
     }
 }
+
+//------------------------------------------------------------------------------
+//                     REALIZE SUBSYSTEM POSITION
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemPosition(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
         "Subsystem::Guts::realizeSubsystemPosition()");
@@ -521,6 +573,10 @@ void Subsystem::Guts::realizeSubsystemPosition(const State& s) const {
         advanceToStage(s, Stage::Position);
     }
 }
+
+//------------------------------------------------------------------------------
+//                       REALIZE SUBSYSTEM VELOCITY
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemVelocity(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
         "Subsystem::Guts::realizeSubsystemVelocity()");
@@ -534,6 +590,10 @@ void Subsystem::Guts::realizeSubsystemVelocity(const State& s) const {
         advanceToStage(s, Stage::Velocity);
     }
 }
+
+//------------------------------------------------------------------------------
+//                       REALIZE SUBSYSTEM DYNAMICS
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemDynamics(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
         "Subsystem::Guts::realizeSubsystemDynamics()");
@@ -547,6 +607,10 @@ void Subsystem::Guts::realizeSubsystemDynamics(const State& s) const {
         advanceToStage(s, Stage::Dynamics);
     }
 }
+
+//------------------------------------------------------------------------------
+//                     REALIZE SUBSYSTEM ACCELERATION
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemAcceleration(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
         "Subsystem::Guts::realizeSubsystemAcceleration()");
@@ -560,6 +624,10 @@ void Subsystem::Guts::realizeSubsystemAcceleration(const State& s) const {
         advanceToStage(s, Stage::Acceleration);
     }
 }
+
+//------------------------------------------------------------------------------
+//                         REALIZE SUBSYSTEM REPORT
+//------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemReport(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
         "Subsystem::Guts::realizeSubsystemReport()");
@@ -574,71 +642,83 @@ void Subsystem::Guts::realizeSubsystemReport(const State& s) const {
     }
 }
 
-
-void Subsystem::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const {
+//------------------------------------------------------------------------------
+//                  CALC DECORATIVE GEOMETRY AND APPEND
+//------------------------------------------------------------------------------
+void Subsystem::Guts::calcDecorativeGeometryAndAppend
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const 
+{
     calcDecorativeGeometryAndAppendImpl(s,stage,geom);
 }
 
-
-
-    // default implementations for Subsystem::Guts virtuals
-/*virtual*/ int Subsystem::Guts::realizeSubsystemTopologyImpl(State& s) const {
-    return 0;
-}
-/*virtual*/ int Subsystem::Guts::realizeSubsystemModelImpl(State& s) const {
-    return 0; 
-}
-/*virtual*/ int Subsystem::Guts::realizeSubsystemInstanceImpl(const State& s) const {
-    return 0; 
-}
-/*virtual*/ int Subsystem::Guts::realizeSubsystemTimeImpl(const State& s) const {
-    return 0; 
-}
-/*virtual*/ int Subsystem::Guts::realizeSubsystemPositionImpl(const State& s) const {
-    return 0; 
-}
-/*virtual*/ int Subsystem::Guts::realizeSubsystemVelocityImpl(const State& s) const {
-    return 0; 
-}
-/*virtual*/ int Subsystem::Guts::realizeSubsystemDynamicsImpl(const State& s) const {
-    return 0; 
-}
-/*virtual*/ int Subsystem::Guts::realizeSubsystemAccelerationImpl(const State& s) const {
-    return 0; 
-}
-/*virtual*/ int Subsystem::Guts::realizeSubsystemReportImpl(const State& s) const {
-    return 0; 
-}
-
-/*virtual*/ int Subsystem::Guts::calcDecorativeGeometryAndAppendImpl
-                                (const State&, Stage, Array_<DecorativeGeometry>&) const
-{
-    return 0;
-}
-void Subsystem::Guts::handleEvents(State&, Event::Cause, const Array_<EventId>& eventIds,
+//------------------------------------------------------------------------------
+//                              HANDLE EVENTS
+//------------------------------------------------------------------------------
+void Subsystem::Guts::handleEvents(State& state, Event::Cause cause, 
+    const Array_<EventId>& eventIds,
     const HandleEventsOptions& options, HandleEventsResults& results) const
 {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", 
-                 "handleEvents"); 
-}
-void Subsystem::Guts::reportEvents(const State&, Event::Cause, const Array_<EventId>& eventIds) const
-{
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", "reportEvents"); 
-}
-void Subsystem::Guts::calcEventTriggerInfo(const State& s, Array_<EventTriggerInfo>& info) const {
-}
-void Subsystem::Guts::calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const {
-    tNextEvent = Infinity;
-    eventIds.clear();
-}
-void Subsystem::Guts::calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const {
-    tNextEvent = Infinity;
-    eventIds.clear();
+    // Invoke Measure handlers where appropriate (TODO: just initialization
+    // so far). Initialize measures first in case the Subsystem initialization
+    // handler references measures.
+    if (cause == Event::Cause::Initialization) {
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->initialize(state);
+    }
+
+    // assume success
+    results.clear(); results.setExitStatus(HandleEventsResults::Succeeded); 
+    handleEventsImpl(state, cause, eventIds, options, results);
 }
 
-    //////////////////////////////
-    // SUBSYSTEM::GUTS::GUTSREP //
-    //////////////////////////////
+//------------------------------------------------------------------------------
+//                               REPORT EVENTS
+//------------------------------------------------------------------------------
+void Subsystem::Guts::reportEvents(const State& state, Event::Cause cause, 
+                                   const Array_<EventId>& eventIds) const
+{
+    reportEventsImpl(state, cause, eventIds);
+}
+
+//------------------------------------------------------------------------------
+//                         CALC EVENT TRIGGER INFO
+//------------------------------------------------------------------------------
+void Subsystem::Guts::
+calcEventTriggerInfo(const State& state, Array_<EventTriggerInfo>& info) const {
+    calcEventTriggerInfoImpl(state, info);
+}
+
+//------------------------------------------------------------------------------
+//                     CALC TIME OF NEXT SCHEDULED EVENT
+//------------------------------------------------------------------------------
+void Subsystem::Guts::
+calcTimeOfNextScheduledEvent(const State& state, Real& tNextEvent, 
+                             Array_<EventId>& eventIds, 
+                             bool includeCurrentTime) const 
+{
+    tNextEvent = Infinity;
+    eventIds.clear();
+    calcTimeOfNextScheduledEventImpl(state, tNextEvent, eventIds, 
+                                     includeCurrentTime);
+}
+
+//------------------------------------------------------------------------------
+//                    CALC TIME OF NEXT SCHEDULED REPORT
+//------------------------------------------------------------------------------
+void Subsystem::Guts::
+calcTimeOfNextScheduledReport(const State& state, Real& tNextReport, 
+                              Array_<EventId>& eventIds, 
+                              bool includeCurrentTime) const 
+{
+    tNextReport = Infinity;
+    eventIds.clear();
+    calcTimeOfNextScheduledReportImpl(state, tNextReport, eventIds, 
+                                      includeCurrentTime);
+}
+
+//==============================================================================
+//                       SUBSYSTEM :: GUTS :: GUTS REP
+//==============================================================================
 
 // Invalidating a Subsystem's topology cache forces invalidation of the
 // whole System's topology cache, which will in turn invalidate all the other

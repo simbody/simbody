@@ -57,7 +57,7 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
         for (int j = 0; j < 3; j++)
             for (int k = 0; k < 3; k++)
                 c(j, k) += p[i][j]*p[i][k];
-    c *= 1.0/p.size();
+    c *= Real(1)/p.size();
     
     // Find the eigenvectors, which will be our initial guess for the axes of 
     // the box.
@@ -74,7 +74,7 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
     
     Rotation rot(UnitVec3(axes[0]), XAxis, axes[1], YAxis);
     Real volume = calculateVolume(points, rot);
-    for (Real step = 0.1; step > 0.01; step *= 0.5) {
+    for (Real step = Real(0.1); step > Real(0.01); step /= 2) {
         bool improved = true;
         while (improved) {
             Rotation trialRotation[6];
@@ -114,9 +114,9 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
     // Create the bounding box.
     
     size = maxExtent-minExtent;
-    Vec3 tol = 1e-5*size;
+    Vec3 tol = Real(1e-5)*size;
     for (int i = 0; i < 3; i++)
-        tol[i] = std::max(tol[i], 1e-10);
+        tol[i] = std::max(tol[i], Real(1e-10));
     size += 2*tol;
     transform = Transform(rot, rot*(minExtent-tol));
 }
@@ -132,7 +132,7 @@ Real OrientedBoundingBox::calculateVolume
             maxExtent[j] = std::max(maxExtent[j], p[j]);
         }
     }
-    Vec3 size = maxExtent-minExtent+Vec3(2e-10);
+    Vec3 size = maxExtent-minExtent+Vec3(Real(2e-10));
     return size[0]*size[1]*size[2];
 }
 
@@ -150,8 +150,8 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     const Transform t = ~getTransform()*box.getTransform(); 
     const Mat33& r = t.R().asMat33();
     const Mat33 rabs = r.abs();
-    const Vec3 a = 0.5*getSize();
-    const Vec3 b = 0.5*box.getSize();
+    const Vec3 a = getSize()/2;
+    const Vec3 b = box.getSize()/2;
     const Vec3 center1 = a;
     const Vec3 center2 = t*b;
     const Vec3 d = center2-center1;

@@ -110,8 +110,8 @@ RBNodeSphericalCoords(const MassProperties&   mProps_B,
                          RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
                          isReversed),
     az0(azimuthOffset), ze0(zenithOffset), axisT(translationAxis),
-    signAz(azimuthNegated ? -1 : 1), signZe(zenithNegated ? -1 : 1), 
-    signT(translationNegated ? -1 : 1)
+    signAz(Real(azimuthNegated ? -1 : 1)), signZe(Real(zenithNegated ? -1 : 1)), 
+    signT(Real(translationNegated ? -1 : 1))
 {
     SimTK_ASSERT_ALWAYS( translationAxis != YAxis,
         "RBNodeSphericalCoords: translation axis must be x or z; not y.");

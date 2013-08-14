@@ -147,7 +147,9 @@ public:
                   const MobilizedBody& body1, 
                   const MobilizedBody& body2, 
                   const Vec6& stiffness, const Vec6& damping);
-
+ 
+    /// Default constructor creates an empty handle.
+    LinearBushing() {}
 
 
     //--------------------------------------------------------------------------

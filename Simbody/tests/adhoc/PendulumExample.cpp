@@ -43,7 +43,7 @@ static const Real d = 0.5; // meters
 int main(int argc, char** argv) {
 try { // If anything goes wrong, an exception will be thrown.
 
-    MultibodySystem         mbs;
+    MultibodySystem         mbs; mbs.setUseUniformBackground(true);
     GeneralForceSubsystem    forces(mbs);
     SimbodyMatterSubsystem  pend(mbs);
     DecorationSubsystem     viz(mbs);

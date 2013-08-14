@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -109,22 +109,23 @@ parameters so you don't need to set them unless the defaults are not
 satisfactory. **/
 /**@{**/
 
-/** This is a hint to visualization software as to which way this System's
-designer considers to be "up".\ This is the best direction to use as the 
-default up direction for the camera. The default up direction is  +YAxis, 
-which is the same as the OpenGL convention for the camera up direction. You 
-can set this to any of the coordinate axes in the positive or negative 
-direction. For example, use setUpDirection(ZAxis) for the "virtual world" 
-convention where ground is the x-y plane, or use setUpDirection(-ZAxis) for 
-the aviation convention where +z points towards the ground. A visualizer that 
-is showing a ground plane should make the ground plane normal be this up 
-direction.
+/** This is a hint to other software as to which way this System's designer 
+considers to be "up". For visualization, this is the best direction to use as 
+the default up direction for the camera, and the opposite direction is likely to
+be a good direction in which to apply gravitational forces. The default up 
+direction is +YAxis, which is the same as the OpenGL convention for the camera 
+up direction. You can set this to any of the coordinate axes in the positive or 
+negative direction. For example, use setUpDirection(ZAxis) for the "virtual 
+world" convention where ground is the x-y plane and setUpDirection(-ZAxis) 
+might be appropriate for an aviation convention in which Z is directed downward.
+A visualizer that is showing a ground plane should make the ground plane normal 
+be this up direction.
 @see setUseUniformBackground() **/
 System& setUpDirection(const CoordinateDirection& up);
 
 /** This is a hint to visualization software that this System is best viewed 
 against a uniform background (e.g.\ all white) rather than against a ground 
-plane.\ A molecular system will typically set this flag so that the visualizer
+plane. A molecular system will typically set this flag so that the visualizer
 will not attempt to place the molecule on the ground. The default is to 
 consider this system best viewed with a ground plane displayed, perpendicular 
 to the "up" direction and located at a height of zero.
@@ -137,13 +138,13 @@ for a constraint error derivative from the original constraint. Most users can
 ignore this and just take the default.
 
 This should be set to roughly the time scale at which you expect to see 
-interesting things happen, that is the scale at which you might choose to
-view reporting output. An orbital simulation using seconds as time units might
-set this to 10 or 100s, for example, while a biomechanical simulation could
-use 0.1s. This will affect the time scale on which velocity constraints are
-stabilized, with longer time scales being more demanding since there is more time to
-drift. By default this is 0.1 time units, so 100ms for systems measuring time in 
-seconds and 100fs for systems measuring time in ps. **/
+interesting things happen, that is the scale at which you might choose to view 
+reporting output. An orbital simulation using seconds as time units might set 
+this to 10 or 100s, for example, while a biomechanical simulation could use 
+0.1s. This will affect the time scale on which velocity constraints are
+stabilized, with longer time scales being more demanding since there is more 
+time to drift. By default this is 0.1 time units, so 100ms for systems measuring
+time in seconds and 100fs for systems measuring time in ps. **/
 System& setDefaultTimeScale(Real tc);
 
 /** (Advanced) This is a hint that can be used to get a sense of what a "unit 
@@ -178,6 +179,7 @@ an event generated whenever time advances irreversibly. **/
 bool hasTimeAdvancedEvents() const;
 /**@}**/
 
+
 //------------------------------------------------------------------------------
 /**@name              Event handlers and reporters
 
@@ -198,6 +200,7 @@ inline void addEventReporter(ScheduledEventReporter* handler) const;
 of the event reporter object. **/
 inline void addEventReporter(TriggeredEventReporter* handler) const;
 /**@}**/
+
 
 //------------------------------------------------------------------------------
 /**@name                         Realization
@@ -250,16 +253,15 @@ your copy. **/
 State&       updDefaultState();
 
 /** Realize the model to be used for subsequent computations with the given
-\a state. This call is required if Model-stage variables are changed from
-their default values. The %System topology must already have been
-realized (that is, realizeTopology() must have been called since
-the last topological change made to the %System). Also, the supplied
-\a state must already have been initialized to work with this %System
-either by copying the default state or some other State of this %System.
-If it has already been realized to Stage::Model or higher, nothing
-happens here. Otherwise, all the state variables at Stage::Instance or
-higher are allocated or reallocated (if necessary), and reinitialized
-to their default values. 
+\a state. This call is required if Model-stage variables are changed from their 
+default values. The %System topology must already have been realized (that is, 
+realizeTopology() must have been called since the last topological change made 
+to the %System). Also, the supplied \a state must already have been initialized
+to work with this %System either by copying the default state or some other 
+State of this %System. If it has already been realized to Stage::Model or 
+higher, nothing happens here. Otherwise, all the state variables at 
+Stage::Instance or higher are allocated or reallocated (if necessary), and 
+reinitialized to their default values. 
 
 @note Any state information at Stage::Instance or higher in the passed-in 
 \a state is \e destroyed here. The number, types and memory locations of those
@@ -270,13 +272,12 @@ mutable cache) and is hence const.
 @see realizeTopology(), realize() **/
 void realizeModel(State& state) const;
 
-/** Realize the given \a state to the indicated \a stage. The passed-in
-State must have been initialized to work with this %System, and
-it must already have been realized through Stage::Model, since
-this realize() method doesn't have write access to the State.
-If the state has already been realized to the requested stage
-or higher, nothing happens here. Otherwise, the state is realized
-one stage at a time until it reaches the requested stage. 
+/** Realize the given \a state to the indicated \a stage. The passed-in State 
+must have been initialized to work with this %System, and it must already have 
+been realized through Stage::Model, since this realize() method doesn't have 
+write access to the State. If the state has already been realized to the 
+requested stage or higher, nothing happens here. Otherwise, the state is 
+realized one stage at a time until it reaches the requested stage. 
 @see realizeTopology(), realizeModel() **/
 void realize(const State& state, Stage stage = Stage::HighestRuntime) const;
 /**@}**/
@@ -528,13 +529,26 @@ remaining udots, lambdas, taus, and all the zdots.
 bool prescribeU(State& state) const;
 /**@}**/
 
+
 //------------------------------------------------------------------------------
 /**@name                    The Discrete System
 
 These methods deal with the discrete (event-driven) aspects of this %System. 
 These methods are primarily for the use of Integrator objects that detect
 events and TimeStepper objects that deal with them by calling appropriate
-handlers. **/
+handlers. In general, events interrupt the continuous evolution of a system,
+dividing a simulation into continuous segments interrupted by discontinuous
+changes of state. There are also discrete variables that can be updated without
+disrupting the continuous flow. These are called "auto update variables" and are
+updated at the beginning of every integration step, right \e after the initial 
+state derivatives have been recorded. Thus the step proceeds with those 
+derivatives even if the update could cause them to change. These updates are
+initiated by Integrator objects at the start of every continuous step, while
+trajectory-affecting discrete variable updates are initiated only by TimeStepper
+objects via calls to event handlers.
+
+@see State::allocateAutoUpdateDiscreteVariable()
+**/
 /**@{**/
 
 /** This solver handles a set of events which a TimeStepper has denoted as 
@@ -569,14 +583,13 @@ void reportEvents(const State&                  state,
                   const Array_<EventId>&        eventIds) const;
 
 /** This routine provides the Integrator with information it needs about the
-individual event trigger functions, such as which sign transitions are
-relevant and how tightly we need to localize. This is considered 
-Instance stage information so cannot change during a continuous integration
-interval (so an Integrator can process it upon restart(Instance)), 
-however it can be updated whenever a discrete update is made to the 
-State. A default implementation is provided which returns default 
-EventTriggerInfo for each event trigger in \a state. The \a state must already be 
-realized to Stage::Instance. **/
+individual event trigger functions, such as which sign transitions are relevant 
+and how tightly we need to localize. This is considered Instance stage 
+information so cannot change during a continuous integration interval (so an 
+Integrator can process it upon restart(Instance)), however it can be updated 
+whenever a discrete update is made to the State. A default implementation is 
+provided which returns default EventTriggerInfo for each event trigger in 
+\a state. The \a state must already be realized to Stage::Instance. **/
 void calcEventTriggerInfo(const State&              state,
                           Array_<EventTriggerInfo>& triggerInfo) const;
 
@@ -591,14 +604,14 @@ void calcTimeOfNextScheduledEvent(const State&      state,
                                   bool              includeCurrentTime) const;
 
 /** This routine is similar to calcTimeOfNextScheduledEvent(), but is used for
-"reporting events" which do not modify the state. Events returned by this
-method should be handled by invoking reportEvents() instead of 
-handleEvents(). **/
+"reporting events" which do not modify the state. Events returned by this method
+should be handled by invoking reportEvents() instead of handleEvents(). **/
 void calcTimeOfNextScheduledReport(const State&     state, 
                                    Real&            tNextEvent, 
                                    Array_<EventId>& eventIds, 
                                    bool             includeCurrentTime) const;
 /**@}**/
+
 
 //------------------------------------------------------------------------------
 /**@name                      The Fast System
@@ -631,6 +644,7 @@ can also be fast but don't have derivatives.
 TODO: should take options and return results. **/
 void relax(State& state, Stage stage, Real accuracy=-1) const;
 /**@}**/
+
 
 //------------------------------------------------------------------------------
 /**@name             Kinematic differential equations
@@ -665,6 +679,7 @@ void multiplyByNPInv(const State& state, const Vector& dq,
 void multiplyByNPInvTranspose(const State& state, const Vector& fu, 
                               Vector& fq) const;
 /**@}**/
+
 
 //------------------------------------------------------------------------------
 /**@name                         Statistics
@@ -738,6 +753,7 @@ int getNumHandleEventCalls() const;
 of the outcome. **/
 int getNumReportEventCalls() const;
 /**@}**/
+
 
 //------------------------------------------------------------------------------
 /**@name                Construction and bookkeeping

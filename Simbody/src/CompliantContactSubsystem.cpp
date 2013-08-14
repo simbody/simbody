@@ -48,9 +48,9 @@ public:
 
 CompliantContactSubsystemImpl(const ContactTrackerSubsystem& tracker)
 :   ForceSubsystemRep("CompliantContactSubsystem", "0.0.1"),
-    m_tracker(tracker), m_transitionVelocity(0.01), 
+    m_tracker(tracker), m_transitionVelocity(Real(0.01)), 
     m_ooTransitionVelocity(1/m_transitionVelocity), 
-    m_defaultGenerator(0) 
+    m_trackDissipatedEnergy(false), m_defaultGenerator(0) 
 {   
 }
 
@@ -59,6 +59,13 @@ Real getOOTransitionVelocity() const  {return m_ooTransitionVelocity;}
 void setTransitionVelocity(Real vt) 
 {   m_transitionVelocity=vt; m_ooTransitionVelocity=1/vt;}
 
+void setTrackDissipatedEnergy(bool shouldTrack) {
+    if (m_trackDissipatedEnergy != shouldTrack) {
+        m_trackDissipatedEnergy = shouldTrack;
+        invalidateSubsystemTopologyCache();
+    }
+}
+bool getTrackDissipatedEnergy() const {return m_trackDissipatedEnergy;}
 
 int getNumContactForces(const State& s) const {
     ensureForceCacheValid(s);
@@ -225,9 +232,11 @@ int realizeSubsystemTopologyImpl(State& s) const {
         Stage::Position, new Value<Real>(NaN));
 
     // This state variable is used to integrate power to get dissipated
-    // energy.
-    Vector einit(1, Real(0));
-    wThis->m_dissipatedEnergyIx = allocateZ(s,einit);
+    // energy. Allocate only if requested.
+    if (m_trackDissipatedEnergy) {
+        Vector einit(1, Real(0));
+        wThis->m_dissipatedEnergyIx = allocateZ(s,einit);
+    }
 
     return 0;
 }
@@ -295,6 +304,9 @@ Real calcPotentialEnergy(const State& state) const {
 }
 
 int realizeSubsystemAccelerationImpl(const State& state) const {
+    if (!m_trackDissipatedEnergy)
+        return 0; // nothing to do here in that case
+
     ensureForceCacheValid(state);
     Real powerLoss = 0;
     const Array_<ContactForce>& forces = getForceCache(state);
@@ -359,6 +371,10 @@ const ContactTrackerSubsystem&      m_tracker;
 Real                                m_transitionVelocity;
 Real                                m_ooTransitionVelocity; // 1/vt
 
+// This flag determines whether we allocate a Z variable to integrate 
+// dissipated power to track dissipated energy.
+bool                                m_trackDissipatedEnergy;
+
 // This map owns the generator objects; be sure to clean up on destruction or
 // when a generator is replaced.
 GeneratorMap                        m_generators;
@@ -370,6 +386,8 @@ ContactForceGenerator*              m_defaultGenerator;
     // TOPOLOGY "CACHE"
 
 // These must be set during realizeTopology and treated as const thereafter.
+// Note that we don't allocate the dissipated energy variable unless the 
+// flag above is set true (prior to realizeTopology()).
 ZIndex                              m_dissipatedEnergyIx;
 CacheEntryIndex                     m_potEnergyCacheIx;
 CacheEntryIndex                     m_forceCacheIx;
@@ -482,19 +500,19 @@ CompliantContactSubsystem::isInstanceOf(const ForceSubsystem& s)
 /*static*/ const CompliantContactSubsystem&
 CompliantContactSubsystem::downcast(const ForceSubsystem& s) 
 {   assert(isInstanceOf(s));
-    return reinterpret_cast<const CompliantContactSubsystem&>(s); }
+    return static_cast<const CompliantContactSubsystem&>(s); }
 /*static*/ CompliantContactSubsystem&
 CompliantContactSubsystem::updDowncast(ForceSubsystem& s) 
 {   assert(isInstanceOf(s));
-    return reinterpret_cast<CompliantContactSubsystem&>(s); }
+    return static_cast<CompliantContactSubsystem&>(s); }
 
 const CompliantContactSubsystemImpl& 
 CompliantContactSubsystem::getImpl() const 
-{   return dynamic_cast<const CompliantContactSubsystemImpl&>
+{   return SimTK_DYNAMIC_CAST_DEBUG<const CompliantContactSubsystemImpl&>
                                             (ForceSubsystem::getRep()); }
 CompliantContactSubsystemImpl&       
 CompliantContactSubsystem::updImpl() 
-{   return dynamic_cast<CompliantContactSubsystemImpl&>
+{   return SimTK_DYNAMIC_CAST_DEBUG<CompliantContactSubsystemImpl&>
                                             (ForceSubsystem::updRep()); }
 
 CompliantContactSubsystem::CompliantContactSubsystem
@@ -521,6 +539,11 @@ void CompliantContactSubsystem::setTransitionVelocity(Real vt) {
     updImpl().setTransitionVelocity(vt);
 }
 
+void CompliantContactSubsystem::setTrackDissipatedEnergy(bool shouldTrack) 
+{   updImpl().setTrackDissipatedEnergy(shouldTrack); }
+bool CompliantContactSubsystem::getTrackDissipatedEnergy() const
+{   return getImpl().getTrackDissipatedEnergy(); }
+
 int CompliantContactSubsystem::getNumContactForces(const State& s) const
 {   return getImpl().getNumContactForces(s); }
 
@@ -540,15 +563,27 @@ calcContactPatchDetailsById(const State&   state,
 {   return getImpl().calcContactPatchDetailsById(state,id,patch_G); }
 
 Real CompliantContactSubsystem::
-getDissipatedEnergy(const State& s) const
-{   return getImpl().getDissipatedEnergyVar(s); }
+getDissipatedEnergy(const State& s) const {
+    SimTK_ERRCHK_ALWAYS(getTrackDissipatedEnergy(),
+        "CompliantContactSubsystem::getDissipatedEnergy()",
+        "You can't call getDissipatedEnergy() unless you have previously "
+        "enabled tracking of dissipated energy with a call to "
+        "setTrackDissipatedEnergy().");
+    
+    return getImpl().getDissipatedEnergyVar(s); }
 
 void CompliantContactSubsystem::
 setDissipatedEnergy(State& s, Real energy) const {
+    SimTK_ERRCHK_ALWAYS(getTrackDissipatedEnergy(),
+        "CompliantContactSubsystem::setDissipatedEnergy()",
+        "You can't call setDissipatedEnergy() unless you have previously "
+        "enabled tracking of dissipated energy with a call to "
+        "setTrackDissipatedEnergy().");
     SimTK_ERRCHK1_ALWAYS(energy >= 0,
         "CompliantContactSubsystem::setDissipatedEnergy()",
         "The initial value for the dissipated energy must be nonnegative"
         " but an attempt was made to set it to %g.", energy);
+
     getImpl().updDissipatedEnergyVar(s) = energy; 
 }
 
@@ -660,7 +695,7 @@ inline static Real stribeck(Real us, Real ud, Real uv, Real v) {
 // Curve is similar to Stribeck above but more violent with a discontinuous
 // derivative at v==1.
 inline static Real hollars(Real us, Real ud, Real uv, Real v) {
-    const Real mu =   std::min(v, 1.0)*(ud + 2*(us-ud)/(1+v*v))
+    const Real mu =   std::min(v, Real(1))*(ud + 2*(us-ud)/(1+v*v))
                     + uv*v;
     return mu;
 }
@@ -721,13 +756,13 @@ static void calcHertzContactForce
     const Real x  = depth;
 
     // Actual contact point moves closer to stiffer surface.
-    const Vec3 contactPt_S1 = origin_S1 + (x*(0.5-s1))*normal_S1;
+    const Vec3 contactPt_S1 = origin_S1 + (x*(Real(0.5)-s1))*normal_S1;
     
     // Calculate the Hertz force fH, which is conservative.
     const Real k = k1*s1; // (==k2*s2) == E^(2/3)
     const Real c = c1*s1 + c2*s2;
     // fH = 4/3 e R^1/2 k^3/2 x^3/2
-    const Real fH = e*(4./3.)*k*x*std::sqrt(R*k*x); // always >= 0
+    const Real fH = e*Real(4./3.)*k*x*std::sqrt(R*k*x); // always >= 0
     
     // Calculate the relative velocity of the two bodies at the contact point.
     // We're considering S1 fixed, so we just need the velocity in S1 of
@@ -746,7 +781,7 @@ static void calcHertzContactForce
     
     // Calculate the Hunt-Crossley force, which is dissipative, and the 
     // total normal force including elasticity and dissipation.
-    const Real fHC      = fH*1.5*c*xdot; // same sign as xdot
+    const Real fHC      = fH*Real(1.5)*c*xdot; // same sign as xdot
     const Real fNormal  = fH + fHC;      // < 0 means "sticking"; see below
 
     // Start filling out the contact force.
@@ -767,7 +802,7 @@ static void calcHertzContactForce
 
     const Vec3 forceH          = fH *normal_S1; // as applied to surf2
     const Vec3 forceHC         = fHC*normal_S1;
-    const Real potentialEnergy = (2./5.)*fH*x;
+    const Real potentialEnergy = Real(2./5.)*fH*x;
     const Real powerHC         = fHC*xdot; // rate of energy loss, >= 0
 
     // Calculate the friction force.

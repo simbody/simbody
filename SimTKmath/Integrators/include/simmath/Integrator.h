@@ -116,6 +116,7 @@ TODO: isolation tolerances for witnesses; dealing with simultaneity.
 class SimTK_SIMMATH_EXPORT Integrator {
 public:
     Integrator() : rep(0) { }
+    ~Integrator();
 
     // These are the exceptions that can be thrown by this class.
 

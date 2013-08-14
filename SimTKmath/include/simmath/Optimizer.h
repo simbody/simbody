@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Jack Middleton                                                    *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -201,7 +201,7 @@ public:
    /// Returns the limits on the allowed values of each parameter, as
    /// an array of lower bounds and an array of upper bounds, with
    /// assumed lengths matching the number of parameters.
-   void getParameterLimits( double **lower, double **upper ) const {
+   void getParameterLimits( Real **lower, Real **upper ) const {
         *lower = &(*lowerLimits)[0];
         *upper = &(*upperLimits)[0];
    }
@@ -264,8 +264,6 @@ public:
     void setLimitedMemoryHistory( int history );
     /// Set the level of debugging info displayed.
     void setDiagnosticsLevel( int level ); 
-    /// Set which numerical gradient algorithm is used.
-    void setDifferentiatorMethod( Differentiator::Method method);
 
     void setOptimizerSystem( const OptimizerSystem& sys  );
     void setOptimizerSystem( const OptimizerSystem& sys, OptimizerAlgorithm algorithm );
@@ -279,10 +277,30 @@ public:
     /// Set the value of an advanced option specified by an boolean value.
     bool setAdvancedBoolOption( const char *option, const bool value );
 
-    /// Enable numerical gradients.
-    void useNumericalGradient( bool flag );
-    /// Enable numerical Jacobian.
-    void useNumericalJacobian( bool flag );
+    /// Enable numerical calculation of gradient, with optional estimation of
+    /// the accuracy to which the objective function is calculated. For example,
+    /// if you are calculate about 6 significant digits, supply the estimated
+    /// accuracy as 1e-6. Providing the estimated accuracy improves the quality 
+    /// of the calculated derivative. If no accuracy is provided we'll assume 
+    /// the objective is calculated to near machine precision. See 
+    /// SimTK::Differentiator for more information.
+    void useNumericalGradient(bool flag, 
+        Real estimatedAccuracyOfObjective = SignificantReal);
+    /// Enable numerical calculation of the constraint Jacobian, with optional 
+    /// estimation of the accuracy to which the constraint functions are 
+    /// calculated.  For example, if you are calculating about 6 significant
+    /// digits, supply the estimated accuracy as 1e-6. Providing the estimated 
+    /// accuracy improves the quality of the calculated derivative. If no 
+    /// accuracy is provided we'll assume the constraints are calculated to near
+    /// machine precision. See SimTK::Differentiator for more information.
+    void useNumericalJacobian(bool flag, 
+        Real estimatedAccuracyOfConstraints = SignificantReal);
+
+    /// Set which numerical gradient algorithm is used when numerical gradient
+    /// or Jacobian is being used. Choices are Differentiator::ForwardDifference 
+    /// (first order) or Differentiator::CentralDifference (second order) with 
+    /// central the default.
+    void setDifferentiatorMethod(Differentiator::Method method);
 
     /// Compute optimization.
     Real optimize(Vector&);
@@ -294,6 +312,13 @@ public:
     bool isUsingNumericalGradient() const;
     /// Indicate whether the Optimizer is currently set to use a numerical Jacobian.
     bool isUsingNumericalJacobian() const;
+    /// Return the differentiation method that will be used if numerical
+    /// gradient or Jacobian are required.
+    Differentiator::Method getDifferentiatorMethod() const;
+    /// Return the estimated accuracy last specified in useNumericalGradient().
+    Real getEstimatedAccuracyOfObjective() const;
+    /// Return the estimated accuracy last specified in useNumericalJacobian().
+    Real getEstimatedAccuracyOfConstraints() const;
 
     // This is a local class.
     class OptimizerRep;

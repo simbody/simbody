@@ -185,15 +185,15 @@ protected:
     // is at the level just prior to the one indicated here. For example,
     // realizeVelocityImpl() will be called only if the passed-in State
     // has been determined to have its system stage exactly Stage::Position.
-    virtual int realizeTopologyImpl(State&) const;
-    virtual int realizeModelImpl(State&) const;
-    virtual int realizeInstanceImpl(const State&) const;
-    virtual int realizeTimeImpl(const State&) const;
-    virtual int realizePositionImpl(const State&) const;
-    virtual int realizeVelocityImpl(const State&) const;
-    virtual int realizeDynamicsImpl(const State&) const;
-    virtual int realizeAccelerationImpl(const State&) const;
-    virtual int realizeReportImpl(const State&) const;
+    virtual int realizeTopologyImpl(State& state)       const {return 0;}
+    virtual int realizeModelImpl   (State& state)       const {return 0;}
+    virtual int realizeInstanceImpl(const State& state) const {return 0;}
+    virtual int realizeTimeImpl    (const State& state) const {return 0;}
+    virtual int realizePositionImpl(const State& state) const {return 0;}
+    virtual int realizeVelocityImpl(const State& state) const {return 0;}
+    virtual int realizeDynamicsImpl(const State& state) const {return 0;}
+    virtual int realizeAccelerationImpl(const State& state) const {return 0;}
+    virtual int realizeReportImpl  (const State& state) const {return 0;}
 
     virtual void multiplyByNImpl(const State& state, const Vector& u, 
                                  Vector& dq) const;
@@ -210,23 +210,29 @@ protected:
 
     // Defaults assume no constraints and return success meaning "all 
     // constraints satisfied".
-    virtual void projectQImpl(State&, Vector& qErrEst, 
+    virtual void projectQImpl(State& state, Vector& qErrEst, 
              const ProjectOptions& options, ProjectResults& results) const
     {   results.clear(); results.setExitStatus(ProjectResults::Succeeded); }
-    virtual void projectUImpl(State&, Vector& uErrEst, 
+    virtual void projectUImpl(State& state, Vector& uErrEst, 
              const ProjectOptions& options, ProjectResults& results) const
     {   results.clear(); results.setExitStatus(ProjectResults::Succeeded); }
 
     virtual void handleEventsImpl
-       (State&, Event::Cause, const Array_<EventId>& eventIds,
+       (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
         const HandleEventsOptions& options, HandleEventsResults& results) const;
 
-    virtual int reportEventsImpl(const State&, Event::Cause, const Array_<EventId>& eventIds) const;
+    virtual int reportEventsImpl(const State& state, Event::Cause cause, 
+                                 const Array_<EventId>& eventIds) const;
 
-    virtual int calcEventTriggerInfoImpl(const State&, Array_<EventTriggerInfo>&) const;
+    virtual int calcEventTriggerInfoImpl(const State& state, 
+                                         Array_<EventTriggerInfo>& info) const;
 
-    virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
-    virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
+    virtual int calcTimeOfNextScheduledEventImpl
+       (const State& state, Real& tNextEvent, Array_<EventId>& eventIds, 
+        bool includeCurrentTime) const;
+    virtual int calcTimeOfNextScheduledReportImpl
+       (const State& state, Real& tNextEvent, Array_<EventId>& eventIds, 
+        bool includeCurrentTime) const;
 
 private:
     Guts& operator=(const Guts&); // suppress default copy assignment operator

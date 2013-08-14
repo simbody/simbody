@@ -287,7 +287,7 @@ class SimTK_SimTKCOMMON_EXPORT DecorativeCircle : public DecorativeGeometry {
 public:
     explicit DecorativeCircle(Real radius=0.5);
 
-    void setRadius(Real);
+    DecorativeCircle& setRadius(Real);
     Real getRadius() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeCircle, DecorativeGeometry);
@@ -302,7 +302,7 @@ class SimTK_SimTKCOMMON_EXPORT DecorativeSphere : public DecorativeGeometry {
 public:
     explicit DecorativeSphere(Real radius=0.5);
 
-    void setRadius(Real);
+    DecorativeSphere& setRadius(Real);
     Real getRadius() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeSphere, DecorativeGeometry);
@@ -316,9 +316,10 @@ the local frame axes. The default constructor creates an ellipsoid with radii
 (1/2, 1/3, 1/4) in x,y,z resp. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeEllipsoid : public DecorativeGeometry {
 public:
-    explicit DecorativeEllipsoid(const Vec3& radii = Vec3(0.5,1/3.,0.25));
+    explicit DecorativeEllipsoid(const Vec3& radii = 
+        Vec3(Real(0.5),Real(1/3.),Real(0.25)));
 
-    void setRadii(const Vec3&);
+    DecorativeEllipsoid& setRadii(const Vec3&);
     const Vec3& getRadii() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeEllipsoid, DecorativeGeometry);
@@ -332,9 +333,9 @@ the local frame axes. The default constructor creates a cube of length 1 on
 each side. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeBrick : public DecorativeGeometry {
 public:
-    explicit DecorativeBrick(const Vec3& halfLengths = Vec3(0.5));
+    explicit DecorativeBrick(const Vec3& halfLengths = Vec3(Real(0.5)));
 
-    void setHalfLengths(const Vec3&);
+    DecorativeBrick& setHalfLengths(const Vec3&);
     const Vec3& getHalfLengths() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeBrick, DecorativeGeometry);
@@ -350,8 +351,8 @@ class SimTK_SimTKCOMMON_EXPORT DecorativeCylinder : public DecorativeGeometry {
 public:
     explicit DecorativeCylinder(Real radius=0.5, Real halfHeight=0.5);
 
-    void setRadius(Real);
-    void setHalfHeight(Real);
+    DecorativeCylinder& setRadius(Real);
+    DecorativeCylinder& setHalfHeight(Real);
     Real getRadius() const;
     Real getHalfHeight() const;
 
@@ -368,7 +369,7 @@ class SimTK_SimTKCOMMON_EXPORT DecorativeFrame : public DecorativeGeometry {
 public:
     explicit DecorativeFrame(Real axisLength=1);
 
-    void setAxisLength(Real);
+    DecorativeFrame& setAxisLength(Real);
     Real getAxisLength() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeFrame, DecorativeGeometry);
@@ -383,12 +384,12 @@ class SimTK_SimTKCOMMON_EXPORT DecorativeText : public DecorativeGeometry {
 public:
     explicit DecorativeText(const std::string& label="");
 
-    void setText(const std::string& label);
+    DecorativeText& setText(const std::string& label);
     const std::string& getText() const;
 
     /** By default the text is part of the scene; set this flag if you want
     it to just show up in a fixed spot on the screen instead. **/
-    void setIsScreenText(bool isScreen);
+    DecorativeText& setIsScreenText(bool isScreen);
     bool getIsScreenText() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeText, DecorativeGeometry);

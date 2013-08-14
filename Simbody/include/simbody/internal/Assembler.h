@@ -57,26 +57,25 @@ The complete specification for an Assembly study consists of four elements:
 By default, all q's may be modified with no range restrictions. The q's whose
 value is a prescribed function of time will be set to that value, while free
 q's are available for satisfying the assembly error conditions and goals. The 
-assembly
-error conditions are just the errors in the position (holonomic) constraints 
-that are present in the MultibodySystem and currently enabled. (Quaternion 
-normalization constraints will also be satisfied, but do not generate assembly
-errors.) There are no default assembly goals. This is very similiar in behavior
-to the System's project() method except that project() considers it an error if
-the constraints aren't already close to being satisfied initially, while 
-Assembler will attempt to satisfy them regardless, and may take a series of 
-increasingly desperate measures to do so. 
+assembly error conditions are just the errors in the position (holonomic) 
+constraints that are present in the MultibodySystem and currently enabled. 
+(Quaternion normalization constraints will also be satisfied, but do not 
+generate assembly errors.) There are no default assembly goals. This is very 
+similiar in behavior to the System's project() method except that project() 
+considers it an error if the constraints aren't already close to being 
+satisfied initially, while Assembler will attempt to satisfy them regardless, 
+and may take a series of increasingly desperate measures to do so. 
 
 <h2>Basic assembly:</h2>
 This is the most common use of the Assembler: modify a System's given State
 so that its configuration (set of generalized coordinates q) satisfies the 
-position-affecting Motion and Constraint objects in the System that are 
-currently enabled in that State. This 
-is done to a default tolerance if you don't provide one, and that tolerance is
-suitable for use with subsequent dynamic studies that are run at their default
-tolerances. Although the assembly begins from the configuration provided in
-the initial state, no assumption is made about how close this initial 
-configuration is to one that satisfies the assembly conditions.
+position-affecting Motion and Constraint objects in the System that are
+currently enabled in that State. This is done to a default tolerance if you 
+don't provide one, and that tolerance is suitable for use with subsequent 
+dynamic studies that are run at their default tolerances. Although the assembly 
+begins from the configuration provided in the initial state, no assumption is 
+made about how close this initial configuration is to one that satisfies the 
+assembly conditions.
 @code
   MultibodySystem system;
   // ... build system; get initial state
@@ -84,7 +83,7 @@ configuration is to one that satisfies the assembly conditions.
   Assembler assembler(system); // construct the Assembler study object
   try // modify state to satisfy Constraints
   {   assembler.assemble(state); }
-  catch (std::exception exc)
+  catch (const std::exception& exc)
   {   std::cout << "Assembly failed: " << exc.what() << std::endl; }
 @endcode
 
@@ -127,7 +126,7 @@ with a frame time:
           // ... do something with the results in myState
       }
   }
-  catch (std::exception exc)
+  catch (const std::exception& exc)
   {   std::cout << "Tracking failed: " << exc.what() << std::endl; }
 @endcode
 
@@ -145,7 +144,6 @@ the other goals into a single scalar objective. The built-in Constraints are
 normally treated with infinite weight, but you can change them to goals instead
 if you like; sometimes that can be useful as a step in getting a difficult-to-
 assemble system assembled. 
-
 **/
 class SimTK_SIMBODY_EXPORT Assembler : public Study {
     typedef std::set<MobilizedBodyIndex>            LockedMobilizers;

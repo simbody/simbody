@@ -1,0 +1,115 @@
+<?xml version="1.0" ?>
+<sdf version="1.3">
+    <world name="default">
+    <gravity>0 0 -9.81</gravity>
+    <!-- A global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- A ground plane at z=0 -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Double pendulum model -->
+    <model name="double_pendulum">
+      <!-- pose specified as: x y z roll pitch yaw (angles in radians) -->
+      <!-- this is the model pose, which defines the pin location for the upper link -->
+      <!-- the upper link is 4 meters above the ground plane -->
+      <!-- the initial angle of the upper link is -1.4 radians -->
+      <pose>0 0 4 -1.4 0 0</pose>
+      <!-- start declaration of upper link with length 1 meter -->
+      <link name="upper_link">
+        <!-- start at the model origin -->
+        <pose>0 0 0 0 0 0</pose>
+        <inertial>
+          <!-- this pose specifies the c.g. location of the upper link -->
+          <pose>0 0 -0.5 0 0 0</pose>
+          <mass>10.0</mass>
+          <inertia>
+            <!-- it would be nice if these parameters could be linked but that's something for the future -->
+            <!-- see https://bitbucket.org/osrf/gazebo/issue/210/incorporate-xacro-into-sdf -->
+            <ixx>1.0</ixx><ixy>0.0</ixy><ixz>0.0</ixz>
+                          <iyy>1.0</iyy><iyz>0.0</iyz>
+                                        <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <!-- this describes what is displayed on screen -->
+        <visual name="visual_cylinder">
+          <pose>0 0 -0.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.1</radius>
+              <length>1.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <script>Gazebo/Green</script>
+          </material>
+        </visual>
+        <!-- this describes the collision geometry -->
+        <collision name="collision_cylinder">
+          <pose>0 0 -0.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.1</radius>
+              <length>1.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+      <!-- now define the lower link of length 1 meter attached to the end of the upper_link -->
+      <link name="lower_link">
+        <pose>0 0 -1.0 0 0 0</pose>
+        <inertial>
+          <pose>0 0 -0.5 0 0 0</pose>
+          <mass>10.0</mass>
+          <inertia>
+            <ixx>1.0</ixx><ixy>0.0</ixy><ixz>0.0</ixz>
+                          <iyy>1.0</iyy><iyz>0.0</iyz>
+                                        <izz>1.0</izz>
+          </inertia>
+        </inertial>
+        <visual name="visual_box">
+          <pose>0 0 -0.5 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.1 0.1 1.0</size>
+            </box>
+          </geometry>
+          <material>
+            <script>Gazebo/Red</script>
+          </material>
+          <cast_shadows>1</cast_shadows>
+        </visual>
+        <collision name="collision_box">
+          <pose>0 0 -0.5 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.100000 0.100000 1.000000</size>
+            </box>
+          </geometry>
+        </collision>
+      </link>
+      <joint name="world_to_upper_pin_joint" type="revolute">
+        <parent>world</parent>
+        <child>upper_link</child>
+        <pose>0 0 0 0 0 0</pose>
+        <axis>
+          <!-- spins about x axis -->
+          <xyz>1 0 0</xyz>
+        </axis>
+      </joint>
+      <joint name="upper_to_lower_pin_joint" type="revolute">
+        <parent>upper_link</parent>
+        <child>lower_link</child>
+        <!-- this pose specifies location revolute joint, relative to the child link -->
+        <pose>0 0 0 0 0 0</pose>
+        <axis>
+          <xyz>1 0 0</xyz>
+        </axis>
+      </joint>
+    </model>
+  </world>
+</sdf>

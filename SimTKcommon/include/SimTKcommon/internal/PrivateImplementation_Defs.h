@@ -124,7 +124,6 @@ const HANDLE& PIMPLImplementation<HANDLE, IMPL>::getOwnerHandle() const {
     // PIMPLHandle definitions //
     /////////////////////////////
 
-// serves as default constructor
 template <class HANDLE, class IMPL, bool PTR>
 /*explicit*/ PIMPLHandle<HANDLE,IMPL,PTR>::
 PIMPLHandle(IMPL* p) : impl(p) {

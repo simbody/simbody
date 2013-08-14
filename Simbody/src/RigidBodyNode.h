@@ -674,7 +674,6 @@ SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 
     // MODELING INFO
 bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
-bool isPrescribed     (const SBModelVars& mv) const {return mv.prescribed[nodeNum];}
 
 // Find cache resources allocated to this RigidBodyNode.
 const SBModelPerMobodInfo& 

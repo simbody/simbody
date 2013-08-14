@@ -17,14 +17,22 @@ class Publisher
 public:
 	Publisher();
 
-	void makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation);
+	void makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh* mesh);
 	void makeEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh * mesh);
-	void makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution);
-	void makeCircle();
-	void makePolygonalMesh();
+	void makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution, CustomMesh * mesh);
+	void makeCircle(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution, CustomMesh * mesh);
+	void makePolygonalMesh(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh * mesh);
+
+public:
+	void makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, int resolution);
+	void makeEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, int resolution);
+	void makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, unsigned short resolution);
+	void makeCircle(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, unsigned short resolution);
 
 private:
 	void makeMesh(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const CustomMesh* mesh, gazebo::msgs::Drawing* drawingMsg);	
+
+	void prepareMessage(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, unsigned short resolution, gazebo::msgs::Visual* visualMsg); 
 
 private:
 	gazebo::transport::NodePtr node;

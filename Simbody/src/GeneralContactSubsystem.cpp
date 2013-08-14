@@ -292,18 +292,18 @@ bool GeneralContactSubsystem::isInstanceOf(const Subsystem& s) {
 }
 const GeneralContactSubsystem& GeneralContactSubsystem::downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const GeneralContactSubsystem&>(s);
+    return static_cast<const GeneralContactSubsystem&>(s);
 }
 GeneralContactSubsystem& GeneralContactSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<GeneralContactSubsystem&>(s);
+    return static_cast<GeneralContactSubsystem&>(s);
 }
 
 const GeneralContactSubsystemImpl& GeneralContactSubsystem::getImpl() const {
-    return dynamic_cast<const GeneralContactSubsystemImpl&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const GeneralContactSubsystemImpl&>(getSubsystemGuts());
 }
 GeneralContactSubsystemImpl& GeneralContactSubsystem::updImpl() {
-    return dynamic_cast<GeneralContactSubsystemImpl&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<GeneralContactSubsystemImpl&>(updSubsystemGuts());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except

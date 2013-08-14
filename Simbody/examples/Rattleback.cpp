@@ -183,6 +183,7 @@ int main() {
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
+    contactForces.setTrackDissipatedEnergy(true);
     contactForces.setTransitionVelocity(1e-2); // m/s
 
     // Ground's normal is +x for this model

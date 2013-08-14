@@ -429,7 +429,7 @@ public:
     @see Vec::Vec(const E&). **/
     explicit Vec(int i) {new (this) Vec(E(Precision(i)));}
 
-    // A bevy of constructors for Vecs up to length 6.
+    // A bevy of constructors for Vecs up to length 9.
 
     /** Construct a Vec<2,E> from two elements of type E, etc. **/
     Vec(const E& e0,const E& e1)
@@ -650,10 +650,12 @@ public:
     /** Recast to remove negators from this %Vec's type if present; this is
     handy for simplifying operations where we know the sign can be ignored
     such as squaring. **/
-    const TWithoutNegator& castAwayNegatorIfAny() const {return *reinterpret_cast<const TWithoutNegator*>(this);}
+    const TWithoutNegator& castAwayNegatorIfAny() const 
+    {   return *reinterpret_cast<const TWithoutNegator*>(this); }
     /** Recast to remove negators from this %Vec's type if present and return
     a writable reference. **/
-    TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
+    TWithoutNegator&       updCastAwayNegatorIfAny()    
+    {   return *reinterpret_cast<TWithoutNegator*>(this); }
 
     // These are elementwise binary operators, (this op ee) by default but 
     // (ee op this) if 'FromLeft' appears in the name. The result is a packed 
@@ -739,6 +741,16 @@ public:
       { for(int i=0;i<M;++i) d[i*STRIDE] /= ee; return *this; }
     template <class EE> Vec& scalarDivideEqFromLeft(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] = ee / d[i*STRIDE]; return *this; }
+
+    // Specialize for int to avoid warnings and ambiguities.
+    Vec& scalarEq(int ee)       {return scalarEq(Precision(ee));}
+    Vec& scalarPlusEq(int ee)   {return scalarPlusEq(Precision(ee));}
+    Vec& scalarMinusEq(int ee)  {return scalarMinusEq(Precision(ee));}
+    Vec& scalarTimesEq(int ee)  {return scalarTimesEq(Precision(ee));}
+    Vec& scalarDivideEq(int ee) {return scalarDivideEq(Precision(ee));}
+    Vec& scalarMinusEqFromLeft(int ee)  {return scalarMinusEqFromLeft(Precision(ee));}
+    Vec& scalarTimesEqFromLeft(int ee)  {return scalarTimesEqFromLeft(Precision(ee));}
+    Vec& scalarDivideEqFromLeft(int ee) {return scalarDivideEqFromLeft(Precision(ee));}
 
     /** Set every scalar in this %Vec to NaN; this is the default initial
     value in Debug builds, but not in Release. **/
@@ -915,6 +927,23 @@ public:
                 return false;
         return true;
     }
+
+    // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
+    /** Print Vec into a string and return it.  Please refer to operator<< for details. **/
+    std::string toString() const {
+		std::stringstream stream;
+		stream <<  (*this);
+		return stream.str(); 
+    }
+
+    /** Variant of operator[] that's scripting friendly to set ith entry **/
+    void set(int i, const E& value)  
+    {   (*this)[i] = value; }
+
+    /** Variant of operator[] that's scripting friendly to get const reference to ith entry **/
+    const E& get(int i) const 
+    {   return operator[](i); }
+
 private:
     // TODO: should be an array of scalars rather than elements to control
     // packing more carefully.

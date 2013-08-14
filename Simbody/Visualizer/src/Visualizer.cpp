@@ -43,7 +43,6 @@
 using namespace SimTK;
 using namespace std;
 
-
 static void* drawingThreadMain(void* visualizerAsVoidp);
 
 static const long long UsToNs = 1000LL;          // ns = us * UsToNs
@@ -56,8 +55,7 @@ static const Real      DefaultDesiredBufferLengthInSec = Real(0.15); // 150ms
 static const long long DefaultAllowableFrameJitterInNs      = 5 * MsToNs; //5ms
 static const Real      DefaultSlopAsFractionOfFrameInterval = Real(0.05); //5%
 
-
-
+namespace { // local classes
 //==============================================================================
 //                              VISUALIZER IMPL
 //==============================================================================
@@ -94,6 +92,7 @@ public:
     Vec3                station1, station2;
     DecorativeLine      line;
 };
+} // end local namespace
 
 // Implementation of the Visualizer.
 class Visualizer::Impl {
@@ -102,7 +101,7 @@ public:
     Impl(Visualizer* owner, const MultibodySystem& system,
          const Array_<String>& searchPath) 
     :   m_system(system), m_protocol(), //m_protocol(*owner, searchPath),
-        m_upDirection(YAxis), m_groundHeight(0),
+        m_shutdownWhenDestructed(false), m_upDirection(YAxis), m_groundHeight(0),
         m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
         m_simTimeUnitsPerSec(1), 
         m_desiredBufferLengthInSec(DefaultDesiredBufferLengthInSec), 
@@ -145,7 +144,16 @@ public:
         pthread_cond_destroy(&m_queueNotEmpty);
         pthread_cond_destroy(&m_queueNotFull);
         pthread_mutex_destroy(&m_queueLock);
+
+        if (m_shutdownWhenDestructed)
+            m_protocol.shutdownGUI();
     }
+
+    void setShutdownWhenDestructed(bool shouldShutdown)
+    {   m_shutdownWhenDestructed = shouldShutdown; }
+
+    bool getShutdownWhenDestructed() const
+    {   return m_shutdownWhenDestructed; }
 
     // Call from simulation thread.
     void startDrawThread() {
@@ -287,7 +295,8 @@ public:
 
     int getActualBufferLengthInFrames() const {return m_pool.size();}
     Real getActualBufferLengthInSec() const 
-    {   return nsToSec(getActualBufferLengthInFrames()*m_timeBetweenFramesInNs); }
+    {   return (Real)nsToSec(getActualBufferLengthInFrames()
+                             *m_timeBetweenFramesInNs); }
 
     // Generate this frame and send it immediately to the renderer without
     // thinking too hard about it.
@@ -459,6 +468,7 @@ public:
     const MultibodySystem&                  m_system;
     //VisualizerProtocol                      m_protocol;
     GazeboVisualizer                      m_protocol;
+    bool                                    m_shutdownWhenDestructed;
 
     Array_<DecorativeGeometry>              m_addedGeometry;
     Array_<RubberBandLine>                  m_lines;
@@ -805,6 +815,15 @@ Visualizer::~Visualizer() {
         delete impl;
 }
 
+void Visualizer::shutdown() 
+{   updImpl().m_protocol.shutdownGUI(); }
+
+Visualizer& Visualizer::setShutdownWhenDestructed(bool shouldShutdown)
+{   updImpl().setShutdownWhenDestructed(shouldShutdown); return *this; }
+
+bool Visualizer::getShutdownWhenDestructed() const
+{   return getImpl().getShutdownWhenDestructed(); }
+
 int Visualizer::getRefCount() const
 {   return impl ? impl->getRefCount() : 0; }
 
@@ -942,13 +961,31 @@ Real Visualizer::getActualBufferLengthInSec() const
 {   return getImpl().getActualBufferLengthInSec(); }
 
 
-Visualizer& Visualizer::addInputListener(Visualizer::InputListener* listener) 
-{   updImpl().m_listeners.push_back(listener); return *this; }
+int Visualizer::addInputListener(Visualizer::InputListener* listener) {
+    Impl& impl = updImpl();
+    const int nxt = (int)impl.m_listeners.size();
+    impl.m_listeners.push_back(listener); 
+    return nxt; 
+}
+int Visualizer::getNumInputListeners() const 
+{   return (int)getImpl().m_listeners.size(); }
+const Visualizer::InputListener& Visualizer::getInputListener(int i) const 
+{   return *getImpl().m_listeners[i]; }
+Visualizer::InputListener& Visualizer::updInputListener(int i) 
+{   return *updImpl().m_listeners[i]; }
 
-Visualizer& Visualizer::addFrameController(Visualizer::FrameController* fc) 
-{   updImpl().m_controllers.push_back(fc); return *this; }
-
-
+int Visualizer::addFrameController(Visualizer::FrameController* fc) {
+    Impl& impl = updImpl();
+    const int nxt = (int)impl.m_controllers.size();
+    impl.m_controllers.push_back(fc); 
+    return nxt; 
+}
+int Visualizer::getNumFrameControllers() const 
+{   return (int)getImpl().m_controllers.size(); }
+const Visualizer::FrameController& Visualizer::getFrameController(int i) const 
+{   return *getImpl().m_controllers[i]; }
+Visualizer::FrameController& Visualizer::updFrameController(int i) 
+{   return *updImpl().m_controllers[i]; }
 
 
         // Scene-building methods
@@ -980,29 +1017,59 @@ addSlider(const String& title, int sliderId,
     return *this;
 }
 
-Visualizer& Visualizer::
+int Visualizer::
 addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, 
               const DecorativeGeometry& geom) 
 {
     Array_<DecorativeGeometry>& addedGeometry = updImpl().m_addedGeometry;
+    const int nxt = (int)addedGeometry.size();
     addedGeometry.push_back(geom);
     DecorativeGeometry& geomCopy = addedGeometry.back();
     geomCopy.setBodyId((int)mobodIx);
     geomCopy.setTransform(X_BD * geomCopy.getTransform());
-    return *this;
+    return nxt;
 }
+int Visualizer::getNumDecorations() const 
+{   return (int)getImpl().m_addedGeometry.size(); }
+const DecorativeGeometry& Visualizer::getDecoration(int i) const 
+{   return getImpl().m_addedGeometry[i]; }
+DecorativeGeometry& Visualizer::updDecoration(int i) const
+{   return const_cast<Visualizer*>(this)->updImpl().m_addedGeometry[i]; }
 
-Visualizer& Visualizer::
+int Visualizer::
 addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
                   MobilizedBodyIndex b2, const Vec3& station2, 
                   const DecorativeLine& line) 
-{   updImpl().m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line)); 
-    return *this; }
+{   
+    Impl& impl = updImpl();
+    const int nxt = (int)impl.m_lines.size();
+    impl.m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line)); 
+    return nxt; 
+}
+int Visualizer::getNumRubberBandLines() const 
+{   return (int)getImpl().m_lines.size(); }
+const DecorativeLine& Visualizer::getRubberBandLine(int i) const 
+{   return getImpl().m_lines[i].line; }
+DecorativeLine& Visualizer::updRubberBandLine(int i) const
+{   return const_cast<Visualizer*>(this)->updImpl().m_lines[i].line; }
 
-Visualizer& Visualizer::
+int Visualizer::
 addDecorationGenerator(DecorationGenerator* generator) 
-{   updImpl().m_generators.push_back(generator); return *this; }
-
+{   
+    Impl& impl = updImpl();
+    const int nxt = (int)impl.m_generators.size();
+    impl.m_generators.push_back(generator); 
+    return nxt;
+}
+int Visualizer::
+getNumDecorationGenerators() const 
+{   return (int)getImpl().m_generators.size(); }
+const DecorationGenerator& Visualizer::
+getDecorationGenerator(int i) const 
+{   return *getImpl().m_generators[i]; }
+DecorationGenerator& Visualizer::
+updDecorationGenerator(int i) 
+{   return *updImpl().m_generators[i]; }
 
         // Frame control methods
 const Visualizer& Visualizer::

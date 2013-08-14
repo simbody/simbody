@@ -313,8 +313,8 @@ Geo::AlignedBox_<P> calcAxisAlignedBoundingBox() const
 
 /** Return an oriented bounding box (OBB) that surrounds the entire curve 
 segment in the u=[0..1] range. We use the fact that the curve is enclosed 
-within the convex hull of its control points and generate the minimum 
-axis-aligned box that includes all four control points. **/
+within the convex hull of its control points and generate an oriented bounding 
+box that includes all four control points. **/
 Geo::OrientedBox_<P> calcOrientedBoundingBox() const 
 {   const ArrayViewConst_<Vec3P> points(&B[0], &B[0]+4); // no copy or heap use
     return Geo::Point_<P>::calcOrientedBoundingBox(points); }

@@ -328,15 +328,17 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
 
     SBInstanceVars iv;
     iv.allocate(topologyCache);
-    setDefaultInstanceValues(mvars, iv);
+    setDefaultInstanceValues(mvars, iv); // sets lock-by-default, but not q or u
     mutableThis->topologyCache.topoInstanceVarsIndex = 
-        allocateDiscreteVariable(s, Stage::Instance, new Value<SBInstanceVars>(iv));
+        allocateDiscreteVariable(s, Stage::Instance, 
+                                 new Value<SBInstanceVars>(iv));
 
     mutableThis->topologyCache.valid = true;
 
     // Allocate a cache entry for the topologyCache, and save a copy there.
     mutableThis->topologyCacheIndex = 
-        allocateCacheEntry(s,Stage::Topology, new Value<SBTopologyCache>(topologyCache));
+        allocateCacheEntry(s,Stage::Topology, 
+                           new Value<SBTopologyCache>(topologyCache));
 
     return 0;
 }
@@ -354,8 +356,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
 // we'll ever need must be allocated here (although cache entries can be added
 // later since they are mutable.)
 //
-// Variables we'll settle on here include:
+// Issues we'll settle here include:
 //  - whether to use 4 quaternions or 3 Euler angles to represent orientation
+//  - the default values of all the state variables
+//  - the locked q or u values for lock-by-default mobilizers
 //
 // We allocate and fill in the Model-stage cache with information that can be
 // calculated now that we have values for the Model-stage state variables.
@@ -366,6 +370,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
     SBStateDigest sbs(s, *this, Stage::Model);
     const SBModelVars& mv = sbs.getModelVars();
+
+    // We're going to finish initializing InstanceVars below.
+    SBInstanceVars& iv = updInstanceVars(s);
 
     // Get the Model-stage cache and make sure it has been allocated and 
     // initialized if needed. It is OK to hold a reference here because the 
@@ -440,8 +447,30 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // Model-stage variables; initialization of the rest will be performed at 
     // Instance stage.
 
-    // SBInstanceVars are allocated at topology stage; could also have instance
-    // vars that aren't allocated until here but there aren't any right now.
+    // SBInstanceVars were mostly allocated at topology stage but the lockedQs
+    // and lockedUs values can't be initialized until now. We're setting all
+    // of them although only the ones that are lock-by-default will actually
+    // get used. Note that lockedUs does double duty since it holds both u
+    // and udot values; the udot ones must be initialized to zero.
+
+    iv.lockedQs.resize(maxNQTotal); 
+    setDefaultPositionValues(mv, iv.lockedQs); // set locked q's to init values
+
+    // MobilizedBodies provide default values for their q's. The number and
+    // values of these can depend on modeling variables, which are already
+    // set in the State. Don't do this for Ground, which has no q's.
+    for (MobilizedBodyIndex mbx(1); mbx < mobilizedBodies.size(); ++mbx) {
+        const MobilizedBodyImpl& mb = mobilizedBodies[mbx]->getImpl();
+        mb.copyOutDefaultQ(s, iv.lockedQs);
+    }
+
+    // Velocity variables are just the generalized speeds u, which the State 
+    // knows how to deal with. Zero is always a reasonable value for velocity,
+    // so we'll initialize it here.
+    iv.lockedUs.resize(DOFTotal); // also holds locked udots
+    setDefaultVelocityValues(mv, iv.lockedUs); // set locked Us to initial value
+    // We'll overwrite the locked udots to zero below after we've used the
+    // current setting to initialize the u's.
 
     mc.instanceCacheIndex = 
         allocateCacheEntry(s, Stage::Instance, new Value<SBInstanceCache>());
@@ -453,18 +482,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
     // Position variables are just q's, which the State knows how to deal with. 
 
-    Vector qInit(maxNQTotal);
-    setDefaultPositionValues(mv, qInit);
-
-    // MobilizedBodies provide default values for their q's. The number and
-    // values of these can depend on modeling variables, which are already
-    // set in the State. Don't do this for Ground, which has no q's.
-    for (MobilizedBodyIndex bx(1); bx < mobilizedBodies.size(); ++bx) {
-        const MobilizedBodyImpl& mb = mobilizedBodies[bx]->getImpl();
-        mb.copyOutDefaultQ(s, qInit);
-    }
-
-    mc.qIndex = allocateQ(s, qInit);
+    // Initialize state's q values to the same values we put into lockedQs.
+    mc.qIndex = allocateQ(s, iv.lockedQs);
     mc.qVarsIndex.invalidate(); // no position-stage vars other than q
 
     // Basic tree position kinematics can be calculated any time after Time
@@ -497,13 +516,22 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
         allocateCacheEntry(s, Stage::Position, Stage::Dynamics, 
                            new Value<SBArticulatedBodyInertiaCache>());
 
-    // Velocity variables are just the generalized speeds u, which the State 
-    // knows how to deal with. Zero is always a reasonable value for velocity,
-    // so we'll initialize it here.
-    Vector uInit(DOFTotal);
-    setDefaultVelocityValues(mv, uInit);
+    // Initialize state's u values to the same values we put into lockedUs.
+    mc.uIndex = allocateU(s, iv.lockedUs); // set state to same initial value
 
-    mc.uIndex = allocateU(s, uInit);
+    // Done with the default u's stored in iv.lockedUs; now overwrite any
+    // that were locked by default at Motion::Acceleration; those must be zero.
+    for (MobilizedBodyIndex mbx(1); mbx < mobilizedBodies.size(); ++mbx) {
+        if (iv.mobilizerLockLevel[mbx] != Motion::Acceleration)
+            continue;
+
+        const SBModelPerMobodInfo& mbInfo = mc.updMobodModelInfo(mbx);
+        const int    nu     = mbInfo.nUInUse;
+        const UIndex uStart = mbInfo.firstUIndex;
+        for (int i=0; i < nu; ++i)
+            iv.lockedUs[UIndex(uStart+i)] = 0;
+    }
+
     mc.uVarsIndex.invalidate(); // no velocity-stage vars other than u
 
     // Basic tree velocity kinematics can be calculated any time after Position
@@ -678,9 +706,40 @@ realizeSubsystemInstanceImpl(const State& s) const {
             continue;
         }
 
-        // Not Ground or a Weld.
+        // Not Ground or a Weld. If locked, use the lock level to determine
+        // how motion is calculated. Otherwise, if this mobilizer has a
+        // non-disabled Motion, let the Motion decide.
 
-        if (mobod.hasMotion()) {
+        const Motion::Level lockLevel = iv.mobilizerLockLevel[mbx];
+        if (lockLevel != Motion::NoLevel) { // locked
+            if (lockLevel == Motion::Acceleration) {
+                // If all the udots are zero, the method is Motion::Zero;
+                // otherwise, it is Motion::Prescribed.
+                instanceInfo.udotMethod = Motion::Zero;
+                for (int i=0; i<nu; ++i)
+                    if (iv.lockedUs[UIndex(ux+i)] != 0) {
+                        instanceInfo.udotMethod = Motion::Prescribed;
+                        break;
+                    }
+            } else if (lockLevel == Motion::Velocity) {
+                // If all the u's are zero, the method is Motion::Zero;
+                // otherwise, it is Motion::Prescribed.
+                instanceInfo.uMethod = Motion::Zero;
+                for (int i=0; i<nu; ++i)
+                    if (iv.lockedUs[UIndex(ux+i)] != 0) {
+                        instanceInfo.uMethod = Motion::Prescribed;
+                        break;
+                    }
+                instanceInfo.udotMethod = Motion::Zero;
+            } else if (lockLevel == Motion::Position) {
+                //TODO: Motion::Zero should mean identity transform; not the
+                //same as q==0. Always use Prescribed for positions for now.
+                instanceInfo.qMethod    = Motion::Prescribed;
+                instanceInfo.uMethod    = Motion::Zero;
+                instanceInfo.udotMethod = Motion::Zero;
+            }
+        } else if (mobod.hasMotion() && !iv.prescribedMotionIsDisabled[mbx]) {
+            // Not locked, but has an active Motion.
             const Motion& motion = mobod.getMotion();
             motion.calcAllMethods(s, instanceInfo.qMethod, 
                                      instanceInfo.uMethod,
@@ -1302,11 +1361,6 @@ void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& top
     // Tree-level defaults
     modelVars.useEulerAngles = false;
 
-    assert((int)modelVars.prescribed.size() == getNumMobilizedBodies());
-    modelVars.prescribed[0] = true; // Ground
-    for (MobilizedBodyIndex i(1); i < getNumMobilizedBodies(); ++i)
-        modelVars.prescribed[i] = false;
-
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
@@ -1315,16 +1369,26 @@ void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& top
 }
 
 void SimbodyMatterSubsystemRep::setDefaultInstanceValues(const SBModelVars& mv, 
-                                                         SBInstanceVars& instanceVars) const 
+                                                         SBInstanceVars& iv) const 
 {
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setNodeDefaultInstanceValues(mv, instanceVars);
+            rbNodeLevels[i][j]->setNodeDefaultInstanceValues(mv, iv);
 
-    assert((int)instanceVars.disabled.size() == getNumConstraints());
-    for (ConstraintIndex i(0); i < getNumConstraints(); ++i)
-        instanceVars.disabled[i] = getConstraint(i).isDisabledByDefault();
+    assert((int)iv.mobilizerLockLevel.size() == getNumBodies());
+    assert((int)iv.prescribedMotionIsDisabled.size() == getNumBodies());
+    for (MobilizedBodyIndex mbx(0); mbx < getNumBodies(); ++mbx) {
+        const MobilizedBody& mobod = getMobilizedBody(mbx);
+        iv.mobilizerLockLevel[mbx] = mobod.getLockByDefaultLevel();
+        iv.prescribedMotionIsDisabled[mbx] =
+            mobod.hasMotion() ? mobod.getMotion().isDisabledByDefault()
+                              : false;
+    }
+
+    assert((int)iv.constraintIsDisabled.size() == getNumConstraints());
+    for (ConstraintIndex cx(0); cx < getNumConstraints(); ++cx)
+        iv.constraintIsDisabled[cx] =  getConstraint(cx).isDisabledByDefault();
 
     // TODO: constraint defaults
 }
@@ -1398,28 +1462,21 @@ setUseEulerAngles(State& s, bool useAngles) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.useEulerAngles = useAngles;
 }
-void SimbodyMatterSubsystemRep::
-setMobilizerIsPrescribed(State& s, MobilizedBodyIndex body, bool prescribe) const {
-    SBModelVars& modelVars = updModelVars(s); // check/adjust stage
-    modelVars.prescribed[body] = prescribe;
-}
+
 void SimbodyMatterSubsystemRep::
 setConstraintIsDisabled(State& s, ConstraintIndex constraint, bool disable) const {
     SBInstanceVars& instanceVars = updInstanceVars(s); // check/adjust stage
-    instanceVars.disabled[constraint] = disable;   
+    instanceVars.constraintIsDisabled[constraint] = disable;   
 }
 
 bool SimbodyMatterSubsystemRep::getUseEulerAngles(const State& s) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.useEulerAngles;
 }
-bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, MobilizedBodyIndex body) const {
-    const SBModelVars& modelVars = getModelVars(s); // check stage
-    return modelVars.prescribed[body];
-}
+
 bool SimbodyMatterSubsystemRep::isConstraintDisabled(const State& s, ConstraintIndex constraint) const {
     const SBInstanceVars& instanceVars = getInstanceVars(s); // check stage
-    return instanceVars.disabled[constraint];
+    return instanceVars.constraintIsDisabled[constraint];
 }
 
 void SimbodyMatterSubsystemRep::
@@ -3566,7 +3623,7 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     // We only fail if we can't achieve consAccuracy, but while we're
     // solving we'll see if we can get consAccuracyToTryFor.
     const Real consAccuracyToTryFor = 
-        std::max(0.1*consAccuracy, SignificantReal);
+        std::max(Real(0.1)*consAccuracy, SignificantReal);
 
     // Conditioning tolerance. This determines when we'll drop a 
     // constraint. 
@@ -4192,7 +4249,7 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     // We only fail if we can't achieve consAccuracy, but while we're
     // solving we'll see if we can get consAccuracyToTryFor.
     const Real consAccuracyToTryFor = 
-        std::max(0.1*consAccuracy, SignificantReal);
+        std::max(Real(0.1)*consAccuracy, SignificantReal);
 
     // Conditioning tolerance. This determines when we'll drop a 
     // constraint. 
@@ -4660,7 +4717,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     Vector&              tau            = tac.presMotionForces;
 
     // Calculate accelerations produced by these forces in three forms:
-    // body accelerations A_GB, u-space generalized acceleratiosn udot,
+    // body accelerations A_GB, u-space generalized accelerations udot,
     // and q-space generalized accelerations qdotdot.
     calcTreeAccelerations
        (s, *mobilityForcesToUse, *bodyForcesToUse, dc.presUDotPool,
@@ -4668,7 +4725,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
         A_GB, udot, qdotdot, tau);
 
     // Feed the accelerations into the constraint error methods to determine
-    // the acceleratin constraint errors they generate.
+    // the acceleration constraint errors they generate.
     calcConstraintAccelerationErrors(s, A_GB, udot, qdotdot, udotErr);
 }
 //......................CALC TREE FORWARD DYNAMICS OPERATOR ....................

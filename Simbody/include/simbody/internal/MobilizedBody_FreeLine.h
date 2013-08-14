@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -57,16 +57,21 @@ last (z) which is the inertialess direction.
 @see MobilizedBody::LineOrientation, MobilizedBody::Free **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::FreeLine : public MobilizedBody {
 public:
-    explicit FreeLine(Direction=Forward);
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Ball. **/
+    FreeLine() {}
 
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    FreeLine(MobilizedBody& parent, const Body&, Direction=Forward);
+    /** Create a %FreeLine mobilizer between an existing parent (inboard) body P 
+    and a new child (outboard) body B created by copying the given \a bodyInfo 
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    FreeLine(MobilizedBody& parent, const Transform& X_PF,
+             const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
-    FreeLine(MobilizedBody& parent, const Transform& inbFrame,
-             const Body&,           const Transform& outbFrame, Direction=Forward);
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    FreeLine(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
     FreeLine& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;

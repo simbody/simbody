@@ -24,6 +24,9 @@
 #include "CFSQPOptimizer.h"
 #include <string>
 
+//TODO only works in double precision without some mods
+#if SimTK_DEFAULT_PRECISION == 2
+
 // ----------------------------------------------------------------------
 // Code to manage the library loading
 // ----------------------------------------------------------------------
@@ -429,3 +432,6 @@ computeConstraintGradient(const SimTK::Vector &x, const bool new_coefficients, S
 #endif
 	return status;
 }
+
+#endif
+

@@ -38,8 +38,8 @@ int main() {
     
     MultibodySystem mbs;
     SimbodyMatterSubsystem matter(mbs);
-    Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)))
-                                  .addDecoration(Transform(), DecorativeSphere(.1));
+    Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)));
+    body.addDecoration(DecorativeSphere(.1));
     Random::Uniform random(0.0, 2.0);
     MobilizedBody lastBody = MobilizedBody::Pin(matter.Ground(), Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = MobilizedBody::Slider(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));

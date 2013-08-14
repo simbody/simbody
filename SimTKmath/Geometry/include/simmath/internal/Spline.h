@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -51,31 +51,43 @@ Bezier control points.
 template <class T>
 class Spline_ : public Function_<T> {
 public:
-    /**
-     * Create a Spline_ object based on a set of control points.
-     * 
-     * @param degree the degree of the spline to create.  This must be a positive odd value.
-     * @param x      the values of the independent variable for each control point
-     * @param y      the values of the dependent variables for each control point
-     */
+    /** Create a Spline_ object based on a set of control points.\ See 
+    SplineFitter for a nicer way to create these objects.
+
+    @param[in]  degree 
+        The degree of the spline to create. This must be a positive odd value.
+    @param[in]  x      
+        Values of the independent variable for each Bezier control point.
+    @param[in]  y      
+        Values of the dependent variables for each Bezier control point.
+    **/
     Spline_(int degree, const Vector& x, const Vector_<T>& y) 
     :   impl(new SplineImpl(degree, x, y)) {}
 
-    Spline_(const Spline_& copy) : impl(copy.impl) {
-        if (impl) impl->referenceCount++;
-    }
-    Spline_() : impl(NULL) {
-    }
-    Spline_& operator=(const Spline_& copy) {
+    /** Default constructor creates an empty %Spline_ handle; not very 
+    useful. **/
+    Spline_() : impl(NULL) {}
+
+    /** Copy constructor is shallow and reference-counted; that is, the new
+    %Spline_ refers to the same object as does \a source. **/
+    Spline_(const Spline_& source) : impl(source.impl) 
+    {   if (impl) impl->referenceCount++; }
+
+    /** Copy assignment is shallow and reference-counted; that is, after the
+    assignment this %Spline_ refers to the same object as does \a source. **/
+    Spline_& operator=(const Spline_& source) {
         if (impl) {
             impl->referenceCount--;
             if (impl->referenceCount == 0)
                 delete impl;
         }
-        impl = copy.impl;
+        impl = source.impl;
         if (impl) impl->referenceCount++;
         return *this;
     }
+
+    /** Destructor decrements the reference count and frees the heap space if
+    this is the last reference. **/
     ~Spline_() {
         if (impl) {
             impl->referenceCount--;
@@ -83,70 +95,94 @@ public:
                 delete impl;
         }
     }
-    /**
-     * Calculate the values of the dependent variables at a particular value of the independent variable.
-     * 
-     * @param x a Vector of length 1 containing the value of the independent variable.
-     */
-    T calcValue(const Vector& x) const {
+
+    /** Calculate the values of the dependent variables at a particular value 
+    of the independent variable.
+    @param[in]  x    The value of the independent variable.
+    @returns         The corresponding values of the dependent variables. **/
+    T calcValue(Real x) const {
         assert(impl);
-        assert(x.size() == 1);
-        return impl->getValue(x[0]);
+        return impl->getValue(x);
     }
-    /**
-     * Calculate a derivative of the spline function.  See the Function_ class for details.  Because Spline_
-     * only allows a single independent variable, all elements of derivComponents should be 0, and its
-     * length determines the order of the derivative to calculate.
-     */
-    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+
+    /** Calculate a derivative of the spline function with respect to its 
+    independent variable, at the given value.
+    @param[in]  order   
+        Which derivative? order==1 returns first derivative, order==2 is second,
+        etc. Must be >= 1.
+    @param[in]  x       
+        The value of the independent variable about which the derivative is 
+        taken.
+    @returns
+        The \a order'th derivative of the dependent variables at \a x. **/
+    T calcDerivative(int order, Real x) const {
         assert(impl);
-        assert(x.size() == 1);
-        assert(derivComponents.size() > 0);
-        return impl->getDerivative(derivComponents.size(), x[0]);
+        assert(order > 0);
+        return impl->getDerivative(order, x);
     }
-    int getArgumentSize() const {
-        return 1;
-    }
-    int getMaxDerivativeOrder() const {
-        return std::numeric_limits<int>::max();
-    }
-    /**
-     * Get the locations (that is, the values of the independent variable) of the control points.
-     */
+
+    /** Get the locations (that is, the values of the independent variable) for
+    each of the Bezier control points. **/
     const Vector& getControlPointLocations() const {
         assert(impl);
         return impl->x;
     }
-    /**
-     * Get the values of the dependent variables at the control points.
-     */
+    /** Get the values of the dependent variables at each of the Bezier control 
+    points. **/
     const Vector_<T>& getControlPointValues() const {
         assert(impl);
         return impl->y;
     }
-    /**
-     * Get the degree of the spline.
-     */
+
+    /** Get the degree of the spline. **/
     int getSplineDegree() const {
         assert(impl);
         return impl->degree;
     }
 
-    /** This provides compatibility with std::vector without requiring any copying. **/
-    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
-    {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
+    /** Alternate signature provided to implement the generic Function_ 
+    interface expects a one-element Vector for the independent variable. **/
+    T calcValue(const Vector& x) const OVERRIDE_11 {
+        assert(x.size() == 1);
+        return calcValue(x[0]);
+    }
+    /** Alternate signature provided to implement the generic Function_ 
+    interface expects an awkward \a derivComponents argument, and
+    takes a one-element Vector for the independent variable. Because 
+    Spline_ only allows a single independent variable, all elements of 
+    derivComponents should be 0; only its length determines the order of the 
+    derivative to calculate. **/
+    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const
+        OVERRIDE_11
+    {   assert(x.size() == 1);
+        return calcDerivative((int)derivComponents.size(), x[0]); }
+    /** For the Function_ style interface, this provides compatibility 
+    with std::vector. No copying or heap allocation is required. **/
+    T calcDerivative(const std::vector<int>& derivComponents, 
+                     const Vector& x) const 
+    {   assert(x.size() == 1);
+        return calcDerivative((int)derivComponents.size(), x[0]); }
+
+    /** Required by the Function_ interface. **/
+    int getArgumentSize() const OVERRIDE_11 {return 1;}
+    /** Required by the Function_ interface. **/
+    int getMaxDerivativeOrder() const OVERRIDE_11 
+    {   return std::numeric_limits<int>::max(); }
+
 private:
     class SplineImpl;
     SplineImpl* impl;
 };
 
+/** Provide a convenient name for a scalar-valued Spline_. **/
 typedef Spline_<Real> Spline;
 
+/** This is the implementation class that supports the Spline_ interface. **/
 template <class T>
 class Spline_<T>::SplineImpl {
 public:
-    SplineImpl(int degree, const Vector& x, const Vector_<T>& y) : referenceCount(1), degree(degree), x(x), y(y) {
-    }
+    SplineImpl(int degree, const Vector& x, const Vector_<T>& y) 
+    :   referenceCount(1), degree(degree), x(x), y(y) {}
     ~SplineImpl() {
         assert(referenceCount == 0);
     }
@@ -156,10 +192,10 @@ public:
     T getDerivative(int derivOrder, Real t) const {
         return GCVSPLUtil::splder(derivOrder, degree, t, x, y);
     }
-    int referenceCount;
-    int degree;
-    Vector x;
-    Vector_<T> y;
+    int         referenceCount;
+    int         degree;
+    Vector      x;
+    Vector_<T>  y;
 };
 
 } // namespace SimTK

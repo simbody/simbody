@@ -157,7 +157,7 @@ void realizeInstance(const SBStateDigest& sbs) const {
     updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
     updMobilizerCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
     updTotalCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
-    updY(dc) = SpatialMat(Mat33(0), Mat33(0), Mat33(0), Mat33(1.0/getMass()));
+    updY(dc) = SpatialMat(Mat33(0), Mat33(0), Mat33(0), Mat33(1/getMass()));
     updA_GB(ac)[0] = Vec3(0);
 }
 

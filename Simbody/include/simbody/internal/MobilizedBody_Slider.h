@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -31,12 +31,38 @@ Declares the MobilizedBody::Slider class. **/
 
 namespace SimTK {
 
-/// One mobility -- translation along the common x axis of the
-/// inboard and outboard mobilizer frames.
-/// Synonym: Prismatic
+/** One mobility -- translation along the common x axis of the
+F (inboard) and M (outboard) mobilizer frames.
+
+If you want translation along a different direction, rotate the F and M frames
+when you define the mobilized body, so that the x axes are in the desired
+direction.
+
+The single generalized coordinate q is the translation in length units of M's
+origin Mo with respect to F's origin Fo, and the generalized speed u is the 
+translation rate in length units/time unit, with qdot=u.
+
+Synonym: Prismatic **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Slider : public MobilizedBody {
 public:
-        // SPECIALIZED INTERFACE FOR SLIDER MOBILIZER
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Slider. **/
+    Slider() {}
+
+    /** Create a %Slider mobilizer between an existing parent (inboard) body P 
+    and a new child (outboard) body B created by copying the given \a bodyInfo 
+    into a privately-owned Body within the constructed %MobilizedBody object. 
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    Slider(MobilizedBody& parent, const Transform& X_PF,
+           const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
+
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Slider(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
+    
+    
+    // SPECIALIZED INTERFACE FOR SLIDER MOBILIZER
 
     // "Length" is just a nicer name for a sliding joint's lone generalized coordinate q.
     Slider& setDefaultLength(Real length) {return setDefaultQ(length);}
@@ -60,11 +86,6 @@ public:
 
         // STANDARDIZED MOBILIZED BODY INTERFACE
 
-        // required constructors
-    explicit Slider(Direction=Forward);
-    Slider(MobilizedBody& parent, const Body&, Direction=Forward);
-    Slider(MobilizedBody& parent, const Transform& inbFrame,
-           const Body&,           const Transform& outbFrame, Direction=Forward);
 
         // access to generalized coordinates q and generalized speeds u
     Slider& setDefaultQ(Real);

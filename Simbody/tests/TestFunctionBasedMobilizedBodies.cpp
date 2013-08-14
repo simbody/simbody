@@ -530,11 +530,13 @@ void testFunctionBasedGimbalUserAxes() {
     isdof[2] = true;  //rot 3
     int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
-    Random::Gaussian random;
+    // Sherm 20130213: I replaced the random number generator with some
+    // firm numbers to prevent singularities from occurring on some platforms
+    // based on different random number output.
 
-    axes[0] = Vec3(random.getValue(),random.getValue(), 0); //Vec3(0,0,1);//
-    axes[1] = Vec3(random.getValue(), 0,random.getValue());
-    axes[2] = Vec3(0,random.getValue(), random.getValue());
+    axes[0] = Vec3(0.05, 1.4,  0);
+    axes[1] = Vec3(0.6,   0, -1.2);
+    axes[2] = Vec3(0,     2, -0.055);
     axes[3] = Vec3(1,0,0);
     axes[4] = Vec3(0,1,0);
     axes[5] = Vec3(0,0,1);
@@ -575,12 +577,19 @@ void testFunctionBasedGimbalUserAxes() {
     matter.setUseEulerAngles(state, true);
     system.realizeModel(state);
 
+    // These were generated randomly but we want repeatability across 
+    // machines so we'll use the same numbers every time. Note that we'll
+    // re-use each of these twice, once for the pin joint system and once
+    // for the function based mobilizers.
+    Real initq[] = {1.41292, 0.048025,-1.19474, 0.618909,-0.0552235, 2.043930};
+    Real initu[] = {1.53485, 0.546119,-1.55779,-1.872230, 0.0982929, 0.118798};
     int nq = state.getNQ()/2;
+    assert(nq <= 6); // make sure we have enough random numbers!
     for (int i = 0; i < nq; ++i)
-        state.updQ()[i] = state.updQ()[i+nq] = random.getValue();
+        state.updQ()[i] = state.updQ()[i+nq] = initq[i];
     int nu = state.getNU()/2;
     for (int i = 0; i < nu; ++i)
-        state.updU()[i] = state.updU()[i+nu] = random.getValue(); 
+        state.updU()[i] = state.updU()[i+nu] = initu[i]; 
 
     system.realize(state, Stage::Acceleration);
 
@@ -607,6 +616,9 @@ void testFunctionBasedGimbalUserAxes() {
     
     assertEqual(com_bin, com_fb);
     assertEqual(b2.getBodyVelocity(result), fb2.getBodyVelocity(result));
+    
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(b2.getBodyAcceleration(result), fb2.getBodyAcceleration(result));
 }
 
@@ -681,6 +693,9 @@ void testFunctionBasedTranslation() {
     
     assertEqual(com_bin, com_fb);
     assertEqual(b2.getBodyVelocity(result), fb2.getBodyVelocity(result));
+
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(b2.getBodyAcceleration(result), fb2.getBodyAcceleration(result));
 }
 
@@ -716,22 +731,23 @@ void testFunctionBasedFree() {
     matter.setUseEulerAngles(state, true);
     system.realizeModel(state);
 
-    Random::Gaussian random;
-
     int nq = state.getNQ();
     nq = nq-nm;
   
     assert(nm == state.getNU()/2);
 
-    // Get random q's and u's and set equivalent on both bodies
+    // Get random q's and u's and set equivalent on both bodies.
+    // (Not really random so we can get repeatability on all platforms.)
+    Real initq[] = {0.455189,-0.383271,1.21353,-0.510623,-1.71438,0.968387};
+    assert(nm <= 6);
     for (int i = 0; i < nm; ++i){
         // Free has slots for 4 rot q's and fb only has 3
-        state.updQ()[i] = state.updQ()[i+nq] = random.getValue(); //
+        state.updQ()[i] = state.updQ()[i+nq] = initq[i]; //
     }
 
     system.realize(state, Stage::Position);
-    SpatialVec inputVelocity(Vec3(random.getValue(),random.getValue(),random.getValue()),
-                             Vec3(random.getValue(),random.getValue(),random.getValue()));
+    SpatialVec inputVelocity(Vec3(-0.962157,0.523767,1.94993),
+                             Vec3(-1.15752,0.436991,-0.787116));
 
     b1.setUToFitVelocity(state, inputVelocity);
     fb1.setUToFitVelocity(state, inputVelocity);
@@ -771,6 +787,9 @@ void testFunctionBasedFree() {
     
     assertEqual(com_bin, com_fb);
     assertEqual(b1.getBodyVelocity(result), fb1.getBodyVelocity(result));
+
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(b1.getBodyAcceleration(result), fb1.getBodyAcceleration(result));
 }
 
@@ -859,6 +878,9 @@ void testFunctionBasedFreeVsTranslationGimbal() {
     
     assertEqual(Xfb1, Xb1);
     assertEqual(fb1.getBodyVelocity(result), b1.getBodyVelocity(result));
+
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(fb1.getBodyAcceleration(result), b1.getBodyAcceleration(result));
 }
 
@@ -956,6 +978,9 @@ void testFunctionBasedFreeVs2FunctionBased() {
     
     assertEqual(com_fb1, com_fb2);
     assertEqual(fb1.getBodyVelocity(result), fb2.getBodyVelocity(result));
+
+    // stepTo() only guarantees realization through velocity stage.
+    system.realize(result, Stage::Acceleration);
     assertEqual(fb1.getBodyAcceleration(result), fb2.getBodyAcceleration(result));
 }
 

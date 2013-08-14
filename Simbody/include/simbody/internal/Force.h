@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -170,6 +170,9 @@ public:
     class MobilityLinearSpring;
     class MobilityLinearDamper;
     class MobilityConstantForce;
+    class MobilityLinearStop;
+    class MobilityDiscreteForce;
+    class DiscreteForces;
     class LinearBushing;
     class ConstantForce;
     class ConstantTorque;
@@ -185,6 +188,9 @@ public:
     class MobilityLinearSpringImpl;
     class MobilityLinearDamperImpl;
     class MobilityConstantForceImpl;
+    class MobilityLinearStopImpl;
+    class MobilityDiscreteForceImpl;
+    class DiscreteForcesImpl;
     class LinearBushingImpl;
     class ConstantForceImpl;
     class ConstantTorqueImpl;
@@ -226,6 +232,10 @@ public:
      * @param x0         the distance at which the force is 0
      */
     TwoPointLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real k, Real x0);
+    
+    /** Default constructor creates an empty handle. **/
+    TwoPointLinearSpring() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearSpring, TwoPointLinearSpringImpl, Force);
 };
 
@@ -254,6 +264,10 @@ public:
      * @param damping    the damping constant
      */
     TwoPointLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real damping);
+    
+    /** Default constructor creates an empty handle. **/
+    TwoPointLinearDamper() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearDamper, TwoPointLinearDamperImpl, Force);
 };
 
@@ -281,82 +295,13 @@ public:
      * @param force      the magnitude of the force to apply
      */
     TwoPointConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real force);
+    
+    /** Default constructor creates an empty handle. **/
+    TwoPointConstantForce() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointConstantForce, TwoPointConstantForceImpl, Force);
 };
 
-/**
- * A linear spring along or around a mobility coordinate. The
- * stiffness k is provided, along with an arbitrary "zero" 
- * coordinate value q0 at which the spring generates no force.
- * The generated force is k*(q-q0), and potential energy is 
- * pe = 1/2 k (q-q0)^2.
- * This is not meaningful unless the mobility coordinate is such that qdot=u 
- * for that coordinate.  In particular, do not use this on a coordinate
- * which is part of a quaternion.
- */
-
-class SimTK_SIMBODY_EXPORT Force::MobilityLinearSpring : public Force {
-public:
-    /**
-     * Create a MobilityLinearSpring.
-     * 
-     * @param forces     the subsystem to which this force should be added
-     * @param body       the body to which the force should be applied
-     * @param coordinate the index of the coordinate in the body's u vector to which the force should be applied
-     * @param k          the spring constant
-     * @param q0         the value of the coordinate at which the force is 0
-     */
-    MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real k, Real q0);
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearSpring, MobilityLinearSpringImpl, Force);
-};
-
-/**
- * A linear damper on a mobility coordinate. The
- * damping constant c is provided, with the generated force
- * being -c*u where u is the mobility's generalize speed.
- * This is meaningful on any mobility, since all our
- * generalized speeds have physical meaning. This is not
- * a potential force and hence does not contribute to
- * potential energy.
- */
-
-class SimTK_SIMBODY_EXPORT Force::MobilityLinearDamper : public Force {
-public:
-    /**
-     * Create a MobilityLinearDamper.
-     * 
-     * @param forces     the subsystem to which this force should be added
-     * @param body       the body to which the force should be applied
-     * @param coordinate the index of the coordinate in the body's u vector to which the force should be applied
-     * @param damping    the damping constant
-     */
-    MobilityLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real damping);
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearDamper, MobilityLinearDamperImpl, Force);
-};
-
-/**
- * A constant (scalar) "force" f applied to a mobility. The mobility here selects a
- * generalized speed (u), not a generalized coordinate (q), and the
- * meaning depends on the definition of the generalized speed. If that
- * speed is a translation then this is a force; if a rotation then
- * this is a torque.
- * This force does not contribute to the potential energy, so adding it to
- * a system will cause energy not to be conserved.
- */
-
-class SimTK_SIMBODY_EXPORT Force::MobilityConstantForce : public Force {
-public:
-    /**
-     * Create a MobilityConstantForce.
-     * 
-     * @param forces     the subsystem to which this force should be added
-     * @param body       the body to which the force should be applied
-     * @param coordinate the index of the coordinate in the body's u vector to which the force should be applied
-     * @param force      the force to apply
-     */
-    MobilityConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real force);
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityConstantForce, MobilityConstantForceImpl, Force);
-};
 
 /**
  * A constant force applied to a body station. The force is a
@@ -368,6 +313,10 @@ public:
 class SimTK_SIMBODY_EXPORT Force::ConstantForce: public Force {
 public:
     ConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& station, const Vec3& force);
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantForce() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantForce, ConstantForceImpl, Force);
 };
 
@@ -381,6 +330,10 @@ public:
 class SimTK_SIMBODY_EXPORT Force::ConstantTorque: public Force {
 public:
     ConstantTorque(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& torque);
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantTorque() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantTorque, ConstantTorqueImpl, Force);
 };
 
@@ -401,254 +354,37 @@ public:
 class SimTK_SIMBODY_EXPORT Force::GlobalDamper : public Force {
 public:
     GlobalDamper(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, Real damping);
+    
+    /** Default constructor creates an empty handle. **/
+    GlobalDamper() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(GlobalDamper, GlobalDamperImpl, Force);
 };
 
 /**
- * A uniform gravitational force applied to every body in the system.  The force
- * is specified by a vector in the Ground frame.  You can optionally specify
- * a height at which the gravitational potential energy is zero.
+ * A uniform gravitational force applied to every body in the system.\ See
+ * Force::Gravity for a more flexible option. 
+ *
+ * The %UniformGravity force is specified by a vector in the Ground frame. You 
+ * can optionally specify a height at which the gravitational potential energy 
+ * is zero.
+ * @see SimTK::Force::Gravity
  */
 
 class SimTK_SIMBODY_EXPORT Force::UniformGravity : public Force {
 public:
-    UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight=0);
+    UniformGravity(GeneralForceSubsystem& forces, 
+                   const SimbodyMatterSubsystem& matter, 
+                   const Vec3& g, Real zeroHeight=0);
+    
+    /** Default constructor creates an empty handle. **/
+    UniformGravity() {}
+
     Vec3 getGravity() const;
     void setGravity(const Vec3& g);
     Real getZeroHeight() const;
     void setZeroHeight(Real height);
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(UniformGravity, UniformGravityImpl, Force);
-};
-
-/**
- * This class is used to define new force elements. To use it, you will 
- * create a class that extends Force::Custom::Implementation. Optionally, you
- * may also create a "handle" class extending Force::Custom that hides your 
- * implementation and provides a nicer API for users of your new force element.
- * Here we'll use as an example a force "MySpring" that we'll presume you will 
- * declare in a header file "MySpring.h". The MySpring constructor will take 
- * a reference to a MobilizedBody \a mobod and a spring constant \a k, and 
- * connect the origin OB of body \a mobod to the Ground origin O by a spring of
- * stiffness \a k. MySpring will apply a force of magnitude \a kx to OB, 
- * directed towards O, where x=|OB-O| is the current distance from OB to O. 
- * First we'll look at how MySpring would be used in a main program (whether by
- * you or some future user of your force element), then how you would 
- * implement it. 
- *
- * There are two possibilities: 
- *  - you supply only an %Implementation object MySpringImpl (less work 
- *    for you), or 
- *  - you supply both the %Implementation object and a handle MySpring
- *    (nicer for the user). 
- *
- * If you are planning only to use this force yourself, and perhaps just once
- * for a single application, the %Implementation-only approach is probably 
- * adequate. However, if you plan to have others use your new force object, it
- * is well worth the (minimal) extra effort to provide a handle class also to 
- * make your new force behave identically to the built-in forces that come 
- * with Simbody. In either case the %Implementation object is the same so you 
- * can add a handle later if you want. To reiterate: the handle class is 
- * completely optional; you \e must write an %Implementation class
- * but a handle class is an aesthetic addition whose main purpose is to
- * make a cleaner API for users of your force element.
- *
- * In the case where you write only the %Implementation class, a user will 
- * create an instance of that class and pass it to the generic Force::Custom 
- * constructor (this would be in main.cpp or some other piece of application
- * code):
- * @code
- *  // Using your custom force in a simulation application, no handle.
- *  #include "SimTKsimbody.h"
- *  #include "MySpring.h"
- *  using namespace SimTK;
- *  GeneralForceSubsystem forces;
- *  MobilizedBody mobod1 = MobilizedBody::Pin(...); // or whatever
- *  // ...
- *  Force::Custom spring1(forces, new MySpringImpl(mobod1,100.));
- * @endcode
- * If you also write a handle class, then the API seen by the user is the
- * same as for built-in force objects:
- * @code
- *  // Using your custom force in a simulation application, with handle.
- *  // Same as above except last line is now:
- *  MySpring spring1(forces, mobod1, 100.);
- * @endcode
- *
- * <h2>Writing the %Implementation class</h2>
- *
- * You would put the following code in MySpring.h, although you can hide it
- * elsewhere (such as in a separate .cpp file) if you provide a handle class:
- * @code
- *  // Sample implementation of a custom force Implementation class.
- *  class MySpringImpl: public Force::Custom::Implementation {
- *  public:
- *      MySpringImpl(MobilizedBody mobod, Real k)
- *      :   m_mobod(mobod), m_k(k) {}
- *
- *      virtual void calcForce(const State&         state, 
- *                             Vector_<SpatialVec>& bodyForcesInG, 
- *                             Vector_<Vec3>&       particleForcesInG, 
- *                             Vector&              mobilityForces) const 
- *      {
- *          Vec3 bodyPointInB(0,0,0); // body origin (in the body frame)
- *          Vec3 pos = m_mobod.getBodyOriginLocation(state); // in Ground frame
- *          // apply force towards origin, proportional to distance x
- *          m_mobod.applyForceToBodyPoint(state, bodyPointInB, -m_k*pos,
- *                                        bodyForcesInG);
- *      }
- *
- *      virtual Real calcPotentialEnergy(const State& state) const {
- *          Vec3 pos = m_mobod.getBodyOriginLocation(state); // in Ground
- *          Real x   = pos.norm(); // distance from Ground origin
- *          return m_k*x*x/2; // potential energy in the spring
- *      }
- *  private:
- *      MobilizedBody m_mobod;    // the body to which to apply the force
- *      Real          m_k;        // spring stiffness
- *  };
- * @endcode
- *
- * To write the code exactly as above, the compiler has to be told to look in
- * the %SimTK namespace for some of the symbols. There are a variety of ways
- * to do that; see the discussion below for details.
- * 
- * <h2>Writing the handle class</h2>
- *
- * Here is how to implement the handle class, assuming you've already 
- * written the %Implementation class MySpringImpl. You would put this 
- * code (at least the declarations) in MySpring.h, following the declaration
- * of the MySpringImpl class:
- * @code
- *  // Sample implementation of a handle class. Note: a handle class
- *  // may *not* have any data members or virtual methods.
- *  class MySpring : public Force::Custom {
- *  public:
- *      MySpring(GeneralForceSubsystem& forces, // note the "&"
- *               MobilizedBody          mobod,
- *               Real                   k) 
- *      :   Force::Custom(forces, new MySpringImpl(mobod,k)) {}
- *  };
- * @endcode
- * As you can see, the handle class is very simple and just hides the creation
- * of the implementation object. Since this removes any reference to the 
- * implementation object from the user's program, it also means you can hide
- * the implementation details completely (perhaps in a separately compiled
- * library), which has many advantages. You can add additional methods to the 
- * handle class to provide a clean API to users of your custom force; these 
- * methods will forward to the implementation object as necessary but will not 
- * expose any aspects of the implementation that are not needed by the user.
- *
- * @warning A handle class <em>must not</em> have any data members or virtual
- * methods and will not work properly if it does. Instead, store any data you
- * need in the %Implementation object.
- *
- * <h2>Getting access to symbols in the %SimTK namespace</h2>
- *
- * The examples above glossed over the naming of symbols in the SimTK namespace.
- * To write the code exactly as above you would need to precede it with
- * \c using statements to tell the compiler to look there to resolve symbols, 
- * for example:
- * @code
- *  using namespace SimTK; // search the entire namespace for symbols, or
- *  using SimTK::Real; using SimTK::Vector_; // define just particular symbols
- * @endcode
- * Either of those approaches will work, but note that this will have the same 
- * effect on user programs that include MySpring.h as it does within the header 
- * file. That may be unwanted behavior for some users who might prefer not to have
- * the namespace searched automatically, perhaps to avoid conflicts with their own
- * symbols that have the same names. If you want to avoid introducing unwanted 
- * symbols into users' compilation units, then in the header file you should 
- * refer to each symbol explicitly by its full name; that is, prepend the 
- * namespace each time the symbol is used, for example:
- * @code
- *  class MySpringImpl: public SimTK::Force::Custom::Implementation {
- *  void calcForce(const SimTK::State&                state, 
- *                 SimTK::Vector_<SimTK::SpatialVec>& bodyForcesInG, 
- *                 SimTK::Vector_<SimTK::Vec3>&       particleForcesInG, 
- *                 SimTK::Vector&                     mobilityForces) const ;
- *  };
- * @endcode
- * That is less convenient for you (and uglier) but avoids the possibility of
- * unwanted side effects in user code so should be considered if you expect
- * wide distribution of your new force element.
- *
- * Thanks to Nur Adila Faruk Senan (a.k.a. Adila Papaya) for help in clarifying
- * this documentation.
- */
-class SimTK_SIMBODY_EXPORT Force::Custom : public Force {
-public:
-    class Implementation;
-    /**
-     * Create a Custom force.
-     * 
-     * @param forces         the subsystem to which this force should be added
-     * @param implementation the object which implements the custom force.  The Force::Custom takes over
-     *                       ownership of the implementation object, and deletes it when the Force itself
-     *                       is deleted.
-     */
-    Custom(GeneralForceSubsystem& forces, Implementation* implementation);
-
-    /** @cond **/ // don't let Doxygen see this
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Force);
-    /** @endcond **/
-protected:
-    const Implementation& getImplementation() const;
-    Implementation& updImplementation();
-};
-
-/**
- * Every custom force requires implementation of a class that is derived from
- * this abstract class.\ See Force::Custom for details.
- */
-class SimTK_SIMBODY_EXPORT Force::Custom::Implementation {
-public:
-    virtual ~Implementation() { }
-    /**
-     * Calculate the force for a given state.
-     * 
-     * @param state          the State for which to calculate the force
-     * @param bodyForces     spatial forces on MobilizedBodies are accumulated in this.  To apply a force to a body,
-     *                       add it to the appropriate element of this vector.
-     * @param particleForces forces on particles are accumulated in this.  Since particles are not yet implemented,
-     *                       this is ignored.
-     * @param mobilityForces forces on individual mobilities (elements of the state's u vector) are accumulated in this.
-     *                       To apply a force to a mobility, add it to the appropriate element of this vector.
-     */
-    virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const = 0;
-    /**
-     * Calculate this force's contribution to the potential energy of the System.
-     * 
-     * @param state          the State for which to calculate the potential energy
-     */
-    virtual Real calcPotentialEnergy(const State& state) const = 0;
-    /**
-     * Get whether this force depends only on the position variables (q), not on the velocies (u) or auxiliary variables (z).
-     * The default implementation returns false.  If the force depends only on positions, you should override this to return
-     * true.  This allows force calculations to be optimized in some cases.
-     */
-    virtual bool dependsOnlyOnPositions() const {
-        return false;
-    }
-    /** The following methods may optionally be overridden to do specialized 
-    realization for a Force. **/
-    //@{
-    virtual void realizeTopology(State& state) const {}
-    virtual void realizeModel(State& state) const {}
-    virtual void realizeInstance(const State& state) const {}
-    virtual void realizeTime(const State& state) const {}
-    virtual void realizePosition(const State& state) const {}
-    virtual void realizeVelocity(const State& state) const {}
-    virtual void realizeDynamics(const State& state) const {}
-    virtual void realizeAcceleration(const State& state) const {}
-    virtual void realizeReport(const State& state) const {}
-    //@}
-
-    /** Override this if you want to generate some geometry for the visualizer
-    to display. Be sure to \e append the geometry to the list. **/
-    virtual void calcDecorativeGeometryAndAppend
-       (const State& state, Stage stage, 
-        Array_<DecorativeGeometry>& geometry) const {}
-
 };
 
 } // namespace SimTK

@@ -200,6 +200,27 @@ Visualizer& operator=(const Visualizer& src);
 destroyed here when the last reference is deleted. **/
 ~Visualizer();
 
+/** Ask the VisualizerGUI to shut itself down immediately. This will cause the
+display window to close and the associated process to die. This method returns
+immediately but it may be some time later when the VisualizerGUI acts on the
+instruction; there is no way to wait for it to die. Normally the VisualizerGUI
+will persist even after the death of the simulator connection unless you have
+called setShutdownWhenDestructed() to make shutdown() get called automatically.
+@see setShutdownWhenDestructed() **/
+void shutdown();
+
+/** Set the flag that determines whether we will automatically send a Shutdown
+message to the VisualizerGUI when this %Visualizer object is destructed. 
+Normally we allow the GUI to persist even after death of the simulator
+connection, unless an explicit call to shutdown() is made. 
+@see getShutdownWhenDestructed(), shutdown() **/
+Visualizer& setShutdownWhenDestructed(bool shouldShutdown);
+
+/** Return the current setting of the "shutdown when destructed" flag. By 
+default this is false.
+@see setShutdownWhenDestructed(), shutdown() **/
+bool getShutdownWhenDestructed() const;
+
 /** These are the operating modes for the Visualizer, with PassThrough the 
 default mode. See the documentation for the Visualizer class for more
 information about the modes. **/
@@ -440,9 +461,14 @@ and slider or mouse moves. See Visualizer::InputListener for more
 information. The Visualizer takes over ownership of the supplied \a listener 
 object and deletes it upon destruction of the Visualizer; don't delete it 
 yourself.
-@return A reference to this Visualizer so that you can chain "add" and
-"set" calls. **/
-Visualizer& addInputListener(InputListener* listener);
+@return An integer index you can use to find this input listener again. **/
+int addInputListener(InputListener* listener);
+/** Return the count of input listeners added with addInputListener(). **/
+int getNumInputListeners() const;
+/** Return a const reference to the i'th input listener. **/
+const InputListener& getInputListener(int i) const;
+/** Return a writable reference to the i'th input listener. **/
+InputListener& updInputListener(int i);
 
 /** Add a new frame controller to this Visualizer, methods of which will be
 called just prior to rendering a frame for the purpose of simulation-controlled
@@ -450,9 +476,14 @@ camera positioning and other frame-specific effects.
 See Visualizer::FrameController for more information. The Visualizer takes 
 over ownership of the supplied \a controller object and deletes it upon 
 destruction of the Visualizer; don't delete it yourself. 
-@return A reference to this Visualizer so that you can chain "add" and
-"set" calls. **/
-Visualizer& addFrameController(FrameController* controller);
+@return An integer index you can use to find this frame controller again. **/
+int addFrameController(FrameController* controller);
+/** Return the count of frame controllers added with addFrameController(). **/
+int getNumFrameControllers() const;
+/** Return a const reference to the i'th frame controller. **/
+const FrameController& getFrameController(int i) const;
+/** Return a writable reference to the i'th frame controller. **/
+FrameController& updFrameController(int i);
 
 /**@}**/
 
@@ -557,34 +588,53 @@ Visualizer& addSlider(const String& title, int id, Real min, Real max, Real valu
 but attached to the indicated body. The supplied transform is applied on top of
 whatever transform is already contained in the supplied geometry, and any body 
 index stored with the geometry is ignored. 
-@return A reference to this Visualizer so that you can chain "add" and
-"set" calls. **/
-Visualizer& addDecoration(MobilizedBodyIndex, const Transform& X_BD, 
-                   const DecorativeGeometry&);
+@return An integer index you can use to find this decoration again. **/
+int addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, 
+                  const DecorativeGeometry& geometry);
+/** Return the count of decorations added with addDecoration(). **/
+int getNumDecorations() const;
+/** Return a const reference to the i'th decoration. **/
+const DecorativeGeometry& getDecoration(int i) const;
+/** Return a writable reference to the i'th decoration. This is allowed for
+a const %Visualizer since it is just a decoration. **/
+DecorativeGeometry& updDecoration(int i) const;
 
 /** Add an always-present rubber band line, modeled after the DecorativeLine 
 supplied here. The end points of the supplied line are ignored, however: at 
 run time the spatial locations of the two supplied stations are calculated and 
 used as end points. 
-@return A reference to this Visualizer so that you can chain "add" and
-"set" calls. **/
-Visualizer& addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
-                        MobilizedBodyIndex b2, const Vec3& station2,
-                        const DecorativeLine& line);
+@return An integer index you can use to find this rubber band line again. **/
+int addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
+                      MobilizedBodyIndex b2, const Vec3& station2,
+                      const DecorativeLine& line);
+/** Return the count of rubber band lines added with addRubberBandLine(). **/
+int getNumRubberBandLines() const;
+/** Return a const reference to the i'th rubber band line. **/
+const DecorativeLine& getRubberBandLine(int i) const;
+/** Return a writable reference to the i'th rubber band line. This is allowed
+for a const %Visualizer since it is just a decoration. **/
+DecorativeLine& updRubberBandLine(int i) const;
 
 /** Add a DecorationGenerator that will be invoked to add dynamically generated
 geometry to each frame of the the scene. The Visualizer assumes ownership of the 
 object passed to this method, and will delete it when the Visualizer is 
 deleted. 
-@return A reference to this Visualizer so that you can chain "add" and
-"set" calls. **/
-Visualizer& addDecorationGenerator(DecorationGenerator* generator);
+@return An integer index you can use to find this decoration generator 
+again. **/
+int addDecorationGenerator(DecorationGenerator* generator);
+/** Return the count of decoration generators added with 
+addDecorationGenerator(). **/
+int getNumDecorationGenerators() const;
+/** Return a const reference to the i'th decoration generator. **/
+const DecorationGenerator& getDecorationGenerator(int i) const;
+/** Return a writable reference to the i'th decoration generator. **/
+DecorationGenerator& updDecorationGenerator(int i);
 /**@}**/
 
 /** @name                Frame control methods
 These methods can be called prior to rendering a frame to control how the 
 camera is positioned for that frame. These can be invoked from within a
-FrameControl object for runtime camera control and other effects. **/
+FrameController object for runtime camera control and other effects. **/
 /**@{**/
 
 /** Set the transform defining the position and orientation of the camera.

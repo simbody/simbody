@@ -155,7 +155,7 @@ void calcX_FM(const SBStateDigest& sbs,
               const Real* qCache, int nQCache,
               Transform&  X_F0M0) const
 {
-    X_F0M0.updP() = 0.; // This joint can't translate.
+    X_F0M0.updP() = 0; // This joint can't translate.
     if (this->getUseEulerAngles(sbs.getModelVars())) {
         assert(q && nq==3 && qCache && nQCache==AnglePoolSize);
         X_F0M0.updR().setRotationToBodyFixedXYZ // 18 flops
@@ -323,7 +323,7 @@ void calcQDot(
 {
     const SBModelVars& mv = sbs.getModelVars();
     const SBTreePositionCache& pc = sbs.getTreePositionCache();
-    const Vec3 w_FM_M = Vec2::getAs(u).append1(0); // angular velocity of M in F, exp in M (with wz=0) 
+    const Vec3 w_FM_M = Vec2::getAs(u).append1(Real(0)); // angular velocity of M in F, exp in M (with wz=0) 
     if (this->getUseEulerAngles(mv)) {
         Vec3::updAs(qdot) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(this->fromQVec3(sbs.getQ(),0),
                                     w_FM_M); // need w in *body*, not parent
@@ -342,8 +342,8 @@ void calcQDotDot(
 {
     const SBModelVars&          mv = sbs.getModelVars();
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
-    const Vec3 w_FM_M     = this->fromU(sbs.getU()).append1(0); // angular velocity of M in F, exp in M (with wz=0)
-    const Vec3 w_FM_M_dot = Vec2::getAs(udot).append1(0);
+    const Vec3 w_FM_M     = this->fromU(sbs.getU()).append1(Real(0)); // angular velocity of M in F, exp in M (with wz=0)
+    const Vec3 w_FM_M_dot = Vec2::getAs(udot).append1(Real(0));
 
     if (this->getUseEulerAngles(mv)) {
         Vec3::updAs(qdotdot) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
@@ -373,9 +373,9 @@ void setMobilizerDefaultPositionValues(
     if (this->getUseEulerAngles(mv)) {
         //TODO: kludge
         this->toQuat(q) = Vec4(0); // clear unused element
-        this->toQ(q) = 0.;
+        this->toQ(q) = 0;
     }
-    else this->toQuat(q) = Vec4(1.,0.,0.,0.);
+    else this->toQuat(q) = Vec4(1,0,0,0);
 }
 
 bool enforceQuaternionConstraints(

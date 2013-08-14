@@ -293,7 +293,7 @@ public:
             }
             prevPt = cur;
 
-            geometry.push_back(DecorativeFrame(.2).setTransform(Kfs[i]));
+            geometry.push_back(DecorativeFrame(Real(.2)).setTransform(Kfs[i]));
         }
     }
 

@@ -145,7 +145,7 @@ void calcX_FM(const SBStateDigest& sbs,
 
     X_F0M0.updR().setRotationToBodyFixedXYZ // 18 flops
         (Vec3::getAs(&qCache[CosQ]), Vec3::getAs(&qCache[SinQ]));
-    X_F0M0.updP() = 0.; // This joint can't translate.
+    X_F0M0.updP() = 0; // This joint can't translate.
 }
 
 // Generalized speeds are the Euler angle derivatives. The H_FM matrix maps

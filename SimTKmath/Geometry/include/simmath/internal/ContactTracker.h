@@ -129,7 +129,8 @@ virtual bool initializeContact
     Contact&               contactStatus) const = 0;
 
 /** Given two shapes for which implicit functions are known, and a rough-guess
-contact point for each shape, refine those contact points to obtain the nearest
+contact point for each shape (each measured and expressed in its own surface's
+frame), refine those contact points to obtain the nearest
 pair that satisfies contact conditions to a requested accuracy. For separated
 objects, these will be the points of closest approach between the surfaces; for
 contacting objects these are the points of maximum penetration.
@@ -147,35 +148,49 @@ Note that these equations could be satisfied by incorrect points that have the
 opposite normals because the perpendicularity conditions can't distinguish n
 from -n. We are depending on having an initial guess that is good enough so
 that we find the correct solution by going downhill from there. Don't try to
-use this if you don't have a reasonably good guess already. 
+use this if you don't have a reasonably good guess already. For \e convex 
+implicit surfaces you can use estimateConvexImplicitPairContactUsingMPR() to 
+get a good start if the surfaces are in contact.
 
 @returns \c true if the requested accuracy is achieved but returns its best
 attempt at the refined points regardless. **/
 static bool refineImplicitPair
-   (const ContactGeometry& shapeA, Vec3& pointP,    // in/out
-    const ContactGeometry& shapeB, Vec3& pointQ,    // in/out
+   (const ContactGeometry& shapeA, Vec3& pointP_A,    // in/out
+    const ContactGeometry& shapeB, Vec3& pointQ_B,    // in/out
     const Transform& X_AB, Real accuracyRequested,
     Real& accuracyAchieved, int& numIterations);
 
-/** Use Minkowski Portal Refinement (XenoCollide method by G. Snethen) to
-generate a reasonably good starting estimate of the contact points between
-two implicit shapes that are in contact. MPR cannot find those points if the
-surfaces are separated. Returns \c true if a contact was found; otherwise
-the returned points are meaningless. **/
-static bool estimateImplicitPairContactUsingMPR
-   (const ContactGeometry& shapeA, const ContactGeometry& shapeB, 
-    const Transform& X_AB, 
-    Vec3& pointP, Vec3& pointQ, int& numIterations);
-
+/** Calculate the error function described in refineImplicitPair(). **/
 static Vec6 findImplicitPairError
    (const ContactGeometry& shapeA, const Vec3& pointP,
     const ContactGeometry& shapeB, const Vec3& pointQ,
     const Transform& X_AB);
 
+/** Calculate the partial derivatives of the findImplicitPairError() error
+function with respect to the locations of the two points in their own surface's
+frame. This might be an approximation of the derivative; it needs only to be
+good enough for refineImplicitPair() to get usable directional information. **/
 static Mat66 calcImplicitPairJacobian
    (const ContactGeometry& shapeA, const Vec3& pointP,
     const ContactGeometry& shapeB, const Vec3& pointQ,
     const Transform& X_AB, const Vec6& err0);
+
+/** Use Minkowski Portal Refinement (XenoCollide method by G. Snethen) to
+generate a reasonably good starting estimate of the contact points between
+two \e convex implicit shapes that may be in contact. MPR cannot find those 
+points if the surfaces are separated. Returns \c false if the two shapes
+are definitely \e not in contact (MPR found a separating plane); in that case
+the returned direction is the separating plane normal and the points are the
+support points that prove separation. Otherwise, there \e might be contact
+and the points are estimates of the contact point on each surface, determined
+roughly to the requested accuracy. You still have to refine these and it might 
+turn out there is no contact after all. **/
+static bool estimateConvexImplicitPairContactUsingMPR
+   (const ContactGeometry& shapeA, const ContactGeometry& shapeB, 
+    const Transform& X_AB,
+    Vec3& pointP_A, Vec3& pointQ_B, UnitVec3& dirInA,
+    int& numIterations);
+
 
 //--------------------------------------------------------------------------
                                 private:
@@ -538,7 +553,8 @@ virtual bool initializeContact
 //==============================================================================
 //                GENERAL IMPLICIT SURFACE PAIR CONTACT TRACKER
 //==============================================================================
-/** This ContactTracker handles contacts between two arbitrary smooth surfaces
+/** (TODO: not implemented yet) This ContactTracker handles contacts between 
+two arbitrary smooth surfaces
 by using their implicit functions, with no shape restrictions. Each surface
 must provide a bounding hierarchy with "safe" leaf objects, meaning that
 interactions between a leaf of each surface yield at most one solution.

@@ -61,9 +61,11 @@ class HuntCrossleyForceImpl::Parameters {
 public:
     Parameters() : stiffness(1), dissipation(0), staticFriction(0), dynamicFriction(0), viscousFriction(0) {
     }
-    Parameters(Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) :
-            stiffness(std::pow(stiffness, 2.0/3.0)), dissipation(dissipation), staticFriction(staticFriction), dynamicFriction(dynamicFriction), viscousFriction(viscousFriction) {
-    }
+    Parameters(Real stiffness, Real dissipation, 
+               Real staticFriction, Real dynamicFriction, Real viscousFriction) 
+    :   stiffness(std::pow(stiffness, Real(2./3.))), dissipation(dissipation), 
+        staticFriction(staticFriction), dynamicFriction(dynamicFriction), 
+        viscousFriction(viscousFriction) {}
     Real stiffness, dissipation, staticFriction, 
          dynamicFriction, viscousFriction;
 };

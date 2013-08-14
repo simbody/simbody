@@ -49,7 +49,7 @@ namespace Ipopt
     static void FillValuesFromVector(Index dim, const Vector& vector, Number* values);
 
     /** put the values from the double* back into the vector */
-    static void PutValuesInVector(Index dim, const double* values, Vector& vector);
+    static void PutValuesInVector(Index dim, const Number* values, Vector& vector);
     //@}
 
     DECLARE_STD_EXCEPTION(UNKNOWN_MATRIX_TYPE);

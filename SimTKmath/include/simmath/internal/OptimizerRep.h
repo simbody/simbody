@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
  * Authors: Jack Middleton                                                    *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -70,12 +70,14 @@ public:
          of(0),
          jacDiff(0),
          gradDiff(0),
-         convergenceTolerance(1e-3),
-         constraintTolerance(1e-4),
+         convergenceTolerance(Real(1e-3)),
+         constraintTolerance(Real(1e-4)),
          maxIterations(1000),
          limitedMemoryHistory(50),
          diagnosticsLevel(0),
          diffMethod(Differentiator::CentralDifference),
+         objectiveEstimatedAccuracy(SignificantReal),
+         constraintsEstimatedAccuracy(SignificantReal),
          numericalGradient(false), 
          numericalJacobian(false)
 
@@ -88,15 +90,16 @@ public:
          of(0),
          jacDiff(0),
          gradDiff(0),
-         convergenceTolerance(1e-3),
-         constraintTolerance(1e-4),
+         convergenceTolerance(Real(1e-3)),
+         constraintTolerance(Real(1e-4)),
          maxIterations(1000),
          limitedMemoryHistory(50),
          diagnosticsLevel(0),
          diffMethod(Differentiator::CentralDifference),
+         objectiveEstimatedAccuracy(SignificantReal),
+         constraintsEstimatedAccuracy(SignificantReal),
          numericalGradient(false), 
          numericalJacobian(false)
-
     {
     }
 
@@ -113,7 +116,6 @@ public:
     void setConstraintTolerance( Real tolerance );
     void setMaxIterations( const int iter );
     void setLimitedMemoryHistory( const int history );
-    void setDifferentiatorMethod( Differentiator::Method method);
 
     bool setAdvancedStrOption( const std::string &option, const std::string &value );
     bool setAdvancedRealOption( const std::string &option, const Real value );
@@ -128,10 +130,18 @@ public:
     void  setMyHandle(Optimizer& cp) {myHandle = &cp;}
     const Optimizer& getMyHandle() const {assert(myHandle); return *myHandle;}
     void  clearMyHandle() {myHandle=0;} 
-    void useNumericalGradient( const bool flag ); 
-    void useNumericalJacobian( const bool flag );  
+
+    void useNumericalGradient(bool flag, Real objEstAccuracy); 
+    void useNumericalJacobian(bool flag, Real consEstAccuracy);  
+    void setDifferentiatorMethod( Differentiator::Method method);
+
     bool isUsingNumericalGradient() const { return numericalGradient; }
     bool isUsingNumericalJacobian() const { return numericalJacobian; }
+    Differentiator::Method getDifferentiatorMethod() const {return diffMethod;}
+    Real getEstimatedAccuracyOfObjective() const 
+    {   return objectiveEstimatedAccuracy; }
+    Real getEstimatedAccuracyOfConstraints() const 
+    {   return constraintsEstimatedAccuracy; }
 
     const Differentiator& getGradientDifferentiator() const {
         assert(gradDiff);
@@ -169,6 +179,8 @@ protected:
     int maxIterations;
     int limitedMemoryHistory;
     Differentiator::Method   diffMethod;
+    Real objectiveEstimatedAccuracy;
+    Real constraintsEstimatedAccuracy;
 
 private:
     const OptimizerSystem* sysp;
@@ -179,10 +191,6 @@ private:
 
     SysObjectiveFunc  *of;   
     SysConstraintFunc *cf; 
-    void initNumericalJac();
-    void disableNumericalJac();
-    void initNumericalGrad();
-    void disableNumericalGrad();
 
     std::map<std::string, std::string> advancedStrOptions;
     std::map<std::string, Real> advancedRealOptions;

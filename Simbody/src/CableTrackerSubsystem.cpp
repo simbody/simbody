@@ -47,21 +47,21 @@ bool CableTrackerSubsystem::isInstanceOf(const Subsystem& s) {
 const CableTrackerSubsystem& CableTrackerSubsystem::
 downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const CableTrackerSubsystem&>(s);
+    return static_cast<const CableTrackerSubsystem&>(s);
 }
 CableTrackerSubsystem& CableTrackerSubsystem::
 updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<CableTrackerSubsystem&>(s);
+    return static_cast<CableTrackerSubsystem&>(s);
 }
 
 const CableTrackerSubsystem::Impl& CableTrackerSubsystem::
 getImpl() const {
-    return dynamic_cast<const Impl&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const Impl&>(getSubsystemGuts());
 }
 CableTrackerSubsystem::Impl& CableTrackerSubsystem::
 updImpl() {
-    return dynamic_cast<Impl&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<Impl&>(updSubsystemGuts());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use

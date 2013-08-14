@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -35,12 +35,16 @@ namespace SimTK {
 class SimTK_SimTKCOMMON_EXPORT PolygonalMeshImpl 
 :   public PIMPLImplementation<PolygonalMesh, PolygonalMeshImpl> {
 public:
-    PolygonalMeshImpl();
+    PolygonalMeshImpl() {faceVertexStart.push_back(0);}
     ~PolygonalMeshImpl() {}
-    PolygonalMeshImpl* clone() const;
-    Array_<Vec3> vertices;
-    Array_<int> faceVertexIndex;
-    Array_<int> faceVertexStart;
+    PolygonalMeshImpl* clone() const{return new PolygonalMeshImpl(*this);}
+    void clear() {
+        vertices.clear(); faceVertexIndex.clear(); faceVertexStart.clear();
+        faceVertexStart.push_back(0);
+    }
+    Array_<Vec3>    vertices;
+    Array_<int>     faceVertexIndex;
+    Array_<int>     faceVertexStart;
 };
 
 } // namespace SimTK

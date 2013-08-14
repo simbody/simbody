@@ -212,11 +212,11 @@ public:
     {assert(referenceCount);return --referenceCount;}
 
     // return The total number of elements in the matrix f
-    int getFnelt() const {return _ff.nelt();}
+    int getFnelt() const {return (int)_ff.nelt();}
     // return The number of elements in the vector X
-    int getXnelt() const {return _x.nelt();}
+    int getXnelt() const {return (int)_x.nelt();}
     // return  The number of elements in the vector Y
-    int getYnelt() const {return _y.nelt();}
+    int getYnelt() const {return (int)_y.nelt();}
     
     // Methods for debugging and testing
 

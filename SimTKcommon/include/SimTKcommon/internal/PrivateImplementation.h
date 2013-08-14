@@ -183,10 +183,13 @@ public:
     int getImplHandleCount() const;
 
 protected:
-    /// This serves as the default constructor, which will construct the handle
-    /// with an empty implementation, and as a way to construct a handle referencing
-    /// an existing implementation object.
-    explicit PIMPLHandle(IMPL* p=0);
+    /// The default constructor makes this an empty handle.
+    PIMPLHandle() : impl(0) {}
+
+    /// This provides consruction of a handle referencing an existing 
+    /// implementation object. If the supplied pointer is null the result is
+    /// the same as the default constructor.
+    explicit PIMPLHandle(IMPL* p);
 
     /// Note that the destructor is non-virtual. This is a concrete class and so
     /// should be all the handle classes derived from it. If this handle is the 
@@ -198,7 +201,7 @@ protected:
 
     /// The copy constructor makes either a deep (value) or shallow (reference) copy
     /// of the supplied source PIMPL object, based on whether this is a "pointer
-    /// sematics" (PTR=true) or "object (value) semantics" (PTR=false, default)
+    /// semantics" (PTR=true) or "object (value) semantics" (PTR=false, default)
     /// class.
     /// @see referenceAssign
     /// @see copyAssign
@@ -350,10 +353,10 @@ static DERIVED& updDowncast(PARENT& p);
 
 #define SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(DERIVED, DERIVED_IMPL, PARENT) \
 const DERIVED_IMPL& DERIVED::getImpl() const {\
-    return dynamic_cast<const DERIVED_IMPL&>(PARENT::getImpl());\
+    return SimTK_DYNAMIC_CAST_DEBUG<const DERIVED_IMPL&>(PARENT::getImpl());\
 }\
 DERIVED_IMPL& DERIVED::updImpl() {\
-    return dynamic_cast<DERIVED_IMPL&>(PARENT::updImpl());\
+    return SimTK_DYNAMIC_CAST_DEBUG<DERIVED_IMPL&>(PARENT::updImpl());\
 }\
 const PARENT& DERIVED::upcast() const {\
     return static_cast<const PARENT&>(*this);\

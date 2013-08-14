@@ -1006,6 +1006,204 @@ void testCompositeInertia() {
     //cout << "udots=" << state.getUDot() << endl;
 }
 
+void testTaskJacobians() {
+    MultibodySystem system;
+    MyForceImpl* frcp;
+    makeSystem(false, system, frcp);
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+
+    State state = system.realizeTopology();
+    const int nq = state.getNQ();
+    const int nu = state.getNU();
+    const int nb = matter.getNumBodies();
+
+    // Attainable accuracy drops with problem size.
+    const Real Slop = nu*SignificantReal;
+
+    system.realizeModel(state);
+    // Randomize state.
+    state.updQ() = Test::randVector(nq);
+    state.updU() = Test::randVector(nu);
+
+    system.realize(state, Stage::Position);
+
+    Matrix_<SpatialVec> J;
+    Matrix Jmat, Jmat2;
+    matter.calcSystemJacobian(state, J);
+    SimTK_TEST_EQ(J.nrow(), nb); SimTK_TEST_EQ(J.ncol(), nu);
+    matter.calcSystemJacobian(state, Jmat);
+    SimTK_TEST_EQ(Jmat.nrow(), 6*nb); SimTK_TEST_EQ(Jmat.ncol(), nu);
+
+    // Unpack J into Jmat2 and compare with Jmat.
+    Jmat2.resize(6*nb, nu);
+    for (int row=0; row < nb; ++row) {
+        const int nxtr = 6*row; // row index into scalar matrix
+        for (int col=0; col < nu; ++col) {
+            for (int k=0; k<3; ++k) {
+                Jmat2(nxtr+k, col) = J(row,col)[0][k];
+                Jmat2(nxtr+3+k, col) = J(row,col)[1][k];
+            }
+        }
+    }
+    // These should be exactly the same.
+    SimTK_TEST_EQ_TOL(Jmat2, Jmat, SignificantReal);
+
+    Vector randU = 100.*Test::randVector(nu), resultU1, resultU2;
+    Vector_<SpatialVec> randF(nb), resultF1, resultF2;
+    for (int i=0; i<nb; ++i) randF[i] = 100.*Test::randSpatialVec();
+
+    matter.multiplyBySystemJacobian(state, randU, resultF1);
+    resultF2 = J*randU;
+    SimTK_TEST_EQ_TOL(resultF1, resultF2, Slop);
+
+    matter.multiplyBySystemJacobianTranspose(state, randF, resultU1);
+    resultU2 = ~J*randF;
+    SimTK_TEST_EQ_TOL(resultU1, resultU2, Slop);
+
+    // See if Station Jacobian can be used to duplicate the translation
+    // rows of the System Jacobian, and if Frame Jacobian can be used to
+    // duplicate the whole thing.
+    Array_<MobilizedBodyIndex> allBodies(nb);
+    for (int i=0; i<nb; ++i) allBodies[i]=MobilizedBodyIndex(i);
+    Array_<Vec3> allOrigins(nb, Vec3(0));
+
+    Matrix_<Vec3> JS, JS2, JSbyrow;
+    Matrix_<SpatialVec> JF, JF2, JFbyrow;
+
+    matter.calcStationJacobian(state, allBodies, allOrigins, JS);
+    matter.calcFrameJacobian(state, allBodies, allOrigins, JF);
+    for (int i=0; i<nb; ++i) {
+        for (int j=0; j<nu; ++j) {
+            SimTK_TEST_EQ(JS(i,j), J(i,j)[1]);
+            SimTK_TEST_EQ(JF(i,j), J(i,j));
+        }
+    }
+
+    // Now use random stations to calculate JS & JF.
+    Array_<Vec3> randS(nb);
+    for (int i=0; i<nb; ++i) randS[i] = 10.*Test::randVec3();
+    matter.calcStationJacobian(state, allBodies, randS, JS);
+    matter.calcFrameJacobian(state, allBodies, randS, JF);
+
+    // Recalculate one row at a time to test non-contiguous memory handling.
+    // Do it backwards just to show off.
+    JSbyrow.resize(nb, nu); JFbyrow.resize(nb, nu);
+    for (int i=nb-1; i >= 0; --i) {
+        matter.calcStationJacobian(state, allBodies[i], randS[i], JSbyrow[i]);
+        matter.calcFrameJacobian(state, allBodies[i], randS[i], JFbyrow[i]);
+    }
+    SimTK_TEST_EQ(JS, JSbyrow);
+    SimTK_TEST_EQ(JF, JFbyrow);
+
+    // Calculate JS2=JS and JF2=JF again using multiplication by mobility-space 
+    // unit vectors.
+    JS2.resize(nb, nu); JF2.resize(nb, nu);
+    Vector zeroU(nu, 0.);
+    for (int i=0; i < nu; ++i) {
+        zeroU[i] = 1;
+        matter.multiplyByStationJacobian(state, allBodies, randS, zeroU, JS2(i));
+        matter.multiplyByFrameJacobian(state, allBodies, randS, zeroU, JF2(i));
+        zeroU[i] = 0;
+    }
+    SimTK_TEST_EQ_TOL(JS2, JS, Slop);
+    SimTK_TEST_EQ_TOL(JF2, JF, Slop);
+
+    // Calculate JS2t=~JS using multiplication by force-space unit vectors.
+    Matrix_<Row3> JS2t(nu,nb);
+    Vector_<Vec3> zeroF(nb, Vec3(0));
+    // While we're at it, let's test non-contiguous vectors by filling in
+    // this scalar version and using its non-contig rows as column temps.
+    Matrix JS3mat(3*nb,nu);
+    for (int b=0; b < nb; ++b) {
+        for (int k=0; k<3; ++k) {
+            zeroF[b][k] = 1;
+            RowVectorView JS3matr = JS3mat[3*b+k];
+            matter.multiplyByStationJacobianTranspose(state, allBodies, randS, 
+                zeroF, ~JS3matr);
+            zeroF[b][k] = 0;
+            for (int u=0; u < nu; ++u)
+                JS2t(u,b)[k] = JS3matr[u];
+        }
+    }
+    SimTK_TEST_EQ_TOL(JS2, ~JS2t, Slop); // we'll check JS3mat below
+
+    // Calculate JF2t=~JF using multiplication by force-space unit vectors.
+    Matrix_<SpatialRow> JF2t(nu,nb);
+    Vector_<SpatialVec> zeroSF(nb, SpatialVec(Vec3(0)));
+    // While we're at it, let's test non-contiguous vectors by filling in
+    // this scalar version and using its non-contig rows as column temps.
+    Matrix JF3mat(6*nb,nu);
+    for (int b=0; b < nb; ++b) {
+        for (int k=0; k<6; ++k) {
+            zeroSF[b][k/3][k%3] = 1;
+            RowVectorView JF3matr = JF3mat[6*b+k];
+            matter.multiplyByFrameJacobianTranspose(state, allBodies, randS, 
+                zeroSF, ~JF3matr);
+            zeroSF[b][k/3][k%3] = 0;
+            for (int u=0; u < nu; ++u)
+                JF2t(u,b)[k/3][k%3] = JF3matr[u];
+        }
+    }
+    SimTK_TEST_EQ_TOL(JF2, ~JF2t, Slop); // we'll check JS3mat below
+
+
+    // All three methods match. Now let's see if they are right by shifting
+    // the System Jacobian to the new stations.
+
+    for (int i=0; i<nb; ++i) {
+        const MobilizedBody& mobod = matter.getMobilizedBody(allBodies[i]);
+        const Rotation& R_GB = mobod.getBodyRotation(state);
+        const Vec3 S_G = R_GB*randS[i];
+        for (int j=0; j<nu; ++j) {
+            const Vec3 w = J(i,j)[0];
+            const Vec3 v = J(i,j)[1];
+            const Vec3 vJ = v + w % S_G; // Shift
+            const Vec3 vS = JS2(i,j);
+            const SpatialVec vF = JF2(i,j);
+            SimTK_TEST_EQ(vS, vJ);
+            SimTK_TEST_EQ(vF, SpatialVec(w, vJ));
+        }
+    }
+
+
+    // Now create a scalar version of JS and make sure it matches the Vec3 one.
+    Matrix JSmat, JSmat2, JFmat, JFmat2;
+
+    matter.calcStationJacobian(state, allBodies, randS, JSmat);
+    matter.calcFrameJacobian(state, allBodies, randS, JFmat);
+    SimTK_TEST_EQ(JSmat.nrow(), 3*nb); SimTK_TEST_EQ(JSmat.ncol(), nu);
+    SimTK_TEST_EQ(JFmat.nrow(), 6*nb); SimTK_TEST_EQ(JFmat.ncol(), nu);
+
+    SimTK_TEST_EQ_TOL(JSmat, JS3mat, Slop); // same as above?
+    SimTK_TEST_EQ_TOL(JFmat, JF3mat, Slop); // same as above?
+
+    // Unpack JS into JSmat2 and compare with JSmat.
+    JSmat2.resize(3*nb, nu);
+    for (int row=0; row < nb; ++row) {
+        const int nxtr = 3*row; // row index into scalar matrix
+        for (int col=0; col < nu; ++col) {
+            for (int k=0; k<3; ++k) {
+                JSmat2(nxtr+k, col) = JS(row,col)[k];
+            }
+        }
+    }
+    // These should be exactly the same.
+    SimTK_TEST_EQ_TOL(JSmat2, JSmat, SignificantReal);
+
+    // Unpack JF into JFmat2 and compare with JFmat.
+    JFmat2.resize(6*nb, nu);
+    for (int row=0; row < nb; ++row) {
+        const int nxtr = 6*row; // row index into scalar matrix
+        for (int col=0; col < nu; ++col) {
+            for (int k=0; k<6; ++k) {
+                JFmat2(nxtr+k, col) = JF(row,col)[k/3][k%3];
+            }
+        }
+    }
+    // These should be exactly the same.
+    SimTK_TEST_EQ_TOL(JFmat2, JFmat, SignificantReal);
+}
+
 int main() {
     SimTK_START_TEST("TestMassMatrix");
         SimTK_SUBTEST(testRel2Cart);
@@ -1013,6 +1211,7 @@ int main() {
         SimTK_SUBTEST(testCompositeInertia);
         SimTK_SUBTEST(testUnconstrainedSystem);
         SimTK_SUBTEST(testConstrainedSystem);
+        SimTK_SUBTEST(testTaskJacobians);
     SimTK_END_TEST();
 }
 

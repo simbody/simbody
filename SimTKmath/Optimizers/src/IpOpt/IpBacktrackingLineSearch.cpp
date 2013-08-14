@@ -98,7 +98,7 @@ namespace Ipopt
     roptions->AddLowerBoundedNumberOption(
       "tiny_step_tol",
       "Tolerance for detecting numerically insignificant steps.",
-      0.0, false, 10.0*std::numeric_limits<double>::epsilon(),
+      Number(0), false, 10*std::numeric_limits<Number>::epsilon(),
       "If the search direction in the primal variables (x and s) is, in "
       "relative terms for each component, less than this value, the "
       "algorithm accepts the full step without line search.  If this happens "
@@ -107,7 +107,7 @@ namespace Ipopt
     roptions->AddLowerBoundedNumberOption(
       "tiny_step_y_tol",
       "Tolerance for quitting because of numerically insignificant steps.",
-      0.0, false, 1e-2,
+      Number(0), false, Number(1e-2),
       "If the search direction in the primal variables (x and s) is, in "
       "relative terms for each component, repeatedly less than tiny_step_tol, "
       "and the step in the y variables is smaller than this threshold, the "
@@ -144,7 +144,7 @@ namespace Ipopt
     roptions->AddLowerBoundedNumberOption(
       "expect_infeasible_problem_ctol",
       "Threshold for disabling \"expect_infeasible_problem\" option.",
-      0.0, false, 1e-3,
+      Number(0), false, Number(1e-3),
       "If the constraint violation becomes smaller than this threshold, "
       "the \"expect_infeasible_problem\" heuristics in the filter line "
       "search are disabled. If the problem is square, this options is set to "
@@ -161,7 +161,7 @@ namespace Ipopt
     roptions->AddLowerBoundedNumberOption(
       "soft_resto_pderror_reduction_factor",
       "Required reduction in primal-dual error in the soft restoration phase.",
-      0.0, false, (1.0 - 1e-4),
+      Number(0), false, Number(1.0 - 1e-4),
       "The soft restoration phase attempts to reduce the "
       "primal-dual error with regular steps. If the damped "
       "primal-dual step (damped only to satisfy the "
@@ -831,8 +831,8 @@ namespace Ipopt
                                            1., *IpCq().trial_jac_dT_times_vec(*delta->y_d()),
                                            0.);
 
-      Number a = pow(new_jac_times_delta_y->Nrm2(), 2.) +
-                 pow(delta->y_d()->Nrm2(), 2.);
+      Number a = std::pow(new_jac_times_delta_y->Nrm2(), Number(2)) +
+                 std::pow(delta->y_d()->Nrm2(), Number(2));
       Number b = dual_inf_x->Dot(*new_jac_times_delta_y) -
                  dual_inf_s->Dot(*delta->y_d());
 

@@ -43,6 +43,10 @@ namespace SimTK {
     // IMPLEMENTATION OF INTEGRATOR //
     //////////////////////////////////
 
+Integrator::~Integrator() {
+    delete rep; rep=0;
+}
+
 void Integrator::resetAllStatistics() {
     updRep().resetIntegratorStatistics();
     updRep().resetMethodStatistics();
@@ -322,6 +326,9 @@ IntegratorRep::IntegratorRep
     resetMethodStatistics();
 }
 
+//------------------------------------------------------------------------------
+//                               INITIALIZE
+//------------------------------------------------------------------------------
 
 void IntegratorRep::initialize(const State& initState) {
   try
@@ -357,7 +364,9 @@ void IntegratorRep::initialize(const State& initState) {
     // -- be sure to multiply by timescale before using.
     getSystem().calcEventTriggerInfo(getAdvancedState(), eventTriggerInfo);
 
-    // Project q's onto position constraint manifold to drive constraint errors
+    // Realize Time stage, apply prescribed motions, and attempt to project q's 
+    // and u's onto the
+    // position and velocity constraint manifolds to drive constraint errors
     // below accuracy*unitTolerance for each constraint. We'll allow project()
     // to throw an exception if it fails since we can't recover from here.
     // However, we won't set the LocalOnly option which means project() is
@@ -366,6 +375,23 @@ void IntegratorRep::initialize(const State& initState) {
     // finding a solution; we're not in a hurry here.
     realizeAndProjectKinematicsWithThrow(updAdvancedState(),
         ProjectOptions::ForceProjection, ProjectOptions::ForceFullNewton);
+
+    // Inform any state-using System elements (especially Measures) that we 
+    // are starting a simulation and give them a chance to initialize their own
+    // continuous (z) variables and discrete variables.
+
+    // Handler is allowed to throw an exception if it fails since we don't
+    // have a way to recover.
+    HandleEventsOptions handleOpts(getConstraintToleranceInUse());
+    HandleEventsResults results;
+    getSystem().handleEvents(updAdvancedState(),
+                             Event::Cause::Initialization,
+                             Array_<EventId>(),
+                             handleOpts, results);
+    SimTK_ERRCHK_ALWAYS(
+        results.getExitStatus()!=HandleEventsResults::ShouldTerminate,
+        "Integrator::initialize()", 
+        "An initialization event handler requested termination.");
 
     // Now evaluate the state through the Acceleration stage to calculate
     // the initial state derivatives.

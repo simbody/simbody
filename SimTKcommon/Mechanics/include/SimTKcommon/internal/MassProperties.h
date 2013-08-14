@@ -515,9 +515,9 @@ protected:
 // methods of the UnitInertia class in terms of Inertia methods. Be sure you
 // know that this is a unit-mass inertia!
 const UnitInertia_<P>& getAsUnitInertia() const
-{   return *reinterpret_cast<const UnitInertia_<P>*>(this); }
+{   return *static_cast<const UnitInertia_<P>*>(this); }
 UnitInertia_<P>& updAsUnitInertia()
-{   return *reinterpret_cast<UnitInertia_<P>*>(this); }
+{   return *static_cast<UnitInertia_<P>*>(this); }
 
 // If error checking is enabled (only in Debug mode), this 
 // method will run some tests on the current contents of this Inertia 
@@ -530,10 +530,10 @@ void errChk(const char* methodName) const {
 
     const Vec3P& d = I_OF_F.getDiag();  // moments
     const Vec3P& p = I_OF_F.getLower(); // products
-    const Real Ixx = d[0], Iyy = d[1], Izz = d[2];
-    const Real Ixy = p[0], Ixz = p[1], Iyz = p[2];
+    const RealP Ixx = d[0], Iyy = d[1], Izz = d[2];
+    const RealP Ixy = p[0], Ixz = p[1], Iyz = p[2];
 
-    SimTK_ERRCHK3(d >= 0, methodName,
+    SimTK_ERRCHK3(d >= -SignificantReal, methodName,
         "Diagonals of an Inertia matrix must be nonnegative; got %g,%g,%g.",
         (double)Ixx,(double)Iyy,(double)Izz);
 
@@ -1287,6 +1287,15 @@ ArticulatedInertia_& operator-=(const ArticulatedInertia_& src)
 /// Multiply an ArticulatedIneria by a SpatialVec (66 flops).
 SpatialVecP operator*(const SpatialVecP& v) const
 {   return SpatialVecP(J*v[0]+F*v[1], ~F*v[0]+M*v[1]); }
+
+/// Multiply an ArticulatedInertia by a row of SpatialVecs (66*N flops).
+template <int N>
+Mat<2,N,Vec3P> operator*(const Mat<2,N,Vec3P>& m) const {
+    Mat<2,N,Vec3P> res;
+    for (int j=0; j < N; ++j)
+        res.col(j) = (*this) * m.col(j); // above this*SpatialVec operator
+    return res;
+}
 
 /// Rigid-shift the origin of this Articulated Body Inertia P by a 
 /// shift vector s to produce a new ABI P'. The calculation is 

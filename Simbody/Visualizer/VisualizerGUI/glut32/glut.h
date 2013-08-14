@@ -38,7 +38,7 @@
    /* XXX This is from Win32's <winnt.h> */
 #  if defined(CALLBACK)
 #  else
-#   if (defined(_M_MRX000) || defined(_M_IX86) || defined(_M_ALPHA) || defined(_M_PPC)) && !defined(MIDL_PASS) || defined(__LCC__)
+#   if ((_MSC_VER >= 800) || defined(_STDCALL_SUPPORTED) || defined(_M_MRX000) || defined(_M_IX86) || defined(_M_ALPHA) || defined(_M_PPC)) && !defined(MIDL_PASS) || defined(__LCC__)
 #    define CALLBACK __stdcall
 #   else
 #    define CALLBACK

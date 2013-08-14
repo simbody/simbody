@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -31,21 +31,31 @@ Declares the MobilizedBody::Universal class. **/
 
 namespace SimTK {
 
-/// Two mobilities -- rotation about the x axis, followed by a rotation
-/// about the new y axis. This mobilizer is badly behaved when the
-/// second rotation is near 90 degrees.
+/** Two mobilities -- rotation about the x axis, followed by a rotation
+about the new y axis. The two generalized speeds u are the time derivatives of
+these angles so qdot=u for this mobilizer.
+
+This mobilizer is badly behaved when the second rotation is near 90 degrees (no
+worse than a real U-joint, though). **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::Universal : public MobilizedBody {
 public:
-    explicit Universal(Direction=Forward);
+    /** Default constructor provides an empty handle that can be assigned to
+    reference any %MobilizedBody::Universal. **/
+    Universal() {}
 
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    Universal(MobilizedBody& parent, const Body&, Direction=Forward);
+    /** Create a %Universal mobilizer between an existing parent (inboard) 
+    body P and a new child (outboard) body B created by copying the given 
+    \a bodyInfo into a privately-owned Body within the constructed 
+    %MobilizedBody object. Specify the mobilizer frames F fixed to parent P and
+    M fixed to child B. 
+    @see MobilizedBody for a diagram and explanation of terminology. **/
+    Universal(MobilizedBody& parent, const Transform& X_PF,
+              const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
-    Universal(MobilizedBody& parent, const Transform& inbFrame,
-              const Body&,           const Transform& outbFrame, Direction=Forward);
+    /** Abbreviated constructor you can use if the mobilizer frames are 
+    coincident with the parent and child body frames. **/
+    Universal(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
+
 
     Universal& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;

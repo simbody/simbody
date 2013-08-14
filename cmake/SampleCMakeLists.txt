@@ -1,6 +1,6 @@
 # Generic CMakeLists.txt for making a Simbody-using executable.
 # This shows how to use the provided FindSimbody.cmake to locate a Simbody
-# installation on you machine so you can use it from your own code.
+# installation on your machine so you can use it from your own code.
 # You will most likely want to copy some of these lines into your own
 # CMakeLists.txt rather than use this one verbatim.
 cmake_minimum_required(VERSION 2.8)

@@ -371,7 +371,7 @@ public:
         // If tRoot is too close to either end point we'll assume bad behavior
         // and guess a value 10% of the interval away from the end.
 
-        const Real BufferZone = std::max(0.1*h, minWindow/2);
+        const Real BufferZone = std::max(Real(0.1*h), minWindow/2);
         tRoot = std::max(tRoot, tLow  + BufferZone);
         tRoot = std::min(tRoot, tHigh - BufferZone);
 
@@ -735,8 +735,8 @@ protected:
     Real consTol;   // fraction of the constraint unit tolerance to be applied to each constraint
 
     void setAccuracyAndTolerancesFromUserRequests() {
-        accuracyInUse = (userAccuracy != -1. ? userAccuracy : 1e-3);
-        consTol       = (userConsTol  != -1. ? userConsTol  : 0.1*accuracyInUse); 
+        accuracyInUse = (userAccuracy != -1 ? userAccuracy : Real(1e-3));
+        consTol       = (userConsTol  != -1 ? userConsTol  : accuracyInUse/10); 
     }
     
     // If this is set to true, the next call to stepTo() will return immediately

@@ -42,7 +42,7 @@ void AbstractIntegratorRep::methodInitialize(const State& state) {
     if (userInitStepSize != -1)
         currentStepSize = userInitStepSize;
     else
-        currentStepSize = 0.1*getDynamicSystemTimescale();
+        currentStepSize = getDynamicSystemTimescale()/10;
     if (userMinStepSize != -1)
         currentStepSize = std::max(currentStepSize, userMinStepSize);
     if (userMaxStepSize != -1)
@@ -65,6 +65,11 @@ void AbstractIntegratorRep::createInterpolatedState(Real t) {
     const State&  advanced = getAdvancedState();
     State&        interp   = updInterpolatedState();
     interp = advanced; // pick up discrete stuff.
+
+    // Hermite interpolation requires state derivatives so we must realize
+    // end-of-step derivatives if they haven't already been realized.
+    realizeStateDerivatives(advanced);
+
     interpolateOrder3(getPreviousTime(),  getPreviousY(),  getPreviousYDot(),
                       advanced.getTime(), advanced.getY(), advanced.getYDot(),
                       t, interp.updY());
@@ -98,6 +103,10 @@ void AbstractIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
     Vector yinterp, dummy;
 
     assert(getPreviousTime() <= t && t <= advanced.getTime());
+
+    // Hermite interpolation requires state derivatives so we must realize
+    // end-of-step derivatives if they haven't already been realized.
+    realizeStateDerivatives(advanced);
     interpolateOrder3(getPreviousTime(),  getPreviousY(),  getPreviousYDot(),
                       advanced.getTime(), advanced.getY(), advanced.getYDot(),
                       t, yinterp);
@@ -382,13 +391,23 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
           // Ensure that all derivatives and other derived quantities are known,
           // including discrete state updates.
           realizeStateDerivatives(getAdvancedState());
-          // Swap the discrete state update cache entries with the state 
-          // variables.
-          updAdvancedState().autoUpdateDiscreteVariables();
           // Record derivative information and witness function values for step 
           // restarts.
           saveStateDerivsAsPrevious(getAdvancedState());
-          
+
+          // Derivatives at start of step have now been saved. We can update
+          // discrete state variables whose update is not permitted to cause a
+          // discontinuous change in the trajectory. These are implemented via
+          // auto-update state variables for which we just swap the cache
+          // entry (used to calculate most recent derivatives) with the
+          // corresponding state variable. Examples: record new min or max 
+          // value; updated memory for delay measures.
+
+          // Swap the discrete state update cache entries with their state 
+          // variables. Other than those cache entries, no other calculations 
+          // are invalidated.
+          updAdvancedState().autoUpdateDiscreteVariables();
+         
           //---------------- TAKE ONE STEP --------------------
           // Now take a step and see whether an event occurred.
           bool eventOccurred = takeOneStep(tMax, reportTime);
@@ -429,8 +448,8 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
 bool AbstractIntegratorRep::adjustStepSize
    (Real err, int errOrder, bool hWasArtificiallyLimited) 
 {
-    const Real Safety = 0.9, MinShrink = 0.1, MaxGrow = 5;
-    const Real HysteresisLow = 0.9, HysteresisHigh = 1.2;
+    const Real Safety = Real(0.9), MinShrink = Real(0.1), MaxGrow = 5;
+    const Real HysteresisLow = Real(0.9), HysteresisHigh = Real(1.2);
     
     Real newStepSize;
 
@@ -442,7 +461,7 @@ bool AbstractIntegratorRep::adjustStepSize
         newStepSize = MaxGrow * currentStepSize;
     else // choose best step for skating just below the desired accuracy
         newStepSize = Safety * currentStepSize
-                             * std::pow(getAccuracyInUse()/err, 1.0/errOrder);
+                             * std::pow(getAccuracyInUse()/err, 1/Real(errOrder));
 
     // If the new step is bigger than the old, don't make the change if the
     // old one was small for some unimportant reason (like reached a reporting
@@ -515,10 +534,18 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         // If we lose more than a small fraction of the step size we wanted
         // to take due to a need to stop at tMax, make a note of that so the
         // step size adjuster won't try to grow from the current step.
-        bool hWasArtificiallyLimited = (tMax < t0 + 0.95*currentStepSize);
-        t1 = std::min(tMax, t0+currentStepSize);
+        bool hWasArtificiallyLimited = false;
+        if (tMax < t0 + 0.95*currentStepSize) {
+            hWasArtificiallyLimited = true;
+            t1 = tMax; // tMax much smaller than current step size
+        } else if (tMax > t0 + 1.001*currentStepSize)
+            t1 = t0 + currentStepSize;  // tMax too big to reach in one step
+        else
+            t1 = tMax; // tMax is roughly t0+currentStepSize; try for it
+
         SimTK_ERRCHK1_ALWAYS(t1 > t0, "AbstractIntegrator::takeOneStep()",
             "Unable to advance time past %g.", t0);
+
         int errOrder;
         int numIterations=1; // non-iterative methods can ignore this
         //--------------------------------------------------------------------
@@ -526,7 +553,8 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         //--------------------------------------------------------------------
         Real errNorm=NaN; int worstY=-1;
         if (converged) {
-            errNorm = calcErrorNorm(advanced, yErrEst, worstY);
+            errNorm = (hasErrorControl ? calcErrorNorm(advanced,yErrEst,worstY)
+                                       : Real(0));
             statsConvergentIterations += numIterations;
         } else {
             errNorm = Infinity; // step didn't converge so error is *very* bad!
@@ -574,8 +602,15 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     // the trajectory, since it is invalid until the event handler is called 
     // to fix it.
 
-    realizeStateDerivatives(getAdvancedState());
     const Vector& e0 = getPreviousEventTriggers();
+    if (e0.size() == 0) {
+        // There are no witness functions to worry about in this system.
+        return false;
+    }
+
+    // TODO: this is indiscriminately evaluating expensive accelerations
+    // that are only needed if there are acceleration-level witness functions.
+    realizeStateDerivatives(getAdvancedState());
     const Vector& e1 = getAdvancedState().getEventTriggers();
     assert(e0.size() == e1.size() && 
            e0.size() == getAdvancedState().getNEventTriggers());

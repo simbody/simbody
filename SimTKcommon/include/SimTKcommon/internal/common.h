@@ -507,30 +507,42 @@ public:                                     \
     static size_type max_size() {return std::numeric_limits<int>::max();}   \
 };
 
+/** Use this macro to generate a cast that is dynamic_cast in Debug builds
+but static_cast in Release builds, for uses where you don't want to
+pay for the extra safety. Caution: these are not necessarily equivalent for
+dynamic types that use multiple inheritance; don't use this macro in that
+case, and don't use it where you are using dynamic_cast on a pointer to
+check what type of derived object you're looking at. **/
+#ifndef NDEBUG
+    #define SimTK_DYNAMIC_CAST_DEBUG dynamic_cast   // safe but slow
+#else
+    #define SimTK_DYNAMIC_CAST_DEBUG static_cast    // unsafe but fast
+#endif
+
 /** Add public static method declaration in class derived from an abstract
 parent to assist in downcasting objects of the parent type to the derived 
 type. **/
-#define SimTK_DOWNCAST(Derived,Parent) \
-    static bool isA(const Parent& p)                        \
-        { return dynamic_cast<const Derived*>(&p) != 0; }   \
-    static const Derived& downcast(const Parent& p)         \
-        { return dynamic_cast<const Derived&>(p); }         \
-    static Derived& updDowncast(Parent& p)                  \
-        { return dynamic_cast<Derived&>(p); }				\
-	static Derived& downcast(Parent& p)                     \
-        { return dynamic_cast<Derived&>(p); }
+#define SimTK_DOWNCAST(Derived,Parent)                          \
+    static bool isA(const Parent& p)                            \
+        { return dynamic_cast<const Derived*>(&p) != 0; }       \
+    static const Derived& downcast(const Parent& p)             \
+        { return SimTK_DYNAMIC_CAST_DEBUG<const Derived&>(p); } \
+    static Derived& updDowncast(Parent& p)                      \
+        { return SimTK_DYNAMIC_CAST_DEBUG<Derived&>(p); }	    \
+	static Derived& downcast(Parent& p)                         \
+        { return SimTK_DYNAMIC_CAST_DEBUG<Derived&>(p); }
 
 /** This is like SimTK_DOWNCAST except it allows for an intermediate "helper" 
 class between Derived and Parent. **/
-#define SimTK_DOWNCAST2(Derived,Helper,Parent) \
-    static bool isA(const Parent& p)                                        \
-        { return Helper::isA(p); }                                          \
-    static const Derived& downcast(const Parent& p)                         \
-        { return reinterpret_cast<const Derived&>(Helper::downcast(p)); }   \
-    static Derived& updDowncast(Parent& p)									\
-        { return reinterpret_cast<Derived&>(Helper::downcast(p)); }		    \
-	static Derived& downcast(Parent& p)                                     \
-        { return reinterpret_cast<Derived&>(Helper::downcast(p)); }
+#define SimTK_DOWNCAST2(Derived,Helper,Parent)                          \
+    static bool isA(const Parent& p)                                    \
+        { return Helper::isA(p); }                                      \
+    static const Derived& downcast(const Parent& p)                     \
+        { return static_cast<const Derived&>(Helper::downcast(p)); }    \
+    static Derived& updDowncast(Parent& p)							    \
+        { return static_cast<Derived&>(Helper::downcast(p)); }		    \
+	static Derived& downcast(Parent& p)                                 \
+        { return static_cast<Derived&>(Helper::downcast(p)); }
 
 
 /** Similar to the above but for private implementation abstract classes, that

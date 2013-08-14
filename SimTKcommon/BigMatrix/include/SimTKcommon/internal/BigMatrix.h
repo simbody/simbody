@@ -1196,7 +1196,7 @@ public:
         if (!CNT<ELT>::IsScalar)
             SimTK_THROW1(Exception::Cant, 
                 "Vector::normRMS() only defined for scalar elements.");
-        const int n = nelt();
+        const int n = nrow();
         if (n == 0) {
             if (worstOne) *worstOne = -1;
             return typename CNT<ScalarNormSq>::TSqrt(0);
@@ -1233,8 +1233,8 @@ public:
             SimTK_THROW1(Exception::Cant, 
             "Vector::weightedNormRMS() only defined for scalar elements"
             " and weights.");
-        const int n = nelt();
-        assert(w.nelt()==n);
+        const int n = nrow();
+        assert(w.nrow()==n);
         if (n == 0) {
             if (worstOne) *worstOne = -1;
             return typename CNT<ScalarNormSq>::TSqrt(0);
@@ -1267,7 +1267,7 @@ public:
         if (!CNT<ELT>::IsScalar)
             SimTK_THROW1(Exception::Cant, 
                 "Vector::normInf() only defined for scalar elements.");
-        const int n = nelt();
+        const int n = nrow();
         if (n == 0) {
             if (worstOne) *worstOne = -1;
             return EAbs(0);
@@ -1301,8 +1301,8 @@ public:
             SimTK_THROW1(Exception::Cant, 
             "Vector::weightedNormInf() only defined for scalar elements"
             " and weights.");
-        const int n = nelt();
-        assert(w.nelt()==n);
+        const int n = nrow();
+        assert(w.nrow()==n);
         if (n == 0) {
             if (worstOne) *worstOne = -1;
             return EAbs(0);
@@ -1974,6 +1974,18 @@ public:
     const TNeg& operator-() const {return negate();}
     TNeg&       operator-()       {return updNegate();}
    
+    // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
+    /** toString() returns a string representation of the Matrix_. Please refer to operator<< for details. **/
+    std::string toString() const {
+		std::stringstream stream;
+	    stream <<  (*this) ;
+		return stream.str(); 
+    }
+    /** Variant of indexing operator that's scripting friendly to get entry (i, j) **/
+    const ELT& get(int i,int j) const { return this->getElt(i,j); }
+    /** Variant of indexing operator that's scripting friendly to set entry (i, j) **/
+    void       set(int i,int j, const ELT& value)       { this->updElt(i,j)=value; }
+
 private:
     // NO DATA MEMBERS ALLOWED
 };
@@ -2108,6 +2120,18 @@ public:
     Vector_& operator+=(const ELT& b) { this->elementwiseAddScalarInPlace(b); return *this; }
     Vector_& operator-=(const ELT& b) { this->elementwiseSubtractScalarInPlace(b); return *this; }
  
+    // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
+    /** toString() returns a string representation of the Vector_. Please refer to operator<< for details. **/
+    std::string toString() const {
+		std::stringstream stream;
+	    stream <<  (*this) ;
+		return stream.str(); 
+    }
+    /** Variant of operator[] that's scripting friendly to get ith entry **/
+    const ELT& get(int i) const { return (*this)[i]; }
+    /** Variant of operator[] that's scripting friendly to set ith entry **/
+    void  set (int i, const ELT& value)  { (*this)[i]=value; }
+   
 private:
     // NO DATA MEMBERS ALLOWED
 };
@@ -3565,11 +3589,11 @@ template <class ELT, class VECTOR_CLASS>
 class VectorIterator {
 public:
     typedef ELT value_type;
-    typedef int difference_type;
+    typedef ptrdiff_t difference_type;
     typedef ELT& reference;
     typedef ELT* pointer;
     typedef std::random_access_iterator_tag iterator_category;
-    VectorIterator(VECTOR_CLASS& vector, int index) : vector(vector), index(index) {
+    VectorIterator(VECTOR_CLASS& vector, ptrdiff_t index) : vector(vector), index(index) {
     }
     VectorIterator(const VectorIterator& iter) : vector(iter.vector), index(iter.index) {
     }
@@ -3580,11 +3604,11 @@ public:
     }
     ELT& operator*() {
         assert (index >= 0 && index < vector.size());
-        return vector[index];
+        return vector[(int)index];
     }
-    ELT& operator[](int i) {
+    ELT& operator[](ptrdiff_t i) {
         assert (i >= 0 && i < vector.size());
-        return vector[i];
+        return vector[(int)i];
     }
     VectorIterator operator++() {
         assert (index < vector.size());
@@ -3620,13 +3644,13 @@ public:
     bool operator>=(VectorIterator iter) const {
         return (index >= iter.index);
     }
-    int operator-(VectorIterator iter) const {
+    ptrdiff_t operator-(VectorIterator iter) const {
         return (index - iter.index);
     }
-    VectorIterator operator-(int n) const {
+    VectorIterator operator-(ptrdiff_t n) const {
         return VectorIterator(vector, index-n);
     }
-    VectorIterator operator+(int n) const {
+    VectorIterator operator+(ptrdiff_t n) const {
         return VectorIterator(vector, index+n);
     }
     bool operator==(VectorIterator iter) const {
@@ -3637,7 +3661,7 @@ public:
     }
 private:
     VECTOR_CLASS& vector;
-    int index;
+    ptrdiff_t index;
 };
 
 } //namespace SimTK

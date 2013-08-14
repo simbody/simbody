@@ -146,7 +146,7 @@ namespace Ipopt
      *  the matrices.  If NULL, no scaling is performed. */
     SmartPtr<TSymScalingMethod> scaling_method_;
     /** Array storing the scaling factors */
-    double* scaling_factors_;
+    Number* scaling_factors_;
     /** Flag indicating whether scaling should be performed */
     bool use_scaling_;
     /** Flag indicating whether we just switched on the scaling */

@@ -101,19 +101,19 @@ namespace Ipopt
     DBG_ASSERT(tau>=0.);
     DBG_ASSERT(Dim() == delta.Dim());
     if (Dim() == 0 && delta.Dim() == 0) {
-      return 1.0;
+      return 1;
     }
 
     SmartPtr<Vector> inv_alpha_bar = MakeNew();
-    inv_alpha_bar->AddOneVector(-1.0/tau, delta, 0.);
+    inv_alpha_bar->AddOneVector(-1/tau, delta, Number(0));
     inv_alpha_bar->ElementWiseDivide(*this);
 
     Number alpha = inv_alpha_bar->Max();
     if (alpha > 0) {
-      alpha = Ipopt::Min(1.0/alpha, 1.0);
+      alpha = Ipopt::Min(1/alpha, Number(1));
     }
     else {
-      alpha = 1.0;
+      alpha = 1;
     }
 
     return alpha;

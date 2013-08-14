@@ -125,13 +125,14 @@ int main() {
 
     // Create the system.
     
-    MultibodySystem         system;
+    MultibodySystem         system; system.setUseUniformBackground(true);
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
     Force::UniformGravity   gravity(forces, matter, 0*Vec3(2, -9.8, 0));
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
+    contactForces.setTrackDissipatedEnergy(true);
 
     GeneralContactSubsystem OLDcontact(system);
     const ContactSetIndex OLDcontactSet = OLDcontact.createContactSet();

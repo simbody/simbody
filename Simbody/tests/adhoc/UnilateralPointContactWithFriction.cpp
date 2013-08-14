@@ -62,7 +62,7 @@ input. Those may get disabled if they would otherwise cause negative normal
 impulses, but no new ones will get enabled.
 
 */
-#define NDEBUG 1
+//#define NDEBUG 1
 
 #include "Simbody.h"
 
@@ -75,8 +75,16 @@ using std::endl;
 
 using namespace SimTK;
 
+#define ANIMATE // off to get more accurate CPU time (you can still playback)
+
+// Define this to run the simulation NTries times, saving the states and
+// comparing them bitwise to see if the simulations are perfectly repeatable
+// as they should be. You should see nothing but exact zeroes print out for
+// second and subsequent runs.
+//#define TEST_REPEATABILITY
+static const int NTries=3;
+
 const Real ReportInterval=1./30;
-const Real RunTime=10;
 
 //==============================================================================
 //                           MY CONTACT ELEMENT
@@ -94,7 +102,8 @@ public:
 
     MyContactElement(Constraint uni, Real multSign, Real coefRest) 
     :   m_uni(uni), m_multSign(multSign), m_coefRest(coefRest), 
-        m_index(-1), m_friction(0), m_restitutionDone(false) 
+        m_index(-1), m_friction(0),
+        m_velocityDependentCOR(NaN), m_restitutionDone(false) 
     {   m_uni.setDisabledByDefault(true); }
 
     virtual ~MyContactElement() {}
@@ -102,7 +111,9 @@ public:
     // (Re)initialize base & concrete class. If overridden, be sure to
     // invoke base class first.
     virtual void initialize() {
-        setRestitutionDone(false); m_Ic = m_Ie = m_I = 0;
+        setRestitutionDone(false); 
+        m_velocityDependentCOR = NaN;
+        m_Ic = m_Ie = m_I = 0;
     }
 
     // Provide a human-readable string identifying the type of contact
@@ -123,8 +134,17 @@ public:
     // This is used by some constraints to collect position information that
     // may be used later to set instance variables when enabling the underlying
     // Simbody constraint. All constraints zero impulses here.
-    virtual void initializeForImpact(const State& state) 
-    {   setRestitutionDone(false); m_Ic = m_Ie = m_I = 0; }
+    virtual void initializeForImpact(const State& state, Real captureVelocity) { 
+        if (-captureVelocity <= getVerr(state) && getVerr(state) < 0) {
+            m_velocityDependentCOR = 0;
+            SimTK_DEBUG3("CAPTURING %d because %g <= v=%g < 0\n",
+                m_index, -captureVelocity, getVerr(state));
+        } else {
+            m_velocityDependentCOR = m_coefRest;
+        }
+        
+        setRestitutionDone(false);        
+        m_Ic = m_Ie = m_I = 0; }
 
     // Returns zero if the constraint is not currently enabled. Otherwise 
     // return the signed constraint force, with a negative value indicating
@@ -183,7 +203,8 @@ public:
         m_uni.setMyPartInConstraintSpaceVector(state, myImp, lambda); }
 
 
-    Real getCoefRest() const {return m_coefRest;}
+    Real getMaxCoefRest() const {return m_coefRest;}
+    Real getEffectiveCoefRest() const {return m_velocityDependentCOR;}
     void setRestitutionDone(bool isDone) {m_restitutionDone=isDone;}
     bool isRestitutionDone() const {return m_restitutionDone;}
 
@@ -211,7 +232,8 @@ protected:
     int                 m_index; // contact index in unilateral constraint set
     MyFrictionElement*  m_friction; // if any (just a reference, not owned)
 
-    // Runtime
+    // Runtime -- initialized at start of impact handler.
+    Real m_velocityDependentCOR; // Calculated at start of impact 
     bool m_restitutionDone;
     Real m_Ic, m_Ie, m_I; // impulses
 };
@@ -379,8 +401,13 @@ struct MyElementSubset {
 
 class MyUnilateralConstraintSet {
 public:
-    explicit MyUnilateralConstraintSet(const MultibodySystem& mbs)
-    :   m_mbs(mbs) {}
+    // Capture velocity is used two ways: (1) if the normal approach velocity
+    // is smaller, the coefficient of restitution is set to zero for the 
+    // upcoming impact, and (2) if a slip velocity is smaller than this the
+    // contact is a candidate for stiction.
+    MyUnilateralConstraintSet(const MultibodySystem& mbs, Real captureVelocity)
+    :   m_mbs(mbs), m_captureVelocity(captureVelocity) {}
+
     // This class takes over ownership of the heap-allocated contact element.
     int addContactElement(MyContactElement* contact) {
         const int index = (int)m_contact.size();
@@ -395,6 +422,9 @@ public:
         friction->setFrictionIndex(index);
         return index;
     }
+
+    Real getCaptureVelocity() const {return m_captureVelocity;}
+    void setCaptureVelocity(Real v) {m_captureVelocity=v;}
 
     int getNumContactElements() const {return (int)m_contact.size();}
     int getNumFrictionElements() const {return (int)m_friction.size();}
@@ -420,31 +450,35 @@ public:
     // Return the contact and friction elements that might be involved in an
     // impact occurring in this configuration. They are the contact elements 
     // for which perr <= posTol, and friction elements whose normal force 
-    // masters can be involved in the impact. State must be realized through 
-    // Position stage.
-    void findProximalElements(const State&      state,
+    // masters can be involved in the impact and whose slip velocities are
+    // below tolerance. State must be realized through Velocity stage.
+    void findProximalElements(const State&      s,
                               Real              posTol,
+                              Real              velTol,
                               MyElementSubset&  proximals) const
     {
         proximals.clear();
         for (unsigned i=0; i < m_contact.size(); ++i)
-            if (m_contact[i]->isProximal(state,posTol)) 
+            if (m_contact[i]->isProximal(s,posTol)) 
                 proximals.m_contact.push_back(i);
-        for (unsigned i=0; i < m_friction.size(); ++i)
-            if (m_friction[i]->isMasterProximal(state,posTol))
-                proximals.m_friction.push_back(i);
-        // Any friction elements might stick if they are proximal since
-        // we'll be changing velocities, so no m_sliding entries in proximals.
+        for (unsigned i=0; i < m_friction.size(); ++i) {
+            MyFrictionElement& fric = updFrictionElement(i);
+            if (!fric.isMasterProximal(s,posTol))
+                continue;
+            if (fric.isSticking(s) || fric.getActualSlipSpeed(s) <= velTol)
+                    proximals.m_friction.push_back(i);
+            else    proximals.m_sliding.push_back(i); 
+        }
     }
 
     // Return the contact and friction elements that might be involved in 
     // generating contact forces at the current state. Candidate contact
     // elements are those that are (a) already enabled, or (b) for which 
     // perr <= posTol and verr <= velTol. Candidate friction elements are those
-    // whose normal force master is a candidate and (a) which are already 
-    // sticking, or (b) for which vslip <= velTol, or (c) for which vslip 
-    // opposes the previous slip direction, meaning it has reversed and must 
-    // have passed through zero during the last step. These are the elements 
+    // whose normal force master is unconditional or a candidate and (a) which 
+    // are already sticking, or (b) for which vslip <= velTol, or (c) for which
+    // vslip opposes the previous slip direction, meaning it has reversed and 
+    // must have passed through zero during the last step. These are the elements 
     // that can be activated without making any changes to the configuration or 
     // velocity state variables, except slightly for constraint projection. 
     //
@@ -543,6 +577,7 @@ public:
     const MultibodySystem& getMultibodySystem() const {return m_mbs;}
 private:
     const MultibodySystem&      m_mbs;
+    Real                        m_captureVelocity;
     Array_<MyContactElement*>   m_contact;
     Array_<MyFrictionElement*>  m_friction;
 };
@@ -592,6 +627,19 @@ private:
     mutable Array_<State>                   m_states;
 };
 
+// A periodic event reporter that does nothing; useful for exploring the
+// effects of interrupting the simulation.
+class Nada : public PeriodicEventReporter {
+public:
+    explicit Nada(Real reportInterval)
+    :   PeriodicEventReporter(reportInterval) {} 
+
+    void handleEvent(const State& s) const {
+#ifndef NDEBUG
+        printf("%7g NADA\n", s.getTime());
+#endif
+    }
+};
 
 
 //==============================================================================
@@ -668,9 +716,9 @@ public:
     // Given the set of proximal constraints, prevent penetration by applying
     // a nonnegative least squares impulse generating a step change in 
     // velocity. On return, the applied impulse and new velocities are recorded
-    // in proximal, and state is updated to the new velocities and realized
-    // through Velocity stage. Constraints that were stopped are enabled, those
-    // that rebounded are disabled.
+    // in the proximal elements, and state is updated to the new velocities and 
+    // realized through Velocity stage. Constraints that ended up in contact
+    // are enabled, those that rebounded are disabled.
     void processCompressionPhase(MyElementSubset&   proximal,
                                  State&             state) const;
 
@@ -684,16 +732,6 @@ public:
     // Expansion may result in some negative velocities, in which case it has
     // induced further compression so another compression phase is required.
     bool processExpansionPhase(MyElementSubset& proximal,
-                               State&           state) const;
-
-    // Examine the rebounders to see if any are rebounding with a speed at or
-    // below the capture velocity. If so, enable those constraints and apply a
-    // (hopefully small) negative impulse to eliminate that rebound velocity.
-    // Repeat if that induces any negative velocities or any further slow
-    // rebounders. This terminates will all rebounders leaving with velocities
-    // greater than vCapture, or else all constraints are enabled.
-    void captureSlowRebounders(Real             vCapture,
-                               MyElementSubset& proximal,
                                State&           state) const;
 
     // Given only the subset of proximal constraints that are active, calculate
@@ -751,7 +789,7 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
-        printf("liftoff@%.17g\n", s.getTime());
+        SimTK_DEBUG2("\nhandle %d liftoff@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("LIFTOFF triggered by constraint %d @t=%.15g\n", 
             m_which, s.getTime());
@@ -860,8 +898,9 @@ class MySlidingFrictionForce : public Force::Custom {
 public:
     // Add a sliding friction force element to the given force subsystem,
     // and associate it with a particular contact point.
-    MySlidingFrictionForce(GeneralForceSubsystem& forces,
-                           const class MyPointContactFriction& ptFriction);
+    MySlidingFrictionForce(GeneralForceSubsystem&               forces,
+                           const class MyPointContactFriction&  ptFriction,
+                           Real                                 vtol);
 
     void setPrevN(State& state, Real N) const;
     // This should be a unit vector.
@@ -893,7 +932,8 @@ public:
     // The constructor allocates two NoSlip1D constraints and a sliding
     // friction force element.
     MyPointContactFriction(MyPointContact& contact,
-        Real mu_d, Real mu_s, Real mu_v, GeneralForceSubsystem& forces)
+        Real mu_d, Real mu_s, Real mu_v, Real vtol, //TODO: shouldn't go here
+        GeneralForceSubsystem& forces)
     :   MyFrictionElement(mu_d,mu_s,mu_v), m_contact(contact),
         m_noslipX(contact.updPlaneBody(), Vec3(0), UnitVec3(XAxis), 
                   contact.updPlaneBody(), contact.updBody()),
@@ -904,7 +944,7 @@ public:
         contact.setFrictionElement(*this);
         m_noslipX.setDisabledByDefault(true);
         m_noslipZ.setDisabledByDefault(true);
-        m_sliding = new MySlidingFrictionForce(forces, *this);
+        m_sliding = new MySlidingFrictionForce(forces, *this, vtol);
         initializeRuntimeFields();
     }
 
@@ -1052,6 +1092,16 @@ public:
         m_noslipZ.setMyPartInConstraintSpaceVector(s, myDesiredDV, desiredDeltaV);
     }
 
+    Real getMyImpulseMagnitudeFromConstraintSpaceVector(const State& state,
+                                                        const Vector& lambda) const
+    {   Vector myImpulseX(1), myImpulseZ(1);
+        m_noslipX.getMyPartFromConstraintSpaceVector(state, lambda, myImpulseX);
+        m_noslipZ.getMyPartFromConstraintSpaceVector(state, lambda, myImpulseZ);
+        const Vec2 tI(myImpulseX[0], myImpulseZ[0]);
+        return tI.norm();
+    }
+
+
     std::ostream& writeFrictionInfo(const State& s, const String& indent, 
                                     std::ostream& o) const OVERRIDE_11 
     {
@@ -1155,6 +1205,30 @@ private:
 
 
 //==============================================================================
+//                            BODY WATCHER
+//==============================================================================
+// Prior to rendering each frame, point the camera at the given body's
+// origin.
+class BodyWatcher : public Visualizer::FrameController {
+public:
+    explicit BodyWatcher(const MobilizedBody& body) : m_body(body) {}
+
+    void generateControls(const Visualizer&             viz, 
+                          const State&                  state, 
+                          Array_< DecorativeGeometry >& geometry) OVERRIDE_11
+    {
+        const Vec3 Bo = m_body.getBodyOriginLocation(state);
+        const Vec3 p_GC = Bo + Vec3(0, 1, 5); // above and back
+        const Rotation R_GC(UnitVec3(0,1,0), YAxis,
+                            p_GC-Bo, ZAxis);
+        viz.setCameraTransform(Transform(R_GC,p_GC));
+        //viz.pointCameraAt(Bo, Vec3(0,1,0));
+    }
+private:
+    const MobilizedBody m_body;
+};
+
+//==============================================================================
 //                          STICTION ON HANDLER
 //==============================================================================
 // Allocate one of these for each contact constraint that has friction. This 
@@ -1182,7 +1256,7 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
-        printf("slide->stick@%.17g\n", s.getTime());
+        SimTK_DEBUG2("\nhandle %d slide->stick@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("STICTION ON triggered by friction element %d @t=%.15g\n", 
             m_which, s.getTime());
@@ -1236,7 +1310,7 @@ public:
     void handleEvent
        (State& s, Real accuracy, bool& shouldTerminate) const 
     {
-        printf("stick->slide@%.17g\n", s.getTime());
+        SimTK_DEBUG2("\nhandle %d stick->slide@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
         SimTK_DEBUG2("STICTION OFF triggered by friction element %d @t=%.15g\n", 
             m_which, s.getTime());
@@ -1257,7 +1331,6 @@ private:
     const MyUnilateralConstraintSet&    m_unis;
     const int                           m_which; // one of the friction elements
 };
-
 
 //==============================================================================
 //                                  MY STOP
@@ -1368,10 +1441,10 @@ class MyPushForceImpl : public Force::Custom::Implementation {
 public:
     MyPushForceImpl(const MobilizedBody& bodyB, 
                     const Vec3&          stationB,
-                    const Vec3&          forceB,
+                    const Vec3&          forceG, // force direction in Ground!
                     Real                 onTime,
                     Real                 offTime)
-    :   m_bodyB(bodyB), m_stationB(stationB), m_forceB(forceB),
+    :   m_bodyB(bodyB), m_stationB(stationB), m_forceG(forceG),
         m_on(onTime), m_off(offTime)
     {    }
 
@@ -1384,12 +1457,10 @@ public:
         if (!(m_on <= state.getTime() && state.getTime() <= m_off))
             return;
 
-        const Rotation& R_GB = m_bodyB.getBodyRotation(state);
-        const Vec3      forceG = R_GB*m_forceB;
-        m_bodyB.applyForceToBodyPoint(state, m_stationB, forceG, bodyForces);
+        m_bodyB.applyForceToBodyPoint(state, m_stationB, m_forceG, bodyForces);
 
-        SimTK_DEBUG4("PUSHING @t=%g (%g,%g,%g)\n", state.getTime(),
-            forceG[0], forceG[1], forceG[2]);
+        //SimTK_DEBUG4("PUSHING @t=%g (%g,%g,%g)\n", state.getTime(),
+        //    m_forceG[0], m_forceG[1], m_forceG[2]);
     }
 
     // No potential energy.
@@ -1399,22 +1470,22 @@ public:
        (const State& state, Stage stage, 
         Array_<DecorativeGeometry>& geometry) const OVERRIDE_11
     {
+        const Real ScaleFactor = 1.;
         if (stage != Stage::Time) return;
         if (!(m_on <= state.getTime() && state.getTime() <= m_off))
             return;
-        geometry.push_back(DecorativeLine(m_stationB-m_forceB, m_stationB)
-                            .setBodyId(m_bodyB.getMobilizedBodyIndex())
+        const Vec3 stationG = m_bodyB.findStationLocationInGround(state, m_stationB);
+        geometry.push_back(DecorativeLine(stationG-ScaleFactor*m_forceG, stationG)
                             .setColor(Yellow)
                             .setLineThickness(3));
     }
 private:
     const MobilizedBody& m_bodyB; 
     const Vec3           m_stationB;
-    const Vec3           m_forceB;
+    const Vec3           m_forceG;
     Real                 m_on;
     Real                 m_off;
 };
-
 
 
 //==============================================================================
@@ -1435,14 +1506,16 @@ int main(int argc, char** argv) {
     // Predefine some handy rotations.
     const Rotation Z90(Pi/2, ZAxis); // rotate +90 deg about z
 
+    const Real RunTime=16;
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
-    const Real CoefRest = 0.2;      // TODO: per-contact
-    const Real mu_d = .4;
-    const Real mu_s = .8;
+    const Real CoefRest = 0.4;      // TODO: per-contact
+    const Real mu_d = .5;
+    const Real mu_s = .7;
     const Real mu_v = 0.05;
+    const Real CaptureVelocity = 0.01;
 
-    MyUnilateralConstraintSet unis(mbs);
+    MyUnilateralConstraintSet unis(mbs, CaptureVelocity);
 
     const Vec3 CubeHalfDims(3,2,1);
     const Real CubeMass = 1;
@@ -1458,8 +1531,8 @@ int main(int argc, char** argv) {
                                         .setColor(Red).setOpacity(.3));
     Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),2*Vec3(0,0,10),
                                                4., 6.));
-    //Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),2*Vec3(0,0,10),
-    //                                           3., 4.));
+    Force::Custom(forces, new MyPushForceImpl(cube,Vec3(1,1,0),Vec3(7,8,10),
+                                               11., 13.));
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
@@ -1467,13 +1540,11 @@ int main(int argc, char** argv) {
         MyPointContact* contact = new MyPointContact(cube, pt, CoefRest);
         unis.addContactElement(contact);
         unis.addFrictionElement(
-            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, forces));
+            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, 
+                                       CaptureVelocity, // TODO: vtol?
+                                       forces));
     }
 
-    //unis.addContactElement(new MyRope(Ground, Vec3(-5,10,0),
-    //                       cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
-    //                       5., .5*CoefRest));
-    //unis.push_back(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
 
     const Vec3 WeightEdge(-CubeHalfDims[0],-CubeHalfDims[1],0);
 //#ifdef NOTDEF
@@ -1493,11 +1564,10 @@ int main(int argc, char** argv) {
         MyPointContact* contact = new MyPointContact(weight, pt, CoefRest);
         unis.addContactElement(contact);
         unis.addFrictionElement(
-            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, forces));
+            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, 
+                                       CaptureVelocity, // TODO: vtol?
+                                       forces));
     }
-    const Real StopAngle = Pi/6;
-    unis.addContactElement(new MyStop(MyStop::Upper,weight,0, StopAngle,CoefRest/2));
-    unis.addContactElement(new MyStop(MyStop::Lower,weight,0, -StopAngle,CoefRest/2));
 
 //#endif
 //#ifdef NOTDEF
@@ -1517,26 +1587,45 @@ int main(int argc, char** argv) {
         MyPointContact* contact = new MyPointContact(weight2, pt, CoefRest);
         unis.addContactElement(contact);
         unis.addFrictionElement(
-            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, forces));
+            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, 
+                                       CaptureVelocity, // TODO: vtol?
+                                       forces));
     }
 //#endif
+
+    // Add joint stops.
+    const Real StopAngle = Pi/6;
+    unis.addContactElement(new MyStop(MyStop::Upper,weight,0, StopAngle,CoefRest/2));
+    unis.addContactElement(new MyStop(MyStop::Lower,weight,0, -StopAngle,CoefRest/2));
+
+    // Add a rope.
+    unis.addContactElement(new MyRope(Ground, Vec3(-5,10,0),
+                           cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
+                           5., .5*CoefRest));
+    //unis.addContactElement(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
 
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
     viz.addDecorationGenerator(new ShowContact(unis));
+
+    #ifdef ANIMATE
     mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    #else
+    // This does nothing but interrupt the simulation.
+    mbs.addEventReporter(new Nada(ReportInterval));
+    #endif
 
     //ExplicitEulerIntegrator integ(mbs);
     //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
     Real accuracy = 1e-2;
     //RungeKuttaFeldbergIntegrator integ(mbs);
-    RungeKuttaMersonIntegrator integ(mbs);
-    //RungeKutta3Integrator integ(mbs);
+    //RungeKuttaMersonIntegrator integ(mbs);
+    RungeKutta3Integrator integ(mbs);
     //VerletIntegrator integ(mbs);
     integ.setAccuracy(accuracy);
     //integ.setConstraintTolerance(1.);
     //integ.setAllowInterpolation(false);
-    integ.setMaximumStepSize(0.5);
+    integ.setMaximumStepSize(0.1);
 
     StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
     mbs.addEventReporter(stateSaver);
@@ -1622,23 +1711,22 @@ int main(int argc, char** argv) {
     TimeStepper ts(mbs, integ);
     ts.setReportAllSignificantStates(true);
 
-    const int NTries=1;
+    #ifdef TEST_REPEATABILITY
+        const int tries = NTries;
+    #else
+        const int tries = 1;
+    #endif
+        
     Array_< Array_<State> > states(NTries);
     Array_< Array_<Real> > timeDiff(NTries-1);
     Array_< Array_<Vector> > yDiff(NTries-1);
     cout.precision(18);
-    for (int ntry=0; ntry < NTries; ++ntry) {
-        //RungeKuttaMersonIntegrator integ(mbs);
-        //ExplicitEulerIntegrator integ(mbs);
-        //integ.setAccuracy(accuracy);
-        //integ.setMaximumStepSize(0.5);
-        //integ.setReturnEveryInternalStep(true);
-        //TimeStepper ts(mbs, integ);
-        //ts.setReportAllSignificantStates(true);
-
-        unis.initialize();
+    for (int ntry=0; ntry < tries; ++ntry) {
+        mbs.resetAllCountersToZero();
+        unis.initialize(); // reinitialize
         ts.updIntegrator().resetAllStatistics();
         ts.initialize(s);
+        int nStepsWithEvent = 0;
 
         const double startReal = realTime();
         const double startCPU = cpuTime();
@@ -1646,11 +1734,12 @@ int main(int argc, char** argv) {
         Integrator::SuccessfulStepStatus status;
         do {
             status=ts.stepTo(RunTime);
-            states[ntry].push_back(ts.getState());
+            #ifdef TEST_REPEATABILITY
+                states[ntry].push_back(ts.getState());
+            #endif 
             const int j = states[ntry].size()-1;
-            if (ntry>0) {
+            if (ntry>0 && j < (int)states[ntry-1].size()) {
                 int prev = ntry-1;
-                //prev=0;
                 Real dt = states[ntry][j].getTime() 
                           - states[prev][j].getTime();
                 volatile double vd;
@@ -1667,12 +1756,21 @@ int main(int argc, char** argv) {
                      << "+" << dt << ":" << d << endl;
             }
 
-            //printf("Returned at t=%.17g with status=%s\n", ts.getTime(),
-            //    Integrator::getSuccessfulStepStatusString(status).c_str());
-            if (status != Integrator::ReachedReportTime) {
-                //viz.report(ts.getState());
-                //stateSaver->handleEvent(ts.getState());
+            const bool handledEvent = status==Integrator::ReachedEventTrigger;
+            if (handledEvent) {
+                ++nStepsWithEvent;
+                SimTK_DEBUG3("EVENT %3d @%.17g status=%s\n\n", 
+                    nStepsWithEvent, ts.getTime(),
+                    Integrator::getSuccessfulStepStatusString(status).c_str());
+            } else {
+                SimTK_DEBUG3("step  %3d @%.17g status=%s\n", integ.getNumStepsTaken(),
+                    ts.getTime(),
+                    Integrator::getSuccessfulStepStatusString(status).c_str());
             }
+            #ifndef NDEBUG
+                viz.report(ts.getState());
+            #endif
+            //stateSaver->handleEvent(ts.getState());
         } while (ts.getTime() < RunTime);
 
 
@@ -1690,18 +1788,21 @@ int main(int argc, char** argv) {
         printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
         printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
         printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
-    }
+        printf("# EVENT STEPS/HANDLER CALLS = %d/%d\n", 
+            nStepsWithEvent, mbs.getNumHandleEventCalls());    }
 
-    for (int i=0; i<NTries; ++i)
+    for (int i=0; i<tries; ++i)
         cout << "nstates " << i << " " << states[i].size() << endl;
 
     // Instant replay.
     while(true) {
+        printf("Hit ENTER for replay (%d states) ...", 
+                stateSaver->getNumSavedStates());
+        getchar();
         for (int i=0; i < stateSaver->getNumSavedStates(); ++i) {
             mbs.realize(stateSaver->getState(i), Stage::Velocity);
             viz.report(stateSaver->getState(i));
         }
-        getchar();
     }
 
   } 
@@ -1717,6 +1818,7 @@ int main(int argc, char** argv) {
 }
 
 
+
 //==============================================================================
 //                        IMPACT HANDLING (CONTACT ON)
 //==============================================================================
@@ -1730,9 +1832,8 @@ int main(int argc, char** argv) {
 void ContactOn::
 handleEvent(State& s, Real accuracy, bool& shouldTerminate) const 
 {
-    const Real VCapture=1e-2;
-
-    printf("impact@%.17g\n", s.getTime());
+    SimTK_DEBUG3("\nhandle %d impact@%.17g (%s)\n", m_which, s.getTime(),
+         m_stage.getName().c_str());
 
     if (m_stage == Stage::Acceleration) {
         SimTK_DEBUG("\n---------------CONTACT ON (ACCEL)--------------\n");
@@ -1750,13 +1851,14 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     }
 
     MyElementSubset proximal;
-    m_unis.findProximalElements(s, accuracy, proximal);
+    m_unis.findProximalElements(s, accuracy, accuracy, proximal);
 
     // Zero out accumulated impulses and perform any other necessary 
     // initialization of contact and friction elements.
     for (unsigned i=0; i < proximal.m_contact.size(); ++i) {
         const int which = proximal.m_contact[i];
-        m_unis.updContactElement(which).initializeForImpact(s);
+        m_unis.updContactElement(which)
+            .initializeForImpact(s, m_unis.getCaptureVelocity());
     }
     for (unsigned i=0; i < proximal.m_friction.size(); ++i) {
         const int which = proximal.m_friction[i];
@@ -1786,13 +1888,12 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
                 }
             }
         }
+        if (needMoreCompression) {
+            SimTK_DEBUG("EXPANSION CAUSED SECONDARY IMPACT: compressing again\n");
+        } else {
+            SimTK_DEBUG("All constraints satisfied after expansion: done.\n");
+        }
     }
-
-    // Some of the rebounders may be moving so slowly that we would like
-    // to be able to say they have stopped. If so, apply additional 
-    // (negative) impulses necessary to stop them; enable their contact
-    // constraints.
-    captureSlowRebounders(VCapture, proximal, s);
 
     // Record new previous slip velocities for all the sliding friction
     // since velocities have changed. First loop collects the velocities.
@@ -1821,122 +1922,257 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 
 
 //------------------------ PROCESS COMPRESSION PHASE ---------------------------
+// Given a list of proximal unilateral constraints (contact and stiction),
+// determine which ones are active in the least squares solution for the
+// constraint impulses. Candidates are those constraints that meet the 
+// kinematic proximity condition -- for contacts, position less than
+// tolerance; for stiction, master contact is proximal. Also, any
+// constraint that is currently active is a candidate, regardless of its
+// kinematics.
 //
-// Strategy:
-// (1) assume all normal constraints, but no new stiction constraints, are on; 
-//     calculate stopping impulse
-// (2) look for negative normal impulses; try disabling those
-// (3) recapture any constraints that would be violated after disabling
-// 
+// TODO: stiction only enabled for contacts that aren't sliding; no other 
+// stiction will be enabled after the impact starts.
+// TODO: sliding friction impulses
+//
+// Algorithm
+// ---------
+// We're given a set of candidates including contacts and stiction. If any are
+// inactive, activate them.
+// -- at this point all verr==0, some impulses f might be < 0
+//
+// loop
+// - Calculate impulses with the current active set
+//     (iterate sliding impulses until f=mu_d*N to tol, where N is normal 
+//      impulse)
+// - Calculate f for active constraints, verr for inactive
+// - If all f>=0, verr>=0 -> break loop
+// - Check for verr < 0 [tol?]. Shouldn't happen but if it does must turn on the
+//     associated constraint for the worst violation, then -> continue loop
+// - Find worst (most negative) offender:
+//    contact offense  = fc < 0 ? fc : 0
+//    stiction offense = mu_d*max(0, fc) - |fs|
+// - Choose constraint to deactivate:
+//     worst is a stiction constraint: choose it
+//     worst is a contact constraint: if it has stiction, chose that
+//                                    otherwise choose the contact constraint
+// - Inactivate chosen constraint
+//     (if stiction, record impending slip direction & N for stick->slide)
+// end loop 
+//
 void ContactOn::
 processCompressionPhase(MyElementSubset&    proximal,
                         State&              s) const
 {
-    SimTK_DEBUG("Entering processCompressionPhase() ...\n");
-    Vector lambda0, lambdaTry;
-    // Which constraint, whether stiction was on too.
-    Array_<int> maybeDisabled, recapturing;
+    const int ReviseNormalNIters = 6;
 
+    SimTK_DEBUG2("Entering processCompressionPhase(): "
+        "%d/%d impact/stick candidates ...\n", proximal.m_contact.size(),
+        proximal.m_friction.size());
+
+    if (!proximal.m_friction.empty()) {
+        SimTK_DEBUG("**** STICTION IMPACT (possibly)\n");
+    }
+
+    if (proximal.m_contact.empty()) {
+        // Can't be any friction either, if there are no contacts.
+        SimTK_DEBUG("EXIT processCompressionPhase: no proximal candidates.\n");
+        return;
+    }
+
+    // If all the proximal contacts have positive normal
+    // velocities already then we won't need to generate any impulses.
+    // TODO: this needs to be reconsidered for handling Painleve situations
+    // in which the impact is caused by a sliding friction inconsistency.
+    SimTK_DEBUG("preliminary analysis of contact constraints ...\n");
+    bool anyUnsatisfiedContactConstraints = false;
+    for (unsigned i=0; i < proximal.m_contact.size(); ++i) {
+        const int which = proximal.m_contact[i];
+        SimTK_DEBUG1("  %d: ", which);
+        const MyContactElement& cont = m_unis.getContactElement(which);
+        const Real verr = cont.getVerr(s);
+        SimTK_DEBUG1("off verr=%g\n", verr);
+        if (verr < 0) {
+            anyUnsatisfiedContactConstraints = true;
+            break;
+        }
+    }
+
+    if (!anyUnsatisfiedContactConstraints) {
+        SimTK_DEBUG("... nothing to do -- all contact constraints satisfied.\n");
+        return;
+    } else {
+        SimTK_DEBUG("... an impulse is needed. Continuing.\n");
+    }
+
+    Vector lambda;
     const Vector u0 = s.getU(); // save presenting velocity
 
     // Assume at first that all proximal contacts will participate. This is 
     // necessary to ensure that we get a least squares solution for the impulse 
-    // involving as many constraints as possible sharing the impulse. We're also
-    // leaving on any stiction constraints that are active, but not trying
-    // any new ones although we should.
-    // TODO: should we disable any active stiction constraints?
-    // TODO: don't enable stiction constraints for now
-    m_unis.enableConstraintSubset(proximal, false, s); 
-    // First try drives all constraints to zero velocity; if that took some
-    // negative impulses we'll have to remove some participants and try again.
-    calcStoppingImpulse(proximal, s, lambda0);
+    // involving as many constraints as possible sharing the impulse. 
+    m_unis.enableConstraintSubset(proximal, true, s); 
 
+    int pass=0, nContactsDisabled=0, nStictionDisabled=0, nContactsReenabled=0;
     while (true) {
-        // See if negative impulse was required to satisfy an active constraint.
-        // If so, that is a candidate to be inactivated.
-        maybeDisabled.clear();
+        ++pass; 
+        SimTK_DEBUG1("processCompressionPhase(): pass %d\n", pass);
+
+        // Given an active set, evaluate impulse multipliers & forces, and
+        // evaluate resulting constraint velocity errors.
+        calcStoppingImpulse(proximal, s, lambda);
+        // TODO: ignoring sliding impacts; should converge them here.
+        updateVelocities(u0, lambda, s);
+
+        // Scan all proximal contacts to find the active one that has the
+        // most negative normal force, and the inactive one that has the 
+        // most negative velocity error (hopefully none will).
+
+        int worstActiveContact=-1; Real mostNegativeContactImpulse=0;
+        int worstInactiveContact=-1; Real mostNegativeVerr=0;
+        
+        SimTK_DEBUG("analyzing impact constraints ...\n");
         for (unsigned i=0; i < proximal.m_contact.size(); ++i) {
             const int which = proximal.m_contact[i];
+            SimTK_DEBUG1("  %d: ", which);
             const MyContactElement& cont = m_unis.getContactElement(which);
-            if (cont.isDisabled(s))
-                continue;
-            Real imp = cont.getMyValueFromConstraintSpaceVector(s, lambda0);
-            if (imp > 0)
-                continue;
-            maybeDisabled.push_back(which);
-
-            SimTK_DEBUG2("  contact %d has negative compression impulse=%g\n",
-                which, imp);
+            if (cont.isDisabled(s)) {
+                const Real verr = cont.getVerr(s);
+                SimTK_DEBUG1("off verr=%g\n", verr);
+                if (verr < mostNegativeVerr) {
+                    worstInactiveContact = which;
+                    mostNegativeVerr = verr;
+                }
+            } else {
+                const Real f = 
+                    cont.getMyValueFromConstraintSpaceVector(s, lambda);
+                SimTK_DEBUG1("on impulse=%g\n", f);
+                if (f < mostNegativeContactImpulse) {
+                    worstActiveContact = which;
+                    mostNegativeContactImpulse = f;
+                }
+            }
         }
-        if (maybeDisabled.empty())
-            break;
 
-        // Disable the candidates, then see if they rebound.
-        for (unsigned d=0; d < maybeDisabled.size(); ++d) {
-            const int which = maybeDisabled[d];
-            const MyContactElement& cont = m_unis.getContactElement(which);
-            if (cont.hasFrictionElement()) {
-                const MyFrictionElement& fric = cont.getFrictionElement();
+        // This is bad and might cause cycling.
+        if (mostNegativeVerr < 0) {
+            SimTK_DEBUG2("  !!! Inactive contact %d violated, verr=%g\n", 
+                worstInactiveContact, mostNegativeVerr);
+            const MyContactElement& cont = 
+                m_unis.getContactElement(worstInactiveContact);
+            //TODO -- must use a tolerance or prevent looping
+            //++nContactsReenabled;
+            //cont.enable(s);
+            //continue;
+        }
+
+        SimTK_DEBUG("  All inactive contacts are satisfied.\n");
+
+        #ifndef NDEBUG
+        if (mostNegativeContactImpulse == 0)
+            printf("  All active contacts are satisfied.\n");
+        else 
+            printf("  Active contact %d was worst violator with f=%g\n",
+                worstActiveContact, mostNegativeContactImpulse);
+        #endif
+
+        int worstActiveStiction=-1; Real mostNegativeStictionCapacity=0;     
+        SimTK_DEBUG("analyzing stiction constraints ...\n");
+        for (unsigned i=0; i < proximal.m_friction.size(); ++i) {
+            const int which = proximal.m_friction[i];
+            SimTK_DEBUG1("  %d: ", which);
+            const MyFrictionElement& fric = m_unis.getFrictionElement(which);
+            if (!fric.isSticking(s)) {
+                SimTK_DEBUG("off\n");
+                continue;
+            }
+            // TODO: Kludge -- must be point contact.
+            const MyPointContactFriction& ptfric = 
+                dynamic_cast<const MyPointContactFriction&>(fric);
+            const MyPointContact& cont = ptfric.getMyPointContact();
+            const Real N = cont.getMyValueFromConstraintSpaceVector(s, lambda);
+            const Real fsmag = 
+                ptfric.getMyImpulseMagnitudeFromConstraintSpaceVector(s, lambda);
+            const Real mu_d = fric.getDynamicFrictionCoef();
+            const Real capacity = mu_d*std::max(N,Real(0)) - fsmag;
+            SimTK_DEBUG2("on capacity=%g (N=%g)\n", capacity, N);
+
+            if (capacity < mostNegativeStictionCapacity) {
+                worstActiveStiction = which;
+                mostNegativeStictionCapacity = capacity;
+            }
+        }
+
+        #ifndef NDEBUG
+        if (mostNegativeStictionCapacity == 0)
+            printf("  All active stiction constraints are satisfied.\n");
+        else 
+            printf("  Active stiction %d was worst violator with capacity=%g\n",
+                worstActiveStiction, mostNegativeStictionCapacity);
+        #endif
+
+        if (mostNegativeContactImpulse==0 && mostNegativeStictionCapacity==0) {
+            SimTK_DEBUG("DONE. Current active set is a winner.\n");
+            break;
+        }
+
+        // Restore original velocity.
+        s.updU() = u0;
+
+        if (mostNegativeStictionCapacity <= mostNegativeContactImpulse) {
+            SimTK_DEBUG1("  Disable stiction %d\n", worstActiveStiction);
+            MyFrictionElement& fric = 
+                m_unis.updFrictionElement(worstActiveStiction);
+            // TODO: need the impulse version of this
+            //fric.recordImpendingSlipInfo(s);
+            ++nStictionDisabled;
+            fric.disableStiction(s);
+            continue;
+        }
+
+        // A contact constraint was the worst violator. If that contact
+        // constraint has an active stiction constraint, we have to disable
+        // the stiction constraint first.
+        SimTK_DEBUG1("  Contact %d was the worst violator.\n", 
+            worstActiveContact);
+        const MyContactElement& cont = 
+            m_unis.getContactElement(worstActiveContact);
+        assert(!cont.isDisabled(s));
+
+        if (cont.hasFrictionElement()) {
+            MyFrictionElement& fric = cont.updFrictionElement();
+            if (fric.isSticking(s)) {
+                SimTK_DEBUG1("  ... but must disable stiction %d first.\n",
+                    fric.getFrictionIndex());
+                // TODO: need the impulse version of this
+                //fric.recordImpendingSlipInfo(s);
+                ++nStictionDisabled;
                 fric.disableStiction(s);
-            }
-            cont.disable(s);
-        }
-        m_mbs.realize(s, Stage::Instance);
-        calcStoppingImpulse(proximal, s, lambdaTry);
-        updateVelocities(u0, lambdaTry, s);
-
-        recapturing.clear();
-        for (unsigned i=0; i<maybeDisabled.size(); ++i) {
-            const int which = maybeDisabled[i];
-            const MyContactElement& uni = m_unis.getContactElement(which);
-            const Real newV = uni.getVerr(s);           
-            SimTK_DEBUG2("  candidate uni constraint %d would have v=%g\n",
-                   which, newV);
-            if (newV <= 0) {
-                recapturing.push_back(maybeDisabled[i]);
-                SimTK_DEBUG2("  RECAPTURING uni constraint %d with v=%g\n", 
-                    which, newV);
+                continue;
             }
         }
 
-        // Re-enable the recaptured candidates.
-        if (!recapturing.empty()) {
-            for (unsigned c=0; c < recapturing.size(); ++c) {
-                const int which = recapturing[c];
-                m_unis.getContactElement(which).enable(s);
-            }
-            m_mbs.realize(s, Stage::Instance);
-        }
-
-        if (recapturing.empty()) lambda0 = lambdaTry;
-        else calcStoppingImpulse(proximal, s, lambda0);
-
-        const int numDisabled = maybeDisabled.size()-recapturing.size();
-        if (numDisabled == 0) {
-            SimTK_DEBUG("  None of the candidates was actually disabled.\n");
-            break;
-        }
-
-        SimTK_DEBUG1("  RETRY with %d constraints disabled\n", numDisabled);
+        SimTK_DEBUG1("  Disable contact %d\n", worstActiveContact); 
+        ++nContactsDisabled;
+        cont.disable(s);
+        // Go back for another pass.
     }
-    updateVelocities(u0, lambda0, s);
+
 
     // Now update the entries for each proximal constraint to reflect the
     // compression impulse and post-compression velocity.
     SimTK_DEBUG("  Compression results:\n");
     for (unsigned i=0; i < proximal.m_contact.size(); ++i) {
         const int which = proximal.m_contact[i];
-        MyContactElement& uni = m_unis.updContactElement(which);
-        if (!uni.isDisabled(s))
-            uni.recordImpulse(MyContactElement::Compression, s, lambda0);
+        MyContactElement& cont = m_unis.updContactElement(which);
+        if (!cont.isDisabled(s))
+            cont.recordImpulse(MyContactElement::Compression, s, lambda);
         SimTK_DEBUG4("  %d %3s: Ic=%g, V=%g\n",
-            which, uni.isDisabled(s) ? "off" : "ON", 
-            uni.getCompressionImpulse(), uni.getVerr(s));
+            which, cont.isDisabled(s) ? "off" : "ON", 
+            cont.getCompressionImpulse(), cont.getVerr(s));
     }
 
     SimTK_DEBUG("... compression phase done.\n");
 }
-
 
 
 //------------------------- PROCESS EXPANSION PHASE ----------------------------
@@ -1954,10 +2190,12 @@ processExpansionPhase(MyElementSubset&  proximal,
     for (unsigned i=0; i<proximal.m_contact.size(); ++i) {
         const int which = proximal.m_contact[i];
         MyContactElement& uni = m_unis.updContactElement(which);
-        if (uni.isDisabled(s)||uni.isRestitutionDone()||uni.getCoefRest()==0
+        if (uni.isDisabled(s)||uni.isRestitutionDone()
+            ||uni.getEffectiveCoefRest()==0
             ||uni.getCompressionImpulse()<=0)
             continue;
-        uni.setMyExpansionImpulse(s, uni.getCoefRest(), expansionImpulse);
+        uni.setMyExpansionImpulse(s, uni.getEffectiveCoefRest(), 
+                                  expansionImpulse);
         uni.recordImpulse(MyContactElement::Expansion,s,expansionImpulse);
         uni.setRestitutionDone(true);
         anyChange = true;
@@ -2003,62 +2241,6 @@ processExpansionPhase(MyElementSubset&  proximal,
     return true;
 }
 
-
-//------------------------- CAPTURE SLOW REBOUNDERS ----------------------------
-void ContactOn::
-captureSlowRebounders(Real              vCapture,
-                      MyElementSubset&  proximal,
-                      State&            s) const
-{
-    // Capture any rebounder whose velocity is too slow.
-    SimTK_DEBUG("Entering captureSlowRebounders() ...\n");
-
-    int nCaptured=0, nPasses=0;
-    while (true) {
-        ++nPasses;
-        SimTK_DEBUG1("  start capture pass %d:\n", nPasses);
-        Array_<int> toCapture;
-        for (unsigned i=0; i<proximal.m_contact.size(); ++i) {
-            const int which = proximal.m_contact[i];
-            MyContactElement& uni = m_unis.updContactElement(which);
-            if (uni.isDisabled(s) && uni.getVerr(s) <= vCapture) {
-                toCapture.push_back(which);
-                ++nCaptured;
-                SimTK_DEBUG2("  capturing constraint %d with v=%g\n",
-                    which, uni.getVerr(s));
-            }
-        }
-
-        if (toCapture.empty()) {
-            if (nCaptured==0) SimTK_DEBUG("... done -- nothing captured.\n");
-            else SimTK_DEBUG2("... done -- captured %d rebounders in %d passes.\n",
-                nCaptured, nPasses);
-            return;
-        }
-
-        // Now do the actual capturing by enabling constraints.
-        for (unsigned i=0; i < toCapture.size(); ++i) {
-            const int which = toCapture[i];
-            MyContactElement& uni = m_unis.updContactElement(which);
-            uni.enable(s);
-        }
-
-        m_mbs.realize(s, Stage::Velocity);
-        Vector captureImpulse;
-        calcStoppingImpulse(proximal, s, captureImpulse);
-        updateVelocities(Vector(), captureImpulse, s);
-
-        // Now update the entries for each proximal constraint to reflect the
-        // capture impulse and post-capture velocity.
-        for (unsigned i=0; i<proximal.m_contact.size(); ++i) {
-            const int which = proximal.m_contact[i];
-            MyContactElement& uni = m_unis.updContactElement(which);
-            if (!uni.isDisabled(s))
-                uni.recordImpulse(MyContactElement::Capture, 
-                                  s, captureImpulse);
-        }
-    }
-}
 
 
 
@@ -2141,6 +2323,7 @@ selectActiveConstraints(State& state, Real accuracy) const {
 
     bool needRestart;
     do {
+        //TODO: this (mis)use of accuracy needs to be revisited.
         findCandidateElements(state, accuracy, accuracy, candidates);
 
         // Evaluate accelerations and reaction forces and check if 
@@ -2156,7 +2339,9 @@ selectActiveConstraints(State& state, Real accuracy) const {
         }
 
         // Finally, project active constraints to the constraint manifolds.
-        m_mbs.project(state, accuracy);
+        const Real tol = accuracy/1000;
+        SimTK_DEBUG1("projecting active constraints to tol=%g\n", tol);
+        m_mbs.project(state, tol);
 
         // It is possible that the projection above took some marginally-sliding
         // friction and slowed it down enough to make it a stiction candidate.
@@ -2210,39 +2395,30 @@ selectActiveConstraints(State& state, Real accuracy) const {
 // friction it will have reset the "previous slip direction" to the current
 // slip or impending slip direction, and converged the remembered normal force.
 //
-// Heuristic used here:
-// (1) Check stiction force magnitudes. If any exceeds mu_s*N, record the
-//     impending slip direction d=-f/|f|, and estimated normal force
-//     N_est = max(N,0). Switch to sliding with f=-mu_d*N_est*d.
-// (2) Recalculate normal forces with sliding. Replace all estimated normal
-//     forces with new values, calculating the size of the normal force change.
-//     If change is large, repeat (2) until the change is within tolerance.
-// (3) If there are new stiction forces exceeding their limits, return to (1).
-// (4) Check for negative unilateral contact forces. Disable those contacts
-//     tentatively and recalculate contact forces.
-// (5) Check for negative unilateral accelerations. Enable those contacts
-//     in sliding or stiction depending on velocity.
-//
-// ALTERNATIVE (NOT IMPLEMENTED):
-// Activate all candidate constraints (no impulse needed to enable):
-// - for uni constraints, perr <= ptol, verr <= vtol
-// - for stiction with candidate master, |v| <= vtol.
+// Algorithm
+// ---------
+// We're given a set of candidates including contacts and stiction. If any are
+// inactive, activate them.
+// -- at this point all aerr==0, some ferr might be < 0
 //
 // loop
-// - calculate ferr for active constraints, aerr for inactive
+// - Realize(Acceleration) with the current active set
 //     (iterate sliding forces until f=mu_d*N to tol)
-// - if all ferr>=0, aerr>=0, break 
-// - find worst offender (TODO)
-// - inactivate/activate worst offender
-//     (record impending slip direction & N for stick->slide)
+// - Calculate ferr for active constraints, aerr for inactive
+// - If all ferr>=0, aerr>=0 -> break loop
+// - Check for aerr < 0 [tol?]. Shouldn't happen but if it does must turn on the
+//     associated constraint for the worst violation, then -> continue loop
+// - Find worst (most negative) offender:
+//    contact offense  = fc < 0 ? fc : 0
+//    stiction offense = mu_s*max(0, fc) - |fs|
+// - Choose constraint to deactivate:
+//     worst is a stiction constraint: choose it
+//     worst is a contact constraint: if it has stiction, chose that
+//                                    otherwise choose the contact constraint
+// - Inactivate chosen constraint
+//     (if stiction, record impending slip direction & N for stick->slide)
 // end loop 
 //
-// Notes:
-// - for stiction, ferr=mu_s*N - |f|
-// - for sliding, aerr=dot(slipAccel, impendingSlipDir)
-// - for active contact, ferr=lambda
-// - for inactive contact, aerr=separation accel
-
 void MyUnilateralConstraintSet::
 findActiveCandidates(State& s, const MyElementSubset& candidates) const
 {
@@ -2260,19 +2436,17 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
         candidates.m_contact.size(), candidates.m_friction.size(),
         candidates.m_sliding.size());
 
-    // Enable all candidate contact and stiction constraints.
+    // Enable all candidate contact and stiction constraints if any are
+    // currently disabled.
     enableConstraintSubset(candidates, true, s);
 
-    // Check first, disable later because we don't want to invalidate
-    // the reaction forces in the state yet.
-    Array_<int> stictionDisabled, contactDisabled;
-
-    // Disable any stiction constraints that are generating too much force.
-    // Note that this will be true for any stiction constraint whose master
-    // unilateral contact is generating a negative normal force.
-    int pass = 0; Array_<int> disabled;
+    int pass=0, nContactsDisabled=0, nStictionDisabled=0, nContactsReenabled=0;
     while (true) {
-        ++pass; disabled.clear();
+        ++pass; 
+        SimTK_DEBUG1("\nfindActiveCandidates(): pass %d\n", pass);
+
+        // Given an active set, evaluate multipliers and accelerations, and
+        // converge sliding forces.
         m_mbs.realize(s, Stage::Acceleration);
         SimTK_DEBUG("REVISE NORMAL #1\n");
         for (int i=0; i < ReviseNormalNIters; ++i) {
@@ -2280,110 +2454,124 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
             s.invalidateAllCacheAtOrAbove(Stage::Dynamics);
             m_mbs.realize(s, Stage::Acceleration);
         }
-        for (unsigned i=0; i < candidates.m_friction.size(); ++i) {
-            const int which = candidates.m_friction[i];
-            MyFrictionElement& fric = updFrictionElement(which);
-            if (!fric.isSticking(s)) continue;
 
-            const Real f = fric.calcStictionForceWitness(s);
-            if (f<0) {
-                SimTK_DEBUG4("  Pass %d: disable stiction %d: force capacity=%g at N=%g\n", 
-                    pass, which, f, fric.getMasterNormalForce(s));
-                disabled.push_back(which);
-                stictionDisabled.push_back(which); // for all passes
-                fric.recordImpendingSlipInfo(s);
-            }
-        }
-        if (disabled.empty())
-            break; // no stiction is greater than mu_s*N now
+        // Scan all candidate contacts to find the active one that has the
+        // most negative normal force, and the inactive one that has the 
+        // most negative acceleration error (hopefully none will).
 
-        // Do the necessary disabling. (Invalidates Instance stage.)
-        for (unsigned tbd=0; tbd < disabled.size(); ++tbd) {
-            const int which = disabled[tbd];
-            const MyFrictionElement& fric = getFrictionElement(which);
-            fric.disableStiction(s); // saves recorded info
-        }
-        // Go back for another pass.
-    }
-
-    if (!stictionDisabled.empty()) {
-        // Recalculate sliding friction from normal we just obtained.
-        // TODO: this should be a Newton iteration.
-        SimTK_DEBUG("REVISE NORMAL #2\n");
-        for (int i=0; i < ReviseNormalNIters; ++i) {
-            s.autoUpdateDiscreteVariables();
-            s.invalidateAllCacheAtOrAbove(Stage::Dynamics);
-            m_mbs.realize(s, Stage::Acceleration);
-        }
-    }
-
-    // Now look for contact constraints that are "sucking". We'll try disabling
-    // those but will re-enable if that would lead to penetration.
-    for (unsigned i=0; i < candidates.m_contact.size(); ++i) {
-        const int which = candidates.m_contact[i];
-        const MyContactElement& cont = getContactElement(which);
-        if (cont.isDisabled(s)) continue;
-        const Real f = cont.getForce(s);
-        if (f<0) {
-            SimTK_DEBUG2("  consider disabling contact %d because force=%g\n", 
-                            which, f);
-            if (cont.hasFrictionElement()) {
-                MyFrictionElement& fric = cont.updFrictionElement();
-                if (fric.isSticking(s)) {
-                    fric.recordImpendingSlipInfo(s);
+        int worstActiveContact=-1; Real mostNegativeContactForce=0;
+        int worstInactiveContact=-1; Real mostNegativeAerr=0;
+        
+        SimTK_DEBUG("analyzing contact constraints ...\n");
+        for (unsigned i=0; i < candidates.m_contact.size(); ++i) {
+            const int which = candidates.m_contact[i];
+            SimTK_DEBUG1("  %d: ", which);
+            const MyContactElement& cont = getContactElement(which);
+            if (cont.isDisabled(s)) {
+                const Real aerr = cont.getAerr(s);
+                SimTK_DEBUG1("off aerr=%g\n", aerr);
+                if (aerr < mostNegativeAerr) {
+                    worstInactiveContact = which;
+                    mostNegativeAerr = aerr;
+                }
+            } else {
+                const Real f = cont.getForce(s);
+                SimTK_DEBUG1("on f=%g\n", f);
+                if (f < mostNegativeContactForce) {
+                    worstActiveContact = which;
+                    mostNegativeContactForce = f;
                 }
             }
-            contactDisabled.push_back(which);
         }
-    }
 
-    // OK, now tentatively disable the pulling contacts. If there is an 
-    // associated stiction element we have to disable it too.
-    for (unsigned tbd=0; tbd < contactDisabled.size(); ++tbd) {
-        const int which = contactDisabled[tbd];
-        const MyContactElement& cont = getContactElement(which);
-        if (cont.hasFrictionElement()) {
-            const MyFrictionElement& fric = cont.getFrictionElement();
-            if (fric.isSticking(s)) {
-                fric.disableStiction(s);
-                stictionDisabled.push_back(fric.getFrictionIndex());
+        // This is bad and might cause cycling.
+        if (mostNegativeAerr < 0) {
+            SimTK_DEBUG2("  !!! Inactive contact %d violated, aerr=%g\n", 
+                worstInactiveContact, mostNegativeAerr);
+            const MyContactElement& cont = getContactElement(worstInactiveContact);
+            //TODO -- must use a tolerance or prevent looping
+            //++nContactsReenabled;
+            //cont.enable(s);
+            //continue;
+        }
+
+        SimTK_DEBUG("  All inactive contacts are satisfied.\n");
+
+        #ifndef NDEBUG
+        if (mostNegativeContactForce == 0)
+            printf("  All active contacts are satisfied.\n");
+        else 
+            printf("  Active contact %d was worst violator with f=%g\n",
+                worstActiveContact, mostNegativeContactForce);
+        #endif
+
+        int worstActiveStiction=-1; Real mostNegativeStictionCapacity=0;     
+        SimTK_DEBUG("analyzing stiction constraints ...\n");
+        for (unsigned i=0; i < candidates.m_friction.size(); ++i) {
+            const int which = candidates.m_friction[i];
+            SimTK_DEBUG1("  %d: ", which);
+            const MyFrictionElement& fric = getFrictionElement(which);
+            if (!fric.isSticking(s)) {
+                SimTK_DEBUG("off\n");
+                continue;
+            }
+            const Real mu_s = fric.getStaticFrictionCoef();
+            const Real N = fric.getMasterNormalForce(s); // might be negative
+            const Real fsmag = fric.getActualFrictionForce(s);
+            const Real capacity = mu_s*std::max(N,Real(0)) - fsmag;
+            SimTK_DEBUG2("on capacity=%g (N=%g)\n", capacity, N);
+
+            if (capacity < mostNegativeStictionCapacity) {
+                worstActiveStiction = which;
+                mostNegativeStictionCapacity = capacity;
             }
         }
+
+        #ifndef NDEBUG
+        if (mostNegativeStictionCapacity == 0)
+            printf("  All active stiction constraints are satisfied.\n");
+        else 
+            printf("  Active stiction %d was worst violator with capacity=%g\n",
+                worstActiveStiction, mostNegativeStictionCapacity);
+        #endif
+
+        if (mostNegativeContactForce==0 && mostNegativeStictionCapacity==0) {
+            SimTK_DEBUG("DONE. Current active set is a winner.\n");
+            break;
+        }
+
+        if (mostNegativeStictionCapacity <= mostNegativeContactForce) {
+            SimTK_DEBUG1("  Disable stiction %d\n", worstActiveStiction);
+            MyFrictionElement& fric = updFrictionElement(worstActiveStiction);
+            fric.recordImpendingSlipInfo(s);
+            ++nStictionDisabled;
+            fric.disableStiction(s);
+            continue;
+        }
+
+        // A contact constraint was the worst violator. If that contact
+        // constraint has an active stiction constraint, we have to disable
+        // the stiction constraint first.
+        SimTK_DEBUG1("  Contact %d was the worst violator.\n", worstActiveContact);
+        const MyContactElement& cont = getContactElement(worstActiveContact);
+        assert(!cont.isDisabled(s));
+
+        if (cont.hasFrictionElement()) {
+            MyFrictionElement& fric = cont.updFrictionElement();
+            if (fric.isSticking(s)) {
+                SimTK_DEBUG1("  ... but must disable stiction %d first.\n",
+                    fric.getFrictionIndex());
+                fric.recordImpendingSlipInfo(s);
+                ++nStictionDisabled;
+                fric.disableStiction(s);
+                continue;
+            }
+        }
+
+        SimTK_DEBUG1("  Disable contact %d\n", worstActiveContact); 
+        ++nContactsDisabled;
         cont.disable(s);
-    }
-
-    m_mbs.realize(s, Stage::Acceleration);
-    if (!contactDisabled.empty()) {
-        // Recalculate sliding friction from normal we just obtained.
-        // TODO: this should be a Newton iteration.
-        SimTK_DEBUG("REVISE NORMAL\n");
-        const int NIters = 6;
-        for (int i=0; i < NIters; ++i) {
-            s.autoUpdateDiscreteVariables();
-            s.invalidateAllCacheAtOrAbove(Stage::Dynamics);
-            m_mbs.realize(s, Stage::Acceleration);
-        }
-    }
-
-    // See which of the just-disabled constraints is violated. We'll re-enable
-    // those but won't turn stiction back on if it was engaged before.
-    Array_<int> violated;
-    for (unsigned tbd=0; tbd < contactDisabled.size(); ++tbd) {
-        const int which = contactDisabled[tbd];
-        const MyContactElement& cont = getContactElement(which);
-        const Real aerr = cont.getAerr(s);
-        if (aerr < 0) {
-            violated.push_back(which);
-            SimTK_DEBUG2("  RE-ENABLE contact %d cuz aerr=%g\n", 
-                            which, aerr);
-        }
-    }
-
-    // Re-enable now.
-    for (unsigned v=0; v < violated.size(); ++v) {
-        const int which = violated[v];
-        const MyContactElement& cont = getContactElement(which);
-        cont.enable(s);
+        // Go back for another pass.
     }
 
     // Reset all the slip directions so that all slip->stick event witnesses 
@@ -2398,8 +2586,8 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
     // Always leave at acceleration stage.
     m_mbs.realize(s, Stage::Acceleration);
 
-    SimTK_DEBUG2("... Done; %d contacts, %d stictions broken.\n", 
-        contactDisabled.size()-violated.size(), stictionDisabled.size());
+    SimTK_DEBUG3("... Done; %d contacts, %d stictions broken; %d re-enabled.\n", 
+        nContactsDisabled, nStictionDisabled, nContactsReenabled);
 
     showConstraintStatus(s, "EXIT findActiveCandidates()");
 }
@@ -2439,7 +2627,7 @@ showConstraintStatus(const State& s, const String& place) const
 //==============================================================================
 // This is used for friction when slipping or when slip is impending, so it
 // will generate a force even if there is no slip velocity. Whenever the slip
-// speed |v|<=tol, or if it has reversed direction, we consider it unreliable 
+// speed |v|<=vtol, or if it has reversed direction, we consider it unreliable 
 // and leave the applied force direction unchanged until the next transition 
 // event. At that point activating the stiction constraint will be attempted. 
 // If the stiction condition is violated, a new impending slip direction is 
@@ -2452,7 +2640,7 @@ showConstraintStatus(const State& s, const String& place) const
 // d_eff is the effective slip direction that is to be opposed by the force.
 //
 // This is composed of several functions:
-//      shouldUpdate(v) = ~v*d_prev > 0 && |v|>tol
+//      shouldUpdate(v) = ~v*d_prev > 0 && |v|>vtol
 //      d_eff(v)   = shouldUpdate(v) ? v/|v| : d_prev
 //      v_eff(v)   = ~v*d_eff
 //      mu(v)      = mu_d + mu_v * max(v_eff,0)
@@ -2467,7 +2655,7 @@ showConstraintStatus(const State& s, const String& place) const
 // d_eff ... the effective slip direction, a unit length 2-vector
 // v_eff ... slip speed in d_eff direction, for viscous friction
 //
-// There is a sliding-to-stiction event witness functions
+// There is a sliding-to-stiction event witness function
 //              e1(v)=dot(v, d_prev)    velocity reversal
 //
 // TODO: other possible witness functions:
@@ -2491,33 +2679,22 @@ showConstraintStatus(const State& s, const String& place) const
 // 
 class MySlidingFrictionForceImpl : public Force::Custom::Implementation {
 public:
-    MySlidingFrictionForceImpl(const GeneralForceSubsystem& forces,
-                               const MyPointContactFriction& ptFriction)
+    MySlidingFrictionForceImpl(const GeneralForceSubsystem&     forces,
+                               const MyPointContactFriction&    ptFriction,
+                               Real                             vtol)
     :   m_forces(forces), m_friction(ptFriction), 
-        m_contact(ptFriction.getMyPointContact())
+        m_contact(ptFriction.getMyPointContact()), m_vtol(vtol)
     {}
 
     bool hasSlidingForce(const State& s) const 
     {   return m_friction.isMasterActive(s) && !m_friction.isSticking(s); }
 
-    // Determine whether the current slip velocity is reliable enough that
-    // we should use it to replace the previous slip velocity.
-    static bool shouldUpdate(const Vec2& Vslip, const Vec2& prevVslipDir,
-                             Real velTol) {
-        const Real v2 = Vslip.normSqr();
-        if (prevVslipDir.isNaN())
-            return v2 > 0; // we'll take anything
-
-        // Check for reversal.
-        bool reversed = (~Vslip*prevVslipDir < 0);
-        return !reversed && (v2 > square(velTol));
-    }
 
     // Calculate d_eff, the direction to be opposed by the sliding force.
     Vec2 getEffectiveSlipDir(const State& s) const {
         const Vec2 Vslip = m_contact.getSlipVelocity(s);
         const Vec2 prevVslipDir = getPrevSlipDir(s);
-        if (shouldUpdate(Vslip, prevVslipDir, 1e-2)) { // TODO: tol?
+        if (shouldUpdate(Vslip, prevVslipDir, m_vtol)) { // TODO: tol?
             const Real v = Vslip.norm();
             return Vslip/v;
         }
@@ -2626,7 +2803,7 @@ public:
         const Vec2 Vslip = m_contact.getSlipVelocity(state);
         const Vec2 prevVslipDir = getPrevSlipDir(state);
 
-        if (shouldUpdate(Vslip, prevVslipDir, 1e-2)) { // TODO: tol?
+        if (shouldUpdate(Vslip, prevVslipDir, m_vtol)) {
             Vec2& prevSlipUpdate = Value<Vec2>::updDowncast
                (m_forces.updDiscreteVarUpdateValue(state, m_prevSlipDirIx));
             const Real v = Vslip.norm();
@@ -2635,10 +2812,10 @@ public:
             m_forces.markDiscreteVarUpdateValueRealized(state, m_prevSlipDirIx);
 
             #ifndef NDEBUG
-            printf("UPDATE %d: prevSlipDir=%g %g; now=%g %g; |v|=%g dot=%g vdot=%g\n",
-                m_friction.getFrictionIndex(),
-                prevVslipDir[0],prevVslipDir[1],slipDir[0],slipDir[1],
-                v, ~slipDir*prevVslipDir, ~Vslip*prevVslipDir);
+            //printf("UPDATE %d: prevSlipDir=%g %g; now=%g %g; |v|=%g dot=%g vdot=%g\n",
+            //    m_friction.getFrictionIndex(),
+            //    prevVslipDir[0],prevVslipDir[1],slipDir[0],slipDir[1],
+            //    v, ~slipDir*prevVslipDir, ~Vslip*prevVslipDir);
             #endif
         } else {
             #ifndef NDEBUG
@@ -2690,9 +2867,23 @@ private:
         return fMag;
     }
 
+    // Determine whether the current slip velocity is reliable enough that
+    // we should use it to replace the previous slip velocity.
+    static bool shouldUpdate(const Vec2& Vslip, const Vec2& prevVslipDir,
+                             Real velTol) {
+        const Real v2 = Vslip.normSqr();
+        if (prevVslipDir.isNaN())
+            return v2 > 0; // we'll take anything
+
+        // Check for reversal.
+        bool reversed = (~Vslip*prevVslipDir < 0);
+        return !reversed && (v2 > square(velTol));
+    }
+
     const GeneralForceSubsystem&    m_forces;
     const MyPointContactFriction&   m_friction;
     const MyPointContact&           m_contact;
+    const Real                      m_vtol;
 
     mutable DiscreteVariableIndex   m_prevNix;       // previous normal force
     mutable DiscreteVariableIndex   m_prevSlipDirIx; // previous slip direction
@@ -2701,9 +2892,10 @@ private:
 // This is the force handle's constructor; it just creates the force
 // implementation object.
 MySlidingFrictionForce::MySlidingFrictionForce
-   (GeneralForceSubsystem& forces,
-    const MyPointContactFriction& friction) 
-:   Force::Custom(forces, new MySlidingFrictionForceImpl(forces,friction)) 
+   (GeneralForceSubsystem&          forces,
+    const MyPointContactFriction&   friction,
+    Real                            vtol) 
+:   Force::Custom(forces, new MySlidingFrictionForceImpl(forces,friction,vtol)) 
 {}
 
 Real MySlidingFrictionForce::getPrevN(const State& state) const 

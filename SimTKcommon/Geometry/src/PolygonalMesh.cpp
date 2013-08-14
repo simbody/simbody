@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -27,16 +27,14 @@
 #include <cassert>
 #include <sstream>
 #include <string>
+#include <set>
+#include <map>
 
-namespace SimTK {
+using namespace SimTK;
 
-PolygonalMeshImpl::PolygonalMeshImpl() {
-    faceVertexStart.push_back(0);
-}
-
-PolygonalMeshImpl* PolygonalMeshImpl::clone() const {
-    return new PolygonalMeshImpl(*this);
-}
+//==============================================================================
+//                            POLYGONAL MESH
+//==============================================================================
 
 // If the handle is empty, reconstruct it to be an owner handle whose
 // implementation is present but contains no vertices.
@@ -45,7 +43,11 @@ void PolygonalMesh::initializeHandleIfEmpty() {
         new(this) PolygonalMesh(new PolygonalMeshImpl());
 }
 
-// default copy constructor, copy assignment, destructor
+// default (shallow) copy constructor, copy assignment, destructor
+
+void PolygonalMesh::clear() {
+    if (!isEmptyHandle()) updImpl().clear();
+}
 
 int PolygonalMesh::getNumFaces() const {
     return isEmptyHandle() ? 0 : getImpl().faceVertexStart.size()-1;
@@ -56,12 +58,12 @@ int PolygonalMesh::getNumVertices() const {
 }
 
 const Vec3& PolygonalMesh::getVertexPosition(int vertex) const {
-    assert(vertex >= 0 && vertex < getNumVertices());
+    assert(0 <= vertex && vertex < getNumVertices());
     return getImpl().vertices[vertex];
 }
 
 int PolygonalMesh::getNumVerticesForFace(int face) const {
-    assert(face >= 0 && face < getNumFaces());
+    assert(0 <= face && face < getNumFaces());
     const Array_<int>& faceVertexStart = getImpl().faceVertexStart;
     return faceVertexStart[face+1]-faceVertexStart[face];
 }
@@ -92,18 +94,22 @@ int PolygonalMesh::addFace(const Array_<int>& vertices) {
     return getImpl().faceVertexStart.size()-2;
 }
 
-void PolygonalMesh::scaleMesh(Real scale) {
-    if (isEmptyHandle()) return;
-    Array_<Vec3>& vertices = updImpl().vertices;
-    for (int i = 0; i < (int) vertices.size(); i++)
-        vertices[i] *= scale;
+PolygonalMesh& PolygonalMesh::scaleMesh(Real scale) {
+    if (!isEmptyHandle()) {
+        Array_<Vec3>& vertices = updImpl().vertices;
+        for (int i = 0; i < (int) vertices.size(); i++)
+            vertices[i] *= scale;
+    }
+    return *this;
 }
 
-void PolygonalMesh::transformMesh(const Transform& transform) {
-    if (isEmptyHandle()) return;
-    Array_<Vec3>& vertices = updImpl().vertices;
-    for (int i = 0; i < (int) vertices.size(); i++)
-        vertices[i] = transform*vertices[i];
+PolygonalMesh& PolygonalMesh::transformMesh(const Transform& X_AM) {
+    if (!isEmptyHandle()) {
+        Array_<Vec3>& vertices = updImpl().vertices;
+        for (int i = 0; i < (int) vertices.size(); i++)
+            vertices[i] = X_AM*vertices[i];
+    }
+    return *this;
 }
 
 void PolygonalMesh::loadObjFile(std::istream& file) {
@@ -364,4 +370,341 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
   }
 }
 
-} // namespace SimTK
+//------------------------------------------------------------------------------
+//                            CREATE SPHERE MESH
+//------------------------------------------------------------------------------
+
+// Use unnamed namespace to keep VertKey class and VertMap type private to 
+// this file, as well as a few helper functions.
+namespace {
+
+    struct VertKey {
+        VertKey(const Vec3& v) : v(v) {}
+        Vec3 v;
+        bool operator<(const VertKey& other) const {
+            const Real tol = SignificantReal;
+            const Vec3 diff = v - other.v;
+            if (diff[0] < -tol) return true;
+            if (diff[0] >  tol) return false;
+            if (diff[1] < -tol) return true;
+            if (diff[1] >  tol) return false;
+            if (diff[2] < -tol) return true;
+            if (diff[2] >  tol) return false;
+            return false; // they are numerically equal
+        }
+    };
+    typedef std::map<VertKey,int> VertMap;
+
+    /* Search a list of vertices for one close enough to this one and
+    return its index if found, otherwise add to the end. */
+    int getVertex(const Vec3& v, VertMap& vmap, Array_<Vec3>& verts) {
+        VertMap::const_iterator p = vmap.find(VertKey(v));
+        if (p != vmap.end()) return p->second;
+        const int ix = (int)verts.size();
+        verts.push_back(v);
+        vmap.insert(std::make_pair(VertKey(v),ix));
+        return ix;
+    }
+
+    /* Each face comes in as below, with vertices 0,1,2 on the surface
+    of a sphere or radius r centered at the origin. We bisect the edges to get
+    points a',b',c', then move out from the center to make points a,b,c
+    on the sphere.
+             1
+            /\        
+           /  \
+        c /____\ b      Then construct new triangles
+         /\    /\            [0,b,a]
+        /  \  /  \           [a,b,c]
+       /____\/____\          [c,2,a]
+      2      a     0         [b,1,c]
+    */
+    void refineSphere(Real r, VertMap& vmap, 
+                             Array_<Vec3>& verts, Array_<int>&  faces) {
+        assert(faces.size() % 3 == 0);
+        const int nVerts = faces.size(); // # face vertices on entry
+        for (int i=0; i < nVerts; i+=3) {
+            const int v0=faces[i], v1=faces[i+1], v2=faces[i+2];
+            const Vec3 a = r*UnitVec3(verts[v0]+verts[v2]);
+            const Vec3 b = r*UnitVec3(verts[v0]+verts[v1]);
+            const Vec3 c = r*UnitVec3(verts[v1]+verts[v2]);
+            const int va=getVertex(a,vmap,verts), 
+                      vb=getVertex(b,vmap,verts), 
+                      vc=getVertex(c,vmap,verts);
+            // Replace the existing face with the 0ba triangle, then add the
+            // rest. Refer to the above picture.
+            faces[i+1] = vb; faces[i+2] = va;
+            faces.push_back(va); faces.push_back(vb); faces.push_back(vc);//abc
+            faces.push_back(vc); faces.push_back(v2); faces.push_back(va);//c2a
+            faces.push_back(vb); faces.push_back(v1); faces.push_back(vc);//b1c
+        }
+    }
+
+
+    void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
+                                   Array_<int>&  faceIndices) {
+        vertices.push_back(Vec3( r[0],  0,  0));   //0
+        vertices.push_back(Vec3(-r[0],  0,  0));   //1
+        vertices.push_back(Vec3( 0,  r[1],  0));   //2
+        vertices.push_back(Vec3( 0, -r[1],  0));   //3
+        vertices.push_back(Vec3( 0,  0,  r[2]));   //4
+        vertices.push_back(Vec3( 0,  0, -r[2]));   //5
+        int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0}, 
+                           {4, 3, 0}, {1, 3, 4}, {5, 3, 1}, {0, 3, 5}};
+        for (int i = 0; i < 8; i++)
+            for (int j = 0; j < 3; j++)
+                faceIndices.push_back(faces[i][j]);
+    }
+
+} // end unnamed namespace
+
+/*static*/ PolygonalMesh PolygonalMesh::
+createSphereMesh(Real radius, int resolution) {
+    SimTK_ERRCHK1_ALWAYS(radius > 0, "PolygonalMesh::createSphereMesh()",
+        "Radius %g illegal.", radius);
+    SimTK_ERRCHK1_ALWAYS(resolution >= 0, "PolygonalMesh::createSphereMesh()",
+        "Resolution %d illegal.", resolution);
+
+    Array_<Vec3> vertices;
+    Array_<int> faceIndices;
+    makeOctahedralMesh(Vec3(radius), vertices, faceIndices);
+
+    VertMap vmap;
+    for (unsigned i=0; i < vertices.size(); ++i)
+        vmap[vertices[i]] = i;
+
+    int level = resolution;
+    while (level > 0) {
+        refineSphere(radius, vmap, vertices, faceIndices);
+        --level;
+    }
+
+    PolygonalMesh sphere;
+    for (unsigned i=0; i < vertices.size(); ++i)
+        sphere.addVertex(vertices[i]);
+    for (unsigned i=0; i < faceIndices.size(); i += 3) {
+        const Array_<int> verts(&faceIndices[i], &faceIndices[i]+3);
+        sphere.addFace(verts);
+    }
+
+    return sphere; // just a shallow copy
+}
+
+
+//------------------------------------------------------------------------------
+//                            CREATE BRICK MESH
+//------------------------------------------------------------------------------
+// Resolution 0 is just the four corners and six quads.
+// Resolution n means divide longest edge with n extra vertices; then make the
+// other faces about the same size.
+
+// Extend the unnamed namespace with another local function.
+namespace {
+
+    // Given the number of vertices along the x,y,z edges and the three (i,j,k) 
+    // coordinates of a particular vertex, return a packed representation of the
+    // (i,j,k) location that we can use as an index. Using a long long here
+    // just to avoid trouble, an int probably would have been fine.
+    long long locCode(int nv[3], int i, int j, int k)
+    {   return (long long)i*nv[1]*nv[2] + (long long)j*nv[2] + (long long)k; }
+
+} // end of unnamed namespace
+
+/*static*/ PolygonalMesh PolygonalMesh::
+createBrickMesh(const Vec3& halfDims, int resolution) {
+    SimTK_ERRCHK3_ALWAYS(halfDims > 0, "PolygonalMesh::createBrickMesh()",
+        "Bad brick dimensions %g %g %g.", halfDims[0], halfDims[1], halfDims[2]);
+    SimTK_ERRCHK1_ALWAYS(resolution >= 0, "PolygonalMesh::createBrickMesh()",
+        "Resolution %d illegal.", resolution);
+
+    const Vec3 dims(2*halfDims);
+
+    PolygonalMesh brick;
+    const Real longest = max(dims);
+    const Real edgeLengthTarget = longest/(resolution+1);
+    int nv[3]; // number of vertices along each edge
+    for (int i=0; i<3; ++i)
+        nv[i] = 1 + std::max((int)(dims[i]/edgeLengthTarget + 0.49), 1);
+    const Vec3 edgeLengths(dims[0]/(nv[0]-1), dims[1]/(nv[1]-1), 
+                           dims[2]/(nv[2]-1)); 
+
+    // Add regularly-spaced vertices on the surfaces.
+    std::map<long long,int> vertLoc2Vert; // map i,j,k -> vertex number
+    for (int i=0; i < nv[0]; ++i) {
+        bool xface = (i==0 || i==nv[0]-1);
+        const Real iloc = i*edgeLengths[0] - halfDims[0];
+        for (int j=0; j < nv[1]; ++j) {
+            bool yface = (j==0 || j==nv[1]-1);
+            const Real jloc = j*edgeLengths[1] - halfDims[1];
+            for (int k=0; k < nv[2]; ++k) {
+                bool zface = (k==0 || k==nv[2]-1);
+                if (!(xface||yface||zface)) 
+                    continue; // skip interior vertices
+                const Real kloc = k*edgeLengths[2] - halfDims[2];
+                const int vnum = brick.addVertex(Vec3(iloc,jloc,kloc));
+                vertLoc2Vert[locCode(nv,i,j,k)] = vnum;
+            }
+        }
+    }
+
+    // Add quad faces oriented with normal outwards.
+    Array_<int> face(4);
+
+    // This is the -x surface (y,z rectangle).
+    for (int j=0; j < nv[1]-1; ++j)
+        for (int k=0; k < nv[2]-1; ++k) {
+            face[0] = vertLoc2Vert[locCode(nv,0,j,  k+1)];
+            face[1] = vertLoc2Vert[locCode(nv,0,j+1,k+1)];
+            face[2] = vertLoc2Vert[locCode(nv,0,j+1,k)];
+            face[3] = vertLoc2Vert[locCode(nv,0,j,  k)];
+            brick.addFace(face);
+        }
+    // This is the +x surface (y,z rectangle).
+    for (int j=0; j < nv[1]-1; ++j)
+        for (int k=0; k < nv[2]-1; ++k) {
+            face[3] = vertLoc2Vert[locCode(nv,nv[0]-1,j,  k+1)];
+            face[2] = vertLoc2Vert[locCode(nv,nv[0]-1,j+1,k+1)];
+            face[1] = vertLoc2Vert[locCode(nv,nv[0]-1,j+1,k)];
+            face[0] = vertLoc2Vert[locCode(nv,nv[0]-1,j,  k)];
+            brick.addFace(face);
+        }
+    // This is the -y surface (x,z rectangle).
+    for (int i=0; i < nv[0]-1; ++i)
+        for (int k=0; k < nv[2]-1; ++k) {
+            face[0] = vertLoc2Vert[locCode(nv,i,  0,k)];
+            face[1] = vertLoc2Vert[locCode(nv,i+1,0,k)];
+            face[2] = vertLoc2Vert[locCode(nv,i+1,0,k+1)];
+            face[3] = vertLoc2Vert[locCode(nv,i,  0,k+1)];
+            brick.addFace(face);
+        }
+    // This is the +y surface (x,z rectangle).
+    for (int i=0; i < nv[0]-1; ++i)
+        for (int k=0; k < nv[2]-1; ++k) {
+            face[3] = vertLoc2Vert[locCode(nv,i,  nv[1]-1,k)];
+            face[2] = vertLoc2Vert[locCode(nv,i+1,nv[1]-1,k)];
+            face[1] = vertLoc2Vert[locCode(nv,i+1,nv[1]-1,k+1)];
+            face[0] = vertLoc2Vert[locCode(nv,i,  nv[1]-1,k+1)];
+            brick.addFace(face);
+        }
+    // This is the -z surface (x,y rectangle).
+    for (int i=0; i < nv[0]-1; ++i)
+        for (int j=0; j < nv[1]-1; ++j) {
+            face[0] = vertLoc2Vert[locCode(nv,i,  j+1,0)];
+            face[1] = vertLoc2Vert[locCode(nv,i+1,j+1,0)];
+            face[2] = vertLoc2Vert[locCode(nv,i+1,j,  0)];
+            face[3] = vertLoc2Vert[locCode(nv,i,  j,  0)];
+            brick.addFace(face);
+        }
+    // This is the +z surface (x,y rectangle).
+    for (int i=0; i < nv[0]-1; ++i)
+        for (int j=0; j < nv[1]-1; ++j) {
+            face[3] = vertLoc2Vert[locCode(nv,i,  j+1,nv[2]-1)];
+            face[2] = vertLoc2Vert[locCode(nv,i+1,j+1,nv[2]-1)];
+            face[1] = vertLoc2Vert[locCode(nv,i+1,j,  nv[2]-1)];
+            face[0] = vertLoc2Vert[locCode(nv,i,  j,  nv[2]-1)];
+            brick.addFace(face);
+        }
+
+    return brick; // just a shallow copy
+}
+
+
+//------------------------------------------------------------------------------
+//                           CREATE CYLINDER MESH
+//------------------------------------------------------------------------------
+// Minimum end surface is a hexagon (resolution 0).
+// Think of the axis as the +z axis, with the end caps in x-y planes at
+// height -z and +z.
+/*static*/ PolygonalMesh PolygonalMesh::
+createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength, 
+                   int resolution) 
+{
+    SimTK_ERRCHK1_ALWAYS(radius > 0, "PolygonalMesh::createCylinderMesh()",
+        "Bad radius %g.", radius);
+    SimTK_ERRCHK1_ALWAYS(halfLength > 0, "PolygonalMesh::createCylinderMesh()",
+        "Bad half length %g.", halfLength);
+    SimTK_ERRCHK1_ALWAYS(resolution >= 0, "PolygonalMesh::createCylinderMesh()",
+        "Resolution %d illegal.", resolution);
+
+    int rezAround = 6*(resolution+1);
+
+    Real angle = 2*Pi/rezAround;
+    Real chordLen = 2*radius*std::sin(angle/2);
+    int rezRadial = (int)(radius/chordLen+0.5);
+    Real edgeLenRad = radius/rezRadial;
+
+    int rezAlong  = 1 + std::max((int)(halfLength/edgeLenRad + 0.5), 1);
+    Real edgeLenAlong = 2*halfLength/(rezAlong-1);
+
+    PolygonalMesh cyl;
+    Rotation R_ZG = Rotation(axis, ZAxis);
+
+    int nv[3] = {rezRadial,rezAround,rezAlong};
+    // Do the tube.
+    std::map<long long, int> rak2Vert;
+    for (int k=0; k < rezAlong; ++k) {
+        bool isEndCap = (k==0 || k==rezAlong-1);
+        Real z = -halfLength + k*edgeLenAlong;
+        for (int a=0; a < rezAround; ++a) {
+            Real x = edgeLenRad*std::sin(a*angle);
+            Real y = edgeLenRad*std::cos(a*angle);
+            for (int r=1; r <= rezRadial; ++r) {
+                if (r < rezRadial && !isEndCap)
+                    continue; // skip interior vertices
+                int vnum = cyl.addVertex(R_ZG*Vec3(r*x,r*y,z));
+                rak2Vert[locCode(nv,r,a,k)] = vnum;
+            }
+        }
+    }
+
+    Array_<int> qface(4), tface(3);
+    for (int a=0; a < rezAround; ++a) {
+        int ap = (a+1)%rezAround;
+        for (int k=0; k < rezAlong-1; ++k) {
+            int r = rezRadial;
+            qface[0] = rak2Vert[locCode(nv,r, a,k)];
+            qface[1] = rak2Vert[locCode(nv,r, a,k+1)];
+            qface[2] = rak2Vert[locCode(nv,r,ap,k+1)];
+            qface[3] = rak2Vert[locCode(nv,r,ap,k)];
+            cyl.addFace(qface);
+        }
+    }
+
+    // Add central face vertices.
+    rak2Vert[locCode(nv,0,0,0)] = cyl.addVertex(R_ZG*Vec3(0,0,-halfLength));
+    rak2Vert[locCode(nv,0,0,rezAlong-1)] = cyl.addVertex(R_ZG*Vec3(0,0,halfLength));
+
+    // Tri faces from center to first ring.
+    for (int a=0; a < rezAround; ++a) {
+        int ap = (a+1)%rezAround; 
+        tface[0] = rak2Vert[locCode(nv,0,0, 0)];
+        tface[1] = rak2Vert[locCode(nv,1,a, 0)];
+        tface[2] = rak2Vert[locCode(nv,1,ap,0)];
+        cyl.addFace(tface);
+        tface[0] = rak2Vert[locCode(nv,0,0, rezAlong-1)];
+        tface[1] = rak2Vert[locCode(nv,1,ap, rezAlong-1)];
+        tface[2] = rak2Vert[locCode(nv,1,a,rezAlong-1)];
+        cyl.addFace(tface);
+    }
+
+
+    // Quad faces from first ring out.
+    for (int a=0; a < rezAround; ++a) {
+        int ap = (a+1)%rezAround; 
+        for (int r=1; r <= rezRadial-1; ++r) {
+        qface[0] = rak2Vert[locCode(nv,r,  a, 0)];
+        qface[1] = rak2Vert[locCode(nv,r+1,a, 0)];
+        qface[2] = rak2Vert[locCode(nv,r+1,ap,0)];
+        qface[3] = rak2Vert[locCode(nv,r,  ap,0)];
+        cyl.addFace(qface);
+        qface[3] = rak2Vert[locCode(nv,r,  a, rezAlong-1)];
+        qface[2] = rak2Vert[locCode(nv,r+1,a, rezAlong-1)];
+        qface[1] = rak2Vert[locCode(nv,r+1,ap,rezAlong-1)];
+        qface[0] = rak2Vert[locCode(nv,r,  ap,rezAlong-1)];
+        cyl.addFace(qface);
+        }
+    }
+
+    return cyl; // just a shallow copy
+}
+

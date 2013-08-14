@@ -73,21 +73,22 @@ Constraint() { }
 particular implementation object. **/
 explicit Constraint(ConstraintImpl* r) : HandleBase(r) { }
 
-/** Disable this constraint, effectively removing it from the system. This
-is an Instance-stage change and affects the allocation of constraint-
-related cache variables in the supplied State. **/
+/** Disable this %Constraint, effectively removing it from the system. This
+is an Instance-stage change and affects the allocation of %Constraint-
+related resources in the supplied State. **/
 void disable(State&) const;
 
-/** Enable this constraint, without necessarily satisfying it. This is an 
-Instance-stage change and affects the allocation of constraint-related cache 
-variables in the supplied State. Note that merely enabling a constraint does 
+/** Enable this %Constraint, without necessarily satisfying it. This is an 
+Instance-stage change and affects the allocation of %Constraint-related  
+resources in the supplied State. Note that merely enabling a constraint does 
 not ensure that the State's positions and velocities satisfy that constraint; 
-initial satisfaction requires use of an appropriate solver. **/
+initial satisfaction requires use of an appropriate project() solver.
+@see SimTK::System::project() **/
 void enable(State&) const;
 /** Test whether this constraint is currently disabled in the supplied 
 State. **/
 bool isDisabled(const State&) const;
-/** Test whether this constraint is disabled by default in which case it must 
+/** Test whether this %Constraint is disabled by default in which case it must 
 be explicitly enabled before it will take effect.
 @see setDisabledByDefault(), enable() **/
 bool isDisabledByDefault() const;
@@ -443,7 +444,7 @@ Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
 // These are the built-in Constraint types. Types on the same line are
 // synonymous.
 class Rod;  typedef Rod  ConstantDistance;
-class Ball; typedef Ball CoincidentPoints;
+class Ball; typedef Ball CoincidentPoints; typedef Ball Spherical;
 class Weld; typedef Weld CoincidentFrames;
 class PointInPlane;  // translations perpendicular to plane normal only
 class PointOnLine;   // translations along a line only
@@ -494,7 +495,7 @@ class PrescribedMotionImpl;
  * direction. For a distance of zero (i.e., you want the points to be 
  * coincident) use a Ball constraint, a.k.a. CoincidentPoints constraint.
  */
- class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
 public:
     // no default constructor
     Rod(MobilizedBody& body1, MobilizedBody& body2,
@@ -502,6 +503,9 @@ public:
     Rod(MobilizedBody& body1, const Vec3& defaultPoint1,
         MobilizedBody& body2, const Vec3& defaultPoint2,
         Real defaultLength=1);
+    
+    /** Default constructor creates an empty handle. **/
+    Rod() {}
 
     // Defaults for Instance variables.
     Rod& setDefaultPointOnBody1(const Vec3&);
@@ -528,7 +532,10 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getRodTension(const State&) const; // negative means compression
+    
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Rod, RodImpl, Constraint);
+    /** @endcond **/
 };
 
     ///////////////////////////////
@@ -550,6 +557,9 @@ public:
     // no default constructor
     PointInPlane(MobilizedBody& planeBody_B, const UnitVec3& defaultPlaneNormal_B, Real defaultHeight,
                  MobilizedBody& followerBody_F, const Vec3& defaultFollowerPoint_F);
+    
+    /** Default constructor creates an empty handle. **/
+    PointInPlane() {}
 
     // These affect only generated decorative geometry for visualization;
     // the plane is really infinite in extent with zero depth and the
@@ -585,7 +595,11 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getForceOnFollowerPoint(const State&) const; // in normal direction
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(PointInPlane, PointInPlaneImpl, Constraint);
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (PointInPlane, PointInPlaneImpl, Constraint);
+    /** @endcond **/
 };
 
     //////////////////////////////
@@ -607,6 +621,9 @@ public:
     // no default constructor
     PointOnLine(MobilizedBody& lineBody_B, const UnitVec3& defaultLineDirection_B, const Vec3& defaultPointOnLine_B,
                 MobilizedBody& followerBody_F, const Vec3& defaultFollowerPoint_F);
+    
+    /** Default constructor creates an empty handle. **/
+    PointOnLine() {}
 
     // These affect only generated decorative geometry for visualization;
     // the line is really infinite in extent and the
@@ -642,7 +659,11 @@ public:
     Vec2 getAccelerationErrors(const State&) const;
     Vec2 getMultipliers(const State&) const;
     const Vec2& getForceOnFollowerPoint(const State&) const; // in normal direction
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(PointOnLine, PointOnLineImpl, Constraint);
+    
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (PointOnLine, PointOnLineImpl, Constraint);
+    /** @endcond **/
 };
 
     ///////////////////////////////
@@ -683,6 +704,9 @@ public:
     ConstantAngle(MobilizedBody& baseBody_B,     const UnitVec3& defaultAxis_B,
                   MobilizedBody& followerBody_F, const UnitVec3& defaultAxis_F, 
                   Real angle = Pi/2);
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantAngle() {}
 
     // These affect only generated decorative geometry for visualization.
     ConstantAngle& setAxisDisplayLength(Real);
@@ -716,7 +740,10 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getTorqueOnFollowerBody(const State&) const; // about f X b
+    
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantAngle, ConstantAngleImpl, Constraint);
+    /** @endcond **/
 };
 
     /////////////////////////////////////////
@@ -753,6 +780,9 @@ public:
     those later in the State using setPointOnBody1() and setPointOnBody2(). **/
     Ball(MobilizedBody& body1, const Vec3& defaultPoint1,
          MobilizedBody& body2, const Vec3& defaultPoint2);
+
+    /** Default constructor creates an empty handle. **/
+    Ball() {}
 
     /** Change the station point on body 1 at which this %Constraint acts.
     Provide the station location in the body 1 local frame.
@@ -851,7 +881,9 @@ public:
     The given \a state must be realized through Acceleration stage. **/
     Vec3 getMultipliers(const State& state) const;
 
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, Constraint);
+    /** @endcond **/
 };
 
     /////////////////////////////////////
@@ -880,6 +912,9 @@ public:
     // no default constructor
     ConstantOrientation(MobilizedBody& baseBody_B,     const Rotation& defaultRB,
                         MobilizedBody& followerBody_F, const Rotation& defaultRF); 
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantOrientation() {}
 
     //TODO: default visualization geometry?
 
@@ -906,7 +941,11 @@ public:
     Vec3 getAccelerationErrors(const State&) const;
     Vec3 getMultipliers(const State&) const;
     Vec3 getTorqueOnFollowerBody(const State&) const;
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantOrientation, ConstantOrientationImpl, Constraint);
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (ConstantOrientation, ConstantOrientationImpl, Constraint);
+    /** @endcond **/
 };
 
     /////////////////////////////////////////
@@ -950,6 +989,9 @@ public:
     /// position and orientation of frame F relative to the body frame B.
     Weld(MobilizedBody& body1, const Transform& frame1,
          MobilizedBody& body2, const Transform& frame2);
+    
+    /** Default constructor creates an empty handle. **/
+    Weld() {}
 
         // Control over generated decorative geometry.
 
@@ -1006,7 +1048,10 @@ public:
         // Forces are reported expressed in the body frame of the indicated body.
     const SpatialVec& getWeldReactionOnBody1(const State&) const;
     const SpatialVec& getWeldReactionOnBody2(const State&) const;
+
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, Constraint);
+    /** @endcond **/
 };
 
     ///////////////////////////
@@ -1036,6 +1081,9 @@ public:
     body to be the same body as one of the moving bodies. **/
     NoSlip1D(MobilizedBody& caseBodyC, const Vec3& P_C, const UnitVec3& n_C,
              MobilizedBody& movingBody0, MobilizedBody& movingBody1);
+    
+    /** Default constructor creates an empty handle. **/
+    NoSlip1D() {}
 
     /** Change the contact point at which this %Constraint acts.
     Provide the station location in the Case body local frame.
@@ -1128,7 +1176,9 @@ public:
     moving body 1, and is applied along the no-slip direction vector. **/
     Real getForceAtContactPoint(const State&) const;
 
+    /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(NoSlip1D, NoSlip1DImpl, Constraint);
+    /** @endcond **/
 };
 
     //////////////////////////////////////
@@ -1180,6 +1230,9 @@ public:
                 MobilizedBody&  ballBody_B, 
                 const Vec3&     defaultBallCenter_B,
                 Real            defaultBallRadius);
+    
+    /** Default constructor creates an empty handle. **/
+    BallRollingOnPlane() {}
 
     // These affect only generated decorative geometry for visualization;
     // the plane is really infinite in extent with zero depth.
@@ -1233,36 +1286,74 @@ public:
     // CONSTANT SPEED //
     ////////////////////
 
-/**
- * One non-holonomic constraint equation. Some mobility u is required to be at a
- * particular value s.
- * 
- * The assembly condition is the same as the run-time constraint: u must be set to s.
- */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint
-{
+/** Constrain a single mobility to have a particular speed.
+
+One non-holonomic constraint equation. Some mobility u is required to be at a
+particular value s.
+ 
+The assembly condition is the same as the run-time constraint: u must be set
+to s. **/
+class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint {
 public:
     // no default constructor
     /** Construct a constant speed constraint on a particular mobility
     of the given mobilizer. **/
-    ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex, Real speed);
+    ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
+                  Real defaultSpeed);
     /** Construct a constant speed constraint on the mobility
     of the given mobilizer, assuming there is only one mobility. **/
-    ConstantSpeed(MobilizedBody& mobilizer, Real speed); 
+    ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed); 
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantSpeed() {}
 
-    // Stage::Topology
+    /** Return the index of the mobilized body to which this constant speed
+    constraint is being applied (to \e one of its mobilities). This is set on
+    construction of the %ConstantSpeed constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+    /** Return the particular mobility whose generalized speed is controlled by
+    this %ConstantSpeed constraint. This is set on construction. **/
     MobilizerUIndex    getWhichU() const;
+    /** Return the default value for the speed to be enforced. This is set on
+    construction or via setDefaultSpeed(). This is used to initialize the speed
+    when a default State is created, but it can be overriden by changing the
+    value in the State using setSpeed(). **/
     Real               getDefaultSpeed() const;
+    /** Change the default value for the speed to be enforced by this 
+    constraint. This is a topological change, meaning you'll have to call
+    realizeTopology() on the containing System and obtain a new State before
+    you can use it. If you just want to make a runtime change in the State,
+    see setSpeed(). **/
+    ConstantSpeed&     setDefaultSpeed(Real speed);
 
-    // Stage::Position, Velocity
-        // no position error
-    Real getVelocityError(const State&) const;
+    /** Override the default speed with this one whose value is stored in the
+    given State. This invalidates the Velocity stage in the state. Don't 
+    confuse this with setDefaultSpeed() -- the value set here overrides that
+    one. **/
+    void setSpeed(State& state, Real speed) const;
+    /** Get the current value of the speed set point from the indicated State.
+    This is the value currently in effect, either from the default or from a
+    previous call to setSpeed(). **/
+    Real getSpeed(const State& state) const;
+
+    // no position error
+
+    /** Return the amount by which the given State fails to satisfy this
+    %ConstantSpeed constraint. The \a state must already be realized through 
+    Stage::Velocity. **/
+    Real getVelocityError(const State& state) const;
 
     // Stage::Acceleration
-    Real getAccelerationError(const State&) const;
+    /** Return the amount by which the accelerations in the given State fail
+    to satify the time derivative of this constraint (which must be zero). 
+    The \a state must already be realized through Stage::Acceleration. **/
+    Real getAccelerationError(const State& state) const;
+    /** Get the value of the Lagrange multipler generated to satisfy this
+    constraint. For a %ConstantSpeed constraint, that is the same as the
+    generalized force although by convention constraint multipliers have the
+    opposite sign from applied forces. The \a state must already be realized 
+    through Stage::Acceleration.**/
     Real getMultiplier(const State&) const;
-    Real getGeneralizedForce(const State&) const;
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
@@ -1274,44 +1365,72 @@ public:
     // CONSTANT ACCELERATION //
     ///////////////////////////
 
-/**
- * One acceleration-only constraint equation. Some generalized acceleration
- * udot is required to be at a particular value a.
- * 
- * There is no assembly condition because this does not involve state
- * variables q or u, just u's time derivative udot.
- */
+/** Constrain a single mobility to have a particular acceleration.
+
+One acceleration-only constraint equation. Some generalized acceleration
+udot is required to be at a particular value a.
+
+There is no assembly condition because this does not involve state
+variables q or u, just u's time derivative udot. **/
 class SimTK_SIMBODY_EXPORT Constraint::ConstantAcceleration : public Constraint
 {
 public:
     // no default constructor
     /** Construct a constant acceleration constraint on a particular mobility
     of the given mobilizer. **/
-    ConstantAcceleration(MobilizedBody& mobilizer, MobilizerUIndex, 
+    ConstantAcceleration(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
                          Real defaultAcceleration);
     /** Construct a constant acceleration constraint on the mobility
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantAcceleration(MobilizedBody& mobilizer, 
                          Real defaultAcceleration);
+    
+    /** Default constructor creates an empty handle. **/
+    ConstantAcceleration() {}
 
-    // Stage::Topology
+    /** Return the index of the mobilized body to which this constant 
+    acceleration constraint is being applied (to \e one of its mobilities). 
+    This is set on construction of the %ConstantAcceleration constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+    /** Return the particular mobility whose generalized acceleration is 
+    controlled by this %ConstantAcceleration constraint. This is set on 
+    construction. **/
     MobilizerUIndex    getWhichU() const;
+    /** Return the default value for the acceleration to be enforced. This is 
+    set on construction or via setDefaultAcceleration(). This is used to 
+    initialize the acceleration when a default State is created, but it can be 
+    overriden by changing the value in the State using setAcceleration(). **/
     Real               getDefaultAcceleration() const;
+    /** Change the default value for the acceleration to be enforced by this 
+    constraint. This is a topological change, meaning you'll have to call
+    realizeTopology() on the containing System and obtain a new State before
+    you can use it. If you just want to make a runtime change in the State,
+    see setAcceleration(). **/
     ConstantAcceleration& setDefaultAcceleration(Real accel);
 
-    /** Override the default acceleration with this one. This invalidates
-    the Acceleration stage in the state. **/
+    /** Override the default acceleration with this one whose value is stored 
+    in the given State. This invalidates the Acceleration stage in the state. 
+    Don't confuse this with setDefaultAcceleration() -- the value set here 
+    overrides that one. **/
     void setAcceleration(State& state, Real accel) const;
+    /** Get the current value of the acceleration set point from the indicated 
+    State. This is the value currently in effect, either from the default or 
+    from a previous call to setAcceleration(). **/
     Real getAcceleration(const State& state) const;
 
-    // Stage::Position, Velocity
-        // no position or velocity error
+    // no position or velocity error
 
     // Stage::Acceleration
+    /** Return the amount by which the accelerations in the given State fail
+    to satify this constraint. The \a state must already be realized through 
+    Stage::Acceleration. **/
     Real getAccelerationError(const State&) const;
+    /** Get the value of the Lagrange multipler generated to satisfy this
+    constraint. For a %ConstantAcceleration constraint, that is the same as the
+    generalized force although by convention constraint multipliers have the
+    opposite sign from applied forces. The \a state must already be realized 
+    through Stage::Acceleration.**/
     Real getMultiplier(const State&) const;
-    Real getGeneralizedForce(const State&) const;
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
@@ -1367,12 +1486,15 @@ public:
      *      object, and deletes it when the Constraint itself is deleted.
      */
     explicit Custom(Implementation* implementation);
+
+    
+    /** Default constructor creates an empty handle. **/
+    Custom() {}
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Constraint);
 protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();
-
-    Custom() {}
 };
 
 //==============================================================================
@@ -2250,7 +2372,9 @@ public:
             ArrayViewConst_<MobilizedBodyIndex>(coordBody),
             ArrayViewConst_<MobilizerQIndex>(coordIndex));
     }
-
+    
+    /** Default constructor creates an empty handle. **/
+    CoordinateCoupler() {}
 };
 
 
@@ -2353,6 +2477,9 @@ public:
                                 ArrayViewConst_<MobilizedBodyIndex>(coordBody),
                                 ArrayViewConst_<MobilizerQIndex>(coordIndex));
     }
+
+    /** Default constructor creates an empty handle. **/
+    SpeedCoupler() {}
 };
 
 
@@ -2387,6 +2514,10 @@ public:
                      const Function*            function, 
                      MobilizedBodyIndex         coordBody, 
                      MobilizerQIndex            coordIndex);
+
+    
+    /** Default constructor creates an empty handle. **/
+    PrescribedMotion() {}
 };
 
 

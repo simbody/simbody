@@ -301,8 +301,8 @@ Real calcSurfaceValue(const Vec3& point) const;
 
 /** Calculate the implicit surface outward facing unit normal at the given
 point. This is determined using the implicit surface function gradient
-so is undefined if the point is at a singular point of the implicit function
-or a flat spot on the surface. An example is a point along the center line of
+so is undefined if the point is at a singular point of the implicit function.
+An example is a point along the center line of
 a cylinder. Rather than return a NaN unit normal in these cases, which
 would break many algorithms that are searching around for valid points, we'll
 return the normal from a nearby, hopefully non-singular point. If that doesn't
@@ -846,13 +846,13 @@ explicit Cylinder(Real radius);
 Real getRadius() const;
 void setRadius(Real radius);
 
-/** Return true if the supplied ContactGeometry object is a sphere. **/
+/** Return true if the supplied ContactGeometry object is a cylinder. **/
 static bool isInstance(const ContactGeometry& geo)
 {   return geo.getTypeId()==classTypeId(); }
-/** Cast the supplied ContactGeometry object to a const sphere. **/
+/** Cast the supplied ContactGeometry object to a const cylinder. **/
 static const Cylinder& getAs(const ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<const Cylinder&>(geo); }
-/** Cast the supplied ContactGeometry object to a writable sphere. **/
+/** Cast the supplied ContactGeometry object to a writable cylinder. **/
 static Cylinder& updAs(ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<Cylinder&>(geo); }
 
@@ -1314,22 +1314,22 @@ const OBBTreeNodeImpl* impl;
 origin with the axial direction aligned to the z-axis. It is defined by
 a torusRadius (radius of the circular centerline of the torus, measured
 from the origin), and a tubeRadius (radius of the torus cross-section:
-perpenducular distance from the circular centerline to the surface). **/
+perpendicular distance from the circular centerline to the surface). **/
 class SimTK_SIMMATH_EXPORT ContactGeometry::Torus : public ContactGeometry {
 public:
-explicit Torus(Real torusRadius, Real tubeRadius);
+Torus(Real torusRadius, Real tubeRadius);
 Real getTorusRadius() const;
 void setTorusRadius(Real radius);
 Real getTubeRadius() const;
 void setTubeRadius(Real radius);
 
-/** Return true if the supplied ContactGeometry object is a sphere. **/
+/** Return true if the supplied ContactGeometry object is a torus. **/
 static bool isInstance(const ContactGeometry& geo)
 {   return geo.getTypeId()==classTypeId(); }
-/** Cast the supplied ContactGeometry object to a const sphere. **/
+/** Cast the supplied ContactGeometry object to a const torus. **/
 static const Torus& getAs(const ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<const Torus&>(geo); }
-/** Cast the supplied ContactGeometry object to a writable sphere. **/
+/** Cast the supplied ContactGeometry object to a writable torus. **/
 static Torus& updAs(ContactGeometry& geo)
 {   assert(isInstance(geo)); return static_cast<Torus&>(geo); }
 
@@ -1456,10 +1456,10 @@ public:
         P[0] = m_x[0]; P[1] = m_x[1]; P[2] = m_x[2];
         Q[0] = m_x[3]; Q[1] = m_x[4]; Q[2] = m_x[5];
 
-        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(m_O));
-        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(P));
-        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(Q));
-        geometry.push_back(DecorativeSphere(0.05).setColor(Black).setTransform(m_I));
+        geometry.push_back(DecorativeSphere(Real(.05)).setColor(Black).setTransform(m_O));
+        geometry.push_back(DecorativeSphere(Real(.05)).setColor(Black).setTransform(P));
+        geometry.push_back(DecorativeSphere(Real(.05)).setColor(Black).setTransform(Q));
+        geometry.push_back(DecorativeSphere(Real(.05)).setColor(Black).setTransform(m_I));
 
         geometry.push_back(DecorativeLine(m_O,P)
                 .setColor(m_color)
@@ -1498,10 +1498,10 @@ public:
         offset = 0;
         offset[0] = m_plane.getOffset();
         geometry.push_back(
-                DecorativeBrick(Vec3(0.01,1,1))
+                DecorativeBrick(Vec3(Real(.01),1,1))
                 .setTransform(Transform(R_plane, R_plane*offset))
                 .setColor(m_color)
-                .setOpacity(.2));
+                .setOpacity(Real(.2)));
     }
 
 private:

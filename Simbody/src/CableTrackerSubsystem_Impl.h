@@ -81,7 +81,7 @@ const SimbodyMatterSubsystem& getMatterSubsystem() const
 // Get access to state variables and cache entries.
 // TODO
 
-void calcEventTriggerInfo
+void calcEventTriggerInfoImpl
    (const State& state, Array_<EventTriggerInfo>& info) const OVERRIDE_11
 {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
@@ -90,7 +90,7 @@ void calcEventTriggerInfo
     }
 }
 
-void handleEvents
+void handleEventsImpl
    (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
     const HandleEventsOptions& options, 
     HandleEventsResults& results) const OVERRIDE_11
@@ -174,7 +174,7 @@ int calcDecorativeGeometryAndAppendImpl
                 DecorativeGeometry geo = obs.getDecoration();
                 const Transform& X_SD = geo.getTransform();
                 decorations.push_back(
-                    geo.setTransform(X_GS*X_SD).setColor(0.75*geo.getColor()));
+                    geo.setTransform(X_GS*X_SD).setColor(Real(0.75)*geo.getColor()));
                 continue; 
             }
 

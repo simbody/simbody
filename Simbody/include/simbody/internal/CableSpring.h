@@ -118,6 +118,10 @@ CableSpring(GeneralForceSubsystem&  forces,
             Real                    defaultSlackLength, 
             Real                    defaultDissipationCoef);
 
+/** Default constructor creates an empty handle. **/
+CableSpring() {}
+
+
 //------------------------------------------------------------------------------
 /** @name                      Default Parameters
 

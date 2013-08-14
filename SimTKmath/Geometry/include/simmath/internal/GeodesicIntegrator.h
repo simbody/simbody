@@ -140,7 +140,7 @@ public:
     within the given \a constraintTol. **/
     GeodesicIntegrator(const Eqn& eqn, Real accuracy, Real constraintTol) 
     :   m_eqn(eqn), m_accuracy(accuracy), m_consTol(constraintTol),
-        m_hInit(NaN), m_hLast(NaN), m_hNext(0.1), m_nInitialize(0) 
+        m_hInit(NaN), m_hLast(NaN), m_hNext(Real(0.1)), m_nInitialize(0) 
     {   reinitializeCounters(); }
 
     /** Call this once before taking a series of steps. This sets the initial
@@ -151,7 +151,7 @@ public:
         ++m_nInitialize;
         reinitializeCounters();
         m_hInit = m_hLast = NaN;
-        m_hNext = 0.1; // override if you have a better idea
+        m_hNext = Real(0.1); // override if you have a better idea
         m_t = t; m_y = y;
         if (!m_eqn.projectIfNeeded(m_consTol, m_t, m_y)) {
             Vec<NC> cerr;
@@ -289,9 +289,9 @@ private:
 
 template <class Eqn> void
 GeodesicIntegrator<Eqn>::takeOneStep(Real tStop) {
-    const Real Safety = 0.9, MinShrink = 0.1, MaxGrow = 5;
-    const Real HysteresisLow = 0.9, HysteresisHigh = 1.2;
-    const Real MaxStretch = 0.1;
+    const Real Safety = Real(0.9), MinShrink = Real(0.1), MaxGrow = Real(5);
+    const Real HysteresisLow =  Real(0.9), HysteresisHigh = Real(1.2);
+    const Real MaxStretch = Real(0.1);
     const Real hMin = m_t <= 1 ? SignificantReal : SignificantReal*m_t;
     const Real hStretch = MaxStretch*m_hNext;
 
@@ -394,7 +394,7 @@ GeodesicIntegrator<Eqn>::takeRKMStep(Real h, Vec<N>& y1, Vec<N>& y1err) const {
     // error estimate y1hat-y1=(1/5)(y1-ysave) (easily verified from the above).
 
     for (int i=0; i<N; ++i)
-        y1err[i] = 0.2*std::abs(y1[i]-ysave[i]);
+        y1err[i] = std::abs(y1[i]-ysave[i]) / 5;
 }
 
 } // namespace SimTK

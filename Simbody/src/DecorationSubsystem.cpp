@@ -48,21 +48,21 @@ DecorationSubsystem::isInstanceOf(const Subsystem& s) {
 /*static*/ const DecorationSubsystem&
 DecorationSubsystem::downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const DecorationSubsystem&>(s);
+    return static_cast<const DecorationSubsystem&>(s);
 }
 /*static*/ DecorationSubsystem&
 DecorationSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<DecorationSubsystem&>(s);
+    return static_cast<DecorationSubsystem&>(s);
 }
 
 const DecorationSubsystemGuts& 
 DecorationSubsystem::getGuts() const {
-    return dynamic_cast<const DecorationSubsystemGuts&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const DecorationSubsystemGuts&>(getSubsystemGuts());
 }
 DecorationSubsystemGuts&       
 DecorationSubsystem::updGuts() {
-    return dynamic_cast<DecorationSubsystemGuts&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<DecorationSubsystemGuts&>(updSubsystemGuts());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except

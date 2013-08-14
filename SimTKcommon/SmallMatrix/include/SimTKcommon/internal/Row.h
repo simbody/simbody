@@ -586,30 +586,69 @@ public:
     template <class EE> Row& scalarDivideEqFromLeft(const EE& ee)
       { for(int i=0;i<N;++i) d[i*STRIDE] = ee / d[i*STRIDE]; return *this; }
 
+
+    // Specialize for int to avoid warnings and ambiguities.
+    Row& scalarEq(int ee)       {return scalarEq(Precision(ee));}
+    Row& scalarPlusEq(int ee)   {return scalarPlusEq(Precision(ee));}
+    Row& scalarMinusEq(int ee)  {return scalarMinusEq(Precision(ee));}
+    Row& scalarTimesEq(int ee)  {return scalarTimesEq(Precision(ee));}
+    Row& scalarDivideEq(int ee) {return scalarDivideEq(Precision(ee));}
+    Row& scalarMinusEqFromLeft(int ee)  {return scalarMinusEqFromLeft(Precision(ee));}
+    Row& scalarTimesEqFromLeft(int ee)  {return scalarTimesEqFromLeft(Precision(ee));}
+    Row& scalarDivideEqFromLeft(int ee) {return scalarDivideEqFromLeft(Precision(ee));}
+
+    /** Set every scalar in this %Row to NaN; this is the default initial
+    value in Debug builds, but not in Release. **/
     void setToNaN() {
         (*this) = CNT<ELT>::getNaN();
     }
 
+    /** Set every scalar in this %Row to zero. **/
     void setToZero() {
         (*this) = ELT(0);
     }
 
-    // Extract a sub-Row with size known at compile time. These have to be
-    // called with explicit template arguments, e.g. getSubRow<3>(j).
+    /** Extract a const reference to a sub-Row with size known at compile time. 
+    This must be called with an explicit template argument for the size, for
+    example, getSubRow<3>(j). This is only a recast; no copying or computation
+    is performed. The size and index are range checked in Debug builds but
+    not in Release builds. **/
     template <int NN>
     const Row<NN,ELT,STRIDE>& getSubRow(int j) const {
         assert(0 <= j && j + NN <= N);
         return Row<NN,ELT,STRIDE>::getAs(&(*this)[j]);
     }
+    /** Extract a writable reference to a sub-Row with size known at compile time. 
+    This must be called with an explicit template argument for the size, for
+    example, updSubRow<3>(j). This is only a recast; no copying or computation
+    is performed. The size and index are range checked in Debug builds but
+    not in Release builds. **/
     template <int NN>
     Row<NN,ELT,STRIDE>& updSubRow(int j) {
         assert(0 <= j && j + NN <= N);
         return Row<NN,ELT,STRIDE>::updAs(&(*this)[j]);
     }
 
-    // Return a row one smaller than this one by dropping the element
-    // at the indicated position p. The result is packed but has same
-    // element type as this one.
+    /** Extract a subvector of type %Row from a longer one that has the same
+    element type and stride, and return a const reference to the selected 
+    subsequence. **/
+    template <int NN>
+    static const Row& getSubRow(const Row<NN,ELT,STRIDE>& r, int j) {
+        assert(0 <= j && j + N <= NN);
+        return getAs(&r[j]);
+    }
+    /** Extract a subvector of type %Row from a longer one that has the same
+    element type and stride, and return a writable reference to the selected 
+    subsequence. **/
+    template <int NN>
+    static Row& updSubRow(Row<NN,ELT,STRIDE>& r, int j) {
+        assert(0 <= j && j + N <= NN);
+        return updAs(&r[j]);
+    }
+
+    /** Return a row one smaller than this one by dropping the element
+    at the indicated position p. The result is a packed copy with the same
+    element type as this one. **/
     Row<N-1,ELT,1> drop1(int p) const {
         assert(0 <= p && p < N);
         Row<N-1,ELT,1> out;
@@ -621,9 +660,9 @@ public:
         return out;
     }
 
-    // Return a vector one larger than this one by adding an element
-    // to the end. The result is packed but has same element type as
-    // this one. Works for any assignment compatible element.
+    /** Return a row one larger than this one by adding an element
+    to the end. The result is a packed copy with the same element type as
+    this one. Works for any assignment compatible element. **/
     template <class EE> Row<N+1,ELT,1> append1(const EE& v) const {
         Row<N+1,ELT,1> out;
         Row<N,ELT,1>::updAs(&out[0]) = (*this);
@@ -632,11 +671,11 @@ public:
     }
 
 
-    // Return a vector one larger than this one by inserting an element
-    // *before* the indicated one. The result is packed but has same element type as
-    // this one. Works for any assignment compatible element. The index
-    // can be one greater than normally allowed in which case the element
-    // is appended.
+    /** Return a row one larger than this one by inserting an element
+    \e before the indicated one. The result is a packed copy with the same 
+    element type as this one. Works for any assignment compatible element. The 
+    index can be one greater than normally allowed in which case the element
+    is appended (but use append1() if you know you're appending). **/
     template <class EE> Row<N+1,ELT,1> insert1(int p, const EE& v) const {
         assert(0 <= p && p <= N);
         if (p==N) return append1(v);
@@ -649,25 +688,19 @@ public:
         return out;
     }
 
-    // These assume we are given a pointer to d[0] of a Row<N,E,S> like this one.
+    /** Recast an ordinary C++ array E[] to a const %Row<N,E,S>; assumes 
+    compatible length, stride, and packing. **/
     static const Row& getAs(const ELT* p)  {return *reinterpret_cast<const Row*>(p);}
+    /** Recast a writable ordinary C++ array E[] to a writable %Row<N,E,S>; 
+    assumes compatible length, stride, and packing. **/
     static Row&       updAs(ELT* p)        {return *reinterpret_cast<Row*>(p);}
 
-    // Extract a subrow from a longer one. Element type and stride must match.
-    template <int NN>
-    static const Row& getSubRow(const Row<NN,ELT,STRIDE>& r, int j) {
-        assert(0 <= j && j + N <= NN);
-        return getAs(&r[j]);
-    }
-    template <int NN>
-    static Row& updSubRow(Row<NN,ELT,STRIDE>& r, int j) {
-        assert(0 <= j && j + N <= NN);
-        return updAs(&r[j]);
-    }
-
+    /** Return a %Row of the same length and element type as this one but
+    with all elements set to NaN. The result is packed (stride==1) regardless
+    of the stride of this %Row. **/
     static Row<N,ELT,1> getNaN() { return Row<N,ELT,1>(CNT<ELT>::getNaN()); }
 
-    /// Return true if any element of this Row contains a NaN anywhere.
+    /** Return true if any element of this Row contains a NaN anywhere. **/
     bool isNaN() const {
         for (int j=0; j<N; ++j)
             if (CNT<ELT>::isNaN((*this)[j]))
@@ -675,8 +708,8 @@ public:
         return false;
     }
 
-    /// Return true if any element of this Row contains a +Inf
-    /// or -Inf somewhere but no element contains a NaN anywhere.
+    /** Return true if any element of this Row contains a +Infinity
+    or -Infinity somewhere but no element contains a NaN anywhere. **/
     bool isInf() const {
         bool seenInf = false;
         for (int j=0; j<N; ++j) {
@@ -690,7 +723,8 @@ public:
         return seenInf;
     }
 
-    /// Return true if no element contains an Infinity or a NaN.
+    /** Return true if no element of this %Row contains an Infinity or a NaN 
+    anywhere. **/
     bool isFinite() const {
         for (int j=0; j<N; ++j)
             if (!CNT<ELT>::isFinite((*this)[j]))
@@ -698,12 +732,12 @@ public:
         return true;
     }
 
-    /// For approximate comparisions, the default tolerance to use for a vector is
-    /// the same as its elements' default tolerance.
+    /** For approximate comparisions, the default tolerance to use for a vector is
+    the same as its elements' default tolerance. **/
     static double getDefaultTolerance() {return CNT<ELT>::getDefaultTolerance();}
 
-    /// %Test whether this row vector is numerically equal to some other row with
-    /// the same shape, using a specified tolerance.
+    /** %Test whether this row is numerically equal to some other row with
+    the same shape, using a specified tolerance. **/
     template <class E2, int CS2>
     bool isNumericallyEqual(const Row<N,E2,CS2>& r, double tol) const {
         for (int j=0; j<N; ++j)
@@ -712,19 +746,19 @@ public:
         return true;
     }
 
-    /// %Test whether this row vector is numerically equal to some other row with
-    /// the same shape, using a default tolerance which is the looser of the
-    /// default tolerances of the two objects being compared.
+    /** %Test whether this row vector is numerically equal to some other row with
+    the same shape, using a default tolerance which is the looser of the
+    default tolerances of the two objects being compared. **/
     template <class E2, int CS2>
     bool isNumericallyEqual(const Row<N,E2,CS2>& r) const {
         const double tol = std::max(getDefaultTolerance(),r.getDefaultTolerance());
         return isNumericallyEqual(r, tol);
     }
 
-    /// %Test whether every element of this row vector is numerically equal to
-    /// the given element, using either a specified tolerance or the row's 
-    /// default tolerance (which is always the same or looser than the default
-    /// tolerance for one of its elements).
+    /** %Test whether every element of this row vector is numerically equal to
+    the given element, using either a specified tolerance or the row's 
+    default tolerance (which is always the same or looser than the default
+    tolerance for one of its elements). **/
     bool isNumericallyEqual
        (const ELT& e,
         double     tol = getDefaultTolerance()) const 

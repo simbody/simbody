@@ -59,17 +59,17 @@ namespace Ipopt
   }
 
   ESymSolverStatus AugRestoSystemSolver::Solve(const SymMatrix* W,
-      double W_factor,
+      Number W_factor,
       const Vector* D_x,
-      double delta_x,
+      Number delta_x,
       const Vector* D_s,
-      double delta_s,
+      Number delta_s,
       const Matrix* J_c,
       const Vector* D_c,
-      double delta_c,
+      Number delta_c,
       const Matrix* J_d,
       const Vector* D_d,
-      double delta_d,
+      Number delta_d,
       const Vector& rhs_x,
       const Vector& rhs_s,
       const Vector& rhs_c,
@@ -147,12 +147,12 @@ namespace Ipopt
     if (IsValid(WR_sum)) {
       // We seem to be in the regular situation with exact second
       // derivatives
-      double temp_factor;
+      Number temp_factor;
       WR_sum->GetTerm(0, temp_factor, h_orig);
       DBG_ASSERT(temp_factor == 1. || temp_factor == 0.);
       orig_W_factor = temp_factor * W_factor;
       SmartPtr<const SymMatrix> eta_DR;
-      double factor;
+      Number factor;
       WR_sum->GetTerm(1, factor, eta_DR);
       SmartPtr<const Vector> wr_d =
         dynamic_cast<const DiagMatrix*>(GetRawPtr(eta_DR))->GetDiag();
@@ -378,7 +378,7 @@ namespace Ipopt
           }
         }
         else {
-          retVec->Set(1./delta_x);
+          retVec->Set(1/delta_x);
         }
 
         sigma_tilde_n_c_inv_cache_.AddCachedResult(retVec, deps, scalar_deps);
@@ -415,7 +415,7 @@ namespace Ipopt
           }
         }
         else {
-          retVec->Set(1./delta_x);
+          retVec->Set(1/delta_x);
         }
 
         sigma_tilde_p_c_inv_cache_.AddCachedResult(retVec, deps, scalar_deps);
@@ -452,7 +452,7 @@ namespace Ipopt
           }
         }
         else {
-          retVec->Set(1./delta_x);
+          retVec->Set(1/delta_x);
         }
 
         sigma_tilde_n_d_inv_cache_.AddCachedResult(retVec, deps, scalar_deps);
@@ -490,7 +490,7 @@ namespace Ipopt
           }
         }
         else {
-          retVec->Set(1./delta_x);
+          retVec->Set(1/delta_x);
         }
 
         sigma_tilde_p_d_inv_cache_.AddCachedResult(retVec, deps, scalar_deps);
