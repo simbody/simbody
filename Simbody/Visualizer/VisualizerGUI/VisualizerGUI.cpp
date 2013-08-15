@@ -1253,9 +1253,9 @@ static void drawGroundAndSky(float farClipDistance) {
             float x = i/(float) width;
             for (int j = 0; j < width; j++) {
                 float y = j/(float) width;
-                float line = min(min(min(x, y), 1.0f-x), 1.0f-y);
+                double line = min(min(min(x, y), 1.0f-x), 1.0f-y);
                 float noise = (rand()%255)/255.0f-0.5f;
-                groundImage[i*width+j] = sqrt(line)*(0.35f+noise);
+                groundImage[i*width+j] = pow(line,0.1)*(0.35f+noise);
             }
         }
         glTexImage2D(GL_TEXTURE_2D, 0, 1, width, width, 0, GL_RED, GL_FLOAT, groundImage);
@@ -1358,13 +1358,13 @@ static void drawGroundAndSky(float farClipDistance) {
     glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, color2);
     glBegin(GL_QUADS);
     glColor3f(0.3f, 0.2f, 0.0f);
-    glTexCoord2d(0.1f*corner1[0], 0.1f*corner1[2]);
+    glTexCoord2d(2.0f*corner1[0], 2.0f*corner1[2]);
     glVertex3f(corner1[0], corner1[1], corner1[2]);
-    glTexCoord2d(0.1f*corner2[0], 0.1f*corner2[2]);
+    glTexCoord2d(2.0f*corner2[0], 2.0f*corner2[2]);
     glVertex3f(corner2[0], corner2[1], corner2[2]);
-    glTexCoord2d(0.1f*corner3[0], 0.1f*corner3[2]);
+    glTexCoord2d(2.0f*corner3[0], 2.0f*corner3[2]);
     glVertex3f(corner3[0], corner3[1], corner3[2]);
-    glTexCoord2d(0.1f*corner4[0], 0.1f*corner4[2]);
+    glTexCoord2d(2.0f*corner4[0], 2.0f*corner4[2]);
     glVertex3f(corner4[0], corner4[1], corner4[2]);
     glEnd();
     glDepthRange(0.0, 1.0);
@@ -2591,8 +2591,8 @@ void viewMenuSelected(int option) {
     requestPassiveRedisplay();                  //----- PASSIVE REDISPLAY ----
 }
 
-static const int DefaultWindowWidth  = 640;
-static const int DefaultWindowHeight = 480;
+static const int DefaultWindowWidth  = 800;
+static const int DefaultWindowHeight = 600;
 
 
 // The glut callback for chaning window size.
