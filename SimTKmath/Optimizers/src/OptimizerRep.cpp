@@ -109,6 +109,12 @@ bool Optimizer::OptimizerRep::getAdvancedBoolOption( const std::string &option, 
     return getAdvancedOptionHelper(advancedBoolOptions, option, value);
 }
 
+// TODO: this only works if called *prior* to the routines below.
+void Optimizer::OptimizerRep::
+setDifferentiatorMethod(Differentiator::Method method) {
+     diffMethod = method;
+}
+
 void Optimizer::OptimizerRep::
 useNumericalGradient(bool flag, Real objEstAccuracy) {
     objectiveEstimatedAccuracy = 
@@ -135,10 +141,6 @@ useNumericalJacobian(bool flag, Real consEstAccuracy) {
     numericalJacobian = flag;
 }
 
-void Optimizer::OptimizerRep::
-setDifferentiatorMethod(Differentiator::Method method) {
-     diffMethod = method;
-}
 
 int Optimizer::OptimizerRep::objectiveFuncWrapper
    (int n, const Real* x, int newX, Real* f, void* vrep)
