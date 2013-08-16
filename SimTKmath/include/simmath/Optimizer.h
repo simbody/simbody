@@ -277,13 +277,34 @@ public:
     /// Set the value of an advanced option specified by an boolean value.
     bool setAdvancedBoolOption( const char *option, const bool value );
 
+    
+    /// Set which numerical differentiation algorithm is to be used for the next
+    /// useNumericalGradient() or useNumericalJacobian() call. Choices are 
+    /// Differentiator::ForwardDifference (first order) or 
+    /// Differentiator::CentralDifference (second order) with central the 
+    /// default.
+    /// @warning This has no effect if you have already called 
+    /// useNumericalGradient() or useNumericalJacobian(). Those must be called
+    /// \e after setDifferentiatorMethod().
+    /// @see SimTK::Differentiator
+    void setDifferentiatorMethod(Differentiator::Method method);
+    /// Return the differentiation method last supplied in a call to
+    /// setDifferentiatorMethod(), \e not necessarily the method currently
+    /// in use. See setDifferentiatorMethod() for more information.
+    /// @see SimTK::Differentiator
+    Differentiator::Method getDifferentiatorMethod() const;
+
     /// Enable numerical calculation of gradient, with optional estimation of
     /// the accuracy to which the objective function is calculated. For example,
     /// if you are calculate about 6 significant digits, supply the estimated
     /// accuracy as 1e-6. Providing the estimated accuracy improves the quality 
     /// of the calculated derivative. If no accuracy is provided we'll assume 
-    /// the objective is calculated to near machine precision. See 
-    /// SimTK::Differentiator for more information.
+    /// the objective is calculated to near machine precision. The method used
+    /// for calculating the derivative will be whatever was \e previously 
+    /// supplied in a call to setDifferentiatorMethod(), or the default which
+    /// is to use central differencing (two function evaluations per 
+    /// gradient entry). See SimTK::Differentiator for more information.
+    /// @see setDifferentiatorMethod(), SimTK::Differentiator
     void useNumericalGradient(bool flag, 
         Real estimatedAccuracyOfObjective = SignificantReal);
     /// Enable numerical calculation of the constraint Jacobian, with optional 
@@ -292,15 +313,14 @@ public:
     /// digits, supply the estimated accuracy as 1e-6. Providing the estimated 
     /// accuracy improves the quality of the calculated derivative. If no 
     /// accuracy is provided we'll assume the constraints are calculated to near
-    /// machine precision. See SimTK::Differentiator for more information.
+    /// machine precision.  The method used for calculating the derivative will 
+    /// be whatever was \e previously supplied in a call to 
+    /// setDifferentiatorMethod(), or the default which is to use central 
+    /// differencing (two function evaluations per Jacobian column. See 
+    /// SimTK::Differentiator for more information.
+    /// @see setDifferentiatorMethod(), SimTK::Differentiator
     void useNumericalJacobian(bool flag, 
         Real estimatedAccuracyOfConstraints = SignificantReal);
-
-    /// Set which numerical gradient algorithm is used when numerical gradient
-    /// or Jacobian is being used. Choices are Differentiator::ForwardDifference 
-    /// (first order) or Differentiator::CentralDifference (second order) with 
-    /// central the default.
-    void setDifferentiatorMethod(Differentiator::Method method);
 
     /// Compute optimization.
     Real optimize(Vector&);
@@ -312,9 +332,6 @@ public:
     bool isUsingNumericalGradient() const;
     /// Indicate whether the Optimizer is currently set to use a numerical Jacobian.
     bool isUsingNumericalJacobian() const;
-    /// Return the differentiation method that will be used if numerical
-    /// gradient or Jacobian are required.
-    Differentiator::Method getDifferentiatorMethod() const;
     /// Return the estimated accuracy last specified in useNumericalGradient().
     Real getEstimatedAccuracyOfObjective() const;
     /// Return the estimated accuracy last specified in useNumericalJacobian().
