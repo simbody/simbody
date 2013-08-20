@@ -111,7 +111,7 @@ stiffness and dissipation from available data.
     in units of 1/velocity. This is the fraction of stiffness force generated
     as a dissipation force per unit deformation rate, via
     f_dissipation = f_stiffness * (dissipation * v_deformation). You can
-    measures this as the slope of the coefficient of restitution (e) vs. impact
+    measure this as the slope of the coefficient of restitution (e) vs. impact
     velocity (v) curve at low velocities, where e=1-c*v.
     We require \a dissipation >= 0.
 @param[in]      staticFriction
