@@ -163,7 +163,7 @@ bool MobilizedBody::isInSameSubsystem(const MobilizedBody& otherBody) const {
 }
 
 bool MobilizedBody::isSameMobilizedBody(const MobilizedBody& otherBody) const {
-    return !isEmptyHandle() && isSameHandle(otherBody);
+    return hasSameImplementation(otherBody);
 }
 
 bool MobilizedBody::isGround() const {

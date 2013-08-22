@@ -32,7 +32,7 @@
 #     SimTKsimbody
 #     SimTKmath
 #     SimTKcommon
-#     Windows only: SimTKlapack pthreadVC2
+#     Windows only: liblapack libblas pthreadVC2[_x64]
 # The above will be in Simbody_ROOT_DIR/lib.
 #
 # On Mac and Linux we don't provide our own lapack but expect it to be 
@@ -45,7 +45,7 @@
 #   Simbody_ROOT_DIR - the installation directory; all the pieces must be
 #                      found together
 #   Simbody_INCLUDE_DIR - location of Simbody.h
-#   Simbody_LIB_DIR     - location of libSimbody.{a,so,dylib} or Simbody.lib
+#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib} or SimTKsimbody.lib
 #   Simbody_BIN_DIR     - location of VisualizerGUI and .dll's on Windows
 #   Simbody_LIBRARIES   - suitable for target_link_libraries(); includes
 #                           both optimized and debug libraries if both are
@@ -166,18 +166,22 @@ set(Simbody_BIN_DIR ${Simbody_ROOT_DIR}/bin CACHE PATH
 set(Simbody_LIBRARY_LIST SimTKsimbody;SimTKmath;SimTKcommon)
 
 if (WIN32)
-    set(Simbody_LAPACK_LIBRARY_LIST SimTKlapack)
+    set(Simbody_LAPACK_LIBRARY_LIST liblapack;libblas)
 else()
     set(Simbody_LAPACK_LIBRARY_LIST lapack;blas)
 endif()
 
 
 if (WIN32)
-    set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2)
+    if( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+        set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2_x64)
+    else()
+        set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2)
+    endif()
 elseif (APPLE)
     set(Simbody_EXTRA_LIBRARY_LIST pthread;dl)
 else()
-    set(Simbody_EXTRA_LIBRARY_LIST pthread;rt;dl)
+    set(Simbody_EXTRA_LIBRARY_LIST pthread;rt;dl;m)
 endif()
 
 
