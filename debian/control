@@ -1,0 +1,103 @@
+Source: simbody
+Maintainer: 
+Section: science
+Priority: extra
+Build-Depends: debhelper (>= 9), 
+               cmake,
+               doxygen,
+               freeglut3-dev,
+               libxi-dev,
+               libxmu-dev,
+               libcurl4-gnutls-dev,
+               libdap-dev,
+               libgdal1-dev,
+               liblapack-dev,
+               liblas-dev
+Vcs-Browser: https://github.com/simbody/simbody
+Vcs-Git: git://github.com/simbody/simbody.git
+Homepage: https://simtk.org/home/simbody
+
+Package: simbody
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+	 libsimbody3 (= ${binary:Version}),
+Suggests: simbody-doc
+Multi-Arch: foreign
+Description: SimTK multibody dynamics API - Binary and examples
+ Simbody is a SimTK toolset providing general multibody dynamics capability,
+ that is, the ability to solve Newton's 2nd law F=ma in any set of generalized
+ coordinates subject to arbitrary constraints. (That's Isaac himself in the
+ oval.) Simbody is provided as an open source, object-oriented C++ API and
+ delivers high-performance, accuracy-controlled science/engineering-quality
+ results.
+
+Package: libsimbody3
+Section: libs
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Multi-Arch: same
+Description: SimTK multibody dynamics API - shared library
+ Simbody is a SimTK toolset providing general multibody dynamics capability,
+ that is, the ability to solve Newton's 2nd law F=ma in any set of generalized
+ coordinates subject to arbitrary constraints. (That's Isaac himself in the
+ oval.) Simbody is provided as an open source, object-oriented C++ API and
+ delivers high-performance, accuracy-controlled science/engineering-quality
+ results.
+
+Package: simbody-dev
+Architecture: any
+Section: libdevel
+Depends: freeglut3-dev,
+         libxi-dev,
+         libxmu-dev,
+         libcurl4-gnutls-dev,
+         libdap-dev,
+         libgdal1-dev,
+         liblapack-dev,
+         liblas-dev
+	 libsimbody3 (= ${binary:Version}),
+	 ${misc:Depends}
+Multi-Arch: same
+Description: SimTK multibody dynamics API - developemnt files
+ Simbody is a SimTK toolset providing general multibody dynamics capability,
+ that is, the ability to solve Newton's 2nd law F=ma in any set of generalized
+ coordinates subject to arbitrary constraints. (That's Isaac himself in the
+ oval.) Simbody is provided as an open source, object-oriented C++ API and
+ delivers high-performance, accuracy-controlled science/engineering-quality
+ results.
+ .
+ This package contains development files (headers, shared library
+ symbolic link and pkg-config file).
+
+Package: simbody-dbg
+Architecture: any
+Section: debug
+Depends: simbody (= ${binary:Version}),
+         ${misc:Depends}
+Multi-Arch: foreign
+Description: SimTK multibody dynamics API - Debugging Symbols
+ Simbody is a SimTK toolset providing general multibody dynamics capability,
+ that is, the ability to solve Newton's 2nd law F=ma in any set of generalized
+ coordinates subject to arbitrary constraints. (That's Isaac himself in the
+ oval.) Simbody is provided as an open source, object-oriented C++ API and
+ delivers high-performance, accuracy-controlled science/engineering-quality
+ results.
+ .
+ This package contains the debugging symbols.
+
+Package: simbody-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Multi-Arch: foreign
+Description: SimTK multibody dynamics API - Documentation
+ Simbody is a SimTK toolset providing general multibody dynamics capability,
+ that is, the ability to solve Newton's 2nd law F=ma in any set of generalized
+ coordinates subject to arbitrary constraints. (That's Isaac himself in the
+ oval.) Simbody is provided as an open source, object-oriented C++ API and
+ delivers high-performance, accuracy-controlled science/engineering-quality
+ results.
+ .
+ This package contains the program documentation.

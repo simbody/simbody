@@ -1,0 +1,4 @@
+usr/include/*
+usr/lib/*/*.so
+usr/lib/*/pkgconfig/*
+usr/share/simbody/*

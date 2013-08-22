@@ -1,0 +1,9 @@
+Document: simbody
+Title: C++ API reference
+Author: Simbody team
+Abstract: Describe the simbody library C++ API.
+Section: Programming/C++
+
+Format: HTML
+Index: /usr/share/simbody/doc/SimbodyAPI.html/
+Files: /usr/share/simbody/doc/api/*
