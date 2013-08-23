@@ -1,9 +1,13 @@
-simbody
+Simbody 3.3 (Gazebo integration branch)
 =======
 
-[Move to GitHub in progress.]
+This branch is for modification of the Simbody build/release process as needed for 
+inegration with Open Source Robotics Foundation's Gazebo robot simulator. Once this
+is working we will merge those changes back into the master branch.
 
-Source code for the Simbody libraries, examples, and build system.
+Other than build/release changes, this branch is feature frozen.
+
+=======
 
 Simbody is a high-performance, open-source toolkit for simulation of 
 articulated mechanisms, including biological structures, robots, vehicles,
