@@ -1,5 +1,6 @@
 Source: simbody
-Maintainer: 
+Maintainer: Michael Sherman <msherman@stanford.edu>
+Standards-Version: 3.9.3
 Section: science
 Priority: extra
 Build-Depends: debhelper (>= 9), 
@@ -56,7 +57,7 @@ Depends: freeglut3-dev,
          libdap-dev,
          libgdal1-dev,
          liblapack-dev,
-         liblas-dev
+         liblas-dev,
 	 libsimbody3 (= ${binary:Version}),
 	 ${misc:Depends}
 Multi-Arch: same
