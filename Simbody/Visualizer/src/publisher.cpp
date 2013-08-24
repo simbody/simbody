@@ -9,21 +9,6 @@ using namespace SimTK;
 using namespace gazebo;
 using namespace std;
 
-string getRandomName() {
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-
-	std::string s;
-
-    for (int i = 0; i < 5; ++i) {
-        s.append(1, alphanum[rand() % (sizeof(alphanum) - 1)]);
-    }
-
-    return s;
-}
-
 Publisher::Publisher()
 {
 	gazebo::load();
@@ -35,7 +20,6 @@ Publisher::Publisher()
 
 	this->drawingPub = this->node->Advertise<msgs::Drawing>("~/draw");
 	this->visPub = this->node->Advertise<msgs::Visual>("~/visual");
-	this->makerPub = this->node->Advertise<msgs::Factory>("~/factory");
 	this->requestPub = this->node->Advertise<msgs::Request>("~/request");
 
 }
@@ -94,6 +78,23 @@ void Publisher::makeCircle(const Transform& transform, const Vec3& scale, const 
 
 }
 
+void Publisher::makeLine(const Vec3& end1, const Vec3& end2, const Vec4 colour, Real thickness)
+{
+	std::cout << "Drawing line" << std::endl;
+	msgs::Visual* visualMsg = new msgs::Visual();
+	
+	visualMsg->mutable_geometry()->set_type(msgs::Geometry::LINE_STRIP);	
+	
+	common::Color colour_g(colour[0], colour[1], colour[2], colour[3]);
+
+	msgs::Vector3d* p = visualMsg->mutable_geometry()->add_points();
+	msgs::Set(p, math::Vector3(end1[0], end1[1], end2[2]));
+	msgs::Set(p, math::Vector3(end2[0], end2[1], end2[2]));
+
+	msgs::Set(visualMsg->mutable_material()->mutable_ambient(), colour_g);
+
+}
+
 void Publisher::prepareMessage(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, unsigned short resolution, msgs::Visual* visualMsg)
 {	
 
@@ -118,12 +119,18 @@ void Publisher::prepareMessage(const Transform& transform, const Vec3& scale, co
 	msgs::Set(visualMsg->mutable_pose()->mutable_orientation(), rotation);
 
 	// Setting colour
-	std::cout << "transparency " << colour[3] << std::endl;
-//	common::Color colour_g(colour[0], colour[1], colour[2], colour[3]);
-//	msgs::Set(visualMsg->mutable_material()->mutable_ambient(), colour_g);
+	common::Color colour_g(colour[0], colour[1], colour[2], colour[3]);
+	msgs::Set(visualMsg->mutable_material()->mutable_ambient(), colour_g);
 //	visualMsg->set_transparency(colour[3]);
 
 }
+
+/**
+ *
+ *	Below is functions using custom drawing messages. These don't support selection/deletion coming out of gazebo.
+ *	It merely draws a geometry on the screen. Ideally drawing.proto will be merged into visual.proto.
+ */
+
 
 void Publisher::makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh* mesh)
 {
@@ -171,7 +178,23 @@ void Publisher::makeCylinder(const Transform& transform, const Vec3& scale, cons
 	requestPub->Publish(*requestMsg);
 */	/*
 	msgs::Drawing* drawingMsg = new msgs::Drawing();
-	drawingMsg->set_name("cylinder" + getRandomName());
+	drawingMsg->set_name("cylinder" + getRandomName());void GazeboVisualizer::drawBox(const Transform& transform, const Vec3& scale, 
+                 const Vec4& colour, int representation)
+{
+//	CustomMesh * mesh = this->makeBox();
+//	publisher->makeBox(transform, scale, colour, representation, mesh);
+	publisher->makeBox(transform, scale, colour, representation, "Box", 0);
+}
+void GazeboVisualizer::drawEllipsoid(const Transform& transform, const Vec3& scale, 
+		const Vec4& colour, int representation, unsigned short resolution)
+{
+//	CustomMesh * mesh = this->makeSphere(resolution);
+//	publisher->makeEllipsoid(transform, scale, colour, representation, mesh);
+	publisher->makeEllipsoid(transform, scale, colour, representation, "Ellipsoid", resolution);
+}
+void GazeboVisualizer::drawCylinder(const Transform& transform, const Vec3& scale, 
+                 const Vec4& colour, int representation, unsigned short resolution)
+{
 	drawingMsg->set_visible(true);
 	this->makeMesh(transform, scale, colour, representation, mesh, drawingMsg);
 	drawingPub->Publish(*drawingMsg);
@@ -200,12 +223,14 @@ void Publisher::makePolygonalMesh(const Transform& transform, const Vec3& scale,
 //	std::cout << "Making mesh" << std::endl;
 //	gazebo::gui::MeshMaker maker;
 //	maker.CreateTheEntity();
+/*
 	msgs::Drawing* drawingMsg = new msgs::Drawing();
 	drawingMsg->set_name("polygonMesh" + getRandomName());
 	drawingMsg->set_visible(true);
 	std::cout << "Making polygonal mesh" << std::endl;
 	this->makeMesh(transform, scale, colour, representation, mesh, drawingMsg);
 	drawingPub->Publish(*drawingMsg);
+	*/
 }
 
 void Publisher::makeMesh(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const CustomMesh* mesh, msgs::Drawing* drawingMsg)

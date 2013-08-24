@@ -7,16 +7,8 @@ using namespace SimTK;
 using namespace gazebo;
 using namespace std;
 
-// Create gazebo server
 GazeboVisualizer::GazeboVisualizer()
 {
-//	gazebo::load();
-
-//    pthread_t serverThread;
-//    pthread_create(&serverThread, NULL, initP, this);
-
-//	initServer();
-//	std::cout << "server init complete" << std::endl;
 
 	initPub();
 	std::cout << "publisher init complete" << std::endl;
@@ -24,28 +16,19 @@ GazeboVisualizer::GazeboVisualizer()
 
 GazeboVisualizer::~GazeboVisualizer()
 {
-	delete server;
 	delete publisher;
 }
 
+// Overriding functions from VisualizerProtocol. Have no real use yet.
 void GazeboVisualizer::beginScene(Real simTime)
 {
 }
 
+// Overriding functions from VisualizerProtocol. Have no real use yet.
 void GazeboVisualizer::finishScene()
 {
 }
 
-void GazeboVisualizer::initServer()
-{
-	server = new FakeServer();
-
-	gazebo::common::Console::Instance()->Init("simbodyserver.log");
-	if(!server->ParseArgs()) std::cout << "Parse args error\n";
-
-	server->Run();
-}
- 
 void GazeboVisualizer::initPub()
 {
 	std::cout << "initializing publisher" << std::endl;
@@ -85,25 +68,28 @@ void GazeboVisualizer::drawPolygonalMesh(const PolygonalMesh& polyMesh, const Tr
 {
 	CustomMesh * mesh = this->makePolygonalMesh(polyMesh);
 //	publisher->makePolygonalMesh(transform, scale, colour, representation, mesh);
-	publisher->makePolygonalMesh(transform, scale, colour, representation, mesh);
+//	publisher->makePolygonalMesh(transform, scale, colour, representation, mesh);
 }
 void GazeboVisualizer::drawLine(const Vec3& end1, const Vec3& end2, 
                  const Vec4& colour, Real thickness)
 {
+	publisher->makeLine(end1, end2, colour, thickness);
 }
 void GazeboVisualizer::drawText(const Vec3& position, const Vec3& scale, 
                  const Vec4& colour, const std::string& string, bool faceCamera, bool isScreenText)
 {
+//TODO
 }
 void GazeboVisualizer::drawCoords(const Transform& transform, const Vec3& axisLengths, 
                  const Vec4& colour)
 {
-
-}
-void GazeboVisualizer::drawMesh()
-{	
+// TODO
 }
 
+/*
+ * Copied over from VisualizerGUI on adding vertices/edges/triangles for custom geometry.
+ * Enable the following if you want to use the custom drawing protobuf. If you're using visual messages these are not needed
+ */
 void GazeboVisualizer::addVec(vector<float>& data, float x, float y, float z) {
 	data.push_back(x);
 	data.push_back(y);

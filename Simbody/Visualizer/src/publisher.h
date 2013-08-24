@@ -17,13 +17,17 @@ class Publisher
 public:
 	Publisher();
 
+//	These functions are used for custom drawing messages
 	void makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh* mesh);
 	void makeEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh * mesh);
 	void makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution, CustomMesh * mesh);
 	void makeCircle(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, unsigned short resolution, CustomMesh * mesh);
 	void makePolygonalMesh(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, CustomMesh * mesh);
 
+	void makeLine(const Vec3& end1, const Vec3& end2, const Vec4 colour, Real thickness);
+
 public:
+//	These functions are used for drawing using visual messages
 	void makeBox(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, int resolution);
 	void makeEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, int resolution);
 	void makeCylinder(const Transform& transform, const Vec3& scale, const Vec4& colour, int representation, const std::string& geometry, unsigned short resolution);
@@ -39,7 +43,6 @@ private:
 
 	gazebo::transport::PublisherPtr drawingPub;
 	gazebo::transport::PublisherPtr visPub;
-	gazebo::transport::PublisherPtr makerPub;
 	gazebo::transport::PublisherPtr requestPub;
 };
 
