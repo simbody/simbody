@@ -197,11 +197,6 @@ VisualizerProtocol::VisualizerProtocol
    (Visualizer& visualizer, const Array_<String>& userSearchPath) 
 {
 
-	/*
-	gazebo::common::Console::Instance()->Init("simbodyserver.log");
-	if(!server.ParseArgs()) std::cout << "Parse args error\n";
-	*/
-	
     // Launch the GUI application. We'll first look for one in the same directory
     // as the running executable; then if that doesn't work we'll look in the
     // bin subdirectory of the SimTK installation.
@@ -271,12 +266,7 @@ VisualizerProtocol::VisualizerProtocol
     pthread_t thread;
     pthread_create(&thread, NULL, listenForVisualizerEvents, &visualizer);
 }
-/*
-void VisualizerProtocol::connectToGazebo()
-{
-	server.Run();
-}	
-*/
+
 // This is executed on the main thread at GUI startup and thus does not
 // require locking.
 void VisualizerProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {

@@ -2,7 +2,6 @@
 #define _GAZEBO_VISUALIZER_H_
 
 #include "VisualizerProtocol.h"
-#include "server.h"
 #include "publisher.h"
 
 // Gazebo visualizer. This class does not perform any drawing, except it'll be in charge of sending messages
@@ -41,8 +40,6 @@ public:
     virtual void drawCoords(const Transform& transform, const Vec3& axisLengths, 
                     const Vec4& color);
 
-	virtual void drawMesh();
-
 	virtual void setMaxFrameRate(Real rateInFPS) const {}
     virtual void setBackgroundColor(const Vec3& color) const {}
     virtual void setBackgroundType(Visualizer::BackgroundType type) const {}
@@ -54,7 +51,6 @@ public:
 	void initServer();
 	void initPub();
 private:
-	FakeServer * server;
 	Publisher * publisher;
 
 	CustomMesh* makeSphere(unsigned short resolution);

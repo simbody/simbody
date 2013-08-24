@@ -28,7 +28,6 @@
 #include "simbody/internal/Visualizer.h"
 #include <pthread.h>
 #include <utility>
-#include "server.h"
 
 /** @file
  * This file defines commands that are used for communication between the 
@@ -163,7 +162,6 @@ private:
     // assigned VisualizerGUI cache index.
     mutable std::map<const void*, unsigned short> meshes;
     mutable pthread_mutex_t sceneLock;
-//	FakeServer server;
 };
 }
 
