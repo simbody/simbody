@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- *
- *                     Simbody(tm): Gazebo Reaction Force                     *
+ *          Simbody(tm): Gazebo Reaction Force With Applied Force             *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
@@ -22,12 +22,39 @@
  * -------------------------------------------------------------------------- */
 
 /* This test is drawn from the Open Source Robotics Foundation Gazebo physics
-regression test "Joint_TEST::ForceTorque". 
+regression test "Joint_TEST::GetForceTorqueWithAppliedForce". 
 
-It is a small sphere pinned at its center to ground, rotating about X, then
-an outboard brick pinned to the sphere and rotating about mutual Z. Oblique
-gravity cause the brick to fall, hit the ground and come to rest. Then we check
-against John Hsu's hand coded reaction force values.
+It is a stack of three cubes hinged together at their edges. The bottom block
+is heavy and rests on the ground, the other two are light and have their 
+positions maintained by a pair of PD controllers like this:
+
+              / 
+     link3  /   \         * = pin joint
+           /     \
+           \  1  /
+             \  /                   z
+        ------*  45 degrees         ^                     g = 0 0 -50
+  link2 |     |                     |   y                       |
+        |  6  |                     |  /                        |
+   -----*------                     | /                         v 
+  |     | 0 degrees                 ---------> x
+  | 100 |
+  ------- link1
+  contact
+   GROUND
+
+All the cube edges are of length 1. Masses are 100,6,1 as shown. The top block 
+has a COM that is offset into the +y direction by 0.5. 
+
+Expected reaction force results:
+    pin1 on inboard:  tx=-25, ty= 175, fz=-300
+    pin1 on outboard: tx= 25, ty=-175, fx=1, fz= 300, 
+    pin2 on inboard:  tx=-25, fz=-50
+    pin2 in outboard: tx=25*pi/4, tz=-25*pi/4, fx=fz=50*pi/4 
+
+The reason for fx=1 in the second line is that with a gain of only 50000, the
+first pin joint must be at an angle of 0.0035 radians to generate a torque of 
+175. That tips link2's frame in which (0,0,300)_G is reexpressed.
 */
 
 #include "Simbody.h"
@@ -40,14 +67,26 @@ using namespace SimTK;
 
 //#define USE_VISUALIZER
 
-const Real Radius=.1; // for sphere attached to link1
-const Vec3 Box(.05,.1,.2); // half-dimensions of box
-const Real Mass1=10, Mass2=10;
-const Vec3 COM1(0,0,.5), COM2(0,0,.5);
-const Inertia Central(Vec3(.1,.1,.1)); // supposedly mass weighted already
+
+// Control gains
+const Real Kp1 = 50000; // link1-2 joint stiffness
+const Real Kp2 = 10000; // link2-3 joint stiffness
+const Real Cd1 = 30;    // link1-2 joint damping
+const Real Cd2 = 30;    // link2-3 joint damping
+
+// Target angles
+const Real Target1 = 0;
+const Real Target2 = -Pi/4;
+
+const Vec3 Cube(.5,.5,.5); // half-dimensions of cube
+const Real Mass1=100, Mass2=5, Mass3=1;
+const Vec3 Centroid(.5,0,.5);
+const Vec3 COM1=Centroid, COM2=Centroid, COM3=Centroid+Vec3(0,.5,0);
+const UnitInertia Central(Vec3(.1), Vec3(.05));
 // Simbody requires inertias to be expressed about body origin rather than COM.
-const Inertia Inertia1=Central.shiftFromMassCenter(-COM1, Mass1);
-const Inertia Inertia2=Central.shiftFromMassCenter(-COM2, Mass2);
+const Inertia Inertia1=Mass1*Central.shiftFromCentroid(-COM1);
+const Inertia Inertia2=Mass2*Central.shiftFromCentroid(-COM2);
+const Inertia Inertia3=Mass3*Central.shiftFromCentroid(-COM3); // weird
 
 // Define a stiff, lossy material.
 const Real Stiffness = 1e8;
@@ -61,7 +100,7 @@ const ContactMaterial lossyMaterial(Stiffness,
 
 const Real MaxStepSize    = Real(1/1000.); // 1 ms (1000 Hz)
 const int  DrawEveryN     = 33;            // 33 ms frame update (30.3 Hz)
-const Real SimTime        = 2;
+const Real SimTime        = 5;
 const int  NSteps         = // make this a whole number of viz frames
     DrawEveryN*(int(SimTime/MaxStepSize/DrawEveryN+0.5));
 
@@ -74,13 +113,13 @@ struct MyMultibodySystem {
     ContactTrackerSubsystem         m_tracker;
     CompliantContactSubsystem       m_contact;
     GeneralForceSubsystem           m_forces;
-    Force::Gravity                  m_gravity;
-
+    Force::DiscreteForces           m_discrete;
     #ifdef USE_VISUALIZER
     Visualizer                      m_viz;
     #endif
 
-    MobilizedBody::Pin              m_link1, m_link2;
+    MobilizedBody                   m_link1;
+    MobilizedBody::Pin              m_link2, m_link3;
 };
 
 // Execute the simulation with a given integrator and accuracy, and verify that
@@ -112,11 +151,12 @@ int main() {
 //==============================================================================
 //                           MY MULTIBODY SYSTEM
 //==============================================================================
-// Construct the multibody system.
+// Construct the multibody system. The dampers are built in here but the springs
+// are applied during execution.
 MyMultibodySystem::MyMultibodySystem()
 :   m_system(), m_matter(m_system), 
     m_tracker(m_system), m_contact(m_system,m_tracker),
-    m_forces(m_system), m_gravity(m_forces,m_matter,Vec3(-30,10,-50))
+    m_forces(m_system), m_discrete(m_forces,m_matter)
     #ifdef USE_VISUALIZER
     , m_viz(m_system)
     #endif
@@ -130,22 +170,28 @@ MyMultibodySystem::MyMultibodySystem()
     m_viz.setShowSimTime(true);
     #endif
 
+    Force::Gravity(m_forces, m_matter, -ZAxis, 50);
+
+    DecorativeBrick drawCube(Cube); drawCube.setOpacity(0.5).setColor(Gray);
+
     Body::Rigid link1Info(MassProperties(Mass1, COM1, Inertia1));
-    link1Info.addDecoration(COM1, DecorativeSphere(Radius).setOpacity(.3));
-
-    Body::Rigid link2Info(MassProperties(Mass2, COM2, Inertia2));
-    link2Info.addDecoration(COM2, DecorativeBrick(Box).setOpacity(.3));
-
     ContactGeometry::TriangleMesh cubeMesh
-        (PolygonalMesh::createBrickMesh(Box, 3));
+        (PolygonalMesh::createBrickMesh(Cube, 3));
     DecorativeMesh showMesh(cubeMesh.createPolygonalMesh());
     showMesh.setRepresentation(DecorativeGeometry::DrawWireframe);
-    link2Info.addContactSurface(COM2,
+    link1Info.addDecoration(Centroid, drawCube);
+    link1Info.addContactSurface(Centroid,
         ContactSurface(cubeMesh, lossyMaterial, 1));
-    link2Info.addDecoration(COM2, showMesh);
+    link1Info.addDecoration(Centroid, showMesh);
+
+    Body::Rigid link2Info(MassProperties(Mass2, COM2, Inertia2));
+    link2Info.addDecoration(Centroid, drawCube);
+
+    Body::Rigid link3Info(MassProperties(Mass3, COM3, Inertia3));
+    link3Info.addDecoration(Centroid, drawCube);    
 
     MobilizedBody& Ground = m_matter.updGround(); // Nicer name for Ground.
-    Ground.addBodyDecoration(Vec3(0,0,.01),
+    Ground.addBodyDecoration(Vec3(0,0,.05),
         DecorativeFrame(2).setColor(Green));
 
     // Add the Ground contact geometry. Contact half space has -XAxis normal
@@ -153,18 +199,29 @@ MyMultibodySystem::MyMultibodySystem()
     const Rotation NegXToZ(Pi/2, YAxis);
     Ground.updBody().addContactSurface(Transform(NegXToZ,Vec3(0)),
         ContactSurface(ContactGeometry::HalfSpace(),lossyMaterial));
+    m_link1 = MobilizedBody::Free(Ground,Vec3(0), 
+                                    link1Info, Vec3(0));
 
-    const Rotation ZtoX(Pi/2, YAxis);
-    m_link1 = MobilizedBody::Pin(Ground,Transform(ZtoX,COM1), 
-                                 link1Info, Transform(ZtoX,COM1));
+    // Use this instead of the free joint to remove contact.
+    //m_link1 = MobilizedBody::Weld(Ground,Vec3(0), 
+    //                              link1Info, Vec3(0));
 
-    m_link2 = MobilizedBody::Pin(m_link1, Vec3(0,0,1.5), 
-                                 link2Info, Vec3(0));
+    const Rotation ZtoY(-Pi/2, XAxis);
+    m_link2 = MobilizedBody::Pin(m_link1, Transform(ZtoY,2*Centroid), 
+                                    link2Info, Transform(ZtoY,Vec3(0)));
+    m_link3 = MobilizedBody::Pin(m_link2, Transform(ZtoY,2*Centroid), 
+                                    link3Info, Transform(ZtoY,Vec3(0)));
 
-    Force::MobilityLinearStop
-       (m_forces, m_link1, MobilizerQIndex(0),1000000.,1.,-Pi/2,Pi/2);
-    Force::MobilityLinearStop
-       (m_forces, m_link2, MobilizerQIndex(0), 1000000.,1.,-Infinity,Infinity);
+    // It is more stable to build the springs into the mechanism like
+    // this rather than apply them discretely.
+    //Force::MobilityLinearSpring
+    //   (m_forces, m_link2, MobilizerQIndex(0), Kp1, Target1);
+    //Force::MobilityLinearSpring
+    //   (m_forces, m_link3, MobilizerQIndex(0), Kp2, Target2);
+    Force::MobilityLinearDamper
+        (m_forces, m_link2, MobilizerUIndex(0), Cd1);
+    Force::MobilityLinearDamper
+        (m_forces, m_link3, MobilizerUIndex(0), Cd2);
 
     m_system.realizeTopology();
 
@@ -221,6 +278,14 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
         if (stepNum++ == NSteps)
             break;
 
+        // Apply discrete spring forces.
+        const Real a1err = mbs.m_link2.getAngle(state)-Target1;
+        const Real a2err = mbs.m_link3.getAngle(state)-Target2;
+        mbs.m_discrete.setOneMobilityForce(state, mbs.m_link2, 
+            MobilizerUIndex(0), -Kp1*a1err);
+        mbs.m_discrete.setOneMobilityForce(state, mbs.m_link3, 
+            MobilizerUIndex(0), -Kp2*a2err);
+
         // Advance time by MaxStepSize. Might take multiple internal steps to 
         // get there, depending on difficulty and required accuracy.
         const Real tNext = stepNum * MaxStepSize;
@@ -229,24 +294,31 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 
     const State& state = integ.getAdvancedState();
     mbs.m_system.realize(state);
-
-    ReactionPair reaction1 = getReactionPair(state, mbs.m_link1);
+    Rotation R_G1 = mbs.m_link1.getBodyRotation(state);
+    Vec3 a = R_G1.convertRotationToBodyFixedXYZ();
+    Vec3 w = mbs.m_link1.getBodyAngularVelocity(state);
     ReactionPair reaction2 = getReactionPair(state, mbs.m_link2);
+    ReactionPair reaction3 = getReactionPair(state, mbs.m_link3);
     cout << "t=" << state.getTime() << endl;
-    cout << "  Reaction 1p=" << reaction1.reactionOnParentInParent << "\n"; 
-    cout << "  Reaction 1c=" << reaction1.reactionOnChildInChild << "\n"; 
+    cout << "  joint1 a=" << a << " w=" << w << endl;
+    cout << "  joint2 qerr=" << mbs.m_link2.getAngle(state)-Target1
+            << " u=" << mbs.m_link2.getRate(state) << endl;
+    cout << "  joint3 qerr=" << mbs.m_link3.getAngle(state)-Target2
+            << " u=" << mbs.m_link3.getRate(state) << endl;
     cout << "  Reaction 2p=" << reaction2.reactionOnParentInParent << "\n"; 
     cout << "  Reaction 2c=" << reaction2.reactionOnChildInChild << "\n"; 
+    cout << "  Reaction 3p=" << reaction3.reactionOnParentInParent << "\n"; 
+    cout << "  Reaction 3c=" << reaction3.reactionOnChildInChild << "\n"; 
 
     // Check the answers. Note (torque,force) ordering.
-    SimTK_TEST_EQ_TOL(reaction1.reactionOnParentInParent,
-                      SpatialVec(Vec3(-750, 0, 450), Vec3(-600,200,-1000)), 0.5);
-    SimTK_TEST_EQ_TOL(reaction1.reactionOnChildInChild,
-                      SpatialVec(Vec3(750,450,0), Vec3(600,-1000,-200)), 0.5);
     SimTK_TEST_EQ_TOL(reaction2.reactionOnParentInParent,
-                      SpatialVec(Vec3(-250,-150,0), Vec3(-300,500,100)), 0.5);
+                      SpatialVec(Vec3(-25, 175,0), Vec3(0,0,-300)), 0.5);
     SimTK_TEST_EQ_TOL(reaction2.reactionOnChildInChild,
-                      SpatialVec(Vec3(250,150,0), Vec3(300,-500,-100)), 0.5);
+                      SpatialVec(Vec3( 25,-175,0), Vec3(-1,0, 300)), 0.5);
+    SimTK_TEST_EQ_TOL(reaction3.reactionOnParentInParent,
+                      SpatialVec(Vec3(-25,0,0), Vec3(0,0,-50)), 0.5);
+    SimTK_TEST_EQ_TOL(reaction3.reactionOnChildInChild,
+                      (Pi/4)*SpatialVec(Vec3(25,0,-25), Vec3(50,0,50)), 0.5);
 
     dumpIntegratorStats(integ);
 }

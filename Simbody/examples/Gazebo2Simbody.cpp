@@ -806,12 +806,25 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                 Xml::Element box = geo.getOptionalElement("box");
                 if (box.isValid()) {
                     Vec3 hsz = box.getRequiredElementValueAs<Vec3>("size")/2;
+#ifndef USE_CONTACT_MESH
                     mobod.addBodyDecoration(X_LC, 
                         DecorativeEllipsoid(hsz) // use half dimensions
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                             .setColor(collColor));
                     ContactSurface surface(ContactGeometry::Ellipsoid(hsz),
                                            material);
+#else
+                    const int resolution = 20; // need dense to get near corners
+                    const PolygonalMesh mesh = PolygonalMesh::
+                        createBrickMesh(hsz,resolution);
+                    const ContactGeometry::TriangleMesh triMesh(mesh);
+    
+                    mobod.addBodyDecoration(X_LC, 
+                        DecorativeMesh(triMesh.createPolygonalMesh())
+                        .setRepresentation(DecorativeGeometry::DrawWireframe)
+                        .setColor(collColor));
+                    ContactSurface surface(triMesh, material,1 /*Thickness*/);
+#endif
                     if (!gzOutb.selfCollide)
                         surface.joinClique(model.modelClique);
                     mobod.updBody().addContactSurface(X_LC, surface);
