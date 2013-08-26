@@ -8,10 +8,15 @@
 
 override_dh_auto_configure:
 	dh_auto_configure --  \
-	    -DSimTK_INSTALL_PREFIX:PATH=/usr
+	    -DSimTK_INSTALL_PREFIX:PATH=/usr \
+	    -DBUILD_EXAMPLES:BOOL=False
 
 override_dh_auto_install:
 	dh_auto_install -- # Install.
+	# Move /usr/examples to /usr/share/simbody/examples
+	#mkdir -p debian/tmp/usr/share/simbody/
+	#mv debian/tmp/usr/examples \
+	#   debian/tmp/usr/share/simbody/
 
 override_dh_auto_test:
 	dh_auto_test || true
