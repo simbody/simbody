@@ -7,7 +7,7 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2013 Stanford University and the Authors.           *
- * Authors: Michael Sherman, John Hsu                                                   *
+ * Authors: Michael Sherman, John Hsu                                         *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
