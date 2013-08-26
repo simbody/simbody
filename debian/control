@@ -22,7 +22,7 @@ Package: simbody
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-	 libsimbody3 (= ${binary:Version}),
+	 libsimbody3.3 (= ${binary:Version}),
 Suggests: simbody-doc
 Multi-Arch: foreign
 Description: SimTK multibody dynamics API - Binary and examples
@@ -33,7 +33,7 @@ Description: SimTK multibody dynamics API - Binary and examples
  delivers high-performance, accuracy-controlled science/engineering-quality
  results.
 
-Package: libsimbody3
+Package: libsimbody3.3
 Section: libs
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
@@ -58,7 +58,7 @@ Depends: freeglut3-dev,
          libgdal1-dev,
          liblapack-dev,
          liblas-dev,
-	 libsimbody3 (= ${binary:Version}),
+	 libsimbody3.3 (= ${binary:Version}),
 	 ${misc:Depends}
 Multi-Arch: same
 Description: SimTK multibody dynamics API - developemnt files
