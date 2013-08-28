@@ -22,13 +22,13 @@ override_dh_auto_install:
 	mv debian/tmp/lib_tmp \
 	    debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/
 	
+	# Remove extra LICENSE and INSTALL file
 	rm debian/tmp/usr/doc/LICENSE.txt
-
-	# Move /usr/examples to /usr/share/simbody/examples
-	#mkdir -p debian/tmp/usr/share/simbody/
-	#mv debian/tmp/usr/examples \
-	#   debian/tmp/usr/share/simbody/
-
+	rm debian/tmp/usr/doc/INSTALL.txt
+	# Move /usr/doc to /usr/share/doc
+	mkdir -p debian/tmp/usr/share/doc
+	mv debian/tmp/usr/doc \
+	    debian/tmp/usr/share/doc/libsimbody-doc/
 
 override_dh_auto_test:
 	dh_auto_test || true
