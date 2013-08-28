@@ -60,7 +60,7 @@ Description: SimTK multibody dynamics API - developemnt files
 Package: libsimbody-dbg
 Architecture: any
 Section: debug
-Depends: simbody (= ${binary:Version}),
+Depends: libsimbody3.3 (= ${binary:Version}),
          ${misc:Depends}
 Multi-Arch: foreign
 Description: SimTK multibody dynamics API - Debugging Symbols
