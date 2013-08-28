@@ -2447,7 +2447,8 @@ returns immediately at little cost; otherwise, it initiates computation of
 composite body inertias for all of the mobilized bodies. These are not otherwise
 computed unless specifically requested.
 @par Required stage
-  \c Stage::Position **/
+  \c Stage::Position 
+@see invalidateCompositeBodyInertias() **/
 void realizeCompositeBodyInertias(const State&) const;
 
 /** This method checks whether articulated body inertias have already been 
@@ -2457,7 +2458,8 @@ expensive computation of articulated body inertias for all of the mobilized
 bodies. These are not otherwise computed until they are needed at Dynamics 
 stage.
 @par Required stage
-  \c Stage::Position **/
+  \c Stage::Position
+@see invalidateArticulatedBodyInertias() **/
 void realizeArticulatedBodyInertias(const State&) const;
 
 
@@ -2591,6 +2593,18 @@ calcMobilizerReactionForces().
 void calcMobilizerReactionForcesUsingFreebodyMethod
    (const State&         state, 
     Vector_<SpatialVec>& forcesAtMInG) const;
+
+/** This is useful for timing computation time for 
+realizeCompositeBodyInertias(), which otherwise will not recalculate them
+if called repeatedly. **/
+void invalidateCompositeBodyInertias(const State& state) const;
+
+/** This is useful for timing computation time for 
+realizeArticulatedBodyInertias(), which otherwise will not recalculate them
+if called repeatedly. Note that this also invalidates Dynamics stage and 
+above in the \a state because articulated body inertias are assumed to be
+valid after Dynamics stage, regardless of lazy evaluation status. **/
+void invalidateArticulatedBodyInertias(const State& state) const;
 /**@}**/
 
 

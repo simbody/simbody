@@ -1059,6 +1059,13 @@ void SimbodyMatterSubsystemRep::realizeCompositeBodyInertias(const State& state)
     markCacheValueRealized(state, cbx);
 }
 
+void SimbodyMatterSubsystemRep::
+invalidateCompositeBodyInertias(const State& state) const {
+    const CacheEntryIndex cbx = 
+        getModelCache(state).compositeBodyInertiaCacheIndex;
+    markCacheValueNotRealized(state, cbx);
+}
+
 
 
 //==============================================================================
@@ -1085,6 +1092,16 @@ realizeArticulatedBodyInertias(const State& state) const {
             rbNodeLevels[i][j]->realizeArticulatedBodyInertiasInward(ic,tpc,abc);
 
     markCacheValueRealized(state, abx);
+}
+
+void SimbodyMatterSubsystemRep::
+invalidateArticulatedBodyInertias(const State& state) const {
+    // ABIs are assumed calculated at Dynamics stage, regardless of the 
+    // flag in the cache entry.
+    state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+    const CacheEntryIndex abx = 
+        getModelCache(state).articulatedBodyInertiaCacheIndex;
+    markCacheValueNotRealized(state, abx);
 }
 
 
