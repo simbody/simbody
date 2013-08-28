@@ -67,7 +67,7 @@ void doRealizeArticulatedBodyInertias(MultibodySystem& system, State& state) {
 
 void doRealizeDynamics(MultibodySystem& system, State& state) {
     state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
-    system.realize(state, Stage::Acceleration);
+    system.realize(state, Stage::Dynamics);
 }
 
 void doRealizeAcceleration(MultibodySystem& system, State& state) {
@@ -75,11 +75,22 @@ void doRealizeAcceleration(MultibodySystem& system, State& state) {
     system.realize(state, Stage::Acceleration);
 }
 
+// Cost to re-evaluate accelerations after applying some new forces, but leaving
+// the state variables unchanged.
+void doRealizeDynamics2Acceleration(MultibodySystem& system, State& state) {
+    state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+    system.realize(state, Stage::Acceleration);
+}
+
+// Cost to re-evaluate accelerations after updating velocities, but leaving
+// the positions unchanged (e.g. semi-implicit Euler iterating velocities).
 void doRealizeVelocity2Acceleration(MultibodySystem& system, State& state) {
     state.invalidateAllCacheAtOrAbove(Stage::Velocity);
     system.realize(state, Stage::Acceleration);
 }
 
+// Cost for a complete acceleration calculation at a new time and state.
+// This includes the cost of articulated body inertias.
 void doRealizeTime2Acceleration(MultibodySystem& system, State& state) {
     state.invalidateAllCacheAtOrAbove(Stage::Time);
     system.realize(state, Stage::Acceleration);
@@ -170,9 +181,10 @@ void runAllTests(MultibodySystem& system, bool useEulerAngles=false) {
     timeComputation(system, doRealizeTime, "realizeTime", 5000, useEulerAngles);
     timeComputation(system, doRealizePosition, "realizePosition", 5000, useEulerAngles);
     timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000, useEulerAngles);
-    timeComputation(system, doRealizeArticulatedBodyInertias, "doRealizeArticulatedBodyInertias", 5000, useEulerAngles);
+    timeComputation(system, doRealizeArticulatedBodyInertias, "doRealizeArticulatedBodyInertias", 3000, useEulerAngles);
     timeComputation(system, doRealizeDynamics, "realizeDynamics", 5000, useEulerAngles);
     timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 5000, useEulerAngles);
+    timeComputation(system, doRealizeDynamics2Acceleration, "doRealizeDynamics2Acceleration", 5000, useEulerAngles);
     timeComputation(system, doRealizeVelocity2Acceleration, "realizeVelocity2Acceleration", 3000, useEulerAngles);
     timeComputation(system, doRealizeTime2Acceleration, "realizeTime2Acceleration", 2000, useEulerAngles);
     timeComputation(system, doMultiplyByM, "multiplyByM", 5000, useEulerAngles);
