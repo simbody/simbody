@@ -57,7 +57,7 @@ Description: SimTK multibody dynamics API - developemnt files
  This package contains development files (headers, shared library
  symbolic link and pkg-config file).
 
-Package: libsimbody-dbg
+Package: libsimbody3.3-dbg
 Architecture: any
 Section: debug
 Depends: libsimbody3.3 (= ${binary:Version}),

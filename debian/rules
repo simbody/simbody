@@ -34,7 +34,7 @@ override_dh_auto_test:
 	dh_auto_test || true
 
 override_dh_strip:
-	dh_strip -a --dbg-package=libsimbody-dbg
+	dh_strip -a --dbg-package=libsimbody3.3-dbg
 
 %:
 	dh $@ --parallel --buildsystem=cmake
