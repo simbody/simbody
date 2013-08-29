@@ -194,7 +194,11 @@ to specified values, accelerations udot are prescribed to zero, and positions
 will remain free. If you lock position (the default locking level) then the 
 generalized coordinates q are prescribed to specified values and the speeds u 
 and accelerations udot are prescribed to zero. Prescribed values may be obtained
-from the current state, or set explicitly.
+from the current state, or set explicitly. The lock() and lockAt() methods when
+called at position level will modify q in the given state if necessary to 
+satisfy the locked position, and will set u to zero. When called at velocity
+level they will modify u if necessary to satisfied the locked velocity, but will
+leave q unchanged.
 
 You can also specify that a mobilizer is locked by default (at acceleration,
 velocity, or position level). In that case the prescribed value is recorded
@@ -204,32 +208,46 @@ state at that time.
 If this mobilizer is driven by a Motion object, locking overrides that while
 the lock is active; when unlocked the Motion object resumes control. **/
 /**@{**/
-/** Lock the contained mobilizer's position or velocity, or lock the 
+/** Lock this mobilizer's position or velocity at its current value, or lock the 
 acceleration to zero, depending on the \p level parameter. The prescribed 
-position or velocity is taken from \p state and recorded. If the mobilizer was 
-already locked, the new lock specification overrides it. The \p state must 
-already have been realized to at least Stage::Model and will be lowered to 
-Stage::Model on return since a lock is an Instance-stage change. **/ 
+position or velocity is taken from \p state and recorded. If the lock is at
+the position (q) level then the generalized speeds u for this mobilizer are set
+to zero in the \p state. If the mobilizer was already locked, the new lock 
+specification overrides it. The \p state must already have been realized to at 
+least Stage::Model and will be lowered to Stage::Model on return since a lock is
+an Instance-stage change. **/ 
 void lock(State& state, Motion::Level level=Motion::Position) const;
 
 /** Lock this mobilizer's q, u, or udot to the given scalar \p value, depending 
-on \p level. This is only permitted for mobilizers that have just a single
-q, u, or udot, such as a Pin or Slider mobilizer. **/
+on \p level. When locking at the position level (the default), this mobilizer's 
+q in \p state is set to \p value, and u in \p state is set to zero. When locking
+at velocity level, this mobilizer's u in \p state is set to \p value but the q
+is left unchanged. This signature of lockAt(), taking \p value as a scalar, is 
+only permitted for mobilizers that have just a single q and u, such as a Pin or 
+Slider mobilizer. See the other signatures of lockAt() for multi-coordinate 
+mobilizers. **/  
 void lockAt(State& state, Real value, 
             Motion::Level level=Motion::Position) const;
 
 /** Lock this mobilizer's q, u, or udot to the given Vector \p value, depending 
-on \p level. The Vector must be the expected length, either nq=getNumQ() for
-the default Motion::Position level, or nu=getNumU() for Motion::Velocity or
-Motion::Acceleration levels. 
+on \p level. When locking at the position level (the default), this mobilizer's 
+q's in \p state is set to \p value, and its u's in \p state are set to zero. 
+When locking at velocity level, this mobilizer's u's in \p state are set to 
+\p value but its q's are left unchanged. The Vector must be the expected length, 
+either nq=getNumQ() for the default Motion::Position level, or nu=getNumU() for 
+Motion::Velocity or Motion::Acceleration levels. 
 @see getNumQ(), getNumU() **/
 void lockAt(State& state, const Vector& value, 
             Motion::Level level=Motion::Position) const;
 
 /** Lock this mobilizer's q, u, or udot to the given Vec\<N\> \p value, 
-depending on the \p level. The size N of the given Vec must match the expected 
-length, either nq=getNumQ() for the default Motion::Position level, or 
-nu=getNumU() for Motion::Velocity or Motion::Acceleration levels.  
+depending on the \p level. When locking at the position level (the default), 
+this mobilizer's q's in \p state is set to \p value, and its u's in \p state are
+set to zero. When locking at velocity level, this mobilizer's u's in \p state 
+are set to \p value but its q's are left unchanged. The size N of the given Vec 
+must match the expected length, either nq=getNumQ() for the default 
+Motion::Position level, or nu=getNumU() for Motion::Velocity or 
+Motion::Acceleration levels.  
 @see getNumQ(), getNumU() **/
 template <int N> SimTK_SIMBODY_EXPORT // instantiated in library
 void lockAt(State& state, const Vec<N>& value,
