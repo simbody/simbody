@@ -608,7 +608,8 @@ void MobilizedBodyImpl::findMobilizerUs
 }
 
 // Set the lock level and record the current q or u if needed so we can
-// ensure that the state is prescribed to the recorded value.
+// ensure that the state is prescribed to the recorded value. When locking
+// q, set u to zero now.
 // Can't do this until *after* realize(Model) because that's when the q's and
 // u's are sized and the lock-by-default coordinates are recorded, and this 
 // should override those.
@@ -619,23 +620,27 @@ lock(State& state, Motion::Level level) const {
 
     SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(state);
     iv.mobilizerLockLevel[getMyMobilizedBodyIndex()] = level;
+    UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
+    const UIndex uEnd(uStart+nu);
+
     if (level == Motion::Position) {
+        Vector& u = state.updU(); // set generalized speeds to zero
+        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+            u[ux] = 0;
         const Vector& q = state.getQ();
         assert(iv.lockedQs.size() == q.size());
         QIndex qStart; int nq; findMobilizerQs(state, qStart, nq);
         const QIndex qEnd(qStart+nq);
         for (QIndex qx=qStart; qx != qEnd; ++qx) 
             iv.lockedQs[qx] = q[qx];
-    } else if (level == Motion::Velocity) {
+    } 
+    else if (level == Motion::Velocity) {
         const Vector& u = state.getU();
         assert(iv.lockedUs.size() == u.size());
-        UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
-        const UIndex uEnd(uStart+nu);
         for (UIndex ux=uStart; ux != uEnd; ++ux) 
             iv.lockedUs[ux] = u[ux];
-    } else if (level == Motion::Acceleration) {
-        UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
-        const UIndex uEnd(uStart+nu);
+    } 
+    else if (level == Motion::Acceleration) {
         for (UIndex ux=uStart; ux != uEnd; ++ux) 
             iv.lockedUs[ux] = 0;
     }
@@ -648,23 +653,30 @@ lockAt(State& state, int n, const Real* value, Motion::Level level) const {
 
     SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(state);
     iv.mobilizerLockLevel[getMyMobilizedBodyIndex()] = level;
+    UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
+    const UIndex uEnd(uStart+nu);
 
     if (level == Motion::Position) {
+        Vector& u = state.updU(); // set generalized speeds to zero
+        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+            u[ux] = 0;
+        Vector& q = state.updQ();
         QIndex qStart; int nq; findMobilizerQs(state, qStart, nq);
+        const QIndex qEnd(qStart+nq);
         SimTK_ERRCHK3_ALWAYS(n==nq, "MobilizedBody::lockAt()",
             "Supplied value had wrong length %d for locking at "
             "%s level; should have been nq=%d.",
             n, Motion::nameOfLevel(level), nq);
-        for (int i=0; i < nq; ++i) 
-            iv.lockedQs[QIndex(qStart+i)] = value[i];
-    } else if (level == Motion::Velocity || level == Motion::Acceleration) {
-        UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
+        for (QIndex qx=qStart; qx != qEnd; ++qx) 
+            q[qx] = iv.lockedQs[qx] = *value++; // set qs now & remember
+    } 
+    else if (level == Motion::Velocity || level == Motion::Acceleration) {
         SimTK_ERRCHK3_ALWAYS(n==nu, "MobilizedBody::lockAt()",
             "Supplied value had wrong length %d for locking at "
             "%s level; should have been nu=%d.",
             n, Motion::nameOfLevel(level), nu);
-        for (int i=0; i < nu; ++i) 
-            iv.lockedUs[UIndex(uStart+i)] = value[i];
+        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+            iv.lockedUs[ux] = *value++;
     } 
 }
 
