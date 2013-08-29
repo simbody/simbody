@@ -429,6 +429,10 @@ public:
     // Call at Position Stage or later.
     void realizeArticulatedBodyInertias(const State&) const;
 
+    // These are just used in timing tests.
+    void invalidateCompositeBodyInertias(const State&) const;
+    void invalidateArticulatedBodyInertias(const State&) const;
+
         // OPERATORS //
 
     Real calcKineticEnergy(const State&) const;

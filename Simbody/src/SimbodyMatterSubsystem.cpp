@@ -1983,6 +1983,15 @@ void SimbodyMatterSubsystem::realizeArticulatedBodyInertias(const State& s) cons
 }
 
 
+void SimbodyMatterSubsystem::invalidateCompositeBodyInertias(const State& s) const {
+    getRep().invalidateCompositeBodyInertias(s);
+}
+
+void SimbodyMatterSubsystem::invalidateArticulatedBodyInertias(const State& s) const {
+    getRep().invalidateArticulatedBodyInertias(s);
+}
+
+
 const Array_<QIndex>& SimbodyMatterSubsystem::
 getFreeQIndex(const State& state) const
 {   return getRep().getFreeQIndex(state); }
