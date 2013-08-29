@@ -44,17 +44,54 @@ using namespace SimTK;
 
 // The following routines define the operations to be profiled.
 
-void doRealizePosition(MultibodySystem& system, State& state) {
+void doRealizeTime(MultibodySystem& system, State& state) {
     state.invalidateAllCacheAtOrAbove(Stage::Time);
+    system.realize(state, Stage::Time);
+}
+
+void doRealizePosition(MultibodySystem& system, State& state) {
+    state.invalidateAllCacheAtOrAbove(Stage::Position);
     system.realize(state, Stage::Position);
 }
 
 void doRealizeVelocity(MultibodySystem& system, State& state) {
-    state.invalidateAllCacheAtOrAbove(Stage::Time);
+    state.invalidateAllCacheAtOrAbove(Stage::Velocity);
     system.realize(state, Stage::Velocity);
 }
 
+void doRealizeArticulatedBodyInertias(MultibodySystem& system, State& state) {
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+    matter.invalidateArticulatedBodyInertias(state);
+    matter.realizeArticulatedBodyInertias(state);
+}
+
+void doRealizeDynamics(MultibodySystem& system, State& state) {
+    state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+    system.realize(state, Stage::Dynamics);
+}
+
 void doRealizeAcceleration(MultibodySystem& system, State& state) {
+    state.invalidateAllCacheAtOrAbove(Stage::Acceleration);
+    system.realize(state, Stage::Acceleration);
+}
+
+// Cost to re-evaluate accelerations after applying some new forces, but leaving
+// the state variables unchanged.
+void doRealizeDynamics2Acceleration(MultibodySystem& system, State& state) {
+    state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+    system.realize(state, Stage::Acceleration);
+}
+
+// Cost to re-evaluate accelerations after updating velocities, but leaving
+// the positions unchanged (e.g. semi-implicit Euler iterating velocities).
+void doRealizeVelocity2Acceleration(MultibodySystem& system, State& state) {
+    state.invalidateAllCacheAtOrAbove(Stage::Velocity);
+    system.realize(state, Stage::Acceleration);
+}
+
+// Cost for a complete acceleration calculation at a new time and state.
+// This includes the cost of articulated body inertias.
+void doRealizeTime2Acceleration(MultibodySystem& system, State& state) {
     state.invalidateAllCacheAtOrAbove(Stage::Time);
     system.realize(state, Stage::Acceleration);
 }
@@ -141,9 +178,15 @@ void timeComputation(MultibodySystem& system, void function(MultibodySystem& sys
  */
 void runAllTests(MultibodySystem& system, bool useEulerAngles=false) {
     std::cout << "# dofs=" << system.getMatterSubsystem().getNumMobilities() << "\n";
+    timeComputation(system, doRealizeTime, "realizeTime", 5000, useEulerAngles);
     timeComputation(system, doRealizePosition, "realizePosition", 5000, useEulerAngles);
     timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000, useEulerAngles);
-    timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 2000, useEulerAngles);
+    timeComputation(system, doRealizeArticulatedBodyInertias, "doRealizeArticulatedBodyInertias", 3000, useEulerAngles);
+    timeComputation(system, doRealizeDynamics, "realizeDynamics", 5000, useEulerAngles);
+    timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 5000, useEulerAngles);
+    timeComputation(system, doRealizeDynamics2Acceleration, "doRealizeDynamics2Acceleration", 5000, useEulerAngles);
+    timeComputation(system, doRealizeVelocity2Acceleration, "realizeVelocity2Acceleration", 3000, useEulerAngles);
+    timeComputation(system, doRealizeTime2Acceleration, "realizeTime2Acceleration", 2000, useEulerAngles);
     timeComputation(system, doMultiplyByM, "multiplyByM", 5000, useEulerAngles);
     timeComputation(system, doMultiplyByMInv, "multiplyByMInv", 5000, useEulerAngles);
     timeComputation(system, doCalcResidualForceIgnoringConstraints, "calcResidualForceIgnoringConstraints", 5000, useEulerAngles);
