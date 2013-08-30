@@ -2,7 +2,6 @@ language: cpp
 compiler:
   - gcc
 install:
-  - sudo apt-get update
   - sudo apt-get install liblapack-dev liblas-dev
   - cmake . -DBUILD_EXAMPLES=off && make
 script: ctest
