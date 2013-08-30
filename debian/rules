@@ -21,6 +21,16 @@ override_dh_auto_install:
 	mkdir -p debian/tmp/usr/lib/
 	mv debian/tmp/lib_tmp \
 	    debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/
+	# Fix cmake finder
+	# 1. Fix to use DEB_HOST_MULTIARCH 
+	sed -i -e "s:/lib:/lib/$(DEB_HOST_MULTIARCH):g" \
+	    debian/tmp/usr/share/cmake/FindSimbody.cmake
+	# 2. Use -config like file to be automatically found
+	mkdir -p debian/tmp/usr/share/Simbody
+	mv debian/tmp/usr/share/cmake \
+	    debian/tmp/usr/share/Simbody
+	mv  debian/tmp/usr/share/Simbody/cmake/FindSimbody.cmake \
+	    debian/tmp/usr/share/Simbody/cmake/SimbodyConfig.cmake
 	
 	# Remove extra LICENSE and INSTALL file
 	rm debian/tmp/usr/doc/LICENSE.txt
