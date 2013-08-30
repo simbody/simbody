@@ -41,6 +41,11 @@ SET(SIMBODY_VERSION
     "This is the version that will be built (can't be changed here)." 
     FORCE)
 
+SET(SIMBODY_SONAME_VERSION
+    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}"
+    CACHE STRING
+    "Soname version to use when generating shared libs")
+
 # This is the suffix if we're building and depending on versioned libraries.
 SET(VN "_${SIMBODY_VERSION}")
 
