@@ -3,7 +3,7 @@ compiler:
   - gcc
 install:
   - sudo apt-get update
-  - sudo apt-get install liblapack3gf libblas3gf
+  - sudo apt-get install liblapack-dev liblas-dev
   - cmake . && make
 script: ctest
 
