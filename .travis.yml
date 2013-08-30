@@ -2,7 +2,7 @@ language: cpp
 compiler:
   - gcc
 install:
-  - sudo apt-get install libblas liblapack3gf
+  - sudo apt-get install liblas-dev liblapack-dev
   - cmake . && make
 script: ctest
 
