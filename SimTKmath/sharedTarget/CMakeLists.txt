@@ -36,7 +36,8 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
                  ${MATH_LIBS_TO_USE})
     
     SET_TARGET_PROPERTIES(${SHARED_TARGET} PROPERTIES
-    	PROJECT_LABEL "Code - ${SHARED_TARGET}")
+    	PROJECT_LABEL "Code - ${SHARED_TARGET}"
+    	SOVERSION ${SIMBODY_SONAME_VERSION})
     
     # install library; on Windows both .lib and .dll go in the lib directory.
     INSTALL(TARGETS ${SHARED_TARGET}
@@ -62,7 +63,8 @@ IF(BUILD_VERSIONED_LIBRARIES)
                  ${MATH_LIBS_TO_USE_VN})
     
     SET_TARGET_PROPERTIES(${SHARED_TARGET_VN} PROPERTIES
-    	PROJECT_LABEL "Code - ${SHARED_TARGET_VN}")
+    	PROJECT_LABEL "Code - ${SHARED_TARGET_VN}" 
+        SOVERSION ${SIMBODY_SONAME_VERSION})
     
     # install library; on Windows both .lib and .dll go in the lib directory.
     INSTALL(TARGETS ${SHARED_TARGET_VN}
