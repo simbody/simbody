@@ -2,3 +2,4 @@ language: cpp
 install:
   - cmake . && make
 script: ctest
+
