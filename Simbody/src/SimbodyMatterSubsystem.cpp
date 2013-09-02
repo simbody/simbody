@@ -403,47 +403,47 @@ void SimbodyMatterSubsystem::multiplyByM(const State&  state,
 //                             MULTIPLY BY M INV
 //==============================================================================
 // Check arguments, copy in/out of contiguous Vectors if necessary, call the
-// implementation method to calculate a = M^-1*f.
+// implementation method to calculate a = M^-1*v.
 void SimbodyMatterSubsystem::multiplyByMInv(const State&    state,
-                                            const Vector&   f,
-                                            Vector&         MInvf) const
+                                            const Vector&   v,
+                                            Vector&         MInvV) const
 {
     const SimbodyMatterSubsystemRep& rep = getRep();
     const int nu = rep.getNU(state);
 
-    SimTK_ERRCHK2_ALWAYS(f.size() == nu,
+    SimTK_ERRCHK2_ALWAYS(v.size() == nu,
         "SimbodyMatterSubsystem::multiplyByMInv()",
-        "Argument 'f' had length %d but should have the same length"
+        "Argument 'v' had length %d but should have the same length"
         " as the number of mobilities (generalized speeds u) %d.", 
-        f.size(), nu);
+        v.size(), nu);
 
-    MInvf.resize(nu);
+    MInvV.resize(nu);
     if (nu==0) return;
 
     // Assume at first that both Vectors are contiguous.
-    const Vector* cf    = &f;
-    Vector*       cMInvf   = &MInvf;
+    const Vector* cv    = &v;
+    Vector*       cMInvV   = &MInvV;
     bool needToCopyBack = false;
 
     // We'll allocate these or not as needed.
-    Vector contig_f, contig_MInvf;
+    Vector contig_v, contig_MInvV;
 
-    if (!f.hasContiguousData()) {
-        contig_f.resize(nu); // contiguous memory
-        contig_f(0, nu) = f; // copy, prevent reallocation
-        cf = (const Vector*)&contig_f;
+    if (!v.hasContiguousData()) {
+        contig_v.resize(nu); // contiguous memory
+        contig_v(0, nu) = v; // copy, prevent reallocation
+        cv = (const Vector*)&contig_v;
     }
 
-    if (!MInvf.hasContiguousData()) {
-        contig_MInvf.resize(nu); // contiguous memory
-        cMInvf = (Vector*)&contig_MInvf;
+    if (!MInvV.hasContiguousData()) {
+        contig_MInvV.resize(nu); // contiguous memory
+        cMInvV = (Vector*)&contig_MInvV;
         needToCopyBack = true;
     }
 
-    rep.multiplyByMInv(state, *cf, *cMInvf);
+    rep.multiplyByMInv(state, *cv, *cMInvV);
 
     if (needToCopyBack)
-        MInvf = *cMInvf;
+        MInvV = *cMInvV;
 }
 
 

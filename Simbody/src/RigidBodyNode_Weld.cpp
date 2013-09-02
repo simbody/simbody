@@ -237,11 +237,10 @@ public:
         const SBInstanceCache&     ic,
         const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBDynamicsCache&,
         const Real*                f,
         SpatialVec*                allZ,
         SpatialVec*                allZPlus,
-        Real*                      allEpsilon) const
+        Real*                      allEpsilon) const OVERRIDE_11
     {
     } 
 
@@ -251,10 +250,9 @@ public:
         const SBInstanceCache&,
         const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
-        const SBDynamicsCache&,
         const Real*                 epsilonTmp,
         SpatialVec*                 allA_GB,
-        Real*                       allUDot) const
+        Real*                       allUDot) const OVERRIDE_11
     {
         allA_GB[0] = 0;
     }
@@ -531,11 +529,10 @@ public:
         const SBInstanceCache&      ic,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBDynamicsCache&      dc,
         const Real*                 f,
         SpatialVec*                 allZ,
         SpatialVec*                 allZPlus,
-        Real*                       allEpsilon) const
+        Real*                       allEpsilon) const OVERRIDE_11
     {
         SpatialVec& z       = allZ[nodeNum];
         SpatialVec& zPlus   = allZPlus[nodeNum];
@@ -556,10 +553,9 @@ public:
         const SBInstanceCache&,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBDynamicsCache&      dc,
         const Real*                 allEpsilon,
         SpatialVec*                 allA_GB,
-        Real*                       allUDot) const
+        Real*                       allUDot) const OVERRIDE_11
     {
         SpatialVec&      A_GB = allA_GB[nodeNum];
         const PhiMatrix& phi  = getPhi(pc);
