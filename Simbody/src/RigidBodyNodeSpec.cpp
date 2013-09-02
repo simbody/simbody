@@ -486,7 +486,6 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass1Inward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBDynamicsCache&                  dc,
     const Real*                             jointForces,
     SpatialVec*                             allZ,
     SpatialVec*                             allZPlus,
@@ -525,7 +524,6 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBDynamicsCache&                  dc,
     const Real*                             allEpsilon,
     SpatialVec*                             allA_GB,
     Real*                                   allUDot) const
