@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -26,11 +26,12 @@ This example shows how to build a linked chain of bodies programmatically,
 simulate it, and produce a simple animation while it is simulating. */
 
 #include "Simbody.h"
+#include <iostream>
 
 using namespace SimTK;
 
 int main() {
-    
+  try {    
     // Create the system.
     
     MultibodySystem system; system.setUseUniformBackground(true);
@@ -47,7 +48,8 @@ int main() {
         lastBody = pendulum;
     }
 
-    system.addEventReporter(new Visualizer::Reporter(system, 1./30));
+    Visualizer viz(system);
+    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
     
     // Initialize the system and state.
     
@@ -63,4 +65,10 @@ int main() {
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(10.0);
+
+  } catch(const std::exception& e) {
+    std::cout << "EXCEPTION: " << e.what() << std::endl;
+    return 1;
+  }
+    return 0;
 }
