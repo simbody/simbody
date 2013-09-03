@@ -1,8 +1,6 @@
 simbody
 =======
 
-[Move to GitHub in progress.]
-
 Source code for the Simbody libraries, examples, and build system.
 
 Simbody is a high-performance, open-source toolkit for simulation of 
