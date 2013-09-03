@@ -765,10 +765,6 @@ realizeSubsystemInstanceImpl(const State& s) const {
         case Motion::Discrete:
         case Motion::Fast:
             break; // nothing to do for these here
-        default:
-            SimTK_ASSERT1_ALWAYS(!"qMethod",
-                "SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(): "
-                "Unrecognized qMethod %d.", (int)instanceInfo.qMethod);
         }
 
         // Assign u's to appropriate index vectors for convenient
@@ -790,10 +786,6 @@ realizeSubsystemInstanceImpl(const State& s) const {
         case Motion::Discrete:
         case Motion::Fast:
             break; // nothing to do for these here
-        default:
-            SimTK_ASSERT1_ALWAYS(!"uMethod",
-                "SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(): "
-                "Unrecognized uMethod %d.", (int)instanceInfo.uMethod);
         }
 
         // Assign udots to appropriate index vectors for convenient
@@ -816,10 +808,6 @@ realizeSubsystemInstanceImpl(const State& s) const {
         case Motion::Discrete:
         case Motion::Fast:
             break; // nothing to do for these here
-        default:
-            SimTK_ASSERT1_ALWAYS(!"udotMethod",
-                "SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(): "
-                "Unrecognized udotMethod %d.", (int)instanceInfo.udotMethod);
         }
 
         // Any non-Free udot needs a prescribed force (tau) slot.
@@ -5075,7 +5063,8 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
 //==============================================================================
 // Calculate udot = M^-1 f. We also get spatial accelerations A_GB for 
 // each body as a side effect.
-// This Subsystem must already be realized through Dynamics stage.
+// This Subsystem must already be realized through Position stage; we'll 
+// realize articulated body inertias if necessary.
 // All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
     const Vector&                                           f,
@@ -5083,7 +5072,8 @@ void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
 {
     const SBInstanceCache&                  ic  = getInstanceCache(s);
     const SBTreePositionCache&              tpc = getTreePositionCache(s);
-    const SBDynamicsCache&                  dc  = getDynamicsCache(s);
+
+    realizeArticulatedBodyInertias(s); // (may already have been realized)
     const SBArticulatedBodyInertiaCache&    abc = getArticulatedBodyInertiaCache(s);
 
     const int nb = getNumBodies();
@@ -5109,14 +5099,14 @@ void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.multiplyByMInvPass1Inward(ic,tpc,abc,dc,
+            node.multiplyByMInvPass1Inward(ic,tpc,abc,
                 fPtr, z.begin(), zPlus.begin(), eps.begin());
         }
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.multiplyByMInvPass2Outward(ic,tpc,abc,dc, 
+            node.multiplyByMInvPass2Outward(ic,tpc,abc, 
                 eps.cbegin(), A_GB.begin(), MInvfPtr);
         }
 }
