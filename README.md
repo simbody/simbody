@@ -1,7 +1,5 @@
-simbody
+Simbody
 =======
-
-[Move to GitHub in progress.]
 
 Source code for the Simbody libraries, examples, and build system.
 
