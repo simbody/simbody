@@ -765,6 +765,10 @@ realizeSubsystemInstanceImpl(const State& s) const {
         case Motion::Discrete:
         case Motion::Fast:
             break; // nothing to do for these here
+        default:
+            SimTK_ASSERT1_ALWAYS(!"qMethod",
+                "SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(): "
+                "Unrecognized qMethod %d.", (int)instanceInfo.qMethod);
         }
 
         // Assign u's to appropriate index vectors for convenient
@@ -786,6 +790,10 @@ realizeSubsystemInstanceImpl(const State& s) const {
         case Motion::Discrete:
         case Motion::Fast:
             break; // nothing to do for these here
+        default:
+            SimTK_ASSERT1_ALWAYS(!"uMethod",
+                "SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(): "
+                "Unrecognized uMethod %d.", (int)instanceInfo.uMethod);
         }
 
         // Assign udots to appropriate index vectors for convenient
@@ -808,6 +816,10 @@ realizeSubsystemInstanceImpl(const State& s) const {
         case Motion::Discrete:
         case Motion::Fast:
             break; // nothing to do for these here
+        default:
+            SimTK_ASSERT1_ALWAYS(!"udotMethod",
+                "SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(): "
+                "Unrecognized udotMethod %d.", (int)instanceInfo.udotMethod);
         }
 
         // Any non-Free udot needs a prescribed force (tau) slot.
