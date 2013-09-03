@@ -9,11 +9,7 @@ Build-Depends: debhelper (>= 9),
                freeglut3-dev,
                libxi-dev,
                libxmu-dev,
-               libcurl4-gnutls-dev,
-               libdap-dev,
-               libgdal1-dev,
-               liblapack-dev,
-               liblas-dev
+               liblapack-dev
 Vcs-Browser: https://github.com/simbody/simbody
 Vcs-Git: git://github.com/simbody/simbody.git
 Homepage: https://simtk.org/home/simbody
@@ -38,11 +34,7 @@ Section: libdevel
 Depends: freeglut3-dev,
          libxi-dev,
          libxmu-dev,
-         libcurl4-gnutls-dev,
-         libdap-dev,
-         libgdal1-dev,
          liblapack-dev,
-         liblas-dev,
 	 libsimbody3.3 (= ${binary:Version}),
 	 ${misc:Depends}
 Multi-Arch: same
