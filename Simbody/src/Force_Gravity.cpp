@@ -330,7 +330,10 @@ setBodyIsExcluded(State& state, MobilizedBodyIndex mobod,
         impl.setMobodIsImmune(state, mobod, isExcluded);
         // The zero must be precalculated if the body is immune to gravity.
         SpatialVec& F = impl.updForceCache(state).F_GB[mobod];
-        if (isExcluded) F.setToZero(); else F.setToNaN();
+        if (isExcluded || getMagnitude(state) == 0)
+          F.setToZero();
+        else
+          F.setToNaN();
     }
     return *this;
 }
