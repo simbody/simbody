@@ -84,6 +84,10 @@ DecorativeGeometry& DecorativeGeometry::operator=(const DecorativeGeometry& src)
 
 DecorativeGeometry& DecorativeGeometry::setBodyId(int b) {updRep().setBodyId(b);return *this;}
 int DecorativeGeometry::getBodyId() const {return getRep().getBodyId();}
+DecorativeGeometry& DecorativeGeometry::setIndexOnBody(int x) {updRep().setIndexOnBody(x);return *this;}
+int DecorativeGeometry::getIndexOnBody() const {return getRep().getIndexOnBody();}
+DecorativeGeometry& DecorativeGeometry::setUserRef(void* p) {updRep().setUserRef(p);return *this;}
+void* DecorativeGeometry::getUserRef() const {return getRep().getUserRef();}
 
 DecorativeGeometry& DecorativeGeometry::setTransform(const Transform& X_BD) {updRep().setTransform(X_BD);return *this;}
 const Transform& DecorativeGeometry::getTransform() const    {return getRep().getTransform();}
