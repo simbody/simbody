@@ -324,11 +324,24 @@ int main() {
         Rotation(BodyRotationSequence, Pi/4, XAxis, Pi/8, YAxis, -Pi/4, ZAxis),
         Vec3(1.5, -5, 5.25)));
     matter.Ground().addBodyDecoration(Vec3(0),
-        DecorativeBrick(box.getHalfLengths()).setOpacity(.1).setColor(Blue));
+        DecorativeBrick(box.getHalfLengths()).setOpacity(.1).setColor(Blue)
+        .setIndexOnBody(14).setUserRef(&matter.Ground()));
     matter.Ground().addBodyDecoration(obox.getTransform(),
-        DecorativeBrick(obox.getHalfLengths()).setOpacity(.1).setColor(Green));
+        DecorativeBrick(obox.getHalfLengths()).setOpacity(.1).setColor(Green)
+                .setIndexOnBody(22).setUserRef(&matter.Ground()));
     cout << "May intersect=" << box.mayIntersectOrientedBox(obox) << "\n";
     cout << "Intersects=" << box.intersectsOrientedBox(obox) << "\n";
+    
+    const Body& groundBody = matter.Ground().getBody();
+    const int nDecGeoms = groundBody.getNumDecorations();
+    printf("%d Ground body decorations (&Ground=0x%x). Last two:\n", nDecGeoms,
+        &matter.Ground());
+    for (int i=nDecGeoms-2; i < nDecGeoms; ++i) {
+        printf("%d: bodyId=%d, index=%d, userRef=0x%x\n", i,
+            groundBody.getDecoration(i).getBodyId(),
+            groundBody.getDecoration(i).getIndexOnBody(),
+            groundBody.getDecoration(i).getUserRef());
+    }
 
     Geo::Sphere curveSphere = curve.calcBoundingSphere();
     Geo::AlignedBox curveAABB = curve.calcAxisAlignedBoundingBox();

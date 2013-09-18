@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors: Jack Middleton, Peter Eastman                                *
+ * Contributors: Jack Middleton, Peter Eastman, Ayman Habib                   *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -34,7 +34,8 @@ namespace SimTK {
 class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
-    :   myHandle(0), body(0), placement(), resolution(-1), 
+    :   myHandle(0), body(0), indexOnBody(-1), userRef(0), 
+        placement(), resolution(-1), 
         scaleFactors(-1,-1,-1), colorRGB(-1,-1,-1), opacity(-1), 
         lineThickness(-1), faceCamera(-1), 
         representation(DecorativeGeometry::DrawDefault)
@@ -47,12 +48,12 @@ public:
     virtual DecorativeGeometryRep* cloneDecorativeGeometryRep() const = 0;
     virtual void implementGeometry(DecorativeGeometryImplementation&) const = 0;
 
-
-
-    void setBodyId(int b) {
-        body = b;
-    }
+    void setBodyId(int b) {body = b;}
     int getBodyId() const {return body;}
+    void setIndexOnBody(int x) {indexOnBody = x;}
+    int getIndexOnBody() const {return indexOnBody;}
+    void setUserRef(void* p) {userRef = p;}
+    void* getUserRef() const {return userRef;}
 
     void setTransform(const Transform& X_BD) {placement = X_BD;}
     const Transform& getTransform() const    {return placement;}
@@ -113,20 +114,20 @@ public:
         return dup;
     }
 
-    void setMyHandle(DecorativeGeometry& h) {
-        myHandle = &h;
-    }
-    void clearMyHandle() {
-        myHandle=0;
-    }
+    void setMyHandle(DecorativeGeometry& h) {myHandle = &h;}
+    void clearMyHandle() {myHandle=0;}
 
+    // Used by the composite Decorations object:
     // Set any properties that still have their default values to the ones
-    // from src. Source body is transferred unconditionally; source
-    // placement is composed with this one unconditionally. Scale factors,
-    // resolution, opacity, and line thickness are composed, with a default
-    // (-1) value treated as 1.
+    // from src. Source body, index, and userRef are transferred 
+    // unconditionally; source placement is composed with this one 
+    // unconditionally. Scale factors, resolution, opacity, and line thickness 
+    // are composed, with a default (-1) value treated as 1.
     void inheritPropertiesFrom(const DecorativeGeometryRep& srep) {
-        body = srep.body;
+        body        = srep.body;
+        indexOnBody = srep.indexOnBody;
+        userRef     = srep.userRef;
+
         placement = srep.placement * placement;
 
         // These are multiplied together if both are valid, otherwise we
@@ -159,6 +160,9 @@ protected:
     friend class DecorativeGeometry;
 
     int         body;
+    int         indexOnBody;
+    void*       userRef;
+
     Transform   placement;          // default is identity
     Vec3        scaleFactors;       // -1 means use default in that direction
 
