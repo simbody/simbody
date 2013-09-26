@@ -186,6 +186,10 @@ bool System::prescribeQ(State& s) const
 {   return getSystemGuts().prescribeQ(s); }
 bool System::prescribeU(State& s) const
 {   return getSystemGuts().prescribeU(s); }
+void System::getFreeQIndex(const State& s, Array_<SystemQIndex>& freeQs) const
+{   return getSystemGuts().getFreeQIndex(s,freeQs); }
+void System::getFreeUIndex(const State& s, Array_<SystemUIndex>& freeUs) const
+{   return getSystemGuts().getFreeUIndex(s,freeUs); }
 
 void System::project(State& state, Real accuracy) const {
     const ProjectOptions projOptions(accuracy);
@@ -598,7 +602,6 @@ bool System::Guts::prescribeQ(State& s) const {
 }
 
 
-
 //------------------------------------------------------------------------------
 //                              PRESCRIBE U
 //------------------------------------------------------------------------------
@@ -607,6 +610,23 @@ bool System::Guts::prescribeU(State& s) const {
                                "System::Guts::prescribeU()");
     getRep().nPrescribeUCalls++; // mutable counter
     return prescribeUImpl(s);
+}
+
+
+//------------------------------------------------------------------------------
+//                          GET FREE Q(U) INDEX
+//------------------------------------------------------------------------------
+void System::Guts::
+getFreeQIndex(const State& s, Array_<SystemQIndex>& freeQs) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Instance,
+                               "System::Guts::getFreeQIndex()");
+    return getFreeQIndexImpl(s, freeQs);
+}
+void System::Guts::
+getFreeUIndex(const State& s, Array_<SystemUIndex>& freeUs) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Instance,
+                               "System::Guts::getFreeUIndex()");
+    return getFreeUIndexImpl(s, freeUs);
 }
 
 

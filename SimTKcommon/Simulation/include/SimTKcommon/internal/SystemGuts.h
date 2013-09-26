@@ -150,6 +150,8 @@ public:
 
     bool prescribeQ(State&) const;
     bool prescribeU(State&) const;
+    void getFreeQIndex(const State&, Array_<SystemQIndex>& freeQs) const;
+    void getFreeUIndex(const State&, Array_<SystemUIndex>& freeUs) const;
 
     void projectQ(State&, Vector& qErrEst, 
                   const ProjectOptions& options, ProjectResults& results) const;
@@ -208,6 +210,7 @@ protected:
     virtual bool prescribeQImpl(State&) const {return false;}
     virtual bool prescribeUImpl(State&) const {return false;}
 
+
     // Defaults assume no constraints and return success meaning "all 
     // constraints satisfied".
     virtual void projectQImpl(State& state, Vector& qErrEst, 
@@ -233,6 +236,23 @@ protected:
     virtual int calcTimeOfNextScheduledReportImpl
        (const State& state, Real& tNextEvent, Array_<EventId>& eventIds, 
         bool includeCurrentTime) const;
+
+
+    // Default is that all the state variables are free.
+    virtual void getFreeQIndexImpl
+       (const State& s, Array_<SystemQIndex>& freeQs) const {
+        const unsigned nq = (unsigned)s.getNQ();
+        freeQs.resize(nq);
+        for (unsigned i=0; i<nq; ++i)
+            freeQs[i] = SystemQIndex(i);
+    }
+    virtual void getFreeUIndexImpl
+       (const State& s, Array_<SystemUIndex>& freeUs) const  {
+        const unsigned nu = (unsigned)s.getNU();
+        freeUs.resize(nu);
+        for (unsigned i=0; i<nu; ++i)
+            freeUs[i] = SystemUIndex(i);
+    }
 
 private:
     Guts& operator=(const Guts&); // suppress default copy assignment operator

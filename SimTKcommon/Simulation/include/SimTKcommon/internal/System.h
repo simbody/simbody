@@ -527,6 +527,20 @@ remaining udots, lambdas, taus, and all the zdots.
 @return \c true if any change was made to \a state.
 @see prescribe(), prescribeQ() **/
 bool prescribeU(State& state) const;
+
+/** Return the indices of the q's in the given \a state that are free; that is,
+they are not affected by prescribeQ(). The indices are copied into the return
+argument \a freeQs in ascending order; missing ones are prescribed. \a freeQs is 
+resized if necessary to the number of free q's, nfq. \a state must be realized
+through Stage::Instance. **/
+void getFreeQIndex(const State& state, Array_<SystemQIndex>& freeQs) const;
+
+/** Return the indices of the u's in the given \a state that are free; that is,
+they are not affected by prescribeU(). The indices are copied into the return
+argument \a freeUs in ascending order; missing ones are prescribed. \a freeUs is
+resized if necessary to the number of free u's, nfu. \a state must be realized
+through Stage::Instance. **/
+void getFreeUIndex(const State& state, Array_<SystemUIndex>& freeUs) const;
 /**@}**/
 
 
