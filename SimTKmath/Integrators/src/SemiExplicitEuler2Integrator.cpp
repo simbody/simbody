@@ -171,13 +171,15 @@ bool SemiExplicitEuler2IntegratorRep::attemptDAEStep
     //TODO: need to be able to do this without invalidating q's.
     // Should be able to calculate u_prescribed(newTime, oldQ)
     advanced.updTime() = t1;
-    system.realize(advanced, Stage::Position); // old q, new t
+    system.realize(advanced, Stage::Position); // old q, new t=t1
     system.prescribeU(advanced);
 
     // Update qdotBig = N(q_t0)*u_t1 from now-advanced u.
     system.multiplyByN(advanced, advanced.getU(), m_qdotTmp);
-    advanced.updQ() = m_qBig = getPreviousQ() + h * m_qdotTmp;
-    system.realize(advanced, Stage::Position); // new q, new t
+    advanced.updQ() = getPreviousQ() + h * m_qdotTmp;
+    system.prescribeQ(advanced); // at t1
+    m_qBig = advanced.getQ();
+    system.realize(advanced, Stage::Position); // new q, new t=t1
     system.prescribeU(advanced); // update prescribed u in case q-dependent
     m_uBig = advanced.getU();
     // -------------------------------------------------------------------------
@@ -188,14 +190,14 @@ bool SemiExplicitEuler2IntegratorRep::attemptDAEStep
     // Now take two half steps, working directly in advanced.
     advanced.updZ() = getPreviousZ() + hHalf * getPreviousZDot();
     advanced.updU() = getPreviousU() + hHalf * getPreviousUDot();
-
+    advanced.updQ() = getPreviousQ(); // back to old q
     advanced.updTime() = tHalf;
-    system.realize(advanced, Stage::Position); // old q, new t
+    system.realize(advanced, Stage::Position); // old q, new t=tHalf
     system.prescribeU(advanced);
 
     // Update qdot_tHalf = N(q_t0)*u_tHalf from now-advanced u.
     system.multiplyByN(advanced, advanced.getU(), m_qdotTmp);
-    advanced.updQ() = getPreviousQ() + hHalf * m_qdotTmp;
+    advanced.updQ() += hHalf * m_qdotTmp;
     system.prescribeQ(advanced);
     system.realize(advanced, Stage::Position); // new q, new t
     system.prescribeU(advanced); // update prescribed u if q-dependent
@@ -212,14 +214,14 @@ bool SemiExplicitEuler2IntegratorRep::attemptDAEStep
     advanced.updU() += hHalf * udotHalf;
 
     advanced.updTime() = t1;
-    system.realize(advanced, Stage::Position); // old q, new t
+    system.realize(advanced, Stage::Position); // old q=qHalf, new t=t1
     system.prescribeU(advanced);
 
     // Update qdot_t1 = N(q_tHalf)*u_t1 from now-advanced u.
     system.multiplyByN(advanced, advanced.getU(), m_qdotTmp);
     advanced.updQ() += hHalf * m_qdotTmp;
     system.prescribeQ(advanced);
-    system.realize(advanced, Stage::Position); // new q, new t
+    system.realize(advanced, Stage::Position); // new q=q1, new t=t1
     system.prescribeU(advanced); // update prescribed u in case q-dependent
     // -------------------------------------------------------------------------
     // Now estimate the error and use local extrapolation to improve the
