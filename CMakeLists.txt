@@ -173,7 +173,7 @@ SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
 # Make sure "sandbox" input & output directories are set. During
 # SimTK Core build, the build system will set them. Otherwise, we'll
 # set them to sensible local values.
-# If SimTK_INSTALL_PREFIX is set then
+# If CMAKE_INSTALL_PREFIX is set then
 # it is a sandbox installation area, otherwise we want to install
 # in /usr/local/simbody or %ProgramFiles%\Simbody. 
 #
@@ -183,14 +183,21 @@ SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
 # older system you might have to set it manually.
 SET(LIB64)
 
+# For backward compatibility, use SimTK_INSTALL_PREFIX if
+# CMAKE_INSTALL_PREFIX hasn't been set.
+IF(SimTK_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE PATH
+      "Install path prefix." FORCE)
+ENDIF()
+
 # C compiler is gcc on Linux, gcc or cc on Mac where command line tools
 # are installed from XCode. May be clang in Mac 10.8 or later.
 
 IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/simbody" 
+    IF(NOT CMAKE_INSTALL_PREFIX)
+        SET(CMAKE_INSTALL_PREFIX "/usr/local/simbody" 
             CACHE PATH "Install directory")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
+    ENDIF(NOT CMAKE_INSTALL_PREFIX)
 
     # As of Ubuntu 12, 64 bit libraries are in lib, not lib64
     #IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
@@ -214,20 +221,12 @@ ELSE() # Windows
 	endif()
     ENDIF()
 
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "${PROGFILEDIR}/Simbody" 
+    IF(NOT CMAKE_INSTALL_PREFIX)
+        SET(CMAKE_INSTALL_PREFIX "${PROGFILEDIR}/Simbody" 
             CACHE PATH "Install directory")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
+    ENDIF(NOT CMAKE_INSTALL_PREFIX)
 
 ENDIF()
-
-# CMake installs go into CMAKE_INSTALL_PREFIX, which is always
-# set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
-# instead which is passed in by the build system or set above.
-SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING 
-    "Install path prefix." FORCE)
-# User should set SimTK_INSTALL_PREFIX, so suppress cmake's
-mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
 # On Mac, we'll use the defaults for the architecture and deployment target.
 # This works OK on OSX 10.8. For older systems, or if you want to build for
