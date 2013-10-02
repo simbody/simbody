@@ -185,12 +185,9 @@ SET(LIB64)
 
 # For backward compatibility, use SimTK_INSTALL_PREFIX if
 # CMAKE_INSTALL_PREFIX hasn't been set.
-IF(NOT CMAKE_INSTALL_PREFIX)
-  IF(SimTK_INSTALL_PREFIX)
-    SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING 
-        "Install path prefix." FORCE)
-    mark_as_advanced(CMAKE_INSTALL_PREFIX)
-  ENDIF()
+IF(SimTK_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE PATH
+      "Install path prefix." FORCE)
 ENDIF()
 
 # C compiler is gcc on Linux, gcc or cc on Mac where command line tools
