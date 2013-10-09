@@ -133,7 +133,7 @@ int main() {
     #ifdef USE_BAD_CONSTRAINTS
     // TODO: (sherm 20130620) these are the wrong constraints because they
     // ignore the acceleration term caused by the contact point moving on the
-    // ellipsoid's surface. The correct constraint has to be cognizant of the
+    // ellipsoid's surface. The correct constraint has to cognizant of the
     // ellipsoid geometry at the contact point. Use of these constraints fails
     // to conserve energy.
     
