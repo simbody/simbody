@@ -55,54 +55,60 @@ typedef InverseRotation_<float>    fInverseRotation;
 typedef InverseRotation_<double>   dInverseRotation;
 
 //------------------------------------------------------------------------------
-/**
- * The Rotation class is a Mat33 that guarantees that the matrix is a legitimate 
- * 3x3 array associated with the relative orientation of two right-handed, 
- * orthogonal, unit vector bases. The Rotation class takes advantage of
- * known properties of orthogonal matrices. For example, multiplication by a 
- * rotation matrix preserves a vector's length so unit vectors are still unit 
- * vectors afterwards and don't need to be re-normalized.
- * 
- * A rotation is an orthogonal matrix whose columns and rows are directions 
- * (that is, unit vectors) that are mutually orthogonal. Furthermore, if the 
- * columns (or rows) are labeled x,y,z it always holds that z = x X y (rather 
- * than -(x X y)) ensuring that this is a right-handed rotation matrix and not 
- * a reflection. This is equivalent to saying that the determinant of a rotation
- * matrix is 1, not -1.
- *
- * Suppose there is a vector v_F expressed in terms of the right-handed, 
- * orthogonal unit vectors Fx, Fy, Fz and one would like to express v instead
- * as v_G, in terms of a right-handed, orthogonal unit vectors Gx, Gy, Gz. To 
- * calculate it, we form a rotation matrix R_GF whose columns are the F unit 
- * vectors re-expressed in G:
- * <pre>
- *             G F   (      |      |      )
- *      R_GF =  R  = ( Fx_G | Fy_G | Fz_G )
- *                   (      |      |      )
- * where
- *      Fx_G = ~( ~Fx*Gx, ~Fx*Gy, ~Fx*Gz ), etc.
- * </pre>
- * (~Fx*Gx means dot(Fx,Gx)). Note that we use "monogram" notation R_GF in 
- * code to represent the more typographically demanding superscripted notation 
- * for rotation matrices. Now we can re-express the vector v from frame F to 
- * frame G via
- * <pre>
- *      v_G = R_GF * v_F. 
- * </pre>
- * Because a rotation is orthogonal, its transpose is its inverse. Hence
- * R_FG = ~R_GF (where ~ is the SimTK "transpose" operator). This transpose 
- * matrix can be used to expressed v_G in terms of Fx, Fy, Fz as
- * <pre>
- *      v_F = R_FG * v_G  or  v_F = ~R_GF * v_G
- * </pre>
- * In either direction, correct behavior can be obtained by using the 
- * recommended notation and then matching up the frame labels (after
- * interpreting the "~" operator as reversing the labels).
- */
+/** The Rotation class is a Mat33 that guarantees that the matrix can be 
+interpreted as a legitimate 3x3 rotation matrix giving the relative orientation 
+of two right-handed, orthogonal, unit vector bases. 
+
+A rotation matrix, also known as a direction cosine matrix, is an orthogonal 
+matrix whose columns and rows are directions (that is, unit vectors) that are 
+mutually orthogonal. Furthermore, if the columns (or rows) are labeled x,y,z it 
+always holds that z = x X y (rather than -(x X y)) ensuring that this is a 
+right-handed rotation matrix and not a reflection. This is equivalent to saying 
+that the determinant of a rotation matrix is 1, not -1.
+
+The Rotation class takes advantage of known properties of orthogonal matrices. 
+For example, multiplication by a rotation matrix preserves a vector's length so 
+unit vectors are still unit vectors afterwards and don't need to be 
+re-normalized.
+
+Suppose there is a vector v_F expressed in terms of the right-handed, 
+orthogonal unit vectors Fx, Fy, Fz and one would like to express v instead
+as v_G, in terms of a right-handed, orthogonal unit vectors Gx, Gy, Gz. To 
+calculate it, we form a rotation matrix R_GF whose columns are the F unit 
+vectors re-expressed in G:
+<pre>
+            G F   (      |      |      )
+     R_GF =  R  = ( Fx_G | Fy_G | Fz_G )
+                  (      |      |      )
+where
+     Fx_G = ~( ~Fx*Gx, ~Fx*Gy, ~Fx*Gz ), etc.
+</pre>
+(~Fx*Gx means dot(Fx,Gx)). Note that we use "monogram" notation R_GF in 
+code to represent the more typographically demanding superscripted notation 
+for rotation matrices. Now we can re-express the vector v from frame F to 
+frame G via
+<pre>
+     v_G = R_GF * v_F. 
+</pre>
+Because a rotation is orthogonal, its transpose is its inverse. Hence
+R_FG = ~R_GF (where ~ is the SimTK "transpose" operator). This transpose 
+matrix can be used to expressed v_G in terms of Fx, Fy, Fz as
+<pre>
+     v_F = R_FG * v_G  or  v_F = ~R_GF * v_G
+</pre>
+In either direction, correct behavior can be obtained by using the 
+recommended notation and then matching up the frame labels (after
+interpreting the "~" operator as reversing the labels).
+
+The Rotation_ class is templatized by the precision P, which should be float
+or double. A typedef defining type Rotation as Rotation_<Real> is always 
+defined and is normally used in user programs rather than the templatized class.
+**/
 //------------------------------------------------------------------------------
 template <class P> // templatized by precision
 class Rotation_ : public Mat<3,3,P> {
-    typedef P               RealP;
+public:
+    typedef P               RealP; ///< These are just local abbreviations.
     typedef Mat<2,2,P>      Mat22P;
     typedef Mat<3,2,P>      Mat32P;
     typedef Mat<3,3,P>      Mat33P;
@@ -114,7 +120,7 @@ class Rotation_ : public Mat<3,3,P> {
     typedef UnitVec<P,1>    UnitVec3P; // stride is 1 here, length is always 3
     typedef SymMat<3,P>     SymMat33P;
     typedef Quaternion_<P>  QuaternionP;
-public:
+
     // Default constructor and constructor-like methods
     Rotation_() : Mat33P(1) {}    
     Rotation_&  setRotationToIdentityMatrix()  { Mat33P::operator=(RealP(1));  return *this; }
