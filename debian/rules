@@ -8,7 +8,7 @@
 
 override_dh_auto_configure:
 	dh_auto_configure --  \
-	    -DSimTK_INSTALL_PREFIX:PATH=/usr \
+	    -DCMAKE_INSTALL_PREFIX:PATH=/usr \
 	    -DBUILD_EXAMPLES:BOOL=False
 
 override_dh_auto_install:

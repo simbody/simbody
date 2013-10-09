@@ -23,7 +23,7 @@
 
 
 // Define two identical double pendulums, one modeled the easy way using
-// to pin mobilizers, the other modeled with free mobilizers plus a ball
+// two pin mobilizers, the other modeled with free mobilizers plus a ball
 // constraint, plus two "constant angle" constraints to get rid of the extra 
 // rotational degrees of freedom.
 // We're going to show that the resulting reaction forces are identical.
