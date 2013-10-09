@@ -221,7 +221,8 @@ private:
 };
 
 
-
+// Particles aren't yet supported, so hide this in Doxygen.
+/** @cond **/
 //==============================================================================
 //                              BODY::PARTICLE
 //==============================================================================
@@ -244,6 +245,7 @@ private:
     ParticleRep&       updRep();
     const ParticleRep& getRep() const;
 };
+/** @endcond **/
 
 
 
