@@ -129,8 +129,6 @@ endif(SimTK_SDK)
 set(Simbody_INCLUDE_DIR "Simbody_INCLUDE_DIR-NOTFOUND" CACHE PATH
     "The Simbody and SimTK include directory." FORCE)
 
-message("${Simbody_SEARCH_PATHS}")
-
 
 foreach(pth IN LISTS Simbody_SEARCH_PATHS)
   find_path(Simbody_INCLUDE_DIR 
