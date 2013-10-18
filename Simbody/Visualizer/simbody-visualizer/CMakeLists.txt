@@ -23,7 +23,7 @@ ELSE()
 ENDIF()
 
 ADD_EXECUTABLE(${GUI_NAME} 
-	VisualizerGUI.cpp lodepng.cpp lodepng.h
+	simbody-visualizer.cpp lodepng.cpp lodepng.h
 	${GLUT32_HEADERS}) # only on Windows
 
 SET_TARGET_PROPERTIES(${GUI_NAME} PROPERTIES
