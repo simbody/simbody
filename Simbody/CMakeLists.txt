@@ -147,7 +147,7 @@ ENDIF()
 ADD_SUBDIRECTORY( sharedTarget )
 
 IF (BUILD_VISUALIZER)
-  SET(GUI_NAME "VisualizerGUI")
+  SET(GUI_NAME "simbody-visualizer")
   ADD_SUBDIRECTORY(Visualizer/VisualizerGUI)
 ENDIF (BUILD_VISUALIZER)
 
