@@ -1,0 +1,11 @@
+# Debian packaging output.
+debian/libsimbody-dev
+debian/libsimbody-doc
+debian/libsimbody3.3
+debian/libsimbody3.3-dbg
+debian/tmp
+files
+debian/*log
+debian/*debhelper
+debian/*substvars
+obj-*
