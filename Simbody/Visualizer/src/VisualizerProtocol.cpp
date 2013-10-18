@@ -196,7 +196,7 @@ VisualizerProtocol::VisualizerProtocol
     // as the running executable; then if that doesn't work we'll look in the
     // bin subdirectory of the SimTK installation.
 
-    const char* GuiAppName = "VisualizerGUI";
+    const char* GuiAppName = "simbody-visualizer";
 
     Array_<String> actualSearchPath;
     // Always start with the current executable's directory.

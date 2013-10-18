@@ -147,6 +147,9 @@ ENDIF()
 ADD_SUBDIRECTORY( sharedTarget )
 
 IF (BUILD_VISUALIZER)
+  # NOTE: If you change GUI_NAME, you must also change the value of GuiAppName
+  # in VisualizerProtocol.cpp
+  # TODO even that is not sufficient.
   SET(GUI_NAME "simbody-visualizer")
   ADD_SUBDIRECTORY(Visualizer/VisualizerGUI)
 ENDIF (BUILD_VISUALIZER)
