@@ -151,7 +151,7 @@ IF (BUILD_VISUALIZER)
   # in VisualizerProtocol.cpp
   # TODO even that is not sufficient.
   SET(GUI_NAME "simbody-visualizer")
-  ADD_SUBDIRECTORY(Visualizer/VisualizerGUI)
+  ADD_SUBDIRECTORY(Visualizer/simbody-visualizer)
 ENDIF (BUILD_VISUALIZER)
 
 IF( BUILD_EXAMPLES )
