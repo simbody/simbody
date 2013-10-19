@@ -295,6 +295,12 @@ public:
     /// @see SimTK::Differentiator
     Differentiator::Method getDifferentiatorMethod() const;
 
+    /// Return the algorithm used for the optimization. You may be interested
+    /// in this value if you didn't specify an algorithm, or specified for
+    /// Simbody to choose the BestAvailable algorithm. This method won't return
+    /// BestAvailable, even if it's the 'algorithm' that you chose.
+    OptimizerAlgorithm getAlgorithm() const;
+
     /// Enable numerical calculation of gradient, with optional estimation of
     /// the accuracy to which the objective function is calculated. For example,
     /// if you are calculate about 6 significant digits, supply the estimated

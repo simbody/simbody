@@ -93,7 +93,8 @@ Optimizer::OptimizerRep*
 Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm algorithm ) {
     OptimizerRep* newRep = 0;
 
-    // if constructor specifies which algorithm, use it else select base on problem paramters 
+    // if constructor specifies which algorithm, use it else select based on
+    // problem paramters 
     if ( algorithm == InteriorPoint ) {
         newRep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
     } else if( algorithm == LBFGSB ) {
@@ -107,7 +108,8 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
             newRep = (OptimizerRep *) new CFSQPOptimizer( sys  );
         } catch (const SimTK::Exception::Base &ex) {
             std::cout << ex.getMessage() << std::endl;
-            std::cout << "Failed to load CFSQP library.  Will fall back to default optimizer choice." << std::endl;
+            std::cout << "Failed to load CFSQP library. "
+                "Will fall back to default optimizer choice." << std::endl;
             newRep = 0;
         }
     }
@@ -189,6 +191,10 @@ bool Optimizer::isUsingNumericalJacobian() const {
 
 Differentiator::Method Optimizer::getDifferentiatorMethod() const {
     return getRep().getDifferentiatorMethod();
+}
+
+OptimizerAlgorithm Optimizer::getAlgorithm() const {
+    return getRep().getAlgorithm();
 }
 
 Real Optimizer::getEstimatedAccuracyOfObjective() const {

@@ -86,6 +86,9 @@ public:
     Real optimize(Vector &results);
     OptimizerRep* clone() const;
 
+    OptimizerAlgorithm getAlgorithm() const
+    {   return CFSQP; }
+
 private:
     static void bindToCFSQPLibrary();
 
