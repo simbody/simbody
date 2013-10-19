@@ -1,4 +1,4 @@
-# Generate the VisualizerGUI application and deal with its dependencies
+# Generate the visualizer application and deal with its dependencies
 # on OpenGL and glut. On Windows we're going to install our own glut; for
 # other platforms we depend on their already being a glut (or freeglut)
 # available.
@@ -23,7 +23,7 @@ ELSE()
 ENDIF()
 
 ADD_EXECUTABLE(${GUI_NAME} 
-	VisualizerGUI.cpp lodepng.cpp lodepng.h
+	simbody-visualizer.cpp lodepng.cpp lodepng.h
 	${GLUT32_HEADERS}) # only on Windows
 
 SET_TARGET_PROPERTIES(${GUI_NAME} PROPERTIES

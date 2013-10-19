@@ -149,7 +149,7 @@ synchronization issues are handled invisibly.
 
 You can also request to wait quietly until some input arrives, which is useful
 when you can't proceed without some instruction from the user that you expect
-to get through the VisualizerGUI.
+to get through the visualizer.
 
 When the InputSilo receives user input through one of the InputListener methods
 it implements, it return \c true indicating that it has processed the input and
@@ -195,7 +195,7 @@ If you want to wait until some input arrives, create the InputSilo and add
 it to the Visualizer as above, then in your main program (that is, not
 in the Handler) use code like this:
 @code
-std::cout << "Hit ENTER in VisualizerGUI to continue ...\n";
+std::cout << "Hit ENTER in visualizer to continue ...\n";
 unsigned key, modifiers;
 do {silo->waitForKeyHit(key,modifiers);}
 while (key != Visualizer::InputListener::KeyEnter);
@@ -243,7 +243,7 @@ use this but it is a good idea to do so. **/
 bool isAnyUserInput() const;
 
 /** This will wait quietly until the user has provided some input to the
-VisualizerGUI.\ Any kind of input will terminate the wait; you'll have
+visualizer.\ Any kind of input will terminate the wait; you'll have
 to look to see what it was. **/
 void waitForAnyUserInput() const;
 

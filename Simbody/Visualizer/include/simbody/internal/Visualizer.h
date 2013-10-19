@@ -26,7 +26,7 @@
 
 /** @file 
 Declares the Visualizer class used for collecting Simbody simulation results 
-for display and interaction through the VisualizerGUI. **/
+for display and interaction through the visualizer. **/
 
 #include "simbody/internal/common.h"
 
@@ -79,7 +79,7 @@ selectable; see setDesiredBufferLengthInSec().
 
 <h3>User interaction</h3>
 
-The Simbody VisualizerGUI provides some user interaction of its own, for
+The Simbody visualizer provides some user interaction of its own, for
 example allowing the user to control the viewpoint and display options. User
 inputs that it does not interpret locally are passed on to the simulation,
 and can be intercepted by registering InputListeners with the Visualizer. The
@@ -200,17 +200,17 @@ Visualizer& operator=(const Visualizer& src);
 destroyed here when the last reference is deleted. **/
 ~Visualizer();
 
-/** Ask the VisualizerGUI to shut itself down immediately. This will cause the
+/** Ask the visualizer to shut itself down immediately. This will cause the
 display window to close and the associated process to die. This method returns
-immediately but it may be some time later when the VisualizerGUI acts on the
-instruction; there is no way to wait for it to die. Normally the VisualizerGUI
+immediately but it may be some time later when the visualizer acts on the
+instruction; there is no way to wait for it to die. Normally the visualizer
 will persist even after the death of the simulator connection unless you have
 called setShutdownWhenDestructed() to make shutdown() get called automatically.
 @see setShutdownWhenDestructed() **/
 void shutdown();
 
 /** Set the flag that determines whether we will automatically send a Shutdown
-message to the VisualizerGUI when this %Visualizer object is destructed. 
+message to the visualizer when this %Visualizer object is destructed. 
 Normally we allow the GUI to persist even after death of the simulator
 connection, unless an explicit call to shutdown() is made. 
 @see getShutdownWhenDestructed(), shutdown() **/
@@ -235,7 +235,7 @@ enum Mode {
     RealTime    = 3
 };
 
-/** These are the types of backgrounds the VisualizerGUI currently supports.
+/** These are the types of backgrounds the visualizer currently supports.
 You can choose what type to use programmatically, and users can override that
 choice in the GUI. Each of these types may use additional data (such as the
 background color) when the type is selected. **/
@@ -247,7 +247,7 @@ enum BackgroundType {
     SolidColor   = 2
 };
 
-/** The VisualizerGUI may predefine some menus; if you need to refer to one
+/** The visualizer may predefine some menus; if you need to refer to one
 of those use its menu Id as defined here. Note that the id numbers here
 are negative numbers, which are not allowed for user-defined menu ids. **/
 enum PredefinedMenuIds {
@@ -255,8 +255,8 @@ enum PredefinedMenuIds {
     ViewMenuId    = -1
 };
 
-/** @name               VisualizerGUI display options
-These methods provide programmatic control over some of the VisualizerGUI's
+/** @name               visualizer display options
+These methods provide programmatic control over some of the visualizer's
 display options. Typically these can be overridden by the user directly in
 the GUI, but these are useful for setting sensible defaults. In particular,
 the Ground and Sky background, which is the GUI default, is not appropriate
@@ -315,7 +315,7 @@ method so you can call it from within a FrameController.
 calls, provided subsequent ones are also const. **/
 const Visualizer& setShowFrameNumber(bool showFrameNumber) const;
 
-/** Change the title on the main VisualizerGUI window.\ The default title
+/** Change the title on the main visualizer window.\ The default title
 is Simbody \e version : \e exename, where \e version is the current Simbody
 version number in major.minor.patch format and \e exename is the name of the 
 executing simulation application's executable file (without suffix if any).
@@ -549,7 +549,7 @@ geometry to be produced for each frame; however, once added a
 DecorationGenerator will be called for \e every frame generated. **/
 /**@{**/
 
-/** Add a new pull-down menu to the VisualizerGUI's display. A label
+/** Add a new pull-down menu to the visualizer's display. A label
 for the pull-down button is provided along with an integer identifying the
 particular menu. A list of (string,int) pairs defines the menu and submenu 
 item labels and associated item numbers. The item numbers must be unique 
@@ -560,7 +560,7 @@ that is used to define the pulldown menu layout.
 @param id       an integer value >= 0 that uniquely identifies this menu
 @param items    item names, possibly with submenus as specified above, with
                 associated item numbers 
-When a user picks an item on a menu displayed in the VisualizerGUI, that 
+When a user picks an item on a menu displayed in the visualizer, that 
 selection is delievered to the simulation application via an InputListener
 associated with this Visualizer. The selection will be identified by
 (\a id, itemNumber) pair. 
@@ -569,14 +569,14 @@ associated with this Visualizer. The selection will be identified by
 Visualizer& addMenu(const String& title, int id, 
                    const Array_<std::pair<String, int> >& items);
 
-/** Add a new slider to the VisualizerGUI's display.
+/** Add a new slider to the visualizer's display.
 @param title    the title to display next to the slider
 @param id       an integer value that uniquely identifies this slider
 @param min      the minimum value the slider can have
 @param max      the maximum value the slider can have
 @param value    the initial value of the slider, which must be between 
                 min and max 
-When a user moves a slider displayed in the VisualizerGUI, the new value 
+When a user moves a slider displayed in the visualizer, the new value 
 is delievered to the simulation application via an InputListener associated 
 with this Visualizer. The slider will be identified by the \a id supplied
 here. 
