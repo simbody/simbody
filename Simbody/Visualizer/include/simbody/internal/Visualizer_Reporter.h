@@ -38,7 +38,7 @@ any simulation. Use it like this:
     MultibodySystem system;
     // ... build your system
 
-    // Create a Visualizer object for communication with the VisualizerGUI.
+    // Create a Visualizer object for communication with the visualizer.
     Visualizer viz(system);
     // ... set visualization options by calling methods on viz
 

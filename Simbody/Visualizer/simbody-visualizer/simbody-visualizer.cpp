@@ -106,7 +106,7 @@ static void shutdown();
 // warnings and maybe, someday, will catch an error.
 #define WRITE(pipeno, buf, len) \
    {int status=write((pipeno), (buf), (len)); \
-    SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizerGUI",  \
+    SimTK_ERRCHK4_ALWAYS(status!=-1, "simbody-visualizer",  \
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}
 
@@ -2433,7 +2433,7 @@ void* listenForInput(void* args) {
 
         default:
             SimTK_ERRCHK1_ALWAYS(!"unrecognized command", "listenForInput()",
-                "Unexpected command %u received from VisualizerGUI. Can't continue.",
+                "Unexpected command %u received from simbody-visualizer. Can't continue.",
                 (unsigned)buffer[0]);
         }
 
@@ -2442,7 +2442,7 @@ void* listenForInput(void* args) {
             requestPassiveRedisplay();         //------- PASSIVE REDISPLAY --
     }
   } catch (const std::exception& e) {
-        std::cout << "VisualizerGUI listenerThread: unrecoverable error:\n";
+        std::cout << "simbody-visualizer listenerThread: unrecoverable error:\n";
         std::cout << e.what() << std::endl;
         return (void*)1;
     }
@@ -2451,12 +2451,12 @@ void* listenForInput(void* args) {
 
 static void dumpAboutMessageToConsole() {
     printf("\n\n=================== ABOUT SIMBODY VISUALIZER ===================\n");
-    printf("Simbody(tm) %s VisualizerGUI (protocol rev. %u)\n",
+    printf("Simbody(tm) %s visualizer (protocol rev. %u)\n",
         simbodyVersionStr.c_str(), ProtocolVersion);
     printf("\nName of invoking executable: %s\n", simulatorExecutableName.c_str());
     printf(  "Current working directory:\n  %s\n",
         Pathname::getCurrentWorkingDirectory().c_str());
-    printf(  "VisualizerGUI executable:\n  %s\n",
+    printf(  "simbody-visualizer executable:\n  %s\n",
         Pathname::getThisExecutablePath().c_str());
     printf(  "Current window size: %d X %d\n", viewWidth, viewHeight);
     printf("\nGL version:   %s\n", glGetString(GL_VERSION));
@@ -2655,16 +2655,16 @@ static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
     unsigned char handshakeCommand;
     readDataFromPipe(fromSimPipe, &handshakeCommand, 1);
     SimTK_ERRCHK2_ALWAYS(handshakeCommand == StartupHandshake,
-        "VisualizerGUI::shakeHandsWithSimulator()",
+        "simbody-visualizer::shakeHandsWithSimulator()",
         "Expected initial handshake command %u but received %u. Can't continue.",
         (unsigned)StartupHandshake, (unsigned)handshakeCommand);
 
     unsigned SimVersion;
     readDataFromPipe(fromSimPipe, (unsigned char*)&SimVersion, sizeof(unsigned int));
     SimTK_ERRCHK2_ALWAYS(SimVersion == ProtocolVersion,
-        "VisualizerGUI::shakeHandsWithSimulator()",
+        "simbody-visualizer::shakeHandsWithSimulator()",
         "The Simbody Visualizer class protocol version %u is not compatible with "
-        " VisualizerGUI protocol %u; this may be an installation problem."
+        " simbody-visualizer protocol %u; this may be an installation problem."
         " Can't continue.",
         SimVersion, ProtocolVersion);
 
@@ -2677,7 +2677,7 @@ static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
     char exeNameBuf[256]; // just a file name, not a path name
     readDataFromPipe(fromSimPipe, (unsigned char*)&exeNameLength, sizeof(unsigned));
     SimTK_ASSERT_ALWAYS(exeNameLength <= 255,
-        "VisualizerGUI: executable name length violates protocol.");
+        "simbody-visualizer: executable name length violates protocol.");
     readDataFromPipe(fromSimPipe, (unsigned char*)exeNameBuf, exeNameLength);
     exeNameBuf[exeNameLength] = (char)0;
 
@@ -2689,7 +2689,7 @@ static void shakeHandsWithSimulator(int fromSimPipe, int toSimPipe) {
 
 // Received Shutdown message from simulator. Die immediately.
 static void shutdown() {
-    printf("\nVisualizerGUI: received Shutdown message. Goodbye.\n");
+    printf("\nsimbody-visualizer: received Shutdown message. Goodbye.\n");
     exit(0);
 }
 
@@ -2703,10 +2703,10 @@ int main(int argc, char** argv) {
         talkingToSimulator = true; // presumably those were the pipes
   } else {
         printf("\n**** VISUALIZER HAS NO SIMULATOR TO TALK TO ****\n");
-        printf("The Simbody VisualizerGUI was invoked directly with no simulator\n");
+        printf("The simbody-visualizer was invoked directly with no simulator\n");
         printf("process to talk to. Will attempt to bring up the display anyway\n");
         printf("in case you want to look at the About message.\n");
-        printf("The VisualizerGUI is intended to be invoked programmatically.\n");
+        printf("The simbody-visualizer is intended to be invoked programmatically.\n");
     }
 
 
@@ -2833,7 +2833,7 @@ int main(int argc, char** argv) {
     fpsBaseTime = realTime();
     glutMainLoop();
   } catch(const std::exception& e) {
-      std::cout << "VisualizerGUI failed with exception:\n"
+      std::cout << "simbody-visualizer failed with exception:\n"
                 << e.what() << std::endl;
       return 1;
     }

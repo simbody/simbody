@@ -46,7 +46,7 @@
 #                      found together
 #   Simbody_INCLUDE_DIR - location of Simbody.h
 #   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib} or SimTKsimbody.lib
-#   Simbody_BIN_DIR     - location of VisualizerGUI and .dll's on Windows
+#   Simbody_BIN_DIR     - location of executables and .dll's on Windows
 #   Simbody_LIBRARIES   - suitable for target_link_libraries(); includes
 #                           both optimized and debug libraries if both are
 #                           available
