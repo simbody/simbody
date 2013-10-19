@@ -44,6 +44,9 @@ public:
     Real optimize(  SimTK::Vector &results );
     OptimizerRep* clone() const;
 
+    OptimizerAlgorithm getAlgorithm() const
+    {   return LBFGS; }
+
     private:
     int         iprint[3];
     Real        xtol;

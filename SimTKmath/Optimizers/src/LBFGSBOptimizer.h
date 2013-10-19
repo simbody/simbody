@@ -40,6 +40,9 @@ public:
     Real optimize(  Vector &results );
     OptimizerRep* clone() const;
 
+    OptimizerAlgorithm getAlgorithm() const
+    {   return LBFGSB; }
+
     int setulb_(int *n, int *m, Real *x, Real *l,
         Real *u, int *nbd, Real *f, Real *g,
         Real *factr, Real *pgtol, Real *wa, int *iwa,

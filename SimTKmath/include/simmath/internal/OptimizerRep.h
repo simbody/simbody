@@ -153,6 +153,8 @@ public:
         return *jacDiff;
     }
 
+    virtual OptimizerAlgorithm getAlgorithm() const = 0;
+
     static int numericalGradient_static( const OptimizerSystem&, const Vector & parameters,  const bool new_parameters,  Vector &gradient );
     static int numericalJacobian_static(const OptimizerSystem&,
                                    const Vector& parameters, const bool new_parameters, Matrix& jacobian );
@@ -205,6 +207,7 @@ private:
 class DefaultOptimizer: public Optimizer::OptimizerRep {
     Real optimize(  Vector &results );
     OptimizerRep* clone() const;
+    OptimizerAlgorithm getAlgorithm() const;
 };
 
 } // namespace SimTK
