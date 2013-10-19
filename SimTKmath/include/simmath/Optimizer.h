@@ -254,13 +254,14 @@ public:
     void setConstraintTolerance(Real tolerance);
 
 
-    /// Set the maximum number of iterations allowed of the optimization method's outer
-    /// stepping loop. Most optimizers also have an inner loop ("line search") which is
-    /// also iterative but is not affected by this setting. Inner loop convergence is
-    /// typically prescribed by theory, and failure there is often an indication of
-    /// an ill-formed problem.
+    /// Set the maximum number of iterations allowed of the optimization
+    /// method's outer / stepping loop. Most optimizers also have an inner loop
+    /// ("line search") which is / also iterative but is not affected by this
+    /// setting. Inner loop convergence is / typically prescribed by theory, and
+    /// failure there is often an indication of / an ill-formed problem.
     void setMaxIterations( int iter );
-    /// Set the maximum number of previous hessians used in a limitied memory hessian approximation.
+    /// Set the maximum number of previous hessians used in a limitied memory
+    /// hessian approximation.
     void setLimitedMemoryHistory( int history );
     /// Set the level of debugging info displayed.
     void setDiagnosticsLevel( int level ); 
