@@ -1,4 +1,4 @@
-# Generate the VisualizerGUI application and deal with its dependencies
+# Generate the visualizer application and deal with its dependencies
 # on OpenGL and glut. On Windows we're going to install our own glut; for
 # other platforms we depend on their already being a glut (or freeglut)
 # available.

@@ -177,7 +177,7 @@ static void* listenForVisualizerEvents(void* arg) {
         }
         default:
             SimTK_ERRCHK1_ALWAYS(false, "listenForVisualizerEvents()",
-                "Unexpected command %u received from VisualizerGUI. Can't continue.",
+                "Unexpected command %u received from simbody-visualizer. Can't continue.",
                 (unsigned)buffer[0]);
         }
     }
@@ -248,7 +248,7 @@ VisualizerProtocol::VisualizerProtocol
              GuiAppName, sim2vizPipe[0], viz2simPipe[1]);
 
     // Before we do anything else, attempt to exchange handshake messages with
-    // the VisualizerGUI. This will throw an exception if anything goes wrong.
+    // the visualizer. This will throw an exception if anything goes wrong.
     // Note that this is done on the main thread.
     shakeHandsWithGUI(outPipe, inPipe);
 
@@ -302,7 +302,7 @@ void VisualizerProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
     readDataFromPipe(fromGUIPipe, (unsigned char*)&GUIversion, sizeof(unsigned int));
     SimTK_ERRCHK2_ALWAYS(GUIversion == ProtocolVersion,
         "VisualizerProtocol::shakeHandsWithGUI()",
-        "VisualizerGUI protocol version %u is not compatible with the Simbody"
+        "simbody-visualizer protocol version %u is not compatible with the Simbody"
         " Visualizer class protocol %u; this may be an installation problem."
         " Can't continue.",
         GUIversion, ProtocolVersion);

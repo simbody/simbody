@@ -130,7 +130,7 @@ SET( BUILD_EXAMPLES ON CACHE BOOL
 
 # Set whether to build the Visualizer code.
 SET(BUILD_VISUALIZER ON CACHE BOOL 
-	"Control building of VisualizerGUI component")
+	"Control building of the visualizer component")
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it

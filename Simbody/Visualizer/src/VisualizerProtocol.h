@@ -38,7 +38,7 @@
 // we insist on an exact match.
 static const unsigned ProtocolVersion   = 32;
 
-// The VisualizerGUI has several predefined cached meshes for common
+// The visualizer has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
 // indices for them; they must start with zero.
 static const unsigned short MeshBox              = 0;
@@ -155,7 +155,7 @@ private:
     int outPipe;
 
     // For user-defined meshes, map their unique memory addresses to the 
-    // assigned VisualizerGUI cache index.
+    // assigned visualizer cache index.
     mutable std::map<const void*, unsigned short> meshes;
     mutable pthread_mutex_t sceneLock;
 };

@@ -894,7 +894,7 @@ void Visualizer::report(const State& state) const {
     }
 }
 
-        // VisualizerGUI display options
+        // Visualizer display options
 
 Visualizer& Visualizer::setBackgroundType(BackgroundType type) 
 {   updImpl().m_protocol.setBackgroundType(type); return *this; }
