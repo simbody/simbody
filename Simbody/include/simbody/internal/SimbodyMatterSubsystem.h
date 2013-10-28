@@ -1406,7 +1406,7 @@ performing the factorization of W.
 
 @param[in]      state
     The State whose generalized coordinates and speeds define the matrix W.
-    Must already be realized to Dynamics stage.
+    Must already be realized to Velocity stage.
 @param[in]      deltaV
     The set of desired velocity changes to be produced by the impulse, in 
     constraint space. These will consist of observed velocity constraint 
