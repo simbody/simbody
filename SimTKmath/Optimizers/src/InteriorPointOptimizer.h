@@ -30,6 +30,7 @@
 #include "IpOpt/IpStdCInterface.h"
 #include "IpOpt/IpReturnCodes.h"
 
+#include "simmath/Optimizer.h"
 #include "simmath/internal/OptimizerRep.h"
 
 namespace SimTK {
@@ -49,6 +50,9 @@ public:
 
     Real optimize(  Vector &results );
     OptimizerRep* clone() const;
+
+    OptimizerAlgorithm getAlgorithm() const
+    {   return InteriorPoint; }
 
 private:
     Real         *mult_x_L;
