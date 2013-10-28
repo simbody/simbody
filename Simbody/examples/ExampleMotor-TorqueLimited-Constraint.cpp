@@ -353,7 +353,7 @@ void MyMechanism::tryToSwitchToSpeedControl(State& state) const {
     m_speedController.enable(state); // Tentatively enable the constraint.
 
     // Dynamics operators require this stage.
-    m_system.realize(state, Stage::Dynamics);
+    m_system.realize(state, Stage::Velocity);
 
     // Momentum balance analysis: see comment above.
     Vector deltaV(1, desSpeed-curSpeed);
