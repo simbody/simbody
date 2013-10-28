@@ -37,6 +37,10 @@ Real DefaultOptimizer::optimize(  Vector &results ) {
     SimTK_APIARGCHECK_ALWAYS(false,"Optimizer","optimize",
     "the OptimizerSystem has not been set \n");
 }
+OptimizerAlgorithm DefaultOptimizer::getAlgorithm() const {
+    SimTK_APIARGCHECK_ALWAYS(false,"Optimizer","getAlgorithm",
+    "the OptimizerSystem has not been set \n");
+}
 
 //////////////////
 // OptimizerRep //
