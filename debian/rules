@@ -2,14 +2,18 @@
 # -*- makefile -*-
 
 .PHONY: override_dh_auto_configure   \
+        override_dh_auto_build-indep \
         override_dh_auto_install     \
-	override_dh_auto_test        \
+        override_dh_auto_test        \
         override_dh_strip
 
 override_dh_auto_configure:
 	dh_auto_configure --  \
 	    -DCMAKE_INSTALL_PREFIX:PATH=/usr \
 	    -DBUILD_EXAMPLES:BOOL=False
+
+override_dh_auto_build-indep:
+	dh_auto_build -- doxygen
 
 override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake 
