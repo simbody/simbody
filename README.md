@@ -39,7 +39,7 @@ int main() {
     // Initialize the system and state.
     system.realizeTopology();
     State state = system.getDefaultState();
-    pendulum2.setRate(state, 5.0);28 A First Example
+    pendulum2.setRate(state, 5.0);
 
     // Simulate for 50 seconds.
     RungeKuttaMersonIntegrator integ(system);
