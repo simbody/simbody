@@ -92,7 +92,7 @@ Prerequisites:
         - Freeglut: install freeglut-dev package
         - Xi, Xmu: install libxi-dev, libxmu-dev
 
-## Getting help
+### Getting help
 
 1. Read the installation instructions in the User's Guide (see above).
 2. Post to the help forum at https://simtk.org/home/simbody, Advanced tab,
@@ -102,7 +102,7 @@ Prerequisites:
 Building from source
 --------------------
 
-## Unix (Ubuntu, Mac OSX, etc.)
+### Unix (Ubuntu, Mac OSX, etc.)
 Assuming we start in a directory containing `simbody/`, which contains the
 source code.
 
