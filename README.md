@@ -12,7 +12,7 @@ Read more about it here: https://simtk.org/home/simbody
 
 
 Simple example: a double pendulum
-=================================
+---------------------------------
 Want to know the basics of what Simbody can do? Look no further! This example
 comes from Simbody's User Guide.
 
@@ -50,7 +50,7 @@ int main() {
 ```
 
 Installing
-==========
+----------
 Detailed installation instructions for Linux, Mac, and Windows installation
 of precompiled binaries are provided in the Simbody User's Guide, which can 
 be found in the installation's doc directory or posted online at 
@@ -92,18 +92,17 @@ Prerequisites:
         - Freeglut: install freeglut-dev package
         - Xi, Xmu: install libxi-dev, libxmu-dev
 
-Getting help
-------------
+## Getting help
+
 1. Read the installation instructions in the User's Guide (see above).
 2. Post to the help forum at https://simtk.org/home/simbody, Advanced tab,
    Public forums.
 
 
 Building from source
-====================
+--------------------
 
-Unix (Ubuntu, Mac OSX, etc.)
-----------------------------
+## Unix (Ubuntu, Mac OSX, etc.)
 Assuming we start in a directory containing `simbody/`, which contains the
 source code.
 
