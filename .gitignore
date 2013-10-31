@@ -1,0 +1,12 @@
+# Debian packaging output.
+debian/libsimbody-dev
+debian/libsimbody-doc
+debian/libsimbody3.3
+debian/libsimbody3.3-dbg
+debian/tmp
+debian/files
+debian/*log
+debian/*debhelper
+debian/*substvars
+# The build for debian ends up in a directory like obj-x86_64-linux-gnu.
+obj-*
