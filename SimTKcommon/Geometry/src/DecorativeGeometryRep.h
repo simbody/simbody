@@ -549,6 +549,40 @@ const DecorativeMesh& getMyMeshHandle() const {
 }
 };
 
+///////////////////////
+// DecorativeMeshFileRep //
+///////////////////////
+
+class DecorativeMeshFileRep : public DecorativeGeometryRep {
+public:
+// no default constructor
+explicit DecorativeMeshFileRep(const std::string& meshFileName) : meshFile(meshFileName) {
+}
+
+const std::string& getMeshFile() const {
+    return  meshFile;
+}
+
+// virtuals
+DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+    DecorativeMeshFileRep* DGRep = new DecorativeMeshFileRep(*this);
+    return DGRep ; 
+}
+
+void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    geometry.implementMeshFileGeometry(getMyMeshFileHandle());
+}
+
+SimTK_DOWNCAST(DecorativeMeshFileRep, DecorativeGeometryRep);
+private:
+std::string meshFile;
+
+// This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+
+const DecorativeMeshFile& getMyMeshFileHandle() const {
+    return *static_cast<const DecorativeMeshFile*>(myHandle);
+}
+};
 
     ////////////////////
     // DecorationsRep //
