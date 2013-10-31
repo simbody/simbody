@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Ayman Habib                                                  *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -50,6 +50,7 @@ public:
     void implementFrameGeometry(const DecorativeFrame& geom);
     void implementTextGeometry(const DecorativeText& geom);
     void implementMeshGeometry(const DecorativeMesh& geom);
+    void implementMeshFileGeometry(const DecorativeMeshFile& geom) {}; // Not handled yet by this Visualizer
     static Vec4 getColor(const DecorativeGeometry& geom,
                          const Vec3& defaultColor = Vec3(-1));
 private:

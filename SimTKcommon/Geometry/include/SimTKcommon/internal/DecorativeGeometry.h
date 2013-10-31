@@ -567,6 +567,33 @@ private:
 };
 
 
+/** This defines a displayable mesh by referencing a file name containing the mesh. If format is not supported
+  by visualizer it will be ignored. . **/
+class SimTK_SimTKCOMMON_EXPORT DecorativeMeshFile : public DecorativeGeometry {
+public:
+    explicit DecorativeMeshFile(const std::string& meshFileName);
+    const std::string& getMeshFile() const;
+
+    // Retain the derived type when setting generic geometry options.
+    DecorativeMeshFile& setBodyId(int b)          {DecorativeGeometry::setBodyId(b);        return *this;}
+    DecorativeMeshFile& setIndexOnBody(int x)     {DecorativeGeometry::setIndexOnBody(x);   return *this;}
+    DecorativeMeshFile& setUserRef(void* p)       {DecorativeGeometry::setUserRef(p);       return *this;}
+    DecorativeMeshFile& setTransform(const Transform& X_BD) {DecorativeGeometry::setTransform(X_BD); return *this;}
+    DecorativeMeshFile& setResolution(Real r)     {DecorativeGeometry::setResolution(r);    return *this;}
+    DecorativeMeshFile& setScaleFactors(const Vec3& s) {DecorativeGeometry::setScaleFactors(s); return *this;}
+    DecorativeMeshFile& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
+    DecorativeMeshFile& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
+    DecorativeMeshFile& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}
+    DecorativeMeshFile& setRepresentation(const Representation& r) 
+    {   DecorativeGeometry::setRepresentation(r); return *this; }
+
+    SimTK_PIMPL_DOWNCAST(DecorativeMeshFile, DecorativeGeometry);
+private:
+    class DecorativeMeshFileRep& updRep();
+    const DecorativeMeshFileRep& getRep() const;
+};
+
+
 /** This defines a single DecorativeGeometry object that is composed of a
 collection of other DecorativeGeometry objects. Parameters set for the
 parent object serve as defaults for the contained objects, but those objects
@@ -631,6 +658,7 @@ public:
     virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
     virtual void implementTextGeometry(     const DecorativeText&)     = 0;
     virtual void implementMeshGeometry(     const DecorativeMesh&)     = 0;
+    virtual void implementMeshFileGeometry(     const DecorativeMeshFile&)    =0;
 };
 
 } // namespace SimTK

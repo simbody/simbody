@@ -358,6 +358,19 @@ const PolygonalMesh& DecorativeMesh::getMesh() const {
 }
 
 
+    /////////////////////
+    // DECORATIVE MESHFILE //
+    /////////////////////
+
+DecorativeMeshFile::DecorativeMeshFile(const std::string& meshFile) {
+    rep = new DecorativeMeshFileRep(meshFile);
+    rep->setMyHandle(*this);
+}
+const std::string& DecorativeMeshFile::getMeshFile() const {
+    return DecorativeMeshFileRep::downcast(*rep).getMeshFile();
+}
+
+
     /////////////////
     // DECORATIONS //
     /////////////////
