@@ -191,9 +191,9 @@ IF(SimTK_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 ENDIF()
 
 # C compiler is gcc on Linux, gcc or cc on Mac where command line tools
-# are installed from XCode. May be clang in Mac 10.8 or later.
+# are installed from XCode. May be Clang in Mac 10.8 or later.
 
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     IF(NOT CMAKE_INSTALL_PREFIX)
         SET(CMAKE_INSTALL_PREFIX "/usr/local/simbody" 
             CACHE PATH "Install directory")
@@ -257,7 +257,7 @@ MARK_AS_ADVANCED( BUILD_INST_SET )
 ## Release flags, overriding CMake's defaults.
 ## Watch out for optimizer bugs in particular gcc versions!
 
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     string(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
 
     # Get the gcc version number in major.minor.build format
@@ -480,7 +480,7 @@ IF(BUILD_USING_OTHER_LAPACK)
 "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
 ENDIF(BUILD_USING_OTHER_LAPACK)
 
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     IF(APPLE)
 	    SET(REALTIME_LIB)
     ELSE()
