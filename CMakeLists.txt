@@ -542,7 +542,7 @@ ADD_SUBDIRECTORY( Simbody )
 FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION doc)
 
-CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/FindSimbody.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/FindSimbody.cmake @ONLY)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/FindSimbody.cmake DESTINATION
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake @ONLY)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake DESTINATION
     ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
