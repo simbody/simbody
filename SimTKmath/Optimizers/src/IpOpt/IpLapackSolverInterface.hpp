@@ -1,7 +1,6 @@
 
 #ifndef __IPLAPACKSOLVERINTERFACE_HPP__
-
-#define __IPLAPACKSSOLVERINTERFACE_HPP__
+#define __IPLAPACKSOLVERINTERFACE_HPP__
 
 #include "IpSparseSymLinearSolverInterface.hpp"
 

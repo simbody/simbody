@@ -7,7 +7,7 @@
 // Authors:  Carl Laird, Andreas Waechter     IBM    2004-03-17
 
 #ifndef __IPTSYMLINEARSOLVER_HPP__
-#define __IPTSYMLINEATSOLVER_HPP__
+#define __IPTSYMLINEARSOLVER_HPP__
 
 #include "IpSymLinearSolver.hpp"
 #include "IpSparseSymLinearSolverInterface.hpp"
