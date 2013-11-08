@@ -19,12 +19,8 @@ override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake 
 	
 	# Remove extra LICENSE and INSTALL file
-	rm debian/tmp/usr/doc/LICENSE.txt
-	rm debian/tmp/usr/doc/INSTALL.txt
-	# Move /usr/doc to /usr/share/doc
-	mkdir -p debian/tmp/usr/share/doc
-	mv debian/tmp/usr/doc \
-	    debian/tmp/usr/share/doc/libsimbody-doc/
+	rm debian/tmp/usr/share/doc/Simbody/LICENSE.txt
+	rm debian/tmp/usr/share/doc/Simbody/INSTALL.txt
 
 override_dh_auto_test:
 	dh_auto_test || true

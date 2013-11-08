@@ -177,7 +177,7 @@ INSTALL_FILES("/include/SimTKcommon"          FILES ${TOP_HEADERS})
 INSTALL_FILES("/include/SimTKcommon/internal" FILES ${INTERNAL_HEADERS})
 
 FILE(GLOB SIMTKCOMMON_DOCS doc/*.pdf doc/*.txt)
-INSTALL(FILES ${SIMTKCOMMON_DOCS} DESTINATION doc)
+INSTALL(FILES ${SIMTKCOMMON_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.

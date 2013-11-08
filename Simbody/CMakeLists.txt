@@ -136,7 +136,7 @@ INSTALL_FILES(/include/simbody/internal FILES ${INTERNAL_HEADERS})
 # newer (recommended) INSTALL(dir FILES ...) command
 # when the target directory starts with a slash
 FILE(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt)
-INSTALL(FILES ${SIMBODY_DOCS} DESTINATION doc)
+INSTALL(FILES ${SIMBODY_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.

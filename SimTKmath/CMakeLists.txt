@@ -192,7 +192,7 @@ INSTALL_FILES(/include/simmath/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/include/simmath/internal FILES ${INTERNAL_HEADERS})
 
 FILE(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt)
-INSTALL(FILES ${SIMMATH_DOCS} DESTINATION doc)
+INSTALL(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.
