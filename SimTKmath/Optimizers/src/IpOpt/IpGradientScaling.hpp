@@ -6,7 +6,7 @@
 //
 // Authors:  Carl Laird, Andreas Waechter     IBM    2005-07-13
 
-#ifndef __IPGRADIENTCALING_HPP__
+#ifndef __IPGRADIENTSCALING_HPP__
 #define __IPGRADIENTSCALING_HPP__
 
 #include "IpNLPScaling.hpp"
