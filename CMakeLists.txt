@@ -274,8 +274,11 @@ IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
     # 4.2.1 is not. To be safe for now we'll assume anything over 4.3
     # should have these disabled.
     if (GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
-        SET(GCC_OPT_DISABLE 
-	"-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
+        SET(GCC_OPT_DISABLE "-fno-strict-aliasing")
+        # Clang does not recognize these two flags.
+        if (NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+            SET(GCC_OPT_DISABLE "-fno-tree-vrp -fno-guess-branch-probability")
+        endif()
     endif()
 
     # C++
