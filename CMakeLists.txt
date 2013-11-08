@@ -191,9 +191,9 @@ IF(SimTK_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 ENDIF()
 
 # C compiler is gcc on Linux, gcc or cc on Mac where command line tools
-# are installed from XCode. May be clang in Mac 10.8 or later.
+# are installed from XCode. May be Clang in Mac 10.8 or later.
 
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     IF(NOT CMAKE_INSTALL_PREFIX)
         SET(CMAKE_INSTALL_PREFIX "/usr/local/simbody" 
             CACHE PATH "Install directory")
@@ -257,7 +257,7 @@ MARK_AS_ADVANCED( BUILD_INST_SET )
 ## Release flags, overriding CMake's defaults.
 ## Watch out for optimizer bugs in particular gcc versions!
 
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     string(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
 
     # Get the gcc version number in major.minor.build format
@@ -274,8 +274,11 @@ IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
     # 4.2.1 is not. To be safe for now we'll assume anything over 4.3
     # should have these disabled.
     if (GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
-        SET(GCC_OPT_DISABLE 
-	"-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
+        SET(GCC_OPT_DISABLE "-fno-strict-aliasing")
+        # Clang does not recognize these two flags.
+        if (NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+            SET(GCC_OPT_DISABLE "-fno-tree-vrp -fno-guess-branch-probability")
+        endif()
     endif()
 
     # C++
@@ -477,7 +480,7 @@ IF(BUILD_USING_OTHER_LAPACK)
 "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
 ENDIF(BUILD_USING_OTHER_LAPACK)
 
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
+IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     IF(APPLE)
 	    SET(REALTIME_LIB)
     ELSE()
