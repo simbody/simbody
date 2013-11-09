@@ -36,7 +36,7 @@ INSTALL(TARGETS ${GUI_NAME}
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                              GROUP_READ GROUP_WRITE GROUP_EXECUTE
                              WORLD_READ WORLD_EXECUTE
-         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+         DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
 
 # on Windows we also have to copy and later install the glut32.dll
 IF(WIN32)
@@ -47,5 +47,5 @@ IF(WIN32)
 	COMMENT "Copying glut32.dll" VERBATIM)
 
     INSTALL(FILES ${glut32libdir}/glut32.dll
-	    DESTINATION ${CMAKE_INSTALL_PREFIX}/bin) #same as GUI
+	    DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}) #same as GUI
 ENDIF()
