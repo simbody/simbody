@@ -5,5 +5,5 @@ Abstract: Describe the simbody library C++ API.
 Section: Programming/C++
 
 Format: HTML
-Index: /usr/share/doc/libsimbody-doc/SimbodyAPI.html
-Files: /usr/share/doc/libsimbody-doc/api/*
+Index: /usr/share/doc/Simbody/SimbodyAPI.html
+Files: /usr/share/doc/Simbody/api/*
