@@ -14,13 +14,6 @@ Vcs-Browser: https://github.com/simbody/simbody
 Vcs-Git: git://github.com/simbody/simbody.git
 Homepage: https://simtk.org/home/simbody
 
-Package: simbody-visualizer
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
-	 libsimbody3.3 (= ${binary:Version})
-Multi-Arch: foreign
-Description: Simbody GUI visualizer
-
 Package: libsimbody3.3
 Section: libs
 Architecture: any
