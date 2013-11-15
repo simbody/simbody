@@ -9,7 +9,8 @@ Build-Depends: debhelper (>= 9),
                freeglut3-dev,
                libxi-dev,
                libxmu-dev,
-               liblapack-dev
+               liblapack-dev,
+               doxygen-latex
 Vcs-Browser: https://github.com/simbody/simbody
 Vcs-Git: git://github.com/simbody/simbody.git
 Homepage: https://simtk.org/home/simbody
