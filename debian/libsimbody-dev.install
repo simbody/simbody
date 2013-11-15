@@ -1,4 +1,3 @@
 usr/include/*
 usr/lib/*/*.so
-usr/lib/*/simbody/*
 usr/lib/*/cmake/*
