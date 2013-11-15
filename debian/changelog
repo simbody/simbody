@@ -1,6 +1,6 @@
 simbody (3.3-1~quantal) quantal; urgency=high
 
-  * Release 3.3
+  * Initial release. (Closes #728723)
 
  -- Jose Luis Rivero <jrivero@osrfoundation.org>  Thu, 22 Aug 2013 16:23:00 -0700
 
