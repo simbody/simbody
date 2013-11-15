@@ -32,11 +32,13 @@ SET_TARGET_PROPERTIES(${GUI_NAME} PROPERTIES
 TARGET_LINK_LIBRARIES(${GUI_NAME} 
 	${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
+# Visualizer is not intended to be a user executable. Proper place is
+# inside the lib directory
 INSTALL(TARGETS ${GUI_NAME}
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                              GROUP_READ GROUP_WRITE GROUP_EXECUTE
                              WORLD_READ WORLD_EXECUTE
-         DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})
+         DESTINATION ${CMAKE_INSTALL_LIBDIR/simbody})
 
 # on Windows we also have to copy and later install the glut32.dll
 IF(WIN32)
