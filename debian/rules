@@ -22,9 +22,6 @@ override_dh_auto_install:
 	rm debian/tmp/usr/share/doc/Simbody/LICENSE.txt
 	rm debian/tmp/usr/share/doc/Simbody/INSTALL.txt
 
-override_dh_auto_test:
-	dh_auto_test || true
-
 override_dh_strip:
 	dh_strip -a --dbg-package=libsimbody3.3-dbg
 
