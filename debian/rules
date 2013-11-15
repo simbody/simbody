@@ -19,8 +19,8 @@ override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake 
 	
 	# Remove extra LICENSE and INSTALL file
-	rm debian/tmp/usr/share/doc/Simbody/LICENSE.txt
-	rm debian/tmp/usr/share/doc/Simbody/INSTALL.txt
+	rm debian/tmp/usr/share/doc/simbody/LICENSE.txt
+	rm debian/tmp/usr/share/doc/simbody/INSTALL.txt
 
 override_dh_strip:
 	dh_strip -a --dbg-package=libsimbody3.3-dbg

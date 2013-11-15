@@ -38,7 +38,7 @@ INSTALL(TARGETS ${GUI_NAME}
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                              GROUP_READ GROUP_WRITE GROUP_EXECUTE
                              WORLD_READ WORLD_EXECUTE
-         DESTINATION ${CMAKE_INSTALL_LIBDIR/simbody})
+         DESTINATION ${CMAKE_INSTALL_LIBDIR}/simbody)
 
 # on Windows we also have to copy and later install the glut32.dll
 IF(WIN32)
