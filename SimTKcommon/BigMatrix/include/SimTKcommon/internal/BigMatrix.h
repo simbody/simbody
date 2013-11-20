@@ -3632,6 +3632,11 @@ public:
         --index;
         return current;
     }
+    VectorIterator operator+=(ptrdiff_t n) {
+        assert (index+n-1 < vector.size());
+        index += n;
+        return *this;
+    }
     bool operator<(VectorIterator iter) const {
         return (index < iter.index);
     }
