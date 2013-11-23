@@ -117,7 +117,7 @@ copy(Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2) {
 }
 /** @endcond **/
 
-/** This is a fixed length column vector designed for no-overhead inline 
+/** This is a fixed-length column vector designed for no-overhead inline 
 computation.
 
 @tparam     M       The number of rows in the vector.
@@ -126,6 +126,59 @@ computation.
 @tparam     STRIDE  The spacing from one element to the next in memory, as an 
                     integer number of elements of type ELT. The default is 
                     STRIDE=1.
+
+<b>Usage</b>
+
+The %Vec and Vector classes are commonly used to represent tuples of Reals, and
+have methods like %norm() to calculate the vector 2-norm. Use %Vec for a small
+vector whose length is known at compile time; otherwise, use Vector. To collect
+elements of the same type that do not constitute a tuple, it is more appropriate
+to use the %Array_ container. Some common %Vec use cases are provided below.
+
+<b>Construction</b>
+
+The 3-tuple <tt>~[0,0,0]</tt> can be created in the following ways:
+\code
+Vec<3,Real>(0,0,0);
+Vec3(0,0,0);
+Vec3(0);
+Vec3(0.0,0,0,SimTK::Pi);  //not recommended!
+\endcode
+Note that the default element type is Real, and that Vec3 is a typedef for
+%Vec<3>; analogous typedefs exist for vectors of up to 9 elements. Simbody will
+quietly ignore any elements beyond the first \a n when creating an n-tuple (with
+no warning), as in the last example above.
+
+<b>Manipulation</b>
+
+Standard arithmetic operators can be used, as well as methods like %sum() and
+%normalize(). Here are some usage examples, each of which returns
+<tt>~[1,2,3]</tt>:
+\code
+Vec9(0,0,0,0,0,1,2,3,0).getSubVec<3>(5);
+Vec4(1,2,4,3).drop1(2);
+Vec2(2,3).insert1(0,1);
+Vec2(1,2).append1(3);
+\endcode
+
+<b>Conversion</b>
+
+It may be necessary to convert between a %Vec and a Vector (to interface with
+%FactorQTZ, for instance). In the example below, we print a Vec3 created from
+the first three elements of a Vector:
+\code
+Vector myVector(5);
+for (int i=0; i<myVector.size(); ++i) myVector[i]=i+1;
+std::cout << Vec3(&myVector[0]) << std::endl;
+\endcode
+Converting from a Vec3 to a Vector is also straightforward:
+\code
+Vec3 myVec3(1,2,3);
+std::cout << Vector(myVec3) << std::endl;
+\endcode
+
+@see Vector_ for handling of large or variable-sized vectors.
+@see Array_, Mat, Matrix_
 **/
 template <int M, class ELT, int STRIDE>
 class Vec {
