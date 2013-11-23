@@ -142,12 +142,9 @@ The 3-tuple <tt>~[0,0,0]</tt> can be created in the following ways:
 Vec<3,Real>(0,0,0);
 Vec3(0,0,0);
 Vec3(0);
-Vec3(0.0,0,0,SimTK::Pi);  //not recommended!
 \endcode
 Note that the default element type is Real, and that Vec3 is a typedef for
-%Vec<3>; analogous typedefs exist for vectors of up to 9 elements. Simbody will
-quietly ignore any elements beyond the first \a n when creating an n-tuple (with
-no warning), as in the last example above.
+%Vec<3>; analogous typedefs exist for vectors of up to 9 elements.
 
 <b>Manipulation</b>
 
@@ -164,10 +161,10 @@ Vec2(1,2).append1(3);
 <b>Conversion</b>
 
 It may be necessary to convert between a %Vec and a Vector (to interface with
-%FactorQTZ, for instance). In the example below, we print a Vec3 created from
-the first three elements of a Vector:
+%FactorQTZ, for instance). In the example below, we print a Vec3 created from a
+3-element Vector:
 \code
-Vector myVector(5);
+Vector myVector(3);
 for (int i=0; i<myVector.size(); ++i) myVector[i]=i+1;
 std::cout << Vec3(&myVector[0]) << std::endl;
 \endcode
