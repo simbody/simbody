@@ -54,13 +54,9 @@ Mat<3,3,Real>(1,0,0, 0,1,0, 0,0,1);          //row-major
 Mat33(1,0,0,0,1,0,0,0,1);
 Mat33(Vec3(1,0,0),Vec3(0,1,0),Vec3(0,0,1));  //column-by-column
 Mat33(1);
-Mat33(1,2,3, 0,1,0, 0,0,1, 0,0);             //not recommended!
 \endcode
 Note that the default element type is Real, and that Mat33 is a typedef for
-%Mat<3,3>; analogous typedefs exist for matrices of up to 9x9 elements. Unlike
-the %Vec class, Simbody will \a not quietly ignore extra elements when
-constructing matrices, with potentially surprising results (as demonstrated in
-the last example above).
+%Mat<3,3>; analogous typedefs exist for matrices of up to 9x9 elements.
 
 <b>Manipulation</b>
 
