@@ -1890,6 +1890,8 @@ MatrixView_<ELT>::operator=(DeadMatrixView_<ELT>& dead) {
 //  ---------------------------------- Matrix_ ---------------------------------
 /// This is the Matrix class intended to appear in user code. It can be a 
 /// fixed-size view of someone else's data, or can be a resizable data owner itself.
+///
+/// @see Mat for handling of small, fixed-size matrices with no runtime overhead.
 //  ----------------------------------------------------------------------------
 template <class ELT> class Matrix_ : public MatrixBase<ELT> {
     typedef typename CNT<ELT>::Scalar       S;
@@ -2056,6 +2058,8 @@ private:
 /// This is the Vector class intended to appear in user code. It can be a 
 /// fixed-size view of someone else's data, or can be a resizable data owner 
 /// itself, although of course it will always have just one column.
+///
+/// @see Vec for handling of small, fixed-size vectors with no runtime overhead.
 //  ----------------------------------------------------------------------------
 template <class ELT> class Vector_ : public VectorBase<ELT> {
     typedef typename CNT<ELT>::Scalar       S;
