@@ -234,6 +234,7 @@ extern "C" {
 #include <complex>
 #include <limits>
 #include <typeinfo>
+#include <algorithm>
 
 /* Transition macros for C++11 support. VC10 and VC11 have partial support for
 C++11, early VC's do not. Currently we're assuming no support from gcc. */
@@ -254,10 +255,10 @@ C++11, early VC's do not. Currently we're assuming no support from gcc. */
 #endif
 
 
-/* Currently (Microsoft VC++ 9) these C99-compatible floating point functions 
-are missing. We'll create them here and install them into namespace std.
-TODO: This should be removed when these are available. */
-#ifdef _MSC_VER
+/* In Microsoft VC++ 11 (2012) and earlier these C99-compatible floating 
+point functions are missing. We'll create them here and install them into 
+namespace std. They were added in VC++ 12 (2013). */
+#if defined(_MSC_VER) && (_MSC_VER <= 1700) // VC++ 12 (2013, _MSC_VER=1800) added these
 namespace std {
 inline bool isfinite(float f) {return _finite(f) != 0;}
 inline bool isfinite(double d) {return _finite(d) != 0;}
@@ -270,7 +271,7 @@ inline bool isinf(double d) {return std::abs(d)==std::numeric_limits<double>::in
 inline bool isinf(long double l) {return std::abs(l)==std::numeric_limits<double>::infinity();}
 inline bool signbit(float f) {return (*reinterpret_cast<unsigned*>(&f) & 0x80000000U) != 0;}
 inline bool signbit(double d) {return (*reinterpret_cast<unsigned long long*>(&d)
-                               & 0x8000000000000000ULL) != 0;}
+                                & 0x8000000000000000ULL) != 0;}
 inline bool signbit(long double l) {return (*reinterpret_cast<unsigned long long*>(&l)
                                     & 0x8000000000000000ULL) != 0;}
 }
