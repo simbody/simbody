@@ -33,6 +33,7 @@ cylinder (and is visualized as such), its geometry (for the purpose of contact)
 is of a zero-height disc.  The disc rolls in the x direction of the yaw
 frame/body.
 */
+
 int main() {
 
     // TODO Explain the degrees of freedom (transforms for mobilized bodies).
@@ -40,25 +41,38 @@ int main() {
     // Parameters.
     // -----------
     double radius = 1.0;
-    double height = 0.1;
+    double height = 0.01;
     double mass = 1.0;
+
+    // We'll use this a lot.
+    Vec3 rvec(0, 0, radius);
 
     // Create the system.
     // ------------------
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+
+    // Add gravity as a force element.
+    Force::UniformGravity gravity(forces, matter, Vec3(0, Real(-9.8), 0));
 
     // Create bodies.
     // --------------
-    // This massless body is like a skidding car wheel that can turn (but not
-    // fall over).
+    // This massless body is like a skidding car wheel that can turn/yaw (but
+    // not fall over).
     Body::Rigid yawBody(MassProperties(0.0, Vec3(0), Inertia(0)));
-    yawBody.addDecoration(Transform(Rotation(0.5*Pi, XAxis)),
-            DecorativeBrick());
+    DecorativeBrick yawDec(Vec3(radius, 0.5 * height, radius));
+    yawDec.setColor(Vec3(1.0, 0, 0));
+    yawDec.setOpacity(0.5);
+    yawBody.addDecoration(Transform(rvec), yawDec);
+
     // This massless body can fall over, but slips on the ground.
     Body::Rigid leanBody(MassProperties(0.0, Vec3(0), Inertia(0)));
-    leanBody.addDecoration(Transform(Rotation(0.5*Pi, XAxis)),
-            DecorativeBrick());
+    DecorativeBrick leanDec(Vec3(0.9 * radius, 0.6 * height, 0.9 * radius));
+    leanDec.setColor(Vec3(0, 1.0, 0));
+    leanDec.setOpacity(0.5);
+    leanBody.addDecoration(Transform(rvec), leanDec);
+
     // Here's the disc, finally.
     Body::Rigid discBody(MassProperties(mass, Vec3(0),
                 Inertia::cylinderAlongY(radius, height)));
@@ -67,25 +81,24 @@ int main() {
     // Create mobilized bodies.
     // ------------------------
     MobilizedBody::Planar yawMB(
-        matter.updGround(), Transform(),
+        matter.updGround(), Transform(Rotation(-0.5*Pi, XAxis)),
         yawBody, Transform());
     MobilizedBody::Pin leanMB(
         yawMB, Transform(Rotation(0.5*Pi, YAxis)),
-        leanBody, Transform(Rotation(-0.5*Pi, YAxis)));
+        leanBody, Transform(Rotation(0.5*Pi, YAxis)));
     MobilizedBody::Pin discMB(
-        leanMB, Transform(Rotation(0.5*Pi, XAxis)),
-        discBody, Transform(Rotation(-0.5*Pi, XAxis)));
+        leanMB, Transform(Rotation(0.5*Pi, XAxis), rvec),
+        discBody, Transform(Rotation(0.5*Pi, XAxis)));
 
     // Constrain the disc to roll.
     // ---------------------------
     // Along the direction of travel.
-    Constraint::NoSlip1D(leanMB, Vec3(0, 0, -1), UnitVec3(1, 0, 0),
+    Constraint::NoSlip1D(leanMB, Vec3(0), UnitVec3(1, 0, 0),
             matter.updGround(), discMB);
     // Perpendicular to the direction of travel.
     // TODO this is likely wrong.
-    Constraint::NoSlip1D(leanMB, Vec3(0, 0, -1), UnitVec3(0, 1, 0),
+    Constraint::NoSlip1D(leanMB, Vec3(0), UnitVec3(0, 1, 0),
             matter.updGround(), discMB);
-    Constraint::ConstantSpeed(discMB, 2*Pi); // i.e., 1 rotation per second
 
     // Visualize.
     // ----------
@@ -95,8 +108,11 @@ int main() {
 
     // Initialize the system and state.
     // --------------------------------
-    system.realizeTopology();
-    State state = system.getDefaultState();
+    State state = system.realizeTopology();
+    // So the disc starts off spinning; 1 rotation per second.
+    discMB.setRate(state, 20.*Pi);
+    // So the disc falls over.
+    leanMB.setAngle(state, 0.01*Pi);
 
     // Simulate the disc.
     // ------------------
