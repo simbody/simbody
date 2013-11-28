@@ -134,11 +134,11 @@ int main() {
 
     // We want the disc to start off spinning, in the +x direction.
     discMB.setRate(state, -2 * Pi);
+    // So the disc falls over.
     leanMB.setAngle(state, 0.1*Pi);
     discMB.lock(state, Motion::Velocity);
     system.project(state);
     discMB.unlock(state);
-    // So the disc falls over.
 
     // Simulate the disc.
     // ------------------
