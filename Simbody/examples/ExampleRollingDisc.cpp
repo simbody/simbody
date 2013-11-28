@@ -42,7 +42,6 @@ public:
             Array_<DecorativeGeometry> & geometry)
     {
         Vector q = state.getQ();
-        std::cout << q << std::endl;
         // I figured the proper indices by guess and check.
         double x = q[1];
         double z = q[3];
