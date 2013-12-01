@@ -334,13 +334,13 @@ int main() {
     
     const Body& groundBody = matter.Ground().getBody();
     const int nDecGeoms = groundBody.getNumDecorations();
-    printf("%d Ground body decorations (&Ground=0x%x). Last two:\n", nDecGeoms,
-        &matter.Ground());
+    printf("%d Ground body decorations (&Ground=0x%llx). Last two:\n", nDecGeoms,
+        (unsigned long long)&matter.Ground());
     for (int i=nDecGeoms-2; i < nDecGeoms; ++i) {
-        printf("%d: bodyId=%d, index=%d, userRef=0x%x\n", i,
+        printf("%d: bodyId=%d, index=%d, userRef=0x%llx\n", i,
             groundBody.getDecoration(i).getBodyId(),
             groundBody.getDecoration(i).getIndexOnBody(),
-            groundBody.getDecoration(i).getUserRef());
+            (unsigned long long)groundBody.getDecoration(i).getUserRef());
     }
 
     Geo::Sphere curveSphere = curve.calcBoundingSphere();
