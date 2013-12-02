@@ -48,6 +48,16 @@ generalized coordinate q. The function P(q) is typically a vector-valued spline
 fit through point locations measured at sampled coordinate values taken on a 
 cadaver or a more complex computational model.
 
+For information on how we calculate moment arm in OpenSim using Simbody's
+tools, see the paper
+  Sherman MA, Seth A, Delp SL. What is moment arm? Calculating muscle 
+  effectiveness in biomechanical models using generalized coordinates. Proc. 
+  ASME IDETC/CIE Conference, Paper DETC2013-13633, Aug 2013, Portland, Oregon.
+  http://doi.org/10.1115/DETC2013-13633
+This paper discusses problems with MMPs. The method demonstrated below addresses
+those problems allowing meaningful moment arms to be calculate in models with
+MMPs.
+
 We would like to ensure that the moment arm and dynamics we calculate using the
 reduced model with MMPs is the same as we would have gotten with the more
 complex model, assuming that P(q) is the same in both models. (Reaction forces
