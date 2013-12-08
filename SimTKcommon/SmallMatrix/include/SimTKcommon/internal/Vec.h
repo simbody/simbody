@@ -570,14 +570,14 @@ public:
         return result;
     }
 
-    /** Elementwise multiply (Matlab .* operator). **/
+    /** Elementwise multiply (Matlab " .* " operator). **/
     template <class EE, int SS> Vec<M,typename CNT<E>::template Result<EE>::Mul>
     elementwiseMultiply(const Vec<M,EE,SS>& r) const {
         Vec<M,typename CNT<E>::template Result<EE>::Mul> result;
         Impl::elementwiseMultiply(*this, r, result);
         return result;
     }
-    /** Elementwise divide (Matlab ./ operator). **/
+    /** Elementwise divide (Matlab " ./ " operator). **/
     template <class EE, int SS> Vec<M,typename CNT<E>::template Result<EE>::Dvd>
     elementwiseDivide(const Vec<M,EE,SS>& r) const {
         Vec<M,typename CNT<E>::template Result<EE>::Dvd> result;
