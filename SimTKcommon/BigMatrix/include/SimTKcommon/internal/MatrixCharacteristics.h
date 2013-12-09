@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -39,53 +39,6 @@
 #include <utility> // for std::pair
 
 namespace SimTK {
-
-/**@defgroup MatrixCharacteristics    Matrix Characteristics
- *
- * Matrix characteristics are specifications of particular aspects of matrices:
- *  - Element type
- *  - Size
- *  - Structure 
- *  - Storage format 
- *  - Outline
- *  - Conditioning
- *
- * Collectively, the set of values for the above properties is called a <i>matrix
- * character</i>. A matrix character can be used to describe an existing matrix, 
- * or a character mask can be used to describe the range of characteristics that 
- * a matrix handle may support. The  character mask describing the acceptable 
- * matrices for a matrix handle is called the handle's <i>character commitment</i>
- * or just the <i>handle commitment</i>. The character describing an existing matrix 
- * is called the <i>actual character</i> of that matrix. Thus there are always two 
- * sets of characteristics associated with a matrix: the handle's commitment, 
- * and the actual character of the matrix to which the handle currently refers. 
- * The actual character must always \e satisfy the character commitment.
- *
- * When a handle presents a view into another handle's data, it is the characteristics 
- * of the matrix as seen through the view that must satisfy the handle's character 
- * commitment. So for example, a view showing one column of a full matrix satisfies
- * a "column" outline commitment.
- *
- * Element type for a matrix handle is always determined at compile time via the
- * template argument used in the declaration. For example, a matrix handle declared
- * \c Matrix_<Vec3> can only hold matrices whose elements are \c Vec3s. Also, 
- * recall that \c Matrix is an abbreviation for \c Matrix_<Real> so that 
- * declaration commits the matrix handle to Real-element matrices. Element type
- * is the only matrix characteristic for which no matrix handle can remain
- * uncommitted. However, different handles can provide views of the same data
- * through which that data is seen to contain different element types.
- *
- * Each matrix characteristic other than sizes is represented by a class
- * defining one or more enumerated types, where individual characteristics are
- * assigned a single bit. Then an appropriate mask type (an unsigned integral
- * type) is defined which can represent a set of allowable characteristics.
- * The actual character of a matrix is represented via enumeration values; the
- * character commitment is represented by the compatible masks. The operation
- * of determining whether a particular actual character satisfies a handle
- * commitment can then be performed very quickly via bitwise logical operations.
- *
- * @{
- */
 
 
 class MatrixStructure;
@@ -590,16 +543,56 @@ private:
 
 
 //  ------------------------------ MatrixCharacter -----------------------------
+/** A MatrixCharacter is a set containing a value for each of the matrix 
+characteristics except element type, which is part of the templatized
+declaration of a Matrix, Vector, or RowVector handle. MatrixCharacters are
+used both as the handle "commitment", setting restrictions on what kinds
+of matrices a handle can reference, and as the "facts on the ground" current
+character of the matrix being referenced. The current character must always
+satisfy the character commitment.
 
-/// A MatrixCharacter is a set containing a value for each of the matrix 
-/// characteristics except element type, which is part of the templatized
-/// declaration of a Matrix, Vector, or RowVector handle. MatrixCharacters are
-/// used both as the handle "commitment", setting restrictions on what kinds
-/// of matrices a handle can reference, and as the "facts on the ground" current
-/// character of the matrix being referenced. The current character must always
-/// satisfy the character commitment.
+Matrix characteristics are specifications of particular aspects of matrices:
+ - Element type
+ - Size
+ - Structure
+ - Storage format
+ - Outline
+ - Conditioning
 
-//  ----------------------------------------------------------------------------
+Collectively, the set of values for the above properties is called a <i>matrix
+character</i>. A matrix character can be used to describe an existing matrix,
+or a character mask can be used to describe the range of characteristics that
+a matrix handle may support. The  character mask describing the acceptable
+matrices for a matrix handle is called the handle's <i>character commitment</i>
+or just the <i>handle commitment</i>. The character describing an existing 
+matrix is called the <i>actual character</i> of that matrix. Thus there are 
+always two sets of characteristics associated with a matrix: the handle's 
+commitment, and the actual character of the matrix to which the handle currently
+refers. The actual character must always \e satisfy the character commitment.
+
+When a handle presents a view into another handle's data, it is the 
+characteristics of the matrix as seen through the view that must satisfy the 
+handle's character commitment. So for example, a view showing one column of a 
+full matrix satisfies a "column" outline commitment.
+
+Element type for a matrix handle is always determined at compile time via the
+template argument used in the declaration. For example, a matrix handle declared
+\c Matrix_<Vec3> can only hold matrices whose elements are \c Vec3s. Also,
+recall that \c Matrix is an abbreviation for \c Matrix_<Real> so that
+declaration commits the matrix handle to Real-element matrices. Element type
+is the only matrix characteristic for which no matrix handle can remain
+uncommitted. However, different handles can provide views of the same data
+through which that data is seen to contain different element types.
+
+Each matrix characteristic other than sizes is represented by a class
+defining one or more enumerated types, where individual characteristics are
+assigned a single bit. Then an appropriate mask type (an unsigned integral
+type) is defined which can represent a set of allowable characteristics.
+The actual character of a matrix is represented via enumeration values; the
+character commitment is represented by the compatible masks. The operation
+of determining whether a particular actual character satisfies a handle
+commitment can then be performed very quickly via bitwise logical operations.
+**/
 class SimTK_SimTKCOMMON_EXPORT MatrixCharacter {
 public:
     /// Default constructor sets lengths to zero and the other characteristics
@@ -619,8 +612,8 @@ public:
         return *this;
     }
 
-    // These are dimensions of the logical matrix and have nothing to do with how 
-    // much storage may be used to hold the elements.
+    /// These are dimensions of the logical matrix and have nothing to do with 
+    /// how much storage may be used to hold the elements.
     int                nrow()       const {return nr;}
     int                ncol()       const {return nc;}
     std::pair<int,int> getSize()    const {return std::pair<int,int>(nrow(),ncol());}
@@ -705,6 +698,7 @@ private:
 };
 
 /// Output a textual description of a MatrixCharacter; handy for debugging.
+/// @relates SimTK::MatrixCharacter
 SimTK_SimTKCOMMON_EXPORT std::ostream& 
 operator<<(std::ostream& o, const MatrixCharacter&);
 
@@ -1097,11 +1091,9 @@ public:
 };
 
 /// Output a textual description of a MatrixCommitment; handy for debugging.
+/// @relates SimTK::MatrixCommitment
 SimTK_SimTKCOMMON_EXPORT std::ostream& 
 operator<<(std::ostream& o, const MatrixCommitment&);
-
-//  End of MatrixCharacteristics group.
-/// @}
      
 } //namespace SimTK
 

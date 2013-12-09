@@ -145,18 +145,7 @@
  *   MatrixView_<CNT>, VectorView_<CNT>, RowVectorView_<CNT>
  * </pre>
  *
- * Dead matrices are owners that are about to be destructed. Anything
- * they own may be taken from them, including the helper and/or
- * the data. This is a very effective performance trick for sequences
- * of operations since it eliminates most of the need for allocating and
- * deallocating temporaries.
- *
- * <pre>
- *   DeadMatrix_<CNT>, DeadVector_<CNT>, DeadRowVector_<CNT>
- * </pre>
- *
  */
-// TODO: matrix expression templates for delaying operator execution.
 
 #include "SimTKcommon/Scalar.h"
 #include "SimTKcommon/SmallMatrix.h"
@@ -176,20 +165,14 @@ template <class ELT>    class MatrixBase;
 template <class ELT>    class VectorBase;
 template <class ELT>    class RowVectorBase;
 
-template <class T=Real> class MatrixView_;
-template <class T=Real> class DeadMatrixView_;
-template <class T=Real> class Matrix_;
-template <class T=Real> class DeadMatrix_;
+template <class ELT=Real> class MatrixView_;
+template <class ELT=Real> class Matrix_;
 
-template <class T=Real> class VectorView_;
-template <class T=Real> class DeadVectorView_;
-template <class T=Real> class Vector_;
-template <class T=Real> class DeadVector_;
+template <class ELT=Real> class VectorView_;
+template <class ELT=Real> class Vector_;
 
-template <class T=Real> class RowVectorView_;
-template <class T=Real> class DeadRowVectorView_;
-template <class T=Real> class RowVector_;
-template <class T=Real> class DeadRowVector_;
+template <class ELT=Real> class RowVectorView_;
+template <class ELT=Real> class RowVector_;
 
 template <class ELT, class VECTOR_CLASS> class VectorIterator;
 
@@ -745,7 +728,7 @@ public:
     MatrixBase& setToNaN() {helper.fillWithScalar(CNT<StdNumber>::getNaN()); return *this;}
     MatrixBase& setToZero() {helper.fillWithScalar(StdNumber(0)); return *this;}
  
-    // View creating operators. TODO: these should be DeadMatrixViews  
+    // View creating operators.   
     inline RowVectorView_<ELT> row(int i) const;   // select a row
     inline RowVectorView_<ELT> updRow(int i);
     inline VectorView_<ELT>    col(int j) const;   // select a column
@@ -1806,10 +1789,6 @@ public:
         Base::operator=(m); return *this;
     }
 
-    // Copy construction and copy assignment from a DeadMatrixView steals the helper.
-    MatrixView_(DeadMatrixView_<ELT>&);
-    MatrixView_& operator=(DeadMatrixView_<ELT>&);
-
     // Ask for shallow copy    
     MatrixView_(const MatrixHelper<S>& h) : Base(MatrixCommitment(), h, typename MatrixHelper<S>::ShallowCopy()) { }
     MatrixView_(MatrixHelper<S>&       h) : Base(MatrixCommitment(), h, typename MatrixHelper<S>::ShallowCopy()) { }
@@ -1836,65 +1815,6 @@ private:
     // NO DATA MEMBERS ALLOWED
     MatrixView_(); // default constructor suppressed (what's it a view of?)
 };
-
-
-
-//  ----------------------------- DeadMatrixView_ ------------------------------
-/// This is a MatrixView_ with the additional property that we are about to delete it.
-/// If this is the source for an assignment or copy construction, the destination is
-/// free to steal the helper and/or the underlying data.
-//  ----------------------------------------------------------------------------
-template <class ELT> class DeadMatrixView_ : public MatrixView_<ELT> {
-    typedef MatrixView_<ELT>                Base;
-    typedef typename CNT<ELT>::Scalar       S;
-    typedef typename CNT<ELT>::StdNumber    StdNumber;
-public:
-    // Default construction is suppressed.
-    // Uses default destructor.
-    
-    // All functionality is passed through to MatrixView_.
-    explicit DeadMatrixView_(MatrixHelperRep<S>* hrep) : Base(hrep) {}
-    DeadMatrixView_(const Base& m) : Base(m) {}
-    DeadMatrixView_& operator=(const Base& m) {
-        Base::operator=(m); return *this;
-    }
-
-    // Ask for shallow copy    
-    DeadMatrixView_(const MatrixHelper<S>& h) : Base(h) {}
-    DeadMatrixView_(MatrixHelper<S>&       h) : Base(h) {}
-
-    DeadMatrixView_& operator=(const Matrix_<ELT>& v)     { Base::operator=(v); return *this; }
-    DeadMatrixView_& operator=(const ELT& e)              { Base::operator=(e); return *this; }
-
-    template <class EE> DeadMatrixView_& operator=(const MatrixBase<EE>& m)
-      { Base::operator=(m); return *this; }
-    template <class EE> DeadMatrixView_& operator+=(const MatrixBase<EE>& m)
-      { Base::operator+=(m); return *this; }
-    template <class EE> DeadMatrixView_& operator-=(const MatrixBase<EE>& m)
-      { Base::operator-=(m); return *this; }
-
-    DeadMatrixView_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
-    DeadMatrixView_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
-    DeadMatrixView_& operator+=(const ELT& r)       { this->updDiag() += r; return *this; }
-    DeadMatrixView_& operator-=(const ELT& r)       { this->updDiag() -= r; return *this; }  
-
-private:
-    // NO DATA MEMBERS ALLOWED
-    DeadMatrixView_(); // default constructor suppressed (what's it a view of?)
-};
-
-template <class ELT> inline 
-MatrixView_<ELT>::MatrixView_(DeadMatrixView_<ELT>& dead) 
-:   Base(dead.updHelper().stealRep()) {}
-
-template <class ELT> inline MatrixView_<ELT>& 
-MatrixView_<ELT>::operator=(DeadMatrixView_<ELT>& dead) {
-    if (Base::getHelper().getCharacterCommitment().isSatisfiedBy(dead.getMatrixCharacter()))
-        Base::updHelper().replaceRep(dead.updHelper().stealRep());
-    else
-        Base::operator=(dead);
-    return *this;
-}
 
 
 //------------------------------------ Matrix_ ---------------------------------
