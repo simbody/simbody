@@ -114,7 +114,21 @@ copy(Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2) {
 
 }
 
-/// Generic Row
+/** @brief This is a fixed-length row vector designed for no-overhead inline
+computation.
+
+@ingroup MatVecUtilities
+
+The %Row type is not commonly used in Simbody user programs; the column vector
+class Vec is much more common. Typically %Row objects arise either from
+transposing a Vec or selecting rows from a Mat.
+
+@tparam     N       The number of columns in the row vector.
+@tparam     ELT     The element type. Must be a composite numerical type (CNT).
+The default is ELT=Real.
+@tparam     STRIDE  The spacing from one element to the next in memory, as an
+integer number of elements of type ELT. The default is STRIDE=1.
+**/
 template <int N, class ELT, int STRIDE> class Row {
     typedef ELT                                 E;
     typedef typename CNT<E>::TNeg               ENeg;

@@ -32,12 +32,16 @@
 
 namespace SimTK {
 
-/** This class represents a small matrix whose size is known at compile time, 
-containing elements of any Composite Numerical Type (CNT) and engineered to
-have no runtime overhead whatsoever. Memory layout defaults to packed,
-column ordered storage but can be specified to have any regular row and 
-column spacing. A Mat object is itself a Composite Numerical Type and can thus
-be the element type for other matrix and vector types.
+/** @brief This class represents a small matrix whose size is known at compile 
+time, containing elements of any Composite Numerical Type (CNT) and engineered 
+to have no runtime overhead whatsoever. 
+
+@ingroup MatVecUtilities
+
+Memory layout defaults to packed, column-ordered storage but can be specified to
+have any regular row and column spacing. A %Mat object is itself a Composite 
+Numerical Type and can thus be the element type for other matrix and vector 
+types. Some common use cases are provided below.
 
 @tparam M   The number of rows in this matrix (no default).
 @tparam N   The number of columns in this matrix (no default).
@@ -45,7 +49,49 @@ be the element type for other matrix and vector types.
 @tparam CS  Column spacing in memory as a multiple of element size (default M).
 @tparam RS  %Row spacing in memory as a multiple of element size (default 1).
 
-@see Matrix_ for handling of large or variable-size matrices.
+<b>Construction</b>
+
+A 3x3 identity matrix can be constructed in the following ways:
+\code
+Mat<3,3,Real>(1,0,0, 0,1,0, 0,0,1);          //row-major
+Mat33(1,0,0,0,1,0,0,0,1);
+Mat33(Vec3(1,0,0),Vec3(0,1,0),Vec3(0,0,1));  //column-by-column
+Mat33(1);
+\endcode
+Note that the default element type is Real, and that Mat33 is a typedef for
+%Mat<3,3>; analogous typedefs exist for matrices of up to 9x9 elements.
+
+<b>Manipulation</b>
+
+Standard arithmetic operators can be used, as well as methods like %trace() and
+%transpose(). Here are some usage examples, each of which prints a 2x2 identity
+matrix:
+\code
+Mat23 myMat(2,1,0, 3,0,1);
+std::cout << myMat.getSubMat<2,2>(0,1) << std::endl;
+std::cout << myMat.dropCol(0) << std::endl;
+std::cout << Mat12(1,0).appendRow(~Vec2(0,1)) << std::endl;
+std::cout << Mat21(0,1).insertCol(0,Vec2(1,0)) << std::endl;
+\endcode
+
+<b>Conversion</b>
+
+It may be necessary to convert between a %Mat and a Matrix (to interface with
+%FactorQTZ, for instance). In the example below, we print a Mat33 created from
+a 3x3 Matrix:
+\code
+Matrix myMatrix(3,3);
+for (int i=0; i<9; ++i) myMatrix[i/3][i%3] = i+1;
+Mat33 myMat33 = Mat33(&myMatrix[0][0]).transpose();
+std::cout << myMat33 << std::endl;
+\endcode
+Converting from a Mat33 to a Matrix is straightforward:
+\code
+Mat33 myMat33(1,2,3, 4,5,6, 7,8,9);
+std::cout << Matrix(myMat33) << std::endl;
+\endcode
+
+@see Matrix_ for handling of large or variable-sized matrices.
 @see SymMat, Vec, Row
 **/
 template <int M, int N, class ELT, int CS, int RS> class Mat {
