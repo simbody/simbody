@@ -542,7 +542,7 @@ Matrix Differentiator::calcJacobian
     rep->frep.calcJacobian(*rep,m,y0,0,dfdy);
 
     rep->nDifferentiationFailures--;
-    return dfdy; // TODO: use DeadMatrix to avoid copy
+    return dfdy;
 }
 
 void Differentiator::resetAllStatistics() {
