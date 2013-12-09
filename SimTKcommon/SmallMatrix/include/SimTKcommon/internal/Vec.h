@@ -120,6 +120,8 @@ copy(Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2) {
 /** This is a fixed-length column vector designed for no-overhead inline 
 computation.
 
+@ingroup MatVecUtilities
+
 @tparam     M       The number of rows in the vector.
 @tparam     ELT     The element type. Must be a composite numerical type (CNT).
                     The default is ELT=Real.
@@ -129,11 +131,12 @@ computation.
 
 <b>Usage</b>
 
-The %Vec and Vector classes are commonly used to represent tuples of Reals, and
-have methods like %norm() to calculate the vector 2-norm. Use %Vec for a small
-vector whose length is known at compile time; otherwise, use Vector. To collect
-elements of the same type that do not constitute a tuple, it is more appropriate
-to use the %Array_ container. Some common %Vec use cases are provided below.
+The %Vec and @ref SimTK::Vector_ "Vector" classes are commonly used to represent 
+tuples of Real values, and have methods like %norm() to calculate the vector 
+2-norm. Use %Vec for a small vector whose length is known at compile time; 
+otherwise, use @ref SimTK::Vector_ "Vector". To collect elements of the same 
+type that do not constitute a tuple, it is more appropriate to use the Array_ 
+container. Some common %Vec use cases are provided below.
 
 <b>Construction</b>
 

@@ -574,11 +574,10 @@ typedef std::complex<float>     dComplex;
 
 // Forward declaration giving template defaults must come before any
 // other declarations.
-template <int M, class E=Real, int STRIDE=1>              class Vec;
-template <int N, class E=Real, int STRIDE=1>              class Row; 
-template <int M, int N, class E=Real, int CS=M, int RS=1> class Mat; // col & row spacing
-template <int M, class E=Real, int RS=1>                  class SymMat;
-
+template <int M, class ELT=Real, int STRIDE=1>              class Vec;
+template <int N, class ELT=Real, int STRIDE=1>              class Row; 
+template <int M, int N, class ELT=Real, int CS=M, int RS=1> class Mat;
+template <int M, class ELT=Real, int RS=1>                  class SymMat;
 
 /** A convenient struct for anything requiring an offset and length to specify
 a segment of some larger sequence. **/

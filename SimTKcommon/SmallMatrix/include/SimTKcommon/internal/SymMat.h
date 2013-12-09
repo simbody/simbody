@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -25,49 +25,65 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This file declares class SymMat<M, ELEMENT_TYPE, ROW_SPACING>.
- * This is logically a square MxM Hermitian matrix, but only the diagonal
- * and *lower* triangle are stored. Elements above the diagonal are
- * the Hermitan transpose of their mirrored elements below the diagonal.
- *
- * The storage is packed by column, with an optional stride RS when going element-
- * to-element. We use an unconventional storage scheme here which
- * provides substantial conveniences and some performance advantage over the
- * conventional (LAPACK) scheme which stores the matrix in packed
- * columns. Instead, we store the diagonal first, as a Vec<M> and then store
- * the lower triangle separately in the conventional columnwise form. This
- * allows easy handling of the diagonal elements separately, which is very
- * common in a symmetric matrix. The diagonals are "special"; for example
- * they must be "self-Hermitian" meaning their imaginary parts must be zero.
- * We could just store real elements for the diagonals, but we don't for
- * a number of good reasons which I'll leave as an exercise for the reader.
- * However, we will ensure that their imaginary parts are zero, although
- * a determined user could screw this up.
- *
- * Here is an example. Imagine a full 4x4 Hermitian matrix with complex
- * elements. We'll use a' to mean conjugate(a). Then the elements are
- *     w  a' b' c'
- *     a  x  d' e'
- *     b  d  y  f'
- *     c  e  f  z
- * Note that it must be the case that w=w', x=x', y=y', and z=z' so the
- * diagonal elements must be real. Here's how we store that as a SymMat:
- *       w x y z a b c d e f
- * These are stored in consecutive memory locations (possibly separated
- * by meaningless elements as indicated by the row spacing). Mere 
- * recasting allows us to view this as a 4x4 matrix, or a 4-element
- * diagonal and 6-element "lower" vector, or as these vectors 
- * apparently containing the Hermitian types (i.e. one may cast
- * the "lower" portion into what looks like the "upper" portion).
- *
- * This is a "composite numerical type".
- */
+ This file declares templatized class SymMat for small, fixed-size symmetric
+ matrices. **/
+
 
 #include "SimTKcommon/internal/common.h"
 
 namespace SimTK {
 
-/// RS is total spacing between rows in memory (default 1) 
+/** @brief This is a small, fixed-size symmetric or Hermitian matrix designed
+for no-overhead inline computation.
+
+@ingroup MatVecUtilities
+
+@tparam     M       The dimension of this square matrix.
+@tparam     ELT     The element type. Must be a composite numerical type (CNT).
+The default is ELT=Real.
+@tparam     RS  The spacing from one element to the next in memory, as an
+integer number of elements of type ELT. The default is RS=1.
+
+This is logically a square MxM Hermitian matrix, but only the diagonal
+and \e lower triangle are stored. Elements above the diagonal are
+the Hermitan transpose of their mirrored elements below the diagonal.
+
+The storage is packed by column, with an optional stride RS when going element-
+to-element. We use an unconventional storage scheme here which
+provides substantial conveniences and some performance advantage over the
+conventional (LAPACK) scheme which stores the matrix in packed
+columns. Instead, we store the diagonal first, as a Vec<M> and then store
+the lower triangle separately in the conventional columnwise form. This
+allows easy handling of the diagonal elements separately, which is very
+common in a symmetric matrix. The diagonals are "special"; for example
+they must be "self-Hermitian" meaning their imaginary parts must be zero.
+We could just store real elements for the diagonals, but we don't for
+a number of good reasons which I'll leave as an exercise for the reader.
+However, we will ensure that their imaginary parts are zero, although
+a determined user could screw this up.
+
+Here is an example. Imagine a full 4x4 Hermitian matrix with complex
+elements. We'll use a' to mean conjugate(a). Then the elements are
+<pre>
+    w  a' b' c'
+    a  x  d' e'
+    b  d  y  f'
+    c  e  f  z
+</pre>
+Note that it must be the case that w=w', x=x', y=y', and z=z' so the
+diagonal elements must be real. Here's how we store that as a SymMat:
+<pre>
+    w x y z a b c d e f
+</pre>
+These are stored in consecutive memory locations (possibly separated
+by meaningless elements as indicated by the row spacing RS). Mere
+recasting allows us to view this as a 4x4 matrix, or a 4-element
+diagonal and 6-element "lower" vector, or as these vectors
+apparently containing the Hermitian types (i.e. one may cast
+the "lower" portion into what looks like the "upper" portion).
+
+This is a Composite Numerical Type (CNT).
+**/
 template <int M, class ELT, int RS> class SymMat {
     typedef ELT                                 E;
     typedef typename CNT<E>::TNeg               ENeg;

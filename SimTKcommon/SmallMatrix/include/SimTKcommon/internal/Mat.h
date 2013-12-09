@@ -32,13 +32,16 @@
 
 namespace SimTK {
 
-/** This class represents a small matrix whose size is known at compile time, 
-containing elements of any Composite Numerical Type (CNT) and engineered to
-have no runtime overhead whatsoever. Memory layout defaults to packed,
-column-ordered storage but can be specified to have any regular row and 
-column spacing. A %Mat object is itself a Composite Numerical Type and can thus
-be the element type for other matrix and vector types. Some common use cases are
-provided below.
+/** @brief This class represents a small matrix whose size is known at compile 
+time, containing elements of any Composite Numerical Type (CNT) and engineered 
+to have no runtime overhead whatsoever. 
+
+@ingroup MatVecUtilities
+
+Memory layout defaults to packed, column-ordered storage but can be specified to
+have any regular row and column spacing. A %Mat object is itself a Composite 
+Numerical Type and can thus be the element type for other matrix and vector 
+types. Some common use cases are provided below.
 
 @tparam M   The number of rows in this matrix (no default).
 @tparam N   The number of columns in this matrix (no default).
