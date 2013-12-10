@@ -545,13 +545,13 @@ private:
 //  ------------------------------ MatrixCharacter -----------------------------
 /** A MatrixCharacter is a set containing a value for each of the matrix 
 characteristics except element type, which is part of the templatized
-declaration of a Matrix, Vector, or RowVector handle. MatrixCharacters are
+declaration of a Matrix_, Vector_, or RowVector_ handle. MatrixCharacters are
 used both as the handle "commitment", setting restrictions on what kinds
 of matrices a handle can reference, and as the "facts on the ground" current
 character of the matrix being referenced. The current character must always
 satisfy the character commitment.
 
-Matrix characteristics are specifications of particular aspects of matrices:
+%Matrix characteristics are specifications of particular aspects of matrices:
  - Element type
  - Size
  - Structure
