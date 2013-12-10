@@ -39,7 +39,7 @@ ELSE()
   # Visualizer is not intended to be a user executable. Proper place is
   # inside the lib directory
   SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_LIBEXECDIR}/simbody)
-END()
+ENDIF()
 INSTALL(TARGETS ${GUI_NAME}
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                              GROUP_READ GROUP_WRITE GROUP_EXECUTE
