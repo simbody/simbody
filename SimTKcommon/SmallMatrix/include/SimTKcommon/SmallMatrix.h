@@ -161,6 +161,11 @@ typedef Row<3> Row3;
 /** Packed, 4-element row of Real values. This is the type of a transposed Vec4
 and usually does not appear explicitly in user programs. **/
 typedef Row<4> Row4;
+/**@}**/
+
+/** @defgroup UncommonMatVecTypedefs    Less commonly-used typedefs 
+@ingroup MatVecTypedefs **/
+/**@{**/
 
 // Less-popular Vec typedefs.
 typedef Vec<1> Vec1; ///< A vector of just one Real element (not too useful).

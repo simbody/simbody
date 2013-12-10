@@ -2007,7 +2007,7 @@ resizable data owner itself, although of course it will always have just one
 column.
 
 @see Vec for handling of small, fixed-size vectors with no runtime overhead.
-@see Matrix_ for variable size, two-dimensional matrix.
+@see Matrix_ for variable %size, two-dimensional matrix.
 **/
 template <class ELT> class Vector_ : public VectorBase<ELT> {
     typedef typename CNT<ELT>::Scalar       S;
@@ -3281,7 +3281,7 @@ classes. These deal with reading and writing Vectors from and to streams,
 which places an additional requirement on the element type T: the element 
 must support the same operation you are trying to do on the Vector as a 
 whole. **/
-/*@{*/
+/**@{**/
 
 /** Specialize for VectorBase<E> to delegate to element type E, with spaces
 separating the elements. 
@@ -3349,7 +3349,8 @@ writeUnformatted(std::ostream& o, const Matrix_<E>& v)
 {   writeUnformatted(o, static_cast< const MatrixBase<E> >(v)); }
 
 /** Read fixed-size VectorView from input stream. It is an error if there
-aren't enough elements. **/
+aren't enough elements. 
+@relates SimTK::VectorView_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, VectorView_<E>& v) {
     for (int i=0; i < v.size(); ++i)
@@ -3357,7 +3358,8 @@ readUnformatted(std::istream& in, VectorView_<E>& v) {
     return true;
 }
 
-/** Read variable-size Vector from input stream. Reads until error or eof. **/
+/** Read variable-size Vector from input stream. Reads until error or eof. 
+@relates SimTK::Vector_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, Vector_<E>& v) {
     if (!v.isResizeable())
@@ -3372,14 +3374,16 @@ readUnformatted(std::istream& in, Vector_<E>& v) {
 }
 
 /** Read fixed-size RowVectorView from input stream. It is an error if there
-aren't enough elements. **/
+aren't enough elements.  
+@relates SimTK::RowVectorView_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, RowVectorView_<E>& v) 
 {   VectorView_<E> vt(~v);
     return readUnformatted<E>(in, vt); }
 
 /** Read variable-size RowVector from unformatted (whitespace-separated) 
-input stream. Reads until error or eof. **/
+input stream. Reads until error or eof. 
+@relates SimTK::RowVector_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, RowVector_<E>& v) 
 {   Vector_<E> vt(~v);
@@ -3388,7 +3392,8 @@ readUnformatted(std::istream& in, RowVector_<E>& v)
 /** Read fixed-size MatrixView in row order from unformatted (whitespace-
 separated) input stream. Newlines in the input have no special meaning --
 we'll read them as whitespace. It is an error if there aren't enough 
-elements. **/
+elements.  
+@relates SimTK::MatrixView_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, MatrixView_<E>& v) { 
     for (int row=0; row < v.nrow(); ++row) {
@@ -3401,14 +3406,16 @@ readUnformatted(std::istream& in, MatrixView_<E>& v) {
 /** Read in new values for a Matrix without changing its size, from a stream
 of whitespace-separated tokens with no other formatting recognized. Newlines in 
 the input have no special meaning -- we'll read them as whitespace. It is an 
-error if there aren't enough elements. **/
+error if there aren't enough elements.  
+@relates SimTK::Matrix_ **/
 template <class E> inline bool
 fillUnformatted(std::istream& in, Matrix_<E>& v) {
     return readUnformatted<E>(in, v.updAsMatrixView());
 }
 
 /** NOT IMPLEMENTED: read variable-size Matrix recognizing newlines as end
-of row; use fillUnformatted() instead. **/
+of row; use fillUnformatted() instead.  
+@relates SimTK::Matrix_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, Matrix_<E>& v) {
     SimTK_ASSERT_ALWAYS(!"implemented", 
@@ -3562,52 +3569,104 @@ operator ">>" so  this won't work if no such operator is defined for type T.
 template <class T> inline
 std::istream& operator>>(std::istream& in, VectorView_<T>& out) 
 {   return fillVectorViewFromStream<T>(in, out); }
-
-/*@}                     End of Matrix serialization. **/
+/**@}**/  // End of Matrix serialization.
 
 // Friendly abbreviations for vectors and matrices with scalar elements.
-
+/** @ingroup MatVecTypedefs **/
+/**@{**/
+/** Variable-size column vector of Real elements; abbreviation for 
+Vector_<Real>. This is the most common large-vector type in the Simbody API
+and in Simbody user programs. **/
 typedef Vector_<Real>           Vector;
-typedef Vector_<float>          fVector;
-typedef Vector_<double>         dVector;
+
+/** Variable-size 2D matrix of Real elements; abbreviation for Matrix_<Real>.
+This is the most common large-matrix type in the Simbody API and in Simbody
+user programs. **/
+typedef Matrix_<Real>           Matrix;
+
+/** Variable-size row vector of Real elements; abbreviation for
+RowVector_<Real>. This is the type of a transposed Vector and does not 
+usually appear explicitly in the Simbody API or user programs. **/
+typedef RowVector_<Real>        RowVector;
+/**@}**/
+
+/** @ingroup UncommonMatVecTypedefs **/
+/**@{**/
+/** Variable-size column vector of Complex (std::complex<Real>) elements. **/
 typedef Vector_<Complex>        ComplexVector;
+/** Variable-size 2D matrix of Complex (std::complex<Real>) elements. **/
+typedef Matrix_<Complex>        ComplexMatrix;
+/** Variable-size row vector of Complex (std::complex<Real>) elements. **/
+typedef RowVector_<Complex>     ComplexRowVector;
+
+/** Non-owner column vector sharing Real elements. **/
+typedef VectorView_<Real>       VectorView;
+/** Non-owner matrix sharing Real elements. **/
+typedef MatrixView_<Real>       MatrixView;
+/** Non-owner row vector sharing Real elements. **/
+typedef RowVectorView_<Real>    RowVectorView;
+
+/** Non-owner column vector sharing Complex (std::complex<Real>) elements. **/
+typedef VectorView_<Complex>    ComplexVectorView;
+/** Non-owner matrix sharing Complex (std::complex<Real>) elements. **/
+typedef MatrixView_<Complex>    ComplexMatrixView;
+/** Non-owner row vector sharing Complex (std::complex<Real>) elements. **/
+typedef RowVectorView_<Complex> ComplexRowVectorView;
+
+/** Abbreviation for Vector_<float>. **/
+typedef Vector_<float>          fVector;
+/** Abbreviation for Vector_<double>. **/
+typedef Vector_<double>         dVector;
+/** Abbreviation for Vector_<std::complex<float>>. **/
 typedef Vector_<fComplex>       fComplexVector;
+/** Abbreviation for Vector_<std::complex<double>>. **/
 typedef Vector_<dComplex>       dComplexVector;
 
-typedef VectorView_<Real>       VectorView;
+/** Abbreviation for VectorView_<float>. **/
 typedef VectorView_<float>      fVectorView;
+/** Abbreviation for VectorView_<double>. **/
 typedef VectorView_<double>     dVectorView;
-typedef VectorView_<Complex>    ComplexVectorView;
+/** Abbreviation for VectorView_<std::complex<float>>. **/
 typedef VectorView_<fComplex>   fComplexVectorView;
+/** Abbreviation for VectorView_<std::complex<double>>. **/
 typedef VectorView_<dComplex>   dComplexVectorView;
 
-typedef RowVector_<Real>        RowVector;
+/** Abbreviation for RowVector_<float>. **/
 typedef RowVector_<float>       fRowVector;
+/** Abbreviation for RowVector_<double>. **/
 typedef RowVector_<double>      dRowVector;
-typedef RowVector_<Complex>     ComplexRowVector;
+/** Abbreviation for RowVector_<std::complex<float>>. **/
 typedef RowVector_<fComplex>    fComplexRowVector;
+/** Abbreviation for RowVector_<std::complex<double>>. **/
 typedef RowVector_<dComplex>    dComplexRowVector;
 
-typedef RowVectorView_<Real>    RowVectorView;
+/** Abbreviation for RowVectorView_<float>. **/
 typedef RowVectorView_<float>   fRowVectorView;
+/** Abbreviation for RowVectorView_<double>. **/
 typedef RowVectorView_<double>  dRowVectorView;
-typedef RowVectorView_<Complex> ComplexRowVectorView;
+/** Abbreviation for RowVectorView_<std::complex<float>>. **/
 typedef RowVectorView_<fComplex> fComplexRowVectorView;
+/** Abbreviation for RowVectorView_<std::complex<double>>. **/
 typedef RowVectorView_<dComplex> dComplexRowVectorView;
 
-typedef Matrix_<Real>           Matrix;
+/** Abbreviation for Matrix_<float>. **/
 typedef Matrix_<float>          fMatrix;
+/** Abbreviation for Matrix_<double>. **/
 typedef Matrix_<double>         dMatrix;
-typedef Matrix_<Complex>        ComplexMatrix;
+/** Abbreviation for Matrix_<std::complex<float>>. **/
 typedef Matrix_<fComplex>       fComplexMatrix;
+/** Abbreviation for Matrix_<std::complex<double>>. **/
 typedef Matrix_<dComplex>       dComplexMatrix;
 
-typedef MatrixView_<Real>       MatrixView;
+/** Abbreviation for MatrixView_<float>. **/
 typedef MatrixView_<float>      fMatrixView;
+/** Abbreviation for MatrixView_<double>. **/
 typedef MatrixView_<double>     dMatrixView;
-typedef MatrixView_<Complex>    ComplexMatrixView;
+/** Abbreviation for MatrixView_<std::complex<float>>. **/
 typedef MatrixView_<fComplex>   fComplexMatrixView;
+/** Abbreviation for MatrixView_<std::complex<double>>. **/
 typedef MatrixView_<dComplex>   dComplexMatrixView;
+/**@}**/
 
 
 /**
