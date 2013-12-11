@@ -32,14 +32,7 @@ SET_TARGET_PROPERTIES(${GUI_NAME} PROPERTIES
 TARGET_LINK_LIBRARIES(${GUI_NAME} 
 	${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
-IF(WIN32)
-  # Install visualizer to bin, since it needs to be co-located with dll's
-  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_BINDIR})
-ELSE()
-  # Visualizer is not intended to be a user executable. Proper place is
-  # inside the lib directory
-  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_LIBEXECDIR}/simbody)
-ENDIF()
+# SIMBODY_VISUALIZER_INSTALL_DIR is set in Simbody/CMakeLists.txt
 INSTALL(TARGETS ${GUI_NAME}
          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                              GROUP_READ GROUP_WRITE GROUP_EXECUTE

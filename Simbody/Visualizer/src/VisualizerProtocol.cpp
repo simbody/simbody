@@ -218,7 +218,10 @@ VisualizerProtocol::VisualizerProtocol
             Pathname::getEnvironmentVariable("SimTK_INSTALL_DIR"));
         actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
     } else {
-        // No environment variables set. Our last desperate attempts will
+        // No environment variables set. Try the build-time install location:
+        actualSearchPath.push_back(SIMBODY_VISUALIZER_INSTALL_DIR);
+
+        // Our last desperate attempts will
         // be  <platformDefaultInstallDir>/Simbody/bin
         // and <platformDefaultInstallDir>/SimTK/bin
         const std::string def = Pathname::getDefaultInstallDir();
