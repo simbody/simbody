@@ -161,8 +161,6 @@ FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 ENDFOREACH(subdir)
 
-INCLUDE(ApiDoxygen.cmake)
-
 #
 # Installation
 #
