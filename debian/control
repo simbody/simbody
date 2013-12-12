@@ -1,6 +1,6 @@
 Source: simbody
 Maintainer: Michael Sherman <msherman@stanford.edu>
-Standards-Version: 3.9.3
+Standards-Version: 3.9.5
 Section: science
 Priority: extra
 Build-Depends: debhelper (>= 9), 
@@ -9,7 +9,8 @@ Build-Depends: debhelper (>= 9),
                freeglut3-dev,
                libxi-dev,
                libxmu-dev,
-               liblapack-dev
+               liblapack-dev,
+               doxygen-latex
 Vcs-Browser: https://github.com/simbody/simbody
 Vcs-Git: git://github.com/simbody/simbody.git
 Homepage: https://simtk.org/home/simbody
@@ -37,7 +38,7 @@ Depends: freeglut3-dev,
 	 libsimbody3.3 (= ${binary:Version}),
 	 ${misc:Depends}
 Multi-Arch: same
-Description: SimTK multibody dynamics API - developemnt files
+Description: SimTK multibody dynamics API - development files
  Simbody is a SimTK toolset providing general multibody dynamics capability,
  that is, the ability to solve Newton's 2nd law F=ma in any set of generalized
  coordinates subject to arbitrary constraints. Simbody is provided as an open

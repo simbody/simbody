@@ -156,7 +156,7 @@ get_filename_component(Simbody_ROOT_DIR_TEMP "${Simbody_INCLUDE_DIR}" PATH)
 set(Simbody_ROOT_DIR "${Simbody_ROOT_DIR_TEMP}" CACHE PATH
     "Where we found Simbody; use SimTK_INSTALL_DIR to change." FORCE)
 
-set(Simbody_LIB_DIR ${Simbody_ROOT_DIR}/lib CACHE PATH
+set(Simbody_LIB_DIR ${Simbody_ROOT_DIR}/@CMAKE_INSTALL_LIBDIR@ CACHE PATH
     "Location of Simbody and SimTK libraries." FORCE)
 set(Simbody_BIN_DIR ${Simbody_ROOT_DIR}/bin CACHE PATH
     "Location of Simbody-related executables and (on Windows) dlls." FORCE)

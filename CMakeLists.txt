@@ -19,6 +19,17 @@ endif(COMMAND cmake_policy)
 
 PROJECT(Simbody)
 
+# Include GNUInstallDirs to get canonical paths
+include(GNUInstallDirs)
+
+IF(WIN32)
+  set (CMAKE_INSTALL_DOCDIR doc)
+ELSE()
+  # Redefine DOCDIR to use the project name in lowercase to avoid
+  # problems with some platforms: NTFS on Win, XFS or JFS variants
+  set (CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/simbody)
+ENDIF()
+
 SET(SIMBODY_MAJOR_VERSION 3)
 SET(SIMBODY_MINOR_VERSION 4)
 SET(SIMBODY_PATCH_VERSION 0)
@@ -178,10 +189,6 @@ SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
 # in /usr/local/simbody or %ProgramFiles%\Simbody. 
 #
 
-# As of Ubuntu 12, 64 bit libraries are in lib, not lib64, so we are 
-# not setting this on any platform now. If you are building on an
-# older system you might have to set it manually.
-SET(LIB64)
 
 # For backward compatibility, use SimTK_INSTALL_PREFIX if
 # CMAKE_INSTALL_PREFIX hasn't been set.
@@ -198,11 +205,6 @@ IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
         SET(CMAKE_INSTALL_PREFIX "/usr/local/simbody" 
             CACHE PATH "Install directory")
     ENDIF(NOT CMAKE_INSTALL_PREFIX)
-
-    # As of Ubuntu 12, 64 bit libraries are in lib, not lib64
-    #IF(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-    #    SET( LIB64 64 )
-    #ENDIF()
 
 ELSE() # Windows
     # On Win64, there are two environment variables, ProgramFiles(x86) for
@@ -227,16 +229,6 @@ ELSE() # Windows
     ENDIF(NOT CMAKE_INSTALL_PREFIX)
 
 ENDIF()
-
-# On Mac, we'll use the defaults for the architecture and deployment target.
-# This works OK on OSX 10.8. For older systems, or if you want to build for
-# an older deployment target, or 32 bit or univeral binaries, you may have 
-# to set CMAKE_OSX_ARCHITECTURES and/or CMAKE_OSX_DEPLOYMENT_TARGET. 
-# Architectures are "i386", "x86_64", or "i386;x86_64" for universal.
-# Deployment targets are "10.6" or whatever.
-IF(APPLE)
-    SET(LIB64 ) # never use lib64 on Mac
-ENDIF(APPLE)
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" FORCE)
@@ -556,7 +548,9 @@ ADD_SUBDIRECTORY( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set (but not used)
 
 FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
-INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION doc)
+INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
-FILE(GLOB INSTALLED_CMAKE_STUFF cmake/*.cmake cmake/*.txt)
-INSTALL(FILES ${INSTALLED_CMAKE_STUFF} DESTINATION share/cmake)
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake @ONLY)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake DESTINATION
+    ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)

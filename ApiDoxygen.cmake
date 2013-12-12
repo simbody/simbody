@@ -12,9 +12,9 @@ ELSE(DOXYGEN_EXECUTABLE-NOTFOUND)
 
     FILE(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/html/")
     INSTALL(DIRECTORY "${PROJECT_BINARY_DIR}/html/"
-            DESTINATION "doc/api/${PROJECT_NAME}/html"
+            DESTINATION "${CMAKE_INSTALL_DOCDIR}/api/${PROJECT_NAME}/html"
             )
     # This is just a shortcut to the Doxygen index.html.
-    INSTALL(FILES "SimbodyAPI.html" DESTINATION "doc")
+    INSTALL(FILES "SimbodyAPI.html" DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 ENDIF(DOXYGEN_EXECUTABLE-NOTFOUND)
 

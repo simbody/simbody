@@ -18,34 +18,9 @@ override_dh_auto_build-indep:
 override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake 
 	
-	# Build system does not support define own library for libs
-	# Manually move /usr to /usr/$(DEB_HOST_MULTIARCH)
-	mv debian/tmp/usr/lib \
-	    debian/tmp/lib_tmp
-	mkdir -p debian/tmp/usr/lib/
-	mv debian/tmp/lib_tmp \
-	    debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/
-	# Fix cmake finder
-	# 1. Fix to use DEB_HOST_MULTIARCH 
-	sed -i -e "s:/lib:/lib/$(DEB_HOST_MULTIARCH):g" \
-	    debian/tmp/usr/share/cmake/FindSimbody.cmake
-	# 2. Use -config like file to be automatically found
-	mkdir -p debian/tmp/usr/share/Simbody
-	mv debian/tmp/usr/share/cmake \
-	    debian/tmp/usr/share/Simbody
-	mv  debian/tmp/usr/share/Simbody/cmake/FindSimbody.cmake \
-	    debian/tmp/usr/share/Simbody/cmake/SimbodyConfig.cmake
-	
 	# Remove extra LICENSE and INSTALL file
-	rm debian/tmp/usr/doc/LICENSE.txt
-	rm debian/tmp/usr/doc/INSTALL.txt
-	# Move /usr/doc to /usr/share/doc
-	mkdir -p debian/tmp/usr/share/doc
-	mv debian/tmp/usr/doc \
-	    debian/tmp/usr/share/doc/libsimbody-doc/
-
-override_dh_auto_test:
-	dh_auto_test || true
+	rm debian/tmp/usr/share/doc/simbody/LICENSE.txt
+	rm debian/tmp/usr/share/doc/simbody/INSTALL.txt
 
 override_dh_strip:
 	dh_strip -a --dbg-package=libsimbody3.3-dbg

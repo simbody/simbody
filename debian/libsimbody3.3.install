@@ -1,2 +1,2 @@
 usr/lib/*/*.so.*
-usr/bin
+usr/lib/*/simbody/*
