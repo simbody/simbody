@@ -22,9 +22,13 @@ PROJECT(Simbody)
 # Include GNUInstallDirs to get canonical paths
 include(GNUInstallDirs)
 
-# Redefine DOCDIR to not use PROJECT_NAME and use the project name in lowercase
-# to avoid problems with some platforms: NTFS on Win, XFS or JFS variants
-set (CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/simbody)
+IF(WIN32)
+  set (CMAKE_INSTALL_DOCDIR doc)
+ELSE()
+  # Redefine DOCDIR to use the project name in lowercase to avoid
+  # problems with some platforms: NTFS on Win, XFS or JFS variants
+  set (CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/simbody)
+ENDIF()
 
 SET(SIMBODY_MAJOR_VERSION 3)
 SET(SIMBODY_MINOR_VERSION 4)
