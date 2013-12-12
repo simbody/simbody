@@ -120,8 +120,6 @@ ENDFOREACH(subdir)
 
 #INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src)
 
-INCLUDE(ApiDoxygen.cmake)
-
 # libraries and examples are installed from their subdirectories; headers here
 
 # install headers

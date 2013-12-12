@@ -174,8 +174,6 @@ SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 # Add low-level source include directories if any.
 INCLUDE_DIRECTORIES(${SOURCE_INCLUDE_DIRS})
 
-INCLUDE(ApiDoxygen.cmake)
-
 #
 # Installation
 #
