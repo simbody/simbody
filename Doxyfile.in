@@ -787,7 +787,9 @@ EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */Platform/* \
                          */tests/* \
                          */examples/* \
-                         */src/* \
+                         */SimTKcommon/*src/* \
+                         */SimTKmath/*src/* \
+                         */Simbody/*src/* \
                          */SimTKlapack.h \
                          */internal/ResultType.h \
                          */simbody-visualizer/* \
