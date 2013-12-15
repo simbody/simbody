@@ -386,7 +386,7 @@ in frame A.
     The relative spatial velocity of frame B in frame A, measured and 
     expressed in frame A.
 @return V_BA_A, the relative velocity of frame A in frame B, but still 
-    expressed in B.
+    expressed in A.
 
 The input V_AB is expressed in the A frame; you will almost always want the
 output V_BA expressed in the B frame which is what the function 
