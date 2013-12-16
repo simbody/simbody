@@ -500,7 +500,7 @@ clampInPlace(). The first one is the most commonly used and simply
 calculates an in-range value from an input value and a given range
 [low,high]. clampInPlace() is given a reference to a variable and if
 necessary modifies that variable so that its value is in the given range
-[los,high]. Both functions are overloaded for all the integral and real 
+[low,high]. Both functions are overloaded for all the integral and real 
 types but are not defined for complex or conjugate types. 
 
 The following examples shows how clamp() and clampInPlace() can be defined 
