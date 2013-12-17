@@ -239,28 +239,50 @@ IF(APPLE)
 ENDIF(APPLE)
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
-    SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" FORCE)
+    SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" 
+        FORCE)
 ENDIF (UNIX AND NOT CMAKE_BUILD_TYPE)
+
 
 ## Choose the maximum level of x86 instruction set that the compiler is 
 ## allowed to use. SSE2 is ubiquitous enough now that we don't mind
 ## abandoning machines that can't handle those instructions. SSE3 might
 ## also be reasonable by now (April 2009) so this default should be
-## revisited soon. This can be set to a different value by the person
-## running CMake.
-SET(BUILD_INST_SET "sse2"  # use SSE2 instruction set by default
-    CACHE STRING "CPU instruction level compiler is permitted to use.")
+## revisited soon. On 64 bit MSVC, the default is sse2 and the argument
+## isn't recognized so we won't specify it.
+if (CMAKE_CL_64)
+    set(default_build_inst_set)
+else()
+    set(default_build_inst_set "sse2")
+endif()
+
+## This can be set to a different value by the person running CMake.
+SET(BUILD_INST_SET ""
+    CACHE STRING 
+    "CPU instruction level compiler is permitted to use (default is sse2).")
 MARK_AS_ADVANCED( BUILD_INST_SET )
 
-## When building in any of the Release modes, tell gcc to use full optimization and
-## to generate SSE2 floating point instructions. Here we are specifying *all* of the
-## Release flags, overriding CMake's defaults.
+if (BUILD_INST_SET)
+    set(inst_set_to_use ${BUILD_INST_SET})
+else()
+    set(inst_set_to_use ${default_build_inst_set})
+endif()
+
+## When building in any of the Release modes, tell gcc to use full 
+## optimization and to generate SSE2 floating point instructions. Here we 
+## are specifying *all* of the Release flags, overriding CMake's defaults.
 ## Watch out for optimizer bugs in particular gcc versions!
 
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
-    string(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
+IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR 
+   ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    if (inst_set_to_use)
+        string(TOLOWER ${inst_set_to_use} GCC_INST_SET)
+        set(GCC_INST_SET "-m${GCC_INST_SET}")
+    else()
+        set(GCC_INST_SET)
+    endif()
 
-    # Get the gcc version number in major.minor.build format
+    # Get the gcc or clang version number in major.minor.build format
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
                     OUTPUT_VARIABLE GCC_VERSION)
 
@@ -273,34 +295,28 @@ IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_C_COMPILER} MATCHES "clang")
     # We know Gcc 4.4.3 on Ubuntu 10 is buggy and that Snow Leopard's
     # 4.2.1 is not. To be safe for now we'll assume anything over 4.3
     # should have these disabled.
-    if (GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
+    IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+      if (GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
         SET(GCC_OPT_DISABLE 
-	"-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
-    endif()
+        "-fno-strict-aliasing -fno-tree-vrp -fno-guess-branch-probability")
+      endif()
+    ENDIF()
 
     # C++
-    SET(BUILD_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
-      CACHE STRING "g++ Debug build compile flags")
+    SET(BUILD_CXX_FLAGS_DEBUG          "-g ${GCC_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELEASE        
-      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
-      CACHE STRING "g++ Release build compile flags")
+      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
-      "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
-      CACHE STRING "g++ RelWithDebInfo build compile flags")
-    SET(BUILD_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os -m${GCC_INST_SET}" 
-      CACHE STRING "g++ MinSizeRel build compile flags")
+    "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
+    SET(BUILD_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os ${GCC_INST_SET}")
 
     # C
-    SET(BUILD_C_FLAGS_DEBUG            "-g -m${GCC_INST_SET}" 
-      CACHE STRING "gcc Debug build compile flags")
+    SET(BUILD_C_FLAGS_DEBUG            "-g ${GCC_INST_SET}")
     SET(BUILD_C_FLAGS_RELEASE          
-      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
-      CACHE STRING "gcc Release build compile flags")
+      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
     SET(BUILD_C_FLAGS_RELWITHDEBINFO   
-      "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
-      CACHE STRING "gcc RelWithDebInfo build compile flags")
-    SET(BUILD_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os -m${GCC_INST_SET}" 
-      CACHE STRING "gcc MinSizeRel build compile flags")
+    "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
+    SET(BUILD_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os ${GCC_INST_SET}")
 
     # C++
     SET(CMAKE_CXX_FLAGS_DEBUG ${BUILD_CXX_FLAGS_DEBUG}
@@ -327,10 +343,16 @@ ENDIF()
 ## When building in any of the Release modes, tell VC++ cl compiler to use 
 ## intrinsics (i.e. sqrt instruction rather than sqrt subroutine) with 
 ## flag /Oi.
+## Caution: can't use CMAKE_CXX_COMPILER_ID MATCHES MSVC here because
+## "MSVC" is a predefined CMAKE variable and will get expanded to 1 or 0
+IF(MSVC)
+    if (inst_set_to_use)
+        string(TOUPPER ${inst_set_to_use} CL_INST_SET)
+        set(CL_INST_SET "/arch:${CL_INST_SET}")
+    else()
+        set(CL_INST_SET)
+    endif()
 
-## Careful -- "cl" would match "clang" also. Only check on Windows.
-IF(WIN32 AND ${CMAKE_C_COMPILER} MATCHES "cl")
-    STRING(TOUPPER ${BUILD_INST_SET} CL_INST_SET)
     set(BUILD_LIMIT_PARALLEL_COMPILES "" CACHE STRING
         "Set a maximum number of simultaneous compilations.")
     mark_as_advanced(BUILD_LIMIT_PARALLEL_COMPILES)
@@ -338,31 +360,23 @@ IF(WIN32 AND ${CMAKE_C_COMPILER} MATCHES "cl")
 
     ## C++
     SET(BUILD_CXX_FLAGS_DEBUG        
-	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ Debug build compile flags")
+	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELEASE        
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ Release build compile flags")
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ RelWithDebInfo build compile flags")
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_MINSIZEREL 
-	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC++ MinSizeRel build compile flags")
+	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C
     SET(BUILD_C_FLAGS_DEBUG        
-	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC Debug build compile flags")
+	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_RELEASE        
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC Release build compile flags")
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_RELWITHDEBINFO 
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC RelWithDebInfo build compile flags")
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_MINSIZEREL 
-	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- /arch:${CL_INST_SET}" 
-        CACHE STRING "VC MinSizeRel build compile flags")
+	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C++
     SET(CMAKE_CXX_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_CXX_FLAGS_DEBUG}"
@@ -385,17 +399,6 @@ IF(WIN32 AND ${CMAKE_C_COMPILER} MATCHES "cl")
         CACHE STRING "Can't change here -- see BUILD_C_..." FORCE)
 
 ENDIF()
-
-MARK_AS_ADVANCED(
-    BUILD_CXX_FLAGS_DEBUG
-    BUILD_CXX_FLAGS_RELEASE
-    BUILD_CXX_FLAGS_RELWITHDEBINFO
-    BUILD_CXX_FLAGS_MINSIZEREL
-    BUILD_C_FLAGS_DEBUG
-    BUILD_C_FLAGS_RELEASE
-    BUILD_C_FLAGS_RELWITHDEBINFO
-    BUILD_C_FLAGS_MINSIZEREL
-)
 
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
