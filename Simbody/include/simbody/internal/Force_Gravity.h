@@ -55,15 +55,18 @@ fb = mb*g*d, applied to its center of mass, where mb is the mass of body B.
 Although this is a pure force, note that when it is measured in the body frame 
 B there will also be a moment unless the body frame origin Bo is located at the 
 body's mass center. You can obtain the applied forces if you need them, for
-example for gravity compensation; see getBodyForce().
+example for gravity compensation; see getBodyForces().
 
 \par Potential Energy
-Gravitational potential energy for a body B is mb*g*hb where 
-hb is the height of body B's mass center over an arbitrary "zero"
-height hz (default is hz=0), measured along the "up" direction -d. If pb is 
-the Ground frame vector giving the position of body B's mass center, its
-height over or under hz is hb=pb*(-d) - hz. Note that this is a signed
-quantity so the potential energy is also signed. **/
+Gravitational potential energy for a body B is mb*g*hb where hb is the height of 
+body B's mass center over an arbitrary "zero" height hz (default is hz=0), 
+measured along the "up" direction -d. If pb is the Ground frame vector giving 
+the position of body B's mass center, its height over or under hz is 
+hb=pb*(-d) - hz. Note that this is a signed quantity so the potential energy is 
+also signed. 
+
+@author Michael Sherman
+**/
 class SimTK_SIMBODY_EXPORT Force::Gravity : public Force {
 public:
 
@@ -77,13 +80,13 @@ Note:
   - Changing one of these default parameters invalidates the containing 
     System's topology, meaning that realizeTopology() will have to be called 
     and a new State obtained before subsequent use. 
-  - The set...() methods return a reference to "this" Gravity element (in
+  - The set...() methods return a reference to "this" %Gravity element (in
     the manner of an assignment operator) so they can be chained in a single 
     expression. **/
 /*@{*/
 
 
-/** This is the most general constructor for creating a Gravity force element 
+/** This is the most general constructor for creating a %Gravity force element 
 within a particular force subsystem and affecting all the bodies of a particular
 matter subsystem, given gravity magnitude and direction separately. 
 
@@ -97,7 +100,7 @@ fly with setBodyIsExcluded().
     The subsystem containing the bodies that will be affected.
 @param[in]          down
     The default gravity direction vector d (i.e., the "down" direction),
-    expressed in the Ground frame. Gravity will be directed along this direction
+    expressed in the Ground frame. %Gravity will be directed along this direction
     unless explicitly changed within a particular State via the setDirection() 
     or setGravityVector() methods. This is a unit vector; if you provide an 
     ordinary Vec3 it will be normalized before use and its magnitude ignored.
@@ -108,7 +111,7 @@ fly with setBodyIsExcluded().
     scalar with units of acceleration. The gravity vector is calculated as 
     v=g*d where d is the current direction vector, typically the default 
     direction as given by the \a down argument to this constructor. 
-    Gravity will have the magnitude given here unless explicitly changed within
+    %Gravity will have the magnitude given here unless explicitly changed within
     a particular State via the setMagnitude() or setGravityVector() methods.
 @param[in]          zeroHeight
     This is an optional specification of the default value for the height
@@ -200,7 +203,7 @@ method on Ground but the call will be ignored.
 @param[in]      isExcluded
     Set to true if the default should be that this body is \e not to be affected
     by this %Gravity force element.
-@return A writable reference to "this" Gravity element which will now have
+@return A writable reference to "this" %Gravity element which will now have
     the indicated body excluded.
 
 @see setBodyIsExcluded() **/
@@ -213,7 +216,7 @@ magnitude is exactly zero in which case we'll leave the direction unchanged.
 @param[in]      gravity    
     A vector giving the magnitude and direction with which gravity will act
     on the bodies. If exactly zero only the magnitude will be changed.
-@return A writable reference to "this" Gravity element which will now have
+@return A writable reference to "this" %Gravity element which will now have
     the new default magnitude and direction. **/
 Gravity& setDefaultGravityVector(const Vec3& gravity);
 
@@ -223,7 +226,7 @@ gravity will act.
     A unit vector giving the direction along which gravity will act ("down").
     If you pass an ordinary Vec3, it will be normalized before use and its
     length will be ignored. Do not pass a zero-length Vec3, however.
-@return A writable reference to "this" Gravity element which will now have
+@return A writable reference to "this" %Gravity element which will now have
     the new default \a direction. **/
 Gravity& setDefaultDownDirection(const UnitVec3& down);
 /** Convenience overload that takes the down direction as a Vec3 and 
@@ -241,7 +244,7 @@ mass of body b and the force is applied to b's mass center.
     The magnitude of the uniform gravitational field, given as a nonnegative
     scalar in units of acceleration. If this is zero no forces will be applied
     by this element.
-@return A writable reference to "this" Gravity element which will now have
+@return A writable reference to "this" %Gravity element which will now have
     the new default \a strength. **/
 Gravity& setDefaultMagnitude(Real g);
 
@@ -251,7 +254,7 @@ calculation. See the Gravity class comments for how this is used.
     The height that is considered to be "zero" for purposes of potential
     energy calculation. An affected body whose mass center is at this height
     will have zero gravitational potential energy.
-@return A writable reference to "this" Gravity element which will now have
+@return A writable reference to "this" %Gravity element which will now have
     the new default \a zeroHeight. **/
 Gravity& setDefaultZeroHeight(Real zeroHeight);
 
@@ -265,10 +268,10 @@ returned by System::realizeTopology().
     this will always be \c true for Ground.    
 @see getBodyIsExcluded() **/
 bool getDefaultBodyIsExcluded(MobilizedBodyIndex mobod) const;
-/** Return the default gravity vector being used for this Gravity force 
+/** Return the default gravity vector being used for this %Gravity force 
 element, calculated from the default magnitude and direction. **/
 Vec3 getDefaultGravityVector() const;
-/** Return the default down direction (a unit vector) for this Gravity force 
+/** Return the default down direction (a unit vector) for this %Gravity force 
 element. **/
 const UnitVec3& getDefaultDownDirection() const;
 /** Return the default gravity magnitude g (a nonnegative scalar). **/
@@ -282,37 +285,40 @@ Real getDefaultZeroHeight() const;
 
 
 //------------------------------------------------------------------------------
-/** @name                      Instance Parameters
+/** @name                      Runtime Changes
 
-These refer to the Instance-stage state variables that determine the actual
+These refer to Dynamics-stage discrete state variables that determine the actual
 values to be used to calculate gravitational forces and energy from a given
 State object, and which bodies are to be excluded from that calculation. If 
 these are not set explicitly, the values are set to those provided in the 
 constructor or via the correponding setDefault...() methods. Note:
   - Changing one of these parameters invalidates the given State's 
-    Instance stage, meaning that realize(Instance) will have to be called 
-    (explicitly or implicitly by realizing a higher stage) before 
-    subsequent use.
-  - The set...() methods here return a const reference to "this" Gravity force
+    Stage::Dynamics, meaning that the State's stage will be no higher than
+    Stage::Velocity after the parameter change. That ensures that forces
+    will be recalcuated before they are used (forces are calculated when
+    Stage::Dynamics is realized).
+  - The set...() methods here return a const reference to "this" %Gravity force
     element (in the manner of an assignment operator, except read-only) so they
     can be chained in a single expression. **/
 /*@{*/
 
 /** Within a given State, selectively exclude (or include) a body from the 
-effects of this Gravity force. The default State will inherit the "is excluded
+effects of this %Gravity force. The default State will inherit the "is excluded
 by default" values set during construction, but then you can change them. Ground 
 is always excluded; you can call this method on Ground but the call will
 be ignored. 
 @param[in,out]      state
-    The State object that is modified by this method.
+    The State object that is modified by this method; Stage::Dynamics will
+    be invalidated leaving the current stage no higher than Stage::Velocity.
 @param[in]          mobod
     This is a MobilizedBody or MobilizedBodyIndex for the body whose 
     exclusion status you want to change.
 @param[in]          isExcluded
     Set to true if this body should \e not be affected by this force element.
-@return A const reference to "this" Gravity force element for convenient 
+@return A const reference to "this" %Gravity force element for convenient 
     chaining of  set...() methods in a single expression.
-@pre \a state must already be realized to Stage::Topology. 
+@pre \a state must already be realized to Stage::Topology.
+@post Stage::Dynamics is invalidated in \a state if anything was changed.
 @see setDefaultBodyIsExcluded(), getBodyIsExcluded() **/
 const Gravity& setBodyIsExcluded(State& state, MobilizedBodyIndex mobod, 
                                 bool isExcluded) const;
@@ -322,13 +328,15 @@ gravitational forces will act, overriding the default magnitude and direction
 that are stored in this %Gravity force element. If the given vector is exactly
 zero, then only the magnitude will be changed here.
 @param[in,out]      state
-    The State object that is modified by this method.
+    The State object that is modified by this method; Stage::Dynamics will
+    be invalidated leaving the current stage no higher than Stage::Velocity.
 @param[in]          gravity    
     The gravity vector including both the magnitude and direction. If this is
     exactly zero only the magnitude will be changed.
-@return A const reference to "this" Gravity element for convenient chaining of 
+@return A const reference to "this" %Gravity element for convenient chaining of 
     set...() methods in a single expression.
 @pre \a state must already be realized to Stage::Topology. 
+@post Stage::Dynamics is invalidated in \a state if anything was changed.
 @see setDownDirection(), setMagnitude() **/
 const Gravity& setGravityVector(State& state, const Vec3& gravity) const;
 
@@ -336,12 +344,14 @@ const Gravity& setGravityVector(State& state, const Vec3& gravity) const;
 which gravitational forces will act. Magnitude can be changed independently
 with setMagnitude().
 @param[in,out]      state
-    The State object that is modified by this method.
+    The State object that is modified by this method; Stage::Dynamics will
+    be invalidated leaving the current stage no higher than Stage::Velocity.
 @param[in]          down    
     A unit vector giving the "down" direction along which gravity will act.
-@return A const reference to "this" Gravity element for convenient chaining of 
+@return A const reference to "this" %Gravity element for convenient chaining of 
     set...() methods in a single expression.
 @pre \a state must already be realized to Stage::Topology. 
+@post Stage::Dynamics is invalidated in \a state if anything was changed.
 @see setMagnitude() **/
 const Gravity& setDownDirection(State&           state,
                                 const UnitVec3&  down) const;
@@ -353,25 +363,32 @@ const Gravity& setDownDirection(State&          state,
 {   return setDownDirection(state, UnitVec3(down)); }
 
 /** Set the gravity magnitude g (a nonnegative scalar) in this \a state,
-overriding the default gravity magnitude that is stored in this Gravity force
+overriding the default gravity magnitude that is stored in this %Gravity force
 element.
-@param[in,out] state    The State object that is modified by this method.
-@param[in]     g        The magnitude of the uniform gravitational field.
-@return A const reference to "this" Gravity element for convenient chaining of 
+@param[in,out]      state        
+    The State object that is modified by this method; Stage::Dynamics will
+    be invalidated leaving the current stage no higher than Stage::Velocity.
+@param[in]          g        
+    The magnitude of the uniform gravitational field.
+@return A const reference to "this" %Gravity element for convenient chaining of 
     set...() methods in a single expression.
 @pre \a state must already be realized to Stage::Topology. 
+@post Stage::Dynamics is invalidated in \a state if anything was changed.
 @see setDownDirection() **/
 const Gravity& setMagnitude(State& state, Real g) const;
+
 /** Set the potential energy zero height hz (a scalar) in this \a state,
-overriding the default zero height that is stored in this Gravity force
+overriding the default zero height that is stored in this %Gravity force
 element.
 @param[in,out]      state
-    The State object that is modified by this method.
+    The State object that is modified by this method; Stage::Dynamics will
+    be invalidated leaving the current stage no higher than Stage::Velocity.
 @param[in]          hz    
     The height at which potential energy is considered to be zero.
-@return A const reference to "this" Gravity element for convenient chaining of 
+@return A const reference to "this" %Gravity element for convenient chaining of 
     set...() methods in a single expression.
-@pre \a state must already be realized to Stage::Topology. **/
+@pre \a state must already be realized to Stage::Topology.
+@post Stage::Dynamics is invalidated in \a state if anything was changed. **/
 const Gravity& setZeroHeight(State& state, Real hz) const;
 
 /** Return the current setting of the "is excluded" flag for a given body in a 
@@ -384,13 +401,14 @@ body's exclusion status.
     you want to obtain.
 @return The current value of the "is excluded" flag for this body in this 
     \a state; this will always be \c true for Ground. 
+@pre \a state must already be realized to Stage::Topology.
 @see getDefaultBodyIsExcluded(), setBodyIsExcluded() **/
 bool getBodyIsExcluded(const State& state, MobilizedBodyIndex mobod) const;
 /** Get the gravity vector v that will be used for computations done with this
 \a state. This is calculated as v=g*d from the current values of the magnitude
 g and direction d Instance variables in the \a state.
 @param[in]      state
-    The state containing the gravity Instance variables used to calculate the
+    The state containing the gravity runtime variables used to calculate the
     gravity vector.
 @return The current value of the gravity vector.
 @pre \a state must have been realized to Topology stage. **/
@@ -398,51 +416,51 @@ Vec3 getGravityVector(const State& state) const;
 /** Get the gravity "down" direction d (a unit vector) that is currently set 
 in this \a state.
 @param[in]      state
-    The state containing the gravity direction Instance variable whose value is
+    The state containing the gravity direction runtime variable whose value is
     returned.
-@return The current value of the gravity direction Instance variable.
+@return The current value of the gravity direction variable.
 @pre \a state must have been realized to Topology stage. **/
 const UnitVec3& getDownDirection(const State& state) const;
 /** Get the gravity magnitude g (a nonnegative scalar) that is currently set 
 in this \a state.
 @param[in]      state
-    The state containing the gravity magnitude Instance variable whose value is
+    The state containing the gravity magnitude runtime variable whose value is
     returned.
-@return The current value of the gravity magnitude Instance variable.
+@return The current value of the gravity magnitude variable.
 @pre \a state must have been realized to Topology stage. **/
 Real getMagnitude(const State& state) const;
 /** Get the zero height hz that is currently set in this \a state for use in
 calculating gravitational potential energy. See the class documentation for 
 information about hz is used.
 @param[in]      state
-    The state containing the zero height Instance variable whose value is
+    The state containing the zero height runtime variable whose value is
     returned.
-@return The current value of the zero height Instance variable.
+@return The current value of the zero height variable.
 @pre \a state must have been realized to Topology stage. **/
 Real getZeroHeight(const State& state) const;
 
-/*@}........................ Instance Parameters .............................*/
+/*@}.......................... Runtime Changes ...............................*/
 
 
 
 //------------------------------------------------------------------------------
 /** @name                       Energy and Forces
 These methods return the gravitational potential energy and the forces being 
-applied by this Gravity element in the configuration contained in the supplied 
+applied by this %Gravity element in the configuration contained in the supplied 
 State. These are evaluated during force calculation and available at no 
 computational cost afterwards, although the first call after a position or 
-instance-variable change will initiate computation if forces haven't already 
+runtime variable change will initiate computation if forces haven't already 
 been computed. **/
 /*@{*/
 
-/** Obtain the gravitational potential energy contained in this Gravity force
+/** Obtain the gravitational potential energy contained in this %Gravity force
 element in the given configuration. Note that gravitational potential energy
 is m*g*h for each body where the height h is measured from an arbitrary zero
 height. By default the zero height is defined to be height of the Ground 
 origin but that can be changed arbitrarily.
 @param[in]          state    
     The State from whose cache the potential energy is retrieved.
-@return The gravitational potential energy of this Gravity force element in the 
+@return The gravitational potential energy of this %Gravity force element in the 
     configuration contained in \a state (a signed scalar).
 @pre \a state must be realized to Stage::Position **/
 Real getPotentialEnergy(const State& state) const;
@@ -451,20 +469,22 @@ Real getPotentialEnergy(const State& state) const;
 applied by this %Gravity force element, as a Vector of spatial forces indexed
 by MobilizedBodyIndex. The force on Ground or on any explicitly excluded body 
 is zero, but there is an entry for every mobilized body (starting with Ground) 
-in the returned result. The return vector of spatial vectors is in a form suitable for direct use with
-the SimbodyMatterSubsystem Jacobian operators, which can be used to transform
-these into generalized forces. This can be useful for gravity compensation.
+in the returned result. The return vector of spatial vectors is in a form 
+suitable for direct use with the SimbodyMatterSubsystem Jacobian operators, 
+which can be used to transform these into the equivalent generalized forces. 
+This can be useful for gravity compensation.
 
 @param[in]  state   
     The State from whose cache the force is retrieved.
-@return A reference to the Vector of spatial forces (meaning the gravitational 
-    force and moment about the body origin) currently being applied to each 
-    of the mobilized bodies, expressed in the Ground frame.
+@return A reference to the vector of spatial forces (meaning the gravitational 
+    moment about and force at the body origin, \e not necessarily the center
+    of mass) currently being applied to each of the mobilized bodies, expressed
+    in the Ground frame.
 @pre \a state must be realized to Stage::Position 
 
 Forces are returned as though applied at the body origin, which is
 \e not necessarily the same place as the body center of mass. That means that
-in general there will be both a force and a moment returned for each body.
+in general there will be both a moment and a force returned for each body.
 
 If gravity forces have not yet been calculated for the configuration given
 in \a state, the computation will be initiated here and cached for use later.
@@ -479,8 +499,8 @@ see getBodyForces() to get the whole set at once, and for more information.
 @param[in]  mobod   
     The MobilizedBody or MobilizedBodyIndex whose force is wanted.
 @return The spatial force (meaning the gravitational force and moment about
-    the body origin) currently being applied to the given mobilized body, 
-    expressed in the Ground frame.
+    the body origin, \e not necessarily the center of mass) currently being 
+    applied to the given mobilized body, expressed in the Ground frame.
 @pre \a state must be realized to Stage::Position **/
 const SpatialVec& 
 getBodyForce(const State& state, MobilizedBodyIndex mobod) const
@@ -488,7 +508,7 @@ getBodyForce(const State& state, MobilizedBodyIndex mobod) const
 
 // Particles aren't supported yet so don't show this in Doxygen.
 /** @cond **/
-/** Obtain the gravitational forces currently being applied by this Gravity
+/** Obtain the gravitational forces currently being applied by this %Gravity
 force element to the particles.
 @param[in]  state       The State from whose cache the force is retrieved.
 @return The current value of the forces, expressed in the Ground frame.
