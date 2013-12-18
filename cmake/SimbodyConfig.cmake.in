@@ -111,6 +111,11 @@ else()
         "Simbody static libraries" FORCE)
 endif()
 
+# This CMake-supplied script provides standard error handling.
+include(FindPackageHandleStandardArgs OPTIONAL)
+find_package_handle_standard_args(Simbody DEFAULT_MSG 
+	Simbody_INCLUDE_DIR)
+
 # Not all the variables we produced need be returned.
 unset(Simbody_LIBRARY CACHE)
 unset(Simbody_DEBUG_LIBRARY CACHE)
