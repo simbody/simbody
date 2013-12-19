@@ -536,6 +536,17 @@ INCLUDE(ApiDoxygen.cmake)
 # earlier-built libraries that it depends on.
 LINK_DIRECTORIES(${BUILD_BINARY_DIR})
 
+# Specify where visualizer should be installed. This needs to be in the
+# root CMakeLists.txt so the cmake config file can see this value.
+IF(WIN32)
+  # Install visualizer to bin, since it needs to be co-located with dll's
+  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_BINDIR})
+ELSE()
+  # Visualizer is not intended to be a user executable. Proper place is
+  # inside the lib directory
+  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_LIBEXECDIR}/simbody)
+ENDIF()
+
 # Each of these returns a list of API include directories for
 # use by the later builds.
 ADD_SUBDIRECTORY( Platform )
