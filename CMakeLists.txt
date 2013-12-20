@@ -568,22 +568,6 @@ set(PKG_LIBRARIES
   SimTKmath
   SimTKcommon
 )
-if (WIN32)
-  set(Simbody_LAPACK_LIBRARY_LIST liblapack;libblas)
-else()
-  set(Simbody_LAPACK_LIBRARY_LIST lapack;blas)
-endif()
-if (WIN32)
-  if( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-    set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2_x64)
-  else()
-    set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2)
-  endif()
-elseif (APPLE)
-  set(Simbody_EXTRA_LIBRARY_LIST pthread;dl)
-else()
-  set(Simbody_EXTRA_LIBRARY_LIST pthread;rt;dl;m)
-endif()
 
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake @ONLY)

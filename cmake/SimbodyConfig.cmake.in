@@ -30,6 +30,24 @@ list(APPEND @PKG_NAME@_BIN_DIR @SIMBODY_VISUALIZER_INSTALL_DIR@)
 
 list(APPEND @PKG_NAME@_CFLAGS -I@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_INCLUDEDIR@)
 
+# Set extra libraries to link against
+if (WIN32)
+  set(Simbody_LAPACK_LIBRARY_LIST liblapack;libblas)
+else()
+  set(Simbody_LAPACK_LIBRARY_LIST lapack;blas)
+endif()
+if (WIN32)
+  if( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+    set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2_x64)
+  else()
+    set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2)
+  endif()
+elseif (APPLE)
+  set(Simbody_EXTRA_LIBRARY_LIST pthread;dl)
+else()
+  set(Simbody_EXTRA_LIBRARY_LIST pthread;rt;dl;m)
+endif()
+
 # Find out which of the libraries are available.
 find_library(Simbody_LIBRARY NAMES SimTKsimbody
     PATHS ${Simbody_LIB_DIR}
@@ -52,17 +70,42 @@ find_library(Simbody_STATIC_DEBUG_LIBRARY NAMES SimTKsimbody_static_d
 # Set composite Simbody_LIBRARIES variable
 set(LIBS)
 if(Simbody_LIBRARY AND Simbody_DEBUG_LIBRARY)
-    foreach(libname @PKG_LIBRARIES@)
-        set(LIBS ${LIBS} optimized "${libname}" debug "${libname}_d")
-    endforeach()
+  foreach(lib @PKG_LIBRARIES@)
+    set(onelib "${lib}-NOTFOUND")
+    find_library(onelib ${lib}
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH
+      )
+    if(NOT onelib)
+      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+    endif()
+    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelib}_d")
+  endforeach()
 elseif(Simbody_LIBRARY)
-    foreach(libname @PKG_LIBRARIES@)
-        set(LIBS ${LIBS} "${libname}")
-    endforeach()
+  foreach(lib @PKG_LIBRARIES@)
+    set(onelib "${lib}-NOTFOUND")
+    find_library(onelib ${lib}
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH
+      )
+    if(NOT onelib)
+      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+    endif()
+    set(LIBS ${LIBS} "${onelib}")
+  endforeach()
 elseif(Simbody_DEBUG_LIBRARY)
-    foreach(libname @PKG_LIBRARIES@)
-        set(LIBS ${LIBS} "${libname}_d")
-    endforeach()
+  foreach(lib @PKG_LIBRARIES@)
+    set(lib "${lib}_d")
+    set(onelib "${lib}-NOTFOUND")
+    find_library(onelib ${lib}
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH
+      )
+    if(NOT onelib)
+      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+    endif()
+    set(LIBS ${LIBS} "${onelib}")
+  endforeach()
 endif()
 
 if (LIBS)
@@ -82,18 +125,44 @@ endif()
 # Static library
 set(LIBS)
 if(Simbody_STATIC_LIBRARY AND Simbody_STATIC_DEBUG_LIBRARY)
-    foreach(libname @PKG_LIBRARIES@)
-        set(LIBS ${LIBS} optimized "${libname}_static" 
-		         debug     "${libname}_static_d")
-    endforeach()
+  foreach(lib @PKG_LIBRARIES@)
+    set(lib "${lib}_static")
+    set(onelib "${lib}-NOTFOUND")
+    find_library(onelib ${lib}
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH
+      )
+    if(NOT onelib)
+      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+    endif()
+    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelib}_d")
+  endforeach()
 elseif(Simbody_STATIC_LIBRARY)
-    foreach(libname @PKG_LIBRARIES@)
-        set(LIBS ${LIBS} "${libname}_static")
-    endforeach()
+  foreach(lib @PKG_LIBRARIES@)
+    set(lib "${lib}_static")
+    set(onelib "${lib}-NOTFOUND")
+    find_library(onelib ${lib}
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH
+      )
+    if(NOT onelib)
+      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+    endif()
+    set(LIBS ${LIBS} "${onelib}")
+  endforeach()
 elseif(Simbody_STATIC_DEBUG_LIBRARY)
-    foreach(libname @PKG_LIBRARIES@)
-        set(LIBS ${LIBS} "${libname}_static_d")
-    endforeach()
+  foreach(lib @PKG_LIBRARIES@)
+    set(lib "${lib}_static_d")
+    set(onelib "${lib}-NOTFOUND")
+    find_library(onelib ${lib}
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH
+      )
+    if(NOT onelib)
+      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+    endif()
+    set(LIBS ${LIBS} "${onelib}")
+  endforeach()
 endif()
 
 if (LIBS)
