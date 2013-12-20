@@ -136,14 +136,7 @@ INSTALL_FILES(/include/simbody/internal FILES ${INTERNAL_HEADERS})
 FILE(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${SIMBODY_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
-IF(WIN32)
-  # Install visualizer to bin, since it needs to be co-located with dll's
-  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_BINDIR})
-ELSE()
-  # Visualizer is not intended to be a user executable. Proper place is
-  # inside the lib directory
-  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_LIBEXECDIR}/simbody)
-ENDIF()
+# SIMBODY_VISUALIZER_INSTALL_DIR defined in root CMakeLists.txt
 ADD_DEFINITIONS(-DSIMBODY_VISUALIZER_INSTALL_DIR="${SIMBODY_VISUALIZER_INSTALL_DIR}/")
 
 # These are at the end because we want them processed after
