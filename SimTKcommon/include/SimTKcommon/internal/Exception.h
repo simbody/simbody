@@ -94,7 +94,7 @@ public:
 
         setMessage("Internal bug detected: " + std::string(buf)
                    + "\n  (Assertion '" + std::string(assertion) + "' failed).\n"
-            "  Please file a bug report at https://simtk.org/home/simbody (Advanced tab).\n"
+            "  Please file an Issue at https://github.com/simbody/simbody/issues.\n"
             "  Include the above information and anything else needed to reproduce the problem.");
         va_end(args);
     }
