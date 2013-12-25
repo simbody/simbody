@@ -13,7 +13,7 @@
 # executables will be labeled "Example - TheExampleName" if a file
 # TheExampleName.cpp is found in this directory.
 #
-# We check the BUILD_TESTING_{SHARED,STATIC} variables to determine
+# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to determine
 # whether to build dynamically linked, statically linked, or both
 # versions of the executable.
 
@@ -23,7 +23,7 @@ FOREACH(EX_PROG ${EXAMPLES})
     GET_FILENAME_COMPONENT(EX_SRC  ${EX_PROG} NAME)
     GET_FILENAME_COMPONENT(EX_ROOT ${EX_PROG} NAME_WE)
 
-    IF (BUILD_TESTING_SHARED)
+    IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
         # Link with shared library
         ADD_EXECUTABLE(${EX_ROOT} ${EX_PROG})
 	IF(GUI_NAME)
@@ -35,9 +35,9 @@ FOREACH(EX_PROG ${EXAMPLES})
         TARGET_LINK_LIBRARIES(${EX_ROOT} ${TEST_SHARED_TARGET})
 
 	INSTALL(TARGETS ${EX_ROOT} DESTINATION examples/bin)
-    ENDIF (BUILD_TESTING_SHARED)
+    ENDIF (BUILD_TESTS_AND_EXAMPLES_SHARED)
 
-    IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTING_STATIC)
+    IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
         SET(EX_STATIC ${EX_ROOT}Static)
         ADD_EXECUTABLE(${EX_STATIC} ${EX_PROG})
