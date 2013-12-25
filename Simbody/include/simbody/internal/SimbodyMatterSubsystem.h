@@ -339,6 +339,15 @@ duplicate. All continuous and discrete State variables will be copied to the
 level as the \a inputState. **/
 void convertToQuaternions(const State& inputState, State& outputState) const; 
 
+/** (Advanced) Given a State whose generalized coordinates q have been modified
+in some manner that doesn't necessarily keep quaternions normalized, fix them. 
+Note that all of Simbody's integrators and solvers take care of this 
+automatically so most users will never need to make this call. 
+
+Since we are modifying q's here, Stage::Position is invalidated.
+@param[in,out]  state **/
+void normalizeQuaternions(State& state) const;
+
 /**@}**/
 
 
