@@ -13,7 +13,7 @@
 # executables will be labeled "Example - TheExampleName" if a file
 # TheExampleName.cpp is found in this directory.
 #
-# We check the BUILD_TESTING_{SHARED,STATIC} variables to determine
+# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to determine
 # whether to build dynamically linked, statically linked, or both
 # versions of the executable.
 
@@ -21,9 +21,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT(SimTKExamples)
 
-SET(BUILD_TESTING_SHARED TRUE CACHE BOOL 
+SET(BUILD_TESTS_AND_EXAMPLES_SHARED TRUE CACHE BOOL 
 		"Build examples using dynamic SimTK libraries.")
-SET(BUILD_TESTING_STATIC FALSE CACHE BOOL
+SET(BUILD_TESTS_AND_EXAMPLES_STATIC FALSE CACHE BOOL
 		"Build examples using static SimTK libraries.")
 
 SET(SimTK_SHARED_LIBS 
@@ -73,7 +73,7 @@ FILE(GLOB EXAMPLES "*.cpp")
 FOREACH(EX_PROG ${EXAMPLES})
     GET_FILENAME_COMPONENT(EX_ROOT ${EX_PROG} NAME_WE)
 
-    IF (BUILD_TESTING_SHARED)
+    IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
         # Link with shared library
         ADD_EXECUTABLE(${EX_ROOT} ${EX_PROG})
         SET_TARGET_PROPERTIES(${EX_ROOT}
@@ -83,9 +83,9 @@ FOREACH(EX_PROG ${EXAMPLES})
 				${SimTK_SHARED_LIBS_D}
 				${SimTK_SHARED_LIBS}
 				${SimTK_GENERAL_LIBS})
-    ENDIF (BUILD_TESTING_SHARED)
+    ENDIF (BUILD_TESTS_AND_EXAMPLES_SHARED)
 
-    IF (BUILD_TESTING_STATIC)
+    IF (BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
         SET(EX_STATIC ${EX_ROOT}Static)
         ADD_EXECUTABLE(${EX_STATIC} ${EX_PROG})
@@ -97,7 +97,7 @@ FOREACH(EX_PROG ${EXAMPLES})
 				${SimTK_STATIC_LIBS_D}
 				${SimTK_STATIC_LIBS}
 				${SimTK_GENERAL_LIBS})
-    ENDIF (BUILD_TESTING_STATIC)
+    ENDIF (BUILD_TESTS_AND_EXAMPLES_STATIC)
 
 ENDFOREACH(EX_PROG ${EXAMPLES})
 

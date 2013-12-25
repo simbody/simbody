@@ -133,11 +133,17 @@ SET(SimTKSIMBODY_STATIC_LIBRARY_VN ${SimTKSIMBODY_LIBRARY_NAME_VN}_static)
 # Caution: this variable is automatically created by the CMake
 # ENABLE_TESTING() command, but we'll take it over here for
 # our own purposes too.
-SET( BUILD_TESTING ON CACHE BOOL
-	"Control building of Simbody test programs." )
+SET(BUILD_TESTING ON CACHE BOOL
+    "Control building of Simbody test programs.
+    To actually build tests, one
+    or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
+    BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
 
-SET( BUILD_EXAMPLES ON CACHE BOOL
-	"Control building of Simbody example programs.")
+SET(BUILD_EXAMPLES ON CACHE BOOL
+	"Control building of Simbody example programs.
+    To actually build examples, one
+    or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
+    BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
 
 # Set whether to build the Visualizer code.
 SET(BUILD_VISUALIZER ON CACHE BOOL 
@@ -145,12 +151,32 @@ SET(BUILD_VISUALIZER ON CACHE BOOL
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
-# is easier to debug the static tests than the DLL-liked ones.
-SET( BUILD_TESTING_STATIC ON CACHE BOOL
-    "If building static libraries, build static test and example programs too?" )
+# is easier to debug the static tests than the DLL-linked ones.
+SET(BUILD_TESTS_AND_EXAMPLES_STATIC ON CACHE BOOL
+    "If BUILDING_STATIC_LIBRARIES and BUILD_TESTING or BUILD_EXAMPLES, build
+    statically-linked test and example programs too? On Windows,
+    statically-linked tests may be easier to debug than DLL-linked tests.
+    Statically-linked examples are never installed.")
+MARK_AS_ADVANCED(BUILD_TESTS_AND_EXAMPLES_STATIC)
 
-SET( BUILD_TESTING_SHARED ON CACHE BOOL
-    "If building test or example programs, include dynamically-linked ones?" )
+SET(BUILD_TESTS_AND_EXAMPLES_SHARED ON CACHE BOOL
+    "If BUILD_TESTING or BUILD_EXAMPLES, build dynamically-linked ones?")
+MARK_AS_ADVANCED(BUILD_TESTS_AND_EXAMPLES_SHARED)
+
+IF(BUILD_TESTING AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
+        BUILD_TESTS_AND_EXAMPLES_SHARED))
+    MESSAGE(SEND_ERROR "No tests would be built, despite BUILD_EXAMPLES"
+        "being on, because BUILD_TESTS_AND_EXAMPLES_STATIC and "
+        "BUILD_TESTS_AND_EXAMPLES_SHARED are both off.")
+ENDIF()
+
+IF(BUILD_EXAMPLES AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
+        BUILD_TESTS_AND_EXAMPLES_SHARED))
+    MESSAGE(SEND_ERROR
+        "No examples would be built, despite BUILD_EXAMPLES being on, "
+        "because BUILD_TESTS_AND_EXAMPLES_STATIC and "
+        "BUILD_TESTS_AND_EXAMPLES_SHARED are both off.")
+ENDIF()
 
 #
 # Create a platform name useful for finding things in the Platform

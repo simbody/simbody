@@ -12,7 +12,7 @@
 # executables will be labeled "Adhoc - TheTestName" if a file
 # TheTestName.cpp is found in this directory.
 #
-# We check the BUILD_TESTING_{SHARED,STATIC} variables to determine
+# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to determine
 # whether to build dynamically linked, statically linked, or both
 # versions of the executable.
 
@@ -21,7 +21,7 @@ FILE(GLOB ADHOC_TESTS "*.cpp")
 FOREACH(TEST_PROG ${ADHOC_TESTS})
     GET_FILENAME_COMPONENT(TEST_ROOT ${TEST_PROG} NAME_WE)
 
-    IF (BUILD_TESTING_SHARED)
+    IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
         # Link with shared library
         ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG})
 	IF(GUI_NAME)
@@ -32,9 +32,9 @@ FOREACH(TEST_PROG ${ADHOC_TESTS})
 	      PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
         TARGET_LINK_LIBRARIES(${TEST_ROOT} 
 		              ${TEST_SHARED_TARGET})
-    ENDIF (BUILD_TESTING_SHARED)
+    ENDIF (BUILD_TESTS_AND_EXAMPLES_SHARED)
 
-    IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTING_STATIC)
+    IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
         SET(TEST_STATIC ${TEST_ROOT}Static)
         ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG})
