@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: simbody
+Description: Simbody Libraries
+Version: @SIMBODY_VERSION@
+Requires:
+Libs: -Wl,-rpath,${libdir} -L${libdir} -lSimTKsimbody -lSimTKmath -lSimTKcommon -llapack -lblas
+CFlags: -I${includedir}
