@@ -49,8 +49,13 @@ const bool PAUSE_AFTER_EACH_CANDIDATE  = false;
 const bool PRINT_BASIC_INFO            = true;
 const bool PRINT_DEBUG_INFO_POSITIONS  = false;
 const bool PRINT_DEBUG_INFO_IMPACT     = false;
+const bool PRINT_DEBUG_INFO_SEARCH     = false;
 const bool PRINT_DEBUG_INFO_STEPLENGTH = false;
 const bool EXHAUSTIVE_SEARCH_POSITIONS = false;
+
+const bool RUN_1POINT_TESTS = true;
+const bool RUN_2POINT_TESTS = false;
+const bool RUN_4POINT_TESTS = false;
 
 const Real tolProjectQ           = 1.0e-6;  //Accuracy used by projectQ().
 const Real tolPositionFuzziness  = 1.0e-4;  //Expected position tolerance.
@@ -216,7 +221,7 @@ private:
     // Assemble all combinations of 1 or more indices in [0, sizeOfSet]. Creates
     // an array of 2^sizeOfSet-1 index arrays (indices into proximal positions).
     void createProximalIndexArrays(int sizeOfSet,
-        Array_<Array_<ProximalPointIndex>>& arrayOfIndexArrays) const;
+        Array_<Array_<ProximalPointIndex> >& arrayOfIndexArrays) const;
 
     // Try projecting positions using the provided combination of constraint
     // indices. Return the 2-norm distance between the original and final Q (or
@@ -383,9 +388,34 @@ public:
 
 
 //==============================================================================
+//                                 BODY WATCHER
+//==============================================================================
+// Prior to rendering each frame, point the camera at the given body's origin.
+// Adapted from TimsBox.cpp.
+class BodyWatcher : public Visualizer::FrameController {
+public:
+    explicit BodyWatcher(const MobilizedBody& body) : m_body(body) {}
+
+    void generateControls(const Visualizer&             viz,
+                          const State&                  state,
+                          Array_< DecorativeGeometry >& geometry) OVERRIDE_11
+    {
+        const Vec3 Bo = m_body.getBodyOriginLocation(state);
+        const Vec3 p_GC = Bo + Vec3(0,4,2);
+        const Rotation R1(-SimTK::Pi/3, XAxis);
+        const Rotation R2(SimTK::Pi, ZAxis);
+        viz.setCameraTransform(Transform(R1*R2, p_GC));
+    }
+private:
+    const MobilizedBody m_body;
+};
+
+
+//==============================================================================
 //                      Function: CREATE MULTIBODY SYSTEM
 //==============================================================================
-void createMultibodySystem(MultibodySystem& mbs, FreeUnilateralBrick& brick)
+void createMultibodySystem(MultibodySystem& mbs, FreeUnilateralBrick& brick,
+                           Real muDyn, Real minCOR)
 {
     // Set up multibody system.
     SimbodyMatterSubsystem matter(mbs);
@@ -395,10 +425,8 @@ void createMultibodySystem(MultibodySystem& mbs, FreeUnilateralBrick& brick)
     const Vec3 brickHalfLengths(0.2, 0.3, 0.4);
     const Real sphereRadii    = 0.1;
     const Real brickMass      = 2.0;
-    const Real muDyn          = 0.6;
     const Real vMinRebound    = 1.0e-6;
     const Real vPlasticDeform = 0.1;
-    const Real minCOR         = 0.5;
 
     // Configure brick.
     const Inertia brickInertia(brickMass*UnitInertia::brick(brickHalfLengths));
@@ -432,7 +460,7 @@ void printHorizontalRule(int spacesTop, int spacesBottom, char ruleCharacter,
 //==============================================================================
 void simulateMultibodySystem(const std::string& description,
                              const Vector& initialQ, const Vector& initialU,
-                             Real simDuration)
+                             Real simDuration, Real muDyn, Real minCOR)
 {
     printHorizontalRule(3,0,'=');
     cout << description << endl;
@@ -441,7 +469,7 @@ void simulateMultibodySystem(const std::string& description,
     // Create the multibody system.
     MultibodySystem mbs;
     FreeUnilateralBrick brick;
-    createMultibodySystem(mbs, brick);
+    createMultibodySystem(mbs, brick, muDyn, minCOR);
 
     // Add gravity.
     GeneralForceSubsystem forces(mbs);
@@ -451,6 +479,7 @@ void simulateMultibodySystem(const std::string& description,
     PausableVisualizer viz(mbs);
     viz.setShowSimTime(true).setShowFrameRate(true);
     //viz.setMode(Visualizer::RealTime);
+    viz.addFrameController(new BodyWatcher(brick));
     mbs.updMatterSubsystem().setShowDefaultGeometry(false);
 
     // Initialize.
@@ -584,41 +613,57 @@ void simulateMultibodySystem(const std::string& description,
 int main() {
     try {
 
-        // Perform a series of simulations using different initial conditions:
-        // 1. One point, no tangential velocity.
-        Vector initQ = Vector(Vec7(0,0,0,0, 0,1,0.8));
-        initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis) *
-                                       Rotation(SimTK::Pi/6, YAxis)).asVec4());
-        Vector initU = Vector(Vec6(0,0,0, 0,0,6));
-        simulateMultibodySystem("Test 1: One point, no tangential velocity",
-                                initQ, initU, 1.8);
+        // Perform a series of simulations using different initial conditions.
 
-        // 2. One point, small tangential velocity.
-        initU[3] = 0.5;
-        simulateMultibodySystem("Test 2: One point, small tangential velocity",
-                                initQ, initU, 1.8);
+        //---------------------- (a) One point impacting -----------------------
+        if (RUN_1POINT_TESTS) {
+            Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
+            initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis) *
+                                           Rotation(SimTK::Pi/6, YAxis)).asVec4());
+            Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-        // 3. Two points, no tangential velocity.
-        initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis)).asVec4());
-        initU[3] = 0;
-        simulateMultibodySystem("Test 3: Two points, no tangential velocity",
-                                initQ, initU, 1.8);
+            simulateMultibodySystem("Test A1: One point, no tangential velocity",
+                                    initQ, initU, 1.8, 0.6, 0.5);
+            initU[3] = 0.5;
+            simulateMultibodySystem("Test A2: One point, small tangential velocity",
+                                    initQ, initU, 1.8, 0.6, 0.5);
+            initU[3] = -0.5;
+            simulateMultibodySystem("Test A3: One point, small tangential velocity",
+                                    initQ, initU, 1.8, 0.6, 0.5);
+            initQ[6] = 1.5;
+            initU[3] = 5.0;
+            initU[5] = -4.0;
+            simulateMultibodySystem("Test A4: One point, large tangential velocity",
+                                    initQ, initU, 1.0, 0.3, 1.0);
+            initU[3] = -5.0;
+            simulateMultibodySystem("Test A5: One point, large tangential velocity",
+                                    initQ, initU, 1.0, 0.3, 1.0);
+        }
 
-        // 4. Two points, small tangential velocity.
-        initU[4] = -1.0;
-        simulateMultibodySystem("Test 4: Two points, small tangential velocity",
-                                initQ, initU, 1.8);
+        //---------------------- (b) Two points impacting ----------------------
+        if (RUN_2POINT_TESTS) {
+            Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
+            initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis)).asVec4());
+            Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-        // 5. Four points, no tangential velocity.
-        initQ(0,4) = Vector(Vec4(1,0,0,0));
-        initU[4] = 0;
-        simulateMultibodySystem("Test 5: Four points, no tangential velocity",
-                                initQ, initU, 1.8);
+            simulateMultibodySystem("Test B1: Two points, no tangential velocity",
+                                    initQ, initU, 1.8, 0.6, 0.5);
+            initU[4] = -1.0;
+            simulateMultibodySystem("Test B2: Two points, small tangential velocity",
+                                    initQ, initU, 1.8, 0.6, 0.5);
+        }
 
-        // 6. Four points, small tangential velocity.
-        initU[3] = 0.5;
-        simulateMultibodySystem("Test 6: Four points, small tangential velocity",
-                                initQ, initU, 1.8);
+        //--------------------- (c) Four points impacting ----------------------
+        if (RUN_4POINT_TESTS) {
+            Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
+            Vector initU = Vector(Vec6(0,0,0, 0,0,6));
+
+            simulateMultibodySystem("Test C1: Four points, no tangential velocity",
+                                    initQ, initU, 1.8, 0.6, 0.5);
+            initU[3] = 0.5;
+            simulateMultibodySystem("Test C2: Four points, small tangential velocity",
+                                    initQ, initU, 1.8, 0.6, 0.5);
+        }
 
     } catch (const std::exception& e) {
         cout << "ERROR: " << e.what() << endl;
@@ -840,7 +885,7 @@ PositionProjecter::PositionProjecter(MultibodySystem& mbs,
 void PositionProjecter::projectPositionsExhaustive(State& s) const
 {
     // Assemble all combinations of 1 or more proximal points.
-    Array_<Array_<ProximalPointIndex>> arrayOfIndexArrays;
+    Array_<Array_<ProximalPointIndex> > arrayOfIndexArrays;
     createProximalIndexArrays((int)m_proximalPointIndices.size(),
                               arrayOfIndexArrays);
     if (PRINT_DEBUG_INFO_POSITIONS)
@@ -943,7 +988,7 @@ void PositionProjecter::projectPositionsPruning(State& s) const
 
 //------------------------------ Private methods -------------------------------
 void PositionProjecter::createProximalIndexArrays(int sizeOfSet,
-    Array_<Array_<ProximalPointIndex>>& arrayOfIndexArrays) const
+    Array_<Array_<ProximalPointIndex> >& arrayOfIndexArrays) const
 {
     SimTK_ASSERT_ALWAYS(arrayOfIndexArrays.empty(), "Input array must be empty.");
     const int numArrays = (1 << sizeOfSet) - 1;
@@ -1075,7 +1120,7 @@ void Impacter::performImpactExhaustive(State& s, Array_<Vec3>& proximalVelsInG,
                 char trash = getchar();
         }
 
-        if (PRINT_BASIC_INFO) {
+        if (PRINT_DEBUG_INFO_SEARCH) {
             printHorizontalRule(2,0,'=',"exhaustive search summary");
 
             // Count instances of each category.
