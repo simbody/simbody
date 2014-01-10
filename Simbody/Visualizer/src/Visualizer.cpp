@@ -22,6 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/Visualizer.h"
@@ -1104,6 +1105,31 @@ const Array_<Visualizer::InputListener*>& Visualizer::getInputListeners() const
 const Array_<Visualizer::FrameController*>& Visualizer::getFrameControllers() const
 {   return getImpl().m_controllers; }
 const MultibodySystem& Visualizer::getSystem() const {return getImpl().m_system;}
+
+
+//============================================================================
+//                             BODY FOLLOWER
+//============================================================================
+Visualizer::BodyFollower::BodyFollower(
+        const MobilizedBody& body,
+        const Vec3&          stationPinB,
+        const Vec3&          offset,
+        const Vec3&          upDirection)
+    :   m_body(body), m_stationPinB(stationPinB), m_offset(offset),
+        m_upDirection(upDirection) {}
+    
+void Visualizer::BodyFollower::generateControls(
+        const Visualizer&             viz,
+        const State&                  state,
+        Array_< DecorativeGeometry >& geometry) OVERRIDE_11
+{
+    const Vec3 Bp = m_body.findStationLocationInGround(state,
+            m_stationPinB);
+    const Vec3 camera_position = Bp + m_offset;
+    const Rotation camera_R(UnitVec3(m_offset), ZAxis, m_upDirection,
+            viz.getSystemUpDirection().getAxis());
+    viz.setCameraTransform(Transform(camera_R, camera_position));
+}
 
 
 //==============================================================================

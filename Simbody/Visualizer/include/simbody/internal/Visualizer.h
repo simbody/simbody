@@ -34,6 +34,7 @@ for display and interaction through the visualizer. **/
 
 namespace SimTK {
 
+class MobilizedBody;
 class MultibodySystem;
 class DecorationGenerator;
 
@@ -146,6 +147,7 @@ problems. **/
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
 class FrameController; // defined below
+class BodyFollower;    // declared below, defined in Visualizer.cpp
 class InputListener;   // defined in Visualizer_InputListener.h
 class InputSilo;       //                 "
 class Reporter;        // defined in Visualizer_Reporter.h
@@ -751,6 +753,40 @@ public:
     /** Destructor is virtual; be sure to override it if you have something
     to clean up at the end. **/
     virtual ~FrameController() {}
+};
+
+/** Causes the camera to point at and follow a point fixed on a body (a
+ station). This might be useful if your system translates substantially,
+ and would otherwise leave the camera's field of view. This class was mostly
+ taken from the BodyWatcher class in the TimsBox.cpp test. **/
+class SimTK_SIMBODY_EXPORT Visualizer::BodyFollower :
+    public Visualizer::FrameController {
+public:
+    /**
+     @param[in] bodyB
+        The body to follow.
+     @param[in] stationPinB
+        A station (point) P on the body to follow, expressed in B.
+     @param[in] offset
+        Position of the camera from P, expressed in ground.
+     @param[in] upDirection
+        A direction which should point upward as seen by the camera.
+     **/
+    explicit BodyFollower(const MobilizedBody& body,
+                          const Vec3&          stationPinB = Vec3(0, 0, 0),
+                          const Vec3&          offset = Vec3(1, 1, 1),
+                          const Vec3&          upDirection = Vec3(0, 1, 0));
+    
+    virtual void generateControls(
+            const Visualizer&             viz,
+            const State&                  state,
+            Array_< DecorativeGeometry >& geometry) OVERRIDE_11;
+    
+private:
+    const MobilizedBody& m_body;
+    const Vec3 m_stationPinB;
+    const Vec3 m_offset;
+    const Vec3 m_upDirection;
 };
 
 /** OBSOLETE: This provides limited backwards compatibility with the old
