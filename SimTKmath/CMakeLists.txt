@@ -185,9 +185,9 @@ FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
 FILE(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
 FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/internal/*.h)
 
-INSTALL_FILES(/include/simbody/                 FILES ${CORE_HEADERS})
-INSTALL_FILES(/include/simbody/simmath/         FILES ${TOP_HEADERS})
-INSTALL_FILES(/include/simbody/simmath/internal FILES ${INTERNAL_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/                   FILES ${CORE_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/SimTKmath/         FILES ${TOP_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/SimTKmath/internal FILES ${INTERNAL_HEADERS})
 
 FILE(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
