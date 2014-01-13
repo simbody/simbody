@@ -126,9 +126,9 @@ ENDFOREACH(subdir)
 FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
 FILE(GLOB TOP_HEADERS      include/simbody/*.h          */include/simbody/*.h)
 FILE(GLOB INTERNAL_HEADERS include/simbody/internal/*.h */include/simbody/internal/*.h)
-INSTALL_FILES(/include/                 FILES ${CORE_HEADERS})
-INSTALL_FILES(/include/simbody/         FILES ${TOP_HEADERS})
-INSTALL_FILES(/include/simbody/internal FILES ${INTERNAL_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/                 FILES ${CORE_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/simbody/         FILES ${TOP_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/simbody/internal FILES ${INTERNAL_HEADERS})
 
 # Notice that the (deprecated) INSTALL_FILES(dir ...) command works differently than the
 # newer (recommended) INSTALL(dir FILES ...) command
