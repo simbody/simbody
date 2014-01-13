@@ -42,55 +42,56 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ProximalPointIndex);
 //==============================================================================
 //                                  PARAMETERS
 //==============================================================================
-const bool SET_MODE_REALTIME = false;  //Enable when saving movie.
+const bool SetVizModeToRealtime = false;  //Enable when saving movie.
 
-const bool PAUSE_AT_INTERPENETRATION   = false;
-const bool PAUSE_AT_IMPACT             = false;
-const bool PAUSE_AFTER_IMPACT_INTERVAL = false;
-const bool PAUSE_AFTER_EACH_CANDIDATE  = false;
+const bool PauseBeforeClosingVizWindow      = true;
+const bool PauseBeforeAndAfterProjection    = false;
+const bool PauseBeforeAndAfterImpact        = false;
+const bool PauseAfterEachImpactInterval     = false;
+const bool PauseAfterEachActiveSetCandidate = false;
 
-const bool PRINT_BASIC_INFO            = true;
-const bool PRINT_DEBUG_INFO_POSITIONS  = false;
-const bool PRINT_DEBUG_INFO_IMPACT     = false;
-const bool PRINT_DEBUG_INFO_SEARCH     = false;
-const bool PRINT_DEBUG_INFO_STEPLENGTH = false;
+const bool PrintBasicInfo                = true;
+const bool PrintSystemEnergy             = true;
+const bool PrintDebugInfoProjection      = false;
+const bool PrintDebugInfoImpact          = false;
+const bool PrintDebugInfoActiveSetSearch = false;
+const bool PrintDebugInfoStepLength      = false;
 
-const bool EXHAUSTIVE_SEARCH_POSITIONS = false;
-const bool EXHAUSTIVE_SEARCH_IMPACT    = false;
+const bool ExhaustiveSearchProjection = false;
+const bool ExhaustiveSearchImpact     = false;
 
-const bool RUN_1POINT_TESTS = true;
-const bool RUN_2POINT_TESTS = true;
-const bool RUN_4POINT_TESTS = true;
-const bool RUN_LONG_TESTS   = true;
+const bool RunTestsOnePoint        = true;
+const bool RunTestsTwoPoints       = true;
+const bool RunTestsFourPoints      = true;
+const bool RunTestsLongSimulations = true;
 
 // Notes:
-// 1. slidingDirStepLength must be sufficiently small such that, if a sliding
+// 1. SlidingDirStepLength must be sufficiently small such that, if a sliding
 //    interval advancing by this amount causes a sliding direction reversal,
-//    then |v_t| < maxStickingTangVel (and the point is actually rolling).
-// 2. stepLengthConvFactor should be sufficiently small to avoid reaching
-//    maxIterStepLength, yet sufficiently large to avoid creating additional
+//    then |v_t| < MaxStickingTangVel (and the point is actually rolling).
+// 2. StepLengthConvFactor should be sufficiently small to avoid reaching
+//    MaxIterStepLength, yet sufficiently large to avoid creating additional
 //    intervals.
 
-const Real tolProjectQ           = 1.0e-6;  //Accuracy used by projectQ().
-const Real tolPositionFuzziness  = 1.0e-4;  //Expected position tolerance.
-const Real tolVelocityFuzziness  = 1.0e-5;  //Expected velocity tolerance.
-const Real tolReliableDirection  = 1.0e-4;  //Whether to trust v_t direction.
-const Real tolMaxDifDirIteration = 0.05;    //Slip direction within 2.86 degrees.
-const Real minMeaningfulImpulse  = 1.0e-6;  //Smallest acceptable impulse.
-const Real maxStickingTangVel    = 1.0e-1;  //Cannot stick above this velocity.
-const Real maxSlidingDirChange   = 0.5;     //Direction can change 28.6 degrees.
-const Real slidingDirStepLength  = 1.0e-4;  //Used to determine slip directions.
-const Real stepLengthConvFactor  = 0.97;    //Assists step length convergence.
-const int  maxIterSlipDirection  = 9;       //Iteration limit to find directions.
-const int  maxIterStepLength     = 9;       //Iteration limit for step length.
-const int  minIntervalsPerPhase  = 2;       //Minimum number of intervals.
+const Real TolProjectQ           = 1.0e-6;  //Accuracy used by projectQ().
+const Real TolPositionFuzziness  = 1.0e-4;  //Expected position tolerance.
+const Real TolVelocityFuzziness  = 1.0e-5;  //Expected velocity tolerance.
+const Real TolReliableDirection  = 1.0e-4;  //Whether to trust v_t direction.
+const Real TolMaxDifDirIteration = 0.05;    //Slip direction within 2.9 degrees.
+const Real MinMeaningfulImpulse  = 1.0e-6;  //Smallest acceptable impulse.
+const Real MaxStickingTangVel    = 1.0e-1;  //Cannot stick above this velocity.
+const Real MaxSlidingDirChange   = 0.5;     //Direction can change 28.6 degrees.
+const Real SlidingDirStepLength  = 1.0e-4;  //Used to determine slip directions.
+const Real StepLengthConvFactor  = 0.9;     //Assists step length convergence.
+const int  MaxIterSlipDirection  = 9;       //Iteration limit for directions.
+const int  MaxIterStepLength     = 9;       //Iteration limit for step length.
 
-const Real integAccuracy = 1.0e-8;
-const Real maxStepSize   = 1.0e-3;
-const int  desiredFPS    = 30;
-const int  drawEveryN    = int(1.0/desiredFPS/maxStepSize + 0.5);
-const Vec3 brickColor    = Blue;
-const Vec3 sphereColor   = Red;
+const Real IntegAccuracy = 1.0e-8;
+const Real MaxStepSize   = 1.0e-3;
+const int  DesiredFPS    = 30;
+const int  DrawEveryN    = int(1.0/DesiredFPS/MaxStepSize + 0.5);
+const Vec3 BrickColor    = Blue;
+const Vec3 SphereColor   = Red;
 
 
 //==============================================================================
@@ -135,7 +136,7 @@ public:
     // Temporary ball constraints
     //--------------------------------------------------------------------------
     MultiplierIndex get_ballConstraintFirstIndex(const State& s,
-                                                 const BrickVertexIndex i) const;
+        const BrickVertexIndex i) const;
     void set_ballConstraintLocation(const State& s, const BrickVertexIndex i,
                                     const Vec3& positionInGround);
     void enableBallConstraint(State& s, const BrickVertexIndex i) const;
@@ -170,7 +171,8 @@ public:
     // Assemble an array containing the indices of the proximal points.
     void findProximalPointIndices(
         const Array_<Vec3,BrickVertexIndex>& lowestPointLocationsInG,
-        Array_<BrickVertexIndex,ProximalPointIndex>& proximalPointIndices) const;
+        Array_<BrickVertexIndex,ProximalPointIndex>& proximalPointIndices)
+        const;
 
     //--------------------------------------------------------------------------
     // Velocity-level information
@@ -263,25 +265,27 @@ public:
     //--------------------------------------------------------------------------
     Impacter(MultibodySystem& mbs, FreeUnilateralBrick& brick, const State& s0,
              const Array_<Vec3,BrickVertexIndex>& allPositionsInG,
-             const Array_<BrickVertexIndex,ProximalPointIndex>& proximalPointIndices);
+             const Array_<BrickVertexIndex,ProximalPointIndex>&
+                   proximalPointIndices);
 
     //--------------------------------------------------------------------------
     // Perform one complete impact
     //--------------------------------------------------------------------------
     // Evaluate all active set candidates for each impact interval, selecting
-    // the most fit candidate for each interval.
-    void performImpactExhaustive(State& s,
-                                 Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
-                                 Array_<bool,ProximalPointIndex>& hasRebounded)
-                                 const;
+    // the most fit candidate for each interval. Returns energy dissipated.
+    Real performImpactExhaustive(State& s,
+        Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
+        Array_<bool,ProximalPointIndex>& hasRebounded) const;
 
     // Begin by impacting using the constraints associated with all proximal
     // points; successively prune the constraint associated with the worst
     // violation until either no violations occur or the active set is empty (in
     // which case the least objectionable active set candidate is retained).
-    void performImpactPruning(State& s,
+    // Returns energy dissipated.
+    Real performImpactPruning(State& s,
                               Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
-                              Array_<bool,ProximalPointIndex>& hasRebounded) const;
+                              Array_<bool,ProximalPointIndex>& hasRebounded)
+                              const;
 
 private:
     enum ImpactPhase      {Compression, Restitution};
@@ -297,7 +301,11 @@ private:
         SolCat_NoImpulsesApplied,                     //Fatal: no progress made
         SolCat_UnableToResolveUnknownSlipDirection,   //Fatal: direction unknown
         SolCat_MinStepCausesSlipDirectionReversal,    //Fatal: direction unknown
-        SolCat_NotEvaluated
+        SolCat_NotEvaluated,
+        SolCat_WorstCatWithNoSeriousViolations        //These categories can be
+            = SolCat_RestitutionImpulsesIgnored,      //accepted without issue.
+        SolCat_WorstCatWithSomeUsableSolution         //Use these categories
+            = SolCat_GroundAppliesAttractiveImpulse   //only if no other choice.
     };
 
     struct ActiveSetCandidate {
@@ -327,7 +335,8 @@ private:
     // Private methods: helper functions
     //--------------------------------------------------------------------------
     // Add addThis to vec in base N; return false on overflow.
-    bool addInBaseN(int N, Array_<int,ProximalPointIndex>& vec, int addThis) const;
+    bool addInBaseN(int N, Array_<int,ProximalPointIndex>& vec, int addThis)
+        const;
 
     // Create 3^n-1 arrays of size n, where n is the number of proximal points,
     // and each element corresponds to one of the three TangentialStates.
@@ -360,7 +369,7 @@ private:
     // Given point P and line segment AB, find the point closest to P that lies
     // on AB, which we call Q. Returns stepLength, the ratio AQ:AB. In our case,
     // P is the origin and AB is the line segment connecting the initial and
-    // proposed tangential velocity vectors. Helps calculateIntervalStepLength().
+    // final tangential velocity vectors. Helps calculateIntervalStepLength().
     Real calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B, Vec2& Q)
         const;
 
@@ -449,8 +458,9 @@ private:
 //==============================================================================
 //                      Function: CREATE MULTIBODY SYSTEM
 //==============================================================================
-void createMultibodySystem(MultibodySystem& mbs, FreeUnilateralBrick& brick,
-                           Real muDyn, Real minCOR)
+static void createMultibodySystem(MultibodySystem& mbs,
+                                  FreeUnilateralBrick& brick,
+                                  Real muDyn, Real minCOR)
 {
     // Set up multibody system.
     SimbodyMatterSubsystem matter(mbs);
@@ -467,21 +477,22 @@ void createMultibodySystem(MultibodySystem& mbs, FreeUnilateralBrick& brick,
     const Inertia brickInertia(brickMass*UnitInertia::brick(brickHalfLengths));
     Body::Rigid brickInfo(MassProperties(brickMass, Vec3(0), brickInertia));
     DecorativeBrick brickGeom(brickHalfLengths);
-    brickGeom.setColor(brickColor);
+    brickGeom.setColor(BrickColor);
     brickInfo.addDecoration(brickGeom);
 
     // Add brick to multibody system.
     brick = FreeUnilateralBrick(mbs.updMatterSubsystem().Ground(), Vec3(0),
-                                brickInfo, Vec3(0), brickHalfLengths, sphereRadii,
-                                muDyn, vMinRebound, vPlasticDeform, minCOR);
+                                brickInfo, Vec3(0), brickHalfLengths,
+                                sphereRadii, muDyn, vMinRebound, vPlasticDeform,
+                                minCOR);
 }
 
 
 //==============================================================================
 //                       Function: PRINT HORIZONTAL RULE
 //==============================================================================
-void printHorizontalRule(int spacesTop, int spacesBottom, char ruleCharacter,
-                         const std::string& msg = "")
+static void printHorizontalRule(int spacesTop, int spacesBottom,
+                                char ruleCharacter, const std::string& msg = "")
 {
     for (int i=0; i<spacesTop; ++i) printf("\n");
     for (int i=0; i<60; ++i) cout << ruleCharacter;
@@ -493,9 +504,10 @@ void printHorizontalRule(int spacesTop, int spacesBottom, char ruleCharacter,
 //==============================================================================
 //                     Function: SIMULATE MULTIBODY SYSTEM
 //==============================================================================
-void simulateMultibodySystem(const std::string& description,
-                             const Vector& initialQ, const Vector& initialU,
-                             Real simDuration, Real muDyn, Real minCOR)
+static void simulateMultibodySystem(const std::string& description,
+                                    const Vector& initialQ,
+                                    const Vector& initialU,
+                                    Real simDuration, Real muDyn, Real minCOR)
 {
     printHorizontalRule(3,0,'=');
     cout << description << endl;
@@ -513,7 +525,7 @@ void simulateMultibodySystem(const std::string& description,
     // Set up the visualizer.
     PausableVisualizer viz(mbs);
     viz.setShowSimTime(true).setShowFrameRate(true);
-    if (SET_MODE_REALTIME)
+    if (SetVizModeToRealtime)
         viz.setMode(Visualizer::RealTime);
     viz.addFrameController(new BodyWatcher(brick));
     mbs.updMatterSubsystem().setShowDefaultGeometry(false);
@@ -523,32 +535,34 @@ void simulateMultibodySystem(const std::string& description,
     mbs.realize(s0, Stage::Dynamics);
     s0.setQ(initialQ);
     s0.setU(initialU);
+    mbs.realize(s0, Stage::Dynamics);
+    const Real initialEnergy = mbs.calcEnergy(s0);
 
     // Set up integrator.
     RungeKutta3Integrator integ(mbs);
-    integ.setAccuracy(integAccuracy);
+    integ.setAccuracy(IntegAccuracy);
     integ.setAllowInterpolation(false);
     integ.initialize(s0);
-    const int totalSteps = int(simDuration/maxStepSize + 0.5);
+    const int totalSteps = int(simDuration/MaxStepSize + 0.5);
 
     // Simulate.
     printf("Simulating for %0.1f seconds (%d steps of size %0.3f)\n",
-           simDuration, totalSteps, maxStepSize);
+           simDuration, totalSteps, MaxStepSize);
     viz.reportAndPause(s0, "Press <Enter> to simulate...");
 
     for (int stepNum=1; stepNum<totalSteps; ++stepNum) {
 
         //----------------------------- INTEGRATE ------------------------------
-        // Advance time by maxStepSize. Might require multiple internal steps.
-        const Real tNext = stepNum*maxStepSize;
-        do {integ.stepBy(maxStepSize);} while (integ.getTime() < tNext);
+        // Advance time by MaxStepSize. Might require multiple internal steps.
+        const Real tNext = stepNum*MaxStepSize;
+        do {integ.stepBy(MaxStepSize);} while (integ.getTime() < tNext);
 
         // The state being used by the integrator.
         State& s = integ.updAdvancedState();
 
         //----------------- RESOLVE POSITION-LEVEL VIOLATIONS ------------------
         // Project positions to resolve interpenetration. The PositionProjecter
-        // guarantees that no points are below -tolPositionFuzziness on exit.
+        // guarantees that no points are below -TolPositionFuzziness on exit.
         mbs.realize(s, Stage::Position);
 
         // Calculate the position of the lowest point on each sphere.
@@ -556,23 +570,33 @@ void simulateMultibodySystem(const std::string& description,
         brick.findAllLowestPointLocationsInGround(s, preProjectionPos);
 
         // Can impact only if interpenetration occurred.
-        bool projectedPositions = false;
+        bool interpenetrationDetected = false;
 
         if (brick.isBrickInterpenetrating(preProjectionPos)) {
-            projectedPositions = true;
+            interpenetrationDetected = true;
 
-            if (PAUSE_AT_INTERPENETRATION) {
+            if (PrintSystemEnergy) {
+                mbs.realize(s, Stage::Dynamics);
+                cout << "  [normalized energy before project] "
+                     << mbs.calcEnergy(s)/initialEnergy << endl;
+            }
+            if (PauseBeforeAndAfterProjection) {
                 cout << "  [pos0] " << s.getQ() << endl;
                 viz.reportAndPause(s, "Ready to project positions");
             }
 
-            PositionProjecter positionProjecter(mbs, brick, s, preProjectionPos);
-            if (EXHAUSTIVE_SEARCH_POSITIONS)
+            PositionProjecter positionProjecter(mbs,brick,s,preProjectionPos);
+            if (ExhaustiveSearchProjection)
                 positionProjecter.projectPositionsExhaustive(s);
             else
                 positionProjecter.projectPositionsPruning(s);
 
-            if (PAUSE_AT_INTERPENETRATION) {
+            if (PrintSystemEnergy) {
+                mbs.realize(s, Stage::Dynamics);
+                cout << "  [normalized energy  after project] "
+                     << mbs.calcEnergy(s)/initialEnergy << endl;
+            }
+            if (PauseBeforeAndAfterProjection) {
                 cout << "  [pos1] " << s.getQ() << endl;
                 viz.reportAndPause(s, "Position projection complete");
             }
@@ -581,8 +605,15 @@ void simulateMultibodySystem(const std::string& description,
         //----------------- RESOLVE VELOCITY-LEVEL VIOLATIONS ------------------
         // Perform impacts to resolve negative normal velocities of proximal
         // points. The Impacter guarantees that no proximal points have normal
-        // velocities less than -tolVelocityFuzziness on exit.
-        if (projectedPositions) {
+        // velocities less than -TolVelocityFuzziness on exit.
+
+        // The impact handler is triggered only on actual interpenetration
+        // (i.e., pos[ZAxis] < 0), not just on entering the fuzzy proximal zone
+        // (i.e., pos[ZAxis] < TolPositionFuzziness). This way, other nearly-
+        // penetrating points will have the chance to move into the proximal
+        // zone and be included in the impact event, which will help preserve
+        // symmetry and simultaneity.
+        if (interpenetrationDetected) {
             mbs.realize(s, Stage::Velocity);
 
             // Calculate all positions after projection.
@@ -591,15 +622,20 @@ void simulateMultibodySystem(const std::string& description,
 
             // Find the indices of the proximal points.
             Array_<BrickVertexIndex,ProximalPointIndex> proximalPointIndices;
-            brick.findProximalPointIndices(allPositionsInG, proximalPointIndices);
+            brick.findProximalPointIndices(allPositionsInG,
+                                           proximalPointIndices);
 
             // Calculate the velocity of each proximal point.
             Array_<Vec3,ProximalPointIndex>
                 proximalVelsInG(proximalPointIndices.size());
-            for (ProximalPointIndex i(0); i<(int)proximalPointIndices.size(); ++i)
+            for (ProximalPointIndex i(0);
+                 i<(int)proximalPointIndices.size(); ++i)
                 proximalVelsInG[i] = brick.findLowestPointVelocityInGround(s,
                                          proximalPointIndices[i]);
 
+            // An impact event occurs only if at least one negative normal
+            // velocity exceeds the velocity tolerance (i.e., vel[ZAxis] <
+            // -TolVelocityFuzziness).
             if (brick.isBrickImpacting(proximalVelsInG)) {
 
                 // Record which points have already undergone a restitution
@@ -607,29 +643,51 @@ void simulateMultibodySystem(const std::string& description,
                 // impacts at these points.
                 Array_<bool,ProximalPointIndex>
                     hasRebounded(proximalPointIndices.size());
-                for (ProximalPointIndex i(0); i<(int)proximalPointIndices.size(); ++i)
+                for (ProximalPointIndex i(0);
+                     i<(int)proximalPointIndices.size(); ++i)
                     hasRebounded[i] = false;
 
                 // Process impacts until all proximal points have non-negative
                 // normal velocities.
                 while (brick.isBrickImpacting(proximalVelsInG)) {
 
-                    if (PAUSE_AT_IMPACT) {
+                    Real normEnergyBefore = SimTK::NaN;
+                    if (PrintSystemEnergy) {
+                        mbs.realize(s, Stage::Dynamics);
+                        normEnergyBefore = mbs.calcEnergy(s)/initialEnergy;
+                        cout << "  [normalized energy before impact ] "
+                             << normEnergyBefore << endl;
+                    }
+                    if (PauseBeforeAndAfterImpact) {
                         cout << "  [vel0] " << s.getU() << endl;
                         viz.reportAndPause(s, "Ready to perform impact");
                     }
 
-                    // Perform one complete impact.
+                    // Perform one complete impact consisting of a compression
+                    // phase and (if necessary) a restitution phase.
                     Impacter impacter(mbs, brick, s, allPositionsInG,
                                       proximalPointIndices);
-                    if (EXHAUSTIVE_SEARCH_IMPACT)
-                        impacter.performImpactExhaustive(s, proximalVelsInG,
-                                                         hasRebounded);
+                    Real energyDissipated = SimTK::NaN;
+                    if (ExhaustiveSearchImpact)
+                        energyDissipated = impacter.performImpactExhaustive(s,
+                                               proximalVelsInG, hasRebounded);
                     else
-                        impacter.performImpactPruning(s, proximalVelsInG,
-                                                      hasRebounded);
+                        energyDissipated = impacter.performImpactPruning(s,
+                                               proximalVelsInG, hasRebounded);
 
-                    if (PAUSE_AT_IMPACT) {
+                    if (PrintSystemEnergy) {
+                        mbs.realize(s, Stage::Dynamics);
+                        const Real normEnergyAfter = mbs.calcEnergy(s) /
+                                                     initialEnergy;
+                        const Real normEnergyDiss  = energyDissipated /
+                                                     initialEnergy;
+                        cout << "  [normalized energy  after impact ] "
+                             << normEnergyAfter << " (" << normEnergyDiss
+                             << " dissipated, error = "
+                             << std::abs(normEnergyBefore - normEnergyAfter
+                                         - normEnergyDiss) << ")" << endl;
+                    }
+                    if (PauseBeforeAndAfterImpact) {
                         cout << "  [vel1] " << s.getU() << endl;
                         viz.reportAndPause(s, "Impact complete");
                     }
@@ -639,13 +697,17 @@ void simulateMultibodySystem(const std::string& description,
         } //end if able to impact
 
         // Output a frame to the visualizer, if necessary.
-        if (stepNum%drawEveryN == 0 || stepNum == 1 || stepNum == totalSteps-1)
+        if (stepNum%DrawEveryN == 0 || stepNum == 1 || stepNum == totalSteps-1)
             viz.report(s);
 
     } //end simulation loop
 
-    viz.shutdown();
     printf("Simulation complete.\n");
+    if (PauseBeforeClosingVizWindow) {
+        printf("Press <Enter> to continue...\n");
+        char trash = getchar();
+    }
+    viz.shutdown();
 }
 
 
@@ -658,60 +720,63 @@ int main() {
         // Perform a series of simulations using different initial conditions.
 
         //---------------------- (a) One point impacting -----------------------
-        if (RUN_1POINT_TESTS) {
+        if (RunTestsOnePoint) {
             Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
             initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis) *
-                                           Rotation(SimTK::Pi/6, YAxis)).asVec4());
+                                           Rotation(SimTK::Pi/6, YAxis))
+                                .asVec4());
             Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-            simulateMultibodySystem("Test A1: One point, no tangential velocity",
+            simulateMultibodySystem("Test A1: One point, no v_tangential",
                                     initQ, initU, 1.8, 0.6, 0.5);
             initU[3] = 0.5;
-            simulateMultibodySystem("Test A2: One point, small tangential velocity",
+            simulateMultibodySystem("Test A2: One point, small v_tangential",
                                     initQ, initU, 1.8, 0.6, 0.5);
             initU[3] = -0.5;
-            simulateMultibodySystem("Test A3: One point, small tangential velocity",
+            simulateMultibodySystem("Test A3: One point, small v_tangential",
                                     initQ, initU, 1.8, 0.6, 0.5);
             initQ[6] = 1.5;
             initU[3] = 5.0;
             initU[5] = -4.0;
-            simulateMultibodySystem("Test A4: One point, large tangential velocity",
+            simulateMultibodySystem("Test A4: One point, large v_tangential",
                                     initQ, initU, 1.0, 0.3, 1.0);
             initU[3] = -5.0;
-            simulateMultibodySystem("Test A5: One point, large tangential velocity",
+            simulateMultibodySystem("Test A5: One point, large v_tangential",
                                     initQ, initU, 1.0, 0.3, 1.0);
         }
 
         //---------------------- (b) Two points impacting ----------------------
-        if (RUN_2POINT_TESTS) {
+        if (RunTestsTwoPoints) {
             Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
-            initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis)).asVec4());
+            initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis))
+                                .asVec4());
             Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-            simulateMultibodySystem("Test B1: Two points, no tangential velocity",
+            simulateMultibodySystem("Test B1: Two points, no v_tangential",
                                     initQ, initU, 1.8, 0.6, 0.5);
             initU[4] = -1.0;
-            simulateMultibodySystem("Test B2: Two points, small tangential velocity",
+            simulateMultibodySystem("Test B2: Two points, small v_tangential",
                                     initQ, initU, 1.8, 0.6, 0.5);
         }
 
         //--------------------- (c) Four points impacting ----------------------
-        if (RUN_4POINT_TESTS) {
+        if (RunTestsFourPoints) {
             Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
             Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-            simulateMultibodySystem("Test C1: Four points, no tangential velocity",
+            simulateMultibodySystem("Test C1: Four points, no v_tangential",
                                     initQ, initU, 1.8, 0.6, 0.5);
             initU[3] = 0.5;
-            simulateMultibodySystem("Test C2: Four points, small tangential velocity",
+            simulateMultibodySystem("Test C2: Four points, small v_tangential",
                                     initQ, initU, 1.8, 0.6, 0.5);
         }
 
         //------------------------ (d) Long simulation -------------------------
-        if (RUN_LONG_TESTS) {
+        if (RunTestsLongSimulations) {
             Vector initQ = Vector(Vec7(1,0,0,0, 0,1,1.5));
             initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis) *
-                                           Rotation(SimTK::Pi/6, YAxis)).asVec4());
+                                           Rotation(SimTK::Pi/6, YAxis))
+                                .asVec4());
             Vector initU = Vector(Vec6(0,0,0, -5,0,-4));
 
             simulateMultibodySystem("Test D1: low muDyn, high minCOR",
@@ -752,7 +817,7 @@ FreeUnilateralBrick(Mobod& parent, const Transform& X_PF, const Body& bodyInfo,
 
     // Add spheres to display geometry.
     DecorativeSphere sphereGeom(m_sphereRadii);
-    sphereGeom.setColor(sphereColor);
+    sphereGeom.setColor(SphereColor);
 
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
@@ -783,11 +848,12 @@ get_pipConstraintHeightInGround(const State& s, const BrickVertexIndex i) const
         m_pipConstraints[i].getDefaultFollowerPoint(), *this)[ZAxis];
 }
 
-void FreeUnilateralBrick::set_pipConstraintLocation(const State& s,
-                                                    const BrickVertexIndex i,
-                                                    const Vec3& positionInGround)
+void FreeUnilateralBrick::
+set_pipConstraintLocation(const State& s, const BrickVertexIndex i,
+                          const Vec3& positionInGround)
 {
-    m_pipConstraints[i].setDefaultFollowerPoint(getMatterSubsystem().getGround().
+    m_pipConstraints[i].setDefaultFollowerPoint(
+        getMatterSubsystem().getGround().
         findStationLocationInAnotherBody(s, positionInGround, *this));
 }
 
@@ -809,12 +875,13 @@ get_ballConstraintFirstIndex(const State& s, const BrickVertexIndex i) const
     return px0;
 }
 
-void FreeUnilateralBrick::set_ballConstraintLocation(const State& s,
-                                                     const BrickVertexIndex i,
-                                                     const Vec3& positionInGround)
+void FreeUnilateralBrick::
+set_ballConstraintLocation(const State& s, const BrickVertexIndex i,
+                           const Vec3& positionInGround)
 {
     m_ballConstraints[i].setDefaultPointOnBody1(positionInGround);
-    m_ballConstraints[i].setDefaultPointOnBody2(getMatterSubsystem().getGround().
+    m_ballConstraints[i].setDefaultPointOnBody2(
+        getMatterSubsystem().getGround().
         findStationLocationInAnotherBody(s, positionInGround, *this));
 }
 
@@ -837,7 +904,8 @@ findLowestPointLocationInGround(const State& s, const BrickVertexIndex i) const
 }
 
 Vec3 FreeUnilateralBrick::
-findLowestPointLocationInBodyFrame(const State& s, const BrickVertexIndex i) const
+findLowestPointLocationInBodyFrame(const State& s,
+                                   const BrickVertexIndex i) const
 {
     // This is the vector from the origin of the body to the lowest point on the
     // ith sphere, resolved in the ground frame.
@@ -859,7 +927,7 @@ bool FreeUnilateralBrick::isBrickInterpenetrating(
     const Array_<Vec3,BrickVertexIndex>& lowestPointLocationsInG) const
 {
     for (BrickVertexIndex i(0); i<(int)lowestPointLocationsInG.size(); ++i)
-        if (lowestPointLocationsInG[i][ZAxis] < -tolPositionFuzziness)
+        if (lowestPointLocationsInG[i][ZAxis] < -TolPositionFuzziness)
             return true;
     return false;
 }
@@ -867,14 +935,14 @@ bool FreeUnilateralBrick::isBrickInterpenetrating(
 bool FreeUnilateralBrick::isBrickInterpenetrating(const State& s) const
 {
     for (BrickVertexIndex i(0); i<(int)m_vertices.size(); ++i)
-        if (findLowestPointLocationInGround(s,i)[ZAxis] < -tolPositionFuzziness)
+        if (findLowestPointLocationInGround(s,i)[ZAxis] < -TolPositionFuzziness)
             return true;
     return false;
 }
 
 bool FreeUnilateralBrick::
 isPointProximal(const Vec3& lowestPointLocationInG) const
-{   return (lowestPointLocationInG[ZAxis] < tolPositionFuzziness); }
+{   return (lowestPointLocationInG[ZAxis] < TolPositionFuzziness); }
 
 void FreeUnilateralBrick::findProximalPointIndices(
     const Array_<Vec3,BrickVertexIndex>& lowestPointLocationsInG,
@@ -896,7 +964,7 @@ findLowestPointVelocityInGround(const State& s, const BrickVertexIndex i) const
 
 Real FreeUnilateralBrick::findTangentialVelocityAngle(const Vec3& vel) const
 {
-    if (vel.getSubVec<2>(0).norm() < tolReliableDirection)
+    if (vel.getSubVec<2>(0).norm() < TolReliableDirection)
         return SimTK::NaN;
     return atan2(vel[YAxis], vel[XAxis]);
 }
@@ -905,7 +973,7 @@ bool FreeUnilateralBrick::isBrickImpacting(
     const Array_<Vec3,ProximalPointIndex>& proximalPointVelocities) const
 {
     for (ProximalPointIndex i(0); i<(int)proximalPointVelocities.size(); ++i)
-        if (proximalPointVelocities[i][ZAxis] < -tolVelocityFuzziness)
+        if (proximalPointVelocities[i][ZAxis] < -TolVelocityFuzziness)
             return true;
     return false;
 }
@@ -928,9 +996,9 @@ PositionProjecter(MultibodySystem& mbs,
     // proximal points.
     for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
         m_brick.set_pipConstraintLocation(s0, m_proximalPointIndices[i],
-                                          positionsInG[m_proximalPointIndices[i]]);
+            positionsInG[m_proximalPointIndices[i]]);
 
-    if (PRINT_DEBUG_INFO_POSITIONS) {
+    if (PrintDebugInfoProjection) {
         printHorizontalRule(1,0,'*',"projecting positions");
         cout << "  -> " << m_proximalPointIndices.size() << " proximal point(s)"
              << endl;
@@ -947,7 +1015,7 @@ void PositionProjecter::projectPositionsExhaustive(State& s) const
     Array_<Array_<ProximalPointIndex> > arrayOfIndexArrays;
     createProximalIndexArrays((int)m_proximalPointIndices.size(),
                               arrayOfIndexArrays);
-    if (PRINT_DEBUG_INFO_POSITIONS)
+    if (PrintDebugInfoProjection)
         cout << "  -> " << arrayOfIndexArrays.size() << " combination(s)"
              << endl;
 
@@ -963,7 +1031,7 @@ void PositionProjecter::projectPositionsExhaustive(State& s) const
 
         // Several combinations can have the same distance metric. Favor the
         // combination with the most enabled constraints.
-        if (dist < minDistance || (fabs(dist-minDistance) < tolProjectQ &&
+        if (dist < minDistance || (std::abs(dist-minDistance) < TolProjectQ &&
                                    arrayOfIndexArrays[comb].size() >
                                    arrayOfIndexArrays[minIdx].size())) {
             minDistance = dist;
@@ -971,7 +1039,7 @@ void PositionProjecter::projectPositionsExhaustive(State& s) const
             minIdx      = comb;
         }
 
-        if (PRINT_DEBUG_INFO_POSITIONS)
+        if (PrintDebugInfoProjection)
             cout << "     [" << std::setw(2) << comb << "] "
                  << "d=" << std::setprecision(6) << std::setw(10) << dist
                  << "  " << arrayOfIndexArrays[comb] << endl;
@@ -984,7 +1052,7 @@ void PositionProjecter::projectPositionsExhaustive(State& s) const
     // smallest change in Q.
     s.setQ(minQ);
 
-    if (PRINT_DEBUG_INFO_POSITIONS) {
+    if (PrintDebugInfoProjection) {
         cout << "  -> Exhaustive search selected index " << minIdx
              << ", constraints " << arrayOfIndexArrays[minIdx] << endl;
         displayNewProximalPoints(s);
@@ -999,9 +1067,13 @@ void PositionProjecter::projectPositionsPruning(State& s) const
     for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
         indexArray[i] = i;
 
-    if (PRINT_DEBUG_INFO_POSITIONS)
+    if (PrintDebugInfoProjection)
         cout << "  -> Starting pruning search with " << indexArray.size()
              << " constraint(s)" << endl;
+
+    // Realize topology only once.
+    State sTempClean = m_mbs.realizeTopology();
+    sTempClean.setQ(s.getQ());
 
     // Successively prune constraints until the projection is successful.
     while(true) {
@@ -1011,10 +1083,9 @@ void PositionProjecter::projectPositionsPruning(State& s) const
             "No valid position projection found by pruning search.");
 
         // Try this set of constraints.
-        State sTemp = m_mbs.realizeTopology();
-        sTemp.setQ(s.getQ());
+        State sTemp(sTempClean);
         Real dist = evaluateProjection(sTemp, s, indexArray);
-        if (PRINT_DEBUG_INFO_POSITIONS)
+        if (PrintDebugInfoProjection)
             cout << "     " << indexArray << " d=" << dist << endl;
 
         // Exit if successful; otherwise, remove the constraint associated with
@@ -1038,8 +1109,9 @@ void PositionProjecter::projectPositionsPruning(State& s) const
         }
     }
 
-    if (PRINT_DEBUG_INFO_POSITIONS) {
-        cout << "  -> Pruning search selected constraints " << indexArray << endl;
+    if (PrintDebugInfoProjection) {
+        cout << "  -> Pruning search selected constraints " << indexArray
+             << endl;
         displayNewProximalPoints(s);
         printHorizontalRule(0,1,'*');
     }
@@ -1067,12 +1139,13 @@ Real PositionProjecter::evaluateProjection(State& sTemp, const State& sOrig,
 
     // Enable constraints.
     for (ProximalPointIndex i(0); i<(int)indexArray.size(); ++i)
-        m_brick.enablePipConstraint(sTemp, m_proximalPointIndices[indexArray[i]]);
+        m_brick.enablePipConstraint(sTemp,
+                                    m_proximalPointIndices[indexArray[i]]);
 
     // Try projecting. Simbody will throw an exception if the projection
     // accuracy cannot be achieved.
     try {
-        m_mbs.projectQ(sTemp, tolProjectQ);
+        m_mbs.projectQ(sTemp, TolProjectQ);
         if (!m_brick.isBrickInterpenetrating(sTemp))
             dist = (sOrig.getQ() - sTemp.getQ()).norm();
     } catch(...) {}
@@ -1104,7 +1177,8 @@ void PositionProjecter::displayNewProximalPoints(State& s) const
 Impacter::
 Impacter(MultibodySystem& mbs, FreeUnilateralBrick& brick, const State& s0,
          const Array_<Vec3,BrickVertexIndex>& allPositionsInG,
-         const Array_<BrickVertexIndex,ProximalPointIndex>& proximalPointIndices)
+         const Array_<BrickVertexIndex,ProximalPointIndex>&
+               proximalPointIndices)
     : m_mbs(mbs), m_brick(brick), m_proximalPointIndices(proximalPointIndices)
 {
     // Adjust the position of the Ball constraints corresponding to the proximal
@@ -1113,7 +1187,7 @@ Impacter(MultibodySystem& mbs, FreeUnilateralBrick& brick, const State& s0,
         m_brick.set_ballConstraintLocation(s0, m_proximalPointIndices[i],
             allPositionsInG[m_proximalPointIndices[i]]);
 
-    if (PRINT_DEBUG_INFO_IMPACT) {
+    if (PrintDebugInfoImpact) {
         printHorizontalRule(1,0,'*',"starting impact");
         cout << "  -> " << m_proximalPointIndices.size() << " proximal point(s)"
              << endl;
@@ -1124,7 +1198,7 @@ Impacter(MultibodySystem& mbs, FreeUnilateralBrick& brick, const State& s0,
 }
 
 //------------------------ Perform one complete impact -------------------------
-void Impacter::
+Real Impacter::
 performImpactExhaustive(State& s,
                         Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
                         Array_<bool,ProximalPointIndex>& hasRebounded) const
@@ -1133,26 +1207,28 @@ performImpactExhaustive(State& s,
     Array_<Real> CORs(m_proximalPointIndices.size());
     for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i) {
         CORs [i] = hasRebounded[i] ? 0.0 : calcCOR(proximalVelsInG[i][ZAxis]);
-        if (PRINT_DEBUG_INFO_IMPACT)
+        if (PrintDebugInfoImpact)
             cout << "  ** CORs[" << i << "] = " << CORs[i] << endl;
     }
 
     // Enumerate all active set candidates.
     Array_<ActiveSetCandidate> activeSetCandidates;
     initializeActiveSetCandidateArray(activeSetCandidates);
-    if (PRINT_DEBUG_INFO_IMPACT)
+    if (PrintDebugInfoImpact)
         cout << "  -> " << activeSetCandidates.size()
              << " active set candidate(s)" << endl;
 
     // Interval-stepping loop.
     ImpactPhase impactPhase    = Compression;
     Vector restitutionImpulses = Vector(m_proximalPointIndices.size(), 0.0);
+    Vector energyDissipated    = Vector(m_proximalPointIndices.size(), 0.0);
     int intervalCtr            = 0;
     while(true) {
         ++intervalCtr;
-        if (PRINT_DEBUG_INFO_IMPACT) {
+        if (PrintDebugInfoImpact) {
             std::stringstream sstream;
-            sstream << (impactPhase == Compression ? "compression" : "restitution")
+            sstream << (impactPhase == Compression ? "compression"
+                                                   : "restitution")
                     << " interval " << intervalCtr;
             printHorizontalRule(1,0,'#',sstream.str());
         }
@@ -1163,7 +1239,7 @@ performImpactExhaustive(State& s,
         // Generate and solve a linear system of equations for each active set
         // candidate. Categorize each solution and calculate fitness value.
         for (int i=0; i<(int)activeSetCandidates.size(); ++i) {
-            if (PRINT_DEBUG_INFO_IMPACT) {
+            if (PrintDebugInfoImpact) {
                 cout << "  -> evaluating candidate " << i << " ";
                 printFormattedActiveSet(cout,
                     activeSetCandidates[i].tangentialStates,
@@ -1176,13 +1252,13 @@ performImpactExhaustive(State& s,
             evaluateLinearSystemSolution(s, impactPhase, restitutionImpulses,
                                          activeSetCandidates[i]);
 
-            if (PRINT_DEBUG_INFO_IMPACT)
+            if (PrintDebugInfoImpact)
                 printActiveSetInfo(activeSetCandidates[i]);
-            if (PAUSE_AFTER_EACH_CANDIDATE)
+            if (PauseAfterEachActiveSetCandidate)
                 char trash = getchar();
         }
 
-        if (PRINT_DEBUG_INFO_SEARCH) {
+        if (PrintDebugInfoActiveSetSearch) {
             printHorizontalRule(2,0,'=',"exhaustive search summary");
 
             // Count instances of each category.
@@ -1199,11 +1275,11 @@ performImpactExhaustive(State& s,
 
         // Select active set candidate from the best (lowest) category with the
         // best (lowest) fitness value.
-        const int worstTolerableSolCat =
-            (int)SolCat_GroundAppliesAttractiveImpulse;
         int  bestIdx     = -1;
         Real bestFitness = SimTK::Infinity;
-        for (int solcat=0; solcat<=worstTolerableSolCat; ++solcat) {
+        for (int solcat=0;
+             solcat<=SolCat_WorstCatWithSomeUsableSolution; ++solcat)
+        {
             for (int idx=0; idx<(int)activeSetCandidates.size(); ++idx) {
                 if (activeSetCandidates[idx].solutionCategory == solcat
                     && activeSetCandidates[idx].fitness < bestFitness) {
@@ -1219,44 +1295,79 @@ performImpactExhaustive(State& s,
         SimTK_ASSERT_ALWAYS(bestFitness < SimTK::Infinity,
             "No suitable active set found by exhaustive search.");
 
-        if (PRINT_BASIC_INFO)
+        if (PrintBasicInfo)
             printFormattedActiveSet(cout,
-                                    activeSetCandidates[bestIdx].tangentialStates,
-                                    (impactPhase == Compression ? "c" : "r"));
-        if (PRINT_DEBUG_INFO_IMPACT) {
+                activeSetCandidates[bestIdx].tangentialStates,
+                (impactPhase == Compression ? "c" : "r"));
+        if (PrintDebugInfoImpact) {
             cout << "  ** selected active set candidate " << bestIdx << endl;
             printActiveSetInfo(activeSetCandidates[bestIdx]);
         }
 
         // Determine step length and apply impulse.
-        Real steplength = calculateIntervalStepLength(s, proximalVelsInG,
-                              activeSetCandidates[bestIdx], intervalCtr);
+        const Real steplength = calculateIntervalStepLength(s, proximalVelsInG,
+                                activeSetCandidates[bestIdx], intervalCtr);
         SimTK_ASSERT_ALWAYS(!isNaN(steplength),
             "No suitable interval step length found.");
 
-        s.setU(s.getU() + steplength*
-                          activeSetCandidates[bestIdx].systemVelocityChange);
+        s.updU() += steplength*
+                    activeSetCandidates[bestIdx].systemVelocityChange;
         m_mbs.realize(s, Stage::Velocity);
 
-        if (PRINT_DEBUG_INFO_IMPACT)
+        if (PrintDebugInfoImpact)
             cout << "  ** steplength = " << steplength
                  << "\n     newU = " << s.getU() << endl;
+
+        // Store velocities of proximal points at the beginning of the interval
+        // for calculating energy dissipated.
+        Array_<Vec3,ProximalPointIndex> proximalVelsInG_start(proximalVelsInG);
 
         // Calculate the new velocity of each proximal point.
         for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
             proximalVelsInG[i] = m_brick.findLowestPointVelocityInGround(s,
                                      m_proximalPointIndices[i]);
-        if (PRINT_DEBUG_INFO_IMPACT)
-            for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
+        if (PrintDebugInfoImpact)
+            for (ProximalPointIndex i(0);
+                 i<(int)m_proximalPointIndices.size(); ++i)
                 cout << "     [" << i << "] v=" << proximalVelsInG[i] << endl;
+
+        // Calculate energy dissipated.
+        int constraintIdx = -1;
+        for (ProximalPointIndex i(0);
+             i<(int)m_proximalPointIndices.size(); ++i)
+        {
+            if (activeSetCandidates[bestIdx].tangentialStates[i] > Observing) {
+                ++constraintIdx;
+                const Vec3 avgVelocity = 0.5 * (proximalVelsInG_start[i] +
+                                                proximalVelsInG[i]);
+                const Vec3 currImpulse = Vec3(
+                  activeSetCandidates[bestIdx].localImpulses[constraintIdx*3],
+                  activeSetCandidates[bestIdx].localImpulses[constraintIdx*3+1],
+                  activeSetCandidates[bestIdx].localImpulses[constraintIdx*3+2])
+                  * steplength;
+                const Vec3 deltaEnergy = avgVelocity.
+                                         elementwiseMultiply(currImpulse);
+
+                // Energy always dissipates in the tangential direction; in the
+                // normal direction, energy dissipates during compression and
+                // increases during restitution.
+                energyDissipated[i] += std::abs(deltaEnergy[XAxis])
+                                       + std::abs(deltaEnergy[YAxis])
+                                       + deltaEnergy[ZAxis];
+            }
+        }
 
         // Update the impact phase and required restitution impulses; exit if
         // complete.
         if (impactPhase == Compression) {
 
             int constraintIdx = -1;
-            for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i) {
-                if (activeSetCandidates[bestIdx].tangentialStates[i] > Observing) {
+            for (ProximalPointIndex i(0);
+                 i<(int)m_proximalPointIndices.size(); ++i)
+            {
+                if (activeSetCandidates[bestIdx].tangentialStates[i]
+                    > Observing)
+                {
                     ++constraintIdx;
                     restitutionImpulses[i] += -activeSetCandidates[bestIdx].
                                               localImpulses[constraintIdx*3+2]
@@ -1265,7 +1376,7 @@ performImpactExhaustive(State& s,
             }
 
             if (!m_brick.isBrickImpacting(proximalVelsInG)) {
-                if (PRINT_DEBUG_INFO_IMPACT)
+                if (PrintDebugInfoImpact)
                     cout << "  ** compression phase complete" << endl;
 
                 // Proceed to restitution phase if any restitution impulses must
@@ -1274,8 +1385,8 @@ performImpactExhaustive(State& s,
                 for (int i=0; i<(int)restitutionImpulses.size(); ++i)
                     maxRestImpulse = std::max(maxRestImpulse,
                                               restitutionImpulses[i]);
-                if (maxRestImpulse < minMeaningfulImpulse) {
-                    if (PRINT_DEBUG_INFO_IMPACT)
+                if (maxRestImpulse < MinMeaningfulImpulse) {
+                    if (PrintDebugInfoImpact)
                         cout << "  ** no restitution impulses" << endl;
                     break;
                 } else {
@@ -1287,16 +1398,20 @@ performImpactExhaustive(State& s,
         } else if (impactPhase == Restitution) {
 
             int constraintIdx = -1;
-            for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i) {
-                if (activeSetCandidates[bestIdx].tangentialStates[i] > Observing) {
+            for (ProximalPointIndex i(0);
+                 i<(int)m_proximalPointIndices.size(); ++i)
+            {
+                if (activeSetCandidates[bestIdx].tangentialStates[i]
+                    > Observing)
+                {
                     ++constraintIdx;
                     restitutionImpulses[i] -= -activeSetCandidates[bestIdx].
                                               localImpulses[constraintIdx*3+2]
                                               * steplength;
 
-                    if (fabs(-activeSetCandidates[bestIdx].
-                             localImpulses[constraintIdx*3+2])
-                        > minMeaningfulImpulse)
+                    if (std::abs(-activeSetCandidates[bestIdx].
+                                 localImpulses[constraintIdx*3+2])
+                        > MinMeaningfulImpulse)
 
                         hasRebounded[i] = true;
                 }
@@ -1304,27 +1419,35 @@ performImpactExhaustive(State& s,
 
             Real maxRestImpulse = 0;
             for (int i=0; i<(int)restitutionImpulses.size(); ++i)
-                maxRestImpulse = std::max(maxRestImpulse, restitutionImpulses[i]);
-            if (maxRestImpulse < minMeaningfulImpulse) {
-                if (PRINT_DEBUG_INFO_IMPACT)
+                maxRestImpulse = std::max(maxRestImpulse,
+                                          restitutionImpulses[i]);
+            if (maxRestImpulse < MinMeaningfulImpulse) {
+                if (PrintDebugInfoImpact)
                     cout << "  ** restitution phase complete" << endl;
                 break;
             }
         }
 
-        if (PRINT_DEBUG_INFO_IMPACT) {
+        if (PrintDebugInfoImpact) {
             cout << "     restitutionImpulses = " << restitutionImpulses
                  << "\n     hasRebounded = " << hasRebounded << endl;
         }
-        if (PAUSE_AFTER_IMPACT_INTERVAL)
+        if (PauseAfterEachImpactInterval)
             char trash = getchar();
 
     } //end interval-stepping loop
-    if (PRINT_BASIC_INFO)
+    if (PrintBasicInfo)
         cout << endl;
+
+    // Ensure energy dissipated is positive for all proximal points.
+    for (int i=0; i<(int)energyDissipated.size(); ++i)
+        SimTK_ASSERT(energyDissipated[i] > -SimTK::SignificantReal,
+        "Negative energy dissipated.");
+
+    return energyDissipated.sum();
 }
 
-void Impacter::
+Real Impacter::
 performImpactPruning(State& s,
                      Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
                      Array_<bool,ProximalPointIndex>& hasRebounded) const
@@ -1333,19 +1456,21 @@ performImpactPruning(State& s,
     Array_<Real,ProximalPointIndex> CORs(m_proximalPointIndices.size());
     for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i) {
         CORs[i] = hasRebounded[i] ? 0.0 : calcCOR(proximalVelsInG[i][ZAxis]);
-        if (PRINT_DEBUG_INFO_IMPACT)
+        if (PrintDebugInfoImpact)
             cout << "  ** CORs[" << i << "] = " << CORs[i] << endl;
     }
 
     // Interval-stepping loop.
     ImpactPhase impactPhase    = Compression;
     Vector restitutionImpulses = Vector(m_proximalPointIndices.size(), 0.0);
-    int intervalCtr            = 0;
+    Vector energyDissipated    = Vector(m_proximalPointIndices.size(), 0.0);
+    int    intervalCtr         = 0;
     while(true) {
         ++intervalCtr;
-        if (PRINT_DEBUG_INFO_IMPACT) {
+        if (PrintDebugInfoImpact) {
             std::stringstream sstream;
-            sstream << (impactPhase == Compression ? "compression" : "restitution")
+            sstream << (impactPhase == Compression ? "compression"
+                                                   : "restitution")
                     << " interval " << intervalCtr;
             printHorizontalRule(1,0,'#',sstream.str());
         }
@@ -1354,7 +1479,7 @@ performImpactPruning(State& s,
         // tangential velocity magnitude is too large.
         ActiveSetCandidate asc;
         initializeActiveSetCandidate(s,asc);
-        if (PRINT_DEBUG_INFO_IMPACT) {
+        if (PrintDebugInfoImpact) {
             cout << "  -> Starting with active set candidate ";
             printFormattedActiveSet(cout, asc.tangentialStates, "");
             cout << endl;
@@ -1364,8 +1489,6 @@ performImpactPruning(State& s,
         // producing a solution with no violations, use the least-objectionable
         // active set candidate that was examined; throw an exception if all
         // examined active set candidates are intolerable.
-        const int worstAcceptableSolCat = (int)SolCat_RestitutionImpulsesIgnored;
-        const int worstTolerableSolCat  = (int)SolCat_GroundAppliesAttractiveImpulse;
         ActiveSetCandidate bestAsc;
         bestAsc.solutionCategory = SolCat_NotEvaluated;
 
@@ -1373,7 +1496,7 @@ performImpactPruning(State& s,
         while (!isActiveSetCandidateEmpty(asc)) {
             resetActiveSetCandidate(asc);
 
-            if (PRINT_DEBUG_INFO_IMPACT) {
+            if (PrintDebugInfoImpact) {
                 cout << "  -> evaluating candidate ";
                 printFormattedActiveSet(cout, asc.tangentialStates,
                     (impactPhase == Compression ? "c" : "r"));
@@ -1383,12 +1506,12 @@ performImpactPruning(State& s,
             // Generate and solve a linear system of equations for this active
             // set candidate. Categorize the solution and calculate the fitness
             // value.
-            generateAndSolveLinearSystem(s, impactPhase, restitutionImpulses, asc);
-            evaluateLinearSystemSolution(s, impactPhase, restitutionImpulses, asc);
+            generateAndSolveLinearSystem(s,impactPhase,restitutionImpulses,asc);
+            evaluateLinearSystemSolution(s,impactPhase,restitutionImpulses,asc);
 
-            if (PRINT_DEBUG_INFO_IMPACT)
+            if (PrintDebugInfoImpact)
                 printActiveSetInfo(asc);
-            if (PAUSE_AFTER_EACH_CANDIDATE)
+            if (PauseAfterEachActiveSetCandidate)
                 char trash = getchar();
 
             // Keep track of least-objectionable active set candidate.
@@ -1399,16 +1522,19 @@ performImpactPruning(State& s,
             }
 
             // Exit if acceptable active set candidate has been found.
-            if (bestAsc.solutionCategory <= worstAcceptableSolCat) {
-                if (PRINT_DEBUG_INFO_SEARCH)
-                    cout << "     Acceptable active set candidate found" << endl;
+            if (bestAsc.solutionCategory
+                <= SolCat_WorstCatWithNoSeriousViolations)
+            {
+                if (PrintDebugInfoActiveSetSearch)
+                    cout << "     Acceptable active set candidate found"
+                         << endl;
                 break;
             }
 
             // Exit if current active set candidate applies no impulses; cannot
             // make progress by pruning.
             if (asc.solutionCategory == SolCat_NoImpulsesApplied) {
-                if (PRINT_DEBUG_INFO_SEARCH)
+                if (PrintDebugInfoActiveSetSearch)
                     cout << "     No impulses applied; cannot prune further"
                          << endl;
                 break;
@@ -1422,45 +1548,79 @@ performImpactPruning(State& s,
         } //end pruning loop
 
         // Throw an exception if no tolerable active set candidate was found.
-        SimTK_ASSERT_ALWAYS(bestAsc.solutionCategory <= worstTolerableSolCat,
+        SimTK_ASSERT_ALWAYS(bestAsc.solutionCategory <=
+            SolCat_WorstCatWithSomeUsableSolution,
             "Pruning search failed to find suitable active set candidate.");
 
-        if (PRINT_BASIC_INFO)
+        if (PrintBasicInfo)
             printFormattedActiveSet(cout, bestAsc.tangentialStates,
                                     (impactPhase == Compression ? "c" : "r"));
-        if (PRINT_DEBUG_INFO_IMPACT) {
+        if (PrintDebugInfoImpact) {
             cout << "  ** selected active set candidate ";
             printFormattedActiveSet(cout, bestAsc.tangentialStates);
             printActiveSetInfo(bestAsc);
         }
 
         // Determine step length and apply impulse.
-        Real steplength = calculateIntervalStepLength(s, proximalVelsInG,
-                                                      bestAsc, intervalCtr);
+        const Real steplength = calculateIntervalStepLength(s, proximalVelsInG,
+                                                            bestAsc,
+                                                            intervalCtr);
         SimTK_ASSERT_ALWAYS(!isNaN(steplength),
             "No suitable interval step length found.");
 
-        s.setU(s.getU() + steplength*bestAsc.systemVelocityChange);
+        s.updU() += steplength*bestAsc.systemVelocityChange;
         m_mbs.realize(s, Stage::Velocity);
 
-        if (PRINT_DEBUG_INFO_IMPACT)
+        if (PrintDebugInfoImpact)
             cout << "  ** steplength = " << steplength
                  << "\n     newU = " << s.getU() << endl;
+
+        // Store velocities of proximal points at the beginning of the interval
+        // for calculating energy dissipated.
+        Array_<Vec3,ProximalPointIndex> proximalVelsInG_start(proximalVelsInG);
 
         // Calculate the new velocity of each proximal point.
         for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
             proximalVelsInG[i] = m_brick.findLowestPointVelocityInGround(s,
                                      m_proximalPointIndices[i]);
-        if (PRINT_DEBUG_INFO_IMPACT)
-            for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
+        if (PrintDebugInfoImpact)
+            for (ProximalPointIndex i(0);
+                 i<(int)m_proximalPointIndices.size(); ++i)
                 cout << "     [" << i << "] v=" << proximalVelsInG[i] << endl;
+
+        // Calculate energy dissipated.
+        int constraintIdx = -1;
+        for (ProximalPointIndex i(0);
+             i<(int)m_proximalPointIndices.size(); ++i)
+        {
+            if (bestAsc.tangentialStates[i] > Observing) {
+                ++constraintIdx;
+                const Vec3 avgVelocity = 0.5 * (proximalVelsInG_start[i] +
+                                                proximalVelsInG[i]);
+                const Vec3 currImpulse = Vec3(
+                    bestAsc.localImpulses[constraintIdx*3],
+                    bestAsc.localImpulses[constraintIdx*3+1],
+                    bestAsc.localImpulses[constraintIdx*3+2]) * steplength;
+                const Vec3 deltaEnergy = avgVelocity.
+                                         elementwiseMultiply(currImpulse);
+
+                // Energy always dissipates in the tangential direction; in the
+                // normal direction, energy dissipates during compression and
+                // increases during restitution.
+                energyDissipated[i] += std::abs(deltaEnergy[XAxis])
+                                       + std::abs(deltaEnergy[YAxis])
+                                       + deltaEnergy[ZAxis];
+            }
+        }
 
         // Update the impact phase and required restitution impulses; exit if
         // complete.
         if (impactPhase == Compression) {
 
             int constraintIdx = -1;
-            for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i) {
+            for (ProximalPointIndex i(0);
+                 i<(int)m_proximalPointIndices.size(); ++i)
+            {
                 if (bestAsc.tangentialStates[i] > Observing) {
                     ++constraintIdx;
                     restitutionImpulses[i] += -bestAsc.
@@ -1470,7 +1630,7 @@ performImpactPruning(State& s,
             }
 
             if (!m_brick.isBrickImpacting(proximalVelsInG)) {
-                if (PRINT_DEBUG_INFO_IMPACT)
+                if (PrintDebugInfoImpact)
                     cout << "  ** compression phase complete" << endl;
 
                 // Proceed to restitution phase if any restitution impulses must
@@ -1479,8 +1639,8 @@ performImpactPruning(State& s,
                 for (int i=0; i<(int)restitutionImpulses.size(); ++i)
                     maxRestImpulse = std::max(maxRestImpulse,
                                               restitutionImpulses[i]);
-                if (maxRestImpulse < minMeaningfulImpulse) {
-                    if (PRINT_DEBUG_INFO_IMPACT)
+                if (maxRestImpulse < MinMeaningfulImpulse) {
+                    if (PrintDebugInfoImpact)
                         cout << "  ** no restitution impulses" << endl;
                     break;
                 } else {
@@ -1492,15 +1652,17 @@ performImpactPruning(State& s,
         } else if (impactPhase == Restitution) {
 
             int constraintIdx = -1;
-            for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i) {
+            for (ProximalPointIndex i(0);
+                 i<(int)m_proximalPointIndices.size(); ++i)
+            {
                 if (bestAsc.tangentialStates[i] > Observing) {
                     ++constraintIdx;
                     restitutionImpulses[i] -= -bestAsc.
                                               localImpulses[constraintIdx*3+2]
                                               * steplength;
 
-                    if (fabs(-bestAsc.localImpulses[constraintIdx*3+2])
-                        > minMeaningfulImpulse)
+                    if (std::abs(-bestAsc.localImpulses[constraintIdx*3+2])
+                        > MinMeaningfulImpulse)
 
                         hasRebounded[i] = true;
                 }
@@ -1508,24 +1670,32 @@ performImpactPruning(State& s,
 
             Real maxRestImpulse = 0;
             for (int i=0; i<(int)restitutionImpulses.size(); ++i)
-                maxRestImpulse = std::max(maxRestImpulse, restitutionImpulses[i]);
-            if (maxRestImpulse < minMeaningfulImpulse) {
-                if (PRINT_DEBUG_INFO_IMPACT)
+                maxRestImpulse = std::max(maxRestImpulse,
+                                          restitutionImpulses[i]);
+            if (maxRestImpulse < MinMeaningfulImpulse) {
+                if (PrintDebugInfoImpact)
                     cout << "  ** restitution phase complete" << endl;
                 break;
             }
         }
 
-        if (PRINT_DEBUG_INFO_IMPACT) {
+        if (PrintDebugInfoImpact) {
             cout << "     restitutionImpulses = " << restitutionImpulses
                  << "\n     hasRebounded = " << hasRebounded << endl;
         }
-        if (PAUSE_AFTER_IMPACT_INTERVAL)
+        if (PauseAfterEachImpactInterval)
             char trash = getchar();
 
     } //end interval-stepping loop
-    if (PRINT_BASIC_INFO)
+    if (PrintBasicInfo)
         cout << endl;
+
+    // Ensure energy dissipated is positive for all proximal points.
+    for (int i=0; i<(int)energyDissipated.size(); ++i)
+        SimTK_ASSERT(energyDissipated[i] > -SimTK::SignificantReal,
+        "Negative energy dissipated.");
+
+    return energyDissipated.sum();
 }
 
 //-------------------------- Private methods: display --------------------------
@@ -1637,7 +1807,7 @@ void Impacter::initializeActiveSetCandidate(const State& s,
         const Vec3 vel = m_brick.findLowestPointVelocityInGround(s,
                              m_proximalPointIndices[i]);
         const Real tangVelMag = vel.getSubVec<2>(0).norm();
-        if (tangVelMag > maxStickingTangVel)
+        if (tangVelMag > MaxStickingTangVel)
             tangentialStateArray[i] = Sliding;
     }
     asc.tangentialStates = tangentialStateArray;
@@ -1649,7 +1819,8 @@ void Impacter::resetActiveSetCandidate(ActiveSetCandidate& asc) const
     asc.localImpulses        = Vector(1,0.0);
     asc.solutionCategory     = SolCat_NotEvaluated;
     asc.fitness              = SimTK::Infinity;
-    asc.worstConstraint      = ProximalPointIndex(std::numeric_limits<int>::max());
+    asc.worstConstraint      = ProximalPointIndex(
+                                   std::numeric_limits<int>::max());
 }
 
 void Impacter::resetActiveSetCandidateArray(
@@ -1671,7 +1842,7 @@ Real Impacter::calcAbsDiffBetweenAngles(Real a, Real b) const
     if (b<0) b += twopi;
 
     // Subtract, avoiding negative answers.
-    Real absdif = fabs(a-b);
+    Real absdif = std::abs(a-b);
 
     // Difference can be no greater than pi due to periodicity.
     return (absdif < SimTK::Pi ? absdif : twopi-absdif);
@@ -1681,9 +1852,9 @@ Real Impacter::
 calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B, Vec2& Q) const
 {
     // Take full step if initial tangential velocity was small (impending slip).
-    if (A.norm() < maxStickingTangVel) {
-        if (PRINT_DEBUG_INFO_STEPLENGTH)
-            cout << "     --> A.norm() < maxStickingTangVel; returning 1.0"
+    if (A.norm() < MaxStickingTangVel) {
+        if (PrintDebugInfoStepLength)
+            cout << "     --> A.norm() < MaxStickingTangVel; returning 1.0"
                  << endl;
         Q = B;
         return 1.0;
@@ -1696,7 +1867,7 @@ calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B, Vec2& Q) const
 
     // Ensure line segment is of meaningful length.
     if (ABsqr < SimTK::SignificantReal) {
-        if (PRINT_DEBUG_INFO_STEPLENGTH)
+        if (PrintDebugInfoStepLength)
             cout << "     --> ABsqr < SimTK::SignificantReal; returning 1.0"
                  << endl;
         Q = B;
@@ -1707,7 +1878,7 @@ calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B, Vec2& Q) const
     const Real stepLength = clamp(0.0, dot(AtoP,AtoB)/ABsqr, 1.0);
 
     Q = A + stepLength*AtoB;
-    if (PRINT_DEBUG_INFO_STEPLENGTH)
+    if (PrintDebugInfoStepLength)
         cout << "     --> returning stepLength = " << stepLength << endl;
     return stepLength;
 }
@@ -1760,12 +1931,14 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
 
     // Define equations.
     Array_<Real> slidingDirections;
-    for (ProximalPointIndex idx(0); idx<(int)m_proximalPointIndices.size(); ++idx) {
+    for (ProximalPointIndex idx(0);
+         idx<(int)m_proximalPointIndices.size(); ++idx)
+    {
         if (asc.tangentialStates[idx] > Observing) {
 
             // Current velocity at this proximal point.
-            const Vec3 currVelAtPoint = m_brick.findLowestPointVelocityInGround(s,
-                                                m_proximalPointIndices[idx]);
+            const Vec3 currVelAtPoint = m_brick.findLowestPointVelocityInGround(
+                                                s, m_proximalPointIndices[idx]);
 
             // Row indices into matrix A corresponding to the constraints for
             // this proximal point.
@@ -1795,7 +1968,7 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
                                    findTangentialVelocityAngle(currVelAtPoint);
                 slidingDirections.push_back(theta);
 
-                if (PRINT_DEBUG_INFO_IMPACT)
+                if (PrintDebugInfoImpact)
                     cout << "  ** angle of tangential velocity vector for "
                          << "proximal point " << idx << " is " << theta << endl;
 
@@ -1827,11 +2000,12 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
 
     // Iterate to find sliding directions, if necessary.
     if (!slidingDirections.empty()) {
-        if (PRINT_DEBUG_INFO_IMPACT) {
+        if (PrintDebugInfoImpact) {
             cout << "  ** finding sliding directions" << endl;
 
             int slidingPointNum = -1;
-            for (ProximalPointIndex idx(0); idx<(int)m_proximalPointIndices.size(); ++idx)
+            for (ProximalPointIndex idx(0);
+                 idx<(int)m_proximalPointIndices.size(); ++idx)
                 if (asc.tangentialStates[idx] == Sliding) {
                     ++slidingPointNum;
 
@@ -1839,7 +2013,8 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
                     const Vec3 vT = m_brick.findLowestPointVelocityInGround(s,
                                         m_proximalPointIndices[idx]);
                     cout << "     v[" << idx << "] = " << vT << " (angle = "
-                         << slidingDirections[slidingPointNum] << " rad)" << endl;
+                         << slidingDirections[slidingPointNum] << " rad)"
+                         << endl;
                 }
         }
 
@@ -1849,16 +2024,17 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
 
             // Halt if maximum number of iterations is reached.
             ++numIter;
-            if (numIter > maxIterSlipDirection) {
-                if (PRINT_DEBUG_INFO_IMPACT)
+            if (numIter > MaxIterSlipDirection) {
+                if (PrintDebugInfoImpact)
                     cout << "  ** maximum number of iterations reached" << endl;
 
-                asc.solutionCategory = SolCat_UnableToResolveUnknownSlipDirection;
+                asc.solutionCategory =
+                    SolCat_UnableToResolveUnknownSlipDirection;
                 asc.fitness          = SimTK::Infinity;
                 asc.worstConstraint  = worstConstraintIdx;
                 break;
             }
-            if (PRINT_DEBUG_INFO_IMPACT)
+            if (PrintDebugInfoImpact)
                 cout << "  ** beginning iteration " << numIter << endl;
 
             // Solve using current directions.
@@ -1866,35 +2042,37 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
             Vector    sol;
             qtzA.solve(b, sol);
 
-            // Calculate new system velocities using slidingDirStepLength, which
+            // Calculate new system velocities using SlidingDirStepLength, which
             // we presume is sufficiently small to avoid direction reversals
-            // (except in situations where |v_t| < maxStickingTangVel).
+            // (except in situations where |v_t| < MaxStickingTangVel).
             Vector calcImpulse = Vector(M);
             for (int i=0; i<M; ++i)
                 calcImpulse[i] = sol[N+i];
             Vector deltaU = sol.resizeKeep(N);
-            if (PRINT_DEBUG_INFO_IMPACT)
+            if (PrintDebugInfoImpact)
                 cout << "     calculated deltaU = " << deltaU << endl
                      << "     calculated impulse = " << calcImpulse << endl;
 
             State sTemp(s);
-            sTemp.setU(s.getU() + slidingDirStepLength*deltaU);
+            sTemp.setU(s.getU() + SlidingDirStepLength*deltaU);
             m_mbs.realize(sTemp, Stage::Velocity);
 
             // Update directions of all sliding points (not just those with
             // unknown sliding directions).
             Real maxAngleDif     = 0;
             int  slidingPointNum = -1;
-            for (ProximalPointIndex idx(0); idx<(int)m_proximalPointIndices.size(); ++idx) {
+            for (ProximalPointIndex idx(0);
+                 idx<(int)m_proximalPointIndices.size(); ++idx)
+            {
                 if (asc.tangentialStates[idx] == Sliding) {
                     ++slidingPointNum;
 
                     // Determine new angle from proposed velocity at this point.
-                    const Vec3 vTemp = m_brick.findLowestPointVelocityInGround(sTemp,
-                                           m_proximalPointIndices[idx]);
+                    const Vec3 vTemp = m_brick.findLowestPointVelocityInGround(
+                                           sTemp, m_proximalPointIndices[idx]);
                     Real newAngle = m_brick.findTangentialVelocityAngle(vTemp);
 
-                    if (PRINT_DEBUG_INFO_IMPACT)
+                    if (PrintDebugInfoImpact)
                         cout << "     v[" << idx << "] = " << vTemp
                              << " (angle = " << newAngle << " rad)" << endl;
 
@@ -1914,7 +2092,7 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
                         }
                     }
 
-                    if (PRINT_DEBUG_INFO_IMPACT)
+                    if (PrintDebugInfoImpact)
                         cout << "     old angle = " << oldAngle
                              << ", new angle = " << newAngle << endl;
 
@@ -1925,8 +2103,8 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
 
                     if (!isNaN(newAngle)) {
                         const Real impulseDir = newAngle + SimTK::Pi;
-                        A[row_x][row_z] = -m_brick.get_muDyn() * cos(impulseDir);
-                        A[row_y][row_z] = -m_brick.get_muDyn() * sin(impulseDir);
+                        A[row_x][row_z] = -m_brick.get_muDyn()*cos(impulseDir);
+                        A[row_y][row_z] = -m_brick.get_muDyn()*sin(impulseDir);
                     } else {
                         A[row_x][row_z] = 0;
                         A[row_y][row_z] = 0;
@@ -1935,24 +2113,25 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
                 } //end if this point is sliding
             } //end for each proximal point
 
-            if (PRINT_DEBUG_INFO_IMPACT)
+            if (PrintDebugInfoImpact)
                 cout << "     maximum angle change of " << maxAngleDif << endl;
 
             // Exit if converged.
-            if (maxAngleDif < tolMaxDifDirIteration) {
-                if (PRINT_DEBUG_INFO_IMPACT)
+            if (maxAngleDif < TolMaxDifDirIteration) {
+                if (PrintDebugInfoImpact)
                     cout << "  ** sliding directions converged" << endl;
                 break;
             }
 
             // Exit if a sliding direction flips. By our assumption about the
-            // smallness of slidingDirStepLength, obtaining a flipping direction
+            // smallness of SlidingDirStepLength, obtaining a flipping direction
             // indicates that this point should actually be sticking.
-            if (fabs(maxAngleDif-SimTK::Pi) < tolMaxDifDirIteration) {
-                if (PRINT_DEBUG_INFO_IMPACT)
+            if (std::abs(maxAngleDif-SimTK::Pi) < TolMaxDifDirIteration) {
+                if (PrintDebugInfoImpact)
                     cout << "  ** point will stick, not slide" << endl;
 
-                asc.solutionCategory = SolCat_MinStepCausesSlipDirectionReversal;
+                asc.solutionCategory =
+                    SolCat_MinStepCausesSlipDirectionReversal;
                 asc.fitness          = SimTK::Infinity;
                 asc.worstConstraint  = worstConstraintIdx;
                 break;
@@ -1973,10 +2152,10 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
         asc.localImpulses[i] = sol[N+i];
     asc.systemVelocityChange = sol.resizeKeep(N);
 
-    if (PRINT_DEBUG_INFO_IMPACT) {
+    if (PrintDebugInfoImpact) {
         cout << "     proximal point velocities after full step:" << endl;
         State sTemp(s);
-        sTemp.setU(sTemp.getU() + 1.0*asc.systemVelocityChange);
+        sTemp.updU() += 1.0*asc.systemVelocityChange;
         m_mbs.realize(sTemp, Stage::Velocity);
 
         for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
@@ -2004,7 +2183,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
 
     // Calculate proximal point velocities after taking a full step.
     State sFullStep(s);
-    sFullStep.setU(sFullStep.getU() + 1.0*asc.systemVelocityChange);
+    sFullStep.updU() += 1.0*asc.systemVelocityChange;
     m_mbs.realize(sFullStep, Stage::Velocity);
 
     Array_<Vec3,ProximalPointIndex> fullStepVel(m_proximalPointIndices.size());
@@ -2013,7 +2192,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
                                  m_proximalPointIndices[i]);
 
     // No impulses applied; no progress made -- avoid infinite looping.
-    if (asc.localImpulses.norm() < minMeaningfulImpulse) {
+    if (asc.localImpulses.norm() < MinMeaningfulImpulse) {
         asc.solutionCategory = SolCat_NoImpulsesApplied;
         asc.fitness          = SimTK::Infinity;
         return;
@@ -2033,7 +2212,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
                 minNormVelIdx = i;
             }
         }
-        if (minNormVel < -tolVelocityFuzziness) {
+        if (minNormVel < -TolVelocityFuzziness) {
             asc.solutionCategory = SolCat_NegativePostCompressionNormalVelocity;
             asc.fitness          = -minNormVel;
             asc.worstConstraint  = minNormVelIdx;
@@ -2056,7 +2235,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
             }
         }
     }
-    if (maxNormImpulse > minMeaningfulImpulse) {
+    if (maxNormImpulse > MinMeaningfulImpulse) {
         asc.solutionCategory = SolCat_GroundAppliesAttractiveImpulse;
         asc.fitness          = maxNormImpulse;
         asc.worstConstraint  = maxNormImpulseIdx;
@@ -2079,7 +2258,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
                 const Real excessiveImpulse = impTangMag
                                               - m_brick.get_muDyn()*impNormMag;
 
-                if (excessiveImpulse > minMeaningfulImpulse &&
+                if (excessiveImpulse > MinMeaningfulImpulse &&
                     excessiveImpulse > maxExcessiveImpulse) {
                     maxExcessiveImpulse    = excessiveImpulse;
                     maxExcessiveImpulseIdx = i;
@@ -2087,7 +2266,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
             }
         }
     }
-    if (maxExcessiveImpulse > minMeaningfulImpulse) {
+    if (maxExcessiveImpulse > MinMeaningfulImpulse) {
         asc.solutionCategory = SolCat_StickingImpulseExceedsStictionLimit;
         asc.fitness          = maxExcessiveImpulse;
         asc.worstConstraint  = maxExcessiveImpulseIdx;
@@ -2113,7 +2292,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
             }
         }
     }
-    if (maxTangVelMag > maxStickingTangVel) {
+    if (maxTangVelMag > MaxStickingTangVel) {
         asc.solutionCategory = SolCat_TangentialVelocityTooLargeToStick;
         asc.fitness          = maxTangVelMag;
         asc.worstConstraint  = maxTangVelMagIdx;
@@ -2129,7 +2308,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
         for (int i=0; i<numConstraints; ++i)
             ignoredImpulse -= -asc.localImpulses[i*3+2];
 
-        if (ignoredImpulse > minMeaningfulImpulse*restitutionImpulses.size()) {
+        if (ignoredImpulse > MinMeaningfulImpulse*restitutionImpulses.size()) {
             asc.solutionCategory = SolCat_RestitutionImpulsesIgnored;
             asc.fitness          = ignoredImpulse;
             return;
@@ -2140,7 +2319,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
     // constraints that apply no impulses.
     for (int i=0; i<numConstraints; ++i) {
         if (Vec3(asc.localImpulses[i*3], asc.localImpulses[i*3+1],
-                 asc.localImpulses[i*3+2]).norm() < minMeaningfulImpulse) {
+                 asc.localImpulses[i*3+2]).norm() < MinMeaningfulImpulse) {
             asc.solutionCategory = SolCat_ActiveConstraintDoesNothing;
             asc.fitness          = asc.localImpulses.norm(); //as usual
         }
@@ -2167,7 +2346,7 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
     sProp.setU(s.getU() + 1.0*asc.systemVelocityChange);
     m_mbs.realize(sProp, Stage::Velocity);
 
-    if (PRINT_DEBUG_INFO_STEPLENGTH) {
+    if (PrintDebugInfoStepLength) {
         cout << "  ** calculating step length for active set ";
         printFormattedActiveSet(cout, asc.tangentialStates);
         cout << endl;
@@ -2177,7 +2356,7 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
     for (ProximalPointIndex i(0); i<(int)asc.tangentialStates.size(); ++i) {
         if (asc.tangentialStates[i] == Sliding) {
 
-            if (PRINT_DEBUG_INFO_STEPLENGTH)
+            if (PrintDebugInfoStepLength)
                 cout << "  ** analyzing proximal point " << i << "..." << endl;
 
             // Iterate until step length has been resolved for this proximal
@@ -2185,21 +2364,21 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
             int numIter = 0;
             while(true) {
                 ++numIter;
-                if (numIter > maxIterStepLength) {
+                if (numIter > MaxIterStepLength) {
                     cout << "  ** maximum number of iterations reached" << endl;
                     return SimTK::NaN;
                 }
 
                 // Calculate the proposed velocity of this proximal point, given
                 // the current proposed steplength.
-                const Vec3 propVel = m_brick.findLowestPointVelocityInGround(sProp,
-                                         m_proximalPointIndices[i]);
+                const Vec3 propVel = m_brick.findLowestPointVelocityInGround(
+                                         sProp, m_proximalPointIndices[i]);
 
                 // Calculate current and proposed angles.
                 Real ang0 = m_brick.findTangentialVelocityAngle(currVels[i]);
                 Real ang1 = m_brick.findTangentialVelocityAngle(propVel);
 
-                if (PRINT_DEBUG_INFO_STEPLENGTH)
+                if (PrintDebugInfoStepLength)
                     cout << "     currVels[i] = " << currVels[i] << " (" << ang0
                          << " rad)\n"
                          << "     propVel     = " << propVel << " (" << ang1
@@ -2207,7 +2386,8 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
 
                 // Detect steps that end with negligible tangential velocity,
                 // indicating that this point will transition to rolling.
-                if (isNaN(ang1) || propVel.getSubVec<2>(0).norm() < maxStickingTangVel)
+                if (isNaN(ang1) ||
+                    propVel.getSubVec<2>(0).norm() < MaxStickingTangVel)
                     break;
 
                 // Determine whether the absolute difference in angles is
@@ -2215,15 +2395,16 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
                 //   (b) too large to proceed with a full step of sliding, or
                 //   (c) too large to determine what's actually happening.
                 const Real absAngDif = calcAbsDiffBetweenAngles(ang0, ang1);
-                if (PRINT_DEBUG_INFO_STEPLENGTH)
+                if (PrintDebugInfoStepLength)
                     cout << "     absAngDif = " << absAngDif << endl;
 
-                if (absAngDif <= maxSlidingDirChange) {
+                if (absAngDif <= MaxSlidingDirChange) {
                     // (a) Direction change is sufficiently small to proceed.
 
-                    if (PRINT_DEBUG_INFO_STEPLENGTH)
+                    if (PrintDebugInfoStepLength)
                         cout << "  -- finished with proximal point " << i
-                             << "; current steplength is " << steplength << endl;
+                             << "; current steplength is " << steplength
+                             << endl;
                     break;
 
                 } else if (absAngDif <= 0.5*SimTK::Pi) {
@@ -2232,13 +2413,13 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
                     // sliding interval.
 
                     Real newSteplength = steplength*
-                                         (maxSlidingDirChange/absAngDif);
+                                         (MaxSlidingDirChange/absAngDif);
 
                     // Without reducing newSteplength slightly, it may take many
                     // iterations to converge here (e.g., steplength can slowly
-                    // approach maxSlidingDirChange from above).
+                    // approach MaxSlidingDirChange from above).
                     if (numIter > 2)
-                        newSteplength *= stepLengthConvFactor;
+                        newSteplength *= StepLengthConvFactor;
 
                     steplength = std::min(steplength, newSteplength);
 
@@ -2246,7 +2427,7 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
                     sProp.setU(s.getU() + steplength*asc.systemVelocityChange);
                     m_mbs.realize(sProp, Stage::Velocity);
 
-                    if (PRINT_DEBUG_INFO_STEPLENGTH)
+                    if (PrintDebugInfoStepLength)
                         cout << "  -- limiting steplength to " << steplength
                              << " to limit change in sliding direction" << endl;
 
@@ -2264,7 +2445,7 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
                     sProp.setU(s.getU() + steplength*asc.systemVelocityChange);
                     m_mbs.realize(sProp, Stage::Velocity);
 
-                    if (PRINT_DEBUG_INFO_STEPLENGTH)
+                    if (PrintDebugInfoStepLength)
                         cout << "  -- limiting steplength to " << steplength
                              << " to detect sliding direction reversal" << endl;
 
@@ -2276,23 +2457,26 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
         } //end if sliding
     } //end for each proximal point
 
-    // Ensure at least the minimum desired number of intervals will occur.
-    if (intervalCtr < minIntervalsPerPhase) {
-        const Real minAllowedStepLength = 1.0 / (minIntervalsPerPhase-intervalCtr+1);
-        if (steplength > minAllowedStepLength) {
-            if (PRINT_DEBUG_INFO_STEPLENGTH)
-                cout << "  ** reducing steplength from " << steplength
-                     << " to " << minAllowedStepLength
-                     << " to ensure minimum desired number of intervals occurs"
-                     << endl;
-            steplength = minAllowedStepLength;
-        }
-    }
+    // Ensure at least the minimum desired number of intervals will occur (not
+    // required since other criteria adequately control the step length).
+    //const int MinIntervalsPerPhase = 2;
+    //if (intervalCtr < MinIntervalsPerPhase) {
+    //    const Real minAllowedStepLength = 1.0 /
+    //        (MinIntervalsPerPhase-intervalCtr+1);
+    //    if (steplength > minAllowedStepLength) {
+    //        if (PrintDebugInfoStepLength)
+    //            cout << "  ** reducing steplength from " << steplength
+    //                 << " to " << minAllowedStepLength
+    //                 << " to ensure minimum number of intervals occurs"
+    //                 << endl;
+    //        steplength = minAllowedStepLength;
+    //    }
+    //}
 
     // Enforce minimum step length permitted (can be dangerous).
     //const Real minIntervalStepLength = 1.0e-4;
     //if (steplength < minIntervalStepLength) {
-    //    if (PRINT_DEBUG_INFO_STEPLENGTH)
+    //    if (PrintDebugInfoStepLength)
     //        cout << "  ** increasing steplength from " << steplength
     //             << " to " << minIntervalStepLength
     //             << " to enforce the minimum step length permitted" << endl;
