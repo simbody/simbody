@@ -610,7 +610,13 @@ set(PKG_LIBRARIES
   SimTKcommon
 )
 
+if (WIN32)
+  set(SIMBODY_CMAKE_DIR CMake)
+elseif (UNIX)
+  set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
+endif ()
+
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake @ONLY)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake DESTINATION
-    ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
+    ${SIMBODY_CMAKE_DIR})
