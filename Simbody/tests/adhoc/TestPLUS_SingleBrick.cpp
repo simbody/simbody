@@ -1318,9 +1318,32 @@ performImpactExhaustive(State& s,
             cout << "  ** steplength = " << steplength
                  << "\n     newU = " << s.getU() << endl;
 
-        // Store velocities of proximal points at the beginning of the interval
-        // for calculating energy dissipated.
-        Array_<Vec3,ProximalPointIndex> proximalVelsInG_start(proximalVelsInG);
+        // Perform part of energy dissipation calculation now (i.e., before
+        // updating velocities). Initialize powerTime0 array to zero since power
+        // will not be computed for observing proximal points.
+        Array_<Real,ProximalPointIndex>
+            powerTime0((int)m_proximalPointIndices.size(), 0.0);
+        int constraintIdx = -1;
+        for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
+        {
+            if (activeSetCandidates[bestIdx].tangentialStates[i] > Observing) {
+                ++constraintIdx;
+                const Vec2 vTang  = proximalVelsInG[i].getSubVec<2>(0);
+                const Vec2 piTang = Vec2(activeSetCandidates[bestIdx].
+                                         localImpulses[constraintIdx*3],
+                                         activeSetCandidates[bestIdx].
+                                         localImpulses[constraintIdx*3+1])
+                                    * steplength;
+
+                // Use dot product here in case tangential velocity and impulse
+                // are not quite collinear.
+                powerTime0[i] = dot(vTang, piTang)
+                                + (proximalVelsInG[i][ZAxis]
+                                   * activeSetCandidates[bestIdx].
+                                     localImpulses[constraintIdx*3+2]
+                                   * steplength);
+            }
+        }
 
         // Calculate the new velocity of each proximal point.
         for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
@@ -1332,28 +1355,23 @@ performImpactExhaustive(State& s,
                 cout << "     [" << i << "] v=" << proximalVelsInG[i] << endl;
 
         // Calculate energy dissipated.
-        int constraintIdx = -1;
-        for (ProximalPointIndex i(0);
-             i<(int)m_proximalPointIndices.size(); ++i)
+        constraintIdx = -1;
+        for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
         {
             if (activeSetCandidates[bestIdx].tangentialStates[i] > Observing) {
                 ++constraintIdx;
-                const Vec3 avgVelocity = 0.5 * (proximalVelsInG_start[i] +
-                                                proximalVelsInG[i]);
-                const Vec3 currImpulse = Vec3(
-                  activeSetCandidates[bestIdx].localImpulses[constraintIdx*3],
-                  activeSetCandidates[bestIdx].localImpulses[constraintIdx*3+1],
-                  activeSetCandidates[bestIdx].localImpulses[constraintIdx*3+2])
-                  * steplength;
-                const Vec3 deltaEnergy = avgVelocity.
-                                         elementwiseMultiply(currImpulse);
+                const Vec2 vTang  = proximalVelsInG[i].getSubVec<2>(0);
+                const Vec2 piTang = Vec2(activeSetCandidates[bestIdx].
+                                         localImpulses[constraintIdx*3],
+                                         activeSetCandidates[bestIdx].
+                                         localImpulses[constraintIdx*3+1])
+                                    * steplength;
+                const Real powerTime1 = dot(vTang, piTang)
+                    + (proximalVelsInG[i][ZAxis]
+                       * activeSetCandidates[bestIdx].
+                         localImpulses[constraintIdx*3+2] * steplength);
 
-                // Energy always dissipates in the tangential direction; in the
-                // normal direction, energy dissipates during compression and
-                // increases during restitution.
-                energyDissipated[i] += std::abs(deltaEnergy[XAxis])
-                                       + std::abs(deltaEnergy[YAxis])
-                                       + deltaEnergy[ZAxis];
+                energyDissipated[i] += (powerTime0[i] + powerTime1) * 0.5;
             }
         }
 
@@ -1575,9 +1593,29 @@ performImpactPruning(State& s,
             cout << "  ** steplength = " << steplength
                  << "\n     newU = " << s.getU() << endl;
 
-        // Store velocities of proximal points at the beginning of the interval
-        // for calculating energy dissipated.
-        Array_<Vec3,ProximalPointIndex> proximalVelsInG_start(proximalVelsInG);
+        // Perform part of energy dissipation calculation now (i.e., before
+        // updating velocities). Initialize powerTime0 array to zero since power
+        // will not be computed for observing proximal points.
+        Array_<Real,ProximalPointIndex>
+            powerTime0((int)m_proximalPointIndices.size(), 0.0);
+        int constraintIdx = -1;
+        for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
+        {
+            if (bestAsc.tangentialStates[i] > Observing) {
+                ++constraintIdx;
+                const Vec2 vTang  = proximalVelsInG[i].getSubVec<2>(0);
+                const Vec2 piTang = Vec2(bestAsc.localImpulses[constraintIdx*3],
+                                    bestAsc.localImpulses[constraintIdx*3+1])
+                                    * steplength;
+
+                // Use dot product here in case tangential velocity and impulse
+                // are not quite collinear.
+                powerTime0[i] = dot(vTang, piTang)
+                                + (proximalVelsInG[i][ZAxis]
+                                   * bestAsc.localImpulses[constraintIdx*3+2]
+                                   * steplength);
+            }
+        }
 
         // Calculate the new velocity of each proximal point.
         for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
@@ -1589,27 +1627,20 @@ performImpactPruning(State& s,
                 cout << "     [" << i << "] v=" << proximalVelsInG[i] << endl;
 
         // Calculate energy dissipated.
-        int constraintIdx = -1;
-        for (ProximalPointIndex i(0);
-             i<(int)m_proximalPointIndices.size(); ++i)
+        constraintIdx = -1;
+        for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
         {
             if (bestAsc.tangentialStates[i] > Observing) {
                 ++constraintIdx;
-                const Vec3 avgVelocity = 0.5 * (proximalVelsInG_start[i] +
-                                                proximalVelsInG[i]);
-                const Vec3 currImpulse = Vec3(
-                    bestAsc.localImpulses[constraintIdx*3],
-                    bestAsc.localImpulses[constraintIdx*3+1],
-                    bestAsc.localImpulses[constraintIdx*3+2]) * steplength;
-                const Vec3 deltaEnergy = avgVelocity.
-                                         elementwiseMultiply(currImpulse);
+                const Vec2 vTang  = proximalVelsInG[i].getSubVec<2>(0);
+                const Vec2 piTang = Vec2(bestAsc.localImpulses[constraintIdx*3],
+                                    bestAsc.localImpulses[constraintIdx*3+1])
+                                    * steplength;
+                const Real powerTime1 = dot(vTang, piTang)
+                    + (proximalVelsInG[i][ZAxis]
+                       * bestAsc.localImpulses[constraintIdx*3+2] * steplength);
 
-                // Energy always dissipates in the tangential direction; in the
-                // normal direction, energy dissipates during compression and
-                // increases during restitution.
-                energyDissipated[i] += std::abs(deltaEnergy[XAxis])
-                                       + std::abs(deltaEnergy[YAxis])
-                                       + deltaEnergy[ZAxis];
+                energyDissipated[i] += (powerTime0[i] + powerTime1) * 0.5;
             }
         }
 
@@ -1922,6 +1953,14 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
     const int N = MassMatrix.nrow();
     const int M = GMatrix.nrow();
 
+    // TODO: Should not need to form a matrix larger than MxM here.
+    //       1. Solve only for impulses.
+    //       2. During restitution, remove equations with no degrees of freedom
+    //          (i.e., all normal impulses, and tangential impulses associated
+    //          with sliding points).
+    //       3. Figure out how to modify Simbody's GM\~G computation to create
+    //          G'M\~G, where G' means modifying the equations associated with
+    //          sliding (and normal impulses in the restitution phase).
     Matrix A = Matrix(N+M, N+M);
     A(0,0,N,N) = MassMatrix;
     A(0,N,N,M) = GMatrix.transpose();
@@ -2037,7 +2076,8 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
             if (PrintDebugInfoImpact)
                 cout << "  ** beginning iteration " << numIter << endl;
 
-            // Solve using current directions.
+            // Solve using current directions. We have set muDyn=0 for all
+            // points with unknown sliding directions.
             FactorQTZ qtzA(A);
             Vector    sol;
             qtzA.solve(b, sol);
@@ -2045,10 +2085,9 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
             // Calculate new system velocities using SlidingDirStepLength, which
             // we presume is sufficiently small to avoid direction reversals
             // (except in situations where |v_t| < MaxStickingTangVel).
-            Vector calcImpulse = Vector(M);
-            for (int i=0; i<M; ++i)
-                calcImpulse[i] = sol[N+i];
-            Vector deltaU = sol.resizeKeep(N);
+            Vector deltaU      = sol(0,N);
+            Vector calcImpulse = sol(N,M);
+
             if (PrintDebugInfoImpact)
                 cout << "     calculated deltaU = " << deltaU << endl
                      << "     calculated impulse = " << calcImpulse << endl;
@@ -2076,7 +2115,8 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
                         cout << "     v[" << idx << "] = " << vTemp
                              << " (angle = " << newAngle << " rad)" << endl;
 
-                    // Keep track of maximum absolute difference in angle.
+                    // Keep track of maximum absolute difference in angle (note
+                    // that oldAngle and/or newAngle might be NaN).
                     Real oldAngle = slidingDirections[slidingPointNum];
                     slidingDirections[slidingPointNum] = newAngle;
 
@@ -2134,7 +2174,7 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
                     SolCat_MinStepCausesSlipDirectionReversal;
                 asc.fitness          = SimTK::Infinity;
                 asc.worstConstraint  = worstConstraintIdx;
-                break;
+                return; //Giving up.
             }
 
         } //end while directions are unknown
@@ -2142,15 +2182,17 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
 
     // Either no points are sliding, or have finished iterating and need one
     // more solve to reconcile friction impulses with newest directions.
+    // TODO: Do not need to solve a second time if initial directions were
+    //       acceptable.
+    // TODO: Replace the above fixed-point iteration with a Newton iteration
+    //       (provided the NaN directions are resolved first).
     FactorQTZ qtzA(A);
     Vector    sol;
     qtzA.solve(b, sol);
 
-    // Store system velocity changes and local impulses.
-    asc.localImpulses = Vector(M);
-    for (int i=0; i<M; ++i)
-        asc.localImpulses[i] = sol[N+i];
-    asc.systemVelocityChange = sol.resizeKeep(N);
+    // Extract system velocity changes and local impulses from sol vector.
+    asc.systemVelocityChange = sol(0,N);
+    asc.localImpulses        = sol(N,M);
 
     if (PrintDebugInfoImpact) {
         cout << "     proximal point velocities after full step:" << endl;
@@ -2322,6 +2364,7 @@ void Impacter::evaluateLinearSystemSolution(const State& s,
                  asc.localImpulses[i*3+2]).norm() < MinMeaningfulImpulse) {
             asc.solutionCategory = SolCat_ActiveConstraintDoesNothing;
             asc.fitness          = asc.localImpulses.norm(); //as usual
+            return;
         }
     }
 
@@ -2384,8 +2427,12 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
                          << "     propVel     = " << propVel << " (" << ang1
                          << " rad)" << endl;
 
+                // TODO: ang0 might be NaN; correct handling of this situation
+                //       below.
+
                 // Detect steps that end with negligible tangential velocity,
                 // indicating that this point will transition to rolling.
+                // TODO: Redundant conditions?
                 if (isNaN(ang1) ||
                     propVel.getSubVec<2>(0).norm() < MaxStickingTangVel)
                     break;
@@ -2436,21 +2483,30 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
                     // the step length to place the end of this interval at the
                     // point closest to the origin on a vx-vy plot.
 
+                    // Returns exactly 1 if initial tangential velocity was
+                    // small, line segment is unreasonably short, or propVel
+                    // endpoint is the closest point to the origin.
                     Vec2 Q;
-                    steplength *= calcSlidingStepLengthToOrigin(
-                                      currVels[i].getSubVec<2>(0),
-                                      propVel.getSubVec<2>(0), Q);
+                    const Real stepFactor = calcSlidingStepLengthToOrigin(
+                                                currVels[i].getSubVec<2>(0),
+                                                propVel.getSubVec<2>(0), Q);
+
+                    if (stepFactor == 1) {
+                        if (PrintDebugInfoStepLength)
+                            cout << "  -- finished with proximal point " << i
+                                 << "; current steplength is " << steplength
+                                 << endl;
+                        break;
+                    }
 
                     // Update proposed system velocities.
+                    steplength *= stepFactor;
                     sProp.setU(s.getU() + steplength*asc.systemVelocityChange);
                     m_mbs.realize(sProp, Stage::Velocity);
 
                     if (PrintDebugInfoStepLength)
                         cout << "  -- limiting steplength to " << steplength
                              << " to detect sliding direction reversal" << endl;
-
-                    if (steplength == 1)
-                        break;
                 }
 
             } //end while(true) for this proximal point
