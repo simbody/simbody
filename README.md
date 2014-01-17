@@ -1,6 +1,5 @@
-Simbody
+Simbody [![Build Status][buildstatus_image]][travisci]
 =======
-[![Build Status](https://travis-ci.org/simbody/simbody.png?branch=master)](https://travis-ci.org/simbody/simbody)
 
 Simbody is a high-performance, open-source toolkit for simulation of 
 articulated mechanisms, including biological structures, robots, vehicles,
@@ -50,7 +49,8 @@ int main() {
 }
 ```
 
-See [Simbody's User Guide][1] for a step-by-step explanation of this example.
+See [Simbody's User Guide][user] for a step-by-step explanation of this
+example.
 
 Installing
 ----------
@@ -120,5 +120,6 @@ You may need to run that last line as a superuser (`sudo make install`),
 depending on how you choose `<desired-installation-path>`.
 
 
-
-[1]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
+[buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
+[travisci]: https://travis-ci.org/simbody/simbody
+[user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
