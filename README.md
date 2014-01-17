@@ -1,5 +1,6 @@
 Simbody
 =======
+[![Build Status](https://travis-ci.org/simbody/simbody.png?branch=master)](https://travis-ci.org/simbody/simbody)
 
 Source code for the Simbody libraries, examples, and build system.
 
