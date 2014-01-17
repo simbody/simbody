@@ -2,20 +2,20 @@ Simbody
 =======
 [![Build Status](https://travis-ci.org/simbody/simbody.png?branch=master)](https://travis-ci.org/simbody/simbody)
 
-Source code for the Simbody libraries, examples, and build system.
-
 Simbody is a high-performance, open-source toolkit for simulation of 
 articulated mechanisms, including biological structures, robots, vehicles,
 machines, etc. Simbody includes a multibody dynamics library for modeling
 motion in internal coordinates in O(n) time.
 
-Read more about it here: https://simtk.org/home/simbody
+It is used by biomechanists in [OpenSim](http://opensim.stanford.edu) and by
+roboticists in [Gazebo](http://gazebosim.org).
+
+Read more about it here: https://simtk.org/home/simbody.
 
 
 Simple example: a double pendulum
 ---------------------------------
-Want to know the basics of what Simbody can do? Look no further! This example
-comes from Simbody's User Guide.
+Here's some code to simulate a double pendulum.
 
 ```cpp
 #include "Simbody.h"
@@ -49,6 +49,8 @@ int main() {
     ts.stepTo(50.0);
 }
 ```
+
+See [Simbody's User Guide][1] for a step-by-step explanation of this example.
 
 Installing
 ----------
@@ -119,3 +121,4 @@ depending on how you choose `<desired-installation-path>`.
 
 
 
+[1]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
