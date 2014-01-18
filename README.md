@@ -160,7 +160,7 @@ use it in the next step.
 * Ubuntu: `$ echo 'export SimTK_INSTALL_DIR=<install-dir>' > ~/.bashrc`
 
 
- Set the appropriate environment variable so the libraries can be found:
+Set the appropriate environment variable so the libraries can be found:
 
 * Mac: `echo 'export DYLD_LIBRARY_PATH:$SimTK_INSTALL_DIR/lib' > `/.bash_profile`
 * Ubuntu: `echo 'export
