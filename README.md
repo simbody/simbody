@@ -8,7 +8,7 @@ motion in [generalized/internal coordinates in O(n) time][thy].
 
 It is used by biomechanists in [OpenSim](http://opensim.stanford.edu) and by
 roboticists in [Gazebo](http://gazebosim.org). Here's an 11,000-body simulation
-of an RNA molecule done with Simbody:
+of an RNA molecule performed with Simbody by [Sam Flores][flores]:
 
 [![Sam Flores' Simbody RNA simulation][rna]][simbios]
 
@@ -17,7 +17,7 @@ Read more about it here: https://simtk.org/home/simbody.
 
 Simple example: a double pendulum
 ---------------------------------
-Here's some code to simulate a double pendulum.
+Here's some code to simulate and visualize a 2-link chain:
 
 ```cpp
 #include "Simbody.h"
@@ -58,72 +58,124 @@ int main() {
 See [Simbody's User Guide][user] for a step-by-step explanation of this
 example.
 
-Installing
-----------
-Detailed installation instructions for Linux, Mac, and Windows installation
-of precompiled binaries are provided in the Simbody User's Guide, which can 
-be found in the installation's doc directory or posted online at 
-https://simtk.org/home/simbody, Documents tab. If you are building from 
-source, use the How To Build From Source document for your platform instead;
-you can find that in the same places. 
 
-We highly recommend that you read the detailed installation instructions in
-the User's Guide. However, if you are one of those guys who just won't ask 
-for directions, here at least is an abbreviated summary of the installation 
-procedure for the precompiled binaries:
+Features
+--------
+- Visualizer, using [OpenGL](http://www.opengl.org/).
+- Contact (Hertz, Hunt and Crossley models).
+- Gradient descent optimizers (IPOPT, LBFGS, LBFGSB).
+- Path wrapping around objects, used to define forces that act along complex
+  paths, like muscles do.
 
-1. Install prerequisites for your platform (see below)
-2. Download an appropriate .zip file from Simbody's Download page.
-3. Unzip it into the installation directory, or unzip it somewhere and then
-   move the whole directory structure to where you want it to reside. That can
-   be anywhere you want, but we suggest 
-    - Linux or Mac:   /usr/local/SimTK 
-    - 32-bit Windows: C:\Program Files\SimTK
-    - 64-bit Windows: C:\Program Files (x86)\SimTK
-4. Set the environment variable SimTK_INSTALL_DIR to the installation directory
-   you chose in step 3. (Not strictly required but helps with examples and
-   locating the Visualizer.)
-5. Set the appropriate PATH variable so the libraries can be found:
-    - Linux:   export LD_LIBRARY_PATH=$SimTK_INSTALL_DIR/lib[64]
-    - Mac:     export DYLD_LIBRARY_PATH=$SimTK_INSTALL_DIR/lib
-    - Windows: set    path=%SimTK_INSTALL_DIR%\bin;%path%
-6. Test installation using:
-    $SimTK_INSTALL_DIR/examples/bin/SimbodyInstallTest
+You want to...
+--------------
+* build Simbody from the source code: [Windows][buildwin], [Mac or
+  Linux][buildunix] (somewhat outdated).
+* [install Simbody from a binary distribution][user] (outdated).
+* [use Simbody in your own program][user].
+* [learn the theory behind Simbody][thy].
+* [extend Simbody][extend].
+* [ask questions or share information in the Simbody forum][forum]
+* [report a bug or suggest a feature][issue]
+* [contribute or get the source code](https://github.com/simbody/simbody/)
 
-Prerequisites:
--  Windows: None
--  Mac: Must have installed developer package (XCode), to get Lapack and Blas
-       (they are part of Apple's Accelerate framework).
--  Linux:
-    - Lapack and blas version 3: install package liblapack-dev. (Must end up
-      with liblapack.so.3 and libblas.so.3 in /usr/lib[64].)
-    - These are needed if you want to run the Simbody Visualizer (you do):
-        - Freeglut: install freeglut-dev package
-        - Xi, Xmu: install libxi-dev, libxmu-dev
+Dependencies
+------------
+Simbody depends on LAPACK and BLAS for math, and on FreeGLUT, Xi and Xmu for
+visualization.
 
-### Getting help
+### Windows
+We give the dependencies to you!
 
-1. Read the installation instructions in the User's Guide (see above).
-2. Post to the help forum at https://simtk.org/home/simbody, Advanced tab,
-   Public forums.
+### Mac
+The XCode developer package gives LAPACK and BLAS to you via the Accelerate
+framework. Mac's come with the visualization dependencies.
 
-
-Building from source
---------------------
-
-### Unix (Ubuntu, Mac OSX, etc.)
-Assuming we start in a directory containing `simbody/`, which contains the
-source code.
-
-```
-mkdir simbody-build
-cd simbody-build
-cmake -DCMAKE_INSTALL_PREFIX=<desired-installation-path> ../simbody-build
-make install
+### Linux/Ubuntu
+Your system's package manager surely has the dependencies. On Ubuntu you can
+enter the following in a terminal:
+```sh
+$ apt-get install liblapack-dev
 ```
 
-You may need to run that last line as a superuser (`sudo make install`),
-depending on how you choose `<desired-installation-path>`.
+Optionally, for visualization:
+
+```sh
+$ apt-get install freeglut-dev libxi-dev libxmu-dev
+```
+You may need to run these lines as a superuser (`sudo apt-get ...`).
+
+
+Building and Installing
+-----------------------
+We currently do not provide a pre-built binary distribution; you must build the
+source code yourself. We're working on getting Simbody into the Debian and
+Ubuntu repositories, though, so you'll be able to `apt-get` them.
+
+#### Download the source code
+Download the source code from https://github.com/simbody/simbody/releases.
+Alternatively, if you have [Git](http://git-scm.com) installed, you can clone
+the Simbody repository. From a command line, this would look like:
+
+```sh
+$ git clone git@github.com/simbody/simbody.git
+```
+
+From this point, if you're on Windows or you don't want to do anything on the
+command line, head straight for either the [Windows][buildwin] or the [Unix
+(Mac/Linux)][buildunix] instructions; we can't do much for you without showing
+you screenshots.
+
+#### Install CMake
+
+[Download](http://www.cmake.org/cmake/resources/software.html) and install
+CMake, which is a program we use to manage the build process. On Ubuntu, you
+can obtain CMake via `$ apt-get install cmake` in a terminal.
+
+#### Build and install Simbody
+
+Say you've placed the source code into `~/simbody-source/` and that you want to
+install Simbody to `<install-dir>` (perhaps, `~/simbody-install`).
+
+```sh
+$ cd ~/
+$ mkdir simbody-build
+$ cd simbody-build
+$ cmake -DCMAKE_INSTALL_PREFIX=<install-dir> ../simbody-source
+$ make install
+```
+
+You may need to run the last line as a superuser (`sudo apt-get ...`), if you
+chose an `<install-dir>` that you can't otherwise write to.
+
+If you have the dependencies, you should have no issues with the installation.
+
+#### Configure your system to find Simbody
+
+Set the environment variable SimTK_INSTALL_DIR `<install-dir>`. This is not
+strictly required but helps with examples and locating the Visualizer, and we
+use it in the next step.
+
+* Mac: `$ echo 'export SimTK_INSTALL_DIR=<install-dir>' > ~/.bash_profile`
+* Ubuntu: `$ echo 'export SimTK_INSTALL_DIR=<install-dir>' > ~/.bashrc`
+
+
+ Set the appropriate environment variable so the libraries can be found:
+
+* Mac: `echo 'export DYLD_LIBRARY_PATH:$SimTK_INSTALL_DIR/lib' > `/.bash_profile`
+* Ubuntu: `echo 'export
+  LD_LIBRARY_PATH:$SimTK_INSTALL_DIR/lib/x86_64-linux-gnu' > ~/.bashrc`.
+  Actually, you may need to replace `x86_64-linux-gnu` with the approriate
+  directory on your platform.
+
+Close and open a new terminal window.
+
+#### Test your installation
+
+In your new terminal window, run:
+
+* Mac: `$ $SimTK_INSTALL_DIR/examples/bin/SimbodyInstallTest`
+* Linux: `$ $SimTK_INSTALL_DIR/lib/x86_64-linux-gnu/simbody/examples/SimbodyInstallTest`
 
 
 Other multibody dynamics engines
@@ -139,3 +191,9 @@ Other multibody dynamics engines
 [rna]:https://raw2.github.com/simbody/simbody/master/doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
 [thy]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf
+[extend]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAdvancedProgrammingGuide.pdf
+[flores]: https://simtk.org/forums/memberlist.php?mode=viewprofile&u=482
+[forum]: https://simtk.org/forums/viewforum.php?f=47
+[issue]: https://github.com/simbody/simbody/issues/new
+[buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
+[buildunix]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_MacLinux.pdf
