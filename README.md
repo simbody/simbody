@@ -126,6 +126,13 @@ You may need to run that last line as a superuser (`sudo make install`),
 depending on how you choose `<desired-installation-path>`.
 
 
+Other multibody dynamics engines
+--------------------------------
+* [Open Dynamics Engine](http://www.ode.org/)
+* [Bullet](http://bulletphysics.org)
+* [Moby](http://physsim.sourceforge.net/)
+
+
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
