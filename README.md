@@ -4,7 +4,7 @@ Simbody [![Build Status][buildstatus_image]][travisci]
 Simbody is a high-performance, open-source toolkit for simulation of
 articulated mechanisms, including biological structures, robots, vehicles,
 machines, etc. Simbody includes a multibody dynamics library for modeling
-motion in generalized/internal coordinates in O(n) time.
+motion in [generalized/internal coordinates in O(n) time][thy].
 
 It is used by biomechanists in [OpenSim](http://opensim.stanford.edu) and by
 roboticists in [Gazebo](http://gazebosim.org). Here's an 11,000-body simulation
@@ -131,3 +131,4 @@ depending on how you choose `<desired-installation-path>`.
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]:https://raw2.github.com/simbody/simbody/master/doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
+[thy]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf
