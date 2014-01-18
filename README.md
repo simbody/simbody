@@ -126,4 +126,4 @@ depending on how you choose `<desired-installation-path>`.
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
-[rna]: https://github.com/chrisdembia/simbody/raw/readme/doc/images/simbios_11000_body_RNA.gif)
+[rna]:https://raw2.github.com/chrisdembia/simbody/readme/doc/images/simbios_11000_body_RNA.gif
