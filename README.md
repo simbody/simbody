@@ -10,7 +10,7 @@ It is used by biomechanists in [OpenSim](http://opensim.stanford.edu) and by
 roboticists in [Gazebo](http://gazebosim.org). Here's an 11,000-body simulation
 of an RNA molecule done with Simbody:
 
-![Sam Flores' Simbody RNA simulation][rna]
+[![Sam Flores' Simbody RNA simulation][rna]][simbios]
 
 Read more about it here: https://simtk.org/home/simbody.
 
@@ -127,3 +127,4 @@ depending on how you choose `<desired-installation-path>`.
 [travisci]: https://travis-ci.org/simbody/simbody
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]:https://raw2.github.com/chrisdembia/simbody/readme/doc/images/simbios_11000_body_RNA.gif
+[simbios]: http://simbios.stanford.edu/
