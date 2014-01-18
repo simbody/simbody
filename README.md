@@ -7,7 +7,10 @@ machines, etc. Simbody includes a multibody dynamics library for modeling
 motion in internal coordinates in O(n) time.
 
 It is used by biomechanists in [OpenSim](http://opensim.stanford.edu) and by
-roboticists in [Gazebo](http://gazebosim.org).
+roboticists in [Gazebo](http://gazebosim.org). Here's an 11,000-body simulation
+of an RNA molecule done with Simbody:
+
+![Sam Flores' Simbody RNA simulation][rna]
 
 Read more about it here: https://simtk.org/home/simbody.
 
@@ -123,3 +126,4 @@ depending on how you choose `<desired-installation-path>`.
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
+[rna]: https://github.com/chrisdembia/simbody/raw/readme/doc/images/simbios_11000_body_RNA.gif)
