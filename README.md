@@ -1,10 +1,10 @@
 Simbody [![Build Status][buildstatus_image]][travisci]
 =======
 
-Simbody is a high-performance, open-source toolkit for simulation of 
+Simbody is a high-performance, open-source toolkit for simulation of
 articulated mechanisms, including biological structures, robots, vehicles,
 machines, etc. Simbody includes a multibody dynamics library for modeling
-motion in internal coordinates in O(n) time.
+motion in generalized/internal coordinates in O(n) time.
 
 It is used by biomechanists in [OpenSim](http://opensim.stanford.edu) and by
 roboticists in [Gazebo](http://gazebosim.org). Here's an 11,000-body simulation
@@ -28,8 +28,11 @@ int main() {
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
+
     Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody.addDecoration(Transform(), DecorativeSphere(0.1));
+
+    // Create the moving bodies of the pendulum.
     MobilizedBody::Pin pendulum1(matter.Ground(), Transform(Vec3(0)),
             pendulumBody, Transform(Vec3(0, 1, 0)));
     MobilizedBody::Pin pendulum2(pendulum1, Transform(Vec3(0)),
@@ -126,5 +129,5 @@ depending on how you choose `<desired-installation-path>`.
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
-[rna]:https://raw2.github.com/chrisdembia/simbody/readme/doc/images/simbios_11000_body_RNA.gif
+[rna]:https://raw2.github.com/simbody/simbody/master/doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
