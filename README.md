@@ -1,18 +1,30 @@
 Simbody [![Build Status][buildstatus_image]][travisci]
 =======
 
-Simbody is a high-performance, open-source toolkit for simulation of
-articulated mechanisms, including biological structures, robots, vehicles,
-machines, etc. Simbody includes a multibody dynamics library for modeling
-motion in [generalized/internal coordinates in O(n) time][thy].
+**[Caution: this README.md intro is under development and is buggy]**
+--
 
-It is used by biomechanists in [OpenSim](http://opensim.stanford.edu) and by
-roboticists in [Gazebo](http://gazebosim.org). Here's an 11,000-body simulation
-of an RNA molecule performed with Simbody by [Sam Flores][flores]:
+Simbody is a high-performance, open-source toolkit for science- and
+engineering-quality simulation of articulated mechanisms, including 
+biomechanical structures such as human and animal skeletons, 
+mechanical systems like robots, vehicles, and machines, and anything
+else that can be described as a set of rigid bodies interconnected
+by joints, influenced by forces and motions, and restricted by
+constraints. Simbody includes a multibody dynamics library for 
+modeling motion in [generalized/internal coordinates in O(n) time][thy]. 
+This is sometimes called a Featherstone-style physics engine.
+
+Simbody provides a C++ API that is used to build domain-specific applications;
+it is not a standalone application itself. For example, it is used by 
+biomechanists in [OpenSim](http://opensim.stanford.edu), by roboticists in
+[Gazebo](http://gazebosim.org), and for biomolecular research in 
+[MacroMoleculeBuilder (MMB)](https://simtk.org/home/rnatoolbox). Here's an
+artful simulation of several RNA molecules containing thousands of bodies,
+performed with MMB by [Samuel Flores][flores]:
 
 [![Sam Flores' Simbody RNA simulation][rna]][simbios]
 
-Read more about it here: https://simtk.org/home/simbody.
+Read more about Simbody [here](https://simtk.org/home/simbody).
 
 
 Simple example: a double pendulum
@@ -27,24 +39,24 @@ int main() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
-    Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
+    Force::Gravity gravity(forces, matter, -YAxis, 9.8);
 
-    Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody.addDecoration(Transform(), DecorativeSphere(0.1));
+    // Describe mass and visualization properties for a generic body.
+    Body::Rigid bodyInfo(MassProperties(1.0, Vec3(0), UnitInertia(1)));
+    bodyInfo.addDecoration(Transform(), DecorativeSphere(0.1));
 
-    // Create the moving bodies of the pendulum.
+    // Create the moving (mobilized) bodies of the pendulum.
     MobilizedBody::Pin pendulum1(matter.Ground(), Transform(Vec3(0)),
-            pendulumBody, Transform(Vec3(0, 1, 0)));
+            bodyInfo, Transform(Vec3(0, 1, 0)));
     MobilizedBody::Pin pendulum2(pendulum1, Transform(Vec3(0)),
-            pendulumBody, Transform(Vec3(0, 1, 0)));
+            bodyInfo, Transform(Vec3(0, 1, 0)));
 
     // Set up visualization.
     Visualizer viz(system);
     system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
 
     // Initialize the system and state.
-    system.realizeTopology();
-    State state = system.getDefaultState();
+    State state = system.realizeTopology();
     pendulum2.setRate(state, 5.0);
 
     // Simulate for 50 seconds.
@@ -61,11 +73,14 @@ example.
 
 Features
 --------
-- Visualizer, using [OpenGL](http://www.opengl.org/).
+- Wide variety of joint, constraint, and force types; easily user-extended.
+- Forward, inverse, and mixed dynamics. Motion driven by forces or 
+  prescribed motion.
 - Contact (Hertz, Hunt and Crossley models).
-- Gradient descent optimizers (IPOPT, LBFGS, LBFGSB).
-- Path wrapping around objects, used to define forces that act along complex
-  paths, like muscles do.
+- Gradient descent and interior point optimizers.
+- A variety of numerical integrators with error control.
+- Visualizer, using [OpenGL](http://www.opengl.org/).
+
 
 You want to...
 --------------
@@ -176,13 +191,6 @@ In your new terminal window, run:
 
 * Mac: `$ $SimTK_INSTALL_DIR/examples/bin/SimbodyInstallTest`
 * Linux: `$ $SimTK_INSTALL_DIR/lib/x86_64-linux-gnu/simbody/examples/SimbodyInstallTest`
-
-
-Other multibody dynamics engines
---------------------------------
-* [Open Dynamics Engine](http://www.ode.org/)
-* [Bullet](http://bulletphysics.org)
-* [Moby](http://physsim.sourceforge.net/)
 
 
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
