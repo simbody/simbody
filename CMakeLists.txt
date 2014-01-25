@@ -564,13 +564,20 @@ LINK_DIRECTORIES(${BUILD_BINARY_DIR})
 
 # Specify where visualizer should be installed. This needs to be in the
 # root CMakeLists.txt so the cmake config file can see this value.
+#
+# Also specify where include files are installed.
 IF(WIN32)
   # Install visualizer to bin, since it needs to be co-located with dll's
   SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_BINDIR})
+  # Install include files into base include folder since it's a sandbox
+  SET(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
 ELSE()
   # Visualizer is not intended to be a user executable. Proper place is
   # inside the lib directory
   SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_LIBEXECDIR}/simbody)
+  # Install include files in simbody subfolder to avoid polluting the
+  # global build folder
+  SET(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/simbody)
 ENDIF()
 
 # Each of these returns a list of API include directories for
@@ -587,6 +594,14 @@ ADD_SUBDIRECTORY( Simbody )
 FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
+# Add uninstall target
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
+  IMMEDIATE @ONLY)
+add_custom_target(uninstall
+  "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake")
+
 # Make the cmake config files
 set(PKG_NAME ${PROJECT_NAME})
 set(PKG_LIBRARIES
@@ -595,10 +610,16 @@ set(PKG_LIBRARIES
   SimTKcommon
 )
 
+if (WIN32)
+  set(SIMBODY_CMAKE_DIR CMake)
+elseif (UNIX)
+  set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
+endif ()
+
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake @ONLY)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake DESTINATION
-    ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
+    ${SIMBODY_CMAKE_DIR})
 
 # Make the pkgconfig file: select the proper flags depending on the platform
 IF (WIN32)

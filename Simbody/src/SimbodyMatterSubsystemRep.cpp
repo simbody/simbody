@@ -5629,7 +5629,7 @@ calcMotionErrors(const State& s, const Stage& stage) const
     Vector errs;
 
     if (stage == Stage::Position) {
-        const SBTimeCache tc = getTimeCache(s);
+        const SBTimeCache& tc = getTimeCache(s);
         assert(tc.presQPool.size() == ic.getTotalNumPresQ());
         errs.resize(ic.getTotalNumPresQ()+ic.getTotalNumZeroQ());
         int nxt = 0;
@@ -5651,7 +5651,7 @@ calcMotionErrors(const State& s, const Stage& stage) const
     }
 
     if (stage == Stage::Velocity) {
-        const SBConstrainedPositionCache cpc = getConstrainedPositionCache(s);
+        const SBConstrainedPositionCache& cpc = getConstrainedPositionCache(s);
         assert(cpc.presUPool.size() == ic.getTotalNumPresU());
         errs.resize(ic.getTotalNumPresU()+ic.getTotalNumZeroU());
         int nxt = 0;
@@ -5673,7 +5673,7 @@ calcMotionErrors(const State& s, const Stage& stage) const
     }
 
     if (stage == Stage::Acceleration) {
-        const SBDynamicsCache dc = getDynamicsCache(s);
+        const SBDynamicsCache& dc = getDynamicsCache(s);
         assert(dc.presUDotPool.size() == ic.getTotalNumPresUDot());
         errs.resize(ic.getTotalNumPresUDot()+ic.getTotalNumZeroUDot());
         int nxt = 0;
