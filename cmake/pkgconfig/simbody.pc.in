@@ -6,5 +6,5 @@ Name: simbody
 Description: Simbody Libraries
 Version: @SIMBODY_VERSION@
 Requires:
-Libs: -Wl,-rpath,${libdir} -L${libdir} -lSimTKsimbody -lSimTKmath -lSimTKcommon -llapack -lblas
+Libs: -L${libdir} -lSimTKsimbody -lSimTKmath -lSimTKcommon -llapack -lblas
 CFlags: -I${includedir}
