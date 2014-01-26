@@ -60,6 +60,8 @@ const bool PrintDebugInfoStepLength      = false;
 const bool ExhaustiveSearchProjection = false;
 const bool ExhaustiveSearchImpact     = false;
 
+const bool DebugStepLengthCalculator = false;
+
 const bool RunTestsOnePoint        = true;
 const bool RunTestsTwoPoints       = true;
 const bool RunTestsFourPoints      = true;
@@ -69,22 +71,17 @@ const bool RunTestsLongSimulations = true;
 // 1. SlidingDirStepLength must be sufficiently small such that, if a sliding
 //    interval advancing by this amount causes a sliding direction reversal,
 //    then |v_t| < MaxStickingTangVel (and the point is actually rolling).
-// 2. StepLengthConvFactor should be sufficiently small to avoid reaching
-//    MaxIterStepLength, yet sufficiently large to avoid creating additional
-//    intervals.
 
 const Real TolProjectQ           = 1.0e-6;  //Accuracy used by projectQ().
 const Real TolPositionFuzziness  = 1.0e-4;  //Expected position tolerance.
 const Real TolVelocityFuzziness  = 1.0e-5;  //Expected velocity tolerance.
 const Real TolReliableDirection  = 1.0e-4;  //Whether to trust v_t direction.
 const Real TolMaxDifDirIteration = 0.05;    //Slip direction within 2.9 degrees.
-const Real TolSlidingDirChange   = 0.05;    //Tolerance for MaxSlidingDirChange.
 const Real MinMeaningfulImpulse  = 1.0e-6;  //Smallest acceptable impulse.
 const Real MaxStickingTangVel    = 1.0e-1;  //Cannot stick above this velocity.
 const Real MaxSlidingDirChange   = 0.5;     //Direction can change 28.6 degrees.
 const Real SlidingDirStepLength  = 1.0e-4;  //Used to determine slip directions.
 const int  MaxIterSlipDirection  = 10;      //Iteration limit for directions.
-const int  MaxIterStepLength     = 20;      //Iteration limit for step length.
 
 const Real IntegAccuracy = 1.0e-8;
 const Real MaxStepSize   = 1.0e-3;
@@ -369,8 +366,14 @@ private:
     // Given point P and line segment AB, find the point closest to P that lies
     // on AB, which we call Q. Returns stepLength, the ratio AQ:AB. In our case,
     // P is the origin and AB is the line segment connecting the initial and
-    // final tangential velocity vectors. Helps calculateIntervalStepLength().
-    Real calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B) const;
+    // final tangential velocity vectors.
+    Real calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B, Vec2& Q)
+        const;
+
+    // Given vectors A and B, find step length alpha such that the angle between
+    // A and A+alpha*(B-A) is MaxSlidingDirChange. The solutions were generated
+    // in Maple using the law of cosines, then exported as optimized code.
+    Real calcSlidingStepLengthToMaxChange(const Vec2& A, const Vec2& B) const;
 
     // Determine whether active set candidate is empty.
     bool isActiveSetCandidateEmpty(const ActiveSetCandidate& asc) const;
@@ -397,9 +400,10 @@ private:
                                       const Vector& restitutionImpulses,
                                       ActiveSetCandidate& asc) const;
 
-    // Determine the step length for the selected active set. The upper bound is
-    // limited by the minimum number of intervals required and the maximum
-    // permissible change in the sliding direction.
+    // Determine the interval step length for the selected active set. Searches
+    // for the maximum step that can be taken while ensuring each sliding point
+    // undergoes a direction change no greater than the maximum permitted in a
+    // single interval.
     Real calculateIntervalStepLength(const State& s0,
                                      const Array_<Vec3>& currVels,
                                      const ActiveSetCandidate& asc,
@@ -1581,8 +1585,7 @@ performImpactPruning(State& s,
 
         // Determine step length and apply impulse.
         const Real steplength = calculateIntervalStepLength(s, proximalVelsInG,
-                                                            bestAsc,
-                                                            intervalCtr);
+                                bestAsc, intervalCtr);
         SimTK_ASSERT_ALWAYS(!isNaN(steplength),
             "No suitable interval step length found.");
 
@@ -1884,14 +1887,16 @@ Real Impacter::calcAbsDiffBetweenAngles(Real a, Real b) const
     return (absdif < SimTK::Pi ? absdif : twopi-absdif);
 }
 
-Real Impacter::calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B) const
+Real Impacter::calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B,
+                                             Vec2& Q) const
 {
-    // Take full step if initial tangential velocity was small (impending slip).
+    // Check whether initial tangential velocity is small (impending slip).
     if (A.norm() < MaxStickingTangVel) {
         if (PrintDebugInfoStepLength)
             cout << "     --> A.norm() < MaxStickingTangVel; returning 1.0"
                  << endl;
-        return 1.0; //Q==B
+        Q = B;
+        return 1.0;
     }
 
     const Vec2 P     = Vec2(0);
@@ -1904,15 +1909,58 @@ Real Impacter::calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B) const
         if (PrintDebugInfoStepLength)
             cout << "     --> ABsqr < SimTK::SignificantReal; returning 1.0"
                  << endl;
-        return 1.0; //Q==B
+        Q = B;
+        return 1.0;
     }
 
-    // Normalized distance from A to Q (Q = A + stepLength*AtoB).
+    // Normalized distance from A to Q.
     const Real stepLength = clamp(0.0, dot(AtoP,AtoB)/ABsqr, 1.0);
+    Q = A + stepLength*AtoB;
 
     if (PrintDebugInfoStepLength)
-        cout << "     --> returning stepLength = " << stepLength << endl;
+        cout << "     --> returning stepLength = " << stepLength
+             << " (distance to closest point is " << Q.norm() << ")" << endl;
+
     return stepLength;
+}
+
+Real Impacter::
+calcSlidingStepLengthToMaxChange(const Vec2& A, const Vec2& B) const
+{
+    // Temporary variables created by dsolve/numeric/optimize.
+    Real t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, sol1, sol2;
+    const Vec2 v = B-A;
+
+    // Optimized computation sequence generated in Maple.
+    t1 = std::cos(MaxSlidingDirChange);
+    t1 *= t1;
+    t2 = t1 - 1;
+    t3 = A[0]*v[1] - A[1]*v[0];
+    t3 = sqrt(-t1*t2*t3*t3);
+    t4 = t2*v[0]*A[0];
+    t5 = A[1]*v[1];
+    t2 *= t5;
+    t6 = v[1]*v[1];
+    t7 = v[0]*v[0];
+    t8 = t6 + t7;
+    t9 = A[1]*A[1];
+    t10 = A[0]*A[0];
+    t1 = t1*(t10*t8 + t8*t9) - t10*t7 - t6*t9 - 2*t5*A[0]*v[0];
+    t5 = t10 + t9;
+    t1 = 1.0 / t1;
+
+    sol1 = -t1*t5*(t2 + t4 + t3);
+    sol2 = -t1*t5*(t2 + t4 - t3);
+
+    if (PrintDebugInfoStepLength)
+        cout << "     --> found solutions " << sol1 << " and " << sol2 << endl;
+
+    if (sol1 < 0)
+        return sol2;
+    else if (sol2 < 0)
+        return sol1;
+    else
+        return std::min(sol1, sol2);
 }
 
 bool Impacter::isActiveSetCandidateEmpty(const ActiveSetCandidate& asc) const
@@ -2387,213 +2435,135 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
     State s(s0);
     m_mbs.realize(s, Stage::Velocity);
 
-    // Loop through each sliding point and reduce the step length, if necessary.
+    // State after taking the proposed step length. Updated below whenever the
+    // proposed step length is decreased.
+    State sProp(s);
+    sProp.updU() += steplength*asc.systemVelocityChange;
+    m_mbs.realize(sProp, Stage::Velocity);
+
+    // Loop through each sliding proximal point and reduce the step length if
+    // necessary.
     for (ProximalPointIndex i(0); i<(int)asc.tangentialStates.size(); ++i) {
         if (asc.tangentialStates[i] == Sliding) {
 
             if (PrintDebugInfoStepLength)
                 cout << "  ** analyzing proximal point " << i << "..." << endl;
 
-            // Calculate the sliding direction angle for the ith proximal point
-            // (which we know is sliding) at the beginning of the interval.
-            const Real ang0 = m_brick.findTangentialVelocityAngle(currVels[i]);
-
             // Any step length is acceptable for this point if its initial
             // tangential velocity vector lies within the "capture velocity
             // circle" defined by MaxStickingTangVel (i.e., the point is in
             // impending slip).
-            if (isNaN(ang0)) {
+            if (currVels[i].getSubVec<2>(0).norm() < MaxStickingTangVel) {
                 if (PrintDebugInfoStepLength)
                     cout << "  -- finished with proximal point " << i
-                         << " (ang0 is NaN); current steplength is "
+                         << " (impending slip); current steplength is "
                          << steplength << endl;
-                break; //Proceed to next point.
+                continue; //Proceed to next point.
             }
 
-            // Proposed system velocities after taking a step of size steplength
-            // (which may have already been reduced from 1.0 by another point).
-            State sProp(s);
+            // Calculate the velocity of this proximal point after taking the
+            // proposed step length.
+            const Vec3 propVel = m_brick.findLowestPointVelocityInGround(sProp,
+                                         m_proximalPointIndices[i]);
+
+            // The current proposed step length is acceptable for this point if
+            // its tangential velocity vector lands within the "capture velocity
+            // circle" (i.e., the sliding point will begin to roll).
+            if (propVel.getSubVec<2>(0).norm() < MaxStickingTangVel) {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (rolling imminent); current steplength is "
+                         << steplength << endl;
+                continue; //Proceed to next point.
+            }
+
+            // Check whether the direction change is sufficiently small.
+            const Real ang0 = m_brick.findTangentialVelocityAngle(currVels[i]);
+            const Real ang1 = m_brick.findTangentialVelocityAngle(propVel);
+            if (calcAbsDiffBetweenAngles(ang0, ang1) < MaxSlidingDirChange) {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (acceptable change); current steplength is "
+                         << steplength << endl;
+                continue; //Proceed to next point.
+            }
+
+            // Search #1: Determine whether there exists a step length where the
+            //            tangential velocity vector lies within the "capture
+            //            velocity circle" (i.e., the sliding point will begin
+            //            to roll). Since the system is linear, we simply find
+            //            the point on the line segment connecting currVels[i]
+            //            and propVel that is closest to the origin.
+            Vec2 closestPoint;
+            const Real stepToOrigin = calcSlidingStepLengthToOrigin(
+                                          currVels[i].getSubVec<2>(0),
+                                          propVel.getSubVec<2>(0),
+                                          closestPoint);
+            if (stepToOrigin < 1.0 && closestPoint.norm() < MaxStickingTangVel)
+            {
+                // Adopt the new step length and calculate the new proposed
+                // post-interval velocities.
+                steplength *= stepToOrigin;
+                sProp.setU(s.getU() + steplength*asc.systemVelocityChange);
+                m_mbs.realize(sProp, Stage::Velocity);
+
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (transition to rolling); current steplength is "
+                         << steplength << endl;
+
+                if (DebugStepLengthCalculator) {
+                    const Vec3 testVel = m_brick.findLowestPointVelocityInGround
+                                         (sProp, m_proximalPointIndices[i]);
+                    const Real testMag = testVel.getSubVec<2>(0).norm();
+                    cout << "     testMag = " << testMag
+                         << " (steplength = " << steplength << ")" << endl;
+
+                    SimTK_ASSERT(testMag < MaxStickingTangVel,
+                        "Incorrectly detected transition to rolling.");
+                }
+
+                continue; //Proceed to next point.
+            }
+
+            // Search #2: We have determined that this point will continue to
+            //            slide. Search for the step length that results in the
+            //            maximum allowable sliding direction change.
+            const Real stepToMaxChange = calcSlidingStepLengthToMaxChange(
+                                             currVels[i].getSubVec<2>(0),
+                                             propVel.getSubVec<2>(0));
+            SimTK_ASSERT(stepToMaxChange >= 0 && stepToMaxChange <= 1,
+                "Invalid step length calculated to elicit maximum change.");
+
+            // Adopt the new step length and calculate the new proposed post-
+            // interval velocities.
+            steplength *= stepToMaxChange;
             sProp.setU(s.getU() + steplength*asc.systemVelocityChange);
             m_mbs.realize(sProp, Stage::Velocity);
 
-            // Calculate the proposed velocity and sliding direction angle of
-            // this proximal point, given the current proposed step length.
-            Vec3 propVel = m_brick.findLowestPointVelocityInGround(sProp,
-                                   m_proximalPointIndices[i]);
-            Real ang1 = m_brick.findTangentialVelocityAngle(propVel);
-
-            // The current proposed step length is acceptable for this point if
-            // its proposed tangential velocity vector lies within the "capture
-            // velocity circle" (i.e., the point will transition from sliding to
-            // rolling).
-            if (isNaN(ang1)) {
-                if (PrintDebugInfoStepLength)
-                    cout << "  -- finished with proximal point " << i
-                         << " (ang1 is NaN); current steplength is "
-                         << steplength << endl;
-                break; //Proceed to next point.
-            }
-
-            // Calculate the absolute difference between the angles of the
-            // current and proposed tangential velocities.
-            Real absAngDif = calcAbsDiffBetweenAngles(ang0, ang1);
-
             if (PrintDebugInfoStepLength)
-                cout << "     currVels[" << i << "] = " << currVels[i] << " ("
-                     << ang0 << " rad = " << ang0*180.0/SimTK::Pi << " deg)\n"
-                     << "     propVel = " << propVel << " (" << ang1
-                     << " rad = " << ang1*180.0/SimTK::Pi << " deg)\n"
-                     << "     absAngDif = " << absAngDif << " rad = "
-                     << absAngDif*180.0/SimTK::Pi << " deg\n" << endl;
+                cout << "  -- finished with proximal point " << i
+                     << " (maximum direction change); current steplength is "
+                     << steplength << endl;
 
-            // Check whether the direction change is sufficiently small for this
-            // proximal point.
-            if (absAngDif < MaxSlidingDirChange + TolSlidingDirChange) {
-                if (PrintDebugInfoStepLength)
-                    cout << "  -- finished with proximal point " << i
-                         << " (no iteration required); current steplength is "
-                         << steplength << endl;
-                break; //Proceed to next point.
+            if (DebugStepLengthCalculator) {
+                const Vec3 testVel = m_brick.findLowestPointVelocityInGround(
+                                         sProp, m_proximalPointIndices[i]);
+                const Real testAng = m_brick.findTangentialVelocityAngle(
+                                         testVel);
+                const Real testDif = calcAbsDiffBetweenAngles(ang0, testAng);
+                cout << "     testDif = " << testDif
+                     << " (steplength = " << steplength << ")" << endl;
+
+                SimTK_ASSERT(std::abs(testDif-MaxSlidingDirChange) < 1.0e-8,
+                    "Incorrect solution to find maximum direction change.");
             }
 
-            // Search for a step length that results in a sliding direction
-            // angle change within TolSlidingDirChange of MaxSlidingDirChange;
-            // break if a transition from sliding to rolling is detected.
-            // Revert to bisection method if secant fails.
-            int numIter = 0;
-            bool usingBisection = false;
-
-            // Initialize variables for secant method.
-            //   x-axis: multiplicative factor for steplength, in [0,1].
-            //   y-axis: {absolute angle change} - MaxSlidingDirChange.
-            Real x0 = 0;
-            Real x1 = 1.0;
-            Real y0 = -MaxSlidingDirChange;
-            Real y1 = absAngDif - MaxSlidingDirChange;
-            const Real y1initial = y1;
-
-            while(true) {
-                ++numIter;
-                if (numIter > MaxIterStepLength) {
-                    cout << "  ** maximum number of iterations reached" << endl;
-                    return SimTK::NaN;
-                }
-
-                if (PrintDebugInfoStepLength)
-                    cout << "     x0=" << x0 << ", y0=" << y0 << ", x1=" << x1
-                         << ", y1=" << y1 << endl;
-
-                // Use secant method to find a zero-crossing on the (steplength
-                // factor) vs. (absolute angle change - MaxSlidingDirChange)
-                // plot. Switch to bisection method to avoid divide-by-zero.
-                Real x2 = SimTK::NaN;
-                if (usingBisection) {
-                    x2 = (x0 + x1) * 0.5;
-                    if (PrintDebugInfoStepLength)
-                        cout << "     x2=" << x2 << " (bisection)" << endl;
-                } else if (std::abs(y1-y0) < SimTK::SignificantReal) {
-                    numIter = 1;
-                    usingBisection = true;
-
-                    if (y0*y1 >= 0) {
-                        // Reinitialize.
-                        x0 = 0;
-                        x1 = 1.0;
-                        y0 = -MaxSlidingDirChange;
-                        y1 = y1initial;
-                    }
-                    x2 = 0.5;
-
-                    if (PrintDebugInfoStepLength)
-                        cout << "     x2=" << x2 << " (starting bisection)"
-                             << endl;
-                } else {
-                    x2 = x1 - y1*(x1-x0)/(y1-y0);
-                    if (PrintDebugInfoStepLength)
-                        cout << "     x2=" << x2 << " (secant)" << endl;
-                }
-
-                // Ensure factor remains in [0,1]; otherwise, use bisection step
-                // instead.
-                if (x2 <= 0 || x2 >= 1) {
-                    numIter = 1;
-                    usingBisection = true;
-
-                    if (y0*y1 >= 0) {
-                        // Reinitialize.
-                        x0 = 0;
-                        x1 = 1.0;
-                        y0 = -MaxSlidingDirChange;
-                        y1 = y1initial;
-                    }
-                    x2 = 0.5;
-
-                    if (PrintDebugInfoStepLength)
-                        cout << "     x2=" << x2 << " (starting bisection)"
-                             << endl;
-                }
-
-                // Calculate the new velocity and sliding direction angle, given
-                // the new proposed step length.
-                if (PrintDebugInfoStepLength)
-                    cout << "  -- calculating velocity and sliding direction "
-                         << "angle using steplength " << steplength*x2 << endl;
-                sProp.setU(s.getU() + steplength*x2*asc.systemVelocityChange);
-                m_mbs.realize(sProp, Stage::Velocity);
-                propVel = m_brick.findLowestPointVelocityInGround(sProp,
-                                  m_proximalPointIndices[i]);
-                ang1 = m_brick.findTangentialVelocityAngle(propVel);
-
-                // Break if a transition from sliding to rolling is detected.
-                if (isNaN(ang1)) {
-                    steplength *= x2;
-                    if (PrintDebugInfoStepLength)
-                        cout << "  -- finished with proximal point " << i
-                             << " (ang1 is NaN); current steplength is "
-                             << steplength << endl;
-                    break; //Proceed to next point.
-                }
-
-                // Calculate the absolute difference between the angles of the
-                // current and new proposed tangential velocities; break if the
-                // direction change is within the target range.
-                absAngDif = calcAbsDiffBetweenAngles(ang0, ang1);
-                if (std::abs(absAngDif - MaxSlidingDirChange)
-                    < TolSlidingDirChange)
-                {
-                    steplength *= x2;
-                    if (PrintDebugInfoStepLength)
-                        cout << "  -- finished with proximal point " << i
-                             << " (converged); current steplength is "
-                             << steplength << endl;
-                    break; //Proceed to next point.
-                }
-
-                // Update variables for next iteration of secant method.
-                const Real y2 = absAngDif - MaxSlidingDirChange;
-                if (usingBisection) {
-                    if (y2*y0 >= 0) {
-                        // Replace (x0,y0) with (x2,y2).
-                        x0 = x2;
-                        y0 = y2;
-                    } else {
-                        // Replace (x1,y1) with (x2,y2).
-                        x1 = x2;
-                        y1 = y2;
-                    }
-                } else {
-                    x0 = x1;
-                    x1 = x2;
-                    y0 = y1;
-                    y1 = y2;
-                }
-
-            } //end while for this proximal point
         } //end if sliding
     } //end for each proximal point
 
     if (PrintDebugInfoStepLength)
-        cout << "  ** returning steplength = " << steplength << endl;
+        cout << "  ** final steplength is " << steplength << endl;
 
     return steplength;
 }
