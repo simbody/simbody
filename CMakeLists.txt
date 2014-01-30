@@ -620,3 +620,22 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake @ONLY)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake DESTINATION
     ${SIMBODY_CMAKE_DIR})
+
+# Make the pkgconfig file: select the proper flags depending on the platform
+IF (WIN32)
+    IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+    	# win 64 bits
+	SET(PKGCONFIG_PLATFORM_LIBS "-liblapack -libblas -lpthreadVC2_x64")
+    ELSE()
+	SET(PKGCONFIG_PLATFORM_LIBS "-liblapack -libblas -lpthreadVC2")
+    ENDIF()
+ELSEIF (APPLE)   
+    SET(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -ldl")
+ELSE()
+    SET(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -lrt -ldl -lm")
+ENDIF()
+
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
+     ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc @ONLY)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc DESTINATION
+     ${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig/)
