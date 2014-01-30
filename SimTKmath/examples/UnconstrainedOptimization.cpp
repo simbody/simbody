@@ -80,7 +80,7 @@ int main() {
        std::cout << e.what() << std::endl;
     }
 
-    printf(" Optimial solution: f = %f   parameters = %f %f \n",f,results[0],results[1]);
+    printf(" Optimal solution: f = %f   parameters = %f %f \n",f,results[0],results[1]);
 
     return 0;
 }

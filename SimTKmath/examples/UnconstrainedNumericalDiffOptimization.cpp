@@ -72,7 +72,7 @@ int main() {
        cout << e.what() << endl;
     }
 
-    printf(" Optimial solution: f = %f   parameters = %f %f \n",f,results[0],results[1]);
+    printf(" Optimal solution: f = %f   parameters = %f %f \n",f,results[0],results[1]);
 
     return 0;
 }
