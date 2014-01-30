@@ -1173,15 +1173,15 @@ int main(int argc, char** argv) {
            pgs.getAccuracy(), pgs.getConstraintTol(),
            pgs.getPGSConvergenceTol(), pgs.getPGSMaxIters(),
            pgs.getPGSSOR());
-    printf("Compression: ncalls=%d, niters=%d (%g/call), nfail=%d\n",
+    printf("Compression: ncalls=%lld, niters=%lld (%g/call), nfail=%lld\n",
            pgs.getPGSNumCalls(0), pgs.getPGSNumIters(0),
            (double)pgs.getPGSNumIters(0)/std::max(pgs.getPGSNumCalls(0),1LL),
            pgs.getPGSNumFailures(0));
-    printf("Expansion: ncalls=%d, niters=%d (%g/call), nfail=%d\n",
+    printf("Expansion: ncalls=%lld, niters=%lld (%g/call), nfail=%lld\n",
            pgs.getPGSNumCalls(1), pgs.getPGSNumIters(1),
            (double)pgs.getPGSNumIters(1)/std::max(pgs.getPGSNumCalls(1),1LL),
            pgs.getPGSNumFailures(1));
-    printf("Position: ncalls=%d, niters=%d (%g/call), nfail=%d\n",
+    printf("Position: ncalls=%lld, niters=%lld (%g/call), nfail=%lld\n",
            pgs.getPGSNumCalls(2), pgs.getPGSNumIters(2),
            (double)pgs.getPGSNumIters(2)/std::max(pgs.getPGSNumCalls(2),1LL),
            pgs.getPGSNumFailures(2));
@@ -1235,7 +1235,7 @@ stepTo(Real time) {
     const Vector& verr0 = s.getUErr();
     if (!verr0.size()) {
         takeUnconstrainedStep(s, h);
-        return Integrator::SuccessfulStepStatus::ReachedScheduledEvent;
+        return Integrator::ReachedScheduledEvent;
     }
 
     // Calculate velocity-dependent coefficients of restitution and friction
@@ -1358,7 +1358,7 @@ stepTo(Real time) {
     // satisfied by the correction above.
     mbs.realize(s, Stage::Velocity);
 
-    return Integrator::SuccessfulStepStatus::ReachedScheduledEvent;
+    return Integrator::ReachedScheduledEvent;
 }
 
 //==============================================================================
@@ -1779,7 +1779,7 @@ doCompressionPhase(const State&, const Vector& eps, Vector& compImpulse) {
     compImpulse.resize(m_GMInvGt.ncol()); compImpulse.setToZero();
     bool converged = projGaussSeidel(0, m_GMInvGt, eps, compImpulse, 
                                      m_all, m_uncond, m_bounded, 
-                                     Array_<LengthLimited>(), m_frictional);
+                                     m_lengthLimited, m_frictional);
     return converged;
 }
 // This phase uses all the proximal constraints, but we expect the result
@@ -1790,7 +1790,7 @@ doExpansionPhase(const State&, const Vector& eps, Vector& reactionImpulse) {
     reactionImpulse.resize(m_GMInvGt.ncol()); reactionImpulse.setToZero();
     bool converged = projGaussSeidel(1, m_GMInvGt, eps, reactionImpulse, 
                                      m_all, m_uncond, m_bounded, 
-                                     Array_<LengthLimited>(), m_frictional);
+                                     m_lengthLimited, m_frictional);
     return converged;
 }
 
@@ -1800,9 +1800,10 @@ bool PGSTimeStepper::
 doPositionCorrectionPhase(const State&, const Vector& eps,
                           Vector& positionImpulse) {
     positionImpulse.resize(m_GMInvGt.ncol()); positionImpulse.setToZero();
+    Array_<Frictional> noFrictionals;
     bool converged = projGaussSeidel(2, m_GMInvGt, eps, positionImpulse, 
                                 m_allPos, m_uncondPos, m_boundedPos, 
-                                Array_<LengthLimited>(), Array_<Frictional>());
+                                m_lengthLimited, noFrictionals);
     return converged;
 }
 
