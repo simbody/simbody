@@ -199,8 +199,6 @@ Real RigidBodyNode::calcKineticEnergy(
 // This routine expects that coriolis accelerations, gyroscopic forces, and
 // articulated body inertias are already available.
 // As written, the calling order doesn't matter.
-// TODO: could this be done recursively instead to calculate both quanities
-// with only a single multiply by P?
 // Cost is 144 flops.
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(
@@ -221,8 +219,7 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 
     // 72 flops
     updTotalCentrifugalForces(dc) = 
-        getP(abc) * getTotalCoriolisAcceleration(vc) + getGyroscopicForce(vc);
-
+        getMk_G(pc) * getTotalCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 }
 
 
