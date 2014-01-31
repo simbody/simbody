@@ -199,7 +199,7 @@ Real RigidBodyNode::calcKineticEnergy(
 // This routine expects that coriolis accelerations, gyroscopic forces, and
 // articulated body inertias are already available.
 // As written, the calling order doesn't matter.
-// Cost is 144 flops.
+// Cost is 117 flops.
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(
     const SBTreePositionCache&              pc,
@@ -217,7 +217,7 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     updMobilizerCentrifugalForces(dc) =
         getP(abc) * getMobilizerCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 
-    // 72 flops
+    // 45 flops
     updTotalCentrifugalForces(dc) = 
         getMk_G(pc) * getTotalCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 }
