@@ -2558,8 +2558,11 @@ const SpatialVec&
 getMobilizerCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
 
 /** This is the total angular velocity-dependent force acting on this body, 
-including forces due to coriolis acceleration and forces due to rotational
-inertia.
+including forces due to Coriolis acceleration and gyroscopic forces due to 
+rotational inertia. This is F(b)=M[b]*A[b]+g[b] where M[b] is the spatial 
+inertia matrix of body b (\e not the articulated inertia), A[b] is the total 
+spatial Coriolis acceleration of body b, and g[b] is the (velocity-dependent) 
+spatial gyroscopic force acting on body b.
 @par Required stage
   \c Stage::Dynamics **/
 const SpatialVec& 
