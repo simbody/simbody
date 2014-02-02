@@ -908,8 +908,7 @@ private:
     bool applyNewtonRestitutionIfAny(const State&, Vector& verr) const;
 
     // Adjust given compression impulse to include Poisson restitution impulse.
-    bool applyPoissonRestitutionIfAny(const State&, const Vector& verr,
-                                      Vector& impulse) const;
+    bool applyPoissonRestitutionIfAny(const State&, Vector& impulse) const;
 
     // This phase uses all the proximal constraints and should use a starting
     // guess for impulse saved from the last step if possible.
@@ -1158,6 +1157,7 @@ int main(int argc, char** argv) {
 
         ++nSteps;
     } while (pgs.getTime() < RunTime);
+    // TODO: did you lose the last step?
 
 
     const double timeInSec = realTime()-startReal;
@@ -1281,7 +1281,7 @@ stepTo(Real time) {
     //--------------------------------------------------------------------------
 
     // Modify the compression impulse to add in expansion impulses.
-    const bool anyPoisson = applyPoissonRestitutionIfAny(s, verr0, impulse);
+    const bool anyPoisson = applyPoissonRestitutionIfAny(s, impulse);
 
     if (anyPoisson) {
         // Must calculate a reaction impulse. Move now-known impulse to RHS 
@@ -1301,6 +1301,9 @@ stepTo(Real time) {
         //----------------------------------------------------------------------
 
         impulse += reacImpulse;
+
+        //TODO: reaction impulse should cause a further expansion in a
+        //contact that hasn't bounced yet.
     }
 
     // We need forces, not impulses for the next calculation.
@@ -1505,7 +1508,7 @@ bool PGSTimeStepper::projGaussSeidel
                 rowSum += A(rx,cx)*w[cx];
             }
             const Real er = b[rx]-rowSum, er2=er*er;
-            w[rx] += m_PGSSOR * er/A(rx,rx);
+            w[rx] += m_PGSSOR * er/A(rx,rx); //TODO: check for zero?
             sum2all += er2; sum2enf += er2;
         }
 
@@ -1751,8 +1754,7 @@ applyNewtonRestitutionIfAny(const State& s, Vector& verr) const {
 }
 
 bool PGSTimeStepper::
-applyPoissonRestitutionIfAny(const State& s, const Vector& verr,
-                             Vector& impulse) const {
+applyPoissonRestitutionIfAny(const State& s, Vector& impulse) const {
     if (m_useNewton) 
         return false; //TODO: check individual contacts
     bool anyRestitution = false;
