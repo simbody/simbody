@@ -57,8 +57,10 @@ const bool PrintDebugInfoImpact          = false;
 const bool PrintDebugInfoActiveSetSearch = false;
 const bool PrintDebugInfoStepLength      = false;
 
-const bool ExhaustiveSearchProjection = false;
-const bool ExhaustiveSearchImpact     = false;
+const bool ExhaustiveSearchProjection  = false;
+const bool ExhaustiveSearchImpact      = false;
+const bool CompareProjectionStrategies = false;
+const bool CompareImpactStrategies     = false;
 
 const bool DebugStepLengthCalculator = false;
 
@@ -223,12 +225,14 @@ public:
     //--------------------------------------------------------------------------
     // Try projecting all combinations of proximal points; select the projection
     // that resolves all violations while requiring the smallest change in Q.
-    void projectPositionsExhaustive(State& s) const;
+    // Updates state and returns active set.
+    Array_<ProximalPointIndex> projectPositionsExhaustive(State& s) const;
 
     // Begin by projecting using the constraints associated with all proximal
     // points; successively prune the constraint associated with the most
-    // distant proximal point until the projection is successful.
-    void projectPositionsPruning(State& s) const;
+    // distant proximal point until the projection is successful. Updates state
+    // and returns active set.
+    Array_<ProximalPointIndex> projectPositionsPruning(State& s) const;
 
 private:
     MultibodySystem&                             m_mbs;
@@ -269,20 +273,22 @@ public:
     // Perform one complete impact
     //--------------------------------------------------------------------------
     // Evaluate all active set candidates for each impact interval, selecting
-    // the most fit candidate for each interval. Returns energy dissipated.
-    Real performImpactExhaustive(State& s,
+    // the most fit candidate for each interval. Returns a string describing the
+    // active set used for each interval.
+    std::string performImpactExhaustive(State& s,
         Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
-        Array_<bool,ProximalPointIndex>& hasRebounded) const;
+        Array_<bool,ProximalPointIndex>& hasRebounded,
+        Real& totalEnergyDissipated) const;
 
     // Begin by impacting using the constraints associated with all proximal
     // points; successively prune the constraint associated with the worst
     // violation until either no violations occur or the active set is empty (in
     // which case the least objectionable active set candidate is retained).
-    // Returns energy dissipated.
-    Real performImpactPruning(State& s,
-                              Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
-                              Array_<bool,ProximalPointIndex>& hasRebounded)
-                              const;
+    // Returns a string describing the active set used for each interval.
+    std::string performImpactPruning(State& s,
+        Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
+        Array_<bool,ProximalPointIndex>& hasRebounded,
+        Real& totalEnergyDissipated) const;
 
 private:
     enum ImpactPhase      {Compression, Restitution};
@@ -319,6 +325,9 @@ private:
     //--------------------------------------------------------------------------
     // Display active set candidate in human-readable form.
     void printFormattedActiveSet(std::ostream& stream,
+        const Array_<int,ProximalPointIndex>& tangentialStates,
+        const std::string& prefix = "") const;
+    std::string printFormattedActiveSet(
         const Array_<int,ProximalPointIndex>& tangentialStates,
         const std::string& prefix = "") const;
 
@@ -589,7 +598,26 @@ static void simulateMultibodySystem(const std::string& description,
             }
 
             PositionProjecter positionProjecter(mbs,brick,s,preProjectionPos);
-            if (ExhaustiveSearchProjection)
+            if (CompareProjectionStrategies) {
+
+                // Run exhaustive search and successive pruning position
+                // projection handlers, and report if the active sets differ.
+                // Proceed using the solution from the successive pruning
+                // algorithm.
+
+                State sExhaustive(s);
+                Array_<ProximalPointIndex> indexArrayExhaustive =
+                    positionProjecter.projectPositionsExhaustive(sExhaustive);
+
+                Array_<ProximalPointIndex> indexArrayPruning =
+                    positionProjecter.projectPositionsPruning(s);
+
+                if (!(indexArrayExhaustive == indexArrayPruning))
+                    cout << "  [pos] Exhaustive: " << indexArrayExhaustive
+                         << "\n  [pos]    Pruning: " << indexArrayPruning
+                         << endl;
+
+            } else if (ExhaustiveSearchProjection)
                 positionProjecter.projectPositionsExhaustive(s);
             else
                 positionProjecter.projectPositionsPruning(s);
@@ -671,12 +699,38 @@ static void simulateMultibodySystem(const std::string& description,
                     Impacter impacter(mbs, brick, s, allPositionsInG,
                                       proximalPointIndices);
                     Real energyDissipated = SimTK::NaN;
-                    if (ExhaustiveSearchImpact)
-                        energyDissipated = impacter.performImpactExhaustive(s,
-                                               proximalVelsInG, hasRebounded);
+                    if (CompareImpactStrategies) {
+
+                        // Run exhaustive search and successive pruning impact
+                        // handlers, and report if the active sets differ.
+                        // Proceed using the solution from the successive
+                        // pruning algorithm.
+
+                        State sExhaustive(s);
+                        Array_<Vec3,ProximalPointIndex>
+                            proximalVelsInGExhaustive(proximalVelsInG);
+                        Array_<bool,ProximalPointIndex>
+                            hasReboundedExhaustive(hasRebounded);
+                        std::string trajExhaustive =
+                            impacter.performImpactExhaustive(sExhaustive,
+                            proximalVelsInGExhaustive, hasReboundedExhaustive,
+                            energyDissipated);
+
+                        std::string trajPruning =
+                            impacter.performImpactPruning(s, proximalVelsInG,
+                            hasRebounded, energyDissipated);
+
+                        if (!(trajExhaustive == trajPruning))
+                            cout << "  [vel] Exhaustive: " << trajExhaustive
+                                 << "\n  [vel]    Pruning: " << trajPruning
+                                 << endl;
+
+                    } else if (ExhaustiveSearchImpact)
+                        impacter.performImpactExhaustive(s, proximalVelsInG,
+                            hasRebounded, energyDissipated);
                     else
-                        energyDissipated = impacter.performImpactPruning(s,
-                                               proximalVelsInG, hasRebounded);
+                        impacter.performImpactPruning(s, proximalVelsInG,
+                            hasRebounded, energyDissipated);
 
                     if (PrintSystemEnergy) {
                         mbs.realize(s, Stage::Dynamics);
@@ -1012,7 +1066,8 @@ PositionProjecter(MultibodySystem& mbs,
 }
 
 //--------------------- Resolve position-level violations ----------------------
-void PositionProjecter::projectPositionsExhaustive(State& s) const
+Array_<ProximalPointIndex> PositionProjecter::
+projectPositionsExhaustive(State& s) const
 {
     // Assemble all combinations of 1 or more proximal points.
     Array_<Array_<ProximalPointIndex> > arrayOfIndexArrays;
@@ -1032,11 +1087,13 @@ void PositionProjecter::projectPositionsExhaustive(State& s) const
         sTemp.setQ(s.getQ());
         Real dist = evaluateProjection(sTemp, s, arrayOfIndexArrays[comb]);
 
-        // Several combinations can have the same distance metric. Favor the
-        // combination with the most enabled constraints.
-        if (dist < minDistance || (std::abs(dist-minDistance) < TolProjectQ &&
-                                   arrayOfIndexArrays[comb].size() >
-                                   arrayOfIndexArrays[minIdx].size())) {
+        // Favor combinations with the most enabled constraints; of those,
+        // select the combination with the smallest distance metric.
+        if (SimTK::isInf(minDistance) ||
+            arrayOfIndexArrays[comb].size() > arrayOfIndexArrays[minIdx].size()
+            || (arrayOfIndexArrays[comb].size() ==
+                arrayOfIndexArrays[minIdx].size() && dist < minDistance))
+        {
             minDistance = dist;
             minQ        = sTemp.getQ();
             minIdx      = comb;
@@ -1061,9 +1118,12 @@ void PositionProjecter::projectPositionsExhaustive(State& s) const
         displayNewProximalPoints(s);
         printHorizontalRule(0,1,'*');
     }
+
+    return arrayOfIndexArrays[minIdx];
 }
 
-void PositionProjecter::projectPositionsPruning(State& s) const
+Array_<ProximalPointIndex> PositionProjecter::
+projectPositionsPruning(State& s) const
 {
     // Begin with indices of all proximal points.
     Array_<ProximalPointIndex> indexArray(m_proximalPointIndices.size());
@@ -1118,6 +1178,8 @@ void PositionProjecter::projectPositionsPruning(State& s) const
         displayNewProximalPoints(s);
         printHorizontalRule(0,1,'*');
     }
+
+    return indexArray;
 }
 
 //------------------------------ Private methods -------------------------------
@@ -1201,10 +1263,11 @@ Impacter(MultibodySystem& mbs, FreeUnilateralBrick& brick, const State& s0,
 }
 
 //------------------------ Perform one complete impact -------------------------
-Real Impacter::
+std::string Impacter::
 performImpactExhaustive(State& s,
                         Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
-                        Array_<bool,ProximalPointIndex>& hasRebounded) const
+                        Array_<bool,ProximalPointIndex>& hasRebounded,
+                        Real& totalEnergyDissipated) const
 {
     // Calculate coefficients of restitution.
     Array_<Real> CORs(m_proximalPointIndices.size());
@@ -1226,6 +1289,7 @@ performImpactExhaustive(State& s,
     Vector restitutionImpulses = Vector(m_proximalPointIndices.size(), 0.0);
     Vector energyDissipated    = Vector(m_proximalPointIndices.size(), 0.0);
     int intervalCtr            = 0;
+    std::string trajectory     = "";    //Accumulate active set descriptions.
     while(true) {
         ++intervalCtr;
         if (PrintDebugInfoImpact) {
@@ -1276,18 +1340,36 @@ performImpactExhaustive(State& s,
             printHorizontalRule(0,1,'=');
         }
 
-        // Select active set candidate from the best (lowest) category with the
-        // best (lowest) fitness value.
-        int  bestIdx     = -1;
+        // Select from among the active set candidates in the best (lowest)
+        // category. Favor candidates with the most non-observing points; of
+        // those, select the candidate with the best (lowest) fitness value.
         Real bestFitness = SimTK::Infinity;
+        int  bestCount   = 0;
+        int  bestIdx     = -1;
         for (int solcat=0;
              solcat<=SolCat_WorstCatWithSomeUsableSolution; ++solcat)
         {
             for (int idx=0; idx<(int)activeSetCandidates.size(); ++idx) {
-                if (activeSetCandidates[idx].solutionCategory == solcat
-                    && activeSetCandidates[idx].fitness < bestFitness) {
-                        bestIdx     = idx;
-                        bestFitness = activeSetCandidates[idx].fitness;
+                if (!(activeSetCandidates[idx].solutionCategory == solcat))
+                    continue;
+
+                // Count the number of sliding or rolling points.
+                int thisCount = 0;
+                for (ProximalPointIndex i(0);
+                     i<(int)m_proximalPointIndices.size(); ++i)
+                {
+                    if (activeSetCandidates[idx].tangentialStates[i]
+                        > Observing)
+                        ++thisCount;
+                }
+
+                if (SimTK::isInf(bestFitness) || thisCount > bestCount
+                    || (thisCount == bestCount &&
+                    activeSetCandidates[idx].fitness < bestFitness))
+                {
+                    bestFitness = activeSetCandidates[idx].fitness;
+                    bestCount   = thisCount;
+                    bestIdx     = idx;
                 }
             }
 
@@ -1306,6 +1388,9 @@ performImpactExhaustive(State& s,
             cout << "  ** selected active set candidate " << bestIdx << endl;
             printActiveSetInfo(activeSetCandidates[bestIdx]);
         }
+        trajectory += printFormattedActiveSet(
+                          activeSetCandidates[bestIdx].tangentialStates,
+                          (impactPhase == Compression ? "c" : "r"));
 
         // Determine step length and apply impulse.
         const Real steplength = calculateIntervalStepLength(s, proximalVelsInG,
@@ -1462,17 +1547,24 @@ performImpactExhaustive(State& s,
 
     // Ensure the total energy dissipated over the entire impact is positive for
     // each proximal point.
-    for (int i=0; i<(int)energyDissipated.size(); ++i)
-        SimTK_ASSERT(energyDissipated[i] > -SimTK::SignificantReal,
-        "Negative energy dissipated.");
+    for (int i=0; i<(int)energyDissipated.size(); ++i) {
+        if (energyDissipated[i] < -SimTK::SignificantReal) {
+            printHorizontalRule(1,1,'#',"WARNING");
+            cout << "Negative energy dissipated (" << energyDissipated[i]
+                 << ")" << endl;
+            printHorizontalRule(1,1,'#',"WARNING");
+        }
+    }
 
-    return energyDissipated.sum();
+    totalEnergyDissipated = energyDissipated.sum();
+    return trajectory;
 }
 
-Real Impacter::
+std::string Impacter::
 performImpactPruning(State& s,
                      Array_<Vec3,ProximalPointIndex>& proximalVelsInG,
-                     Array_<bool,ProximalPointIndex>& hasRebounded) const
+                     Array_<bool,ProximalPointIndex>& hasRebounded,
+                     Real& totalEnergyDissipated) const
 {
     // Calculate coefficients of restitution.
     Array_<Real,ProximalPointIndex> CORs(m_proximalPointIndices.size());
@@ -1487,6 +1579,7 @@ performImpactPruning(State& s,
     Vector restitutionImpulses = Vector(m_proximalPointIndices.size(), 0.0);
     Vector energyDissipated    = Vector(m_proximalPointIndices.size(), 0.0);
     int    intervalCtr         = 0;
+    std::string trajectory     = "";    //Accumulate active set descriptions.
     while(true) {
         ++intervalCtr;
         if (PrintDebugInfoImpact) {
@@ -1582,6 +1675,8 @@ performImpactPruning(State& s,
             printFormattedActiveSet(cout, bestAsc.tangentialStates);
             printActiveSetInfo(bestAsc);
         }
+        trajectory += printFormattedActiveSet(bestAsc.tangentialStates,
+                          (impactPhase == Compression ? "c" : "r"));
 
         // Determine step length and apply impulse.
         const Real steplength = calculateIntervalStepLength(s, proximalVelsInG,
@@ -1726,11 +1821,17 @@ performImpactPruning(State& s,
 
     // Ensure the total energy dissipated over the entire impact is positive for
     // each proximal point.
-    for (int i=0; i<(int)energyDissipated.size(); ++i)
-        SimTK_ASSERT(energyDissipated[i] > -SimTK::SignificantReal,
-        "Negative energy dissipated.");
+    for (int i=0; i<(int)energyDissipated.size(); ++i) {
+        if (energyDissipated[i] < -SimTK::SignificantReal) {
+            printHorizontalRule(1,1,'#',"WARNING");
+            cout << "Negative energy dissipated (" << energyDissipated[i]
+                 << ")" << endl;
+            printHorizontalRule(1,1,'#',"WARNING");
+        }
+    }
 
-    return energyDissipated.sum();
+    totalEnergyDissipated = energyDissipated.sum();
+    return trajectory;
 }
 
 //-------------------------- Private methods: display --------------------------
@@ -1738,17 +1839,24 @@ void Impacter::
 printFormattedActiveSet(std::ostream& stream,
                         const Array_<int,ProximalPointIndex>& tangentialStates,
                         const std::string& prefix) const
+{   stream << printFormattedActiveSet(tangentialStates, prefix); }
+
+std::string Impacter::
+printFormattedActiveSet(const Array_<int,ProximalPointIndex>& tangentialStates,
+                        const std::string& prefix) const
 {
-    stream << "(" << prefix;
+    std::string msg = "(" + prefix;
     for (ProximalPointIndex i(0); i<(int)tangentialStates.size(); ++i) {
         switch (tangentialStates[i]) {
-          case Observing:   stream << "O";  break;
-          case Rolling:     stream << "R";  break;
-          case Sliding:     stream << "S";  break;
-          default:          stream << "?";  break;
+          case Observing:   msg += "O";  break;
+          case Rolling:     msg += "R";  break;
+          case Sliding:     msg += "S";  break;
+          default:          msg += "?";  break;
         }
     }
-    stream << ")";
+    msg += ")";
+
+    return msg;
 }
 
 const char* Impacter::
