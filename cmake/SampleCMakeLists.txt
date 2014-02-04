@@ -1,5 +1,5 @@
 # Generic CMakeLists.txt for making a Simbody-using executable.
-# This shows how to use the provided FindSimbody.cmake to locate a Simbody
+# This shows how to use the provided SimbodyConfig.cmake to locate a Simbody
 # installation on your machine so you can use it from your own code.
 # You will most likely want to copy some of these lines into your own
 # CMakeLists.txt rather than use this one verbatim.
@@ -10,12 +10,11 @@ project(myexe)
 set(my_source_files myexe.cpp)
 set(my_header_files myexe.h)
 
-# The "find_package" command must be able to find "FindSimbody.cmake". Here
-# we are assuming it is in a cmake subdirectory just below the top directory
-# containing the source (and this CMakeLists.txt file).
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-
+# This depends on SimbodyConfig.cmake being located somewhere predictable
+# on your machine. If you have installed it somewhere that CMake won't be
+# able to guess, you'll need to tell find_package where to look.
 find_package(Simbody REQUIRED)
+
 include_directories(${Simbody_INCLUDE_DIR})
 link_directories(${Simbody_LIB_DIR})
 

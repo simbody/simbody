@@ -611,23 +611,27 @@ set(PKG_LIBRARIES
 )
 
 if (WIN32)
-  set(SIMBODY_CMAKE_DIR CMake)
+  set(SIMBODY_CMAKE_DIR cmake)
 elseif (UNIX)
   set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
 endif ()
 
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake @ONLY)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake DESTINATION
-    ${SIMBODY_CMAKE_DIR})
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake 
+    DESTINATION ${SIMBODY_CMAKE_DIR})
+
+# Install a sample CMakeLists.txt that uses SimbodyConfig.cmake.
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
+    DESTINATION ${SIMBODY_CMAKE_DIR})
 
 # Make the pkgconfig file: select the proper flags depending on the platform
 IF (WIN32)
     IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
     	# win 64 bits
-	SET(PKGCONFIG_PLATFORM_LIBS "-liblapack -libblas -lpthreadVC2_x64")
+	SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
     ELSE()
-	SET(PKGCONFIG_PLATFORM_LIBS "-liblapack -libblas -lpthreadVC2")
+	SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
     ENDIF()
 ELSEIF (APPLE)   
     SET(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -ldl")
@@ -636,6 +640,6 @@ ELSE()
 ENDIF()
 
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
-     ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc @ONLY)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc DESTINATION
-     ${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig/)
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc @ONLY)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc 
+    DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig/)
