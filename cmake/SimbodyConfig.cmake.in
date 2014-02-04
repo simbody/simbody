@@ -7,11 +7,12 @@
 #   Simbody_ROOT_DIR - the installation directory; all the pieces must be
 #                      found together
 #   Simbody_INCLUDE_DIR - location of Simbody.h
-#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib} or SimTKsimbody.lib
+#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib} 
+#                         or SimTKsimbody.lib
 #   Simbody_BIN_DIR     - location of VisualizerGUI and .dll's on Windows
 #   Simbody_LIBRARIES   - suitable for target_link_libraries(); includes
-#                           both optimized and debug libraries if both are
-#                           available
+#                         both optimized and debug libraries if both are
+#                         available
 #   Simbody_STATIC_LIBRARIES - suitable for target_link_libraries(); includes
 #                              both optimized and debug static libraries if
 #                              both are available
@@ -20,15 +21,24 @@ if (@PKG_NAME@_CONFIG_INCLUDED)
 endif()
 set(@PKG_NAME@_CONFIG_INCLUDED TRUE)
 
-list(APPEND @PKG_NAME@_ROOT_DIR @CMAKE_INSTALL_PREFIX@)
+# Watch out for spaces in pathnames -- must quote.
+list(APPEND @PKG_NAME@_ROOT_DIR 
+            "@CMAKE_INSTALL_PREFIX@")
 
-list(APPEND @PKG_NAME@_INCLUDE_DIR @CMAKE_INSTALL_PREFIX@/@SIMBODY_INCLUDE_INSTALL_DIR@)
+list(APPEND @PKG_NAME@_INCLUDE_DIR 
+            "@CMAKE_INSTALL_PREFIX@/@SIMBODY_INCLUDE_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_LIB_DIR @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@)
+list(APPEND @PKG_NAME@_LIB_DIR 
+            "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@")
 
-list(APPEND @PKG_NAME@_BIN_DIR @SIMBODY_VISUALIZER_INSTALL_DIR@)
+list(APPEND @PKG_NAME@_BIN_DIR 
+            "@SIMBODY_VISUALIZER_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_CFLAGS -I@CMAKE_INSTALL_PREFIX@/@SIMBODY_INCLUDE_INSTALL_DIR@)
+list(APPEND @PKG_NAME@_CFLAGS 
+            -I"@CMAKE_INSTALL_PREFIX@/@SIMBODY_INCLUDE_INSTALL_DIR@")
+
+list(APPEND @PKG_NAME@_LDFLAGS 
+            -L"@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@")
 
 # Set extra libraries to link against
 if (WIN32)
@@ -71,40 +81,45 @@ find_library(Simbody_STATIC_DEBUG_LIBRARY NAMES SimTKsimbody_static_d
 set(LIBS)
 if(Simbody_LIBRARY AND Simbody_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
-    set(onelib "${lib}-NOTFOUND")
+    # must reset each time around the loop or find_library won't work
+    set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
+    set(onelibd "${lib}_d-NOTFOUND" CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
-      NO_DEFAULT_PATH
-      )
-    if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      NO_DEFAULT_PATH)
+    find_library(onelibd ${lib}_d
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH)
+    if((NOT onelib) OR (NOT onelibd))
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
-    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelib}_d")
+    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelibd}")
   endforeach()
 elseif(Simbody_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
-    set(onelib "${lib}-NOTFOUND")
+    set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
-      NO_DEFAULT_PATH
-      )
+      NO_DEFAULT_PATH)
     if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
     set(LIBS ${LIBS} "${onelib}")
   endforeach()
 elseif(Simbody_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
     set(lib "${lib}_d")
-    set(onelib "${lib}-NOTFOUND")
-    find_library(onelib ${lib}
+    set(onelibd "${lib}-NOTFOUND" CACHE INTERNAL "nothing")
+    find_library(onelibd ${lib}
       PATHS ${Simbody_LIB_DIR}
-      NO_DEFAULT_PATH
-      )
-    if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      NO_DEFAULT_PATH)
+    if(NOT onelibd)
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
-    set(LIBS ${LIBS} "${onelib}")
+    set(LIBS ${LIBS} "${onelibd}")
   endforeach()
 endif()
 
@@ -127,41 +142,47 @@ set(LIBS)
 if(Simbody_STATIC_LIBRARY AND Simbody_STATIC_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
     set(lib "${lib}_static")
-    set(onelib "${lib}-NOTFOUND")
+    set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
+    set(onelibd "${lib}_d-NOTFOUND" CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
-      NO_DEFAULT_PATH
-      )
-    if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      NO_DEFAULT_PATH)
+    find_library(onelibd ${lib}_d
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH)
+    if((NOT onelib) OR (NOT onelibd))
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
-    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelib}_d")
+    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelibd}")
   endforeach()
 elseif(Simbody_STATIC_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
     set(lib "${lib}_static")
-    set(onelib "${lib}-NOTFOUND")
+    set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
       NO_DEFAULT_PATH
       )
     if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
     set(LIBS ${LIBS} "${onelib}")
   endforeach()
 elseif(Simbody_STATIC_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
     set(lib "${lib}_static_d")
-    set(onelib "${lib}-NOTFOUND")
-    find_library(onelib ${lib}
+    set(onelibd  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
+    find_library(onelibd ${lib}
       PATHS ${Simbody_LIB_DIR}
       NO_DEFAULT_PATH
       )
-    if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+    if(NOT onelibd)
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
-    set(LIBS ${LIBS} "${onelib}")
+    set(LIBS ${LIBS} "${onelibd}")
   endforeach()
 endif()
 
@@ -186,10 +207,10 @@ find_package_handle_standard_args(Simbody DEFAULT_MSG
 	Simbody_INCLUDE_DIR)
 
 # Not all the variables we produced need be returned.
+unset(onelib CACHE)
+unset(onelibd CACHE)
 unset(Simbody_LIBRARY CACHE)
 unset(Simbody_DEBUG_LIBRARY CACHE)
 unset(Simbody_STATIC_LIBRARY CACHE)
 unset(Simbody_STATIC_DEBUG_LIBRARY CACHE)
 mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES)
-
-list(APPEND @PKG_NAME@_LDFLAGS -L@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@)
