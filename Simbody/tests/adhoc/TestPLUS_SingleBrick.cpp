@@ -387,6 +387,10 @@ private:
     // Determine whether active set candidate is empty.
     bool isActiveSetCandidateEmpty(const ActiveSetCandidate& asc) const;
 
+    // Determine whether any sliding directions are undefined.
+    bool isAnySlidingDirectionUndefined(const Array_<Real>& slidingDirections)
+        const;
+
     //--------------------------------------------------------------------------
     // Private methods: calculators
     //--------------------------------------------------------------------------
@@ -2079,6 +2083,15 @@ bool Impacter::isActiveSetCandidateEmpty(const ActiveSetCandidate& asc) const
     return true;
 }
 
+bool Impacter::
+isAnySlidingDirectionUndefined(const Array_<Real>& slidingDirections) const
+{
+    for (int i=0; i<(int)slidingDirections.size(); ++i)
+        if (isNaN(slidingDirections[i]))
+            return true;
+    return false;
+}
+
 //------------------------ Private methods: calculators ------------------------
 Real Impacter::calcCOR(Real vNormal) const
 {
@@ -2195,7 +2208,7 @@ void Impacter::generateAndSolveLinearSystem(const State& s0,
     } //end for each proximal point
 
     // Iterate to find sliding directions, if necessary.
-    if (!slidingDirections.empty()) {
+    if (isAnySlidingDirectionUndefined(slidingDirections)) {
         if (PrintDebugInfoImpact) {
             cout << "  ** finding sliding directions" << endl;
 
