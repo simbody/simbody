@@ -1,0 +1,30 @@
+# See http://www.cmake.org/Wiki/CMake/Tutorials/Packaging.
+#
+# A project using Simbody, say MyProject, can specify the version of Simbody it
+# needs. This script must determine if the version installed matches the
+# version of Simbody that MyProject requires.
+#
+# If in MyProject/CMakeLists.txt, there's a line like:
+#
+#   find_package(Simbody VERSION 3.4.0)
+#
+# then CMake will run this script and define the following:
+#
+#   PACKAGE_FIND_NAME          = the <package> name
+#   PACKAGE_FIND_VERSION       = full requested version string
+#   PACKAGE_FIND_VERSION_MAJOR = requested major version, if any
+#   PACKAGE_FIND_VERSION_MINOR = requested minor version, if any
+#   PACKAGE_FIND_VERSION_PATCH = requested patch version, if any
+#
+# We must then use these to define:
+#
+#   PACKAGE_VERSION            = full provided version string
+#   PACKAGE_VERSION_EXACT      = true if version is exact match
+#   PACKAGE_VERSION_COMPATIBLE = true if version is compatible
+#   PACKAGE_VERSION_UNSUITABLE = true if unsuitable as any version (CMake >= 2.6.3)
+
+set(PACKAGE_VERSION "@SIMBODY_VERSION@")
+if("${PACKAGE_FIND_VERSION}" EQUAL "@SIMBODY_VERSION@")
+    set(PACKAGE_VERSION_EXACT TRUE)
+    set(PACAKGE_VERSION_COMPATIBLE TRUE)
+endif()
