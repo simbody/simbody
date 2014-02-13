@@ -5,6 +5,11 @@ compiler:
 install:
   - sudo apt-get update
   - sudo apt-get install liblapack-dev liblas-dev
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  # from https://github.com/travis-ci/travis-ci/issues/979.
+  - sudo apt-get update -qq
+  - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; fi
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
   - cmake . -DBUILD_EXAMPLES=off -DBUILD_VISUALIZER=off -DCMAKE_CXX_FLAGS=-std=c++11
   - make
 script: ctest
