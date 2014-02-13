@@ -5,5 +5,6 @@ compiler:
 install:
   - sudo apt-get update
   - sudo apt-get install liblapack-dev liblas-dev
-  - cmake . -DBUILD_EXAMPLES=off -DBUILD_VISUALIZER=off && make
+  - cmake . -DBUILD_EXAMPLES=off -DBUILD_VISUALIZER=off -DCMAKE_CXX_FLAGS=-std=c++11
+  - make
 script: ctest

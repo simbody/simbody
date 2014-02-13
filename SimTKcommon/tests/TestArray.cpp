@@ -183,8 +183,10 @@ template <class T> Counter Count<T>::copyAssign;
 template <class T> Counter Count<T>::dtor;
 
 // Instantiate the whole class to check for compilation problems.
+namespace SimTK {
 template class Array_<int>;
 template class Array_<std::string, unsigned char>;
+};
 
 #ifdef _MSC_VER // gcc 4.1.2 had trouble with this
 // Instantiate templatized methods

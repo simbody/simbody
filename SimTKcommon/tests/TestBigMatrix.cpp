@@ -97,6 +97,7 @@ void testTransform() {
 }
 
 // Make sure we can instantiate all of these successfully.
+namespace SimTK {
 template class MatrixBase<double>;
 template class VectorBase<double>;
 template class RowVectorBase<double>;
@@ -116,6 +117,7 @@ template class RowVectorView_<negator<double> >;
 template class Matrix_<negator<double> >;
 template class Vector_<negator<double> >;
 template class RowVector_<negator<double> >;
+}
 
 int main() {
     try {

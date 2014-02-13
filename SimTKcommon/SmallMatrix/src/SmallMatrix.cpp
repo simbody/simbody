@@ -24,7 +24,7 @@
 #include "SimTKcommon/Scalar.h"
 #include "SimTKcommon/SmallMatrix.h"
 
-using namespace SimTK;
+namespace SimTK {
 
 template class Vec<3,Real>;
 template class Vec<2,Real>;
@@ -66,4 +66,5 @@ template SymMat<3,Real>::TInvert    SimTK::inverse(const SymMat<3,Real>&);
 template Mat<5,5,Real>::TInvert     SimTK::inverse(const Mat<5,5,Real>&);
 //template SymMat<5,Complex>::TInvert SimTK::inverse(const SymMat<5,Complex>&);
 
+} //namespace SimTK
 
