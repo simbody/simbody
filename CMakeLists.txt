@@ -420,34 +420,8 @@ ENDIF()
 
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
-
-# Get the subversion revision number if we can
-# It's possible that WIN32 installs use svnversion through cygwin
-# so we'll try for both svnversion.exe and svnversion. Note that
-# this will result in warnings if all you have is Tortoise without
-# Cygwin, and your "about" string will say "unknown" rather than
-# providing the SVN version of the source.
-
-FIND_PROGRAM (SVNVERSION_EXE svnversion.exe)
-IF (SVNVERSION_EXE)
-    EXEC_PROGRAM (${SVNVERSION_EXE}
-                  ARGS  \"${PROJECT_SOURCE_DIR}\"
-                  OUTPUT_VARIABLE SIMBODY_SVN_REVISION )
-ELSE (SVNVERSION_EXE) 
-    FIND_PROGRAM (SVNVERSION svnversion) 
-    IF (SVNVERSION)
-        EXEC_PROGRAM (${SVNVERSION}
-                      ARGS "${PROJECT_SOURCE_DIR}"
-                      OUTPUT_VARIABLE SIMBODY_SVN_REVISION)
-    ELSE (SVNVERSION)
-        MESSAGE (STATUS 
-          "Could not find 'svnversion' executable; 'about' will be wrong. (Cygwin provides one on Windows.)"
-        )
-        SET (SIMBODY_SVN_REVISION unknown) 
-    ENDIF (SVNVERSION)
-ENDIF (SVNVERSION_EXE)
-# Remove colon from build version, for easier placement in directory names
-STRING(REPLACE ":" "_" SIMBODY_SVN_REVISION ${SIMBODY_SVN_REVISION})
+# TODO removed SVN_REVSION; replace with GIT_SHA1
+# http://stackoverflow.com/questions/1435953/how-can-i-pass-git-sha1-to-compiler-as-definition-using-cmake
 
 # CMake quotes automatically when building Visual Studio projects but we need
 # to add them ourselves for Linux or Cygwin. Two cases to avoid duplicate quotes
@@ -463,12 +437,10 @@ ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 SET(NEED_QUOTES TRUE)
 
 IF(NEED_QUOTES)
-   ADD_DEFINITIONS(-DSimTK_SIMBODY_SVN_REVISION="${SIMBODY_SVN_REVISION}"
-                   -DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
+   ADD_DEFINITIONS(-DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
                    -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}")
 ELSE(NEED_QUOTES)
-   ADD_DEFINITIONS(-DSimTK_SIMBODY_SVN_REVISION=${SIMBODY_SVN_REVISION}
-                   -DSimTK_SIMBODY_COPYRIGHT_YEARS=${SIMBODY_COPYRIGHT_YEARS}
+   ADD_DEFINITIONS(-DSimTK_SIMBODY_COPYRIGHT_YEARS=${SIMBODY_COPYRIGHT_YEARS}
                    -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
 ENDIF(NEED_QUOTES)
 
