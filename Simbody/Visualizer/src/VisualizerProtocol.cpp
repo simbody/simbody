@@ -217,22 +217,22 @@ VisualizerProtocol::VisualizerProtocol
         const std::string e = Pathname::getAbsoluteDirectoryPathname(
             Pathname::getEnvironmentVariable("SimTK_INSTALL_DIR"));
         actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
-    } else {
-        // No environment variables set. Try the build-time install location:
-        actualSearchPath.push_back(SIMBODY_VISUALIZER_INSTALL_DIR);
-
-        // Our last desperate attempts will
-        // be  <platformDefaultInstallDir>/Simbody/bin
-        // and <platformDefaultInstallDir>/SimTK/bin
-        const std::string def = Pathname::getDefaultInstallDir();
-
-        actualSearchPath.push_back(
-            Pathname::addDirectoryOffset(def,
-                Pathname::addDirectoryOffset("Simbody", "bin")));
-        actualSearchPath.push_back(
-            Pathname::addDirectoryOffset(def,
-                Pathname::addDirectoryOffset("SimTK", "bin")));
     }
+
+    // Try the build-time install location:
+    actualSearchPath.push_back(SIMBODY_VISUALIZER_INSTALL_DIR);
+
+    // Our last desperate attempts will
+    // be  <platformDefaultInstallDir>/Simbody/bin
+    // and <platformDefaultInstallDir>/SimTK/bin
+    const std::string def = Pathname::getDefaultInstallDir();
+
+    actualSearchPath.push_back(
+        Pathname::addDirectoryOffset(def,
+            Pathname::addDirectoryOffset("Simbody", "bin")));
+    actualSearchPath.push_back(
+        Pathname::addDirectoryOffset(def,
+            Pathname::addDirectoryOffset("SimTK", "bin")));
 
     int sim2vizPipe[2], viz2simPipe[2], status;
 
