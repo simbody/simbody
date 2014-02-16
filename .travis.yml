@@ -18,6 +18,6 @@ script:
   - make -j8
   - ctest -j8 
   # Then, test using c++11.
-  - if [ "$CXX" = "g++" ]; then cmake . -DSIMBODY_STANDARD_11=ON; fi
-  - if [ "$CXX" = "g++" ]; then make -j8; fi
-  - if [ "$CXX" = "g++" ]; then ctest -j8; fi
+  - cmake . -DSIMBODY_STANDARD_11=ON
+  - make -j8
+  - ctest -j8
