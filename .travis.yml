@@ -11,9 +11,9 @@ install:
   - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; fi
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
   - cmake . -DBUILD_EXAMPLES=off -DBUILD_VISUALIZER=off
-  - make -j8
 script:
-  - ctest -j8 
-  - cmake .  -DCMAKE_CXX_FLAGS=-std=c++11
   - make -j8
-  - ctest -j8
+  - ctest -j8 
+  - if [ "$CXX" = "g++" ]; then cmake .  -DCMAKE_CXX_FLAGS=-std=c++11; fi
+  - if [ "$CXX" = "g++" ]; make -j8; fi
+  - if [ "$CXX" = "g++" ]; ctest -j8; fi
