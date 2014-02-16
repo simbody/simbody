@@ -51,9 +51,6 @@
     MAKE_COPYRIGHT_STRING(SimTK_SimTKCOMMON_COPYRIGHT_YEARS, \
                           SimTK_SimTKCOMMON_AUTHORS)
 
-#define GET_SVN_REVISION_STRING \
-    MAKE_STRING(SimTK_SimTKCOMMON_SVN_REVISION)
-
 #define GET_AUTHORS_STRING \
     MAKE_STRING(SimTK_SimTKCOMMON_AUTHORS)
 
@@ -81,7 +78,6 @@ void SimTK_version_SimTKcommon(int* major, int* minor, int* patch) {
     static const char* t = "SimTK type="      GET_TYPE_STRING;
     static const char* d = "SimTK debug="     GET_DEBUG_STRING;
     static const char* v = "SimTK version="   GET_VERSION_STRING;
-    static const char* r = "SimTK svn_revision=" GET_SVN_REVISION_STRING;
     static const char* c = "SimTK copyright=" GET_COPYRIGHT_STRING;
 
     if (major) *major = SimTK_SimTKCOMMON_MAJOR_VERSION;
@@ -92,7 +88,7 @@ void SimTK_version_SimTKcommon(int* major, int* minor, int* patch) {
     // optimizes them away).
     volatile int i=0;
     if (i) { // never true, but compiler doesn't know ...
-        *major = *l + *t + *d + *v + *r + *c;
+        *major = *l + *t + *d + *v + *c;
     }
 }
 
@@ -111,7 +107,6 @@ void SimTK_about_SimTKcommon(const char* key, int maxlen, char* value) {
     else if (skey == "library")   v = GET_LIBRARY_STRING;
     else if (skey == "type")      v = GET_TYPE_STRING;
     else if (skey == "copyright") v = GET_COPYRIGHT_STRING;
-    else if (skey == "svn_revision") v = GET_SVN_REVISION_STRING;
     else if (skey == "authors")   v = GET_AUTHORS_STRING;
     else if (skey == "debug")     v = GET_DEBUG_STRING;
 
