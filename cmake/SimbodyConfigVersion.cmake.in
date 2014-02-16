@@ -1,12 +1,14 @@
-# See http://www.cmake.org/Wiki/CMake/Tutorials/Packaging.
+# See:
+# http://www.cmake.org/Wiki/CMake/Tutorials/Packaging.
+# http://www.cmake.org/Wiki/CMake/Tutorials/How_to_create_a_ProjectConfig.cmake_file
 #
 # A project using Simbody, say MyProject, can specify the version of Simbody it
-# needs. This script must determine if the version installed matches the
+# needs. This script must determine if THIS version of Simbody matches the
 # version of Simbody that MyProject requires.
 #
 # If in MyProject/CMakeLists.txt, there's a line like:
 #
-#   find_package(Simbody VERSION 3.4.0)
+#   find_package(Simbody VERSION 3.4)
 #
 # then CMake will run this script and define the following:
 #
@@ -16,15 +18,186 @@
 #   PACKAGE_FIND_VERSION_MINOR = requested minor version, if any
 #   PACKAGE_FIND_VERSION_PATCH = requested patch version, if any
 #
-# We must then use these to define:
+# We must then use the above to set the following:
 #
 #   PACKAGE_VERSION            = full provided version string
 #   PACKAGE_VERSION_EXACT      = true if version is exact match
 #   PACKAGE_VERSION_COMPATIBLE = true if version is compatible
-#   PACKAGE_VERSION_UNSUITABLE = true if unsuitable as any version (CMake >= 2.6.3)
+#   PACKAGE_VERSION_UNSUITABLE = true if unsuitable as any version
+#                                    (CMake >= 2.6.3)
 
 set(PACKAGE_VERSION "@SIMBODY_VERSION@")
-if("${PACKAGE_FIND_VERSION}" EQUAL "@SIMBODY_VERSION@")
-    set(PACKAGE_VERSION_EXACT TRUE)
-    set(PACAKGE_VERSION_COMPATIBLE TRUE)
+
+if("@SIMBODY_MAJOR_VERSION@.@SIMBODY_MINOR_VERSION@" VERSION_EQUAL
+        "${PACKAGE_FIND_VERSION_MAJOR}.${PACKAGE_FIND_VERSION_MINOR}")
+    if(NOT "@SIMBODY_PATCH_VERSION@" VERSION_LESS "${PACKAGE_FIND_VERSION_PATCH}")
+        set(PACKAGE_VERSION_COMPATIBLE 1)
+        if("@SIMBODY_PATCH_VERSION@" VERSION_EQUAL
+                "${PACKAGE_FIND_VERSION_PATCH}")
+            set(PACKAGE_VERSION_EXACT 1)
+        endif()
+    endif()
+endif()
+
+# General behavior: compatibility is broken when major version changes.
+# This section should depend on:
+#    SIMBODY_MAJOR_VERSION
+#    SIMBODY_MINOR_VERSION
+#    SIMBODY_PATCH_VERSION
+# There are 3 conditions to check to see if we are compatible, all depending on
+# what the user specifies.
+#macro(announce_boolean_value name)
+#    if(${ARGN})
+#        set(${name} 1)
+#    else(${ARGN})
+#        set(${name} 0)
+#    endif(${ARGN})
+#endmacro()
+#
+#message("v1 "    ${PACKAGE_FIND_VERSION_MAJOR} STREQUAL "")
+#message("v1 "    ${PACKAGE_FIND_VERSION_MINOR} STREQUAL "")
+#message("v1 "    ${PACKAGE_FIND_VERSION_PATCH} STREQUAL "")
+#set(COMPAT_ONLY_MAJOR_VERSION_SPECIFIED
+#    NOT "${PACKAGE_FIND_VERSION_MAJOR}" STREQUAL "" AND
+#    "${PACKAGE_FIND_VERSION_MINOR}" STREQUAL "" AND
+#    "${PACKAGE_FIND_VERSION_PATCH}" STREQUAL ""
+#    #    "${PACKAGE_FIND_VERSION_MAJOR}" EQUAL @SIMBODY_MAJOR_VERSION@
+#    )
+#set(COMPAT_MAJOR_AND_MINOR_VERSIONS_SPECIFIED
+#    DEFINED "${PACKAGE_FIND_VERSION_MAJOR}" AND
+#    DEFINED "${PACKAGE_FIND_VERSION_MINOR}" AND
+#    NOT DEFINED "${PACKAGE_FIND_VERSION_PATCH}"
+#    #"${PACKAGE_FIND_VERSION_MAJOR}" EQUAL @SIMBODY_MAJOR_VERSION@ AND
+#    ## specified minor version is less than or equal to THIS minor version.
+#    #NOT "${PACKAGE_FIND_VERSION_MINOR}" GREATER @SIMBODY_MINOR_VERSION@
+#    )
+#set(COMPAT_MAJOR_MINOR_AND_PATCH_VERSIONS_SPECIFIED
+#    DEFINED "${PACKAGE_FIND_VERSION_MAJOR}" AND
+#    DEFINED "${PACKAGE_FIND_VERSION_MINOR}" AND
+#    DEFINED "${PACKAGE_FIND_VERSION_PATCH}"
+#    #"${PACKAGE_FIND_VERSION_MAJOR}" EQUAL @SIMBODY_MAJOR_VERSION@ AND
+#    #NOT "${PACKAGE_FIND_VERSION_MINOR}" GREATER @SIMBODY_MINOR_VERSION@ AND
+#    #NOT "${PACKAGE_FIND_VERSION_PATCH}" GREATER @SIMBODY_PATCH_VERSION@
+#    )
+#if("${COMPAT_ONLY_MAJOR_VERSION_SPECIFIED}")
+#    message("HI TRUE")
+#endif()
+#
+#announce_boolean_value(MYCOND ${COMPAT_ONLY_MAJOR_VERSION_SPECIFIED})
+#
+#if(${COMPAT_ONLY_MAJOR_VERSION_SPECIFIED})
+#    message(STATUS "YES")
+#else()
+#    message(STATUS "NO")
+#endif()
+#
+#announce_boolean_value(MYCONDB ${COMPAT_MAJOR_AND_MINOR_VERSIONS_SPECIFIED})
+#
+#if(MYCONDB)
+#    message(STATUS "YES")
+#else(MYCONDB)
+#    message(STATUS "NO")
+#endif(MYCONDB)
+#
+#announce_boolean_value(MYCONDC
+#    ${COMPAT_MAJOR_MINOR_AND_PATCH_VERSIONS_SPECIFIED})
+#
+#if(MYCONDC)
+#    message(STATUS "YES")
+#else(MYCONDC)
+#    message(STATUS "NO")
+#endif(MYCONDC)
+
+#message("ho ${COMPAT_MAJOR_AND_MINOR_VERSIONS_SPECIFIED}")
+#if("${COMPAT_MAJOR_AND_MINOR_VERSIONS_SPECIFIED}")
+#    message("HO TRUE")
+#endif()
+#message("hum ${COMPAT_MAJOR_MINOR_AND_PATCH_VERSIONS_SPECIFIED}")
+#if("${COMPAT_MAJOR_MINOR_AND_PATCH_VERSIONS_SPECIFIED}")
+#    message("HUM TRUE")
+#endif()
+#
+#if(${COMPAT_ONLY_MAJOR_VERSION_SPECIFIED} OR
+#        ${COMPAT_MAJOR_AND_MINOR_VERSIONS_SPECIFIED} OR
+#        ${COMPAT_MAJOR_MINOR_AND_PATCH_VERSIONS_SPECIFIED})
+#    set(PACKAGE_VERSION_COMPATIBLE TRUE)
+#else()
+#    message("HI INCOMPAT")
+#    set(PACKAGE_VERSION_COMPATIBLE FALSE)
+#endif()
+#if("${PACKAGE_FIND_VERSION_MAJOR}" EQUAL @SIMBODY_MAJOR_VERSION@)
+#
+#    if(NOT DEFINED "${PACKAGE_FIND_VERSION_MINOR}" AND
+#            NOT DEFINED "${PACKAGE_FIND_VERSION_PATCH}")
+#
+#        set(PACKAGE_VERSION_COMPATIBLE TRUE)
+#
+#    elseif(DEFINED "${PACKAGE_FIND_VERSION_MINOR}" AND
+#            NOT DEFINED "${PACKAGE_FIND_VERSION_PATCH}")
+#
+#        if(NOT "${PACKAGE_FIND_VERSION_MINOR}" GREATER @SIMBODY_MINOR_VERSION@)
+#
+#            # specified minor version is less than or equal to THIS minor
+#            # version.
+#            set(PACKAGE_VERSION_COMPATIBLE TRUE)
+#
+#        else()
+#
+#            set(PACKAGE_VERSION_COMPATIBLE FALSE)
+#            
+#        endif()
+#
+#    elseif(DEFINED "${PACKAGE_FIND_VERSION_MINOR}" AND
+#            DEFINED "${PACKAGE_FIND_VERSION_PATCH}")
+#
+#        if(NOT "${PACKAGE_FIND_VERSION_PATCH}" GREATER @SIMBODY_PATCH_VERSION@)
+#
+#            set(PACKAGE_VERSION_COMPATIBLE TRUE)
+#
+#        else()
+#
+#            set(PACKAGE_VERSION_COMPATIBLE FALSE)
+#
+#        endif()
+#
+#    endif()
+#
+#endif()
+
+#if("${PACKAGE_FIND_VERSI
+#set(PACKAGE_VERSION_COMPATIBLE TRUE)
+#if(DEFINED "${PACKAGE_FIND_VERSION_PATCH}")
+#    if("${PACKAGE_FIND_VERSION_PATCH}" GREATER @SIMBODY_PATCH_VERSION@)
+#        set(PACKAGE_VERSION_COMPATIBLE FALSE)
+#    endif()
+#else()
+#    if(DEFINED "${PACKAGE_FIND_VERSION_MINOR}")
+#        if("${PACKAGE_FIND_VERSION_MINOR}" GREATER @SIMBODY_MINOR_VERSION@)
+#            set(PACKAGE_VERSION_COMPATIBLE FALSE)
+#        endif()
+#    else()
+#        if(NOT "${PACKAGE_FIND_VERSION_MAJOR}" EQUAL @SIMBODY_MAJOR_VERSION@)
+#            set(PACKAGE_VERSION_COMPATIBLE FALSE)
+#        endif()
+#    endif()
+#endif()
+#
+
+
+# Exceptions: this section can depend on hard-coded version numbers. All that 
+# should be done here is marking versions incompatiable that would generally be
+# compatible (e.g., set(PACKAGE_VERSION_COMPATIBLE FALSE)).
+# Furthermore, it only makes sense for these hard-coded version numbers to be
+# the current or previous versions of Simbody.
+if("${PACKAGE_FIND_VERSION_MAJOR}" EQUAL 3)
+
+    if(DEFINED "${PACKAGE_FIND_VERSION_MINOR}")
+
+        # Install paths changed between 3.3 and 3.4, breaking compatibility.
+        if("${PACKAGE_FIND_VERSION_MINOR}" LESS 4)
+            set(PACKAGE_VERSION_COMPATIBLE FALSE)
+        endif()
+
+    endif()
+
 endif()
