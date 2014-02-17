@@ -10,11 +10,15 @@ install:
   - sudo apt-get update -qq
   - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; fi
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+  # Make sure that we are using this updated version of gcc.
+  - gcc --version
 script:
   # First, using c++03.
   # Specify that we do not use 11, since
   # the default for this variable may change soon.
-  - cmake . -DBUILD_EXAMPLES=ON -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=OFF
+    - cmake . -DBUILD_EXAMPLES=ON -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=OFF -DCMAKE_VERBOSE_MAKEFILE=ON
+  # Check which compiler and compiler version we're using.
+  - c++ --version
   - make -j8
   - ctest -j8 
   # Then, test using c++11.
