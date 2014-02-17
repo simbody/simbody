@@ -1,0 +1,55 @@
+# See:
+# http://www.cmake.org/Wiki/CMake/Tutorials/Packaging.
+# http://www.cmake.org/Wiki/CMake/Tutorials/How_to_create_a_ProjectConfig.cmake_file
+#
+# A project using Simbody, say MyProject, can specify the version of Simbody it
+# needs. This script must determine if THIS version of Simbody matches the
+# version of Simbody that MyProject requires.
+#
+# If in MyProject/CMakeLists.txt, there's a line like:
+#
+#   find_package(Simbody VERSION 3.4)
+#
+# then CMake will run this script and define the following:
+#
+#   PACKAGE_FIND_NAME          = the <package> name
+#   PACKAGE_FIND_VERSION       = full requested version string
+#   PACKAGE_FIND_VERSION_MAJOR = requested major version, if any
+#   PACKAGE_FIND_VERSION_MINOR = requested minor version, if any
+#   PACKAGE_FIND_VERSION_PATCH = requested patch version, if any
+#
+# We must then use the above to set the following:
+#
+#   PACKAGE_VERSION            = full provided version string
+#   PACKAGE_VERSION_EXACT      = true if version is exact match
+#   PACKAGE_VERSION_COMPATIBLE = true if version is compatible
+#   PACKAGE_VERSION_UNSUITABLE = true if unsuitable as any version
+#                                    (CMake >= 2.6.3)
+
+set(PACKAGE_VERSION "@SIMBODY_VERSION@")
+
+
+# General behavior: compatibility requires same major and minor versions.
+# This section should depend on:
+#    SIMBODY_MAJOR_VERSION
+#    SIMBODY_MINOR_VERSION
+#    SIMBODY_PATCH_VERSION
+# Informed by from VTK's VTKConfigVersion.cmake.in.
+if("@SIMBODY_MAJOR_VERSION@.@SIMBODY_MINOR_VERSION@" VERSION_EQUAL
+        "${PACKAGE_FIND_VERSION_MAJOR}.${PACKAGE_FIND_VERSION_MINOR}")
+    if(NOT "@SIMBODY_PATCH_VERSION@" VERSION_LESS "${PACKAGE_FIND_VERSION_PATCH}")
+        set(PACKAGE_VERSION_COMPATIBLE 1)
+        if("@SIMBODY_PATCH_VERSION@" VERSION_EQUAL
+                "${PACKAGE_FIND_VERSION_PATCH}")
+            set(PACKAGE_VERSION_EXACT 1)
+        endif()
+    endif()
+endif()
+
+# Exceptions: this section can depend on hard-coded version numbers. All that 
+# should be done here is marking versions incompatiable that would generally be
+# compatible (e.g., set(PACKAGE_VERSION_COMPATIBLE FALSE)).
+# Furthermore, it only makes sense for these hard-coded version numbers to be
+# the current or previous versions of Simbody.
+
+# Nothing to put here yet.

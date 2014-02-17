@@ -604,6 +604,11 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake 
     DESTINATION ${SIMBODY_CMAKE_DIR})
 
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfigVersion.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake @ONLY)
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
+
 # Install a sample CMakeLists.txt that uses SimbodyConfig.cmake.
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
     DESTINATION ${SIMBODY_CMAKE_DIR})
