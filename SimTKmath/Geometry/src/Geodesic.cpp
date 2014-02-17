@@ -35,9 +35,10 @@
 using namespace SimTK;
 
 // Make sure these compile correctly.
+namespace SimTK {
 template class GeodesicIntegrator<GeodesicOnImplicitSurface>;
 template class GeodesicIntegrator<GeodesicOnParametricSurface>;
-
+}
 
 
 //==============================================================================

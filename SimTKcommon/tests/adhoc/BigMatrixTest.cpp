@@ -49,6 +49,7 @@ namespace NR {
 }
 
 // Some explicit instantiations just to make sure everything's there.
+namespace SimTK {
 template class Matrix_<Real>;
 template class Vector_<Complex>;
 template class RowVector_< conjugate<float> >;
@@ -57,6 +58,7 @@ template class RowVector_< conjugate<float> >;
 template class MatrixView_< complex<double> >;
 template class VectorView_< negator<float> >;
 template class RowVectorView_< negator< conjugate<float> > >;
+}
 
 template <class NT>
 void dump(const String& s,  const Matrix_<NT>& mm) {

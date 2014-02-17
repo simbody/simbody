@@ -34,7 +34,7 @@ SET(SIMBODY_MAJOR_VERSION 3)
 SET(SIMBODY_MINOR_VERSION 4)
 SET(SIMBODY_PATCH_VERSION 0)
 
-SET(SIMBODY_COPYRIGHT_YEARS "2005-13")
+SET(SIMBODY_COPYRIGHT_YEARS "2005-14")
 
 # underbar separated list of dotted authors, no spaces or commas
 SET(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
@@ -293,6 +293,17 @@ endif()
 
 IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR 
    ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+
+    # If using either of these compilers, provide the option of 
+    # compiling usin the c++11 standard.
+    OPTION(SIMBODY_STANDARD_11
+        "Compile using the c++11 standard instead of c++03, 
+        if using GCC or Clang." OFF)
+
+    IF(${SIMBODY_STANDARD_11})
+        LIST(APPEND CMAKE_CXX_FLAGS " -std=c++11")
+    ENDIF()
+
     if (inst_set_to_use)
         string(TOLOWER ${inst_set_to_use} GCC_INST_SET)
         set(GCC_INST_SET "-m${GCC_INST_SET}")
