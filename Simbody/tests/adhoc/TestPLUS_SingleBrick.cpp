@@ -378,11 +378,16 @@ private:
     // final tangential velocity vectors.
     Real calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B, Vec2& Q)
         const;
+    Real calcSlidingStepLengthToOrigin(const Vec3& A, const Vec3& B, Vec3& Q)
+        const;
 
     // Given vectors A and B, find step length alpha such that the angle between
     // A and A+alpha*(B-A) is MaxSlidingDirChange. The solutions were generated
     // in Maple using the law of cosines, then exported as optimized code.
+    // Returns step length greater than 1 if the angle between vectors A and B
+    // exceeds MaxSlidingDirChange.
     Real calcSlidingStepLengthToMaxChange(const Vec2& A, const Vec2& B) const;
+    Real calcSlidingStepLengthToMaxChange(const Vec3& A, const Vec3& B) const;
 
     // Determine whether active set candidate is empty.
     bool isActiveSetCandidateEmpty(const ActiveSetCandidate& asc) const;
@@ -2036,6 +2041,43 @@ Real Impacter::calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B,
     return stepLength;
 }
 
+Real Impacter::calcSlidingStepLengthToOrigin(const Vec3& A, const Vec3& B,
+                                             Vec3& Q) const
+{
+    // Check whether initial tangential velocity is small (impending slip).
+    if (A.norm() < MaxStickingTangVel) {
+        if (PrintDebugInfoStepLength)
+            cout << "     --> A.norm() < MaxStickingTangVel; returning 1.0"
+                 << endl;
+        Q = B;
+        return 1.0;
+    }
+
+    const Vec3 P     = Vec3(0);
+    const Vec3 AtoP  = P-A;
+    const Vec3 AtoB  = B-A;
+    const Real ABsqr = AtoB.normSqr();
+
+    // Ensure line segment is of meaningful length.
+    if (ABsqr < SimTK::SignificantReal) {
+        if (PrintDebugInfoStepLength)
+            cout << "     --> ABsqr < SimTK::SignificantReal; returning 1.0"
+                 << endl;
+        Q = B;
+        return 1.0;
+    }
+
+    // Normalized distance from A to Q.
+    const Real stepLength = clamp(0.0, dot(AtoP,AtoB)/ABsqr, 1.0);
+    Q = A + stepLength*AtoB;
+
+    if (PrintDebugInfoStepLength)
+        cout << "     --> returning stepLength = " << stepLength
+             << " (distance to closest point is " << Q.norm() << ")" << endl;
+
+    return stepLength;
+}
+
 Real Impacter::
 calcSlidingStepLengthToMaxChange(const Vec2& A, const Vec2& B) const
 {
@@ -2063,6 +2105,52 @@ calcSlidingStepLengthToMaxChange(const Vec2& A, const Vec2& B) const
 
     sol1 = -t1*t5*(t2 + t4 + t3);
     sol2 = -t1*t5*(t2 + t4 - t3);
+
+    if (PrintDebugInfoStepLength)
+        cout << "     --> found solutions " << sol1 << " and " << sol2 << endl;
+
+    if (sol1 < 0)
+        return sol2;
+    else if (sol2 < 0)
+        return sol1;
+    else
+        return std::min(sol1, sol2);
+}
+
+Real Impacter::
+calcSlidingStepLengthToMaxChange(const Vec3& A, const Vec3& B) const
+{
+    // Temporary variables created by dsolve/numeric/optimize.
+    Real t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15;
+    Real sol1, sol2;
+    const Vec3 v = B-A;
+
+    // Optimized computation sequence generated in Maple.
+    t1 = std::cos(MaxSlidingDirChange);
+    t1 *= t1;
+    t2 = t1 - 1;
+    t3 = A[0] * A[0];
+    t4 = v[0] * v[0];
+    t5 = A[2] * A[2];
+    t6 = v[1] * v[1];
+    t7 = A[1] * A[1];
+    t8 = A[1] * v[1];
+    t9 = A[0] * v[0];
+    t10 = sqrt(-(t1 * t2 * (t3 * t6 + t4 * t7 + t5 * (t6 + t4) + (-2 * A[2]
+          * (t9 + t8) + (t7 + t3) * v[2]) * v[2] - 2 * t8 * t9)));
+    t11 = t9 * t2;
+    t12 = t8 * t2;
+    t13 = A[2] * v[2];
+    t2 = t13 * t2;
+    t14 = v[2] * v[2];
+    t15 = t6 + t14 + t4;
+    t1 = t1 * (t15 * t3 + t15 * t5 + t15 * t7) - t14 * t5 - t3 * t4 - t6 * t7
+         + t9 * (-2 * t8 - 2 * t13) - 2 * t13 * t8;
+    t3 = t7 + t3 + t5;
+    t1 = 1.0 / t1;
+
+    sol1 = -(t12 + t2 + t11 + t10) * t1 * t3;
+    sol2 = -(t12 + t2 + t11 - t10) * t1 * t3;
 
     if (PrintDebugInfoStepLength)
         cout << "     --> found solutions " << sol1 << " and " << sol2 << endl;
