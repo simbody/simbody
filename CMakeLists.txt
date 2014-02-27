@@ -298,7 +298,7 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # compiling usin the c++11 standard.
     OPTION(SIMBODY_STANDARD_11
         "Compile using the c++11 standard instead of c++03, 
-        if using GCC or Clang." OFF)
+        if using GCC or Clang." ON)
 
     IF(${SIMBODY_STANDARD_11})
         LIST(APPEND CMAKE_CXX_FLAGS " -std=c++11")
