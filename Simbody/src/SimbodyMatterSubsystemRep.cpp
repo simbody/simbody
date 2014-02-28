@@ -29,6 +29,7 @@
 #include "SimTKcommon.h"
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/ConditionalConstraint.h"
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "SimbodyTreeState.h"
@@ -49,6 +50,18 @@ SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsyste
 
 
 void SimbodyMatterSubsystemRep::clearTopologyState() {
+    // Unilateral constraints reference Constraints but not vice versa,
+    // so delete the conditional constraints first.
+
+    for (UnilateralContactIndex ucx(0); ucx < uniContacts.size(); ++ucx)
+        delete uniContacts[ucx];
+    uniContacts.clear();
+
+    for (StateLimitedFrictionIndex fx(0); fx < stateLtdFriction.size(); ++fx)
+        delete stateLtdFriction[fx];
+    stateLtdFriction.clear();
+    //TODO: more conditional constraints to come.
+
     // Constraints are independent from one another, so any deletion order
     // is fine. However, they depend on bodies and not vice versa so we'll
     // delete them first just to be neat.
@@ -128,6 +141,33 @@ ConstraintIndex SimbodyMatterSubsystemRep::adoptConstraint(Constraint& child) {
     // that Subsystem.
     c.updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), ix);
     return ix;
+}
+
+
+UnilateralContactIndex SimbodyMatterSubsystemRep::
+adoptUnilateralContact(UnilateralContact* child) {
+    assert(child);
+    invalidateSubsystemTopologyCache();
+
+    const UnilateralContactIndex ucx(uniContacts.size());
+    uniContacts.push_back(child); // grow
+
+    // Tell the contact object its index within the matter subsystem.
+    child->setMyIndex(ucx);
+    return ucx;
+}
+
+StateLimitedFrictionIndex SimbodyMatterSubsystemRep::
+adoptStateLimitedFriction(StateLimitedFriction* child) {
+    assert(child);
+    invalidateSubsystemTopologyCache();
+
+    const StateLimitedFrictionIndex fx(stateLtdFriction.size());
+    stateLtdFriction.push_back(child); // grow
+
+    // Tell the friction object its index within the matter subsystem.
+    child->setMyIndex(fx);
+    return fx;
 }
 
 

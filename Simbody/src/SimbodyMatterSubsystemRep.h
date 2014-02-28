@@ -260,6 +260,39 @@ public:
         return *constraints[id];
     }
 
+    UnilateralContactIndex adoptUnilateralContact(UnilateralContact*);
+    int getNumUnilateralContacts() const 
+    {   return (int)uniContacts.size(); }
+    const UnilateralContact& 
+    getUnilateralContact(UnilateralContactIndex ix) const {
+        assert(ix < uniContacts.size());
+        assert(uniContacts[ix]);
+        return *uniContacts[ix];
+    }
+    UnilateralContact& 
+    updUnilateralContact(UnilateralContactIndex ix) {
+        assert(ix < uniContacts.size());
+        assert(uniContacts[ix]);
+        return *uniContacts[ix];
+    }
+
+    StateLimitedFrictionIndex adoptStateLimitedFriction(StateLimitedFriction*);
+    int getNumStateLimitedFrictions() const 
+    {   return (int)stateLtdFriction.size(); }
+
+    const StateLimitedFriction& 
+    getStateLimitedFriction(StateLimitedFrictionIndex ix) const {
+        assert(ix < stateLtdFriction.size());
+        assert(stateLtdFriction[ix]);
+        return *stateLtdFriction[ix];
+    }
+    StateLimitedFriction& 
+    updStateLimitedFriction(StateLimitedFrictionIndex ix) {
+        assert(ix < stateLtdFriction.size());
+        assert(stateLtdFriction[ix]);
+        return *stateLtdFriction[ix];
+    }
+
     // Topology stage cache entry
     AncestorConstrainedBodyPoolIndex 
     allocateNextAncestorConstrainedBodyPoolSlot() const {
@@ -1216,10 +1249,12 @@ private:
     // The handles in this array are the owners of the MobilizedBodies after they
     // are adopted. The MobilizedBodyIndex (converted to int) is the index of a
     // MobilizedBody in this array.
-    Array_<MobilizedBody*,MobilizedBodyIndex> mobilizedBodies;
-
+    Array_<MobilizedBody*,MobilizedBodyIndex>               mobilizedBodies;
     // Constraints are treated similarly.
-    Array_<Constraint*,ConstraintIndex>    constraints;
+    Array_<Constraint*,ConstraintIndex>                     constraints;
+
+    Array_<UnilateralContact*,UnilateralContactIndex>       uniContacts;
+    Array_<StateLimitedFriction*,StateLimitedFrictionIndex> stateLtdFriction;
 
     // Our realizeTopology method calls this after all bodies & constraints have been added,
     // to construct part of the topology cache below.

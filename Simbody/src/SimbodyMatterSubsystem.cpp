@@ -108,16 +108,40 @@ void SimbodyMatterSubsystem::setShowDefaultGeometry(bool show) {
 }
 
 
-ConstraintIndex SimbodyMatterSubsystem::adoptConstraint(Constraint& child) {
-    return updRep().adoptConstraint(child);
-}
-const Constraint& SimbodyMatterSubsystem::getConstraint(ConstraintIndex id) const {
-    return getRep().getConstraint(id);
-}
-Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintIndex id) {
-    return updRep().updConstraint(id);
-}
+ConstraintIndex SimbodyMatterSubsystem::
+adoptConstraint(Constraint& child) {return updRep().adoptConstraint(child);}
+const Constraint& SimbodyMatterSubsystem::
+getConstraint(ConstraintIndex id) const {return getRep().getConstraint(id);}
+Constraint& SimbodyMatterSubsystem::
+updConstraint(ConstraintIndex id) {return updRep().updConstraint(id);}
 
+
+UnilateralContactIndex SimbodyMatterSubsystem::
+adoptUnilateralContact(UnilateralContact* child)
+{   return updRep().adoptUnilateralContact(child); }
+int SimbodyMatterSubsystem::
+getNumUnilateralContacts() const 
+{   return getRep().getNumUnilateralContacts(); }
+const UnilateralContact& SimbodyMatterSubsystem::
+getUnilateralContact(UnilateralContactIndex ix) const
+{   return getRep().getUnilateralContact(ix); }
+UnilateralContact& SimbodyMatterSubsystem::
+updUnilateralContact(UnilateralContactIndex ix)
+{   return updRep().updUnilateralContact(ix); }
+
+
+StateLimitedFrictionIndex SimbodyMatterSubsystem::
+adoptStateLimitedFriction(StateLimitedFriction* child)
+{   return updRep().adoptStateLimitedFriction(child); }
+int SimbodyMatterSubsystem::
+getNumStateLimitedFrictions() const
+{   return getRep().getNumStateLimitedFrictions(); }
+const StateLimitedFriction& SimbodyMatterSubsystem::
+getStateLimitedFriction(StateLimitedFrictionIndex ix) const
+{   return getRep().getStateLimitedFriction(ix); }
+StateLimitedFriction& SimbodyMatterSubsystem::
+updStateLimitedFriction(StateLimitedFrictionIndex ix)
+{   return updRep().updStateLimitedFriction(ix); }
 
 
 //==============================================================================
