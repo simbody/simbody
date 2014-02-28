@@ -484,7 +484,7 @@ isImpact(const State& s, const Vector& verr) const {
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
         const ImpulseSolver::UniContactRT& rt = m_uniContact[i];
         if (rt.m_sign*verr[rt.m_Nk] < -m_consTol) { // TODO: sign?
-            printf("IMPACT cuz verr[%d]=%g\n", rt.m_Nk, verr[rt.m_Nk]);
+            printf("IMPACT cuz verr[%d]=%g\n", (int)rt.m_Nk, verr[rt.m_Nk]);
             return true;
         }
     }
