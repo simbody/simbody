@@ -202,6 +202,7 @@ class SimTK_SIMBODY_EXPORT UnilateralSpeedConstraint
 :   public UnilateralConstraint {
 public:
     UnilateralSpeedConstraint() {}
+    virtual ~UnilateralSpeedConstraint() {}
 
 private:
 };
@@ -245,6 +246,7 @@ private:
 class SimTK_SIMBODY_EXPORT StateLimitedFriction {
 public:
     StateLimitedFriction() {}
+    virtual ~StateLimitedFriction() {}
 
     /** Disable the friction constraints if they were enabled. Return true if 
     we actually had to disable something. **/

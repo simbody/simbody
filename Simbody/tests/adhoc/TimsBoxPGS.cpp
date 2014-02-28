@@ -2638,7 +2638,7 @@ bool SuccessivePruning::solve
             }
             Real alpha2 = calcSlidingStepLengthToMaxChange(m_slipVel[k],bend);
             printf("  Alpha=%g reduces angle to %g degrees.\n", 
-                   std::acos(CosMaxSlidingDirChange)*180/Pi);
+                   alpha2, std::acos(CosMaxSlidingDirChange)*180/Pi);
             alpha = std::min(alpha, alpha2);
         }
 
@@ -2838,7 +2838,7 @@ isImpact(const State& s, const Vector& verr) const {
         const MyContactElement& elt = unis.getContactElement(id);
         const MultiplierIndex mx = elt.getMultIndex(s);
         if (verr[mx] < -m_consTol) { // TODO: sign?
-            printf("IMPACT cuz verr[%d]=%g\n", mx, verr[mx]);
+            printf("IMPACT cuz verr[%d]=%g\n", (int)mx, verr[mx]);
             return true;
         }
     }
@@ -3362,7 +3362,7 @@ initializeNewton(const Vector& pi, // mA of these
             continue; // not active
         m_piActive[ax] = .01*sign(m_verr[mx]); //-1,0,1
         printf("  active normal %d has v=%g; guess pi=%g\n",
-                ax,m_verr[mx],m_piActive[ax]);
+                (int)ax,m_verr[mx],m_piActive[ax]);
     }
 
     printf("initializeNewton:\n");
