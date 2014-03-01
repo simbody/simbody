@@ -27,6 +27,7 @@
 #include "simbody/internal/ConditionalConstraint.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 
+
 namespace SimTK {
 
 //==============================================================================
@@ -80,6 +81,43 @@ Real PointPlaneContact::getPerr(const State& state) const
     const Vec3 p = m_follower.findStationLocationInAnotherBody
                                 (state, m_point, m_planeBody);
     return ~p*m_frame.z() - m_height;
+}
+
+//------------------------------------------------------------------------------
+//                    GET CONTACT MULTIPLIER INDEX
+//------------------------------------------------------------------------------
+MultiplierIndex PointPlaneContact::
+getContactMultiplierIndex(const State& s) const {
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_ptInPlane.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==1 && mv==0 && ma==0); // don't call if not enabled
+    m_ptInPlane.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(px0.isValid() && !vx0.isValid() && !ax0.isValid());
+    return px0;
+}
+
+//------------------------------------------------------------------------------
+//                  GET FRICTION MULTIPLIER INDICES
+//------------------------------------------------------------------------------
+void PointPlaneContact::
+getFrictionMultiplierIndices(const State&       s, 
+                                MultiplierIndex&   ix_x, 
+                                MultiplierIndex&   ix_y) const
+{   ix_x.invalidate(); ix_y.invalidate(); 
+    if (!m_hasFriction) return;
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_noslipX.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==0 && mv==1 && ma==0); // don't call if not enabled
+    m_noslipX.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(!px0.isValid() && vx0.isValid() && !ax0.isValid());
+    ix_x = vx0;
+    m_noslipY.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==0 && mv==1 && ma==0); // don't call if not enabled
+    m_noslipY.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(!px0.isValid() && vx0.isValid() && !ax0.isValid());
+    ix_y = vx0;  
 }
 
 //------------------------------------------------------------------------------

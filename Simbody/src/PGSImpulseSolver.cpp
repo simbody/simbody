@@ -393,23 +393,23 @@ solve(int                                 phase,
                 sor = std::max(.8*sor, .1);
             decreasing = true;
         } 
-        else if (!decreasing && its > 5 && rate > .9) {
-            printf("TOO SLOW@%d: sor=%g rate=%g\n", its, sor, rate);
-            //if (its > 20) { 
-            //    const Real needFac = normRMSenf/m_PGSConvergenceTol;
-            //    const int needIts = -std::ceil(std::log(needFac)/std::log(rate));
-            //    SimTK_DEBUG2("  need reduction by %g (%d iters)\n", needFac, needIts);
-            //    if (needIts > m_PGSMaxIters-its) {
-            //        SimTK_DEBUG1("  only %d iters left -- give up\n", m_PGSMaxIters-its);
-            //        converged = false;
-            //        break;
-            //    }
-            //}
+        //else if (!decreasing && its > 5 && rate > .9) {
+        //    printf("TOO SLOW@%d: sor=%g rate=%g\n", its, sor, rate);
+        //    //if (its > 20) { 
+        //    //    const Real needFac = normRMSenf/m_PGSConvergenceTol;
+        //    //    const int needIts = -std::ceil(std::log(needFac)/std::log(rate));
+        //    //    SimTK_DEBUG2("  need reduction by %g (%d iters)\n", needFac, needIts);
+        //    //    if (needIts > m_PGSMaxIters-its) {
+        //    //        SimTK_DEBUG1("  only %d iters left -- give up\n", m_PGSMaxIters-its);
+        //    //        converged = false;
+        //    //        break;
+        //    //    }
+        //    //}
 
-            if (sor < 1.6)
-                sor = std::min(1.1*sor, 1.6);
-            increasing = true;
-        } 
+        //    if (sor < 1.6)
+        //        sor = std::min(1.1*sor, 1.6);
+        //    increasing = true;
+        //} 
 
         #ifndef NDEBUG
         printf("%d/%d: EST rmsAll=%g rmsEnf=%g rate=%g\n", phase, its,

@@ -286,7 +286,7 @@ private:
     ContactTrackerSubsystem*     m_tracker;
     CompliantContactSubsystem*   m_contactForces;
 
-    static const int NBalls = 6;
+    static const int NBalls = 3;
 
     Force::Gravity          m_gravity;
     Force::GlobalDamper     m_damper;
@@ -337,9 +337,9 @@ int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
     // Create the augmented multibody model.
-    //TimsBox mbs;
+    TimsBox mbs;
     //BouncingBalls mbs;
-    Pencil mbs;
+    //Pencil mbs;
 
     SemiExplicitEulerTimeStepper sxe(mbs);
     sxe.setDefaultImpactCaptureVelocity(mbs.getCaptureVelocity());
@@ -390,8 +390,8 @@ int main(int argc, char** argv) {
     const double startReal = realTime();
     const double startCPU = cpuTime();
 
-    const Real h = .0055;
-    const int SaveEvery = 1; // save every nth step ~= 33ms
+    const Real h = .0055/5;
+    const int SaveEvery = 1*30; // save every nth step ~= 33ms
 
     do {
         const State& sxeState = sxe.getState();
@@ -674,8 +674,12 @@ BouncingBalls::BouncingBalls() {
     const Real nylon_poisson = 0.4;    // ratio
     const Real nylon_planestrain =
         ContactMaterial::calcPlaneStrainStiffness(nylon_young,nylon_poisson);
-    const Real nylon_dissipation = 0*0.1;
+    const Real nylon_dissipation = 0.1;
     const ContactMaterial nylon(nylon_planestrain,nylon_dissipation,0,0,0);
+    const ContactMaterial nylon_lossless
+       (nylon_planestrain,0/*no dissipation*/,0,0,0);
+    const ContactMaterial nylon_lossy
+       (nylon_planestrain,10/*much dissipation*/,0,0,0);
 
     const Rotation X2Y(Pi/2, ZAxis); // rotate +90 deg about z
     const Rotation NegX2Y(-Pi/2,ZAxis); // -90
@@ -692,6 +696,10 @@ BouncingBalls::BouncingBalls() {
                                         UnitInertia::sphere(BallRadius)));
     ballBody.addDecoration(Transform(), DecorativeSphere(BallRadius));
 
+    Body::Rigid ballBody_heavy(MassProperties(100*BallMass, Vec3(0), 
+                                        UnitInertia::sphere(BallRadius)));
+    ballBody_heavy.addDecoration(Transform(), DecorativeSphere(BallRadius));
+
     const Vec3 HColor(Gray), PColor(Red), NColor(Orange);
 
 #ifdef HERTZ
@@ -699,29 +707,41 @@ BouncingBalls::BouncingBalls() {
        (Ground, Transform(X2Y,Vec3(-1,BallRadius,0)),
         ballBody, X2Y);
     m_Hballs[0].updBody().addContactSurface(Vec3(0),
-            ContactSurface(ContactGeometry::Sphere(BallRadius), nylon));
+            ContactSurface(ContactGeometry::Sphere(BallRadius), 
+            nylon
+            //nylon_lossless
+            ));
     m_Hballs[0].updBody().updDecoration(0).setColor(HColor);
     for (int i=1; i<NBalls; ++i) {
         m_Hballs[i] = MobilizedBody::Slider
            (m_Hballs[i-1],Transform(X2Y,Vec3(0,2*BallRadius,0)),ballBody, X2Y);
         m_Hballs[i].updBody().updDecoration(0).setColor(HColor);
         m_Hballs[i].updBody().addContactSurface(Vec3(0),
-                ContactSurface(ContactGeometry::Sphere(BallRadius), nylon));
+                ContactSurface(ContactGeometry::Sphere(BallRadius), 
+                //nylon
+                nylon_lossless
+                ));
     }
 #endif
 #ifdef POISSON
     m_Pballs[0] = MobilizedBody::Slider
        (Ground, Transform(X2Y,Vec3(0,BallRadius,0)),
-        ballBody, X2Y);
+        ballBody,
+        //ballBody_heavy,
+        X2Y);
     m_Pballs[0].updBody().updDecoration(0).setColor(PColor);
     matter.adoptUnilateralContact(new PointPlaneContact
-           (Ground, YAxis, 0., m_Pballs[0], Vec3(0,-BallRadius,0), CoefRest,
+           (Ground, YAxis, 0., m_Pballs[0], Vec3(0,-BallRadius,0), 
+            CoefRest,
             0,0,0)); // no friction
     for (int i=1; i<NBalls; ++i) {
         m_Pballs[i] = MobilizedBody::Slider
-           (m_Pballs[i-1],Transform(X2Y,Vec3(0,2*BallRadius,0)),ballBody, X2Y);
+           (m_Pballs[i-1],Transform(X2Y,Vec3(0,2*BallRadius,0)),
+           i==NBalls-1?ballBody_heavy:ballBody, 
+           X2Y);
         m_Pballs[i].updBody().updDecoration(0).setColor(PColor);
-        Real cor = i==NBalls/2 ? .5 : CoefRest;
+        //Real cor = i==NBalls/2 ? .5 : CoefRest; // middle ball different
+        Real cor = CoefRest;
         matter.adoptUnilateralContact(new PointPlaneContact
                (m_Pballs[i-1], YAxis, BallRadius, 
                 m_Pballs[i], Vec3(0,-BallRadius,0), cor, 0, 0, 0));

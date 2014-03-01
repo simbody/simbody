@@ -38,34 +38,39 @@ constraint.
 class SimTK_SIMBODY_EXPORT ConditionalConstraint {
 public:
 
-/** Given the specified minimum coefficient of restitution, capture velocity,
-and minimum COR velocity, calculate the effective COR for a given impact
-velocity. A negative separation velocity indicates an impact, otherwise we
-have passive contact or separation, in which case we return 0 for the COR. **/
-static Real calcEffectiveCOR(Real minCOR, Real captureVel, Real minCORVel, 
-                             Real separationVel)
+/** Given the specified minimum coefficient of restitution (COR), capture speed,
+and the speed at which the minimum COR is attained, calculate an effective COR 
+for a given impact speed. All speeds must be nonnegative. The COR will be zero
+at or below capture speed, will be minCOR at or above minCORSpeed, and will 
+rise linearly with decreasing impact speed between minCORSpeed and the capture
+velocity. **/
+static Real calcEffectiveCOR(Real minCOR, Real captureSpeed, Real minCORSpeed, 
+                             Real impactSpeed)
 {
     assert(0 <= minCOR && minCOR <= 1);
-    assert(0 <= captureVel && captureVel <= minCORVel);
-    const Real impactVel = -separationVel; // +ive if impacting
-    if (impactVel <= captureVel) return 0; // includes separating case
-    if (impactVel >= minCORVel)  return minCOR;
-    // captureVel < impactVel < minCORVel
-    const Real slope = (1-minCOR) / minCORVel;
-    return 1 - slope*impactVel;
+    assert(0 <= captureSpeed && captureSpeed <= minCORSpeed);
+    assert(impactSpeed >= 0);
+
+    if (impactSpeed <= captureSpeed) return 0;
+    if (impactSpeed >= minCORSpeed)  return minCOR;
+    // captureSpeed < impactSpeed < minCORSpeed
+    const Real slope = (1-minCOR) / minCORSpeed;
+    return 1 - slope*impactSpeed;
 }
 
 /** Given the coefficients of friction and slip-to-rolling transition 
-velocity, calculate the effective COF for a given slip velocity. Slip velocity
-must be nonnegative. **/
+speed, calculate the effective COF mu for a given slip velocity. Speeds
+must be nonnegative. This utility calculates mu with an abrupt rise at
+the transitionSpeed from the dynamic coefficient mu_d to the static 
+coefficient mu_s. There is also a linear contribution mu_v*slipSpeed. **/
 static Real calcEffectiveCOF(Real mu_s, Real mu_d, Real mu_v,
-                             Real transitionVel, Real slipVel)
+                             Real transitionSpeed, Real slipSpeed)
 {
     assert(mu_s>=0 && mu_d>=0 && mu_v>=0);
     assert(mu_s>=mu_d);
-    assert(transitionVel>=0 && slipVel>=0);
-    const Real viscous = mu_v*slipVel; // typically zero
-    return viscous + (slipVel <= transitionVel ? mu_s : mu_d);
+    assert(transitionSpeed>=0 && slipSpeed>=0);
+    const Real viscous = mu_v*slipSpeed; // typically zero
+    return viscous + (slipSpeed <= transitionSpeed ? mu_s : mu_d);
 }
 
 };
@@ -103,6 +108,9 @@ public:
 private:
 };
 
+//==============================================================================
+//                       UNILATERAL CONTACT CONSTRAINT
+//==============================================================================
 /** A unilateral contact constraint uses a single holonomic (position) 
 constraint equation to prevent motion in one direction while leaving it 
 unrestricted in the other direction. Examples are surface-surface contact, joint
@@ -127,14 +135,17 @@ public:
     Return true if we actually had to enable something. **/
     virtual bool enable(State& state) const = 0;
 
-    /** Returns the instantaneously effective coefficient of restitution (COR)
-    for this contact. Given two contacting materials, this is typically a 
-    function of just the impact velocity, but could also depend on time and 
-    configuration. The given default velocities are used to calculate the COR
-    unless this Contact overrides those. **/
+    /** Returns the effective coefficient of restitution (COR) for this contact,
+    given an impact speed (a nonnegative scalar). For a given pair of contacting 
+    materials this is typically a function of just the impact speed, but it
+    could also depend on the time and configuration in \a state, which should 
+    be realized through Stage::Position. The given default impact speed
+    thresholds (also nonnegative) are used to calculate the COR unless this 
+    Contact overrides those. **/
     virtual Real calcEffectiveCOR(const State& state,
-                                  Real defaultCaptureVelocity,
-                                  Real defaultMinCORVelocity) const = 0;
+                                  Real defaultCaptureSpeed,
+                                  Real defaultMinCORSpeed,
+                                  Real impactSpeed) const = 0;
 
     /** Return the position error (usually a signed distance function). **/
     virtual Real getPerr(const State& state) const = 0;
@@ -160,11 +171,16 @@ public:
     contact constraint. If so, calcEffectiveCOF() must be overridden. **/
     virtual bool hasFriction(const State& state) const {return false;}
 
-    /** If hasFriction() returns \c true we'll call this method to determine
-    the instantaneously effective coefficient of friction mu as a function
-    of configuration and velocity. **/
+    /** Returns the effective coefficient of friction mu for this contact,
+    given a relative slip speed (a nonnegative scalar). For a given pair of 
+    contacting materials this is typically a function of just the slip speed, 
+    but it could also depend on the time and configuration in \a state, which 
+    should be realized through Stage::Position. The given default slip-to-roll
+    transition speed threshold (also nonnegative) is used to calculate mu 
+    unless this Contact overrides it with its own transition speed. **/
     virtual Real calcEffectiveCOF(const State& state,
-                                  Real defaultTransitionVelocity) const
+                                  Real defaultTransitionSpeed,
+                                  Real slipSpeed) const
     {   return NaN; }
 
     virtual Vec2 getSlipVelocity(const State& state) const 
@@ -194,6 +210,9 @@ private:
     UnilateralContactIndex m_myIx;
 };
 
+//==============================================================================
+//                       UNILATERAL SPEED CONSTRAINT
+//==============================================================================
 /** A unilateral speed constraint uses a single nonholonomic (velocity)
 constraint equation to prevent relative slip in one direction but not in the 
 other. Examples are ratchets and mechanical diodes.
@@ -207,6 +226,9 @@ public:
 private:
 };
 
+//==============================================================================
+//                         BOUNDED SPEED CONSTRAINT
+//==============================================================================
 /** A bounded speed constraint uses a single nonholonomic (velocity) constraint
 equation to prevent relative slip provided it can do so while keeping the
 multiplier value within a range given by a lower and upper bound. Outside that
@@ -261,7 +283,8 @@ public:
     virtual Real getNormalForceMagnitude(const State& state) const = 0;
 
     virtual Real calcEffectiveCOF(const State& state,
-                                  Real defaultTransitionVelocity) const = 0;
+                                  Real defaultTransitionSpeed,
+                                  Real slipSpeed) const = 0;
 
     virtual Real getSlipSpeed(const State& state) const = 0; 
 
@@ -338,13 +361,15 @@ public:
     Real getAerr(const State& state) const OVERRIDE_11
     {   return m_ptInPlane.getAccelerationError(state); }
 
+
     Real calcEffectiveCOR(const State& state,
-                          Real defaultCaptureVelocity,
-                          Real defaultMinCORVelocity) const OVERRIDE_11 
+                          Real defaultCaptureSpeed,
+                          Real defaultMinCORSpeed,
+                          Real impactSpeed) const OVERRIDE_11 
     {
        return ConditionalConstraint::calcEffectiveCOR
-               (m_minCOR, defaultCaptureVelocity, defaultMinCORVelocity,
-                getVerr(state));
+               (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
+                impactSpeed);
     }
 
     bool hasFriction(const State& state) const OVERRIDE_11
@@ -356,43 +381,18 @@ public:
     }
 
     Real calcEffectiveCOF(const State& state,
-                          Real defaultTransitionVelocity) const OVERRIDE_11
+                          Real defaultTransitionSpeed,
+                          Real slipSpeed) const OVERRIDE_11
     {
-       const Real slipVel = getSlipVelocity(state).norm();
        return ConditionalConstraint::calcEffectiveCOF
-               (m_mu_s, m_mu_d, m_mu_v, defaultTransitionVelocity, slipVel);
+               (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 
-    MultiplierIndex 
-    getContactMultiplierIndex(const State& s) const OVERRIDE_11 {
-        int mp, mv, ma;
-        MultiplierIndex px0, vx0, ax0;
-        m_ptInPlane.getNumConstraintEquationsInUse(s,mp,mv,ma);
-        assert(mp==1 && mv==0 && ma==0); // don't call if not enabled
-        m_ptInPlane.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
-        assert(px0.isValid() && !vx0.isValid() && !ax0.isValid());
-        return px0;
-    }
+    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
 
-    void
-    getFrictionMultiplierIndices(const State&       s, 
-                                 MultiplierIndex&   ix_x, 
-                                 MultiplierIndex&   ix_y) const OVERRIDE_11
-    {   ix_x.invalidate(); ix_y.invalidate(); 
-        if (!m_hasFriction) return;
-        int mp, mv, ma;
-        MultiplierIndex px0, vx0, ax0;
-        m_noslipX.getNumConstraintEquationsInUse(s,mp,mv,ma);
-        assert(mp==0 && mv==1 && ma==0); // don't call if not enabled
-        m_noslipX.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
-        assert(!px0.isValid() && vx0.isValid() && !ax0.isValid());
-        ix_x = vx0;
-        m_noslipY.getNumConstraintEquationsInUse(s,mp,mv,ma);
-        assert(mp==0 && mv==1 && ma==0); // don't call if not enabled
-        m_noslipY.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
-        assert(!px0.isValid() && vx0.isValid() && !ax0.isValid());
-        ix_y = vx0;  
-    }
+    void getFrictionMultiplierIndices(const State&     s, 
+                                      MultiplierIndex& ix_x, 
+                                      MultiplierIndex& ix_y) const OVERRIDE_11;
 
     // Return the contact point in the plane body so we can make friction 
     // act there.

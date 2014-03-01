@@ -64,13 +64,19 @@ stepTo(Real time) {
         return Integrator::ReachedScheduledEvent;
     }
 
+    // m is the total number of proximal constraint equation. This won't 
+    // change during the step.
     const int m = verr0.size();
 
-    // Friction coefficient is fixed by initial slip velocity and doesn't
-    // change during impact processing even the the slip velocity will change.
+    // Friction coefficient is fixed by initial slip velocity and doesn't change
+    // during impact processing even though the slip velocity will change.
     // The logic is that it takes time for surface asperities to engage or
     // separate and no time is going by during an impact.
     calcCoefficientsOfFriction(s, verr0);
+
+    // The CORs, on the other hand, start out with values based on the 
+    // presenting impact velocities, but will change to reflect new velocities
+    // produced during induced impacts.
     calcCoefficientsOfRestitution(s, verr0);
 
     // If we're in Newton mode, or if a contact specifies Newton restitution,
@@ -78,70 +84,84 @@ stepTo(Real time) {
     Vector verr = verr0;
     const bool anyNewton = applyNewtonRestitutionIfAny(s, verr);
 
-    // Calculate the constraint compliance matrix GM\~G.
+    // Calculate the constraint compliance matrix A=GM\~G.
     matter.calcProjectedMInv(s, m_GMInvGt); // m X m
 
     Array_<int> expanders;
     Array_<int> impacters;
     Array_<int> whichFrictional;
 
-    //cout << "Precomp verr=" << verr << endl;
     Vector totalImpulse(m, Real(0));
     Vector impulse(m), expansionImpulse(m, Real(0));
 
-    bool anyImpact = false;
+    int numImpactRounds = 0; // how many impact rounds?
     while (true) {
-        // Calculate participating constraints. All but:
-        //   - ignore "observers" (nonnegative impact velocity)
+        // Calculate participating constraints. Include all proximals except:
+        //   - ignore "observers" (unilateral contacts with nonnegative impact 
+        //     velocity)
         //   - ignore normal constraints for "expanders" (friction stays)
         // Then impacters=all contacts with negative impact velocity
         //      whichFrictional=all impacter & expander frictional elements
+        // Note that the expansion impulse has already been applied and used
+        // to update verr; we are only passing it in so friction constraints
+        // will have the right limiting normal force. So if there is no
+        // friction associated with any expander we don't need to do another
+        // round.
         m_participating.clear();;
         impacters.clear();
         whichFrictional.clear();
+        bool foundImpacter = false, foundExpander = false;
         for (unsigned i=0; i < m_uniContact.size(); ++i) {
             ImpulseSolver::UniContactRT& rt = m_uniContact[i];
             const MultiplierIndex mx = rt.m_Nk;
-            if (expansionImpulse[mx] != 0) {
+            if (expansionImpulse[mx] != 0 && rt.hasFriction()) {
+                foundExpander = true;
                 rt.m_type = ImpulseSolver::Known;
                 rt.m_knownPi = expansionImpulse[mx];
-                if (rt.hasFriction()) { // friction still participates
+                if (rt.hasFriction()) // friction still participates
                     for (unsigned j=0; j < rt.m_Fk.size(); ++j)
                         m_participating.push_back(rt.m_Fk[j]);
-                }
-                continue; //expander
+                continue; // Expander
             }
-            if (verr[mx] > -m_consTol) {
+
+            // Observe even if we're slightly (but insignificantly) negative.
+            // We're using 1/10 of constraint tol as the cutoff.
+            // Don't use zero, or you'll loop forever due to roundoff!
+            if (verr[mx] >= (Real(-0.1))*m_consTol) {
                 rt.m_type = ImpulseSolver::Observe;
-                continue; //observer
+                continue; // Observer
             }
+
+            // Impacter (Participator)
+            foundImpacter = true;
             rt.m_type = ImpulseSolver::Participate;
             m_participating.push_back(mx);
-            if (rt.hasFriction()) {
+            if (rt.hasFriction())
                 for (unsigned j=0; j < rt.m_Fk.size(); ++j)
                     m_participating.push_back(rt.m_Fk[j]);
-            }
             impacters.push_back(i);
         }
 
         // TODO: unconditionals, unispeed, bounded, cons-ltd, state-ltd friction
 
-        if (m_participating.empty())
+        if (!(foundImpacter || foundExpander)) {
+            SimTK_DEBUG1("No impacters or expanders after %d Poisson rounds.\n",
+                         numImpactRounds);
             break;
+        }
 
-        //--------------------------------------------------------------------------
-        anyImpact = true;
-        impulse = expansionImpulse;
+        //--------------------PERFORM ONE IMPACT ROUND--------------------------
+        ++numImpactRounds;
         #ifndef NDEBUG
+        printf("\nIMPACT ROUND %d:\n", numImpactRounds);
         printf("impacters: "); cout << impacters << endl;
         printf("whichFrictional: "); cout << whichFrictional << endl;
         printf("participating: "); cout << m_participating << endl;
-        cout << "Preimpact impulse=" << impulse << endl;
+        cout << "expansion impulse=" << expansionImpulse << endl;
         cout << "             verr=" << verr << endl;
         #endif
         doInducedImpactRound(s, verr, impulse);
-        //--------------------------------------------------------------------------
-        impulse -= expansionImpulse; // already applied it
+        //----------------------------------------------------------------------
 
         // Calculate the new expansion impulse.
         const bool anyExpansion = calcExpansionImpulseIfAny(s, impacters, impulse,
@@ -159,12 +179,13 @@ stepTo(Real time) {
         cout << "Postimpact verr=" << verr << endl;
         #endif
 
-        if (!anyExpansion)
-            break;
         calcCoefficientsOfRestitution(s, verr);
     }
 
-    if (anyImpact) {
+    // If we processed an impact, update the state now to reflect the new
+    // velocities and then recalculate the applied and rotational forces.
+
+    if (numImpactRounds) {
         Vector genImpulse, deltaU, expVerr; 
         // constraint impulse -> gen impulse
         matter.multiplyByGTranspose(s, -totalImpulse, genImpulse);
@@ -176,9 +197,7 @@ stepTo(Real time) {
         cout << "Impact: imp " << totalImpulse << "-> du " << deltaU << endl;
         #endif
     } else {
-        #ifndef NDEBUG
-        cout << "No impact.\n";
-        #endif
+        SimTK_DEBUG("No impact.");
     }
 
     // Evaluate applied forces and get reference to them. These include
@@ -187,13 +206,13 @@ stepTo(Real time) {
     const Vector&              f = mbs.getMobilityForces(s, Stage::Dynamics);
     const Vector_<SpatialVec>& F = mbs.getRigidBodyForces(s, Stage::Dynamics);
 
-    // Calculate udotExt = M\(f + ~J*(F-C)) where C are centrifugal forces.
+    // Calculate udotExt = M\(f + ~J*(F-C)) where C are rotational forces.
     // This is the unconstrained acceleration.
     Vector udotExt; Vector_<SpatialVec> A_GB;
     matter.calcAccelerationIgnoringConstraints(s,f,F,udotExt,A_GB);
 
     // Calculate verrExt = G*deltaU; the end-of-step constraint error due to 
-    // external and centrifugal forces.
+    // external and rotational forces.
     Vector verrExt;
     matter.multiplyByG(s, h*udotExt, verrExt);
     verrExt += verr;
@@ -203,10 +222,14 @@ stepTo(Real time) {
         ImpulseSolver::UniContactRT& rt = m_uniContact[i];
         rt.m_type = ImpulseSolver::Participate;
     }
+
+    #ifndef NDEBUG
+    printf("\nDYNAMICS PHASE after %d impact rounds:\n", numImpactRounds);
+    cout << "   verrExt=" << verrExt << endl;
+    #endif
     doCompressionPhase(s, verrExt, impulse);
     #ifndef NDEBUG
-    cout << "Dynamics verr=" << verrExt << endl;
-    cout << "      impulse=" << impulse << endl;
+    cout << "   dynamics impulse=" << impulse << endl;
     #endif
     totalImpulse += impulse;
     s.updMultipliers() = totalImpulse/h;
@@ -228,7 +251,7 @@ stepTo(Real time) {
     //TODO: need to calculate reaction forces from (udot,lambda), and
     // raise state's stage to Acceleration.
 
-    // Done with velocity update. Now calculate qdot, possiblity including
+    // Done with velocity update. Now calculate qdot, possibly including
     // an additional position error correction term.
     Vector qdot;
     const Vector& perr0 = s.getQErr();
@@ -240,6 +263,11 @@ stepTo(Real time) {
         posVerr.resize(s.getNUErr()); posVerr.setToZero();
         const int nQuat = matter.getNumQuaternionsInUse(s);
         posVerr(0, perr0.size()-nQuat) = perr0(0, perr0.size()-nQuat)/h;
+
+        #ifndef NDEBUG
+        printf("\nPOSITION CORRECTION PHASE:\n");
+        cout << "   posVerr=" << posVerr << endl;
+        #endif
 
         //----------------------------------------------------------------------
         // Calculate impulse and then deltaU=M\~G*impulse such that -h*deltaU 
@@ -411,13 +439,15 @@ enableProximalConstraints(State& s) {
 void SemiExplicitEulerTimeStepper::
 collectConstraintInfo(const State& s) { //TODO: redo
     const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
-    // These are invalid now but we won't fill them out here.
-    m_participating.clear();  m_posParticipating.clear();
+    // This is invalid now but we can't fill it out here since the unilateral
+    // contact part changes for each Poisson impact round.
+    // TODO: should split up into fixed and changing parts.
+    m_participating.clear();  
 
     // This will be filled out here since it can't change later.
     m_allParticipating.clear();
 
-    // These are the constraints for contact & impact.
+    // These are the proximal constraints for contact & impact.
     m_unconditional.clear();
     m_uniContact.clear();
     m_uniSpeed.clear();
@@ -425,15 +455,17 @@ collectConstraintInfo(const State& s) { //TODO: redo
     m_consLtdFriction.clear();
     m_stateLtdFriction.clear();
     
-    // These are just the holonomic constraints. 
+    // These include only the proximal holonomic constraints. 
     m_posUnconditional.clear();
     m_posUniContact.clear();
+    m_posParticipating.clear();
 
     const int nConstraints = matter.getNumConstraints();
     for (ConstraintIndex cx(0); cx < nConstraints; ++cx) {
         // TODO: sort out the enabled, unconditional ones and fill in
         // m_unconditional and m_posUnconditional.
         // m_allParticipating.push_back(...);
+        // if holnomic: m_posParticipating.push_back(...);
     }
 
     for (unsigned puc=0; puc < m_proximalUniContacts.size(); ++puc) {
@@ -454,11 +486,14 @@ collectConstraintInfo(const State& s) { //TODO: redo
         // Only the normal constraint is included for position projection.
         m_posUniContact.push_back(); // default constructed
         ImpulseSolver::UniContactRT& posRt = m_posUniContact.back();
+        posRt.m_type = ImpulseSolver::Participate;
         posRt.m_ucx = cx;
         posRt.m_Nk = rt.m_Nk;
+        m_posParticipating.push_back(rt.m_Nk); // normal is holonomic
     }
 
-    //TODO: speed, bounded, consLtd, proximal stateLtd friction
+    //TODO: speed, bounded, consLtd, proximal stateLtd friction 
+    // (all nonholonomic)
 }
 
 void SemiExplicitEulerTimeStepper::takeUnconstrainedStep(State& s, Real h) {
@@ -503,22 +538,32 @@ calcCoefficientsOfFriction(const State& s, const Vector& verr) {
         ImpulseSolver::UniContactRT& rt = m_uniContact[i];
         if (!rt.hasFriction())
             continue;
+        Real slipSpeed = 0;
+        for (unsigned j=0; j < rt.m_Fk.size(); ++j)
+            slipSpeed += square(verr[rt.m_Fk[j]]);
+        slipSpeed = std::sqrt(slipSpeed);
         const UnilateralContact& uni = matter.getUnilateralContact(rt.m_ucx);
         rt.m_effMu = uni.calcEffectiveCOF(s, 
-                        getDefaultFrictionTransitionVelocity());
-        SimTK_DEBUG3("Uni fric %d speed=%g -> mu=%g\n", (int)rt.m_ucx, 
-                     uni.getSlipVelocity(s).norm(), rt.m_effMu);
+                        getDefaultFrictionTransitionVelocity(),
+                        slipSpeed);
+        SimTK_DEBUG3("Uni fric %d verr speed=%g -> mu=%g\n", (int)rt.m_ucx, 
+                     slipSpeed, rt.m_effMu);
     }
 
     // These are the proximal state-limited friction elements.
     for (unsigned i=0; i < m_stateLtdFriction.size(); ++i) {
         ImpulseSolver::StateLtdFrictionRT& rt = m_stateLtdFriction[i];
+        Real slipSpeed = 0;
+        for (unsigned j=0; j < rt.m_Fk.size(); ++j)
+            slipSpeed += square(verr[rt.m_Fk[j]]);
+        slipSpeed = std::sqrt(slipSpeed);
         const StateLimitedFriction& fric = 
             matter.getStateLimitedFriction(rt.m_slfx);
         rt.m_effMu = fric.calcEffectiveCOF(s, 
-                        getDefaultFrictionTransitionVelocity());
+                        getDefaultFrictionTransitionVelocity(),
+                        slipSpeed);
         SimTK_DEBUG3("State ltd fric %d speed=%g -> mu=%g\n", (int)rt.m_slfx, 
-                     fric.getSlipSpeed(s), rt.m_effMu);
+                     slipSpeed, rt.m_effMu);
     }
 
     // These are the constraint-limited friction elements, which are 
@@ -545,12 +590,25 @@ calcCoefficientsOfRestitution(const State& s, const Vector& verr) {
     // TODO: only need this for participating contacts.
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
         ImpulseSolver::UniContactRT& rt = m_uniContact[i];
+        Real impactVel = verr[rt.m_Nk];
+        if (impactVel > 0) { //TODO: sign
+            rt.m_effCOR = 0; // separating
+            continue;
+        }
+        if (impactVel >= -m_consTol) {
+            rt.m_effCOR = 0;
+            SimTK_DEBUG3(
+                "Uni contact %d verr vel=%g at or below tol %g -> cor=0\n", 
+                 (int)rt.m_ucx, impactVel, m_consTol);
+            continue;
+        }
         const UnilateralContact& uni = matter.getUnilateralContact(rt.m_ucx);
         rt.m_effCOR = uni.calcEffectiveCOR(s, 
                         getDefaultImpactCaptureVelocityInUse(),
-                        getDefaultImpactMinCORVelocityInUse());
-        SimTK_DEBUG3("Uni contact %d verr=%g -> cor=%g\n", (int)rt.m_ucx, 
-                     uni.getVerr(s), rt.m_effCOR);
+                        getDefaultImpactMinCORVelocityInUse(),
+                        -impactVel);
+        SimTK_DEBUG3("Uni contact %d verr vel=%g -> cor=%g\n", (int)rt.m_ucx, 
+                     impactVel, rt.m_effCOR);
     }
 }
 
@@ -658,6 +716,7 @@ doInducedImpactRound(const State& s, const Vector& eps, Vector& impulse)
 #ifndef NDEBUG
     printf("IMP t=%.15g verr=", s.getTime()); cout << eps << endl;
 #endif
+    impulse.resize(m_GMInvGt.ncol()); impulse.setToZero();
     bool converged = m_pgsSolver.solve(0,
         m_participating,m_GMInvGt,m_D,eps,impulse,
         m_unconditional,m_uniContact,m_uniSpeed,m_bounded,
