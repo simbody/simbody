@@ -33,8 +33,11 @@ namespace SimTK {
 
 class SimTK_SIMBODY_EXPORT PGSImpulseSolver : public ImpulseSolver {
 public:
-    PGSImpulseSolver() 
-    :   m_convergenceTol(1e-6), m_maxIters(100), m_SOR(1.2) {}
+    explicit PGSImpulseSolver(Real roll2slipTransitionSpeed) 
+    :   ImpulseSolver(roll2slipTransitionSpeed,
+                      1e-6, // default PGS convergence tolerance
+                      100), // default PGS max number iterations
+       m_SOR(1.2) {}
 
     /** Solve. **/
     bool solve
@@ -53,10 +56,7 @@ public:
         ) const OVERRIDE_11;
 
 private:
-    Real m_convergenceTol;
-    int  m_maxIters;
     Real m_SOR; 
-
 };
 
 } // namespace SimTK

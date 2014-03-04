@@ -42,19 +42,32 @@ public:
     struct StateLtdFrictionRT;
 
     // How to treat a unilateral contact (input to solver).
-    enum ContactType {TypeNA=-1, Observe=0, Known=1, Participate=2};
+    enum ContactType {TypeNA=-1, Observing=0, Known=1, Participating=2};
 
     // These are the results after the solve is complete. Don't mess with the
     // enum numbering here; we're counting on it.
-    enum UniCond  {UniNA=-1, UniOff=0, UniActive=1};
+    enum UniCond  {UniNA=-1, UniOff=0, UniActive=1, UniKnown=2};
     enum FricCond {FricNA=-1, FricOff=0, Sliding=1, Impending=2, Rolling=3};
     enum BndCond  {BndNA=-1, SlipLow=0, ImpendLow=1, Engaged=2, 
                    ImpendHigh=3, SlipHigh=4};
 
 
-    ImpulseSolver() {
+    ImpulseSolver(Real roll2slipTransitionSpeed,
+                  Real convergenceTol,
+                  int maxIters) 
+    :   m_maxRollingTangVel(roll2slipTransitionSpeed),
+        m_convergenceTol(convergenceTol),
+        m_maxIters(maxIters)
+    {
         clearStats();
     }
+
+    void setMaxRollingSpeed(Real roll2slipTransitionSpeed) {
+        assert(roll2slipTransitionSpeed >= 0);
+        m_maxRollingTangVel = roll2slipTransitionSpeed; 
+    }
+
+    Real getMaxRollingSpeed() const {return m_maxRollingTangVel;}
 
     // We'll keep stats separately for different "phases". The meaning of a
     // phase is up to the caller.
@@ -95,6 +108,10 @@ public:
     static const char* getBndCondName(BndCond bc);
 
 protected:
+    Real m_maxRollingTangVel; // Sliding above this speed if solver cares.
+    Real m_convergenceTol;    // Meaning depends on concrete solver.
+    int  m_maxIters;          // Meaning depends on concrete solver.
+
     mutable long long m_nSolves[MaxNumPhases];
     mutable long long m_nIters[MaxNumPhases];
     mutable long long m_nFail[MaxNumPhases];
@@ -137,9 +154,11 @@ struct ImpulseSolver::UniContactRT {
     Real            m_effMu;      // if there is friction, else NaN
     Real            m_knownPi;    // known impulse if status==Known
 
-    // Set by solver on return.
+    // Working values for use by the solver, with final values returned.
     UniCond         m_contactCond;
     FricCond        m_frictionCond;
+    Vec2            m_slipVel;
+    Real            m_slipMag;
     Vec3            m_impulse;
 };
 

@@ -29,12 +29,12 @@ namespace SimTK {
 // These static methods assume the "NA" value is -1 and the others count up
 // contiguously from there.
 const char* ImpulseSolver::getContactTypeName(ContactType ct) {
-    static const char* nm[]={"TypeNA", "Observe", "Known", "Participate"};
-    return TypeNA<=ct&&ct<=Participate ? nm[ct+1] : "UNKNOWNContactType";
+    static const char* nm[]={"TypeNA", "Observing", "Known", "Participating"};
+    return TypeNA<=ct&&ct<=Participating ? nm[ct+1] : "UNKNOWNContactType";
 }
 const char* ImpulseSolver::getUniCondName(UniCond uc) {
-    static const char* nm[]={"UniNA", "UniOff", "UniActive"};
-    return UniNA<=uc&&uc<=UniActive ? nm[uc+1] : "UNKNOWNUniCond";
+    static const char* nm[]={"UniNA", "UniOff", "UniActive", "UniKnown"};
+    return UniNA<=uc&&uc<=UniKnown ? nm[uc+1] : "UNKNOWNUniCond";
 }
 const char* ImpulseSolver::getFricCondName(FricCond fc) {
     static const char* nm[]={"FricNA", "FricOff", "Sliding", 

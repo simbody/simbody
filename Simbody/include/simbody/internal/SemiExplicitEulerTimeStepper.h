@@ -47,18 +47,24 @@ objects use different criteria.
 class SimTK_SIMBODY_EXPORT SemiExplicitEulerTimeStepper {
 public:
     enum RestitutionModel {Poisson=0, PoissonOnce=1, Newton=2};
-    enum Solver {PLUS=0, PGS=1};
+    enum SolverType {PLUS=0, PGS=1};
     enum PositionProjectionMethod {Bilateral=0,Unilateral=1};
 
     explicit SemiExplicitEulerTimeStepper(const MultibodySystem& mbs)
     :   m_mbs(mbs), 
         m_accuracy(1e-2), m_consTol(1e-3), m_restitutionModel(Poisson),
-        m_solver(PLUS), m_projectionMethod(Bilateral),
+        m_solverType(PLUS), m_projectionMethod(Bilateral),
         m_defaultMinCORVelocity(1),
-        m_defaultCaptureVelocity(m_consTol/10),
-        m_defaultTransitionVelocity(m_consTol/10),
-        m_defaultSignificantForce(SignificantReal)
+        m_defaultCaptureVelocity(m_consTol),
+        m_defaultTransitionVelocity(m_consTol),
+        m_defaultSignificantForce(SignificantReal),
+        //m_solver(new PGSImpulseSolver(m_defaultTransitionVelocity))
+        m_solver(new PLUSImpulseSolver(m_defaultTransitionVelocity))
     {  }
+
+    ~SemiExplicitEulerTimeStepper() {
+        delete m_solver; m_solver=0;
+    }
 
     const MultibodySystem& getMultibodySystem() const {return m_mbs;}
 
@@ -217,7 +223,7 @@ private:
     Real                        m_accuracy;
     Real                        m_consTol;
     RestitutionModel            m_restitutionModel;
-    Solver                      m_solver;
+    SolverType                  m_solverType;
     PositionProjectionMethod    m_projectionMethod;
 
     Real                        m_defaultCaptureVelocity;
@@ -225,8 +231,7 @@ private:
     Real                        m_defaultTransitionVelocity;
     Real                        m_defaultSignificantForce;
 
-    //TODO: make this selectable
-    PGSImpulseSolver m_pgsSolver;
+    ImpulseSolver*              m_solver;
 
     // Persistent runtime data.
     State                       m_state;

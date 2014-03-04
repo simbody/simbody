@@ -271,9 +271,9 @@ solve(int                                 phase,
     for (int k=0; k<mUncond; ++k)
         mCount += unconditional[k].m_mults.size();
     for (int k=0; k<mUniCont; ++k) {
-        if (uniContact[k].m_type==Observe)
+        if (uniContact[k].m_type==Observing)
             continue; // neither normal nor friction participate
-        if (uniContact[k].m_type==Participate)
+        if (uniContact[k].m_type==Participating)
             ++mCount; // normal participates
         if (uniContact[k].hasFriction())
             mCount += 2; // friction participates even if normal is Known
@@ -296,7 +296,6 @@ solve(int                                 phase,
     Real normRMSall = Infinity, normRMSenf = Infinity, sor = m_SOR;
     Real prevNormRMSenf = NaN;
     int its = 1;
-    bool decreasing=false, increasing=false;
     Array_<Real> rowSums; // handy temp
     for (; its <= m_maxIters; ++its) {
         ++m_nIters[phase];
@@ -314,7 +313,7 @@ solve(int                                 phase,
         // UNILATERAL CONTACT NORMALS. Do all of these before any friction.
         for (int k=0; k < mUniCont; ++k) {
             UniContactRT& rt = uniContact[k];
-            if (rt.m_type != Participate)
+            if (rt.m_type != Participating)
                 continue;
             const MultiplierIndex Nk = rt.m_Nk;
             const Real rowSum=doRowSum(participating,Nk,A,pi);
@@ -329,7 +328,7 @@ solve(int                                 phase,
         // multiplier or by a known normal force during Poisson expansion.
         for (int k=0; k < mUniCont; ++k) {
             UniContactRT& rt = uniContact[k];
-            if (rt.m_type == Observe || !rt.hasFriction())
+            if (rt.m_type == Observing || !rt.hasFriction())
                 continue;
             const MultiplierIndex Nk = rt.m_Nk;
             const Array_<MultiplierIndex>& Fk = rt.m_Fk;
@@ -387,29 +386,11 @@ solve(int                                 phase,
 
         const Real rate = normRMSenf/prevNormRMSenf;
 
-        if (!increasing && rate > 1) {
+        if (rate > 1) {
             printf("GOT WORSE@%d: sor=%g rate=%g\n", its, sor, rate);
             if (sor > .1)
                 sor = std::max(.8*sor, .1);
-            decreasing = true;
         } 
-        //else if (!decreasing && its > 5 && rate > .9) {
-        //    printf("TOO SLOW@%d: sor=%g rate=%g\n", its, sor, rate);
-        //    //if (its > 20) { 
-        //    //    const Real needFac = normRMSenf/m_PGSConvergenceTol;
-        //    //    const int needIts = -std::ceil(std::log(needFac)/std::log(rate));
-        //    //    SimTK_DEBUG2("  need reduction by %g (%d iters)\n", needFac, needIts);
-        //    //    if (needIts > m_PGSMaxIters-its) {
-        //    //        SimTK_DEBUG1("  only %d iters left -- give up\n", m_PGSMaxIters-its);
-        //    //        converged = false;
-        //    //        break;
-        //    //    }
-        //    //}
-
-        //    if (sor < 1.6)
-        //        sor = std::min(1.1*sor, 1.6);
-        //    increasing = true;
-        //} 
 
         #ifndef NDEBUG
         printf("%d/%d: EST rmsAll=%g rmsEnf=%g rate=%g\n", phase, its,

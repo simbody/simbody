@@ -202,27 +202,30 @@ public:
         energy.setText("Energy/KE: " + String(E, "%.3f") + String(KE, "/%.3f"));
         geometry.push_back(energy);
 
-        //for (unsigned i=0; i < m_ts.m_proximals.m_contact.size(); ++i) {
-        //    const int id = m_ts.m_proximals.m_contact[i];
-        //    const MyContactElement& contact = unis.getContactElement(id);
-        //    const Vec3 loc = contact.whereToDisplay(state);
-        //    if (!contact.isDisabled(state)) {
-        //        geometry.push_back(DecorativeSphere(.1)
-        //            .setTransform(loc)
-        //            .setColor(Red).setOpacity(.25));
-        //        contact.showContactForce(state, geometry);
-        //        String text;
-        //        if (!contact.hasFrictionElement())
-        //            text = "-ENABLED";
-        //        geometry.push_back(DecorativeText(String(id)+text)
-        //            .setColor(White).setScale(TextScale)
-        //            .setTransform(loc+Vec3(0,.04,0)));
-        //    } else {
-        //        geometry.push_back(DecorativeText(String(id))
-        //            .setColor(White).setScale(TextScale)
-        //            .setTransform(loc+Vec3(0,.02,0)));
-        //    }
-        //}
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+        const int nUniContacts  = matter.getNumUnilateralContacts();
+        const int nLtdFrictions = matter.getNumStateLimitedFrictions();
+
+        for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
+        const UnilateralContact& contact = matter.getUnilateralContact(ux);
+        const Vec3 loc = contact.whereToDisplay(state);
+        if (contact.isEnabled(state)) {
+            geometry.push_back(DecorativeSphere(.1)
+                .setTransform(loc)
+                .setColor(Cyan).setOpacity(.5));
+            //contact.showContactForce(state, geometry);
+            String text;
+            if (!contact.hasFriction(state))
+                text = "-ENABLED";
+            geometry.push_back(DecorativeText(String((int)ux)+text)
+                .setColor(White).setScale(TextScale)
+                .setTransform(loc+Vec3(0,.04,0)));
+        } else {
+            geometry.push_back(DecorativeText(String((int)ux))
+                .setColor(White).setScale(TextScale)
+                .setTransform(loc+Vec3(0,.02,0)));
+        }
+        }
 
         //for (unsigned i=0; i < m_ts.m_proximals.m_friction.size(); ++i) {
         //    const int id = m_ts.m_proximals.m_friction[i];
@@ -286,7 +289,7 @@ private:
     ContactTrackerSubsystem*     m_tracker;
     CompliantContactSubsystem*   m_contactForces;
 
-    static const int NBalls = 3;
+    static const int NBalls = 2;
 
     Force::Gravity          m_gravity;
     Force::GlobalDamper     m_damper;
@@ -390,15 +393,17 @@ int main(int argc, char** argv) {
     const double startReal = realTime();
     const double startCPU = cpuTime();
 
-    const Real h = .0055/5;
-    const int SaveEvery = 1*30; // save every nth step ~= 33ms
+    const Real h = .0055/5.5;
+    const int SaveEvery = 6*5.5; // save every nth step ~= 33ms
 
     do {
         const State& sxeState = sxe.getState();
         if ((nSteps%SaveEvery)==0) {
             #ifdef ANIMATE
             viz.report(sxeState);
+            #ifndef NDEBUG
             printf("\nWAITING:"); getchar();
+            #endif
             #endif
             states.push_back(sxeState);
         }

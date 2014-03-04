@@ -135,6 +135,13 @@ public:
     Return true if we actually had to enable something. **/
     virtual bool enable(State& state) const = 0;
 
+    /** Return true if this contact is enabled. **/
+    virtual bool isEnabled(const State& state) const = 0;
+
+    /** This returns a point in the ground frame at which you might want to
+    say the constraint is "located", for purposes of display only. **/
+    virtual Vec3 whereToDisplay(const State& state) const = 0;
+
     /** Returns the effective coefficient of restitution (COR) for this contact,
     given an impact speed (a nonnegative scalar). For a given pair of contacting 
     materials this is typically a function of just the impact speed, but it
@@ -349,6 +356,14 @@ public:
         if (m_hasFriction) {m_noslipX.enable(state);m_noslipY.enable(state);}
         return true;
     }
+
+    bool isEnabled(const State& state) const OVERRIDE_11 {
+        return !m_ptInPlane.isDisabled(state);
+    }
+
+
+    // Returns the contact point in the Ground frame.
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr.

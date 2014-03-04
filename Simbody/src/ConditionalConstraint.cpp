@@ -74,6 +74,14 @@ PointPlaneContact::PointPlaneContact
 }
 
 //------------------------------------------------------------------------------
+//                            WHERE TO DISPLAY
+//------------------------------------------------------------------------------
+Vec3 PointPlaneContact::whereToDisplay(const State& state) const {
+    return m_follower.findStationLocationInGround(state,m_point);
+}
+
+
+//------------------------------------------------------------------------------
 //                              GET PERR
 //------------------------------------------------------------------------------
 Real PointPlaneContact::getPerr(const State& state) const
