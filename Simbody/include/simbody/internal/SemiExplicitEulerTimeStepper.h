@@ -33,49 +33,91 @@
 
 namespace SimTK {
 
-/** TODO: A low-accuracy, high performance, velocity-level time stepper for
+/** A low-accuracy, high performance, velocity-level time stepper for
 models containing unilateral rigid contact or other conditional constraints.
 
-At each step, this solver determines which subset of the multibody system's
-conditional constraints may affect behavior. It then formulates the resulting
+At each step, this TimeStepper determines which subset of the multibody system's
+conditional constraints may affect behavior; those are called "proximal"
+constraints. It then formulates the resulting
 equations and invokes an ImpulseSolver to find constraint-space impulses that
 solve the constraint equations and satisfy all the constraint inequalities.
 Generally there are multiple solutions possible, and different ImpulseSolver
 objects use different criteria.
+
+A variety of options are available for different methods of handling impacts,
+to facilitate comparison of methods. For production, we recommend using the
+default options.
 **/
 
 class SimTK_SIMBODY_EXPORT SemiExplicitEulerTimeStepper {
 public:
-    enum RestitutionModel {Poisson=0, PoissonOnce=1, Newton=2};
-    enum SolverType {PLUS=0, PGS=1};
+    enum RestitutionModel {Poisson=0, Newton=1};
+    enum InducedImpactModel {Simultaneous=0, Sequential=1, Mixed=2};
     enum PositionProjectionMethod {Bilateral=0,Unilateral=1};
+    enum ImpulseSolverType {PLUS=0, PGS=1};
 
-    explicit SemiExplicitEulerTimeStepper(const MultibodySystem& mbs)
-    :   m_mbs(mbs), 
-        m_accuracy(1e-2), m_consTol(1e-3), m_restitutionModel(Poisson),
-        m_solverType(PLUS), m_projectionMethod(Bilateral),
-        m_defaultMinCORVelocity(1),
-        m_defaultCaptureVelocity(m_consTol),
-        m_defaultTransitionVelocity(m_consTol),
-        m_defaultSignificantForce(SignificantReal),
-        //m_solver(new PGSImpulseSolver(m_defaultTransitionVelocity))
-        m_solver(new PLUSImpulseSolver(m_defaultTransitionVelocity))
-    {  }
+    explicit SemiExplicitEulerTimeStepper(const MultibodySystem& mbs);
 
+    /** The contained ImpulseSolver will be destructed here; don't reference 
+    it afterwards! **/
     ~SemiExplicitEulerTimeStepper() {
-        delete m_solver; m_solver=0;
+        clearImpulseSolver();
     }
 
-    const MultibodySystem& getMultibodySystem() const {return m_mbs;}
+    /** Initialize the TimeStepper's internally maintained state to a copy
+    of the given state; allocate and initialize the ImpulseSolver if there
+    isn't one already. **/
+    void initialize(const State& initState);
+    /** Get access to the TimeStepper's internally maintained State. **/
+    const State& getState() const {return m_state;}
+    /** Get writable access to the TimeStepper's internally maintained
+    State. Modifying this will change the course of the simulation. **/
+    State& updState() {return m_state;}
+    /** Shortcut to getting the current time from the TimeStepper's internally
+    maintained State. **/
+    Real getTime() const {return m_state.getTime();}
 
-    void setRestitutionModel(RestitutionModel restModel)
-    {   m_restitutionModel = restModel; }
-    RestitutionModel getRestitutionModel() const {return m_restitutionModel;}
+    /** Advance to the indicated time in one or more steps, using repeated
+    induced impacts. **/
+    Integrator::SuccessfulStepStatus stepTo(Real time);
 
     /** Set integration accuracy; requires variable length steps. **/
     void setAccuracy(Real accuracy) {m_accuracy=accuracy;}
     /** Set the tolerance to which constraints must be satisfied. **/
     void setConstraintTol(Real consTol) {m_consTol=consTol;}
+   
+    void setRestitutionModel(RestitutionModel restModel)
+    {   m_restitutionModel = restModel; }
+    RestitutionModel getRestitutionModel() const 
+    {   return m_restitutionModel; }
+     
+    void setInducedImpactModel(InducedImpactModel indModel)
+    {   m_inducedImpactModel = indModel; }
+    InducedImpactModel getInducedImpactModel() const 
+    {   return m_inducedImpactModel; }
+    
+    void setMaxInducedImpactsPerStep(int maxInduced) {
+        SimTK_APIARGCHECK1_ALWAYS(maxInduced>=0, "SemiExplicitEulerTimeStepper",
+            "setMaxInducedImpactsPerStep", "Illegal argument %d", maxInduced);
+        m_maxInducedImpactsPerStep = maxInduced;
+    }
+    int getMaxInducedImpactsPerStep() const 
+    {   return m_maxInducedImpactsPerStep; }
+     
+    void setPositionProjectionMethod(PositionProjectionMethod projMethod)
+    {   m_projectionMethod = projMethod; }
+    PositionProjectionMethod getPositionProjectionMethod() const 
+    {   return m_projectionMethod; }
+    
+    void setImpulseSolverType(ImpulseSolverType solverType) {
+        if (m_solverType != solverType) {
+            // The new solver will get allocated in initialize().
+            clearImpulseSolver();
+            m_solverType = solverType; 
+        }
+    }
+    ImpulseSolverType getImpulseSolverType() const 
+    {   return m_solverType; }
 
     /** Set the impact capture velocity to be used by default when a contact
     does not provide its own. This is the impact velocity below which the
@@ -84,7 +126,7 @@ public:
     be significantly greater than the velocity constraint tolerance
     since speeds below that are indistinguishable from zero anyway. In 
     practice we will use as the capture velocity the \e larger of this value 
-    and the velocity constraint tolerance. **/
+    and the velocity constraint tolerance currently in effect. **/
     void setDefaultImpactCaptureVelocity(Real vCapture) {
         SimTK_ERRCHK1_ALWAYS(vCapture>=0,
         "SemiExplicitEulerTimeStepper::setDefaultImpactCaptureVelocity()",
@@ -115,7 +157,7 @@ public:
     be significantly greater than the velocity constraint tolerance
     since speeds below that are indistinguishable from zero anyway. In 
     practice we will use as the transition velocity the \e larger of this value 
-    and the velocity constraint tolerance. **/
+    and the velocity constraint tolerance currently in effect. **/
     void setDefaultFrictionTransitionVelocity(Real vTransition) {
         SimTK_ERRCHK1_ALWAYS(vTransition>=0,
         "SemiExplicitEulerTimeStepper::setDefaultFrictionTransitionVelocity()",
@@ -124,21 +166,43 @@ public:
         m_defaultTransitionVelocity = vTransition;
     }
 
+    /** Set the threshold below which we can ignore forces. This gives the
+    %TimeStepper to consider any force with smaller magnitude to be zero. 
+    The default value for this is SimTK::SignificantReal, about 1e-14 in double
+    precision. **/
+    void setMinSignificantForce(Real minSignificantForce) {
+        SimTK_ERRCHK1_ALWAYS(minSignificantForce>0,
+        "SemiExplicitEulerTimeStepper::setMinSignificantForce()",
+        "The minimum significant force magnitude must be greater than zero "
+        "but was %g.", minSignificantForce);
+        m_minSignificantForce = minSignificantForce;
+    }
+    Real getMinSignificantForce() const 
+    {   return m_minSignificantForce; }
+
+    /** Return the integration accuracy setting. This has no effect unless
+    you are running in variable time step mode. **/
     Real getAccuracy() const {return m_accuracy;}
+
+    /** Return the tolerance to which we require constraints to be satisfied.
+    This applies even if we are not controlling overall integration accuracy.
+    It is also used as a "minimum meaningful velocity" value that overrides
+    other velocity thresholds if they have been set to smaller values. **/
     Real getConstraintTol() const {return m_consTol;}
 
     /** Return the value set for this parameter, but the actual value used
     during execution will be no smaller than the velocity constraint 
-    tolerance. **/
+    tolerance. @see getDefaultImpactCaptureVelocityInUse() **/
     Real getDefaultImpactCaptureVelocity() const 
     {   return m_defaultCaptureVelocity; }
     /** Return the value set for this parameter, but the actual value used
-    during execution will be no smaller than the impact cature velocity. **/
+    during execution will be no smaller than the impact cature velocity. 
+    @see getDefaultImpactMinCORVelocityInUse() **/
     Real getDefaultImpactMinCORVelocity() const 
     {   return m_defaultMinCORVelocity; }
     /** Return the value set for this parameter, but the actual value used
     during execution will be no smaller than the velocity constraint 
-    tolerance. **/
+    tolerance. @see getDefaultFrictionTransitionVelocityInUse() **/
     Real getDefaultFrictionTransitionVelocity() const 
     {   return m_defaultTransitionVelocity; }
 
@@ -156,16 +220,29 @@ public:
     Real getDefaultFrictionTransitionVelocityInUse() const 
     {   return std::max(m_defaultTransitionVelocity, m_consTol); }
 
-    /** Initialize the TimeStepper's internally maintained state to a copy
-    of the given state. **/
-    void initialize(const State& initState);
-    const State& getState() const {return m_state;}
-    State& updState() {return m_state;}
-    Real getTime() const {return m_state.getTime();}
+    /** Get access to the MultibodySystem for which this %TimeStepper was
+    constructed. **/
+    const MultibodySystem& getMultibodySystem() const {return m_mbs;}
 
-    /** Advance to the indicated time in one or more steps, using repeated
-    induced impacts. **/
-    Integrator::SuccessfulStepStatus stepTo(Real time);
+
+    /** (Advanced) Get direct access to the ImpulseSolver. **/
+    const ImpulseSolver& getImpulseSolver() const {
+        SimTK_ERRCHK_ALWAYS(m_solver!=0, 
+            "SemiExplicitEulerTimeStepper::getImpulseSolver()",
+            "No solver is currently allocated.");
+        return *m_solver;
+    }
+    /** (Advanced) Set your own ImpulseSolver; the %TimeStepper takes over
+    ownership so don't delete afterwards! **/
+    void setImpulseSolver(ImpulseSolver* impulseSolver) {
+        clearImpulseSolver();
+        m_solver = impulseSolver;
+    }
+    /** (Advanced) Delete the existing ImpulseSolver if any. **/
+    void clearImpulseSolver() {
+        delete m_solver; m_solver=0;
+    }
+
 
 private:
     // Determine which constraints will be involved for this step.
@@ -198,24 +275,59 @@ private:
     bool calcExpansionImpulseIfAny(const State& s, const Array_<int>& impacters,
                                    const Vector& compressionImpulse,
                                    Vector& expansionImpulse,
-                                   Array_<int>& expanders) const; 
+                                   Array_<int>& expanders) const;
+
+    // Perform a simultaneous impact. All proximal constraints are dealt with
+    // so after this call there will be no more impacters, and no unapplied
+    // expansion impulses. For Poisson restitution this may be a 
+    // compression/expansion impulse pair. For Newton restitution only a single
+    // impulse is calculated.
+    bool performSimultaneousImpact(const Vector& verr, 
+                                   const Vector& expansionImpulse);
+
+    // We identify impacters, observers, and expanders then perform a single
+    // impulse calculation that ignores the observers. On return there may
+    // be former observers and expanders that now have impacting approach
+    // velocities so will be impacters on the next round. For Poisson
+    // restitution, there may be expansion impulses that have not yet been 
+    // applied; those contacts will be expanders on the next round.
+    bool performInducedImpactRound(const Vector& verr, 
+                                   const Vector& expansionImpulse);
+
+    void classifyUnilateralContactsForSequentialImpact
+       (const Vector&                           verr,
+        const Vector&                           expansionImpulse,
+        Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
+        Array_<int>&                            impacters,
+        Array_<int>&                            expanders,
+        Array_<int>&                            observers,
+        Array_<MultiplierIndex>&                participaters,
+        Array_<MultiplierIndex>&                expanding) const;
 
     // This phase uses all the proximal constraints and should use a starting
     // guess for impulse saved from the last step if possible.
-    bool doCompressionPhase(const State&, const Vector& eps,
-                            Vector& compressionImpulse);
+    bool doCompressionPhase(const State&    state, 
+                            Vector&         verr, // in/out
+                            Vector&         compressionImpulse);
     // This phase uses all the proximal constraints, but we expect the result
     // to be zero unless expansion causes new violations.
-    bool doExpansionPhase(const State&, const Vector& eps,
-                          Vector& reactionImpulse);
-    bool doInducedImpactRound(const State&, const Vector& eps,
-                              Vector& impulse);
+    bool doExpansionPhase(const State&  state, 
+                          const Array_<MultiplierIndex>& expanding,
+                          Vector&       expansionImpulse,
+                          Vector&       verr, // in/out
+                          Vector&       reactionImpulse);
+    bool doInducedImpactRound(const State&  state, 
+                              const Array_<MultiplierIndex>& expanding,
+                              Vector&       expansionImpulse,
+                              Vector&       verr, // in/out
+                              Vector&       impulse);
     bool anyPositionErrorsViolated(const State&, const Vector& perr) const;
 
     // This phase uses only holonomic constraints, and zero is a good initial
     // guess for the (hopefully small) position correction.
-    bool doPositionCorrectionPhase(const State&, const Vector& eps,
-                                   Vector& positionImpulse);
+    bool doPositionCorrectionPhase(const State& state, 
+                                   Vector&      verr, // in/out
+                                   Vector&      positionImpulse);
 
 
 private:
@@ -223,13 +335,16 @@ private:
     Real                        m_accuracy;
     Real                        m_consTol;
     RestitutionModel            m_restitutionModel;
-    SolverType                  m_solverType;
+    InducedImpactModel          m_inducedImpactModel;
+    int                         m_maxInducedImpactsPerStep;
     PositionProjectionMethod    m_projectionMethod;
+    ImpulseSolverType           m_solverType;
+
 
     Real                        m_defaultCaptureVelocity;
     Real                        m_defaultMinCORVelocity;
     Real                        m_defaultTransitionVelocity;
-    Real                        m_defaultSignificantForce;
+    Real                        m_minSignificantForce;
 
     ImpulseSolver*              m_solver;
 
@@ -248,8 +363,14 @@ private:
     // This is for use in the no-impact phase where all proximals participate.
     Array_<MultiplierIndex>                         m_allParticipating;
 
-    // These lists are for use in impact phases.
+    // This is for use in impact phases.
     Array_<MultiplierIndex>                         m_participating;
+    Array_<MultiplierIndex>                         m_expanding;
+    Vector                                          m_expansionImpulse;
+    Array_<int>                                     m_impacters;
+    Array_<int>                                     m_expanders;
+    Array_<int>                                     m_observers;
+
     Array_<ImpulseSolver::UncondRT>                 m_unconditional;
     Array_<ImpulseSolver::UniContactRT>             m_uniContact; // with fric
     Array_<ImpulseSolver::UniSpeedRT>               m_uniSpeed;

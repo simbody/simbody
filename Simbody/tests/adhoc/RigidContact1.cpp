@@ -378,13 +378,15 @@ int main(int argc, char** argv) {
     sxe.setAccuracy(Accuracy); // integration accuracy
     sxe.setConstraintTol(ConsTol);
 
+    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
+    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
+
     //pgs.setPGSConvergenceTol(PGSConvergenceTol);
     //pgs.setPGSMaxIters(PGSMaxIters);
     //pgs.setPGSSOR(PGSSor);
 
     sxe.initialize(s);
     mbs.resetAllCountersToZero();
-    // mbs.updUnis().initialize(); // reinitialize
         
     Array_<State> states; states.reserve(10000);
 
@@ -394,7 +396,7 @@ int main(int argc, char** argv) {
     const double startCPU = cpuTime();
 
     const Real h = .0055/5.5;
-    const int SaveEvery = 6*5.5; // save every nth step ~= 33ms
+    const int SaveEvery = 1*33; // save every nth step ~= 33ms
 
     do {
         const State& sxeState = sxe.getState();

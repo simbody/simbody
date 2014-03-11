@@ -44,13 +44,15 @@ public:
     /** Solve. **/
     bool solve
        (int                                 phase,
-        const Array_<MultiplierIndex>&      participating, // p<=m of these 
-        const Matrix&                       A,     // m X m, symmetric
-        const Vector&                       D,     // m, diag >= 0 added to A
-        const Vector&                       verr,  // m, RHS
-        Vector&                             pi,    // m, initial guess & result
+        const Array_<MultiplierIndex>&      participating,
+        const Matrix&                       A,
+        const Vector&                       D,
+        const Array_<MultiplierIndex>&      expanding,
+        Vector&                             piExpand, // in/out
+        Vector&                             verr, // in/out
+        Vector&                             pi,  
         Array_<UncondRT>&                   unconditional,
-        Array_<UniContactRT>&               uniContact, // with friction
+        Array_<UniContactRT>&               uniContact,
         Array_<UniSpeedRT>&                 uniSpeed,
         Array_<BoundedRT>&                  bounded,
         Array_<ConstraintLtdFrictionRT>&    consLtdFriction,
@@ -96,21 +98,24 @@ private:
     // Given a new piActive, update the impending slip directions and calculate
     // the new err(piActive).
     void updateDirectionsAndCalcCurrentError
-       (const Matrix& A, Array_<UniContactRT>& frictional,
-        const Vector& piActive, Vector& errActive) const;
+       (const Matrix& A, Array_<UniContactRT>& uniContact,
+        const Vector& piELeft, const Vector& piActive, 
+        Vector& errActive) const;
 
     // Replace rows of Jacobian for constraints corresponding to sliding or
     // impending slip frictional elements. This is the partial derivative of the
     // constraint error w.r.t. pi. Also set rhs m_verrActive.
     void updateJacobianForSliding(const Matrix&             A,
-                                  const Array_<UniContactRT>& frictional) const;
+                                  const Array_<UniContactRT>& uniContact,
+                                  const Vector& piELeft) const;
 
     // These are set on construction.
     Real m_minSmoothness;
     Real m_cosMaxSlidingDirChange;
 
-    // This starts out as rhs and is then reduced during each interval.
-    mutable Vector m_rhsLeft; // mA of these
+    // This starts out as verr and is then reduced during each interval.
+    mutable Vector m_verrLeft; // m of these
+    mutable Vector m_verrExpand; // -A*piExpand for not-yet-applied piE
 
     // This is a subset of the given participating constraints that are
     // presently active. Only the rows and columns of A that are listed here

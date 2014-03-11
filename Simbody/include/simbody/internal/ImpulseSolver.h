@@ -30,6 +30,34 @@
 namespace SimTK {
 
 /** This is the abstract base class for impulse solvers.
+Solves the system of equations and inequalities:
+<pre>
+    [A+D] (piExpand + piUnknown) = verr
+    subject to several inequalities
+</pre>
+for the unknown impulse piUnknown. piExpand is the given Poisson expansion
+impulse, non-zero only for unilateral normal contacts, with piExpand_z[k]<=0
+for each unilateral normal contact k. A is an mXm symmetric positive
+semidefinite matrix, D a diagonal matrix with nonnegative elements, 
+pi=piExpand+piUnknown and rhs are m-vectors. We write pi this way because
+friction limits depend on pi, not just piUnknown. We require piExpand_z<=0
+for unilateral normal contacts z.
+
+We actually solve
+<pre>
+    [A+D] piUnknown = verr - [A+D]*piExpand
+    with inequalities
+    piUnknown_z <= 0
+    sqrt(piUnknown_x^2+piUnknown_y^2) <= -mu*pi_z
+    where pi=piUnknown+piExpand
+</pre>
+We return piUnknown, and update verr <- verr - [A+D](piExpand+piUnknown),
+which would be zero if all contacts were active and rolling.
+
+There are often multiple solutions; consult the documentation for particular
+ImpulseSolver implementations to determine which solution is returned.
+Possibilities include: any solution (PGS), and the least squares solution 
+(PLUS).
 **/
 
 class SimTK_SIMBODY_EXPORT ImpulseSolver {
@@ -90,9 +118,11 @@ public:
        (int                                 phase,
         const Array_<MultiplierIndex>&      participating, // p<=m of these 
         const Matrix&                       A,     // m X m, symmetric
-        const Vector&                       D,     // m, diag >= 0 added to A
-        const Vector&                       verr,  // m, RHS
-        Vector&                             pi,    // m, initial guess & result
+        const Vector&                       D,     // m, diag>=0 added to A
+        const Array_<MultiplierIndex>&      expanding, // nx<=m of these 
+        Vector&                             piExpand, // m
+        Vector&                             verr,   // m, RHS (in/out)
+        Vector&                             pi,       // m, known+unknown
         Array_<UncondRT>&                   unconditional,
         Array_<UniContactRT>&               uniContact, // with friction
         Array_<UniSpeedRT>&                 uniSpeed,
@@ -131,11 +161,13 @@ struct ImpulseSolver::UncondRT {
 // A unilateral contact (possibly with friction), joint stop, rope.
 // These are the only constraints that can undergo impacts. Note that the COR
 // is here for the convenience of the time stepper; it doesn't affect the
-// impulse solvers.
+// impulse solvers. "Known" here means the normal constraint does not 
+// participate (that is, the constraint equation cannot be active), but an 
+// expansion impulse has been supplied for it.
 struct ImpulseSolver::UniContactRT {
     UniContactRT() 
     :   m_sign(1), m_type(TypeNA), m_effCOR(NaN), m_effMu(NaN),
-        m_knownPi(NaN), m_contactCond(UniNA), m_frictionCond(FricNA), 
+        m_contactCond(UniNA), m_frictionCond(FricNA), 
         m_impulse(NaN)
     {}
 
@@ -149,10 +181,9 @@ struct ImpulseSolver::UniContactRT {
     Array_<MultiplierIndex> m_Fk;   // optional friction multipliers
 
     // These solver inputs can change during a step.
-    ContactType     m_type;       // Observe, Known, Participate
+    ContactType     m_type;       // Observing, Known, Participating
     Real            m_effCOR;     // velocity-dependent COR
     Real            m_effMu;      // if there is friction, else NaN
-    Real            m_knownPi;    // known impulse if status==Known
 
     // Working values for use by the solver, with final values returned.
     UniCond         m_contactCond;

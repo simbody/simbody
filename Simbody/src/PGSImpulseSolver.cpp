@@ -35,10 +35,11 @@ using namespace SimTK;
 // Local utilities.
 namespace {
 
-// Calculate A[row]*pi, but only looking at the given columns. 
+// Calculate (A+D)[row]*pi, but only looking at the given columns. 
 Real doRowSum(const Array_<MultiplierIndex>& columns,
               const MultiplierIndex&         row,
-              const Matrix&                  A, 
+              const Matrix&                  A,
+              const Vector&                  D,
               const Vector&                  pi)
 {
     Real rowSum = 0;
@@ -46,15 +47,18 @@ Real doRowSum(const Array_<MultiplierIndex>& columns,
         const MultiplierIndex cx = columns[c];
         rowSum += A(row,cx)*pi[cx];
     }
+    if (D.size())
+        rowSum += D[row]*pi[row];
     return rowSum;
 }
 
-// Calculate sums=A[rows]*pi, but only looking at the given columns.
+// Calculate sums=(A+D)[rows]*pi, but only looking at the given columns.
 // We expect that A is in column order so we'll work down the rows before
 // we switch columns.
 void doRowSums(const Array_<MultiplierIndex>& columns,
                const Array_<MultiplierIndex>& rows,
                const Matrix&                  A, 
+               const Vector&                  D,
                const Vector&                  pi,
                Array_<Real>&                  sums)
 {
@@ -64,6 +68,9 @@ void doRowSums(const Array_<MultiplierIndex>& columns,
         for (unsigned i=0; i<rows.size(); ++i)
             sums[i] += A(rows[i],cx)*pi[cx];
     }
+    if (D.size())
+        for (unsigned i=0; i<rows.size(); ++i)
+            sums[i] += D[rows[i]]*pi[rows[i]];
 }
 
 // Given a rowSum, update one element of pi and return the squared error.
@@ -71,12 +78,14 @@ void doRowSums(const Array_<MultiplierIndex>& columns,
 // the update.
 inline Real doUpdate(const MultiplierIndex& row,
                      const Matrix&          A,
+                     const Vector&          D,
                      const Vector&          rhs,
                      const Real&            SOR, // successive over relaxation
                      const Real&            rowSum,
                      Vector&                pi)
 {
-    const Real Arr = A(row,row);
+    Real Arr = A(row,row);
+    if (D.size()) Arr += D[row];
     const Real er = rhs[row]-rowSum;
     if (Arr > Real(0))
         pi[row] += SOR * er/Arr;
@@ -87,21 +96,40 @@ inline Real doUpdate(const MultiplierIndex& row,
 // squared errors for those rows.
 Real doUpdates(const Array_<MultiplierIndex>& rows,
                const Matrix&                  A,
+               const Vector&                  D,
                const Vector&                  rhs,
                const Real&                    SOR,
                const Array_<Real>&            rowSums,
                Vector&                        pi)
 {
+    const bool hasDiag = (D.size() > 0);
     Real er2 = 0;
     for (unsigned i=0; i<rows.size(); ++i) {
         const MultiplierIndex row = rows[i];
-        const Real Arr = A(row,row);
+        Real Arr = A(row,row);
+        if (hasDiag) Arr += D[row];
         const Real er = rhs[row]-rowSums[i];
         if (Arr > Real(0))
             pi[row] += SOR * er/Arr;
         er2 += square(er);
     }
     return er2;
+}
+
+// Multiply the active entries of a row of the full matrix A (mXm) by a sparse,
+// full-length (m) column containing only the indicated non-zero entries. 
+// Useful for A[r]*piExpand.
+static Real multRowTimesSparseCol(const Matrix& A, MultiplierIndex row, 
+           const Array_<MultiplierIndex>& nonZero,
+           const Vector& sparseCol) 
+{
+    const RowVectorView Ar = A[row];
+    Real result = 0;
+    for (unsigned nz(0); nz < nonZero.size(); ++nz) {
+        const MultiplierIndex mx = nonZero[nz];
+        result += Ar[mx] * sparseCol[mx];
+    }
+    return result;
 }
 
 /** Given a unilateral multiplier pi and its sign convention, ensure that
@@ -166,7 +194,7 @@ namespace SimTK {
 /* 
 We are given 
     - A, square matrix of dimension m 
-    - rhs, rhs vector (length m)
+    - v, constraint velocity vector (length m)
     - pi, solution vector with initial value pi=pi0 (length m)
 representing m scalar constraint equations A[i]*pi=rhs[i].
 
@@ -228,8 +256,10 @@ solve(int                                 phase,
       const Array_<MultiplierIndex>&      participating, // p<=m of these 
       const Matrix&                       A,     // m X m, symmetric
       const Vector&                       D,     // m, diag >= 0 added to A
-      const Vector&                       rhs,   // m, RHS
-      Vector&                             pi,    // m, initial guess & result
+      const Array_<MultiplierIndex>&      expanding,
+      Vector&                             piExpand,   // m
+      Vector&                             verr, // m, in/out
+      Vector&                             pi,         // m, piUnknown
       Array_<UncondRT>&                   unconditional,
       Array_<UniContactRT>&               uniContact, // with friction
       Array_<UniSpeedRT>&                 uniSpeed,
@@ -238,21 +268,46 @@ solve(int                                 phase,
       Array_<StateLtdFrictionRT>&         stateLtdFriction
       ) const 
 {
-//#ifndef NDEBUG
-//    FactorQTZ fac(A);
-//    cout << "A=" << A; cout << "rhs=" << rhs << endl;
-//    Vector x;
-//    fac.solve(rhs, x);
-//    cout << "x=" << x << endl;
-//    cout << "resid=" << A*x-rhs << endl;
-//#endif
-
+    SimTK_DEBUG("\n-----------------\n");
+    SimTK_DEBUG(  "START PGS SOLVER:\n");
     ++m_nSolves[phase];
+
+#ifndef NDEBUG
+    FactorQTZ fac(A);
+    cout << "A=" << A; cout << "D=" << D; 
+    cout << "verr=" << verr << endl;
+    cout << "expanding mx=" << expanding << endl;
+    cout << "piExpand=" << piExpand << endl;
+    Vector x;
+    fac.solve(verr, x);
+    cout << "x=" << x << endl;
+    cout << "resid=" << A*x-verr << endl;
+#endif
+
     const int m=A.nrow();
-    assert(A.ncol()==m); assert(rhs.nrow()==m); assert(pi.nrow()==m);
+    assert(A.ncol()==m); assert(D.size()==m);
+    assert(verr.size()==m); 
+    assert(piExpand.size()==m); 
 
     const int p = (int)participating.size();
-    assert(p<=m);
+    const int nx = (int)expanding.size();
+    assert(p<=m); assert(nx<=m);
+    
+    pi.resize(m);
+    pi.setToZero(); // Use this for piUnknown
+
+    // Move expansion impulse to RHS. We will always apply the full expansion
+    // impulse in one interval in this solver.
+    for (MultiplierIndex mx(0); mx < m; ++mx) {
+        verr[mx] -= multRowTimesSparseCol(A,mx,expanding,piExpand)
+                    + D[mx]*piExpand[mx];
+    }
+
+    // Now rhs = verr - [A+D]*piExpand.
+    #ifndef NDEBUG
+    printf("PGS::solve(): using verr="); cout << verr << endl;
+    #endif
+
 
     // Partitions of selected subset.
     const int mUncond   = (int)unconditional.size();
@@ -287,6 +342,7 @@ solve(int                                 phase,
 
     if (p == 0) {
         printf("PGS %d: nothing to do; converged in 0 iters.\n", phase);
+        // Returning pi=0; can still have piExpand!=0 so verr is updated.
         return true;
     }
 
@@ -305,8 +361,8 @@ solve(int                                 phase,
         // UNCONDITIONAL: these are always on.
         for (int k=0; k < mUncond; ++k) {
             const UncondRT& rt = unconditional[k];
-            doRowSums(participating,rt.m_mults,A,pi,rowSums);
-            const Real localEr2=doUpdates(rt.m_mults,A,rhs,sor,rowSums,pi);
+            doRowSums(participating,rt.m_mults,A,D,pi,rowSums);
+            const Real localEr2=doUpdates(rt.m_mults,A,D,verr,sor,rowSums,pi);
             sum2all += localEr2; sum2enf += localEr2;
         }
 
@@ -316,8 +372,8 @@ solve(int                                 phase,
             if (rt.m_type != Participating)
                 continue;
             const MultiplierIndex Nk = rt.m_Nk;
-            const Real rowSum=doRowSum(participating,Nk,A,pi);
-            const Real er2=doUpdate(Nk,A,rhs,sor,rowSum,pi);
+            const Real rowSum=doRowSum(participating,Nk,A,D,pi);
+            const Real er2=doUpdate(Nk,A,D,verr,sor,rowSum,pi);
             sum2all += er2;
             rt.m_contactCond = boundUnilateral(rt.m_sign, pi[Nk]);
             if (rt.m_contactCond == UniActive)
@@ -332,10 +388,10 @@ solve(int                                 phase,
                 continue;
             const MultiplierIndex Nk = rt.m_Nk;
             const Array_<MultiplierIndex>& Fk = rt.m_Fk;
-            doRowSums(participating,Fk,A,pi,rowSums);
-            const Real er2=doUpdates(Fk,A,rhs,sor,rowSums,pi);
+            doRowSums(participating,Fk,A,D,pi,rowSums);
+            const Real er2=doUpdates(Fk,A,D,verr,sor,rowSums,pi);
             sum2all += er2;
-            const Real N = std::abs(rt.m_type==Known ? rt.m_knownPi : pi[Nk]);
+            Real N = std::abs(pi[Nk] + piExpand[Nk]);
             rt.m_frictionCond=boundVector(rt.m_effMu*N, Fk, pi);
             if (rt.m_frictionCond==Rolling)
                 sum2enf += er2;
@@ -346,8 +402,8 @@ solve(int                                 phase,
         for (int k=0; k < mBounded; ++k) {
             BoundedRT& rt = bounded[k];
             const MultiplierIndex rx = rt.m_ix;
-            const Real rowSum=doRowSum(participating,rx,A,pi);
-            const Real er2=doUpdate(rx,A,rhs,sor,rowSum,pi);
+            const Real rowSum=doRowSum(participating,rx,A,D,pi);
+            const Real er2=doUpdate(rx,A,D,verr,sor,rowSum,pi);
             sum2all += er2;
             rt.m_boundedCond=boundScalar(rt.m_lb, pi[rx], rt.m_ub);
             if (rt.m_boundedCond == Engaged)
@@ -359,8 +415,8 @@ solve(int                                 phase,
         for (int k=0; k < mStateLtd; ++k) {
             StateLtdFrictionRT& rt = stateLtdFriction[k];
             const Array_<MultiplierIndex>& Fk = rt.m_Fk;
-            doRowSums(participating,Fk,A,pi,rowSums);
-            const Real localEr2=doUpdates(Fk,A,rhs,sor,rowSums,pi);
+            doRowSums(participating,Fk,A,D,pi,rowSums);
+            const Real localEr2=doUpdates(Fk,A,D,verr,sor,rowSums,pi);
             sum2all += localEr2;
             rt.m_frictionCond=boundVector(rt.m_effMu*rt.m_knownN, Fk, pi);
             if (rt.m_frictionCond==Rolling)
@@ -374,8 +430,8 @@ solve(int                                 phase,
             ConstraintLtdFrictionRT& rt = consLtdFriction[k];
             const Array_<int>& Fk = rt.m_Fk; // friction components
             const Array_<int>& Nk = rt.m_Nk; // normal components
-            doRowSums(participating,Fk,A,pi,rowSums);
-            const Real localEr2=doUpdates(Fk,A,rhs,sor,rowSums,pi);
+            doRowSums(participating,Fk,A,D,pi,rowSums);
+            const Real localEr2=doUpdates(Fk,A,D,verr,sor,rowSums,pi);
             sum2all += localEr2;
             rt.m_frictionCond=boundFriction(rt.m_effMu,Nk,Fk,pi);
             if (rt.m_frictionCond==Rolling)
@@ -420,8 +476,12 @@ solve(int                                 phase,
                phase, its, normRMSenf);
         ++m_nFail[phase];
     }
+
+    verr -= A*pi;
+    verr -= D.elementwiseMultiply(pi);
     #ifndef NDEBUG
-    cout << "FINAL@" << its << " pi=" << pi <<  " resid=" << normRMSenf << endl;
+    cout << "FINAL@" << its << " pi=" << pi << " verr=" << verr
+         <<  " resid=" << normRMSenf << endl;
     #endif
     return converged;
 }
