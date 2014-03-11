@@ -34,16 +34,19 @@ using namespace SimTK;
 /* Implementation of SemiExplicitEulerTimeStepper. */
 
 namespace {
-    using SXTS = SemiExplicitEulerTimeStepper;
     const Real                     DefAccuracy            = 1e-2;
     const Real                     DefConstraintTol       = 1e-3;
     const Real                     DefMinCORVelocity      = 1;
     const Real                     DefMinSignificantForce = SignificantReal;
     const int                      DefMaxInducedImpactsPerStep = 5;
-    const SXTS::RestitutionModel   DefRestitutionModel    = SXTS::Poisson;
-    const SXTS::InducedImpactModel DefInducedImpactModel  = SXTS::Simultaneous;
-    const SXTS::ImpulseSolverType  DefImpulseSolverType   = SXTS::PLUS;
-    const SXTS::PositionProjectionMethod DefPosProjMethod = SXTS::Bilateral;
+    const SemiExplicitEulerTimeStepper::RestitutionModel   
+        DefRestitutionModel    = SemiExplicitEulerTimeStepper::Poisson;
+    const SemiExplicitEulerTimeStepper::InducedImpactModel 
+        DefInducedImpactModel  = SemiExplicitEulerTimeStepper::Simultaneous;
+    const SemiExplicitEulerTimeStepper::ImpulseSolverType  
+        DefImpulseSolverType   = SemiExplicitEulerTimeStepper::PLUS;
+    const SemiExplicitEulerTimeStepper::PositionProjectionMethod 
+        DefPosProjMethod = SemiExplicitEulerTimeStepper::Bilateral;
 }
 
 namespace SimTK {
