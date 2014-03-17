@@ -194,11 +194,6 @@ solve(int                                 phase,
     assert(mCount == p);}
     #endif
 
-    if (p == 0) {
-        printf("PLUS %d: nothing to do; converged in 0 iters.\n", phase);
-        // Returning pi=0; can still have piExpand!=0 so verr is updated.
-        return true;
-    }
 
     // This is reduced with each completed sliding interval. We will eventually
     // eliminate all of it except for entries corresponding to friction that
@@ -229,9 +224,18 @@ solve(int                                 phase,
         // Calculate remaining expansion impulse part of RHS verrE=A*piE.
         // This is how much we'll change verr if we get to apply the full
         // expansion impulse in this sliding interval.
-        for (MultiplierIndex mx(0); mx < m; ++mx) {
-            m_verrExpand[mx] = multRowTimesSparseCol(A,mx,expanding,piELeft)
-                               + D[mx]*piELeft[mx];
+        if (nx)
+            for (MultiplierIndex mx(0); mx < m; ++mx) {
+                m_verrExpand[mx] = multRowTimesSparseCol(A,mx,expanding,piELeft)
+                                   + D[mx]*piELeft[mx];
+            }
+
+        if (p == 0) {
+            SimTK_DEBUG1("PLUS %d: nothing to do; converged in 0 iters.\n", phase);
+            // Returning pi=0; can still have piExpand!=0 so verr is updated.
+            if (nx) 
+                verr -= m_verrExpand;
+            return true;
         }
 
         #ifndef NDEBUG

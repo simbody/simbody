@@ -334,14 +334,11 @@ int main(int argc, char** argv) {
         const Real Accuracy = 1e-2;
     #endif
 
-    const bool UseNewton = false; // default is Poisson restitution
-
-
   try { // If anything goes wrong, an exception will be thrown.
 
     // Create the augmented multibody model.
-    TimsBox mbs;
-    //BouncingBalls mbs;
+    //TimsBox mbs;
+    BouncingBalls mbs;
     //Pencil mbs;
 
     SemiExplicitEulerTimeStepper sxe(mbs);
@@ -373,13 +370,25 @@ int main(int argc, char** argv) {
     const int  PGSMaxIters = 100;
     const Real PGSSor = 1.0/*0.95*/; // successive over relaxation, 0..2, 1 is neutral
 
-    if (UseNewton)
-        sxe.setRestitutionModel(SemiExplicitEulerTimeStepper::Newton);
+    sxe.setRestitutionModel(SemiExplicitEulerTimeStepper::Poisson);
+    //sxe.setRestitutionModel(SemiExplicitEulerTimeStepper::Newton);
+
     sxe.setAccuracy(Accuracy); // integration accuracy
     sxe.setConstraintTol(ConsTol);
 
-    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
-    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
+    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
+    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
+
+    //sxe.setMaxInducedImpactsPerStep(1000);
+    sxe.setMaxInducedImpactsPerStep(20);
+
+    printf("RestitutionModel: %s, InducedImpactModel: %s (maxIts=%d)\n",
+        sxe.getRestitutionModelName(sxe.getRestitutionModel()),
+        sxe.getInducedImpactModelName(sxe.getInducedImpactModel()),
+        sxe.getMaxInducedImpactsPerStep());
+    printf("PositionProjectionMethod: %s, ImpulseSolverType=%s\n",
+        sxe.getPositionProjectionMethodName(sxe.getPositionProjectionMethod()),
+        sxe.getImpulseSolverTypeName(sxe.getImpulseSolverType()));
 
     //pgs.setPGSConvergenceTol(PGSConvergenceTol);
     //pgs.setPGSMaxIters(PGSMaxIters);
@@ -395,8 +404,8 @@ int main(int argc, char** argv) {
     const double startReal = realTime();
     const double startCPU = cpuTime();
 
-    const Real h = .0055/5.5;
-    const int SaveEvery = 1*33; // save every nth step ~= 33ms
+    const Real h = .0055;
+    const int SaveEvery = 1; // save every nth step ~= 33ms
 
     do {
         const State& sxeState = sxe.getState();
@@ -595,6 +604,18 @@ TimsBox::TimsBox() {
         //  (Ground, YAxis, 0., m_brick3, pt, CoefRest, mu_s, mu_d, mu_v);
         //matter.adoptUnilateralContact(contact3);
     }
+
+    // Midline contacts
+    for (int i=-1; i<=1; i+=2)
+    for (int j=-1; j<=1; j+=2) {
+        const Vec3 pt = Vec3(i,j,0).elementwiseMultiply(BrickHalfDims);
+        PointPlaneContact* contact = new PointPlaneContact
+           (Ground, YAxis, 0., m_brick, pt, CoefRest, mu_s, mu_d, mu_v);
+        matter.adoptUnilateralContact(contact);
+
+        PointPlaneContact* contact2 = new PointPlaneContact
+           (Ground, YAxis, 0., m_brick2, pt, CoefRest, mu_s, mu_d, mu_v);
+        matter.adoptUnilateralContact(contact2);    }
 }
 
 //---------------------------- CALC INITIAL STATE ------------------------------
@@ -646,6 +667,9 @@ void TimsBox::calcInitialState(State& s) const {
 //==============================================================================
 //                              BOUNCING BALLS
 //==============================================================================
+static const Real Separation = 0*.0011;
+static const Real Gravity = 9.8066;
+static const Real Heavy = 10; // ratio Heavy:Light
 
 BouncingBalls::BouncingBalls() {
     m_tracker       = new ContactTrackerSubsystem(*this);
@@ -658,7 +682,7 @@ BouncingBalls::BouncingBalls() {
 
 
     // Build the multibody system.
-    m_gravity = Force::Gravity(forces, matter, -YAxis, 9.8066);
+    m_gravity = Force::Gravity(forces, matter, -YAxis, Gravity);
     //m_damper  = Force::GlobalDamper(forces, matter, .1);
 
     const Real BallMass = 1;
@@ -703,7 +727,7 @@ BouncingBalls::BouncingBalls() {
                                         UnitInertia::sphere(BallRadius)));
     ballBody.addDecoration(Transform(), DecorativeSphere(BallRadius));
 
-    Body::Rigid ballBody_heavy(MassProperties(100*BallMass, Vec3(0), 
+    Body::Rigid ballBody_heavy(MassProperties(Heavy*BallMass, Vec3(0), 
                                         UnitInertia::sphere(BallRadius)));
     ballBody_heavy.addDecoration(Transform(), DecorativeSphere(BallRadius));
 
@@ -758,9 +782,8 @@ BouncingBalls::BouncingBalls() {
 
 }
 
-static const Real Separation = 0*.0011;
 void BouncingBalls::calcInitialState(State& s) const {
-    const Real Height = 1;
+    const Real Height = 0*1;
     const Real Speed = -2;
 
     s = realizeTopology(); // returns a reference to the the default state   

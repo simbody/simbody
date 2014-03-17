@@ -298,10 +298,11 @@ solve(int                                 phase,
 
     // Move expansion impulse to RHS. We will always apply the full expansion
     // impulse in one interval in this solver.
-    for (MultiplierIndex mx(0); mx < m; ++mx) {
-        verr[mx] -= multRowTimesSparseCol(A,mx,expanding,piExpand)
-                    + D[mx]*piExpand[mx];
-    }
+    if (nx) 
+        for (MultiplierIndex mx(0); mx < m; ++mx) {
+            verr[mx] -= multRowTimesSparseCol(A,mx,expanding,piExpand)
+                        + D[mx]*piExpand[mx];
+        }
 
     // Now rhs = verr - [A+D]*piExpand.
     #ifndef NDEBUG

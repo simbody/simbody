@@ -72,7 +72,7 @@ SemiExplicitEulerTimeStepper(const MultibodySystem& mbs)
 
 
 //------------------------------------------------------------------------------
-//                               STEP TO
+//                                 STEP TO
 //------------------------------------------------------------------------------
 Integrator::SuccessfulStepStatus SemiExplicitEulerTimeStepper::
 stepTo(Real time) {
@@ -111,16 +111,6 @@ stepTo(Real time) {
     // separate and no time is going by during an impact.
     calcCoefficientsOfFriction(s, verr0);
 
-    // The CORs, on the other hand, start out with values based on the 
-    // presenting impact velocities, but will change to reflect new velocities
-    // produced during induced impacts.
-    calcCoefficientsOfRestitution(s, verr0);
-
-    // If we're in Newton mode, or if a contact specifies Newton restitution,
-    // then modify the appropriate verr's here.
-    Vector verr = verr0;
-    const bool anyNewton = applyNewtonRestitutionIfAny(s, verr);
-
     // Calculate the constraint compliance matrix A=GM\~G.
     matter.calcProjectedMInv(s, m_GMInvGt); // m X m
 
@@ -131,34 +121,56 @@ stepTo(Real time) {
     Vector impulse(m);
     m_expansionImpulse.resize(m); 
     m_expansionImpulse.setToZero();
+    if (getRestitutionModel() == Newton)
+        m_newtonRestitutionVerr.resize(m);
+
+    Vector verr = verr0;
 
     int numImpactRounds = 0; // how many impact rounds?
     while (true) {
+        // CORs start out with values based on the presenting impact velocities,
+        // but change for each round to reflect new velocities produced during
+        // induced impacts.
+        calcCoefficientsOfRestitution(s, verr);
+
+        // If we're in Newton mode, calculate the restitution verr.
+        const bool anyNewton = calcNewtonRestitutionIfAny(s, verr,
+                                    m_newtonRestitutionVerr);
+
+        bool isLastRound = numImpactRounds == m_maxInducedImpactsPerStep-1;
+
         classifyUnilateralContactsForSequentialImpact
-           (verr, m_expansionImpulse, m_uniContact,
+           (verr, m_expansionImpulse, isLastRound, m_uniContact,
             m_impacters, m_expanders, m_observers, 
             m_participating, m_expanding);
 
         // TODO: unconditionals, unispeed, bounded, cons-ltd, state-ltd friction
 
         if (!(m_impacters.size() || m_expanders.size())) {
-            SimTK_DEBUG1("No impacters or expanders after %d Poisson rounds.\n",
+            SimTK_DEBUG1("No impacters or expanders after %d impact rounds.\n",
                          numImpactRounds);
             break;
         }
 
         //--------------------PERFORM ONE IMPACT ROUND--------------------------
         ++numImpactRounds;
+        if (anyNewton) {
+            verr += m_newtonRestitutionVerr;
+        }
         #ifndef NDEBUG
         printf("\nIMPACT ROUND %d:\n", numImpactRounds);
-        printf("impacters: "); cout << m_impacters << endl;
-        cout << "participating multx: " << m_participating << endl;
-        cout << "expanding multx=" << m_expanding << endl;
-        cout << "expansion impulse=" << m_expansionImpulse << endl;
-        cout << "             verr=" << verr << endl;
+        printf( "  impacters: "); cout << m_impacters << endl;
+        cout << "  participating multx: " << m_participating << endl;
+        cout << "  expanding multx=" << m_expanding << endl;
+        cout << "  expansion impulse=" << m_expansionImpulse << endl;
+        cout << "  verr=" << verr << endl;
+        if (anyNewton)
+            cout << "    incl. Newton verr=" << m_newtonRestitutionVerr << endl;
         #endif
         doInducedImpactRound(s, m_expanding, m_expansionImpulse, verr, impulse);
         // verr has been updated here to verr-A*(expansion+impulse)
+        if (anyNewton) // remove any fake verrs
+            verr -= m_newtonRestitutionVerr;
         //----------------------------------------------------------------------
         totalImpulse += impulse;
         if (!m_expanding.empty()) totalImpulse += m_expansionImpulse;
@@ -174,10 +186,24 @@ stepTo(Real time) {
         cout << "Expanders: " << m_expanders << endl;
         #endif
 
-        if (numImpactRounds == m_maxInducedImpactsPerStep)
+        if (numImpactRounds == m_maxInducedImpactsPerStep) {
+            SimTK_DEBUG1("\nTOO MANY IMPACT ROUNDS (%d); bailing.\n", 
+                         numImpactRounds);
+                         
+            if (anyExpansion) {
+                // Deal with unprocessed expansion impulse. We'll simply
+                // apply it, potentially creating new impacters to be resolved
+                // in the final compression round.
+                verr -= m_GMInvGt*m_expansionImpulse;
+                totalImpulse += m_expansionImpulse;
+                #ifndef NDEBUG
+                cout << "  applied leftover expansion: " 
+                     << m_expansionImpulse << endl; 
+                cout << "  bailing with verr: " << verr << endl; 
+                #endif
+            }
             break; // that's enough!
-
-        calcCoefficientsOfRestitution(s, verr);
+        }
     }
 
     // If we processed an impact, update the state now to reflect the new
@@ -191,9 +217,10 @@ stepTo(Real time) {
         matter.multiplyByMInv(s, genImpulse, deltaU);
         s.updU() += deltaU;
         mbs.realize(s, Stage::Velocity); // updates rotational forces
+        verr = s.getUErr();
         #ifndef NDEBUG
         cout << "Impact: imp " << totalImpulse << "-> du " << deltaU << endl;
-        cout << "  Now verr=" << s.getUErr() << endl;
+        cout << "  Now verr=" << verr << endl;
         #endif
     } else {
         SimTK_DEBUG("No impact.");
@@ -329,7 +356,7 @@ performSimultaneousImpact(const Vector& verr, const Vector& expansionImpulse) {
 bool SemiExplicitEulerTimeStepper::
 performInducedImpactRound(const Vector& verr, const Vector& expansionImpulse) {
     classifyUnilateralContactsForSequentialImpact
-       (verr, expansionImpulse, m_uniContact,
+       (verr, expansionImpulse, false, m_uniContact,
         m_impacters, m_expanders, m_observers, 
         m_participating, m_expanding);
     return false;
@@ -342,11 +369,14 @@ performInducedImpactRound(const Vector& verr, const Vector& expansionImpulse) {
 //   - ignore "observers" (unilateral contacts with nonnegative impact 
 //     velocity)
 //   - ignore normal constraints for "expanders" (friction stays)
-// Then impacters=all contacts with negative impact velocity
+// Then impacters=all contacts with negative impact velocity.
+//
+// If this is the last allowed induced impact round, then everyone participates.
 void SemiExplicitEulerTimeStepper::
 classifyUnilateralContactsForSequentialImpact
    (const Vector&                           verr,
     const Vector&                           expansionImpulse,
+    bool                                    isLastRound,
     Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
     Array_<int>&                            impacters,
     Array_<int>&                            expanders,
@@ -363,7 +393,12 @@ classifyUnilateralContactsForSequentialImpact
         ImpulseSolver::UniContactRT& rt = uniContacts[i];
         const MultiplierIndex mz = rt.m_Nk;
         if (expansionImpulse[mz] != 0) {
-            rt.m_type = ImpulseSolver::Known;
+            if (isLastRound) {
+                rt.m_type = ImpulseSolver::Participating;
+                participaters.push_back(mz);
+            } else 
+                rt.m_type = ImpulseSolver::Known;
+
             if (rt.hasFriction()) // friction still participates
                 for (unsigned j=0; j < rt.m_Fk.size(); ++j)
                     participaters.push_back(rt.m_Fk[j]);
@@ -375,7 +410,7 @@ classifyUnilateralContactsForSequentialImpact
         // Observe even if we're slightly (but insignificantly) negative.
         // We're using 1/10 of constraint tol as the cutoff.
         // Don't use zero, or you'll loop forever due to roundoff!
-        if (verr[mz] >= (Real(-0.1))*m_consTol) {
+        if (!isLastRound && verr[mz] >= (Real(-0.1))*m_consTol) {
             rt.m_type = ImpulseSolver::Observing;
             observers.push_back(i);
             continue; // Observer
@@ -688,10 +723,12 @@ calcCoefficientsOfFriction(const State& s, const Vector& verr) {
 }
 
 // Calculate velocity-dependent coefficients of restitution.
-// TODO: apply combining rules for dissimilar materials.
 void SemiExplicitEulerTimeStepper::
 calcCoefficientsOfRestitution(const State& s, const Vector& verr) {
     const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
+
+    const Real defCaptureVel = getDefaultImpactCaptureVelocityInUse();
+    const Real defMinCORVel  = getDefaultImpactMinCORVelocityInUse();
 
     // These are the proximal unilateral constraint runtimes.
     // TODO: only need this for participating contacts.
@@ -710,28 +747,30 @@ calcCoefficientsOfRestitution(const State& s, const Vector& verr) {
             continue;
         }
         const UnilateralContact& uni = matter.getUnilateralContact(rt.m_ucx);
-        rt.m_effCOR = uni.calcEffectiveCOR(s, 
-                        getDefaultImpactCaptureVelocityInUse(),
-                        getDefaultImpactMinCORVelocityInUse(),
-                        -impactVel);
+        rt.m_effCOR = uni.calcEffectiveCOR(s, defCaptureVel, defMinCORVel,
+                                           -impactVel);
         SimTK_DEBUG3("Uni contact %d verr vel=%g -> cor=%g\n", (int)rt.m_ucx, 
                      impactVel, rt.m_effCOR);
     }
 }
 
 bool SemiExplicitEulerTimeStepper::
-applyNewtonRestitutionIfAny(const State& s, Vector& verr) const {
+calcNewtonRestitutionIfAny(const State& s, const Vector& verr,
+                           Vector& newtonVerr) const 
+{
     const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
     if (getRestitutionModel() != Newton) 
         return false; //TODO: check individual contacts
 
+    assert(newtonVerr.size() == verr.size());
+    newtonVerr.setToZero();
     bool anyRestitution = false;
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
         const ImpulseSolver::UniContactRT& rt = m_uniContact[i];
         const MultiplierIndex              mx = rt.m_Nk;
-        Real& v = verr[mx];
+        Real& v = newtonVerr[mx];
         if (rt.m_effCOR > 0) {
-            v *= (1+rt.m_effCOR);
+            newtonVerr[mx] = rt.m_effCOR * verr[mx];
             anyRestitution = true;
         }
     }
@@ -863,6 +902,28 @@ anyPositionErrorsViolated(const State&, const Vector& perr) const {
     return anyViolated;
 }
 
-
+const char* SemiExplicitEulerTimeStepper::
+getRestitutionModelName(RestitutionModel rm) {
+    static const char* nm[]={"Poisson", "Newton"};
+    return Poisson<=rm&&rm<=Newton ? nm[rm] 
+        : "UNKNOWNRestitutionModel";
+}
+const char* SemiExplicitEulerTimeStepper::
+getInducedImpactModelName(InducedImpactModel iim) {
+    static const char* nm[]={"Simultaneous", "Sequential", "Mixed"};
+    return Simultaneous<=iim&&iim<=Mixed ? nm[iim] 
+        : "UNKNOWNInducedImpactModel";
+}
+const char* SemiExplicitEulerTimeStepper::
+getPositionProjectionMethodName(PositionProjectionMethod ppm) {
+    static const char* nm[]={"Bilateral", "Unilateral"};
+    return Bilateral<=ppm&&ppm<=Unilateral ? nm[ppm] 
+        : "UNKNOWNPositionProjectionMethod";
+}
+const char* SemiExplicitEulerTimeStepper::
+getImpulseSolverTypeName(ImpulseSolverType ist) {
+    static const char* nm[]={"PLUS", "PGS"};
+    return PLUS<=ist&&ist<=PGS ? nm[ist] : "UNKNOWNImpulseSolverType";
+}
 
 } // namespace SimTK

@@ -56,6 +56,7 @@ public:
     enum PositionProjectionMethod {Bilateral=0,Unilateral=1};
     enum ImpulseSolverType {PLUS=0, PGS=1};
 
+
     explicit SemiExplicitEulerTimeStepper(const MultibodySystem& mbs);
 
     /** The contained ImpulseSolver will be destructed here; don't reference 
@@ -243,6 +244,15 @@ public:
         delete m_solver; m_solver=0;
     }
 
+    /** Get human-readable string representing the given enum value. **/
+    static const char* getRestitutionModelName(RestitutionModel rm);
+    /** Get human-readable string representing the given enum value. **/
+    static const char* getInducedImpactModelName(InducedImpactModel iim);
+    /** Get human-readable string representing the given enum value. **/
+    static const char* getPositionProjectionMethodName
+       (PositionProjectionMethod ppm);
+    /** Get human-readable string representing the given enum value. **/
+    static const char* getImpulseSolverTypeName(ImpulseSolverType ist);
 
 private:
     // Determine which constraints will be involved for this step.
@@ -264,8 +274,11 @@ private:
     // indicate that an impact is occurring.
     bool isImpact(const State& s, const Vector& verr) const;
 
-    // Adjust given verr to reflect Newton restitution. 
-    bool applyNewtonRestitutionIfAny(const State&, Vector& verr) const;
+    // If we're in Newton restitution mode, calculating the verr change
+    // that is needed to represent restitution. Output must already be
+    // the same size as verr on entry if we're in Newton mode.
+    bool calcNewtonRestitutionIfAny(const State&, const Vector& verr,
+                                    Vector& newtonVerr) const;
 
     // Adjust given compression impulse to include Poisson restitution impulse.
     // Note which contacts are expanding.
@@ -297,6 +310,7 @@ private:
     void classifyUnilateralContactsForSequentialImpact
        (const Vector&                           verr,
         const Vector&                           expansionImpulse,
+        bool                                    isLastRound,
         Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
         Array_<int>&                            impacters,
         Array_<int>&                            expanders,
@@ -367,6 +381,7 @@ private:
     Array_<MultiplierIndex>                         m_participating;
     Array_<MultiplierIndex>                         m_expanding;
     Vector                                          m_expansionImpulse;
+    Vector                                          m_newtonRestitutionVerr;
     Array_<int>                                     m_impacters;
     Array_<int>                                     m_expanders;
     Array_<int>                                     m_observers;
