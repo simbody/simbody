@@ -466,11 +466,12 @@ ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
 SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
  "If you have your own Lapack and Blas, put library basenames here, separated by semicolons. See LAPACK_BEING_USED to see what's actually being used.")
-
-if(WIN32)
-    SET(LAPACK_PLATFORM_DEFAULT liblapack;libblas)
+find_package(BLAS)
+find_package(LAPACK)
+if(BLAS_FOUND AND LAPACK_FOUND)
+    set(LAPACK_PLATFORM_DEFAULT ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 else()
-    SET(LAPACK_PLATFORM_DEFAULT lapack;blas)
+    message(WARNING "Could not find blas/lapack")
 endif()
 
 SET(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE STRING
