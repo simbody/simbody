@@ -298,7 +298,7 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # compiling usin the c++11 standard.
     OPTION(SIMBODY_STANDARD_11
         "Compile using the c++11 standard instead of c++03, 
-        if using GCC or Clang." OFF)
+        if using GCC or Clang." ON)
 
     IF(${SIMBODY_STANDARD_11})
         LIST(APPEND CMAKE_CXX_FLAGS " -std=c++11")
@@ -466,13 +466,17 @@ ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
 SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
  "If you have your own Lapack and Blas, put library basenames here, separated by semicolons. See LAPACK_BEING_USED to see what's actually being used.")
-
 if(WIN32)
-    SET(LAPACK_PLATFORM_DEFAULT liblapack;libblas)
+    set(LAPACK_PLATFORM_DEFAULT liblapack;libblas)
 else()
-    SET(LAPACK_PLATFORM_DEFAULT lapack;blas)
+    find_package(BLAS)
+    find_package(LAPACK)
+    if(BLAS_FOUND AND LAPACK_FOUND)
+        set(LAPACK_PLATFORM_DEFAULT ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+    else()
+        message(WARNING "Could not find blas/lapack")
+    endif()
 endif()
-
 SET(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE STRING
     "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
 

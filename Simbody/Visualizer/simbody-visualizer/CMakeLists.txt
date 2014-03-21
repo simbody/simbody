@@ -3,7 +3,7 @@
 # other platforms we depend on their already being a glut (or freeglut)
 # available.
 
-INCLUDE (FindOpenGL)
+find_package(OpenGL)
 IF(WIN32)
     SET(glut32dir "${CMAKE_CURRENT_SOURCE_DIR}/glut32")
     SET(GLUT32_HEADERS "${glut32dir}/glut.h" "${glut32dir}/glext.h")
@@ -18,9 +18,25 @@ IF(WIN32)
     FILE(TO_NATIVE_PATH  "${glut32libdir}/glut32.dll" gl32src)
     FILE(TO_NATIVE_PATH  "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/glut32.dll"
          gl32dest)
+    SET(SIMBODY_HAS_GLUT TRUE)
 ELSE()
-    INCLUDE(FindGLUT) # sets GLUT_LIBRARIES
+    find_package(GLUT) # sets GLUT_LIBRARIES
+    if(APPLE)
+        if (GLUT_FOUND)
+            set(SIMBODY_HAS_GLUT TRUE)
+        else()
+            set(SIMBODY_HAS_GLUT FALSE)
+        endif()
+    else()
+        if (GLUT_FOUND AND GLUT_Xmu_LIBRARY AND GLUT_Xi_LIBRARY)
+            set(SIMBODY_HAS_GLUT TRUE)
+        else()
+            set(SIMBODY_HAS_GLUT FALSE)
+        endif()
+    endif()
 ENDIF()
+
+if (OPENGL_FOUND AND SIMBODY_HAS_GLUT)
 
 ADD_EXECUTABLE(${GUI_NAME} 
 	simbody-visualizer.cpp lodepng.cpp lodepng.h
@@ -50,3 +66,7 @@ IF(WIN32)
     INSTALL(FILES ${glut32libdir}/glut32.dll
 	    DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}) #same as GUI
 ENDIF()
+
+else()
+    message(WARNING "Visualizer will not be built because some of its dependencies (OpenGL or GLUT) are missing")
+endif()
