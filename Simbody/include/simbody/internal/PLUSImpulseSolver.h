@@ -41,7 +41,7 @@ public:
         m_cosMaxSlidingDirChange(std::cos(Pi/6)) // 30 degrees
     {}
 
-    /** Solve. **/
+    /** Solve with conditional constraints. **/
     bool solve
        (int                                 phase,
         const Array_<MultiplierIndex>&      participating,
@@ -57,6 +57,15 @@ public:
         Array_<BoundedRT>&                  bounded,
         Array_<ConstraintLtdFrictionRT>&    consLtdFriction,
         Array_<StateLtdFrictionRT>&         stateLtdFriction
+        ) const OVERRIDE_11;
+
+    /** Solve with only unconditional constraints. **/
+    bool solveBilateral
+       (const Array_<MultiplierIndex>&      participating, // p<=m of these 
+        const Matrix&                       A,     // m X m, symmetric
+        const Vector&                       D,     // m, diag>=0 added to A
+        const Vector&                       rhs,   // m, RHS
+        Vector&                             pi     // m, unknown result
         ) const OVERRIDE_11;
 
     SimTK_DEFINE_UNIQUE_LOCAL_INDEX_TYPE(PLUSImpulseSolver, ActiveIndex);
@@ -136,6 +145,8 @@ private:
     mutable Vector m_rhsActive;  // per-interval RHS for Newton iteration
     mutable Vector m_piActive;   // Current impulse during Newton.
     mutable Vector m_errActive;  // Error(piActive)
+
+    mutable Matrix m_bilateralActive;  // temp for use by solveBilateral()
 };
 
 } // namespace SimTK

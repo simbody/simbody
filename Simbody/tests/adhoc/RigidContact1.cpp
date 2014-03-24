@@ -207,24 +207,27 @@ public:
         const int nLtdFrictions = matter.getNumStateLimitedFrictions();
 
         for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
-        const UnilateralContact& contact = matter.getUnilateralContact(ux);
-        const Vec3 loc = contact.whereToDisplay(state);
-        if (contact.isEnabled(state)) {
-            geometry.push_back(DecorativeSphere(.1)
-                .setTransform(loc)
-                .setColor(Cyan).setOpacity(.5));
-            //contact.showContactForce(state, geometry);
-            String text;
-            if (!contact.hasFriction(state))
-                text = "-ENABLED";
-            geometry.push_back(DecorativeText(String((int)ux)+text)
-                .setColor(White).setScale(TextScale)
-                .setTransform(loc+Vec3(0,.04,0)));
-        } else {
-            geometry.push_back(DecorativeText(String((int)ux))
-                .setColor(White).setScale(TextScale)
-                .setTransform(loc+Vec3(0,.02,0)));
-        }
+            const UnilateralContact& contact = matter.getUnilateralContact(ux);
+            const Vec3 loc = contact.whereToDisplay(state);
+            if (contact.isEnabled(state)) {
+                MultiplierIndex mx = contact.getContactMultiplierIndex(state);
+                const Vector& mults=state.updMultipliers();//TODO: can't use get
+                Vec3 color = std::abs(mults[mx])<SignificantReal 
+                    ? Yellow : Cyan;
+                geometry.push_back(DecorativeSphere(.1)
+                    .setTransform(loc).setColor(color).setOpacity(.5));
+                //contact.showContactForce(state, geometry);
+                String text;
+                if (!contact.hasFriction(state))
+                    text = "-ENABLED";
+                geometry.push_back(DecorativeText(String((int)ux)+text)
+                    .setColor(White).setScale(TextScale)
+                    .setTransform(loc+Vec3(0,.04,0)));
+            } else {
+                geometry.push_back(DecorativeText(String((int)ux))
+                    .setColor(White).setScale(TextScale)
+                    .setTransform(loc+Vec3(0,.02,0)));
+            }
         }
 
         //for (unsigned i=0; i < m_ts.m_proximals.m_friction.size(); ++i) {
@@ -289,7 +292,7 @@ private:
     ContactTrackerSubsystem*     m_tracker;
     CompliantContactSubsystem*   m_contactForces;
 
-    static const int NBalls = 2;
+    static const int NBalls = 10;
 
     Force::Gravity          m_gravity;
     Force::GlobalDamper     m_damper;
@@ -337,12 +340,13 @@ int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
     // Create the augmented multibody model.
-    //TimsBox mbs;
-    BouncingBalls mbs;
+    TimsBox mbs;
+    //BouncingBalls mbs;
     //Pencil mbs;
 
     SemiExplicitEulerTimeStepper sxe(mbs);
     sxe.setDefaultImpactCaptureVelocity(mbs.getCaptureVelocity());
+    sxe.setDefaultImpactMinCORVelocity(mbs.getCaptureVelocity()); //TODO
     sxe.setDefaultFrictionTransitionVelocity(mbs.getTransitionVelocity());
 
     const SimbodyMatterSubsystem&    matter = mbs.getMatterSubsystem();
@@ -372,15 +376,24 @@ int main(int argc, char** argv) {
 
     sxe.setRestitutionModel(SemiExplicitEulerTimeStepper::Poisson);
     //sxe.setRestitutionModel(SemiExplicitEulerTimeStepper::Newton);
+    //sxe.setRestitutionModel(SemiExplicitEulerTimeStepper::NoRestitution);
+
+    sxe.setPositionProjectionMethod(SemiExplicitEulerTimeStepper::Bilateral);
+    //sxe.setPositionProjectionMethod(SemiExplicitEulerTimeStepper::Unilateral);
+    //sxe.setPositionProjectionMethod(SemiExplicitEulerTimeStepper::NoPositionProjection);
 
     sxe.setAccuracy(Accuracy); // integration accuracy
     sxe.setConstraintTol(ConsTol);
 
-    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
-    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
+    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
+    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
 
-    //sxe.setMaxInducedImpactsPerStep(1000);
-    sxe.setMaxInducedImpactsPerStep(20);
+    sxe.setInducedImpactModel(SemiExplicitEulerTimeStepper::Simultaneous);
+    //sxe.setInducedImpactModel(SemiExplicitEulerTimeStepper::Sequential);
+    //sxe.setInducedImpactModel(SemiExplicitEulerTimeStepper::Mixed);
+
+    sxe.setMaxInducedImpactsPerStep(1000);
+    //sxe.setMaxInducedImpactsPerStep(1);
 
     printf("RestitutionModel: %s, InducedImpactModel: %s (maxIts=%d)\n",
         sxe.getRestitutionModelName(sxe.getRestitutionModel()),
@@ -404,17 +417,17 @@ int main(int argc, char** argv) {
     const double startReal = realTime();
     const double startCPU = cpuTime();
 
-    const Real h = .0055;
-    const int SaveEvery = 1; // save every nth step ~= 33ms
+    const Real h = .005;
+    const int SaveEvery = 6; // save every nth step ~= 33ms
 
     do {
         const State& sxeState = sxe.getState();
         if ((nSteps%SaveEvery)==0) {
             #ifdef ANIMATE
             viz.report(sxeState);
-            #ifndef NDEBUG
-            printf("\nWAITING:"); getchar();
-            #endif
+            //#ifndef NDEBUG
+            //printf("\nWAITING:"); getchar();
+            //#endif
             #endif
             states.push_back(sxeState);
         }
@@ -514,12 +527,12 @@ TimsBox::TimsBox() {
     #else
         const Real RunTime=20;
         const Real Stiffness = 1e6;
-        const Real CoefRest = 0.3; 
+        const Real CoefRest = 0.4; 
         const Real TargetVelocity = 3; // speed at which to match coef rest
 //        const Real Dissipation = (1-CoefRest)/TargetVelocity;
         const Real Dissipation = 0.1;
-        const Real mu_d = .5;
-        const Real mu_s = 1.0;
+        const Real mu_d = .4;
+        const Real mu_s = .8;
         const Real mu_v = 0*0.1;
         const Real CaptureVelocity = 0.01;
         const Real TransitionVelocity = 0.05;
@@ -583,7 +596,7 @@ TimsBox::TimsBox() {
     // Extra late force.
     Force::Custom(forces, new MyPushForceImpl(m_brick, Vec3(.1, 0, .45),
                                                     20 * Vec3(-1,-1,.5),
-                                                    15, Infinity));
+                                                    15, 18));
     #endif
 
     for (int i=-1; i<=1; i+=2)
@@ -783,7 +796,7 @@ BouncingBalls::BouncingBalls() {
 }
 
 void BouncingBalls::calcInitialState(State& s) const {
-    const Real Height = 0*1;
+    const Real Height = 1;
     const Real Speed = -2;
 
     s = realizeTopology(); // returns a reference to the the default state   
@@ -826,9 +839,9 @@ Pencil::Pencil() {
     const Real PencilMass = 1;
     const Real PencilRadius = .25;
     const Real PencilHLength = 5;
-    const Real CoefRest = 1;
+    const Real CoefRest = /*1*/.9;
     const Real CaptureVelocity = .001;
-    const Real TransitionVelocity = .001;
+    const Real TransitionVelocity = .01;
     //const Real mu_d=10, mu_s=10, mu_v=0;
     const Real mu_d=1, mu_s=1, mu_v=0;
     //const Real mu_d=.5, mu_s=.5, mu_v=0;

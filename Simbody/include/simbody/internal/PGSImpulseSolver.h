@@ -60,7 +60,9 @@ public:
                       100), // default PGS max number iterations
         m_SOR(1.2) {}
 
-    /** Solve. **/
+    /** Solve with conditional constraints. In the common underdetermined
+    case (redundant contact) we will return the first solution encountered but
+    it is unlikely to be the best possible solution. **/
     bool solve
        (int                                 phase,
         const Array_<MultiplierIndex>&      participating,
@@ -76,6 +78,19 @@ public:
         Array_<BoundedRT>&                  bounded,
         Array_<ConstraintLtdFrictionRT>&    consLtdFriction,
         Array_<StateLtdFrictionRT>&         stateLtdFriction
+        ) const OVERRIDE_11;
+
+    /** Solve with only unconditional constraints. In the underdetermined
+    case we return one of the possible solutions but it will not in general
+    be the least squares one. In the overdetermined, inconsistent case we
+    will iterate for a long time and may converge on the least-error solution
+    but cannot guarantee that. **/
+    bool solveBilateral
+       (const Array_<MultiplierIndex>&      participating, // p<=m of these 
+        const Matrix&                       A,     // m X m, symmetric
+        const Vector&                       D,     // m, diag>=0 added to A
+        const Vector&                       rhs,   // m, RHS
+        Vector&                             pi     // m, unknown result
         ) const OVERRIDE_11;
 
 private:

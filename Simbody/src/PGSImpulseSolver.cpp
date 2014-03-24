@@ -250,7 +250,9 @@ Implicitly, complementarity conditions must hold:
 */
 
 
-
+//------------------------------------------------------------------------------
+//                                 SOLVE
+//------------------------------------------------------------------------------
 bool PGSImpulseSolver::
 solve(int                                 phase,
       const Array_<MultiplierIndex>&      participating, // p<=m of these 
@@ -444,7 +446,7 @@ solve(int                                 phase,
         const Real rate = normRMSenf/prevNormRMSenf;
 
         if (rate > 1) {
-            printf("GOT WORSE@%d: sor=%g rate=%g\n", its, sor, rate);
+            SimTK_DEBUG3("GOT WORSE@%d: sor=%g rate=%g\n", its, sor, rate);
             if (sor > .1)
                 sor = std::max(.8*sor, .1);
         } 
@@ -454,12 +456,12 @@ solve(int                                 phase,
                      normRMSall, normRMSenf, 
                      normRMSenf/prevNormRMSenf);
         #endif
-        #ifdef NDEBUG // i.e., NOT debugging (TODO)
-        if (its > 90)
-            printf("%d/%d: EST rmsAll=%g rmsEnf=%g rate=%g\n", phase, its,
-                     normRMSall, normRMSenf, 
-                     normRMSenf/prevNormRMSenf);
-        #endif
+        //#ifdef NDEBUG // i.e., NOT debugging (TODO)
+        //if (its > 90)
+        //    printf("%d/%d: EST rmsAll=%g rmsEnf=%g rate=%g\n", phase, its,
+        //             normRMSall, normRMSenf, 
+        //             normRMSenf/prevNormRMSenf);
+        //#endif
         if (normRMSenf < m_convergenceTol) //TODO: add failure-to-improve check
         {
             SimTK_DEBUG3("PGS %d converged to %g in %d iters\n", 
@@ -487,6 +489,107 @@ solve(int                                 phase,
     return converged;
 }
 
+
+//------------------------------------------------------------------------------
+//                           SOLVE BILATERAL
+//------------------------------------------------------------------------------
+bool PGSImpulseSolver::
+solveBilateral
+   (const Array_<MultiplierIndex>&  participating, // p<=m of these 
+    const Matrix&                   A,     // m X m, symmetric
+    const Vector&                   D,     // m, diag>=0 added to A
+    const Vector&                   rhs,   // m, RHS
+    Vector&                         pi     // m, unknown result
+    ) const
+{
+    SimTK_DEBUG("--------------------------------\n");
+    SimTK_DEBUG(  "PGS BILATERAL SOLVER:\n");
+    ++m_nBilateralSolves;
+
+    const int m=A.nrow(); 
+    const int p = (int)participating.size();
+
+    assert(A.ncol()==m); 
+    assert(D.size()==0 || D.size()==m);
+    assert(rhs.size()==m);
+    assert(p<=m);
+ 
+    pi.resize(m);
+    pi.setToZero(); // That takes care of all non-participators.
+
+    if (p == 0) {
+        SimTK_DEBUG("  no bilateral participators. Nothing to do.\n");
+        SimTK_DEBUG("--------------------------------\n");
+        return true;
+    }
+
+
+    // Track total error for all included equations, and the error for just
+    // those equations that are being enforced.
+    bool converged = false;
+    Real normRMSenf = Infinity, sor = m_SOR;
+    Real prevNormRMSenf = NaN;
+    int its = 1;
+    Array_<Real> rowSums; // handy temp
+    for (; its <= m_maxIters; ++its) {
+        ++m_nBilateralIters;
+        Real sum2enf = 0; // track solution errors
+        prevNormRMSenf = normRMSenf;
+
+        // All the participating constraints are unconditionally active.
+        Array_<MultiplierIndex> mults(1);
+        for (int k=0; k < p; ++k) {
+            mults[0] = participating[k];
+            doRowSums(participating,mults,A,D,pi,rowSums);
+            const Real localEr2=doUpdates(mults,A,D,rhs,sor,rowSums,pi);
+            sum2enf += localEr2;
+        }
+
+        normRMSenf = std::sqrt(sum2enf/p);
+        const Real rate = normRMSenf/prevNormRMSenf;
+
+        if (rate > 1) {
+            SimTK_DEBUG3("GOT WORSE@%d: sor=%g rate=%g\n", its, sor, rate);
+            if (sor > .1)
+                sor = std::max(.8*sor, .1);
+        } 
+
+        #ifndef NDEBUG
+        printf("iter %d: EST rmsEnf=%g rate=%g\n", its,
+                     normRMSenf, normRMSenf/prevNormRMSenf);
+        #endif
+
+        if (normRMSenf < m_convergenceTol) //TODO: add failure-to-improve check
+        {
+            SimTK_DEBUG2("BILATERAL PGS converged to %g in %d iters\n", 
+                         normRMSenf, its);
+            converged = true;
+            break;
+        }
+        #ifndef NDEBUG
+        cout << "pi=" << pi << " err=" << normRMSenf << " rate=" << rate << endl;
+        #endif
+    }
+
+    if (!converged) {
+        printf("BILATERAL PGS CONVERGENCE FAILURE: %d iters -> norm=%g\n",
+              its, normRMSenf);
+        ++m_nBilateralFail;
+    }
+
+    #ifndef NDEBUG
+    cout << "A=" << A;
+    cout << "D=" << D << endl;
+    cout << "rhs=" << rhs << endl;
+    cout << "active=" << participating << endl;
+    cout << "-> pi=" << pi << endl;
+    if (D.size()) cout << "resid=" << A*pi+D.elementwiseMultiply(pi)-rhs << endl;
+    else cout << "resid=" << A*pi-rhs << endl;
+    #endif
+    SimTK_DEBUG("--------------------------------\n");
+    return converged;
+
+}
 
 
 } // namespace SimTK

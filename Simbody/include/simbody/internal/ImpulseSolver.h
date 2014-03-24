@@ -29,15 +29,36 @@
 
 namespace SimTK {
 
-/** This is the abstract base class for impulse solvers.
-Solves the system of equations and inequalities:
+/** This is the abstract base class for impulse solvers, which solve an
+important subproblem of the contact and impact equations.
+<pre>
+Impact problem:
+    M  du    + ~G (pi+piE) = 0
+    G (u+du) -  D (pi+piE) = b + dv
+where dv is the desired constraint space velocity change, due to Newton
+restitution (not used for Poisson restitution). Moving knowns to the right:
+    M  du    + ~G pi = -~G piE
+    G  du    -  D pi = b - G u + dv + D piE
+Substituting 2nd eqn into first gives this impact subproblem:
+    [A+D] pi = verr0 - dv - [A+D] piE
+where A=GM\~G and verr0 = Gu-b.
+
+Contact problem:
+    M du + ~G pi  = h f
+    G du -  D pi  = b - G u
+Substituting gives this contact subproblem:
+    [A+D] pi = verr0 + hGM\f
+</pre>
+The form of the problems is the same, with different RHS and no expansion
+impulse given for contact. The impulse solver thus solves this system of 
+equations and inequalities:
 <pre>
     [A+D] (piExpand + piUnknown) = verr
     subject to several inequalities
 </pre>
 for the unknown impulse piUnknown. piExpand is the given Poisson expansion
-impulse, non-zero only for unilateral normal contacts, with piExpand_z[k]<=0
-for each unilateral normal contact k. A is an mXm symmetric positive
+impulse, non-zero only for expanding unilateral normal contacts, with 
+piExpand_z[k]<=0 for each unilateral contact k. A is an mXm symmetric positive
 semidefinite matrix, D a diagonal matrix with nonnegative elements, 
 pi=piExpand+piUnknown and rhs are m-vectors. We write pi this way because
 friction limits depend on pi, not just piUnknown. We require piExpand_z<=0
@@ -104,6 +125,7 @@ public:
     void clearStats() const {
         for (int i=0; i < MaxNumPhases; ++i)
             clearStats(i);
+        m_nBilateralSolves = m_nBilateralIters = m_nBilateralFail = 0;
     }
 
     void clearStats(int phase) const {
@@ -131,11 +153,45 @@ public:
         Array_<StateLtdFrictionRT>&         stateLtdFriction
         ) const = 0;
 
+
+    /** Solve a set of bilateral (unconditional) constraints for the impulse
+    necessary to enforce them. This can be used for projecting a set of
+    violated active constraints onto their manifold. This just solves the 
+    linear system <pre>
+        P*(A+D)*~P P*pi = P*rhs 
+                Pbar*pi = 0
+    </pre>
+    where P is a pXm "participation" matrix such that P(i,j)=1 if constraint
+    j is the i'th active constraint, zero otherwise, and Pbar is the
+    "nonparticipation" matrix such that Pbar(i,j)=1 if constraint j is the i'th
+    inactive constraint, zero otherwise. A is mXm symmetric, positive 
+    semidefinite, but may be rank deficient. D is an mXm diagonal matrix with
+    only nonnegative elements. The returned solution pi (mX1) should 
+    ideally be the solution of minimum 2-norm ||pi|| if the system is 
+    underdetermined, or the solution that minimizes the 2-norm of the
+    error ||(A+D)pi-verr|| if the solution is overdetermined and 
+    inconsistent. However, concrete ImpulseSolvers are free to return a 
+    different solution provide their behavior is well documented. The method 
+    used should be qualitatively similar to that used by the solve() method for
+    the same concrete %ImpulseSolver. For example, if solve() uses an
+    iterative method then this should also do so. **/
+    virtual bool solveBilateral
+       (const Array_<MultiplierIndex>&      participating, // p<=m of these 
+        const Matrix&                       A,     // m X m, symmetric
+        const Vector&                       D,     // m, diag>=0 added to A
+        const Vector&                       rhs,   // m, RHS
+        Vector&                             pi     // m, unknown result
+        ) const = 0;
+
     // Printable names for the enum values for debugging.
     static const char* getContactTypeName(ContactType ct);
     static const char* getUniCondName(UniCond uc);
     static const char* getFricCondName(FricCond fc);
     static const char* getBndCondName(BndCond bc);
+
+    // Show details for each uni contact in the array.
+    static void dumpUniContacts(const String& msg,
+                                const Array_<UniContactRT>& uniContacts);
 
 protected:
     Real m_maxRollingTangVel; // Sliding above this speed if solver cares.
@@ -145,6 +201,9 @@ protected:
     mutable long long m_nSolves[MaxNumPhases];
     mutable long long m_nIters[MaxNumPhases];
     mutable long long m_nFail[MaxNumPhases];
+    mutable long long m_nBilateralSolves;
+    mutable long long m_nBilateralIters;
+    mutable long long m_nBilateralFail;
 };
 
 struct ImpulseSolver::UncondRT {

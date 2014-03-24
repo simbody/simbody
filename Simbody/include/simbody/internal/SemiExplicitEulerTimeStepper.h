@@ -34,7 +34,7 @@
 namespace SimTK {
 
 /** A low-accuracy, high performance, velocity-level time stepper for
-models containing unilateral rigid contact or other conditional constraints.
+models containing unilateral rigid contacts or other conditional constraints.
 
 At each step, this TimeStepper determines which subset of the multibody system's
 conditional constraints may affect behavior; those are called "proximal"
@@ -51,9 +51,22 @@ default options.
 
 class SimTK_SIMBODY_EXPORT SemiExplicitEulerTimeStepper {
 public:
-    enum RestitutionModel {Poisson=0, Newton=1};
+    /** If an impact occurs at a contact where the coefficient of restitution
+    (COR) is non zero, this option determines how we process the restitution
+    impulse. The default \c Poisson uses Poisson's hypothesis, which treates the
+    COR as a ratio of impulses, providing good physical behavior. The
+    alternative \c Newton uses Newton's hypothesis which treats the COR as a 
+    ratio of velocities; this is more commonly used in other packages and can be
+    somewhat faster, but may exhibit blatantly nonphysical behavior such as 
+    energy gain during an impact. Poisson and Newton are equivalent in most
+    simple impact circumstances but can differ substantially in a multibody 
+    impact involving multiple coupled simultaneous collisions. The final 
+    alternative is \c NoRestitution, meaning that all CORs are 
+    treated as zero so impacts are always maximally dissipative. **/
+    enum RestitutionModel {Poisson=0, Newton=1, NoRestitution=2};
     enum InducedImpactModel {Simultaneous=0, Sequential=1, Mixed=2};
-    enum PositionProjectionMethod {Bilateral=0,Unilateral=1};
+    enum PositionProjectionMethod {Bilateral=0,Unilateral=1,
+                                   NoPositionProjection=2};
     enum ImpulseSolverType {PLUS=0, PGS=1};
 
 
@@ -97,6 +110,15 @@ public:
     InducedImpactModel getInducedImpactModel() const 
     {   return m_inducedImpactModel; }
     
+    /** Limit the number of induced impact rounds per time step. The 
+    effect depends on the InducedImpactModel. If Simultaneous, this setting
+    is ignored since there is always just a single round that fully resolves
+    the impact. If Sequential, after this many rounds the remainder of the
+    impact is left unresolved to be dealt with at the next time step (meaning
+    penetration will be permitted). If Mixed, this many sequential impact rounds
+    are executed, followed by a final round which resolves any remaining 
+    penetration as for Simultaneous, meaning that all remaining induced impacts
+    are treated as though they have zero coefficient of restitution. **/
     void setMaxInducedImpactsPerStep(int maxInduced) {
         SimTK_APIARGCHECK1_ALWAYS(maxInduced>=0, "SemiExplicitEulerTimeStepper",
             "setMaxInducedImpactsPerStep", "Illegal argument %d", maxInduced);
@@ -265,14 +287,11 @@ private:
     // Calculate velocity-dependent coefficients of restitution and friction
     // and apply combining rules for dissimilar materials.
     void calcCoefficientsOfFriction(const State&, const Vector& verr);
-    void calcCoefficientsOfRestitution(const State&, const Vector& verr);
+    void calcCoefficientsOfRestitution(const State&, const Vector& verr,
+                                       bool disableRestitution);
 
     // Easy if there are no constraints active.
     void takeUnconstrainedStep(State& s, Real h);
-
-    // Given a velocity constraint error, determine if any of its entries
-    // indicate that an impact is occurring.
-    bool isImpact(const State& s, const Vector& verr) const;
 
     // If we're in Newton restitution mode, calculating the verr change
     // that is needed to represent restitution. Output must already be
@@ -290,13 +309,16 @@ private:
                                    Vector& expansionImpulse,
                                    Array_<int>& expanders) const;
 
-    // Perform a simultaneous impact. All proximal constraints are dealt with
-    // so after this call there will be no more impacters, and no unapplied
-    // expansion impulses. For Poisson restitution this may be a 
-    // compression/expansion impulse pair. For Newton restitution only a single
-    // impulse is calculated.
-    bool performSimultaneousImpact(const Vector& verr, 
-                                   const Vector& expansionImpulse);
+    // Perform a simultaneous impact if needed. All proximal constraints are 
+    // dealt with so after this call there will be no more impacters, and no 
+    // unapplied expansion impulses. For Poisson restitution this may be a 
+    // compression/expansion impulse pair (and rarely a final compression
+    // round to correct expanders that were forced back into impacting). 
+    // For Newton restitution only a single impulse round is calculated.
+    // Returns the number of impulse rounds actually taken, usually zero.
+    int performSimultaneousImpact(const State& state, 
+                                   Vector&      verr, // in/out
+                                   Vector&      totalImpulse);
 
     // We identify impacters, observers, and expanders then perform a single
     // impulse calculation that ignores the observers. On return there may
@@ -310,7 +332,19 @@ private:
     void classifyUnilateralContactsForSequentialImpact
        (const Vector&                           verr,
         const Vector&                           expansionImpulse,
-        bool                                    isLastRound,
+        bool                                    includeAllProximals,
+        bool                                    expansionOnly,
+        Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
+        Array_<int>&                            impacters,
+        Array_<int>&                            expanders,
+        Array_<int>&                            observers,
+        Array_<MultiplierIndex>&                participaters,
+        Array_<MultiplierIndex>&                expanding) const;
+
+
+    void classifyUnilateralContactsForSimultaneousImpact
+       (const Vector&                           verr,
+        const Vector&                           expansionImpulse,
         Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
         Array_<int>&                            impacters,
         Array_<int>&                            expanders,

@@ -128,6 +128,10 @@ namespace SimTK {
 //                   PLUS SUCCESSIVE PRUNING IMPULSE SOLVER
 //==============================================================================
 
+
+//------------------------------------------------------------------------------
+//                                SOLVE
+//------------------------------------------------------------------------------
 bool PLUSImpulseSolver::
 solve(int                                 phase,
       const Array_<MultiplierIndex>&      participating, 
@@ -285,6 +289,7 @@ solve(int                                 phase,
                 break;
           
             updateJacobianForSliding(A, uniContact, piELeft);
+            Real prevNorm = NaN;
             Real errNorm = m_errActive.norm();
             int newtIter = 0;
             SimTK_DEBUG1(">>>> Start NEWTON solve with errNorm=%g...\n", errNorm);
@@ -293,9 +298,11 @@ solve(int                                 phase,
                 // Solve for deltaPi.
                 FactorQTZ fac(m_JacActive);
                 fac.solve(m_errActive, dpi);
+                const Real deltaNorm = dpi.norm();
 
                 #ifndef NDEBUG
-                printf("> NEWTON iter %d begin, errNorm=%g\n", newtIter, errNorm);
+                printf("> NEWTON iter %d: errNorm=%g(v) -> deltaNorm=%g(pi)\n", 
+                       newtIter, errNorm, dpi.norm());
                 cout << "> piActive=" << m_piActive << endl;
                 cout << "> errActive=" << m_errActive << endl;
                 cout << "> deltaPi=" << dpi << endl;
@@ -308,39 +315,52 @@ solve(int                                 phase,
                 Real frac = 1;
                 int nsearch = 0;
                 piSave = m_piActive;
+                prevNorm = errNorm;
                 while (true) {
                     ++nsearch;
-                    SimTK_DEBUG2("Line search iter %d with frac=%g.\n", 
-                                 nsearch, frac);
+                    SimTK_DEBUG3("Line search iter %d: frac=%g, prevNorm=%g.\n", 
+                                 nsearch, frac, prevNorm);
                     m_piActive = piSave - frac*dpi;
 
                     updateDirectionsAndCalcCurrentError(A,uniContact,piELeft,
                                                         m_piActive,
                                                         m_errActive);
-                    Real normNow = m_errActive.norm();
+                    errNorm = m_errActive.norm();
                     #ifndef NDEBUG
                     cout << "> piNow=" << m_piActive << endl;
                     cout << "> errNow=" << m_errActive
-                         << " normNow=" << normNow << endl;
+                         << " normNow=" << errNorm << endl;
                     #endif
-                    if (normNow < errNorm) {
-                        errNorm = normNow;
+                    if (errNorm < prevNorm)
                         break;
-                    }
 
                     frac *= SearchReduceFac;
                     if (frac*SearchReduceFac < MinFrac) {
-                        SimTK_DEBUG2("LINE SEARCH STUCK at iter %d: accepting "
-                            "small norm increase at frac=%g\n", nsearch,frac);
-                        errNorm = normNow;
+                        SimTK_DEBUG3("LINE SEARCH STUCK at iter %d: accepting "
+                            "small norm increase %g at frac=%g\n", nsearch,
+                            errNorm - prevNorm, frac);
                         break;
                     }
                     SimTK_DEBUG2("GOT WORSE @iter %d: backtrack to frac=%g\n", 
                            nsearch, frac);
                 }
 
+                SimTK_DEBUG2("Improvement rate now/prev at iter %d is %g\n",
+                                newtIter, errNorm / prevNorm);
+
                 if (errNorm < m_convergenceTol)
                     break; // we have a winner
+
+                // If we're not making sufficient progress after 3 steps,
+                // we have likely converged to a local minimum and the problem 
+                // is infeasible. Here we're arbitrarily saying that if we
+                // can't even improve 5%, we'll just give up.
+                if (newtIter >= 3 && errNorm > 0.95*prevNorm) {
+                    SimTK_DEBUG2("PLUSImpulseSolver Newton: poor progress "
+                    "after %d iters; errNorm=%g (infeasible?).\n", 
+                    newtIter, errNorm);
+                    break; // converged, but not to zero
+                }
 
                 if (newtIter >= m_maxIters) {
                     SimTK_DEBUG2("PLUSImpulseSolver Newton failed to converge "
@@ -349,7 +369,9 @@ solve(int                                 phase,
                 }
 
                 updateJacobianForSliding(A, uniContact, piELeft);
+                prevNorm = errNorm;
             }
+
             SimTK_DEBUG2("<<<< NEWTON done in %d iters; norm=%g.\n",
                          newtIter,errNorm);
 
@@ -527,7 +549,7 @@ solve(int                                 phase,
         frac = 1;
         for (int k=0; k < mUniCont; ++k) {
             const UniContactRT& rt = uniContact[k];
-            if (rt.m_frictionCond != Sliding)
+            if (rt.m_contactCond==UniOff || rt.m_frictionCond != Sliding)
                 continue;
             const Array_<MultiplierIndex>& Fk = rt.m_Fk;
             const MultiplierIndex          Nk = rt.m_Nk;
@@ -621,7 +643,89 @@ solve(int                                 phase,
     return converged;
 }
 
+//------------------------------------------------------------------------------
+//                           SOLVE BILATERAL
+//------------------------------------------------------------------------------
+bool PLUSImpulseSolver::
+solveBilateral
+   (const Array_<MultiplierIndex>&  participating, // p<=m of these 
+    const Matrix&                   A,     // m X m, symmetric
+    const Vector&                   D,     // m, diag>=0 added to A
+    const Vector&                   rhs,   // m, RHS
+    Vector&                         pi     // m, unknown result
+    ) const
+{
+    SimTK_DEBUG("--------------------------------\n");
+    SimTK_DEBUG(  "PLUS BILATERAL SOLVER:\n");
+    ++m_nBilateralSolves;
 
+    const int m=A.nrow(); 
+    const int p = (int)participating.size();
+
+    assert(A.ncol()==m); 
+    assert(D.size()==0 || D.size()==m);
+    assert(rhs.size()==m);
+    assert(p<=m);
+ 
+    pi.resize(m);
+    pi.setToZero(); // That takes care of all non-participators.
+
+    if (p == 0) {
+        SimTK_DEBUG("  no bilateral participators. Nothing to do.\n");
+        SimTK_DEBUG("--------------------------------\n");
+        return true;
+    }
+
+    m_nBilateralIters++; // Just one "iteration".
+
+    // Set up the smaller problem containing only the participating constraints:
+    //   bilateralActive = P*A*~P
+    //   rhsActive       = P*rhs
+    //   piActive = a place to put the result for just the active part
+    m_bilateralActive.resize(p,p);
+    m_rhsActive.resize(p); m_piActive.resize(p);
+    const bool hasD = (D.size() > 0);
+    for (ActiveIndex aj(0); aj < p; ++aj) {
+        const MultiplierIndex mj = participating[aj];
+        for (ActiveIndex ai(0); ai < p; ++ai) {
+            const MultiplierIndex mi = participating[ai];
+            m_bilateralActive(ai,aj) = A(mi,mj);
+        }
+        if (hasD)
+            m_bilateralActive(aj,aj) += D[mj];
+        m_rhsActive[aj] = rhs[mj];
+    }
+
+    // Calculate the pseudoinverse of P*A*~P, and then solve to get
+    //     piActive = pinv(P*A*~P) * rhsActive
+    FactorQTZ pinv(m_bilateralActive);
+    pinv.solve(m_rhsActive, m_piActive);
+    // Distribute the active result into the full impulse vector.
+    for (ActiveIndex ai(0); ai < p; ++ai) {
+        const MultiplierIndex mi = participating[ai];
+        pi[mi] = m_piActive[ai];
+    }
+
+    #ifndef NDEBUG
+    cout << "A=" << A;
+    cout << "D=" << D << endl;
+    cout << "rcond(A+D)=" << pinv.getRCondEstimate() 
+         << " rank=" << pinv.getRank() << endl;
+    cout << "rhs=" << rhs << endl;
+    cout << "active=" << participating << endl;
+    cout << "-> piActive=" << m_piActive << endl;
+    cout << "-> pi=" << pi << endl;
+    cout << "resid active=" << m_bilateralActive*m_piActive-m_rhsActive << endl;
+    if (D.size()) cout << "resid=" << A*pi+D.elementwiseMultiply(pi)-rhs << endl;
+    else cout << "resid=" << A*pi-rhs << endl;
+    #endif
+    SimTK_DEBUG("--------------------------------\n");
+    return true;
+}
+
+//------------------------------------------------------------------------------
+//              CALC SLIDING STEP LENGTH TO ORIGIN (Vec2 and Vec3)
+//------------------------------------------------------------------------------
 Real PLUSImpulseSolver::
 calcSlidingStepLengthToOrigin(const Vec2& A, const Vec2& B, Vec2& Q) const
 {
@@ -686,6 +790,10 @@ calcSlidingStepLengthToOrigin(const Vec3& A, const Vec3& B, Vec3& Q) const
     return stepLength;
 }
 
+
+//------------------------------------------------------------------------------
+//            CALC SLIDING STEP LENGTH TO MAX CHANGE (Vec2 and Vec3)
+//------------------------------------------------------------------------------
 Real PLUSImpulseSolver::
 calcSlidingStepLengthToMaxChange(const Vec2& A, const Vec2& B) const
 {
@@ -771,6 +879,9 @@ calcSlidingStepLengthToMaxChange(const Vec3& A, const Vec3& B) const
     return sol;
 }
 
+//------------------------------------------------------------------------------
+//                           CLASSIFY FRICTIONALS
+//------------------------------------------------------------------------------
 // At the start of each sliding interval, classify all frictional contacts.
 // For unilateral contact friction, if the unilateral normal contact is 
 // Observing (passive) then its friction constraints are off also. Otherwise
@@ -819,6 +930,9 @@ classifyFrictionals(Array_<UniContactRT>& uniContact) const {
     }
 }
 
+//------------------------------------------------------------------------------
+//                  UPDATE DIRECTIONS AND CALC CURRENT ERROR
+//------------------------------------------------------------------------------
 // Calculate err(pi). For Impending slip frictional contacts we also revise
 // the slip direction based on the current values of pi and piExpand.
 void PLUSImpulseSolver::
@@ -891,6 +1005,9 @@ updateDirectionsAndCalcCurrentError
     //cout << ": ->err=" << errActive << endl;
 }
 
+//------------------------------------------------------------------------------
+//                            FILL MULT 2 ACTIVE
+//------------------------------------------------------------------------------
 // mult2active must already have been resized to size of A
 void PLUSImpulseSolver::
 fillMult2Active(const Array_<MultiplierIndex,ActiveIndex>& active,
@@ -909,6 +1026,9 @@ fillMult2Active(const Array_<MultiplierIndex,ActiveIndex>& active,
     #endif
 }
 
+//------------------------------------------------------------------------------
+//                             INITIALIZE NEWTON
+//------------------------------------------------------------------------------
 // Initialize for a Newton iteration. Fill in the part of the Jacobian
 // corresponding to linear equations since those won't change. Transfer
 // previous impulses pi to new piActive. Assumes m_active and m_mult2active
@@ -956,6 +1076,9 @@ initializeNewton(const Matrix& A, const Vector& pi, // m of these
 
 }
 
+//------------------------------------------------------------------------------
+//                       UDPATE JACOBIAN FOR SLIDING
+//------------------------------------------------------------------------------
 // Calculate Jacobian J= D err(pi) / D pi (see above for err(pi)). All rows
 // of J corresponding to linear equations have already been filled in since
 // they can't change during the iteration. Only sliding and impending friction

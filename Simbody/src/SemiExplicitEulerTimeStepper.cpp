@@ -95,7 +95,10 @@ stepTo(Real time) {
     mbs.realize(s, Stage::Velocity);
     const Vector u0 = s.getU(); // save
 
+    // Note that verr0 is a reference into State s so if we update the
+    // velocities in s and realize them, verr0 will also be updated.
     const Vector& verr0 = s.getUErr();
+
     // m is the total number of proximal constraint equation. This won't 
     // change during the step.
     const int m = verr0.size();
@@ -121,27 +124,33 @@ stepTo(Real time) {
     Vector impulse(m);
     m_expansionImpulse.resize(m); 
     m_expansionImpulse.setToZero();
-    if (getRestitutionModel() == Newton)
-        m_newtonRestitutionVerr.resize(m);
 
     Vector verr = verr0;
 
-    int numImpactRounds = 0; // how many impact rounds?
-    while (true) {
+    int numImpactRounds = 0;
+    if (getInducedImpactModel() == Simultaneous) {
+      numImpactRounds = performSimultaneousImpact(s, verr, totalImpulse);
+    } else {
+      bool disableRestitution = (getRestitutionModel()==NoRestitution);
+      while (true) {
         // CORs start out with values based on the presenting impact velocities,
         // but change for each round to reflect new velocities produced during
         // induced impacts.
-        calcCoefficientsOfRestitution(s, verr);
+        calcCoefficientsOfRestitution(s, verr, disableRestitution);
 
         // If we're in Newton mode, calculate the restitution verr.
-        const bool anyNewton = calcNewtonRestitutionIfAny(s, verr,
-                                    m_newtonRestitutionVerr);
+        const bool anyNewton = (getRestitutionModel()==Newton) &&
+            calcNewtonRestitutionIfAny(s, verr, m_newtonRestitutionVerr);
 
-        bool isLastRound = numImpactRounds == m_maxInducedImpactsPerStep-1;
+        const bool isLastRound = 
+            numImpactRounds >= m_maxInducedImpactsPerStep-1;
+
+        const bool includeAllProximals =
+            (getInducedImpactModel()!=Sequential) && isLastRound;
 
         classifyUnilateralContactsForSequentialImpact
-           (verr, m_expansionImpulse, isLastRound, m_uniContact,
-            m_impacters, m_expanders, m_observers, 
+           (verr, m_expansionImpulse, includeAllProximals, false,
+            m_uniContact, m_impacters, m_expanders, m_observers, 
             m_participating, m_expanding);
 
         // TODO: unconditionals, unispeed, bounded, cons-ltd, state-ltd friction
@@ -154,9 +163,8 @@ stepTo(Real time) {
 
         //--------------------PERFORM ONE IMPACT ROUND--------------------------
         ++numImpactRounds;
-        if (anyNewton) {
+        if (anyNewton)
             verr += m_newtonRestitutionVerr;
-        }
         #ifndef NDEBUG
         printf("\nIMPACT ROUND %d:\n", numImpactRounds);
         printf( "  impacters: "); cout << m_impacters << endl;
@@ -171,11 +179,12 @@ stepTo(Real time) {
         // verr has been updated here to verr-A*(expansion+impulse)
         if (anyNewton) // remove any fake verrs
             verr -= m_newtonRestitutionVerr;
-        //----------------------------------------------------------------------
         totalImpulse += impulse;
         if (!m_expanding.empty()) totalImpulse += m_expansionImpulse;
+        //----------------------------------------------------------------------
 
-        // Calculate the new expansion impulse.
+        // Calculate the next expansion impulse from the compression impulses
+        // we just generated.
         const bool anyExpansion = 
             calcExpansionImpulseIfAny(s, m_impacters, impulse,
                                       m_expansionImpulse, m_expanders);
@@ -183,47 +192,76 @@ stepTo(Real time) {
         cout << "Postimpact verr=" << verr << endl;
         cout << "Postimpact impulse=" << impulse << endl;
         cout << "Next expansion impulse=" << m_expansionImpulse << endl;
-        cout << "Expanders: " << m_expanders << endl;
+        cout << "Next expanders: " << m_expanders << endl;
         #endif
 
-        if (numImpactRounds == m_maxInducedImpactsPerStep) {
+        if (isLastRound) {
             SimTK_DEBUG1("\nTOO MANY IMPACT ROUNDS (%d); bailing.\n", 
                          numImpactRounds);
                          
             if (anyExpansion) {
-                // Deal with unprocessed expansion impulse. We'll simply
-                // apply it, potentially creating new impacters to be resolved
-                // in the final compression round.
-                verr -= m_GMInvGt*m_expansionImpulse;
-                totalImpulse += m_expansionImpulse;
                 #ifndef NDEBUG
-                cout << "  applied leftover expansion: " 
-                     << m_expansionImpulse << endl; 
-                cout << "  bailing with verr: " << verr << endl; 
+                cout << "  final round has leftover expansion impulse: " 
+                     << m_expansionImpulse << endl;
+                #endif
+                if (getInducedImpactModel() == Sequential) {
+                    SimTK_DEBUG("  Sequential mode; allow final penetration.\n");
+                    // Do an expansion-only round that generates no reaction 
+                    // except friction forces at the expanding contacts.
+                    classifyUnilateralContactsForSequentialImpact
+                        (verr, m_expansionImpulse, false, true, m_uniContact,
+                        m_impacters, m_expanders, m_observers, 
+                        m_participating, m_expanding);
+                } else { // Mixed mode
+                    // Do final expansion/compression round with everything 
+                    // participating and all COR effectively 0.
+                    SimTK_DEBUG1("  %s mode: do final COR=0 expansion round.\n",
+                        getInducedImpactModelName(getInducedImpactModel()));
+                    classifyUnilateralContactsForSequentialImpact
+                       (verr, m_expansionImpulse, true, false,
+                        m_uniContact, m_impacters, m_expanders, m_observers, 
+                        m_participating, m_expanding);
+                }
+                //----------------PERFORM FINAL ROUND---------------
+                ++numImpactRounds;
+                #ifndef NDEBUG
+                printf("FINAL EXPANSION ROUND:\n");
+                cout << "   verr=" << verr << endl;
+                #endif
+                doInducedImpactRound(s, m_expanding, m_expansionImpulse, 
+                                     verr, impulse);
+                totalImpulse += impulse;
+                totalImpulse += m_expansionImpulse;
+                //--------------------------------------------------------------
+                #ifndef NDEBUG
+                cout << "  after final expansion, verr=" << verr << endl;
                 #endif
             }
             break; // that's enough!
         }
+      }
     }
 
     // If we processed an impact, update the state now to reflect the new
     // velocities and then recalculate the applied and rotational forces.
 
     if (numImpactRounds) {
-        Vector genImpulse, deltaU, expVerr; 
+        Vector genImpulse, deltaU; 
         // constraint impulse -> gen impulse
         matter.multiplyByGTranspose(s, -totalImpulse, genImpulse);
         // gen impulse to delta-u
         matter.multiplyByMInv(s, genImpulse, deltaU);
         s.updU() += deltaU;
-        mbs.realize(s, Stage::Velocity); // updates rotational forces
-        verr = s.getUErr();
+        // This updates velocity-dependent forces including the rotational
+        // (Coriolis & gyroscopic) forces. This also updates verr0 which is
+        // a reference into the State s.
+        mbs.realize(s, Stage::Velocity);
         #ifndef NDEBUG
         cout << "Impact: imp " << totalImpulse << "-> du " << deltaU << endl;
-        cout << "  Now verr=" << verr << endl;
+        cout << "  Now verr0=" << verr0 << endl;
         #endif
     } else {
-        SimTK_DEBUG("No impact.");
+        SimTK_DEBUG("No impact.\n");
     }
 
     // Evaluate applied forces and get reference to them. These include
@@ -237,13 +275,11 @@ stepTo(Real time) {
     Vector udotExt; Vector_<SpatialVec> A_GB;
     matter.calcAccelerationIgnoringConstraints(s,f,F,udotExt,A_GB);
 
-    // Calculate verrExt = G*deltaU; the end-of-step constraint error due to 
+    // Calculate verr = G*deltaU; the end-of-step constraint error due to 
     // external and rotational forces.
-    Vector verrExt;
-    matter.multiplyByG(s, h*udotExt, verrExt);
-    verrExt += verr;
+    matter.multiplyByG(s, h*udotExt, verr);
 
-    // Make all unilateral contacts participate for this phase.
+    // Make all proximal unilateral contacts participate for this phase.
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
         ImpulseSolver::UniContactRT& rt = m_uniContact[i];
         rt.m_type = ImpulseSolver::Participating;
@@ -251,11 +287,21 @@ stepTo(Real time) {
 
     #ifndef NDEBUG
     printf("\nDYNAMICS PHASE after %d impact rounds:\n", numImpactRounds);
-    cout << "   verrExt=" << verrExt << endl;
+    cout << "   verr0  =" << verr0 << endl;
+    cout << "   verrExt=" << verr << endl;
+    cout << "   total verr=" << verr0+verr << endl;
     #endif
-    doCompressionPhase(s, verrExt, impulse);
+
+    // Add in verr0=Gu-b because we want G (u+du) - b = 0 when we're done
+    // (except for sliding friction). The impulse solver needs to know the
+    // total sliding velocity for proper friction classification, that
+    // will be in verr=verr0+hGM\f.
+    verr += verr0;
+
+    doCompressionPhase(s, verr, impulse);
     #ifndef NDEBUG
     cout << "   dynamics impulse=" << impulse << endl;
+    cout << "   updated verr=" << verr << endl;
     #endif
     totalImpulse += impulse;
     s.updMultipliers() = totalImpulse/h;
@@ -279,11 +325,17 @@ stepTo(Real time) {
 
     // Done with velocity update. Now calculate qdot, possibly including
     // an additional position error correction term.
+    // TODO: Do one linear position correction iteration unconditionally.
+    // Over several steps this should perform the nonlinear correction needed
+    // to get nice positions.
     Vector qdot;
     const Vector& perr0 = s.getQErr();
-    if (!anyPositionErrorsViolated(s, perr0)) {
+    if (   m_projectionMethod==NoPositionProjection
+        /*|| !anyPositionErrorsViolated(s, perr0)*/) //TODO: unconditional now
+    {
         matter.multiplyByN(s,false,s.getU(),qdot);
     } else {
+        // Perform position projection.
         // Don't include quaternions for position correction. 
         Vector posImpulse, genImpulse, posVerr, deltaU;
         posVerr.resize(s.getNUErr()); posVerr.setToZero();
@@ -317,8 +369,9 @@ stepTo(Real time) {
 
     // We have qdot, now update q, fix quaternions, update time.
     s.updQ() += h*qdot; // invalidates Stage::Position
-    matter.normalizeQuaternions(s);
     s.updTime() += h;   // invalidates Stage::Time
+    mbs.realize(s, Stage::Time);
+    matter.normalizeQuaternions(s);
 
     // Return from step with kinematics realized. Note that we may have
     // broken the velocity constraints by updating q, but we won't fix that
@@ -345,9 +398,137 @@ stepTo(Real time) {
 //------------------------------------------------------------------------------
 //                     PERFORM SIMULTANEOUS IMPACT
 //------------------------------------------------------------------------------
-bool SemiExplicitEulerTimeStepper::
-performSimultaneousImpact(const Vector& verr, const Vector& expansionImpulse) {
-    return false;
+int SemiExplicitEulerTimeStepper::
+performSimultaneousImpact(const State&  s, 
+                          Vector&       verr, // in/out
+                          Vector&       totalImpulse) 
+{
+    static const Vector noExpansion;
+    const int m = verr.size();
+    const bool disableRestitution = (getRestitutionModel()==NoRestitution);
+    int numImpactRounds = 0; // how many impact rounds?
+
+    classifyUnilateralContactsForSimultaneousImpact
+       (verr, noExpansion, m_uniContact,
+        m_impacters, m_expanders, m_observers, 
+        m_participating, m_expanding);  
+    assert(m_expanders.empty() && m_expanding.empty());
+
+    // If we didn't see any impacters then we don't have to do anything.
+    if (!m_impacters.size()) { // there can't be any expanders here
+        SimTK_DEBUG(
+            "performSimultaneousImpact(): No impacters; nothing to do.\n");
+        return numImpactRounds; // zero
+    }   
+
+    // For simultaneous impact, CORs are determined only for the initial
+    // impact velocities. In the reaction round they are treated as zero.
+    calcCoefficientsOfRestitution(s, verr, disableRestitution);
+
+    // If we're in Newton mode, calculate the restitution verr.
+    const bool anyNewton = (getRestitutionModel()==Newton) &&
+        calcNewtonRestitutionIfAny(s, verr, m_newtonRestitutionVerr);
+
+    //----------------------PERFORM COMPRESSION ROUND---------------------------
+    ++numImpactRounds;
+    if (anyNewton)
+        verr += m_newtonRestitutionVerr;
+    #ifndef NDEBUG
+    printf("\nperformSimultaneousImpact(): COMPRESSION ROUND:\n");
+    printf( "  impacters: "); cout << m_impacters << endl;
+    printf( "  observers: "); cout << m_observers << endl;
+    cout << "  participating multx: " << m_participating << endl;
+    cout << "  verr=" << verr << endl;
+    if (anyNewton)
+        cout << "    incl. Newton verr=" << m_newtonRestitutionVerr << endl;
+    #endif
+    // There are no expansion impulses yet; these are dummies.
+    doInducedImpactRound(s, m_expanding, m_expansionImpulse, verr, 
+                         totalImpulse); // the only impulse so far
+    // verr has been updated here to verr-A*totalImpulse
+    if (anyNewton) // remove any fake verrs
+        verr -= m_newtonRestitutionVerr;
+    //--------------------------------------------------------------------------
+
+    // Calculate the next expansion impulse from the compression impulses
+    // we just generated. This only occurs if we are doing Poisson restitution.
+    const bool anyExpansion = 
+        calcExpansionImpulseIfAny(s, m_impacters, totalImpulse,
+                                    m_expansionImpulse, m_expanders);
+    #ifndef NDEBUG
+    cout << "  Postcompression verr=" << verr << endl;
+    cout << "    impulse=" << totalImpulse << endl;
+    cout << "  Next expansion impulse=" << m_expansionImpulse << endl;
+    cout << "  Next expanders: " << m_expanders << endl;
+    #endif  
+
+    if (!anyExpansion) {
+        SimTK_DEBUG("performSimultaneousImpact(): No expansion; done.\n");
+        return numImpactRounds; // one
+    }
+
+    classifyUnilateralContactsForSimultaneousImpact
+       (verr, m_expansionImpulse, m_uniContact,
+        m_impacters, m_expanders, m_observers, 
+        m_participating, m_expanding); 
+
+    //-----------------------PERFORM EXPANSION ROUND----------------------------
+    ++numImpactRounds;
+    Vector reactionImpulse(m);
+    #ifndef NDEBUG
+    printf("\nperformSimultaneousImpact(): EXPANSION ROUND:\n");
+    printf( "  impacters: "); cout << m_impacters << endl;
+    printf( "  observers: "); cout << m_observers << endl;
+    printf( "  expanders: "); cout << m_expanders << endl;
+    cout << "  participating multx: " << m_participating << endl;
+    cout << "  expanding multx: " << m_expanding << endl;
+    cout << "  verr=" << verr << endl;
+    #endif
+    doInducedImpactRound(s, m_expanding, m_expansionImpulse, verr, 
+                         reactionImpulse);
+    // verr has been updated here to verr-A*(expansionImpulse+reactionImpulse)
+    #ifndef NDEBUG
+    printf( "  expansion impulse: "); cout << m_expansionImpulse << endl;
+    printf( "  reaction impulse: "); cout << reactionImpulse << endl;
+    #endif    
+    totalImpulse += m_expansionImpulse;
+    totalImpulse += reactionImpulse;
+    //--------------------------------------------------------------------------
+
+    // That should be the end but it is possible that one of the expanders
+    // is now impacting.
+    classifyUnilateralContactsForSimultaneousImpact
+       (verr, noExpansion, m_uniContact,
+        m_impacters, m_expanders, m_observers, 
+        m_participating, m_expanding);  
+    assert(m_expanders.empty() && m_expanding.empty());
+
+    if (m_impacters.empty()) {
+        SimTK_DEBUG("performSimultaneousImpact(): Expansion successful; done.\n");
+        return numImpactRounds; // two
+    }
+
+    //-----------------------PERFORM CORRECTION ROUND----------------------------
+    ++numImpactRounds;
+    #ifndef NDEBUG
+    printf("\nperformSimultaneousImpact(): CORRECTION ROUND:\n");
+    printf( "  impacters: "); cout << m_impacters << endl;
+    printf( "  observers: "); cout << m_observers << endl;
+    cout << "  participating multx: " << m_participating << endl;
+    cout << "  verr=" << verr << endl;
+    #endif
+    // No expansion here.
+    doInducedImpactRound(s, m_expanding, m_expansionImpulse, verr, 
+                         reactionImpulse);
+    // verr has been updated here to verr-A*reactionImpulse
+    #ifndef NDEBUG
+    printf( "  correction impulse: "); cout << reactionImpulse << endl;
+    printf( "  post-correction verr: "); cout << verr << endl;
+    #endif
+    totalImpulse += reactionImpulse;
+    //--------------------------------------------------------------------------
+
+    return numImpactRounds;
 }
 
 //------------------------------------------------------------------------------
@@ -356,27 +537,39 @@ performSimultaneousImpact(const Vector& verr, const Vector& expansionImpulse) {
 bool SemiExplicitEulerTimeStepper::
 performInducedImpactRound(const Vector& verr, const Vector& expansionImpulse) {
     classifyUnilateralContactsForSequentialImpact
-       (verr, expansionImpulse, false, m_uniContact,
+       (verr, expansionImpulse, false, false, m_uniContact,
         m_impacters, m_expanders, m_observers, 
         m_participating, m_expanding);
     return false;
 }
 
 //------------------------------------------------------------------------------
-//         CLASSIFY UNILATERAL CONTACTS FOR SEQUENTIAL IMPACT
+//             CLASSIFY UNILATERAL CONTACTS FOR SEQUENTIAL IMPACT
 //------------------------------------------------------------------------------
 // Calculate participating constraints. Include all proximals except:
 //   - ignore "observers" (unilateral contacts with nonnegative impact 
 //     velocity)
 //   - ignore normal constraints for "expanders" (friction stays)
-// Then impacters=all contacts with negative impact velocity.
+// Then "impacters" are all contacts with negative impact velocity.
+// Options: 
+//   - includeAllProximals: observers also are participating; that way they
+//       can never be violated when the impact or expansion impulses are
+//       applied.
+//   - expansion only: both observers and impacters are ignored; the only
+//       participating constraints are the friction constraints at expanding
+//       contacts.
 //
-// If this is the last allowed induced impact round, then everyone participates.
+// If includeAllProximals, then everyone participates meaning there won't be
+// any penetrating contacts after the next set of impulses is generated.
+// If expansionOnly, then everyone is an observer if they aren't expanding;
+// that is used to apply a final expansion at the end of the step, with no
+// reaction other than the expanding contacts' friction forces.
 void SemiExplicitEulerTimeStepper::
 classifyUnilateralContactsForSequentialImpact
    (const Vector&                           verr,
     const Vector&                           expansionImpulse,
-    bool                                    isLastRound,
+    bool                                    includeAllProximals,
+    bool                                    expansionOnly,
     Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
     Array_<int>&                            impacters,
     Array_<int>&                            expanders,
@@ -393,13 +586,8 @@ classifyUnilateralContactsForSequentialImpact
         ImpulseSolver::UniContactRT& rt = uniContacts[i];
         const MultiplierIndex mz = rt.m_Nk;
         if (expansionImpulse[mz] != 0) {
-            if (isLastRound) {
-                rt.m_type = ImpulseSolver::Participating;
-                participaters.push_back(mz);
-            } else 
-                rt.m_type = ImpulseSolver::Known;
-
-            if (rt.hasFriction()) // friction still participates
+            rt.m_type = ImpulseSolver::Known; // normal does not participate
+            if (rt.hasFriction()) // but friction still participates
                 for (unsigned j=0; j < rt.m_Fk.size(); ++j)
                     participaters.push_back(rt.m_Fk[j]);
             expanders.push_back(i);  // uni contact index
@@ -410,19 +598,89 @@ classifyUnilateralContactsForSequentialImpact
         // Observe even if we're slightly (but insignificantly) negative.
         // We're using 1/10 of constraint tol as the cutoff.
         // Don't use zero, or you'll loop forever due to roundoff!
-        if (!isLastRound && verr[mz] >= (Real(-0.1))*m_consTol) {
-            rt.m_type = ImpulseSolver::Observing;
+        // Also, if we're only doing expanders then everyone else is observing.
+        if (expansionOnly || verr[mz] >= (Real(-0.1))*m_consTol) {
+            if (includeAllProximals) {
+                rt.m_type = ImpulseSolver::Participating;
+                if (rt.hasFriction()) // but friction still participates
+                    for (unsigned j=0; j < rt.m_Fk.size(); ++j)
+                        participaters.push_back(rt.m_Fk[j]);
+                participaters.push_back(mz);
+            } else 
+                rt.m_type = ImpulseSolver::Observing;
             observers.push_back(i);
             continue; // Observer
         }
 
-        // Impacter (Participator)
+        // (We don't get here if expansionOnly flag is set.)
+        // The normal velocity is substantially negative, so this is an
+        // impacter and always participates.
         rt.m_type = ImpulseSolver::Participating;
         participaters.push_back(mz);
         if (rt.hasFriction())
             for (unsigned j=0; j < rt.m_Fk.size(); ++j)
                 participaters.push_back(rt.m_Fk[j]);
         impacters.push_back(i);
+    }
+
+    assert(   impacters.size()+expanders.size()+observers.size()
+           == uniContacts.size());
+}
+
+//------------------------------------------------------------------------------
+//             CLASSIFY UNILATERAL CONTACTS FOR SEQUENTIAL IMPACT
+//------------------------------------------------------------------------------
+// Classify the unilateral contacts into impacters, observers, and expanders.
+// and determine which constraint equations should participate assuming we
+// are in Sequential ("one shot") impact mode. All impacter and observer 
+// constraint equations should participate, as well as the friction constraints
+// (but not the normal constraints) for expanders.
+// If you don't want to process expanders, pass the expansionImpulse as a
+// zero-length Vector, otherwise it must have length m.
+void SemiExplicitEulerTimeStepper::
+classifyUnilateralContactsForSimultaneousImpact
+   (const Vector&                           verr,
+    const Vector&                           expansionImpulse,
+    Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
+    Array_<int>&                            impacters,
+    Array_<int>&                            expanders,
+    Array_<int>&                            observers,
+    Array_<MultiplierIndex>&                participaters,
+    Array_<MultiplierIndex>&                expanding) const
+{
+    const bool hasExpansion = expansionImpulse.size() > 0;
+    const int m = verr.size(); assert(m); 
+    assert(!hasExpansion || expansionImpulse.size() == m);
+
+    impacters.clear(); expanders.clear(); observers.clear(); 
+    participaters.clear(); expanding.clear();
+
+    for (unsigned i=0; i < uniContacts.size(); ++i) {
+        ImpulseSolver::UniContactRT& rt = uniContacts[i];
+        const MultiplierIndex mz = rt.m_Nk;
+        if (hasExpansion && expansionImpulse[mz] != 0) {
+            rt.m_type = ImpulseSolver::Known; // normal does not participate
+            expanders.push_back(i);  // uni contact index
+            expanding.push_back(mz); // multiplier index
+        } else if (verr[mz] >= (Real(-0.1))*m_consTol) {
+            // Observe even if we're slightly (but insignificantly) negative.
+            // We're using 1/10 of constraint tol as the cutoff.
+            // Don't use zero, or you'll loop forever due to roundoff!
+            rt.m_type = ImpulseSolver::Participating;
+            participaters.push_back(mz);
+            observers.push_back(i);
+        } else {
+            // The normal velocity is substantially negative, so this is an
+            // impacter.
+            rt.m_type = ImpulseSolver::Participating;
+            participaters.push_back(mz);
+            impacters.push_back(i);
+        }
+
+        // Regardless of classification, friction constraints participate here.
+        if (rt.hasFriction())
+            for (unsigned j=0; j < rt.m_Fk.size(); ++j)
+                participaters.push_back(rt.m_Fk[j]);
     }
 
     assert(   impacters.size()+expanders.size()+observers.size()
@@ -460,31 +718,32 @@ void SemiExplicitEulerTimeStepper::initialize(const State& initState) {
 //        constraint, and
 //      - each state-limited friction constraint.
 // Only proximal constraints may participate in the generation of constraint 
-// forces during a step; distal constraints have no effect whatsoever. In 
-// general only a subset of the proximal unilateral constraints will actually 
-// generate forces, but all must be considered.
+// forces during a step; distal constraints have no effect whatsoever. Simbody 
+// will be asked to generate constraint equations for all the proximal
+// constraints, but not for the distal constraints. In general only a subset of
+// the proximal unilateral constraints will actually generate forces, but all 
+// must be considered.
 //
 // Velocity-level (nonholonomic) unilateral constraints are always considered
 // proximal, as are unconditional constraints and their associated friction
 // constraints.
-//
-// Simbody will be asked to generate constraint equations for all the proximal
-// constraints, but not for the distal constraints.
 //
 // Algorithm:
 // (1) Inspect each unilateral contact constraint in the MultibodySystem, 
 // marking it proximal if its perr() value is within tolerance of violating 
 // its defining unilateral inequality, distal otherwise. Typically, perr() is 
 // a signed distance function and the defining inequality is perr() >= 0, so 
-// the proximal condition is perr() <= tol. Associated friction constraints,
-// if any, are marked proximal or distal to match the contact constraint.
+// the proximal condition is perr() <= tol (that includes all negative values
+// of perr). Associated friction constraints, if any, are marked proximal or 
+// distal to match the contact constraint.
 //
 // (2) Inspect each StateLimitedFriction constraint. Mark the friction element
 // proximal if its known limiting force is non-zero (or above a small 
 // threshold), otherwise it is distal.
 //
-// TODO: Constraint-limited friction should only be proximal if the limiting
-// constraint is enabled.
+// TODO: ConstraintLimitedFriction constraints (i.e., friction that acts at
+// bilateral constraints) should only be proximal if the limiting constraint is
+// enabled.
 void SemiExplicitEulerTimeStepper::
 findProximalConstraints(const State& s) { //TODO: redo
     m_proximalUniContacts.clear();      m_distalUniContacts.clear();
@@ -518,6 +777,9 @@ findProximalConstraints(const State& s) { //TODO: redo
 }
 
 
+//------------------------------------------------------------------------------
+//                        ENABLE PROXIMAL CONSTRAINTS
+//------------------------------------------------------------------------------
 // Enable all proximal constraints, disable all distal constraints, 
 // reassigning multipliers if needed. Returns true if any change was made.
 // If not, the multipliers retain their meaning from the last time this
@@ -574,6 +836,9 @@ enableProximalConstraints(State& s) {
     return changed;
 }
 
+//------------------------------------------------------------------------------
+//                         COLLECT CONSTRAINT INFO
+//------------------------------------------------------------------------------
 // Create lists of low-level constraint properties suited for analysis by
 // an Impulse solver. Only proximal constraints are considered, and those
 // must already have been enabled so that we can collect their Simbody-assigned
@@ -638,7 +903,11 @@ collectConstraintInfo(const State& s) { //TODO: redo
     // (all nonholonomic)
 }
 
-void SemiExplicitEulerTimeStepper::takeUnconstrainedStep(State& s, Real h) {
+//------------------------------------------------------------------------------
+//                        TAKE UNCONSTRAINED STEP
+//------------------------------------------------------------------------------
+void SemiExplicitEulerTimeStepper::
+takeUnconstrainedStep(State& s, Real h) {
     const SimbodyMatterSubsystem&   matter = m_mbs.getMatterSubsystem();
     m_mbs.realize(s, Stage::Acceleration);
     const Vector& udot = s.getUDot(); // grab before invalidated
@@ -655,20 +924,9 @@ void SemiExplicitEulerTimeStepper::takeUnconstrainedStep(State& s, Real h) {
 }
 
 
-bool SemiExplicitEulerTimeStepper::
-isImpact(const State& s, const Vector& verr) const {
-    // These are the proximal unilateral constraint runtimes.
-    for (unsigned i=0; i < m_uniContact.size(); ++i) {
-        const ImpulseSolver::UniContactRT& rt = m_uniContact[i];
-        if (rt.m_sign*verr[rt.m_Nk] < -m_consTol) { // TODO: sign?
-            printf("IMPACT cuz verr[%d]=%g\n", (int)rt.m_Nk, verr[rt.m_Nk]);
-            return true;
-        }
-    }
-    return false;
-}
-
-
+//------------------------------------------------------------------------------
+//                      CALC COEFFICIENTS OF FRICTION
+//------------------------------------------------------------------------------
 // Calculate velocity-dependent coefficients of friction for all the
 // proximal friction constraints.
 void SemiExplicitEulerTimeStepper::
@@ -722,13 +980,27 @@ calcCoefficientsOfFriction(const State& s, const Vector& verr) {
 
 }
 
+//------------------------------------------------------------------------------
+//                     CALC COEFFICIENTS OF RESTITUTION
+//------------------------------------------------------------------------------
 // Calculate velocity-dependent coefficients of restitution.
 void SemiExplicitEulerTimeStepper::
-calcCoefficientsOfRestitution(const State& s, const Vector& verr) {
+calcCoefficientsOfRestitution(const State& s, const Vector& verr,
+                              bool disableRestitution) 
+{
     const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
 
     const Real defCaptureVel = getDefaultImpactCaptureVelocityInUse();
     const Real defMinCORVel  = getDefaultImpactMinCORVelocityInUse();
+
+    if (disableRestitution) {
+        SimTK_DEBUG("Restitution disabled; all COR=0\n");
+        for (unsigned i=0; i < m_uniContact.size(); ++i) {
+            ImpulseSolver::UniContactRT& rt = m_uniContact[i];
+            rt.m_effCOR = 0;
+        }
+        return;
+    }
 
     // These are the proximal unilateral constraint runtimes.
     // TODO: only need this for participating contacts.
@@ -754,21 +1026,21 @@ calcCoefficientsOfRestitution(const State& s, const Vector& verr) {
     }
 }
 
+//------------------------------------------------------------------------------
+//                      CALC NEWTON RESTITUTION IF ANY
+//------------------------------------------------------------------------------
 bool SemiExplicitEulerTimeStepper::
 calcNewtonRestitutionIfAny(const State& s, const Vector& verr,
                            Vector& newtonVerr) const 
 {
     const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
-    if (getRestitutionModel() != Newton) 
-        return false; //TODO: check individual contacts
 
-    assert(newtonVerr.size() == verr.size());
+    newtonVerr.resize(verr.size());
     newtonVerr.setToZero();
     bool anyRestitution = false;
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
         const ImpulseSolver::UniContactRT& rt = m_uniContact[i];
         const MultiplierIndex              mx = rt.m_Nk;
-        Real& v = newtonVerr[mx];
         if (rt.m_effCOR > 0) {
             newtonVerr[mx] = rt.m_effCOR * verr[mx];
             anyRestitution = true;
@@ -777,6 +1049,9 @@ calcNewtonRestitutionIfAny(const State& s, const Vector& verr,
     return anyRestitution;
 }
 
+//------------------------------------------------------------------------------
+//                     APPLY POISSON RESTITUTION IF ANY
+//------------------------------------------------------------------------------
 bool SemiExplicitEulerTimeStepper::
 applyPoissonRestitutionIfAny(const State& s, Vector& impulse,
                              Array_<int>& expanders) const {
@@ -799,6 +1074,9 @@ applyPoissonRestitutionIfAny(const State& s, Vector& impulse,
 }
 
 
+//------------------------------------------------------------------------------
+//                      CALC EXPANSION IMPULSE IF ANY
+//------------------------------------------------------------------------------
 bool SemiExplicitEulerTimeStepper::
 calcExpansionImpulseIfAny(const State& s, const Array_<int>& impacters,
                           const Vector& compressionImpulse,
@@ -826,6 +1104,9 @@ calcExpansionImpulseIfAny(const State& s, const Array_<int>& impacters,
     return anyRestitution;
 }
 
+//------------------------------------------------------------------------------
+//                         DO COMPRESSION PHASE
+//------------------------------------------------------------------------------
 // This phase uses all the proximal constraints and should use a starting
 // guess for impulse saved from the last step if possible.
 bool SemiExplicitEulerTimeStepper::
@@ -840,8 +1121,16 @@ doCompressionPhase(const State& s, Vector& verr, Vector& compImpulse) {
         verr,compImpulse,
         m_unconditional,m_uniContact,m_uniSpeed,m_bounded,
         m_consLtdFriction, m_stateLtdFriction);
+#ifndef NDEBUG
+    m_solver->dumpUniContacts("Post-dynamics", m_uniContact);
+#endif
     return converged;
 }
+
+
+//------------------------------------------------------------------------------
+//                            DO EXPANSION PHASE
+//------------------------------------------------------------------------------
 // This phase uses all the proximal constraints, but we expect the result
 // to be zero unless expansion causes new violations.
 bool SemiExplicitEulerTimeStepper::
@@ -859,6 +1148,11 @@ doExpansionPhase(const State&   state,
         m_consLtdFriction, m_stateLtdFriction);
     return converged;
 }
+
+
+//------------------------------------------------------------------------------
+//                        DO INDUCED IMPACT ROUND
+//------------------------------------------------------------------------------
 // This phase includes only impacting contacts, plus the frictional constraints
 // from expanders. It does not include any constraints from observers, nor the
 // normal constraint from expanders.
@@ -879,20 +1173,50 @@ doInducedImpactRound(const State& s,
         m_consLtdFriction, m_stateLtdFriction);
     return converged;
 }
-// This phase uses only holonomic constraints, and zero is a good initial
-// guess for the (hopefully small) position correction.
+
+
+//------------------------------------------------------------------------------
+//                      DO POSITION CORRECTION PHASE
+//------------------------------------------------------------------------------
+// This phase uses only holonomic constraints.
+// We require that m_uniContact has up-to-date information from the just-
+// completed contact step so we can tell which contacts are active.
 bool SemiExplicitEulerTimeStepper::
 doPositionCorrectionPhase(const State& state, Vector& verr,
                           Vector& positionImpulse) {
-    bool converged = m_solver->solve(2,
-        m_posParticipating,m_GMInvGt,m_D,
-        Array_<MultiplierIndex>(), verr,//dummy for piExpand; ignored
-        verr, positionImpulse,
-        m_posUnconditional,m_posUniContact,m_posNoUniSpeed,m_posNoBounded,
-        m_posNoConsLtdFriction, m_posNoStateLtdFriction);
+    bool converged;
+    if (m_projectionMethod == Unilateral) {
+        SimTK_DEBUG1("UNILATERAL POSITION CORRECTION, %d participators\n",
+                     (int)m_posParticipating.size());
+        converged = m_solver->solve(2,
+            m_posParticipating,m_GMInvGt,m_D,
+            Array_<MultiplierIndex>(), verr,//dummy for piExpand; ignored
+            verr, positionImpulse,
+            m_posUnconditional,m_posUniContact,m_posNoUniSpeed,m_posNoBounded,
+            m_posNoConsLtdFriction, m_posNoStateLtdFriction);
+    } else {
+        // Bilateral. TODO: unconditionals
+        m_participating.clear();
+        for (unsigned k=0; k < m_uniContact.size(); ++k) {
+            const ImpulseSolver::UniContactRT& rt = m_uniContact[k];
+            const MultiplierIndex mx = rt.m_Nk;
+            // Anything currently active, or inactive but penetrating, gets
+            // a correction. TODO: is this the right strategy?
+            if (rt.m_contactCond == ImpulseSolver::UniOff && verr[mx] >= 0)
+                continue;
+            m_participating.push_back(rt.m_Nk);
+        }
+        SimTK_DEBUG1("BILATERAL POSITION CORRECTION, %d participators\n",
+                    (int)m_participating.size());
+        converged = m_solver->solveBilateral(m_participating,m_GMInvGt,m_D,
+                                             verr, positionImpulse);
+    }
     return converged;
 }
 
+//------------------------------------------------------------------------------
+//                       ANY POSITION ERRORS VIOLATED
+//------------------------------------------------------------------------------
 bool SemiExplicitEulerTimeStepper::
 anyPositionErrorsViolated(const State&, const Vector& perr) const {
     // TODO: no need to fix if large perrs satisfy inequalities.
@@ -902,10 +1226,13 @@ anyPositionErrorsViolated(const State&, const Vector& perr) const {
     return anyViolated;
 }
 
+//------------------------------------------------------------------------------
+//                            DEBUGGING METHODS
+//------------------------------------------------------------------------------
 const char* SemiExplicitEulerTimeStepper::
 getRestitutionModelName(RestitutionModel rm) {
-    static const char* nm[]={"Poisson", "Newton"};
-    return Poisson<=rm&&rm<=Newton ? nm[rm] 
+    static const char* nm[]={"Poisson", "Newton", "NoRestitution"};
+    return Poisson<=rm&&rm<=NoRestitution ? nm[rm] 
         : "UNKNOWNRestitutionModel";
 }
 const char* SemiExplicitEulerTimeStepper::
@@ -916,8 +1243,8 @@ getInducedImpactModelName(InducedImpactModel iim) {
 }
 const char* SemiExplicitEulerTimeStepper::
 getPositionProjectionMethodName(PositionProjectionMethod ppm) {
-    static const char* nm[]={"Bilateral", "Unilateral"};
-    return Bilateral<=ppm&&ppm<=Unilateral ? nm[ppm] 
+    static const char* nm[]={"Bilateral", "Unilateral", "NoPositionProjection"};
+    return Bilateral<=ppm&&ppm<=NoPositionProjection ? nm[ppm] 
         : "UNKNOWNPositionProjectionMethod";
 }
 const char* SemiExplicitEulerTimeStepper::
