@@ -111,6 +111,8 @@ public:
         clearStats();
     }
 
+    virtual ~ImpulseSolver() {}
+
     void setMaxRollingSpeed(Real roll2slipTransitionSpeed) {
         assert(roll2slipTransitionSpeed >= 0);
         m_maxRollingTangVel = roll2slipTransitionSpeed; 

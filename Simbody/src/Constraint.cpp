@@ -60,6 +60,14 @@ void Constraint::setDisabledByDefault(bool shouldBeDisabled) {
     updImpl().setDisabledByDefault(shouldBeDisabled);
 }
 
+void Constraint::setIsConditional(bool isConditional) {
+    updImpl().setIsConditional(isConditional);
+}
+
+bool Constraint::isConditional() const {
+    return getImpl().isConditional();
+}
+
 const SimbodyMatterSubsystem& Constraint::getMatterSubsystem() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getMatterSubsystem() called on a Constraint that is not part of a subsystem.");
@@ -1854,6 +1862,124 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
     }
 }
 
+//==============================================================================
+//                      CONSTRAINT::CONSTANT COORDINATE
+//==============================================================================
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS
+(Constraint::ConstantCoordinate,Constraint::ConstantCoordinateImpl,Constraint);
+
+// This picks one of the coordinates from a multiple-coordinate mobilizer.
+Constraint::ConstantCoordinate::ConstantCoordinate
+   (MobilizedBody& mobilizer, MobilizerQIndex whichQ, Real defaultPosition)
+  : Constraint(new ConstantCoordinateImpl())
+{
+    SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
+        "Constraint::ConstantCoordinate(): the mobilizer must already be"
+        " in a SimbodyMatterSubsystem.");
+
+    mobilizer.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
+    updImpl().whichCoordinate = whichQ;
+    updImpl().defaultPosition = defaultPosition;
+}
+
+// This is for mobilizers with only 1 mobility.
+Constraint::ConstantCoordinate::ConstantCoordinate
+   (MobilizedBody& mobilizer, Real defaultPosition)
+:   Constraint(new ConstantCoordinateImpl())
+{
+    SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
+        "Constraint::ConstantCoordinate(): the mobilizer must already be"
+        " in a SimbodyMatterSubsystem.");
+
+    mobilizer.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
+    updImpl().whichCoordinate = MobilizerQIndex(0);
+    updImpl().defaultPosition = defaultPosition;
+}
+
+MobilizedBodyIndex Constraint::ConstantCoordinate::getMobilizedBodyIndex() const {
+    return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer
+                                                    (getImpl().theMobilizer);
+}
+MobilizerQIndex Constraint::ConstantCoordinate::getWhichQ() const {
+    return getImpl().whichCoordinate;
+}
+
+Real Constraint::ConstantCoordinate::getDefaultPosition() const {
+    return getImpl().defaultPosition;
+}
+
+Constraint::ConstantCoordinate& Constraint::ConstantCoordinate::
+setDefaultPosition(Real position) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultPosition = position;
+    return *this;
+}
+
+void Constraint::ConstantCoordinate::
+setPosition(State& state, Real position) const {
+    getImpl().updPosition(state) = position;
+}
+
+Real Constraint::ConstantCoordinate::
+getPosition(const State& state) const {
+    return getImpl().getPosition(state);
+}
+
+Real Constraint::ConstantCoordinate::getPositionError(const State& s) const {
+    Real perr;
+    getImpl().getPositionErrors(s, 1, &perr);
+    return perr;
+}
+
+Real Constraint::ConstantCoordinate::getVelocityError(const State& s) const {
+    Real pverr;
+    getImpl().getVelocityErrors(s, 1, &pverr);
+    return pverr;
+}
+
+Real Constraint::ConstantCoordinate::getAccelerationError(const State& s) const {
+    Real paerr;
+    getImpl().getAccelerationErrors(s, 1, &paerr);
+    return paerr;
+}
+
+Real Constraint::ConstantCoordinate::getMultiplier(const State& s) const {
+    Real mult;
+    getImpl().getMultipliers(s, 1, &mult);
+    return mult;
+}
+
+
+    // ConstantCoordinateImpl
+
+// Allocate a state variable to hold the desired position. Changing this
+// variable invalidates Stage::Position.
+void Constraint::ConstantCoordinateImpl::
+realizeTopologyVirtual(State& state) const {
+    ConstantCoordinateImpl* mThis = // mutable momentarily
+        const_cast<ConstantCoordinateImpl*>(this);
+    mThis->positionIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Position, 
+            new Value<Real>(defaultPosition));
+}
+
+Real Constraint::ConstantCoordinateImpl::
+getPosition(const State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::downcast(matter.getDiscreteVariable(state,positionIx));
+}
+
+Real& Constraint::ConstantCoordinateImpl::
+updPosition(State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::updDowncast
+                                (matter.updDiscreteVariable(state,positionIx));
+}
+
 
 
 //==============================================================================
@@ -1924,15 +2050,15 @@ getSpeed(const State& state) const {
 }
 
 Real Constraint::ConstantSpeed::getVelocityError(const State& s) const {
-    Real pverr;
-    getImpl().getVelocityErrors(s, 1, &pverr);
-    return pverr;
+    Real verr;
+    getImpl().getVelocityErrors(s, 1, &verr);
+    return verr;
 }
 
 Real Constraint::ConstantSpeed::getAccelerationError(const State& s) const {
-    Real pvaerr;
-    getImpl().getAccelerationErrors(s, 1, &pvaerr);
-    return pvaerr;
+    Real vaerr;
+    getImpl().getAccelerationErrors(s, 1, &vaerr);
+    return vaerr;
 }
 
 Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {

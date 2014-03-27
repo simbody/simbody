@@ -31,6 +31,105 @@
 namespace SimTK {
 
 //==============================================================================
+//                           HARD STOP UPPER / LOWER
+//==============================================================================
+HardStopUpper::HardStopUpper(MobilizedBody& mobod, MobilizerQIndex whichQ,
+                             Real defaultUpperLimit, Real minCOR)
+:   UnilateralContact(-1), m_mobod(mobod), 
+    m_defaultUpperLimit(defaultUpperLimit), m_minCOR(minCOR)
+{
+    SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
+        "HardStopUpper()", "The coefficient of restitution must be between "
+        "0 and 1 but was %g.", minCOR);
+
+    // Set up the constraint.
+    m_upper = Constraint::ConstantCoordinate(mobod, whichQ, defaultUpperLimit);
+    m_upper.setIsConditional(true);
+    m_upper.setDisabledByDefault(true);
+}
+
+HardStopLower::HardStopLower(MobilizedBody& mobod, MobilizerQIndex whichQ,
+                             Real defaultLowerLimit, Real minCOR)
+:   UnilateralContact(1), m_mobod(mobod), 
+    m_defaultLowerLimit(defaultLowerLimit), m_minCOR(minCOR)
+{
+    SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
+        "HardStopLower()", "The coefficient of restitution must be between "
+        "0 and 1 but was %g.", minCOR);
+
+    // Set up the constraint.
+    m_lower = Constraint::ConstantCoordinate(mobod, whichQ, defaultLowerLimit);
+    m_lower.setIsConditional(true);
+    m_lower.setDisabledByDefault(true);
+}
+
+//------------------------------------------------------------------------------
+//                            WHERE TO DISPLAY
+//------------------------------------------------------------------------------
+Vec3 HardStopUpper::whereToDisplay(const State& state) const {
+    const Transform& X_BM = m_mobod.getOutboardFrame(state);
+    return m_mobod.findStationLocationInGround(state,X_BM.p());
+}
+Vec3 HardStopLower::whereToDisplay(const State& state) const {
+    const Transform& X_BM = m_mobod.getOutboardFrame(state);
+    return m_mobod.findStationLocationInGround(state,X_BM.p());
+}
+
+//------------------------------------------------------------------------------
+//                              GET PERR/VERR/AERR
+//------------------------------------------------------------------------------
+Real HardStopUpper::getPerr(const State& state) const
+{   //return m_upper.getPositionError(state);
+    const MobilizerQIndex whichQ = m_upper.getWhichQ();
+    const Real p = m_upper.getPosition(state);
+    const Real q = m_mobod.getOneQ(state, whichQ);
+    return q - p; // positive when violated (q>p)
+}
+Real HardStopLower::getPerr(const State& state) const
+{   //return m_lower.getPositionError(state);
+    const MobilizerQIndex whichQ = m_lower.getWhichQ();
+    const Real p = m_lower.getPosition(state);
+    const Real q = m_mobod.getOneQ(state, whichQ);
+    return q - p; // negative when violated (q<p)
+}
+Real HardStopUpper::getVerr(const State& state) const
+{   return m_upper.getVelocityError(state); }
+
+Real HardStopLower::getVerr(const State& state) const
+{   return m_lower.getVelocityError(state); }
+
+Real HardStopUpper::getAerr(const State& state) const
+{   return m_upper.getAccelerationError(state); }
+
+Real HardStopLower::getAerr(const State& state) const
+{   return m_lower.getAccelerationError(state); }
+
+//------------------------------------------------------------------------------
+//                    GET CONTACT MULTIPLIER INDEX
+//------------------------------------------------------------------------------
+MultiplierIndex HardStopUpper::
+getContactMultiplierIndex(const State& s) const {
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_upper.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==1 && mv==0 && ma==0); // don't call if not enabled
+    m_upper.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(px0.isValid() && !vx0.isValid() && !ax0.isValid());
+    return px0;
+}
+
+MultiplierIndex HardStopLower::
+getContactMultiplierIndex(const State& s) const {
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_lower.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==1 && mv==0 && ma==0); // don't call if not enabled
+    m_lower.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(px0.isValid() && !vx0.isValid() && !ax0.isValid());
+    return px0;
+}
+
+//==============================================================================
 //                           POINT PLANE CONTACT
 //==============================================================================
 PointPlaneContact::PointPlaneContact
@@ -58,6 +157,7 @@ PointPlaneContact::PointPlaneContact
     // Set up the contact constraint.
     m_ptInPlane = Constraint::PointInPlane
        (planeBodyB, normal_B, height, followerBodyF, point_F);
+    m_ptInPlane.setIsConditional(true);
     m_ptInPlane.setDisabledByDefault(true);
 
     // Create the friction constraints if needed.
@@ -68,6 +168,8 @@ PointPlaneContact::PointPlaneContact
         m_noslipY = Constraint::NoSlip1D
            (m_planeBody, Vec3(0), // we'll change this point later 
             m_frame.y(), m_planeBody, m_follower);
+        m_noslipX.setIsConditional(true);
+        m_noslipY.setIsConditional(true);
         m_noslipX.setDisabledByDefault(true);
         m_noslipY.setDisabledByDefault(true);
     }

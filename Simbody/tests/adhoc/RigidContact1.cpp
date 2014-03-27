@@ -323,6 +323,7 @@ private:
     Force::Gravity          m_gravity;
     Force::GlobalDamper     m_damper;
     MobilizedBody::Planar   m_pencil;
+    MobilizedBody::Pin      m_flapper;
 };
 
 //==============================================================================
@@ -340,9 +341,9 @@ int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
     // Create the augmented multibody model.
-    TimsBox mbs;
+    //TimsBox mbs;
     //BouncingBalls mbs;
-    //Pencil mbs;
+    Pencil mbs;
 
     SemiExplicitEulerTimeStepper sxe(mbs);
     sxe.setDefaultImpactCaptureVelocity(mbs.getCaptureVelocity());
@@ -393,7 +394,7 @@ int main(int argc, char** argv) {
     //sxe.setInducedImpactModel(SemiExplicitEulerTimeStepper::Mixed);
 
     sxe.setMaxInducedImpactsPerStep(1000);
-    //sxe.setMaxInducedImpactsPerStep(1);
+    //sxe.setMaxInducedImpactsPerStep(2);
 
     printf("RestitutionModel: %s, InducedImpactModel: %s (maxIts=%d)\n",
         sxe.getRestitutionModelName(sxe.getRestitutionModel()),
@@ -417,8 +418,8 @@ int main(int argc, char** argv) {
     const double startReal = realTime();
     const double startCPU = cpuTime();
 
-    const Real h = .005;
-    const int SaveEvery = 6; // save every nth step ~= 33ms
+    const Real h = .001;
+    const int SaveEvery = 5; // save every nth step ~= 33ms
 
     do {
         const State& sxeState = sxe.getState();
@@ -839,12 +840,12 @@ Pencil::Pencil() {
     const Real PencilMass = 1;
     const Real PencilRadius = .25;
     const Real PencilHLength = 5;
-    const Real CoefRest = /*1*/.9;
+    const Real CoefRest = 1;
     const Real CaptureVelocity = .001;
     const Real TransitionVelocity = .01;
     //const Real mu_d=10, mu_s=10, mu_v=0;
-    const Real mu_d=1, mu_s=1, mu_v=0;
-    //const Real mu_d=.5, mu_s=.5, mu_v=0;
+    //const Real mu_d=1, mu_s=1, mu_v=0;
+    const Real mu_d=.1, mu_s=.1, mu_v=0;
 
     setDefaultLengthScale(PencilHLength);
 
@@ -887,6 +888,18 @@ Pencil::Pencil() {
     m_pencil = MobilizedBody::Planar
        (Ground, Vec3(0,PencilHLength,0), pencilBody, Vec3(0));
 
+    m_flapper = MobilizedBody::Pin
+       (m_pencil, Vec3(0), 
+        MassProperties(10,Vec3(0),UnitInertia(0)), Vec3(-2,0,0));
+    m_flapper.addBodyDecoration(Vec3(0,0,0), 
+                              DecorativeSphere(0.2).setColor(Red));
+    m_flapper.addBodyDecoration(Vec3(0), DecorativeLine(Vec3(-2,0,0),Vec3(0)));
+    HardStopLower* lower =
+        new HardStopLower(m_flapper, MobilizerQIndex(0), -Pi/6, 1); 
+    matter.adoptUnilateralContact(lower);
+    HardStopUpper* upper =
+        new HardStopUpper(m_flapper, MobilizerQIndex(0), Pi/6, 1); 
+    matter.adoptUnilateralContact(upper);
 
     PointPlaneContact* pc1 =
         new PointPlaneContact(Ground, YAxis, 0.,

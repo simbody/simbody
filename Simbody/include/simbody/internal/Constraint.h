@@ -439,8 +439,15 @@ Real calcPower(const State& state) const;
 // constraints.
 Matrix calcAccelerationConstraintMatrixA(const State&) const;  // ma X nu
 Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
-                  
 
+/** (Advanced) Mark this constraint as one that is only conditionally active.
+The conditions under which it is active must be evaluated elsewhere. This should
+be set immediately after construction of the Constraint and invalidates
+Stage::Topology. **/
+void setIsConditional(bool isConditional);
+/** (Advanced) Get the value of the isConditional flag. **/
+bool isConditional() const;
+                  
 // These are the built-in Constraint types. Types on the same line are
 // synonymous.
 class Rod;  typedef Rod  ConstantDistance;
@@ -452,6 +459,7 @@ class ConstantAngle; // prevent rotation about common normal of two vectors
 class ConstantOrientation; // allows any translation but no rotation
 class NoSlip1D; // same velocity at a point along a direction
 class BallRollingOnPlane; // ball in contact and rolling w/o slip against plane
+class ConstantCoordinate; // prescribe generalized coordinate value
 class ConstantSpeed; // prescribe generalized speed value
 class ConstantAcceleration; // prescribe generalized acceleration value
 class Custom;
@@ -468,6 +476,7 @@ class ConstantAngleImpl;
 class ConstantOrientationImpl;
 class NoSlip1DImpl;
 class BallRollingOnPlaneImpl;
+class ConstantCoordinateImpl;
 class ConstantSpeedImpl;
 class ConstantAccelerationImpl;
 class CustomImpl;
@@ -1192,7 +1201,7 @@ contact, and two nonholonomic (velocity) contraint equations enforcing the
 non-slip condition in the plane. Note that this is a bilateral
 constraint and will push or pull as necessary to keep the sphere in contact
 with the plane, and that rolling is enforced regardless of the amount of
-normal force begin generated. If you want to make this unilateral, you must
+normal force being generated. If you want to make this unilateral, you must
 handle switching it on and off separately; when this constraint is enabled it
 always enforces the contact and no-slip conditions.
 
@@ -1282,6 +1291,109 @@ public:
 };
 
 
+    /////////////////////////
+    // CONSTANT COORDINATE //
+    /////////////////////////
+
+/** Constrain a single mobilizer coordinate q to have a particular value.
+
+Generates one position-level (holonomic) constraint equation. Some generalized 
+coordinate q is required to remain at a particular position value p. This may
+be an angle, a length, or some other unit depending on how the mobilizer is
+defined.
+
+Consider using the lock() or lockAt() feature of mobilizers (see MobilizedBody 
+description) instead of this constraint; if applicable, locking is more 
+efficient since it does not require adding a constraint equation to the system.
+ 
+The assembly condition is the same as the run-time constraint: q must be set
+to position p. 
+@see MobilizedBody::lock(), MobilizedBody::lockAt() **/
+class SimTK_SIMBODY_EXPORT Constraint::ConstantCoordinate : public Constraint {
+public:
+    /** Construct a constant coordinate constraint on a particular generalized
+    coordinate q of the given mobilizer. Provide a default position value to 
+    which the q should be locked; you can change it later via setPosition(). **/
+    ConstantCoordinate(MobilizedBody& mobilizer, MobilizerQIndex whichQ, 
+                       Real defaultPosition);
+
+    /** Construct a constant coordinate constraint on the generalized
+    coordinate q of the given mobilizer, assuming there is only one 
+    coordinate. (Constrains the first coordinate if there are several.) Provide 
+    a default position value to which the q should be locked; you can change it 
+    later via setPosition(). **/
+    ConstantCoordinate(MobilizedBody& mobilizer, Real defaultPosition); 
+    
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantCoordinate Constraint. **/
+    ConstantCoordinate() {}
+
+    /** Return the index of the mobilized body to which this constant coordinate
+    constraint is being applied (to \e one of its coordinates). This is set on
+    construction of the %ConstantCoordinate constraint. **/
+    MobilizedBodyIndex getMobilizedBodyIndex() const;
+
+    /** Return the particular coordinate whose position is controlled by
+    this %ConstantCoordinate constraint. This is set on construction. **/
+    MobilizerQIndex    getWhichQ() const;
+
+    /** Return the default value for the position to be enforced. This is set on
+    construction or via setDefaultPosition(). This is used to initialize the 
+    position when a default State is created, but it can be overriden by 
+    changing the value in the State using setPosition(). **/
+    Real getDefaultPosition() const;
+
+    /** Change the default value for the position to be enforced by this 
+    constraint. This is a topological change, meaning you'll have to call
+    realizeTopology() on the containing System and obtain a new State before
+    you can use it. If you just want to make a runtime change in the State,
+    see setPosition(). **/
+    ConstantCoordinate& setDefaultPosition(Real position);
+
+    /** Override the default position with this one whose value is stored in the
+    given State. This invalidates the Position stage in the state. Don't 
+    confuse this with setDefaultPosition() -- the value set here overrides that
+    one. **/
+    void setPosition(State& state, Real position) const;
+
+    /** Get the current value of the position set point from the indicated 
+    State. This is the value currently in effect, either from the default or 
+    from a previous call to setPosition(). **/
+    Real getPosition(const State& state) const;
+
+    /** Return the amount by which the given State fails to satisfy this
+    %ConstantCoordinate constraint. This is a signed value, q-p where p is
+    the currently effective desired position as returned by getPosition()
+    on this same \a state. The \a state must already be realized 
+    through Stage::Position. **/
+    Real getPositionError(const State& state) const;
+
+    /** Return the amount by which the given State fails to satisfy the time
+    derivative of this %ConstantCoordinate constraint, which should be zero. 
+    This is a signed value equal to the current value of qdot (=d/dt q). The 
+    \a state must already be realized through Stage::Velocity. **/
+    Real getVelocityError(const State& state) const;
+
+    /** Return the amount by which the accelerations in the given State fail
+    to satify the second time derivative of this constraint, which should be 
+    zero. This is a signed value equal to the current value of qdotdot
+    (=d^2/dt^2 q). The \a state must already be realized through 
+    Stage::Acceleration. **/
+    Real getAccelerationError(const State& state) const;
+
+    /** Get the value of the Lagrange multiplier generated to satisfy this
+    constraint. For a %ConstantCoordinate constraint, the multiplier has the
+    same magnitude as the generalized force although by convention constraint 
+    multipliers have the opposite sign from applied forces. The \a state must 
+    already be realized through Stage::Acceleration.**/
+    Real getMultiplier(const State& state) const;
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (ConstantCoordinate, ConstantCoordinateImpl, Constraint);
+    /** @endcond **/
+};
+
     ////////////////////
     // CONSTANT SPEED //
     ////////////////////
@@ -1290,12 +1402,16 @@ public:
 
 One non-holonomic constraint equation. Some mobility u is required to be at a
 particular value s.
+
+Consider using the lock() or lockAt() feature of mobilizers (see MobilizedBody 
+description) instead of this constraint; if applicable, locking is more 
+efficient since it does not require adding a constraint equation to the system.
  
 The assembly condition is the same as the run-time constraint: u must be set
-to s. **/
+to s. 
+@see MobilizedBody::lock(), MobilizedBody::lockAt() **/
 class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint {
 public:
-    // no default constructor
     /** Construct a constant speed constraint on a particular mobility
     of the given mobilizer. **/
     ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
@@ -1304,21 +1420,25 @@ public:
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed); 
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantSpeed Constraint. **/
     ConstantSpeed() {}
 
     /** Return the index of the mobilized body to which this constant speed
     constraint is being applied (to \e one of its mobilities). This is set on
     construction of the %ConstantSpeed constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+
     /** Return the particular mobility whose generalized speed is controlled by
     this %ConstantSpeed constraint. This is set on construction. **/
     MobilizerUIndex    getWhichU() const;
+
     /** Return the default value for the speed to be enforced. This is set on
     construction or via setDefaultSpeed(). This is used to initialize the speed
     when a default State is created, but it can be overriden by changing the
     value in the State using setSpeed(). **/
     Real               getDefaultSpeed() const;
+
     /** Change the default value for the speed to be enforced by this 
     constraint. This is a topological change, meaning you'll have to call
     realizeTopology() on the containing System and obtain a new State before
@@ -1331,6 +1451,7 @@ public:
     confuse this with setDefaultSpeed() -- the value set here overrides that
     one. **/
     void setSpeed(State& state, Real speed) const;
+
     /** Get the current value of the speed set point from the indicated State.
     This is the value currently in effect, either from the default or from a
     previous call to setSpeed(). **/
@@ -1343,17 +1464,17 @@ public:
     Stage::Velocity. **/
     Real getVelocityError(const State& state) const;
 
-    // Stage::Acceleration
     /** Return the amount by which the accelerations in the given State fail
     to satify the time derivative of this constraint (which must be zero). 
     The \a state must already be realized through Stage::Acceleration. **/
     Real getAccelerationError(const State& state) const;
-    /** Get the value of the Lagrange multipler generated to satisfy this
+
+    /** Get the value of the Lagrange multiplier generated to satisfy this
     constraint. For a %ConstantSpeed constraint, that is the same as the
     generalized force although by convention constraint multipliers have the
     opposite sign from applied forces. The \a state must already be realized 
     through Stage::Acceleration.**/
-    Real getMultiplier(const State&) const;
+    Real getMultiplier(const State& state) const;
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
@@ -1370,37 +1491,46 @@ public:
 One acceleration-only constraint equation. Some generalized acceleration
 udot is required to be at a particular value a.
 
+Consider using the lock() feature of mobilizers (see MobilizedBody description)
+instead of this constraint; if applicable, locking is more efficient since it 
+does not require adding a constraint equation to the system.
+
 There is no assembly condition because this does not involve state
-variables q or u, just u's time derivative udot. **/
+variables q or u, just u's time derivative udot. 
+@see MobilizedBody::lock() **/
 class SimTK_SIMBODY_EXPORT Constraint::ConstantAcceleration : public Constraint
 {
 public:
-    // no default constructor
     /** Construct a constant acceleration constraint on a particular mobility
     of the given mobilizer. **/
     ConstantAcceleration(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
                          Real defaultAcceleration);
+
     /** Construct a constant acceleration constraint on the mobility
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantAcceleration(MobilizedBody& mobilizer, 
                          Real defaultAcceleration);
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantAcceleration Constraint. **/
     ConstantAcceleration() {}
 
     /** Return the index of the mobilized body to which this constant 
     acceleration constraint is being applied (to \e one of its mobilities). 
     This is set on construction of the %ConstantAcceleration constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+
     /** Return the particular mobility whose generalized acceleration is 
     controlled by this %ConstantAcceleration constraint. This is set on 
     construction. **/
     MobilizerUIndex    getWhichU() const;
+
     /** Return the default value for the acceleration to be enforced. This is 
     set on construction or via setDefaultAcceleration(). This is used to 
     initialize the acceleration when a default State is created, but it can be 
     overriden by changing the value in the State using setAcceleration(). **/
     Real               getDefaultAcceleration() const;
+
     /** Change the default value for the acceleration to be enforced by this 
     constraint. This is a topological change, meaning you'll have to call
     realizeTopology() on the containing System and obtain a new State before
@@ -1413,6 +1543,7 @@ public:
     Don't confuse this with setDefaultAcceleration() -- the value set here 
     overrides that one. **/
     void setAcceleration(State& state, Real accel) const;
+
     /** Get the current value of the acceleration set point from the indicated 
     State. This is the value currently in effect, either from the default or 
     from a previous call to setAcceleration(). **/
@@ -1420,11 +1551,11 @@ public:
 
     // no position or velocity error
 
-    // Stage::Acceleration
     /** Return the amount by which the accelerations in the given State fail
     to satify this constraint. The \a state must already be realized through 
     Stage::Acceleration. **/
     Real getAccelerationError(const State&) const;
+
     /** Get the value of the Lagrange multipler generated to satisfy this
     constraint. For a %ConstantAcceleration constraint, that is the same as the
     generalized force although by convention constraint multipliers have the

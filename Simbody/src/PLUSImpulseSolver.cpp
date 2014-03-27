@@ -931,6 +931,76 @@ classifyFrictionals(Array_<UniContactRT>& uniContact) const {
 }
 
 //------------------------------------------------------------------------------
+//                            FILL MULT 2 ACTIVE
+//------------------------------------------------------------------------------
+// mult2active must already have been resized to size of A
+void PLUSImpulseSolver::
+fillMult2Active(const Array_<MultiplierIndex,ActiveIndex>& active,
+                Array_<ActiveIndex,MultiplierIndex>& mult2active) const
+{
+    const int p = active.size();
+    mult2active.fill(ActiveIndex()); // invalid
+    for (ActiveIndex aj(0); aj < p; ++aj) {
+        const MultiplierIndex mj = active[aj];
+        mult2active[mj] = aj;
+    }
+    #ifndef NDEBUG
+    printf("fillMult2Active:\n");
+    cout << ": active=" << active << endl;
+    cout << ": mult2active=" << mult2active << endl;
+    #endif
+}
+
+//------------------------------------------------------------------------------
+//                             INITIALIZE NEWTON
+//------------------------------------------------------------------------------
+// Initialize for a Newton iteration. Fill in the part of the Jacobian
+// corresponding to linear equations since those won't change. Transfer
+// previous impulses pi to new piActive. Assumes m_active and m_mult2active
+// have been filled in.
+void PLUSImpulseSolver::
+initializeNewton(const Matrix& A, const Vector& pi, // m of these 
+                 const Array_<UniContactRT>& uniContact) const { 
+    const int na = m_active.size();
+    m_JacActive.resize(na,na); m_rhsActive.resize(na); m_piActive.resize(na);
+    m_errActive.resize(na);
+    for (ActiveIndex aj(0); aj < na; ++aj) {
+        const MultiplierIndex mj = m_active[aj];
+        for (ActiveIndex ai(0); ai < na; ++ai) {
+            const MultiplierIndex mi = m_active[ai];
+            m_JacActive(ai,aj) = A(mi,mj);
+        }
+        m_rhsActive[aj] = m_verrLeft[mj] - m_verrExpand[mj];
+        m_piActive[aj]  = pi[mj];
+    }
+    // For impacters, guess a small separating impulse. This improves
+    // convergence because it puts the max() terms in the Jacobian on
+    // the right branch.
+    for (unsigned k=0; k < uniContact.size(); ++k) {
+        const UniContactRT& rt = uniContact[k];
+        if (rt.m_contactCond != UniActive)
+            continue;
+
+        const MultiplierIndex mz = rt.m_Nk;
+        const ActiveIndex az = m_mult2active[mz];
+        assert(az.isValid());
+        // Don't use rt.m_sign here because it affects both pi & rhs; we just
+        // want the signs to match.
+        m_piActive[az] = .01*sign(m_rhsActive[az]); //-1,0,1
+        SimTK_DEBUG3("  active normal %d has v=%g; guess pi=%g\n",
+                    (int)az,m_rhsActive[az],m_piActive[az]);
+    }
+    #ifndef NDEBUG
+    printf("initializeNewton:\n");
+    cout << ": verrLeft was=" << m_verrLeft << endl;
+    cout << ": verrExpand was=" << m_verrExpand << endl;
+    cout << ": rhsActive=" << m_rhsActive << endl;
+    cout << ": pi was=" << pi << endl;
+    cout << ": piActive=" << m_piActive << endl;
+    #endif
+}
+
+//------------------------------------------------------------------------------
 //                  UPDATE DIRECTIONS AND CALC CURRENT ERROR
 //------------------------------------------------------------------------------
 // Calculate err(pi). For Impending slip frictional contacts we also revise
@@ -982,107 +1052,52 @@ updateDirectionsAndCalcCurrentError
         const ActiveIndex ax=m_mult2active[mx], ay=m_mult2active[my], 
                           az=m_mult2active[mz];
         const Real pix = piActive[ax], piy=piActive[ay];
-        const Real pizE = piELeft[mz];
 
+        // Applying the sign here makes sure pizE is negative.
+        const Real pizE = rt.m_sign*piELeft[mz];
+
+        // The slipping or impending slip equation is
+        //     f = - mu N v/|v|
+        // where v is the slip velocity or impending slip velocity (above), and
+        // f is the tangential friction force vector, and N>=0 is the magnitude
+        // of the normal force. Our convention for multipliers is opposite
+        // applied forces, so we have
+        //    -pi_xy = - mu (-piz) v/|v|
+        // ==> pi_xy = - mu piz v/|v|
+        // ==> |v| pi_xy + mu piz v = 0
+        // We write the two error functions like this:
+        //     errx=|v|pi_x + mu*vx*[piE+min(pi_z,0)] 
+        //     erry=|v|pi_y + mu*vy*[piE+min(pi_z,0)] 
+
+        // Calculate the terms common to Active and Known contacts.
         errActive[ax] = rt.m_slipMag*pix + mu*rt.m_slipVel[0]*pizE;
         errActive[ay] = rt.m_slipMag*piy + mu*rt.m_slipVel[1]*pizE;
-        if (rt.m_contactCond == UniActive) { // normal is active
+
+        // Add in the additional term for Active contacts.
+        if (rt.m_contactCond == UniActive) {
             const ActiveIndex az=m_mult2active[mz];
             assert(az.isValid());
-            const Real piz=piActive[az];
-            // errx=|v|pi_x + mu*vx*[piE+min(pi_z,0)]   [erry similar]
-            // But we calculate the Jacobian as though the equation were:
-            // errx=|v|pi_x + mu*vx*[piE+softmin0(pi_z)] 
+            // Applying the sign here makes piz negative if it represents a 
+            // valid "pushing" force.
+            const Real piz=rt.m_sign*piActive[az];
             const Real minz = std::min(piz, Real(0));
-            //const Real minz = softmin0(piz, m_minSmoothness);
-
             errActive[ax] += mu*rt.m_slipVel[0]*minz;
             errActive[ay] += mu*rt.m_slipVel[1]*minz;
         }
     }
-    //cout << "updateDirectionsAndCalcCurrentError():" << endl;
-    //cout << ":    pi=" << piActive << endl;
-    //cout << ": ->err=" << errActive << endl;
 }
 
-//------------------------------------------------------------------------------
-//                            FILL MULT 2 ACTIVE
-//------------------------------------------------------------------------------
-// mult2active must already have been resized to size of A
-void PLUSImpulseSolver::
-fillMult2Active(const Array_<MultiplierIndex,ActiveIndex>& active,
-                Array_<ActiveIndex,MultiplierIndex>& mult2active) const
-{
-    const int p = active.size();
-    mult2active.fill(ActiveIndex()); // invalid
-    for (ActiveIndex aj(0); aj < p; ++aj) {
-        const MultiplierIndex mj = active[aj];
-        mult2active[mj] = aj;
-    }
-    #ifndef NDEBUG
-    printf("fillMult2Active:\n");
-    cout << ": active=" << active << endl;
-    cout << ": mult2active=" << mult2active << endl;
-    #endif
-}
-
-//------------------------------------------------------------------------------
-//                             INITIALIZE NEWTON
-//------------------------------------------------------------------------------
-// Initialize for a Newton iteration. Fill in the part of the Jacobian
-// corresponding to linear equations since those won't change. Transfer
-// previous impulses pi to new piActive. Assumes m_active and m_mult2active
-// have been filled in.
-void PLUSImpulseSolver::
-initializeNewton(const Matrix& A, const Vector& pi, // m of these 
-                 const Array_<UniContactRT>& uniContact) const { 
-    const int na = m_active.size();
-    m_JacActive.resize(na,na); m_rhsActive.resize(na); m_piActive.resize(na);
-    m_errActive.resize(na);
-    for (ActiveIndex aj(0); aj < na; ++aj) {
-        const MultiplierIndex mj = m_active[aj];
-        for (ActiveIndex ai(0); ai < na; ++ai) {
-            const MultiplierIndex mi = m_active[ai];
-            m_JacActive(ai,aj) = A(mi,mj);
-        }
-        m_rhsActive[aj] = m_verrLeft[mj] - m_verrExpand[mj];
-        m_piActive[aj]  = pi[mj];
-    }
-    // For impacters, guess a small separating impulse. This improves
-    // convergence because it puts the max() terms in the Jacobian on
-    // the right branch.
-    // TODO: should only do this for unilateral contacts, not general
-    // bounded constraints.
-    for (unsigned k=0; k < uniContact.size(); ++k) {
-        const UniContactRT& rt = uniContact[k];
-        if (rt.m_contactCond != UniActive)
-            continue;
-
-        const MultiplierIndex mx = rt.m_Nk;
-        const ActiveIndex ax = m_mult2active[mx];
-        assert(ax.isValid());
-        m_piActive[ax] = .01*sign(m_rhsActive[ax]); //-1,0,1
-        SimTK_DEBUG3("  active normal %d has v=%g; guess pi=%g\n",
-                    (int)ax,m_rhsActive[ax],m_piActive[ax]);
-    }
-    #ifndef NDEBUG
-    printf("initializeNewton:\n");
-    cout << ": verrLeft was=" << m_verrLeft << endl;
-    cout << ": verrExpand was=" << m_verrExpand << endl;
-    cout << ": rhsActive=" << m_rhsActive << endl;
-    cout << ": pi was=" << pi << endl;
-    cout << ": piActive=" << m_piActive << endl;
-    #endif
-
-}
 
 //------------------------------------------------------------------------------
 //                       UDPATE JACOBIAN FOR SLIDING
 //------------------------------------------------------------------------------
-// Calculate Jacobian J= D err(pi) / D pi (see above for err(pi)). All rows
-// of J corresponding to linear equations have already been filled in since
-// they can't change during the iteration. Only sliding and impending friction
-// rows are potentially nonlinear.
+// Calculate Jacobian 
+//      J= D err(pi) / D pi
+// See updateDirectionsAndCalcCurrentError() for err(pi). All rows of J 
+// corresponding to linear equations, including rolling constraints, have 
+// already been filled in since they can't change during the iteration. Only 
+// sliding and impending friction rows are potentially nonlinear and thus
+// subject to change during the Newton iterations.
 void PLUSImpulseSolver::
 updateJacobianForSliding(const Matrix& A,
                          const Array_<UniContactRT>& uniContact,
@@ -1116,19 +1131,22 @@ updateJacobianForSliding(const Matrix& A,
             // Calculate terms for derivative of norm(d) w.r.t. pi.
             const RowVectorView Ax = A[mx], Ay = A[my];
             const MultiplierIndex mz = rt.m_Nk;
-            const Real pizE = piELeft[mz];
+            const Real pizE = rt.m_sign*piELeft[mz];
 
             if (rt.m_contactCond==UniActive) { // Impending normal is active
                 const ActiveIndex az=m_mult2active[mz];
                 assert(az.isValid());
-                const Real piz=m_piActive[az], Axz=Ax(mz), Ayz=Ay(mz);
+                const Real piz=rt.m_sign*m_piActive[az];
+                const Real Axz=Ax(mz), Ayz=Ay(mz);
                 const Real minz  = softmin0(piz, m_minSmoothness);
                 const Real dminz = dsoftmin0(piz, m_minSmoothness);
                 // errx=|d|pix + dx*mu*(pizE+softmin0(piz))   [erry similar]
-                // d/dpix errx = s*pix^2   + mu*Axx*(pizE+softmin0(piz)) + |d|
-                // d/dpiz errx = s*piz*pix + mu*Axz*(pizE+softmin0(piz))
+                // d/dpii errx = s*pix + mu*Axi*(pizE+softmin0(piz)), i!=x,z
+                // d/dpix errx = s*pix + mu*Axx*(pizE+softmin0(piz)) + |d|
+                // d/dpiz errx = s*pix + mu*Axz*(pizE+softmin0(piz))
                 //                                       + mu*dx*dsoftmin0(piz)
-                // d/dpii errx = s*pii*pix + mu*Axi*(pizE+softmin0(piz))
+                // where s = dot(d/|d|, [Axi Ayi]).
+
                 // Fill in generic terms for unrelated constraints (not x,y,z)
                 for (ActiveIndex ai(0); ai<m_active.size(); ++ai) {
                     const MultiplierIndex mi = m_active[ai];
@@ -1144,11 +1162,13 @@ updateJacobianForSliding(const Matrix& A,
                 m_JacActive(ax,az) += mu*d[0]*dminz;    // d errx / dz
                 m_JacActive(ay,az) += mu*d[1]*dminz;    // d erry / dz
 
-            } else { // Impending normal is an expander
+            } else { // Impending normal is an expander; piz is not variable
                 assert(rt.m_contactCond==UniKnown);
                 // errx=|d|pix + dx*mu*pizE   [erry similar]
-                // d/dpix errx = s*pix^2   + mu*Axx*pizE + |d|
-                // d/dpii errx = s*pii*pix + mu*Axi*pizE, for i != x
+                // d/dpii errx = s*pix + mu*Axi*pizE, for i != x
+                // d/dpix errx = s*pix + mu*Axx*pizE + |d|
+                // where s = dot(d/|d|, [Axi Ayi]).
+
                 // Fill in generic terms for unrelated constraints (not x,y)
                 for (ActiveIndex ai(0); ai<m_active.size(); ++ai) {
                     const MultiplierIndex mi = m_active[ai];
@@ -1168,9 +1188,9 @@ updateJacobianForSliding(const Matrix& A,
                 const ActiveIndex az=m_mult2active[rt.m_Nk];
                 assert(az.isValid());
                 const Real piz=m_piActive[az];
-                // errx=|v|pi_x + mu*vx*softmin0(piz)   [erry similar]
-                // d/dpi_x errx = |v|
-                // d/dpi_z errx = mu*vx*dsoftmin0(piz)
+                // errx=|d|pi_x + mu*dx*softmin0(piz)   [erry similar]
+                // d/dpi_x errx = |d|
+                // d/dpi_z errx = mu*dx*dsoftmin0(piz)
                 const Real dminz = dsoftmin0(piz, m_minSmoothness);
                 m_JacActive(ax,az) = mu*d[0]*dminz;
                 m_JacActive(ay,az) = mu*d[1]*dminz;
@@ -1184,7 +1204,6 @@ updateJacobianForSliding(const Matrix& A,
         //cout << m_JacActive;
     }
     // Calculate Jacobian numerically.
-    //TODO: TURN THIS OFF!!!
     Array_<UniContactRT> uniContactTmp = uniContact;
     Vector piActive = m_piActive;
     Vector errActive0, errActive1;

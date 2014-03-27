@@ -599,7 +599,7 @@ classifyUnilateralContactsForSequentialImpact
         // We're using 1/10 of constraint tol as the cutoff.
         // Don't use zero, or you'll loop forever due to roundoff!
         // Also, if we're only doing expanders then everyone else is observing.
-        if (expansionOnly || verr[mz] >= (Real(-0.1))*m_consTol) {
+        if (expansionOnly || rt.m_sign*verr[mz] >= (Real(-0.1))*m_consTol) {
             if (includeAllProximals) {
                 rt.m_type = ImpulseSolver::Participating;
                 if (rt.hasFriction()) // but friction still participates
@@ -662,7 +662,7 @@ classifyUnilateralContactsForSimultaneousImpact
             rt.m_type = ImpulseSolver::Known; // normal does not participate
             expanders.push_back(i);  // uni contact index
             expanding.push_back(mz); // multiplier index
-        } else if (verr[mz] >= (Real(-0.1))*m_consTol) {
+        } else if (rt.m_sign*verr[mz] >= (Real(-0.1))*m_consTol) {
             // Observe even if we're slightly (but insignificantly) negative.
             // We're using 1/10 of constraint tol as the cutoff.
             // Don't use zero, or you'll loop forever due to roundoff!
@@ -880,6 +880,7 @@ collectConstraintInfo(const State& s) { //TODO: redo
         const UnilateralContact& contact = matter.getUnilateralContact(cx);
         m_uniContact.push_back(); // default constructed
         ImpulseSolver::UniContactRT& rt = m_uniContact.back();
+        rt.m_sign = (Real)contact.getSignConvention();
         rt.m_ucx = cx;
         rt.m_Nk = contact.getContactMultiplierIndex(s);
         m_allParticipating.push_back(rt.m_Nk);
@@ -1006,8 +1007,8 @@ calcCoefficientsOfRestitution(const State& s, const Vector& verr,
     // TODO: only need this for participating contacts.
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
         ImpulseSolver::UniContactRT& rt = m_uniContact[i];
-        Real impactVel = verr[rt.m_Nk];
-        if (impactVel > 0) { //TODO: sign
+        Real impactVel = rt.m_sign*verr[rt.m_Nk];
+        if (impactVel > 0) {
             rt.m_effCOR = 0; // separating
             continue;
         }

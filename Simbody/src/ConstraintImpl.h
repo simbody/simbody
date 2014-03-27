@@ -59,7 +59,7 @@ public:
 ConstraintImpl()
     : myMatterSubsystemRep(0), 
     defaultMp(0), defaultMv(0), defaultMa(0), defaultDisabled(false),
-    myAncestorBodyIsNotGround(false)
+    constraintIsConditional(false), myAncestorBodyIsNotGround(false)
 {
 }
 virtual ~ConstraintImpl() { }
@@ -68,7 +68,7 @@ virtual ConstraintImpl* clone() const = 0;
 ConstraintImpl(int mp, int mv, int ma)
     : myMatterSubsystemRep(0), 
     defaultMp(mp), defaultMv(mv), defaultMa(ma), defaultDisabled(false),
-    myAncestorBodyIsNotGround(false)
+    constraintIsConditional(false), myAncestorBodyIsNotGround(false)
 {
 }
 
@@ -97,6 +97,13 @@ bool isDisabledByDefault() const {
 
 void setDisabled(State& s, bool shouldBeDisabled) const ;
 bool isDisabled(const State& s) const;
+
+void setIsConditional(bool isConditional) {
+    invalidateTopologyCache();
+    constraintIsConditional = isConditional;
+}
+
+bool isConditional() const {return constraintIsConditional;}
 
 typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex>       
     MobilizedBody2ConstrainedBodyMap;
@@ -1106,6 +1113,13 @@ int defaultMp, defaultMv, defaultMa;
 // This says whether the Model-stage "disabled" flag for this Constraint should
 // be initially on or off. Most constraints are enabled by default.
 bool defaultDisabled;
+
+// ConditionalConstraints set this flag when they add a constraint to the
+// system. It can be referenced by a time stepper to determine whether to
+// treat a constraint as unconditional (in which case someone else has to 
+// figure out whether it is active). This flag doesn't affect the operation of
+// the Constraint object itself; it is just stored and reported.
+bool constraintIsConditional;
 
     // TOPOLOGY "CACHE"
 
@@ -2685,6 +2699,111 @@ Real                    planeHalfWidth;
 };
 
 
+//==============================================================================
+//                        CONSTANT COORDINATE IMPL
+//==============================================================================
+class Constraint::ConstantCoordinateImpl : public ConstraintImpl {
+public:
+ConstantCoordinateImpl()
+:   ConstraintImpl(1,0,0), theMobilizer(), whichCoordinate(), 
+    defaultPosition(NaN){}
+
+ConstantCoordinateImpl* clone() const 
+{   return new ConstantCoordinateImpl(*this); }
+
+// Allocate a state variable to hold the desired position.
+void realizeTopologyVirtual(State& state) const;
+// Obtain the currently-set desired position from the state.
+Real getPosition(const State& state) const;
+// Get a reference to the desired position in the state; this 
+// invalidates Position stage in the supplied state.
+Real& updPosition(State& state) const;
+
+// Implementation of virtuals required for holonomic constraints.
+
+// One holonomic constraint equation.
+//    perr = q - p
+//    verr = qdot
+//    aerr = qdotdot
+// 
+void calcPositionErrorsVirtual      
+   (const State&                                    s, // Stage::Time
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr)  // mp of these
+    const OVERRIDE_11
+{
+    // All the q's for a given constrained mobilizer are considered 
+    // constrainedQ's, but we're just going to grab one of them.
+    assert(X_AB.size()==0 && constrainedQ.size()>=1 && perr.size()==1);
+    const Real q = getOneQ(s, constrainedQ, theMobilizer, whichCoordinate);
+    perr[0] = q - getPosition(s);
+}
+
+void calcPositionDotErrorsVirtual      
+   (const State&                                    s, // Stage::Position
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr) // mp of these
+    const OVERRIDE_11
+{
+    // All the q's for a given constrained mobilizer are considered 
+    // constrainedQDots's, but we're just going to grab one of them.
+    assert(V_AB.size()==0 && constrainedQDot.size()>=1 && pverr.size()==1);
+    const Real qdot = getOneQDot(s, constrainedQDot, 
+                                 theMobilizer, whichCoordinate);
+    pverr[0] = qdot;
+}
+
+// Pull t, X_AB, q, V_AB, qdot from state.
+void calcPositionDotDotErrorsVirtual      
+   (const State&                                    s, // Stage::Velocity
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr) // mp of these
+    const OVERRIDE_11
+{
+    // All the q's for a given constrained mobilizer are considered 
+    // constrainedQDotDots's, but we're just going to grab one of them.
+    assert(A_AB.size()==0 && constrainedQDotDot.size()>=1 && paerr.size()==1);
+    const Real qdotdot = getOneQDotDot(s, constrainedQDotDot, 
+                                       theMobilizer, whichCoordinate);
+    paerr[0] = qdotdot;
+}
+
+// apply generalized force lambda to the mobility
+void addInPositionConstraintForcesVirtual
+   (const State&                                    s, // Stage::Position
+    const Array_<Real>&                             multipliers, // mp of these
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
+    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    const OVERRIDE_11
+{
+   // All the coordinates for a given constrained mobilizer have slots in
+   // qForces, but we're just going to update one of them.
+   assert(multipliers.size()==1 && bodyForcesInA.size()==0 
+          && qForces.size()>=1);
+
+    const Real lambda = multipliers[0];
+    addInOneQForce(s, theMobilizer, whichCoordinate, lambda, qForces); 
+}
+
+SimTK_DOWNCAST(ConstantCoordinateImpl, ConstraintImpl);
+//------------------------------------------------------------------------------
+                                    private:
+friend class Constraint::ConstantCoordinate;
+
+// TOPOLOGY STATE
+ConstrainedMobilizerIndex   theMobilizer;
+MobilizerQIndex             whichCoordinate;
+Real                        defaultPosition;
+
+// TOPOLOGY CACHE
+DiscreteVariableIndex       positionIx;
+};
+
+
+
 
 //==============================================================================
 //                          CONSTANT SPEED IMPL
@@ -2717,7 +2836,7 @@ void calcVelocityErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
-    const
+    const OVERRIDE_11
 {
     // All the u's for a given constrained mobilizer are considered 
     // constrainedU's, but we're just going to grab one of them.
@@ -2731,7 +2850,7 @@ void calcVelocityDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
-    const
+    const OVERRIDE_11
 {
     // All the u's for a given constrained mobilizer are considered 
     // constrainedUDots's, but we're just going to grab one of them.
@@ -2743,10 +2862,10 @@ void calcVelocityDotErrorsVirtual
 
 // apply generalized force lambda to the mobility
 void addInVelocityConstraintForcesVirtual
-   (const State&                                    s,      // Stage::Velocity
-    const Array_<Real>&                             multipliers, // mv of these
-    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) const
+   (const State&                              s,      // Stage::Velocity
+    const Array_<Real>&                       multipliers, // mv of these
+    Array_<SpatialVec,ConstrainedBodyIndex>&  bodyForcesInA,
+    Array_<Real,      ConstrainedUIndex>&     mobilityForces) const OVERRIDE_11
 {
    // All the mobilities for a given constrained mobilizer have slots in
    // mobilizedForces, but we're just going to update one of them.
