@@ -85,7 +85,7 @@ class StateLimitedFriction;
 //==============================================================================
 //                       UNILATERAL CONTACT CONSTRAINT
 //==============================================================================
-/** (Experimental -- API will change) 
+/** (Experimental -- API will change -- use at your own risk) 
 A unilateral contact constraint uses a single holonomic (position) 
 constraint equation to prevent motion in one direction while leaving it 
 unrestricted in the other direction. Examples are surface-surface contact, joint
@@ -124,6 +124,8 @@ public:
     later. See the class documentation for more information. **/
     explicit UnilateralContact(int sign=1) : m_sign((Real)sign) 
     {   assert(sign==1 || sign==-1); }
+
+    virtual ~UnilateralContact() {}
 
     /** Report the sign convention (1 or -1) supplied at construction. **/
     Real getSignConvention() const {return m_sign;}
@@ -325,7 +327,8 @@ private:
 //==============================================================================
 //                              HARD STOP UPPER
 //==============================================================================
-/** Set a hard limit on the maximum value of a generalized coordinate q. A
+/** (Experimental -- API will change -- use at your own risk) 
+Set a hard limit on the maximum value of a generalized coordinate q. A
 generalized force opposes further excursion of the coordinate, and a generalized
 impulse is produced when the stop is hit with a non-zero velocity (an impact).
 A coefficient of restitution (COR) e, with 0<=e<=1 is specified that 
@@ -382,7 +385,8 @@ private:
 //==============================================================================
 //                              HARD STOP LOWER
 //==============================================================================
-/** Set a hard limit on the minimum value of a generalized coordinate q. A
+/** (Experimental -- API will change -- use at your own risk) 
+Set a hard limit on the minimum value of a generalized coordinate q. A
 generalized force opposes further excursion of the coordinate, and a generalized
 impulse is produced when the stop is hit with a non-zero velocity (an impact).
 A coefficient of restitution (COR) e, with 0<=e<=1 is specified that 
@@ -438,6 +442,11 @@ private:
 //==============================================================================
 //                          POINT PLANE CONTACT
 //==============================================================================
+/** (Experimental -- API will change -- use at your own risk) 
+Define a point on one body that cannot penetrate a plane attached to another
+body. The resulting contact is parameterized by a coefficient of restitution
+for impacts in the plane normal direction, and by coefficients of friction
+for frictional forces in the plane. **/
 class SimTK_SIMBODY_EXPORT PointPlaneContact : public UnilateralContact {
 public:
     PointPlaneContact(
