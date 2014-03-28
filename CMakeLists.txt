@@ -303,7 +303,7 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
         if using GCC or Clang." ON)
 
     IF(${SIMBODY_STANDARD_11})
-        LIST(APPEND CMAKE_CXX_FLAGS " -std=c++11")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     ENDIF()
 
     if (inst_set_to_use)
