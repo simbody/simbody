@@ -14,7 +14,7 @@ script:
   # First, using c++03.
   # Specify that we do not use 11, since
   # the default for this variable may change soon.
-  - cmake . -DBUILD_EXAMPLES=ON -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=OFF
+  - cmake . -DBUILD_EXAMPLES=ON -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=OFF -DCMAKE_CXX_FLAGS=-Werror
   # Check which compiler and compiler version we're using.
   - make -j8
   - ctest -j8 
