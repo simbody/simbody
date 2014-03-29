@@ -63,6 +63,10 @@ locomotion control." ACM Transactions on Graphics (TOG). Vol. 26. No. 3. ACM,
 
 */
 
+// Interval for updating the SIMBICON state (not same as SimTK State) of the
+// Biped.
+#define SIMBICON_STATE_UPDATE_STEPSIZE 0.0005
+
 #include "Simbody.h"
 
 using namespace SimTK;
@@ -76,7 +80,7 @@ using namespace SimTK;
 class Biped : public MultibodySystem {
 public:
     Biped() 
-        : m_matter(*this), m_forces(*this) {}
+    :   m_matter(*this), m_forces(*this) {}
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const {return m_matter;}
     SimbodyMatterSubsystem& updMatterSubsystem() {return m_matter;}
@@ -94,8 +98,13 @@ public:
 /// The actual controller that specifies the torques to apply to the Biped.
 class SIMBICON : public Force::Custom::Implementation {
 public:
-    SIMBICON(const Biped& biped)
-        : m_biped(biped) {}
+    SIMBICON(Biped& biped)
+    :   m_biped(biped)
+    {
+        m_biped.addEventHandler(
+                new SIMBICONStateHandler(biped, *this,
+                    SIMBICON_STATE_UPDATE_STEPSIZE));
+    }
     void calcForce(const State&         state, 
                    Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>&       particleForces, 
@@ -109,8 +118,25 @@ public:
     {
         return 0;
     }
+
+    /// Updates the SIMBICON state of biped for the finite state machine.
+    class SIMBICONStateHandler : public PeriodicEventHandler {
+    public:
+        SIMBICONStateHandler(Biped& biped,
+                             SIMBICON&    simbicon,
+                             Real         interval)
+        :   PeriodicEventHandler(interval),
+            m_biped(biped), m_simbicon(simbicon) {}
+        void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
+        {
+            // TODO
+        }
+    private:
+        Biped& m_biped;
+        SIMBICON& m_simbicon;
+    };
 private:
-    const Biped& m_biped;
+    Biped& m_biped;
 };
 
 //==============================================================================
@@ -121,7 +147,7 @@ private:
 class OutputReporter : public PeriodicEventReporter {
 public:
     OutputReporter(const Biped& biped, Real interval)
-        : PeriodicEventReporter(interval), m_biped(biped) {}
+    :   PeriodicEventReporter(interval), m_biped(biped) {}
 
     void handleEvent(const State& state) const OVERRIDE_11
     {
@@ -143,6 +169,7 @@ int main(int argc, char **argv)
     // Add controller to the force system. See Doxygen for Force::Custom.
     // The name of this Force is irrelevant.
     Force::Custom simbicon1(biped.updForceSubsystem(), new SIMBICON(biped));
+
 	return 0; 
 }
 
@@ -156,4 +183,5 @@ int main(int argc, char **argv)
 
 
 
-
+// TODO Make SIMBICONSTATEHANDLER not periodic, but triggered upon collisions?
+// TODO make biped const within Simbicon?
