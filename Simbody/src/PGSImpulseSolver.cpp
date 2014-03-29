@@ -344,7 +344,7 @@ solve(int                                 phase,
     #endif
 
     if (p == 0) {
-        printf("PGS %d: nothing to do; converged in 0 iters.\n", phase);
+        SimTK_DEBUG1("PGS %d: nothing to do; converged in 0 iters.\n", phase);
         // Returning pi=0; can still have piExpand!=0 so verr is updated.
         return true;
     }
@@ -475,7 +475,7 @@ solve(int                                 phase,
     }
 
     if (!converged) {
-        printf("PGS %d CONVERGENCE FAILURE: %d iters -> norm=%g\n",
+        SimTK_DEBUG3("PGS %d CONVERGENCE FAILURE: %d iters -> norm=%g\n",
                phase, its, normRMSenf);
         ++m_nFail[phase];
     }
@@ -572,7 +572,7 @@ solveBilateral
     }
 
     if (!converged) {
-        printf("BILATERAL PGS CONVERGENCE FAILURE: %d iters -> norm=%g\n",
+        SimTK_DEBUG2("BILATERAL PGS CONVERGENCE FAILURE: %d iters -> norm=%g\n",
               its, normRMSenf);
         ++m_nBilateralFail;
     }
