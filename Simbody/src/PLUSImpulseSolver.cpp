@@ -303,6 +303,7 @@ solve(int                                 phase,
                 #ifndef NDEBUG
                 printf("> NEWTON iter %d: errNorm=%g(v) -> deltaNorm=%g(pi)\n", 
                        newtIter, errNorm, dpi.norm());
+                cout << "> JacActive=" << m_JacActive;
                 cout << "> piActive=" << m_piActive << endl;
                 cout << "> errActive=" << m_errActive << endl;
                 cout << "> deltaPi=" << dpi << endl;
@@ -1221,6 +1222,7 @@ updateJacobianForSliding(const Matrix& A,
     }
     //cout << "JacErr=" << m_JacActive-numJac;
     cout << "Jacobian num vs. analytic norm=" << (m_JacActive-numJac).norm() << endl;
+    //cout << "USING NUMERICAL JAC\n"; m_JacActive = numJac;
     #endif
 }
 

@@ -2244,12 +2244,12 @@ quantities:
     Vector_<SpatialVec> forcesAtFInG(nb); // to hold the result
     forcesAtFInG[0] = -forcesAtMInG[0]; // Ground is "welded" at origin
     for (MobilizedBodyIndex i(1); i < nb; ++i) {
-        const MobilizedBody& body   = matter.getMobilizedBody(i);
-        const MobilizedBody& parent = body.getParentMobilizedBody();
+        const MobilizedBody& mobod  = matter.getMobilizedBody(i);
+        const MobilizedBody& parent = mobod.getParentMobilizedBody();
         // Want to shift reaction by p_MF, the vector from M to F across the
         // mobilizer, and negate. Can get p_FM; must reexpress in G.
-        const Vec3& p_FM = body.getMobilizerTransform(state).p();
-        const Rotation& R_PF = body.getInboardFrame(state).R(); // In parent.
+        const Vec3& p_FM = mobod.getMobilizerTransform(state).p();
+        const Rotation& R_PF = mobod.getInboardFrame(state).R(); // In parent.
         const Rotation& R_GP = parent.getBodyTransform(state).R();
         Rotation R_GF   =   R_GP*R_PF;  // F frame orientation in Ground.
         Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector. 

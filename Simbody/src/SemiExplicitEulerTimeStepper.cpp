@@ -26,6 +26,8 @@
 #include "simbody/internal/ConditionalConstraint.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 
+#include "SimbodyMatterSubsystemRep.h"
+
 #include <iostream>
 using std::cout; using std::endl;
 
@@ -93,7 +95,6 @@ stepTo(Real time) {
     collectConstraintInfo(s);
 
     mbs.realize(s, Stage::Velocity);
-    const Vector u0 = s.getU(); // save
 
     // Note that verr0 is a reference into State s so if we update the
     // velocities in s and realize them, verr0 will also be updated.
@@ -119,28 +120,26 @@ stepTo(Real time) {
 
     // TODO: this is for soft constraints. D >= 0.
     m_D.resize(m); m_D.setToZero();
+    m_totalImpulse.resize(m); m_totalImpulse.setToZero();
+    m_expansionImpulse.resize(m); m_expansionImpulse.setToZero();
+    m_impulse.resize(m);
 
-    Vector totalImpulse(m, Real(0));
-    Vector impulse(m);
-    m_expansionImpulse.resize(m); 
-    m_expansionImpulse.setToZero();
-
-    Vector verr = verr0;
+    m_verr = verr0;
 
     int numImpactRounds = 0;
     if (getInducedImpactModel() == Simultaneous) {
-      numImpactRounds = performSimultaneousImpact(s, verr, totalImpulse);
+      numImpactRounds = performSimultaneousImpact(s, m_verr, m_totalImpulse);
     } else {
       bool disableRestitution = (getRestitutionModel()==NoRestitution);
       while (true) {
         // CORs start out with values based on the presenting impact velocities,
         // but change for each round to reflect new velocities produced during
         // induced impacts.
-        calcCoefficientsOfRestitution(s, verr, disableRestitution);
+        calcCoefficientsOfRestitution(s, m_verr, disableRestitution);
 
         // If we're in Newton mode, calculate the restitution verr.
         const bool anyNewton = (getRestitutionModel()==Newton) &&
-            calcNewtonRestitutionIfAny(s, verr, m_newtonRestitutionVerr);
+            calcNewtonRestitutionIfAny(s, m_verr, m_newtonRestitutionVerr);
 
         const bool isLastRound = 
             numImpactRounds >= m_maxInducedImpactsPerStep-1;
@@ -149,7 +148,7 @@ stepTo(Real time) {
             (getInducedImpactModel()!=Sequential) && isLastRound;
 
         classifyUnilateralContactsForSequentialImpact
-           (verr, m_expansionImpulse, includeAllProximals, false,
+           (m_verr, m_expansionImpulse, includeAllProximals, false,
             m_uniContact, m_impacters, m_expanders, m_observers, 
             m_participating, m_expanding);
 
@@ -164,33 +163,33 @@ stepTo(Real time) {
         //--------------------PERFORM ONE IMPACT ROUND--------------------------
         ++numImpactRounds;
         if (anyNewton)
-            verr += m_newtonRestitutionVerr;
+            m_verr += m_newtonRestitutionVerr;
         #ifndef NDEBUG
         printf("\nIMPACT ROUND %d:\n", numImpactRounds);
         printf( "  impacters: "); cout << m_impacters << endl;
         cout << "  participating multx: " << m_participating << endl;
         cout << "  expanding multx=" << m_expanding << endl;
         cout << "  expansion impulse=" << m_expansionImpulse << endl;
-        cout << "  verr=" << verr << endl;
+        cout << "  verr=" << m_verr << endl;
         if (anyNewton)
             cout << "    incl. Newton verr=" << m_newtonRestitutionVerr << endl;
         #endif
-        doInducedImpactRound(s, m_expanding, m_expansionImpulse, verr, impulse);
+        doInducedImpactRound(s,m_expanding,m_expansionImpulse,m_verr,m_impulse);
         // verr has been updated here to verr-A*(expansion+impulse)
         if (anyNewton) // remove any fake verrs
-            verr -= m_newtonRestitutionVerr;
-        totalImpulse += impulse;
-        if (!m_expanding.empty()) totalImpulse += m_expansionImpulse;
+            m_verr -= m_newtonRestitutionVerr;
+        m_totalImpulse += m_impulse;
+        if (!m_expanding.empty()) m_totalImpulse += m_expansionImpulse;
         //----------------------------------------------------------------------
 
         // Calculate the next expansion impulse from the compression impulses
         // we just generated.
         const bool anyExpansion = 
-            calcExpansionImpulseIfAny(s, m_impacters, impulse,
+            calcExpansionImpulseIfAny(s, m_impacters, m_impulse,
                                       m_expansionImpulse, m_expanders);
         #ifndef NDEBUG
-        cout << "Postimpact verr=" << verr << endl;
-        cout << "Postimpact impulse=" << impulse << endl;
+        cout << "Postimpact verr=" << m_verr << endl;
+        cout << "Postimpact impulse=" << m_impulse << endl;
         cout << "Next expansion impulse=" << m_expansionImpulse << endl;
         cout << "Next expanders: " << m_expanders << endl;
         #endif
@@ -209,7 +208,7 @@ stepTo(Real time) {
                     // Do an expansion-only round that generates no reaction 
                     // except friction forces at the expanding contacts.
                     classifyUnilateralContactsForSequentialImpact
-                        (verr, m_expansionImpulse, false, true, m_uniContact,
+                        (m_verr, m_expansionImpulse, false, true, m_uniContact,
                         m_impacters, m_expanders, m_observers, 
                         m_participating, m_expanding);
                 } else { // Mixed mode
@@ -218,7 +217,7 @@ stepTo(Real time) {
                     SimTK_DEBUG1("  %s mode: do final COR=0 expansion round.\n",
                         getInducedImpactModelName(getInducedImpactModel()));
                     classifyUnilateralContactsForSequentialImpact
-                       (verr, m_expansionImpulse, true, false,
+                       (m_verr, m_expansionImpulse, true, false,
                         m_uniContact, m_impacters, m_expanders, m_observers, 
                         m_participating, m_expanding);
                 }
@@ -226,15 +225,15 @@ stepTo(Real time) {
                 ++numImpactRounds;
                 #ifndef NDEBUG
                 printf("FINAL EXPANSION ROUND:\n");
-                cout << "   verr=" << verr << endl;
+                cout << "   verr=" << m_verr << endl;
                 #endif
                 doInducedImpactRound(s, m_expanding, m_expansionImpulse, 
-                                     verr, impulse);
-                totalImpulse += impulse;
-                totalImpulse += m_expansionImpulse;
+                                     m_verr, m_impulse);
+                m_totalImpulse += m_impulse;
+                m_totalImpulse += m_expansionImpulse;
                 //--------------------------------------------------------------
                 #ifndef NDEBUG
-                cout << "  after final expansion, verr=" << verr << endl;
+                cout << "  after final expansion, verr=" << m_verr << endl;
                 #endif
             }
             break; // that's enough!
@@ -246,18 +245,17 @@ stepTo(Real time) {
     // velocities and then recalculate the applied and rotational forces.
 
     if (numImpactRounds) {
-        Vector genImpulse, deltaU; 
         // constraint impulse -> gen impulse
-        matter.multiplyByGTranspose(s, -totalImpulse, genImpulse);
+        matter.multiplyByGTranspose(s, -m_totalImpulse, m_genImpulse);
         // gen impulse to delta-u
-        matter.multiplyByMInv(s, genImpulse, deltaU);
-        s.updU() += deltaU;
+        matter.multiplyByMInv(s, m_genImpulse, m_deltaU);
+        s.updU() += m_deltaU;
         // This updates velocity-dependent forces including the rotational
         // (Coriolis & gyroscopic) forces. This also updates verr0 which is
         // a reference into the State s.
         mbs.realize(s, Stage::Velocity);
         #ifndef NDEBUG
-        cout << "Impact: imp " << totalImpulse << "-> du " << deltaU << endl;
+        cout << "Impact: imp " << m_totalImpulse << "-> du " << m_deltaU << endl;
         cout << "  Now verr0=" << verr0 << endl;
         #endif
     } else {
@@ -267,17 +265,36 @@ stepTo(Real time) {
     // Evaluate applied forces and get reference to them. These include
     // gravity but not centrifugal forces.
     mbs.realize(s, Stage::Dynamics);
-    const Vector&              f = mbs.getMobilityForces(s, Stage::Dynamics);
-    const Vector_<SpatialVec>& F = mbs.getRigidBodyForces(s, Stage::Dynamics);
+    const Vector&              f  = mbs.getMobilityForces(s, Stage::Dynamics);
+    const Vector_<Vec3>&       Fp = mbs.getParticleForces(s, Stage::Dynamics);
+    const Vector_<SpatialVec>& F  = mbs.getRigidBodyForces(s, Stage::Dynamics);
 
-    // Calculate udotExt = M\(f + ~J*(F-C)) where C are rotational forces.
-    // This is the unconstrained acceleration.
-    Vector udotExt; Vector_<SpatialVec> A_GB;
-    matter.calcAccelerationIgnoringConstraints(s,f,F,udotExt,A_GB);
+    // Get the acceleration-level cache entries and begin filling them in.
+    // At end of step we'll make these available but they will represent
+    // accelerations and reaction forces with updated u and old q.
+    const SimbodyMatterSubsystemRep& matterRep = matter.getRep();
+    const SBModelCache&              mc = matterRep.getModelCache(s);
+    SBTreeAccelerationCache&         tac = 
+        matterRep.updTreeAccelerationCache(s);
+    SBConstrainedAccelerationCache&  cac = 
+        matterRep.updConstrainedAccelerationCache(s);
+    Vector&                 qdot    = s.updQDot();
+    Vector&                 zdot    = s.updZDot();
+    Vector&                 udot    = s.updUDot();
+    Vector&                 qdotdot = s.updQDotDot();
+    Vector&                 udotErr = s.updUDotErr();
+    Vector&                 lambda  = s.updMultipliers();
+
+    // Calculate udot = M\(f + ~J*(F-C)) where C are rotational forces.
+    // This is the unconstrained acceleration; we'll be overwriting udot and
+    // A_GB with their final values below.
+    matterRep.calcTreeForwardDynamicsOperator
+       (s, f, Fp, F, 0, 0, tac, udot, qdotdot, udotErr);
+    m_deltaU = h*udot;
 
     // Calculate verr = G*deltaU; the end-of-step constraint error due to 
     // external and rotational forces.
-    matter.multiplyByG(s, h*udotExt, verr);
+    matter.multiplyByG(s, m_deltaU, m_verr);
 
     // Make all proximal unilateral contacts participate for this phase.
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
@@ -288,47 +305,49 @@ stepTo(Real time) {
     #ifndef NDEBUG
     printf("\nDYNAMICS PHASE after %d impact rounds:\n", numImpactRounds);
     cout << "   verr0  =" << verr0 << endl;
-    cout << "   verrExt=" << verr << endl;
-    cout << "   total verr=" << verr0+verr << endl;
+    cout << "   verrExt=" << m_verr << endl;
+    cout << "   total verr=" << verr0+m_verr << endl;
     #endif
 
     // Add in verr0=Gu-b because we want G (u+du) - b = 0 when we're done
     // (except for sliding friction). The impulse solver needs to know the
     // total sliding velocity for proper friction classification, that
     // will be in verr=verr0+hGM\f.
-    verr += verr0;
+    m_verr += verr0;
 
-    doCompressionPhase(s, verr, impulse);
+    // Use lambda as a temp here; we are really calculating lambda*h.
+    doCompressionPhase(s, m_verr, lambda);
     #ifndef NDEBUG
-    cout << "   dynamics impulse=" << impulse << endl;
-    cout << "   updated verr=" << verr << endl;
+    cout << "   dynamics impulse=" << lambda << endl;
+    cout << "   updated verr=" << m_verr << endl;
     #endif
-    totalImpulse += impulse;
-    s.updMultipliers() = totalImpulse/h;
+    m_totalImpulse += lambda;
+
+    // Convert multipliers from impulses to forces. These are the multipliers
+    // reported at end of step.
+    lambda /= h;
+
     // Calculate constraint forces ~G*lambda (body frcs Fc, mobility frcs fc).
     Vector_<SpatialVec> Fc; Vector fc; 
-    matter.calcConstraintForcesFromMultipliers(s,impulse/h, Fc, fc);
+    matterRep.calcConstraintForcesFromMultipliers(s,lambda,Fc,fc,
+        cac.constrainedBodyForcesInG, cac.constraintMobilityForces);
 
-    // Now calculate udot = M\(f-fc + ~J*(F-Fc-C)).
-    Vector udot;
-    matter.calcAccelerationIgnoringConstraints(s,f-fc,F-Fc,udot,A_GB);
+    // Now calculate final udot = M\(f-fc + ~J*(F-Fc-C)) and corresponding
+    // body accelerations A_GB.
+    matterRep.calcTreeForwardDynamicsOperator
+       (s, f, Fp, F, &fc, &Fc, tac, udot, qdotdot, udotErr);
 
     // Update auxiliary states z, invalidating Stage::Dynamics.
-    s.updZ() += h*s.getZDot();
+    s.updZ() += h*zdot;
 
     // Update u from deltaU, invalidating Stage::Velocity. 
-    s.updU() += h*udot;
-
-    s.updUDot() = (s.getU()-u0)/h;
-    //TODO: need to calculate reaction forces from (udot,lambda), and
-    // raise state's stage to Acceleration.
+    s.updU() += m_deltaU;
 
     // Done with velocity update. Now calculate qdot, possibly including
     // an additional position error correction term.
     // TODO: Do one linear position correction iteration unconditionally.
     // Over several steps this should perform the nonlinear correction needed
     // to get nice positions.
-    Vector qdot;
     const Vector& perr0 = s.getQErr();
     if (   m_projectionMethod==NoPositionProjection
         /*|| !anyPositionErrorsViolated(s, perr0)*/) //TODO: unconditional now
@@ -337,28 +356,27 @@ stepTo(Real time) {
     } else {
         // Perform position projection.
         // Don't include quaternions for position correction. 
-        Vector posImpulse, genImpulse, posVerr, deltaU;
-        posVerr.resize(s.getNUErr()); posVerr.setToZero();
         const int nQuat = matter.getNumQuaternionsInUse(s);
-        posVerr(0, perr0.size()-nQuat) = perr0(0, perr0.size()-nQuat)/h;
+        m_verr.setToZero();
+        m_verr(0, perr0.size()-nQuat) = perr0(0, perr0.size()-nQuat)/h;
 
         #ifndef NDEBUG
         printf("\nPOSITION CORRECTION PHASE:\n");
-        cout << "   posVerr=" << posVerr << endl;
+        cout << "   posVerr=" << m_verr << endl;
         #endif
 
         //----------------------------------------------------------------------
         // Calculate impulse and then deltaU=M\~G*impulse such that -h*deltaU 
         // will eliminate position errors, respecting only position constraints.
-        doPositionCorrectionPhase(s, posVerr, posImpulse);
+        doPositionCorrectionPhase(s, m_verr, m_impulse);
         //----------------------------------------------------------------------
         // constraint impulse -> gen impulse
-        matter.multiplyByGTranspose(s, posImpulse, genImpulse);
+        matter.multiplyByGTranspose(s, m_impulse, m_genImpulse);
         // gen impulse to deltaU (watch sign)
-        matter.multiplyByMInv(s, genImpulse, deltaU);
+        matter.multiplyByMInv(s, m_genImpulse, m_deltaU);
 
         // convert corrected u to qdot (note we're not changing u)
-        matter.multiplyByN(s,false,s.getU()-deltaU, qdot);
+        matter.multiplyByN(s,false,s.getU()-m_deltaU, qdot);
     }
 
     #ifndef NDEBUG
@@ -377,7 +395,15 @@ stepTo(Real time) {
     // broken the velocity constraints by updating q, but we won't fix that
     // until the next step. Also position constraints are only imperfectly
     // satisfied by the correction above.
-    mbs.realize(s, Stage::Velocity);
+    // TODO: have to recalculate forces here just to get past Dynamics stage
+    // so that reaction forces can be obtained.
+    mbs.realize(s, Stage::Dynamics);
+
+    // Mark the acceleration-level calculations valid now, despite the fact
+    // that they don't reflect the latest time, q, u, and forces.
+    matterRep.markCacheValueRealized(s, mc.constrainedAccelerationCacheIndex);
+    matterRep.markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
+
 
     #ifndef NDEBUG
     printf("END OF STEP (%g,%g): verr=", t0,s.getTime());
@@ -895,6 +921,7 @@ collectConstraintInfo(const State& s) { //TODO: redo
         m_posUniContact.push_back(); // default constructed
         ImpulseSolver::UniContactRT& posRt = m_posUniContact.back();
         posRt.m_type = ImpulseSolver::Participating;
+        posRt.m_sign = (Real)contact.getSignConvention();
         posRt.m_ucx = cx;
         posRt.m_Nk = rt.m_Nk;
         m_posParticipating.push_back(rt.m_Nk); // normal is holonomic
@@ -909,7 +936,10 @@ collectConstraintInfo(const State& s) { //TODO: redo
 //------------------------------------------------------------------------------
 void SemiExplicitEulerTimeStepper::
 takeUnconstrainedStep(State& s, Real h) {
-    const SimbodyMatterSubsystem&   matter = m_mbs.getMatterSubsystem();
+    const SimbodyMatterSubsystem&    matter = m_mbs.getMatterSubsystem();
+    const SimbodyMatterSubsystemRep& matterRep = matter.getRep();
+    const SBModelCache&              mc = matterRep.getModelCache(s);
+
     m_mbs.realize(s, Stage::Acceleration);
     const Vector& udot = s.getUDot(); // grab before invalidated
     s.updZ() += h*s.getZDot(); // invalidates Stage::Dynamics
@@ -919,7 +949,12 @@ takeUnconstrainedStep(State& s, Real h) {
     s.updQ() += h*qdot;         // invalidates Stage::Position
     matter.normalizeQuaternions(s);
     s.updTime() += h;           // invalidates Stage::Time
-    m_mbs.realize(s, Stage::Velocity);
+    m_mbs.realize(s, Stage::Dynamics);
+
+    // Mark the acceleration-level calculations valid now, despite the fact
+    // that they don't reflect the latest time, q, u, and forces.
+    matterRep.markCacheValueRealized(s, mc.constrainedAccelerationCacheIndex);
+    matterRep.markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
 
     //TODO: prescribed motion, auto update state variables, events(?)
 }
@@ -1203,7 +1238,8 @@ doPositionCorrectionPhase(const State& state, Vector& verr,
             const MultiplierIndex mx = rt.m_Nk;
             // Anything currently active, or inactive but penetrating, gets
             // a correction. TODO: is this the right strategy?
-            if (rt.m_contactCond == ImpulseSolver::UniOff && verr[mx] >= 0)
+            if (rt.m_contactCond == ImpulseSolver::UniOff 
+                && rt.m_sign*verr[mx] >= 0)
                 continue;
             m_participating.push_back(rt.m_Nk);
         }

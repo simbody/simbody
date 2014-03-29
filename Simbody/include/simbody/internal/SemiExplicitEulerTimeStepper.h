@@ -402,6 +402,11 @@ private:
     // Step temporaries.
     Matrix                      m_GMInvGt; // G M\ ~G
     Vector                      m_D; // soft diagonal
+    Vector                      m_deltaU;
+    Vector                      m_verr;
+    Vector                      m_totalImpulse;
+    Vector                      m_impulse;
+    Vector                      m_genImpulse; // ~G*impulse
 
     Array_<UnilateralContactIndex>      m_proximalUniContacts, 
                                         m_distalUniContacts;
@@ -411,7 +416,7 @@ private:
     // This is for use in the no-impact phase where all proximals participate.
     Array_<MultiplierIndex>                         m_allParticipating;
 
-    // This is for use in impact phases.
+    // These are for use in impact phases.
     Array_<MultiplierIndex>                         m_participating;
     Array_<MultiplierIndex>                         m_expanding;
     Vector                                          m_expansionImpulse;

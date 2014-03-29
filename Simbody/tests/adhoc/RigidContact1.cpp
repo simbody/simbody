@@ -404,9 +404,6 @@ int main(int argc, char** argv) {
         sxe.getPositionProjectionMethodName(sxe.getPositionProjectionMethod()),
         sxe.getImpulseSolverTypeName(sxe.getImpulseSolverType()));
 
-    //pgs.setPGSConvergenceTol(PGSConvergenceTol);
-    //pgs.setPGSMaxIters(PGSMaxIters);
-    //pgs.setPGSSOR(PGSSor);
 
     sxe.initialize(s);
     mbs.resetAllCountersToZero();
@@ -418,9 +415,10 @@ int main(int argc, char** argv) {
     const double startReal = realTime();
     const double startCPU = cpuTime();
 
-    const Real h = .001;
-    const int SaveEvery = 5; // save every nth step ~= 33ms
+    const Real h = .002;
+    const int SaveEvery = 4; // save every nth step ~= 33ms
 
+    Vector_<SpatialVec> reactions;
     do {
         const State& sxeState = sxe.getState();
         if ((nSteps%SaveEvery)==0) {
@@ -433,8 +431,11 @@ int main(int argc, char** argv) {
             states.push_back(sxeState);
         }
 
-        //pgs.stepToOLD(pgsState.getTime() + h);
         sxe.stepTo(sxeState.getTime() + h);
+
+        //printf("Reaction forces:\n");
+        //matter.calcMobilizerReactionForces(sxeState, reactions);
+        //cout << reactions << endl;
 
         ++nSteps;
     } while (sxe.getTime() < RunTime);
@@ -843,9 +844,10 @@ Pencil::Pencil() {
     const Real CoefRest = 1;
     const Real CaptureVelocity = .001;
     const Real TransitionVelocity = .01;
-    //const Real mu_d=10, mu_s=10, mu_v=0;
+    //const Real mu_d=10, mu_s=10, mu_v=0; // TODO: PAINLEVE!
     //const Real mu_d=1, mu_s=1, mu_v=0;
-    const Real mu_d=.1, mu_s=.1, mu_v=0;
+    const Real mu_d=.1, mu_s=.5, mu_v=0;
+    //const Real mu_d=0, mu_s=0, mu_v=0;
 
     setDefaultLengthScale(PencilHLength);
 

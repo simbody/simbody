@@ -1128,7 +1128,6 @@ public:
     bool getShowDefaultGeometry() const;
     void setShowDefaultGeometry(bool show);
 
-private:
     void calcTreeForwardDynamicsOperator(const State&,
         const Vector&                   mobilityForces,
         const Vector_<Vec3>&            particleForces,
