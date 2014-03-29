@@ -87,6 +87,7 @@ public:
     const GeneralForceSubsystem& getForceSubsystem() const {return m_forces;}
     GeneralForceSubsystem& updForceSubsystem() {return m_forces;}
 
+private:
     SimbodyMatterSubsystem       m_matter;
     GeneralForceSubsystem        m_forces;
 };
@@ -191,6 +192,12 @@ int main(int argc, char **argv)
 // BIPED
 //==============================================================================
 Biped::Biped() : m_matter(*this), m_forces(*this) {
+
+    //--------------------------------------------------------------------------
+    //                          Constants, etc.
+    //--------------------------------------------------------------------------
+    /// Convert degrees to radians.
+    static Real D2R = Pi/180;
 
     // Original OpenSim ellipsoid_center.vtp half dimensions.
     const Vec3 ectr(.03, .12, .03); 
@@ -490,83 +497,84 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     //--------------------------------------------------------------------------
     //                         Mobilized Bodies
     //--------------------------------------------------------------------------
-    trunk = MobilizedBody::Free(matter.updGround(), Vec3(0),
-                                trunkInfo,          Vec3(0));
+    MobilizedBody::Free trunk(
+        matter.updGround(), Vec3(0),
+        trunkInfo,          Vec3(0));
 
     // Neck angles are: q0=extension (about z), q1=bending (x), q2=rotation (y).
-    head = MobilizedBody::ORIENT(
+    MobilizedBody::ORIENT head(
         trunk,    Transform(Rzxy, Vec3(0.010143822053248,0.222711680750785,0)),
         headInfo, Rzxy);
-    Force::MobilityLinearStop(forces, head, MobilizerQIndex(0), //extension
+    Force::MobilityLinearStop(m_forces, head, MobilizerQIndex(0), //extension
         StopStiffness,StopDissipation, -80*D2R, 50*D2R);
-    Force::MobilityLinearStop(forces, head, MobilizerQIndex(1), //bending
+    Force::MobilityLinearStop(m_forces, head, MobilizerQIndex(1), //bending
         StopStiffness,StopDissipation, -60*D2R, 50*D2R);
-    Force::MobilityLinearStop(forces, head, MobilizerQIndex(2), //rotation
+    Force::MobilityLinearStop(m_forces, head, MobilizerQIndex(2), //rotation
         StopStiffness,StopDissipation, -80*D2R, 80*D2R);
 
     // Back angles are: q0=tilt (about z), q1=list (x), q2=rotation (y).
-    pelvis = MobilizedBody::ORIENT(
+    MobilizedBody::ORIENT pelvis(
         trunk, Transform(Rzxy, Vec3(-0.019360589663647,-0.220484136504589,0)),
         pelvisInfo, Rzxy);
-    Force::MobilityLinearStop(forces, pelvis, MobilizerQIndex(0), //tilt
+    Force::MobilityLinearStop(m_forces, pelvis, MobilizerQIndex(0), //tilt
         StopStiffness,StopDissipation, -5*D2R, 10*D2R);
-    Force::MobilityLinearStop(forces, pelvis, MobilizerQIndex(1), //list
+    Force::MobilityLinearStop(m_forces, pelvis, MobilizerQIndex(1), //list
         StopStiffness,StopDissipation, -5*D2R, 5*D2R);
-    Force::MobilityLinearStop(forces, pelvis, MobilizerQIndex(2), //rotation
+    Force::MobilityLinearStop(m_forces, pelvis, MobilizerQIndex(2), //rotation
         StopStiffness,StopDissipation, -15*D2R, 15*D2R);
 
     // Right arm.
     //-----------
     // Shoulder angles are q0=flexion, q1=adduction, q2=rotation
-    upperarm_r = MobilizedBody::ORIENT(
+    MobilizedBody::ORIENT upperarm_r(
         trunk, Transform(Rzxy, 
                 Vec3(-0.023921136233947,0.079313926824158,0.164710443657016)),
         upperarm_rInfo, Rzxy);
-    Force::MobilityLinearStop(forces, upperarm_r, MobilizerQIndex(0), //flexion
+    Force::MobilityLinearStop(m_forces, upperarm_r, MobilizerQIndex(0), //flexion
         StopStiffness,StopDissipation, -80*D2R, 160*D2R);
-    Force::MobilityLinearStop(forces, upperarm_r, MobilizerQIndex(1), //adduction
+    Force::MobilityLinearStop(m_forces, upperarm_r, MobilizerQIndex(1), //adduction
         StopStiffness,StopDissipation, -45*D2R, 45*D2R); // TODO: was -90:90
-    Force::MobilityLinearStop(forces, upperarm_r, MobilizerQIndex(2), //rotation
+    Force::MobilityLinearStop(m_forces, upperarm_r, MobilizerQIndex(2), //rotation
         StopStiffness,StopDissipation, -20*D2R, 20*D2R);
 
     // Elbow angles are q0=flexion, q1=rotation
-    lowerarm_r = MobilizedBody::Universal(
+    MobilizedBody::Universal lowerarm_r(
         upperarm_r, Transform(Rotation(-Pi/2,YAxis),
                 Vec3(0.033488432642100,-0.239093933565560,0.117718445964118)),
         lowerarm_rInfo, Rotation(-Pi/2,YAxis));
-    Force::MobilityLinearStop(forces, lowerarm_r, MobilizerQIndex(0), //flexion
+    Force::MobilityLinearStop(m_forces, lowerarm_r, MobilizerQIndex(0), //flexion
         StopStiffness,StopDissipation, 0*D2R, 120*D2R);
-    Force::MobilityLinearStop(forces, lowerarm_r, MobilizerQIndex(1), //rotation
+    Force::MobilityLinearStop(m_forces, lowerarm_r, MobilizerQIndex(1), //rotation
         StopStiffness,StopDissipation, -90*D2R, 40*D2R);
 
-    hand_r = MobilizedBody::Weld(
+    MobilizedBody::Weld hand_r(
         lowerarm_r, Vec3(0.110610146564261,-0.232157950907188,0.014613941476432),
         hand_rInfo, Vec3(0));
 
     // Left arm.
     //----------
-    upperarm_l = MobilizedBody::ORIENT(
+    MobilizedBody::ORIENT upperarm_l(
         trunk, Transform(Rzmxmy, 
                 Vec3(-0.023921136233947,0.079313926824158,-0.164710443657016)),
         upperarm_lInfo, Rzmxmy);
-    Force::MobilityLinearStop(forces, upperarm_l, MobilizerQIndex(0), //flexion
+    Force::MobilityLinearStop(m_forces, upperarm_l, MobilizerQIndex(0), //flexion
         StopStiffness,StopDissipation, -80*D2R, 160*D2R);
-    Force::MobilityLinearStop(forces, upperarm_l, MobilizerQIndex(1), //adduction
+    Force::MobilityLinearStop(m_forces, upperarm_l, MobilizerQIndex(1), //adduction
         StopStiffness,StopDissipation, -45*D2R, 45*D2R); // TODO: was -90:90
-    Force::MobilityLinearStop(forces, upperarm_l, MobilizerQIndex(2), //rotation
+    Force::MobilityLinearStop(m_forces, upperarm_l, MobilizerQIndex(2), //rotation
         StopStiffness,StopDissipation, -20*D2R, 20*D2R);
 
-    lowerarm_l = MobilizedBody::Universal(
+    MobilizedBody::Universal lowerarm_l(
         upperarm_l, Transform(
                 Rotation(BodyRotationSequence, Pi/2,YAxis, Pi,ZAxis),
                 Vec3(0.033488432642100,-0.239093933565560,-0.117718445964118)),
         lowerarm_lInfo, Rotation(BodyRotationSequence, Pi/2,YAxis, Pi,ZAxis));
-    Force::MobilityLinearStop(forces, lowerarm_l, MobilizerQIndex(0), //flexion
+    Force::MobilityLinearStop(m_forces, lowerarm_l, MobilizerQIndex(0), //flexion
         StopStiffness,StopDissipation, 0*D2R, 120*D2R);
-    Force::MobilityLinearStop(forces, lowerarm_l, MobilizerQIndex(1), //rotation
+    Force::MobilityLinearStop(m_forces, lowerarm_l, MobilizerQIndex(1), //rotation
         StopStiffness,StopDissipation, -90*D2R, 40*D2R);
 
-    hand_l = MobilizedBody::Weld(
+    MobilizedBody::Weld hand_l(
         lowerarm_l, Vec3(0.110610146564261,-0.232157950907188,-0.014613941476432),
         hand_lInfo, Vec3(0));
 
@@ -574,77 +582,77 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     // Right leg.
     //-----------
     // Hip angles are q0=flexion, q1=adduction, q2=rotation.
-    thigh_r = MobilizedBody::ORIENT(
+    MobilizedBody::ORIENT thigh_r(
         pelvis, Transform(Rzxy, 
                 Vec3(0.029343644095793,-0.180413783750097,0.117592252162477)),
         thigh_rInfo, Rzxy);
-    Force::MobilityLinearStop(forces, thigh_r, MobilizerQIndex(0), //flexion
+    Force::MobilityLinearStop(m_forces, thigh_r, MobilizerQIndex(0), //flexion
         StopStiffness,StopDissipation, -60*D2R, 165*D2R);
-    Force::MobilityLinearStop(forces, thigh_r, MobilizerQIndex(1), //adduction
+    Force::MobilityLinearStop(m_forces, thigh_r, MobilizerQIndex(1), //adduction
         StopStiffness,StopDissipation, -20*D2R, 20*D2R);
-    Force::MobilityLinearStop(forces, thigh_r, MobilizerQIndex(2), //rotation
+    Force::MobilityLinearStop(m_forces, thigh_r, MobilizerQIndex(2), //rotation
         StopStiffness,StopDissipation, -120*D2R, 20*D2R);
 
     // Knee angle is q0=extension
-    shank_r = MobilizedBody::Pin(
+    MobilizedBody::Pin shank_r(
         thigh_r, Vec3(-0.005,-0.416780050422019,0.004172557002023),
         shank_rInfo, Vec3(0));
-    Force::MobilityLinearStop(forces, shank_r, MobilizerQIndex(0), //extension
+    Force::MobilityLinearStop(m_forces, shank_r, MobilizerQIndex(0), //extension
         StopStiffness,StopDissipation, -165*D2R, 0*D2R);
 
     // Ankle angles are q0=dorsiflexion, q1=inversion.
-    foot_r = MobilizedBody::Universal(
+    MobilizedBody::Universal foot_r(
         shank_r, Transform(
             Rotation(BodyRotationSequence,Pi/2,XAxis,Pi,YAxis,Pi/2,ZAxis),
             Vec3(0,-0.420937226867266,-0.011971751580927)),
         foot_rInfo, 
             Rotation(BodyRotationSequence,Pi/2,XAxis,Pi,YAxis,Pi/2,ZAxis));
-    Force::MobilityLinearStop(forces, foot_r, MobilizerQIndex(0), //dorsiflexion
+    Force::MobilityLinearStop(m_forces, foot_r, MobilizerQIndex(0), //dorsiflexion
         StopStiffness,StopDissipation, -50*D2R, 30*D2R);
-    Force::MobilityLinearStop(forces, foot_r, MobilizerQIndex(1), //inversion
+    Force::MobilityLinearStop(m_forces, foot_r, MobilizerQIndex(1), //inversion
         StopStiffness,StopDissipation, -2*D2R, 35*D2R);
 
     // Toe angle is q0=dorsiflexion
-    toes_r = MobilizedBody::Pin(
+    MobilizedBody::Pin toes_r(
         foot_r, Vec3(0.134331942132059,-0.071956467861059,-0.000000513235827),
         toes_rInfo, Vec3(0));
-    Force::MobilityLinearStop(forces, toes_r, MobilizerQIndex(0), //dorsiflexion
+    Force::MobilityLinearStop(m_forces, toes_r, MobilizerQIndex(0), //dorsiflexion
         StopStiffness,StopDissipation, 0*D2R, 30*D2R);
 
     // Left leg.
     //----------
-    thigh_l = MobilizedBody::ORIENT(
+    MobilizedBody::ORIENT thigh_l(
         pelvis, Transform(Rzmxmy, 
                 Vec3(0.029343644095793,-0.180413783750097,-0.117592252162477)),
         thigh_lInfo, Rzmxmy);
-    Force::MobilityLinearStop(forces, thigh_l, MobilizerQIndex(0), //flexion
+    Force::MobilityLinearStop(m_forces, thigh_l, MobilizerQIndex(0), //flexion
         StopStiffness,StopDissipation, -60*D2R, 165*D2R);
-    Force::MobilityLinearStop(forces, thigh_l, MobilizerQIndex(1), //adduction
+    Force::MobilityLinearStop(m_forces, thigh_l, MobilizerQIndex(1), //adduction
         StopStiffness,StopDissipation, -20*D2R, 20*D2R);
-    Force::MobilityLinearStop(forces, thigh_l, MobilizerQIndex(2), //rotation
+    Force::MobilityLinearStop(m_forces, thigh_l, MobilizerQIndex(2), //rotation
         StopStiffness,StopDissipation, -120*D2R, 20*D2R);
 
-    shank_l = MobilizedBody::Pin(
+    MobilizedBody::Pin shank_l(
         thigh_l, Vec3(-0.005,-0.416780050422019,-0.004172557002023),
         shank_lInfo, Vec3(0));
-    Force::MobilityLinearStop(forces, shank_l, MobilizerQIndex(0), //extension
+    Force::MobilityLinearStop(m_forces, shank_l, MobilizerQIndex(0), //extension
         StopStiffness,StopDissipation, -165*D2R, 0*D2R);
 
-    foot_l = MobilizedBody::Universal(
+    MobilizedBody::Universal foot_l(
         shank_l, Transform(
             Rotation(BodyRotationSequence,-Pi/2,XAxis,Pi,YAxis,-Pi/2,ZAxis),
             Vec3(0,-0.420937226867266,0.011971751580927)),
         foot_lInfo, 
             Rotation(BodyRotationSequence,-Pi/2,XAxis,Pi,YAxis,-Pi/2,ZAxis));
-    Force::MobilityLinearStop(forces, foot_l, MobilizerQIndex(0), //dorsiflexion
+    Force::MobilityLinearStop(m_forces, foot_l, MobilizerQIndex(0), //dorsiflexion
         StopStiffness,StopDissipation, -50*D2R, 30*D2R);
-    Force::MobilityLinearStop(forces, foot_l, MobilizerQIndex(1), //inversion
+    Force::MobilityLinearStop(m_forces, foot_l, MobilizerQIndex(1), //inversion
         StopStiffness,StopDissipation, -2*D2R, 35*D2R);
 
-    toes_l = MobilizedBody::Pin (
+    MobilizedBody::Pin toes_l(
         foot_l, Vec3(0.134331942132059,-0.071956467861059,0.000000513235827),
         toes_lInfo, Vec3(0));
-    Force::MobilityLinearStop(forces, toes_l, MobilizerQIndex(0), //dorsiflexion
+    Force::MobilityLinearStop(m_forces, toes_l, MobilizerQIndex(0), //dorsiflexion
         StopStiffness,StopDissipation, 0*D2R, 30*D2R);
 }
 
