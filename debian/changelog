@@ -1,3 +1,9 @@
+simbody (3.4-1~quantal) quantal; urgency=low
+
+  * New 3.4 upstream version
+
+ -- Jose Luis Rivero <jrivero@osrfoundation.org>  Fri, 28 Mar 2014 19:40:46 +0100
+
 simbody (3.3-1~quantal) quantal; urgency=high
 
   * Initial release. (Closes: #728723)
