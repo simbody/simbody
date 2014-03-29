@@ -23,7 +23,7 @@ override_dh_auto_install:
 	rm debian/tmp/usr/share/doc/simbody/INSTALL.txt
 
 override_dh_strip:
-	dh_strip -a --dbg-package=libsimbody3.3-dbg
+	dh_strip -a --dbg-package=libsimbody3.4-dbg
 
 %:
 	dh $@ --parallel --buildsystem=cmake
