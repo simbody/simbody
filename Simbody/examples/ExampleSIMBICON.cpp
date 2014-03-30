@@ -296,6 +296,26 @@ public:
             Vec2 sta=Vec2(0.0, 0.0)
             );
 
+    void realizeTopology(State& s) const
+    {
+        // Add in an event handler to manage when the SIMBICON state changes.
+        m_biped.addEventHandler(
+                new StateHandler(m_biped, *this,
+                    SIMBICON_STATE_UPDATE_STEPSIZE));
+
+        // TODO is the simbiconState part of topology or model??
+        // The SIMBICON state of the controller for the finite state machine
+        // (e.g., 0, 1, 2, or 3).
+        m_simbiconStateIndex =
+            m_biped.getDefaultSubsystem().allocateDiscreteVariable(s,
+                Stage::Acceleration, new Value<int>(-1));
+        // The time at which this controller entered the current SIMBICON
+        // state.
+        m_stateStartTimeIndex =
+            m_biped.getDefaultSubsystem().allocateDiscreteVariable(s,
+                    Stage::Acceleration, new Value<double>(NaN));
+    }
+
     void calcForce(const State&         s,
                    Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>&       particleForces,
@@ -413,16 +433,16 @@ public:
     /// Updates the SIMBICON state of biped for the finite state machine.
     class StateHandler : public PeriodicEventHandler {
     public:
-        StateHandler(Biped&       biped,
-                     SIMBICON&    simbicon,
-                     Real         interval)
+        StateHandler(Biped&             biped,
+                     const SIMBICON&    simbicon,
+                     Real               interval)
         :   PeriodicEventHandler(interval),
             m_biped(biped), m_simbicon(simbicon) {}
         void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const;
 
     private:
         Biped& m_biped;
-        SIMBICON& m_simbicon;
+        const SIMBICON& m_simbicon;
     };
 
     enum GainGroup {
@@ -459,6 +479,10 @@ private:
         m_biped.addInForce(coord, force, mobForces);
     }
 
+    struct DiscreteVariableInfo {
+        DiscreteVariableIndex index;
+    };
+
     Biped& m_biped;
 
     /// State of the finite state machine.
@@ -479,6 +503,10 @@ private:
 
     std::map<GainGroup, Real> m_proportionalGains;
     std::map<GainGroup, Real> m_derivativeGains;
+
+    // TODO how to set these without them being mutable?
+    mutable DiscreteVariableIndex m_simbiconStateIndex;
+    mutable DiscreteVariableIndex m_stateStartTimeIndex;
 
 };
 
@@ -1145,9 +1173,11 @@ SIMBICON::SIMBICON(Biped& biped, Vec2 deltaT, Vec2 cd, Vec2 cdLat, Vec2 cv,
       m_cdLat(cdLat), m_cv(cv), m_cvLat(cvLat), m_tor(tor), m_swh(swh),
       m_swk(swk), m_swa(swa), m_stk(stk), m_sta(sta)
 {
-    m_biped.addEventHandler(
-            new StateHandler(biped, *this,
-                SIMBICON_STATE_UPDATE_STEPSIZE));
+
+    // Hook up with the model.
+    // -----------------------
+/*
+            */
 
     // Proportional (position) gains (kp).
     m_proportionalGains[neck] = 100;
