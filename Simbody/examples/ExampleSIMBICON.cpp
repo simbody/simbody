@@ -407,9 +407,6 @@ Biped::Biped()
 
     m_matter.setShowDefaultGeometry(false);
 
-    // Gravity.
-    Force::Gravity(m_forces, m_matter, -YAxis, 9.8066);
-
     //--------------------------------------------------------------------------
     //                          Constants, etc.
     //--------------------------------------------------------------------------
@@ -442,6 +439,17 @@ Biped::Biped()
     const ContactMaterial rubber(rubber_planestrain,rubber_dissipation,
                                    mu_s,mu_d,mu_v);
 
+    // Contact material: concrete.
+    const Real concrete_density = 2300.;  // kg/m^3
+    const Real concrete_young   = 25e9;  // pascals (N/m)
+    const Real concrete_poisson = 0.15;    // ratio
+    const Real concrete_planestrain =
+        ContactMaterial::calcPlaneStrainStiffness(concrete_young,concrete_poisson);
+    const Real concrete_dissipation = 0.005;
+    
+    const ContactMaterial concrete(concrete_planestrain,concrete_dissipation,
+                                   mu_s,mu_d,mu_v);
+
     // Miscellaneous.
     // --------------
     // Original OpenSim ellipsoid_center.vtp half dimensions.
@@ -458,6 +466,19 @@ Biped::Biped()
 
     DecorativeSphere originMarker(0.04*rad);
     originMarker.setColor(Vec3(.1,.1,.1));
+
+
+    //--------------------------------------------------------------------------
+    //                          Gravity and ground contact
+    //--------------------------------------------------------------------------
+
+    // Gravity.
+    Force::Gravity(m_forces, m_matter, -YAxis, 9.8066);
+
+    // Contact with the ground.
+    m_matter.updGround().updBody().addContactSurface(
+            Transform(Rotation(-0.5 * Pi, ZAxis), Vec3(0)),
+            ContactSurface(ContactGeometry::HalfSpace(), concrete));
 
 
     //--------------------------------------------------------------------------
