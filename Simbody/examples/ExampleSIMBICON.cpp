@@ -7,8 +7,8 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
- * Authors: Jack Wang, Tim Dorn                                               *
- * Contributors: Chris Dembia                                                 *
+ * Authors: Chris Dembia, Jack Wang                                           *
+ * Contributors: Michael Sherman, Tim Dorn                                    *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
