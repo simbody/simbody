@@ -418,10 +418,8 @@ public:
                      Real         interval)
         :   PeriodicEventHandler(interval),
             m_biped(biped), m_simbicon(simbicon) {}
-        void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
-        {
-            // TODO
-        }
+        void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const;
+
     private:
         Biped& m_biped;
         SIMBICON& m_simbicon;
@@ -1186,7 +1184,21 @@ SIMBICON::SIMBICON(Biped& biped, Vec2 deltaT, Vec2 cd, Vec2 cdLat, Vec2 cv,
             m_proportionalGains[toe]);
 }
 
+void SIMBICON::StateHandler::handleEvent(State& s, Real accuracy,
+        bool& shouldTerminate) const
+{
+    /* TODO
+    shouldTerminate = false;
+    bool lContact;
+    bool rContact;
+    m_biped.checkContact(s, rContact, lContact);
 
+    if (m_simbicon.getState() == NaN)
+    {
+        if (rContact) m_simbicon.setState(
+    }
+    */
+}
 
 
 
