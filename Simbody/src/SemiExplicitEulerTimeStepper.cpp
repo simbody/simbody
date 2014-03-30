@@ -412,7 +412,7 @@ stepTo(Real time) {
     cout << "  constraint status:\n";
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
         ImpulseSolver::UniContactRT& rt = m_uniContact[i];
-        printf("  %d: cont %s fric %s\n", rt.m_ucx,
+        printf("  %d: cont %s fric %s\n", (int)rt.m_ucx,
                ImpulseSolver::getUniCondName(rt.m_contactCond),
                ImpulseSolver::getFricCondName(rt.m_frictionCond));
     }

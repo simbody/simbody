@@ -384,7 +384,7 @@ int main(int argc, char** argv) {
     //sxe.setPositionProjectionMethod(SemiExplicitEulerTimeStepper::NoPositionProjection);
 
     sxe.setAccuracy(Accuracy); // integration accuracy
-    sxe.setConstraintTol(ConsTol);
+    sxe.setConstraintTolerance(ConsTol);
 
     //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
     sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
@@ -452,7 +452,7 @@ int main(int argc, char** argv) {
     printf("Used SXETimeStepper (%s) at acc=%g consTol=%g\n", 
            sxe.getRestitutionModel()==SemiExplicitEulerTimeStepper::Newton 
             ? "Newton" : "Poisson",
-           sxe.getAccuracy(), sxe.getConstraintTol());
+           sxe.getAccuracyInUse(), sxe.getConstraintToleranceInUse());
 
     //       pgs.getPGSConvergenceTol(), pgs.getPGSMaxIters(),
     //       pgs.getPGSSOR());

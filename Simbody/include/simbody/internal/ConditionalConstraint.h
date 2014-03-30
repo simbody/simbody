@@ -27,10 +27,9 @@
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Constraint.h"
+#include "simbody/internal/MobilizedBody.h"
 
 namespace SimTK {
-
-class MobilizedBody;
 
 /** TODO: Simbody model element representing a conditionally-enforced 
 constraint.
@@ -376,7 +375,7 @@ public:
     MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
 
 private:
-    MobilizedBody&                  m_mobod;
+    MobilizedBody                   m_mobod;
     Real                            m_defaultUpperLimit;
     Real                            m_minCOR;
     Constraint::ConstantCoordinate  m_upper;
@@ -433,7 +432,7 @@ public:
 
     MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
 private:
-    MobilizedBody&                  m_mobod;
+    MobilizedBody                   m_mobod;
     Real                            m_defaultLowerLimit;
     Real                            m_minCOR;
     Constraint::ConstantCoordinate  m_lower;
@@ -527,11 +526,11 @@ public:
     void setInstanceParameter(State& state, const Vec3& pos) const OVERRIDE_11;
 
 private:
-    MobilizedBody&              m_planeBody;    // body P
+    MobilizedBody               m_planeBody;    // body P
     const Rotation              m_frame;        // z is normal; expressed in P
     const Real                  m_height;
 
-    MobilizedBody&              m_follower;     // body F
+    MobilizedBody               m_follower;     // body F
     const Vec3                  m_point;        // measured & expressed in F
 
     Real                        m_minCOR;

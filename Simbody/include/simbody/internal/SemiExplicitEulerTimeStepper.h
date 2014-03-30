@@ -91,6 +91,15 @@ public:
     maintained State. **/
     Real getTime() const {return m_state.getTime();}
 
+    /** synonym for getState. **/
+    const State& getAdvancedState() const {return m_state;}
+
+    /** synonym for updState. **/
+    State& updAdvancedState() {return m_state;}
+
+    /** synonym for getTime. **/
+    Real getAdvancedTime() const {return m_state.getTime();}
+
     /** Advance to the indicated time in one or more steps, using repeated
     induced impacts. **/
     Integrator::SuccessfulStepStatus stepTo(Real time);
@@ -98,7 +107,7 @@ public:
     /** Set integration accuracy; requires variable length steps. **/
     void setAccuracy(Real accuracy) {m_accuracy=accuracy;}
     /** Set the tolerance to which constraints must be satisfied. **/
-    void setConstraintTol(Real consTol) {m_consTol=consTol;}
+    void setConstraintTolerance(Real consTol) {m_consTol=consTol;}
    
     void setRestitutionModel(RestitutionModel restModel)
     {   m_restitutionModel = restModel; }
@@ -205,13 +214,13 @@ public:
 
     /** Return the integration accuracy setting. This has no effect unless
     you are running in variable time step mode. **/
-    Real getAccuracy() const {return m_accuracy;}
+    Real getAccuracyInUse() const {return m_accuracy;}
 
     /** Return the tolerance to which we require constraints to be satisfied.
     This applies even if we are not controlling overall integration accuracy.
     It is also used as a "minimum meaningful velocity" value that overrides
     other velocity thresholds if they have been set to smaller values. **/
-    Real getConstraintTol() const {return m_consTol;}
+    Real getConstraintToleranceInUse() const {return m_consTol;}
 
     /** Return the value set for this parameter, but the actual value used
     during execution will be no smaller than the velocity constraint 
