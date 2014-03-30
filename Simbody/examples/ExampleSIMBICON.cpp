@@ -505,6 +505,7 @@ private:
     std::map<GainGroup, Real> m_derivativeGains;
 
     // TODO how to set these without them being mutable?
+    // TODO that is, when does this object get a chance to allocate a state var?
     mutable DiscreteVariableIndex m_simbiconStateIndex;
     mutable DiscreteVariableIndex m_stateStartTimeIndex;
 
