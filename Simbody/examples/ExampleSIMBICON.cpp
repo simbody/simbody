@@ -361,6 +361,15 @@ int main(int argc, char **argv)
     // The name of this Force is irrelevant.
     Force::Custom simbicon1(biped.updForceSubsystem(), new SIMBICON(biped));
 
+    // Start up the visualizer.
+    Visualizer viz(biped);
+    viz.setShowSimTime(true);
+    viz.setShowFrameRate(true);
+
+    // Update the visualization at a framerate of 1/interval.
+    biped.addEventReporter(
+            new Visualizer::Reporter(viz, realTimeFactor / framesPerSecond));
+
     // Initialize the system (this is our own method).
     State state;
     biped.initialize(state);
@@ -371,17 +380,10 @@ int main(int argc, char **argv)
     // Give the biped some initial forward velocity.
     biped.setTrunkOriginVelocity(state, Vec3(1, 0, 0));
 
-    // Start up the visualizer.
-    Visualizer viz(biped);
-    viz.setShowSimTime(true);
-    viz.setShowFrameRate(true);
-
-    // Update the visualization at a framerate of 1/interval.
-    biped.addEventReporter(
-            new Visualizer::Reporter(viz, realTimeFactor / framesPerSecond));
-
     // Show the biped.
+    printf("Initial state show. Press ENTER to simulate.\n");
     viz.report(state);
+    getchar();
 
     // Set up the numerical integration.
     SemiExplicitEuler2Integrator integ(biped);
@@ -404,6 +406,9 @@ Biped::Biped()
 {
 
     m_matter.setShowDefaultGeometry(false);
+
+    // Gravity.
+    Force::Gravity(m_forces, m_matter, -YAxis, 9.8066);
 
     //--------------------------------------------------------------------------
     //                          Constants, etc.
