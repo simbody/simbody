@@ -21,8 +21,14 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* SIMBICON stands for Simple Biped Controller. It is described at
+/*
+
+SIMBICON stands for Simple Biped Controller. It is described at
 https://www.cs.ubc.ca/~van/papers/Simbicon.htm.
+
+
+Brief description of the controller
+===================================
 
 The controller uses a "finite state machine" / "pose control graph": the biped
 is always in some state, and all states have a target pose. The number of
@@ -53,6 +59,21 @@ for each state:
 
 See [1], particularly Table 1 of [1], for more information.
 
+
+How to navigate this file
+=========================
+To see how X happens, look in method Y:
+
+X                                        Y                       
+---------------------------------------  ---------------------------------------
+construction of the model                Biped::Biped()
+control laws                             SIMBICON::calcForce()
+logic to change state in state machine   SIMBICON::StateHandler::handleEvent()
+
+
+Notes
+=====
+
 I (Chris Dembia) wrote this code pretty much by copying code that Michael
 Sherman gave me. The code that Michael Sherman gave me was originally written
 by Jack Wang and Tim Dorn.
@@ -64,12 +85,14 @@ locomotion control." ACM Transactions on Graphics (TOG). Vol. 26. No. 3. ACM,
 */
 
 // Interval for updating the SIMBICON state (not same as SimTK State) of the
-// Biped.
+// biped.
 #define SIMBICON_STATE_UPDATE_STEPSIZE 0.0005
 
 #include "Simbody.h"
 
 using namespace SimTK;
+
+const Real D2R = Pi / 180.0;
 
 //==============================================================================
 // BIPED
@@ -88,8 +111,23 @@ public:
     GeneralForceSubsystem& updForceSubsystem() {return m_forces;}
 
 private:
+
+    /// For convenience in building the model.
+    /// Lower bound and upper bound should be in degrees.
+    void addMobilityLinearStop(const MobilizedBody& mobod,
+            unsigned int idx,
+            Real lowerBound, Real upperBound,
+            Real stopStiffness=1000 / D2R, Real stopDissipation=1.0)
+    {
+        Force::MobilityLinearStop(m_forces, mobod, MobilizerQIndex(idx),
+                stopStiffness, stopDissipation,
+                lowerBound * D2R, upperBound * D2R);
+    }
+
     SimbodyMatterSubsystem       m_matter;
     GeneralForceSubsystem        m_forces;
+    ContactTrackerSubsystem      m_tracker;
+    CompliantContactSubsystem    m_contact;
 };
 
 //==============================================================================
@@ -102,7 +140,7 @@ public:
     :   m_biped(biped)
     {
         m_biped.addEventHandler(
-                new SIMBICONStateHandler(biped, *this,
+                new StateHandler(biped, *this,
                     SIMBICON_STATE_UPDATE_STEPSIZE));
     }
     void calcForce(const State&         state, 
@@ -120,11 +158,11 @@ public:
     }
 
     /// Updates the SIMBICON state of biped for the finite state machine.
-    class SIMBICONStateHandler : public PeriodicEventHandler {
+    class StateHandler : public PeriodicEventHandler {
     public:
-        SIMBICONStateHandler(Biped& biped,
-                             SIMBICON&    simbicon,
-                             Real         interval)
+        StateHandler(Biped&       biped,
+                     SIMBICON&    simbicon,
+                     Real         interval)
         :   PeriodicEventHandler(interval),
             m_biped(biped), m_simbicon(simbicon) {}
         void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
@@ -162,7 +200,14 @@ private:
 //==============================================================================
 int main(int argc, char **argv)
 {
-    // Create system.
+    // Parameters.
+    // -----------
+
+    // Set this < 1 for slow motion, > 1 for speedup.
+    // 1.0 indicates real time.
+    const Real realTimeFactor = 1.0;
+
+    // Create the system.
     Biped biped;
 
     // Periodically report state-related quantities to the screen.
@@ -180,8 +225,15 @@ int main(int argc, char **argv)
     
     biped.realize(state, Stage::Instance);
 
-    // Start up the visualizer so we can see the biped.
+    // Start up the visualizer.
     Visualizer viz(biped);
+    viz.setShowSimTime(true);
+    viz.setShowFrameRate(true);
+
+    // Update the visualization at a framerate of 1/interval.
+    biped.addEventReporter(new Visualizer::Reporter(viz, realTimeFactor/30));
+
+    // Show the biped.
     viz.report(state);
 
 	return 0; 
@@ -191,14 +243,47 @@ int main(int argc, char **argv)
 //==============================================================================
 // BIPED
 //==============================================================================
-Biped::Biped() : m_matter(*this), m_forces(*this) {
+Biped::Biped()
+    : m_matter(*this), m_forces(*this),
+      m_tracker(*this), m_contact(*this, m_tracker)
+{
+
+    m_matter.setShowDefaultGeometry(false);
 
     //--------------------------------------------------------------------------
     //                          Constants, etc.
     //--------------------------------------------------------------------------
-    /// Convert degrees to radians.
-    static Real D2R = Pi/180;
 
+    // Properties of joint stops.
+    const Real stopStiffness = 1000/D2R; // N-m/deg -> N-m/radian
+    const Real stopDissipation = 1;
+
+    // Contact parameters.
+    // -------------------
+    // slide -> stick velocity.
+    const Real transitionVelocity = .03;
+
+    // Friction coefficients.
+    const Real mu_s = 5;       
+    const Real mu_d = 5;
+    const Real mu_v = 0;
+
+    // Contact spheres attached to feet.
+    const Real contactSphereRadius = 1.5 * .01;
+
+    // Contact material: rubber.
+    const Real rubber_density = 1100.;  // kg/m^3
+    const Real rubber_young   = 0.01e9; // pascals (N/m)
+    const Real rubber_poisson = 0.5;    // ratio
+    const Real rubber_planestrain =
+        ContactMaterial::calcPlaneStrainStiffness(rubber_young,rubber_poisson);
+    const Real rubber_dissipation = /*0.005*/1;
+    
+    const ContactMaterial rubber(rubber_planestrain,rubber_dissipation,
+                                   mu_s,mu_d,mu_v);
+
+    // Miscellaneous.
+    // --------------
     // Original OpenSim ellipsoid_center.vtp half dimensions.
     const Vec3 ectr(.03, .12, .03); 
     // Original OpenSim sphere.vtp half dimension.
@@ -211,8 +296,8 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     const Rotation Rzxy(BodyRotationSequence,   -Pi/2, XAxis, -Pi/2, ZAxis);
     const Rotation Ryzx(BodyRotationSequence,    Pi/2, YAxis,  Pi/2, ZAxis);
 
-    DecorativeSphere orgMarker(0.04*rad);
-    orgMarker.setColor(Vec3(.1,.1,.1));
+    DecorativeSphere originMarker(0.04*rad);
+    originMarker.setColor(Vec3(.1,.1,.1));
 
 
     //--------------------------------------------------------------------------
@@ -239,7 +324,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     trunkInfo.addDecoration(Transform(Ryzx,Vec3(-0.025,0.09,0)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(1,1.43,1)))
             .setColor(White).setOpacity(1));
-    trunkInfo.addDecoration(Vec3(0),orgMarker);
+    trunkInfo.addDecoration(Vec3(0),originMarker);
 
     const Real headMass = 4.340524803328146;
     const Vec3 headCOM(0.041488177946752, 0.085892319249215, 0);
@@ -254,7 +339,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     headInfo.addDecoration(Vec3(0,.11,0),
         DecorativeEllipsoid(Vec3(0.2,0.22,0.2)/2.)
             .setColor(White).setOpacity(1));
-    headInfo.addDecoration(Vec3(0),orgMarker);
+    headInfo.addDecoration(Vec3(0),originMarker);
 
     const Real pelvisMass = 13.924855817213411;
     const Vec3 pelvisCOM(0.036907589663647, -0.142772863495411, 0);
@@ -269,7 +354,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     pelvisInfo.addDecoration(Transform(Ryzx,Vec3(0.02,-0.1,0.0)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(3.3,1.5,2.4)))
             .setColor(White).setOpacity(1));
-    pelvisInfo.addDecoration(Vec3(0),orgMarker);
+    pelvisInfo.addDecoration(Vec3(0),originMarker);
 
     // COM z has opposite sign left to right.
     const Real upperarmMass = 2.070989783095760;
@@ -284,7 +369,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(0.017,-0.12,0.06)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(1,1.2,1)))
             .setColor(White).setOpacity(1));
-    upperarm_rInfo.addDecoration(Vec3(0),orgMarker);
+    upperarm_rInfo.addDecoration(Vec3(0),originMarker);
 
     const Vec3 upperarm_lCOM(0.003289136233947,-0.078058926824158,-0.065606556342984);
     Body upperarm_lInfo(MassProperties(upperarmMass, upperarm_lCOM,
@@ -297,7 +382,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(0.017,-0.12,-0.06)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(1,1.2,1)))
             .setColor(White).setOpacity(1));
-    upperarm_lInfo.addDecoration(Vec3(0),orgMarker);
+    upperarm_lInfo.addDecoration(Vec3(0),originMarker);
 
     // Some signs differ left to right.
     const Real lowerarmMass = 1.106702647320712;
@@ -315,7 +400,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(0.053,-0.111,0.01)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(0.95,1.15,0.95)))
             .setColor(White).setOpacity(1));
-    lowerarm_rInfo.addDecoration(Vec3(0),orgMarker);
+    lowerarm_rInfo.addDecoration(Vec3(0),originMarker);
 
     const Vec3 lowerarm_lCOM(0.031656703591848,-0.089369993258598,-0.017231110378866);
     Body lowerarm_lInfo(MassProperties(lowerarmMass, lowerarm_lCOM,
@@ -331,7 +416,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(0.053,-0.111,-0.01)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(0.95,1.15,0.95)))
             .setColor(White).setOpacity(1));
-    lowerarm_lInfo.addDecoration(Vec3(0),orgMarker);
+    lowerarm_lInfo.addDecoration(Vec3(0),originMarker);
 
     // Some signs differ left to right.
     const Real handMass = 0.340742469583528;
@@ -349,7 +434,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(0.025,-0.025,0)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(0.7,0.3,0.7)))
             .setColor(White).setOpacity(1));
-    hand_rInfo.addDecoration(Vec3(0),orgMarker);
+    hand_rInfo.addDecoration(Vec3(0),originMarker);
 
     const Vec3 hand_lCOM(0.031681557027587,-0.041582042351409, 0.008872831097566);
     Body hand_lInfo(MassProperties(handMass, hand_lCOM,
@@ -365,7 +450,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(0.025,-0.025,0)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(0.7,0.3,0.7)))
             .setColor(White).setOpacity(1));
-    hand_lInfo.addDecoration(Vec3(0),orgMarker);
+    hand_lInfo.addDecoration(Vec3(0),originMarker);
 
     const Real thighMass = 8.082407914884000;
     const Vec3 thigh_rCOM(0,-0.178920728716523,0.001605747837523);
@@ -379,7 +464,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(-0.002,-0.205,0.003)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(1.3,1.9,1.3)))
             .setColor(White).setOpacity(1));
-    thigh_rInfo.addDecoration(Vec3(0),orgMarker);
+    thigh_rInfo.addDecoration(Vec3(0),originMarker);
 
     const Vec3 thigh_lCOM(0,-0.178920728716523,-0.001605747837523);
     Body thigh_lInfo(MassProperties(thighMass, thigh_lCOM,
@@ -392,7 +477,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(-0.002,-0.205,-0.003)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(1.3,1.9,1.3)))
             .setColor(White).setOpacity(1));
-    thigh_lInfo.addDecoration(Vec3(0),orgMarker);
+    thigh_lInfo.addDecoration(Vec3(0),originMarker);
 
 
     const Real shankMass = 3.222323418816000;
@@ -407,7 +492,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(0.0,-0.21,-0.005)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(1.27,1.8,1.27)))
             .setColor(White).setOpacity(1));
-    shank_rInfo.addDecoration(Vec3(0),orgMarker);
+    shank_rInfo.addDecoration(Vec3(0),originMarker);
 
     const Vec3 shank_lCOM(0,-0.182765070363067,-0.005552190835500);
     Body shank_lInfo(MassProperties(shankMass, shank_lCOM,
@@ -420,7 +505,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
                     Vec3(0.0,-0.21,0.005)),
         DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(1.27,1.8,1.27)))
             .setColor(White).setOpacity(1));
-    shank_lInfo.addDecoration(Vec3(0),orgMarker);
+    shank_lInfo.addDecoration(Vec3(0),originMarker);
 
     const Real footMass = 1.172905458264000;
     const Vec3 foot_rCOM(0.035606945567853,-0.051617802456029,-0.000574057583573);
@@ -433,7 +518,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     foot_rInfo.addDecoration(Vec3(0.052,-0.043,0.0),
         DecorativeBrick(blk.elementwiseMultiply(Vec3(1.65,0.6,0.8)))
             .setColor(White).setOpacity(1));
-    foot_rInfo.addDecoration(Vec3(0),orgMarker);
+    foot_rInfo.addDecoration(Vec3(0),originMarker);
 
     const Vec3 foot_lCOM(0.035606945567853,-0.051617802456029,0.000574057583573);
     Body foot_lInfo(MassProperties(footMass, foot_lCOM,
@@ -441,7 +526,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     foot_lInfo.addDecoration(Vec3(0.052,-0.043,0.0),
         DecorativeBrick(blk.elementwiseMultiply(Vec3(1.65,0.6,0.8)))
             .setColor(White).setOpacity(1));
-    foot_lInfo.addDecoration(Vec3(0),orgMarker);
+    foot_lInfo.addDecoration(Vec3(0),originMarker);
 
 
     const Real toesMass = 0.20;
@@ -453,7 +538,7 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     toes_rInfo.addDecoration(Vec3(0.03,0.014,0.0),
         DecorativeBrick(blk.elementwiseMultiply(Vec3(0.6,0.3,0.8)))
             .setColor(White).setOpacity(1));
-    toes_rInfo.addDecoration(Vec3(0),orgMarker);
+    toes_rInfo.addDecoration(Vec3(0),originMarker);
 
     const Vec3 toes_lCOM(0.023716003435794,-0.001184334594970,0.002484544347746);
     Body toes_lInfo(MassProperties(toesMass, toes_lCOM,
@@ -461,15 +546,22 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     toes_lInfo.addDecoration(Vec3(0.03,0.014,0.0),
         DecorativeBrick(blk.elementwiseMultiply(Vec3(0.6,0.3,0.8)))
             .setColor(White).setOpacity(1));
-    toes_lInfo.addDecoration(Vec3(0),orgMarker);
+    toes_lInfo.addDecoration(Vec3(0),originMarker);
 
+    //--------------------------------------------------------------------------
+    //                         Contact at feet and toes
+    //--------------------------------------------------------------------------
     const Vec2 rlatmed(.04,-.04), heelball(-.02,.125);
 
-    // Add contact spheres to feet and toes.
-    ContactSurface contactBall(ContactGeometry::Sphere(ContactSphereRadius), 
+    ContactSurface contactBall(ContactGeometry::Sphere(contactSphereRadius), 
                                rubber);
-    contactBall.joinClique(ModelClique);
-    DecorativeSphere contactArt(ContactSphereRadius);
+
+    // Use this clique for contact surfaces on the humanoid that you don't want
+    // to have bump into one another. They will still contact Ground.
+    const ContactCliqueId clique = ContactSurface::createNewContactClique();
+
+    contactBall.joinClique(clique);
+    DecorativeSphere contactArt(contactSphereRadius);
     contactArt.setColor(Magenta);
 
     const Real footsphereht = -.07;
@@ -498,54 +590,43 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     //                         Mobilized Bodies
     //--------------------------------------------------------------------------
     MobilizedBody::Free trunk(
-        matter.updGround(), Vec3(0),
+        m_matter.updGround(), Vec3(0),
         trunkInfo,          Vec3(0));
 
     // Neck angles are: q0=extension (about z), q1=bending (x), q2=rotation (y).
-    MobilizedBody::ORIENT head(
+    MobilizedBody::Gimbal head(
         trunk,    Transform(Rzxy, Vec3(0.010143822053248,0.222711680750785,0)),
         headInfo, Rzxy);
-    Force::MobilityLinearStop(m_forces, head, MobilizerQIndex(0), //extension
-        StopStiffness,StopDissipation, -80*D2R, 50*D2R);
-    Force::MobilityLinearStop(m_forces, head, MobilizerQIndex(1), //bending
-        StopStiffness,StopDissipation, -60*D2R, 50*D2R);
-    Force::MobilityLinearStop(m_forces, head, MobilizerQIndex(2), //rotation
-        StopStiffness,StopDissipation, -80*D2R, 80*D2R);
+    addMobilityLinearStop(head, 0, -80, 50); // extension
+    addMobilityLinearStop(head, 1, -60, 50); // bending
+    addMobilityLinearStop(head, 2, -80, 80); // rotation
 
     // Back angles are: q0=tilt (about z), q1=list (x), q2=rotation (y).
-    MobilizedBody::ORIENT pelvis(
+    MobilizedBody::Gimbal pelvis(
         trunk, Transform(Rzxy, Vec3(-0.019360589663647,-0.220484136504589,0)),
         pelvisInfo, Rzxy);
-    Force::MobilityLinearStop(m_forces, pelvis, MobilizerQIndex(0), //tilt
-        StopStiffness,StopDissipation, -5*D2R, 10*D2R);
-    Force::MobilityLinearStop(m_forces, pelvis, MobilizerQIndex(1), //list
-        StopStiffness,StopDissipation, -5*D2R, 5*D2R);
-    Force::MobilityLinearStop(m_forces, pelvis, MobilizerQIndex(2), //rotation
-        StopStiffness,StopDissipation, -15*D2R, 15*D2R);
+    addMobilityLinearStop(pelvis, 0, -5, 10); // tilt
+    addMobilityLinearStop(pelvis, 1, -5, 5); // list
+    addMobilityLinearStop(pelvis, 2, -15, 15); // rotation
 
     // Right arm.
     //-----------
     // Shoulder angles are q0=flexion, q1=adduction, q2=rotation
-    MobilizedBody::ORIENT upperarm_r(
+    MobilizedBody::Gimbal upperarm_r(
         trunk, Transform(Rzxy, 
                 Vec3(-0.023921136233947,0.079313926824158,0.164710443657016)),
         upperarm_rInfo, Rzxy);
-    Force::MobilityLinearStop(m_forces, upperarm_r, MobilizerQIndex(0), //flexion
-        StopStiffness,StopDissipation, -80*D2R, 160*D2R);
-    Force::MobilityLinearStop(m_forces, upperarm_r, MobilizerQIndex(1), //adduction
-        StopStiffness,StopDissipation, -45*D2R, 45*D2R); // TODO: was -90:90
-    Force::MobilityLinearStop(m_forces, upperarm_r, MobilizerQIndex(2), //rotation
-        StopStiffness,StopDissipation, -20*D2R, 20*D2R);
+    addMobilityLinearStop(upperarm_r, 0, -80, 160); // flexion
+    addMobilityLinearStop(upperarm_r, 1, -45, 45); // adduction
+    addMobilityLinearStop(upperarm_r, 2, -20, 20); // rotation
 
     // Elbow angles are q0=flexion, q1=rotation
     MobilizedBody::Universal lowerarm_r(
         upperarm_r, Transform(Rotation(-Pi/2,YAxis),
                 Vec3(0.033488432642100,-0.239093933565560,0.117718445964118)),
         lowerarm_rInfo, Rotation(-Pi/2,YAxis));
-    Force::MobilityLinearStop(m_forces, lowerarm_r, MobilizerQIndex(0), //flexion
-        StopStiffness,StopDissipation, 0*D2R, 120*D2R);
-    Force::MobilityLinearStop(m_forces, lowerarm_r, MobilizerQIndex(1), //rotation
-        StopStiffness,StopDissipation, -90*D2R, 40*D2R);
+    addMobilityLinearStop(lowerarm_r, 0, 0, 120); // flexion
+    addMobilityLinearStop(lowerarm_r, 1, -90, 40); // rotation
 
     MobilizedBody::Weld hand_r(
         lowerarm_r, Vec3(0.110610146564261,-0.232157950907188,0.014613941476432),
@@ -553,26 +634,21 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
 
     // Left arm.
     //----------
-    MobilizedBody::ORIENT upperarm_l(
+    MobilizedBody::Gimbal upperarm_l(
         trunk, Transform(Rzmxmy, 
                 Vec3(-0.023921136233947,0.079313926824158,-0.164710443657016)),
         upperarm_lInfo, Rzmxmy);
-    Force::MobilityLinearStop(m_forces, upperarm_l, MobilizerQIndex(0), //flexion
-        StopStiffness,StopDissipation, -80*D2R, 160*D2R);
-    Force::MobilityLinearStop(m_forces, upperarm_l, MobilizerQIndex(1), //adduction
-        StopStiffness,StopDissipation, -45*D2R, 45*D2R); // TODO: was -90:90
-    Force::MobilityLinearStop(m_forces, upperarm_l, MobilizerQIndex(2), //rotation
-        StopStiffness,StopDissipation, -20*D2R, 20*D2R);
+    addMobilityLinearStop(upperarm_l, 0, -80, 160); // flexion
+    addMobilityLinearStop(upperarm_l, 1, -45, 45); // adduction
+    addMobilityLinearStop(upperarm_l, 2, -20, 20); // rotation
 
     MobilizedBody::Universal lowerarm_l(
         upperarm_l, Transform(
                 Rotation(BodyRotationSequence, Pi/2,YAxis, Pi,ZAxis),
                 Vec3(0.033488432642100,-0.239093933565560,-0.117718445964118)),
         lowerarm_lInfo, Rotation(BodyRotationSequence, Pi/2,YAxis, Pi,ZAxis));
-    Force::MobilityLinearStop(m_forces, lowerarm_l, MobilizerQIndex(0), //flexion
-        StopStiffness,StopDissipation, 0*D2R, 120*D2R);
-    Force::MobilityLinearStop(m_forces, lowerarm_l, MobilizerQIndex(1), //rotation
-        StopStiffness,StopDissipation, -90*D2R, 40*D2R);
+    addMobilityLinearStop(lowerarm_l, 0, 0, 120); // flexion
+    addMobilityLinearStop(lowerarm_l, 1, -90, 40); // rotation
 
     MobilizedBody::Weld hand_l(
         lowerarm_l, Vec3(0.110610146564261,-0.232157950907188,-0.014613941476432),
@@ -582,23 +658,19 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
     // Right leg.
     //-----------
     // Hip angles are q0=flexion, q1=adduction, q2=rotation.
-    MobilizedBody::ORIENT thigh_r(
+    MobilizedBody::Gimbal thigh_r(
         pelvis, Transform(Rzxy, 
                 Vec3(0.029343644095793,-0.180413783750097,0.117592252162477)),
         thigh_rInfo, Rzxy);
-    Force::MobilityLinearStop(m_forces, thigh_r, MobilizerQIndex(0), //flexion
-        StopStiffness,StopDissipation, -60*D2R, 165*D2R);
-    Force::MobilityLinearStop(m_forces, thigh_r, MobilizerQIndex(1), //adduction
-        StopStiffness,StopDissipation, -20*D2R, 20*D2R);
-    Force::MobilityLinearStop(m_forces, thigh_r, MobilizerQIndex(2), //rotation
-        StopStiffness,StopDissipation, -120*D2R, 20*D2R);
+    addMobilityLinearStop(thigh_r, 0, -60, 165); // flexion
+    addMobilityLinearStop(thigh_r, 1, -20, 20); // adduction
+    addMobilityLinearStop(thigh_r, 2, -120, 20); // rotation
 
     // Knee angle is q0=extension
     MobilizedBody::Pin shank_r(
         thigh_r, Vec3(-0.005,-0.416780050422019,0.004172557002023),
         shank_rInfo, Vec3(0));
-    Force::MobilityLinearStop(m_forces, shank_r, MobilizerQIndex(0), //extension
-        StopStiffness,StopDissipation, -165*D2R, 0*D2R);
+    addMobilityLinearStop(shank_r, 0, -165, 0); // extension
 
     // Ankle angles are q0=dorsiflexion, q1=inversion.
     MobilizedBody::Universal foot_r(
@@ -607,36 +679,29 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
             Vec3(0,-0.420937226867266,-0.011971751580927)),
         foot_rInfo, 
             Rotation(BodyRotationSequence,Pi/2,XAxis,Pi,YAxis,Pi/2,ZAxis));
-    Force::MobilityLinearStop(m_forces, foot_r, MobilizerQIndex(0), //dorsiflexion
-        StopStiffness,StopDissipation, -50*D2R, 30*D2R);
-    Force::MobilityLinearStop(m_forces, foot_r, MobilizerQIndex(1), //inversion
-        StopStiffness,StopDissipation, -2*D2R, 35*D2R);
+    addMobilityLinearStop(foot_r, 0, -50, 30); // dorsiflexion
+    addMobilityLinearStop(foot_r, 1, -2, 35); // inversion
 
     // Toe angle is q0=dorsiflexion
     MobilizedBody::Pin toes_r(
         foot_r, Vec3(0.134331942132059,-0.071956467861059,-0.000000513235827),
         toes_rInfo, Vec3(0));
-    Force::MobilityLinearStop(m_forces, toes_r, MobilizerQIndex(0), //dorsiflexion
-        StopStiffness,StopDissipation, 0*D2R, 30*D2R);
+    addMobilityLinearStop(toes_r, 0, 0, 30); // dorsiflexion
 
     // Left leg.
     //----------
-    MobilizedBody::ORIENT thigh_l(
+    MobilizedBody::Gimbal thigh_l(
         pelvis, Transform(Rzmxmy, 
                 Vec3(0.029343644095793,-0.180413783750097,-0.117592252162477)),
         thigh_lInfo, Rzmxmy);
-    Force::MobilityLinearStop(m_forces, thigh_l, MobilizerQIndex(0), //flexion
-        StopStiffness,StopDissipation, -60*D2R, 165*D2R);
-    Force::MobilityLinearStop(m_forces, thigh_l, MobilizerQIndex(1), //adduction
-        StopStiffness,StopDissipation, -20*D2R, 20*D2R);
-    Force::MobilityLinearStop(m_forces, thigh_l, MobilizerQIndex(2), //rotation
-        StopStiffness,StopDissipation, -120*D2R, 20*D2R);
+    addMobilityLinearStop(thigh_l, 0, -60, 165); // flexion
+    addMobilityLinearStop(thigh_l, 1, -20, 20); // adduction
+    addMobilityLinearStop(thigh_l, 2, -120, 20); // rotation
 
     MobilizedBody::Pin shank_l(
         thigh_l, Vec3(-0.005,-0.416780050422019,-0.004172557002023),
         shank_lInfo, Vec3(0));
-    Force::MobilityLinearStop(m_forces, shank_l, MobilizerQIndex(0), //extension
-        StopStiffness,StopDissipation, -165*D2R, 0*D2R);
+    addMobilityLinearStop(shank_l, 0, -165, 0); // extension
 
     MobilizedBody::Universal foot_l(
         shank_l, Transform(
@@ -644,16 +709,13 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
             Vec3(0,-0.420937226867266,0.011971751580927)),
         foot_lInfo, 
             Rotation(BodyRotationSequence,-Pi/2,XAxis,Pi,YAxis,-Pi/2,ZAxis));
-    Force::MobilityLinearStop(m_forces, foot_l, MobilizerQIndex(0), //dorsiflexion
-        StopStiffness,StopDissipation, -50*D2R, 30*D2R);
-    Force::MobilityLinearStop(m_forces, foot_l, MobilizerQIndex(1), //inversion
-        StopStiffness,StopDissipation, -2*D2R, 35*D2R);
+    addMobilityLinearStop(foot_l, 0, -50, 30); // dorsiflexion
+    addMobilityLinearStop(foot_l, 1, -2, 35); // inversion
 
     MobilizedBody::Pin toes_l(
         foot_l, Vec3(0.134331942132059,-0.071956467861059,0.000000513235827),
         toes_lInfo, Vec3(0));
-    Force::MobilityLinearStop(m_forces, toes_l, MobilizerQIndex(0), //dorsiflexion
-        StopStiffness,StopDissipation, 0*D2R, 30*D2R);
+    addMobilityLinearStop(toes_l, 0, 0, 30); // dorsiflexion
 }
 
 
@@ -669,3 +731,4 @@ Biped::Biped() : m_matter(*this), m_forces(*this) {
 // TODO hide all the visualization initializtion code.
 // TODO make the body of main() really small.
 // TODO summary of important pieces of code.
+// TODO clean up model building
