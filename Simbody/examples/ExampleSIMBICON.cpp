@@ -110,6 +110,53 @@ public:
     const GeneralForceSubsystem& getForceSubsystem() const {return m_forces;}
     GeneralForceSubsystem& updForceSubsystem() {return m_forces;}
 
+    /// Populates a map that allow users of Biped to access coordinates (Q) and
+    /// speeds (U) with descriptive Enums (e.g., neck_extension) so the user
+    /// (e.g., SIMBICON) needn't know how State indices correspond to
+    /// coordinates. This method must be called before the model is used with a
+    /// controller like SIMBICON, but after a call to Biped::realizeModel().
+    void fillInCoordinateMap(const State& s);
+
+    void setTrunkOriginPosition(State& s, Vec3 posInGround) {
+        m_trunk.setQToFitTranslation(s, posInGround);
+    }
+    void setTrunkOriginVelocity(State&s, Vec3 velocityInGround) {
+        m_trunk.setUToFitLinearVelocity(s, velocityInGround);
+    }
+
+    enum Coordinate {
+        neck_extension = 0,
+        neck_bending = 1,
+        neck_rotation = 2,
+        back_tilt = 3,
+        back_list = 4,
+        back_rotation = 5,
+        shoulder_r_flexion = 6,
+        shoulder_r_adduction = 7,
+        shoulder_r_rotation = 8,
+        elbow_r_flexion = 9,
+        elbow_r_rotation = 10,
+        shoulder_l_flexion = 11,
+        shoulder_l_adduction = 12,
+        shoulder_l_rotation = 13,
+        elbow_l_flexion = 14,
+        elbow_l_rotation = 15,
+        hip_r_adduction = 16,
+        hip_r_flexion = 17,
+        hip_r_rotation = 18,
+        knee_r_extension = 19,
+        ankle_r_inversion = 20,
+        ankle_r_dorsiflexion = 21,
+        mtp_r_dorsiflexion = 22,
+        hip_l_adduction = 23,
+        hip_l_flexion = 24,
+        hip_l_rotation = 25,
+        knee_l_extension = 26,
+        ankle_l_inversion = 27,
+        ankle_l_dorsiflexion = 28,
+        mtp_l_dorsiflexion = 29,
+    };
+
 private:
 
     /// For convenience in building the model.
@@ -122,6 +169,16 @@ private:
         Force::MobilityLinearStop(m_forces, mobod, MobilizerQIndex(idx),
                 stopStiffness, stopDissipation,
                 lowerBound * D2R, upperBound * D2R);
+    }
+
+    /// The indices, in the State vector, of a coordinate value (Q) and speed
+    /// (U) in a specific MobilizedBody. Used in fillInCoordinateMap().
+    static std::pair<QIndex, UIndex> getQandUIndices(
+            const SimTK::State& s, const SimTK::MobilizedBody& mobod,int which)
+    {
+        SimTK::QIndex q0 = mobod.getFirstQIndex(s);
+        SimTK::UIndex u0 = mobod.getFirstUIndex(s);
+        return std::make_pair(QIndex(q0 + which), UIndex(u0 + which));
     }
 
     // Subsystems.
@@ -148,6 +205,9 @@ private:
     MobilizedBody::Pin           m_shank_l;
     MobilizedBody::Universal     m_foot_l;
     MobilizedBody::Pin           m_toes_l;
+
+    /// The indices of each coordinate's Q and U in the State vector.
+    std::map<Coordinate, std::pair<QIndex, UIndex> > m_coordinates;
 };
 
 //==============================================================================
@@ -175,7 +235,7 @@ public:
         // Pose graph control.
         // ===================
         // Apply PD control to most joints to track target pose.
-        // 
+        //
         /*
         mobilityForces[NECK_EXTENSION] = calcPDControl(NECK, NECK_EXTENSION);
         mobilityForces[NECK_BENDING] = calcPDControl(NECK, NECK_BENDING);
@@ -294,9 +354,15 @@ int main(int argc, char **argv)
     State state = biped.realizeTopology();
     biped.realizeModel(state);
 
-    // TODO fillInActuatorMap
+    // Initialization specific to Biped and SIMBICON.
+    biped.fillInCoordinateMap(state);
 
     biped.realize(state, Stage::Instance);
+
+    // Set the initial conditions for the biped.
+    biped.setTrunkOriginPosition(state, Vec3(0, 1.5, 0));
+    // Give the biped some initial forward velocity.
+    biped.setTrunkOriginVelocity(state, Vec3(1, 0, 0));
 
     // Start up the visualizer.
     Visualizer viz(biped);
@@ -308,6 +374,9 @@ int main(int argc, char **argv)
 
     // Show the biped.
     viz.report(state);
+
+
+
 
 	return 0;
 }
@@ -810,6 +879,54 @@ Biped::Biped()
         m_foot_l, Vec3(0.134331942132059,-0.071956467861059,0.000000513235827),
         toes_lInfo, Vec3(0));
     addMobilityLinearStop(m_toes_l, 0, 0, 30); // dorsiflexion
+
+}
+
+void Biped::fillInCoordinateMap(const State& s)
+{
+    m_coordinates[neck_extension] = getQandUIndices(s, m_head, 0);
+    m_coordinates[neck_bending] = getQandUIndices(s, m_head, 1);
+    m_coordinates[neck_rotation] = getQandUIndices(s, m_head, 2);
+
+    m_coordinates[back_tilt]     = getQandUIndices(s, m_pelvis, 0);
+    m_coordinates[back_list]     = getQandUIndices(s, m_pelvis, 1);
+    m_coordinates[back_rotation] = getQandUIndices(s, m_pelvis, 2);
+
+    m_coordinates[shoulder_r_flexion]   = getQandUIndices(s, m_upperarm_r, 0);
+    m_coordinates[shoulder_r_adduction] = getQandUIndices(s, m_upperarm_r, 1);
+    m_coordinates[shoulder_r_rotation]  = getQandUIndices(s, m_upperarm_r, 2);
+
+    m_coordinates[elbow_r_flexion]  = getQandUIndices(s, m_lowerarm_r, 0);
+    m_coordinates[elbow_r_rotation] = getQandUIndices(s, m_lowerarm_r, 1);
+
+    m_coordinates[shoulder_l_flexion]   = getQandUIndices(s, m_upperarm_l, 0);
+    m_coordinates[shoulder_l_adduction] = getQandUIndices(s, m_upperarm_l, 1);
+    m_coordinates[shoulder_l_rotation]  = getQandUIndices(s, m_upperarm_l, 2);
+
+    m_coordinates[elbow_l_flexion]  = getQandUIndices(s, m_lowerarm_l, 0);
+    m_coordinates[elbow_l_rotation] = getQandUIndices(s, m_lowerarm_l, 1);
+
+    m_coordinates[hip_r_flexion]    = getQandUIndices(s, m_thigh_r, 0);
+    m_coordinates[hip_r_adduction]  = getQandUIndices(s, m_thigh_r, 1);
+    m_coordinates[hip_r_rotation]   = getQandUIndices(s, m_thigh_r, 2);
+
+    m_coordinates[knee_r_extension] = getQandUIndices(s, m_shank_r, 0);
+
+    m_coordinates[ankle_r_dorsiflexion] = getQandUIndices(s, m_foot_r, 0);
+    m_coordinates[ankle_r_inversion]    = getQandUIndices(s, m_foot_r, 1);
+
+    m_coordinates[mtp_r_dorsiflexion] = getQandUIndices(s, m_toes_r, 0);
+
+    m_coordinates[hip_l_flexion]    = getQandUIndices(s, m_thigh_l, 0);
+    m_coordinates[hip_l_adduction]  = getQandUIndices(s, m_thigh_l, 1);
+    m_coordinates[hip_l_rotation]   = getQandUIndices(s, m_thigh_l, 2);
+
+    m_coordinates[knee_l_extension] = getQandUIndices(s, m_shank_l, 0);
+
+    m_coordinates[ankle_l_dorsiflexion] = getQandUIndices(s, m_foot_l, 0);
+    m_coordinates[ankle_l_inversion]    = getQandUIndices(s, m_foot_l, 1);
+
+    m_coordinates[mtp_l_dorsiflexion] = getQandUIndices(s, m_toes_l, 0);
 }
 
 
