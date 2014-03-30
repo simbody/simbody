@@ -110,11 +110,20 @@ public:
     const GeneralForceSubsystem& getForceSubsystem() const {return m_forces;}
     GeneralForceSubsystem& updForceSubsystem() {return m_forces;}
 
+    /// Realizes the topology and model, and uses the resulting initial state
+    /// to perform further internal initialization.
+    void initialize(State& state) {
+        state = realizeTopology();
+        realizeModel(state);
+
+        // Initialization specific to Biped.
+        fillInCoordinateMap(state);
+    }
+
     /// Populates a map that allow users of Biped to access coordinates (Q) and
     /// speeds (U) with descriptive Enums (e.g., neck_extension) so the user
     /// (e.g., SIMBICON) needn't know how State indices correspond to
-    /// coordinates. This method must be called before the model is used with a
-    /// controller like SIMBICON, but after a call to Biped::realizeModel().
+    /// coordinates.
     void fillInCoordinateMap(const State& s);
 
     void setTrunkOriginPosition(State& s, Vec3 posInGround) {
@@ -340,6 +349,8 @@ int main(int argc, char **argv)
     // 1.0 indicates real time.
     const Real realTimeFactor = 1.0;
 
+    const Real framesPerSecond = 30.0;
+
     // Create the system.
     Biped biped;
 
@@ -350,13 +361,9 @@ int main(int argc, char **argv)
     // The name of this Force is irrelevant.
     Force::Custom simbicon1(biped.updForceSubsystem(), new SIMBICON(biped));
 
-    // Initialize the system.
-    State state = biped.realizeTopology();
-    biped.realizeModel(state);
-
-    // Initialization specific to Biped and SIMBICON.
-    biped.fillInCoordinateMap(state);
-
+    // Initialize the system (this is our own method).
+    State state;
+    biped.initialize(state);
     biped.realize(state, Stage::Instance);
 
     // Set the initial conditions for the biped.
@@ -370,13 +377,19 @@ int main(int argc, char **argv)
     viz.setShowFrameRate(true);
 
     // Update the visualization at a framerate of 1/interval.
-    biped.addEventReporter(new Visualizer::Reporter(viz, realTimeFactor/30));
+    biped.addEventReporter(
+            new Visualizer::Reporter(viz, realTimeFactor / framesPerSecond));
 
     // Show the biped.
     viz.report(state);
 
+    // Set up the numerical integration.
+    SemiExplicitEuler2Integrator integ(biped);
+    integ.setAccuracy(0.1);
+    TimeStepper ts(biped, integ);
+    ts.initialize(state);
 
-
+    ts.stepTo(Infinity);
 
 	return 0;
 }
