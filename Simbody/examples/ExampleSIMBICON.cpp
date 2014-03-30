@@ -126,10 +126,10 @@ public:
     /// coordinates.
     void fillInCoordinateMap(const State& s);
 
-    void setTrunkOriginPosition(State& s, Vec3 posInGround) {
+    void setTrunkOriginPosition(State& s, Vec3 posInGround) const {
         m_trunk.setQToFitTranslation(s, posInGround);
     }
-    void setTrunkOriginVelocity(State&s, Vec3 velocityInGround) {
+    void setTrunkOriginVelocity(State& s, Vec3 velocityInGround) const {
         m_trunk.setUToFitLinearVelocity(s, velocityInGround);
     }
 
@@ -165,6 +165,33 @@ public:
         ankle_l_dorsiflexion = 28,
         mtp_l_dorsiflexion = 29,
     };
+
+    /// Index, in the State vector, of this coordinate's value (Q).
+    QIndex getQIndex(Coordinate coord) const {
+        assert(!m_coordinates.empty());
+        return m_coordinates.at(coord).first;
+    }
+
+    /// Coordinate coord's value (Q).
+    Real getQ(const State& s, Coordinate coord) const {
+        return s.getQ()[getQIndex(coord)];
+    }
+
+    /// Index, in the State vector, of this coordinate's speed (U).
+    UIndex getUIndex(Coordinate coord) const {
+        assert(!m_coordinates.empty());
+        return m_coordinates.at(coord).second;
+    }
+
+    /// Coordinate coord's speed (U).
+    Real getU(const State& s, Coordinate coord) const {
+        return s.getU()[getUIndex(coord)];
+    }
+
+    void addInForce(const Coordinate coord, const Real force,
+            Vector& mobForces) const {
+        mobForces[getUIndex(coord)] += force;
+    }
 
 private:
 
@@ -222,29 +249,71 @@ private:
 //==============================================================================
 // SIMBICON
 //==============================================================================
+
+double clamp(double x, double max) {
+    assert(max > 0);
+    if (x > max) return max;
+    if (x < -max) return -max;
+    return x;
+}
+
 /// The actual controller that specifies the torques to apply to the Biped.
 class SIMBICON : public Force::Custom::Implementation {
 public:
-    SIMBICON(Biped& biped)
-    :   m_biped(biped)
-    {
-        m_biped.addEventHandler(
-                new StateHandler(biped, *this,
-                    SIMBICON_STATE_UPDATE_STEPSIZE));
-    }
-    void calcForce(const State&         state,
+
+    SIMBICON(Biped& biped);
+
+    void calcForce(const State&         s,
                    Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>&       particleForces,
-                   Vector&              mobilityForces) const
+                   Vector&              mobForces) const
                    OVERRIDE_11
     {
         // TODO
         // Which leg is in stance?
         // TODO double stance?
+
         // Pose graph control.
         // ===================
+
         // Apply PD control to most joints to track target pose.
-        //
+        addInPDControl(s, Biped::neck_extension, neck, 0.0, mobForces);
+        addInPDControl(s, Biped::neck_bending, neck, 0.0, mobForces);
+        addInPDControl(s, Biped::neck_rotation, neck, 0.0, mobForces);
+
+        // TODO back?
+        addInPDControl(s, Biped::back_tilt, back, 0.0, mobForces);
+        addInPDControl(s, Biped::back_list, back, 0.0, mobForces);
+        addInPDControl(s, Biped::back_rotation, back, 0.0, mobForces);
+
+        addInPDControl(s, Biped::shoulder_r_flexion, arm_flexion_adduction, 0.0, mobForces);
+        addInPDControl(s, Biped::shoulder_l_flexion, arm_flexion_adduction, 0.0, mobForces);
+        addInPDControl(s, Biped::shoulder_r_adduction, arm_flexion_adduction, 0.0, mobForces);
+        addInPDControl(s, Biped::shoulder_l_adduction, arm_flexion_adduction, 0.0, mobForces);
+        addInPDControl(s, Biped::elbow_r_flexion, arm_flexion_adduction, 0.0, mobForces);
+        addInPDControl(s, Biped::elbow_l_flexion, arm_flexion_adduction, 0.0, mobForces);
+
+        addInPDControl(s, Biped::shoulder_r_rotation, arm_rotation, 0.0, mobForces);
+        addInPDControl(s, Biped::shoulder_l_rotation, arm_rotation, 0.0, mobForces);
+        addInPDControl(s, Biped::elbow_r_rotation, arm_rotation, 0.0, mobForces);
+        addInPDControl(s, Biped::elbow_l_rotation, arm_rotation, 0.0, mobForces);
+
+        addInPDControl(s, Biped::hip_r_rotation, hip_rotation, 0.0, mobForces);
+        addInPDControl(s, Biped::hip_l_rotation, hip_rotation, 0.0, mobForces);
+
+        addInPDControl(s, Biped::knee_r_extension, knee, 0.0, mobForces);
+        addInPDControl(s, Biped::knee_l_extension, knee, 0.0, mobForces);
+
+        addInPDControl(s, Biped::ankle_r_dorsiflexion, ankle_flexion, 0.0, mobForces);
+        addInPDControl(s, Biped::ankle_l_dorsiflexion, ankle_flexion, 0.0, mobForces);
+
+        addInPDControl(s, Biped::ankle_r_inversion, ankle_inversion, 0.0, mobForces);
+        addInPDControl(s, Biped::ankle_l_inversion, ankle_inversion, 0.0, mobForces);
+
+        addInPDControl(s, Biped::mtp_r_dorsiflexion, toe, 0.0, mobForces);
+        addInPDControl(s, Biped::mtp_l_dorsiflexion, toe, 0.0, mobForces);
+
+
         /*
         mobilityForces[NECK_EXTENSION] = calcPDControl(NECK, NECK_EXTENSION);
         mobilityForces[NECK_BENDING] = calcPDControl(NECK, NECK_BENDING);
@@ -276,7 +345,7 @@ public:
 
                 */
 
-    }
+}
 
     Real calcPotentialEnergy(const State& state) const OVERRIDE_11
     {
@@ -299,23 +368,42 @@ public:
         Biped& m_biped;
         SIMBICON& m_simbicon;
     };
+
+    enum GainGroup {
+        neck,
+        back,
+        hip_flexion_adduction,
+        hip_rotation,
+        knee,
+        arm_flexion_adduction,
+        arm_rotation,
+        ankle_flexion,
+        ankle_inversion,
+        toe
+    };
+
 private:
     Biped& m_biped;
-/*
-    Real calcPDControl(const State& s, string strengthGroup, string dof, Real thetad)
-{
-    kp = positionGains[strengthGroup];
-    kd = speedGains[strengthGroup];
-    q = m_biped.getQ(s, dof);
-    u = m_biped.getU(s, dof);
-    return clamp(kp * (thetad - q) - kd * u);
-}
 
-    void addInPDControl(const State& s, string strengthGroup, string dof, Real thetad)
-{
-    m_biped.addInForce(dof, calcPDControl(...), mobilityForces);
-}
-*/
+    std::map<GainGroup, Real> m_proportionalGains;
+    std::map<GainGroup, Real> m_derivativeGains;
+
+    void addInPDControl(const State& s,
+            const Biped::Coordinate coord, const GainGroup gainGroup,
+            const Real thetad, Vector& mobForces) const
+    {
+        // Prepare quantities.
+        Real kp = m_proportionalGains.at(gainGroup);
+        Real kd = m_derivativeGains.at(gainGroup);
+        Real q = m_biped.getQ(s, coord);
+        Real u = m_biped.getU(s, coord);
+
+        // PD control law:
+        Real force = clamp(kp * (thetad - q) - kd * u, kp);
+
+        // Update the proper entry in mobForces.
+        m_biped.addInForce(coord, force, mobForces);
+    }
 
 };
 
@@ -446,7 +534,7 @@ Biped::Biped()
     const Real concrete_planestrain =
         ContactMaterial::calcPlaneStrainStiffness(concrete_young,concrete_poisson);
     const Real concrete_dissipation = 0.005;
-    
+
     const ContactMaterial concrete(concrete_planestrain,concrete_dissipation,
                                    mu_s,mu_d,mu_v);
 
@@ -969,6 +1057,54 @@ void Biped::fillInCoordinateMap(const State& s)
 }
 
 
+//==============================================================================
+// SIMBICON
+//==============================================================================
+Real criticallyDampedDerivativeGain(Real proportionalGain) {
+    return 2.0 * std::sqrt(proportionalGain);
+}
+
+SIMBICON::SIMBICON(Biped& biped)
+    : m_biped(biped)
+{
+    m_biped.addEventHandler(
+            new StateHandler(biped, *this,
+                SIMBICON_STATE_UPDATE_STEPSIZE));
+
+    // Proportional (position) gains (kp).
+    m_proportionalGains[neck] = 100;
+    m_proportionalGains[back] = 300;
+    m_proportionalGains[hip_flexion_adduction] = 1000;
+    m_proportionalGains[hip_rotation] = 300;
+    m_proportionalGains[knee] = 300;
+    m_proportionalGains[arm_flexion_adduction] = 300;
+    m_proportionalGains[arm_rotation] = 300;
+    m_proportionalGains[ankle_flexion] = 300;
+    m_proportionalGains[ankle_inversion] = 30;
+    m_proportionalGains[toe] = 30;
+
+    // Derivative (speed) gains; mostly chosen for critical damping.
+    m_derivativeGains[neck] = criticallyDampedDerivativeGain(
+            m_proportionalGains[neck]);
+    m_derivativeGains[back] = criticallyDampedDerivativeGain(
+            m_proportionalGains[back]);
+    // Overdamped.
+    m_derivativeGains[hip_flexion_adduction] = 100;
+    m_derivativeGains[hip_rotation] = criticallyDampedDerivativeGain(
+            m_proportionalGains[hip_rotation]);
+    m_derivativeGains[knee] = criticallyDampedDerivativeGain(
+            m_proportionalGains[knee]);
+    m_derivativeGains[arm_flexion_adduction] = criticallyDampedDerivativeGain(
+            m_proportionalGains[arm_flexion_adduction]);
+    m_derivativeGains[arm_rotation] = criticallyDampedDerivativeGain(
+            m_proportionalGains[arm_rotation]);
+    m_derivativeGains[ankle_flexion] = criticallyDampedDerivativeGain(
+            m_proportionalGains[ankle_flexion]);
+    m_derivativeGains[ankle_inversion] = criticallyDampedDerivativeGain(
+            m_proportionalGains[ankle_inversion]);
+    m_derivativeGains[toe] = criticallyDampedDerivativeGain(
+            m_proportionalGains[toe]);
+}
 
 
 
