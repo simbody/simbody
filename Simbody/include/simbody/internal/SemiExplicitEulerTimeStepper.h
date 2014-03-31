@@ -158,7 +158,7 @@ public:
     be significantly greater than the velocity constraint tolerance
     since speeds below that are indistinguishable from zero anyway. In 
     practice we will use as the capture velocity the \e larger of this value 
-    and the velocity constraint tolerance currently in effect. **/
+    and twice the velocity constraint tolerance currently in effect. **/
     void setDefaultImpactCaptureVelocity(Real vCapture) {
         SimTK_ERRCHK1_ALWAYS(vCapture>=0,
         "SemiExplicitEulerTimeStepper::setDefaultImpactCaptureVelocity()",
@@ -189,7 +189,7 @@ public:
     be significantly greater than the velocity constraint tolerance
     since speeds below that are indistinguishable from zero anyway. In 
     practice we will use as the transition velocity the \e larger of this value 
-    and the velocity constraint tolerance currently in effect. **/
+    and twice the velocity constraint tolerance currently in effect. **/
     void setDefaultFrictionTransitionVelocity(Real vTransition) {
         SimTK_ERRCHK1_ALWAYS(vTransition>=0,
         "SemiExplicitEulerTimeStepper::setDefaultFrictionTransitionVelocity()",
@@ -241,7 +241,7 @@ public:
     /** Return the value actually being used as the default impact capture
     velocity. **/
     Real getDefaultImpactCaptureVelocityInUse() const 
-    {   return std::max(m_defaultCaptureVelocity, m_consTol); }
+    {   return std::max(m_defaultCaptureVelocity, 2*m_consTol); }
     /** Return the value actually being used as the default impact minimum
     coefficient of restitution velocity. **/
     Real getDefaultImpactMinCORVelocityInUse() const 
@@ -250,7 +250,7 @@ public:
     /** Return the value actually being used as the default sliding-to-rolling
     friction transition velocity. **/
     Real getDefaultFrictionTransitionVelocityInUse() const 
-    {   return std::max(m_defaultTransitionVelocity, m_consTol); }
+    {   return std::max(m_defaultTransitionVelocity, 2*m_consTol); }
 
     /** Get access to the MultibodySystem for which this %TimeStepper was
     constructed. **/

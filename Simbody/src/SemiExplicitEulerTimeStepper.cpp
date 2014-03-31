@@ -36,11 +36,10 @@ using namespace SimTK;
 /* Implementation of SemiExplicitEulerTimeStepper. */
 
 namespace {
-    const Real                     DefAccuracy            = 1e-2;
-    const Real                     DefConstraintTol       = 1e-3;
-    const Real                     DefMinCORVelocity      = 1;
-    const Real                     DefMinSignificantForce = SignificantReal;
-    const int                      DefMaxInducedImpactsPerStep = 5;
+    const Real  DefAccuracy            = 1e-2;
+    const Real  DefConstraintTol       = DefAccuracy/10;
+    const Real  DefMinSignificantForce = SignificantReal;
+    const int   DefMaxInducedImpactsPerStep = 5;
     const SemiExplicitEulerTimeStepper::RestitutionModel   
         DefRestitutionModel    = SemiExplicitEulerTimeStepper::Poisson;
     const SemiExplicitEulerTimeStepper::InducedImpactModel 
@@ -65,9 +64,9 @@ SemiExplicitEulerTimeStepper(const MultibodySystem& mbs)
     m_maxInducedImpactsPerStep(DefMaxInducedImpactsPerStep),
     m_projectionMethod(DefPosProjMethod),
     m_solverType(DefImpulseSolverType), 
-    m_defaultMinCORVelocity(DefMinCORVelocity),
-    m_defaultCaptureVelocity(m_consTol),
-    m_defaultTransitionVelocity(m_consTol),
+    m_defaultCaptureVelocity(0),    // means: use 2 x constraintTol
+    m_defaultMinCORVelocity(0),     // means: use capture velocity
+    m_defaultTransitionVelocity(0), // means: use 2 x constraintTol
     m_minSignificantForce(DefMinSignificantForce),
     m_solver(0)
 {}
