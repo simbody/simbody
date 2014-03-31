@@ -303,7 +303,7 @@ solve(int                                 phase,
                 #ifndef NDEBUG
                 printf("> NEWTON iter %d: errNorm=%g(v) -> deltaNorm=%g(pi)\n", 
                        newtIter, errNorm, dpi.norm());
-                cout << "> JacActive=" << m_JacActive;
+                //cout << "> JacActive=" << m_JacActive;
                 cout << "> piActive=" << m_piActive << endl;
                 cout << "> errActive=" << m_errActive << endl;
                 cout << "> deltaPi=" << dpi << endl;

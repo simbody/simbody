@@ -335,6 +335,7 @@ stepTo(Real time) {
     // body accelerations A_GB.
     matterRep.calcTreeForwardDynamicsOperator
        (s, f, Fp, F, &fc, &Fc, tac, udot, qdotdot, udotErr);
+    m_deltaU = h*udot;
 
     // Update auxiliary states z, invalidating Stage::Dynamics.
     s.updZ() += h*zdot;
