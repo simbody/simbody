@@ -117,8 +117,19 @@ public:
         assert(roll2slipTransitionSpeed >= 0);
         m_maxRollingTangVel = roll2slipTransitionSpeed; 
     }
-
     Real getMaxRollingSpeed() const {return m_maxRollingTangVel;}
+
+    void setConvergenceTol(Real tol) {
+        assert(tol >= 0);
+        m_convergenceTol = tol;
+    }
+    Real getConvergenceTol() const {return m_convergenceTol;}
+
+    void setMaxIterations(int maxIts) {
+        assert(maxIts > 0);
+        m_maxIters = maxIts;
+    }
+    int getMaxIterations() const {return m_maxIters;}
 
     // We'll keep stats separately for different "phases". The meaning of a
     // phase is up to the caller.
