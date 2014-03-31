@@ -1150,9 +1150,10 @@ doCompressionPhase(const State& s, Vector& verr, Vector& compImpulse) {
     printf("DYN t=%.15g verr=", s.getTime()); cout << verr << endl;
 #endif
     // TODO: improve initial guess
+    m_expansionImpulse.setToZero(); //TODO: shouldn't need to zero this
     bool converged = m_solver->solve(0,
         m_allParticipating,m_GMInvGt,m_D,
-        Array_<MultiplierIndex>(), verr,//dummy for piExpand(m); ignored
+        Array_<MultiplierIndex>(), m_expansionImpulse, 
         verr,compImpulse,
         m_unconditional,m_uniContact,m_uniSpeed,m_bounded,
         m_consLtdFriction, m_stateLtdFriction);
@@ -1223,9 +1224,10 @@ doPositionCorrectionPhase(const State& state, Vector& verr,
     if (m_projectionMethod == Unilateral) {
         SimTK_DEBUG1("UNILATERAL POSITION CORRECTION, %d participators\n",
                      (int)m_posParticipating.size());
+        m_expansionImpulse.setToZero(); //TODO: shouldn't need to zero this
         converged = m_solver->solve(2,
             m_posParticipating,m_GMInvGt,m_D,
-            Array_<MultiplierIndex>(), verr,//dummy for piExpand; ignored
+            Array_<MultiplierIndex>(), m_expansionImpulse,
             verr, positionImpulse,
             m_posUnconditional,m_posUniContact,m_posNoUniSpeed,m_posNoBounded,
             m_posNoConsLtdFriction, m_posNoStateLtdFriction);
