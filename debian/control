@@ -15,7 +15,7 @@ Vcs-Browser: https://github.com/simbody/simbody
 Vcs-Git: git://github.com/simbody/simbody.git
 Homepage: https://simtk.org/home/simbody
 
-Package: libsimbody3.3
+Package: libsimbody3.4
 Section: libs
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
@@ -35,7 +35,7 @@ Depends: freeglut3-dev,
          libxi-dev,
          libxmu-dev,
          liblapack-dev,
-	 libsimbody3.3 (= ${binary:Version}),
+	 libsimbody3.4 (= ${binary:Version}),
 	 ${misc:Depends}
 Multi-Arch: same
 Description: SimTK multibody dynamics API - development files
@@ -48,10 +48,10 @@ Description: SimTK multibody dynamics API - development files
  This package contains development files (headers, shared library
  symbolic link and pkg-config file).
 
-Package: libsimbody3.3-dbg
+Package: libsimbody3.4-dbg
 Architecture: any
 Section: debug
-Depends: libsimbody3.3 (= ${binary:Version}),
+Depends: libsimbody3.4 (= ${binary:Version}),
          ${misc:Depends}
 Multi-Arch: foreign
 Description: SimTK multibody dynamics API - Debugging Symbols

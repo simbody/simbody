@@ -1,6 +1,17 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
+# Multiarch (if supported).
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null)
+
+# Configuration flags.
+CONFIGURE_ARGS=
+
+# If multiarch is supported, override CMAKE_INSTALL_LIB
+ifneq ($(DEB_HOST_MULTIARCH),)
+CONFIGURE_ARGS+=-DCMAKE_INSTALL_LIBDIR:STRING="lib/${DEB_HOST_MULTIARCH}"
+endif
+
 .PHONY: override_dh_auto_configure   \
         override_dh_auto_build-indep \
         override_dh_auto_install     \
@@ -10,7 +21,8 @@
 override_dh_auto_configure:
 	dh_auto_configure --  \
 	    -DCMAKE_INSTALL_PREFIX:PATH=/usr \
-	    -DBUILD_EXAMPLES:BOOL=False
+	    -DBUILD_EXAMPLES:BOOL=False \
+            $(CONFIGURE_ARGS) 
 
 override_dh_auto_build-indep:
 	dh_auto_build -- doxygen
@@ -23,7 +35,7 @@ override_dh_auto_install:
 	rm debian/tmp/usr/share/doc/simbody/INSTALL.txt
 
 override_dh_strip:
-	dh_strip -a --dbg-package=libsimbody3.3-dbg
+	dh_strip -a --dbg-package=libsimbody3.4-dbg
 
 %:
 	dh $@ --parallel --buildsystem=cmake
