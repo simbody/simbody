@@ -720,9 +720,10 @@ void SemiExplicitEulerTimeStepper::initialize(const State& initState) {
     m_mbs.realize(m_state, Stage::Acceleration);
 
     if (!m_solver) {
+        const Real transVel = getDefaultFrictionTransitionVelocityInUse();
         m_solver = m_solverType==PLUS 
-            ? (ImpulseSolver*)new PLUSImpulseSolver(m_defaultTransitionVelocity)
-            : (ImpulseSolver*)new PGSImpulseSolver(m_defaultTransitionVelocity);
+            ? (ImpulseSolver*)new PLUSImpulseSolver(transVel)
+            : (ImpulseSolver*)new PGSImpulseSolver(transVel);
     }
 
     SimTK_ERRCHK_ALWAYS(m_solver!=0,
