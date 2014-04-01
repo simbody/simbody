@@ -70,7 +70,7 @@ X                                        Y
 ---------------------------------------  ---------------------------------------
 construction of the model                Biped::Biped()
 control laws                             SIMBICON::calcForce()
-logic to change state in state machine   SIMBICON::StateHandler::handleEvent()
+logic to change state in state machine   TODO
 
 
 Notes
@@ -298,28 +298,38 @@ public:
 
     void realizeTopology(State& s) const
     {
-        // Add in an event handler to manage when the SIMBICON state changes.
-        m_biped.addEventHandler(
-                new StateHandler(m_biped, *this,
-                    SIMBICON_STATE_UPDATE_STEPSIZE));
 
-        const DefaultSystemSubsystem& subsys = m_bipe.getDefaultSubsystem();
+        const DefaultSystemSubsystem& subsys = m_biped.getDefaultSubsystem();
 
-        // TODO is the simbiconState part of topology or model??
-        // The SIMBICON state of the controller for the finite state machine
-        // (e.g., 0, 1, 2, or 3).
-        m_simbiconStateIndex =
-            const_cast<DiscreteVariableIndex>(
+        // NOTE: the next two assignments discard the const qualifier of this
+        // method. There is a very specific reason for this! Sherm explained
+        // this to me as follows:
+        //
+        // 1. The state has a cache. Even when the state is const, it's okay to
+        // write to the cache. This is because the cache is something that is
+        // computed from a (const) state. So long as the state is const, we are
+        // able to regenerate the cache appropriately.
+        //
+        // 2. We can think of the model-building process as having a state and
+        // a cache. The state is the things that make up the model, such as the
+        // MobilizedBody's. The cache in this case is quantities computed from
+        // this model-buidling state, such as the number of mobilized bodies.
+        //
+        // 3. Therefore, quantities computed about the model-building state do
+        // not need to be const.
+        //
+        // 4. The indicies in the state of my two AutoUpdateDiscreteVariable's
+        // are part of the model-building cache, and so I can remove the const
+        // qualifier.
+        const_cast<SIMBICON*>(this)->m_simbiconStateIndex =
                     subsys.allocateAutoUpdateDiscreteVariable(s,
                         Stage::Acceleration, new Value<int>(-1),
-                        Stage::Dynamics));
-        // The time at which this controller entered the current SIMBICON
-        // state.
-        m_stateStartTimeIndex =
-            const_cast<DiscreteVariableIndex>(
+                        Stage::Dynamics);
+
+        const_cast<SIMBICON*>(this)->m_stateStartTimeIndex =
                     subsys.allocateAutoUpdateDiscreteVariable(s,
                         Stage::Acceleration, new Value<Real>(NaN),
-                        Stage::Dynamics));
+                        Stage::Dynamics);
     }
 
     void calcForce(const State&         s,
@@ -437,21 +447,6 @@ public:
         return 0;
     }
 
-    /// Updates the SIMBICON state of biped for the finite state machine.
-    class StateHandler : public PeriodicEventHandler {
-    public:
-        StateHandler(Biped&             biped,
-                     const SIMBICON&    simbicon,
-                     Real               interval)
-        :   PeriodicEventHandler(interval),
-            m_biped(biped), m_simbicon(simbicon) {}
-        void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const;
-
-    private:
-        Biped& m_biped;
-        const SIMBICON& m_simbicon;
-    };
-
     enum GainGroup {
         neck,
         back,
@@ -511,10 +506,17 @@ private:
     std::map<GainGroup, Real> m_proportionalGains;
     std::map<GainGroup, Real> m_derivativeGains;
 
-    // TODO how to set these without them being mutable?
-    // TODO that is, when does this object get a chance to allocate a state var?
-    mutable DiscreteVariableIndex m_simbiconStateIndex;
-    mutable DiscreteVariableIndex m_stateStartTimeIndex;
+    // The SIMBICON controller itself has some state.
+    // ----------------------------------------------
+    // Written during the realizeTopology step.
+
+    /// The SIMBICON state of the controller for the finite state machine
+    /// (e.g., 0, 1, 2, or 3).
+    DiscreteVariableIndex m_simbiconStateIndex;
+
+    /// The time at which this controller entered the current SIMBICON
+    /// state.
+    DiscreteVariableIndex m_stateStartTimeIndex;
 
 };
 
@@ -1180,6 +1182,7 @@ SIMBICON::SIMBICON(Biped& biped, Vec2 deltaT, Vec2 cd, Vec2 cdLat, Vec2 cv,
     : m_biped(biped), m_simbiconState(0), m_deltaT(deltaT), m_cd(cd),
       m_cdLat(cdLat), m_cv(cv), m_cvLat(cvLat), m_tor(tor), m_swh(swh),
       m_swk(swk), m_swa(swa), m_stk(stk), m_sta(sta)
+
 {
 
     // Hook up with the model.
@@ -1222,9 +1225,7 @@ SIMBICON::SIMBICON(Biped& biped, Vec2 deltaT, Vec2 cd, Vec2 cdLat, Vec2 cv,
             m_proportionalGains[toe]);
 }
 
-void SIMBICON::StateHandler::handleEvent(State& s, Real accuracy,
-        bool& shouldTerminate) const
-{
+
     /* TODO
     shouldTerminate = false;
     bool lContact;
@@ -1236,9 +1237,6 @@ void SIMBICON::StateHandler::handleEvent(State& s, Real accuracy,
         if (rContact) m_simbicon.setState(
     }
     */
-}
-
-
 
 
 
