@@ -228,11 +228,11 @@ private:
     }
 
     bool isRightFoot(const MobilizedBody& mobod) const {
-        return     mobod.isSameMobilizedBody(m_foot_r) 
+        return     mobod.isSameMobilizedBody(m_foot_r)
                 || mobod.isSameMobilizedBody(m_toes_r);
     }
     bool isLeftFoot(const MobilizedBody& mobod) const {
-        return     mobod.isSameMobilizedBody(m_foot_l) 
+        return     mobod.isSameMobilizedBody(m_foot_l)
                 || mobod.isSameMobilizedBody(m_toes_l);
     }
 
@@ -284,7 +284,7 @@ public:
     /// execute. Only symmetrical 4-state motions are permitted. The first
     /// element of each Vec2 is for states 0 and 2. The second element is for
     /// states 1 and 3.
-    /// 
+    ///
     ///   * deltaT: state dwell duration
     ///   * cd: position balance feedback coefficient
     ///   * cdLat: position balance feedback coefficient, lateral (for 3D gait)
@@ -296,9 +296,9 @@ public:
     ///   * swa: swing-ankle target angle
     ///   * stk: stance-knee target angle
     ///   * sta: stance-ankle target angle
-    /// 
+    ///
     /// See the SIMBICON paper for information about these parameters.
-    /// 
+    ///
     SIMBICON(Biped& biped,
             Real minSIMBICONStateDuration=0.1,
             Vec2 deltaT=Vec2(0.30, NaN),
@@ -369,7 +369,7 @@ public:
 
     /// The control consists of a few components. This method calls other
     /// methods that take care of these individual components.
-    /// 
+    ///
     void calcForce(const State&         s,
                    Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>&       particleForces,
@@ -489,7 +489,7 @@ public:
 
     void handleEvent(const State& state) const OVERRIDE_11
     {
-        std::cout << m_simbicon->getSIMBICONState(state) << std::endl; 
+        std::cout << m_simbicon->getSIMBICONState(state) << std::endl;
     }
 private:
     const Biped& m_biped;
@@ -1249,17 +1249,11 @@ void SIMBICON::updateSIMBICONState(const State& s) const
 
             // Entering left stance.
             if (lContact)
-            {
-                setSIMBICONState(s, STATE0);
-                return;
-            }
+            {    setSIMBICONState(s, STATE0); return;}
 
             // Entering right stance.
             else if (rContact)
-            {
-                setSIMBICONState(s, STATE2);
-                return;
-            }
+            {    setSIMBICONState(s, STATE2); return;}
             break;
 
         // Left stance.
@@ -1267,17 +1261,11 @@ void SIMBICON::updateSIMBICONState(const State& s) const
 
             // Stay in this state for \delta t seconds.
             if (duration > m_deltaT[stateIdx])
-            {
-                setSIMBICONState(s, STATE1);
-                return;
-            }
+            {   setSIMBICONState(s, STATE1); return;}
 
             // Already entered right stance; skip STATE1.
             else if (rContact && duration > m_minSIMBICONStateDuration)
-            {
-                setSIMBICONState(s, STATE2);
-                return;
-            }
+            {   setSIMBICONState(s, STATE2); return;}
             break;
 
         // Right foot strike.
@@ -1285,10 +1273,7 @@ void SIMBICON::updateSIMBICONState(const State& s) const
 
             // Stay in this state until the right foot makes contact.
             if (rContact && duration > m_minSIMBICONStateDuration)
-            {
-                setSIMBICONState(s, STATE2);
-                return;
-            }
+            {   setSIMBICONState(s, STATE2); return;}
             break;
 
         // Right stance.
@@ -1296,27 +1281,18 @@ void SIMBICON::updateSIMBICONState(const State& s) const
 
             // Stay in this state for \delta t seconds.
             if (duration > m_deltaT[stateIdx])
-            {
-                setSIMBICONState(s, STATE3);
-                return;
-            }
+            {   setSIMBICONState(s, STATE3); return;}
 
             // Already entered left stance; skip STATE3.
             else if (lContact && duration > m_minSIMBICONStateDuration)
-            {
-                setSIMBICONState(s, STATE0);
-                return;
-            }
+            {   setSIMBICONState(s, STATE0); return;}
 
         // Left foot strike.
         case STATE3:
 
             // Stay in this state until the left foot makes contact.
             if (lContact && duration > m_minSIMBICONStateDuration)
-            {
-                setSIMBICONState(s, STATE0);
-                return;
-            }
+                setSIMBICONState(s, STATE0); return;
             break;
     }
 }
