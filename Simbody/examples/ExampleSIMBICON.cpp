@@ -303,17 +303,23 @@ public:
                 new StateHandler(m_biped, *this,
                     SIMBICON_STATE_UPDATE_STEPSIZE));
 
+        const DefaultSystemSubsystem& subsys = m_bipe.getDefaultSubsystem();
+
         // TODO is the simbiconState part of topology or model??
         // The SIMBICON state of the controller for the finite state machine
         // (e.g., 0, 1, 2, or 3).
         m_simbiconStateIndex =
-            m_biped.getDefaultSubsystem().allocateDiscreteVariable(s,
-                Stage::Acceleration, new Value<int>(-1));
+            const_cast<DiscreteVariableIndex>(
+                    subsys.allocateAutoUpdateDiscreteVariable(s,
+                        Stage::Acceleration, new Value<int>(-1),
+                        Stage::Dynamics));
         // The time at which this controller entered the current SIMBICON
         // state.
         m_stateStartTimeIndex =
-            m_biped.getDefaultSubsystem().allocateDiscreteVariable(s,
-                    Stage::Acceleration, new Value<double>(NaN));
+            const_cast<DiscreteVariableIndex>(
+                    subsys.allocateAutoUpdateDiscreteVariable(s,
+                        Stage::Acceleration, new Value<Real>(NaN),
+                        Stage::Dynamics));
     }
 
     void calcForce(const State&         s,
@@ -409,7 +415,8 @@ public:
         // Swing.
         addInPDControl(s, swing_hip_flexion, hip_flexion_adduction,
                 m_swh[stateIdx], mobForces);
-        addInPDControl(s, swing_hip_adduction, hip_flexion_adduction, 0.0, mobForces);
+        addInPDControl(s, swing_hip_adduction, hip_flexion_adduction, 0.0,
+                mobForces);
         addInPDControl(s, swing_knee_extension, knee,
                 m_swk[stateIdx], mobForces);
         addInPDControl(s, swing_ankle_dorsiflexion, ankle_flexion,
