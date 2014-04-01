@@ -263,25 +263,25 @@ double clamp(double x, double max) {
 class SIMBICON : public Force::Custom::Implementation {
 public:
 
-    /* The default arguments define the motion that the controller will try to
-     * execute. Only symmetrical 4-state motions are permitted. The first
-     * element of each Vec2 is for states 0 and 2. The second element is for
-     * states 1 and 3.
-     *
-     *   * deltaT: state dwell duration
-     *   * cd: position balance feedback coefficient
-     *   * cdLat: position balance feedback coefficient, lateral (for 3D gait)
-     *   * cv: velocity balance feedback coefficient
-     *   * cvLat: elocity balance feedback coefficient, lateral (for 3D gait)
-     *   * tor: torso target angle
-     *   * swh: swing-hip target angle
-     *   * swk: swing-knee target angle
-     *   * swa: swing-ankle target angle
-     *   * stk: stance-knee target angle
-     *   * sta: stance-ankle target angle
-     *
-     * See the SIMBICON paper for information about these parameters.
-     */
+    /// The default arguments define the motion that the controller will try to
+    /// execute. Only symmetrical 4-state motions are permitted. The first
+    /// element of each Vec2 is for states 0 and 2. The second element is for
+    /// states 1 and 3.
+    /// 
+    ///   * deltaT: state dwell duration
+    ///   * cd: position balance feedback coefficient
+    ///   * cdLat: position balance feedback coefficient, lateral (for 3D gait)
+    ///   * cv: velocity balance feedback coefficient
+    ///   * cvLat: elocity balance feedback coefficient, lateral (for 3D gait)
+    ///   * tor: torso target angle
+    ///   * swh: swing-hip target angle
+    ///   * swk: swing-knee target angle
+    ///   * swa: swing-ankle target angle
+    ///   * stk: stance-knee target angle
+    ///   * sta: stance-ankle target angle
+    /// 
+    /// See the SIMBICON paper for information about these parameters.
+    /// 
     SIMBICON(Biped& biped,
             Vec2 deltaT=Vec2(0.30, NaN),
             Vec2 cd=Vec2(0.5, 0.5),
@@ -296,11 +296,18 @@ public:
             Vec2 sta=Vec2(0.0, 0.0)
             );
 
+    /// The possible states of the finite state machine.
+    enum SIMBICONState {
+        UNKNOWN = -1, // initial state at the beginning of a simulation.
+        STATE0 = 0,
+        STATE1 = 1,
+        STATE2 = 2,
+        STATE3 = 3
+    };
+
+    /// Allocates some state that is necessary for this controller.
     void realizeTopology(State& s) const
     {
-
-        const DefaultSystemSubsystem& subsys = m_biped.getDefaultSubsystem();
-
         // NOTE: the next two assignments discard the const qualifier of this
         // method. There is a very specific reason for this! Sherm explained
         // this to me as follows:
@@ -322,137 +329,45 @@ public:
         // are part of the model-building cache, and so I can remove the const
         // qualifier.
         const_cast<SIMBICON*>(this)->m_simbiconStateIndex =
-            subsys.allocateAutoUpdateDiscreteVariable(s,
-                    Stage::Acceleration, new Value<int>(-1),
-                    Stage::Dynamics);
-
-        const_cast<SIMBICON*>(this)->m_stateStartTimeIndex =
-            subsys.allocateAutoUpdateDiscreteVariable(s,
-                    Stage::Acceleration, new Value<Real>(NaN),
+            m_defaultSubsys.allocateAutoUpdateDiscreteVariable(s,
+                    Stage::Acceleration, new Value<SIMBICONState>(UNKNOWN),
                     Stage::Dynamics);
 
         const_cast<SIMBICON*>(this)->m_simbiconStateCacheIndex =
-            subsys.getDiscreteVarUpdateIndex(s, m_simbiconStateIndex);
-
-        const_cast<SIMBICON*>(this)->m_stateStartTimeCacheIndex =
-            subsys.getDiscreteVarUpdateIndex(s, m_stateStartTimeIndex);
+            m_defaultSubsys.getDiscreteVarUpdateIndex(s, m_simbiconStateIndex);
     }
 
+    const SIMBICONState getSIMBICONState(const State& s) const
+    {
+        const AbstractValue& m = m_defaultSubsys.getDiscreteVariable(
+                s, m_simbiconStateIndex);
+        return Value<SIMBICONState>::downcast(m).get();
+    }
+    Real getSIMBICONStateStartTime(const State& s) const
+    {
+        return m_defaultSubsys.getDiscreteVarLastUpdateTime(s, m_simbiconStateIndex);
+    }
+
+    /// The control consists of a few components. This method calls other
+    /// methods that take care of these individual components.
+    /// 
     void calcForce(const State&         s,
                    Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>&       particleForces,
-                   Vector&              mobForces) const
+                   Vector&              mobilityForces) const
                    OVERRIDE_11
     {
-
-        // TODO
-        // TODO double stance?
-
-        // Pose graph control.
-        // ===================
-        // For most joints, track target theta of 0.0 degrees.
-        addInPDControl(s, Biped::neck_extension, neck, 0.0, mobForces);
-        addInPDControl(s, Biped::neck_bending, neck, 0.0, mobForces);
-        addInPDControl(s, Biped::neck_rotation, neck, 0.0, mobForces);
-
-        addInPDControl(s, Biped::back_tilt, back, 0.0, mobForces);
-        addInPDControl(s, Biped::back_list, back, 0.0, mobForces);
-        addInPDControl(s, Biped::back_rotation, back, 0.0, mobForces);
-
-        addInPDControl(s, Biped::shoulder_r_flexion, arm_flexion_adduction, 0.0, mobForces);
-        addInPDControl(s, Biped::shoulder_l_flexion, arm_flexion_adduction, 0.0, mobForces);
-        addInPDControl(s, Biped::shoulder_r_adduction, arm_flexion_adduction, 0.0, mobForces);
-        addInPDControl(s, Biped::shoulder_l_adduction, arm_flexion_adduction, 0.0, mobForces);
-        addInPDControl(s, Biped::elbow_r_flexion, arm_flexion_adduction, 0.0, mobForces);
-        addInPDControl(s, Biped::elbow_l_flexion, arm_flexion_adduction, 0.0, mobForces);
-
-        addInPDControl(s, Biped::shoulder_r_rotation, arm_rotation, 0.0, mobForces);
-        addInPDControl(s, Biped::shoulder_l_rotation, arm_rotation, 0.0, mobForces);
-        addInPDControl(s, Biped::elbow_r_rotation, arm_rotation, 0.0, mobForces);
-        addInPDControl(s, Biped::elbow_l_rotation, arm_rotation, 0.0, mobForces);
-        addInPDControl(s, Biped::hip_r_rotation, hip_rotation, 0.0, mobForces);
-        addInPDControl(s, Biped::hip_l_rotation, hip_rotation, 0.0, mobForces);
-
-
-        addInPDControl(s, Biped::ankle_r_inversion, ankle_inversion, 0.0, mobForces);
-        addInPDControl(s, Biped::ankle_l_inversion, ankle_inversion, 0.0, mobForces);
-
-        addInPDControl(s, Biped::mtp_r_dorsiflexion, toe, 0.0, mobForces);
-        addInPDControl(s, Biped::mtp_l_dorsiflexion, toe, 0.0, mobForces);
-
-        // Which leg is in stance?
-        // -----------------------
-        Biped::Coordinate swing_hip_flexion;
-        Biped::Coordinate swing_hip_adduction;
-        Biped::Coordinate swing_knee_extension;
-        Biped::Coordinate swing_ankle_dorsiflexion;
-
-        Biped::Coordinate stance_hip_flexion;
-        Biped::Coordinate stance_hip_adduction;
-        Biped::Coordinate stance_knee_extension;
-        Biped::Coordinate stance_ankle_dorsiflexion;
-
-        if (m_simbiconState == 0 || m_simbiconState == 1)
-        {
-            // Left leg is in stance.
-            swing_hip_flexion = Biped::hip_r_flexion;
-            swing_hip_adduction = Biped::hip_r_adduction;
-            swing_knee_extension = Biped::knee_r_extension;
-            swing_ankle_dorsiflexion = Biped::ankle_r_dorsiflexion;
-
-            stance_hip_flexion = Biped::hip_l_flexion;
-            stance_hip_adduction = Biped::hip_l_adduction;
-            stance_knee_extension = Biped::knee_l_extension;
-            stance_ankle_dorsiflexion = Biped::ankle_l_dorsiflexion;
-        }
-        else if (m_simbiconState == 2 || m_simbiconState == 3)
-        {
-            // Right leg is in stance.
-            swing_hip_flexion = Biped::hip_l_flexion;
-            swing_hip_adduction = Biped::hip_l_adduction;
-            swing_knee_extension = Biped::knee_l_extension;
-            swing_ankle_dorsiflexion = Biped::ankle_l_dorsiflexion;
-
-            stance_hip_flexion = Biped::hip_r_flexion;
-            stance_hip_adduction = Biped::hip_r_adduction;
-            stance_knee_extension = Biped::knee_r_extension;
-            stance_ankle_dorsiflexion = Biped::ankle_r_dorsiflexion;
-        }
-
-        // Apply swing/stance-dependent PD control to lower limb sagittal coords
-        // ---------------------------------------------------------------------
-        // simbiconState stateIdx
-        // ------------- --------
-        // 0             0
-        // 1             1
-        // 2             0
-        // 3             1
-        int stateIdx = m_simbiconState % 2;
-        // Swing.
-        addInPDControl(s, swing_hip_flexion, hip_flexion_adduction,
-                m_swh[stateIdx], mobForces);
-        addInPDControl(s, swing_hip_adduction, hip_flexion_adduction, 0.0,
-                mobForces);
-        addInPDControl(s, swing_knee_extension, knee,
-                m_swk[stateIdx], mobForces);
-        addInPDControl(s, swing_ankle_dorsiflexion, ankle_flexion,
-                m_swa[stateIdx], mobForces);
-
-        // Stance. No hip, since stance hip is used for balance.
-        addInPDControl(s, stance_knee_extension, knee,
-                m_stk[stateIdx], mobForces);
-        addInPDControl(s, stance_ankle_dorsiflexion, ankle_flexion,
-                m_sta[stateIdx], mobForces);
-
-        // TODO stance hip adduction shouldn't exist.
-
-}
+        updateSIMBICONState(s);
+        addInPDControl(s, mobilityForces);
+        addInBalanceControl(s, mobilityForces);
+    }
 
     Real calcPotentialEnergy(const State& state) const OVERRIDE_11
     {
         return 0;
     }
 
+    /// Used to identify gains for different parts of the body.
     enum GainGroup {
         neck,
         back,
@@ -468,9 +383,29 @@ public:
 
 private:
 
-    /// Apply torque to coord using a proportional-derivative control law
-    /// that tracks thetad.
-    void addInPDControl(const State& s,
+    /// Determine if the SIMBICON state of the state machine has changed.
+    void updateSIMBICONState(const State& s) const;
+
+    /// Compute torques defined by proportional-derivative (PD) control laws
+    /// that track the target pose for the current SIMBICON state. We have
+    /// such a control law for most (TODO) joints in the biped.
+    void addInPDControl(const State& s, Vector& mobForces) const;
+
+    /// Compute the torques used to balance the biped. We compute internal
+    /// torques that achieve the tracking of target angles that are specified
+    /// relative to the global frame.
+    void addInBalanceControl(const State& s, Vector& mobForces) const;
+
+    /// Update the cache variable.
+    void setSIMBICONState(const State& s, SIMBICONState simbiconState) const
+    {
+        m_defaultSubsys.updDiscreteVarUpdateValue(s, m_simbiconStateIndex) =
+            Value<SIMBICONState>(simbiconState);
+    }
+
+    /// Apply torque to a specific coord using a proportional-derivative
+    /// control law that tracks thetad.
+    void coordPDControl(const State& s,
             const Biped::Coordinate coord, const GainGroup gainGroup,
             const Real thetad, Vector& mobForces) const
     {
@@ -487,14 +422,8 @@ private:
         m_biped.addInForce(coord, force, mobForces);
     }
 
-    struct DiscreteVariableInfo {
-        DiscreteVariableIndex index;
-    };
-
     Biped& m_biped;
-
-    /// State of the finite state machine.
-    unsigned int m_simbiconState;
+    const DefaultSystemSubsystem& m_defaultSubsys;
 
     /// SIMBICON parameters.
     const Vec2 m_deltaT;
@@ -521,14 +450,8 @@ private:
     //index.
     DiscreteVariableIndex m_simbiconStateIndex;
 
-    /// The time at which this controller entered the current SIMBICON
-    /// state. We read the value of this variable using this index.
-    DiscreteVariableIndex m_stateStartTimeIndex;
-
     // We set the value of the SIMBICON state using this index.
     CacheEntryIndex m_simbiconStateCacheIndex;
-    // We set the value of the SIMBICON state start time using this index.
-    CacheEntryIndex m_stateStartTimeCacheIndex;
 
 };
 
@@ -1191,7 +1114,8 @@ Real criticallyDampedDerivativeGain(Real proportionalGain) {
 
 SIMBICON::SIMBICON(Biped& biped, Vec2 deltaT, Vec2 cd, Vec2 cdLat, Vec2 cv,
         Vec2 cvLat, Vec2 tor, Vec2 swh, Vec2 swk, Vec2 swa, Vec2 stk, Vec2 sta)
-    : m_biped(biped), m_simbiconState(0), m_deltaT(deltaT), m_cd(cd),
+    : m_biped(biped), m_defaultSubsys(m_biped.getDefaultSubsystem()),
+      m_deltaT(deltaT), m_cd(cd),
       m_cdLat(cdLat), m_cv(cv), m_cvLat(cvLat), m_tor(tor), m_swh(swh),
       m_swk(swk), m_swa(swa), m_stk(stk), m_sta(sta)
 
@@ -1237,18 +1161,140 @@ SIMBICON::SIMBICON(Biped& biped, Vec2 deltaT, Vec2 cd, Vec2 cdLat, Vec2 cv,
             m_proportionalGains[toe]);
 }
 
+void SIMBICON::updateSIMBICONState(const State& s) const
+{
+   //bool lContact;
+   //bool rContact;
+   //m_biped.checkContact(s, rContact, lContact);
 
-    /* TODO
-    shouldTerminate = false;
-    bool lContact;
-    bool rContact;
-    m_biped.checkContact(s, rContact, lContact);
+   //unsigned
 
-    if (m_simbicon.getState() == NaN)
+   //if (m_simbicon.getState() == NaN)
+   //{
+   //if (rContact) m_simbicon.setState(
+   //}
+}
+
+void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
+{
+
+    // For most joints, track target theta of 0.0 degrees.
+    coordPDControl(s, Biped::neck_extension, neck, 0.0, mobForces);
+    coordPDControl(s, Biped::neck_bending, neck, 0.0, mobForces);
+    coordPDControl(s, Biped::neck_rotation, neck, 0.0, mobForces);
+
+    coordPDControl(s, Biped::back_tilt, back, 0.0, mobForces);
+    coordPDControl(s, Biped::back_list, back, 0.0, mobForces);
+    coordPDControl(s, Biped::back_rotation, back, 0.0, mobForces);
+
+    coordPDControl(s, Biped::shoulder_r_flexion, arm_flexion_adduction, 0.0, mobForces);
+    coordPDControl(s, Biped::shoulder_l_flexion, arm_flexion_adduction, 0.0, mobForces);
+    coordPDControl(s, Biped::shoulder_r_adduction, arm_flexion_adduction, 0.0, mobForces);
+    coordPDControl(s, Biped::shoulder_l_adduction, arm_flexion_adduction, 0.0, mobForces);
+    coordPDControl(s, Biped::elbow_r_flexion, arm_flexion_adduction, 0.0, mobForces);
+    coordPDControl(s, Biped::elbow_l_flexion, arm_flexion_adduction, 0.0, mobForces);
+
+    coordPDControl(s, Biped::shoulder_r_rotation, arm_rotation, 0.0, mobForces);
+    coordPDControl(s, Biped::shoulder_l_rotation, arm_rotation, 0.0, mobForces);
+    coordPDControl(s, Biped::elbow_r_rotation, arm_rotation, 0.0, mobForces);
+    coordPDControl(s, Biped::elbow_l_rotation, arm_rotation, 0.0, mobForces);
+    coordPDControl(s, Biped::hip_r_rotation, hip_rotation, 0.0, mobForces);
+    coordPDControl(s, Biped::hip_l_rotation, hip_rotation, 0.0, mobForces);
+
+
+    coordPDControl(s, Biped::ankle_r_inversion, ankle_inversion, 0.0, mobForces);
+    coordPDControl(s, Biped::ankle_l_inversion, ankle_inversion, 0.0, mobForces);
+
+    coordPDControl(s, Biped::mtp_r_dorsiflexion, toe, 0.0, mobForces);
+    coordPDControl(s, Biped::mtp_l_dorsiflexion, toe, 0.0, mobForces);
+
+    // Which leg is in stance?
+    // -----------------------
+    Biped::Coordinate swing_hip_flexion;
+    Biped::Coordinate swing_hip_adduction;
+    Biped::Coordinate swing_knee_extension;
+    Biped::Coordinate swing_ankle_dorsiflexion;
+
+    Biped::Coordinate stance_hip_flexion;
+    Biped::Coordinate stance_hip_adduction;
+    Biped::Coordinate stance_knee_extension;
+    Biped::Coordinate stance_ankle_dorsiflexion;
+
+    const SIMBICONState simbiconState = getSIMBICONState(s);
+    if (simbiconState != UNKNOWN)
     {
-        if (rContact) m_simbicon.setState(
+        if (simbiconState == STATE0 || simbiconState == STATE1)
+        {
+            // Left leg is in stance.
+            swing_hip_flexion = Biped::hip_r_flexion;
+            swing_hip_adduction = Biped::hip_r_adduction;
+            swing_knee_extension = Biped::knee_r_extension;
+            swing_ankle_dorsiflexion = Biped::ankle_r_dorsiflexion;
+
+            stance_hip_flexion = Biped::hip_l_flexion;
+            stance_hip_adduction = Biped::hip_l_adduction;
+            stance_knee_extension = Biped::knee_l_extension;
+            stance_ankle_dorsiflexion = Biped::ankle_l_dorsiflexion;
+        }
+        else if (simbiconState == STATE2 || simbiconState == STATE3)
+        {
+            // Right leg is in stance.
+            swing_hip_flexion = Biped::hip_l_flexion;
+            swing_hip_adduction = Biped::hip_l_adduction;
+            swing_knee_extension = Biped::knee_l_extension;
+            swing_ankle_dorsiflexion = Biped::ankle_l_dorsiflexion;
+
+            stance_hip_flexion = Biped::hip_r_flexion;
+            stance_hip_adduction = Biped::hip_r_adduction;
+            stance_knee_extension = Biped::knee_r_extension;
+            stance_ankle_dorsiflexion = Biped::ankle_r_dorsiflexion;
+        }
+
+        // Apply swing/stance-dependent PD control to lower limb sagittal coords
+        // ---------------------------------------------------------------------
+        // simbiconState stateIdx
+        // ------------- --------
+        // 0             0
+        // 1             1
+        // 2             0
+        // 3             1
+        int stateIdx = simbiconState % 2;
+        // Swing.
+        coordPDControl(s, swing_hip_flexion, hip_flexion_adduction,
+                m_swh[stateIdx], mobForces);
+        coordPDControl(s, swing_hip_adduction, hip_flexion_adduction, 0.0,
+                mobForces);
+        coordPDControl(s, swing_knee_extension, knee,
+                m_swk[stateIdx], mobForces);
+        coordPDControl(s, swing_ankle_dorsiflexion, ankle_flexion,
+                m_swa[stateIdx], mobForces);
+
+        // Stance. No hip, since stance hip is used for balance.
+        coordPDControl(s, stance_knee_extension, knee,
+                m_stk[stateIdx], mobForces);
+        coordPDControl(s, stance_ankle_dorsiflexion, ankle_flexion,
+                m_sta[stateIdx], mobForces);
     }
-    */
+
+    // TODO stance hip adduction shouldn't exist.
+}
+
+void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
+{
+}
+
+
+/* TODO
+   shouldTerminate = false;
+   bool lContact;
+   bool rContact;
+   m_biped.checkContact(s, rContact, lContact);
+
+   if (m_simbicon.getState() == NaN)
+   {
+   if (rContact) m_simbicon.setState(
+   }
+   */
 
 
 
