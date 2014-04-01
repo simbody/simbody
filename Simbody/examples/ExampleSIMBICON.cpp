@@ -135,6 +135,14 @@ public:
         m_trunk.setUToFitLinearVelocity(s, velocityInGround);
     }
 
+    /// param[out] fLeft vertical contact force on left foot.
+    /// param[out] fRight vertical contact force on right foot.
+    void findContactForces(const State& s, Real& fLeft, Real& fRight) const
+
+    /// param[out] left left foot is in contact with the ground.
+    /// param[out] right right foot is in contact with the ground.
+    void findContactStatus(const State& s, bool& left, bool& right) const;
+
     enum Coordinate {
         neck_extension = 0,
         neck_bending = 1,
@@ -345,7 +353,8 @@ public:
     }
     Real getSIMBICONStateStartTime(const State& s) const
     {
-        return m_defaultSubsys.getDiscreteVarLastUpdateTime(s, m_simbiconStateIndex);
+        return m_defaultSubsys.getDiscreteVarLastUpdateTime(s,
+                m_simbiconStateIndex);
     }
 
     /// The control consists of a few components. This method calls other
@@ -1104,6 +1113,42 @@ void Biped::fillInCoordinateMap(const State& s)
     m_coordinates[mtp_l_dorsiflexion] = getQandUIndices(s, m_toes_l, 0);
 }
 
+void Biped::findContactForces(const State& s, Real& fLeft, Real& fRight) const
+    {
+        const unsigned int nContacts = contact.getNumContactForces(s);
+        const ContactSnapshot& snapshot = tracker.getActiveContacts(s);
+
+        fLeft = 0;
+        fRight = 0;
+        for (unsigned int i = 0; i < nContacts; ++i)
+        {
+            const ContactForce& force = contact.getContactForce(s, i);
+            const ContactId id = force.getContactId();
+            assert(snapshot.hasContact(id));
+            const Contact& contact = snapshot.getContactById(id);
+            const MobilizedBody& b1 = tracker.getMobilizedBody(contact.getSurface1());
+            const MobilizedBody& b2 = tracker.getMobilizedBody(contact.getSurface2());
+            const bool left = isLeftFoot(b1) || isLeftFoot(b2);
+            const bool right = isRightFoot(b1) || isRightFoot(b2);
+            if (left)
+            {
+                fLeft += force.getForceOnSurface2()[1].norm();
+            }
+            else if (right)
+            {
+                fRight += force.getForceOnSurface2()[1].norm();
+            }
+        }
+    }
+void Biped::findContactStatus(const State& s, bool& left, bool& right) const
+{
+    Real fLeft;
+    Real fRight;
+    findContactForces(s, fLeft, fRight);
+    left = fLeft > 0;
+    right = fRight > 0;
+}
+
 
 //==============================================================================
 // SIMBICON
@@ -1163,16 +1208,98 @@ SIMBICON::SIMBICON(Biped& biped, Vec2 deltaT, Vec2 cd, Vec2 cdLat, Vec2 cv,
 
 void SIMBICON::updateSIMBICONState(const State& s) const
 {
-   //bool lContact;
-   //bool rContact;
-   //m_biped.checkContact(s, rContact, lContact);
+    bool lContact;
+    bool rContact;
+    m_biped.findContactStatus(s, lContact, rContact);
 
-   //unsigned
+    const simbiconState = getSIMBICONState();
+    const Real duration = s.getTime() - getSIMBICONStateStartTime();
 
-   //if (m_simbicon.getState() == NaN)
-   //{
-   //if (rContact) m_simbicon.setState(
-   //}
+    // simbiconState stateIdx
+    // ------------- --------
+    // 0             0
+    // 1             1
+    // 2             0
+    // 3             1
+    const int stateIdx = simbiconState % 2;
+
+    switch (SIMBICONState)
+    {
+        // Neither foot has contacted the ground yet.
+        case UNKNOWN:
+
+            // Entering left stance.
+            if (lContact)
+            {
+                setSIMBICONState(STATE0);
+                return;
+            }
+
+            // Entering right stance.
+            else if (rContact)
+            {
+                setSIMBICONState(STATE2);
+                return;
+            }
+            break;
+
+        // Left stance.
+        case STATE0:
+
+            // Stay in this state for \delta t seconds.
+            if (duration > m_deltaT[stateIdx])
+            {
+                setSIMBICONState(STATE1);
+                return;
+            }
+
+            // Already entered right stance; skip STATE1.
+            else if (rContact && duration > m_minSIMBICONStateDuration)
+            {
+                setSIMBICONState(STATE2);
+                return;
+            }
+            break;
+
+        // Right foot strike.
+        case STATE1:
+
+            // Stay in this state until the right foot makes contact.
+            if (rContact && duration > m_minSIMBICONStateDuration)
+            {
+                setSIMBICONState(STATE2);
+                return;
+            }
+            break;
+
+        // Right stance.
+        case STATE2:
+
+            // Stay in this state for \delta t seconds.
+            if (duration > m_deltaT[stateIdx])
+            {
+                setSIMBICONState(STATE3);
+                return;
+            }
+
+            // Already entered left stance; skip STATE3.
+            else if (lContact && duration > m_minSIMBICONStateDuration)
+            {
+                setSIMBICONState(STATE0);
+                return;
+            }
+
+        // Left foot strike.
+        case STATE3:
+
+            // Stay in this state until the left foot makes contact.
+            if (lContact && duration > m_minSIMBICONStateDuration)
+            {
+                setSIMBICONState(STATE0);
+                return;
+            }
+            break;
+    }
 }
 
 void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
@@ -1258,7 +1385,7 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
         // 1             1
         // 2             0
         // 3             1
-        int stateIdx = simbiconState % 2;
+        const int stateIdx = simbiconState % 2;
         // Swing.
         coordPDControl(s, swing_hip_flexion, hip_flexion_adduction,
                 m_swh[stateIdx], mobForces);
