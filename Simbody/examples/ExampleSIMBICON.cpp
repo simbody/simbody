@@ -322,14 +322,20 @@ public:
         // are part of the model-building cache, and so I can remove the const
         // qualifier.
         const_cast<SIMBICON*>(this)->m_simbiconStateIndex =
-                    subsys.allocateAutoUpdateDiscreteVariable(s,
-                        Stage::Acceleration, new Value<int>(-1),
-                        Stage::Dynamics);
+            subsys.allocateAutoUpdateDiscreteVariable(s,
+                    Stage::Acceleration, new Value<int>(-1),
+                    Stage::Dynamics);
 
         const_cast<SIMBICON*>(this)->m_stateStartTimeIndex =
-                    subsys.allocateAutoUpdateDiscreteVariable(s,
-                        Stage::Acceleration, new Value<Real>(NaN),
-                        Stage::Dynamics);
+            subsys.allocateAutoUpdateDiscreteVariable(s,
+                    Stage::Acceleration, new Value<Real>(NaN),
+                    Stage::Dynamics);
+
+        const_cast<SIMBICON*>(this)->m_simbiconStateCacheIndex =
+            subsys.getDiscreteVarUpdateIndex(s, m_simbiconStateIndex);
+
+        const_cast<SIMBICON*>(this)->m_stateStartTimeCacheIndex =
+            subsys.getDiscreteVarUpdateIndex(s, m_stateStartTimeIndex);
     }
 
     void calcForce(const State&         s,
@@ -511,12 +517,18 @@ private:
     // Written during the realizeTopology step.
 
     /// The SIMBICON state of the controller for the finite state machine
-    /// (e.g., 0, 1, 2, or 3).
+    /// (e.g., 0, 1, 2, or 3). We read the value of this variable using this
+    //index.
     DiscreteVariableIndex m_simbiconStateIndex;
 
     /// The time at which this controller entered the current SIMBICON
-    /// state.
+    /// state. We read the value of this variable using this index.
     DiscreteVariableIndex m_stateStartTimeIndex;
+
+    // We set the value of the SIMBICON state using this index.
+    CacheEntryIndex m_simbiconStateCacheIndex;
+    // We set the value of the SIMBICON state start time using this index.
+    CacheEntryIndex m_stateStartTimeCacheIndex;
 
 };
 
