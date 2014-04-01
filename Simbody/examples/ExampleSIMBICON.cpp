@@ -484,15 +484,16 @@ private:
 /// screen during the simulation.
 class OutputReporter : public PeriodicEventReporter {
 public:
-    OutputReporter(const Biped& biped, Real interval)
-    :   PeriodicEventReporter(interval), m_biped(biped) {}
+    OutputReporter(const Biped& biped, const SIMBICON* simbicon, Real interval)
+    :   PeriodicEventReporter(interval), m_biped(biped), m_simbicon(simbicon) {}
 
     void handleEvent(const State& state) const OVERRIDE_11
     {
-        // TODO
+        std::cout << m_simbicon->getSIMBICONState(state) << std::endl; 
     }
 private:
     const Biped& m_biped;
+    const SIMBICON* m_simbicon;
 };
 
 //==============================================================================
@@ -512,12 +513,13 @@ int main(int argc, char **argv)
     // Create the system.
     Biped biped;
 
-    // Periodically report state-related quantities to the screen.
-    biped.addEventReporter(new OutputReporter(biped, 0.01));
-
     // Add controller to the force system. See Doxygen for Force::Custom.
     // The name of this Force is irrelevant.
-    Force::Custom simbicon1(biped.updForceSubsystem(), new SIMBICON(biped));
+    SIMBICON* simbicon = new SIMBICON(biped);
+    Force::Custom simbicon1(biped.updForceSubsystem(), simbicon);
+
+    // Periodically report state-related quantities to the screen.
+    biped.addEventReporter(new OutputReporter(biped, simbicon, 0.01));
 
     // Start up the visualizer.
     Visualizer viz(biped);
