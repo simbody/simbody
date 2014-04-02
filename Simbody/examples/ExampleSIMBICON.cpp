@@ -69,8 +69,9 @@ To see how X happens, look in method Y:
 X                                        Y
 ---------------------------------------  ---------------------------------------
 construction of the model                Biped::Biped()
-control laws                             SIMBICON::calcForce()
-logic to change state in state machine   TODO
+control laws                             SIMBICON::addInPDControl()
+                                         SIMBICON::addInBalanceControl()
+logic to change state in state machine   SIMBICON::updateSIMBICONState()
 
 
 Notes
@@ -347,23 +348,23 @@ public:
         // are part of the model-building cache, and so I can remove the const
         // qualifier.
         const_cast<SIMBICON*>(this)->m_simbiconStateIndex =
-            m_defaultSubsys.allocateAutoUpdateDiscreteVariable(s,
+            m_forces.allocateAutoUpdateDiscreteVariable(s,
                     Stage::Acceleration, new Value<SIMBICONState>(UNKNOWN),
                     Stage::Dynamics);
 
         const_cast<SIMBICON*>(this)->m_simbiconStateCacheIndex =
-            m_defaultSubsys.getDiscreteVarUpdateIndex(s, m_simbiconStateIndex);
+            m_forces.getDiscreteVarUpdateIndex(s, m_simbiconStateIndex);
     }
 
     const SIMBICONState getSIMBICONState(const State& s) const
     {
-        const AbstractValue& m = m_defaultSubsys.getDiscreteVariable(
+        const AbstractValue& m = m_forces.getDiscreteVariable(
                 s, m_simbiconStateIndex);
         return Value<SIMBICONState>::downcast(m).get();
     }
     Real getSIMBICONStateStartTime(const State& s) const
     {
-        return m_defaultSubsys.getDiscreteVarLastUpdateTime(s,
+        return m_forces.getDiscreteVarLastUpdateTime(s,
                 m_simbiconStateIndex);
     }
 
@@ -418,8 +419,10 @@ private:
     /// Update the cache variable.
     void setSIMBICONState(const State& s, SIMBICONState simbiconState) const
     {
-        m_defaultSubsys.updDiscreteVarUpdateValue(s, m_simbiconStateIndex) =
+
+        m_forces.updDiscreteVarUpdateValue(s, m_simbiconStateIndex) =
             Value<SIMBICONState>(simbiconState);
+        m_forces.markDiscreteVarUpdateValueRealized(s, m_simbiconStateIndex);
     }
 
     /// Apply torque to a specific coord using a proportional-derivative
@@ -442,7 +445,7 @@ private:
     }
 
     Biped& m_biped;
-    const DefaultSystemSubsystem& m_defaultSubsys;
+    const GeneralForceSubsystem& m_forces;
 
     /// SIMBICON parameters.
     const Vec2 m_deltaT;
@@ -489,7 +492,12 @@ public:
 
     void handleEvent(const State& state) const OVERRIDE_11
     {
-        std::cout << m_simbicon->getSIMBICONState(state) << std::endl;
+        bool lContact;
+        bool rContact;
+        m_biped.findContactStatus(state, lContact, rContact);
+        std::cout << "SIMBICON state " << m_simbicon->getSIMBICONState(state) << 
+                    " lContact: " << lContact <<
+                    " rContact: " << rContact << std::endl;
     }
 private:
     const Biped& m_biped;
@@ -1177,7 +1185,7 @@ SIMBICON::SIMBICON(Biped& biped,
         Real minSIMBICONStateDuration,
         Vec2 deltaT, Vec2 cd, Vec2 cdLat, Vec2 cv,
         Vec2 cvLat, Vec2 tor, Vec2 swh, Vec2 swk, Vec2 swa, Vec2 stk, Vec2 sta)
-    : m_biped(biped), m_defaultSubsys(m_biped.getDefaultSubsystem()),
+    : m_biped(biped), m_forces(m_biped.getForceSubsystem()),
       m_minSIMBICONStateDuration(minSIMBICONStateDuration),
       m_deltaT(deltaT), m_cd(cd),
       m_cdLat(cdLat), m_cv(cv), m_cvLat(cvLat), m_tor(tor), m_swh(swh),
@@ -1248,51 +1256,56 @@ void SIMBICON::updateSIMBICONState(const State& s) const
         case UNKNOWN:
 
             // Entering left stance.
-            if (lContact)
-            {    setSIMBICONState(s, STATE0); return;}
-
+            if (lContact) {
+                 setSIMBICONState(s, STATE0);
+            }
             // Entering right stance.
-            else if (rContact)
-            {    setSIMBICONState(s, STATE2); return;}
+            else if (rContact) {
+                 setSIMBICONState(s, STATE2);
+            }
             break;
 
         // Left stance.
         case STATE0:
 
             // Stay in this state for \delta t seconds.
-            if (duration > m_deltaT[stateIdx])
-            {   setSIMBICONState(s, STATE1); return;}
-
+            if (duration > m_deltaT[stateIdx]) {
+                setSIMBICONState(s, STATE1);
+            }
             // Already entered right stance; skip STATE1.
-            else if (rContact && duration > m_minSIMBICONStateDuration)
-            {   setSIMBICONState(s, STATE2); return;}
+            else if (rContact && duration > m_minSIMBICONStateDuration) {
+                setSIMBICONState(s, STATE2);
+            }
             break;
 
         // Right foot strike.
         case STATE1:
 
             // Stay in this state until the right foot makes contact.
-            if (rContact && duration > m_minSIMBICONStateDuration)
-            {   setSIMBICONState(s, STATE2); return;}
+            if (rContact && duration > m_minSIMBICONStateDuration) {
+                setSIMBICONState(s, STATE2);
+            }
             break;
 
         // Right stance.
         case STATE2:
 
             // Stay in this state for \delta t seconds.
-            if (duration > m_deltaT[stateIdx])
-            {   setSIMBICONState(s, STATE3); return;}
-
+            if (duration > m_deltaT[stateIdx]) {
+                setSIMBICONState(s, STATE3);
+            }
             // Already entered left stance; skip STATE3.
-            else if (lContact && duration > m_minSIMBICONStateDuration)
-            {   setSIMBICONState(s, STATE0); return;}
+            else if (lContact && duration > m_minSIMBICONStateDuration) {
+                setSIMBICONState(s, STATE0);
+            }
 
         // Left foot strike.
         case STATE3:
 
             // Stay in this state until the left foot makes contact.
-            if (lContact && duration > m_minSIMBICONStateDuration)
+            if (lContact && duration > m_minSIMBICONStateDuration) {
                 setSIMBICONState(s, STATE0); return;
+            }
             break;
     }
 }
@@ -1322,7 +1335,6 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
     coordPDControl(s, Biped::elbow_l_rotation, arm_rotation, 0.0, mobForces);
     coordPDControl(s, Biped::hip_r_rotation, hip_rotation, 0.0, mobForces);
     coordPDControl(s, Biped::hip_l_rotation, hip_rotation, 0.0, mobForces);
-
 
     coordPDControl(s, Biped::ankle_r_inversion, ankle_inversion, 0.0, mobForces);
     coordPDControl(s, Biped::ankle_l_inversion, ankle_inversion, 0.0, mobForces);
@@ -1384,8 +1396,9 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
         // Swing.
         coordPDControl(s, swing_hip_flexion, hip_flexion_adduction,
                 m_swh[stateIdx], mobForces);
-        coordPDControl(s, swing_hip_adduction, hip_flexion_adduction, 0.0,
-                mobForces);
+        // TODO
+        //coordPDControl(s, swing_hip_adduction, hip_flexion_adduction,
+        //        0.0, mobForces);
         coordPDControl(s, swing_knee_extension, knee,
                 m_swk[stateIdx], mobForces);
         coordPDControl(s, swing_ankle_dorsiflexion, ankle_flexion,
