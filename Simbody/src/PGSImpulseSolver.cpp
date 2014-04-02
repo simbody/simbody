@@ -260,7 +260,8 @@ solve(int                                 phase,
       const Vector&                       D,     // m, diag >= 0 added to A
       const Array_<MultiplierIndex>&      expanding,
       Vector&                             piExpand,   // m
-      Vector&                             verr, // m, in/out
+      Vector&                             verrStart, // m, in/out
+      Vector&                             verrApplied, // m
       Vector&                             pi,         // m, piUnknown
       Array_<UncondRT>&                   unconditional,
       Array_<UniContactRT>&               uniContact, // with friction
@@ -277,18 +278,20 @@ solve(int                                 phase,
 #ifndef NDEBUG
     FactorQTZ fac(A);
     cout << "A=" << A; cout << "D=" << D; 
-    cout << "verr=" << verr << endl;
+    cout << "verrStart=" << verrStart << endl;
+    cout << "verrApplied=" << verrApplied << endl;
     cout << "expanding mx=" << expanding << endl;
     cout << "piExpand=" << piExpand << endl;
     Vector x;
-    fac.solve(verr, x);
+    fac.solve(verrStart+verrApplied, x);
     cout << "x=" << x << endl;
-    cout << "resid=" << A*x-verr << endl;
+    cout << "resid=" << A*x-(verrStart+verrApplied) << endl;
 #endif
 
     const int m=A.nrow();
     assert(A.ncol()==m); assert(D.size()==m);
-    assert(verr.size()==m); 
+    assert(verrStart.size()==m); 
+    assert(verrApplied.size()==0 || verrApplied.size()==m);
     assert(piExpand.size()==m); 
 
     const int p = (int)participating.size();
@@ -298,17 +301,21 @@ solve(int                                 phase,
     pi.resize(m);
     pi.setToZero(); // Use this for piUnknown
 
+    // If there are applied forces, add them to the rhs.
+    if (verrApplied.size()) 
+        verrStart += verrApplied;
+
     // Move expansion impulse to RHS. We will always apply the full expansion
     // impulse in one interval in this solver.
     if (nx) 
         for (MultiplierIndex mx(0); mx < m; ++mx) {
-            verr[mx] -= multRowTimesSparseCol(A,mx,expanding,piExpand)
-                        + D[mx]*piExpand[mx];
+            verrStart[mx] -= multRowTimesSparseCol(A,mx,expanding,piExpand)
+                             + D[mx]*piExpand[mx];
         }
 
-    // Now rhs = verr - [A+D]*piExpand.
+    // Now rhs = verrStart + verrApplied - [A+D]*piExpand.
     #ifndef NDEBUG
-    printf("PGS::solve(): using verr="); cout << verr << endl;
+    printf("PGS::solve(): using verr="); cout << verrStart << endl;
     #endif
 
 
@@ -365,8 +372,8 @@ solve(int                                 phase,
         for (int k=0; k < mUncond; ++k) {
             const UncondRT& rt = unconditional[k];
             doRowSums(participating,rt.m_mults,A,D,pi,rowSums);
-            const Real localEr2=doUpdates(rt.m_mults,A,D,verr,sor,rowSums,pi);
-            sum2all += localEr2; sum2enf += localEr2;
+            const Real er2=doUpdates(rt.m_mults,A,D,verrStart,sor,rowSums,pi);
+            sum2all += er2; sum2enf += er2;
         }
 
         // UNILATERAL CONTACT NORMALS. Do all of these before any friction.
@@ -376,7 +383,7 @@ solve(int                                 phase,
                 continue;
             const MultiplierIndex Nk = rt.m_Nk;
             const Real rowSum=doRowSum(participating,Nk,A,D,pi);
-            const Real er2=doUpdate(Nk,A,D,verr,sor,rowSum,pi);
+            const Real er2=doUpdate(Nk,A,D,verrStart,sor,rowSum,pi);
             sum2all += er2;
             rt.m_contactCond = boundUnilateral(rt.m_sign, pi[Nk]);
             if (rt.m_contactCond == UniActive)
@@ -392,7 +399,7 @@ solve(int                                 phase,
             const MultiplierIndex Nk = rt.m_Nk;
             const Array_<MultiplierIndex>& Fk = rt.m_Fk;
             doRowSums(participating,Fk,A,D,pi,rowSums);
-            const Real er2=doUpdates(Fk,A,D,verr,sor,rowSums,pi);
+            const Real er2=doUpdates(Fk,A,D,verrStart,sor,rowSums,pi);
             sum2all += er2;
             Real N = std::abs(pi[Nk] + piExpand[Nk]);
             rt.m_frictionCond=boundVector(rt.m_effMu*N, Fk, pi);
@@ -406,7 +413,7 @@ solve(int                                 phase,
             BoundedRT& rt = bounded[k];
             const MultiplierIndex rx = rt.m_ix;
             const Real rowSum=doRowSum(participating,rx,A,D,pi);
-            const Real er2=doUpdate(rx,A,D,verr,sor,rowSum,pi);
+            const Real er2=doUpdate(rx,A,D,verrStart,sor,rowSum,pi);
             sum2all += er2;
             rt.m_boundedCond=boundScalar(rt.m_lb, pi[rx], rt.m_ub);
             if (rt.m_boundedCond == Engaged)
@@ -419,7 +426,7 @@ solve(int                                 phase,
             StateLtdFrictionRT& rt = stateLtdFriction[k];
             const Array_<MultiplierIndex>& Fk = rt.m_Fk;
             doRowSums(participating,Fk,A,D,pi,rowSums);
-            const Real localEr2=doUpdates(Fk,A,D,verr,sor,rowSums,pi);
+            const Real localEr2=doUpdates(Fk,A,D,verrStart,sor,rowSums,pi);
             sum2all += localEr2;
             rt.m_frictionCond=boundVector(rt.m_effMu*rt.m_knownN, Fk, pi);
             if (rt.m_frictionCond==Rolling)
@@ -434,7 +441,7 @@ solve(int                                 phase,
             const Array_<int>& Fk = rt.m_Fk; // friction components
             const Array_<int>& Nk = rt.m_Nk; // normal components
             doRowSums(participating,Fk,A,D,pi,rowSums);
-            const Real localEr2=doUpdates(Fk,A,D,verr,sor,rowSums,pi);
+            const Real localEr2=doUpdates(Fk,A,D,verrStart,sor,rowSums,pi);
             sum2all += localEr2;
             rt.m_frictionCond=boundFriction(rt.m_effMu,Nk,Fk,pi);
             if (rt.m_frictionCond==Rolling)
@@ -480,10 +487,10 @@ solve(int                                 phase,
         ++m_nFail[phase];
     }
 
-    verr -= A*pi;
-    verr -= D.elementwiseMultiply(pi);
+    verrStart -= A*pi;
+    verrStart -= D.elementwiseMultiply(pi);
     #ifndef NDEBUG
-    cout << "FINAL@" << its << " pi=" << pi << " verr=" << verr
+    cout << "FINAL@" << its << " pi=" << pi << " verr=" << verrStart
          <<  " resid=" << normRMSenf << endl;
     #endif
     return converged;

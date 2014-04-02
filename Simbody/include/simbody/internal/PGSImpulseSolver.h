@@ -70,7 +70,8 @@ public:
         const Vector&                       D, 
         const Array_<MultiplierIndex>&      expanding, // nx<=m of these 
         Vector&                             piExpand,
-        Vector&                             verr, // in/out
+        Vector&                             verrStart, // in/out
+        Vector&                             verrApplied, // in/out
         Vector&                             pi, 
         Array_<UncondRT>&                   unconditional,
         Array_<UniContactRT>&               uniContact,

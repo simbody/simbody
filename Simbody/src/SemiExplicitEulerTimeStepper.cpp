@@ -308,17 +308,16 @@ stepTo(Real time) {
     cout << "   total verr=" << verr0+m_verr << endl;
     #endif
 
-    // Add in verr0=Gu-b because we want G (u+du) - b = 0 when we're done
-    // (except for sliding friction). The impulse solver needs to know the
-    // total sliding velocity for proper friction classification, that
-    // will be in verr=verr0+hGM\f.
-    m_verr += verr0;
-
+    // Include verr0=Gu-b (post-impact if any) because we want G (u+du) - b = 0 
+    // when we're done (except for sliding friction). Also, the impulse solver 
+    // needs to know the sliding velocity for proper friction classification and
+    // that velocity is what's in verr0.
+    Vector verrStart = verr0;
     // Use lambda as a temp here; we are really calculating lambda*h.
-    doCompressionPhase(s, m_verr, lambda);
+    doCompressionPhase(s, verrStart, m_verr, lambda);
     #ifndef NDEBUG
     cout << "   dynamics impulse=" << lambda << endl;
-    cout << "   updated verr=" << m_verr << endl;
+    cout << "   updated verrStart=" << verrStart << endl;
     #endif
     m_totalImpulse += lambda;
 
@@ -381,7 +380,8 @@ stepTo(Real time) {
 
     #ifndef NDEBUG
     mbs.realize(s, Stage::Velocity);
-    cout << "Before position update, verr=" << s.getUErr() << endl;
+    cout << "Before position update:\n";
+    cout << "  verr=" << s.getUErr() << endl;
     cout << "  perr=" << s.getQErr() << endl;
     #endif
 
@@ -406,8 +406,8 @@ stepTo(Real time) {
 
 
     #ifndef NDEBUG
-    printf("END OF STEP (%g,%g): verr=", t0,s.getTime());
-    cout << s.getUErr() << endl;
+    printf("END OF STEP (%g,%g):\n", t0,s.getTime());
+    cout << "  verr=" << s.getUErr() << endl;
     cout << "  perr=" << s.getQErr() << endl;
     cout << "  constraint status:\n";
     for (unsigned i=0; i < m_uniContact.size(); ++i) {
@@ -1147,16 +1147,21 @@ calcExpansionImpulseIfAny(const State& s, const Array_<int>& impacters,
 // This phase uses all the proximal constraints and should use a starting
 // guess for impulse saved from the last step if possible.
 bool SemiExplicitEulerTimeStepper::
-doCompressionPhase(const State& s, Vector& verr, Vector& compImpulse) {
+doCompressionPhase(const State& s, Vector& verrStart, Vector& verrApplied, 
+                   Vector& compImpulse) 
+{
 #ifndef NDEBUG
-    printf("DYN t=%.15g verr=", s.getTime()); cout << verr << endl;
+    printf("DYN t=%.15g:", s.getTime()); 
+    cout << "  verrStart=" << verrStart << endl;
+    cout << "  verrApplied=" << verrApplied << endl;
 #endif
     // TODO: improve initial guess
     m_expansionImpulse.setToZero(); //TODO: shouldn't need to zero this
     bool converged = m_solver->solve(0,
         m_allParticipating,m_GMInvGt,m_D,
         Array_<MultiplierIndex>(), m_expansionImpulse, 
-        verr,compImpulse,
+        verrStart, verrApplied, 
+        compImpulse,
         m_unconditional,m_uniContact,m_uniSpeed,m_bounded,
         m_consLtdFriction, m_stateLtdFriction);
 #ifndef NDEBUG
@@ -1175,13 +1180,13 @@ bool SemiExplicitEulerTimeStepper::
 doExpansionPhase(const State&   state,
                  const Array_<MultiplierIndex>& expanding,
                  Vector&        expansionImpulse, 
-                 Vector&        verr, 
+                 Vector&        verrStart, 
                  Vector&        reactionImpulse) {
     // TODO: improve initial guess
     bool converged = m_solver->solve(1,
         m_participating,m_GMInvGt,m_D,
-        expanding,expansionImpulse,
-        verr,reactionImpulse,
+        expanding,expansionImpulse, verrStart,m_emptyVector,
+        reactionImpulse,
         m_unconditional,m_uniContact,m_uniSpeed,m_bounded,
         m_consLtdFriction, m_stateLtdFriction);
     return converged;
@@ -1198,15 +1203,15 @@ bool SemiExplicitEulerTimeStepper::
 doInducedImpactRound(const State& s, 
                      const Array_<MultiplierIndex>& expanding,
                      Vector& expansionImpulse, 
-                     Vector& verr, Vector& impulse)
+                     Vector& verrStart, Vector& impulse)
 {
 #ifndef NDEBUG
-    printf("IMP t=%.15g verr=", s.getTime()); cout << verr << endl;
+    printf("IMP t=%.15g verr=", s.getTime()); cout << verrStart << endl;
 #endif
     bool converged = m_solver->solve(0,
         m_participating,m_GMInvGt,m_D,
-        expanding,expansionImpulse,
-        verr,impulse,
+        expanding,expansionImpulse, verrStart,m_emptyVector,
+        impulse,
         m_unconditional,m_uniContact,m_uniSpeed,m_bounded,
         m_consLtdFriction, m_stateLtdFriction);
     return converged;
@@ -1220,7 +1225,7 @@ doInducedImpactRound(const State& s,
 // We require that m_uniContact has up-to-date information from the just-
 // completed contact step so we can tell which contacts are active.
 bool SemiExplicitEulerTimeStepper::
-doPositionCorrectionPhase(const State& state, Vector& verr,
+doPositionCorrectionPhase(const State& state, Vector& pverr,
                           Vector& positionImpulse) {
     bool converged;
     if (m_projectionMethod == Unilateral) {
@@ -1230,7 +1235,8 @@ doPositionCorrectionPhase(const State& state, Vector& verr,
         converged = m_solver->solve(2,
             m_posParticipating,m_GMInvGt,m_D,
             Array_<MultiplierIndex>(), m_expansionImpulse,
-            verr, positionImpulse,
+            pverr, m_emptyVector,
+            positionImpulse,
             m_posUnconditional,m_posUniContact,m_posNoUniSpeed,m_posNoBounded,
             m_posNoConsLtdFriction, m_posNoStateLtdFriction);
     } else {
@@ -1242,14 +1248,14 @@ doPositionCorrectionPhase(const State& state, Vector& verr,
             // Anything currently active, or inactive but penetrating, gets
             // a correction. TODO: is this the right strategy?
             if (rt.m_contactCond == ImpulseSolver::UniOff 
-                && rt.m_sign*verr[mx] >= 0)
+                && rt.m_sign*pverr[mx] >= 0)
                 continue;
             m_participating.push_back(rt.m_Nk);
         }
         SimTK_DEBUG1("BILATERAL POSITION CORRECTION, %d participators\n",
                     (int)m_participating.size());
         converged = m_solver->solveBilateral(m_participating,m_GMInvGt,m_D,
-                                             verr, positionImpulse);
+                                             pverr, positionImpulse);
     }
     return converged;
 }

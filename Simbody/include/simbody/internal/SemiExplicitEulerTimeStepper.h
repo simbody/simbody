@@ -364,26 +364,27 @@ private:
     // This phase uses all the proximal constraints and should use a starting
     // guess for impulse saved from the last step if possible.
     bool doCompressionPhase(const State&    state, 
-                            Vector&         verr, // in/out
+                            Vector&         verrStart, // in/out
+                            Vector&         verrApplied, // in/out
                             Vector&         compressionImpulse);
     // This phase uses all the proximal constraints, but we expect the result
     // to be zero unless expansion causes new violations.
     bool doExpansionPhase(const State&  state, 
                           const Array_<MultiplierIndex>& expanding,
                           Vector&       expansionImpulse,
-                          Vector&       verr, // in/out
+                          Vector&       verrStart, // in/out
                           Vector&       reactionImpulse);
     bool doInducedImpactRound(const State&  state, 
                               const Array_<MultiplierIndex>& expanding,
                               Vector&       expansionImpulse,
-                              Vector&       verr, // in/out
+                              Vector&       verrStart, // in/out
                               Vector&       impulse);
     bool anyPositionErrorsViolated(const State&, const Vector& perr) const;
 
     // This phase uses only holonomic constraints, and zero is a good initial
     // guess for the (hopefully small) position correction.
     bool doPositionCorrectionPhase(const State& state, 
-                                   Vector&      verr, // in/out
+                                   Vector&      pverr, // in/out
                                    Vector&      positionImpulse);
 
 
@@ -407,6 +408,7 @@ private:
 
     // Persistent runtime data.
     State                       m_state;
+    Vector                      m_emptyVector; // don't change this!
 
     // Step temporaries.
     Matrix                      m_GMInvGt; // G M\ ~G

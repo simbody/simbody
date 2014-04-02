@@ -34,27 +34,30 @@ important subproblem of the contact and impact equations.
 <pre>
 Impact problem:
     M  du    + ~G (pi+piE) = 0
-    G (u+du) -  D (pi+piE) = b + dv
-where dv is the desired constraint space velocity change, due to Newton
+    G (u+du) -  D (pi+piE) = b - verrNewton
+where verrNewton is constraint space velocity error due to Newton
 restitution (not used for Poisson restitution). Moving knowns to the right:
     M  du    + ~G pi = -~G piE
-    G  du    -  D pi = b - G u + dv + D piE
+    G  du    -  D pi = b - G u - verrNewton + D piE
 Substituting 2nd eqn into first gives this impact subproblem:
-    [A+D] pi = verr0 - dv - [A+D] piE
-where A=GM\~G and verr0 = Gu-b.
+    [A+D] pi = verr0 + verrNewton + verrExpand
+where verr0 = Gu-b, verrExpand = -[A+D]piE, and A=GM\~G.
 
 Contact problem:
     M du + ~G pi  = h f
     G du -  D pi  = b - G u
 Substituting gives this contact subproblem:
-    [A+D] pi = verr0 + hGM\f
+    [A+D] pi = verr0 + verrApplied
+where verrApplied = hGM\f.
 </pre>
 The form of the problems is the same, with different RHS and no expansion
 impulse given for contact. The impulse solver thus solves this system of 
 equations and inequalities:
 <pre>
-    [A+D] (piExpand + piUnknown) = verr
-    subject to several inequalities
+    [A+D] (piExpand + piUnknown) = verrStart + verrApplied
+        subject to several inequalities and replacement of friction rows by
+        sliding or impending slip equations
+where verrStart = verr0 + verrNewton.
 </pre>
 for the unknown impulse piUnknown. piExpand is the given Poisson expansion
 impulse, non-zero only for expanding unilateral normal contacts, with 
@@ -64,21 +67,39 @@ pi=piExpand+piUnknown and rhs are m-vectors. We write pi this way because
 friction limits depend on pi, not just piUnknown. We require piExpand_z<=0
 for unilateral normal contacts z.
 
-We actually solve
+Similarly, we must separate verrStart and verrApplied, because verrStart
+contains the actual constraint-space velocities, especially sliding, which
+we need in order to determine sliding direction and contact status (rolling
+or sliding). verrApplied just represents what the applied forces would do if
+there were no constraints; the constraints will react to that so that the 
+actual velocity changes will be much different.
+
+For each "sliding step", we classify frictional contacts based on the current
+contents of verrStart, then solve:
 <pre>
-    [A+D] piUnknown = verr - [A+D]*piExpand
+    [A+D] piUnknown = verrStart - [A+D]*piExpand + verrApplied 
     with inequalities
     piUnknown_z <= 0
     sqrt(piUnknown_x^2+piUnknown_y^2) <= -mu*pi_z
     where pi=piUnknown+piExpand
 </pre>
-We return piUnknown, and update verr <- verr - [A+D](piExpand+piUnknown),
-which would be zero if all contacts were active and rolling.
+We then choose a fraction s of this sliding step to accept, with 0<s<=1, then
+update <pre>
+    verrStart -= [A+D]*(s*pi)
+    piExpand  -= s*piExpand;
+</pre>
+If s < 1 then we are not done. In that case we have removed some of the verr
+and used up some of the expansion impulse. verrApplied is a constant offset
+here and does not change; its effects were included in pi. Return to do 
+another sliding step until we take one where s==1.
 
-There are often multiple solutions; consult the documentation for particular
-ImpulseSolver implementations to determine which solution is returned.
-Possibilities include: any solution (PGS), and the least squares solution 
-(PLUS).
+We return piUnknown and the updated verrStart which would be -verrApplied if all 
+contacts were active and rolling.
+
+There are often multiple solutions for piUnknown; consult the documentation for 
+particular ImpulseSolver implementations to determine which solution is 
+returned. Possibilities include: any solution (PGS), and the least squares 
+solution (PLUS).
 **/
 
 class SimTK_SIMBODY_EXPORT ImpulseSolver {
@@ -156,7 +177,8 @@ public:
         const Vector&                       D,     // m, diag>=0 added to A
         const Array_<MultiplierIndex>&      expanding, // nx<=m of these 
         Vector&                             piExpand, // m
-        Vector&                             verr,   // m, RHS (in/out)
+        Vector&                             verrStart,   // m, RHS (in/out)
+        Vector&                             verrApplied, // m
         Vector&                             pi,       // m, known+unknown
         Array_<UncondRT>&                   unconditional,
         Array_<UniContactRT>&               uniContact, // with friction
@@ -179,10 +201,10 @@ public:
     "nonparticipation" matrix such that Pbar(i,j)=1 if constraint j is the i'th
     inactive constraint, zero otherwise. A is mXm symmetric, positive 
     semidefinite, but may be rank deficient. D is an mXm diagonal matrix with
-    only nonnegative elements. The returned solution pi (mX1) should 
-    ideally be the solution of minimum 2-norm ||pi|| if the system is 
-    underdetermined, or the solution that minimizes the 2-norm of the
-    error ||(A+D)pi-verr|| if the solution is overdetermined and 
+    only nonnegative elements. The returned solution pi (mX1) should ideally be 
+    the solution of minimum 2-norm ||pi|| if the system is underdetermined, or 
+    the solution that minimizes the 2-norm of the error ||(A+D)pi-rhs|| 
+    (participating part only) if the solution is overdetermined and 
     inconsistent. However, concrete ImpulseSolvers are free to return a 
     different solution provide their behavior is well documented. The method 
     used should be qualitatively similar to that used by the solve() method for

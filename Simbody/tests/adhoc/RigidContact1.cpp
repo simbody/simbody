@@ -326,6 +326,34 @@ private:
     MobilizedBody::Pin      m_flapper;
 };
 
+
+//==============================================================================
+//                                  BLOCK
+//==============================================================================
+// This just a single block sitting on the ground with an off-center external
+// force.
+class Block : public AugmentedMultibodySystem {
+public:
+    Block();
+    ~Block() {}
+
+    void calcInitialState(State& state) const OVERRIDE_11;
+    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    {   return m_block; }
+
+    Real getWatchDistance() const OVERRIDE_11 
+    {   return 8; }
+
+    const MobilizedBody::Free& getBlock() const {return m_block;}
+
+private:
+    Force::Gravity          m_gravity;
+    Force::GlobalDamper     m_damper;
+    MobilizedBody::Free     m_block;
+    MobilizedBody::Pin      m_link2;
+    MobilizedBody::Pin      m_link3;
+};
+
 //==============================================================================
 //                                   MAIN
 //==============================================================================
@@ -341,9 +369,10 @@ int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
     // Create the augmented multibody model.
-    //TimsBox mbs;
+    TimsBox mbs;
     //BouncingBalls mbs;
-    Pencil mbs;
+    //Pencil mbs;
+    //Block mbs;
 
     SemiExplicitEulerTimeStepper sxe(mbs);
     sxe.setDefaultImpactCaptureVelocity(mbs.getCaptureVelocity());
@@ -371,9 +400,6 @@ int main(int argc, char** argv) {
     getchar();
 
     const Real ConsTol = .001;
-    const Real PGSConvergenceTol = 1e-5;
-    const int  PGSMaxIters = 100;
-    const Real PGSSor = 1.0/*0.95*/; // successive over relaxation, 0..2, 1 is neutral
 
     sxe.setRestitutionModel(SemiExplicitEulerTimeStepper::Poisson);
     //sxe.setRestitutionModel(SemiExplicitEulerTimeStepper::Newton);
@@ -416,7 +442,7 @@ int main(int argc, char** argv) {
     const double startCPU = cpuTime();
 
     const Real h = .002;
-    const int SaveEvery = 4; // save every nth step ~= 33ms
+    const int SaveEvery = 16; // save every nth step ~= 33ms
 
     Vector_<SpatialVec> reactions;
     do {
@@ -424,6 +450,8 @@ int main(int argc, char** argv) {
         if ((nSteps%SaveEvery)==0) {
             #ifdef ANIMATE
             viz.report(sxeState);
+            //cout << "t=" << sxe.getTime();
+            //cout << " u=" << sxeState.getU() << endl;
             //#ifndef NDEBUG
             //printf("\nWAITING:"); getchar();
             //#endif
@@ -925,6 +953,112 @@ void Pencil::calcInitialState(State& s) const {
     getPencil().setOneQ(s, MobilizerQIndex(2), -1);
     getPencil().setOneU(s, MobilizerUIndex(1), 2);
     getPencil().setOneU(s, MobilizerUIndex(2), -2);
+}
+
+
+//==============================================================================
+//                                 BLOCK
+//==============================================================================
+Block::Block() {
+    // Abbreviations.
+    SimbodyMatterSubsystem&     matter = updMatterSubsystem();
+    GeneralForceSubsystem&      forces = updForceSubsystem();
+    MobilizedBody&              Ground = matter.updGround();
+
+    // Build the multibody system.
+    m_gravity = Force::Gravity(forces, matter, -YAxis, 50);
+    //m_damper  = Force::GlobalDamper(forces, matter, .1);
+
+
+    // Control gains
+    const Real Kp1 = 50000; // link1-2 joint stiffness
+    const Real Kp2 = 10000; // link2-3 joint stiffness
+    const Real Cd1 = /*30*/100;    // link1-2 joint damping
+    const Real Cd2 = 30;    // link2-3 joint damping
+
+    // Target angles
+    const Real Target1 = 0;
+    const Real Target2 = Pi/4;
+
+    const Vec3 Cube(.5,.5,.5); // half-dimensions of cube
+    const Real Mass1=100, Mass2=20, Mass3=1;
+    const Vec3 Centroid(.5,.5,0), Offset(0,0,-.5);
+    const Vec3 COM1=Centroid, COM2=Centroid, COM3=Centroid+0*Offset;
+    const Inertia Inertia1=Inertia(Vec3(1))  .shiftFromMassCenter(-COM1,Mass1);
+    const Inertia Inertia2=Inertia(Vec3(.05)).shiftFromMassCenter(-COM2,Mass2);
+    const Inertia Inertia3=Inertia(Vec3(.001,.001,0))
+                                             .shiftFromMassCenter(-COM3,Mass3);
+
+
+    const Real CoefRest = 0;
+    const Real CaptureVelocity = .001;
+    const Real TransitionVelocity = .01;
+    const Real mu_s = 0.15, mu_d = 0.1, mu_v = 0;
+    //const Real mu_s = 1, mu_d = 1, mu_v = 0;
+
+    setDefaultLengthScale(Cube.norm());
+
+    m_captureVelocity = CaptureVelocity;
+    m_transitionVelocity = TransitionVelocity;
+
+        // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
+    Ground.addBodyDecoration(Vec3(0,.05,0), DecorativeFrame(2).setColor(Green));
+    DecorativeBrick drawCube(Cube); drawCube.setOpacity(0.5).setColor(Gray);
+
+    Body::Rigid blockBody(MassProperties(Mass1, COM1, Inertia1)); 
+    blockBody.addDecoration(Centroid,drawCube);
+    blockBody.addDecoration(COM1, DecorativePoint());
+
+    m_block = MobilizedBody::Free(Ground, Vec3(0), blockBody, Vec3(0));
+
+    for (int i=-1; i<=1; i+=2)
+    for (int j=-1; j<=1; j+=2)
+    for (int k=-1; k<=1; k+=2) {
+        const Vec3 pt = Centroid + Vec3(i,j,k).elementwiseMultiply(Cube);
+        PointPlaneContact* contact = new PointPlaneContact
+           (Ground, YAxis, 0., m_block, pt, CoefRest, mu_s, mu_d, mu_v);
+        matter.adoptUnilateralContact(contact);
+    }
+
+    Body::Rigid link2Info(MassProperties(Mass2, COM2, Inertia2));
+    link2Info.addDecoration(Centroid, drawCube);
+
+    Body::Rigid link3Info(MassProperties(Mass3, COM3, Inertia3));
+    link3Info.addDecoration(Centroid, drawCube);    
+    //m_link2 = MobilizedBody::Pin(m_block, Vec3(2*Centroid), 
+    //                                link2Info, Vec3(0));
+    //m_link3 = MobilizedBody::Pin(m_link2, Vec3(2*Centroid), 
+    //                                link3Info, Vec3(0));
+
+    Force::ConstantTorque(forces, m_block, Vec3(0,0,-2000));
+
+    // It is more stable to build the springs into the mechanism like
+    // this rather than apply them discretely.
+    //Force::MobilityLinearSpring
+    //   (forces, m_link2, MobilizerQIndex(0), Kp1/10, Target1);
+    //Force::MobilityLinearSpring
+     //  (forces, m_link3, MobilizerQIndex(0), Kp2, Target2);
+    //Force::MobilityLinearDamper
+        //(forces, m_link2, MobilizerUIndex(0), Cd1);
+   // Force::MobilityLinearDamper
+     //   (forces, m_link3, MobilizerUIndex(0), Cd2);
+}
+
+void Block::calcInitialState(State& s) const {
+    s = realizeTopology(); // returns a reference to the the default state   
+    realizeModel(s); // define appropriate states for this System
+    realize(s, Stage::Instance); // instantiate constraints if any
+    realize(s, Stage::Position);
+    Assembler(*this).setErrorTolerance(1e-6).assemble(s);
+
+    //m_link2.setQ(s, -0.1104);
+   // m_link3.setQ(s, Pi/4);
+    //m_link2.lock(s); m_link3.lock(s);
+
+    //getBlock().setQToFitTranslation(s, Vec3(0,.2,0));
+    //getBlock().setQToFitRotation(s, Rotation(Pi/20,ZAxis));
+    getBlock().setUToFitLinearVelocity(s, Vec3(.2,0,0));
+
 }
 
 //-------------------------- SHOW CONSTRAINT STATUS ----------------------------

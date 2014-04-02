@@ -49,7 +49,8 @@ public:
         const Vector&                       D,
         const Array_<MultiplierIndex>&      expanding,
         Vector&                             piExpand, // in/out
-        Vector&                             verr, // in/out
+        Vector&                             verrStart, // in/out
+        Vector&                             verrApplied,
         Vector&                             pi,  
         Array_<UncondRT>&                   unconditional,
         Array_<UniContactRT>&               uniContact,
@@ -100,8 +101,9 @@ private:
     // be the right values for the linear equations, but rows for nonlinear
     // equations (sliding, impending) will get overwritten. Initialize piActive 
     // from pi.
-    void initializeNewton(const Matrix&          A,
-                          const Vector&          piGuess,
+    void initializeNewton(const Matrix&               A,
+                          const Vector&               piGuess,
+                          const Vector&               verrApplied,
                           const Array_<UniContactRT>& bounded) const;
 
     // Given a new piActive, update the impending slip directions and calculate
