@@ -291,13 +291,14 @@ solve(int                                 phase,
             m_mult2active.resize(m);
             fillMult2Active(m_active, m_mult2active);
             initializeNewton(A, piGuess, verrApplied, uniContact);
-            updateDirectionsAndCalcCurrentError(A, uniContact, piELeft,
+            updateDirectionsAndCalcCurrentError(A, uniContact, 
+                                                piELeft, verrApplied,
                                                 m_piActive,m_errActive);
             
             if (m_active.empty())
                 break;
           
-            updateJacobianForSliding(A, uniContact, piELeft);
+            updateJacobianForSliding(A, uniContact, piELeft, verrApplied);
             Real prevNorm = NaN;
             Real errNorm = m_errActive.norm();
             int newtIter = 0;
@@ -332,9 +333,9 @@ solve(int                                 phase,
                                  nsearch, back, prevNorm);
                     m_piActive = piSave - back*dpi;
 
-                    updateDirectionsAndCalcCurrentError(A,uniContact,piELeft,
-                                                        m_piActive,
-                                                        m_errActive);
+                    updateDirectionsAndCalcCurrentError(A,uniContact,
+                                                        piELeft,verrApplied,
+                                                        m_piActive,m_errActive);
                     errNorm = m_errActive.norm();
                     #ifndef NDEBUG
                     cout << "> piNow=" << m_piActive << endl;
@@ -381,7 +382,7 @@ solve(int                                 phase,
                     break; // we have a loser
                 }
 
-                updateJacobianForSliding(A, uniContact, piELeft);
+                updateJacobianForSliding(A, uniContact, piELeft, verrApplied);
                 prevNorm = errNorm;
             }
 
@@ -567,12 +568,14 @@ solve(int                                 phase,
             const Array_<MultiplierIndex>& Fk = rt.m_Fk;
             const MultiplierIndex          Nk = rt.m_Nk;
             assert(Fk.size()==2); //TODO: generalize
-            // New velocity db=[Ax Ay]*(pi+piE). TODO: D?
+            // Velocity change db=[Ax Ay]*(pi+piE). TODO: D?
             Vec2 db(  multRowTimesActiveCol(A,Fk[0],m_active,m_piActive)
                     - m_verrExpand[Fk[0]],
                       multRowTimesActiveCol(A,Fk[1],m_active,m_piActive)
                     - m_verrExpand[Fk[1]]);
-            Vec2 bend = rt.m_slipVel - db;
+            Vec2 bend(rt.m_slipVel - db);
+            if (hasAppliedImpulse)
+                bend += Vec2(verrApplied[Fk[0]],verrApplied[Fk[1]]);
             #ifndef NDEBUG
             cout << "slipVel " << k << " from " << rt.m_slipVel 
                  << " to " << bend << endl;
@@ -628,11 +631,16 @@ solve(int                                 phase,
             m_verrLeft[mx] -= multRowTimesActiveCol(A,mx,m_active,m_piActive)
                               - s*m_verrExpand[mx];
         }
+        if (hasAppliedImpulse) {
+            m_verrLeft  += s*verrApplied;
+            verrApplied -= s*verrApplied;
+        }
 
         #ifndef NDEBUG
         printf("SP interval %d end: s=%g\n", interval, s);
         cout << ": m_piActive=" << m_piActive << endl;
         cout << ": m_verrLeft=" << m_verrLeft << endl;
+        cout << ": verrAppliedLeft=" << verrApplied << endl;
         cout << ": piELeft=" << piELeft << endl;
         #endif
     }
@@ -1028,12 +1036,16 @@ initializeNewton(const Matrix&                  A,
 void PLUSImpulseSolver::
 updateDirectionsAndCalcCurrentError
    (const Matrix& A,  Array_<UniContactRT>& uniContact, 
-    const Vector& piELeft, const Vector& piActive,
+    const Vector& piELeft, const Vector& verrAppliedLeft,
+    const Vector& piActive,
     Vector& errActive) const 
 {
     const int na = m_active.size();
     assert(piActive.size() == na);
     errActive.resize(na);
+
+    const bool hasAppliedImpulse = (verrAppliedLeft.size() > 0);
+
     // Initialize as though all rolling.
     for (ActiveIndex ai(0); ai < na; ++ai) {
         const MultiplierIndex mi = m_active[ai];
@@ -1058,11 +1070,13 @@ updateDirectionsAndCalcCurrentError
         const MultiplierIndex mx=Fk[0], my=Fk[1], mz=Nk;
 
         if (rt.m_frictionCond==Impending) {
-            // Update slip direction to [Ax Ay]*(pi+piE).
+            // Update slip direction to [Ax Ay]*(pi+piE) - verrApplied.
             Vec2 d(multRowTimesActiveCol(A,mx,m_active,piActive)
                    - m_verrExpand[mx],
                    multRowTimesActiveCol(A,my,m_active,piActive)
                    - m_verrExpand[my]);
+            if (hasAppliedImpulse)
+                d -= Vec2(verrAppliedLeft[mx],verrAppliedLeft[my]);
             const Real dnorm = d.norm();
             rt.m_slipVel = d; rt.m_slipMag = dnorm;
             SimTK_DEBUG3("Updated impending slipVel %d to %g,%g\n",k,d[0],d[1]);
@@ -1121,7 +1135,8 @@ updateDirectionsAndCalcCurrentError
 void PLUSImpulseSolver::
 updateJacobianForSliding(const Matrix& A,
                          const Array_<UniContactRT>& uniContact,
-                         const Vector& piELeft) const {
+                         const Vector& piELeft,
+                         const Vector& verrAppliedLeft) const {
     int nPairsChanged = 0;
     for (unsigned k=0; k < uniContact.size(); ++k) {
         const UniContactRT& rt = uniContact[k];
@@ -1231,10 +1246,12 @@ updateJacobianForSliding(const Matrix& A,
     for (int i=0; i < piActive.size(); ++i) {
         const Real save = piActive[i];
         piActive[i] = save - 1e-6;
-        updateDirectionsAndCalcCurrentError(A,uniContactTmp,piELeft,
+        updateDirectionsAndCalcCurrentError(A,uniContactTmp,
+                                            piELeft, verrAppliedLeft,
                                             piActive,errActive0);
         piActive[i] = save + 1e-6;
-        updateDirectionsAndCalcCurrentError(A,uniContactTmp,piELeft,
+        updateDirectionsAndCalcCurrentError(A,uniContactTmp,
+                                            piELeft, verrAppliedLeft,
                                             piActive,errActive1);
         numJac(i) = (errActive1-errActive0)/2e-6;
         piActive[i] = save;

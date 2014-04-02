@@ -77,7 +77,7 @@ actual velocity changes will be much different.
 For each "sliding step", we classify frictional contacts based on the current
 contents of verrStart, then solve:
 <pre>
-    [A+D] piUnknown = verrStart - [A+D]*piExpand + verrApplied 
+    [A+D] piUnknown = verrStart + verrApplied - [A+D]*piExpand 
     with inequalities
     piUnknown_z <= 0
     sqrt(piUnknown_x^2+piUnknown_y^2) <= -mu*pi_z
@@ -85,15 +85,15 @@ contents of verrStart, then solve:
 </pre>
 We then choose a fraction s of this sliding step to accept, with 0<s<=1, then
 update <pre>
-    verrStart -= [A+D]*(s*pi)
-    piExpand  -= s*piExpand;
+    verrStart   += s*(verrApplied - [A+D]*pi)
+    piExpand    -= s*piExpand
+    verrApplied -= s*verrApplied
 </pre>
 If s < 1 then we are not done. In that case we have removed some of the verr
-and used up some of the expansion impulse. verrApplied is a constant offset
-here and does not change; its effects were included in pi. Return to do 
+and used up some of the expansion impulse. Return to do 
 another sliding step until we take one where s==1.
 
-We return piUnknown and the updated verrStart which would be -verrApplied if all 
+We return piUnknown and the updated verrStart which would be zero if all 
 contacts were active and rolling.
 
 There are often multiple solutions for piUnknown; consult the documentation for 

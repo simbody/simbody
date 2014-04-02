@@ -110,15 +110,17 @@ private:
     // the new err(piActive).
     void updateDirectionsAndCalcCurrentError
        (const Matrix& A, Array_<UniContactRT>& uniContact,
-        const Vector& piELeft, const Vector& piActive, 
+        const Vector& piELeft, const Vector& verrAppliedLeft,
+        const Vector& piActive, 
         Vector& errActive) const;
 
     // Replace rows of Jacobian for constraints corresponding to sliding or
     // impending slip frictional elements. This is the partial derivative of the
     // constraint error w.r.t. pi. Also set rhs m_verrActive.
-    void updateJacobianForSliding(const Matrix&             A,
+    void updateJacobianForSliding(const Matrix&               A,
                                   const Array_<UniContactRT>& uniContact,
-                                  const Vector& piELeft) const;
+                                  const Vector& piELeft, 
+                                  const Vector& verrAppliedLeft) const;
 
     // These are set on construction.
     Real m_minSmoothness;
