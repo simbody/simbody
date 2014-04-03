@@ -132,6 +132,7 @@ namespace SimTK {
 //------------------------------------------------------------------------------
 //                                SOLVE
 //------------------------------------------------------------------------------
+
 bool PLUSImpulseSolver::
 solve(int                                 phase,
       const Array_<MultiplierIndex>&      participating, 
@@ -150,6 +151,10 @@ solve(int                                 phase,
       Array_<StateLtdFrictionRT>&         stateLtdFriction
       ) const 
 {
+    // If we get this close to taking a whole sliding interval, we'll just
+    // take the whole thing to avoid a final sliver of a step.
+    const Real MaxPartialSlidingStepLength = (1-SqrtEps);
+
     SimTK_DEBUG("\n--------------------------------\n");
     SimTK_DEBUG(  "START SUCCESSIVE PRUNING SOLVER:\n");
     ++m_nSolves[phase];
@@ -586,37 +591,74 @@ solve(int                                 phase,
                 "Sliding; slip speed %g too small (Rolling at %g).",
                 rt.m_slipMag, m_maxRollingTangVel);
 
+            // See if we got lucky and sliding force slowed contact to below
+            // the rolling speed threshold (this is rare; reversal is much more
+            // common). Although not strictly necessary, we'll attempt to stop 
+            // the step where it came closest to zero velocity to make the
+            // smoothest sliding->rolling transition possible.
             if (bendMag <= m_maxRollingTangVel) {
-                //TODO: adjust step length to get exactly to zero. (Not nice
-                // to allow small backwards motion.)
-                SimTK_DEBUG2("Friction %d slowed to a halt, v=%g\n", k, bendMag);
+                SimTK_DEBUG3("Sliding contact %d slowed to rolling speed: "
+                             "v=%g, vTrans=%g\n", 
+                             k, bendMag, m_maxRollingTangVel);
+                if (bendMag < SignificantReal) {
+                    SimTK_DEBUG("  (Near dead stop -- accept the step as is.)\n");
+                    continue;
+                }
+                Vec2 newEndPt;
+                Real s1 = calcSlidingStepLengthToOrigin(rt.m_slipVel,bend,
+                                                        newEndPt);
+                SimTK_DEBUG2("  (Will use step=%g where speed was %g.)\n",
+                             s1, newEndPt.norm());
+                s = std::min(s, s1);
                 continue;
             }
+
+            // Still sliding; check change in direction from initial to final
+            // sliding velocity.
             const Real cosTheta = 
                 clamp(-1, dot(rt.m_slipVel,bend)/(rt.m_slipMag*bendMag), 1);
+
+            // This is the normal case: still sliding in roughly the same
+            // direction. Take the whole step.
             if (cosTheta >= m_cosMaxSlidingDirChange) {
                 SimTK_DEBUG3("Friction %d rotated %g deg, less than max %g\n", 
                        k, std::acos(cosTheta)*180/Pi,
                        std::acos(m_cosMaxSlidingDirChange)*180/Pi);
-                continue;
+                continue; // s==1 for this contact
             }
+
+            // The sliding direction changed too much. It may have reversed 
+            // and passed through or near zero, in which case we step only to
+            // the closest-to-zero point. Otherwise we'll reduce the step 
+            // until the sliding direction change is within bounds.
+
             SimTK_DEBUG4("TOO BIG: Sliding fric %d; endmag=%g, rot=%g deg > %g\n", 
                    k, bendMag, std::acos(cosTheta)*180/Pi,
                    std::acos(m_cosMaxSlidingDirChange)*180/Pi);
 
             Vec2 endPt;
             Real s1 = calcSlidingStepLengthToOrigin(rt.m_slipVel,bend,endPt);
-            const Real endPtMag = endPt.norm();
-            if (endPtMag <= m_maxRollingTangVel) {
-                SimTK_DEBUG2("  Frac=%g halts it, v=%g\n", s1, endPtMag);
+            const Real endPtMagSq = endPt.normSqr();
+            if (endPtMagSq <= square(m_maxRollingTangVel)) {
+                SimTK_DEBUG2("  Frac=%g halts it, v=%g\n", s1, 
+                             std::sqrt(endPtMagSq));
                 s = std::min(s, s1);
                 continue;
             }
+
+            // Substantial direction change without passing near zero.
+            // Just take part of the step to keep the change manageable.
             Real s2 = calcSlidingStepLengthToMaxChange(rt.m_slipVel,bend);
             SimTK_DEBUG2("  Frac=%g reduces angle to %g degrees.\n", 
                    s2, std::acos(m_cosMaxSlidingDirChange)*180/Pi);
             s = std::min(s, s2);
         }
+
+        // If we're taking very close to the whole step, we would be left with
+        // a tiny sliver of a step that might cause numerical difficulties (and
+        // will be expensive). In that case just take the whole thing.
+        if (s > MaxPartialSlidingStepLength)
+            s = 1;
 
         for (unsigned i=0; i < expanding.size(); ++i) {
             const MultiplierIndex mx = expanding[i];
