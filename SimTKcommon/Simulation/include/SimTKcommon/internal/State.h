@@ -24,12 +24,19 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+/** @file
+Declares the user-visible part of a SimTK::State, the implementation is
+done in a separate internal class. **/
+
+// Note: the StateImpl.h header is included at the end of this file to 
+// complete the inline part of the State definition.
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/Event.h"
 
 #include <ostream>
 #include <cassert>
+#include <algorithm>
 
 namespace SimTK {
 
@@ -1083,16 +1090,21 @@ inline String toString() const;
 inline String cacheToString() const;
 
 //------------------------------------------------------------------------------
+// The implementation class and associated inline methods are defined in a
+// separate header file included below.
                                 private:
 class StateImpl* impl;
 const StateImpl& getImpl() const {assert(impl); return *impl;}
 StateImpl&       updImpl()       {assert(impl); return *impl;}
 };
 
+// Dump state and cache to a stream for debugging; this is not serialization.
 SimTK_SimTKCOMMON_EXPORT std::ostream& 
 operator<<(std::ostream& o, const State& s);
 
-
 } // namespace SimTK
+
+// This completes the inline definition of State.
+#include "SimTKcommon/internal/StateImpl.h"
 
 #endif // SimTK_SimTKCOMMON_STATE_H_

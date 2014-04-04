@@ -1,5 +1,5 @@
-#ifndef SimTK_STATE_IMPL_H_
-#define SimTK_STATE_IMPL_H_
+#ifndef SimTK_SimTKCOMMON_STATE_IMPL_H_
+#define SimTK_SimTKCOMMON_STATE_IMPL_H_
 
 /* -------------------------------------------------------------------------- *
  *                       Simbody(tm): SimTKcommon                             *
@@ -30,14 +30,8 @@ contain any user-visible objects. **/
 
 /** @cond **/   // Hide from Doxygen
 
-#include "SimTKcommon/basics.h"
-#include "SimTKcommon/Simmatrix.h"
-#include "SimTKcommon/internal/Event.h"
-#include "SimTKcommon/internal/State.h"
-
-#include <cassert>
-#include <algorithm>
-#include <ostream>
+// This header is logically an extension of State.h and is intended to be
+// included from within State.h and nowhere else.
 
 namespace SimTK {
 
@@ -2436,6 +2430,6 @@ inline String State::cacheToString() const {
 
 /** @endcond **/   // End of hiding from Doxygen
 
-#endif // SimTK_STATE_IMPL_H_
+#endif // SimTK_SimTKCOMMON_STATE_IMPL_H_
 
 

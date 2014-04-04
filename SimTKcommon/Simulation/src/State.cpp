@@ -25,7 +25,6 @@
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/Event.h"
 #include "SimTKcommon/internal/State.h"
-#include "SimTKcommon/internal/StateImpl.h"
 
 #include <cassert>
 #include <algorithm>
