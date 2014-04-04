@@ -38,7 +38,7 @@ namespace SimTK {
 //                                   STATE
 //==============================================================================
 
-inline State::State() {
+State::State() {
     impl = new StateImpl();
 }
 
