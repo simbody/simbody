@@ -164,7 +164,6 @@ private:
 
 friend class AbstractMeasure;
 friend class Subsystem::Guts;
-friend class Subsystem::Guts::GutsRep;
 };
 
 //==============================================================================

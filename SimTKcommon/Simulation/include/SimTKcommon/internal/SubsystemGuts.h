@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -36,311 +36,399 @@ class System;
 class DecorativeGeometry;
 
 
-/**
- * The abstract parent of all Subsystem "Guts" implementation classes.
- */
+/** The abstract parent of all Subsystem implementation classes. You must 
+extend this class if you implement a new concrete %Subsystem class. The 
+Simbody user's API for %Subsystems is defined exclusively in the Subsystem 
+handle class declaration; the API declared here is for use by %Subsystem 
+implementors.
+**/
 class SimTK_SimTKCOMMON_EXPORT Subsystem::Guts {
 public:
-    Guts(const Guts&);
-    Guts& operator=(const Guts&);
 
-    // This constructor is for use by concrete Subsystems. Note that this
-    // serves as a default constructor since both arguments have defaults.
-    explicit Guts(const String& name="<NONAME>", 
-                  const String& version="0.0.0");
-    virtual ~Guts();
+/** This constructor is for use in the constructors of derived Subsystems. 
+This serves as a default constructor since both arguments have defaults. 
+The name and version strings are not interpreted by Simbody in any way; they
+are simply stored and returned as given. **/
+explicit Guts(const String& name="<NONAME>", const String& version="0.0.0");
 
-    const String& getName()    const;
-    const String& getVersion() const;
+/** Destructor is virtual to permit cleanup of derived classes. **/
+virtual ~Guts();
 
-    // Use these to allocate state variables and cache entries that are owned
-    // by this Subsystem.
+/** Copy constructor results in a default-constructed object though with
+the name and version string copied. Copy assignment is suppressed. **/
+Guts(const Guts&);
 
-    // qdot, qdotdot also allocated in cache
-    QIndex allocateQ(State& s, const Vector& qInit) const;
-    // udot is also allocated in the cache
-    UIndex allocateU(State& s, const Vector& uInit) const;
-    // zdot is also allocated in the cache
-    ZIndex allocateZ(State& s, const Vector& zInit) const;
+/** Report back the name supplied on construction; this is not interpreted
+in any way by Simbody. **/
+const String& getName()    const {return m_subsystemName;}
+/** Report back the version string supplied on construction; this i not
+interpreted in any way by Simbody. **/
+const String& getVersion() const {return m_subsystemVersion;}
 
-    DiscreteVariableIndex allocateDiscreteVariable
-       (State& s, Stage g, AbstractValue* v) const;
-    DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
-       (State&, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const; 
+// Use these to allocate state variables and cache entries that are owned
+// by this Subsystem.
 
-    // Cache entries
-    CacheEntryIndex allocateCacheEntry
-       (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
-    CacheEntryIndex allocateCacheEntry
-       (const State& state, Stage g, AbstractValue* v) const 
-    {   return allocateCacheEntry(state, g, g, v); }
-    CacheEntryIndex allocateLazyCacheEntry   
-       (const State& state, Stage earliest, AbstractValue* v) const 
-    {   return allocateCacheEntry(state, earliest, Stage::Infinity, v); }
+// qdot, qdotdot also allocated in cache
+QIndex allocateQ(State& s, const Vector& qInit) const;
+// udot is also allocated in the cache
+UIndex allocateU(State& s, const Vector& uInit) const;
+// zdot is also allocated in the cache
+ZIndex allocateZ(State& s, const Vector& zInit) const;
 
-    // qerr, uerr, udoterr are all cache entries, not variables
-    // allocating udoterr also allocates matching multipliers
-    QErrIndex allocateQErr(const State& s, int nqerr) const;
-    UErrIndex allocateUErr(const State& s, int nuerr) const;
-    UDotErrIndex allocateUDotErr(const State& s, int nudoterr) const;
-    EventTriggerByStageIndex allocateEventTriggersByStage
-       (const State&, Stage, int ntriggers) const;
+DiscreteVariableIndex allocateDiscreteVariable
+    (State& s, Stage g, AbstractValue* v) const;
+DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
+    (State&, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const; 
 
-    // These return views on State shared global resources. The views
-    // are private to this subsystem, but the global resources themselves
-    // are not allocated until the *System* advances to stage Model.
-    // Note that there is no subsystem equivalent of the State's "y"
-    // vector because in general a subsystem's state variables will
-    // not be contiguous. However, a subsystem's q's, u's, and z's
-    // will all be contiguous within those arrays.
-    const Vector& getQ(const State&) const;
-    const Vector& getU(const State&) const;
-    const Vector& getZ(const State&) const;
-    const Vector& getUWeights(const State&) const;
-    const Vector& getZWeights(const State&) const;
+// Cache entries
+CacheEntryIndex allocateCacheEntry
+    (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
+CacheEntryIndex allocateCacheEntry
+    (const State& state, Stage g, AbstractValue* v) const 
+{   return allocateCacheEntry(state, g, g, v); }
+CacheEntryIndex allocateLazyCacheEntry   
+    (const State& state, Stage earliest, AbstractValue* v) const 
+{   return allocateCacheEntry(state, earliest, Stage::Infinity, v); }
 
-    const Vector& getQDot(const State&) const;
-    const Vector& getUDot(const State&) const;
-    const Vector& getZDot(const State&) const;
-    const Vector& getQDotDot(const State&) const;
+// qerr, uerr, udoterr are all cache entries, not variables
+// allocating udoterr also allocates matching multipliers
+QErrIndex allocateQErr(const State& s, int nqerr) const;
+UErrIndex allocateUErr(const State& s, int nuerr) const;
+UDotErrIndex allocateUDotErr(const State& s, int nudoterr) const;
+EventTriggerByStageIndex allocateEventTriggersByStage
+    (const State&, Stage, int ntriggers) const;
 
-    const Vector& getQErr(const State&) const;
-    const Vector& getUErr(const State&) const;
-    const Vector& getQErrWeights(const State&) const;
-    const Vector& getUErrWeights(const State&) const;
+// These return views on State shared global resources. The views
+// are private to this subsystem, but the global resources themselves
+// are not allocated until the *System* advances to stage Model.
+// Note that there is no subsystem equivalent of the State's "y"
+// vector because in general a subsystem's state variables will
+// not be contiguous. However, a subsystem's q's, u's, and z's
+// will all be contiguous within those arrays.
+const Vector& getQ(const State&) const;
+const Vector& getU(const State&) const;
+const Vector& getZ(const State&) const;
+const Vector& getUWeights(const State&) const;
+const Vector& getZWeights(const State&) const;
 
-    const Vector& getUDotErr(const State&) const;
-    const Vector& getMultipliers(const State&) const;
-    const Vector& getEventTriggersByStage(const State&, Stage) const;
+const Vector& getQDot(const State&) const;
+const Vector& getUDot(const State&) const;
+const Vector& getZDot(const State&) const;
+const Vector& getQDotDot(const State&) const;
 
-    // These return writable access to this subsystem's partition in the
-    // State pool of continuous variables. These can be called at Stage::Model
-    // or higher, and if necesary they invalidate the Position (q), Velocity (u),
-    // or Dynamics (z) stage respectively.
-    Vector& updQ(State&) const; // invalidates Stage::Position
-    Vector& updU(State&) const; // invalidates Stage::Velocity
-    Vector& updZ(State&) const; // invalidates Stage::Dynamics
+const Vector& getQErr(const State&) const;
+const Vector& getUErr(const State&) const;
+const Vector& getQErrWeights(const State&) const;
+const Vector& getUErrWeights(const State&) const;
 
-    // For convenience.
-    void setQ(State& s, const Vector& q) const {
-        assert(q.size() == getNQ(s));
-        updQ(s) = q;
-    }
-    void setU(State& s, const Vector& u) const {
-        assert(u.size() == getNU(s));
-        updU(s) = u;
-    }
-    void setZ(State& s, const Vector& z) const {
-        assert(z.size() == getNZ(s));
-        updZ(s) = z;
-    }
+const Vector& getUDotErr(const State&) const;
+const Vector& getMultipliers(const State&) const;
+const Vector& getEventTriggersByStage(const State&, Stage) const;
 
-    // These update the State cache which is mutable; hence, const State. They
-    // can be called only if the previous stage has already been realized, e.g.,
-    // updQDot() is allowed only while realizing the Velocity stage, requiring
-    // that Position stage has already been realized.
-    Vector& updQDot(const State&) const;
-    Vector& updUDot(const State&) const;
-    Vector& updZDot(const State&) const;
-    Vector& updQDotDot(const State&) const;
-    Vector& updQErr(const State&) const;
-    Vector& updUErr(const State&) const;
-    Vector& updUDotErr(const State&) const;
-    Vector& updMultipliers(const State&) const;
-    Vector& updEventTriggersByStage(const State&, Stage) const;
+// These return writable access to this subsystem's partition in the
+// State pool of continuous variables. These can be called at Stage::Model
+// or higher, and if necesary they invalidate the Position (q), Velocity (u),
+// or Dynamics (z) stage respectively.
+Vector& updQ(State&) const; // invalidates Stage::Position
+Vector& updU(State&) const; // invalidates Stage::Velocity
+Vector& updZ(State&) const; // invalidates Stage::Dynamics
 
-    // These pull out the State entries which belong exclusively to
-    // this Subsystem. These variables and cache entries are available
-    // as soon as this subsystem is at stage Model.
-    Stage getStage(const State&) const;
-    const AbstractValue& getDiscreteVariable(const State&, DiscreteVariableIndex) const;
+// For convenience.
+void setQ(State& s, const Vector& q) const {
+    assert(q.size() == getNQ(s));
+    updQ(s) = q;
+}
+void setU(State& s, const Vector& u) const {
+    assert(u.size() == getNU(s));
+    updU(s) = u;
+}
+void setZ(State& s, const Vector& z) const {
+    assert(z.size() == getNZ(s));
+    updZ(s) = z;
+}
 
-    Real getDiscreteVarLastUpdateTime(const State& s, DiscreteVariableIndex dx) const
-    {   return s.getDiscreteVarLastUpdateTime(getMySubsystemIndex(),dx); }
-    CacheEntryIndex getDiscreteVarUpdateIndex(const State& s, DiscreteVariableIndex dx) const
-    {   return s.getDiscreteVarUpdateIndex(getMySubsystemIndex(),dx); }
-    const AbstractValue& getDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
-    {   return s.getDiscreteVarUpdateValue(getMySubsystemIndex(),dx); }
-    AbstractValue& updDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
-    {   return s.updDiscreteVarUpdateValue(getMySubsystemIndex(),dx); }
-    bool isDiscreteVarUpdateValueRealized(const State& s, DiscreteVariableIndex dx) const
-    {   return s.isDiscreteVarUpdateValueRealized(getMySubsystemIndex(),dx); }
-    void markDiscreteVarUpdateValueRealized(const State& s, DiscreteVariableIndex dx) const
-    {   return s.markDiscreteVarUpdateValueRealized(getMySubsystemIndex(),dx); }
+// These update the State cache which is mutable; hence, const State. They
+// can be called only if the previous stage has already been realized, e.g.,
+// updQDot() is allowed only while realizing the Velocity stage, requiring
+// that Position stage has already been realized.
+Vector& updQDot(const State&) const;
+Vector& updUDot(const State&) const;
+Vector& updZDot(const State&) const;
+Vector& updQDotDot(const State&) const;
+Vector& updQErr(const State&) const;
+Vector& updUErr(const State&) const;
+Vector& updUDotErr(const State&) const;
+Vector& updMultipliers(const State&) const;
+Vector& updEventTriggersByStage(const State&, Stage) const;
 
-    // State is *not* mutable here -- must have write access to change state variables.
-    AbstractValue& updDiscreteVariable(State&, DiscreteVariableIndex) const;
-    const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;
-    // State is mutable here.
-    AbstractValue& updCacheEntry(const State&, CacheEntryIndex) const;
+// These pull out the State entries which belong exclusively to
+// this Subsystem. These variables and cache entries are available
+// as soon as this subsystem is at stage Model.
+Stage getStage(const State&) const;
 
-    bool isCacheValueRealized(const State&, CacheEntryIndex) const;
-    void markCacheValueRealized(const State&, CacheEntryIndex) const;
-    void markCacheValueNotRealized(const State&, CacheEntryIndex) const;
+void advanceToStage(const State& s, Stage g) const {
+    s.advanceSubsystemToStage(getMySubsystemIndex(), g);
+}
 
-    // Dimensions. These are valid at System Stage::Model while access to the various
-    // arrays may have stricter requirements. Hence it is better to use these
-    // routines than to get a reference to a Vector above and ask for its size().
+const AbstractValue& getDiscreteVariable(const State&, DiscreteVariableIndex) const;
 
-    SystemQIndex getQStart      (const State&) const;
-    int getNQ          (const State&) const;
-    SystemUIndex getUStart      (const State&) const;
-    int getNU          (const State&) const;
-    SystemZIndex getZStart      (const State&) const;
-    int getNZ          (const State&) const;
-    SystemQErrIndex getQErrStart   (const State&) const;
-    int getNQErr       (const State&) const;
-    SystemUErrIndex getUErrStart   (const State&) const;
-    int getNUErr       (const State&) const;
-    SystemUDotErrIndex getUDotErrStart(const State&) const;
-    int getNUDotErr    (const State&) const;
-    SystemMultiplierIndex getMultipliersStart(const State&) const;
-    int getNMultipliers(const State&) const;
-    SystemEventTriggerByStageIndex 
-        getEventTriggerStartByStage(const State&, Stage) const;
-    int getNEventTriggersByStage(const State&, Stage) const;
+Real getDiscreteVarLastUpdateTime(const State& s, DiscreteVariableIndex dx) const
+{   return s.getDiscreteVarLastUpdateTime(getMySubsystemIndex(),dx); }
+CacheEntryIndex getDiscreteVarUpdateIndex(const State& s, DiscreteVariableIndex dx) const
+{   return s.getDiscreteVarUpdateIndex(getMySubsystemIndex(),dx); }
+const AbstractValue& getDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
+{   return s.getDiscreteVarUpdateValue(getMySubsystemIndex(),dx); }
+AbstractValue& updDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
+{   return s.updDiscreteVarUpdateValue(getMySubsystemIndex(),dx); }
+bool isDiscreteVarUpdateValueRealized(const State& s, DiscreteVariableIndex dx) const
+{   return s.isDiscreteVarUpdateValueRealized(getMySubsystemIndex(),dx); }
+void markDiscreteVarUpdateValueRealized(const State& s, DiscreteVariableIndex dx) const
+{   return s.markDiscreteVarUpdateValueRealized(getMySubsystemIndex(),dx); }
 
-    MeasureIndex adoptMeasure(AbstractMeasure& m);
-    AbstractMeasure getMeasure(MeasureIndex) const;
-    template <class T> Measure_<T> getMeasure_(MeasureIndex mx) const
-    {   return Measure_<T>::getAs(getMeasure(mx));}
+// State is *not* mutable here -- must have write access to change state variables.
+AbstractValue& updDiscreteVariable(State&, DiscreteVariableIndex) const;
+const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;
+// State is mutable here.
+AbstractValue& updCacheEntry(const State&, CacheEntryIndex) const;
 
-    bool isInSystem() const;
-    bool isInSameSystem(const Subsystem& otherSubsystem) const;
+bool isCacheValueRealized(const State&, CacheEntryIndex) const;
+void markCacheValueRealized(const State&, CacheEntryIndex) const;
+void markCacheValueNotRealized(const State&, CacheEntryIndex) const;
 
-    const System& getSystem() const;
-    System&       updSystem();
+// Dimensions. These are valid at System Stage::Model while access to the various
+// arrays may have stricter requirements. Hence it is better to use these
+// routines than to get a reference to a Vector above and ask for its size().
 
-    SubsystemIndex getMySubsystemIndex() const;
+SystemQIndex getQStart      (const State&) const;
+int getNQ          (const State&) const;
+SystemUIndex getUStart      (const State&) const;
+int getNU          (const State&) const;
+SystemZIndex getZStart      (const State&) const;
+int getNZ          (const State&) const;
+SystemQErrIndex getQErrStart   (const State&) const;
+int getNQErr       (const State&) const;
+SystemUErrIndex getUErrStart   (const State&) const;
+int getNUErr       (const State&) const;
+SystemUDotErrIndex getUDotErrStart(const State&) const;
+int getNUDotErr    (const State&) const;
+SystemMultiplierIndex getMultipliersStart(const State&) const;
+int getNMultipliers(const State&) const;
+SystemEventTriggerByStageIndex 
+    getEventTriggerStartByStage(const State&, Stage) const;
+int getNEventTriggersByStage(const State&, Stage) const;
 
-    // Internal use only
-    const Subsystem& getOwnerSubsystemHandle() const;
-    Subsystem& updOwnerSubsystemHandle();
-    void setOwnerSubsystemHandle(Subsystem&);
-    bool hasOwnerSubsystemHandle() const;
+/** Add a new Measure to this Subsystem. The returned MeasureIndex is local
+to this Subsystem and can be used to access the Measure later. **/
+MeasureIndex adoptMeasure(AbstractMeasure& m);
 
-    void setSystem(System&, SubsystemIndex);
+/** Return the Measure whose index within this Subsystem is given. The 
+index should be as it was returned by adoptMeasure(). This is templatized 
+for use when you know the value type of the Measure; if you don't then you
+should call getMeasure() which will return the Measure as an AbstractMeasure
+instead. 
+@see getMeasure() **/
+template <class T> Measure_<T> getMeasure_(MeasureIndex mx) const
+{   return Measure_<T>::getAs(getMeasure(mx)); }
 
-    class GutsRep;
-    explicit Guts(GutsRep* r) : rep(r) { }
-    bool           hasRep() const {return rep!=0;}
-    const GutsRep& getRep() const {assert(rep); return *rep;}
-    GutsRep&       updRep() const {assert(rep); return *rep;}
-    void setRep(GutsRep& r) {assert(!rep); rep = &r;}
+/** Return the Measure whose index within this Subsystem is given, as an
+AbstractMeasure (that is, its value type is not specified). The 
+index should be as it was returned by adoptMeasure(). 
+@see getMeasure_ **/
+AbstractMeasure getMeasure(MeasureIndex mx) const {
+    SimTK_ASSERT(0 <= mx && mx < m_measures.size(), 
+                 "Subsystem::Guts::getMeasure()");
+    return AbstractMeasure(m_measures[mx]);
+}
 
-    bool subsystemTopologyHasBeenRealized() const;
-    void invalidateSubsystemTopologyCache() const;
 
-    // These are wrappers for the virtual methods defined below. They
-    // are used to ensure good behavior. Most of them deal automatically with
-    // the Subsystem's Measures, as well as invoking the corresponding virtual
-    // for the Subsystem's own processing.
+bool isInSystem() const {return m_mySystem != 0;}
+bool isInSameSystem(const Subsystem& otherSubsystem) const;
 
-    Subsystem::Guts* clone() const;
+const System& getSystem() const {
+    SimTK_ASSERT(isInSystem(), "Subsystem::getSystem()");
+	return *m_mySystem;
+}
+System& updSystem() {
+    SimTK_ASSERT(isInSystem(), "Subsystem::updSystem()");
+	return *m_mySystem;
+}
+void setSystem(System& sys, SubsystemIndex id) {
+    SimTK_ASSERT(!isInSystem(), "Subsystem::setSystem()");
+    SimTK_ASSERT(id.isValid(), "Subsystem::setSystem()");
+	m_mySystem = &sys;
+	m_mySubsystemIndex = id;
+}
+SubsystemIndex getMySubsystemIndex() const {
+	SimTK_ASSERT(isInSystem(), "Subsystem::getMySubsystemIndex()");
+	return m_mySubsystemIndex;
+}
 
-    // Realize this subsystem's part of the State from Stage-1 to Stage
-    // for the indicated stage. After doing some checking, these routines
-    // call the concrete subsystem's corresponding virtual method, and
-    // on return they make sure the stage has been properly updated.
-    // Note that these will do nothing if the Subsystem stage is already
-    // at or greater than the indicated stage.
-    void realizeSubsystemTopology    (State&) const;
-    void realizeSubsystemModel       (State&) const;
-    void realizeSubsystemInstance    (const State&) const;
-    void realizeSubsystemTime        (const State&) const;
-    void realizeSubsystemPosition    (const State&) const;
-    void realizeSubsystemVelocity    (const State&) const;
-    void realizeSubsystemDynamics    (const State&) const;
-    void realizeSubsystemAcceleration(const State&) const;
-    void realizeSubsystemReport      (const State&) const;
 
-    // Generate decorative geometry computable at a specific stage. This will
-    // throw an exception if this subsystem's state hasn't already been realized
-    // to that stage. Note that the list is not inclusive -- you have to
-    // request geometry from each stage to get all of it.
-    // The generated geometry will be *appended* to the supplied output vector.
-    void calcDecorativeGeometryAndAppend
-       (const State&, Stage, Array_<DecorativeGeometry>&) const;
+/** Returns \c true if this subsystem's realizeTopology() method has been
+called since the last topological change or call to 
+invalidateSubsystemTopologyCache(). **/
+bool subsystemTopologyHasBeenRealized() const
+{   return m_subsystemTopologyRealized; }
+
+/** Always call this method when a topological change is made to this 
+%Subsystem to indicate that any Stage::Topology cache values may need
+recomputation. If the %Subsystem belongs to a System, the %System's overall 
+topology will also be invalidated, since its Stage::Topology cannot be valid
+if any of its %Subsystem topology stages are not valid. However, the stages
+of other %Subsystems in the same %System are not affected. A subsequent call
+to realizeTopology() is required before any computed values may be 
+obtained. **/
+void invalidateSubsystemTopologyCache() const;
+
+// These are wrappers for the virtual methods defined below. They
+// are used to ensure good behavior. Most of them deal automatically with
+// the Subsystem's Measures, as well as invoking the corresponding virtual
+// for the Subsystem's own processing.
+
+Subsystem::Guts* clone() const;
+
+// Realize this subsystem's part of the State from Stage-1 to Stage
+// for the indicated stage. After doing some checking, these routines
+// call the concrete subsystem's corresponding virtual method, and
+// on return they make sure the stage has been properly updated.
+// Note that these will do nothing if the Subsystem stage is already
+// at or greater than the indicated stage.
+void realizeSubsystemTopology    (State&) const;
+void realizeSubsystemModel       (State&) const;
+void realizeSubsystemInstance    (const State&) const;
+void realizeSubsystemTime        (const State&) const;
+void realizeSubsystemPosition    (const State&) const;
+void realizeSubsystemVelocity    (const State&) const;
+void realizeSubsystemDynamics    (const State&) const;
+void realizeSubsystemAcceleration(const State&) const;
+void realizeSubsystemReport      (const State&) const;
+
+// Generate decorative geometry computable at a specific stage. This will
+// throw an exception if this subsystem's state hasn't already been realized
+// to that stage. Note that the list is not inclusive -- you have to
+// request geometry from each stage to get all of it.
+// The generated geometry will be *appended* to the supplied output vector.
+void calcDecorativeGeometryAndAppend
+    (const State&, Stage, Array_<DecorativeGeometry>&) const;
     
-    void createScheduledEvent(const State& state, EventId& eventId) const;
-    void createTriggeredEvent(const State& state, EventId& eventId, 
-                              EventTriggerByStageIndex& triggerFunctionIndex,
-                              Stage stage) const;
+void createScheduledEvent(const State& state, EventId& eventId) const;
+void createTriggeredEvent(const State& state, EventId& eventId, 
+                            EventTriggerByStageIndex& triggerFunctionIndex,
+                            Stage stage) const;
 
-    // These methods are called by the corresponding methods of System.
-    // Each subsystem is responsible for defining its own events, and
-    // System then combines the information from them, and dispatches events
-    // to the appropriate subsystems for handling when they occur.
-    void calcEventTriggerInfo
-       (const State&, Array_<EventTriggerInfo>&) const;
-    void calcTimeOfNextScheduledEvent
-       (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
-        bool includeCurrentTime) const;
-    void calcTimeOfNextScheduledReport
-       (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
-        bool includeCurrentTime) const;
-    void handleEvents
-       (State&, Event::Cause, const Array_<EventId>& eventIds,
-        const HandleEventsOptions& options, HandleEventsResults& results) const;
-    void reportEvents
-       (const State&, Event::Cause, const Array_<EventId>& eventIds) const;
+// These methods are called by the corresponding methods of System.
+// Each subsystem is responsible for defining its own events, and
+// System then combines the information from them, and dispatches events
+// to the appropriate subsystems for handling when they occur.
+void calcEventTriggerInfo
+    (const State&, Array_<EventTriggerInfo>&) const;
+void calcTimeOfNextScheduledEvent
+    (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
+    bool includeCurrentTime) const;
+void calcTimeOfNextScheduledReport
+    (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
+    bool includeCurrentTime) const;
+void handleEvents
+    (State&, Event::Cause, const Array_<EventId>& eventIds,
+    const HandleEventsOptions& options, HandleEventsResults& results) const;
+void reportEvents
+    (const State&, Event::Cause, const Array_<EventId>& eventIds) const;
 
 protected:
-    // These virtual methods should be overridden in concrete Subsystems as
-    // necessary. They should never be called directly; instead call the
-    // wrapper routines above, which have the same name but without the "Impl"
-    // (implementation) at the end.
+// These virtual methods should be overridden in concrete Subsystems as
+// necessary. They should never be called directly; instead call the
+// wrapper routines above, which have the same name but without the "Impl"
+// (implementation) at the end.
     
-    // The "realize..." wrappers will call the "realize...Impl" methods below
-    // only when the current stage for the Subsystem is the one just prior
-    // to the stage being realized. For example, realizeSubsystemVelocityImpl()
-    // is called by realizeSubsystemVelocity() only when the passed-in State
-    // shows this subsystem's stage to be exactly Stage::Position.
-    //
-    // The default implementations provided here do nothing. That means the
-    // wrappers will simply check that the current stage is correct and
-    // advance it if necessary.
+// The "realize..." wrappers will call the "realize...Impl" methods below
+// only when the current stage for the Subsystem is the one just prior
+// to the stage being realized. For example, realizeSubsystemVelocityImpl()
+// is called by realizeSubsystemVelocity() only when the passed-in State
+// shows this subsystem's stage to be exactly Stage::Position.
+//
+// The default implementations provided here do nothing. That means the
+// wrappers will simply check that the current stage is correct and
+// advance it if necessary.
 
-    // The destructor is already virtual; see above.
+// The destructor is already virtual; see above.
 
-    virtual Subsystem::Guts* cloneImpl() const = 0;
+virtual Subsystem::Guts* cloneImpl() const = 0;
 
-    virtual int realizeSubsystemTopologyImpl(State& s)       const {return 0;}
-    virtual int realizeSubsystemModelImpl   (State& s)       const {return 0;}
-    virtual int realizeSubsystemInstanceImpl(const State& s) const {return 0;}
-    virtual int realizeSubsystemTimeImpl    (const State& s) const {return 0;}
-    virtual int realizeSubsystemPositionImpl(const State& s) const {return 0;}
-    virtual int realizeSubsystemVelocityImpl(const State& s) const {return 0;}
-    virtual int realizeSubsystemDynamicsImpl(const State& s) const {return 0;}
-    virtual int realizeSubsystemAccelerationImpl(const State& s)const{return 0;}
-    virtual int realizeSubsystemReportImpl  (const State& s) const {return 0;}
+virtual int realizeSubsystemTopologyImpl(State& s)       const {return 0;}
+virtual int realizeSubsystemModelImpl   (State& s)       const {return 0;}
+virtual int realizeSubsystemInstanceImpl(const State& s) const {return 0;}
+virtual int realizeSubsystemTimeImpl    (const State& s) const {return 0;}
+virtual int realizeSubsystemPositionImpl(const State& s) const {return 0;}
+virtual int realizeSubsystemVelocityImpl(const State& s) const {return 0;}
+virtual int realizeSubsystemDynamicsImpl(const State& s) const {return 0;}
+virtual int realizeSubsystemAccelerationImpl(const State& s)const{return 0;}
+virtual int realizeSubsystemReportImpl  (const State& s) const {return 0;}
 
-    virtual int calcDecorativeGeometryAndAppendImpl
-       (const State&, Stage, Array_<DecorativeGeometry>&) const {return 0;}
+virtual int calcDecorativeGeometryAndAppendImpl
+    (const State&, Stage, Array_<DecorativeGeometry>&) const {return 0;}
 
-    virtual void calcEventTriggerInfoImpl
-       (const State&, Array_<EventTriggerInfo>&) const {}
-    virtual void calcTimeOfNextScheduledEventImpl
-       (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
-        bool includeCurrentTime) const {}
-    virtual void calcTimeOfNextScheduledReportImpl
-       (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
-        bool includeCurrentTime) const {}
-    virtual void handleEventsImpl
-       (State&, Event::Cause, const Array_<EventId>& eventIds,
-        const HandleEventsOptions& options, 
-        HandleEventsResults& results) const {}
-    virtual void reportEventsImpl
-       (const State&, Event::Cause, const Array_<EventId>& eventIds) const {}
+virtual void calcEventTriggerInfoImpl
+    (const State&, Array_<EventTriggerInfo>&) const {}
+virtual void calcTimeOfNextScheduledEventImpl
+    (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
+    bool includeCurrentTime) const {}
+virtual void calcTimeOfNextScheduledReportImpl
+    (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
+    bool includeCurrentTime) const {}
+virtual void handleEventsImpl
+    (State&, Event::Cause, const Array_<EventId>& eventIds,
+    const HandleEventsOptions& options, 
+    HandleEventsResults& results) const {}
+virtual void reportEventsImpl
+    (const State&, Event::Cause, const Array_<EventId>& eventIds) const {}
 
-protected:
-    void advanceToStage(const State& s, Stage g) const;
+
+public:
+/** Return a const reference to the Subsystem handle object that is the unique 
+owner of this Subsystem::Guts object. **/
+const Subsystem& getOwnerSubsystemHandle() const {
+    SimTK_ASSERT(m_myHandle, "Subsystem::getOwnerSubsystemHandle()");
+    return *m_myHandle;
+}
+/** Return a writable reference to the Subsystem handle object that is the
+unique owner of this Subsystem::Guts object. **/
+Subsystem& updOwnerSubsystemHandle() {
+    SimTK_ASSERT(m_myHandle, "Subsystem::getOwnerSubsystemHandle()");
+    return *m_myHandle;
+}
+
+/** Provide a reference to the Subsystem handle object that is the unique 
+owner of this Subsystem::Guts object. The owner Subsystem is responsible for
+deleting this object at destruction. Subsystem::Guts objects are not 
+reference counted. **/
+void setOwnerSubsystemHandle(Subsystem& subsys) {m_myHandle=&subsys;}
+
+/** Check whether this Subsystem::Guts object is currently owned by some
+Subsystem handle object. **/
+bool hasOwnerSubsystemHandle() const {return m_myHandle != 0;}
 
 private:
-    // this is the only data member in the base class
-    GutsRep* rep; // opaque implementation of Subsystem::Guts base class.
+// Suppressed.
+Guts& operator=(const Guts&);
 
-friend class GutsRep;
+//------------------------------------------------------------------------------
+                                    private:
+
+    // TOPOLOGY STATE INFORMATION
+String          m_subsystemName;
+String          m_subsystemVersion;
+System*         m_mySystem;       // the System to which this Subsystem belongs
+SubsystemIndex  m_mySubsystemIndex;  // Subsystem # within System
+
+friend class Subsystem;
+Subsystem*      m_myHandle;	// the owner handle of this Guts object
+
+// This is the list of Measures belonging to this Subsystem.
+Array_<AbstractMeasure::Implementation*> 
+                m_measures;
+
+    // TOPOLOGY CACHE INFORMATION
+mutable bool    m_subsystemTopologyRealized;
 };
 
 } // namespace SimTK

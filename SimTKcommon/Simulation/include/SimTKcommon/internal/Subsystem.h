@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -35,37 +35,28 @@ namespace SimTK {
 
 class System;
 
+/** A %Subsystem is expected to be part of a larger System and to have
+interdependencies with other subsystems of that same %System. It must NOT have 
+dependencies on objects which are outside the %System. Consequently construction
+of any concrete %Subsystem requires specification of a %System at that time.
+Subsystems go through an extended construction phase in which their contents and
+interdependencies are created. Thus all of a System's Subsystems generally need
+to be available simultaneously during construction, so that they can reference 
+each other.
 
-/**
- * The abstract parent of all Subsystems.
- *
- * A Subsystem is expected to be part of a larger System and to have
- * interdependencies with other subsystems of that same system. It
- * must NOT have dependencies on objects which are outside the System.
- * Consequently construction of any concrete subsystem requires
- * specification of a system at that time.
- * Subsystems go through an extended construction phase in which
- * their contents and interdependencies are created. Thus all
- * of a System's Subsystems generally need to be available simultaneously 
- * during construction, so that they can reference each other.
- *
- * There are three distinct users of this class:
- *    - the System class
- *    - the concrete Subsystems derived from this class
- *    - the end user of a concrete Subsystem
- * Only end user methods are public here. Methods intended for
- * use by the concrete Subsystem class can be found in the Subsystem::Guts
- * class which is defined in a separate header file. End users need not
- * look over there -- trust me, you'll find it disturbing if you do!
- */
+There are three distinct users of this class:
+   - the System class
+   - the concrete Subsystems derived from this class
+   - the end user of a concrete Subsystem
+
+Only end user methods are public here. Methods intended for use by the concrete
+Subsystem class can be found in the Subsystem::Guts class which is defined in a
+separate header file. End users need not look over there. **/
 class SimTK_SimTKCOMMON_EXPORT Subsystem {
 public:
     class Guts; // local; name is Subsystem::Guts
     friend class Guts;
-private:
-    // This is the only data member in this class. Also, any class derived from
-    // Subsystem must have *NO* data members at all (data goes in the Guts class).
-    Guts* guts;
+
 public:
     Subsystem() : guts(0) { } // an empty handle
     Subsystem(const Subsystem&);
@@ -249,6 +240,12 @@ public:
 
     explicit Subsystem(Subsystem::Guts* g) : guts(g) { }
     bool hasGuts() const {return guts!=0;}
+
+private:
+    // This is the only data member in this class. Also, any class derived from
+    // Subsystem must have *NO* data members at all (data goes in the Guts 
+    // class).
+    Guts* guts;
 };
 
 } // namespace SimTK
