@@ -43,7 +43,8 @@ etc. would require an implicit solution which is generally too slow for
 real time simulation.
 
 @note There is no error estimator for this integrator so it cannot adjust the
-step size. It is given a fixed step size on construction and will use that
+step size. See SemiExplicitEuler2Integrator for an error-controlled alternative.
+Here we are given a fixed step size on construction and will use that
 unless you change it. The step size may be reduced to isolate events, and the
 method is capable of interpolation (linear) if you want reports at shorter 
 intervals than the step size.
