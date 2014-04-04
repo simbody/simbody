@@ -1659,7 +1659,7 @@ public:
         SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
                          "StateImpl::getCacheEntry()");
         const CacheEntryInfo& ce = ss.cacheInfo[index];
-    
+
         // These two unconditional checks are somewhat expensive; I'm leaving
         // them in though because they catch so many user errors.
         // (sherm 20130222).

@@ -35,7 +35,9 @@ namespace SimTK {
 class System;
 class DecorativeGeometry;
 
-
+//==============================================================================
+//                           SUBSYSTEM :: GUTS
+//==============================================================================
 /** The abstract parent of all Subsystem implementation classes. You must 
 extend this class if you implement a new concrete %Subsystem class. The 
 Simbody user's API for %Subsystems is defined exclusively in the Subsystem 
@@ -66,23 +68,28 @@ interpreted in any way by Simbody. **/
 const String& getVersion() const {return m_subsystemVersion;}
 
 // Use these to allocate state variables and cache entries that are owned
-// by this Subsystem.
+// by this Subsystem. These just forward to the appropriate State method after
+// obtaning the SubsystemIndex.
 
-// qdot, qdotdot also allocated in cache
-QIndex allocateQ(State& s, const Vector& qInit) const;
-// udot is also allocated in the cache
-UIndex allocateU(State& s, const Vector& uInit) const;
-// zdot is also allocated in the cache
-ZIndex allocateZ(State& s, const Vector& zInit) const;
+QIndex allocateQ(State& s, const Vector& qInit) const 
+{   return s.allocateQ(getMySubsystemIndex(), qInit); }
+UIndex allocateU(State& s, const Vector& uInit) const 
+{   return s.allocateU(getMySubsystemIndex(), uInit); }
+ZIndex allocateZ(State& s, const Vector& zInit) const 
+{   return s.allocateZ(getMySubsystemIndex(), zInit); }
 
-DiscreteVariableIndex allocateDiscreteVariable
-    (State& s, Stage g, AbstractValue* v) const;
+DiscreteVariableIndex 
+allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const 
+{   return s.allocateDiscreteVariable(getMySubsystemIndex(), g, v); }
 DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
-    (State&, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const; 
-
-// Cache entries
+   (State& s, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const
+{   return s.allocateAutoUpdateDiscreteVariable
+               (getMySubsystemIndex(),invalidates,v,updateDependsOn); }
 CacheEntryIndex allocateCacheEntry
-    (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
+   (const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const 
+{   return s.allocateCacheEntry
+               (getMySubsystemIndex(), dependsOn, computedBy, v); }
+
 CacheEntryIndex allocateCacheEntry
     (const State& state, Stage g, AbstractValue* v) const 
 {   return allocateCacheEntry(state, g, g, v); }
@@ -90,132 +97,169 @@ CacheEntryIndex allocateLazyCacheEntry
     (const State& state, Stage earliest, AbstractValue* v) const 
 {   return allocateCacheEntry(state, earliest, Stage::Infinity, v); }
 
-// qerr, uerr, udoterr are all cache entries, not variables
-// allocating udoterr also allocates matching multipliers
-QErrIndex allocateQErr(const State& s, int nqerr) const;
-UErrIndex allocateUErr(const State& s, int nuerr) const;
-UDotErrIndex allocateUDotErr(const State& s, int nudoterr) const;
-EventTriggerByStageIndex allocateEventTriggersByStage
-    (const State&, Stage, int ntriggers) const;
+QErrIndex allocateQErr(const State& s, int nqerr) const 
+{   return s.allocateQErr(getMySubsystemIndex(), nqerr); }
+UErrIndex allocateUErr(const State& s, int nuerr) const 
+{   return s.allocateUErr(getMySubsystemIndex(), nuerr); }
+UDotErrIndex allocateUDotErr(const State& s, int nudoterr) const 
+{   return s.allocateUDotErr(getMySubsystemIndex(), nudoterr); }
+EventTriggerByStageIndex 
+allocateEventTriggersByStage(const State& s, Stage g, int ntriggers) const 
+{   return s.allocateEventTrigger(getMySubsystemIndex(),g,ntriggers); }
 
-// These return views on State shared global resources. The views
-// are private to this subsystem, but the global resources themselves
-// are not allocated until the *System* advances to stage Model.
-// Note that there is no subsystem equivalent of the State's "y"
-// vector because in general a subsystem's state variables will
-// not be contiguous. However, a subsystem's q's, u's, and z's
-// will all be contiguous within those arrays.
-const Vector& getQ(const State&) const;
-const Vector& getU(const State&) const;
-const Vector& getZ(const State&) const;
-const Vector& getUWeights(const State&) const;
-const Vector& getZWeights(const State&) const;
+const Vector& getQ(const State& s) const 
+{   return s.getQ(getMySubsystemIndex()); }
+const Vector& getU(const State& s) const 
+{   return s.getU(getMySubsystemIndex()); }
+const Vector& getZ(const State& s) const 
+{   return s.getZ(getMySubsystemIndex()); }
+const Vector& getUWeights(const State& s) const 
+{   return s.getUWeights(getMySubsystemIndex()); }
+const Vector& getZWeights(const State& s) const 
+{   return s.getZWeights(getMySubsystemIndex()); }
 
-const Vector& getQDot(const State&) const;
-const Vector& getUDot(const State&) const;
-const Vector& getZDot(const State&) const;
-const Vector& getQDotDot(const State&) const;
+Vector& updQ(State& s) const {return s.updQ(getMySubsystemIndex());}
+Vector& updU(State& s) const {return s.updU(getMySubsystemIndex());}
+Vector& updZ(State& s) const {return s.updZ(getMySubsystemIndex());}
 
-const Vector& getQErr(const State&) const;
-const Vector& getUErr(const State&) const;
-const Vector& getQErrWeights(const State&) const;
-const Vector& getUErrWeights(const State&) const;
+const Vector& getQDot   (const State& s) const 
+{   return s.getQDot(getMySubsystemIndex()); }
+const Vector& getUDot   (const State& s) const 
+{   return s.getUDot(getMySubsystemIndex()); }
+const Vector& getZDot   (const State& s) const 
+{   return s.getZDot(getMySubsystemIndex()); }
+const Vector& getQDotDot(const State& s) const 
+{   return s.getQDotDot(getMySubsystemIndex()); }
 
-const Vector& getUDotErr(const State&) const;
-const Vector& getMultipliers(const State&) const;
-const Vector& getEventTriggersByStage(const State&, Stage) const;
+Vector& updQDot   (const State& s) const 
+{   return s.updQDot(getMySubsystemIndex()); }
+Vector& updUDot   (const State& s) const 
+{   return s.updUDot(getMySubsystemIndex()); }
+Vector& updZDot   (const State& s) const 
+{   return s.updZDot(getMySubsystemIndex()); }
+Vector& updQDotDot(const State& s) const 
+{   return s.updQDotDot(getMySubsystemIndex()); }
 
-// These return writable access to this subsystem's partition in the
-// State pool of continuous variables. These can be called at Stage::Model
-// or higher, and if necesary they invalidate the Position (q), Velocity (u),
-// or Dynamics (z) stage respectively.
-Vector& updQ(State&) const; // invalidates Stage::Position
-Vector& updU(State&) const; // invalidates Stage::Velocity
-Vector& updZ(State&) const; // invalidates Stage::Dynamics
+const Vector& getQErr(const State& s) const 
+{   return s.getQErr(getMySubsystemIndex()); }
+const Vector& getUErr(const State& s) const 
+{   return s.getUErr(getMySubsystemIndex()); }
+const Vector& getQErrWeights(const State& s) const 
+{   return s.getQErrWeights(getMySubsystemIndex()); }
+const Vector& getUErrWeights(const State& s) const 
+{   return s.getUErrWeights(getMySubsystemIndex()); }
+
+const Vector& getUDotErr(const State& s) const 
+{   return s.getUDotErr(getMySubsystemIndex()); }
+const Vector& getMultipliers(const State& s) const 
+{   return s.getMultipliers(getMySubsystemIndex()); }
+const Vector& getEventTriggersByStage(const State& s, Stage g) const
+{   return s.getEventTriggersByStage(getMySubsystemIndex(),g); }
+
+Vector& updQErr(const State& s) const 
+{   return s.updQErr(getMySubsystemIndex()); }
+Vector& updUErr(const State& s) const 
+{   return s.updUErr(getMySubsystemIndex()); }
+Vector& updUDotErr(const State& s) const 
+{   return s.updUDotErr(getMySubsystemIndex()); }
+Vector& updMultipliers(const State& s) const 
+{   return s.updMultipliers(getMySubsystemIndex()); }
+Vector& updEventTriggersByStage(const State& s, Stage g) const
+{   return s.updEventTriggersByStage(getMySubsystemIndex(),g); }
+
+SystemQIndex getQStart(const State& s) const 
+{   return s.getQStart(getMySubsystemIndex()); }
+int getNQ(const State& s)     const 
+{   return s.getNQ(getMySubsystemIndex()); }
+
+SystemUIndex getUStart(const State& s) const 
+{   return s.getUStart(getMySubsystemIndex()); }
+int getNU(const State& s)     const 
+{   return s.getNU(getMySubsystemIndex()); }
+
+SystemZIndex getZStart(const State& s) const 
+{   return s.getZStart(getMySubsystemIndex()); }
+int getNZ(const State& s)     const 
+{   return s.getNZ(getMySubsystemIndex()); }
+
+SystemQErrIndex getQErrStart(const State& s) const 
+{   return s.getQErrStart(getMySubsystemIndex()); }
+int getNQErr(const State& s) const 
+{   return s.getNQErr(getMySubsystemIndex()); }
+
+SystemUErrIndex getUErrStart(const State& s) const 
+{   return s.getUErrStart(getMySubsystemIndex()); }
+int getNUErr(const State& s)     const 
+{   return s.getNUErr(getMySubsystemIndex()); }
+
+SystemUDotErrIndex getUDotErrStart(const State& s) const 
+{   return s.getUDotErrStart(getMySubsystemIndex()); }
+int getNUDotErr(const State& s)     const 
+{   return s.getNUDotErr(getMySubsystemIndex()); }
+
+SystemMultiplierIndex getMultipliersStart(const State& s) const 
+{   return s.getMultipliersStart(getMySubsystemIndex()); }
+int getNMultipliers(const State& s)     const 
+{   return s.getNMultipliers(getMySubsystemIndex()); }
+
+SystemEventTriggerByStageIndex getEventTriggerStartByStage(const State& s, Stage g) const 
+{   return s.getEventTriggerStartByStage(getMySubsystemIndex(),g); }
+int getNEventTriggersByStage   (const State& s, Stage g) const 
+{   return s.getNEventTriggersByStage(getMySubsystemIndex(),g); }
+
 
 // For convenience.
 void setQ(State& s, const Vector& q) const {
-    assert(q.size() == getNQ(s));
+    SimTK_ASSERT(q.size() == getNQ(s), "Subsystem::Guts::setQ()");
     updQ(s) = q;
 }
 void setU(State& s, const Vector& u) const {
-    assert(u.size() == getNU(s));
+    SimTK_ASSERT(u.size() == getNU(s), "Subsystem::Guts::setU()");
     updU(s) = u;
 }
 void setZ(State& s, const Vector& z) const {
-    assert(z.size() == getNZ(s));
+    SimTK_ASSERT(z.size() == getNZ(s), "Subsystem::Guts::setZ()");
     updZ(s) = z;
 }
 
-// These update the State cache which is mutable; hence, const State. They
-// can be called only if the previous stage has already been realized, e.g.,
-// updQDot() is allowed only while realizing the Velocity stage, requiring
-// that Position stage has already been realized.
-Vector& updQDot(const State&) const;
-Vector& updUDot(const State&) const;
-Vector& updZDot(const State&) const;
-Vector& updQDotDot(const State&) const;
-Vector& updQErr(const State&) const;
-Vector& updUErr(const State&) const;
-Vector& updUDotErr(const State&) const;
-Vector& updMultipliers(const State&) const;
-Vector& updEventTriggersByStage(const State&, Stage) const;
+Stage getStage(const State& s) const 
+{   return s.getSubsystemStage(getMySubsystemIndex()); }
+void advanceToStage(const State& s, Stage g) const 
+{   s.advanceSubsystemToStage(getMySubsystemIndex(), g); }
 
-// These pull out the State entries which belong exclusively to
-// this Subsystem. These variables and cache entries are available
-// as soon as this subsystem is at stage Model.
-Stage getStage(const State&) const;
-
-void advanceToStage(const State& s, Stage g) const {
-    s.advanceSubsystemToStage(getMySubsystemIndex(), g);
-}
-
-const AbstractValue& getDiscreteVariable(const State&, DiscreteVariableIndex) const;
-
+const AbstractValue& 
+getDiscreteVariable(const State& s, DiscreteVariableIndex index) const 
+{   return s.getDiscreteVariable(getMySubsystemIndex(), index); }
+AbstractValue& updDiscreteVariable(State& s, DiscreteVariableIndex index) const 
+{   return s.updDiscreteVariable(getMySubsystemIndex(), index); }
+const AbstractValue& getCacheEntry(const State& s, CacheEntryIndex index) const 
+{   return s.getCacheEntry(getMySubsystemIndex(), index); }
+AbstractValue& updCacheEntry(const State& s, CacheEntryIndex index) const 
+{   return s.updCacheEntry(getMySubsystemIndex(), index); }
 Real getDiscreteVarLastUpdateTime(const State& s, DiscreteVariableIndex dx) const
 {   return s.getDiscreteVarLastUpdateTime(getMySubsystemIndex(),dx); }
-CacheEntryIndex getDiscreteVarUpdateIndex(const State& s, DiscreteVariableIndex dx) const
+CacheEntryIndex 
+getDiscreteVarUpdateIndex(const State& s, DiscreteVariableIndex dx) const
 {   return s.getDiscreteVarUpdateIndex(getMySubsystemIndex(),dx); }
-const AbstractValue& getDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
+const AbstractValue& 
+getDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
 {   return s.getDiscreteVarUpdateValue(getMySubsystemIndex(),dx); }
-AbstractValue& updDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
+AbstractValue& 
+updDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
 {   return s.updDiscreteVarUpdateValue(getMySubsystemIndex(),dx); }
-bool isDiscreteVarUpdateValueRealized(const State& s, DiscreteVariableIndex dx) const
+bool isDiscreteVarUpdateValueRealized
+   (const State& s, DiscreteVariableIndex dx) const
 {   return s.isDiscreteVarUpdateValueRealized(getMySubsystemIndex(),dx); }
-void markDiscreteVarUpdateValueRealized(const State& s, DiscreteVariableIndex dx) const
+void markDiscreteVarUpdateValueRealized
+   (const State& s, DiscreteVariableIndex dx) const
 {   return s.markDiscreteVarUpdateValueRealized(getMySubsystemIndex(),dx); }
 
-// State is *not* mutable here -- must have write access to change state variables.
-AbstractValue& updDiscreteVariable(State&, DiscreteVariableIndex) const;
-const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;
-// State is mutable here.
-AbstractValue& updCacheEntry(const State&, CacheEntryIndex) const;
-
-bool isCacheValueRealized(const State&, CacheEntryIndex) const;
-void markCacheValueRealized(const State&, CacheEntryIndex) const;
-void markCacheValueNotRealized(const State&, CacheEntryIndex) const;
-
-// Dimensions. These are valid at System Stage::Model while access to the various
-// arrays may have stricter requirements. Hence it is better to use these
-// routines than to get a reference to a Vector above and ask for its size().
-
-SystemQIndex getQStart      (const State&) const;
-int getNQ          (const State&) const;
-SystemUIndex getUStart      (const State&) const;
-int getNU          (const State&) const;
-SystemZIndex getZStart      (const State&) const;
-int getNZ          (const State&) const;
-SystemQErrIndex getQErrStart   (const State&) const;
-int getNQErr       (const State&) const;
-SystemUErrIndex getUErrStart   (const State&) const;
-int getNUErr       (const State&) const;
-SystemUDotErrIndex getUDotErrStart(const State&) const;
-int getNUDotErr    (const State&) const;
-SystemMultiplierIndex getMultipliersStart(const State&) const;
-int getNMultipliers(const State&) const;
-SystemEventTriggerByStageIndex 
-    getEventTriggerStartByStage(const State&, Stage) const;
-int getNEventTriggersByStage(const State&, Stage) const;
+bool isCacheValueRealized(const State& s, CacheEntryIndex cx) const 
+{   return s.isCacheValueRealized(getMySubsystemIndex(), cx); }
+void markCacheValueRealized(const State& s, CacheEntryIndex cx) const 
+{   s.markCacheValueRealized(getMySubsystemIndex(), cx); }
+void markCacheValueNotRealized(const State& s, CacheEntryIndex cx) const 
+{   s.markCacheValueNotRealized(getMySubsystemIndex(), cx); }
 
 /** Add a new Measure to this Subsystem. The returned MeasureIndex is local
 to this Subsystem and can be used to access the Measure later. **/
@@ -430,6 +474,47 @@ Array_<AbstractMeasure::Implementation*>
     // TOPOLOGY CACHE INFORMATION
 mutable bool    m_subsystemTopologyRealized;
 };
+
+
+//==============================================================================
+//                           SUBSYSTEM INLINES
+//==============================================================================
+// These had to wait for Subsystem::Guts to be defined.
+
+inline SubsystemIndex Subsystem::getMySubsystemIndex() const
+{   return getSubsystemGuts().getMySubsystemIndex(); }
+
+inline const String& Subsystem::getName()    const {return getSubsystemGuts().getName();}
+inline const String& Subsystem::getVersion() const {return getSubsystemGuts().getVersion();}
+
+inline bool Subsystem::subsystemTopologyHasBeenRealized() const {
+    return getSubsystemGuts().subsystemTopologyHasBeenRealized();
+}
+
+inline void Subsystem::invalidateSubsystemTopologyCache() const {
+    getSubsystemGuts().invalidateSubsystemTopologyCache(); // mutable
+}
+
+inline MeasureIndex Subsystem::adoptMeasure(AbstractMeasure& m)
+{   return updSubsystemGuts().adoptMeasure(m); }
+inline AbstractMeasure Subsystem::getMeasure(MeasureIndex mx) const
+{   return getSubsystemGuts().getMeasure(mx); }
+
+
+inline bool Subsystem::isInSystem() const 
+{   return getSubsystemGuts().isInSystem(); }
+inline bool Subsystem::isInSameSystem(const Subsystem& otherSubsystem) const 
+{   return getSubsystemGuts().isInSameSystem(otherSubsystem); }
+
+inline const System& Subsystem::getSystem() const 
+{   return getSubsystemGuts().getSystem(); }
+inline System& Subsystem::updSystem()       
+{   return updSubsystemGuts().updSystem(); }
+inline void Subsystem::setSystem(System& sys, SubsystemIndex id) 
+{   updSubsystemGuts().setSystem(sys,id); }
+
+inline bool Subsystem::isOwnerHandle() const 
+{   return guts==0 || &guts->getOwnerSubsystemHandle()==this; }
 
 } // namespace SimTK
 
