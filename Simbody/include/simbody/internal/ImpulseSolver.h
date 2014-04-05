@@ -31,34 +31,38 @@ namespace SimTK {
 
 /** This is the abstract base class for impulse solvers, which solve an
 important subproblem of the contact and impact equations.
-<pre>
-Impact problem:
+
+Impact problem: <pre>
     M  du    + ~G (pi+piE) = 0
     G (u+du) -  D (pi+piE) = b - verrNewton
-where verrNewton is constraint space velocity error due to Newton
+</pre> where verrNewton is constraint space velocity error due to Newton
 restitution (not used for Poisson restitution). Moving knowns to the right:
+<pre>
     M  du    + ~G pi = -~G piE
     G  du    -  D pi = b - G u - verrNewton + D piE
-Substituting 2nd eqn into first gives this impact subproblem:
+</pre> Substituting 2nd eqn into first gives this impact subproblem: 
+<pre>
     [A+D] pi = verr0 + verrNewton + verrExpand
-where verr0 = Gu-b, verrExpand = -[A+D]piE, and A=GM\~G.
-
-Contact problem:
+    where verr0 = Gu-b, verrExpand = -[A+D]piE, and A=G M\ ~G.
+</pre> 
+%Contact problem: <pre>
     M du + ~G pi  = h f
     G du -  D pi  = b - G u
-Substituting gives this contact subproblem:
+</pre> Substituting gives this contact subproblem:
+<pre>
     [A+D] pi = verr0 + verrApplied
-where verrApplied = hGM\f.
+    where verrApplied = h G M\ f.
 </pre>
+
 The form of the problems is the same, with different RHS and no expansion
 impulse given for contact. The impulse solver thus solves this system of 
 equations and inequalities:
 <pre>
     [A+D] (piExpand + piUnknown) = verrStart + verrApplied
-        subject to several inequalities and replacement of friction rows by
-        sliding or impending slip equations
-where verrStart = verr0 + verrNewton.
+    where verrStart = verr0 + verrNewton
 </pre>
+subject to several inequalities and replacement of friction rows by sliding or 
+impending slip equations
 for the unknown impulse piUnknown. piExpand is the given Poisson expansion
 impulse, non-zero only for expanding unilateral normal contacts, with 
 piExpand_z[k]<=0 for each unilateral contact k. A is an mXm symmetric positive

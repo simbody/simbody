@@ -67,9 +67,18 @@ const String& getName()    const {return m_subsystemName;}
 interpreted in any way by Simbody. **/
 const String& getVersion() const {return m_subsystemVersion;}
 
-// Use these to allocate state variables and cache entries that are owned
-// by this Subsystem. These just forward to the appropriate State method after
-// obtaning the SubsystemIndex.
+/** @name                   State access methods
+These convenience methods are inline pass-throughs to the State methods of the 
+same name but insert this %Subsystem's SubsystemIndex as the first argument. 
+That is the value returned by the getMySubsystemIndex() method. An exception 
+will be thrown if this %Subsystem is not contained in a System.  
+
+See the SimTK::State documentation for the meaning of these methods; the 
+behavior is identical here. An identical set of methods is present in 
+the %Subsystem handle class; in both cases they were added because it got
+annoying to have to dig up the subsystem index for every call to a State
+method. **/
+/**@{**/
 
 QIndex allocateQ(State& s, const Vector& qInit) const 
 {   return s.allocateQ(getMySubsystemIndex(), qInit); }
@@ -260,6 +269,7 @@ void markCacheValueRealized(const State& s, CacheEntryIndex cx) const
 {   s.markCacheValueRealized(getMySubsystemIndex(), cx); }
 void markCacheValueNotRealized(const State& s, CacheEntryIndex cx) const 
 {   s.markCacheValueNotRealized(getMySubsystemIndex(), cx); }
+/**@}**/
 
 /** Add a new Measure to this Subsystem. The returned MeasureIndex is local
 to this Subsystem and can be used to access the Measure later. **/
@@ -283,7 +293,6 @@ AbstractMeasure getMeasure(MeasureIndex mx) const {
                  "Subsystem::Guts::getMeasure()");
     return AbstractMeasure(m_measures[mx]);
 }
-
 
 bool isInSystem() const {return m_mySystem != 0;}
 bool isInSameSystem(const Subsystem& otherSubsystem) const;
