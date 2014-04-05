@@ -1960,6 +1960,7 @@ INCLUDE_FILE_PATTERNS  =
 PREDEFINED             = SimTK_SIMBODY_EXPORT= \
                          SimTK_SimTKCOMMON_EXPORT= \
                          SimTK_SIMMATH_EXPORT= \
+                         SimTK_FORCE_INLINE= \
                          OVERRIDE_11=override \
                          FINAL_11=final \
                          __cplusplus

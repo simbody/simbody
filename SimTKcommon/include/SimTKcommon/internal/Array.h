@@ -49,7 +49,12 @@ template <class T, class X=unsigned> class  ArrayViewConst_;
 template <class T, class X=unsigned> class  ArrayView_;
 template <class T, class X=unsigned> class  Array_;
 
-
+// NOTE: I have attempted to force the compilers to inline certain trivial
+// methods here because I observed Visual C++ 2013 fail to inline operator[]
+// in a performance-critical method (getCacheEntry() to be specific). It is
+// essential that there be no overhead introduced by the Array_ classes, which
+// Simbody uses extensively specifically because std::vector was too slow.
+// (sherm 20140404).
 
 //==============================================================================
 //                           CLASS ArrayIndexTraits
@@ -498,27 +503,29 @@ heap space (capacity). See the derived Array_<T,X> class for methods that can
 /*@{*/
 
 /** Return the current number of elements stored in this array. **/
-size_type size() const {return size_type(nUsed);}
+SimTK_FORCE_INLINE size_type size() const {return size_type(nUsed);}
 /** Return the maximum allowable size for this array. **/
-size_type max_size() const {return ArrayIndexTraits<X>::max_size();}
+SimTK_FORCE_INLINE size_type max_size() const 
+{   return ArrayIndexTraits<X>::max_size(); }
 /** Return true if there are no elements currently stored in this array. This
 is equivalent to the tests begin()==end() or size()==0. **/
-bool empty() const {return nUsed==0;}
+SimTK_FORCE_INLINE bool empty() const {return nUsed==0;}
 /** Return the number of elements this array can currently hold without
 requiring reallocation. The value returned by capacity() is always greater 
 than or equal to size(), even if the data is not owned by this array in
 which case we have capacity()==size() and the array is not reallocatable. **/
-size_type capacity() const {return size_type(nAllocated?nAllocated:nUsed);}
+SimTK_FORCE_INLINE size_type capacity() const 
+{   return size_type(nAllocated?nAllocated:nUsed); }
 /** Return the amount of heap space owned by this array; this is the same
 as capacity() for owner arrays but is zero for non-owners. 
 @note There is no equivalent of this method for std::vector. **/
-size_type allocated() const {return size_type(nAllocated);}
+SimTK_FORCE_INLINE size_type allocated() const {return size_type(nAllocated);}
 /** Does this array own the data to which it refers? If not, it can't be
 resized, and the destructor will not free any heap space nor call any element
 destructors. If the array does not refer to any data it is considered to be
 an owner since it is resizeable. 
 @note There is no equivalent of this method for std::vector. **/
-bool isOwner() const {return nAllocated || pData==0;}
+SimTK_FORCE_INLINE bool isOwner() const {return nAllocated || pData==0;}
 /*}*/
 
 
@@ -536,7 +543,8 @@ This will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& operator[](index_type i) const {
+
+SimTK_FORCE_INLINE const T& operator[](index_type i) const {
     SimTK_INDEXCHECK(size_type(i),size(),"ArrayViewConst_<T>::operator[]()");
     return pData[i];
 }
@@ -550,7 +558,7 @@ const T& at(index_type i) const {
 }
 /** Same as the const form of operator[]; exists to provide a non-operator
 method for element access in case that's needed. **/
-const T& getElt(index_type i) const {
+SimTK_FORCE_INLINE const T& getElt(index_type i) const {
     SimTK_INDEXCHECK(size_type(i),size(),"ArrayViewConst_<T>::getElt()");
     return pData[i];
 }
@@ -559,7 +567,7 @@ not be empty (we'll check in a Debug build but not Release).
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& front() const 
+SimTK_FORCE_INLINE const T& front() const 
 {   SimTK_ERRCHK(!empty(), "ArrayViewConst_<T>::front()", "Array was empty.");
     return pData[0]; }
 /** Return a const reference to the last element in this array, which must
@@ -567,7 +575,7 @@ not be empty (we'll check in a Debug build but not Release).
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& back() const 
+SimTK_FORCE_INLINE const T& back() const 
 {   SimTK_ERRCHK(!empty(), "ArrayViewConst_<T>::back()", "Array was empty.");
     return pData[nUsed-1]; }
 
@@ -623,28 +631,30 @@ the reverse iterator's base() method. **/
 cend(), which may be null (0) in that case but does not have to be. This method
 is from the proposed C++0x standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
-const T* cbegin() const {return pData;}
+SimTK_FORCE_INLINE const T* cbegin() const {return pData;}
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
 be. This method is from the proposed C++0x standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
-const T* cend() const {return pData + nUsed;}
+SimTK_FORCE_INLINE const T* cend() const {return pData + nUsed;}
 /** The const version of begin() is the same as cbegin(). **/
-const T* begin() const {return pData;}
+SimTK_FORCE_INLINE const T* begin() const {return pData;}
 /** The const version of end() is the same as cend(). **/
-const T* end() const {return pData + nUsed;}
+SimTK_FORCE_INLINE const T* end() const {return pData + nUsed;}
 
 /** Return a const reverse iterator pointing to the last element in the array 
 or crend() if the array is empty. **/
-const_reverse_iterator crbegin() const {return const_reverse_iterator(cend());}
+SimTK_FORCE_INLINE const_reverse_iterator crbegin() const 
+{   return const_reverse_iterator(cend()); }
 /** Return the past-the-end reverse iterator that tests equal to a reverse
 iterator that has been incremented past the front of the array. You cannot 
 dereference this iterator. **/
-const_reverse_iterator crend() const {return const_reverse_iterator(cbegin());}
+SimTK_FORCE_INLINE const_reverse_iterator crend() const 
+{   return const_reverse_iterator(cbegin()); }
 /** The const version of rbegin() is the same as crbegin(). **/
-const_reverse_iterator rbegin() const {return crbegin();} 
+SimTK_FORCE_INLINE const_reverse_iterator rbegin() const {return crbegin();} 
 /** The const version of rend() is the same as crend(). **/
-const_reverse_iterator rend() const {return crend();}
+SimTK_FORCE_INLINE const_reverse_iterator rend() const {return crend();}
 
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
@@ -652,9 +662,9 @@ const_reverse_iterator rend() const {return crend();}
     cdata() does not appear to be in the C++0x standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
     The C++0x overloaded const data() method is also available. **/
-const T* cdata() const {return pData;}
+SimTK_FORCE_INLINE const T* cdata() const {return pData;}
 /** The const version of the data() method is identical to cdata(). **/
-const T* data() const {return pData;}
+SimTK_FORCE_INLINE const T* data() const {return pData;}
 /*@}    End of iterators. **/
 
 
@@ -1055,7 +1065,7 @@ This will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& operator[](index_type i) const {return this->CBase::operator[](i);}
+SimTK_FORCE_INLINE const T& operator[](index_type i) const {return this->CBase::operator[](i);}
 
 /** Select an element by its index, returning a writable (lvalue) reference. 
 Note that only a value of the Array's templatized index type is allowed 
@@ -1064,7 +1074,8 @@ in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-T& operator[](index_type i) {return const_cast<T&>(this->CBase::operator[](i));}
+SimTK_FORCE_INLINE T& operator[](index_type i) 
+{   return const_cast<T&>(this->CBase::operator[](i)); }
 
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
@@ -1080,38 +1091,40 @@ T& at(index_type i) {return const_cast<T&>(this->CBase::at(i));}
 
 /** Same as the const form of operator[]; exists to provide a non-operator
 method for element access in case that's needed. **/
-const T& getElt(index_type i) const {return this->CBase::getElt(i);}
+SimTK_FORCE_INLINE const T& getElt(index_type i) const 
+{   return this->CBase::getElt(i); }
 /** Same as the non-const form of operator[]; exists to provide a non-operator
 method for element access in case that's needed. **/
-T& updElt(index_type i) {return const_cast<T&>(this->CBase::getElt(i));}
+SimTK_FORCE_INLINE T& updElt(index_type i) 
+{   return const_cast<T&>(this->CBase::getElt(i)); }
 
 /** Return a const reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& front() const {return this->CBase::front();} 
+SimTK_FORCE_INLINE const T& front() const {return this->CBase::front();} 
 
 /** Return a writable reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-T& front() {return const_cast<T&>(this->CBase::front());}
+SimTK_FORCE_INLINE T& front() {return const_cast<T&>(this->CBase::front());}
 
 /** Return a const reference to the last element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& back() const {return this->CBase::back();}
+SimTK_FORCE_INLINE const T& back() const {return this->CBase::back();}
 
 /** Return a writable reference to the last element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-T& back() {return const_cast<T&>(this->CBase::back());}
+SimTK_FORCE_INLINE T& back() {return const_cast<T&>(this->CBase::back());}
 
 /** Select a contiguous subarray of the elements of this array and create 
 another ArrayView_ that refers only to those element (without copying). 
@@ -1164,47 +1177,51 @@ reverse iterator's base() method. **/
 end(), which may be null (0) in that case but does not have to be. This method
 is from the proposed C++0x standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
-const T* cbegin() const {return this->CBase::cbegin();}
+SimTK_FORCE_INLINE const T* cbegin() const {return this->CBase::cbegin();}
 /** The const version of begin() is the same as cbegin(). **/
-const T* begin() const {return this->CBase::cbegin();}
+SimTK_FORCE_INLINE const T* begin() const {return this->CBase::cbegin();}
 /** Return a writable pointer to the first element of this array if any,
 otherwise end(). If the array is empty, this \e may return null (0) but does 
 not have to -- the only thing you can be sure of is that begin() == end() for 
 an empty array. **/
-T* begin() {return const_cast<T*>(this->CBase::cbegin());}
+SimTK_FORCE_INLINE T* begin() {return const_cast<T*>(this->CBase::cbegin());}
 
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
 be. This method is from the proposed C++0x standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
-const T* cend() const {return this->CBase::cend();}
+SimTK_FORCE_INLINE const T* cend() const {return this->CBase::cend();}
 /** The const version of end() is the same as cend(). **/
-const T* end() const {return this->CBase::cend();}
+SimTK_FORCE_INLINE const T* end() const {return this->CBase::cend();}
 /** Return a writable pointer to what would be the element just after the last
 one in this array. If the array is empty, this \e may return null (0) but does 
 not have to -- the only thing you can be sure of is that begin()==end() for an 
 empty array. **/
-T* end() {return const_cast<T*>(this->CBase::cend());}
+SimTK_FORCE_INLINE T* end() {return const_cast<T*>(this->CBase::cend());}
 
 /** Return a const reverse iterator pointing to the last element in the array 
 or crend() if the array is empty. **/
-const_reverse_iterator crbegin() const {return this->CBase::crbegin();}
+SimTK_FORCE_INLINE const_reverse_iterator crbegin() const 
+{   return this->CBase::crbegin(); }
 /** The const version of rbegin() is the same as crbegin(). **/
-const_reverse_iterator rbegin() const {return this->CBase::crbegin();} 
+SimTK_FORCE_INLINE const_reverse_iterator rbegin() const 
+{   return this->CBase::crbegin(); } 
 /** Return a writable reverse iterator pointing to the last element in the
 array or rend() if the array is empty. **/
-reverse_iterator rbegin() {return reverse_iterator(end());}
+SimTK_FORCE_INLINE reverse_iterator rbegin() {return reverse_iterator(end());}
 
 /** Return the past-the-end reverse iterator that tests equal to a reverse
 iterator that has been incremented past the front of the array. You cannot 
 dereference this iterator. **/
-const_reverse_iterator crend() const {return this->CBase::crend();}
+SimTK_FORCE_INLINE const_reverse_iterator crend() const 
+{   return this->CBase::crend(); }
 /** The const version of rend() is the same as crend(). **/
-const_reverse_iterator rend() const {return this->CBase::crend();}
+SimTK_FORCE_INLINE const_reverse_iterator rend() const 
+{   return this->CBase::crend(); }
 /** Return a writable past-the-end reverse iterator that tests equal to a 
 reverse iterator that has been incremented past the front of the array. You
 cannot dereference this iterator. **/
-reverse_iterator rend() {return reverse_iterator(begin());}
+SimTK_FORCE_INLINE reverse_iterator rend() {return reverse_iterator(begin());}
 
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
@@ -1212,14 +1229,14 @@ reverse_iterator rend() {return reverse_iterator(begin());}
     cdata() does not appear to be in the C++0x standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
     The C++0x overloaded const data() method is also available. **/
-const T* cdata() const {return this->CBase::cdata();}
+SimTK_FORCE_INLINE const T* cdata() const {return this->CBase::cdata();}
 /** The const version of the data() method is identical to cdata().
 @note This method is from the proposed C++0x std::vector. **/
-const T* data() const {return this->CBase::cdata();}
+SimTK_FORCE_INLINE const T* data() const {return this->CBase::cdata();}
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
 @note This method is from the proposed C++0x std::vector. **/
-T* data() {return const_cast<T*>(this->CBase::cdata());}
+SimTK_FORCE_INLINE T* data() {return const_cast<T*>(this->CBase::cdata());}
 /*@}    End of iterators. */
 
 
@@ -1235,12 +1252,12 @@ heap space (capacity) or both but cannot be used to change size. **/
 // apparently necessary in order to permit delayed definition of templatized 
 // methods. Doxygen picks up the comments from the base class.
 
-size_type size()      const {return this->CBase::size();}
-size_type max_size()  const {return this->CBase::max_size();}
-bool      empty()     const {return this->CBase::empty();}
-size_type capacity()  const {return this->CBase::capacity();}
-size_type allocated() const {return this->CBase::allocated();}
-bool      isOwner()   const {return this->CBase::isOwner();}
+SimTK_FORCE_INLINE size_type size()      const {return this->CBase::size();}
+SimTK_FORCE_INLINE size_type max_size()  const {return this->CBase::max_size();}
+SimTK_FORCE_INLINE bool      empty()     const {return this->CBase::empty();}
+SimTK_FORCE_INLINE size_type capacity()  const {return this->CBase::capacity();}
+SimTK_FORCE_INLINE size_type allocated() const {return this->CBase::allocated();}
+SimTK_FORCE_INLINE bool      isOwner()   const {return this->CBase::isOwner();}
 /*@}    End of size and capacity. **/
 
 
@@ -1359,14 +1376,19 @@ void avAssignIteratorDispatch(const RandomAccessIterator& first,
 // is due to their not depending on any template parameters; the "this->"
 // apparently fixes that problem.
 
-packed_size_type psize()      const {return this->CBase::psize();}
-packed_size_type pallocated() const {return this->CBase::pallocated();}
+SimTK_FORCE_INLINE packed_size_type psize()      const 
+{   return this->CBase::psize(); }
+SimTK_FORCE_INLINE packed_size_type pallocated() const 
+{   return this->CBase::pallocated(); }
 
 // This just cast sizes to unsigned long long so that we can do comparisons
 // without getting warnings.
-unsigned long long ullSize()     const {return this->CBase::ullSize();}
-unsigned long long ullCapacity() const {return this->CBase::ullCapacity();}
-unsigned long long ullMaxSize()  const {return this->CBase::ullMaxSize();}
+SimTK_FORCE_INLINE unsigned long long ullSize()     const 
+{   return this->CBase::ullSize(); }
+SimTK_FORCE_INLINE unsigned long long ullCapacity() const 
+{   return this->CBase::ullCapacity(); }
+SimTK_FORCE_INLINE unsigned long long ullMaxSize()  const 
+{   return this->CBase::ullMaxSize(); }
 // This is the index type name and is handy for error messages to explain
 // why some size was too big.
 const char* indexName() const   {return this->CBase::indexName();}
@@ -2011,17 +2033,17 @@ allocated heap space (capacity) or both. **/
 // methods.
 
 /** Return the current number of elements stored in this array. **/
-size_type size() const {return this->CBase::size();}
+SimTK_FORCE_INLINE size_type size() const {return this->CBase::size();}
 /** Return the maximum allowable size for this array. **/
-size_type max_size() const {return this->CBase::max_size();}
+SimTK_FORCE_INLINE size_type max_size() const {return this->CBase::max_size();}
 /** Return true if there are no elements currently stored in this array. This
 is equivalent to the tests begin() == end() or size()==0. **/
-bool empty() const {return this->CBase::empty();}
+SimTK_FORCE_INLINE bool empty() const {return this->CBase::empty();}
 /** Return the number of elements this array can currently hold without
 requiring reallocation. The value returned by capacity() is always greater 
 than or equal to size(), even if the data is not owned by this array in
 which case we have capacity() == size() and the array is not reallocatable. **/
-size_type capacity() const {return this->CBase::capacity();}
+SimTK_FORCE_INLINE size_type capacity() const {return this->CBase::capacity();}
 
 /** Change the size of this Array, preserving all the elements that will still 
 fit, and default constructing any new elements that are added. This is not
@@ -2121,13 +2143,14 @@ void shrink_to_fit() {
 /** Return the amount of heap space owned by this array; this is the same
 as capacity() for owner arrays but is zero for non-owners. 
 @note There is no equivalent of this method for std::vector. **/
-size_type allocated() const {return this->CBase::allocated();}
+SimTK_FORCE_INLINE size_type allocated() const 
+{   return this->CBase::allocated(); }
 /** Does this array own the data to which it refers? If not, it can't be
 resized, and the destructor will not free any heap space nor call any element
 destructors. If the array does not refer to \e any data it is considered to be
 an owner and it is resizeable. 
 @note There is no equivalent of this method for std::vector. **/
-bool isOwner() const {return this->CBase::isOwner();}
+SimTK_FORCE_INLINE bool isOwner() const {return this->CBase::isOwner();}
 /*@}    End of size and capacity. **/
 
 
@@ -2145,47 +2168,51 @@ reverse iterator's base() method. **/
 cend(), which may be null (0) in that case but does not have to be. This method
 is from the proposed C++0x standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
-const T* cbegin() const {return this->CBase::cbegin();}
+SimTK_FORCE_INLINE const T* cbegin() const {return this->CBase::cbegin();}
 /** The const version of begin() is the same as cbegin(). **/
-const T* begin() const {return this->CBase::cbegin();}
+SimTK_FORCE_INLINE const T* begin() const {return this->CBase::cbegin();}
 /** Return a writable pointer to the first element of this array if any,
 otherwise end(). If the array is empty, this \e may return null (0) but does 
 not have to -- the only thing you can be sure of is that begin() == end() for 
 an empty array. **/
-T* begin() {return this->Base::begin();}
+SimTK_FORCE_INLINE T* begin() {return this->Base::begin();}
 
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
 be. This method is from the proposed C++0x standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
-const T* cend() const {return this->CBase::cend();}
+SimTK_FORCE_INLINE const T* cend() const {return this->CBase::cend();}
 /** The const version of end() is the same as cend(). **/
-const T* end() const {return this->CBase::cend();}
+SimTK_FORCE_INLINE const T* end() const {return this->CBase::cend();}
 /** Return a writable pointer to what would be the element just after the last
 one in this array. If the array is empty, this \e may return null (0) but does 
 not have to -- the only thing you can be sure of is that begin()==end() for an 
 empty array. **/
-T* end() {return this->Base::end();}
+SimTK_FORCE_INLINE T* end() {return this->Base::end();}
 
 /** Return a const reverse iterator pointing to the last element in the array 
 or crend() if the array is empty. **/
-const_reverse_iterator crbegin() const {return this->CBase::crbegin();}
+SimTK_FORCE_INLINE const_reverse_iterator crbegin() const 
+{   return this->CBase::crbegin(); }
 /** The const version of rbegin() is the same as crbegin(). **/
-const_reverse_iterator rbegin() const {return this->CBase::crbegin();} 
+SimTK_FORCE_INLINE const_reverse_iterator rbegin() const 
+{   return this->CBase::crbegin(); } 
 /** Return a writable reverse iterator pointing to the last element in the
 array or rend() if the array is empty. **/
-reverse_iterator rbegin() {return this->Base::rbegin();}
+SimTK_FORCE_INLINE reverse_iterator rbegin() {return this->Base::rbegin();}
 
 /** Return the past-the-end reverse iterator that tests equal to a reverse
 iterator that has been incremented past the front of the array. You cannot 
 dereference this iterator. **/
-const_reverse_iterator crend() const {return this->CBase::crend();}
+SimTK_FORCE_INLINE const_reverse_iterator crend() const 
+{   return this->CBase::crend(); }
 /** The const version of rend() is the same as crend(). **/
-const_reverse_iterator rend() const {return this->CBase::crend();}
+SimTK_FORCE_INLINE const_reverse_iterator rend() const 
+{   return this->CBase::crend(); }
 /** Return a writable past-the-end reverse iterator that tests equal to a 
 reverse iterator that has been incremented past the front of the array. You
 cannot dereference this iterator. **/
-reverse_iterator rend() {return this->Base::rend();}
+SimTK_FORCE_INLINE reverse_iterator rend() {return this->Base::rend();}
 
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
@@ -2193,14 +2220,14 @@ reverse_iterator rend() {return this->Base::rend();}
     cdata() does not appear to be in the C++0x standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
     The C++0x overloaded const data() method is also available. **/
-const T* cdata() const {return this->CBase::cdata();}
+SimTK_FORCE_INLINE const T* cdata() const {return this->CBase::cdata();}
 /** The const version of the data() method is identical to cdata().
 @note This method is from the proposed C++0x std::vector. **/
-const T* data() const {return this->CBase::cdata();}
+SimTK_FORCE_INLINE const T* data() const {return this->CBase::cdata();}
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
 @note This method is from the proposed C++0x std::vector. **/
-T* data() {return this->Base::data();}
+SimTK_FORCE_INLINE T* data() {return this->Base::data();}
 /*@}*/
 
 /** @name                     Element access
@@ -2215,7 +2242,7 @@ This will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& operator[](index_type i) const {return this->CBase::operator[](i);}
+SimTK_FORCE_INLINE const T& operator[](index_type i) const {return this->CBase::operator[](i);}
 
 /** Select an element by its index, returning a writable (lvalue) reference. 
 Note that only a value of the Array's templatized index type is allowed 
@@ -2224,7 +2251,7 @@ in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-T& operator[](index_type i) {return this->Base::operator[](i);}
+SimTK_FORCE_INLINE T& operator[](index_type i) {return this->Base::operator[](i);}
 
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
@@ -2240,38 +2267,39 @@ T& at(index_type i) {return const_cast<T&>(this->Base::at(i));}
 
 /** Same as the const form of operator[]; exists to provide a non-operator
 method for element access in case that's needed. **/
-const T& getElt(index_type i) const {return this->CBase::getElt(i);}
+SimTK_FORCE_INLINE const T& getElt(index_type i) const 
+{   return this->CBase::getElt(i); }
 /** Same as the non-const form of operator[]; exists to provide a non-operator
 method for element access in case that's needed. **/
-T& updElt(index_type i) {return this->Base::updElt(i);}
+SimTK_FORCE_INLINE T& updElt(index_type i) {return this->Base::updElt(i);}
 
 /** Return a const reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& front() const {return this->CBase::front();} 
+SimTK_FORCE_INLINE const T& front() const {return this->CBase::front();} 
 
 /** Return a writable reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-T& front() {return const_cast<T&>(this->Base::front());}
+SimTK_FORCE_INLINE T& front() {return const_cast<T&>(this->Base::front());}
 
 /** Return a const reference to the last element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& back() const {return this->CBase::back();}
+SimTK_FORCE_INLINE const T& back() const {return this->CBase::back();}
 
 /** Return a writable reference to the last element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-T& back() {return const_cast<T&>(this->Base::back());}
+SimTK_FORCE_INLINE T& back() {return const_cast<T&>(this->Base::back());}
 
 /** Select a subrange of this const array by starting index and length, and
 return a ArrayViewConst_ referencing that data without copying it. **/
@@ -3112,19 +3140,22 @@ bool isGrowthOK(S n) const
 // apparently fixes that problem.
 
 // These provide direct access to the data members.
-packed_size_type psize()      const {return this->CBase::psize();}
-packed_size_type pallocated() const {return this->CBase::pallocated();}
+SimTK_FORCE_INLINE packed_size_type psize()      const {return this->CBase::psize();}
+SimTK_FORCE_INLINE packed_size_type pallocated() const {return this->CBase::pallocated();}
 
-void setData(const T* p)        {this->CBase::setData(p);}
-void setSize(size_type n)       {this->CBase::setSize(n);}
-void incrSize()                 {this->CBase::incrSize();}
-void decrSize()                 {this->CBase::decrSize();}
-void setAllocated(size_type n)  {this->CBase::setAllocated(n);}
+SimTK_FORCE_INLINE void setData(const T* p)       {this->CBase::setData(p);}
+SimTK_FORCE_INLINE void setSize(size_type n)      {this->CBase::setSize(n);}
+SimTK_FORCE_INLINE void incrSize()                {this->CBase::incrSize();}
+SimTK_FORCE_INLINE void decrSize()                {this->CBase::decrSize();}
+SimTK_FORCE_INLINE void setAllocated(size_type n) {this->CBase::setAllocated(n);}
 // This just cast sizes to unsigned long long so that we can do comparisons
 // without getting warnings.
-unsigned long long ullSize()     const {return this->CBase::ullSize();}
-unsigned long long ullCapacity() const {return this->CBase::ullCapacity();}
-unsigned long long ullMaxSize()  const {return this->CBase::ullMaxSize();}
+SimTK_FORCE_INLINE unsigned long long ullSize()     const 
+{   return this->CBase::ullSize(); }
+SimTK_FORCE_INLINE unsigned long long ullCapacity() const 
+{   return this->CBase::ullCapacity(); }
+SimTK_FORCE_INLINE unsigned long long ullMaxSize()  const 
+{   return this->CBase::ullMaxSize(); }
 // This is the index type name and is handy for error messages to explain
 // why some size was too big.
 const char* indexName() const   {return this->CBase::indexName();}
