@@ -147,7 +147,15 @@ public:
     int sumSqDOFs;
 
     DiscreteVariableIndex modelingVarsIndex;
-    CacheEntryIndex       modelingCacheIndex;
+    CacheEntryIndex       modelingCacheIndex,instanceCacheIndex, timeCacheIndex, 
+                          treePositionCacheIndex, constrainedPositionCacheIndex,
+                          compositeBodyInertiaCacheIndex, 
+                          articulatedBodyInertiaCacheIndex,
+                          treeVelocityCacheIndex, constrainedVelocityCacheIndex,
+                          dynamicsCacheIndex, 
+                          treeAccelerationCacheIndex, 
+                          constrainedAccelerationCacheIndex;
+
 
     // These are instance variables that exist regardless of modeling
     // settings; they are instance variables corresponding to topological
@@ -254,12 +262,6 @@ public:
     UIndex uIndex;
     DiscreteVariableIndex timeVarsIndex, qVarsIndex, uVarsIndex, 
                           dynamicsVarsIndex, accelerationVarsIndex;
-    CacheEntryIndex       instanceCacheIndex, timeCacheIndex, 
-                          treePositionCacheIndex, constrainedPositionCacheIndex,
-                          compositeBodyInertiaCacheIndex, articulatedBodyInertiaCacheIndex,
-                          treeVelocityCacheIndex, constrainedVelocityCacheIndex,
-                          dynamicsCacheIndex, 
-                          treeAccelerationCacheIndex, constrainedAccelerationCacheIndex;
 
 private:
     // MobilizedBody 0 is Ground.

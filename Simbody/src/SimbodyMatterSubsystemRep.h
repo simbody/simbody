@@ -933,6 +933,13 @@ public:
     //    These routines know where the bodies are buried (no pun intended).
     //
 
+    // This first one just provides access to the local topologyCache variable
+    // that is stored directly in the SimbodyMatterSubsystemRep. This is the one
+    // that counts - there is a copy in the State but it is just for sanity
+    // checking.
+    const SBTopologyCache& getMatterTopologyCache() const 
+    {   return topologyCache; }
+
     // The TopologyCache in the State should be a copy of the one
     // we keep locally here. We always use our local copy rather than
     // this one except for checking that the State looks reasonable.
@@ -958,103 +965,103 @@ public:
 
     const SBInstanceCache& getInstanceCache(const State& s) const {
         return Value<SBInstanceCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).instanceCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.instanceCacheIndex)).get();
     }
     SBInstanceCache& updInstanceCache(const State& s) const { //mutable
         return Value<SBInstanceCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).instanceCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.instanceCacheIndex)).upd();
     }
 
     const SBTimeCache& getTimeCache(const State& s) const {
         return Value<SBTimeCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).timeCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.timeCacheIndex)).get();
     }
     SBTimeCache& updTimeCache(const State& s) const { //mutable
         return Value<SBTimeCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).timeCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.timeCacheIndex)).upd();
     }
 
     const SBTreePositionCache& getTreePositionCache(const State& s) const {
         return Value<SBTreePositionCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).treePositionCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.treePositionCacheIndex)).get();
     }
     SBTreePositionCache& updTreePositionCache(const State& s) const { //mutable
         return Value<SBTreePositionCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).treePositionCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.treePositionCacheIndex)).upd();
     }
 
     const SBConstrainedPositionCache& getConstrainedPositionCache(const State& s) const {
         return Value<SBConstrainedPositionCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedPositionCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.constrainedPositionCacheIndex)).get();
     }
     SBConstrainedPositionCache& updConstrainedPositionCache(const State& s) const { //mutable
         return Value<SBConstrainedPositionCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedPositionCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.constrainedPositionCacheIndex)).upd();
     }
 
     const SBCompositeBodyInertiaCache& getCompositeBodyInertiaCache(const State& s) const {
         return Value<SBCompositeBodyInertiaCache>::downcast
-            (getCacheEntry(s,getModelCache(s).compositeBodyInertiaCacheIndex));
+            (getCacheEntry(s,topologyCache.compositeBodyInertiaCacheIndex));
     }
     SBCompositeBodyInertiaCache& updCompositeBodyInertiaCache(const State& s) const { //mutable
         return Value<SBCompositeBodyInertiaCache>::updDowncast
-            (updCacheEntry(s,getModelCache(s).compositeBodyInertiaCacheIndex));
+            (updCacheEntry(s,topologyCache.compositeBodyInertiaCacheIndex));
     }
 
     const SBArticulatedBodyInertiaCache& getArticulatedBodyInertiaCache(const State& s) const {
         return Value<SBArticulatedBodyInertiaCache>::downcast
-            (getCacheEntry(s,getModelCache(s).articulatedBodyInertiaCacheIndex));
+            (getCacheEntry(s,topologyCache.articulatedBodyInertiaCacheIndex));
     }
     SBArticulatedBodyInertiaCache& updArticulatedBodyInertiaCache(const State& s) const { //mutable
         return Value<SBArticulatedBodyInertiaCache>::updDowncast
-            (updCacheEntry(s,getModelCache(s).articulatedBodyInertiaCacheIndex));
+            (updCacheEntry(s,topologyCache.articulatedBodyInertiaCacheIndex));
     }
 
     const SBTreeVelocityCache& getTreeVelocityCache(const State& s) const {
         return Value<SBTreeVelocityCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).treeVelocityCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.treeVelocityCacheIndex)).get();
     }
     SBTreeVelocityCache& updTreeVelocityCache(const State& s) const { //mutable
         return Value<SBTreeVelocityCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).treeVelocityCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.treeVelocityCacheIndex)).upd();
     }
 
     const SBConstrainedVelocityCache& getConstrainedVelocityCache(const State& s) const {
         return Value<SBConstrainedVelocityCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedVelocityCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.constrainedVelocityCacheIndex)).get();
     }
     SBConstrainedVelocityCache& updConstrainedVelocityCache(const State& s) const { //mutable
         return Value<SBConstrainedVelocityCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedVelocityCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.constrainedVelocityCacheIndex)).upd();
     }
 
     const SBDynamicsCache& getDynamicsCache(const State& s, bool realizingDynamics=false) const {
         const AbstractValue& cacheEntry = 
-            realizingDynamics ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex)
-                              : s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex);
+            realizingDynamics ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),topologyCache.dynamicsCacheIndex)
+                              : s.getCacheEntry(getMySubsystemIndex(),topologyCache.dynamicsCacheIndex);
         return Value<SBDynamicsCache>::downcast(cacheEntry).get();
     }
     SBDynamicsCache& updDynamicsCache(const State& s) const { //mutable
         return Value<SBDynamicsCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.dynamicsCacheIndex)).upd();
     }
 
     const SBTreeAccelerationCache& getTreeAccelerationCache(const State& s) const {
         return Value<SBTreeAccelerationCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).treeAccelerationCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.treeAccelerationCacheIndex)).get();
     }
     SBTreeAccelerationCache& updTreeAccelerationCache(const State& s) const { //mutable
         return Value<SBTreeAccelerationCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).treeAccelerationCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.treeAccelerationCacheIndex)).upd();
     }
 
     const SBConstrainedAccelerationCache& getConstrainedAccelerationCache(const State& s) const {
         return Value<SBConstrainedAccelerationCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedAccelerationCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.constrainedAccelerationCacheIndex)).get();
     }
     SBConstrainedAccelerationCache& updConstrainedAccelerationCache(const State& s) const { //mutable
         return Value<SBConstrainedAccelerationCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedAccelerationCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.constrainedAccelerationCacheIndex)).upd();
     }
 
 

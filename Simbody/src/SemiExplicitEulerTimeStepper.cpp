@@ -272,7 +272,7 @@ stepTo(Real time) {
     // At end of step we'll make these available but they will represent
     // accelerations and reaction forces with updated u and old q.
     const SimbodyMatterSubsystemRep& matterRep = matter.getRep();
-    const SBModelCache&              mc = matterRep.getModelCache(s);
+    const SBTopologyCache&           topo = matterRep.getMatterTopologyCache();
     SBTreeAccelerationCache&         tac = 
         matterRep.updTreeAccelerationCache(s);
     SBConstrainedAccelerationCache&  cac = 
@@ -401,8 +401,8 @@ stepTo(Real time) {
 
     // Mark the acceleration-level calculations valid now, despite the fact
     // that they don't reflect the latest time, q, u, and forces.
-    matterRep.markCacheValueRealized(s, mc.constrainedAccelerationCacheIndex);
-    matterRep.markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
+    matterRep.markCacheValueRealized(s, topo.constrainedAccelerationCacheIndex);
+    matterRep.markCacheValueRealized(s, topo.treeAccelerationCacheIndex);
 
 
     #ifndef NDEBUG
@@ -939,7 +939,7 @@ void SemiExplicitEulerTimeStepper::
 takeUnconstrainedStep(State& s, Real h) {
     const SimbodyMatterSubsystem&    matter = m_mbs.getMatterSubsystem();
     const SimbodyMatterSubsystemRep& matterRep = matter.getRep();
-    const SBModelCache&              mc = matterRep.getModelCache(s);
+    const SBTopologyCache&           topo = matterRep.getMatterTopologyCache();
 
     m_mbs.realize(s, Stage::Acceleration);
     const Vector& udot = s.getUDot(); // grab before invalidated
@@ -954,8 +954,8 @@ takeUnconstrainedStep(State& s, Real h) {
 
     // Mark the acceleration-level calculations valid now, despite the fact
     // that they don't reflect the latest time, q, u, and forces.
-    matterRep.markCacheValueRealized(s, mc.constrainedAccelerationCacheIndex);
-    matterRep.markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
+    matterRep.markCacheValueRealized(s, topo.constrainedAccelerationCacheIndex);
+    matterRep.markCacheValueRealized(s, topo.treeAccelerationCacheIndex);
 
     //TODO: prescribed motion, auto update state variables, events(?)
 }
