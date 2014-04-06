@@ -199,9 +199,42 @@ public:
         return s.getU()[getUIndex(coord)];
     }
 
+    /// Add in a generalized force into the proper place in `mobForces`,
+    /// as determined by `coord`.
     void addInForce(const Coordinate coord, const Real force,
             Vector& mobForces) const {
-        mobForces[getUIndex(coord)] += force;
+        Real forceAccountingForSymmetry = force;
+        if (coord == hip_r_adduction) {
+            // Negate so that we actually apply an adduction torque (not an
+            // abduction torque).
+            forceAccountingForSymmetry *= -1;
+        }
+        mobForces[getUIndex(coord)] += forceAccountingForSymmetry;
+    }
+
+    UnitVec3 getNormalToSagittalPlane(const State& s)
+    {
+        Vec3 bodyZInGround = Vec3(m_pelvis.getBodyRotation(s).z());
+        // Project onto a horizontal plane.
+        bodyZInGround[YAxis] = 0;
+        // Make into a unit vector.
+        return UnitVec3(bodyZInGround);
+    }
+
+    UnitVec3 getNormalToCoronalPlane(const State& s)
+    {
+        Vec3 bodyXInGround = Vec3(m_pelvis.getBodyRotation(s).x());
+        // Project onto a horizontal plane.
+        bodyXInGround[YAxis] = 0;
+        // Make into a unit vector.
+        return UnitVec3(bodyXInGround);
+    }
+
+    const MobilizedBody::Universal& getLeftFoot() const {
+        return m_foot_l;
+    }
+    const MobilizedBody::Universal& getRightFoot() const {
+        return m_foot_r;
     }
 
 private:
@@ -425,9 +458,11 @@ private:
         m_forces.markDiscreteVarUpdateValueRealized(s, m_simbiconStateIndex);
     }
 
-    /// Apply torque to a specific coord using a proportional-derivative
-    /// control law that tracks thetad.
-    void coordPDControl(const State& s,
+    /// Apply generalized force to a specific coord using a
+    /// proportional-derivative control law that tracks thetad.
+    /// The force is added into the appropriate place in `mobForces.`
+    /// For convenience / inspection, the force is returned as well.
+    Real coordPDControl(const State& s,
             const Biped::Coordinate coord, const GainGroup gainGroup,
             const Real thetad, Vector& mobForces) const
     {
@@ -442,6 +477,8 @@ private:
 
         // Update the proper entry in mobForces.
         m_biped.addInForce(coord, force, mobForces);
+
+        return force;
     }
 
     Biped& m_biped;
@@ -1379,6 +1416,7 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
             swing_ankle_dorsiflexion = Biped::ankle_l_dorsiflexion;
 
             stance_hip_flexion = Biped::hip_r_flexion;
+            // TODO
             stance_hip_adduction = Biped::hip_r_adduction;
             stance_knee_extension = Biped::knee_r_extension;
             stance_ankle_dorsiflexion = Biped::ankle_r_dorsiflexion;
@@ -1416,6 +1454,105 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
 
 void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
 {
+    const SIMBICONState simbiconState = getSIMBICONState(s);
+
+    if (simbiconState == UNKNOWN) return;
+
+    // Which leg is in stance, etc.?
+    // =============================
+    Biped::Coordinate swing_hip_flexion;
+    Biped::Coordinate swing_hip_adduction;
+    Biped::Coordinate stance_hip_flexion;
+    Biped::Coordinate stance_hip_adduction;
+    const MobilizedBody* stanceFoot;
+    if (simbiconState == STATE0 || simbiconState == STATE1)
+    {
+        // Left leg is in stance.
+        swing_hip_flexion = Biped::hip_r_flexion;
+        swing_hip_adduction = Biped::hip_r_adduction;
+
+        stance_hip_flexion = Biped::hip_l_flexion;
+        stance_hip_adduction = Biped::hip_r_adduction;
+
+        stanceFoot = &m_biped.getLeftFoot();
+    }
+    else if (simbiconState == STATE2 || simbiconState == STATE3)
+    {
+        // Right leg is in stance.
+        swing_hip_flexion = Biped::hip_l_flexion;
+        swing_hip_adduction = Biped::hip_l_adduction;
+
+        stance_hip_flexion = Biped::hip_r_flexion;
+        stance_hip_adduction = Biped::hip_r_adduction;
+
+        stanceFoot = &m_biped.getRightFoot();
+    }
+    else throw;
+
+    // Preliminary quantities
+    // ======================
+    const SimbodyMatterSubsystem& matter = m_biped.getMatterSubsystem();
+
+    // Whole-body mass center, expressed in ground.
+    const Vec3 massCenterLoc = matter.calcSystemMassCenterLocationInGround(s);
+    // This is 'v' in Yin, 2007.
+    const Vec3 massCenterVel = matter.calcSystemMassCenterVelocityInGround(s);
+
+    // Ankle, expressed in ground.
+    const Transform& X = stanceFoot->getInboardFrame(s);
+    Vec3 stanceAnkleLocInParent = X.p();
+    Vec3 stanceAnkleLoc = stanceFoot->getParentMobilizedBody()
+        .findStationLocationInGround(s, stanceAnkleLocInParent);
+
+    // Displacement of whole-body COM from ankle, expressed in ground.
+    // This is called 'd' in Yin, 2007.
+    Vec3 massCenterLocFromStanceAnkle = massCenterLoc - stanceAnkleLoc;
+
+    // Normals to the sagittal and coronal planes.
+    UnitVec3 sagittalNormal = m_biped.getNormalToSagittalPlane(s);
+    UnitVec3 coronalNormal = m_biped.getNormalToCoronalPlane(s);
+
+    // Projection of 'd' and 'v' into the forward / sagittal and lateral /
+    // coronal planes.  We apply balance control separately for these two
+    // planes.
+    Real massCenterLocFromStanceAnkleForwardMeasure =
+        dot(coronalNormal, massCenterLocFromStanceAnkle);
+    Real massCenterVelFromStanceAnkleForwardMeasure =
+        dot(coronalNormal, massCenterVel);
+    Real massCenterLocFromStanceAnkleLateralMeasure =
+        dot(sagittalNormal, massCenterLocFromStanceAnkle);
+    Real massCenterVelFromStanceAnkleLateralMeasure =
+        dot(sagittalNormal, massCenterVel);
+
+    // simbiconState stateIdx
+    // ------------- --------
+    // 0             0
+    // 1             1
+    // 2             0
+    // 3             1
+    const int stateIdx = simbiconState % 2;
+
+    // Apply PD control to swing hip.
+    // ==============================
+    // \theta_d = \theta_0 + c_d d + c_v v
+
+    // Balance in the sagittal plane.
+    /* TODO INCORRECT
+    Real swingHipFlexionTorque =
+        coordPDControl(s, swing_hip_flexion, hip_flexion_adduction,
+            m_swh[stateIdx] +
+            m_cd[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure +
+            m_cv[stateIdx] * massCenterVelFromStanceAnkleForwardMeasure,
+            mobForces);
+    // Balance in the coronal plane.
+    // TODO sign.
+    Real swingHipAdductionTorque =
+        coordPDControl(s, swing_hip_adduction, hip_flexion_adduction,
+            0.0 +
+            m_cdLat[stateIdx] * massCenterLocFromStanceAnkleLateralMeasure +
+            m_cvLat[stateIdx] * massCenterVelFromStanceAnkleLateralMeasure,
+            mobForces);
+    */
 }
 
 
