@@ -1493,6 +1493,9 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     // ======================
     const SimbodyMatterSubsystem& matter = m_biped.getMatterSubsystem();
 
+    // Translation-related quantities.
+    // -------------------------------
+
     // Whole-body mass center, expressed in ground.
     const Vec3 massCenterLoc = matter.calcSystemMassCenterLocationInGround(s);
     // This is 'v' in Yin, 2007.
@@ -1523,6 +1526,11 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         dot(sagittalNormal, massCenterLocFromStanceAnkle);
     Real massCenterVelFromStanceAnkleLateralMeasure =
         dot(sagittalNormal, massCenterVel);
+
+    // Rotation-related quantities.
+    // ----------------------------
+    //forward = UnitVec3(m_biped.getPelvis().getBodyRotation(s).x());
+    //thighAxis 
 
     // simbiconState stateIdx
     // ------------- --------
