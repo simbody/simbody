@@ -130,10 +130,10 @@ public:
     void fillInCoordinateMap(const State& s);
 
     void setTrunkOriginPosition(State& s, Vec3 posInGround) const {
-        m_trunk.setQToFitTranslation(s, posInGround);
+        m_bodies.at(trunk).setQToFitTranslation(s, posInGround);
     }
     void setTrunkOriginVelocity(State& s, Vec3 velocityInGround) const {
-        m_trunk.setUToFitLinearVelocity(s, velocityInGround);
+        m_bodies.at(trunk).setUToFitLinearVelocity(s, velocityInGround);
     }
 
     /// param[out] fLeft vertical contact force on left foot.
@@ -143,6 +143,26 @@ public:
     /// param[out] left left foot is in contact with the ground.
     /// param[out] right right foot is in contact with the ground.
     void findContactStatus(const State& s, bool& left, bool& right) const;
+
+    enum Segment {
+        trunk,
+        head,
+        pelvis,
+        upperarm_r,
+        lowerarm_r,
+        hand_r,
+        upperarm_l,
+        lowerarm_l,
+        hand_l,
+        thigh_r,
+        shank_r,
+        foot_r,
+        toes_r,
+        thigh_l,
+        shank_l,
+        foot_l,
+        toes_l
+    };
 
     enum Coordinate {
         neck_extension = 0,
@@ -212,29 +232,26 @@ public:
         mobForces[getUIndex(coord)] += forceAccountingForSymmetry;
     }
 
-    UnitVec3 getNormalToSagittalPlane(const State& s)
+    UnitVec3 getNormalToSagittalPlane(const State& s) const
     {
-        Vec3 bodyZInGround = Vec3(m_pelvis.getBodyRotation(s).z());
+        Vec3 bodyZInGround = Vec3(m_bodies.at(pelvis).getBodyRotation(s).z());
         // Project onto a horizontal plane.
         bodyZInGround[YAxis] = 0;
         // Make into a unit vector.
         return UnitVec3(bodyZInGround);
     }
 
-    UnitVec3 getNormalToCoronalPlane(const State& s)
+    UnitVec3 getNormalToCoronalPlane(const State& s) const
     {
-        Vec3 bodyXInGround = Vec3(m_pelvis.getBodyRotation(s).x());
+        Vec3 bodyXInGround = Vec3(m_bodies.at(pelvis).getBodyRotation(s).x());
         // Project onto a horizontal plane.
         bodyXInGround[YAxis] = 0;
         // Make into a unit vector.
         return UnitVec3(bodyXInGround);
     }
 
-    const MobilizedBody::Universal& getLeftFoot() const {
-        return m_foot_l;
-    }
-    const MobilizedBody::Universal& getRightFoot() const {
-        return m_foot_r;
+    const MobilizedBody& getBody(Segment seg) const {
+        return m_bodies.at(seg);
     }
 
 private:
@@ -254,7 +271,7 @@ private:
     /// The indices, in the State vector, of a coordinate value (Q) and speed
     /// (U) in a specific MobilizedBody. Used in fillInCoordinateMap().
     static std::pair<QIndex, UIndex> getQandUIndices(
-            const SimTK::State& s, const SimTK::MobilizedBody& mobod,int which)
+            const SimTK::State& s, const SimTK::MobilizedBody& mobod, int which)
     {
         SimTK::QIndex q0 = mobod.getFirstQIndex(s);
         SimTK::UIndex u0 = mobod.getFirstUIndex(s);
@@ -262,12 +279,12 @@ private:
     }
 
     bool isRightFoot(const MobilizedBody& mobod) const {
-        return     mobod.isSameMobilizedBody(m_foot_r)
-                || mobod.isSameMobilizedBody(m_toes_r);
+        return     mobod.isSameMobilizedBody(m_bodies.at(foot_r))
+                || mobod.isSameMobilizedBody(m_bodies.at(toes_r));
     }
     bool isLeftFoot(const MobilizedBody& mobod) const {
-        return     mobod.isSameMobilizedBody(m_foot_l)
-                || mobod.isSameMobilizedBody(m_toes_l);
+        return     mobod.isSameMobilizedBody(m_bodies.at(foot_l))
+                || mobod.isSameMobilizedBody(m_bodies.at(toes_l));
     }
 
     // Subsystems.
@@ -276,24 +293,8 @@ private:
     ContactTrackerSubsystem      m_tracker;
     CompliantContactSubsystem    m_contact;
 
-    // Mobilized bodies.
-    MobilizedBody::Free          m_trunk;
-    MobilizedBody::Gimbal        m_head;
-    MobilizedBody::Gimbal        m_pelvis;
-    MobilizedBody::Gimbal        m_upperarm_r;
-    MobilizedBody::Universal     m_lowerarm_r;
-    MobilizedBody::Weld          m_hand_r;
-    MobilizedBody::Gimbal        m_upperarm_l;
-    MobilizedBody::Universal     m_lowerarm_l;
-    MobilizedBody::Weld          m_hand_l;
-    MobilizedBody::Gimbal        m_thigh_r;
-    MobilizedBody::Pin           m_shank_r;
-    MobilizedBody::Universal     m_foot_r;
-    MobilizedBody::Pin           m_toes_r;
-    MobilizedBody::Gimbal        m_thigh_l;
-    MobilizedBody::Pin           m_shank_l;
-    MobilizedBody::Universal     m_foot_l;
-    MobilizedBody::Pin           m_toes_l;
+    /// The MobilizedBody's that make up the Biped.
+    std::map<Segment, MobilizedBody> m_bodies;
 
     /// The indices of each coordinate's Q and U in the State vector.
     std::map<Coordinate, std::pair<QIndex, UIndex> > m_coordinates;
@@ -521,20 +522,38 @@ private:
 // OUTPUT REPORTER
 //==============================================================================
 /// This is a periodic event handler that we use to print information to the
-/// screen during the simulation.
-class OutputReporter : public PeriodicEventReporter {
+/// visualizer during the simulation.
+class OutputReporter : public DecorationGenerator {
 public:
-    OutputReporter(const Biped& biped, const SIMBICON* simbicon, Real interval)
-    :   PeriodicEventReporter(interval), m_biped(biped), m_simbicon(simbicon) {}
+    OutputReporter(const Biped& biped, const SIMBICON* simbicon)
+    :   m_biped(biped), m_simbicon(simbicon) {}
 
-    void handleEvent(const State& state) const OVERRIDE_11
+    void generateDecorations(const State&                state,
+                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
     {
+        DecorativeText text;
+        text.setIsScreenText(true);
+        std::ostringstream oss;
+
         bool lContact;
         bool rContact;
         m_biped.findContactStatus(state, lContact, rContact);
-        std::cout << "SIMBICON state " << m_simbicon->getSIMBICONState(state) << 
-                    " lContact: " << lContact <<
-                    " rContact: " << rContact << std::endl;
+
+        // Directed distally.
+        UnitVec3 trunkAxialDir = m_biped.getBody(Biped::trunk).getBodyRotation(state).y();
+        // UnitVec3(YAxis) gives a vector perpendicular to ground, directed up.
+        Real globalTrunkAngle = acos(dot(UnitVec3(YAxis), trunkAxialDir)) / D2R;
+
+        // TODO
+
+        oss << "SIMBICON state " << m_simbicon->getSIMBICONState(state) << 
+            " LContact: " << lContact <<
+            " RContact: " << rContact <<
+            " global trunk angle: " << globalTrunkAngle
+            << std::endl;
+
+        text.setText(oss.str());
+        geometry.push_back(text);
     }
 private:
     const Biped& m_biped;
@@ -563,9 +582,6 @@ int main(int argc, char **argv)
     SIMBICON* simbicon = new SIMBICON(biped);
     Force::Custom simbicon1(biped.updForceSubsystem(), simbicon);
 
-    // Periodically report state-related quantities to the screen.
-    biped.addEventReporter(new OutputReporter(biped, simbicon, 0.01));
-
     // Start up the visualizer.
     Visualizer viz(biped);
     viz.setShowSimTime(true);
@@ -588,6 +604,10 @@ int main(int argc, char **argv)
     // Show the biped.
     printf("Initial state show. Press ENTER to simulate.\n");
     viz.report(state);
+
+    // Periodically report state-related quantities to the visualizer.
+    viz.addDecorationGenerator(new OutputReporter(biped, simbicon));
+
     getchar();
 
     // Set up the numerical integration.
@@ -617,7 +637,7 @@ Biped::Biped()
     //--------------------------------------------------------------------------
 
     // Properties of joint stops.
-    const Real stopStiffness = 1000/D2R; // N-m/deg -> N-m/radian
+    const Real stopStiffness = 1000 / D2R; // N-m/deg -> N-m/radian
     const Real stopDissipation = 1;
 
     // Contact parameters.
@@ -996,181 +1016,190 @@ Biped::Biped()
     //--------------------------------------------------------------------------
     // Trunk.
     // ------
-    m_trunk = MobilizedBody::Free(
+    m_bodies[trunk] = MobilizedBody::Free(
         m_matter.updGround(), Vec3(0),
         trunkInfo,          Vec3(0));
 
     // Neck angles are: q0=extension (about z), q1=bending (x), q2=rotation (y).
-    m_head = MobilizedBody::Gimbal(
-        m_trunk,    Transform(Rzxy, Vec3(0.010143822053248,0.222711680750785,0)),
+    m_bodies[head] = MobilizedBody::Gimbal(
+        m_bodies[trunk], Transform(Rzxy, Vec3(0.010143822053248,0.222711680750785,0)),
         headInfo, Rzxy);
-    addMobilityLinearStop(m_head, 0, -80, 50); // extension
-    addMobilityLinearStop(m_head, 1, -60, 50); // bending
-    addMobilityLinearStop(m_head, 2, -80, 80); // rotation
+    addMobilityLinearStop(m_bodies[head], 0, -80, 50); // extension
+    addMobilityLinearStop(m_bodies[head], 1, -60, 50); // bending
+    addMobilityLinearStop(m_bodies[head], 2, -80, 80); // rotation
 
     // Back angles are: q0=tilt (about z), q1=list (x), q2=rotation (y).
-    m_pelvis = MobilizedBody::Gimbal(
-        m_trunk, Transform(Rzxy, Vec3(-0.019360589663647,-0.220484136504589,0)),
+    m_bodies[pelvis] = MobilizedBody::Gimbal(
+        m_bodies[trunk], Transform(Rzxy, Vec3(-0.019360589663647,-0.220484136504589,0)),
         pelvisInfo, Rzxy);
-    addMobilityLinearStop(m_pelvis, 0, -5, 10); // tilt
-    addMobilityLinearStop(m_pelvis, 1, -5, 5); // list
-    addMobilityLinearStop(m_pelvis, 2, -15, 15); // rotation
+    addMobilityLinearStop(m_bodies[pelvis], 0, -5, 10); // tilt
+    addMobilityLinearStop(m_bodies[pelvis], 1, -5, 5); // list
+    addMobilityLinearStop(m_bodies[pelvis], 2, -15, 15); // rotation
 
     // Right arm.
     //-----------
     // Shoulder angles are q0=flexion, q1=adduction, q2=rotation
-    m_upperarm_r = MobilizedBody::Gimbal(
-        m_trunk, Transform(Rzxy,
+    m_bodies[upperarm_r] = MobilizedBody::Gimbal(
+        m_bodies[trunk], Transform(Rzxy,
                 Vec3(-0.023921136233947,0.079313926824158,0.164710443657016)),
         upperarm_rInfo, Rzxy);
-    addMobilityLinearStop(m_upperarm_r, 0, -80, 160); // flexion
-    addMobilityLinearStop(m_upperarm_r, 1, -45, 45); // adduction
-    addMobilityLinearStop(m_upperarm_r, 2, -20, 20); // rotation
+    addMobilityLinearStop(m_bodies[upperarm_r], 0, -80, 160); // flexion
+    addMobilityLinearStop(m_bodies[upperarm_r], 1, -45, 45); // adduction
+    addMobilityLinearStop(m_bodies[upperarm_r], 2, -20, 20); // rotation
 
     // Elbow angles are q0=flexion, q1=rotation
-    m_lowerarm_r = MobilizedBody::Universal(
-        m_upperarm_r, Transform(Rotation(-Pi/2,YAxis),
+    m_bodies[lowerarm_r] = MobilizedBody::Universal(
+        m_bodies[upperarm_r], Transform(Rotation(-Pi/2,YAxis),
                 Vec3(0.033488432642100,-0.239093933565560,0.117718445964118)),
         lowerarm_rInfo, Rotation(-Pi/2,YAxis));
-    addMobilityLinearStop(m_lowerarm_r, 0, 0, 120); // flexion
-    addMobilityLinearStop(m_lowerarm_r, 1, -90, 40); // rotation
+    addMobilityLinearStop(m_bodies[lowerarm_r], 0, 0, 120); // flexion
+    addMobilityLinearStop(m_bodies[lowerarm_r], 1, -90, 40); // rotation
 
-    m_hand_r = MobilizedBody::Weld(
-        m_lowerarm_r, Vec3(0.110610146564261,-0.232157950907188,0.014613941476432),
+    m_bodies[hand_r] = MobilizedBody::Weld(
+        m_bodies[lowerarm_r], Vec3(0.110610146564261,-0.232157950907188,0.014613941476432),
         hand_rInfo, Vec3(0));
 
     // Left arm.
     //----------
-    m_upperarm_l = MobilizedBody::Gimbal(
-        m_trunk, Transform(Rzmxmy,
+    m_bodies[upperarm_l] = MobilizedBody::Gimbal(
+        m_bodies[trunk], Transform(Rzmxmy,
                 Vec3(-0.023921136233947,0.079313926824158,-0.164710443657016)),
         upperarm_lInfo, Rzmxmy);
-    addMobilityLinearStop(m_upperarm_l, 0, -80, 160); // flexion
-    addMobilityLinearStop(m_upperarm_l, 1, -45, 45); // adduction
-    addMobilityLinearStop(m_upperarm_l, 2, -20, 20); // rotation
+    addMobilityLinearStop(m_bodies[upperarm_l], 0, -80, 160); // flexion
+    addMobilityLinearStop(m_bodies[upperarm_l], 1, -45, 45); // adduction
+    addMobilityLinearStop(m_bodies[upperarm_l], 2, -20, 20); // rotation
 
-    m_lowerarm_l = MobilizedBody::Universal(
-        m_upperarm_l, Transform(
+    m_bodies[lowerarm_l] = MobilizedBody::Universal(
+        m_bodies[upperarm_l], Transform(
                 Rotation(BodyRotationSequence, Pi/2,YAxis, Pi,ZAxis),
                 Vec3(0.033488432642100,-0.239093933565560,-0.117718445964118)),
         lowerarm_lInfo, Rotation(BodyRotationSequence, Pi/2,YAxis, Pi,ZAxis));
-    addMobilityLinearStop(m_lowerarm_l, 0, 0, 120); // flexion
-    addMobilityLinearStop(m_lowerarm_l, 1, -90, 40); // rotation
+    addMobilityLinearStop(m_bodies[lowerarm_l], 0, 0, 120); // flexion
+    addMobilityLinearStop(m_bodies[lowerarm_l], 1, -90, 40); // rotation
 
-    MobilizedBody::Weld hand_l(
-        m_lowerarm_l, Vec3(0.110610146564261,-0.232157950907188,-0.014613941476432),
+    m_bodies[hand_l] = MobilizedBody::Weld(
+        m_bodies[lowerarm_l], Vec3(0.110610146564261,-0.232157950907188,-0.014613941476432),
         hand_lInfo, Vec3(0));
 
 
     // Right leg.
     //-----------
     // Hip angles are q0=flexion, q1=adduction, q2=rotation.
-    m_thigh_r = MobilizedBody::Gimbal(
-        m_pelvis, Transform(Rzxy,
+    m_bodies[thigh_r] = MobilizedBody::Gimbal(
+        m_bodies[pelvis], Transform(Rzxy,
                 Vec3(0.029343644095793,-0.180413783750097,0.117592252162477)),
         thigh_rInfo, Rzxy);
-    addMobilityLinearStop(m_thigh_r, 0, -60, 165); // flexion
-    addMobilityLinearStop(m_thigh_r, 1, -20, 20); // adduction
-    addMobilityLinearStop(m_thigh_r, 2, -120, 20); // rotation
+    addMobilityLinearStop(m_bodies[thigh_r], 0, -60, 165); // flexion
+    addMobilityLinearStop(m_bodies[thigh_r], 1, -20, 20); // adduction
+    addMobilityLinearStop(m_bodies[thigh_r], 2, -120, 20); // rotation
 
     // Knee angle is q0=extension
-    m_shank_r = MobilizedBody::Pin(
-        m_thigh_r, Vec3(-0.005,-0.416780050422019,0.004172557002023),
+    m_bodies[shank_r] = MobilizedBody::Pin(
+        m_bodies[thigh_r], Vec3(-0.005,-0.416780050422019,0.004172557002023),
         shank_rInfo, Vec3(0));
-    addMobilityLinearStop(m_shank_r, 0, -165, 0); // extension
+    addMobilityLinearStop(m_bodies[shank_r], 0, -165, 0); // extension
 
     // Ankle angles are q0=dorsiflexion, q1=inversion.
-    m_foot_r = MobilizedBody::Universal(
-        m_shank_r, Transform(
+    m_bodies[foot_r] = MobilizedBody::Universal(
+        m_bodies[shank_r], Transform(
             Rotation(BodyRotationSequence,Pi/2,XAxis,Pi,YAxis,Pi/2,ZAxis),
             Vec3(0,-0.420937226867266,-0.011971751580927)),
         foot_rInfo,
             Rotation(BodyRotationSequence,Pi/2,XAxis,Pi,YAxis,Pi/2,ZAxis));
-    addMobilityLinearStop(m_foot_r, 0, -50, 30); // dorsiflexion
-    addMobilityLinearStop(m_foot_r, 1, -2, 35); // inversion
+    addMobilityLinearStop(m_bodies[foot_r], 0, -50, 30); // dorsiflexion
+    addMobilityLinearStop(m_bodies[foot_r], 1, -2, 35); // inversion
 
     // Toe angle is q0=dorsiflexion
-    m_toes_r = MobilizedBody::Pin(
-        m_foot_r, Vec3(0.134331942132059,-0.071956467861059,-0.000000513235827),
+    m_bodies[toes_r] = MobilizedBody::Pin(
+        m_bodies[foot_r], Vec3(0.134331942132059,-0.071956467861059,-0.000000513235827),
         toes_rInfo, Vec3(0));
-    addMobilityLinearStop(m_toes_r, 0, 0, 30); // dorsiflexion
+    addMobilityLinearStop(m_bodies[toes_r], 0, 0, 30); // dorsiflexion
 
     // Left leg.
     //----------
-    m_thigh_l = MobilizedBody::Gimbal(
-        m_pelvis, Transform(Rzmxmy,
+    m_bodies[thigh_l] = MobilizedBody::Gimbal(
+        m_bodies[pelvis], Transform(Rzmxmy,
                 Vec3(0.029343644095793,-0.180413783750097,-0.117592252162477)),
         thigh_lInfo, Rzmxmy);
-    addMobilityLinearStop(m_thigh_l, 0, -60, 165); // flexion
-    addMobilityLinearStop(m_thigh_l, 1, -20, 20); // adduction
-    addMobilityLinearStop(m_thigh_l, 2, -120, 20); // rotation
+    addMobilityLinearStop(m_bodies[thigh_l], 0, -60, 165); // flexion
+    addMobilityLinearStop(m_bodies[thigh_l], 1, -20, 20); // adduction
+    addMobilityLinearStop(m_bodies[thigh_l], 2, -120, 20); // rotation
 
-    m_shank_l = MobilizedBody::Pin(
-        m_thigh_l, Vec3(-0.005,-0.416780050422019,-0.004172557002023),
+    m_bodies[shank_l] = MobilizedBody::Pin(
+        m_bodies[thigh_l], Vec3(-0.005,-0.416780050422019,-0.004172557002023),
         shank_lInfo, Vec3(0));
-    addMobilityLinearStop(m_shank_l, 0, -165, 0); // extension
+    addMobilityLinearStop(m_bodies[shank_l], 0, -165, 0); // extension
 
-    m_foot_l = MobilizedBody::Universal(
-        m_shank_l, Transform(
+    m_bodies[foot_l] = MobilizedBody::Universal(
+        m_bodies[shank_l], Transform(
             Rotation(BodyRotationSequence,-Pi/2,XAxis,Pi,YAxis,-Pi/2,ZAxis),
             Vec3(0,-0.420937226867266,0.011971751580927)),
         foot_lInfo,
             Rotation(BodyRotationSequence,-Pi/2,XAxis,Pi,YAxis,-Pi/2,ZAxis));
-    addMobilityLinearStop(m_foot_l, 0, -50, 30); // dorsiflexion
-    addMobilityLinearStop(m_foot_l, 1, -2, 35); // inversion
+    addMobilityLinearStop(m_bodies[foot_l], 0, -50, 30); // dorsiflexion
+    addMobilityLinearStop(m_bodies[foot_l], 1, -2, 35); // inversion
 
-    m_toes_l = MobilizedBody::Pin(
-        m_foot_l, Vec3(0.134331942132059,-0.071956467861059,0.000000513235827),
+    m_bodies[toes_l] = MobilizedBody::Pin(
+        m_bodies[foot_l], Vec3(0.134331942132059,-0.071956467861059,0.000000513235827),
         toes_lInfo, Vec3(0));
-    addMobilityLinearStop(m_toes_l, 0, 0, 30); // dorsiflexion
+    addMobilityLinearStop(m_bodies[toes_l], 0, 0, 30); // dorsiflexion
 
 }
 
 void Biped::fillInCoordinateMap(const State& s)
 {
-    m_coordinates[neck_extension] = getQandUIndices(s, m_head, 0);
-    m_coordinates[neck_bending] = getQandUIndices(s, m_head, 1);
-    m_coordinates[neck_rotation] = getQandUIndices(s, m_head, 2);
+    // So all lines below fit within 80 columns:
+    std::map<Coordinate, std::pair<QIndex, UIndex> >& coords = m_coordinates;
 
-    m_coordinates[back_tilt]     = getQandUIndices(s, m_pelvis, 0);
-    m_coordinates[back_list]     = getQandUIndices(s, m_pelvis, 1);
-    m_coordinates[back_rotation] = getQandUIndices(s, m_pelvis, 2);
+    // Upper body.
+    coords[neck_extension] = getQandUIndices(s, m_bodies[head], 0);
+    coords[neck_bending] = getQandUIndices(s, m_bodies[head], 1);
+    coords[neck_rotation] = getQandUIndices(s, m_bodies[head], 2);
 
-    m_coordinates[shoulder_r_flexion]   = getQandUIndices(s, m_upperarm_r, 0);
-    m_coordinates[shoulder_r_adduction] = getQandUIndices(s, m_upperarm_r, 1);
-    m_coordinates[shoulder_r_rotation]  = getQandUIndices(s, m_upperarm_r, 2);
+    coords[back_tilt]     = getQandUIndices(s, m_bodies[pelvis], 0);
+    coords[back_list]     = getQandUIndices(s, m_bodies[pelvis], 1);
+    coords[back_rotation] = getQandUIndices(s, m_bodies[pelvis], 2);
 
-    m_coordinates[elbow_r_flexion]  = getQandUIndices(s, m_lowerarm_r, 0);
-    m_coordinates[elbow_r_rotation] = getQandUIndices(s, m_lowerarm_r, 1);
+    // right.
+    coords[shoulder_r_flexion]   = getQandUIndices(s, m_bodies[upperarm_r], 0);
+    coords[shoulder_r_adduction] = getQandUIndices(s, m_bodies[upperarm_r], 1);
+    coords[shoulder_r_rotation]  = getQandUIndices(s, m_bodies[upperarm_r], 2);
 
-    m_coordinates[shoulder_l_flexion]   = getQandUIndices(s, m_upperarm_l, 0);
-    m_coordinates[shoulder_l_adduction] = getQandUIndices(s, m_upperarm_l, 1);
-    m_coordinates[shoulder_l_rotation]  = getQandUIndices(s, m_upperarm_l, 2);
+    coords[elbow_r_flexion]  = getQandUIndices(s, m_bodies[lowerarm_r], 0);
+    coords[elbow_r_rotation] = getQandUIndices(s, m_bodies[lowerarm_r], 1);
 
-    m_coordinates[elbow_l_flexion]  = getQandUIndices(s, m_lowerarm_l, 0);
-    m_coordinates[elbow_l_rotation] = getQandUIndices(s, m_lowerarm_l, 1);
+    // left.
+    coords[shoulder_l_flexion]   = getQandUIndices(s, m_bodies[upperarm_l], 0);
+    coords[shoulder_l_adduction] = getQandUIndices(s, m_bodies[upperarm_l], 1);
+    coords[shoulder_l_rotation]  = getQandUIndices(s, m_bodies[upperarm_l], 2);
 
-    m_coordinates[hip_r_flexion]    = getQandUIndices(s, m_thigh_r, 0);
-    m_coordinates[hip_r_adduction]  = getQandUIndices(s, m_thigh_r, 1);
-    m_coordinates[hip_r_rotation]   = getQandUIndices(s, m_thigh_r, 2);
+    coords[elbow_l_flexion]  = getQandUIndices(s, m_bodies[lowerarm_l], 0);
+    coords[elbow_l_rotation] = getQandUIndices(s, m_bodies[lowerarm_l], 1);
 
-    m_coordinates[knee_r_extension] = getQandUIndices(s, m_shank_r, 0);
+    // Lower body.
+    // right.
+    coords[hip_r_flexion]    = getQandUIndices(s, m_bodies[thigh_r], 0);
+    coords[hip_r_adduction]  = getQandUIndices(s, m_bodies[thigh_r], 1);
+    coords[hip_r_rotation]   = getQandUIndices(s, m_bodies[thigh_r], 2);
 
-    m_coordinates[ankle_r_dorsiflexion] = getQandUIndices(s, m_foot_r, 0);
-    m_coordinates[ankle_r_inversion]    = getQandUIndices(s, m_foot_r, 1);
+    coords[knee_r_extension] = getQandUIndices(s, m_bodies[shank_r], 0);
 
-    m_coordinates[mtp_r_dorsiflexion] = getQandUIndices(s, m_toes_r, 0);
+    coords[ankle_r_dorsiflexion] = getQandUIndices(s, m_bodies[foot_r], 0);
+    coords[ankle_r_inversion]    = getQandUIndices(s, m_bodies[foot_r], 1);
 
-    m_coordinates[hip_l_flexion]    = getQandUIndices(s, m_thigh_l, 0);
-    m_coordinates[hip_l_adduction]  = getQandUIndices(s, m_thigh_l, 1);
-    m_coordinates[hip_l_rotation]   = getQandUIndices(s, m_thigh_l, 2);
+    coords[mtp_r_dorsiflexion] = getQandUIndices(s, m_bodies[toes_r], 0);
 
-    m_coordinates[knee_l_extension] = getQandUIndices(s, m_shank_l, 0);
+    // left.
+    coords[hip_l_flexion]    = getQandUIndices(s, m_bodies[thigh_l], 0);
+    coords[hip_l_adduction]  = getQandUIndices(s, m_bodies[thigh_l], 1);
+    coords[hip_l_rotation]   = getQandUIndices(s, m_bodies[thigh_l], 2);
 
-    m_coordinates[ankle_l_dorsiflexion] = getQandUIndices(s, m_foot_l, 0);
-    m_coordinates[ankle_l_inversion]    = getQandUIndices(s, m_foot_l, 1);
+    coords[knee_l_extension] = getQandUIndices(s, m_bodies[shank_l], 0);
 
-    m_coordinates[mtp_l_dorsiflexion] = getQandUIndices(s, m_toes_l, 0);
+    coords[ankle_l_dorsiflexion] = getQandUIndices(s, m_bodies[foot_l], 0);
+    coords[ankle_l_inversion]    = getQandUIndices(s, m_bodies[foot_l], 1);
+
+    coords[mtp_l_dorsiflexion] = getQandUIndices(s, m_bodies[toes_l], 0);
 }
 
 void Biped::findContactForces(const State& s, Real& fLeft, Real& fRight) const
@@ -1351,6 +1380,7 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
 {
 
     // For most joints, track target theta of 0.0 degrees.
+    // ===================================================
     coordPDControl(s, Biped::neck_extension, neck, 0.0, mobForces);
     coordPDControl(s, Biped::neck_bending, neck, 0.0, mobForces);
     coordPDControl(s, Biped::neck_rotation, neck, 0.0, mobForces);
@@ -1378,6 +1408,9 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
 
     coordPDControl(s, Biped::mtp_r_dorsiflexion, toe, 0.0, mobForces);
     coordPDControl(s, Biped::mtp_l_dorsiflexion, toe, 0.0, mobForces);
+
+    // Deal with limbs whose target angle is affected by the state machine.
+    // ====================================================================
 
     // Which leg is in stance?
     // -----------------------
@@ -1465,6 +1498,7 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     Biped::Coordinate stance_hip_flexion;
     Biped::Coordinate stance_hip_adduction;
     const MobilizedBody* stanceFoot;
+    const MobilizedBody* stanceThigh;
     if (simbiconState == STATE0 || simbiconState == STATE1)
     {
         // Left leg is in stance.
@@ -1474,7 +1508,8 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         stance_hip_flexion = Biped::hip_l_flexion;
         stance_hip_adduction = Biped::hip_r_adduction;
 
-        stanceFoot = &m_biped.getLeftFoot();
+        stanceFoot = &m_biped.getBody(Biped::foot_l);
+        stanceThigh = &m_biped.getBody(Biped::thigh_l);
     }
     else if (simbiconState == STATE2 || simbiconState == STATE3)
     {
@@ -1485,7 +1520,8 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         stance_hip_flexion = Biped::hip_r_flexion;
         stance_hip_adduction = Biped::hip_r_adduction;
 
-        stanceFoot = &m_biped.getRightFoot();
+        stanceFoot = &m_biped.getBody(Biped::foot_r);
+        stanceThigh = &m_biped.getBody(Biped::thigh_r);
     }
     else throw;
 
@@ -1529,8 +1565,15 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
 
     // Rotation-related quantities.
     // ----------------------------
-    //forward = UnitVec3(m_biped.getPelvis().getBodyRotation(s).x());
-    //thighAxis 
+    UnitVec3 forwardDir = m_biped.getBody(Biped::pelvis).getBodyRotation(s).x();
+    // TODO points distally proximally?
+    UnitVec3 stanceThighAxialDir = stanceThigh->getBodyRotation(s).y();
+    Real globalThighFlexion = acos(dot(forwardDir, stanceThighAxialDir));
+
+    // Directed distally.
+    UnitVec3 trunkAxialDir = m_biped.getBody(Biped::trunk).getBodyRotation(s).y();
+    // UnitVec3(YAxis) gives a vector perpendicular to ground, directed up.
+    Real globalTrunkAngle = acos(dot(UnitVec3(YAxis), trunkAxialDir));
 
     // simbiconState stateIdx
     // ------------- --------
@@ -1546,6 +1589,7 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
 
     // Balance in the sagittal plane.
     /* TODO INCORRECT
+     * j
     Real swingHipFlexionTorque =
         coordPDControl(s, swing_hip_flexion, hip_flexion_adduction,
             m_swh[stateIdx] +
@@ -1560,6 +1604,24 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
             m_cdLat[stateIdx] * massCenterLocFromStanceAnkleLateralMeasure +
             m_cvLat[stateIdx] * massCenterVelFromStanceAnkleLateralMeasure,
             mobForces);
+    Real coordPDControl(const State& s,
+            const Biped::Coordinate coord, const GainGroup gainGroup,
+            const Real thetad, Vector& mobForces) const
+    {
+        // Prepare quantities.
+        Real kp = m_proportionalGains.at(gainGroup);
+        Real kd = m_derivativeGains.at(gainGroup);
+        Real q = m_biped.getQ(s, coord);
+        Real u = m_biped.getU(s, coord);
+
+        // PD control law:
+        Real force = clamp(kp * (thetad - q) - kd * u, kp);
+
+        // Update the proper entry in mobForces.
+        m_biped.addInForce(coord, force, mobForces);
+
+        return force;
+    }
     */
 }
 
