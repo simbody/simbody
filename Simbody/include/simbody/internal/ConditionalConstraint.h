@@ -439,38 +439,34 @@ private:
 };
 
 //==============================================================================
-//                          POINT PLANE CONTACT
+//                    POINT PLANE FRICTIONLESS CONTACT
 //==============================================================================
 /** (Experimental -- API will change -- use at your own risk) 
 Define a point on one body that cannot penetrate a plane attached to another
 body. The resulting contact is parameterized by a coefficient of restitution
-for impacts in the plane normal direction, and by coefficients of friction
-for frictional forces in the plane. **/
-class SimTK_SIMBODY_EXPORT PointPlaneContact : public UnilateralContact {
+for impacts in the plane normal direction. **/
+class SimTK_SIMBODY_EXPORT PointPlaneFrictionlessContact 
+:   public UnilateralContact {
 public:
-    PointPlaneContact(
+    PointPlaneFrictionlessContact(
         MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
-        MobilizedBody& followerBodyF, const Vec3& point_F, 
-        Real minCOR, Real mu_s, Real mu_d, Real mu_v);
+        MobilizedBody& followerBodyF, const Vec3& point_F, Real minCOR);
 
     bool disable(State& state) const OVERRIDE_11 {
         if (m_ptInPlane.isDisabled(state)) return false;
         m_ptInPlane.disable(state);
-        if (m_hasFriction) {m_noslipX.disable(state);m_noslipY.disable(state);}
         return true;
     }
 
     bool enable(State& state) const OVERRIDE_11 {
         if (!m_ptInPlane.isDisabled(state)) return false;
         m_ptInPlane.enable(state);
-        if (m_hasFriction) {m_noslipX.enable(state);m_noslipY.enable(state);}
         return true;
     }
 
     bool isEnabled(const State& state) const OVERRIDE_11 {
         return !m_ptInPlane.isDisabled(state);
     }
-
 
     // Returns the contact point in the Ground frame.
     Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
@@ -497,12 +493,84 @@ public:
                 impactSpeed);
     }
 
+    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+
+private:
+    MobilizedBody               m_planeBody;    // body P
+    const Rotation              m_frame;        // z is normal; expressed in P
+    const Real                  m_height;
+
+    MobilizedBody               m_follower;     // body F
+    const Vec3                  m_point;        // measured & expressed in F
+
+    Real                        m_minCOR;
+
+    Constraint::PointInPlane    m_ptInPlane;
+};
+
+
+//==============================================================================
+//                          POINT PLANE CONTACT
+//==============================================================================
+/** (Experimental -- API will change -- use at your own risk) 
+Define a point on one body that cannot penetrate a plane attached to another
+body. The resulting contact is parameterized by a coefficient of restitution
+for impacts in the plane normal direction, and by coefficients of friction
+for frictional forces in the plane. **/
+class SimTK_SIMBODY_EXPORT PointPlaneContact : public UnilateralContact {
+public:
+    PointPlaneContact(
+        MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
+        MobilizedBody& followerBodyF, const Vec3& point_F, 
+        Real minCOR, Real mu_s, Real mu_d, Real mu_v);
+
+    bool disable(State& state) const OVERRIDE_11 {
+        if (m_ptInPlane.isDisabled(state)) return false;
+        m_ptInPlane.disable(state);
+        return true;
+    }
+
+    bool enable(State& state) const OVERRIDE_11 {
+        if (!m_ptInPlane.isDisabled(state)) return false;
+        m_ptInPlane.enable(state);
+        return true;
+    }
+
+    bool isEnabled(const State& state) const OVERRIDE_11 {
+        return !m_ptInPlane.isDisabled(state);
+    }
+
+    // Returns the contact point in the Ground frame.
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+
+    // Currently have to fake the perr because the constraint might be
+    // disabled in which case it won't calculate perr.
+    Real getPerr(const State& state) const OVERRIDE_11;
+
+    // We won't need to look at these except for proximal constraints which
+    // will already have been enabled, so no need to fake.
+    Real getVerr(const State& state) const OVERRIDE_11
+    {   return m_ptInPlane.getVelocityError(state)[2]; }
+    Real getAerr(const State& state) const OVERRIDE_11
+    {   return m_ptInPlane.getAccelerationError(state)[2]; }
+
+
+    Real calcEffectiveCOR(const State& state,
+                          Real defaultCaptureSpeed,
+                          Real defaultMinCORSpeed,
+                          Real impactSpeed) const OVERRIDE_11 
+    {
+       return ConditionalConstraint::calcEffectiveCOR
+               (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
+                impactSpeed);
+    }
+
     bool hasFriction(const State& state) const OVERRIDE_11
-    {   return m_hasFriction; }
+    {   return true; }
 
     Vec2 getSlipVelocity(const State& state) const  OVERRIDE_11 {
-        return Vec2(m_noslipX.getVelocityError(state),
-                    m_noslipY.getVelocityError(state));
+        const Vec3 v = m_ptInPlane.getVelocityError(state);
+        return Vec2(v[0], v[1]);
     }
 
     Real calcEffectiveCOF(const State& state,
@@ -519,12 +587,6 @@ public:
                                       MultiplierIndex& ix_x, 
                                       MultiplierIndex& ix_y) const OVERRIDE_11;
 
-    // Return the contact point in the plane body so we can make friction 
-    // act there.
-    Vec3 getPositionInfo(const State& state) const OVERRIDE_11;
-    // Set the friction contact point to the contact point in the plane.
-    void setInstanceParameter(State& state, const Vec3& pos) const OVERRIDE_11;
-
 private:
     MobilizedBody               m_planeBody;    // body P
     const Rotation              m_frame;        // z is normal; expressed in P
@@ -536,10 +598,7 @@ private:
     Real                        m_minCOR;
     Real                        m_mu_s, m_mu_d, m_mu_v;
 
-    bool                        m_hasFriction;
-
-    Constraint::PointInPlane    m_ptInPlane;
-    Constraint::NoSlip1D        m_noslipX, m_noslipY; // stiction
+    Constraint::PointInPlaneWithStiction    m_ptInPlane;
 };
 
 
