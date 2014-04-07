@@ -450,8 +450,8 @@ int main(int argc, char** argv) {
         if ((nSteps%SaveEvery)==0) {
             #ifdef ANIMATE
             viz.report(sxeState);
-            //cout << "t=" << sxe.getTime();
-            //cout << " u=" << sxeState.getU() << endl;
+            //cout << "\n********** t=" << sxe.getTime();
+            //cout << " u=" << sxeState.getU()[3] <<"\n\n";
             //#ifndef NDEBUG
             //printf("\nWAITING:"); getchar();
             //#endif
@@ -816,9 +816,9 @@ BouncingBalls::BouncingBalls() {
         m_Pballs[i].updBody().updDecoration(0).setColor(PColor);
         //Real cor = i==NBalls/2 ? .5 : CoefRest; // middle ball different
         Real cor = CoefRest;
-        matter.adoptUnilateralContact(new PointPlaneContact
+        matter.adoptUnilateralContact(new PointPlaneFrictionlessContact
                (m_Pballs[i-1], YAxis, BallRadius, 
-                m_Pballs[i], Vec3(0,-BallRadius,0), cor, 0, 0, 0));
+                m_Pballs[i], Vec3(0,-BallRadius,0), cor));
     }
 
 #endif
