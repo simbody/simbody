@@ -276,16 +276,18 @@ solve(int                                 phase,
     ++m_nSolves[phase];
 
 #ifndef NDEBUG
-    FactorQTZ fac(A);
+   {FactorQTZ fac(A);
     cout << "A=" << A; cout << "D=" << D; 
     cout << "verrStart=" << verrStart << endl;
     cout << "verrApplied=" << verrApplied << endl;
     cout << "expanding mx=" << expanding << endl;
     cout << "piExpand=" << piExpand << endl;
-    Vector x;
-    fac.solve(verrStart+verrApplied, x);
+    Vector verrDbg, x;
+    verrDbg = verrStart;
+    if (verrApplied.size()) verrDbg += verrApplied;
+    fac.solve(verrDbg, x); 
     cout << "x=" << x << endl;
-    cout << "resid=" << A*x-(verrStart+verrApplied) << endl;
+    cout << "resid=" << A*x-verrDbg << endl;}
 #endif
 
     const int m=A.nrow();
