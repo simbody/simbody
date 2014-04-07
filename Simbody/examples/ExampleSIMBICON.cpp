@@ -1566,19 +1566,23 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     // Rotation-related quantities.
     // ----------------------------
     // Hip flexion and adduction.
-    UnitVec3 forwardDir = m_biped.getBody(Biped::pelvis).getBodyRotation(s).x();
+    // TODO UnitVec3 stanceThighAxialDir = stanceThigh->getBodyRotation(s).y();
+    Vec3 upThigh = swingThigh->getBodyRotation(s).y();
+    Vec3 XinSag = cross(UnitVec(YAxis), sagittalNormal);
+    Vec3 projUpThigh = upThigh - dot(upThigh, sagittalNormal) * sagittalNormal;
     // TODO points distally proximally?
-    UnitVec3 stanceThighAxialDir = stanceThigh->getBodyRotation(s).y();
-    Real globalHipFlexionAngle = acos(dot(forwardDir, stanceThighAxialDir));
-    Real globalHipFlexionRate = stanceThigh->expressGroundVectorInBodyFrame(s,
+    Real globalStanceHipFlexionAngle = acos(dot(projUpThigh.normalize(), XinSag)) - Pi/2;
+    Real globalStanceHipFlexionRate = stanceThigh->expressGroundVectorInBodyFrame(s,
             stanceThigh->getBodyAngularVelocity(s))[ZAxis];
 
     // Trunk extension.
     const MobilizedBody* trunk = &m_biped.getBody(Biped::trunk);
     // Directed distally.
     UnitVec3 trunkAxialDir = m_biped.getBody(Biped::trunk).getBodyRotation(s).y();
+    UnitVec3 upPelvis = m_biped.getBody(Biped::pelvis).getBodyRotation(s).y();
+    Vec3 projUpPelvis = upPelvis - dot(upPelvis, sagittalNormal) * sagittalNormal;
     // UnitVec3(YAxis) gives a vector perpendicular to ground, directed up.
-    Real globalTrunkExtensionAngle = acos(dot(UnitVec3(YAxis), trunkAxialDir));
+    Real globalTrunkExtensionAngle = acos(dot(projUpPelvis.normalize(), XinSag)) * Pi/2;
     Real globalTrunkExtensionRate = trunk->expressGroundVectorInBodyFrame(s,
             trunk->getBodyAngularVelocity(s))[ZAxis];
 
