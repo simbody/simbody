@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -1861,6 +1861,165 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
         }
     }
 }
+
+//==============================================================================
+//                 CONSTRAINT::POINT IN PLANE WITH STICTION
+//==============================================================================
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointInPlaneWithStiction, 
+                                        Constraint::PointInPlaneWithStictionImpl, 
+                                        Constraint);
+
+Constraint::PointInPlaneWithStiction::PointInPlaneWithStiction
+   (MobilizedBody& planeBody,    const Transform& defPlaneFrame,
+    MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
+  : Constraint(new PointInPlaneWithStictionImpl())
+{
+    SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem()&&followerBody.isInSubsystem(),
+        "Constraint::PointInPlaneWithStiction(): both bodies must already be "
+        "in a SimbodyMatterSubsystem.");
+    SimTK_ASSERT_ALWAYS(planeBody.isInSameSubsystem(followerBody),
+        "Constraint::PointInPlaneWithStiction(): both bodies to be connected "
+        "must be in the same SimbodyMatterSubsystem.");
+
+    //rep = new PointInPlaneRep(); rep->setMyHandle(*this);
+    planeBody.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().m_surfaceBody_S   = updImpl().addConstrainedBody(planeBody);
+    updImpl().m_followerBody_B  = updImpl().addConstrainedBody(followerBody);
+    updImpl().m_X_SP            = defPlaneFrame;
+    updImpl().m_p_BF            = defFollowerPoint;
+}
+
+Constraint::PointInPlaneWithStiction& Constraint::PointInPlaneWithStiction::
+setDefaultPlaneFrame(const Transform& X_SP) {
+    getImpl().invalidateTopologyCache();
+    updImpl().m_X_SP = X_SP;
+    return *this;
+}
+
+Constraint::PointInPlaneWithStiction& Constraint::PointInPlaneWithStiction::
+setDefaultFollowerPoint(const Vec3& p) {
+    getImpl().invalidateTopologyCache();
+    updImpl().m_p_BF = p;
+    return *this;
+}
+
+MobilizedBodyIndex Constraint::PointInPlaneWithStiction::
+getPlaneMobilizedBodyIndex() const {
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody
+                                                (getImpl().m_surfaceBody_S);
+}
+MobilizedBodyIndex Constraint::PointInPlaneWithStiction::
+getFollowerMobilizedBodyIndex() const {
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody
+                                                (getImpl().m_followerBody_B);
+}
+const Transform& Constraint::PointInPlaneWithStiction::
+getDefaultPlaneFrame() const {
+    return getImpl().m_X_SP;
+}
+
+const Vec3& Constraint::PointInPlaneWithStiction::
+getDefaultFollowerPoint() const {
+    return getImpl().m_p_BF;
+}
+
+Constraint::PointInPlaneWithStiction& Constraint::PointInPlaneWithStiction::
+setPlaneDisplayHalfWidth(Real h) {
+    updImpl().setPlaneDisplayHalfWidth(h);
+    return *this;
+}
+Constraint::PointInPlaneWithStiction& Constraint::PointInPlaneWithStiction::
+setPointDisplayRadius(Real r) {
+    updImpl().setPointDisplayRadius(r);
+    return *this;
+}
+
+Real Constraint::PointInPlaneWithStiction::getPlaneDisplayHalfWidth() const {
+    return getImpl().getPlaneDisplayHalfWidth();
+}
+
+Real Constraint::PointInPlaneWithStiction::getPointDisplayRadius() const {
+    return getImpl().getPointDisplayRadius();
+}
+
+Real Constraint::PointInPlaneWithStiction::
+getPositionError(const State& s) const {
+    Real perr;
+    getImpl().getPositionErrors(s, 1, &perr);
+    return perr;
+}
+
+Vec3 Constraint::PointInPlaneWithStiction::
+getVelocityError(const State& s) const {
+    Vec3 verr;
+    getImpl().getVelocityErrors(s, 3, &verr[0]);
+    return verr;
+}
+
+Vec3 Constraint::PointInPlaneWithStiction::
+getAccelerationError(const State& s) const {
+    Vec3 aerr;
+    getImpl().getAccelerationErrors(s, 3, &aerr[0]);
+    return aerr;
+}
+
+Vec3 Constraint::PointInPlaneWithStiction::
+getMultipliers(const State& s) const {
+    Vec3 mults;
+    getImpl().getMultipliers(s, 3, &mults[0]);
+    return mults;
+}
+
+    // PointInPlaneWithStictionImpl
+
+void Constraint::PointInPlaneWithStiction::PointInPlaneWithStictionImpl::
+calcDecorativeGeometryAndAppendVirtual
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+{
+    // We can't generate the artwork until we know the frame and follower
+    // point location, which might not be until Instance stage.
+    if (   stage == Stage::Instance 
+        && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+
+        const MobilizedBodyIndex planeMBId = 
+            getMobilizedBodyIndexOfConstrainedBody(m_surfaceBody_S);
+        const MobilizedBodyIndex followerMBId = 
+            getMobilizedBodyIndexOfConstrainedBody(m_followerBody_B);
+
+        if (m_planeHalfWidth > 0 && m_pointRadius > 0) {
+            // On the plane body, draw a gray transparent rectangle, outlined 
+            // in black lines.
+            geom.push_back(DecorativeBrick
+               (Vec3(m_planeHalfWidth,m_planeHalfWidth,m_pointRadius/2))
+                .setColor(Gray)
+                .setRepresentation(DecorativeGeometry::DrawSurface)
+                .setOpacity(Real(0.3))
+                .setBodyId(planeMBId)
+                .setTransform(m_X_SP));
+            geom.push_back(DecorativeBrick
+               (Vec3(m_planeHalfWidth,m_planeHalfWidth,m_pointRadius/2))
+                .setColor(Black)
+                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                .setBodyId(planeMBId)
+                .setTransform(m_X_SP));
+
+            // On follower body draw an orange mesh sphere using point radius.
+            geom.push_back(DecorativeSphere(m_pointRadius)
+                .setColor(Orange)
+                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                .setResolution(Real(0.5))
+                .setBodyId(followerMBId)
+                .setTransform(m_p_BF));
+        }
+    }
+}
+
+
+
+
 
 //==============================================================================
 //                      CONSTRAINT::CONSTANT COORDINATE
