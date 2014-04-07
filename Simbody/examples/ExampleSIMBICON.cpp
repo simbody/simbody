@@ -145,7 +145,7 @@ public:
     void findContactStatus(const State& s, bool& left, bool& right) const;
 
     enum Segment {
-        trunk,
+        trunk, // called 'torso' in paper.
         head,
         pelvis,
         upperarm_r,
@@ -1565,15 +1565,22 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
 
     // Rotation-related quantities.
     // ----------------------------
+    // Hip flexion and adduction.
     UnitVec3 forwardDir = m_biped.getBody(Biped::pelvis).getBodyRotation(s).x();
     // TODO points distally proximally?
     UnitVec3 stanceThighAxialDir = stanceThigh->getBodyRotation(s).y();
-    Real globalThighFlexion = acos(dot(forwardDir, stanceThighAxialDir));
+    Real globalHipFlexionAngle = acos(dot(forwardDir, stanceThighAxialDir));
+    Real globalHipFlexionRate = stanceThigh->expressGroundVectorInBodyFrame(s,
+            stanceThigh->getBodyAngularVelocity(s))[ZAxis];
 
+    // Trunk extension.
+    const MobilizedBody* trunk = &m_biped.getBody(Biped::trunk);
     // Directed distally.
     UnitVec3 trunkAxialDir = m_biped.getBody(Biped::trunk).getBodyRotation(s).y();
     // UnitVec3(YAxis) gives a vector perpendicular to ground, directed up.
-    Real globalTrunkAngle = acos(dot(UnitVec3(YAxis), trunkAxialDir));
+    Real globalTrunkExtensionAngle = acos(dot(UnitVec3(YAxis), trunkAxialDir));
+    Real globalTrunkExtensionRate = trunk->expressGroundVectorInBodyFrame(s,
+            trunk->getBodyAngularVelocity(s))[ZAxis];
 
     // simbiconState stateIdx
     // ------------- --------
@@ -1623,6 +1630,31 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         return force;
     }
     */
+    // Balance in the sagittal plane.
+    Real swingHipFlexionTorque;
+    Real stanceHipFlexionTorque;
+    {
+        // Create scope to scrap temporary variables that we use
+        // only to make the code clearer.
+        Real kp = m_proportionalGains.at(hip_flexion_adduction);
+        Real kd = m_derivativeGains.at(hip_flexion_adduction);
+        Real thetad = m_swh[stateIdx] +
+            m_cd[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure +
+            m_cv[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure;
+        Real theta = globalHipFlexionAngle;
+        Real thetadot =  globalHipFlexionRate;
+
+        swingHipFlexionTorque =
+            clamp(kp * (thetad - theta) + kd * thetadot, kp);
+
+        // We use 'trunk' instead of 'torso', which is used in the paper.
+        Real trunkPDControl = kp * (0.0 - globalHipFlexionAngle) - kd * globalHipFlexionRate;
+        stanceHipFlexionTorque = clamp(trunkPDControl - swingHipFlexionTorque, kp);
+
+    }
+    m_biped.addInForce(swing_hip_flexion, swingHipFlexionTorque, mobForces);
+    m_biped.addInForce(stance_hip_flexion, stanceHipFlexionTorque, mobForces);
+
 }
 
 
