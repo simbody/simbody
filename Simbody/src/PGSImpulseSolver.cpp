@@ -35,26 +35,42 @@ using namespace SimTK;
 // Local utilities.
 namespace {
 
-// Calculate (A+D)[row]*pi, but only looking at the given columns. 
+// Calculate (A+D)[row]*pi, but only looking at the given columns.
+// Vectors must be contiguous, Matrix must be packed and in column order (i.e.
+// columns are contiguous.) So A(r,c) = A[r + c*m].
 Real doRowSum(const Array_<MultiplierIndex>& columns,
               const MultiplierIndex&         row,
               const Matrix&                  A,
               const Vector&                  D,
               const Vector&                  pi)
 {
+    assert(pi.hasContiguousData());
+    const Real* pip = &pi[0];
+    const int m = A.nrow();
+
+    assert(A.hasContiguousData()); // packed
+    assert(A(0).hasContiguousData()); // in column order
+    const Real* Ap = &A(0,0);
+
     Real rowSum = 0;
     for (unsigned c=0; c < columns.size(); ++c) {
         const MultiplierIndex cx = columns[c];
-        rowSum += A(row,cx)*pi[cx];
+        const Real* cp = Ap + cx*m; // point to start of column
+        rowSum += cp[row]*pip[cx];
     }
-    if (D.size())
-        rowSum += D[row]*pi[row];
+    if (D.size()) {
+        assert(D.hasContiguousData());
+        const Real* Dp = &D[0];
+        rowSum += Dp[row]*pip[row];
+    }
     return rowSum;
 }
 
 // Calculate sums=(A+D)[rows]*pi, but only looking at the given columns.
 // We expect that A is in column order so we'll work down the rows before
 // we switch columns.
+// Vectors must be contiguous, Matrix must be packed and in column order (i.e.
+// columns are contiguous.) So A(r,c) = A[r + c*m].
 void doRowSums(const Array_<MultiplierIndex>& columns,
                const Array_<MultiplierIndex>& rows,
                const Matrix&                  A, 
@@ -62,15 +78,27 @@ void doRowSums(const Array_<MultiplierIndex>& columns,
                const Vector&                  pi,
                Array_<Real>&                  sums)
 {
+    assert(pi.hasContiguousData());
+    const Real* pip = &pi[0];
+    const int m = A.nrow(), n = A.ncol();
+
+    assert(A.hasContiguousData()); // packed
+    assert(A(0).hasContiguousData()); // in column order
+    const Real* Ap = &A(0,0);
+
     sums.resize(rows.size()); sums.fill(Real(0));
     for (unsigned c=0; c < columns.size(); ++c) {
         const int cx = columns[c];
+        const Real* cp = Ap + cx*m; // point to start of column
         for (unsigned i=0; i<rows.size(); ++i)
-            sums[i] += A(rows[i],cx)*pi[cx];
+            sums[i] += cp[rows[i]]*pip[cx];
     }
-    if (D.size())
+    if (D.size()) {
+        assert(D.hasContiguousData());
+        const Real* Dp = &D[0];
         for (unsigned i=0; i<rows.size(); ++i)
-            sums[i] += D[rows[i]]*pi[rows[i]];
+            sums[i] += Dp[rows[i]]*pip[rows[i]];
+    }
 }
 
 // Given a rowSum, update one element of pi and return the squared error.
