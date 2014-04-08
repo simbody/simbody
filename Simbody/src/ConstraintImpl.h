@@ -678,7 +678,6 @@ void addInStationInAForce(const Vec3& p_BS_A, const Vec3& forceInA,
                           SpatialVec& bodyForceOnBInA) 
                           const 
 {
-    assert(bodyForcesInA.size() == getNumConstrainedBodies());
     bodyForceOnBInA += SpatialVec(p_BS_A % forceInA, forceInA); // rXf, f
 }
 
@@ -687,7 +686,6 @@ void subInStationInAForce(const Vec3& p_BS_A, const Vec3& negForceInA,
                           SpatialVec& bodyForceOnBInA) 
                           const 
 {
-    assert(bodyForcesInA.size() == getNumConstrainedBodies());
     bodyForceOnBInA -= SpatialVec(p_BS_A % negForceInA, negForceInA); //-rXf,-f
 }
 
@@ -2762,8 +2760,7 @@ void calcPositionDotErrorsVirtual
     Array_<Real>&                                   pverr)  // mp of these
     const 
 {
-    assert(V_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
-    //TODO: should be able to get pos info from State cache
+    assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
 
     const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
     const SpatialVec& V_AS = allV_AB[m_surfaceBody_S];
@@ -2788,6 +2785,8 @@ void calcPositionDotErrorsVirtual
 //    --------------------------------------------------------------
 //    aerr = ~a_SF*Pz = ~((a_AF-a_AC) - 2 w_AS X (v_AF-v_AC)) * Pz_A
 //    --------------------------------------------------------------
+
+// TODO: rework this using the more efficient API (see above and VelocityDot method).
 void calcPositionDotDotErrorsVirtual      
    (const State&                                    s,      // Stage::Velocity
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
@@ -2796,7 +2795,6 @@ void calcPositionDotDotErrorsVirtual
     const
 {
     assert(A_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size() == 1);
-    //TODO: should be able to get pos and vel info from State cache
 
     const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
     const Vec3 p_AF = 
@@ -2849,7 +2847,7 @@ void addInPositionConstraintForcesVirtual
 //    verr = [~Px] * v_SF = [~Px_A] * (v_AF-v_AC)
 //           [~Py]          [~Py_A]
 //    -----------------------------------------
-
+// TODO: rework this using the more efficient API (see next method).
 void calcVelocityErrorsVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
