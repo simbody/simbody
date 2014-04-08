@@ -556,41 +556,58 @@ const Vec3& getBodyOriginAcceleration
 {   return allA_AB[B][1]; }
 
 
-// Given a station on body B, find its location measured and expressed in the
+// Given a station S on body B, specified by the vector p_BS from Bo to S
+// expressed in B, find its location p_AS measured from Ao and expressed in the
 // Ancestor's frame A. 18 flops.
 Vec3 findStationLocationFromState
-   (const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
-    return getBodyTransformFromState(s,B) * p_B; // re-measure and re-express
+   (const State& s, ConstrainedBodyIndex B, const Vec3& p_BS) const {
+    return getBodyTransformFromState(s,B) * p_BS; // re-measure and re-express
 }
 
 // Same, but we're given the constrained body poses as an operand (18 flops).
 Vec3 findStationLocation
    (const Array_<Transform, ConstrainedBodyIndex>& allX_AB, 
-    ConstrainedBodyIndex B, const Vec3& p_B) const {
+    ConstrainedBodyIndex B, const Vec3& p_BS) const {
     const Transform& X_AB = allX_AB[B];
-    return X_AB * p_B; // re-measure and re-express (18 flops)
+    return X_AB * p_BS; // re-measure and re-express (18 flops)
 }
 
-// Given a station on body B, find its velocity measured and expressed in the
+// Given a station S on body B, find its velocity measured and expressed in the
 // Ancestor's frame A. 27 flops.
 Vec3 findStationVelocityFromState
-   (const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
-    // p_B rexpressed in A but not shifted to Ao
-    const Vec3        p_A  = getBodyRotationFromState(s,B) * p_B; // 15 flops
-    const SpatialVec& V_AB = getBodyVelocityFromState(s,B);
-    return V_AB[1] + (V_AB[0] % p_A);                             // 12 flops
+   (const State& s, ConstrainedBodyIndex B, const Vec3& p_BS) const {
+    // p_BS rexpressed in A but not shifted to Ao
+    const Vec3        p_BS_A = getBodyRotationFromState(s,B) * p_BS; // 15 flops
+    const SpatialVec& V_AB   = getBodyVelocityFromState(s,B);
+    return V_AB[1] + (V_AB[0] % p_BS_A);                             // 12 flops
 }
 
 // Same, but only configuration comes from state; velocities are an operand.
 Vec3 findStationVelocity
    (const State& s,
     const Array_<SpatialVec, ConstrainedBodyIndex>& allV_AB, 
-    ConstrainedBodyIndex B, const Vec3& p_B) const 
+    ConstrainedBodyIndex B, const Vec3& p_BS) const 
 {
-    // p_B rexpressed in A but not shifted to Ao
-    const Vec3        p_A  = getBodyRotationFromState(s,B) * p_B; 
+    // p_BS rexpressed in A but not shifted to Ao
+    const Vec3        p_BS_A  = getBodyRotationFromState(s,B) * p_BS; 
     const SpatialVec& V_AB = allV_AB[B];
-    return V_AB[1] + (V_AB[0] % p_A);
+    return V_AB[1] + (V_AB[0] % p_BS_A);
+}
+
+// Combo method is cheaper. Location comes from state, velocities from operand.
+// NOTE: you must provide the p_BS vector expressed (but not measured) in A.
+// 15 flops.
+void findStationInALocationVelocity
+   (const Transform&    X_AB,
+    const SpatialVec&   V_AB,
+    const Vec3&         p_BS_A,
+    Vec3& p_AS, Vec3& v_AS) const 
+{
+    const Vec3& w_AB = V_AB[0]; const Vec3& v_AB = V_AB[1];
+    const Vec3 pdot_BS_A = w_AB % p_BS_A;   //  9 flops
+
+    p_AS = X_AB.p() + p_BS_A;               //  3 flops
+    v_AS = v_AB + pdot_BS_A;                //  3 flops
 }
 
 // There is no findStationAccelerationFromState().
@@ -598,35 +615,80 @@ Vec3 findStationVelocity
 // Only configuration and velocity come from state; accelerations are an 
 // operand (48 flops).
 Vec3 findStationAcceleration
-   (const State&                                    state, 
+   (const State&                                    s, 
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
-    ConstrainedBodyIndex                            bodyB, 
+    ConstrainedBodyIndex                            B, 
     const Vec3&                                     p_BS) const 
 {   // p_BS_A is p_BS rexpressed in A but not shifted to Ao
-    const Rotation&   R_AB   = getBodyRotationFromState(state,bodyB);
-    const Vec3        p_BS_A = R_AB * p_BS;         // 15 flops
-    const Vec3&       w_AB   = getBodyAngularVelocityFromState(state,bodyB);
-    const SpatialVec& A_AB   = allA_AB[bodyB];
+    const Rotation&   R_AB   = getBodyRotationFromState(s,B);
+    const Vec3&       w_AB   = getBodyAngularVelocityFromState(s,B);
+    const SpatialVec& A_AB   = allA_AB[B];
+    const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
+
+    const Vec3 p_BS_A = R_AB * p_BS;         // 15 flops
+    const Vec3 pdot_BS_A = w_AB % p_BS_A;   //  9 flops
 
     // Result is a + b X r + w X (w X r).
-    // ("b" is angular acceleration; w is angular velocity) 33 flops.
-    const Vec3 a_AS = A_AB[1] + (A_AB[0] % p_BS_A) 
-                              + w_AB % (w_AB % p_BS_A); // % is not associative
+    // ("b" is angular acceleration; w is angular velocity) 24 flops.
+    const Vec3 a_AS = a_AB + (b_AB % p_BS_A) + (w_AB % pdot_BS_A);
     return a_AS;
 }
 
-// Apply an Ancestor-frame force to a B-frame station, adding it to the 
+// Combo method is cheaper. Location and velocity come from state, accelerations
+// from operand. NOTE: you must provide the p_BS vector expressed (but not 
+// measured) in A. 39 flops.
+void findStationInALocationVelocityAcceleration
+   (const Transform&                                X_AB,
+    const SpatialVec&                               V_AB,
+    const SpatialVec&                               A_AB,
+    const Vec3&                                     p_BS_A,
+    Vec3& p_AS, Vec3& v_AS, Vec3& a_AS) const 
+{
+    const Vec3& w_AB = V_AB[0]; const Vec3& v_AB = V_AB[1];
+    const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
+
+    const Vec3 pdot_BS_A = w_AB % p_BS_A;   //  9 flops
+
+    p_AS = X_AB.p() + p_BS_A;               //  3 flops
+    v_AS = v_AB + pdot_BS_A;                //  3 flops
+
+    // Result is a + b X r + w X (w X r).
+    // ("b" is angular acceleration; w is angular velocity) 24 flops.
+    a_AS = a_AB + (b_AB % p_BS_A) + (w_AB % pdot_BS_A);
+}
+
+// Apply an Ancestor-frame force to a B-frame station S, adding it to the 
 // appropriate bodyForcesInA entry, where bodyForcesInA is *already* size 
 // numConstrainedBodies for this Constraint. 30 flops.
 void addInStationForce(const State& s, 
-                       ConstrainedBodyIndex B, const Vec3& p_B, 
+                       ConstrainedBodyIndex B, const Vec3& p_BS, 
                        const Vec3& forceInA, 
                        Array_<SpatialVec, ConstrainedBodyIndex>& bodyForcesInA) 
                        const 
 {
     assert(bodyForcesInA.size() == getNumConstrainedBodies());
     const Rotation& R_AB = getBodyRotationFromState(s,B);
-    bodyForcesInA[B] += SpatialVec((R_AB*p_B) % forceInA, forceInA); // rXf, f
+    const Vec3      p_BS_A = R_AB * p_BS;         // 15 flops
+    bodyForcesInA[B] += SpatialVec(p_BS_A % forceInA, forceInA); // rXf, f
+}
+
+// If you already have the p_BS station vector re-expressed in A, use this
+// faster method (15 flops).
+void addInStationInAForce(const Vec3& p_BS_A, const Vec3& forceInA, 
+                          SpatialVec& bodyForceOnBInA) 
+                          const 
+{
+    assert(bodyForcesInA.size() == getNumConstrainedBodies());
+    bodyForceOnBInA += SpatialVec(p_BS_A % forceInA, forceInA); // rXf, f
+}
+
+// Same thing but subtract the force; this is just to save having to negate it.
+void subInStationInAForce(const Vec3& p_BS_A, const Vec3& negForceInA, 
+                          SpatialVec& bodyForceOnBInA) 
+                          const 
+{
+    assert(bodyForcesInA.size() == getNumConstrainedBodies());
+    bodyForceOnBInA -= SpatialVec(p_BS_A % negForceInA, negForceInA); //-rXf,-f
 }
 
 // Apply an Ancestor-frame torque to body B, updating the appropriate 
@@ -2695,7 +2757,7 @@ void calcPositionErrorsVirtual
 //    -----------------------------------
 void calcPositionDotErrorsVirtual      
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
     const 
@@ -2703,18 +2765,24 @@ void calcPositionDotErrorsVirtual
     assert(V_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
     //TODO: should be able to get pos info from State cache
 
-    const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
-    const Vec3 p_AF = 
-        findStationLocationFromState(s, m_followerBody_B, m_p_BF); // 18 flops
-    const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
-    const UnitVec3 Pz_A  = X_AS.R() * m_X_SP.z();                  // 15 flops
-    
-    // 54 flops for the two of these
-    const Vec3 v_AF = findStationVelocity(s, V_AB, m_followerBody_B, m_p_BF);
-    const Vec3 v_AC = findStationVelocity(s, V_AB, m_surfaceBody_S, p_SC);
+    const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const SpatialVec& V_AS = allV_AB[m_surfaceBody_S];
+
+    const Transform&  X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const SpatialVec& V_AB = allV_AB[m_followerBody_B];
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    Vec3 p_AF, v_AF;
+    findStationInALocationVelocity(X_AB, V_AB, p_BF_A, p_AF, v_AF); // 15 flops
+
+    const Vec3 p_SC_A = p_AF - X_AS.p(); // measure C from So, in A (3 flops)
+    Vec3 p_AC, v_AC;
+    findStationInALocationVelocity(X_AS, V_AS, p_SC_A, p_AC, v_AC); // 15 flops
+
+    const UnitVec3 Pz_A  = X_AS.R() * m_X_SP.z();                // 15 flops
 
     // Calculate this scalar using A-frame vectors.
-    pverr[0] = dot( v_AF-v_AC, Pz_A ); // 8 flops
+    pverr[0] = dot( v_AF-v_AC, Pz_A );                           // 8 flops
 }
 
 //    --------------------------------------------------------------
@@ -2760,17 +2828,19 @@ void addInPositionConstraintForcesVirtual
            && qForces.size()==0);
     const Real lambda = multipliers[0];
 
-    //TODO: should be able to get pos info from State cache
     const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
-    const Vec3 p_AF = 
-        findStationLocationFromState(s, m_followerBody_B, m_p_BF); // 18 flops
-    const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
+    const Transform& X_AB = getBodyTransformFromState(s, m_followerBody_B);
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    const Vec3 p_AF   = X_AB.p() + p_BF_A; // shift to Ao     ( 3 flops)
+    const Vec3 p_SC_A = p_AF - X_AS.p();   // measure C from So, in A (3 flops)
+
     const UnitVec3 Pz_A  = X_AS.R() * m_X_SP.z();                  // 15 flops
 
     const Vec3 force_A = lambda * Pz_A;
 
-    addInStationForce(s, m_followerBody_B, m_p_BF,  force_A, bodyForcesInA);
-    addInStationForce(s, m_surfaceBody_S,    p_SC, -force_A, bodyForcesInA);
+    addInStationInAForce(p_BF_A, force_A, bodyForcesInA[m_followerBody_B]);
+    subInStationInAForce(p_SC_A, force_A, bodyForcesInA[m_surfaceBody_S]);
 }
 
 // Implementation of virtuals required for nonholonomic constraints.
@@ -2821,22 +2891,31 @@ void calcVelocityDotErrorsVirtual
 {
     assert(allA_AB.size()==2 && constrainedUDot.size()==0 && vaerr.size()==2);
 
-    const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
-    const Vec3 p_AF = 
-        findStationLocationFromState(s, m_followerBody_B, m_p_BF); // 18 flops
-    const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
+    const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const SpatialVec& V_AS = getBodyVelocityFromState(s, m_surfaceBody_S);
+    const SpatialVec& A_AS = allA_AB[m_surfaceBody_S];
+
+    const Transform&  X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const SpatialVec& V_AB = getBodyVelocityFromState(s, m_followerBody_B);
+    const SpatialVec& A_AB = allA_AB[m_followerBody_B];
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    Vec3 p_AF, v_AF, a_AF;
+    findStationInALocationVelocityAcceleration(X_AB, V_AB, A_AB, p_BF_A,
+                                               p_AF, v_AF, a_AF); // 39 flops
+
+    const Vec3 p_SC_A = p_AF - X_AS.p(); // measure C from So, in A (3 flops)
+    Vec3 p_AC, v_AC, a_AC;
+    findStationInALocationVelocityAcceleration(X_AS, V_AS, A_AS, p_SC_A,
+                                               p_AC, v_AC, a_AC); // 39 flops
+
     const UnitVec3 Px_A  = X_AS.R() * m_X_SP.x();                  // 15 flops
     const UnitVec3 Py_A  = X_AS.R() * m_X_SP.y();                  // 15 flops
 
-    const Vec3& w_AS = getBodyAngularVelocityFromState(s,m_surfaceBody_S);
-    // 54 flops for the two of these
-    const Vec3 v_AF = findStationVelocityFromState(s,m_followerBody_B,m_p_BF);
-    const Vec3 v_AC = findStationVelocityFromState(s,m_surfaceBody_S,p_SC);
+    const Vec3& w_AS = V_AS[0];
     const Vec3 v_CF_A = v_AF-v_AC;          // 3 flops
     const Vec3 wXv2 = (2.*w_AS) % v_CF_A;   // 12 flops
-    // 96 flops for the two of these
-    const Vec3 a_AF = findStationAcceleration(s,allA_AB,m_followerBody_B,m_p_BF);
-    const Vec3 a_AC = findStationAcceleration(s,allA_AB,m_surfaceBody_S,p_SC);
+
     const Vec3 a_CF_A = a_AF-a_AC; // 3 flops
     const Vec3 aRel_A = a_CF_A - wXv2; // relative accel of F and C (3 flops)
 
@@ -2859,18 +2938,20 @@ void addInVelocityConstraintForcesVirtual
 
     const Real lambda0 = multipliers[0], lambda1 = multipliers[1];
 
-    //TODO: should be able to get pos info from State cache
     const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
-    const Vec3 p_AF = 
-        findStationLocationFromState(s, m_followerBody_B, m_p_BF); // 18 flops
-    const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
+    const Transform& X_AB = getBodyTransformFromState(s, m_followerBody_B);
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    const Vec3 p_AF   = X_AB.p() + p_BF_A; // shift to Ao     ( 3 flops)
+    const Vec3 p_SC_A = p_AF - X_AS.p();   // measure C from So, in A (3 flops)
+
     const UnitVec3 Px_A  = X_AS.R() * m_X_SP.x();                  // 15 flops
     const UnitVec3 Py_A  = X_AS.R() * m_X_SP.y();                  // 15 flops
 
     const Vec3 force_A = lambda0*Px_A + lambda1*Py_A; // 9 flops
 
-    addInStationForce(s, m_followerBody_B, m_p_BF,  force_A, bodyForcesInA);
-    addInStationForce(s, m_surfaceBody_S,    p_SC, -force_A, bodyForcesInA);
+    addInStationInAForce(p_BF_A, force_A, bodyForcesInA[m_followerBody_B]);
+    subInStationInAForce(p_SC_A, force_A, bodyForcesInA[m_surfaceBody_S]);
 }
 
 SimTK_DOWNCAST(PointInPlaneWithStictionImpl, ConstraintImpl);
