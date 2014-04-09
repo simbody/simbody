@@ -40,7 +40,7 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
         PROJECT_LABEL "Code - ${STATIC_TARGET}")
     
     # install library; on Windows both .lib and .dll go in the lib directory.
-    INSTALL(TARGETS ${STATIC_TARGET}
+    INSTALL(TARGETS ${STATIC_TARGET} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE 
                      GROUP_READ GROUP_WRITE 
                      WORLD_READ
@@ -65,7 +65,7 @@ IF(BUILD_VERSIONED_LIBRARIES)
         PROJECT_LABEL "Code - ${STATIC_TARGET_VN}")
     
     # install library; on Windows both .lib and .dll go in the lib directory.
-    INSTALL(TARGETS ${STATIC_TARGET_VN}
+    INSTALL(TARGETS ${STATIC_TARGET_VN} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE 
                      GROUP_READ GROUP_WRITE 
                      WORLD_READ

@@ -20,7 +20,7 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
     
     # install library
     
-    INSTALL(TARGETS ${STATIC_TARGET}  
+    INSTALL(TARGETS ${STATIC_TARGET} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE 
                      GROUP_READ GROUP_WRITE 
                      WORLD_READ 
@@ -48,7 +48,7 @@ IF(BUILD_VERSIONED_LIBRARIES)
     
     # install library
     
-    INSTALL(TARGETS ${STATIC_TARGET_VN}  
+    INSTALL(TARGETS ${STATIC_TARGET_VN} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE 
                      GROUP_READ GROUP_WRITE 
                      WORLD_READ 

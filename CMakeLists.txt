@@ -607,6 +607,9 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
     DESTINATION ${SIMBODY_CMAKE_DIR})
 
 
+install(EXPORT SimbodyTargets DESTINATION
+  "${SIMBODY_CMAKE_DIR}") #optionally: COMPONENT dev
+
 # Install a sample CMakeLists.txt that uses SimbodyConfig.cmake.
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
     DESTINATION ${SIMBODY_CMAKE_DIR})
