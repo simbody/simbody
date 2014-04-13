@@ -39,8 +39,8 @@ given joint angle from that in the target pose:
     \tau = k_p (\theta_{des} - \theta) - k_d \dot{\theta}
 
 There are some exceptions to this general control scheme. Namely, the target
-angles for the torso and "swing-leg femur" are specified relative to the global
-frame. These two angles are used to balance of the biped.
+angles for the torso and "swing-leg femur" are specified relative to the ground
+frame. These angles are used to balance the biped.
 
 The parameters of the controller are used to define the motion that the biped
 executes. The motions the controller can achieve consist of walking, running,
@@ -60,6 +60,10 @@ for each state:
     * stance-ankle target angle
 
 See [1], particularly Table 1 of [1], for more information.
+
+Note that we use the following terms interchangeably:
+* trunk and torso
+* thigh and hip
 
 
 How to navigate this file
@@ -144,57 +148,34 @@ public:
     /// param[out] right right foot is in contact with the ground.
     void findContactStatus(const State& s, bool& left, bool& right) const;
 
+    /// The names of the rigid bodies that make up the biped.
+    /// Used for indexing into data structures.
     enum Segment {
         trunk, // called 'torso' in paper.
         head,
         pelvis,
-        upperarm_r,
-        lowerarm_r,
-        hand_r,
-        upperarm_l,
-        lowerarm_l,
-        hand_l,
-        thigh_r,
-        shank_r,
-        foot_r,
-        toes_r,
-        thigh_l,
-        shank_l,
-        foot_l,
-        toes_l
+        upperarm_r, lowerarm_r, hand_r, upperarm_l, lowerarm_l, hand_l,
+        thigh_r, shank_r, foot_r, toes_r,
+        thigh_l, shank_l, foot_l, toes_l
     };
 
+    /// The names of the degrees of freedom of the biped.
+    /// Used for indexing into data structures.
     enum Coordinate {
-        neck_extension = 0,
-        neck_bending = 1,
-        neck_rotation = 2,
-        back_tilt = 3,
-        back_list = 4,
-        back_rotation = 5,
-        shoulder_r_flexion = 6,
-        shoulder_r_adduction = 7,
-        shoulder_r_rotation = 8,
-        elbow_r_flexion = 9,
-        elbow_r_rotation = 10,
-        shoulder_l_flexion = 11,
-        shoulder_l_adduction = 12,
-        shoulder_l_rotation = 13,
-        elbow_l_flexion = 14,
-        elbow_l_rotation = 15,
-        hip_r_adduction = 16,
-        hip_r_flexion = 17,
-        hip_r_rotation = 18,
-        knee_r_extension = 19,
-        ankle_r_inversion = 20,
-        ankle_r_dorsiflexion = 21,
-        mtp_r_dorsiflexion = 22,
-        hip_l_adduction = 23,
-        hip_l_flexion = 24,
-        hip_l_rotation = 25,
-        knee_l_extension = 26,
-        ankle_l_inversion = 27,
-        ankle_l_dorsiflexion = 28,
-        mtp_l_dorsiflexion = 29,
+        neck_extension, neck_bending, neck_rotation,
+        back_tilt, back_list, back_rotation,
+        shoulder_r_flexion, shoulder_r_adduction, shoulder_r_rotation,
+        elbow_r_flexion, elbow_r_rotation,
+        shoulder_l_flexion, shoulder_l_adduction, shoulder_l_rotation,
+        elbow_l_flexion, elbow_l_rotation,
+        hip_r_adduction, hip_r_flexion, hip_r_rotation,
+        knee_r_extension,
+        ankle_r_inversion, ankle_r_dorsiflexion,
+        mtp_r_dorsiflexion,
+        hip_l_adduction, hip_l_flexion, hip_l_rotation,
+        knee_l_extension,
+        ankle_l_inversion, ankle_l_dorsiflexion,
+        mtp_l_dorsiflexion,
     };
 
     /// Index, in the State vector, of this coordinate's value (Q).
@@ -232,6 +213,8 @@ public:
         mobForces[getUIndex(coord)] += forceAccountingForSymmetry;
     }
 
+    /// The pelvis' z direction (which points to the biped's right) projected
+    /// into the plane of the ground, and normalized into a unit vector.
     UnitVec3 getNormalToSagittalPlane(const State& s) const
     {
         Vec3 bodyZInGround = Vec3(m_bodies.at(pelvis).getBodyRotation(s).z());
@@ -241,6 +224,9 @@ public:
         return UnitVec3(bodyZInGround);
     }
 
+    /// The pelvis' x direction (which points in the direction of walking)
+    /// projected into the plane of the ground, and normalized into a
+    /// unit vector.
     UnitVec3 getNormalToCoronalPlane(const State& s) const
     {
         Vec3 bodyXInGround = Vec3(m_bodies.at(pelvis).getBodyRotation(s).x());
@@ -465,7 +451,7 @@ private:
     /// For convenience / inspection, the force is returned as well.
     Real coordPDControl(const State& s,
             const Biped::Coordinate coord, const GainGroup gainGroup,
-            const Real thetad, Vector& mobForces) const
+            const Real thetades, Vector& mobForces) const
     {
         // Prepare quantities.
         Real kp = m_proportionalGains.at(gainGroup);
@@ -474,13 +460,56 @@ private:
         Real u = m_biped.getU(s, coord);
 
         // PD control law:
-        Real force = clamp(kp * (thetad - q) - kd * u, kp);
+        Real force = clamp(kp * (thetades - q) - kd * u, kp);
 
         // Update the proper entry in mobForces.
         m_biped.addInForce(coord, force, mobForces);
 
         return force;
     }
+
+    // The rotation quantities necessary for balance control. Since
+    // we are balancing in 3D, we also need rotation quantities out of the
+    // sagittal plane. The sagittal and coronal planes are defined relative to
+    // the pelvis.
+    //
+    // To learn how the sagittal and coronal planes are defined, see
+    // Biped::getNormalToSagittalPlane and Biped::getNormalToCoronalPlane.
+    //
+    // We define S as the vector pointing in the forward direction in the
+    // sagittal plane (lying along the line defined by the intersection of the
+    // sagittal plane and the ground plane).
+    //
+    // We define C as the vector pointed in the biped's right-ward direction
+    // projected into the coronal plane (lying along the line defined by
+    // the intersection of the coronal plane and the ground plane).
+    //
+    // @param[out] swingHipSagittalOrientation The angle
+    //      between vectors A and S minus Pi/2, where A is the long axis (y
+    //      axis) of the swing hip projected into the sagittal plane.
+    // @param[out] swingHipCoronalOrientation The angle between vectors A and C
+    //      minus Pi/2, where A is the long axis of the swing hip projected
+    //      into the coronal plane.
+    // @param[out] trunkSagittalOrientation The angle between vectors A and
+    //      S minus Pi/2, where A is the long axis of the trunk body (directed
+    //      superiorly) projected into the sagittal plane.
+    // @param[out] trunkCoronalOrientation The angle between vectors A and C
+    //      minus Pi/2, where A is the long axis of the trunk body projected
+    //      into the coronal plane.
+    // @param[out] swingHipSagittalAngularVelocity TODO
+    // @param[out] swingHipCoronalAngularVelocity TODO
+    // @param[out] trunkSagittalAngularVelocity TODO
+    // @param[out] trunkCoronalAngularVelocity TODO
+    void computeGlobalRotationQuantities(const State& s,
+            const MobilizedBody* swingThigh,
+            Real& swingHipSagittalOrientation,
+            Real& swingHipCoronalOrientation,
+            Real& trunkSagittalOrientation,
+            Real& trunkCoronalOrientation,
+            Real& swingHipSagittalAngularVelocity,
+            Real& swingHipCoronalAngularVelocity,
+            Real& trunkSagittalAngularVelocity,
+            Real& trunkCoronalAngularVelocity) const;
 
     Biped& m_biped;
     const GeneralForceSubsystem& m_forces;
@@ -1495,21 +1524,23 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     // =============================
     Biped::Coordinate swing_hip_flexion;
     Biped::Coordinate swing_hip_adduction;
+    const MobilizedBody* swingThigh;
+
     Biped::Coordinate stance_hip_flexion;
     Biped::Coordinate stance_hip_adduction;
     const MobilizedBody* stanceFoot;
-    const MobilizedBody* stanceThigh;
     if (simbiconState == STATE0 || simbiconState == STATE1)
     {
         // Left leg is in stance.
         swing_hip_flexion = Biped::hip_r_flexion;
         swing_hip_adduction = Biped::hip_r_adduction;
 
+        swingThigh = &m_biped.getBody(Biped::thigh_r);
+
         stance_hip_flexion = Biped::hip_l_flexion;
         stance_hip_adduction = Biped::hip_r_adduction;
 
         stanceFoot = &m_biped.getBody(Biped::foot_l);
-        stanceThigh = &m_biped.getBody(Biped::thigh_l);
     }
     else if (simbiconState == STATE2 || simbiconState == STATE3)
     {
@@ -1517,17 +1548,39 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         swing_hip_flexion = Biped::hip_l_flexion;
         swing_hip_adduction = Biped::hip_l_adduction;
 
+        swingThigh = &m_biped.getBody(Biped::thigh_l);
+
         stance_hip_flexion = Biped::hip_r_flexion;
         stance_hip_adduction = Biped::hip_r_adduction;
 
         stanceFoot = &m_biped.getBody(Biped::foot_r);
-        stanceThigh = &m_biped.getBody(Biped::thigh_r);
     }
     else throw;
 
     // Preliminary quantities
     // ======================
     const SimbodyMatterSubsystem& matter = m_biped.getMatterSubsystem();
+    
+    // Rotation-related quantities.
+    // ----------------------------
+    // We use 'trunk' instead of 'torso', which is used in the paper.
+    Real swingHipSagittalOrientation;
+    Real swingHipCoronalOrientation;
+    Real trunkSagittalOrientation;
+    Real trunkCoronalOrientation;
+
+    Real swingHipSagittalAngularVelocity;
+    Real swingHipCoronalAngularVelocity;
+    Real trunkSagittalAngularVelocity;
+    Real trunkCoronalAngularVelocity;
+
+    computeGlobalRotationQuantities(s,
+            swingThigh,
+            swingHipSagittalOrientation, swingHipCoronalOrientation,
+            trunkSagittalOrientation, trunkCoronalOrientation,
+            swingHipSagittalAngularVelocity, swingHipCoronalAngularVelocity,
+            trunkSagittalAngularVelocity, trunkCoronalAngularVelocity);
+
 
     // Translation-related quantities.
     // -------------------------------
@@ -1563,29 +1616,6 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     Real massCenterVelFromStanceAnkleLateralMeasure =
         dot(sagittalNormal, massCenterVel);
 
-    // Rotation-related quantities.
-    // ----------------------------
-    // Hip flexion and adduction.
-    // TODO UnitVec3 stanceThighAxialDir = stanceThigh->getBodyRotation(s).y();
-    Vec3 upThigh = swingThigh->getBodyRotation(s).y();
-    Vec3 XinSag = cross(UnitVec(YAxis), sagittalNormal);
-    Vec3 projUpThigh = upThigh - dot(upThigh, sagittalNormal) * sagittalNormal;
-    // TODO points distally proximally?
-    Real globalStanceHipFlexionAngle = acos(dot(projUpThigh.normalize(), XinSag)) - Pi/2;
-    Real globalStanceHipFlexionRate = stanceThigh->expressGroundVectorInBodyFrame(s,
-            stanceThigh->getBodyAngularVelocity(s))[ZAxis];
-
-    // Trunk extension.
-    const MobilizedBody* trunk = &m_biped.getBody(Biped::trunk);
-    // Directed distally.
-    UnitVec3 trunkAxialDir = m_biped.getBody(Biped::trunk).getBodyRotation(s).y();
-    UnitVec3 upPelvis = m_biped.getBody(Biped::pelvis).getBodyRotation(s).y();
-    Vec3 projUpPelvis = upPelvis - dot(upPelvis, sagittalNormal) * sagittalNormal;
-    // UnitVec3(YAxis) gives a vector perpendicular to ground, directed up.
-    Real globalTrunkExtensionAngle = acos(dot(projUpPelvis.normalize(), XinSag)) * Pi/2;
-    Real globalTrunkExtensionRate = trunk->expressGroundVectorInBodyFrame(s,
-            trunk->getBodyAngularVelocity(s))[ZAxis];
-
     // simbiconState stateIdx
     // ------------- --------
     // 0             0
@@ -1594,9 +1624,57 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     // 3             1
     const int stateIdx = simbiconState % 2;
 
-    // Apply PD control to swing hip.
-    // ==============================
+    // Balance feedback (PD) for swing hip.
+    // ====================================
+    // We indirectly control the orientation of the trunk via the stance hip
+    // and swing hip torques. We do this in the sagittal plane first.
+    //
+    // 1. Compute the desired trunk torque.
+    // 2. Compute and apply the desired swing hip torque.
+    // 3. Use the results of 1 and 2 to compute and apply a stance hip torque.
     // \theta_d = \theta_0 + c_d d + c_v v
+
+    // Balance in the sagittal plane.
+    // ------------------------------
+
+    // Trunk torque that will we will apply indirectly.
+    Real trunkPDControl;
+    {
+        // Create scope to scrap temporary variables that we use
+        // only to make the code clearer.
+        // TODO use different gains.
+        Real kp = m_proportionalGains.at(hip_flexion_adduction);
+        Real kd = m_derivativeGains.at(hip_flexion_adduction);
+        Real thetades = 0.0;
+        Real theta = trunkSagittalOrientation;
+        Real thetadot = trunkSagittalAngularVelocity;
+        trunkPDControl = kp * (thetades - theta) - kd * thetadot;
+    }
+
+    // Stance hip flexion and swing hip flexion torues that we actually apply.
+    Real swingHipFlexionTorque;
+    Real stanceHipFlexionTorque;
+    {
+        Real kp = m_proportionalGains.at(hip_flexion_adduction);
+        Real kd = m_derivativeGains.at(hip_flexion_adduction);
+        Real thetades = m_swh[stateIdx] +
+            m_cd[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure +
+            m_cv[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure;
+        Real theta = swingHipSagittalOrientation;
+        Real thetadot =  swingHipSagittalAngularVelocity;
+
+        swingHipFlexionTorque =
+            clamp(kp * (thetades - theta) - kd * thetadot, kp);
+
+        stanceHipFlexionTorque = clamp(-trunkPDControl - swingHipFlexionTorque, kp);
+
+    }
+    m_biped.addInForce(swing_hip_flexion, swingHipFlexionTorque, mobForces);
+    m_biped.addInForce(stance_hip_flexion, stanceHipFlexionTorque, mobForces);
+
+    // Torso and swing-hip control: global orientation.
+    // ================================================
+
 
     // Balance in the sagittal plane.
     /* TODO INCORRECT
@@ -1634,35 +1712,102 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         return force;
     }
     */
-    // Balance in the sagittal plane.
-    Real swingHipFlexionTorque;
-    Real stanceHipFlexionTorque;
-    {
-        // Create scope to scrap temporary variables that we use
-        // only to make the code clearer.
-        Real kp = m_proportionalGains.at(hip_flexion_adduction);
-        Real kd = m_derivativeGains.at(hip_flexion_adduction);
-        Real thetad = m_swh[stateIdx] +
-            m_cd[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure +
-            m_cv[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure;
-        Real theta = globalHipFlexionAngle;
-        Real thetadot =  globalHipFlexionRate;
-
-        swingHipFlexionTorque =
-            clamp(kp * (thetad - theta) + kd * thetadot, kp);
-
-        // We use 'trunk' instead of 'torso', which is used in the paper.
-        Real trunkPDControl = kp * (0.0 - globalHipFlexionAngle) - kd * globalHipFlexionRate;
-        stanceHipFlexionTorque = clamp(trunkPDControl - swingHipFlexionTorque, kp);
-
-    }
-    m_biped.addInForce(swing_hip_flexion, swingHipFlexionTorque, mobForces);
-    m_biped.addInForce(stance_hip_flexion, stanceHipFlexionTorque, mobForces);
 
 }
 
+void SIMBICON::computeGlobalRotationQuantities(const State& s,
+            const MobilizedBody* swingThigh,
+            Real& swingHipSagittalOrientation,
+            Real& swingHipCoronalOrientation,
+            Real& trunkSagittalOrientation,
+            Real& trunkCoronalOrientation,
+            Real& swingHipSagittalAngularVelocity,
+            Real& swingHipCoronalAngularVelocity,
+            Real& trunkSagittalAngularVelocity,
+            Real& trunkCoronalAngularVelocity) const
+{
+    // Quantities we use multiple times.
+    UnitVec3 sagittalNormal = m_biped.getNormalToSagittalPlane(s);
+    UnitVec3 coronalNormal = m_biped.getNormalToCoronalPlane(s);
+
+    Vec3 XinSag = cross(UnitVec3(YAxis), sagittalNormal);
+    Vec3 ZinCor = -cross(UnitVec3(YAxis), coronalNormal);
+
+    // Hip quantities.
+    Vec3 upThigh = swingThigh->getBodyRotation(s).y();
+
+    Vec3 projUpThighSag =
+        upThigh - dot(upThigh, sagittalNormal) * sagittalNormal;
+
+    swingHipSagittalOrientation =
+        acos(dot(projUpThighSag.normalize(), XinSag)) - 0.5 * Pi;
+
+    Vec3 projUpThighCor =
+        upThigh - dot(upThigh, coronalNormal) * coronalNormal;
+
+    swingHipCoronalOrientation =
+        acos(dot(projUpThighCor.normalize(), ZinCor)) - 0.5 * Pi;
+
+    // Torso quantities.
+    Vec3 upPelvis = m_biped.getBody(Biped::pelvis).getBodyRotation(s).y();
+
+    Vec3 projUpPelvisSag =
+        upPelvis - dot(upPelvis, sagittalNormal) * sagittalNormal;
+
+    trunkSagittalOrientation =
+        acos(dot(projUpPelvisSag.normalize(), XinSag)) - 0.5 * Pi;
+
+    Vec3 projUpPelvisCor =
+        upPelvis - dot(upPelvis, coronalNormal) * coronalNormal;
+
+    trunkCoronalOrientation =
+        acos(dot(projUpPelvisCor.normalize(), ZinCor)) - 0.5 * Pi;
+
+    // TODO
+    swingHipSagittalAngularVelocity = 0.0;
+    swingHipCoronalAngularVelocity = 0.0;
+    trunkSagittalAngularVelocity = 0.0;
+    trunkCoronalAngularVelocity = 0.0;
+
+}
 
 /* TODO
+    // Hip flexion and adduction.
+    // TODO UnitVec3 stanceThighAxialDir = stanceThigh->getBodyRotation(s).y();
+    Vec3 upThigh = swingThigh->getBodyRotation(s).y();
+    Vec3 XinSag = cross(UnitVec(YAxis), sagittalNormal);
+    Vec3 projUpThigh = upThigh - dot(upThigh, sagittalNormal) * sagittalNormal;
+    // TODO points distally proximally?
+    Real globalStanceHipFlexionAngle = acos(dot(projUpThigh.normalize(), XinSag)) - Pi/2;
+    Real globalStanceHipFlexionRate = stanceThigh->expressGroundVectorInBodyFrame(s,
+            stanceThigh->getBodyAngularVelocity(s))[ZAxis];
+
+    // Trunk extension.
+    const MobilizedBody* trunk = &m_biped.getBody(Biped::trunk);
+    // Directed distally.
+    UnitVec3 trunkAxialDir = m_biped.getBody(Biped::trunk).getBodyRotation(s).y();
+    UnitVec3 upPelvis = m_biped.getBody(Biped::pelvis).getBodyRotation(s).y();
+    Vec3 projUpPelvis = upPelvis - dot(upPelvis, sagittalNormal) * sagittalNormal;
+    // UnitVec3(YAxis) gives a vector perpendicular to ground, directed up.
+    Real globalTrunkExtensionAngle = acos(dot(projUpPelvis.normalize(), XinSag)) * Pi/2;
+    Real globalTrunkExtensionRate = trunk->expressGroundVectorInBodyFrame(s,
+            trunk->getBodyAngularVelocity(s))[ZAxis];
+    // TODO points distally proximally?
+    Real globalStanceHipFlexionAngle = acos(dot(projUpThigh.normalize(), XinSag)) - Pi/2;
+    Real globalStanceHipFlexionRate = stanceThigh->expressGroundVectorInBodyFrame(s,
+            stanceThigh->getBodyAngularVelocity(s))[ZAxis];
+
+    // Trunk extension.
+    const MobilizedBody* trunk = &m_biped.getBody(Biped::trunk);
+    // Directed distally.
+    UnitVec3 trunkAxialDir = m_biped.getBody(Biped::trunk).getBodyRotation(s).y();
+    UnitVec3 upPelvis = m_biped.getBody(Biped::pelvis).getBodyRotation(s).y();
+    Vec3 projUpPelvis = upPelvis - dot(upPelvis, sagittalNormal) * sagittalNormal;
+    // UnitVec3(YAxis) gives a vector perpendicular to ground, directed up.
+    Real globalTrunkExtensionAngle = acos(dot(projUpPelvis.normalize(), XinSag)) * Pi/2;
+    Real globalTrunkExtensionRate = trunk->expressGroundVectorInBodyFrame(s,
+            trunk->getBodyAngularVelocity(s))[ZAxis];
+
    shouldTerminate = false;
    bool lContact;
    bool rContact;
@@ -1683,3 +1828,6 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
 // TODO summary of important pieces of code.
 // TODO clean up model building
 // TODO initial simbicon state is -1?
+// TODO rename torso to trunk?
+// TODO rename hip to thigh?
+// TODO rename to ExampelSIMBICONWalkingController.cpp
