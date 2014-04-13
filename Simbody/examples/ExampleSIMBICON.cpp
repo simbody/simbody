@@ -468,38 +468,38 @@ private:
         return force;
     }
 
-    // The rotation quantities necessary for balance control. Since
-    // we are balancing in 3D, we also need rotation quantities out of the
-    // sagittal plane. The sagittal and coronal planes are defined relative to
-    // the pelvis.
-    //
-    // To learn how the sagittal and coronal planes are defined, see
-    // Biped::getNormalToSagittalPlane and Biped::getNormalToCoronalPlane.
-    //
-    // We define S as the vector pointing in the forward direction in the
-    // sagittal plane (lying along the line defined by the intersection of the
-    // sagittal plane and the ground plane).
-    //
-    // We define C as the vector pointed in the biped's right-ward direction
-    // projected into the coronal plane (lying along the line defined by
-    // the intersection of the coronal plane and the ground plane).
-    //
-    // @param[out] swingHipSagittalOrientation The angle
-    //      between vectors A and S minus Pi/2, where A is the long axis (y
-    //      axis) of the swing hip projected into the sagittal plane.
-    // @param[out] swingHipCoronalOrientation The angle between vectors A and C
-    //      minus Pi/2, where A is the long axis of the swing hip projected
-    //      into the coronal plane.
-    // @param[out] trunkSagittalOrientation The angle between vectors A and
-    //      S minus Pi/2, where A is the long axis of the trunk body (directed
-    //      superiorly) projected into the sagittal plane.
-    // @param[out] trunkCoronalOrientation The angle between vectors A and C
-    //      minus Pi/2, where A is the long axis of the trunk body projected
-    //      into the coronal plane.
-    // @param[out] swingHipSagittalAngularVelocity TODO
-    // @param[out] swingHipCoronalAngularVelocity TODO
-    // @param[out] trunkSagittalAngularVelocity TODO
-    // @param[out] trunkCoronalAngularVelocity TODO
+    /// The rotation quantities necessary for balance control. Since
+    /// we are balancing in 3D, we also need rotation quantities out of the
+    /// sagittal plane. The sagittal and coronal planes are defined relative to
+    /// the pelvis.
+    ///
+    /// To learn how the sagittal and coronal planes are defined, see
+    /// Biped::getNormalToSagittalPlane and Biped::getNormalToCoronalPlane.
+    ///
+    /// We define S as the vector pointing in the forward direction in the
+    /// sagittal plane (lying along the line defined by the intersection of the
+    /// sagittal plane and the ground plane).
+    ///
+    /// We define C as the vector pointed in the biped's right-ward direction
+    /// projected into the coronal plane (lying along the line defined by
+    /// the intersection of the coronal plane and the ground plane).
+    ///
+    /// @param[out] swingHipSagittalOrientation The angle
+    ///      between vectors A and S minus Pi/2, where A is the long axis (y
+    ///      axis) of the swing hip projected into the sagittal plane.
+    /// @param[out] swingHipCoronalOrientation The angle between vectors A and
+    ///      C minus Pi/2, where A is the long axis of the swing hip projected
+    ///      into the coronal plane.
+    /// @param[out] trunkSagittalOrientation The angle between vectors A and
+    ///      S minus Pi/2, where A is the long axis of the trunk body (directed
+    ///      superiorly) projected into the sagittal plane.
+    /// @param[out] trunkCoronalOrientation The angle between vectors A and C
+    ///      minus Pi/2, where A is the long axis of the trunk body projected
+    ///      into the coronal plane.
+    /// @param[out] swingHipSagittalAngularVelocity TODO
+    /// @param[out] swingHipCoronalAngularVelocity TODO
+    /// @param[out] trunkSagittalAngularVelocity TODO
+    /// @param[out] trunkCoronalAngularVelocity TODO
     void computeGlobalRotationQuantities(const State& s,
             const MobilizedBody* swingThigh,
             Real& swingHipSagittalOrientation,
@@ -599,7 +599,7 @@ int main(int argc, char **argv)
 
     // Set this < 1 for slow motion, > 1 for speedup.
     // 1.0 indicates real time.
-    const Real realTimeFactor = 1.0;
+    const Real realTimeFactor = 0.1;
 
     const Real framesPerSecond = 30.0;
 
@@ -1639,7 +1639,7 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     // ------------------------------
 
     // Trunk torque that will we will apply indirectly.
-    Real trunkPDControl;
+    Real trunkSagittalPDControl;
     {
         // Create scope to scrap temporary variables that we use
         // only to make the code clearer.
@@ -1649,10 +1649,10 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         Real thetades = 0.0;
         Real theta = trunkSagittalOrientation;
         Real thetadot = trunkSagittalAngularVelocity;
-        trunkPDControl = kp * (thetades - theta) - kd * thetadot;
+        trunkSagittalPDControl = kp * (thetades - theta) - kd * thetadot;
     }
 
-    // Stance hip flexion and swing hip flexion torues that we actually apply.
+    // Stance hip flexion and swing hip flexion torques that we actually apply.
     Real swingHipFlexionTorque;
     Real stanceHipFlexionTorque;
     {
@@ -1660,18 +1660,58 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         Real kd = m_derivativeGains.at(hip_flexion_adduction);
         Real thetades = m_swh[stateIdx] +
             m_cd[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure +
-            m_cv[stateIdx] * massCenterLocFromStanceAnkleForwardMeasure;
+            m_cv[stateIdx] * massCenterVelFromStanceAnkleForwardMeasure;
         Real theta = swingHipSagittalOrientation;
         Real thetadot =  swingHipSagittalAngularVelocity;
 
         swingHipFlexionTorque =
             clamp(kp * (thetades - theta) - kd * thetadot, kp);
 
-        stanceHipFlexionTorque = clamp(-trunkPDControl - swingHipFlexionTorque, kp);
+        stanceHipFlexionTorque =
+            clamp(-trunkSagittalPDControl - swingHipFlexionTorque, kp);
 
     }
     m_biped.addInForce(swing_hip_flexion, swingHipFlexionTorque, mobForces);
     m_biped.addInForce(stance_hip_flexion, stanceHipFlexionTorque, mobForces);
+
+    // Balance in the coronal plane.
+    // -----------------------------
+
+    // Trunk torque that we will apply indirectly.
+    Real trunkCoronalPDControl;
+    {
+        Real kp = m_proportionalGains.at(hip_flexion_adduction);
+        Real kd = m_derivativeGains.at(hip_flexion_adduction);
+        Real thetades = 0.0;
+        Real theta = trunkCoronalOrientation;
+        Real thetadot = trunkCoronalAngularVelocity;
+        trunkCoronalOrientation = kp * (thetades - theta) - kd * thetadot;
+    }
+
+    // Stance hip adduction and swing hip adduction torques that we actually
+    // apply.
+    Real swingHipAdductionTorque;
+    Real stanceHipAdductionTorque;
+    {
+        Real kp = m_proportionalGains.at(hip_flexion_adduction);
+        Real kd = m_derivativeGains.at(hip_flexion_adduction);
+        Real thetades = 0.0 +
+            m_cdLat[stateIdx] * massCenterLocFromStanceAnkleLateralMeasure +
+            m_cvLat[stateIdx] * massCenterVelFromStanceAnkleLateralMeasure;
+        Real theta = swingHipCoronalOrientation;
+        Real thetadot = swingHipCoronalAngularVelocity;
+
+        swingHipAdductionTorque =
+            clamp(kd * (thetades - theta) - kd * thetadot, kp);
+
+        stanceHipAdductionTorque =
+            clamp(-trunkCoronalPDControl - swingHipAdductionTorque, kp);
+    }
+    m_biped.addInForce(swing_hip_adduction, swingHipAdductionTorque, mobForces);
+    m_biped.addInForce(stance_hip_adduction, stanceHipAdductionTorque, mobForces);
+
+
+
 
     // Torso and swing-hip control: global orientation.
     // ================================================
