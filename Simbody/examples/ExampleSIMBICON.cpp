@@ -1289,12 +1289,6 @@ SIMBICON::SIMBICON(Biped& biped,
       m_swk(swk), m_swa(swa), m_stk(stk), m_sta(sta)
 
 {
-
-    // Hook up with the model.
-    // -----------------------
-/*
-            */
-
     // Proportional (position) gains (kp).
     m_proportionalGains[default_gains] = 300;
     m_proportionalGains[neck] = 100;
