@@ -1670,6 +1670,7 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     // Balance in the coronal plane.
     // -----------------------------
 
+    /*
     // Trunk torque that we will apply indirectly.
     Real trunkCoronalPDControl;
     {
@@ -1702,6 +1703,7 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     }
     m_biped.addInForce(swing_hip_adduction, swingHipAdductionTorque, mobForces);
     m_biped.addInForce(stance_hip_adduction, stanceHipAdductionTorque, mobForces);
+    */
 
 
 
@@ -1749,6 +1751,8 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
 
 }
 
+// TODO
+Real last_time = 0.0;
 void SIMBICON::computeGlobalRotationQuantities(const State& s,
             const MobilizedBody* swingThigh,
             Real& swingHipSagittalOrientation,
@@ -1823,6 +1827,20 @@ void SIMBICON::computeGlobalRotationQuantities(const State& s,
 
     trunkSagittalAngularVelocity = trunkGroundAngVelExpressedInPelvis[ZAxis];
     trunkCoronalAngularVelocity = trunkGroundAngVelExpressedInPelvis[XAxis];
+
+    if (last_time + 0.01 < s.getTime())
+            {
+                std::cout << swingHipSagittalOrientation << " " <<
+            swingHipCoronalOrientation << " " <<
+            trunkSagittalOrientation << " " <<
+            trunkCoronalOrientation << std::endl;
+//            swingHipSagittalAngularVelocity,
+//            swingHipCoronalAngularVelocity,
+//            trunkSagittalAngularVelocity,
+//            trunkCoronalAngularVelocity 
+
+            last_time = s.getTime();
+            }
 
 }
 
