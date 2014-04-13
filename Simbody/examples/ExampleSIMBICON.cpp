@@ -205,11 +205,12 @@ public:
     void addInForce(const Coordinate coord, const Real force,
             Vector& mobForces) const {
         Real forceAccountingForSymmetry = force;
-        if (coord == hip_r_adduction) {
-            // Negate so that we actually apply an adduction torque (not an
-            // abduction torque).
-            forceAccountingForSymmetry *= -1;
-        }
+        // TODO
+        //if (coord == hip_r_adduction) {
+        //    // Negate so that we actually apply an adduction torque (not an
+        //    // abduction torque).
+        //    forceAccountingForSymmetry *= -1;
+        //}
         mobForces[getUIndex(coord)] += forceAccountingForSymmetry;
     }
 
@@ -1530,6 +1531,8 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
     Biped::Coordinate stance_hip_flexion;
     Biped::Coordinate stance_hip_adduction;
     const MobilizedBody* stanceFoot;
+
+    double sign;
     if (simbiconState == STATE0 || simbiconState == STATE1)
     {
         // Left leg is in stance.
@@ -1542,6 +1545,9 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         stance_hip_adduction = Biped::hip_r_adduction;
 
         stanceFoot = &m_biped.getBody(Biped::foot_l);
+
+        // TODO
+        sign = -1.0;
     }
     else if (simbiconState == STATE2 || simbiconState == STATE3)
     {
@@ -1555,6 +1561,9 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         stance_hip_adduction = Biped::hip_r_adduction;
 
         stanceFoot = &m_biped.getBody(Biped::foot_r);
+
+        // TODO
+        sign = 1.0;
     }
     else throw;
 
@@ -1685,7 +1694,7 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         Real thetades = 0.0;
         Real theta = trunkCoronalOrientation;
         Real thetadot = trunkCoronalAngularVelocity;
-        trunkCoronalOrientation = kp * (thetades - theta) - kd * thetadot;
+        trunkCoronalOrientation = sign * (kp * (thetades - theta) - kd * thetadot);
     }
 
     // Stance hip adduction and swing hip adduction torques that we actually
@@ -1702,7 +1711,7 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
         Real thetadot = swingHipCoronalAngularVelocity;
 
         swingHipAdductionTorque =
-            clamp(kd * (thetades - theta) - kd * thetadot, kp);
+            sign * clamp(kd * (thetades - theta) - kd * thetadot, kp);
 
         stanceHipAdductionTorque =
             clamp(-trunkCoronalPDControl - swingHipAdductionTorque, kp);
