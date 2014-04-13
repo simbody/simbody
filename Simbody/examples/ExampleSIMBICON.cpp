@@ -1430,6 +1430,9 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
     coordPDControl(s, Biped::shoulder_l_rotation, arm_rotation, 0.0, mobForces);
     coordPDControl(s, Biped::elbow_r_rotation, arm_rotation, 0.0, mobForces);
     coordPDControl(s, Biped::elbow_l_rotation, arm_rotation, 0.0, mobForces);
+
+    coordPDControl(s, Biped::hip_r_adduction, hip_flexion_adduction, 0.0, mobForces);
+    coordPDControl(s, Biped::hip_l_adduction, hip_flexion_adduction, 0.0, mobForces);
     coordPDControl(s, Biped::hip_r_rotation, hip_rotation, 0.0, mobForces);
     coordPDControl(s, Biped::hip_l_rotation, hip_rotation, 0.0, mobForces);
 
@@ -1461,7 +1464,7 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
         {
             // Left leg is in stance.
             swing_hip_flexion = Biped::hip_r_flexion;
-            swing_hip_adduction = Biped::hip_r_adduction;
+            swing_hip_adduction = Biped::hip_r_adduction; // TODO
             swing_knee_extension = Biped::knee_r_extension;
             swing_ankle_dorsiflexion = Biped::ankle_r_dorsiflexion;
 
