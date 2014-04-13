@@ -399,7 +399,7 @@ public:
     {
         updateSIMBICONState(s);
         addInPDControl(s, mobilityForces);
-        addInBalanceControl(s, mobilityForces);
+        //addInBalanceControl(s, mobilityForces);
     }
 
     Real calcPotentialEnergy(const State& state) const OVERRIDE_11
@@ -1518,6 +1518,7 @@ void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
 {
     const SIMBICONState simbiconState = getSIMBICONState(s);
 
+    // Don't apply balance control unless we've entered the state machine.
     if (simbiconState == UNKNOWN) return;
 
     // Which leg is in stance, etc.?
