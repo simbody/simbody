@@ -399,7 +399,7 @@ public:
     {
         updateSIMBICONState(s);
         addInPDControl(s, mobilityForces);
-        //addInBalanceControl(s, mobilityForces);
+        addInBalanceControl(s, mobilityForces);
     }
 
     Real calcPotentialEnergy(const State& state) const OVERRIDE_11
@@ -1765,10 +1765,31 @@ void SIMBICON::computeGlobalRotationQuantities(const State& s,
         acos(dot(projUpPelvisCor.normalize(), ZinCor)) - 0.5 * Pi;
 
     // TODO
-    swingHipSagittalAngularVelocity = 0.0;
-    swingHipCoronalAngularVelocity = 0.0;
-    trunkSagittalAngularVelocity = 0.0;
-    trunkCoronalAngularVelocity = 0.0;
+    // 'GroundAngVel' indicates that the angular velocity is relative to the
+    // ground frame.
+    const MobilizedBody& pelvis = m_biped.getBody(Biped::pelvis);
+
+    Vec3 swingThighGroundAngVelExpressedInSwingThigh =
+        swingThigh->expressGroundVectorInBodyFrame(s,
+                swingThigh->getBodyAngularVelocity(s));
+    Vec3 swingThighGroundAngVelExpressedInPelvis =
+        swingThigh->expressVectorInAnotherBodyFrame(s,
+                swingThighGroundAngVelExpressedInSwingThigh, pelvis);
+
+    swingHipSagittalAngularVelocity = swingThighGroundAngVelExpressedInPelvis[ZAxis];
+    swingHipCoronalAngularVelocity = swingThighGroundAngVelExpressedInPelvis[XAxis];
+
+    const MobilizedBody* trunk = &m_biped.getBody(Biped::trunk);
+
+    Vec3 trunkGroundAngVelExpressedInTrunk =
+        trunk->expressGroundVectorInBodyFrame(s,
+                trunk->getBodyAngularVelocity(s));
+    Vec3 trunkGroundAngVelExpressedInPelvis =
+        trunk->expressVectorInAnotherBodyFrame(s,
+                trunkGroundAngVelExpressedInTrunk, pelvis);
+
+    trunkSagittalAngularVelocity = trunkGroundAngVelExpressedInPelvis[ZAxis];
+    trunkCoronalAngularVelocity = trunkGroundAngVelExpressedInPelvis[XAxis];
 
 }
 
@@ -1806,6 +1827,7 @@ void SIMBICON::computeGlobalRotationQuantities(const State& s,
     Vec3 projUpPelvis = upPelvis - dot(upPelvis, sagittalNormal) * sagittalNormal;
     // UnitVec3(YAxis) gives a vector perpendicular to ground, directed up.
     Real globalTrunkExtensionAngle = acos(dot(projUpPelvis.normalize(), XinSag)) * Pi/2;
+    const MobilizedBody* trunk = &m_biped.getBody(Biped::trunk);
     Real globalTrunkExtensionRate = trunk->expressGroundVectorInBodyFrame(s,
             trunk->getBodyAngularVelocity(s))[ZAxis];
 
