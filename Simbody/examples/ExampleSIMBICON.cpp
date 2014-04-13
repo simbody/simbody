@@ -410,6 +410,7 @@ public:
 
     /// Used to identify gains for different parts of the body.
     enum GainGroup {
+        default_gains,
         neck,
         back,
         hip_flexion_adduction,
@@ -1295,6 +1296,7 @@ SIMBICON::SIMBICON(Biped& biped,
             */
 
     // Proportional (position) gains (kp).
+    m_proportionalGains[default_gains] = 300;
     m_proportionalGains[neck] = 100;
     m_proportionalGains[back] = 300;
     m_proportionalGains[hip_flexion_adduction] = 1000;
@@ -1307,6 +1309,8 @@ SIMBICON::SIMBICON(Biped& biped,
     m_proportionalGains[toe] = 30;
 
     // Derivative (speed) gains; mostly chosen for critical damping.
+    m_derivativeGains[default_gains] = criticallyDampedDerivativeGain(
+            m_proportionalGains[default_gains]);
     m_derivativeGains[neck] = criticallyDampedDerivativeGain(
             m_proportionalGains[neck]);
     m_derivativeGains[back] = criticallyDampedDerivativeGain(
@@ -1431,8 +1435,10 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
     coordPDControl(s, Biped::elbow_r_rotation, arm_rotation, 0.0, mobForces);
     coordPDControl(s, Biped::elbow_l_rotation, arm_rotation, 0.0, mobForces);
 
-    coordPDControl(s, Biped::hip_r_adduction, hip_flexion_adduction, 0.0, mobForces);
-    coordPDControl(s, Biped::hip_l_adduction, hip_flexion_adduction, 0.0, mobForces);
+    coordPDControl(s, Biped::hip_r_flexion, default_gains, 0.0, mobForces);
+    coordPDControl(s, Biped::hip_l_flexion, default_gains, 0.0, mobForces);
+    coordPDControl(s, Biped::hip_r_adduction, default_gains, 0.0, mobForces);
+    coordPDControl(s, Biped::hip_l_adduction, default_gains, 0.0, mobForces);
     coordPDControl(s, Biped::hip_r_rotation, hip_rotation, 0.0, mobForces);
     coordPDControl(s, Biped::hip_l_rotation, hip_rotation, 0.0, mobForces);
 
@@ -1442,18 +1448,14 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
     coordPDControl(s, Biped::mtp_r_dorsiflexion, toe, 0.0, mobForces);
     coordPDControl(s, Biped::mtp_l_dorsiflexion, toe, 0.0, mobForces);
 
-    // Deal with limbs whose target angle is affected by the state machine.
-    // ====================================================================
+    // Coordinates whose target angle is affected by the state machine.
+    // ================================================================
 
     // Which leg is in stance?
     // -----------------------
-    Biped::Coordinate swing_hip_flexion;
-    Biped::Coordinate swing_hip_adduction;
     Biped::Coordinate swing_knee_extension;
     Biped::Coordinate swing_ankle_dorsiflexion;
 
-    Biped::Coordinate stance_hip_flexion;
-    Biped::Coordinate stance_hip_adduction;
     Biped::Coordinate stance_knee_extension;
     Biped::Coordinate stance_ankle_dorsiflexion;
 
@@ -1463,33 +1465,23 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
         if (simbiconState == STATE0 || simbiconState == STATE1)
         {
             // Left leg is in stance.
-            swing_hip_flexion = Biped::hip_r_flexion;
-            swing_hip_adduction = Biped::hip_r_adduction; // TODO
             swing_knee_extension = Biped::knee_r_extension;
             swing_ankle_dorsiflexion = Biped::ankle_r_dorsiflexion;
 
-            stance_hip_flexion = Biped::hip_l_flexion;
-            stance_hip_adduction = Biped::hip_l_adduction;
             stance_knee_extension = Biped::knee_l_extension;
             stance_ankle_dorsiflexion = Biped::ankle_l_dorsiflexion;
         }
         else if (simbiconState == STATE2 || simbiconState == STATE3)
         {
             // Right leg is in stance.
-            swing_hip_flexion = Biped::hip_l_flexion;
-            swing_hip_adduction = Biped::hip_l_adduction;
             swing_knee_extension = Biped::knee_l_extension;
             swing_ankle_dorsiflexion = Biped::ankle_l_dorsiflexion;
 
-            stance_hip_flexion = Biped::hip_r_flexion;
             // TODO
-            stance_hip_adduction = Biped::hip_r_adduction;
             stance_knee_extension = Biped::knee_r_extension;
             stance_ankle_dorsiflexion = Biped::ankle_r_dorsiflexion;
         }
 
-        // Apply swing/stance-dependent PD control to lower limb sagittal coords
-        // ---------------------------------------------------------------------
         // simbiconState stateIdx
         // ------------- --------
         // 0             0
@@ -1497,9 +1489,6 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
         // 2             0
         // 3             1
         const int stateIdx = simbiconState % 2;
-        // Swing.
-        coordPDControl(s, swing_hip_flexion, hip_flexion_adduction,
-                m_swh[stateIdx], mobForces);
         // TODO
         //coordPDControl(s, swing_hip_adduction, hip_flexion_adduction,
         //        0.0, mobForces);
@@ -1508,14 +1497,12 @@ void SIMBICON::addInPDControl(const State& s, Vector& mobForces) const
         coordPDControl(s, swing_ankle_dorsiflexion, ankle_flexion,
                 m_swa[stateIdx], mobForces);
 
-        // Stance. No hip, since stance hip is used for balance.
+        // Stance. No hip, since stance hip is used for balance. TODO true?
         coordPDControl(s, stance_knee_extension, knee,
                 m_stk[stateIdx], mobForces);
         coordPDControl(s, stance_ankle_dorsiflexion, ankle_flexion,
                 m_sta[stateIdx], mobForces);
     }
-
-    // TODO stance hip adduction shouldn't exist.
 }
 
 void SIMBICON::addInBalanceControl(const State& s, Vector& mobForces) const
@@ -1906,3 +1893,4 @@ void SIMBICON::computeGlobalRotationQuantities(const State& s,
 // TODO rename torso to trunk?
 // TODO rename hip to thigh?
 // TODO rename to ExampelSIMBICONWalkingController.cpp
+// TODO if com is belo 0.7 don't apply controls.
