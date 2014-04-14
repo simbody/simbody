@@ -2736,7 +2736,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const
+    const OVERRIDE_11
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
@@ -2758,7 +2758,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const 
+    const OVERRIDE_11 
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
 
@@ -2785,32 +2785,44 @@ void calcPositionDotErrorsVirtual
 //    --------------------------------------------------------------
 //    aerr = ~a_SF*Pz = ~((a_AF-a_AC) - 2 w_AS X (v_AF-v_AC)) * Pz_A
 //    --------------------------------------------------------------
-
-// TODO: rework this using the more efficient API (see above and VelocityDot method).
 void calcPositionDotDotErrorsVirtual      
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const
+    const OVERRIDE_11
 {
-    assert(A_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size() == 1);
+    assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==1);
 
-    const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
-    const Vec3 p_AF = 
-        findStationLocationFromState(s, m_followerBody_B, m_p_BF); // 18 flops
-    const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
-    const UnitVec3 Pz_A  = X_AS.R() * m_X_SP.z();                  // 15 flops
+    const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const SpatialVec& V_AS = getBodyVelocityFromState(s, m_surfaceBody_S);
+    const SpatialVec& A_AS = allA_AB[m_surfaceBody_S];
 
-    const Vec3& w_AS = getBodyAngularVelocityFromState(s,m_surfaceBody_S);
-    // 54 flops for the two of these
-    const Vec3 v_AF = findStationVelocityFromState(s,m_followerBody_B,m_p_BF);
-    const Vec3 v_AC = findStationVelocityFromState(s,m_surfaceBody_S,p_SC);
-    // 96 flops for the two of these
-    const Vec3 a_AF = findStationAcceleration(s,A_AB,m_followerBody_B,m_p_BF);
-    const Vec3 a_AC = findStationAcceleration(s,A_AB,m_surfaceBody_S,p_SC);
+    const Transform&  X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const SpatialVec& V_AB = getBodyVelocityFromState(s, m_followerBody_B);
+    const SpatialVec& A_AB = allA_AB[m_followerBody_B];
 
-    paerr[0] = dot( (a_AF-a_AC) - 2.*w_AS % (v_AF-v_AC), Pz_A ); // 26 flops
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    Vec3 p_AF, v_AF, a_AF;
+    findStationInALocationVelocityAcceleration(X_AB, V_AB, A_AB, p_BF_A,
+                                               p_AF, v_AF, a_AF); // 39 flops
+
+    const Vec3 p_SC_A = p_AF - X_AS.p(); // measure C from So, in A  (3 flops)
+    Vec3 p_AC, v_AC, a_AC;
+    findStationInALocationVelocityAcceleration(X_AS, V_AS, A_AS, p_SC_A,
+                                               p_AC, v_AC, a_AC); // 39 flops
+
+    const UnitVec3 Pz_A  = X_AS.R() * m_X_SP.z();                 // 15 flops
+
+    const Vec3& w_AS = V_AS[0];
+    const Vec3 v_CF_A = v_AF-v_AC;          // 3 flops
+    const Vec3 wXv2 = (2.*w_AS) % v_CF_A;   // 12 flops
+    const Vec3 a_CF_A = a_AF-a_AC;          // 3 flops
+    const Vec3 aRel_A = a_CF_A - wXv2; // relative accel of F and C  (3 flops)
+
+    // Calculate this scalars using A-frame vectors, but the result is the
+    // measure number along Pz.
+    paerr[0] = ~Pz_A*aRel_A;                // 5 flops
 }
 
 // apply f=lambda*Pz to the follower point F of body B,
@@ -2820,7 +2832,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
+    const OVERRIDE_11
 {
     assert(multipliers.size()==1 && bodyForcesInA.size()==2 
            && qForces.size()==0);
@@ -2853,7 +2865,7 @@ void calcVelocityErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
-    const
+    const OVERRIDE_11
 {
     assert(allV_AB.size()==2 && constrainedU.size()==0 && verr.size()==2);
 
@@ -2885,7 +2897,7 @@ void calcVelocityDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
-    const
+    const OVERRIDE_11
 {
     assert(allA_AB.size()==2 && constrainedUDot.size()==0 && vaerr.size()==2);
 
@@ -2929,7 +2941,8 @@ void addInVelocityConstraintForcesVirtual
    (const State&                                    s,      // Stage::Velocity
     const Array_<Real>&                             multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) const
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    const OVERRIDE_11
 {
     assert(multipliers.size()==2 && mobilityForces.size()==0 
            && bodyForcesInA.size()==2);
