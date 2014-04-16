@@ -357,16 +357,20 @@ void testDisabling() {
 }
 
 int main() {
+	std::chrono::high_resolution_clock::time_point m_timestamp = std::chrono::high_resolution_clock::now();
     try {
-        testStandardForces();
-        testEnergyConservation();
-        testCustomRealization();
+		testStandardForces();
+		testEnergyConservation();
+		testCustomRealization();
         testDisabling();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
     }
-    cout << "Done" << endl;
+
+	std::chrono::duration<float> fs = std::chrono::high_resolution_clock::now() - m_timestamp;
+
+    cout << "Done [" << fs.count() << "]" << endl;
     return 0;
 }

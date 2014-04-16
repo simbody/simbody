@@ -48,9 +48,27 @@ namespace SimTK {
 // use of this service.
 class GeneralForceSubsystemRep : public ForceSubsystem::Guts {
 public:
-    GeneralForceSubsystemRep()
-     : ForceSubsystemRep("GeneralForceSubsystem", "0.0.1")
+	GeneralForceSubsystemRep()
+		: ForceSubsystemRep("GeneralForceSubsystem", "0.0.1")
     {
+		work_queue = new ParallelWorkQueue11(4);
+
+		rigidBodyForcesPool = new ObjectPool<Vector_<SpatialVec>>();
+		particleForcesPool = new ObjectPool<Vector_<Vec3>>;
+		mobilityForcesPool = new ObjectPool<Vector>();
+
+		rigidBodyForcesCachePool = new ObjectPool<Vector_<SpatialVec>>();
+		particleForcesCachePool = new ObjectPool<Vector_<Vec3>>;
+		mobilityForcesCachePool = new ObjectPool<Vector>();
+
+		rigidBodyForcesPool->initialize(4);
+		particleForcesPool->initialize(4);
+		mobilityForcesPool->initialize(4);
+
+		rigidBodyForcesCachePool->initialize(4);
+		particleForcesCachePool->initialize(4);
+		mobilityForcesCachePool->initialize(4);
+
     }
     
     ~GeneralForceSubsystemRep() {
@@ -65,7 +83,7 @@ public:
         forces.push_back(new Force()); // grow
         Force& f = *forces.back(); // refer to the empty handle we just created
         force.disown(f); // transfer ownership to f
-        return index;
+		return index;
     }
     
     int getNumForces() const {
@@ -220,22 +238,96 @@ public:
         Vector&                mobilityForces  = 
                                     mbs.updMobilityForces (s, Stage::Dynamics);
 
+		for (Vector_<SpatialVec>* vec : rigidBodyForcesPool->list())
+		{
+			vec->resize(matter.getNumBodies());
+			*vec = SpatialVec(Vec3(0), Vec3(0));
+		}
+		for (Vector_<Vec3>* vec : particleForcesPool->list())
+		{
+			vec->resize(matter.getNumParticles());
+			*vec = Vec3(0);
+		}
+		for (Vector* vec : mobilityForcesPool->list())
+		{
+			vec->resize(matter.getNumMobilities());
+			*vec = 0;
+		}
+
         // Short circuit if we're not doing any caching here. Note that we're
         // checking whether the *index* is valid (i.e. does the cache entry
         // exist?), not the contents.
-        if (!cachedForcesAreValidCacheIndex.isValid()) {
+        if (true) { // (!cachedForcesAreValidCacheIndex.isValid()) {
             for (int i = 0; i < (int)forces.size(); ++i) {
-                if (forceEnabled[i]) 
-                    forces[i]->getImpl().calcForce
-                       (s, rigidBodyForces, particleForces, mobilityForces);
+				if (forceEnabled[i])
+				if (forces[i]->getImpl().shouldBeParallelized())
+					work_queue->push(
+					[this, &s, i]
+				{
+							Vector_<SpatialVec>* rigidBodyForce = this->rigidBodyForcesPool->get();
+							Vector_<Vec3>* particleForce = this->particleForcesPool->get();
+							Vector* mobilityForce = this->mobilityForcesPool->get();
+
+							this->forces[i]->getImpl().calcForce
+								(s, *rigidBodyForce, *particleForce, *mobilityForce);
+
+							this->rigidBodyForcesPool->push(rigidBodyForce);
+							this->particleForcesPool->push(particleForce);
+							this->mobilityForcesPool->push(mobilityForce);
+						}
+					);
             }
+
+			work_queue->push([this, &forceEnabled, &s] {
+				
+				Vector_<SpatialVec>* rigidBodyForce = this->rigidBodyForcesPool->get();
+				Vector_<Vec3>* particleForce = this->particleForcesPool->get();
+				Vector* mobilityForce = this->mobilityForcesPool->get();
+
+				for (int i = 0; i < (int)this->forces.size(); ++i)
+				if (forceEnabled[i])
+				if (!forces[i]->getImpl().shouldBeParallelized())
+					forces[i]->getImpl().calcForce
+					(s, *rigidBodyForce, *particleForce, *mobilityForce);
+
+				this->rigidBodyForcesPool->push(rigidBodyForce);
+				this->particleForcesPool->push(particleForce);
+				this->mobilityForcesPool->push(mobilityForce);
+
+			});
+
+			work_queue->execute();
+
+			for (Vector_<SpatialVec>* vec : rigidBodyForcesPool->list())
+				rigidBodyForces += *vec;
+			for (Vector_<Vec3>* vec : particleForcesPool->list())
+				particleForces += *vec;
+			for (Vector* vec : mobilityForcesPool->list())
+				mobilityForces += *vec;
 
             // Allow forces to do their own realization, but wait until all
             // forces have executed calcForce(). TODO: not sure if that is
             // necessary (sherm 20130716).
             for (int i = 0; i < (int)forces.size(); ++i)
-                if (forceEnabled[i]) 
-                    forces[i]->getImpl().realizeDynamics(s);     
+            if (forceEnabled[i]) 
+			if (forces[i]->getImpl().shouldBeParallelized())
+				work_queue->push([this, &s, i]
+				{
+					this->forces[i]->getImpl().realizeDynamics(s);
+				}
+				);
+			
+			work_queue->push([this, &forceEnabled, &s] {
+						
+				for (int i = 0; i < (int)this->forces.size(); ++i)
+				if (forceEnabled[i])
+				if (!forces[i]->getImpl().shouldBeParallelized())
+					forces[i]->getImpl().realizeDynamics(s);
+					
+			});
+
+			work_queue->execute();
+
             return 0;
         }
 
@@ -256,7 +348,24 @@ public:
                                  (updCacheEntry(s, mobilityForceCacheIndex));
 
 
-        if (!cachedForcesAreValid) {
+		if (!cachedForcesAreValid) {
+
+			for (Vector_<SpatialVec>* vec : rigidBodyForcesCachePool->list())
+			{
+				vec->resize(matter.getNumBodies());
+				*vec = SpatialVec(Vec3(0), Vec3(0));
+			}
+			for (Vector_<Vec3>* vec : particleForcesCachePool->list())
+			{
+				vec->resize(matter.getNumParticles());
+				*vec = Vec3(0);
+			}
+			for (Vector* vec : mobilityForcesCachePool->list())
+			{
+				vec->resize(matter.getNumMobilities());
+				*vec = 0;
+			}
+
             // We need to calculate the velocity independent forces.
             rigidBodyForceCache.resize(matter.getNumBodies());
             rigidBodyForceCache = SpatialVec(Vec3(0), Vec3(0));
@@ -265,28 +374,152 @@ public:
             mobilityForceCache.resize(matter.getNumMobilities());
             mobilityForceCache = 0;
 
-            // Run through all the forces, accumulating directly into the
-            // force arrays or indirectly into the cache as appropriate.
-            for (int i = 0; i < (int) forces.size(); ++i) {
-                if (!forceEnabled[i]) continue;
-                const ForceImpl& impl = forces[i]->getImpl();
-                if (impl.dependsOnlyOnPositions())
-                    impl.calcForce(s, rigidBodyForceCache, particleForceCache, 
-                                      mobilityForceCache);
-                else // ordinary velocity dependent force
-                    impl.calcForce(s, rigidBodyForces, particleForces, 
-                                      mobilityForces);
-            }
-            cachedForcesAreValid = true;
+
+			for (int i = 0; i < (int)forces.size(); ++i) {
+				if (forceEnabled[i])
+				if (forces[i]->getImpl().shouldBeParallelized())
+					work_queue->push(
+					[this, &s, i]
+				{
+					const ForceImpl& impl = forces[i]->getImpl();
+					
+					Vector_<SpatialVec>* rigidBodyForce;
+					Vector_<Vec3>* particleForce;
+					Vector* mobilityForce;
+
+					if (impl.dependsOnlyOnPositions())
+					{
+						rigidBodyForce = this->rigidBodyForcesCachePool->get();
+						particleForce = this->particleForcesCachePool->get();
+						mobilityForce = this->mobilityForcesCachePool->get();
+					}
+					else
+					{
+						rigidBodyForce = this->rigidBodyForcesPool->get();
+						particleForce = this->particleForcesPool->get();
+						mobilityForce = this->mobilityForcesPool->get();
+					}
+
+					impl.calcForce
+						(s, *rigidBodyForce, *particleForce, *mobilityForce);
+
+					if (impl.dependsOnlyOnPositions())
+					{
+						this->rigidBodyForcesCachePool->push(rigidBodyForce);
+						this->particleForcesCachePool->push(particleForce);
+						this->mobilityForcesCachePool->push(mobilityForce);
+					}
+					else
+					{
+						this->rigidBodyForcesPool->push(rigidBodyForce);
+						this->particleForcesPool->push(particleForce);
+						this->mobilityForcesPool->push(mobilityForce);
+					}
+				}
+				);
+			}
+
+			work_queue->push([this, &forceEnabled, &s] {
+
+				Vector_<SpatialVec>* rigidBodyForce = this->rigidBodyForcesPool->get();
+				Vector_<Vec3>* particleForce = this->particleForcesPool->get();
+				Vector* mobilityForce = this->mobilityForcesPool->get();
+
+				Vector_<SpatialVec>* rigidBodyCacheForce = this->rigidBodyForcesCachePool->get();
+				Vector_<Vec3>* particleCacheForce = this->particleForcesCachePool->get();
+				Vector* mobilityCacheForce = this->mobilityForcesCachePool->get();
+
+				for (int i = 0; i < (int)this->forces.size(); ++i)
+				if (forceEnabled[i])
+				if (!forces[i]->getImpl().shouldBeParallelized())
+				{
+					const ForceImpl& impl = forces[i]->getImpl();
+					if (impl.dependsOnlyOnPositions())
+						impl.calcForce(s, *rigidBodyCacheForce, *particleCacheForce,
+						*mobilityCacheForce);
+					else // ordinary velocity dependent force
+						impl.calcForce(s, *rigidBodyForce, *particleForce,
+						*mobilityForce);
+				}
+
+				this->rigidBodyForcesPool->push(rigidBodyForce);
+				this->particleForcesPool->push(particleForce);
+				this->mobilityForcesPool->push(mobilityForce);
+
+				this->rigidBodyForcesCachePool->push(rigidBodyCacheForce);
+				this->particleForcesCachePool->push(particleCacheForce);
+				this->mobilityForcesCachePool->push(mobilityCacheForce);
+
+			});
+
+			work_queue->execute();
+
+			for (Vector_<SpatialVec>* vec : rigidBodyForcesCachePool->list())
+				rigidBodyForceCache += *vec;
+			for (Vector_<Vec3>* vec : particleForcesCachePool->list())
+				particleForceCache += *vec;
+			for (Vector* vec : mobilityForcesCachePool->list())
+				mobilityForceCache += *vec;
+
+			for (Vector_<SpatialVec>* vec : rigidBodyForcesPool->list())
+				rigidBodyForces += *vec;
+			for (Vector_<Vec3>* vec : particleForcesPool->list())
+				particleForces += *vec;
+			for (Vector* vec : mobilityForcesPool->list())
+				mobilityForces += *vec;
+
+			cachedForcesAreValid = true;
         } else {
-            // Cache already valid; just need to do the non-cached ones.
-            for (int i = 0; i < (int) forces.size(); ++i) {
-                if (!forceEnabled[i]) continue;
-                const ForceImpl& impl = forces[i]->getImpl();
-                if (!impl.dependsOnlyOnPositions())
-                    impl.calcForce(s, rigidBodyForces, particleForces, 
-                                      mobilityForces);
-            }
+
+			for (int i = 0; i < (int)forces.size(); ++i) {
+				if (forceEnabled[i])
+				if (!forces[i]->getImpl().dependsOnlyOnPositions())
+				if (forces[i]->getImpl().shouldBeParallelized())
+					work_queue->push(
+					[this, &s, i]
+				{
+					Vector_<SpatialVec>* rigidBodyForce = this->rigidBodyForcesPool->get();
+					Vector_<Vec3>* particleForce = this->particleForcesPool->get();
+					Vector* mobilityForce = this->mobilityForcesPool->get();
+
+					this->forces[i]->getImpl().calcForce
+						(s, *rigidBodyForce, *particleForce, *mobilityForce);
+
+					this->rigidBodyForcesPool->push(rigidBodyForce);
+					this->particleForcesPool->push(particleForce);
+					this->mobilityForcesPool->push(mobilityForce);
+				}
+				);
+			}
+
+			work_queue->push([this, &forceEnabled, &s] {
+
+				Vector_<SpatialVec>* rigidBodyForce = this->rigidBodyForcesPool->get();
+				Vector_<Vec3>* particleForce = this->particleForcesPool->get();
+				Vector* mobilityForce = this->mobilityForcesPool->get();
+
+				for (int i = 0; i < (int)this->forces.size(); ++i)
+				if (forceEnabled[i])
+				if (!forces[i]->getImpl().dependsOnlyOnPositions())
+				if (!forces[i]->getImpl().shouldBeParallelized())
+					forces[i]->getImpl().calcForce
+					(s, *rigidBodyForce, *particleForce, *mobilityForce);
+
+				this->rigidBodyForcesPool->push(rigidBodyForce);
+				this->particleForcesPool->push(particleForce);
+				this->mobilityForcesPool->push(mobilityForce);
+
+			});
+
+			work_queue->execute();
+
+			for (Vector_<SpatialVec>* vec : rigidBodyForcesPool->list())
+				rigidBodyForces += *vec;
+			for (Vector_<Vec3>* vec : particleForcesPool->list())
+				particleForces += *vec;
+			for (Vector* vec : mobilityForcesPool->list())
+				mobilityForces += *vec;
+
         }
 
         // Accumulate the values from the cache into the global arrays.
@@ -296,8 +529,28 @@ public:
         
         // Allow forces to do their own Dynamics-stage realization. Note that
         // this *follows* all the calcForce() calls.
-        for (int i = 0; i < (int) forces.size(); ++i)
-            if (forceEnabled[i]) forces[i]->getImpl().realizeDynamics(s);
+
+		for (int i = 0; i < (int)forces.size(); ++i)
+		if (forceEnabled[i])
+		if (forces[i]->getImpl().shouldBeParallelized())
+			work_queue->push(
+				[this, &s, i]
+				{
+					forces[i]->getImpl().realizeDynamics(s);
+				}
+			);
+
+		work_queue->push([this, &forceEnabled, &s] {
+
+			for (int i = 0; i < (int)this->forces.size(); ++i)
+			if (forceEnabled[i])
+			if (!forces[i]->getImpl().shouldBeParallelized())
+				forces[i]->getImpl().realizeDynamics(s);
+
+		});
+
+		work_queue->execute();
+
         return 0;
     }
     
@@ -343,7 +596,17 @@ public:
     }
 
 private:
-    Array_<Force*>                  forces;
+
+    Array_<Force*>						forces;
+	ParallelWorkQueue11*				work_queue;
+
+	ObjectPool<Vector_<SpatialVec>>*	rigidBodyForcesPool;
+	ObjectPool<Vector_<Vec3>>*			particleForcesPool;
+	ObjectPool<Vector>*					mobilityForcesPool;
+
+	ObjectPool<Vector_<SpatialVec>>*	rigidBodyForcesCachePool;
+	ObjectPool<Vector_<Vec3>>*			particleForcesCachePool;
+	ObjectPool<Vector>*					mobilityForcesCachePool;
     
         // TOPOLOGY "CACHE"
     // These indices must be filled in during realizeTopology and treated
@@ -358,6 +621,7 @@ private:
     mutable CacheEntryIndex         rigidBodyForceCacheIndex;
     mutable CacheEntryIndex         mobilityForceCacheIndex;
     mutable CacheEntryIndex         particleForceCacheIndex;
+
 };
 
     ///////////////////////////
