@@ -458,6 +458,7 @@ class PointOnLine;   // translations along a line only
 class ConstantAngle; // prevent rotation about common normal of two vectors
 class ConstantOrientation; // allows any translation but no rotation
 class NoSlip1D; // same velocity at a point along a direction
+class BallSlidingOnPlane; // frictionless ball in contact with plane
 class BallRollingOnPlane; // ball in contact and rolling w/o slip against plane
 class ConstantCoordinate; // prescribe generalized coordinate value
 class ConstantSpeed; // prescribe generalized speed value
@@ -477,6 +478,7 @@ class PointOnLineImpl;
 class ConstantAngleImpl;
 class ConstantOrientationImpl;
 class NoSlip1DImpl;
+class BallSlidingOnPlaneImpl;
 class BallRollingOnPlaneImpl;
 class ConstantCoordinateImpl;
 class ConstantSpeedImpl;
@@ -1203,14 +1205,19 @@ friction but must be combined with contact and friction conditions. This
 enforces the same normal condition as Constraint::PointInPlane but also adds
 two velocity-level no-slip constraints. Thus there are three
 constraints, one position (holonomic) constraint and two velocity 
-(nonholonomic) constraints.
+(nonholonomic) constraints. Note that this is a bilateral
+constraint and will push or pull as necessary to keep the point in contact
+with the plane, and that sticking is enforced regardless of the amount of
+normal force being generated. If you want to make this unilateral, you must
+handle switching it on and off separately; when this constraint is enabled it
+always enforces the contact and no-slip conditions.
 
-There are two mobilized bodies involved. Body S, the "surface" body, has a 
-plane P fixed to it, with the plane defined by a plane frame P given relative
-to body S by the transform X_SP. Body B, the "follower" body has a station point
-F (a vertex) fixed to it, given with respect to body B at location p_BF.
-The coordinate axes of the plane frame P (fixed in S) are used for 
-parameterization of the %Constraint. The z direction Pz of that frame is the 
+There are two mobilized bodies involved. MobiliedBody S, the plane "surface" 
+body, has a plane P fixed to it, with the plane defined by a frame P given 
+relative to body S by the transform X_SP. MobiliedBody B, the "follower" body 
+has a station point F (a vertex) fixed to it, given with respect to body B at 
+location p_BF. The coordinate axes of the plane frame P (fixed in S) are used 
+for parameterization of the %Constraint. The z direction Pz of that frame is the 
 plane normal; the Px,Py directions are used to express the tangential velocity; 
 the P frame origin Po provides the height h=dot(Po,Pz) of the plane
 over the surface body's origin in the direction of the plane normal Pz.
@@ -1237,7 +1244,7 @@ Equation (2) is the same as the velocity-level constraints for a ball joint
 between frame P on S and point F on B. The acceleration-level constraints are 
 just the time derivative of (2), i.e. <pre>
     (3) aerr = a_PF = ~R_SP * a_SF
-<pre>
+</pre>
 The assembly condition is that the follower point must be in the plane; there
 is no assembly condition in the tangential direction since those constraints
 are at the velocity level only. **/
@@ -1289,7 +1296,7 @@ public:
     most recent call to setDefaultFollowerPoint(). **/
     const Vec3&      getDefaultFollowerPoint() const;
 
-    /** Return the plane frame X_AP that is currently in effect for this
+    /** Return the plane frame X_SP that is currently in effect for this
     %Constraint. Note that the origin of the returned frame will be exactly on
     the plane surface; that is not necessarily where contact occurs since the
     follower point may be above or below the surface by position constraint
@@ -1340,58 +1347,262 @@ public:
 };
 
 
+    //////////////////////////////////////
+    // BALL SLIDING ON PLANE CONSTRAINT //
+    //////////////////////////////////////
+
+/** Frictionless bilateral connection between a ball on one body and a plane on
+another. There is just one position (holonomic) constraint equation: the ball 
+must touch the plane. Otherwise it is free to translate anywhere on the plane 
+and to rotate to any orientation. Note that this is a bilateral constraint and 
+will push or pull as necessary to keep the ball in contact with the plane; you
+can think of it as a strongly magnetized but slippery ball. If you want to make
+this unilateral, you must handle switching it on and off separately; when this 
+constraint is enabled it always enforces the contact condition.
+
+There are two mobilized bodies involved, we'll call them S and B. MobilizedBody
+S, the plane "surface" body, has a plane P fixed to it, with the plane defined 
+by a frame P given relative to body S by the transform X_SP. The coordinate axes
+of the plane frame P (fixed in S) are used for parameterization of the 
+%Constraint. The z direction Pz of that frame is the plane normal; the Px,Py 
+directions are used to express the tangential slip velocity; the P frame origin
+Po (given by the vector p_SP) provides the height h=Po.Pz of the plane over the
+surface body's origin (So) in the direction of the plane normal Pz.
+
+MobilizedBody B, the "ball" body has a sphere fixed to it with center O and 
+radius r, with O given by the vector p_BO in the B frame. Call the point at the
+bottom (w.r.t. plane normal) of the sphere F, with F=O-r*Pz. The position 
+constraint equation for contact then enforces that the location of the bottom 
+of the sphere (coincident with F) is in the plane P. 
+
+That constraint equation is enforced by an internal (non-working) scalar force 
+multiplier acting on point F, directed along the plane normal Pz (thus passing
+through the center O), and equal and opposite on the two bodies at F on B and 
+at the instantaneously coincident point p_SF on S. Because position constraints
+are not enforced perfectly, contact will occur slightly above or slightly below
+the plane surface, depending where F is.
+
+The assembly condition is the same as the position constraint: the ball must be
+touching the plane. **/
+class SimTK_SIMBODY_EXPORT Constraint::BallSlidingOnPlane
+:   public Constraint  {
+public:
+    // no default constructor
+
+    /** Construct a ball-sliding-on-plane constraint as described in the 
+    Constraint::BallSlidingOnPlane class documentation. **/
+    BallSlidingOnPlane( MobilizedBody&      planeBody, 
+                        const Transform&    defaultPlaneFrame, 
+                        MobilizedBody&      ballBody, 
+                        const Vec3&         defaultBallCenter,
+                        Real                defaultBallRadius);
+    
+    /** Default constructor creates an empty handle that can be used to
+    reference any %BallSlidingOnPlane %Constraint.**/
+    BallSlidingOnPlane() {}
+
+    /** This affects only generated decorative geometry for default 
+    visualization; the plane is really infinite in extent. If you don't set
+    this the default half width is 1 length unit. Set this to zero to 
+    disable any attempt to generate default visualization for the plane. **/
+    BallSlidingOnPlane& setPlaneDisplayHalfWidth(Real);
+    /** Return the plane half-width that will be used if we're asked to generate
+    default visualization geometry. **/
+    Real getPlaneDisplayHalfWidth() const;
+
+    /** Replace the default plane frame that was supplied on construction.
+    This is a topological change; you'll have to call realizeTopology() again
+    if you call this method. **/
+    BallSlidingOnPlane& 
+    setDefaultPlaneFrame(const Transform& defaultPlaneFrame);
+    /** Replace the default center point that was supplied on construction.
+    This is a topological change; you'll have to call realizeTopology() again
+    if you call this method. **/
+    BallSlidingOnPlane& setDefaultBallCenter(const Vec3& defaultBallCenter);
+    /** Replace the default ball radius that was supplied on construction.
+    This is a topological change; you'll have to call realizeTopology() again
+    if you call this method. **/
+    BallSlidingOnPlane& setDefaultBallRadius(Real defaultBallRadius);
+
+    /** Return the MobilizedBodyIndex of the plane MobilizedBody. **/
+    MobilizedBodyIndex getPlaneMobilizedBodyIndex() const;
+    /** Return the MobilizedBodyIndex of the ball MobilizedBody. **/
+    MobilizedBodyIndex getBallMobilizedBodyIndex() const;
+
+    /** Return the default plane frame as set during construction or by the
+    most recent call to setDefaultPlaneFrame(). **/
+    const Transform& getDefaultPlaneFrame() const;
+    /** Return the default center point as set during construction or by the
+    most recent call to setDefaultBallCenter(). **/
+    const Vec3& getDefaultBallCenter() const;
+    /** Return the default ball radius as set during construction or by the
+    most recent call to setDefaultBallRadius(). **/
+    Real getDefaultBallRadius() const;
+
+    /** Return the plane frame X_SP that is currently in effect for this
+    %Constraint. Note that the origin of the returned frame will be exactly on
+    the plane surface; that is not necessarily where contact occurs since the
+    ball may be above or below the surface by position constraint
+    tolerance. **/
+    const Transform& getPlaneFrame(const State& state) const;
+    /** Return the ball's center point location p_BO that is current in effect
+    for this %Constraint. The location is measured and expressed in the ball 
+    body's frame. **/
+    const Vec3& getBallCenter(const State& state) const;
+    /** Return the ball radius that is currently in effect for this 
+    %Constraint. **/
+    Real getBallRadius(const State& state) const;
+
+    /** The returned position error can be viewed as the signed distance from
+    the lowest point of the ball to the plane surface. It is positive when the 
+    ball is above the plane (along the plane normal Pz) and negative when it is 
+    penetrating the plane. The given \a state must have already been realized 
+    through Stage::Position. **/
+    Real getPositionError(const State& state) const;
+
+    /** The velocity error is the time derivative of the quantity returned
+    by getPositionError(), that is, the rate at which the lowest point of the
+    ball is moving along the plane normal Pz. Note that this is also the rate
+    that the ball's center point is moving along Pz. The given \a state must 
+    have already been realized through Stage::Velocity. **/
+    Real getVelocityError(const State& state) const;
+
+    /** This vector is the time derivative of the value returned by
+    getVelocityError(). The given \a state must have already been realized
+    through Stage::Acceleration. **/
+    Real getAccelerationError(const State& state) const;
+
+    /** This is the Lagrange multiplier required to enforce the constraint
+    equation generated here. For this %Constraint it has units of force, but 
+    the sign convention for multipliers is the opposite of that for applied 
+    forces. Thus the returned value may be considered the force applied by the 
+    ball to the plane along the negative normal direction -Pz (but remember this
+    is a bilateral constraint so the multiplier may have either sign. **/
+    Real getMultiplier(const State& state) const;
+
+    /** Return the force vector currently being applied by this constraint to
+    the contact point on the ball body, expressed in the Ground frame. An equal
+    and opposite force is applied to the plane body, to its material point that
+    is at the same location in space. This is zero if the constraint is not
+    currently enabled. The given \a state must be realized
+    to Stage::Acceleration. **/
+    Vec3 findForceOnBallInG(const State& state) const;
+
+    /** Return the contact point location in the Ground frame. We define this
+    to be the Ground location coincident with the bottom of the ball with
+    respect to the plane normal Pz. Note that this does not imply that the
+    constraint is satisifed; that point could be far from the plane or deeply
+    below the plane. This calculates a valid value even if this constraint is
+    currently disabled. The given \a state must be realized to 
+    Stage::Position. **/
+    Vec3 findContactPointInG(const State& state) const;
+
+    /** Calculate the separation distance or penetration depth of the ball 
+    and the plane. This is positive if the lowest point of the ball is above 
+    the plane (in the sense of the plane normal Pz), and negative if the 
+    lowest point is below the plane, in which case it measures the maximum
+    penetration depth. This calculates a valid value even if this constraint is
+    currently disabled. The given \a state must be realized to 
+    Stage::Position. **/
+    Real findSeparation(const State& state) const;
+
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (BallSlidingOnPlane, BallSlidingOnPlaneImpl, Constraint);
+    /** @endcond **/
+};
 
     //////////////////////////////////////
     // BALL ROLLING ON PLANE CONSTRAINT //
     //////////////////////////////////////
 
-/** This constraint enforces continuous contact and non-slip rolling between a 
-spherical surface fixed on one body and a half space (flat surface) fixed on 
-another. This requires one holonomic (position) constraint equation enforcing
-contact, and two nonholonomic (velocity) contraint equations enforcing the
-non-slip condition in the plane. Note that this is a bilateral
-constraint and will push or pull as necessary to keep the sphere in contact
+/** (Advanced) This is the underlying constraint for unilateral contact with
+friction between a ball and a plane, but must be combined with contact and 
+friction conditions that determine when it is active. There are three
+constraints, one position (holonomic) constraint and two velocity 
+(nonholonomic) constraints. Note that this is a bilateral
+constraint and will push or pull as necessary to keep the ball in contact
 with the plane, and that rolling is enforced regardless of the amount of
 normal force being generated. If you want to make this unilateral, you must
 handle switching it on and off separately; when this constraint is enabled it
-always enforces the contact and no-slip conditions.
+always enforces the contact and no-slip conditions. The rolling constraints
+may not be active even if the normal constraint is.
 
-We define the contact point on the ball to be the unique point CB on the sphere
-surface at which the radius vector is antiparallel to the plane's normal 
-vector, that is, the point of the sphere directly below the sphere center if 
-the plane's normal is considered the "up" direction. Then the contact point CP
-on the plane is defined to be the point on the plane that is directly below the
-center; that is, the intersection of the antiparallel radius vector and the 
-halfspace surface. Note that in general CB != CP; the sphere contact point 
-and plane contact point will be separated along the plane normal by a small 
-distance, limited to the constraint tolerance after assembly. Now we 
-define \e the contact point C=(CB+CP)/2, the point in space that is half way 
-between the sphere's contact point and the plane's contact point. Equal and 
-opposite forces are applied to the ball body B and the plane body P, at the 
-station on each body that is coincident with C.
+There are two mobilized bodies involved, we'll call them S and B. Body S, the 
+"surface" body, has a plane P fixed to it, with the plane defined by a plane 
+frame P given relative to body S by the transform X_SP. The coordinate axes of 
+the plane frame P (fixed in S) are used for parameterization of the %Constraint.
+The z direction Pz of that frame is the plane normal; the Px,Py directions are 
+used to express the tangential slip velocity; the P frame origin Po provides the
+height h=dot(Po,Pz) of the plane over the surface body's origin in the direction
+of the plane normal Pz.
 
-The holonomic constraint we enforce is that point C should be touching the
-plane. We enforce this with the condition that
-~C_P*n_P = h, that is, given the contact point C measured and 
-expressed in the plane body's frame, the height of that point in the direction
-of the plane normal should be the height of the plane.
+Body B, the "ball" body has a sphere fixed to it with center O and radius r. 
+Call the point at the bottom (w.r.t. plane normal) of the sphere F, with 
+F=O-r*Pz. Define contact frame C aligned with P with origin Co coincident with
+point F. We'll define contact to occur at the contact point Co.
 
-The assembly condition is the same as the run-time constraint: the point of
-the sphere where the inward normal is the same as the halfspace normal must
-be brought into contact with the halfspace surface. **/
-class SimTK_SIMBODY_EXPORT Constraint::BallRollingOnPlane : public Constraint {
+The position constraint equation for contact enforces that the bottom of the
+sphere (point Co of frame C) must always touch the plane P, that is, 
+pz_PC=p_PC[2]=0, or equivalently <pre>
+    (1) perr = pz_PC = dot(p_SF,Pz)-h = p_SO.Pz-(h+r)
+             = (p_AO-p_AS).Pz_A-(h+r)
+    (2) verr = (d/dt)_A perr = (v_SO-w_SA X p_SO).Pz - p_SO.(w_SA X Pz)
+                             = v_SO.Pz - (w_SA x p_SO).Pz - Pz.(p_SO x w_SA)
+                             = v_SO.Pz
+                             = v_SO_A . Pz_A
+             = [v_AO-v_AS - w_AS x (p_AO-p_AS)] . Pz_A
+    (3) aerr = (d/dt)_A verr = a_SO.Pz
+                             = a_SO_A . Pz_A
+             = [a_AO-a_AS - b_AS x (p_AO-p_AS) - 2 w_AS x (v_AO-v_AS)
+                          + w_AS x (w_AS x (p_AO-p_AS))] . Pz_A
+</pre>
+Note that we took the time derivative in the A frame; it has to be an 
+inertial frame. But the scalars returned by perr,verr, and aerr are measure
+numbers along Pz. The multiplier will consequently act along Pz.
+
+That constraint equation is enforced by an internal (non-working) scalar force 
+multiplier acting at the spatial location C of point F, directed along the plane
+normal Pz (thus passing through the center O), and equal and opposite on the two
+bodies at F on B and at the instantaneously coincident point p_SC on S. Because 
+position constraints are not enforced perfectly, contact will occur slightly 
+above or slightly below the plane surface, depending where F is.
+
+The two velocity constraint equations enforce that the material point of body
+B at point F has no relative tangential velocity when measured in the plane 
+frame P, that is we want to enforce vx_PF=vy_PF=0. The time derivative of the 
+normal constraint, shown in Eqn. (2) above, is also enforced at the velocity 
+level. In the ball body's frame we have <pre>
+    p_BF = p_BO - r * R_BS * Pz
+so
+    p_PF = p_PB + R_PB*p_BF 
+Then
+    v_PF = (d/dt)_P p_PF = v_PB + w_PB X (R_PB*p_BF)
+</pre> Then the two rolling constraint equations are
+    (4) verr_xy = (v_PF[0], v_PF[1])
+    (5) aerr_xy = (d/dt)_P verr_xy = (a_PF[0], a_PF[1])
+</pre>
+
+The assembly condition is that the follower point must be in the plane; there
+is no assembly condition in the tangential direction since those constraints
+are at the velocity level only. **/
+class SimTK_SIMBODY_EXPORT Constraint::BallRollingOnPlane
+:   public Constraint  {
 public:
     // no default constructor
-    /** Create a BallOnPlane constraint and define the default plane and 
-    ball geometry. **/
-    BallRollingOnPlane(MobilizedBody&  planeBody_P, 
-                const UnitVec3& defaultPlaneNormal_P, 
-                Real            defaultPlaneHeight,
-                MobilizedBody&  ballBody_B, 
-                const Vec3&     defaultBallCenter_B,
-                Real            defaultBallRadius);
+
+    /** Construct a ball-rolling-on-plane normal constraint and two no-slip 
+    friction constraints as described in the Constraint::BallRollingOnPlane
+    class documentation. **/
+    BallRollingOnPlane( MobilizedBody&      planeBody, 
+                        const Transform&    defaultPlaneFrame, 
+                        MobilizedBody&      ballBody, 
+                        const Vec3&         defaultBallCenter,
+                        Real                defaultBallRadius);
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle that can be used to
+    reference any %BallRollingOnPlane %Constraint.**/
     BallRollingOnPlane() {}
 
     // These affect only generated decorative geometry for visualization;
@@ -1399,45 +1610,83 @@ public:
     BallRollingOnPlane& setPlaneDisplayHalfWidth(Real);
     Real getPlaneDisplayHalfWidth() const;
 
-    // Defaults for Instance variables.
-    BallRollingOnPlane& setDefaultPlaneNormal(const UnitVec3&);
-    BallRollingOnPlane& setDefaultPlaneHeight(Real);
-    BallRollingOnPlane& setDefaultBallCenter(const Vec3&);
-    BallRollingOnPlane& setDefaultBallRadius(Real);
+    /** Replace the default plane frame that was supplied on construction.
+    This is a topological change; you'll have to call realizeTopology() again
+    if you call this method. **/
+    BallRollingOnPlane& 
+    setDefaultPlaneFrame(const Transform& defaultPlaneFrame);
+    /** Replace the default center point that was supplied on construction.
+    This is a topological change; you'll have to call realizeTopology() again
+    if you call this method. **/
+    BallRollingOnPlane& setDefaultBallCenter(const Vec3& defaultBallCenter);
+    /** Replace the default ball radius that was supplied on construction.
+    This is a topological change; you'll have to call realizeTopology() again
+    if you call this method. **/
+    BallRollingOnPlane& setDefaultBallRadius(const Vec3& defaultBallRadius);
 
-    // Stage::Topology
+    /** Return the MobilizedBodyIndex of the plane MobilizedBody. **/
     MobilizedBodyIndex getPlaneMobilizedBodyIndex() const;
+    /** Return the MobilizedBodyIndex of the ball MobilizedBody. **/
     MobilizedBodyIndex getBallMobilizedBodyIndex() const;
 
-    const UnitVec3& getDefaultPlaneNormal() const;
-    Real            getDefaultPlaneHeight() const;
-    const Vec3&     getDefaultBallCenter() const;
-    Real            getDefaultBallRadius() const;
+    /** Return the default plane frame as set during construction or by the
+    most recent call to setDefaultPlaneFrame(). **/
+    const Transform& getDefaultPlaneFrame() const;
+    /** Return the default center point as set during construction or by the
+    most recent call to setDefaultBallCenter(). **/
+    const Vec3& getDefaultBallCenter() const;
+    /** Return the default ball radius as set during construction or by the
+    most recent call to setDefaultBallRadius(). **/
+    const Vec3& getDefaultBallRadius() const;
 
-    // Stage::Instance
-    const UnitVec3& getPlaneNormal(const State&) const;
-    Real            getPlaneHeight(const State&) const;
-    const Vec3&     getBallCenter(const State&) const;
-    Real            getBallRadius(const State&) const;
+    /** Return the plane frame X_AP that is currently in effect for this
+    %Constraint. Note that the origin of the returned frame will be exactly on
+    the plane surface; that is not necessarily where contact occurs since the
+    ball may be above or below the surface by position constraint
+    tolerance. **/
+    const Transform& getPlaneFrame(const State& state) const;
+    const Vec3& getBallCenter(const State& state) const;
+    Real getBallRadius(const State& state) const;
 
-    // Stage::Position, Velocity
-    Real getPositionError(const State&) const;
-    Vec3 getVelocityError(const State&) const;
+    /** The returned position error can be viewed as a signed distance. It is
+    positive when the ball is above the plane and negative when
+    it is penetrating the plane. The given \a state must have already been 
+    realized through Stage::Position. **/
+    Real getPositionError(const State& state) const;
 
-    // Stage::Acceleration
-    Vec3 getAccelerationError(const State&) const;
-    Vec3 getMultipliers(const State&) const;
+    /** The velocity error vector is the velocity of the ball bottom point F in
+    the contact frame. The contact frame is parallel to the plane frame P but
+    with its origin shifted to the same spatial location as point F. 
+    Note that the coordinates are ordered x-y-z so the first two numbers are
+    the tangential slip velocity and the third is the velocity in the normal
+    direction, with positive indicating separation and negative indicating
+    approach. The z value here is the time derivative of the quantity returned
+    by getPositionError(). The given \a state must have already been 
+    realized through Stage::Velocity. **/
+    Vec3 getVelocityError(const State& state) const;
 
-    /** Return the signed magnitude of the normal force applied by the plane
-    to the ball at the contact point, in the direction of the plane normal; 
-    negative indicates sticking. **/
-    Real getNormalForce(const State&) const;
-    /** Return the friction force vector being applied by the plane to the
-    ball at the contact point, expressed in the plane frame. **/
-    Vec2 getFrictionForceOnBallInPlaneFrame(const State&) const;
+    /** This vector is the time derivative of the value returned by
+    getVelocityError(). The given \a state must have already been realized
+    through Stage::Acceleration. **/
+    Vec3 getAccelerationError(const State& state) const;
 
-    /** @cond **/ // Don't let doxygen see this
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(BallRollingOnPlane, BallRollingOnPlaneImpl, Constraint);
+    /** These are the Lagrange multipliers required to enforce the three
+    constraint equations generated here. For this %Constraint they have units
+    of force, but the sign convention for multipliers is the opposite of that
+    for applied forces. Thus the returned vector may be considered the force
+    applied by the follower point to the coincident point of the plane body,
+    expressed in the contact frame. **/
+    Vec3 getMultipliers(const State& state) const;
+
+    /** This is the force applied by the plane body to the bottom point F of
+    the ball, expressed in the contact frame. For this %Constraint, the value 
+    returned here is identical to the vector returned by getMultipliers(), but 
+    with the opposite sign. **/
+    Vec3 getForceOnBall(const State& state) const;
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (BallRollingOnPlane, BallRollingOnPlaneImpl, Constraint);
     /** @endcond **/
 };
 

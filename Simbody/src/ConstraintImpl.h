@@ -1540,6 +1540,230 @@ Real                    pointRadius;
 };
 
 
+//==============================================================================
+//                       BALL SLIDING ON PLANE IMPL
+//==============================================================================
+class Constraint::BallSlidingOnPlaneImpl : public ConstraintImpl {
+public:
+BallSlidingOnPlaneImpl()
+    : ConstraintImpl(1,0,0), m_X_SP(), m_p_BO(0), m_radius(NaN),
+    m_planeHalfWidth(1)
+{ }
+BallSlidingOnPlaneImpl* clone() const OVERRIDE_11
+{   return new BallSlidingOnPlaneImpl(*this); }
+
+void calcDecorativeGeometryAndAppendVirtual
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+    OVERRIDE_11;
+
+void setPlaneDisplayHalfWidth(Real h) {
+    // h <= 0 means don't display plane
+    invalidateTopologyCache();
+    m_planeHalfWidth = h > 0 ? h : 0;
+}
+Real getPlaneDisplayHalfWidth() const {return m_planeHalfWidth;}
+
+// TODO: Should use changeable instance variable quantities from the state.
+const Transform& getPlaneFrame(const State&) const
+{   return m_X_SP; }
+const Vec3& getBallCenter(const State&) const
+{   return m_p_BO; }
+Real getBallRadius(const State&) const
+{   return m_radius; }
+
+// Implementation of virtuals required for holonomic constraints.
+
+/* Body B, the "ball" body has a sphere fixed to it with center O and radius r. 
+Call the point at the bottom (w.r.t. plane normal) of the sphere F, with 
+F=O-r*Pz. Define contact frame C aligned with P with origin Co coincident with
+point F. We'll define contact to occur at the contact point Co.
+
+The position constraint equation for contact enforces that the bottom of the
+sphere (point Co of frame C) must always touch the plane P, that is, 
+pz_PC=p_PC[2]=0, or equivalent
+
+    (1) perr = pz_PC = p_PC.Pz = (p_PO-r*Pz).Pz = (p_SO-p_SP).Pz-r 
+             = p_SO.Pz-(h+r)
+             = (p_AO-p_AS).Pz_A-(h+r)
+    (2) verr = (d/dt)_A perr = (v_SO-w_SA X p_SO).Pz - p_SO.(w_SA X Pz)
+                             = v_SO.Pz - (w_SA x p_SO).Pz - Pz.(p_SO x w_SA)
+                             = v_SO.Pz
+                             = v_SO_A . Pz_A
+             = [v_AO-v_AS - w_AS x (p_AO-p_AS)] . Pz_A
+    (3) aerr = (d/dt)_A verr = a_SO.Pz
+                             = a_SO_A . Pz_A
+             = [a_AO-a_AS - b_AS x (p_AO-p_AS) - 2 w_AS x (v_AO-v_AS)
+                          + w_AS x (w_AS x (p_AO-p_AS))] . Pz_A
+
+Note that we took the time derivative in the A frame; it has to be an 
+inertial frame. But the scalars returned by perr,verr, and aerr are measure
+numbers along Pz. The multiplier will consequently act along Pz.
+
+Note that because the ball center and bottom point lie along the plane normal
+and the force is applied along that line, it doesn't actually matter whether
+we apply the force at the bottom point or at the center; the force and torque
+applied at the rigid bodies' origins are the same either way so there is no
+way to tell.
+
+    --------------------------------
+    perr = p_SO_A.Pz_A - (h+r)
+    --------------------------------
+*/
+void calcPositionErrorsVirtual      
+   (const State&                                    s,      // Stage::Time
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr)   // mp of these
+    const OVERRIDE_11
+{
+    assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
+
+    const Vec3&     Po_S = m_X_SP.p();  // Plane origin in S
+    const UnitVec3& Pz_S = m_X_SP.z();  // Plane normal direction in S
+    const Real h = dot(Po_S, Pz_S);     // Height; could precalculate (5 flops)
+
+    const Transform& X_AS = getBodyTransform(allX_AB, m_surfaceBody_S);
+    const Vec3 p_AO =  findStationLocation(allX_AB, m_followerBody_B, m_p_BO); 
+                                                                    // 18 flops
+    const Vec3     p_SO_A = p_AO - X_AS.p();    //  3 flops
+    const UnitVec3 Pz_A = X_AS.R() * Pz_S;      // 15 flops
+
+    // Calculate this scalar using A-frame vectors; any frame would have done.
+    perr[0] = ~p_SO_A * Pz_A - (h + m_radius);  //  7 flops
+}
+
+
+/*  
+    --------------------------------
+    verr = v_SO_A.Pz_A
+    -------------------------------- 
+*/
+void calcPositionDotErrorsVirtual      
+   (const State&                                    s,      // Stage::Position
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr)  // mp of these
+    const OVERRIDE_11
+{
+    assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
+
+    const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const SpatialVec& V_AS = allV_AB[m_surfaceBody_S];
+    const Vec3&       p_AS = X_AS.p();
+    const Vec3&       w_AS = V_AS[0];
+    const Vec3&       v_AS = V_AS[1];
+    const UnitVec3    Pz_A = X_AS.R() * m_X_SP.z();                // 15 flops
+
+    const Transform&  X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const SpatialVec& V_AB = allV_AB[m_followerBody_B];
+    const Vec3        p_BO_A = X_AB.R() * m_p_BO; // re-express in A (15 flops)
+
+    Vec3 p_AO, v_AO;
+    findStationInALocationVelocity(X_AB, V_AB, p_BO_A, p_AO, v_AO); // 15 flops
+
+    const Vec3 p_SO_A     = p_AO - p_AS; // measure O from So, in A (3 flops)
+    const Vec3 p_SO_A_dot = v_AO - v_AS; // derivative in frozen frame (3 flops)
+    const Vec3 v_SO_A = p_SO_A_dot - w_AS % p_SO_A; // moving frame (12 flops)
+
+    // Calculate this scalar using A-frame vectors.
+    pverr[0] = ~v_SO_A * Pz_A;                           // 5 flops
+}
+
+/*  
+    --------------------------------
+    aerr = a_SO_A.Pz_A
+    -------------------------------- 
+*/
+void calcPositionDotDotErrorsVirtual      
+   (const State&                                    s,      // Stage::Velocity
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr)  // mp of these
+    const OVERRIDE_11
+{
+    assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==1);
+
+    const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const SpatialVec& V_AS = getBodyVelocityFromState(s, m_surfaceBody_S);
+    const SpatialVec& A_AS = allA_AB[m_surfaceBody_S];
+    const Vec3&       p_AS = X_AS.p();
+    const Vec3&       w_AS = V_AS[0];
+    const Vec3&       v_AS = V_AS[1];
+    const Vec3&       b_AS = A_AS[0];
+    const Vec3&       a_AS = A_AS[1];
+    const UnitVec3    Pz_A = X_AS.R() * m_X_SP.z();                // 15 flops
+
+    const Transform&  X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const SpatialVec& V_AB = getBodyVelocityFromState(s, m_followerBody_B);
+    const SpatialVec& A_AB = allA_AB[m_followerBody_B];
+    const Vec3        p_BO_A = X_AB.R() * m_p_BO; // re-express in A (15 flops)
+
+    Vec3 p_AO, v_AO, a_AO;
+    findStationInALocationVelocityAcceleration(X_AB, V_AB, A_AB, p_BO_A,
+                                               p_AO, v_AO, a_AO); // 39 flops
+
+    const Vec3 p_SO_A        = p_AO - p_AS; // measure O from So, in A (3 flops)
+    const Vec3 p_SO_A_dot    = v_AO - v_AS; // deriv in frozen frame (3 flops)
+    const Vec3 p_SO_A_dotdot = a_AO - a_AS; // 2nd frozen deriv (3 flops)
+
+    const Vec3 v_SO_A     = p_SO_A_dot    - w_AS % p_SO_A; // moving (12 flops)
+    const Vec3 v_SO_A_dot = p_SO_A_dotdot -(b_AS % p_SO_A + w_AS % p_SO_A_dot);
+                                                      // fixed frame (24 flops)
+    const Vec3 a_SO_A = v_SO_A_dot - w_AS % v_SO_A; // moving frame (12 flops)
+
+    // Calculate this scalar using A-frame vectors.
+    paerr[0] = ~a_SO_A * Pz_A;  // 5 flops
+}
+
+// apply f=lambda*Pz to the follower point F of body B,
+//       -f         to point C (coincident point) of body S
+void addInPositionConstraintForcesVirtual
+   (const State&                                    s,      // Stage::Position
+    const Array_<Real>&                             multipliers, // mp of these
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
+    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    const OVERRIDE_11
+{
+    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
+           && qForces.size()==0);
+    const Real lambda = multipliers[0];
+
+    const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const Vec3&      p_AS = X_AS.p(); // p_AoSo_A
+    const UnitVec3   Pz_A = X_AS.R() * m_X_SP.z();                // 15 flops
+
+    const Transform& X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const Vec3&      p_AB = X_AB.p(); // p_AoBo_A
+
+    const Vec3 p_BO_A = X_AB.R() * m_p_BO;      // re-express in A (15 flops)
+    const Vec3 p_BF_A = p_BO_A - m_radius*Pz_A; // bottom of ball  ( 6 flops)
+    const Vec3 p_AF   = X_AB.p() + p_BF_A; // measure from Ao      ( 3 flops)
+    const Vec3 p_SC_A = p_AF - p_AS;       // measure C from So, in A (3 flops)
+
+    const Vec3 force_A = lambda * Pz_A;     // 3 flops
+    // 30 flops for the next two calls
+    addInStationInAForce(p_BF_A, force_A, bodyForcesInA[m_followerBody_B]);
+    subInStationInAForce(p_SC_A, force_A, bodyForcesInA[m_surfaceBody_S]);
+}
+
+SimTK_DOWNCAST(BallSlidingOnPlaneImpl, ConstraintImpl);
+//------------------------------------------------------------------------------
+                                    private:
+friend class Constraint::BallSlidingOnPlane;
+
+ConstrainedBodyIndex    m_surfaceBody_S;    // S (B1)
+ConstrainedBodyIndex    m_followerBody_B;   // B (B2)
+
+Transform               m_X_SP;     // default plane frame fixed in S
+Vec3                    m_p_BO;     // default ball center point fixed in B
+Real                    m_radius;   // default ball radius
+
+// This is just for visualization
+Real                    m_planeHalfWidth;
+};
+
+
+
 
 //==============================================================================
 //                           POINT ON LINE IMPL
@@ -2986,65 +3210,287 @@ Real                    m_pointRadius;
 //==============================================================================
 //                        BALL ROLLING ON PLANE IMPL
 //==============================================================================
-/// TODO!!
 class Constraint::BallRollingOnPlaneImpl : public ConstraintImpl {
 public:
 BallRollingOnPlaneImpl()
-:   ConstraintImpl(1,2,0), defaultPlaneNormal(), defaultPlaneHeight(0), 
-    defaultBallCenter(0), defaultBallRadius(NaN),
-    planeHalfWidth(1)
+:   ConstraintImpl(1,2,0), m_X_SP(), m_p_BF(0), 
+    m_planeHalfWidth(1), m_pointRadius(Real(0.05)) 
 { }
-BallRollingOnPlaneImpl* clone() const { return new BallRollingOnPlaneImpl(*this); }
+BallRollingOnPlaneImpl* clone() const OVERRIDE_11 
+{   return new BallRollingOnPlaneImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+    OVERRIDE_11;
 
 void setPlaneDisplayHalfWidth(Real h) {
     // h <= 0 means don't display plane
     invalidateTopologyCache();
-    planeHalfWidth = h > 0 ? h : 0;
+    m_planeHalfWidth = h > 0 ? h : 0;
 }
-Real getPlaneDisplayHalfWidth() const {return planeHalfWidth;}
+Real getPlaneDisplayHalfWidth() const {return m_planeHalfWidth;}
 
+void setPointDisplayRadius(Real r) {
+    // r <= 0 means don't display point
+    invalidateTopologyCache();
+    m_pointRadius= r > 0 ? r : 0;
+}
+Real getPointDisplayRadius() const {return m_pointRadius;}
 
-// Implementation of virtuals required for holonomic constraints.
+// Implementation of virtuals required for the holonomic constraint.
+// Here C is the station of S that is instantaneously coincident with F on B.
 
-// TODO
-// We have a plane attached to base body B, and a sphere of radius r attached 
-// to follower body F, with the sphere center at O. The plane normal is n, the 
-// plane height over B's origin is h. We would like the bottom point S of the 
-// sphere to be in contact with the plane, that is, the height of S should be 
-// h, or equivalently the center height should be h+r. Now S=O-r*n, so we have
-//    perr = S*n - h = (p_BO - r*n_B)*n_B - h
-// or perr = O*n - (h+r) = p_BO*n_B - (h+r)
-// If we work entirely in body B, we have
-//    verr = d/dt_B perr = v_BO * n_B
-//    aerr = d/dt_B verr = a_BO * n_B
-//
-// Then we apply equal and opposite forces lambda*n to stations of B and F
-// that are coincident with the contact point C.
-// TODO: C should be half way between S and the point on the plane nearest S.
-//       Can I apply it there? Or do the constraint errors have to reflect
-//       that to keep the force transmission matrix the transpose of G?
-//
-// TODO: need utility methods like in MobilizedBody for getting p_BO, v_BO
-// and a_BO rather than just A frame values.
+//    --------------------------------
+//    perr = ~p_SF*Pz - h
+//    --------------------------------
+void calcPositionErrorsVirtual      
+   (const State&                                    s,      // Stage::Time
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr)   // mp of these
+    const OVERRIDE_11
+{
+    assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
-SimTK_DOWNCAST(BallRollingOnPlaneImpl, ConstraintImpl);
+    const Transform& X_AS = getBodyTransform(allX_AB, m_surfaceBody_S);
+    const Vec3 p_AF = 
+        findStationLocation(allX_AB, m_followerBody_B, m_p_BF); // 18 flops
+    const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
+
+    // Calculate this scalar using S-frame vectors; any frame would have done.
+    const Vec3& Po = m_X_SP.p(); // Plane origin in S
+    perr[0] = dot(p_SC-Po, m_X_SP.z()); // 8 flops
+}
+
+//    -----------------------------------
+//    verr = ~v_SF*Pz = ~(v_AF-v_AC)*Pz_A
+//    -----------------------------------
+void calcPositionDotErrorsVirtual      
+   (const State&                                    s,      // Stage::Position
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr)  // mp of these
+    const OVERRIDE_11 
+{
+    assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
+
+    const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const SpatialVec& V_AS = allV_AB[m_surfaceBody_S];
+
+    const Transform&  X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const SpatialVec& V_AB = allV_AB[m_followerBody_B];
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    Vec3 p_AF, v_AF;
+    findStationInALocationVelocity(X_AB, V_AB, p_BF_A, p_AF, v_AF); // 15 flops
+
+    const Vec3 p_SC_A = p_AF - X_AS.p(); // measure C from So, in A (3 flops)
+    Vec3 p_AC, v_AC;
+    findStationInALocationVelocity(X_AS, V_AS, p_SC_A, p_AC, v_AC); // 15 flops
+
+    const UnitVec3 Pz_A  = X_AS.R() * m_X_SP.z();                // 15 flops
+
+    // Calculate this scalar using A-frame vectors.
+    pverr[0] = dot( v_AF-v_AC, Pz_A );                           // 8 flops
+}
+
+//    --------------------------------------------------------------
+//    aerr = ~a_SF*Pz = ~((a_AF-a_AC) - 2 w_AS X (v_AF-v_AC)) * Pz_A
+//    --------------------------------------------------------------
+void calcPositionDotDotErrorsVirtual      
+   (const State&                                    s,      // Stage::Velocity
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr)  // mp of these
+    const OVERRIDE_11
+{
+    assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==1);
+
+    const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const SpatialVec& V_AS = getBodyVelocityFromState(s, m_surfaceBody_S);
+    const SpatialVec& A_AS = allA_AB[m_surfaceBody_S];
+
+    const Transform&  X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const SpatialVec& V_AB = getBodyVelocityFromState(s, m_followerBody_B);
+    const SpatialVec& A_AB = allA_AB[m_followerBody_B];
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    Vec3 p_AF, v_AF, a_AF;
+    findStationInALocationVelocityAcceleration(X_AB, V_AB, A_AB, p_BF_A,
+                                               p_AF, v_AF, a_AF); // 39 flops
+
+    const Vec3 p_SC_A = p_AF - X_AS.p(); // measure C from So, in A  (3 flops)
+    Vec3 p_AC, v_AC, a_AC;
+    findStationInALocationVelocityAcceleration(X_AS, V_AS, A_AS, p_SC_A,
+                                               p_AC, v_AC, a_AC); // 39 flops
+
+    const UnitVec3 Pz_A  = X_AS.R() * m_X_SP.z();                 // 15 flops
+
+    const Vec3& w_AS = V_AS[0];
+    const Vec3 v_CF_A = v_AF-v_AC;          // 3 flops
+    const Vec3 wXv2 = (2.*w_AS) % v_CF_A;   // 12 flops
+    const Vec3 a_CF_A = a_AF-a_AC;          // 3 flops
+    const Vec3 aRel_A = a_CF_A - wXv2; // relative accel of F and C  (3 flops)
+
+    // Calculate this scalars using A-frame vectors, but the result is the
+    // measure number along Pz.
+    paerr[0] = ~Pz_A*aRel_A;                // 5 flops
+}
+
+// apply f=lambda*Pz to the follower point F of body B,
+//      -f           to point C (coincident point) of body S
+void addInPositionConstraintForcesVirtual
+   (const State&                                    s,      // Stage::Position
+    const Array_<Real>&                             multipliers, // mp of these
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
+    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    const OVERRIDE_11
+{
+    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
+           && qForces.size()==0);
+    const Real lambda = multipliers[0];
+
+    const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const Transform& X_AB = getBodyTransformFromState(s, m_followerBody_B);
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    const Vec3 p_AF   = X_AB.p() + p_BF_A; // shift to Ao     ( 3 flops)
+    const Vec3 p_SC_A = p_AF - X_AS.p();   // measure C from So, in A (3 flops)
+
+    const UnitVec3 Pz_A  = X_AS.R() * m_X_SP.z();                  // 15 flops
+
+    const Vec3 force_A = lambda * Pz_A;
+
+    addInStationInAForce(p_BF_A, force_A, bodyForcesInA[m_followerBody_B]);
+    subInStationInAForce(p_SC_A, force_A, bodyForcesInA[m_surfaceBody_S]);
+}
+
+// Implementation of virtuals required for nonholonomic constraints.
+
+//    -----------------------------------------
+//    verr = [~Px] * v_SF = [~Px_A] * (v_AF-v_AC)
+//           [~Py]          [~Py_A]
+//    -----------------------------------------
+// TODO: rework this using the more efficient API (see next method).
+void calcVelocityErrorsVirtual
+   (const State&                                    s,      // Stage::Position
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedU,
+    Array_<Real>&                                   verr)   // mv of these
+    const OVERRIDE_11
+{
+    assert(allV_AB.size()==2 && constrainedU.size()==0 && verr.size()==2);
+
+    const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const Vec3 p_AF = 
+        findStationLocationFromState(s, m_followerBody_B, m_p_BF); // 18 flops
+    const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
+    const UnitVec3 Px_A  = X_AS.R() * m_X_SP.x();                  // 15 flops
+    const UnitVec3 Py_A  = X_AS.R() * m_X_SP.y();                  // 15 flops
+    
+    // 54 flops for the two of these
+    const Vec3 v_AF = findStationVelocity(s, allV_AB, m_followerBody_B, m_p_BF);
+    const Vec3 v_AC = findStationVelocity(s, allV_AB, m_surfaceBody_S, p_SC);
+    const Vec3 v_CF_A = v_AF-v_AC; // 3 flops
+
+    // Calculate these scalars using A-frame vectors, but the results are
+    // measure numbers in [Px Py].
+    verr[0] = ~Px_A*v_CF_A; // 5 flops
+    verr[1] = ~Py_A*v_CF_A; // 5 flops
+}
+
+//    ------------------------------------------------------------------
+//    aerr = [~Px] * a_SF = [~Px_A] * ((a_AF-a_AC) - 2 w_AS X (v_AF-v_AC))
+//           [~Py]          [~Py_A]
+//    ------------------------------------------------------------------
+
+void calcVelocityDotErrorsVirtual      
+   (const State&                                    s,      // Stage::Velocity
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
+    Array_<Real>&                                   vaerr)  // mv of these
+    const OVERRIDE_11
+{
+    assert(allA_AB.size()==2 && constrainedUDot.size()==0 && vaerr.size()==2);
+
+    const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const SpatialVec& V_AS = getBodyVelocityFromState(s, m_surfaceBody_S);
+    const SpatialVec& A_AS = allA_AB[m_surfaceBody_S];
+
+    const Transform&  X_AB = getBodyTransformFromState(s, m_followerBody_B);
+    const SpatialVec& V_AB = getBodyVelocityFromState(s, m_followerBody_B);
+    const SpatialVec& A_AB = allA_AB[m_followerBody_B];
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    Vec3 p_AF, v_AF, a_AF;
+    findStationInALocationVelocityAcceleration(X_AB, V_AB, A_AB, p_BF_A,
+                                               p_AF, v_AF, a_AF); // 39 flops
+
+    const Vec3 p_SC_A = p_AF - X_AS.p(); // measure C from So, in A (3 flops)
+    Vec3 p_AC, v_AC, a_AC;
+    findStationInALocationVelocityAcceleration(X_AS, V_AS, A_AS, p_SC_A,
+                                               p_AC, v_AC, a_AC); // 39 flops
+
+    const UnitVec3 Px_A  = X_AS.R() * m_X_SP.x();                  // 15 flops
+    const UnitVec3 Py_A  = X_AS.R() * m_X_SP.y();                  // 15 flops
+
+    const Vec3& w_AS = V_AS[0];
+    const Vec3 v_CF_A = v_AF-v_AC;          // 3 flops
+    const Vec3 wXv2 = (2.*w_AS) % v_CF_A;   // 12 flops
+
+    const Vec3 a_CF_A = a_AF-a_AC; // 3 flops
+    const Vec3 aRel_A = a_CF_A - wXv2; // relative accel of F and C (3 flops)
+
+    // Calculate these scalars using A-frame vectors, but the results are
+    // measure numbers in [Px Py].
+    vaerr[0] = ~Px_A*aRel_A; // 5 flops
+    vaerr[1] = ~Py_A*aRel_A; // 5 flops
+}
+
+// apply f=lambda0*Px + lambda1*Py to the follower point F on B
+//      -f           to point C (coincident point) of body S
+void addInVelocityConstraintForcesVirtual
+   (const State&                                    s,      // Stage::Velocity
+    const Array_<Real>&                             multipliers, // mv of these
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    const OVERRIDE_11
+{
+    assert(multipliers.size()==2 && mobilityForces.size()==0 
+           && bodyForcesInA.size()==2);
+
+    const Real lambda0 = multipliers[0], lambda1 = multipliers[1];
+
+    const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
+    const Transform& X_AB = getBodyTransformFromState(s, m_followerBody_B);
+
+    const Vec3 p_BF_A = X_AB.R() * m_p_BF; // re-express in A (15 flops)
+    const Vec3 p_AF   = X_AB.p() + p_BF_A; // shift to Ao     ( 3 flops)
+    const Vec3 p_SC_A = p_AF - X_AS.p();   // measure C from So, in A (3 flops)
+
+    const UnitVec3 Px_A  = X_AS.R() * m_X_SP.x();                  // 15 flops
+    const UnitVec3 Py_A  = X_AS.R() * m_X_SP.y();                  // 15 flops
+
+    const Vec3 force_A = lambda0*Px_A + lambda1*Py_A; // 9 flops
+
+    addInStationInAForce(p_BF_A, force_A, bodyForcesInA[m_followerBody_B]);
+    subInStationInAForce(p_SC_A, force_A, bodyForcesInA[m_surfaceBody_S]);
+}
+
+SimTK_DOWNCAST(PointInPlaneWithStictionImpl, ConstraintImpl);
 //------------------------------------------------------------------------------
                                     private:
-friend class Constraint::BallRollingOnPlane;
+friend class Constraint::PointInPlaneWithStiction;
 
-ConstrainedBodyIndex    planeBody; // B1
-ConstrainedBodyIndex    ballBody;  // B2
+ConstrainedBodyIndex    m_surfaceBody_S;    // S (B1)
+ConstrainedBodyIndex    m_followerBody_B;   // B (B2)
 
-UnitVec3                defaultPlaneNormal;   // on body 1, exp. in B1 frame
-Real                    defaultPlaneHeight;
-Vec3                    defaultBallCenter;    // on body 2, exp. in B2 frame
-Real                    defaultBallRadius;
+Transform               m_X_SP; // default plane frame fixed in S
+Vec3                    m_p_BF; // default follower point fixed in B
 
-// This is just for visualization
-Real                    planeHalfWidth;
+// These are just for visualization
+Real                    m_planeHalfWidth;
+Real                    m_pointRadius;
 };
 
 
