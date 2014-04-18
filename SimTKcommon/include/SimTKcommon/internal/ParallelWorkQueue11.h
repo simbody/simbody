@@ -51,7 +51,7 @@ namespace SimTK {
 
 					if (_fnqueue.empty())
 					{
-						_worker_thead_cond.wait_for(lock, std::chrono::duration<int, std::milli>(5));
+						_worker_thead_cond.wait(lock);
 						continue;
 					}
 
@@ -102,6 +102,8 @@ namespace SimTK {
 				exec(_execute_mutex);
 			std::unique_lock<std::mutex>
 				lock(_calling_thread_mtx);
+			std::unique_lock<std::mutex>
+				tlLock(_task_len_mutex);
 
 			_tasks_remaining = _fnqueue.size();
 
@@ -111,7 +113,7 @@ namespace SimTK {
 			// don't return until all functions have been executed
 			while (_tasks_remaining > 0)
 			{
-				_calling_thread_cond.wait_for(lock, 
+				_calling_thread_cond.wait_for(tlLock,
 					std::chrono::duration<int, std::milli>(5));
 				continue;
 			}
@@ -122,6 +124,8 @@ namespace SimTK {
 		void stop()
 		{
 			_sig_kill = true;
+
+			_worker_thead_cond.notify_all();
 
 			for (std::size_t i = 0; i < _workers.size(); i++)
 				_workers[i].join();

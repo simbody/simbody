@@ -51,7 +51,7 @@ public:
 	GeneralForceSubsystemRep()
 		: ForceSubsystemRep("GeneralForceSubsystem", "0.0.1")
     {
-		work_queue = new ParallelWorkQueue11(4);
+		work_queue = new ParallelWorkQueue11(8);
 
 		rigidBodyForcesPool = new ObjectPool<Vector_<SpatialVec>>();
 		particleForcesPool = new ObjectPool<Vector_<Vec3>>;
@@ -61,13 +61,13 @@ public:
 		particleForcesCachePool = new ObjectPool<Vector_<Vec3>>;
 		mobilityForcesCachePool = new ObjectPool<Vector>();
 
-		rigidBodyForcesPool->initialize(4);
-		particleForcesPool->initialize(4);
-		mobilityForcesPool->initialize(4);
+		rigidBodyForcesPool->initialize(8);
+		particleForcesPool->initialize(8);
+		mobilityForcesPool->initialize(8);
 
-		rigidBodyForcesCachePool->initialize(4);
-		particleForcesCachePool->initialize(4);
-		mobilityForcesCachePool->initialize(4);
+		rigidBodyForcesCachePool->initialize(8);
+		particleForcesCachePool->initialize(8);
+		mobilityForcesCachePool->initialize(8);
 
     }
     
