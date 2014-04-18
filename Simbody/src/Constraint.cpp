@@ -1025,16 +1025,17 @@ setDefaultBallRadius(Real defaultBallRadius) {
     return *this;
 }
 
-MobilizedBodyIndex Constraint::BallSlidingOnPlane::
-getPlaneMobilizedBodyIndex() const {
-    return getImpl().getMobilizedBodyIndexOfConstrainedBody
-                                                (getImpl().m_surfaceBody_S);
+const MobilizedBody& Constraint::BallSlidingOnPlane::
+getPlaneMobilizedBody() const {
+    const BallSlidingOnPlaneImpl& impl = getImpl();
+    return impl.getMobilizedBodyFromConstrainedBody(impl.m_surfaceBody_S);
 }
-MobilizedBodyIndex Constraint::BallSlidingOnPlane::
-getBallMobilizedBodyIndex() const {
-    return getImpl().getMobilizedBodyIndexOfConstrainedBody
-                                                (getImpl().m_followerBody_B);
+const MobilizedBody& Constraint::BallSlidingOnPlane::
+getBallMobilizedBody() const {
+    const BallSlidingOnPlaneImpl& impl = getImpl();
+    return impl.getMobilizedBodyFromConstrainedBody(impl.m_followerBody_B);
 }
+
 const Transform& Constraint::BallSlidingOnPlane::getDefaultPlaneFrame() const {
     return getImpl().m_X_SP;
 }

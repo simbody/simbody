@@ -1424,10 +1424,14 @@ public:
     if you call this method. **/
     BallSlidingOnPlane& setDefaultBallRadius(Real defaultBallRadius);
 
-    /** Return the MobilizedBodyIndex of the plane MobilizedBody. **/
-    MobilizedBodyIndex getPlaneMobilizedBodyIndex() const;
-    /** Return the MobilizedBodyIndex of the ball MobilizedBody. **/
-    MobilizedBodyIndex getBallMobilizedBodyIndex() const;
+    /** Return a reference to the MobilizedBody to which the plane is
+    attached. This refers to the \a planeBody that was given in the 
+    constructor. **/
+    const MobilizedBody& getPlaneMobilizedBody() const;
+    /** Return a reference to the MobilizedBody to which the ball is
+    attached. This refers to the \a ballBody that was given in the 
+    constructor. **/
+    const MobilizedBody& getBallMobilizedBody() const;
 
     /** Return the default plane frame as set during construction or by the
     most recent call to setDefaultPlaneFrame(). **/
