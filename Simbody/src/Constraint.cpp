@@ -974,172 +974,221 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
 
 
 //==============================================================================
-//                         CONSTRAINT:: BALL SLIDING ON PLANE
+//                         CONSTRAINT:: SPHERE ON PLANE CONTACT
 //==============================================================================
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::BallSlidingOnPlane, 
-                                        Constraint::BallSlidingOnPlaneImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::SphereOnPlaneContact, 
+                                        Constraint::SphereOnPlaneContactImpl, 
                                         Constraint);
 
-Constraint::BallSlidingOnPlane::BallSlidingOnPlane
+Constraint::SphereOnPlaneContact::SphereOnPlaneContact
    (MobilizedBody&      planeBody, 
     const Transform&    defaultPlaneFrame, 
-    MobilizedBody&      ballBody, 
-    const Vec3&         defaultBallCenter,
-    Real                defaultBallRadius)
-:   Constraint(new BallSlidingOnPlaneImpl())
+    MobilizedBody&      sphereBody, 
+    const Vec3&         defaultSphereCenter,
+    Real                defaultSphereRadius,
+    bool                enforceRolling)
+:   Constraint(new SphereOnPlaneContactImpl(enforceRolling))
 {
-    SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem() && ballBody.isInSubsystem(),
-        "Constraint::BallSlidingOnPlane(): both bodies must already be in a "
+    SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem() && sphereBody.isInSubsystem(),
+        "Constraint::SphereOnPlaneContact(): both bodies must already be in a "
         "SimbodyMatterSubsystem.");
-    SimTK_ASSERT_ALWAYS(planeBody.isInSameSubsystem(ballBody),
-        "Constraint::BallSlidingOnPlane(): both bodies to be connected must be "
+    SimTK_ASSERT_ALWAYS(planeBody.isInSameSubsystem(sphereBody),
+        "Constraint::SphereOnPlaneContact(): both bodies to be connected must be "
         "in the same SimbodyMatterSubsystem.");
 
     planeBody.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().m_surfaceBody_S   = updImpl().addConstrainedBody(planeBody);
-    updImpl().m_followerBody_B  = updImpl().addConstrainedBody(ballBody);
-    updImpl().m_X_SP            = defaultPlaneFrame;
-    updImpl().m_p_BO            = defaultBallCenter;
-    updImpl().m_radius          = defaultBallRadius;
+    updImpl().m_followerBody_B  = updImpl().addConstrainedBody(sphereBody);
+    updImpl().m_def_X_SP        = defaultPlaneFrame;
+    updImpl().m_def_p_BO        = defaultSphereCenter;
+    updImpl().m_def_radius      = defaultSphereRadius;
 }
 
-Constraint::BallSlidingOnPlane& Constraint::BallSlidingOnPlane::
+Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
 setDefaultPlaneFrame(const Transform& defaultPlaneFrame) {
     getImpl().invalidateTopologyCache();
-    updImpl().m_X_SP = defaultPlaneFrame;
+    updImpl().m_def_X_SP = defaultPlaneFrame;
     return *this;
 }
 
-Constraint::BallSlidingOnPlane& Constraint::BallSlidingOnPlane::
-setDefaultBallCenter(const Vec3& defaultBallCenter) {
+Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setDefaultSphereCenter(const Vec3& defaultSphereCenter) {
     getImpl().invalidateTopologyCache();
-    updImpl().m_p_BO = defaultBallCenter;
+    updImpl().m_def_p_BO = defaultSphereCenter;
     return *this;
 }
 
-Constraint::BallSlidingOnPlane& Constraint::BallSlidingOnPlane::
-setDefaultBallRadius(Real defaultBallRadius) {
+Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setDefaultSphereRadius(Real defaultSphereRadius) {
     getImpl().invalidateTopologyCache();
-    updImpl().m_radius = defaultBallRadius;
+    updImpl().m_def_radius = defaultSphereRadius;
     return *this;
 }
 
-const MobilizedBody& Constraint::BallSlidingOnPlane::
+const MobilizedBody& Constraint::SphereOnPlaneContact::
 getPlaneMobilizedBody() const {
-    const BallSlidingOnPlaneImpl& impl = getImpl();
+    const SphereOnPlaneContactImpl& impl = getImpl();
     return impl.getMobilizedBodyFromConstrainedBody(impl.m_surfaceBody_S);
 }
-const MobilizedBody& Constraint::BallSlidingOnPlane::
-getBallMobilizedBody() const {
-    const BallSlidingOnPlaneImpl& impl = getImpl();
+const MobilizedBody& Constraint::SphereOnPlaneContact::
+getSphereMobilizedBody() const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
     return impl.getMobilizedBodyFromConstrainedBody(impl.m_followerBody_B);
 }
 
-const Transform& Constraint::BallSlidingOnPlane::getDefaultPlaneFrame() const {
-    return getImpl().m_X_SP;
+bool Constraint::SphereOnPlaneContact::isEnforcingRolling() const 
+{   return getImpl().m_enforceRolling; }
+
+const Transform& Constraint::SphereOnPlaneContact::getDefaultPlaneFrame() const {
+    return getImpl().m_def_X_SP;
 }
 
-const Vec3& Constraint::BallSlidingOnPlane::getDefaultBallCenter() const {
-    return getImpl().m_p_BO;
+const Vec3& Constraint::SphereOnPlaneContact::getDefaultSphereCenter() const {
+    return getImpl().m_def_p_BO;
 }
-Real Constraint::BallSlidingOnPlane::getDefaultBallRadius() const {
-    return getImpl().m_radius;
+Real Constraint::SphereOnPlaneContact::getDefaultSphereRadius() const {
+    return getImpl().m_def_radius;
 }
 
-Constraint::BallSlidingOnPlane& Constraint::BallSlidingOnPlane::
+Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
 setPlaneDisplayHalfWidth(Real h) {
     updImpl().setPlaneDisplayHalfWidth(h);
     return *this;
 }
 
-Real Constraint::BallSlidingOnPlane::getPlaneDisplayHalfWidth() const {
+Real Constraint::SphereOnPlaneContact::getPlaneDisplayHalfWidth() const {
     return getImpl().getPlaneDisplayHalfWidth();
 }
 
-const Transform& Constraint::BallSlidingOnPlane::
+const Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setPlaneFrame(State& state, const Transform& planeFrame) const {
+    getImpl().updParameters(state).m_X_SP = planeFrame;
+    return *this;
+}
+
+const Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setSphereCenter(State& state, const Vec3& sphereCenter) const {
+    getImpl().updParameters(state).m_p_BO = sphereCenter;
+    return *this;
+}
+
+const Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setSphereRadius(State& state, Real sphereRadius) const {
+    getImpl().updParameters(state).m_radius = sphereRadius;
+    return *this;
+}
+
+const Transform& Constraint::SphereOnPlaneContact::
 getPlaneFrame(const State& state) const
 {   return getImpl().getPlaneFrame(state); }
-const Vec3& Constraint::BallSlidingOnPlane::
-getBallCenter(const State& state) const
-{   return getImpl().getBallCenter(state); }
-Real Constraint::BallSlidingOnPlane::
-getBallRadius(const State& state) const
-{   return getImpl().getBallRadius(state); }
+const Vec3& Constraint::SphereOnPlaneContact::
+getSphereCenter(const State& state) const
+{   return getImpl().getSphereCenter(state); }
+Real Constraint::SphereOnPlaneContact::
+getSphereRadius(const State& state) const
+{   return getImpl().getSphereRadius(state); }
 
-Real Constraint::BallSlidingOnPlane::getPositionError(const State& s) const {
+Real Constraint::SphereOnPlaneContact::getPositionError(const State& s) const {
     Real perr;
     getImpl().getPositionErrors(s, 1, &perr);
     return perr;
 }
 
-Real Constraint::BallSlidingOnPlane::getVelocityError(const State& s) const {
-    Real pverr;
-    getImpl().getVelocityErrors(s, 1, &pverr);
-    return pverr;
+Vec3 Constraint::SphereOnPlaneContact::getVelocityErrors(const State& s) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    Vec3 verr_PF; // result is velocity error in P frame 
+    if (impl.m_enforceRolling) {
+        Real verr[3];
+        impl.getVelocityErrors(s, 3, verr);
+        verr_PF = Vec3(verr[1],verr[2],verr[0]); // switch to x,y,z order
+    } else {
+        Real pverr;
+        getImpl().getVelocityErrors(s, 1, &pverr);
+        verr_PF = Vec3(0,0,pverr); // lone error is in z direction
+    }
+    return verr_PF;
 }
 
-Real Constraint::BallSlidingOnPlane::getAccelerationError(const State& s) const {
-    Real pvaerr;
-    getImpl().getAccelerationErrors(s, 1, &pvaerr);
-    return pvaerr;
+Vec3 Constraint::SphereOnPlaneContact::getAccelerationErrors(const State& s) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    Vec3 aerr_PF; // result is acceleration error in P frame 
+    if (impl.m_enforceRolling) {
+        Real aerr[3];
+        impl.getAccelerationErrors(s, 3, aerr);
+        aerr_PF = Vec3(aerr[1],aerr[2],aerr[0]); // switch to x,y,z order
+    } else {
+        Real paerr;
+        getImpl().getAccelerationErrors(s, 1, &paerr);
+        aerr_PF = Vec3(0,0,paerr); // lone error is in z direction
+    }
+    return aerr_PF;
 }
 
-Real Constraint::BallSlidingOnPlane::getMultiplier(const State& s) const {
-    Real mult;
-    getImpl().getMultipliers(s, 1, &mult);
-    return mult;
+Vec3 Constraint::SphereOnPlaneContact::getMultipliers(const State& s) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    Vec3 lambda_PF; // result is -force on point F in P frame 
+    if (impl.m_enforceRolling) {
+        Real lambda[3];
+        impl.getMultipliers(s, 3, lambda);
+        lambda_PF = Vec3(lambda[1],lambda[2],lambda[0]); //switch to x,y,z order
+    } else {
+        Real lambda;
+        getImpl().getMultipliers(s, 1, &lambda);
+        lambda_PF = Vec3(0,0,lambda); // lone force is in z direction
+    }
+    return lambda_PF;
 }
 
-Vec3 Constraint::BallSlidingOnPlane::
-findForceOnBallInG(const State& state) const {
-    const BallSlidingOnPlaneImpl& impl = getImpl();
+Vec3 Constraint::SphereOnPlaneContact::
+findForceOnSphereInG(const State& state) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
     if (impl.isDisabled(state)) 
         return Vec3(0);
 
-    const UnitVec3& Pz_S = impl.getPlaneFrame(state).z();
+    const Rotation& R_SP = impl.getPlaneFrame(state).R();
     const MobilizedBody& bodyS =
         impl.getMobilizedBodyFromConstrainedBody(impl.m_surfaceBody_S);
     const Rotation& R_GS = bodyS.getBodyRotation(state);
-    const UnitVec3 Pz_G = R_GS * Pz_S;
+    const Rotation R_GP = R_GS * R_SP; // orientation of P frame in G
 
-    Real lambda;
-    impl.getMultipliers(state, 1, &lambda);
-    return (-lambda)*Pz_G; // watch sign convention
+    const Vec3 f_PF = -getMultipliers(state); // watch sign convention
+    return R_GP * f_PF; // return f_GF
 }
 
 
-Vec3 Constraint::BallSlidingOnPlane::
+Vec3 Constraint::SphereOnPlaneContact::
 findContactPointInG(const State& state) const {
-    const BallSlidingOnPlaneImpl& impl = getImpl();
+    const SphereOnPlaneContactImpl& impl = getImpl();
 
     // Get the plane normal direction in G.
     const UnitVec3& Pz_S = impl.getPlaneFrame(state).z();
-    const Vec3&     p_BO = impl.getBallCenter(state);
+    const Vec3&     p_BO = impl.getSphereCenter(state);
+    const Real      r    = impl.getSphereRadius(state);
     const MobilizedBody& bodyS =
         impl.getMobilizedBodyFromConstrainedBody(impl.m_surfaceBody_S);
     const Rotation& R_GS = bodyS.getBodyRotation(state);
     const UnitVec3 Pz_G = R_GS * Pz_S;
 
-    // Get the ball center O in G.
+    // Get the sphere center O in G.
     const MobilizedBody& bodyB =
         impl.getMobilizedBodyFromConstrainedBody(impl.m_followerBody_B);
     const Transform& X_GB = bodyB.getBodyTransform(state);
     const Vec3 p_GO = X_GB * p_BO;
 
-    return p_GO - impl.m_radius * Pz_G;
+    return p_GO - r * Pz_G;
 }
 
-Real Constraint::BallSlidingOnPlane::
+Real Constraint::SphereOnPlaneContact::
 findSeparation(const State& s) const {
-    const BallSlidingOnPlaneImpl& impl = getImpl();
+    const SphereOnPlaneContactImpl& impl = getImpl();
 
-    // The height of the ball center should be its radius.
+    // The height of the sphere center should be its radius.
     const Transform& X_SP = impl.getPlaneFrame(s);
+    const Vec3&      p_BO = impl.getSphereCenter(s);
+    const Real       r    = impl.getSphereRadius(s);
     const UnitVec3&  Pz_S = X_SP.z();
     const Vec3&      p_SP = X_SP.p();
-    const Vec3&      p_BO = impl.getBallCenter(s);
-    const Real       r    = impl.getBallRadius(s);
 
     const MobilizedBody& bodyS =
         impl.getMobilizedBodyFromConstrainedBody(impl.m_surfaceBody_S);
@@ -1152,18 +1201,56 @@ findSeparation(const State& s) const {
 }
 
 
-    // BallSlidingOnPlaneImpl
+    // SphereOnPlaneContactImpl
 
-void Constraint::BallSlidingOnPlane::BallSlidingOnPlaneImpl::
+// The default plane and sphere parameters may be overridden by setting
+// a discrete variable in the state. We allocate the state resources here.
+void Constraint::SphereOnPlaneContactImpl::
+realizeTopologyVirtual(State& state) const {
+    parametersIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Position, 
+            new Value<Parameters>
+               (Parameters(m_def_X_SP, m_def_p_BO, m_def_radius)));
+}
+
+// Return the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Note that although
+// these are used to define the position error, only the station on body 2
+// is used to generate constraint forces; the point of body 1 that is 
+// coincident with the body 2 point receives the equal and opposite force.
+const Constraint::SphereOnPlaneContactImpl::Parameters& 
+Constraint::SphereOnPlaneContactImpl::
+getParameters(const State& state) const {
+    return Value<Parameters>::downcast
+       (getMyMatterSubsystemRep().getDiscreteVariable(state,parametersIx));
+}
+
+// Return a writable reference into the Instance-stage state variable 
+// containing the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Calling this
+// method invalidates the Instance stage and above in the given state.
+Constraint::SphereOnPlaneContactImpl::Parameters& 
+Constraint::SphereOnPlaneContactImpl::
+updParameters(State& state) const {
+    return Value<Parameters>::updDowncast
+       (getMyMatterSubsystemRep().updDiscreteVariable(state,parametersIx));
+}
+
+void Constraint::SphereOnPlaneContactImpl::
 calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
-    // We can't generate the artwork until we know the plane frame and the ball
-    // center and radius, which might not be until Instance stage.
-    if (   stage == Stage::Instance 
+    // We can't generate the artwork until we know the plane frame and the
+    // sphere center and radius, which might not be until Position stage.
+    if (   stage == Stage::Position 
         && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
     {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        const Parameters& params = getParameters(s);
+        const Transform& X_SP = params.m_X_SP;
+        const Vec3&      p_BO = params.m_p_BO;
+        const Real       r    = params.m_radius;
+
         // TODO: should be instance-stage data from State rather than 
         // topological data.
         // This makes z axis point along plane normal
@@ -1177,24 +1264,24 @@ calcDecorativeGeometryAndAppendVirtual
             // On the inboard body, draw a gray transparent rectangle, 
             // outlined in black lines.
             geom.push_back(DecorativeBrick
-               (Vec3(m_planeHalfWidth,m_planeHalfWidth,m_radius/10))
+               (Vec3(m_planeHalfWidth,m_planeHalfWidth,r/10))
                 .setColor(Gray)
                 .setRepresentation(DecorativeGeometry::DrawSurface)
                 .setOpacity(Real(0.3))
                 .setBodyId(planeMBIx)
-                .setTransform(m_X_SP));
+                .setTransform(X_SP));
             geom.push_back(DecorativeFrame(m_planeHalfWidth/5)
                            .setColor(Gray)
                            .setBodyId(planeMBIx)
-                           .setTransform(m_X_SP));
+                           .setTransform(X_SP));
         }
 
         // On the ball body draw an orange mesh sphere.
-        geom.push_back(DecorativeSphere(m_radius)
+        geom.push_back(DecorativeSphere(r)
             .setColor(Orange)
             .setRepresentation(DecorativeGeometry::DrawWireframe)
             .setBodyId(ballMBIx)
-            .setTransform(m_p_BO));
+            .setTransform(p_BO));
     }
 }
 
