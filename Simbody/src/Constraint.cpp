@@ -1081,13 +1081,13 @@ setSphereRadius(State& state, Real sphereRadius) const {
 
 const Transform& Constraint::SphereOnPlaneContact::
 getPlaneFrame(const State& state) const
-{   return getImpl().getPlaneFrame(state); }
+{   return getImpl().getParameters(state).m_X_SP; }
 const Vec3& Constraint::SphereOnPlaneContact::
 getSphereCenter(const State& state) const
-{   return getImpl().getSphereCenter(state); }
+{   return getImpl().getParameters(state).m_p_BO; }
 Real Constraint::SphereOnPlaneContact::
 getSphereRadius(const State& state) const
-{   return getImpl().getSphereRadius(state); }
+{   return getImpl().getParameters(state).m_radius; }
 
 Real Constraint::SphereOnPlaneContact::getPositionError(const State& s) const {
     Real perr;
@@ -1146,7 +1146,7 @@ findForceOnSphereInG(const State& state) const {
     if (impl.isDisabled(state)) 
         return Vec3(0);
 
-    const Rotation& R_SP = impl.getPlaneFrame(state).R();
+    const Rotation& R_SP = impl.getParameters(state).m_X_SP.R();
     const MobilizedBody& bodyS =
         impl.getMobilizedBodyFromConstrainedBody(impl.m_surfaceBody_S);
     const Rotation& R_GS = bodyS.getBodyRotation(state);
@@ -1158,22 +1158,24 @@ findForceOnSphereInG(const State& state) const {
 
 
 Vec3 Constraint::SphereOnPlaneContact::
-findContactPointInG(const State& state) const {
+findContactPointInG(const State& s) const {
     const SphereOnPlaneContactImpl& impl = getImpl();
 
     // Get the plane normal direction in G.
-    const UnitVec3& Pz_S = impl.getPlaneFrame(state).z();
-    const Vec3&     p_BO = impl.getSphereCenter(state);
-    const Real      r    = impl.getSphereRadius(state);
+    const SphereOnPlaneContactImpl::Parameters& params = impl.getParameters(s);
+    const UnitVec3&   Pz_S = params.m_X_SP.z();
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
+
     const MobilizedBody& bodyS =
         impl.getMobilizedBodyFromConstrainedBody(impl.m_surfaceBody_S);
-    const Rotation& R_GS = bodyS.getBodyRotation(state);
+    const Rotation& R_GS = bodyS.getBodyRotation(s);
     const UnitVec3 Pz_G = R_GS * Pz_S;
 
     // Get the sphere center O in G.
     const MobilizedBody& bodyB =
         impl.getMobilizedBodyFromConstrainedBody(impl.m_followerBody_B);
-    const Transform& X_GB = bodyB.getBodyTransform(state);
+    const Transform& X_GB = bodyB.getBodyTransform(s);
     const Vec3 p_GO = X_GB * p_BO;
 
     return p_GO - r * Pz_G;
@@ -1184,11 +1186,13 @@ findSeparation(const State& s) const {
     const SphereOnPlaneContactImpl& impl = getImpl();
 
     // The height of the sphere center should be its radius.
-    const Transform& X_SP = impl.getPlaneFrame(s);
-    const Vec3&      p_BO = impl.getSphereCenter(s);
-    const Real       r    = impl.getSphereRadius(s);
-    const UnitVec3&  Pz_S = X_SP.z();
-    const Vec3&      p_SP = X_SP.p();
+    const SphereOnPlaneContactImpl::Parameters& params = impl.getParameters(s);
+    const Transform&  X_SP = params.m_X_SP;
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
+
+    const UnitVec3&   Pz_S = X_SP.z();
+    const Vec3&       p_SP = X_SP.p();
 
     const MobilizedBody& bodyS =
         impl.getMobilizedBodyFromConstrainedBody(impl.m_surfaceBody_S);

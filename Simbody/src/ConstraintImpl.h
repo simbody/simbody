@@ -1494,7 +1494,7 @@ void calcPositionDotDotErrorsVirtual
                                                     defaultFollowerPoint);;
     const Vec3       a_AC = findStationAcceleration(s, A_AB, planeBody, p_BC);
 
-    paerr[0] = dot( (a_AS-a_AC) - 2*w_AB % (v_AS-v_AC), n_A );
+    paerr[0] = dot( (a_AS-a_AC) - 2.*w_AB % (v_AS-v_AC), n_A );
 }
 
 // apply f=lambda*n to the follower point S of body F,
@@ -1573,23 +1573,18 @@ void calcDecorativeGeometryAndAppendVirtual
 // Allocates the discrete state variable for the parameters.
 void realizeTopologyVirtual(State& state) const OVERRIDE_11;
 
+// Get the current value of the runtime-settable parameters from this state.
 const Parameters& getParameters(const State& state) const;
+
+// Get a writable reference to the value of the discrete variable; this 
+// invalidated Position stage in the given state.
 Parameters& updParameters(State& state) const;
 
 void setPlaneDisplayHalfWidth(Real h) {
     // h <= 0 means don't display plane
-    invalidateTopologyCache();
     m_planeHalfWidth = h > 0 ? h : 0;
 }
 Real getPlaneDisplayHalfWidth() const {return m_planeHalfWidth;}
-
-// TODO: Should use changeable instance variable quantities from the state.
-const Transform& getPlaneFrame(const State& state) const
-{   return getParameters(state).m_X_SP; }
-const Vec3& getSphereCenter(const State& state) const
-{   return getParameters(state).m_p_BO; }
-Real getSphereRadius(const State& state) const
-{   return getParameters(state).m_radius; }
 
 // Implementation of virtuals required for holonomic constraints.
 
@@ -1644,9 +1639,10 @@ void calcPositionErrorsVirtual
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
-    const Transform& X_SP = getPlaneFrame(s);
-    const Vec3&      p_BO = getSphereCenter(s);
-    const Real       r    = getSphereRadius(s);
+    const Parameters& params = getParameters(s);
+    const Transform&  X_SP = params.m_X_SP;
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
 
     const Vec3&     Po_S = X_SP.p();  // Plane origin in S
     const UnitVec3& Pz_S = X_SP.z();  // Plane normal direction in S
@@ -1677,8 +1673,9 @@ void calcPositionDotErrorsVirtual
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
     
-    const Transform& X_SP = getPlaneFrame(s);
-    const Vec3&      p_BO = getSphereCenter(s);
+    const Parameters& params = getParameters(s);
+    const Transform&  X_SP = params.m_X_SP;
+    const Vec3&       p_BO = params.m_p_BO;
 
     const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
     const SpatialVec& V_AS = allV_AB[m_surfaceBody_S];
@@ -1716,8 +1713,9 @@ void calcPositionDotDotErrorsVirtual
 {
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==1);
     
-    const Transform& X_SP = getPlaneFrame(s);
-    const Vec3&      p_BO = getSphereCenter(s);
+    const Parameters& params = getParameters(s);
+    const Transform&  X_SP = params.m_X_SP;
+    const Vec3&       p_BO = params.m_p_BO;
 
     const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
     const SpatialVec& V_AS = getBodyVelocityFromState(s, m_surfaceBody_S);
@@ -1764,9 +1762,10 @@ void addInPositionConstraintForcesVirtual
            && qForces.size()==0);
     const Real lambda = multipliers[0];
 
-    const Transform& X_SP = getPlaneFrame(s);
-    const Vec3&      p_BO = getSphereCenter(s);
-    const Real       r    = getSphereRadius(s);
+    const Parameters& params = getParameters(s);
+    const Transform&  X_SP = params.m_X_SP;
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
 
     const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
     const Vec3&      p_AS = X_AS.p(); // p_AoSo_A
@@ -1839,9 +1838,10 @@ void calcVelocityErrorsVirtual
 {
     assert(allV_AB.size()==2 && constrainedU.size()==0 && verr.size()==2);
 
-    const Transform&  X_SP = getPlaneFrame(s);
-    const Vec3&       p_BO = getSphereCenter(s);
-    const Real        r    = getSphereRadius(s);
+    const Parameters& params = getParameters(s);
+    const Transform&  X_SP = params.m_X_SP;
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
 
     const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
     const SpatialVec& V_AS = allV_AB[m_surfaceBody_S];
@@ -1887,9 +1887,10 @@ void calcVelocityDotErrorsVirtual
 {
     assert(allA_AB.size()==2 && constrainedUDot.size()==0 && vaerr.size()==2);
 
-    const Transform&  X_SP = getPlaneFrame(s);
-    const Vec3&       p_BO = getSphereCenter(s);
-    const Real        r    = getSphereRadius(s);
+    const Parameters& params = getParameters(s);
+    const Transform&  X_SP = params.m_X_SP;
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
 
     const Transform&  X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
     const SpatialVec& V_AS = getBodyVelocityFromState(s, m_surfaceBody_S);
@@ -1944,9 +1945,10 @@ void addInVelocityConstraintForcesVirtual
            && bodyForcesInA.size()==2);
     const Real lambda0 = multipliers[0], lambda1 = multipliers[1];
 
-    const Transform& X_SP = getPlaneFrame(s);
-    const Vec3&      p_BO = getSphereCenter(s);
-    const Real       r    = getSphereRadius(s);
+    const Parameters& params = getParameters(s);
+    const Transform&  X_SP = params.m_X_SP;
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
 
     const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
     const Vec3&      p_AS = X_AS.p(); // p_AoSo_A
@@ -1987,7 +1989,6 @@ Real                    m_planeHalfWidth;
 // This Position-stage variable holds the constraint parameters to be used
 // for a particular State.
 mutable DiscreteVariableIndex   parametersIx;
-
 };
 
 
