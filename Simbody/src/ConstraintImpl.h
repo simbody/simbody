@@ -2697,16 +2697,16 @@ mutable DiscreteVariableIndex   contactInfoIx;
 
 
 //==============================================================================
-//                    POINT IN PLANE WITH STICTION IMPL
+//                      POINT ON PLANE CONTACT IMPL
 //==============================================================================
-class Constraint::PointInPlaneWithStictionImpl : public ConstraintImpl {
+class Constraint::PointOnPlaneContactImpl : public ConstraintImpl {
 public:
-PointInPlaneWithStictionImpl()
+PointOnPlaneContactImpl()
 :   ConstraintImpl(1,2,0), m_X_SP(), m_p_BF(0), 
     m_planeHalfWidth(1), m_pointRadius(Real(0.05)) 
 { }
-PointInPlaneWithStictionImpl* clone() const OVERRIDE_11 
-{   return new PointInPlaneWithStictionImpl(*this); }
+PointOnPlaneContactImpl* clone() const OVERRIDE_11 
+{   return new PointOnPlaneContactImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
@@ -2966,10 +2966,10 @@ void addInVelocityConstraintForcesVirtual
     subInStationInAForce(p_SC_A, force_A, bodyForcesInA[m_surfaceBody_S]);
 }
 
-SimTK_DOWNCAST(PointInPlaneWithStictionImpl, ConstraintImpl);
+SimTK_DOWNCAST(PointOnPlaneContactImpl, ConstraintImpl);
 //------------------------------------------------------------------------------
                                     private:
-friend class Constraint::PointInPlaneWithStiction;
+friend class Constraint::PointOnPlaneContact;
 
 ConstrainedBodyIndex    m_surfaceBody_S;    // S (B1)
 ConstrainedBodyIndex    m_followerBody_B;   // B (B2)

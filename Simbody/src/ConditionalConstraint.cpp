@@ -208,7 +208,7 @@ PointPlaneContact::PointPlaneContact
         "the static coefficient; got mu_s=%g, mu_d=%g.", mu_s, mu_d);
 
     // Set up the contact constraint.
-    m_ptInPlane = Constraint::PointInPlaneWithStiction
+    m_ptInPlane = Constraint::PointOnPlaneContact
        (planeBodyB, m_frame, followerBodyF, point_F);
     m_ptInPlane.setIsConditional(true);
     m_ptInPlane.setDisabledByDefault(true);

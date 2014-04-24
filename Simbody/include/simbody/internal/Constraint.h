@@ -475,7 +475,7 @@ class Custom;
 class CoordinateCoupler;
 class SpeedCoupler;
 class PrescribedMotion;
-class PointInPlaneWithStiction; 
+class PointOnPlaneContact; 
 class SphereOnPlaneContact; // ball in contact with plane (sliding or rolling)
 
 // Internal use only.
@@ -494,7 +494,7 @@ class CustomImpl;
 class CoordinateCouplerImpl;
 class SpeedCouplerImpl;
 class PrescribedMotionImpl;
-class PointInPlaneWithStictionImpl; 
+class PointOnPlaneContactImpl; 
 class SphereOnPlaneContactImpl;
 
 };
@@ -834,9 +834,9 @@ public:
 };
 
 
-    ///////////////////////////////////
-    // POINT IN PLANE WITH STICTION  //
-    ///////////////////////////////////
+//==============================================================================
+//                         POINT ON PLANE CONTACT
+//==============================================================================
 
 /** (Advanced) This is the underlying constraint for unilateral contact with
 friction but must be combined with contact and friction conditions. This 
@@ -886,40 +886,40 @@ just the time derivative of (2), i.e. <pre>
 The assembly condition is that the follower point must be in the plane; there
 is no assembly condition in the tangential direction since those constraints
 are at the velocity level only. **/
-class SimTK_SIMBODY_EXPORT Constraint::PointInPlaneWithStiction 
+class SimTK_SIMBODY_EXPORT Constraint::PointOnPlaneContact 
 :   public Constraint  {
 public:
     // no default constructor
 
     /** Construct a point-in-plane normal constraint and two no-slip friction
-    constraints as described in the Constraint::PointInPlaneWithStiction
+    constraints as described in the Constraint::PointOnPlaneContact
     class documentation. **/
-    PointInPlaneWithStiction(MobilizedBody&     planeBody, 
-                             const Transform&   defaultPlaneFrame, 
-                             MobilizedBody&     followerBody, 
-                             const Vec3&        defaultFollowerPoint);
+    PointOnPlaneContact(MobilizedBody&     planeBody, 
+                        const Transform&   defaultPlaneFrame, 
+                        MobilizedBody&     followerBody, 
+                        const Vec3&        defaultFollowerPoint);
     
     /** Default constructor creates an empty handle that can be used to
-    reference any %PointInPlaneWithStiction %Constraint.**/
-    PointInPlaneWithStiction() {}
+    reference any %PointOnPlaneContact %Constraint.**/
+    PointOnPlaneContact() {}
 
     // These affect only generated decorative geometry for visualization;
     // the plane is really infinite in extent with zero depth and the
     // point is really of zero radius.
-    PointInPlaneWithStiction& setPlaneDisplayHalfWidth(Real);
-    PointInPlaneWithStiction& setPointDisplayRadius(Real);
+    PointOnPlaneContact& setPlaneDisplayHalfWidth(Real);
+    PointOnPlaneContact& setPointDisplayRadius(Real);
     Real getPlaneDisplayHalfWidth() const;
     Real getPointDisplayRadius() const;
 
     /** Replace the default plane frame that was supplied on construction.
     This is a topological change; you'll have to call realizeTopology() again
     if you call this method. **/
-    PointInPlaneWithStiction& 
+    PointOnPlaneContact& 
     setDefaultPlaneFrame(const Transform& defaultPlaneFrame);
     /** Replace the default follower point that was supplied on construction.
     This is a topological change; you'll have to call realizeTopology() again
     if you call this method. **/
-    PointInPlaneWithStiction& 
+    PointOnPlaneContact& 
     setDefaultFollowerPoint(const Vec3& defaultFollowerPoint);
 
     /** Return the MobilizedBodyIndex of the plane MobilizedBody. **/
@@ -980,7 +980,7 @@ public:
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
-       (PointInPlaneWithStiction, PointInPlaneWithStictionImpl, Constraint);
+       (PointOnPlaneContact, PointOnPlaneContactImpl, Constraint);
     /** @endcond **/
 };
 

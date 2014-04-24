@@ -599,7 +599,7 @@ private:
     Real                        m_minCOR;
     Real                        m_mu_s, m_mu_d, m_mu_v;
 
-    Constraint::PointInPlaneWithStiction    m_ptInPlane;
+    Constraint::PointOnPlaneContact m_ptInPlane;
 };
 
 //==============================================================================
