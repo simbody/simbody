@@ -2267,14 +2267,14 @@ getPositionError(const State& s) const {
 }
 
 Vec3 Constraint::PointInPlaneWithStiction::
-getVelocityError(const State& s) const {
+getVelocityErrors(const State& s) const {
     Vec3 verr;
     getImpl().getVelocityErrors(s, 3, &verr[0]);
     return verr;
 }
 
 Vec3 Constraint::PointInPlaneWithStiction::
-getAccelerationError(const State& s) const {
+getAccelerationErrors(const State& s) const {
     Vec3 aerr;
     getImpl().getAccelerationErrors(s, 3, &aerr[0]);
     return aerr;

@@ -441,8 +441,8 @@ int main(int argc, char** argv) {
     const double startReal = realTime();
     const double startCPU = cpuTime();
 
-    const Real h = .002;
-    const int SaveEvery = 16; // save every nth step ~= 33ms
+    const Real h = .001;
+    const int SaveEvery = 10; // save every nth step ~= 33ms
 
     Vector_<SpatialVec> reactions;
     do {
@@ -629,12 +629,18 @@ TimsBox::TimsBox() {
                                                     15, 18));
     #endif
 
+    const Real CornerRadius = .1;
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2)
     for (int k=-1; k<=1; k+=2) {
         const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(BrickHalfDims);
-        PointPlaneContact* contact = new PointPlaneContact
-           (Ground, YAxis, 0., m_brick, pt, CoefRest, mu_s, mu_d, mu_v);
+        //PointPlaneContact* contact = new PointPlaneContact
+         //  (Ground, YAxis, 0., m_brick, pt, CoefRest, mu_s, mu_d, mu_v);
+        SpherePlaneContact* contact = new SpherePlaneContact
+           (Ground, YAxis, 0., m_brick, pt, CornerRadius,
+            CoefRest, mu_s, mu_d, mu_v);
+        m_brick.addBodyDecoration(pt,
+            DecorativeSphere(CornerRadius).setColor(Gray).setOpacity(.5));
         matter.adoptUnilateralContact(contact);
 
         if (i==-1 && j==-1 && k==-1)
@@ -652,8 +658,13 @@ TimsBox::TimsBox() {
     for (int i=-1; i<=1; i+=2)
     for (int j=-1; j<=1; j+=2) {
         const Vec3 pt = Vec3(i,j,0).elementwiseMultiply(BrickHalfDims);
-        PointPlaneContact* contact = new PointPlaneContact
-           (Ground, YAxis, 0., m_brick, pt, CoefRest, mu_s, mu_d, mu_v);
+        //PointPlaneContact* contact = new PointPlaneContact
+        //   (Ground, YAxis, 0., m_brick, pt, CoefRest, mu_s, mu_d, mu_v);
+        SpherePlaneContact* contact = new SpherePlaneContact
+           (Ground, YAxis, 0., m_brick, pt, CornerRadius,
+            CoefRest, mu_s, mu_d, mu_v);
+        m_brick.addBodyDecoration(pt,
+            DecorativeSphere(CornerRadius).setColor(Gray).setOpacity(.5));
         matter.adoptUnilateralContact(contact);
 
         PointPlaneContact* contact2 = new PointPlaneContact
@@ -849,7 +860,7 @@ void BouncingBalls::calcInitialState(State& s) const {
 }
 
 //==============================================================================
-//                              PENCIL
+//                                  PENCIL
 //==============================================================================
 
 Pencil::Pencil() {
@@ -918,11 +929,10 @@ Pencil::Pencil() {
     m_pencil = MobilizedBody::Planar
        (Ground, Vec3(0,PencilHLength,0), pencilBody, Vec3(0));
 
+    const Real flapperRadius = 0.2;
     m_flapper = MobilizedBody::Pin
        (m_pencil, Vec3(0), 
         MassProperties(10,Vec3(0),UnitInertia(0)), Vec3(-2,0,0));
-    m_flapper.addBodyDecoration(Vec3(0,0,0), 
-                              DecorativeSphere(0.2).setColor(Red));
     m_flapper.addBodyDecoration(Vec3(0), DecorativeLine(Vec3(-2,0,0),Vec3(0)));
     HardStopLower* lower =
         new HardStopLower(m_flapper, MobilizerQIndex(0), -Pi/6, 1); 
@@ -930,11 +940,26 @@ Pencil::Pencil() {
     HardStopUpper* upper =
         new HardStopUpper(m_flapper, MobilizerQIndex(0), Pi/6, 1); 
     matter.adoptUnilateralContact(upper);
+    SpherePlaneContact* flapperContact =
+        new SpherePlaneContact(Ground, YAxis, 0.,
+                                    m_flapper, Vec3(0), flapperRadius,
+                                    CoefRest/2, mu_s, mu_d, mu_v);
+    matter.adoptUnilateralContact(flapperContact);
+    m_flapper.addBodyDecoration(Vec3(0,0,0), 
+                              DecorativeSphere(flapperRadius).setColor(Red));
 
-    PointPlaneContact* pc1 =
-        new PointPlaneContact(Ground, YAxis, 0.,
-                                    m_pencil, Vec3(0,-PencilHLength,0), 
-                                    CoefRest, mu_s, mu_d, mu_v);
+    //PointPlaneContact* pc1 =
+    //    new PointPlaneContact(Ground, YAxis, 0.,
+    //                                m_pencil, Vec3(0,-PencilHLength,0), 
+    //                                CoefRest, mu_s, mu_d, mu_v);
+    Real radius1 = 1;
+    Vec3 pos1(0,-PencilHLength,0);
+    SpherePlaneContact* pc1 =
+        new SpherePlaneContact(Ground, YAxis, 0.,
+                                    m_pencil, pos1, radius1,
+                                    CoefRest/3, mu_s, mu_d, mu_v);
+    m_pencil.addBodyDecoration(pos1, 
+        DecorativeSphere(radius1).setColor(Cyan).setOpacity(.5));
     PointPlaneContact* pc2 =
         new PointPlaneContact(Ground, YAxis, 0.,
                                     m_pencil, Vec3(0,PencilHLength,0), 
@@ -948,11 +973,14 @@ void Pencil::calcInitialState(State& s) const {
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
     realize(s, Stage::Position);
-    Assembler(*this).setErrorTolerance(1e-6).assemble(s);
-    getPencil().setOneQ(s, MobilizerQIndex(0), Pi/4);
-    getPencil().setOneQ(s, MobilizerQIndex(2), -1);
+    getPencil().setOneQ(s, MobilizerQIndex(0), .01);
+    getPencil().setOneQ(s, MobilizerQIndex(2), 2);
+    //getPencil().setOneQ(s, MobilizerQIndex(0), Pi/4);
+    //getPencil().setOneQ(s, MobilizerQIndex(2), -1);
     getPencil().setOneU(s, MobilizerUIndex(1), 2);
     getPencil().setOneU(s, MobilizerUIndex(2), -2);
+    Assembler(*this).setErrorTolerance(1e-6).assemble(s);
+
 }
 
 

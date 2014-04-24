@@ -265,5 +265,89 @@ getFrictionMultiplierIndices(const State&       s,
 }
 
 
+
+//==============================================================================
+//                           SPHERE PLANE CONTACT
+//==============================================================================
+SpherePlaneContact::SpherePlaneContact
+   (MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
+    MobilizedBody& followerBodyF, const Vec3& point_F, Real radius,
+    Real minCOR, Real mu_s, Real mu_d, Real mu_v)
+:   m_planeBody(planeBodyB), m_frame(normal_B, ZAxis), m_height(height), 
+    m_follower(followerBodyF), m_point(point_F), m_radius(radius),
+    m_minCOR(minCOR), m_mu_s(mu_s), m_mu_d(mu_d), m_mu_v(mu_v)
+{
+    SimTK_ERRCHK1_ALWAYS(radius > 0,
+        "SpherePlaneContact()",
+        "The sphere radius must be greater than zero but was %g.",
+        radius);
+    SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
+        "SpherePlaneContact()", 
+        "The coefficient of restitution must be between 0 and 1 but was %g.", 
+        minCOR);
+    SimTK_ERRCHK3_ALWAYS(mu_s >= 0 && mu_d >= 0 && mu_v >= 0,
+        "SpherePlaneContact()", 
+        "All coefficients of friction must be nonnegative; got "
+        "mu_s=%g, mu_d=%g, mu_v=%g.", mu_s, mu_d, mu_v);
+    SimTK_ERRCHK2_ALWAYS(mu_d <= mu_s,
+        "SpherePlaneContact()", 
+        "The dynamic coefficient of friction can't be larger than "
+        "the static coefficient; got mu_s=%g, mu_d=%g.", mu_s, mu_d);
+
+    // Set up the contact constraint.
+    m_sphereOnPlane = Constraint::SphereOnPlaneContact
+       (planeBodyB, m_frame, followerBodyF, point_F, radius, true);
+    m_sphereOnPlane.setIsConditional(true);
+    m_sphereOnPlane.setDisabledByDefault(true);
+}
+
+//------------------------------------------------------------------------------
+//                            WHERE TO DISPLAY
+//------------------------------------------------------------------------------
+Vec3 SpherePlaneContact::whereToDisplay(const State& state) const {
+    return m_sphereOnPlane.findContactPointInG(state);
+}
+
+
+//------------------------------------------------------------------------------
+//                              GET PERR
+//------------------------------------------------------------------------------
+Real SpherePlaneContact::getPerr(const State& state) const
+{   //return m_ptInPlane.getPositionError(state); 
+    return m_sphereOnPlane.findSeparation(state);
+}
+
+//------------------------------------------------------------------------------
+//                    GET CONTACT MULTIPLIER INDEX
+//------------------------------------------------------------------------------
+MultiplierIndex SpherePlaneContact::
+getContactMultiplierIndex(const State& s) const {
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_sphereOnPlane.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==1 && mv==2 && ma==0); // don't call if not enabled
+    m_sphereOnPlane.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(px0.isValid() && vx0.isValid() && !ax0.isValid());
+    return px0;
+}
+
+//------------------------------------------------------------------------------
+//                  GET FRICTION MULTIPLIER INDICES
+//------------------------------------------------------------------------------
+void SpherePlaneContact::
+getFrictionMultiplierIndices(const State&       s, 
+                             MultiplierIndex&   ix_x, 
+                             MultiplierIndex&   ix_y) const
+{   ix_x.invalidate(); ix_y.invalidate(); 
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_sphereOnPlane.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==1 && mv==2 && ma==0); // don't call if not enabled
+    m_sphereOnPlane.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(px0.isValid() && vx0.isValid() && !ax0.isValid());
+    ix_x = vx0;
+    ix_y = MultiplierIndex(vx0+1);
+}
+
 } // namespace SimTK
 

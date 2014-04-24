@@ -1317,12 +1317,12 @@ public:
     approach. The z value here is the time derivative of the quantity returned
     by getPositionError(). The given \a state must have already been 
     realized through Stage::Velocity. **/
-    Vec3 getVelocityError(const State& state) const;
+    Vec3 getVelocityErrors(const State& state) const;
 
     /** This vector is the time derivative of the value returned by
     getVelocityError(). The given \a state must have already been realized
     through Stage::Acceleration. **/
-    Vec3 getAccelerationError(const State& state) const;
+    Vec3 getAccelerationErrors(const State& state) const;
 
     /** These are the Lagrange multipliers required to enforce the three
     constraint equations generated here. For this %Constraint they have units
