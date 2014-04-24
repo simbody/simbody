@@ -1924,9 +1924,9 @@ void calcVelocityDotErrorsVirtual
                                                       // deriv in A (24 flops)
     const Vec3 a_FO_A = v_FO_A_dot - w_AF % v_FO_A; // now in F (12 flops)
 
-    const Vec3 w_SB_A_dot = b_AB - b_AF;                        // 3 flops
-    const Vec3 b_SB_A = w_SB_A_dot - w_AF % w_AB;               // 12 flops
-    const Vec3 a_FC_A = a_FO_A - b_SB_A % (r*R_AP.z());         // 15 flops
+    const Vec3 w_FB_A_dot = b_AB - b_AF;                        // 3 flops
+    const Vec3 b_FB_A = w_FB_A_dot - w_AF % w_AB;               // 12 flops
+    const Vec3 a_FC_A = a_FO_A - b_FB_A % (r*R_AP.z());         // 15 flops
 
     // Calculate these scalars using A-frame vectors, but the results are
     // measure numbers in [Px Py].
