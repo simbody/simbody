@@ -30,6 +30,7 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Constraint.h"
+#include "simbody/internal/Constraint_BuiltIns.h"
 
 #include "ConstraintImpl.h"
 #include "SimbodyMatterSubsystemRep.h"

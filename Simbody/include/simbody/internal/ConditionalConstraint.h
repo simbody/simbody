@@ -27,6 +27,7 @@
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Constraint.h"
+#include "simbody/internal/Constraint_BuiltIns.h"
 #include "simbody/internal/MobilizedBody.h"
 
 namespace SimTK {
