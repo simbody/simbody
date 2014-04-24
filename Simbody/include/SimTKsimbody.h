@@ -72,5 +72,10 @@ will include this one). **/
 #include "simbody/internal/Visualizer.h"
 #include "simbody/internal/Visualizer_InputListener.h"
 #include "simbody/internal/Visualizer_Reporter.h"
+#include "simbody/internal/ConditionalConstraint.h"
+#include "simbody/internal/SemiExplicitEulerTimeStepper.h"
+#include "simbody/internal/ImpulseSolver.h"
+#include "simbody/internal/PGSImpulseSolver.h"
+#include "simbody/internal/PLUSImpulseSolver.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_

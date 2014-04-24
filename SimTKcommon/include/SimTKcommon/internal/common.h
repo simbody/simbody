@@ -254,6 +254,16 @@ C++11, early VC's do not. Currently we're assuming no support from gcc. */
     #define FINAL_11
 #endif
 
+/* Be very careful with this macro -- don't use it unless you have measured
+a performance improvement. You can end up with serious code bloat if you 
+override the compiler's judgement about when to inline, and that can cause
+cache misses which ultimately reduce performance. */
+#ifdef _MSC_VER
+    #define SimTK_FORCE_INLINE __forceinline
+#else
+    #define SimTK_FORCE_INLINE __attribute__((always_inline))
+#endif
+
 
 /* In Microsoft VC++ 11 (2012) and earlier these C99-compatible floating 
 point functions are missing. We'll create them here and install them into 

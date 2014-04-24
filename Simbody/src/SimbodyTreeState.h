@@ -37,7 +37,7 @@ State variables and computation results are organized into stages:
    Stage::Time
    Stage::Position  
    Stage::Velocity  
-   Stage::Dynamics      dynamic operators available
+   Stage::Dynamics      calculate forces
    Stage::Acceleration  response to forces in the state
   ---------------------------------------------------------
    Stage::Report        only used when outputting something
@@ -147,7 +147,15 @@ public:
     int sumSqDOFs;
 
     DiscreteVariableIndex modelingVarsIndex;
-    CacheEntryIndex       modelingCacheIndex;
+    CacheEntryIndex       modelingCacheIndex,instanceCacheIndex, timeCacheIndex, 
+                          treePositionCacheIndex, constrainedPositionCacheIndex,
+                          compositeBodyInertiaCacheIndex, 
+                          articulatedBodyInertiaCacheIndex,
+                          treeVelocityCacheIndex, constrainedVelocityCacheIndex,
+                          dynamicsCacheIndex, 
+                          treeAccelerationCacheIndex, 
+                          constrainedAccelerationCacheIndex;
+
 
     // These are instance variables that exist regardless of modeling
     // settings; they are instance variables corresponding to topological
@@ -254,12 +262,6 @@ public:
     UIndex uIndex;
     DiscreteVariableIndex timeVarsIndex, qVarsIndex, uVarsIndex, 
                           dynamicsVarsIndex, accelerationVarsIndex;
-    CacheEntryIndex       instanceCacheIndex, timeCacheIndex, 
-                          treePositionCacheIndex, constrainedPositionCacheIndex,
-                          compositeBodyInertiaCacheIndex, articulatedBodyInertiaCacheIndex,
-                          treeVelocityCacheIndex, constrainedVelocityCacheIndex,
-                          dynamicsCacheIndex, 
-                          treeAccelerationCacheIndex, constrainedAccelerationCacheIndex;
 
 private:
     // MobilizedBody 0 is Ground.
@@ -823,7 +825,7 @@ public:
 // =============================================================================
 // These articulated body inertias take into account prescribed motion, 
 // meaning that they are produced by a combination of articulated and rigid
-// shift operations depending on each mobilizer's current stats as "regular"
+// shift operations depending on each mobilizer's current status as "regular"
 // or "prescribed". That means that the articulated inertias here are suited
 // only for "mixed" dynamics; you can't use them to calculate M^-1*f unless
 // there is no prescribed motion in the system.
@@ -840,8 +842,8 @@ public:
 // Note that although we use some *rigid* body shift operations here, the 
 // results in general are all *articulated* body inertias, because a rigid shift 
 // of an articulated body inertia is still an articulated body inertia. Only if 
-// all mobilizers are prescribed will these be rigid body spatial inertias. For a 
-// discussion of the properties of articulated body inertias, see Section 7.1 
+// all mobilizers are prescribed will these be rigid body spatial inertias. For 
+// a discussion of the properties of articulated body inertias, see Section 7.1 
 // (pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid Body Dynamics 
 // Algorithms. 
 //
@@ -1034,8 +1036,8 @@ public:
 class SBDynamicsCache {
 public:
     // This holds the values from all the Motion prescribed acceleration 
-    // calculations, and those which result from diffentiating prescribed velocities,
-    // or differentiating twice prescribed positions.
+    // calculations, and those which result from diffentiating prescribed 
+    // velocities, or twice-differentiating prescribed positions.
     Array_<Real> presUDotPool;    // Index with PresUDotPoolIndex
 
     // Dynamics

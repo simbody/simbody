@@ -29,6 +29,7 @@
 #include "SimTKcommon.h"
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/ConditionalConstraint.h"
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "SimbodyTreeState.h"
@@ -49,6 +50,18 @@ SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsyste
 
 
 void SimbodyMatterSubsystemRep::clearTopologyState() {
+    // Unilateral constraints reference Constraints but not vice versa,
+    // so delete the conditional constraints first.
+
+    for (UnilateralContactIndex ucx(0); ucx < uniContacts.size(); ++ucx)
+        delete uniContacts[ucx];
+    uniContacts.clear();
+
+    for (StateLimitedFrictionIndex fx(0); fx < stateLtdFriction.size(); ++fx)
+        delete stateLtdFriction[fx];
+    stateLtdFriction.clear();
+    //TODO: more conditional constraints to come.
+
     // Constraints are independent from one another, so any deletion order
     // is fine. However, they depend on bodies and not vice versa so we'll
     // delete them first just to be neat.
@@ -128,6 +141,33 @@ ConstraintIndex SimbodyMatterSubsystemRep::adoptConstraint(Constraint& child) {
     // that Subsystem.
     c.updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), ix);
     return ix;
+}
+
+
+UnilateralContactIndex SimbodyMatterSubsystemRep::
+adoptUnilateralContact(UnilateralContact* child) {
+    assert(child);
+    invalidateSubsystemTopologyCache();
+
+    const UnilateralContactIndex ucx(uniContacts.size());
+    uniContacts.push_back(child); // grow
+
+    // Tell the contact object its index within the matter subsystem.
+    child->setMyIndex(ucx);
+    return ucx;
+}
+
+StateLimitedFrictionIndex SimbodyMatterSubsystemRep::
+adoptStateLimitedFriction(StateLimitedFriction* child) {
+    assert(child);
+    invalidateSubsystemTopologyCache();
+
+    const StateLimitedFrictionIndex fx(stateLtdFriction.size());
+    stateLtdFriction.push_back(child); // grow
+
+    // Tell the friction object its index within the matter subsystem.
+    child->setMyIndex(fx);
+    return fx;
 }
 
 
@@ -296,50 +336,125 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     // Some of our 'const' values must be treated as mutable *just for this 
     // call*. Afterwards they are truly const so we don't declare them mutable,
     // but cheat here instead.
-    SimbodyMatterSubsystemRep* mutableThis = 
+    SimbodyMatterSubsystemRep* mThis = 
         const_cast<SimbodyMatterSubsystemRep*>(this);
 
     if (!subsystemTopologyHasBeenRealized()) 
-        mutableThis->endConstruction(s); // no more bodies after this!
+        mThis->endConstruction(s); // no more bodies after this!
 
     // Fill in the local copy of the topologyCache from the information
     // calculated in endConstruction(). Also ask the State for some room to
     // put Modeling variables & cache and remember the indices in our 
     // construction cache.
+    SBTopologyCache& tc = mThis->topologyCache;
 
-    mutableThis->topologyCache.nBodies      = nodeNum2NodeMap.size();
-    mutableThis->topologyCache.nConstraints = constraints.size();
-    mutableThis->topologyCache.nParticles   = 0; // TODO
-    mutableThis->topologyCache.nAncestorConstrainedBodies = 
-        (int)nextAncestorConstrainedBodyPoolSlot;
+    tc.nBodies      = nodeNum2NodeMap.size();
+    tc.nConstraints = constraints.size();
+    tc.nParticles   = 0; // TODO
+    tc.nAncestorConstrainedBodies = (int)nextAncestorConstrainedBodyPoolSlot;
 
-    mutableThis->topologyCache.nDOFs        = DOFTotal;
-    mutableThis->topologyCache.maxNQs       = maxNQTotal;
-    mutableThis->topologyCache.sumSqDOFs    = SqDOFTotal;
+    tc.nDOFs        = DOFTotal;
+    tc.maxNQs       = maxNQTotal;
+    tc.sumSqDOFs    = SqDOFTotal;
 
     SBModelVars mvars;
     mvars.allocate(topologyCache);
     setDefaultModelValues(topologyCache, mvars);
-    mutableThis->topologyCache.modelingVarsIndex  = 
+    tc.modelingVarsIndex  = 
         allocateDiscreteVariable(s,Stage::Model, new Value<SBModelVars>(mvars));
 
-    mutableThis->topologyCache.modelingCacheIndex = 
+    tc.modelingCacheIndex = 
         allocateCacheEntry(s,Stage::Model, new Value<SBModelCache>());
 
     SBInstanceVars iv;
     iv.allocate(topologyCache);
     setDefaultInstanceValues(mvars, iv); // sets lock-by-default, but not q or u
-    mutableThis->topologyCache.topoInstanceVarsIndex = 
+    tc.topoInstanceVarsIndex = 
         allocateDiscreteVariable(s, Stage::Instance, 
                                  new Value<SBInstanceVars>(iv));
+    tc.instanceCacheIndex = 
+        allocateCacheEntry(s, Stage::Instance, new Value<SBInstanceCache>());
 
-    mutableThis->topologyCache.valid = true;
+    // Allocate the rest of the cache entries now although they won't get
+    // any interesting content until later.
+
+    tc.timeCacheIndex = 
+        allocateCacheEntry(s, Stage::Time, new Value<SBTimeCache>());
+
+    // Basic tree position kinematics can be calculated any time after Time
+    // stage and should be filled in first during realizePosition() and then
+    // marked valid so later computations during the same realization can
+    // access these quantities.
+    tc.treePositionCacheIndex = 
+        allocateLazyCacheEntry(s, Stage::Time,
+                               new Value<SBTreePositionCache>());
+
+
+    // Here is where later computations during realizePosition() go; these
+    // will assume that the TreePositionCache is available. So you can 
+    // calculate these prior to Position stage's completion but not until
+    // the TreePositionCache has been marked valid.
+    tc.constrainedPositionCacheIndex = 
+        allocateLazyCacheEntry(s, Stage::Time,
+                               new Value<SBConstrainedPositionCache>());
+
+    // Composite body inertias *can* be calculated any time after Position
+    // stage but we want to put them off as long as possible since
+    // they may never be needed. These will only be valid if they are 
+    // explicitly realized at some point.
+    tc.compositeBodyInertiaCacheIndex =
+        allocateLazyCacheEntry(s, Stage::Position,
+                               new Value<SBCompositeBodyInertiaCache>());
+
+    // Articulated body inertias *can* be calculated any time after Position 
+    // stage but we want to put them off until Dynamics stage if possible.
+    tc.articulatedBodyInertiaCacheIndex =
+        allocateCacheEntry(s, Stage::Position, Stage::Dynamics, 
+                           new Value<SBArticulatedBodyInertiaCache>());
+
+    // Basic tree velocity kinematics can be calculated any time after Position
+    // stage and should be filled in first during realizeVelocity() and then
+    // marked valid so later computations during the same realization can
+    // access these quantities. Note that qdots are automatically allocated in 
+    // the State's Velocity-stage cache.
+    tc.treeVelocityCacheIndex = 
+        allocateLazyCacheEntry(s, Stage::Position,
+                               new Value<SBTreeVelocityCache>());
+
+    // Here is where later computations during realizeVelocity() go; these
+    // will assume that the TreeVelocityCache is available. So you can 
+    // calculate these prior to Velocity stage's completion but not until
+    // the TreeVelocityCache has been marked valid.
+    tc.constrainedVelocityCacheIndex = 
+        allocateLazyCacheEntry(s, Stage::Position,
+                               new Value<SBConstrainedVelocityCache>());
+    tc.dynamicsCacheIndex = 
+        allocateCacheEntry(s, Stage::Dynamics, 
+                           new Value<SBDynamicsCache>());
+
+    // Tree acceleration kinematics can be calculated any time after Dynamics
+    // stage and should be filled in first during realizeAcceleration() and then
+    // marked valid so later computations during the same realization can
+    // access these quantities.
+    // Note that qdotdots, udots, zdots are automatically allocated by
+    // the State when we advance the stage past Model.
+    tc.treeAccelerationCacheIndex = 
+        allocateLazyCacheEntry(s, Stage::Dynamics,
+                               new Value<SBTreeAccelerationCache>());
+
+    // Here is where later computations during realizeAcceleration() go; these
+    // will assume that the TreeAccelerationCache is available. So you can 
+    // calculate these prior to Acceleration stage's completion but not until
+    // the TreeAccelerationCache has been marked valid.
+    tc.constrainedAccelerationCacheIndex =
+        allocateLazyCacheEntry(s, Stage::Dynamics,
+                               new Value<SBConstrainedAccelerationCache>());
+
+    tc.valid = true;
 
     // Allocate a cache entry for the topologyCache, and save a copy there.
-    mutableThis->topologyCacheIndex = 
-        allocateCacheEntry(s,Stage::Topology, 
-                           new Value<SBTopologyCache>(topologyCache));
-
+    mThis->topologyCacheIndex = 
+        allocateCacheEntry(s,Stage::Topology, new Value<SBTopologyCache>(tc));
     return 0;
 }
 
@@ -472,13 +587,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // We'll overwrite the locked udots to zero below after we've used the
     // current setting to initialize the u's.
 
-    mc.instanceCacheIndex = 
-        allocateCacheEntry(s, Stage::Instance, new Value<SBInstanceCache>());
 
     mc.timeVarsIndex = 
         allocateDiscreteVariable(s, Stage::Time, new Value<SBTimeVars>());
-    mc.timeCacheIndex = 
-        allocateCacheEntry(s, Stage::Time, new Value<SBTimeCache>());
+
 
     // Position variables are just q's, which the State knows how to deal with. 
 
@@ -486,35 +598,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     mc.qIndex = allocateQ(s, iv.lockedQs);
     mc.qVarsIndex.invalidate(); // no position-stage vars other than q
 
-    // Basic tree position kinematics can be calculated any time after Time
-    // stage and should be filled in first during realizePosition() and then
-    // marked valid so later computations during the same realization can
-    // access these quantities.
-    mc.treePositionCacheIndex = 
-        allocateLazyCacheEntry(s, Stage::Time,
-                               new Value<SBTreePositionCache>());
-
-    // Here is where later computations during realizePosition() go; these
-    // will assume that the TreePositionCache is available. So you can 
-    // calculate these prior to Position stage's completion but not until
-    // the TreePositionCache has been marked valid.
-    mc.constrainedPositionCacheIndex = 
-        allocateLazyCacheEntry(s, Stage::Time,
-                               new Value<SBConstrainedPositionCache>());
-
-    // Composite body inertias *can* be calculated any time after Position
-    // stage but we want to put them off as long as possible since
-    // they may never be needed. These will only be valid if they are 
-    // explicitly realized at some point.
-    mc.compositeBodyInertiaCacheIndex =
-        allocateLazyCacheEntry(s, Stage::Position,
-                               new Value<SBCompositeBodyInertiaCache>());
-
-    // Articulated body inertias *can* be calculated any time after Position 
-    // stage but we want to put them off until Dynamics stage if possible.
-    mc.articulatedBodyInertiaCacheIndex =
-        allocateCacheEntry(s, Stage::Position, Stage::Dynamics, 
-                           new Value<SBArticulatedBodyInertiaCache>());
 
     // Initialize state's u values to the same values we put into lockedUs.
     mc.uIndex = allocateU(s, iv.lockedUs); // set state to same initial value
@@ -534,22 +617,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
     mc.uVarsIndex.invalidate(); // no velocity-stage vars other than u
 
-    // Basic tree velocity kinematics can be calculated any time after Position
-    // stage and should be filled in first during realizeVelocity() and then
-    // marked valid so later computations during the same realization can
-    // access these quantities. Note that qdots are automatically allocated in 
-    // the State's Velocity-stage cache.
-    mc.treeVelocityCacheIndex = 
-        allocateLazyCacheEntry(s, Stage::Position,
-                               new Value<SBTreeVelocityCache>());
-
-    // Here is where later computations during realizeVelocity() go; these
-    // will assume that the TreeVelocityCache is available. So you can 
-    // calculate these prior to Velocity stage's completion but not until
-    // the TreeVelocityCache has been marked valid.
-    mc.constrainedVelocityCacheIndex = 
-        allocateLazyCacheEntry(s, Stage::Position,
-                               new Value<SBConstrainedVelocityCache>());
 
     // no z's
     // Probably no dynamics-stage variables but we'll allocate anyway.
@@ -560,9 +627,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     mc.dynamicsVarsIndex = 
         allocateDiscreteVariable(s, Stage::Dynamics, 
                                  new Value<SBDynamicsVars>(dvars));
-    mc.dynamicsCacheIndex = 
-        allocateCacheEntry(s, Stage::Dynamics, 
-                           new Value<SBDynamicsCache>());
+
 
     // No Acceleration variables that I know of. But we can go through the
     // charade here anyway.
@@ -573,23 +638,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
         allocateDiscreteVariable(s, Stage::Acceleration, 
                                  new Value<SBAccelerationVars>(rvars));
 
-    // Tree acceleration kinematics can be calculated any time after Dynamics
-    // stage and should be filled in first during realizeAcceleration() and then
-    // marked valid so later computations during the same realization can
-    // access these quantities.
-    // Note that qdotdots, udots, zdots are automatically allocated by
-    // the State when we advance the stage past Model.
-    mc.treeAccelerationCacheIndex = 
-        allocateLazyCacheEntry(s, Stage::Dynamics,
-                               new Value<SBTreeAccelerationCache>());
-
-    // Here is where later computations during realizeAcceleration() go; these
-    // will assume that the TreeAccelerationCache is available. So you can 
-    // calculate these prior to Acceleration stage's completion but not until
-    // the TreeAccelerationCache has been marked valid.
-    mc.constrainedAccelerationCacheIndex =
-        allocateLazyCacheEntry(s, Stage::Dynamics,
-                               new Value<SBConstrainedAccelerationCache>());
 
     return 0;
 }
@@ -944,9 +992,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
         "SimbodyMatterSubsystem::realizeTime()");
 
     const SBStateDigest stateDigest(s, *this, Stage::Time);
-    const SBModelCache&     mc = stateDigest.getModelCache();
-    const SBInstanceCache&  ic = stateDigest.getInstanceCache();
-    SBTimeCache&            tc = stateDigest.updTimeCache();
 
     // the multibody tree cannot have time dependence
 
@@ -960,7 +1005,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
         getConstraint(cx).getImpl().realizeTime(stateDigest);
 
     // We're done with the TimeCache now.
-    markCacheValueRealized(s, mc.timeCacheIndex);
+    markCacheValueRealized(s, topologyCache.timeCacheIndex);
     return 0;
 }
 
@@ -995,7 +1040,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
 
     // Set up StateDigest for calculating position information.
     const SBStateDigest stateDigest(s, *this, Stage::Position);
-    const SBModelCache&         mc   = stateDigest.getModelCache();
     const SBInstanceCache&      ic   = stateDigest.getInstanceCache();
     SBTreePositionCache&        tpc  = stateDigest.updTreePositionCache();
 
@@ -1017,7 +1061,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
             .calcConstrainedBodyTransformInAncestor(stateDigest, tpc);
 
     // Now we're done with the TreePositionCache.
-    markCacheValueRealized(s, mc.treePositionCacheIndex);
+    markCacheValueRealized(s, topologyCache.treePositionCacheIndex);
 
     // MobilizedBodies
     // This will include writing the prescribed velocities (u's) into
@@ -1042,7 +1086,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     }
 
     // Now we're done with the ConstrainedPositionCache.
-    markCacheValueRealized(s, mc.constrainedPositionCacheIndex);
+    markCacheValueRealized(s, topologyCache.constrainedPositionCacheIndex);
 
     // Constraints
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
@@ -1056,7 +1100,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
 //                      REALIZE COMPOSITE BODY INERTIAS
 //==============================================================================
 void SimbodyMatterSubsystemRep::realizeCompositeBodyInertias(const State& state) const {
-    const CacheEntryIndex cbx = getModelCache(state).compositeBodyInertiaCacheIndex;
+    const CacheEntryIndex cbx = topologyCache.compositeBodyInertiaCacheIndex;
 
     if (isCacheValueRealized(state, cbx))
         return; // already realized
@@ -1074,7 +1118,7 @@ void SimbodyMatterSubsystemRep::realizeCompositeBodyInertias(const State& state)
 void SimbodyMatterSubsystemRep::
 invalidateCompositeBodyInertias(const State& state) const {
     const CacheEntryIndex cbx = 
-        getModelCache(state).compositeBodyInertiaCacheIndex;
+        topologyCache.compositeBodyInertiaCacheIndex;
     markCacheValueNotRealized(state, cbx);
 }
 
@@ -1086,7 +1130,7 @@ invalidateCompositeBodyInertias(const State& state) const {
 void SimbodyMatterSubsystemRep::
 realizeArticulatedBodyInertias(const State& state) const {
     const CacheEntryIndex abx = 
-        getModelCache(state).articulatedBodyInertiaCacheIndex;
+        topologyCache.articulatedBodyInertiaCacheIndex;
 
     if (isCacheValueRealized(state, abx))
         return; // already realized
@@ -1112,7 +1156,7 @@ invalidateArticulatedBodyInertias(const State& state) const {
     // flag in the cache entry.
     state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
     const CacheEntryIndex abx = 
-        getModelCache(state).articulatedBodyInertiaCacheIndex;
+        topologyCache.articulatedBodyInertiaCacheIndex;
     markCacheValueNotRealized(state, abx);
 }
 
@@ -1145,7 +1189,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
         "SimbodyMatterSubsystem::realizeVelocity()");
 
     const SBStateDigest stateDigest(s, *this, Stage::Velocity);
-    const SBModelCache&    mc   = stateDigest.getModelCache();
     const SBInstanceCache& ic   = stateDigest.getInstanceCache();
     SBTreeVelocityCache&   tvc  = stateDigest.updTreeVelocityCache();
 
@@ -1165,7 +1208,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
             .calcConstrainedBodyVelocityInAncestor(stateDigest, tvc);
 
     // Now we're done with the TreeVelocityCache.
-    markCacheValueRealized(s, mc.treeVelocityCacheIndex);
+    markCacheValueRealized(s, topologyCache.treeVelocityCacheIndex);
 
     // MobilizedBodies
     // probably not much to do here
@@ -1198,7 +1241,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
     }
 
     // Now we're done with the ConstrainedVelocityCache.
-    markCacheValueRealized(s, mc.constrainedVelocityCacheIndex);
+    markCacheValueRealized(s, topologyCache.constrainedVelocityCacheIndex);
 
     // Constraints
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
@@ -4776,8 +4819,6 @@ void SimbodyMatterSubsystemRep::realizeTreeForwardDynamics(
     const Vector*              extraMobilityForces,
     const Vector_<SpatialVec>* extraBodyForces) const
 {
-    const SBModelCache& mc  = getModelCache(s);
-
     // Output goes into State's global cache and our AccelerationCache.
     SBTreeAccelerationCache&        tac     = updTreeAccelerationCache(s);
     Vector&                         udot    = updUDot(s);
@@ -4790,7 +4831,7 @@ void SimbodyMatterSubsystemRep::realizeTreeForwardDynamics(
         tac, udot, qdotdot, udotErr);
 
     // Since we're realizing, mark the resulting cache entry valid.
-    markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
+    markCacheValueRealized(s, topologyCache.treeAccelerationCacheIndex);
 }
 //....................... REALIZE TREE FORWARD DYNAMICS ........................
 
@@ -4897,8 +4938,6 @@ void SimbodyMatterSubsystemRep::realizeLoopForwardDynamics(const State& s,
     const Vector_<Vec3>&        particleForces,
     const Vector_<SpatialVec>&  bodyForces) const 
 {
-    const SBModelCache& mc  = getModelCache(s);
-
     // Because we are realizing, we want to direct the output of the operator
     // back into the State cache.
     SBTreeAccelerationCache&        tac         = updTreeAccelerationCache(s);
@@ -4913,8 +4952,8 @@ void SimbodyMatterSubsystemRep::realizeLoopForwardDynamics(const State& s,
         tac, cac, udot, qdotdot, multipliers, udotErr);
 
     // Since we're realizing, note that we're done with these cache entries.
-    markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
-    markCacheValueRealized(s, mc.constrainedAccelerationCacheIndex);
+    markCacheValueRealized(s, topologyCache.treeAccelerationCacheIndex);
+    markCacheValueRealized(s, topologyCache.constrainedAccelerationCacheIndex);
 }
 //....................... REALIZE LOOP FORWARD DYNAMICS ........................
 
@@ -6145,6 +6184,9 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
     assert((int)g <= (int)matter.getStage(state) + 1);
     clear();
 
+    // This is *not* from the State; the copy in State is not used.
+    const SBTopologyCache& topo = matter.getMatterTopologyCache();
+
     if (state.getSystemStage() >= Stage::Model) {
         q = &matter.getQ(state);
         u = &matter.getU(state);
@@ -6155,27 +6197,27 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
         iv = &matter.getInstanceVars(state);
     }
     if (g >= Stage::Instance) {
-        if (mc->instanceCacheIndex.isValid())
+        if (topo.instanceCacheIndex.isValid())
             ic = &matter.updInstanceCache(state);
         
         // All cache entries, for any stage, can be modified at instance stage 
         // or later.
         
-        if (mc->timeCacheIndex.isValid())
+        if (topo.timeCacheIndex.isValid())
             tc = &matter.updTimeCache(state);
-        if (mc->treePositionCacheIndex.isValid())
+        if (topo.treePositionCacheIndex.isValid())
             tpc = &matter.updTreePositionCache(state);
-        if (mc->constrainedPositionCacheIndex.isValid())
+        if (topo.constrainedPositionCacheIndex.isValid())
             cpc = &matter.updConstrainedPositionCache(state);
-        if (mc->treeVelocityCacheIndex.isValid())
+        if (topo.treeVelocityCacheIndex.isValid())
             tvc = &matter.updTreeVelocityCache(state);
-        if (mc->constrainedVelocityCacheIndex.isValid())
+        if (topo.constrainedVelocityCacheIndex.isValid())
             cvc = &matter.updConstrainedVelocityCache(state);
-        if (mc->dynamicsCacheIndex.isValid())
+        if (topo.dynamicsCacheIndex.isValid())
             dc = &matter.updDynamicsCache(state);
-        if (mc->treeAccelerationCacheIndex.isValid())
+        if (topo.treeAccelerationCacheIndex.isValid())
             tac = &matter.updTreeAccelerationCache(state);
-        if (mc->constrainedAccelerationCacheIndex.isValid())
+        if (topo.constrainedAccelerationCacheIndex.isValid())
             cac = &matter.updConstrainedAccelerationCache(state);
     }
     if (g >= Stage::Time) {

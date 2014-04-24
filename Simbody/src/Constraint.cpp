@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -58,6 +58,14 @@ bool Constraint::isDisabledByDefault() const {
 }
 void Constraint::setDisabledByDefault(bool shouldBeDisabled) {
     updImpl().setDisabledByDefault(shouldBeDisabled);
+}
+
+void Constraint::setIsConditional(bool isConditional) {
+    updImpl().setIsConditional(isConditional);
+}
+
+bool Constraint::isConditional() const {
+    return getImpl().isConditional();
 }
 
 const SimbodyMatterSubsystem& Constraint::getMatterSubsystem() const {
@@ -966,6 +974,324 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
 
 
 //==============================================================================
+//                         CONSTRAINT:: SPHERE ON PLANE CONTACT
+//==============================================================================
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::SphereOnPlaneContact, 
+                                        Constraint::SphereOnPlaneContactImpl, 
+                                        Constraint);
+
+Constraint::SphereOnPlaneContact::SphereOnPlaneContact
+   (MobilizedBody&      planeBody, 
+    const Transform&    defaultPlaneFrame, 
+    MobilizedBody&      sphereBody, 
+    const Vec3&         defaultSphereCenter,
+    Real                defaultSphereRadius,
+    bool                enforceRolling)
+:   Constraint(new SphereOnPlaneContactImpl(enforceRolling))
+{
+    SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem() && sphereBody.isInSubsystem(),
+        "Constraint::SphereOnPlaneContact(): both bodies must already be in a "
+        "SimbodyMatterSubsystem.");
+    SimTK_ASSERT_ALWAYS(planeBody.isInSameSubsystem(sphereBody),
+        "Constraint::SphereOnPlaneContact(): both bodies to be connected must be "
+        "in the same SimbodyMatterSubsystem.");
+
+    planeBody.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().m_planeBody_F     = updImpl().addConstrainedBody(planeBody);
+    updImpl().m_ballBody_B      = updImpl().addConstrainedBody(sphereBody);
+    updImpl().m_def_X_FP        = defaultPlaneFrame;
+    updImpl().m_def_p_BO        = defaultSphereCenter;
+    updImpl().m_def_radius      = defaultSphereRadius;
+}
+
+Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setDefaultPlaneFrame(const Transform& defaultPlaneFrame) {
+    getImpl().invalidateTopologyCache();
+    updImpl().m_def_X_FP = defaultPlaneFrame;
+    return *this;
+}
+
+Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setDefaultSphereCenter(const Vec3& defaultSphereCenter) {
+    getImpl().invalidateTopologyCache();
+    updImpl().m_def_p_BO = defaultSphereCenter;
+    return *this;
+}
+
+Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setDefaultSphereRadius(Real defaultSphereRadius) {
+    getImpl().invalidateTopologyCache();
+    updImpl().m_def_radius = defaultSphereRadius;
+    return *this;
+}
+
+const MobilizedBody& Constraint::SphereOnPlaneContact::
+getPlaneMobilizedBody() const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    return impl.getMobilizedBodyFromConstrainedBody(impl.m_planeBody_F);
+}
+const MobilizedBody& Constraint::SphereOnPlaneContact::
+getSphereMobilizedBody() const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    return impl.getMobilizedBodyFromConstrainedBody(impl.m_ballBody_B);
+}
+
+bool Constraint::SphereOnPlaneContact::isEnforcingRolling() const 
+{   return getImpl().m_enforceRolling; }
+
+const Transform& Constraint::SphereOnPlaneContact::getDefaultPlaneFrame() const {
+    return getImpl().m_def_X_FP;
+}
+
+const Vec3& Constraint::SphereOnPlaneContact::getDefaultSphereCenter() const {
+    return getImpl().m_def_p_BO;
+}
+Real Constraint::SphereOnPlaneContact::getDefaultSphereRadius() const {
+    return getImpl().m_def_radius;
+}
+
+Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setPlaneDisplayHalfWidth(Real h) {
+    updImpl().setPlaneDisplayHalfWidth(h);
+    return *this;
+}
+
+Real Constraint::SphereOnPlaneContact::getPlaneDisplayHalfWidth() const {
+    return getImpl().getPlaneDisplayHalfWidth();
+}
+
+const Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setPlaneFrame(State& state, const Transform& planeFrame) const {
+    getImpl().updParameters(state).m_X_FP = planeFrame;
+    return *this;
+}
+
+const Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setSphereCenter(State& state, const Vec3& sphereCenter) const {
+    getImpl().updParameters(state).m_p_BO = sphereCenter;
+    return *this;
+}
+
+const Constraint::SphereOnPlaneContact& Constraint::SphereOnPlaneContact::
+setSphereRadius(State& state, Real sphereRadius) const {
+    getImpl().updParameters(state).m_radius = sphereRadius;
+    return *this;
+}
+
+const Transform& Constraint::SphereOnPlaneContact::
+getPlaneFrame(const State& state) const
+{   return getImpl().getParameters(state).m_X_FP; }
+const Vec3& Constraint::SphereOnPlaneContact::
+getSphereCenter(const State& state) const
+{   return getImpl().getParameters(state).m_p_BO; }
+Real Constraint::SphereOnPlaneContact::
+getSphereRadius(const State& state) const
+{   return getImpl().getParameters(state).m_radius; }
+
+Real Constraint::SphereOnPlaneContact::getPositionError(const State& s) const {
+    Real perr;
+    getImpl().getPositionErrors(s, 1, &perr);
+    return perr;
+}
+
+Vec3 Constraint::SphereOnPlaneContact::getVelocityErrors(const State& s) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    Vec3 verr_PC; // result is velocity error in P frame 
+    if (impl.m_enforceRolling) {
+        Real verr[3];
+        impl.getVelocityErrors(s, 3, verr);
+        verr_PC = Vec3(verr[1],verr[2],verr[0]); // switch to x,y,z order
+    } else {
+        Real pverr;
+        getImpl().getVelocityErrors(s, 1, &pverr);
+        verr_PC = Vec3(0,0,pverr); // lone error is in z direction
+    }
+    return verr_PC;
+}
+
+Vec3 Constraint::SphereOnPlaneContact::getAccelerationErrors(const State& s) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    Vec3 aerr_PC; // result is acceleration error in P frame 
+    if (impl.m_enforceRolling) {
+        Real aerr[3];
+        impl.getAccelerationErrors(s, 3, aerr);
+        aerr_PC = Vec3(aerr[1],aerr[2],aerr[0]); // switch to x,y,z order
+    } else {
+        Real paerr;
+        getImpl().getAccelerationErrors(s, 1, &paerr);
+        aerr_PC = Vec3(0,0,paerr); // lone error is in z direction
+    }
+    return aerr_PC;
+}
+
+Vec3 Constraint::SphereOnPlaneContact::getMultipliers(const State& s) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    Vec3 lambda_PC; // result is -force on point F in P frame 
+    if (impl.m_enforceRolling) {
+        Real lambda[3];
+        impl.getMultipliers(s, 3, lambda);
+        lambda_PC = Vec3(lambda[1],lambda[2],lambda[0]); //switch to x,y,z order
+    } else {
+        Real lambda;
+        getImpl().getMultipliers(s, 1, &lambda);
+        lambda_PC = Vec3(0,0,lambda); // lone force is in z direction
+    }
+    return lambda_PC;
+}
+
+Vec3 Constraint::SphereOnPlaneContact::
+findForceOnSphereInG(const State& state) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+    if (impl.isDisabled(state)) 
+        return Vec3(0);
+
+    const Rotation& R_FP = impl.getParameters(state).m_X_FP.R();
+    const MobilizedBody& bodyF =
+        impl.getMobilizedBodyFromConstrainedBody(impl.m_planeBody_F);
+    const Rotation& R_GF = bodyF.getBodyRotation(state);
+    const Rotation R_GP = R_GF * R_FP; // orientation of P frame in G
+
+    const Vec3 f_PC = -getMultipliers(state); // watch sign convention
+    return R_GP * f_PC; // return f_GC
+}
+
+
+Vec3 Constraint::SphereOnPlaneContact::
+findContactPointInG(const State& s) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+
+    // Get the plane normal direction in G.
+    const SphereOnPlaneContactImpl::Parameters& params = impl.getParameters(s);
+    const UnitVec3&   Pz_F = params.m_X_FP.z();
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
+
+    const MobilizedBody& bodyF =
+        impl.getMobilizedBodyFromConstrainedBody(impl.m_planeBody_F);
+    const Rotation& R_GF = bodyF.getBodyRotation(s);
+    const UnitVec3 Pz_G = R_GF * Pz_F;
+
+    // Get the sphere center O in G.
+    const MobilizedBody& bodyB =
+        impl.getMobilizedBodyFromConstrainedBody(impl.m_ballBody_B);
+    const Transform& X_GB = bodyB.getBodyTransform(s);
+    const Vec3 p_GO = X_GB * p_BO;
+
+    return p_GO - r * Pz_G;
+}
+
+Real Constraint::SphereOnPlaneContact::
+findSeparation(const State& s) const {
+    const SphereOnPlaneContactImpl& impl = getImpl();
+
+    // The height of the sphere center should be its radius.
+    const SphereOnPlaneContactImpl::Parameters& params = impl.getParameters(s);
+    const Transform&  X_FP = params.m_X_FP;
+    const Vec3&       p_BO = params.m_p_BO;
+    const Real        r    = params.m_radius;
+
+    const UnitVec3&   Pz_F = X_FP.z();
+    const Vec3&       p_FP = X_FP.p();
+
+    const MobilizedBody& bodyF =
+        impl.getMobilizedBodyFromConstrainedBody(impl.m_planeBody_F);
+    const MobilizedBody& bodyB =
+        impl.getMobilizedBodyFromConstrainedBody(impl.m_ballBody_B);
+
+    const Vec3 p_FO = bodyB.findStationLocationInAnotherBody(s,p_BO,bodyF);
+    const Vec3 p_PO_F = p_FO - p_FP;
+    return dot(p_PO_F, Pz_F) - r;
+}
+
+
+    // SphereOnPlaneContactImpl
+
+// The default plane and sphere parameters may be overridden by setting
+// a discrete variable in the state. We allocate the state resources here.
+void Constraint::SphereOnPlaneContactImpl::
+realizeTopologyVirtual(State& state) const {
+    parametersIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Position, 
+            new Value<Parameters>
+               (Parameters(m_def_X_FP, m_def_p_BO, m_def_radius)));
+}
+
+// Return the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Note that although
+// these are used to define the position error, only the station on body 2
+// is used to generate constraint forces; the point of body 1 that is 
+// coincident with the body 2 point receives the equal and opposite force.
+const Constraint::SphereOnPlaneContactImpl::Parameters& 
+Constraint::SphereOnPlaneContactImpl::
+getParameters(const State& state) const {
+    return Value<Parameters>::downcast
+       (getMyMatterSubsystemRep().getDiscreteVariable(state,parametersIx));
+}
+
+// Return a writable reference into the Instance-stage state variable 
+// containing the pair of constrained station points, with the first expressed 
+// in the body 1 frame and the second in the body 2 frame. Calling this
+// method invalidates the Instance stage and above in the given state.
+Constraint::SphereOnPlaneContactImpl::Parameters& 
+Constraint::SphereOnPlaneContactImpl::
+updParameters(State& state) const {
+    return Value<Parameters>::updDowncast
+       (getMyMatterSubsystemRep().updDiscreteVariable(state,parametersIx));
+}
+
+void Constraint::SphereOnPlaneContactImpl::
+calcDecorativeGeometryAndAppendVirtual
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+{
+    // We can't generate the artwork until we know the plane frame and the
+    // sphere center and radius, which might not be until Position stage.
+    if (   stage == Stage::Position 
+        && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        const Parameters& params = getParameters(s);
+        const Transform& X_FP = params.m_X_FP;
+        const Vec3&      p_BO = params.m_p_BO;
+        const Real       r    = params.m_radius;
+
+        // TODO: should be instance-stage data from State rather than 
+        // topological data.
+        // This makes z axis point along plane normal
+
+        const MobilizedBodyIndex planeMBIx = 
+            getMobilizedBodyIndexOfConstrainedBody(m_planeBody_F);
+        const MobilizedBodyIndex ballMBIx = 
+            getMobilizedBodyIndexOfConstrainedBody(m_ballBody_B);
+
+        if (m_planeHalfWidth > 0) {
+            // On the inboard body, draw a gray transparent rectangle, 
+            // outlined in black lines.
+            geom.push_back(DecorativeBrick
+               (Vec3(m_planeHalfWidth,m_planeHalfWidth,r/10))
+                .setColor(Gray)
+                .setRepresentation(DecorativeGeometry::DrawSurface)
+                .setOpacity(Real(0.3))
+                .setBodyId(planeMBIx)
+                .setTransform(X_FP));
+            geom.push_back(DecorativeFrame(m_planeHalfWidth/5)
+                           .setColor(Gray)
+                           .setBodyId(planeMBIx)
+                           .setTransform(X_FP));
+        }
+
+        // On the ball body draw an orange mesh sphere.
+        geom.push_back(DecorativeSphere(r)
+            .setColor(Orange)
+            .setRepresentation(DecorativeGeometry::DrawWireframe)
+            .setBodyId(ballMBIx)
+            .setTransform(p_BO));
+    }
+}
+
+
+
+//==============================================================================
 //                        CONSTRAINT::POINT ON LINE
 //==============================================================================
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointOnLine, Constraint::PointOnLineImpl, Constraint);
@@ -1241,7 +1567,6 @@ Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
     SimTK_ASSERT_ALWAYS(body1.isInSameSubsystem(body2),
         "Constraint::Ball(): both bodies to be connected must be in the same MatterSubsystem.");
 
-    //rep = new BallRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().B1 = updImpl().addConstrainedBody(body1);
@@ -1257,7 +1582,6 @@ Constraint::Ball::Ball(MobilizedBody& body1, const Vec3& point1,
     SimTK_ASSERT_ALWAYS(body1.isInSameSubsystem(body2),
         "Constraint::Ball(): both bodies to be connected must be in the same MatterSubsystem.");
 
-    //rep = new BallRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().B1 = updImpl().addConstrainedBody(body1);
@@ -1854,6 +2178,283 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
     }
 }
 
+//==============================================================================
+//                 CONSTRAINT::POINT IN PLANE WITH STICTION
+//==============================================================================
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointInPlaneWithStiction, 
+                                        Constraint::PointInPlaneWithStictionImpl, 
+                                        Constraint);
+
+Constraint::PointInPlaneWithStiction::PointInPlaneWithStiction
+   (MobilizedBody& planeBody,    const Transform& defPlaneFrame,
+    MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
+  : Constraint(new PointInPlaneWithStictionImpl())
+{
+    SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem()&&followerBody.isInSubsystem(),
+        "Constraint::PointInPlaneWithStiction(): both bodies must already be "
+        "in a SimbodyMatterSubsystem.");
+    SimTK_ASSERT_ALWAYS(planeBody.isInSameSubsystem(followerBody),
+        "Constraint::PointInPlaneWithStiction(): both bodies to be connected "
+        "must be in the same SimbodyMatterSubsystem.");
+
+    //rep = new PointInPlaneRep(); rep->setMyHandle(*this);
+    planeBody.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().m_surfaceBody_S   = updImpl().addConstrainedBody(planeBody);
+    updImpl().m_followerBody_B  = updImpl().addConstrainedBody(followerBody);
+    updImpl().m_X_SP            = defPlaneFrame;
+    updImpl().m_p_BF            = defFollowerPoint;
+}
+
+Constraint::PointInPlaneWithStiction& Constraint::PointInPlaneWithStiction::
+setDefaultPlaneFrame(const Transform& X_SP) {
+    getImpl().invalidateTopologyCache();
+    updImpl().m_X_SP = X_SP;
+    return *this;
+}
+
+Constraint::PointInPlaneWithStiction& Constraint::PointInPlaneWithStiction::
+setDefaultFollowerPoint(const Vec3& p) {
+    getImpl().invalidateTopologyCache();
+    updImpl().m_p_BF = p;
+    return *this;
+}
+
+MobilizedBodyIndex Constraint::PointInPlaneWithStiction::
+getPlaneMobilizedBodyIndex() const {
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody
+                                                (getImpl().m_surfaceBody_S);
+}
+MobilizedBodyIndex Constraint::PointInPlaneWithStiction::
+getFollowerMobilizedBodyIndex() const {
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody
+                                                (getImpl().m_followerBody_B);
+}
+const Transform& Constraint::PointInPlaneWithStiction::
+getDefaultPlaneFrame() const {
+    return getImpl().m_X_SP;
+}
+
+const Vec3& Constraint::PointInPlaneWithStiction::
+getDefaultFollowerPoint() const {
+    return getImpl().m_p_BF;
+}
+
+Constraint::PointInPlaneWithStiction& Constraint::PointInPlaneWithStiction::
+setPlaneDisplayHalfWidth(Real h) {
+    updImpl().setPlaneDisplayHalfWidth(h);
+    return *this;
+}
+Constraint::PointInPlaneWithStiction& Constraint::PointInPlaneWithStiction::
+setPointDisplayRadius(Real r) {
+    updImpl().setPointDisplayRadius(r);
+    return *this;
+}
+
+Real Constraint::PointInPlaneWithStiction::getPlaneDisplayHalfWidth() const {
+    return getImpl().getPlaneDisplayHalfWidth();
+}
+
+Real Constraint::PointInPlaneWithStiction::getPointDisplayRadius() const {
+    return getImpl().getPointDisplayRadius();
+}
+
+Real Constraint::PointInPlaneWithStiction::
+getPositionError(const State& s) const {
+    Real perr;
+    getImpl().getPositionErrors(s, 1, &perr);
+    return perr;
+}
+
+Vec3 Constraint::PointInPlaneWithStiction::
+getVelocityErrors(const State& s) const {
+    Vec3 verr;
+    getImpl().getVelocityErrors(s, 3, &verr[0]);
+    return verr;
+}
+
+Vec3 Constraint::PointInPlaneWithStiction::
+getAccelerationErrors(const State& s) const {
+    Vec3 aerr;
+    getImpl().getAccelerationErrors(s, 3, &aerr[0]);
+    return aerr;
+}
+
+Vec3 Constraint::PointInPlaneWithStiction::
+getMultipliers(const State& s) const {
+    Vec3 mults;
+    getImpl().getMultipliers(s, 3, &mults[0]);
+    return mults;
+}
+
+    // PointInPlaneWithStictionImpl
+
+void Constraint::PointInPlaneWithStiction::PointInPlaneWithStictionImpl::
+calcDecorativeGeometryAndAppendVirtual
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+{
+    // We can't generate the artwork until we know the frame and follower
+    // point location, which might not be until Instance stage.
+    if (   stage == Stage::Instance 
+        && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+
+        const MobilizedBodyIndex planeMBId = 
+            getMobilizedBodyIndexOfConstrainedBody(m_surfaceBody_S);
+        const MobilizedBodyIndex followerMBId = 
+            getMobilizedBodyIndexOfConstrainedBody(m_followerBody_B);
+
+        if (m_planeHalfWidth > 0 && m_pointRadius > 0) {
+            // On the plane body, draw a gray transparent rectangle, outlined 
+            // in black lines.
+            geom.push_back(DecorativeBrick
+               (Vec3(m_planeHalfWidth,m_planeHalfWidth,m_pointRadius/2))
+                .setColor(Gray)
+                .setRepresentation(DecorativeGeometry::DrawSurface)
+                .setOpacity(Real(0.3))
+                .setBodyId(planeMBId)
+                .setTransform(m_X_SP));
+            geom.push_back(DecorativeBrick
+               (Vec3(m_planeHalfWidth,m_planeHalfWidth,m_pointRadius/2))
+                .setColor(Black)
+                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                .setBodyId(planeMBId)
+                .setTransform(m_X_SP));
+
+            // On follower body draw an orange mesh sphere using point radius.
+            geom.push_back(DecorativeSphere(m_pointRadius)
+                .setColor(Orange)
+                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                .setResolution(Real(0.5))
+                .setBodyId(followerMBId)
+                .setTransform(m_p_BF));
+        }
+    }
+}
+
+
+
+
+
+//==============================================================================
+//                      CONSTRAINT::CONSTANT COORDINATE
+//==============================================================================
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS
+(Constraint::ConstantCoordinate,Constraint::ConstantCoordinateImpl,Constraint);
+
+// This picks one of the coordinates from a multiple-coordinate mobilizer.
+Constraint::ConstantCoordinate::ConstantCoordinate
+   (MobilizedBody& mobilizer, MobilizerQIndex whichQ, Real defaultPosition)
+  : Constraint(new ConstantCoordinateImpl())
+{
+    SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
+        "Constraint::ConstantCoordinate(): the mobilizer must already be"
+        " in a SimbodyMatterSubsystem.");
+
+    mobilizer.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
+    updImpl().whichCoordinate = whichQ;
+    updImpl().defaultPosition = defaultPosition;
+}
+
+// This is for mobilizers with only 1 mobility.
+Constraint::ConstantCoordinate::ConstantCoordinate
+   (MobilizedBody& mobilizer, Real defaultPosition)
+:   Constraint(new ConstantCoordinateImpl())
+{
+    SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
+        "Constraint::ConstantCoordinate(): the mobilizer must already be"
+        " in a SimbodyMatterSubsystem.");
+
+    mobilizer.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
+    updImpl().whichCoordinate = MobilizerQIndex(0);
+    updImpl().defaultPosition = defaultPosition;
+}
+
+MobilizedBodyIndex Constraint::ConstantCoordinate::getMobilizedBodyIndex() const {
+    return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer
+                                                    (getImpl().theMobilizer);
+}
+MobilizerQIndex Constraint::ConstantCoordinate::getWhichQ() const {
+    return getImpl().whichCoordinate;
+}
+
+Real Constraint::ConstantCoordinate::getDefaultPosition() const {
+    return getImpl().defaultPosition;
+}
+
+Constraint::ConstantCoordinate& Constraint::ConstantCoordinate::
+setDefaultPosition(Real position) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultPosition = position;
+    return *this;
+}
+
+void Constraint::ConstantCoordinate::
+setPosition(State& state, Real position) const {
+    getImpl().updPosition(state) = position;
+}
+
+Real Constraint::ConstantCoordinate::
+getPosition(const State& state) const {
+    return getImpl().getPosition(state);
+}
+
+Real Constraint::ConstantCoordinate::getPositionError(const State& s) const {
+    Real perr;
+    getImpl().getPositionErrors(s, 1, &perr);
+    return perr;
+}
+
+Real Constraint::ConstantCoordinate::getVelocityError(const State& s) const {
+    Real pverr;
+    getImpl().getVelocityErrors(s, 1, &pverr);
+    return pverr;
+}
+
+Real Constraint::ConstantCoordinate::getAccelerationError(const State& s) const {
+    Real paerr;
+    getImpl().getAccelerationErrors(s, 1, &paerr);
+    return paerr;
+}
+
+Real Constraint::ConstantCoordinate::getMultiplier(const State& s) const {
+    Real mult;
+    getImpl().getMultipliers(s, 1, &mult);
+    return mult;
+}
+
+
+    // ConstantCoordinateImpl
+
+// Allocate a state variable to hold the desired position. Changing this
+// variable invalidates Stage::Position.
+void Constraint::ConstantCoordinateImpl::
+realizeTopologyVirtual(State& state) const {
+    ConstantCoordinateImpl* mThis = // mutable momentarily
+        const_cast<ConstantCoordinateImpl*>(this);
+    mThis->positionIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Position, 
+            new Value<Real>(defaultPosition));
+}
+
+Real Constraint::ConstantCoordinateImpl::
+getPosition(const State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::downcast(matter.getDiscreteVariable(state,positionIx));
+}
+
+Real& Constraint::ConstantCoordinateImpl::
+updPosition(State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::updDowncast
+                                (matter.updDiscreteVariable(state,positionIx));
+}
+
 
 
 //==============================================================================
@@ -1924,15 +2525,15 @@ getSpeed(const State& state) const {
 }
 
 Real Constraint::ConstantSpeed::getVelocityError(const State& s) const {
-    Real pverr;
-    getImpl().getVelocityErrors(s, 1, &pverr);
-    return pverr;
+    Real verr;
+    getImpl().getVelocityErrors(s, 1, &verr);
+    return verr;
 }
 
 Real Constraint::ConstantSpeed::getAccelerationError(const State& s) const {
-    Real pvaerr;
-    getImpl().getAccelerationErrors(s, 1, &pvaerr);
-    return pvaerr;
+    Real vaerr;
+    getImpl().getAccelerationErrors(s, 1, &vaerr);
+    return vaerr;
 }
 
 Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {

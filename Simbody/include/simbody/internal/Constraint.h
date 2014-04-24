@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -118,9 +118,9 @@ use isInSubsystem() first to check.
 SimbodyMatterSubsystem& updMatterSubsystem();
 
 /** Get the ConstraintIndex that was assigned to this %Constraint when it was
-added to the matter subsystem. This will throw an exception if the %Constraint has not yet been
-added to any subsystem; if you aren't sure use isInSubsystem() first to
-check. There is also an implicit conversion from %Constraint to
+added to the matter subsystem. This will throw an exception if the %Constraint 
+has not yet been added to any subsystem; if you aren't sure use isInSubsystem() 
+first to check. There is also an implicit conversion from %Constraint to
 ConstraintIndex, so you don't normally need to call this directly.
 @see getMatterSubsystem(), isInSubsystem() **/
 ConstraintIndex getConstraintIndex() const;
@@ -439,8 +439,15 @@ Real calcPower(const State& state) const;
 // constraints.
 Matrix calcAccelerationConstraintMatrixA(const State&) const;  // ma X nu
 Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
-                  
 
+/** (Advanced) Mark this constraint as one that is only conditionally active.
+The conditions under which it is active must be evaluated elsewhere. This should
+be set immediately after construction of the Constraint and invalidates
+Stage::Topology. **/
+void setIsConditional(bool isConditional);
+/** (Advanced) Get the value of the isConditional flag. **/
+bool isConditional() const;
+                  
 // These are the built-in Constraint types. Types on the same line are
 // synonymous.
 class Rod;  typedef Rod  ConstantDistance;
@@ -451,13 +458,16 @@ class PointOnLine;   // translations along a line only
 class ConstantAngle; // prevent rotation about common normal of two vectors
 class ConstantOrientation; // allows any translation but no rotation
 class NoSlip1D; // same velocity at a point along a direction
-class BallRollingOnPlane; // ball in contact and rolling w/o slip against plane
+class SphereOnPlaneContact; // ball in contact with plane (sliding or rolling)
+class ConstantCoordinate; // prescribe generalized coordinate value
 class ConstantSpeed; // prescribe generalized speed value
 class ConstantAcceleration; // prescribe generalized acceleration value
 class Custom;
 class CoordinateCoupler;
 class SpeedCoupler;
 class PrescribedMotion;
+class PointInPlaneWithStiction; 
+
 
 class RodImpl;
 class BallImpl;
@@ -467,13 +477,15 @@ class PointOnLineImpl;
 class ConstantAngleImpl;
 class ConstantOrientationImpl;
 class NoSlip1DImpl;
-class BallRollingOnPlaneImpl;
+class SphereOnPlaneContactImpl;
+class ConstantCoordinateImpl;
 class ConstantSpeedImpl;
 class ConstantAccelerationImpl;
 class CustomImpl;
 class CoordinateCouplerImpl;
 class SpeedCouplerImpl;
 class PrescribedMotionImpl;
+class PointInPlaneWithStictionImpl; 
 };
 
     ////////////////////////////////////////
@@ -1181,106 +1193,559 @@ public:
     /** @endcond **/
 };
 
-    //////////////////////////////////////
-    // BALL ROLLING ON PLANE CONSTRAINT //
-    //////////////////////////////////////
 
-/** This constraint enforces continuous contact and non-slip rolling between a 
-spherical surface fixed on one body and a half space (flat surface) fixed on 
-another. This requires one holonomic (position) constraint equation enforcing
-contact, and two nonholonomic (velocity) contraint equations enforcing the
-non-slip condition in the plane. Note that this is a bilateral
-constraint and will push or pull as necessary to keep the sphere in contact
-with the plane, and that rolling is enforced regardless of the amount of
-normal force begin generated. If you want to make this unilateral, you must
+    ///////////////////////////////////
+    // POINT IN PLANE WITH STICTION  //
+    ///////////////////////////////////
+
+/** (Advanced) This is the underlying constraint for unilateral contact with
+friction but must be combined with contact and friction conditions. This 
+enforces the same normal condition as Constraint::PointInPlane but also adds
+two velocity-level no-slip constraints. Thus there are three
+constraints, one position (holonomic) constraint and two velocity 
+(nonholonomic) constraints. Note that this is a bilateral
+constraint and will push or pull as necessary to keep the point in contact
+with the plane, and that sticking is enforced regardless of the amount of
+normal force being generated. If you want to make this unilateral, you must
 handle switching it on and off separately; when this constraint is enabled it
 always enforces the contact and no-slip conditions.
 
-We define the contact point on the ball to be the unique point CB on the sphere
-surface at which the radius vector is antiparallel to the plane's normal 
-vector, that is, the point of the sphere directly below the sphere center if 
-the plane's normal is considered the "up" direction. Then the contact point CP
-on the plane is defined to be the point on the plane that is directly below the
-center; that is, the intersection of the antiparallel radius vector and the 
-halfspace surface. Note that in general CB != CP; the sphere contact point 
-and plane contact point will be separated along the plane normal by a small 
-distance, limited to the constraint tolerance after assembly. Now we 
-define \e the contact point C=(CB+CP)/2, the point in space that is half way 
-between the sphere's contact point and the plane's contact point. Equal and 
-opposite forces are applied to the ball body B and the plane body P, at the 
-station on each body that is coincident with C.
+There are two mobilized bodies involved. MobiliedBody S, the plane "surface" 
+body, has a plane P fixed to it, with the plane defined by a frame P given 
+relative to body S by the transform X_SP. MobiliedBody B, the "follower" body 
+has a station point F (a vertex) fixed to it, given with respect to body B at 
+location p_BF. The coordinate axes of the plane frame P (fixed in S) are used 
+for parameterization of the %Constraint. The z direction Pz of that frame is the 
+plane normal; the Px,Py directions are used to express the tangential velocity; 
+the P frame origin Po provides the height h=dot(Po,Pz) of the plane
+over the surface body's origin in the direction of the plane normal Pz.
 
-The holonomic constraint we enforce is that point C should be touching the
-plane. We enforce this with the condition that
-~C_P*n_P = h, that is, given the contact point C measured and 
-expressed in the plane body's frame, the height of that point in the direction
-of the plane normal should be the height of the plane.
+The position constraint equation for contact enforces that the follower point F 
+must always be in the plane P, that is, pz_PF=p_PF[2]=0, or equivalently <pre>
+    (1) perr = pz_PF = dot(p_SF,Pz)-h 
+</pre> 
+That constraint equation is enforced by an internal 
+(non-working) scalar force acting at the spatial location of the follower point, 
+directed along the plane normal, and equal and opposite on the two bodies at F 
+on B and at the instantaneously coincident point p_SF on S. Because position 
+constraints are not enforced perfectly, contact will occur slightly above or 
+slightly below the plane surface, wherever the follower point is.
 
-The assembly condition is the same as the run-time constraint: the point of
-the sphere where the inward normal is the same as the halfspace normal must
-be brought into contact with the halfspace surface. **/
-class SimTK_SIMBODY_EXPORT Constraint::BallRollingOnPlane : public Constraint {
+The two velocity constraint equations enforce that the follower point has no
+relative tangential velocity when measured in the plane frame P, that is we
+want to enforce vx_PF=vy_PF=0. The time derivative of the normal constraint is 
+also enforced at the velocity level so we have vz_PF=0. Taken together the
+velocity-level constraints are just <pre>
+    (2) verr = v_PF = ~R_SP * v_SF
+</pre>
+Equation (2) is the same as the velocity-level constraints for a ball joint 
+between frame P on S and point F on B. The acceleration-level constraints are 
+just the time derivative of (2), i.e. <pre>
+    (3) aerr = a_PF = ~R_SP * a_SF
+</pre>
+The assembly condition is that the follower point must be in the plane; there
+is no assembly condition in the tangential direction since those constraints
+are at the velocity level only. **/
+class SimTK_SIMBODY_EXPORT Constraint::PointInPlaneWithStiction 
+:   public Constraint  {
 public:
     // no default constructor
-    /** Create a BallOnPlane constraint and define the default plane and 
-    ball geometry. **/
-    BallRollingOnPlane(MobilizedBody&  planeBody_P, 
-                const UnitVec3& defaultPlaneNormal_P, 
-                Real            defaultPlaneHeight,
-                MobilizedBody&  ballBody_B, 
-                const Vec3&     defaultBallCenter_B,
-                Real            defaultBallRadius);
+
+    /** Construct a point-in-plane normal constraint and two no-slip friction
+    constraints as described in the Constraint::PointInPlaneWithStiction
+    class documentation. **/
+    PointInPlaneWithStiction(MobilizedBody&     planeBody, 
+                             const Transform&   defaultPlaneFrame, 
+                             MobilizedBody&     followerBody, 
+                             const Vec3&        defaultFollowerPoint);
     
-    /** Default constructor creates an empty handle. **/
-    BallRollingOnPlane() {}
+    /** Default constructor creates an empty handle that can be used to
+    reference any %PointInPlaneWithStiction %Constraint.**/
+    PointInPlaneWithStiction() {}
 
     // These affect only generated decorative geometry for visualization;
-    // the plane is really infinite in extent with zero depth.
-    BallRollingOnPlane& setPlaneDisplayHalfWidth(Real);
+    // the plane is really infinite in extent with zero depth and the
+    // point is really of zero radius.
+    PointInPlaneWithStiction& setPlaneDisplayHalfWidth(Real);
+    PointInPlaneWithStiction& setPointDisplayRadius(Real);
     Real getPlaneDisplayHalfWidth() const;
+    Real getPointDisplayRadius() const;
 
-    // Defaults for Instance variables.
-    BallRollingOnPlane& setDefaultPlaneNormal(const UnitVec3&);
-    BallRollingOnPlane& setDefaultPlaneHeight(Real);
-    BallRollingOnPlane& setDefaultBallCenter(const Vec3&);
-    BallRollingOnPlane& setDefaultBallRadius(Real);
+    /** Replace the default plane frame that was supplied on construction.
+    This is a topological change; you'll have to call realizeTopology() again
+    if you call this method. **/
+    PointInPlaneWithStiction& 
+    setDefaultPlaneFrame(const Transform& defaultPlaneFrame);
+    /** Replace the default follower point that was supplied on construction.
+    This is a topological change; you'll have to call realizeTopology() again
+    if you call this method. **/
+    PointInPlaneWithStiction& 
+    setDefaultFollowerPoint(const Vec3& defaultFollowerPoint);
 
-    // Stage::Topology
+    /** Return the MobilizedBodyIndex of the plane MobilizedBody. **/
     MobilizedBodyIndex getPlaneMobilizedBodyIndex() const;
-    MobilizedBodyIndex getBallMobilizedBodyIndex() const;
+    /** Return the MobilizedBodyIndex of the follower MobilizedBody. **/
+    MobilizedBodyIndex getFollowerMobilizedBodyIndex() const;
 
-    const UnitVec3& getDefaultPlaneNormal() const;
-    Real            getDefaultPlaneHeight() const;
-    const Vec3&     getDefaultBallCenter() const;
-    Real            getDefaultBallRadius() const;
+    /** Return the default plane frame as set during construction or by the
+    most recent call to setDefaultPlaneFrame(). **/
+    const Transform& getDefaultPlaneFrame() const;
+    /** Return the default follower point as set during construction or by the
+    most recent call to setDefaultFollowerPoint(). **/
+    const Vec3&      getDefaultFollowerPoint() const;
 
-    // Stage::Instance
-    const UnitVec3& getPlaneNormal(const State&) const;
-    Real            getPlaneHeight(const State&) const;
-    const Vec3&     getBallCenter(const State&) const;
-    Real            getBallRadius(const State&) const;
+    /** Return the plane frame X_SP that is currently in effect for this
+    %Constraint. Note that the origin of the returned frame will be exactly on
+    the plane surface; that is not necessarily where contact occurs since the
+    follower point may be above or below the surface by position constraint
+    tolerance. **/
+    const Transform& getPlaneFrame(const State& state) const;
+    const Vec3&      getFollowerPoint(const State& state) const;
 
-    // Stage::Position, Velocity
-    Real getPositionError(const State&) const;
-    Vec3 getVelocityError(const State&) const;
+    /** The returned position error can be viewed as a signed distance. It is
+    positive when the follower point is above the plane and negative when
+    it is below the plane. The given \a state must have already been 
+    realized through Stage::Position. **/
+    Real getPositionError(const State& state) const;
 
-    // Stage::Acceleration
-    Vec3 getAccelerationError(const State&) const;
-    Vec3 getMultipliers(const State&) const;
+    /** The velocity error vector is the velocity of the follower point in
+    the contact frame. The contact frame is parallel to the plane frame but
+    with its origin shifted to the spatial location as the follower point. 
+    Note that the coordinates are ordered x-y-z so the first two numbers are
+    the tangential slip velocity and the third is the velocity in the normal
+    direction, with positive indicating separation and negative indicating
+    approach. The z value here is the time derivative of the quantity returned
+    by getPositionError(). The given \a state must have already been 
+    realized through Stage::Velocity. **/
+    Vec3 getVelocityErrors(const State& state) const;
 
-    /** Return the signed magnitude of the normal force applied by the plane
-    to the ball at the contact point, in the direction of the plane normal; 
-    negative indicates sticking. **/
-    Real getNormalForce(const State&) const;
-    /** Return the friction force vector being applied by the plane to the
-    ball at the contact point, expressed in the plane frame. **/
-    Vec2 getFrictionForceOnBallInPlaneFrame(const State&) const;
+    /** This vector is the time derivative of the value returned by
+    getVelocityError(). The given \a state must have already been realized
+    through Stage::Acceleration. **/
+    Vec3 getAccelerationErrors(const State& state) const;
 
-    /** @cond **/ // Don't let doxygen see this
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(BallRollingOnPlane, BallRollingOnPlaneImpl, Constraint);
+    /** These are the Lagrange multipliers required to enforce the three
+    constraint equations generated here. For this %Constraint they have units
+    of force, but the sign convention for multipliers is the opposite of that
+    for applied forces. Thus the returned vector may be considered the force
+    applied by the follower point to the coincident point of the plane body,
+    expressed in the contact frame. **/
+    Vec3 getMultipliers(const State& state) const;
+
+    /** This is the force applied by the plane body to the follower point,
+    expressed in the contact frame. For this %Constraint, the value returned
+    here is identical to the vector returned by getMultipliers(), but with the 
+    opposite sign. **/
+    Vec3 getForceOnFollowerPoint(const State& state) const;
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (PointInPlaneWithStiction, PointInPlaneWithStictionImpl, Constraint);
     /** @endcond **/
 };
 
+
+//==============================================================================
+//                         SPHERE ON PLANE CONTACT
+//==============================================================================
+/** This constraint represents a \e bilateral connection between a sphere on one
+body and a plane on another.
+
+On construction you may choose whether the connection enforces rolling;
+otherwise the sphere will slip along the plane. There is always one position 
+(holonomic) constraint equation: the sphere must touch the plane. That leaves
+the sphere free to take on any orientation and to be touching at any point in 
+the plane. Optionally, there are also two velocity (nonholonomic) constraint 
+equations that prevent relative slip between the sphere and the plane and thus 
+enforce rolling.
+
+Note that this is a bilateral, unconditional connection and will push or pull 
+as necessary to keep the ball in contact with the plane. If rolling is being
+enforced then whatever tangential forces are necessary to keep the ball rolling 
+will be generated, regardless of the normal force. These constraints can form 
+the basis for unilateral contact, but additional conditions must be added to
+determine when they are active.
+
+There are two mobilized bodies involved, we'll call them F ("floor") and B 
+("ball"). (These names are just mnemonics; both bodies can be free to move
+or either one could be Ground.) F is a body to which a plane P has been fixed, 
+and B is a body to which a sphere S is fixed. The plane is defined by a frame P 
+given relative to body F by the transform X_FP. The coordinate axes of P are 
+used for parameterization of the %Constraint. The z direction Pz of that frame 
+is the plane normal; the Px,Py directions are used to express the tangential 
+slip velocity and tangential forces in case of rolling; the P frame origin Po 
+(given by the vector p_FP) provides the height h=p_FP.Pz of the plane over the 
+floor body's origin (Fo) in the direction of the plane normal Pz.
+
+MobilizedBody B has a sphere fixed to it with center So and radius r, with So 
+given by the vector p_BS in the B frame. Call the point at the bottom (w.r.t. 
+plane normal) of the sphere C, with C=So-r*Pz. The position constraint equation 
+for contact then enforces that the location of the bottom of the sphere (at C) 
+is in the plane P, and all contact forces are applied at the location of point 
+C. Because position constraints cannot be enforced perfectly, contact will occur
+slightly above or slightly below the plane surface, depending where C is. 
+However, contact will always occur at a radius of exactly r from the sphere 
+center S.
+
+The contact constraints here are enforced by a normal multiplier acting along
+Pz, and optionally two tangential multipliers acting along Px and Py
+respectively. Together these can be interpreted as a force acting in a frame C
+that is always aligned with P, but whose origin is at the contact point Co at
+the bottom of the ball.
+
+The assembly condition is the same as the position constraint: some point on
+the surface of the sphere must be touching the plane. There is no assembly
+condition for the tangential constraints since they do not restrict the
+allowable pose during assembly. **/
+class SimTK_SIMBODY_EXPORT Constraint::SphereOnPlaneContact
+:   public Constraint  {
+public:
+    // no default constructor
+
+//------------------------------------------------------------------------------
+/** @name                       Construction
+Methods in this section refer both to constructors, and to methods that can
+be used to set or change contruction (Topology-stage) parameters; these
+specify the values assigned by default to the corresponding state variables. 
+Note:
+  - Changing one of these default parameters invalidates the containing 
+    System's topology, meaning that realizeTopology() will have to be called 
+    and a new State obtained before subsequent use. 
+  - The set...() methods return a reference to "this" %SphereOnPlaneContact
+    element (in the manner of an assignment operator) so they can be chained in
+    a single expression. **/
+/*@{*/
+
+/** Construct a sphere-on-plane constraint as described in the 
+Constraint::SphereOnPlaneContact class documentation.
+
+@param      planeMobod   
+    The "floor" MobilizedBody F to which the plane P is attached.
+@param      defaultPlaneFrame
+    The Transform X_FP that defines the plane relative to the body
+    frame of \a planeMobod F. This is the value that will be present in
+    a default State; you can modify it later.
+@param      sphereMobod
+    The "ball" MobilizedBody B to which the sphere S is attached.
+@param      defaultSphereCenter
+    The center of sphere S defined relative to the body frame of the
+    \a sphereMobod B. This is a vector p_BS from body B's origin Bo to
+    the sphere center So, expressed in the B frame. This is the value that
+    will be present in a default State; you can modify it later.
+@param      defaultSphereRadius
+    The radius r of the sphere S. This is the value that will be present in
+    a default State; you can modify it later.
+@param      enforceRolling
+    Whether to generate tangential forces to make the sphere roll on the
+    plane. Otherwise only a normal force is generated and the sphere is
+    free to slip.
+**/
+SphereOnPlaneContact(   MobilizedBody&      planeMobod, 
+                        const Transform&    defaultPlaneFrame, 
+                        MobilizedBody&      sphereMobod, 
+                        const Vec3&         defaultSphereCenter,
+                        Real                defaultSphereRadius,
+                        bool                enforceRolling);
+    
+/** Default constructor creates an empty handle that can be used to
+reference any %SphereOnPlaneContact %Constraint.**/
+SphereOnPlaneContact() {}
+
+/** Return a reference to the MobilizedBody to which the plane is
+attached. This refers to the \a planeMobod that was given in the 
+constructor and cannot be changed after construction. **/
+const MobilizedBody& getPlaneMobilizedBody() const;
+
+/** Return a reference to the MobilizedBody to which the sphere is
+attached. This refers to the \a sphereMobod that was given in the 
+constructor and cannot be changed after construction. **/
+const MobilizedBody& getSphereMobilizedBody() const;
+
+/** Report whether this %Constraint was constructed to generate rolling
+constraints (otherwise it is frictionless). This cannot be changed after
+construction. **/
+bool isEnforcingRolling() const;
+
+
+/** Replace the default plane frame that was supplied on construction.
+This is a topological change; you'll have to call realizeTopology() again
+if you call this method. **/
+SphereOnPlaneContact& 
+setDefaultPlaneFrame(const Transform& defaultPlaneFrame);
+/** Replace the default center point that was supplied on construction.
+This is a topological change; you'll have to call realizeTopology() again
+if you call this method. **/
+SphereOnPlaneContact& 
+setDefaultSphereCenter(const Vec3& defaultSphereCenter);
+/** Replace the default sphere radius that was supplied on construction.
+This is a topological change; you'll have to call realizeTopology() again
+if you call this method. **/
+SphereOnPlaneContact& 
+setDefaultSphereRadius(Real defaultSphereRadius);
+
+
+/** Return the default plane frame as set during construction or by the
+most recent call to setDefaultPlaneFrame(). **/
+const Transform& getDefaultPlaneFrame() const;
+/** Return the default center point as set during construction or by the
+most recent call to setDefaultSphereCenter(). **/
+const Vec3& getDefaultSphereCenter() const;
+/** Return the default sphere radius as set during construction or by the
+most recent call to setDefaultSphereRadius(). **/
+Real getDefaultSphereRadius() const;
+/*@}............................ Construction ................................*/
+
+//------------------------------------------------------------------------------
+/** @name                       Visualization
+If you are allowing the SimbodyMatterSubsystem to generate default geometry,
+this constraint element will attempt to represent the plane and sphere that
+it connects. Methods here give you some limited control over the generated
+default geometry; if you need more control you should disable the generation
+of default geometry and make your own. **/
+/*@{*/
+/** This affects only generated decorative geometry for default 
+visualization; the plane is really infinite in extent. If you don't set
+this the default half width is 1 length unit. Set this to zero to 
+disable any attempt to generate default visualization for the plane. **/
+SphereOnPlaneContact& setPlaneDisplayHalfWidth(Real halfWidth);
+/** Return the plane half-width that will be used if we're asked to generate
+default visualization geometry. **/
+Real getPlaneDisplayHalfWidth() const;
+/*@}........................... Visualization ................................*/
+
+
+//------------------------------------------------------------------------------
+/** @name                      Runtime Changes
+These refer to Position-stage discrete state variables that determine the sphere
+and plane parameters to be used to calculate constraint forces from a given
+State object. If these are not set explicitly, the parameters are set to those
+provided in the constructor or via the correponding setDefault...() methods. 
+Note:
+  - Changing one of these parameters invalidates the given State's 
+    Stage::Position, meaning that the State's stage will be no higher than
+    Stage::Time after the parameter change. That ensures that position 
+    constraint errors will be recalculated before they are used.
+  - The set...() methods here return a const reference to "this" 
+    %SphereOnPlaneContact element (in the manner of an assignment operator, 
+    except read-only) so they can be chained in a single expression. **/
+/*@{*/
+
+/** Modify the location of the plane in this \a state by providing a new
+transform X_FP giving the plane frame relative to the plane body F's body
+frame. This overrides the defaultPlaneFrame in the given \a state, whose
+Stage::Position is invalidated. **/
+const SphereOnPlaneContact& 
+setPlaneFrame(State& state, const Transform& planeFrame) const;
+
+/** Modify the location of the sphere in this \a state by providing a new
+vector p_BS giving the sphere center location relative to the sphere body B's 
+body frame origin, and expressed in the B frame. This overrides the 
+defaultSphereCenter in the given \a state, whose Stage::Position is 
+invalidated. **/
+const SphereOnPlaneContact& 
+setSphereCenter(State& state, const Vec3& sphereCenter) const;
+
+/** Modify the radius of the sphere in this \a state. This overrides the 
+defaultSphereRadius in the given \a state, whose Stage::Position is 
+invalidated. **/
+const SphereOnPlaneContact& 
+setSphereRadius(State& state, Real sphereRadius) const;
+
+/** Return the plane frame X_FP that is currently in effect for this
+%Constraint. Note that the origin of the returned frame will be exactly on
+the plane surface; that is not necessarily where contact occurs since the
+ball may be above or below the surface by position constraint
+tolerance. **/
+const Transform& getPlaneFrame(const State& state) const;
+/** Return the sphere's center point location p_BO that is current in effect
+for this %Constraint. The location is measured and expressed in the ball 
+body's frame. **/
+const Vec3& getSphereCenter(const State& state) const;
+/** Return the sphere radius that is currently in effect for this 
+%Constraint. **/
+Real getSphereRadius(const State& state) const;
+/*@}.......................... Runtime Changes ...............................*/
+
+//------------------------------------------------------------------------------
+/** @name                      Computations
+Methods here provide access to values already calculated by this constraint
+element, and provide operators you can call to calculate related values. **/
+/*@{*/
+/** The returned position error can be viewed as the signed distance from
+the lowest point of the sphere to the plane surface. It is positive when the 
+sphere is above the plane (along the plane normal Pz) and negative when it is 
+penetrating the plane. The given \a state must have already been realized 
+through Stage::Position. **/
+Real getPositionError(const State& state) const;
+
+/** The returned velocity error vector has the time derivative of the quantity
+returned by getPositionError() in its z coordinate, and violation of the
+rolling constraints in its x and y coordinates. If rolling is not being 
+enforced then the x and y components are returned zero; they will not contain
+the slip velocity in that case since any slip velocity is acceptable. Note
+that the returned vector is expressed in the plane frame P, that is, this is 
+the velocity of the contact point of the sphere body, measured with respect
+to the plane, and expressed along Px,Py, and Pz. The given \a state must 
+have already been realized through Stage::Velocity. **/
+Vec3 getVelocityErrors(const State& state) const;
+
+/** This vector is the time derivative of the value returned by
+getVelocityError(). Note that this is different than the acceleration of
+the point of the sphere at the contact point beceause the contact point moves
+with respect to the sphere. The given \a state must have already been realized
+through Stage::Acceleration. **/
+Vec3 getAccelerationErrors(const State& state) const;
+
+/** This are the Lagrange multipliers required to enforce the constraint
+equations generated here. For this %Constraint it has units of force, but 
+recall that the sign convention for multipliers is the opposite of that for 
+applied forces. Thus the returned value is the negative of the force being
+applied to the sphere at the contact point, expressed in the plane frame P.
+The x,y coordinates are the forces in the plane used to enforce rolling (or
+zero if rolling is not being enforced), and the z coordinate is the force 
+needed to enforce contact. Since this is an unconditional, bilateral 
+constraint the multipliers may have any sign and magnitude. The given \a state 
+must already be realized to Stage::Acceleration. **/
+Vec3 getMultipliers(const State& state) const;
+
+/** Return the force vector currently being applied by this constraint to
+the contact point on the sphere body, expressed in the Ground frame. An equal
+and opposite force is applied to the plane body, to its material point that
+is at that same location in space. This is zero if the constraint is not
+currently enabled. Tangential forces are generated only when rolling is being
+enforced, but since this result is in the Ground frame all the vector measure
+numbers may be non-zero regardless.  The given \a state must already be realized
+to Stage::Acceleration. **/
+Vec3 findForceOnSphereInG(const State& state) const;
+
+/** Return the contact point location in the Ground frame. We define this
+to be the Ground location coincident with the bottom of the sphere with
+respect to the plane normal Pz. Note that this does not imply that the
+constraint is satisifed; that point could be far from the plane or deeply
+below the plane. This calculates a valid value even if this constraint is
+currently disabled. The given \a state must already be realized to 
+Stage::Position. **/
+Vec3 findContactPointInG(const State& state) const;
+
+/** Calculate the separation distance or penetration depth of the sphere 
+and the plane. This is positive if the lowest point of the sphere is above 
+the plane (in the sense of the plane normal Pz), and negative if the 
+lowest point is below the plane, in which case it measures the maximum
+penetration depth. This calculates a valid value even if this constraint is
+currently disabled. The given \a state must be realized to 
+Stage::Position. **/
+Real findSeparation(const State& state) const;
+/*@}............................ Computations ................................*/
+
+/** @cond **/ // hide from Doxygen
+SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+    (SphereOnPlaneContact, SphereOnPlaneContactImpl, Constraint);
+/** @endcond **/
+};
+
+
+    /////////////////////////
+    // CONSTANT COORDINATE //
+    /////////////////////////
+
+/** Constrain a single mobilizer coordinate q to have a particular value.
+
+Generates one position-level (holonomic) constraint equation. Some generalized 
+coordinate q is required to remain at a particular position value p. This may
+be an angle, a length, or some other unit depending on how the mobilizer is
+defined.
+
+Consider using the lock() or lockAt() feature of mobilizers (see MobilizedBody 
+description) instead of this constraint; if applicable, locking is more 
+efficient since it does not require adding a constraint equation to the system.
+ 
+The assembly condition is the same as the run-time constraint: q must be set
+to position p. 
+@see MobilizedBody::lock(), MobilizedBody::lockAt() **/
+class SimTK_SIMBODY_EXPORT Constraint::ConstantCoordinate : public Constraint {
+public:
+    /** Construct a constant coordinate constraint on a particular generalized
+    coordinate q of the given mobilizer. Provide a default position value to 
+    which the q should be locked; you can change it later via setPosition(). **/
+    ConstantCoordinate(MobilizedBody& mobilizer, MobilizerQIndex whichQ, 
+                       Real defaultPosition);
+
+    /** Construct a constant coordinate constraint on the generalized
+    coordinate q of the given mobilizer, assuming there is only one 
+    coordinate. (Constrains the first coordinate if there are several.) Provide 
+    a default position value to which the q should be locked; you can change it 
+    later via setPosition(). **/
+    ConstantCoordinate(MobilizedBody& mobilizer, Real defaultPosition); 
+    
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantCoordinate Constraint. **/
+    ConstantCoordinate() {}
+
+    /** Return the index of the mobilized body to which this constant coordinate
+    constraint is being applied (to \e one of its coordinates). This is set on
+    construction of the %ConstantCoordinate constraint. **/
+    MobilizedBodyIndex getMobilizedBodyIndex() const;
+
+    /** Return the particular coordinate whose position is controlled by
+    this %ConstantCoordinate constraint. This is set on construction. **/
+    MobilizerQIndex    getWhichQ() const;
+
+    /** Return the default value for the position to be enforced. This is set on
+    construction or via setDefaultPosition(). This is used to initialize the 
+    position when a default State is created, but it can be overriden by 
+    changing the value in the State using setPosition(). **/
+    Real getDefaultPosition() const;
+
+    /** Change the default value for the position to be enforced by this 
+    constraint. This is a topological change, meaning you'll have to call
+    realizeTopology() on the containing System and obtain a new State before
+    you can use it. If you just want to make a runtime change in the State,
+    see setPosition(). **/
+    ConstantCoordinate& setDefaultPosition(Real position);
+
+    /** Override the default position with this one whose value is stored in the
+    given State. This invalidates the Position stage in the state. Don't 
+    confuse this with setDefaultPosition() -- the value set here overrides that
+    one. **/
+    void setPosition(State& state, Real position) const;
+
+    /** Get the current value of the position set point from the indicated 
+    State. This is the value currently in effect, either from the default or 
+    from a previous call to setPosition(). **/
+    Real getPosition(const State& state) const;
+
+    /** Return the amount by which the given State fails to satisfy this
+    %ConstantCoordinate constraint. This is a signed value, q-p where p is
+    the currently effective desired position as returned by getPosition()
+    on this same \a state. The \a state must already be realized 
+    through Stage::Position. **/
+    Real getPositionError(const State& state) const;
+
+    /** Return the amount by which the given State fails to satisfy the time
+    derivative of this %ConstantCoordinate constraint, which should be zero. 
+    This is a signed value equal to the current value of qdot (=d/dt q). The 
+    \a state must already be realized through Stage::Velocity. **/
+    Real getVelocityError(const State& state) const;
+
+    /** Return the amount by which the accelerations in the given State fail
+    to satify the second time derivative of this constraint, which should be 
+    zero. This is a signed value equal to the current value of qdotdot
+    (=d^2/dt^2 q). The \a state must already be realized through 
+    Stage::Acceleration. **/
+    Real getAccelerationError(const State& state) const;
+
+    /** Get the value of the Lagrange multiplier generated to satisfy this
+    constraint. For a %ConstantCoordinate constraint, the multiplier has the
+    same magnitude as the generalized force although by convention constraint 
+    multipliers have the opposite sign from applied forces. The \a state must 
+    already be realized through Stage::Acceleration.**/
+    Real getMultiplier(const State& state) const;
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (ConstantCoordinate, ConstantCoordinateImpl, Constraint);
+    /** @endcond **/
+};
 
     ////////////////////
     // CONSTANT SPEED //
@@ -1290,12 +1755,16 @@ public:
 
 One non-holonomic constraint equation. Some mobility u is required to be at a
 particular value s.
+
+Consider using the lock() or lockAt() feature of mobilizers (see MobilizedBody 
+description) instead of this constraint; if applicable, locking is more 
+efficient since it does not require adding a constraint equation to the system.
  
 The assembly condition is the same as the run-time constraint: u must be set
-to s. **/
+to s. 
+@see MobilizedBody::lock(), MobilizedBody::lockAt() **/
 class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint {
 public:
-    // no default constructor
     /** Construct a constant speed constraint on a particular mobility
     of the given mobilizer. **/
     ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
@@ -1304,21 +1773,25 @@ public:
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed); 
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantSpeed Constraint. **/
     ConstantSpeed() {}
 
     /** Return the index of the mobilized body to which this constant speed
     constraint is being applied (to \e one of its mobilities). This is set on
     construction of the %ConstantSpeed constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+
     /** Return the particular mobility whose generalized speed is controlled by
     this %ConstantSpeed constraint. This is set on construction. **/
     MobilizerUIndex    getWhichU() const;
+
     /** Return the default value for the speed to be enforced. This is set on
     construction or via setDefaultSpeed(). This is used to initialize the speed
     when a default State is created, but it can be overriden by changing the
     value in the State using setSpeed(). **/
     Real               getDefaultSpeed() const;
+
     /** Change the default value for the speed to be enforced by this 
     constraint. This is a topological change, meaning you'll have to call
     realizeTopology() on the containing System and obtain a new State before
@@ -1331,6 +1804,7 @@ public:
     confuse this with setDefaultSpeed() -- the value set here overrides that
     one. **/
     void setSpeed(State& state, Real speed) const;
+
     /** Get the current value of the speed set point from the indicated State.
     This is the value currently in effect, either from the default or from a
     previous call to setSpeed(). **/
@@ -1343,17 +1817,17 @@ public:
     Stage::Velocity. **/
     Real getVelocityError(const State& state) const;
 
-    // Stage::Acceleration
     /** Return the amount by which the accelerations in the given State fail
     to satify the time derivative of this constraint (which must be zero). 
     The \a state must already be realized through Stage::Acceleration. **/
     Real getAccelerationError(const State& state) const;
-    /** Get the value of the Lagrange multipler generated to satisfy this
+
+    /** Get the value of the Lagrange multiplier generated to satisfy this
     constraint. For a %ConstantSpeed constraint, that is the same as the
     generalized force although by convention constraint multipliers have the
     opposite sign from applied forces. The \a state must already be realized 
     through Stage::Acceleration.**/
-    Real getMultiplier(const State&) const;
+    Real getMultiplier(const State& state) const;
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
@@ -1370,37 +1844,46 @@ public:
 One acceleration-only constraint equation. Some generalized acceleration
 udot is required to be at a particular value a.
 
+Consider using the lock() feature of mobilizers (see MobilizedBody description)
+instead of this constraint; if applicable, locking is more efficient since it 
+does not require adding a constraint equation to the system.
+
 There is no assembly condition because this does not involve state
-variables q or u, just u's time derivative udot. **/
+variables q or u, just u's time derivative udot. 
+@see MobilizedBody::lock() **/
 class SimTK_SIMBODY_EXPORT Constraint::ConstantAcceleration : public Constraint
 {
 public:
-    // no default constructor
     /** Construct a constant acceleration constraint on a particular mobility
     of the given mobilizer. **/
     ConstantAcceleration(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
                          Real defaultAcceleration);
+
     /** Construct a constant acceleration constraint on the mobility
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantAcceleration(MobilizedBody& mobilizer, 
                          Real defaultAcceleration);
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantAcceleration Constraint. **/
     ConstantAcceleration() {}
 
     /** Return the index of the mobilized body to which this constant 
     acceleration constraint is being applied (to \e one of its mobilities). 
     This is set on construction of the %ConstantAcceleration constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+
     /** Return the particular mobility whose generalized acceleration is 
     controlled by this %ConstantAcceleration constraint. This is set on 
     construction. **/
     MobilizerUIndex    getWhichU() const;
+
     /** Return the default value for the acceleration to be enforced. This is 
     set on construction or via setDefaultAcceleration(). This is used to 
     initialize the acceleration when a default State is created, but it can be 
     overriden by changing the value in the State using setAcceleration(). **/
     Real               getDefaultAcceleration() const;
+
     /** Change the default value for the acceleration to be enforced by this 
     constraint. This is a topological change, meaning you'll have to call
     realizeTopology() on the containing System and obtain a new State before
@@ -1413,6 +1896,7 @@ public:
     Don't confuse this with setDefaultAcceleration() -- the value set here 
     overrides that one. **/
     void setAcceleration(State& state, Real accel) const;
+
     /** Get the current value of the acceleration set point from the indicated 
     State. This is the value currently in effect, either from the default or 
     from a previous call to setAcceleration(). **/
@@ -1420,11 +1904,11 @@ public:
 
     // no position or velocity error
 
-    // Stage::Acceleration
     /** Return the amount by which the accelerations in the given State fail
     to satify this constraint. The \a state must already be realized through 
     Stage::Acceleration. **/
     Real getAccelerationError(const State&) const;
+
     /** Get the value of the Lagrange multipler generated to satisfy this
     constraint. For a %ConstantAcceleration constraint, that is the same as the
     generalized force although by convention constraint multipliers have the

@@ -40,6 +40,9 @@ class MobilizedBody;
 class MultibodySystem;
 class Constraint;
 
+class UnilateralContact;
+class StateLimitedFriction;
+
 /** This subsystem contains the bodies ("matter") in the multibody system,
 the mobilizers (joints) that define the generalized coordinates used to 
 represent the motion of those bodies, and constraints that must be satisfied
@@ -184,7 +187,6 @@ a const argument; it won't have an "invalidate topology" side effect.
 @see updGround() **/
 MobilizedBody::Ground& Ground() {return updGround();}
 
-
 /** Given a ConstraintIndex, return a read-only (const) reference to the 
 corresponding Constraint within this matter subsystem. This method will 
 fail if the index is invalid or out of range. **/
@@ -259,7 +261,20 @@ implementation object to which it refers.
 @note
 This method is usually called by concrete Constraint constructors; it does not
 normally need to be called by end users. **/
-ConstraintIndex   adoptConstraint(Constraint&);
+ConstraintIndex adoptConstraint(Constraint&);
+
+/** (Experimental) **/
+UnilateralContactIndex adoptUnilateralContact(UnilateralContact*);
+int getNumUnilateralContacts() const;
+const UnilateralContact& getUnilateralContact(UnilateralContactIndex) const;
+UnilateralContact& updUnilateralContact(UnilateralContactIndex);
+/** (Experimental) **/
+StateLimitedFrictionIndex adoptStateLimitedFriction(StateLimitedFriction*);
+int getNumStateLimitedFrictions() const;
+const StateLimitedFriction&
+getStateLimitedFriction(StateLimitedFrictionIndex) const;
+StateLimitedFriction& 
+updStateLimitedFriction(StateLimitedFrictionIndex);
 
 /** Copy constructor is not very useful. **/
 SimbodyMatterSubsystem(const SimbodyMatterSubsystem& ss) : Subsystem(ss) {}
@@ -2229,12 +2244,12 @@ quantities:
     Vector_<SpatialVec> forcesAtFInG(nb); // to hold the result
     forcesAtFInG[0] = -forcesAtMInG[0]; // Ground is "welded" at origin
     for (MobilizedBodyIndex i(1); i < nb; ++i) {
-        const MobilizedBody& body   = matter.getMobilizedBody(i);
-        const MobilizedBody& parent = body.getParentMobilizedBody();
+        const MobilizedBody& mobod  = matter.getMobilizedBody(i);
+        const MobilizedBody& parent = mobod.getParentMobilizedBody();
         // Want to shift reaction by p_MF, the vector from M to F across the
         // mobilizer, and negate. Can get p_FM; must reexpress in G.
-        const Vec3& p_FM = body.getMobilizerTransform(state).p();
-        const Rotation& R_PF = body.getInboardFrame(state).R(); // In parent.
+        const Vec3& p_FM = mobod.getMobilizerTransform(state).p();
+        const Rotation& R_PF = mobod.getInboardFrame(state).R(); // In parent.
         const Rotation& R_GP = parent.getBodyTransform(state).R();
         Rotation R_GF   =   R_GP*R_PF;  // F frame orientation in Ground.
         Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector. 
