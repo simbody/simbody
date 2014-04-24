@@ -28,6 +28,7 @@
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
 #include "SimTKcommon/internal/Subsystem.h"
+#include "SimTKcommon/internal/SubsystemGuts.h"
 
 #include <cassert>
 
