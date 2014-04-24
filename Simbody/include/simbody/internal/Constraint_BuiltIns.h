@@ -32,6 +32,7 @@ subclasses of class Constraint. **/
 #include "simbody/internal/Constraint_Ball.h"
 #include "simbody/internal/Constraint_Weld.h"
 #include "simbody/internal/Constraint_PointInPlane.h"
+#include "simbody/internal/Constraint_PointOnPlaneContact.h"
 #include "simbody/internal/Constraint_SphereOnPlaneContact.h"
 
 #endif // SimTK_SIMBODY_CONSTRAINT_BUILTINS_H_

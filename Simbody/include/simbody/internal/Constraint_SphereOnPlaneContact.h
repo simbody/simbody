@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2014 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,7 +32,7 @@ Declares the Constraint::SphereOnPlaneContact class. **/
 namespace SimTK {
 
 //==============================================================================
-//                   CONSTRAINT::  SPHERE ON PLANE CONTACT
+//                        SPHERE ON PLANE CONTACT
 //==============================================================================
 /** This constraint represents a \e bilateral connection between a sphere on one
 body and a plane on another.
@@ -195,7 +195,8 @@ this the default half width is 1 length unit. Set this to zero to
 disable any attempt to generate default visualization for the plane. **/
 SphereOnPlaneContact& setPlaneDisplayHalfWidth(Real halfWidth);
 /** Return the plane half-width that will be used if we're asked to generate
-default visualization geometry. **/
+default visualization geometry.  If this is zero we won't generate any plane
+visualization geometry. **/
 Real getPlaneDisplayHalfWidth() const;
 /*@}........................... Visualization ................................*/
 
