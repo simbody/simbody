@@ -610,29 +610,73 @@ void findStationInALocationVelocity
     v_AS = v_AB + pdot_BS_A;                //  3 flops
 }
 
+// Given a station P on body F, and a station Q on body B, report the
+// relative position p_PQ_A and relative velocity v_PQ_A=v_FQ_A. Note that
+// the velocity is measured in the F frame, but expressed in the common A
+// frame. 78 flops
+void findRelativePositionVelocity
+   (const Transform&    X_AF,
+    const SpatialVec&   V_AF,
+    const Vec3&         p_FP,
+    const Transform&    X_AB,
+    const SpatialVec&   V_AB,
+    const Vec3&         p_BQ,
+    Vec3& p_PQ_A, Vec3& v_FQ_A) const 
+{
+    const Vec3& w_AF = V_AF[0];
+
+    // Express the point vectors in the A frame, but still measuring from the
+    // body origins.
+    const Vec3 p_FP_A = X_AF.R() * p_FP; // 15 flops
+    const Vec3 p_BQ_A = X_AB.R() * p_BQ; // 15 flops
+    
+    Vec3 p_AP, v_AP;
+    findStationInALocationVelocity(X_AF, V_AF, p_FP_A, p_AP, v_AP);//15 flops
+
+    Vec3 p_AQ, v_AQ;
+    findStationInALocationVelocity(X_AB, V_AB, p_BQ_A, p_AQ, v_AQ);//15 flops
+
+    p_PQ_A = p_AQ - p_AP;                // 3 flops
+    const Vec3 p_PQ_A_dot = v_AQ - v_AP; // derivative in A (3 flops)
+    v_FQ_A = p_PQ_A_dot - w_AF % p_PQ_A; // derivative in F (12 flops)
+}
+
 // There is no findStationAccelerationFromState().
 
 // Only configuration and velocity come from state; accelerations are an 
-// operand (48 flops).
+// operand (15 flops).
+// p_BS_A      is p_BS rexpressed in A but not shifted to Ao.
+// wXwX_p_BS_A is w_AB x (w_AB x p_BS_A)  (Coriolis acceleration)
+Vec3 findStationInAAcceleration
+   (const State&                                    s, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    ConstrainedBodyIndex                            B, 
+    const Vec3&                                     p_BS_A,
+    const Vec3&                                     wXwX_p_BS_A) const 
+{   
+    const SpatialVec& A_AB   = allA_AB[B];
+    const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
+
+    // Result is a + b X r + w X (w X r).
+    // ("b" is angular acceleration; w is angular velocity) 15 flops.
+    const Vec3 a_AS = a_AB + (b_AB % p_BS_A) + wXwX_p_BS_A;
+    return a_AS;
+}
+
+// Same as above but we only know the station in B. (48 flops)
 Vec3 findStationAcceleration
    (const State&                                    s, 
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     ConstrainedBodyIndex                            B, 
     const Vec3&                                     p_BS) const 
 {   // p_BS_A is p_BS rexpressed in A but not shifted to Ao
-    const Rotation&   R_AB   = getBodyRotationFromState(s,B);
-    const Vec3&       w_AB   = getBodyAngularVelocityFromState(s,B);
-    const SpatialVec& A_AB   = allA_AB[B];
-    const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
-
-    const Vec3 p_BS_A = R_AB * p_BS;         // 15 flops
-    const Vec3 pdot_BS_A = w_AB % p_BS_A;   //  9 flops
-
-    // Result is a + b X r + w X (w X r).
-    // ("b" is angular acceleration; w is angular velocity) 24 flops.
-    const Vec3 a_AS = a_AB + (b_AB % p_BS_A) + (w_AB % pdot_BS_A);
-    return a_AS;
+    const Rotation& R_AB   = getBodyRotationFromState(s,B);
+    const Vec3&     w_AB   = getBodyAngularVelocityFromState(s,B);
+    const Vec3 p_BS_A = R_AB * p_BS;                 // 15 flops
+    const Vec3 wXwX_p_BS_A = w_AB % (w_AB % p_BS_A); // 18 flops
+    return findStationInAAcceleration(s,allA_AB,B,p_BS_A,wXwX_p_BS_A);
 }
+
 
 // Combo method is cheaper. Location and velocity come from state, accelerations
 // from operand. NOTE: you must provide the p_BS vector expressed (but not 

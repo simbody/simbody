@@ -477,6 +477,7 @@ class SpeedCoupler;
 class PrescribedMotion;
 class PointOnPlaneContact; 
 class SphereOnPlaneContact; // ball in contact with plane (sliding or rolling)
+class SphereOnSphereContact; // ball in contact with ball (sliding or rolling)
 
 // Internal use only.
 class RodImpl;
@@ -496,6 +497,7 @@ class SpeedCouplerImpl;
 class PrescribedMotionImpl;
 class PointOnPlaneContactImpl; 
 class SphereOnPlaneContactImpl;
+class SphereOnSphereContactImpl;
 
 };
 
