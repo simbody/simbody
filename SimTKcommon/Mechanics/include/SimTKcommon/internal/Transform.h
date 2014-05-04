@@ -76,7 +76,7 @@ typedef Transform_<double>  dTransform;
  *
  *         [       |   ]
  *     X = [   R   | p ]    R is a 3x3 orthogonal rotation matrix
- *         [.......|...]    p os a 3x1 translation vector
+ *         [.......|...]    p is a 3x1 translation vector
  *         [ 0 0 0   1 ]
  * </pre>
  *
