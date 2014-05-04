@@ -60,13 +60,12 @@ struct Parameters {
 };
 
 struct PositionCache {
-    Transform X_FC;         // contact frame in F
-    UnitVec3  Cz_A;         // X_FC.z() re-expressed in A
+    Transform X_AC;         // contact frame in A
     Vec3 p_FSf_A, p_BSb_A;  // stations expressed in A
+    Vec3 p_FCo_A, p_BCo_A;  // stations expressed in A
     Vec3 p_SfSb_A;          // vector from Sf to Sb, exp. in A
-    Real r;                 // ||p_SfSb_A||
-    Real oor;               // 1/r (might be Infinity)
-    Real perr;              // perr = r - (rf+rb)
+    Real r, oor;            // r=||p_SfSb_A||; oor=1/r (might be Infinity)
+    Real kf;                // fraction along p_SfSb to find Co
     bool isSingular;        // if r is too small to be useful
 };
 
@@ -74,8 +73,11 @@ struct VelocityCache {
     Vec3 wXwX_p_FSf_A;      // w_AF x (w_AF x p_FSf_A)  [coriolis accel.]
     Vec3 wXwX_p_BSb_A;      // w_AB x (w_AB x p_BSb_A)  [coriolis accel.]
     Vec3 pd_SfSb_A;         // v_ASb - vASf
+    Vec3 vF_BCo_A;          // vA_BCo_A-vA_FCo_A, B/Co station vel in F
+    Vec3 wXpd_FCo_A;        // w_AF % pd_FCo_A;
+    Vec3 wXpd_BCo_A;        // w_AB % pd_BCo_A;
     Vec3 Czd_A;             // d/dt_A Cz_A -- depends on isSingular
-    Real verr;              // verr = p_SfSb_A_dot . Cz
+    Vec3 Cxd_A, Cyd_A;      // d/dt_A Cx_A, Cy_A -- calculated from Czd_A
 };
 
 explicit SphereOnSphereContactImpl(bool enforceRolling)
@@ -212,7 +214,7 @@ void calcPositionErrorsVirtual
     and   Cz = {p_SfSb_A / r,  r!=0
                {Fz_A,          r==0
     --------------------------------
-    33 flops if position info is already available.
+    32 flops if position info is already available.
 
 Note that we can't cache the velocity results here because we don't know that
 V_AB and qdot were taken from the given State.
@@ -226,6 +228,7 @@ void calcPositionDotErrorsVirtual
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
     const PositionCache& pc = ensurePositionCacheRealized(s);
+    const UnitVec3& Cz_A = pc.X_AC.z();
 
     const SpatialVec& V_AF = allV_AB[m_mobod_F];
     const Vec3& w_AF = V_AF[0]; const Vec3& v_AF = V_AF[1];
@@ -236,7 +239,7 @@ void calcPositionDotErrorsVirtual
     const Vec3 v_ASf = v_AF + w_AF % pc.p_FSf_A;        // 12 flops
     const Vec3 v_ASb = v_AB + w_AB % pc.p_BSb_A;        // 12 flops
     const Vec3 pd_SfSb_A = v_ASb - v_ASf;               //  3 flops
-    pverr[0] = pc.oor * (~pd_SfSb_A * pc.p_SfSb_A);     //  6 flops
+    pverr[0] = ~pd_SfSb_A * Cz_A;                       //  5 flops
 }
 
 /*  ------------------------------------------------------------
@@ -262,6 +265,7 @@ void calcPositionDotDotErrorsVirtual
     // cache has been realized.
     const VelocityCache& vc = ensureVelocityCacheRealized(s);
     const PositionCache& pc = getPositionCache(s);
+    const UnitVec3& Cz_A = pc.X_AC.z();
 
     // 30 flops for these two together.
     const Vec3 a_ASf = findStationInAAcceleration(s, allA_AB, m_mobod_F, 
@@ -269,8 +273,8 @@ void calcPositionDotDotErrorsVirtual
     const Vec3 a_ASb = findStationInAAcceleration(s, allA_AB, m_mobod_B, 
                                                   pc.p_BSb_A, vc.wXwX_p_BSb_A);
 
-    const Vec3 pdd_SfSb_A = a_ASb - a_ASf; // 2nd deriv in A,        3 flops
-    paerr[0] = ~pdd_SfSb_A * pc.Cz_A + ~vc.pd_SfSb_A * vc.Czd_A; // 11 flops
+    const Vec3 pdd_SfSb_A = a_ASb - a_ASf; // 2nd deriv in A,     3 flops
+    paerr[0] = ~pdd_SfSb_A * Cz_A + ~vc.pd_SfSb_A * vc.Czd_A; // 11 flops
 }
 
 // apply f=lambda*Pz to the contact point C of ball on body B,
@@ -287,8 +291,9 @@ void addInPositionConstraintForcesVirtual
     const Real lambda = multipliers[0];
 
     const PositionCache& pc = ensurePositionCacheRealized(s);
+    const UnitVec3& Cz_A = pc.X_AC.z();
 
-    const Vec3 force_A = lambda * pc.Cz_A;     // 3 flops
+    const Vec3 force_A = lambda * Cz_A;     // 3 flops
 
     // 30 flops for the next two calls
     addInStationInAForce(pc.p_BSb_A, force_A, bodyForcesInA[m_mobod_B]);
@@ -298,48 +303,62 @@ void addInPositionConstraintForcesVirtual
 
 // Implementation of virtuals required for nonholonomic constraints.
 
-/* The rolling friction constraint says that the velocity of the material 
-point of B at the contact point C = O - r Pz 
-(at the bottom of the ball with center O and radius r), measured 
-with respect to the plane body F, must be zero in the plane's Px and Py 
-directions. Note that the contact point is not a station of body B but moves 
-in the B frame. We have
-    p_BC = p_BO - r Pz
-    p_FC = p_FO - r Pz
-    verr = v_FC = d/dt_F p_FC 
-         = v_FO - r w_FB x Pz
-where   v_FO = (v_AO-v_AF) - w_AF x (p_AO-p_AF)
-and     w_FB = (w_AB-w_AF)
+/* The rolling friction constraint says that the velocity in F of the material 
+point of B coincident with the contact point Co, must be zero in the contact 
+frame's Cx and Cy directions. 
 
-You have to differentiate verr carefully. Because Pz is fixed in F, the 
-result is not the acceleration of the material point at C, but rather of
-the moving contact point C.
-
-    aerr = d/dt_F verr = a_FO - r d/dt_F (w_FB x Pz)
-    d/dt_F (w_FB x Pz) = (d/dt_F w_FB) x Pz + w_FB x (d/dt_F Pz)
-                       = b_FB x Pz  [2nd term dropped out!]
-so  aerr = a_FC = a_FO - r b_FB x Pz
-
-where a_FO = d/dt_F v_FO
-and   b_FB = d/dt_F w_FB = (b_AB-b_AF) - w_AF x (w_AB-w_AF)
-           = (b_AB-b_AF) - w_AF x w_AB
-
-d/dt_F v_FO = d/dt_A v_FO - w_AF x v_FO
-d/dt_A v_FO = (a_AO-a_AF) - b_AF x (p_AO-p_AF) - w_AF x (v_AO-v_AF)
-w_AF x v_FO = w_AF x (v_AO-v_AF) - w_AF x (w_AF x (p_AO-p_AF))
-
-so a_FO = (a_AO-a_AF) - b_AF x (p_AO-p_AF) - 2 w_AF x (v_AO-v_AF)
-          + w_AF x (w_AF x (p_AO-p_AF))
+We have:
+(1) p_FCo = p_FSf +   k   p_SfSb, k=rf/(rf+rb)
+    p_BCo = p_BSb + (k-1) p_SfSb
+(2)       = p_FCo - p_FB
+Note that the contact point Co is not a station of either body but moves with
+respect to the body frames F and B. However, for the velocity constraint
+we want to enforce no relative tangential velocity of the two *material* points
+at Co, which we'll call B/Co and F/Co and write
+(3) vA_FCo = d/dt_A p_FCo 
+           = v_AF + w_AF x p_FCo
+(4) vA_BCo = d/dt A p_BCo
+             v_AB + w_AB x p_BCo
+Then the velocity of B/Co measured in the F frame is
+(5) vF_BCo = vA_BCo - vA_FCo
 and
-aerr = a_FC = a_FO - r [b_AB-b_AF - w_AF x w_AB] x Pz
+(6) verr = [vF_BCo . Cx]
+           [vF_BCo . Cy]
+is our velocity constraint.
 
-    -------------------------------------------
-    verr = [v_FC_A . Px_A]
-           [v_FC_A . Py_A]
-    -------------------------------------------
-    ~ 110 flops TODO should precalculate where possible
+We need to calculate aerr = d/dt verr. The components of verr are two scalars
+so we can pick any frame in which to calculate the derivatives; we'll use A. So
+from the chain rule we have:
+(7) aerr = [d/dt_A vF_BCo . Cx + vF_BCo . d/dt_A Cx]
+           [d/dt_A vF_BCo . Cy + vF_BCo . d/dt_A Cy]
+         = [vdF_BCo . Cx + vF_BCo . Cxd]
+           [vdF_BCo . Cy + vF_BCo . Cyd]
+
+We already have vF_BCo, so we need these three quantities:
+    Cxd     = d/dt_A Cx = w_AC x Cx
+    Cyd     = d/dt_A Cy = w_AC x Cy
+    vFd_BCo = d/dt_A vF_BCo
+
+We have to be careful to account for the fact that Co moves in B, that is
+d/dt_B p_BCo != 0. We'll use "d" to mean time derivative in A:
+    vdF_BCo = vdA_BCo - vdA_FCo                     from (5)
+    vdA_FCo = a_AF + b_AF x p_FCo + w_AF x pd_FCo   from (3)
+    vdA_BCo = a_AB + b_AB x p_BCo + w_AB x pd_BCo   from (4)
+    pd_FCo  = w_AF x p_FSf + kf * pd_SfSb           from (1)
+    pd_BCo  = pdFCo - pd_FB                         from (2)
+    pd_FB   = v_AB - v_AF
+
+You can find the velocity-dependent portions of the above calculations, 
+including Cxd and Cyd, in ensureVelocityCacheRealized().
 */
-#ifdef NOTDEF
+
+/*
+    -------------------------------------------
+    verr = [vF_BCo_A . Cx_A]
+           [vF_BCo_A . Cy_A]
+    -------------------------------------------
+    37 flops (if position info already calculated)
+*/
 void calcVelocityErrorsVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
@@ -349,45 +368,32 @@ void calcVelocityErrorsVirtual
 {
     assert(allV_AB.size()==2 && constrainedU.size()==0 && verr.size()==2);
 
-    const Parameters& params = getParameters(s);
-    const Vec3&       p_FSf = params.m_p_FSf;
-    const Real        rf    = params.m_radius_F;
-    const Vec3&       p_BSb = params.m_p_BSb;
-    const Real        rb    = params.m_radius_B;
+    const PositionCache& pc = ensurePositionCacheRealized(s);
+    const UnitVec3& Cx_A  = pc.X_AC.x();
+    const UnitVec3& Cy_A  = pc.X_AC.y();
 
-    const Transform&  X_AF = getBodyTransformFromState(s, m_mobod_F);
     const SpatialVec& V_AF = allV_AB[m_mobod_F];
-    const Vec3&       p_AF = X_AF.p();
-    const Vec3&       w_AF = V_AF[0];
-    const Vec3&       v_AF = V_AF[1];
-    const Rotation    R_AP = X_AF.R() * X_FP.R(); //R_AP=[Px Py Pz]_A (45 flops)
+    const Vec3& w_AF = V_AF[0]; const Vec3& v_AF = V_AF[1];
 
-    const Transform&  X_AB = getBodyTransformFromState(s, m_mobod_B);
     const SpatialVec& V_AB = allV_AB[m_mobod_B];
-    const Vec3        p_BO_A = X_AB.R() * p_BO; // re-express in A (15 flops)
-    const Vec3        p_BC_A = p_BO_A - r*R_AP.z(); // bottom of ball (6 flops)
+    const Vec3& w_AB = V_AB[0]; const Vec3& v_AB = V_AB[1];
 
-    Vec3 p_AC, v_AC;
-    findStationInALocationVelocity(X_AB, V_AB, p_BC_A, p_AC, v_AC); // 15 flops
-
-    // Calculate relative velocity of C in F, expressed in A.
-    const Vec3 p_FC_A     = p_AC - p_AF; // measure C from Fo, in A (3 flops)
-    const Vec3 p_FC_A_dot = v_AC - v_AF; // derivative in A (3 flops)
-    const Vec3 v_FC_A = p_FC_A_dot - w_AF % p_FC_A; // deriv in F (12 flops)
+    const Vec3 vA_BCo_A = v_AB + w_AB % pc.p_BCo_A; // 12 flops
+    const Vec3 vA_FCo_A = v_AF + w_AF % pc.p_FCo_A; // 12 flops
+    const Vec3 vF_BCo_A = vA_BCo_A - vA_FCo_A;      //  3 flops
 
     // Calculate these scalars using A-frame vectors, but the results are
-    // measure numbers in [Px Py].
-    verr[0] = ~R_AP.x()*v_FC_A; // 5 flops
-    verr[1] = ~R_AP.y()*v_FC_A; // 5 flops
+    // measure numbers in [Cx Cy].
+    verr[0] = ~vF_BCo_A * Cx_A;                     // 5 flops
+    verr[1] = ~vF_BCo_A * Cy_A;                     // 5 flops
 }
 
 /*
     -------------------------------------------
-    a_FC_A = a_FO_A - r b_FB_A x Pz_A
-    aerr = [a_FC_A . Px_A]
-           [a_FC_A . Py_A]
+     aerr = [vdF_BCo . Cx + vF_BCo . Cxd]
+            [vdF_BCo . Cy + vF_BCo . Cyd]
     -------------------------------------------
-    ~ 200 flops TODO should precalculate where possible
+    55 flops if position and velocity info already calculated.
 */
 
 void calcVelocityDotErrorsVirtual      
@@ -399,54 +405,33 @@ void calcVelocityDotErrorsVirtual
 {
     assert(allA_AB.size()==2 && constrainedUDot.size()==0 && vaerr.size()==2);
 
-    const Parameters& params = getParameters(s);
-    const Vec3&       p_FSf = params.m_p_FSf;
-    const Real        rf    = params.m_radius_F;
-    const Vec3&       p_BSb = params.m_p_BSb;
-    const Real        rb    = params.m_radius_B;
+    // Ensuring the velocity cache is realized also ensures that the position
+    // cache has been realized.
+    const VelocityCache& vc = ensureVelocityCacheRealized(s);
+    const PositionCache& pc = getPositionCache(s);
 
-    const Transform&  X_AF = getBodyTransformFromState(s, m_mobod_F);
-    const SpatialVec& V_AF = getBodyVelocityFromState(s, m_mobod_F);
+    const UnitVec3& Cx_A  = pc.X_AC.x();
+    const UnitVec3& Cy_A  = pc.X_AC.y();
+    const Vec3&     Cxd_A = vc.Cxd_A;
+    const Vec3&     Cyd_A = vc.Cyd_A;
+
     const SpatialVec& A_AF = allA_AB[m_mobod_F];
-    const Vec3&       p_AF = X_AF.p();
-    const Vec3&       w_AF = V_AF[0];
-    const Vec3&       v_AF = V_AF[1];
-    const Vec3&       b_AF = A_AF[0];
-    const Vec3&       a_AF = A_AF[1];
-    const Rotation    R_AP = X_AF.R() * X_FP.R(); //R_AP=[Px Py Pz]_A (45 flops)
+    const Vec3& b_AF = A_AF[0]; const Vec3& a_AF = A_AF[1];
 
-    const Transform&  X_AB = getBodyTransformFromState(s, m_mobod_B);
-    const SpatialVec& V_AB = getBodyVelocityFromState(s, m_mobod_B);
     const SpatialVec& A_AB = allA_AB[m_mobod_B];
-    const Vec3&       w_AB = V_AB[0];
-    const Vec3&       b_AB = A_AB[0];
-    const Vec3        p_BO_A = X_AB.R() * p_BO; // re-express in A (15 flops)
+    const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
 
-    Vec3 p_AO, v_AO, a_AO;
-    findStationInALocationVelocityAcceleration(X_AB, V_AB, A_AB, p_BO_A,
-                                               p_AO, v_AO, a_AO); // 39 flops
+    const Vec3 vd_FCo_A = a_AF + b_AF % pc.p_FCo_A + vc.wXpd_FCo_A; // 15 flops
+    const Vec3 vd_BCo_A = a_AB + b_AB % pc.p_BCo_A + vc.wXpd_BCo_A; // 15 flops
+    const Vec3 vdF_BCo_A = vd_BCo_A - vd_FCo_A;                     //  3 flops
 
-    const Vec3 p_FO_A        = p_AO - p_AF; // measure O from Fo, in A (3 flops)
-    const Vec3 p_FO_A_dot    = v_AO - v_AF; // deriv in A (3 flops)
-    const Vec3 p_FO_A_dotdot = a_AO - a_AF; // 2nd deriv in A (3 flops)
-
-    const Vec3 v_FO_A     = p_FO_A_dot    - w_AF % p_FO_A; // in F (12 flops)
-    const Vec3 v_FO_A_dot = p_FO_A_dotdot -(b_AF % p_FO_A + w_AF % p_FO_A_dot);
-                                                      // deriv in A (24 flops)
-    const Vec3 a_FO_A = v_FO_A_dot - w_AF % v_FO_A; // now in F (12 flops)
-
-    const Vec3 w_FB_A_dot = b_AB - b_AF;                        // 3 flops
-    const Vec3 b_FB_A = w_FB_A_dot - w_AF % w_AB;               // 12 flops
-    const Vec3 a_FC_A = a_FO_A - b_FB_A % (r*R_AP.z());         // 15 flops
-
-    // Calculate these scalars using A-frame vectors, but the results are
-    // measure numbers in [Px Py].
-    vaerr[0] = ~R_AP.x()*a_FC_A; // 5 flops
-    vaerr[1] = ~R_AP.y()*a_FC_A; // 5 flops
+    vaerr[0] = ~vdF_BCo_A*Cx_A + ~vc.vF_BCo_A*Cxd_A;                // 11 flops
+    vaerr[1] = ~vdF_BCo_A*Cy_A + ~vc.vF_BCo_A*Cyd_A;                // 11 flops
 }
 
 // apply f=lambda0*Px + lambda1*Py to the bottom point C of ball on B
 //      -f           to point C (coincident point) of body F
+// 39 flops if position info already available
 void addInVelocityConstraintForcesVirtual
    (const State&                                    s,      // Stage::Velocity
     const Array_<Real>&                             multipliers, // mv of these
@@ -458,31 +443,17 @@ void addInVelocityConstraintForcesVirtual
            && bodyForcesInA.size()==2);
     const Real lambda0 = multipliers[0], lambda1 = multipliers[1];
 
-    const Parameters& params = getParameters(s);
-    const Vec3&       p_FSf = params.m_p_FSf;
-    const Real        rf    = params.m_radius_F;
-    const Vec3&       p_BSb = params.m_p_BSb;
-    const Real        rb    = params.m_radius_B;
+    const PositionCache& pc = ensurePositionCacheRealized(s);
+    const UnitVec3& Cx_A  = pc.X_AC.x();
+    const UnitVec3& Cy_A  = pc.X_AC.y();
 
-    const Transform& X_AF = getBodyTransformFromState(s, m_mobod_F);
-    const Vec3&      p_AF = X_AF.p(); // p_AoFo_A
-    const Rotation   R_AP = X_AF.R() * X_FP.R(); //R_AP=[Px Py Pz]_A (45 flops)
-
-    const Transform& X_AB = getBodyTransformFromState(s, m_mobod_B);
-    const Vec3&      p_AB = X_AB.p(); // p_AoBo_A
-
-    const Vec3 p_BO_A = X_AB.R() * p_BO;   // re-express in A        (15 flops)
-    const Vec3 p_BC_A = p_BO_A - r*R_AP.z(); // bottom of ball       ( 6 flops)
-    const Vec3 p_AC   = p_AB + p_BC_A;     // measure from Ao        ( 3 flops)
-    const Vec3 p_FC_A = p_AC - p_AF;       // measure C from Fo, in A (3 flops)
-
-    const Vec3 force_A = lambda0*R_AP.x() + lambda1*R_AP.y(); // 9 flops
+    const Vec3 force_A = lambda0*Cx_A + lambda1*Cy_A; // 9 flops
 
     // 30 flops for the next two calls
-    addInStationInAForce(p_BC_A, force_A, bodyForcesInA[m_mobod_B]);
-    subInStationInAForce(p_FC_A, force_A, bodyForcesInA[m_mobod_F]);
+    addInStationInAForce(pc.p_BCo_A, force_A, bodyForcesInA[m_mobod_B]);
+    subInStationInAForce(pc.p_FCo_A, force_A, bodyForcesInA[m_mobod_F]);
 }
-#endif
+
 
 SimTK_DOWNCAST(SphereOnSphereContactImpl, ConstraintImpl);
 //------------------------------------------------------------------------------

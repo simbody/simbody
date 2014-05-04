@@ -240,11 +240,13 @@ findContactFrameInG(const State& s) const {
     const SphereOnSphereContactImpl::PositionCache& pc = 
         impl.ensurePositionCacheRealized(s);
 
-    const MobilizedBody& bodyF =
-        impl.getMobilizedBodyFromConstrainedBody(impl.m_mobod_F);
-    const Transform& X_GF = bodyF.getBodyTransform(s);
+    const MobilizedBody& mobod_A = impl.getAncestorMobilizedBody();
+    if (mobod_A.isGround())
+        return pc.X_AC; // == X_GC
 
-    return X_GF * pc.X_FC;
+    const Transform& X_GA = mobod_A.getBodyTransform(s);
+
+    return X_GA * pc.X_AC;  // 63 flops
 }
 
 // The separation is the difference between the spheres's center-to-center
@@ -343,7 +345,7 @@ updVelocityCache(const State& state) const {
        (getMyMatterSubsystemRep().updCacheEntry(state,m_velCacheIx));
 }
 
-// This costs about 164 flops.
+// This costs about 154 flops.
 const Constraint::SphereOnSphereContactImpl::PositionCache& 
 Constraint::SphereOnSphereContactImpl::
 ensurePositionCacheRealized(const State& s) const {
@@ -355,44 +357,54 @@ ensurePositionCacheRealized(const State& s) const {
     const Vec3&       p_BSb = params.m_p_BSb;
     const Real        rf    = params.m_radius_F;
     const Real        rb    = params.m_radius_B;
-    const Real        rtot  = rf+rb; // 1 flop
 
     PositionCache& pc = updPositionCache(s);
+    pc.kf = rf/(rf+rb); // we'll put Co at Sf + kf*p_SfSb, ~10 flops
 
     const Transform&  X_AF = getBodyTransformFromState(s, m_mobod_F);
     const Transform&  X_AB = getBodyTransformFromState(s, m_mobod_B);
+    const Vec3& p_AF = X_AF.p();
+    const Vec3& p_AB = X_AB.p();
 
-    pc.p_FSf_A = X_AF.R() * p_FSf;      // exp. in A, 15 flops
+    pc.p_FSf_A = X_AF.R() * p_FSf;            // exp. in A, 15 flops
     const Vec3 p_ASf = X_AF.p() + pc.p_FSf_A; // meas. from Ao, 3 flops
 
-    pc.p_BSb_A = X_AB.R() * p_BSb;      // exp. in A, 15 flops
+    pc.p_BSb_A = X_AB.R() * p_BSb;            // exp. in A, 15 flops
     const Vec3 p_ASb = X_AB.p() + pc.p_BSb_A; // meas. from Ao, 3 flops
 
     pc.p_SfSb_A = p_ASb - p_ASf;  // vec from Sf to Sb, exp. in A, 3 flops
     pc.r = pc.p_SfSb_A.norm();    // ~20 flops
     pc.oor = 1/pc.r;              // ~10 flops (might be Infinity)
+
+    // Assume non-singular.
+    UnitVec3 Cz_A(pc.p_SfSb_A * pc.oor, true); // 3 flops
+    pc.isSingular = false;
     if (pc.r < TinyReal) {
         pc.isSingular = true;
-        pc.Cz_A = X_AF.z();
-    } else {
-        pc.isSingular = false;
-        pc.Cz_A = UnitVec3(pc.p_SfSb_A * pc.oor, true); // 3 flops
+        Cz_A = X_AF.z(); // arbitrary
     }
-    pc.perr = pc.r - rtot;        // 1 flop
 
-    // Now compute the contact frame C, in F.
-    const UnitVec3 Cz_F = ~X_AF.R() * pc.Cz_A; // 15 flops
+    // Now compute the contact frame C, in A. It would be somewhat more elegant
+    // to compute it in F, so that the x-y axis directions would depend only
+    // on the relative pose between the two bodies. However, that is more
+    // expensive than working in A and since the x-y axes are arbitrary and
+    // ephemeral anyway doing it faster seems like the way to go (sherm 140502).
 
     // Place the contact point along the center-to-center line.
-    pc.X_FC.updP() = Vec3(p_FSf + (rf/rtot)*pc.r * Cz_F); // ~16 flops
-    pc.X_FC.updR().setRotationFromOneAxis(Cz_F, ZAxis);   // ~60 flops
+    const Vec3 p_ACo(p_ASf + pc.kf*pc.p_SfSb_A);        // 6 flops
+    pc.X_AC.updP() = p_ACo;
+    pc.X_AC.updR().setRotationFromOneAxis(Cz_A, ZAxis);     // ~60 flops
+
+    // We'll need contact point Co measured from F and from B.
+    pc.p_FCo_A = p_ACo - p_AF;                  // 3 flops
+    pc.p_BCo_A = p_ACo - p_AB;                  // 3 flops
 
     getMyMatterSubsystemRep().markCacheValueRealized(s, m_posCacheIx);
 
     return pc;
 }
 
-// This costs about 57 flops if position info has already been calculated,
+// This costs about 175 flops if position info has already been calculated,
 // otherwise we also pay for ensurePositionCacheRealized().
 const Constraint::SphereOnSphereContactImpl::VelocityCache& 
 Constraint::SphereOnSphereContactImpl::
@@ -403,6 +415,10 @@ ensureVelocityCacheRealized(const State& s) const {
     const PositionCache& pc = ensurePositionCacheRealized(s);
     VelocityCache& vc = updVelocityCache(s);
 
+    const UnitVec3& Cx_A = pc.X_AC.x();
+    const UnitVec3& Cy_A = pc.X_AC.y();
+    const UnitVec3& Cz_A = pc.X_AC.z();
+
     const SpatialVec& V_AF = getBodyVelocityFromState(s, m_mobod_F);
     const Vec3&       w_AF = V_AF[0];
     const Vec3&       v_AF = V_AF[1];
@@ -411,22 +427,53 @@ ensureVelocityCacheRealized(const State& s) const {
     const Vec3&       v_AB = V_AB[1];
 
     // These are d/dt_A p_FSf and d/dt_A p_BSb
-    const Vec3 wX_p_FSf_A = w_AF % pc.p_FSf_A;  // 9 flops
-    const Vec3 wX_p_BSb_A = w_AB % pc.p_BSb_A;  // 9 flops
-    const Vec3 v_ASf = v_AF + wX_p_FSf_A;       // 3 flops
-    const Vec3 v_ASb = v_AB + wX_p_BSb_A;       // 3 flops
+    const Vec3 wX_p_FSf_A = w_AF % pc.p_FSf_A;      // 9 flops
+    const Vec3 wX_p_BSb_A = w_AB % pc.p_BSb_A;      // 9 flops
+    const Vec3 v_ASf = v_AF + wX_p_FSf_A;           // 3 flops
+    const Vec3 v_ASb = v_AB + wX_p_BSb_A;           // 3 flops
+    vc.pd_SfSb_A = v_ASb - v_ASf;                   // 3 flops
 
     // These are the Coriolis accelerations of Sf and Sb, needed later.
-    vc.wXwX_p_FSf_A = w_AF % wX_p_FSf_A;        // 9 flops
-    vc.wXwX_p_BSb_A = w_AB % wX_p_BSb_A;        // 9 flops
+    vc.wXwX_p_FSf_A = w_AF % wX_p_FSf_A;            // 9 flops
+    vc.wXwX_p_BSb_A = w_AB % wX_p_BSb_A;            // 9 flops
 
-    vc.pd_SfSb_A = v_ASb - v_ASf;            // 3 flops
-    vc.verr = ~vc.pd_SfSb_A * pc.Cz_A;       // 5 flops
+    // Calculate the velocity of B's material point (station) at Co, 
+    // measured in the F frame and expressed in A.
+    const Vec3 pd_FB_A  = v_AB - v_AF;              //  3 flops
+    const Vec3 vA_BCo_A = v_AB + w_AB % pc.p_BCo_A; // 12 flops
+    const Vec3 vA_FCo_A = v_AF + w_AF % pc.p_FCo_A; // 12 flops
+    vc.vF_BCo_A = vA_BCo_A - vA_FCo_A;              //  3 flops
 
-    // Calculate d/dt_A Cz
+    // These are the velocities in the A frame of the *contact point* locations
+    // measured from F's and B's origins; these are not stations since the
+    // contact point moves relative to the F and B frame.
+    const Vec3 pd_FCo_A = w_AF % pc.p_FSf_A + pc.kf*vc.pd_SfSb_A; // 15 flops
+    const Vec3 pd_BCo_A = pd_FCo_A - pd_FB_A;       //  3 flops
+    vc.wXpd_FCo_A = w_AF % pd_FCo_A;                //  9 flops
+    vc.wXpd_BCo_A = w_AB % pd_BCo_A;                //  9 flops
+
+    // Calculate d/dt_A Cz.
     vc.Czd_A = pc.isSingular 
-        ? w_AF % pc.Cz_A // rare
-        : pc.oor*(vc.pd_SfSb_A - vc.verr*pc.Cz_A);   // 7 flops
+        ? w_AF % Cz_A // rare
+        : pc.oor*(vc.pd_SfSb_A - (~vc.pd_SfSb_A*Cz_A)*Cz_A); // 12 flops
+
+    // We also need d/dt_A of Cx and Cy, which we'll call Cxd and Cyd. Here's 
+    // how to get those. Since the x-y directions are arbitrary in the plane, we
+    // can assume that they are not rotating about z, that is, w_FC is in the 
+    // x-y plane. Our strategy will be to work in the F frame here, because we
+    // know that CzdF = d/dt_F Cz = w_FC % Cz, a vector perpendicular to both 
+    // w_FC and Cz. But that means CzdF is in the x-y plane and since there
+    // was no z component of w_FC it is just w_FC rotated 90 degrees. Since x
+    // and y are also 90 degrees apart, we can get the derivatives we need:
+    //    CxdF = -CzdF x Cy
+    //    CydF =  CzdF x Cx
+    // We can then convert those to A-frame derivatives. To get CzdF:
+    //    CzdF = Czd - w_AF % Cz
+    const Vec3 CzdF_A = vc.Czd_A - w_AF % Cz_A; // 12 flops
+    const Vec3 CxdF_A = -CzdF_A % Cy_A;         // 12 flops
+    const Vec3 CydF_A =  CzdF_A % Cx_A;         //  9 flops
+    vc.Cxd_A = CxdF_A + w_AF % Cx_A;            // 12 flops
+    vc.Cyd_A = CydF_A + w_AF % Cy_A;            // 12 flops
 
     getMyMatterSubsystemRep().markCacheValueRealized(s, m_velCacheIx);
     
