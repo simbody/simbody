@@ -106,15 +106,26 @@ private:
 //------------------------------------------------------------------------------
 class Force::TwoPointLinearSpringImpl : public ForceImpl {
 public:
-    TwoPointLinearSpringImpl(const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real k, Real x0);
-    TwoPointLinearSpringImpl* clone() const {
+    TwoPointLinearSpringImpl(const MobilizedBody& body1, const Vec3& station1, 
+                             const MobilizedBody& body2, const Vec3& station2, 
+                             Real k, Real x0);
+
+    TwoPointLinearSpringImpl* clone() const OVERRIDE_11 {
         return new TwoPointLinearSpringImpl(*this);
     }
-    bool dependsOnlyOnPositions() const {
+    bool dependsOnlyOnPositions() const OVERRIDE_11 {
         return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
-    Real calcPotentialEnergy(const State& state) const;
+    void calcForce(const State&         state, 
+                   Vector_<SpatialVec>& bodyForces, 
+                   Vector_<Vec3>&       particleForces, 
+                   Vector&              mobilityForces) const OVERRIDE_11;
+    Real calcPotentialEnergy(const State& state) const OVERRIDE_11;
+
+    void calcDecorativeGeometryAndAppend(const State& s, Stage stage, 
+                                         Array_<DecorativeGeometry>& geom) 
+                                         const OVERRIDE_11;
+
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body1, body2;

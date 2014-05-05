@@ -138,6 +138,26 @@ Real Force::TwoPointLinearSpringImpl::calcPotentialEnergy(const State& state) co
 }
 
 
+void Force::TwoPointLinearSpringImpl::
+calcDecorativeGeometryAndAppend(const State& state, Stage stage, 
+                                Array_<DecorativeGeometry>& geom) const {
+    if (stage==Stage::Position && matter.getShowDefaultGeometry()) {
+        const Transform& X_GB1 = matter.getMobilizedBody(body1)
+                                       .getBodyTransform(state);
+        const Transform& X_GB2 = matter.getMobilizedBody(body2)
+                                       .getBodyTransform(state);
+
+        const Vec3 s1_G = X_GB1.R() * station1;
+        const Vec3 s2_G = X_GB2.R() * station2;
+
+        const Vec3 p1_G = X_GB1.p() + s1_G; // measured from ground origin
+        const Vec3 p2_G = X_GB2.p() + s2_G;
+
+        geom.push_back(DecorativeLine(p1_G,p2_G).setColor(Orange));
+    }
+}
+
+
 //-------------------------- TwoPointLinearDamper ------------------------------
 //------------------------------------------------------------------------------
 
