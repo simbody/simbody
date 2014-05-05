@@ -153,6 +153,8 @@ public:
     virtual const MobilizedBody& getBodyToWatch() const
     {   return m_matter->getGround(); }
 
+    virtual void addRubberBandLines(Visualizer& viz) const {}
+
     virtual Real getWatchDistance() const {return 1.5;}
     virtual void calcInitialState(State& state) const = 0;
 
@@ -311,8 +313,9 @@ public:
     void calcInitialState(State& state) const OVERRIDE_11;
 
     const MobilizedBody& getBodyToWatch() const OVERRIDE_11
-    {   static const MobilizedBody nobod; return nobod; }
-    Real getWatchDistance() const OVERRIDE_11 {return 20.;}
+    {   return m_pencil; }
+    Real getWatchDistance() const OVERRIDE_11 {return 30.;}
+    void addRubberBandLines(Visualizer& viz) const OVERRIDE_11;
 
     const MobilizedBody::Planar& getPencil() const {return m_pencil;}
     const MobilizedBody::Free& getBall() const {return m_ball;}
@@ -327,6 +330,8 @@ private:
     MobilizedBody::Planar   m_pencil;
     MobilizedBody::Pin      m_flapper;
     MobilizedBody::Free     m_ball;
+
+    Vec3                    m_pencilSphereCenter;
 };
 
 
@@ -389,6 +394,7 @@ int main(int argc, char** argv) {
     viz.setShowFrameNumber(true);
     viz.setShowFrameRate(true);
     viz.addDecorationGenerator(new ShowContact(sxe));
+    mbs.addRubberBandLines(viz);
 
     if (!mbs.getBodyToWatch().isEmptyHandle())
         viz.addFrameController(new BodyWatcher(mbs.getBodyToWatch(),
@@ -445,7 +451,7 @@ int main(int argc, char** argv) {
     const double startCPU = cpuTime();
 
     const Real h = .001;
-    const int SaveEvery = 10; // save every nth step ~= 33ms
+    const int SaveEvery = 33; // save every nth step ~= 33ms
 
     Vector_<SpatialVec> reactions;
     do {
@@ -888,7 +894,7 @@ Pencil::Pencil() {
     const Real TransitionVelocity = .01;
     //const Real mu_d=10, mu_s=10, mu_v=0; // TODO: PAINLEVE!
     //const Real mu_d=1, mu_s=1, mu_v=0;
-    const Real mu_d=.5, mu_s=.9, mu_v=0;
+    const Real mu_d=.5, mu_s=.6, mu_v=0;
     //const Real mu_d=0, mu_s=0, mu_v=0;
 
     setDefaultLengthScale(PencilHLength);
@@ -956,15 +962,15 @@ Pencil::Pencil() {
     //                                m_pencil, Vec3(0,-PencilHLength,0), 
     //                                CoefRest, mu_s, mu_d, mu_v);
     Real radius1 = 1;
-    Vec3 pos1(0,-PencilHLength,0);
+    m_pencilSphereCenter = Vec3(0,-PencilHLength,0);
     SpherePlaneContact* pc1 =
         new SpherePlaneContact(Ground, YAxis, 0.,
-                                    m_pencil, pos1, radius1,
+                                    m_pencil, m_pencilSphereCenter, radius1,
                                     CoefRest/3, mu_s, mu_d, mu_v);
-    m_pencil.addBodyDecoration(pos1, 
+    m_pencil.addBodyDecoration(m_pencilSphereCenter, 
         DecorativeSphere(radius1).setColor(Cyan).setOpacity(.5)
         .setResolution(3));
-    m_pencil.addBodyDecoration(pos1, 
+    m_pencil.addBodyDecoration(m_pencilSphereCenter, 
         DecorativeSphere(radius1).setColor(Black).
         setRepresentation(DecorativeGeometry::DrawWireframe));
     PointPlaneContact* pc2 =
@@ -974,7 +980,7 @@ Pencil::Pencil() {
     matter.adoptUnilateralContact(pc1);
     matter.adoptUnilateralContact(pc2);
 
-    const Real BallRad = 2, BallMass = 10;
+    const Real BallRad = 2, BallMass = 20;
     m_ball = MobilizedBody::Free(Ground, Vec3(0),
         MassProperties(BallMass, Vec3(0), UnitInertia::sphere(BallRad)),
         Vec3(0));
@@ -992,7 +998,7 @@ Pencil::Pencil() {
     matter.adoptUnilateralContact(pc3);
 
     SphereSphereContact* ss1 =
-        new SphereSphereContact(m_pencil, pos1, radius1,
+        new SphereSphereContact(m_pencil, m_pencilSphereCenter, radius1,
                                 m_ball, Vec3(0), BallRad,
                                 CoefRest/2, mu_s, mu_d, mu_v);
     matter.adoptUnilateralContact(ss1);
@@ -1004,9 +1010,16 @@ Pencil::Pencil() {
                                 CoefRest/2, mu_s, mu_d, mu_v);
     matter.adoptUnilateralContact(ss2);
 
-    Force::TwoPointLinearSpring(forces, m_pencil, pos1,
-                                m_ball, Vec3(0), 2, 0);
+    Force::TwoPointLinearSpring(forces, m_pencil, m_pencilSphereCenter,
+                                m_ball, Vec3(0), 3, 0);
 }
+
+void Pencil::addRubberBandLines(Visualizer& viz) const {
+    viz.addRubberBandLine(m_pencil, m_pencilSphereCenter,
+                          m_ball,   Vec3(0),
+                          DecorativeLine().setColor(Orange).setLineThickness(3));
+}
+
 
 void Pencil::calcInitialState(State& s) const {
     s = realizeTopology(); // returns a reference to the the default state   
@@ -1020,8 +1033,8 @@ void Pencil::calcInitialState(State& s) const {
     getPencil().setOneU(s, MobilizerUIndex(1), 2);
     getPencil().setOneU(s, MobilizerUIndex(2), -2);
 
-    getBall().setQToFitTranslation(s, Vec3(-3,3,.1));
-    getBall().setUToFitAngularVelocity(s, Vec3(0,0,-20));
+    getBall().setQToFitTranslation(s, Vec3(-3,3,1));
+    getBall().setUToFitAngularVelocity(s, Vec3(4,0,-20));
     Assembler(*this).setErrorTolerance(1e-6).assemble(s);
 
 }
