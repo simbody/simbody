@@ -62,7 +62,7 @@ public:
                           Array_< DecorativeGeometry >& geometry) OVERRIDE_11
     {
         const Vec3 Bo = m_body.getBodyOriginLocation(state);
-        const Vec3 p_GC = Bo + Vec3(0, 2, m_distance); // above and back
+        const Vec3 p_GC = Bo + Vec3(0, 8, m_distance); // above and back
         const Rotation R_GC(UnitVec3(0,1,0), YAxis,
                             p_GC-Bo, ZAxis);
         viz.setCameraTransform(Transform(R_GC,p_GC));
@@ -154,6 +154,7 @@ public:
     {   return m_matter->getGround(); }
 
     virtual void addRubberBandLines(Visualizer& viz) const {}
+    virtual Real getRuntime() const {return 20.;}
 
     virtual Real getWatchDistance() const {return 1.5;}
     virtual void calcInitialState(State& state) const = 0;
@@ -313,9 +314,10 @@ public:
     void calcInitialState(State& state) const OVERRIDE_11;
 
     const MobilizedBody& getBodyToWatch() const OVERRIDE_11
-    {   return m_pencil; }
+    {   static const MobilizedBody none; return m_ball; }
     Real getWatchDistance() const OVERRIDE_11 {return 30.;}
     void addRubberBandLines(Visualizer& viz) const OVERRIDE_11;
+    Real getRuntime() const OVERRIDE_11 {return 75.;}
 
     const MobilizedBody::Planar& getPencil() const {return m_pencil;}
     const MobilizedBody::Free& getBall() const {return m_ball;}
@@ -475,7 +477,7 @@ int main(int argc, char** argv) {
         //cout << reactions << endl;
 
         ++nSteps;
-    } while (sxe.getTime() < RunTime);
+    } while (sxe.getTime() < mbs.getRuntime());
     // TODO: did you lose the last step?
 
 
@@ -889,12 +891,13 @@ Pencil::Pencil() {
     const Real PencilMass = 1;
     const Real PencilRadius = .25;
     const Real PencilHLength = 5;
-    const Real CoefRest = 1;
+    const Real CoefRest = .5;
+    const Real StopCoefRest = .7;
     const Real CaptureVelocity = .001;
     const Real TransitionVelocity = .01;
     //const Real mu_d=10, mu_s=10, mu_v=0; // TODO: PAINLEVE!
     //const Real mu_d=1, mu_s=1, mu_v=0;
-    const Real mu_d=.5, mu_s=.6, mu_v=0;
+    const Real mu_d=.3, mu_s=.4, mu_v=0;
     //const Real mu_d=0, mu_s=0, mu_v=0;
 
     setDefaultLengthScale(PencilHLength);
@@ -944,10 +947,10 @@ Pencil::Pencil() {
         MassProperties(10,Vec3(0),UnitInertia(0)), Vec3(-2,0,0));
     m_flapper.addBodyDecoration(Vec3(0), DecorativeLine(Vec3(-2,0,0),Vec3(0)));
     HardStopLower* lower =
-        new HardStopLower(m_flapper, MobilizerQIndex(0), -Pi/6, 1); 
+        new HardStopLower(m_flapper, MobilizerQIndex(0), -Pi/6, StopCoefRest); 
     matter.adoptUnilateralContact(lower);
     HardStopUpper* upper =
-        new HardStopUpper(m_flapper, MobilizerQIndex(0), Pi/6, 1); 
+        new HardStopUpper(m_flapper, MobilizerQIndex(0), Pi/6, StopCoefRest); 
     matter.adoptUnilateralContact(upper);
     SpherePlaneContact* flapperContact =
         new SpherePlaneContact(Ground, YAxis, 0.,
@@ -1011,7 +1014,7 @@ Pencil::Pencil() {
     matter.adoptUnilateralContact(ss2);
 
     Force::TwoPointLinearSpring(forces, m_pencil, m_pencilSphereCenter,
-                                m_ball, Vec3(0), 3, 0);
+                                m_ball, Vec3(0), 7.5, 0);
 }
 
 void Pencil::addRubberBandLines(Visualizer& viz) const {
