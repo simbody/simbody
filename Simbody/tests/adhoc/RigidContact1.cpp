@@ -310,10 +310,12 @@ public:
 
     void calcInitialState(State& state) const OVERRIDE_11;
 
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11 {return m_pencil;}
+    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    {   static const MobilizedBody nobod; return nobod; }
     Real getWatchDistance() const OVERRIDE_11 {return 20.;}
 
     const MobilizedBody::Planar& getPencil() const {return m_pencil;}
+    const MobilizedBody::Free& getBall() const {return m_ball;}
 
 private:
     // Add subsystems for compliant contact. TODO: shouldn't need pointers
@@ -324,6 +326,7 @@ private:
     Force::GlobalDamper     m_damper;
     MobilizedBody::Planar   m_pencil;
     MobilizedBody::Pin      m_flapper;
+    MobilizedBody::Free     m_ball;
 };
 
 
@@ -369,9 +372,9 @@ int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
     // Create the augmented multibody model.
-    TimsBox mbs;
+    //TimsBox mbs;
     //BouncingBalls mbs;
-    //Pencil mbs;
+    Pencil mbs;
     //Block mbs;
 
     SemiExplicitEulerTimeStepper sxe(mbs);
@@ -885,7 +888,7 @@ Pencil::Pencil() {
     const Real TransitionVelocity = .01;
     //const Real mu_d=10, mu_s=10, mu_v=0; // TODO: PAINLEVE!
     //const Real mu_d=1, mu_s=1, mu_v=0;
-    const Real mu_d=.1, mu_s=.5, mu_v=0;
+    const Real mu_d=.5, mu_s=.9, mu_v=0;
     //const Real mu_d=0, mu_s=0, mu_v=0;
 
     setDefaultLengthScale(PencilHLength);
@@ -959,13 +962,50 @@ Pencil::Pencil() {
                                     m_pencil, pos1, radius1,
                                     CoefRest/3, mu_s, mu_d, mu_v);
     m_pencil.addBodyDecoration(pos1, 
-        DecorativeSphere(radius1).setColor(Cyan).setOpacity(.5));
+        DecorativeSphere(radius1).setColor(Cyan).setOpacity(.5)
+        .setResolution(3));
+    m_pencil.addBodyDecoration(pos1, 
+        DecorativeSphere(radius1).setColor(Black).
+        setRepresentation(DecorativeGeometry::DrawWireframe));
     PointPlaneContact* pc2 =
         new PointPlaneContact(Ground, YAxis, 0.,
                                     m_pencil, Vec3(0,PencilHLength,0), 
                                     CoefRest, mu_s, mu_d, mu_v);
     matter.adoptUnilateralContact(pc1);
     matter.adoptUnilateralContact(pc2);
+
+    const Real BallRad = 2, BallMass = 10;
+    m_ball = MobilizedBody::Free(Ground, Vec3(0),
+        MassProperties(BallMass, Vec3(0), UnitInertia::sphere(BallRad)),
+        Vec3(0));
+    m_ball.addBodyDecoration(Vec3(0), 
+                             DecorativeSphere(BallRad).setColor(Red)
+                             .setResolution(3).setOpacity(.5));
+    m_ball.addBodyDecoration(Vec3(0), 
+                             DecorativeSphere(BallRad).setColor(Black)
+                             .setRepresentation(DecorativeGeometry::DrawWireframe)
+                             );
+    SpherePlaneContact* pc3 =
+        new SpherePlaneContact(Ground, YAxis, 0.,
+                               m_ball, Vec3(0), BallRad,
+                               CoefRest/3, mu_s, mu_d, mu_v);
+    matter.adoptUnilateralContact(pc3);
+
+    SphereSphereContact* ss1 =
+        new SphereSphereContact(m_pencil, pos1, radius1,
+                                m_ball, Vec3(0), BallRad,
+                                CoefRest/2, mu_s, mu_d, mu_v);
+    matter.adoptUnilateralContact(ss1);
+
+
+    SphereSphereContact* ss2 =
+        new SphereSphereContact(m_flapper, Vec3(0), flapperRadius,
+                                m_ball, Vec3(0), BallRad,
+                                CoefRest/2, mu_s, mu_d, mu_v);
+    matter.adoptUnilateralContact(ss2);
+
+    Force::TwoPointLinearSpring(forces, m_pencil, pos1,
+                                m_ball, Vec3(0), 2, 0);
 }
 
 void Pencil::calcInitialState(State& s) const {
@@ -979,6 +1019,9 @@ void Pencil::calcInitialState(State& s) const {
     //getPencil().setOneQ(s, MobilizerQIndex(2), -1);
     getPencil().setOneU(s, MobilizerUIndex(1), 2);
     getPencil().setOneU(s, MobilizerUIndex(2), -2);
+
+    getBall().setQToFitTranslation(s, Vec3(-3,3,.1));
+    getBall().setUToFitAngularVelocity(s, Vec3(0,0,-20));
     Assembler(*this).setErrorTolerance(1e-6).assemble(s);
 
 }

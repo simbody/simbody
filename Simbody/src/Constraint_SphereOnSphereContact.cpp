@@ -53,12 +53,17 @@ Constraint::SphereOnSphereContact::SphereOnSphereContact
     bool                enforceRolling)
 :   Constraint(new SphereOnSphereContactImpl(enforceRolling))
 {
-    SimTK_ASSERT_ALWAYS(mobod_F.isInSubsystem() && mobod_B.isInSubsystem(),
-        "Constraint::SphereOnSphereContact(): both bodies must already be in a "
+    SimTK_APIARGCHECK_ALWAYS(mobod_F.isInSubsystem() && mobod_B.isInSubsystem(),
+        "Constraint::SphereOnSphereContact","SphereOnSphereContact",
+        "Both mobilized bodies must already be in a SimbodyMatterSubsystem.");
+    SimTK_APIARGCHECK_ALWAYS(mobod_F.isInSameSubsystem(mobod_B),
+        "Constraint::SphereOnSphereContact","SphereOnSphereContact",
+        "The two mobilized bodies to be connected must be in the same "
         "SimbodyMatterSubsystem.");
-    SimTK_ASSERT_ALWAYS(mobod_F.isInSameSubsystem(mobod_B),
-        "Constraint::SphereOnSphereContact(): both bodies to be connected must be "
-        "in the same SimbodyMatterSubsystem.");
+    SimTK_APIARGCHECK2_ALWAYS(defaultRadius_F > 0 && defaultRadius_B > 0,
+        "Constraint::SphereOnSphereContact","SphereOnSphereContact",
+        "The sphere radii must be greater than zero; they were %g and %g.",
+        defaultRadius_F, defaultRadius_B);
 
     mobod_F.updMatterSubsystem().adoptConstraint(*this);
 

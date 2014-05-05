@@ -52,12 +52,18 @@ Constraint::SphereOnPlaneContact::SphereOnPlaneContact
     bool                enforceRolling)
 :   Constraint(new SphereOnPlaneContactImpl(enforceRolling))
 {
-    SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem() && sphereBody.isInSubsystem(),
-        "Constraint::SphereOnPlaneContact(): both bodies must already be in a "
+    SimTK_APIARGCHECK_ALWAYS(   planeBody.isInSubsystem() 
+                             && sphereBody.isInSubsystem(),
+        "Constraint::SphereOnPlaneContact","SphereOnPlaneContact",
+        "Both bodies must already be in a SimbodyMatterSubsystem.");
+    SimTK_APIARGCHECK_ALWAYS(planeBody.isInSameSubsystem(sphereBody),
+        "Constraint::SphereOnPlaneContact","SphereOnPlaneContact",
+        "The two bodies to be connected must be in the same "
         "SimbodyMatterSubsystem.");
-    SimTK_ASSERT_ALWAYS(planeBody.isInSameSubsystem(sphereBody),
-        "Constraint::SphereOnPlaneContact(): both bodies to be connected must be "
-        "in the same SimbodyMatterSubsystem.");
+    SimTK_APIARGCHECK1_ALWAYS(defaultSphereRadius > 0,
+        "Constraint::SphereOnPlaneContact","SphereOnPlaneContact",
+        "The sphere radius must be greater than zero but was %g.",
+        defaultSphereRadius);
 
     planeBody.updMatterSubsystem().adoptConstraint(*this);
 
