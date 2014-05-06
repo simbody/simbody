@@ -79,12 +79,15 @@ is the same for each sphere.
 
 For any given pose, we will define a contact frame C with origin Co whose z
 axis Cz is aligned with the center-to-center line, pointing from Co towards Sb.
-The x and y axes Cx and Cy define the contact plane. They are chosen arbitrarily
-but consistently for any relative pose of B in F, and held constant during 
-subsequent velocity and acceleration calculations using the same pose. Cx and Cy
-are used to parameterize the slip velocity and the tangential forces; the two 
-tangential multipliers are measure numbers in the Cx and Cy directions. The
-instantaneous contact frame in Ground is available as the transform X_GC.
+If Sf and Sb are coincident (as can happen prior to assembly), Cz will be 
+chosen arbitrarily. The x and y axes Cx and Cy define the contact plane. They 
+are always somewhat arbitrary except for being perpendicular to Cz; don't expect
+them to change smoothly. However, once chosen for a new pose, Cx and Cy are 
+held constant during subsequent velocity and acceleration calculations using the
+same pose. Cx and Cy are used to parameterize the slip velocity and the 
+tangential forces; the two tangential multipliers are measure numbers in the Cx
+and Cy directions. The instantaneous contact frame in Ground is available as the
+transform X_GC.
 
 The contact constraints here are enforced by a normal multiplier acting along
 Cz, and optionally two tangential multipliers acting along Cx and Cy
@@ -125,24 +128,24 @@ Constraint::SphereOnSphereContact class documentation.
     The first MobilizedBody object to which a contacting sphere is attached.
     We'll call it F, the "fixed" body just to orient the contact; actually
     either or both bodies can be moving.
-@param      defaultCenter_F
+@param      defaultCenterOnF
     This is the location of the sphere center on \a mobod_F, given as a vector 
     from the F frame origin Fo to the sphere center Sf, expressed in F. This is
     the center location that will be present in a default State; you can modify
     it later.
-@param      defaultRadius_F
+@param      defaultRadiusOnF
     The radius rf of the sphere attached to \a mobod_F. This is the value that
     will be present in a default State; you can modify it later.
 @param      mobod_B
     The second MobilizedBody object to which a second contacting sphere is 
     attached. We'll call this mobilized body B. It can be Ground or a moving
     body.
-@param      defaultCenter_B
+@param      defaultCenterOnB
     This is the location of the sphere center on \a mobod_B, given as a vector 
     from the B frame origin Bo to the sphere center Sb, expressed in B. This is
     the center location that will be present in a default State; you can modify
     it later.
-@param      defaultRadius_B
+@param      defaultRadiusOnB
     The radius rb of the sphere attached to \a mobod_B. This is the value that
     will be present in a default State; you can modify it later.
 @param      enforceRolling
@@ -332,7 +335,7 @@ with respect to that sphere. The given \a state must have already been realized
 through Stage::Acceleration. **/
 Vec3 getAccelerationErrors(const State& state) const;
 
-/** This are the Lagrange multipliers required to enforce the constraint
+/** These are the Lagrange multipliers required to enforce the constraint
 equations generated here. For this %Constraint it has units of force, but 
 recall that the sign convention for multipliers is the opposite of that for 
 applied forces. Thus the returned value is the negative of the force being
@@ -360,9 +363,11 @@ contact point is the origin Co of the returned frame, which is placed at a
 point along the center-to-center line segment as described in the class
 documentation for this SphereOnSphereContact class. Note that this does not 
 imply that the normal constraint is satisifed; point Co could be far from the 
-sphere surfaces or embedded beneath them. The x-y directions Cx and Cy are
-somewhat arbitrary, but they are stable for a given relative pose between 
-bodies F and B. This calculates a valid value even 
+sphere surfaces or embedded beneath them. The z direction of this frame is the
+contact normal; it lies along the center-to-center direction unless the centers
+are coincident, in which case it is arbitrary. The x-y directions Cx and Cy are
+always somewhat arbitrary except for being perpendicular to z; don't expect
+them to change smoothly. This method calculates a valid value even 
 if this constraint is currently disabled. The given \a state must already be 
 realized to Stage::Position. **/
 Transform findContactFrameInG(const State& state) const;

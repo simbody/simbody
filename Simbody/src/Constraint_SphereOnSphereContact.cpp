@@ -299,11 +299,6 @@ realizeTopologyVirtual(State& state) const {
             new Value<VelocityCache>());
 }
 
-// Return the pair of constrained station points, with the first expressed 
-// in the body 1 frame and the second in the body 2 frame. Note that although
-// these are used to define the position error, only the station on body 2
-// is used to generate constraint forces; the point of body 1 that is 
-// coincident with the body 2 point receives the equal and opposite force.
 const Constraint::SphereOnSphereContactImpl::Parameters& 
 Constraint::SphereOnSphereContactImpl::
 getParameters(const State& state) const {
@@ -311,10 +306,6 @@ getParameters(const State& state) const {
        (getMyMatterSubsystemRep().getDiscreteVariable(state,m_parametersIx));
 }
 
-// Return a writable reference into the Instance-stage state variable 
-// containing the pair of constrained station points, with the first expressed 
-// in the body 1 frame and the second in the body 2 frame. Calling this
-// method invalidates the Instance stage and above in the given state.
 Constraint::SphereOnSphereContactImpl::Parameters& 
 Constraint::SphereOnSphereContactImpl::
 updParameters(State& state) const {

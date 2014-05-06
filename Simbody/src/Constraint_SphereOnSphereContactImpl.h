@@ -277,8 +277,16 @@ void calcPositionDotDotErrorsVirtual
     paerr[0] = ~pdd_SfSb_A * Cz_A + ~vc.pd_SfSb_A * vc.Czd_A; // 11 flops
 }
 
-// apply f=lambda*Pz to the contact point C of ball on body B,
-//       -f         to point C (coincident point) of body F
+// Because the normal force is applied along the line between the centers, it
+// does not matter where along that line we apply the force -- the force and
+// resulting moment are the same anywhere along the line. Thus we are not 
+// required to use the same point in space here -- for convenience we'll just
+// apply forces to the sphere centers whose locations we have available.
+// We won't have this luxury for tangential forces -- for those the application
+// point does matter.
+//
+// apply f=lambda*Cz to the sphere center on body B,
+//       -f          to the sphere center on body F
 // 33 flops if position info already available.
 void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position

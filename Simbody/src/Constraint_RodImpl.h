@@ -44,96 +44,248 @@ class MobilizedBody;
 //==============================================================================
 //                                  ROD IMPL
 //==============================================================================
-// TODO: should use distance rather than distance^2 to improve scaling.
+/* This constraint can be implemented using perr = (~p*p - d^2)/2 which results 
+in very tidy and cheap equations, but suffers from poor scaling, especially when
+combined with other constraints where perr is an actual distance. That's how 
+Constraint::Rod was originally implemented but I reworked it to use 
+perr=sqrt(~p*p)-d instead. This constraint is nearly identical to the normal 
+part of the sphere-on-sphere contact constraint, which says that the distance 
+between the two sphere centers must be d=r1+r2. The terminology (and code) used
+here is borrowed from sphere-on-sphere; one body is called "F" and the other is
+"B" and the connected stations are Sf and Sb. However, I left the user-side
+terminology as it was for compatibility. (sherm 140505) 
+
+For comparison, here are the lovely squared equations:
+    perr = (p . p - d^2)/2          [NOT using these equatiosn]
+    verr =  v . p
+    aerr =  a . p + v . v
+where
+    p = p_ASb-p_ASf, v = d/dt_A p = v_ASb-v_ASf, a = d/dt_A v = a_ASb-a_ASf
+
+Instead, we're going to do it this way:
+
+Let 
+    P = Sf, Q = Sb
+    p_PQ   = p_AQ - p_AP
+    pd_PQ  = d/dt_A p_PQ  = v_AQ - v_AP
+    pdd_PQ = d/dt_A pd_PQ = a_AQ - a_AP
+    r(q)   = ||p_PQ||                       [center-center distance]
+
+There is a pathological case in which the two connected points are coincident, 
+so r(q)=0. In that case we can't use the point-to-point line as the
+force direction Cz since it is zero length. This condition will be corrected 
+eventually by assembly analysis; we just need some consistent return values 
+until then. In this case we arbitrarily declare that Cz=Fz:
+
+(1)   Cz = {p_PQ/r,    r != 0                 [force direction]
+           {  Fz,      r == 0
+
+Then our normal contact conditions can always be written like this:
+
+(2)   perr = r(q)-d
+(3)   verr = pd_PQ  . Cz
+(4)   aerr = pdd_PQ . Cz + pd_PQ . d/dt_A Cz
+
+In case r==0, Cz is fixed in F (it is Fz). So Czd = d/dt_A Cz = w_AF x Cz and
+      aerr = pdd_PQ . Cz +  pd_PQ . (w_AF x Cz)
+           = pdd_PQ . Cz + (pd_PQ x w_AF) . Cz       [triple product identity]
+(5)        = (pdd_PQ - w_AF x pd_PQ) . Cz            [if r==0]
+
+Otherwise we need to calculate 
+       Czd = d/dt_A Cz = d/dt_A p_PQ/r
+           = pd_PQ * oor + p_PQ * oord
+           = pd_PQ/r - p_PQ * (pd_PQ . p_PQ)/r^3
+           = pd_PQ/r - p_PQ/r * (pd_PQ . p_PQ/r)/r
+           = [pd_PQ - (pd_PQ . Cz)*Cz]/r
+(6)        = (pd_PQ - verr * Cz) / r
+
+where
+    oor(q) = 1/r(q) = (p_PQ.p_PQ)^-1/2
+    oord(q) = d/dt oor(q) = -pd_PQ . p_PQ/r^3
+
+Substituting (6) into (4) gives
+    aerr = pdd_PQ . Cz + pd_PQ . [pd_PQ - (pd_PQ . Cz)*Cz]/r 
+         = pdd_PQ . Cz + [pd_PQ^2 - (pd_PQ . Cz)^2] / r
+(7)      = pdd_PQ . Cz + [pd_PQ^2 - verr^2] / r
+
+The scalars returned by perr,verr, and aerr are measure numbers along Cz (a 
+unit vector normally aligned with p_SfSb). The multiplier will consequently act
+along Cz.
+*/
 class Constraint::RodImpl : public ConstraintImpl {
 public:
-RodImpl() 
-    : ConstraintImpl(1,0,0), defaultPoint1(0), defaultPoint2(0), defaultRodLength(1),
-    pointRadius(-1) // this means "use default point radius"
-{ 
-    // Rod constructor sets all the data members here directly
-}
-RodImpl* clone() const { return new RodImpl(*this); }
+
+// An object of this local type is used as the value of a Position-stage
+// discrete state variable that allows constraint parameters to be changed for
+// a particular State.
+struct Parameters {
+    Parameters(const Vec3& p_FSf, const Vec3& p_BSb, Real d)
+    :   m_p_FSf(p_FSf), m_p_BSb(p_BSb), m_length(d) {}
+    Vec3 m_p_FSf;    // sphere center on F
+    Vec3 m_p_BSb;    // sphere center on B
+    Real m_length;   // the required distance between Sf and Sb
+};
+
+struct PositionCache {
+    Vec3 p_FSf_A, p_BSb_A;  // stations expressed in A
+    Vec3 p_SfSb_A;          // vector from Sf to Sb, exp. in A
+    Real r, oor;            // r=||p_SfSb_A||; oor=1/r (might be Infinity)
+    UnitVec3 Cz_A;          // force application direction, usually p_SfSb/r
+    bool isSingular;        // if r is too small to be useful
+};
+
+struct VelocityCache {
+    Vec3 wXwX_p_FSf_A;      // w_AF x (w_AF x p_FSf_A)  [coriolis accel.]
+    Vec3 wXwX_p_BSb_A;      // w_AB x (w_AB x p_BSb_A)  [coriolis accel.]
+    Vec3 pd_SfSb_A;         // v_ASb - vASf
+    Vec3 Czd_A;             // d/dt_A Cz_A -- depends on isSingular
+};
+
+RodImpl() : ConstraintImpl(1, 0, 0), 
+            m_def_p_FSf(0), m_def_p_BSb(0), m_def_length(NaN) {}
+
+RodImpl* clone() const OVERRIDE_11
+{   return new RodImpl(*this); }
 
 // Draw some end points and a rubber band line.
 void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+    OVERRIDE_11;
 
-void setPointDisplayRadius(Real r) {
-    // r == 0 means don't display point, r < 0 means use default which is some fraction of rod length
-    invalidateTopologyCache();
-    pointRadius= r > 0 ? r : 0;
-}
-Real getPointDisplayRadius() const {return pointRadius;}
+// Allocates the discrete state variable for the parameters, and the cache
+// entries.
+void realizeTopologyVirtual(State& state) const OVERRIDE_11;
+
+// Get the current value of the runtime-settable parameters from this state.
+const Parameters& getParameters(const State& state) const;
+
+// Get a writable reference to the value of the discrete variable; this 
+// invalidated Position stage in the given state.
+Parameters& updParameters(State& state) const;
+
+const PositionCache& getPositionCache(const State& state) const;
+PositionCache& updPositionCache(const State& state) const;
+const PositionCache&  ensurePositionCacheRealized(const State& state) const;
+
+const VelocityCache& getVelocityCache(const State& state) const;
+VelocityCache& updVelocityCache(const State& state) const;
+const VelocityCache& ensureVelocityCacheRealized(const State& state) const;
+
 
 // Implementation of virtuals required for holonomic constraints.
 
-// TODO: this is badly scaled; consider using length instead of length^2
-// perr = (p^2 - d^2)/2
+/*  --------------------------------
+    perr = ||p_SfSb|| - d
+    --------------------------------
+    ~60 flops
+
+Note that the give State does not necessarily correspond to the given X_AB
+and constrainedQ so we can't cache the results.
+
+TODO: there ought to be a flag saying whether the X_AB and q are from the 
+state (which is common) so that the results could be saved.
+*/
 void calcPositionErrorsVirtual      
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const
 {
-    assert(X_AB.size()==2 && constrainedQ.size()==0 && perr.size()==1);
-    const Vec3 p1 = findStationLocation(X_AB, B1, defaultPoint1); // meas from & expr in ancestor
-    const Vec3 p2 = findStationLocation(X_AB, B2, defaultPoint2);
-    const Vec3 p = p2 - p1;
-    //TODO: save p in state
+    assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
-    perr[0] = (dot(p, p) - square(defaultRodLength)) / 2;
+    const Parameters& params = getParameters(s);
+    const Vec3&       p_FSf = params.m_p_FSf;
+    const Vec3&       p_BSb = params.m_p_BSb;
+    const Real        d     = params.m_length;
+
+    // 36 flops for these two together.
+    const Vec3 p_ASf =  findStationLocation(allX_AB, m_mobod_F, p_FSf); 
+    const Vec3 p_ASb =  findStationLocation(allX_AB, m_mobod_B, p_BSb); 
+
+    const Vec3 p_SfSb_A = p_ASb - p_ASf;    //  3 flops
+    const Real r = p_SfSb_A.norm();         // ~20 flops
+
+    // Calculate this scalar using A-frame vectors; any frame would have done.
+    perr[0] = r - d;  //  1 flop
 }
 
-// pverr = d/dt perr = pdot*p = v*p, where v=v2-v1 is relative velocity
+/*  --------------------------------
+    verr  =  pd_SfSb_A . Cz
+    where pd_SfSb_A = v_ASb - v_ASf
+    and   Cz = {p_SfSb_A / r,  r!=0
+               {Fz_A,          r==0
+    --------------------------------
+    32 flops if position info is already available.
+
+Note that we can't cache the velocity results here because we don't know that
+V_AB and qdot were taken from the given State.
+*/
 void calcPositionDotErrorsVirtual      
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
     const 
 {
-    assert(V_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==1);
-    //TODO: should be able to get p from State
-    const Vec3 p1 = findStationLocationFromState(s, B1, defaultPoint1); // meas from & expr in ancestor
-    const Vec3 p2 = findStationLocationFromState(s, B2, defaultPoint2);
-    const Vec3 p = p2 - p1;
+    assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
+    const PositionCache& pc = ensurePositionCacheRealized(s);
 
-    const Vec3 v1 = findStationVelocity(s, V_AB, B1, defaultPoint1); // meas & expr in ancestor
-    const Vec3 v2 = findStationVelocity(s, V_AB, B2, defaultPoint2);
-    const Vec3 v = v2 - v1;
-    pverr[0] = dot(v, p);
+    const SpatialVec& V_AF = allV_AB[m_mobod_F];
+    const Vec3& w_AF = V_AF[0]; const Vec3& v_AF = V_AF[1];
+
+    const SpatialVec& V_AB = allV_AB[m_mobod_B];
+    const Vec3& w_AB = V_AB[0]; const Vec3& v_AB = V_AB[1];
+
+    const Vec3 v_ASf = v_AF + w_AF % pc.p_FSf_A;        // 12 flops
+    const Vec3 v_ASb = v_AB + w_AB % pc.p_BSb_A;        // 12 flops
+    const Vec3 pd_SfSb_A = v_ASb - v_ASf;               //  3 flops
+    pverr[0] = ~pd_SfSb_A * pc.Cz_A;                    //  5 flops
 }
 
-// paerr = d/dt verr = vdot*p + v*pdot =a*p+v*v, where a=a2-a1 is relative 
-// acceleration
+/*  ------------------------------------------------------------
+    aerr = pdd_SfSb . Cz + pd_SfSb . Czd
+    where pdd_SfSb_A = a_ASb - a_ASf
+    and   Cz = {p_SfSb_A / r,  r!=0
+               {Fz_A,          r==0
+    and   Czd = d/dt_A Cz = {(pd_SfSb - Cz * (pd_SfSb . Cz))/r
+                            {w_AF x Fz_A,     r==0
+    ------------------------------------------------------------ 
+    44 flops if position & velocity info already calculated
+*/
 void calcPositionDotDotErrorsVirtual      
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const
 {
-    assert(A_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==1);
-    //TODO: should be able to get p and v from State
-    const Vec3 p1 = findStationLocationFromState(s, B1, defaultPoint1); // meas from & expr in ancestor
-    const Vec3 p2 = findStationLocationFromState(s, B2, defaultPoint2);
-    const Vec3 p = p2 - p1;
-    const Vec3 v1 = findStationVelocityFromState(s, B1, defaultPoint1); // meas & expr in ancestor
-    const Vec3 v2 = findStationVelocityFromState(s, B2, defaultPoint2);
-    const Vec3 v = v2 - v1;
+    assert(allA_AB.size()==2&&constrainedQDotDot.size()==0&&paerr.size()==1);
 
-    const Vec3 a1 = findStationAcceleration(s, A_AB, B1, defaultPoint1); // meas & expr in ancestor
-    const Vec3 a2 = findStationAcceleration(s, A_AB, B2, defaultPoint2);
-    const Vec3 a = a2 - a1;
+    // Ensuring the velocity cache is realized also ensures that the position
+    // cache has been realized.
+    const VelocityCache& vc = ensureVelocityCacheRealized(s);
+    const PositionCache& pc = getPositionCache(s);
 
-    paerr[0] = dot(a, p) + dot(v, v);
+    // 30 flops for these two together.
+    const Vec3 a_ASf = findStationInAAcceleration(s, allA_AB, m_mobod_F, 
+                                                  pc.p_FSf_A, vc.wXwX_p_FSf_A);
+    const Vec3 a_ASb = findStationInAAcceleration(s, allA_AB, m_mobod_B, 
+                                                  pc.p_BSb_A, vc.wXwX_p_BSb_A);
+
+    const Vec3 pdd_SfSb_A = a_ASb - a_ASf; // 2nd deriv in A,        3 flops
+    paerr[0] = ~pdd_SfSb_A * pc.Cz_A + ~vc.pd_SfSb_A * vc.Czd_A; // 11 flops
 }
 
-// Write this routine by inspection of the pdot routine, looking for terms 
-// involving velocity. On point2 we see v2*p, on point1 we see -v1*p, so forces
-// are m*p and -m*p, respectively.
+// Because the normal force is applied along the line between the points, it
+// does not matter where along that line we apply the force -- the force and
+// resulting moment are the same anywhere along the line. Thus we are not 
+// required to use the same point in space here -- for convenience we'll just
+// apply forces to the defining end points, whose locations we have available.
+//
+// apply f=lambda*Cz to the end point on body B (B2),
+//       -f          to the end point on body F (B1)
+// 33 flops if position info already available.
 void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
@@ -141,24 +293,16 @@ void addInPositionConstraintForcesVirtual
     Array_<Real,      ConstrainedQIndex>&           qForces) 
     const
 {
-    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
-           && qForces.size()==0);
+    assert(multipliers.size()==1&&bodyForcesInA.size()==2&&qForces.size()==0);
     const Real lambda = multipliers[0];
-    //TODO: should be able to get p from State
-    const Vec3 p1 = findStationLocationFromState(s, B1, defaultPoint1); // meas from & expr in ancestor
-    const Vec3 p2 = findStationLocationFromState(s, B2, defaultPoint2);
-    const Vec3 p = p2 - p1;
 
-    const Vec3 f2 = lambda * p;
+    const PositionCache& pc = ensurePositionCacheRealized(s);
 
-    // The forces on either point have the same line of action because they are
-    // aligned with the vector between the points. Applying the forces to any 
-    // point along the line would have the same effect (e.g., same point in 
-    // space on both bodies) so this is the same as an equal and opposite force
-    // applied to the same point and this constraint will do no work even if 
-    // the position or velocity constraints are not satisfied.
-    addInStationForce(s, B2, defaultPoint2,  f2, bodyForcesInA);
-    addInStationForce(s, B1, defaultPoint1, -f2, bodyForcesInA);
+    const Vec3 force_A = lambda * pc.Cz_A;     // 3 flops
+
+    // 30 flops for the next two calls
+    addInStationInAForce(pc.p_BSb_A, force_A, bodyForcesInA[m_mobod_B]);
+    subInStationInAForce(pc.p_FSf_A, force_A, bodyForcesInA[m_mobod_F]);
 }
 
 SimTK_DOWNCAST(RodImpl, ConstraintImpl);
@@ -166,14 +310,23 @@ SimTK_DOWNCAST(RodImpl, ConstraintImpl);
                                     private:
 friend class Constraint::Rod;
 
-ConstrainedBodyIndex    B1; // must be 0 and 1
-ConstrainedBodyIndex    B2;
-Vec3                    defaultPoint1; // on body 1, exp. in B1 frame
-Vec3                    defaultPoint2; // on body 2, exp. in B2 frame
-Real                    defaultRodLength;
+// These can't be changed after construction.
+ConstrainedBodyIndex    m_mobod_F;          // F (B1)
+ConstrainedBodyIndex    m_mobod_B;          // B (B2)
 
-// This is just for visualization
-Real                    pointRadius;
+Vec3                    m_def_p_FSf;    // default for point on F
+Vec3                    m_def_p_BSb;    // default for point on B
+Real                    m_def_length;   // default rod length
+
+// This Position-stage variable holds the constraint parameters to be used
+// for a particular State.
+mutable DiscreteVariableIndex   m_parametersIx;
+
+// These cache entries hold precalculated position- and velocity-dependent
+// computations. These are lazy evaluated by the first method to be called
+// that requires the State to be at Position or Velocity stage.
+mutable CacheEntryIndex         m_posCacheIx;
+mutable CacheEntryIndex         m_velCacheIx;
 };
 
 
