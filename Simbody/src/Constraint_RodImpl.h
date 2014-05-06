@@ -59,6 +59,7 @@ For comparison, here are the lovely squared equations:
     perr = (p . p - d^2)/2          [NOT using these equatiosn]
     verr =  v . p
     aerr =  a . p + v . v
+       f = lambda * p (on Sb), -lambda * p (on Sf)
 where
     p = p_ASb-p_ASf, v = d/dt_A p = v_ASb-v_ASf, a = d/dt_A v = a_ASb-a_ASf
 
@@ -85,6 +86,7 @@ Then our normal contact conditions can always be written like this:
 (2)   perr = r(q)-d
 (3)   verr = pd_PQ  . Cz
 (4)   aerr = pdd_PQ . Cz + pd_PQ . d/dt_A Cz
+         f = lambda * Cz (on Sb), -lambda * Cz (on Sf)
 
 In case r==0, Cz is fixed in F (it is Fz). So Czd = d/dt_A Cz = w_AF x Cz and
       aerr = pdd_PQ . Cz +  pd_PQ . (w_AF x Cz)
