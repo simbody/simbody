@@ -129,6 +129,66 @@ getContactMultiplierIndex(const State& s) const {
     return px0;
 }
 
+
+//==============================================================================
+//                                  ROPE
+//==============================================================================
+Rope::Rope(MobilizedBody& mobod1, const Vec3& point1, 
+           MobilizedBody& mobod2, const Vec3& point2,
+           Real defaultLengthLimit, Real minCOR)
+:   UnilateralContact(-1), m_minCOR(minCOR)
+{
+    SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
+        "Rope()", "The coefficient of restitution must be between "
+        "0 and 1 but was %g.", minCOR);
+
+    // Set up the constraint.
+    m_rod = Constraint::Rod(mobod1, point1, mobod2, point2, defaultLengthLimit);
+    m_rod.setIsConditional(true);
+    m_rod.setDisabledByDefault(true);
+}
+
+//------------------------------------------------------------------------------
+//                            WHERE TO DISPLAY
+//------------------------------------------------------------------------------
+Vec3 Rope::whereToDisplay(const State& state) const {
+    const Vec3 p_GP = m_rod.getMobilizedBody1()
+        .findStationLocationInGround(state, m_rod.getPointOnBody1(state));
+    const Vec3 p_GQ = m_rod.getMobilizedBody2()
+        .findStationLocationInGround(state, m_rod.getPointOnBody2(state));
+    return (p_GP+p_GQ)/2;
+}
+
+//------------------------------------------------------------------------------
+//                              GET PERR/VERR/AERR
+//------------------------------------------------------------------------------
+
+Real Rope::getPerr(const State& state) const
+{   //return m_lower.getPositionError(state);
+    return m_rod.findLengthViolation(state);
+}
+
+Real Rope::getVerr(const State& state) const
+{   return m_rod.getVelocityError(state); }
+
+Real Rope::getAerr(const State& state) const
+{   return m_rod.getAccelerationError(state); }
+
+//------------------------------------------------------------------------------
+//                    GET CONTACT MULTIPLIER INDEX
+//------------------------------------------------------------------------------
+MultiplierIndex Rope::
+getContactMultiplierIndex(const State& s) const {
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_rod.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==1 && mv==0 && ma==0); // don't call if not enabled
+    m_rod.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(px0.isValid() && !vx0.isValid() && !ax0.isValid());
+    return px0;
+}
+
+
 //==============================================================================
 //                    POINT PLANE FRICTIONLESS CONTACT
 //==============================================================================

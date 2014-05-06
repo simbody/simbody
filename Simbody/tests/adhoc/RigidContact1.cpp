@@ -144,7 +144,7 @@ public:
     {
         m_matter = new SimbodyMatterSubsystem(*this);
         m_forces = new GeneralForceSubsystem(*this);
-        m_matter->setShowDefaultGeometry(false);
+        //m_matter->setShowDefaultGeometry(false);
     }
 
     virtual ~AugmentedMultibodySystem() 
@@ -314,7 +314,7 @@ public:
     void calcInitialState(State& state) const OVERRIDE_11;
 
     const MobilizedBody& getBodyToWatch() const OVERRIDE_11
-    {   static const MobilizedBody none; return m_ball; }
+    {   static const MobilizedBody none; return none; }
     Real getWatchDistance() const OVERRIDE_11 {return 30.;}
     void addRubberBandLines(Visualizer& viz) const OVERRIDE_11;
     Real getRuntime() const OVERRIDE_11 {return 75.;}
@@ -891,7 +891,7 @@ Pencil::Pencil() {
     const Real PencilMass = 1;
     const Real PencilRadius = .25;
     const Real PencilHLength = 5;
-    const Real CoefRest = .5;
+    const Real CoefRest = .75;
     const Real StopCoefRest = .7;
     const Real CaptureVelocity = .001;
     const Real TransitionVelocity = .01;
@@ -989,7 +989,7 @@ Pencil::Pencil() {
         Vec3(0));
     m_ball.addBodyDecoration(Vec3(0), 
                              DecorativeSphere(BallRad).setColor(Red)
-                             .setResolution(3).setOpacity(.5));
+                             .setResolution(3).setOpacity(.25));
     m_ball.addBodyDecoration(Vec3(0), 
                              DecorativeSphere(BallRad).setColor(Black)
                              .setRepresentation(DecorativeGeometry::DrawWireframe)
@@ -1015,6 +1015,12 @@ Pencil::Pencil() {
 
     Force::TwoPointLinearSpring(forces, m_pencil, m_pencilSphereCenter,
                                 m_ball, Vec3(0), 7.5, 0);
+
+    Rope* rope =
+        new Rope(Ground, Vec3(1,10,-1),
+                 m_ball, Vec3(0,BallRad,0),
+                 6.5, 1);
+    matter.adoptUnilateralContact(rope);
 }
 
 void Pencil::addRubberBandLines(Visualizer& viz) const {
@@ -1037,7 +1043,7 @@ void Pencil::calcInitialState(State& s) const {
     getPencil().setOneU(s, MobilizerUIndex(2), -2);
 
     getBall().setQToFitTranslation(s, Vec3(-3,3,1));
-    getBall().setUToFitAngularVelocity(s, Vec3(4,0,-20));
+    getBall().setUToFitAngularVelocity(s, Vec3(4,5,-20));
     Assembler(*this).setErrorTolerance(1e-6).assemble(s);
 
 }

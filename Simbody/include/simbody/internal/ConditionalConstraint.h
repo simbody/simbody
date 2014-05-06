@@ -439,6 +439,63 @@ private:
     Constraint::ConstantCoordinate  m_lower;
 };
 
+
+
+//==============================================================================
+//                                  ROPE
+//==============================================================================
+/** (Experimental -- API will change -- use at your own risk) 
+Set a hard upper limit on the separation between a point P on one body and
+a point Q on another. A point-to-point force opposes further separation
+of the points, and a point-to-point impulse is produced when the limit is hit 
+with a non-zero velocity (an impact). A coefficient of restitution (COR) e, 
+with 0<=e<=1 is specified that determines the rebound impulse that occurs as a 
+result of impact. The COR is typically velocity-dependent. The given value is 
+the COR at high impact velocities; it will be higher for low impact velocities
+but zero at very small impact velocities. 
+
+The sign convention for this unilateral constraint is positive, meaning that
+perr,verr,aerr>=0, lambda<=0 are the good directions. **/
+class SimTK_SIMBODY_EXPORT Rope : public UnilateralContact {
+public:
+    Rope(MobilizedBody& mobod1, const Vec3& point1, 
+         MobilizedBody& mobod2, const Vec3& point2,
+         Real defaultLengthLimit, Real minCOR);
+
+    bool disable(State& state) const OVERRIDE_11 
+    {   if (m_rod.isDisabled(state)) return false;
+        else {m_rod.disable(state); return true;} }
+    bool enable(State& state) const OVERRIDE_11 
+    {   if (!m_rod.isDisabled(state)) return false;
+        else {m_rod.enable(state); return true;} }
+    bool isEnabled(const State& state) const OVERRIDE_11 
+    {   return !m_rod.isDisabled(state); }
+
+    // Returns half-way location in the Ground frame.
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+
+    // Currently have to fake the perr because the constraint might be
+    // disabled in which case it won't calculate perr.
+    Real getPerr(const State& state) const OVERRIDE_11;
+    Real getVerr(const State& state) const OVERRIDE_11;
+    Real getAerr(const State& state) const OVERRIDE_11;
+
+    Real calcEffectiveCOR(const State& state,
+                          Real defaultCaptureSpeed,
+                          Real defaultMinCORSpeed,
+                          Real impactSpeed) const OVERRIDE_11 
+    {
+       return ConditionalConstraint::calcEffectiveCOR
+               (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
+                impactSpeed);
+    }
+
+    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+private:
+    Real                            m_minCOR;
+    Constraint::Rod                 m_rod;
+};
+
 //==============================================================================
 //                    POINT PLANE FRICTIONLESS CONTACT
 //==============================================================================
