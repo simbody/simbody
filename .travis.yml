@@ -11,12 +11,16 @@ install:
   - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; fi
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 script:
+  - echo "CXX="$CXX
+  - echo "CC="$CC
   # First, using c++03.
   # Specify that we do not use 11, since
   # the default for this variable may change soon.
   - cmake . -DBUILD_EXAMPLES=ON -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=OFF -DCMAKE_CXX_FLAGS=-Werror
   # Check which compiler and compiler version we're using.
   - make -j8
+  # Temporary -- I'm trying to debug a failure that just happens here.
+  - ./TestObservedPointFitter
   - ctest -j8 
   # Then, test using c++11.
   - if [ "$CXX" = "g++-4.8" ]; then cmake . -DSIMBODY_STANDARD_11=ON; fi
