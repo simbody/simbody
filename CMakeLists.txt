@@ -297,7 +297,7 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
    ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 
     # If using either of these compilers, provide the option of 
-    # compiling usin the c++11 standard.
+    # compiling using the c++11 standard.
     OPTION(SIMBODY_STANDARD_11
         "Compile using the c++11 standard instead of c++03, 
         if using GCC or Clang." ON)
