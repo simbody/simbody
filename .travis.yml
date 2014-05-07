@@ -19,8 +19,6 @@ script:
   - cmake . -DBUILD_EXAMPLES=ON -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=OFF -DCMAKE_CXX_FLAGS=-Werror
   # Check which compiler and compiler version we're using.
   - make -j8
-  # Temporary -- I'm trying to debug a failure that just happens here.
-  - ./TestObservedPointFitter
   - ctest -j8 
   # Then, test using c++11.
   - if [ "$CXX" = "g++-4.8" ]; then cmake . -DSIMBODY_STANDARD_11=ON; fi
