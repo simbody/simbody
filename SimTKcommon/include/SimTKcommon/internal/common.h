@@ -237,15 +237,16 @@ extern "C" {
 #include <algorithm>
 
 /* Transition macros for C++11 support. VC10 and VC11 have partial support for
-C++11, early VC's do not. Currently we're assuming no support from gcc. */
+C++11, early VC's do not. If using gcc or Clang, we check for C++11 support. */
 #ifndef SWIG
-    #if _MSC_VER>=1700 /* VC11 or higher */
+    #if _MSC_VER>=1700 || (defined(__GNUG__) && __cplusplus>=201103L)
+        /* VC11 or higher, OR using gcc or Clang and using C++11 */
         #define OVERRIDE_11  override
         #define FINAL_11     final
     #elif _MSC_VER==1600 /* VC10 */
         #define OVERRIDE_11  override
         #define FINAL_11     sealed
-    #else /* gcc or earlier VC */
+    #else /* gcc or Clang without C++11, or earlier VC */
         #define OVERRIDE_11
         #define FINAL_11
     #endif
