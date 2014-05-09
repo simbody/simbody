@@ -740,13 +740,20 @@ template <class T> struct NiceTypeName {
     static const char* name() {return typeid(T).name();}
 };
 
+} // namespace SimTK
+
 /** This specializes the name of a type to be exactly the text you use to
 specify it, rather than whatever ugly thing might result on different platforms
-from resolution of typedefs, default template arguments, etc. **/
-#define SimTK_NICETYPENAME_LITERAL(T)           \
-template <> struct NiceTypeName< T > {          \
-    static const char* name() { return #T; }    \
-};
+from resolution of typedefs, default template arguments, etc. Note that this
+macro generates a template specialization that must be done in the SimTK
+namespace; consequently it opens and closes namespace SimTK and must not
+be invoked if you already have that namespace open. **/
+#define SimTK_NICETYPENAME_LITERAL(T)               \
+namespace SimTK {                                   \
+    template <> struct NiceTypeName< T > {          \
+        static const char* name() { return #T; }    \
+    };                                              \
+}
 
 // Some types for which we'd like to see nice type names.
 SimTK_NICETYPENAME_LITERAL(bool);            
@@ -774,7 +781,6 @@ SimTK_NICETYPENAME_LITERAL(std::complex<long double>);
 SimTK_NICETYPENAME_LITERAL(SimTK::FalseType);
 SimTK_NICETYPENAME_LITERAL(SimTK::TrueType); 
 
-} // namespace SimTK
 
 #endif /* C++ stuff */
 
