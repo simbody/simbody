@@ -115,6 +115,8 @@ Simbody works on Windows, Mac, and Linux. For Windows, you must build from sourc
 3. [**Ubuntu**](#ubuntu-and-apt-get): install with apt-get
 4. [**UNIX (Mac, Linux)**](#unix-and-makefiles): build from source using gcc or Clang with Makefile's.
 
+These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
+
 
 Windows and Visual Studio
 -------------------------
@@ -185,6 +187,8 @@ How is your Simbody installation organized?
 Mac and Homebrew
 ----------------
 
+If using a Mac and Homebrew, the dependencies are taken care of for you.
+
 #### Install
 
 1. Install [Homebrew](http://brew.sh/).
@@ -227,29 +231,64 @@ What's in the `/usr/local/Cellar/simbody/<version>/` directory?
 Ubuntu and apt-get
 ------------------
 
+You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
+
+#### Install
+
+1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
+    * 12.04: `sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu precise main" > /etc/apt/sources.list.d/gazebo-latest.list'`
+    * 13.10: `sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu saucy main" > /etc/apt/sources.list.d/gazebo-latest.list'`
+2. Install Simbody.
+```
+$ sudo apt-get update
+$ sudo apt-get install libsimbody-dev
+```
+
+#### Layout of installation
+
+Simbody is installed into the `usr/` directory.
+
+* `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
+* `usr/lib/` shared libraries (.dylib's), used at runtime.
+    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
+    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
+* `usr/libexec/simbody/` the `simbody-visualizer` executable.
+* `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
+
 
 UNIX and Makefiles
 ------------------
 
-The Xcode developer package gives LAPACK and BLAS to you via the Accelerate
+These instructions are for building Simbody from source on either a Mac or on Ubuntu.
+
+#### Get dependencies
+
+On a Mac, the Xcode developer package gives LAPACK and BLAS to you via the Accelerate
 framework. Mac's come with the visualization dependencies.
 
-Building and Installing
------------------------
-We currently do not provide a pre-built binary distribution; you must build the
-source code yourself. We're working on getting Simbody into the Debian and
-Ubuntu repositories, though, so you'll be able to `apt-get` them.
+On Ubuntu, we need to get the dependencies ourselves. Run the following in a terminal:
+```
+$ sudo apt-get install cmake liblapack-dev
+```
+
+If you want to use the CMake GUI, install `cmake-qt-gui`.
+
+Optionally, for visualization:
+```
+$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev
+```
+
+Optionally, for API documentation:
+```
+$ sudo apt-get install doxygen
+```
 
 
-#### Install CMake
+#### Get the Simbody source code
 
-[Download](http://www.cmake.org/cmake/resources/software.html) and install
-CMake, which is a program we use to manage the build process. On Ubuntu, you
-can obtain CMake via `$ apt-get install cmake` in a terminal.
+Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `C:/simbody-source`.
 
-### Configure your build
 
-Open CMake.
 
 #### Build and install Simbody
 
@@ -299,17 +338,7 @@ In your new terminal window, run:
 
 
 ### Linux/Ubuntu
-Your system's package manager surely has the dependencies. On Ubuntu you can
-enter the following in a terminal:
-```sh
-$ apt-get install liblapack-dev
-```
 
-Optionally, for visualization:
-
-```sh
-$ apt-get install freeglut3-dev libxi-dev libxmu-dev
-```
 You may need to run these lines as a superuser (`sudo apt-get ...`).
 
 
