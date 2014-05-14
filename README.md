@@ -189,7 +189,7 @@ Mac and Homebrew
 
 If using a Mac and Homebrew, the dependencies are taken care of for you.
 
-With this method, Simbody is built without the `-std=c++11` flag. Thus, any projects you build on top of Simbody must also NOT use `-std=c++11`. If you do try to use `-std=c++11`, you'll run into mysterious errors. See issue #125.
+With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also NOT use C++11. If you do try to use C++11, you'll run into mysterious errors. See issue #125.
 
 #### Install
 
@@ -235,7 +235,7 @@ Ubuntu and apt-get
 
 You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
 
-With this method, Simbody is built without the `-std=c++11` flag. Thus, any projects you build on top of Simbody must also NOT use `-std=c++11`. If you do try to use `-std=c++11`, you'll run into mysterious errors. See issue #125.
+With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also NOT use C++11. If you do try to use C++11, you'll run into mysterious errors. See issue #125.
 
 #### Install
 
@@ -270,57 +270,76 @@ These instructions are for building Simbody from source on either a Mac or on Ub
 On a Mac, the Xcode developer package gives LAPACK and BLAS to you via the Accelerate
 framework. Mac's come with the visualization dependencies.
 
-On Ubuntu, we need to get the dependencies ourselves.
-1. Get the necessary dependencies:
-```
-$ sudo apt-get install cmake liblapack-dev
-```
-2. If you want to use the CMake GUI, install `cmake-qt-gui`.
-3. For visualization (optional):
-```
-$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev
-```
-4. For API documentation (optional):
-```
-$ sudo apt-get install doxygen
-```
+On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run the following commands.
 
+1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`
+2. If you want to use the CMake GUI, install `cmake-qt-gui`.
+3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`
+4. For API documentation (optional): `$ sudo apt-get install doxygen`
 
 #### Get the Simbody source code
 
 There are two ways to get the source code.
 
-* Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `~/simbody-source`.
-* Clone the git repository.
+* Method 1: Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `~/simbody-source`.
+* Method 2: Clone the git repository.
     1. Get git.
-        * Mac: Install [homebrew](http://brew.sh/) and run `brew install git` in a terminal.
+        * Mac: You might have it already, especially if you have Xcode, which is free in the App Store. If not, one method is to install [Homebrew](http://brew.sh/) and run `brew install git` in a terminal.
         * Ubuntu: run `sudo apt-get install git` in a terminal.
     2. Clone the github repository into `~/simbody-source`.
     ```
     $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-    # git checkout Simbody-3.4
+    $ git checkout Simbody-3.4
     ```
     3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
-
-
 #### Build and install Simbody
 
-Say you've placed the source code into `~/simbody-source/` and that you want to
-install Simbody to `<install-dir>` (perhaps, `~/simbody-install`).
-
-```sh
-$ cd ~/
-$ mkdir simbody-build
-$ cd simbody-build
-$ cmake -DCMAKE_INSTALL_PREFIX=<install-dir> ../simbody-source
-$ make install
+1. Create a directory in which we'll build Simbody.
+```
+$ mkdir ~/simbody-build
+$ cd ~/simbody-build
 ```
 
-You may need to run the last line as a superuser (`sudo apt-get ...`), if you
-chose an `<install-dir>` that you can't otherwise write to.
+2. Configure your Simbody build with CMake. We'll use the `cmake` command but you could also use the interactive tools `ccmake` or `cmake-gui`. You have a few configuration options to play with here.
+    * If you don't want to fuss with any options, run:
+    ```
+    $ cmake ~/simbody-source
+    ```
+    * Where do you want to install Simbody? By default, it is installed to `/usr/local/`. You can change this via the `CMAKE_INSTALL_PREFIX` variable. Let's choose `~/simbody`:
+    ```
+    $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody
+    ```
+    * Do you want to use C++11? By default, Simbody assumes not. If you plan to use Simbody in a project that DOES use C++11, then you must build Simbody with C++11 as well. You can change this via the `SIMBODY_STANDARD_11` flag:
+    ```
+    $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=on
+    ```
+    * There are a few other variables you might want to play with:
+        * `BUILD_EXAMPLES` on by default
+        * `BUILD_TESTING` on by default
+        * `BUILD_VISUALIZER` on by default
+        You can combine all these options. Here's another example:
+    ```
+    $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody -DBUILD_VISUALIZER=off 
+    ```
+3. Compile. Use the `-jn` flag to build using `n` processor cores. For example:
+```
+$ make -j8
+```
+4. Run the tests.
+```
+$ ctest -j8
+```
+5. Install. The `sudo` is there in case your `CMAKE_INSTALL_PREFIX` is something like `/usr/local/` (the default).
+```
+$ sudo make -j8 install
+```
 
-If you have the dependencies, you should have no issues with the installation.
+Just so you know, you can also uninstall (delete all files that CMake placed into `CMAKE_INSTALL_PREFIX`).
+```
+$ make uninstall
+```
+
 
 #### Configure your system to find Simbody
 
