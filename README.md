@@ -144,7 +144,7 @@ Download the source code from https://github.com/simbody/simbody/releases. Look 
 5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/simbody`.
 6. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
 
-#### Build and Install
+#### Build and install
 
 1. Open `C:/simbody-build/Simbody.sln` in Visual Studio.
 2. Select your desired *Solution configuration* from the drop-down at the top.
@@ -167,7 +167,7 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
     4. Under **System variables**, click **Path**, then click **Edit**.
     5. Add `C:/simbody/bin;` to the front of the text field. Don't forget the semicolon!
     6. Changes only take effect in newly-opened windows.
-6. Test your installation by navigating to `C:/simbody/examples/bin` and running `SimbodyInstallTest.exe` or `SimbodyInstallTestNoViz.exe`.
+3. Test your installation by navigating to `C:/simbody/examples/bin` and running `SimbodyInstallTest.exe` or `SimbodyInstallTestNoViz.exe`.
 
 #### Layout of installation
 
@@ -297,15 +297,18 @@ There are two ways to get the source code.
         * Mac: You might have it already, especially if you have Xcode, which is free in the App Store. If not, one method is to install [Homebrew](http://brew.sh/) and run `brew install git` in a terminal.
         * Ubuntu: run `sudo apt-get install git` in a terminal.
     2. Clone the github repository into `~/simbody-source`.
-    ```
-    $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-    $ git checkout Simbody-3.4
-    ```
+    
+        ```
+        $ git clone https://github.com/simbody/simbody.git ~/simbody-source
+        $ git checkout Simbody-3.4
+        ```
+        
     3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
-#### Build and install Simbody
+#### Configure and generate Makefiles
 
 1. Create a directory in which we'll build Simbody.
+
     ```
     $ mkdir ~/simbody-build
     $ cd ~/simbody-build
@@ -342,6 +345,8 @@ There are two ways to get the source code.
         $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody -DBUILD_VISUALIZER=off 
         ```
 
+#### Build and install
+
 3. Compile. Use the `-jn` flag to build using `n` processor cores. For example:
     ```
     $ make -j8
@@ -357,45 +362,38 @@ There are two ways to get the source code.
     $ sudo make -j8 install
     ```
 
-Just so you know, you can also uninstall (delete all files that CMake placed into `CMAKE_INSTALL_PREFIX`).
+Just so you know, you can also uninstall (delete all files that CMake placed into `CMAKE_INSTALL_PREFIX`) if you're in `~/simbody-build`.
 ```
 $ make uninstall
 ```
 
+#### Set environment variables and test the installation
 
-#### Configure your system to find Simbody
+If you are only building Simbody to use it with OpenSim, you can skip this section.
 
-Set the environment variable SimTK_INSTALL_DIR `<install-dir>`. This is not
-strictly required but helps with examples and locating the Visualizer, and we
-use it in the next step.
+1. Allow executables to find Simbody libraries (.so's) by adding the Simbody `lib/` directory to your linker path.
 
-* Mac: `$ echo 'export SimTK_INSTALL_DIR=<install-dir>' > ~/.bash_profile`
-* Ubuntu: `$ echo 'export SimTK_INSTALL_DIR=<install-dir>' > ~/.bashrc`
+    * Mac:
 
+        ```
+        $ sudo echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody' > /etc/profile
+        ```
+    
+    * Ubuntu:
+    
+        ```
+        $ sudo echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' > ~/.bashrc
+        ```
+    
+        These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer; you might not have this additional directory.
 
-Set the appropriate environment variable so the libraries can be found:
+2. Open a new terminal.
+3. Test your installation:
 
-* Mac: `echo 'export DYLD_LIBRARY_PATH:$SimTK_INSTALL_DIR/lib' > `/.bash_profile`
-* Ubuntu: `echo 'export
-  LD_LIBRARY_PATH:$SimTK_INSTALL_DIR/lib/x86_64-linux-gnu' > ~/.bashrc`.
-  Actually, you may need to replace `x86_64-linux-gnu` with the approriate
-  directory on your platform.
-
-Close and open a new terminal window.
-
-#### Test your installation
-
-In your new terminal window, run:
-
-* Mac: `$ $SimTK_INSTALL_DIR/examples/bin/SimbodyInstallTest`
-* Linux: `$ $SimTK_INSTALL_DIR/lib/x86_64-linux-gnu/simbody/examples/SimbodyInstallTest`
-
-
-
-### Linux/Ubuntu
-
-You may need to run these lines as a superuser (`sudo apt-get ...`).
-
+    ```
+    $ cd ~/simbody/share/doc/simbody/examples/bin
+    $ ./SimbodyInstallTest # or ./SimbodyInstallTestNoViz
+    ```
 
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
