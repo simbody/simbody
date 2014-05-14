@@ -21,7 +21,7 @@ performed with MMB by [Samuel Flores][flores]:
 
 [![Sam Flores' Simbody RNA simulation][rna]][simbios]
 
-Read more about Simbody [here](https://simtk.org/home/simbody).
+Read more about Simbody at the [Simbody homepage](https://simtk.org/home/simbody).
 
 
 Simple example: a double pendulum
