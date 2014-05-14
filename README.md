@@ -372,26 +372,26 @@ $ make uninstall
 
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
-* Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path. There are two cases in which this is unnecessary:
+1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path. There are two cases in which this is unnecessary:
     1. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/`
     2. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/local/` (the default), AND your libraries are in `/usr/local/lib/`. Go check! On some platforms, the libraries are in an additional subdirectory (on Ubuntu 13.10: `/usr/local/lib/x86_64-linux-gnu`).
 
-    * Mac:
-
-        ```
-        $ sudo echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody/lib' > /etc/profile
-        ```
+        * Mac:
     
-    * Ubuntu:
-    
-        ```
-        $ sudo echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' > ~/.bashrc
-        ```
-    
+            ```
+            $ sudo echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody/lib' > /etc/profile
+            ```
+        
+        * Ubuntu:
+        
+            ```
+            $ sudo echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' > ~/.bashrc
+            ```
+        
         These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
 
-* Open a new terminal.
-* Test your installation:
+2. Open a new terminal.
+3. Test your installation:
 
     ```
     $ cd ~/simbody/share/doc/simbody/examples/bin
