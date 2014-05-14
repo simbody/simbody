@@ -195,7 +195,7 @@ How is your Simbody installation organized?
     ```
     $ brew install simbody
     ```
-    To instead install from the master branch, append ` --HEAD` to the command above.
+    To install from the master branch instead, append ` --HEAD` to the command above.
 
 #### Where is Simbody installed?
 
