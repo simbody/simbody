@@ -257,7 +257,7 @@ With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag
 Simbody is installed into the `usr/` directory.
 
 * `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `usr/lib/` shared libraries (.dylib's), used at runtime.
+* `usr/lib/` shared libraries (.so's), used at runtime.
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
 * `usr/libexec/simbody/` the `simbody-visualizer` executable.
@@ -369,6 +369,21 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
         $ cd ~/simbody/share/doc/simbody/examples/bin
         $ ./SimbodyInstallTest # or ./SimbodyInstallTestNoViz
+        
+
+#### Layout of installation
+
+The directory `[x86_64-linux-gnu]` may be different on your computer, or it may not exist.
+
+* `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
+* `usr/lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's), used at runtime.
+    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
+    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
+    * `simbody/examples/` the examples, compiled into executables; run them!
+* `usr/libexec/simbody/` the `simbody-visualizer` executable.
+* `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
+    * `examples/` source code for the examples.
+
 
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
