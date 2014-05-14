@@ -81,7 +81,7 @@ Features
 
 You want to...
 --------------
-* **[install Simbody](Installing)** (see also: old [Windows][buildwin] and [Mac/Linux][buildunix] build instructions, [old install instructions][user]).
+* **[install Simbody](#installing)** (see also: old [Windows][buildwin] and [Mac/Linux][buildunix] build instructions, [old install instructions][user]).
 * [use Simbody in your own program][user].
 * [view API documentation](https://simtk.org/api_docs/simbody/api_docs33/Simbody/html/index.html).
 * [learn the theory behind Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf).
@@ -95,15 +95,15 @@ You want to...
 Installing
 ----------
 
-Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. We provide instructions for 4 different ways of installing Simbody:
+Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 4 different ways of installing Simbody:
 
-1. [**Windows**](#windows): build from source using Microsoft Visual Studio
-2. [**Mac**](#mac): install with Homebrew
-3. [**Ubuntu**](#ubuntu): install with apt-get
-4. [**UNIX (Mac, Linux)**](#unix): build from source using gcc or Clang with Makefile's.
+1. [**Windows**](#windows-and-visual-studio): build from source using Microsoft Visual Studio
+2. [**Mac**](#mac-and-homebrew): install with Homebrew
+3. [**Ubuntu**](#ubuntu-and-apt-get): install with apt-get
+4. [**UNIX (Mac, Linux)**](#unix-and-makefiles): build from source using gcc or Clang with Makefile's.
 
-Dependencies
-------------
+### Dependencies
+
 Simbody depends on the following:
 
 * cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8 or greater.
@@ -114,7 +114,7 @@ Simbody depends on the following:
 
 ---
 
-### Windows: build from source using Microsoft Visual Studio {#windows}
+### Windows and Visual Studio
 
 #### Get the dependencies
 
@@ -180,7 +180,7 @@ How is your Simbody installation organized?
 
 ---
 
-### Mac: install with Homebrew {#mac}
+### Mac and Homebrew
 
 #### Install
 
@@ -223,11 +223,11 @@ What's in the `/usr/local/Cellar/simbody/<version>` directory?
 
 ---
 
-### Ubuntu: install with apt-get {#ubuntu}
+### Ubuntu and apt-get
 
 ---
 
-### UNIX: build from source {#unix}
+### UNIX and Makefiles
 
 The Xcode developer package gives LAPACK and BLAS to you via the Accelerate
 framework. Mac's come with the visualization dependencies.
