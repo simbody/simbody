@@ -161,13 +161,17 @@ Download the source code from https://github.com/simbody/simbody/releases. Look 
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
 1. Allow executables to find Simbody libraries (.dll's) by adding the Simbody `bin/` directory to your `PATH` environment variable.
-    1. In the Start menu (Windows 7) or screen (Windows 8), search `path`.
+    1. In the Start menu (Windows 7) or screen (Windows 8), search `environment`.
     2. Select **Edit the system environment variables**.
     3. Click **Environment Variables...**.
     4. Under **System variables**, click **Path**, then click **Edit**.
     5. Add `C:/simbody/bin;` to the front of the text field. Don't forget the semicolon!
-    6. Changes only take effect in newly-opened windows.
-3. Test your installation by navigating to `C:/simbody/examples/bin` and running `SimbodyInstallTest.exe` or `SimbodyInstallTestNoViz.exe`.
+2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. In the same Environment Variables window:
+    6. Under **User variables for...**, click **New...**.
+    7. For **Variable name**, type `SIMBODY_HOME`.
+    8. For **Variable value**, type `C:/simbody`.
+3. Changes only take effect in newly-opened windows. Close any Windows Explorer or Command Prompt windows.
+4. Test your installation by navigating to `C:/simbody/examples/bin` and running `SimbodyInstallTest.exe` or `SimbodyInstallTestNoViz.exe`.
 
 #### Layout of installation
 
@@ -364,8 +368,17 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
         
         These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
 
-2. Open a new terminal.
-3. Test your installation:
+2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody.
+
+    * Mac:
+    
+            $ sudo echo 'export SIMBODY_HOME=~/simbody' > /etc/profile
+    
+    * Ubuntu:
+    
+            $ sudo echo 'export SIMBODY_HOME=~/simbody' > ~/.bashrc
+3. Open a new terminal.
+4. Test your installation:
 
         $ cd ~/simbody/share/doc/simbody/examples/bin
         $ ./SimbodyInstallTest # or ./SimbodyInstallTestNoViz
