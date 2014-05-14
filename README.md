@@ -239,25 +239,18 @@ With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag
 
 #### Install
 
-* Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
+1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
     * 12.04:
     
-        ```
-        sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu precise main" > /etc/apt/sources.list.d/gazebo-latest.list'
-        ```
-
+            sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu precise main" > /etc/apt/sources.list.d/gazebo-latest.list'
     * 13.10:
      
-        ```
-        sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu saucy main" > /etc/apt/sources.list.d/gazebo-latest.list'
-        ```
+            sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu saucy main" > /etc/apt/sources.list.d/gazebo-latest.list'
         
-* Install Simbody.
+2. Install Simbody.
 
-    ```
-    $ sudo apt-get update
-    $ sudo apt-get install libsimbody-dev
-    ```
+        $ sudo apt-get update
+        $ sudo apt-get install libsimbody-dev
 
 #### Layout of installation
 
@@ -299,10 +292,8 @@ There are two ways to get the source code.
         * Ubuntu: run `sudo apt-get install git` in a terminal.
     2. Clone the github repository into `~/simbody-source`.
     
-        ```
-        $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-        $ git checkout Simbody-3.4
-        ```
+            $ git clone https://github.com/simbody/simbody.git ~/simbody-source
+            $ git checkout Simbody-3.4
         
     3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
@@ -310,30 +301,22 @@ There are two ways to get the source code.
 
 1. Create a directory in which we'll build Simbody.
 
-    ```
-    $ mkdir ~/simbody-build
-    $ cd ~/simbody-build
-    ```
+        $ mkdir ~/simbody-build
+        $ cd ~/simbody-build
 
 2. Configure your Simbody build with CMake. We'll use the `cmake` command but you could also use the interactive tools `ccmake` or `cmake-gui`. You have a few configuration options to play with here.
 
     * If you don't want to fuss with any options, run:
 
-        ```
-        $ cmake ~/simbody-source
-        ```
+            $ cmake ~/simbody-source
     
     * Where do you want to install Simbody? By default, it is installed to `/usr/local/`. You can change this via the `CMAKE_INSTALL_PREFIX` variable. Let's choose `~/simbody`:
     
-        ```
-        $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody
-        ```
+            $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody
     
     * Do you want to use C++11? By default, Simbody assumes not. If you plan to use Simbody in a project that DOES use C++11, then you must build Simbody with C++11 as well. You can change this via the `SIMBODY_STANDARD_11` flag:
     
-        ```
-        $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=on
-        ```
+            $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=on
     
     * There are a few other variables you might want to play with:
         * `BUILD_EXAMPLES` on by default
@@ -342,31 +325,26 @@ There are two ways to get the source code.
         
         You can combine all these options. Here's another example:
         
-        ```
-        $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody -DBUILD_VISUALIZER=off 
-        ```
+            $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody -DBUILD_VISUALIZER=off 
 
 #### Build and install
 
 3. Compile. Use the `-jn` flag to build using `n` processor cores. For example:
-    ```
-    $ make -j8
-    ```
+
+        $ make -j8
 
 4. Run the tests.
-    ```
-    $ ctest -j8
-    ```
+
+        $ ctest -j8
 
 5. Install. The `sudo` is there in case your `CMAKE_INSTALL_PREFIX` is something like `/usr/local/` (the default).
-    ```
-    $ sudo make -j8 install
-    ```
+
+        $ sudo make -j8 install
 
 Just so you know, you can also uninstall (delete all files that CMake placed into `CMAKE_INSTALL_PREFIX`) if you're in `~/simbody-build`.
-```
-$ make uninstall
-```
+
+    $ make uninstall
+
 
 #### Set environment variables and test the installation
 
@@ -378,25 +356,19 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
         * Mac:
     
-            ```
-            $ sudo echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody/lib' > /etc/profile
-            ```
+                $ sudo echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody/lib' > /etc/profile
         
         * Ubuntu:
         
-            ```
-            $ sudo echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' > ~/.bashrc
-            ```
+                $ sudo echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' > ~/.bashrc
         
         These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
 
 2. Open a new terminal.
 3. Test your installation:
 
-    ```
-    $ cd ~/simbody/share/doc/simbody/examples/bin
-    $ ./SimbodyInstallTest # or ./SimbodyInstallTestNoViz
-    ```
+        $ cd ~/simbody/share/doc/simbody/examples/bin
+        $ ./SimbodyInstallTest # or ./SimbodyInstallTestNoViz
 
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
