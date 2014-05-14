@@ -356,7 +356,7 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
 1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path. There are two cases in which this is unnecessary:
     1. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/`
-    2. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/local/` (the default), AND your libraries are in `/usr/local/lib/`. Go check! On some platforms, the libraries are in an additional subdirectory (on Ubuntu 13.10: `/usr/local/lib/x86_64-linux-gnu`).
+    2. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/local/` (the default), AND your libraries are in `/usr/local/lib/`. Go check! On recent Ubuntu versions, the libraries are in an additional subdirectory (on Ubuntu 13.10: `/usr/local/lib/x86_64-linux-gnu`).
 
         * Mac:
     
@@ -386,15 +386,15 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
 #### Layout of installation
 
-The directory `[x86_64-linux-gnu]` may be different on your computer, or it may not exist.
+The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. The directory `[x86_64-linux-gnu]` only exists on recent versions of Ubuntu (e.g., 13.10), and even then may be different.
 
-* `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `usr/lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's), used at runtime.
+* `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
+* `lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's), used at runtime.
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
     * `simbody/examples/` the examples, compiled into executables; run them!
-* `usr/libexec/simbody/` the `simbody-visualizer` executable.
-* `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
+* `libexec/simbody/` the `simbody-visualizer` executable.
+* `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
     * `examples/` source code for the examples.
 
 
