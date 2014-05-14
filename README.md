@@ -205,11 +205,10 @@ Mac and Homebrew
 Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.4`), or `HEAD` if you specified `--HEAD` above.
 
 Some directories are symlinked (symbolically linked) to `/usr/local/`, which is where your system typically expects to find executables, shared libraries (.dylib's), headers (.h's), etc. The following directories from the Simbody installation are symlinked:
-```
-include/simbody   -> /usr/local/include/simbody
-lib               -> /usr/local/lib
-share/doc/simbody -> /usr/local/share/doc/simbody
-```
+
+* `include/simbody   -> /usr/local/include/simbody`
+* `lib               -> /usr/local/lib`
+* `share/doc/simbody -> /usr/local/share/doc/simbody`
 
 #### Layout of installation
 
