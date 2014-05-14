@@ -239,7 +239,7 @@ With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag
 
 #### Install
 
-1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
+* Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
     * 12.04:
     
         ```
@@ -252,11 +252,12 @@ With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag
         sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu saucy main" > /etc/apt/sources.list.d/gazebo-latest.list'
         ```
         
-2. Install Simbody.
-```
-$ sudo apt-get update
-$ sudo apt-get install libsimbody-dev
-```
+* Install Simbody.
+
+    ```
+    $ sudo apt-get update
+    $ sudo apt-get install libsimbody-dev
+    ```
 
 #### Layout of installation
 
@@ -371,9 +372,9 @@ $ make uninstall
 
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
-1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path. There are two cases in which this is unnecessary:
+* Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path. There are two cases in which this is unnecessary:
     1. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/`
-    2. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/local/` (the default), AND your libraries are in `/usr/local/lib`. Go check! On some platforms, the libraries are in an additional subdirectory (on Ubuntu 13.10: `/usr/local/lib/x86_64-linux-gnu`.
+    2. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/local/` (the default), AND your libraries are in `/usr/local/lib/`. Go check! On some platforms, the libraries are in an additional subdirectory (on Ubuntu 13.10: `/usr/local/lib/x86_64-linux-gnu`).
 
     * Mac:
 
@@ -389,8 +390,8 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
     
         These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
 
-2. Open a new terminal.
-3. Test your installation:
+* Open a new terminal.
+* Test your installation:
 
     ```
     $ cd ~/simbody/share/doc/simbody/examples/bin
