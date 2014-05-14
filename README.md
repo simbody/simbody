@@ -92,6 +92,19 @@ You want to...
 
 ---
 
+
+Dependencies
+------------
+
+Simbody depends on the following:
+
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8 or greater.
+* compiler: [Visual Studio](http://www.visualstudio.com) 2010 or 2013 (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
+* linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
+* visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
+* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/)
+
+
 Installing
 ----------
 
@@ -102,19 +115,9 @@ Simbody works on Windows, Mac, and Linux. For Windows, you must build from sourc
 3. [**Ubuntu**](#ubuntu-and-apt-get): install with apt-get
 4. [**UNIX (Mac, Linux)**](#unix-and-makefiles): build from source using gcc or Clang with Makefile's.
 
-### Dependencies
 
-Simbody depends on the following:
-
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8 or greater.
-* compiler: [Visual Studio](http://www.visualstudio.com) 2010 or 2013 (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
-* linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
-* visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
-* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/)
-
----
-
-### Windows and Visual Studio
+Windows and Visual Studio
+-------------------------
 
 #### Get the dependencies
 
@@ -178,9 +181,9 @@ How is your Simbody installation organized?
 * `lib/` "import" libraries, used during linking.
 * `share/` CMake files that are useful for projects that use Simbody.
 
----
 
-### Mac and Homebrew
+Mac and Homebrew
+----------------
 
 #### Install
 
@@ -221,13 +224,13 @@ What's in the `/usr/local/Cellar/simbody/<version>` directory?
 * `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
     * `examples/` source code for the examples.
 
----
 
-### Ubuntu and apt-get
+Ubuntu and apt-get
+------------------
 
----
 
-### UNIX and Makefiles
+UNIX and Makefiles
+------------------
 
 The Xcode developer package gives LAPACK and BLAS to you via the Accelerate
 framework. Mac's come with the visualization dependencies.
