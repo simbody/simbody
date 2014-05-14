@@ -212,7 +212,7 @@ Some directories are symlinked (symbolically linked) to `/usr/local/`, which is 
 
 #### Layout of installation
 
-What's in the `/usr/local/Cellar/simbody/<version>` directory?
+What's in the `/usr/local/Cellar/simbody/<version>/` directory?
 
 * `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
 * `lib/` shared libraries (.dylib's), used at runtime.
@@ -320,6 +320,5 @@ You may need to run these lines as a superuser (`sudo apt-get ...`).
 [simbios]: http://simbios.stanford.edu/
 [thy]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf
 [flores]: https://simtk.org/forums/memberlist.php?mode=viewprofile&u=482
-[forum]: 
 [buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
 [buildunix]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_MacLinux.pdf
