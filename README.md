@@ -98,7 +98,7 @@ Dependencies
 
 Simbody depends on the following:
 
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8 or greater.
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8 or greater
 * compiler: [Visual Studio](http://www.visualstudio.com) 2010 or 2013 (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
@@ -113,7 +113,7 @@ Simbody works on Windows, Mac, and Linux. For Windows, you must build from sourc
 1. [**Windows**](#windows-and-visual-studio): build from source using Microsoft Visual Studio
 2. [**Mac**](#mac-and-homebrew): install with Homebrew
 3. [**Ubuntu**](#ubuntu-and-apt-get): install with apt-get
-4. [**UNIX (Mac, Linux)**](#unix-and-makefiles): build from source using gcc or Clang with Makefile's.
+4. [**UNIX (Mac, Linux)**](#unix-and-makefiles): build from source using gcc or Clang with Makefile's
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
