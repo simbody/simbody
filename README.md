@@ -189,6 +189,8 @@ Mac and Homebrew
 
 If using a Mac and Homebrew, the dependencies are taken care of for you.
 
+With this method, Simbody is built without the `-std=c++11` flag. Thus, any projects you build on top of Simbody must also NOT use `-std=c++11`. If you do try to use `-std=c++11`, you'll run into mysterious errors. See issue #125.
+
 #### Install
 
 1. Install [Homebrew](http://brew.sh/).
@@ -233,6 +235,8 @@ Ubuntu and apt-get
 
 You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
 
+With this method, Simbody is built without the `-std=c++11` flag. Thus, any projects you build on top of Simbody must also NOT use `-std=c++11`. If you do try to use `-std=c++11`, you'll run into mysterious errors. See issue #125.
+
 #### Install
 
 1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
@@ -266,19 +270,17 @@ These instructions are for building Simbody from source on either a Mac or on Ub
 On a Mac, the Xcode developer package gives LAPACK and BLAS to you via the Accelerate
 framework. Mac's come with the visualization dependencies.
 
-On Ubuntu, we need to get the dependencies ourselves. Run the following in a terminal:
+On Ubuntu, we need to get the dependencies ourselves.
+1. Get the necessary dependencies:
 ```
 $ sudo apt-get install cmake liblapack-dev
 ```
-
-If you want to use the CMake GUI, install `cmake-qt-gui`.
-
-Optionally, for visualization:
+2. If you want to use the CMake GUI, install `cmake-qt-gui`.
+3. For visualization (optional):
 ```
 $ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev
 ```
-
-Optionally, for API documentation:
+4. For API documentation (optional):
 ```
 $ sudo apt-get install doxygen
 ```
@@ -286,7 +288,19 @@ $ sudo apt-get install doxygen
 
 #### Get the Simbody source code
 
-Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `C:/simbody-source`.
+There are two ways to get the source code.
+
+* Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `~/simbody-source`.
+* Clone the git repository.
+    1. Get git.
+        * Mac: Install [homebrew](http://brew.sh/) and run `brew install git` in a terminal.
+        * Ubuntu: run `sudo apt-get install git` in a terminal.
+    2. Clone the github repository into `~/simbody-source`.
+    ```
+    $ git clone https://github.com/simbody/simbody.git ~/simbody-source
+    # git checkout Simbody-3.4
+    ```
+    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
 
 
