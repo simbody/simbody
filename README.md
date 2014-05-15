@@ -2,19 +2,19 @@ Simbody [![Build Status][buildstatus_image]][travisci]
 =======
 
 Simbody is a high-performance, open-source toolkit for science- and
-engineering-quality simulation of articulated mechanisms, including 
-biomechanical structures such as human and animal skeletons, 
+engineering-quality simulation of articulated mechanisms, including
+biomechanical structures such as human and animal skeletons,
 mechanical systems like robots, vehicles, and machines, and anything
 else that can be described as a set of rigid bodies interconnected
 by joints, influenced by forces and motions, and restricted by
-constraints. Simbody includes a multibody dynamics library for 
-modeling motion in [generalized/internal coordinates in O(n) time][thy]. 
+constraints. Simbody includes a multibody dynamics library for
+modeling motion in [generalized/internal coordinates in O(n) time][thy].
 This is sometimes called a Featherstone-style physics engine.
 
 Simbody provides a C++ API that is used to build domain-specific applications;
-it is not a standalone application itself. For example, it is used by 
+it is not a standalone application itself. For example, it is used by
 biomechanists in [OpenSim](http://opensim.stanford.edu), by roboticists in
-[Gazebo](http://gazebosim.org), and for biomolecular research in 
+[Gazebo](http://gazebosim.org), and for biomolecular research in
 [MacroMoleculeBuilder (MMB)](https://simtk.org/home/rnatoolbox). Here's an
 artful simulation of several RNA molecules containing thousands of bodies,
 performed with MMB by [Samuel Flores][flores]:
@@ -71,7 +71,7 @@ example.
 Features
 --------
 - Wide variety of joint, constraint, and force types; easily user-extended.
-- Forward, inverse, and mixed dynamics. Motion driven by forces or 
+- Forward, inverse, and mixed dynamics. Motion driven by forces or
   prescribed motion.
 - Contact (Hertz, Hunt and Crossley models).
 - Gradient descent and interior point optimizers.
@@ -152,6 +152,10 @@ Download the source code from https://github.com/simbody/simbody/releases. Look 
     * **Release**: no debugger symbols; optimized.
     * **RelWithDebInfo**: debugger symbols; optimized. Select this if you don't know.
     * **MinSizeRel**: minimum size; optimized.
+
+    You might want to have both debug *and* release (the last 3 count as
+    release) libraries. To do this, go through the full installation
+    process twice, once for each configuration.
 3. Build the project **ALL_BUILD** by right-clicking it and selecting **Build**.
 4. Run the tests by right-clicking **RUN_TESTS** and selecting **Build**.
 5. Install Simbody by right-clicking **INSTALL** and selecting **Build**.
@@ -245,12 +249,12 @@ With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag
 
 1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
     * 12.04:
-    
+
             sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu precise main" > /etc/apt/sources.list.d/gazebo-latest.list'
     * 13.10:
-     
+
             sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu saucy main" > /etc/apt/sources.list.d/gazebo-latest.list'
-        
+
 2. Install Simbody.
 
         $ sudo apt-get update
@@ -295,10 +299,10 @@ There are two ways to get the source code.
         * Mac: You might have it already, especially if you have Xcode, which is free in the App Store. If not, one method is to install [Homebrew](http://brew.sh/) and run `brew install git` in a terminal.
         * Ubuntu: run `sudo apt-get install git` in a terminal.
     2. Clone the github repository into `~/simbody-source`.
-    
+
             $ git clone https://github.com/simbody/simbody.git ~/simbody-source
             $ git checkout Simbody-3.4
-        
+
     3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
 #### Configure and generate Makefiles
@@ -313,35 +317,52 @@ There are two ways to get the source code.
     * If you don't want to fuss with any options, run:
 
             $ cmake ~/simbody-source
-    
+
     * Where do you want to install Simbody? By default, it is installed to `/usr/local/`. You can change this via the `CMAKE_INSTALL_PREFIX` variable. Let's choose `~/simbody`:
-    
+
             $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody
-    
-    * Do you want to use C++11? By default, Simbody assumes not. If you plan to use Simbody in a project that DOES use C++11, then you must build Simbody with C++11 as well. You can change this via the `SIMBODY_STANDARD_11` flag:
-    
+
+    * Do you want to use C++11? By default, Simbody assumes no. If you plan to use Simbody in a project that DOES use C++11, then you must build Simbody with C++11 as well. You can change this via the `SIMBODY_STANDARD_11` variable:
+
             $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=on
-    
+
+    * Do you want the libraries to be optimized for speed, or to contain debugger symbols? You can change this via the `CMAKE_BUILD_TYPE` variable. There are 4 options:
+        - **Debug**: debugger symbols; no optimizations (*very* slow).
+        - **Release**: no debugger symbols; optimized. The default.
+        - **RelWithDebInfo**: debugger symbols; optimized.
+        - **MinSizeRel**: minimum size; optimized.
+
+        You might want to have both debug *and* release (the last 3 count as release) libraries. To do this, go through the full installation process twice, once for each build type. It is typical to use a different build directory for each build type (e.g., `~/simbody-build-debug` and `~/simbody-build-release`).
+
     * There are a few other variables you might want to play with:
-        * `BUILD_EXAMPLES` on by default
-        * `BUILD_TESTING` on by default
-        * `BUILD_VISUALIZER` on by default
-        
+        * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
+        * `BUILD_TESTING` to ensure your Simbody works
+          correctly. The tests take a long time to build, though. If you need to
+          build Simbody quickly, maybe turn this off. On by default.
+        * `BUILD_VISUALIZER` to be able to watch your system
+          move about! If building on a cluster, you could turn this off. On by
+          default.
+
         You can combine all these options. Here's another example:
-        
-            $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody -DBUILD_VISUALIZER=off 
+
+            $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_VISUALIZER=off
 
 #### Build and install
 
-3. Compile. Use the `-jn` flag to build using `n` processor cores. For example:
+1. Build the API documentation. This is optional, and you can only do this if
+   you have Doxygen.
+
+        $ make doxygen
+
+2. Compile. Use the `-jn` flag to build using `n` processor cores. For example:
 
         $ make -j8
 
-4. Run the tests.
+3. Run the tests.
 
         $ ctest -j8
 
-5. Install. The `sudo` is there in case your `CMAKE_INSTALL_PREFIX` is something like `/usr/local/` (the default).
+4. Install. The `sudo` is there in case your `CMAKE_INSTALL_PREFIX` is something like `/usr/local/` (the default).
 
         $ sudo make -j8 install
 
@@ -355,34 +376,34 @@ Just so you know, you can also uninstall (delete all files that CMake placed int
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
 1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path. There are two cases in which this is unnecessary:
-    1. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/`
+    1. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/`.
     2. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/local/` (the default), AND your libraries are in `/usr/local/lib/`. Go check! On recent Ubuntu versions, the libraries are in an additional subdirectory (on Ubuntu 13.10: `/usr/local/lib/x86_64-linux-gnu`).
 
         * Mac:
-    
+
                 $ sudo echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody/lib' > /etc/profile
-        
+
         * Ubuntu:
-        
+
                 $ sudo echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' > ~/.bashrc
-        
+
         These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
 
 2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody.
 
     * Mac:
-    
+
             $ sudo echo 'export SIMBODY_HOME=~/simbody' > /etc/profile
-    
+
     * Ubuntu:
-    
+
             $ sudo echo 'export SIMBODY_HOME=~/simbody' > ~/.bashrc
 3. Open a new terminal.
 4. Test your installation:
 
         $ cd ~/simbody/share/doc/simbody/examples/bin
         $ ./SimbodyInstallTest # or ./SimbodyInstallTestNoViz
-        
+
 
 #### Layout of installation
 
