@@ -64,6 +64,8 @@ int main() {
 }
 ```
 
+[![Double-pendulum simulation in Simbody][doublePendulum]]
+
 See [Simbody's User Guide][user] for a step-by-step explanation of this
 example.
 
@@ -403,6 +405,7 @@ The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. Th
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]:https://raw2.github.com/simbody/simbody/master/doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
+[doublePendulum]: https://raw2.github.com/simbody/simbody/master/doc/images/doublePendulum.gif
 [thy]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf
 [flores]: https://simtk.org/forums/memberlist.php?mode=viewprofile&u=482
 [buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
