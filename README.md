@@ -334,7 +334,7 @@ There are two ways to get the source code.
         - **RelWithDebInfo**: debugger symbols; optimized.
         - **MinSizeRel**: minimum size; optimized.
 
-        You might want to have both debug *and* release (the last 3 count as release) libraries. To do this, go through the full installation process twice, once for each build type. It is typical to use a different build directory for each build type (e.g., `~/simbody-build-debug` and `~/simbody-build-release`). You should install the release configuration *last* to ensure that you use the release version of the `simbody-visualizer` instead of the slow debug version.
+        You might want to have both debug *and* release (the last 3 count as release) libraries. To do this, go through the full installation process twice, once for each build type. It is typical to use a different build directory for each build type (e.g., `~/simbody-build-debug` and `~/simbody-build-release`). You should install the release build type *last* to ensure that you use the release version of the `simbody-visualizer` instead of the slow debug version.
 
     * There are a few other variables you might want to play with:
         * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
