@@ -326,19 +326,13 @@ There are two ways to get the source code.
 
             $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=on
 
-    * Do you want the libraries to be optimized for speed, or to contain
-      debugger symbols? You can change this via the `CMAKE_BUILD_TYPE`
-      variable. There are 4 options:
-        * **Debug**: debugger symbols; no optimizations (*very* slow).
-        * **Release**: no debugger symbols; optimized. The default.
-        * **RelWithDebInfo**: debugger symbols; optimized. Select this if you don't know.
-        * **MinSizeRel**: minimum size; optimized.
+    * Do you want the libraries to be optimized for speed, or to contain debugger symbols? You can change this via the `CMAKE_BUILD_TYPE` variable. There are 4 options:
+        - **Debug**: debugger symbols; no optimizations (*very* slow).
+        - **Release**: no debugger symbols; optimized. The default.
+        - **RelWithDebInfo**: debugger symbols; optimized.
+        - **MinSizeRel**: minimum size; optimized.
 
-        You might want to have both debug *and* release (the last 3 count as
-        release) libraries. To do this, go through the full installation
-        process twice, once for each build type. It is typical to use a
-        different build directory for each build type (e.g.,
-        `~/simbody-build-debug` and `~/simbody-build-release`).
+        You might want to have both debug *and* release (the last 3 count as release) libraries. To do this, go through the full installation process twice, once for each build type. It is typical to use a different build directory for each build type (e.g., `~/simbody-build-debug` and `~/simbody-build-release`).
 
     * There are a few other variables you might want to play with:
         * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
@@ -382,7 +376,7 @@ Just so you know, you can also uninstall (delete all files that CMake placed int
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
 1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path. There are two cases in which this is unnecessary:
-    1. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/`
+    1. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/`.
     2. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/local/` (the default), AND your libraries are in `/usr/local/lib/`. Go check! On recent Ubuntu versions, the libraries are in an additional subdirectory (on Ubuntu 13.10: `/usr/local/lib/x86_64-linux-gnu`).
 
         * Mac:
