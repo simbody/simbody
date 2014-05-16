@@ -412,7 +412,7 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
 #### Layout of installation
 
-The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. The directory `[x86_64-linux-gnu]` only exists on recent versions of Ubuntu (e.g., 13.10), and even then may be different.
+The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. The directory `[x86_64-linux-gnu]` only exists if you're using a recent version of Ubuntu (e.g., 13.10) and did NOT install to `/usr/local/`. Even in that case, the name of your directory may be different.
 
 * `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
 * `lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's), used at runtime.
