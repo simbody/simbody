@@ -258,6 +258,22 @@ ELSE() # Windows
 
 ENDIF()
 
+# If CMAKE_INSTALL_PREFIX is /usr/local, then the LIBDIR should necessarily be
+# lib/. Sometimes (on Linux), LIBDIR is something like x86_64-linux-gnu. The
+# linker will search /usr/lib/x86_64-linux-gnu (this path is in
+# /etc/ld.so.conf.d), but it will NOT search /usr/local/lib/x86-64-linux-gnu.
+# HOWEVER, it WILL search /usr/local/lib. So that Linux users needn't modify
+# their LD_LIBRARY_PATH if installing to /usr/local, we force the LIBDIR to be
+# lib/.
+IF("${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local" OR
+        "${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local/lib/")
+    # Overwrite both of these variables; we use both of them.
+    SET(CMAKE_INSTALL_LIBDIR "lib")
+    SET(CMAKE_INSTALL_FULL_LIBDIR
+        "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+ENDIF()
+
+
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" 
         FORCE)

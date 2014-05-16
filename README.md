@@ -377,9 +377,12 @@ Just so you know, you can also uninstall (delete all files that CMake placed int
 
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
-1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path. There are two cases in which this is unnecessary:
-    1. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/`.
-    2. If you chose your `CMAKE_INSTALL_PREFIX` to be `/usr/local/` (the default), AND your libraries are in `/usr/local/lib/`. Go check! On recent Ubuntu versions, the libraries are in an additional subdirectory (on Ubuntu 13.10: `/usr/local/lib/x86_64-linux-gnu`).
+1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path.
+    * If your `CMAKE_INSTALL_PREFIX` is `/usr/local/`, run:
+
+            $ sudo ldconfig
+
+    * If your `CMAKE_INSTALL_PREFIX` is neither `/usr/` nor `/usr/local/`:
 
         * Mac:
 
