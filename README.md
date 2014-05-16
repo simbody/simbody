@@ -56,11 +56,11 @@ int main() {
     State state = system.realizeTopology();
     pendulum2.setRate(state, 5.0);
 
-    // Simulate for 50 seconds.
+    // Simulate for 20 seconds.
     RungeKuttaMersonIntegrator integ(system);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    ts.stepTo(50.0);
+    ts.stepTo(20.0);
 }
 ```
 
