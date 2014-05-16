@@ -265,8 +265,10 @@ ENDIF()
 # HOWEVER, it WILL search /usr/local/lib. So that Linux users needn't modify
 # their LD_LIBRARY_PATH if installing to /usr/local, we force the LIBDIR to be
 # lib/.
+# Note: CMake 3.0 fixes this issue. When we move to CMake 3.0, we can
+# remove this if-statement. See issue #151.
 IF("${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local" OR
-        "${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local/lib/")
+        "${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local/")
     # Overwrite both of these variables; we use both of them.
     SET(CMAKE_INSTALL_LIBDIR "lib")
     SET(CMAKE_INSTALL_FULL_LIBDIR
