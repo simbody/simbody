@@ -2433,7 +2433,8 @@ void* listenForInput(void* args) {
 
         default:
             SimTK_ERRCHK1_ALWAYS(!"unrecognized command", "listenForInput()",
-                "Unexpected command %u received from simbody-visualizer. Can't continue.",
+                "simbody-visualizer received unexpected command %u "
+                "from simulator. Can't continue.",
                 (unsigned)buffer[0]);
         }
 
