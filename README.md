@@ -86,9 +86,8 @@ You want to...
 * [view API documentation](https://simtk.org/api_docs/simbody/api_docs33/Simbody/html/index.html).
 * [learn the theory behind Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf).
 * [extend Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAdvancedProgrammingGuide.pdf).
-* [view the Simbody forum](https://simtk.org/forums/viewforum.php?f=47).
+* [**get support** at the Simbody forum](https://simtk.org/forums/viewforum.php?f=47).
 * [report a bug or suggest a feature](https://github.com/simbody/simbody/issues/new).
-* [get the source code, or contribute!](https://github.com/simbody/simbody/)
 
 ---
 
@@ -102,7 +101,7 @@ Simbody depends on the following:
 * compiler: [Visual Studio](http://www.visualstudio.com) 2010 or 2013 (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
-* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/)
+* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.2 or later
 
 
 Installing
@@ -131,36 +130,53 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
 
 #### Download the Simbody source code
 
-Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `C:/simbody-source`.
+* Method 1: Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `~/simbody-source`.
+* Method 2: Clone the git repository.
+    1. Get git. There are many options: [Git for Windows](http://msysgit.github.io/) (most advanced), [TortoiseGit](https://code.google.com/p/tortoisegit/wiki/Download) (intermediate; good for TortoiseSVN users), [GitHub for Windows](https://windows.github.com/) (easiest).
+    2. Clone the github repository into `~/simbody-source`. Run the following in a Git Bash / Git Shell, or find a way to run the equivalent commands in a GUI client:
+
+            $ git clone https://github.com/simbody/simbody.git ~/simbody-source
+            $ git checkout Simbody-3.4
+
+    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
 #### Configure and generate project files
 
 1. Open CMake.
-2. In the field **Where is the source code**, specify `C:/simbody-source`.
-3. In the field **Where to build the binaries**, specify something like `C:/simbody-build`.
+2. In the field **Where is the source code**, specify `C:/Simbody-source`.
+3. In the field **Where to build the binaries**, specify something like `C:/Simbody-build`, just not inside your source directory. This is *not* where we will install Simbody; see below.
 4. Click the **Configure** button.
     1. Choose a "generator" that corresponds to the Visual Studio you're using. For *Visual Studio 2013*, select **Visual Studio 12**. To build as 64-bit, select an option that ends with **Win64**.
     2. Click **Finish**.
-5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/simbody`.
-6. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
+5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/Simbody`. If you choose a different installation location, make sure to use *yours* where we use `C:/Simbody` below.
+6. Play around with the other build options:
+    * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
+    * `BUILD_TESTING` to ensure your Simbody works correctly. The tests take a long time to build, though. If you need to build Simbody quickly, maybe turn this off. On by default.
+    * `BUILD_VISUALIZER` to be able to watch your system move about! If building on a cluster, you could turn this off. On by default.
+    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
+    * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
+    * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
+7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
 
 #### Build and install
 
-1. Open `C:/simbody-build/Simbody.sln` in Visual Studio.
+1. Open `C:/Simbody-build/Simbody.sln` in Visual Studio.
 2. Select your desired *Solution configuration* from the drop-down at the top.
-    * **Debug**: debugger symbols; no optimizations (*very* slow).
+    * **Debug**: debugger symbols; no optimizations (more than 10x slower). Library names end with `_d`.
     * **Release**: no debugger symbols; optimized.
-    * **RelWithDebInfo**: debugger symbols; optimized. Select this if you don't know.
+    * **RelWithDebInfo**: debugger symbols; optimized. Bigger but not slower than Release; choose this if unsure.
     * **MinSizeRel**: minimum size; optimized.
 
-    You might want to have both debug *and* release (the last 3 count as
-    release) libraries. To do this, go through the full installation
-    process twice, once for each configuration. You should install the release
-    configuration *last* to ensure that you use the release version of the
-    `simbody-visualizer` instead of the slow debug version.
+    You at least want release libraries (the last 3 count as release), but you can have debug libraries coexist with them. To do this, go through the full installation process twice, once for each configuration. You should install the release configuration *last* to ensure that you use the release version of the `simbody-visualizer` instead of the slow debug version.
 3. Build the project **ALL_BUILD** by right-clicking it and selecting **Build**.
 4. Run the tests by right-clicking **RUN_TESTS** and selecting **Build**.
 5. Install Simbody by right-clicking **INSTALL** and selecting **Build**.
+
+#### Play around with examples
+
+1. Make sure your configuration is set to a release configuration (e.g., RelWithDebInfo).
+2. Right click on one of the targets whose name begins with `Example -` and select **Select as Startup Project**.
+3. Type **Ctrl-F5** to start the program.
 
 #### Set environment variables and test the installation
 
@@ -171,13 +187,13 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
     2. Select **Edit the system environment variables**.
     3. Click **Environment Variables...**.
     4. Under **System variables**, click **Path**, then click **Edit**.
-    5. Add `C:/simbody/bin;` to the front of the text field. Don't forget the semicolon!
+    5. Add `C:/Simbody/bin;` to the front of the text field. Don't forget the semicolon!
 2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. In the same Environment Variables window:
     6. Under **User variables for...**, click **New...**.
     7. For **Variable name**, type `SIMBODY_HOME`.
-    8. For **Variable value**, type `C:/simbody`.
+    8. For **Variable value**, type `C:/Simbody`.
 3. Changes only take effect in newly-opened windows. Close any Windows Explorer or Command Prompt windows.
-4. Test your installation by navigating to `C:/simbody/examples/bin` and running `SimbodyInstallTest.exe` or `SimbodyInstallTestNoViz.exe`.
+4. Test your installation by navigating to `C:/Simbody/examples/bin` and running `SimbodyInstallTest.exe` or `SimbodyInstallTestNoViz.exe`.
 
 #### Layout of installation
 
@@ -309,7 +325,7 @@ There are two ways to get the source code.
 
 #### Configure and generate Makefiles
 
-1. Create a directory in which we'll build Simbody.
+1. Create a directory in which we'll build Simbody. We'll assume you choose `~/simbody-build`. Don't choose a location inside `~/simbody-source`.
 
         $ mkdir ~/simbody-build
         $ cd ~/simbody-build
@@ -320,7 +336,7 @@ There are two ways to get the source code.
 
             $ cmake ~/simbody-source
 
-    * Where do you want to install Simbody? By default, it is installed to `/usr/local/`. You can change this via the `CMAKE_INSTALL_PREFIX` variable. Let's choose `~/simbody`:
+    * Where do you want to install Simbody? By default, it is installed to `/usr/local/`. That's a great default option, especially if you think you'll only use one version of Simbody at a time. You can change this via the `CMAKE_INSTALL_PREFIX` variable. Let's choose `~/simbody`:
 
             $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody
 
@@ -329,12 +345,12 @@ There are two ways to get the source code.
             $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=on
 
     * Do you want the libraries to be optimized for speed, or to contain debugger symbols? You can change this via the `CMAKE_BUILD_TYPE` variable. There are 4 options:
-        - **Debug**: debugger symbols; no optimizations (*very* slow).
-        - **Release**: no debugger symbols; optimized. The default.
-        - **RelWithDebInfo**: debugger symbols; optimized.
+        - **Debug**: debugger symbols; no optimizations (more than 10x slower). Library names end with `_d`.
+        - **Release**: no debugger symbols; optimized.
+        - **RelWithDebInfo**: debugger symbols; optimized. Bigger but not slower than Release; choose this if unsure.
         - **MinSizeRel**: minimum size; optimized.
 
-        You might want to have both debug *and* release (the last 3 count as release) libraries. To do this, go through the full installation process twice, once for each build type. It is typical to use a different build directory for each build type (e.g., `~/simbody-build-debug` and `~/simbody-build-release`). You should install the release build type *last* to ensure that you use the release version of the `simbody-visualizer` instead of the slow debug version.
+        You at least want release libraries (the last 3 count as release), but you can have debug libraries coexist with them. To do this, go through the full installation process twice, once for each configuration. It is typical to use a different build directory for each build type (e.g., `~/simbody-build-debug` and `~/simbody-build-release`). You should install the release configuration *last* to ensure that you use the release version of the `simbody-visualizer` instead of the slow debug version.
 
     * There are a few other variables you might want to play with:
         * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
@@ -344,6 +360,9 @@ There are two ways to get the source code.
         * `BUILD_VISUALIZER` to be able to watch your system
           move about! If building on a cluster, you could turn this off. On by
           default.
+        * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
+        * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
+        * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
 
         You can combine all these options. Here's another example:
 
@@ -364,14 +383,21 @@ There are two ways to get the source code.
 
         $ ctest -j8
 
-4. Install. The `sudo` is there in case your `CMAKE_INSTALL_PREFIX` is something like `/usr/local/` (the default).
+4. Install. If you chose `CMAKE_INSTALL_PREFIX` to be a location which requires sudo access to write to (like `/usr/local/`, prepend this command with a `sudo `.
 
-        $ sudo make -j8 install
+        $ make -j8 install
 
 Just so you know, you can also uninstall (delete all files that CMake placed into `CMAKE_INSTALL_PREFIX`) if you're in `~/simbody-build`.
 
     $ make uninstall
 
+
+#### Play around with examples
+
+From your build directory, you can run Simbody's example programs. For instance, try:
+
+        $ ./ExamplePendulum
+        
 
 #### Set environment variables and test the installation
 
@@ -382,33 +408,26 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
             $ sudo ldconfig
 
-    * If your `CMAKE_INSTALL_PREFIX` is neither `/usr/` nor `/usr/local/`:
-
+    * If your `CMAKE_INSTALL_PREFIX` is neither `/usr/` nor `/usr/local/` (e.g., `~/simbody`'):
         * Mac:
 
                 $ sudo echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody/lib' > /etc/profile
-
         * Ubuntu:
 
                 $ sudo echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' > ~/.bashrc
-
         These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
-
-2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody.
-
+2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. Make sure to replace `~/simbody` with your `CMAKE_INSTALL_PREFIX`.
     * Mac:
 
             $ sudo echo 'export SIMBODY_HOME=~/simbody' > /etc/profile
-
     * Ubuntu:
-
+            
             $ sudo echo 'export SIMBODY_HOME=~/simbody' > ~/.bashrc
 3. Open a new terminal.
 4. Test your installation:
 
         $ cd ~/simbody/share/doc/simbody/examples/bin
         $ ./SimbodyInstallTest # or ./SimbodyInstallTestNoViz
-
 
 #### Layout of installation
 
