@@ -64,7 +64,7 @@ int main() {
 }
 ```
 
-[![Double-pendulum simulation in Simbody][doublePendulum]]
+![Double-pendulum simulation in Simbody][doublePendulum]
 
 See [Simbody's User Guide][user] for a step-by-step explanation of this
 example.
