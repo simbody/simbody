@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2013 Stanford University and the Authors.           *
+ * Portions copyright (c) 2013-4 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors: Kevin He                                                     *
  *                                                                            *
@@ -257,18 +257,34 @@ void MultibodyGraphMaker::generateGraph() {
     //
     // While we're at it, look for dangling massless bodies -- they are only
     // allowed if they were originally connected to at least two other bodies
-    // by given tree-eligible joints.
+    // by given tree-eligible joints, or if they are connected by a weld 
+    // joint and thus have no mobility.
     // TODO: "must be loop joint" joints shouldn't count but we're not
     // checking.
     for (int bn=1; bn < getNumBodies(); ++bn) { // skip Ground
         const Body& body = getBody(bn);
-        const int nJoints = // how many joints connect to this body?
-            (int)(body.jointsAsChild.size()+body.jointsAsParent.size());
-        if (body.mass == 0 && nJoints < 2)
+        const int nJoints = body.getNumJoints();
+        if (body.mass == 0) {
+            if (nJoints == 0) {
                 throw std::runtime_error(
                     "generateGraph(): body " + body.name + 
-                    " is massless but connected by fewer than 2 joints.");
-
+                    " is massless but free (no joint). Must be internal or"
+                    " welded to a massful body.");
+            }
+            if (nJoints == 1) {
+                const int jnum = body.jointsAsChild.empty() 
+                                    ? body.jointsAsParent[0] 
+                                    : body.jointsAsChild[0];
+                const Joint& joint = getJoint(jnum);
+                const JointType& jtype = getJointType(joint.jointTypeNum);
+                if (jtype.numMobilities > 0) {
+                    throw std::runtime_error(
+                        "generateGraph(): body " + body.name + 
+                        " is massless but not internal and not welded to"
+                        " a massful body.");
+                }                               
+            }
+        }
         if (nJoints==0 || (body.mustBeBaseBody && !bodiesAreConnected(bn, 0))) 
             connectBodyToGround(bn);
     }
@@ -581,12 +597,13 @@ findHeaviestUnassignedReverseJoint(int inboardBody) const {
 // previously-disconnected base body to Ground and then call this again.
 //
 // We violate the breadth-first heuristic to avoid ending a branch with a 
-// massless body. If we add a massless body, we'll keep going out along its
-// branch until we hit a massful body. It is a disaster if we fail to find a
-// massful body because a tree that terminates in a massless body will generate
-// a singular mass matrix. We'll throw an exception in that case, but note that
-// this may just be a failure of the heuristic; there may be some tree that 
-// could have avoided the terminal massless body but we failed to discover it.
+// massless body, unless it is welded to its parent. If we add a mobile massless
+// body, we'll keep going out along its branch until we hit a massful body. It 
+// is a disaster if we fail to find a massful body because a tree that 
+// terminates in a mobile massless body will generate a singular mass matrix. 
+// We'll throw an exception in that case, but note that this may just be a 
+// failure of the heuristic; there may be some tree that could have avoided the 
+// terminal massless body but we failed to discover it.
 //
 // TODO: keep a list of unprocessed joints so we don't have to go through
 // all of them again at each level.
@@ -612,9 +629,12 @@ void MultibodyGraphMaker::growTree() {
             anyMobilizerAdded = true;
 
             // We just made joint jNum a mobilizer. If its outboard body 
-            // is massless, we need to keep extending this branch of the tree
-            // until we can end it with a massful body.
-            if (getBody(mobilizers.back().outboardBody).mass > 0)
+            // is massless and the mobilizer was not a weld, we need to keep 
+            // extending this branch of the tree until we can end it with a 
+            // massful body.
+            const Body& outboard = getBody(mobilizers.back().outboardBody);
+            const JointType& jtype = getJointType(joint.jointTypeNum);
+            if (jtype.numMobilities == 0 || outboard.mass > 0)
                 continue;
 
             // Pick a further-outboard body with mass and extend branch to it.

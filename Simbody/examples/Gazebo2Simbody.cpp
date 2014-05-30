@@ -697,6 +697,11 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     : gzJoint.defX_AB.R();
                 ballJoint.setDefaultRotation(defR_FM);
                 mobod = ballJoint;
+            } else if (type == "weld") {
+                MobilizedBody::Weld weldJoint(
+                    gzInb.masterMobod,  X_IF0,
+                    massProps,          X_OM0);
+                mobod = weldJoint;
             } 
 
             // Created a mobilizer that corresponds to gzJoint. Keep track.
@@ -968,10 +973,15 @@ static void runSimulation(const MultibodySystem&          mbs,
             printf("\n  JOINTS t=%g\n", t);
             for (int i=0; i < model.joints.size(); ++i) {
                 const GazeboJointInfo& joint = model.joints.getJoint(i);
-                const Real q0 = joint.mobod.getOneQ(state, 0);
-                const Real u0 = joint.mobod.getOneU(state, 0);
-                printf("  %20s %10.3g %10.3g\n", 
-                    joint.name.c_str(), q0, u0); 
+                if (joint.mobod.getNumU(state)) {
+                    const Real q0 = joint.mobod.getOneQ(state, 0);
+                    const Real u0 = joint.mobod.getOneU(state, 0);
+                    printf("  %20s %10.3g %10.3g\n", 
+                        joint.name.c_str(), q0, u0); 
+                } else { // weld joint
+                    printf("  %20s weld; no dofs\n", 
+                        joint.name.c_str());
+                }
             }
         }
 
