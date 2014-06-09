@@ -57,13 +57,37 @@ using namespace std;
 
 static int inPipe;
 
-// Create a pipe, using the right call for this platform.
-static int createPipe(int pipeHandles[2]) {
+// Create the pipe going *from* simulator *to* visualizer, so only the
+// read end should be inherited by the visualizer.
+static int createPipeSim2Viz(int sim2viz[2]) {
     const int status =
 #ifdef _WIN32
-        _pipe(pipeHandles, 16384, _O_BINARY);
+        _pipe(sim2viz, 16384, _O_BINARY|_O_NOINHERIT);
+        if (status==0) {
+            const int readfd = _dup(sim2viz[0]); // copy is inheritable
+            _close(sim2viz[0]); // close the non-inheritable version
+            sim2viz[0] = readfd; // replace with inheritable copy
+        }
 #else
-        pipe(pipeHandles);
+        pipe(sim2viz);
+#endif
+    return status;
+}
+
+
+// Create the pipe going *to* simulator *from* visualizer, so only the
+// write end should be inherited by the visualizer.
+static int createPipeViz2Sim(int viz2sim[2]) {
+    const int status =
+#ifdef _WIN32
+        _pipe(viz2sim, 16384, _O_BINARY|_O_NOINHERIT);
+        if (status==0) {
+            const int writefd = _dup(viz2sim[1]); // copy is inheritable
+            _close(viz2sim[1]); // close the non-inheritable version
+            viz2sim[1] = writefd; // replace with inheritable copy
+        }
+#else
+        pipe(viz2sim);
 #endif
     return status;
 }
@@ -72,13 +96,15 @@ static int createPipe(int pipeHandles[2]) {
 // this platform. We take two executables to try in order,
 // and return after the first one succeeds. If neither works, we throw
 // an error that is hopefully helful.
-static void spawnViz(const Array_<String>& searchPath,
-                     const String& appName, int toSimPipe, int fromSimPipe)
+static void spawnViz(const Array_<String>& searchPath, const String& appName, 
+                     int sim2vizPipe[2], int viz2simPipe[2])
 {
     int status;
-    char vizPipeToSim[32], vizPipeFromSim[32];
-    sprintf(vizPipeToSim, "%d", toSimPipe);
-    sprintf(vizPipeFromSim, "%d", fromSimPipe);
+
+    // Pass pipe numbers as command line arguments to the visualizer.
+    char vizReadFromSim[32], vizWriteToSim[32];
+    sprintf(vizReadFromSim, "%d", sim2vizPipe[0]);
+    sprintf(vizWriteToSim, "%d", viz2simPipe[1]);
 
     String exePath; // search path + appName
 
@@ -87,25 +113,35 @@ static void spawnViz(const Array_<String>& searchPath,
     for (unsigned i=0; i < searchPath.size(); ++i) {
         exePath = searchPath[i] + appName;
         handle = _spawnl(P_NOWAIT, exePath.c_str(), appName.c_str(), 
-                         vizPipeToSim, vizPipeFromSim, (const char*)0);
-        if (handle != -1)
+                         vizReadFromSim, vizWriteToSim, (const char*)0);
+        if (handle != -1) {
+            // success: visualizer is running
+            _close(sim2vizPipe[0]); // read end (belongs to visualizer)
+            _close(viz2simPipe[1]); // write end (belongs to visualizer)
             break; // success!
+        }
     }
     status = (handle==-1) ? -1 : 0;
 #else
     const pid_t pid = fork();
     if (pid == 0) {
-        // child process
+        // child process (the visualizer)
+        close(sim2vizPipe[1]); // write end (belongs to simulator)
+        close(viz2simPipe[0]); // read end(belongs to simulator)
         for (unsigned i=0; i < searchPath.size(); ++i) {
             exePath = searchPath[i] + appName;
             status = execl(exePath.c_str(), appName.c_str(), 
-                           vizPipeToSim, vizPipeFromSim, (const char*)0); 
+                           vizReadFromSim, vizWriteToSim, (const char*)0); 
             // if we get here the execl() failed
         }
         // fall through -- we failed on every try
     } else {
-        // parent process
+        // parent process (the simulator)
         status = (pid==-1) ? -1 : 0;
+        if (status == 0) {
+            close(sim2vizPipe[0]); // read end (belongs to visualizer)
+            close(viz2simPipe[1]); // write end (belongs to visualizer)
+        }
     }
 #endif
 
@@ -234,21 +270,21 @@ VisualizerProtocol::VisualizerProtocol
         Pathname::addDirectoryOffset(def,
             Pathname::addDirectoryOffset("SimTK", "bin")));
 
+    // Pipe[0] is the read end, Pipe[1] is the write end.
     int sim2vizPipe[2], viz2simPipe[2], status;
 
     // Create pipe pair for communication from simulator to visualizer.
-    status = createPipe(sim2vizPipe);
+    status = createPipeSim2Viz(sim2vizPipe);
     SimTK_ASSERT_ALWAYS(status != -1, "VisualizerProtocol: Failed to open pipe");
-    outPipe = sim2vizPipe[1];
+    outPipe = sim2vizPipe[1]; // write here to talk to visualizer
 
     // Create pipe pair for communication from visualizer to simulator.
-    status = createPipe(viz2simPipe);
+    status = createPipeViz2Sim(viz2simPipe);
     SimTK_ASSERT_ALWAYS(status != -1, "VisualizerProtocol: Failed to open pipe");
-    inPipe = viz2simPipe[0];
+    inPipe = viz2simPipe[0]; // read from here to receive from visualizer
 
     // Spawn the visualizer gui, trying local first then installed version.
-    spawnViz(actualSearchPath,
-             GuiAppName, sim2vizPipe[0], viz2simPipe[1]);
+    spawnViz(actualSearchPath, GuiAppName, sim2vizPipe, viz2simPipe);
 
     // Before we do anything else, attempt to exchange handshake messages with
     // the visualizer. This will throw an exception if anything goes wrong.
