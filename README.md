@@ -56,13 +56,15 @@ int main() {
     State state = system.realizeTopology();
     pendulum2.setRate(state, 5.0);
 
-    // Simulate for 50 seconds.
+    // Simulate for 20 seconds.
     RungeKuttaMersonIntegrator integ(system);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    ts.stepTo(50.0);
+    ts.stepTo(20.0);
 }
 ```
+
+![Double-pendulum simulation in Simbody][doublePendulum]
 
 See [Simbody's User Guide][user] for a step-by-step explanation of this
 example.
@@ -448,6 +450,7 @@ The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. Th
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]: doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
+[doublePendulum]: doc/images/doublePendulum.gif
 [thy]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf
 [flores]: https://simtk.org/forums/memberlist.php?mode=viewprofile&u=482
 [buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
