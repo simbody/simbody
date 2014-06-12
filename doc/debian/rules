@@ -10,7 +10,8 @@
 override_dh_auto_configure:
 	dh_auto_configure --  \
 	    -DCMAKE_INSTALL_PREFIX:PATH=/usr \
-	    -DBUILD_EXAMPLES:BOOL=False
+	    -DBUILD_EXAMPLES:BOOL=False \
+	    -DMAKE_BUILD_TYPE:STRING=RelWithDebInfo
 
 override_dh_auto_build-indep:
 	dh_auto_build -- doxygen
