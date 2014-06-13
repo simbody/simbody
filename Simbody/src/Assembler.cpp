@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -837,10 +837,17 @@ Real Assembler::assemble() {
     {   optimizer->optimize(freeQs); }
     catch (const std::exception& e)
     {   setInternalStateFromFreeQs(freeQs);
-        system.realize(internalState, Stage::Position);       
-        SimTK_THROW3(AssembleFailed, 
-            (String("Optimizer failed with message: ") + e.what()).c_str(), 
-            calcCurrentErrorNorm(), getErrorToleranceInUse());
+        system.realize(internalState, Stage::Position);
+
+        // Sometimes the optimizer will throw an exception after it has
+        // already achieved a winning solution. One message that comes up
+        // is "Ipopt: Restoration failed (status -2)". We'll ignore that as
+        // long as we have a good result. Otherwise we'll re-throw here.
+        if (calcCurrentErrorNorm() > getErrorToleranceInUse()) {
+            SimTK_THROW3(AssembleFailed, 
+                (String("Optimizer failed with message: ") + e.what()).c_str(), 
+                calcCurrentErrorNorm(), getErrorToleranceInUse());
+        }
     }
 
     // This will ensure that the internalState has its q's set to match the
@@ -891,10 +898,17 @@ Real Assembler::track(Real frameTime) {
     {   optimizer->optimize(freeQs); }
     catch (const std::exception& e)
     {   setInternalStateFromFreeQs(freeQs);
-        system.realize(internalState, Stage::Position);       
-        SimTK_THROW3(TrackFailed, 
-            (String("Optimizer failed with message: ") + e.what()).c_str(), 
-            calcCurrentErrorNorm(), getErrorToleranceInUse());
+        system.realize(internalState, Stage::Position); 
+
+        // Sometimes the optimizer will throw an exception after it has
+        // already achieved a winning solution. One message that comes up
+        // is "Ipopt: Restoration failed (status -2)". We'll ignore that as
+        // long as we have a good result. Otherwise we'll re-throw here.
+        if (calcCurrentErrorNorm() > getErrorToleranceInUse()) {
+            SimTK_THROW3(TrackFailed, 
+                (String("Optimizer failed with message: ") + e.what()).c_str(), 
+                calcCurrentErrorNorm(), getErrorToleranceInUse());
+        }
     }
 
     // This will ensure that the internalState has its q's set to match the
