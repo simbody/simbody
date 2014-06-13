@@ -631,7 +631,7 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake
 # Create a file that allows clients to Simbody to ensure they have the version
 # of Simbody they want.
 # Requires CMake 2.8.6.
-include(CMakePackageConfigHelpers)
+include(WriteBasicConfigVersionFile)
 # Writes a ConfigVersion file for us.
 WRITE_BASIC_PACKAGE_VERSION_FILE(
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
