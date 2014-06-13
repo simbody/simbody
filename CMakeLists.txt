@@ -10,7 +10,7 @@
 #
 #----------------------------------------------------
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.6)
 
 if(COMMAND cmake_policy)
         cmake_policy(SET CMP0003 NEW)
@@ -628,10 +628,18 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake 
     DESTINATION ${SIMBODY_CMAKE_DIR})
 
-CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfigVersion.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake @ONLY)
+# Create a file that allows clients to Simbody to ensure they have the version
+# of Simbody they want.
+# Requires CMake 2.8.6.
+include(CMakePackageConfigHelpers)
+# Writes a ConfigVersion file for us.
+WRITE_BASIC_PACKAGE_VERSION_FILE(
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
+    VERSION "${SIMBODY_VERSION}"
+    COMPATIBILITY SameMajorVersion)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
+    DESTINATION ${SIMBODY_CMAKE_DIR})
+
 
 # Install a sample CMakeLists.txt that uses SimbodyConfig.cmake.
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
