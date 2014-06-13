@@ -283,21 +283,21 @@ ENDIF (UNIX AND NOT CMAKE_BUILD_TYPE)
 
 
 ## Choose the maximum level of x86 instruction set that the compiler is 
-## allowed to use. SSE2 is ubiquitous enough now that we don't mind
-## abandoning machines that can't handle those instructions. SSE3 might
-## also be reasonable by now (April 2009) so this default should be
-## revisited soon. On 64 bit MSVC, the default is sse2 and the argument
-## isn't recognized so we won't specify it.
+## allowed to use. 
+## Was using sse2 but changed to let the compilers choose. Most will
+## probably use sse2 or later by default.
+## On 64 bit MSVC 2013, the default is sse2 and the argument
+## isn't recognized so don't specify it.
 if (CMAKE_CL_64)
     set(default_build_inst_set)
 else()
-    set(default_build_inst_set "sse2")
+    set(default_build_inst_set)
 endif()
 
 ## This can be set to a different value by the person running CMake.
 SET(BUILD_INST_SET ""
     CACHE STRING 
-    "CPU instruction level compiler is permitted to use (default is sse2).")
+    "CPU instruction level compiler is permitted to use (default: let compiler decide).")
 MARK_AS_ADVANCED( BUILD_INST_SET )
 
 if (BUILD_INST_SET)
@@ -306,8 +306,8 @@ else()
     set(inst_set_to_use ${default_build_inst_set})
 endif()
 
-## When building in any of the Release modes, tell gcc to use full 
-## optimization and to generate SSE2 floating point instructions. Here we 
+## When building in any of the Release modes, tell gcc/clang to use 
+## not-quite most agressive optimization.  Here we 
 ## are specifying *all* of the Release flags, overriding CMake's defaults.
 ## Watch out for optimizer bugs in particular gcc versions!
 
@@ -338,14 +338,12 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # Unrolling fixed-count loops is a useful optimization for Simmatrix.
     SET(GCC_OPT_ENABLE "-funroll-loops")
 
-    # If you know of optimization bugs that affect SimTK in particular
+    # If you know of optimization bugs that affect Simbody in particular
     # gcc versions, this is the place to turn off those optimizations.
     SET(GCC_OPT_DISABLE)
-    # We know Gcc 4.4.3 on Ubuntu 10 is buggy and that Snow Leopard's
-    # 4.2.1 is not. To be safe for now we'll assume anything over 4.3
-    # should have these disabled.
+    # We know Gcc 4.4.3 on Ubuntu 10 is buggy.
     IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-      if (GCC_VERSION VERSION_GREATER 4.3 OR GCC_VERSION VERSION_EQUAL 4.3)
+      if (GCC_VERSION VERSION_EQUAL 4.4)
         SET(GCC_OPT_DISABLE 
         "-fno-strict-aliasing -fno-tree-vrp -fno-guess-branch-probability")
       endif()
@@ -354,17 +352,17 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # C++
     SET(BUILD_CXX_FLAGS_DEBUG          "-g ${GCC_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELEASE        
-      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
+      "-DNDEBUG -O2 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
-    "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
+    "-DNDEBUG -O2 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
     SET(BUILD_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os ${GCC_INST_SET}")
 
     # C
     SET(BUILD_C_FLAGS_DEBUG            "-g ${GCC_INST_SET}")
     SET(BUILD_C_FLAGS_RELEASE          
-      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
+      "-DNDEBUG -O2 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
     SET(BUILD_C_FLAGS_RELWITHDEBINFO   
-    "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
+    "-DNDEBUG -O2 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
     SET(BUILD_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os ${GCC_INST_SET}")
 
     # C++
