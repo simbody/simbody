@@ -335,8 +335,12 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
                     OUTPUT_VARIABLE GCC_VERSION)
 
-    # Unrolling fixed-count loops is a useful optimization for Simmatrix.
-    SET(GCC_OPT_ENABLE "-funroll-loops")
+    # Unrolling fixed-count loops was a useful optimization for Simmatrix
+    # in earlier gcc versions.
+    # Doesn't have a big effect for current compiler crop and may be 
+    # pushing our luck with optimizer bugs. So let the compilers decide
+    # how to handle loops instead.
+    ##SET(GCC_OPT_ENABLE "-funroll-loops")
 
     # If you know of optimization bugs that affect Simbody in particular
     # gcc versions, this is the place to turn off those optimizations.
