@@ -7,8 +7,10 @@ env:
   # matrix is defined by the environment variables defined on the line, which
   # should be space-delimited. For example,
   # - ABC=ON DEF=OFF GHI=ON
-  - CPP11=OFF
-  - CPP11=ON
+  - CPP11=OFF BTYPE=Release
+  - CPP11=ON BTYPE=Release
+  - CPP11=OFF BTYPE=Debug
+  - CPP11=ON BTYPE=Debug
 
 compiler:
   - gcc
@@ -48,7 +50,7 @@ before_install:
   - if [ $LIBCXX = 1 ]; then popd; fi
 
 install:
-  - cmake . -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=$CPP11 -DCMAKE_CXX_FLAGS=-Werror
+  - cmake . -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=$CPP11 -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
   - make -j8
 
 script:
