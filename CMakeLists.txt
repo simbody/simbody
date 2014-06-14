@@ -317,11 +317,32 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # If using either of these compilers, provide the option of 
     # compiling using the c++11 standard.
     OPTION(SIMBODY_STANDARD_11
-        "Compile using the c++11 standard instead of c++03, 
-        if using GCC or Clang." ON)
+        "Compile using the C++11 standard, if using GCC or Clang.
+        If compiling with Clang, you need libc++ as well (On Ubuntu, the
+        libc++-dev package)." ON)
 
     IF(${SIMBODY_STANDARD_11})
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+        IF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+
+            FIND_LIBRARY(LIBCXX c++)
+
+            IF("${LIBCXX}" MATCHES "LIBCXX-NOTFOUND")
+                MESSAGE(FATAL_ERROR "libc++ not found, but is required if "
+                    "compiling with Clang and SIMBODY_STANDARD_11=ON. On "
+                    "Ubuntu, get the libc++-dev package.")
+            ELSE()
+                MESSAGE("-- Found libc++: " "${LIBCXX}")
+            ENDIF()
+
+            # Use LLVM's implementation of the C++ Standard Library. If this is
+            # not provided, Clang would use libstdc++. On Linux, this is okay if
+            # the libstdc++ is recent enough, but we opt to use libc++ anyway.
+            # On APPLE, it is necesary to use libc++ for C++11 support with
+            # Clang.
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+        ENDIF()
     ENDIF()
 
     if (inst_set_to_use)
