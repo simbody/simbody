@@ -9,8 +9,6 @@ env:
   # - ABC=ON DEF=OFF GHI=ON
   - CPP11=OFF BTYPE=Release
   - CPP11=ON BTYPE=Release
-  - CPP11=OFF BTYPE=Debug
-  - CPP11=ON BTYPE=Debug
 
 compiler:
   - gcc
