@@ -834,6 +834,102 @@ private:
     Constraint::SphereOnSphereContact    m_sphereOnSphere;
 };
 
+
+//==============================================================================
+//                            EDGE EDGE CONTACT
+//==============================================================================
+/** (Experimental -- API will change -- use at your own risk) 
+Define an edge on each of two bodies, by providing an "edge frame" where the
+origin is the edge center, x axis is aligned with the edge, and z axis points
+in the "outward" direction away from the solid whose edge it is. This 
+constraint is only meaningful if the edges are \e not parallel and if the
+closest point of the lines containing the edges lies within both edges. This
+constraint will prevent interpenetration of the solids at the intersection of 
+the lines containing the given edges, and provide for frictional forces when
+they are in contact. The resulting contact is parameterized by a coefficient of 
+restitution for impacts in the plane normal direction, and by coefficients of 
+friction for frictional forces in the plane containing the edges. **/
+class SimTK_SIMBODY_EXPORT EdgeEdgeContact : public UnilateralContact {
+public:
+    EdgeEdgeContact(
+        MobilizedBody&      mobod_F, 
+        const Transform&    defaultEdgeFrameF, 
+        Real                defaultHalfLengthF, 
+        MobilizedBody&      mobod_B, 
+        const Transform&    defaultEdgeFrameB, 
+        Real                defaultHalfLengthB,
+        Real minCOR, Real mu_s, Real mu_d, Real mu_v);
+
+    bool disable(State& state) const OVERRIDE_11 {
+        if (m_lineOnLine.isDisabled(state)) return false;
+        m_lineOnLine.disable(state);
+        return true;
+    }
+
+    bool enable(State& state) const OVERRIDE_11 {
+        if (!m_lineOnLine.isDisabled(state)) return false;
+        m_lineOnLine.enable(state);
+        return true;
+    }
+
+    bool isEnabled(const State& state) const OVERRIDE_11 {
+        return !m_lineOnLine.isDisabled(state);
+    }
+
+    // Returns the contact point in the Ground frame.
+    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+
+    // Currently have to fake the perr because the constraint might be
+    // disabled in which case it won't calculate perr.
+    Real getPerr(const State& state) const OVERRIDE_11;
+
+    // We won't need to look at these except for proximal constraints which
+    // will already have been enabled, so no need to fake.
+    Real getVerr(const State& state) const OVERRIDE_11
+    {   return m_lineOnLine.getVelocityErrors(state)[2]; }
+    Real getAerr(const State& state) const OVERRIDE_11
+    {   return m_lineOnLine.getAccelerationErrors(state)[2]; }
+
+
+    Real calcEffectiveCOR(const State& state,
+                          Real defaultCaptureSpeed,
+                          Real defaultMinCORSpeed,
+                          Real impactSpeed) const OVERRIDE_11 
+    {
+       return ConditionalConstraint::calcEffectiveCOR
+               (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
+                impactSpeed);
+    }
+
+    bool hasFriction(const State& state) const OVERRIDE_11
+    {   return true; }
+
+    Vec2 getSlipVelocity(const State& state) const  OVERRIDE_11 {
+        const Vec3 v = m_lineOnLine.getVelocityErrors(state);
+        return Vec2(v[0], v[1]);
+    }
+
+    Real calcEffectiveCOF(const State& state,
+                          Real defaultTransitionSpeed,
+                          Real slipSpeed) const OVERRIDE_11
+    {
+       return ConditionalConstraint::calcEffectiveCOF
+               (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
+    }
+
+    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+
+    void getFrictionMultiplierIndices(const State&     s, 
+                                      MultiplierIndex& ix_x, 
+                                      MultiplierIndex& ix_y) const OVERRIDE_11;
+
+private:
+    Real                        m_minCOR;
+    Real                        m_mu_s, m_mu_d, m_mu_v;
+
+    Constraint::LineOnLineContact    m_lineOnLine;
+};
+
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_CONDITIONAL_CONSTRAINT_H_

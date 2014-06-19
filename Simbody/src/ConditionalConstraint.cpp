@@ -488,5 +488,90 @@ getFrictionMultiplierIndices(const State&       s,
     ix_y = MultiplierIndex(vx0+1);
 }
 
+
+
+//==============================================================================
+//                             EDGE EDGE CONTACT
+//==============================================================================
+EdgeEdgeContact::EdgeEdgeContact
+   (MobilizedBody&      mobod_F, 
+    const Transform&    defaultEdgeFrameF, 
+    Real                defaultHalfLengthF, 
+    MobilizedBody&      mobod_B, 
+    const Transform&    defaultEdgeFrameB, 
+    Real                defaultHalfLengthB,
+    Real minCOR, Real mu_s, Real mu_d, Real mu_v)
+:   m_minCOR(minCOR), m_mu_s(mu_s), m_mu_d(mu_d), m_mu_v(mu_v)
+{
+    SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
+        "EdgeEdgeContact()", 
+        "The coefficient of restitution must be between 0 and 1 but was %g.", 
+        minCOR);
+    SimTK_ERRCHK3_ALWAYS(mu_s >= 0 && mu_d >= 0 && mu_v >= 0,
+        "EdgeEdgeContact()", 
+        "All coefficients of friction must be nonnegative; got "
+        "mu_s=%g, mu_d=%g, mu_v=%g.", mu_s, mu_d, mu_v);
+    SimTK_ERRCHK2_ALWAYS(mu_d <= mu_s,
+        "EdgeEdgeContact()", 
+        "The dynamic coefficient of friction can't be larger than "
+        "the static coefficient; got mu_s=%g, mu_d=%g.", mu_s, mu_d);
+
+    // Set up the contact constraint.
+    m_lineOnLine = Constraint::LineOnLineContact
+       (mobod_F, defaultEdgeFrameF, defaultHalfLengthF, 
+       mobod_B, defaultEdgeFrameB, defaultHalfLengthB, true);
+    m_lineOnLine.setIsConditional(true);
+    m_lineOnLine.setDisabledByDefault(true);
+}
+
+//------------------------------------------------------------------------------
+//                            WHERE TO DISPLAY
+//------------------------------------------------------------------------------
+Vec3 EdgeEdgeContact::whereToDisplay(const State& state) const {
+    return m_lineOnLine.findContactFrameInG(state).p();
+}
+
+
+//------------------------------------------------------------------------------
+//                              GET PERR
+//------------------------------------------------------------------------------
+Real EdgeEdgeContact::getPerr(const State& state) const
+{   
+    return m_lineOnLine.findSeparation(state);
+}
+
+//------------------------------------------------------------------------------
+//                    GET CONTACT MULTIPLIER INDEX
+//------------------------------------------------------------------------------
+MultiplierIndex EdgeEdgeContact::
+getContactMultiplierIndex(const State& s) const {
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_lineOnLine.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==1 && mv==2 && ma==0); // don't call if not enabled
+    m_lineOnLine.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(px0.isValid() && vx0.isValid() && !ax0.isValid());
+    return px0;
+}
+
+//------------------------------------------------------------------------------
+//                  GET FRICTION MULTIPLIER INDICES
+//------------------------------------------------------------------------------
+void EdgeEdgeContact::
+getFrictionMultiplierIndices(const State&       s, 
+                             MultiplierIndex&   ix_x, 
+                             MultiplierIndex&   ix_y) const
+{   ix_x.invalidate(); ix_y.invalidate(); 
+    int mp, mv, ma;
+    MultiplierIndex px0, vx0, ax0;
+    m_lineOnLine.getNumConstraintEquationsInUse(s,mp,mv,ma);
+    assert(mp==1 && mv==2 && ma==0); // don't call if not enabled
+    m_lineOnLine.getIndexOfMultipliersInUse(s, px0, vx0, ax0);
+    assert(px0.isValid() && vx0.isValid() && !ax0.isValid());
+    ix_x = vx0;
+    ix_y = MultiplierIndex(vx0+1);
+}
+
+
 } // namespace SimTK
 

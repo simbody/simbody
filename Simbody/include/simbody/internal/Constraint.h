@@ -478,6 +478,7 @@ class PrescribedMotion;
 class PointOnPlaneContact; 
 class SphereOnPlaneContact; // ball in contact with plane (sliding or rolling)
 class SphereOnSphereContact; // ball in contact with ball (sliding or rolling)
+class LineOnLineContact;    // edge/edge contact
 
 // Internal use only.
 class RodImpl;
@@ -498,6 +499,7 @@ class PrescribedMotionImpl;
 class PointOnPlaneContactImpl; 
 class SphereOnPlaneContactImpl;
 class SphereOnSphereContactImpl;
+class LineOnLineContactImpl;
 
 };
 
