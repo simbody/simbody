@@ -600,6 +600,7 @@ contains. **/
 //------------------------------------------------------------------------------
                            private: // methods
 //------------------------------------------------------------------------------
+// Note that the internalState is realized to Stage::Position on return.
 void setInternalStateFromFreeQs(const Vector& freeQs) {
     assert(freeQs.size() == getNumFreeQs());
     Vector& q = internalState.updQ();
