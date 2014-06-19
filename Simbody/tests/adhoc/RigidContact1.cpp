@@ -352,7 +352,7 @@ public:
     {   return m_block; }
 
     Real getWatchDistance() const OVERRIDE_11 
-    {   return 8; }
+    {   return 20; }
 
     const MobilizedBody::Free& getBlock() const {return m_block;}
 
@@ -362,6 +362,34 @@ private:
     MobilizedBody::Free     m_block;
     MobilizedBody::Pin      m_link2;
     MobilizedBody::Pin      m_link3;
+};
+
+
+
+//==============================================================================
+//                                  EDGES
+//==============================================================================
+// Two blocks engaged in unilateral edge-edge contact.
+class Edges : public AugmentedMultibodySystem {
+public:
+    Edges();
+    ~Edges() {}
+
+    void calcInitialState(State& state) const OVERRIDE_11;
+
+    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    {   static const MobilizedBody mobod; return mobod; }
+    Real getWatchDistance() const OVERRIDE_11 
+    {   return 30; }
+
+    const MobilizedBody& getSwingingBlock() const {return m_swinger;}
+    const MobilizedBody::Free& getGroundBlock() const {return m_grounded;}
+
+private:
+    Force::Gravity          m_gravity;
+    Force::GlobalDamper     m_damper;
+    MobilizedBody           m_swinger;
+    MobilizedBody::Free     m_grounded;
 };
 
 //==============================================================================
@@ -381,8 +409,9 @@ int main(int argc, char** argv) {
     // Create the augmented multibody model.
     //TimsBox mbs;
     //BouncingBalls mbs;
-    Pencil mbs;
+    //Pencil mbs;
     //Block mbs;
+    Edges mbs;
 
     SemiExplicitEulerTimeStepper sxe(mbs);
     sxe.setDefaultImpactCaptureVelocity(mbs.getCaptureVelocity());
@@ -423,8 +452,8 @@ int main(int argc, char** argv) {
     sxe.setAccuracy(Accuracy); // integration accuracy
     sxe.setConstraintTolerance(ConsTol);
 
-    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
-    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
+    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
+    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
 
     sxe.setInducedImpactModel(SemiExplicitEulerTimeStepper::Simultaneous);
     //sxe.setInducedImpactModel(SemiExplicitEulerTimeStepper::Sequential);
@@ -1153,6 +1182,143 @@ void Block::calcInitialState(State& s) const {
     getBlock().setUToFitLinearVelocity(s, Vec3(.2,0,0));
 
 }
+
+
+
+//==============================================================================
+//                                 EDGES
+//==============================================================================
+Edges::Edges() {
+    // Abbreviations.
+    SimbodyMatterSubsystem&     matter = updMatterSubsystem();
+    GeneralForceSubsystem&      forces = updForceSubsystem();
+    MobilizedBody&              Ground = matter.updGround();
+
+    // Build the multibody system.
+    m_gravity = Force::Gravity(forces, matter, -YAxis, 50);
+    //m_damper  = Force::GlobalDamper(forces, matter, .1);
+
+    const Vec3 Grounded(2,2,2); // half-dimensions of grounded block
+    const Vec3 Swinging(2,3,1); // half-dimensions of swinging block
+    const Real MassGrounded=100, MassSwinging=35;
+
+    const Real CoefRest = .7;
+    const Real eCoefRest = .95;
+    const Real CaptureVelocity = .001;
+    const Real TransitionVelocity = .01;
+    const Real mu_s = 0.15, mu_d = 0.1, mu_v = 0;
+    const Real emu_s = .5, emu_d = .3, emu_v = 0;
+
+    setDefaultLengthScale(Grounded.norm());
+
+    m_captureVelocity = CaptureVelocity;
+    m_transitionVelocity = TransitionVelocity;
+
+        // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
+    Ground.addBodyDecoration(Vec3(0,.05,0), DecorativeFrame(2).setColor(Green));
+    DecorativeBrick drawGrounded(Grounded); 
+    drawGrounded.setOpacity(0.5).setColor(Gray);
+
+    Body::Rigid groundedBody(MassProperties(MassGrounded, Vec3(0), 
+                                            UnitInertia::brick(Grounded))); 
+    groundedBody.addDecoration(Vec3(0),drawGrounded);
+
+    m_grounded = MobilizedBody::Free(Ground, Vec3(0), groundedBody, Vec3(0));
+
+    DecorativeBrick drawSwinging(Swinging); 
+    drawSwinging.setOpacity(0.5).setColor(Cyan);
+
+    Body::Rigid swingingBody(MassProperties(MassSwinging, Vec3(0), 
+                                            UnitInertia::brick(Swinging))); 
+    swingingBody.addDecoration(Vec3(0),drawSwinging);
+
+    Rotation xy2xz(Pi/2,XAxis);
+    m_swinger = MobilizedBody::Universal(Ground, 
+                                         Transform(xy2xz,Vec3(-2,7,0)), 
+                                         swingingBody, 
+                                         Transform(xy2xz,Vec3(-2,3,0.5)));
+
+    //HardStopUpper* hsu= new HardStopUpper(m_swinger, MobilizerQIndex(2),
+    //                                      .2, CoefRest);
+    //HardStopLower* hsl= new HardStopLower(m_swinger, MobilizerQIndex(2),
+    //                                      -.2, CoefRest);
+    //matter.adoptUnilateralContact(hsu);
+    //matter.adoptUnilateralContact(hsl);
+
+
+    Rotation gedge(UnitVec3(ZAxis),XAxis,
+                   Vec3(1,1,0),ZAxis);
+    Rotation sedge1(UnitVec3(YAxis),XAxis,
+                   Vec3(-1,0,1),ZAxis);
+    Rotation sedge2(UnitVec3(YAxis),XAxis,
+                   Vec3(-1,0,-1),ZAxis);
+    Rotation sedge3(UnitVec3(YAxis),XAxis,
+                   Vec3(1,0,-1),ZAxis);
+    Rotation sedge4(UnitVec3(YAxis),XAxis,
+                   Vec3(1,0,1),ZAxis);
+    EdgeEdgeContact* ee1 = new EdgeEdgeContact
+        (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)), 
+                               Grounded[2],
+         m_swinger, Transform(sedge1,Vec3(-Swinging[0],0,Swinging[2])), 
+                              Swinging[1], 
+                              eCoefRest, emu_s, emu_d, emu_v);
+    matter.adoptUnilateralContact(ee1);
+
+    EdgeEdgeContact* ee2 = new EdgeEdgeContact
+        (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)), 
+                               Grounded[2],
+         m_swinger, Transform(sedge2,Vec3(-Swinging[0],0,-Swinging[2])), 
+                              Swinging[1], 
+                              eCoefRest, emu_s, emu_d, emu_v);
+    matter.adoptUnilateralContact(ee2);
+
+
+    //EdgeEdgeContact* ee3 = new EdgeEdgeContact
+    //    (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)), 
+    //                           Grounded[2],
+    //     m_swinger, Transform(sedge3,Vec3(Swinging[0],0,-Swinging[2])), 
+    //                          Swinging[1], 
+    //                          eCoefRest, emu_s, emu_d, emu_v);
+    //matter.adoptUnilateralContact(ee3);
+
+    //EdgeEdgeContact* ee4 = new EdgeEdgeContact
+    //    (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)), 
+    //                           Grounded[2],
+    //     m_swinger, Transform(sedge4,Vec3(Swinging[0],0,Swinging[2])), 
+    //                          Swinging[1], 
+    //                          eCoefRest, emu_s, emu_d, emu_v);
+    //matter.adoptUnilateralContact(ee4);
+
+    for (int i=-1; i<=1; i+=2)
+    for (int j=-1; j<=1; j+=2)
+    for (int k=-1; k<=1; k+=2) {
+        const Vec3 pt = Vec3(i,j,k).elementwiseMultiply(Grounded);
+        PointPlaneContact* contact = new PointPlaneContact
+           (Ground, YAxis, 0., m_grounded, pt, CoefRest, mu_s, mu_d, mu_v);
+        matter.adoptUnilateralContact(contact);
+    }
+
+}
+
+void Edges::calcInitialState(State& s) const {
+    s = realizeTopology(); // returns a reference to the the default state 
+    realizeModel(s); // define appropriate states for this System
+    realize(s, Stage::Instance); // instantiate constraints if any
+    realize(s, Stage::Position);
+    Assembler(*this).setErrorTolerance(1e-6).assemble(s);
+
+    getGroundBlock().setQToFitTranslation(s, Vec3(0,2,0));
+    getGroundBlock().setQToFitRotation(s, Rotation(Pi/10,YAxis));
+
+    getSwingingBlock().setQToFitRotation(s, Rotation(BodyRotationSequence,
+                                                     Pi/3, YAxis,
+                                                     0*Pi/8, XAxis));
+
+    getSwingingBlock().setUToFitAngularVelocity(s, Vec3(0,0,-2));
+
+
+}
+
 
 //-------------------------- SHOW CONSTRAINT STATUS ----------------------------
 //void MyUnilateralConstraintSet::
