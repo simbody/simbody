@@ -34,4 +34,4 @@ install:
   - make -j8
 
 script:
-  - ctest -j8
+  - ctest -j8 --output-on-failure
