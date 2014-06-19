@@ -206,7 +206,7 @@ public:
     // have the values given by the parameters.
     int objectiveFunc(const Vector&     parameters, 
                       bool              new_parameters, 
-                      Real&             objectiveValue) const 
+                      Real&             objectiveValue) const OVERRIDE_11
     {   ++nEvalObjective;
 
         if (new_parameters)
@@ -242,7 +242,7 @@ public:
         // This is the function that gets differentiated. We want it to
         // return fy = sum( w[i] * goal[i] ) for each of the goals that needs
         // a numerical gradient. Then we can calculate all of them at once.
-        int f(const Vector& y, Real& fy) const {
+        int f(const Vector& y, Real& fy) const OVERRIDE_11 {
             assembler.setInternalStateFromFreeQs(y);
             fy = 0;
             for (unsigned i=0; i < numGoals.size(); ++i) {
@@ -265,7 +265,7 @@ public:
 
     int gradientFunc(const Vector&     parameters, 
                      bool              new_parameters, 
-                     Vector&           gradient) const 
+                     Vector&           gradient) const OVERRIDE_11 
     {   SimTK_ASSERT2_ALWAYS(gradient.size() == getNumFreeQs(),
             "AssemblySystem::gradientFunc(): expected gradient vector of"
             " size %d but got %d; this is likely a problem with the optimizer"
@@ -328,7 +328,7 @@ public:
     // Return the errors in the hard assembly error conditions.
     int constraintFunc(const Vector&    parameters, 
                        bool             new_parameters, 
-                       Vector&          qerrs) const 
+                       Vector&          qerrs) const OVERRIDE_11
     {   ++nEvalConstraints;
 
         if (new_parameters)
@@ -366,7 +366,7 @@ public:
         // return fy = [ err[i] ] for each of the assembly constraint 
         // conditions that needs a numerical gradient. Then we can calculate
         // all their Jacobians at once.
-        int f(const Vector& y, Vector& fy) const {
+        int f(const Vector& y, Vector& fy) const OVERRIDE_11 {
             assert(y.size() == assembler.getNumFreeQs());
             assert(fy.size() == totalNEqns);
 
@@ -395,7 +395,7 @@ public:
 
     int constraintJacobian(const Vector&    parameters, 
                            bool             new_parameters, 
-                           Matrix&          J) const 
+                           Matrix&          J) const OVERRIDE_11 
     {   ++nEvalJacobian;
 
         if (new_parameters)
@@ -811,8 +811,26 @@ Real Assembler::calcCurrentErrorNorm() const {
 
 Real Assembler::assemble() {
     initialize();
-
     ++nAssemblySteps;
+
+    const Real initialErrorNorm = calcCurrentErrorNorm();
+    const Real initialGoalValue = calcCurrentGoal(); // squared, >=0
+
+    // Short circuit if this is already good enough.
+    if (initialErrorNorm <= getErrorToleranceInUse()) {
+        // Already feasible. Is the goal good enough too? Note that we don't
+        // know much about the goal units, and "accuracy" is a unitless 
+        // fraction. So we're going to use "tolerance" here. We do know that
+        // the goal is squared but error tolerance is not. So this is likely
+        // to be a very strict test if the error tolerance is tight!
+        if (initialGoalValue <= square(getErrorToleranceInUse())) {
+            for (unsigned i=0; i < reporters.size(); ++i)
+                reporters[i]->handleEvent(internalState);
+            return initialGoalValue;
+        }
+        // Not short circuiting.
+    }
+
 
     const int nfreeq = getNumFreeQs();
     const int nqerr = internalState.getNQErr();
@@ -829,15 +847,18 @@ Real Assembler::assemble() {
     system.prescribeQ(internalState);
 
     // Optimize
-    Vector freeQs = getFreeQsFromInternalState();
+
+    // Save the starting solution so we can restore it if the optimizer makes
+    // it worse, which IpOpt has been observed to do.
+    const Vector initialFreeQs = getFreeQsFromInternalState();
+    Vector freeQs = initialFreeQs;
     // Use tolerance if there are any error conditions, else accuracy.
     optimizer->setConvergenceTolerance(getAccuracyInUse());
     optimizer->setConstraintTolerance(getErrorToleranceInUse());
     try
     {   optimizer->optimize(freeQs); }
     catch (const std::exception& e)
-    {   setInternalStateFromFreeQs(freeQs);
-        system.realize(internalState, Stage::Position);
+    {   setInternalStateFromFreeQs(freeQs); // realizes to Stage::Position
 
         // Sometimes the optimizer will throw an exception after it has
         // already achieved a winning solution. One message that comes up
@@ -853,12 +874,22 @@ Real Assembler::assemble() {
     // This will ensure that the internalState has its q's set to match the
     // parameters.
     setInternalStateFromFreeQs(freeQs);
-    system.realize(internalState, Stage::Position);
 
     for (unsigned i=0; i < reporters.size(); ++i)
         reporters[i]->handleEvent(internalState);
 
-    const Real tolAchieved = calcCurrentErrorNorm();
+    Real tolAchieved = calcCurrentErrorNorm();
+    Real goalAchieved = calcCurrentGoal();
+
+    // See if we should just revert to the initial solution.
+    if (   initialErrorNorm <= getErrorToleranceInUse() // started feasible
+        && goalAchieved > initialGoalValue)             // objective got worse
+    {
+        setInternalStateFromFreeQs(initialFreeQs);
+        tolAchieved = initialErrorNorm;
+        goalAchieved = initialGoalValue;
+    }
+
     if (tolAchieved > getErrorToleranceInUse())
         SimTK_THROW3(AssembleFailed, 
             "Unabled to achieve required assembly error tolerance.",
@@ -867,13 +898,12 @@ Real Assembler::assemble() {
     //std::cout << "assemble(): final tol/goal is " 
     //          << calcCurrentError() << "/" << calcCurrentGoal() << std::endl;
 
-    return calcCurrentGoal();
+    return goalAchieved;
 }
 
 
 Real Assembler::track(Real frameTime) {
     initialize();
-
     ++nAssemblySteps;
 
     if (frameTime >= 0 && internalState.getTime() != frameTime) {
@@ -881,7 +911,23 @@ Real Assembler::track(Real frameTime) {
         system.realize(internalState, Stage::Time);
         // Satisfy prescribed motion (exactly).
         system.prescribeQ(internalState);
+        system.realize(internalState, Stage::Position); 
     }
+
+    const Real initialErrorNorm = calcCurrentErrorNorm();
+    const Real initialGoalValue = calcCurrentGoal(); // squared!
+
+    // Short circuit if this is already good enough.
+    if (initialErrorNorm <= getErrorToleranceInUse()) {
+        // See comments in assemble() for more info.
+        if (initialGoalValue <= square(getErrorToleranceInUse())) {
+            for (unsigned i=0; i < reporters.size(); ++i)
+                reporters[i]->handleEvent(internalState);
+            return initialGoalValue;
+        }
+        // Not short circuiting.
+    }
+
 
     const int nfreeq = getNumFreeQs();
     const int nqerr = internalState.getNQErr();
@@ -897,8 +943,7 @@ Real Assembler::track(Real frameTime) {
     try
     {   optimizer->optimize(freeQs); }
     catch (const std::exception& e)
-    {   setInternalStateFromFreeQs(freeQs);
-        system.realize(internalState, Stage::Position); 
+    {   setInternalStateFromFreeQs(freeQs); // realizes to Stage::Position
 
         // Sometimes the optimizer will throw an exception after it has
         // already achieved a winning solution. One message that comes up
@@ -916,7 +961,6 @@ Real Assembler::track(Real frameTime) {
     // This will ensure that the internalState has its q's set to match the
     // parameters.
     setInternalStateFromFreeQs(freeQs);
-    system.realize(internalState, Stage::Position);
 
     for (unsigned i=0; i < reporters.size(); ++i)
         reporters[i]->handleEvent(internalState);
@@ -955,9 +999,6 @@ void Assembler::resetStats() const
 //                                  MARKERS
 //------------------------------------------------------------------------------
 
-static const bool Weighted = true;
-static const Real MinimumOffset = 0;
-
 Vec3 Markers::findCurrentMarkerLocation(MarkerIx mx) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     const Marker&                 marker = getMarker(mx);
@@ -967,7 +1008,7 @@ Vec3 Markers::findCurrentMarkerLocation(MarkerIx mx) const {
     return X_GB * marker.markerInB;
 }
 
-// goal = offset + 1/2 sum( wi * ri^2 ) / sum(wi) for WRMS
+// goal = 1/2 sum( wi * ri^2 ) / sum(wi) for WRMS
 int Markers::calcGoal(const State& state, Real& goal) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     goal = 0;
@@ -994,11 +1035,7 @@ int Markers::calcGoal(const State& state, Real& goal) const {
         }
     }
 
-    if (Weighted)
-        goal /= wtot;
-
-    goal /= 2;
-    goal += MinimumOffset;
+    goal /= (2*wtot);
 
     return 0;
 }
@@ -1042,8 +1079,7 @@ int Markers::calcGoalGradient(const State& state, Vector& gradient) const {
     Vector dEdU;
     matter.multiplyBySystemJacobianTranspose(state, dEdR, dEdU);
 
-    if (Weighted)
-        dEdU /= wtot;
+    dEdU /= wtot;
 
     const int nq = state.getNQ();
     if (np == nq) // gradient is full length
