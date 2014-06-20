@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------- *
- *          Simbody(tm): Gazebo Reaction Force With Applied Force             *
+ *    Simbody(tm): Gazebo Reaction Force With Applied Force (Compliant)       *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2013 Stanford University and the Authors.           *
+ * Portions copyright (c) 2014 Stanford University and the Authors.           *
  * Authors: Michael Sherman, John Hsu                                         *
  * Contributors:                                                              *
  *                                                                            *
@@ -22,7 +22,12 @@
  * -------------------------------------------------------------------------- */
 
 /* This test is drawn from the Open Source Robotics Foundation Gazebo physics
-regression test "Joint_TEST::GetForceTorqueWithAppliedForce". 
+regression test "Joint_TEST::GetForceTorqueWithAppliedForce". Here we are
+using Simbody's compliant contact with extreme enough material properties to
+match the Gazebo answers (which came from rigid contact).
+
+See GazeboReactionForceWithAppliedForceRigid.cpp for the same problem done
+using rigid contact.
 
 It is a stack of three cubes hinged together at their edges. The bottom block
 is heavy and rests on the ground, the other two are light and have their 
@@ -65,13 +70,13 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
-//#define USE_VISUALIZER
+#define USE_VISUALIZER
 
 
 // Control gains
 const Real Kp1 = 50000; // link1-2 joint stiffness
 const Real Kp2 = 10000; // link2-3 joint stiffness
-const Real Cd1 = 30;    // link1-2 joint damping
+const Real Cd1 = 100;   // link1-2 joint damping
 const Real Cd2 = 30;    // link2-3 joint damping
 
 // Target angles
@@ -82,11 +87,12 @@ const Vec3 Cube(.5,.5,.5); // half-dimensions of cube
 const Real Mass1=100, Mass2=5, Mass3=1;
 const Vec3 Centroid(.5,0,.5);
 const Vec3 COM1=Centroid, COM2=Centroid, COM3=Centroid+Vec3(0,.5,0);
-const UnitInertia Central(Vec3(.1), Vec3(.05));
+
 // Simbody requires inertias to be expressed about body origin rather than COM.
-const Inertia Inertia1=Mass1*Central.shiftFromCentroid(-COM1);
-const Inertia Inertia2=Mass2*Central.shiftFromCentroid(-COM2);
-const Inertia Inertia3=Mass3*Central.shiftFromCentroid(-COM3); // weird
+const Inertia Inertia1=Inertia(Vec3(1)).shiftFromMassCenter(-COM1,Mass1);
+const Inertia Inertia2=Inertia(Vec3(.05)).shiftFromMassCenter(-COM2,Mass2);
+const Inertia Inertia3=Inertia(Vec3(.001,.001,0)).shiftFromMassCenter(-COM3,Mass3);
+
 
 // Define a stiff, lossy material.
 const Real Stiffness = 1e8;
