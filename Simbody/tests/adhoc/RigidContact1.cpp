@@ -452,8 +452,8 @@ int main(int argc, char** argv) {
     sxe.setAccuracy(Accuracy); // integration accuracy
     sxe.setConstraintTolerance(ConsTol);
 
-    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
-    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
+    //sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PGS);
+    sxe.setImpulseSolverType(SemiExplicitEulerTimeStepper::PLUS);
 
     sxe.setInducedImpactModel(SemiExplicitEulerTimeStepper::Simultaneous);
     //sxe.setInducedImpactModel(SemiExplicitEulerTimeStepper::Sequential);
@@ -1206,7 +1206,7 @@ Edges::Edges() {
     const Real eCoefRest = .95;
     const Real CaptureVelocity = .001;
     const Real TransitionVelocity = .01;
-    const Real mu_s = 0.15, mu_d = 0.1, mu_v = 0;
+    const Real mu_s = 1.5*0.15, mu_d = 1.5*0.1, mu_v = 0;
     const Real emu_s = .5, emu_d = .3, emu_v = 0;
 
     setDefaultLengthScale(Grounded.norm());
