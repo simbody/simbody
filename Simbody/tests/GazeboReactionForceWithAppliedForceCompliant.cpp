@@ -70,7 +70,7 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
-#define USE_VISUALIZER
+//#define USE_VISUALIZER
 
 
 // Control gains
