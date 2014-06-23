@@ -104,7 +104,9 @@ const ContactMaterial lossyMaterial(Stiffness,
                                     Mu_d,
                                     Mu_v);
 
-const Real MaxStepSize    = Real(1/1000.); // 1 ms (1000 Hz)
+// This doesn't pass using Clang 3.3/3.4 at 1ms but does at 0.5ms (regardless
+// of optimization setting). Does pass at 1ms with VC++ and gcc.
+const Real MaxStepSize    = Real(1/2000.); // 0.5 ms (2000 Hz)
 const int  DrawEveryN     = 33;            // 33 ms frame update (30.3 Hz)
 const Real SimTime        = 5;
 const int  NSteps         = // make this a whole number of viz frames
@@ -138,7 +140,6 @@ static void runOnce(const MyMultibodySystem& mbs, Integrator& integ,
 //                                   MAIN
 //==============================================================================
 int main() {
-#ifndef __clang__
     SimTK_START_TEST("GazeboReactionForce");
         // Create the system.   
         MyMultibodySystem mbs;
@@ -152,9 +153,6 @@ int main() {
         SimTK_SUBTEST3(runOnce, mbs, rkm, 1e-6);
 
     SimTK_END_TEST();
-#else
-    printf("*** TEMPORARILY DISABLED for clang 3.4 ***\n");
-#endif
 }
 
 

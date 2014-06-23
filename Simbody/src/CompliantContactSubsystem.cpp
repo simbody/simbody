@@ -1585,8 +1585,7 @@ processOneMesh
         // This will most often occur in to-be-rejected trial steps but can
         // occasionally be real.
         if (fNormal <= 0) {
-            SimTK_DEBUG1("YANKING!!! (face %d)\n", face);
-            //printf("YANKING!!! (face %d)\n", face);
+            //SimTK_DEBUG1("YANKING!!! (face %d)\n", face);
             continue;
         }
 
