@@ -92,17 +92,17 @@ public:
     virtual void calcCurvature(const Vec3& point, Vec2& curvature, 
                        Rotation& orientation) const
     {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
-        "ContactGeometryImpl", "calcCurvature()"); }
+        "ContactGeometryImpl", "calcCurvature"); }
 
     // Smooth surfaces only.
     virtual const Function& getImplicitFunction() const
     {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
-        "ContactGeometryImpl", "getImplicitFunction()"); }
+        "ContactGeometryImpl", "getImplicitFunction"); }
 
     // Convex surfaces only.
     virtual Vec3 calcSupportPoint(UnitVec3 direction) const
     {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
-        "ContactGeometryImpl", "calcSupportPoint()"); }
+        "ContactGeometryImpl", "calcSupportPoint"); }
 
     const OBBTree& getOBBTree() const {return obbTree;}
 

@@ -156,7 +156,7 @@ String String::trimWhiteSpace(const std::string& in) {
     // Find first non-white character position of "in".
     int firstNonWhite = 0;
     for ( ; firstNonWhite < inz; ++firstNonWhite)
-        if (!std::isspace(in[firstNonWhite])) break;
+        if (!std::isspace((unsigned char)in[firstNonWhite])) break;
 
     if (firstNonWhite == inz)
         return String();    // "in" was all white space
@@ -164,7 +164,7 @@ String String::trimWhiteSpace(const std::string& in) {
     // Find last non-white character position of "in".
     int lastNonWhite = inz-1;
     for ( ; lastNonWhite >= 0; --lastNonWhite)
-        if (!std::isspace(in[lastNonWhite])) break;
+        if (!std::isspace((unsigned char)in[lastNonWhite])) break;
 
     return String(in, firstNonWhite, (lastNonWhite+1) - firstNonWhite);
 }
