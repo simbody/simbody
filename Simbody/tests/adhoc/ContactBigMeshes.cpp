@@ -141,11 +141,9 @@ int main() {
 
     std::ifstream meshFile1, meshFile2;
     PolygonalMesh femurMesh; 
-    meshFile1.open("ContactBigMeshes_Femur.obj"); 
-    femurMesh.loadObjFile(meshFile1); meshFile1.close();
+    femurMesh.loadObjFile("ContactBigMeshes_Femur.obj"); 
     PolygonalMesh patellaMesh; 
-    meshFile2.open("ContactBigMeshes_Patella.obj"); 
-    patellaMesh.loadObjFile(meshFile2); meshFile2.close();
+    patellaMesh.loadObjFile("ContactBigMeshes_Patella.obj"); 
 
     ContactGeometry::TriangleMesh femurTri(femurMesh);
     ContactGeometry::TriangleMesh patellaTri(patellaMesh);
