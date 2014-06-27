@@ -74,6 +74,7 @@ int main() {
     system.realizeTopology();
 
     Visualizer viz(system);
+    viz.setCameraClippingPlanes(.01, 100);
     ShowMesh* sp = new ShowMesh();
     viz.addDecorationGenerator(sp);
     viz.report(system.getDefaultState()); // show default shape
