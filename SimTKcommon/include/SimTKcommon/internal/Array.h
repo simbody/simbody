@@ -3208,8 +3208,11 @@ std::istream& readArrayFromStreamHelper
 
     // Use this for raw i/o (peeks and gets).
     typename       std::iostream::int_type ch;
+
+    #ifndef NDEBUG  // avoid unused variable warnings in Release
     const typename std::iostream::int_type EOFch = 
         std::iostream::traits_type::eof();
+    #endif
 
     // Now see if the sequence is bare or surrounded by (), [], or {}.
     bool lookForCloser = true;
