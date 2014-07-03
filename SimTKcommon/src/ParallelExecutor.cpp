@@ -101,7 +101,7 @@ void ParallelExecutorImpl::incrementWaitingThreads() {
     pthread_mutex_lock(&runLock);
     getCurrentTask().finish();
     waitingThreadCount++;
-    if (waitingThreadCount == threads.size()) {
+    if (waitingThreadCount == (int)threads.size()) {
         pthread_cond_signal(&waitCondition);
     }
     pthread_mutex_unlock(&runLock);

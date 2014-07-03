@@ -1059,8 +1059,8 @@ public:                                         \
     static const T& getLn2()          {static const T c=(T)(SimTK_LN2);       return c;} \
     static const T& getLn10()         {static const T c=(T)(SimTK_LN10);      return c;} \
     /* integer digit counts useful for formatted input and output */                     \
-    static const int getNumDigits()         {static const int c=(int)(std::log10(1/getEps()) -0.5); return c;} \
-    static const int getLosslessNumDigits() {static const int c=(int)(std::log10(1/getTiny())+0.5); return c;} \
+    static int getNumDigits()         {static const int c=(int)(std::log10(1/getEps()) -0.5); return c;} \
+    static int getLosslessNumDigits() {static const int c=(int)(std::log10(1/getTiny())+0.5); return c;} \
 }; \
 template<> struct NTraits<R>::Result<float> \
   {typedef Widest<R,float>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \

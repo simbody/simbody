@@ -650,7 +650,7 @@ public:
     static Mat33P calcNDotForBodyXYZInParentFrame
        (const Vec2P& cq, const Vec2P& sq, RealP ooc1, const Vec3P& qdot) {
         const RealP s0 = sq[0], c0 = cq[0];
-        const RealP s1 = sq[1], c1 = cq[1];
+        const RealP s1 = sq[1];
         const RealP s0oc1 = s0*ooc1, c0oc1 = c0*ooc1;
 
         const RealP t = qdot[1]*s1*ooc1;
