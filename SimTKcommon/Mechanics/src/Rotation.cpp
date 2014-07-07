@@ -518,7 +518,7 @@ Rotation_<P>::convertThreeAxesBodyFixedRotationToThreeAngles
 // Note: The other vectors are perpendicular (but somewhat arbitrarily so).
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
-Rotation_<P>::setRotationFromOneAxis(const UnitVec3P& uveci, const CoordinateAxis axisi)  
+Rotation_<P>::setRotationFromOneAxis(const UnitVec3P& uveci, CoordinateAxis axisi)  
 {
     // Find a unit vector that is perpendicular to uveci.
     const UnitVec3P uvecj = uveci.perp();
