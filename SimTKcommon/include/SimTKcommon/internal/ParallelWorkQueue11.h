@@ -72,7 +72,7 @@ namespace SimTK {
 * This means that creating a ParallelWorkQueue is a somewhat expensive operation, but it may then be
 * used repeatedly for executing various calculations. 
 */
-class SimTK_SimTKCOMMON_EXPORT ParallelWorkQueue11
+class ParallelWorkQueue11
 {
 private:
 	std::deque<std::function<void()>> _fnqueue;
@@ -173,7 +173,7 @@ public:
 	}
 
 	// Change the number of worker threads
-	void resize(int n)
+	void resize(std::size_t n)
 	{
 		stop();
 		_sig_kill = false;

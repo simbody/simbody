@@ -55,7 +55,7 @@ public:
 	void resize(int nInstances, params... p)
 	{
 		destroy();
-		initialize<params>(nInstances, p...);
+		initialize(nInstances, p...);
 	}
 	TObj* get()
 	{
@@ -92,6 +92,7 @@ private:
 			delete _objs.front();
 			_objs.pop_front();
 		}
+		_obl.clear();
 	}
 
 	std::list<TObj*> _obl;

@@ -310,6 +310,7 @@ void testDisabling() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
+	forces.setNumberOfThreads(15);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Free body1(matter.updGround(), Vec3(0), body, Vec3(0));
     MobilizedBody::Free body2(matter.updGround(), Vec3(0), body, Vec3(0));
