@@ -55,7 +55,7 @@ public:
 	void resize(int nInstances, params... p)
 	{
 		destroy();
-		initialize<params>(nInstances, p);
+		initialize<params>(nInstances, p...);
 	}
 	TObj* get()
 	{
