@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors: Peter Eastman                                                *
+ * Contributors: Peter Eastman, Nabeel Allana                                 *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -48,10 +48,12 @@ namespace SimTK {
 // use of this service.
 class GeneralForceSubsystemRep : public ForceSubsystem::Guts {
 public:
-	GeneralForceSubsystemRep()
+	GeneralForceSubsystemRep(int nThreads)
 		: ForceSubsystemRep("GeneralForceSubsystem", "0.0.1")
     {
-		work_queue = new ParallelWorkQueue11(8);
+		assert(nThreads > 0);
+
+		work_queue = new ParallelWorkQueue11(nThreads);
 
 		rigidBodyForcesPool = new ObjectPool<Vector_<SpatialVec>>();
 		particleForcesPool = new ObjectPool<Vector_<Vec3>>;
@@ -61,13 +63,13 @@ public:
 		particleForcesCachePool = new ObjectPool<Vector_<Vec3>>;
 		mobilityForcesCachePool = new ObjectPool<Vector>();
 
-		rigidBodyForcesPool->initialize(8);
-		particleForcesPool->initialize(8);
-		mobilityForcesPool->initialize(8);
+		rigidBodyForcesPool->initialize(nThreads);
+		particleForcesPool->initialize(nThreads);
+		mobilityForcesPool->initialize(nThreads);
 
-		rigidBodyForcesCachePool->initialize(8);
-		particleForcesCachePool->initialize(8);
-		mobilityForcesCachePool->initialize(8);
+		rigidBodyForcesCachePool->initialize(nThreads);
+		particleForcesCachePool->initialize(nThreads);
+		mobilityForcesCachePool->initialize(nThreads);
 
     }
     
@@ -75,8 +77,31 @@ public:
         // Delete in reverse order to be nice to heap system.
         for (int i = (int)forces.size()-1; i >= 0; --i)
             delete forces[i]; 
+
+		delete work_queue;
+		delete rigidBodyForcesPool;
+		delete particleForcesPool;
+		delete mobilityForcesPool;
+		delete rigidBodyForcesCachePool;
+		delete particleForcesCachePool;
+		delete mobilityForcesCachePool;
     }
-    
+
+	void setNumberOfThreads(int nThreads) const
+	{
+		assert(nThreads > 0);
+
+		work_queue->resize(nThreads);
+
+		rigidBodyForcesPool->resize(nThreads);
+		particleForcesPool->resize(nThreads);
+		mobilityForcesPool->resize(nThreads);
+
+		rigidBodyForcesCachePool->resize(nThreads);
+		particleForcesCachePool->resize(nThreads);
+		mobilityForcesCachePool->resize(nThreads);
+	}
+
     ForceIndex adoptForce(Force& force) {
         invalidateSubsystemTopologyCache();
         const ForceIndex index((int) forces.size());
@@ -238,6 +263,7 @@ public:
         Vector&                mobilityForces  = 
                                     mbs.updMobilityForces (s, Stage::Dynamics);
 
+		// zero out all entries of the force pools
 		for (Vector_<SpatialVec>* vec : rigidBodyForcesPool->list())
 		{
 			vec->resize(matter.getNumBodies());
@@ -257,7 +283,10 @@ public:
         // Short circuit if we're not doing any caching here. Note that we're
         // checking whether the *index* is valid (i.e. does the cache entry
         // exist?), not the contents.
-        if (true) { // (!cachedForcesAreValidCacheIndex.isValid()) {
+        if (!cachedForcesAreValidCacheIndex.isValid()) {
+
+			// push all forces that requested parallelism into a seperate entry
+			// within the work queue, creating a lambda function to execute it
             for (int i = 0; i < (int)forces.size(); ++i) {
 				if (forceEnabled[i])
 				if (forces[i]->getImpl().shouldBeParallelized())
@@ -278,6 +307,7 @@ public:
 					);
             }
 
+			// push an entry to the queue containing all other force elements
 			work_queue->push([this, &forceEnabled, &s] {
 				
 				Vector_<SpatialVec>* rigidBodyForce = this->rigidBodyForcesPool->get();
@@ -298,6 +328,7 @@ public:
 
 			work_queue->execute();
 
+			// sum up resulting forces from each pool
 			for (Vector_<SpatialVec>* vec : rigidBodyForcesPool->list())
 				rigidBodyForces += *vec;
 			for (Vector_<Vec3>* vec : particleForcesPool->list())
@@ -350,6 +381,8 @@ public:
 
 		if (!cachedForcesAreValid) {
 
+			// We need to calculate the velocity independent forces.
+
 			for (Vector_<SpatialVec>* vec : rigidBodyForcesCachePool->list())
 			{
 				vec->resize(matter.getNumBodies());
@@ -366,7 +399,6 @@ public:
 				*vec = 0;
 			}
 
-            // We need to calculate the velocity independent forces.
             rigidBodyForceCache.resize(matter.getNumBodies());
             rigidBodyForceCache = SpatialVec(Vec3(0), Vec3(0));
             particleForceCache.resize(matter.getNumParticles());
@@ -657,11 +689,14 @@ GeneralForceSubsystem::updRep() {
 // for making std::vector's, which require a default constructor to be available.
 GeneralForceSubsystem::GeneralForceSubsystem()
 :   ForceSubsystem() 
-{   adoptSubsystemGuts(new GeneralForceSubsystemRep()); }
+{
+	adoptSubsystemGuts(new GeneralForceSubsystemRep(ParallelExecutor::getNumProcessors()));
+}
 
 GeneralForceSubsystem::GeneralForceSubsystem(MultibodySystem& mbs)
 :   ForceSubsystem() 
-{   adoptSubsystemGuts(new GeneralForceSubsystemRep());
+{
+	adoptSubsystemGuts(new GeneralForceSubsystemRep(ParallelExecutor::getNumProcessors()));
     mbs.addForceSubsystem(*this); } // steal ownership
 
 ForceIndex GeneralForceSubsystem::adoptForce(Force& force) 
@@ -683,6 +718,10 @@ bool GeneralForceSubsystem::isForceDisabled
 void GeneralForceSubsystem::setForceIsDisabled
    (State& state, ForceIndex index, bool disabled) const 
 {   getRep().setForceIsDisabled(state, index, disabled); }
+
+
+void GeneralForceSubsystem::setNumberOfThreads(int nThreads) const
+{ getRep().setNumberOfThreads(nThreads); }
 
 const MultibodySystem& GeneralForceSubsystem::getMultibodySystem() const
 {   return MultibodySystem::downcast(getSystem()); }
