@@ -192,6 +192,8 @@ public:
 		for (std::size_t i = 0; i < _workers.size(); i++)
 			_workers[i].join();
 
+		_workers.clear();
+
 	}
 
 	// Initialize and spawn worker threads
