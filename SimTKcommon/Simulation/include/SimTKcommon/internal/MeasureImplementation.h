@@ -344,7 +344,9 @@ public:
         // before this measure's depends-on stage since this will get called
         // towards the end of the depends-on stage realization.
         if (getDependsOnStage(derivOrder) != Stage::Empty) {
+#ifndef NDEBUG
             Stage prevStage = getDependsOnStage(derivOrder).prev();
+#endif
 
             SimTK_ERRCHK2
                 (   ( isInSubsystem() && getStage(s)>=prevStage)

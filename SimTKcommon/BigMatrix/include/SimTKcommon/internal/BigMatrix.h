@@ -1008,8 +1008,10 @@ std::istream& readVectorFromStreamHelper
 
     // Use this for raw i/o (peeks and gets).
     typename       std::iostream::int_type ch;
+#ifndef NDEBUG
     const typename std::iostream::int_type EOFch = 
         std::iostream::traits_type::eof();
+#endif
 
     // First we'll look for the optional "~". If found, the brackets become
     // required.
