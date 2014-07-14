@@ -24,7 +24,7 @@
 /** @file
  * Defines any routines that have to be supplied to implement the features
  * promised in Timing.h. Currently this consists of faking up the
- * Posix timing routines when using the Microsoft Visual Studio C/C++ 
+ * Posix timing routines when using the Microsoft Visual Studio C/C++
  * compiler cl on Windows, or when running on Mac OSX.
  */
 
@@ -55,30 +55,29 @@
     #include <mach/mach_time.h>
 #endif
 
-/*
-// There are a billion (1e9) nanoseconds in a second.
-static const long long NsPerSec = 1000000000LL;
-
-// There are a million (1e6) nanoseconds in a millisecond.
-static const long long NsPerMs = 1000000LL;
-
-// There are a thousand (1e3) nanoseconds in a microsecond.
-static const long long NsPerUs = 1000LL;
-
-// There are 10 million (1e7) 100ns (hecto ns) ticks in a second.
-static const long long HectoNsPerSec = 10000000LL;
-
-// There are a million (1e6) microseconds in a second.
-static const long long UsPerSec = 1000000LL;
-*/
-
 // static getnstimeofday()
 // -----------------------
 // Returns the time of day in seconds and nanoseconds since 1-1-1970.
-// This is derived from code by Rolf Steenge, posted at 
+// This is derived from code by Rolf Steenge, posted at
 // https://projects.coin-or.org/Cbc/ticket/45.
 // This method is the guts of CLOCK_REALTIME.
 #if defined(_MSC_VER)
+
+    // There are a billion (1e9) nanoseconds in a second.
+    static const long long NsPerSec = 1000000000LL;
+
+    // There are a million (1e6) nanoseconds in a millisecond.
+    static const long long NsPerMs = 1000000LL;
+
+    // There are a thousand (1e3) nanoseconds in a microsecond.
+    static const long long NsPerUs = 1000LL;
+
+    // There are 10 million (1e7) 100ns (hecto ns) ticks in a second.
+    static const long long HectoNsPerSec = 10000000LL;
+
+    // There are a million (1e6) microseconds in a second.
+    static const long long UsPerSec = 1000000LL;
+
     // This is the time interval from the Win32 epoch 1/1/1601 to
     // the Unix epoch 1/1/1970, measured in 100ns (hecto ns) ticks.
     // The number of days between those dates (measuring them both
@@ -110,7 +109,7 @@ static const long long UsPerSec = 1000000LL;
     // Given time reported as a Win32 FILETIME measured from 1/1/1601, convert
     // it to a timespec measured from 1/1/1970.
     // CAUTION: note shift of epoch (measurement base) here.
-    static inline void filetimeToTimespec(const FILETIME& ft, 
+    static inline void filetimeToTimespec(const FILETIME& ft,
                                           struct timespec& ts) {
         long long hecto = filetimeToHectoNs(ft);
         hectoNsToTimespec(hecto - FILETIME_1970, ts);
@@ -136,9 +135,9 @@ static const long long UsPerSec = 1000000LL;
 
 // static getperformancecounter()
 // ------------------------------
-// This is the guts of CLOCK_MONOTONIC (all variants). This is the number of 
-// seconds and nanoseconds since an arbitrary start time, with a very high 
-// resolution. This is for measuring short intervals very accurately; long 
+// This is the guts of CLOCK_MONOTONIC (all variants). This is the number of
+// seconds and nanoseconds since an arbitrary start time, with a very high
+// resolution. This is for measuring short intervals very accurately; long
 // term it might drift away from the real time clock.
 #if defined(_MSC_VER)
     static int getperformancecounter(struct timespec *tp) {
@@ -154,10 +153,10 @@ static const long long UsPerSec = 1000000LL;
         }
 
         LARGE_INTEGER ticks;
-        if(!QueryPerformanceCounter(&ticks)) 
+        if(!QueryPerformanceCounter(&ticks))
             return EINVAL; // bad news
 
-        // Careful: don't try to simplify or rearrange these expressions; 
+        // Careful: don't try to simplify or rearrange these expressions;
         // we're depending on integer arithmetic done in long long precision.
         tp->tv_sec = (long) (ticks.QuadPart / ticksPerSec);
         tp->tv_nsec =(long)((ticks.QuadPart % ticksPerSec)*NsPerSec / ticksPerSec);
@@ -167,17 +166,17 @@ static const long long UsPerSec = 1000000LL;
 #elif defined(__APPLE__)
     static int getperformancecounter(struct timespec *tp) {
         if (!tp) return 0;
-  
-        static mach_timebase_info_data_t info = {0,0};   
-  
-        if (info.denom == 0)   
-                mach_timebase_info(&info);   
+
+        static mach_timebase_info_data_t info = {0,0};
+
+        if (info.denom == 0)
+                mach_timebase_info(&info);
 
         unsigned long long ticks = mach_absolute_time();
-        unsigned long long ticksInNs = (ticks * info.numer) / info.denom;   
-  
-        tp->tv_sec  = (time_t)(ticksInNs / NsPerSec);   
-        tp->tv_nsec = (long)(ticksInNs % NsPerSec);  
+        unsigned long long ticksInNs = (ticks * info.numer) / info.denom;
+
+        tp->tv_sec  = (time_t)(ticksInNs / NsPerSec);
+        tp->tv_nsec = (long)(ticksInNs % NsPerSec);
 
         return 0;
     }
@@ -192,7 +191,7 @@ static const long long UsPerSec = 1000000LL;
     static int getprocesscputime(struct timespec* tp) {
         if (!tp) return 0;
 
-        FILETIME creationTime, exitTime, kernelTime, userTime; 
+        FILETIME creationTime, exitTime, kernelTime, userTime;
         if (!GetProcessTimes(GetCurrentProcess(),
             &creationTime, &exitTime,
             &kernelTime, &userTime))
@@ -239,13 +238,13 @@ static const long long UsPerSec = 1000000LL;
 // static getthreadcputime()
 // -------------------------
 // This is the guts of CLOCK_THREAD_CPUTIME_ID. It returns the number of
-// seconds and nanoseconds of cpu time used by the currently executing 
+// seconds and nanoseconds of cpu time used by the currently executing
 // thread since it started.
 #if defined(_MSC_VER)
     static int getthreadcputime(struct timespec* tp) {
         if (!tp) return 0;
 
-        FILETIME creationTime, exitTime, kernelTime, userTime; 
+        FILETIME creationTime, exitTime, kernelTime, userTime;
         if (!GetThreadTimes(GetCurrentThread(),
             &creationTime, &exitTime,
             &kernelTime, &userTime))
