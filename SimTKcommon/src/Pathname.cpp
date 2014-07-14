@@ -340,8 +340,10 @@ string Pathname::getCurrentWorkingDirectory(const string& drive) {
     #else
         #ifndef NDEBUG
             char* bufp = getcwd(buf, sizeof(buf));
+            assert(bufp != 0); // buf not big enough if this happens
+        #else
+            (void) getcwd(buf, sizeof(buf));
         #endif
-        assert(bufp != 0); // buf not big enough if this happens
     #endif
 
     string cwd(buf);
