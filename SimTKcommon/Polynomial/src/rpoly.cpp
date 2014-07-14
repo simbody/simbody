@@ -454,13 +454,19 @@ _10:
 /*  Stop iteration after 20 steps. */
     if (j > 20) return;
     if (j < 2) goto _50;
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     if (relstp > 0.01 || mp < omp || tried) goto _50;
+    #pragma GCC diagnostic pop
 /*  A cluster appears to be stalling the convergence.
  *  Five fixed shift steps are taken with a u,v close
  *  to the cluster.
  */
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     if (relstp < eta) relstp = eta;
     relstp = sqrt(relstp);
+    #pragma GCC diagnostic pop
     u = u - u*relstp;
     v = v + v*relstp;
     quadsd(n,&u,&v,p,qp,&a,&b);
@@ -529,7 +535,10 @@ void RPoly<T>::realit(T *sss, int *nz, int *iflag)
 /*  Stop iteration after 10 steps. */
         if (j > 10) return;
         if (j < 2) goto _50;
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
         if (fabs(t) > 0.001*fabs(s-t) || mp < omp) goto _50;
+        #pragma GCC diagnostic pop
 /*  A cluster of zeros near the real axis has been
  *  encountered. Return with iflag set to initiate a
  *  quadratic iteration.
