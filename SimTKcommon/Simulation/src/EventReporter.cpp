@@ -23,11 +23,6 @@
 
 #include "SimTKcommon/internal/EventReporter.h"
 
-// Workaround for a Microsoft compiler bug
-#if defined(_MSC_VER)
-#pragma optimize("g", off)
-#endif
-
 namespace SimTK {
 
 EventReporter::~EventReporter() {
