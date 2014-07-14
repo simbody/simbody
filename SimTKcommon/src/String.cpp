@@ -41,9 +41,8 @@ String::String(float r, const char* fmt) {
     if (!isFinite(r)) {
         if (isNaN(r)) {(*this)="NaN"; return;}
         if (isInf(r)) {(*this)=(r<0?"-Inf":"Inf"); return;}
-        SimTK_ERRCHK2_ALWAYS(false, "SimTK::String(float)",
-            "Unrecognized non-finite value %g (0x%x).", 
-            (double)r, *reinterpret_cast<const unsigned*>(&r));
+        SimTK_ERRCHK1_ALWAYS(false, "SimTK::String(float)",
+            "Unrecognized non-finite value %g.", (double)r);
         return;
     }
     char buf[64]; sprintf(buf,fmt,r); (*this)=buf; 
@@ -53,9 +52,8 @@ String::String(double r, const char* fmt) {
     if (!isFinite(r)) {
         if (isNaN(r)) {(*this)="NaN"; return;}
         if (isInf(r)) {(*this)=(r<0?"-Inf":"Inf"); return;}
-        SimTK_ERRCHK2_ALWAYS(false, "SimTK::String(double)",
-            "Unrecognized non-finite value %g (0x%llx).", 
-            r, *reinterpret_cast<const unsigned long long*>(&r));
+        SimTK_ERRCHK1_ALWAYS(false, "SimTK::String(double)",
+            "Unrecognized non-finite value %g.", r);
         return;
     }
     char buf[64]; sprintf(buf,fmt,r); (*this)=buf; 
