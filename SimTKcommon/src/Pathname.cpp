@@ -338,7 +338,9 @@ string Pathname::getCurrentWorkingDirectory(const string& drive) {
         _getdcwd(which, buf, sizeof(buf));
         buf[0] = (char)tolower(buf[0]); // drive letter
     #else
-        char* bufp = getcwd(buf, sizeof(buf));
+        #ifndef NDEBUG
+            char* bufp = getcwd(buf, sizeof(buf));
+        #endif
         assert(bufp != 0); // buf not big enough if this happens
     #endif
 

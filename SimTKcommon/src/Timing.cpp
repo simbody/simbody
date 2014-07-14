@@ -55,6 +55,7 @@
     #include <mach/mach_time.h>
 #endif
 
+/*
 // There are a billion (1e9) nanoseconds in a second.
 static const long long NsPerSec = 1000000000LL;
 
@@ -69,6 +70,7 @@ static const long long HectoNsPerSec = 10000000LL;
 
 // There are a million (1e6) microseconds in a second.
 static const long long UsPerSec = 1000000LL;
+*/
 
 // static getnstimeofday()
 // -----------------------
