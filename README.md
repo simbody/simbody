@@ -413,18 +413,18 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
     * If your `CMAKE_INSTALL_PREFIX` is neither `/usr/` nor `/usr/local/` (e.g., `~/simbody`'):
         * Mac:
 
-                $ sudo echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody/lib' > /etc/profile
+                $ echo 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:~/simbody/lib' >> ~/.bash_profile
         * Ubuntu:
 
-                $ sudo echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' > ~/.bashrc
+                $ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' >> ~/.bashrc
         These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
 2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. Make sure to replace `~/simbody` with your `CMAKE_INSTALL_PREFIX`.
     * Mac:
 
-            $ sudo echo 'export SIMBODY_HOME=~/simbody' > /etc/profile
+            $ echo 'export SIMBODY_HOME=~/simbody' >> ~/.bash_profile
     * Ubuntu:
             
-            $ sudo echo 'export SIMBODY_HOME=~/simbody' > ~/.bashrc
+            $ echo 'export SIMBODY_HOME=~/simbody' >> ~/.bashrc
 3. Open a new terminal.
 4. Test your installation:
 
