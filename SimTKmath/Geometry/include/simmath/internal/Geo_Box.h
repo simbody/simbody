@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2011-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2011-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -50,7 +50,7 @@ typedef P               RealP;
 typedef Vec<3,P>        Vec3P;
 typedef Mat<3,3,P>      Mat33P;
 typedef Rotation_<P>    RotationP;
-typedef Transform_<P>    TransformP;
+typedef Transform_<P>   TransformP;
 
 public:
 /** Construct an uninitialized Box object; the dimensions will be garbage. **/
