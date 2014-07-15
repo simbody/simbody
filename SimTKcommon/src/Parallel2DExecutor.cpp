@@ -38,7 +38,7 @@ Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, int numProcessors) 
         executor = new ParallelExecutor(numProcessors);
     init(numProcessors);
 }
-Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, ParallelExecutor& executor) : gridSize(gridSize), ownExecutor(false), executor(&executor) {
+Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, ParallelExecutor& executor) : gridSize(gridSize), executor(&executor), ownExecutor(false) {
     init(executor.getNumProcessors());
 }
 void Parallel2DExecutorImpl::init(int numProcessors) {

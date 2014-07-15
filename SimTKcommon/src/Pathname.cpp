@@ -339,7 +339,9 @@ string Pathname::getCurrentWorkingDirectory(const string& drive) {
         buf[0] = (char)tolower(buf[0]); // drive letter
     #else
         char* bufp = getcwd(buf, sizeof(buf));
-        assert(bufp != 0); // buf not big enough if this happens
+        SimTK_ERRCHK_ALWAYS(bufp != 0,
+                "Pathname::getCurrentWorkingDirectory()",
+                "Buffer is not big enough to store current working directory.");
     #endif
 
     string cwd(buf);

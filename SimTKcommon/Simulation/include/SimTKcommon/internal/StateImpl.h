@@ -65,8 +65,8 @@ public:
         value(0), timeLastUpdated(NaN) {}
 
     DiscreteVarInfo(Stage allocation, Stage invalidated, AbstractValue* v)
-    :   allocationStage(allocation), invalidatedStage(invalidated), value(v),
-        autoUpdateEntry(), timeLastUpdated(NaN) 
+    :   allocationStage(allocation), invalidatedStage(invalidated),
+        autoUpdateEntry(), value(v), timeLastUpdated(NaN) 
     {   assert(isReasonable()); }
 
     // Default copy constructor, copy assignment, destructor are shallow.

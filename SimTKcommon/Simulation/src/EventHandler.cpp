@@ -23,9 +23,6 @@
 
 #include "SimTKcommon/internal/EventHandler.h"
 
-// Workaround for a Microsoft compiler bug
-#pragma optimize("g", off)
-
 namespace SimTK {
 
 EventHandler::~EventHandler() {

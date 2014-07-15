@@ -100,7 +100,6 @@ public:
     // is no top-level text and only one top-level element and that is the 
     // "root" element whose tag name is the document type.
     void canonicalizeDocument() {
-        TiXmlDeclaration* decl = addDeclarationIfNeeded();
         TiXmlElement*     root = addRootElementIfNeeded();
 
         m_rootElement.setTiNodePtr(root);
