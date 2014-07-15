@@ -287,8 +287,10 @@ string Pathname::getThisExecutablePath() {
         buf[0] = (char)tolower(buf[0]); // drive name
     #elif defined(__APPLE__)
         uint32_t sz = (uint32_t)sizeof(buf);
-        int status = _NSGetExecutablePath(buf, &sz);
-        assert(status==0); // non-zero means path longer than buf, sz says what's needed
+        const int status = _NSGetExecutablePath(buf, &sz);
+        SimTK_ERRCHK_ALWAYS(status==0,
+                "Pathname::getThisExecutablePath()",
+                "2048-byte buffer is not big enough to store executable path.");
     #else // Linux
         // This isn't automatically null terminated.
         const size_t nBytes = readlink("/proc/self/exe", buf, sizeof(buf));
@@ -338,10 +340,10 @@ string Pathname::getCurrentWorkingDirectory(const string& drive) {
         _getdcwd(which, buf, sizeof(buf));
         buf[0] = (char)tolower(buf[0]); // drive letter
     #else
-        char* bufp = getcwd(buf, sizeof(buf));
+        const char* bufp = getcwd(buf, sizeof(buf));
         SimTK_ERRCHK_ALWAYS(bufp != 0,
-                "Pathname::getCurrentWorkingDirectory()",
-                "Buffer is not big enough to store current working directory.");
+            "Pathname::getCurrentWorkingDirectory()",
+            "2048-byte buffer not big enough for current working directory.");
     #endif
 
     string cwd(buf);
