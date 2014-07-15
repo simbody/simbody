@@ -41,7 +41,7 @@
             + __GNUC_PATCHLEVEL__)
     #if GCC_VERSION_40700 > 40700
         #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-    #elif
+    #else
         #pragma GCC diagnostic ignored "-Wuninitialized"
     #endif
 #endif
