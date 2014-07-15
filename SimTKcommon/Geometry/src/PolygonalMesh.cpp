@@ -327,7 +327,8 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // Remember this because we'll have to use it to adjust the indices we use 
     // when referencing the vertices we're about to read in. This number is
     // the index that our first vertex will be assigned.
-    const int firstVertex = getNumVertices();
+    // EDIT: We actually don't use this variable. Leaving for reference.
+    // TODO const int firstVertex = getNumVertices();
 
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
