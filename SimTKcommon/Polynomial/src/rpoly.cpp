@@ -36,14 +36,15 @@
 #pragma GCC diagnostic push
     // Wmaybe-uninitialized was introduced in gcc 4.7.0. Before that, the same
     // warning was emitted under Wuninitialized.
-    #define GCC_VERSION_40700 (__GNUC__ * 10000 \
+    #define GCC_VERSION (__GNUC__ * 10000 \
             + __GNUC_MINOR__ * 100 \
             + __GNUC_PATCHLEVEL__)
-    #if GCC_VERSION_40700 > 40700
+    #if GCC_VERSION > 40700
         #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     #else
         #pragma GCC diagnostic ignored "-Wuninitialized"
     #endif
+    #undef GCC_VERSION
 #endif
 
 namespace SimTK {
