@@ -93,13 +93,6 @@ template <> class NTraits<long double>;
 // since the negations cancel, and we saved two floating point negations.
 template <class N> class negator;      // Only defined for numbers
 
-// This is here so we can provide references to 0's when needed, e.g.
-// when returning the imaginary part of a real number. These are local to
-// the compilation unit, so the returned addresses will differ in different
-// files. There are enough zeroes here for the widest number, 
-// complex<long double> (or conjugate<long double>).
-static const complex<long double> zeroes(0);
-
 /// This class is specialized for all 36 combinations of standard types
 /// (that is, real and complex types in each of three precisions)
 /// and has typedefs "Type" which is the appropriate "widened"
@@ -985,7 +978,7 @@ public:                                         \
     static T*       updData(T& t)       { return &t; }  \
     static const T& real(const T& t) { return t; }      \
     static T&       real(T& t)       { return t; }      \
-    static const T& imag(const T&)   { return reinterpret_cast<const T&>(zeroes); }   \
+    static const T& imag(const T&)   { return getZero(); }   \
     static T&       imag(T&)         { assert(false); return *reinterpret_cast<T*>(0); } \
     static const TNeg& negate(const T& t) {return reinterpret_cast<const TNeg&>(t);}        \
     static       TNeg& negate(T& t) {return reinterpret_cast<TNeg&>(t);}                    \
