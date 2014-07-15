@@ -30,7 +30,7 @@ before_install:
   - if [[ "$CPP11" = "ON" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 
 install:
-  - cmake . -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=$CPP11 -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Wall
+  - cmake . -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=$CPP11 -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
   - make -j8
 
 script:
