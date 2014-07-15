@@ -55,17 +55,14 @@
     #include <mach/mach_time.h>
 #endif
 
-// static getnstimeofday()
-// -----------------------
-// Returns the time of day in seconds and nanoseconds since 1-1-1970.
-// This is derived from code by Rolf Steenge, posted at
-// https://projects.coin-or.org/Cbc/ticket/45.
-// This method is the guts of CLOCK_REALTIME.
-#if defined(_MSC_VER)
-
+// These local symbols are not needed on all platforms. Define them just
+// when needed to avoid "unused variable" warnings.
+#if defined(_MSC_VER) || defined(__APPLE__)
     // There are a billion (1e9) nanoseconds in a second.
     static const long long NsPerSec = 1000000000LL;
+#endif
 
+#if defined(_MSC_VER)
     // There are a million (1e6) nanoseconds in a millisecond.
     static const long long NsPerMs = 1000000LL;
 
@@ -84,7 +81,16 @@
     // using the same calendar) is 134774=(369 years)*365 + 89 leap days,
     // or 11644473600 seconds (=134774*24*3600).
     static const long long FILETIME_1970 = 11644473600LL*HectoNsPerSec;
+#endif
 
+// static getnstimeofday()
+// -----------------------
+// Returns the time of day in seconds and nanoseconds since 1-1-1970.
+// This is derived from code by Rolf Steenge, posted at
+// https://projects.coin-or.org/Cbc/ticket/45.
+// This method is the guts of CLOCK_REALTIME.
+
+#if defined(_MSC_VER)
     // Return the value of a FILETIME reinterpreted as a
     // long long integer count of the number of 100ns ("hecto ns")
     // ticks since start of 1/1/1601 UTC.
