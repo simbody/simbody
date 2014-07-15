@@ -32,7 +32,7 @@
 #include <algorithm>
 #include "rpoly.h"
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
@@ -786,6 +786,6 @@ template class RPoly<long double>;
 
 } // namespace SimTK
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
