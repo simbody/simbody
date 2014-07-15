@@ -943,8 +943,9 @@ takeUnconstrainedStep(State& s, Real h) {
 
     m_mbs.realize(s, Stage::Acceleration);
     const Vector& udot = s.getUDot(); // grab before invalidated
-    s.updZ() += h*s.getZDot(); // invalidates Stage::Dynamics
-    s.updU() += h*udot;        // invalidates Stage::Velocity
+    const Vector& zdot = s.getZDot();
+    s.updZ() += h*zdot;         // invalidates Stage::Dynamics
+    s.updU() += h*udot;         // invalidates Stage::Velocity
     Vector qdot;
     matter.multiplyByN(s,false,s.getU(),qdot);
     s.updQ() += h*qdot;         // invalidates Stage::Position
