@@ -90,15 +90,6 @@ SET(STATIC_TARGET ${SimTKCOMMON_LIBRARY_NAME}_static)
 SET(SHARED_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN})
 SET(STATIC_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN}_static)
 
-# But on Unix or Cygwin we have to add the suffix manually
-IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-    SET(SHARED_TARGET ${SHARED_TARGET}_d)
-    SET(STATIC_TARGET ${STATIC_TARGET}_d)
-    SET(SHARED_TARGET_VN ${SHARED_TARGET_VN}_d)
-    SET(STATIC_TARGET_VN ${STATIC_TARGET_VN}_d)
-ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-
-
 ## Test against the unversioned libraries if they are being build;
 ## otherwise against the versioned libraries.
 IF(BUILD_UNVERSIONED_LIBRARIES)

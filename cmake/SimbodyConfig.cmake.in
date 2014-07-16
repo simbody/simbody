@@ -67,11 +67,11 @@ find_library(Simbody_STATIC_LIBRARY NAMES SimTKsimbody_static
     PATHS ${Simbody_LIB_DIR}
     DOC "This is the main Simbody static library."
     NO_DEFAULT_PATH)
-find_library(Simbody_DEBUG_LIBRARY NAMES SimTKsimbody_d
+find_library(Simbody_DEBUG_LIBRARY NAMES SimTKsimbody@CMAKE_DEBUG_POSTFIX@
     PATHS ${Simbody_LIB_DIR}
     DOC "This is the main Simbody debug library."
     NO_DEFAULT_PATH)
-find_library(Simbody_STATIC_DEBUG_LIBRARY NAMES SimTKsimbody_static_d
+find_library(Simbody_STATIC_DEBUG_LIBRARY NAMES SimTKsimbody_static@CMAKE_DEBUG_POSTFIX@
     PATHS ${Simbody_LIB_DIR}
     DOC "This is the main Simbody static debug library."
     NO_DEFAULT_PATH)
@@ -83,11 +83,11 @@ if(Simbody_LIBRARY AND Simbody_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
     # must reset each time around the loop or find_library won't work
     set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
-    set(onelibd "${lib}_d-NOTFOUND" CACHE INTERNAL "nothing")
+    set(onelibd "${lib}@CMAKE_DEBUG_POSTFIX@-NOTFOUND" CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
       NO_DEFAULT_PATH)
-    find_library(onelibd ${lib}_d
+    find_library(onelibd ${lib}@CMAKE_DEBUG_POSTFIX@
       PATHS ${Simbody_LIB_DIR}
       NO_DEFAULT_PATH)
     if((NOT onelib) OR (NOT onelibd))
@@ -110,7 +110,7 @@ elseif(Simbody_LIBRARY)
   endforeach()
 elseif(Simbody_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
-    set(lib "${lib}_d")
+    set(lib "${lib}@CMAKE_DEBUG_POSTFIX@")
     set(onelibd "${lib}-NOTFOUND" CACHE INTERNAL "nothing")
     find_library(onelibd ${lib}
       PATHS ${Simbody_LIB_DIR}
@@ -143,11 +143,11 @@ if(Simbody_STATIC_LIBRARY AND Simbody_STATIC_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
     set(lib "${lib}_static")
     set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
-    set(onelibd "${lib}_d-NOTFOUND" CACHE INTERNAL "nothing")
+    set(onelibd "${lib}@CMAKE_DEBUG_POSTFIX@-NOTFOUND" CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
       NO_DEFAULT_PATH)
-    find_library(onelibd ${lib}_d
+    find_library(onelibd ${lib}@CMAKE_DEBUG_POSTFIX@
       PATHS ${Simbody_LIB_DIR}
       NO_DEFAULT_PATH)
     if((NOT onelib) OR (NOT onelibd))
@@ -172,7 +172,7 @@ elseif(Simbody_STATIC_LIBRARY)
   endforeach()
 elseif(Simbody_STATIC_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
-    set(lib "${lib}_static_d")
+    set(lib "${lib}_static@CMAKE_DEBUG_POSTFIX@")
     set(onelibd  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
     find_library(onelibd ${lib}
       PATHS ${Simbody_LIB_DIR}
