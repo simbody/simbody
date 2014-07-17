@@ -19,9 +19,8 @@ override_dh_auto_build-indep:
 override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake 
 	
-	# Remove extra LICENSE and INSTALL file
+	# Remove extra LICENSE file
 	rm debian/tmp/usr/share/doc/simbody/LICENSE.txt
-	rm debian/tmp/usr/share/doc/simbody/INSTALL.txt
 
 override_dh_strip:
 	dh_strip -a --dbg-package=libsimbody3.5-dbg
