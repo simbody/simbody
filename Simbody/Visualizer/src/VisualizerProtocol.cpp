@@ -443,6 +443,10 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
                 faces.push_back((unsigned short) mesh.getFaceVertex(i, j+1));
                 faces.push_back((unsigned short) newIndex);
             }
+            // Close the face (thanks, Alexandra Zobova).
+            faces.push_back((unsigned short) mesh.getFaceVertex(i, numVert-1));
+            faces.push_back((unsigned short) mesh.getFaceVertex(i, 0));
+            faces.push_back((unsigned short) newIndex);
         }
     }
     SimTK_ERRCHK1_ALWAYS(vertices.size() <= 65535*3, 
