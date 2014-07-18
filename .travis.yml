@@ -37,9 +37,6 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CPP11" = "ON" ]]; then sudo apt-get update -qq; fi
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CPP11" = "ON" ]]; then sudo apt-get install -qq g++-4.8; fi
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CPP11" = "ON" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-  
-  ## Need cmake on OSX.
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update && brew install cmake; fi
 
 install:
   - cmake . -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=$CPP11 -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
