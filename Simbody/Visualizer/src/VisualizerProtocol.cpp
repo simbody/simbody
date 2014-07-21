@@ -238,9 +238,9 @@ VisualizerProtocol::VisualizerProtocol
             Pathname::getEnvironmentVariable("SIMBODY_VISUALIZER_NAME");
     } else {
         vizExecutableName = "simbody-visualizer";
-#ifndef NDEBUG
-        vizExecutableName += "_d";
-#endif;
+        #ifndef NDEBUG
+            vizExecutableName += "_d";
+        #endif
     }
 
     Array_<String> actualSearchPath;
