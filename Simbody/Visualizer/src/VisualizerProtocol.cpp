@@ -228,11 +228,20 @@ static void* listenForVisualizerEvents(void* arg) {
 VisualizerProtocol::VisualizerProtocol
    (Visualizer& visualizer, const Array_<String>& userSearchPath) 
 {
-    // Launch the GUI application. We'll first look for one in the same directory
-    // as the running executable; then if that doesn't work we'll look in the
-    // bin subdirectory of the SimTK installation.
+    // Launch the GUI application. We'll first look for one in the same
+    // directory as the running executable; then if that doesn't work we'll
+    // look in the bin subdirectory of the SimTK installation.
 
-    const char* GuiAppName = "simbody-visualizer";
+    String vizExecutableName;
+    if (Pathname::environmentVariableExists("SIMBODY_VISUALIZER_NAME")) {
+        vizExecutableName =
+            Pathname::getEnvironmentVariable("SIMBODY_VISUALIZER_NAME");
+    } else {
+        vizExecutableName = "simbody-visualizer";
+#ifndef NDEBUG
+        vizExecutableName += "_d";
+#endif;
+    }
 
     Array_<String> actualSearchPath;
     // Always start with the current executable's directory.
@@ -284,7 +293,7 @@ VisualizerProtocol::VisualizerProtocol
     inPipe = viz2simPipe[0]; // read from here to receive from visualizer
 
     // Spawn the visualizer gui, trying local first then installed version.
-    spawnViz(actualSearchPath, GuiAppName, sim2vizPipe, viz2simPipe);
+    spawnViz(actualSearchPath, vizExecutableName, sim2vizPipe, viz2simPipe);
 
     // Before we do anything else, attempt to exchange handshake messages with
     // the visualizer. This will throw an exception if anything goes wrong.
